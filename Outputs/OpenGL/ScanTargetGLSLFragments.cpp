@@ -23,14 +23,15 @@ void ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 	// converge even allowing for the fact that they may not be spaced by exactly
 	// the expected distance. Cf. the stencil-powered logic for making sure all
 	// pixels are painted only exactly once per field.
+	const auto modals = BufferingScanTarget::modals();
 	switch(type) {
 		case ShaderType::Composition: break;
 		default:
-			target.set_uniform("rowHeight", GLfloat(1.05f / modals_.expected_vertical_lines));
-			target.set_uniform("scale", GLfloat(modals_.output_scale.x), GLfloat(modals_.output_scale.y) * modals_.aspect_ratio * (3.0f / 4.0f));
-			target.set_uniform("phaseOffset", GLfloat(modals_.input_data_tweaks.phase_linked_luminance_offset));
+			target.set_uniform("rowHeight", GLfloat(1.05f / modals.expected_vertical_lines));
+			target.set_uniform("scale", GLfloat(modals.output_scale.x), GLfloat(modals.output_scale.y) * modals.aspect_ratio * (3.0f / 4.0f));
+			target.set_uniform("phaseOffset", GLfloat(modals.input_data_tweaks.phase_linked_luminance_offset));
 
-			const float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
+			const float clocks_per_angle = float(modals.cycles_per_line) * float(modals.colour_cycle_denominator) / float(modals.colour_cycle_numerator);
 			GLfloat texture_offsets[4];
 			GLfloat angles[4];
 			for(int c = 0; c < 4; ++c) {
@@ -41,7 +42,7 @@ void ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 			target.set_uniform("textureCoordinateOffsets", 1, 4, texture_offsets);
 			target.set_uniform("compositeAngleOffsets", 4, 1, angles);
 
-			switch(modals_.composite_colour_space) {
+			switch(modals.composite_colour_space) {
 				case ColourSpace::YIQ: {
 					const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
 					const GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
@@ -61,9 +62,10 @@ void ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 }
 
 void ScanTarget::set_sampling_window(int output_width, int, Shader &target) {
-	if(modals_.display_type != DisplayType::CompositeColour) {
-		const float one_pixel_width = float(modals_.cycles_per_line) * modals_.visible_area.size.width / float(output_width);
-		const float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
+	const auto modals = BufferingScanTarget::modals();
+	if(modals.display_type != DisplayType::CompositeColour) {
+		const float one_pixel_width = float(modals.cycles_per_line) * modals.visible_area.size.width / float(output_width);
+		const float clocks_per_angle = float(modals.cycles_per_line) * float(modals.colour_cycle_denominator) / float(modals.colour_cycle_numerator);
 		GLfloat texture_offsets[4];
 		GLfloat angles[4];
 		for(int c = 0; c < 4; ++c) {
@@ -191,8 +193,9 @@ std::vector<std::string> ScanTarget::bindings(ShaderType type) const {
 
 std::string ScanTarget::sampling_function() const {
 	std::string fragment_shader;
+	const auto modals = BufferingScanTarget::modals();
 
-	if(modals_.display_type == DisplayType::SVideo) {
+	if(modals.display_type == DisplayType::SVideo) {
 		fragment_shader +=
 			"vec2 svideo_sample(vec2 coordinate, float angle) {";
 	} else {
@@ -200,8 +203,8 @@ std::string ScanTarget::sampling_function() const {
 			"float composite_sample(vec2 coordinate, float angle) {";
 	}
 
-	const bool is_svideo = modals_.display_type == DisplayType::SVideo;
-	switch(modals_.input_data_type) {
+	const bool is_svideo = modals.display_type == DisplayType::SVideo;
+	switch(modals.input_data_type) {
 		case InputDataType::Luminance1:
 		case InputDataType::Luminance8:
 			// Easy, just copy across.
@@ -255,6 +258,8 @@ std::string ScanTarget::sampling_function() const {
 }
 
 std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
+	const auto modals = BufferingScanTarget::modals();
+
 	// Compose a vertex shader. If the display type is RGB, generate just the proper
 	// geometry position, plus a solitary textureCoordinate.
 	//
@@ -301,7 +306,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 		"out vec4 fragColour;";
 
-	if(modals_.display_type != DisplayType::RGB) {
+	if(modals.display_type != DisplayType::RGB) {
 		vertex_shader +=
 			"out float compositeAngle;"
 			"out float compositeAmplitude;"
@@ -316,7 +321,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"uniform vec4 compositeAngleOffsets;";
 	}
 
-	if(modals_.display_type == DisplayType::SVideo || modals_.display_type == DisplayType::CompositeColour) {
+	if(modals.display_type == DisplayType::SVideo || modals.display_type == DisplayType::CompositeColour) {
 		vertex_shader += "out vec2 qamTextureCoordinates[4];";
 		fragment_shader += "in vec2 qamTextureCoordinates[4];";
 	}
@@ -332,7 +337,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);";
 
 	// For everything other than RGB, calculate the two composite outputs.
-	if(modals_.display_type != DisplayType::RGB) {
+	if(modals.display_type != DisplayType::RGB) {
 		vertex_shader +=
 			"compositeAngle = (mix(startCompositeAngle, endCompositeAngle, lateral) / 32.0) * 3.141592654;"
 			"compositeAmplitude = lineCompositeAmplitude / 255.0;"
@@ -346,7 +351,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		"textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / textureSize(textureName, 0);"
 		"textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / textureSize(textureName, 0);";
 
-	if((modals_.display_type == DisplayType::SVideo) || (modals_.display_type == DisplayType::CompositeColour)) {
+	if((modals.display_type == DisplayType::SVideo) || (modals.display_type == DisplayType::CompositeColour)) {
 		vertex_shader +=
 			"float centreCompositeAngle = abs(mix(startCompositeAngle, endCompositeAngle, lateral)) * 4.0 / 64.0;"
 			"centreCompositeAngle = floor(centreCompositeAngle);"
@@ -360,7 +365,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 	// Compose a fragment shader.
 
-	if(modals_.display_type != DisplayType::RGB) {
+	if(modals.display_type != DisplayType::RGB) {
 		fragment_shader +=
 			"uniform mat3 lumaChromaToRGB;"
 			"uniform mat3 rgbToLumaChroma;";
@@ -372,7 +377,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		"void main(void) {"
 			"vec3 fragColour3;";
 
-	switch(modals_.display_type) {
+	switch(modals.display_type) {
 		case DisplayType::CompositeColour:
 			fragment_shader +=
 				"vec4 angles = compositeAngle + compositeAngleOffsets;"
@@ -460,13 +465,13 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 	}
 
 	// Apply a brightness adjustment if requested.
-	if(fabs(modals_.brightness - 1.0f) > 0.05f) {
-		fragment_shader += "fragColour3 = fragColour3 * " + std::to_string(modals_.brightness) + ";";
+	if(fabs(modals.brightness - 1.0f) > 0.05f) {
+		fragment_shader += "fragColour3 = fragColour3 * " + std::to_string(modals.brightness) + ";";
 	}
 
 	// Apply a gamma correction if required.
-	if(fabs(output_gamma_ - modals_.intended_gamma) > 0.05f) {
-		const float gamma_ratio = output_gamma_ / modals_.intended_gamma;
+	if(fabs(output_gamma_ - modals.intended_gamma) > 0.05f) {
+		const float gamma_ratio = output_gamma_ / modals.intended_gamma;
 		fragment_shader += "fragColour3 = pow(fragColour3, vec3(" + std::to_string(gamma_ratio) + "));";
 	}
 
@@ -482,6 +487,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 }
 
 std::unique_ptr<Shader> ScanTarget::composition_shader() const {
+	const auto modals = BufferingScanTarget::modals();
 	const std::string vertex_shader =
 		"#version 150\n"
 
@@ -516,7 +522,7 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 
 		"void main(void) {";
 
-	switch(modals_.input_data_type) {
+	switch(modals.input_data_type) {
 		case InputDataType::Luminance1:
 			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0).rrrr;";
 		break;
@@ -556,7 +562,8 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 }
 
 std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
-	const bool is_svideo = modals_.display_type == DisplayType::SVideo;
+	const auto modals = BufferingScanTarget::modals();
+	const bool is_svideo = modals.display_type == DisplayType::SVideo;
 
 	// Sets up texture coordinates to run between startClock and endClock, mapping to
 	// coordinates that correlate with four times the absolute value of the composite angle.
@@ -632,7 +639,7 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 		sampling_function() +
 		"void main(void) {";
 
-	if(modals_.display_type == DisplayType::SVideo) {
+	if(modals.display_type == DisplayType::SVideo) {
 		fragment_shader +=
 			"fragColour = vec4(svideo_sample(textureCoordinate, compositeAngle).rgg * vec3(1.0, cos(compositeAngle), sin(compositeAngle)), 1.0);";
 	} else {

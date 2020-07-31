@@ -11,6 +11,12 @@
 #include <cassert>
 #include <cstring>
 
+// If enabled, this uses the producer lock to cover both production and consumption
+// rather than attempting to proceed lockfree. This is primarily for diagnostic purposes;
+// it allows empirical exploration of whether the logical and memory barriers that are
+// meant to mediate things between the read pointers and the submit pointers are functioning.
+#define ONE_BIG_LOCK
+
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
 #define TextureAddressGetX(v)	uint16_t((v) & 0x7ff)
 #define TextureSub(a, b)		(((a) - (b)) & 0x3fffff)
@@ -20,41 +26,25 @@ using namespace Outputs::Display;
 
 BufferingScanTarget::BufferingScanTarget() {
 	// Ensure proper initialisation of the two atomic pointer sets.
-	read_pointers_.store(write_pointers_);
-	submit_pointers_.store(write_pointers_);
+	read_pointers_.store(write_pointers_, std::memory_order::memory_order_relaxed);
+	submit_pointers_.store(write_pointers_, std::memory_order::memory_order_relaxed);
 
 	// Establish initial state for is_updating_.
-	is_updating_.clear();
+	is_updating_.clear(std::memory_order::memory_order_relaxed);
 }
 
-void BufferingScanTarget::end_scan() {
-	if(vended_scan_) {
-		std::lock_guard lock_guard(write_pointers_mutex_);
-		vended_scan_->data_y = TextureAddressGetY(vended_write_area_pointer_);
-		vended_scan_->line = write_pointers_.line;
-		vended_scan_->scan.end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
-		vended_scan_->scan.end_points[1].data_offset += TextureAddressGetX(vended_write_area_pointer_);
-
-#ifdef LOG_SCANS
-		if(vended_scan_->scan.composite_amplitude) {
-			std::cout << "S: ";
-			std::cout << vended_scan_->scan.end_points[0].composite_angle << "/" << vended_scan_->scan.end_points[0].data_offset << "/" << vended_scan_->scan.end_points[0].cycles_since_end_of_horizontal_retrace << " -> ";
-			std::cout << vended_scan_->scan.end_points[1].composite_angle << "/" << vended_scan_->scan.end_points[1].data_offset << "/" << vended_scan_->scan.end_points[1].cycles_since_end_of_horizontal_retrace << " => ";
-			std::cout << double(vended_scan_->scan.end_points[1].composite_angle - vended_scan_->scan.end_points[0].composite_angle) / (double(vended_scan_->scan.end_points[1].data_offset - vended_scan_->scan.end_points[0].data_offset) * 64.0f) << "/";
-			std::cout << double(vended_scan_->scan.end_points[1].composite_angle - vended_scan_->scan.end_points[0].composite_angle) / (double(vended_scan_->scan.end_points[1].cycles_since_end_of_horizontal_retrace - vended_scan_->scan.end_points[0].cycles_since_end_of_horizontal_retrace) * 64.0f);
-			std::cout << std::endl;
-		}
-#endif
-	}
-	vended_scan_ = nullptr;
-}
+// MARK: - Producer; pixel data.
 
 uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required_alignment) {
 	assert(required_alignment);
 
+	// Acquire the standard producer lock, nominally over write_pointers_.
+	std::lock_guard lock_guard(producer_mutex_);
+
+	// If allocation has already failed on this line, continue the trend.
 	if(allocation_has_failed_) return nullptr;
 
-	std::lock_guard lock_guard(write_pointers_mutex_);
+	// If there isn't yet a write area then mark allocation as failed and finish.
 	if(!write_area_) {
 		allocation_has_failed_ = true;
 		return nullptr;
@@ -76,7 +66,7 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 
 	// Check whether that steps over the read pointer.
 	const auto end_address = TextureAddress(end_x, output_y);
-	const auto read_pointers = read_pointers_.load();
+	const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
 
 	const auto end_distance = TextureSub(end_address, read_pointers.write_area);
 	const auto previous_distance = TextureSub(write_pointers_.write_area, read_pointers.write_area);
@@ -100,9 +90,11 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 }
 
 void BufferingScanTarget::end_data(size_t actual_length) {
-	if(allocation_has_failed_ || !data_is_allocated_) return;
+	// Acquire the producer lock.
+	std::lock_guard lock_guard(producer_mutex_);
 
-	std::lock_guard lock_guard(write_pointers_mutex_);
+	// Do nothing if no data write is actually ongoing.
+	if(allocation_has_failed_ || !data_is_allocated_) return;
 
 	// Bookend the start of the new data, to safeguard for precision errors in sampling.
 	memcpy(
@@ -128,12 +120,57 @@ void BufferingScanTarget::end_data(size_t actual_length) {
 	data_is_allocated_ = false;
 }
 
-void BufferingScanTarget::will_change_owner() {
-	allocation_has_failed_ = true;
-	vended_scan_ = nullptr;
+// MARK: - Producer; scans.
+
+Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
+	std::lock_guard lock_guard(producer_mutex_);
+
+	// If there's already an allocation failure on this line, do no work.
+	if(allocation_has_failed_) {
+		vended_scan_ = nullptr;
+		return nullptr;
+	}
+
+	const auto result = &scan_buffer_[write_pointers_.scan_buffer];
+	const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
+
+	// Advance the pointer.
+	const auto next_write_pointer = decltype(write_pointers_.scan_buffer)((write_pointers_.scan_buffer + 1) % scan_buffer_size_);
+
+	// Check whether that's too many.
+	if(next_write_pointer == read_pointers.scan_buffer) {
+		allocation_has_failed_ = true;
+		vended_scan_ = nullptr;
+		return nullptr;
+	}
+	write_pointers_.scan_buffer = next_write_pointer;
+	++provided_scans_;
+
+	// Fill in extra OpenGL-specific details.
+	result->line = write_pointers_.line;
+
+	vended_scan_ = result;
+	return &result->scan;
 }
 
+void BufferingScanTarget::end_scan() {
+	std::lock_guard lock_guard(producer_mutex_);
+
+	// Complete the scan only if one is afoot.
+	if(vended_scan_) {
+		vended_scan_->data_y = TextureAddressGetY(vended_write_area_pointer_);
+		vended_scan_->line = write_pointers_.line;
+		vended_scan_->scan.end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
+		vended_scan_->scan.end_points[1].data_offset += TextureAddressGetX(vended_write_area_pointer_);
+		vended_scan_ = nullptr;
+	}
+}
+
+// MARK: - Producer; lines.
+
 void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
+	std::lock_guard lock_guard(producer_mutex_);
+
 	// Forward the event to the display metrics tracker.
 	display_metrics_.announce_event(event);
 
@@ -147,114 +184,95 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 		frame_is_complete_ = true;
 	}
 
+	// Proceed from here only if a change in visibility has occurred.
 	if(output_is_visible_ == is_visible) return;
+	output_is_visible_ = is_visible;
+
 	if(is_visible) {
-		const auto read_pointers = read_pointers_.load();
-		std::lock_guard lock_guard(write_pointers_mutex_);
+		const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
 
-		// Commit the most recent line only if any scans fell on it.
-		// Otherwise there's no point outputting it, it'll contribute nothing.
-		if(provided_scans_) {
-			// Store metadata if concluding a previous line.
-			if(active_line_) {
-				line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
-				line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = previous_frame_was_complete_;
-				is_first_in_frame_ = false;
-			}
-
-			// Attempt to allocate a new line; note allocation failure if necessary.
-			const auto next_line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
-			if(next_line == read_pointers.line) {
-				allocation_has_failed_ = true;
-				active_line_ = nullptr;
-			} else {
-				write_pointers_.line = next_line;
-				active_line_ = &line_buffer_[size_t(write_pointers_.line)];
-			}
-			provided_scans_ = 0;
+		// Attempt to allocate a new line, noting allocation failure if necessary.
+		const auto next_line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
+		if(next_line == read_pointers.line) {
+			allocation_has_failed_ = true;
 		}
+		provided_scans_ = 0;
 
-		if(active_line_) {
-			active_line_->end_points[0].x = location.x;
-			active_line_->end_points[0].y = location.y;
-			active_line_->end_points[0].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
-			active_line_->end_points[0].composite_angle = location.composite_angle;
-			active_line_->line = write_pointers_.line;
-			active_line_->composite_amplitude = composite_amplitude;
+		// If there was space for a new line, establish its start.
+		if(!allocation_has_failed_) {
+			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
+			active_line.end_points[0].x = location.x;
+			active_line.end_points[0].y = location.y;
+			active_line.end_points[0].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
+			active_line.end_points[0].composite_angle = location.composite_angle;
+			active_line.line = write_pointers_.line;
+			active_line.composite_amplitude = composite_amplitude;
 		}
 	} else {
-		if(active_line_) {
-			// A successfully-allocated line is ending.
-			active_line_->end_points[1].x = location.x;
-			active_line_->end_points[1].y = location.y;
-			active_line_->end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
-			active_line_->end_points[1].composite_angle = location.composite_angle;
+		// Commit the most recent line only if any scans fell on it and all allocation was successful.
+		if(!allocation_has_failed_ && provided_scans_) {
+			// Store metadata.
+			LineMetadata &metadata = line_metadata_buffer_[size_t(write_pointers_.line)];
+			metadata.is_first_in_frame = is_first_in_frame_;
+			metadata.previous_frame_was_complete = previous_frame_was_complete_;
+			is_first_in_frame_ = false;
 
-#ifdef LOG_LINES
-			if(active_line_->composite_amplitude) {
-				std::cout << "L: ";
-				std::cout << active_line_->end_points[0].composite_angle << "/" << active_line_->end_points[0].cycles_since_end_of_horizontal_retrace << " -> ";
-				std::cout << active_line_->end_points[1].composite_angle << "/" << active_line_->end_points[1].cycles_since_end_of_horizontal_retrace << " => ";
-				std::cout << (active_line_->end_points[1].composite_angle - active_line_->end_points[0].composite_angle) << "/" << (active_line_->end_points[1].cycles_since_end_of_horizontal_retrace - active_line_->end_points[0].cycles_since_end_of_horizontal_retrace) << " => ";
-				std::cout << double(active_line_->end_points[1].composite_angle - active_line_->end_points[0].composite_angle) / (double(active_line_->end_points[1].cycles_since_end_of_horizontal_retrace - active_line_->end_points[0].cycles_since_end_of_horizontal_retrace) * 64.0f);
-				std::cout << std::endl;
-			}
-#endif
-		}
+			// Store actual line data.
+			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
+			active_line.end_points[1].x = location.x;
+			active_line.end_points[1].y = location.y;
+			active_line.end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
+			active_line.end_points[1].composite_angle = location.composite_angle;
 
-		// A line is complete; submit latest updates if nothing failed.
-		if(allocation_has_failed_) {
-			// Reset all pointers to where they were; this also means
-			// the stencil won't be properly populated.
-			write_pointers_ = submit_pointers_.load();
-			frame_is_complete_ = false;
+			// Advance the line pointer.
+			write_pointers_.line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
+
+			// Update the submit pointers with all lines, scans and data written during this line.
+			submit_pointers_.store(write_pointers_, std::memory_order::memory_order_release);
 		} else {
-			// Advance submit pointer.
-			submit_pointers_.store(write_pointers_);
+			// Something failed, or there was nothing on the line anyway, so reset all pointers to where they
+			// were before this line. Mark frame as incomplete if this was an allocation failure.
+			write_pointers_ = submit_pointers_.load(std::memory_order::memory_order_relaxed);
+			frame_is_complete_ &= !allocation_has_failed_;
 		}
+
+		// Reset the allocation-has-failed flag for the next line
+		// and mark no line as active.
 		allocation_has_failed_ = false;
 	}
-	output_is_visible_ = is_visible;
+}
+
+// MARK: - Producer; other state.
+
+void BufferingScanTarget::will_change_owner() {
+	std::lock_guard lock_guard(producer_mutex_);
+	allocation_has_failed_ = true;
+	vended_scan_ = nullptr;
 }
 
 const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
 	return display_metrics_;
 }
 
-Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
-	if(allocation_has_failed_) return nullptr;
-
-	std::lock_guard lock_guard(write_pointers_mutex_);
-
-	const auto result = &scan_buffer_[write_pointers_.scan_buffer];
-	const auto read_pointers = read_pointers_.load();
-
-	// Advance the pointer.
-	const auto next_write_pointer = decltype(write_pointers_.scan_buffer)((write_pointers_.scan_buffer + 1) % scan_buffer_size_);
-
-	// Check whether that's too many.
-	if(next_write_pointer == read_pointers.scan_buffer) {
-		allocation_has_failed_ = true;
-		return nullptr;
-	}
-	write_pointers_.scan_buffer = next_write_pointer;
-	++provided_scans_;
-
-	// Fill in extra OpenGL-specific details.
-	result->line = write_pointers_.line;
-
-	vended_scan_ = result;
-	return &result->scan;
-}
-
 void BufferingScanTarget::set_write_area(uint8_t *base) {
-	std::lock_guard lock_guard(write_pointers_mutex_);
+	// This is a bit of a hack. This call needs the producer mutex and should be
+	// safe to call from a @c perform block in order to support all potential consumers.
+	// But the temporary hack of ONE_BIG_LOCK then implies that either I need a recursive
+	// mutex, or I have to make a coupling assumption about my caller. I've done the latter,
+	// because ONE_BIG_LOCK is really really meant to be temporary. I hope.
+#ifndef ONE_BIG_LOCK
+	std::lock_guard lock_guard(producer_mutex_);
+#endif
 	write_area_ = base;
 	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 	write_pointers_ = submit_pointers_ = read_pointers_ = PointerSet();
+	allocation_has_failed_ = true;
+	vended_scan_ = nullptr;
 }
 
 size_t BufferingScanTarget::write_area_data_size() const {
+	// TODO: can I guarantee this is safe without requiring that set_write_area
+	// be within an @c perform block?
 	return data_type_size_;
 }
 
@@ -265,12 +283,18 @@ void BufferingScanTarget::set_modals(Modals modals) {
 	});
 }
 
+// MARK: - Consumer.
+
 void BufferingScanTarget::perform(const std::function<void(const OutputArea &)> &function) {
+#ifdef ONE_BIG_LOCK
+	std::lock_guard lock_guard(producer_mutex_);
+#endif
+
 	// The area to draw is that between the read pointers, representing wherever reading
 	// last stopped, and the submit pointers, representing all the new data that has been
 	// cleared for submission.
-	const auto submit_pointers = submit_pointers_.load();
-	const auto read_pointers = read_pointers_.load();
+	const auto submit_pointers = submit_pointers_.load(std::memory_order::memory_order_acquire);
+	const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
 
 	OutputArea area;
 
@@ -291,7 +315,7 @@ void BufferingScanTarget::perform(const std::function<void(const OutputArea &)> 
 	is_updating_.clear(std::memory_order_release);
 
 	// Update the read pointers.
-	read_pointers_.store(submit_pointers);
+	read_pointers_.store(submit_pointers, std::memory_order::memory_order_relaxed);
 }
 
 void BufferingScanTarget::perform(const std::function<void(void)> &function) {
@@ -309,4 +333,16 @@ void BufferingScanTarget::set_line_buffer(Line *line_buffer, LineMetadata *metad
 	line_buffer_ = line_buffer;
 	line_metadata_buffer_ = metadata_buffer;
 	line_buffer_size_ = size;
+}
+
+const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
+	if(!modals_are_dirty_) {
+		return nullptr;
+	}
+	modals_are_dirty_ = false;
+	return &modals_;
+}
+
+const Outputs::Display::ScanTarget::Modals &BufferingScanTarget::modals() const {
+	return modals_;
 }

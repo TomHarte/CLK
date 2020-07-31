@@ -94,11 +94,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// Sets the area of memory to use as line and line metadata buffers.
 		void set_line_buffer(Line *line_buffer, LineMetadata *metadata_buffer, size_t size);
 
-		// These are safe to read only within a `perform` block.
-		// TODO: can I do better than that?
-		Modals modals_;
-		bool modals_are_dirty_ = false;
-
 		/// Sets a new base address for the texture.
 		/// When called this will flush all existing data and load up the
 		/// new data size.
@@ -133,6 +128,13 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// Acts as per void(void) @c perform but also dequeues all latest available video output.
 		void perform(const std::function<void(const OutputArea &)> &);
 
+		/// @returns new Modals if any have been set since the last call to get_new_modals().
+		///		The caller must be within a @c perform block.
+		const Modals *new_modals();
+
+		/// @returns the current @c Modals.
+		const Modals &modals() const;
+
 	private:
 		// ScanTarget overrides.
 		void set_modals(Modals) final;
@@ -160,14 +162,15 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		int vended_write_area_pointer_ = 0;
 
 		// Ephemeral state that helps in line composition.
-		Line *active_line_ = nullptr;
 		int provided_scans_ = 0;
 		bool is_first_in_frame_ = true;
 		bool frame_is_complete_ = true;
 		bool previous_frame_was_complete_ = true;
 
-		// TODO: make this an implementation detail.
-		// ... and expose some sort of difference?
+		// By convention everything in the PointerSet points to the next instance
+		// of whatever it is that will be used. So a client should start with whatever
+		// is pointed to by the read pointers and carry until it gets to a value that
+		// is equal to whatever is in the submit pointers.
 		struct PointerSet {
 			// This constructor is here to appease GCC's interpretation of
 			// an ambiguity in the C++ standard; cf. https://stackoverflow.com/questions/17430377
@@ -191,16 +194,21 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// A pointer to the final thing currently cleared for submission.
 		std::atomic<PointerSet> submit_pointers_;
 
-		/// A pointer to the first thing not yet submitted for display.
+		/// A pointer to the first thing not yet submitted for display; this is
+		/// atomic since it also acts as the buffer into which the write_pointers_
+		/// may run and is therefore used by both producer and consumer.
 		std::atomic<PointerSet> read_pointers_;
 
 		/// This is used as a spinlock to guard `perform` calls.
 		std::atomic_flag is_updating_;
 
-		/// A mutex for gettng access to write_pointers_; access to write_pointers_,
-		/// data_type_size_ or write_area_texture_ is almost never contended, so this
-		/// is cheap for the main use case.
-		std::mutex write_pointers_mutex_;
+		/// A mutex for gettng access to anything the producer modifies — i.e. the write_pointers_,
+		/// data_type_size_ and write_area_texture_, and all other state to do with capturing
+		/// data, scans and lines.
+		///
+		/// This is almost never contended. The main collision is a user-prompted change of modals while the
+		/// emulation thread is running.
+		std::mutex producer_mutex_;
 
 		/// A pointer to the next thing that should be provided to the caller for data.
 		PointerSet write_pointers_;
@@ -213,6 +221,11 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		Line *line_buffer_ = nullptr;
 		LineMetadata *line_metadata_buffer_ = nullptr;
 		size_t line_buffer_size_ = 0;
+
+		// Current modals and whether they've yet been returned
+		// from a call to @c get_new_modals.
+		Modals modals_;
+		bool modals_are_dirty_ = false;
 };
 
 

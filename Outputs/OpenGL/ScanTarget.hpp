@@ -151,7 +151,7 @@ class ScanTarget: public Outputs::Display::BufferingScanTarget {
 
 		// Storage for the various buffers.
 		std::vector<uint8_t> write_area_texture_;
-		std::array<Scan, 16384> scan_buffer_;
+		std::array<Scan, LineBufferHeight*5> scan_buffer_;
 		std::array<Line, LineBufferHeight> line_buffer_;
 		std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
 };
