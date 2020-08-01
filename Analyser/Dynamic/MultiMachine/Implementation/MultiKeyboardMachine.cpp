@@ -10,12 +10,12 @@
 
 using namespace Analyser::Dynamic;
 
-MultiKeyboardMachine::MultiKeyboardMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) :
-	keyboard_(machines_) {
+MultiKeyboardMachine::MultiKeyboardMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) {
 	for(const auto &machine: machines) {
 		auto keyboard_machine = machine->keyboard_machine();
 		if(keyboard_machine) machines_.push_back(keyboard_machine);
 	}
+	keyboard_ = std::make_unique<MultiKeyboard>(machines_);
 }
 
 void MultiKeyboardMachine::clear_all_keys() {
@@ -45,7 +45,7 @@ bool MultiKeyboardMachine::can_type(char c) const {
 }
 
 Inputs::Keyboard &MultiKeyboardMachine::get_keyboard() {
-	return keyboard_;
+	return *keyboard_;
 }
 
 MultiKeyboardMachine::MultiKeyboard::MultiKeyboard(const std::vector<::MachineTypes::KeyboardMachine *> &machines)

@@ -42,7 +42,7 @@ class MultiKeyboardMachine: public MachineTypes::KeyboardMachine {
 				std::set<Key> observed_keys_;
 				bool is_exclusive_ = false;
 		};
-		MultiKeyboard keyboard_;
+		std::unique_ptr<MultiKeyboard> keyboard_;
 
 	public:
 		MultiKeyboardMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
