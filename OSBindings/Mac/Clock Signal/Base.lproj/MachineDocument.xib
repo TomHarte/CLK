@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15705" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="16097.2" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15705"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="16097.2"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
-                <outlet property="openGLView" destination="DEG-fq-cjd" id="Gxs-2u-n7B"/>
+                <outlet property="scanTargetView" destination="DEG-fq-cjd" id="5aX-3R-eXQ"/>
                 <outlet property="volumeSlider" destination="zaz-lB-Iyt" id="flY-Th-oG4"/>
                 <outlet property="volumeView" destination="4ap-Gi-2AO" id="v4e-k6-Fqf"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
@@ -27,7 +27,7 @@
                 <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <openGLView hidden="YES" wantsLayer="YES" useAuxiliaryDepthBufferStencil="NO" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSOpenGLView">
+                    <openGLView hidden="YES" wantsLayer="YES" useAuxiliaryDepthBufferStencil="NO" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSScanTargetView">
                         <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
                     </openGLView>
                     <box hidden="YES" boxType="custom" cornerRadius="4" title="Box" titlePosition="noTitle" translatesAutoresizingMaskIntoConstraints="NO" id="4ap-Gi-2AO">

@@ -155,6 +155,8 @@
 		4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B1D08051E0F7A1100763741 /* TimeTests.mm */; };
 		4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E85801D176468001EF87D /* 6532Tests.swift */; };
 		4B1EDB451E39A0AC009D6819 /* chip.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B1EDB431E39A0AC009D6819 /* chip.png */; };
+		4B228CD524D773B40077EF25 /* CSScanTarget.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B228CD424D773B30077EF25 /* CSScanTarget.mm */; };
+		4B228CD924DA12C60077EF25 /* CSScanTargetView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B228CD824DA12C60077EF25 /* CSScanTargetView.m */; };
 		4B2530F4244E6774007980BF /* fm.json in Resources */ = {isa = PBXBuildFile; fileRef = 4B2530F3244E6773007980BF /* fm.json */; };
 		4B2A332D1DB86821002876E3 /* OricOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B2A332B1DB86821002876E3 /* OricOptions.xib */; };
 		4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A53911D117D36003C6002 /* CSAudioQueue.m */; };
@@ -215,7 +217,6 @@
 		4B54C0C51F8D91D90050900F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0C41F8D91D90050900F /* Keyboard.cpp */; };
 		4B54C0C81F8D91E50050900F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0C61F8D91E50050900F /* Keyboard.cpp */; };
 		4B54C0CB1F8D92590050900F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0CA1F8D92580050900F /* Keyboard.cpp */; };
-		4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */; };
 		4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */; };
 		4B55DD8320DF06680043F2E5 /* MachinePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55DD8020DF06680043F2E5 /* MachinePicker.swift */; };
 		4B55DD8420DF06680043F2E5 /* MachinePicker.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B55DD8120DF06680043F2E5 /* MachinePicker.xib */; };
@@ -1004,6 +1005,10 @@
 		4B1E857B1D174DEC001EF87D /* 6532.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6532.hpp; sourceTree = "<group>"; };
 		4B1E85801D176468001EF87D /* 6532Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6532Tests.swift; sourceTree = "<group>"; };
 		4B1EDB431E39A0AC009D6819 /* chip.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = chip.png; sourceTree = "<group>"; };
+		4B228CD424D773B30077EF25 /* CSScanTarget.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSScanTarget.mm; sourceTree = "<group>"; };
+		4B228CD624D773CA0077EF25 /* CSScanTarget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSScanTarget.h; sourceTree = "<group>"; };
+		4B228CD724DA12C50077EF25 /* CSScanTargetView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSScanTargetView.h; sourceTree = "<group>"; };
+		4B228CD824DA12C60077EF25 /* CSScanTargetView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSScanTargetView.m; sourceTree = "<group>"; };
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
 		4B2530F3244E6773007980BF /* fm.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = fm.json; sourceTree = "<group>"; };
 		4B2A332C1DB86821002876E3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/OricOptions.xib"; sourceTree = SOURCE_ROOT; };
@@ -1129,8 +1134,6 @@
 		4B54C0C71F8D91E50050900F /* Keyboard.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Keyboard.hpp; path = Electron/Keyboard.hpp; sourceTree = "<group>"; };
 		4B54C0C91F8D92580050900F /* Keyboard.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Keyboard.hpp; path = ZX8081/Keyboard.hpp; sourceTree = "<group>"; };
 		4B54C0CA1F8D92580050900F /* Keyboard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Keyboard.cpp; path = ZX8081/Keyboard.cpp; sourceTree = "<group>"; };
-		4B55CE5B1C3B7D6F0093A61B /* CSOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSOpenGLView.h; sourceTree = "<group>"; };
-		4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSOpenGLView.m; sourceTree = "<group>"; };
 		4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachineDocument.swift; sourceTree = "<group>"; };
 		4B55DD8020DF06680043F2E5 /* MachinePicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachinePicker.swift; sourceTree = "<group>"; };
 		4B55DD8220DF06680043F2E5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MachinePicker.xib; sourceTree = "<group>"; };
@@ -2060,6 +2063,15 @@
 			path = Icons;
 			sourceTree = "<group>";
 		};
+		4B228CD324D773B30077EF25 /* ScanTarget */ = {
+			isa = PBXGroup;
+			children = (
+				4B228CD424D773B30077EF25 /* CSScanTarget.mm */,
+				4B228CD624D773CA0077EF25 /* CSScanTarget.h */,
+			);
+			path = ScanTarget;
+			sourceTree = "<group>";
+		};
 		4B2409591C45DF85004DA684 /* SignalProcessing */ = {
 			isa = PBXGroup;
 			children = (
@@ -2471,8 +2483,8 @@
 		4B55CE5A1C3B7D6F0093A61B /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				4B55CE5B1C3B7D6F0093A61B /* CSOpenGLView.h */,
-				4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */,
+				4B228CD724DA12C50077EF25 /* CSScanTargetView.h */,
+				4B228CD824DA12C60077EF25 /* CSScanTargetView.m */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -3371,6 +3383,7 @@
 				4BB73EAA1B587A5100552FC2 /* MainMenu.xib */,
 				4BE5F85A1C3E1C2500C43F01 /* Resources */,
 				4BDA00DB22E60EE900AC3CD0 /* ROMRequester */,
+				4B228CD324D773B30077EF25 /* ScanTarget */,
 				4B55CE5A1C3B7D6F0093A61B /* Views */,
 			);
 			path = "Clock Signal";
@@ -4574,6 +4587,7 @@
 				4B0E04EA1FC9E5DA00F43484 /* CAS.cpp in Sources */,
 				4B7A90ED20410A85008514A2 /* StaticAnalyser.cpp in Sources */,
 				4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */,
+				4B228CD924DA12C60077EF25 /* CSScanTargetView.m in Sources */,
 				4B6AAEAD230E40250078E864 /* Target.cpp in Sources */,
 				4B448E841F1C4C480009ABD6 /* PulseQueuedTape.cpp in Sources */,
 				4B0E61071FF34737002A9DBD /* MSX.cpp in Sources */,
@@ -4673,6 +4687,7 @@
 				4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */,
 				4BDA00E022E644AF00AC3CD0 /* CSROMReceiverView.m in Sources */,
 				4BD191F42191180E0042E144 /* ScanTarget.cpp in Sources */,
+				4B228CD524D773B40077EF25 /* CSScanTarget.mm in Sources */,
 				4BCD634922D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp in Sources */,
 				4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */,
 				4B89452A201967B4007DE474 /* File.cpp in Sources */,
@@ -4699,7 +4714,6 @@
 				4B0E04FA1FC9FA3100F43484 /* 9918.cpp in Sources */,
 				4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */,
 				4B4518841F75E91A00926311 /* UnformattedTrack.cpp in Sources */,
-				4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */,
 				4B65086022F4CF8D009C1100 /* Keyboard.cpp in Sources */,
 				4B894528201967B4007DE474 /* Disk.cpp in Sources */,
 				4BBB70A4202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,

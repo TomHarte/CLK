@@ -10,7 +10,7 @@
 #import "CSStaticAnalyser.h"
 
 #import "CSAudioQueue.h"
-#import	"CSOpenGLView.h"
+#import	"CSScanTargetView.h"
 #import "CSROMReceiverView.h"
 
 #import "CSJoystickManager.h"

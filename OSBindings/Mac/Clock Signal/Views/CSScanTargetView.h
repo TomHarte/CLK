@@ -1,5 +1,5 @@
 //
-//  CSOpenGLView.h
+//  CSScanTargetView.h
 //  Clock Signal
 //
 //  Created by Thomas Harte on 16/07/2015.
@@ -8,63 +8,33 @@
 
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
+#import <MetalKit/MetalKit.h>
 
-@class CSOpenGLView;
+@class CSScanTargetView;
 
-typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
+typedef NS_ENUM(NSInteger, CSScanTargetViewRedrawEvent) {
 	/// Indicates that AppKit requested a redraw for some reason (mostly likely, the window is being resized). So,
 	/// if the delegate doesn't redraw the view, the user is likely to see a graphical flaw.
-	CSOpenGLViewRedrawEventAppKit,
+	CSScanTargetViewRedrawEventAppKit,
 	/// Indicates that the view's display-linked timer has triggered a redraw request. So, if the delegate doesn't
 	/// redraw the view, the user will just see the previous drawing without interruption.
-	CSOpenGLViewRedrawEventTimer
+	CSScanTargetViewRedrawEventTimer
 };
 
-@protocol CSOpenGLViewDelegate
-/*!
-	Requests that the delegate produce an image of its current output state. May be called on
-	any queue or thread.
-	@param view The view making the request.
-	@param redrawEvent If @c YES then the delegate may decline to redraw if its output would be
-	identical to the previous frame. If @c NO then the delegate must draw.
-*/
-- (void)openGLViewRedraw:(nonnull CSOpenGLView *)view event:(CSOpenGLViewRedrawEvent)redrawEvent;
+//@protocol CSScanTargetViewDelegate
+///*!
+//	Requests that the delegate produce an image of its current output state. May be called on
+//	any queue or thread.
+//	@param view The view making the request.
+//	@param redrawEvent If @c YES then the delegate may decline to redraw if its output would be
+//	identical to the previous frame. If @c NO then the delegate must draw.
+//*/
+//- (void)openGLViewRedraw:(nonnull CSScanTargetView *)view event:(CSScanTargetViewRedrawEvent)redrawEvent;
+//
+//
+//@end
 
-/*!
-	Announces receipt of a file by drag and drop to the delegate.
-	@param view The view making the request.
-	@param URL The file URL of the received file.
-*/
-- (void)openGLView:(nonnull CSOpenGLView *)view didReceiveFileAtURL:(nonnull NSURL *)URL;
-
-/*!
-	Announces 'capture' of the mouse — i.e. that the view is now preventing the mouse from exiting
-	the window, in order to forward continuous mouse motion.
-	@param view The view making the announcement.
-*/
-- (void)openGLViewDidCaptureMouse:(nonnull CSOpenGLView *)view;
-
-/*!
-	Announces that the mouse is no longer captured.
-	@param view The view making the announcement.
-*/
-- (void)openGLViewDidReleaseMouse:(nonnull CSOpenGLView *)view;
-
-/*!
-	Announces that the OS mouse cursor is now being displayed again, after having been invisible.
-	@param view The view making the announcement.
-*/
-- (void)openGLViewDidShowOSMouseCursor:(nonnull CSOpenGLView *)view;
-
-/*!
-	Announces that the OS mouse cursor will now be hidden.
-	@param view The view making the announcement.
-*/
-- (void)openGLViewWillHideOSMouseCursor:(nonnull CSOpenGLView *)view;
-
-@end
-
-@protocol CSOpenGLViewResponderDelegate <NSObject>
+@protocol CSScanTargetViewResponderDelegate <NSObject>
 /*!
 	Supplies a keyDown event to the delegate.
 	@param event The @c NSEvent describing the keyDown.
@@ -111,22 +81,54 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 */
 - (void)mouseUp:(nonnull NSEvent *)event;
 
+/*!
+	Announces 'capture' of the mouse — i.e. that the view is now preventing the mouse from exiting
+	the window, in order to forward continuous mouse motion.
+	@param view The view making the announcement.
+*/
+- (void)openGLViewDidCaptureMouse:(nonnull CSScanTargetView *)view;
+
+/*!
+	Announces that the mouse is no longer captured.
+	@param view The view making the announcement.
+*/
+- (void)openGLViewDidReleaseMouse:(nonnull CSScanTargetView *)view;
+
+/*!
+	Announces that the OS mouse cursor is now being displayed again, after having been invisible.
+	@param view The view making the announcement.
+*/
+- (void)openGLViewDidShowOSMouseCursor:(nonnull CSScanTargetView *)view;
+
+/*!
+	Announces that the OS mouse cursor will now be hidden.
+	@param view The view making the announcement.
+*/
+- (void)openGLViewWillHideOSMouseCursor:(nonnull CSScanTargetView *)view;
+
+/*!
+	Announces receipt of a file by drag and drop to the delegate.
+	@param view The view making the request.
+	@param URL The file URL of the received file.
+*/
+- (void)openGLView:(nonnull CSScanTargetView *)view didReceiveFileAtURL:(nonnull NSURL *)URL;
+
 @end
 
 /*!
-	Although I'm still on the fence about this as a design decision, CSOpenGLView  is itself responsible
+	Although I'm still on the fence about this as a design decision, CSScanTargetView  is itself responsible
 	for creating and destroying a CVDisplayLink. There's a practical reason for this: you'll get real synchronisation
-	only if a link is explicitly tied to a particular display, and the CSOpenGLView therefore owns the knowledge
+	only if a link is explicitly tied to a particular display, and the CSScanTargetView therefore owns the knowledge
 	necessary to decide when to create and modify them. It doesn't currently just propagate "did change screen"-type
 	messages because I haven't yet found a way to track that other than polling, in which case I might as well put
 	that into the display link callback.
 */
-@protocol CSOpenGLViewDisplayLinkDelegate
+@protocol CSScanTargetViewDisplayLinkDelegate
 
 /*!
 	Informs the delegate that the display link has fired.
 */
-- (void)openGLViewDisplayLinkDidFire:(nonnull CSOpenGLView *)view now:(nonnull const CVTimeStamp *)now outputTime:(nonnull const CVTimeStamp *)outputTime;
+- (void)openGLViewDisplayLinkDidFire:(nonnull CSScanTargetView *)view now:(nonnull const CVTimeStamp *)now outputTime:(nonnull const CVTimeStamp *)outputTime;
 
 @end
 
@@ -134,18 +136,18 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 	Provides an OpenGL canvas with a refresh-linked update timer that can forward a subset
 	of typical first-responder actions.
 */
-@interface CSOpenGLView : NSOpenGLView
+@interface CSScanTargetView : MTKView
 
-@property (atomic, weak, nullable) id <CSOpenGLViewDelegate> delegate;
-@property (nonatomic, weak, nullable) id <CSOpenGLViewResponderDelegate> responderDelegate;
-@property (atomic, weak, nullable) id <CSOpenGLViewDisplayLinkDelegate> displayLinkDelegate;
+//@property (atomic, weak, nullable) id <CSOpenGLViewDelegate> delegate;
+@property (nonatomic, weak, nullable) id <CSScanTargetViewResponderDelegate> responderDelegate;
+@property (atomic, weak, nullable) id <CSScanTargetViewDisplayLinkDelegate> displayLinkDelegate;
 
 /// Determines whether the view offers mouse capturing — i.e. if the user clicks on the view then
-/// then the system cursor is disabled and the mouse events defined by CSOpenGLViewResponderDelegate
+/// then the system cursor is disabled and the mouse events defined by CSScanTargetViewResponderDelegate
 /// are forwarded, unless and until the user releases the mouse using the control+command shortcut.
 @property (nonatomic, assign) BOOL shouldCaptureMouse;
 
-/// Determines whether the CSOpenGLViewResponderDelegate of this window expects to use the command
+/// Determines whether the CSScanTargetViewResponderDelegate of this window expects to use the command
 /// key as though it were any other key — i.e. all command combinations should be forwarded to the delegate,
 /// not being allowed to trigger regular application shortcuts such as command+q or command+h.
 ///

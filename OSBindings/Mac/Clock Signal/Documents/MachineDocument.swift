@@ -14,8 +14,8 @@ class MachineDocument:
 	NSDocument,
 	NSWindowDelegate,
 	CSMachineDelegate,
-	CSOpenGLViewDelegate,
-	CSOpenGLViewResponderDelegate,
+//	CSOpenGLViewDelegate,
+	CSScanTargetViewResponderDelegate,
 	CSAudioQueueDelegate,
 	CSROMReciverViewDelegate
 {
@@ -45,7 +45,7 @@ class MachineDocument:
 	// MARK: - Main NIB connections.
 
 	/// The OpenGL view to receive this machine's display.
-	@IBOutlet weak var openGLView: CSOpenGLView!
+	@IBOutlet weak var scanTargetView: CSScanTargetView!
 
 	/// The options panel, if any.
 	@IBOutlet var optionsPanel: MachinePanel!
@@ -100,8 +100,9 @@ class MachineDocument:
 		actionLock.lock()
 		drawLock.lock()
 		machine = nil
-		openGLView.delegate = nil
-		openGLView.invalidate()
+//		openGLView.delegate = nil
+//		openGLView.invalidate()
+		scanTargetView.invalidate()
 		actionLock.unlock()
 		drawLock.unlock()
 
@@ -181,10 +182,10 @@ class MachineDocument:
 	// MARK: - Connections Between Machine and the Outside World
 
 	private func setupMachineOutput() {
-		if let machine = self.machine, let openGLView = self.openGLView, machine.view != openGLView {
+		if let machine = self.machine, let scanTargetView = self.scanTargetView, machine.view != scanTargetView {
 			// Establish the output aspect ratio and audio.
 			let aspectRatio = self.aspectRatio()
-			machine.setView(openGLView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
+			machine.setView(scanTargetView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
 
 			// Attach an options panel if one is available.
 			if let optionsPanelNibName = self.machineDescription?.optionsPanelNibName {
@@ -198,20 +199,20 @@ class MachineDocument:
 
 			// Callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
 			// hence the full setup of the best-effort updater prior to setting self as a delegate.
-			openGLView.delegate = self
-			openGLView.responderDelegate = self
+//			scanTargetView.delegate = self
+			scanTargetView.responderDelegate = self
 
 			// If this machine has a mouse, enable mouse capture; also indicate whether usurption
 			// of the command key is desired.
-			openGLView.shouldCaptureMouse = machine.hasMouse
-			openGLView.shouldUsurpCommand = machine.shouldUsurpCommand
+			scanTargetView.shouldCaptureMouse = machine.hasMouse
+			scanTargetView.shouldUsurpCommand = machine.shouldUsurpCommand
 
 			setupAudioQueueClockRate()
 
 			// Bring OpenGL view-holding window on top of the options panel and show the content.
-			openGLView.isHidden = false
-			openGLView.window!.makeKeyAndOrderFront(self)
-			openGLView.window!.makeFirstResponder(openGLView)
+			scanTargetView.isHidden = false
+			scanTargetView.window!.makeKeyAndOrderFront(self)
+			scanTargetView.window!.makeFirstResponder(scanTargetView)
 
 			// Start forwarding best-effort updates.
 			machine.start()
@@ -254,15 +255,15 @@ class MachineDocument:
 
 	/// Responds to the CSOpenGLViewDelegate redraw message by requesting a machine update if this is a timed
 	/// request, and ordering a redraw regardless of the motivation.
-	final func openGLViewRedraw(_ view: CSOpenGLView, event redrawEvent: CSOpenGLViewRedrawEvent) {
-		if drawLock.try() {
-			if redrawEvent == .timer {
-				machine.updateView(forPixelSize: view.backingSize)
-			}
-			machine.drawView(forPixelSize: view.backingSize)
-			drawLock.unlock()
-		}
-	}
+//	final func openGLViewRedraw(_ view: CSOpenGLView, event redrawEvent: CSOpenGLViewRedrawEvent) {
+//		if drawLock.try() {
+//			if redrawEvent == .timer {
+//				machine.updateView(forPixelSize: view.backingSize)
+//			}
+//			machine.drawView(forPixelSize: view.backingSize)
+//			drawLock.unlock()
+//		}
+//	}
 
 	// MARK: - Pasteboard Forwarding.
 
@@ -277,7 +278,7 @@ class MachineDocument:
 	// MARK: - Runtime Media Insertion.
 
 	/// Delegate message to receive drag and drop files.
-	final func openGLView(_ view: CSOpenGLView, didReceiveFileAt URL: URL) {
+	final func openGLView(_ view: CSScanTargetView, didReceiveFileAt URL: URL) {
 		let mediaSet = CSMediaSet(fileAt: URL)
 		if let mediaSet = mediaSet {
 			mediaSet.apply(to: self.machine)
@@ -310,7 +311,7 @@ class MachineDocument:
 			machine.clearAllKeys()
 			machine.joystickManager = nil
 		}
-		self.openGLView.releaseMouse()
+		self.scanTargetView.releaseMouse()
 	}
 
 	/// Upon becoming key, attaches joystick input to the machine.
@@ -609,7 +610,7 @@ class MachineDocument:
 
 		// Obtain the machine's current display.
 		var imageRepresentation: NSBitmapImageRep? = nil
-		self.openGLView.perform {
+		self.scanTargetView.perform {
 			imageRepresentation = self.machine.imageRepresentation
 		}
 
@@ -620,11 +621,11 @@ class MachineDocument:
 
 	// MARK: - Window Title Updates.
 	private var unadornedWindowTitle = ""
-	func openGLViewDidCaptureMouse(_ view: CSOpenGLView) {
+	internal func openGLViewDidCaptureMouse(_ view: CSScanTargetView) {
 		self.windowControllers[0].window?.title = self.unadornedWindowTitle + " (press ⌘+control to release mouse)"
 	}
 
-	func openGLViewDidReleaseMouse(_ view: CSOpenGLView) {
+	internal func openGLViewDidReleaseMouse(_ view: CSScanTargetView) {
 		self.windowControllers[0].window?.title = self.unadornedWindowTitle
 	}
 
@@ -750,7 +751,7 @@ class MachineDocument:
 	}
 	fileprivate var animationFader: ViewFader? = nil
 
-	func openGLViewDidShowOSMouseCursor(_ view: CSOpenGLView) {
+	internal func openGLViewDidShowOSMouseCursor(_ view: CSScanTargetView) {
 		// The OS mouse cursor became visible, so show the volume controls.
 		animationFader = nil
 		volumeView.layer?.removeAllAnimations()
@@ -758,7 +759,7 @@ class MachineDocument:
 		volumeView.layer?.opacity = 1.0
 	}
 
-	func openGLViewWillHideOSMouseCursor(_ view: CSOpenGLView) {
+	internal func openGLViewWillHideOSMouseCursor(_ view: CSScanTargetView) {
 		// The OS mouse cursor will be hidden, so hide the volume controls.
 		if !volumeView.isHidden && volumeView.layer?.animation(forKey: "opacity") == nil {
 			let fadeAnimation = CABasicAnimation(keyPath: "opacity")

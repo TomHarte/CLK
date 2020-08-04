@@ -9,8 +9,9 @@
 #import "CSMachine.h"
 #import "CSMachine+Target.h"
 
-#include "CSROMFetcher.hpp"
 #import "CSHighPrecisionTimer.h"
+#include "CSROMFetcher.hpp"
+#import "CSScanTarget.h"
 
 #include "MediaTarget.hpp"
 #include "JoystickMachine.hpp"
@@ -37,7 +38,7 @@
 #include "../../../../Outputs/OpenGL/ScanTarget.hpp"
 #include "../../../../Outputs/OpenGL/Screenshot.hpp"
 
-@interface CSMachine() <CSOpenGLViewDisplayLinkDelegate>
+@interface CSMachine() <CSScanTargetViewDisplayLinkDelegate>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
 - (void)addLED:(NSString *)led;
@@ -164,8 +165,6 @@ struct ActivityObserver: public Activity::Observer {
 	Time::ScanSynchroniser _scanSynchroniser;
 
 	NSTimer *_joystickTimer;
-
-	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
 }
 
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result missingROMs:(inout NSMutableArray<CSMissingROM *> *)missingROMs {
@@ -245,11 +244,11 @@ struct ActivityObserver: public Activity::Observer {
 	_speakerDelegate.machine = nil;
 	[_delegateMachineAccessLock unlock];
 
-	[_view performWithGLContext:^{
-		@synchronized(self) {
-			self->_scanTarget.reset();
-		}
-	}];
+//	[_view performWithGLContext:^{
+//		@synchronized(self) {
+//			self->_scanTarget.reset();
+//		}
+//	}];
 }
 
 - (float)idealSamplingRateFromRange:(NSRange)range {
@@ -351,17 +350,17 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
-- (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio {
+- (void)setView:(CSScanTargetView *)view aspectRatio:(float)aspectRatio {
 	_view = view;
 	_view.displayLinkDelegate = self;
-	[view performWithGLContext:^{
-		[self setupOutputWithAspectRatio:aspectRatio];
-	} flushDrawable:NO];
+//	[view performWithGLContext:^{
+//		[self setupOutputWithAspectRatio:aspectRatio];
+//	} flushDrawable:NO];
 }
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
-	_scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>();
-	_machine->scan_producer()->set_scan_target(_scanTarget.get());
+//	_scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>();
+//	_machine->scan_producer()->set_scan_target(_scanTarget.get());
 }
 
 - (void)updateViewForPixelSize:(CGSize)pixelSize {
@@ -374,7 +373,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize {
-	_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
+//	_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
 }
 
 - (void)paste:(NSString *)paste {
@@ -737,7 +736,7 @@ struct ActivityObserver: public Activity::Observer {
 
 #pragma mark - Timer
 
-- (void)openGLViewDisplayLinkDidFire:(CSOpenGLView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
+- (void)openGLViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
 	// First order of business: grab a timestamp.
 	const auto timeNow = Time::nanos_now();
 
@@ -765,9 +764,9 @@ struct ActivityObserver: public Activity::Observer {
 
 	// Draw the current output. (TODO: do this within the timer if either raster racing or, at least, sync matching).
 	if(!isSyncLocking) {
-		[self.view performWithGLContext:^{
-			self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
-		} flushDrawable:YES];
+//		[self.view performWithGLContext:^{
+//			self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
+//		} flushDrawable:YES];
 	}
 }
 
@@ -823,10 +822,10 @@ struct ActivityObserver: public Activity::Observer {
 		if(!wasUpdating) {
 			dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
 				[self.view performWithGLContext:^{
-					self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+//					self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
 
 					if(splitAndSync) {
-						self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
+//						self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
 					}
 				} flushDrawable:splitAndSync];
 				self->_isUpdating.clear();
