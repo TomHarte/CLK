@@ -8,6 +8,7 @@
 
 #import "CSScanTargetView.h"
 #import "CSApplication.h"
+#import "CSScanTarget.h"
 @import CoreVideo;
 @import GLKit;
 
@@ -27,6 +28,8 @@
 
 	atomic_int _isDrawingFlag;
 	BOOL _isInvalid;
+
+	CSScanTarget *_scanTarget;
 }
 
 //- (void)prepareOpenGL {
@@ -120,9 +123,10 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	[self redrawWithEvent:CSScanTargetViewRedrawEventTimer];
 }
 
-- (void)drawRect:(NSRect)dirtyRect {
-	[self redrawWithEvent:CSScanTargetViewRedrawEventAppKit];
-}
+//- (void)drawRect:(NSRect)dirtyRect {
+//	[self redrawWithEvent:CSScanTargetViewRedrawEventAppKit];
+//	NSLog(@"...");
+//}
 
 - (void)redrawWithEvent:(CSScanTargetViewRedrawEvent)event  {
 	[self performWithGLContext:^{
@@ -179,6 +183,13 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 //}
 
 - (void)awakeFromNib {
+	// Use the preferred device if available.
+	if(@available(macOS 10.15, *)) {
+		self.device = self.preferredDevice;
+	} else {
+		self.device = MTLCreateSystemDefaultDevice();
+	}
+
 //	NSOpenGLPixelFormatAttribute attributes[] = {
 //		NSOpenGLPFADoubleBuffer,
 //		NSOpenGLPFAOpenGLProfile,	NSOpenGLProfileVersion3_2Core,
@@ -203,6 +214,9 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 //	self.pixelFormat = pixelFormat;
 //	self.openGLContext = context;
 //	self.wantsBestResolutionOpenGLSurface = YES;
+	// Create the scan target.
+	_scanTarget = [[CSScanTarget alloc] initWithView:self];
+	self.delegate = _scanTarget;
 
 	// Register to receive dragged and dropped file URLs.
 	[self registerForDraggedTypes:@[(__bridge NSString *)kUTTypeFileURL]];

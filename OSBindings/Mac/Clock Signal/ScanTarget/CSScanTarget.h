@@ -7,12 +7,13 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <MetalKit/MetalKit.h>
 
 /*!
 	Provides a ScanTarget that uses Metal as its back-end.
 */
-@interface CSScanTarget : NSObject
+@interface CSScanTarget : NSObject <MTKViewDelegate>
 
-- (nonnull instancetype)init;
+- (nonnull instancetype)initWithView:(nonnull MTKView *)view;
 
 @end
