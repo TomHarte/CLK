@@ -18,8 +18,7 @@
 	// much of the inspiration, albeit that I'm proceeding via MKLView.
 	id<MTLFunction> _vertexShader;
 	id<MTLFunction> _fragmentShader;
-	id<MTLBuffer> _positionBuffer;
-	id<MTLBuffer> _colourBuffer;
+	id<MTLBuffer> _verticesBuffer;
 	id<MTLRenderPipelineState> _gouraudPipeline;
 }
 
@@ -29,18 +28,32 @@
 		_commandQueue = [view.device newCommandQueue];
 
 		// Generate some static buffers. AS A TEST.
-		constexpr float positions[] = {
-			0.0f,	0.5f,	0.0f,	1.0f,
+		constexpr float vertices[] = {
+			0.0f,	0.5f,	0.0f,	1.0f,	// Position.
+			1.0f, 	0.0f, 	0.0f, 	1.0f,	// Colour.
+
 			-0.5f,	-0.5f,	0.0f,	1.0f,
+			0.0f, 	1.0f, 	0.0f, 	1.0f,
+
 			0.5f,	-0.5f,	0.0f,	1.0f,
+			0.0f, 	0.0f, 	1.0f, 	1.0f,
 		};
-		constexpr float colours[] = {
-			1.0f, 0.0f, 0.0f, 1.0f,
-			0.0f, 1.0f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f, 1.0f,
-		};
-		_positionBuffer = [view.device newBufferWithBytes:positions length:sizeof(positions) options:MTLResourceOptionCPUCacheModeDefault];
-		_colourBuffer = [view.device newBufferWithBytes:colours length:sizeof(colours) options:MTLResourceOptionCPUCacheModeDefault];
+		_verticesBuffer = [view.device newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceOptionCPUCacheModeDefault];
+
+		MTLVertexDescriptor *vertexDescriptor = [[MTLVertexDescriptor alloc] init];
+
+		// Position.
+		vertexDescriptor.attributes[0].bufferIndex = 0;
+		vertexDescriptor.attributes[0].offset = 0;
+		vertexDescriptor.attributes[0].format = MTLVertexFormatFloat4;
+
+		// Colour.
+		vertexDescriptor.attributes[1].bufferIndex = 0;
+		vertexDescriptor.attributes[1].offset = sizeof(float)*4;
+		vertexDescriptor.attributes[1].format = MTLVertexFormatFloat4;
+
+		// Total vertex size.
+        vertexDescriptor.layouts[0].stride = sizeof(float) * 8;
 
 		// Generate TEST pipeline.
 		id<MTLLibrary> library = [view.device newDefaultLibrary];
@@ -48,6 +61,7 @@
 		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"vertex_main"];
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"fragment_main"];
 		pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
+		pipelineDescriptor.vertexDescriptor = vertexDescriptor;
 		_gouraudPipeline = [view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 	}
 	return self;
@@ -78,8 +92,7 @@
 
 	// Drawing. Just the test triangle, as described above.
 	[encoder setRenderPipelineState:_gouraudPipeline];
-	[encoder setVertexBuffer:_positionBuffer offset:0 atIndex:0];
-	[encoder setVertexBuffer:_colourBuffer offset:0 atIndex:1];
+	[encoder setVertexBuffer:_verticesBuffer offset:0 atIndex:0];
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3 instanceCount:1];
 
 	// Complete encoding.
