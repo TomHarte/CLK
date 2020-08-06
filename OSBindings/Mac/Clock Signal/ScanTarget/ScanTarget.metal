@@ -13,8 +13,8 @@ using namespace metal;
 // of my learning process, and the fact that they soon won't be.
 
 struct InputVertex {
-	float4 position	[[attribute(0)]];
-	float4 colour	[[attribute(1)]];
+	float2 position	[[attribute(0)]];
+	float3 colour	[[attribute(1)]];
 };
 
 struct ColouredVertex {
@@ -22,11 +22,10 @@ struct ColouredVertex {
 	float4 colour;
 };
 
-vertex ColouredVertex vertex_main(	device const InputVertex *vertices [[buffer(0)]],
-									uint vid [[vertex_id]]) {
+vertex ColouredVertex vertex_main(InputVertex vert [[stage_in]]) {
 	ColouredVertex output;
-	output.position = vertices[vid].position;
-	output.colour = vertices[vid].colour;
+	output.position = float4(vert.position, 0.0, 1.0);
+	output.colour = float4(vert.colour, 1.0);
 	return output;
 }
 

@@ -1010,7 +1010,7 @@
 		4B228CD624D773CA0077EF25 /* CSScanTarget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSScanTarget.h; sourceTree = "<group>"; };
 		4B228CD724DA12C50077EF25 /* CSScanTargetView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSScanTargetView.h; sourceTree = "<group>"; };
 		4B228CD824DA12C60077EF25 /* CSScanTargetView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSScanTargetView.m; sourceTree = "<group>"; };
-		4B228CDA24DA41880077EF25 /* ScanTarget.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = ScanTarget.metal; path = "Clock Signal/ScanTarget/ScanTarget.metal"; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.metal; };
+		4B228CDA24DA41880077EF25 /* ScanTarget.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = ScanTarget.metal; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.metal; };
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
 		4B2530F3244E6773007980BF /* fm.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = fm.json; sourceTree = "<group>"; };
 		4B2A332C1DB86821002876E3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/OricOptions.xib"; sourceTree = SOURCE_ROOT; };
@@ -2068,6 +2068,7 @@
 		4B228CD324D773B30077EF25 /* ScanTarget */ = {
 			isa = PBXGroup;
 			children = (
+				4B228CDA24DA41880077EF25 /* ScanTarget.metal */,
 				4B228CD424D773B30077EF25 /* CSScanTarget.mm */,
 				4B228CD624D773CA0077EF25 /* CSScanTarget.h */,
 			);
@@ -3325,7 +3326,6 @@
 		4BB73E951B587A5100552FC2 = {
 			isa = PBXGroup;
 			children = (
-				4B228CDA24DA41880077EF25 /* ScanTarget.metal */,
 				4BC3C67A24C9230F0027BF76 /* BufferingScanTarget.cpp */,
 				4BC3C67B24C9230F0027BF76 /* BufferingScanTarget.hpp */,
 				4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */,

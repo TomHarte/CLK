@@ -29,14 +29,17 @@
 
 		// Generate some static buffers. AS A TEST.
 		constexpr float vertices[] = {
-			0.0f,	0.5f,	0.0f,	1.0f,	// Position.
-			1.0f, 	0.0f, 	0.0f, 	1.0f,	// Colour.
+			-0.9f,	-0.9f,			// Position.
+			1.0f, 	0.0f, 	0.0f,	// Colour.
 
-			-0.5f,	-0.5f,	0.0f,	1.0f,
-			0.0f, 	1.0f, 	0.0f, 	1.0f,
+			-0.9f,	0.9f,
+			0.0f, 	1.0f, 	0.0f,
 
-			0.5f,	-0.5f,	0.0f,	1.0f,
-			0.0f, 	0.0f, 	1.0f, 	1.0f,
+			0.9f,	-0.9f,
+			0.0f, 	0.0f, 	1.0f,
+
+			0.9f,	0.9f,
+			0.0f, 	1.0f, 	1.0f,
 		};
 		_verticesBuffer = [view.device newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceOptionCPUCacheModeDefault];
 
@@ -45,15 +48,15 @@
 		// Position.
 		vertexDescriptor.attributes[0].bufferIndex = 0;
 		vertexDescriptor.attributes[0].offset = 0;
-		vertexDescriptor.attributes[0].format = MTLVertexFormatFloat4;
+		vertexDescriptor.attributes[0].format = MTLVertexFormatFloat2;
 
 		// Colour.
 		vertexDescriptor.attributes[1].bufferIndex = 0;
-		vertexDescriptor.attributes[1].offset = sizeof(float)*4;
-		vertexDescriptor.attributes[1].format = MTLVertexFormatFloat4;
+		vertexDescriptor.attributes[1].offset = sizeof(float)*2;
+		vertexDescriptor.attributes[1].format = MTLVertexFormatFloat3;
 
 		// Total vertex size.
-        vertexDescriptor.layouts[0].stride = sizeof(float) * 8;
+		vertexDescriptor.layouts[0].stride = sizeof(float)*5;
 
 		// Generate TEST pipeline.
 		id<MTLLibrary> library = [view.device newDefaultLibrary];
@@ -93,7 +96,7 @@
 	// Drawing. Just the test triangle, as described above.
 	[encoder setRenderPipelineState:_gouraudPipeline];
 	[encoder setVertexBuffer:_verticesBuffer offset:0 atIndex:0];
-	[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3 instanceCount:1];
+	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:1];
 
 	// Complete encoding.
 	[encoder endEncoding];
