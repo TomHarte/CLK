@@ -50,7 +50,7 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 
 		// Extends the definition of a Scan to include two extra fields,
 		// completing this scan's source data and destination locations.
-		struct alignas(4) Scan {
+		struct Scan {
 			Outputs::Display::ScanTarget::Scan scan;
 
 			/// Stores the y coordinate for this scan's data within the write area texture.
@@ -65,8 +65,8 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// Defines the boundaries of a complete line of video — a 2d start and end location,
 		/// composite phase and amplitude (if relevant), the source line in the intermediate buffer
 		/// plus the start and end offsets of the area that is visible from the intermediate buffer.
-		struct alignas(4) Line {
-			struct alignas(4) EndPoint {
+		struct Line {
+			struct EndPoint {
 				uint16_t x, y;
 				uint16_t cycles_since_end_of_horizontal_retrace;
 				int16_t composite_angle;
