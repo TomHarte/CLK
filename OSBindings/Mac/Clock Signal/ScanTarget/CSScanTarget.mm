@@ -10,16 +10,26 @@
 
 #import <Metal/Metal.h>
 
+namespace {
+
+struct Uniforms {
+	int32_t scale[2];
+	float lineWidth;
+};
+
+}
+
 @implementation CSScanTarget {
 	id<MTLCommandQueue> _commandQueue;
 
-	// TEST ONLY: to check that I'm drawing _something_, I'm heading towards ye standard
-	// Gouraud shading triangle. https://metalbyexample.com/up-and-running-2/ is providing
-	// much of the inspiration, albeit that I'm proceeding via MKLView.
 	id<MTLFunction> _vertexShader;
 	id<MTLFunction> _fragmentShader;
-	id<MTLBuffer> _verticesBuffer;
 	id<MTLRenderPipelineState> _gouraudPipeline;
+
+	// Buffers.
+	id<MTLBuffer> _quadBuffer;		// i.e. four vertices defining a quad.
+	id<MTLBuffer> _uniformsBuffer;
+	id<MTLBuffer> _scansBuffer;
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -27,47 +37,45 @@
 	if(self) {
 		_commandQueue = [view.device newCommandQueue];
 
-		// Generate some static buffers. AS A TEST.
+		// Install the standard quad.
 		constexpr float vertices[] = {
-			-0.9f,	-0.9f,			// Position.
-			1.0f, 	0.0f, 	0.0f,	// Colour.
-
+			-0.9f,	-0.9f,
 			-0.9f,	0.9f,
-			0.0f, 	1.0f, 	0.0f,
-
 			0.9f,	-0.9f,
-			0.0f, 	0.0f, 	1.0f,
-
 			0.9f,	0.9f,
-			0.0f, 	1.0f, 	1.0f,
 		};
-		_verticesBuffer = [view.device newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceOptionCPUCacheModeDefault];
+		_quadBuffer = [view.device newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceCPUCacheModeDefaultCache];
 
+		// Allocate space for uniforms.
+		_uniformsBuffer = [view.device newBufferWithLength:16 options:MTLResourceCPUCacheModeWriteCombined];
+		Uniforms testUniforms = {
+			.scale = {0, 0},
+			.lineWidth = 0.1f
+		};
+		[self setUniforms:testUniforms];
+
+		// The quad buffer has only 2d positions.
 		MTLVertexDescriptor *vertexDescriptor = [[MTLVertexDescriptor alloc] init];
-
-		// Position.
 		vertexDescriptor.attributes[0].bufferIndex = 0;
 		vertexDescriptor.attributes[0].offset = 0;
 		vertexDescriptor.attributes[0].format = MTLVertexFormatFloat2;
-
-		// Colour.
-		vertexDescriptor.attributes[1].bufferIndex = 0;
-		vertexDescriptor.attributes[1].offset = sizeof(float)*2;
-		vertexDescriptor.attributes[1].format = MTLVertexFormatFloat3;
-
-		// Total vertex size.
-		vertexDescriptor.layouts[0].stride = sizeof(float)*5;
+		vertexDescriptor.layouts[0].stride = sizeof(float)*2;
 
 		// Generate TEST pipeline.
 		id<MTLLibrary> library = [view.device newDefaultLibrary];
 		MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"vertex_main"];
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"fragment_main"];
+		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanVertexMain"];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"scanFragmentMain"];
 		pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
 		pipelineDescriptor.vertexDescriptor = vertexDescriptor;
 		_gouraudPipeline = [view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 	}
 	return self;
+}
+
+- (void)setUniforms:(const Uniforms &)uniforms {
+	memcpy(_uniformsBuffer.contents, &uniforms, sizeof(Uniforms));
+//	[_uniformsBuffer didModifyRange:NSMakeRange(0, sizeof(Uniforms))];
 }
 
 /*!
@@ -95,7 +103,10 @@
 
 	// Drawing. Just the test triangle, as described above.
 	[encoder setRenderPipelineState:_gouraudPipeline];
-	[encoder setVertexBuffer:_verticesBuffer offset:0 atIndex:0];
+
+	[encoder setVertexBuffer:_quadBuffer offset:0 atIndex:0];
+	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
+
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:1];
 
 	// Complete encoding.
