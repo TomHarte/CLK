@@ -58,7 +58,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--volume=0.001"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--new=amstradcpc"
@@ -94,7 +94,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--rompath=/Users/thomasharte/Projects/CLK/ROMImages"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--help"
