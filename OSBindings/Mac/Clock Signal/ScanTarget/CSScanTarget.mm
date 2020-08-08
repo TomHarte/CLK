@@ -31,7 +31,6 @@ constexpr size_t NumBufferedScans = 2048;
 	id<MTLRenderPipelineState> _gouraudPipeline;
 
 	// Buffers.
-	id<MTLBuffer> _quadBuffer;		// i.e. four vertices defining a quad.
 	id<MTLBuffer> _uniformsBuffer;
 	id<MTLBuffer> _scansBuffer;
 
@@ -43,15 +42,6 @@ constexpr size_t NumBufferedScans = 2048;
 	self = [super init];
 	if(self) {
 		_commandQueue = [view.device newCommandQueue];
-
-		// Install the standard quad.
-		constexpr float vertices[] = {
-			0.0f,	0.0f,
-			0.0f,	1.0f,
-			1.0f,	0.0f,
-			1.0f,	1.0f,
-		};
-		_quadBuffer = [view.device newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceCPUCacheModeDefaultCache];
 
 		// Allocate space for uniforms.
 		_uniformsBuffer = [view.device newBufferWithLength:16 options:MTLResourceCPUCacheModeWriteCombined];
@@ -67,22 +57,12 @@ constexpr size_t NumBufferedScans = 2048;
 			options:MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
 		[self setTestScans];
 
-		// The quad buffer has only 2d positions; the scan buffer is a bit more complicated
-		MTLVertexDescriptor *vertexDescriptor = [[MTLVertexDescriptor alloc] init];
-		vertexDescriptor.attributes[0].bufferIndex = 0;
-		vertexDescriptor.attributes[0].offset = 0;
-		vertexDescriptor.attributes[0].format = MTLVertexFormatFloat2;
-		vertexDescriptor.layouts[0].stride = sizeof(float)*2;
-
-		// TODO: shouldn't I need to explain the Scan layout, too? Or do these things not need to be specified when compatible?
-
 		// Generate TEST pipeline.
 		id<MTLLibrary> library = [view.device newDefaultLibrary];
 		MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
 		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanVertexMain"];
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"scanFragmentMain"];
 		pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
-		pipelineDescriptor.vertexDescriptor = vertexDescriptor;
 		_gouraudPipeline = [view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 	}
 
@@ -134,9 +114,8 @@ constexpr size_t NumBufferedScans = 2048;
 	// Drawing. Just the test triangle, as described above.
 	[encoder setRenderPipelineState:_gouraudPipeline];
 
-	[encoder setVertexBuffer:_quadBuffer offset:0 atIndex:0];
+	[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
 	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
-	[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:2];
 
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:2];
 

@@ -9,9 +9,6 @@
 #include <metal_stdlib>
 using namespace metal;
 
-// These two structs are the same, but defined separately as an artefact
-// of my learning process, and the fact that they soon won't be.
-
 struct Uniforms {
 	// This is used to scale scan positions, i.e. it provides the range
 	// for mapping from scan-style integer positions into eye space.
@@ -40,11 +37,6 @@ struct Scan {
 	uint32_t dataYAndLine			[[attribute(7)]];
 };
 
-// This is a custom thing defining one corner of a quad.
-struct QuadInputVertex {
-	float2 position	[[attribute(0)]];
-};
-
 struct ColouredVertex {
 	float4 position [[position]];
 };
@@ -52,28 +44,28 @@ struct ColouredVertex {
 
 // MARK: - Scan shaders; these do final output to the display.
 
-vertex ColouredVertex scanVertexMain(	QuadInputVertex vert [[stage_in]],
-										constant Uniforms &uniforms [[buffer(1)]],
-										constant Scan *scans [[buffer(2)]],
-										ushort instance [[instance_id]]) {
+vertex ColouredVertex scanVertexMain(	constant Uniforms &uniforms [[buffer(1)]],
+										constant Scan *scans [[buffer(0)]],
+										uint instanceID [[instance_id]],
+										uint vertexID [[vertex_id]]) {
 	// Unpack start and end vertices; little-endian numbers are assumed here.
 	const float2 start = float2(
-		float(scans[instance].startPosition & 0xffff) / float(uniforms.scale.x),
-		float(scans[instance].startPosition >> 16) / float(uniforms.scale.y)
+		float(scans[instanceID].startPosition & 0xffff) / float(uniforms.scale.x),
+		float(scans[instanceID].startPosition >> 16) / float(uniforms.scale.y)
 	);
 	const float2 end = float2(
-		float(scans[instance].endPosition & 0xffff) / float(uniforms.scale.x),
-		float(scans[instance].endPosition >> 16) / float(uniforms.scale.y)
+		float(scans[instanceID].endPosition & 0xffff) / float(uniforms.scale.x),
+		float(scans[instanceID].endPosition >> 16) / float(uniforms.scale.y)
 	);
 
 	// Calculate the tangent and normal.
-	const float2 tangent = end - start;
+	const float2 tangent = (end - start);
 	const float2 normal = float2(-tangent.y, tangent.x) / length(tangent);
 
 	// Hence determine this quad's real shape.
 	ColouredVertex output;
 	output.position = float4(
-		((start + vert.position.x * tangent + vert.position.y * normal * uniforms.lineWidth) * float2(2.0, -2.0) + float2(-1.0, 1.0)) * float2(uniforms.aspectRatioMultiplier, 1.0),
+		((start + (float(vertexID&2) * 0.5) * tangent + (float(vertexID&1) - 0.5) * normal * uniforms.lineWidth) * float2(2.0, -2.0) + float2(-1.0, 1.0)) * float2(uniforms.aspectRatioMultiplier, 1.0),
 		0.0,
 		1.0
 	);
