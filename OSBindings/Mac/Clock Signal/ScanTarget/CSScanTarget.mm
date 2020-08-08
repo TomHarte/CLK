@@ -9,6 +9,7 @@
 #import "CSScanTarget.h"
 
 #import <Metal/Metal.h>
+#include "BufferingScanTarget.hpp"
 
 namespace {
 
@@ -16,6 +17,8 @@ struct Uniforms {
 	int32_t scale[2];
 	float lineWidth;
 };
+
+constexpr size_t NumBufferedScans = 2048;
 
 }
 
@@ -48,18 +51,26 @@ struct Uniforms {
 
 		// Allocate space for uniforms.
 		_uniformsBuffer = [view.device newBufferWithLength:16 options:MTLResourceCPUCacheModeWriteCombined];
-		Uniforms testUniforms = {
-			.scale = {0, 0},
+		const Uniforms testUniforms = {
+			.scale = {1024, 1024},
 			.lineWidth = 0.1f
 		};
 		[self setUniforms:testUniforms];
 
-		// The quad buffer has only 2d positions.
+		// Allocate a large buffer for scans.
+		_scansBuffer = [view.device
+			newBufferWithLength:sizeof(Outputs::Display::BufferingScanTarget::Scan)*NumBufferedScans
+			options:MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
+		[self setTestScans];
+
+		// The quad buffer has only 2d positions; the scan buffer is a bit more complicated
 		MTLVertexDescriptor *vertexDescriptor = [[MTLVertexDescriptor alloc] init];
 		vertexDescriptor.attributes[0].bufferIndex = 0;
 		vertexDescriptor.attributes[0].offset = 0;
 		vertexDescriptor.attributes[0].format = MTLVertexFormatFloat2;
 		vertexDescriptor.layouts[0].stride = sizeof(float)*2;
+
+		// Create a scans buffer, and for now just put two in there.
 
 		// Generate TEST pipeline.
 		id<MTLLibrary> library = [view.device newDefaultLibrary];
@@ -70,12 +81,27 @@ struct Uniforms {
 		pipelineDescriptor.vertexDescriptor = vertexDescriptor;
 		_gouraudPipeline = [view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 	}
+
 	return self;
 }
 
 - (void)setUniforms:(const Uniforms &)uniforms {
 	memcpy(_uniformsBuffer.contents, &uniforms, sizeof(Uniforms));
-//	[_uniformsBuffer didModifyRange:NSMakeRange(0, sizeof(Uniforms))];
+}
+
+- (void)setTestScans {
+	Outputs::Display::BufferingScanTarget::Scan scans[2];
+	scans[0].scan.end_points[0].x = 0;
+	scans[0].scan.end_points[0].y = 0;
+	scans[0].scan.end_points[1].x = 1024;
+	scans[0].scan.end_points[1].y = 256;
+
+	scans[1].scan.end_points[0].x = 0;
+	scans[1].scan.end_points[0].y = 768;
+	scans[1].scan.end_points[1].x = 512;
+	scans[1].scan.end_points[1].y = 128;
+
+	memcpy(_scansBuffer.contents, scans, sizeof(scans));
 }
 
 /*!
@@ -106,8 +132,9 @@ struct Uniforms {
 
 	[encoder setVertexBuffer:_quadBuffer offset:0 atIndex:0];
 	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
+	[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:2];
 
-	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:1];
+	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:2];
 
 	// Complete encoding.
 	[encoder endEncoding];
