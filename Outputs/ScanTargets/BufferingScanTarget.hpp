@@ -39,7 +39,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/*! @returns The DisplayMetrics object that this ScanTarget has been providing with announcements and draw overages. */
 		const Metrics &display_metrics();
 
-	protected:
 		static constexpr int WriteAreaWidth = 2048;
 		static constexpr int WriteAreaHeight = 2048;
 
