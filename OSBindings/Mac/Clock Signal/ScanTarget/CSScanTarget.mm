@@ -42,10 +42,10 @@ constexpr size_t NumBufferedScans = 2048;
 
 		// Install the standard quad.
 		constexpr float vertices[] = {
-			-0.9f,	-0.9f,
-			-0.9f,	0.9f,
-			0.9f,	-0.9f,
-			0.9f,	0.9f,
+			0.0f,	0.0f,
+			0.0f,	1.0f,
+			1.0f,	0.0f,
+			1.0f,	1.0f,
 		};
 		_quadBuffer = [view.device newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceCPUCacheModeDefaultCache];
 
@@ -53,7 +53,7 @@ constexpr size_t NumBufferedScans = 2048;
 		_uniformsBuffer = [view.device newBufferWithLength:16 options:MTLResourceCPUCacheModeWriteCombined];
 		const Uniforms testUniforms = {
 			.scale = {1024, 1024},
-			.lineWidth = 0.1f
+			.lineWidth = 1.0f / 312.0f
 		};
 		[self setUniforms:testUniforms];
 
@@ -99,7 +99,7 @@ constexpr size_t NumBufferedScans = 2048;
 	scans[1].scan.end_points[0].x = 0;
 	scans[1].scan.end_points[0].y = 768;
 	scans[1].scan.end_points[1].x = 512;
-	scans[1].scan.end_points[1].y = 128;
+	scans[1].scan.end_points[1].y = 512;
 
 	memcpy(_scansBuffer.contents, scans, sizeof(scans));
 }
