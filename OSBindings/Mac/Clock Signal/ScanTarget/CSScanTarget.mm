@@ -16,6 +16,7 @@ namespace {
 struct Uniforms {
 	int32_t scale[2];
 	float lineWidth;
+	float aspectRatioMultiplier;
 };
 
 constexpr size_t NumBufferedScans = 2048;
@@ -33,6 +34,9 @@ constexpr size_t NumBufferedScans = 2048;
 	id<MTLBuffer> _quadBuffer;		// i.e. four vertices defining a quad.
 	id<MTLBuffer> _uniformsBuffer;
 	id<MTLBuffer> _scansBuffer;
+
+	// Current uniforms.
+	Uniforms _uniforms;
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -51,11 +55,11 @@ constexpr size_t NumBufferedScans = 2048;
 
 		// Allocate space for uniforms.
 		_uniformsBuffer = [view.device newBufferWithLength:16 options:MTLResourceCPUCacheModeWriteCombined];
-		const Uniforms testUniforms = {
-			.scale = {1024, 1024},
-			.lineWidth = 1.0f / 312.0f
-		};
-		[self setUniforms:testUniforms];
+		_uniforms.scale[0] = 1024;
+		_uniforms.scale[1] = 1024;
+		_uniforms.lineWidth = 1.0f / 312.0f;
+		_uniforms.aspectRatioMultiplier = 1.0f;
+		[self setUniforms];
 
 		// Allocate a large buffer for scans.
 		_scansBuffer = [view.device
@@ -70,7 +74,7 @@ constexpr size_t NumBufferedScans = 2048;
 		vertexDescriptor.attributes[0].format = MTLVertexFormatFloat2;
 		vertexDescriptor.layouts[0].stride = sizeof(float)*2;
 
-		// Create a scans buffer, and for now just put two in there.
+		// TODO: shouldn't I need to explain the Scan layout, too? Or do these things not need to be specified when compatible?
 
 		// Generate TEST pipeline.
 		id<MTLLibrary> library = [view.device newDefaultLibrary];
@@ -85,8 +89,8 @@ constexpr size_t NumBufferedScans = 2048;
 	return self;
 }
 
-- (void)setUniforms:(const Uniforms &)uniforms {
-	memcpy(_uniformsBuffer.contents, &uniforms, sizeof(Uniforms));
+- (void)setUniforms {
+	memcpy(_uniformsBuffer.contents, &_uniforms, sizeof(Uniforms));
 }
 
 - (void)setTestScans {
@@ -112,8 +116,8 @@ constexpr size_t NumBufferedScans = 2048;
  @param size New drawable size in pixels
  */
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
-	// I think (?) I don't care about this; the MKLView has already handled resizing the backing,
-	// which will naturally change the viewport.
+	_uniforms.aspectRatioMultiplier = float((4.0 / 3.0) / (size.width / size.height));
+	[self setUniforms];
 }
 
 /*!

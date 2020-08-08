@@ -17,8 +17,11 @@ struct Uniforms {
 	// for mapping from scan-style integer positions into eye space.
 	int2 scale						[[attribute(0)]];
 
-	// This provides the intended width of a scan, in eye-coordinate terms.
+	// This provides the intended height of a scan, in eye-coordinate terms.
 	float lineWidth					[[attribute(1)]];
+
+	// Provides a scaling factor in order to preserve 4:3 central content.
+	float aspectRatioMultiplier		[[attribute(2)]];
 };
 
 // This is intended to match `Scan` as defined by the BufferingScanTarget.
@@ -53,7 +56,7 @@ vertex ColouredVertex scanVertexMain(	QuadInputVertex vert [[stage_in]],
 										constant Uniforms &uniforms [[buffer(1)]],
 										constant Scan *scans [[buffer(2)]],
 										ushort instance [[instance_id]]) {
-	// Unpack start and end vertices.
+	// Unpack start and end vertices; little-endian numbers are assumed here.
 	const float2 start = float2(
 		float(scans[instance].startPosition & 0xffff) / float(uniforms.scale.x),
 		float(scans[instance].startPosition >> 16) / float(uniforms.scale.y)
@@ -70,7 +73,7 @@ vertex ColouredVertex scanVertexMain(	QuadInputVertex vert [[stage_in]],
 	// Hence determine this quad's real shape.
 	ColouredVertex output;
 	output.position = float4(
-		(start + vert.position.x * tangent + vert.position.y * normal * uniforms.lineWidth) * float2(2.0, -2.0) + float2(-1.0, 1.0),
+		((start + vert.position.x * tangent + vert.position.y * normal * uniforms.lineWidth) * float2(2.0, -2.0) + float2(-1.0, 1.0)) * float2(uniforms.aspectRatioMultiplier, 1.0),
 		0.0,
 		1.0
 	);
