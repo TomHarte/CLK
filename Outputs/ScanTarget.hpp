@@ -210,9 +210,11 @@ struct ScanTarget {
 
 		/*!
 			Defines a scan in terms of its two endpoints.
+
+			Is guaranteed to be a multiple of four bytes in size.
 		*/
-		struct Scan {
-			struct EndPoint {
+		struct alignas(4) Scan {
+			struct alignas(4) EndPoint {
 				/// Provide the coordinate of this endpoint. These are fixed point, purely fractional
 				/// numbers, relative to the scale provided in the Modals.
 				uint16_t x, y;
