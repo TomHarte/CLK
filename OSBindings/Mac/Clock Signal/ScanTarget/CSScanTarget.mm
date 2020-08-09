@@ -23,6 +23,12 @@ struct Uniforms {
 constexpr size_t NumBufferedScans = 2048;
 constexpr size_t NumBufferedLines = 2048;
 
+/// The shared resource options this app would most favour; applied as widely as possible.
+constexpr MTLResourceOptions SharedResourceOptionsStandard = MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared;
+
+/// The shared resource options used for the write-area texture; on macOS it can't be MTLResourceStorageModeShared so this is a carve-out.
+constexpr MTLResourceOptions SharedResourceOptionsTexture = MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeManaged;
+
 #define uniforms() reinterpret_cast<Uniforms *>(_uniformsBuffer.contents)
 
 }
@@ -43,6 +49,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLBuffer> _linesBuffer;
 	id<MTLBuffer> _writeAreaBuffer;
 
+	// Textures.
+	id<MTLTexture> _writeAreaTexture;
+	size_t _bytesPerInputPixel;
+	size_t _totalTextureBytes;
+
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
 	BufferingScanTarget::LineMetadata _lineMetadataBuffer[NumBufferedLines];
@@ -62,13 +73,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Allocate buffers for scans and lines and for the write area texture.
 		_scansBuffer = [view.device
 			newBufferWithLength:sizeof(Outputs::Display::BufferingScanTarget::Scan)*NumBufferedScans
-			options:MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
+			options:SharedResourceOptionsStandard];
 		_linesBuffer = [view.device
 			newBufferWithLength:sizeof(Outputs::Display::BufferingScanTarget::Line)*NumBufferedLines
-			options:MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
+			options:SharedResourceOptionsStandard];
 		_writeAreaBuffer = [view.device
 			newBufferWithLength:BufferingScanTarget::WriteAreaWidth*BufferingScanTarget::WriteAreaHeight*4
-			options:MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
+			options:SharedResourceOptionsTexture];
 
 		// Install all that storage in the buffering scan target.
 		_scanTarget.set_write_area(reinterpret_cast<uint8_t *>(_writeAreaBuffer.contents));
@@ -115,7 +126,30 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		uniforms()->scale[1] = newModals->output_scale.y;
 		uniforms()->lineWidth = 1.0f / newModals->expected_vertical_lines;
 
-		// TODO: establish at least a texture. Obey the rest of the modals generally.
+		// TODO: obey the rest of the modals generally.
+
+		// Generate the appropriate input texture.
+		MTLPixelFormat pixelFormat;
+		_bytesPerInputPixel = size_for_data_type(newModals->input_data_type);
+		switch(_bytesPerInputPixel) {
+			default:
+			case 1: pixelFormat = MTLPixelFormatR8Unorm;	break;
+			case 2: pixelFormat = MTLPixelFormatRG8Unorm;	break;
+			case 4: pixelFormat = MTLPixelFormatRGBA8Unorm;	break;
+		}
+		MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor
+			texture2DDescriptorWithPixelFormat:pixelFormat
+			width:BufferingScanTarget::WriteAreaWidth
+			height:BufferingScanTarget::WriteAreaHeight
+			mipmapped:NO];
+		textureDescriptor.resourceOptions = SharedResourceOptionsTexture;
+
+		// TODO: the call below is the only reason why this project now requires macOS 10.13; is it all that helpful versus just uploading each frame?
+		_writeAreaTexture = [_writeAreaBuffer
+			newTextureWithDescriptor:textureDescriptor
+			offset:0
+			bytesPerRow:BufferingScanTarget::WriteAreaWidth * _bytesPerInputPixel];
+		_totalTextureBytes = BufferingScanTarget::WriteAreaWidth * BufferingScanTarget::WriteAreaHeight * _bytesPerInputPixel;
 	}
 
 	// Drawing. Just the test triangle, as described above.
@@ -125,6 +159,21 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
 
 	_scanTarget.perform([=] (const BufferingScanTarget::OutputArea &outputArea) {
+		// Ensure texture changes are noted.
+		const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y) * _bytesPerInputPixel;
+		const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y) * _bytesPerInputPixel;
+		if(writeAreaModificationStart != writeAreaModificationEnd) {
+			if(writeAreaModificationStart < writeAreaModificationEnd) {
+				[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, writeAreaModificationEnd - writeAreaModificationStart)];
+			} else {
+				[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, _totalTextureBytes - writeAreaModificationStart)];
+				if(writeAreaModificationEnd) {
+					[_writeAreaBuffer didModifyRange:NSMakeRange(0, writeAreaModificationEnd)];
+				}
+			}
+
+		}
+
 		// TEMPORARY: just draw the scans.
 		if(outputArea.start.scan != outputArea.end.scan) {
 			if(outputArea.start.scan < outputArea.end.scan) {
@@ -141,10 +190,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// Complete encoding.
 	[encoder endEncoding];
 
-	// "Register the drawable's presentation".
+	// Register the drawable's presentation, finalise and commit.
 	[commandBuffer presentDrawable:view.currentDrawable];
-
-	// Finalise and commit.
 	[commandBuffer commit];
 }
 
