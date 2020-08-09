@@ -11,7 +11,7 @@
 
 #import "CSHighPrecisionTimer.h"
 #include "CSROMFetcher.hpp"
-#import "CSScanTarget.h"
+#import "CSScanTarget+CppScanTarget.h"
 
 #include "MediaTarget.hpp"
 #include "JoystickMachine.hpp"
@@ -353,14 +353,7 @@ struct ActivityObserver: public Activity::Observer {
 - (void)setView:(CSScanTargetView *)view aspectRatio:(float)aspectRatio {
 	_view = view;
 	_view.displayLinkDelegate = self;
-//	[view performWithGLContext:^{
-//		[self setupOutputWithAspectRatio:aspectRatio];
-//	} flushDrawable:NO];
-}
-
-- (void)setupOutputWithAspectRatio:(float)aspectRatio {
-//	_scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>();
-//	_machine->scan_producer()->set_scan_target(_scanTarget.get());
+	_machine->scan_producer()->set_scan_target(_view.scanTarget.scanTarget);
 }
 
 - (void)updateViewForPixelSize:(CGSize)pixelSize {

@@ -11,6 +11,7 @@
 #import <MetalKit/MetalKit.h>
 
 @class CSScanTargetView;
+@class CSScanTarget;
 
 typedef NS_ENUM(NSInteger, CSScanTargetViewRedrawEvent) {
 	/// Indicates that AppKit requested a redraw for some reason (mostly likely, the window is being resized). So,
@@ -178,5 +179,10 @@ typedef NS_ENUM(NSInteger, CSScanTargetViewRedrawEvent) {
 	Instructs that the mouse cursor, if currently captured, should be released.
 */
 - (void)releaseMouse;
+
+/*!
+	@returns The CSScanTarget being used for this display.
+*/
+@property(nonatomic, readonly, nonnull) CSScanTarget *scanTarget;
 
 @end

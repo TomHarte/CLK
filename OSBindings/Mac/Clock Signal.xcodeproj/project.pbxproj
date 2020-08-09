@@ -1122,6 +1122,7 @@
 		4B4DC8271D2C2470003C5BF8 /* C1540.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = C1540.hpp; sourceTree = "<group>"; };
 		4B4DC8291D2C27A4003C5BF8 /* SerialBus.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SerialBus.cpp; sourceTree = "<group>"; };
 		4B4DC82A1D2C27A4003C5BF8 /* SerialBus.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SerialBus.hpp; sourceTree = "<group>"; };
+		4B4F2B7024DF99D4000DA6B0 /* CSScanTarget+CppScanTarget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CSScanTarget+CppScanTarget.h"; sourceTree = "<group>"; };
 		4B50AF7F242817F40099BBD7 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		4B51F70920A521D700AFA2C1 /* Source.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Source.hpp; sourceTree = "<group>"; };
 		4B51F70A20A521D700AFA2C1 /* Observer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Observer.hpp; sourceTree = "<group>"; };
@@ -2071,6 +2072,7 @@
 				4B228CDA24DA41880077EF25 /* ScanTarget.metal */,
 				4B228CD424D773B30077EF25 /* CSScanTarget.mm */,
 				4B228CD624D773CA0077EF25 /* CSScanTarget.h */,
+				4B4F2B7024DF99D4000DA6B0 /* CSScanTarget+CppScanTarget.h */,
 			);
 			path = ScanTarget;
 			sourceTree = "<group>";

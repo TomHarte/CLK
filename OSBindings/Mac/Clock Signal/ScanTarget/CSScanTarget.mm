@@ -20,8 +20,11 @@ struct Uniforms {
 };
 
 constexpr size_t NumBufferedScans = 2048;
+constexpr size_t NumBufferedLines = 2048;
 
 }
+
+using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 @implementation CSScanTarget {
 	id<MTLCommandQueue> _commandQueue;
@@ -32,10 +35,17 @@ constexpr size_t NumBufferedScans = 2048;
 
 	// Buffers.
 	id<MTLBuffer> _uniformsBuffer;
+
 	id<MTLBuffer> _scansBuffer;
+	id<MTLBuffer> _linesBuffer;
+	id<MTLBuffer> _writeAreaBuffer;
 
 	// Current uniforms.
 	Uniforms _uniforms;
+
+	// The scan target in C++-world terms and the non-GPU storage for it.
+	BufferingScanTarget _scanTarget;
+	BufferingScanTarget::LineMetadata _lineMetadataBuffer[NumBufferedLines];
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -43,7 +53,7 @@ constexpr size_t NumBufferedScans = 2048;
 	if(self) {
 		_commandQueue = [view.device newCommandQueue];
 
-		// Allocate space for uniforms.
+		// Allocate space for uniforms and FOR TEST PURPOSES set some.
 		_uniformsBuffer = [view.device newBufferWithLength:16 options:MTLResourceCPUCacheModeWriteCombined];
 		_uniforms.scale[0] = 1024;
 		_uniforms.scale[1] = 1024;
@@ -51,10 +61,23 @@ constexpr size_t NumBufferedScans = 2048;
 		_uniforms.aspectRatioMultiplier = 1.0f;
 		[self setUniforms];
 
-		// Allocate a large buffer for scans.
+		// Allocate buffers for scans and lines and for the write area texture.
 		_scansBuffer = [view.device
 			newBufferWithLength:sizeof(Outputs::Display::BufferingScanTarget::Scan)*NumBufferedScans
 			options:MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
+		_linesBuffer = [view.device
+			newBufferWithLength:sizeof(Outputs::Display::BufferingScanTarget::Line)*NumBufferedLines
+			options:MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
+		_writeAreaBuffer = [view.device
+			newBufferWithLength:BufferingScanTarget::WriteAreaWidth*BufferingScanTarget::WriteAreaHeight*4
+			options:MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
+
+		// Install all that storage in the buffering scan target.
+		_scanTarget.set_write_area(reinterpret_cast<uint8_t *>(_writeAreaBuffer.contents));
+		_scanTarget.set_line_buffer(reinterpret_cast<BufferingScanTarget::Line *>(_linesBuffer.contents), _lineMetadataBuffer, NumBufferedLines);
+		_scanTarget.set_scan_buffer(reinterpret_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents), NumBufferedScans);
+
+		// TEST ONLY: set some test data.
 		[self setTestScans];
 
 		// Generate TEST pipeline.
@@ -74,7 +97,7 @@ constexpr size_t NumBufferedScans = 2048;
 }
 
 - (void)setTestScans {
-	Outputs::Display::BufferingScanTarget::Scan scans[2];
+	BufferingScanTarget::Scan scans[2];
 	scans[0].scan.end_points[0].x = 0;
 	scans[0].scan.end_points[0].y = 0;
 	scans[0].scan.end_points[1].x = 1024;
@@ -127,6 +150,10 @@ constexpr size_t NumBufferedScans = 2048;
 
 	// Finalise and commit.
 	[commandBuffer commit];
+}
+
+-  (Outputs::Display::ScanTarget *)scanTarget {
+	return &_scanTarget;
 }
 
 @end

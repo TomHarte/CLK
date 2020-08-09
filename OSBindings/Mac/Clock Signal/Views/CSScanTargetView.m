@@ -164,6 +164,10 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	CVDisplayLinkRelease(_displayLink);
 }
 
+- (CSScanTarget *)scanTarget {
+	return _scanTarget;
+}
+
 - (CGSize)backingSize {
 	@synchronized(self) {
 		return _backingSize;
