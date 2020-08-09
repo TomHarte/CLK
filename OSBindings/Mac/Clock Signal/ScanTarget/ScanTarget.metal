@@ -51,6 +51,7 @@ struct Line {
 // This is an intermediate struct, which is TEMPORARY.
 struct ColouredVertex {
 	float4 position [[position]];
+	float2 textureCoordinates;
 };
 
 
@@ -81,9 +82,16 @@ vertex ColouredVertex scanVertexMain(	constant Uniforms &uniforms [[buffer(1)]],
 		0.0,
 		1.0
 	);
+	output.textureCoordinates = float2(
+		mix(scans[instanceID].endPoints[0].dataOffset, scans[instanceID].endPoints[1].dataOffset, float((vertexID&2) >> 1)),
+		scans[instanceID].dataY);
 	return output;
 }
 
-fragment half4 scanFragmentMain(ColouredVertex vert [[stage_in]]) {
-	return half4(1.0);
+fragment half4 scanFragmentMain(ColouredVertex vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+	constexpr sampler s(coord::pixel,
+						address::clamp_to_zero,	// This really makes no difference here; anything Metal will accept will do.
+						filter::nearest);
+
+	return half4(texture.sample(s, vert.textureCoordinates));
 }

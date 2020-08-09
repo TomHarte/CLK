@@ -40,7 +40,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	id<MTLFunction> _vertexShader;
 	id<MTLFunction> _fragmentShader;
-	id<MTLRenderPipelineState> _gouraudPipeline;
+	id<MTLRenderPipelineState> _scanPipeline;
 
 	// Buffers.
 	id<MTLBuffer> _uniformsBuffer;
@@ -85,14 +85,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_scanTarget.set_write_area(reinterpret_cast<uint8_t *>(_writeAreaBuffer.contents));
 		_scanTarget.set_line_buffer(reinterpret_cast<BufferingScanTarget::Line *>(_linesBuffer.contents), _lineMetadataBuffer, NumBufferedLines);
 		_scanTarget.set_scan_buffer(reinterpret_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents), NumBufferedScans);
-
-		// Generate TEST pipeline.
-		id<MTLLibrary> library = [view.device newDefaultLibrary];
-		MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanVertexMain"];
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"scanFragmentMain"];
-		pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
-		_gouraudPipeline = [view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 	}
 
 	return self;
@@ -115,11 +107,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
  @discussion Called on the delegate when it is asked to render into the view
  */
 - (void)drawInMTKView:(nonnull MTKView *)view {
-	// Generate a command encoder for the view.
-	id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-	MTLRenderPassDescriptor *const descriptor = view.currentRenderPassDescriptor;
-	id <MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
-
 	const Outputs::Display::ScanTarget::Modals *const newModals = _scanTarget.new_modals();
 	if(newModals) {
 		uniforms()->scale[0] = newModals->output_scale.x;
@@ -150,11 +137,25 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			offset:0
 			bytesPerRow:BufferingScanTarget::WriteAreaWidth * _bytesPerInputPixel];
 		_totalTextureBytes = BufferingScanTarget::WriteAreaWidth * BufferingScanTarget::WriteAreaHeight * _bytesPerInputPixel;
+
+		// Generate pipeline.
+		id<MTLLibrary> library = [view.device newDefaultLibrary];
+		MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanVertexMain"];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"scanFragmentMain"];
+		pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
+		_scanPipeline = [view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 	}
 
-	// Drawing. Just the test triangle, as described above.
-	[encoder setRenderPipelineState:_gouraudPipeline];
+	// Generate a command encoder for the view.
+	id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+	MTLRenderPassDescriptor *const descriptor = view.currentRenderPassDescriptor;
+	id <MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
 
+	// Drawing. Just scans.
+	[encoder setRenderPipelineState:_scanPipeline];
+
+	[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
 	[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
 	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
 
