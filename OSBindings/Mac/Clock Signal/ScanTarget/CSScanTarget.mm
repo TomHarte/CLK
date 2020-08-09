@@ -8,6 +8,7 @@
 
 #import "CSScanTarget.h"
 
+#include <atomic>
 #import <Metal/Metal.h>
 #include "BufferingScanTarget.hpp"
 
@@ -21,6 +22,8 @@ struct Uniforms {
 
 constexpr size_t NumBufferedScans = 2048;
 constexpr size_t NumBufferedLines = 2048;
+
+#define uniforms() reinterpret_cast<Uniforms *>(_uniformsBuffer.contents)
 
 }
 
@@ -40,12 +43,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLBuffer> _linesBuffer;
 	id<MTLBuffer> _writeAreaBuffer;
 
-	// Current uniforms.
-	Uniforms _uniforms;
-
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
 	BufferingScanTarget::LineMetadata _lineMetadataBuffer[NumBufferedLines];
+	std::atomic_bool _isDrawing;
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -53,13 +54,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	if(self) {
 		_commandQueue = [view.device newCommandQueue];
 
-		// Allocate space for uniforms and FOR TEST PURPOSES set some.
-		_uniformsBuffer = [view.device newBufferWithLength:16 options:MTLResourceCPUCacheModeWriteCombined];
-		_uniforms.scale[0] = 1024;
-		_uniforms.scale[1] = 1024;
-		_uniforms.lineWidth = 1.0f / 312.0f;
-		_uniforms.aspectRatioMultiplier = 1.0f;
-		[self setUniforms];
+		// Allocate space for uniforms.
+		_uniformsBuffer = [view.device
+			newBufferWithLength:sizeof(Uniforms)
+			options:MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
 
 		// Allocate buffers for scans and lines and for the write area texture.
 		_scansBuffer = [view.device
@@ -77,9 +75,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_scanTarget.set_line_buffer(reinterpret_cast<BufferingScanTarget::Line *>(_linesBuffer.contents), _lineMetadataBuffer, NumBufferedLines);
 		_scanTarget.set_scan_buffer(reinterpret_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents), NumBufferedScans);
 
-		// TEST ONLY: set some test data.
-		[self setTestScans];
-
 		// Generate TEST pipeline.
 		id<MTLLibrary> library = [view.device newDefaultLibrary];
 		MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
@@ -92,25 +87,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	return self;
 }
 
-- (void)setUniforms {
-	memcpy(_uniformsBuffer.contents, &_uniforms, sizeof(Uniforms));
-}
-
-- (void)setTestScans {
-	BufferingScanTarget::Scan scans[2];
-	scans[0].scan.end_points[0].x = 0;
-	scans[0].scan.end_points[0].y = 0;
-	scans[0].scan.end_points[1].x = 1024;
-	scans[0].scan.end_points[1].y = 256;
-
-	scans[1].scan.end_points[0].x = 0;
-	scans[1].scan.end_points[0].y = 768;
-	scans[1].scan.end_points[1].x = 512;
-	scans[1].scan.end_points[1].y = 512;
-
-	memcpy(_scansBuffer.contents, scans, sizeof(scans));
-}
-
 /*!
  @method mtkView:drawableSizeWillChange:
  @abstract Called whenever the drawableSize of the view will change
@@ -119,8 +95,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
  @param size New drawable size in pixels
  */
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
-	_uniforms.aspectRatioMultiplier = float((4.0 / 3.0) / (size.width / size.height));
-	[self setUniforms];
+	uniforms()->aspectRatioMultiplier = float((4.0 / 3.0) / (size.width / size.height));
 }
 
 /*!
@@ -134,13 +109,34 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	MTLRenderPassDescriptor *const descriptor = view.currentRenderPassDescriptor;
 	id <MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
 
+	const Outputs::Display::ScanTarget::Modals *const newModals = _scanTarget.new_modals();
+	if(newModals) {
+		uniforms()->scale[0] = newModals->output_scale.x;
+		uniforms()->scale[1] = newModals->output_scale.y;
+		uniforms()->lineWidth = 1.0f / newModals->expected_vertical_lines;
+
+		// TODO: establish at least a texture. Obey the rest of the modals generally.
+	}
+
 	// Drawing. Just the test triangle, as described above.
 	[encoder setRenderPipelineState:_gouraudPipeline];
 
 	[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
 	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
 
-	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:2];
+	_scanTarget.perform([=] (const BufferingScanTarget::OutputArea &outputArea) {
+		// TEMPORARY: just draw the scans.
+		if(outputArea.start.scan != outputArea.end.scan) {
+			if(outputArea.start.scan < outputArea.end.scan) {
+				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan - outputArea.start.scan baseInstance:outputArea.start.scan];
+			} else {
+				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:NumBufferedScans - outputArea.start.scan baseInstance:outputArea.start.scan];
+				if(outputArea.end.scan) {
+					[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan];
+				}
+			}
+		}
+	});
 
 	// Complete encoding.
 	[encoder endEncoding];
