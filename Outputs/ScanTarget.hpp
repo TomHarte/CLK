@@ -53,6 +53,9 @@ enum class DisplayType {
 
 /*!
 	Enumerates the potential formats of input data.
+
+	All types are designed to be 1, 2 or 4 bytes per pixel; this hopefully creates appropriate alignment
+	on all formats.
 */
 enum class InputDataType {
 
