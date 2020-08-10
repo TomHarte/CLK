@@ -161,8 +161,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	_scanTarget.perform([=] (const BufferingScanTarget::OutputArea &outputArea) {
 		// Ensure texture changes are noted.
-		const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y) * _bytesPerInputPixel;
-		const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y) * _bytesPerInputPixel;
+		const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * 2048) * _bytesPerInputPixel;
+		const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * 2048) * _bytesPerInputPixel;
 		if(writeAreaModificationStart != writeAreaModificationEnd) {
 			if(writeAreaModificationStart < writeAreaModificationEnd) {
 				[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, writeAreaModificationEnd - writeAreaModificationStart)];
