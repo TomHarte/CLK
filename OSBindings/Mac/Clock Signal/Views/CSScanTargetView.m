@@ -194,30 +194,6 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 		self.device = MTLCreateSystemDefaultDevice();
 	}
 
-//	NSOpenGLPixelFormatAttribute attributes[] = {
-//		NSOpenGLPFADoubleBuffer,
-//		NSOpenGLPFAOpenGLProfile,	NSOpenGLProfileVersion3_2Core,
-////		NSOpenGLPFAMultisample,
-////		NSOpenGLPFASampleBuffers,	1,
-////		NSOpenGLPFASamples,			2,
-//		0
-//	};
-//
-//	NSOpenGLPixelFormat *pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attributes];
-//	NSOpenGLContext *context = [[NSOpenGLContext alloc] initWithFormat:pixelFormat shareContext:nil];
-//
-//#ifdef DEBUG
-//	// When we're using a CoreProfile context, crash if we call a legacy OpenGL function
-//	// This will make it much more obvious where and when such a function call is made so
-//	// that we can remove such calls.
-//	// Without this we'd simply get GL_INVALID_OPERATION error for calling legacy functions
-//	// but it would be more difficult to see where that function was called.
-//	CGLEnable([context CGLContextObj], kCGLCECrashOnRemovedFunctions);
-//#endif
-//
-//	self.pixelFormat = pixelFormat;
-//	self.openGLContext = context;
-//	self.wantsBestResolutionOpenGLSurface = YES;
 	// Create the scan target.
 	_scanTarget = [[CSScanTarget alloc] initWithView:self];
 	self.delegate = _scanTarget;
