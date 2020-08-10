@@ -89,7 +89,8 @@ enum class InputDataType {
 	Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
 };
 
-inline size_t size_for_data_type(InputDataType data_type) {
+/// @returns the number of bytes per sample for data of type @c data_type.
+constexpr inline size_t size_for_data_type(InputDataType data_type) {
 	switch(data_type) {
 		case InputDataType::Luminance1:
 		case InputDataType::Luminance8:
@@ -110,7 +111,28 @@ inline size_t size_for_data_type(InputDataType data_type) {
 	}
 }
 
-inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
+/// @returns @c true if this data type presents normalised data, i.e. each byte holds a
+/// value in the range [0, 255] representing a real number in the range [0.0, 1.0]; @c false otherwise.
+constexpr inline size_t data_type_is_normalised(InputDataType data_type) {
+	switch(data_type) {
+		case InputDataType::Luminance8:
+		case InputDataType::Luminance8Phase8:
+		case InputDataType::Red8Green8Blue8:
+		case InputDataType::PhaseLinkedLuminance8:
+			return true;
+
+		default:
+		case InputDataType::Luminance1:
+		case InputDataType::Red1Green1Blue1:
+		case InputDataType::Red2Green2Blue2:
+		case InputDataType::Red4Green4Blue4:
+			return false;
+	}
+}
+
+/// @returns The 'natural' display type for data of type @c data_type. The natural display is whichever would
+/// display it with the least number of conversions. Caveat: a colour display is assumed for pure-composite data types.
+constexpr inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
 	switch(data_type) {
 		default:
 		case InputDataType::Luminance1:

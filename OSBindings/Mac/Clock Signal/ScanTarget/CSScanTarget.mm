@@ -121,11 +121,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Generate the appropriate input texture.
 		MTLPixelFormat pixelFormat;
 		_bytesPerInputPixel = size_for_data_type(newModals->input_data_type);
-		switch(_bytesPerInputPixel) {
-			default:
-			case 1: pixelFormat = MTLPixelFormatR8Unorm;	break;
-			case 2: pixelFormat = MTLPixelFormatRG8Unorm;	break;
-			case 4: pixelFormat = MTLPixelFormatRGBA8Unorm;	break;
+		if(data_type_is_normalised(newModals->input_data_type)) {
+			switch(_bytesPerInputPixel) {
+				default:
+				case 1: pixelFormat = MTLPixelFormatR8Unorm;	break;
+				case 2: pixelFormat = MTLPixelFormatRG8Unorm;	break;
+				case 4: pixelFormat = MTLPixelFormatRGBA8Unorm;	break;
+			}
+		} else {
+			switch(_bytesPerInputPixel) {
+				default:
+				case 1: pixelFormat = MTLPixelFormatR8Uint;		break;
+				case 2: pixelFormat = MTLPixelFormatRG8Uint;	break;
+				case 4: pixelFormat = MTLPixelFormatRGBA8Uint;	break;
+			}
 		}
 		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
 			texture2DDescriptorWithPixelFormat:pixelFormat
@@ -148,13 +157,33 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
 
 		// TODO: logic somewhat more complicated than this, probably
-		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanVertexMain"];
+		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToDisplay"];
 		switch(newModals->input_data_type) {
-			default:
-				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"scanFragmentMainRGB"];
-			break;
 			case Outputs::Display::InputDataType::Luminance1:
-				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"scanFragmentMainL1"];
+				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance1"];
+			break;
+			case Outputs::Display::InputDataType::Luminance8:
+				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance8"];
+			break;
+			case Outputs::Display::InputDataType::PhaseLinkedLuminance8:
+				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"samplePhaseLinkedLuminance8"];
+			break;
+
+			case Outputs::Display::InputDataType::Luminance8Phase8:
+				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance8Phase8"];
+			break;
+
+			case Outputs::Display::InputDataType::Red1Green1Blue1:
+				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed1Green1Blue1"];
+			break;
+			case Outputs::Display::InputDataType::Red2Green2Blue2:
+				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed2Green2Blue2"];
+			break;
+			case Outputs::Display::InputDataType::Red4Green4Blue4:
+				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed4Green4Blue4"];
+			break;
+			case Outputs::Display::InputDataType::Red8Green8Blue8:
+				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed8Green8Blue8"];
 			break;
 		}
 
