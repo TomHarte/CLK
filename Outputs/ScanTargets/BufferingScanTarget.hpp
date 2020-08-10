@@ -48,13 +48,15 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		// It is the subclass's responsibility to post timings.
 		Metrics display_metrics_;
 
-		// Extends the definition of a Scan to include two extra fields,
-		// completing this scan's source data and destination locations.
+		/// Extends the definition of a Scan to include two extra fields,
+		/// completing this scan's source data and destination locations.
 		struct Scan {
 			Outputs::Display::ScanTarget::Scan scan;
 
 			/// Stores the y coordinate for this scan's data within the write area texture.
 			/// Use this plus the scan's endpoints' data_offsets to locate this data in 2d.
+			/// Note that the data_offsets will have been adjusted to be relative to the line
+			/// they fall within, not the data allocation.
 			uint16_t data_y;
 			/// Stores the y coordinate assigned to this scan within the intermediate buffers.
 			/// Use this plus this scan's endpoints' x locations to determine where to composite
