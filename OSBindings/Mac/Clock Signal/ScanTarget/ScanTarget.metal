@@ -93,5 +93,5 @@ fragment half4 scanFragmentMain(ColouredVertex vert [[stage_in]], texture2d<floa
 						address::clamp_to_zero,	// This really makes no difference here; anything Metal will accept will do.
 						filter::nearest);
 
-	return half4(texture.sample(s, vert.textureCoordinates));
+	return half4(texture.sample(s, vert.textureCoordinates) * 32.0f); // Multiply by 32 is _TEMPORARY TEST CODE_ [/ nonsense].
 }
