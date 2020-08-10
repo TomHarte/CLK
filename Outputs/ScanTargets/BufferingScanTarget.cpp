@@ -264,7 +264,6 @@ void BufferingScanTarget::set_write_area(uint8_t *base) {
 	std::lock_guard lock_guard(producer_mutex_);
 #endif
 	write_area_ = base;
-	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 	write_pointers_ = submit_pointers_ = read_pointers_ = PointerSet();
 	allocation_has_failed_ = true;
 	vended_scan_ = nullptr;
@@ -340,6 +339,12 @@ const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
 		return nullptr;
 	}
 	modals_are_dirty_ = false;
+
+	// MAJOR SHARP EDGE HERE: assume that because the new_modals have been fetched then the caller will
+	// now ensure their texture buffer is appropriate. They might provide a new pointer and might now.
+	// But either way it's now appropriate to start treating the data size as implied by the data type.
+	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
+
 	return &modals_;
 }
 
