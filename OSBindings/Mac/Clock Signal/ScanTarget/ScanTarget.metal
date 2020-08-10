@@ -88,10 +88,20 @@ vertex ColouredVertex scanVertexMain(	constant Uniforms &uniforms [[buffer(1)]],
 	return output;
 }
 
-fragment half4 scanFragmentMain(ColouredVertex vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
-	constexpr sampler s(coord::pixel,
-						address::clamp_to_zero,	// This really makes no difference here; anything Metal will accept will do.
-						filter::nearest);
+namespace {
 
-	return half4(texture.sample(s, vert.textureCoordinates) * 32.0f); // Multiply by 32 is _TEMPORARY TEST CODE_ [/ nonsense].
+constexpr sampler standardSampler(	coord::pixel,
+									address::clamp_to_edge,	// Although arbitrary, stick with this address mode for compatibility all the way to MTLFeatureSet_iOS_GPUFamily1_v1.
+									filter::nearest);
+
+}
+
+// MARK: - Input formst to RGB conversions.
+
+fragment half4 scanFragmentMainRGB (ColouredVertex vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+	return half4(texture.sample(standardSampler, vert.textureCoordinates));
+}
+
+fragment half4 scanFragmentMainL1(ColouredVertex vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+	return half4(half3(texture.sample(standardSampler, vert.textureCoordinates).r * 255.0), 1.0);
 }

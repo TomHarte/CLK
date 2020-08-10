@@ -85,6 +85,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_scanTarget.set_write_area(reinterpret_cast<uint8_t *>(_writeAreaBuffer.contents));
 		_scanTarget.set_line_buffer(reinterpret_cast<BufferingScanTarget::Line *>(_linesBuffer.contents), _lineMetadataBuffer, NumBufferedLines);
 		_scanTarget.set_scan_buffer(reinterpret_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents), NumBufferedScans);
+
+		// Set initial aspect-ratio multiplier.
+		[self mtkView:view drawableSizeWillChange:view.drawableSize];
 	}
 
 	return self;
@@ -124,7 +127,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			case 2: pixelFormat = MTLPixelFormatRG8Unorm;	break;
 			case 4: pixelFormat = MTLPixelFormatRGBA8Unorm;	break;
 		}
-		MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor
+		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
 			texture2DDescriptorWithPixelFormat:pixelFormat
 			width:BufferingScanTarget::WriteAreaWidth
 			height:BufferingScanTarget::WriteAreaHeight
@@ -132,18 +135,29 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		textureDescriptor.resourceOptions = SharedResourceOptionsTexture;
 
 		// TODO: the call below is the only reason why this project now requires macOS 10.13; is it all that helpful versus just uploading each frame?
+		const NSUInteger bytesPerRow = BufferingScanTarget::WriteAreaWidth * _bytesPerInputPixel;
 		_writeAreaTexture = [_writeAreaBuffer
 			newTextureWithDescriptor:textureDescriptor
 			offset:0
-			bytesPerRow:BufferingScanTarget::WriteAreaWidth * _bytesPerInputPixel];
-		_totalTextureBytes = BufferingScanTarget::WriteAreaWidth * BufferingScanTarget::WriteAreaHeight * _bytesPerInputPixel;
+			bytesPerRow:bytesPerRow];
+		_totalTextureBytes = bytesPerRow * BufferingScanTarget::WriteAreaHeight;
 
 		// Generate pipeline.
 		id<MTLLibrary> library = [view.device newDefaultLibrary];
 		MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanVertexMain"];
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"scanFragmentMain"];
 		pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
+
+		// TODO: logic somewhat more complicated than this, probably
+		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanVertexMain"];
+		switch(newModals->input_data_type) {
+			default:
+				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"scanFragmentMainRGB"];
+			break;
+			case Outputs::Display::InputDataType::Luminance1:
+				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"scanFragmentMainL1"];
+			break;
+		}
+
 		_scanPipeline = [view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 	}
 
