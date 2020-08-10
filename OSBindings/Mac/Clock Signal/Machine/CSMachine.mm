@@ -32,12 +32,6 @@
 #include <atomic>
 #include <bitset>
 
-#import <OpenGL/OpenGL.h>
-#include <OpenGL/gl3.h>
-
-#include "../../../../Outputs/OpenGL/ScanTarget.hpp"
-#include "../../../../Outputs/OpenGL/Screenshot.hpp"
-
 @interface CSMachine() <CSScanTargetViewDisplayLinkDelegate>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
@@ -377,7 +371,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (NSBitmapImageRep *)imageRepresentation {
 	// Grab a screenshot.
-	Outputs::Display::OpenGL::Screenshot screenshot(4, 3);
+/*	Outputs::Display::OpenGL::Screenshot screenshot(4, 3);
 
 	// Generate an NSBitmapImageRep containing the screenshot's data.
 	NSBitmapImageRep *const result =
@@ -395,7 +389,8 @@ struct ActivityObserver: public Activity::Observer {
 
 	memcpy(result.bitmapData, screenshot.pixel_data.data(), size_t(screenshot.width*screenshot.height*4));
 
-	return result;
+	return result;*/
+	return nil;
 }
 
 - (void)applyMedia:(const Analyser::Static::Media &)media {

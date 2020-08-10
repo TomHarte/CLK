@@ -16,9 +16,9 @@
 #ifdef __APPLE__
 	#if TARGET_OS_IPHONE
 	#else
-		#include <OpenGL/OpenGL.h>
-		#include <OpenGL/gl3.h>
-		#include <OpenGL/gl3ext.h>
+//		#include <OpenGL/OpenGL.h>
+//		#include <OpenGL/gl3.h>
+//		#include <OpenGL/gl3ext.h>
 	#endif
 #else
 #define GL_GLEXT_PROTOTYPES
