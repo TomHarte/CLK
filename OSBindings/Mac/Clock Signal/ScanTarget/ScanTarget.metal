@@ -142,10 +142,27 @@ fragment float4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_
 }
 
 // All the RGB formats can produce RGB, composite or S-Video.
+//
+// Note on the below: in Metal you may not call a fragment function. Also I can find no
+// functioning way to offer a templated fragment function. So I don't currently know how
+// I would avoid the mess below.
 
-fragment float4 sampleRed8Green8Blue8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
-	return float4(texture.sample(standardSampler, vert.textureCoordinates));
+float3 convertRed8Green8Blue8(SourceInterpolator vert, texture2d<float> texture) {
+	return float3(texture.sample(standardSampler, vert.textureCoordinates));
 }
+
+#define DeclareShaders(name)	\
+	fragment float4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {	\
+		return float4(convert##name(vert, texture), 1.0);	\
+	}	\
+	\
+	fragment float4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {	\
+		const auto colour = convert##name(vert, texture);	\
+		return float4(colour, 1.0);	\
+	}
+
+// TODO: a colour-space conversion matrix is required to proceed.
+DeclareShaders(Red8Green8Blue8)
 
 fragment float4 sampleRed1Green1Blue1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
