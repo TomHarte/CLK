@@ -98,7 +98,6 @@
 		4B055AED1FAE9BA20060FFFF /* Z80Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334831F5DA0360097E338 /* Z80Storage.cpp */; };
 		4B055AEE1FAE9BBF0060FFFF /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B86E2591F8C628F006FAA45 /* Keyboard.cpp */; };
 		4B055AEF1FAE9BF00060FFFF /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B3A471F9B8FA70062DABF /* Typer.cpp */; };
-		4B055AF11FAE9C160060FFFF /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
 		4B055AF21FAE9C1C0060FFFF /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055AF01FAE9C080060FFFF /* OpenGL.framework */; };
 		4B08A2751EE35D56008B7065 /* Z80InterruptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */; };
 		4B08A2781EE39306008B7065 /* TestMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2771EE39306008B7065 /* TestMachine.mm */; };
@@ -372,7 +371,6 @@
 		4B778F6123A5F3560000D260 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8944FC201967B4007DE474 /* Disk.cpp */; };
 		4B778F6223A5F35F0000D260 /* File.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894500201967B4007DE474 /* File.cpp */; };
 		4B778F6323A5F3630000D260 /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894501201967B4007DE474 /* Tape.cpp */; };
-		4B778F6423A5F3730000D260 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
 		4B7913CC1DFCD80E00175A82 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7913CA1DFCD80E00175A82 /* Video.cpp */; };
 		4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B79A4FF1FC913C900EEDAD5 /* MSX.cpp */; };
 		4B79E4441E3AF38600141F11 /* cassette.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4411E3AF38600141F11 /* cassette.png */; };
@@ -772,6 +770,8 @@
 		4BB73EC21B587A5100552FC2 /* Clock_SignalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EC11B587A5100552FC2 /* Clock_SignalUITests.swift */; };
 		4BB8616E24E22DC500A00E03 /* BufferingScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB8616D24E22DC500A00E03 /* BufferingScanTarget.cpp */; };
 		4BB8616F24E22DC500A00E03 /* BufferingScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB8616D24E22DC500A00E03 /* BufferingScanTarget.cpp */; };
+		4BB8617124E22F5700A00E03 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BB8617024E22F4900A00E03 /* Accelerate.framework */; };
+		4BB8617224E22F5A00A00E03 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BB8617024E22F4900A00E03 /* Accelerate.framework */; };
 		4BBB70A4202011C2002FE009 /* MultiMediaTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A3202011C2002FE009 /* MultiMediaTarget.cpp */; };
 		4BBB70A5202011C2002FE009 /* MultiMediaTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A3202011C2002FE009 /* MultiMediaTarget.cpp */; };
 		4BBB70A8202014E2002FE009 /* MultiProducer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A6202014E2002FE009 /* MultiProducer.cpp */; };
@@ -796,7 +796,6 @@
 		4BC5FC3020CDDDEF00410AA0 /* AppleIIOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BC5FC2E20CDDDEE00410AA0 /* AppleIIOptions.xib */; };
 		4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B11D157E61006C31D9 /* 6522Tests.swift */; };
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
-		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
 		4BC890D3230F86020025A55A /* DirectAccessDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC890D1230F86020025A55A /* DirectAccessDevice.cpp */; };
 		4BC890D4230F86020025A55A /* DirectAccessDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC890D1230F86020025A55A /* DirectAccessDevice.cpp */; };
 		4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */; };
@@ -1641,6 +1640,7 @@
 		4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Clock Signal.entitlements"; sourceTree = "<group>"; };
 		4BB8616C24E22DC500A00E03 /* BufferingScanTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = BufferingScanTarget.hpp; sourceTree = "<group>"; };
 		4BB8616D24E22DC500A00E03 /* BufferingScanTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BufferingScanTarget.cpp; sourceTree = "<group>"; };
+		4BB8617024E22F4900A00E03 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		4BBB709C2020109C002FE009 /* DynamicMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DynamicMachine.hpp; sourceTree = "<group>"; };
 		4BBB70A2202011C2002FE009 /* MultiMediaTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MultiMediaTarget.hpp; sourceTree = "<group>"; };
 		4BBB70A3202011C2002FE009 /* MultiMediaTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MultiMediaTarget.cpp; sourceTree = "<group>"; };
@@ -1683,7 +1683,6 @@
 		4BC751B11D157E61006C31D9 /* 6522Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6522Tests.swift; sourceTree = "<group>"; };
 		4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIRFilter.cpp; sourceTree = "<group>"; };
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
-		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		4BC890D1230F86020025A55A /* DirectAccessDevice.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DirectAccessDevice.cpp; sourceTree = "<group>"; };
 		4BC890D2230F86020025A55A /* DirectAccessDevice.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DirectAccessDevice.hpp; sourceTree = "<group>"; };
 		4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CommodoreTAP.cpp; sourceTree = "<group>"; };
@@ -1810,7 +1809,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4B055AF21FAE9C1C0060FFFF /* OpenGL.framework in Frameworks */,
-				4B055AF11FAE9C160060FFFF /* Accelerate.framework in Frameworks */,
+				4BB8617224E22F5A00A00E03 /* Accelerate.framework in Frameworks */,
 				4B055ABD1FAE86530060FFFF /* libz.tbd in Frameworks */,
 				4B055A7A1FAE78A00060FFFF /* SDL2.framework in Frameworks */,
 			);
@@ -1820,8 +1819,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4BB8617124E22F5700A00E03 /* Accelerate.framework in Frameworks */,
 				4B50AF80242817F40099BBD7 /* QuartzCore.framework in Frameworks */,
-				4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */,
 				4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1831,7 +1830,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				4B9F11CA2272433900701480 /* libz.tbd in Frameworks */,
-				4B778F6423A5F3730000D260 /* Accelerate.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1848,6 +1846,7 @@
 		4B055A761FAE78210060FFFF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4BB8617024E22F4900A00E03 /* Accelerate.framework */,
 				4B50AF7F242817F40099BBD7 /* QuartzCore.framework */,
 				4B055AF01FAE9C080060FFFF /* OpenGL.framework */,
 				4B055A771FAE78210060FFFF /* SDL2.framework */,
@@ -3324,7 +3323,6 @@
 		4BB73E951B587A5100552FC2 = {
 			isa = PBXGroup;
 			children = (
-				4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */,
 				4B51F70820A521D700AFA2C1 /* Activity */,
 				4B8944E2201967B4007DE474 /* Analyser */,
 				4BB73EA01B587A5100552FC2 /* Clock Signal */,
