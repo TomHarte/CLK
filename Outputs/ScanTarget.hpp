@@ -75,8 +75,10 @@ enum class InputDataType {
 	// of a colour subcarrier. So they can be used to generate a luminance signal,
 	// or an s-video pipeline.
 
-	Luminance8Phase8,		// 2 bytes/pixel; first is luminance, second is phase.
-							// Phase is encoded on a 192-unit circle; anything
+	Luminance8Phase8,		// 2 bytes/pixel; first is luminance, second is phase
+							// of a cosine wave.
+							//
+							// Phase is encoded on a 128-unit circle; anything
 							// greater than 192 implies that the colour part of
 							// the signal should be omitted.
 

@@ -84,11 +84,11 @@ vertex SourceInterpolator scanToDisplay(	constant Uniforms &uniforms [[buffer(1)
 
 	// Load up the colour details.
 	output.colourAmplitude = float(scans[instanceID].compositeAmplitude) / 255.0f;
-	output.colourPhase = mix(
+	output.colourPhase = 3.141592654f * mix(
 		float(scans[instanceID].endPoints[0].compositeAngle),
 		float(scans[instanceID].endPoints[1].compositeAngle),
 		float((vertexID&2) >> 1)
-	) / 64.0;
+	) / 32.0;
 
 	// Hence determine this quad's real shape, using vertexID to pick a corner.
 	output.position = float4(
@@ -112,36 +112,6 @@ constexpr sampler standardSampler(	coord::pixel,
 
 // MARK: - Various input format conversion samplers.
 
-/*
-	Luminance1,				// 1 byte/pixel; any bit set => white; no bits set => black.
-	Luminance8,				// 1 byte/pixel; linear scale.
-
-	PhaseLinkedLuminance8,	// 4 bytes/pixel; each byte is an individual 8-bit luminance
-							// value and which value is output is a function of
-							// colour subcarrier phase — byte 0 defines the first quarter
-							// of each colour cycle, byte 1 the next quarter, etc. This
-							// format is intended to permit replay of sampled original data.
-
-	// The luminance plus phase types describe a luminance and the phase offset
-	// of a colour subcarrier. So they can be used to generate a luminance signal,
-	// or an s-video pipeline.
-
-	Luminance8Phase8,		// 2 bytes/pixel; first is luminance, second is phase.
-							// Phase is encoded on a 192-unit circle; anything
-							// greater than 192 implies that the colour part of
-							// the signal should be omitted.
-
-	// The RGB types can directly feed an RGB pipeline, naturally, or can be mapped
-	// to phase+luminance, or just to luminance.
-
-	Red1Green1Blue1,		// 1 byte/pixel; bit 0 is blue on or off, bit 1 is green, bit 2 is red.
-	Red2Green2Blue2,		// 1 byte/pixel; bits 0 and 1 are blue, bits 2 and 3 are green, bits 4 and 5 are blue.
-	Red4Green4Blue4,		// 2 bytes/pixel; first nibble is red, second is green, third is blue.
-	Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
-
- */
-
-
 // There's only one meaningful way to sample the luminance formats.
 
 fragment float4 sampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
@@ -162,6 +132,13 @@ fragment float4 samplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]]
 
 fragment float4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
 	return float4(texture.sample(standardSampler, vert.textureCoordinates).rg, 0.0, 1.0);
+}
+
+fragment float4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+	const auto luminancePhase = texture.sample(standardSampler, vert.textureCoordinates).rg;
+	const float phaseOffset = 3.141592654 * 4.0 * luminancePhase.g;
+	const float rawChroma = step(luminancePhase.g, 0.75) * cos(vert.colourPhase + phaseOffset);
+	return float4(float3(mix(luminancePhase.r, rawChroma, vert.colourAmplitude)), 1.0f);
 }
 
 // All the RGB formats can produce RGB, composite or S-Video.
