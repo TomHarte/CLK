@@ -9,6 +9,7 @@
 #ifndef Outputs_Display_ScanTarget_h
 #define Outputs_Display_ScanTarget_h
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include "../ClockReceiver/TimeTypes.hpp"
@@ -151,6 +152,34 @@ constexpr inline DisplayType natural_display_type_for_data_type(InputDataType da
 		case InputDataType::Luminance8Phase8:
 			return DisplayType::SVideo;
 	}
+}
+
+/// @returns A 3x3 matrix in row-major order to convert from @c colour_space to RGB.
+inline std::array<float, 9> to_rgb_matrix(ColourSpace colour_space) {
+	const std::array<float, 9> yiq_to_rgb = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
+	const std::array<float, 9> yuv_to_rgb = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
+
+	switch(colour_space) {
+		case ColourSpace::YIQ:	return yiq_to_rgb;
+		case ColourSpace::YUV:	return yuv_to_rgb;
+	}
+
+	// Should be unreachable.
+	return std::array<float, 9>{};
+}
+
+/// @returns A 3x3 matrix in row-major order to convert to @c colour_space to RGB.
+inline std::array<float, 9> from_rgb_matrix(ColourSpace colour_space) {
+	const std::array<float, 9> rgb_to_yiq = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
+	const std::array<float, 9> rgb_to_yuv = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
+
+	switch(colour_space) {
+		case ColourSpace::YIQ:	return rgb_to_yiq;
+		case ColourSpace::YUV:	return rgb_to_yuv;
+	}
+
+	// Should be unreachable.
+	return std::array<float, 9>{};
 }
 
 /*!
