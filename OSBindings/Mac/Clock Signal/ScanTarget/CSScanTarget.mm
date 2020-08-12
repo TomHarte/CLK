@@ -18,6 +18,8 @@ struct Uniforms {
 	int32_t scale[2];
 	float lineWidth;
 	float aspectRatioMultiplier;
+	simd::float3x3 toRGB;
+	simd::float3x3 fromRGB;
 };
 
 constexpr size_t NumBufferedScans = 2048;
@@ -104,6 +106,108 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	uniforms()->aspectRatioMultiplier = float((4.0 / 3.0) / (size.width / size.height));
 }
 
+- (void)setModals:(const Outputs::Display::ScanTarget::Modals &)modals view:(nonnull MTKView *)view {
+	//
+	// Populate uniforms.
+	//
+	uniforms()->scale[0] = modals.output_scale.x;
+	uniforms()->scale[1] = modals.output_scale.y;
+	uniforms()->lineWidth = 1.0f / modals.expected_vertical_lines;
+
+	const auto toRGB = to_rgb_matrix(modals.composite_colour_space);
+	uniforms()->toRGB = simd::float3x3(
+		simd::float3{toRGB[0], toRGB[1], toRGB[2]},
+		simd::float3{toRGB[3], toRGB[4], toRGB[5]},
+		simd::float3{toRGB[6], toRGB[7], toRGB[8]}
+	);
+
+	const auto fromRGB = from_rgb_matrix(modals.composite_colour_space);
+	uniforms()->fromRGB = simd::float3x3(
+		simd::float3{fromRGB[0], fromRGB[1], fromRGB[2]},
+		simd::float3{fromRGB[3], fromRGB[4], fromRGB[5]},
+		simd::float3{fromRGB[6], fromRGB[7], fromRGB[8]}
+	);
+
+
+
+	//
+	// Generate input texture.
+	//
+	MTLPixelFormat pixelFormat;
+	_bytesPerInputPixel = size_for_data_type(modals.input_data_type);
+	if(data_type_is_normalised(modals.input_data_type)) {
+		switch(_bytesPerInputPixel) {
+			default:
+			case 1: pixelFormat = MTLPixelFormatR8Unorm;	break;
+			case 2: pixelFormat = MTLPixelFormatRG8Unorm;	break;
+			case 4: pixelFormat = MTLPixelFormatRGBA8Unorm;	break;
+		}
+	} else {
+		switch(_bytesPerInputPixel) {
+			default:
+			case 1: pixelFormat = MTLPixelFormatR8Uint;		break;
+			case 2: pixelFormat = MTLPixelFormatRG8Uint;	break;
+			case 4: pixelFormat = MTLPixelFormatRGBA8Uint;	break;
+		}
+	}
+	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
+		texture2DDescriptorWithPixelFormat:pixelFormat
+		width:BufferingScanTarget::WriteAreaWidth
+		height:BufferingScanTarget::WriteAreaHeight
+		mipmapped:NO];
+	textureDescriptor.resourceOptions = SharedResourceOptionsTexture;
+
+	// TODO: the call below is the only reason why this project now requires macOS 10.13; is it all that helpful versus just uploading each frame?
+	const NSUInteger bytesPerRow = BufferingScanTarget::WriteAreaWidth * _bytesPerInputPixel;
+	_writeAreaTexture = [_writeAreaBuffer
+		newTextureWithDescriptor:textureDescriptor
+		offset:0
+		bytesPerRow:bytesPerRow];
+	_totalTextureBytes = bytesPerRow * BufferingScanTarget::WriteAreaHeight;
+
+
+
+	//
+	// Generate pipeline.
+	//
+	id<MTLLibrary> library = [view.device newDefaultLibrary];
+	MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+	pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
+
+	// TODO: logic somewhat more complicated than this, probably
+	pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToDisplay"];
+	switch(modals.input_data_type) {
+		case Outputs::Display::InputDataType::Luminance1:
+			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance1"];
+		break;
+		case Outputs::Display::InputDataType::Luminance8:
+			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance8"];
+		break;
+		case Outputs::Display::InputDataType::PhaseLinkedLuminance8:
+			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"samplePhaseLinkedLuminance8"];
+		break;
+
+		case Outputs::Display::InputDataType::Luminance8Phase8:
+			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance8Phase8"];
+		break;
+
+		case Outputs::Display::InputDataType::Red1Green1Blue1:
+			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed1Green1Blue1"];
+		break;
+		case Outputs::Display::InputDataType::Red2Green2Blue2:
+			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed2Green2Blue2"];
+		break;
+		case Outputs::Display::InputDataType::Red4Green4Blue4:
+			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed4Green4Blue4"];
+		break;
+		case Outputs::Display::InputDataType::Red8Green8Blue8:
+			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed8Green8Blue8"];
+		break;
+	}
+
+	_scanPipeline = [view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+}
+
 /*!
  @method drawInMTKView:
  @abstract Called on the delegate when it is asked to render into the view
@@ -112,82 +216,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 - (void)drawInMTKView:(nonnull MTKView *)view {
 	const Outputs::Display::ScanTarget::Modals *const newModals = _scanTarget.new_modals();
 	if(newModals) {
-		uniforms()->scale[0] = newModals->output_scale.x;
-		uniforms()->scale[1] = newModals->output_scale.y;
-		uniforms()->lineWidth = 1.0f / newModals->expected_vertical_lines;
-
-		// TODO: obey the rest of the modals generally.
-
-		// Generate the appropriate input texture.
-		MTLPixelFormat pixelFormat;
-		_bytesPerInputPixel = size_for_data_type(newModals->input_data_type);
-		if(data_type_is_normalised(newModals->input_data_type)) {
-			switch(_bytesPerInputPixel) {
-				default:
-				case 1: pixelFormat = MTLPixelFormatR8Unorm;	break;
-				case 2: pixelFormat = MTLPixelFormatRG8Unorm;	break;
-				case 4: pixelFormat = MTLPixelFormatRGBA8Unorm;	break;
-			}
-		} else {
-			switch(_bytesPerInputPixel) {
-				default:
-				case 1: pixelFormat = MTLPixelFormatR8Uint;		break;
-				case 2: pixelFormat = MTLPixelFormatRG8Uint;	break;
-				case 4: pixelFormat = MTLPixelFormatRGBA8Uint;	break;
-			}
-		}
-		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
-			texture2DDescriptorWithPixelFormat:pixelFormat
-			width:BufferingScanTarget::WriteAreaWidth
-			height:BufferingScanTarget::WriteAreaHeight
-			mipmapped:NO];
-		textureDescriptor.resourceOptions = SharedResourceOptionsTexture;
-
-		// TODO: the call below is the only reason why this project now requires macOS 10.13; is it all that helpful versus just uploading each frame?
-		const NSUInteger bytesPerRow = BufferingScanTarget::WriteAreaWidth * _bytesPerInputPixel;
-		_writeAreaTexture = [_writeAreaBuffer
-			newTextureWithDescriptor:textureDescriptor
-			offset:0
-			bytesPerRow:bytesPerRow];
-		_totalTextureBytes = bytesPerRow * BufferingScanTarget::WriteAreaHeight;
-
-		// Generate pipeline.
-		id<MTLLibrary> library = [view.device newDefaultLibrary];
-		MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-		pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
-
-		// TODO: logic somewhat more complicated than this, probably
-		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToDisplay"];
-		switch(newModals->input_data_type) {
-			case Outputs::Display::InputDataType::Luminance1:
-				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance1"];
-			break;
-			case Outputs::Display::InputDataType::Luminance8:
-				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance8"];
-			break;
-			case Outputs::Display::InputDataType::PhaseLinkedLuminance8:
-				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"samplePhaseLinkedLuminance8"];
-			break;
-
-			case Outputs::Display::InputDataType::Luminance8Phase8:
-				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance8Phase8"];
-			break;
-
-			case Outputs::Display::InputDataType::Red1Green1Blue1:
-				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed1Green1Blue1"];
-			break;
-			case Outputs::Display::InputDataType::Red2Green2Blue2:
-				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed2Green2Blue2"];
-			break;
-			case Outputs::Display::InputDataType::Red4Green4Blue4:
-				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed4Green4Blue4"];
-			break;
-			case Outputs::Display::InputDataType::Red8Green8Blue8:
-				pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed8Green8Blue8"];
-			break;
-		}
-
-		_scanPipeline = [view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+		[self setModals:*newModals view:view];
 	}
 
 	// Generate a command encoder for the view.
@@ -201,6 +230,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
 	[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
 	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
+	[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 	_scanTarget.perform([=] (const BufferingScanTarget::OutputArea &outputArea) {
 		// Ensure texture changes are noted.

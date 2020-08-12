@@ -19,6 +19,10 @@ struct Uniforms {
 
 	// Provides a scaling factor in order to preserve 4:3 central content.
 	float aspectRatioMultiplier;
+
+	// Provides conversions to and from RGB for the active colour space.
+	float3x3 toRGB;
+	float3x3 fromRGB;
 };
 
 // MARK: - Structs used for receiving data from the emulation.
@@ -143,38 +147,56 @@ fragment float4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_
 
 // All the RGB formats can produce RGB, composite or S-Video.
 //
-// Note on the below: in Metal you may not call a fragment function. Also I can find no
-// functioning way to offer a templated fragment function. So I don't currently know how
-// I would avoid the mess below.
+// Note on the below: in Metal you may not call a fragment function (so e.g. svideoSampleX can't just cann sampleX).
+// Also I can find no functioning way to offer a templated fragment function. So I don't currently know how
+// I could avoid the macro mess below.
 
+// TODO: is the calling convention here causing `vert` and `texture` to be copied?
 float3 convertRed8Green8Blue8(SourceInterpolator vert, texture2d<float> texture) {
 	return float3(texture.sample(standardSampler, vert.textureCoordinates));
 }
 
-#define DeclareShaders(name)	\
-	fragment float4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {	\
+float3 convertRed4Green4Blue4(SourceInterpolator vert, texture2d<ushort> texture) {
+	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).rg;
+	return float3(sample.r&15, (sample.g >> 4)&15, sample.g&15);
+}
+
+float3 convertRed2Green2Blue2(SourceInterpolator vert, texture2d<ushort> texture) {
+	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
+	return float3((sample >> 4)&3, (sample >> 2)&3, sample&3);
+}
+
+float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture) {
+	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
+	return float3(sample&4, sample&2, sample&1);
+}
+
+#define DeclareShaders(name, pixelType)	\
+	fragment float4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]]) {	\
 		return float4(convert##name(vert, texture), 1.0);	\
 	}	\
 	\
-	fragment float4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {	\
-		const auto colour = convert##name(vert, texture);	\
-		return float4(colour, 1.0);	\
+	fragment float4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
+		const float2 colourSubcarrier = float2(sin(vert.colourPhase), cos(vert.colourPhase))*0.5 + float2(0.5);	\
+		return float4(	\
+			colour.r,	\
+			dot(colour.gb, colourSubcarrier),	\
+			0.0,	\
+			1.0		\
+		);	\
+	}	\
+	\
+	fragment float4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
+		const float2 colourSubcarrier = float2(sin(vert.colourPhase), cos(vert.colourPhase));	\
+		return float4(	\
+			float3(mix(colour.r, dot(colour.gb, colourSubcarrier), vert.colourAmplitude)),	\
+			1.0		\
+		);	\
 	}
 
-// TODO: a colour-space conversion matrix is required to proceed.
-DeclareShaders(Red8Green8Blue8)
-
-fragment float4 sampleRed1Green1Blue1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
-	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
-	return float4(sample&4, sample&2, sample&1, 1.0);
-}
-
-fragment float4 sampleRed2Green2Blue2(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
-	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
-	return float4((sample >> 4)&3, (sample >> 2)&3, sample&3, 3.0) / 3.0;
-}
-
-fragment float4 sampleRed4Green4Blue4(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
-	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).rg;
-	return float4(sample.r&15, (sample.g >> 4)&15, sample.g&15, 15.0) / 15.0;
-}
+DeclareShaders(Red8Green8Blue8, float)
+DeclareShaders(Red4Green4Blue4, ushort)
+DeclareShaders(Red2Green2Blue2, ushort)
+DeclareShaders(Red1Green1Blue1, ushort)
