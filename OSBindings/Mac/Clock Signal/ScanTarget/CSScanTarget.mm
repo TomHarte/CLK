@@ -112,7 +112,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	//
 	uniforms()->scale[0] = modals.output_scale.x;
 	uniforms()->scale[1] = modals.output_scale.y;
-	uniforms()->lineWidth = 1.0f / modals.expected_vertical_lines;
+	uniforms()->lineWidth = 0.75f / modals.expected_vertical_lines;	// TODO: return to 1.0 (or slightly more), once happy.
 
 	const auto toRGB = to_rgb_matrix(modals.composite_colour_space);
 	uniforms()->toRGB = simd::float3x3(
@@ -205,6 +205,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		break;
 	}
 
+	// Enable blending.
+	pipelineDescriptor.colorAttachments[0].blendingEnabled = YES;
+	pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+	pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+
 	_scanPipeline = [view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 }
 
@@ -219,9 +224,15 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		[self setModals:*newModals view:view];
 	}
 
+	// Buy into framebuffer preservation.
+	// TODO: do I really need to do this on every draw?
+	MTLRenderPassDescriptor *const descriptor = view.currentRenderPassDescriptor;
+	descriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
+	descriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+	descriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 0.0, 1.0);
+
 	// Generate a command encoder for the view.
 	id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-	MTLRenderPassDescriptor *const descriptor = view.currentRenderPassDescriptor;
 	id <MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
 
 	// Drawing. Just scans.

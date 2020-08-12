@@ -27,7 +27,7 @@
                 <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <openGLView hidden="YES" wantsLayer="YES" useAuxiliaryDepthBufferStencil="NO" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSScanTargetView">
+                    <openGLView hidden="YES" wantsLayer="YES" stencilSize="8bit" useAuxiliaryDepthBufferStencil="NO" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSScanTargetView">
                         <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
                     </openGLView>
                     <box hidden="YES" boxType="custom" cornerRadius="4" title="Box" titlePosition="noTitle" translatesAutoresizingMaskIntoConstraints="NO" id="4ap-Gi-2AO">

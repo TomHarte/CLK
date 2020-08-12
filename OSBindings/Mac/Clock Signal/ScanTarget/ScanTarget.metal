@@ -171,9 +171,10 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 	return float3(sample&4, sample&2, sample&1);
 }
 
+// TODO: don't hard code the 0.64 in sample##name.
 #define DeclareShaders(name, pixelType)	\
 	fragment float4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]]) {	\
-		return float4(convert##name(vert, texture), 1.0);	\
+		return float4(convert##name(vert, texture), 0.64);	\
 	}	\
 	\
 	fragment float4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
