@@ -243,37 +243,42 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
 	[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 
-	_scanTarget.perform([=] (const BufferingScanTarget::OutputArea &outputArea) {
-		// Ensure texture changes are noted.
-		const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * 2048) * _bytesPerInputPixel;
-		const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * 2048) * _bytesPerInputPixel;
-		if(writeAreaModificationStart != writeAreaModificationEnd) {
-			if(writeAreaModificationStart < writeAreaModificationEnd) {
-				[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, writeAreaModificationEnd - writeAreaModificationStart)];
-			} else {
-				[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, _totalTextureBytes - writeAreaModificationStart)];
-				if(writeAreaModificationEnd) {
-					[_writeAreaBuffer didModifyRange:NSMakeRange(0, writeAreaModificationEnd)];
-				}
-			}
+	const auto outputArea = _scanTarget.get_output_area();
 
-		}
-
-		// TEMPORARY: just draw the scans.
-		if(outputArea.start.scan != outputArea.end.scan) {
-			if(outputArea.start.scan < outputArea.end.scan) {
-				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan - outputArea.start.scan baseInstance:outputArea.start.scan];
-			} else {
-				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:NumBufferedScans - outputArea.start.scan baseInstance:outputArea.start.scan];
-				if(outputArea.end.scan) {
-					[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan];
-				}
+	// Ensure texture changes are noted.
+	const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * 2048) * _bytesPerInputPixel;
+	const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * 2048) * _bytesPerInputPixel;
+	if(writeAreaModificationStart != writeAreaModificationEnd) {
+		if(writeAreaModificationStart < writeAreaModificationEnd) {
+			[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, writeAreaModificationEnd - writeAreaModificationStart)];
+		} else {
+			[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, _totalTextureBytes - writeAreaModificationStart)];
+			if(writeAreaModificationEnd) {
+				[_writeAreaBuffer didModifyRange:NSMakeRange(0, writeAreaModificationEnd)];
 			}
 		}
-	});
+
+	}
+
+	// TEMPORARY: just draw the scans.
+	if(outputArea.start.scan != outputArea.end.scan) {
+		if(outputArea.start.scan < outputArea.end.scan) {
+			[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan - outputArea.start.scan baseInstance:outputArea.start.scan];
+		} else {
+			[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:NumBufferedScans - outputArea.start.scan baseInstance:outputArea.start.scan];
+			if(outputArea.end.scan) {
+				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan];
+			}
+		}
+	}
 
 	// Complete encoding.
 	[encoder endEncoding];
+
+	// Add a callback to update the buffer.
+	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+		self->_scanTarget.complete_output_area(outputArea);
+	}];
 
 	// Register the drawable's presentation, finalise and commit.
 	[commandBuffer presentDrawable:view.currentDrawable];

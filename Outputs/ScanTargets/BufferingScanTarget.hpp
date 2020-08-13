@@ -114,6 +114,10 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// (iii) the number of lines that have been completed.
 		///
 		/// New write areas and scans are exposed only upon completion of the corresponding lines.
+		/// The values indicated by the start point are the first that should be drawn. Those indicated
+		/// by the end point are one after the final that should be drawn.
+		///
+		/// So e.g. start.scan = 23, end.scan = 24 means draw a single scan, index 23.
 		struct OutputArea {
 			struct Endpoint {
 				int write_area_x, write_area_y;
@@ -123,12 +127,26 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 
 			Endpoint start, end;
 		};
+
+		/// Gets the current range of content that has been posted but not yet returned by
+		/// a previous call to get_output_area().
+		///
+		/// Does not require the caller to be within a @c perform block.
+		OutputArea get_output_area();
+
+		/// Announces that the output area has now completed output, freeing up its memory for
+		/// further modification.
+		///
+		/// It is the caller's responsibility to ensure that the areas passed to complete_output_area
+		/// are those from get_output_area and are marked as completed in the same order that
+		/// they were originally provided.
+		///
+		/// Does not require the caller to be within a @c perform block.
+		void complete_output_area(const OutputArea &);
+
 		/// Performs @c action ensuring that no other @c perform actions, or any
 		/// change to modals, occurs simultaneously.
 		void perform(const std::function<void(void)> &action);
-
-		/// Acts as per void(void) @c perform but also dequeues all latest available video output.
-		void perform(const std::function<void(const OutputArea &)> &);
 
 		/// @returns new Modals if any have been set since the last call to get_new_modals().
 		///		The caller must be within a @c perform block.
@@ -200,6 +218,8 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// atomic since it also acts as the buffer into which the write_pointers_
 		/// may run and is therefore used by both producer and consumer.
 		std::atomic<PointerSet> read_pointers_;
+
+		std::atomic<PointerSet> read_ahead_pointers_;
 
 		/// This is used as a spinlock to guard `perform` calls.
 		std::atomic_flag is_updating_;

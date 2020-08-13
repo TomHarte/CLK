@@ -284,40 +284,45 @@ void BufferingScanTarget::set_modals(Modals modals) {
 
 // MARK: - Consumer.
 
-void BufferingScanTarget::perform(const std::function<void(const OutputArea &)> &function) {
-#ifdef ONE_BIG_LOCK
-	std::lock_guard lock_guard(producer_mutex_);
-#endif
-
+BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	// The area to draw is that between the read pointers, representing wherever reading
 	// last stopped, and the submit pointers, representing all the new data that has been
 	// cleared for submission.
 	const auto submit_pointers = submit_pointers_.load(std::memory_order::memory_order_acquire);
-	const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
+	const auto read_ahead_pointers = read_ahead_pointers_.load(std::memory_order::memory_order_relaxed);
 
 	OutputArea area;
 
-	area.start.line = read_pointers.line;
+	area.start.line = read_ahead_pointers.line;
 	area.end.line = submit_pointers.line;
 
-	area.start.scan = read_pointers.scan_buffer;
+	area.start.scan = read_ahead_pointers.scan_buffer;
 	area.end.scan = submit_pointers.scan_buffer;
 
-	area.start.write_area_x = TextureAddressGetX(read_pointers.write_area);
-	area.start.write_area_y = TextureAddressGetY(read_pointers.write_area);
+	area.start.write_area_x = TextureAddressGetX(read_ahead_pointers.write_area);
+	area.start.write_area_y = TextureAddressGetY(read_ahead_pointers.write_area);
 	area.end.write_area_x = TextureAddressGetX(submit_pointers.write_area);
 	area.end.write_area_y = TextureAddressGetY(submit_pointers.write_area);
 
-	// Perform only while holding the is_updating lock.
-	while(is_updating_.test_and_set(std::memory_order_acquire));
-	function(area);
-	is_updating_.clear(std::memory_order_release);
+	// Update the read-ahead pointers.
+	read_ahead_pointers_.store(submit_pointers, std::memory_order::memory_order_relaxed);
 
-	// Update the read pointers.
-	read_pointers_.store(submit_pointers, std::memory_order::memory_order_relaxed);
+	return area;
+}
+
+void BufferingScanTarget::complete_output_area(const OutputArea &area) {
+	PointerSet new_read_pointers;
+	new_read_pointers.line = uint16_t(area.end.line);
+	new_read_pointers.scan_buffer = uint16_t(area.end.scan);
+	new_read_pointers.write_area = TextureAddress(area.end.write_area_x, area.end.write_area_y);
+	read_pointers_.store(new_read_pointers, std::memory_order::memory_order_relaxed);
 }
 
 void BufferingScanTarget::perform(const std::function<void(void)> &function) {
+#ifdef ONE_BIG_LOCK
+	std::lock_guard lock_guard(producer_mutex_);
+#endif
+
 	while(is_updating_.test_and_set(std::memory_order_acquire));
 	function();
 	is_updating_.clear(std::memory_order_release);

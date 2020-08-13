@@ -118,8 +118,9 @@ void ScanTarget::setup_pipeline() {
 	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
 
 	// Resize the texture only if required.
-	if(data_type_size != write_area_data_size()) {
-		write_area_texture_.resize(WriteAreaWidth*WriteAreaHeight*data_type_size);
+	const size_t required_size = WriteAreaWidth*WriteAreaHeight*data_type_size;
+	if(required_size != write_area_data_size()) {
+		write_area_texture_.resize(required_size);
 		set_write_area(write_area_texture_.data());
 	}
 
@@ -186,7 +187,9 @@ void ScanTarget::update(int, int output_height) {
 		true);
 
 	// Grab the new output list.
-	perform([=] (const OutputArea &area) {
+	perform([=] {
+		OutputArea area = get_output_area();
+
 		// Establish the pipeline if necessary.
 		const auto new_modals = BufferingScanTarget::new_modals();
 		const bool did_setup_pipeline = bool(new_modals);
@@ -478,6 +481,7 @@ void ScanTarget::update(int, int output_height) {
 		// Grab a fence sync object to avoid busy waiting upon the next extry into this
 		// function, and reset the is_updating_ flag.
 		fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+		complete_output_area(area);
 	});
 }
 
