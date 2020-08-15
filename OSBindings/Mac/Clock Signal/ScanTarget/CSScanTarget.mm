@@ -103,7 +103,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
  @param size New drawable size in pixels
  */
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
-	uniforms()->aspectRatioMultiplier = float((4.0 / 3.0) / (size.width / size.height));
+	uniforms()->aspectRatioMultiplier = float(_scanTarget.modals().aspect_ratio / (size.width / size.height));
 }
 
 - (void)setModals:(const Outputs::Display::ScanTarget::Modals &)modals view:(nonnull MTKView *)view {
@@ -113,6 +113,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	uniforms()->scale[0] = modals.output_scale.x;
 	uniforms()->scale[1] = modals.output_scale.y;
 	uniforms()->lineWidth = 0.75f / modals.expected_vertical_lines;	// TODO: return to 1.0 (or slightly more), once happy.
+	uniforms()->aspectRatioMultiplier = float(modals.aspect_ratio / (view.bounds.size.width / view.bounds.size.height));
 
 	const auto toRGB = to_rgb_matrix(modals.composite_colour_space);
 	uniforms()->toRGB = simd::float3x3(
@@ -156,6 +157,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		height:BufferingScanTarget::WriteAreaHeight
 		mipmapped:NO];
 	textureDescriptor.resourceOptions = SharedResourceOptionsTexture;
+	if(@available(macOS 10.14, *)) {
+		textureDescriptor.allowGPUOptimizedContents = NO;
+	}
 
 	// TODO: the call below is the only reason why this project now requires macOS 10.13; is it all that helpful versus just uploading each frame?
 	const NSUInteger bytesPerRow = BufferingScanTarget::WriteAreaWidth * _bytesPerInputPixel;
