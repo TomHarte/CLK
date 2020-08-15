@@ -159,6 +159,12 @@ struct ActivityObserver: public Activity::Observer {
 	Time::ScanSynchroniser _scanSynchroniser;
 
 	NSTimer *_joystickTimer;
+
+	// This array exists to reduce blocking on the main queue; anything that would otherwise need
+	// to synchronise on self in order to post input to the machine can instead synchronise on
+	// _inputEvents and add a block to it. The main machine execution loop promises to synchronise
+	// on _inputEvents very briefly at the start of every tick and execute all enqueued blocks.
+	NSMutableArray<dispatch_block_t> *_inputEvents;
 }
 
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result missingROMs:(inout NSMutableArray<CSMissingROM *> *)missingROMs {
@@ -209,6 +215,8 @@ struct ActivityObserver: public Activity::Observer {
 
 		_speakerDelegate.machine = self;
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
+
+		_inputEvents = [[NSMutableArray alloc] init];
 
 		_joystickMachine = _machine->joystick_machine();
 		[self updateJoystickTimer];
@@ -415,84 +423,84 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed {
-	auto keyboard_machine = _machine->keyboard_machine();
-	if(keyboard_machine && (self.inputMode != CSMachineKeyboardInputModeJoystick || !keyboard_machine->get_keyboard().is_exclusive())) {
-		Inputs::Keyboard::Key mapped_key = Inputs::Keyboard::Key::Help;	// Make an innocuous default guess.
+	[self applyInputEvent:^{
+		auto keyboard_machine = self->_machine->keyboard_machine();
+		if(keyboard_machine && (self.inputMode != CSMachineKeyboardInputModeJoystick || !keyboard_machine->get_keyboard().is_exclusive())) {
+			Inputs::Keyboard::Key mapped_key = Inputs::Keyboard::Key::Help;	// Make an innocuous default guess.
 #define BIND(source, dest) case source: mapped_key = Inputs::Keyboard::Key::dest; break;
-		// Connect the Carbon-era Mac keyboard scancodes to Clock Signal's 'universal' enumeration in order
-		// to pass into the platform-neutral realm.
-		switch(key) {
-			BIND(VK_ANSI_0, k0);	BIND(VK_ANSI_1, k1);	BIND(VK_ANSI_2, k2);	BIND(VK_ANSI_3, k3);	BIND(VK_ANSI_4, k4);
-			BIND(VK_ANSI_5, k5);	BIND(VK_ANSI_6, k6);	BIND(VK_ANSI_7, k7);	BIND(VK_ANSI_8, k8);	BIND(VK_ANSI_9, k9);
+			// Connect the Carbon-era Mac keyboard scancodes to Clock Signal's 'universal' enumeration in order
+			// to pass into the platform-neutral realm.
+			switch(key) {
+				BIND(VK_ANSI_0, k0);	BIND(VK_ANSI_1, k1);	BIND(VK_ANSI_2, k2);	BIND(VK_ANSI_3, k3);	BIND(VK_ANSI_4, k4);
+				BIND(VK_ANSI_5, k5);	BIND(VK_ANSI_6, k6);	BIND(VK_ANSI_7, k7);	BIND(VK_ANSI_8, k8);	BIND(VK_ANSI_9, k9);
 
-			BIND(VK_ANSI_Q, Q);		BIND(VK_ANSI_W, W);		BIND(VK_ANSI_E, E);		BIND(VK_ANSI_R, R);		BIND(VK_ANSI_T, T);
-			BIND(VK_ANSI_Y, Y);		BIND(VK_ANSI_U, U);		BIND(VK_ANSI_I, I);		BIND(VK_ANSI_O, O);		BIND(VK_ANSI_P, P);
+				BIND(VK_ANSI_Q, Q);		BIND(VK_ANSI_W, W);		BIND(VK_ANSI_E, E);		BIND(VK_ANSI_R, R);		BIND(VK_ANSI_T, T);
+				BIND(VK_ANSI_Y, Y);		BIND(VK_ANSI_U, U);		BIND(VK_ANSI_I, I);		BIND(VK_ANSI_O, O);		BIND(VK_ANSI_P, P);
 
-			BIND(VK_ANSI_A, A);		BIND(VK_ANSI_S, S);		BIND(VK_ANSI_D, D);		BIND(VK_ANSI_F, F);		BIND(VK_ANSI_G, G);
-			BIND(VK_ANSI_H, H);		BIND(VK_ANSI_J, J);		BIND(VK_ANSI_K, K);		BIND(VK_ANSI_L, L);
+				BIND(VK_ANSI_A, A);		BIND(VK_ANSI_S, S);		BIND(VK_ANSI_D, D);		BIND(VK_ANSI_F, F);		BIND(VK_ANSI_G, G);
+				BIND(VK_ANSI_H, H);		BIND(VK_ANSI_J, J);		BIND(VK_ANSI_K, K);		BIND(VK_ANSI_L, L);
 
-			BIND(VK_ANSI_Z, Z);		BIND(VK_ANSI_X, X);		BIND(VK_ANSI_C, C);		BIND(VK_ANSI_V, V);
-			BIND(VK_ANSI_B, B);		BIND(VK_ANSI_N, N);		BIND(VK_ANSI_M, M);
+				BIND(VK_ANSI_Z, Z);		BIND(VK_ANSI_X, X);		BIND(VK_ANSI_C, C);		BIND(VK_ANSI_V, V);
+				BIND(VK_ANSI_B, B);		BIND(VK_ANSI_N, N);		BIND(VK_ANSI_M, M);
 
-			BIND(VK_F1, F1);		BIND(VK_F2, F2);		BIND(VK_F3, F3);		BIND(VK_F4, F4);
-			BIND(VK_F5, F5);		BIND(VK_F6, F6);		BIND(VK_F7, F7);		BIND(VK_F8, F8);
-			BIND(VK_F9, F9);		BIND(VK_F10, F10);		BIND(VK_F11, F11);		BIND(VK_F12, F12);
+				BIND(VK_F1, F1);		BIND(VK_F2, F2);		BIND(VK_F3, F3);		BIND(VK_F4, F4);
+				BIND(VK_F5, F5);		BIND(VK_F6, F6);		BIND(VK_F7, F7);		BIND(VK_F8, F8);
+				BIND(VK_F9, F9);		BIND(VK_F10, F10);		BIND(VK_F11, F11);		BIND(VK_F12, F12);
 
-			BIND(VK_ANSI_Keypad0, Keypad0);		BIND(VK_ANSI_Keypad1, Keypad1);		BIND(VK_ANSI_Keypad2, Keypad2);
-			BIND(VK_ANSI_Keypad3, Keypad3);		BIND(VK_ANSI_Keypad4, Keypad4);		BIND(VK_ANSI_Keypad5, Keypad5);
-			BIND(VK_ANSI_Keypad6, Keypad6);		BIND(VK_ANSI_Keypad7, Keypad7);		BIND(VK_ANSI_Keypad8, Keypad8);
-			BIND(VK_ANSI_Keypad9, Keypad9);
+				BIND(VK_ANSI_Keypad0, Keypad0);		BIND(VK_ANSI_Keypad1, Keypad1);		BIND(VK_ANSI_Keypad2, Keypad2);
+				BIND(VK_ANSI_Keypad3, Keypad3);		BIND(VK_ANSI_Keypad4, Keypad4);		BIND(VK_ANSI_Keypad5, Keypad5);
+				BIND(VK_ANSI_Keypad6, Keypad6);		BIND(VK_ANSI_Keypad7, Keypad7);		BIND(VK_ANSI_Keypad8, Keypad8);
+				BIND(VK_ANSI_Keypad9, Keypad9);
 
-			BIND(VK_ANSI_Equal, Equals);						BIND(VK_ANSI_Minus, Hyphen);
-			BIND(VK_ANSI_RightBracket, CloseSquareBracket);		BIND(VK_ANSI_LeftBracket, OpenSquareBracket);
-			BIND(VK_ANSI_Quote, Quote);							BIND(VK_ANSI_Grave, BackTick);
+				BIND(VK_ANSI_Equal, Equals);						BIND(VK_ANSI_Minus, Hyphen);
+				BIND(VK_ANSI_RightBracket, CloseSquareBracket);		BIND(VK_ANSI_LeftBracket, OpenSquareBracket);
+				BIND(VK_ANSI_Quote, Quote);							BIND(VK_ANSI_Grave, BackTick);
 
-			BIND(VK_ANSI_Semicolon, Semicolon);
-			BIND(VK_ANSI_Backslash, Backslash);					BIND(VK_ANSI_Slash, ForwardSlash);
-			BIND(VK_ANSI_Comma, Comma);							BIND(VK_ANSI_Period, FullStop);
+				BIND(VK_ANSI_Semicolon, Semicolon);
+				BIND(VK_ANSI_Backslash, Backslash);					BIND(VK_ANSI_Slash, ForwardSlash);
+				BIND(VK_ANSI_Comma, Comma);							BIND(VK_ANSI_Period, FullStop);
 
-			BIND(VK_ANSI_KeypadDecimal, KeypadDecimalPoint);	BIND(VK_ANSI_KeypadEquals, KeypadEquals);
-			BIND(VK_ANSI_KeypadMultiply, KeypadAsterisk);		BIND(VK_ANSI_KeypadDivide, KeypadSlash);
-			BIND(VK_ANSI_KeypadPlus, KeypadPlus);				BIND(VK_ANSI_KeypadMinus, KeypadMinus);
-			BIND(VK_ANSI_KeypadClear, KeypadDelete);			BIND(VK_ANSI_KeypadEnter, KeypadEnter);
+				BIND(VK_ANSI_KeypadDecimal, KeypadDecimalPoint);	BIND(VK_ANSI_KeypadEquals, KeypadEquals);
+				BIND(VK_ANSI_KeypadMultiply, KeypadAsterisk);		BIND(VK_ANSI_KeypadDivide, KeypadSlash);
+				BIND(VK_ANSI_KeypadPlus, KeypadPlus);				BIND(VK_ANSI_KeypadMinus, KeypadMinus);
+				BIND(VK_ANSI_KeypadClear, KeypadDelete);			BIND(VK_ANSI_KeypadEnter, KeypadEnter);
 
-			BIND(VK_Return, Enter);					BIND(VK_Tab, Tab);
-			BIND(VK_Space, Space);					BIND(VK_Delete, Backspace);
-			BIND(VK_Control, LeftControl);			BIND(VK_Option, LeftOption);
-			BIND(VK_Command, LeftMeta);				BIND(VK_Shift, LeftShift);
-			BIND(VK_RightControl, RightControl);	BIND(VK_RightOption, RightOption);
-			BIND(VK_Escape, Escape);				BIND(VK_CapsLock, CapsLock);
-			BIND(VK_Home, Home);					BIND(VK_End, End);
-			BIND(VK_PageUp, PageUp);				BIND(VK_PageDown, PageDown);
+				BIND(VK_Return, Enter);					BIND(VK_Tab, Tab);
+				BIND(VK_Space, Space);					BIND(VK_Delete, Backspace);
+				BIND(VK_Control, LeftControl);			BIND(VK_Option, LeftOption);
+				BIND(VK_Command, LeftMeta);				BIND(VK_Shift, LeftShift);
+				BIND(VK_RightControl, RightControl);	BIND(VK_RightOption, RightOption);
+				BIND(VK_Escape, Escape);				BIND(VK_CapsLock, CapsLock);
+				BIND(VK_Home, Home);					BIND(VK_End, End);
+				BIND(VK_PageUp, PageUp);				BIND(VK_PageDown, PageDown);
 
-			BIND(VK_RightShift, RightShift);
-			BIND(VK_Help, Help);
-			BIND(VK_ForwardDelete, Delete);
+				BIND(VK_RightShift, RightShift);
+				BIND(VK_Help, Help);
+				BIND(VK_ForwardDelete, Delete);
 
-			BIND(VK_LeftArrow, Left);		BIND(VK_RightArrow, Right);
-			BIND(VK_DownArrow, Down);		BIND(VK_UpArrow, Up);
-		}
+				BIND(VK_LeftArrow, Left);		BIND(VK_RightArrow, Right);
+				BIND(VK_DownArrow, Down);		BIND(VK_UpArrow, Up);
+			}
 #undef BIND
 
-		// Pick an ASCII code, if any.
-		char pressedKey = '\0';
-		if(characters.length) {
-			unichar firstCharacter = [characters characterAtIndex:0];
-			if(firstCharacter < 128) {
-				pressedKey = (char)firstCharacter;
+			// Pick an ASCII code, if any.
+			char pressedKey = '\0';
+			if(characters.length) {
+				unichar firstCharacter = [characters characterAtIndex:0];
+				if(firstCharacter < 128) {
+					pressedKey = (char)firstCharacter;
+				}
+			}
+
+			@synchronized(self) {
+				if(keyboard_machine->apply_key(mapped_key, pressedKey, isPressed, self.inputMode == CSMachineKeyboardInputModeKeyboardLogical)) {
+					return;
+				}
 			}
 		}
 
-		@synchronized(self) {
-			if(keyboard_machine->apply_key(mapped_key, pressedKey, isPressed, self.inputMode == CSMachineKeyboardInputModeKeyboardLogical)) {
-				return;
-			}
-		}
-	}
-
-	auto joystick_machine = _machine->joystick_machine();
-	if(self.inputMode == CSMachineKeyboardInputModeJoystick && joystick_machine) {
-		@synchronized(self) {
+		auto joystick_machine = self->_machine->joystick_machine();
+		if(self.inputMode == CSMachineKeyboardInputModeJoystick && joystick_machine) {
 			auto &joysticks = joystick_machine->get_joysticks();
 			if(!joysticks.empty()) {
 				// Convert to a C++ bool so that the following calls are resolved correctly even if overloaded.
@@ -517,49 +525,55 @@ struct ActivityObserver: public Activity::Observer {
 				}
 			}
 		}
+	}];
+}
+
+- (void)applyInputEvent:(dispatch_block_t)event {
+	@synchronized(_inputEvents) {
+		[_inputEvents addObject:event];
 	}
 }
 
 - (void)clearAllKeys {
 	const auto keyboard_machine = _machine->keyboard_machine();
 	if(keyboard_machine) {
-		@synchronized(self) {
+		[self applyInputEvent:^{
 			keyboard_machine->get_keyboard().reset_all_keys();
-		}
+		}];
 	}
 
 	const auto joystick_machine = _machine->joystick_machine();
 	if(joystick_machine) {
-		@synchronized(self) {
+		[self applyInputEvent:^{
 			for(auto &joystick : joystick_machine->get_joysticks()) {
 				joystick->reset_all_inputs();
 			}
-		}
+		}];
 	}
 
 	const auto mouse_machine = _machine->mouse_machine();
 	if(mouse_machine) {
-		@synchronized(self) {
+		[self applyInputEvent:^{
 			mouse_machine->get_mouse().reset_all_buttons();
-		}
+		}];
 	}
 }
 
 - (void)setMouseButton:(int)button isPressed:(BOOL)isPressed {
 	auto mouse_machine = _machine->mouse_machine();
 	if(mouse_machine) {
-		@synchronized(self) {
+		[self applyInputEvent:^{
 			mouse_machine->get_mouse().set_button_pressed(button % mouse_machine->get_mouse().get_number_of_buttons(), isPressed);
-		}
+		}];
 	}
 }
 
 - (void)addMouseMotionX:(CGFloat)deltaX y:(CGFloat)deltaY {
 	auto mouse_machine = _machine->mouse_machine();
 	if(mouse_machine) {
-		@synchronized(self) {
+		[self applyInputEvent:^{
 			mouse_machine->get_mouse().move(int(deltaX), int(deltaY));
-		}
+		}];
 	}
 }
 
@@ -773,6 +787,14 @@ struct ActivityObserver: public Activity::Observer {
 		CGSize pixelSize;
 		BOOL splitAndSync = NO;
 		@synchronized(self) {
+			// Post on input events.
+			@synchronized(self->_inputEvents) {
+				for(dispatch_block_t action: self->_inputEvents) {
+					action();
+				}
+				[self->_inputEvents removeAllObjects];
+			}
+
 			// If this tick includes vsync then inspect the machine.
 			if(timeNow >= self->_syncTime && lastTime < self->_syncTime) {
 				splitAndSync = self->_isSyncLocking = self->_scanSynchroniser.can_synchronise(self->_machine->scan_producer()->get_scan_status(), self->_refreshPeriod);
