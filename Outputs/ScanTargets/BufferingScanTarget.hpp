@@ -70,12 +70,12 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		struct Line {
 			struct EndPoint {
 				uint16_t x, y;
-				uint16_t cycles_since_end_of_horizontal_retrace;
 				int16_t composite_angle;
+				uint16_t cycles_since_end_of_horizontal_retrace;
 			} end_points[2];
 
-			uint16_t line;
 			uint8_t composite_amplitude;
+			uint16_t line;
 		};
 
 		/// Provides additional metadata about lines; this is separate because it's unlikely to be of
@@ -88,6 +88,8 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 			/// from a frame if performance problems mean that the emulated machine is running
 			/// more quickly than complete frames can be generated.
 			bool previous_frame_was_complete;
+			/// The index of the first scan that will appear on this line.
+			size_t first_scan;
 		};
 
 		/// Sets the area of memory to use as a scan buffer.
@@ -205,7 +207,7 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 			int32_t write_area = 1;
 
 			// Points into the scan buffer.
-			uint16_t scan_buffer = 0;
+			uint16_t scan = 0;
 
 			// Points into the line buffer.
 			uint16_t line = 0;

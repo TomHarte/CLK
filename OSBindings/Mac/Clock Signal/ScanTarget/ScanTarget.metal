@@ -45,12 +45,12 @@ struct Scan {
 struct Line {
 	struct EndPoint {
 		uint16_t position[2];
-		uint16_t cyclesSinceRetrace;
 		uint16_t compositeAngle;
+		uint16_t cyclesSinceRetrace;
 	} endPoints[2];
 
-	uint16_t line;
 	uint8_t compositeAmplitude;
+	uint16_t line;
 };
 
 // MARK: - Intermediate structs.

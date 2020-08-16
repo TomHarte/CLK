@@ -142,6 +142,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_frameBufferRenderPass.colorAttachments[0].texture = _frameBuffer;
 		_frameBufferRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
 		_frameBufferRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+		// TODO: old framebuffer should be resized onto the new one.
 	}
 }
 

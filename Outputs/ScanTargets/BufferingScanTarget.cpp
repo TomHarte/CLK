@@ -131,19 +131,19 @@ Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
 		return nullptr;
 	}
 
-	const auto result = &scan_buffer_[write_pointers_.scan_buffer];
+	const auto result = &scan_buffer_[write_pointers_.scan];
 	const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
 
 	// Advance the pointer.
-	const auto next_write_pointer = decltype(write_pointers_.scan_buffer)((write_pointers_.scan_buffer + 1) % scan_buffer_size_);
+	const auto next_write_pointer = decltype(write_pointers_.scan)((write_pointers_.scan + 1) % scan_buffer_size_);
 
 	// Check whether that's too many.
-	if(next_write_pointer == read_pointers.scan_buffer) {
+	if(next_write_pointer == read_pointers.scan) {
 		allocation_has_failed_ = true;
 		vended_scan_ = nullptr;
 		return nullptr;
 	}
-	write_pointers_.scan_buffer = next_write_pointer;
+	write_pointers_.scan = next_write_pointer;
 	++provided_scans_;
 
 	// Fill in extra OpenGL-specific details.
@@ -211,11 +211,17 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 	} else {
 		// Commit the most recent line only if any scans fell on it and all allocation was successful.
 		if(!allocation_has_failed_ && provided_scans_) {
+			const auto submit_pointers = submit_pointers_.load(std::memory_order::memory_order_relaxed);
+
 			// Store metadata.
 			LineMetadata &metadata = line_metadata_buffer_[size_t(write_pointers_.line)];
 			metadata.is_first_in_frame = is_first_in_frame_;
 			metadata.previous_frame_was_complete = previous_frame_was_complete_;
+			metadata.first_scan = submit_pointers.scan;
 			is_first_in_frame_ = false;
+
+			// Sanity check.
+			assert(((metadata.first_scan + provided_scans_) % scan_buffer_size_) == write_pointers_.scan);
 
 			// Store actual line data.
 			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
@@ -296,8 +302,8 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	area.start.line = read_ahead_pointers.line;
 	area.end.line = submit_pointers.line;
 
-	area.start.scan = read_ahead_pointers.scan_buffer;
-	area.end.scan = submit_pointers.scan_buffer;
+	area.start.scan = read_ahead_pointers.scan;
+	area.end.scan = submit_pointers.scan;
 
 	area.start.write_area_x = TextureAddressGetX(read_ahead_pointers.write_area);
 	area.start.write_area_y = TextureAddressGetY(read_ahead_pointers.write_area);
@@ -313,7 +319,7 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 void BufferingScanTarget::complete_output_area(const OutputArea &area) {
 	PointerSet new_read_pointers;
 	new_read_pointers.line = uint16_t(area.end.line);
-	new_read_pointers.scan_buffer = uint16_t(area.end.scan);
+	new_read_pointers.scan = uint16_t(area.end.scan);
 	new_read_pointers.write_area = TextureAddress(area.end.write_area_x, area.end.write_area_y);
 	read_pointers_.store(new_read_pointers, std::memory_order::memory_order_relaxed);
 }
