@@ -45,6 +45,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	id<MTLRenderPipelineState> _scanPipeline;
 	id<MTLRenderPipelineState> _copyPipeline;
+	id<MTLRenderPipelineState> _clearPipeline;
 
 	// Buffers.
 	id<MTLBuffer> _uniformsBuffer;
@@ -60,6 +61,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	id<MTLTexture> _frameBuffer;
 	MTLRenderPassDescriptor *_frameBufferRenderPass;
+
+	id<MTLTexture> _frameBufferStencil;
+	id<MTLDepthStencilState> _drawStencilState;		// Always draws, sets stencil to 1.
+	id<MTLDepthStencilState> _clearStencilState;	// Draws only where stencil is 0, clears all to 0.
 
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
@@ -100,13 +105,25 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_view = view;
 		[self mtkView:view drawableSizeWillChange:view.drawableSize];
 
-		// Generate copy pipeline.
+		// Generate copy and clear pipelines.
 		id<MTLLibrary> library = [_view.device newDefaultLibrary];
 		MTLRenderPipelineDescriptor *const pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
 		pipelineDescriptor.colorAttachments[0].pixelFormat = _view.colorPixelFormat;
 		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"copyVertex"];
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"copyFragment"];
 		_copyPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"clearFragment"];
+		pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatStencil8;
+		_clearPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+
+		// Clear stencil: always write the reference value (of 0), but draw only where the stencil already
+		// had that value.
+		MTLDepthStencilDescriptor *depthStencilDescriptor = [[MTLDepthStencilDescriptor alloc] init];
+		depthStencilDescriptor.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionEqual;
+		depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
+		depthStencilDescriptor.frontFaceStencil.stencilFailureOperation = MTLStencilOperationReplace;
+		_clearStencilState = [view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 	}
 
 	return self;
@@ -125,10 +142,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// TODO: consider multisampling here? But it seems like you'd need another level of indirection
 	// in order to maintain an ongoing buffer that supersamples only at the end.
 
-	// TODO: attach a stencil buffer.
-
 	@synchronized(self) {
-		// Generate a framebuffer and a pipeline that targets it.
+		// Generate a framebuffer and a stencil.
 		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
 			texture2DDescriptorWithPixelFormat:view.colorPixelFormat
 			width:NSUInteger(size.width * view.layer.contentsScale)
@@ -138,10 +153,33 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
 		_frameBuffer = [view.device newTextureWithDescriptor:textureDescriptor];
 
+		MTLTextureDescriptor *const stencilTextureDescriptor = [MTLTextureDescriptor
+			texture2DDescriptorWithPixelFormat:MTLPixelFormatStencil8
+			width:NSUInteger(size.width * view.layer.contentsScale)
+			height:NSUInteger(size.height * view.layer.contentsScale)
+			mipmapped:NO];
+		stencilTextureDescriptor.usage = MTLTextureUsageRenderTarget;
+		stencilTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
+		_frameBufferStencil = [view.device newTextureWithDescriptor:stencilTextureDescriptor];
+
+		// Generate a render pass with that framebuffer and stencil.
 		_frameBufferRenderPass = [[MTLRenderPassDescriptor alloc] init];
 		_frameBufferRenderPass.colorAttachments[0].texture = _frameBuffer;
 		_frameBufferRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
 		_frameBufferRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+		_frameBufferRenderPass.stencilAttachment.clearStencil = 0;
+		_frameBufferRenderPass.stencilAttachment.texture = _frameBufferStencil;
+		_frameBufferRenderPass.stencilAttachment.loadAction = MTLLoadActionLoad;
+		_frameBufferRenderPass.stencilAttachment.storeAction = MTLStoreActionStore;
+
+		// Establish intended stencil useage; it's only to track which pixels haven't been painted
+		// at all at the end of every frame. So: always paint, and replace the stored stencil value
+		// (which is seeded as 0) with the nominated one (a 1).
+		MTLDepthStencilDescriptor *depthStencilDescriptor = [[MTLDepthStencilDescriptor alloc] init];
+		depthStencilDescriptor.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
+		depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
+		_drawStencilState = [view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 
 		// TODO: old framebuffer should be resized onto the new one.
 	}
@@ -259,10 +297,65 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
 	pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
 
+	// Set stencil format.
+	pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatStencil8;
+
+	// Finish.
 	_scanPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 }
 
-- (void)checkModals {
+- (void)outputScansFrom:(size_t)start to:(size_t)end commandBuffer:(id<MTLCommandBuffer>)commandBuffer {
+	// Generate a command encoder for the view.
+	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPass];
+
+	// Drawing. Just scans.
+	[encoder setRenderPipelineState:_scanPipeline];
+
+	[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
+	[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
+	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
+	[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
+
+	[encoder setDepthStencilState:_drawStencilState];
+	[encoder setStencilReferenceValue:1];
+#ifndef NDEBUG
+	// Quick aid for debugging: the stencil test is predicated on front-facing pixels, so make sure they're
+	// being generated.
+	[encoder setCullMode:MTLCullModeBack];
+#endif
+
+	if(start != end) {
+		if(start < end) {
+			[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:end - start baseInstance:start];
+		} else {
+			[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:NumBufferedScans - start baseInstance:start];
+			if(end) {
+				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:end];
+			}
+		}
+	}
+
+	// Complete encoding and return.
+	[encoder endEncoding];
+}
+
+- (void)outputFrameCleanerToCommandBuffer:(id<MTLCommandBuffer>)commandBuffer {
+	// Generate a command encoder for the view.
+	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPass];
+
+	// Drawing. Just scans.
+	[encoder setRenderPipelineState:_clearPipeline];
+	[encoder setDepthStencilState:_clearStencilState];
+	[encoder setStencilReferenceValue:0];
+
+	[encoder setVertexTexture:_frameBuffer atIndex:0];
+	[encoder setFragmentTexture:_frameBuffer atIndex:0];
+
+	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+	[encoder endEncoding];
+}
+
+- (void)updateFrameBuffer {
 	// TODO: rethink BufferingScanTarget::perform. Is it now really just for guarding the modals?
 	_scanTarget.perform([=] {
 		const Outputs::Display::ScanTarget::Modals *const newModals = _scanTarget.new_modals();
@@ -270,25 +363,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			[self setModals:*newModals];
 		}
 	});
-}
-
-- (void)updateFrameBuffer {
-	[self checkModals];
 
 	@synchronized(self) {
 		if(!_frameBufferRenderPass) return;
-
-		// Generate a command encoder for the view.
-		id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-		id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPass];
-
-		// Drawing. Just scans.
-		[encoder setRenderPipelineState:_scanPipeline];
-
-		[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
-		[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
-		[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
-		[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 		const auto outputArea = _scanTarget.get_output_area();
 
@@ -307,27 +384,43 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		}
 
-		// TEMPORARY: just draw the scans.
-		if(outputArea.start.scan != outputArea.end.scan) {
-			if(outputArea.start.scan < outputArea.end.scan) {
-				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan - outputArea.start.scan baseInstance:outputArea.start.scan];
-			} else {
-				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:NumBufferedScans - outputArea.start.scan baseInstance:outputArea.start.scan];
-				if(outputArea.end.scan) {
-					[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan];
-				}
+		// Obtain a source for render command encoders.
+		id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+
+		//
+		// Drawing algorithm used below, in broad terms:
+		//
+		// Maintain a persistent buffer of current CRT state.
+		//
+		// During each frame, paint to the persistent buffer anything new. Update a stencil buffer to track
+		// every pixel so-far touched.
+		//
+		// At the end of the frame, draw a 'frame cleaner', which is a whole-screen rect that paints over
+		// only those areas that the stencil buffer indicates weren't painted this frame.
+		//
+		// Hence every pixel is touched every frame, regardless of the machine's output.
+		//
+
+		// TODO: proceed as per the below inly if doing a scan-centric output.
+		// Draw scans to a composition buffer and from there to the display as lines otherwise.
+
+		// Break up scans by frame.
+		size_t line = outputArea.start.line;
+		size_t scan = outputArea.start.scan;
+		while(line != outputArea.end.line) {
+			if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
+				[self outputScansFrom:scan to:_lineMetadataBuffer[line].first_scan commandBuffer:commandBuffer];
+				[self outputFrameCleanerToCommandBuffer:commandBuffer];
+				scan = _lineMetadataBuffer[line].first_scan;
 			}
+			line = (line + 1) % NumBufferedLines;
 		}
+		[self outputScansFrom:scan to:outputArea.end.scan commandBuffer:commandBuffer];
 
-		// Complete encoding.
-		[encoder endEncoding];
-
-		// Add a callback to update the buffer.
+		// Add a callback to update the scan target buffer and commit the drawing.
 		[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
 			self->_scanTarget.complete_output_area(outputArea);
 		}];
-
-		// Commit the drawing.
 		[commandBuffer commit];
 	}
 }

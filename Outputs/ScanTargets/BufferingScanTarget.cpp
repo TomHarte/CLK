@@ -221,7 +221,7 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			is_first_in_frame_ = false;
 
 			// Sanity check.
-			assert(((metadata.first_scan + provided_scans_) % scan_buffer_size_) == write_pointers_.scan);
+			assert(((metadata.first_scan + size_t(provided_scans_)) % scan_buffer_size_) == write_pointers_.scan);
 
 			// Store actual line data.
 			Line &active_line = line_buffer_[size_t(write_pointers_.line)];

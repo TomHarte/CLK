@@ -9,6 +9,9 @@
 #include <metal_stdlib>
 using namespace metal;
 
+// TODO: I'm being very loose, so far, in use of alpha. Sometimes it's 0.64, somtimes its 1.0.
+// Apply some rigour, for crying out loud.
+
 struct Uniforms {
 	// This is used to scale scan positions, i.e. it provides the range
 	// for mapping from scan-style integer positions into eye space.
@@ -83,7 +86,7 @@ vertex SourceInterpolator scanToDisplay(	constant Uniforms &uniforms [[buffer(1)
 
 	// Calculate the tangent and normal.
 	const float2 tangent = (end - start);
-	const float2 normal = float2(-tangent.y, tangent.x) / length(tangent);
+	const float2 normal = float2(tangent.y, -tangent.x) / length(tangent);
 
 	// Load up the colour details.
 	output.colourAmplitude = float(scans[instanceID].compositeAmplitude) / 255.0f;
@@ -230,4 +233,8 @@ vertex CopyInterpolator copyVertex(uint vertexID [[vertex_id]], texture2d<float>
 
 fragment float4 copyFragment(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
 	return texture.sample(standardSampler, vert.textureCoordinates);
+}
+
+fragment float4 clearFragment(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+	return float4(0.0, 0.0, 0.0, 0.64);
 }
