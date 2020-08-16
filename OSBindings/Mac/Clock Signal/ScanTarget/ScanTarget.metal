@@ -55,7 +55,6 @@ struct Line {
 
 // MARK: - Intermediate structs.
 
-// This is an intermediate struct, which is TEMPORARY.
 struct SourceInterpolator {
 	float4 position [[position]];
 	float2 textureCoordinates;
@@ -201,3 +200,34 @@ DeclareShaders(Red8Green8Blue8, float)
 DeclareShaders(Red4Green4Blue4, ushort)
 DeclareShaders(Red2Green2Blue2, ushort)
 DeclareShaders(Red1Green1Blue1, ushort)
+
+// MARK: - Shaders for copying from a same-sized texture to an MTKView's frame buffer.
+
+struct CopyInterpolator {
+	float4 position [[position]];
+	float2 textureCoordinates;
+};
+
+vertex CopyInterpolator copyVertex(uint vertexID [[vertex_id]], texture2d<float> texture [[texture(0)]]) {
+	CopyInterpolator vert;
+
+	const uint x = vertexID & 1;
+	const uint y = (vertexID >> 1) & 1;
+
+	vert.textureCoordinates = float2(
+		x * texture.get_width(),
+		y * texture.get_height()
+	);
+	vert.position = float4(
+		float(x) * 2.0 - 1.0,
+		1.0 - float(y) * 2.0,
+		0.0,
+		1.0
+	);
+
+	return vert;
+}
+
+fragment float4 copyFragment(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+	return texture.sample(standardSampler, vert.textureCoordinates);
+}

@@ -609,13 +609,10 @@ class MachineDocument:
 		let url = pictursURL.appendingPathComponent(filename)
 
 		// Obtain the machine's current display.
-		var imageRepresentation: NSBitmapImageRep? = nil
-		self.scanTargetView.perform {
-			imageRepresentation = self.machine.imageRepresentation
-		}
+		let imageRepresentation = self.machine.imageRepresentation
 
 		// Encode as a PNG and save.
-		let pngData = imageRepresentation!.representation(using: .png, properties: [:])
+		let pngData = imageRepresentation.representation(using: .png, properties: [:])
 		try! pngData?.write(to: url)
 	}
 

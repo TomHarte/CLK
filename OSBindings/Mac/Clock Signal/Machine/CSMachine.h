@@ -67,9 +67,6 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 - (void)start;
 - (void)stop;
 
-- (void)updateViewForPixelSize:(CGSize)pixelSize;
-- (void)drawViewForPixelSize:(CGSize)pixelSize;
-
 - (void)setKey:(uint16_t)key characters:(nullable NSString *)characters isPressed:(BOOL)isPressed;
 - (void)clearAllKeys;
 

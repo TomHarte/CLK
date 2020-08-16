@@ -16,4 +16,8 @@
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view;
 
+// Draws all scans currently residing at the scan target to the backing store,
+// ready for output when next requested.
+- (void)updateFrameBuffer;
+
 @end

@@ -42,7 +42,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	id<MTLFunction> _vertexShader;
 	id<MTLFunction> _fragmentShader;
+
 	id<MTLRenderPipelineState> _scanPipeline;
+	id<MTLRenderPipelineState> _copyPipeline;
 
 	// Buffers.
 	id<MTLBuffer> _uniformsBuffer;
@@ -56,10 +58,16 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	size_t _bytesPerInputPixel;
 	size_t _totalTextureBytes;
 
+	id<MTLTexture> _frameBuffer;
+	MTLRenderPassDescriptor *_frameBufferRenderPass;
+
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
 	BufferingScanTarget::LineMetadata _lineMetadataBuffer[NumBufferedLines];
 	std::atomic_bool _isDrawing;
+
+	// The output view's aspect ratio.
+	__weak MTKView *_view;
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -89,6 +97,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_scanTarget.set_scan_buffer(reinterpret_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents), NumBufferedScans);
 
 		// Set initial aspect-ratio multiplier.
+		_view = view;
 		[self mtkView:view drawableSizeWillChange:view.drawableSize];
 	}
 
@@ -103,17 +112,41 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
  @param size New drawable size in pixels
  */
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
-	uniforms()->aspectRatioMultiplier = float(_scanTarget.modals().aspect_ratio / (size.width / size.height));
+	[self setAspectRatio];
+
+	// TODO: consider multisampling here? But it seems like you'd need another level of indirection
+	// in order to maintain an ongoing buffer that supersamples only at the end.
+
+	// TODO: attach a stencil buffer.
+
+	// Generate a framebuffer and a pipeline that targets it.
+	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
+		texture2DDescriptorWithPixelFormat:view.colorPixelFormat
+		width:NSUInteger(size.width * view.layer.contentsScale)
+		height:NSUInteger(size.height * view.layer.contentsScale)
+		mipmapped:NO];
+	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+	textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
+	_frameBuffer = [view.device newTextureWithDescriptor:textureDescriptor];
+
+	_frameBufferRenderPass = [[MTLRenderPassDescriptor alloc] init];
+	_frameBufferRenderPass.colorAttachments[0].texture = _frameBuffer;
+	_frameBufferRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
+	_frameBufferRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
 }
 
-- (void)setModals:(const Outputs::Display::ScanTarget::Modals &)modals view:(nonnull MTKView *)view {
+- (void)setAspectRatio {
+	uniforms()->aspectRatioMultiplier = float(_scanTarget.modals().aspect_ratio / (_view.bounds.size.width / _view.bounds.size.height));
+}
+
+- (void)setModals:(const Outputs::Display::ScanTarget::Modals &)modals {
 	//
 	// Populate uniforms.
 	//
 	uniforms()->scale[0] = modals.output_scale.x;
 	uniforms()->scale[1] = modals.output_scale.y;
-	uniforms()->lineWidth = 0.75f / modals.expected_vertical_lines;	// TODO: return to 1.0 (or slightly more), once happy.
-	uniforms()->aspectRatioMultiplier = float(modals.aspect_ratio / (view.bounds.size.width / view.bounds.size.height));
+	uniforms()->lineWidth = 1.05f / modals.expected_vertical_lines;	// TODO: return to 1.0 (or slightly more), once happy.
+	[self setAspectRatio];
 
 	const auto toRGB = to_rgb_matrix(modals.composite_colour_space);
 	uniforms()->toRGB = simd::float3x3(
@@ -172,11 +205,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 
 	//
-	// Generate pipeline.
+	// Generate scan pipeline.
 	//
-	id<MTLLibrary> library = [view.device newDefaultLibrary];
+	id<MTLLibrary> library = [_view.device newDefaultLibrary];
 	MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-	pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
+	pipelineDescriptor.colorAttachments[0].pixelFormat = _view.colorPixelFormat;
 
 	// TODO: logic somewhat more complicated than this, probably
 	pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToDisplay"];
@@ -214,30 +247,40 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
 	pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
 
-	_scanPipeline = [view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+	_scanPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+
+
+
+	//
+	// Generate copy pipeline.
+	//
+	pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+	pipelineDescriptor.colorAttachments[0].pixelFormat = _view.colorPixelFormat;
+	pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"copyVertex"];
+	pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"copyFragment"];
+	_copyPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 }
 
-/*!
- @method drawInMTKView:
- @abstract Called on the delegate when it is asked to render into the view
- @discussion Called on the delegate when it is asked to render into the view
- */
-- (void)drawInMTKView:(nonnull MTKView *)view {
-	const Outputs::Display::ScanTarget::Modals *const newModals = _scanTarget.new_modals();
-	if(newModals) {
-		[self setModals:*newModals view:view];
-	}
+- (void)checkModals {
+	// TODO: rethink BufferingScanTarget::perform. Is it now really just for guarding the modals?
+	_scanTarget.perform([=] {
+		const Outputs::Display::ScanTarget::Modals *const newModals = _scanTarget.new_modals();
+		if(newModals) {
+			[self setModals:*newModals];
+		}
+	});
+}
 
-	// Buy into framebuffer preservation.
-	// TODO: do I really need to do this on every draw?
-	MTLRenderPassDescriptor *const descriptor = view.currentRenderPassDescriptor;
-	descriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
-	descriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-	descriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 0.0, 1.0);
+//- (void)updateFrameBuffer {
+//}
+
+- (void)updateFrameBuffer {
+	[self checkModals];
+	if(!_frameBufferRenderPass) return;
 
 	// Generate a command encoder for the view.
-	id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-	id <MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
+	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPass];
 
 	// Drawing. Just scans.
 	[encoder setRenderPipelineState:_scanPipeline];
@@ -284,7 +327,30 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		self->_scanTarget.complete_output_area(outputArea);
 	}];
 
-	// Register the drawable's presentation, finalise and commit.
+	// Commit the drawing.
+	[commandBuffer commit];
+}
+
+/*!
+ @method drawInMTKView:
+ @abstract Called on the delegate when it is asked to render into the view
+ @discussion Called on the delegate when it is asked to render into the view
+ */
+- (void)drawInMTKView:(nonnull MTKView *)view {
+	[self checkModals];
+//	[self updateFrameBuffer];
+
+	// Schedule a copy from the current framebuffer to the view; blitting is unavailable as the target is a framebuffer texture.
+	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
+
+	[encoder setRenderPipelineState:_copyPipeline];
+	[encoder setVertexTexture:_frameBuffer atIndex:0];
+	[encoder setFragmentTexture:_frameBuffer atIndex:0];
+
+	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+	[encoder endEncoding];
+
 	[commandBuffer presentDrawable:view.currentDrawable];
 	[commandBuffer commit];
 }

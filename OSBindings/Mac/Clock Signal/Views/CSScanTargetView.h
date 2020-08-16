@@ -168,12 +168,8 @@ typedef NS_ENUM(NSInteger, CSScanTargetViewRedrawEvent) {
 /// The size in pixels of the OpenGL canvas, factoring in screen pixel density and view size in points.
 @property (nonatomic, readonly) CGSize backingSize;
 
-/*!
-	Locks this view's OpenGL context and makes it current, performs @c action and then unlocks
-	the context. @c action is performed on the calling queue.
-*/
-- (void)performWithGLContext:(nonnull dispatch_block_t)action flushDrawable:(BOOL)flushDrawable;
-- (void)performWithGLContext:(nonnull dispatch_block_t)action;
+- (void)updateBacking;
+//- (void)performWithGLContext:(nonnull dispatch_block_t)action;
 
 /*!
 	Instructs that the mouse cursor, if currently captured, should be released.

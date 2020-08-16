@@ -358,19 +358,6 @@ struct ActivityObserver: public Activity::Observer {
 	_machine->scan_producer()->set_scan_target(_view.scanTarget.scanTarget);
 }
 
-- (void)updateViewForPixelSize:(CGSize)pixelSize {
-//	_pixelSize = pixelSize;
-
-//	@synchronized(self) {
-//		const auto scan_status = _machine->crt_machine()->get_scan_status();
-//		NSLog(@"FPS (hopefully): %0.2f [retrace: %0.4f]", 1.0f / scan_status.field_duration, scan_status.retrace_duration);
-//	}
-}
-
-- (void)drawViewForPixelSize:(CGSize)pixelSize {
-//	_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
-}
-
 - (void)paste:(NSString *)paste {
 	auto keyboardMachine = _machine->keyboard_machine();
 	if(keyboardMachine)
@@ -831,13 +818,14 @@ struct ActivityObserver: public Activity::Observer {
 		}
 		if(!wasUpdating) {
 			dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
-				[self.view performWithGLContext:^{
+				[self.view updateBacking];
+//				[self.view performWithGLContext:^{
 //					self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
 
-					if(splitAndSync) {
+//					if(splitAndSync) {
 //						self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
-					}
-				} flushDrawable:splitAndSync];
+//					}
+//				} flushDrawable:splitAndSync];
 				self->_isUpdating.clear();
 			});
 		}

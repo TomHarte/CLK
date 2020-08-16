@@ -119,20 +119,20 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	}
 }
 
-- (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency {
-	[self redrawWithEvent:CSScanTargetViewRedrawEventTimer];
-}
+//- (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency {
+//	[self redrawWithEvent:CSScanTargetViewRedrawEventTimer];
+//}
 
 //- (void)drawRect:(NSRect)dirtyRect {
 //	[self redrawWithEvent:CSScanTargetViewRedrawEventAppKit];
 //	NSLog(@"...");
 //}
 
-- (void)redrawWithEvent:(CSScanTargetViewRedrawEvent)event  {
-	[self performWithGLContext:^{
-//		[self.delegate openGLViewRedraw:self event:event];
-	} flushDrawable:YES];
-}
+//- (void)redrawWithEvent:(CSScanTargetViewRedrawEvent)event  {
+//	[self performWithGLContext:^{
+////		[self.delegate openGLViewRedraw:self event:event];
+//	} flushDrawable:YES];
+//}
 
 - (void)invalidate {
 	_isInvalid = YES;
@@ -174,17 +174,9 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	}
 }
 
-//- (void)reshape {
-//	[super reshape];
-//	@synchronized(self) {
-//		_backingSize = [self convertSizeToBacking:self.bounds.size];
-//	}
-//
-//	[self performWithGLContext:^{
-//		CGSize viewSize = [self backingSize];
-//		glViewport(0, 0, (GLsizei)viewSize.width, (GLsizei)viewSize.height);
-//	} flushDrawable:NO];
-//}
+- (void)updateBacking {
+	[_scanTarget updateFrameBuffer];
+}
 
 - (void)awakeFromNib {
 	// Use the preferred device if available.
@@ -200,19 +192,6 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 
 	// Register to receive dragged and dropped file URLs.
 	[self registerForDraggedTypes:@[(__bridge NSString *)kUTTypeFileURL]];
-}
-
-- (void)performWithGLContext:(dispatch_block_t)action flushDrawable:(BOOL)flushDrawable {
-//	CGLLockContext([[self openGLContext] CGLContextObj]);
-//	[self.openGLContext makeCurrentContext];
-//	action();
-//	CGLUnlockContext([[self openGLContext] CGLContextObj]);
-//
-//	if(flushDrawable) CGLFlushDrawable([[self openGLContext] CGLContextObj]);
-}
-
-- (void)performWithGLContext:(nonnull dispatch_block_t)action {
-//	[self performWithGLContext:action flushDrawable:NO];
 }
 
 #pragma mark - NSResponder
