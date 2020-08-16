@@ -99,6 +99,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Set initial aspect-ratio multiplier.
 		_view = view;
 		[self mtkView:view drawableSizeWillChange:view.drawableSize];
+
+		// Generate copy pipeline.
+		id<MTLLibrary> library = [_view.device newDefaultLibrary];
+		MTLRenderPipelineDescriptor *const pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+		pipelineDescriptor.colorAttachments[0].pixelFormat = _view.colorPixelFormat;
+		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"copyVertex"];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"copyFragment"];
+		_copyPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 	}
 
 	return self;
@@ -119,20 +127,22 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// TODO: attach a stencil buffer.
 
-	// Generate a framebuffer and a pipeline that targets it.
-	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
-		texture2DDescriptorWithPixelFormat:view.colorPixelFormat
-		width:NSUInteger(size.width * view.layer.contentsScale)
-		height:NSUInteger(size.height * view.layer.contentsScale)
-		mipmapped:NO];
-	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
-	textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
-	_frameBuffer = [view.device newTextureWithDescriptor:textureDescriptor];
+	@synchronized(self) {
+		// Generate a framebuffer and a pipeline that targets it.
+		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
+			texture2DDescriptorWithPixelFormat:view.colorPixelFormat
+			width:NSUInteger(size.width * view.layer.contentsScale)
+			height:NSUInteger(size.height * view.layer.contentsScale)
+			mipmapped:NO];
+		textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+		textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
+		_frameBuffer = [view.device newTextureWithDescriptor:textureDescriptor];
 
-	_frameBufferRenderPass = [[MTLRenderPassDescriptor alloc] init];
-	_frameBufferRenderPass.colorAttachments[0].texture = _frameBuffer;
-	_frameBufferRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
-	_frameBufferRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
+		_frameBufferRenderPass = [[MTLRenderPassDescriptor alloc] init];
+		_frameBufferRenderPass.colorAttachments[0].texture = _frameBuffer;
+		_frameBufferRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
+		_frameBufferRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
+	}
 }
 
 - (void)setAspectRatio {
@@ -248,17 +258,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
 
 	_scanPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
-
-
-
-	//
-	// Generate copy pipeline.
-	//
-	pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-	pipelineDescriptor.colorAttachments[0].pixelFormat = _view.colorPixelFormat;
-	pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"copyVertex"];
-	pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"copyFragment"];
-	_copyPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 }
 
 - (void)checkModals {
@@ -271,64 +270,64 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	});
 }
 
-//- (void)updateFrameBuffer {
-//}
-
 - (void)updateFrameBuffer {
 	[self checkModals];
-	if(!_frameBufferRenderPass) return;
 
-	// Generate a command encoder for the view.
-	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPass];
+	@synchronized(self) {
+		if(!_frameBufferRenderPass) return;
 
-	// Drawing. Just scans.
-	[encoder setRenderPipelineState:_scanPipeline];
+		// Generate a command encoder for the view.
+		id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+		id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPass];
 
-	[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
-	[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
-	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
-	[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
+		// Drawing. Just scans.
+		[encoder setRenderPipelineState:_scanPipeline];
 
-	const auto outputArea = _scanTarget.get_output_area();
+		[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
+		[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
+		[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
+		[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 
-	// Ensure texture changes are noted.
-	const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * 2048) * _bytesPerInputPixel;
-	const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * 2048) * _bytesPerInputPixel;
-	if(writeAreaModificationStart != writeAreaModificationEnd) {
-		if(writeAreaModificationStart < writeAreaModificationEnd) {
-			[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, writeAreaModificationEnd - writeAreaModificationStart)];
-		} else {
-			[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, _totalTextureBytes - writeAreaModificationStart)];
-			if(writeAreaModificationEnd) {
-				[_writeAreaBuffer didModifyRange:NSMakeRange(0, writeAreaModificationEnd)];
+		const auto outputArea = _scanTarget.get_output_area();
+
+		// Ensure texture changes are noted.
+		const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * 2048) * _bytesPerInputPixel;
+		const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * 2048) * _bytesPerInputPixel;
+		if(writeAreaModificationStart != writeAreaModificationEnd) {
+			if(writeAreaModificationStart < writeAreaModificationEnd) {
+				[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, writeAreaModificationEnd - writeAreaModificationStart)];
+			} else {
+				[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, _totalTextureBytes - writeAreaModificationStart)];
+				if(writeAreaModificationEnd) {
+					[_writeAreaBuffer didModifyRange:NSMakeRange(0, writeAreaModificationEnd)];
+				}
+			}
+
+		}
+
+		// TEMPORARY: just draw the scans.
+		if(outputArea.start.scan != outputArea.end.scan) {
+			if(outputArea.start.scan < outputArea.end.scan) {
+				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan - outputArea.start.scan baseInstance:outputArea.start.scan];
+			} else {
+				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:NumBufferedScans - outputArea.start.scan baseInstance:outputArea.start.scan];
+				if(outputArea.end.scan) {
+					[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan];
+				}
 			}
 		}
 
+		// Complete encoding.
+		[encoder endEncoding];
+
+		// Add a callback to update the buffer.
+		[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+			self->_scanTarget.complete_output_area(outputArea);
+		}];
+
+		// Commit the drawing.
+		[commandBuffer commit];
 	}
-
-	// TEMPORARY: just draw the scans.
-	if(outputArea.start.scan != outputArea.end.scan) {
-		if(outputArea.start.scan < outputArea.end.scan) {
-			[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan - outputArea.start.scan baseInstance:outputArea.start.scan];
-		} else {
-			[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:NumBufferedScans - outputArea.start.scan baseInstance:outputArea.start.scan];
-			if(outputArea.end.scan) {
-				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:outputArea.end.scan];
-			}
-		}
-	}
-
-	// Complete encoding.
-	[encoder endEncoding];
-
-	// Add a callback to update the buffer.
-	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
-		self->_scanTarget.complete_output_area(outputArea);
-	}];
-
-	// Commit the drawing.
-	[commandBuffer commit];
 }
 
 /*!
@@ -337,9 +336,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
  @discussion Called on the delegate when it is asked to render into the view
  */
 - (void)drawInMTKView:(nonnull MTKView *)view {
-	[self checkModals];
-//	[self updateFrameBuffer];
-
 	// Schedule a copy from the current framebuffer to the view; blitting is unavailable as the target is a framebuffer texture.
 	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
 	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
