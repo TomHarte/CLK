@@ -26,6 +26,10 @@ struct Uniforms {
 	// Provides conversions to and from RGB for the active colour space.
 	float3x3 toRGB;
 	float3x3 fromRGB;
+
+	// Provides zoom and offset to scale the source data.
+	float zoom;
+	float2 offset;
 };
 
 // MARK: - Structs used for receiving data from the emulation.
@@ -97,8 +101,11 @@ vertex SourceInterpolator scanToDisplay(	constant Uniforms &uniforms [[buffer(1)
 	) / 32.0;
 
 	// Hence determine this quad's real shape, using vertexID to pick a corner.
+	float2 position2d = start + (float(vertexID&2) * 0.5) * tangent + (float(vertexID&1) - 0.5) * normal * uniforms.lineWidth;
+	position2d = (position2d + uniforms.offset) * uniforms.zoom  * float2(uniforms.aspectRatioMultiplier, 1.0);
+	position2d = position2d * float2(2.0, -2.0) + float2(-1.0, 1.0);
 	output.position = float4(
-		((start + (float(vertexID&2) * 0.5) * tangent + (float(vertexID&1) - 0.5) * normal * uniforms.lineWidth) * float2(2.0, -2.0) + float2(-1.0, 1.0)) * float2(uniforms.aspectRatioMultiplier, 1.0),
+		position2d,
 		0.0,
 		1.0
 	);

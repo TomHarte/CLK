@@ -20,6 +20,8 @@ struct Uniforms {
 	float aspectRatioMultiplier;
 	simd::float3x3 toRGB;
 	simd::float3x3 fromRGB;
+	float zoom;
+	simd::float2 offset;
 };
 
 constexpr size_t NumBufferedScans = 2048;
@@ -186,7 +188,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (void)setAspectRatio {
-	uniforms()->aspectRatioMultiplier = float(_scanTarget.modals().aspect_ratio / (_view.bounds.size.width / _view.bounds.size.height));
+	const auto modals = _scanTarget.modals();
+	const auto viewAspectRatio = (_view.bounds.size.width / _view.bounds.size.height);
+
+	// Set the aspect ratio multiplier.
+	uniforms()->aspectRatioMultiplier = float(modals.aspect_ratio / viewAspectRatio);
+
+	// Also work out the proper zoom. Somehow?
+	const double fitWidthZoom = (viewAspectRatio / modals.aspect_ratio) / modals.visible_area.size.width;
+	const double fitHeightZoom = 1.0 / modals.visible_area.size.height;
+
+	// The differing signs for offset below reflect the inverted coordinate system in Metal.
+	uniforms()->zoom = float(std::min(fitWidthZoom, fitHeightZoom));
+	uniforms()->offset.x = -modals.visible_area.origin.x;
+	uniforms()->offset.y = -modals.visible_area.origin.y;
 }
 
 - (void)setModals:(const Outputs::Display::ScanTarget::Modals &)modals {
