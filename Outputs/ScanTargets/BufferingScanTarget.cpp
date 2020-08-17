@@ -11,12 +11,6 @@
 #include <cassert>
 #include <cstring>
 
-// If enabled, this uses the producer lock to cover both production and consumption
-// rather than attempting to proceed lockfree. This is primarily for diagnostic purposes;
-// it allows empirical exploration of whether the logical and memory barriers that are
-// meant to mediate things between the read pointers and the submit pointers are functioning.
-#define ONE_BIG_LOCK
-
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
 #define TextureAddressGetX(v)	uint16_t((v) & 0x7ff)
 #define TextureSub(a, b)		(((a) - (b)) & 0x3fffff)
@@ -79,6 +73,7 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 	}
 
 	// Everything checks out, note expectation of a future end_data and return the pointer.
+	assert(!data_is_allocated_);
 	data_is_allocated_ = true;
 	vended_write_area_pointer_ = write_pointers_.write_area = TextureAddress(aligned_start_x, output_y);
 
@@ -150,11 +145,22 @@ Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
 	result->line = write_pointers_.line;
 
 	vended_scan_ = result;
+
+#ifndef NDEBUG
+	assert(!scan_is_ongoing_);
+	scan_is_ongoing_ = true;
+#endif
+
 	return &result->scan;
 }
 
 void BufferingScanTarget::end_scan() {
 	std::lock_guard lock_guard(producer_mutex_);
+
+#ifndef NDEBUG
+	assert(scan_is_ongoing_);
+	scan_is_ongoing_ = false;
+#endif
 
 	// Complete the scan only if one is afoot.
 	if(vended_scan_) {
@@ -187,6 +193,10 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 	// Proceed from here only if a change in visibility has occurred.
 	if(output_is_visible_ == is_visible) return;
 	output_is_visible_ = is_visible;
+
+#ifndef NDEBUG
+	assert(!scan_is_ongoing_);
+#endif
 
 	if(is_visible) {
 		const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
@@ -261,14 +271,7 @@ const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
 }
 
 void BufferingScanTarget::set_write_area(uint8_t *base) {
-	// This is a bit of a hack. This call needs the producer mutex and should be
-	// safe to call from a @c perform block in order to support all potential consumers.
-	// But the temporary hack of ONE_BIG_LOCK then implies that either I need a recursive
-	// mutex, or I have to make a coupling assumption about my caller. I've done the latter,
-	// because ONE_BIG_LOCK is really really meant to be temporary. I hope.
-#ifndef ONE_BIG_LOCK
 	std::lock_guard lock_guard(producer_mutex_);
-#endif
 	write_area_ = base;
 	write_pointers_ = submit_pointers_ = read_pointers_ = PointerSet();
 	allocation_has_failed_ = true;
@@ -325,10 +328,6 @@ void BufferingScanTarget::complete_output_area(const OutputArea &area) {
 }
 
 void BufferingScanTarget::perform(const std::function<void(void)> &function) {
-#ifdef ONE_BIG_LOCK
-	std::lock_guard lock_guard(producer_mutex_);
-#endif
-
 	while(is_updating_.test_and_set(std::memory_order_acquire));
 	function();
 	is_updating_.clear(std::memory_order_release);

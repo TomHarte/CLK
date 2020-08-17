@@ -250,6 +250,11 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		// from a call to @c get_new_modals.
 		Modals modals_;
 		bool modals_are_dirty_ = false;
+
+#ifndef NDEBUG
+		// Debug features; these amount to API validate.
+		bool scan_is_ongoing_ = false;
+#endif
 };
 
 
