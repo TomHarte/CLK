@@ -32,6 +32,14 @@ struct Uniforms {
 	float2 offset;
 };
 
+namespace {
+
+constexpr sampler standardSampler(	coord::pixel,
+									address::clamp_to_edge,	// Although arbitrary, stick with this address mode for compatibility all the way to MTLFeatureSet_iOS_GPUFamily1_v1.
+									filter::nearest);
+
+}
+
 // MARK: - Structs used for receiving data from the emulation.
 
 // This is intended to match the net effect of `Scan` as defined by the BufferingScanTarget.
@@ -70,22 +78,35 @@ struct SourceInterpolator {
 };
 
 
-// MARK: - Scan shaders; these do final output to the display.
+// MARK: - Vertex shaders.
 
-vertex SourceInterpolator scanToDisplay(	constant Uniforms &uniforms [[buffer(1)]],
-											constant Scan *scans [[buffer(0)]],
-											uint instanceID [[instance_id]],
-											uint vertexID [[vertex_id]]) {
+float2 textureLocation(constant Line *line, float offset) {
+	return float2(
+		mix(line->endPoints[0].cyclesSinceRetrace, line->endPoints[1].cyclesSinceRetrace, offset),
+		line->line);
+}
+
+float2 textureLocation(constant Scan *scan, float offset) {
+	return float2(
+		mix(scan->endPoints[0].dataOffset, scan->endPoints[1].dataOffset, offset),
+		scan->dataY);
+}
+
+template <typename Input> SourceInterpolator toDisplay(
+	constant Uniforms &uniforms [[buffer(1)]],
+	constant Input *inputs [[buffer(0)]],
+	uint instanceID [[instance_id]],
+	uint vertexID [[vertex_id]]) {
 	SourceInterpolator output;
 
 	// Get start and end vertices in regular float2 form.
 	const float2 start = float2(
-		float(scans[instanceID].endPoints[0].position[0]) / float(uniforms.scale.x),
-		float(scans[instanceID].endPoints[0].position[1]) / float(uniforms.scale.y)
+		float(inputs[instanceID].endPoints[0].position[0]) / float(uniforms.scale.x),
+		float(inputs[instanceID].endPoints[0].position[1]) / float(uniforms.scale.y)
 	);
 	const float2 end = float2(
-		float(scans[instanceID].endPoints[1].position[0]) / float(uniforms.scale.x),
-		float(scans[instanceID].endPoints[1].position[1]) / float(uniforms.scale.y)
+		float(inputs[instanceID].endPoints[1].position[0]) / float(uniforms.scale.x),
+		float(inputs[instanceID].endPoints[1].position[1]) / float(uniforms.scale.y)
 	);
 
 	// Calculate the tangent and normal.
@@ -93,10 +114,10 @@ vertex SourceInterpolator scanToDisplay(	constant Uniforms &uniforms [[buffer(1)
 	const float2 normal = float2(tangent.y, -tangent.x) / length(tangent);
 
 	// Load up the colour details.
-	output.colourAmplitude = float(scans[instanceID].compositeAmplitude) / 255.0f;
+	output.colourAmplitude = float(inputs[instanceID].compositeAmplitude) / 255.0f;
 	output.colourPhase = 3.141592654f * mix(
-		float(scans[instanceID].endPoints[0].compositeAngle),
-		float(scans[instanceID].endPoints[1].compositeAngle),
+		float(inputs[instanceID].endPoints[0].compositeAngle),
+		float(inputs[instanceID].endPoints[1].compositeAngle),
 		float((vertexID&2) >> 1)
 	) / 32.0;
 
@@ -116,19 +137,25 @@ vertex SourceInterpolator scanToDisplay(	constant Uniforms &uniforms [[buffer(1)
 		0.0,
 		1.0
 	);
-	output.textureCoordinates = float2(
-		mix(scans[instanceID].endPoints[0].dataOffset, scans[instanceID].endPoints[1].dataOffset, float((vertexID&2) >> 1)),
-		scans[instanceID].dataY);
+	output.textureCoordinates = textureLocation(&inputs[instanceID], float((vertexID&2) >> 1));
+
 	return output;
 }
 
-namespace {
-
-constexpr sampler standardSampler(	coord::pixel,
-									address::clamp_to_edge,	// Although arbitrary, stick with this address mode for compatibility all the way to MTLFeatureSet_iOS_GPUFamily1_v1.
-									filter::nearest);
-
+vertex SourceInterpolator scanToDisplay(	constant Uniforms &uniforms [[buffer(1)]],
+											constant Scan *scans [[buffer(0)]],
+											uint instanceID [[instance_id]],
+											uint vertexID [[vertex_id]]) {
+	return toDisplay(uniforms, scans, instanceID, vertexID);
 }
+
+vertex SourceInterpolator lineToDisplay(	constant Uniforms &uniforms [[buffer(1)]],
+											constant Line *lines [[buffer(0)]],
+											uint instanceID [[instance_id]],
+											uint vertexID [[vertex_id]]) {
+	return toDisplay(uniforms, lines, instanceID, vertexID);
+}
+
 
 // MARK: - Various input format conversion samplers.
 
