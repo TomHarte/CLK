@@ -142,6 +142,9 @@ template <typename Input> SourceInterpolator toDisplay(
 	return output;
 }
 
+// These next two assume the incoming geometry to be a four-vertex triangle strip; each instance will therefore
+// produce a quad.
+
 vertex SourceInterpolator scanToDisplay(	constant Uniforms &uniforms [[buffer(1)]],
 											constant Scan *scans [[buffer(0)]],
 											uint instanceID [[instance_id]],
@@ -154,6 +157,26 @@ vertex SourceInterpolator lineToDisplay(	constant Uniforms &uniforms [[buffer(1)
 											uint instanceID [[instance_id]],
 											uint vertexID [[vertex_id]]) {
 	return toDisplay(uniforms, lines, instanceID, vertexID);
+}
+
+// This assumes that it needs to generate endpoints for a line segment.
+
+vertex SourceInterpolator scanToCompound(	constant Uniforms &uniforms [[buffer(1)]],
+											constant Scan *scans [[buffer(0)]],
+											uint instanceID [[instance_id]],
+											uint vertexID [[vertex_id]],
+											texture2d<float> texture [[texture(0)]]) {
+	SourceInterpolator result;
+
+	// Populate result as if direct texture access were available.
+	result.position.x = mix(scans[instanceID].endPoints[0].cyclesSinceRetrace, scans[instanceID].endPoints[1].cyclesSinceRetrace, float(vertexID));
+	result.position.y = scans[instanceID].line;
+	result.textureCoordinates.x = mix(scans[instanceID].endPoints[0].dataOffset, scans[instanceID].endPoints[1].dataOffset, float(vertexID));
+	result.textureCoordinates.y = scans[instanceID].dataY;
+
+	// TODO: map position into eye space, allowing for target texture dimensions.
+
+	return result;
 }
 
 
