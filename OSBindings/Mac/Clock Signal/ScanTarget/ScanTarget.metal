@@ -101,9 +101,16 @@ vertex SourceInterpolator scanToDisplay(	constant Uniforms &uniforms [[buffer(1)
 	) / 32.0;
 
 	// Hence determine this quad's real shape, using vertexID to pick a corner.
+
+	// position2d is now in the range [0, 1].
 	float2 position2d = start + (float(vertexID&2) * 0.5) * tangent + (float(vertexID&1) - 0.5) * normal * uniforms.lineWidth;
-	position2d = (position2d + uniforms.offset) * uniforms.zoom  * float2(uniforms.aspectRatioMultiplier, 1.0);
-	position2d = position2d * float2(2.0, -2.0) + float2(-1.0, 1.0);
+
+	// Apply the requested offset and zoom, to map the desired area to the range [0, 1].
+	position2d = (position2d + uniforms.offset) * uniforms.zoom;
+
+	// Remap from [0, 1] to Metal's [-1, 1] and then apply the aspect ratio correction.
+	position2d = (position2d * float2(2.0, -2.0) + float2(-1.0, 1.0)) * float2(uniforms.aspectRatioMultiplier, 1.0);
+
 	output.position = float4(
 		position2d,
 		0.0,

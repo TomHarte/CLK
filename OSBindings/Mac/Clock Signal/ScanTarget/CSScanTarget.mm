@@ -194,12 +194,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// Set the aspect ratio multiplier.
 	uniforms()->aspectRatioMultiplier = float(modals.aspect_ratio / viewAspectRatio);
 
-	// Also work out the proper zoom. Somehow?
+	// Also work out the proper zoom.
 	const double fitWidthZoom = (viewAspectRatio / modals.aspect_ratio) / modals.visible_area.size.width;
 	const double fitHeightZoom = 1.0 / modals.visible_area.size.height;
-
-	// The differing signs for offset below reflect the inverted coordinate system in Metal.
 	uniforms()->zoom = float(std::min(fitWidthZoom, fitHeightZoom));
+
+	// Store the offset.
 	uniforms()->offset.x = -modals.visible_area.origin.x;
 	uniforms()->offset.y = -modals.visible_area.origin.y;
 }
