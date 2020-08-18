@@ -448,6 +448,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 - (void)drawInMTKView:(nonnull MTKView *)view {
 	// Schedule a copy from the current framebuffer to the view; blitting is unavailable as the target is a framebuffer texture.
 	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+
+	// Every pixel will be drawn, so don't clear or reload.
+	view.currentRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
 	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
 
 	[encoder setRenderPipelineState:_copyPipeline];
