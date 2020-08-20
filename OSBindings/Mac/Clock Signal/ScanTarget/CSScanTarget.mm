@@ -45,7 +45,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLFunction> _vertexShader;
 	id<MTLFunction> _fragmentShader;
 
-	id<MTLRenderPipelineState> _scanPipeline;
+	id<MTLRenderPipelineState> _composePipeline;
+	id<MTLRenderPipelineState> _outputPipeline;
 	id<MTLRenderPipelineState> _copyPipeline;
 	id<MTLRenderPipelineState> _clearPipeline;
 
@@ -64,16 +65,22 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLTexture> _frameBuffer;
 	MTLRenderPassDescriptor *_frameBufferRenderPass;
 
+	id<MTLTexture> _compositionTexture;
+
+	// The stencil buffer and the two ways it's used.
 	id<MTLTexture> _frameBufferStencil;
 	id<MTLDepthStencilState> _drawStencilState;		// Always draws, sets stencil to 1.
 	id<MTLDepthStencilState> _clearStencilState;	// Draws only where stencil is 0, clears all to 0.
 
+	// The composition pipeline, and whether it's in use.
+	BOOL _isUsingCompositionPipeline;
+
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
 	BufferingScanTarget::LineMetadata _lineMetadataBuffer[NumBufferedLines];
-	std::atomic_bool _isDrawing;
+	std::atomic_flag _isDrawing;
 
-	// The output view's aspect ratio.
+	// The output view.
 	__weak MTKView *_view;
 }
 
@@ -126,6 +133,19 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
 		depthStencilDescriptor.frontFaceStencil.stencilFailureOperation = MTLStencilOperationReplace;
 		_clearStencilState = [view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+
+		// Create a composition texture up front.
+		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
+			texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+			width:2048		// This 'should do'.
+			height:NumBufferedLines
+			mipmapped:NO];
+		textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+		textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
+		_compositionTexture = [view.device newTextureWithDescriptor:textureDescriptor];
+
+		// Ensure the is-drawing flag is initially clear.
+		_isDrawing.clear();
 	}
 
 	return self;
@@ -274,37 +294,75 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	//
 	id<MTLLibrary> library = [_view.device newDefaultLibrary];
 	MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+
+	// Occasions when the composition buffer isn't required are slender:
+	//
+	//	(i) input and output are both RGB; or
+	//	(i) output is composite monochrome.
+	_isUsingCompositionPipeline =
+		(
+			(natural_display_type_for_data_type(modals.input_data_type) != Outputs::Display::DisplayType::RGB) ||
+			(modals.display_type != Outputs::Display::DisplayType::RGB)
+		) && modals.display_type != Outputs::Display::DisplayType::CompositeMonochrome;
+
+	struct FragmentSamplerDictionary {
+		/// Fragment shader that outputs to the composition buffer for composite processing.
+		NSString *const compositionComposite;
+		/// Fragment shader that outputs to the composition buffer for S-Video processing.
+		NSString *const compositionSVideo;
+
+		/// Fragment shader that outputs directly as monochrome composite.
+		NSString *const directComposite;
+		/// Fragment shader that outputs directly as RGB.
+		NSString *const directRGB;
+	};
+
+	// TODO: create fragment shaders to apply composite multiplication.
+	// TODO: incorporate gamma correction into all direct outputters.
+	const FragmentSamplerDictionary samplerDictionary[8] = {
+		// Luminance1
+		{@"sampleLuminance1", nullptr, @"sampleLuminance1", nullptr},
+		{@"sampleLuminance8", nullptr, @"sampleLuminance8", nullptr},
+		{@"samplePhaseLinkedLuminance8", nullptr, @"samplePhaseLinkedLuminance8", nullptr},
+		{@"compositeSampleLuminance8Phase8", @"sampleLuminance8Phase8", @"compositeSampleLuminance8Phase8", nullptr},
+		{@"compositeSampleRed1Green1Blue1", @"svideoSampleRed1Green1Blue1", @"compositeSampleRed1Green1Blue1", @"sampleRed1Green1Blue1"},
+		{@"compositeSampleRed2Green2Blue2", @"svideoSampleRed2Green2Blue2", @"compositeSampleRed2Green2Blue2", @"sampleRed2Green2Blue2"},
+		{@"compositeSampleRed4Green4Blue4", @"svideoSampleRed4Green4Blue4", @"compositeSampleRed4Green4Blue4", @"sampleRed4Green4Blue4"},
+		{@"compositeSampleRed8Green8Blue8", @"svideoSampleRed8Green8Blue8", @"compositeSampleRed8Green8Blue8", @"sampleRed8Green8Blue8"},
+	};
+
+#ifndef NDEBUG
+	// Do a quick check of the names entered above. I don't think this is possible at compile time.
+	for(int c = 0; c < 8; ++c) {
+		if(samplerDictionary[c].compositionComposite)	assert([library newFunctionWithName:samplerDictionary[c].compositionComposite]);
+		if(samplerDictionary[c].compositionSVideo)		assert([library newFunctionWithName:samplerDictionary[c].compositionSVideo]);
+		if(samplerDictionary[c].directComposite)		assert([library newFunctionWithName:samplerDictionary[c].directComposite]);
+		if(samplerDictionary[c].directRGB)				assert([library newFunctionWithName:samplerDictionary[c].directRGB]);
+	}
+#endif
+
+	// Build the composition pipeline if one is in use.
+	if(_isUsingCompositionPipeline) {
+		const bool isSVideoOutput = modals.display_type == Outputs::Display::DisplayType::SVideo;
+
+		pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
+		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToComposition"];
+		pipelineDescriptor.fragmentFunction =
+			[library newFunctionWithName:isSVideoOutput ? samplerDictionary[int(modals.input_data_type)].compositionSVideo : samplerDictionary[int(modals.input_data_type)].compositionComposite];
+
+		_composePipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+	}
+
+	// Build the output pipeline.
 	pipelineDescriptor.colorAttachments[0].pixelFormat = _view.colorPixelFormat;
+	pipelineDescriptor.vertexFunction = [library newFunctionWithName:_isUsingCompositionPipeline ? @"lineToDisplay" : @"scanToDisplay"];
 
-	// TODO: logic somewhat more complicated than this, probably
-	pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToDisplay"];
-	switch(modals.input_data_type) {
-		case Outputs::Display::InputDataType::Luminance1:
-			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance1"];
-		break;
-		case Outputs::Display::InputDataType::Luminance8:
-			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance8"];
-		break;
-		case Outputs::Display::InputDataType::PhaseLinkedLuminance8:
-			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"samplePhaseLinkedLuminance8"];
-		break;
-
-		case Outputs::Display::InputDataType::Luminance8Phase8:
-			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleLuminance8Phase8"];
-		break;
-
-		case Outputs::Display::InputDataType::Red1Green1Blue1:
-			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed1Green1Blue1"];
-		break;
-		case Outputs::Display::InputDataType::Red2Green2Blue2:
-			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed2Green2Blue2"];
-		break;
-		case Outputs::Display::InputDataType::Red4Green4Blue4:
-			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed4Green4Blue4"];
-		break;
-		case Outputs::Display::InputDataType::Red8Green8Blue8:
-			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed8Green8Blue8"];
-		break;
+	if(_isUsingCompositionPipeline) {
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed8Green8Blue8"];
+	} else {
+		const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
+		pipelineDescriptor.fragmentFunction =
+			[library newFunctionWithName:isRGBOutput ? samplerDictionary[int(modals.input_data_type)].directRGB : samplerDictionary[int(modals.input_data_type)].directComposite];
 	}
 
 	// Enable blending.
@@ -316,18 +374,23 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatStencil8;
 
 	// Finish.
-	_scanPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+	_outputPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 }
 
-- (void)outputScansFrom:(size_t)start to:(size_t)end commandBuffer:(id<MTLCommandBuffer>)commandBuffer {
+- (void)outputFrom:(size_t)start to:(size_t)end commandBuffer:(id<MTLCommandBuffer>)commandBuffer {
 	// Generate a command encoder for the view.
 	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPass];
 
-	// Drawing. Just scans.
-	[encoder setRenderPipelineState:_scanPipeline];
+	// Final output. Could be scans or lines.
+	[encoder setRenderPipelineState:_outputPipeline];
 
-	[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
-	[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
+	if(_isUsingCompositionPipeline) {
+		[encoder setFragmentTexture:_compositionTexture atIndex:0];
+		[encoder setVertexBuffer:_linesBuffer offset:0 atIndex:0];
+	} else {
+		[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
+		[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
+	}
 	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
 	[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 
@@ -343,7 +406,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		if(start < end) {
 			[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:end - start baseInstance:start];
 		} else {
-			[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:NumBufferedScans - start baseInstance:start];
+			[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:(_isUsingCompositionPipeline ? NumBufferedLines : NumBufferedScans) - start baseInstance:start];
 			if(end) {
 				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:end];
 			}
@@ -416,21 +479,35 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Hence every pixel is touched every frame, regardless of the machine's output.
 		//
 
-		// TODO: proceed as per the below inly if doing a scan-centric output.
-		// Draw scans to a composition buffer and from there to the display as lines otherwise.
+		if(_isUsingCompositionPipeline) {
+			// TODO: Draw scans to a composition buffer and from there to the display as lines otherwise.
 
-		// Break up scans by frame.
-		size_t line = outputArea.start.line;
-		size_t scan = outputArea.start.scan;
-		while(line != outputArea.end.line) {
-			if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
-				[self outputScansFrom:scan to:_lineMetadataBuffer[line].first_scan commandBuffer:commandBuffer];
-				[self outputFrameCleanerToCommandBuffer:commandBuffer];
-				scan = _lineMetadataBuffer[line].first_scan;
+			// Output lines, broken up by frame.
+			size_t startLine = outputArea.start.line;
+			size_t line = outputArea.start.line;
+			while(line != outputArea.end.line) {
+				if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
+					[self outputFrom:startLine to:line commandBuffer:commandBuffer];
+					[self outputFrameCleanerToCommandBuffer:commandBuffer];
+					startLine = line;
+				}
+				line = (line + 1) % NumBufferedLines;
 			}
-			line = (line + 1) % NumBufferedLines;
+			[self outputFrom:startLine to:outputArea.end.line commandBuffer:commandBuffer];
+		} else {
+			// Output scans directly, broken up by frame.
+			size_t line = outputArea.start.line;
+			size_t scan = outputArea.start.scan;
+			while(line != outputArea.end.line) {
+				if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
+					[self outputFrom:scan to:_lineMetadataBuffer[line].first_scan commandBuffer:commandBuffer];
+					[self outputFrameCleanerToCommandBuffer:commandBuffer];
+					scan = _lineMetadataBuffer[line].first_scan;
+				}
+				line = (line + 1) % NumBufferedLines;
+			}
+			[self outputFrom:scan to:outputArea.end.scan commandBuffer:commandBuffer];
 		}
-		[self outputScansFrom:scan to:outputArea.end.scan commandBuffer:commandBuffer];
 
 		// Add a callback to update the scan target buffer and commit the drawing.
 		[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
@@ -446,6 +523,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
  @discussion Called on the delegate when it is asked to render into the view
  */
 - (void)drawInMTKView:(nonnull MTKView *)view {
+	if(_isDrawing.test_and_set()) {
+		return;
+	}
+
 	// Schedule a copy from the current framebuffer to the view; blitting is unavailable as the target is a framebuffer texture.
 	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
 
@@ -461,6 +542,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder endEncoding];
 
 	[commandBuffer presentDrawable:view.currentDrawable];
+	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+		self->_isDrawing.clear();
+	}];
 	[commandBuffer commit];
 }
 

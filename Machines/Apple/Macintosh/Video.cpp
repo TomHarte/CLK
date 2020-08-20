@@ -29,7 +29,7 @@ Video::Video(DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulato
  	crt_(704, 1, 370, 6, Outputs::Display::InputDataType::Luminance1) {
 
  	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
-	crt_.set_visible_area(Outputs::Display::Rect(0.08f, -0.025f, 0.82f, 0.82f));
+//	crt_.set_visible_area(Outputs::Display::Rect(0.08f, -0.025f, 0.82f, 0.82f));
 	crt_.set_aspect_ratio(1.73f);	// The Mac uses a non-standard scanning area.
 }
 

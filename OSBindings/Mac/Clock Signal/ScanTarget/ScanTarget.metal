@@ -161,20 +161,23 @@ vertex SourceInterpolator lineToDisplay(	constant Uniforms &uniforms [[buffer(1)
 
 // This assumes that it needs to generate endpoints for a line segment.
 
-vertex SourceInterpolator scanToCompound(	constant Uniforms &uniforms [[buffer(1)]],
-											constant Scan *scans [[buffer(0)]],
-											uint instanceID [[instance_id]],
-											uint vertexID [[vertex_id]],
-											texture2d<float> texture [[texture(0)]]) {
+vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffer(1)]],
+												constant Scan *scans [[buffer(0)]],
+												uint instanceID [[instance_id]],
+												uint vertexID [[vertex_id]],
+												texture2d<float> texture [[texture(0)]]) {
 	SourceInterpolator result;
 
 	// Populate result as if direct texture access were available.
 	result.position.x = mix(scans[instanceID].endPoints[0].cyclesSinceRetrace, scans[instanceID].endPoints[1].cyclesSinceRetrace, float(vertexID));
 	result.position.y = scans[instanceID].line;
+	result.position.wz = float2(0.0, 1.0);
 	result.textureCoordinates.x = mix(scans[instanceID].endPoints[0].dataOffset, scans[instanceID].endPoints[1].dataOffset, float(vertexID));
 	result.textureCoordinates.y = scans[instanceID].dataY;
 
-	// TODO: map position into eye space, allowing for target texture dimensions.
+	// Map position into eye space, allowing for target texture dimensions.
+	// TODO: is this really necessary? Is there nothing like coord::pixel that applies here?
+	result.position.xy = ((result.position.xy + float2(0.5)) / float2(texture.get_width(), texture.get_height())) * float2(2.0) - float2(1.0);
 
 	return result;
 }
