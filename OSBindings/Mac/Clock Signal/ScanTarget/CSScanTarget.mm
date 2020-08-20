@@ -35,6 +35,18 @@ constexpr MTLResourceOptions SharedResourceOptionsTexture = MTLResourceCPUCacheM
 
 #define uniforms() reinterpret_cast<Uniforms *>(_uniformsBuffer.contents)
 
+#define RangePerform(start, end, size, func)	\
+	if(start != end) {	\
+		if(start < end) {	\
+			func(start, end-start);	\
+		} else {	\
+			func(start, size-start);	\
+			if(end) {	\
+				func(0, end);	\
+			}	\
+		}	\
+	}
+
 }
 
 using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
@@ -66,6 +78,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	MTLRenderPassDescriptor *_frameBufferRenderPass;
 
 	id<MTLTexture> _compositionTexture;
+	MTLRenderPassDescriptor *_compositionRenderPass;
 
 	// The stencil buffer and the two ways it's used.
 	id<MTLTexture> _frameBufferStencil;
@@ -351,6 +364,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			[library newFunctionWithName:isSVideoOutput ? samplerDictionary[int(modals.input_data_type)].compositionSVideo : samplerDictionary[int(modals.input_data_type)].compositionComposite];
 
 		_composePipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+
+		_compositionRenderPass = [[MTLRenderPassDescriptor alloc] init];
+		_compositionRenderPass.colorAttachments[0].texture = _compositionTexture;
+		_compositionRenderPass.colorAttachments[0].loadAction = MTLLoadActionClear;
+		_compositionRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+		// TODO: set proper clear colour for S-Video.
 	}
 
 	// Build the output pipeline.
@@ -402,16 +422,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder setCullMode:MTLCullModeBack];
 #endif
 
-	if(start != end) {
-		if(start < end) {
-			[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:end - start baseInstance:start];
-		} else {
-			[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:(_isUsingCompositionPipeline ? NumBufferedLines : NumBufferedScans) - start baseInstance:start];
-			if(end) {
-				[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:end];
-			}
-		}
-	}
+#define OutputStrips(start, size)	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:size baseInstance:start]
+	RangePerform(start, end, (_isUsingCompositionPipeline ? NumBufferedLines : NumBufferedScans), OutputStrips);
+#undef OutputStrips
 
 	// Complete encoding and return.
 	[encoder endEncoding];
@@ -450,17 +463,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Ensure texture changes are noted.
 		const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * 2048) * _bytesPerInputPixel;
 		const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * 2048) * _bytesPerInputPixel;
-		if(writeAreaModificationStart != writeAreaModificationEnd) {
-			if(writeAreaModificationStart < writeAreaModificationEnd) {
-				[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, writeAreaModificationEnd - writeAreaModificationStart)];
-			} else {
-				[_writeAreaBuffer didModifyRange:NSMakeRange(writeAreaModificationStart, _totalTextureBytes - writeAreaModificationStart)];
-				if(writeAreaModificationEnd) {
-					[_writeAreaBuffer didModifyRange:NSMakeRange(0, writeAreaModificationEnd)];
-				}
-			}
-
-		}
+#define FlushRegion(start, size)	[_writeAreaBuffer didModifyRange:NSMakeRange(start, size)]
+		RangePerform(writeAreaModificationStart, writeAreaModificationEnd, _totalTextureBytes, FlushRegion);
+#undef FlushRegion
 
 		// Obtain a source for render command encoders.
 		id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
@@ -480,7 +485,19 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		//
 
 		if(_isUsingCompositionPipeline) {
-			// TODO: Draw scans to a composition buffer and from there to the display as lines otherwise.
+			// Output all scans to the composition buffer.
+			id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_compositionRenderPass];
+			[encoder setRenderPipelineState:_composePipeline];
+
+			[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
+			[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
+			[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
+			[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
+
+#define OutputScans(start, size)	[encoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount:2 instanceCount:size baseInstance:start]
+			RangePerform(outputArea.start.scan, outputArea.end.scan, NumBufferedScans, OutputScans);
+#undef OutputScans
+			[encoder endEncoding];
 
 			// Output lines, broken up by frame.
 			size_t startLine = outputArea.start.line;
