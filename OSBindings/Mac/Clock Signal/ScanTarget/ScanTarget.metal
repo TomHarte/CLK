@@ -171,13 +171,15 @@ vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffe
 	// Populate result as if direct texture access were available.
 	result.position.x = mix(scans[instanceID].endPoints[0].cyclesSinceRetrace, scans[instanceID].endPoints[1].cyclesSinceRetrace, float(vertexID));
 	result.position.y = scans[instanceID].line;
-	result.position.wz = float2(0.0, 1.0);
+	result.position.zw = float2(0.0, 1.0);
 	result.textureCoordinates.x = mix(scans[instanceID].endPoints[0].dataOffset, scans[instanceID].endPoints[1].dataOffset, float(vertexID));
 	result.textureCoordinates.y = scans[instanceID].dataY;
+	result.colourPhase = mix(scans[instanceID].endPoints[0].compositeAngle, scans[instanceID].endPoints[1].compositeAngle, float(vertexID))  / 32.0;
+	result.colourAmplitude = scans[instanceID].compositeAmplitude;
 
 	// Map position into eye space, allowing for target texture dimensions.
 	// TODO: is this really necessary? Is there nothing like coord::pixel that applies here?
-	result.position.xy = ((result.position.xy + float2(0.5)) / float2(texture.get_width(), texture.get_height())) * float2(2.0) - float2(1.0);
+	result.position.xy = ((result.position.xy + float2(0.5)) / float2(texture.get_width(), texture.get_height())) * float2(2.0, -2.0) + float2(-1.0, 1.0);
 
 	return result;
 }
@@ -302,6 +304,6 @@ fragment float4 copyFragment(CopyInterpolator vert [[stage_in]], texture2d<float
 	return texture.sample(standardSampler, vert.textureCoordinates);
 }
 
-fragment float4 clearFragment(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+fragment float4 clearFragment() {
 	return float4(0.0, 0.0, 0.0, 0.64);
 }

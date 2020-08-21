@@ -426,7 +426,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	RangePerform(start, end, (_isUsingCompositionPipeline ? NumBufferedLines : NumBufferedScans), OutputStrips);
 #undef OutputStrips
 
-	// Complete encoding and return.
+	// Complete encoding.
 	[encoder endEncoding];
 }
 
@@ -489,10 +489,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_compositionRenderPass];
 			[encoder setRenderPipelineState:_composePipeline];
 
-			[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
 			[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
 			[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
+			[encoder setVertexTexture:_compositionTexture atIndex:0];
+
 			[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
+			[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
 
 #define OutputScans(start, size)	[encoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount:2 instanceCount:size baseInstance:start]
 			RangePerform(outputArea.start.scan, outputArea.end.scan, NumBufferedScans, OutputScans);
