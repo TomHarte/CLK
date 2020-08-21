@@ -174,8 +174,8 @@ vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffe
 	result.position.zw = float2(0.0, 1.0);
 	result.textureCoordinates.x = mix(scans[instanceID].endPoints[0].dataOffset, scans[instanceID].endPoints[1].dataOffset, float(vertexID));
 	result.textureCoordinates.y = scans[instanceID].dataY;
-	result.colourPhase = mix(scans[instanceID].endPoints[0].compositeAngle, scans[instanceID].endPoints[1].compositeAngle, float(vertexID))  / 32.0;
-	result.colourAmplitude = scans[instanceID].compositeAmplitude;
+	result.colourPhase = mix(scans[instanceID].endPoints[0].compositeAngle, scans[instanceID].endPoints[1].compositeAngle, float(vertexID))  / 32.0f;
+	result.colourAmplitude = float(scans[instanceID].compositeAmplitude) / 255.0f;
 
 	// Map position into eye space, allowing for target texture dimensions.
 	// TODO: is this really necessary? Is there nothing like coord::pixel that applies here?
