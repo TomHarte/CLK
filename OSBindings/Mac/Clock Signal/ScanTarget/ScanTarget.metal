@@ -322,22 +322,25 @@ fragment float4 clearFragment() {
 // MARK: - Conversion fragment shaders
 
 fragment float4 filterFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+#define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0)).rgb
+	const float3 rawSamples[] = {
+		Sample(-7),	Sample(-6),	Sample(-5),	Sample(-4),	Sample(-3),	Sample(-2),	Sample(-1),
+		Sample(0),
+		Sample(1),	Sample(2),	Sample(3),	Sample(4),	Sample(5),	Sample(6),	Sample(7),
+	};
+#undef Sample
+
+#define Sample(c, o)	\
+	uniforms.firCoefficients[c] * rawSamples[o]
+
 	const float3 colour =
-		uniforms.firCoefficients[0] * texture.sample(standardSampler, vert.textureCoordinates - float2(7.0, 0.0)).rgb +
-		uniforms.firCoefficients[1] * texture.sample(standardSampler, vert.textureCoordinates - float2(6.0, 0.0)).rgb +
-		uniforms.firCoefficients[2] * texture.sample(standardSampler, vert.textureCoordinates - float2(5.0, 0.0)).rgb +
-		uniforms.firCoefficients[3] * texture.sample(standardSampler, vert.textureCoordinates - float2(4.0, 0.0)).rgb +
-		uniforms.firCoefficients[4] * texture.sample(standardSampler, vert.textureCoordinates - float2(3.0, 0.0)).rgb +
-		uniforms.firCoefficients[5] * texture.sample(standardSampler, vert.textureCoordinates - float2(2.0, 0.0)).rgb +
-		uniforms.firCoefficients[6] * texture.sample(standardSampler, vert.textureCoordinates - float2(1.0, 0.0)).rgb +
-		uniforms.firCoefficients[7] * texture.sample(standardSampler, vert.textureCoordinates).rgb +
-		uniforms.firCoefficients[6] * texture.sample(standardSampler, vert.textureCoordinates + float2(1.0, 0.0)).rgb +
-		uniforms.firCoefficients[5] * texture.sample(standardSampler, vert.textureCoordinates + float2(2.0, 0.0)).rgb +
-		uniforms.firCoefficients[4] * texture.sample(standardSampler, vert.textureCoordinates + float2(3.0, 0.0)).rgb +
-		uniforms.firCoefficients[3] * texture.sample(standardSampler, vert.textureCoordinates + float2(4.0, 0.0)).rgb +
-		uniforms.firCoefficients[2] * texture.sample(standardSampler, vert.textureCoordinates + float2(5.0, 0.0)).rgb +
-		uniforms.firCoefficients[1] * texture.sample(standardSampler, vert.textureCoordinates + float2(6.0, 0.0)).rgb +
-		uniforms.firCoefficients[0] * texture.sample(standardSampler, vert.textureCoordinates + float2(7.0, 0.0)).rgb;
+		Sample(0, 0) +	Sample(1, 1) +	Sample(2, 2) +	Sample(3, 3) +
+		Sample(4, 4) +	Sample(5, 5) +	Sample(6, 6) +
+		Sample(7, 7) +
+		Sample(6, 8) +	Sample(5, 9) +	Sample(4, 10) +
+		Sample(3, 11) +	Sample(2, 12) +	Sample(1, 13) +	Sample(0, 14);
+
+#undef Sample
 
 	return float4(uniforms.toRGB * ((colour - float3(0.0, 0.5, 0.5)) * float3(1.0, 2.0 / vert.colourAmplitude, 2.0 / vert.colourAmplitude)), 1.0);
 }
