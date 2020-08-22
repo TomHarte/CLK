@@ -372,8 +372,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_compositionRenderPass.colorAttachments[0].texture = _compositionTexture;
 		_compositionRenderPass.colorAttachments[0].loadAction = MTLLoadActionClear;
 		_compositionRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
-
-		// TODO: set proper clear colour for S-Video (and fragment function, below).
+		_compositionRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.5, 0.5, 1.0);
 
 		simd::float3 *const firCoefficients = uniforms()->firCoefficients;
 		const float cyclesPerLine = float(modals.cycles_per_line);
@@ -395,7 +394,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		}
 
 		// Whether S-Video or composite, apply the same relatively strong filter to colour channels.
-		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * 0.125f);
+		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * 0.33f);
 		const auto calculatedCoefficients = chrominancefilter.get_coefficients();
 		for(size_t c = 0; c < 8; ++c) {
 			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c];
