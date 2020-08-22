@@ -33,7 +33,7 @@ struct Uniforms {
 
 	// Describes the FIR filter in use; it'll be 15 coefficients but they're
 	// symmetrical around the centre.
-	float firCoefficients[8];
+	float3 firCoefficients[8];
 };
 
 namespace {
@@ -270,8 +270,11 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 	fragment float4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
 		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
 		const float2 colourSubcarrier = float2(sin(vert.colourPhase), cos(vert.colourPhase));	\
+		const float level = mix(colour.r, dot(colour.gb, colourSubcarrier), vert.colourAmplitude);	\
 		return float4(	\
-			float3(mix(colour.r, dot(colour.gb, colourSubcarrier), vert.colourAmplitude)),	\
+			level,	\
+			0.5 + 0.5*level*sin(vert.colourPhase),\
+			0.5 + 0.5*level*cos(vert.colourPhase),\
 			1.0		\
 		);	\
 	}
@@ -318,7 +321,7 @@ fragment float4 clearFragment() {
 
 // MARK: - Conversion fragment shaders
 
-fragment float4 convertComposite(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+fragment float4 filterFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
 	const float3 colour =
 		uniforms.firCoefficients[0] * texture.sample(standardSampler, vert.textureCoordinates - float2(7.0, 0.0)).rgb +
 		uniforms.firCoefficients[1] * texture.sample(standardSampler, vert.textureCoordinates - float2(6.0, 0.0)).rgb +
@@ -336,5 +339,5 @@ fragment float4 convertComposite(CopyInterpolator vert [[stage_in]], texture2d<f
 		uniforms.firCoefficients[1] * texture.sample(standardSampler, vert.textureCoordinates + float2(6.0, 0.0)).rgb +
 		uniforms.firCoefficients[0] * texture.sample(standardSampler, vert.textureCoordinates + float2(7.0, 0.0)).rgb;
 
-	return float4(colour, 1.0);
+	return float4(uniforms.toRGB * ((colour - float3(0.0, 0.5, 0.5)) * float3(1.0, 2.0 / vert.colourAmplitude, 2.0 / vert.colourAmplitude)), 1.0);
 }
