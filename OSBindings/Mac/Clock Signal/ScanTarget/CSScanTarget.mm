@@ -8,9 +8,12 @@
 
 #import "CSScanTarget.h"
 
-#include <atomic>
 #import <Metal/Metal.h>
+
+#include <atomic>
+
 #include "BufferingScanTarget.hpp"
+#include "FIRFilter.hpp"
 
 namespace {
 
@@ -22,6 +25,7 @@ struct Uniforms {
 	simd::float3x3 fromRGB;
 	float zoom;
 	simd::float2 offset;
+	float firCoefficients[8];
 };
 
 constexpr size_t NumBufferedScans = 2048;
@@ -355,9 +359,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 #endif
 
 	// Build the composition pipeline if one is in use.
+	const bool isSVideoOutput = modals.display_type == Outputs::Display::DisplayType::SVideo;
 	if(_isUsingCompositionPipeline) {
-		const bool isSVideoOutput = modals.display_type == Outputs::Display::DisplayType::SVideo;
-
 		pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
 		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToComposition"];
 		pipelineDescriptor.fragmentFunction =
@@ -371,6 +374,15 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_compositionRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
 
 		// TODO: set proper clear colour for S-Video.
+
+		// TODO: work out fir coefficients, for real.
+		const float cyclesPerLine = float(modals.cycles_per_line);
+		const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
+		SignalProcessing::FIRFilter filter(15, cyclesPerLine, 0.0f, 16.0f * cyclesPerLine / colourCyclesPerLine);
+
+		float *const firCoefficients = uniforms()->firCoefficients;
+		const auto calculatedCoefficients = filter.get_coefficients();
+		memcpy(firCoefficients, calculatedCoefficients.data(), calculatedCoefficients.size() * sizeof(float));
 	}
 
 	// Build the output pipeline.
@@ -378,7 +390,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	pipelineDescriptor.vertexFunction = [library newFunctionWithName:_isUsingCompositionPipeline ? @"lineToDisplay" : @"scanToDisplay"];
 
 	if(_isUsingCompositionPipeline) {
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"sampleRed8Green8Blue8"];
+		// TODO!
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"convertComposite"];
 	} else {
 		const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
 		pipelineDescriptor.fragmentFunction =

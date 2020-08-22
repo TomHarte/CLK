@@ -30,6 +30,10 @@ struct Uniforms {
 	// Provides zoom and offset to scale the source data.
 	float zoom;
 	float2 offset;
+
+	// Describes the FIR filter in use; it'll be 15 coefficients but they're
+	// symmetrical around the centre.
+	float firCoefficients[8];
 };
 
 namespace {
@@ -310,4 +314,27 @@ fragment float4 copyFragment(CopyInterpolator vert [[stage_in]], texture2d<float
 
 fragment float4 clearFragment() {
 	return float4(0.0, 0.0, 0.0, 0.64);
+}
+
+// MARK: - Conversion fragment shaders
+
+fragment float4 convertComposite(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+	const float3 colour =
+		uniforms.firCoefficients[0] * texture.sample(standardSampler, vert.textureCoordinates - float2(7.0, 0.0)).rgb +
+		uniforms.firCoefficients[1] * texture.sample(standardSampler, vert.textureCoordinates - float2(6.0, 0.0)).rgb +
+		uniforms.firCoefficients[2] * texture.sample(standardSampler, vert.textureCoordinates - float2(5.0, 0.0)).rgb +
+		uniforms.firCoefficients[3] * texture.sample(standardSampler, vert.textureCoordinates - float2(4.0, 0.0)).rgb +
+		uniforms.firCoefficients[4] * texture.sample(standardSampler, vert.textureCoordinates - float2(3.0, 0.0)).rgb +
+		uniforms.firCoefficients[5] * texture.sample(standardSampler, vert.textureCoordinates - float2(2.0, 0.0)).rgb +
+		uniforms.firCoefficients[6] * texture.sample(standardSampler, vert.textureCoordinates - float2(1.0, 0.0)).rgb +
+		uniforms.firCoefficients[7] * texture.sample(standardSampler, vert.textureCoordinates).rgb +
+		uniforms.firCoefficients[6] * texture.sample(standardSampler, vert.textureCoordinates + float2(1.0, 0.0)).rgb +
+		uniforms.firCoefficients[5] * texture.sample(standardSampler, vert.textureCoordinates + float2(2.0, 0.0)).rgb +
+		uniforms.firCoefficients[4] * texture.sample(standardSampler, vert.textureCoordinates + float2(3.0, 0.0)).rgb +
+		uniforms.firCoefficients[3] * texture.sample(standardSampler, vert.textureCoordinates + float2(4.0, 0.0)).rgb +
+		uniforms.firCoefficients[2] * texture.sample(standardSampler, vert.textureCoordinates + float2(5.0, 0.0)).rgb +
+		uniforms.firCoefficients[1] * texture.sample(standardSampler, vert.textureCoordinates + float2(6.0, 0.0)).rgb +
+		uniforms.firCoefficients[0] * texture.sample(standardSampler, vert.textureCoordinates + float2(7.0, 0.0)).rgb;
+
+	return float4(colour, 1.0);
 }
