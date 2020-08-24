@@ -514,14 +514,15 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 	)x";
 
 	std::string fragment_shader =
-		"#version 150\n"
+	R"x(#version 150
 
-		"out vec4 fragColour;"
-		"in vec2 textureCoordinate;"
+		out vec4 fragColour;
+		in vec2 textureCoordinate;
 
-		"uniform usampler2D textureName;"
+		uniform usampler2D textureName;
 
-		"void main(void) {";
+		void main(void) {
+	)x";
 
 	switch(modals.input_data_type) {
 		case InputDataType::Luminance1:

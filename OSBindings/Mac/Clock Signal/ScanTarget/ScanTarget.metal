@@ -51,7 +51,7 @@ struct Scan {
 	struct EndPoint {
 		uint16_t position[2];
 		uint16_t dataOffset;
-		uint16_t compositeAngle;
+		int16_t compositeAngle;
 		uint16_t cyclesSinceRetrace;
 	} endPoints[2];
 
@@ -64,7 +64,7 @@ struct Scan {
 struct Line {
 	struct EndPoint {
 		uint16_t position[2];
-		uint16_t compositeAngle;
+		int16_t compositeAngle;
 		uint16_t cyclesSinceRetrace;
 	} endPoints[2];
 
@@ -176,8 +176,10 @@ vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffe
 	result.position.x = mix(scans[instanceID].endPoints[0].cyclesSinceRetrace, scans[instanceID].endPoints[1].cyclesSinceRetrace, float(vertexID));
 	result.position.y = scans[instanceID].line;
 	result.position.zw = float2(0.0f, 1.0f);
+
 	result.textureCoordinates.x = mix(scans[instanceID].endPoints[0].dataOffset, scans[instanceID].endPoints[1].dataOffset, float(vertexID));
 	result.textureCoordinates.y = scans[instanceID].dataY;
+
 	result.colourPhase = 3.141592654f * mix(
 		float(scans[instanceID].endPoints[0].compositeAngle),
 		float(scans[instanceID].endPoints[1].compositeAngle),
@@ -186,8 +188,10 @@ vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffe
 	result.colourAmplitude = float(scans[instanceID].compositeAmplitude) / 255.0f;
 
 	// Map position into eye space, allowing for target texture dimensions.
-	// TODO: is this really necessary? Is there nothing like coord::pixel that applies here?
-	result.position.xy = ((result.position.xy + float2(0.5)) / float2(texture.get_width(), texture.get_height())) * float2(2.0, -2.0) + float2(-1.0, 1.0);
+	const float2 textureSize = float2(texture.get_width(), texture.get_height());
+	result.position.xy =
+		((result.position.xy + float2(0.5f)) / textureSize)
+		* float2(2.0f, -2.0f) + float2(-1.0f, 1.0f);
 
 	return result;
 }
