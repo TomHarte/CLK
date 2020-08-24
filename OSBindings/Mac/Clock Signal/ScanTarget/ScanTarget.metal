@@ -123,23 +123,23 @@ template <typename Input> SourceInterpolator toDisplay(
 		float(inputs[instanceID].endPoints[0].compositeAngle),
 		float(inputs[instanceID].endPoints[1].compositeAngle),
 		float((vertexID&2) >> 1)
-	) / 32.0;
+	) / 32.0f;
 
 	// Hence determine this quad's real shape, using vertexID to pick a corner.
 
 	// position2d is now in the range [0, 1].
-	float2 position2d = start + (float(vertexID&2) * 0.5) * tangent + (float(vertexID&1) - 0.5) * normal * uniforms.lineWidth;
+	float2 position2d = start + (float(vertexID&2) * 0.5f) * tangent + (float(vertexID&1) - 0.5f) * normal * uniforms.lineWidth;
 
 	// Apply the requested offset and zoom, to map the desired area to the range [0, 1].
 	position2d = (position2d + uniforms.offset) * uniforms.zoom;
 
 	// Remap from [0, 1] to Metal's [-1, 1] and then apply the aspect ratio correction.
-	position2d = (position2d * float2(2.0, -2.0) + float2(-1.0, 1.0)) * float2(uniforms.aspectRatioMultiplier, 1.0);
+	position2d = (position2d * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f)) * float2(uniforms.aspectRatioMultiplier, 1.0f);
 
 	output.position = float4(
 		position2d,
-		0.0,
-		1.0
+		0.0f,
+		1.0f
 	);
 	output.textureCoordinates = textureLocation(&inputs[instanceID], float((vertexID&2) >> 1));
 
@@ -175,14 +175,14 @@ vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffe
 	// Populate result as if direct texture access were available.
 	result.position.x = mix(scans[instanceID].endPoints[0].cyclesSinceRetrace, scans[instanceID].endPoints[1].cyclesSinceRetrace, float(vertexID));
 	result.position.y = scans[instanceID].line;
-	result.position.zw = float2(0.0, 1.0);
+	result.position.zw = float2(0.0f, 1.0f);
 	result.textureCoordinates.x = mix(scans[instanceID].endPoints[0].dataOffset, scans[instanceID].endPoints[1].dataOffset, float(vertexID));
 	result.textureCoordinates.y = scans[instanceID].dataY;
 	result.colourPhase = 3.141592654f * mix(
 		float(scans[instanceID].endPoints[0].compositeAngle),
 		float(scans[instanceID].endPoints[1].compositeAngle),
 		float(vertexID)
-	) / 32.0;
+	) / 32.0f;
 	result.colourAmplitude = float(scans[instanceID].compositeAmplitude) / 255.0f;
 
 	// Map position into eye space, allowing for target texture dimensions.
@@ -221,7 +221,13 @@ fragment float4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_
 	const auto luminancePhase = texture.sample(standardSampler, vert.textureCoordinates).rg;
 	const float phaseOffset = 3.141592654 * 4.0 * luminancePhase.g;
 	const float rawChroma = step(luminancePhase.g, 0.75) * cos(vert.colourPhase + phaseOffset);
-	return float4(float3(mix(luminancePhase.r, rawChroma, vert.colourAmplitude)), 1.0f);
+	const float level = mix(luminancePhase.r, rawChroma, vert.colourAmplitude);
+	return float4(
+		level,
+		0.5 + 0.5*level*cos(vert.colourPhase),
+		0.5 + 0.5*level*sin(vert.colourPhase),
+		1.0
+	);
 }
 
 // All the RGB formats can produce RGB, composite or S-Video.
@@ -258,10 +264,10 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 	\
 	fragment float4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
 		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
-		const float2 colourSubcarrier = float2(sin(vert.colourPhase), cos(vert.colourPhase))*0.5 + float2(0.5);	\
+		const float2 colourSubcarrier = float2(cos(vert.colourPhase), sin(vert.colourPhase));	\
 		return float4(	\
 			colour.r,	\
-			dot(colour.gb, colourSubcarrier),	\
+			dot(colour.gb, colourSubcarrier)*0.5 + 0.5,	\
 			0.0,	\
 			1.0		\
 		);	\
@@ -269,12 +275,12 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 	\
 	fragment float4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
 		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
-		const float2 colourSubcarrier = float2(sin(vert.colourPhase), cos(vert.colourPhase));	\
+		const float2 colourSubcarrier = float2(cos(vert.colourPhase), sin(vert.colourPhase));	\
 		const float level = mix(colour.r, dot(colour.gb, colourSubcarrier), vert.colourAmplitude);	\
 		return float4(	\
 			level,	\
-			0.5 + 0.5*level*sin(vert.colourPhase),\
 			0.5 + 0.5*level*cos(vert.colourPhase),\
+			0.5 + 0.5*level*sin(vert.colourPhase),\
 			1.0		\
 		);	\
 	}
@@ -322,7 +328,7 @@ fragment float4 clearFragment() {
 // MARK: - Conversion fragment shaders
 
 fragment float4 filterFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-#define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0)).rgb
+#define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0f)).rgb
 	const float3 rawSamples[] = {
 		Sample(-7),	Sample(-6),	Sample(-5),	Sample(-4),	Sample(-3),	Sample(-2),	Sample(-1),
 		Sample(0),
@@ -342,5 +348,5 @@ fragment float4 filterFragment(SourceInterpolator vert [[stage_in]], texture2d<f
 
 #undef Sample
 
-	return float4(uniforms.toRGB * ((colour - float3(0.0, 0.5, 0.5)) * float3(1.0, 2.0 / vert.colourAmplitude, 2.0 / vert.colourAmplitude)), 1.0);
+	return float4(uniforms.toRGB * ((colour - float3(0.0f, 0.5f, 0.5f)) * float3(1.0f, 2.0f / vert.colourAmplitude, 2.0f / vert.colourAmplitude)), 1.0f);
 }

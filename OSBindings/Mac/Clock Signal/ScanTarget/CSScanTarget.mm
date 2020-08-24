@@ -359,8 +359,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 #endif
 
 	// Build the composition pipeline if one is in use.
-	const bool isSVideoOutput = modals.display_type == Outputs::Display::DisplayType::SVideo;
 	if(_isUsingCompositionPipeline) {
+		const bool isSVideoOutput = modals.display_type == Outputs::Display::DisplayType::SVideo;
+
 		pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
 		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToComposition"];
 		pipelineDescriptor.fragmentFunction =
@@ -374,7 +375,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_compositionRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
 		_compositionRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.5, 0.5, 1.0);
 
-		simd::float3 *const firCoefficients = uniforms()->firCoefficients;
+		auto *const firCoefficients = uniforms()->firCoefficients;
 		const float cyclesPerLine = float(modals.cycles_per_line);
 		const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
@@ -386,7 +387,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			firCoefficients[7].x = 1.0f;
 		} else {
 			// In composite, filter luminance gently.
-			SignalProcessing::FIRFilter luminancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * 0.75f);
+			SignalProcessing::FIRFilter luminancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * 0.5f);
 			const auto calculatedCoefficients = luminancefilter.get_coefficients();
 			for(size_t c = 0; c < 8; ++c) {
 				firCoefficients[c].x = calculatedCoefficients[c];
@@ -394,7 +395,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		}
 
 		// Whether S-Video or composite, apply the same relatively strong filter to colour channels.
-		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * 0.33f);
+		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * 0.5f);
 		const auto calculatedCoefficients = chrominancefilter.get_coefficients();
 		for(size_t c = 0; c < 8; ++c) {
 			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c];
