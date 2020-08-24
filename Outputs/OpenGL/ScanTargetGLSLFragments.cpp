@@ -489,28 +489,29 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 	const auto modals = BufferingScanTarget::modals();
 	const std::string vertex_shader =
-		"#version 150\n"
+	R"x(#version 150
 
-		"in float startDataX;"
-		"in float startClock;"
+		in float startDataX;
+		in float startClock;
 
-		"in float endDataX;"
-		"in float endClock;"
+		in float endDataX;
+		in float endClock;
 
-		"in float dataY;"
-		"in float lineY;"
+		in float dataY;
+		in float lineY;
 
-		"out vec2 textureCoordinate;"
-		"uniform usampler2D textureName;"
+		out vec2 textureCoordinate;
+		uniform usampler2D textureName;
 
-		"void main(void) {"
-			"float lateral = float(gl_VertexID & 1);"
-			"float longitudinal = float((gl_VertexID & 2) >> 1);"
+		void main(void) {
+			float lateral = float(gl_VertexID & 1);
+			float longitudinal = float((gl_VertexID & 2) >> 1);
 
-			"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / textureSize(textureName, 0);"
-			"vec2 eyePosition = vec2(mix(startClock, endClock, lateral), lineY + longitudinal) / vec2(2048.0, 2048.0);"
-			"gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);"
-		"}";
+			textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / textureSize(textureName, 0);
+			vec2 eyePosition = vec2(mix(startClock, endClock, lateral), lineY + longitudinal) / vec2(2048.0, 2048.0);
+			gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);
+		}
+	)x";
 
 	std::string fragment_shader =
 		"#version 150\n"
