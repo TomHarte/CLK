@@ -34,6 +34,9 @@ struct Uniforms {
 	// Describes the FIR filter in use; it'll be 15 coefficients but they're
 	// symmetrical around the centre.
 	float3 firCoefficients[8];
+
+	// Maps from pixel offsets into the composition buffer to angular difference.
+	float radiansPerPixel;
 };
 
 namespace {
@@ -217,15 +220,20 @@ fragment float4 samplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]]
 
 // The luminance/phase format can produce either composite or S-Video.
 
-fragment float4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
-	return float4(texture.sample(standardSampler, vert.textureCoordinates).rg, 0.0, 1.0);
-}
-
-fragment float4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+float2 convertLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
 	const auto luminancePhase = texture.sample(standardSampler, vert.textureCoordinates).rg;
 	const float phaseOffset = 3.141592654 * 4.0 * luminancePhase.g;
 	const float rawChroma = step(luminancePhase.g, 0.75) * cos(vert.colourPhase + phaseOffset);
-	const float level = mix(luminancePhase.r, rawChroma, vert.colourAmplitude);
+	return float2(luminancePhase.r, rawChroma);
+}
+
+fragment float2 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+	return convertLuminance8Phase8(vert, texture);
+}
+
+fragment float4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+	const float2 luminanceChroma = convertLuminance8Phase8(vert, texture);
+	const float level = mix(luminanceChroma.r, luminanceChroma.g, vert.colourAmplitude);
 	return float4(
 		level,
 		0.5 + 0.5*level*cos(vert.colourPhase),
@@ -331,26 +339,31 @@ fragment float4 clearFragment() {
 
 // MARK: - Conversion fragment shaders
 
-fragment float4 filterFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-#define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0f)).rgb
-	const float3 rawSamples[] = {
+fragment float4 filterSVideoFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+#define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0f)).rg - float2(0.0f, 0.5f)
+	const float2 rawSamples[] = {
 		Sample(-7),	Sample(-6),	Sample(-5),	Sample(-4),	Sample(-3),	Sample(-2),	Sample(-1),
 		Sample(0),
 		Sample(1),	Sample(2),	Sample(3),	Sample(4),	Sample(5),	Sample(6),	Sample(7),
 	};
 #undef Sample
 
-#define Sample(c, o)	\
-	uniforms.firCoefficients[c] * rawSamples[o]
+#define Sample(c, o, a)	\
+	uniforms.firCoefficients[c] * float3(rawSamples[o].r, rawSamples[o].g*cos(vert.colourPhase + (a)*uniforms.radiansPerPixel), rawSamples[o].g*sin(vert.colourPhase + (a)*uniforms.radiansPerPixel))
 
 	const float3 colour =
-		Sample(0, 0) +	Sample(1, 1) +	Sample(2, 2) +	Sample(3, 3) +
-		Sample(4, 4) +	Sample(5, 5) +	Sample(6, 6) +
-		Sample(7, 7) +
-		Sample(6, 8) +	Sample(5, 9) +	Sample(4, 10) +
-		Sample(3, 11) +	Sample(2, 12) +	Sample(1, 13) +	Sample(0, 14);
+		Sample(0, 0, -7) +	Sample(1, 1, -6) +	Sample(2, 2, -5) +	Sample(3, 3, -4) +
+		Sample(4, 4, -3) +	Sample(5, 5, -2) +	Sample(6, 6, -1) +
+		Sample(7, 7, 0) +
+		Sample(6, 8, 1) +	Sample(5, 9, 2) +	Sample(4, 10, 3) +
+		Sample(3, 11, 4) +	Sample(2, 12, 5) +	Sample(1, 13, 6) +	Sample(0, 14, 7);
 
 #undef Sample
 
-	return float4(uniforms.toRGB * ((colour - float3(0.0f, 0.5f, 0.5f)) * float3(1.0f, 2.0f / vert.colourAmplitude, 2.0f / vert.colourAmplitude)), 1.0f);
+	return float4(uniforms.toRGB * colour, 1.0f);
+}
+
+fragment float4 filterCompositeFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+	// TODO.
+	return float4(1.0);
 }

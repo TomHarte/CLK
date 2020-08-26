@@ -26,6 +26,7 @@ struct Uniforms {
 	float zoom;
 	simd::float2 offset;
 	simd::float3 firCoefficients[8];
+	float radiansPerPixel;
 };
 
 constexpr size_t NumBufferedScans = 2048;
@@ -151,9 +152,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		depthStencilDescriptor.frontFaceStencil.stencilFailureOperation = MTLStencilOperationReplace;
 		_clearStencilState = [view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 
-		// Create a composition texture up front.
+		// Create a composition texture up front. (TODO: is it worth switching to an 8bpp texture in composite mode?)
 		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
-			texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+			texture2DDescriptorWithPixelFormat:MTLPixelFormatRG8Unorm
 			width:2048		// This 'should do'.
 			height:NumBufferedLines
 			mipmapped:NO];
@@ -359,9 +360,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 #endif
 
 	// Build the composition pipeline if one is in use.
+	const bool isSVideoOutput = modals.display_type == Outputs::Display::DisplayType::SVideo;
 	if(_isUsingCompositionPipeline) {
-		const bool isSVideoOutput = modals.display_type == Outputs::Display::DisplayType::SVideo;
-
 		pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
 		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToComposition"];
 		pipelineDescriptor.fragmentFunction =
@@ -395,11 +395,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		}
 
 		// Whether S-Video or composite, apply the same relatively strong filter to colour channels.
-		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * 0.5f);
+		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * 0.25f);
 		const auto calculatedCoefficients = chrominancefilter.get_coefficients();
 		for(size_t c = 0; c < 8; ++c) {
-			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c];
+			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 3.0f : 1.0f);
 		}
+
+		uniforms()->radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / cyclesPerLine;
 	}
 
 	// Build the output pipeline.
@@ -407,7 +409,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	pipelineDescriptor.vertexFunction = [library newFunctionWithName:_isUsingCompositionPipeline ? @"lineToDisplay" : @"scanToDisplay"];
 
 	if(_isUsingCompositionPipeline) {
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"filterFragment"];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:isSVideoOutput ? @"filterSVideoFragment" : @"filterCompositeFragment"];
 	} else {
 		const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
 		pipelineDescriptor.fragmentFunction =
