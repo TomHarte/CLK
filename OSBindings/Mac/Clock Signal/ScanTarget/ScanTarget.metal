@@ -193,7 +193,7 @@ vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffe
 	// Map position into eye space, allowing for target texture dimensions.
 	const float2 textureSize = float2(texture.get_width(), texture.get_height());
 	result.position.xy =
-		((result.position.xy + float2(0.5f)) / textureSize)
+		((result.position.xy + float2(0.0f, 0.5f)) / textureSize)
 		* float2(2.0f, -2.0f) + float2(-1.0f, 1.0f);
 
 	return result;

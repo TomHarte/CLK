@@ -398,7 +398,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * 0.25f);
 		const auto calculatedCoefficients = chrominancefilter.get_coefficients();
 		for(size_t c = 0; c < 8; ++c) {
-			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 3.0f : 1.0f);
+			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 1.0f);
 		}
 
 		uniforms()->radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / cyclesPerLine;
