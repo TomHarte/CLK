@@ -15,6 +15,22 @@
 #include "BufferingScanTarget.hpp"
 #include "FIRFilter.hpp"
 
+/*
+	Pipelines in use:
+
+		RGB input -> RGB display:
+			just output it.
+
+		RGB input -> angular:
+			Composition in the display colour space (YIQ or YUV), conversion to and from S-Video or composite per output pixel.
+
+		Luminance/Phase -> angular:
+			Composition, conversion per output pixel.
+
+		Luminance -> composite:
+			Composition, conversion per input pixel.
+*/
+
 namespace {
 
 struct Uniforms {
@@ -154,9 +170,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Create a composition texture up front. (TODO: is it worth switching to an 8bpp texture in composite mode?)
 		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
-			texture2DDescriptorWithPixelFormat:MTLPixelFormatRG8Unorm
+			texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
 			width:2048		// This 'should do'.
-			height:NumBufferedLines
+			height:NumBufferedLines	// TODO: I want to turn this down _considerably_. A frame and a bit should be sufficient, though probably I'd also want to adjust the buffering scan target to keep most recent data?
 			mipmapped:NO];
 		textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
 		textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
@@ -395,10 +411,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		}
 
 		// Whether S-Video or composite, apply the same relatively strong filter to colour channels.
-		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * 0.25f);
+		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine);
 		const auto calculatedCoefficients = chrominancefilter.get_coefficients();
 		for(size_t c = 0; c < 8; ++c) {
-			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 1.0f);
+			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 2.0f : 1.0f);
 		}
 
 		uniforms()->radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / cyclesPerLine;

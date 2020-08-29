@@ -81,9 +81,8 @@ struct SourceInterpolator {
 	float4 position [[position]];
 	float2 textureCoordinates;
 	float colourPhase;
-	float colourAmplitude;
+	float colourAmplitude [[flat]];
 };
-
 
 // MARK: - Vertex shaders.
 
@@ -202,6 +201,10 @@ vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffe
 
 // MARK: - Various input format conversion samplers.
 
+float2 quadrature(float phase) {
+	return float2(cos(phase), sin(phase));
+}
+
 // There's only one meaningful way to sample the luminance formats.
 
 fragment float4 sampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
@@ -276,13 +279,7 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 	\
 	fragment float4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
 		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
-		const float2 colourSubcarrier = float2(cos(vert.colourPhase), sin(vert.colourPhase));	\
-		return float4(	\
-			colour.r,	\
-			dot(colour.gb, colourSubcarrier)*0.5 + 0.5,	\
-			0.0,	\
-			1.0		\
-		);	\
+		return float4(colour, 1.0);	\
 	}	\
 	\
 	fragment float4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
@@ -296,6 +293,14 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 			1.0		\
 		);	\
 	}
+
+//		const float2 colourSubcarrier = float2(cos(vert.colourPhase), sin(vert.colourPhase));	\
+//		return float4(	\
+//			colour.r,	\
+//			dot(colour.gb, colourSubcarrier)*0.5 + 0.5,	\
+//			0.0,	\
+//			1.0		\
+//		);	\
 
 DeclareShaders(Red8Green8Blue8, float)
 DeclareShaders(Red4Green4Blue4, ushort)
@@ -340,13 +345,32 @@ fragment float4 clearFragment() {
 // MARK: - Conversion fragment shaders
 
 fragment float4 filterSVideoFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-#define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0f)).rg - float2(0.0f, 0.5f)
-	const float2 rawSamples[] = {
+#define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0f))
+	float4 rawSamples[] = {
 		Sample(-7),	Sample(-6),	Sample(-5),	Sample(-4),	Sample(-3),	Sample(-2),	Sample(-1),
 		Sample(0),
 		Sample(1),	Sample(2),	Sample(3),	Sample(4),	Sample(5),	Sample(6),	Sample(7),
 	};
 #undef Sample
+
+#define Offset(x)	vert.colourPhase + (x)*uniforms.radiansPerPixel
+	const float angles[] = {
+		Offset(-7),	Offset(-6),	Offset(-5),	Offset(-4),	Offset(-3),	Offset(-2),	Offset(-1),
+		vert.colourPhase,
+		Offset(1),	Offset(2),	Offset(3),	Offset(4),	Offset(5),	Offset(6),	Offset(7)
+	};
+#undef Offset
+
+#define Map(x)	{ \
+		const float2 colourSubcarrier = float2(cos(angles[x]), sin(angles[x]));	\
+		rawSamples[x].g = dot(rawSamples[x].gb, colourSubcarrier);	\
+	}
+
+	Map(0);	Map(1);	Map(2);	Map(3);	Map(4);	Map(5);
+	Map(6);	Map(7);	Map(8);	Map(9);	Map(10);	Map(11);
+	Map(12);	Map(13);	Map(14);
+
+#undef Map
 
 #define Sample(c, o, a)	\
 	uniforms.firCoefficients[c] * float3(rawSamples[o].r, rawSamples[o].g*cos(vert.colourPhase + (a)*uniforms.radiansPerPixel), rawSamples[o].g*sin(vert.colourPhase + (a)*uniforms.radiansPerPixel))
