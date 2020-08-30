@@ -37,6 +37,9 @@ struct Uniforms {
 
 	// Maps from pixel offsets into the composition buffer to angular difference.
 	float radiansPerPixel;
+
+	// Applies a multiplication to all cyclesSinceRetrace values.
+	float cycleMultiplier;
 };
 
 namespace {
@@ -86,13 +89,13 @@ struct SourceInterpolator {
 
 // MARK: - Vertex shaders.
 
-float2 textureLocation(constant Line *line, float offset) {
+float2 textureLocation(constant Line *line, float offset, constant Uniforms &uniforms) {
 	return float2(
-		mix(line->endPoints[0].cyclesSinceRetrace, line->endPoints[1].cyclesSinceRetrace, offset),
+		uniforms.cycleMultiplier * mix(line->endPoints[0].cyclesSinceRetrace, line->endPoints[1].cyclesSinceRetrace, offset),
 		line->line);
 }
 
-float2 textureLocation(constant Scan *scan, float offset) {
+float2 textureLocation(constant Scan *scan, float offset, constant Uniforms &) {
 	return float2(
 		mix(scan->endPoints[0].dataOffset, scan->endPoints[1].dataOffset, offset),
 		scan->dataY);
@@ -143,7 +146,7 @@ template <typename Input> SourceInterpolator toDisplay(
 		0.0f,
 		1.0f
 	);
-	output.textureCoordinates = textureLocation(&inputs[instanceID], float((vertexID&2) >> 1));
+	output.textureCoordinates = textureLocation(&inputs[instanceID], float((vertexID&2) >> 1), uniforms);
 
 	return output;
 }
@@ -175,7 +178,7 @@ vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffe
 	SourceInterpolator result;
 
 	// Populate result as if direct texture access were available.
-	result.position.x = mix(scans[instanceID].endPoints[0].cyclesSinceRetrace, scans[instanceID].endPoints[1].cyclesSinceRetrace, float(vertexID));
+	result.position.x = uniforms.cycleMultiplier * mix(scans[instanceID].endPoints[0].cyclesSinceRetrace, scans[instanceID].endPoints[1].cyclesSinceRetrace, float(vertexID));
 	result.position.y = scans[instanceID].line;
 	result.position.zw = float2(0.0f, 1.0f);
 
@@ -223,6 +226,7 @@ fragment float4 samplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]]
 
 // The luminance/phase format can produce either composite or S-Video.
 
+/// @returns A 2d vector comprised where .x = luminance; .y = chroma.
 float2 convertLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
 	const auto luminancePhase = texture.sample(standardSampler, vert.textureCoordinates).rg;
 	const float phaseOffset = 3.141592654 * 4.0 * luminancePhase.g;
@@ -230,8 +234,12 @@ float2 convertLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<f
 	return float2(luminancePhase.r, rawChroma);
 }
 
-fragment float2 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
-	return convertLuminance8Phase8(vert, texture);
+fragment float4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+	const float2 luminanceChroma = convertLuminance8Phase8(vert, texture);
+	const float2 qam = quadrature(vert.colourPhase) * 0.5f;
+	return float4(luminanceChroma.r,
+			float2(0.5f) + luminanceChroma.g*qam,
+			1.0);
 }
 
 fragment float4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
@@ -279,7 +287,13 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 	\
 	fragment float4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
 		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
-		return float4(colour, 1.0);	\
+		const float2 qam = quadrature(vert.colourPhase);	\
+		const float chroma = dot(colour.gb, qam);	\
+		return float4(	\
+			colour.r,	\
+			float2(0.5f) + chroma*qam*0.5f,	\
+			1.0f		\
+		);	\
 	}	\
 	\
 	fragment float4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
@@ -344,7 +358,7 @@ fragment float4 clearFragment() {
 
 // MARK: - Conversion fragment shaders
 
-fragment float4 filterSVideoFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+/*fragment float4 filterSVideoFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
 #define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0f))
 	float4 rawSamples[] = {
 		Sample(-7),	Sample(-6),	Sample(-5),	Sample(-4),	Sample(-3),	Sample(-2),	Sample(-1),
@@ -385,9 +399,32 @@ fragment float4 filterSVideoFragment(SourceInterpolator vert [[stage_in]], textu
 #undef Sample
 
 	return float4(uniforms.toRGB * colour, 1.0f);
+}*/
+
+fragment float4 filterFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+#define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0f)) - float4(0.0f, 0.5f, 0.5f, 0.0f)
+	float4 rawSamples[] = {
+		Sample(-7),	Sample(-6),	Sample(-5),	Sample(-4),	Sample(-3),	Sample(-2),	Sample(-1),
+		Sample(0),
+		Sample(1),	Sample(2),	Sample(3),	Sample(4),	Sample(5),	Sample(6),	Sample(7),
+	};
+#undef Sample
+
+#define Sample(c, o, a)	uniforms.firCoefficients[c] * rawSamples[o].rgb
+
+	const float3 colour =
+		Sample(0, 0, -7) +	Sample(1, 1, -6) +	Sample(2, 2, -5) +	Sample(3, 3, -4) +
+		Sample(4, 4, -3) +	Sample(5, 5, -2) +	Sample(6, 6, -1) +
+		Sample(7, 7, 0) +
+		Sample(6, 8, 1) +	Sample(5, 9, 2) +	Sample(4, 10, 3) +
+		Sample(3, 11, 4) +	Sample(2, 12, 5) +	Sample(1, 13, 6) +	Sample(0, 14, 7);
+
+#undef Sample
+
+	return float4(uniforms.toRGB * colour, 1.0f);
 }
 
-fragment float4 filterCompositeFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-	// TODO.
-	return float4(1.0);
-}
+//fragment float4 filterCompositeFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+//	// TODO.
+//	return float4(1.0);
+//}

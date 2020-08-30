@@ -15,22 +15,6 @@
 #include "BufferingScanTarget.hpp"
 #include "FIRFilter.hpp"
 
-/*
-	Pipelines in use:
-
-		RGB input -> RGB display:
-			just output it.
-
-		RGB input -> angular:
-			Composition in the display colour space (YIQ or YUV), conversion to and from S-Video or composite per output pixel.
-
-		Luminance/Phase -> angular:
-			Composition, conversion per output pixel.
-
-		Luminance -> composite:
-			Composition, conversion per input pixel.
-*/
-
 namespace {
 
 struct Uniforms {
@@ -43,6 +27,7 @@ struct Uniforms {
 	simd::float2 offset;
 	simd::float3 firCoefficients[8];
 	float radiansPerPixel;
+	float cyclesMultiplier;
 };
 
 constexpr size_t NumBufferedScans = 2048;
@@ -374,6 +359,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		if(samplerDictionary[c].directRGB)				assert([library newFunctionWithName:samplerDictionary[c].directRGB]);
 	}
 #endif
+	// Pick a suitable cycle multiplier.
+	uniforms()->cyclesMultiplier = 1.0f;
+	if(_isUsingCompositionPipeline) {
+		const float minimumSize = 4.0f * float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
+		while(uniforms()->cyclesMultiplier * modals.cycles_per_line < minimumSize) {
+			uniforms()->cyclesMultiplier += 1.0f;
+		}
+	}
 
 	// Build the composition pipeline if one is in use.
 	const bool isSVideoOutput = modals.display_type == Outputs::Display::DisplayType::SVideo;
@@ -392,7 +385,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_compositionRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.5, 0.5, 1.0);
 
 		auto *const firCoefficients = uniforms()->firCoefficients;
-		const float cyclesPerLine = float(modals.cycles_per_line);
+		const float cyclesPerLine = float(modals.cycles_per_line) * uniforms()->cyclesMultiplier;
 		const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
 		if(isSVideoOutput) {
@@ -414,7 +407,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine);
 		const auto calculatedCoefficients = chrominancefilter.get_coefficients();
 		for(size_t c = 0; c < 8; ++c) {
-			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 2.0f : 1.0f);
+			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 1.0f);
 		}
 
 		uniforms()->radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / cyclesPerLine;
@@ -425,7 +418,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	pipelineDescriptor.vertexFunction = [library newFunctionWithName:_isUsingCompositionPipeline ? @"lineToDisplay" : @"scanToDisplay"];
 
 	if(_isUsingCompositionPipeline) {
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:isSVideoOutput ? @"filterSVideoFragment" : @"filterCompositeFragment"];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"filterFragment"];
 	} else {
 		const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
 		pipelineDescriptor.fragmentFunction =

@@ -264,6 +264,9 @@ void BufferingScanTarget::will_change_owner() {
 	std::lock_guard lock_guard(producer_mutex_);
 	allocation_has_failed_ = true;
 	vended_scan_ = nullptr;
+#ifdef DEBUG
+	data_is_allocated_ = false;
+#endif
 }
 
 const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
