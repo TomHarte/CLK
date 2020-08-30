@@ -298,23 +298,14 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 	\
 	fragment float4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
 		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
-		const float2 colourSubcarrier = float2(cos(vert.colourPhase), sin(vert.colourPhase));	\
+		const float2 colourSubcarrier = quadrature(vert.colourPhase);	\
 		const float level = mix(colour.r, dot(colour.gb, colourSubcarrier), vert.colourAmplitude);	\
 		return float4(	\
 			level,	\
-			0.5 + 0.5*level*cos(vert.colourPhase),\
-			0.5 + 0.5*level*sin(vert.colourPhase),\
+			float2(0.5f) + level*colourSubcarrier*0.5f,	\
 			1.0		\
 		);	\
 	}
-
-//		const float2 colourSubcarrier = float2(cos(vert.colourPhase), sin(vert.colourPhase));	\
-//		return float4(	\
-//			colour.r,	\
-//			dot(colour.gb, colourSubcarrier)*0.5 + 0.5,	\
-//			0.0,	\
-//			1.0		\
-//		);	\
 
 DeclareShaders(Red8Green8Blue8, float)
 DeclareShaders(Red4Green4Blue4, ushort)
@@ -358,50 +349,7 @@ fragment float4 clearFragment() {
 
 // MARK: - Conversion fragment shaders
 
-/*fragment float4 filterSVideoFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-#define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0f))
-	float4 rawSamples[] = {
-		Sample(-7),	Sample(-6),	Sample(-5),	Sample(-4),	Sample(-3),	Sample(-2),	Sample(-1),
-		Sample(0),
-		Sample(1),	Sample(2),	Sample(3),	Sample(4),	Sample(5),	Sample(6),	Sample(7),
-	};
-#undef Sample
-
-#define Offset(x)	vert.colourPhase + (x)*uniforms.radiansPerPixel
-	const float angles[] = {
-		Offset(-7),	Offset(-6),	Offset(-5),	Offset(-4),	Offset(-3),	Offset(-2),	Offset(-1),
-		vert.colourPhase,
-		Offset(1),	Offset(2),	Offset(3),	Offset(4),	Offset(5),	Offset(6),	Offset(7)
-	};
-#undef Offset
-
-#define Map(x)	{ \
-		const float2 colourSubcarrier = float2(cos(angles[x]), sin(angles[x]));	\
-		rawSamples[x].g = dot(rawSamples[x].gb, colourSubcarrier);	\
-	}
-
-	Map(0);	Map(1);	Map(2);	Map(3);	Map(4);	Map(5);
-	Map(6);	Map(7);	Map(8);	Map(9);	Map(10);	Map(11);
-	Map(12);	Map(13);	Map(14);
-
-#undef Map
-
-#define Sample(c, o, a)	\
-	uniforms.firCoefficients[c] * float3(rawSamples[o].r, rawSamples[o].g*cos(vert.colourPhase + (a)*uniforms.radiansPerPixel), rawSamples[o].g*sin(vert.colourPhase + (a)*uniforms.radiansPerPixel))
-
-	const float3 colour =
-		Sample(0, 0, -7) +	Sample(1, 1, -6) +	Sample(2, 2, -5) +	Sample(3, 3, -4) +
-		Sample(4, 4, -3) +	Sample(5, 5, -2) +	Sample(6, 6, -1) +
-		Sample(7, 7, 0) +
-		Sample(6, 8, 1) +	Sample(5, 9, 2) +	Sample(4, 10, 3) +
-		Sample(3, 11, 4) +	Sample(2, 12, 5) +	Sample(1, 13, 6) +	Sample(0, 14, 7);
-
-#undef Sample
-
-	return float4(uniforms.toRGB * colour, 1.0f);
-}*/
-
-fragment float4 filterFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+template <bool applyCompositeAmplitude> float4 applyFilter(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
 #define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0f)) - float4(0.0f, 0.5f, 0.5f, 0.0f)
 	float4 rawSamples[] = {
 		Sample(-7),	Sample(-6),	Sample(-5),	Sample(-4),	Sample(-3),	Sample(-2),	Sample(-1),
@@ -421,10 +369,18 @@ fragment float4 filterFragment(SourceInterpolator vert [[stage_in]], texture2d<f
 
 #undef Sample
 
-	return float4(uniforms.toRGB * colour, 1.0f);
+	// This would be `if constexpr`, were this C++17; the compiler should do compile-time selection here regardless.
+	if(applyCompositeAmplitude) {
+		return float4(uniforms.toRGB * (colour * float3(1.0f, 1.0f / vert.colourAmplitude, 1.0f / vert.colourAmplitude)), 1.0f);
+	} else {
+		return float4(uniforms.toRGB * colour, 1.0f);
+	}
 }
 
-//fragment float4 filterCompositeFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-//	// TODO.
-//	return float4(1.0);
-//}
+fragment float4 filterSVideoFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+	return applyFilter<false>(vert, texture, uniforms);
+}
+
+fragment float4 filterCompositeFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+	return applyFilter<true>(vert, texture, uniforms);
+}

@@ -404,10 +404,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		}
 
 		// Whether S-Video or composite, apply the same relatively strong filter to colour channels.
-		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine);
+		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * (isSVideoOutput ? 1.0f : 0.25f));
 		const auto calculatedCoefficients = chrominancefilter.get_coefficients();
 		for(size_t c = 0; c < 8; ++c) {
-			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 1.0f);
+			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 4.0f);
 		}
 
 		uniforms()->radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / cyclesPerLine;
@@ -418,7 +418,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	pipelineDescriptor.vertexFunction = [library newFunctionWithName:_isUsingCompositionPipeline ? @"lineToDisplay" : @"scanToDisplay"];
 
 	if(_isUsingCompositionPipeline) {
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"filterFragment"];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:isSVideoOutput ? @"filterSVideoFragment" : @"filterCompositeFragment"];
 	} else {
 		const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
 		pipelineDescriptor.fragmentFunction =
