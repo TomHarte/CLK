@@ -30,8 +30,8 @@ struct Uniforms {
 	float cyclesMultiplier;
 };
 
-constexpr size_t NumBufferedScans = 2048;
-constexpr size_t NumBufferedLines = 2048;
+constexpr size_t NumBufferedLines = 500;
+constexpr size_t NumBufferedScans = NumBufferedLines * 4;
 
 /// The shared resource options this app would most favour; applied as widely as possible.
 constexpr MTLResourceOptions SharedResourceOptionsStandard = MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared;
@@ -58,41 +58,58 @@ constexpr MTLResourceOptions SharedResourceOptionsTexture = MTLResourceCPUCacheM
 using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 @implementation CSScanTarget {
+	// The command queue for the device in use.
 	id<MTLCommandQueue> _commandQueue;
 
-	id<MTLFunction> _vertexShader;
-	id<MTLFunction> _fragmentShader;
-
-	id<MTLRenderPipelineState> _composePipeline;
-	id<MTLRenderPipelineState> _outputPipeline;
-	id<MTLRenderPipelineState> _copyPipeline;
-	id<MTLRenderPipelineState> _clearPipeline;
+	// Pipelines.
+	id<MTLRenderPipelineState> _composePipeline;	// For rendering to the composition texture.
+	id<MTLRenderPipelineState> _outputPipeline;		// For drawing to the frame buffer.
+	id<MTLRenderPipelineState> _copyPipeline;		// For copying the frame buffer to the visible surface.
+	id<MTLRenderPipelineState> _clearPipeline;		// For applying additional inter-frame clearing (cf. the stencil).
 
 	// Buffers.
-	id<MTLBuffer> _uniformsBuffer;
+	id<MTLBuffer> _uniformsBuffer;	// A static buffer, containing a copy of the Uniforms struct.
+	id<MTLBuffer> _scansBuffer;		// A dynamic buffer, into which the CPU writes Scans for later display.
+	id<MTLBuffer> _linesBuffer;		// A dynamic buffer, into which the CPU writes Lines for later display.
 
-	id<MTLBuffer> _scansBuffer;
-	id<MTLBuffer> _linesBuffer;
-	id<MTLBuffer> _writeAreaBuffer;
-
-	// Textures.
+	// Textures: the write area.
+	//
+	// The write area receives fragments of output from the emulated machine.
+	// So it is written by the CPU and read by the GPU.
 	id<MTLTexture> _writeAreaTexture;
-	size_t _bytesPerInputPixel;
-	size_t _totalTextureBytes;
+	id<MTLBuffer> _writeAreaBuffer;		// The storage underlying the write-area texture.
+	size_t _bytesPerInputPixel;			// Determines per-pixel sizing within the write-area texture.
+	size_t _totalTextureBytes;			// Holds the total size of the write-area texture.
 
+	// Textures: the frame buffer.
+	//
+	// When inter-frame blending is in use, the frame buffer contains the most recent output.
+	// Metal isn't really set up for single-buffered output, so this acts as if it were that
+	// single buffer. This texture is complete 2d data, copied directly to the display.
 	id<MTLTexture> _frameBuffer;
-	MTLRenderPassDescriptor *_frameBufferRenderPass;
+	MTLRenderPassDescriptor *_frameBufferRenderPass;	// The render pass for _drawing to_ the frame buffer.
 
-	id<MTLTexture> _compositionTexture;
-	MTLRenderPassDescriptor *_compositionRenderPass;
-
-	// The stencil buffer and the two ways it's used.
+	// Textures: the stencil.
+	//
+	// Scan targets recceive scans, not full frames. Those scans may not cover the entire display,
+	// either because unlit areas have been omitted or because a sync discrepancy means that the full
+	// potential vertical or horizontal width of the display isn't used momentarily.
+	//
+	// In order to manage inter-frame blending correctly in those cases, a stencil is attached to the
+	// frame buffer so that a clearing step can darken any pixels that weren't naturally painted during
+	// any frame.
 	id<MTLTexture> _frameBufferStencil;
 	id<MTLDepthStencilState> _drawStencilState;		// Always draws, sets stencil to 1.
 	id<MTLDepthStencilState> _clearStencilState;	// Draws only where stencil is 0, clears all to 0.
 
-	// The composition pipeline, and whether it's in use.
-	BOOL _isUsingCompositionPipeline;
+	// Textures: the composition texture.
+	//
+	// If additional temporal processing is required (i.e. for S-Video and colour composite output),
+	// fragments from the write-area texture are assembled into the composition texture, where they
+	// properly adjoin their neighbours and everything is converted to a common clock.
+	id<MTLTexture> _compositionTexture;
+	MTLRenderPassDescriptor *_compositionRenderPass;	// The render pass for _drawing to_ the composition buffer.
+	BOOL _isUsingCompositionPipeline;					// Whether the composition pipeline is in use.
 
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
