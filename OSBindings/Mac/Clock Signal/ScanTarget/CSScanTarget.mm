@@ -10,6 +10,7 @@
 
 #import <Metal/Metal.h>
 
+#include <algorithm>
 #include <atomic>
 
 #include "BufferingScanTarget.hpp"
@@ -111,6 +112,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	MTLRenderPassDescriptor *_compositionRenderPass;	// The render pass for _drawing to_ the composition buffer.
 	BOOL _isUsingCompositionPipeline;					// Whether the composition pipeline is in use.
 
+	// Textures: additional storage used when processing S-Video and composite colour input.
+	id<MTLTexture> _finalisedLineTexture;
+	MTLRenderPassDescriptor *_finalisedLineRenderPass;
+	id<MTLTexture> _separatedLumaTexture;
+	MTLRenderPassDescriptor *_separatedLumaRenderPass;
+
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
 	BufferingScanTarget::LineMetadata _lineMetadataBuffer[NumBufferedLines];
@@ -200,12 +207,16 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// TODO: consider multisampling here? But it seems like you'd need another level of indirection
 	// in order to maintain an ongoing buffer that supersamples only at the end.
 
+	// TODO: Do I need to multiply by contents scale here?
+	const NSUInteger frameBufferWidth = NSUInteger(size.width * view.layer.contentsScale);
+	const NSUInteger frameBufferHeight = NSUInteger(size.height * view.layer.contentsScale);
+
 	@synchronized(self) {
 		// Generate a framebuffer and a stencil.
 		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
 			texture2DDescriptorWithPixelFormat:view.colorPixelFormat
-			width:NSUInteger(size.width * view.layer.contentsScale)
-			height:NSUInteger(size.height * view.layer.contentsScale)
+			width:frameBufferWidth
+			height:frameBufferHeight
 			mipmapped:NO];
 		textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
 		textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
@@ -213,8 +224,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		MTLTextureDescriptor *const stencilTextureDescriptor = [MTLTextureDescriptor
 			texture2DDescriptorWithPixelFormat:MTLPixelFormatStencil8
-			width:NSUInteger(size.width * view.layer.contentsScale)
-			height:NSUInteger(size.height * view.layer.contentsScale)
+			width:frameBufferWidth
+			height:frameBufferHeight
 			mipmapped:NO];
 		stencilTextureDescriptor.usage = MTLTextureUsageRenderTarget;
 		stencilTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
@@ -240,6 +251,46 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_drawStencilState = [view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 
 		// TODO: old framebuffer should be resized onto the new one.
+
+		[self updateSizeAndModalBuffers];
+	}
+}
+
+- (void)updateSizeAndModalBuffers {
+	// Buffers are required only for the composition pipeline; so if this isn't that then release anything
+	// currently being held and return.
+	if(!_isUsingCompositionPipeline) {
+		_finalisedLineTexture = nil;
+		_finalisedLineRenderPass = nil;
+		_separatedLumaTexture = nil;
+		_separatedLumaRenderPass = nil;
+		return;
+	}
+
+	const auto modals = _scanTarget.modals();
+	const NSUInteger frameBufferWidth = NSUInteger(_view.drawableSize.width * _view.layer.contentsScale);
+	const NSUInteger maximumDetail = NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
+
+	// maximumDetail = 0 => the modals haven't been set yet. So there's nothing to create buffers for.
+	if(!maximumDetail) {
+		return;
+	}
+
+	// Build a descriptor for any intermediate line texture.
+	MTLTextureDescriptor *const lineTextureDescriptor = [MTLTextureDescriptor
+		texture2DDescriptorWithPixelFormat:_view.colorPixelFormat
+		width:std::min(frameBufferWidth, maximumDetail)
+		height:NumBufferedLines
+		mipmapped:NO];
+	lineTextureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+	lineTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
+
+	// The finalised texture will definitely exist given that this is the composition pipeline.
+	_finalisedLineTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
+
+	// A luma separation texture will exist only for composite colour.
+	if(modals.display_type == Outputs::Display::DisplayType::CompositeColour) {
+		_separatedLumaTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
 	}
 }
 
@@ -452,6 +503,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Finish.
 	_outputPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+
+	// Update intermediate storage that is a function of both modals and current window size.
+	[self updateSizeAndModalBuffers];
 }
 
 - (void)outputFrom:(size_t)start to:(size_t)end commandBuffer:(id<MTLCommandBuffer>)commandBuffer {
