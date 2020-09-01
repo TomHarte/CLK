@@ -202,9 +202,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Textures: additional storage used when processing S-Video and composite colour input.
 	id<MTLTexture> _finalisedLineTexture;
-	MTLRenderPassDescriptor *_finalisedLineRenderPass;
+	id<MTLComputePipelineState> _finalisedLineState;
 	id<MTLTexture> _separatedLumaTexture;
-	MTLRenderPassDescriptor *_separatedLumaRenderPass;
+	id<MTLComputePipelineState> _separatedLumaState;
+	NSUInteger _lineBufferPixelsPerLine;
 
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
@@ -341,16 +342,15 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		width:2048		// This 'should do'.
 		height:NumBufferedLines
 		mipmapped:NO];
-	lineTextureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
 	lineTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
 
 	if(_pipeline == Pipeline::DirectToDisplay) {
 		// Buffers are not required when outputting direct to display; so if this isn't that then release anything
 		// currently being held and return.
 		_finalisedLineTexture = nil;
-		_finalisedLineRenderPass = nil;
+		_finalisedLineState = nil;
 		_separatedLumaTexture = nil;
-		_separatedLumaRenderPass = nil;
+		_separatedLumaState = nil;
 		_compositionTexture = nil;
 		_compositionRenderPass = nil;
 		return;
@@ -358,12 +358,18 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Create a composition texture if one does not yet exist.
 	if(!_compositionTexture) {
+		lineTextureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
 		_compositionTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
 	}
+
+	// Grab the shader library.
+	id<MTLLibrary> library = [_view.device newDefaultLibrary];
+	lineTextureDescriptor.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
 
 	// The finalised texture will definitely exist.
 	if(!_finalisedLineTexture) {
 		_finalisedLineTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
+		_finalisedLineState = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:@"copyKernel"] error:nil];
 	}
 
 	// A luma separation texture will exist only for composite colour.
@@ -542,7 +548,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Create suitable FIR filters.
 		auto *const firCoefficients = uniforms()->firCoefficients;
-		const float cyclesPerLine = float(modals.cycles_per_line) * uniforms()->cyclesMultiplier;
+		_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
 		const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
 		if(isSVideoOutput) {
@@ -553,7 +559,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			firCoefficients[7].x = 1.0f;
 		} else {
 			// In composite, filter luminance gently.
-			SignalProcessing::FIRFilter luminancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * 0.5f);
+			SignalProcessing::FIRFilter luminancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.5f);
 			const auto calculatedCoefficients = luminancefilter.get_coefficients();
 			for(size_t c = 0; c < 8; ++c) {
 				firCoefficients[c].x = calculatedCoefficients[c];
@@ -561,13 +567,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		}
 
 		// Whether S-Video or composite, apply the same relatively strong filter to colour channels.
-		SignalProcessing::FIRFilter chrominancefilter(15, cyclesPerLine, 0.0f, colourCyclesPerLine * (isSVideoOutput ? 1.0f : 0.25f));
+		SignalProcessing::FIRFilter chrominancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * (isSVideoOutput ? 1.0f : 0.25f));
 		const auto calculatedCoefficients = chrominancefilter.get_coefficients();
 		for(size_t c = 0; c < 8; ++c) {
 			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 4.0f);
 		}
 
-		uniforms()->radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / cyclesPerLine;
+		uniforms()->radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / float(_lineBufferPixelsPerLine);
 	}
 
 	// Build the output pipeline.
@@ -602,7 +608,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder setRenderPipelineState:_outputPipeline];
 
 	if(_pipeline != Pipeline::DirectToDisplay) {
-		[encoder setFragmentTexture:_compositionTexture atIndex:0];
+		[encoder setFragmentTexture:_finalisedLineTexture atIndex:0];
 		[encoder setVertexBuffer:_linesBuffer offset:0 atIndex:0];
 	} else {
 		[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
@@ -643,6 +649,38 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder endEncoding];
 }
 
+- (void)composeOutputArea:(const BufferingScanTarget::OutputArea &)outputArea commandBuffer:(id<MTLCommandBuffer>)commandBuffer {
+	// Output all scans to the composition buffer.
+	const id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_compositionRenderPass];
+	[encoder setRenderPipelineState:_composePipeline];
+
+	[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
+	[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
+	[encoder setVertexTexture:_compositionTexture atIndex:0];
+
+	[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
+	[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
+
+#define OutputScans(start, size)	[encoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount:2 instanceCount:size baseInstance:start]
+	RangePerform(outputArea.start.scan, outputArea.end.scan, NumBufferedScans, OutputScans);
+#undef OutputScans
+	[encoder endEncoding];
+}
+
+- (void)dispatchComputeCommandEncoder:(id<MTLComputeCommandEncoder>)encoder pipelineState:(id<MTLComputePipelineState>)pipelineState width:(NSUInteger)width height:(NSUInteger)height {
+	// This follows the recommendations at https://developer.apple.com/documentation/metal/calculating_threadgroup_and_grid_sizes ;
+	// I currently have no independent opinion whatsoever.
+	const MTLSize threadsPerThreadgroup = MTLSizeMake(
+		pipelineState.threadExecutionWidth,
+		pipelineState.maxTotalThreadsPerThreadgroup / pipelineState.threadExecutionWidth,
+		1
+	);
+	const MTLSize threadsPerGrid = MTLSizeMake(width, height, 1);
+
+	[encoder setComputePipelineState:pipelineState];
+	[encoder dispatchThreads:threadsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
+}
+
 - (void)updateFrameBuffer {
 	// TODO: rethink BufferingScanTarget::perform. Is it now really just for guarding the modals?
 	_scanTarget.perform([=] {
@@ -681,48 +719,51 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Hence every pixel is touched every frame, regardless of the machine's output.
 		//
 
-		if(_pipeline != Pipeline::DirectToDisplay) {
-			// Output all scans to the composition buffer.
-			id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_compositionRenderPass];
-			[encoder setRenderPipelineState:_composePipeline];
-
-			[encoder setVertexBuffer:_scansBuffer offset:0 atIndex:0];
-			[encoder setVertexBuffer:_uniformsBuffer offset:0 atIndex:1];
-			[encoder setVertexTexture:_compositionTexture atIndex:0];
-
-			[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
-			[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
-
-#define OutputScans(start, size)	[encoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount:2 instanceCount:size baseInstance:start]
-			RangePerform(outputArea.start.scan, outputArea.end.scan, NumBufferedScans, OutputScans);
-#undef OutputScans
-			[encoder endEncoding];
-
-			// Output lines, broken up by frame.
-			size_t startLine = outputArea.start.line;
-			size_t line = outputArea.start.line;
-			while(line != outputArea.end.line) {
-				if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
-					[self outputFrom:startLine to:line commandBuffer:commandBuffer];
-					[self outputFrameCleanerToCommandBuffer:commandBuffer];
-					startLine = line;
+		switch(_pipeline) {
+			case Pipeline::DirectToDisplay: {
+				// Output scans directly, broken up by frame.
+				size_t line = outputArea.start.line;
+				size_t scan = outputArea.start.scan;
+				while(line != outputArea.end.line) {
+					if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
+						[self outputFrom:scan to:_lineMetadataBuffer[line].first_scan commandBuffer:commandBuffer];
+						[self outputFrameCleanerToCommandBuffer:commandBuffer];
+						scan = _lineMetadataBuffer[line].first_scan;
+					}
+					line = (line + 1) % NumBufferedLines;
 				}
-				line = (line + 1) % NumBufferedLines;
-			}
-			[self outputFrom:startLine to:outputArea.end.line commandBuffer:commandBuffer];
-		} else {
-			// Output scans directly, broken up by frame.
-			size_t line = outputArea.start.line;
-			size_t scan = outputArea.start.scan;
-			while(line != outputArea.end.line) {
-				if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
-					[self outputFrom:scan to:_lineMetadataBuffer[line].first_scan commandBuffer:commandBuffer];
-					[self outputFrameCleanerToCommandBuffer:commandBuffer];
-					scan = _lineMetadataBuffer[line].first_scan;
+				[self outputFrom:scan to:outputArea.end.scan commandBuffer:commandBuffer];
+			} break;
+
+			default:	// TODO: add composite colour pipeline, and eliminate default.
+			case Pipeline::SVideo: {
+				// Build the composition buffer.
+				[self composeOutputArea:outputArea commandBuffer:commandBuffer];
+
+				// Filter to the finalised line texture.
+				id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
+				[computeEncoder setTexture:_compositionTexture atIndex:0];
+				[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
+				[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
+
+				// TODO: limit processed area to those lines that are actually in use.
+				[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines];
+
+				[computeEncoder endEncoding];
+
+				// Output lines, broken up by frame.
+				size_t startLine = outputArea.start.line;
+				size_t line = outputArea.start.line;
+				while(line != outputArea.end.line) {
+					if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
+						[self outputFrom:startLine to:line commandBuffer:commandBuffer];
+						[self outputFrameCleanerToCommandBuffer:commandBuffer];
+						startLine = line;
+					}
+					line = (line + 1) % NumBufferedLines;
 				}
-				line = (line + 1) % NumBufferedLines;
-			}
-			[self outputFrom:scan to:outputArea.end.scan commandBuffer:commandBuffer];
+				[self outputFrom:startLine to:outputArea.end.line commandBuffer:commandBuffer];
+			} break;
 		}
 
 		// Add a callback to update the scan target buffer and commit the drawing.

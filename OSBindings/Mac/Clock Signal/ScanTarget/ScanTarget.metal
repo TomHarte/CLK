@@ -384,3 +384,13 @@ fragment float4 filterSVideoFragment(SourceInterpolator vert [[stage_in]], textu
 fragment float4 filterCompositeFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
 	return applyFilter<true>(vert, texture, uniforms);
 }
+
+// MARK: - Kernel functions
+
+// TEST FUNCTION. Just copies from input to output.
+kernel void copyKernel(	texture2d<float, access::read> inTexture [[texture(0)]],
+						texture2d<float, access::write> outTexture [[texture(1)]],
+						uint2 gid [[thread_position_in_grid]],
+						constant Uniforms &uniforms [[buffer(0)]]) {
+	outTexture.write(inTexture.read(gid), gid);
+}
