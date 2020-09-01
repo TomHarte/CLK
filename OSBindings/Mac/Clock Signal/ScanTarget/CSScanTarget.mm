@@ -16,6 +16,78 @@
 #include "BufferingScanTarget.hpp"
 #include "FIRFilter.hpp"
 
+/*
+
+	RGB and composite monochrome
+	----------------------------
+
+	Source data is converted to 32bpp RGB or to composite directly from its input, at output resolution.
+	Gamma correction is applied unless the inputs are 1bpp (e.g. Macintosh-style black/white, TTL-style RGB).
+
+	TODO: filtering when the output size is 'small'.
+
+	S-Video
+	-------
+
+	Source data is pasted together with a common clock in the composition buffer. Colour phase is baked in
+	at this point. Format within the composition buffer is:
+
+		.r = luminance
+		.g = 0.5 + 0.5 * chrominance * cos(phase)
+		.b = 0.5 + 0.5 * chrominance * sin(phase)
+
+	Contents of the composition buffer are then drawn into the finalised line texture; at this point a suitable
+	low-filter is applied to the two chrominance channels, colours are converted to RGB and gamma corrected.
+
+	Contents from the finalised line texture are then painted to the display.
+
+	Composite colour
+	----------------
+
+	Source data is pasted together with a common clock in the composition buffer. Colour phase and amplitude are
+	recorded at this point. Format within the composition buffer is:
+
+		.r = composite value
+		.g = phase
+		.b = amplitude
+
+	Contents of the composition buffer are transferred to the separated-luma buffer, subject to a low-paass filter
+	that has sought to separate luminance and chrominance, and with phase and amplitude now baked into the latter:
+
+		.r = luminance
+		.g = 0.5 + 0.5 * chrominance * cos(phase)
+		.b = 0.5 + 0.5 * chrominance * sin(phase)
+
+	The process now continues as per the corresponding S-Video steps.
+
+	NOTES
+	-----
+
+		1)	for many of the input pixel formats it would be possible to do the trigonometric side of things at
+			arbitrary precision. Since it would always be necessary to support fixed-precision processing because
+			of the directly-sampled input formats, I've used fixed throughout to reduce the number of permutations
+			and combinations of code I need to support. The precision is always selected to be at least four times
+			the colour clock.
+
+		2)	I experimented with skipping the separated-luma buffer for composite colour based on the observation that
+			just multiplying the raw signal by sin and cos and then filtering well below the colour subcarrier frequency
+			should be sufficient. It wasn't in practice because the bits of luminance that don't quite separate are then
+			of such massive amplitude that you get huge bands of bright colour in place of the usual chroma dots.
+
+		3)	I also initially didn't want to have a finalied-line texture, but processing costs changed my mind on that.
+			If you accept that output will be fixed precision, anyway. In that case, processing for a typical NTSC frame
+			in its original resolution means applying filtering (i.e. at least 15 samples per pixel) likely between
+			218,400 and 273,000 times per output frame, then upscaling from there at 1 sample per pixel. Count the second
+			sample twice for the original store and you're talking between 16*218,400 = 3,494,400 to 16*273,000 = 4,368,000
+			total pixel accesses. Though that's not a perfect way to measure cost, roll with it.
+
+			On my 4k monitor, doing it at actual output resolution would instead cost 3840*2160*15 = 124,416,000 total
+			accesses. Which doesn't necessarily mean "more than 28 times as much", but does mean "a lot more".
+
+			(going direct-to-display for composite monochrome means evaluating sin/cos a lot more often than it might
+			with more buffering in between, but that doesn't provisionally seem to be as much of a bottleneck)
+*/
+
 namespace {
 
 struct Uniforms {
@@ -110,7 +182,23 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// properly adjoin their neighbours and everything is converted to a common clock.
 	id<MTLTexture> _compositionTexture;
 	MTLRenderPassDescriptor *_compositionRenderPass;	// The render pass for _drawing to_ the composition buffer.
-	BOOL _isUsingCompositionPipeline;					// Whether the composition pipeline is in use.
+
+	enum class Pipeline {
+		/// Scans are painted directly to the frame buffer.
+		DirectToDisplay,
+		/// Scans are painted to the composition buffer, which is processed to the finalised line buffer,
+		/// from which lines are painted to the frame buffer.
+		SVideo,
+		/// Scans are painted to the composition buffer, which is processed to the separated luma buffer and then the finalised line buffer,
+		/// from which lines are painted to the frame buffer.
+		CompositeColour
+
+		// TODO: decide what to do for downard-scaled direct-to-display. Obvious options are to include lowpass
+		// filtering into the scan outputter and contine hoping that the vertical takes care of itself, or maybe
+		// to stick with DirectToDisplay but with a minimum size for the frame buffer and apply filtering from
+		// there to the screen.
+	};
+	Pipeline _pipeline;
 
 	// Textures: additional storage used when processing S-Video and composite colour input.
 	id<MTLTexture> _finalisedLineTexture;
@@ -177,16 +265,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		depthStencilDescriptor.frontFaceStencil.stencilFailureOperation = MTLStencilOperationReplace;
 		_clearStencilState = [view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 
-		// Create a composition texture up front. (TODO: is it worth switching to an 8bpp texture in composite mode?)
-		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
-			texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
-			width:2048		// This 'should do'.
-			height:NumBufferedLines	// TODO: I want to turn this down _considerably_. A frame and a bit should be sufficient, though probably I'd also want to adjust the buffering scan target to keep most recent data?
-			mipmapped:NO];
-		textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
-		textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
-		_compositionTexture = [view.device newTextureWithDescriptor:textureDescriptor];
-
 		// Ensure the is-drawing flag is initially clear.
 		_isDrawing.clear();
 	}
@@ -204,93 +282,97 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
 	[self setAspectRatio];
 
-	// TODO: consider multisampling here? But it seems like you'd need another level of indirection
-	// in order to maintain an ongoing buffer that supersamples only at the end.
-
-	// TODO: Do I need to multiply by contents scale here?
-	const NSUInteger frameBufferWidth = NSUInteger(size.width * view.layer.contentsScale);
-	const NSUInteger frameBufferHeight = NSUInteger(size.height * view.layer.contentsScale);
-
 	@synchronized(self) {
-		// Generate a framebuffer and a stencil.
-		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
-			texture2DDescriptorWithPixelFormat:view.colorPixelFormat
-			width:frameBufferWidth
-			height:frameBufferHeight
-			mipmapped:NO];
-		textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
-		textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
-		_frameBuffer = [view.device newTextureWithDescriptor:textureDescriptor];
-
-		MTLTextureDescriptor *const stencilTextureDescriptor = [MTLTextureDescriptor
-			texture2DDescriptorWithPixelFormat:MTLPixelFormatStencil8
-			width:frameBufferWidth
-			height:frameBufferHeight
-			mipmapped:NO];
-		stencilTextureDescriptor.usage = MTLTextureUsageRenderTarget;
-		stencilTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
-		_frameBufferStencil = [view.device newTextureWithDescriptor:stencilTextureDescriptor];
-
-		// Generate a render pass with that framebuffer and stencil.
-		_frameBufferRenderPass = [[MTLRenderPassDescriptor alloc] init];
-		_frameBufferRenderPass.colorAttachments[0].texture = _frameBuffer;
-		_frameBufferRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
-		_frameBufferRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
-
-		_frameBufferRenderPass.stencilAttachment.clearStencil = 0;
-		_frameBufferRenderPass.stencilAttachment.texture = _frameBufferStencil;
-		_frameBufferRenderPass.stencilAttachment.loadAction = MTLLoadActionLoad;
-		_frameBufferRenderPass.stencilAttachment.storeAction = MTLStoreActionStore;
-
-		// Establish intended stencil useage; it's only to track which pixels haven't been painted
-		// at all at the end of every frame. So: always paint, and replace the stored stencil value
-		// (which is seeded as 0) with the nominated one (a 1).
-		MTLDepthStencilDescriptor *depthStencilDescriptor = [[MTLDepthStencilDescriptor alloc] init];
-		depthStencilDescriptor.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
-		depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
-		_drawStencilState = [view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
-
-		// TODO: old framebuffer should be resized onto the new one.
-
-		[self updateSizeAndModalBuffers];
+		[self updateSizeBuffers];
 	}
 }
 
-- (void)updateSizeAndModalBuffers {
-	// Buffers are required only for the composition pipeline; so if this isn't that then release anything
-	// currently being held and return.
-	if(!_isUsingCompositionPipeline) {
-		_finalisedLineTexture = nil;
-		_finalisedLineRenderPass = nil;
-		_separatedLumaTexture = nil;
-		_separatedLumaRenderPass = nil;
-		return;
-	}
-
-	const auto modals = _scanTarget.modals();
+- (void)updateSizeBuffers {
+	// TODO: consider multisampling here? But it seems like you'd need another level of indirection
+	// in order to maintain an ongoing buffer that supersamples only at the end.
 	const NSUInteger frameBufferWidth = NSUInteger(_view.drawableSize.width * _view.layer.contentsScale);
-	const NSUInteger maximumDetail = NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
+	const NSUInteger frameBufferHeight = NSUInteger(_view.drawableSize.height * _view.layer.contentsScale);
 
-	// maximumDetail = 0 => the modals haven't been set yet. So there's nothing to create buffers for.
-	if(!maximumDetail) {
-		return;
-	}
+	// Generate a framebuffer and a stencil.
+	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
+		texture2DDescriptorWithPixelFormat:_view.colorPixelFormat
+		width:frameBufferWidth
+		height:frameBufferHeight
+		mipmapped:NO];
+	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+	textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
+	_frameBuffer = [_view.device newTextureWithDescriptor:textureDescriptor];
 
+	MTLTextureDescriptor *const stencilTextureDescriptor = [MTLTextureDescriptor
+		texture2DDescriptorWithPixelFormat:MTLPixelFormatStencil8
+		width:frameBufferWidth
+		height:frameBufferHeight
+		mipmapped:NO];
+	stencilTextureDescriptor.usage = MTLTextureUsageRenderTarget;
+	stencilTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
+	_frameBufferStencil = [_view.device newTextureWithDescriptor:stencilTextureDescriptor];
+
+	// Generate a render pass with that framebuffer and stencil.
+	_frameBufferRenderPass = [[MTLRenderPassDescriptor alloc] init];
+	_frameBufferRenderPass.colorAttachments[0].texture = _frameBuffer;
+	_frameBufferRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
+	_frameBufferRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+	_frameBufferRenderPass.stencilAttachment.clearStencil = 0;
+	_frameBufferRenderPass.stencilAttachment.texture = _frameBufferStencil;
+	_frameBufferRenderPass.stencilAttachment.loadAction = MTLLoadActionLoad;
+	_frameBufferRenderPass.stencilAttachment.storeAction = MTLStoreActionStore;
+
+	// Establish intended stencil useage; it's only to track which pixels haven't been painted
+	// at all at the end of every frame. So: always paint, and replace the stored stencil value
+	// (which is seeded as 0) with the nominated one (a 1).
+	MTLDepthStencilDescriptor *depthStencilDescriptor = [[MTLDepthStencilDescriptor alloc] init];
+	depthStencilDescriptor.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
+	depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
+	_drawStencilState = [_view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+
+	// TODO: old framebuffer should be resized onto the new one.
+}
+
+- (void)updateModalBuffers {
 	// Build a descriptor for any intermediate line texture.
 	MTLTextureDescriptor *const lineTextureDescriptor = [MTLTextureDescriptor
-		texture2DDescriptorWithPixelFormat:_view.colorPixelFormat
-		width:std::min(frameBufferWidth, maximumDetail)
+		texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+		width:2048		// This 'should do'.
 		height:NumBufferedLines
 		mipmapped:NO];
 	lineTextureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
 	lineTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
 
-	// The finalised texture will definitely exist given that this is the composition pipeline.
-	_finalisedLineTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
+	if(_pipeline == Pipeline::DirectToDisplay) {
+		// Buffers are not required when outputting direct to display; so if this isn't that then release anything
+		// currently being held and return.
+		_finalisedLineTexture = nil;
+		_finalisedLineRenderPass = nil;
+		_separatedLumaTexture = nil;
+		_separatedLumaRenderPass = nil;
+		_compositionTexture = nil;
+		_compositionRenderPass = nil;
+		return;
+	}
+
+	// Create a composition texture if one does not yet exist.
+	if(!_compositionTexture) {
+		_compositionTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
+	}
+
+	// The finalised texture will definitely exist.
+	if(!_finalisedLineTexture) {
+		_finalisedLineTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
+	}
 
 	// A luma separation texture will exist only for composite colour.
-	if(modals.display_type == Outputs::Display::DisplayType::CompositeColour) {
-		_separatedLumaTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
+	if(_pipeline == Pipeline::CompositeColour) {
+		if(!_separatedLumaTexture) {
+			_separatedLumaTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
+		}
+	} else {
+		_separatedLumaTexture = nil;
 	}
 }
 
@@ -386,12 +468,23 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	//
 	//	(i) input and output are both RGB; or
 	//	(i) output is composite monochrome.
-	_isUsingCompositionPipeline =
+	const bool isComposition =
 		(
 			(natural_display_type_for_data_type(modals.input_data_type) != Outputs::Display::DisplayType::RGB) ||
 			(modals.display_type != Outputs::Display::DisplayType::RGB)
 		) && modals.display_type != Outputs::Display::DisplayType::CompositeMonochrome;
+	const bool isSVideoOutput = modals.display_type == Outputs::Display::DisplayType::SVideo;
 
+	if(!isComposition) {
+		_pipeline = Pipeline::DirectToDisplay;
+	} else {
+		_pipeline = isSVideoOutput ? Pipeline::SVideo : Pipeline::CompositeColour;
+	}
+
+	// Update intermediate storage.
+	[self updateModalBuffers];
+
+	// TODO: factor in gamma, which may or may not be a factor (it isn't for 1-bit formats).
 	struct FragmentSamplerDictionary {
 		/// Fragment shader that outputs to the composition buffer for composite processing.
 		NSString *const compositionComposite;
@@ -403,9 +496,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		/// Fragment shader that outputs directly as RGB.
 		NSString *const directRGB;
 	};
-
-	// TODO: create fragment shaders to apply composite multiplication.
-	// TODO: incorporate gamma correction into all direct outputters.
 	const FragmentSamplerDictionary samplerDictionary[8] = {
 		// Luminance1
 		{@"sampleLuminance1", nullptr, @"sampleLuminance1", nullptr},
@@ -427,19 +517,17 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		if(samplerDictionary[c].directRGB)				assert([library newFunctionWithName:samplerDictionary[c].directRGB]);
 	}
 #endif
-	// Pick a suitable cycle multiplier.
+
 	uniforms()->cyclesMultiplier = 1.0f;
-	if(_isUsingCompositionPipeline) {
+	if(_pipeline != Pipeline::DirectToDisplay) {
+		// Pick a suitable cycle multiplier.
 		const float minimumSize = 4.0f * float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 		while(uniforms()->cyclesMultiplier * modals.cycles_per_line < minimumSize) {
 			uniforms()->cyclesMultiplier += 1.0f;
 		}
-	}
 
-	// Build the composition pipeline if one is in use.
-	const bool isSVideoOutput = modals.display_type == Outputs::Display::DisplayType::SVideo;
-	if(_isUsingCompositionPipeline) {
-		pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
+		// Create the composition render pass.
+ 		pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
 		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToComposition"];
 		pipelineDescriptor.fragmentFunction =
 			[library newFunctionWithName:isSVideoOutput ? samplerDictionary[int(modals.input_data_type)].compositionSVideo : samplerDictionary[int(modals.input_data_type)].compositionComposite];
@@ -452,6 +540,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_compositionRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
 		_compositionRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.5, 0.5, 1.0);
 
+		// Create suitable FIR filters.
 		auto *const firCoefficients = uniforms()->firCoefficients;
 		const float cyclesPerLine = float(modals.cycles_per_line) * uniforms()->cyclesMultiplier;
 		const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
@@ -483,9 +572,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Build the output pipeline.
 	pipelineDescriptor.colorAttachments[0].pixelFormat = _view.colorPixelFormat;
-	pipelineDescriptor.vertexFunction = [library newFunctionWithName:_isUsingCompositionPipeline ? @"lineToDisplay" : @"scanToDisplay"];
+	pipelineDescriptor.vertexFunction = [library newFunctionWithName:_pipeline == Pipeline::DirectToDisplay ? @"scanToDisplay" : @"lineToDisplay"];
 
-	if(_isUsingCompositionPipeline) {
+	if(_pipeline != Pipeline::DirectToDisplay) {
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:isSVideoOutput ? @"filterSVideoFragment" : @"filterCompositeFragment"];
 	} else {
 		const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
@@ -503,9 +592,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Finish.
 	_outputPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
-
-	// Update intermediate storage that is a function of both modals and current window size.
-	[self updateSizeAndModalBuffers];
 }
 
 - (void)outputFrom:(size_t)start to:(size_t)end commandBuffer:(id<MTLCommandBuffer>)commandBuffer {
@@ -515,7 +601,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// Final output. Could be scans or lines.
 	[encoder setRenderPipelineState:_outputPipeline];
 
-	if(_isUsingCompositionPipeline) {
+	if(_pipeline != Pipeline::DirectToDisplay) {
 		[encoder setFragmentTexture:_compositionTexture atIndex:0];
 		[encoder setVertexBuffer:_linesBuffer offset:0 atIndex:0];
 	} else {
@@ -534,7 +620,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 #endif
 
 #define OutputStrips(start, size)	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:size baseInstance:start]
-	RangePerform(start, end, (_isUsingCompositionPipeline ? NumBufferedLines : NumBufferedScans), OutputStrips);
+	RangePerform(start, end, (_pipeline != Pipeline::DirectToDisplay ? NumBufferedLines : NumBufferedScans), OutputStrips);
 #undef OutputStrips
 
 	// Complete encoding.
@@ -595,7 +681,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Hence every pixel is touched every frame, regardless of the machine's output.
 		//
 
-		if(_isUsingCompositionPipeline) {
+		if(_pipeline != Pipeline::DirectToDisplay) {
 			// Output all scans to the composition buffer.
 			id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_compositionRenderPass];
 			[encoder setRenderPipelineState:_composePipeline];
