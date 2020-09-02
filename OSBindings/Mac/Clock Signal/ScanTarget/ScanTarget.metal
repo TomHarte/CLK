@@ -48,6 +48,10 @@ constexpr sampler standardSampler(	coord::pixel,
 									address::clamp_to_edge,	// Although arbitrary, stick with this address mode for compatibility all the way to MTLFeatureSet_iOS_GPUFamily1_v1.
 									filter::nearest);
 
+constexpr sampler linearSampler(	coord::pixel,
+									address::clamp_to_edge,	// Although arbitrary, stick with this address mode for compatibility all the way to MTLFeatureSet_iOS_GPUFamily1_v1.
+									filter::linear);
+
 }
 
 // MARK: - Structs used for receiving data from the emulation.
@@ -100,6 +104,8 @@ float2 textureLocation(constant Scan *scan, float offset, constant Uniforms &) {
 		mix(scan->endPoints[0].dataOffset, scan->endPoints[1].dataOffset, offset),
 		scan->dataY);
 }
+
+// TODO: add 0.5f to the y coordinates above to ensure the middle of each line is hit?
 
 template <typename Input> SourceInterpolator toDisplay(
 	constant Uniforms &uniforms [[buffer(1)]],
@@ -385,12 +391,43 @@ fragment float4 filterCompositeFragment(SourceInterpolator vert [[stage_in]], te
 	return applyFilter<true>(vert, texture, uniforms);
 }
 
+fragment float4 interpolateFragment(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+	return texture.sample(linearSampler, vert.textureCoordinates);
+}
+
+
 // MARK: - Kernel functions
 
 // TEST FUNCTION. Just copies from input to output.
-kernel void copyKernel(	texture2d<float, access::read> inTexture [[texture(0)]],
-						texture2d<float, access::write> outTexture [[texture(1)]],
-						uint2 gid [[thread_position_in_grid]],
-						constant Uniforms &uniforms [[buffer(0)]]) {
-	outTexture.write(inTexture.read(gid), gid);
+kernel void filterChromaKernel(	texture2d<float, access::read> inTexture [[texture(0)]],
+								texture2d<float, access::write> outTexture [[texture(1)]],
+								uint2 gid [[thread_position_in_grid]],
+								constant Uniforms &uniforms [[buffer(0)]]) {
+	constexpr float4 moveToZero = float4(0.0f, 0.5f, 0.5f, 0.0f);
+	const float4 rawSamples[] = {
+		inTexture.read(gid) - moveToZero,
+		inTexture.read(gid + uint2(1, 0)) - moveToZero,
+		inTexture.read(gid + uint2(2, 0)) - moveToZero,
+		inTexture.read(gid + uint2(3, 0)) - moveToZero,
+		inTexture.read(gid + uint2(4, 0)) - moveToZero,
+		inTexture.read(gid + uint2(5, 0)) - moveToZero,
+		inTexture.read(gid + uint2(6, 0)) - moveToZero,
+		inTexture.read(gid + uint2(7, 0)) - moveToZero,
+		inTexture.read(gid + uint2(8, 0)) - moveToZero,
+		inTexture.read(gid + uint2(9, 0)) - moveToZero,
+		inTexture.read(gid + uint2(10, 0)) - moveToZero,
+		inTexture.read(gid + uint2(11, 0)) - moveToZero,
+		inTexture.read(gid + uint2(12, 0)) - moveToZero,
+		inTexture.read(gid + uint2(13, 0)) - moveToZero,
+		inTexture.read(gid + uint2(14, 0)) - moveToZero,
+	};
+
+#define Sample(x, y) uniforms.firCoefficients[y] * rawSamples[x].rgb
+	const float3 colour =
+		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
+		Sample(7, 7) +
+		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
+#undef Sample
+
+	outTexture.write(float4(uniforms.toRGB * colour, 1.0f), gid + uint2(7, 0));
 }

@@ -369,7 +369,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// The finalised texture will definitely exist.
 	if(!_finalisedLineTexture) {
 		_finalisedLineTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
-		_finalisedLineState = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:@"copyKernel"] error:nil];
+		_finalisedLineState = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:@"filterChromaKernel"] error:nil];
 	}
 
 	// A luma separation texture will exist only for composite colour.
@@ -581,7 +581,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	pipelineDescriptor.vertexFunction = [library newFunctionWithName:_pipeline == Pipeline::DirectToDisplay ? @"scanToDisplay" : @"lineToDisplay"];
 
 	if(_pipeline != Pipeline::DirectToDisplay) {
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:isSVideoOutput ? @"filterSVideoFragment" : @"filterCompositeFragment"];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"copyFragment"];
 	} else {
 		const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
 		pipelineDescriptor.fragmentFunction =
