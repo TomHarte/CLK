@@ -97,16 +97,14 @@ struct SourceInterpolator {
 float2 textureLocation(constant Line *line, float offset, constant Uniforms &uniforms) {
 	return float2(
 		uniforms.cycleMultiplier * mix(line->endPoints[0].cyclesSinceRetrace, line->endPoints[1].cyclesSinceRetrace, offset),
-		line->line);
+		line->line + 0.5f);
 }
 
 float2 textureLocation(constant Scan *scan, float offset, constant Uniforms &) {
 	return float2(
 		mix(scan->endPoints[0].dataOffset, scan->endPoints[1].dataOffset, offset),
-		scan->dataY);
+		scan->dataY + 0.5f);
 }
-
-// TODO: add 0.5f to the y coordinates above to ensure the middle of each line is hit?
 
 template <typename Input> SourceInterpolator toDisplay(
 	constant Uniforms &uniforms [[buffer(1)]],

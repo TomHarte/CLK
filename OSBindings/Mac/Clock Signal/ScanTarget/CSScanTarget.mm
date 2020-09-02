@@ -593,7 +593,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	pipelineDescriptor.vertexFunction = [library newFunctionWithName:_pipeline == Pipeline::DirectToDisplay ? @"scanToDisplay" : @"lineToDisplay"];
 
 	if(_pipeline != Pipeline::DirectToDisplay) {
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"copyFragment"];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateFragment"];
 	} else {
 		const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
 		pipelineDescriptor.fragmentFunction =
