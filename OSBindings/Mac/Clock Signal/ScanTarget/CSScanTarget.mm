@@ -296,15 +296,15 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[self setAspectRatio];
 
 	@synchronized(self) {
-		[self updateSizeBuffers];
+		[self updateSizeBuffersToSize:size];
 	}
 }
 
-- (void)updateSizeBuffers {
+- (void)updateSizeBuffersToSize:(CGSize)size {
 	// TODO: consider multisampling here? But it seems like you'd need another level of indirection
 	// in order to maintain an ongoing buffer that supersamples only at the end.
-	const NSUInteger frameBufferWidth = NSUInteger(_view.drawableSize.width * _view.layer.contentsScale);
-	const NSUInteger frameBufferHeight = NSUInteger(_view.drawableSize.height * _view.layer.contentsScale);
+	const NSUInteger frameBufferWidth = NSUInteger(size.width * _view.layer.contentsScale);
+	const NSUInteger frameBufferHeight = NSUInteger(size.height * _view.layer.contentsScale);
 
 	// Generate a framebuffer and a stencil.
 	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
