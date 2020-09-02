@@ -680,11 +680,16 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder endEncoding];
 }
 
-- (void)dispatchComputeCommandEncoder:(id<MTLComputeCommandEncoder>)encoder pipelineState:(id<MTLComputePipelineState>)pipelineState width:(NSUInteger)width height:(NSUInteger)height offset:(size_t)offset {
+- (id<MTLBuffer>)bufferForOffset:(size_t)offset {
 	// Store and apply the offset.
+	const auto buffer = _lineOffsetBuffers[_lineOffsetBuffer];
 	*(reinterpret_cast<int *>(_lineOffsetBuffers[_lineOffsetBuffer].contents)) = int(offset);
-	[encoder setBuffer:_lineOffsetBuffers[_lineOffsetBuffer] offset:0 atIndex:1];
 	_lineOffsetBuffer = (_lineOffsetBuffer + 1) % NumBufferedLines;
+	return buffer;
+}
+
+- (void)dispatchComputeCommandEncoder:(id<MTLComputeCommandEncoder>)encoder pipelineState:(id<MTLComputePipelineState>)pipelineState width:(NSUInteger)width height:(NSUInteger)height offsetBuffer:(id<MTLBuffer>)offsetBuffer {
+	[encoder setBuffer:offsetBuffer offset:0 atIndex:1];
 
 	// This follows the recommendations at https://developer.apple.com/documentation/metal/calculating_threadgroup_and_grid_sizes ;
 	// I currently have no independent opinion whatsoever.
@@ -769,44 +774,49 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 						if(outputArea.end.line > outputArea.start.line) {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offset:outputArea.start.line];
+							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:[self bufferForOffset:outputArea.start.line]];
 						} else {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offset:outputArea.start.line];
+							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:[self bufferForOffset:outputArea.start.line]];
 							if(outputArea.end.line) {
-								[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offset:0];
+								[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:[self bufferForOffset:0]];
 							}
 						}
 
 						[computeEncoder endEncoding];
 					} else {
-						// Separate luma and then filter.
+						// Separate luminance.
 						id<MTLComputeCommandEncoder> separateComputeEncoder = [commandBuffer computeCommandEncoder];
 						[separateComputeEncoder setTexture:_compositionTexture atIndex:0];
 						[separateComputeEncoder setTexture:_separatedLumaTexture atIndex:1];
 						[separateComputeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
+						__unsafe_unretained id<MTLBuffer> offsetBuffers[2] = {nil, nil};
+						offsetBuffers[0] = [self bufferForOffset:outputArea.start.line];
+
 						if(outputArea.end.line > outputArea.start.line) {
-							[self dispatchComputeCommandEncoder:separateComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offset:outputArea.start.line];
+							[self dispatchComputeCommandEncoder:separateComputeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:offsetBuffers[0]];
 						} else {
-							[self dispatchComputeCommandEncoder:separateComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offset:outputArea.start.line];
+							[self dispatchComputeCommandEncoder:separateComputeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:offsetBuffers[0]];
 							if(outputArea.end.line) {
-								[self dispatchComputeCommandEncoder:separateComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offset:0];
+								offsetBuffers[1] = [self bufferForOffset:0];
+								[self dispatchComputeCommandEncoder:separateComputeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:offsetBuffers[1]];
 							}
 						}
 
 						[separateComputeEncoder endEncoding];
 
+						// Filter resulting chrominance.
 						id<MTLComputeCommandEncoder> filterComputeEncoder = [commandBuffer computeCommandEncoder];
 						[filterComputeEncoder setTexture:_separatedLumaTexture atIndex:0];
 						[filterComputeEncoder setTexture:_finalisedLineTexture atIndex:1];
 						[filterComputeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 						if(outputArea.end.line > outputArea.start.line) {
-							[self dispatchComputeCommandEncoder:filterComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offset:outputArea.start.line];
+							[self dispatchComputeCommandEncoder:filterComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:offsetBuffers[0]];
 						} else {
-							[self dispatchComputeCommandEncoder:filterComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offset:outputArea.start.line];
+							[self dispatchComputeCommandEncoder:filterComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:offsetBuffers[0]];
 							if(outputArea.end.line) {
-								[self dispatchComputeCommandEncoder:filterComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offset:0];
+								[self dispatchComputeCommandEncoder:filterComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:offsetBuffers[1]];
 							}
 						}
 
