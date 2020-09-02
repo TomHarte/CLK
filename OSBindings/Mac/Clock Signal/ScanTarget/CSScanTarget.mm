@@ -567,10 +567,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Generate the chrominance filter.
 		{
 			auto *const chromaCoefficients = uniforms()->chromaCoefficients;
-			SignalProcessing::FIRFilter chrominancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * (isSVideoOutput ? 1.0f : 1.0f));
+			SignalProcessing::FIRFilter chrominancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine);	//  * (isSVideoOutput ? 1.0f : 0.25f)
 			const auto calculatedCoefficients = chrominancefilter.get_coefficients();
 			for(size_t c = 0; c < 8; ++c) {
-				chromaCoefficients[c].y = chromaCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 8.0f);
+				chromaCoefficients[c].y = chromaCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 4.0f);
 				chromaCoefficients[c].x = 0.0f;
 			}
 			chromaCoefficients[7].x = 1.0f;
@@ -579,7 +579,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Generate the luminance filter.
 		{
 			auto *const luminanceCoefficients = uniforms()->lumaCoefficients;
-			SignalProcessing::FIRFilter luminancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.5f);
+			SignalProcessing::FIRFilter luminancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.85f);
 			const auto calculatedCoefficients = luminancefilter.get_coefficients();
 			memcpy(luminanceCoefficients, calculatedCoefficients.data(), sizeof(float)*8);
 		}
