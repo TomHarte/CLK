@@ -98,7 +98,8 @@ struct Uniforms {
 	simd::float3x3 fromRGB;
 	float zoom;
 	simd::float2 offset;
-	simd::float3 firCoefficients[8];
+	simd::float3 chromaCoefficients[8];
+	float lumaCoefficients[8];
 	float radiansPerPixel;
 	float cyclesMultiplier;
 };
@@ -560,32 +561,30 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_compositionRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.5, 0.5, 1.0);
 
 		// Create suitable FIR filters.
-		auto *const firCoefficients = uniforms()->firCoefficients;
 		_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
 		const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
-		if(isSVideoOutput) {
-			// In S-Video, don't filter luminance.
-			for(size_t c = 0; c < 7; ++c) {
-				firCoefficients[c].x = 0.0f;
+		// Generate the chrominance filter.
+		{
+			auto *const chromaCoefficients = uniforms()->chromaCoefficients;
+			SignalProcessing::FIRFilter chrominancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * (isSVideoOutput ? 1.0f : 1.0f));
+			const auto calculatedCoefficients = chrominancefilter.get_coefficients();
+			for(size_t c = 0; c < 8; ++c) {
+				chromaCoefficients[c].y = chromaCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 8.0f);
+				chromaCoefficients[c].x = 0.0f;
 			}
-			firCoefficients[7].x = 1.0f;
-		} else {
-			// In composite, filter luminance gently.
+			chromaCoefficients[7].x = 1.0f;
+		}
+
+		// Generate the luminance filter.
+		{
+			auto *const luminanceCoefficients = uniforms()->lumaCoefficients;
 			SignalProcessing::FIRFilter luminancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.5f);
 			const auto calculatedCoefficients = luminancefilter.get_coefficients();
-			for(size_t c = 0; c < 8; ++c) {
-				firCoefficients[c].x = calculatedCoefficients[c];
-			}
+			memcpy(luminanceCoefficients, calculatedCoefficients.data(), sizeof(float)*8);
 		}
 
-		// Whether S-Video or composite, apply the same relatively strong filter to colour channels.
-		SignalProcessing::FIRFilter chrominancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * (isSVideoOutput ? 1.0f : 0.25f));
-		const auto calculatedCoefficients = chrominancefilter.get_coefficients();
-		for(size_t c = 0; c < 8; ++c) {
-			firCoefficients[c].y = firCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 4.0f);
-		}
-
+		// Store radians per pixel. TODO: is this now orphaned? Should I keep it anyway?
 		uniforms()->radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / float(_lineBufferPixelsPerLine);
 	}
 

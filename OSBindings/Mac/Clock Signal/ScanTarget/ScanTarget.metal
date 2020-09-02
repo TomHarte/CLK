@@ -32,9 +32,13 @@ struct Uniforms {
 	float zoom;
 	float2 offset;
 
-	// Describes the FIR filter in use; it'll be 15 coefficients but they're
+	// Describes the FIR filter in use for chroma filtering; it'll be
+	// 15 coefficients but they're symmetrical around the centre.
+	float3 chromaCoefficients[8];
+
+	// Describes the FIR filter in use for luma filtering; also 15 coefficients
 	// symmetrical around the centre.
-	float3 firCoefficients[8];
+	float lumaCoefficients[8];
 
 	// Maps from pixel offsets into the composition buffer to angular difference.
 	float radiansPerPixel;
@@ -386,7 +390,7 @@ kernel void filterChromaKernel(	texture2d<float, access::read> inTexture [[textu
 		inTexture.read(gid + uint2(14, offset)) - moveToZero,
 	};
 
-#define Sample(x, y) uniforms.firCoefficients[y] * rawSamples[x].rgb
+#define Sample(x, y) uniforms.chromaCoefficients[y] * rawSamples[x].rgb
 	const float3 colour =
 		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
 		Sample(7, 7) +
@@ -411,32 +415,36 @@ kernel void separateLumaKernel(	texture2d<float, access::read> inTexture [[textu
 								uint2 gid [[thread_position_in_grid]],
 								constant Uniforms &uniforms [[buffer(0)]],
 								constant int &offset [[buffer(1)]]) {
-	// TODO!
-	constexpr float4 moveToZero = float4(0.0f, 0.5f, 0.5f, 0.0f);
-	const float4 rawSamples[] = {
-		inTexture.read(gid + uint2(0, offset))  - moveToZero,
-		inTexture.read(gid + uint2(1, offset)) - moveToZero,
-		inTexture.read(gid + uint2(2, offset)) - moveToZero,
-		inTexture.read(gid + uint2(3, offset)) - moveToZero,
-		inTexture.read(gid + uint2(4, offset)) - moveToZero,
-		inTexture.read(gid + uint2(5, offset)) - moveToZero,
-		inTexture.read(gid + uint2(6, offset)) - moveToZero,
-		inTexture.read(gid + uint2(7, offset)) - moveToZero,
-		inTexture.read(gid + uint2(8, offset)) - moveToZero,
-		inTexture.read(gid + uint2(9, offset)) - moveToZero,
-		inTexture.read(gid + uint2(10, offset)) - moveToZero,
-		inTexture.read(gid + uint2(11, offset)) - moveToZero,
-		inTexture.read(gid + uint2(12, offset)) - moveToZero,
-		inTexture.read(gid + uint2(13, offset)) - moveToZero,
-		inTexture.read(gid + uint2(14, offset)) - moveToZero,
+	const float4 centreSample = inTexture.read(gid + uint2(7, offset));
+	const float rawSamples[] = {
+		inTexture.read(gid + uint2(0, offset)).r,
+		inTexture.read(gid + uint2(1, offset)).r,
+		inTexture.read(gid + uint2(2, offset)).r,
+		inTexture.read(gid + uint2(3, offset)).r,
+		inTexture.read(gid + uint2(4, offset)).r,
+		inTexture.read(gid + uint2(5, offset)).r,
+		inTexture.read(gid + uint2(6, offset)).r,
+		centreSample.r,
+		inTexture.read(gid + uint2(8, offset)).r,
+		inTexture.read(gid + uint2(9, offset)).r,
+		inTexture.read(gid + uint2(10, offset)).r,
+		inTexture.read(gid + uint2(11, offset)).r,
+		inTexture.read(gid + uint2(12, offset)).r,
+		inTexture.read(gid + uint2(13, offset)).r,
+		inTexture.read(gid + uint2(14, offset)).r,
 	};
 
-#define Sample(x, y) uniforms.firCoefficients[y] * rawSamples[x].rgb
-	const float3 colour =
+#define Sample(x, y) uniforms.lumaCoefficients[y] * rawSamples[x]
+	const float luminance =
 		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
 		Sample(7, 7) +
 		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
 #undef Sample
 
-	outTexture.write(float4(uniforms.toRGB * colour, 1.0f), gid + uint2(7, offset));
+	outTexture.write(float4(
+			luminance,
+			(centreSample.gb - float2(0.5f)) * (centreSample.r - luminance) + float2(0.5f),
+			1.0f
+		),
+		gid + uint2(7, offset));
 }
