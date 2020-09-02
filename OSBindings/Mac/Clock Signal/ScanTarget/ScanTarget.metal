@@ -307,8 +307,8 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 		const float level = mix(colour.r, dot(colour.gb, colourSubcarrier), vert.colourAmplitude);	\
 		return float4(	\
 			level,	\
-			float2(0.5f) + level*colourSubcarrier*0.5f,	\
-			1.0		\
+			float2(0.5f) + quadrature(vert.colourPhase)*0.5f,	\
+			vert.colourPhase		\
 		);	\
 	}
 
@@ -352,57 +352,66 @@ fragment float4 clearFragment() {
 	return float4(0.0, 0.0, 0.0, 0.64);
 }
 
-// MARK: - Conversion fragment shaders
-
-template <bool applyCompositeAmplitude> float4 applyFilter(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-#define Sample(x)	texture.sample(standardSampler, vert.textureCoordinates + float2(x, 0.0f)) - float4(0.0f, 0.5f, 0.5f, 0.0f)
-	float4 rawSamples[] = {
-		Sample(-7),	Sample(-6),	Sample(-5),	Sample(-4),	Sample(-3),	Sample(-2),	Sample(-1),
-		Sample(0),
-		Sample(1),	Sample(2),	Sample(3),	Sample(4),	Sample(5),	Sample(6),	Sample(7),
-	};
-#undef Sample
-
-#define Sample(c, o, a)	uniforms.firCoefficients[c] * rawSamples[o].rgb
-
-	const float3 colour =
-		Sample(0, 0, -7) +	Sample(1, 1, -6) +	Sample(2, 2, -5) +	Sample(3, 3, -4) +
-		Sample(4, 4, -3) +	Sample(5, 5, -2) +	Sample(6, 6, -1) +
-		Sample(7, 7, 0) +
-		Sample(6, 8, 1) +	Sample(5, 9, 2) +	Sample(4, 10, 3) +
-		Sample(3, 11, 4) +	Sample(2, 12, 5) +	Sample(1, 13, 6) +	Sample(0, 14, 7);
-
-#undef Sample
-
-	// This would be `if constexpr`, were this C++17; the compiler should do compile-time selection here regardless.
-	if(applyCompositeAmplitude) {
-		return float4(uniforms.toRGB * (colour * float3(1.0f, 1.0f / vert.colourAmplitude, 1.0f / vert.colourAmplitude)), 1.0f);
-	} else {
-		return float4(uniforms.toRGB * colour, 1.0f);
-	}
-}
-
-fragment float4 filterSVideoFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-	return applyFilter<false>(vert, texture, uniforms);
-}
-
-fragment float4 filterCompositeFragment(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-	return applyFilter<true>(vert, texture, uniforms);
-}
+// MARK: -
 
 fragment float4 interpolateFragment(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
 	return texture.sample(linearSampler, vert.textureCoordinates);
 }
 
-
 // MARK: - Kernel functions
 
-// TEST FUNCTION. Just copies from input to output.
+/// Given input pixels of the form (luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase)), applies a lowpass
+/// filter to the two chrominance parts, then uses the toRGB matrix to convert to RGB and stores.
 kernel void filterChromaKernel(	texture2d<float, access::read> inTexture [[texture(0)]],
 								texture2d<float, access::write> outTexture [[texture(1)]],
 								uint2 gid [[thread_position_in_grid]],
 								constant Uniforms &uniforms [[buffer(0)]],
 								constant int &offset [[buffer(1)]]) {
+	constexpr float4 moveToZero = float4(0.0f, 0.5f, 0.5f, 0.0f);
+	const float4 rawSamples[] = {
+		inTexture.read(gid + uint2(0, offset))  - moveToZero,
+		inTexture.read(gid + uint2(1, offset)) - moveToZero,
+		inTexture.read(gid + uint2(2, offset)) - moveToZero,
+		inTexture.read(gid + uint2(3, offset)) - moveToZero,
+		inTexture.read(gid + uint2(4, offset)) - moveToZero,
+		inTexture.read(gid + uint2(5, offset)) - moveToZero,
+		inTexture.read(gid + uint2(6, offset)) - moveToZero,
+		inTexture.read(gid + uint2(7, offset)) - moveToZero,
+		inTexture.read(gid + uint2(8, offset)) - moveToZero,
+		inTexture.read(gid + uint2(9, offset)) - moveToZero,
+		inTexture.read(gid + uint2(10, offset)) - moveToZero,
+		inTexture.read(gid + uint2(11, offset)) - moveToZero,
+		inTexture.read(gid + uint2(12, offset)) - moveToZero,
+		inTexture.read(gid + uint2(13, offset)) - moveToZero,
+		inTexture.read(gid + uint2(14, offset)) - moveToZero,
+	};
+
+#define Sample(x, y) uniforms.firCoefficients[y] * rawSamples[x].rgb
+	const float3 colour =
+		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
+		Sample(7, 7) +
+		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
+#undef Sample
+
+	outTexture.write(float4(uniforms.toRGB * colour, 1.0f), gid + uint2(7, offset));
+}
+
+/// Given input pixels of the form:
+///
+///	(composite sample, cos(phase), sin(phase), colour amplitude), applies a lowpass
+///
+/// Filters to separate luminance, subtracts that and scales and maps the remaining chrominance in order to output
+/// pixels in the form:
+///
+///	(luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase))
+///
+/// i.e. the input form for the filterChromaKernel, above].
+kernel void separateLumaKernel(	texture2d<float, access::read> inTexture [[texture(0)]],
+								texture2d<float, access::write> outTexture [[texture(1)]],
+								uint2 gid [[thread_position_in_grid]],
+								constant Uniforms &uniforms [[buffer(0)]],
+								constant int &offset [[buffer(1)]]) {
+	// TODO!
 	constexpr float4 moveToZero = float4(0.0f, 0.5f, 0.5f, 0.0f);
 	const float4 rawSamples[] = {
 		inTexture.read(gid + uint2(0, offset))  - moveToZero,
