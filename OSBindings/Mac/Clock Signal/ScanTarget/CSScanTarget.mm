@@ -567,7 +567,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Generate the chrominance filter.
 		{
 			auto *const chromaCoefficients = uniforms()->chromaCoefficients;
-			SignalProcessing::FIRFilter chrominancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine);	//  * (isSVideoOutput ? 1.0f : 0.25f)
+			SignalProcessing::FIRFilter chrominancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.25f);	//  * (isSVideoOutput ? 1.0f : 0.25f)
 			const auto calculatedCoefficients = chrominancefilter.get_coefficients();
 			for(size_t c = 0; c < 8; ++c) {
 				chromaCoefficients[c].y = chromaCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 4.0f);
@@ -579,7 +579,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Generate the luminance filter.
 		{
 			auto *const luminanceCoefficients = uniforms()->lumaCoefficients;
-			SignalProcessing::FIRFilter luminancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.85f);
+			SignalProcessing::FIRFilter luminancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine);
 			const auto calculatedCoefficients = luminancefilter.get_coefficients();
 			memcpy(luminanceCoefficients, calculatedCoefficients.data(), sizeof(float)*8);
 		}
@@ -613,6 +613,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (void)outputFrom:(size_t)start to:(size_t)end commandBuffer:(id<MTLCommandBuffer>)commandBuffer {
+	if(start == end) return;
+
 	// Generate a command encoder for the view.
 	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPass];
 
@@ -784,42 +786,39 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder endEncoding];
 					} else {
 						// Separate luminance.
-						id<MTLComputeCommandEncoder> separateComputeEncoder = [commandBuffer computeCommandEncoder];
-						[separateComputeEncoder setTexture:_compositionTexture atIndex:0];
-						[separateComputeEncoder setTexture:_separatedLumaTexture atIndex:1];
-						[separateComputeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
+						id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
+						[computeEncoder setTexture:_compositionTexture atIndex:0];
+						[computeEncoder setTexture:_separatedLumaTexture atIndex:1];
+						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 						__unsafe_unretained id<MTLBuffer> offsetBuffers[2] = {nil, nil};
 						offsetBuffers[0] = [self bufferForOffset:outputArea.start.line];
 
 						if(outputArea.end.line > outputArea.start.line) {
-							[self dispatchComputeCommandEncoder:separateComputeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:offsetBuffers[0]];
 						} else {
-							[self dispatchComputeCommandEncoder:separateComputeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:offsetBuffers[0]];
 							if(outputArea.end.line) {
 								offsetBuffers[1] = [self bufferForOffset:0];
-								[self dispatchComputeCommandEncoder:separateComputeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:offsetBuffers[1]];
+								[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:offsetBuffers[1]];
 							}
 						}
-
-						[separateComputeEncoder endEncoding];
 
 						// Filter resulting chrominance.
-						id<MTLComputeCommandEncoder> filterComputeEncoder = [commandBuffer computeCommandEncoder];
-						[filterComputeEncoder setTexture:_separatedLumaTexture atIndex:0];
-						[filterComputeEncoder setTexture:_finalisedLineTexture atIndex:1];
-						[filterComputeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
+						[computeEncoder setTexture:_separatedLumaTexture atIndex:0];
+						[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
+						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 						if(outputArea.end.line > outputArea.start.line) {
-							[self dispatchComputeCommandEncoder:filterComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:offsetBuffers[0]];
 						} else {
-							[self dispatchComputeCommandEncoder:filterComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:offsetBuffers[0]];
 							if(outputArea.end.line) {
-								[self dispatchComputeCommandEncoder:filterComputeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:offsetBuffers[1]];
+								[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:offsetBuffers[1]];
 							}
 						}
 
-						[filterComputeEncoder endEncoding];
+						[computeEncoder endEncoding];
 					}
 
 					// Output lines, broken up by frame.
@@ -843,8 +842,21 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			}];
 			[commandBuffer commit];
 		} else {
-			// There was no work, but to be contractually correct:
-			self->_scanTarget.complete_output_area(outputArea);
+			// There was no work, but to be contractually correct, remember to announce completion,
+			// and do it after finishing an empty command queue, as a cheap way to ensure this doen't
+			// front run any actual processing. TODO: can I do a better job of that?
+			id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+			[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+				self->_scanTarget.complete_output_area(outputArea);
+			}];
+			[commandBuffer commit];
+
+			// TODO: reenable these and work out how on earth the Master System + Alex Kidd (US) is managing
+			// to provide write_area_y = 0, start_x = 0, end_x = 1.
+//			assert(outputArea.end.line == outputArea.start.line);
+//			assert(outputArea.end.scan == outputArea.start.scan);
+//			assert(outputArea.end.write_area_y == outputArea.start.write_area_y);
+//			assert(outputArea.end.write_area_x == outputArea.start.write_area_x);
 		}
 	}
 }

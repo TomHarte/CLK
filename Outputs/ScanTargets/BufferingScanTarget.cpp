@@ -323,6 +323,8 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 }
 
 void BufferingScanTarget::complete_output_area(const OutputArea &area) {
+	// TODO: check that this is the expected next area if in DEBUG mode.
+
 	PointerSet new_read_pointers;
 	new_read_pointers.line = uint16_t(area.end.line);
 	new_read_pointers.scan = uint16_t(area.end.scan);

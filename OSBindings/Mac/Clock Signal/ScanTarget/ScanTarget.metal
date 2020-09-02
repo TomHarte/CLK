@@ -442,10 +442,10 @@ kernel void separateLumaKernel(	texture2d<float, access::read> inTexture [[textu
 #undef Sample
 
 	// TODO: determine why centreSample.a doesn't seem to be giving the real composite amplitude, and stop
-	// hard-coding 0.3f below.
+	// hard-coding 0.15f below.
 	outTexture.write(float4(
-			luminance / (1.0f - 0.3f),
-			(centreSample.gb - float2(0.5f)) * (centreSample.r - luminance) * 1.0f / 0.3f + float2(0.5f),
+			luminance / (1.0f - 0.15f),
+			(centreSample.gb - float2(0.5f)) * (centreSample.r - luminance) + float2(0.5f),
 			1.0f
 		),
 		gid + uint2(7, offset));
