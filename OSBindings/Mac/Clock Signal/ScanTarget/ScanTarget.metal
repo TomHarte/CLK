@@ -7,6 +7,7 @@
 //
 
 #include <metal_stdlib>
+
 using namespace metal;
 
 // TODO: I'm being very loose, so far, in use of alpha. Sometimes it's 0.64, somtimes its 1.0.
@@ -402,24 +403,25 @@ fragment float4 interpolateFragment(CopyInterpolator vert [[stage_in]], texture2
 kernel void filterChromaKernel(	texture2d<float, access::read> inTexture [[texture(0)]],
 								texture2d<float, access::write> outTexture [[texture(1)]],
 								uint2 gid [[thread_position_in_grid]],
-								constant Uniforms &uniforms [[buffer(0)]]) {
+								constant Uniforms &uniforms [[buffer(0)]],
+								constant int &offset [[buffer(1)]]) {
 	constexpr float4 moveToZero = float4(0.0f, 0.5f, 0.5f, 0.0f);
 	const float4 rawSamples[] = {
-		inTexture.read(gid) - moveToZero,
-		inTexture.read(gid + uint2(1, 0)) - moveToZero,
-		inTexture.read(gid + uint2(2, 0)) - moveToZero,
-		inTexture.read(gid + uint2(3, 0)) - moveToZero,
-		inTexture.read(gid + uint2(4, 0)) - moveToZero,
-		inTexture.read(gid + uint2(5, 0)) - moveToZero,
-		inTexture.read(gid + uint2(6, 0)) - moveToZero,
-		inTexture.read(gid + uint2(7, 0)) - moveToZero,
-		inTexture.read(gid + uint2(8, 0)) - moveToZero,
-		inTexture.read(gid + uint2(9, 0)) - moveToZero,
-		inTexture.read(gid + uint2(10, 0)) - moveToZero,
-		inTexture.read(gid + uint2(11, 0)) - moveToZero,
-		inTexture.read(gid + uint2(12, 0)) - moveToZero,
-		inTexture.read(gid + uint2(13, 0)) - moveToZero,
-		inTexture.read(gid + uint2(14, 0)) - moveToZero,
+		inTexture.read(gid + uint2(0, offset))  - moveToZero,
+		inTexture.read(gid + uint2(1, offset)) - moveToZero,
+		inTexture.read(gid + uint2(2, offset)) - moveToZero,
+		inTexture.read(gid + uint2(3, offset)) - moveToZero,
+		inTexture.read(gid + uint2(4, offset)) - moveToZero,
+		inTexture.read(gid + uint2(5, offset)) - moveToZero,
+		inTexture.read(gid + uint2(6, offset)) - moveToZero,
+		inTexture.read(gid + uint2(7, offset)) - moveToZero,
+		inTexture.read(gid + uint2(8, offset)) - moveToZero,
+		inTexture.read(gid + uint2(9, offset)) - moveToZero,
+		inTexture.read(gid + uint2(10, offset)) - moveToZero,
+		inTexture.read(gid + uint2(11, offset)) - moveToZero,
+		inTexture.read(gid + uint2(12, offset)) - moveToZero,
+		inTexture.read(gid + uint2(13, offset)) - moveToZero,
+		inTexture.read(gid + uint2(14, offset)) - moveToZero,
 	};
 
 #define Sample(x, y) uniforms.firCoefficients[y] * rawSamples[x].rgb
@@ -429,5 +431,5 @@ kernel void filterChromaKernel(	texture2d<float, access::read> inTexture [[textu
 		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
 #undef Sample
 
-	outTexture.write(float4(uniforms.toRGB * colour, 1.0f), gid + uint2(7, 0));
+	outTexture.write(float4(uniforms.toRGB * colour, 1.0f), gid + uint2(7, offset));
 }

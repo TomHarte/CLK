@@ -207,6 +207,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLComputePipelineState> _separatedLumaState;
 	NSUInteger _lineBufferPixelsPerLine;
 
+	size_t _lineOffsetBuffer;
+	id<MTLBuffer> _lineOffsetBuffers[NumBufferedLines];	// Allocating NumBufferedLines buffers ensures these can't possibly be exhausted;
+														// for this list to be exhausted there'd have to be more draw calls in flight than
+														// there are lines for them to operate upon.
+
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
 	BufferingScanTarget::LineMetadata _lineMetadataBuffer[NumBufferedLines];
@@ -265,6 +270,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
 		depthStencilDescriptor.frontFaceStencil.stencilFailureOperation = MTLStencilOperationReplace;
 		_clearStencilState = [view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+
+		// Allocate a large number of single-int buffers, for supplying offsets to the compute shaders.
+		// There's a ridiculous amount of overhead in this, but it avoids allocations during drawing,
+		// and a single int per instance is all I need.
+		for(size_t c = 0; c < NumBufferedLines; ++c) {
+			_lineOffsetBuffers[c] = [_view.device newBufferWithLength:sizeof(int) options:SharedResourceOptionsStandard];
+		}
 
 		// Ensure the is-drawing flag is initially clear.
 		_isDrawing.clear();
@@ -667,7 +679,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder endEncoding];
 }
 
-- (void)dispatchComputeCommandEncoder:(id<MTLComputeCommandEncoder>)encoder pipelineState:(id<MTLComputePipelineState>)pipelineState width:(NSUInteger)width height:(NSUInteger)height {
+- (void)dispatchComputeCommandEncoder:(id<MTLComputeCommandEncoder>)encoder pipelineState:(id<MTLComputePipelineState>)pipelineState width:(NSUInteger)width height:(NSUInteger)height offset:(size_t)offset {
+	// Store and apply the offset.
+	*(reinterpret_cast<int *>(_lineOffsetBuffers[_lineOffsetBuffer].contents)) = int(offset);
+	[encoder setBuffer:_lineOffsetBuffers[_lineOffsetBuffer] offset:0 atIndex:1];
+	_lineOffsetBuffer = (_lineOffsetBuffer + 1) % NumBufferedLines;
+
 	// This follows the recommendations at https://developer.apple.com/documentation/metal/calculating_threadgroup_and_grid_sizes ;
 	// I currently have no independent opinion whatsoever.
 	const MTLSize threadsPerThreadgroup = MTLSizeMake(
@@ -677,6 +694,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	);
 	const MTLSize threadsPerGrid = MTLSizeMake(width, height, 1);
 
+	// Set the pipeline state and dispatch the drawing. Which may slightly overdraw.
 	[encoder setComputePipelineState:pipelineState];
 	[encoder dispatchThreads:threadsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
 }
@@ -740,29 +758,37 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				// Build the composition buffer.
 				[self composeOutputArea:outputArea commandBuffer:commandBuffer];
 
-				// Filter to the finalised line texture.
-				id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
-				[computeEncoder setTexture:_compositionTexture atIndex:0];
-				[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
-				[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
+				if(outputArea.end.line != outputArea.start.line) {
+					// Filter to the finalised line texture.
+					id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
+					[computeEncoder setTexture:_compositionTexture atIndex:0];
+					[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
+					[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
-				// TODO: limit processed area to those lines that are actually in use.
-				[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines];
-
-				[computeEncoder endEncoding];
-
-				// Output lines, broken up by frame.
-				size_t startLine = outputArea.start.line;
-				size_t line = outputArea.start.line;
-				while(line != outputArea.end.line) {
-					if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
-						[self outputFrom:startLine to:line commandBuffer:commandBuffer];
-						[self outputFrameCleanerToCommandBuffer:commandBuffer];
-						startLine = line;
+					if(outputArea.end.line > outputArea.start.line) {
+						[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offset:outputArea.start.line];
+					} else {
+						[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offset:outputArea.start.line];
+						if(outputArea.end.line) {
+							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offset:0];
+						}
 					}
-					line = (line + 1) % NumBufferedLines;
+
+					[computeEncoder endEncoding];
+
+					// Output lines, broken up by frame.
+					size_t startLine = outputArea.start.line;
+					size_t line = outputArea.start.line;
+					while(line != outputArea.end.line) {
+						if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
+							[self outputFrom:startLine to:line commandBuffer:commandBuffer];
+							[self outputFrameCleanerToCommandBuffer:commandBuffer];
+							startLine = line;
+						}
+						line = (line + 1) % NumBufferedLines;
+					}
+					[self outputFrom:startLine to:outputArea.end.line commandBuffer:commandBuffer];
 				}
-				[self outputFrom:startLine to:outputArea.end.line commandBuffer:commandBuffer];
 			} break;
 		}
 
