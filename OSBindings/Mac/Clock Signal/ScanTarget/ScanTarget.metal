@@ -295,7 +295,7 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 	}	\
 	\
 	fragment float4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
+		const auto colour = uniforms.fromRGB * clamp(convert##name(vert, texture), float(0.0f), float(1.0f));	\
 		const float2 qam = quadrature(vert.colourPhase);	\
 		const float chroma = dot(colour.gb, qam);	\
 		return float4(	\
@@ -306,7 +306,7 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 	}	\
 	\
 	fragment float4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
+		const auto colour = uniforms.fromRGB * clamp(convert##name(vert, texture), float3(0.0f), float3(1.0f));	\
 		const float2 colourSubcarrier = quadrature(vert.colourPhase);	\
 		const float level = mix(colour.r, dot(colour.gb, colourSubcarrier), vert.colourAmplitude);	\
 		return float4(	\
@@ -442,10 +442,10 @@ kernel void separateLumaKernel(	texture2d<float, access::read> inTexture [[textu
 #undef Sample
 
 	// TODO: determine why centreSample.a doesn't seem to be giving the real composite amplitude, and stop
-	// hard-coding 0.15f below.
+	// hard-coding 0.15f and 7.0f below.
 	outTexture.write(float4(
 			luminance / (1.0f - 0.15f),
-			(centreSample.gb - float2(0.5f)) * (centreSample.r - luminance) + float2(0.5f),
+			(centreSample.gb - float2(0.5f)) * (centreSample.r - luminance) * 28.0f + float2(0.5f),
 			1.0f
 		),
 		gid + uint2(7, offset));

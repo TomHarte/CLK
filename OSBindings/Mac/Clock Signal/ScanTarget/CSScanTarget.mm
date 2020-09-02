@@ -540,7 +540,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	uniforms()->cyclesMultiplier = 1.0f;
 	if(_pipeline != Pipeline::DirectToDisplay) {
-		// Pick a suitable cycle multiplier.
+		// Pick a suitable cycle multiplier. TODO: can I reduce this from a multiple of 4?
 		const float minimumSize = 4.0f * float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 		while(uniforms()->cyclesMultiplier * modals.cycles_per_line < minimumSize) {
 			uniforms()->cyclesMultiplier += 1.0f;
@@ -568,18 +568,28 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		{
 			auto *const chromaCoefficients = uniforms()->chromaCoefficients;
 			SignalProcessing::FIRFilter chrominancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.25f);	//  * (isSVideoOutput ? 1.0f : 0.25f)
-			const auto calculatedCoefficients = chrominancefilter.get_coefficients();
+			const auto calculatedChromaCoefficients = chrominancefilter.get_coefficients();
 			for(size_t c = 0; c < 8; ++c) {
-				chromaCoefficients[c].y = chromaCoefficients[c].z = calculatedCoefficients[c] * (isSVideoOutput ? 4.0f : 4.0f);
+				chromaCoefficients[c].y = chromaCoefficients[c].z = calculatedChromaCoefficients[c] * (isSVideoOutput ? 4.0f : 4.0f);
 				chromaCoefficients[c].x = 0.0f;
 			}
 			chromaCoefficients[7].x = 1.0f;
+
+			// Luminance is under-filtered during the separation phase in order not to subtract too much from chrominance;
+			// therefore an additional filtering is applied here.
+			if(!isSVideoOutput) {
+				SignalProcessing::FIRFilter luminancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine);
+				const auto calculatedLumaCoefficients = luminancefilter.get_coefficients();
+				for(size_t c = 0; c < 8; ++c) {
+					chromaCoefficients[c].x = calculatedLumaCoefficients[c];
+				}
+			}
 		}
 
-		// Generate the luminance filter.
+		// Generate the luminance separation filter.
 		{
 			auto *const luminanceCoefficients = uniforms()->lumaCoefficients;
-			SignalProcessing::FIRFilter luminancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine);
+			SignalProcessing::FIRFilter luminancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 1.25f);
 			const auto calculatedCoefficients = luminancefilter.get_coefficients();
 			memcpy(luminanceCoefficients, calculatedCoefficients.data(), sizeof(float)*8);
 		}
