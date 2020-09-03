@@ -38,7 +38,7 @@ struct Uniforms {
 
 	// Describes the FIR filter in use for luma filtering; also 15 coefficients
 	// symmetrical around the centre.
-	float lumaCoefficients[8];
+	float2 lumaCoefficients[8];
 
 	// Maps from pixel offsets into the composition buffer to angular difference.
 	float radiansPerPixel;
@@ -416,26 +416,26 @@ kernel void separateLumaKernel(	texture2d<float, access::read> inTexture [[textu
 								constant Uniforms &uniforms [[buffer(0)]],
 								constant int &offset [[buffer(1)]]) {
 	const float4 centreSample = inTexture.read(gid + uint2(7, offset));
-	const float rawSamples[] = {
-		inTexture.read(gid + uint2(0, offset)).r,
-		inTexture.read(gid + uint2(1, offset)).r,
-		inTexture.read(gid + uint2(2, offset)).r,
-		inTexture.read(gid + uint2(3, offset)).r,
-		inTexture.read(gid + uint2(4, offset)).r,
-		inTexture.read(gid + uint2(5, offset)).r,
-		inTexture.read(gid + uint2(6, offset)).r,
-		centreSample.r,
-		inTexture.read(gid + uint2(8, offset)).r,
-		inTexture.read(gid + uint2(9, offset)).r,
-		inTexture.read(gid + uint2(10, offset)).r,
-		inTexture.read(gid + uint2(11, offset)).r,
-		inTexture.read(gid + uint2(12, offset)).r,
-		inTexture.read(gid + uint2(13, offset)).r,
-		inTexture.read(gid + uint2(14, offset)).r,
+	const float2 rawSamples[] = {
+		inTexture.read(gid + uint2(0, offset)).rr,
+		inTexture.read(gid + uint2(1, offset)).rr,
+		inTexture.read(gid + uint2(2, offset)).rr,
+		inTexture.read(gid + uint2(3, offset)).rr,
+		inTexture.read(gid + uint2(4, offset)).rr,
+		inTexture.read(gid + uint2(5, offset)).rr,
+		inTexture.read(gid + uint2(6, offset)).rr,
+		centreSample.rr,
+		inTexture.read(gid + uint2(8, offset)).rr,
+		inTexture.read(gid + uint2(9, offset)).rr,
+		inTexture.read(gid + uint2(10, offset)).rr,
+		inTexture.read(gid + uint2(11, offset)).rr,
+		inTexture.read(gid + uint2(12, offset)).rr,
+		inTexture.read(gid + uint2(13, offset)).rr,
+		inTexture.read(gid + uint2(14, offset)).rr,
 	};
 
 #define Sample(x, y) uniforms.lumaCoefficients[y] * rawSamples[x]
-	const float luminance =
+	const float2 luminance =
 		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
 		Sample(7, 7) +
 		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
@@ -444,8 +444,8 @@ kernel void separateLumaKernel(	texture2d<float, access::read> inTexture [[textu
 	// TODO: determine why centreSample.a doesn't seem to be giving the real composite amplitude, and stop
 	// hard-coding 0.15f and 7.0f below.
 	outTexture.write(float4(
-			luminance / (1.0f - 0.15f),
-			(centreSample.gb - float2(0.5f)) * (centreSample.r - luminance) * 28.0f + float2(0.5f),
+			luminance.r / (1.0f - 0.15f),
+			(centreSample.gb - float2(0.5f)) * (centreSample.r - luminance.g) * 28.0f + float2(0.5f),
 			1.0f
 		),
 		gid + uint2(7, offset));

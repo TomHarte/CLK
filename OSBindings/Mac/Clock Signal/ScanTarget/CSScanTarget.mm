@@ -99,7 +99,7 @@ struct Uniforms {
 	float zoom;
 	simd::float2 offset;
 	simd::float3 chromaCoefficients[8];
-	float lumaCoefficients[8];
+	simd::float2 lumaCoefficients[8];
 	float radiansPerPixel;
 	float cyclesMultiplier;
 };
@@ -580,23 +580,39 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			}
 			chromaCoefficients[7].x = 1.0f;
 
-			// Luminance is under-filtered during the separation phase in order not to subtract too much from chrominance;
-			// therefore an additional filtering is applied here.
+			// Luminance will be very soft as a result of the separation phase; apply a sharpen filter to try to undo that.
 			if(!isSVideoOutput) {
-				SignalProcessing::FIRFilter luminancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.8f);
-				const auto calculatedLumaCoefficients = luminancefilter.get_coefficients();
+				constexpr float sharpen[] = {
+					0.0042115543f,
+					0.0f,
+					-0.0641804263f,
+					-0.252418578f,
+					-0.589709163f,
+					0.987914681f,
+					0.627704679f,
+					-0.426862389f,
+					0.627704679f
+				};
 				for(size_t c = 0; c < 8; ++c) {
-					chromaCoefficients[c].x = calculatedLumaCoefficients[c];
+					chromaCoefficients[c].x = sharpen[c];
 				}
 			}
 		}
 
 		// Generate the luminance separation filter.
 		{
+			// TODO: support separate high-low filters for chroma and luma, rather than treating that as purely subtractive.
+
 			auto *const luminanceCoefficients = uniforms()->lumaCoefficients;
-			SignalProcessing::FIRFilter luminancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine);
-			const auto calculatedCoefficients = luminancefilter.get_coefficients();
-			memcpy(luminanceCoefficients, calculatedCoefficients.data(), sizeof(float)*8);
+			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.5f);
+			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 1.1f);
+
+			const auto lumaCoefficients = lumaPart.get_coefficients();
+			const auto chromaCoefficients = chromaPart.get_coefficients();
+			for(size_t c = 0; c < 8; ++c) {
+				luminanceCoefficients[c].x = lumaCoefficients[c];
+				luminanceCoefficients[c].y = chromaCoefficients[c];
+			}
 		}
 
 		// Store radians per pixel. TODO: is this now orphaned? Should I keep it anyway?
