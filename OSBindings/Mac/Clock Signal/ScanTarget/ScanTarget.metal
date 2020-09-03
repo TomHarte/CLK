@@ -96,6 +96,11 @@ struct SourceInterpolator {
 	float colourAmplitude [[flat]];
 };
 
+struct CopyInterpolator {
+	float4 position [[position]];
+	float2 textureCoordinates;
+};
+
 // MARK: - Vertex shaders.
 
 float2 textureLocation(constant Line *line, float offset, constant Uniforms &uniforms) {
@@ -210,6 +215,25 @@ vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffe
 	return result;
 }
 
+vertex CopyInterpolator copyVertex(uint vertexID [[vertex_id]], texture2d<float> texture [[texture(0)]]) {
+	CopyInterpolator vert;
+
+	const uint x = vertexID & 1;
+	const uint y = (vertexID >> 1) & 1;
+
+	vert.textureCoordinates = float2(
+		x * texture.get_width(),
+		y * texture.get_height()
+	);
+	vert.position = float4(
+		float(x) * 2.0 - 1.0,
+		1.0 - float(y) * 2.0,
+		0.0,
+		1.0
+	);
+
+	return vert;
+}
 
 // MARK: - Various input format conversion samplers.
 
@@ -217,20 +241,28 @@ float2 quadrature(float phase) {
 	return float2(cos(phase), sin(phase));
 }
 
+float4 composite(float level, float2 quadrature, float amplitude) {
+	return float4(
+		level,
+		float2(0.5f) + quadrature*0.5f,
+		amplitude
+	);
+}
+
 // There's only one meaningful way to sample the luminance formats.
 
 fragment float4 sampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
-	return float4(float3(texture.sample(standardSampler, vert.textureCoordinates).r), 1.0);
+	return composite(texture.sample(standardSampler, vert.textureCoordinates).r, quadrature(vert.colourPhase), vert.colourAmplitude);
 }
 
 fragment float4 sampleLuminance8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
-	return float4(float3(texture.sample(standardSampler, vert.textureCoordinates).r), 1.0);
+	return composite(texture.sample(standardSampler, vert.textureCoordinates).r, quadrature(vert.colourPhase), vert.colourAmplitude);
 }
 
 fragment float4 samplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
 	const int offset = int(vert.colourPhase * 4.0);
 	auto sample = texture.sample(standardSampler, vert.textureCoordinates);
-	return float4(float3(sample[offset]), 1.0);
+	return composite(sample[offset], quadrature(vert.colourPhase), vert.colourAmplitude);
 }
 
 // The luminance/phase format can produce either composite or S-Video.
@@ -254,12 +286,7 @@ fragment float4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], tex
 fragment float4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
 	const float2 luminanceChroma = convertLuminance8Phase8(vert, texture);
 	const float level = mix(luminanceChroma.r, luminanceChroma.g, vert.colourAmplitude);
-	return float4(
-		level,
-		0.5 + 0.5*level*cos(vert.colourPhase),
-		0.5 + 0.5*level*sin(vert.colourPhase),
-		1.0
-	);
+	return composite(level, quadrature(vert.colourPhase), vert.colourAmplitude);
 }
 
 // All the RGB formats can produce RGB, composite or S-Video.
@@ -309,11 +336,7 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 		const auto colour = uniforms.fromRGB * clamp(convert##name(vert, texture), float3(0.0f), float3(1.0f));	\
 		const float2 colourSubcarrier = quadrature(vert.colourPhase);	\
 		const float level = mix(colour.r, dot(colour.gb, colourSubcarrier), vert.colourAmplitude);	\
-		return float4(	\
-			level,	\
-			float2(0.5f) + quadrature(vert.colourPhase)*0.5f,	\
-			vert.colourPhase		\
-		);	\
+		return composite(level, colourSubcarrier, vert.colourAmplitude);	\
 	}
 
 DeclareShaders(Red8Green8Blue8, float)
@@ -321,48 +344,19 @@ DeclareShaders(Red4Green4Blue4, ushort)
 DeclareShaders(Red2Green2Blue2, ushort)
 DeclareShaders(Red1Green1Blue1, ushort)
 
-// MARK: - Shaders for copying from a same-sized texture to an MTKView's frame buffer.
-
-struct CopyInterpolator {
-	float4 position [[position]];
-	float2 textureCoordinates;
-};
-
-vertex CopyInterpolator copyVertex(uint vertexID [[vertex_id]], texture2d<float> texture [[texture(0)]]) {
-	CopyInterpolator vert;
-
-	const uint x = vertexID & 1;
-	const uint y = (vertexID >> 1) & 1;
-
-	vert.textureCoordinates = float2(
-		x * texture.get_width(),
-		y * texture.get_height()
-	);
-	vert.position = float4(
-		float(x) * 2.0 - 1.0,
-		1.0 - float(y) * 2.0,
-		0.0,
-		1.0
-	);
-
-	return vert;
-}
-
 fragment float4 copyFragment(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
 	return texture.sample(standardSampler, vert.textureCoordinates);
+}
+
+fragment float4 interpolateFragment(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+	return texture.sample(linearSampler, vert.textureCoordinates);
 }
 
 fragment float4 clearFragment() {
 	return float4(0.0, 0.0, 0.0, 0.64);
 }
 
-// MARK: -
-
-fragment float4 interpolateFragment(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
-	return texture.sample(linearSampler, vert.textureCoordinates);
-}
-
-// MARK: - Kernel functions
+// MARK: - Compute kernels
 
 /// Given input pixels of the form (luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase)), applies a lowpass
 /// filter to the two chrominance parts, then uses the toRGB matrix to convert to RGB and stores.
@@ -441,11 +435,11 @@ kernel void separateLumaKernel(	texture2d<float, access::read> inTexture [[textu
 		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
 #undef Sample
 
-	// TODO: determine why centreSample.a doesn't seem to be giving the real composite amplitude, and stop
-	// hard-coding 0.15f and 7.0f below.
+	// The mix/steps below ensures that the absence of a colour burst leads the colour subcarrier to be discarded.
+	const float isColour = step(0.01, centreSample.a);
 	outTexture.write(float4(
-			luminance.r / (1.0f - 0.15f),
-			(centreSample.gb - float2(0.5f)) * (centreSample.r - luminance.g) * 28.0f + float2(0.5f),
+			mix(luminance.g, luminance.r / (1.0f - centreSample.a), isColour),
+			isColour * (centreSample.gb - float2(0.5f)) * (centreSample.r - luminance.g) / mix(1.0f, centreSample.a, isColour) + float2(0.5f),
 			1.0f
 		),
 		gid + uint2(7, offset));

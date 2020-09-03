@@ -604,8 +604,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			// TODO: support separate high-low filters for chroma and luma, rather than treating that as purely subtractive.
 
 			auto *const luminanceCoefficients = uniforms()->lumaCoefficients;
-			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.5f);
-			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 1.1f);
+			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.75f);
+			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 1.0f);
 
 			const auto lumaCoefficients = lumaPart.get_coefficients();
 			const auto chromaCoefficients = chromaPart.get_coefficients();
