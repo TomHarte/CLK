@@ -162,6 +162,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// single buffer. This texture is complete 2d data, copied directly to the display.
 	id<MTLTexture> _frameBuffer;
 	MTLRenderPassDescriptor *_frameBufferRenderPass;	// The render pass for _drawing to_ the frame buffer.
+	BOOL _dontClearFrameBuffer;
 
 	// Textures: the stencil.
 	//
@@ -225,6 +226,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
 	self = [super init];
 	if(self) {
+		_view = view;
 		_commandQueue = [view.device newCommandQueue];
 
 		// Allocate space for uniforms.
@@ -247,10 +249,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_scanTarget.set_write_area(reinterpret_cast<uint8_t *>(_writeAreaBuffer.contents));
 		_scanTarget.set_line_buffer(reinterpret_cast<BufferingScanTarget::Line *>(_linesBuffer.contents), _lineMetadataBuffer, NumBufferedLines);
 		_scanTarget.set_scan_buffer(reinterpret_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents), NumBufferedScans);
-
-		// Set initial aspect-ratio multiplier.
-		_view = view;
-		[self mtkView:view drawableSizeWillChange:view.drawableSize];
 
 		// Generate copy and clear pipelines.
 		id<MTLLibrary> library = [_view.device newDefaultLibrary];
@@ -281,6 +279,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Ensure the is-drawing flag is initially clear.
 		_isDrawing.clear();
+
+		// Set initial aspect-ratio multiplier and generate buffers.
+		[self mtkView:view drawableSizeWillChange:view.drawableSize];
 	}
 
 	return self;
@@ -315,6 +316,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		mipmapped:NO];
 	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
 	textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
+	id<MTLTexture> _oldFrameBuffer = _frameBuffer;
 	_frameBuffer = [_view.device newTextureWithDescriptor:textureDescriptor];
 
 	MTLTextureDescriptor *const stencilTextureDescriptor = [MTLTextureDescriptor
@@ -345,7 +347,27 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
 	_drawStencilState = [_view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 
-	// TODO: old framebuffer should be resized onto the new one.
+	// Draw from _oldFrameBuffer to _frameBuffer.
+	if(_oldFrameBuffer) {
+		MTLRenderPassDescriptor *const resizeFrameBufferDescriptor = [[MTLRenderPassDescriptor alloc] init];
+		resizeFrameBufferDescriptor.colorAttachments[0].texture = _frameBuffer;
+		resizeFrameBufferDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+		resizeFrameBufferDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+		id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+		id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:resizeFrameBufferDescriptor];
+
+		[encoder setRenderPipelineState:_copyPipeline];
+		[encoder setVertexTexture:_oldFrameBuffer atIndex:0];
+		[encoder setFragmentTexture:_oldFrameBuffer atIndex:0];
+
+		[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+		[encoder endEncoding];
+		[commandBuffer commit];
+
+		// Don't clear the framebuffer at the end of this frame.
+		_dontClearFrameBuffer = YES;
+	}
 }
 
 - (void)updateModalBuffers {
@@ -676,7 +698,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// Generate a command encoder for the view.
 	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPass];
 
-	// Drawing. Just scans.
 	[encoder setRenderPipelineState:_clearPipeline];
 	[encoder setDepthStencilState:_clearStencilState];
 	[encoder setStencilReferenceValue:0];
@@ -777,10 +798,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					size_t line = outputArea.start.line;
 					size_t scan = outputArea.start.scan;
 					while(line != outputArea.end.line) {
-						if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
+						if(_lineMetadataBuffer[line].is_first_in_frame) {
 							[self outputFrom:scan to:_lineMetadataBuffer[line].first_scan commandBuffer:commandBuffer];
-							[self outputFrameCleanerToCommandBuffer:commandBuffer];
 							scan = _lineMetadataBuffer[line].first_scan;
+
+							if(_lineMetadataBuffer[line].previous_frame_was_complete && !_dontClearFrameBuffer) {
+								[self outputFrameCleanerToCommandBuffer:commandBuffer];
+							}
+							_dontClearFrameBuffer = NO;
 						}
 						line = (line + 1) % NumBufferedLines;
 					}
@@ -850,10 +875,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					size_t startLine = outputArea.start.line;
 					size_t line = outputArea.start.line;
 					while(line != outputArea.end.line) {
-						if(_lineMetadataBuffer[line].is_first_in_frame && _lineMetadataBuffer[line].previous_frame_was_complete) {
+						if(_lineMetadataBuffer[line].is_first_in_frame) {
 							[self outputFrom:startLine to:line commandBuffer:commandBuffer];
-							[self outputFrameCleanerToCommandBuffer:commandBuffer];
 							startLine = line;
+
+							if(_lineMetadataBuffer[line].previous_frame_was_complete && !_dontClearFrameBuffer) {
+								[self outputFrameCleanerToCommandBuffer:commandBuffer];
+							}
+							_dontClearFrameBuffer = NO;
 						}
 						line = (line + 1) % NumBufferedLines;
 					}
