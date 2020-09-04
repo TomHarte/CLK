@@ -599,7 +599,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		{
 			auto *const luminanceCoefficients = uniforms()->lumaCoefficients;
 			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.6f);
-			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 1.25f);
+			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 1.0f);
 
 			const auto lumaCoefficients = lumaPart.get_coefficients();
 			const auto chromaCoefficients = chromaPart.get_coefficients();
