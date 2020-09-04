@@ -563,7 +563,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_compositionRenderPass.colorAttachments[0].texture = _compositionTexture;
 		_compositionRenderPass.colorAttachments[0].loadAction = MTLLoadActionClear;
 		_compositionRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
-		_compositionRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.5, 0.5, 1.0);
+		_compositionRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.5, 0.5, 0.3);
 
 		// Create suitable FIR filters.
 		_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
@@ -587,7 +587,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			//
 			// The 30 ['Hz' but per line, not per second] is somewhat arbitrary.
 			if(!isSVideoOutput) {
-				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 20.0f, colourCyclesPerLine);
+				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 40.0f, colourCyclesPerLine);
 				const auto sharpen = sharpenFilter.get_coefficients();
 				for(size_t c = 0; c < 8; ++c) {
 					chromaCoefficients[c].x = sharpen[c];
