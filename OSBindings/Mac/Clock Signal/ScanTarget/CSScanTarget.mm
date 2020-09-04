@@ -48,8 +48,12 @@
 	recorded at this point. Format within the composition buffer is:
 
 		.r = composite value
-		.g = phase
-		.b = amplitude
+		.g = 0.5 + 0.5 * cos(phase)
+		.b = 0.5 + 0.5 * sin(phase)
+		.a = amplitude
+
+	[aside: upfront calculation of cos/sin is just because it'll need to be calculated at this precision anyway,
+	and doing it here avoids having to do unit<->radian conversions on phase alone]
 
 	Contents of the composition buffer are transferred to the separated-luma buffer, subject to a low-paass filter
 	that has sought to separate luminance and chrominance, and with phase and amplitude now baked into the latter:
@@ -90,6 +94,7 @@
 
 namespace {
 
+// Tracks the Uniforms struct declared in ScanTarget.metal; see there for field definitions.
 struct Uniforms {
 	int32_t scale[2];
 	float lineWidth;
@@ -102,6 +107,9 @@ struct Uniforms {
 	simd::float2 lumaCoefficients[8];
 	float radiansPerPixel;
 	float cyclesMultiplier;
+	float outputAlpha;
+	float outputGamma;
+	float outputMultiplier;
 };
 
 constexpr size_t NumBufferedLines = 500;
@@ -457,6 +465,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		simd::float3{fromRGB[3], fromRGB[4], fromRGB[5]},
 		simd::float3{fromRGB[6], fromRGB[7], fromRGB[8]}
 	);
+
+	// This is fixed for now; consider making it a function of frame rate and/or of whether frame syncing
+	// is ongoing (which would require a way to signal that to this scan target).
+	uniforms()->outputAlpha = 0.64f;
+	uniforms()->outputMultiplier = modals.brightness;
+
+	const float displayGamma = 2.2f;	// This is assumed.
+	uniforms()->outputGamma = displayGamma / modals.intended_gamma;
 
 
 

@@ -45,6 +45,15 @@ struct Uniforms {
 
 	// Applies a multiplication to all cyclesSinceRetrace values.
 	float cycleMultiplier;
+
+	// Sets the opacity at which output strips are drawn.
+	float outputAlpha;
+
+	// Sets the gamma power to which output colours are raised.
+	float outputGamma;
+
+	// Sets a brightness multiplier for output colours.
+	float outputMultiplier;
 };
 
 namespace {
