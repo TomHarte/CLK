@@ -575,24 +575,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			SignalProcessing::FIRFilter chrominancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.01f);
 			const auto calculatedChromaCoefficients = chrominancefilter.get_coefficients();
 			for(size_t c = 0; c < 8; ++c) {
-				chromaCoefficients[c].y = chromaCoefficients[c].z = calculatedChromaCoefficients[c] * (isSVideoOutput ? 4.0f : 2.0f);
+				chromaCoefficients[c].y = chromaCoefficients[c].z = calculatedChromaCoefficients[c] * (isSVideoOutput ? 4.0f : 3.0f);
 				chromaCoefficients[c].x = 0.0f;
 			}
 			chromaCoefficients[7].x = 1.0f;
 
 			// Luminance will be very soft as a result of the separation phase; apply a sharpen filter to try to undo that.
+			// This is applied separately because the first composite processing step is going to select between the nominal
+			// chroma and luma parts to take the place of luminance depending on whether a colour burst was found, and high-pass
+			// filtering the chrominance channel would be visually detrimental.
+			//
+			// The 30 ['Hz' but per line, not per second] is somewhat arbitrary.
 			if(!isSVideoOutput) {
-				constexpr float sharpen[] = {
-					0.0042115543f,
-					0.0f,
-					-0.0641804263f,
-					-0.252418578f,
-					-0.589709163f,
-					0.987914681f,
-					0.627704679f,
-					-0.426862389f,
-					0.627704679f
-				};
+				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 20.0f, colourCyclesPerLine);
+				const auto sharpen = sharpenFilter.get_coefficients();
 				for(size_t c = 0; c < 8; ++c) {
 					chromaCoefficients[c].x = sharpen[c];
 				}
@@ -601,11 +597,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Generate the luminance separation filter.
 		{
-			// TODO: support separate high-low filters for chroma and luma, rather than treating that as purely subtractive.
-
 			auto *const luminanceCoefficients = uniforms()->lumaCoefficients;
-			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.75f);
-			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 1.0f);
+			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.6f);
+			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 1.25f);
 
 			const auto lumaCoefficients = lumaPart.get_coefficients();
 			const auto chromaCoefficients = chromaPart.get_coefficients();
