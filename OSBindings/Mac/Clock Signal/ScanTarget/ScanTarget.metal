@@ -258,17 +258,28 @@ float4 composite(float level, float2 quadrature, float amplitude) {
 	);
 }
 
-// There's only one meaningful way to sample the luminance formats.
+// The luminance formats can be sampled either in their natural format, or to the intermediate
+// composite format used for composition. Direct sampling is always for final output, so the two
+// 8-bit formats also provide a gamma option.
 
-fragment float4 sampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
+fragment float4 sampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+	const float luminance = clamp(float(texture.sample(standardSampler, vert.textureCoordinates).r), 0.0f, 1.0f) * uniforms.outputMultiplier;
+	return float4(float3(luminance), uniforms.outputAlpha);
+}
+
+fragment float4 compositeSampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
 	return composite(texture.sample(standardSampler, vert.textureCoordinates).r, quadrature(vert.colourPhase), vert.colourAmplitude);
 }
 
-fragment float4 sampleLuminance8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+fragment float4 sampleLuminance8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+	return float4(texture.sample(standardSampler, vert.textureCoordinates).rrr * uniforms.outputMultiplier, uniforms.outputAlpha);
+}
+
+fragment float4 compositeSampleLuminance8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
 	return composite(texture.sample(standardSampler, vert.textureCoordinates).r, quadrature(vert.colourPhase), vert.colourAmplitude);
 }
 
-fragment float4 samplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+fragment float4 compositeSamplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
 	const int offset = int(vert.colourPhase * 4.0);
 	auto sample = texture.sample(standardSampler, vert.textureCoordinates);
 	return composite(sample[offset], quadrature(vert.colourPhase), vert.colourAmplitude);
@@ -369,14 +380,14 @@ fragment float4 clearFragment() {
 
 /// Given input pixels of the form (luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase)), applies a lowpass
 /// filter to the two chrominance parts, then uses the toRGB matrix to convert to RGB and stores.
-kernel void filterChromaKernel(	texture2d<float, access::read> inTexture [[texture(0)]],
-								texture2d<float, access::write> outTexture [[texture(1)]],
-								uint2 gid [[thread_position_in_grid]],
-								constant Uniforms &uniforms [[buffer(0)]],
-								constant int &offset [[buffer(1)]]) {
+template <bool applyGamma> void filterChromaKernel(	texture2d<float, access::read> inTexture [[texture(0)]],
+													texture2d<float, access::write> outTexture [[texture(1)]],
+													uint2 gid [[thread_position_in_grid]],
+													constant Uniforms &uniforms [[buffer(0)]],
+													constant int &offset [[buffer(1)]]) {
 	constexpr float4 moveToZero = float4(0.0f, 0.5f, 0.5f, 0.0f);
 	const float4 rawSamples[] = {
-		inTexture.read(gid + uint2(0, offset))  - moveToZero,
+		inTexture.read(gid + uint2(0, offset)) - moveToZero,
 		inTexture.read(gid + uint2(1, offset)) - moveToZero,
 		inTexture.read(gid + uint2(2, offset)) - moveToZero,
 		inTexture.read(gid + uint2(3, offset)) - moveToZero,
@@ -400,7 +411,28 @@ kernel void filterChromaKernel(	texture2d<float, access::read> inTexture [[textu
 		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
 #undef Sample
 
-	outTexture.write(float4(uniforms.toRGB * colour, 1.0f), gid + uint2(7, offset));
+	const float4 output = float4(uniforms.toRGB * colour * uniforms.outputMultiplier, uniforms.outputAlpha);
+	if(applyGamma) {
+		outTexture.write(pow(output, uniforms.outputGamma), gid + uint2(7, offset));
+	} else {
+		outTexture.write(output, gid + uint2(7, offset));
+	}
+}
+
+kernel void filterChromaKernelNoGamma(texture2d<float, access::read> inTexture [[texture(0)]],
+													texture2d<float, access::write> outTexture [[texture(1)]],
+													uint2 gid [[thread_position_in_grid]],
+													constant Uniforms &uniforms [[buffer(0)]],
+													constant int &offset [[buffer(1)]]) {
+	filterChromaKernel<false>(inTexture, outTexture, gid, uniforms, offset);
+}
+
+kernel void filterChromaKernelWithGamma(texture2d<float, access::read> inTexture [[texture(0)]],
+													texture2d<float, access::write> outTexture [[texture(1)]],
+													uint2 gid [[thread_position_in_grid]],
+													constant Uniforms &uniforms [[buffer(0)]],
+													constant int &offset [[buffer(1)]]) {
+	filterChromaKernel<true>(inTexture, outTexture, gid, uniforms, offset);
 }
 
 /// Given input pixels of the form:
@@ -446,9 +478,11 @@ kernel void separateLumaKernel(	texture2d<float, access::read> inTexture [[textu
 
 	// The mix/steps below ensures that the absence of a colour burst leads the colour subcarrier to be discarded.
 	const float isColour = step(0.01, centreSample.a);
+	const float chroma = (centreSample.r - luminance.g) / mix(1.0f, centreSample.a, isColour);
 	outTexture.write(float4(
-			mix(luminance.g, luminance.r / (1.0f - centreSample.a), isColour),
-			isColour * (centreSample.gb - float2(0.5f)) * (centreSample.r - luminance.g) / mix(1.0f, centreSample.a, isColour) + float2(0.5f),
+//			mix(luminance.g, luminance.r / (1.0f - centreSample.a), isColour),
+			luminance.r / mix(1.0f, (1.0f - centreSample.a), isColour),
+			isColour * (centreSample.gb - float2(0.5f)) * chroma + float2(0.5f),
 			1.0f
 		),
 		gid + uint2(7, offset));

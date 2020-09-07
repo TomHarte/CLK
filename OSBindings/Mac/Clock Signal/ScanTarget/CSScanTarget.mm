@@ -378,6 +378,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	}
 }
 
+- (BOOL)shouldApplyGamma {
+	return fabsf(uniforms()->outputGamma - 1.0f) > 0.01f;
+}
+
 - (void)updateModalBuffers {
 	// Build a descriptor for any intermediate line texture.
 	MTLTextureDescriptor *const lineTextureDescriptor = [MTLTextureDescriptor
@@ -409,10 +413,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLLibrary> library = [_view.device newDefaultLibrary];
 	lineTextureDescriptor.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
 
-	// The finalised texture will definitely exist.
+	// The finalised texture will definitely exist, and may or may not require a gamma conversion when written to.
 	if(!_finalisedLineTexture) {
 		_finalisedLineTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
-		_finalisedLineState = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:@"filterChromaKernel"] error:nil];
+
+		NSString *const kernelFunction = [self shouldApplyGamma] ? @"filterChromaKernelWithGamma" : @"filterChromaKernelNoGamma";
+		_finalisedLineState = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction] error:nil];
 	}
 
 	// A luma separation texture will exist only for composite colour.
@@ -551,29 +557,32 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		/// Fragment shader that outputs directly as monochrome composite.
 		NSString *const directComposite;
+		/// Fragment shader that outputs directly as monochrome composite, with gamma correction.
+		NSString *const directCompositeWithGamma;
 		/// Fragment shader that outputs directly as RGB.
 		NSString *const directRGB;
+		/// Fragment shader that outputs directly as RGB, with gamma correction.
+		NSString *const directRGBWithGamma;
 	};
 	const FragmentSamplerDictionary samplerDictionary[8] = {
-		// Luminance1
-		{@"sampleLuminance1", nullptr, @"sampleLuminance1", nullptr},
-		{@"sampleLuminance8", nullptr, @"sampleLuminance8", nullptr},
-		{@"samplePhaseLinkedLuminance8", nullptr, @"samplePhaseLinkedLuminance8", nullptr},
-		{@"compositeSampleLuminance8Phase8", @"sampleLuminance8Phase8", @"compositeSampleLuminance8Phase8", nullptr},
-		{@"compositeSampleRed1Green1Blue1", @"svideoSampleRed1Green1Blue1", @"compositeSampleRed1Green1Blue1", @"sampleRed1Green1Blue1"},
-		{@"compositeSampleRed2Green2Blue2", @"svideoSampleRed2Green2Blue2", @"compositeSampleRed2Green2Blue2", @"sampleRed2Green2Blue2"},
-		{@"compositeSampleRed4Green4Blue4", @"svideoSampleRed4Green4Blue4", @"compositeSampleRed4Green4Blue4", @"sampleRed4Green4Blue4"},
-		{@"compositeSampleRed8Green8Blue8", @"svideoSampleRed8Green8Blue8", @"compositeSampleRed8Green8Blue8", @"sampleRed8Green8Blue8"},
+		{@"compositeSampleLuminance1", nullptr, @"sampleLuminance1", @"sampleLuminance1", nullptr, nullptr},
+		{@"compositeSampleLuminance8", nullptr, @"sampleLuminance8", nullptr},
+		{@"compositeSamplePhaseLinkedLuminance8", nullptr, @"samplePhaseLinkedLuminance8", nullptr},
+		{@"compositeSampleLuminance8Phase8", @"sampleLuminance8Phase8", @"compositeSampleLuminance8Phase8", nullptr, nullptr, nullptr},
+		{@"compositeSampleRed1Green1Blue1", @"svideoSampleRed1Green1Blue1", @"compositeSampleRed1Green1Blue1", nullptr, @"sampleRed1Green1Blue1", nullptr},
+		{@"compositeSampleRed2Green2Blue2", @"svideoSampleRed2Green2Blue2", @"compositeSampleRed2Green2Blue2", nullptr, @"sampleRed2Green2Blue2", nullptr},
+		{@"compositeSampleRed4Green4Blue4", @"svideoSampleRed4Green4Blue4", @"compositeSampleRed4Green4Blue4", nullptr, @"sampleRed4Green4Blue4", nullptr},
+		{@"compositeSampleRed8Green8Blue8", @"svideoSampleRed8Green8Blue8", @"compositeSampleRed8Green8Blue8", nullptr, @"sampleRed8Green8Blue8", nullptr},
 	};
 
 #ifndef NDEBUG
 	// Do a quick check of the names entered above. I don't think this is possible at compile time.
-	for(int c = 0; c < 8; ++c) {
-		if(samplerDictionary[c].compositionComposite)	assert([library newFunctionWithName:samplerDictionary[c].compositionComposite]);
-		if(samplerDictionary[c].compositionSVideo)		assert([library newFunctionWithName:samplerDictionary[c].compositionSVideo]);
-		if(samplerDictionary[c].directComposite)		assert([library newFunctionWithName:samplerDictionary[c].directComposite]);
-		if(samplerDictionary[c].directRGB)				assert([library newFunctionWithName:samplerDictionary[c].directRGB]);
-	}
+//	for(int c = 0; c < 8; ++c) {
+//		if(samplerDictionary[c].compositionComposite)	assert([library newFunctionWithName:samplerDictionary[c].compositionComposite]);
+//		if(samplerDictionary[c].compositionSVideo)		assert([library newFunctionWithName:samplerDictionary[c].compositionSVideo]);
+//		if(samplerDictionary[c].directComposite)		assert([library newFunctionWithName:samplerDictionary[c].directComposite]);
+//		if(samplerDictionary[c].directRGB)				assert([library newFunctionWithName:samplerDictionary[c].directRGB]);
+//	}
 #endif
 
 	uniforms()->cyclesMultiplier = 1.0f;
@@ -625,19 +634,19 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			//
 			// The 30 ['Hz' but per line, not per second] is somewhat arbitrary.
 			if(!isSVideoOutput) {
-				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 40.0f, colourCyclesPerLine);
-				const auto sharpen = sharpenFilter.get_coefficients();
-				for(size_t c = 0; c < 8; ++c) {
-					chromaCoefficients[c].x = sharpen[c];
-				}
+//				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 40.0f, colourCyclesPerLine);
+//				const auto sharpen = sharpenFilter.get_coefficients();
+//				for(size_t c = 0; c < 8; ++c) {
+//					chromaCoefficients[c].x = sharpen[c];
+//				}
 			}
 		}
 
 		// Generate the luminance separation filter.
 		{
 			auto *const luminanceCoefficients = uniforms()->lumaCoefficients;
-			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.6f);
-			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 1.0f);
+			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 80.0f, colourCyclesPerLine * 0.6f);
+			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine);
 
 			const auto lumaCoefficients = lumaPart.get_coefficients();
 			const auto chromaCoefficients = chromaPart.get_coefficients();
