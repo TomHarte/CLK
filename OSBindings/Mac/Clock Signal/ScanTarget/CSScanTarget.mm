@@ -667,12 +667,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			//
 			// The low cut off ['Hz' but per line, not per second] is somewhat arbitrary.
 			if(!isSVideoOutput) {
-//				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 80.0f, colourCyclesPerLine * 0.5f);
-//				const auto sharpen = sharpenFilter.get_coefficients();
-//				for(size_t c = 0; c < 8; ++c) {
-//					firCoefficients[c].x = firCoefficients[c].y;
-//					firCoefficients[c].x = sharpen[c];
-//				}
+				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 40.0f, colourCyclesPerLine);
+				const auto sharpen = sharpenFilter.get_coefficients();
+				for(size_t c = 0; c < 8; ++c) {
+					firCoefficients[c].x = sharpen[c];
+				}
 			}
 		}
 
