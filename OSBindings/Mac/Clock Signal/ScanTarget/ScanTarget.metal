@@ -36,9 +36,9 @@ struct Uniforms {
 	// 15 coefficients but they're symmetrical around the centre.
 	float3 chromaCoefficients[8];
 
-	// Describes the FIR filter in use for luma filtering; also 15 coefficients
+	// Describes the filter in use for luma filtering; 15 coefficients
 	// symmetrical around the centre.
-	float2 lumaCoefficients[8];
+	float lumaKernel[8];
 
 	// Maps from pixel offsets into the composition buffer to angular difference.
 	float radiansPerPixel;
@@ -449,45 +449,43 @@ kernel void filterChromaKernelWithGamma(texture2d<float, access::read> inTexture
 ///	(luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase))
 ///
 /// i.e. the input form for the filterChromaKernel, above].
-kernel void separateLumaKernel(	texture2d<float, access::read> inTexture [[texture(0)]],
-								texture2d<float, access::write> outTexture [[texture(1)]],
+kernel void separateLumaKernel(	texture2d<half, access::read> inTexture [[texture(0)]],
+								texture2d<half, access::write> outTexture [[texture(1)]],
 								uint2 gid [[thread_position_in_grid]],
 								constant Uniforms &uniforms [[buffer(0)]],
 								constant int &offset [[buffer(1)]]) {
-	const float4 centreSample = inTexture.read(gid + uint2(7, offset));
-	const float2 rawSamples[] = {
-		inTexture.read(gid + uint2(0, offset)).rr,
-		inTexture.read(gid + uint2(1, offset)).rr,
-		inTexture.read(gid + uint2(2, offset)).rr,
-		inTexture.read(gid + uint2(3, offset)).rr,
-		inTexture.read(gid + uint2(4, offset)).rr,
-		inTexture.read(gid + uint2(5, offset)).rr,
-		inTexture.read(gid + uint2(6, offset)).rr,
-		centreSample.rr,
-		inTexture.read(gid + uint2(8, offset)).rr,
-		inTexture.read(gid + uint2(9, offset)).rr,
-		inTexture.read(gid + uint2(10, offset)).rr,
-		inTexture.read(gid + uint2(11, offset)).rr,
-		inTexture.read(gid + uint2(12, offset)).rr,
-		inTexture.read(gid + uint2(13, offset)).rr,
-		inTexture.read(gid + uint2(14, offset)).rr,
+	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
+	const half rawSamples[] = {
+		inTexture.read(gid + uint2(0, offset)).r,
+		inTexture.read(gid + uint2(1, offset)).r,
+		inTexture.read(gid + uint2(2, offset)).r,
+		inTexture.read(gid + uint2(3, offset)).r,
+		inTexture.read(gid + uint2(4, offset)).r,
+		inTexture.read(gid + uint2(5, offset)).r,
+		inTexture.read(gid + uint2(6, offset)).r,
+		centreSample.r,
+		inTexture.read(gid + uint2(8, offset)).r,
+		inTexture.read(gid + uint2(9, offset)).r,
+		inTexture.read(gid + uint2(10, offset)).r,
+		inTexture.read(gid + uint2(11, offset)).r,
+		inTexture.read(gid + uint2(12, offset)).r,
+		inTexture.read(gid + uint2(13, offset)).r,
+		inTexture.read(gid + uint2(14, offset)).r,
 	};
 
-#define Sample(x, y) uniforms.lumaCoefficients[y] * rawSamples[x]
-	const float2 luminance =
+#define Sample(x, y) half(uniforms.lumaKernel[y]) * rawSamples[x]
+	const half luminance =
 		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
 		Sample(7, 7) +
 		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
 #undef Sample
 
 	// The mix/steps below ensures that the absence of a colour burst leads the colour subcarrier to be discarded.
-	const float isColour = step(0.01, centreSample.a);
-	const float chroma = (centreSample.r - luminance.g) / mix(1.0f, centreSample.a, isColour);
-	outTexture.write(float4(
-//			mix(luminance.g, luminance.r / (1.0f - centreSample.a), isColour),
-			luminance.r / mix(1.0f, (1.0f - centreSample.a), isColour),
-//			luminance.r,
-			isColour * (centreSample.gb - float2(0.5f)) * chroma + float2(0.5f),
+	const half isColour = step(half(0.01f), centreSample.a);
+	const half chroma = (centreSample.r - luminance) / mix(half(1.0f), centreSample.a, isColour);
+	outTexture.write(half4(
+			luminance / mix(half(1.0f), (half(1.0f) - centreSample.a), isColour),
+			isColour * (centreSample.gb - half2(0.5f)) * chroma + half2(0.5f),
 			1.0f
 		),
 		gid + uint2(7, offset));

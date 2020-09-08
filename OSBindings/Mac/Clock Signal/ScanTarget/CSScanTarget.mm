@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 
 #include "BufferingScanTarget.hpp"
 #include "FIRFilter.hpp"
@@ -104,7 +105,7 @@ struct Uniforms {
 	float zoom;
 	simd::float2 offset;
 	simd::float3 chromaCoefficients[8];
-	simd::float2 lumaCoefficients[8];
+	float lumaKernel[8];
 	float radiansPerPixel;
 	float cyclesMultiplier;
 	float outputAlpha;
@@ -164,6 +165,30 @@ std::array<float, 8> boxCoefficients(float radiansPerPixel, float cutoff) {
 	}
 
 	return filter;
+}
+
+/// @returns the IEEE 754 binary16 conversion of @c value, stored in a 16-bit int.
+uint16_t half(float value) {
+	uint16_t result = 0;
+
+	if(value < 0) {
+		result |= 0x8000;
+		value = -value;
+	}
+
+	int exponent;
+	const float mantissa = frexpf(value, &exponent);
+
+	// There is a bias of 15 on the exponent; given that the value given by frexp doesn't have the
+	// implicit first bit — that'll be masked off below — that's like a bias of 14 versus the output
+	// of frexp.
+	exponent += 14;
+	result |= (exponent & 31) << 10;
+
+	// Also store the mantissa.
+	result |= uint16_t(mantissa * 2048.0f) & 0x3ff;
+
+	return result;
 }
 
 }
@@ -257,6 +282,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	BufferingScanTarget _scanTarget;
 	BufferingScanTarget::LineMetadata _lineMetadataBuffer[NumBufferedLines];
 	std::atomic_flag _isDrawing;
+
+	// Additional pipeline information.
+	size_t _lumaKernelSize;
 
 	// The output view.
 	__weak MTKView *_view;
@@ -653,7 +681,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Generate the chrominance filter.
 		{
 			auto *const firCoefficients = uniforms()->chromaCoefficients;
-			const auto chromaCoefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f * 0.5f);
+			const auto chromaCoefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);
 			for(size_t c = 0; c < 8; ++c) {
 				firCoefficients[c].y = firCoefficients[c].z = (isSVideoOutput ? 2.0f : 1.0f) * chromaCoefficients[c];
 				firCoefficients[c].x = 0.0f;
@@ -667,7 +695,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			//
 			// The low cut off ['Hz' but per line, not per second] is somewhat arbitrary.
 			if(!isSVideoOutput) {
-				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 40.0f, colourCyclesPerLine);
+				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 20.0f, colourCyclesPerLine);
 				const auto sharpen = sharpenFilter.get_coefficients();
 				for(size_t c = 0; c < 8; ++c) {
 					firCoefficients[c].x = sharpen[c];
@@ -675,20 +703,16 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			}
 		}
 
-		// Generate the luminance separation filter.
+		// Generate the luminance separation filter and determine its required size.
 		{
-			auto *const firCoefficients = uniforms()->lumaCoefficients;
-			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.5f);
-//			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.5f);
-
-//			const auto chromaCoefficients = lumaPart.get_coefficients();
-//			const auto lumaCoefficients = lumaPart.get_coefficients();
-			const auto chromaCoefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);//chromaPart.get_coefficients();
-			const auto lumaCoefficients = lumaPart.get_coefficients();
-//			const auto chromaCoefficients = lumaCoefficients;
+			auto *const filter = uniforms()->lumaKernel;
+			const auto coefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);
+			_lumaKernelSize = 15;
 			for(size_t c = 0; c < 8; ++c) {
-				firCoefficients[c].x = //lumaCoefficients[c];
-				firCoefficients[c].y = chromaCoefficients[c];
+				filter[c] = coefficients[c];
+				if(coefficients[c] < 0.01f) {
+					_lumaKernelSize -= 2;
+				}
 			}
 		}
 	}
