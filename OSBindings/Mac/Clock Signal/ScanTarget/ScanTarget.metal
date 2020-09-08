@@ -38,7 +38,7 @@ struct Uniforms {
 
 	// Describes the filter in use for luma filtering; 15 coefficients
 	// symmetrical around the centre.
-	float lumaKernel[8];
+	half lumaKernel[8];
 
 	// Maps from pixel offsets into the composition buffer to angular difference.
 	float radiansPerPixel;
@@ -384,13 +384,13 @@ fragment float4 clearFragment() {
 
 /// Given input pixels of the form (luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase)), applies a lowpass
 /// filter to the two chrominance parts, then uses the toRGB matrix to convert to RGB and stores.
-template <bool applyGamma> void filterChromaKernel(	texture2d<float, access::read> inTexture [[texture(0)]],
-													texture2d<float, access::write> outTexture [[texture(1)]],
+template <bool applyGamma> void filterChromaKernel(	texture2d<half, access::read> inTexture [[texture(0)]],
+													texture2d<half, access::write> outTexture [[texture(1)]],
 													uint2 gid [[thread_position_in_grid]],
 													constant Uniforms &uniforms [[buffer(0)]],
 													constant int &offset [[buffer(1)]]) {
-	constexpr float4 moveToZero = float4(0.0f, 0.5f, 0.5f, 0.0f);
-	const float4 rawSamples[] = {
+	constexpr half4 moveToZero(0.0f, 0.5f, 0.5f, 0.0f);
+	const half4 rawSamples[] = {
 		inTexture.read(gid + uint2(0, offset)) - moveToZero,
 		inTexture.read(gid + uint2(1, offset)) - moveToZero,
 		inTexture.read(gid + uint2(2, offset)) - moveToZero,
@@ -408,14 +408,14 @@ template <bool applyGamma> void filterChromaKernel(	texture2d<float, access::rea
 		inTexture.read(gid + uint2(14, offset)) - moveToZero,
 	};
 
-#define Sample(x, y) uniforms.chromaCoefficients[y] * rawSamples[x].rgb
-	const float3 colour =
+#define Sample(x, y) half3(uniforms.chromaCoefficients[y]) * rawSamples[x].rgb
+	const half3 colour =
 		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
 		Sample(7, 7) +
 		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
 #undef Sample
 
-	const float4 output = float4(uniforms.toRGB * colour * uniforms.outputMultiplier, uniforms.outputAlpha);
+	const half4 output = half4(half3x3(uniforms.toRGB) * colour * half(uniforms.outputMultiplier), half(uniforms.outputAlpha));
 	if(applyGamma) {
 		outTexture.write(pow(output, uniforms.outputGamma), gid + uint2(7, offset));
 	} else {
@@ -423,19 +423,19 @@ template <bool applyGamma> void filterChromaKernel(	texture2d<float, access::rea
 	}
 }
 
-kernel void filterChromaKernelNoGamma(texture2d<float, access::read> inTexture [[texture(0)]],
-													texture2d<float, access::write> outTexture [[texture(1)]],
-													uint2 gid [[thread_position_in_grid]],
-													constant Uniforms &uniforms [[buffer(0)]],
-													constant int &offset [[buffer(1)]]) {
+kernel void filterChromaKernelNoGamma(	texture2d<half, access::read> inTexture [[texture(0)]],
+										texture2d<half, access::write> outTexture [[texture(1)]],
+										uint2 gid [[thread_position_in_grid]],
+										constant Uniforms &uniforms [[buffer(0)]],
+										constant int &offset [[buffer(1)]]) {
 	filterChromaKernel<false>(inTexture, outTexture, gid, uniforms, offset);
 }
 
-kernel void filterChromaKernelWithGamma(texture2d<float, access::read> inTexture [[texture(0)]],
-													texture2d<float, access::write> outTexture [[texture(1)]],
-													uint2 gid [[thread_position_in_grid]],
-													constant Uniforms &uniforms [[buffer(0)]],
-													constant int &offset [[buffer(1)]]) {
+kernel void filterChromaKernelWithGamma(	texture2d<half, access::read> inTexture [[texture(0)]],
+											texture2d<half, access::write> outTexture [[texture(1)]],
+											uint2 gid [[thread_position_in_grid]],
+											constant Uniforms &uniforms [[buffer(0)]],
+											constant int &offset [[buffer(1)]]) {
 	filterChromaKernel<true>(inTexture, outTexture, gid, uniforms, offset);
 }
 
@@ -473,7 +473,7 @@ kernel void separateLumaKernel(	texture2d<half, access::read> inTexture [[textur
 		inTexture.read(gid + uint2(14, offset)).r,
 	};
 
-#define Sample(x, y) half(uniforms.lumaKernel[y]) * rawSamples[x]
+#define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
 	const half luminance =
 		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
 		Sample(7, 7) +

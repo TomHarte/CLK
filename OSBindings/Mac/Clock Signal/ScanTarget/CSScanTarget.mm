@@ -105,7 +105,7 @@ struct Uniforms {
 	float zoom;
 	simd::float2 offset;
 	simd::float3 chromaCoefficients[8];
-	float lumaKernel[8];
+	__fp16 lumaKernel[8];
 	float radiansPerPixel;
 	float cyclesMultiplier;
 	float outputAlpha;
@@ -165,30 +165,6 @@ std::array<float, 8> boxCoefficients(float radiansPerPixel, float cutoff) {
 	}
 
 	return filter;
-}
-
-/// @returns the IEEE 754 binary16 conversion of @c value, stored in a 16-bit int.
-uint16_t half(float value) {
-	uint16_t result = 0;
-
-	if(value < 0) {
-		result |= 0x8000;
-		value = -value;
-	}
-
-	int exponent;
-	const float mantissa = frexpf(value, &exponent);
-
-	// There is a bias of 15 on the exponent; given that the value given by frexp doesn't have the
-	// implicit first bit — that'll be masked off below — that's like a bias of 14 versus the output
-	// of frexp.
-	exponent += 14;
-	result |= (exponent & 31) << 10;
-
-	// Also store the mantissa.
-	result |= uint16_t(mantissa * 2048.0f) & 0x3ff;
-
-	return result;
 }
 
 }
@@ -709,7 +685,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			const auto coefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);
 			_lumaKernelSize = 15;
 			for(size_t c = 0; c < 8; ++c) {
-				filter[c] = coefficients[c];
+				filter[c] = __fp16(coefficients[c]);
 				if(coefficients[c] < 0.01f) {
 					_lumaKernelSize -= 2;
 				}
