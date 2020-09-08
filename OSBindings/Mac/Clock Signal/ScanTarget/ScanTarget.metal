@@ -101,7 +101,8 @@ struct Line {
 struct SourceInterpolator {
 	float4 position [[position]];
 	float2 textureCoordinates;
-	float colourPhase;
+	float unitColourPhase;		// i.e. one unit per circle.
+	float colourPhase;			// i.e. 2*pi units per circle, just regular radians.
 	float colourAmplitude [[flat]];
 };
 
@@ -147,11 +148,12 @@ template <typename Input> SourceInterpolator toDisplay(
 
 	// Load up the colour details.
 	output.colourAmplitude = float(inputs[instanceID].compositeAmplitude) / 255.0f;
-	output.colourPhase = 3.141592654f * mix(
+	output.unitColourPhase = mix(
 		float(inputs[instanceID].endPoints[0].compositeAngle),
 		float(inputs[instanceID].endPoints[1].compositeAngle),
 		float((vertexID&2) >> 1)
-	) / 32.0f;
+	) / 64.0f;
+	output.colourPhase = 2.0f * 3.141592654f * output.unitColourPhase;
 
 	// Hence determine this quad's real shape, using vertexID to pick a corner.
 
@@ -208,11 +210,12 @@ vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffe
 	result.textureCoordinates.x = mix(scans[instanceID].endPoints[0].dataOffset, scans[instanceID].endPoints[1].dataOffset, float(vertexID));
 	result.textureCoordinates.y = scans[instanceID].dataY;
 
-	result.colourPhase = 3.141592654f * mix(
+	result.unitColourPhase = mix(
 		float(scans[instanceID].endPoints[0].compositeAngle),
 		float(scans[instanceID].endPoints[1].compositeAngle),
 		float(vertexID)
-	) / 32.0f;
+	) / 64.0f;
+	result.colourPhase = 2.0f * 3.141592654f * result.unitColourPhase;
 	result.colourAmplitude = float(scans[instanceID].compositeAmplitude) / 255.0f;
 
 	// Map position into eye space, allowing for target texture dimensions.
@@ -280,9 +283,10 @@ fragment float4 compositeSampleLuminance8(SourceInterpolator vert [[stage_in]], 
 }
 
 fragment float4 compositeSamplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
-	const int offset = int(vert.colourPhase * 4.0);
+	const int offset = int(vert.unitColourPhase * 4.0f) & 3;
+	const float snappedColourPhase = float(offset) * (0.5f * 3.141592654f);	// TODO: plus machine-supplied offset.
 	auto sample = texture.sample(standardSampler, vert.textureCoordinates);
-	return composite(sample[offset], quadrature(vert.colourPhase), vert.colourAmplitude);
+	return composite(sample[offset], quadrature(snappedColourPhase), vert.colourAmplitude);
 }
 
 // The luminance/phase format can produce either composite or S-Video.
@@ -480,8 +484,8 @@ kernel void separateLumaKernel(	texture2d<float, access::read> inTexture [[textu
 	const float isColour = step(0.01, centreSample.a);
 	const float chroma = (centreSample.r - luminance.g) / mix(1.0f, centreSample.a, isColour);
 	outTexture.write(float4(
-//			mix(luminance.g, luminance.r / (1.0f - centreSample.a), isColour),
-			luminance.r / mix(1.0f, (1.0f - centreSample.a), isColour),
+			mix(luminance.g, luminance.r / (1.0f - centreSample.a), isColour),
+//			luminance.r / mix(1.0f, (1.0f - centreSample.a), isColour),
 			isColour * (centreSample.gb - float2(0.5f)) * chroma + float2(0.5f),
 			1.0f
 		),
