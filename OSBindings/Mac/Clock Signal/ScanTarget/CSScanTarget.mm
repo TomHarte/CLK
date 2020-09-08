@@ -135,6 +135,35 @@ constexpr MTLResourceOptions SharedResourceOptionsTexture = MTLResourceCPUCacheM
 		}	\
 	}
 
+std::array<float, 8> boxCoefficients(float radiansPerPixel, float cutoff) {
+	std::array<float, 8> filter;
+	float total = 0.0f;
+
+	for(size_t c = 0; c < 8; ++c) {
+		// This coefficient occupies the angular window [6.5-c, 7.5-c]*radiansPerPixel.
+		const float startAngle = (6.5f - float(c)) * radiansPerPixel;
+		const float endAngle = (7.5f - float(c)) * radiansPerPixel;
+
+		float coefficient = 0.0f;
+		if(endAngle < cutoff) {
+			coefficient = 1.0f;
+		} else if(startAngle >= cutoff) {
+			coefficient = 0.0f;
+		} else {
+			coefficient = (cutoff - startAngle) / radiansPerPixel;
+		}
+		total += 2.0f * coefficient;	// All but the centre coefficient will be used twice.
+		filter[c] = coefficient;
+	}
+	total = (total - filter[7]) / 2.0f;	// As per above; ensure the centre coefficient is counted only once.
+
+	for(size_t c = 0; c < 8; ++c) {
+		filter[c] /= total;
+	}
+
+	return filter;
+}
+
 }
 
 using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
@@ -616,23 +645,25 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
 		const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
+		// Store radians per pixel. TODO: is this now orphaned as a uniform? Should I keep it anyway?
+		uniforms()->radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / float(_lineBufferPixelsPerLine);
+
 		// Generate the chrominance filter.
 		{
-			auto *const chromaCoefficients = uniforms()->chromaCoefficients;
-			SignalProcessing::FIRFilter chrominancefilter(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.01f);
-			const auto calculatedChromaCoefficients = chrominancefilter.get_coefficients();
+			auto *const firCoefficients = uniforms()->chromaCoefficients;
+			const auto chromaCoefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);
 			for(size_t c = 0; c < 8; ++c) {
-				chromaCoefficients[c].y = chromaCoefficients[c].z = calculatedChromaCoefficients[c] * (isSVideoOutput ? 4.0f : 3.0f);
-				chromaCoefficients[c].x = 0.0f;
+				firCoefficients[c].y = firCoefficients[c].z = chromaCoefficients[c] / 2.0f;
+				firCoefficients[c].x = 0.0f;
 			}
-			chromaCoefficients[7].x = 1.0f;
+			firCoefficients[7].x = 1.0f;
 
 			// Luminance will be very soft as a result of the separation phase; apply a sharpen filter to try to undo that.
 			// This is applied separately because the first composite processing step is going to select between the nominal
 			// chroma and luma parts to take the place of luminance depending on whether a colour burst was found, and high-pass
 			// filtering the chrominance channel would be visually detrimental.
 			//
-			// The 30 ['Hz' but per line, not per second] is somewhat arbitrary.
+			// The low cut off ['Hz' but per line, not per second] is somewhat arbitrary.
 			if(!isSVideoOutput) {
 //				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 40.0f, colourCyclesPerLine);
 //				const auto sharpen = sharpenFilter.get_coefficients();
@@ -644,20 +675,17 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Generate the luminance separation filter.
 		{
-			auto *const luminanceCoefficients = uniforms()->lumaCoefficients;
-			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 80.0f, colourCyclesPerLine * 0.6f);
-			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine);
+			auto *const firCoefficients = uniforms()->lumaCoefficients;
+			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.6f);
+//			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.5f);
 
-			const auto lumaCoefficients = lumaPart.get_coefficients();
-			const auto chromaCoefficients = chromaPart.get_coefficients();
+			const auto chromaCoefficients = lumaPart.get_coefficients();
+			const auto lumaCoefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);//chromaPart.get_coefficients();
 			for(size_t c = 0; c < 8; ++c) {
-				luminanceCoefficients[c].x = lumaCoefficients[c];
-				luminanceCoefficients[c].y = chromaCoefficients[c];
+				firCoefficients[c].x = lumaCoefficients[c];
+				firCoefficients[c].y = chromaCoefficients[c];
 			}
 		}
-
-		// Store radians per pixel. TODO: is this now orphaned? Should I keep it anyway?
-		uniforms()->radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / float(_lineBufferPixelsPerLine);
 	}
 
 	// Build the output pipeline.
