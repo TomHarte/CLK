@@ -484,8 +484,9 @@ kernel void separateLumaKernel(	texture2d<float, access::read> inTexture [[textu
 	const float isColour = step(0.01, centreSample.a);
 	const float chroma = (centreSample.r - luminance.g) / mix(1.0f, centreSample.a, isColour);
 	outTexture.write(float4(
-			mix(luminance.g, luminance.r / (1.0f - centreSample.a), isColour),
-//			luminance.r / mix(1.0f, (1.0f - centreSample.a), isColour),
+//			mix(luminance.g, luminance.r / (1.0f - centreSample.a), isColour),
+			luminance.r / mix(1.0f, (1.0f - centreSample.a), isColour),
+//			luminance.r,
 			isColour * (centreSample.gb - float2(0.5f)) * chroma + float2(0.5f),
 			1.0f
 		),

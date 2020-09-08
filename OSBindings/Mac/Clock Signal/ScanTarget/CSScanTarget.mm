@@ -135,6 +135,8 @@ constexpr MTLResourceOptions SharedResourceOptionsTexture = MTLResourceCPUCacheM
 		}	\
 	}
 
+/// @returns the proper 1d kernel to apply a box filter around a certain point a pixel density of @c radiansPerPixel and applying an
+///		angular limit of @c cutoff. The values returned will be the first eight of a fifteen-point filter that is symmetrical around its centre.
 std::array<float, 8> boxCoefficients(float radiansPerPixel, float cutoff) {
 	std::array<float, 8> filter;
 	float total = 0.0f;
@@ -155,7 +157,7 @@ std::array<float, 8> boxCoefficients(float radiansPerPixel, float cutoff) {
 		total += 2.0f * coefficient;	// All but the centre coefficient will be used twice.
 		filter[c] = coefficient;
 	}
-	total = (total - filter[7]) / 2.0f;	// As per above; ensure the centre coefficient is counted only once.
+	total = total - filter[7];			// As per above; ensure the centre coefficient is counted only once.
 
 	for(size_t c = 0; c < 8; ++c) {
 		filter[c] /= total;
@@ -651,9 +653,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Generate the chrominance filter.
 		{
 			auto *const firCoefficients = uniforms()->chromaCoefficients;
-			const auto chromaCoefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);
+			const auto chromaCoefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f * 0.5f);
 			for(size_t c = 0; c < 8; ++c) {
-				firCoefficients[c].y = firCoefficients[c].z = chromaCoefficients[c] / 2.0f;
+				firCoefficients[c].y = firCoefficients[c].z = (isSVideoOutput ? 2.0f : 1.0f) * chromaCoefficients[c];
 				firCoefficients[c].x = 0.0f;
 			}
 			firCoefficients[7].x = 1.0f;
@@ -665,10 +667,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			//
 			// The low cut off ['Hz' but per line, not per second] is somewhat arbitrary.
 			if(!isSVideoOutput) {
-//				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 40.0f, colourCyclesPerLine);
+//				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 80.0f, colourCyclesPerLine * 0.5f);
 //				const auto sharpen = sharpenFilter.get_coefficients();
 //				for(size_t c = 0; c < 8; ++c) {
-//					chromaCoefficients[c].x = sharpen[c];
+//					firCoefficients[c].x = firCoefficients[c].y;
+//					firCoefficients[c].x = sharpen[c];
 //				}
 			}
 		}
@@ -676,13 +679,16 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Generate the luminance separation filter.
 		{
 			auto *const firCoefficients = uniforms()->lumaCoefficients;
-			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.6f);
+			SignalProcessing::FIRFilter lumaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.5f);
 //			SignalProcessing::FIRFilter chromaPart(15, float(_lineBufferPixelsPerLine), 0.0f, colourCyclesPerLine * 0.5f);
 
-			const auto chromaCoefficients = lumaPart.get_coefficients();
-			const auto lumaCoefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);//chromaPart.get_coefficients();
+//			const auto chromaCoefficients = lumaPart.get_coefficients();
+//			const auto lumaCoefficients = lumaPart.get_coefficients();
+			const auto chromaCoefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);//chromaPart.get_coefficients();
+			const auto lumaCoefficients = lumaPart.get_coefficients();
+//			const auto chromaCoefficients = lumaCoefficients;
 			for(size_t c = 0; c < 8; ++c) {
-				firCoefficients[c].x = lumaCoefficients[c];
+				firCoefficients[c].x = //lumaCoefficients[c];
 				firCoefficients[c].y = chromaCoefficients[c];
 			}
 		}
