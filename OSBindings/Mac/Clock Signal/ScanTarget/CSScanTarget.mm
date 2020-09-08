@@ -460,7 +460,18 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	if(_pipeline == Pipeline::CompositeColour) {
 		if(!_separatedLumaTexture) {
 			_separatedLumaTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
-			_separatedLumaState = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:@"separateLumaKernel"] error:nil];
+
+			NSString *kernelFunction;
+			switch(_lumaKernelSize) {
+				default:	kernelFunction = @"separateLumaKernel15";	break;
+				case 9:		kernelFunction = @"separateLumaKernel9";	break;
+				case 7:		kernelFunction = @"separateLumaKernel7";	break;
+				case 1:
+				case 3:
+				case 5:		kernelFunction = @"separateLumaKernel5";	break;
+			}
+
+			_separatedLumaState = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction] error:nil];
 		}
 	} else {
 		_separatedLumaTexture = nil;
@@ -580,9 +591,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_pipeline = isSVideoOutput ? Pipeline::SVideo : Pipeline::CompositeColour;
 	}
 
-	// Update intermediate storage.
-	[self updateModalBuffers];
-
 	// TODO: factor in gamma, which may or may not be a factor (it isn't for 1-bit formats).
 	struct FragmentSamplerDictionary {
 		/// Fragment shader that outputs to the composition buffer for composite processing.
@@ -633,21 +641,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			}
 		}
 
-		// Create the composition render pass.
- 		pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
-		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToComposition"];
-		pipelineDescriptor.fragmentFunction =
-			[library newFunctionWithName:isSVideoOutput ? samplerDictionary[int(modals.input_data_type)].compositionSVideo : samplerDictionary[int(modals.input_data_type)].compositionComposite];
-
-		_composePipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
-
-		_compositionRenderPass = [[MTLRenderPassDescriptor alloc] init];
-		_compositionRenderPass.colorAttachments[0].texture = _compositionTexture;
-		_compositionRenderPass.colorAttachments[0].loadAction = MTLLoadActionClear;
-		_compositionRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
-		_compositionRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.5, 0.5, 0.3);
-
-		// Create suitable FIR filters.
+		// Create suitable filters.
 		_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
 		const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
@@ -691,6 +685,25 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				}
 			}
 		}
+	}
+
+	// Update intermediate storage.
+	[self updateModalBuffers];
+
+	if(_pipeline != Pipeline::DirectToDisplay) {
+		// Create the composition render pass.
+ 		pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
+		pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToComposition"];
+		pipelineDescriptor.fragmentFunction =
+			[library newFunctionWithName:isSVideoOutput ? samplerDictionary[int(modals.input_data_type)].compositionSVideo : samplerDictionary[int(modals.input_data_type)].compositionComposite];
+
+		_composePipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+
+		_compositionRenderPass = [[MTLRenderPassDescriptor alloc] init];
+		_compositionRenderPass.colorAttachments[0].texture = _compositionTexture;
+		_compositionRenderPass.colorAttachments[0].loadAction = MTLLoadActionClear;
+		_compositionRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
+		_compositionRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.5, 0.5, 0.3);
 	}
 
 	// Build the output pipeline.

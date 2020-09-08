@@ -439,6 +439,19 @@ kernel void filterChromaKernelWithGamma(	texture2d<half, access::read> inTexture
 	filterChromaKernel<true>(inTexture, outTexture, gid, uniforms, offset);
 }
 
+void setSeparatedLumaChroma(half luminance, half4 centreSample, texture2d<half, access::write> outTexture, uint2 gid, int offset) {
+	// The mix/steps below ensures that the absence of a colour burst leads the colour subcarrier to be discarded.
+	const half isColour = step(half(0.01f), centreSample.a);
+	const half chroma = (centreSample.r - luminance) / mix(half(1.0f), centreSample.a, isColour);
+	outTexture.write(half4(
+			luminance / mix(half(1.0f), (half(1.0f) - centreSample.a), isColour),
+			isColour * (centreSample.gb - half2(0.5f)) * chroma + half2(0.5f),
+			1.0f
+		),
+		gid + uint2(7, offset));
+}
+
+
 /// Given input pixels of the form:
 ///
 ///	(composite sample, cos(phase), sin(phase), colour amplitude), applies a lowpass
@@ -449,28 +462,22 @@ kernel void filterChromaKernelWithGamma(	texture2d<half, access::read> inTexture
 ///	(luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase))
 ///
 /// i.e. the input form for the filterChromaKernel, above].
-kernel void separateLumaKernel(	texture2d<half, access::read> inTexture [[texture(0)]],
-								texture2d<half, access::write> outTexture [[texture(1)]],
-								uint2 gid [[thread_position_in_grid]],
-								constant Uniforms &uniforms [[buffer(0)]],
-								constant int &offset [[buffer(1)]]) {
+kernel void separateLumaKernel15(	texture2d<half, access::read> inTexture [[texture(0)]],
+									texture2d<half, access::write> outTexture [[texture(1)]],
+									uint2 gid [[thread_position_in_grid]],
+									constant Uniforms &uniforms [[buffer(0)]],
+									constant int &offset [[buffer(1)]]) {
 	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
 	const half rawSamples[] = {
-		inTexture.read(gid + uint2(0, offset)).r,
-		inTexture.read(gid + uint2(1, offset)).r,
-		inTexture.read(gid + uint2(2, offset)).r,
-		inTexture.read(gid + uint2(3, offset)).r,
-		inTexture.read(gid + uint2(4, offset)).r,
-		inTexture.read(gid + uint2(5, offset)).r,
+		inTexture.read(gid + uint2(0, offset)).r,	inTexture.read(gid + uint2(1, offset)).r,
+		inTexture.read(gid + uint2(2, offset)).r,	inTexture.read(gid + uint2(3, offset)).r,
+		inTexture.read(gid + uint2(4, offset)).r,	inTexture.read(gid + uint2(5, offset)).r,
 		inTexture.read(gid + uint2(6, offset)).r,
 		centreSample.r,
 		inTexture.read(gid + uint2(8, offset)).r,
-		inTexture.read(gid + uint2(9, offset)).r,
-		inTexture.read(gid + uint2(10, offset)).r,
-		inTexture.read(gid + uint2(11, offset)).r,
-		inTexture.read(gid + uint2(12, offset)).r,
-		inTexture.read(gid + uint2(13, offset)).r,
-		inTexture.read(gid + uint2(14, offset)).r,
+		inTexture.read(gid + uint2(9, offset)).r,	inTexture.read(gid + uint2(10, offset)).r,
+		inTexture.read(gid + uint2(11, offset)).r,	inTexture.read(gid + uint2(12, offset)).r,
+		inTexture.read(gid + uint2(13, offset)).r,	inTexture.read(gid + uint2(14, offset)).r,
 	};
 
 #define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
@@ -480,13 +487,75 @@ kernel void separateLumaKernel(	texture2d<half, access::read> inTexture [[textur
 		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
 #undef Sample
 
-	// The mix/steps below ensures that the absence of a colour burst leads the colour subcarrier to be discarded.
-	const half isColour = step(half(0.01f), centreSample.a);
-	const half chroma = (centreSample.r - luminance) / mix(half(1.0f), centreSample.a, isColour);
-	outTexture.write(half4(
-			luminance / mix(half(1.0f), (half(1.0f) - centreSample.a), isColour),
-			isColour * (centreSample.gb - half2(0.5f)) * chroma + half2(0.5f),
-			1.0f
-		),
-		gid + uint2(7, offset));
+	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
+}
+
+kernel void separateLumaKernel9(	texture2d<half, access::read> inTexture [[texture(0)]],
+									texture2d<half, access::write> outTexture [[texture(1)]],
+									uint2 gid [[thread_position_in_grid]],
+									constant Uniforms &uniforms [[buffer(0)]],
+									constant int &offset [[buffer(1)]]) {
+	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
+	const half rawSamples[] = {
+		inTexture.read(gid + uint2(3, offset)).r,	inTexture.read(gid + uint2(4, offset)).r,
+		inTexture.read(gid + uint2(5, offset)).r,	inTexture.read(gid + uint2(6, offset)).r,
+		centreSample.r,
+		inTexture.read(gid + uint2(8, offset)).r,	inTexture.read(gid + uint2(9, offset)).r,
+		inTexture.read(gid + uint2(10, offset)).r,	inTexture.read(gid + uint2(11, offset)).r
+	};
+
+#define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
+	const half luminance =
+		Sample(0, 3) + Sample(1, 4) + Sample(2, 5) + Sample(3, 6) +
+		Sample(4, 7) +
+		Sample(5, 6) + Sample(6, 5) + Sample(7, 4) + Sample(8, 3);
+#undef Sample
+
+	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
+}
+
+kernel void separateLumaKernel7(	texture2d<half, access::read> inTexture [[texture(0)]],
+									texture2d<half, access::write> outTexture [[texture(1)]],
+									uint2 gid [[thread_position_in_grid]],
+									constant Uniforms &uniforms [[buffer(0)]],
+									constant int &offset [[buffer(1)]]) {
+	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
+	const half rawSamples[] = {
+		inTexture.read(gid + uint2(4, offset)).r,
+		inTexture.read(gid + uint2(5, offset)).r,	inTexture.read(gid + uint2(6, offset)).r,
+		centreSample.r,
+		inTexture.read(gid + uint2(8, offset)).r,	inTexture.read(gid + uint2(9, offset)).r,
+		inTexture.read(gid + uint2(10, offset)).r
+	};
+
+#define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
+	const half luminance =
+		Sample(0, 4) + Sample(1, 5) + Sample(2, 6) +
+		Sample(3, 7) +
+		Sample(4, 6) + Sample(5, 5) + Sample(6, 4);
+#undef Sample
+
+	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
+}
+
+kernel void separateLumaKernel5(	texture2d<half, access::read> inTexture [[texture(0)]],
+									texture2d<half, access::write> outTexture [[texture(1)]],
+									uint2 gid [[thread_position_in_grid]],
+									constant Uniforms &uniforms [[buffer(0)]],
+									constant int &offset [[buffer(1)]]) {
+	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
+	const half rawSamples[] = {
+		inTexture.read(gid + uint2(5, offset)).r,	inTexture.read(gid + uint2(6, offset)).r,
+		centreSample.r,
+		inTexture.read(gid + uint2(8, offset)).r,	inTexture.read(gid + uint2(9, offset)).r,
+	};
+
+#define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
+	const half luminance =
+		Sample(0, 5) + Sample(1, 6) +
+		Sample(2, 7) +
+		Sample(3, 6) + Sample(4, 5);
+#undef Sample
+
+	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
 }
