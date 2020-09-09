@@ -246,14 +246,14 @@ vertex CopyInterpolator copyVertex(uint vertexID [[vertex_id]], texture2d<float>
 
 // MARK: - Various input format conversion samplers.
 
-float2 quadrature(float phase) {
-	return float2(cos(phase), sin(phase));
+half2 quadrature(float phase) {
+	return half2(cos(phase), sin(phase));
 }
 
-float4 composite(float level, float2 quadrature, float amplitude) {
-	return float4(
+half4 composite(half level, half2 quadrature, half amplitude) {
+	return half4(
 		level,
-		float2(0.5f) + quadrature*0.5f,
+		half2(0.5f) + quadrature*half(0.5f),
 		amplitude
 	);
 }
@@ -262,24 +262,30 @@ float4 composite(float level, float2 quadrature, float amplitude) {
 // composite format used for composition. Direct sampling is always for final output, so the two
 // 8-bit formats also provide a gamma option.
 
-fragment float4 sampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-	const float luminance = clamp(float(texture.sample(standardSampler, vert.textureCoordinates).r), 0.0f, 1.0f) * uniforms.outputMultiplier;
-	return float4(float3(luminance), uniforms.outputAlpha);
+fragment half4 sampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+	const half luminance = clamp(half(texture.sample(standardSampler, vert.textureCoordinates).r), half(0.0f), half(1.0f)) * uniforms.outputMultiplier;
+	return half4(half3(luminance), uniforms.outputAlpha);
 }
 
-fragment float4 compositeSampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
+fragment half4 compositeSampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
 	return composite(texture.sample(standardSampler, vert.textureCoordinates).r, quadrature(vert.colourPhase), vert.colourAmplitude);
 }
 
-fragment float4 sampleLuminance8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-	return float4(texture.sample(standardSampler, vert.textureCoordinates).rrr * uniforms.outputMultiplier, uniforms.outputAlpha);
+fragment half4 sampleLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+	return half4(texture.sample(standardSampler, vert.textureCoordinates).rrr * uniforms.outputMultiplier, uniforms.outputAlpha);
 }
 
-fragment float4 compositeSampleLuminance8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+fragment half4 compositeSampleLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
 	return composite(texture.sample(standardSampler, vert.textureCoordinates).r, quadrature(vert.colourPhase), vert.colourAmplitude);
 }
 
-fragment float4 compositeSamplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+fragment half4 samplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+	const int offset = int(vert.unitColourPhase * 4.0f) & 3;
+	auto sample = texture.sample(standardSampler, vert.textureCoordinates);
+	return half4(half3(sample[offset]), uniforms.outputAlpha);
+}
+
+fragment half4 compositeSamplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
 	const int offset = int(vert.unitColourPhase * 4.0f) & 3;
 	const float snappedColourPhase = float(offset) * (0.5f * 3.141592654f);	// TODO: plus machine-supplied offset.
 	auto sample = texture.sample(standardSampler, vert.textureCoordinates);
@@ -289,24 +295,24 @@ fragment float4 compositeSamplePhaseLinkedLuminance8(SourceInterpolator vert [[s
 // The luminance/phase format can produce either composite or S-Video.
 
 /// @returns A 2d vector comprised where .x = luminance; .y = chroma.
-float2 convertLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+half2 convertLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
 	const auto luminancePhase = texture.sample(standardSampler, vert.textureCoordinates).rg;
-	const float phaseOffset = 3.141592654 * 4.0 * luminancePhase.g;
-	const float rawChroma = step(luminancePhase.g, 0.75) * cos(vert.colourPhase + phaseOffset);
-	return float2(luminancePhase.r, rawChroma);
+	const half phaseOffset = 3.141592654 * 4.0 * luminancePhase.g;
+	const half rawChroma = step(luminancePhase.g, half(0.75f)) * cos(vert.colourPhase + phaseOffset);
+	return half2(luminancePhase.r, rawChroma);
 }
 
-fragment float4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
-	const float2 luminanceChroma = convertLuminance8Phase8(vert, texture);
-	const float2 qam = quadrature(vert.colourPhase) * 0.5f;
-	return float4(luminanceChroma.r,
-			float2(0.5f) + luminanceChroma.g*qam,
-			1.0);
+fragment half4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+	const half2 luminanceChroma = convertLuminance8Phase8(vert, texture);
+	const half2 qam = quadrature(vert.colourPhase) * 0.5f;
+	return half4(luminanceChroma.r,
+			half2(0.5f) + luminanceChroma.g*qam,
+			half(1.0f));
 }
 
-fragment float4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
-	const float2 luminanceChroma = convertLuminance8Phase8(vert, texture);
-	const float level = mix(luminanceChroma.r, luminanceChroma.g, vert.colourAmplitude);
+fragment half4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+	const half2 luminanceChroma = convertLuminance8Phase8(vert, texture);
+	const half level = mix(luminanceChroma.r, luminanceChroma.g, half(vert.colourAmplitude));
 	return composite(level, quadrature(vert.colourPhase), vert.colourAmplitude);
 }
 
@@ -317,64 +323,64 @@ fragment float4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_
 // I could avoid the macro mess below.
 
 // TODO: is the calling convention here causing `vert` and `texture` to be copied?
-float3 convertRed8Green8Blue8(SourceInterpolator vert, texture2d<float> texture) {
-	return float3(texture.sample(standardSampler, vert.textureCoordinates));
+half3 convertRed8Green8Blue8(SourceInterpolator vert, texture2d<half> texture) {
+	return texture.sample(standardSampler, vert.textureCoordinates).rgb;
 }
 
-float3 convertRed4Green4Blue4(SourceInterpolator vert, texture2d<ushort> texture) {
+half3 convertRed4Green4Blue4(SourceInterpolator vert, texture2d<ushort> texture) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).rg;
-	return float3(sample.r&15, (sample.g >> 4)&15, sample.g&15);
+	return half3(sample.r&15, (sample.g >> 4)&15, sample.g&15);
 }
 
-float3 convertRed2Green2Blue2(SourceInterpolator vert, texture2d<ushort> texture) {
+half3 convertRed2Green2Blue2(SourceInterpolator vert, texture2d<ushort> texture) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
-	return float3((sample >> 4)&3, (sample >> 2)&3, sample&3);
+	return half3((sample >> 4)&3, (sample >> 2)&3, sample&3);
 }
 
-float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture) {
+half3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
-	return float3(sample&4, sample&2, sample&1);
+	return half3(sample&4, sample&2, sample&1);
 }
 
 // TODO: don't hard code the 0.64 in sample##name.
 #define DeclareShaders(name, pixelType)	\
-	fragment float4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]]) {	\
-		return float4(convert##name(vert, texture), 0.64);	\
+	fragment half4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]]) {	\
+		return half4(convert##name(vert, texture), 0.64);	\
 	}	\
 	\
-	fragment float4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const auto colour = float3x3(uniforms.fromRGB) * clamp(convert##name(vert, texture), float(0.0f), float(1.0f));	\
-		const float2 qam = quadrature(vert.colourPhase);	\
-		const float chroma = dot(colour.gb, qam);	\
-		return float4(	\
+	fragment half4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+		const auto colour = uniforms.fromRGB * clamp(convert##name(vert, texture), half(0.0f), half(1.0f));	\
+		const half2 qam = quadrature(vert.colourPhase);	\
+		const half chroma = dot(colour.gb, qam);	\
+		return half4(	\
 			colour.r,	\
-			float2(0.5f) + chroma*qam*0.5f,	\
-			1.0f		\
+			half2(0.5f) + chroma*qam*half(0.5f),	\
+			half(1.0f)		\
 		);	\
 	}	\
 	\
-	fragment float4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const auto colour = float3x3(uniforms.fromRGB) * clamp(convert##name(vert, texture), float3(0.0f), float3(1.0f));	\
-		const float2 colourSubcarrier = quadrature(vert.colourPhase);	\
-		const float level = mix(colour.r, dot(colour.gb, colourSubcarrier), vert.colourAmplitude);	\
+	fragment half4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+		const auto colour = uniforms.fromRGB * clamp(convert##name(vert, texture), half3(0.0f), half3(1.0f));	\
+		const half2 colourSubcarrier = quadrature(vert.colourPhase);	\
+		const half level = mix(colour.r, dot(colour.gb, colourSubcarrier), half(vert.colourAmplitude));	\
 		return composite(level, colourSubcarrier, vert.colourAmplitude);	\
 	}
 
-DeclareShaders(Red8Green8Blue8, float)
+DeclareShaders(Red8Green8Blue8, half)
 DeclareShaders(Red4Green4Blue4, ushort)
 DeclareShaders(Red2Green2Blue2, ushort)
 DeclareShaders(Red1Green1Blue1, ushort)
 
-fragment float4 copyFragment(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+fragment half4 copyFragment(CopyInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
 	return texture.sample(standardSampler, vert.textureCoordinates);
 }
 
-fragment float4 interpolateFragment(CopyInterpolator vert [[stage_in]], texture2d<float> texture [[texture(0)]]) {
+fragment half4 interpolateFragment(CopyInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
 	return texture.sample(linearSampler, vert.textureCoordinates);
 }
 
-fragment float4 clearFragment() {
-	return float4(0.0, 0.0, 0.0, 0.64);
+fragment half4 clearFragment() {
+	return half4(0.0, 0.0, 0.0, 0.64);
 }
 
 // MARK: - Compute kernels
