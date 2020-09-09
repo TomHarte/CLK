@@ -261,6 +261,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Additional pipeline information.
 	size_t _lumaKernelSize;
+	size_t _chromaKernelSize;
 
 	// The output view.
 	__weak MTKView *_view;
@@ -652,9 +653,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		{
 			auto *const firCoefficients = uniforms()->chromaCoefficients;
 			const auto chromaCoefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);
+			_chromaKernelSize = 15;
 			for(size_t c = 0; c < 8; ++c) {
 				firCoefficients[c].y = firCoefficients[c].z = (isSVideoOutput ? 2.0f : 1.0f) * chromaCoefficients[c];
 				firCoefficients[c].x = 0.0f;
+				if(fabsf(chromaCoefficients[c]) < 0.01f) {
+					_chromaKernelSize -= 2;
+				}
 			}
 			firCoefficients[7].x = 1.0f;
 
@@ -665,11 +670,16 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			//
 			// The low cut off ['Hz' but per line, not per second] is somewhat arbitrary.
 			if(!isSVideoOutput) {
-				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 20.0f, colourCyclesPerLine);
+				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 40.0f, colourCyclesPerLine);
 				const auto sharpen = sharpenFilter.get_coefficients();
+				size_t sharpenFilterSize = 15;
+				bool isStart = true;
 				for(size_t c = 0; c < 8; ++c) {
 					firCoefficients[c].x = sharpen[c];
+					if(fabsf(sharpen[c]) > 0.01f) isStart = false;
+					if(isStart) sharpenFilterSize -= 2;
 				}
+				_chromaKernelSize = std::max(_chromaKernelSize, sharpenFilterSize);
 			}
 		}
 
@@ -680,7 +690,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			_lumaKernelSize = 15;
 			for(size_t c = 0; c < 8; ++c) {
 				filter[c] = __fp16(coefficients[c]);
-				if(coefficients[c] < 0.01f) {
+				if(fabsf(coefficients[c]) < 0.01f) {
 					_lumaKernelSize -= 2;
 				}
 			}
