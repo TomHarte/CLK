@@ -18,19 +18,22 @@ struct Uniforms {
 	// for mapping from scan-style integer positions into eye space.
 	int2 scale;
 
+	// Applies a multiplication to all cyclesSinceRetrace values.
+	float cycleMultiplier;
+
 	// This provides the intended height of a scan, in eye-coordinate terms.
 	float lineWidth;
 
 	// Provides a scaling factor in order to preserve 4:3 central content.
 	float aspectRatioMultiplier;
 
-	// Provides conversions to and from RGB for the active colour space.
-	float3x3 toRGB;
-	float3x3 fromRGB;
-
 	// Provides zoom and offset to scale the source data.
 	float zoom;
 	float2 offset;
+
+	// Provides conversions to and from RGB for the active colour space.
+	float3x3 toRGB;
+	float3x3 fromRGB;
 
 	// Describes the FIR filter in use for chroma filtering; it'll be
 	// 15 coefficients but they're symmetrical around the centre.
@@ -40,20 +43,14 @@ struct Uniforms {
 	// symmetrical around the centre.
 	half lumaKernel[8];
 
-	// Maps from pixel offsets into the composition buffer to angular difference.
-	float radiansPerPixel;
-
-	// Applies a multiplication to all cyclesSinceRetrace values.
-	float cycleMultiplier;
-
 	// Sets the opacity at which output strips are drawn.
-	float outputAlpha;
+	half outputAlpha;
 
 	// Sets the gamma power to which output colours are raised.
-	float outputGamma;
+	half outputGamma;
 
 	// Sets a brightness multiplier for output colours.
-	float outputMultiplier;
+	half outputMultiplier;
 };
 
 namespace {

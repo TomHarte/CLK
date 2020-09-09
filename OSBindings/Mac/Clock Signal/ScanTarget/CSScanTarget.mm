@@ -96,21 +96,26 @@
 namespace {
 
 // Tracks the Uniforms struct declared in ScanTarget.metal; see there for field definitions.
+//
+// __fp16 is a Clang-specific type which I'm using as equivalent to a Metal half, i.e. an IEEE 754 binary16.
 struct Uniforms {
 	int32_t scale[2];
+	float cyclesMultiplier;
 	float lineWidth;
+
 	float aspectRatioMultiplier;
-	simd::float3x3 toRGB;
-	simd::float3x3 fromRGB;
 	float zoom;
 	simd::float2 offset;
+
+	simd::float3x3 toRGB;
+	simd::float3x3 fromRGB;
+
 	simd::float3 chromaCoefficients[8];
 	__fp16 lumaKernel[8];
-	float radiansPerPixel;
-	float cyclesMultiplier;
-	float outputAlpha;
-	float outputGamma;
-	float outputMultiplier;
+
+	__fp16 outputAlpha;
+	__fp16 outputGamma;
+	__fp16 outputMultiplier;
 };
 
 constexpr size_t NumBufferedLines = 500;
@@ -415,7 +420,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (BOOL)shouldApplyGamma {
-	return fabsf(uniforms()->outputGamma - 1.0f) > 0.01f;
+	return fabsf(float(uniforms()->outputGamma) - 1.0f) > 0.01f;
 }
 
 - (void)updateModalBuffers {
@@ -521,11 +526,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// This is fixed for now; consider making it a function of frame rate and/or of whether frame syncing
 	// is ongoing (which would require a way to signal that to this scan target).
-	uniforms()->outputAlpha = 0.64f;
-	uniforms()->outputMultiplier = modals.brightness;
+	uniforms()->outputAlpha = __fp16(0.64f);
+	uniforms()->outputMultiplier = __fp16(modals.brightness);
 
 	const float displayGamma = 2.2f;	// This is assumed.
-	uniforms()->outputGamma = displayGamma / modals.intended_gamma;
+	uniforms()->outputGamma = __fp16(displayGamma / modals.intended_gamma);
 
 
 
@@ -646,13 +651,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
 		const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
-		// Store radians per pixel. TODO: is this now orphaned as a uniform? Should I keep it anyway?
-		uniforms()->radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / float(_lineBufferPixelsPerLine);
+		// Compute radians per pixel.
+		const float radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / float(_lineBufferPixelsPerLine);
 
 		// Generate the chrominance filter.
 		{
 			auto *const firCoefficients = uniforms()->chromaCoefficients;
-			const auto chromaCoefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);
+			const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
 			_chromaKernelSize = 15;
 			for(size_t c = 0; c < 8; ++c) {
 				firCoefficients[c].y = firCoefficients[c].z = (isSVideoOutput ? 2.0f : 1.0f) * chromaCoefficients[c];
@@ -686,7 +691,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Generate the luminance separation filter and determine its required size.
 		{
 			auto *const filter = uniforms()->lumaKernel;
-			const auto coefficients = boxCoefficients(uniforms()->radiansPerPixel, 3.141592654f);
+			const auto coefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
 			_lumaKernelSize = 15;
 			for(size_t c = 0; c < 8; ++c) {
 				filter[c] = __fp16(coefficients[c]);
