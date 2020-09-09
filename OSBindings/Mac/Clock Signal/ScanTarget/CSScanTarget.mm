@@ -472,6 +472,16 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		NSString *const kernelFunction = [self shouldApplyGamma] ? @"filterChromaKernelWithGamma" : @"filterChromaKernelNoGamma";
 		_finalisedLineState = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction] error:nil];
+
+		// Ensure finalised line texture is initially clear.
+		id<MTLComputePipelineState> clearPipeline = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:@"clearKernel"] error:nil];
+		id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+		id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
+
+		[self dispatchComputeCommandEncoder:computeEncoder pipelineState:clearPipeline width:lineTextureDescriptor.width height:lineTextureDescriptor.height offsetBuffer:[self bufferForOffset:0]];
+
+		[computeEncoder endEncoding];
+		[commandBuffer commit];
 	}
 
 	// A luma separation texture will exist only for composite colour.
@@ -519,19 +529,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	//
 	uniforms()->scale[0] = modals.output_scale.x;
 	uniforms()->scale[1] = modals.output_scale.y;
-	uniforms()->lineWidth = 1.05f / modals.expected_vertical_lines;	// TODO: return to 1.0 (or slightly more), once happy.
+	uniforms()->lineWidth = 1.05f / modals.expected_vertical_lines;
 	[self setAspectRatio];
 
 	const auto toRGB = to_rgb_matrix(modals.composite_colour_space);
-//	uniforms()->toRGB[0] = toRGB[0];
-//	uniforms()->toRGB[1] = toRGB[1];
-//	uniforms()->toRGB[2] = toRGB[2];
-//	uniforms()->toRGB[4] = toRGB[3];
-//	uniforms()->toRGB[5] = toRGB[4];
-//	uniforms()->toRGB[6] = toRGB[5];
-//	uniforms()->toRGB[8] = toRGB[6];
-//	uniforms()->toRGB[9] = toRGB[7];
-//	uniforms()->toRGB[10] = toRGB[8];
 	uniforms()->toRGB = simd::float3x3(
 		simd::float3{toRGB[0], toRGB[1], toRGB[2]},
 		simd::float3{toRGB[3], toRGB[4], toRGB[5]},

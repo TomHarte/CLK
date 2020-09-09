@@ -556,3 +556,8 @@ kernel void separateLumaKernel5(	texture2d<half, access::read> inTexture [[textu
 
 	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
 }
+
+kernel void clearKernel(	texture2d<half, access::write> outTexture [[texture(1)]],
+							uint2 gid [[thread_position_in_grid]]) {
+	outTexture.write(half4(0.0f, 0.0f, 0.0f, 1.0f), gid);
+}
