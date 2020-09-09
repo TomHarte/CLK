@@ -25,8 +25,6 @@
 	Source data is converted to 32bpp RGB or to composite directly from its input, at output resolution.
 	Gamma correction is applied unless the inputs are 1bpp (e.g. Macintosh-style black/white, TTL-style RGB).
 
-	TODO: filtering when the output size is 'small'.
-
 	S-Video
 	-------
 
@@ -364,8 +362,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (void)updateSizeBuffersToSize:(CGSize)size {
-	// TODO: consider multisampling here? But it seems like you'd need another level of indirection
-	// in order to maintain an ongoing buffer that supersamples only at the end.
 	const NSUInteger frameBufferWidth = NSUInteger(size.width * _view.layer.contentsScale);
 	const NSUInteger frameBufferHeight = NSUInteger(size.height * _view.layer.contentsScale);
 
@@ -619,7 +615,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_pipeline = isSVideoOutput ? Pipeline::SVideo : Pipeline::CompositeColour;
 	}
 
-	// TODO: factor in gamma, which may or may not be a factor (it isn't for 1-bit formats).
 	struct FragmentSamplerDictionary {
 		/// Fragment shader that outputs to the composition buffer for composite processing.
 		NSString *const compositionComposite;
@@ -636,29 +631,38 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		NSString *const directRGBWithGamma;
 	};
 	const FragmentSamplerDictionary samplerDictionary[8] = {
-		{@"compositeSampleLuminance1", nullptr, @"sampleLuminance1", @"sampleLuminance1", nullptr, nullptr},
-		{@"compositeSampleLuminance8", nullptr, @"sampleLuminance8", nullptr},
-		{@"compositeSamplePhaseLinkedLuminance8", nullptr, @"samplePhaseLinkedLuminance8", nullptr},
-		{@"compositeSampleLuminance8Phase8", @"sampleLuminance8Phase8", @"compositeSampleLuminance8Phase8", nullptr, nullptr, nullptr},
-		{@"compositeSampleRed1Green1Blue1", @"svideoSampleRed1Green1Blue1", @"compositeSampleRed1Green1Blue1", nullptr, @"sampleRed1Green1Blue1", nullptr},
-		{@"compositeSampleRed2Green2Blue2", @"svideoSampleRed2Green2Blue2", @"compositeSampleRed2Green2Blue2", nullptr, @"sampleRed2Green2Blue2", nullptr},
-		{@"compositeSampleRed4Green4Blue4", @"svideoSampleRed4Green4Blue4", @"compositeSampleRed4Green4Blue4", nullptr, @"sampleRed4Green4Blue4", nullptr},
-		{@"compositeSampleRed8Green8Blue8", @"svideoSampleRed8Green8Blue8", @"compositeSampleRed8Green8Blue8", nullptr, @"sampleRed8Green8Blue8", nullptr},
+		// Composite formats.
+		{@"compositeSampleLuminance1", 				nil,	@"sampleLuminance1",				@"sampleLuminance1"},
+		{@"compositeSampleLuminance8", 				nil,	@"sampleLuminance8", 				@"sampleLuminance8WithGamma"},
+		{@"compositeSamplePhaseLinkedLuminance8", 	nil,	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma"},
+
+		// S-Video formats.
+		{@"compositeSampleLuminance8Phase8", @"sampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8WithGamma"},
+
+		// RGB formats.
+		{@"compositeSampleRed1Green1Blue1", @"svideoSampleRed1Green1Blue1", @"directCompositeSampleRed1Green1Blue1", @"directCompositeSampleRed1Green1Blue1WithGamma", @"sampleRed1Green1Blue1", @"sampleRed1Green1Blue1"},
+		{@"compositeSampleRed2Green2Blue2", @"svideoSampleRed2Green2Blue2", @"directCompositeSampleRed2Green2Blue2", @"directCompositeSampleRed2Green2Blue2WithGamma", @"sampleRed2Green2Blue2", @"sampleRed2Green2Blue2WithGamma"},
+		{@"compositeSampleRed4Green4Blue4", @"svideoSampleRed4Green4Blue4", @"directCompositeSampleRed4Green4Blue4", @"directCompositeSampleRed4Green4Blue4WithGamma", @"sampleRed4Green4Blue4", @"sampleRed4Green4Blue4WithGamma"},
+		{@"compositeSampleRed8Green8Blue8", @"svideoSampleRed8Green8Blue8", @"directCompositeSampleRed8Green8Blue8", @"directCompositeSampleRed8Green8Blue8WithGamma", @"sampleRed8Green8Blue8", @"sampleRed8Green8Blue8WithGamma"},
 	};
 
 #ifndef NDEBUG
-	// Do a quick check of the names entered above. I don't think this is possible at compile time.
-//	for(int c = 0; c < 8; ++c) {
-//		if(samplerDictionary[c].compositionComposite)	assert([library newFunctionWithName:samplerDictionary[c].compositionComposite]);
-//		if(samplerDictionary[c].compositionSVideo)		assert([library newFunctionWithName:samplerDictionary[c].compositionSVideo]);
-//		if(samplerDictionary[c].directComposite)		assert([library newFunctionWithName:samplerDictionary[c].directComposite]);
-//		if(samplerDictionary[c].directRGB)				assert([library newFunctionWithName:samplerDictionary[c].directRGB]);
-//	}
+	// Do a quick check that all the shaders named above are defined in the Metal code. I don't think this is possible at compile time.
+	for(int c = 0; c < 8; ++c) {
+#define Test(x)	if(samplerDictionary[c].x)	assert([library newFunctionWithName:samplerDictionary[c].x]);
+		Test(compositionComposite);
+		Test(compositionSVideo);
+		Test(directComposite);
+		Test(directCompositeWithGamma);
+		Test(directRGB);
+		Test(directRGBWithGamma);
+#undef Test
+	}
 #endif
 
 	uniforms()->cyclesMultiplier = 1.0f;
 	if(_pipeline != Pipeline::DirectToDisplay) {
-		// Pick a suitable cycle multiplier. TODO: can I reduce this from a multiple of 4?
+		// Pick a suitable cycle multiplier.
 		const float minimumSize = 4.0f * float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 		while(uniforms()->cyclesMultiplier * modals.cycles_per_line < minimumSize) {
 			uniforms()->cyclesMultiplier += 1.0f;
@@ -678,7 +682,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Generate the chrominance filter.
 		{
-//			auto *const firCoefficients = uniforms()->chromaKernel;
 			simd::float3 firCoefficients[8];
 			const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
 			_chromaKernelSize = 15;
@@ -757,8 +760,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateFragment"];
 	} else {
 		const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
-		pipelineDescriptor.fragmentFunction =
-			[library newFunctionWithName:isRGBOutput ? samplerDictionary[int(modals.input_data_type)].directRGB : samplerDictionary[int(modals.input_data_type)].directComposite];
+
+		NSString *shaderName;
+		if(isRGBOutput) {
+			shaderName = [self shouldApplyGamma] ? samplerDictionary[int(modals.input_data_type)].directRGBWithGamma : samplerDictionary[int(modals.input_data_type)].directRGB;
+		} else {
+			shaderName = [self shouldApplyGamma] ? samplerDictionary[int(modals.input_data_type)].directCompositeWithGamma : samplerDictionary[int(modals.input_data_type)].directComposite;
+		}
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:shaderName];
 	}
 
 	// Enable blending.
@@ -818,6 +827,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	[encoder setVertexTexture:_frameBuffer atIndex:0];
 	[encoder setFragmentTexture:_frameBuffer atIndex:0];
+	[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
 	[encoder endEncoding];

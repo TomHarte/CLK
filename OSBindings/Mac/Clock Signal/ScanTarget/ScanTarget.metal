@@ -10,9 +10,6 @@
 
 using namespace metal;
 
-// TODO: I'm being very loose, so far, in use of alpha. Sometimes it's 0.64, somtimes its 1.0.
-// Apply some rigour, for crying out loud.
-
 struct Uniforms {
 	// This is used to scale scan positions, i.e. it provides the range
 	// for mapping from scan-style integer positions into eye space.
@@ -262,35 +259,42 @@ half4 composite(half level, half2 quadrature, half amplitude) {
 // composite format used for composition. Direct sampling is always for final output, so the two
 // 8-bit formats also provide a gamma option.
 
-fragment half4 sampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-	const half luminance = clamp(half(texture.sample(standardSampler, vert.textureCoordinates).r), half(0.0f), half(1.0f)) * uniforms.outputMultiplier;
-	return half4(half3(luminance), uniforms.outputAlpha);
+half convertLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
+	return clamp(half(texture.sample(standardSampler, vert.textureCoordinates).r), half(0.0f), half(1.0f));
 }
 
-fragment half4 compositeSampleLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
-	return composite(texture.sample(standardSampler, vert.textureCoordinates).r, quadrature(vert.colourPhase), vert.colourAmplitude);
+half convertLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+	return texture.sample(standardSampler, vert.textureCoordinates).r;
 }
 
-fragment half4 sampleLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-	return half4(texture.sample(standardSampler, vert.textureCoordinates).rrr * uniforms.outputMultiplier, uniforms.outputAlpha);
-}
-
-fragment half4 compositeSampleLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
-	return composite(texture.sample(standardSampler, vert.textureCoordinates).r, quadrature(vert.colourPhase), vert.colourAmplitude);
-}
-
-fragment half4 samplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+half convertPhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
 	const int offset = int(vert.unitColourPhase * 4.0f) & 3;
 	auto sample = texture.sample(standardSampler, vert.textureCoordinates);
-	return half4(half3(sample[offset]), uniforms.outputAlpha);
+	return sample[offset];
 }
 
-fragment half4 compositeSamplePhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
-	const int offset = int(vert.unitColourPhase * 4.0f) & 3;
-	const float snappedColourPhase = float(offset) * (0.5f * 3.141592654f);	// TODO: plus machine-supplied offset.
-	auto sample = texture.sample(standardSampler, vert.textureCoordinates);
-	return composite(sample[offset], quadrature(snappedColourPhase), vert.colourAmplitude);
-}
+
+#define CompositeSet(name, type)	\
+	fragment half4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<type> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+		const half luminance = convert##name(vert, texture) * uniforms.outputMultiplier;	\
+		return half4(half3(luminance), uniforms.outputAlpha);	\
+	}	\
+	\
+	fragment half4 sample##name##WithGamma(SourceInterpolator vert [[stage_in]], texture2d<type> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+		const half luminance = pow(convert##name(vert, texture) * uniforms.outputMultiplier, uniforms.outputGamma);	\
+		return half4(half3(luminance), uniforms.outputAlpha);	\
+	}	\
+	\
+	fragment half4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<type> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+		const half luminance = convert##name(vert, texture) * uniforms.outputMultiplier;	\
+		return composite(luminance, quadrature(vert.colourPhase), vert.colourAmplitude);	\
+	}
+
+CompositeSet(Luminance1, ushort);
+CompositeSet(Luminance8, half);
+CompositeSet(PhaseLinkedLuminance8, half);
+
+#undef CompositeSet
 
 // The luminance/phase format can produce either composite or S-Video.
 
@@ -302,54 +306,65 @@ half2 convertLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<ha
 	return half2(luminancePhase.r, rawChroma);
 }
 
+fragment half4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+	const half2 luminanceChroma = convertLuminance8Phase8(vert, texture);
+	const half luminance = mix(luminanceChroma.r, luminanceChroma.g, vert.colourAmplitude);
+	return composite(luminance, quadrature(vert.colourPhase), vert.colourAmplitude);
+}
+
 fragment half4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
 	const half2 luminanceChroma = convertLuminance8Phase8(vert, texture);
-	const half2 qam = quadrature(vert.colourPhase) * 0.5f;
+	const half2 qam = quadrature(vert.colourPhase) * half(0.5f);
 	return half4(luminanceChroma.r,
 			half2(0.5f) + luminanceChroma.g*qam,
 			half(1.0f));
 }
 
-fragment half4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+fragment half4 directCompositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
 	const half2 luminanceChroma = convertLuminance8Phase8(vert, texture);
-	const half level = mix(luminanceChroma.r, luminanceChroma.g, half(vert.colourAmplitude));
-	return composite(level, quadrature(vert.colourPhase), vert.colourAmplitude);
+	const half luminance = mix(luminanceChroma.r * uniforms.outputMultiplier, luminanceChroma.g, vert.colourAmplitude);
+	return half4(half3(luminance), uniforms.outputAlpha);
 }
 
-// All the RGB formats can produce RGB, composite or S-Video.
-//
-// Note on the below: in Metal you may not call a fragment function (so e.g. svideoSampleX can't just cann sampleX).
-// Also I can find no functioning way to offer a templated fragment function. So I don't currently know how
-// I could avoid the macro mess below.
+fragment half4 directCompositeSampleLuminance8Phase8WithGamma(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+	const half2 luminanceChroma = convertLuminance8Phase8(vert, texture);
+	const half luminance = mix(pow(luminanceChroma.r * uniforms.outputMultiplier, uniforms.outputGamma), luminanceChroma.g, vert.colourAmplitude);
+	return half4(half3(luminance), uniforms.outputAlpha);
+}
 
-// TODO: is the calling convention here causing `vert` and `texture` to be copied?
+
+// All the RGB formats can produce RGB, composite or S-Video.
+
 half3 convertRed8Green8Blue8(SourceInterpolator vert, texture2d<half> texture) {
 	return texture.sample(standardSampler, vert.textureCoordinates).rgb;
 }
 
 half3 convertRed4Green4Blue4(SourceInterpolator vert, texture2d<ushort> texture) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).rg;
-	return half3(sample.r&15, (sample.g >> 4)&15, sample.g&15);
+	return clamp(half3(sample.r&15, (sample.g >> 4)&15, sample.g&15), half(0.0f), half(1.0f));
 }
 
 half3 convertRed2Green2Blue2(SourceInterpolator vert, texture2d<ushort> texture) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
-	return half3((sample >> 4)&3, (sample >> 2)&3, sample&3);
+	return clamp(half3((sample >> 4)&3, (sample >> 2)&3, sample&3), half(0.0f), half(1.0f));
 }
 
 half3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
-	return half3(sample&4, sample&2, sample&1);
+	return clamp(half3(sample&4, sample&2, sample&1), half(0.0f), half(1.0f));
 }
 
-// TODO: don't hard code the 0.64 in sample##name.
 #define DeclareShaders(name, pixelType)	\
-	fragment half4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]]) {	\
-		return half4(convert##name(vert, texture), 0.64);	\
+	fragment half4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+		return half4(convert##name(vert, texture), uniforms.outputAlpha);	\
+	}	\
+	\
+	fragment half4 sample##name##WithGamma(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+		return half4(pow(convert##name(vert, texture), uniforms.outputGamma), uniforms.outputAlpha);	\
 	}	\
 	\
 	fragment half4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const auto colour = uniforms.fromRGB * clamp(convert##name(vert, texture), half(0.0f), half(1.0f));	\
+		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
 		const half2 qam = quadrature(vert.colourPhase);	\
 		const half chroma = dot(colour.gb, qam);	\
 		return half4(	\
@@ -359,11 +374,24 @@ half3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture)
 		);	\
 	}	\
 	\
+	half composite##name(SourceInterpolator vert, texture2d<pixelType> texture, constant Uniforms &uniforms, half2 colourSubcarrier) {	\
+		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
+		return mix(colour.r, dot(colour.gb, colourSubcarrier), half(vert.colourAmplitude));	\
+	}	\
+	\
 	fragment half4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const auto colour = uniforms.fromRGB * clamp(convert##name(vert, texture), half3(0.0f), half3(1.0f));	\
 		const half2 colourSubcarrier = quadrature(vert.colourPhase);	\
-		const half level = mix(colour.r, dot(colour.gb, colourSubcarrier), half(vert.colourAmplitude));	\
-		return composite(level, colourSubcarrier, vert.colourAmplitude);	\
+		return composite(composite##name(vert, texture, uniforms, colourSubcarrier), colourSubcarrier, vert.colourAmplitude);	\
+	}	\
+	\
+	fragment half4 directCompositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+		const half level = composite##name(vert, texture, uniforms, quadrature(vert.colourPhase)); 	\
+		return half4(half3(level), uniforms.outputAlpha);	\
+	}	\
+	\
+	fragment half4 directCompositeSample##name##WithGamma(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+		const half level = pow(composite##name(vert, texture, uniforms, quadrature(vert.colourPhase)), uniforms.outputGamma); 	\
+		return half4(half3(level), uniforms.outputAlpha);	\
 	}
 
 DeclareShaders(Red8Green8Blue8, half)
@@ -379,8 +407,8 @@ fragment half4 interpolateFragment(CopyInterpolator vert [[stage_in]], texture2d
 	return texture.sample(linearSampler, vert.textureCoordinates);
 }
 
-fragment half4 clearFragment() {
-	return half4(0.0, 0.0, 0.0, 0.64);
+fragment half4 clearFragment(constant Uniforms &uniforms [[buffer(0)]]) {
+	return half4(0.0, 0.0, 0.0, uniforms.outputAlpha);
 }
 
 // MARK: - Compute kernels
