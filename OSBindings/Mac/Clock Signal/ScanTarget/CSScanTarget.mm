@@ -95,6 +95,18 @@
 
 namespace {
 
+/// Provides a container for __fp16 versions of tightly-packed single-precision plain old data with a copy assignment constructor.
+template <typename NaturalType> struct HalfConverter {
+	__fp16 elements[sizeof(NaturalType) / sizeof(float)];
+
+	void operator =(const NaturalType &rhs) {
+		const float *floatRHS = reinterpret_cast<const float *>(&rhs);
+		for(size_t c = 0; c < sizeof(elements) / sizeof(*elements); ++c) {
+			elements[c] = __fp16(floatRHS[c]);
+		}
+	}
+};
+
 // Tracks the Uniforms struct declared in ScanTarget.metal; see there for field definitions.
 //
 // __fp16 is a Clang-specific type which I'm using as equivalent to a Metal half, i.e. an IEEE 754 binary16.
@@ -107,10 +119,10 @@ struct Uniforms {
 	float zoom;
 	simd::float2 offset;
 
-	simd::float3x3 toRGB;
-	simd::float3x3 fromRGB;
+	HalfConverter<simd::float3x3> toRGB;
+	HalfConverter<simd::float3x3> fromRGB;
 
-	simd::float3 chromaCoefficients[8];
+	HalfConverter<simd::float3> chromaKernel[8];
 	__fp16 lumaKernel[8];
 
 	__fp16 outputAlpha;
@@ -511,6 +523,15 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[self setAspectRatio];
 
 	const auto toRGB = to_rgb_matrix(modals.composite_colour_space);
+//	uniforms()->toRGB[0] = toRGB[0];
+//	uniforms()->toRGB[1] = toRGB[1];
+//	uniforms()->toRGB[2] = toRGB[2];
+//	uniforms()->toRGB[4] = toRGB[3];
+//	uniforms()->toRGB[5] = toRGB[4];
+//	uniforms()->toRGB[6] = toRGB[5];
+//	uniforms()->toRGB[8] = toRGB[6];
+//	uniforms()->toRGB[9] = toRGB[7];
+//	uniforms()->toRGB[10] = toRGB[8];
 	uniforms()->toRGB = simd::float3x3(
 		simd::float3{toRGB[0], toRGB[1], toRGB[2]},
 		simd::float3{toRGB[3], toRGB[4], toRGB[5]},
@@ -656,7 +677,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Generate the chrominance filter.
 		{
-			auto *const firCoefficients = uniforms()->chromaCoefficients;
+//			auto *const firCoefficients = uniforms()->chromaKernel;
+			simd::float3 firCoefficients[8];
 			const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
 			_chromaKernelSize = 15;
 			for(size_t c = 0; c < 8; ++c) {
@@ -685,6 +707,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					if(isStart) sharpenFilterSize -= 2;
 				}
 				_chromaKernelSize = std::max(_chromaKernelSize, sharpenFilterSize);
+			}
+
+			// Convert to half-size floats.
+			for(size_t c = 0; c < 8; ++c) {
+				uniforms()->chromaKernel[c] = firCoefficients[c];
 			}
 		}
 

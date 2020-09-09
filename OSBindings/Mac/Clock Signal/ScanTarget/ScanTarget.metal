@@ -32,12 +32,12 @@ struct Uniforms {
 	float2 offset;
 
 	// Provides conversions to and from RGB for the active colour space.
-	float3x3 toRGB;
-	float3x3 fromRGB;
+	half3x3 toRGB;
+	half3x3 fromRGB;
 
-	// Describes the FIR filter in use for chroma filtering; it'll be
+	// Describes the filter in use for chroma filtering; it'll be
 	// 15 coefficients but they're symmetrical around the centre.
-	float3 chromaCoefficients[8];
+	half3 chromaKernel[8];
 
 	// Describes the filter in use for luma filtering; 15 coefficients
 	// symmetrical around the centre.
@@ -343,7 +343,7 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 	}	\
 	\
 	fragment float4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const auto colour = uniforms.fromRGB * clamp(convert##name(vert, texture), float(0.0f), float(1.0f));	\
+		const auto colour = float3x3(uniforms.fromRGB) * clamp(convert##name(vert, texture), float(0.0f), float(1.0f));	\
 		const float2 qam = quadrature(vert.colourPhase);	\
 		const float chroma = dot(colour.gb, qam);	\
 		return float4(	\
@@ -354,7 +354,7 @@ float3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture
 	}	\
 	\
 	fragment float4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const auto colour = uniforms.fromRGB * clamp(convert##name(vert, texture), float3(0.0f), float3(1.0f));	\
+		const auto colour = float3x3(uniforms.fromRGB) * clamp(convert##name(vert, texture), float3(0.0f), float3(1.0f));	\
 		const float2 colourSubcarrier = quadrature(vert.colourPhase);	\
 		const float level = mix(colour.r, dot(colour.gb, colourSubcarrier), vert.colourAmplitude);	\
 		return composite(level, colourSubcarrier, vert.colourAmplitude);	\
@@ -405,14 +405,14 @@ template <bool applyGamma> void filterChromaKernel(	texture2d<half, access::read
 		inTexture.read(gid + uint2(14, offset)) - moveToZero,
 	};
 
-#define Sample(x, y) half3(uniforms.chromaCoefficients[y]) * rawSamples[x].rgb
+#define Sample(x, y) uniforms.chromaKernel[y] * rawSamples[x].rgb
 	const half3 colour =
 		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
 		Sample(7, 7) +
 		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
 #undef Sample
 
-	const half4 output = half4(half3x3(uniforms.toRGB) * colour * half(uniforms.outputMultiplier), half(uniforms.outputAlpha));
+	const half4 output = half4(uniforms.toRGB * colour * uniforms.outputMultiplier, uniforms.outputAlpha);
 	if(applyGamma) {
 		outTexture.write(pow(output, uniforms.outputGamma), gid + uint2(7, offset));
 	} else {
