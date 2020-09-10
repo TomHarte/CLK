@@ -598,15 +598,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLLibrary> library = [_view.device newDefaultLibrary];
 	MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
 
-	// Occasions when the composition buffer isn't required are slender:
-	//
-	//	(i) input and output are both RGB; or
-	//	(i) output is composite monochrome.
+	// Occasions when the composition buffer isn't required are slender: the output must be neither RGB nor composite monochrome.
 	const bool isComposition =
-		(
-			(natural_display_type_for_data_type(modals.input_data_type) != Outputs::Display::DisplayType::RGB) ||
-			(modals.display_type != Outputs::Display::DisplayType::RGB)
-		) && modals.display_type != Outputs::Display::DisplayType::CompositeMonochrome;
+		modals.display_type != Outputs::Display::DisplayType::RGB &&
+		modals.display_type != Outputs::Display::DisplayType::CompositeMonochrome;
 	const bool isSVideoOutput = modals.display_type == Outputs::Display::DisplayType::SVideo;
 
 	if(!isComposition) {
@@ -632,12 +627,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	};
 	const FragmentSamplerDictionary samplerDictionary[8] = {
 		// Composite formats.
-		{@"compositeSampleLuminance1", 				nil,	@"sampleLuminance1",				@"sampleLuminance1"},
-		{@"compositeSampleLuminance8", 				nil,	@"sampleLuminance8", 				@"sampleLuminance8WithGamma"},
-		{@"compositeSamplePhaseLinkedLuminance8", 	nil,	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma"},
+		{@"compositeSampleLuminance1", 				nil,	@"sampleLuminance1",				@"sampleLuminance1",						@"sampleLuminance1",				@"sampleLuminance1"},
+		{@"compositeSampleLuminance8", 				nil,	@"sampleLuminance8", 				@"sampleLuminance8WithGamma",				@"sampleLuminance8", 				@"sampleLuminance8WithGamma"},
+		{@"compositeSamplePhaseLinkedLuminance8", 	nil,	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma",	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma"},
 
 		// S-Video formats.
-		{@"compositeSampleLuminance8Phase8", @"sampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8WithGamma"},
+		{@"compositeSampleLuminance8Phase8", @"sampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8WithGamma", @"directCompositeSampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8WithGamma"},
 
 		// RGB formats.
 		{@"compositeSampleRed1Green1Blue1", @"svideoSampleRed1Green1Blue1", @"directCompositeSampleRed1Green1Blue1", @"directCompositeSampleRed1Green1Blue1WithGamma", @"sampleRed1Green1Blue1", @"sampleRed1Green1Blue1"},
