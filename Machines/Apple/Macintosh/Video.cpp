@@ -119,6 +119,7 @@ void Video::run_for(HalfCycles duration) {
 
 					if(final_pixel_word == 32) {
 						crt_.output_data(512);
+						pixel_buffer_ = nullptr;
 					}
 				}
 
