@@ -21,12 +21,8 @@ struct Uniforms {
 	// This provides the intended height of a scan, in eye-coordinate terms.
 	float lineWidth;
 
-	// Provides a scaling factor in order to preserve 4:3 central content.
-	float aspectRatioMultiplier;
-
 	// Provides zoom and offset to scale the source data.
-	float zoom;
-	float2 offset;
+	float3x3 sourceToDisplay;
 
 	// Provides conversions to and from RGB for the active colour space.
 	half3x3 toRGB;
@@ -152,13 +148,8 @@ template <typename Input> SourceInterpolator toDisplay(
 	// Hence determine this quad's real shape, using vertexID to pick a corner.
 
 	// position2d is now in the range [0, 1].
-	float2 position2d = start + (float(vertexID&2) * 0.5f) * tangent + (float(vertexID&1) - 0.5f) * normal * uniforms.lineWidth;
-
-	// Apply the requested offset and zoom, to map the desired area to the range [0, 1].
-	position2d = (position2d + uniforms.offset) * uniforms.zoom;
-
-	// Remap from [0, 1] to Metal's [-1, 1] and then apply the aspect ratio correction.
-	position2d = (position2d * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f)) * float2(uniforms.aspectRatioMultiplier, 1.0f);
+	const float2 sourcePosition = start + (float(vertexID&2) * 0.5f) * tangent + (float(vertexID&1) - 0.5f) * normal * uniforms.lineWidth;
+	const float2 position2d = (uniforms.sourceToDisplay * float3(sourcePosition, 1.0f)).xy;
 
 	output.position = float4(
 		position2d,

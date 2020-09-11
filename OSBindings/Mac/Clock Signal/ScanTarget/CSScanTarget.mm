@@ -113,9 +113,7 @@ struct Uniforms {
 	float cyclesMultiplier;
 	float lineWidth;
 
-	float aspectRatioMultiplier;
-	float zoom;
-	simd::float2 offset;
+	simd::float3x3 sourcetoDisplay;
 
 	HalfConverter<simd::float3x3> toRGB;
 	HalfConverter<simd::float3x3> fromRGB;
@@ -505,18 +503,49 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 - (void)setAspectRatio {
 	const auto modals = _scanTarget.modals();
 	const auto viewAspectRatio = (_view.bounds.size.width / _view.bounds.size.height);
+	simd::float3x3 sourceToDisplay{1.0f};
 
-	// Set the aspect ratio multiplier.
-	uniforms()->aspectRatioMultiplier = float(modals.aspect_ratio / viewAspectRatio);
+	// The starting coordinate space is [0, 1].
 
-	// Also work out the proper zoom.
-	const double fitWidthZoom = (viewAspectRatio / modals.aspect_ratio) / modals.visible_area.size.width;
-	const double fitHeightZoom = 1.0 / modals.visible_area.size.height;
-	uniforms()->zoom = float(std::min(fitWidthZoom, fitHeightZoom));
+	// Move the centre of the cropping rectangle to the centre of the display.
+	{
+		simd::float3x3 recentre{1.0f};
+		recentre.columns[2][0] = 0.5f - (modals.visible_area.origin.x + modals.visible_area.size.width * 0.5f);
+		recentre.columns[2][1] = 0.5f - (modals.visible_area.origin.y + modals.visible_area.size.height * 0.5f);
+		sourceToDisplay = recentre * sourceToDisplay;
+	}
 
-	// Store the offset.
-	uniforms()->offset.x = -modals.visible_area.origin.x;
-	uniforms()->offset.y = -modals.visible_area.origin.y;
+	// Convert from the internal [0, 1] to centred [-1, 1] (i.e. Metal's eye coordinates, though also appropriate
+	// for the zooming step that follows).
+	{
+		simd::float3x3 convertToEye;
+		convertToEye.columns[0][0] = 2.0f;
+		convertToEye.columns[1][1] = -2.0f;
+		convertToEye.columns[2][0] = -1.0f;
+		convertToEye.columns[2][1] = 1.0f;
+		convertToEye.columns[2][2] = 1.0f;
+		sourceToDisplay = convertToEye * sourceToDisplay;
+	}
+
+	// Determine the correct zoom level. This is a combination of (i) the necessary horizontal stretch to produce a proper
+	// aspect ratio; and (ii) the necessary zoom from there to either fit the visible area width or height as per a decision
+	// on letterboxing or pillarboxing.
+	const float aspectRatioStretch = float(modals.aspect_ratio / viewAspectRatio);
+	const float fitWidthZoom = 1.0f / (float(modals.visible_area.size.width) * aspectRatioStretch);
+	const float fitHeightZoom = 1.0f / float(modals.visible_area.size.height);
+	const float zoom = std::min(fitWidthZoom, fitHeightZoom);
+
+	// Convert from there to the proper aspect ratio by stretching or compressing width.
+	// After this the output is exactly centred, filling the vertical space and being as wide or slender as it likes.
+	{
+		simd::float3x3 applyAspectRatio{1.0f};
+		applyAspectRatio.columns[0][0] = aspectRatioStretch * zoom;
+		applyAspectRatio.columns[1][1] = zoom;
+		sourceToDisplay = applyAspectRatio * sourceToDisplay;
+	}
+
+	// Store.
+	uniforms()->sourcetoDisplay = sourceToDisplay;
 }
 
 - (void)setModals:(const Outputs::Display::ScanTarget::Modals &)modals {
