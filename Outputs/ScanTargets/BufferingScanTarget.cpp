@@ -319,6 +319,11 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	// Update the read-ahead pointers.
 	read_ahead_pointers_.store(submit_pointers, std::memory_order::memory_order_relaxed);
 
+#ifndef NDEBUG
+	area.counter = output_area_counter_;
+	++output_area_counter_;
+#endif
+
 	return area;
 }
 
@@ -330,6 +335,12 @@ void BufferingScanTarget::complete_output_area(const OutputArea &area) {
 	new_read_pointers.scan = uint16_t(area.end.scan);
 	new_read_pointers.write_area = TextureAddress(area.end.write_area_x, area.end.write_area_y);
 	read_pointers_.store(new_read_pointers, std::memory_order::memory_order_relaxed);
+
+#ifndef NDEBUG
+	// This will fire if the caller is announcing completed output areas out of order.
+	assert(area.counter == output_area_next_returned_);
+	++output_area_next_returned_;
+#endif
 }
 
 void BufferingScanTarget::perform(const std::function<void(void)> &function) {
@@ -358,6 +369,7 @@ const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
 	// MAJOR SHARP EDGE HERE: assume that because the new_modals have been fetched then the caller will
 	// now ensure their texture buffer is appropriate. They might provide a new pointer and might now.
 	// But either way it's now appropriate to start treating the data size as implied by the data type.
+	std::lock_guard lock_guard(producer_mutex_);
 	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 
 	return &modals_;

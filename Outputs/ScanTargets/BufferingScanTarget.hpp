@@ -128,6 +128,10 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 			};
 
 			Endpoint start, end;
+
+#ifndef NDEBUG
+			size_t counter;
+#endif
 		};
 
 		/// Gets the current range of content that has been posted but not yet returned by
@@ -252,8 +256,10 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		bool modals_are_dirty_ = false;
 
 #ifndef NDEBUG
-		// Debug features; these amount to API validate.
+		// Debug features; these amount to API validation.
 		bool scan_is_ongoing_ = false;
+		size_t output_area_counter_ = 0;
+		size_t output_area_next_returned_ = 0;
 #endif
 };
 
