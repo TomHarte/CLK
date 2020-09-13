@@ -189,10 +189,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLCommandQueue> _commandQueue;
 
 	// Pipelines.
-	id<MTLRenderPipelineState> _composePipeline;	// For rendering to the composition texture.
-	id<MTLRenderPipelineState> _outputPipeline;		// For drawing to the frame buffer.
-	id<MTLRenderPipelineState> _copyPipeline;		// For copying the frame buffer to the visible surface.
-	id<MTLRenderPipelineState> _clearPipeline;		// For applying additional inter-frame clearing (cf. the stencil).
+	id<MTLRenderPipelineState> _composePipeline;		// For rendering to the composition texture.
+	id<MTLRenderPipelineState> _outputPipeline;			// For drawing to the frame buffer.
+	id<MTLRenderPipelineState> _copyPipeline;			// For copying from one texture to another.
+	id<MTLRenderPipelineState> _supersamplePipeline;	// For resampling from one texture to one that is 1/4 as large.
+	id<MTLRenderPipelineState> _clearPipeline;			// For applying additional inter-frame clearing (cf. the stencil).
 
 	// Buffers.
 	id<MTLBuffer> _uniformsBuffer;	// A static buffer, containing a copy of the Uniforms struct.
@@ -315,6 +316,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"copyFragment"];
 		_copyPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"supersampleFragment"];
+		_supersamplePipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"clearFragment"];
 		pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatStencil8;
 		_clearPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
@@ -360,8 +364,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (void)updateSizeBuffersToSize:(CGSize)size {
-	const NSUInteger frameBufferWidth = NSUInteger(size.width * _view.layer.contentsScale);
-	const NSUInteger frameBufferHeight = NSUInteger(size.height * _view.layer.contentsScale);
+	// TODO: above what size threshold is supersampling no longer desired?
+	const NSUInteger frameBufferWidth = NSUInteger(size.width * _view.layer.contentsScale) * 2;
+	const NSUInteger frameBufferHeight = NSUInteger(size.height * _view.layer.contentsScale) * 2;
 
 	// Generate a framebuffer and a stencil.
 	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
@@ -1080,7 +1085,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	view.currentRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
 	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
 
-	[encoder setRenderPipelineState:_copyPipeline];
+	[encoder setRenderPipelineState:_supersamplePipeline];
 	[encoder setVertexTexture:_frameBuffer atIndex:0];
 	[encoder setFragmentTexture:_frameBuffer atIndex:0];
 

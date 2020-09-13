@@ -390,6 +390,19 @@ DeclareShaders(Red4Green4Blue4, ushort)
 DeclareShaders(Red2Green2Blue2, ushort)
 DeclareShaders(Red1Green1Blue1, ushort)
 
+// Assumes a 2 -> 1 scaling on both axes; if ever I figure out how to get Metal to do hardware supersampling
+// then this fragment shader can be removed.
+fragment half4 supersampleFragment(CopyInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+	// TODO: can't I do better than this by being careful about positioning and using the linearSampler?
+
+	return (
+		texture.sample(standardSampler, vert.textureCoordinates + float2(0.5f, -1.0f)) +
+		texture.sample(standardSampler, vert.textureCoordinates + float2(0.5f, 1.0f)) +
+		texture.sample(standardSampler, vert.textureCoordinates + float2(-1.0f, 0.5f)) +
+		texture.sample(standardSampler, vert.textureCoordinates + float2(1.0f, -0.5f))
+	) * half(0.25f);
+}
+
 fragment half4 copyFragment(CopyInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
 	return texture.sample(standardSampler, vert.textureCoordinates);
 }
