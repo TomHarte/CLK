@@ -19,7 +19,6 @@
 
 @implementation CSScanTargetView {
 	CVDisplayLinkRef _displayLink;
-	CGSize _backingSize;
 	NSNumber *_currentScreenNumber;
 
 	NSTrackingArea *_mouseTrackingArea;
@@ -31,20 +30,6 @@
 
 	CSScanTarget *_scanTarget;
 }
-
-//- (void)prepareOpenGL {
-//	[super prepareOpenGL];
-//
-//	// Prepare the atomic int.
-//	atomic_init(&_isDrawingFlag, 0);
-//
-//	// Set the clear colour.
-//	[self.openGLContext makeCurrentContext];
-//	glClearColor(0.0, 0.0, 0.0, 1.0);
-//
-//	// Setup the [initial] display link.
-//	[self setupDisplayLink];
-//}
 
 - (void)setupDisplayLink {
 	// Kill the existing link if there is one.
@@ -61,11 +46,6 @@
 	// Set the renderer output callback function.
 	CVDisplayLinkSetOutputCallback(_displayLink, DisplayLinkCallback, (__bridge void * __nullable)(self));
 
-	// Set the display link for the current renderer.
-//	CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
-//	CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
-//	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
-
 	// Activate the display link.
 	CVDisplayLinkStart(_displayLink);
 }
@@ -81,7 +61,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	// Ensure _isDrawingFlag has value 1 when drawing, 0 otherwise.
 	atomic_store(&view->_isDrawingFlag, 1);
 
-	[view.displayLinkDelegate openGLViewDisplayLinkDidFire:view now:now outputTime:outputTime];
+	[view.displayLinkDelegate scanTargetViewDisplayLinkDidFire:view now:now outputTime:outputTime];
 	/*
 		Do not touch the display link from after this call; there's a bit of a race condition with setupDisplayLink.
 		Specifically: Apple provides CVDisplayLinkStop but a call to that merely prevents future calls to the callback,
@@ -109,30 +89,11 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	// feels fine.
 	NSNumber *const screenNumber = self.window.screen.deviceDescription[@"NSScreenNumber"];
 	if(![_currentScreenNumber isEqual:screenNumber]) {
-		// Issue a reshape, in case a switch to/from a Retina display has
-		// happened, changing the results of -convertSizeToBacking:, etc.
-//		[self reshape];
-
 		// Also switch display links, to make sure synchronisation is with the display
 		// the window is actually on, and at its rate.
 		[self setupDisplayLink];
 	}
 }
-
-//- (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency {
-//	[self redrawWithEvent:CSScanTargetViewRedrawEventTimer];
-//}
-
-//- (void)drawRect:(NSRect)dirtyRect {
-//	[self redrawWithEvent:CSScanTargetViewRedrawEventAppKit];
-//	NSLog(@"...");
-//}
-
-//- (void)redrawWithEvent:(CSScanTargetViewRedrawEvent)event  {
-//	[self performWithGLContext:^{
-////		[self.delegate openGLViewRedraw:self event:event];
-//	} flushDrawable:YES];
-//}
 
 - (void)invalidate {
 	_isInvalid = YES;
@@ -168,12 +129,6 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	return _scanTarget;
 }
 
-- (CGSize)backingSize {
-	@synchronized(self) {
-		return _backingSize;
-	}
-}
-
 - (void)updateBacking {
 	[_scanTarget updateFrameBuffer];
 }
@@ -186,12 +141,19 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 		self.device = MTLCreateSystemDefaultDevice();
 	}
 
+	// Configure for explicit drawing.
+	self.paused = YES;
+	self.enableSetNeedsDisplay = NO;
+
 	// Create the scan target.
 	_scanTarget = [[CSScanTarget alloc] initWithView:self];
 	self.delegate = _scanTarget;
 
 	// Register to receive dragged and dropped file URLs.
 	[self registerForDraggedTypes:@[(__bridge NSString *)kUTTypeFileURL]];
+
+	// Setup the [initial] display link.
+	[self setupDisplayLink];
 }
 
 #pragma mark - NSResponder
@@ -237,7 +199,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {
 	for(NSPasteboardItem *item in [[sender draggingPasteboard] pasteboardItems]) {
 		NSURL *URL = [NSURL URLWithString:[item stringForType:(__bridge NSString *)kUTTypeFileURL]];
-		[self.responderDelegate openGLView:self didReceiveFileAtURL:URL];
+		[self.responderDelegate scanTargetView:self didReceiveFileAtURL:URL];
 	}
 	return YES;
 }
@@ -273,13 +235,13 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 
 		_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 repeats:NO block:^(__unused NSTimer * _Nonnull timer) {
 			[NSCursor setHiddenUntilMouseMoves:YES];
-			[self.responderDelegate openGLViewWillHideOSMouseCursor:self];
+			[self.responderDelegate scanTargetViewWillHideOSMouseCursor:self];
 		}];
 	}
 }
 
 - (void)mouseEntered:(NSEvent *)event {
-	[self.responderDelegate openGLViewDidShowOSMouseCursor:self];
+	[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
 	[super mouseEntered:event];
 	[self scheduleMouseHide];
 }
@@ -288,7 +250,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	[super mouseExited:event];
 	[_mouseHideTimer invalidate];
 	_mouseHideTimer = nil;
-	[self.responderDelegate openGLViewWillHideOSMouseCursor:self];
+	[self.responderDelegate scanTargetViewWillHideOSMouseCursor:self];
 }
 
 - (void)releaseMouse {
@@ -296,8 +258,8 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 		_mouseIsCaptured = NO;
 		CGAssociateMouseAndMouseCursorPosition(true);
 		[NSCursor unhide];
-		[self.responderDelegate openGLViewDidReleaseMouse:self];
-		[self.responderDelegate openGLViewDidShowOSMouseCursor:self];
+		[self.responderDelegate scanTargetViewDidReleaseMouse:self];
+		[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
 		((CSApplication *)[NSApplication sharedApplication]).eventDelegate = nil;
 	}
 }
@@ -309,7 +271,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 		// Mouse capture is off, so don't play games with the cursor, just schedule it to
 		// hide in the near future.
 		[self scheduleMouseHide];
-		[self.responderDelegate openGLViewDidShowOSMouseCursor:self];
+		[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
 	} else {
 		if(_mouseIsCaptured) {
 			// Mouse capture is on, so move the cursor back to the middle of the window, and
@@ -327,7 +289,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 
 			[self.responderDelegate mouseMoved:event];
 		} else {
-			[self.responderDelegate openGLViewDidShowOSMouseCursor:self];
+			[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
 		}
 	}
 }
@@ -360,8 +322,8 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 			_mouseIsCaptured = YES;
 			[NSCursor hide];
 			CGAssociateMouseAndMouseCursorPosition(false);
-			[self.responderDelegate openGLViewWillHideOSMouseCursor:self];
-			[self.responderDelegate openGLViewDidCaptureMouse:self];
+			[self.responderDelegate scanTargetViewWillHideOSMouseCursor:self];
+			[self.responderDelegate scanTargetViewDidCaptureMouse:self];
 			if(self.shouldUsurpCommand) {
 				((CSApplication *)[NSApplication sharedApplication]).eventDelegate = self;
 			}

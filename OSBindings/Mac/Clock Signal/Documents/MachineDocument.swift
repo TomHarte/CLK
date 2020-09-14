@@ -14,7 +14,6 @@ class MachineDocument:
 	NSDocument,
 	NSWindowDelegate,
 	CSMachineDelegate,
-//	CSOpenGLViewDelegate,
 	CSScanTargetViewResponderDelegate,
 	CSAudioQueueDelegate,
 	CSROMReciverViewDelegate
@@ -100,8 +99,6 @@ class MachineDocument:
 		actionLock.lock()
 		drawLock.lock()
 		machine = nil
-//		openGLView.delegate = nil
-//		openGLView.invalidate()
 		scanTargetView.invalidate()
 		actionLock.unlock()
 		drawLock.unlock()
@@ -253,18 +250,6 @@ class MachineDocument:
 	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
 	}
 
-	/// Responds to the CSOpenGLViewDelegate redraw message by requesting a machine update if this is a timed
-	/// request, and ordering a redraw regardless of the motivation.
-//	final func openGLViewRedraw(_ view: CSOpenGLView, event redrawEvent: CSOpenGLViewRedrawEvent) {
-//		if drawLock.try() {
-//			if redrawEvent == .timer {
-//				machine.updateView(forPixelSize: view.backingSize)
-//			}
-//			machine.drawView(forPixelSize: view.backingSize)
-//			drawLock.unlock()
-//		}
-//	}
-
 	// MARK: - Pasteboard Forwarding.
 
 	/// Forwards any text currently on the pasteboard into the active machine.
@@ -278,7 +263,7 @@ class MachineDocument:
 	// MARK: - Runtime Media Insertion.
 
 	/// Delegate message to receive drag and drop files.
-	final func openGLView(_ view: CSScanTargetView, didReceiveFileAt URL: URL) {
+	final func scanTargetView(_ view: CSScanTargetView, didReceiveFileAt URL: URL) {
 		let mediaSet = CSMediaSet(fileAt: URL)
 		if let mediaSet = mediaSet {
 			mediaSet.apply(to: self.machine)
@@ -618,11 +603,11 @@ class MachineDocument:
 
 	// MARK: - Window Title Updates.
 	private var unadornedWindowTitle = ""
-	internal func openGLViewDidCaptureMouse(_ view: CSScanTargetView) {
+	internal func scanTargetViewDidCaptureMouse(_ view: CSScanTargetView) {
 		self.windowControllers[0].window?.title = self.unadornedWindowTitle + " (press ⌘+control to release mouse)"
 	}
 
-	internal func openGLViewDidReleaseMouse(_ view: CSScanTargetView) {
+	internal func scanTargetViewDidReleaseMouse(_ view: CSScanTargetView) {
 		self.windowControllers[0].window?.title = self.unadornedWindowTitle
 	}
 
@@ -748,7 +733,7 @@ class MachineDocument:
 	}
 	fileprivate var animationFader: ViewFader? = nil
 
-	internal func openGLViewDidShowOSMouseCursor(_ view: CSScanTargetView) {
+	internal func scanTargetViewDidShowOSMouseCursor(_ view: CSScanTargetView) {
 		// The OS mouse cursor became visible, so show the volume controls.
 		animationFader = nil
 		volumeView.layer?.removeAllAnimations()
@@ -756,7 +741,7 @@ class MachineDocument:
 		volumeView.layer?.opacity = 1.0
 	}
 
-	internal func openGLViewWillHideOSMouseCursor(_ view: CSScanTargetView) {
+	internal func scanTargetViewWillHideOSMouseCursor(_ view: CSScanTargetView) {
 		// The OS mouse cursor will be hidden, so hide the volume controls.
 		if !volumeView.isHidden && volumeView.layer?.animation(forKey: "opacity") == nil {
 			let fadeAnimation = CABasicAnimation(keyPath: "opacity")

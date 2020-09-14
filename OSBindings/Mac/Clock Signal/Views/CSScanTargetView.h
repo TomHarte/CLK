@@ -13,28 +13,6 @@
 @class CSScanTargetView;
 @class CSScanTarget;
 
-typedef NS_ENUM(NSInteger, CSScanTargetViewRedrawEvent) {
-	/// Indicates that AppKit requested a redraw for some reason (mostly likely, the window is being resized). So,
-	/// if the delegate doesn't redraw the view, the user is likely to see a graphical flaw.
-	CSScanTargetViewRedrawEventAppKit,
-	/// Indicates that the view's display-linked timer has triggered a redraw request. So, if the delegate doesn't
-	/// redraw the view, the user will just see the previous drawing without interruption.
-	CSScanTargetViewRedrawEventTimer
-};
-
-//@protocol CSScanTargetViewDelegate
-///*!
-//	Requests that the delegate produce an image of its current output state. May be called on
-//	any queue or thread.
-//	@param view The view making the request.
-//	@param redrawEvent If @c YES then the delegate may decline to redraw if its output would be
-//	identical to the previous frame. If @c NO then the delegate must draw.
-//*/
-//- (void)openGLViewRedraw:(nonnull CSScanTargetView *)view event:(CSScanTargetViewRedrawEvent)redrawEvent;
-//
-//
-//@end
-
 @protocol CSScanTargetViewResponderDelegate <NSObject>
 /*!
 	Supplies a keyDown event to the delegate.
@@ -87,32 +65,32 @@ typedef NS_ENUM(NSInteger, CSScanTargetViewRedrawEvent) {
 	the window, in order to forward continuous mouse motion.
 	@param view The view making the announcement.
 */
-- (void)openGLViewDidCaptureMouse:(nonnull CSScanTargetView *)view;
+- (void)scanTargetViewDidCaptureMouse:(nonnull CSScanTargetView *)view;
 
 /*!
 	Announces that the mouse is no longer captured.
 	@param view The view making the announcement.
 */
-- (void)openGLViewDidReleaseMouse:(nonnull CSScanTargetView *)view;
+- (void)scanTargetViewDidReleaseMouse:(nonnull CSScanTargetView *)view;
 
 /*!
 	Announces that the OS mouse cursor is now being displayed again, after having been invisible.
 	@param view The view making the announcement.
 */
-- (void)openGLViewDidShowOSMouseCursor:(nonnull CSScanTargetView *)view;
+- (void)scanTargetViewDidShowOSMouseCursor:(nonnull CSScanTargetView *)view;
 
 /*!
 	Announces that the OS mouse cursor will now be hidden.
 	@param view The view making the announcement.
 */
-- (void)openGLViewWillHideOSMouseCursor:(nonnull CSScanTargetView *)view;
+- (void)scanTargetViewWillHideOSMouseCursor:(nonnull CSScanTargetView *)view;
 
 /*!
 	Announces receipt of a file by drag and drop to the delegate.
 	@param view The view making the request.
 	@param URL The file URL of the received file.
 */
-- (void)openGLView:(nonnull CSScanTargetView *)view didReceiveFileAtURL:(nonnull NSURL *)URL;
+- (void)scanTargetView:(nonnull CSScanTargetView *)view didReceiveFileAtURL:(nonnull NSURL *)URL;
 
 @end
 
@@ -129,17 +107,16 @@ typedef NS_ENUM(NSInteger, CSScanTargetViewRedrawEvent) {
 /*!
 	Informs the delegate that the display link has fired.
 */
-- (void)openGLViewDisplayLinkDidFire:(nonnull CSScanTargetView *)view now:(nonnull const CVTimeStamp *)now outputTime:(nonnull const CVTimeStamp *)outputTime;
+- (void)scanTargetViewDisplayLinkDidFire:(nonnull CSScanTargetView *)view now:(nonnull const CVTimeStamp *)now outputTime:(nonnull const CVTimeStamp *)outputTime;
 
 @end
 
 /*!
-	Provides an OpenGL canvas with a refresh-linked update timer that can forward a subset
+	Provides a visible scan target with a refresh-linked update timer that can forward a subset
 	of typical first-responder actions.
 */
 @interface CSScanTargetView : MTKView
 
-//@property (atomic, weak, nullable) id <CSOpenGLViewDelegate> delegate;
 @property (nonatomic, weak, nullable) id <CSScanTargetViewResponderDelegate> responderDelegate;
 @property (atomic, weak, nullable) id <CSScanTargetViewDisplayLinkDelegate> displayLinkDelegate;
 
@@ -165,11 +142,10 @@ typedef NS_ENUM(NSInteger, CSScanTargetViewRedrawEvent) {
 */
 - (void)invalidate;
 
-/// The size in pixels of the OpenGL canvas, factoring in screen pixel density and view size in points.
-@property (nonatomic, readonly) CGSize backingSize;
-
+/*!
+	Ensures output begins on all pending scans.
+*/
 - (void)updateBacking;
-//- (void)performWithGLContext:(nonnull dispatch_block_t)action;
 
 /*!
 	Instructs that the mouse cursor, if currently captured, should be released.

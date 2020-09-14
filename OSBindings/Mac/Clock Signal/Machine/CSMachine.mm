@@ -149,7 +149,6 @@ struct ActivityObserver: public Activity::Observer {
 	NSMutableArray<NSString *> *_leds;
 
 	CSHighPrecisionTimer *_timer;
-	CGSize _pixelSize;
 	std::atomic_flag _isUpdating;
 	Time::Nanos _syncTime;
 	Time::Nanos _timeDiff;
@@ -725,11 +724,10 @@ struct ActivityObserver: public Activity::Observer {
 
 #pragma mark - Timer
 
-- (void)openGLViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
+- (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
 	// First order of business: grab a timestamp.
 	const auto timeNow = Time::nanos_now();
 
-	CGSize pixelSize = view.backingSize;
 	BOOL isSyncLocking;
 	@synchronized(self) {
 		// Store a means to map from CVTimeStamp.hostTime to Time::Nanos;
@@ -741,9 +739,6 @@ struct ActivityObserver: public Activity::Observer {
 		// Store the next end-of-frame time. TODO: and start of next and implied visible duration, if raster racing?
 		_syncTime = int64_t(now->hostTime) + _timeDiff;
 
-		// Also crib the current view pixel size.
-		_pixelSize = pixelSize;
-
 		// Set the current refresh period.
 		_refreshPeriod = double(now->videoRefreshPeriod) / double(now->videoTimeScale);
 
@@ -753,9 +748,7 @@ struct ActivityObserver: public Activity::Observer {
 
 	// Draw the current output. (TODO: do this within the timer if either raster racing or, at least, sync matching).
 	if(!isSyncLocking) {
-//		[self.view performWithGLContext:^{
-//			self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
-//		} flushDrawable:YES];
+		[self.view draw];
 	}
 }
 
@@ -771,7 +764,6 @@ struct ActivityObserver: public Activity::Observer {
 		lastTime = std::max(timeNow - Time::Nanos(10'000'000'000 / TICKS), lastTime);
 		const auto duration = timeNow - lastTime;
 
-		CGSize pixelSize;
 		BOOL splitAndSync = NO;
 		@synchronized(self) {
 			// Post on input events.
@@ -802,7 +794,6 @@ struct ActivityObserver: public Activity::Observer {
 			if(!splitAndSync) {
 				self->_machine->timed_machine()->run_for((double)duration / 1e9);
 			}
-			pixelSize = self->_pixelSize;
 		}
 
 		// If this was not a split-and-sync then dispatch the update request asynchronously, unless
@@ -819,13 +810,9 @@ struct ActivityObserver: public Activity::Observer {
 		if(!wasUpdating) {
 			dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
 				[self.view updateBacking];
-//				[self.view performWithGLContext:^{
-//					self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
-
-//					if(splitAndSync) {
-//						self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
-//					}
-//				} flushDrawable:splitAndSync];
+				if(splitAndSync) {
+					[self.view draw];
+				}
 				self->_isUpdating.clear();
 			});
 		}
