@@ -1120,4 +1120,29 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	return &_scanTarget;
 }
 
+- (NSBitmapImageRep *)imageRepresentation {
+	// TODO: create a temporary texture, copy, and do as below but not re: _frameBuffer.
+
+	NSBitmapImageRep *const result =
+		[[NSBitmapImageRep alloc]
+			initWithBitmapDataPlanes:NULL
+			pixelsWide:(NSInteger)_frameBuffer.width
+			pixelsHigh:(NSInteger)_frameBuffer.height
+			bitsPerSample:8
+			samplesPerPixel:4
+			hasAlpha:YES
+			isPlanar:NO
+			colorSpaceName:NSDeviceRGBColorSpace
+			bytesPerRow:4 * (NSInteger)_frameBuffer.width
+			bitsPerPixel:0];
+
+//	[_frameBuffer
+//		getBytes:result.bitmapData
+//		bytesPerRow:_frameBuffer.width*4
+//		fromRegion:MTLRegionMake2D(0, 0, _frameBuffer.width, _frameBuffer.height)
+//		mipmapLevel:0];
+
+	return result;
+}
+
 @end

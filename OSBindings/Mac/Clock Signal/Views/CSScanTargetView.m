@@ -194,6 +194,10 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	[self.responderDelegate paste:sender];
 }
 
+- (NSBitmapImageRep *)imageRepresentation {
+	return self.scanTarget.imageRepresentation;
+}
+
 #pragma mark - NSDraggingDestination
 
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {

@@ -364,27 +364,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (NSBitmapImageRep *)imageRepresentation {
-	// Grab a screenshot.
-/*	Outputs::Display::OpenGL::Screenshot screenshot(4, 3);
-
-	// Generate an NSBitmapImageRep containing the screenshot's data.
-	NSBitmapImageRep *const result =
-		[[NSBitmapImageRep alloc]
-			initWithBitmapDataPlanes:NULL
-			pixelsWide:screenshot.width
-			pixelsHigh:screenshot.height
-			bitsPerSample:8
-			samplesPerPixel:4
-			hasAlpha:YES
-			isPlanar:NO
-			colorSpaceName:NSDeviceRGBColorSpace
-			bytesPerRow:4 * screenshot.width
-			bitsPerPixel:0];
-
-	memcpy(result.bitmapData, screenshot.pixel_data.data(), size_t(screenshot.width*screenshot.height*4));
-
-	return result;*/
-	return nil;
+	return self.view.imageRepresentation;
 }
 
 - (void)applyMedia:(const Analyser::Static::Media &)media {

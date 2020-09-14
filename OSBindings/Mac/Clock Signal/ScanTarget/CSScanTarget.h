@@ -20,4 +20,6 @@
 // ready for output when next requested.
 - (void)updateFrameBuffer;
 
+- (nonnull NSBitmapImageRep *)imageRepresentation;
+
 @end

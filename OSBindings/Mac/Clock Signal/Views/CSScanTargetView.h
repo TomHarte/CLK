@@ -153,6 +153,11 @@
 - (void)releaseMouse;
 
 /*!
+	@returns An image of the view's current contents.
+*/
+- (nonnull NSBitmapImageRep *)imageRepresentation;
+
+/*!
 	@returns The CSScanTarget being used for this display.
 */
 @property(nonatomic, readonly, nonnull) CSScanTarget *scanTarget;
