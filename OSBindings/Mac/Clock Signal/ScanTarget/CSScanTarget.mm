@@ -276,6 +276,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// Additional pipeline information.
 	size_t _lumaKernelSize;
 	size_t _chromaKernelSize;
+	std::atomic<bool> _isUsingSupersampling;
 
 	// The output view.
 	__weak MTKView *_view;
@@ -359,14 +360,22 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[self setAspectRatio];
 
 	@synchronized(self) {
+		// Always [re]try multisampling upon a resize.
+		_scanTarget.display_metrics_.announce_did_resize();
+		_isUsingSupersampling = true;
 		[self updateSizeBuffersToSize:size];
 	}
 }
 
+- (void)updateSizeBuffers {
+	@synchronized(self) {
+		[self updateSizeBuffersToSize:_view.drawableSize];
+	}
+}
+
 - (void)updateSizeBuffersToSize:(CGSize)size {
-	// TODO: above what size threshold is supersampling no longer desired?
-	const NSUInteger frameBufferWidth = NSUInteger(size.width * _view.layer.contentsScale) * 2;
-	const NSUInteger frameBufferHeight = NSUInteger(size.height * _view.layer.contentsScale) * 2;
+	const NSUInteger frameBufferWidth = NSUInteger(size.width * _view.layer.contentsScale) * (_isUsingSupersampling ? 2 : 1);
+	const NSUInteger frameBufferHeight = NSUInteger(size.height * _view.layer.contentsScale) * (_isUsingSupersampling ? 2 : 1);
 
 	// Generate a framebuffer and a stencil.
 	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
@@ -1075,7 +1084,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
  */
 - (void)drawInMTKView:(nonnull MTKView *)view {
 	if(_isDrawing.test_and_set()) {
+		_scanTarget.display_metrics_.announce_draw_status(false);
 		return;
+	}
+
+	// Disable supersampling if performance requires it.
+	if(_isUsingSupersampling && _scanTarget.display_metrics_.should_lower_resolution()) {
+		_isUsingSupersampling = false;
+		[self updateSizeBuffers];
 	}
 
 	// Schedule a copy from the current framebuffer to the view; blitting is unavailable as the target is a framebuffer texture.
@@ -1085,7 +1101,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	view.currentRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
 	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
 
-	[encoder setRenderPipelineState:_supersamplePipeline];
+	[encoder setRenderPipelineState:_isUsingSupersampling ? _supersamplePipeline : _copyPipeline];
 	[encoder setVertexTexture:_frameBuffer atIndex:0];
 	[encoder setFragmentTexture:_frameBuffer atIndex:0];
 
@@ -1095,6 +1111,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[commandBuffer presentDrawable:view.currentDrawable];
 	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
 		self->_isDrawing.clear();
+		self->_scanTarget.display_metrics_.announce_draw_status(true);
 	}];
 	[commandBuffer commit];
 }

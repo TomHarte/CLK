@@ -33,6 +33,9 @@ class Metrics {
 		/// Provides Metrics with a new data point for output speed estimation.
 		void announce_draw_status(size_t lines, std::chrono::high_resolution_clock::duration duration, bool complete);
 
+		/// Provides Metrics with a new data point for output speed estimation, albeit without line-specific information.
+		void announce_draw_status(bool complete);
+
 		/// @returns @c true if Metrics thinks a lower output buffer resolution is desirable in the abstract; @c false otherwise.
 		bool should_lower_resolution() const;
 
