@@ -58,12 +58,17 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 		end_x = aligned_start_x + uint16_t(1 + required_length);
 	}
 
-	// Check whether that steps over the read pointer.
+	// Check whether that steps over the read pointer; if so then the final address will be closer
+	// to the write pointer than the old.
 	const auto end_address = TextureAddress(end_x, output_y);
 	const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
 
 	const auto end_distance = TextureSub(end_address, read_pointers.write_area);
 	const auto previous_distance = TextureSub(write_pointers_.write_area, read_pointers.write_area);
+
+	// Perform a quick sanity check.
+	assert(end_distance >= 0);
+	assert(previous_distance >= 0);
 
 	// If allocating this would somehow make the write pointer back away from the read pointer,
 	// there must not be enough space left.
