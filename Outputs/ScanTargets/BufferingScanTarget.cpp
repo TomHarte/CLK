@@ -184,7 +184,7 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 		// The previous-frame-is-complete flag is subject to a two-slot queue because
 		// measurement for *this* frame needs to begin now, meaning that the previous
 		// result needs to be put somewhere — it'll be attached to the first successful
-		// line output.
+		// line output, whenever that comes.
 		is_first_in_frame_ = true;
 		previous_frame_was_complete_ = frame_is_complete_;
 		frame_is_complete_ = true;
@@ -201,15 +201,11 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 	if(is_visible) {
 		const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
 
-		// Attempt to allocate a new line, noting allocation failure if necessary.
+		// Attempt to allocate a new line, noting allocation success or failure.
 		const auto next_line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
-		if(next_line == read_pointers.line) {
-			allocation_has_failed_ = true;
-		}
-		provided_scans_ = 0;
-
-		// If there was space for a new line, establish its start.
+		allocation_has_failed_ = next_line == read_pointers.line;
 		if(!allocation_has_failed_) {
+			// If there was space for a new line, establish its start and reset the count of provided scans.
 			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
 			active_line.end_points[0].x = location.x;
 			active_line.end_points[0].y = location.y;
@@ -217,6 +213,8 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			active_line.end_points[0].composite_angle = location.composite_angle;
 			active_line.line = write_pointers_.line;
 			active_line.composite_amplitude = composite_amplitude;
+
+			provided_scans_ = 0;
 		}
 	} else {
 		// Commit the most recent line only if any scans fell on it and all allocation was successful.
@@ -251,10 +249,6 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			write_pointers_ = submit_pointers_.load(std::memory_order::memory_order_relaxed);
 			frame_is_complete_ &= !allocation_has_failed_;
 		}
-
-		// Reset the allocation-has-failed flag for the next line
-		// and mark no line as active.
-		allocation_has_failed_ = false;
 	}
 }
 
