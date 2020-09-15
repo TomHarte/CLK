@@ -1164,6 +1164,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Set alpha to fully opaque and do some byte shuffling if necessary;
 	// Apple likes BGR for output but RGB is the best I can specify to NSBitmapImageRep.
+	//
+	// I'm not putting my foot down and having the GPU do the conversion I want
+	// because this lets me reuse _copyPipeline and thereby cut down on boilerplate,
+	// especially given that screenshots are not a bottleneck.
 	const NSUInteger totalBytes = _frameBuffer.width * _frameBuffer.height * 4;
 	const bool flipRedBlue = _view.colorPixelFormat == MTLPixelFormatBGRA8Unorm;
 	for(NSUInteger offset = 0; offset < totalBytes; offset += 4) {
