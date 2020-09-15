@@ -317,7 +317,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"copyFragment"];
 		_copyPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"supersampleFragment"];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateFragment"];
 		_supersamplePipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"clearFragment"];
