@@ -373,6 +373,26 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	}
 }
 
+- (id<MTLCommandBuffer>)copyTexture:(id<MTLTexture>)source to:(id<MTLTexture>)destination {
+	MTLRenderPassDescriptor *const copyTextureDescriptor = [[MTLRenderPassDescriptor alloc] init];
+	copyTextureDescriptor.colorAttachments[0].texture = destination;
+	copyTextureDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+	copyTextureDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:copyTextureDescriptor];
+
+	[encoder setRenderPipelineState:_copyPipeline];
+	[encoder setVertexTexture:source atIndex:0];
+	[encoder setFragmentTexture:source atIndex:0];
+
+	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+	[encoder endEncoding];
+	[commandBuffer commit];
+
+	return commandBuffer;
+}
+
 - (void)updateSizeBuffersToSize:(CGSize)size {
 	const NSUInteger frameBufferWidth = NSUInteger(size.width * _view.layer.contentsScale) * (_isUsingSupersampling ? 2 : 1);
 	const NSUInteger frameBufferHeight = NSUInteger(size.height * _view.layer.contentsScale) * (_isUsingSupersampling ? 2 : 1);
@@ -418,21 +438,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Draw from _oldFrameBuffer to _frameBuffer.
 	if(_oldFrameBuffer) {
-		MTLRenderPassDescriptor *const resizeFrameBufferDescriptor = [[MTLRenderPassDescriptor alloc] init];
-		resizeFrameBufferDescriptor.colorAttachments[0].texture = _frameBuffer;
-		resizeFrameBufferDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
-		resizeFrameBufferDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-
-		id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-		id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:resizeFrameBufferDescriptor];
-
-		[encoder setRenderPipelineState:_copyPipeline];
-		[encoder setVertexTexture:_oldFrameBuffer atIndex:0];
-		[encoder setFragmentTexture:_oldFrameBuffer atIndex:0];
-
-		[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
-		[encoder endEncoding];
-		[commandBuffer commit];
+		[self copyTexture:_oldFrameBuffer to:_frameBuffer];
 
 		// Don't clear the framebuffer at the end of this frame.
 		_dontClearFrameBuffer = YES;
@@ -1121,8 +1127,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (NSBitmapImageRep *)imageRepresentation {
-	// TODO: create a temporary texture, copy, and do as below but not re: _frameBuffer.
-
+	// Create an NSBitmapRep as somewhere to copy pixel data to.
 	NSBitmapImageRep *const result =
 		[[NSBitmapImageRep alloc]
 			initWithBitmapDataPlanes:NULL
@@ -1136,11 +1141,39 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			bytesPerRow:4 * (NSInteger)_frameBuffer.width
 			bitsPerPixel:0];
 
-//	[_frameBuffer
-//		getBytes:result.bitmapData
-//		bytesPerRow:_frameBuffer.width*4
-//		fromRegion:MTLRegionMake2D(0, 0, _frameBuffer.width, _frameBuffer.height)
-//		mipmapLevel:0];
+	// Create a CPU-accessible texture and copy the current contents of the _frameBuffer to it.
+	// TODO: supersample rather than directly copy if appropriate?
+	id<MTLTexture> cpuTexture;
+	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
+		texture2DDescriptorWithPixelFormat:_view.colorPixelFormat
+		width:_frameBuffer.width
+		height:_frameBuffer.height
+		mipmapped:NO];
+	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+	textureDescriptor.resourceOptions = MTLResourceStorageModeManaged;
+	cpuTexture = [_view.device newTextureWithDescriptor:textureDescriptor];
+	[[self copyTexture:_frameBuffer to:cpuTexture] waitUntilCompleted];
+
+	// Copy from the CPU-visible texture to the bitmap image representation.
+	uint8_t *const bitmapData = result.bitmapData;
+	[cpuTexture
+		getBytes:bitmapData
+		bytesPerRow:_frameBuffer.width*4
+		fromRegion:MTLRegionMake2D(0, 0, _frameBuffer.width, _frameBuffer.height)
+		mipmapLevel:0];
+
+	// Set alpha to fully opaque and do some byte shuffling if necessary;
+	// Apple likes BGR for output but RGB is the best I can specify to NSBitmapImageRep.
+	const NSUInteger totalBytes = _frameBuffer.width * _frameBuffer.height * 4;
+	const bool flipRedBlue = _view.colorPixelFormat == MTLPixelFormatBGRA8Unorm;
+	for(NSUInteger offset = 0; offset < totalBytes; offset += 4) {
+		if(flipRedBlue) {
+			const uint8_t red = bitmapData[offset];
+			bitmapData[offset] = bitmapData[offset+2];
+			bitmapData[offset+2] = red;
+		}
+		bitmapData[offset+3] = 0xff;
+	}
 
 	return result;
 }
