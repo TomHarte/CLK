@@ -12,6 +12,7 @@
 #include "ScanTarget.hpp"
 
 #include <array>
+#include <atomic>
 #include <chrono>
 
 namespace Outputs {
@@ -51,8 +52,8 @@ class Metrics {
 		size_t line_total_history_pointer_ = 0;
 		void add_line_total(int);
 
-		int frames_hit_ = 0;
-		int frames_missed_ = 0;
+		std::atomic<int> frames_hit_ = 0;
+		std::atomic<int> frames_missed_ = 0;
 };
 
 }
