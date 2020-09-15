@@ -242,6 +242,7 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			write_pointers_.line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
 
 			// Update the submit pointers with all lines, scans and data written during this line.
+			std::atomic_thread_fence(std::memory_order::memory_order_release);
 			submit_pointers_.store(write_pointers_, std::memory_order::memory_order_release);
 		} else {
 			// Something failed, or there was nothing on the line anyway, so reset all pointers to where they
@@ -299,6 +300,7 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	// cleared for submission.
 	const auto submit_pointers = submit_pointers_.load(std::memory_order::memory_order_acquire);
 	const auto read_ahead_pointers = read_ahead_pointers_.load(std::memory_order::memory_order_relaxed);
+	std::atomic_thread_fence(std::memory_order::memory_order_acquire);
 
 	OutputArea area;
 
