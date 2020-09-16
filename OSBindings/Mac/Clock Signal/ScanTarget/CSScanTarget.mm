@@ -138,13 +138,13 @@ constexpr MTLResourceOptions SharedResourceOptionsTexture = MTLResourceCPUCacheM
 #define uniforms() reinterpret_cast<Uniforms *>(_uniformsBuffer.contents)
 
 #define RangePerform(start, end, size, func)	\
-	if(start != end) {	\
-		if(start < end) {	\
-			func(start, end-start);	\
+	if((start) != (end)) {	\
+		if((start) < (end)) {	\
+			func((start), (end) - (start));	\
 		} else {	\
-			func(start, size-start);	\
+			func((start), (size) - (start));	\
 			if(end) {	\
-				func(0, end);	\
+				func(0, (end));	\
 			}	\
 		}	\
 	}
@@ -854,7 +854,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 #endif
 
 #define OutputStrips(start, size)	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:size baseInstance:start]
-	RangePerform(start, end, (_pipeline != Pipeline::DirectToDisplay ? NumBufferedLines : NumBufferedScans), OutputStrips);
+	RangePerform(start, end, _pipeline != Pipeline::DirectToDisplay ? NumBufferedLines : NumBufferedScans, OutputStrips);
 #undef OutputStrips
 
 	// Complete encoding.
