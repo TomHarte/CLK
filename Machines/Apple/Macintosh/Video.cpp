@@ -115,6 +115,8 @@ void Video::run_for(HalfCycles duration) {
 
 							pixel_buffer_ += 16;
 						}
+					} else {
+						video_address_ += size_t(final_pixel_word - first_word);
 					}
 
 					if(final_pixel_word == 32) {
