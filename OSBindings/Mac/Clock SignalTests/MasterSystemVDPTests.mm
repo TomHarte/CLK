@@ -7,7 +7,6 @@
 //
 
 #import <XCTest/XCTest.h>
-#import <OpenGL/OpenGL.h>
 
 #include "9918.hpp"
 

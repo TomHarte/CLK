@@ -9,6 +9,7 @@
 #ifndef Outputs_Display_ScanTarget_h
 #define Outputs_Display_ScanTarget_h
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include "../ClockReceiver/TimeTypes.hpp"
@@ -53,6 +54,9 @@ enum class DisplayType {
 
 /*!
 	Enumerates the potential formats of input data.
+
+	All types are designed to be 1, 2 or 4 bytes per pixel; this hopefully creates appropriate alignment
+	on all formats.
 */
 enum class InputDataType {
 
@@ -72,8 +76,10 @@ enum class InputDataType {
 	// of a colour subcarrier. So they can be used to generate a luminance signal,
 	// or an s-video pipeline.
 
-	Luminance8Phase8,		// 2 bytes/pixel; first is luminance, second is phase.
-							// Phase is encoded on a 192-unit circle; anything
+	Luminance8Phase8,		// 2 bytes/pixel; first is luminance, second is phase
+							// of a cosine wave.
+							//
+							// Phase is encoded on a 128-unit circle; anything
 							// greater than 192 implies that the colour part of
 							// the signal should be omitted.
 
@@ -86,7 +92,8 @@ enum class InputDataType {
 	Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
 };
 
-inline size_t size_for_data_type(InputDataType data_type) {
+/// @returns the number of bytes per sample for data of type @c data_type.
+constexpr inline size_t size_for_data_type(InputDataType data_type) {
 	switch(data_type) {
 		case InputDataType::Luminance1:
 		case InputDataType::Luminance8:
@@ -107,7 +114,28 @@ inline size_t size_for_data_type(InputDataType data_type) {
 	}
 }
 
-inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
+/// @returns @c true if this data type presents normalised data, i.e. each byte holds a
+/// value in the range [0, 255] representing a real number in the range [0.0, 1.0]; @c false otherwise.
+constexpr inline size_t data_type_is_normalised(InputDataType data_type) {
+	switch(data_type) {
+		case InputDataType::Luminance8:
+		case InputDataType::Luminance8Phase8:
+		case InputDataType::Red8Green8Blue8:
+		case InputDataType::PhaseLinkedLuminance8:
+			return true;
+
+		default:
+		case InputDataType::Luminance1:
+		case InputDataType::Red1Green1Blue1:
+		case InputDataType::Red2Green2Blue2:
+		case InputDataType::Red4Green4Blue4:
+			return false;
+	}
+}
+
+/// @returns The 'natural' display type for data of type @c data_type. The natural display is whichever would
+/// display it with the least number of conversions. Caveat: a colour display is assumed for pure-composite data types.
+constexpr inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
 	switch(data_type) {
 		default:
 		case InputDataType::Luminance1:
@@ -124,6 +152,34 @@ inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
 		case InputDataType::Luminance8Phase8:
 			return DisplayType::SVideo;
 	}
+}
+
+/// @returns A 3x3 matrix in row-major order to convert from @c colour_space to RGB.
+inline std::array<float, 9> to_rgb_matrix(ColourSpace colour_space) {
+	const std::array<float, 9> yiq_to_rgb = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
+	const std::array<float, 9> yuv_to_rgb = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
+
+	switch(colour_space) {
+		case ColourSpace::YIQ:	return yiq_to_rgb;
+		case ColourSpace::YUV:	return yuv_to_rgb;
+	}
+
+	// Should be unreachable.
+	return std::array<float, 9>{};
+}
+
+/// @returns A 3x3 matrix in row-major order to convert to @c colour_space to RGB.
+inline std::array<float, 9> from_rgb_matrix(ColourSpace colour_space) {
+	const std::array<float, 9> rgb_to_yiq = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
+	const std::array<float, 9> rgb_to_yuv = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
+
+	switch(colour_space) {
+		case ColourSpace::YIQ:	return rgb_to_yiq;
+		case ColourSpace::YUV:	return rgb_to_yuv;
+	}
+
+	// Should be unreachable.
+	return std::array<float, 9>{};
 }
 
 /*!
@@ -325,22 +381,22 @@ struct ScanTarget {
 
 struct ScanStatus {
 	/// The current (prediced) length of a field (including retrace).
-	Time::Seconds field_duration;
+	Time::Seconds field_duration = 0.0;
 	/// The difference applied to the field_duration estimate during the last field.
-	Time::Seconds field_duration_gradient;
+	Time::Seconds field_duration_gradient = 0.0;
 	/// The amount of time this device spends in retrace.
-	Time::Seconds retrace_duration;
+	Time::Seconds retrace_duration = 0.0;
 	/// The distance into the current field, from a small negative amount (in retrace) through
 	/// 0 (start of visible area field) to 1 (end of field).
 	///
 	/// This will increase monotonically, being a measure
 	/// of the current vertical position — i.e. if current_position = 0.8 then a caller can
 	/// conclude that the top 80% of the visible part of the display has been painted.
-	float current_position;
+	float current_position = 0.0f;
 	/// The total number of hsyncs so far encountered;
-	int hsync_count;
+	int hsync_count = 0;
 	/// @c true if retrace is currently going on; @c false otherwise.
-	bool is_in_retrace;
+	bool is_in_retrace = false;
 
 	/*!
 		@returns this ScanStatus, with time-relative fields scaled by dividing them by @c dividend.

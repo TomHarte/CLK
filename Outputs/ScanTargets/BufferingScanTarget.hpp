@@ -39,7 +39,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/*! @returns The DisplayMetrics object that this ScanTarget has been providing with announcements and draw overages. */
 		const Metrics &display_metrics();
 
-	protected:
 		static constexpr int WriteAreaWidth = 2048;
 		static constexpr int WriteAreaHeight = 2048;
 
@@ -49,13 +48,15 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		// It is the subclass's responsibility to post timings.
 		Metrics display_metrics_;
 
-		// Extends the definition of a Scan to include two extra fields,
-		// completing this scan's source data and destination locations.
+		/// Extends the definition of a Scan to include two extra fields,
+		/// completing this scan's source data and destination locations.
 		struct Scan {
 			Outputs::Display::ScanTarget::Scan scan;
 
 			/// Stores the y coordinate for this scan's data within the write area texture.
 			/// Use this plus the scan's endpoints' data_offsets to locate this data in 2d.
+			/// Note that the data_offsets will have been adjusted to be relative to the line
+			/// they fall within, not the data allocation.
 			uint16_t data_y;
 			/// Stores the y coordinate assigned to this scan within the intermediate buffers.
 			/// Use this plus this scan's endpoints' x locations to determine where to composite
@@ -69,11 +70,12 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		struct Line {
 			struct EndPoint {
 				uint16_t x, y;
-				uint16_t cycles_since_end_of_horizontal_retrace;
 				int16_t composite_angle;
+				uint16_t cycles_since_end_of_horizontal_retrace;
 			} end_points[2];
-			uint16_t line;
+
 			uint8_t composite_amplitude;
+			uint16_t line;
 		};
 
 		/// Provides additional metadata about lines; this is separate because it's unlikely to be of
@@ -86,6 +88,8 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 			/// from a frame if performance problems mean that the emulated machine is running
 			/// more quickly than complete frames can be generated.
 			bool previous_frame_was_complete;
+			/// The index of the first scan that will appear on this line.
+			size_t first_scan;
 		};
 
 		/// Sets the area of memory to use as a scan buffer.
@@ -112,6 +116,10 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// (iii) the number of lines that have been completed.
 		///
 		/// New write areas and scans are exposed only upon completion of the corresponding lines.
+		/// The values indicated by the start point are the first that should be drawn. Those indicated
+		/// by the end point are one after the final that should be drawn.
+		///
+		/// So e.g. start.scan = 23, end.scan = 24 means draw a single scan, index 23.
 		struct OutputArea {
 			struct Endpoint {
 				int write_area_x, write_area_y;
@@ -120,13 +128,31 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 			};
 
 			Endpoint start, end;
+
+#ifndef NDEBUG
+			size_t counter;
+#endif
 		};
+
+		/// Gets the current range of content that has been posted but not yet returned by
+		/// a previous call to get_output_area().
+		///
+		/// Does not require the caller to be within a @c perform block.
+		OutputArea get_output_area();
+
+		/// Announces that the output area has now completed output, freeing up its memory for
+		/// further modification.
+		///
+		/// It is the caller's responsibility to ensure that the areas passed to complete_output_area
+		/// are those from get_output_area and are marked as completed in the same order that
+		/// they were originally provided.
+		///
+		/// Does not require the caller to be within a @c perform block.
+		void complete_output_area(const OutputArea &);
+
 		/// Performs @c action ensuring that no other @c perform actions, or any
 		/// change to modals, occurs simultaneously.
 		void perform(const std::function<void(void)> &action);
-
-		/// Acts as per void(void) @c perform but also dequeues all latest available video output.
-		void perform(const std::function<void(const OutputArea &)> &);
 
 		/// @returns new Modals if any have been set since the last call to get_new_modals().
 		///		The caller must be within a @c perform block.
@@ -185,7 +211,7 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 			int32_t write_area = 1;
 
 			// Points into the scan buffer.
-			uint16_t scan_buffer = 0;
+			uint16_t scan = 0;
 
 			// Points into the line buffer.
 			uint16_t line = 0;
@@ -198,6 +224,8 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// atomic since it also acts as the buffer into which the write_pointers_
 		/// may run and is therefore used by both producer and consumer.
 		std::atomic<PointerSet> read_pointers_;
+
+		std::atomic<PointerSet> read_ahead_pointers_;
 
 		/// This is used as a spinlock to guard `perform` calls.
 		std::atomic_flag is_updating_;
@@ -226,6 +254,13 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		// from a call to @c get_new_modals.
 		Modals modals_;
 		bool modals_are_dirty_ = false;
+
+#ifndef NDEBUG
+		// Debug features; these amount to API validation.
+		bool scan_is_ongoing_ = false;
+		size_t output_area_counter_ = 0;
+		size_t output_area_next_returned_ = 0;
+#endif
 };
 
 

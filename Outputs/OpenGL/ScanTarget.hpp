@@ -38,7 +38,7 @@ namespace OpenGL {
 	this uses various internal buffers so that the only geometry
 	drawn to the target framebuffer is a quad.
 */
-class ScanTarget: public Outputs::Display::BufferingScanTarget {
+class ScanTarget: public Outputs::Display::BufferingScanTarget {	// TODO: use private inheritance and expose only display_metrics() and a custom cast?
 	public:
 		ScanTarget(GLuint target_framebuffer = 0, float output_gamma = 2.2f);
 		~ScanTarget();

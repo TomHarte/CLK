@@ -12,6 +12,7 @@
 #include "ScanTarget.hpp"
 
 #include <array>
+#include <atomic>
 #include <chrono>
 
 namespace Outputs {
@@ -33,6 +34,9 @@ class Metrics {
 		/// Provides Metrics with a new data point for output speed estimation.
 		void announce_draw_status(size_t lines, std::chrono::high_resolution_clock::duration duration, bool complete);
 
+		/// Provides Metrics with a new data point for output speed estimation, albeit without line-specific information.
+		void announce_draw_status(bool complete);
+
 		/// @returns @c true if Metrics thinks a lower output buffer resolution is desirable in the abstract; @c false otherwise.
 		bool should_lower_resolution() const;
 
@@ -48,8 +52,8 @@ class Metrics {
 		size_t line_total_history_pointer_ = 0;
 		void add_line_total(int);
 
-		int frames_hit_ = 0;
-		int frames_missed_ = 0;
+		std::atomic<int> frames_hit_ = 0;
+		std::atomic<int> frames_missed_ = 0;
 };
 
 }

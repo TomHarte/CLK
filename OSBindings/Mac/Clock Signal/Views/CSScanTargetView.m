@@ -1,24 +1,24 @@
 //
-//  CSOpenGLView
+//  CSScanTargetView
 //  CLK
 //
 //  Created by Thomas Harte on 16/07/2015.
 //  Copyright 2015 Thomas Harte. All rights reserved.
 //
 
-#import "CSOpenGLView.h"
+#import "CSScanTargetView.h"
 #import "CSApplication.h"
+#import "CSScanTarget.h"
 @import CoreVideo;
 @import GLKit;
 
 #include <stdatomic.h>
 
-@interface CSOpenGLView () <NSDraggingDestination, CSApplicationEventDelegate>
+@interface CSScanTargetView () <NSDraggingDestination, CSApplicationEventDelegate>
 @end
 
-@implementation CSOpenGLView {
+@implementation CSScanTargetView {
 	CVDisplayLinkRef _displayLink;
-	CGSize _backingSize;
 	NSNumber *_currentScreenNumber;
 
 	NSTrackingArea *_mouseTrackingArea;
@@ -27,20 +27,8 @@
 
 	atomic_int _isDrawingFlag;
 	BOOL _isInvalid;
-}
 
-- (void)prepareOpenGL {
-	[super prepareOpenGL];
-
-	// Prepare the atomic int.
-	atomic_init(&_isDrawingFlag, 0);
-
-	// Set the clear colour.
-	[self.openGLContext makeCurrentContext];
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-
-	// Setup the [initial] display link.
-	[self setupDisplayLink];
+	CSScanTarget *_scanTarget;
 }
 
 - (void)setupDisplayLink {
@@ -58,17 +46,12 @@
 	// Set the renderer output callback function.
 	CVDisplayLinkSetOutputCallback(_displayLink, DisplayLinkCallback, (__bridge void * __nullable)(self));
 
-	// Set the display link for the current renderer.
-	CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
-	CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
-	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
-
 	// Activate the display link.
 	CVDisplayLinkStart(_displayLink);
 }
 
 static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, __unused CVOptionFlags flagsIn, __unused CVOptionFlags *flagsOut, void *displayLinkContext) {
-	CSOpenGLView *const view = (__bridge CSOpenGLView *)displayLinkContext;
+	CSScanTargetView *const view = (__bridge CSScanTargetView *)displayLinkContext;
 
 	// Schedule an opportunity to check that the display link is still linked to the correct display.
 	dispatch_async(dispatch_get_main_queue(), ^{
@@ -78,7 +61,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	// Ensure _isDrawingFlag has value 1 when drawing, 0 otherwise.
 	atomic_store(&view->_isDrawingFlag, 1);
 
-	[view.displayLinkDelegate openGLViewDisplayLinkDidFire:view now:now outputTime:outputTime];
+	[view.displayLinkDelegate scanTargetViewDisplayLinkDidFire:view now:now outputTime:outputTime];
 	/*
 		Do not touch the display link from after this call; there's a bit of a race condition with setupDisplayLink.
 		Specifically: Apple provides CVDisplayLinkStop but a call to that merely prevents future calls to the callback,
@@ -106,28 +89,10 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	// feels fine.
 	NSNumber *const screenNumber = self.window.screen.deviceDescription[@"NSScreenNumber"];
 	if(![_currentScreenNumber isEqual:screenNumber]) {
-		// Issue a reshape, in case a switch to/from a Retina display has
-		// happened, changing the results of -convertSizeToBacking:, etc.
-		[self reshape];
-
 		// Also switch display links, to make sure synchronisation is with the display
 		// the window is actually on, and at its rate.
 		[self setupDisplayLink];
 	}
-}
-
-- (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency {
-	[self redrawWithEvent:CSOpenGLViewRedrawEventTimer];
-}
-
-- (void)drawRect:(NSRect)dirtyRect {
-	[self redrawWithEvent:CSOpenGLViewRedrawEventAppKit];
-}
-
-- (void)redrawWithEvent:(CSOpenGLViewRedrawEvent)event  {
-	[self performWithGLContext:^{
-		[self.delegate openGLViewRedraw:self event:event];
-	} flushDrawable:YES];
 }
 
 - (void)invalidate {
@@ -160,65 +125,35 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	CVDisplayLinkRelease(_displayLink);
 }
 
-- (CGSize)backingSize {
-	@synchronized(self) {
-		return _backingSize;
-	}
+- (CSScanTarget *)scanTarget {
+	return _scanTarget;
 }
 
-- (void)reshape {
-	[super reshape];
-	@synchronized(self) {
-		_backingSize = [self convertSizeToBacking:self.bounds.size];
-	}
-
-	[self performWithGLContext:^{
-		CGSize viewSize = [self backingSize];
-		glViewport(0, 0, (GLsizei)viewSize.width, (GLsizei)viewSize.height);
-	} flushDrawable:NO];
+- (void)updateBacking {
+	[_scanTarget updateFrameBuffer];
 }
 
 - (void)awakeFromNib {
-	NSOpenGLPixelFormatAttribute attributes[] = {
-		NSOpenGLPFADoubleBuffer,
-		NSOpenGLPFAOpenGLProfile,	NSOpenGLProfileVersion3_2Core,
-//		NSOpenGLPFAMultisample,
-//		NSOpenGLPFASampleBuffers,	1,
-//		NSOpenGLPFASamples,			2,
-		0
-	};
+	// Use the preferred device if available.
+	if(@available(macOS 10.15, *)) {
+		self.device = self.preferredDevice;
+	} else {
+		self.device = MTLCreateSystemDefaultDevice();
+	}
 
-	NSOpenGLPixelFormat *pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attributes];
-	NSOpenGLContext *context = [[NSOpenGLContext alloc] initWithFormat:pixelFormat shareContext:nil];
+	// Configure for explicit drawing.
+	self.paused = YES;
+	self.enableSetNeedsDisplay = NO;
 
-#ifdef DEBUG
-	// When we're using a CoreProfile context, crash if we call a legacy OpenGL function
-	// This will make it much more obvious where and when such a function call is made so
-	// that we can remove such calls.
-	// Without this we'd simply get GL_INVALID_OPERATION error for calling legacy functions
-	// but it would be more difficult to see where that function was called.
-	CGLEnable([context CGLContextObj], kCGLCECrashOnRemovedFunctions);
-#endif
-
-	self.pixelFormat = pixelFormat;
-	self.openGLContext = context;
-	self.wantsBestResolutionOpenGLSurface = YES;
+	// Create the scan target.
+	_scanTarget = [[CSScanTarget alloc] initWithView:self];
+	self.delegate = _scanTarget;
 
 	// Register to receive dragged and dropped file URLs.
 	[self registerForDraggedTypes:@[(__bridge NSString *)kUTTypeFileURL]];
-}
 
-- (void)performWithGLContext:(dispatch_block_t)action flushDrawable:(BOOL)flushDrawable {
-	CGLLockContext([[self openGLContext] CGLContextObj]);
-	[self.openGLContext makeCurrentContext];
-	action();
-	CGLUnlockContext([[self openGLContext] CGLContextObj]);
-
-	if(flushDrawable) CGLFlushDrawable([[self openGLContext] CGLContextObj]);
-}
-
-- (void)performWithGLContext:(nonnull dispatch_block_t)action {
-	[self performWithGLContext:action flushDrawable:NO];
+	// Setup the [initial] display link.
+	[self setupDisplayLink];
 }
 
 #pragma mark - NSResponder
@@ -259,12 +194,16 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	[self.responderDelegate paste:sender];
 }
 
+- (NSBitmapImageRep *)imageRepresentation {
+	return self.scanTarget.imageRepresentation;
+}
+
 #pragma mark - NSDraggingDestination
 
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {
 	for(NSPasteboardItem *item in [[sender draggingPasteboard] pasteboardItems]) {
 		NSURL *URL = [NSURL URLWithString:[item stringForType:(__bridge NSString *)kUTTypeFileURL]];
-		[self.delegate openGLView:self didReceiveFileAtURL:URL];
+		[self.responderDelegate scanTargetView:self didReceiveFileAtURL:URL];
 	}
 	return YES;
 }
@@ -300,13 +239,13 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 
 		_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 repeats:NO block:^(__unused NSTimer * _Nonnull timer) {
 			[NSCursor setHiddenUntilMouseMoves:YES];
-			[self.delegate openGLViewWillHideOSMouseCursor:self];
+			[self.responderDelegate scanTargetViewWillHideOSMouseCursor:self];
 		}];
 	}
 }
 
 - (void)mouseEntered:(NSEvent *)event {
-	[self.delegate openGLViewDidShowOSMouseCursor:self];
+	[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
 	[super mouseEntered:event];
 	[self scheduleMouseHide];
 }
@@ -315,7 +254,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	[super mouseExited:event];
 	[_mouseHideTimer invalidate];
 	_mouseHideTimer = nil;
-	[self.delegate openGLViewWillHideOSMouseCursor:self];
+	[self.responderDelegate scanTargetViewWillHideOSMouseCursor:self];
 }
 
 - (void)releaseMouse {
@@ -323,8 +262,8 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 		_mouseIsCaptured = NO;
 		CGAssociateMouseAndMouseCursorPosition(true);
 		[NSCursor unhide];
-		[self.delegate openGLViewDidReleaseMouse:self];
-		[self.delegate openGLViewDidShowOSMouseCursor:self];
+		[self.responderDelegate scanTargetViewDidReleaseMouse:self];
+		[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
 		((CSApplication *)[NSApplication sharedApplication]).eventDelegate = nil;
 	}
 }
@@ -336,7 +275,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 		// Mouse capture is off, so don't play games with the cursor, just schedule it to
 		// hide in the near future.
 		[self scheduleMouseHide];
-		[self.delegate openGLViewDidShowOSMouseCursor:self];
+		[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
 	} else {
 		if(_mouseIsCaptured) {
 			// Mouse capture is on, so move the cursor back to the middle of the window, and
@@ -354,7 +293,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 
 			[self.responderDelegate mouseMoved:event];
 		} else {
-			[self.delegate openGLViewDidShowOSMouseCursor:self];
+			[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
 		}
 	}
 }
@@ -387,8 +326,8 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 			_mouseIsCaptured = YES;
 			[NSCursor hide];
 			CGAssociateMouseAndMouseCursorPosition(false);
-			[self.delegate openGLViewWillHideOSMouseCursor:self];
-			[self.delegate openGLViewDidCaptureMouse:self];
+			[self.responderDelegate scanTargetViewWillHideOSMouseCursor:self];
+			[self.responderDelegate scanTargetViewDidCaptureMouse:self];
 			if(self.shouldUsurpCommand) {
 				((CSApplication *)[NSApplication sharedApplication]).eventDelegate = self;
 			}

@@ -81,7 +81,7 @@ class CRT {
 
 		Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
 		Outputs::Display::ScanTarget::Modals scan_target_modals_;
-		static constexpr uint8_t DefaultAmplitude = 80;
+		static constexpr uint8_t DefaultAmplitude = 41;	// Based upon a black level to maximum excursion and positive burst peak of: NTSC: 882 & 143; PAL: 933 & 150.
 
 #ifndef NDEBUG
 		size_t allocated_data_length_ = std::numeric_limits<size_t>::min();

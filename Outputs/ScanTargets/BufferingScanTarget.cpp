@@ -11,12 +11,6 @@
 #include <cassert>
 #include <cstring>
 
-// If enabled, this uses the producer lock to cover both production and consumption
-// rather than attempting to proceed lockfree. This is primarily for diagnostic purposes;
-// it allows empirical exploration of whether the logical and memory barriers that are
-// meant to mediate things between the read pointers and the submit pointers are functioning.
-#define ONE_BIG_LOCK
-
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
 #define TextureAddressGetX(v)	uint16_t((v) & 0x7ff)
 #define TextureSub(a, b)		(((a) - (b)) & 0x3fffff)
@@ -64,12 +58,17 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 		end_x = aligned_start_x + uint16_t(1 + required_length);
 	}
 
-	// Check whether that steps over the read pointer.
+	// Check whether that steps over the read pointer; if so then the final address will be closer
+	// to the write pointer than the old.
 	const auto end_address = TextureAddress(end_x, output_y);
 	const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
 
 	const auto end_distance = TextureSub(end_address, read_pointers.write_area);
 	const auto previous_distance = TextureSub(write_pointers_.write_area, read_pointers.write_area);
+
+	// Perform a quick sanity check.
+	assert(end_distance >= 0);
+	assert(previous_distance >= 0);
 
 	// If allocating this would somehow make the write pointer back away from the read pointer,
 	// there must not be enough space left.
@@ -79,6 +78,7 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 	}
 
 	// Everything checks out, note expectation of a future end_data and return the pointer.
+	assert(!data_is_allocated_);
 	data_is_allocated_ = true;
 	vended_write_area_pointer_ = write_pointers_.write_area = TextureAddress(aligned_start_x, output_y);
 
@@ -131,30 +131,41 @@ Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
 		return nullptr;
 	}
 
-	const auto result = &scan_buffer_[write_pointers_.scan_buffer];
+	const auto result = &scan_buffer_[write_pointers_.scan];
 	const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
 
 	// Advance the pointer.
-	const auto next_write_pointer = decltype(write_pointers_.scan_buffer)((write_pointers_.scan_buffer + 1) % scan_buffer_size_);
+	const auto next_write_pointer = decltype(write_pointers_.scan)((write_pointers_.scan + 1) % scan_buffer_size_);
 
 	// Check whether that's too many.
-	if(next_write_pointer == read_pointers.scan_buffer) {
+	if(next_write_pointer == read_pointers.scan) {
 		allocation_has_failed_ = true;
 		vended_scan_ = nullptr;
 		return nullptr;
 	}
-	write_pointers_.scan_buffer = next_write_pointer;
+	write_pointers_.scan = next_write_pointer;
 	++provided_scans_;
 
 	// Fill in extra OpenGL-specific details.
 	result->line = write_pointers_.line;
 
 	vended_scan_ = result;
+
+#ifndef NDEBUG
+	assert(!scan_is_ongoing_);
+	scan_is_ongoing_ = true;
+#endif
+
 	return &result->scan;
 }
 
 void BufferingScanTarget::end_scan() {
 	std::lock_guard lock_guard(producer_mutex_);
+
+#ifndef NDEBUG
+	assert(scan_is_ongoing_);
+	scan_is_ongoing_ = false;
+#endif
 
 	// Complete the scan only if one is afoot.
 	if(vended_scan_) {
@@ -178,7 +189,7 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 		// The previous-frame-is-complete flag is subject to a two-slot queue because
 		// measurement for *this* frame needs to begin now, meaning that the previous
 		// result needs to be put somewhere — it'll be attached to the first successful
-		// line output.
+		// line output, whenever that comes.
 		is_first_in_frame_ = true;
 		previous_frame_was_complete_ = frame_is_complete_;
 		frame_is_complete_ = true;
@@ -188,18 +199,18 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 	if(output_is_visible_ == is_visible) return;
 	output_is_visible_ = is_visible;
 
+#ifndef NDEBUG
+	assert(!scan_is_ongoing_);
+#endif
+
 	if(is_visible) {
 		const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
 
-		// Attempt to allocate a new line, noting allocation failure if necessary.
+		// Attempt to allocate a new line, noting allocation success or failure.
 		const auto next_line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
-		if(next_line == read_pointers.line) {
-			allocation_has_failed_ = true;
-		}
-		provided_scans_ = 0;
-
-		// If there was space for a new line, establish its start.
+		allocation_has_failed_ = next_line == read_pointers.line;
 		if(!allocation_has_failed_) {
+			// If there was space for a new line, establish its start and reset the count of provided scans.
 			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
 			active_line.end_points[0].x = location.x;
 			active_line.end_points[0].y = location.y;
@@ -207,15 +218,23 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			active_line.end_points[0].composite_angle = location.composite_angle;
 			active_line.line = write_pointers_.line;
 			active_line.composite_amplitude = composite_amplitude;
+
+			provided_scans_ = 0;
 		}
 	} else {
 		// Commit the most recent line only if any scans fell on it and all allocation was successful.
 		if(!allocation_has_failed_ && provided_scans_) {
+			const auto submit_pointers = submit_pointers_.load(std::memory_order::memory_order_relaxed);
+
 			// Store metadata.
 			LineMetadata &metadata = line_metadata_buffer_[size_t(write_pointers_.line)];
 			metadata.is_first_in_frame = is_first_in_frame_;
 			metadata.previous_frame_was_complete = previous_frame_was_complete_;
+			metadata.first_scan = submit_pointers.scan;
 			is_first_in_frame_ = false;
+
+			// Sanity check.
+			assert(((metadata.first_scan + size_t(provided_scans_)) % scan_buffer_size_) == write_pointers_.scan);
 
 			// Store actual line data.
 			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
@@ -228,6 +247,7 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			write_pointers_.line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
 
 			// Update the submit pointers with all lines, scans and data written during this line.
+			std::atomic_thread_fence(std::memory_order::memory_order_release);
 			submit_pointers_.store(write_pointers_, std::memory_order::memory_order_release);
 		} else {
 			// Something failed, or there was nothing on the line anyway, so reset all pointers to where they
@@ -236,9 +256,8 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			frame_is_complete_ &= !allocation_has_failed_;
 		}
 
-		// Reset the allocation-has-failed flag for the next line
-		// and mark no line as active.
-		allocation_has_failed_ = false;
+		// Don't permit anything to be allocated on invisible areas.
+		allocation_has_failed_ = true;
 	}
 }
 
@@ -248,6 +267,9 @@ void BufferingScanTarget::will_change_owner() {
 	std::lock_guard lock_guard(producer_mutex_);
 	allocation_has_failed_ = true;
 	vended_scan_ = nullptr;
+#ifdef DEBUG
+	data_is_allocated_ = false;
+#endif
 }
 
 const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
@@ -255,16 +277,8 @@ const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
 }
 
 void BufferingScanTarget::set_write_area(uint8_t *base) {
-	// This is a bit of a hack. This call needs the producer mutex and should be
-	// safe to call from a @c perform block in order to support all potential consumers.
-	// But the temporary hack of ONE_BIG_LOCK then implies that either I need a recursive
-	// mutex, or I have to make a coupling assumption about my caller. I've done the latter,
-	// because ONE_BIG_LOCK is really really meant to be temporary. I hope.
-#ifndef ONE_BIG_LOCK
 	std::lock_guard lock_guard(producer_mutex_);
-#endif
 	write_area_ = base;
-	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 	write_pointers_ = submit_pointers_ = read_pointers_ = PointerSet();
 	allocation_has_failed_ = true;
 	vended_scan_ = nullptr;
@@ -285,37 +299,52 @@ void BufferingScanTarget::set_modals(Modals modals) {
 
 // MARK: - Consumer.
 
-void BufferingScanTarget::perform(const std::function<void(const OutputArea &)> &function) {
-#ifdef ONE_BIG_LOCK
-	std::lock_guard lock_guard(producer_mutex_);
-#endif
-
+BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	// The area to draw is that between the read pointers, representing wherever reading
 	// last stopped, and the submit pointers, representing all the new data that has been
 	// cleared for submission.
 	const auto submit_pointers = submit_pointers_.load(std::memory_order::memory_order_acquire);
-	const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
+	const auto read_ahead_pointers = read_ahead_pointers_.load(std::memory_order::memory_order_relaxed);
+	std::atomic_thread_fence(std::memory_order::memory_order_acquire);
 
 	OutputArea area;
 
-	area.start.line = read_pointers.line;
+	area.start.line = read_ahead_pointers.line;
 	area.end.line = submit_pointers.line;
 
-	area.start.scan = read_pointers.scan_buffer;
-	area.end.scan = submit_pointers.scan_buffer;
+	area.start.scan = read_ahead_pointers.scan;
+	area.end.scan = submit_pointers.scan;
 
-	area.start.write_area_x = TextureAddressGetX(read_pointers.write_area);
-	area.start.write_area_y = TextureAddressGetY(read_pointers.write_area);
+	area.start.write_area_x = TextureAddressGetX(read_ahead_pointers.write_area);
+	area.start.write_area_y = TextureAddressGetY(read_ahead_pointers.write_area);
 	area.end.write_area_x = TextureAddressGetX(submit_pointers.write_area);
 	area.end.write_area_y = TextureAddressGetY(submit_pointers.write_area);
 
-	// Perform only while holding the is_updating lock.
-	while(is_updating_.test_and_set(std::memory_order_acquire));
-	function(area);
-	is_updating_.clear(std::memory_order_release);
+	// Update the read-ahead pointers.
+	read_ahead_pointers_.store(submit_pointers, std::memory_order::memory_order_relaxed);
 
-	// Update the read pointers.
-	read_pointers_.store(submit_pointers, std::memory_order::memory_order_relaxed);
+#ifndef NDEBUG
+	area.counter = output_area_counter_;
+	++output_area_counter_;
+#endif
+
+	return area;
+}
+
+void BufferingScanTarget::complete_output_area(const OutputArea &area) {
+	// TODO: check that this is the expected next area if in DEBUG mode.
+
+	PointerSet new_read_pointers;
+	new_read_pointers.line = uint16_t(area.end.line);
+	new_read_pointers.scan = uint16_t(area.end.scan);
+	new_read_pointers.write_area = TextureAddress(area.end.write_area_x, area.end.write_area_y);
+	read_pointers_.store(new_read_pointers, std::memory_order::memory_order_relaxed);
+
+#ifndef NDEBUG
+	// This will fire if the caller is announcing completed output areas out of order.
+	assert(area.counter == output_area_next_returned_);
+	++output_area_next_returned_;
+#endif
 }
 
 void BufferingScanTarget::perform(const std::function<void(void)> &function) {
@@ -340,6 +369,13 @@ const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
 		return nullptr;
 	}
 	modals_are_dirty_ = false;
+
+	// MAJOR SHARP EDGE HERE: assume that because the new_modals have been fetched then the caller will
+	// now ensure their texture buffer is appropriate. They might provide a new pointer and might now.
+	// But either way it's now appropriate to start treating the data size as implied by the data type.
+	std::lock_guard lock_guard(producer_mutex_);
+	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
+
 	return &modals_;
 }
 

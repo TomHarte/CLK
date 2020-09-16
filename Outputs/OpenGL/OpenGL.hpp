@@ -16,6 +16,8 @@
 #ifdef __APPLE__
 	#if TARGET_OS_IPHONE
 	#else
+		// These remain so that I can, at least for now, build the kiosk version under macOS.
+		// They can be eliminated if and when Apple fully withdraws OpenGL support.
 		#include <OpenGL/OpenGL.h>
 		#include <OpenGL/gl3.h>
 		#include <OpenGL/gl3ext.h>

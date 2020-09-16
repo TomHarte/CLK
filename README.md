@@ -4,7 +4,7 @@ Clock Signal ('CLK') is an emulator for tourists that seeks to be invisible. Use
 
 macOS and source releases are [hosted on GitHub](https://github.com/TomHarte/CLK/releases). For desktop Linux it is also available as a [Snap](https://snapcraft.io/clock-signal).
 
-On the Mac it is a native Cocoa application; under Linux, BSD and other UNIXes and UNIX-alikes it can be built either with Qt or with SDL; the Qt build should be considered preliminary and is currently closely bound to X11 as Qt doesn't abstract game-like keyboard handling.
+On the Mac it is a native Cocoa and Metal application; under Linux, BSD and other UNIXes and UNIX-alikes it uses OpenGL and can be built either with Qt or with SDL.
 
 So its aims are:
 * single-click load of any piece of source media for any supported platform;
@@ -17,6 +17,7 @@ It currently contains emulations of the:
 * Amstrad CPC;
 * Apple II/II+ and IIe;
 * Atari 2600;
+* Atari ST;
 * ColecoVision;
 * Commodore Vic-20 (and Commodore 1540/1);
 * Macintosh 512ke and Plus;
@@ -24,8 +25,6 @@ It currently contains emulations of the:
 * Oric 1/Atmos;
 * Sega Master System; and
 * Sinclair ZX80/81.
-
-In addition, emulation of the Atari ST is experimental.
 
 ## Single-click Loading
 
