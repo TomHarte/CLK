@@ -17,6 +17,7 @@ It currently contains emulations of the:
 * Amstrad CPC;
 * Apple II/II+ and IIe;
 * Atari 2600;
+* Atari ST;
 * ColecoVision;
 * Commodore Vic-20 (and Commodore 1540/1);
 * Macintosh 512ke and Plus;
@@ -24,8 +25,6 @@ It currently contains emulations of the:
 * Oric 1/Atmos;
 * Sega Master System; and
 * Sinclair ZX80/81.
-
-In addition, emulation of the Atari ST is experimental.
 
 ## Single-click Loading
 
