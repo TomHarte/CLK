@@ -10,7 +10,6 @@
 #define FilteringSpeaker_h
 
 #include "../Speaker.hpp"
-#include "../../../SignalProcessing/Stepper.hpp"
 #include "../../../SignalProcessing/FIRFilter.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
@@ -198,7 +197,8 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 		std::vector<int16_t> input_buffer_;
 		std::vector<int16_t> output_buffer_;
 
-		std::unique_ptr<SignalProcessing::Stepper> stepper_;
+		float step_rate_ = 0.0f;
+		float position_error_ = 0.0f;
 		std::unique_ptr<SignalProcessing::FIRFilter> filter_;
 
 		std::mutex filter_parameters_mutex_;
@@ -223,9 +223,8 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 			);
 			number_of_taps = (number_of_taps * 2) | 1;
 
-			stepper_ = std::make_unique<SignalProcessing::Stepper>(
-				uint64_t(filter_parameters.input_cycles_per_second),
-				uint64_t(filter_parameters.output_cycles_per_second));
+			step_rate_ = filter_parameters.input_cycles_per_second / filter_parameters.output_cycles_per_second;
+			position_error_ = 0.0f;
 
 			filter_ = std::make_unique<SignalProcessing::FIRFilter>(
 				unsigned(number_of_taps),
@@ -304,7 +303,8 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 			// If the next loop around is going to reuse some of the samples just collected, use a memmove to
 			// preserve them in the correct locations (TODO: use a longer buffer to fix that?) and don't skip
 			// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
-			const auto steps = stepper_->step() * (SampleSource::get_is_stereo() ? 2 : 1);
+			const size_t steps = size_t(step_rate_ + position_error_) * (SampleSource::get_is_stereo() ? 2 : 1);
+			position_error_ = fmodf(step_rate_ + position_error_, 1.0f);
 			if(steps < input_buffer_.size()) {
 				auto *const input_buffer = input_buffer_.data();
 				std::memmove(	input_buffer,
