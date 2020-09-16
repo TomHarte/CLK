@@ -381,22 +381,22 @@ struct ScanTarget {
 
 struct ScanStatus {
 	/// The current (prediced) length of a field (including retrace).
-	Time::Seconds field_duration;
+	Time::Seconds field_duration = 0.0;
 	/// The difference applied to the field_duration estimate during the last field.
-	Time::Seconds field_duration_gradient;
+	Time::Seconds field_duration_gradient = 0.0;
 	/// The amount of time this device spends in retrace.
-	Time::Seconds retrace_duration;
+	Time::Seconds retrace_duration = 0.0;
 	/// The distance into the current field, from a small negative amount (in retrace) through
 	/// 0 (start of visible area field) to 1 (end of field).
 	///
 	/// This will increase monotonically, being a measure
 	/// of the current vertical position — i.e. if current_position = 0.8 then a caller can
 	/// conclude that the top 80% of the visible part of the display has been painted.
-	float current_position;
+	float current_position = 0.0f;
 	/// The total number of hsyncs so far encountered;
-	int hsync_count;
+	int hsync_count = 0;
 	/// @c true if retrace is currently going on; @c false otherwise.
-	bool is_in_retrace;
+	bool is_in_retrace = false;
 
 	/*!
 		@returns this ScanStatus, with time-relative fields scaled by dividing them by @c dividend.

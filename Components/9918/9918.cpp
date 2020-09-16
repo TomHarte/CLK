@@ -190,7 +190,9 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	int read_cycles_pool = int_cycles;
 
 	while(write_cycles_pool || read_cycles_pool) {
+#ifndef NDEBUG
 		LineBufferPointer backup = read_pointer_;
+#endif
 
 		if(write_cycles_pool) {
 			// Determine how much writing to do.
@@ -329,8 +331,10 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		}
 
 
+#ifndef NDEBUG
 		assert(backup.row == read_pointer_.row && backup.column == read_pointer_.column);
 		backup = write_pointer_;
+#endif
 
 
 		if(read_cycles_pool) {
