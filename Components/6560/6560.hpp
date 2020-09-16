@@ -445,20 +445,20 @@ template <class BusHandler> class MOS6560 {
 		// register state
 		struct {
 			bool interlaced = false, tall_characters = false;
-			uint8_t first_column_location, first_row_location;
-			uint8_t number_of_columns, number_of_rows;
-			uint16_t character_cell_start_address, video_matrix_start_address;
-			uint16_t backgroundColour, borderColour, auxiliary_colour;
+			uint8_t first_column_location = 0, first_row_location = 0;
+			uint8_t number_of_columns = 0, number_of_rows = 0;
+			uint16_t character_cell_start_address = 0, video_matrix_start_address = 0;
+			uint16_t backgroundColour = 0, borderColour = 0, auxiliary_colour = 0;
 			bool invertedCells = false;
 
-			uint8_t direct_values[16];
+			uint8_t direct_values[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		} registers_;
 
 		// output state
 		enum State {
 			Sync, ColourBurst, Border, Pixels
-		} this_state_, output_state_;
-		int cycles_in_state_;
+		} this_state_ = State::Sync, output_state_ = State::Sync;
+		int cycles_in_state_ = 0;
 
 		// counters that cover an entire field
 		int horizontal_counter_ = 0, vertical_counter_ = 0;
@@ -487,23 +487,23 @@ template <class BusHandler> class MOS6560 {
 
 		// latches dictating start and length of drawing
 		bool vertical_drawing_latch_ = false, horizontal_drawing_latch_ = false;
-		int rows_this_field_, columns_this_line_;
+		int rows_this_field_ = 0, columns_this_line_ = 0;
 
 		// current drawing position counter
-		int pixel_line_cycle_, column_counter_;
-		int current_row_;
-		uint16_t current_character_row_;
-		uint16_t video_matrix_address_counter_, base_video_matrix_address_counter_;
+		int pixel_line_cycle_ = 0, column_counter_ = 0;
+		int current_row_ = 0;
+		uint16_t current_character_row_ = 0;
+		uint16_t video_matrix_address_counter_ = 0, base_video_matrix_address_counter_ = 0;
 
 		// data latched from the bus
-		uint8_t character_code_, character_colour_, character_value_;
+		uint8_t character_code_ = 0, character_colour_ = 0, character_value_ = 0;
 
 		bool is_odd_frame_ = false, is_odd_line_ = false;
 
 		// lookup table from 6560 colour index to appropriate PAL/NTSC value
-		uint16_t colours_[16];
+		uint16_t colours_[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-		uint16_t *pixel_pointer;
+		uint16_t *pixel_pointer = nullptr;
 		void output_border(int number_of_cycles) {
 			uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
 			if(colour_pointer) *colour_pointer = registers_.borderColour;
@@ -511,13 +511,13 @@ template <class BusHandler> class MOS6560 {
 		}
 
 		struct {
-			int cycles_per_line;
-			int line_counter_increment_offset;
-			int final_line_increment_position;
-			int lines_per_progressive_field;
-			bool supports_interlacing;
+			int cycles_per_line = 0;
+			int line_counter_increment_offset = 0;
+			int final_line_increment_position = 0;
+			int lines_per_progressive_field = 0;
+			bool supports_interlacing = 0;
 		} timing_;
-		OutputMode output_mode_;
+		OutputMode output_mode_ = OutputMode::NTSC;
 };
 
 }
