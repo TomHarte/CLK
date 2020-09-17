@@ -27,7 +27,7 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 															//	7 microseconds for horizontal retrace and 500 to 750 microseconds for vertical retrace
 															//  in NTSC and PAL TV."
 
-	time_multiplier_ = 65535 / cycles_per_line;
+	time_multiplier_ = 63487 / cycles_per_line;	// 63475 = 65535 * 31/32, i.e. the same 1/32 error as below is permitted.
 	phase_denominator_ = int64_t(cycles_per_line) * int64_t(colour_cycle_denominator) * int64_t(time_multiplier_);
 	phase_numerator_ = 0;
 	colour_cycle_numerator_ = int64_t(colour_cycle_numerator);
