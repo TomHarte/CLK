@@ -8,6 +8,10 @@
 
 #include "../../../Outputs/Log.hpp"
 
+// As-yet unimplemented (incomplete list):
+//
+//	PB6 count-down mode for timer 2.
+
 namespace MOS {
 namespace MOS6522 {
 
@@ -280,10 +284,13 @@ template <typename T> void MOS6522<T>::do_phase2() {
 		registers_.timer_needs_reload = false;
 		registers_.timer[0] = registers_.timer_latch[0];
 	} else {
-		registers_.timer[0] --;
+		-- registers_.timer[0];
 	}
 
-	registers_.timer[1] --;
+	// Count down timer 2 if it is in timed interrupt mode (i.e. auxiliary control bit 5 is clear).
+	// TODO: implement count down on PB6 if this bit isn't set.
+	registers_.timer[1] -= 1 ^ ((registers_.auxiliary_control >> 5)&1);
+
 	if(registers_.next_timer[0] >= 0) {
 		registers_.timer[0] = uint16_t(registers_.next_timer[0]);
 		registers_.next_timer[0] = -1;
