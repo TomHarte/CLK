@@ -74,13 +74,19 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 		case 0x6:	case 0x4:	// ('T1L-L' and 'T1C-L')
 			registers_.timer_latch[0] = (registers_.timer_latch[0]&0xff00) | value;
 		break;
-		case 0x5:	case 0x7:	// ('T1L-H' and 'T1C-H')
+		case 0x7:	// Timer 1 latch, high ('T1L-H').
 			registers_.timer_latch[0] = (registers_.timer_latch[0]&0x00ff) | uint16_t(value << 8);
+		break;
+		case 0x5:	// Timer 1 counter, high ('T1C-H').
+			// Fill latch.
+			registers_.timer_latch[0] = (registers_.timer_latch[0]&0x00ff) | uint16_t(value << 8);
+
+			// Restart timer.
+			registers_.next_timer[0] = registers_.timer_latch[0];
+			timer_is_running_[0] = true;
+
+			// Clear existing interrupt flag.
 			registers_.interrupt_flags &= ~InterruptFlag::Timer1;
-			if(address == 0x05) {
-				registers_.next_timer[0] = registers_.timer_latch[0];
-				timer_is_running_[0] = true;
-			}
 			reevaluate_interrupts();
 		break;
 
