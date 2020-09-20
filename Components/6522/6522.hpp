@@ -135,6 +135,7 @@ template <class T> class MOS6522: public MOS6522Storage {
 		/// if this affects the visible output, it will be passed to the handler.
 		void set_control_line_output(Port port, Line line, LineState value);
 		void evaluate_cb2_output();
+		void evaluate_port_b_output();
 };
 
 }

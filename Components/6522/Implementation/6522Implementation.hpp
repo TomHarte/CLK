@@ -43,7 +43,7 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 			registers_.output[1] = value;
 
 			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
-			bus_handler_.set_port_output(Port::B, value, registers_.data_direction[1]);
+			evaluate_port_b_output();
 
 			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | ((registers_.peripheral_control&0x20) ? 0 : InterruptFlag::CB2ActiveEdge));
 			reevaluate_interrupts();
@@ -88,6 +88,7 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 			// If PB7 output mode is active, set it low.
 			if(registers_.auxiliary_control & 0x80) {
 				registers_.timer_port_b_output &= 0x7f;
+				evaluate_port_b_output();
 			}
 
 			// Clear existing interrupt flag.
@@ -124,6 +125,7 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 			if(!(registers_.auxiliary_control & 0x80)) {
 				registers_.timer_port_b_output |= 0x80;
 			}
+			evaluate_port_b_output();
 		break;
 		case 0xc: {	// Peripheral control ('PCR').
 //			const auto old_peripheral_control = registers_.peripheral_control;
@@ -368,9 +370,18 @@ template <typename T> void MOS6522<T>::do_phase1() {
 		if(registers_.auxiliary_control&0x80) {
 			registers_.timer_port_b_output ^= 0x80;
 			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
-			bus_handler_.set_port_output(Port::B, registers_.output[1], registers_.data_direction[1]);
+			evaluate_port_b_output();
 		}
 	}
+}
+
+template <typename T> void MOS6522<T>::evaluate_port_b_output() {
+	// Apply current timer-linked PB7 output if any atop the stated output.
+	const uint8_t timer_control_bit = registers_.auxiliary_control & 0x80;
+	bus_handler_.set_port_output(
+		Port::B,
+		(registers_.output[1] & (0xff ^ timer_control_bit)) | timer_control_bit,
+		registers_.data_direction[1] | timer_control_bit);
 }
 
 /*! Runs for a specified number of half cycles. */
