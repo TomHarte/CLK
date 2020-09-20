@@ -128,7 +128,7 @@ template <class T> class MOS6522: public MOS6522Storage {
 
 		void access(int address);
 
-		uint8_t get_port_input(Port port, uint8_t output_mask, uint8_t output);
+		uint8_t get_port_input(Port port, uint8_t output_mask, uint8_t output, uint8_t timer_mask);
 		inline void reevaluate_interrupts();
 
 		/// Sets the current intended output value for the port and line;

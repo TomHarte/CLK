@@ -85,6 +85,11 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 			registers_.next_timer[0] = registers_.timer_latch[0];
 			timer_is_running_[0] = true;
 
+			// If PB7 output mode is active, set it low.
+			if(registers_.auxiliary_control & 0x80) {
+				registers_.timer_port_b_output &= 0x7f;
+			}
+
 			// Clear existing interrupt flag.
 			registers_.interrupt_flags &= ~InterruptFlag::Timer1;
 			reevaluate_interrupts();
@@ -113,6 +118,12 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 		case 0xb:	// Auxiliary control ('ACR').
 			registers_.auxiliary_control = value;
 			evaluate_cb2_output();
+
+			// This is a bit of a guess: reset the timer-based PB7 output to its default high level
+			// any timer that timer-linked PB7 output is disabled.
+			if(!(registers_.auxiliary_control & 0x80)) {
+				registers_.timer_port_b_output |= 0x80;
+			}
 		break;
 		case 0xc: {	// Peripheral control ('PCR').
 //			const auto old_peripheral_control = registers_.peripheral_control;
@@ -176,12 +187,12 @@ template <typename T> uint8_t MOS6522<T>::read(int address) {
 		case 0x0:	// Read Port B ('IRB').
 			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
 			reevaluate_interrupts();
-		return get_port_input(Port::B, registers_.data_direction[1], registers_.output[1]);
+		return get_port_input(Port::B, registers_.data_direction[1], registers_.output[1], registers_.auxiliary_control & 0x80);
 		case 0xf:
 		case 0x1:	// Read Port A ('IRA').
 			registers_.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
 			reevaluate_interrupts();
-		return get_port_input(Port::A, registers_.data_direction[0], registers_.output[0]);
+		return get_port_input(Port::A, registers_.data_direction[0], registers_.output[0], 0);
 
 		case 0x2:	return registers_.data_direction[1];	// Port B direction ('DDRB').
 		case 0x3:	return registers_.data_direction[0];	// Port A direction ('DDRA').
@@ -218,9 +229,10 @@ template <typename T> uint8_t MOS6522<T>::read(int address) {
 	return 0xff;
 }
 
-template <typename T> uint8_t MOS6522<T>::get_port_input(Port port, uint8_t output_mask, uint8_t output) {
+template <typename T> uint8_t MOS6522<T>::get_port_input(Port port, uint8_t output_mask, uint8_t output, uint8_t timer_mask) {
 	bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 	const uint8_t input = bus_handler_.get_port_input(port);
+	output = (output & ~timer_mask) | (registers_.timer_port_b_output & timer_mask);
 	return (input & ~output_mask) | (output & output_mask);
 }
 
@@ -354,7 +366,7 @@ template <typename T> void MOS6522<T>::do_phase1() {
 
 		// Determine whether to toggle PB7.
 		if(registers_.auxiliary_control&0x80) {
-			registers_.output[1] ^= 0x80;
+			registers_.timer_port_b_output ^= 0x80;
 			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 			bus_handler_.set_port_output(Port::B, registers_.output[1], registers_.data_direction[1]);
 		}
