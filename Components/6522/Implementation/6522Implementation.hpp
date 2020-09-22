@@ -304,7 +304,10 @@ template <typename T> void MOS6522<T>::do_phase2() {
 		registers_.timer_needs_reload = false;
 		registers_.timer[0] = registers_.timer_latch[0];
 	} else {
-		-- registers_.timer[0];
+		// Decrement timer 1 based on clock if enabled.
+		if(!(registers_.auxiliary_control & 0x20)) {
+			-- registers_.timer[0];
+		}
 	}
 
 	// Count down timer 2 if it is in timed interrupt mode (i.e. auxiliary control bit 5 is clear).
