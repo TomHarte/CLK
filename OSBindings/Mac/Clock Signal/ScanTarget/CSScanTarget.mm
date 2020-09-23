@@ -278,8 +278,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	size_t _chromaKernelSize;
 	std::atomic<bool> _isUsingSupersampling;
 
-	// The output view.
+	// The output view and its aspect ratio.
 	__weak MTKView *_view;
+	CGFloat _viewAspectRatio;	// To avoid accessing .bounds away from the main thread.
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -357,6 +358,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
  @param size New drawable size in pixels
  */
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
+	_viewAspectRatio = size.width / size.height;
 	[self setAspectRatio];
 
 	@synchronized(self) {
@@ -522,7 +524,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 - (void)setAspectRatio {
 	const auto modals = _scanTarget.modals();
-	const auto viewAspectRatio = (_view.bounds.size.width / _view.bounds.size.height);
 	simd::float3x3 sourceToDisplay{1.0f};
 
 	// The starting coordinate space is [0, 1].
@@ -550,7 +551,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// Determine the correct zoom level. This is a combination of (i) the necessary horizontal stretch to produce a proper
 	// aspect ratio; and (ii) the necessary zoom from there to either fit the visible area width or height as per a decision
 	// on letterboxing or pillarboxing.
-	const float aspectRatioStretch = float(modals.aspect_ratio / viewAspectRatio);
+	const float aspectRatioStretch = float(modals.aspect_ratio / _viewAspectRatio);
 	const float fitWidthZoom = 1.0f / (float(modals.visible_area.size.width) * aspectRatioStretch);
 	const float fitHeightZoom = 1.0f / float(modals.visible_area.size.height);
 	const float zoom = std::min(fitWidthZoom, fitHeightZoom);
