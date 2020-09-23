@@ -101,6 +101,116 @@ class MOS6522Tests: XCTestCase {
 	}
 
 
+	// MARK: PB7 timer 1 tests
+	// These follow the same logic and check for the same results as the VICE VIC-20 via_pb7 tests.
+
+	// Perfoms:
+	//
+	//	(1) establish initial ACR and port B output value, and grab port B input value.
+	//	(2) start timer 1, grab port B input value.
+	//	(3) set final ACR, grab port B input value.
+	//	(4) allow timer 1 to expire, grab port B input value.
+	private func runTest(startACR: UInt8, endACR: UInt8, portBOutput: UInt8) -> [UInt8] {
+		var result: [UInt8] = []
+
+		// Clear all register values.
+		for n: UInt in 0...15 {
+			m6522.setValue(0, forRegister: n)
+		}
+		m6522.run(forHalfCycles: 2)
+
+		// Set data direction and current port B value.
+		m6522.setValue(0xff, forRegister: 2)
+		m6522.run(forHalfCycles: 2)
+		m6522.setValue(portBOutput, forRegister: 0)
+		m6522.run(forHalfCycles: 2)
+
+		// Set initial ACR and grab the current port B value.
+		m6522.setValue(startACR, forRegister: 0xb)
+		m6522.run(forHalfCycles: 2)
+		result.append(m6522.value(forRegister: 0))
+		m6522.run(forHalfCycles: 2)
+
+		// Start timer 1 and grab the value.
+		m6522.setValue(1, forRegister: 0x5)
+		m6522.run(forHalfCycles: 2)
+		result.append(m6522.value(forRegister: 0))
+		m6522.run(forHalfCycles: 2)
+
+		// Set the final ACR value and grab value.
+		m6522.setValue(endACR, forRegister: 0xb)
+		m6522.run(forHalfCycles: 2)
+		result.append(m6522.value(forRegister: 0))
+		m6522.run(forHalfCycles: 2)
+
+		// Make sure timer 1 has expired.
+		m6522.run(forHalfCycles: 512)
+
+		// Grab the final value.
+		result.append(m6522.value(forRegister: 0))
+
+		return result
+	}
+
+	func testTimer1PB7() {
+		// Original top row. [original Vic-20 screen output in comments on the right]
+		XCTAssertEqual(runTest(startACR: 0x00, endACR: 0x00, portBOutput: 0x00), [0x00, 0x00, 0x00, 0x00])	// @@@@	(i.e. 0, 0, 0, 0)
+		XCTAssertEqual(runTest(startACR: 0x00, endACR: 0x40, portBOutput: 0x00), [0x00, 0x00, 0x00, 0x00])	// @@@@	(i.e. 0, 0, 0, 0)
+		XCTAssertEqual(runTest(startACR: 0x00, endACR: 0x80, portBOutput: 0x00), [0x00, 0x00, 0x80, 0x00])	// @@b@	(i.e. 0, 0, 1, 0)
+		XCTAssertEqual(runTest(startACR: 0x00, endACR: 0xc0, portBOutput: 0x00), [0x00, 0x00, 0x80, 0x00])	// @@b@	(i.e. 0, 0, 1, 0)
+
+		XCTAssertEqual(runTest(startACR: 0x00, endACR: 0x00, portBOutput: 0xff), [0xff, 0xff, 0xff, 0xff])	// cccc	(i.e. 1, 1, 1, 1)
+		XCTAssertEqual(runTest(startACR: 0x00, endACR: 0x40, portBOutput: 0xff), [0xff, 0xff, 0xff, 0xff])	// cccc	(i.e. 1, 1, 1, 1)
+		XCTAssertEqual(runTest(startACR: 0x00, endACR: 0x80, portBOutput: 0xff), [0xff, 0xff, 0xff, 0x7f])	// ccca	(i.e. 1, 1, 1, 0)
+		XCTAssertEqual(runTest(startACR: 0x00, endACR: 0xc0, portBOutput: 0xff), [0xff, 0xff, 0xff, 0x7f])	// ccca	(i.e. 1, 1, 1, 0)
+
+		// Second row.	[same output as first row]
+		XCTAssertEqual(runTest(startACR: 0x40, endACR: 0x00, portBOutput: 0x00), [0x00, 0x00, 0x00, 0x00])	// @@@@
+		XCTAssertEqual(runTest(startACR: 0x40, endACR: 0x40, portBOutput: 0x00), [0x00, 0x00, 0x00, 0x00])	// @@@@
+		XCTAssertEqual(runTest(startACR: 0x40, endACR: 0x80, portBOutput: 0x00), [0x00, 0x00, 0x80, 0x00])	// @@b@
+		XCTAssertEqual(runTest(startACR: 0x40, endACR: 0xc0, portBOutput: 0x00), [0x00, 0x00, 0x80, 0x00])	// @@b@
+
+		XCTAssertEqual(runTest(startACR: 0x40, endACR: 0x00, portBOutput: 0xff), [0xff, 0xff, 0xff, 0xff])	// cccc
+		XCTAssertEqual(runTest(startACR: 0x40, endACR: 0x40, portBOutput: 0xff), [0xff, 0xff, 0xff, 0xff])	// cccc
+		XCTAssertEqual(runTest(startACR: 0x40, endACR: 0x80, portBOutput: 0xff), [0xff, 0xff, 0xff, 0x7f])	// ccca
+		XCTAssertEqual(runTest(startACR: 0x40, endACR: 0xc0, portBOutput: 0xff), [0xff, 0xff, 0xff, 0x7f])	// ccca
+
+		// Third row.
+		XCTAssertEqual(runTest(startACR: 0x80, endACR: 0x00, portBOutput: 0x00), [0x80, 0x00, 0x00, 0x00])	// b@@@	(i.e. 1, 0, 0, 0)
+		XCTAssertEqual(runTest(startACR: 0x80, endACR: 0x40, portBOutput: 0x00), [0x80, 0x00, 0x00, 0x00])	// b@@@	(i.e. 1, 0, 0, 0)
+		XCTAssertEqual(runTest(startACR: 0x80, endACR: 0x80, portBOutput: 0x00), [0x80, 0x00, 0x00, 0x80])	// b@@b	(i.e. 1, 0, 0, 1)
+		XCTAssertEqual(runTest(startACR: 0x80, endACR: 0xc0, portBOutput: 0x00), [0x80, 0x00, 0x00, 0x80])	// b@@b	(i.e. 1, 0, 0, 1)
+
+		XCTAssertEqual(runTest(startACR: 0x80, endACR: 0x00, portBOutput: 0xff), [0xff, 0x7f, 0xff, 0xff])	// cacc	(i.e. 1, 0, 1, 1)
+		XCTAssertEqual(runTest(startACR: 0x80, endACR: 0x40, portBOutput: 0xff), [0xff, 0x7f, 0xff, 0xff])	// cacc	(i.e. 1, 0, 1, 1)
+		XCTAssertEqual(runTest(startACR: 0x80, endACR: 0x80, portBOutput: 0xff), [0xff, 0x7f, 0x7f, 0xff])	// caac	(i.e. 1, 0, 0, 1)
+		XCTAssertEqual(runTest(startACR: 0x80, endACR: 0xc0, portBOutput: 0xff), [0xff, 0x7f, 0x7f, 0xff])	// caac	(i.e. 1, 0, 0, 1)
+
+		// Final row.	[same output as third row]
+		XCTAssertEqual(runTest(startACR: 0xc0, endACR: 0x00, portBOutput: 0x00), [0x80, 0x00, 0x00, 0x00])	// b@@@
+		XCTAssertEqual(runTest(startACR: 0xc0, endACR: 0x40, portBOutput: 0x00), [0x80, 0x00, 0x00, 0x00])	// b@@@
+		XCTAssertEqual(runTest(startACR: 0xc0, endACR: 0x80, portBOutput: 0x00), [0x80, 0x00, 0x00, 0x80])	// b@@b
+		XCTAssertEqual(runTest(startACR: 0xc0, endACR: 0xc0, portBOutput: 0x00), [0x80, 0x00, 0x00, 0x80])	// b@@b
+
+		XCTAssertEqual(runTest(startACR: 0xc0, endACR: 0x00, portBOutput: 0xff), [0xff, 0x7f, 0xff, 0xff])	// cacc
+		XCTAssertEqual(runTest(startACR: 0xc0, endACR: 0x40, portBOutput: 0xff), [0xff, 0x7f, 0xff, 0xff])	// cacc
+		XCTAssertEqual(runTest(startACR: 0xc0, endACR: 0x80, portBOutput: 0xff), [0xff, 0x7f, 0x7f, 0xff])	// caac
+		XCTAssertEqual(runTest(startACR: 0xc0, endACR: 0xc0, portBOutput: 0xff), [0xff, 0x7f, 0x7f, 0xff])	// caac
+
+		// Conclusions:
+		//
+		//	after inital ACR and port B value:	[original data if not in PB7 output mode, otherwise 1]
+		//	after starting timer 1: 			[original data if not in PB7 output mode, otherwise 0]
+		//	after final ACR value:				[original data if not in PB7 output mode, 1 if has transitioned to PB7 mode, 0 if was already in PB7 mode]
+		//	after timer 1 expiry:				[original data if not in PB7 mode, 1 if timer has expired while in PB7 mode]
+		//
+		//	i.e.
+		//		(1)	there is separate storage for the programmer-set PB7 and the timer output;
+		//		(2)	the timer output is reset upon a timer write only if PB7 output is enabled;
+		//		(3)	expiry toggles the output.
+	}
+
+
 	// MARK: Data direction tests
 	func testDataDirection() {
 		// set low four bits of register B as output, the top four as input

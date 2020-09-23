@@ -70,12 +70,9 @@
 
 - (void)testSeekToSecondBit {
 	Storage::Disk::PCMSegmentEventSource segmentSource = self.segmentSource;
-	Storage::Time target_time(1, 10);
 
-	Storage::Time found_time = segmentSource.seek_to(target_time);
-	found_time.simplify();
-
-	XCTAssertTrue(found_time.length == 1 && found_time.clock_rate == 20, @"A request to seek to 1/10th should have seeked to 1/20th");
+	const float found_time = segmentSource.seek_to(1.0f / 10.0f);
+	XCTAssertTrue(fabsf(found_time - 1.0f / 20.0f) < 0.01f, @"A request to seek to 1/10th should have seeked to 1/20th");
 
 	Storage::Disk::Track::Event next_event = segmentSource.get_next_event();
 	next_event.length.simplify();
@@ -85,12 +82,9 @@
 
 - (void)testSeekBeyondFinalBit {
 	Storage::Disk::PCMSegmentEventSource segmentSource = self.segmentSource;
-	Storage::Time target_time(24, 10);
+	const float found_time = segmentSource.seek_to(2.4f);
 
-	Storage::Time found_time = segmentSource.seek_to(target_time);
-	found_time.simplify();
-
-	XCTAssertTrue(found_time.length == 47 && found_time.clock_rate == 20, @"A request to seek to 24/10ths should have seeked to 47/20ths");
+	XCTAssertTrue(fabsf(found_time - 47.0f / 20.0f) < 0.01f, @"A request to seek to 24/10ths should have seeked to 47/20ths");
 
 	Storage::Disk::Track::Event next_event = segmentSource.get_next_event();
 	next_event.length.simplify();
