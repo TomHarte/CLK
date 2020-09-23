@@ -120,8 +120,6 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 			registers_.auxiliary_control = value;
 			evaluate_cb2_output();
 
-			printf("Shift mode: %d\n", shift_mode());
-
 			// This is a bit of a guess: reset the timer-based PB7 output to its default high level
 			// any timer that timer-linked PB7 output is disabled.
 			if(!timer1_is_controlling_pb7()) {
