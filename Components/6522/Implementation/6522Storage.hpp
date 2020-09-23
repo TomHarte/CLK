@@ -81,11 +81,29 @@ class MOS6522Storage {
 			OutUnderPhase2 = 6,
 			OutUnderCB1 = 7
 		};
-		ShiftMode shift_mode() const {
-			return ShiftMode((registers_.auxiliary_control >> 2) & 7);
+		bool timer1_is_controlling_pb7() const {
+			return registers_.auxiliary_control & 0x80;
+		}
+		bool timer1_is_continuous() const {
+			return registers_.auxiliary_control & 0x40;
 		}
 		bool is_shifting_out() const {
 			return registers_.auxiliary_control & 0x10;
+		}
+		int timer2_clock_decrement() const {
+			return 1 ^ ((registers_.auxiliary_control >> 5)&1);
+		}
+		int timer2_pb6_decrement() const {
+			return (registers_.auxiliary_control >> 5)&1;
+		}
+		ShiftMode shift_mode() const {
+			return ShiftMode((registers_.auxiliary_control >> 2) & 7);
+		}
+		bool portb_is_latched() const {
+			return registers_.auxiliary_control & 0x02;
+		}
+		bool port1_is_latched() const {
+			return registers_.auxiliary_control & 0x01;
 		}
 };
 
