@@ -34,7 +34,9 @@ class MOS6522Storage {
 			uint8_t peripheral_control = 0;
 			uint8_t interrupt_flags = 0;
 			uint8_t interrupt_enable = 0;
+
 			bool timer_needs_reload = false;
+			uint8_t timer_port_b_output = 0xff;
 		} registers_;
 
 		// Control state.

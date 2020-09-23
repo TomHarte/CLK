@@ -8,6 +8,10 @@
 
 #include "../../../Outputs/Log.hpp"
 
+// As-yet unimplemented (incomplete list):
+//
+//	PB6 count-down mode for timer 2.
+
 namespace MOS {
 namespace MOS6522 {
 
@@ -34,18 +38,18 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 	address &= 0xf;
 	access(address);
 	switch(address) {
-		case 0x0:	// Write Port B.
+		case 0x0:	// Write Port B. ('ORB')
 			// Store locally and communicate outwards.
 			registers_.output[1] = value;
 
 			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
-			bus_handler_.set_port_output(Port::B, value, registers_.data_direction[1]);
+			evaluate_port_b_output();
 
 			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | ((registers_.peripheral_control&0x20) ? 0 : InterruptFlag::CB2ActiveEdge));
 			reevaluate_interrupts();
 		break;
 		case 0xf:
-		case 0x1:	// Write Port A.
+		case 0x1:	// Write Port A. ('ORA')
 			registers_.output[0] = value;
 
 			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
@@ -59,28 +63,44 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 			reevaluate_interrupts();
 		break;
 
-		case 0x2:	// Port B direction.
+		case 0x2:	// Port B direction ('DDRB').
 			registers_.data_direction[1] = value;
 		break;
-		case 0x3:	// Port A direction.
+		case 0x3:	// Port A direction ('DDRA').
 			registers_.data_direction[0] = value;
 		break;
 
 		// Timer 1
-		case 0x6:	case 0x4:	registers_.timer_latch[0] = (registers_.timer_latch[0]&0xff00) | value;	break;
-		case 0x5:	case 0x7:
+		case 0x6:	case 0x4:	// ('T1L-L' and 'T1C-L')
+			registers_.timer_latch[0] = (registers_.timer_latch[0]&0xff00) | value;
+		break;
+		case 0x7:	// Timer 1 latch, high ('T1L-H').
 			registers_.timer_latch[0] = (registers_.timer_latch[0]&0x00ff) | uint16_t(value << 8);
-			registers_.interrupt_flags &= ~InterruptFlag::Timer1;
-			if(address == 0x05) {
-				registers_.next_timer[0] = registers_.timer_latch[0];
-				timer_is_running_[0] = true;
+		break;
+		case 0x5:	// Timer 1 counter, high ('T1C-H').
+			// Fill latch.
+			registers_.timer_latch[0] = (registers_.timer_latch[0]&0x00ff) | uint16_t(value << 8);
+
+			// Restart timer.
+			registers_.next_timer[0] = registers_.timer_latch[0];
+			timer_is_running_[0] = true;
+
+			// If PB7 output mode is active, set it low.
+			if(registers_.auxiliary_control & 0x80) {
+				registers_.timer_port_b_output &= 0x7f;
+				evaluate_port_b_output();
 			}
+
+			// Clear existing interrupt flag.
+			registers_.interrupt_flags &= ~InterruptFlag::Timer1;
 			reevaluate_interrupts();
 		break;
 
 		// Timer 2
-		case 0x8:	registers_.timer_latch[1] = value;	break;
-		case 0x9:
+		case 0x8:	// ('T2C-L')
+			registers_.timer_latch[1] = value;
+		break;
+		case 0x9:	// ('T2C-H')
 			registers_.interrupt_flags &= ~InterruptFlag::Timer2;
 			registers_.next_timer[1] = registers_.timer_latch[1] | uint16_t(value << 8);
 			timer_is_running_[1] = true;
@@ -88,7 +108,7 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 		break;
 
 		// Shift
-		case 0xa:
+		case 0xa:	// ('SR')
 			registers_.shift = value;
 			shift_bits_remaining_ = 8;
 			registers_.interrupt_flags &= ~InterruptFlag::ShiftRegister;
@@ -96,11 +116,18 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 		break;
 
 		// Control
-		case 0xb:
+		case 0xb:	// Auxiliary control ('ACR').
 			registers_.auxiliary_control = value;
 			evaluate_cb2_output();
+
+			// This is a bit of a guess: reset the timer-based PB7 output to its default high level
+			// any timer that timer-linked PB7 output is disabled.
+			if(!(registers_.auxiliary_control & 0x80)) {
+				registers_.timer_port_b_output |= 0x80;
+			}
+			evaluate_port_b_output();
 		break;
-		case 0xc: {
+		case 0xc: {	// Peripheral control ('PCR').
 //			const auto old_peripheral_control = registers_.peripheral_control;
 			registers_.peripheral_control = value;
 
@@ -141,11 +168,11 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 		} break;
 
 		// Interrupt control
-		case 0xd:
+		case 0xd:	// Interrupt flag regiser ('IFR').
 			registers_.interrupt_flags &= ~value;
 			reevaluate_interrupts();
 		break;
-		case 0xe:
+		case 0xe:	// Interrupt enable register ('IER').
 			if(value&0x80)
 				registers_.interrupt_enable |= value;
 			else
@@ -159,54 +186,55 @@ template <typename T> uint8_t MOS6522<T>::read(int address) {
 	address &= 0xf;
 	access(address);
 	switch(address) {
-		case 0x0:
+		case 0x0:	// Read Port B ('IRB').
 			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
 			reevaluate_interrupts();
-		return get_port_input(Port::B, registers_.data_direction[1], registers_.output[1]);
+		return get_port_input(Port::B, registers_.data_direction[1], registers_.output[1], registers_.auxiliary_control & 0x80);
 		case 0xf:
-		case 0x1:
+		case 0x1:	// Read Port A ('IRA').
 			registers_.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
 			reevaluate_interrupts();
-		return get_port_input(Port::A, registers_.data_direction[0], registers_.output[0]);
+		return get_port_input(Port::A, registers_.data_direction[0], registers_.output[0], 0);
 
-		case 0x2:	return registers_.data_direction[1];
-		case 0x3:	return registers_.data_direction[0];
+		case 0x2:	return registers_.data_direction[1];	// Port B direction ('DDRB').
+		case 0x3:	return registers_.data_direction[0];	// Port A direction ('DDRA').
 
 		// Timer 1
-		case 0x4:
+		case 0x4:	// Timer 1 low-order latches ('T1L-L').
 			registers_.interrupt_flags &= ~InterruptFlag::Timer1;
 			reevaluate_interrupts();
 		return registers_.timer[0] & 0x00ff;
-		case 0x5:	return registers_.timer[0] >> 8;
-		case 0x6:	return registers_.timer_latch[0] & 0x00ff;
-		case 0x7:	return registers_.timer_latch[0] >> 8;
+		case 0x5:	return registers_.timer[0] >> 8;			// Timer 1 high-order counter ('T1C-H')
+		case 0x6:	return registers_.timer_latch[0] & 0x00ff;	// Timer 1 low-order latches ('T1L-L').
+		case 0x7:	return registers_.timer_latch[0] >> 8;		// Timer 1 high-order latches ('T1L-H').
 
 		// Timer 2
-		case 0x8:
+		case 0x8:	// Timer 2 low-order counter ('T2C-L').
 			registers_.interrupt_flags &= ~InterruptFlag::Timer2;
 			reevaluate_interrupts();
 		return registers_.timer[1] & 0x00ff;
-		case 0x9:	return registers_.timer[1] >> 8;
+		case 0x9:	return registers_.timer[1] >> 8;	// Timer 2 high-order counter ('T2C-H').
 
-		case 0xa:
+		case 0xa:	// Shift register ('SR').
 			shift_bits_remaining_ = 8;
 			registers_.interrupt_flags &= ~InterruptFlag::ShiftRegister;
 			reevaluate_interrupts();
 		return registers_.shift;
 
-		case 0xb:	return registers_.auxiliary_control;
-		case 0xc:	return registers_.peripheral_control;
+		case 0xb:	return registers_.auxiliary_control;	// Auxiliary control ('ACR').
+		case 0xc:	return registers_.peripheral_control;	// Peripheral control ('PCR').
 
-		case 0xd:	return registers_.interrupt_flags | (get_interrupt_line() ? 0x80 : 0x00);
-		case 0xe:	return registers_.interrupt_enable | 0x80;
+		case 0xd:	return registers_.interrupt_flags | (get_interrupt_line() ? 0x80 : 0x00);	// Interrupt flag register ('IFR').
+		case 0xe:	return registers_.interrupt_enable | 0x80;									// Interrupt enable register ('IER').
 	}
 
 	return 0xff;
 }
 
-template <typename T> uint8_t MOS6522<T>::get_port_input(Port port, uint8_t output_mask, uint8_t output) {
+template <typename T> uint8_t MOS6522<T>::get_port_input(Port port, uint8_t output_mask, uint8_t output, uint8_t timer_mask) {
 	bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 	const uint8_t input = bus_handler_.get_port_input(port);
+	output = (output & ~timer_mask) | (registers_.timer_port_b_output & timer_mask);
 	return (input & ~output_mask) | (output & output_mask);
 }
 
@@ -276,10 +304,13 @@ template <typename T> void MOS6522<T>::do_phase2() {
 		registers_.timer_needs_reload = false;
 		registers_.timer[0] = registers_.timer_latch[0];
 	} else {
-		registers_.timer[0] --;
+		-- registers_.timer[0];
 	}
 
-	registers_.timer[1] --;
+	// Count down timer 2 if it is in timed interrupt mode (i.e. auxiliary control bit 5 is clear).
+	// TODO: implement count down on PB6 if this bit isn't set.
+	registers_.timer[1] -= 1 ^ ((registers_.auxiliary_control >> 5)&1);
+
 	if(registers_.next_timer[0] >= 0) {
 		registers_.timer[0] = uint16_t(registers_.next_timer[0]);
 		registers_.next_timer[0] = -1;
@@ -337,11 +368,20 @@ template <typename T> void MOS6522<T>::do_phase1() {
 
 		// Determine whether to toggle PB7.
 		if(registers_.auxiliary_control&0x80) {
-			registers_.output[1] ^= 0x80;
+			registers_.timer_port_b_output ^= 0x80;
 			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
-			bus_handler_.set_port_output(Port::B, registers_.output[1], registers_.data_direction[1]);
+			evaluate_port_b_output();
 		}
 	}
+}
+
+template <typename T> void MOS6522<T>::evaluate_port_b_output() {
+	// Apply current timer-linked PB7 output if any atop the stated output.
+	const uint8_t timer_control_bit = registers_.auxiliary_control & 0x80;
+	bus_handler_.set_port_output(
+		Port::B,
+		(registers_.output[1] & (0xff ^ timer_control_bit)) | timer_control_bit,
+		registers_.data_direction[1] | timer_control_bit);
 }
 
 /*! Runs for a specified number of half cycles. */
