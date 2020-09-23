@@ -86,7 +86,7 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 			timer_is_running_[0] = true;
 
 			// If PB7 output mode is active, set it low.
-			if(registers_.auxiliary_control & 0x80) {
+			if(timer1_is_controlling_pb7()) {
 				registers_.timer_port_b_output &= 0x7f;
 				evaluate_port_b_output();
 			}
@@ -120,9 +120,11 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 			registers_.auxiliary_control = value;
 			evaluate_cb2_output();
 
+			printf("Shift mode: %d\n", shift_mode());
+
 			// This is a bit of a guess: reset the timer-based PB7 output to its default high level
 			// any timer that timer-linked PB7 output is disabled.
-			if(!(registers_.auxiliary_control & 0x80)) {
+			if(!timer1_is_controlling_pb7()) {
 				registers_.timer_port_b_output |= 0x80;
 			}
 			evaluate_port_b_output();
@@ -304,16 +306,13 @@ template <typename T> void MOS6522<T>::do_phase2() {
 		registers_.timer_needs_reload = false;
 		registers_.timer[0] = registers_.timer_latch[0];
 	} else {
-		// Decrement timer 1 based on clock if enabled.
-		if(!(registers_.auxiliary_control & 0x20)) {
-			-- registers_.timer[0];
-		}
+		-- registers_.timer[0];
 	}
 
 	// Count down timer 2 if it is in timed interrupt mode (i.e. auxiliary control bit 5 is clear).
-	// TODO: implement count down on PB6 if this bit isn't set.
-	registers_.timer[1] -= 1 ^ ((registers_.auxiliary_control >> 5)&1);
+	registers_.timer[1] -= timer2_clock_decrement();
 
+	// TODO: can eliminate conditional branches here.
 	if(registers_.next_timer[0] >= 0) {
 		registers_.timer[0] = uint16_t(registers_.next_timer[0]);
 		registers_.next_timer[0] = -1;
@@ -364,13 +363,13 @@ template <typename T> void MOS6522<T>::do_phase1() {
 		reevaluate_interrupts();
 
 		// Determine whether to reload.
-		if(registers_.auxiliary_control&0x40)
+		if(timer1_is_continuous())
 			registers_.timer_needs_reload = true;
 		else
 			timer_is_running_[0] = false;
 
 		// Determine whether to toggle PB7.
-		if(registers_.auxiliary_control&0x80) {
+		if(timer1_is_controlling_pb7()) {
 			registers_.timer_port_b_output ^= 0x80;
 			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 			evaluate_port_b_output();
@@ -481,10 +480,11 @@ template <typename T> void MOS6522<T>::shift_in() {
 }
 
 template <typename T> void MOS6522<T>::shift_out() {
-	// When shifting out, the shift register rotates rather than strictly shifts.
-	// TODO: is that true for all modes?
-	if(shift_mode() == ShiftMode::OutUnderT2FreeRunning || shift_bits_remaining_) {
-		registers_.shift = uint8_t((registers_.shift << 1) | (registers_.shift >> 7));
+	const bool is_free_running = shift_mode() == ShiftMode::OutUnderT2FreeRunning;
+	if(is_free_running || shift_bits_remaining_) {
+		// Recirculate bits only if in free-running mode (?)
+		const uint8_t incoming_bit = (registers_.shift >> 7) * is_free_running;
+		registers_.shift = uint8_t(registers_.shift << 1) | incoming_bit;
 		evaluate_cb2_output();
 
 		--shift_bits_remaining_;
