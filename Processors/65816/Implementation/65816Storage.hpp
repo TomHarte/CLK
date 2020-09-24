@@ -16,21 +16,23 @@ class ProcessorStorage {
 		enum MicroOp: uint8_t {
 			/// Fetches a byte from the program counter to the instruction buffer and increments the program counter.
 			CycleFetchIncrementPC,
-			/// Does a no-effect fetch from PC-1.
-			CycleFetchPreviousPC,
+			/// Fetches a byte from the program counter without incrementing it, and throws it away.
+			CycleFetchPCDiscard,
 
+			/// Fetches a byte from the data address to the data buffer.
+			CycleFetchData,
 			/// Fetches a byte from the data address to the data buffer and increments the data address.
 			CycleFetchIncrementData,
+
+			/// Stores a byte from the data buffer.
+			CycleStoreData,
 			/// Stores a byte to the data address from the data buffer and increments the data address.
 			CycleStoreIncrementData,
-			/// Decrements the data address and writes a byte to it.
-			CycleDecrementStoreData,
+			/// Stores a byte to the data address from the data buffer and decrements the data address.
+			CycleStoreDecrementData,
 
 			/// Pushes a single byte from the data buffer to the stack.
 			CyclePush,
-
-			/// Skips the next micro-op if in emulation mode.
-			OperationSkipIf8,
 
 			/// Sets the data address by copying the final two bytes of the instruction buffer.
 			OperationConstructAbsolute,
