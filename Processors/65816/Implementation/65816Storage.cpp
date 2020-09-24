@@ -62,6 +62,19 @@ ProcessorStorage::ProcessorStorage() {
 			OperationMoveToNextProgram
 		});
 
+	// 1d. Absolute read-modify-write.
+//	const auto absolute_rmw =
+//		install_ops({
+//			CycleFetchIncrementPC,			// OpCode.
+//			CycleFetchIncrementPC,			// AAL.
+//			CycleFetchIncrementPC,			// AAH.
+//			CycleFetchIncrementData,		// Data low.
+//			OperationSkipIf8,				// (don't do the next fetch if in emulation mode)
+//			CycleFetchIncrementData,		// Data high.
+//			OperationPerform,				// (whatever the operation is)
+//			OperationMoveToNextProgram
+//		});
+
 	// Install the instructions.
 #define op set_instruction
 	/* 0x00 BRK s */

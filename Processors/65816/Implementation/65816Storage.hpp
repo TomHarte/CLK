@@ -23,6 +23,8 @@ class ProcessorStorage {
 			CycleFetchIncrementData,
 			/// Stores a byte to the data address from the data buffer and increments the data address.
 			CycleStoreIncrementData,
+			/// Decrements the data address and writes a byte to it.
+			CycleDecrementStoreData,
 
 			/// Pushes a single byte from the data buffer to the stack.
 			CyclePush,
