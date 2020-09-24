@@ -39,6 +39,29 @@ ProcessorStorage::ProcessorStorage() {
 			OperationMoveToNextProgram
 		});
 
+	// 1b. Absolute a, JMP.
+	const auto absolute_jmp =
+		install_ops({
+			CycleFetchIncrementPC,			// OpCode.
+			CycleFetchIncrementPC,			// New PCL.
+			CycleFetchIncrementPC,			// New PCH.
+			OperationPerform,				// [JMP]
+			OperationMoveToNextProgram
+		});
+
+	// 1c. Absolute a, JSR.
+	const auto absolute_jsr =
+		install_ops({
+			CycleFetchIncrementPC,			// OpCode.
+			CycleFetchIncrementPC,			// New PCL.
+			CycleFetchIncrementPC,			// New PCH.
+			CycleFetchPreviousPC,			// IO.
+			OperationPerform,				// [JSR]
+			CyclePush,						// PCH
+			CyclePush,						// PCL
+			OperationMoveToNextProgram
+		});
+
 	// Install the instructions.
 #define op set_instruction
 	/* 0x00 BRK s */
@@ -75,7 +98,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x1e ASL a, x */
 	/* 0x1f ORA al, x */
 
-	/* 0x20 JSR a */
+	/* 0x20 JSR a */			op(0x20, absolute_jsr, JSR);
 	/* 0x21 ORA (d), y */
 	/* 0x22 AND (d, x) */
 	/* 0x23 JSL al */
@@ -121,7 +144,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x49	EOR # */
 	/* 0x4a	LSR A */
 	/* 0x4b	PHK s */
-	/* 0x4c	JMP a */
+	/* 0x4c	JMP a */			op(0x4c, absolute_jmp, JMP);
 	/* 0x4d	EOR a */			op(0x4d, absolute_read, EOR);
 	/* 0x4e	LSR a */
 	/* 0x4f	EOR Al */

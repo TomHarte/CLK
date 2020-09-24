@@ -16,10 +16,16 @@ class ProcessorStorage {
 		enum MicroOp: uint8_t {
 			/// Fetches a byte from the program counter to the instruction buffer and increments the program counter.
 			CycleFetchIncrementPC,
+			/// Does a no-effect fetch from PC-1.
+			CycleFetchPreviousPC,
+
 			/// Fetches a byte from the data address to the data buffer and increments the data address.
 			CycleFetchIncrementData,
 			/// Stores a byte to the data address from the data buffer and increments the data address.
 			CycleStoreIncrementData,
+
+			/// Pushes a single byte from the data buffer to the stack.
+			CyclePush,
 
 			/// Skips the next micro-op if in emulation mode.
 			OperationSkipIf8,
@@ -35,9 +41,21 @@ class ProcessorStorage {
 		};
 
 		enum Operation: uint8_t {
-			ADC, AND, BIT, CMP, CPX, CPY, EOR, LDA, LDX, LDY, ORA, SBC,
+			// These perform the named operation using the value in the data buffer.
+			ADC, AND, BIT, CMP, CPX, CPY, EOR, ORA, SBC,
 
+			// These load the respective register from the data buffer.
+			LDA, LDX, LDY,
+
+			// These move the respective register (or value) to the data buffer.
 			STA, STX, STY, STZ,
+
+			/// Loads the PC with the operand from the instruction buffer.
+			JMP,
+
+			/// Loads the PC with the operand from the instruction buffer, placing
+			/// the old PC into the data buffer.
+			JSR,
 		};
 
 		struct Instruction {
