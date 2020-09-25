@@ -20,7 +20,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		Read, Write
 	};
 
-	constexpr AccessType access_type_for_operation(Operation operation) {
+	constexpr static AccessType access_type_for_operation(Operation operation) {
 		switch(operation) {
 			case ADC:	case AND:	case BIT:	case CMP:
 			case CPX:	case CPY:	case EOR:	case ORA:
@@ -29,7 +29,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 			case LDA:	case LDX:	case LDY:
 
 			// The access type for these is arbitrary, though consistency is beneficial.
-			case JMP:	case JSR:	case JML:
+			case JMP:	case JSR:	case JML:	case JSL:
 			return AccessType::Read;
 
 			case STA:	case STX:	case STY:	case STZ:
@@ -199,7 +199,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationConstructAbsoluteIndexedIndirect);	// Calculate data address.
 		target(CycleFetchIncrementData);					// New PCL
 		target(CycleFetchData);								// New PCH.
-		target(OperationPerform);							// [JSR]
+		target(OperationPerform);							// ['JSR' (actually: JMP will do)]
 	}
 
 	// 3a. Absolute Indirect (a), JML.
@@ -246,14 +246,32 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		}
 	};
 
-	// 4a. Absolute long al, JMP.
-	static void absolute_long_jmp(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+	// 4b. Absolute long al, JMP.
+	static void absolute_long_jmp(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);			// New PCL.
 		target(CycleFetchIncrementPC);			// New PCH.
 		target(CycleFetchPC);					// New PBR.
 
 		target(OperationConstructAbsolute);		// Calculate data address.
 		target(OperationPerform);				// ['JMP' (though it's JML in internal terms)]
+	};
+
+	// 4c. Absolute long al, JSL.
+	static void absolute_long_jsl(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);			// New PCL.
+		target(CycleFetchIncrementPC);			// New PCH.
+
+		target(OperationCopyPBRToData);			// Copy PBR to the data register.
+		target(CyclePush);						// PBR.
+		target(CycleAccessStack);				// IO.
+
+		target(CycleFetchIncrementPC);			// New PBR.
+
+		target(OperationConstructAbsolute);		// Calculate data address.
+		target(OperationPerform);				// [JSL]
+
+		target(CyclePush);						// PCH
+		target(CyclePush);						// PCL
 	};
 };
 
@@ -302,7 +320,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x20 JSR a */			op(absolute_jsr, JSR);
 	/* 0x21 ORA (d), y */
 	/* 0x22 AND (d, x) */
-	/* 0x23 JSL al */
+	/* 0x23 JSL al */			op(absolute_long_jsl, JSL);
 	/* 0x24 BIT d */
 	/* 0x25 AND d */
 	/* 0x26 ROL d */
@@ -532,7 +550,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xf9 SBC a, y */
 	/* 0xfa PLX s */
 	/* 0xfb XCE i */
-	/* 0xfc JSR (a, x) */		op(absolute_indexed_indirect_jsr, JSR);
+	/* 0xfc JSR (a, x) */		op(absolute_indexed_indirect_jsr, JMP);	// [sic]
 	/* 0xfd SBC a, x */
 	/* 0xfe INC a, x */
 	/* 0xff SBC al, x */

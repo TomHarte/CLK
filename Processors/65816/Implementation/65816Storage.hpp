@@ -29,10 +29,13 @@ enum MicroOp: uint8_t {
 
 	/// Pushes a single byte from the data buffer to the stack.
 	CyclePush,
+	/// Fetches from the current stack location and throws the result away.
+	CycleAccessStack,
 
 	/// Sets the data address by copying the final two bytes of the instruction buffer.
 	OperationConstructAbsolute,
-	/// Sets the data address
+	/// Sets the data address to the result of (a, x).
+	/// TODO: explain better once implemented.
 	OperationConstructAbsoluteIndexedIndirect,
 
 	/// Performs whatever operation goes with this program.
@@ -40,6 +43,9 @@ enum MicroOp: uint8_t {
 
 	/// Copies the current program counter to the data buffer.
 	OperationCopyPCToData,
+
+	/// Copies the current PBR to the data buffer.
+	OperationCopyPBRToData,
 
 	/// Complete this set of micr-ops.
 	OperationMoveToNextProgram
@@ -64,9 +70,13 @@ enum Operation: uint8_t {
 	/// Loads the PC and PBR with the operand from the data buffer.
 	JML,
 
-	/// Loads the PC with the operand from the daa buffer, replacing
+	/// Loads the PC with the operand from the data buffer, replacing
 	/// it with the old PC.
 	JSR,
+
+	/// Loads the PC and the PBR with the operand from the data buffer,
+	/// replacing it with the old PC (and only the PC; PBR not included).
+	JSL,
 };
 
 class ProcessorStorageConstructor;
