@@ -37,6 +37,7 @@ enum MicroOp: uint8_t {
 	/// Sets the data address to the result of (a, x).
 	/// TODO: explain better once implemented.
 	OperationConstructAbsoluteIndexedIndirect,
+	OperationConstructAbsoluteLongX,
 
 	/// Performs whatever operation goes with this program.
 	OperationPerform,
