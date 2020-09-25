@@ -127,13 +127,13 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationConstructAbsolute);				// Calculate data address.
 
 		if(type == AccessType::Write) {
-			target(OperationPerform);					// Perform operation to fill the data buffer.
-			target(CycleStoreIncrementData);			// Data low.
-			if(is8bit) target(CycleStoreIncrementData);	// Data high.
+			target(OperationPerform);						// Perform operation to fill the data buffer.
+			if(!is8bit) target(CycleStoreIncrementData);	// Data low.
+			target(CycleStoreData);							// Data [high].
 		} else {
-			target(CycleFetchIncrementData);			// Data low.
-			if(is8bit) target(CycleFetchIncrementData);	// Data high.
-			target(OperationPerform);					// Perform operation from the data buffer.
+			if(!is8bit) target(CycleFetchIncrementData);	// Data low.
+			target(CycleFetchIncrementData);				// Data [high].
+			target(OperationPerform);						// Perform operation from the data buffer.
 		}
 	};
 
@@ -226,6 +226,35 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(OperationPerform);				// [JMP]
 	};
+
+	// 4a. Absolute long al.
+	static void absolute_long(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);			// AAL.
+		target(CycleFetchIncrementPC);			// AAH.
+		target(CycleFetchPC);					// AAB.
+
+		target(OperationConstructAbsolute);		// Calculate data address.
+
+		if(type == AccessType::Write) {
+			target(OperationPerform);						// Perform operation to fill the data buffer.
+			if(!is8bit) target(CycleStoreIncrementData);	// Data low.
+			target(CycleStoreData);							// Data [high].
+		} else {
+			if(!is8bit) target(CycleFetchIncrementData);	// Data low.
+			target(CycleFetchData);							// Data [high].
+			target(OperationPerform);						// Perform operation from the data buffer.
+		}
+	};
+
+	// 4a. Absolute long al, JMP.
+	static void absolute_long_jmp(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);			// New PCL.
+		target(CycleFetchIncrementPC);			// New PCH.
+		target(CycleFetchPC);					// New PBR.
+
+		target(OperationConstructAbsolute);		// Calculate data address.
+		target(OperationPerform);				// ['JMP' (though it's JML in internal terms)]
+	};
 };
 
 ProcessorStorage TEMPORARY_test_instance;
@@ -251,7 +280,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x0c TSB a */
 	/* 0x0d ORA a */			op(absolute, ORA);
 	/* 0x0e ASL a */
-	/* 0x0f ORA al */
+	/* 0x0f ORA al */			op(absolute_long, ORA);
 
 	/* 0x10 BPL r */
 	/* 0x11 ORA (d), y */
@@ -285,7 +314,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x2c BIT a */			op(absolute, BIT);
 	/* 0x2d AND a */			op(absolute, AND);
 	/* 0x2e ROL a */
-	/* 0x2f AND al */
+	/* 0x2f AND al */			op(absolute_long, AND);
 
 	/* 0x30 BMI R */
 	/* 0x31 AND (d), y */
@@ -319,7 +348,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x4c	JMP a */			op(absolute, JMP);
 	/* 0x4d	EOR a */			op(absolute, EOR);
 	/* 0x4e	LSR a */
-	/* 0x4f	EOR Al */
+	/* 0x4f	EOR al */			op(absolute_long, EOR);
 
 	/* 0x50 BVC r */
 	/* 0x51 EOR (d), y */
@@ -333,7 +362,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x59 EOR a, y */
 	/* 0x5a PHY s */
 	/* 0x5b TCD i */
-	/* 0x5c JMP al */
+	/* 0x5c JMP al */			op(absolute_long_jmp, JML);	// [sic]; this updates PBR so it's JML.
 	/* 0x5d EOR a, x */
 	/* 0x5e LSR a, x */
 	/* 0x5f EOR al, x */
@@ -353,7 +382,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x6c JMP (a) */			op(absolute_indirect_jmp, JMP);
 	/* 0x6d ADC a */			op(absolute, ADC);
 	/* 0x6e ROR a */
-	/* 0x6f ADC al */
+	/* 0x6f ADC al */			op(absolute_long, ADC);
 
 	/* 0x70 BVS r */
 	/* 0x71 ADC (d), y */
@@ -387,7 +416,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x8c STY a */			op(absolute, STY);
 	/* 0x8d STA a */			op(absolute, STA);
 	/* 0x8e STX a */			op(absolute, STX);
-	/* 0x8f STA al */
+	/* 0x8f STA al */			op(absolute_long, STA);
 
 	/* 0x90 BCC r */
 	/* 0x91 STA (d), y */
@@ -421,7 +450,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xac LDY a */			op(absolute, LDY);
 	/* 0xad LDA a */			op(absolute, LDA);
 	/* 0xae LDX a */			op(absolute, LDX);
-	/* 0xaf LDA al */
+	/* 0xaf LDA al */			op(absolute_long, LDA);
 
 	/* 0xb0 BCS r */
 	/* 0xb1 LDA (d), y */
@@ -455,7 +484,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xcc CPY a */			op(absolute, CPY);
 	/* 0xcd CMP a */			op(absolute, CMP);
 	/* 0xce DEC a */
-	/* 0xcf CMP al */
+	/* 0xcf CMP al */			op(absolute_long, CMP);
 
 	/* 0xd0 BNE r */
 	/* 0xd1 CMP (d), y */
@@ -489,7 +518,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xec CPX a */			op(absolute, CPX);
 	/* 0xed SBC a */			op(absolute, SBC);
 	/* 0xee INC a */
-	/* 0xef SBC al */
+	/* 0xef SBC al */			op(absolute_long, SBC);
 
 	/* 0xf0 BEQ r */
 	/* 0xf1 SBC (d), y */
@@ -509,4 +538,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xff SBC al, x */
 
 #undef op
+
+	// TEMPORARY: for my interest. To be removed.
+	printf("Generated %zd micro-ops in total; covered %d opcodes\n", micro_ops_.size(), constructor.opcode);
 }
