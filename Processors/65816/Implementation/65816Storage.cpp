@@ -6,20 +6,11 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#include <cstdint>
-#include <vector>
+#include "../65816.hpp"
 
-#include "65816Storage.hpp"
+using namespace CPU::WDC65816;
 
-namespace {
-
-enum class AccessType {
-	Read, Write, ReadModifyWrite
-};
-
-}
-
-ProcessorStorage::ProcessorStorage() {
+struct CPU::WDC65816::ProcessorStorageConstructor {
 	/*
 		Code below is structured to ease translation from Table 5-7 of the 2018
 		edition of the WDC 65816 datasheet.
@@ -39,10 +30,10 @@ ProcessorStorage::ProcessorStorage() {
 	*/
 
 	// 1a. Absolute a.
-	auto absolute = [] (AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchIncrementPC);			// AAL.
-		target(CycleFetchIncrementPC);			// AAH.
-		target(OperationConstructAbsolute);		// Calculate data address.
+	static void absolute(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);					// AAL.
+		target(CycleFetchIncrementPC);					// AAH.
+		target(OperationConstructAbsolute);				// Calculate data address.
 
 		if(type == AccessType::Write) {
 			target(OperationPerform);					// Perform operation to fill the data buffer.
@@ -56,27 +47,29 @@ ProcessorStorage::ProcessorStorage() {
 	};
 
 	// 1b. Absolute a, JMP.
-	auto absolute_jmp = [] (AccessType, bool, const std::function<void(MicroOp)> &target) {
+	static void absolute_jmp(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);			// New PCL.
-		target(CycleFetchIncrementPC);			// New PCH.
+		target(CycleFetchPC);					// New PCH.
+		target(OperationConstructAbsolute);		// Calculate data address.
 		target(OperationPerform);				// [JMP]
 	};
 
 	// 1c. Absolute a, JSR.
-	auto absolute_jsr = [] (AccessType, bool, const std::function<void(MicroOp)> &target) {
+	static void absolute_jsr(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);			// New PCL.
-		target(CycleFetchIncrementPC);			// New PCH.
-		target(CycleFetchPCDiscard);			// IO
+		target(CycleFetchPC);					// New PCH.
+		target(CycleFetchPC);					// IO
+		target(OperationConstructAbsolute);		// Calculate data address.
 		target(OperationPerform);				// [JSR]
 		target(CyclePush);						// PCH
 		target(CyclePush);						// PCL
 	};
 
 	// 1d. Absolute read-modify-write.
-	auto absolute_rmw = [] (AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchIncrementPC);			// AAL.
-		target(CycleFetchIncrementPC);			// AAH.
-		target(OperationConstructAbsolute);		// Calculate data address.
+	static void absolute_rmw(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);					// AAL.
+		target(CycleFetchIncrementPC);					// AAH.
+		target(OperationConstructAbsolute);				// Calculate data address.
 
 		if(!is8bit)	target(CycleFetchIncrementData);	// Data low.
 		target(CycleFetchData);							// Data [high].
@@ -90,8 +83,57 @@ ProcessorStorage::ProcessorStorage() {
 		target(CycleStoreData);							// Data [low].
 	};
 
+	// 2a. Absolute Indexed Indirect (a, x), JMP.
+	static void absolute_indexed_indirect_jmp(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);						// AAL.
+		target(CycleFetchPC);								// AAH.
+		target(CycleFetchPC);								// IO.
+		target(OperationConstructAbsoluteIndexedIndirect);	// Calculate data address.
+		target(CycleFetchIncrementData);					// New PCL
+		target(CycleFetchData);								// New PCH.
+		target(OperationPerform);							// [JMP]
+	};
+
+	// 2b. Absolute Indexed Indirect (a, x), JSR.
+
+};
+
+AccessType ProcessorStorage::access_type_for_operation(Operation operation) {
+	switch(operation) {
+		case ADC:	case AND:	case BIT:	case CMP:
+		case CPX:	case CPY:	case EOR:	case ORA:
+		case SBC:
+
+		case LDA:	case LDX:	case LDY:
+
+		case JMP:	case JSR:
+		return AccessType::Read;
+
+		case STA:	case STX:	case STY:	case STZ:
+		return AccessType::Write;
+	}
+}
+
+void ProcessorStorage::install(void (* generator)(AccessType, bool, const std::function<void(MicroOp)>&), Operation operation, ProcessorStorageConstructor &) {
+	const AccessType access_type = access_type_for_operation(operation);
+	(*generator)(access_type, true, [] (MicroOp) {});
+
+	// TODO:
+	//	(1) use [hash of] pointer to generator to determine whether operation tables have already been built;
+	//	(2) if not, build them in both 8- and 16-bit variations;
+	//	(3) insert appropriate entries into an instruction table for the current instruction; and
+	//	(4) increment the instruction counter.
+	//
+	// Additional observation: temporary storage would be helpful, so load that into ProcessorStorageConstructor.
+}
+
+
+ProcessorStorage::ProcessorStorage() {
+	ProcessorStorageConstructor constructor;
+
 	// Install the instructions.
-#define op set_instruction
+#define op(x, y) install(&ProcessorStorageConstructor::x, y, constructor)
+
 	/* 0x00 BRK s */
 	/* 0x01 ORA (d, x) */
 	/* 0x02 COP s */
@@ -105,7 +147,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x0a ASL a */
 	/* 0x0b PHD s */
 	/* 0x0c TSB a */
-	/* 0x0d ORA a */			// op(0x0d, absolute_read, ORA);
+	/* 0x0d ORA a */			op(absolute, ORA);
 	/* 0x0e ASL a */
 	/* 0x0f ORA al */
 
@@ -126,7 +168,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x1e ASL a, x */
 	/* 0x1f ORA al, x */
 
-	/* 0x20 JSR a */			// op(0x20, absolute_jsr, JSR);
+	/* 0x20 JSR a */			op(absolute_jsr, JSR);
 	/* 0x21 ORA (d), y */
 	/* 0x22 AND (d, x) */
 	/* 0x23 JSL al */
@@ -138,8 +180,8 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x29 AND # */
 	/* 0x2a ROL A */
 	/* 0x2b PLD s */
-	/* 0x2c BIT a */			// op(0x2c, absolute_read, BIT);
-	/* 0x2d AND a */			// op(0x2d, absolute_read, AND);
+	/* 0x2c BIT a */			op(absolute, BIT);
+	/* 0x2d AND a */			op(absolute, AND);
 	/* 0x2e ROL a */
 	/* 0x2f AND al */
 
@@ -172,8 +214,8 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x49	EOR # */
 	/* 0x4a	LSR A */
 	/* 0x4b	PHK s */
-	/* 0x4c	JMP a */			// op(0x4c, absolute_jmp, JMP);
-	/* 0x4d	EOR a */			// op(0x4d, absolute_read, EOR);
+	/* 0x4c	JMP a */			op(absolute, JMP);
+	/* 0x4d	EOR a */			op(absolute, EOR);
 	/* 0x4e	LSR a */
 	/* 0x4f	EOR Al */
 
@@ -207,7 +249,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x6a ROR A */
 	/* 0x6b RTL s */
 	/* 0x6c JMP (a) */
-	/* 0x6d ADC a */			// op(0x6d, absolute_read, ADC);
+	/* 0x6d ADC a */			op(absolute, ADC);
 	/* 0x6e ROR a */
 	/* 0x6f ADC al */
 
@@ -223,7 +265,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x79 ADC a, y */
 	/* 0x7a PLY s */
 	/* 0x7b TDC i */
-	/* 0x7c JMP (a, x) */
+	/* 0x7c JMP (a, x) */		op(absolute_indexed_indirect_jmp, JMP);
 	/* 0x7d ADC a, x */
 	/* 0x7e ROR a, x */
 	/* 0x7f ADC al, x */
@@ -240,9 +282,9 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x89 BIT # */
 	/* 0x8a TXA i */
 	/* 0x8b PHB s */
-	/* 0x8c STY a */			// op(0x8c, absolute_write, STY);
-	/* 0x8d STA a */			// op(0x8d, absolute_write, STA);
-	/* 0x8e STX a */			// op(0x8e, absolute_write, STX);
+	/* 0x8c STY a */			op(absolute, STY);
+	/* 0x8d STA a */			op(absolute, STA);
+	/* 0x8e STX a */			op(absolute, STX);
 	/* 0x8f STA al */
 
 	/* 0x90 BCC r */
@@ -257,7 +299,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x99 STA a, y */
 	/* 0x9a TXS i */
 	/* 0x9b TXY i */
-	/* 0x9c STZ a */			// op(0x9c, absolute_write, STZ);
+	/* 0x9c STZ a */			op(absolute, STZ);
 	/* 0x9d STA a, x */
 	/* 0x9e STZ a, x */
 	/* 0x9f STA al, x */
@@ -274,9 +316,9 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xa9 LDA # */
 	/* 0xaa TAX i */
 	/* 0xab PLB s */
-	/* 0xac LDY a */			// op(0xac, absolute_read, LDY);
-	/* 0xad LDA a */			// op(0xad, absolute_read, LDA);
-	/* 0xae LDX a */			// op(0xae, absolute_read, LDX);
+	/* 0xac LDY a */			op(absolute, LDY);
+	/* 0xad LDA a */			op(absolute, LDA);
+	/* 0xae LDX a */			op(absolute, LDX);
 	/* 0xaf LDA al */
 
 	/* 0xb0 BCS r */
@@ -308,8 +350,8 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xc9 CMP # */
 	/* 0xca DEX i */
 	/* 0xcb WAI i */
-	/* 0xcc CPY a */			// op(0xcd, absolute_read, CPY);
-	/* 0xcd CMP a */			// op(0xcd, absolute_read, CMP);
+	/* 0xcc CPY a */			op(absolute, CPY);
+	/* 0xcd CMP a */			op(absolute, CMP);
 	/* 0xce DEC a */
 	/* 0xcf CMP al */
 
@@ -342,8 +384,8 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xe9 SBC # */
 	/* 0xea NOP i */
 	/* 0xeb XBA i */
-	/* 0xec CPX a */			// op(0xec, absolute_read, CPX);
-	/* 0xed SBC a */			// op(0xed, absolute_read, SBC);
+	/* 0xec CPX a */			op(absolute, CPX);
+	/* 0xed SBC a */			op(absolute, SBC);
 	/* 0xee INC a */
 	/* 0xef SBC al */
 
