@@ -61,6 +61,9 @@ enum Operation: uint8_t {
 	/// Loads the PC with the operand from the data buffer.
 	JMP,
 
+	/// Loads the PC and PBR with the operand from the data buffer.
+	JML,
+
 	/// Loads the PC with the operand from the daa buffer, replacing
 	/// it with the old PC.
 	JSR,
@@ -85,6 +88,20 @@ class ProcessorStorage {
 
 	private:
 		friend ProcessorStorageConstructor;
+
+		// Registers.
+		RegisterPair16 a_;
+		RegisterPair16 x_, y_;
+		uint16_t pc_, s_;
+
+		// Not
+		uint16_t direct_;
+
+		// Banking registers are all stored with the relevant byte
+		// shifted up bits 16–23.
+		uint32_t data_bank_;	// i.e. DBR.
+		uint32_t program_bank_;	// i.e. PBR.
+
 
 		std::vector<MicroOp> micro_ops_;
 };

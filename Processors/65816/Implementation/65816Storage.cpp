@@ -28,7 +28,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 			case LDA:	case LDX:	case LDY:
 
-			case JMP:	case JSR:
+			// The access type for these is arbitrary, though consistency is beneficial.
+			case JMP:	case JSR:	case JML:
 			return AccessType::Read;
 
 			case STA:	case STX:	case STY:	case STZ:
@@ -200,6 +201,31 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchData);								// New PCH.
 		target(OperationPerform);							// [JSR]
 	}
+
+	// 3a. Absolute Indirect (a), JML.
+	static void absolute_indirect_jml(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);			// New AAL.
+		target(CycleFetchPC);					// New AAH.
+
+		target(OperationConstructAbsolute);		// Calculate data address.
+		target(CycleFetchIncrementData);		// New PCL
+		target(CycleFetchIncrementData);		// New PCH
+		target(CycleFetchData);					// New PBR
+
+		target(OperationPerform);				// [JML]
+	};
+
+	// 3b. Absolute Indirect (a), JMP.
+	static void absolute_indirect_jmp(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);			// New AAL.
+		target(CycleFetchPC);					// New AAH.
+
+		target(OperationConstructAbsolute);		// Calculate data address.
+		target(CycleFetchIncrementData);		// New PCL
+		target(CycleFetchData);					// New PCH
+
+		target(OperationPerform);				// [JMP]
+	};
 };
 
 ProcessorStorage TEMPORARY_test_instance;
@@ -324,7 +350,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x69 ADC # */
 	/* 0x6a ROR A */
 	/* 0x6b RTL s */
-	/* 0x6c JMP (a) */
+	/* 0x6c JMP (a) */			op(absolute_indirect_jmp, JMP);
 	/* 0x6d ADC a */			op(absolute, ADC);
 	/* 0x6e ROR a */
 	/* 0x6f ADC al */
@@ -443,7 +469,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xd9 CMP a, y */
 	/* 0xda PHX s */
 	/* 0xdb STP i */
-	/* 0xdc JMP (a) */
+	/* 0xdc JML (a) */			op(absolute_indirect_jml, JML);
 	/* 0xdd CMP a, x */
 	/* 0xde DEC a, x */
 	/* 0xdf CMP al, x */

@@ -12,6 +12,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "../RegisterSizes.hpp"
+
 namespace CPU {
 namespace WDC65816 {
 
