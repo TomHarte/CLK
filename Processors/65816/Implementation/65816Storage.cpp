@@ -95,7 +95,21 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	};
 
 	// 2b. Absolute Indexed Indirect (a, x), JSR.
+	static void absolute_indexed_indirect_jsr(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);						// AAL.
 
+		target(OperationCopyPCToData);						// Prepare to push.
+		target(CyclePush);									// PCH
+		target(CyclePush);									// PCL
+
+		target(CycleFetchPC);								// AAH.
+		target(CycleFetchPC);								// IO.
+
+		target(OperationConstructAbsoluteIndexedIndirect);	// Calculate data address.
+		target(CycleFetchIncrementData);					// New PCL
+		target(CycleFetchData);								// New PCH.
+		target(OperationPerform);							// [JSR]
+	}
 };
 
 AccessType ProcessorStorage::access_type_for_operation(Operation operation) {
@@ -401,7 +415,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xf9 SBC a, y */
 	/* 0xfa PLX s */
 	/* 0xfb XCE i */
-	/* 0xfc JSR (a, x) */
+	/* 0xfc JSR (a, x) */		op(absolute_indexed_indirect_jsr, JSR);
 	/* 0xfd SBC a, x */
 	/* 0xfe INC a, x */
 	/* 0xff SBC al, x */

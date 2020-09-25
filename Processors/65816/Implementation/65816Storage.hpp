@@ -38,6 +38,9 @@ enum MicroOp: uint8_t {
 	/// Performs whatever operation goes with this program.
 	OperationPerform,
 
+	/// Copies the current program counter to the data buffer.
+	OperationCopyPCToData,
+
 	/// Complete this set of micr-ops.
 	OperationMoveToNextProgram
 };
