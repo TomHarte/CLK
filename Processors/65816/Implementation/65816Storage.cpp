@@ -67,6 +67,23 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 			});
 			storage_.micro_ops_.push_back(OperationMoveToNextProgram);
 
+			// Minor optimisation: elide the steps if 8- and 16-bit steps are equal.
+			bool are_equal = true;
+			size_t c = 0;
+			while(true) {
+				if(storage_.micro_ops_[micro_op_location_8 + c] != storage_.micro_ops_[micro_op_location_16 + c]) {
+					are_equal = false;
+					break;
+				}
+				if(storage_.micro_ops_[micro_op_location_8 + c] == OperationMoveToNextProgram) break;
+				++c;
+			}
+
+			if(are_equal) {
+				storage_.micro_ops_.resize(micro_op_location_16);
+				micro_op_location_16 = micro_op_location_8;
+			}
+
 			// Insert into the map.
 			installed_patterns[key] = std::make_pair(micro_op_location_8, micro_op_location_16);
 		} else {
@@ -185,6 +202,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 };
 
+ProcessorStorage TEMPORARY_test_instance;
 
 ProcessorStorage::ProcessorStorage() {
 	ProcessorStorageConstructor constructor(*this);
