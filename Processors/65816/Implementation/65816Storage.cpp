@@ -7,10 +7,83 @@
 //
 
 #include "../65816.hpp"
+#include <map>
 
 using namespace CPU::WDC65816;
 
 struct CPU::WDC65816::ProcessorStorageConstructor {
+	// Establish that a storage constructor needs access to ProcessorStorage.
+	ProcessorStorage &storage_;
+	ProcessorStorageConstructor(ProcessorStorage &storage) : storage_(storage) {}
+
+	enum class AccessType {
+		Read, Write
+	};
+
+	constexpr AccessType access_type_for_operation(Operation operation) {
+		switch(operation) {
+			case ADC:	case AND:	case BIT:	case CMP:
+			case CPX:	case CPY:	case EOR:	case ORA:
+			case SBC:
+
+			case LDA:	case LDX:	case LDY:
+
+			case JMP:	case JSR:
+			return AccessType::Read;
+
+			case STA:	case STX:	case STY:	case STZ:
+			return AccessType::Write;
+		}
+	}
+
+	typedef void (* Generator)(AccessType, bool, const std::function<void(MicroOp)>&);
+	using GeneratorKey = std::tuple<AccessType, Generator>;
+	std::map<GeneratorKey, std::pair<size_t, size_t>> installed_patterns;
+
+	uint8_t opcode = 0;
+	void install(Generator generator, Operation operation) {
+		// Determine the access type implied by this operation.
+		const AccessType access_type = access_type_for_operation(operation);
+
+		// Check whether this access type + addressing mode generator has already been generated.
+		const auto key = std::make_pair(access_type, generator);
+		const auto map_entry = installed_patterns.find(key);
+		size_t micro_op_location_8, micro_op_location_16;
+
+		// If it wasn't found, generate it now in both 8- and 16-bit variants.
+		// Otherwise, get the location of the existing entries.
+		if(map_entry == installed_patterns.end()) {
+			// Generate 8-bit steps.
+			micro_op_location_8 = storage_.micro_ops_.size();
+			(*generator)(access_type, true, [this] (MicroOp op) {
+				this->storage_.micro_ops_.push_back(op);
+			});
+			storage_.micro_ops_.push_back(OperationMoveToNextProgram);
+
+			// Generate 16-bit steps.
+			micro_op_location_16 = storage_.micro_ops_.size();
+			(*generator)(access_type, false, [this] (MicroOp op) {
+				this->storage_.micro_ops_.push_back(op);
+			});
+			storage_.micro_ops_.push_back(OperationMoveToNextProgram);
+
+			// Insert into the map.
+			installed_patterns[key] = std::make_pair(micro_op_location_8, micro_op_location_16);
+		} else {
+			micro_op_location_8 = map_entry->second.first;
+			micro_op_location_16 = map_entry->second.second;
+		}
+
+		// Fill in the proper table entries and increment the opcode pointer.
+		storage_.instructions[opcode].program_offset = micro_op_location_8;
+		storage_.instructions[opcode].operation = operation;
+
+		storage_.instructions[opcode + 256].program_offset = micro_op_location_16;
+		storage_.instructions[opcode + 256].operation = operation;
+
+		++opcode;
+	}
+
 	/*
 		Code below is structured to ease translation from Table 5-7 of the 2018
 		edition of the WDC 65816 datasheet.
@@ -112,41 +185,12 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 };
 
-AccessType ProcessorStorage::access_type_for_operation(Operation operation) {
-	switch(operation) {
-		case ADC:	case AND:	case BIT:	case CMP:
-		case CPX:	case CPY:	case EOR:	case ORA:
-		case SBC:
-
-		case LDA:	case LDX:	case LDY:
-
-		case JMP:	case JSR:
-		return AccessType::Read;
-
-		case STA:	case STX:	case STY:	case STZ:
-		return AccessType::Write;
-	}
-}
-
-void ProcessorStorage::install(void (* generator)(AccessType, bool, const std::function<void(MicroOp)>&), Operation operation, ProcessorStorageConstructor &) {
-	const AccessType access_type = access_type_for_operation(operation);
-	(*generator)(access_type, true, [] (MicroOp) {});
-
-	// TODO:
-	//	(1) use [hash of] pointer to generator to determine whether operation tables have already been built;
-	//	(2) if not, build them in both 8- and 16-bit variations;
-	//	(3) insert appropriate entries into an instruction table for the current instruction; and
-	//	(4) increment the instruction counter.
-	//
-	// Additional observation: temporary storage would be helpful, so load that into ProcessorStorageConstructor.
-}
-
 
 ProcessorStorage::ProcessorStorage() {
-	ProcessorStorageConstructor constructor;
+	ProcessorStorageConstructor constructor(*this);
 
 	// Install the instructions.
-#define op(x, y) install(&ProcessorStorageConstructor::x, y, constructor)
+#define op(x, y) constructor.install(&ProcessorStorageConstructor::x, y)
 
 	/* 0x00 BRK s */
 	/* 0x01 ORA (d, x) */

@@ -45,8 +45,25 @@ enum MicroOp: uint8_t {
 	OperationMoveToNextProgram
 };
 
-enum class AccessType {
-	Read, Write
+enum Operation: uint8_t {
+	// These perform the named operation using the value in the data buffer;
+	// they are implicitly AccessType::Read.
+	ADC, AND, BIT, CMP, CPX, CPY, EOR, ORA, SBC,
+
+	// These load the respective register from the data buffer;
+	// they are implicitly AccessType::Read.
+	LDA, LDX, LDY,
+
+	// These move the respective register (or value) to the data buffer;
+	// they are implicitly AccessType::Write.
+	STA, STX, STY, STZ,
+
+	/// Loads the PC with the operand from the data buffer.
+	JMP,
+
+	/// Loads the PC with the operand from the daa buffer, replacing
+	/// it with the old PC.
+	JSR,
 };
 
 class ProcessorStorageConstructor;
@@ -55,38 +72,21 @@ class ProcessorStorage {
 	public:
 		ProcessorStorage();
 
-		enum Operation: uint8_t {
-			// These perform the named operation using the value in the data buffer;
-			// they are implicitly AccessType::Read.
-			ADC, AND, BIT, CMP, CPX, CPY, EOR, ORA, SBC,
-
-			// These load the respective register from the data buffer;
-			// they are implicitly AccessType::Read.
-			LDA, LDX, LDY,
-
-			// These move the respective register (or value) to the data buffer;
-			// they are implicitly AccessType::Write.
-			STA, STX, STY, STZ,
-
-			/// Loads the PC with the operand from the data buffer.
-			JMP,
-
-			/// Loads the PC with the operand from the daa buffer, replacing
-			/// it with the old PC.
-			JSR,
-		};
-
 		struct Instruction {
 			size_t program_offset;
 			Operation operation;
 		};
-		Instruction instructions[256];
+		Instruction instructions[512 + 3];	// Arranged as:
+											//	256 entries: emulation-mode instructions;
+											//	256 entries: 16-bit instructions;
+											//	reset
+											//	NMI
+											//	IRQ
 
 	private:
-		std::vector<MicroOp> micro_ops_;
+		friend ProcessorStorageConstructor;
 
-		AccessType access_type_for_operation(Operation);
-		void install(void (* generator)(AccessType, bool, const std::function<void(MicroOp)>&), Operation, ProcessorStorageConstructor &);
+		std::vector<MicroOp> micro_ops_;
 };
 
 #endif /* WDC65816Implementation_h */
