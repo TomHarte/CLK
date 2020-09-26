@@ -411,6 +411,28 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	// 13. Direct Indirect Indexed; (d), y.
 	// 14. Direct Indirect Indexed Long; [d], y.
 	// 15. Direct Indirect Long; [d].
+	// 16a. Direct, X; d, x.
+	// 16b. Direct, X; d, x, read-modify-write.
+	// 17. Direct, Y; d, y.
+	// 18. Immediate; #.
+	// 19a. Implied; i.
+	// 19b. Implied; i; XBA.
+	// 19c. Stop the Clock.
+	// 19d. Wait for interrupt.
+	// 20. Relative; r.
+	// 21. Relative long; rl.
+	// 22a. Stack; s, abort/irq/nmi/res.
+	// 22b. Stack; s, PLx.
+	// 22c. Stack; s, PHx.
+	// 22d. Stack; s, PEA.
+	// 22e. Stack; s, PEI.
+	// 22f. Stack; s, PER.
+	// 22g. Stack; s, RTI.
+	// 22h. Stack; s, RTS.
+	// 22i. Stack; s, RTL.
+	// 22j. Stack; s, BRK/COP.
+	// 23. Stack Relative; d, s.
+	// 24. Stack Relative Indirect Indexed (d, s), y.
 };
 
 // TEMPORARY. Kneejerk way to get a step debug of 65816 storage construction.
