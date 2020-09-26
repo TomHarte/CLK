@@ -64,6 +64,10 @@ enum MicroOp: uint8_t {
 	/// Skips the next micro-op if the low byte of the direct register is 0.
 	OperationConstructDirect,
 
+	// These follow similar skip-one-if-possible logic to OperationConstructDirect.
+	OperationConstructDirectIndexedIndirect,
+	OperationConstructDirectIndirect,
+
 	/// Performs whatever operation goes with this program.
 	OperationPerform,
 
