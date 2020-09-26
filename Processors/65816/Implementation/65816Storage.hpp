@@ -60,6 +60,10 @@ enum MicroOp: uint8_t {
 	OperationConstructAbsoluteY,
 	OperationConstructAbsoluteYRead,
 
+	/// Constructs the current direct address using the value in the instruction buffer.
+	/// Skips the next micro-op if the low byte of the direct register is 0.
+	OperationConstructDirect,
+
 	/// Performs whatever operation goes with this program.
 	OperationPerform,
 

@@ -363,6 +363,28 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(OperationPerform);		// [MVN or MVP]
 	}
+
+	// 10a. Direct; d.
+	// (That's zero page in 6502 terms)
+	static void direct(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);					// DO.
+
+		target(OperationConstructDirect);
+		target(CycleFetchPC);							// IO.
+
+		read_write(type, is8bit, target);
+	};
+
+	// 10b. Direct; d, read-modify-write.
+	// (That's zero page in 6502 terms)
+	static void direct_rmw(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);					// DO.
+
+		target(OperationConstructDirect);
+		target(CycleFetchPC);							// IO.
+
+		read_modify_write(is8bit, target);
+	};
 };
 
 // TEMPORARY. Kneejerk way to get a step debug of 65816 storage construction.
@@ -378,9 +400,9 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x01 ORA (d, x) */
 	/* 0x02 COP s */
 	/* 0x03 ORA d, s */
-	/* 0x04 TSB d */
-	/* 0x05 ORA d */
-	/* 0x06 ASL d */
+	/* 0x04 TSB d */			op(direct_rmw, TSB);
+	/* 0x05 ORA d */			op(direct, ORA);
+	/* 0x06 ASL d */			op(direct_rmw, ASL);
 	/* 0x07 ORA [d] */
 	/* 0x08 PHP s */
 	/* 0x09 ORA # */
@@ -395,8 +417,8 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x11 ORA (d), y */
 	/* 0x12 ORA (d) */
 	/* 0x13 ORA (d, s), y */
-	/* 0x14 TRB d */
-	/* 0x15 ORA d,x */
+	/* 0x14 TRB d */			op(absolute_rmw, TRB);
+	/* 0x15 ORA d, x */
 	/* 0x16 ASL d, x */
 	/* 0x17 ORA [d], y */
 	/* 0x18 CLC i */
@@ -412,9 +434,9 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x21 ORA (d), y */
 	/* 0x22 AND (d, x) */
 	/* 0x23 JSL al */			op(absolute_long_jsl, JSL);
-	/* 0x24 BIT d */
-	/* 0x25 AND d */
-	/* 0x26 ROL d */			op(absolute_x_rmw, ROL);
+	/* 0x24 BIT d */			op(direct, BIT);
+	/* 0x25 AND d */			op(direct, AND);
+	/* 0x26 ROL d */			op(absolute_rmw, ROL);
 	/* 0x27 AND [d] */
 	/* 0x28 PLP s */
 	/* 0x29 AND # */
@@ -431,7 +453,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x33 AND (d, s), y */
 	/* 0x34 BIT d, x */
 	/* 0x35 AND d, x */
-	/* 0x36 TOL d, x */
+	/* 0x36 ROL d, x */			op(absolute_x_rmw, ROL);
 	/* 0x37 AND [d], y */
 	/* 0x38 SEC i */
 	/* 0x39 AND a, y */			op(absolute_y, AND);
@@ -447,8 +469,8 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x42	WDM i */
 	/* 0x43	EOR d, s */
 	/* 0x44	MVP xyc */			op(block_move, MVP);
-	/* 0x45	EOR d */
-	/* 0x46	LSR d */
+	/* 0x45	EOR d */			op(direct, EOR);
+	/* 0x46	LSR d */			op(direct_rmw, LSR);
 	/* 0x47	EOR [d] */
 	/* 0x48	PHA s */
 	/* 0x49	EOR # */
@@ -480,9 +502,9 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x61 ADC (d, x) */
 	/* 0x62 PER s */
 	/* 0x63 ADC d, s */
-	/* 0x64 STZ d */
-	/* 0x65 ADC d */
-	/* 0x66 ROR d */
+	/* 0x64 STZ d */			op(direct, STZ);
+	/* 0x65 ADC d */			op(direct, ADC);
+	/* 0x66 ROR d */			op(direct_rmw, ROR);
 	/* 0x67 ADC [d] */
 	/* 0x68 PLA s */
 	/* 0x69 ADC # */
@@ -514,9 +536,9 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x81 STA (d, x) */
 	/* 0x82 BRL rl */
 	/* 0x83 STA d, s */
-	/* 0x84 STY d */
-	/* 0x85 STA d */
-	/* 0x86 STX d */
+	/* 0x84 STY d */			op(direct, STY);
+	/* 0x85 STA d */			op(direct, STA);
+	/* 0x86 STX d */			op(direct, STX);
 	/* 0x87 STA [d] */
 	/* 0x88 DEY i */
 	/* 0x89 BIT # */
@@ -548,9 +570,9 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xa1 LDA (d, x) */
 	/* 0xa2 LDX # */
 	/* 0xa3 LDA d, s */
-	/* 0xa4 LDY d */
-	/* 0xa5 LDA d */
-	/* 0xa6 LDX d */
+	/* 0xa4 LDY d */			op(direct, LDY);
+	/* 0xa5 LDA d */			op(direct, LDA);
+	/* 0xa6 LDX d */			op(direct, LDX);
 	/* 0xa7 LDA [d] */
 	/* 0xa8 TAY i */
 	/* 0xa9 LDA # */
@@ -582,9 +604,9 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xc1 CMP (d, x) */
 	/* 0xc2 REP # */
 	/* 0xc3 CMP d, s */
-	/* 0xc4 CPY d */
-	/* 0xc5 CMP d */
-	/* 0xc6 DEC d */
+	/* 0xc4 CPY d */			op(direct, CPY);
+	/* 0xc5 CMP d */			op(direct, CMP);
+	/* 0xc6 DEC d */			op(direct_rmw, DEC);
 	/* 0xc7 CMP [d] */
 	/* 0xc8 INY i */
 	/* 0xc9 CMP # */
@@ -616,9 +638,9 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xe1 SBC (d, x) */
 	/* 0xe2 SEP # */
 	/* 0xe3 SBC d, s */
-	/* 0xe4 CPX d */
-	/* 0xe5 SBC d */
-	/* 0xe6 INC d */
+	/* 0xe4 CPX d */			op(direct, CPX);
+	/* 0xe5 SBC d */			op(direct, SBC);
+	/* 0xe6 INC d */			op(direct_rmw, INC);
 	/* 0xe7 SBC [d] */
 	/* 0xe8 INX i */
 	/* 0xe9 SBC # */
