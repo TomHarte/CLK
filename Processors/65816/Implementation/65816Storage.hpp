@@ -23,6 +23,11 @@ enum MicroOp: uint8_t {
 	/// of the instruction buffer, throwing the result away.
 	CycleFetchIncorrectDataAddress,
 
+	// Dedicated block-move cycles; these use the data buffer as an intermediary.
+	CycleFetchBlockX,
+	CycleFetchBlockY,
+	CycleStoreBlockY,
+
 	/// Stores a byte from the data buffer.
 	CycleStoreData,
 	/// Stores a byte to the data address from the data buffer and increments the data address.
@@ -86,6 +91,10 @@ enum Operation: uint8_t {
 
 	// These modify the value in the data buffer as part of a read-modify-write.
 	ASL, DEC, INC, LSR, ROL, ROR, TRB, TSB,
+
+	// These merely decrement A, increment or decrement X and Y, and regress
+	// the program counter only if appropriate.
+	MVN, MVP,
 
 	/// Loads the PC with the operand from the data buffer.
 	JMP,

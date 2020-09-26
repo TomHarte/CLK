@@ -28,11 +28,14 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 			case LDA:	case LDX:	case LDY:
 
-			// The access type for the rest of these ::Reads is arbitrary.
+			// The access type for the rest of these ::Reads is arbitrary; they're
+			// not relevantly either read or write.
 			case JMP:	case JSR:	case JML:	case JSL:
 
 			case ASL:	case DEC:	case INC:	case LSR:
 			case ROL:	case ROR:	case TRB:	case TSB:
+
+			case MVN:	case MVP:
 
 			return AccessType::Read;
 
@@ -317,7 +320,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		read_modify_write(is8bit, target);
 	}
 
-	// 6a. Absolute, Y;	a, y.
+	// 7. Absolute, Y;	a, y.
 	static void absolute_y(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);			// AAL.
 		target(CycleFetchIncrementPC);			// AAH.
@@ -333,7 +336,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		read_write(type, is8bit, target);
 	}
 
-	// 7. Accumulator; A.
+	// 8. Accumulator; A.
 	static void accumulator(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchPC);			// IO.
 
@@ -342,6 +345,23 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationCopyAToData);
 		target(OperationPerform);
 		target(OperationCopyDataToA);
+	}
+
+	// 9a. Block Move Negative [and]
+	// 9b. Block Move Positive.
+	//
+	// These don't fit the general model very well at all, hence the specialised fetch and store cycles.
+	static void block_move(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);	// DBA.
+		target(CycleFetchIncrementPC);	// SBA.
+
+		target(CycleFetchBlockX);		// SRC Data.
+		target(CycleStoreBlockY);		// Dest Data.
+
+		target(CycleFetchBlockY);		// IO.
+		target(CycleFetchBlockY);		// IO.
+
+		target(OperationPerform);		// [MVN or MVP]
 	}
 };
 
@@ -426,7 +446,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x41	EOR (d, x) */
 	/* 0x42	WDM i */
 	/* 0x43	EOR d, s */
-	/* 0x44	MVP xyc */
+	/* 0x44	MVP xyc */			op(block_move, MVP);
 	/* 0x45	EOR d */
 	/* 0x46	LSR d */
 	/* 0x47	EOR [d] */
@@ -443,7 +463,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x51 EOR (d), y */
 	/* 0x52 EOR (d) */
 	/* 0x53 EOR (d, s), y */
-	/* 0x54 MVN xyc */
+	/* 0x54 MVN xyc */			op(block_move, MVN);
 	/* 0x55 EOR d, x */
 	/* 0x56 LSR d, x */
 	/* 0x57 EOR [d],y */
