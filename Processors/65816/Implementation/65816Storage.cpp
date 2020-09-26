@@ -28,15 +28,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 			case LDA:	case LDX:	case LDY:
 
-			// The access type for the rest of these ::Reads is arbitrary; they're
+			// The access type for everything else is arbitrary; they're
 			// not relevantly either read or write.
-			case JMP:	case JSR:	case JML:	case JSL:
-
-			case ASL:	case DEC:	case INC:	case LSR:
-			case ROL:	case ROR:	case TRB:	case TSB:
-
-			case MVN:	case MVP:
-
+			default:
 			return AccessType::Read;
 
 			case STA:	case STX:	case STY:	case STZ:
@@ -497,8 +491,32 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 18. Immediate; #.
+	static void immediate(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+		if(!is8bit) target(CycleFetchIncrementPC);	// IDL.
+		target(CycleFetchIncrementPC);				// ID [H].
+		target(OperationCopyInstructionToData);
+		target(OperationPerform);
+	}
+
+	static void immediate_rep_sep(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);				// IDL.
+		target(CycleFetchPC);						// "Add 1 cycle for REP and SEP"
+		target(OperationPerform);
+	}
+
 	// 19a. Implied; i.
+	static void implied(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPC);		// IO
+		target(OperationPerform);
+	}
+
 	// 19b. Implied; i; XBA.
+	static void implied_xba(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPC);		// IO
+		target(CycleFetchPC);		// IO
+		target(OperationPerform);
+	}
+
 	// 19c. Stop the Clock.
 	// 19d. Wait for interrupt.
 	// 20. Relative; r.
@@ -535,7 +553,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x06 ASL d */			op(direct_rmw, ASL);
 	/* 0x07 ORA [d] */			op(direct_indirect_long, ORA);
 	/* 0x08 PHP s */
-	/* 0x09 ORA # */
+	/* 0x09 ORA # */			op(immediate, ORA);
 	/* 0x0a ASL A */			op(accumulator, ASL);
 	/* 0x0b PHD s */
 	/* 0x0c TSB a */			op(absolute_rmw, TSB);
@@ -551,10 +569,10 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x15 ORA d, x */			op(direct_x, ORA);
 	/* 0x16 ASL d, x */			op(direct_x_rmw, ASL);
 	/* 0x17 ORA [d], y */		op(direct_indirect_indexed_long, ORA);
-	/* 0x18 CLC i */
+	/* 0x18 CLC i */			op(implied, CLC);
 	/* 0x19 ORA a, y */			op(absolute_y, ORA);
 	/* 0x1a INC A */			op(accumulator, INC);
-	/* 0x1b TCS i */
+	/* 0x1b TCS i */			op(implied, TCS);
 	/* 0x1c TRB a */			op(absolute_rmw, TRB);
 	/* 0x1d ORA a, x */			op(absolute_x, ORA);
 	/* 0x1e ASL a, x */			op(absolute_x_rmw, ASL);
@@ -569,7 +587,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x26 ROL d */			op(absolute_rmw, ROL);
 	/* 0x27 AND [d] */			op(direct_indirect_long, AND);
 	/* 0x28 PLP s */
-	/* 0x29 AND # */
+	/* 0x29 AND # */			op(immediate, AND);
 	/* 0x2a ROL A */			op(accumulator, ROL);
 	/* 0x2b PLD s */
 	/* 0x2c BIT a */			op(absolute, BIT);
@@ -585,10 +603,10 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x35 AND d, x */			op(direct_x, AND);
 	/* 0x36 ROL d, x */			op(absolute_x_rmw, ROL);
 	/* 0x37 AND [d], y */		op(direct_indirect_indexed_long, AND);
-	/* 0x38 SEC i */
+	/* 0x38 SEC i */			op(implied, SEC);
 	/* 0x39 AND a, y */			op(absolute_y, AND);
 	/* 0x3a DEC A */			op(accumulator, DEC);
-	/* 0x3b TSC i */
+	/* 0x3b TSC i */			op(implied, TSC);
 	/* 0x3c BIT a, x */			op(absolute_x, BIT);
 	/* 0x3d AND a, x */			op(absolute_x, AND);
 	/* 0x3e TLD a, x */
@@ -603,7 +621,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x46	LSR d */			op(direct_rmw, LSR);
 	/* 0x47	EOR [d] */			op(direct_indirect_long, EOR);
 	/* 0x48	PHA s */
-	/* 0x49	EOR # */
+	/* 0x49	EOR # */			op(immediate, EOR);
 	/* 0x4a	LSR A */			op(accumulator, LSR);
 	/* 0x4b	PHK s */
 	/* 0x4c	JMP a */			op(absolute, JMP);
@@ -619,10 +637,10 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x55 EOR d, x */			op(direct_x, EOR);
 	/* 0x56 LSR d, x */			op(direct_x_rmw, LSR);
 	/* 0x57 EOR [d], y */		op(direct_indirect_indexed_long, EOR);
-	/* 0x58 CLI i */
+	/* 0x58 CLI i */			op(implied, CLI);
 	/* 0x59 EOR a, y */			op(absolute_y, EOR);
 	/* 0x5a PHY s */
-	/* 0x5b TCD i */
+	/* 0x5b TCD i */			op(implied, TCD);
 	/* 0x5c JMP al */			op(absolute_long_jmp, JML);	// [sic]; this updates PBR so it's JML.
 	/* 0x5d EOR a, x */			op(absolute_x, EOR);
 	/* 0x5e LSR a, x */			op(absolute_x_rmw, LSR);
@@ -637,7 +655,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x66 ROR d */			op(direct_rmw, ROR);
 	/* 0x67 ADC [d] */			op(direct_indirect_long, ADC);
 	/* 0x68 PLA s */
-	/* 0x69 ADC # */
+	/* 0x69 ADC # */			op(immediate, ADC);
 	/* 0x6a ROR A */			op(accumulator, ROR);
 	/* 0x6b RTL s */
 	/* 0x6c JMP (a) */			op(absolute_indirect_jmp, JMP);
@@ -653,10 +671,10 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x75 ADC d, x */			op(direct_x, ADC);
 	/* 0x76 ROR d, x */			op(direct_x_rmw, ROR);
 	/* 0x77 ADC [d], y */		op(direct_indirect_indexed_long, ADC);
-	/* 0x78 SEI i */
+	/* 0x78 SEI i */			op(implied, SEI);
 	/* 0x79 ADC a, y */			op(absolute_y, ADC);
 	/* 0x7a PLY s */
-	/* 0x7b TDC i */
+	/* 0x7b TDC i */			op(implied, TDC);
 	/* 0x7c JMP (a, x) */		op(absolute_indexed_indirect_jmp, JMP);
 	/* 0x7d ADC a, x */			op(absolute_x, ADC);
 	/* 0x7e ROR a, x */			op(absolute_x_rmw, ROR);
@@ -670,9 +688,9 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x85 STA d */			op(direct, STA);
 	/* 0x86 STX d */			op(direct, STX);
 	/* 0x87 STA [d] */			op(direct_indirect_long, STA);
-	/* 0x88 DEY i */
-	/* 0x89 BIT # */
-	/* 0x8a TXA i */
+	/* 0x88 DEY i */			op(implied, DEY);
+	/* 0x89 BIT # */			op(immediate, BIT);
+	/* 0x8a TXA i */			op(implied, TXA);
 	/* 0x8b PHB s */
 	/* 0x8c STY a */			op(absolute, STY);
 	/* 0x8d STA a */			op(absolute, STA);
@@ -687,26 +705,26 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x95 STA d, x */			op(direct_x, STA);
 	/* 0x96 STX d, y */			op(direct_y, STX);
 	/* 0x97 STA [d], y */		op(direct_indirect_indexed_long, STA);
-	/* 0x98 TYA i */
+	/* 0x98 TYA i */			op(implied, TYA);
 	/* 0x99 STA a, y */			op(absolute_y, STA);
-	/* 0x9a TXS i */
-	/* 0x9b TXY i */
+	/* 0x9a TXS i */			op(implied, TXS);
+	/* 0x9b TXY i */			op(implied, TXY);
 	/* 0x9c STZ a */			op(absolute, STZ);
 	/* 0x9d STA a, x */			op(absolute_x, STA);
 	/* 0x9e STZ a, x */			op(absolute_x, STZ);
 	/* 0x9f STA al, x */		op(absolute_long_x, STA);
 
-	/* 0xa0 LDY # */
+	/* 0xa0 LDY # */			op(immediate, LDY);
 	/* 0xa1 LDA (d, x) */		op(direct_indexed_indirect, LDA);
-	/* 0xa2 LDX # */
+	/* 0xa2 LDX # */			op(immediate, LDX);
 	/* 0xa3 LDA d, s */
 	/* 0xa4 LDY d */			op(direct, LDY);
 	/* 0xa5 LDA d */			op(direct, LDA);
 	/* 0xa6 LDX d */			op(direct, LDX);
 	/* 0xa7 LDA [d] */			op(direct_indirect_long, LDA);
-	/* 0xa8 TAY i */
-	/* 0xa9 LDA # */
-	/* 0xaa TAX i */
+	/* 0xa8 TAY i */			op(implied, TAY);
+	/* 0xa9 LDA # */			op(immediate, LDA);
+	/* 0xaa TAX i */			op(implied, TAX);
 	/* 0xab PLB s */
 	/* 0xac LDY a */			op(absolute, LDY);
 	/* 0xad LDA a */			op(absolute, LDA);
@@ -721,26 +739,26 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xb5 LDA d, x */			op(direct_x, LDA);
 	/* 0xb6 LDX d, y */			op(direct_y, LDX);
 	/* 0xb7 LDA [d], y */		op(direct_indirect_indexed_long, LDA);
-	/* 0xb8 CLV i */
+	/* 0xb8 CLV i */			op(implied, CLV);
 	/* 0xb9 LDA a, y */			op(absolute_y, LDA);
-	/* 0xba TSX i */
-	/* 0xbb TYX i */
+	/* 0xba TSX i */			op(implied, TSX);
+	/* 0xbb TYX i */			op(implied, TYX);
 	/* 0xbc LDY a, x */			op(absolute_x, LDY);
 	/* 0xbd LDA a, x */			op(absolute_x, LDA);
 	/* 0xbe LDX a, y */			op(absolute_y, LDX);
 	/* 0xbf LDA al, x */		op(absolute_long_x, LDA);
 
-	/* 0xc0 CPY # */
+	/* 0xc0 CPY # */			op(immediate, CPY);
 	/* 0xc1 CMP (d, x) */		op(direct_indexed_indirect, CMP);
-	/* 0xc2 REP # */
+	/* 0xc2 REP # */			op(immediate_rep_sep, REP);
 	/* 0xc3 CMP d, s */
 	/* 0xc4 CPY d */			op(direct, CPY);
 	/* 0xc5 CMP d */			op(direct, CMP);
 	/* 0xc6 DEC d */			op(direct_rmw, DEC);
 	/* 0xc7 CMP [d] */			op(direct_indirect_long, CMP);
-	/* 0xc8 INY i */
-	/* 0xc9 CMP # */
-	/* 0xca DEX i */
+	/* 0xc8 INY i */			op(implied, INY);
+	/* 0xc9 CMP # */			op(immediate, CMP);
+	/* 0xca DEX i */			op(implied, DEC);
 	/* 0xcb WAI i */
 	/* 0xcc CPY a */			op(absolute, CPY);
 	/* 0xcd CMP a */			op(absolute, CMP);
@@ -755,7 +773,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xd5 CMP d, x */			op(direct_x, CMP);
 	/* 0xd6 DEC d, x */			op(direct_x_rmw, DEC);
 	/* 0xd7 CMP [d], y */		op(direct_indirect_indexed_long, CMP);
-	/* 0xd8 CLD i */
+	/* 0xd8 CLD i */			op(implied, CLD);
 	/* 0xd9 CMP a, y */			op(absolute_y, CMP);
 	/* 0xda PHX s */
 	/* 0xdb STP i */
@@ -764,18 +782,18 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xde DEC a, x */			op(absolute_x_rmw, DEC);
 	/* 0xdf CMP al, x */		op(absolute_long_x, CMP);
 
-	/* 0xe0 CPX # */
+	/* 0xe0 CPX # */			op(immediate, CPX);
 	/* 0xe1 SBC (d, x) */		op(direct_indexed_indirect, SBC);
-	/* 0xe2 SEP # */
+	/* 0xe2 SEP # */			op(immediate_rep_sep, SEP);
 	/* 0xe3 SBC d, s */
 	/* 0xe4 CPX d */			op(direct, CPX);
 	/* 0xe5 SBC d */			op(direct, SBC);
 	/* 0xe6 INC d */			op(direct_rmw, INC);
 	/* 0xe7 SBC [d] */			op(direct_indirect_long, SBC);
-	/* 0xe8 INX i */
+	/* 0xe8 INX i */			op(implied, INX);
 	/* 0xe9 SBC # */
-	/* 0xea NOP i */
-	/* 0xeb XBA i */
+	/* 0xea NOP i */			op(implied, NOP);
+	/* 0xeb XBA i */			op(implied_xba, XBA);
 	/* 0xec CPX a */			op(absolute, CPX);
 	/* 0xed SBC a */			op(absolute, SBC);
 	/* 0xee INC a */			op(absolute_rmw, INC);
@@ -789,10 +807,10 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xf5 SBC d, x */			op(direct_x, SBC);
 	/* 0xf6 INC d, x */			op(direct_x_rmw, INC);
 	/* 0xf7 SBC [d], y */		op(direct_indirect_indexed_long, SBC);
-	/* 0xf8 SED i */
+	/* 0xf8 SED i */			op(implied, SED);
 	/* 0xf9 SBC a, y */			op(absolute_y, SBC);
 	/* 0xfa PLX s */
-	/* 0xfb XCE i */
+	/* 0xfb XCE i */			op(implied, XCE);
 	/* 0xfc JSR (a, x) */		op(absolute_indexed_indirect_jsr, JMP);	// [sic]
 	/* 0xfd SBC a, x */			op(absolute_x, SBC);
 	/* 0xfe INC a, x */			op(absolute_x_rmw, INC);

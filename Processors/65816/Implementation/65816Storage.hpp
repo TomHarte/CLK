@@ -78,6 +78,7 @@ enum MicroOp: uint8_t {
 
 	/// Copies the current program counter to the data buffer.
 	OperationCopyPCToData,
+	OperationCopyInstructionToData,
 
 	/// Copies the current PBR to the data buffer.
 	OperationCopyPBRToData,
@@ -108,6 +109,14 @@ enum Operation: uint8_t {
 	// These merely decrement A, increment or decrement X and Y, and regress
 	// the program counter only if appropriate.
 	MVN, MVP,
+
+	// These use a value straight from the instruction buffer.
+	REP, SEP,
+
+	// These are all implicit.
+	CLC, CLD, CLI, CLV, DEX, DEY, INX, INY, NOP, SEC, SED, SEI,
+	TAX, TAY, TCD, TCS, TDC, TSC, TSX, TXA, TXS, TXY, TYA, TYX,
+	XCE, XBA,
 
 	/// Loads the PC with the operand from the data buffer.
 	JMP,
