@@ -19,6 +19,9 @@ enum MicroOp: uint8_t {
 	CycleFetchData,
 	/// Fetches a byte from the data address to the data buffer and increments the data address.
 	CycleFetchIncrementData,
+	/// Fetches from the address formed by the low byte of the data address and the high byte
+	/// of the instruction buffer, throwing the result away.
+	CycleFetchIncorrectDataAddress,
 
 	/// Stores a byte from the data buffer.
 	CycleStoreData,
@@ -39,6 +42,19 @@ enum MicroOp: uint8_t {
 	OperationConstructAbsoluteIndexedIndirect,
 	OperationConstructAbsoluteLongX,
 
+	/// Calculates an a, x address; if:
+	/// 	there was no carry into the top byte of the address; and
+	/// 	the process or in emulation or 8-bit index mode;
+	/// then it also skips the next micro-op.
+	OperationConstructAbsoluteXRead,
+
+	/// Calculates an a, x address.
+	OperationConstructAbsoluteX,
+
+	// These are analogous to the X versions above.
+	OperationConstructAbsoluteY,
+	OperationConstructAbsoluteYRead,
+
 	/// Performs whatever operation goes with this program.
 	OperationPerform,
 
@@ -47,6 +63,9 @@ enum MicroOp: uint8_t {
 
 	/// Copies the current PBR to the data buffer.
 	OperationCopyPBRToData,
+
+	OperationCopyAToData,
+	OperationCopyDataToA,
 
 	/// Complete this set of micr-ops.
 	OperationMoveToNextProgram
@@ -64,6 +83,9 @@ enum Operation: uint8_t {
 	// These move the respective register (or value) to the data buffer;
 	// they are implicitly AccessType::Write.
 	STA, STX, STY, STZ,
+
+	// These modify the value in the data buffer as part of a read-modify-write.
+	ASL, DEC, INC, LSR, ROL, ROR, TRB, TSB,
 
 	/// Loads the PC with the operand from the data buffer.
 	JMP,
