@@ -160,7 +160,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationConstructAbsolute);				// Calculate data address.
 
 		read_write(type, is8bit, target);
-	};
+	}
 
 	// 1b. Absolute; a, JMP.
 	static void absolute_jmp(AccessType, bool, const std::function<void(MicroOp)> &target) {
@@ -168,7 +168,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchPC);					// New PCH.
 		target(OperationConstructAbsolute);		// Calculate data address.
 		target(OperationPerform);				// [JMP]
-	};
+	}
 
 	// 1c. Absolute; a, JSR.
 	static void absolute_jsr(AccessType, bool, const std::function<void(MicroOp)> &target) {
@@ -179,7 +179,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationPerform);				// [JSR]
 		target(CyclePush);						// PCH
 		target(CyclePush);						// PCL
-	};
+	}
 
 	// 1d. Absolute; a, read-modify-write.
 	static void absolute_rmw(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
@@ -188,7 +188,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationConstructAbsolute);				// Calculate data address.
 
 		read_modify_write(is8bit, target);
-	};
+	}
 
 	// 2a. Absolute Indexed Indirect; (a, x), JMP.
 	static void absolute_indexed_indirect_jmp(AccessType, bool, const std::function<void(MicroOp)> &target) {
@@ -199,7 +199,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementData);					// New PCL
 		target(CycleFetchData);								// New PCH.
 		target(OperationPerform);							// [JMP]
-	};
+	}
 
 	// 2b. Absolute Indexed Indirect; (a, x), JSR.
 	static void absolute_indexed_indirect_jsr(AccessType, bool, const std::function<void(MicroOp)> &target) {
@@ -229,7 +229,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchData);					// New PBR
 
 		target(OperationPerform);				// [JML]
-	};
+	}
 
 	// 3b. Absolute Indirect; (a), JMP.
 	static void absolute_indirect_jmp(AccessType, bool, const std::function<void(MicroOp)> &target) {
@@ -241,7 +241,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchData);					// New PCH
 
 		target(OperationPerform);				// [JMP]
-	};
+	}
 
 	// 4a. Absolute long; al.
 	static void absolute_long(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
@@ -252,7 +252,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationConstructAbsolute);		// Calculate data address.
 
 		read_write(type, is8bit, target);
-	};
+	}
 
 	// 4b. Absolute long; al, JMP.
 	static void absolute_long_jmp(AccessType, bool, const std::function<void(MicroOp)> &target) {
@@ -262,7 +262,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(OperationConstructAbsolute);		// Calculate data address.
 		target(OperationPerform);				// ['JMP' (though it's JML in internal terms)]
-	};
+	}
 
 	// 4c. Absolute long al, JSL.
 	static void absolute_long_jsl(AccessType, bool, const std::function<void(MicroOp)> &target) {
@@ -280,7 +280,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(CyclePush);						// PCH
 		target(CyclePush);						// PCL
-	};
+	}
 
 	// 5. Absolute long, X;	al, x.
 	static void absolute_long_x(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
@@ -373,7 +373,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchPC);							// IO.
 
 		read_write(type, is8bit, target);
-	};
+	}
 
 	// 10b. Direct; d, read-modify-write.
 	// (That's zero page in 6502 terms)
@@ -384,7 +384,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchPC);							// IO.
 
 		read_modify_write(is8bit, target);
-	};
+	}
 
 	// 11. Direct Indexed Indirect; (d, x).
 	static void direct_indexed_indirect(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
@@ -396,7 +396,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchPC);							// IO.
 
 		read_write(type, is8bit, target);
-	};
+	}
 
 	// 12. Direct Indirect; (d).
 	static void direct_indirect(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
@@ -406,11 +406,60 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchPC);							// IO.
 
 		read_write(type, is8bit, target);
-	};
+	}
 
 	// 13. Direct Indirect Indexed; (d), y.
+	static void direct_indirect_indexed(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);					// DO.
+
+		target(OperationConstructDirectIndirect);
+		target(CycleFetchPC);							// IO.
+
+		target(CycleFetchIncrementData);				// AAL.
+		target(CycleFetchData);							// AAH.
+
+		target(OperationConstructDirectIndirectIndexed);
+		target(CycleFetchIncorrectDataAddress);			// IO.
+
+		read_write(type, is8bit, target);
+	}
+	// TODO: verify, especially re: false addresses.
+	// i.e. it currently looks to me superficially as though I can reuse
+	// OperationConstructDirectIndirect here, but writing the proper
+	// interpreter will help to clarify.
+
 	// 14. Direct Indirect Indexed Long; [d], y.
+	static void direct_indirect_indexed_long(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);					// DO.
+
+		target(OperationConstructDirectIndirect);
+		target(CycleFetchPC);							// IO.
+
+		target(CycleFetchIncrementData);				// AAL.
+		target(CycleFetchIncrementData);				// AAH.
+		target(CycleFetchData);							// AAB.
+
+		target(OperationConstructDirectIndirectIndexedLong);
+
+		read_write(type, is8bit, target);
+	}
+
 	// 15. Direct Indirect Long; [d].
+	static void direct_indirect_long(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);					// DO.
+
+		target(OperationConstructDirectIndirect);
+		target(CycleFetchPC);							// IO.
+
+		target(CycleFetchIncrementData);				// AAL.
+		target(CycleFetchIncrementData);				// AAH.
+		target(CycleFetchData);							// AAB.
+
+		target(OperationConstructDirectIndirectLong);
+
+		read_write(type, is8bit, target);
+	}
+
 	// 16a. Direct, X; d, x.
 	// 16b. Direct, X; d, x, read-modify-write.
 	// 17. Direct, Y; d, y.
@@ -451,7 +500,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x04 TSB d */			op(direct_rmw, TSB);
 	/* 0x05 ORA d */			op(direct, ORA);
 	/* 0x06 ASL d */			op(direct_rmw, ASL);
-	/* 0x07 ORA [d] */
+	/* 0x07 ORA [d] */			op(direct_indirect_long, ORA);
 	/* 0x08 PHP s */
 	/* 0x09 ORA # */
 	/* 0x0a ASL A */			op(accumulator, ASL);
@@ -462,13 +511,13 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x0f ORA al */			op(absolute_long, ORA);
 
 	/* 0x10 BPL r */
-	/* 0x11 ORA (d), y */
+	/* 0x11 ORA (d), y */		op(direct_indirect_indexed, ORA);
 	/* 0x12 ORA (d) */			op(direct_indirect, ORA);
 	/* 0x13 ORA (d, s), y */
 	/* 0x14 TRB d */			op(absolute_rmw, TRB);
 	/* 0x15 ORA d, x */
 	/* 0x16 ASL d, x */
-	/* 0x17 ORA [d], y */
+	/* 0x17 ORA [d], y */		op(direct_indirect_indexed_long, ORA);
 	/* 0x18 CLC i */
 	/* 0x19 ORA a, y */			op(absolute_y, ORA);
 	/* 0x1a INC A */			op(accumulator, INC);
@@ -479,13 +528,13 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x1f ORA al, x */		op(absolute_long_x, ORA);
 
 	/* 0x20 JSR a */			op(absolute_jsr, JSR);
-	/* 0x21 ORA (d), y */
-	/* 0x22 AND (d, x) */		op(direct_indexed_indirect, AND);
-	/* 0x23 JSL al */			op(absolute_long_jsl, JSL);
+	/* 0x21 AND (d, x) */		op(direct_indexed_indirect, AND);
+	/* 0x22 JSL al */			op(absolute_long_jsl, JSL);
+	/* 0x23 AND d, s */
 	/* 0x24 BIT d */			op(direct, BIT);
 	/* 0x25 AND d */			op(direct, AND);
 	/* 0x26 ROL d */			op(absolute_rmw, ROL);
-	/* 0x27 AND [d] */
+	/* 0x27 AND [d] */			op(direct_indirect_long, AND);
 	/* 0x28 PLP s */
 	/* 0x29 AND # */
 	/* 0x2a ROL A */			op(accumulator, ROL);
@@ -496,13 +545,13 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x2f AND al */			op(absolute_long, AND);
 
 	/* 0x30 BMI R */
-	/* 0x31 AND (d), y */
+	/* 0x31 AND (d), y */		op(direct_indirect_indexed, AND);
 	/* 0x32 AND (d) */			op(direct_indirect, AND);
 	/* 0x33 AND (d, s), y */
 	/* 0x34 BIT d, x */
 	/* 0x35 AND d, x */
 	/* 0x36 ROL d, x */			op(absolute_x_rmw, ROL);
-	/* 0x37 AND [d], y */
+	/* 0x37 AND [d], y */		op(direct_indirect_indexed_long, AND);
 	/* 0x38 SEC i */
 	/* 0x39 AND a, y */			op(absolute_y, AND);
 	/* 0x3a DEC A */			op(accumulator, DEC);
@@ -519,7 +568,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x44	MVP xyc */			op(block_move, MVP);
 	/* 0x45	EOR d */			op(direct, EOR);
 	/* 0x46	LSR d */			op(direct_rmw, LSR);
-	/* 0x47	EOR [d] */
+	/* 0x47	EOR [d] */			op(direct_indirect_long, EOR);
 	/* 0x48	PHA s */
 	/* 0x49	EOR # */
 	/* 0x4a	LSR A */			op(accumulator, LSR);
@@ -530,13 +579,13 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x4f	EOR al */			op(absolute_long, EOR);
 
 	/* 0x50 BVC r */
-	/* 0x51 EOR (d), y */
+	/* 0x51 EOR (d), y */		op(direct_indirect_indexed, EOR);
 	/* 0x52 EOR (d) */			op(direct_indirect, EOR);
 	/* 0x53 EOR (d, s), y */
 	/* 0x54 MVN xyc */			op(block_move, MVN);
 	/* 0x55 EOR d, x */
 	/* 0x56 LSR d, x */
-	/* 0x57 EOR [d],y */
+	/* 0x57 EOR [d], y */		op(direct_indirect_indexed_long, EOR);
 	/* 0x58 CLI i */
 	/* 0x59 EOR a, y */			op(absolute_y, EOR);
 	/* 0x5a PHY s */
@@ -553,7 +602,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x64 STZ d */			op(direct, STZ);
 	/* 0x65 ADC d */			op(direct, ADC);
 	/* 0x66 ROR d */			op(direct_rmw, ROR);
-	/* 0x67 ADC [d] */
+	/* 0x67 ADC [d] */			op(direct_indirect_long, ADC);
 	/* 0x68 PLA s */
 	/* 0x69 ADC # */
 	/* 0x6a ROR A */			op(accumulator, ROR);
@@ -564,13 +613,13 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x6f ADC al */			op(absolute_long, ADC);
 
 	/* 0x70 BVS r */
-	/* 0x71 ADC (d), y */
+	/* 0x71 ADC (d), y */		op(direct_indirect_indexed, ADC);
 	/* 0x72 ADC (d) */			op(direct_indirect, ADC);
 	/* 0x73 ADC (d, s), y */
 	/* 0x74 STZ d, x */
 	/* 0x75 ADC d, x */
 	/* 0x76 ROR d, x */
-	/* 0x77 ADC [d], y */
+	/* 0x77 ADC [d], y */		op(direct_indirect_indexed_long, ADC);
 	/* 0x78 SEI i */
 	/* 0x79 ADC a, y */			op(absolute_y, ADC);
 	/* 0x7a PLY s */
@@ -587,7 +636,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x84 STY d */			op(direct, STY);
 	/* 0x85 STA d */			op(direct, STA);
 	/* 0x86 STX d */			op(direct, STX);
-	/* 0x87 STA [d] */
+	/* 0x87 STA [d] */			op(direct_indirect_long, STA);
 	/* 0x88 DEY i */
 	/* 0x89 BIT # */
 	/* 0x8a TXA i */
@@ -598,13 +647,13 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x8f STA al */			op(absolute_long, STA);
 
 	/* 0x90 BCC r */
-	/* 0x91 STA (d), y */
+	/* 0x91 STA (d), y */		op(direct_indirect_indexed, STA);
 	/* 0x92 STA (d) */			op(direct_indirect, STA);
 	/* 0x93 STA (d, x), y */
 	/* 0x94 STY d, x */
 	/* 0x95 STA d, x */
 	/* 0x96 STX d, y */
-	/* 0x97 STA [d], y */
+	/* 0x97 STA [d], y */		op(direct_indirect_indexed_long, STA);
 	/* 0x98 TYA i */
 	/* 0x99 STA a, y */			op(absolute_y, STA);
 	/* 0x9a TXS i */
@@ -621,7 +670,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xa4 LDY d */			op(direct, LDY);
 	/* 0xa5 LDA d */			op(direct, LDA);
 	/* 0xa6 LDX d */			op(direct, LDX);
-	/* 0xa7 LDA [d] */
+	/* 0xa7 LDA [d] */			op(direct_indirect_long, LDA);
 	/* 0xa8 TAY i */
 	/* 0xa9 LDA # */
 	/* 0xaa TAX i */
@@ -632,13 +681,13 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xaf LDA al */			op(absolute_long, LDA);
 
 	/* 0xb0 BCS r */
-	/* 0xb1 LDA (d), y */
+	/* 0xb1 LDA (d), y */		op(direct_indirect_indexed, LDA);
 	/* 0xb2 LDA (d) */			op(direct_indirect, LDA);
 	/* 0xb3 LDA (d, s), y */
 	/* 0xb4 LDY d, x */
 	/* 0xb5 LDA d, x */
 	/* 0xb6 LDX d, y */
-	/* 0xb7 LDA [d], y */
+	/* 0xb7 LDA [d], y */		op(direct_indirect_indexed_long, LDA);
 	/* 0xb8 CLV i */
 	/* 0xb9 LDA a, y */			op(absolute_y, LDA);
 	/* 0xba TSX i */
@@ -655,7 +704,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xc4 CPY d */			op(direct, CPY);
 	/* 0xc5 CMP d */			op(direct, CMP);
 	/* 0xc6 DEC d */			op(direct_rmw, DEC);
-	/* 0xc7 CMP [d] */
+	/* 0xc7 CMP [d] */			op(direct_indirect_long, CMP);
 	/* 0xc8 INY i */
 	/* 0xc9 CMP # */
 	/* 0xca DEX i */
@@ -666,13 +715,13 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xcf CMP al */			op(absolute_long, CMP);
 
 	/* 0xd0 BNE r */
-	/* 0xd1 CMP (d), y */
+	/* 0xd1 CMP (d), y */		op(direct_indirect_indexed, CMP);
 	/* 0xd2 CMP (d) */			op(direct_indirect, CMP);
 	/* 0xd3 CMP (d, s), y */
 	/* 0xd4 PEI s */
 	/* 0xd5 CMP d, x */
 	/* 0xd6 DEC d, x */
-	/* 0xd7 CMP [d], y */
+	/* 0xd7 CMP [d], y */		op(direct_indirect_indexed_long, CMP);
 	/* 0xd8 CLD i */
 	/* 0xd9 CMP a, y */			op(absolute_y, CMP);
 	/* 0xda PHX s */
@@ -689,7 +738,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xe4 CPX d */			op(direct, CPX);
 	/* 0xe5 SBC d */			op(direct, SBC);
 	/* 0xe6 INC d */			op(direct_rmw, INC);
-	/* 0xe7 SBC [d] */
+	/* 0xe7 SBC [d] */			op(direct_indirect_long, SBC);
 	/* 0xe8 INX i */
 	/* 0xe9 SBC # */
 	/* 0xea NOP i */
@@ -700,13 +749,13 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xef SBC al */			op(absolute_long, SBC);
 
 	/* 0xf0 BEQ r */
-	/* 0xf1 SBC (d), y */
+	/* 0xf1 SBC (d), y */		op(direct_indirect_indexed, SBC);
 	/* 0xf2 SBC (d) */			op(direct_indirect, SBC);
 	/* 0xf3 SBC (d, s), y */
 	/* 0xf4 PEA s */
 	/* 0xf5 SBC d, x */
 	/* 0xf6 INC d, x */
-	/* 0xf7 SBC [d], y */
+	/* 0xf7 SBC [d], y */		op(direct_indirect_indexed_long, SBC);
 	/* 0xf8 SED i */
 	/* 0xf9 SBC a, y */			op(absolute_y, SBC);
 	/* 0xfa PLX s */

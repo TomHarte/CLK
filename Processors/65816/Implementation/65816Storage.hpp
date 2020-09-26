@@ -67,6 +67,9 @@ enum MicroOp: uint8_t {
 	// These follow similar skip-one-if-possible logic to OperationConstructDirect.
 	OperationConstructDirectIndexedIndirect,
 	OperationConstructDirectIndirect,
+	OperationConstructDirectIndirectIndexed,
+	OperationConstructDirectIndirectIndexedLong,
+	OperationConstructDirectIndirectLong,
 
 	/// Performs whatever operation goes with this program.
 	OperationPerform,
