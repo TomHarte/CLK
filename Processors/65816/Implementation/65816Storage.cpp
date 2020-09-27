@@ -532,7 +532,25 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 20. Relative; r.
+	static void relative(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);		// Offset
+
+		target(OperationPerform);			// The branch instructions will all skip one or two
+											// of the next cycles, depending on the effect of
+											// the jump.
+		target(CycleFetchPC);		// IO
+		target(CycleFetchPC);		// IO
+	}
+
 	// 21. Relative long; rl.
+	static void relative_long(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);		// Offset low.
+		target(CycleFetchIncrementPC);		// Offset high.
+		target(CycleFetchPC);				// IO
+
+		target(OperationPerform);			// [BRL]
+	}
+
 	// 22a. Stack; s, abort/irq/nmi/res.
 	// 22b. Stack; s, PLx.
 	// 22c. Stack; s, PHx.
@@ -573,7 +591,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x0e ASL a */			op(absolute_rmw, ASL);
 	/* 0x0f ORA al */			op(absolute_long, ORA);
 
-	/* 0x10 BPL r */
+	/* 0x10 BPL r */			op(relative, BPL);
 	/* 0x11 ORA (d), y */		op(direct_indirect_indexed, ORA);
 	/* 0x12 ORA (d) */			op(direct_indirect, ORA);
 	/* 0x13 ORA (d, s), y */
@@ -607,7 +625,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x2e ROL a */			op(absolute_rmw, ROL);
 	/* 0x2f AND al */			op(absolute_long, AND);
 
-	/* 0x30 BMI R */
+	/* 0x30 BMI r */			op(relative, BMI);
 	/* 0x31 AND (d), y */		op(direct_indirect_indexed, AND);
 	/* 0x32 AND (d) */			op(direct_indirect, AND);
 	/* 0x33 AND (d, s), y */
@@ -641,7 +659,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x4e	LSR a */			op(absolute_rmw, LSR);
 	/* 0x4f	EOR al */			op(absolute_long, EOR);
 
-	/* 0x50 BVC r */
+	/* 0x50 BVC r */			op(relative, BVC);
 	/* 0x51 EOR (d), y */		op(direct_indirect_indexed, EOR);
 	/* 0x52 EOR (d) */			op(direct_indirect, EOR);
 	/* 0x53 EOR (d, s), y */
@@ -675,7 +693,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x6e ROR a */			op(absolute_rmw, ROR);
 	/* 0x6f ADC al */			op(absolute_long, ADC);
 
-	/* 0x70 BVS r */
+	/* 0x70 BVS r */			op(relative, BVS);
 	/* 0x71 ADC (d), y */		op(direct_indirect_indexed, ADC);
 	/* 0x72 ADC (d) */			op(direct_indirect, ADC);
 	/* 0x73 ADC (d, s), y */
@@ -692,9 +710,9 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x7e ROR a, x */			op(absolute_x_rmw, ROR);
 	/* 0x7f ADC al, x */		op(absolute_long_x, ADC);
 
-	/* 0x80 BRA r */
+	/* 0x80 BRA r */			op(relative, BRA);
 	/* 0x81 STA (d, x) */		op(direct_indexed_indirect, STA);
-	/* 0x82 BRL rl */
+	/* 0x82 BRL rl */			op(relative_long, BRL);
 	/* 0x83 STA d, s */
 	/* 0x84 STY d */			op(direct, STY);
 	/* 0x85 STA d */			op(direct, STA);
@@ -709,7 +727,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x8e STX a */			op(absolute, STX);
 	/* 0x8f STA al */			op(absolute_long, STA);
 
-	/* 0x90 BCC r */
+	/* 0x90 BCC r */			op(relative, BCC);
 	/* 0x91 STA (d), y */		op(direct_indirect_indexed, STA);
 	/* 0x92 STA (d) */			op(direct_indirect, STA);
 	/* 0x93 STA (d, x), y */
@@ -743,7 +761,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xae LDX a */			op(absolute, LDX);
 	/* 0xaf LDA al */			op(absolute_long, LDA);
 
-	/* 0xb0 BCS r */
+	/* 0xb0 BCS r */			op(relative, BCS);
 	/* 0xb1 LDA (d), y */		op(direct_indirect_indexed, LDA);
 	/* 0xb2 LDA (d) */			op(direct_indirect, LDA);
 	/* 0xb3 LDA (d, s), y */
@@ -777,7 +795,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xce DEC a */			op(absolute_rmw, DEC);
 	/* 0xcf CMP al */			op(absolute_long, CMP);
 
-	/* 0xd0 BNE r */
+	/* 0xd0 BNE r */			op(relative, BNE);
 	/* 0xd1 CMP (d), y */		op(direct_indirect_indexed, CMP);
 	/* 0xd2 CMP (d) */			op(direct_indirect, CMP);
 	/* 0xd3 CMP (d, s), y */
@@ -811,7 +829,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xee INC a */			op(absolute_rmw, INC);
 	/* 0xef SBC al */			op(absolute_long, SBC);
 
-	/* 0xf0 BEQ r */
+	/* 0xf0 BEQ r */			op(relative, BEQ);
 	/* 0xf1 SBC (d), y */		op(direct_indirect_indexed, SBC);
 	/* 0xf2 SBC (d) */			op(direct_indirect, SBC);
 	/* 0xf3 SBC (d, s), y */

@@ -113,6 +113,8 @@ enum Operation: uint8_t {
 	// These use a value straight from the instruction buffer.
 	REP, SEP,
 
+	BCC, BCS, BEQ, BMI, BNE, BPL, BRA, BVC, BVS, BRL,
+
 	// These are all implicit.
 	CLC, CLD, CLI, CLV, DEX, DEY, INX, INY, NOP, SEC, SED, SEI,
 	TAX, TAY, TCD, TCS, TDC, TSC, TSX, TXA, TXS, TXY, TYA, TYX,
