@@ -23,7 +23,7 @@ class ComparativeBusHandler: public CPU::MC68000::BusHandler {
 			gzclose(trace);
 		}
 
-		void will_perform(uint32_t address, uint16_t opcode) {
+		void will_perform(uint32_t address, uint16_t) {
 			// Obtain the next line from the trace file.
 			char correct_state[300] = "\n";
 			gzgets(trace, correct_state, sizeof(correct_state));
@@ -45,7 +45,7 @@ class ComparativeBusHandler: public CPU::MC68000::BusHandler {
 				fprintf(stderr, "Diverges at line %d\n", line_count);
 				fprintf(stderr, "Good: %s", correct_state);
 				fprintf(stderr, "Bad:  %s", local_state);
-				assert(false);
+				throw std::exception();
 			}
 		}
 

@@ -9,6 +9,7 @@
 #import "TestMachine6502.h"
 #include <stdint.h>
 #include "../../../../Processors/6502/AllRAM/6502AllRAM.hpp"
+//#include "../../../../Processors/65816/AllRAM/65816AllRAM.hpp"
 #import "TestMachine+ForSubclassEyesOnly.h"
 
 const uint8_t CSTestMachine6502JamOpcode = CPU::MOS6502::JamOpcode;
@@ -35,12 +36,21 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 
 #pragma mark - Lifecycle
 
-- (instancetype)initIs65C02:(BOOL)is65C02 {
+- (instancetype)initWithProcessor:(CSTestMachine6502Processor)processor {
 	self = [super init];
 
 	if(self) {
-		_processor = CPU::MOS6502::AllRAMProcessor::Processor(
-			is65C02 ? CPU::MOS6502::Personality::PWDC65C02 : CPU::MOS6502::Personality::P6502);
+		switch(processor) {
+			case CSTestMachine6502Processor6502:
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502::Personality::P6502);
+			break;
+			case CSTestMachine6502Processor65C02:
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502::Personality::PWDC65C02);
+			break;
+			default:
+				assert(false);	// TODO
+
+		}
 	}
 
 	return self;

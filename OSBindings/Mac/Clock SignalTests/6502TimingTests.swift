@@ -12,7 +12,7 @@ import XCTest
 class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 
 	private var endTime: UInt32 = 0
-	private let machine = CSTestMachine6502(is65C02: false)
+	private let machine = CSTestMachine6502(processor: .processor6502)
 
 	func testImplied() {
 		let code: [UInt8] = [

@@ -200,7 +200,7 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: nil) {
 			if let testData = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
 
-				machine = CSTestMachine6502(is65C02: false)
+				machine = CSTestMachine6502(processor: .processor6502)
 				machine.trapHandler = self
 //				machine.logActivity = true
 				output = ""

@@ -14,7 +14,7 @@ class KlausDormannTests: XCTestCase {
 	fileprivate func runTest(resource: String, is65C02: Bool) -> UInt16 {
 		if let filename = Bundle(for: type(of: self)).path(forResource: resource, ofType: "bin") {
 			if let functionalTest = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
-				let machine = CSTestMachine6502(is65C02: is65C02)
+				let machine = CSTestMachine6502(processor: is65C02 ? .processor65C02 : .processor6502)
 
 				machine.setData(functionalTest, atAddress: 0)
 				machine.setValue(0x400, for: .programCounter)

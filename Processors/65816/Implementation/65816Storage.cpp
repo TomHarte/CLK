@@ -699,9 +699,6 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 };
 
-// TEMPORARY. Kneejerk way to get a step debug of 65816 storage construction.
-ProcessorStorage TEMPORARY_test_instance;
-
 ProcessorStorage::ProcessorStorage() {
 	ProcessorStorageConstructor constructor(*this);
 
