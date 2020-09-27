@@ -78,6 +78,8 @@ enum MicroOp: uint8_t {
 	OperationConstructDirectX,
 	OperationConstructDirectY,
 
+	OperationConstructPER,
+
 	/// Performs whatever operation goes with this program.
 	OperationPerform,
 

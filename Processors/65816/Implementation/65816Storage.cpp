@@ -592,8 +592,38 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 22d. Stack; s, PEA.
+	static void stack_pea(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);	// AAL
+		target(CycleFetchIncrementPC);	// AAH
+		target(CyclePush);				// AAH
+		target(CyclePush);				// AAL
+	}
+
 	// 22e. Stack; s, PEI.
+	static void stack_pei(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);		// DO
+
+		target(OperationConstructDirect);
+		target(CycleFetchPC);				// IO
+
+		target(CycleFetchIncrementData);	// AAL
+		target(CycleFetchData);				// AAH
+		target(CyclePush);					// AAH
+		target(CyclePush);					// AAL
+	}
+
 	// 22f. Stack; s, PER.
+	static void stack_per(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);		// Offset low.
+		target(CycleFetchIncrementPC);		// Offset high.
+		target(CycleFetchPC);				// IO
+
+		target(OperationConstructPER);
+
+		target(CyclePush);					// AAH
+		target(CyclePush);					// AAL
+	}
+
 	// 22g. Stack; s, RTI.
 	// 22h. Stack; s, RTS.
 	// 22i. Stack; s, RTL.
@@ -676,7 +706,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x3b TSC i */			op(implied, TSC);
 	/* 0x3c BIT a, x */			op(absolute_x, BIT);
 	/* 0x3d AND a, x */			op(absolute_x, AND);
-	/* 0x3e TLD a, x */
+	/* 0x3e ROL a, x */			op(absolute_x_rmw, ROL);
 	/* 0x3f AND al, x */		op(absolute_long_x, AND);
 
 	/* 0x40 RTI s */
@@ -715,7 +745,7 @@ ProcessorStorage::ProcessorStorage() {
 
 	/* 0x60 RTS s */
 	/* 0x61 ADC (d, x) */		op(direct_indexed_indirect, ADC);
-	/* 0x62 PER s */
+	/* 0x62 PER s */			op(stack_per, NOP);
 	/* 0x63 ADC d, s */
 	/* 0x64 STZ d */			op(direct, STZ);
 	/* 0x65 ADC d */			op(direct, ADC);
@@ -836,7 +866,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xd1 CMP (d), y */		op(direct_indirect_indexed, CMP);
 	/* 0xd2 CMP (d) */			op(direct_indirect, CMP);
 	/* 0xd3 CMP (d, s), y */
-	/* 0xd4 PEI s */
+	/* 0xd4 PEI s */			op(stack_pei, NOP);
 	/* 0xd5 CMP d, x */			op(direct_x, CMP);
 	/* 0xd6 DEC d, x */			op(direct_x_rmw, DEC);
 	/* 0xd7 CMP [d], y */		op(direct_indirect_indexed_long, CMP);
@@ -870,7 +900,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xf1 SBC (d), y */		op(direct_indirect_indexed, SBC);
 	/* 0xf2 SBC (d) */			op(direct_indirect, SBC);
 	/* 0xf3 SBC (d, s), y */
-	/* 0xf4 PEA s */
+	/* 0xf4 PEA s */			op(stack_pea, NOP);
 	/* 0xf5 SBC d, x */			op(direct_x, SBC);
 	/* 0xf6 INC d, x */			op(direct_x_rmw, INC);
 	/* 0xf7 SBC [d], y */		op(direct_indirect_indexed_long, SBC);
