@@ -518,7 +518,19 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 19c. Stop the Clock.
+	static void stp(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPC);		// IO
+		target(CycleFetchPC);		// IO
+		target(OperationPerform);
+	}
+
 	// 19d. Wait for interrupt.
+	static void wai(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPC);		// IO
+		target(CycleFetchPC);		// IO
+		target(OperationPerform);
+	}
+
 	// 20. Relative; r.
 	// 21. Relative long; rl.
 	// 22a. Stack; s, abort/irq/nmi/res.
@@ -759,7 +771,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xc8 INY i */			op(implied, INY);
 	/* 0xc9 CMP # */			op(immediate, CMP);
 	/* 0xca DEX i */			op(implied, DEC);
-	/* 0xcb WAI i */
+	/* 0xcb WAI i */			op(wai, WAI);
 	/* 0xcc CPY a */			op(absolute, CPY);
 	/* 0xcd CMP a */			op(absolute, CMP);
 	/* 0xce DEC a */			op(absolute_rmw, DEC);
@@ -776,7 +788,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xd8 CLD i */			op(implied, CLD);
 	/* 0xd9 CMP a, y */			op(absolute_y, CMP);
 	/* 0xda PHX s */
-	/* 0xdb STP i */
+	/* 0xdb STP i */			op(stp, STP);
 	/* 0xdc JML (a) */			op(absolute_indirect_jml, JML);
 	/* 0xdd CMP a, x */			op(absolute_x, CMP);
 	/* 0xde DEC a, x */			op(absolute_x_rmw, DEC);

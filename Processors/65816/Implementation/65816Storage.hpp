@@ -118,6 +118,8 @@ enum Operation: uint8_t {
 	TAX, TAY, TCD, TCS, TDC, TSC, TSX, TXA, TXS, TXY, TYA, TYX,
 	XCE, XBA,
 
+	STP, WAI,
+
 	/// Loads the PC with the operand from the data buffer.
 	JMP,
 
