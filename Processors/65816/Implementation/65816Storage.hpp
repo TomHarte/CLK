@@ -79,6 +79,7 @@ enum MicroOp: uint8_t {
 	OperationConstructDirectY,
 
 	OperationConstructPER,
+	OperationConstructBRK,
 
 	/// Performs whatever operation goes with this program.
 	OperationPerform,
@@ -136,6 +137,10 @@ enum Operation: uint8_t {
 
 	STP, WAI,
 
+	// These unpack values from the data buffer, which has been filled
+	// from the stack.
+	RTI, RTL,
+
 	/// Loads the PC with the operand from the data buffer.
 	JMP,
 
@@ -149,6 +154,10 @@ enum Operation: uint8_t {
 	/// Loads the PC and the PBR with the operand from the data buffer,
 	/// replacing it with the old PC (and only the PC; PBR not included).
 	JSL,
+
+	/// i.e. jump to vector. TODO: is this really distinct from JMP? I'm assuming so for now,
+	/// as I assume the PBR is implicitly modified. We'll see.
+	BRK,
 };
 
 class ProcessorStorageConstructor;

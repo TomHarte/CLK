@@ -553,19 +553,20 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 22a. Stack; s, abort/irq/nmi/res.
-	static void stack_exception(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+	static void stack_exception(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchPC);				// IO
 		target(CycleFetchPC);				// IO
 
-		target(OperationPrepareException);	// Populates the data buffer.
+		target(OperationPrepareException);	// Populates the data buffer; this skips a micro-op if
+											// in emulation mode.
 
-		if(!is8bit) target(CyclePush);		// PBR
+		target(CyclePush);					// PBR	[skipped in emulation mode]
 		target(CyclePush);					// PCH
 		target(CyclePush);					// PCL
 		target(CyclePush);					// P
 
 		target(CycleFetchIncrementData);	// AAVL
-		target(CycleFetchIncrementData);	// AAVH
+		target(CycleFetchData);				// AAVH
 
 		target(OperationPerform);			// Jumps to the vector address.
 	}
@@ -625,9 +626,46 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 22g. Stack; s, RTI.
+	static void stack_rti(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);	// IO
+		target(CycleFetchIncrementPC);	// IO
+
+		target(CyclePull);				// P
+		target(CyclePull);				// New PCL
+		target(CyclePull);				// New PCH
+		if(!is8bit) target(CyclePull);	// PBR
+
+		target(OperationPerform);		// [RTI] — to unpack the fields above.
+	}
+
 	// 22h. Stack; s, RTS.
+	static void stack_rts(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);	// IO
+		target(CycleFetchIncrementPC);	// IO
+
+		target(CyclePull);				// PCL
+		target(CyclePull);				// PCH
+		target(CycleAccessStack);		// IO
+
+		target(OperationPerform);		// [JMP, to perform the RTS]
+	}
+
 	// 22i. Stack; s, RTL.
+	static void stack_rtl(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);	// IO
+		target(CycleFetchIncrementPC);	// IO
+
+		target(CyclePull);				// New PCL
+		target(CyclePull);				// New PCH
+		target(CyclePull);				// New PBR
+
+		target(OperationPerform);		// [JML, to perform the RTL]
+	}
+
 	// 22j. Stack; s, BRK/COP.
+
+	// Covered by stack_exception.
+
 	// 23. Stack Relative; d, s.
 	// 24. Stack Relative Indirect Indexed (d, s), y.
 };
@@ -641,9 +679,9 @@ ProcessorStorage::ProcessorStorage() {
 	// Install the instructions.
 #define op(x, y) constructor.install(&ProcessorStorageConstructor::x, y)
 
-	/* 0x00 BRK s */
+	/* 0x00 BRK s */			op(stack_exception, BRK);
 	/* 0x01 ORA (d, x) */		op(direct_indexed_indirect, ORA);
-	/* 0x02 COP s */
+	/* 0x02 COP s */			op(stack_exception, BRK);
 	/* 0x03 ORA d, s */
 	/* 0x04 TSB d */			op(direct_rmw, TSB);
 	/* 0x05 ORA d */			op(direct, ORA);
@@ -709,7 +747,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x3e ROL a, x */			op(absolute_x_rmw, ROL);
 	/* 0x3f AND al, x */		op(absolute_long_x, AND);
 
-	/* 0x40 RTI s */
+	/* 0x40 RTI s */			op(stack_rti, RTI);
 	/* 0x41	EOR (d, x) */		op(direct_indexed_indirect, EOR);
 	/* 0x42	WDM i */
 	/* 0x43	EOR d, s */
@@ -743,7 +781,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x5e LSR a, x */			op(absolute_x_rmw, LSR);
 	/* 0x5f EOR al, x */		op(absolute_long_x, EOR);
 
-	/* 0x60 RTS s */
+	/* 0x60 RTS s */			op(stack_rts, JMP);	// [sic]; loads the PC from data as per an RTS.
 	/* 0x61 ADC (d, x) */		op(direct_indexed_indirect, ADC);
 	/* 0x62 PER s */			op(stack_per, NOP);
 	/* 0x63 ADC d, s */
@@ -754,7 +792,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x68 PLA s */			op(stack_pull, LDA);
 	/* 0x69 ADC # */			op(immediate, ADC);
 	/* 0x6a ROR A */			op(accumulator, ROR);
-	/* 0x6b RTL s */
+	/* 0x6b RTL s */			op(stack_rtl, JML);
 	/* 0x6c JMP (a) */			op(absolute_indirect_jmp, JMP);
 	/* 0x6d ADC a */			op(absolute, ADC);
 	/* 0x6e ROR a */			op(absolute_rmw, ROR);
