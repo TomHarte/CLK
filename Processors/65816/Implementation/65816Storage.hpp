@@ -23,6 +23,9 @@ enum MicroOp: uint8_t {
 	/// of the instruction buffer, throwing the result away.
 	CycleFetchIncorrectDataAddress,
 
+	/// Fetches a vector (i.e. IRQ, NMI, etc) into the data buffer.
+	CycleFetchVector,
+
 	// Dedicated block-move cycles; these use the data buffer as an intermediary.
 	CycleFetchBlockX,
 	CycleFetchBlockY,
@@ -39,6 +42,8 @@ enum MicroOp: uint8_t {
 	CyclePush,
 	/// Fetches from the current stack location and throws the result away.
 	CycleAccessStack,
+	/// Pulls a single byte to the data buffer from the stack.
+	CyclePull,
 
 	/// Sets the data address by copying the final two bytes of the instruction buffer.
 	OperationConstructAbsolute,
@@ -86,6 +91,11 @@ enum MicroOp: uint8_t {
 	OperationCopyAToData,
 	OperationCopyDataToA,
 
+	/// Fills the data buffer with three or four bytes, depending on emulation mode, containing the program
+	/// counter, flags and possibly the program bank. Also puts the appropriate vector address into the
+	/// address register.
+	OperationPrepareException,
+
 	/// Complete this set of micr-ops.
 	OperationMoveToNextProgram
 };
@@ -98,10 +108,12 @@ enum Operation: uint8_t {
 	// These load the respective register from the data buffer;
 	// they are implicitly AccessType::Read.
 	LDA, LDX, LDY,
+	PLB, PLD, PLP,	// LDA, LDX and LDY can be used for PLA, PLX, PLY.
 
 	// These move the respective register (or value) to the data buffer;
 	// they are implicitly AccessType::Write.
 	STA, STX, STY, STZ,
+	PHB, PHP, PHD, PHK,
 
 	// These modify the value in the data buffer as part of a read-modify-write.
 	ASL, DEC, INC, LSR, ROL, ROR, TRB, TSB,

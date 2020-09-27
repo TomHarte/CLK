@@ -533,13 +533,14 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	// 20. Relative; r.
 	static void relative(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchIncrementPC);		// Offset
+		target(CycleFetchIncrementPC);	// Offset
 
-		target(OperationPerform);			// The branch instructions will all skip one or two
-											// of the next cycles, depending on the effect of
-											// the jump.
-		target(CycleFetchPC);		// IO
-		target(CycleFetchPC);		// IO
+		target(OperationPerform);		// The branch instructions will all skip one or two
+										// of the next cycles, depending on the effect of
+										// the jump.
+
+		target(CycleFetchPC);			// IO
+		target(CycleFetchPC);			// IO
 	}
 
 	// 21. Relative long; rl.
@@ -552,8 +553,44 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 22a. Stack; s, abort/irq/nmi/res.
+	static void stack_exception(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPC);				// IO
+		target(CycleFetchPC);				// IO
+
+		target(OperationPrepareException);	// Populates the data buffer.
+
+		if(!is8bit) target(CyclePush);		// PBR
+		target(CyclePush);					// PCH
+		target(CyclePush);					// PCL
+		target(CyclePush);					// P
+
+		target(CycleFetchIncrementData);	// AAVL
+		target(CycleFetchIncrementData);	// AAVH
+
+		target(OperationPerform);			// Jumps to the vector address.
+	}
+
 	// 22b. Stack; s, PLx.
+	static void stack_pull(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPC);			// IO
+		target(CycleFetchPC);			// IO
+
+		if(!is8bit) target(CyclePull);	// REG low.
+		target(CyclePull);				// REG [high].
+
+		target(OperationPerform);
+	}
+
 	// 22c. Stack; s, PHx.
+	static void stack_push(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPC);			// IO
+
+		target(OperationPerform);
+
+		if(!is8bit) target(CyclePush);	// REG high.
+		target(CyclePush);				// REG [low].
+	}
+
 	// 22d. Stack; s, PEA.
 	// 22e. Stack; s, PEI.
 	// 22f. Stack; s, PER.
@@ -582,10 +619,10 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x05 ORA d */			op(direct, ORA);
 	/* 0x06 ASL d */			op(direct_rmw, ASL);
 	/* 0x07 ORA [d] */			op(direct_indirect_long, ORA);
-	/* 0x08 PHP s */
+	/* 0x08 PHP s */			op(stack_push, PHP);
 	/* 0x09 ORA # */			op(immediate, ORA);
 	/* 0x0a ASL A */			op(accumulator, ASL);
-	/* 0x0b PHD s */
+	/* 0x0b PHD s */			op(stack_push, PHD);
 	/* 0x0c TSB a */			op(absolute_rmw, TSB);
 	/* 0x0d ORA a */			op(absolute, ORA);
 	/* 0x0e ASL a */			op(absolute_rmw, ASL);
@@ -616,10 +653,10 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x25 AND d */			op(direct, AND);
 	/* 0x26 ROL d */			op(absolute_rmw, ROL);
 	/* 0x27 AND [d] */			op(direct_indirect_long, AND);
-	/* 0x28 PLP s */
+	/* 0x28 PLP s */			op(stack_pull, PLP);
 	/* 0x29 AND # */			op(immediate, AND);
 	/* 0x2a ROL A */			op(accumulator, ROL);
-	/* 0x2b PLD s */
+	/* 0x2b PLD s */			op(stack_pull, PLD);
 	/* 0x2c BIT a */			op(absolute, BIT);
 	/* 0x2d AND a */			op(absolute, AND);
 	/* 0x2e ROL a */			op(absolute_rmw, ROL);
@@ -650,10 +687,10 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x45	EOR d */			op(direct, EOR);
 	/* 0x46	LSR d */			op(direct_rmw, LSR);
 	/* 0x47	EOR [d] */			op(direct_indirect_long, EOR);
-	/* 0x48	PHA s */
+	/* 0x48	PHA s */			op(stack_push, STA);
 	/* 0x49	EOR # */			op(immediate, EOR);
 	/* 0x4a	LSR A */			op(accumulator, LSR);
-	/* 0x4b	PHK s */
+	/* 0x4b	PHK s */			op(stack_push, PHK);
 	/* 0x4c	JMP a */			op(absolute, JMP);
 	/* 0x4d	EOR a */			op(absolute, EOR);
 	/* 0x4e	LSR a */			op(absolute_rmw, LSR);
@@ -669,7 +706,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x57 EOR [d], y */		op(direct_indirect_indexed_long, EOR);
 	/* 0x58 CLI i */			op(implied, CLI);
 	/* 0x59 EOR a, y */			op(absolute_y, EOR);
-	/* 0x5a PHY s */
+	/* 0x5a PHY s */			op(stack_push, STY);
 	/* 0x5b TCD i */			op(implied, TCD);
 	/* 0x5c JMP al */			op(absolute_long_jmp, JML);	// [sic]; this updates PBR so it's JML.
 	/* 0x5d EOR a, x */			op(absolute_x, EOR);
@@ -684,7 +721,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x65 ADC d */			op(direct, ADC);
 	/* 0x66 ROR d */			op(direct_rmw, ROR);
 	/* 0x67 ADC [d] */			op(direct_indirect_long, ADC);
-	/* 0x68 PLA s */
+	/* 0x68 PLA s */			op(stack_pull, LDA);
 	/* 0x69 ADC # */			op(immediate, ADC);
 	/* 0x6a ROR A */			op(accumulator, ROR);
 	/* 0x6b RTL s */
@@ -703,7 +740,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x77 ADC [d], y */		op(direct_indirect_indexed_long, ADC);
 	/* 0x78 SEI i */			op(implied, SEI);
 	/* 0x79 ADC a, y */			op(absolute_y, ADC);
-	/* 0x7a PLY s */
+	/* 0x7a PLY s */			op(stack_pull, LDY);
 	/* 0x7b TDC i */			op(implied, TDC);
 	/* 0x7c JMP (a, x) */		op(absolute_indexed_indirect_jmp, JMP);
 	/* 0x7d ADC a, x */			op(absolute_x, ADC);
@@ -721,7 +758,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x88 DEY i */			op(implied, DEY);
 	/* 0x89 BIT # */			op(immediate, BIT);
 	/* 0x8a TXA i */			op(implied, TXA);
-	/* 0x8b PHB s */
+	/* 0x8b PHB s */			op(stack_push, PHB);
 	/* 0x8c STY a */			op(absolute, STY);
 	/* 0x8d STA a */			op(absolute, STA);
 	/* 0x8e STX a */			op(absolute, STX);
@@ -755,7 +792,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xa8 TAY i */			op(implied, TAY);
 	/* 0xa9 LDA # */			op(immediate, LDA);
 	/* 0xaa TAX i */			op(implied, TAX);
-	/* 0xab PLB s */
+	/* 0xab PLB s */			op(stack_pull, PLB);
 	/* 0xac LDY a */			op(absolute, LDY);
 	/* 0xad LDA a */			op(absolute, LDA);
 	/* 0xae LDX a */			op(absolute, LDX);
@@ -805,7 +842,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xd7 CMP [d], y */		op(direct_indirect_indexed_long, CMP);
 	/* 0xd8 CLD i */			op(implied, CLD);
 	/* 0xd9 CMP a, y */			op(absolute_y, CMP);
-	/* 0xda PHX s */
+	/* 0xda PHX s */			op(stack_push, STX);
 	/* 0xdb STP i */			op(stp, STP);
 	/* 0xdc JML (a) */			op(absolute_indirect_jml, JML);
 	/* 0xdd CMP a, x */			op(absolute_x, CMP);
@@ -839,7 +876,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xf7 SBC [d], y */		op(direct_indirect_indexed_long, SBC);
 	/* 0xf8 SED i */			op(implied, SED);
 	/* 0xf9 SBC a, y */			op(absolute_y, SBC);
-	/* 0xfa PLX s */
+	/* 0xfa PLX s */			op(stack_pull, LDX);
 	/* 0xfb XCE i */			op(implied, XCE);
 	/* 0xfc JSR (a, x) */		op(absolute_indexed_indirect_jsr, JMP);	// [sic]
 	/* 0xfd SBC a, x */			op(absolute_x, SBC);
