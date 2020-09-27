@@ -81,6 +81,9 @@ enum MicroOp: uint8_t {
 	OperationConstructPER,
 	OperationConstructBRK,
 
+	OperationConstructStackRelative,
+	OperationConstructStackRelativeIndexedIndirect,
+
 	/// Performs whatever operation goes with this program.
 	OperationPerform,
 
