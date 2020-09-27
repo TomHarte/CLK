@@ -200,7 +200,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 	func runTest(_ code: [UInt8], expectedRunLength: UInt32) {
 		machine.trapHandler = self
 
-		let immediateCode = Data(bytes: UnsafePointer<UInt8>(code), count: code.count)
+		let immediateCode = Data(code)
 		machine.setData(immediateCode, atAddress: 0x200)
 		machine.addTrapAddress(UInt16(0x200 + code.count))
 		machine.setValue(0x00, forAddress: 0x0000)
