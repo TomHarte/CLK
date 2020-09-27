@@ -7,6 +7,8 @@
 //
 
 #include "../65816.hpp"
+
+#include <cassert>
 #include <map>
 
 using namespace CPU::WDC65816;
@@ -94,13 +96,20 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		}
 
 		// Fill in the proper table entries and increment the opcode pointer.
-		storage_.instructions[opcode].program_offset = micro_op_location_8;
+		storage_.instructions[opcode].program_offset = uint16_t(micro_op_location_8);
 		storage_.instructions[opcode].operation = operation;
 
-		storage_.instructions[opcode + 256].program_offset = micro_op_location_16;
+		storage_.instructions[opcode + 256].program_offset = uint16_t(micro_op_location_16);
 		storage_.instructions[opcode + 256].operation = operation;
 
 		++opcode;
+	}
+
+	void set_exception_generator(Generator generator) {
+		const auto key = std::make_pair(AccessType::Read, generator);
+		const auto map_entry = installed_patterns.find(key);
+		storage_.instructions[512].program_offset = uint16_t(map_entry->second.first);
+		storage_.instructions[512].operation = BRK;
 	}
 
 	/*
@@ -970,9 +979,12 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xfd SBC a, x */			op(absolute_x, SBC);
 	/* 0xfe INC a, x */			op(absolute_x_rmw, INC);
 	/* 0xff SBC al, x */		op(absolute_long_x, SBC);
-
 #undef op
 
-	// TEMPORARY: for my interest. To be removed.
+	constructor.set_exception_generator(&ProcessorStorageConstructor::stack_exception);
+
+#ifndef NDEBUG
+	assert(micro_ops_.size() < 65536);
 	printf("Generated %zd micro-ops in total; covered %d opcodes\n", micro_ops_.size(), constructor.opcode);
+#endif
 }

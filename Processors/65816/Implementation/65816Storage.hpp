@@ -169,16 +169,17 @@ class ProcessorStorage {
 	public:
 		ProcessorStorage();
 
+		// Frustratingly, there is not quite enough space in 16 bits to store both
+		// the program offset and the operation as currently defined.
 		struct Instruction {
-			size_t program_offset;
+			uint16_t program_offset;
 			Operation operation;
 		};
-		Instruction instructions[512 + 3];	// Arranged as:
-											//	256 entries: emulation-mode instructions;
-											//	256 entries: 16-bit instructions;
-											//	reset
-											//	NMI
-											//	IRQ
+		Instruction instructions[513];	// Arranged as:
+										//	256 entries: emulation-mode instructions;
+										//	256 entries: 16-bit instructions; and
+										//	the entry for 'exceptions' (i.e. reset, irq, nmi).
+
 
 	private:
 		friend ProcessorStorageConstructor;
@@ -188,7 +189,7 @@ class ProcessorStorage {
 		RegisterPair16 x_, y_;
 		uint16_t pc_, s_;
 
-		// Not
+		// I.e. the offset for direct addressing (outside of emulation mode).
 		uint16_t direct_;
 
 		// Banking registers are all stored with the relevant byte
