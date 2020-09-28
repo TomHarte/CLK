@@ -17,7 +17,9 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				// The exception program will determine the appropriate way to respond
 				// based on the pending exception if one exists; otherwise just do a
 				// standard fetch-decode-execute.
-				next_op_ = &instructions[pending_exceptions_ ? size_t(OperationSlot::Exception) : size_t(OperationSlot::FetchDecodeExecute)];
+				next_op_ = &micro_ops_[&instructions[pending_exceptions_ ? size_t(OperationSlot::Exception) : size_t(OperationSlot::FetchDecodeExecute)].program_offset];
+
+				// TODO: reset instruction buffer.
 			continue;
 
 			default:

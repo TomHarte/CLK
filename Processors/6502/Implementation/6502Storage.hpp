@@ -6,9 +6,6 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef MOS6502Storage_h
-#define MOS6502Storage_h
-
 /*!
 	A repository for all the internal state of a CPU::MOS6502::Processor; extracted into a separate base
 	class in order to remove it from visibility within the main 6502.hpp.
@@ -288,5 +285,3 @@ class ProcessorStorage {
 		// Allow state objects to capture and apply state.
 		friend struct State;
 };
-
-#endif /* _502Storage_h */

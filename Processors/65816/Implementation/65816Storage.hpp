@@ -6,9 +6,6 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef WDC65816Implementation_h
-#define WDC65816Implementation_h
-
 enum MicroOp: uint8_t {
 	/// Fetches a byte from the program counter to the instruction buffer and increments the program counter.
 	CycleFetchIncrementPC,
@@ -189,14 +186,8 @@ struct ProcessorStorage {
 	};
 
 	void set_power_on_state() {
-		// Set next_op_ to any instance of OperationMoveToNextProgram.
-		for(size_t c = 0; c < micro_ops_.size(); ++c) {
-			if(micro_ops_[c] == OperationMoveToNextProgram) {
-				next_op_ = &micro_ops_[c];
-				break;
-			}
-		}
-
+		// Set next_op_ to start the exception program.
+		next_op_ = &micro_ops_[instructions[size_t(OperationSlot::Exception)].program_offset];
 		pending_exceptions_ = PowerOn;
 	}
 
@@ -219,8 +210,30 @@ struct ProcessorStorage {
 	static constexpr int NMI = 1 << 3;
 	int pending_exceptions_ = 0;
 
+	/// Defines a four-byte buffer which can be cleared or filled in single-byte increments from least significant byte
+	/// to most significant.
+	struct Buffer {
+		uint32_t value = 0;
+		int size = 0;
+
+		void clear() {
+			value = 0;
+			size = 0;
+		}
+
+		uint8_t *next() {
+			#if TARGET_RT_BIG_ENDIAN
+			uint8_t *const target = reinterpret_cast<uint8_t *>(&value) + (3 ^ size);
+			#else
+			uint8_t *const target = reinterpret_cast<uint8_t *>(&value) + size;
+			#endif
+
+			++size;
+			return target;
+		}
+	};
+	Buffer instruction_buffer_, data_buffer_;
+
 	std::vector<MicroOp> micro_ops_;
 	MicroOp *next_op_ = nullptr;
 };
-
-#endif /* WDC65816Implementation_h */

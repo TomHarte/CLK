@@ -1343,6 +1343,7 @@
 		4BAF2B4C2004580C00480230 /* DMK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DMK.cpp; sourceTree = "<group>"; };
 		4BAF2B4D2004580C00480230 /* DMK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DMK.hpp; sourceTree = "<group>"; };
 		4BB023FF25212888009F8D90 /* 65816Implementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = 65816Implementation.hpp; path = ../../Processors/65816/Implementation/65816Implementation.hpp; sourceTree = "<group>"; };
+		4BB0240425229C6E009F8D90 /* 6502Esque.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502Esque.hpp; sourceTree = "<group>"; };
 		4BB06B211F316A3F00600C7A /* ForceInline.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ForceInline.hpp; sourceTree = "<group>"; };
 		4BB0A6592044FD3000FB3688 /* SN76489.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SN76489.cpp; sourceTree = "<group>"; };
 		4BB0A65A2044FD3000FB3688 /* SN76489.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SN76489.hpp; sourceTree = "<group>"; };
@@ -3489,6 +3490,7 @@
 			isa = PBXGroup;
 			children = (
 				4BFCA1211ECBDCAF00AC40C1 /* AllRAMProcessor.cpp */,
+				4BB0240425229C6E009F8D90 /* 6502Esque.hpp */,
 				4BFCA1221ECBDCAF00AC40C1 /* AllRAMProcessor.hpp */,
 				4B2C455C1EC9442600FC74DD /* RegisterSizes.hpp */,
 				4B1414561B58879D00E04248 /* 6502 */,
