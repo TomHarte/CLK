@@ -205,12 +205,12 @@ class ProcessorBase: public ProcessorStorage {
 	can also nominate whether the processor includes support for the ready line. Declining to support the ready line
 	can produce a minor runtime performance improvement.
 */
-template <Personality personality, typename T, bool uses_ready_line> class Processor: public ProcessorBase {
+template <Personality personality, typename BusHandler, bool uses_ready_line> class Processor: public ProcessorBase {
 	public:
 		/*!
 			Constructs an instance of the 6502 that will use @c bus_handler for all bus communications.
 		*/
-		Processor(T &bus_handler) : ProcessorBase(personality), bus_handler_(bus_handler) {}
+		Processor(BusHandler &bus_handler) : ProcessorBase(personality), bus_handler_(bus_handler) {}
 
 		/*!
 			Runs the 6502 for a supplied number of cycles.
@@ -227,7 +227,7 @@ template <Personality personality, typename T, bool uses_ready_line> class Proce
 		void set_ready_line(bool active);
 
 	private:
-		T &bus_handler_;
+		BusHandler &bus_handler_;
 };
 
 #include "Implementation/6502Implementation.hpp"
