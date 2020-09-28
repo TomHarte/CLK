@@ -13,20 +13,24 @@
 #include <vector>
 
 #include "../RegisterSizes.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace CPU {
 namespace WDC65816 {
 
-enum class Personality {
-	WDC65816,
-	WDC65802
-};
-
 #include "Implementation/65816Storage.hpp"
 
-template <Personality personality> class Processor: public ProcessorStorage {
+template <typename BusHandler> class Processor: private ProcessorStorage {
+	public:
+		Processor(BusHandler &bus_handler) : bus_handler_(bus_handler) {}
 
+		void run_for(const Cycles cycles);
+
+	private:
+		BusHandler &bus_handler_;
 };
+
+#include "Implementation/65816Implementation.hpp"
 
 }
 }

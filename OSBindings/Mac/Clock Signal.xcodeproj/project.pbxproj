@@ -1342,6 +1342,7 @@
 		4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Storage.hpp; sourceTree = "<group>"; };
 		4BAF2B4C2004580C00480230 /* DMK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DMK.cpp; sourceTree = "<group>"; };
 		4BAF2B4D2004580C00480230 /* DMK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DMK.hpp; sourceTree = "<group>"; };
+		4BB023FF25212888009F8D90 /* 65816Implementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = 65816Implementation.hpp; path = ../../Processors/65816/Implementation/65816Implementation.hpp; sourceTree = "<group>"; };
 		4BB06B211F316A3F00600C7A /* ForceInline.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ForceInline.hpp; sourceTree = "<group>"; };
 		4BB0A6592044FD3000FB3688 /* SN76489.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SN76489.cpp; sourceTree = "<group>"; };
 		4BB0A65A2044FD3000FB3688 /* SN76489.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SN76489.hpp; sourceTree = "<group>"; };
@@ -3330,6 +3331,7 @@
 		4BB73E951B587A5100552FC2 = {
 			isa = PBXGroup;
 			children = (
+				4BB023FF25212888009F8D90 /* 65816Implementation.hpp */,
 				4B51F70820A521D700AFA2C1 /* Activity */,
 				4B8944E2201967B4007DE474 /* Analyser */,
 				4BB73EA01B587A5100552FC2 /* Clock Signal */,

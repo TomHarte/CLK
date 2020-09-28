@@ -108,8 +108,15 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	void set_exception_generator(Generator generator) {
 		const auto key = std::make_pair(AccessType::Read, generator);
 		const auto map_entry = installed_patterns.find(key);
-		storage_.instructions[512].program_offset = uint16_t(map_entry->second.first);
-		storage_.instructions[512].operation = BRK;
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offset = uint16_t(map_entry->second.first);
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].operation = BRK;
+	}
+
+	void install_fetch_decode_execute() {
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::FetchDecodeExecute)].program_offset = uint16_t(storage_.micro_ops_.size());
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::FetchDecodeExecute)].operation = NOP;
+		storage_.micro_ops_.push_back(CycleFetchIncrementPC);
+		storage_.micro_ops_.push_back(OperationDecode);
 	}
 
 	/*
@@ -979,6 +986,7 @@ ProcessorStorage::ProcessorStorage() {
 #undef op
 
 	constructor.set_exception_generator(&ProcessorStorageConstructor::stack_exception);
+	constructor.install_fetch_decode_execute();
 
 #ifndef NDEBUG
 	assert(micro_ops_.size() < 65536);

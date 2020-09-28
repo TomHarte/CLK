@@ -103,7 +103,10 @@ enum MicroOp: uint8_t {
 	OperationPrepareException,
 
 	/// Complete this set of micr-ops.
-	OperationMoveToNextProgram
+	OperationMoveToNextProgram,
+
+	/// Inspects the instruction buffer and thereby selects the next set of micro-ops to schedule.
+	OperationDecode,
 };
 
 enum Operation: uint8_t {
@@ -165,40 +168,59 @@ enum Operation: uint8_t {
 
 class ProcessorStorageConstructor;
 
-class ProcessorStorage {
-	public:
-		ProcessorStorage();
+struct ProcessorStorage {
+	ProcessorStorage();
 
-		// Frustratingly, there is not quite enough space in 16 bits to store both
-		// the program offset and the operation as currently defined.
-		struct Instruction {
-			uint16_t program_offset;
-			Operation operation;
-		};
-		Instruction instructions[513];	// Arranged as:
-										//	256 entries: emulation-mode instructions;
-										//	256 entries: 16-bit instructions; and
-										//	the entry for 'exceptions' (i.e. reset, irq, nmi).
+	// Frustratingly, there is not quite enough space in 16 bits to store both
+	// the program offset and the operation as currently defined.
+	struct Instruction {
+		uint16_t program_offset;
+		Operation operation;
+	};
+	Instruction instructions[514];	// Arranged as:
+									//	256 entries: emulation-mode instructions;
+									//	256 entries: 16-bit instructions;
+									//	the entry for 'exceptions' (i.e. reset, irq, nmi); and
+									//	the entry for fetch-decode-execute.
 
+	enum class OperationSlot {
+		Exception = 512,
+		FetchDecodeExecute
+	};
 
-	private:
-		friend ProcessorStorageConstructor;
+	void set_power_on_state() {
+		// Set next_op_ to any instance of OperationMoveToNextProgram.
+		for(size_t c = 0; c < micro_ops_.size(); ++c) {
+			if(micro_ops_[c] == OperationMoveToNextProgram) {
+				next_op_ = &micro_ops_[c];
+				break;
+			}
+		}
 
-		// Registers.
-		RegisterPair16 a_;
-		RegisterPair16 x_, y_;
-		uint16_t pc_, s_;
+		pending_exceptions_ = PowerOn;
+	}
 
-		// I.e. the offset for direct addressing (outside of emulation mode).
-		uint16_t direct_;
+	// Registers.
+	RegisterPair16 a_;
+	RegisterPair16 x_, y_;
+	uint16_t pc_, s_;
 
-		// Banking registers are all stored with the relevant byte
-		// shifted up bits 16–23.
-		uint32_t data_bank_;	// i.e. DBR.
-		uint32_t program_bank_;	// i.e. PBR.
+	// I.e. the offset for direct addressing (outside of emulation mode).
+	uint16_t direct_;
 
+	// Banking registers are all stored with the relevant byte
+	// shifted up bits 16–23.
+	uint32_t data_bank_;	// i.e. DBR.
+	uint32_t program_bank_;	// i.e. PBR.
 
-		std::vector<MicroOp> micro_ops_;
+	static constexpr int PowerOn = 1 << 0;
+	static constexpr int Reset = 1 << 1;
+	static constexpr int IRQ = 1 << 2;
+	static constexpr int NMI = 1 << 3;
+	int pending_exceptions_ = 0;
+
+	std::vector<MicroOp> micro_ops_;
+	MicroOp *next_op_ = nullptr;
 };
 
 #endif /* WDC65816Implementation_h */
