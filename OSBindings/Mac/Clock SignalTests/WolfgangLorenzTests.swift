@@ -219,11 +219,11 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 				machine.setValue(0x48, forAddress: 0xfffe)
 				machine.setValue(0xff, forAddress: 0xffff)
 
-				let irqHandler = Data(bytes: UnsafePointer<UInt8>([
+				let irqHandler: [UInt8] = [
 					0x48, 0x8a, 0x48, 0x98, 0x48, 0xba, 0xbd, 0x04, 0x01,
 					0x29, 0x10, 0xf0, 0x03, 0x6c, 0x16, 0x03, 0x6c, 0x14, 0x03
-				] as [UInt8]), count: 19)
-				machine.setData( irqHandler, atAddress: 0xff48)
+				]
+				machine.setData(Data(irqHandler), atAddress: 0xff48)
 
 				machine.addTrapAddress(0xffd2)	// print character
 				machine.addTrapAddress(0xffe4)	// scan keyboard
