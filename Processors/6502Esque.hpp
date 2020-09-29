@@ -22,6 +22,19 @@
 namespace CPU {
 namespace MOS6502Esque {
 
+/*
+	The list of registers that can be accessed via @c set_value_of_register and @c set_value_of_register.
+*/
+enum Register {
+	LastOperationAddress,
+	ProgramCounter,
+	StackPointer,
+	Flags,
+	A,
+	X,
+	Y
+};
+
 /*!
 	Bus handlers will be given the task of performing bus operations, allowing them to provide whatever interface they like
 	between a 6502 and the rest of the system. @c BusOperation lists the types of bus operation that may be requested.

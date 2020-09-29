@@ -22,19 +22,7 @@ namespace MOS6502 {
 
 using BusOperation = CPU::MOS6502Esque::BusOperation;
 using BusHandler = CPU::MOS6502Esque::BusHandler<uint16_t>;
-
-/*
-	The list of registers that can be accessed via @c set_value_of_register and @c set_value_of_register.
-*/
-enum Register {
-	LastOperationAddress,
-	ProgramCounter,
-	StackPointer,
-	Flags,
-	A,
-	X,
-	Y
-};
+using Register = CPU::MOS6502Esque::Register;
 
 /*
 	The list of 6502 variants supported by this implementation.

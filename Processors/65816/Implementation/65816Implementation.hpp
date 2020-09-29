@@ -17,7 +17,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				// The exception program will determine the appropriate way to respond
 				// based on the pending exception if one exists; otherwise just do a
 				// standard fetch-decode-execute.
-				next_op_ = &micro_ops_[&instructions[pending_exceptions_ ? size_t(OperationSlot::Exception) : size_t(OperationSlot::FetchDecodeExecute)].program_offset];
+				next_op_ = &micro_ops_[instructions[pending_exceptions_ ? size_t(OperationSlot::Exception) : size_t(OperationSlot::FetchDecodeExecute)].program_offset];
 
 				// TODO: reset instruction buffer.
 			continue;
@@ -27,3 +27,8 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 		}
 	}
 }
+
+void ProcessorBase::set_power_on(bool) {}
+void ProcessorBase::set_irq_line(bool) {}
+void ProcessorBase::set_nmi_line(bool) {}
+bool ProcessorBase::is_jammed() const { return false; }

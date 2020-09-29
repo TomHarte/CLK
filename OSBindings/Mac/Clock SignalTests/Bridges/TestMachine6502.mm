@@ -42,14 +42,13 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 	if(self) {
 		switch(processor) {
 			case CSTestMachine6502Processor6502:
-				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502::Personality::P6502);
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::T6502);
 			break;
 			case CSTestMachine6502Processor65C02:
-				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502::Personality::PWDC65C02);
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::TWDC65C02);
 			break;
-			default:
-				assert(false);	// TODO
-
+			case CSTestMachine6502Processor65816:
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::TWDC65816);
 		}
 	}
 

@@ -424,8 +424,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					!tape_player_.get_tape()->is_at_end()) {
 
 					uint8_t next_byte = tape_player_.get_next_byte(!ram_[tape_speed_address_]);
-					m6502_.set_value_of_register(CPU::MOS6502::A, next_byte);
-					m6502_.set_value_of_register(CPU::MOS6502::Flags, next_byte ? 0 : CPU::MOS6502::Flag::Zero);
+					m6502_.set_value_of_register(CPU::MOS6502Esque::A, next_byte);
+					m6502_.set_value_of_register(CPU::MOS6502Esque::Flags, next_byte ? 0 : CPU::MOS6502::Flag::Zero);
 					*value = 0x60; // i.e. RTS
 				}
 			} else {

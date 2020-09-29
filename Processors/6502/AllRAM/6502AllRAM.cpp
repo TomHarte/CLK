@@ -15,7 +15,9 @@ using namespace CPU::MOS6502;
 
 namespace {
 
-template <Personality personality> class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
+using Type = CPU::MOS6502Esque::Type;
+
+template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 	public:
 		ConcreteAllRAMProcessor() :
 			mos6502_(*this) {
@@ -63,20 +65,21 @@ template <Personality personality> class ConcreteAllRAMProcessor: public AllRAMP
 		}
 
 	private:
-		CPU::MOS6502::Processor<personality, ConcreteAllRAMProcessor, false> mos6502_;
+		CPU::MOS6502Esque::Processor<type, ConcreteAllRAMProcessor, false> mos6502_;
 };
 
 }
 
-AllRAMProcessor *AllRAMProcessor::Processor(Personality personality) {
+AllRAMProcessor *AllRAMProcessor::Processor(Type type) {
 #define Bind(p) case p: return new ConcreteAllRAMProcessor<p>();
-	switch(personality) {
+	switch(type) {
 		default:
-		Bind(Personality::P6502)
-		Bind(Personality::PNES6502)
-		Bind(Personality::PSynertek65C02)
-		Bind(Personality::PWDC65C02)
-		Bind(Personality::PRockwell65C02)
+		Bind(Type::T6502)
+		Bind(Type::TNES6502)
+		Bind(Type::TSynertek65C02)
+		Bind(Type::TWDC65C02)
+		Bind(Type::TRockwell65C02)
+		Bind(Type::TWDC65816)
 	}
 #undef Bind
 }

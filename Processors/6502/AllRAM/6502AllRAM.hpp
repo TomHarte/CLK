@@ -9,7 +9,7 @@
 #ifndef MOS6502AllRAM_cpp
 #define MOS6502AllRAM_cpp
 
-#include "../6502.hpp"
+#include "../../6502Selector.hpp"
 #include "../../AllRAMProcessor.hpp"
 
 namespace CPU {
@@ -17,9 +17,8 @@ namespace MOS6502 {
 
 class AllRAMProcessor:
 	public ::CPU::AllRAMProcessor {
-
 	public:
-		static AllRAMProcessor *Processor(Personality personality);
+		static AllRAMProcessor *Processor(CPU::MOS6502Esque::Type type);
 		virtual ~AllRAMProcessor() {}
 
 		virtual void run_for(const Cycles cycles) = 0;

@@ -185,10 +185,14 @@ struct ProcessorStorage {
 		FetchDecodeExecute
 	};
 
-	void set_power_on_state() {
-		// Set next_op_ to start the exception program.
-		next_op_ = &micro_ops_[instructions[size_t(OperationSlot::Exception)].program_offset];
-		pending_exceptions_ = PowerOn;
+	void set_power_on(bool power_on) {
+		if(power_on) {
+			// Set next_op_ to start the exception program.
+			next_op_ = &micro_ops_[instructions[size_t(OperationSlot::Exception)].program_offset];
+			pending_exceptions_ = PowerOn;
+		} else {
+			pending_exceptions_ &= ~PowerOn;
+		}
 	}
 
 	// Registers.
