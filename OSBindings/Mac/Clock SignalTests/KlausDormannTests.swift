@@ -11,10 +11,10 @@ import XCTest
 
 class KlausDormannTests: XCTestCase {
 
-	fileprivate func runTest(resource: String, is65C02: Bool) -> UInt16 {
+	fileprivate func runTest(resource: String, processor: CSTestMachine6502Processor) -> UInt16 {
 		if let filename = Bundle(for: type(of: self)).path(forResource: resource, ofType: "bin") {
 			if let functionalTest = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
-				let machine = CSTestMachine6502(processor: is65C02 ? .processor65C02 : .processor6502)
+				let machine = CSTestMachine6502(processor: processor)
 
 				machine.setData(functionalTest, atAddress: 0)
 				machine.setValue(0x400, for: .programCounter)
@@ -39,8 +39,7 @@ class KlausDormannTests: XCTestCase {
 		return 0
 	}
 
-	/// Runs Klaus Dorman's 6502 tests.
-	func test6502() {
+	func runTest6502(processor: CSTestMachine6502Processor) {
 		func errorForTrapAddress(_ address: UInt16) -> String? {
 			switch address {
 				case 0x3399: return nil // success!
@@ -61,13 +60,12 @@ class KlausDormannTests: XCTestCase {
 			}
 		}
 
-		let destination = runTest(resource: "6502_functional_test", is65C02: false)
+		let destination = runTest(resource: "6502_functional_test", processor: processor)
 		let error = errorForTrapAddress(destination)
 		XCTAssert(error == nil, "Failed with error \(error!)")
 	}
 
-	/// Runs Klaus Dorman's 65C02 tests.
-	func test65C02() {
+	func runTest65C02(processor: CSTestMachine6502Processor) {
 		func errorForTrapAddress(_ address: UInt16) -> String? {
 			switch address {
 				case 0x24f1: return nil // success!
@@ -110,8 +108,29 @@ class KlausDormannTests: XCTestCase {
 			}
 		}
 
-		let destination = runTest(resource: "65C02_extended_opcodes_test", is65C02: true)
+		let destination = runTest(resource: "65C02_extended_opcodes_test", processor: processor)
 		let error = errorForTrapAddress(destination)
 		XCTAssert(error == nil, "Failed with error \(error!)")
+	}
+
+
+	/// Runs Klaus Dormann's 6502 tests.
+	func test6502() {
+		runTest6502(processor: .processor6502)
+	}
+
+	/// Runs Klaus Dormann's standard 6502 tests on a 65816.
+	func test65816As6502() {
+		runTest6502(processor: .processor65816)
+	}
+
+	/// Runs Klaus Dormann's 65C02 tests.
+	func test65C02() {
+		runTest65C02(processor: .processor65C02)
+	}
+
+	/// Runs Klaus Dormann's 65C02 tests on a 65816.
+	func test65816As65C02() {
+		runTest65C02(processor: .processor65816)
 	}
 }
