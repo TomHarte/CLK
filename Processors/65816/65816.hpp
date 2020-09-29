@@ -9,6 +9,7 @@
 #ifndef WDC65816_hpp
 #define WDC65816_hpp
 
+#include <cassert>	// TEMPORARILY.
 #include <cstdint>
 #include <vector>
 
