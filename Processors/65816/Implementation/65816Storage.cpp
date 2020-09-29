@@ -9,6 +9,7 @@
 #include "../65816.hpp"
 
 #include <cassert>
+#include <functional>
 #include <map>
 
 using namespace CPU::WDC65816;
