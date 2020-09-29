@@ -29,6 +29,7 @@ class ProcessorBase: protected ProcessorStorage {
 		inline void set_power_on(bool);
 		inline void set_irq_line(bool);
 		inline void set_nmi_line(bool);
+		inline void set_reset_line(bool);
 		void set_value_of_register(Register r, uint16_t value);
 
 		inline bool is_jammed() const;

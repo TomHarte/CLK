@@ -185,34 +185,29 @@ struct ProcessorStorage {
 		FetchDecodeExecute
 	};
 
-	void set_power_on(bool power_on) {
-		if(power_on) {
-			// Set next_op_ to start the exception program.
-			next_op_ = &micro_ops_[instructions[size_t(OperationSlot::Exception)].program_offset];
-			pending_exceptions_ = PowerOn;
-		} else {
-			pending_exceptions_ &= ~PowerOn;
-		}
-	}
-
 	// Registers.
 	RegisterPair16 a_;
 	RegisterPair16 x_, y_;
 	uint16_t pc_, s_;
 
+	// A helper for testing.
+	uint16_t last_operation_pc_;
+	Instruction *active_instruction_;
+	Cycles cycles_left_to_run_;
+
 	// I.e. the offset for direct addressing (outside of emulation mode).
-	uint16_t direct_;
+	uint16_t direct_ = 0;
 
 	// Banking registers are all stored with the relevant byte
 	// shifted up bits 16–23.
-	uint32_t data_bank_;	// i.e. DBR.
-	uint32_t program_bank_;	// i.e. PBR.
+	uint32_t data_bank_ = 0;	// i.e. DBR.
+	uint32_t program_bank_ = 0;	// i.e. PBR.
 
 	static constexpr int PowerOn = 1 << 0;
 	static constexpr int Reset = 1 << 1;
 	static constexpr int IRQ = 1 << 2;
 	static constexpr int NMI = 1 << 3;
-	int pending_exceptions_ = 0;
+	int pending_exceptions_ = PowerOn;	// By default.
 
 	/// Defines a four-byte buffer which can be cleared or filled in single-byte increments from least significant byte
 	/// to most significant.

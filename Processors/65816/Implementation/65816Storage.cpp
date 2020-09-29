@@ -988,6 +988,10 @@ ProcessorStorage::ProcessorStorage() {
 	constructor.set_exception_generator(&ProcessorStorageConstructor::stack_exception);
 	constructor.install_fetch_decode_execute();
 
+	// Find any OperationMoveToNextProgram.
+	next_op_ = micro_ops_.data();
+	while(*next_op_ != OperationMoveToNextProgram) ++next_op_;
+
 #ifndef NDEBUG
 	assert(micro_ops_.size() < 65536);
 	printf("Generated %zd micro-ops in total; covered %d opcodes\n", micro_ops_.size(), constructor.opcode);
