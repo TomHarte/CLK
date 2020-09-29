@@ -11,6 +11,7 @@
 
 #include <cassert>	// TEMPORARILY.
 #include <cstdint>
+#include <cstdio>	// TEMPORARILY.
 #include <vector>
 
 #include "../RegisterSizes.hpp"
