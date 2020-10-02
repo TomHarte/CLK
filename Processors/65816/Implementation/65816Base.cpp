@@ -14,7 +14,7 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 	switch (r) {
 		case Register::ProgramCounter:			return pc_;
 		case Register::LastOperationAddress:	return last_operation_pc_;
-		case Register::StackPointer:			return s_;
+		case Register::StackPointer:			return s_.full;
 //		case Register::Flags:					return get_flags();
 		case Register::A:						return a_.full;
 		case Register::X:						return x_.full;
@@ -26,11 +26,11 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 	switch (r) {
 		case Register::ProgramCounter:	pc_ = value;				break;
-		case Register::StackPointer:	s_ = value;					break;
+		case Register::StackPointer:	s_.full = value;			break;
 //		case Register::Flags:			set_flags(uint8_t(value));	break;
-		case Register::A:				a_ = value;					break;
-		case Register::X:				x_ = value;					break;
-		case Register::Y:				y_ = value;					break;
+		case Register::A:				a_.full = value;			break;
+		case Register::X:				x_.full = value;			break;
+		case Register::Y:				y_.full = value;			break;
 		default: break;
 	}
 }

@@ -97,11 +97,11 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		}
 
 		// Fill in the proper table entries and increment the opcode pointer.
-		storage_.instructions[opcode].program_offset = uint16_t(micro_op_location_8);
+		storage_.instructions[opcode].program_offsets[0] = uint16_t(micro_op_location_16);
+		storage_.instructions[opcode].program_offsets[1] = uint16_t(micro_op_location_8);
 		storage_.instructions[opcode].operation = operation;
 
-		storage_.instructions[opcode + 256].program_offset = uint16_t(micro_op_location_16);
-		storage_.instructions[opcode + 256].operation = operation;
+		// TODO: fill in size_field.
 
 		++opcode;
 	}
@@ -109,14 +109,15 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	void set_exception_generator(Generator generator) {
 		const auto key = std::make_pair(AccessType::Read, generator);
 		const auto map_entry = installed_patterns.find(key);
-		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offset = uint16_t(map_entry->second.first);
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[0] =
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[1] = uint16_t(map_entry->second.first);
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].operation = BRK;
 	}
 
 	void install_fetch_decode_execute() {
-		storage_.instructions[size_t(ProcessorStorage::OperationSlot::FetchDecodeExecute)].program_offset = uint16_t(storage_.micro_ops_.size());
-		storage_.instructions[size_t(ProcessorStorage::OperationSlot::FetchDecodeExecute)].operation = NOP;
-		storage_.micro_ops_.push_back(CycleFetchIncrementPC);
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::FetchDecodeExecute)].program_offsets[0] =
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::FetchDecodeExecute)].program_offsets[1] = uint16_t(storage_.micro_ops_.size());
+		storage_.micro_ops_.push_back(CycleFetchOpcode);
 		storage_.micro_ops_.push_back(OperationDecode);
 	}
 

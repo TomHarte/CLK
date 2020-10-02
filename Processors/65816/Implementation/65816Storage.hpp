@@ -11,6 +11,8 @@ enum MicroOp: uint8_t {
 	CycleFetchIncrementPC,
 	/// Fetches a byte from the program counter without incrementing it, and throws it away.
 	CycleFetchPC,
+	/// The same as CycleFetchIncrementPC but indicates valid program address rather than valid data address.
+	CycleFetchOpcode,
 
 	/// Fetches a byte from the data address to the data buffer.
 	CycleFetchData,
@@ -171,29 +173,41 @@ struct ProcessorStorage {
 	// Frustratingly, there is not quite enough space in 16 bits to store both
 	// the program offset and the operation as currently defined.
 	struct Instruction {
-		uint16_t program_offset;
-		Operation operation;
+		/// Pointers into micro_ops_ for: [0] = 16-bit operation; [1] = 8-bit operation.
+		uint16_t program_offsets[2] = {0xffff, 0xffff};
+		/// The operation to perform upon an OperationPerform.
+		Operation operation = NOP;
+		/// An index into the mx field indicating which of M or X affects whether this is an 8-bit or 16-bit field.
+		/// So the program to perform is that at @c program_offsets[mx_flags[size_field]]
+		uint8_t size_field = 0;
 	};
-	Instruction instructions[514];	// Arranged as:
-									//	256 entries: emulation-mode instructions;
-									//	256 entries: 16-bit instructions;
-									//	the entry for 'exceptions' (i.e. reset, irq, nmi); and
-									//	the entry for fetch-decode-execute.
+	Instruction instructions[256 + 2];	// Arranged as:
+										//	256 entries: instructions;
+										//	the entry for 'exceptions' (i.e. reset, irq, nmi); and
+										//	the entry for fetch-decode-execute.
 
 	enum class OperationSlot {
-		Exception = 512,
+		Exception = 256,
 		FetchDecodeExecute
 	};
 
 	// Registers.
 	RegisterPair16 a_;
 	RegisterPair16 x_, y_;
-	uint16_t pc_, s_;
+	RegisterPair16  s_;
+	uint16_t pc_;
 
 	// A helper for testing.
 	uint16_t last_operation_pc_;
 	Instruction *active_instruction_;
 	Cycles cycles_left_to_run_;
+
+	// Flags aplenty.
+	uint8_t carry_flag_, negative_result_, zero_result_, decimal_flag_, overflow_flag_, inverse_interrupt_flag_ = 0;
+	uint8_t mx_flags_[2] = {1, 1};				// [0] = m; [1] = x. In both cases either `0` or `1`.
+	uint16_t m_masks_[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
+	uint16_t x_masks_[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
+	int instruction_offset_ = 0;
 
 	// I.e. the offset for direct addressing (outside of emulation mode).
 	uint16_t direct_ = 0;

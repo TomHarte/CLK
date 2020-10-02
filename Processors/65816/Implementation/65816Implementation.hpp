@@ -24,32 +24,38 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			// Scheduling.
 			//
 
-			case OperationMoveToNextProgram:
+			case OperationMoveToNextProgram: {
 				// The exception program will determine the appropriate way to respond
 				// based on the pending exception if one exists; otherwise just do a
 				// standard fetch-decode-execute.
-				next_op_ = &micro_ops_[instructions[pending_exceptions_ ? size_t(OperationSlot::Exception) : size_t(OperationSlot::FetchDecodeExecute)].program_offset];
+				const auto offset = instructions[pending_exceptions_ ? size_t(OperationSlot::Exception) : size_t(OperationSlot::FetchDecodeExecute)].program_offsets[0];
+				next_op_ = &micro_ops_[offset];
 				instruction_buffer_.clear();
 				data_buffer_.clear();
 				last_operation_pc_ = pc_;
-			continue;
+			} continue;
 
-			case OperationDecode:
+			case OperationDecode: {
 				// A VERY TEMPORARY piece of logging.
 				printf("%02x\n", instruction_buffer_.value);
-				active_instruction_ = &instructions[instruction_buffer_.value];
-				next_op_ = &micro_ops_[active_instruction_->program_offset];
+				active_instruction_ = &instructions[instruction_offset_ + instruction_buffer_.value];
+
+				const auto size_flag = mx_flags_[active_instruction_->size_field];
+				next_op_ = &micro_ops_[active_instruction_->program_offsets[size_flag]];
 				instruction_buffer_.clear();
-			continue;
+			} continue;
 
 			//
 			// PC fetches.
 			//
 
 			case CycleFetchIncrementPC:
+			case CycleFetchOpcode:
 				bus_address = pc_ | program_bank_;
 				bus_value = instruction_buffer_.next();
-				bus_operation = MOS6502Esque::Read;		// TODO: indicate ReadOpcode when appropriate.
+				bus_operation = (operation == CycleFetchOpcode) ? MOS6502Esque::ReadOpcode : MOS6502Esque::Read;
+				// TODO: split this action when I'm happy that my route to bus accesses is settled, to avoid repeating the conditional
+				// embedded into the `switch`.
 				++pc_;
 			break;
 
@@ -78,13 +84,39 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationPerform:
 				switch(active_instruction_->operation) {
+
+					//
+					// Flag manipulation.
+					//
+
 					case CLD:
-						// TODO.
+						decimal_flag_ = 0;
+					break;
+
+					//
+					// Loads, stores and transfers
+					//
+
+#define LD(dest, src, masks) dest.full = (dest.full & masks[0]) | (src & masks[1])
+
+					case LDA:
+						LD(a_, data_buffer_.value, m_masks_);
 					break;
 
 					case LDX:
-						// TODO.
+						LD(x_, data_buffer_.value, x_masks_);
 					break;
+
+					case LDY:
+						LD(y_, data_buffer_.value, x_masks_);
+					break;
+
+					case TXS:
+						// TODO: does this transfer in full when in 8-bit index mode?
+						LD(s_, x_.full, x_masks_);
+					break;
+
+#undef LD
 
 					default:
 						assert(false);
