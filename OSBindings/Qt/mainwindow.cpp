@@ -812,7 +812,7 @@ void MainWindow::setWindowTitle() {
 		break;
 	}
 
-	if(mouseIsCaptured) title += " (press control+escape to release mouse)";
+	if(mouseIsCaptured) title += " (press control+escape or F8+F12 to release mouse)";
 
 	QMainWindow::setWindowTitle(title);
 }

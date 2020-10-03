@@ -142,12 +142,25 @@ void ScanTargetWidget::setMouseDelegate(MouseDelegate *delegate) {
 	setMouseTracking(delegate);
 }
 
+void ScanTargetWidget::keyReleaseEvent(QKeyEvent *event) {
+	// Releasing F8 or F12 needs to be tracked but doesn't actively do anything,
+	// so I'm counting that as a Qt ignore.
+	if(event->key() == Qt::Key_F8) f8State = false;
+	if(event->key() == Qt::Key_F12) f12State = false;
+	event->ignore();
+}
+
 void ScanTargetWidget::keyPressEvent(QKeyEvent *event) {
-	// Use CTRL+Escape to end mouse captured mode, if currently captured; otherwise ignore the event.
-	// Empirical note: control actually appears to mean command on the Mac. I have no idea what the
-	// Mac's command key would actually be as a modifier. Fingers crossed control means control
-	// elsewhere (?).
-	if(mouseIsCaptured && event->key() == Qt::Key_Escape && event->modifiers()&Qt::ControlModifier) {
+	// Use either CTRL+Escape or F8+F12 to end mouse captured mode, if currently captured;
+	// otherwise ignore the event.
+
+	if(event->key() == Qt::Key_F8) f8State = true;
+	if(event->key() == Qt::Key_F12) f12State = true;
+
+	if(mouseIsCaptured && (
+		(event->key() == Qt::Key_Escape && event->modifiers()&Qt::ControlModifier) ||
+		(f8State && f12State)
+	)) {
 		releaseMouse();
 
 		QCursor cursor;

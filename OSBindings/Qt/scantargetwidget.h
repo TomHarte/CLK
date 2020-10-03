@@ -42,6 +42,7 @@ class ScanTargetWidget : public QOpenGLWidget {
 		void mouseReleaseEvent(QMouseEvent *) override;
 		void mouseMoveEvent(QMouseEvent *) override;
 		void keyPressEvent(QKeyEvent *) override;
+		void keyReleaseEvent(QKeyEvent *) override;
 
 		void releaseMouse();
 		void setMouseButtonPressed(Qt::MouseButton, bool);
@@ -66,6 +67,7 @@ class ScanTargetWidget : public QOpenGLWidget {
 
 		MouseDelegate *mouseDelegate = nullptr;
 		bool mouseIsCaptured = false;
+		bool f8State = false, f12State = false;	// To support F8+F12 as a mouse release combination.
 
 	private slots:
 		void vsync();
