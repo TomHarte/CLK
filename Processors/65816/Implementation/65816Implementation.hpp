@@ -52,7 +52,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			case CycleFetchIncrementPC:
 			case CycleFetchOpcode:
 				bus_address = pc_ | program_bank_;
-				bus_value = instruction_buffer_.next();
+				bus_value = instruction_buffer_.next_input();
 				bus_operation = (operation == CycleFetchOpcode) ? MOS6502Esque::ReadOpcode : MOS6502Esque::Read;
 				// TODO: split this action when I'm happy that my route to bus accesses is settled, to avoid repeating the conditional
 				// embedded into the `switch`.
@@ -66,6 +66,43 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			break;
 
 			//
+			// Data fetches and stores.
+			//
+
+			case CycleFetchData:
+				bus_address = data_address_;
+				bus_value = data_buffer_.next_input();
+				bus_operation = MOS6502Esque::Read;
+			break;
+
+			case CycleFetchIncrementData:
+				bus_address = data_address_;
+				bus_value = data_buffer_.next_input();
+				bus_operation = MOS6502Esque::Read;
+				++data_address_;
+			break;
+
+			case CycleStoreData:
+				bus_address = data_address_;
+				bus_value = data_buffer_.next_output();
+				bus_operation = MOS6502Esque::Read;
+			break;
+
+			case CycleStoreIncrementData:
+				bus_address = data_address_;
+				bus_value = data_buffer_.next_output();
+				bus_operation = MOS6502Esque::Read;
+				++data_address_;
+			break;
+
+			case CycleStoreDecrementData:
+				bus_address = data_address_;
+				bus_value = data_buffer_.next_output();
+				bus_operation = MOS6502Esque::Read;
+				--data_address_;
+			break;
+
+			//
 			// Data movement.
 			//
 
@@ -76,6 +113,14 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationCopyInstructionToData:
 				data_buffer_ = instruction_buffer_;
+			break;
+
+			//
+			// Address construction.
+			//
+
+			case OperationConstructAbsolute:
+				data_address_ = instruction_buffer_.value | data_bank_;
 			break;
 
 			//
@@ -117,6 +162,11 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					break;
 
 #undef LD
+
+					case STA:
+						data_buffer_.value = a_.full & m_masks_[1];
+						data_buffer_.size = 2 - mx_flags_[0];
+					break;
 
 					default:
 						assert(false);

@@ -204,7 +204,7 @@ struct ProcessorStorage {
 
 	// Flags aplenty.
 	uint8_t carry_flag_, negative_result_, zero_result_, decimal_flag_, overflow_flag_, inverse_interrupt_flag_ = 0;
-	uint8_t mx_flags_[2] = {1, 1};				// [0] = m; [1] = x. In both cases either `0` or `1`.
+	uint8_t mx_flags_[2] = {1, 1};				// [0] = m; [1] = x. In both cases either `0` or `1`; `1` => 8-bit.
 	uint16_t m_masks_[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
 	uint16_t x_masks_[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
 	int instruction_offset_ = 0;
@@ -228,24 +228,42 @@ struct ProcessorStorage {
 	struct Buffer {
 		uint32_t value = 0;
 		int size = 0;
+		int read = 0;
 
 		void clear() {
 			value = 0;
 			size = 0;
+			read = 0;
 		}
 
-		uint8_t *next() {
-			#if TARGET_RT_BIG_ENDIAN
-			uint8_t *const target = reinterpret_cast<uint8_t *>(&value) + (3 ^ size);
-			#else
-			uint8_t *const target = reinterpret_cast<uint8_t *>(&value) + size;
-			#endif
-
+		uint8_t *next_input() {
+			uint8_t *const next = byte(size);
 			++size;
-			return target;
+			return next;
 		}
+
+		uint8_t *next_output() {
+			uint8_t *const next = byte(read);
+			++read;
+			return next;
+		}
+
+		uint8_t *next_stack() {
+			--size;
+			return byte(size);
+		}
+
+		private:
+			uint8_t *byte(int pointer) {
+				#if TARGET_RT_BIG_ENDIAN
+					return reinterpret_cast<uint8_t *>(&value) + (3 ^ pointer);
+				#else
+					return reinterpret_cast<uint8_t *>(&value) + pointer;
+				#endif
+			}
 	};
 	Buffer instruction_buffer_, data_buffer_;
+	uint32_t data_address_;
 
 	std::vector<MicroOp> micro_ops_;
 	MicroOp *next_op_ = nullptr;
