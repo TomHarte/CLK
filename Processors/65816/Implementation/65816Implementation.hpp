@@ -106,6 +106,18 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				decrement_data_address();
 			break;
 
+			case CycleFetchBlockX:
+				read(((instruction_buffer_.value & 0xff00) << 8) | (x_.full & x_masks_[1]), data_buffer_.any_byte());
+			break;
+
+			case CycleFetchBlockY:
+				read(((instruction_buffer_.value & 0xff00) << 8) | (y_.full & x_masks_[1]), &throwaway);
+			break;
+
+			case CycleStoreBlockY:
+				write(((instruction_buffer_.value & 0xff00) << 8) | (y_.full & x_masks_[1]), data_buffer_.any_byte());
+			break;
+
 #undef increment_data_address
 #undef decrement_data_address
 
@@ -254,9 +266,25 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						instruction_buffer_.value = old_pc;
 					} break;
 
-					case JSL: {
+					//
+					// Block moves.
+					//
 
-					} break;
+					case MVP:
+						data_bank_ = (instruction_buffer_.value & 0xff) << 16;
+						--x_.full;
+						--y_.full;
+						--a_.full;
+						if(a_.full) pc_ -= 3;
+					break;
+
+					case MVN:
+						data_bank_ = (instruction_buffer_.value & 0xff) << 16;
+						++x_.full;
+						++y_.full;
+						--a_.full;
+						if(a_.full) pc_ -= 3;
+					break;
 
 					default:
 						assert(false);

@@ -253,6 +253,10 @@ struct ProcessorStorage {
 			return byte(size);
 		}
 
+		uint8_t *any_byte() {
+			return reinterpret_cast<uint8_t *>(&value);
+		}
+
 		private:
 			uint8_t *byte(int pointer) {
 				#if TARGET_RT_BIG_ENDIAN
