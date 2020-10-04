@@ -264,6 +264,7 @@ struct ProcessorStorage {
 	};
 	Buffer instruction_buffer_, data_buffer_;
 	uint32_t data_address_;
+	uint32_t incorrect_data_address_;
 
 	std::vector<MicroOp> micro_ops_;
 	MicroOp *next_op_ = nullptr;

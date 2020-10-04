@@ -79,6 +79,12 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				bus_operation = MOS6502Esque::Read;
 			break;
 
+			case CycleFetchIncorrectDataAddress:
+				bus_address = incorrect_data_address_;
+				bus_value = &throwaway;
+				bus_operation = MOS6502Esque::Read;
+			break;
+
 			case CycleFetchIncrementData:
 				bus_address = data_address_;
 				bus_value = data_buffer_.next_input();
@@ -161,6 +167,21 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructAbsoluteIndexedIndirect:
 				data_address_ = (instruction_buffer_.value + (x_.full & x_masks_[1])) & 0xffff;
+			break;
+
+			case OperationConstructAbsoluteLongX:
+				data_address_ = instruction_buffer_.value + (x_.full & x_masks_[1]);
+			break;
+
+			case OperationConstructAbsoluteXRead:
+			case OperationConstructAbsoluteX:
+				data_address_ = ((instruction_buffer_.value + (x_.full & x_masks_[1])) & 0xffff) | data_bank_;
+				incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) | data_bank_;
+
+				// If the incorrect address isn't actually incorrect, skip its usage.
+				if(operation == OperationConstructAbsoluteXRead && data_address_ == incorrect_data_address_) {
+					++next_op_;
+				}
 			break;
 
 			//
