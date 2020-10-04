@@ -37,8 +37,8 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationDecode: {
 				// A VERY TEMPORARY piece of logging.
-				printf("%02x\n", instruction_buffer_.value);
-				active_instruction_ = &instructions[instruction_offset_ + instruction_buffer_.value];
+				printf("[%04x] %02x\n", pc_ - 1, instruction_buffer_.value);
+				active_instruction_ = &instructions[instruction_buffer_.value];
 
 				const auto size_flag = mx_flags_[active_instruction_->size_field];
 				next_op_ = &micro_ops_[active_instruction_->program_offsets[size_flag]];
@@ -69,6 +69,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			// Data fetches and stores.
 			//
 
+#define increment_data_address() data_address_ = (data_address_ & 0xff0000) + ((data_address_ + 1) & 0xffff)
+#define decrement_data_address() data_address_ = (data_address_ & 0xff0000) + ((data_address_ - 1) & 0xffff)
+
+
 			case CycleFetchData:
 				bus_address = data_address_;
 				bus_value = data_buffer_.next_input();
@@ -79,7 +83,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				bus_address = data_address_;
 				bus_value = data_buffer_.next_input();
 				bus_operation = MOS6502Esque::Read;
-				++data_address_;
+				increment_data_address();
 			break;
 
 			case CycleStoreData:
@@ -92,15 +96,47 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				bus_address = data_address_;
 				bus_value = data_buffer_.next_output();
 				bus_operation = MOS6502Esque::Read;
-				++data_address_;
+				increment_data_address();
 			break;
 
 			case CycleStoreDecrementData:
 				bus_address = data_address_;
 				bus_value = data_buffer_.next_output();
 				bus_operation = MOS6502Esque::Read;
-				--data_address_;
+				decrement_data_address();
 			break;
+
+#undef increment_data_address
+#undef decrement_data_address
+
+			//
+			// Stack accesses.
+			//
+
+#define stack_access(value, operation)	\
+	if(emulation_flag_) {	\
+		bus_address = s_.halves.low | 0x100;	\
+	} else {	\
+		bus_address = s_.full;	\
+	}	\
+	bus_value = value;	\
+	bus_operation = operation;
+
+			case CyclePush:
+				stack_access(data_buffer_.next_stack(), MOS6502Esque::Write);
+				--s_.full;
+			break;
+
+			case CyclePull:
+				++s_.full;
+				stack_access(data_buffer_.next_input(), MOS6502Esque::Read);
+			break;
+
+			case CycleAccessStack:
+				stack_access(&throwaway, MOS6502Esque::Read);
+			break;
+
+#undef stack_access
 
 			//
 			// Data movement.
@@ -121,6 +157,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructAbsolute:
 				data_address_ = instruction_buffer_.value | data_bank_;
+			break;
+
+			case OperationConstructAbsoluteIndexedIndirect:
+				data_address_ = (instruction_buffer_.value + (x_.full & x_masks_[1])) & 0xffff;
 			break;
 
 			//
@@ -167,6 +207,30 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						data_buffer_.value = a_.full & m_masks_[1];
 						data_buffer_.size = 2 - mx_flags_[0];
 					break;
+
+					//
+					// Jumps.
+					//
+
+					case JML:
+						program_bank_ = instruction_buffer_.value & 0xff0000;
+						pc_ = instruction_buffer_.value & 0xffff;
+					break;
+
+					case JSL:
+						program_bank_ = instruction_buffer_.value & 0xff0000;
+						instruction_buffer_.size = 2;
+					[[fallthrough]];
+
+					case JSR: {
+						const uint16_t old_pc = pc_;
+						pc_ = instruction_buffer_.value;
+						instruction_buffer_.value = old_pc;
+					} break;
+
+					case JSL: {
+
+					} break;
 
 					default:
 						assert(false);
