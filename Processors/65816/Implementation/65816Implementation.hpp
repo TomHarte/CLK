@@ -13,6 +13,14 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 	uint8_t throwaway = 0;
 	BusOperation bus_operation = BusOperation::None;
 
+#define perform_bus(address, value, operation)	\
+	bus_address = address;						\
+	bus_value = value;							\
+	bus_operation = operation
+
+#define read(address, value)	perform_bus(address, value, MOS6502Esque::Read)
+#define write(address, value)	perform_bus(address, value, MOS6502Esque::Write)
+
 	Cycles number_of_cycles = cycles + cycles_left_to_run_;
 	while(number_of_cycles > Cycles(0)) {
 		const MicroOp operation = *next_op_;
@@ -50,19 +58,17 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			//
 
 			case CycleFetchIncrementPC:
+				read(pc_ | program_bank_, instruction_buffer_.next_input());
+				++pc_;
+			break;
+
 			case CycleFetchOpcode:
-				bus_address = pc_ | program_bank_;
-				bus_value = instruction_buffer_.next_input();
-				bus_operation = (operation == CycleFetchOpcode) ? MOS6502Esque::ReadOpcode : MOS6502Esque::Read;
-				// TODO: split this action when I'm happy that my route to bus accesses is settled, to avoid repeating the conditional
-				// embedded into the `switch`.
+				perform_bus(pc_ | program_bank_, instruction_buffer_.next_input(), MOS6502Esque::ReadOpcode);
 				++pc_;
 			break;
 
 			case CycleFetchPC:
-				bus_address = pc_ | program_bank_;
-				bus_value = &throwaway;
-				bus_operation = MOS6502Esque::Read;
+				read(pc_ | program_bank_, &throwaway);
 			break;
 
 			//
@@ -74,41 +80,29 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 
 			case CycleFetchData:
-				bus_address = data_address_;
-				bus_value = data_buffer_.next_input();
-				bus_operation = MOS6502Esque::Read;
+				read(data_address_, data_buffer_.next_input());
 			break;
 
 			case CycleFetchIncorrectDataAddress:
-				bus_address = incorrect_data_address_;
-				bus_value = &throwaway;
-				bus_operation = MOS6502Esque::Read;
+				read(incorrect_data_address_, &throwaway);
 			break;
 
 			case CycleFetchIncrementData:
-				bus_address = data_address_;
-				bus_value = data_buffer_.next_input();
-				bus_operation = MOS6502Esque::Read;
+				read(data_address_, data_buffer_.next_input());
 				increment_data_address();
 			break;
 
 			case CycleStoreData:
-				bus_address = data_address_;
-				bus_value = data_buffer_.next_output();
-				bus_operation = MOS6502Esque::Read;
+				write(data_address_, data_buffer_.next_output());
 			break;
 
 			case CycleStoreIncrementData:
-				bus_address = data_address_;
-				bus_value = data_buffer_.next_output();
-				bus_operation = MOS6502Esque::Read;
+				write(data_address_, data_buffer_.next_output());
 				increment_data_address();
 			break;
 
 			case CycleStoreDecrementData:
-				bus_address = data_address_;
-				bus_value = data_buffer_.next_output();
-				bus_operation = MOS6502Esque::Read;
+				write(data_address_, data_buffer_.next_output());
 				decrement_data_address();
 			break;
 
@@ -180,6 +174,17 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 				// If the incorrect address isn't actually incorrect, skip its usage.
 				if(operation == OperationConstructAbsoluteXRead && data_address_ == incorrect_data_address_) {
+					++next_op_;
+				}
+			break;
+
+			case OperationConstructAbsoluteYRead:
+			case OperationConstructAbsoluteY:
+				data_address_ = ((instruction_buffer_.value + (y_.full & x_masks_[1])) & 0xffff) | data_bank_;
+				incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) | data_bank_;
+
+				// If the incorrect address isn't actually incorrect, skip its usage.
+				if(operation == OperationConstructAbsoluteYRead && data_address_ == incorrect_data_address_) {
 					++next_op_;
 				}
 			break;
@@ -264,6 +269,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 		number_of_cycles -= bus_handler_.perform_bus_operation(bus_operation, bus_address, bus_value);
 	}
+
+#undef read
+#undef write
+#undef bus_operation
 
 	cycles_left_to_run_ = number_of_cycles;
 }
