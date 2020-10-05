@@ -21,6 +21,9 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #define read(address, value)	perform_bus(address, value, MOS6502Esque::Read)
 #define write(address, value)	perform_bus(address, value, MOS6502Esque::Write)
 
+#define x()	(x_.full & x_masks_[1])
+#define y()	(y_.full & x_masks_[1])
+
 	Cycles number_of_cycles = cycles + cycles_left_to_run_;
 	while(number_of_cycles > Cycles(0)) {
 		const MicroOp operation = *next_op_;
@@ -107,15 +110,15 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			break;
 
 			case CycleFetchBlockX:
-				read(((instruction_buffer_.value & 0xff00) << 8) | (x_.full & x_masks_[1]), data_buffer_.any_byte());
+				read(((instruction_buffer_.value & 0xff00) << 8) | x(), data_buffer_.any_byte());
 			break;
 
 			case CycleFetchBlockY:
-				read(((instruction_buffer_.value & 0xff00) << 8) | (y_.full & x_masks_[1]), &throwaway);
+				read(((instruction_buffer_.value & 0xff00) << 8) | y(), &throwaway);
 			break;
 
 			case CycleStoreBlockY:
-				write(((instruction_buffer_.value & 0xff00) << 8) | (y_.full & x_masks_[1]), data_buffer_.any_byte());
+				write(((instruction_buffer_.value & 0xff00) << 8) | x(), data_buffer_.any_byte());
 			break;
 
 #undef increment_data_address
@@ -172,16 +175,16 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			break;
 
 			case OperationConstructAbsoluteIndexedIndirect:
-				data_address_ = (instruction_buffer_.value + (x_.full & x_masks_[1])) & 0xffff;
+				data_address_ = (instruction_buffer_.value + x()) & 0xffff;
 			break;
 
 			case OperationConstructAbsoluteLongX:
-				data_address_ = instruction_buffer_.value + (x_.full & x_masks_[1]);
+				data_address_ = instruction_buffer_.value + x();
 			break;
 
 			case OperationConstructAbsoluteXRead:
 			case OperationConstructAbsoluteX:
-				data_address_ = ((instruction_buffer_.value + (x_.full & x_masks_[1])) & 0xffff) | data_bank_;
+				data_address_ = ((instruction_buffer_.value + x()) & 0xffff) | data_bank_;
 				incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) | data_bank_;
 
 				// If the incorrect address isn't actually incorrect, skip its usage.
@@ -192,11 +195,25 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructAbsoluteYRead:
 			case OperationConstructAbsoluteY:
-				data_address_ = ((instruction_buffer_.value + (y_.full & x_masks_[1])) & 0xffff) | data_bank_;
+				data_address_ = ((instruction_buffer_.value + y()) & 0xffff) | data_bank_;
 				incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) | data_bank_;
 
 				// If the incorrect address isn't actually incorrect, skip its usage.
 				if(operation == OperationConstructAbsoluteYRead && data_address_ == incorrect_data_address_) {
+					++next_op_;
+				}
+			break;
+
+			case OperationConstructDirect:
+				data_address_ = direct_ + instruction_buffer_.value;
+				if(!(direct_&0xff)) {
+					++next_op_;
+				}
+			break;
+
+			case OperationConstructDirectIndexedIndirect:
+				data_address_ = direct_ + x() + instruction_buffer_.value;
+				if(!(direct_&0xff)) {
 					++next_op_;
 				}
 			break;
@@ -301,6 +318,8 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #undef read
 #undef write
 #undef bus_operation
+#undef x
+#undef y
 
 	cycles_left_to_run_ = number_of_cycles;
 }
