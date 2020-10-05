@@ -424,21 +424,17 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void direct_indirect_indexed(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);					// DO.
 
-		target(OperationConstructDirectIndirect);
+		target(OperationConstructDirect);
 		target(CycleFetchPC);							// IO.
 
 		target(CycleFetchIncrementData);				// AAL.
 		target(CycleFetchData);							// AAH.
 
-		target(OperationConstructDirectIndirectIndexed);
+		target(OperationConstructAbsoluteYRead);
 		target(CycleFetchIncorrectDataAddress);			// IO.
 
 		read_write(type, is8bit, target);
 	}
-	// TODO: verify, especially re: false addresses.
-	// i.e. it currently looks to me superficially as though I can reuse
-	// OperationConstructDirectIndirect here, but writing the proper
-	// interpreter will help to clarify.
 
 	// 14. Direct Indirect Indexed Long; [d], y.
 	static void direct_indirect_indexed_long(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {

@@ -22,9 +22,6 @@ enum MicroOp: uint8_t {
 	/// of the instruction buffer, throwing the result away.
 	CycleFetchIncorrectDataAddress,
 
-	/// Fetches a vector (i.e. IRQ, NMI, etc) into the data buffer.
-	CycleFetchVector,
-
 	// Dedicated block-move cycles; these use the data buffer as an intermediary.
 	CycleFetchBlockX,
 	CycleFetchBlockY,
@@ -44,11 +41,15 @@ enum MicroOp: uint8_t {
 	/// Pulls a single byte to the data buffer from the stack.
 	CyclePull,
 
-	/// Sets the data address by copying the final two bytes of the instruction buffer.
+	/// Sets the data address by copying the final two bytes of the instruction buffer and
+	/// using the data register as a high byte.
 	OperationConstructAbsolute,
-	/// Sets the data address to the result of (a, x).
-	/// TODO: explain better once implemented.
+
+	/// Sets the data address to the 16-bit result of adding x to the value in the instruction buffer.
 	OperationConstructAbsoluteIndexedIndirect,
+
+	/// Sets the data address to the 24-bit result of adding x to the low 16-bits of the value in the
+	/// instruction buffer and retaining the highest 8-bits as specified.
 	OperationConstructAbsoluteLongX,
 
 	/// Calculates an a, x address; if:
@@ -68,19 +69,40 @@ enum MicroOp: uint8_t {
 	/// Skips the next micro-op if the low byte of the direct register is 0.
 	OperationConstructDirect,
 
-	// These follow similar skip-one-if-possible logic to OperationConstructDirect.
+	/// Constructs the current direct indexed indirect address using the data bank,
+	/// direct and x registers plus the value currently in the instruction buffer.
+	/// Skips the next micro-op if the low byte of the direct register is 0.
 	OperationConstructDirectIndexedIndirect,
+
+	/// Constructs the current direct indexed indirect address using the data bank and
+	/// direct registers plus the value currently in the instruction buffer.
+	/// Skips the next micro-op if the low byte of the direct register is 0.
 	OperationConstructDirectIndirect,
-	OperationConstructDirectIndirectIndexed,
+
+	/// Adds y to the low 16-bits currently in the instruction buffer and appends a high 8-bits
+	/// also from the instruction buffer.
 	OperationConstructDirectIndirectIndexedLong,
+
+	/// Uses the 24-bit address currently in the instruction buffer.
 	OperationConstructDirectIndirectLong,
+
+	/// Adds the x register to the direct register to produce a 16-bit address;
+	/// skips the next micro-op if the low byte of the direct register is 0.
 	OperationConstructDirectX,
+
+	/// Adds the y register to the direct register to produce a 16-bit address;
+	/// skips the next micro-op if the low byte of the direct register is 0.
 	OperationConstructDirectY,
 
+	/// Adds the instruction buffer to the program counter, making a 16-bit result,
+	/// *and stores it into the data buffer*.
 	OperationConstructPER,
-	OperationConstructBRK,
 
+	/// Adds the stack pointer to the instruction buffer to produce a 16-bit address.
 	OperationConstructStackRelative,
+
+	/// Adds y to the value in the instruction buffer to produce a 16-bit result and
+	/// prefixes the current data bank.
 	OperationConstructStackRelativeIndexedIndirect,
 
 	/// Performs whatever operation goes with this program.
@@ -93,7 +115,10 @@ enum MicroOp: uint8_t {
 	/// Copies the current PBR to the data buffer.
 	OperationCopyPBRToData,
 
+	/// Copies A to the data buffer.
 	OperationCopyAToData,
+
+	/// Copies the data buffer to A.
 	OperationCopyDataToA,
 
 	/// Fills the data buffer with three or four bytes, depending on emulation mode, containing the program

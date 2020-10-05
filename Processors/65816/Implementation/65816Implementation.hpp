@@ -166,12 +166,30 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				data_buffer_ = instruction_buffer_;
 			break;
 
+			case OperationCopyAToData:
+				if(mx_flags_[0]) {
+					data_buffer_.size = 1;
+					data_buffer_.value = a_.halves.high;
+				} else {
+					data_buffer_.size = 2;
+					data_buffer_.value = a_.full;
+				}
+			break;
+
+			case OperationCopyDataToA:
+				if(mx_flags_[0]) {
+					a_.halves.high = data_buffer_.value;
+				} else {
+					a_.full = data_buffer_.value;
+				}
+			break;
+
 			//
 			// Address construction.
 			//
 
 			case OperationConstructAbsolute:
-				data_address_ = instruction_buffer_.value | data_bank_;
+				data_address_ = instruction_buffer_.value + data_bank_;
 			break;
 
 			case OperationConstructAbsoluteIndexedIndirect:
@@ -179,13 +197,13 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			break;
 
 			case OperationConstructAbsoluteLongX:
-				data_address_ = instruction_buffer_.value + x();
+				data_address_ = (instruction_buffer_.value + x()) & 0xffff + instruction_buffer_.value & 0xff0000;
 			break;
 
 			case OperationConstructAbsoluteXRead:
 			case OperationConstructAbsoluteX:
-				data_address_ = ((instruction_buffer_.value + x()) & 0xffff) | data_bank_;
-				incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) | data_bank_;
+				data_address_ = ((instruction_buffer_.value + x()) & 0xffff) + data_bank_;
+				incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) + data_bank_;
 
 				// If the incorrect address isn't actually incorrect, skip its usage.
 				if(operation == OperationConstructAbsoluteXRead && data_address_ == incorrect_data_address_) {
@@ -195,8 +213,8 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructAbsoluteYRead:
 			case OperationConstructAbsoluteY:
-				data_address_ = ((instruction_buffer_.value + y()) & 0xffff) | data_bank_;
-				incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) | data_bank_;
+				data_address_ = ((instruction_buffer_.value + y()) & 0xffff) + data_bank_;
+				incorrect_data_address_ = (data_address_ & 0xff) + (instruction_buffer_.value & 0xff00) + data_bank_;
 
 				// If the incorrect address isn't actually incorrect, skip its usage.
 				if(operation == OperationConstructAbsoluteYRead && data_address_ == incorrect_data_address_) {
@@ -223,6 +241,45 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
+			break;
+
+			case OperationConstructDirectIndirectIndexedLong:
+				// TODO: assumed here is that the low 16-bit calculation can't carry into
+				// the high byte. Test this!
+				data_address_ = (y() + instruction_buffer_.value) & 0xffff + instruction_buffer_.value & 0xff0000;
+			break;
+
+			case OperationConstructDirectIndirectLong:
+				data_address_ = instruction_buffer_.value;
+			break;
+
+			case OperationConstructDirectX:
+				data_address_ = (direct_ + x()) & 0xffff;
+				incorrect_data_address_ = (direct_ & 0xff00) + (data_address_ & 0x00ff);
+				if(!(direct_&0xff)) {
+					++next_op_;
+				}
+			break;
+
+			case OperationConstructDirectY:
+				data_address_ = (direct_ + y()) & 0xffff;
+				incorrect_data_address_ = (direct_ & 0xff00) + (data_address_ & 0x00ff);
+				if(!(direct_&0xff)) {
+					++next_op_;
+				}
+			break;
+
+			case OperationConstructPER:
+				data_buffer_.value = instruction_buffer_.value + pc_;
+				data_buffer_.size = 2;
+			break;
+
+			case OperationConstructStackRelative:
+				data_address_ = (s_.full + instruction_buffer_.value) & 0xffff;
+			break;
+
+			case OperationConstructStackRelativeIndexedIndirect:
+				data_address_ = data_bank_ + (instruction_buffer_.value + y()) & 0xffff;
 			break;
 
 			//
@@ -315,8 +372,8 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				}
 			break;
 
-			default:
-				assert(false);
+//			default:
+//				assert(false);
 		}
 
 		number_of_cycles -= bus_handler_.perform_bus_operation(bus_operation, bus_address, bus_value);
