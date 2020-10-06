@@ -9,7 +9,7 @@
 #ifndef MOS6502AllRAM_cpp
 #define MOS6502AllRAM_cpp
 
-#include "../../6502Selector.hpp"
+#include "../../6502Esque/6502Selector.hpp"
 #include "../../AllRAMProcessor.hpp"
 
 namespace CPU {

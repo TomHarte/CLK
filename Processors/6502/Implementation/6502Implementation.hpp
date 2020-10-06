@@ -13,7 +13,7 @@
 */
 
 template <Personality personality, typename T, bool uses_ready_line> void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
-	static uint8_t throwaway_target;
+	uint8_t throwaway_target;
 
 	// These plus program below act to give the compiler permission to update these values
 	// without touching the class storage (i.e. it explicitly says they need be completely up
@@ -42,7 +42,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 #define bus_access() \
 	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;	\
-	irq_request_history_ = irq_line_ & inverse_interrupt_flag_;	\
+	irq_request_history_ = irq_line_ & flags_.inverse_interrupt;	\
 	number_of_cycles -= bus_handler_.perform_bus_operation(nextBusOperation, busAddress, busValue);	\
 	nextBusOperation = BusOperation::None;	\
 	if(number_of_cycles <= Cycles(0)) break;
@@ -70,7 +70,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 		// Deal with a potential WAI state, if this 6502 implements WAI.
 		while(has_stpwai(personality) && wait_is_active_ && number_of_cycles > Cycles(0)) {
 			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
-			interrupt_requests_ |= (irq_line_ & inverse_interrupt_flag_);
+			interrupt_requests_ |= (irq_line_ & flags_.inverse_interrupt);
 			if(interrupt_requests_ & InterruptRequestFlags::NMI || irq_line_) {
 				wait_is_active_ = false;
 				checkSchedule();
@@ -167,25 +167,25 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case CycleReadVectorLow:			read_mem(pc_.halves.low, nextAddress.full);							break;
 					case CycleReadVectorHigh:			read_mem(pc_.halves.high, nextAddress.full+1);						break;
 					case OperationSetIRQFlags:
-						inverse_interrupt_flag_ = 0;
-						if(is_65c02(personality)) decimal_flag_ = false;
+						flags_.inverse_interrupt = 0;
+						if(is_65c02(personality)) flags_.decimal = 0;
 					continue;
 					case OperationSetNMIRSTFlags:
-						if(is_65c02(personality)) decimal_flag_ = false;
+						if(is_65c02(personality)) flags_.decimal = 0;
 					continue;
 
-					case CyclePullPCL:					s_++; read_mem(pc_.halves.low, s_ | 0x100);							break;
-					case CyclePullPCH:					s_++; read_mem(pc_.halves.high, s_ | 0x100);						break;
-					case CyclePullA:					s_++; read_mem(a_, s_ | 0x100);										break;
-					case CyclePullX:					s_++; read_mem(x_, s_ | 0x100);										break;
-					case CyclePullY:					s_++; read_mem(y_, s_ | 0x100);										break;
-					case CyclePullOperand:				s_++; read_mem(operand_, s_ | 0x100);								break;
-					case OperationSetFlagsFromOperand:	set_flags(operand_);												continue;
-					case OperationSetOperandFromFlagsWithBRKSet: operand_ = get_flags() | Flag::Break;						continue;
-					case OperationSetOperandFromFlags:  operand_ = get_flags();												continue;
-					case OperationSetFlagsFromA:		zero_result_ = negative_result_ = a_;								continue;
-					case OperationSetFlagsFromX:		zero_result_ = negative_result_ = x_;								continue;
-					case OperationSetFlagsFromY:		zero_result_ = negative_result_ = y_;								continue;
+					case CyclePullPCL:					s_++; read_mem(pc_.halves.low, s_ | 0x100);			break;
+					case CyclePullPCH:					s_++; read_mem(pc_.halves.high, s_ | 0x100);		break;
+					case CyclePullA:					s_++; read_mem(a_, s_ | 0x100);						break;
+					case CyclePullX:					s_++; read_mem(x_, s_ | 0x100);						break;
+					case CyclePullY:					s_++; read_mem(y_, s_ | 0x100);						break;
+					case CyclePullOperand:				s_++; read_mem(operand_, s_ | 0x100);				break;
+					case OperationSetFlagsFromOperand:	set_flags(operand_);								continue;
+					case OperationSetOperandFromFlagsWithBRKSet: operand_ = flags_.get() | Flag::Break;		continue;
+					case OperationSetOperandFromFlags:  operand_ = flags_.get();							continue;
+					case OperationSetFlagsFromA:		flags_.set_nz(a_);									continue;
+					case OperationSetFlagsFromX:		flags_.set_nz(x_);									continue;
+					case OperationSetFlagsFromY:		flags_.set_nz(y_);									continue;
 
 					case CycleIncrementPCAndReadStack:	pc_.full++; throwaway_read(s_ | 0x100);														break;
 					case CycleReadPCLFromAddress:		read_mem(pc_.halves.low, address_.full);													break;
@@ -216,17 +216,17 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 // MARK: - Bitwise
 
-					case OperationORA:	a_ |= operand_;	negative_result_ = zero_result_ = a_;		continue;
-					case OperationAND:	a_ &= operand_;	negative_result_ = zero_result_ = a_;		continue;
-					case OperationEOR:	a_ ^= operand_;	negative_result_ = zero_result_ = a_;		continue;
+					case OperationORA:	a_ |= operand_;	flags_.set_nz(a_);		continue;
+					case OperationAND:	a_ &= operand_;	flags_.set_nz(a_);		continue;
+					case OperationEOR:	a_ ^= operand_;	flags_.set_nz(a_);		continue;
 
 // MARK: - Load and Store
 
-					case OperationLDA:	a_ = negative_result_ = zero_result_ = operand_;			continue;
-					case OperationLDX:	x_ = negative_result_ = zero_result_ = operand_;			continue;
-					case OperationLDY:	y_ = negative_result_ = zero_result_ = operand_;			continue;
-					case OperationLAX:	a_ = x_ = negative_result_ = zero_result_ = operand_;		continue;
-					case OperationCopyOperandToA:		a_ = operand_;								continue;
+					case OperationLDA:	flags_.set_nz(a_ = operand_);			continue;
+					case OperationLDX:	flags_.set_nz(x_ = operand_);			continue;
+					case OperationLDY:	flags_.set_nz(y_ = operand_);			continue;
+					case OperationLAX:	flags_.set_nz(a_ = x_ = operand_);		continue;
+					case OperationCopyOperandToA:		a_ = operand_;			continue;
 
 					case OperationSTA:	operand_ = a_;											continue;
 					case OperationSTX:	operand_ = x_;											continue;
@@ -240,43 +240,43 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case OperationLXA:
 						a_ = x_ = (a_ | 0xee) & operand_;
-						negative_result_ = zero_result_ = a_;
+						flags_.set_nz(a_);
 					continue;
 
 // MARK: - Compare
 
 					case OperationCMP: {
 						const uint16_t temp16 = a_ - operand_;
-						negative_result_ = zero_result_ = uint8_t(temp16);
-						carry_flag_ = ((~temp16) >> 8)&1;
+						flags_.set_nz(uint8_t(temp16));
+						flags_.carry = ((~temp16) >> 8)&1;
 					} continue;
 					case OperationCPX: {
 						const uint16_t temp16 = x_ - operand_;
-						negative_result_ = zero_result_ = uint8_t(temp16);
-						carry_flag_ = ((~temp16) >> 8)&1;
+						flags_.set_nz(uint8_t(temp16));
+						flags_.carry = ((~temp16) >> 8)&1;
 					} continue;
 					case OperationCPY: {
 						const uint16_t temp16 = y_ - operand_;
-						negative_result_ = zero_result_ = uint8_t(temp16);
-						carry_flag_ = ((~temp16) >> 8)&1;
+						flags_.set_nz(uint8_t(temp16));
+						flags_.carry = ((~temp16) >> 8)&1;
 					} continue;
 
 // MARK: - BIT, TSB, TRB
 
 					case OperationBIT:
-						zero_result_ = operand_ & a_;
-						negative_result_ = operand_;
-						overflow_flag_ = operand_&Flag::Overflow;
+						flags_.zero_result = operand_ & a_;
+						flags_.negative_result = operand_;
+						flags_.overflow = operand_ & Flag::Overflow;
 					continue;
 					case OperationBITNoNV:
-						zero_result_ = operand_ & a_;
+						flags_.zero_result = operand_ & a_;
 					continue;
 					case OperationTRB:
-						zero_result_ = operand_ & a_;
+						flags_.zero_result = operand_ & a_;
 						operand_ &= ~a_;
 					continue;
 					case OperationTSB:
-						zero_result_ = operand_ & a_;
+						flags_.zero_result = operand_ & a_;
 						operand_ |= a_;
 					continue;
 
@@ -295,8 +295,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						operand_++;
 						[[fallthrough]];
 					case OperationSBC:
-						if(decimal_flag_ && has_decimal_mode(personality)) {
-							const uint16_t notCarry = carry_flag_ ^ 0x1;
+						if(flags_.decimal && has_decimal_mode(personality)) {
+							const uint16_t notCarry = flags_.carry ^ 0x1;
 							const uint16_t decimalResult = uint16_t(a_) - uint16_t(operand_) - notCarry;
 							uint16_t temp16;
 
@@ -305,17 +305,17 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							temp16 = (temp16&0x0f) | ((temp16 > 0x0f) ? 0xfff0 : 0x00);
 							temp16 += (a_&0xf0) - (operand_&0xf0);
 
-							overflow_flag_ = ( ( (decimalResult^a_)&(~decimalResult^operand_) )&0x80) >> 1;
-							negative_result_ = uint8_t(temp16);
-							zero_result_ = uint8_t(decimalResult);
+							flags_.overflow = ( ( (decimalResult^a_)&(~decimalResult^operand_) )&0x80) >> 1;
+							flags_.negative_result = uint8_t(temp16);
+							flags_.zero_result = uint8_t(decimalResult);
 
 							if(temp16 > 0xff) temp16 -= 0x60;
 
-							carry_flag_ = (temp16 > 0xff) ? 0 : Flag::Carry;
+							flags_.carry = (temp16 > 0xff) ? 0 : Flag::Carry;
 							a_ = uint8_t(temp16);
 
 							if(is_65c02(personality)) {
-								negative_result_ = zero_result_ = a_;
+								flags_.set_nz(a_);
 								read_mem(operand_, address_.full);
 								break;
 							}
@@ -326,30 +326,30 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						[[fallthrough]];
 
 					case OperationADC:
-						if(decimal_flag_ && has_decimal_mode(personality)) {
-							const uint16_t decimalResult = uint16_t(a_) + uint16_t(operand_) + uint16_t(carry_flag_);
+						if(flags_.decimal && has_decimal_mode(personality)) {
+							const uint16_t decimalResult = uint16_t(a_) + uint16_t(operand_) + uint16_t(flags_.carry);
 
-							uint8_t low_nibble = (a_ & 0xf) + (operand_ & 0xf) + carry_flag_;
+							uint8_t low_nibble = (a_ & 0xf) + (operand_ & 0xf) + flags_.carry;
 							if(low_nibble >= 0xa) low_nibble = ((low_nibble + 0x6) & 0xf) + 0x10;
 							uint16_t result = uint16_t(a_ & 0xf0) + uint16_t(operand_ & 0xf0) + uint16_t(low_nibble);
-							negative_result_ = uint8_t(result);
-							overflow_flag_ = (( (result^a_)&(result^operand_) )&0x80) >> 1;
+							flags_.negative_result = uint8_t(result);
+							flags_.overflow = (( (result^a_)&(result^operand_) )&0x80) >> 1;
 							if(result >= 0xa0) result += 0x60;
 
-							carry_flag_ = (result >> 8) ? 1 : 0;
+							flags_.carry = (result >> 8) ? 1 : 0;
 							a_ = uint8_t(result);
-							zero_result_ = uint8_t(decimalResult);
+							flags_.zero_result = uint8_t(decimalResult);
 
 							if(is_65c02(personality)) {
-								negative_result_ = zero_result_ = a_;
+								flags_.set_nz(a_);
 								read_mem(operand_, address_.full);
 								break;
 							}
 						} else {
-							const uint16_t result = uint16_t(a_) + uint16_t(operand_) + uint16_t(carry_flag_);
-							overflow_flag_ = (( (result^a_)&(result^operand_) )&0x80) >> 1;
-							negative_result_ = zero_result_ = a_ = uint8_t(result);
-							carry_flag_ = (result >> 8)&1;
+							const uint16_t result = uint16_t(a_) + uint16_t(operand_) + uint16_t(flags_.carry);
+							flags_.overflow = (( (result^a_)&(result^operand_) )&0x80) >> 1;
+							flags_.set_nz(a_ = uint8_t(result));
+							flags_.carry = (result >> 8)&1;
 						}
 
 						// fix up in case this was INS
@@ -359,99 +359,99 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 // MARK: - Shifts and Rolls
 
 					case OperationASL:
-						carry_flag_ = operand_ >> 7;
+						flags_.carry = operand_ >> 7;
 						operand_ <<= 1;
-						negative_result_ = zero_result_ = operand_;
+						flags_.set_nz(operand_);
 					continue;
 
 					case OperationASO:
-						carry_flag_ = operand_ >> 7;
+						flags_.carry = operand_ >> 7;
 						operand_ <<= 1;
 						a_ |= operand_;
-						negative_result_ = zero_result_ = a_;
+						flags_.set_nz(a_);
 					continue;
 
 					case OperationROL: {
-						const uint8_t temp8 = uint8_t((operand_ << 1) | carry_flag_);
-						carry_flag_ = operand_ >> 7;
-						operand_ = negative_result_ = zero_result_ = temp8;
+						const uint8_t temp8 = uint8_t((operand_ << 1) | flags_.carry);
+						flags_.carry = operand_ >> 7;
+						flags_.set_nz(operand_ = temp8);
 					} continue;
 
 					case OperationRLA: {
-						const uint8_t temp8 = uint8_t((operand_ << 1) | carry_flag_);
-						carry_flag_ = operand_ >> 7;
+						const uint8_t temp8 = uint8_t((operand_ << 1) | flags_.carry);
+						flags_.carry = operand_ >> 7;
 						operand_ = temp8;
 						a_ &= operand_;
-						negative_result_ = zero_result_ = a_;
+						flags_.set_nz(a_);
 					} continue;
 
 					case OperationLSR:
-						carry_flag_ = operand_ & 1;
+						flags_.carry = operand_ & 1;
 						operand_ >>= 1;
-						negative_result_ = zero_result_ = operand_;
+						flags_.set_nz(operand_);
 					continue;
 
 					case OperationLSE:
-						carry_flag_ = operand_ & 1;
+						flags_.carry = operand_ & 1;
 						operand_ >>= 1;
 						a_ ^= operand_;
-						negative_result_ = zero_result_ = a_;
+						flags_.set_nz(a_);
 					continue;
 
 					case OperationASR:
 						a_ &= operand_;
-						carry_flag_ = a_ & 1;
+						flags_.carry = a_ & 1;
 						a_ >>= 1;
-						negative_result_ = zero_result_ = a_;
+						flags_.set_nz(a_);
 					continue;
 
 					case OperationROR: {
-						const uint8_t temp8 = uint8_t((operand_ >> 1) | (carry_flag_ << 7));
-						carry_flag_ = operand_ & 1;
-						operand_ = negative_result_ = zero_result_ = temp8;
+						const uint8_t temp8 = uint8_t((operand_ >> 1) | (flags_.carry << 7));
+						flags_.carry = operand_ & 1;
+						flags_.set_nz(operand_ = temp8);
 					} continue;
 
 					case OperationRRA: {
-						const uint8_t temp8 = uint8_t((operand_ >> 1) | (carry_flag_ << 7));
-						carry_flag_ = operand_ & 1;
+						const uint8_t temp8 = uint8_t((operand_ >> 1) | (flags_.carry << 7));
+						flags_.carry = operand_ & 1;
 						operand_ = temp8;
 					} continue;
 
 					case OperationDecrementOperand: operand_--; continue;
 					case OperationIncrementOperand: operand_++; continue;
 
-					case OperationCLC: carry_flag_ = 0;								continue;
-					case OperationCLI: inverse_interrupt_flag_ = Flag::Interrupt;	continue;
-					case OperationCLV: overflow_flag_ = 0;							continue;
-					case OperationCLD: decimal_flag_ = 0;							continue;
+					case OperationCLC: flags_.carry = 0;							continue;
+					case OperationCLI: flags_.inverse_interrupt = Flag::Interrupt;	continue;
+					case OperationCLV: flags_.overflow = 0;							continue;
+					case OperationCLD: flags_.decimal = 0;							continue;
 
-					case OperationSEC: carry_flag_ = Flag::Carry;		continue;
-					case OperationSEI: inverse_interrupt_flag_ = 0;		continue;
-					case OperationSED: decimal_flag_ = Flag::Decimal;	continue;
+					case OperationSEC: flags_.carry = Flag::Carry;		continue;
+					case OperationSEI: flags_.inverse_interrupt = 0;	continue;
+					case OperationSED: flags_.decimal = Flag::Decimal;	continue;
 
-					case OperationINC: operand_++; negative_result_ = zero_result_ = operand_; continue;
-					case OperationDEC: operand_--; negative_result_ = zero_result_ = operand_; continue;
-					case OperationINA: a_++; negative_result_ = zero_result_ = a_; continue;
-					case OperationDEA: a_--; negative_result_ = zero_result_ = a_; continue;
-					case OperationINX: x_++; negative_result_ = zero_result_ = x_; continue;
-					case OperationDEX: x_--; negative_result_ = zero_result_ = x_; continue;
-					case OperationINY: y_++; negative_result_ = zero_result_ = y_; continue;
-					case OperationDEY: y_--; negative_result_ = zero_result_ = y_; continue;
+					case OperationINC: operand_++; flags_.set_nz(operand_);		continue;
+					case OperationDEC: operand_--; flags_.set_nz(operand_);		continue;
+					case OperationINA: a_++; flags_.set_nz(a_); 				continue;
+					case OperationDEA: a_--; flags_.set_nz(a_); 				continue;
+					case OperationINX: x_++; flags_.set_nz(x_); 				continue;
+					case OperationDEX: x_--; flags_.set_nz(x_); 				continue;
+					case OperationINY: y_++; flags_.set_nz(y_); 				continue;
+					case OperationDEY: y_--; flags_.set_nz(y_); 				continue;
 
 					case OperationANE:
 						a_ = (a_ | 0xee) & operand_ & x_;
-						negative_result_ = zero_result_ = a_;
+						flags_.set_nz(a_);
 					continue;
 
 					case OperationANC:
 						a_ &= operand_;
-						negative_result_ = zero_result_ = a_;
-						carry_flag_ = a_ >> 7;
+						flags_.set_nz(a_);
+						flags_.carry = a_ >> 7;
 					continue;
 
 					case OperationLAS:
 						a_ = x_ = s_ = s_ & operand_;
-						negative_result_ = zero_result_ = a_;
+						flags_.set_nz(a_);
 					continue;
 
 // MARK: - Addressing Mode Work
@@ -548,7 +548,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						throwaway_read(operand_);
 					break;
 
-					case OperationIncrementPC:			pc_.full++;						continue;
+					case OperationIncrementPC:			pc_.full++;							continue;
 					case CycleFetchOperandFromAddress:	read_mem(operand_, address_.full);	break;
 					case CycleWriteOperandToAddress:	write_mem(operand_, address_.full);	break;
 
@@ -560,14 +560,14 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 		scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoBRA)];	\
 	}
 
-					case OperationBPL: BRA(!(negative_result_&0x80));				continue;
-					case OperationBMI: BRA(negative_result_&0x80);					continue;
-					case OperationBVC: BRA(!overflow_flag_);						continue;
-					case OperationBVS: BRA(overflow_flag_);							continue;
-					case OperationBCC: BRA(!carry_flag_);							continue;
-					case OperationBCS: BRA(carry_flag_);							continue;
-					case OperationBNE: BRA(zero_result_);							continue;
-					case OperationBEQ: BRA(!zero_result_);							continue;
+					case OperationBPL: BRA(!(flags_.negative_result&0x80));			continue;
+					case OperationBMI: BRA(flags_.negative_result&0x80);			continue;
+					case OperationBVC: BRA(!flags_.overflow);						continue;
+					case OperationBVS: BRA(flags_.overflow);						continue;
+					case OperationBCC: BRA(!flags_.carry);							continue;
+					case OperationBCS: BRA(flags_.carry);							continue;
+					case OperationBNE: BRA(flags_.zero_result);						continue;
+					case OperationBEQ: BRA(!flags_.zero_result);					continue;
 					case OperationBRA: BRA(true);									continue;
 
 #undef BRA
@@ -610,31 +610,31 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 // MARK: - Transfers
 
-					case OperationTXA: zero_result_ = negative_result_ = a_ = x_;	continue;
-					case OperationTYA: zero_result_ = negative_result_ = a_ = y_;	continue;
-					case OperationTXS: s_ = x_;										continue;
-					case OperationTAY: zero_result_ = negative_result_ = y_ = a_;	continue;
-					case OperationTAX: zero_result_ = negative_result_ = x_ = a_;	continue;
-					case OperationTSX: zero_result_ = negative_result_ = x_ = s_;	continue;
+					case OperationTXA: flags_.set_nz(a_ = x_);	continue;
+					case OperationTYA: flags_.set_nz(a_ = y_);	continue;
+					case OperationTXS: s_ = x_;					continue;
+					case OperationTAY: flags_.set_nz(y_ = a_);	continue;
+					case OperationTAX: flags_.set_nz(x_ = a_);	continue;
+					case OperationTSX: flags_.set_nz(x_ = s_);	continue;
 
 					case OperationARR:
-						if(decimal_flag_) {
+						if(flags_.decimal) {
 							a_ &= operand_;
 							uint8_t unshiftedA = a_;
-							a_ = uint8_t((a_ >> 1) | (carry_flag_ << 7));
-							zero_result_ = negative_result_ = a_;
-							overflow_flag_ = (a_^(a_ << 1))&Flag::Overflow;
+							a_ = uint8_t((a_ >> 1) | (flags_.carry << 7));
+							flags_.set_nz(a_);
+							flags_.overflow = (a_^(a_ << 1))&Flag::Overflow;
 
 							if((unshiftedA&0xf) + (unshiftedA&0x1) > 5) a_ = ((a_ + 6)&0xf) | (a_ & 0xf0);
 
-							carry_flag_ = ((unshiftedA&0xf0) + (unshiftedA&0x10) > 0x50) ? 1 : 0;
-							if(carry_flag_) a_ += 0x60;
+							flags_.carry = ((unshiftedA&0xf0) + (unshiftedA&0x10) > 0x50) ? 1 : 0;
+							if(flags_.carry) a_ += 0x60;
 						} else {
 							a_ &= operand_;
-							a_ = uint8_t((a_ >> 1) | (carry_flag_ << 7));
-							negative_result_ = zero_result_ = a_;
-							carry_flag_ = (a_ >> 6)&1;
-							overflow_flag_ = (a_^(a_ << 1))&Flag::Overflow;
+							a_ = uint8_t((a_ >> 1) | (flags_.carry << 7));
+							flags_.set_nz(a_);
+							flags_.carry = (a_ >> 6)&1;
+							flags_.overflow = (a_^(a_ << 1))&Flag::Overflow;
 						}
 					continue;
 
@@ -642,8 +642,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						x_ &= a_;
 						uint16_t difference = x_ - operand_;
 						x_ = uint8_t(difference);
-						negative_result_ = zero_result_ = x_;
-						carry_flag_ = ((difference >> 8)&1)^1;
+						flags_.set_nz(x_);
+						flags_.carry = ((difference >> 8)&1)^1;
 					continue;
 				}
 
@@ -691,13 +691,13 @@ void ProcessorBase::set_power_on(bool active) {
 }
 
 void ProcessorBase::set_irq_line(bool active) {
-	irq_line_ = active ? Flag::Interrupt : 0;
+	irq_line_ = active ? MOS6502Esque::Flag::Interrupt : 0;
 }
 
 void ProcessorBase::set_overflow_line(bool active) {
 	// a leading edge will set the overflow flag
 	if(active && !set_overflow_line_is_enabled_)
-		overflow_flag_ = Flag::Overflow;
+		flags_.overflow = MOS6502Esque::Flag::Overflow;
 	set_overflow_line_is_enabled_ = active;
 }
 
@@ -709,14 +709,9 @@ void ProcessorBase::set_nmi_line(bool active) {
 }
 
 uint8_t ProcessorStorage::get_flags() const {
-	return carry_flag_ | overflow_flag_ | (inverse_interrupt_flag_ ^ Flag::Interrupt) | (negative_result_ & 0x80) | (zero_result_ ? 0 : Flag::Zero) | Flag::Always | decimal_flag_;
+	return flags_.get();
 }
 
 void ProcessorStorage::set_flags(uint8_t flags) {
-	carry_flag_				= flags		& Flag::Carry;
-	negative_result_		= flags		& Flag::Sign;
-	zero_result_			= (~flags)	& Flag::Zero;
-	overflow_flag_			= flags		& Flag::Overflow;
-	inverse_interrupt_flag_	= (~flags)	& Flag::Interrupt;
-	decimal_flag_			= flags		& Flag::Decimal;
+	flags_.set(flags);
 }

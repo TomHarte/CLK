@@ -228,7 +228,7 @@ class ProcessorStorage {
 		*/
 		RegisterPair16 pc_, last_operation_pc_;
 		uint8_t a_, x_, y_, s_ = 0;
-		uint8_t carry_flag_, negative_result_, zero_result_, decimal_flag_, overflow_flag_, inverse_interrupt_flag_ = 0;
+		MOS6502Esque::LazyFlags flags_;
 
 		/*
 			Temporary state for the micro programs.
@@ -267,7 +267,7 @@ class ProcessorStorage {
 
 		enum InterruptRequestFlags: uint8_t {
 			Reset		= 0x80,
-			IRQ			= Flag::Interrupt,
+			IRQ			= MOS6502Esque::Flag::Interrupt,
 			NMI			= 0x20,
 
 			PowerOn		= 0x10,

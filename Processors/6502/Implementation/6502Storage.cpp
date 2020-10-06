@@ -76,12 +76,6 @@ using namespace CPU::MOS6502;
 #define JAM									{CycleFetchOperand, OperationScheduleJam}
 
 ProcessorStorage::ProcessorStorage(Personality personality) {
-	// only the interrupt flag is defined upon reset but get_flags isn't going to
-	// mask the other flags so we need to do that, at least
-	carry_flag_ &= Flag::Carry;
-	decimal_flag_ &= Flag::Decimal;
-	overflow_flag_ &= Flag::Overflow;
-
 	const InstructionList operations_6502[] = {
 		/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetIRQFlags, CycleReadVectorLow, CycleReadVectorHigh),
 		/* 0x01 ORA x, ind */	IndexedIndirectRead(OperationORA),

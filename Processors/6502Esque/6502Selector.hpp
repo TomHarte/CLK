@@ -9,8 +9,8 @@
 #ifndef _502Selector_h
 #define _502Selector_h
 
-#include "6502/6502.hpp"
-#include "65816/65816.hpp"
+#include "../6502/6502.hpp"
+#include "../65816/65816.hpp"
 
 namespace CPU {
 namespace MOS6502Esque {

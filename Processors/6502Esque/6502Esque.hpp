@@ -9,6 +9,8 @@
 #ifndef m6502Esque_h
 #define m6502Esque_h
 
+#include "../../ClockReceiver/ClockReceiver.hpp"
+
 /*
 	This file defines how the CPU-controlled part of a bus looks for the 6502 and
 	for other processors with a sufficiently-similar bus.
@@ -33,6 +35,21 @@ enum Register {
 	A,
 	X,
 	Y
+};
+
+/*
+	Flags as defined on the 6502; can be used to decode the result of @c get_value_of_register(Flags) or to form a value for
+	the corresponding set.
+*/
+enum Flag: uint8_t {
+	Sign		= 0x80,
+	Overflow	= 0x40,
+	Always		= 0x20,
+	Break		= 0x10,
+	Decimal		= 0x08,
+	Interrupt	= 0x04,
+	Zero		= 0x02,
+	Carry		= 0x01
 };
 
 /*!

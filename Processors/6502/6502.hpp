@@ -13,16 +13,19 @@
 #include <cstdio>
 #include <cstdint>
 
+#include "../6502Esque/6502Esque.hpp"
+#include "../6502Esque/Implementation/LazyFlags.hpp"
 #include "../RegisterSizes.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../6502Esque.hpp"
 
 namespace CPU {
 namespace MOS6502 {
 
+// Adopt a bunch of things from MOS6502Esque.
 using BusOperation = CPU::MOS6502Esque::BusOperation;
 using BusHandler = CPU::MOS6502Esque::BusHandler<uint16_t>;
 using Register = CPU::MOS6502Esque::Register;
+using Flag = CPU::MOS6502Esque::Flag;
 
 /*
 	The list of 6502 variants supported by this implementation.
@@ -39,21 +42,6 @@ enum Personality {
 #define is_65c02(p)			((p) >= Personality::PSynertek65C02)
 #define has_bbrbbsrmbsmb(p)	((p) >= Personality::PRockwell65C02)
 #define has_stpwai(p)		((p) >= Personality::PWDC65C02)
-
-/*
-	Flags as defined on the 6502; can be used to decode the result of @c get_value_of_register(Flags) or to form a value for
-	the corresponding set.
-*/
-enum Flag: uint8_t {
-	Sign		= 0x80,
-	Overflow	= 0x40,
-	Always		= 0x20,
-	Break		= 0x10,
-	Decimal		= 0x08,
-	Interrupt	= 0x04,
-	Zero		= 0x02,
-	Carry		= 0x01
-};
 
 /*!
 	An opcode that is guaranteed to cause the CPU to jam.

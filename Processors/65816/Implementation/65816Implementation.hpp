@@ -372,8 +372,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				}
 			break;
 
-//			default:
-//				assert(false);
+			// TODO: OperationCopyPBRToData, OperationPrepareException
+
+			default:
+				assert(false);
 		}
 
 		number_of_cycles -= bus_handler_.perform_bus_operation(bus_operation, bus_address, bus_value);
