@@ -21,6 +21,9 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #define read(address, value)	perform_bus(address, value, MOS6502Esque::Read)
 #define write(address, value)	perform_bus(address, value, MOS6502Esque::Write)
 
+#define m_flag() mx_flags_[0]
+#define x_flag() mx_flags_[1]
+
 #define x()	(x_.full & x_masks_[1])
 #define y()	(y_.full & x_masks_[1])
 
@@ -160,29 +163,29 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			case OperationCopyPCToData:
 				data_buffer_.size = 2;
 				data_buffer_.value = pc_;
-			break;
+			continue;
 
 			case OperationCopyInstructionToData:
 				data_buffer_ = instruction_buffer_;
-			break;
+			continue;
 
 			case OperationCopyAToData:
-				if(mx_flags_[0]) {
+				if(m_flag()) {
 					data_buffer_.size = 1;
 					data_buffer_.value = a_.halves.high;
 				} else {
 					data_buffer_.size = 2;
 					data_buffer_.value = a_.full;
 				}
-			break;
+			continue;
 
 			case OperationCopyDataToA:
-				if(mx_flags_[0]) {
+				if(m_flag()) {
 					a_.halves.high = data_buffer_.value;
 				} else {
 					a_.full = data_buffer_.value;
 				}
-			break;
+			continue;
 
 			//
 			// Address construction.
@@ -194,11 +197,11 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructAbsoluteIndexedIndirect:
 				data_address_ = (instruction_buffer_.value + x()) & 0xffff;
-			break;
+			continue;
 
 			case OperationConstructAbsoluteLongX:
 				data_address_ = (instruction_buffer_.value + x()) & 0xffff + instruction_buffer_.value & 0xff0000;
-			break;
+			continue;
 
 			case OperationConstructAbsoluteXRead:
 			case OperationConstructAbsoluteX:
@@ -209,7 +212,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				if(operation == OperationConstructAbsoluteXRead && data_address_ == incorrect_data_address_) {
 					++next_op_;
 				}
-			break;
+			continue;
 
 			case OperationConstructAbsoluteYRead:
 			case OperationConstructAbsoluteY:
@@ -220,38 +223,38 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				if(operation == OperationConstructAbsoluteYRead && data_address_ == incorrect_data_address_) {
 					++next_op_;
 				}
-			break;
+			continue;
 
 			case OperationConstructDirect:
 				data_address_ = (direct_ + instruction_buffer_.value) & 0xffff;
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
-			break;
+			continue;
 
 			case OperationConstructDirectIndexedIndirect:
 				data_address_ = data_bank_ + (direct_ + x() + instruction_buffer_.value) & 0xffff;
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
-			break;
+			continue;
 
 			case OperationConstructDirectIndirect:
 				data_address_ = data_bank_ + (direct_ + instruction_buffer_.value) & 0xffff;
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
-			break;
+			continue;
 
 			case OperationConstructDirectIndirectIndexedLong:
 				// TODO: assumed here is that the low 16-bit calculation can't carry into
 				// the high byte. Test this!
 				data_address_ = (y() + instruction_buffer_.value) & 0xffff + instruction_buffer_.value & 0xff0000;
-			break;
+			continue;
 
 			case OperationConstructDirectIndirectLong:
 				data_address_ = instruction_buffer_.value;
-			break;
+			continue;
 
 			case OperationConstructDirectX:
 				data_address_ = (direct_ + x()) & 0xffff;
@@ -259,7 +262,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
-			break;
+			continue;
 
 			case OperationConstructDirectY:
 				data_address_ = (direct_ + y()) & 0xffff;
@@ -267,41 +270,37 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
-			break;
+			continue;
 
 			case OperationConstructPER:
 				data_buffer_.value = instruction_buffer_.value + pc_;
 				data_buffer_.size = 2;
-			break;
+			continue;
 
 			case OperationConstructStackRelative:
 				data_address_ = (s_.full + instruction_buffer_.value) & 0xffff;
-			break;
+			continue;
 
 			case OperationConstructStackRelativeIndexedIndirect:
 				data_address_ = data_bank_ + (instruction_buffer_.value + y()) & 0xffff;
-			break;
+			continue;
 
 			//
 			// Performance.
 			//
 
+#define LD(dest, src, masks) dest.full = (dest.full & masks[0]) | (src & masks[1])
+#define m_top() (instruction_buffer_.value >> m_shift_) & 0xff
+#define x_top() (x_.full >> x_shift_) & 0xff
+#define y_top() (y_.full >> x_shift_) & 0xff
+
 			case OperationPerform:
 				switch(active_instruction_->operation) {
-
-					//
-					// Flag manipulation.
-					//
-
-					case CLD:
-						decimal_flag_ = 0;
-					break;
 
 					//
 					// Loads, stores and transfers
 					//
 
-#define LD(dest, src, masks) dest.full = (dest.full & masks[0]) | (src & masks[1])
 
 					case LDA:
 						LD(a_, data_buffer_.value, m_masks_);
@@ -320,11 +319,9 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						LD(s_, x_.full, x_masks_);
 					break;
 
-#undef LD
-
 					case STA:
 						data_buffer_.value = a_.full & m_masks_[1];
-						data_buffer_.size = 2 - mx_flags_[0];
+						data_buffer_.size = 2 - m_flag();
 					break;
 
 					//
@@ -367,16 +364,72 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						if(a_.full) pc_ -= 3;
 					break;
 
+					//
+					// Flag manipulation.
+					//
+
+					case CLC: flags_.carry = 0;								break;
+					case CLI: flags_.inverse_interrupt = Flag::Interrupt;	break;
+					case CLV: flags_.overflow = 0;							break;
+					case CLD: flags_.decimal = 0;							break;
+
+					case SEC: flags_.carry = Flag::Carry;					break;
+					case SEI: flags_.inverse_interrupt = 0;					break;
+					case SED: flags_.decimal = Flag::Decimal;				break;
+
+					//
+					// Increments and decrements.
+					//
+
+					case INC:
+						++instruction_buffer_.value;
+						flags_.set_nz(m_top());
+					break;;
+
+					case DEC:
+						--instruction_buffer_.value;
+						flags_.set_nz(m_top());
+					break;
+
+					case INX: {
+						const uint16_t x_inc = x_.full + 1;
+						LD(x_, x_inc, x_masks_);
+						flags_.set_nz(x_top());
+					} break;
+
+					case DEX: {
+						const uint16_t x_dec = x_.full - 1;
+						LD(x_, x_dec, x_masks_);
+						flags_.set_nz(x_top());
+					} break;
+
+					case INY: {
+						const uint16_t y_inc = y_.full + 1;
+						LD(y_, y_inc, x_masks_);
+						flags_.set_nz(y_top());
+					} break;
+
+					case DEY: {
+						const uint16_t y_dec = y_.full - 1;
+						LD(y_, y_dec, x_masks_);
+						flags_.set_nz(y_top());
+					} break;
+
 					default:
 						assert(false);
 				}
-			break;
+			continue;
 
 			// TODO: OperationCopyPBRToData, OperationPrepareException
 
 			default:
 				assert(false);
 		}
+
+#undef LD
+#undef m_top
+#undef x_top
+#undef y_top
 
 		number_of_cycles -= bus_handler_.perform_bus_operation(bus_operation, bus_address, bus_value);
 	}
@@ -386,6 +439,8 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #undef bus_operation
 #undef x
 #undef y
+#undef m_flag
+#undef x_flag
 
 	cycles_left_to_run_ = number_of_cycles;
 }

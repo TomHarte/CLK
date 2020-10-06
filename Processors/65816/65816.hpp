@@ -17,12 +17,14 @@
 #include "../RegisterSizes.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../6502Esque/6502Esque.hpp"
+#include "../6502Esque/Implementation/LazyFlags.hpp"
 
 namespace CPU {
 namespace WDC65816 {
 
 using BusOperation = CPU::MOS6502Esque::BusOperation;
 using Register = CPU::MOS6502Esque::Register;
+using Flag = CPU::MOS6502Esque::Flag;
 
 #include "Implementation/65816Storage.hpp"
 

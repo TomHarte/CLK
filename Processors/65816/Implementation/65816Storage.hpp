@@ -228,10 +228,12 @@ struct ProcessorStorage {
 	Cycles cycles_left_to_run_;
 
 	// Flags aplenty.
-	uint8_t carry_flag_, negative_result_, zero_result_, decimal_flag_, overflow_flag_, inverse_interrupt_flag_ = 0;
+	MOS6502Esque::LazyFlags flags_;
 	uint8_t mx_flags_[2] = {1, 1};				// [0] = m; [1] = x. In both cases either `0` or `1`; `1` => 8-bit.
 	uint16_t m_masks_[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
 	uint16_t x_masks_[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
+	int m_shift_ = 0;
+	int x_shift_ = 0;
 	bool emulation_flag_ = true;
 
 	// I.e. the offset for direct addressing (outside of emulation mode).
