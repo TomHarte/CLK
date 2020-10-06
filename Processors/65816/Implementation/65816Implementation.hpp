@@ -297,10 +297,12 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			case OperationPerform:
 				switch(active_instruction_->operation) {
 
+					case NOP:
+					break;
+
 					//
 					// Loads, stores and transfers
 					//
-
 
 					case LDA:
 						LD(a_, data_buffer_.value, m_masks_);
@@ -314,6 +316,14 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						LD(y_, data_buffer_.value, x_masks_);
 					break;
 
+					case PLB:
+						a_.halves.high = instruction_buffer_.value;
+					break;
+
+					case PLD:
+						direct_ = ((instruction_buffer_.value) & 0xff) << 16;
+					break;
+
 					case TXS:
 						// TODO: does this transfer in full when in 8-bit index mode?
 						LD(s_, x_.full, x_masks_);
@@ -324,12 +334,30 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						data_buffer_.size = 2 - m_flag();
 					break;
 
+					case STZ:
+						data_buffer_.value = 0;
+						data_buffer_.size = 2 - m_flag();
+					break;
+
+					case STX:
+						data_buffer_.value = x_.full & x_masks_[1];
+						data_buffer_.size = 2 - x_flag();
+					break;
+
+					case STY:
+						data_buffer_.value = y_.full & x_masks_[1];
+						data_buffer_.size = 2 - m_flag();
+					break;
+
 					//
 					// Jumps.
 					//
 
 					case JML:
 						program_bank_ = instruction_buffer_.value & 0xff0000;
+					[[fallthrough]];
+
+					case JMP:
 						pc_ = instruction_buffer_.value & 0xffff;
 					break;
 
@@ -414,6 +442,21 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						LD(y_, y_dec, x_masks_);
 						flags_.set_nz(y_top());
 					} break;
+
+
+
+					// TODO:
+					//	ADC, AND, BIT, CMP, CPX, CPY, EOR, ORA, SBC,
+					//	PLP,
+					//	PHB, PHP, PHD, PHK,
+					//	ASL, LSR, ROL, ROR, TRB, TSB,
+					//	REP, SEP,
+					//	BCC, BCS, BEQ, BMI, BNE, BPL, BRA, BVC, BVS, BRL,
+					//	TAX, TAY, TCD, TCS, TDC, TSC, TSX, TXA, TXS, TXY, TYA, TYX,
+					//	XCE, XBA,
+					//	STP, WAI,
+					//	RTI, RTL,
+					//	BRK,
 
 					default:
 						assert(false);

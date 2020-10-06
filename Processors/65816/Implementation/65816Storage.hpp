@@ -149,7 +149,7 @@ enum Operation: uint8_t {
 	PHB, PHP, PHD, PHK,
 
 	// These modify the value in the data buffer as part of a read-modify-write.
-	ASL, DEC, INC, LSR, ROL, ROR, TRB, TSB,
+	INC, DEC, ASL, LSR, ROL, ROR, TRB, TSB,
 
 	// These merely decrement A, increment or decrement X and Y, and regress
 	// the program counter only if appropriate.
@@ -186,7 +186,7 @@ enum Operation: uint8_t {
 	JSL,
 
 	/// i.e. jump to vector. TODO: is this really distinct from JMP? I'm assuming so for now,
-	/// as I assume the PBR is implicitly modified. We'll see.
+	/// as I assume the PBR is implicitly modified. But then is it just JML? We'll see.
 	BRK,
 };
 
