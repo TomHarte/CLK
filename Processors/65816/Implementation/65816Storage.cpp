@@ -792,7 +792,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x49	EOR # */			op(immediate, EOR);
 	/* 0x4a	LSR A */			op(accumulator, LSR);
 	/* 0x4b	PHK s */			op(stack_push, PHK);
-	/* 0x4c	JMP a */			op(absolute, JMP);
+	/* 0x4c	JMP a */			op(absolute_jmp, JMP);
 	/* 0x4d	EOR a */			op(absolute, EOR);
 	/* 0x4e	LSR a */			op(absolute_rmw, LSR);
 	/* 0x4f	EOR al */			op(absolute_long, EOR);
