@@ -344,11 +344,11 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					break;
 
 					case TXY:
-						LD(x_, y_.full, x_masks_);
+						LD(y_, x_.full, x_masks_);
 					break;
 
 					case TYX:
-						LD(y_, x_.full, x_masks_);
+						LD(x_, y_.full, x_masks_);
 					break;
 
 					case TAX:
