@@ -51,7 +51,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationDecode: {
 				// A VERY TEMPORARY piece of logging.
-				printf("[%04x] %02x\n", pc_ - 1, instruction_buffer_.value);
+				printf("[%04x] %02x\n", pc_ - 2, instruction_buffer_.value);	// pc_ - 1 would be correct but this matches a log I made of the 6502.
 				active_instruction_ = &instructions[instruction_buffer_.value];
 
 				const auto size_flag = mx_flags_[active_instruction_->size_field];
@@ -306,6 +306,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationPerform:
 				switch(active_instruction_->operation) {
+
 					//
 					// Loads, stores and transfers (and NOP).
 					//
@@ -330,10 +331,42 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						direct_ = ((instruction_buffer_.value) & 0xff) << 16;
 					break;
 
+
+					// The below attempts to obey the 8/16-bit mixed transfer rules
+					// as documented in https://softpixel.com/~cwright/sianse/docs/65816NFO.HTM
+
 					case TXS:
-						// TODO: does this transfer in full when in 8-bit index mode?
-						LD(s_, x_.full, x_masks_);
+						s_ = x_.full & x_masks_[1];
 					break;
+
+					case TSX:
+						LD(x_, s_.full, x_masks_);
+					break;
+
+					case TXY:
+						LD(x_, y_.full, x_masks_);
+					break;
+
+					case TYX:
+						LD(y_, x_.full, x_masks_);
+					break;
+
+					case TAX:
+						LD(x_, a_.full, x_masks_);
+					break;
+
+					case TAY:
+						LD(x_, a_.full, x_masks_);
+					break;
+
+					case TXA:
+						LD(a_, x_.full, m_masks_);
+					break;
+
+					case TYA:
+						LD(a_, y_.full, m_masks_);
+					break;
+
 
 					case STA:
 						data_buffer_.value = a_.full & m_masks_[1];
@@ -558,11 +591,11 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//	PHP, PHD, PHK,
 					//	TRB, TSB,
 					//	REP, SEP,
-					//	TAX, TAY, TCD, TCS, TDC, TSC, TSX, TXA, TXS, TXY, TYA, TYX,
 					//	XCE, XBA,
 					//	STP, WAI,
 					//	RTI, RTL,
 					//	BRK,
+					//	TCD, TCS, TDC, TSC
 
 					default:
 						assert(false);
