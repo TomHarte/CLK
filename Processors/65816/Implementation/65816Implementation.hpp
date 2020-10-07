@@ -306,12 +306,8 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationPerform:
 				switch(active_instruction_->operation) {
-
-					case NOP:
-					break;
-
 					//
-					// Loads, stores and transfers
+					// Loads, stores and transfers (and NOP).
 					//
 
 					case LDA:
@@ -358,6 +354,13 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						data_buffer_.value = y_.full & x_masks_[1];
 						data_buffer_.size = 2 - m_flag();
 					break;
+
+					case PHB:
+						data_buffer_.value = a_.halves.high;
+						data_buffer_.size = 1;
+					break;
+
+					case NOP:	break;
 
 					//
 					// Jumps.
@@ -500,13 +503,16 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 #undef BRA
 
+					case BRL:
+						pc_ += int16_t(instruction_buffer_.value);
+					break;
+
 					// TODO:
 					//	ADC, BIT, CMP, CPX, CPY, SBC,
 					//	PLP,
-					//	PHB, PHP, PHD, PHK,
+					//	PHP, PHD, PHK,
 					//	ASL, LSR, ROL, ROR, TRB, TSB,
 					//	REP, SEP,
-					//	BRL,
 					//	TAX, TAY, TCD, TCS, TDC, TSC, TSX, TXA, TXS, TXY, TYA, TYX,
 					//	XCE, XBA,
 					//	STP, WAI,
