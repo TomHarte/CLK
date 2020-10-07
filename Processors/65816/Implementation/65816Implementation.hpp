@@ -50,8 +50,6 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			} continue;
 
 			case OperationDecode: {
-				// A VERY TEMPORARY piece of logging.
-				printf("[%04x] %02x a:%04x x:%04x y:%04x p:%02x\n", pc_ - 1, instruction_buffer_.value, a_.full, x_.full, y_.full, flags_.get());	// pc_ - 1 would be correct but this matches a log I made of the 6502.
 				active_instruction_ = &instructions[instruction_buffer_.value];
 
 				const auto size_flag = mx_flags_[active_instruction_->size_field];
@@ -539,11 +537,11 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 		next_op_ += 3;	\
 	} else {			\
 		data_buffer_.size = 2;	\
-		data_buffer_.value = pc_ + int8_t(data_buffer_.value);	\
-																\
-		if((pc_ & 0xff00) == (data_buffer_.value & 0xff00)) {	\
-			++next_op_;											\
-		}														\
+		data_buffer_.value = pc_ + int8_t(instruction_buffer_.value);	\
+																		\
+		if((pc_ & 0xff00) == (instruction_buffer_.value & 0xff00)) {	\
+			++next_op_;													\
+		}																\
 	}
 
 					case BPL: BRA(!(flags_.negative_result&0x80));	break;
