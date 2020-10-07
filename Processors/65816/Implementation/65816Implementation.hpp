@@ -293,6 +293,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #define m_top() (instruction_buffer_.value >> m_shift_) & 0xff
 #define x_top() (x_.full >> x_shift_) & 0xff
 #define y_top() (y_.full >> x_shift_) & 0xff
+#define a_top() (a_.full >> m_shift_) & 0xff
 
 			case OperationPerform:
 				switch(active_instruction_->operation) {
@@ -443,10 +444,28 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						flags_.set_nz(y_top());
 					} break;
 
+					//
+					// Bitwise operations.
+					//
+
+					case AND:
+						a_.full &= instruction_buffer_.value | m_masks_[0];
+						flags_.set_nz(a_top());
+					break;
+
+					case EOR:
+						a_.full ^= instruction_buffer_.value;
+						flags_.set_nz(a_top());
+					break;
+
+					case ORA:
+						a_.full |= instruction_buffer_.value;
+						flags_.set_nz(a_top());
+					break;
 
 
 					// TODO:
-					//	ADC, AND, BIT, CMP, CPX, CPY, EOR, ORA, SBC,
+					//	ADC, BIT, CMP, CPX, CPY, SBC,
 					//	PLP,
 					//	PHB, PHP, PHD, PHK,
 					//	ASL, LSR, ROL, ROR, TRB, TSB,
@@ -473,6 +492,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #undef m_top
 #undef x_top
 #undef y_top
+#undef a_top
 
 		number_of_cycles -= bus_handler_.perform_bus_operation(bus_operation, bus_address, bus_value);
 	}
