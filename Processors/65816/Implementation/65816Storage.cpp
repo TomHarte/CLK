@@ -857,7 +857,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x86 STX d */			op(direct, STX);
 	/* 0x87 STA [d] */			op(direct_indirect_long, STA);
 	/* 0x88 DEY i */			op(implied, DEY);
-	/* 0x89 BIT # */			op(immediate, BIT);
+	/* 0x89 BIT # */			op(immediate, BITimm);
 	/* 0x8a TXA i */			op(implied, TXA);
 	/* 0x8b PHB s */			op(stack_push, PHB);
 	/* 0x8c STY a */			op(absolute, STY);

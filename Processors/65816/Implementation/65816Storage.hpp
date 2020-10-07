@@ -137,7 +137,7 @@ enum MicroOp: uint8_t {
 enum Operation: uint8_t {
 	// These perform the named operation using the value in the data buffer;
 	// they are implicitly AccessType::Read.
-	ADC, AND, BIT, CMP, CPX, CPY, EOR, ORA, SBC,
+	ADC, AND, BIT, CMP, CPX, CPY, EOR, ORA, SBC, BITimm,
 
 	// These load the respective register from the data buffer;
 	// they are implicitly AccessType::Read.

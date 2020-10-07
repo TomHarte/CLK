@@ -508,6 +508,15 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						flags_.set_nz(a_.full, m_shift_);
 					break;
 
+					case BIT:
+						flags_.set_nz(data_buffer_.value & a_.full, m_shift_);
+						flags_.overflow = data_buffer_.value & Flag::Overflow;
+					break;
+
+					case BITimm:
+						flags_.set_z(data_buffer_.value & a_.full, m_shift_);
+					break;
+
 					//
 					// Branches.
 					//
@@ -586,7 +595,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #undef cp
 
 					// TODO:
-					//	ADC, BIT, SBC,
+					//	ADC, SBC,
 					//	PLP,
 					//	PHP, PHD, PHK,
 					//	TRB, TSB,
