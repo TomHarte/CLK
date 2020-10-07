@@ -573,20 +573,20 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					// Arithmetic.
 					//
 
-					case CMP: {
-						if(m_flag()) {
-							const uint16_t temp16 = a_.halves.low - data_buffer_.value;
-							flags_.set_nz(uint8_t(temp16));
-							flags_.carry = ((~temp16) >> 8)&1;
-						} else {
-							const uint32_t temp32 = a_.full - data_buffer_.value;
-							flags_.set_nz(uint16_t(temp32), 8);
-							flags_.carry = ((~temp32) >> 16)&1;
-						}
-					} break;
+#define cp(v, shift)	{\
+	const uint32_t temp32 = v.full - data_buffer_.value;	\
+	flags_.set_nz(uint16_t(temp32), shift);	\
+	flags_.carry = ((~temp32) >> (8 + shift))&1;	\
+}
+
+					case CMP:	cp(a_, m_shift_);	break;
+					case CPX:	cp(x_, x_shift_);	break;
+					case CPY:	cp(y_, x_shift_);	break;
+
+#undef cp
 
 					// TODO:
-					//	ADC, BIT, CPX, CPY, SBC,
+					//	ADC, BIT, SBC,
 					//	PLP,
 					//	PHP, PHD, PHK,
 					//	TRB, TSB,
