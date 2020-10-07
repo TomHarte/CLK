@@ -594,8 +594,45 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 #undef cp
 
+					case SBC:
+						if(flags_.decimal) {
+							assert(false);
+							break;
+						}
+
+						// Implement non-decimal SBC by falling through to ADC;
+						// TODO: what do I need to invert to be able to fall through in both cases? And does it matter?
+						data_buffer_.value = ~data_buffer_.value;
+					[[fallthrough]];
+
+					case ADC: {
+						int result;
+
+						if(flags_.decimal) {
+							result = flags_.carry;
+
+#define nibble(mask, limit, addition, carry)					\
+	result += (a_.full & mask) + (data_buffer_.value & mask);	\
+	if(result >= limit) result = ((result + addition) & (carry - 1)) + carry;
+
+							nibble(0x000f, 0x000a, 0x0006, 0x00010);
+							nibble(0x00f0, 0x00a0, 0x0060, 0x00100);
+							nibble(0x0f00, 0x0a00, 0x0600, 0x01000);
+							nibble(0xf000, 0xa000, 0x6000, 0x10000);
+
+#undef nibble
+
+						} else {
+							result = a_.full + data_buffer_.value + flags_.carry;
+						}
+
+						flags_.overflow = (( (result ^ a_.full) & (result ^ data_buffer_.value) ) >> (1 + m_shift_))&0x40;
+						flags_.set_nz(result, m_shift_);
+						flags_.carry = (result >> (8 + m_shift_))&1;
+						LD(a_, result, m_masks_);
+					} break;
+
 					// TODO:
-					//	ADC, SBC,
 					//	PLP,
 					//	PHP, PHD, PHK,
 					//	TRB, TSB,
