@@ -313,27 +313,33 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					case LDA:
 						LD(a_, data_buffer_.value, m_masks_);
+						flags_.set_nz(a_.full, m_shift_);
 					break;
 
 					case LDX:
 						LD(x_, data_buffer_.value, x_masks_);
+						flags_.set_nz(x_.full, x_shift_);
 					break;
 
 					case LDY:
 						LD(y_, data_buffer_.value, x_masks_);
+						flags_.set_nz(y_.full, x_shift_);
 					break;
 
 					case PLB:
-						a_.halves.high = instruction_buffer_.value;
+						data_bank_ = (instruction_buffer_.value & 0xff) << 16;
+						flags_.set_nz(instruction_buffer_.value);
 					break;
 
 					case PLD:
-						direct_ = ((instruction_buffer_.value) & 0xff) << 16;
+						direct_ = (instruction_buffer_.value & 0xff) << 16;
+						flags_.set_nz(instruction_buffer_.value);
 					break;
 
 
 					// The below attempts to obey the 8/16-bit mixed transfer rules
 					// as documented in https://softpixel.com/~cwright/sianse/docs/65816NFO.HTM
+					// (and makes reasonable guesses as to the N flag)
 
 					case TXS:
 						s_ = x_.full & x_masks_[1];
@@ -341,30 +347,37 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					case TSX:
 						LD(x_, s_.full, x_masks_);
+						flags_.set_nz(x_.full, x_shift_);
 					break;
 
 					case TXY:
 						LD(y_, x_.full, x_masks_);
+						flags_.set_nz(y_.full, x_shift_);
 					break;
 
 					case TYX:
 						LD(x_, y_.full, x_masks_);
+						flags_.set_nz(x_.full, x_shift_);
 					break;
 
 					case TAX:
 						LD(x_, a_.full, x_masks_);
+						flags_.set_nz(x_.full, x_shift_);
 					break;
 
 					case TAY:
 						LD(x_, a_.full, x_masks_);
+						flags_.set_nz(y_.full, x_shift_);
 					break;
 
 					case TXA:
 						LD(a_, x_.full, m_masks_);
+						flags_.set_nz(a_.full, m_shift_);
 					break;
 
 					case TYA:
 						LD(a_, y_.full, m_masks_);
+						flags_.set_nz(a_.full, m_shift_);
 					break;
 
 

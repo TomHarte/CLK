@@ -893,7 +893,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xa8 TAY i */			op(implied, TAY);
 	/* 0xa9 LDA # */			op(immediate, LDA);
 	/* 0xaa TAX i */			op(implied, TAX);
-	/* 0xab PLB s */			op(stack_pull, PLB);
+	/* 0xab PLB s */			op(stack_pull, PLB);		// TODO: force to 8-bit only; ditto [at least] PHB, PLD, PHD.
 	/* 0xac LDY a */			op(absolute, LDY);
 	/* 0xad LDA a */			op(absolute, LDA);
 	/* 0xae LDX a */			op(absolute, LDX);
