@@ -507,11 +507,40 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						pc_ += int16_t(instruction_buffer_.value);
 					break;
 
+					//
+					// Shifts and rolls.
+					//
+
+					case ASL:
+						flags_.carry = data_buffer_.value >> (7 + m_shift_);
+						data_buffer_.value <<= 1;
+						flags_.set_nz(m_top());
+					break;
+
+					case LSR:
+						flags_.carry = data_buffer_.value & 1;
+						data_buffer_.value >>= 1;
+						flags_.set_nz(m_top());
+					break;
+
+					case ROL:
+						data_buffer_.value = (data_buffer_.value << 1) | flags_.carry;
+						flags_.carry = data_buffer_.value >> (7 + m_shift_);
+						flags_.set_nz(m_top());
+					break;
+
+					case ROR: {
+						const uint8_t next_carry = data_buffer_.value & 1;
+						data_buffer_.value = (data_buffer_.value >> 1) | (flags_.carry << (7 + m_shift_));
+						flags_.carry = next_carry;
+						flags_.set_nz(m_top());
+					} break;
+
 					// TODO:
 					//	ADC, BIT, CMP, CPX, CPY, SBC,
 					//	PLP,
 					//	PHP, PHD, PHK,
-					//	ASL, LSR, ROL, ROR, TRB, TSB,
+					//	TRB, TSB,
 					//	REP, SEP,
 					//	TAX, TAY, TCD, TCS, TDC, TSC, TSX, TXA, TXS, TXY, TYA, TYX,
 					//	XCE, XBA,
