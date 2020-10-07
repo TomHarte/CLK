@@ -187,6 +187,15 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				}
 			continue;
 
+			case OperationCopyPBRToData:
+				data_buffer_.size = 1;
+				data_buffer_.value = program_bank_ >> 16;
+			continue;
+
+			case OperationCopyDataToPC:
+				pc_ = uint16_t(data_buffer_.value);
+			continue;
+
 			//
 			// Address construction.
 			//
@@ -463,6 +472,33 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						flags_.set_nz(a_top());
 					break;
 
+					//
+					// Branches.
+					//
+
+#define BRA(condition)	\
+	if(!(condition)) {	\
+		next_op_ += 3;	\
+	} else {			\
+		data_buffer_.size = 2;	\
+		data_buffer_.value = pc_ + int8_t(data_buffer_.value);	\
+																\
+		if((pc_ & 0xff00) == (data_buffer_.value & 0xff00)) {	\
+			++next_op_;											\
+		}														\
+	}
+
+					case BPL: BRA(!(flags_.negative_result&0x80));	break;
+					case BMI: BRA(flags_.negative_result&0x80);		break;
+					case BVC: BRA(!flags_.overflow);				break;
+					case BVS: BRA(flags_.overflow);					break;
+					case BCC: BRA(!flags_.carry);					break;
+					case BCS: BRA(flags_.carry);					break;
+					case BNE: BRA(flags_.zero_result);				break;
+					case BEQ: BRA(!flags_.zero_result);				break;
+					case BRA: BRA(true);							break;
+
+#undef BRA
 
 					// TODO:
 					//	ADC, BIT, CMP, CPX, CPY, SBC,
@@ -470,7 +506,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//	PHB, PHP, PHD, PHK,
 					//	ASL, LSR, ROL, ROR, TRB, TSB,
 					//	REP, SEP,
-					//	BCC, BCS, BEQ, BMI, BNE, BPL, BRA, BVC, BVS, BRL,
+					//	BRL,
 					//	TAX, TAY, TCD, TCS, TDC, TSC, TSX, TXA, TXS, TXY, TYA, TYX,
 					//	XCE, XBA,
 					//	STP, WAI,
@@ -482,7 +518,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				}
 			continue;
 
-			// TODO: OperationCopyPBRToData, OperationPrepareException
+			// TODO: OperationPrepareException
 
 			default:
 				assert(false);

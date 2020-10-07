@@ -549,12 +549,14 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void relative(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);	// Offset
 
-		target(OperationPerform);		// The branch instructions will all skip one or two
+		target(OperationPerform);		// The branch instructions will all skip one or three
 										// of the next cycles, depending on the effect of
 										// the jump.
 
 		target(CycleFetchPC);			// IO
 		target(CycleFetchPC);			// IO
+
+		target(OperationCopyDataToPC);	// Install the address that was calculated above.
 	}
 
 	// 21. Relative long; rl.
