@@ -926,7 +926,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xc7 CMP [d] */			op(direct_indirect_long, CMP);
 	/* 0xc8 INY i */			op(implied, INY);
 	/* 0xc9 CMP # */			op(immediate, CMP);
-	/* 0xca DEX i */			op(implied, DEC);
+	/* 0xca DEX i */			op(implied, DEX);
 	/* 0xcb WAI i */			op(wai, WAI);
 	/* 0xcc CPY a */			op(absolute, CPY);
 	/* 0xcd CMP a */			op(absolute, CMP);

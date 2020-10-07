@@ -44,6 +44,7 @@ class KlausDormannTests: XCTestCase {
 			switch address {
 				case 0x3399: return nil // success!
 
+				case 0x052a: return "DEX did not correctly set zero flag"
 				case 0x33a7: return "Decimal ADC result has wrong value"
 				case 0x3502: return "Binary SBC result has wrong value"
 				case 0x33b9: return "Decimal SBC result has wrong value"
