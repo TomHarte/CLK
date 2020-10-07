@@ -424,36 +424,36 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					case INC:
 						++instruction_buffer_.value;
-						flags_.set_nz(m_top());
+						flags_.set_nz(instruction_buffer_.value, m_shift_);
 					break;;
 
 					case DEC:
 						--instruction_buffer_.value;
-						flags_.set_nz(m_top());
+						flags_.set_nz(instruction_buffer_.value, m_shift_);
 					break;
 
 					case INX: {
 						const uint16_t x_inc = x_.full + 1;
 						LD(x_, x_inc, x_masks_);
-						flags_.set_nz(x_top());
+						flags_.set_nz(x_.full, x_shift_);
 					} break;
 
 					case DEX: {
 						const uint16_t x_dec = x_.full - 1;
 						LD(x_, x_dec, x_masks_);
-						flags_.set_nz(x_top());
+						flags_.set_nz(x_.full, x_shift_);
 					} break;
 
 					case INY: {
 						const uint16_t y_inc = y_.full + 1;
 						LD(y_, y_inc, x_masks_);
-						flags_.set_nz(y_top());
+						flags_.set_nz(y_.full, x_shift_);
 					} break;
 
 					case DEY: {
 						const uint16_t y_dec = y_.full - 1;
 						LD(y_, y_dec, x_masks_);
-						flags_.set_nz(y_top());
+						flags_.set_nz(y_.full, x_shift_);
 					} break;
 
 					//
@@ -462,17 +462,17 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					case AND:
 						a_.full &= instruction_buffer_.value | m_masks_[0];
-						flags_.set_nz(a_top());
+						flags_.set_nz(a_.full, m_shift_);
 					break;
 
 					case EOR:
 						a_.full ^= instruction_buffer_.value;
-						flags_.set_nz(a_top());
+						flags_.set_nz(a_.full, m_shift_);
 					break;
 
 					case ORA:
 						a_.full |= instruction_buffer_.value;
-						flags_.set_nz(a_top());
+						flags_.set_nz(a_.full, m_shift_);
 					break;
 
 					//
@@ -514,30 +514,46 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					case ASL:
 						flags_.carry = data_buffer_.value >> (7 + m_shift_);
 						data_buffer_.value <<= 1;
-						flags_.set_nz(m_top());
+						flags_.set_nz(instruction_buffer_.value, m_shift_);
 					break;
 
 					case LSR:
 						flags_.carry = data_buffer_.value & 1;
 						data_buffer_.value >>= 1;
-						flags_.set_nz(m_top());
+						flags_.set_nz(instruction_buffer_.value, m_shift_);
 					break;
 
 					case ROL:
 						data_buffer_.value = (data_buffer_.value << 1) | flags_.carry;
 						flags_.carry = data_buffer_.value >> (7 + m_shift_);
-						flags_.set_nz(m_top());
+						flags_.set_nz(instruction_buffer_.value, m_shift_);
 					break;
 
 					case ROR: {
 						const uint8_t next_carry = data_buffer_.value & 1;
 						data_buffer_.value = (data_buffer_.value >> 1) | (flags_.carry << (7 + m_shift_));
 						flags_.carry = next_carry;
-						flags_.set_nz(m_top());
+						flags_.set_nz(instruction_buffer_.value, m_shift_);
+					} break;
+
+					//
+					// Arithmetic.
+					//
+
+					case CMP: {
+						if(m_flag()) {
+							const uint16_t temp16 = a_.halves.low - data_buffer_.value;
+							flags_.set_nz(uint8_t(temp16));
+							flags_.carry = ((~temp16) >> 8)&1;
+						} else {
+							const uint32_t temp32 = a_.full - data_buffer_.value;
+							flags_.set_nz(uint16_t(temp32), 8);
+							flags_.carry = ((~temp32) >> 16)&1;
+						}
 					} break;
 
 					// TODO:
-					//	ADC, BIT, CMP, CPX, CPY, SBC,
+					//	ADC, BIT, CPX, CPY, SBC,
 					//	PLP,
 					//	PHP, PHD, PHK,
 					//	TRB, TSB,

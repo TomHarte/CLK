@@ -37,6 +37,11 @@ struct LazyFlags {
 		zero_result = negative_result = value;
 	}
 
+	void set_nz(uint16_t value, int shift) {
+		negative_result = uint8_t(value >> shift);
+		zero_result = uint8_t(value | (value >> shift));
+	}
+
 	void set(uint8_t flags) {
 		carry				= flags		& Flag::Carry;
 		negative_result		= flags		& Flag::Sign;
