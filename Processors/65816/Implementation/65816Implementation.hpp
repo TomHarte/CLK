@@ -622,15 +622,15 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					// Arithmetic.
 					//
 
-#define cp(v, shift)	{\
-	const uint32_t temp32 = v.full - data_buffer_.value;	\
+#define cp(v, shift, masks)	{\
+	const uint32_t temp32 = (v.full & masks[1]) - (data_buffer_.value & masks[1]);	\
 	flags_.set_nz(uint16_t(temp32), shift);	\
 	flags_.carry = ((~temp32) >> (8 + shift))&1;	\
 }
 
-					case CMP:	cp(a_, m_shift_);	break;
-					case CPX:	cp(x_, x_shift_);	break;
-					case CPY:	cp(y_, x_shift_);	break;
+					case CMP:	cp(a_, m_shift_, m_masks_);	break;
+					case CPX:	cp(x_, x_shift_, x_masks_);	break;
+					case CPY:	cp(y_, x_shift_, x_masks_);	break;
 
 #undef cp
 

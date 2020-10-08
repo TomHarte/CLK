@@ -29,11 +29,12 @@ template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, publ
 
 			if(operation == BusOperation::ReadOpcode) {
 				// TEMPORARY LOGGING. TODO: remove.
-				printf("[%04x] %02x a:%04x x:%04x y:%04x p:%02x\n", address, memory_[address],
+				printf("[%04x] %02x a:%04x x:%04x y:%04x p:%02x s:%02x\n", address, memory_[address],
 					mos6502_.get_value_of_register(Register::A),
 					mos6502_.get_value_of_register(Register::X),
 					mos6502_.get_value_of_register(Register::Y),
-					mos6502_.get_value_of_register(Register::Flags));
+					mos6502_.get_value_of_register(Register::Flags) & 0xff,
+					mos6502_.get_value_of_register(Register::StackPointer) & 0xff);
 				check_address_for_trap(address);
 			}
 
