@@ -174,18 +174,21 @@ enum Operation: uint8_t {
 	// from the stack.
 	RTI, RTL,
 
-	/// Loads the PC with the operand from the data buffer.
+	/// Loads the PC with the contents of the data buffer.
+	JMPind,
+
+	/// Loads the PC with the contents of the instruction bufer.
 	JMP,
 
-	/// Loads the PC and PBR with the operand from the data buffer.
+	/// Loads the PC and PBR with the operand from the instruction buffer.
 	JML,
 
-	/// Loads the PC with the operand from the data buffer, replacing
-	/// it with the old PC.
+	/// Loads the PC with the operand from the instruction buffer, placing
+	/// the current PC into the data buffer.
 	JSR,
 
-	/// Loads the PC and the PBR with the operand from the data buffer,
-	/// replacing it with the old PC (and only the PC; PBR not included).
+	/// Loads the PC and the PBR with the operand from the instruction buffer,
+	/// placing the old PC into the data buffer (and only the PC; PBR not included).
 	JSL,
 
 	/// i.e. jump to vector. TODO: is this really distinct from JMP? I'm assuming so for now,

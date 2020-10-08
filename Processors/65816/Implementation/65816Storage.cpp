@@ -178,7 +178,6 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void absolute_jmp(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);			// New PCL.
 		target(CycleFetchPC);					// New PCH.
-		target(OperationConstructAbsolute);		// Calculate data address.
 		target(OperationPerform);				// [JMP]
 	}
 
@@ -187,7 +186,6 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);			// New PCL.
 		target(CycleFetchPC);					// New PCH.
 		target(CycleFetchPCThrowaway);			// IO
-		target(OperationConstructAbsolute);		// Calculate data address.
 		target(OperationPerform);				// [JSR]
 		target(CyclePush);						// PCH
 		target(CyclePush);						// PCL
@@ -227,7 +225,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationConstructAbsoluteIndexedIndirect);	// Calculate data address.
 		target(CycleFetchIncrementData);					// New PCL
 		target(CycleFetchData);								// New PCH.
-		target(OperationPerform);							// ['JSR' (actually: JMP will do)]
+		target(OperationPerform);							// ['JSR' (actually: JMPind will do)]
 	}
 
 	// 3a. Absolute Indirect; (a), JML.
@@ -814,7 +812,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x5e LSR a, x */			op(absolute_x_rmw, LSR);
 	/* 0x5f EOR al, x */		op(absolute_long_x, EOR);
 
-	/* 0x60 RTS s */			op(stack_rts, JMP);	// [sic]; loads the PC from data as per an RTS.
+	/* 0x60 RTS s */			op(stack_rts, JMPind);	// [sic]; loads the PC from data as per an RTS.
 	/* 0x61 ADC (d, x) */		op(direct_indexed_indirect, ADC);
 	/* 0x62 PER s */			op(stack_per, NOP);
 	/* 0x63 ADC d, s */			op(stack_relative, ADC);
@@ -826,7 +824,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x69 ADC # */			op(immediate, ADC);
 	/* 0x6a ROR A */			op(accumulator, ROR);
 	/* 0x6b RTL s */			op(stack_rtl, JML);
-	/* 0x6c JMP (a) */			op(absolute_indirect_jmp, JMP);
+	/* 0x6c JMP (a) */			op(absolute_indirect_jmp, JMPind);
 	/* 0x6d ADC a */			op(absolute, ADC);
 	/* 0x6e ROR a */			op(absolute_rmw, ROR);
 	/* 0x6f ADC al */			op(absolute_long, ADC);
@@ -843,7 +841,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x79 ADC a, y */			op(absolute_y, ADC);
 	/* 0x7a PLY s */			op(stack_pull, LDY);
 	/* 0x7b TDC i */			op(implied, TDC);
-	/* 0x7c JMP (a, x) */		op(absolute_indexed_indirect_jmp, JMP);
+	/* 0x7c JMP (a, x) */		op(absolute_indexed_indirect_jmp, JMPind);
 	/* 0x7d ADC a, x */			op(absolute_x, ADC);
 	/* 0x7e ROR a, x */			op(absolute_x_rmw, ROR);
 	/* 0x7f ADC al, x */		op(absolute_long_x, ADC);
@@ -979,7 +977,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xf9 SBC a, y */			op(absolute_y, SBC);
 	/* 0xfa PLX s */			op(stack_pull, LDX);
 	/* 0xfb XCE i */			op(implied, XCE);
-	/* 0xfc JSR (a, x) */		op(absolute_indexed_indirect_jsr, JMP);	// [sic]
+	/* 0xfc JSR (a, x) */		op(absolute_indexed_indirect_jsr, JMPind);	// [sic]
 	/* 0xfd SBC a, x */			op(absolute_x, SBC);
 	/* 0xfe INC a, x */			op(absolute_x_rmw, INC);
 	/* 0xff SBC al, x */		op(absolute_long_x, SBC);
