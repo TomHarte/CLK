@@ -467,7 +467,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					break;
 
 					case TAY:
-						LD(x_, a_.full, x_masks_);
+						LD(y_, a_.full, x_masks_);
 						flags_.set_nz(y_.full, x_shift_);
 					break;
 
@@ -483,7 +483,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 
 					//
-					// Jumps.
+					// Jumps and returns.
 					//
 
 					case JML:
@@ -511,6 +511,16 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						data_buffer_.size = 2;
 
 						pc_ = instruction_buffer_.value;
+					break;
+
+					case RTI:
+						pc_ = uint16_t(data_buffer_.value >> 8);
+						flags_.set(uint8_t(data_buffer_.value));
+
+						if(!emulation_flag_) {
+							program_bank_ = (data_buffer_.value & 0xff000000) >> 8;
+							assert(false); // Extra flags to unpack!
+						}
 					break;
 
 					//
@@ -729,7 +739,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//	REP, SEP,
 					//	XCE, XBA,
 					//	STP, WAI,
-					//	RTI, RTL,
+					//	RTL,
 					//	TCD, TCS, TDC, TSC
 
 					default:

@@ -649,6 +649,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePull);				// New PCL
 		target(CyclePull);				// New PCH
 		if(!is8bit) target(CyclePull);	// PBR
+		// TODO: 8bit check here doesn't actually work, it needs to be an is-emulation-mode check.
+		// New operation needed, I think.
 
 		target(OperationPerform);		// [RTI] — to unpack the fields above.
 	}
