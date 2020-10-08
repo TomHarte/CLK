@@ -334,12 +334,64 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					break;
 
 					case PLD:
-						direct_ = (instruction_buffer_.value & 0xff) << 16;
+						direct_ = instruction_buffer_.value;
 						flags_.set_nz(instruction_buffer_.value);
 					break;
 
+					case PLP:
+						flags_.set(instruction_buffer_.value);
 
-					// The below attempts to obey the 8/16-bit mixed transfer rules
+						if(!emulation_flag_) {
+							assert(false);	// TODO: M and X.
+						}
+					break;
+
+					case STA:
+						data_buffer_.value = a_.full & m_masks_[1];
+						data_buffer_.size = 2 - m_flag();
+					break;
+
+					case STZ:
+						data_buffer_.value = 0;
+						data_buffer_.size = 2 - m_flag();
+					break;
+
+					case STX:
+						data_buffer_.value = x_.full & x_masks_[1];
+						data_buffer_.size = 2 - x_flag();
+					break;
+
+					case STY:
+						data_buffer_.value = y_.full & x_masks_[1];
+						data_buffer_.size = 2 - m_flag();
+					break;
+
+					case PHB:
+						data_buffer_.value = data_bank_ >> 16;
+						data_buffer_.size = 1;
+					break;
+
+					case PHK:
+						data_buffer_.value = program_bank_ >> 16;
+						data_buffer_.size = 1;
+					break;
+
+					case PHD:
+						data_buffer_.value = direct_;
+						data_buffer_.size = 2;
+					break;
+
+					case PHP:
+						data_buffer_.value = flags_.get();
+
+						if(!emulation_flag_) {
+							assert(false);	// TODO: M and X.
+						}
+					break;
+
+					case NOP:	break;
+
+					// The below attempt to obey the 8/16-bit mixed transfer rules
 					// as documented in https://softpixel.com/~cwright/sianse/docs/65816NFO.HTM
 					// (and makes reasonable guesses as to the N flag)
 
@@ -382,33 +434,6 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						flags_.set_nz(a_.full, m_shift_);
 					break;
 
-
-					case STA:
-						data_buffer_.value = a_.full & m_masks_[1];
-						data_buffer_.size = 2 - m_flag();
-					break;
-
-					case STZ:
-						data_buffer_.value = 0;
-						data_buffer_.size = 2 - m_flag();
-					break;
-
-					case STX:
-						data_buffer_.value = x_.full & x_masks_[1];
-						data_buffer_.size = 2 - x_flag();
-					break;
-
-					case STY:
-						data_buffer_.value = y_.full & x_masks_[1];
-						data_buffer_.size = 2 - m_flag();
-					break;
-
-					case PHB:
-						data_buffer_.value = a_.halves.high;
-						data_buffer_.size = 1;
-					break;
-
-					case NOP:	break;
 
 					//
 					// Jumps.
@@ -648,8 +673,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					} break;
 
 					// TODO:
-					//	PLP,
-					//	PHP, PHD, PHK,
+					//	PHK,
 					//	TRB, TSB,
 					//	REP, SEP,
 					//	XCE, XBA,
