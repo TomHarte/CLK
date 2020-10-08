@@ -383,9 +383,13 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					case PHP:
 						data_buffer_.value = flags_.get();
+						data_buffer_.size = 1;
 
 						if(!emulation_flag_) {
 							assert(false);	// TODO: M and X.
+						} else {
+							// On the 6502, the break flag is set during a PHP.
+							data_buffer_.value |= Flag::Break;
 						}
 					break;
 
