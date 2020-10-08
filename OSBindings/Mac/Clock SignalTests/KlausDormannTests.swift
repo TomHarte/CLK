@@ -45,6 +45,7 @@ class KlausDormannTests: XCTestCase {
 				case 0x3399: return nil // success!
 
 				case 0x052a: return "TAX, DEX or LDA did not correctly set flags, or BEQ did not branch correctly"
+				case 0x05db: return "PLP did not affect N flag correctly"
 				case 0x33a7: return "Decimal ADC result has wrong value"
 				case 0x3502: return "Binary SBC result has wrong value"
 				case 0x33b9: return "Decimal SBC result has wrong value"

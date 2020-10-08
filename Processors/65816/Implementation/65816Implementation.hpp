@@ -329,17 +329,17 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					break;
 
 					case PLB:
-						data_bank_ = (instruction_buffer_.value & 0xff) << 16;
+						data_bank_ = (data_buffer_.value & 0xff) << 16;
 						flags_.set_nz(instruction_buffer_.value);
 					break;
 
 					case PLD:
-						direct_ = instruction_buffer_.value;
+						direct_ = data_buffer_.value;
 						flags_.set_nz(instruction_buffer_.value);
 					break;
 
 					case PLP:
-						flags_.set(instruction_buffer_.value);
+						flags_.set(data_buffer_.value);
 
 						if(!emulation_flag_) {
 							assert(false);	// TODO: M and X.
