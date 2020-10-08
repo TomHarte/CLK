@@ -661,7 +661,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePull);				// PCH
 		target(CycleAccessStack);		// IO
 
-		target(OperationPerform);		// [JMP, to perform the RTS]
+		target(OperationPerform);		// [RTS]
 	}
 
 	// 22i. Stack; s, RTL.
@@ -812,7 +812,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x5e LSR a, x */			op(absolute_x_rmw, LSR);
 	/* 0x5f EOR al, x */		op(absolute_long_x, EOR);
 
-	/* 0x60 RTS s */			op(stack_rts, JMPind);	// [sic]; loads the PC from data as per an RTS.
+	/* 0x60 RTS s */			op(stack_rts, RTS);
 	/* 0x61 ADC (d, x) */		op(direct_indexed_indirect, ADC);
 	/* 0x62 PER s */			op(stack_per, NOP);
 	/* 0x63 ADC d, s */			op(stack_relative, ADC);

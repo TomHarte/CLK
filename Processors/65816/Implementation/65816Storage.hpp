@@ -191,6 +191,9 @@ enum Operation: uint8_t {
 	/// placing the old PC into the data buffer (and only the PC; PBR not included).
 	JSL,
 
+	/// Loads the PC with the contents of the data buffer + 1.
+	RTS,
+
 	/// i.e. jump to vector. TODO: is this really distinct from JMP? I'm assuming so for now,
 	/// as I assume the PBR is implicitly modified. But then is it just JML? We'll see.
 	BRK,

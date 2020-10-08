@@ -455,6 +455,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						pc_ = data_buffer_.value;
 					break;
 
+					case RTS:
+						pc_ = data_buffer_.value + 1;
+					break;
+
 					case JSL:
 						program_bank_ = instruction_buffer_.value & 0xff0000;
 					[[fallthrough]];
@@ -678,7 +682,6 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					} break;
 
 					// TODO:
-					//	PHK,
 					//	TRB, TSB,
 					//	REP, SEP,
 					//	XCE, XBA,
