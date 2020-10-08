@@ -46,15 +46,16 @@ class KlausDormannTests: XCTestCase {
 
 				case 0x052a: return "TAX, DEX or LDA did not correctly set flags, or BEQ did not branch correctly"
 				case 0x05db: return "PLP did not affect N flag correctly"
+				case 0x26d2: return "ASL zpg,x produced incorrect flags"
 				case 0x33a7: return "Decimal ADC result has wrong value"
-				case 0x3502: return "Binary SBC result has wrong value"
 				case 0x33b9: return "Decimal SBC result has wrong value"
 				case 0x33c0: return "Decimal SBC wrong carry flag"
-				case 0x36d1: return "BRK: unexpected BRK or IRQ"
+				case 0x3502: return "Binary SBC result has wrong value"
+				case 0x364a: return "JMP (addr) acted as JMP addr"
 				case 0x36ac, 0x36f6: return "Improper JSR return address on stack"
-				case 0x36e5: return "BRK flag not set on stack"
-				case 0x26d2: return "ASL zpg,x produced incorrect flags"
 				case 0x36c6: return "Unexpected RESET"
+				case 0x36d1: return "BRK: unexpected BRK or IRQ"
+				case 0x36e5: return "BRK flag not set on stack"
 
 				case 0: return "Didn't find tests"
 
