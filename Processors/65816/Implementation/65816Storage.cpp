@@ -111,7 +111,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		const auto map_entry = installed_patterns.find(key);
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[0] =
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[1] = uint16_t(map_entry->second.first);
-		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].operation = BRK;
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].operation = JMPind;
 	}
 
 	void install_fetch_decode_execute() {
@@ -579,6 +579,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePush);					// PCL
 		target(CyclePush);					// P
 
+		// TODO: I think I need a seperate vector fetch here, to signal vector pull?
 		target(CycleFetchIncrementData);	// AAVL
 		target(CycleFetchData);				// AAVH
 
@@ -677,8 +678,23 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 22j. Stack; s, BRK/COP.
+	static void brk_cop(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchIncrementPC);		// Signature.
 
-	// Covered by stack_exception.
+		target(OperationPrepareException);	// Populates the data buffer; this skips a micro-op if
+											// in emulation mode.
+
+		target(CyclePush);					// PBR	[skipped in emulation mode]
+		target(CyclePush);					// PCH
+		target(CyclePush);					// PCL
+		target(CyclePush);					// P
+
+		// TODO: I think I need a seperate vector fetch here, to signal vector pull?
+		target(CycleFetchIncrementData);	// AAVL
+		target(CycleFetchData);				// AAVH
+
+		target(OperationPerform);			// Jumps to the vector address.
+	}
 
 	// 23. Stack Relative; d, s.
 	static void stack_relative(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
@@ -710,9 +726,9 @@ ProcessorStorage::ProcessorStorage() {
 	// Install the instructions.
 #define op(x, y) constructor.install(&ProcessorStorageConstructor::x, y)
 
-	/* 0x00 BRK s */			op(stack_exception, BRK);
+	/* 0x00 BRK s */			op(brk_cop, JMPind);
 	/* 0x01 ORA (d, x) */		op(direct_indexed_indirect, ORA);
-	/* 0x02 COP s */			op(stack_exception, BRK);
+	/* 0x02 COP s */			op(brk_cop, JMPind);
 	/* 0x03 ORA d, s */			op(stack_relative, ORA);
 	/* 0x04 TSB d */			op(direct_rmw, TSB);
 	/* 0x05 ORA d */			op(direct, ORA);

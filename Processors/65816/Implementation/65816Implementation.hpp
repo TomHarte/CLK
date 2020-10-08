@@ -296,6 +296,49 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				data_address_ = data_bank_ + (instruction_buffer_.value + y()) & 0xffff;
 			continue;
 
+			case OperationPrepareException: {
+				// Put the proper exception vector into the data address, put the flags and PC
+				// into the data buffer (possibly also PBR), and skip an instruction if in
+				// emulation mode.
+
+				bool is_brk = false;
+
+				if(pending_exceptions_ & (Reset | PowerOn)) {
+					// TODO: set emulation mode, etc.
+					pending_exceptions_ &= ~(Reset | PowerOn);
+					data_address_ = 0xfffc;
+				} else if(pending_exceptions_ & NMI) {
+					pending_exceptions_ &= ~NMI;
+					data_address_ = 0xfffa;
+				} else if(pending_exceptions_ & IRQ) {
+					pending_exceptions_ &= ~IRQ;
+					data_address_ = 0xfffe;
+				} else {
+					is_brk = active_instruction_ == instructions;
+					if(is_brk) {
+						data_address_ = emulation_flag_ ? 0xfffe : 0xfff6;
+					} else {
+						// Implicitly: COP.
+						data_address_ = 0xfff4;
+					}
+				}
+
+				data_buffer_.value = (pc_ << 8) | flags_.get();
+				if(emulation_flag_) {
+					if(is_brk) data_buffer_.value |= Flag::Break;
+					data_buffer_.size = 3;
+					++next_op_;
+				} else {
+					data_buffer_.value |= program_bank_ << 24;
+					data_buffer_.size = 4;
+					program_bank_ = 0;
+
+					assert(false);	// TODO: proper flags, still.
+				}
+
+				flags_.inverse_interrupt = 0;
+			} continue;
+
 			//
 			// Performance.
 			//
@@ -687,15 +730,12 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//	XCE, XBA,
 					//	STP, WAI,
 					//	RTI, RTL,
-					//	BRK,
 					//	TCD, TCS, TDC, TSC
 
 					default:
 						assert(false);
 				}
 			continue;
-
-			// TODO: OperationPrepareException
 
 			default:
 				assert(false);

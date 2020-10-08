@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <cstring>
 
+#define BE_NOISY
+
 using namespace CPU::MOS6502;
 
 namespace {
@@ -28,20 +30,31 @@ template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, publ
 			timestamp_ += Cycles(1);
 
 			if(operation == BusOperation::ReadOpcode) {
-				// TEMPORARY LOGGING. TODO: remove.
+#ifdef BE_NOISY
 				printf("[%04x] %02x a:%04x x:%04x y:%04x p:%02x s:%02x\n", address, memory_[address],
 					mos6502_.get_value_of_register(Register::A),
 					mos6502_.get_value_of_register(Register::X),
 					mos6502_.get_value_of_register(Register::Y),
 					mos6502_.get_value_of_register(Register::Flags) & 0xff,
 					mos6502_.get_value_of_register(Register::StackPointer) & 0xff);
+#endif
 				check_address_for_trap(address);
 			}
 
 			if(isReadOperation(operation)) {
 				*value = memory_[address];
+#ifdef BE_NOISY
+				if((address&0xff00) == 0x100) {
+					printf("%04x -> %02x\n", address, *value);
+				}
+#endif
 			} else {
 				memory_[address] = *value;
+#ifdef BE_NOISY
+				if((address&0xff00) == 0x100) {
+					printf("%04x <- %02x\n", address, *value);
+				}
+#endif
 			}
 
 			return Cycles(1);

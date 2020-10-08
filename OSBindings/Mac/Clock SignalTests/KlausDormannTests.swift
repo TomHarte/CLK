@@ -55,7 +55,9 @@ class KlausDormannTests: XCTestCase {
 				case 0x36ac, 0x36f6: return "Improper JSR return address on stack"
 				case 0x36c6: return "Unexpected RESET"
 				case 0x36d1: return "BRK: unexpected BRK or IRQ"
-				case 0x36e5: return "BRK flag not set on stack"
+				case 0x36e5: return "BRK flag not set on stack following BRK"
+				case 0x36ea: return "BRK did not set the I flag"
+				case 0x36fd: return "Wrong address put on stack by BRK"
 
 				case 0: return "Didn't find tests"
 
