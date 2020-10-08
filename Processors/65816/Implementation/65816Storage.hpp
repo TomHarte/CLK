@@ -9,8 +9,10 @@
 enum MicroOp: uint8_t {
 	/// Fetches a byte from the program counter to the instruction buffer and increments the program counter.
 	CycleFetchIncrementPC,
-	/// Fetches a byte from the program counter without incrementing it, and throws it away.
+	/// Fetches a byte from the program counter without incrementing it.
 	CycleFetchPC,
+	/// Fetches a byte from the program counter without incrementing it, and throws it away.
+	CycleFetchPCThrowaway,
 	/// The same as CycleFetchIncrementPC but indicates valid program address rather than valid data address.
 	CycleFetchOpcode,
 

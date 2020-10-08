@@ -72,6 +72,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			break;
 
 			case CycleFetchPC:
+				read(pc_ | program_bank_, instruction_buffer_.next_input());
+			break;
+
+			case CycleFetchPCThrowaway:
 				read(pc_ | program_bank_, &throwaway);
 			break;
 
