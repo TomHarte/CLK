@@ -428,6 +428,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementData);				// AAL.
 		target(CycleFetchData);							// AAH.
 
+		target(OperationCopyDataToInstruction);
 		target(OperationConstructAbsoluteYRead);
 		target(CycleFetchIncorrectDataAddress);			// IO.
 

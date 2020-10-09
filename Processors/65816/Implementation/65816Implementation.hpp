@@ -171,6 +171,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				data_buffer_ = instruction_buffer_;
 			continue;
 
+			case OperationCopyDataToInstruction:
+				instruction_buffer_ = data_buffer_;
+			continue;
+
 			case OperationCopyAToData:
 				if(m_flag()) {
 					data_buffer_.size = 1;

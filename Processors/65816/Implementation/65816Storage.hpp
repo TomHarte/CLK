@@ -112,8 +112,9 @@ enum MicroOp: uint8_t {
 
 	/// Copies the current program counter to the data buffer.
 	OperationCopyPCToData,
-	OperationCopyInstructionToData,
 	OperationCopyDataToPC,
+	OperationCopyInstructionToData,
+	OperationCopyDataToInstruction,
 
 	/// Copies the current PBR to the data buffer.
 	OperationCopyPBRToData,
