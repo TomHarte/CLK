@@ -16,19 +16,19 @@ namespace MOS6502Esque {
 
 struct LazyFlags {
 	/// Bit 7 is set if the negative flag is set; otherwise it is clear.
-	uint8_t negative_result;
+	uint8_t negative_result = 0;
 
 	/// Non-zero if the zero flag is clear, zero if it is set.
-	uint8_t zero_result;
+	uint8_t zero_result = 0;
 
 	/// Contains Flag::Carry.
-	uint8_t carry;
+	uint8_t carry = 0;
 
 	/// Contains Flag::Decimal.
-	uint8_t decimal;
+	uint8_t decimal = 0;
 
 	/// Contains Flag::Overflow.
-	uint8_t overflow;
+	uint8_t overflow = 0;
 
 	/// Contains Flag::Interrupt, complemented.
 	uint8_t inverse_interrupt = 0;

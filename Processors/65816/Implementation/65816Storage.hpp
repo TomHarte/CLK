@@ -237,6 +237,7 @@ struct ProcessorStorage {
 	uint8_t mx_flags_[2] = {1, 1};				// [0] = m; [1] = x. In both cases either `0` or `1`; `1` => 8-bit.
 	uint16_t m_masks_[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
 	uint16_t x_masks_[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
+	uint16_t e_masks_[2] = {0xff00, 0x00ff};
 	int m_shift_ = 0;
 	int x_shift_ = 0;
 	bool emulation_flag_ = true;

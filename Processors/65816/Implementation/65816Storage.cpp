@@ -723,6 +723,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 };
 
 ProcessorStorage::ProcessorStorage() {
+	a_.full = x_.full = y_.full = 0;	// TEMPORARY (?)
+
 	ProcessorStorageConstructor constructor(*this);
 
 	// Install the instructions.

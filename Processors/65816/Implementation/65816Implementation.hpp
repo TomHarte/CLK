@@ -267,16 +267,22 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				data_address_ = instruction_buffer_.value;
 			continue;
 
-			case OperationConstructDirectX:
-				data_address_ = (instruction_buffer_.value + direct_ + x()) & 0xffff;
+			case OperationConstructDirectX: {
+				data_address_ = (
+					(direct_ & e_masks_[0]) +
+					((instruction_buffer_.value + direct_ + x()) & e_masks_[1])
+				) & 0xffff;
 				incorrect_data_address_ = (direct_ & 0xff00) + (data_address_ & 0x00ff);
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
-			continue;
+			} continue;
 
 			case OperationConstructDirectY:
-				data_address_ = (instruction_buffer_.value + direct_ + y()) & 0xffff;
+				data_address_ = (
+					(direct_ & e_masks_[0]) +
+					((instruction_buffer_.value + direct_ + y()) & e_masks_[1])
+				) & 0xffff;
 				// TODO: given the 16-bit internal arithmetic, confirm this is the correct spurious address.
 				incorrect_data_address_ = (direct_ & 0xff00) + (data_address_ & 0x00ff);
 				if(!(direct_&0xff)) {
