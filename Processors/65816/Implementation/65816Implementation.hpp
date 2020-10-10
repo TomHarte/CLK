@@ -614,17 +614,17 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//
 
 					case AND:
-						a_.full &= instruction_buffer_.value | m_masks_[0];
+						a_.full &= data_buffer_.value | m_masks_[0];
 						flags_.set_nz(a_.full, m_shift_);
 					break;
 
 					case EOR:
-						a_.full ^= instruction_buffer_.value;
+						a_.full ^= data_buffer_.value;
 						flags_.set_nz(a_.full, m_shift_);
 					break;
 
 					case ORA:
-						a_.full |= instruction_buffer_.value;
+						a_.full |= data_buffer_.value;
 						flags_.set_nz(a_.full, m_shift_);
 					break;
 
@@ -674,7 +674,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//
 
 					case ASL:
-						flags_.carry = (data_buffer_.value >> (7 + m_shift_)) & 1;
+						flags_.carry = data_buffer_.value >> (7 + m_shift_);
 						data_buffer_.value <<= 1;
 						flags_.set_nz(data_buffer_.value, m_shift_);
 					break;
@@ -687,7 +687,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					case ROL:
 						data_buffer_.value = (data_buffer_.value << 1) | flags_.carry;
-						flags_.carry = (data_buffer_.value >> (7 + m_shift_)) & 1;
+						flags_.carry = data_buffer_.value >> (8 + m_shift_);
 						flags_.set_nz(data_buffer_.value, m_shift_);
 					break;
 

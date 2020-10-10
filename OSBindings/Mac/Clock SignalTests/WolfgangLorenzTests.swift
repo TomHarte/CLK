@@ -228,12 +228,9 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	// MARK: - Collections
 
 	func testTransfers(processor: CSTestMachine6502Processor)	{
-		self.runTest("taxn", processor: processor)
-		self.runTest("tayn", processor: processor)
-		self.runTest("txan", processor: processor)
-		self.runTest("tyan", processor: processor)
-		self.runTest("tsxn", processor: processor)
-		self.runTest("txsn", processor: processor)
+		for test in ["taxn", "tayn", "txan", "tyan", "tsxn", "txsn"] {
+			runTest(test, processor: processor)
+		}
 	}
 	func testStack(processor: CSTestMachine6502Processor) {
 		self.runTest("phan", processor: processor)
@@ -254,6 +251,15 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 		self.runTest("deczx", processor: processor)
 		self.runTest("deca", processor: processor)
 		self.runTest("decax", processor: processor)
+	}
+	func testFlagManipulation(processor: CSTestMachine6502Processor)	{
+		self.runTest("clcn", processor: processor)
+		self.runTest("secn", processor: processor)
+		self.runTest("cldn", processor: processor)
+		self.runTest("sedn", processor: processor)
+		self.runTest("clin", processor: processor)
+		self.runTest("sein", processor: processor)
+		self.runTest("clvn", processor: processor)
 	}
 
 
