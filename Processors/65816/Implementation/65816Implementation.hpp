@@ -629,7 +629,8 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					break;
 
 					case BIT:
-						flags_.set_nz(data_buffer_.value & a_.full, m_shift_);
+						flags_.set_n(data_buffer_.value, m_shift_);
+						flags_.set_z(data_buffer_.value & a_.full, m_shift_);
 						flags_.overflow = data_buffer_.value & Flag::Overflow;
 					break;
 

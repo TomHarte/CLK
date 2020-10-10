@@ -45,14 +45,14 @@ template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, publ
 				*value = memory_[address];
 #ifdef BE_NOISY
 //				if((address&0xff00) == 0x100) {
-					printf("%04x -> %02x\n", address, *value);
+//					printf("%04x -> %02x\n", address, *value);
 //				}
 #endif
 			} else {
 				memory_[address] = *value;
 #ifdef BE_NOISY
 //				if((address&0xff00) == 0x100) {
-					printf("%04x <- %02x\n", address, *value);
+//					printf("%04x <- %02x\n", address, *value);
 //				}
 #endif
 			}

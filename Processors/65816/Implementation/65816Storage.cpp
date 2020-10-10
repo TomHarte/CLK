@@ -556,7 +556,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(OperationPerform);		// The branch instructions will all skip one or three
 										// of the next cycles, depending on the effect of
-										// the jump.
+										// the jump. It'll also calculate the correct target
+										// address, placing it into the data buffer.
 
 		target(CycleFetchPCThrowaway);	// IO
 		target(CycleFetchPCThrowaway);	// IO

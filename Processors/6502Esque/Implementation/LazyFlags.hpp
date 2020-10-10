@@ -49,6 +49,11 @@ struct LazyFlags {
 		zero_result = uint8_t(value | (value >> shift));
 	}
 
+	/// Sets the N flag per the 8- or 16-bit value @c value; @c shift should be 0 to indicate an 8-bit value or 8 to indicate a 16-bit value.
+	void set_n(uint16_t value, int shift) {
+		negative_result = uint8_t(value >> shift);
+	}
+
 	void set(uint8_t flags) {
 		carry				= flags		& Flag::Carry;
 		negative_result		= flags		& Flag::Sign;
