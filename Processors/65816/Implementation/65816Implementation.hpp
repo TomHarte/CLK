@@ -733,9 +733,9 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 	if(result >= limit) result = ((result + (addition)) & (carry - 1)) + carry;
 
 							nibble(0x000f, 0x000a, nibble_adjustment << 0, 0x00010);
-							nibble(0x00f0, 0x00a0, nibble_adjustment << 8, 0x00100);
-							nibble(0x0f00, 0x0a00, nibble_adjustment << 16, 0x01000);
-							nibble(0xf000, 0xa000, nibble_adjustment << 24, 0x10000);
+							nibble(0x00f0, 0x00a0, nibble_adjustment << 4, 0x00100);
+							nibble(0x0f00, 0x0a00, nibble_adjustment << 8, 0x01000);
+							nibble(0xf000, 0xa000, nibble_adjustment << 12, 0x10000);
 
 #undef nibble
 
