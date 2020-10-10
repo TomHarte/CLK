@@ -187,7 +187,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			case OperationCopyAToData:
 				if(m_flag()) {
 					data_buffer_.size = 1;
-					data_buffer_.value = a_.halves.high;
+					data_buffer_.value = a_.halves.low;
 				} else {
 					data_buffer_.size = 2;
 					data_buffer_.value = a_.full;
@@ -196,7 +196,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationCopyDataToA:
 				if(m_flag()) {
-					a_.halves.high = data_buffer_.value;
+					a_.halves.low = data_buffer_.value;
 				} else {
 					a_.full = data_buffer_.value;
 				}
