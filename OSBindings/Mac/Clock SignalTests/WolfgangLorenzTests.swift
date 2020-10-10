@@ -256,6 +256,11 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 				machine.setValue(0x0801, for: .programCounter)
 				machine.setValue(0xfd, for: .stackPointer)
 				machine.setValue(0x04, for: .flags)
+
+				// For consistency when debugging; otherwise immaterial.
+				machine.setValue(0x00, for: .A)
+				machine.setValue(0x00, for: .X)
+				machine.setValue(0x00, for: .Y)
 			}
 		}
 

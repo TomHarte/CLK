@@ -249,7 +249,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			continue;
 
 			case OperationConstructDirectIndexedIndirect:
-				data_address_ = data_bank_ + (direct_ + x() + instruction_buffer_.value) & 0xffff;
+				data_address_ = data_bank_ + (
+					((direct_ + x() + instruction_buffer_.value) & e_masks_[1]) +
+					(direct_ & e_masks_[0])
+				) & 0xffff;
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
