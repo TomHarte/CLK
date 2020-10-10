@@ -674,7 +674,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//
 
 					case ASL:
-						flags_.carry = data_buffer_.value >> (7 + m_shift_);
+						flags_.carry = (data_buffer_.value >> (7 + m_shift_)) & 1;
 						data_buffer_.value <<= 1;
 						flags_.set_nz(data_buffer_.value, m_shift_);
 					break;
@@ -687,7 +687,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					case ROL:
 						data_buffer_.value = (data_buffer_.value << 1) | flags_.carry;
-						flags_.carry = data_buffer_.value >> (7 + m_shift_);
+						flags_.carry = (data_buffer_.value >> (7 + m_shift_)) & 1;
 						flags_.set_nz(data_buffer_.value, m_shift_);
 					break;
 

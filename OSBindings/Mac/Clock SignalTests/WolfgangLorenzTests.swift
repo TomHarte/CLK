@@ -10,226 +10,264 @@ import XCTest
 import Foundation
 
 class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
-	func testWolfgangLorenzTransfers(processor: CSTestMachine6502Processor)	{
-		self.runWolfgangLorenzTest("taxn", processor: processor)
-		self.runWolfgangLorenzTest("tayn", processor: processor)
-		self.runWolfgangLorenzTest("txan", processor: processor)
-		self.runWolfgangLorenzTest("tyan", processor: processor)
-		self.runWolfgangLorenzTest("tsxn", processor: processor)
-		self.runWolfgangLorenzTest("txsn", processor: processor)
-	}
-	func testStack(processor: CSTestMachine6502Processor) {
-		self.runWolfgangLorenzTest("phan", processor: processor)
-		self.runWolfgangLorenzTest("plan", processor: processor)
-		self.runWolfgangLorenzTest("phpn", processor: processor)
-		self.runWolfgangLorenzTest("plpn", processor: processor)
-	}
 
+	// MARK: - 6502 Tests
 
-	func testWolfgangLorenzStart65816()	{
-		runWolfgangLorenzTest(" start", processor: .processor65816)
+	func testStart()	{
+		runTest(" start", processor: .processor6502)
 	}
-	func testWolfgangLorenzLDA65816()	{
-		runWolfgangLorenzTest("lda", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
+	func testLDA()	{
+		runTest("lda", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzSTA65816()	{
-		runWolfgangLorenzTest("sta", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
+	func testSTA()	{
+		runTest("sta", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzLDX65816()	{
-		runWolfgangLorenzTest("ldx", suffixes: ["b", "z", "zy", "a", "ay"], processor: .processor65816)
+	func testLDX()	{
+		runTest("ldx", suffixes: ["b", "z", "zy", "a", "ay"], processor: .processor6502)
 	}
-	func testWolfgangLorenzSTX65816()	{
-		runWolfgangLorenzTest("stx", suffixes: ["z", "zy", "a"], processor: .processor65816)
+	func testSTX()	{
+		runTest("stx", suffixes: ["z", "zy", "a"], processor: .processor6502)
 	}
-	func testWolfgangLorenzLDY65816()	{
-		runWolfgangLorenzTest("ldy", suffixes: ["b", "z", "zx", "a", "ax"], processor: .processor65816)
+	func testLDY()	{
+		runTest("ldy", suffixes: ["b", "z", "zx", "a", "ax"], processor: .processor6502)
 	}
-	func testWolfgangLorenzSTY65816()	{
-		runWolfgangLorenzTest("sty", suffixes: ["z", "zx", "a"], processor: .processor65816)
+	func testSTY()	{
+		runTest("sty", suffixes: ["z", "zx", "a"], processor: .processor6502)
 	}
-	func testWolfgangLorenzTransfers65816()	{
-		testWolfgangLorenzTransfers(processor: .processor65816)
-	}
-	func testStack65816()	{
-		testStack(processor: .processor65816)
-	}
-
-	func testWolfgangLorenzStart()	{
-		runWolfgangLorenzTest(" start", processor: .processor6502)
-	}
-	func testWolfgangLorenzLDA()	{
-		runWolfgangLorenzTest("lda", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
-	}
-	func testWolfgangLorenzSTA()	{
-		runWolfgangLorenzTest("sta", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
-	}
-	func testWolfgangLorenzLDX()	{
-		runWolfgangLorenzTest("ldx", suffixes: ["b", "z", "zy", "a", "ay"], processor: .processor6502)
-	}
-	func testWolfgangLorenzSTX()	{
-		runWolfgangLorenzTest("stx", suffixes: ["z", "zy", "a"], processor: .processor6502)
-	}
-	func testWolfgangLorenzLDY()	{
-		runWolfgangLorenzTest("ldy", suffixes: ["b", "z", "zx", "a", "ax"], processor: .processor6502)
-	}
-	func testWolfgangLorenzSTY()	{
-		runWolfgangLorenzTest("sty", suffixes: ["z", "zx", "a"], processor: .processor6502)
-	}
-	func testWolfgangLorenzTransfers()	{
-		testWolfgangLorenzTransfers(processor: .processor6502)
+	func testTransfers()	{
+		testTransfers(processor: .processor6502)
 	}
 	func testStack()	{
 		testStack(processor: .processor6502)
 	}
-	func testWolfgangLorenzIncsAndDecs()	{
-		self.runWolfgangLorenzTest("inxn", processor: .processor6502)
-		self.runWolfgangLorenzTest("inyn", processor: .processor6502)
-		self.runWolfgangLorenzTest("dexn", processor: .processor6502)
-		self.runWolfgangLorenzTest("deyn", processor: .processor6502)
-		self.runWolfgangLorenzTest("incz", processor: .processor6502)
-		self.runWolfgangLorenzTest("inczx", processor: .processor6502)
-		self.runWolfgangLorenzTest("inca", processor: .processor6502)
-		self.runWolfgangLorenzTest("incax", processor: .processor6502)
-		self.runWolfgangLorenzTest("decz", processor: .processor6502)
-		self.runWolfgangLorenzTest("deczx", processor: .processor6502)
-		self.runWolfgangLorenzTest("deca", processor: .processor6502)
-		self.runWolfgangLorenzTest("decax", processor: .processor6502)
+	func testIncsAndDecs()	{
+		testIncsAndDecs(processor: .processor6502)
 	}
-	func testWolfgangLorenzASL()	{
-		self.runWolfgangLorenzTest("asl", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor6502)
+	func testASL()	{
+		self.runTest("asl", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor6502)
 	}
-	func testWolfgangLorenzLSR()	{
-		self.runWolfgangLorenzTest("lsr", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor6502)
+	func testLSR()	{
+		self.runTest("lsr", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor6502)
 	}
-	func testWolfgangLorenzROL()	{
-		self.runWolfgangLorenzTest("rol", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor6502)
+	func testROL()	{
+		self.runTest("rol", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor6502)
 	}
-	func testWolfgangLorenzROR()	{
-		self.runWolfgangLorenzTest("ror", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor6502)
+	func testROR()	{
+		self.runTest("ror", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor6502)
 	}
-	func testWolfgangLorenzAND()	{
-		self.runWolfgangLorenzTest("and", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+	func testAND()	{
+		self.runTest("and", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzORA()	{
-		self.runWolfgangLorenzTest("ora", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+	func testORA()	{
+		self.runTest("ora", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzEOR()	{
-		self.runWolfgangLorenzTest("eor", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+	func testEOR()	{
+		self.runTest("eor", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzFlagManipulation()	{
-		self.runWolfgangLorenzTest("clcn", processor: .processor6502)
-		self.runWolfgangLorenzTest("secn", processor: .processor6502)
-		self.runWolfgangLorenzTest("cldn", processor: .processor6502)
-		self.runWolfgangLorenzTest("sedn", processor: .processor6502)
-		self.runWolfgangLorenzTest("clin", processor: .processor6502)
-		self.runWolfgangLorenzTest("sein", processor: .processor6502)
-		self.runWolfgangLorenzTest("clvn", processor: .processor6502)
+	func testFlagManipulation()	{
+		self.runTest("clcn", processor: .processor6502)
+		self.runTest("secn", processor: .processor6502)
+		self.runTest("cldn", processor: .processor6502)
+		self.runTest("sedn", processor: .processor6502)
+		self.runTest("clin", processor: .processor6502)
+		self.runTest("sein", processor: .processor6502)
+		self.runTest("clvn", processor: .processor6502)
 	}
-	func testWolfgangLorenzADC()	{
-		self.runWolfgangLorenzTest("adc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+	func testADC()	{
+		self.runTest("adc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzSBC()	{
-		self.runWolfgangLorenzTest("sbc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+	func testSBC()	{
+		self.runTest("sbc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzCompare()	{
-		self.runWolfgangLorenzTest("cmp", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
-		self.runWolfgangLorenzTest("cpx", suffixes: ["b", "z", "a"], processor: .processor6502)
-		self.runWolfgangLorenzTest("cpy", suffixes: ["b", "z", "a"], processor: .processor6502)
+	func testCompare()	{
+		self.runTest("cmp", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+		self.runTest("cpx", suffixes: ["b", "z", "a"], processor: .processor6502)
+		self.runTest("cpy", suffixes: ["b", "z", "a"], processor: .processor6502)
 	}
-	func testWolfgangLorenzBIT()	{
-		self.runWolfgangLorenzTest("bit", suffixes: ["z", "a"], processor: .processor6502)
+	func testBIT()	{
+		self.runTest("bit", suffixes: ["z", "a"], processor: .processor6502)
 	}
-	func testWolfgangLorenzFlow()	{
-		self.runWolfgangLorenzTest("brkn", processor: .processor6502)
-		self.runWolfgangLorenzTest("rtin", processor: .processor6502)
-		self.runWolfgangLorenzTest("jsrw", processor: .processor6502)
-		self.runWolfgangLorenzTest("rtsn", processor: .processor6502)
-		self.runWolfgangLorenzTest("jmpw", processor: .processor6502)
-		self.runWolfgangLorenzTest("jmpi", processor: .processor6502)
+	func testFlow()	{
+		self.runTest("brkn", processor: .processor6502)
+		self.runTest("rtin", processor: .processor6502)
+		self.runTest("jsrw", processor: .processor6502)
+		self.runTest("rtsn", processor: .processor6502)
+		self.runTest("jmpw", processor: .processor6502)
+		self.runTest("jmpi", processor: .processor6502)
 	}
-	func testWolfgangLorenzBranch()	{
-		self.runWolfgangLorenzTest("beqr", processor: .processor6502)
-		self.runWolfgangLorenzTest("bner", processor: .processor6502)
-		self.runWolfgangLorenzTest("bmir", processor: .processor6502)
-		self.runWolfgangLorenzTest("bplr", processor: .processor6502)
-		self.runWolfgangLorenzTest("bcsr", processor: .processor6502)
-		self.runWolfgangLorenzTest("bccr", processor: .processor6502)
-		self.runWolfgangLorenzTest("bvsr", processor: .processor6502)
-		self.runWolfgangLorenzTest("bvcr", processor: .processor6502)
+	func testBranch()	{
+		self.runTest("beqr", processor: .processor6502)
+		self.runTest("bner", processor: .processor6502)
+		self.runTest("bmir", processor: .processor6502)
+		self.runTest("bplr", processor: .processor6502)
+		self.runTest("bcsr", processor: .processor6502)
+		self.runTest("bccr", processor: .processor6502)
+		self.runTest("bvsr", processor: .processor6502)
+		self.runTest("bvcr", processor: .processor6502)
 	}
-	func testWolfgangLorenzNOP()	{
-		self.runWolfgangLorenzTest("nop", suffixes: ["n", "b", "z", "zx", "a", "ax"], processor: .processor6502)
+	func testNOP()	{
+		self.runTest("nop", suffixes: ["n", "b", "z", "zx", "a", "ax"], processor: .processor6502)
 	}
-	func testWolfgangLorenzASO()	{
-		self.runWolfgangLorenzTest("aso", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+	func testASO()	{
+		self.runTest("aso", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzRLA()	{
-		self.runWolfgangLorenzTest("rla", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+	func testRLA()	{
+		self.runTest("rla", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzLSE()	{
-		self.runWolfgangLorenzTest("lse", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+	func testLSE()	{
+		self.runTest("lse", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzRRA()	{
-		self.runWolfgangLorenzTest("rra", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+	func testRRA()	{
+		self.runTest("rra", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzDCM()	{
-		self.runWolfgangLorenzTest("dcm", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+	func testDCM()	{
+		self.runTest("dcm", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzINS()	{
-		self.runWolfgangLorenzTest("ins", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
+	func testINS()	{
+		self.runTest("ins", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzLAX()	{
-		self.runWolfgangLorenzTest("lax", suffixes: ["z", "zy", "a", "ay", "ix", "iy"], processor: .processor6502)
+	func testLAX()	{
+		self.runTest("lax", suffixes: ["z", "zy", "a", "ay", "ix", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzAXS()	{
-		self.runWolfgangLorenzTest("axs", suffixes: ["z", "zy", "a", "ix"], processor: .processor6502)
+	func testAXS()	{
+		self.runTest("axs", suffixes: ["z", "zy", "a", "ix"], processor: .processor6502)
 	}
-	func testWolfgangLorenzALR()	{
-		self.runWolfgangLorenzTest("alrb", processor: .processor6502)
+	func testALR()	{
+		self.runTest("alrb", processor: .processor6502)
 	}
-	func testWolfgangLorenzARR()	{
-		self.runWolfgangLorenzTest("arrb", processor: .processor6502)
+	func testARR()	{
+		self.runTest("arrb", processor: .processor6502)
 	}
-	func testWolfgangLorenzSBX()	{
-		self.runWolfgangLorenzTest("sbxb", processor: .processor6502)
+	func testSBX()	{
+		self.runTest("sbxb", processor: .processor6502)
 	}
-	func testWolfgangLorenzSHA()	{
-		self.runWolfgangLorenzTest("sha", suffixes: ["ay", "iy"], processor: .processor6502)
+	func testSHA()	{
+		self.runTest("sha", suffixes: ["ay", "iy"], processor: .processor6502)
 	}
-	func testWolfgangLorenzSHX()	{
-		self.runWolfgangLorenzTest("shxay", processor: .processor6502)
+	func testSHX()	{
+		self.runTest("shxay", processor: .processor6502)
 	}
-	func testWolfgangLorenzSHY()	{
-		self.runWolfgangLorenzTest("shyax", processor: .processor6502)
+	func testSHY()	{
+		self.runTest("shyax", processor: .processor6502)
 	}
-	func testWolfgangLorenzSHS()	{
-		self.runWolfgangLorenzTest("shsay", processor: .processor6502)
+	func testSHS()	{
+		self.runTest("shsay", processor: .processor6502)
 	}
-	func testWolfgangLorenzLXA()	{
-		self.runWolfgangLorenzTest("lxab", processor: .processor6502)
+	func testLXA()	{
+		self.runTest("lxab", processor: .processor6502)
 	}
-	func testWolfgangLorenzANE()	{
-		self.runWolfgangLorenzTest("aneb", processor: .processor6502)
+	func testANE()	{
+		self.runTest("aneb", processor: .processor6502)
 	}
-	func testWolfgangLorenzANC()	{
-		self.runWolfgangLorenzTest("ancb", processor: .processor6502)
+	func testANC()	{
+		self.runTest("ancb", processor: .processor6502)
 	}
-	func testWolfgangLorenzLAS()	{
-		self.runWolfgangLorenzTest("lasay", processor: .processor6502)
+	func testLAS()	{
+		self.runTest("lasay", processor: .processor6502)
 	}
-	func testWolfgangLorenzSBCB()	{
-		self.runWolfgangLorenzTest("sbcb(eb)", processor: .processor6502)
+	func testSBCB()	{
+		self.runTest("sbcb(eb)", processor: .processor6502)
 	}
 
-	fileprivate func runWolfgangLorenzTest(_ name: String, suffixes: [String], processor: CSTestMachine6502Processor) {
+
+	// MARK: - 65816 Tests
+
+	func testStart65816()	{
+		runTest(" start", processor: .processor65816)
+	}
+	func testLDA65816()	{
+		runTest("lda", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
+	}
+	func testSTA65816()	{
+		runTest("sta", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
+	}
+	func testLDX65816()	{
+		runTest("ldx", suffixes: ["b", "z", "zy", "a", "ay"], processor: .processor65816)
+	}
+	func testSTX65816()	{
+		runTest("stx", suffixes: ["z", "zy", "a"], processor: .processor65816)
+	}
+	func testLDY65816()	{
+		runTest("ldy", suffixes: ["b", "z", "zx", "a", "ax"], processor: .processor65816)
+	}
+	func testSTY65816()	{
+		runTest("sty", suffixes: ["z", "zx", "a"], processor: .processor65816)
+	}
+	func testTransfers65816()	{
+		testTransfers(processor: .processor65816)
+	}
+	func testStack65816()	{
+		testStack(processor: .processor65816)
+	}
+	func testIncsAndDecs65816() {
+		testIncsAndDecs(processor: .processor65816)
+	}
+	func testASL65816()	{
+		self.runTest("asl", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor65816)
+	}
+	func testLSR65816()	{
+		self.runTest("lsr", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor65816)
+	}
+	func testROL65816()	{
+		self.runTest("rol", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor65816)
+	}
+	func testROR65816()	{
+		self.runTest("ror", suffixes: ["n", "z", "zx", "a", "ax"], processor: .processor65816)
+	}
+	func testAND65816()	{
+		self.runTest("and", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
+	}
+	func testORA65816()	{
+		self.runTest("ora", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
+	}
+	func testEOR65816()	{
+		self.runTest("eor", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
+	}
+
+
+	// MARK: - Collections
+
+	func testTransfers(processor: CSTestMachine6502Processor)	{
+		self.runTest("taxn", processor: processor)
+		self.runTest("tayn", processor: processor)
+		self.runTest("txan", processor: processor)
+		self.runTest("tyan", processor: processor)
+		self.runTest("tsxn", processor: processor)
+		self.runTest("txsn", processor: processor)
+	}
+	func testStack(processor: CSTestMachine6502Processor) {
+		self.runTest("phan", processor: processor)
+		self.runTest("plan", processor: processor)
+		self.runTest("phpn", processor: processor)
+		self.runTest("plpn", processor: processor)
+	}
+	func testIncsAndDecs(processor: CSTestMachine6502Processor) {
+		self.runTest("inxn", processor: processor)
+		self.runTest("inyn", processor: processor)
+		self.runTest("dexn", processor: processor)
+		self.runTest("deyn", processor: processor)
+		self.runTest("incz", processor: processor)
+		self.runTest("inczx", processor: processor)
+		self.runTest("inca", processor: processor)
+		self.runTest("incax", processor: processor)
+		self.runTest("decz", processor: processor)
+		self.runTest("deczx", processor: processor)
+		self.runTest("deca", processor: processor)
+		self.runTest("decax", processor: processor)
+	}
+
+
+	// MARK: - Test Running
+
+	fileprivate func runTest(_ name: String, suffixes: [String], processor: CSTestMachine6502Processor) {
 		for suffix in suffixes {
 			let testName = name + suffix
-			self.runWolfgangLorenzTest(testName, processor: processor)
+			self.runTest(testName, processor: processor)
 		}
 	}
 
 	fileprivate var output: String = ""
-	fileprivate func runWolfgangLorenzTest(_ name: String, processor: CSTestMachine6502Processor) {
+	fileprivate func runTest(_ name: String, processor: CSTestMachine6502Processor) {
 		var machine: CSTestMachine6502!
 
 		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: nil) {
