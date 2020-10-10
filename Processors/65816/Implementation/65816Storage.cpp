@@ -157,7 +157,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchData);							// Data [high].
 
 		if(!is8bit)	target(CycleFetchData);				// 16-bit: reread final byte of data.
-		else target(CycleStoreData);					// 8-bit rewrite final byte of data.
+		else target(CycleStoreDataThrowaway);			// 8-bit rewrite final byte of data.
 
 		target(OperationPerform);						// Perform operation within the data buffer.
 

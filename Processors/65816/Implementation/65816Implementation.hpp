@@ -109,6 +109,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				write(data_address_, data_buffer_.next_output());
 			break;
 
+			case CycleStoreDataThrowaway:
+				write(data_address_, data_buffer_.preview_output());
+			break;
+
 			case CycleStoreIncrementData:
 				write(data_address_, data_buffer_.next_output());
 				increment_data_address();
