@@ -65,13 +65,7 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 		runTest("eor", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
 	func testFlagManipulation()	{
-		runTest("clcn", processor: .processor6502)
-		runTest("secn", processor: .processor6502)
-		runTest("cldn", processor: .processor6502)
-		runTest("sedn", processor: .processor6502)
-		runTest("clin", processor: .processor6502)
-		runTest("sein", processor: .processor6502)
-		runTest("clvn", processor: .processor6502)
+		testFlagManipulation(processor: .processor6502)
 	}
 	func testADC()	{
 		runTest("adc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
@@ -223,6 +217,15 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	func testEOR65816()	{
 		runTest("eor", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
 	}
+	func testFlagManipulation65816()	{
+		testFlagManipulation(processor: .processor65816)
+	}
+	func testADC65816()	{
+		runTest("adc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
+	}
+	func testSBC65816()	{
+		runTest("sbc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
+	}
 
 
 	// MARK: - Collections
@@ -233,10 +236,9 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 		}
 	}
 	func testStack(processor: CSTestMachine6502Processor) {
-		runTest("phan", processor: processor)
-		runTest("plan", processor: processor)
-		runTest("phpn", processor: processor)
-		runTest("plpn", processor: processor)
+		for test in ["phan", "plan", "phpn", "plpn"] {
+			runTest(test, processor: processor)
+		}
 	}
 	func testIncsAndDecs(processor: CSTestMachine6502Processor) {
 		runTest("inxn", processor: processor)
@@ -253,13 +255,9 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 		runTest("decax", processor: processor)
 	}
 	func testFlagManipulation(processor: CSTestMachine6502Processor)	{
-		runTest("clcn", processor: processor)
-		runTest("secn", processor: processor)
-		runTest("cldn", processor: processor)
-		runTest("sedn", processor: processor)
-		runTest("clin", processor: processor)
-		runTest("sein", processor: processor)
-		runTest("clvn", processor: processor)
+		for test in ["clcn", "secn", "cldn", "sedn", "clin", "sein", "clvn"] {
+			runTest(test, processor: processor)
+		}
 	}
 
 
