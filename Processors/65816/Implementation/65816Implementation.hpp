@@ -182,6 +182,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationCopyDataToInstruction:
 				instruction_buffer_ = data_buffer_;
+				data_buffer_.clear();
 			continue;
 
 			case OperationCopyAToData:
@@ -672,26 +673,26 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					case ASL:
 						flags_.carry = data_buffer_.value >> (7 + m_shift_);
 						data_buffer_.value <<= 1;
-						flags_.set_nz(instruction_buffer_.value, m_shift_);
+						flags_.set_nz(data_buffer_.value, m_shift_);
 					break;
 
 					case LSR:
 						flags_.carry = data_buffer_.value & 1;
 						data_buffer_.value >>= 1;
-						flags_.set_nz(instruction_buffer_.value, m_shift_);
+						flags_.set_nz(data_buffer_.value, m_shift_);
 					break;
 
 					case ROL:
 						data_buffer_.value = (data_buffer_.value << 1) | flags_.carry;
 						flags_.carry = data_buffer_.value >> (7 + m_shift_);
-						flags_.set_nz(instruction_buffer_.value, m_shift_);
+						flags_.set_nz(data_buffer_.value, m_shift_);
 					break;
 
 					case ROR: {
 						const uint8_t next_carry = data_buffer_.value & 1;
 						data_buffer_.value = (data_buffer_.value >> 1) | (flags_.carry << (7 + m_shift_));
 						flags_.carry = next_carry;
-						flags_.set_nz(instruction_buffer_.value, m_shift_);
+						flags_.set_nz(data_buffer_.value, m_shift_);
 					} break;
 
 					//

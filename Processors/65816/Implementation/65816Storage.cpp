@@ -405,6 +405,12 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(CycleFetchPCThrowaway);					// IO.
 
+		target(CycleFetchIncrementData);				// AAL
+		target(CycleFetchData);							// AAH
+
+		target(OperationCopyDataToInstruction);
+		target(OperationConstructAbsolute);
+
 		read_write(type, is8bit, target);
 	}
 
