@@ -777,7 +777,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x23 AND d, s */			op(stack_relative, AND);
 	/* 0x24 BIT d */			op(direct, BIT);
 	/* 0x25 AND d */			op(direct, AND);
-	/* 0x26 ROL d */			op(absolute_rmw, ROL);
+	/* 0x26 ROL d */			op(direct_rmw, ROL);
 	/* 0x27 AND [d] */			op(direct_indirect_long, AND);
 	/* 0x28 PLP s */			op(stack_pull, PLP);
 	/* 0x29 AND # */			op(immediate, AND);
