@@ -74,30 +74,16 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 		runTest("sbc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
 	}
 	func testCompare()	{
-		runTest("cmp", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
-		runTest("cpx", suffixes: ["b", "z", "a"], processor: .processor6502)
-		runTest("cpy", suffixes: ["b", "z", "a"], processor: .processor6502)
+		testCompare(processor: .processor6502)
 	}
 	func testBIT()	{
 		runTest("bit", suffixes: ["z", "a"], processor: .processor6502)
 	}
 	func testFlow()	{
-		runTest("brkn", processor: .processor6502)
-		runTest("rtin", processor: .processor6502)
-		runTest("jsrw", processor: .processor6502)
-		runTest("rtsn", processor: .processor6502)
-		runTest("jmpw", processor: .processor6502)
-		runTest("jmpi", processor: .processor6502)
+		testFlow(processor: .processor6502)
 	}
 	func testBranch()	{
-		runTest("beqr", processor: .processor6502)
-		runTest("bner", processor: .processor6502)
-		runTest("bmir", processor: .processor6502)
-		runTest("bplr", processor: .processor6502)
-		runTest("bcsr", processor: .processor6502)
-		runTest("bccr", processor: .processor6502)
-		runTest("bvsr", processor: .processor6502)
-		runTest("bvcr", processor: .processor6502)
+		testBranch(processor: .processor6502)
 	}
 	func testNOP()	{
 		runTest("nop", suffixes: ["n", "b", "z", "zx", "a", "ax"], processor: .processor6502)
@@ -224,6 +210,19 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 		ADC and SBC tests don't apply, as the 65816 follows the 65C02 in setting flags based on the outcome of decimal
 		results, whereas Lorenzz's tests expect the original 6502 behaviour of setting flags based an intermediate value.
 	*/
+	func testCompare65816()	{
+		testCompare(processor: .processor65816)
+	}
+	func testBIT65816()	{
+		runTest("bit", suffixes: ["z", "a"], processor: .processor65816)
+	}
+	func testFlow65816()	{
+		testFlow(processor: .processor65816)
+	}
+	func testBranch65816()	{
+		testBranch(processor: .processor65816)
+	}
+	/* The NOP tests also don't apply; the 65816 has only one, well-defined NOP (well, not counting COP or WDM). */
 
 
 	// MARK: - Collections
@@ -239,21 +238,33 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 		}
 	}
 	func testIncsAndDecs(processor: CSTestMachine6502Processor) {
-		runTest("inxn", processor: processor)
-		runTest("inyn", processor: processor)
-		runTest("dexn", processor: processor)
-		runTest("deyn", processor: processor)
-		runTest("incz", processor: processor)
-		runTest("inczx", processor: processor)
-		runTest("inca", processor: processor)
-		runTest("incax", processor: processor)
-		runTest("decz", processor: processor)
-		runTest("deczx", processor: processor)
-		runTest("deca", processor: processor)
-		runTest("decax", processor: processor)
+		for test in ["inxn", "inyn", "dexn", "deyn", "incz", "inczx", "inca", "incax", "decz", "deczx", "deca", "decax"] {
+			runTest(test, processor: processor)
+		}
 	}
 	func testFlagManipulation(processor: CSTestMachine6502Processor)	{
 		for test in ["clcn", "secn", "cldn", "sedn", "clin", "sein", "clvn"] {
+			runTest(test, processor: processor)
+		}
+	}
+	func testCompare(processor: CSTestMachine6502Processor)	{
+		runTest("cmp", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: processor)
+		runTest("cpx", suffixes: ["b", "z", "a"], processor: processor)
+		runTest("cpy", suffixes: ["b", "z", "a"], processor: processor)
+	}
+	func testFlow(processor: CSTestMachine6502Processor)	{
+		for test in ["brkn", "rtin", "jsrw", "rtsn", "jmpw", "jmpi"] {
+			// JMP indirect is explicitly different on a 65C02 and 65816, not having
+			// the page wraparound bug. So run that test only on a plain 6502.
+			if test == "jmpi" && processor != .processor6502 {
+				continue;
+			}
+
+			runTest(test, processor: processor)
+		}
+	}
+	func testBranch(processor: CSTestMachine6502Processor)	{
+		for test in ["beqr", "bner", "bmir", "bplr", "bcsr", "bccr", "bvsr", "bvcr"] {
 			runTest(test, processor: processor)
 		}
 	}
