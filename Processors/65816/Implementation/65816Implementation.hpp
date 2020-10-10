@@ -715,6 +715,34 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #undef cp
 
 					case SBC:
+						if(flags_.decimal) {
+							// I've yet to manage to find a rational way to map this to an ADC,
+							// hence the yucky repetition of code here.
+							const uint16_t a = a_.full & m_masks_[1];
+							unsigned int result = 0;
+							unsigned int borrow = flags_.carry ^ 1;
+
+#define nibble(mask, adjustment, carry)						\
+	result += (a & mask) - (data_buffer_.value & mask) - borrow;	\
+	if(result > mask) result -= adjustment;\
+	borrow = (result > mask) ? carry : 0;	\
+	result &= (carry - 1);
+
+							nibble(0x000f, 0x0006, 0x00010);
+							nibble(0x00f0, 0x0060, 0x00100);
+							nibble(0x0f00, 0x0600, 0x01000);
+							nibble(0xf000, 0x6000, 0x10000);
+
+#undef nibble
+
+							flags_.overflow = ~(( (result ^ a_.full) & (result ^ data_buffer_.value) ) >> (1 + m_shift_))&0x40;
+							flags_.set_nz(result, m_shift_);
+							flags_.carry = ((borrow >> 16)&1)^1;
+							LD(a_, result, m_masks_);
+
+							break;
+						}
+
 						data_buffer_.value = ~data_buffer_.value & m_masks_[1];
 					[[fallthrough]];
 
@@ -724,18 +752,15 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 						if(flags_.decimal) {
 							result = flags_.carry;
-							const int nibble_adjustment = (active_instruction_->operation == SBC) ? 0xa : 0x6;
 
-							// TODO: this still isn't quite correct for SBC as the limit test is wrong, I think.
-
-#define nibble(mask, limit, addition, carry)			\
+#define nibble(mask, limit, adjustment, carry)			\
 	result += (a & mask) + (data_buffer_.value & mask);	\
-	if(result >= limit) result = ((result + (addition)) & (carry - 1)) + carry;
+	if(result >= limit) result = ((result + (adjustment)) & (carry - 1)) + carry;
 
-							nibble(0x000f, 0x000a, nibble_adjustment << 0, 0x00010);
-							nibble(0x00f0, 0x00a0, nibble_adjustment << 4, 0x00100);
-							nibble(0x0f00, 0x0a00, nibble_adjustment << 8, 0x01000);
-							nibble(0xf000, 0xa000, nibble_adjustment << 12, 0x10000);
+							nibble(0x000f, 0x000a, 0x0006, 0x00010);
+							nibble(0x00f0, 0x00a0, 0x0060, 0x00100);
+							nibble(0x0f00, 0x0a00, 0x0600, 0x01000);
+							nibble(0xf000, 0xa000, 0x6000, 0x10000);
 
 #undef nibble
 

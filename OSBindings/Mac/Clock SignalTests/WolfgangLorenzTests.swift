@@ -220,12 +220,10 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	func testFlagManipulation65816()	{
 		testFlagManipulation(processor: .processor65816)
 	}
-	func testADC65816()	{
-		runTest("adc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
-	}
-	func testSBC65816()	{
-		runTest("sbc", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
-	}
+	/*
+		ADC and SBC tests don't apply, as the 65816 follows the 65C02 in setting flags based on the outcome of decimal
+		results, whereas Lorenzz's tests expect the original 6502 behaviour of setting flags based an intermediate value.
+	*/
 
 
 	// MARK: - Collections
