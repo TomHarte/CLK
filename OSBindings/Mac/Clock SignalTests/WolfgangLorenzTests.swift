@@ -17,6 +17,21 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	func testWolfgangLorenzLDA65816()	{
 		self.runWolfgangLorenzTest("lda", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
 	}
+	func testWolfgangLorenzSTA65816()	{
+		self.runWolfgangLorenzTest("sta", suffixes: ["z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
+	}
+	func testWolfgangLorenzLDX65816()	{
+		self.runWolfgangLorenzTest("ldx", suffixes: ["b", "z", "zy", "a", "ay"], processor: .processor65816)
+	}
+	func testWolfgangLorenzSTX65816()	{
+		self.runWolfgangLorenzTest("stx", suffixes: ["z", "zy", "a"], processor: .processor65816)
+	}
+	func testWolfgangLorenzLDY65816()	{
+		self.runWolfgangLorenzTest("ldy", suffixes: ["b", "z", "zx", "a", "ax"], processor: .processor65816)
+	}
+	func testWolfgangLorenzSTY65816()	{
+		self.runWolfgangLorenzTest("sty", suffixes: ["z", "zx", "a"], processor: .processor65816)
+	}
 
 	func testWolfgangLorenzStart()	{
 		self.runWolfgangLorenzTest(" start", processor: .processor6502)
