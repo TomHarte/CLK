@@ -577,13 +577,13 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//
 
 					case INC:
-						++instruction_buffer_.value;
-						flags_.set_nz(instruction_buffer_.value, m_shift_);
+						++data_buffer_.value;
+						flags_.set_nz(data_buffer_.value, m_shift_);
 					break;;
 
 					case DEC:
-						--instruction_buffer_.value;
-						flags_.set_nz(instruction_buffer_.value, m_shift_);
+						--data_buffer_.value;
+						flags_.set_nz(data_buffer_.value, m_shift_);
 					break;
 
 					case INX: {
