@@ -32,6 +32,11 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 		const MicroOp operation = *next_op_;
 		++next_op_;
 
+#ifndef NDEBUG
+		// As a sanity check.
+		bus_value = nullptr;
+#endif
+
 		switch(operation) {
 
 			//
@@ -208,7 +213,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructAbsolute:
 				data_address_ = instruction_buffer_.value + data_bank_;
-			break;
+			continue;
 
 			case OperationConstructAbsoluteIndexedIndirect:
 				data_address_ = (instruction_buffer_.value + x()) & 0xffff;
