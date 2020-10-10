@@ -202,7 +202,6 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 
 				machine = CSTestMachine6502(processor: .processor6502)
 				machine.trapHandler = self
-//				machine.logActivity = true
 				output = ""
 
 				let dataPointer = (testData as NSData).bytes.bindMemory(to: UInt8.self, capacity: testData.count)
@@ -211,6 +210,9 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 
 				machine.setData(contents, atAddress: loadAddress)
 
+				// Cf. http://www.softwolves.com/arkiv/cbm-hackers/7/7114.html for the steps being taken here.
+
+				// Initialise memory locations as instructed.
 				machine.setValue(0x00, forAddress: 0x0002)
 				machine.setValue(0x00, forAddress: 0xa002)
 				machine.setValue(0x80, forAddress: 0xa003)
@@ -219,28 +221,34 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 				machine.setValue(0x48, forAddress: 0xfffe)
 				machine.setValue(0xff, forAddress: 0xffff)
 
+				// Place the Commodore's default IRQ handler.
 				let irqHandler: [UInt8] = [
 					0x48, 0x8a, 0x48, 0x98, 0x48, 0xba, 0xbd, 0x04, 0x01,
 					0x29, 0x10, 0xf0, 0x03, 0x6c, 0x16, 0x03, 0x6c, 0x14, 0x03
 				]
 				machine.setData(Data(irqHandler), atAddress: 0xff48)
 
+				// Set a couple of trap addresses to capture test output.
 				machine.addTrapAddress(0xffd2)	// print character
 				machine.addTrapAddress(0xffe4)	// scan keyboard
 
+				// Set a couple of test addresses that indicate failure.
 				machine.addTrapAddress(0x8000)	// exit
 				machine.addTrapAddress(0xa474)	// exit
 
+				// Ensure that any of those addresses return control.
 				machine.setValue(0x60, forAddress:0xffd2)	// 0x60 is RTS
 				machine.setValue(0x60, forAddress:0xffe4)
 				machine.setValue(0x60, forAddress:0x8000)
 				machine.setValue(0x60, forAddress:0xa474)
 
-				machine.setValue(CSTestMachine6502JamOpcode, forAddress:0xe16f)	// load
+				// Commodore's load routine resides at $e16f; this is used to spot the end of a test.
+				machine.setData(Data([0x4c, 0x6f, 0xe1]), atAddress: 0xe16f)
 
-				machine.setValue(0x0801, for: CSTestMachine6502Register.programCounter)
-				machine.setValue(0xfd, for: CSTestMachine6502Register.stackPointer)
-				machine.setValue(0x04, for: CSTestMachine6502Register.flags)
+				// Seed program entry.
+				machine.setValue(0x0801, for: .programCounter)
+				machine.setValue(0xfd, for: .stackPointer)
+				machine.setValue(0x04, for: .flags)
 			}
 		}
 
@@ -248,18 +256,15 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 			NSException(name: NSExceptionName(rawValue: "Failed Test"), reason: "Couldn't load file \(name)", userInfo: nil).raise()
 		}
 
-		while !machine.isJammed {
+		while machine.value(for: .lastOperationAddress) != 0xe16f && !machine.isJammed {
 			machine.runForNumber(ofCycles: 1000)
 		}
 
-		let jammedPC = machine.value(for: CSTestMachine6502Register.lastOperationAddress)
-		if jammedPC != 0xe16f {
-			let hexAddress = String(format:"%04x", jammedPC)
+		if machine.isJammed {
+			let hexAddress = String(format:"%04x", machine.value(for: .lastOperationAddress))
 			NSException(name: NSExceptionName(rawValue: "Failed Test"), reason: "Processor jammed unexpectedly at \(hexAddress)", userInfo: nil).raise()
 		}
 	}
-
-// MARK: MachineJamHandler
 
 	func petsciiToString(_ string: String) -> String {
 		let petsciiToCharCommon: [String] = [
