@@ -11,11 +11,15 @@ import Foundation
 
 class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 
-	func testWolfgangLorenzStart()	{
-		self.runWolfgangLorenzTest(" start", processor: .processor6502)
-	}
 	func testWolfgangLorenzStart65816()	{
 		self.runWolfgangLorenzTest(" start", processor: .processor65816)
+	}
+	func testWolfgangLorenzLDA65816()	{
+		self.runWolfgangLorenzTest("lda", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor65816)
+	}
+
+	func testWolfgangLorenzStart()	{
+		self.runWolfgangLorenzTest(" start", processor: .processor6502)
 	}
 	func testWolfgangLorenzLDA()	{
 		self.runWolfgangLorenzTest("lda", suffixes: ["b", "z", "zx", "a", "ax", "ay", "ix", "iy"], processor: .processor6502)
