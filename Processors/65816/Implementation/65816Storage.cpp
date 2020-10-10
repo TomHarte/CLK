@@ -794,7 +794,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x33 AND (d, s), y */	op(stack_relative_indexed_indirect, AND);
 	/* 0x34 BIT d, x */			op(direct_x, BIT);
 	/* 0x35 AND d, x */			op(direct_x, AND);
-	/* 0x36 ROL d, x */			op(absolute_x_rmw, ROL);
+	/* 0x36 ROL d, x */			op(direct_x_rmw, ROL);
 	/* 0x37 AND [d], y */		op(direct_indirect_indexed_long, AND);
 	/* 0x38 SEC i */			op(implied, SEC);
 	/* 0x39 AND a, y */			op(absolute_y, AND);
