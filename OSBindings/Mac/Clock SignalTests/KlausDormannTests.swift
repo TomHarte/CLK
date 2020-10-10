@@ -134,8 +134,5 @@ class KlausDormannTests: XCTestCase {
 		runTest65C02(processor: .processor65C02)
 	}
 
-	/// Runs Klaus Dormann's 65C02 tests on a 65816.
-	func test65816As65C02() {
-		runTest65C02(processor: .processor65816)
-	}
+	/* Dormann's 65C02 tests aren't applicable to the 65816; e.g. they test BBR/BBS, which the 65816 doesn't implement. */
 }
