@@ -669,6 +669,16 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						flags_.set_z(data_buffer_.value & a_.full, m_shift_);
 					break;
 
+					case TRB:
+						flags_.set_z(data_buffer_.value & a_.full, m_shift_);
+						data_buffer_.value &= ~a_.full;
+					break;
+
+					case TSB:
+						flags_.set_z(data_buffer_.value & a_.full, m_shift_);
+						data_buffer_.value |= a_.full;
+					break;
+
 					//
 					// Branches.
 					//
@@ -807,7 +817,6 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					} break;
 
 					// TODO:
-					//	TRB, TSB,
 					//	STP, WAI,
 					//	RTL,
 
