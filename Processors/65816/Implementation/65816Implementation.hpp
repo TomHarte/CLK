@@ -491,6 +491,12 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						flags_.set_nz(a_.full, m_shift_);
 					break;
 
+					case XBA: {
+						const uint8_t a_low = a_.halves.low;
+						a_.halves.low = a_.halves.high;
+						a_.halves.high = a_low;
+						flags_.set_nz(a_.halves.low);
+					} break;
 
 					//
 					// Jumps and returns.
@@ -572,6 +578,12 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					case SEP:
 						set_flags(get_flags() | instruction_buffer_.value);
 					break;
+
+					case XCE: {
+						const bool old_emulation_flag = emulation_flag_;
+						set_emulation_mode(flags_.carry);
+						flags_.carry = old_emulation_flag;
+					} break;
 
 					//
 					// Increments and decrements.
@@ -779,7 +791,6 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					// TODO:
 					//	TRB, TSB,
-					//	XCE, XBA,
 					//	STP, WAI,
 					//	RTL,
 					//	TCD, TCS, TDC, TSC
