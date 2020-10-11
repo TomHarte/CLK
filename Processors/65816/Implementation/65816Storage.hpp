@@ -175,7 +175,7 @@ enum Operation: uint8_t {
 
 	// These unpack values from the data buffer, which has been filled
 	// from the stack.
-	RTI, RTL,
+	RTI,
 
 	/// Loads the PC with the contents of the data buffer.
 	JMPind,

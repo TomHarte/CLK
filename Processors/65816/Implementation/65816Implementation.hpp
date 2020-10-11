@@ -818,7 +818,6 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					// TODO:
 					//	STP, WAI,
-					//	RTL,
 
 					default:
 						assert(false);
