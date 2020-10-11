@@ -26,6 +26,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 #define x()	(x_.full & x_masks_[1])
 #define y()	(y_.full & x_masks_[1])
+#define stack_address()	((s_.full & e_masks_[1]) | (0x0100 & e_masks_[0]))
 
 	Cycles number_of_cycles = cycles + cycles_left_to_run_;
 	while(number_of_cycles > Cycles(0)) {
@@ -143,11 +144,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			//
 
 #define stack_access(value, operation)	\
-	if(emulation_flag_) {	\
-		bus_address = s_.halves.low | 0x100;	\
-	} else {	\
-		bus_address = s_.full;	\
-	}	\
+	bus_address = stack_address();	\
 	bus_value = value;	\
 	bus_operation = operation;
 
@@ -369,7 +366,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				switch(active_instruction_->operation) {
 
 					//
-					// Loads, stores and transfers (and NOP).
+					// Loads, stores and transfers (and NOP, and XBA).
 					//
 
 					case LDA:
@@ -450,7 +447,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					// The below attempt to obey the 8/16-bit mixed transfer rules
 					// as documented in https://softpixel.com/~cwright/sianse/docs/65816NFO.HTM
-					// (and makes reasonable guesses as to the N flag)
+					// (and make reasonable guesses as to the N flag).
 
 					case TXS:
 						s_ = x_.full & x_masks_[1];
@@ -489,6 +486,26 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					case TYA:
 						LD(a_, y_.full, m_masks_);
 						flags_.set_nz(a_.full, m_shift_);
+					break;
+
+					case TCD:
+						direct_ = a_.full;
+						flags_.set_nz(a_.full, 8);
+					break;
+
+					case TDC:
+						a_.full = direct_;
+						flags_.set_nz(a_.full, 8);
+					break;
+
+					case TCS:
+						s_.full = a_.full;
+						// No need to worry about byte masking here; for the stack it's handled as the emulation runs.
+					break;
+
+					case TSC:
+						a_.full = stack_address();
+						flags_.set_nz(a_.full, 8);
 					break;
 
 					case XBA: {
@@ -793,7 +810,6 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//	TRB, TSB,
 					//	STP, WAI,
 					//	RTL,
-					//	TCD, TCS, TDC, TSC
 
 					default:
 						assert(false);
@@ -820,6 +836,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #undef y
 #undef m_flag
 #undef x_flag
+#undef stack_address
 
 	cycles_left_to_run_ = number_of_cycles;
 }

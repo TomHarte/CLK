@@ -1046,6 +1046,8 @@ void ProcessorStorage::set_emulation_mode(bool enabled) {
 	} else {
 		e_masks_[0] = 0x0000;
 		e_masks_[1] = 0xffff;
+		s_.halves.high = 1;	// To pretend it was 1 all along; this implementation actually ignores
+							// the top byte while in emulation mode.
 	}
 
 	emulation_flag_ = enabled;
