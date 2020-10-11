@@ -46,7 +46,12 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	std::map<GeneratorKey, std::pair<size_t, size_t>> installed_patterns;
 
 	int opcode = 0;
-	void install(Generator generator, Operation operation) {
+	enum class AccessMode {
+		Mixed,
+		Always8Bit,
+		Always16Bit
+	};
+	void install(Generator generator, Operation operation, AccessMode access_mode = AccessMode::Mixed) {
 		// Determine the access type implied by this operation.
 		const AccessType access_type = access_type_for_operation(operation);
 
@@ -97,11 +102,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		}
 
 		// Fill in the proper table entries and increment the opcode pointer.
-		storage_.instructions[opcode].program_offsets[0] = uint16_t(micro_op_location_16);
-		storage_.instructions[opcode].program_offsets[1] = uint16_t(micro_op_location_8);
+		storage_.instructions[opcode].program_offsets[0] = (access_mode == AccessMode::Always8Bit) ? uint16_t(micro_op_location_8) : uint16_t(micro_op_location_16);
+		storage_.instructions[opcode].program_offsets[1] = (access_mode == AccessMode::Always16Bit) ? uint16_t(micro_op_location_16) : uint16_t(micro_op_location_8);
 		storage_.instructions[opcode].operation = operation;
-
-		// TODO: fill in size_field.
 
 		++opcode;
 	}
@@ -734,9 +737,10 @@ ProcessorStorage::ProcessorStorage() {
 	set_reset_state();
 
 	ProcessorStorageConstructor constructor(*this);
+	using AccessMode = ProcessorStorageConstructor::AccessMode;
 
 	// Install the instructions.
-#define op(x, y) constructor.install(&ProcessorStorageConstructor::x, y)
+#define op(x, ...) constructor.install(&ProcessorStorageConstructor::x, __VA_ARGS__)
 
 	/* 0x00 BRK s */			op(brk_cop, JMPind);
 	/* 0x01 ORA (d, x) */		op(direct_indexed_indirect, ORA);
@@ -749,7 +753,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x08 PHP s */			op(stack_push, PHP);
 	/* 0x09 ORA # */			op(immediate, ORA);
 	/* 0x0a ASL A */			op(accumulator, ASL);
-	/* 0x0b PHD s */			op(stack_push, PHD);
+	/* 0x0b PHD s */			op(stack_push, PHD, AccessMode::Always8Bit);
 	/* 0x0c TSB a */			op(absolute_rmw, TSB);
 	/* 0x0d ORA a */			op(absolute, ORA);
 	/* 0x0e ASL a */			op(absolute_rmw, ASL);
@@ -783,7 +787,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x28 PLP s */			op(stack_pull, PLP);
 	/* 0x29 AND # */			op(immediate, AND);
 	/* 0x2a ROL A */			op(accumulator, ROL);
-	/* 0x2b PLD s */			op(stack_pull, PLD);
+	/* 0x2b PLD s */			op(stack_pull, PLD, AccessMode::Always8Bit);
 	/* 0x2c BIT a */			op(absolute, BIT);
 	/* 0x2d AND a */			op(absolute, AND);
 	/* 0x2e ROL a */			op(absolute_rmw, ROL);
@@ -817,7 +821,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x48	PHA s */			op(stack_push, STA);
 	/* 0x49	EOR # */			op(immediate, EOR);
 	/* 0x4a	LSR A */			op(accumulator, LSR);
-	/* 0x4b	PHK s */			op(stack_push, PHK);
+	/* 0x4b	PHK s */			op(stack_push, PHK, AccessMode::Always8Bit);
 	/* 0x4c	JMP a */			op(absolute_jmp, JMP);
 	/* 0x4d	EOR a */			op(absolute, EOR);
 	/* 0x4e	LSR a */			op(absolute_rmw, LSR);
@@ -842,7 +846,7 @@ ProcessorStorage::ProcessorStorage() {
 
 	/* 0x60 RTS s */			op(stack_rts, RTS);
 	/* 0x61 ADC (d, x) */		op(direct_indexed_indirect, ADC);
-	/* 0x62 PER s */			op(stack_per, NOP);
+	/* 0x62 PER s */			op(stack_per, NOP, AccessMode::Always16Bit);
 	/* 0x63 ADC d, s */			op(stack_relative, ADC);
 	/* 0x64 STZ d */			op(direct, STZ);
 	/* 0x65 ADC d */			op(direct, ADC);
@@ -885,7 +889,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x88 DEY i */			op(implied, DEY);
 	/* 0x89 BIT # */			op(immediate, BITimm);
 	/* 0x8a TXA i */			op(implied, TXA);
-	/* 0x8b PHB s */			op(stack_push, PHB);
+	/* 0x8b PHB s */			op(stack_push, PHB, AccessMode::Always8Bit);
 	/* 0x8c STY a */			op(absolute, STY);
 	/* 0x8d STA a */			op(absolute, STA);
 	/* 0x8e STX a */			op(absolute, STX);
@@ -919,7 +923,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xa8 TAY i */			op(implied, TAY);
 	/* 0xa9 LDA # */			op(immediate, LDA);
 	/* 0xaa TAX i */			op(implied, TAX);
-	/* 0xab PLB s */			op(stack_pull, PLB);		// TODO: force to 8-bit only; ditto [at least] PHB, PLD, PHD.
+	/* 0xab PLB s */			op(stack_pull, PLB, AccessMode::Always8Bit);
 	/* 0xac LDY a */			op(absolute, LDY);
 	/* 0xad LDA a */			op(absolute, LDA);
 	/* 0xae LDX a */			op(absolute, LDX);
@@ -963,7 +967,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xd1 CMP (d), y */		op(direct_indirect_indexed, CMP);
 	/* 0xd2 CMP (d) */			op(direct_indirect, CMP);
 	/* 0xd3 CMP (d, s), y */	op(stack_relative_indexed_indirect, CMP);
-	/* 0xd4 PEI s */			op(stack_pei, NOP);
+	/* 0xd4 PEI s */			op(stack_pei, NOP, AccessMode::Always16Bit);
 	/* 0xd5 CMP d, x */			op(direct_x, CMP);
 	/* 0xd6 DEC d, x */			op(direct_x_rmw, DEC);
 	/* 0xd7 CMP [d], y */		op(direct_indirect_indexed_long, CMP);
@@ -997,7 +1001,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xf1 SBC (d), y */		op(direct_indirect_indexed, SBC);
 	/* 0xf2 SBC (d) */			op(direct_indirect, SBC);
 	/* 0xf3 SBC (d, s), y */	op(stack_relative_indexed_indirect, SBC);
-	/* 0xf4 PEA s */			op(stack_pea, NOP);
+	/* 0xf4 PEA s */			op(stack_pea, NOP, AccessMode::Always16Bit);
 	/* 0xf5 SBC d, x */			op(direct_x, SBC);
 	/* 0xf6 INC d, x */			op(direct_x_rmw, INC);
 	/* 0xf7 SBC [d], y */		op(direct_indirect_indexed_long, SBC);
