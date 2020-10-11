@@ -64,13 +64,17 @@ enum Flag: uint8_t {
 	isReadOperation macro to make a binary choice between reading and writing.
 */
 enum BusOperation {
-	Read, ReadOpcode, Write, Ready, None
+	Read,
+	ReadOpcode,
+	Write,
+	Ready,
+	None
 };
 
 /*!
-	Evaluates to `true` if the operation is a read; `false` if it is a write.
+	Evaluates to `true` if the operation is a read; `false` if it is a write or ready.
 */
-#define isReadOperation(v)	(v == CPU::MOS6502Esque::BusOperation::Read || v == CPU::MOS6502Esque::BusOperation::ReadOpcode)
+#define isReadOperation(v)	(v < CPU::MOS6502Esque::BusOperation::Write)
 
 /*!
 	A class providing empty implementations of the methods a 6502 uses to access the bus. To wire the 6502 to a bus,

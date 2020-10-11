@@ -44,6 +44,8 @@ enum MicroOp: uint8_t {
 	CycleAccessStack,
 	/// Pulls a single byte to the data buffer from the stack.
 	CyclePull,
+	/// Performs as CyclePull if the 65816 is not in emulation mode; otherwise skips itself.
+	CyclePullIfNotEmulation,
 
 	/// Sets the data address by copying the final two bytes of the instruction buffer and
 	/// using the data register as a high byte.

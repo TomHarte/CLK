@@ -153,6 +153,12 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				--s_.full;
 			break;
 
+			case CyclePullIfNotEmulation:
+				if(emulation_flag_) {
+					continue;
+				}
+			[[fallthrough]];
+
 			case CyclePull:
 				++s_.full;
 				stack_access(data_buffer_.next_input(), MOS6502Esque::Read);

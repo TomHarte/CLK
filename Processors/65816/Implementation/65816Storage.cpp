@@ -652,18 +652,16 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 22g. Stack; s, RTI.
-	static void stack_rti(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchPCThrowaway);	// IO
-		target(CycleFetchPCThrowaway);	// IO
+	static void stack_rti(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		target(CycleFetchPCThrowaway);		// IO
+		target(CycleFetchPCThrowaway);		// IO
 
-		target(CyclePull);				// P
-		target(CyclePull);				// New PCL
-		target(CyclePull);				// New PCH
-		if(!is8bit) target(CyclePull);	// PBR
-		// TODO: 8bit check here doesn't actually work, it needs to be an is-emulation-mode check.
-		// New operation needed, I think.
+		target(CyclePull);					// P
+		target(CyclePull);					// New PCL
+		target(CyclePull);					// New PCH
+		target(CyclePullIfNotEmulation);	// PBR
 
-		target(OperationPerform);		// [RTI] — to unpack the fields above.
+		target(OperationPerform);			// [RTI] — to unpack the fields above.
 	}
 
 	// 22h. Stack; s, RTS.
