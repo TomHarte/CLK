@@ -171,6 +171,19 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #undef stack_access
 
 			//
+			// STP and WAI.
+			//
+
+			case CycleRepeatingNone:
+				if(pending_exceptions_ & required_exceptions_) {
+					continue;
+				} else {
+					--next_op_;
+					perform_bus(0xffffff, nullptr, MOS6502Esque::None);
+				}
+			break;
+
+			//
 			// Data movement.
 			//
 
@@ -822,11 +835,17 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						LD(a_, result, m_masks_);
 					} break;
 
-					// TODO:
-					//	STP, WAI,
+					//
+					// STP and WAI
+					//
 
-					default:
-						assert(false);
+					case STP:
+						required_exceptions_ = Reset;
+					break;
+
+					case WAI:
+						required_exceptions_ = Reset | IRQ | NMI;
+					break;
 				}
 			continue;
 		}

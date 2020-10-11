@@ -47,6 +47,10 @@ enum MicroOp: uint8_t {
 	/// Performs as CyclePull if the 65816 is not in emulation mode; otherwise skips itself.
 	CyclePullIfNotEmulation,
 
+	/// Issues a BusOperation::None and regresses the micro-op counter until an established
+	/// STP or WAI condition is satisfied.
+	CycleRepeatingNone,
+
 	/// Sets the data address by copying the final two bytes of the instruction buffer and
 	/// using the data register as a high byte.
 	OperationConstructAbsolute,
@@ -260,6 +264,9 @@ struct ProcessorStorage {
 	static constexpr int IRQ = 1 << 2;
 	static constexpr int NMI = 1 << 3;
 	int pending_exceptions_ = PowerOn;	// By default.
+
+	/// Sets the required exception flags necessary to exit a STP or WAI.
+	int required_exceptions_ = 0;
 
 	/// Defines a four-byte buffer which can be cleared or filled in single-byte increments from least significant byte
 	/// to most significant.
