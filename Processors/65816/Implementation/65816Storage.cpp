@@ -731,7 +731,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 };
 
 ProcessorStorage::ProcessorStorage() {
-	a_.full = x_.full = y_.full = 0;	// TEMPORARY (?)
+	set_reset_state();
 
 	ProcessorStorageConstructor constructor(*this);
 
@@ -1022,4 +1022,64 @@ ProcessorStorage::ProcessorStorage() {
 	assert(micro_ops_.size() < 65536);
 	printf("Generated %zd micro-ops in total; covered %d opcodes\n", micro_ops_.size(), constructor.opcode);
 #endif
+}
+
+void ProcessorStorage::set_reset_state() {
+	data_bank_ = 0;
+	program_bank_ = 0;
+	direct_ = 0;
+	flags_.decimal = 0;
+	flags_.inverse_interrupt = 0;
+	set_emulation_mode(true);
+}
+
+void ProcessorStorage::set_emulation_mode(bool enabled) {
+	if(emulation_flag_ == enabled) {
+		return;
+	}
+
+	if(emulation_flag_) {
+		set_m_x_flags(true, true);
+		x_.halves.high = y_.halves.high = 0;
+		e_masks_[0] = 0xff00;
+		e_masks_[1] = 0x00ff;
+	} else {
+		e_masks_[0] = 0x0000;
+		e_masks_[1] = 0xffff;
+	}
+
+	emulation_flag_ = enabled;
+}
+
+void ProcessorStorage::set_m_x_flags(bool m, bool x) {
+	mx_flags_[0] = m;
+	mx_flags_[1] = x;
+
+	m_masks_[0] = m ? 0xff00 : 0x0000;
+	m_masks_[1] = m ? 0x00ff : 0xffff;
+	m_shift_ = m ? 0 : 8;
+
+	x_masks_[0] = x ? 0xff00 : 0x0000;
+	x_masks_[1] = x ? 0x00ff : 0xffff;
+	x_shift_ = x ? 0 : 8;
+}
+
+uint8_t ProcessorStorage::get_flags() {
+	uint8_t result = flags_.get();
+
+	if(!emulation_flag_) {
+		result &= ~(Flag::MemorySize | Flag::IndexSize);
+		result |= mx_flags_[0] * Flag::MemorySize;
+		result |= mx_flags_[1] * Flag::IndexSize;
+	}
+
+	return result;
+}
+
+void ProcessorStorage::set_flags(uint8_t value) {
+	flags_.set(value);
+
+	if(!emulation_flag_) {
+		set_m_x_flags(value & Flag::MemorySize, value & Flag::IndexSize);
+	}
 }

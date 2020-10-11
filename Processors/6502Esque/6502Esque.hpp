@@ -49,7 +49,11 @@ enum Flag: uint8_t {
 	Decimal		= 0x08,
 	Interrupt	= 0x04,
 	Zero		= 0x02,
-	Carry		= 0x01
+	Carry		= 0x01,
+
+	// These are available on a 65816 only.
+	MemorySize	= 0x20,
+	IndexSize	= 0x10,
 };
 
 /*!

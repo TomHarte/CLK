@@ -318,10 +318,13 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 				bool is_brk = false;
 
+				// TODO: probably this should have been decided in advance? And the interrupt flag
+				// needs to be factored in?
+
 				if(pending_exceptions_ & (Reset | PowerOn)) {
-					// TODO: set emulation mode, etc.
 					pending_exceptions_ &= ~(Reset | PowerOn);
 					data_address_ = 0xfffc;
+					set_reset_state();
 				} else if(pending_exceptions_ & NMI) {
 					pending_exceptions_ &= ~NMI;
 					data_address_ = 0xfffa;
@@ -338,7 +341,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					}
 				}
 
-				data_buffer_.value = (pc_ << 8) | flags_.get();
+				data_buffer_.value = (pc_ << 8) | get_flags();
 				if(emulation_flag_) {
 					if(is_brk) data_buffer_.value |= Flag::Break;
 					data_buffer_.size = 3;
@@ -347,8 +350,6 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					data_buffer_.value |= program_bank_ << 24;
 					data_buffer_.size = 4;
 					program_bank_ = 0;
-
-					assert(false);	// TODO: proper flags, still.
 				}
 
 				flags_.inverse_interrupt = 0;
@@ -397,11 +398,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					break;
 
 					case PLP:
-						flags_.set(data_buffer_.value);
-
-						if(!emulation_flag_) {
-							assert(false);	// TODO: M and X.
-						}
+						set_flags(data_buffer_.value);
 					break;
 
 					case STA:
@@ -440,12 +437,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					break;
 
 					case PHP:
-						data_buffer_.value = flags_.get();
+						data_buffer_.value = get_flags();
 						data_buffer_.size = 1;
 
-						if(!emulation_flag_) {
-							assert(false);	// TODO: M and X.
-						} else {
+						if(emulation_flag_) {
 							// On the 6502, the break flag is set during a PHP.
 							data_buffer_.value |= Flag::Break;
 						}
@@ -530,11 +525,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					case RTI:
 						pc_ = uint16_t(data_buffer_.value >> 8);
-						flags_.set(uint8_t(data_buffer_.value));
+						set_flags(uint8_t(data_buffer_.value));
 
 						if(!emulation_flag_) {
 							program_bank_ = (data_buffer_.value & 0xff000000) >> 8;
-							assert(false); // Extra flags to unpack!
 						}
 					break;
 
@@ -570,6 +564,14 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					case SEC: flags_.carry = Flag::Carry;					break;
 					case SEI: flags_.inverse_interrupt = 0;					break;
 					case SED: flags_.decimal = Flag::Decimal;				break;
+
+					case REP:
+						set_flags(get_flags() &~ instruction_buffer_.value);
+					break;
+
+					case SEP:
+						set_flags(get_flags() | instruction_buffer_.value);
+					break;
 
 					//
 					// Increments and decrements.
@@ -777,7 +779,6 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					// TODO:
 					//	TRB, TSB,
-					//	REP, SEP,
 					//	XCE, XBA,
 					//	STP, WAI,
 					//	RTL,
@@ -787,9 +788,6 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						assert(false);
 				}
 			continue;
-
-			default:
-				assert(false);
 		}
 
 #undef LD
@@ -797,6 +795,9 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #undef x_top
 #undef y_top
 #undef a_top
+
+		// TODO: do some sort of evaluation here on whether an interrupt or similar is pending,
+		// react appropriately.
 
 		number_of_cycles -= bus_handler_.perform_bus_operation(bus_operation, bus_address, bus_value);
 	}

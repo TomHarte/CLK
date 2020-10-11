@@ -312,4 +312,10 @@ struct ProcessorStorage {
 
 	std::vector<MicroOp> micro_ops_;
 	MicroOp *next_op_ = nullptr;
+
+	void set_reset_state();
+	void set_emulation_mode(bool);
+	void set_m_x_flags(bool m, bool x);
+	uint8_t get_flags();
+	void set_flags(uint8_t);
 };
