@@ -1064,7 +1064,7 @@ void ProcessorStorage::set_m_x_flags(bool m, bool x) {
 	x_shift_ = x ? 0 : 8;
 }
 
-uint8_t ProcessorStorage::get_flags() {
+uint8_t ProcessorStorage::get_flags() const {
 	uint8_t result = flags_.get();
 
 	if(!emulation_flag_) {
