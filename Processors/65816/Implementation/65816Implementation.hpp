@@ -227,6 +227,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				data_address_ = instruction_buffer_.value + data_bank_;
 			continue;
 
+			case OperationConstructAbsoluteLong:
+				data_address_ = instruction_buffer_.value;
+			continue;
+
 			case OperationConstructAbsoluteIndexedIndirect:
 				data_address_ = (instruction_buffer_.value + x()) & 0xffff;
 			continue;

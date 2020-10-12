@@ -213,6 +213,7 @@
 		4B4DEC06252BFA56004583AC /* 65816Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DEC05252BFA56004583AC /* 65816Base.cpp */; };
 		4B4DEC07252BFA56004583AC /* 65816Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DEC05252BFA56004583AC /* 65816Base.cpp */; };
 		4B4DEC08252BFA56004583AC /* 65816Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DEC05252BFA56004583AC /* 65816Base.cpp */; };
+		4B4F47652533EA64004245B8 /* suite-a.prg in Resources */ = {isa = PBXBuildFile; fileRef = 4B4F475E2533EA64004245B8 /* suite-a.prg */; };
 		4B50AF80242817F40099BBD7 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B50AF7F242817F40099BBD7 /* QuartzCore.framework */; };
 		4B54C0BC1F8D8E790050900F /* KeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0BB1F8D8E790050900F /* KeyboardMachine.cpp */; };
 		4B54C0BF1F8D8F450050900F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0BD1F8D8F450050900F /* Keyboard.cpp */; };
@@ -1128,6 +1129,7 @@
 		4B4DEC18252BFA9C004583AC /* 6502Esque.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6502Esque.hpp; sourceTree = "<group>"; };
 		4B4DEC19252BFB5A004583AC /* LazyFlags.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LazyFlags.hpp; sourceTree = "<group>"; };
 		4B4F2B7024DF99D4000DA6B0 /* CSScanTarget+CppScanTarget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CSScanTarget+CppScanTarget.h"; sourceTree = "<group>"; };
+		4B4F475E2533EA64004245B8 /* suite-a.prg */ = {isa = PBXFileReference; lastKnownFileType = file; path = "suite-a.prg"; sourceTree = "<group>"; };
 		4B50AF7F242817F40099BBD7 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		4B51F70920A521D700AFA2C1 /* Source.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Source.hpp; sourceTree = "<group>"; };
 		4B51F70A20A521D700AFA2C1 /* Observer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Observer.hpp; sourceTree = "<group>"; };
@@ -1993,6 +1995,7 @@
 				4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */,
 				4B2530F2244E6773007980BF /* FM Synthesis */,
 				4BBF49B41ED2881600AB3669 /* FUSE */,
+				4B4F475B2533EA64004245B8 /* jeek816 */,
 				4B670A822401CB8400D4E002 /* Patrik Rak Z80 Tests */,
 				4B9F11C72272375400701480 /* QL Startup */,
 				4B85322B227793CA00F26553 /* TOS Startup */,
@@ -2480,6 +2483,14 @@
 				4B4DEC19252BFB5A004583AC /* LazyFlags.hpp */,
 			);
 			path = Implementation;
+			sourceTree = "<group>";
+		};
+		4B4F475B2533EA64004245B8 /* jeek816 */ = {
+			isa = PBXGroup;
+			children = (
+				4B4F475E2533EA64004245B8 /* suite-a.prg */,
+			);
+			path = jeek816;
 			sourceTree = "<group>";
 		};
 		4B51F70820A521D700AFA2C1 /* Activity */ = {
@@ -4292,6 +4303,7 @@
 				4BB299051B587D8400A49093 /* arrb in Resources */,
 				4BB299DC1B587D8400A49093 /* stazx in Resources */,
 				4B670A9D2401CB8400D4E002 /* z80ccf.tap in Resources */,
+				4B4F47652533EA64004245B8 /* suite-a.prg in Resources */,
 				4BB299C41B587D8400A49093 /* sbca in Resources */,
 				4BB298F41B587D8400A49093 /* adcay in Resources */,
 				4B44EBF51DC987AF00A7820C /* AllSuiteA.bin in Resources */,

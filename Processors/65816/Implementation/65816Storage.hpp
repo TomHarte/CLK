@@ -55,6 +55,9 @@ enum MicroOp: uint8_t {
 	/// using the data register as a high byte.
 	OperationConstructAbsolute,
 
+	/// Sets the data address by copying the entire instruction buffer.
+	OperationConstructAbsoluteLong,
+
 	/// Sets the data address to the 16-bit result of adding x to the value in the instruction buffer.
 	OperationConstructAbsoluteIndexedIndirect,
 

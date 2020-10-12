@@ -258,23 +258,22 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	// 4a. Absolute long; al.
 	static void absolute_long(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchIncrementPC);			// AAL.
-		target(CycleFetchIncrementPC);			// AAH.
-		target(CycleFetchPC);					// AAB.
+		target(CycleFetchIncrementPC);				// AAL.
+		target(CycleFetchIncrementPC);				// AAH.
+		target(CycleFetchIncrementPC);				// AAB.
 
-		target(OperationConstructAbsolute);		// Calculate data address.
+		target(OperationConstructAbsoluteLong);		// Calculate data address.
 
 		read_write(type, is8bit, target);
 	}
 
 	// 4b. Absolute long; al, JMP.
 	static void absolute_long_jmp(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchIncrementPC);			// New PCL.
-		target(CycleFetchIncrementPC);			// New PCH.
-		target(CycleFetchPC);					// New PBR.
+		target(CycleFetchIncrementPC);				// New PCL.
+		target(CycleFetchIncrementPC);				// New PCH.
+		target(CycleFetchPC);						// New PBR.
 
-		target(OperationConstructAbsolute);		// Calculate data address.
-		target(OperationPerform);				// ['JMP' (though it's JML in internal terms)]
+		target(OperationPerform);					// ['JMP' (though it's JML in internal terms)]
 	}
 
 	// 4c. Absolute long al, JSL.
