@@ -261,9 +261,15 @@ struct ProcessorStorage {
 
 	static constexpr int PowerOn = 1 << 0;
 	static constexpr int Reset = 1 << 1;
-	static constexpr int IRQ = 1 << 2;
+	static constexpr int IRQ = Flag::Interrupt;	// This makes masking a lot easier later on; this is 1 << 2.
 	static constexpr int NMI = 1 << 3;
 	int pending_exceptions_ = PowerOn;	// By default.
+	int selected_exceptions_ = 0;
+
+	// Just to be safe.
+	static_assert(PowerOn != IRQ);
+	static_assert(Reset != IRQ);
+	static_assert(NMI != IRQ);
 
 	/// Sets the required exception flags necessary to exit a STP or WAI.
 	int required_exceptions_ = 0;

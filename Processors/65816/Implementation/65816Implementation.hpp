@@ -48,7 +48,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				// The exception program will determine the appropriate way to respond
 				// based on the pending exception if one exists; otherwise just do a
 				// standard fetch-decode-execute.
-				const auto offset = instructions[pending_exceptions_ ? size_t(OperationSlot::Exception) : size_t(OperationSlot::FetchDecodeExecute)].program_offsets[0];
+				const auto offset = instructions[selected_exceptions_ ? size_t(OperationSlot::Exception) : size_t(OperationSlot::FetchDecodeExecute)].program_offsets[0];
 				next_op_ = &micro_ops_[offset];
 				instruction_buffer_.clear();
 				data_buffer_.clear();
@@ -331,11 +331,13 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				// Put the proper exception vector into the data address, put the flags and PC
 				// into the data buffer (possibly also PBR), and skip an instruction if in
 				// emulation mode.
+				//
+				// I've assumed here that interrupts, BRKs and COPs can be usurped similarly
+				// to a 6502 but may not have the exact details correct. E.g. if IRQ has
+				// become inactive since the decision was made to start an interrupt, should
+				// that turn into a BRK?
 
 				bool is_brk = false;
-
-				// TODO: probably this should have been decided in advance? And the interrupt flag
-				// needs to be factored in?
 
 				if(pending_exceptions_ & (Reset | PowerOn)) {
 					pending_exceptions_ &= ~(Reset | PowerOn);
@@ -344,11 +346,11 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				} else if(pending_exceptions_ & NMI) {
 					pending_exceptions_ &= ~NMI;
 					data_address_ = 0xfffa;
-				} else if(pending_exceptions_ & IRQ) {
+				} else if(pending_exceptions_ & IRQ & flags_.inverse_interrupt) {
 					pending_exceptions_ &= ~IRQ;
 					data_address_ = 0xfffe;
 				} else {
-					is_brk = active_instruction_ == instructions;
+					is_brk = active_instruction_ == instructions;	// Given that BRK has opcode 00.
 					if(is_brk) {
 						data_address_ = emulation_flag_ ? 0xfffe : 0xfff6;
 					} else {
@@ -856,9 +858,11 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #undef y_top
 #undef a_top
 
-		// TODO: do some sort of evaluation here on whether an interrupt or similar is pending,
-		// react appropriately.
+		// TODO: the ready line.
 
+		// Store a selection as to the exceptions, if any, that would be honoured after this cycle if the
+		// next thing is a MoveToNextProgram.
+		selected_exceptions_ = pending_exceptions_ & (flags_.inverse_interrupt | PowerOn | Reset | NMI);
 		number_of_cycles -= bus_handler_.perform_bus_operation(bus_operation, bus_address, bus_value);
 	}
 
