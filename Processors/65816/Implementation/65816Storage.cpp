@@ -159,7 +159,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		if(!is8bit)	target(CycleFetchIncrementData);	// Data low.
 		target(CycleFetchData);							// Data [high].
 
-		if(!is8bit)	target(CycleFetchData);				// 16-bit: reread final byte of data.
+		// TODO: does this look like another read? Or if VDA and VPA are both low, does the 65816 actually do no access?
+		if(!is8bit)	target(CycleFetchDataThrowaway);	// 16-bit: reread final byte of data.
 		else target(CycleStoreDataThrowaway);			// 8-bit rewrite final byte of data.
 
 		target(OperationPerform);						// Perform operation within the data buffer.
@@ -720,7 +721,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationConstructStackRelative);
 		target(CycleFetchIncrementData);	// AAL
 		target(CycleFetchData);				// AAH
-		target(CycleFetchData);				// IO.
+		target(CycleFetchDataThrowaway);	// IO.
 
 		target(OperationConstructStackRelativeIndexedIndirect);
 		read_write(type, is8bit, target);
@@ -1052,6 +1053,7 @@ void ProcessorStorage::set_emulation_mode(bool enabled) {
 }
 
 void ProcessorStorage::set_m_x_flags(bool m, bool x) {
+	// true/1 => 8bit for both flags.
 	mx_flags_[0] = m;
 	mx_flags_[1] = x;
 

@@ -97,6 +97,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				read(data_address_, data_buffer_.next_input());
 			break;
 
+			case CycleFetchDataThrowaway:
+				read(data_address_, &throwaway);
+			break;
+
 			case CycleFetchIncorrectDataAddress:
 				read(incorrect_data_address_, &throwaway);
 			break;
@@ -120,7 +124,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			break;
 
 			case CycleStoreDecrementData:
-				write(data_address_, data_buffer_.next_output());
+				write(data_address_, data_buffer_.next_output_descending());
 				decrement_data_address();
 			break;
 
@@ -149,7 +153,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 	bus_operation = operation;
 
 			case CyclePush:
-				stack_access(data_buffer_.next_stack(), MOS6502Esque::Write);
+				stack_access(data_buffer_.next_output_descending(), MOS6502Esque::Write);
 				--s_.full;
 			break;
 

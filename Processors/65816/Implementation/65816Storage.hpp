@@ -23,6 +23,8 @@ enum MicroOp: uint8_t {
 	/// Fetches from the address formed by the low byte of the data address and the high byte
 	/// of the instruction buffer, throwing the result away.
 	CycleFetchIncorrectDataAddress,
+	/// Fetches a byte from the data address and throws it away.
+	CycleFetchDataThrowaway,
 
 	// Dedicated block-move cycles; these use the data buffer as an intermediary.
 	CycleFetchBlockX,
@@ -306,7 +308,7 @@ struct ProcessorStorage {
 			return byte(read);
 		}
 
-		uint8_t *next_stack() {
+		uint8_t *next_output_descending() {
 			--size;
 			return byte(size);
 		}
