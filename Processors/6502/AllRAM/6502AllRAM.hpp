@@ -29,7 +29,7 @@ class AllRAMProcessor:
 		virtual void set_value_of_register(Register r, uint16_t value) = 0;
 
 	protected:
-		AllRAMProcessor() : ::CPU::AllRAMProcessor(65536) {}
+		AllRAMProcessor(size_t memory_size) : ::CPU::AllRAMProcessor(memory_size) {}
 };
 
 }

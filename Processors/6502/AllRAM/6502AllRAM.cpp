@@ -21,12 +21,13 @@ using Type = CPU::MOS6502Esque::Type;
 
 template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 	public:
-		ConcreteAllRAMProcessor() :
+		ConcreteAllRAMProcessor(size_t memory_size) :
+			AllRAMProcessor(memory_size),
 			mos6502_(*this) {
 			mos6502_.set_power_on(false);
 		}
 
-		inline Cycles perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) {
+		inline Cycles perform_bus_operation(BusOperation operation, uint32_t address, uint8_t *value) {
 			timestamp_ += Cycles(1);
 
 			if(operation == BusOperation::ReadOpcode) {
@@ -91,7 +92,7 @@ template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, publ
 }
 
 AllRAMProcessor *AllRAMProcessor::Processor(Type type) {
-#define Bind(p) case p: return new ConcreteAllRAMProcessor<p>();
+#define Bind(p) case p: return new ConcreteAllRAMProcessor<p>(type == Type::TWDC65816 ? 16*1024*1024 : 64*1024);
 	switch(type) {
 		default:
 		Bind(Type::T6502)
