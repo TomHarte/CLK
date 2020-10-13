@@ -89,8 +89,8 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			// Data fetches and stores.
 			//
 
-#define increment_data_address() data_address_ = (data_address_ & 0xff0000) + ((data_address_ + 1) & 0xffff)
-#define decrement_data_address() data_address_ = (data_address_ & 0xff0000) + ((data_address_ - 1) & 0xffff)
+#define increment_data_address() data_address_ = (data_address_ & ~data_address_increment_mask_) + ((data_address_ + 1) & data_address_increment_mask_)
+#define decrement_data_address() data_address_ = (data_address_ & ~data_address_increment_mask_) + ((data_address_ - 1) & data_address_increment_mask_)
 
 
 			case CycleFetchData:
@@ -229,18 +229,22 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructAbsolute:
 				data_address_ = instruction_buffer_.value + data_bank_;
+				data_address_increment_mask_ = 0xff'ff'ff;
 			continue;
 
 			case OperationConstructAbsoluteLong:
 				data_address_ = instruction_buffer_.value;
+				data_address_increment_mask_ = 0xff'ff'ff;
 			continue;
 
 			case OperationConstructAbsoluteIndexedIndirect:
 				data_address_ = (instruction_buffer_.value + x()) & 0xffff;
+				data_address_increment_mask_ = 0x00'ff'ff;
 			continue;
 
 			case OperationConstructAbsoluteLongX:
-				data_address_ = (instruction_buffer_.value + x()) & 0xffff + instruction_buffer_.value & 0xff0000;
+				data_address_ = instruction_buffer_.value + x();
+				data_address_increment_mask_ = 0xff'ff'ff;
 			continue;
 
 			case OperationConstructAbsoluteXRead:
@@ -252,6 +256,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				if(operation == OperationConstructAbsoluteXRead && data_address_ == incorrect_data_address_) {
 					++next_op_;
 				}
+				data_address_increment_mask_ = 0xff'ff'ff;
 			continue;
 
 			case OperationConstructAbsoluteYRead:
@@ -263,10 +268,13 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				if(operation == OperationConstructAbsoluteYRead && data_address_ == incorrect_data_address_) {
 					++next_op_;
 				}
+				data_address_increment_mask_ = 0xff'ff'ff;
 			continue;
 
 			case OperationConstructDirect:
+				// TODO: is this address correct in emulation mode when the low byte is zero?
 				data_address_ = (direct_ + instruction_buffer_.value) & 0xffff;
+				data_address_increment_mask_ = 0x00'ff'ff;
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
@@ -277,62 +285,74 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					((direct_ + x() + instruction_buffer_.value) & e_masks_[1]) +
 					(direct_ & e_masks_[0])
 				) & 0xffff;
+				data_address_increment_mask_ = 0x00'ff'ff;
+
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
 			continue;
 
-			case OperationConstructDirectIndirect:
-				data_address_ = data_bank_ + (direct_ + instruction_buffer_.value) & 0xffff;
+			case OperationConstructDirectIndirect:	// TODO: seems very incorrect. Check this and the programs that use it;
+													// 12 looks wrong, the others look correct?
+				data_address_ = (direct_ + instruction_buffer_.value) & 0xffff;
+				data_address_increment_mask_ = 0x00'ff'ff;
+
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
 			continue;
 
 			case OperationConstructDirectIndirectIndexedLong:
-				// TODO: assumed here is that the low 16-bit calculation can't carry into
-				// the high byte. Test this!
-				data_address_ = (y() + instruction_buffer_.value) & 0xffff + instruction_buffer_.value & 0xff0000;
+				data_address_ = y() + instruction_buffer_.value;
+				data_address_increment_mask_ = 0xff'ff'ff;
 			continue;
 
 			case OperationConstructDirectIndirectLong:
 				data_address_ = instruction_buffer_.value;
+				data_address_increment_mask_ = 0xff'ff'ff;
 			continue;
 
-			case OperationConstructDirectX: {
+			// TODO: confirm incorrect_data_address_ below.
+
+			case OperationConstructDirectX:
 				data_address_ = (
 					(direct_ & e_masks_[0]) +
 					((instruction_buffer_.value + direct_ + x()) & e_masks_[1])
 				) & 0xffff;
+				data_address_increment_mask_ = 0x00'ff'ff;
+
 				incorrect_data_address_ = (direct_ & 0xff00) + (data_address_ & 0x00ff);
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
-			} continue;
+			continue;
 
 			case OperationConstructDirectY:
 				data_address_ = (
 					(direct_ & e_masks_[0]) +
 					((instruction_buffer_.value + direct_ + y()) & e_masks_[1])
 				) & 0xffff;
-				// TODO: given the 16-bit internal arithmetic, confirm this is the correct spurious address.
+				data_address_increment_mask_ = 0x00'ff'ff;
+
 				incorrect_data_address_ = (direct_ & 0xff00) + (data_address_ & 0x00ff);
 				if(!(direct_&0xff)) {
 					++next_op_;
 				}
 			continue;
 
-			case OperationConstructPER:
-				data_buffer_.value = instruction_buffer_.value + pc_;
-				data_buffer_.size = 2;
-			continue;
-
 			case OperationConstructStackRelative:
 				data_address_ = (s_.full + instruction_buffer_.value) & 0xffff;
+				data_address_increment_mask_ = 0x00'ff'ff;
 			continue;
 
 			case OperationConstructStackRelativeIndexedIndirect:
-				data_address_ = data_bank_ + (instruction_buffer_.value + y()) & 0xffff;
+				data_address_ = (instruction_buffer_.value + y()) & 0xffff;
+				data_address_increment_mask_ = 0xff'ff'ff;
+			continue;
+
+			case OperationConstructPER:
+				data_buffer_.value = instruction_buffer_.value + pc_;
+				data_buffer_.size = 2;
 			continue;
 
 			case OperationPrepareException: {

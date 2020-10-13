@@ -328,6 +328,7 @@ struct ProcessorStorage {
 	};
 	Buffer instruction_buffer_, data_buffer_;
 	uint32_t data_address_;
+	uint32_t data_address_increment_mask_ = 0xffff;
 	uint32_t incorrect_data_address_;
 
 	std::vector<MicroOp> micro_ops_;
