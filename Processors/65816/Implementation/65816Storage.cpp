@@ -1017,10 +1017,8 @@ ProcessorStorage::ProcessorStorage() {
 	next_op_ = micro_ops_.data();
 	while(*next_op_ != OperationMoveToNextProgram) ++next_op_;
 
-#ifndef NDEBUG
-	assert(micro_ops_.size() < 65536);
-	printf("Generated %zd micro-ops in total; covered %d opcodes\n", micro_ops_.size(), constructor.opcode);
-#endif
+	// This is primarily to keep tabs, in case I want to pick a shorter form for the instruction table.
+	assert(micro_ops_.size() < 1024);
 }
 
 void ProcessorStorage::set_reset_state() {
