@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <cstring>
 
-#define BE_NOISY
+//#define BE_NOISY
 
 using namespace CPU::MOS6502;
 

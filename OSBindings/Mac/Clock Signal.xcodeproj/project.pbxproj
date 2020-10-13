@@ -214,6 +214,7 @@
 		4B4DEC07252BFA56004583AC /* 65816Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DEC05252BFA56004583AC /* 65816Base.cpp */; };
 		4B4DEC08252BFA56004583AC /* 65816Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DEC05252BFA56004583AC /* 65816Base.cpp */; };
 		4B4F47652533EA64004245B8 /* suite-a.prg in Resources */ = {isa = PBXBuildFile; fileRef = 4B4F475E2533EA64004245B8 /* suite-a.prg */; };
+		4B4F477C253530B7004245B8 /* Jeek816Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4F477B253530B7004245B8 /* Jeek816Tests.swift */; };
 		4B50AF80242817F40099BBD7 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B50AF7F242817F40099BBD7 /* QuartzCore.framework */; };
 		4B54C0BC1F8D8E790050900F /* KeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0BB1F8D8E790050900F /* KeyboardMachine.cpp */; };
 		4B54C0BF1F8D8F450050900F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0BD1F8D8F450050900F /* Keyboard.cpp */; };
@@ -1130,6 +1131,7 @@
 		4B4DEC19252BFB5A004583AC /* LazyFlags.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LazyFlags.hpp; sourceTree = "<group>"; };
 		4B4F2B7024DF99D4000DA6B0 /* CSScanTarget+CppScanTarget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CSScanTarget+CppScanTarget.h"; sourceTree = "<group>"; };
 		4B4F475E2533EA64004245B8 /* suite-a.prg */ = {isa = PBXFileReference; lastKnownFileType = file; path = "suite-a.prg"; sourceTree = "<group>"; };
+		4B4F477B253530B7004245B8 /* Jeek816Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Jeek816Tests.swift; sourceTree = "<group>"; };
 		4B50AF7F242817F40099BBD7 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		4B51F70920A521D700AFA2C1 /* Source.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Source.hpp; sourceTree = "<group>"; };
 		4B51F70A20A521D700AFA2C1 /* Observer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Observer.hpp; sourceTree = "<group>"; };
@@ -3433,7 +3435,6 @@
 		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
 			isa = PBXGroup;
 			children = (
-				4BC0CB272446BC7B00A79DBB /* OPLTests.mm */,
 				4B85322922778E4200F26553 /* Comparative68000.hpp */,
 				4B90467222C6FA31000E2074 /* TestRunner68000.hpp */,
 				4B97ADC722C6FD9B00A22A41 /* 68000ArithmeticTests.mm */,
@@ -3452,6 +3453,7 @@
 				4BE90FFC22D5864800FB464D /* MacintoshVideoTests.mm */,
 				4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */,
 				4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */,
+				4BC0CB272446BC7B00A79DBB /* OPLTests.mm */,
 				4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */,
 				4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */,
 				4BE76CF822641ED300ACD6FA /* QLTests.mm */,
@@ -3467,6 +3469,7 @@
 				4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */,
 				4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */,
 				4BBF49AE1ED2880200AB3669 /* FUSETests.swift */,
+				4B4F477B253530B7004245B8 /* Jeek816Tests.swift */,
 				4B1414611B58888700E04248 /* KlausDormannTests.swift */,
 				4BD91D762401C2B8007BDC91 /* PatrikRakTests.swift */,
 				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
@@ -4908,6 +4911,7 @@
 				4B778F4D23A5F20F0000D260 /* StaticAnalyser.cpp in Sources */,
 				4B778F0423A5EBB00000D260 /* OricMFMDSK.cpp in Sources */,
 				4B3BA0CE1D318B44005DD7A7 /* C1540Bridge.mm in Sources */,
+				4B4F477C253530B7004245B8 /* Jeek816Tests.swift in Sources */,
 				4B778F0F23A5EC560000D260 /* PCMTrack.cpp in Sources */,
 				4B778F1123A5EC650000D260 /* FileHolder.cpp in Sources */,
 				4B778EFC23A5EB8B0000D260 /* AcornADF.cpp in Sources */,

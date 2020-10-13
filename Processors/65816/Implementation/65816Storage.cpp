@@ -1036,8 +1036,9 @@ void ProcessorStorage::set_emulation_mode(bool enabled) {
 	if(emulation_flag_ == enabled) {
 		return;
 	}
+	emulation_flag_ = enabled;
 
-	if(emulation_flag_) {
+	if(enabled) {
 		set_m_x_flags(true, true);
 		x_.halves.high = y_.halves.high = 0;
 		e_masks_[0] = 0xff00;
@@ -1048,8 +1049,6 @@ void ProcessorStorage::set_emulation_mode(bool enabled) {
 		s_.halves.high = 1;	// To pretend it was 1 all along; this implementation actually ignores
 							// the top byte while in emulation mode.
 	}
-
-	emulation_flag_ = enabled;
 }
 
 void ProcessorStorage::set_m_x_flags(bool m, bool x) {
