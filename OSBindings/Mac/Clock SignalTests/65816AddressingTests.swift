@@ -90,4 +90,17 @@ class WDC65816AddressingTests: XCTestCase {
 		XCTAssertEqual(machine.value(for: .programCounter), 0x3456 + 1)
 		XCTAssertEqual(machine.value(for: .programBank), 0x12)
 	}
+
+	// TODO:
+	//	Direct			[x2]
+	//	Direct, X		[x2]
+	// 	(Direct)		[x2]
+	//	[Direct]
+	//	(Direct, X)		[x2]
+	//	(Direct), Y		[x2]
+	//	[Direct], Y
+	//	Long
+	//	Long, X
+	//	Stack, S
+	//	(Stack, S), Y
 }
