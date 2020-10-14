@@ -89,9 +89,8 @@ enum MicroOp: uint8_t {
 	/// Skips the next micro-op if the low byte of the direct register is 0.
 	OperationConstructDirectIndexedIndirect,
 
-	/// Constructs the current direct indexed indirect address using the data bank and
-	/// direct registers plus the value currently in the instruction buffer.
-	/// Skips the next micro-op if the low byte of the direct register is 0.
+	/// Constructs the current direct indexed indirect address using the value
+	/// currently in the data buffer.
 	OperationConstructDirectIndirect,
 
 	/// Adds y to the low 16-bits currently in the instruction buffer and appends a high 8-bits

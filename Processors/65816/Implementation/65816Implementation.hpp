@@ -280,21 +280,16 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				}
 			continue;
 
+			case OperationConstructDirectIndirect:
+				data_address_ = data_bank_ + direct_ + data_buffer_.value;
+				data_address_increment_mask_ = 0xff'ff'ff;
+			continue;
+
 			case OperationConstructDirectIndexedIndirect:
 				data_address_ = data_bank_ + (
 					((direct_ + x() + instruction_buffer_.value) & e_masks_[1]) +
 					(direct_ & e_masks_[0])
 				) & 0xffff;
-				data_address_increment_mask_ = 0x00'ff'ff;
-
-				if(!(direct_&0xff)) {
-					++next_op_;
-				}
-			continue;
-
-			case OperationConstructDirectIndirect:	// TODO: seems very incorrect. Check this and the programs that use it;
-													// 12 looks wrong, the others look correct?
-				data_address_ = (direct_ + instruction_buffer_.value) & 0xffff;
 				data_address_increment_mask_ = 0x00'ff'ff;
 
 				if(!(direct_&0xff)) {

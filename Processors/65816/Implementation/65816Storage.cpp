@@ -423,8 +423,13 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void direct_indirect(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);					// DO.
 
-		target(OperationConstructDirectIndirect);
+		target(OperationConstructDirect);
 		target(CycleFetchPCThrowaway);					// IO.
+
+		target(CycleFetchIncrementData);				// AAL.
+		target(CycleFetchData);							// AAH.
+
+		target(OperationConstructDirectIndirect);
 
 		read_write(type, is8bit, target);
 	}
@@ -450,7 +455,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void direct_indirect_indexed_long(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);					// DO.
 
-		target(OperationConstructDirectIndirect);
+		target(OperationConstructDirect);
 		target(CycleFetchPCThrowaway);					// IO.
 
 		target(CycleFetchIncrementData);				// AAL.
@@ -466,7 +471,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void direct_indirect_long(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);					// DO.
 
-		target(OperationConstructDirectIndirect);
+		target(OperationConstructDirect);
 		target(CycleFetchPCThrowaway);					// IO.
 
 		target(CycleFetchIncrementData);				// AAL.
