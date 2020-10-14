@@ -28,7 +28,8 @@ class Jeek816Tests: XCTestCase {
 			NSException(name: NSExceptionName(rawValue: "Failed Test"), reason: "Couldn't load file \(name)", userInfo: nil).raise()
 		}
 
-		while machine.value(for: .lastOperationAddress) != 0x0874 {
+		// $874 is the failure stopping point and $85d is success.
+		while machine.value(for: .lastOperationAddress) != 0x0874 && machine.value(for: .lastOperationAddress) != 0x085d {
 			machine.runForNumber(ofCycles: 1000)
 		}
 

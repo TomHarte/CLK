@@ -249,7 +249,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructAbsoluteXRead:
 			case OperationConstructAbsoluteX:
-				data_address_ = ((instruction_buffer_.value + x()) & 0xffff) + data_bank_;
+				data_address_ = instruction_buffer_.value + x() + data_bank_;
 				incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) + data_bank_;
 
 				// If the incorrect address isn't actually incorrect, skip its usage.
@@ -261,7 +261,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructAbsoluteYRead:
 			case OperationConstructAbsoluteY:
-				data_address_ = ((instruction_buffer_.value + y()) & 0xffff) + data_bank_;
+				data_address_ = instruction_buffer_.value + y() + data_bank_;
 				incorrect_data_address_ = (data_address_ & 0xff) + (instruction_buffer_.value & 0xff00) + data_bank_;
 
 				// If the incorrect address isn't actually incorrect, skip its usage.
