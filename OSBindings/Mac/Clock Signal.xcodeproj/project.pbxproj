@@ -215,6 +215,7 @@
 		4B4DEC08252BFA56004583AC /* 65816Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DEC05252BFA56004583AC /* 65816Base.cpp */; };
 		4B4F47652533EA64004245B8 /* suite-a.prg in Resources */ = {isa = PBXBuildFile; fileRef = 4B4F475E2533EA64004245B8 /* suite-a.prg */; };
 		4B4F477C253530B7004245B8 /* Jeek816Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4F477B253530B7004245B8 /* Jeek816Tests.swift */; };
+		4B4F478A25367EDC004245B8 /* 65816AddressingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4F478925367EDC004245B8 /* 65816AddressingTests.swift */; };
 		4B50AF80242817F40099BBD7 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B50AF7F242817F40099BBD7 /* QuartzCore.framework */; };
 		4B54C0BC1F8D8E790050900F /* KeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0BB1F8D8E790050900F /* KeyboardMachine.cpp */; };
 		4B54C0BF1F8D8F450050900F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0BD1F8D8F450050900F /* Keyboard.cpp */; };
@@ -1132,6 +1133,7 @@
 		4B4F2B7024DF99D4000DA6B0 /* CSScanTarget+CppScanTarget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CSScanTarget+CppScanTarget.h"; sourceTree = "<group>"; };
 		4B4F475E2533EA64004245B8 /* suite-a.prg */ = {isa = PBXFileReference; lastKnownFileType = file; path = "suite-a.prg"; sourceTree = "<group>"; };
 		4B4F477B253530B7004245B8 /* Jeek816Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Jeek816Tests.swift; sourceTree = "<group>"; };
+		4B4F478925367EDC004245B8 /* 65816AddressingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 65816AddressingTests.swift; sourceTree = "<group>"; };
 		4B50AF7F242817F40099BBD7 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		4B51F70920A521D700AFA2C1 /* Source.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Source.hpp; sourceTree = "<group>"; };
 		4B51F70A20A521D700AFA2C1 /* Observer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Observer.hpp; sourceTree = "<group>"; };
@@ -3464,6 +3466,7 @@
 				4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */,
 				4BC751B11D157E61006C31D9 /* 6522Tests.swift */,
 				4B1E85801D176468001EF87D /* 6532Tests.swift */,
+				4B4F478925367EDC004245B8 /* 65816AddressingTests.swift */,
 				4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */,
 				4B049CDC1DA3C82F00322067 /* BCDTest.swift */,
 				4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */,
@@ -5009,6 +5012,7 @@
 				4B778F5723A5F2BB0000D260 /* ZX8081.cpp in Sources */,
 				4B778F2F23A5F0B10000D260 /* ScanTarget.cpp in Sources */,
 				4BE90FFD22D5864800FB464D /* MacintoshVideoTests.mm in Sources */,
+				4B4F478A25367EDC004245B8 /* 65816AddressingTests.swift in Sources */,
 				4B778F0B23A5EC150000D260 /* TapeUEF.cpp in Sources */,
 				4B778F0523A5EBB00000D260 /* ST.cpp in Sources */,
 				4B778F0C23A5EC150000D260 /* TZX.cpp in Sources */,

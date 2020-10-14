@@ -17,7 +17,7 @@ class MOS6502InterruptTests: XCTestCase {
 		// create a machine full of NOPs
 		machine = CSTestMachine6502(processor: .processor6502)
 		for c in 0...65535 {
-			machine.setValue(0xea, forAddress: UInt16(c))
+			machine.setValue(0xea, forAddress: UInt32(c))
 		}
 
 		// set the IRQ vector to be 0x1234

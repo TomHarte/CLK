@@ -17,6 +17,10 @@ typedef NS_ENUM(NSInteger, CSTestMachine6502Register) {
 	CSTestMachine6502RegisterA,
 	CSTestMachine6502RegisterX,
 	CSTestMachine6502RegisterY,
+	CSTestMachine6502RegisterEmulationFlag,
+	CSTestMachine6502RegisterDataBank,
+	CSTestMachine6502RegisterProgramBank,
+	CSTestMachine6502RegisterDirect,
 };
 
 typedef NS_ENUM(NSInteger, CSTestMachine6502Processor) {
@@ -33,11 +37,11 @@ extern const uint8_t CSTestMachine6502JamOpcode;
 
 - (nonnull instancetype)initWithProcessor:(CSTestMachine6502Processor)processor;
 
-- (void)setData:(nonnull NSData *)data atAddress:(uint16_t)startAddress;
+- (void)setData:(nonnull NSData *)data atAddress:(uint32_t)startAddress;
 - (void)runForNumberOfCycles:(int)cycles;
 
-- (void)setValue:(uint8_t)value forAddress:(uint16_t)address;
-- (uint8_t)valueForAddress:(uint16_t)address;
+- (void)setValue:(uint8_t)value forAddress:(uint32_t)address;
+- (uint8_t)valueForAddress:(uint32_t)address;
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachine6502Register)reg;
 - (uint16_t)valueForRegister:(CSTestMachine6502Register)reg;
 

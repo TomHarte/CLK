@@ -232,13 +232,19 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				data_address_increment_mask_ = 0xff'ff'ff;
 			continue;
 
+			case OperationConstructAbsolute16:
+				data_address_ = instruction_buffer_.value;
+				data_address_increment_mask_ = 0x00'ff'ff;
+			continue;
+
 			case OperationConstructAbsoluteLong:
 				data_address_ = instruction_buffer_.value;
 				data_address_increment_mask_ = 0xff'ff'ff;
 			continue;
 
+			// Used for JMP and JSR (absolute, x).
 			case OperationConstructAbsoluteIndexedIndirect:
-				data_address_ = (instruction_buffer_.value + x()) & 0xffff;
+				data_address_ = program_bank_ + ((instruction_buffer_.value + x()) & 0xffff);
 				data_address_increment_mask_ = 0x00'ff'ff;
 			continue;
 

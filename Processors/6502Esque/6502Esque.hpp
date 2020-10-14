@@ -34,7 +34,13 @@ enum Register {
 	Flags,
 	A,
 	X,
-	Y
+	Y,
+
+	// These exist on the 65816 only.
+	EmulationFlag,
+	DataBank,
+	ProgramBank,
+	Direct
 };
 
 /*

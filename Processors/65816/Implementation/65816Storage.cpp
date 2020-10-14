@@ -237,8 +237,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);			// New AAL.
 		target(CycleFetchPC);					// New AAH.
 
-		target(OperationConstructAbsolute);		// Calculate data address.
-		// TODO: needs to apply a 16-bit limit here:
+		target(OperationConstructAbsolute16);	// Calculate data address.
 		target(CycleFetchIncrementData);		// New PCL
 		target(CycleFetchIncrementData);		// New PCH
 		target(CycleFetchData);					// New PBR
@@ -251,8 +250,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);			// New AAL.
 		target(CycleFetchPC);					// New AAH.
 
-		target(OperationConstructAbsolute);		// Calculate data address.
-		// TODO: needs to apply a 16-bit limit here:
+		target(OperationConstructAbsolute16);	// Calculate data address.
 		target(CycleFetchIncrementData);		// New PCL
 		target(CycleFetchData);					// New PCH
 
