@@ -309,9 +309,7 @@ class WDC65816AddressingTests: XCTestCase {
 		XCTAssertEqual(machine.value(for: .A), 0xcdab)
 	}
 
-	// TODO: all tests from this point downward.
-
-	func testIndirectDirextX8() {
+	func testDirectXIndirectX8() {
 		// "If the D register is $FF00, the X register is $000A, and the e flag is 1 (note
 		// that this means the m flag must be 1), then for LDA ($FE,X), the address of the
 		// low byte of the pointer is $00FF08 and the address of the high byte is $00FF09.
@@ -319,9 +317,27 @@ class WDC65816AddressingTests: XCTestCase {
 		//	* $00FF08 contains $FF
 		//	* $00FF09 contains $FF
 		// then LDA ($FE,X) loads the low byte of the data from address $12FFFF."
+		let machine = machine8()
+
+		machine.setValue(0xff00, for: .direct)
+		machine.setValue(0x000a, for: .X)
+		machine.setValue(0x12, for: .dataBank)
+
+		machine.setValue(0xff, forAddress: 0xff08)
+		machine.setValue(0xff, forAddress: 0xff09)
+
+		machine.setValue(0xab, forAddress: 0x12ffff)
+
+		// LDA ($fe, x); NOP
+		machine.setData(Data([0xa1, 0xfe, 0xea]), atAddress: 0x0200)
+
+		machine.setValue(0x200, for: .programCounter)
+		machine.runForNumber(ofCycles: 7)
+
+		XCTAssertEqual(machine.value(for: .A), 0xab)
 	}
 
-	func testIndirectDirextX16() {
+	func testDirectXIndirect16() {
 		// "If the D register is $FF00, the X register is $000A, and the m flag is 0
 		// (note that this means the e flag must be 0), then for LDA ($FE,X), the address
 		// of the low byte of the pointer is $000008 and the address of the high byte
@@ -330,9 +346,28 @@ class WDC65816AddressingTests: XCTestCase {
 		//	* $000009 contains $FF
 		// then LDA ($FE,X) loads the low byte of the data from address $12FFFF, and the
 		// high byte from $130000."
+		let machine = machine16()
+
+		machine.setValue(0xff00, for: .direct)
+		machine.setValue(0x000a, for: .X)
+		machine.setValue(0x12, for: .dataBank)
+
+		machine.setValue(0xff, forAddress: 0x0008)
+		machine.setValue(0xff, forAddress: 0x0009)
+
+		machine.setValue(0xab, forAddress: 0x12ffff)
+		machine.setValue(0xcd, forAddress: 0x130000)
+
+		// LDA ($fe, x); NOP
+		machine.setData(Data([0xa1, 0xfe, 0xea]), atAddress: 0x0200)
+
+		machine.setValue(0x200, for: .programCounter)
+		machine.runForNumber(ofCycles: 8)
+
+		XCTAssertEqual(machine.value(for: .A), 0xcdab)
 	}
 
-	func testIndirectDirectY8() {
+	func testIndirectY8() {
 		// "If the D register is $FF00 and the e flag is 1 (note that this means the
 		// m flag must be 1), then for LDA ($FF),Y, the address of the low byte of the
 		// pointer is $00FFFF and the address of the high byte is $00FF00.
@@ -343,9 +378,27 @@ class WDC65816AddressingTests: XCTestCase {
 		//
 		// "this is one of the rare instances where emulation mode has
 		// different behavior than the 65C02 or NMOS 6502..."
+		let machine = machine8()
+
+		machine.setValue(0xff00, for: .direct)
+		machine.setValue(0x000a, for: .Y)
+		machine.setValue(0x12, for: .dataBank)
+
+		machine.setValue(0xff, forAddress: 0xff00)
+		machine.setValue(0xfe, forAddress: 0xffff)
+
+		machine.setValue(0xab, forAddress: 0x130008)
+
+		// LDA ($ff), y; NOP
+		machine.setData(Data([0xb1, 0xff, 0xea]), atAddress: 0x0200)
+
+		machine.setValue(0x200, for: .programCounter)
+		machine.runForNumber(ofCycles: 7)
+
+		XCTAssertEqual(machine.value(for: .A), 0xab)
 	}
 
-	func testIndirectDirectY16() {
+	func testIndirectY16() {
 		// "If the D register is $FF00 and the m flag is 0 (note that this means the
 		// e flag must be 0), then for LDA ($FF),Y, the address of the low byte of the
 		// pointer is $00FFFF and the address of the high byte is $000000.
@@ -354,7 +407,28 @@ class WDC65816AddressingTests: XCTestCase {
 		//	* $00FFFF contains $FE
 		// then LDA ($FF),Y loads the low byte of the data from address $130008, and the
 		// high byte from $130009."
+		let machine = machine16()
+
+		machine.setValue(0xff00, for: .direct)
+		machine.setValue(0x000a, for: .Y)
+		machine.setValue(0x12, for: .dataBank)
+
+		machine.setValue(0xff, forAddress: 0x0000)
+		machine.setValue(0xfe, forAddress: 0xffff)
+
+		machine.setValue(0xab, forAddress: 0x130008)
+		machine.setValue(0xcd, forAddress: 0x130009)
+
+		// LDA ($ff), y; NOP
+		machine.setData(Data([0xb1, 0xff, 0xea]), atAddress: 0x0200)
+
+		machine.setValue(0x200, for: .programCounter)
+		machine.runForNumber(ofCycles: 8)
+
+		XCTAssertEqual(machine.value(for: .A), 0xcdab)
 	}
+
+	// TODO: all tests from this point downward.
 
 	func testIndirectDirectYLong() {
 		// "If the D register is $FF00 and the m flag is 0, then for LDA [$FE],Y, the address
