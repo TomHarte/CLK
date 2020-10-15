@@ -9,7 +9,7 @@
 import Foundation
 import XCTest
 
-// This exactly transcribes the examples given in http://6502.org/tutorials/65c816opcodes.html#5.9
+// This exactly transcribes the examples given in http://6502.org/tutorials/65c816opcodes.html#5
 // Quoted text is taken verbatim from that document.
 class WDC65816AddressingTests: XCTestCase {
 
@@ -29,6 +29,22 @@ class WDC65816AddressingTests: XCTestCase {
 	}
 
 	// MARK: - Tests
+
+	func testAbsoluteJMP() {
+		// "If the K register is $12, then JMP $FFFF jumps to $12FFFF"
+		let machine = machine16()
+
+		machine.setValue(0x12, for: .programBank)
+
+		// JMP $ffff
+		machine.setData(Data([0x4c, 0xff, 0xff]), atAddress: 0x120200)
+
+		machine.setValue(0x200, for: .programCounter)
+		machine.runForNumber(ofCycles: 4)
+
+		XCTAssertEqual(machine.value(for: .programCounter), 0)	// i.e. 0xffff + 1
+		XCTAssertEqual(machine.value(for: .programBank), 0x12)
+	}
 
 	func testAbsolute() {
 		// "If the DBR is $12 and the m flag is 0, then LDA $FFFF loads the low byte of
@@ -122,17 +138,24 @@ class WDC65816AddressingTests: XCTestCase {
 		XCTAssertEqual(machine.value(for: .programBank), 0x12)
 	}
 
-	// TODO: all tests from this point downward.
-
-	func testAbsoluteJMP() {
-		// TODO.
-		// "If the K register is $12, then JMP $FFFF jumps to $12FFFF"
-	}
-
 	func testDirect8() {
 		// "If the D register is $FF00 and the e flag is 1 (note that
 		// this means the m flag must be 1), then LDA $FF loads the low
 		// byte of the data from address $00FFFF"
+
+		let machine = machine8()
+
+		machine.setValue(0xff00, for: .direct)
+
+		machine.setValue(0xab, forAddress: 0xffff)
+
+		// LDA $ff; NOP
+		machine.setData(Data([0xa5, 0xff, 0xea]), atAddress: 0x0200)
+
+		machine.setValue(0x200, for: .programCounter)
+		machine.runForNumber(ofCycles: 4)
+
+		XCTAssertEqual(machine.value(for: .A), 0xab)
 	}
 
 	func testDirect16() {
@@ -140,7 +163,25 @@ class WDC65816AddressingTests: XCTestCase {
 		// this means the e flag must be 0), then LDA $FF loads the low
 		// byte of the data from address $00FFFF, and the high byte
 		// from address $000000"
+
+		let machine = machine16()
+
+		machine.setValue(0xff00, for: .direct)
+
+		machine.setValue(0xab, forAddress: 0xffff)
+		machine.setValue(0xcd, forAddress: 0x0000)
+
+		// LDA $ff; NOP
+		machine.setData(Data([0xa5, 0xff, 0xea]), atAddress: 0x0200)
+
+		machine.setValue(0x200, for: .programCounter)
+		machine.runForNumber(ofCycles: 5)
+
+		XCTAssertEqual(machine.value(for: .A), 0xcdab)
 	}
+
+
+	// TODO: all tests from this point downward.
 
 	func testDirextX8() {
 		// "If the D register is $FF00, the X register is $000A, and
