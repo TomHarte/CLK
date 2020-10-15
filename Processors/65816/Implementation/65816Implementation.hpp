@@ -278,17 +278,20 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			continue;
 
 			case OperationConstructDirect:
-				// TODO: is this address correct in emulation mode when the low byte is zero?
 				data_address_ = (direct_ + instruction_buffer_.value) & 0xffff;
 				data_address_increment_mask_ = 0x00'ff'ff;
 				if(!(direct_&0xff)) {
+					// If the low byte is 0 and this is emulation mode, incrementing
+					// is restricted to the low byte.
+					data_address_increment_mask_ = e_masks_[1];
 					++next_op_;
 				}
 			continue;
 
 			case OperationConstructDirectIndirect:
-				data_address_ = data_bank_ + direct_ + data_buffer_.value;
+				data_address_ = data_bank_ + data_buffer_.value;
 				data_address_increment_mask_ = 0xff'ff'ff;
+				data_buffer_.clear();
 			continue;
 
 			case OperationConstructDirectIndexedIndirect:
