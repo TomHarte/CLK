@@ -241,49 +241,64 @@ struct ProcessorStorage {
 		FetchDecodeExecute
 	};
 
-	// Registers.
-	RegisterPair16 a_;
-	RegisterPair16 x_, y_;
-	RegisterPair16  s_;
-	uint16_t pc_;
-
 	// A helper for testing.
 	uint16_t last_operation_pc_;
 	Instruction *active_instruction_;
 	Cycles cycles_left_to_run_;
 
-	// Flags aplenty.
-	MOS6502Esque::LazyFlags flags_;
-	uint8_t mx_flags_[2] = {1, 1};				// [0] = m; [1] = x. In both cases either `0` or `1`; `1` => 8-bit.
-	uint16_t m_masks_[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
-	uint16_t x_masks_[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
-	uint16_t e_masks_[2] = {0xff00, 0x00ff};
-	int m_shift_ = 0;
-	int x_shift_ = 0;
-	bool emulation_flag_ = true;
+	// All registers are boxed up into a struct so that they can be stored and restored in support of abort.
+	struct Registers {
+		// Registers.
+		RegisterPair16 a;
+		RegisterPair16 x, y;
+		RegisterPair16  s;
+		uint16_t pc;
 
-	// I.e. the offset for direct addressing (outside of emulation mode).
-	uint16_t direct_ = 0;
+		// Flags aplenty.
+		MOS6502Esque::LazyFlags flags;
+		uint8_t mx_flags[2] = {1, 1};				// [0] = m; [1] = x. In both cases either `0` or `1`; `1` => 8-bit.
+		uint16_t m_masks[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
+		uint16_t x_masks[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
+		uint16_t e_masks[2] = {0xff00, 0x00ff};
+		int m_shift = 0;
+		int x_shift = 0;
+		bool emulation_flag = true;
 
-	// Banking registers are all stored with the relevant byte
-	// shifted up bits 16–23.
-	uint32_t data_bank_ = 0;	// i.e. DBR.
-	uint32_t program_bank_ = 0;	// i.e. PBR.
+		// I.e. the offset for direct addressing (outside of emulation mode).
+		uint16_t direct = 0;
 
+		// Banking registers are all stored with the relevant byte
+		// shifted up bits 16–23.
+		uint32_t data_bank = 0;	// i.e. DBR.
+		uint32_t program_bank = 0;	// i.e. PBR.
+	} registers_, abort_registers_copy_;
+
+	// The next bus transaction.
+	uint32_t bus_address_ = 0;
+	uint8_t *bus_value_ = nullptr;
+	static inline uint8_t bus_throwaway_ = 0;
+	BusOperation bus_operation_ = BusOperation::None;
+
+	// A bitfield for various exceptions.
 	static constexpr int PowerOn = 1 << 0;
 	static constexpr int Reset = 1 << 1;
 	static constexpr int IRQ = Flag::Interrupt;	// This makes masking a lot easier later on; this is 1 << 2.
 	static constexpr int NMI = 1 << 3;
+	static constexpr int Abort = 1 << 4;
 	int pending_exceptions_ = PowerOn;	// By default.
 	int selected_exceptions_ = 0;
+
+	bool ready_line_ = false;
 
 	// Just to be safe.
 	static_assert(PowerOn != IRQ);
 	static_assert(Reset != IRQ);
 	static_assert(NMI != IRQ);
+	static_assert(Abort != IRQ);
 
 	/// Sets the required exception flags necessary to exit a STP or WAI.
 	int required_exceptions_ = 0;
+	BusOperation stp_wai_bus_operation_ = BusOperation::None;
 
 	/// Defines a four-byte buffer which can be cleared or filled in single-byte increments from least significant byte
 	/// to most significant.

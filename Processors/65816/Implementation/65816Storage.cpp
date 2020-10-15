@@ -1028,63 +1028,63 @@ ProcessorStorage::ProcessorStorage() {
 }
 
 void ProcessorStorage::set_reset_state() {
-	data_bank_ = 0;
-	program_bank_ = 0;
-	direct_ = 0;
-	flags_.decimal = 0;
-	flags_.inverse_interrupt = 0;
+	registers_.data_bank = 0;
+	registers_.program_bank = 0;
+	registers_.direct = 0;
+	registers_.flags.decimal = 0;
+	registers_.flags.inverse_interrupt = 0;
 	set_emulation_mode(true);
 }
 
 void ProcessorStorage::set_emulation_mode(bool enabled) {
-	if(emulation_flag_ == enabled) {
+	if(registers_.emulation_flag == enabled) {
 		return;
 	}
-	emulation_flag_ = enabled;
+	registers_.emulation_flag = enabled;
 
 	if(enabled) {
 		set_m_x_flags(true, true);
-		x_.halves.high = y_.halves.high = 0;
-		e_masks_[0] = 0xff00;
-		e_masks_[1] = 0x00ff;
+		registers_.x.halves.high = registers_.y.halves.high = 0;
+		registers_.e_masks[0] = 0xff00;
+		registers_.e_masks[1] = 0x00ff;
 	} else {
-		e_masks_[0] = 0x0000;
-		e_masks_[1] = 0xffff;
-		s_.halves.high = 1;	// To pretend it was 1 all along; this implementation actually ignores
-							// the top byte while in emulation mode.
+		registers_.e_masks[0] = 0x0000;
+		registers_.e_masks[1] = 0xffff;
+		registers_.s.halves.high = 1;	// To pretend it was 1 all along; this implementation actually ignores
+										// the top byte while in emulation mode.
 	}
 }
 
 void ProcessorStorage::set_m_x_flags(bool m, bool x) {
 	// true/1 => 8bit for both flags.
-	mx_flags_[0] = m;
-	mx_flags_[1] = x;
+	registers_.mx_flags[0] = m;
+	registers_.mx_flags[1] = x;
 
-	m_masks_[0] = m ? 0xff00 : 0x0000;
-	m_masks_[1] = m ? 0x00ff : 0xffff;
-	m_shift_ = m ? 0 : 8;
+	registers_.m_masks[0] = m ? 0xff00 : 0x0000;
+	registers_.m_masks[1] = m ? 0x00ff : 0xffff;
+	registers_.m_shift = m ? 0 : 8;
 
-	x_masks_[0] = x ? 0xff00 : 0x0000;
-	x_masks_[1] = x ? 0x00ff : 0xffff;
-	x_shift_ = x ? 0 : 8;
+	registers_.x_masks[0] = x ? 0xff00 : 0x0000;
+	registers_.x_masks[1] = x ? 0x00ff : 0xffff;
+	registers_.x_shift = x ? 0 : 8;
 }
 
 uint8_t ProcessorStorage::get_flags() const {
-	uint8_t result = flags_.get();
+	uint8_t result = registers_.flags.get();
 
-	if(!emulation_flag_) {
+	if(!registers_.emulation_flag) {
 		result &= ~(Flag::MemorySize | Flag::IndexSize);
-		result |= mx_flags_[0] * Flag::MemorySize;
-		result |= mx_flags_[1] * Flag::IndexSize;
+		result |= registers_.mx_flags[0] * Flag::MemorySize;
+		result |= registers_.mx_flags[1] * Flag::IndexSize;
 	}
 
 	return result;
 }
 
 void ProcessorStorage::set_flags(uint8_t value) {
-	flags_.set(value);
+	registers_.flags.set(value);
 
-	if(!emulation_flag_) {
+	if(!registers_.emulation_flag) {
 		set_m_x_flags(value & Flag::MemorySize, value & Flag::IndexSize);
 	}
 }

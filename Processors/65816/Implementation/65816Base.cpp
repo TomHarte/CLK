@@ -12,33 +12,33 @@ using namespace CPU::WDC65816;
 
 uint16_t ProcessorBase::get_value_of_register(Register r) const {
 	switch (r) {
-		case Register::ProgramCounter:			return pc_;
+		case Register::ProgramCounter:			return registers_.pc;
 		case Register::LastOperationAddress:	return last_operation_pc_;
-		case Register::StackPointer:			return s_.full;
+		case Register::StackPointer:			return registers_.s.full;
 		case Register::Flags:					return get_flags();
-		case Register::A:						return a_.full;
-		case Register::X:						return x_.full;
-		case Register::Y:						return y_.full;
-		case Register::EmulationFlag:			return emulation_flag_;
-		case Register::DataBank:				return data_bank_ >> 16;
-		case Register::ProgramBank:				return program_bank_ >> 16;
-		case Register::Direct:					return direct_;
+		case Register::A:						return registers_.a.full;
+		case Register::X:						return registers_.x.full;
+		case Register::Y:						return registers_.y.full;
+		case Register::EmulationFlag:			return registers_.emulation_flag;
+		case Register::DataBank:				return registers_.data_bank >> 16;
+		case Register::ProgramBank:				return registers_.program_bank >> 16;
+		case Register::Direct:					return registers_.direct;
 		default: return 0;
 	}
 }
 
 void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 	switch (r) {
-		case Register::ProgramCounter:	pc_ = value;							break;
-		case Register::StackPointer:	s_.full = value;						break;
-		case Register::Flags:			set_flags(uint8_t(value));				break;
-		case Register::A:				a_.full = value;						break;
-		case Register::X:				x_.full = value;						break;
-		case Register::Y:				y_.full = value;						break;
-		case Register::EmulationFlag:	set_emulation_mode(value);				break;
-		case Register::DataBank:		data_bank_ = uint32_t(value) << 16;		break;
-		case Register::ProgramBank:		program_bank_ = uint32_t(value) << 16;	break;
-		case Register::Direct:			direct_ = value;						break;
+		case Register::ProgramCounter:	registers_.pc = value;								break;
+		case Register::StackPointer:	registers_.s.full = value;							break;
+		case Register::Flags:			set_flags(uint8_t(value));							break;
+		case Register::A:				registers_.a.full = value;							break;
+		case Register::X:				registers_.x.full = value;							break;
+		case Register::Y:				registers_.y.full = value;							break;
+		case Register::EmulationFlag:	set_emulation_mode(value);							break;
+		case Register::DataBank:		registers_.data_bank = uint32_t(value) << 16;		break;
+		case Register::ProgramBank:		registers_.program_bank = uint32_t(value) << 16;	break;
+		case Register::Direct:			registers_.direct = value;							break;
 		default: break;
 	}
 }

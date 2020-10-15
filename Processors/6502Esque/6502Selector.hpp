@@ -36,8 +36,8 @@ template <Type processor_type, typename BusHandler, bool uses_ready_line> class 
 };
 
 template <typename BusHandler, bool uses_ready_line> class Processor<Type::TWDC65816, BusHandler, uses_ready_line>:
-	public CPU::WDC65816::Processor<BusHandler> {
-		using CPU::WDC65816::Processor<BusHandler>::Processor;
+	public CPU::WDC65816::Processor<BusHandler, uses_ready_line> {
+		using CPU::WDC65816::Processor<BusHandler, uses_ready_line>::Processor;
 };
 
 }

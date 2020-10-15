@@ -6,27 +6,22 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles cycles) {
-	// Temporary storage for the next bus cycle.
-	uint32_t bus_address = 0;
-	uint8_t *bus_value = nullptr;
-	uint8_t throwaway = 0;
-	BusOperation bus_operation = BusOperation::None;
+template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, uses_ready_line>::run_for(const Cycles cycles) {
 
 #define perform_bus(address, value, operation)	\
-	bus_address = address;						\
-	bus_value = value;							\
-	bus_operation = operation
+	bus_address_ = address;						\
+	bus_value_ = value;							\
+	bus_operation_ = operation
 
 #define read(address, value)	perform_bus(address, value, MOS6502Esque::Read)
 #define write(address, value)	perform_bus(address, value, MOS6502Esque::Write)
 
-#define m_flag() mx_flags_[0]
-#define x_flag() mx_flags_[1]
+#define m_flag() registers_.mx_flags[0]
+#define x_flag() registers_.mx_flags[1]
 
-#define x()	(x_.full & x_masks_[1])
-#define y()	(y_.full & x_masks_[1])
-#define stack_address()	((s_.full & e_masks_[1]) | (0x0100 & e_masks_[0]))
+#define x()	(registers_.x.full & registers_.x_masks[1])
+#define y()	(registers_.y.full & registers_.x_masks[1])
+#define stack_address()	((registers_.s.full & registers_.e_masks[1]) | (0x0100 & registers_.e_masks[0]))
 
 	Cycles number_of_cycles = cycles + cycles_left_to_run_;
 	while(number_of_cycles > Cycles(0)) {
@@ -35,7 +30,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 #ifndef NDEBUG
 		// As a sanity check.
-		bus_value = nullptr;
+		bus_value_ = nullptr;
 #endif
 
 		switch(operation) {
@@ -52,13 +47,13 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				next_op_ = &micro_ops_[offset];
 				instruction_buffer_.clear();
 				data_buffer_.clear();
-				last_operation_pc_ = pc_;
+				last_operation_pc_ = registers_.pc;
 			} continue;
 
 			case OperationDecode: {
 				active_instruction_ = &instructions[instruction_buffer_.value];
 
-				const auto size_flag = mx_flags_[active_instruction_->size_field];
+				const auto size_flag = registers_.mx_flags[active_instruction_->size_field];
 				next_op_ = &micro_ops_[active_instruction_->program_offsets[size_flag]];
 				instruction_buffer_.clear();
 			} continue;
@@ -68,21 +63,21 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			//
 
 			case CycleFetchIncrementPC:
-				read(pc_ | program_bank_, instruction_buffer_.next_input());
-				++pc_;
+				read(registers_.pc | registers_.program_bank, instruction_buffer_.next_input());
+				++registers_.pc;
 			break;
 
 			case CycleFetchOpcode:
-				perform_bus(pc_ | program_bank_, instruction_buffer_.next_input(), MOS6502Esque::ReadOpcode);
-				++pc_;
+				perform_bus(registers_.pc | registers_.program_bank, instruction_buffer_.next_input(), MOS6502Esque::ReadOpcode);
+				++registers_.pc;
 			break;
 
 			case CycleFetchPC:
-				read(pc_ | program_bank_, instruction_buffer_.next_input());
+				read(registers_.pc | registers_.program_bank, instruction_buffer_.next_input());
 			break;
 
 			case CycleFetchPCThrowaway:
-				read(pc_ | program_bank_, &throwaway);
+				read(registers_.pc | registers_.program_bank, &bus_throwaway_);
 			break;
 
 			//
@@ -98,11 +93,11 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			break;
 
 			case CycleFetchDataThrowaway:
-				read(data_address_, &throwaway);
+				read(data_address_, &bus_throwaway_);
 			break;
 
 			case CycleFetchIncorrectDataAddress:
-				read(incorrect_data_address_, &throwaway);
+				read(incorrect_data_address_, &bus_throwaway_);
 			break;
 
 			case CycleFetchIncrementData:
@@ -133,7 +128,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			break;
 
 			case CycleFetchBlockY:
-				read(((instruction_buffer_.value & 0xff00) << 8) | y(), &throwaway);
+				read(((instruction_buffer_.value & 0xff00) << 8) | y(), &bus_throwaway_);
 			break;
 
 			case CycleStoreBlockY:
@@ -148,28 +143,28 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			//
 
 #define stack_access(value, operation)	\
-	bus_address = stack_address();	\
-	bus_value = value;	\
-	bus_operation = operation;
+	bus_address_ = stack_address();	\
+	bus_value_ = value;	\
+	bus_operation_ = operation;
 
 			case CyclePush:
 				stack_access(data_buffer_.next_output_descending(), MOS6502Esque::Write);
-				--s_.full;
+				--registers_.s.full;
 			break;
 
 			case CyclePullIfNotEmulation:
-				if(emulation_flag_) {
+				if(registers_.emulation_flag) {
 					continue;
 				}
 			[[fallthrough]];
 
 			case CyclePull:
-				++s_.full;
+				++registers_.s.full;
 				stack_access(data_buffer_.next_input(), MOS6502Esque::Read);
 			break;
 
 			case CycleAccessStack:
-				stack_access(&throwaway, MOS6502Esque::Read);
+				stack_access(&bus_throwaway_, MOS6502Esque::Read);
 			break;
 
 #undef stack_access
@@ -193,7 +188,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationCopyPCToData:
 				data_buffer_.size = 2;
-				data_buffer_.value = pc_;
+				data_buffer_.value = registers_.pc;
 			continue;
 
 			case OperationCopyInstructionToData:
@@ -206,21 +201,21 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			continue;
 
 			case OperationCopyAToData:
-				data_buffer_.value = a_.full & m_masks_[1];
+				data_buffer_.value = registers_.a.full & registers_.m_masks[1];
 				data_buffer_.size = 2 - m_flag();
 			continue;
 
 			case OperationCopyDataToA:
-				a_.full = (a_.full & m_masks_[0]) + (data_buffer_.value & m_masks_[1]);
+				registers_.a.full = (registers_.a.full & registers_.m_masks[0]) + (data_buffer_.value & registers_.m_masks[1]);
 			continue;
 
 			case OperationCopyPBRToData:
 				data_buffer_.size = 1;
-				data_buffer_.value = program_bank_ >> 16;
+				data_buffer_.value = registers_.program_bank >> 16;
 			continue;
 
 			case OperationCopyDataToPC:
-				pc_ = uint16_t(data_buffer_.value);
+				registers_.pc = uint16_t(data_buffer_.value);
 			continue;
 
 			//
@@ -228,7 +223,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			//
 
 			case OperationConstructAbsolute:
-				data_address_ = instruction_buffer_.value + data_bank_;
+				data_address_ = instruction_buffer_.value + registers_.data_bank;
 				data_address_increment_mask_ = 0xff'ff'ff;
 			continue;
 
@@ -244,7 +239,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			// Used for JMP and JSR (absolute, x).
 			case OperationConstructAbsoluteIndexedIndirect:
-				data_address_ = program_bank_ + ((instruction_buffer_.value + x()) & 0xffff);
+				data_address_ = registers_.program_bank + ((instruction_buffer_.value + x()) & 0xffff);
 				data_address_increment_mask_ = 0x00'ff'ff;
 			continue;
 
@@ -255,8 +250,8 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructAbsoluteXRead:
 			case OperationConstructAbsoluteX:
-				data_address_ = instruction_buffer_.value + x() + data_bank_;
-				incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) + data_bank_;
+				data_address_ = instruction_buffer_.value + x() + registers_.data_bank;
+				incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) + registers_.data_bank;
 
 				// If the incorrect address isn't actually incorrect, skip its usage.
 				if(operation == OperationConstructAbsoluteXRead && data_address_ == incorrect_data_address_) {
@@ -267,8 +262,8 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructAbsoluteYRead:
 			case OperationConstructAbsoluteY:
-				data_address_ = instruction_buffer_.value + y() + data_bank_;
-				incorrect_data_address_ = (data_address_ & 0xff) + (instruction_buffer_.value & 0xff00) + data_bank_;
+				data_address_ = instruction_buffer_.value + y() + registers_.data_bank;
+				incorrect_data_address_ = (data_address_ & 0xff) + (instruction_buffer_.value & 0xff00) + registers_.data_bank;
 
 				// If the incorrect address isn't actually incorrect, skip its usage.
 				if(operation == OperationConstructAbsoluteYRead && data_address_ == incorrect_data_address_) {
@@ -278,38 +273,38 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			continue;
 
 			case OperationConstructDirect:
-				data_address_ = (direct_ + instruction_buffer_.value) & 0xffff;
+				data_address_ = (registers_.direct + instruction_buffer_.value) & 0xffff;
 				data_address_increment_mask_ = 0x00'ff'ff;
-				if(!(direct_&0xff)) {
+				if(!(registers_.direct&0xff)) {
 					// If the low byte is 0 and this is emulation mode, incrementing
 					// is restricted to the low byte.
-					data_address_increment_mask_ = e_masks_[1];
+					data_address_increment_mask_ = registers_.e_masks[1];
 					++next_op_;
 				}
 			continue;
 
 			case OperationConstructDirectLong:
-				data_address_ = (direct_ + instruction_buffer_.value) & 0xffff;
+				data_address_ = (registers_.direct + instruction_buffer_.value) & 0xffff;
 				data_address_increment_mask_ = 0x00'ff'ff;
-				if(!(direct_&0xff)) {
+				if(!(registers_.direct&0xff)) {
 					++next_op_;
 				}
 			continue;
 
 			case OperationConstructDirectIndirect:
-				data_address_ = data_bank_ + data_buffer_.value;
+				data_address_ = registers_.data_bank + data_buffer_.value;
 				data_address_increment_mask_ = 0xff'ff'ff;
 				data_buffer_.clear();
 			continue;
 
 			case OperationConstructDirectIndexedIndirect:
-				data_address_ = data_bank_ + (
-					((direct_ + x() + instruction_buffer_.value) & e_masks_[1]) +
-					(direct_ & e_masks_[0])
+				data_address_ = registers_.data_bank + (
+					((registers_.direct + x() + instruction_buffer_.value) & registers_.e_masks[1]) +
+					(registers_.direct & registers_.e_masks[0])
 				) & 0xffff;
 				data_address_increment_mask_ = 0x00'ff'ff;
 
-				if(!(direct_&0xff)) {
+				if(!(registers_.direct&0xff)) {
 					++next_op_;
 				}
 			continue;
@@ -330,43 +325,43 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 			case OperationConstructDirectX:
 				data_address_ = (
-					(direct_ & e_masks_[0]) +
-					((instruction_buffer_.value + direct_ + x()) & e_masks_[1])
+					(registers_.direct & registers_.e_masks[0]) +
+					((instruction_buffer_.value + registers_.direct + x()) & registers_.e_masks[1])
 				) & 0xffff;
 				data_address_increment_mask_ = 0x00'ff'ff;
 
-				incorrect_data_address_ = (direct_ & 0xff00) + (data_address_ & 0x00ff);
-				if(!(direct_&0xff)) {
+				incorrect_data_address_ = (registers_.direct & 0xff00) + (data_address_ & 0x00ff);
+				if(!(registers_.direct&0xff)) {
 					++next_op_;
 				}
 			continue;
 
 			case OperationConstructDirectY:
 				data_address_ = (
-					(direct_ & e_masks_[0]) +
-					((instruction_buffer_.value + direct_ + y()) & e_masks_[1])
+					(registers_.direct & registers_.e_masks[0]) +
+					((instruction_buffer_.value + registers_.direct + y()) & registers_.e_masks[1])
 				) & 0xffff;
 				data_address_increment_mask_ = 0x00'ff'ff;
 
-				incorrect_data_address_ = (direct_ & 0xff00) + (data_address_ & 0x00ff);
-				if(!(direct_&0xff)) {
+				incorrect_data_address_ = (registers_.direct & 0xff00) + (data_address_ & 0x00ff);
+				if(!(registers_.direct&0xff)) {
 					++next_op_;
 				}
 			continue;
 
 			case OperationConstructStackRelative:
-				data_address_ = (s_.full + instruction_buffer_.value) & 0xffff;
+				data_address_ = (registers_.s.full + instruction_buffer_.value) & 0xffff;
 				data_address_increment_mask_ = 0x00'ff'ff;
 			continue;
 
 			case OperationConstructStackRelativeIndexedIndirect:
-				data_address_ = data_bank_ + data_buffer_.value + y();
+				data_address_ = registers_.data_bank + data_buffer_.value + y();
 				data_address_increment_mask_ = 0xff'ff'ff;
 				data_buffer_.clear();
 			continue;
 
 			case OperationConstructPER:
-				data_buffer_.value = instruction_buffer_.value + pc_;
+				data_buffer_.value = instruction_buffer_.value + registers_.pc;
 				data_buffer_.size = 2;
 			continue;
 
@@ -389,31 +384,31 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				} else if(pending_exceptions_ & NMI) {
 					pending_exceptions_ &= ~NMI;
 					data_address_ = 0xfffa;
-				} else if(pending_exceptions_ & IRQ & flags_.inverse_interrupt) {
+				} else if(pending_exceptions_ & IRQ & registers_.flags.inverse_interrupt) {
 					pending_exceptions_ &= ~IRQ;
 					data_address_ = 0xfffe;
 				} else {
 					is_brk = active_instruction_ == instructions;	// Given that BRK has opcode 00.
 					if(is_brk) {
-						data_address_ = emulation_flag_ ? 0xfffe : 0xfff6;
+						data_address_ = registers_.emulation_flag ? 0xfffe : 0xfff6;
 					} else {
 						// Implicitly: COP.
 						data_address_ = 0xfff4;
 					}
 				}
 
-				data_buffer_.value = (pc_ << 8) | get_flags();
-				if(emulation_flag_) {
+				data_buffer_.value = (registers_.pc << 8) | get_flags();
+				if(registers_.emulation_flag) {
 					if(is_brk) data_buffer_.value |= Flag::Break;
 					data_buffer_.size = 3;
 					++next_op_;
 				} else {
-					data_buffer_.value |= program_bank_ << 24;
+					data_buffer_.value |= registers_.program_bank << 24;
 					data_buffer_.size = 4;
-					program_bank_ = 0;
+					registers_.program_bank = 0;
 				}
 
-				flags_.inverse_interrupt = 0;
+				registers_.flags.inverse_interrupt = 0;
 			} continue;
 
 			//
@@ -421,10 +416,10 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			//
 
 #define LD(dest, src, masks) dest.full = (dest.full & masks[0]) | (src & masks[1])
-#define m_top() (instruction_buffer_.value >> m_shift_) & 0xff
-#define x_top() (x_.full >> x_shift_) & 0xff
-#define y_top() (y_.full >> x_shift_) & 0xff
-#define a_top() (a_.full >> m_shift_) & 0xff
+#define m_top() (instruction_buffer_.value >> registers_.m_shift) & 0xff
+#define x_top() (registers_.x.full >> registers_.x_shift) & 0xff
+#define y_top() (registers_.y.full >> registers_.x_shift) & 0xff
+#define a_top() (registers_.a.full >> registers_.m_shift) & 0xff
 
 			case OperationPerform:
 				switch(active_instruction_->operation) {
@@ -434,28 +429,28 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//
 
 					case LDA:
-						LD(a_, data_buffer_.value, m_masks_);
-						flags_.set_nz(a_.full, m_shift_);
+						LD(registers_.a, data_buffer_.value, registers_.m_masks);
+						registers_.flags.set_nz(registers_.a.full, registers_.m_shift);
 					break;
 
 					case LDX:
-						LD(x_, data_buffer_.value, x_masks_);
-						flags_.set_nz(x_.full, x_shift_);
+						LD(registers_.x, data_buffer_.value, registers_.x_masks);
+						registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
 					break;
 
 					case LDY:
-						LD(y_, data_buffer_.value, x_masks_);
-						flags_.set_nz(y_.full, x_shift_);
+						LD(registers_.y, data_buffer_.value, registers_.x_masks);
+						registers_.flags.set_nz(registers_.y.full, registers_.x_shift);
 					break;
 
 					case PLB:
-						data_bank_ = (data_buffer_.value & 0xff) << 16;
-						flags_.set_nz(instruction_buffer_.value);
+						registers_.data_bank = (data_buffer_.value & 0xff) << 16;
+						registers_.flags.set_nz(instruction_buffer_.value);
 					break;
 
 					case PLD:
-						direct_ = data_buffer_.value;
-						flags_.set_nz(instruction_buffer_.value);
+						registers_.direct = data_buffer_.value;
+						registers_.flags.set_nz(instruction_buffer_.value);
 					break;
 
 					case PLP:
@@ -463,7 +458,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					break;
 
 					case STA:
-						data_buffer_.value = a_.full & m_masks_[1];
+						data_buffer_.value = registers_.a.full & registers_.m_masks[1];
 						data_buffer_.size = 2 - m_flag();
 					break;
 
@@ -473,27 +468,27 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					break;
 
 					case STX:
-						data_buffer_.value = x_.full & x_masks_[1];
+						data_buffer_.value = registers_.x.full & registers_.x_masks[1];
 						data_buffer_.size = 2 - x_flag();
 					break;
 
 					case STY:
-						data_buffer_.value = y_.full & x_masks_[1];
+						data_buffer_.value = registers_.y.full & registers_.x_masks[1];
 						data_buffer_.size = 2 - m_flag();
 					break;
 
 					case PHB:
-						data_buffer_.value = data_bank_ >> 16;
+						data_buffer_.value = registers_.data_bank >> 16;
 						data_buffer_.size = 1;
 					break;
 
 					case PHK:
-						data_buffer_.value = program_bank_ >> 16;
+						data_buffer_.value = registers_.program_bank >> 16;
 						data_buffer_.size = 1;
 					break;
 
 					case PHD:
-						data_buffer_.value = direct_;
+						data_buffer_.value = registers_.direct;
 						data_buffer_.size = 2;
 					break;
 
@@ -501,7 +496,7 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 						data_buffer_.value = get_flags();
 						data_buffer_.size = 1;
 
-						if(emulation_flag_) {
+						if(registers_.emulation_flag) {
 							// On the 6502, the break flag is set during a PHP.
 							data_buffer_.value |= Flag::Break;
 						}
@@ -514,69 +509,69 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					// (and make reasonable guesses as to the N flag).
 
 					case TXS:
-						s_ = x_.full & x_masks_[1];
+						registers_.s = registers_.x.full & registers_.x_masks[1];
 					break;
 
 					case TSX:
-						LD(x_, s_.full, x_masks_);
-						flags_.set_nz(x_.full, x_shift_);
+						LD(registers_.x, registers_.s.full, registers_.x_masks);
+						registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
 					break;
 
 					case TXY:
-						LD(y_, x_.full, x_masks_);
-						flags_.set_nz(y_.full, x_shift_);
+						LD(registers_.y, registers_.x.full, registers_.x_masks);
+						registers_.flags.set_nz(registers_.y.full, registers_.x_shift);
 					break;
 
 					case TYX:
-						LD(x_, y_.full, x_masks_);
-						flags_.set_nz(x_.full, x_shift_);
+						LD(registers_.x, registers_.y.full, registers_.x_masks);
+						registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
 					break;
 
 					case TAX:
-						LD(x_, a_.full, x_masks_);
-						flags_.set_nz(x_.full, x_shift_);
+						LD(registers_.x, registers_.a.full, registers_.x_masks);
+						registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
 					break;
 
 					case TAY:
-						LD(y_, a_.full, x_masks_);
-						flags_.set_nz(y_.full, x_shift_);
+						LD(registers_.y, registers_.a.full, registers_.x_masks);
+						registers_.flags.set_nz(registers_.y.full, registers_.x_shift);
 					break;
 
 					case TXA:
-						LD(a_, x_.full, m_masks_);
-						flags_.set_nz(a_.full, m_shift_);
+						LD(registers_.a, registers_.x.full, registers_.m_masks);
+						registers_.flags.set_nz(registers_.a.full, registers_.m_shift);
 					break;
 
 					case TYA:
-						LD(a_, y_.full, m_masks_);
-						flags_.set_nz(a_.full, m_shift_);
+						LD(registers_.a, registers_.y.full, registers_.m_masks);
+						registers_.flags.set_nz(registers_.a.full, registers_.m_shift);
 					break;
 
 					case TCD:
-						direct_ = a_.full;
-						flags_.set_nz(a_.full, 8);
+						registers_.direct = registers_.a.full;
+						registers_.flags.set_nz(registers_.a.full, 8);
 					break;
 
 					case TDC:
-						a_.full = direct_;
-						flags_.set_nz(a_.full, 8);
+						registers_.a.full = registers_.direct;
+						registers_.flags.set_nz(registers_.a.full, 8);
 					break;
 
 					case TCS:
-						s_.full = a_.full;
+						registers_.s.full = registers_.a.full;
 						// No need to worry about byte masking here; for the stack it's handled as the emulation runs.
 					break;
 
 					case TSC:
-						a_.full = stack_address();
-						flags_.set_nz(a_.full, 8);
+						registers_.a.full = stack_address();
+						registers_.flags.set_nz(registers_.a.full, 8);
 					break;
 
 					case XBA: {
-						const uint8_t a_low = a_.halves.low;
-						a_.halves.low = a_.halves.high;
-						a_.halves.high = a_low;
-						flags_.set_nz(a_.halves.low);
+						const uint8_t a_low = registers_.a.halves.low;
+						registers_.a.halves.low = registers_.a.halves.high;
+						registers_.a.halves.high = a_low;
+						registers_.flags.set_nz(registers_.a.halves.low);
 					} break;
 
 					//
@@ -584,38 +579,38 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//
 
 					case JML:
-						program_bank_ = instruction_buffer_.value & 0xff0000;
+						registers_.program_bank = instruction_buffer_.value & 0xff0000;
 					[[fallthrough]];
 
 					case JMP:
-						pc_ = uint16_t(instruction_buffer_.value);
+						registers_.pc = uint16_t(instruction_buffer_.value);
 					break;
 
 					case JMPind:
-						pc_ = data_buffer_.value;
+						registers_.pc = data_buffer_.value;
 					break;
 
 					case RTS:
-						pc_ = data_buffer_.value + 1;
+						registers_.pc = data_buffer_.value + 1;
 					break;
 
 					case JSL:
-						program_bank_ = instruction_buffer_.value & 0xff0000;
+						registers_.program_bank = instruction_buffer_.value & 0xff0000;
 					[[fallthrough]];
 
 					case JSR:
-						data_buffer_.value = pc_;
+						data_buffer_.value = registers_.pc;
 						data_buffer_.size = 2;
 
-						pc_ = instruction_buffer_.value;
+						registers_.pc = instruction_buffer_.value;
 					break;
 
 					case RTI:
-						pc_ = uint16_t(data_buffer_.value >> 8);
+						registers_.pc = uint16_t(data_buffer_.value >> 8);
 						set_flags(uint8_t(data_buffer_.value));
 
-						if(!emulation_flag_) {
-							program_bank_ = (data_buffer_.value & 0xff000000) >> 8;
+						if(!registers_.emulation_flag) {
+							registers_.program_bank = (data_buffer_.value & 0xff000000) >> 8;
 						}
 					break;
 
@@ -624,33 +619,33 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//
 
 					case MVP:
-						data_bank_ = (instruction_buffer_.value & 0xff) << 16;
-						--x_.full;
-						--y_.full;
-						--a_.full;
-						if(a_.full) pc_ -= 3;
+						registers_.data_bank = (instruction_buffer_.value & 0xff) << 16;
+						--registers_.x.full;
+						--registers_.y.full;
+						--registers_.a.full;
+						if(registers_.a.full) registers_.pc -= 3;
 					break;
 
 					case MVN:
-						data_bank_ = (instruction_buffer_.value & 0xff) << 16;
-						++x_.full;
-						++y_.full;
-						--a_.full;
-						if(a_.full) pc_ -= 3;
+						registers_.data_bank = (instruction_buffer_.value & 0xff) << 16;
+						++registers_.x.full;
+						++registers_.y.full;
+						--registers_.a.full;
+						if(registers_.a.full) registers_.pc -= 3;
 					break;
 
 					//
 					// Flag manipulation.
 					//
 
-					case CLC: flags_.carry = 0;								break;
-					case CLI: flags_.inverse_interrupt = Flag::Interrupt;	break;
-					case CLV: flags_.overflow = 0;							break;
-					case CLD: flags_.decimal = 0;							break;
+					case CLC: registers_.flags.carry = 0;							break;
+					case CLI: registers_.flags.inverse_interrupt = Flag::Interrupt;	break;
+					case CLV: registers_.flags.overflow = 0;						break;
+					case CLD: registers_.flags.decimal = 0;							break;
 
-					case SEC: flags_.carry = Flag::Carry;					break;
-					case SEI: flags_.inverse_interrupt = 0;					break;
-					case SED: flags_.decimal = Flag::Decimal;				break;
+					case SEC: registers_.flags.carry = Flag::Carry;					break;
+					case SEI: registers_.flags.inverse_interrupt = 0;				break;
+					case SED: registers_.flags.decimal = Flag::Decimal;				break;
 
 					case REP:
 						set_flags(get_flags() &~ instruction_buffer_.value);
@@ -661,9 +656,9 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					break;
 
 					case XCE: {
-						const bool old_emulation_flag = emulation_flag_;
-						set_emulation_mode(flags_.carry);
-						flags_.carry = old_emulation_flag;
+						const bool old_emulation_flag = registers_.emulation_flag;
+						set_emulation_mode(registers_.flags.carry);
+						registers_.flags.carry = old_emulation_flag;
 					} break;
 
 					//
@@ -672,36 +667,36 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 					case INC:
 						++data_buffer_.value;
-						flags_.set_nz(data_buffer_.value, m_shift_);
+						registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
 					break;;
 
 					case DEC:
 						--data_buffer_.value;
-						flags_.set_nz(data_buffer_.value, m_shift_);
+						registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
 					break;
 
 					case INX: {
-						const uint16_t x_inc = x_.full + 1;
-						LD(x_, x_inc, x_masks_);
-						flags_.set_nz(x_.full, x_shift_);
+						const uint16_t x_inc = registers_.x.full + 1;
+						LD(registers_.x, x_inc, registers_.x_masks);
+						registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
 					} break;
 
 					case DEX: {
-						const uint16_t x_dec = x_.full - 1;
-						LD(x_, x_dec, x_masks_);
-						flags_.set_nz(x_.full, x_shift_);
+						const uint16_t x_dec = registers_.x.full - 1;
+						LD(registers_.x, x_dec, registers_.x_masks);
+						registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
 					} break;
 
 					case INY: {
-						const uint16_t y_inc = y_.full + 1;
-						LD(y_, y_inc, x_masks_);
-						flags_.set_nz(y_.full, x_shift_);
+						const uint16_t y_inc = registers_.y.full + 1;
+						LD(registers_.y, y_inc, registers_.x_masks);
+						registers_.flags.set_nz(registers_.y.full, registers_.x_shift);
 					} break;
 
 					case DEY: {
-						const uint16_t y_dec = y_.full - 1;
-						LD(y_, y_dec, x_masks_);
-						flags_.set_nz(y_.full, x_shift_);
+						const uint16_t y_dec = registers_.y.full - 1;
+						LD(registers_.y, y_dec, registers_.x_masks);
+						registers_.flags.set_nz(registers_.y.full, registers_.x_shift);
 					} break;
 
 					//
@@ -709,38 +704,38 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//
 
 					case AND:
-						a_.full &= data_buffer_.value | m_masks_[0];
-						flags_.set_nz(a_.full, m_shift_);
+						registers_.a.full &= data_buffer_.value | registers_.m_masks[0];
+						registers_.flags.set_nz(registers_.a.full, registers_.m_shift);
 					break;
 
 					case EOR:
-						a_.full ^= data_buffer_.value;
-						flags_.set_nz(a_.full, m_shift_);
+						registers_.a.full ^= data_buffer_.value;
+						registers_.flags.set_nz(registers_.a.full, registers_.m_shift);
 					break;
 
 					case ORA:
-						a_.full |= data_buffer_.value;
-						flags_.set_nz(a_.full, m_shift_);
+						registers_.a.full |= data_buffer_.value;
+						registers_.flags.set_nz(registers_.a.full, registers_.m_shift);
 					break;
 
 					case BIT:
-						flags_.set_n(data_buffer_.value, m_shift_);
-						flags_.set_z(data_buffer_.value & a_.full, m_shift_);
-						flags_.overflow = data_buffer_.value & Flag::Overflow;
+						registers_.flags.set_n(data_buffer_.value, registers_.m_shift);
+						registers_.flags.set_z(data_buffer_.value & registers_.a.full, registers_.m_shift);
+						registers_.flags.overflow = data_buffer_.value & Flag::Overflow;
 					break;
 
 					case BITimm:
-						flags_.set_z(data_buffer_.value & a_.full, m_shift_);
+						registers_.flags.set_z(data_buffer_.value & registers_.a.full, registers_.m_shift);
 					break;
 
 					case TRB:
-						flags_.set_z(data_buffer_.value & a_.full, m_shift_);
-						data_buffer_.value &= ~a_.full;
+						registers_.flags.set_z(data_buffer_.value & registers_.a.full, registers_.m_shift);
+						data_buffer_.value &= ~registers_.a.full;
 					break;
 
 					case TSB:
-						flags_.set_z(data_buffer_.value & a_.full, m_shift_);
-						data_buffer_.value |= a_.full;
+						registers_.flags.set_z(data_buffer_.value & registers_.a.full, registers_.m_shift);
+						data_buffer_.value |= registers_.a.full;
 					break;
 
 					//
@@ -752,27 +747,27 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 		next_op_ += 3;	\
 	} else {			\
 		data_buffer_.size = 2;	\
-		data_buffer_.value = pc_ + int8_t(instruction_buffer_.value);	\
+		data_buffer_.value = registers_.pc + int8_t(instruction_buffer_.value);	\
 																		\
-		if((pc_ & 0xff00) == (instruction_buffer_.value & 0xff00)) {	\
+		if((registers_.pc & 0xff00) == (instruction_buffer_.value & 0xff00)) {	\
 			++next_op_;													\
 		}																\
 	}
 
-					case BPL: BRA(!(flags_.negative_result&0x80));	break;
-					case BMI: BRA(flags_.negative_result&0x80);		break;
-					case BVC: BRA(!flags_.overflow);				break;
-					case BVS: BRA(flags_.overflow);					break;
-					case BCC: BRA(!flags_.carry);					break;
-					case BCS: BRA(flags_.carry);					break;
-					case BNE: BRA(flags_.zero_result);				break;
-					case BEQ: BRA(!flags_.zero_result);				break;
+					case BPL: BRA(!(registers_.flags.negative_result&0x80));	break;
+					case BMI: BRA(registers_.flags.negative_result&0x80);		break;
+					case BVC: BRA(!registers_.flags.overflow);				break;
+					case BVS: BRA(registers_.flags.overflow);					break;
+					case BCC: BRA(!registers_.flags.carry);					break;
+					case BCS: BRA(registers_.flags.carry);					break;
+					case BNE: BRA(registers_.flags.zero_result);				break;
+					case BEQ: BRA(!registers_.flags.zero_result);				break;
 					case BRA: BRA(true);							break;
 
 #undef BRA
 
 					case BRL:
-						pc_ += int16_t(instruction_buffer_.value);
+						registers_.pc += int16_t(instruction_buffer_.value);
 					break;
 
 					//
@@ -780,28 +775,28 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 					//
 
 					case ASL:
-						flags_.carry = data_buffer_.value >> (7 + m_shift_);
+						registers_.flags.carry = data_buffer_.value >> (7 + registers_.m_shift);
 						data_buffer_.value <<= 1;
-						flags_.set_nz(data_buffer_.value, m_shift_);
+						registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
 					break;
 
 					case LSR:
-						flags_.carry = data_buffer_.value & 1;
+						registers_.flags.carry = data_buffer_.value & 1;
 						data_buffer_.value >>= 1;
-						flags_.set_nz(data_buffer_.value, m_shift_);
+						registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
 					break;
 
 					case ROL:
-						data_buffer_.value = (data_buffer_.value << 1) | flags_.carry;
-						flags_.carry = data_buffer_.value >> (8 + m_shift_);
-						flags_.set_nz(data_buffer_.value, m_shift_);
+						data_buffer_.value = (data_buffer_.value << 1) | registers_.flags.carry;
+						registers_.flags.carry = data_buffer_.value >> (8 + registers_.m_shift);
+						registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
 					break;
 
 					case ROR: {
 						const uint8_t next_carry = data_buffer_.value & 1;
-						data_buffer_.value = (data_buffer_.value >> 1) | (flags_.carry << (7 + m_shift_));
-						flags_.carry = next_carry;
-						flags_.set_nz(data_buffer_.value, m_shift_);
+						data_buffer_.value = (data_buffer_.value >> 1) | (registers_.flags.carry << (7 + registers_.m_shift));
+						registers_.flags.carry = next_carry;
+						registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
 					} break;
 
 					//
@@ -810,23 +805,23 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 #define cp(v, shift, masks)	{\
 	const uint32_t temp32 = (v.full & masks[1]) - (data_buffer_.value & masks[1]);	\
-	flags_.set_nz(uint16_t(temp32), shift);	\
-	flags_.carry = ((~temp32) >> (8 + shift))&1;	\
+	registers_.flags.set_nz(uint16_t(temp32), shift);	\
+	registers_.flags.carry = ((~temp32) >> (8 + shift))&1;	\
 }
 
-					case CMP:	cp(a_, m_shift_, m_masks_);	break;
-					case CPX:	cp(x_, x_shift_, x_masks_);	break;
-					case CPY:	cp(y_, x_shift_, x_masks_);	break;
+					case CMP:	cp(registers_.a, registers_.m_shift, registers_.m_masks);	break;
+					case CPX:	cp(registers_.x, registers_.x_shift, registers_.x_masks);	break;
+					case CPY:	cp(registers_.y, registers_.x_shift, registers_.x_masks);	break;
 
 #undef cp
 
 					case SBC:
-						if(flags_.decimal) {
+						if(registers_.flags.decimal) {
 							// I've yet to manage to find a rational way to map this to an ADC,
 							// hence the yucky repetition of code here.
-							const uint16_t a = a_.full & m_masks_[1];
+							const uint16_t a = registers_.a.full & registers_.m_masks[1];
 							unsigned int result = 0;
-							unsigned int borrow = flags_.carry ^ 1;
+							unsigned int borrow = registers_.flags.carry ^ 1;
 
 #define nibble(mask, adjustment, carry)						\
 	result += (a & mask) - (data_buffer_.value & mask) - borrow;	\
@@ -841,23 +836,23 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 
 #undef nibble
 
-							flags_.overflow = ~(( (result ^ a_.full) & (result ^ data_buffer_.value) ) >> (1 + m_shift_))&0x40;
-							flags_.set_nz(result, m_shift_);
-							flags_.carry = ((borrow >> 16)&1)^1;
-							LD(a_, result, m_masks_);
+							registers_.flags.overflow = ~(( (result ^ registers_.a.full) & (result ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
+							registers_.flags.set_nz(result, registers_.m_shift);
+							registers_.flags.carry = ((borrow >> 16)&1)^1;
+							LD(registers_.a, result, registers_.m_masks);
 
 							break;
 						}
 
-						data_buffer_.value = ~data_buffer_.value & m_masks_[1];
+						data_buffer_.value = ~data_buffer_.value & registers_.m_masks[1];
 					[[fallthrough]];
 
 					case ADC: {
 						int result;
-						const uint16_t a = a_.full & m_masks_[1];
+						const uint16_t a = registers_.a.full & registers_.m_masks[1];
 
-						if(flags_.decimal) {
-							result = flags_.carry;
+						if(registers_.flags.decimal) {
+							result = registers_.flags.carry;
 
 #define nibble(mask, limit, adjustment, carry)			\
 	result += (a & mask) + (data_buffer_.value & mask);	\
@@ -871,13 +866,13 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #undef nibble
 
 						} else {
-							result = a + data_buffer_.value + flags_.carry;
+							result = a + data_buffer_.value + registers_.flags.carry;
 						}
 
-						flags_.overflow = (( (result ^ a_.full) & (result ^ data_buffer_.value) ) >> (1 + m_shift_))&0x40;
-						flags_.set_nz(result, m_shift_);
-						flags_.carry = (result >> (8 + m_shift_))&1;
-						LD(a_, result, m_masks_);
+						registers_.flags.overflow = (( (result ^ registers_.a.full) & (result ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
+						registers_.flags.set_nz(result, registers_.m_shift);
+						registers_.flags.carry = (result >> (8 + registers_.m_shift))&1;
+						LD(registers_.a, result, registers_.m_masks);
 					} break;
 
 					//
@@ -901,12 +896,12 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 #undef y_top
 #undef a_top
 
-		// TODO: the ready line.
-
 		// Store a selection as to the exceptions, if any, that would be honoured after this cycle if the
 		// next thing is a MoveToNextProgram.
-		selected_exceptions_ = pending_exceptions_ & (flags_.inverse_interrupt | PowerOn | Reset | NMI);
-		number_of_cycles -= bus_handler_.perform_bus_operation(bus_operation, bus_address, bus_value);
+		selected_exceptions_ = pending_exceptions_ & (registers_.flags.inverse_interrupt | PowerOn | Reset | NMI);
+		number_of_cycles -= bus_handler_.perform_bus_operation(bus_operation_, bus_address_, bus_value_);
+
+		// TODO: RDY line.
 	}
 
 #undef read
