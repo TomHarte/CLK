@@ -459,21 +459,59 @@ class WDC65816AddressingTests: XCTestCase {
 		XCTAssertEqual(machine.value(for: .A), 0xcdab)
 	}
 
-	// TODO: all tests from this point downward.
-
-	func testLong() {
+	func testAbsoluteLong() {
 		// "If the m flag is 0, then LDA $12FFFF loads the low byte of the data from address $12FFFF,
 		// and the high byte from address $130000."
+		let machine = machine16()
+
+		machine.setValue(0xab, forAddress: 0x12ffff)
+		machine.setValue(0xcd, forAddress: 0x130000)
+
+		// LDA $12ffff; NOP
+		machine.setData(Data([0xaf, 0xff, 0xff, 0x12, 0xea]), atAddress: 0x0200)
+
+		machine.setValue(0x200, for: .programCounter)
+		machine.runForNumber(ofCycles: 7)
+
+		XCTAssertEqual(machine.value(for: .A), 0xcdab)
 	}
 
-	func testLongX() {
+	func testAbsoluteLongX() {
 		// "If the X register is $000A and the m flag is 0, then LDA $12FFFE,X loads the low byte of
 		// the data from address $130008, and the high byte from address $130009."
+		let machine = machine16()
+
+		machine.setValue(0x000a, for: .X)
+
+		machine.setValue(0xab, forAddress: 0x130008)
+		machine.setValue(0xcd, forAddress: 0x130009)
+
+		// LDA $12fffe, x; NOP
+		machine.setData(Data([0xbf, 0xfe, 0xff, 0x12, 0xea]), atAddress: 0x0200)
+
+		machine.setValue(0x200, for: .programCounter)
+		machine.runForNumber(ofCycles: 7)
+
+		XCTAssertEqual(machine.value(for: .A), 0xcdab)
 	}
 
 	func testStackS() {
 		// "If the S register is $FF10 and the m flag is 0, then LDA $FA,S loads the low byte
 		// of the data from address $00000A, and the high byte from address $00000B."
+		let machine = machine16()
+
+		machine.setValue(0xff10, for: .stackPointer)
+
+		machine.setValue(0xab, forAddress: 0x000a)
+		machine.setValue(0xcd, forAddress: 0x000b)
+
+		// LDA $fa, s; NOP
+		machine.setData(Data([0xa3, 0xfa, 0xea]), atAddress: 0x0200)
+
+		machine.setValue(0x200, for: .programCounter)
+		machine.runForNumber(ofCycles: 7)
+
+		XCTAssertEqual(machine.value(for: .A), 0xcdab)
 	}
 
 	func testIndirectStackSY() {
@@ -484,5 +522,24 @@ class WDC65816AddressingTests: XCTestCase {
 		//	* $00000B contains $FF
 		// then LDA ($FA,S),Y loads the low byte of the data from address $130040, and the high
 		// byte from $130041."
+		let machine = machine16()
+
+		machine.setValue(0xff10, for: .stackPointer)
+		machine.setValue(0x0050, for: .Y)
+		machine.setValue(0x12, for: .dataBank)
+
+		machine.setValue(0xf0, forAddress: 0x000a)
+		machine.setValue(0xff, forAddress: 0x000b)
+
+		machine.setValue(0xab, forAddress: 0x130040)
+		machine.setValue(0xcd, forAddress: 0x130041)
+
+		// LDA ($fa, s), y; NOP
+		machine.setData(Data([0xb3, 0xfa, 0xea]), atAddress: 0x0200)
+
+		machine.setValue(0x200, for: .programCounter)
+		machine.runForNumber(ofCycles: 9)
+
+		XCTAssertEqual(machine.value(for: .A), 0xcdab)
 	}
 }

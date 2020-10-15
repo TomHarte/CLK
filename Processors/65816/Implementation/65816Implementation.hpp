@@ -360,8 +360,9 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			continue;
 
 			case OperationConstructStackRelativeIndexedIndirect:
-				data_address_ = (instruction_buffer_.value + y()) & 0xffff;
+				data_address_ = data_bank_ + data_buffer_.value + y();
 				data_address_increment_mask_ = 0xff'ff'ff;
+				data_buffer_.clear();
 			continue;
 
 			case OperationConstructPER:
