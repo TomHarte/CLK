@@ -469,7 +469,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void direct_indirect_long(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);					// DO.
 
-		target(OperationConstructDirect);
+		target(OperationConstructDirectLong);
 		target(CycleFetchPCThrowaway);					// IO.
 
 		target(CycleFetchIncrementData);				// AAL.
@@ -735,6 +735,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 ProcessorStorage::ProcessorStorage() {
 	set_reset_state();
+	micro_ops_.reserve(1024);
 
 	ProcessorStorageConstructor constructor(*this);
 	using AccessMode = ProcessorStorageConstructor::AccessMode;

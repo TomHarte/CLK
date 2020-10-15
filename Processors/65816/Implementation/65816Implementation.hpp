@@ -288,6 +288,14 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 				}
 			continue;
 
+			case OperationConstructDirectLong:
+				data_address_ = (direct_ + instruction_buffer_.value) & 0xffff;
+				data_address_increment_mask_ = 0x00'ff'ff;
+				if(!(direct_&0xff)) {
+					++next_op_;
+				}
+			continue;
+
 			case OperationConstructDirectIndirect:
 				data_address_ = data_bank_ + data_buffer_.value;
 				data_address_increment_mask_ = 0xff'ff'ff;
@@ -312,8 +320,9 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			continue;
 
 			case OperationConstructDirectIndirectLong:
-				data_address_ = instruction_buffer_.value;
+				data_address_ = data_buffer_.value;
 				data_address_increment_mask_ = 0xff'ff'ff;
+				data_buffer_.clear();
 			continue;
 
 			// TODO: confirm incorrect_data_address_ below.

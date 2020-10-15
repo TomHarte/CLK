@@ -87,6 +87,10 @@ enum MicroOp: uint8_t {
 	/// Skips the next micro-op if the low byte of the direct register is 0.
 	OperationConstructDirect,
 
+	/// Exactly like OperationConstructDirect, but doesn't retain any single-byte wrapping
+	/// behaviour in emulation mode.
+	OperationConstructDirectLong,
+
 	/// Constructs the current direct indexed indirect address using the data bank,
 	/// direct and x registers plus the value currently in the instruction buffer.
 	/// Skips the next micro-op if the low byte of the direct register is 0.
