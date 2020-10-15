@@ -315,8 +315,9 @@ template <typename BusHandler> void Processor<BusHandler>::run_for(const Cycles 
 			continue;
 
 			case OperationConstructDirectIndirectIndexedLong:
-				data_address_ = y() + instruction_buffer_.value;
+				data_address_ = y() + data_buffer_.value;
 				data_address_increment_mask_ = 0xff'ff'ff;
+				data_buffer_.clear();
 			continue;
 
 			case OperationConstructDirectIndirectLong:
