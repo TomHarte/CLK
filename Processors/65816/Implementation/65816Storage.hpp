@@ -215,7 +215,7 @@ enum Operation: uint8_t {
 	RTS,
 };
 
-class ProcessorStorageConstructor;
+struct ProcessorStorageConstructor;
 
 struct ProcessorStorage {
 	ProcessorStorage();

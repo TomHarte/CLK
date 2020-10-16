@@ -9,9 +9,8 @@
 #ifndef WDC65816_hpp
 #define WDC65816_hpp
 
-#include <cassert>	// TEMPORARILY.
+#include <cassert>
 #include <cstdint>
-#include <cstdio>	// TEMPORARILY.
 #include <vector>
 
 #include "../RegisterSizes.hpp"
