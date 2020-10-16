@@ -185,7 +185,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						continue;
 					} else {
 						--next_op_;
-						perform_bus(0xffffff, nullptr, MOS6502Esque::None);
+						perform_bus(0xffffff, nullptr, (required_exceptions_ & IRQ) ? MOS6502Esque::Ready : MOS6502Esque::None);
 					}
 				break;
 
