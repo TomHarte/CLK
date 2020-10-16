@@ -29,16 +29,16 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 
 void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 	switch (r) {
-		case Register::ProgramCounter:	registers_.pc = value;								break;
-		case Register::StackPointer:	registers_.s.full = value;							break;
-		case Register::Flags:			set_flags(uint8_t(value));							break;
-		case Register::A:				registers_.a.full = value;							break;
-		case Register::X:				registers_.x.full = value;							break;
-		case Register::Y:				registers_.y.full = value;							break;
-		case Register::EmulationFlag:	set_emulation_mode(value);							break;
-		case Register::DataBank:		registers_.data_bank = uint32_t(value) << 16;		break;
-		case Register::ProgramBank:		registers_.program_bank = uint32_t(value) << 16;	break;
-		case Register::Direct:			registers_.direct = value;							break;
+		case Register::ProgramCounter:	registers_.pc = value;									break;
+		case Register::StackPointer:	registers_.s.full = value;								break;
+		case Register::Flags:			set_flags(uint8_t(value));								break;
+		case Register::A:				registers_.a.full = value;								break;
+		case Register::X:				registers_.x.full = value;								break;
+		case Register::Y:				registers_.y.full = value;								break;
+		case Register::EmulationFlag:	set_emulation_mode(value);								break;
+		case Register::DataBank:		registers_.data_bank = uint32_t(value & 0xff) << 16;	break;
+		case Register::ProgramBank:		registers_.program_bank = uint32_t(value &0xff) << 16;	break;
+		case Register::Direct:			registers_.direct = value;								break;
 		default: break;
 	}
 }
