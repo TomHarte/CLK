@@ -36,7 +36,7 @@ enum Register {
 	X,
 	Y,
 
-	// These exist on the 65816 only.
+	// These exist on a 65816 only.
 	EmulationFlag,
 	DataBank,
 	ProgramBank,
@@ -64,23 +64,52 @@ enum Flag: uint8_t {
 
 /*!
 	Bus handlers will be given the task of performing bus operations, allowing them to provide whatever interface they like
-	between a 6502 and the rest of the system. @c BusOperation lists the types of bus operation that may be requested.
-
-	@c None is reserved for internal use. It will never be requested from a subclass. It is safe always to use the
-	isReadOperation macro to make a binary choice between reading and writing.
+	between a 6502-esque chip and the rest of the system. @c BusOperation lists the types of bus operation that may be requested.
 */
 enum BusOperation {
+	/// 6502: indicates that a read was signalled.
+	/// 65816: indicates that a read was signalled with VDA.
 	Read,
+	/// 6502: indicates that a read was signalled with SYNC.
+	/// 65816: indicates that a read was signalled with VDA and VPA.
 	ReadOpcode,
+	/// 6502: never signalled.
+	/// 65816: indicates that a read was signalled with VPA.
+	ReadProgram,
+	/// 6502: never signalled.
+	/// 65816: indicates that a read was signalled with VPB.
+	ReadVector,
+
+	/// 6502: indicates that a write was signalled.
+	/// 65816: indicates that a write was signalled with VDA.
 	Write,
+
+	/// All processors: indicates that the processor is holding state due to the RDY input.
+	/// 65C02 and 65816: indicates a WAI is ongoing.
 	Ready,
-	None
+
+	/// 6502: never signalled.
+	/// 65816: indicates that a read was signalled, but neither VDA or VPA were active.
+	InternalOperation,
+
+	/// 65C02 and 65816: indicates a STP condition.
+	None,
 };
 
 /*!
-	Evaluates to `true` if the operation is a read; `false` if it is a write or ready.
+	Evaluates to @c true if the operation is any sort of read; @c false otherwise.
 */
 #define isReadOperation(v)	(v < CPU::MOS6502Esque::BusOperation::Write)
+
+/*!
+	Evaluates to @c true if the operation is any sort of write; @c false otherwise.
+*/
+#define isWriteOperation(v)	(v == CPU::MOS6502Esque::BusOperation::Write)
+
+/*!
+	Evaluates to @c true if the operation is any sort of memory access; @c false otherwise.
+*/
+#define isAccessOperation(v)	(v < CPU::MOS6502Esque::BusOperation::Ready)
 
 /*!
 	A class providing empty implementations of the methods a 6502 uses to access the bus. To wire the 6502 to a bus,
