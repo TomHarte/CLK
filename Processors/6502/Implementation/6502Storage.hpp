@@ -243,6 +243,7 @@ class ProcessorStorage {
 		BusOperation next_bus_operation_ = BusOperation::None;
 		uint16_t bus_address_;
 		uint8_t *bus_value_;
+		static inline uint8_t bus_throwaway_;
 
 		/*!
 			Gets the flags register.

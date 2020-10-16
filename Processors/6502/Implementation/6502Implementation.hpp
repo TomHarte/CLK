@@ -13,16 +13,6 @@
 */
 
 template <Personality personality, typename T, bool uses_ready_line> void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
-	uint8_t throwaway_target;
-
-	// These plus program below act to give the compiler permission to update these values
-	// without touching the class storage (i.e. it explicitly says they need be completely up
-	// to date in this stack frame only); which saves some complicated addressing
-	RegisterPair16 nextAddress = next_address_;
-	BusOperation nextBusOperation = next_bus_operation_;
-	uint16_t busAddress = bus_address_;
-	uint8_t *busValue = bus_value_;
-
 #define checkSchedule() \
 	if(!scheduled_program_counter_) {\
 		if(interrupt_requests_) {\
@@ -43,8 +33,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 #define bus_access() \
 	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;	\
 	irq_request_history_ = irq_line_ & flags_.inverse_interrupt;	\
-	number_of_cycles -= bus_handler_.perform_bus_operation(nextBusOperation, busAddress, busValue);	\
-	nextBusOperation = BusOperation::None;	\
+	number_of_cycles -= bus_handler_.perform_bus_operation(next_bus_operation_, bus_address_, bus_value_);	\
+	next_bus_operation_ = BusOperation::None;	\
 	if(number_of_cycles <= Cycles(0)) break;
 
 	checkSchedule();
@@ -54,12 +44,12 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 		// Deal with a potential RDY state, if this 6502 has anything connected to ready.
 		while(uses_ready_line && ready_is_active_ && number_of_cycles > Cycles(0)) {
-			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
+			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, bus_address_, bus_value_);
 		}
 
 		// Deal with a potential STP state, if this 6502 implements STP.
 		while(has_stpwai(personality) && stop_is_active_ && number_of_cycles > Cycles(0)) {
-			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
+			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, bus_address_, bus_value_);
 			if(interrupt_requests_ & InterruptRequestFlags::Reset) {
 				stop_is_active_ = false;
 				checkSchedule();
@@ -69,7 +59,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 		// Deal with a potential WAI state, if this 6502 implements WAI.
 		while(has_stpwai(personality) && wait_is_active_ && number_of_cycles > Cycles(0)) {
-			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
+			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, bus_address_, bus_value_);
 			interrupt_requests_ |= (irq_line_ & flags_.inverse_interrupt);
 			if(interrupt_requests_ & InterruptRequestFlags::NMI || irq_line_) {
 				wait_is_active_ = false;
@@ -79,7 +69,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 		}
 
 		if((!uses_ready_line || !ready_is_active_) && (!has_stpwai(personality) || (!wait_is_active_ && !stop_is_active_))) {
-			if(nextBusOperation != BusOperation::None) {
+			if(next_bus_operation_ != BusOperation::None) {
 				bus_access();
 			}
 
@@ -88,10 +78,10 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 				const MicroOp cycle = *scheduled_program_counter_;
 				scheduled_program_counter_++;
 
-#define read_op(val, addr)		nextBusOperation = BusOperation::ReadOpcode;	busAddress = addr;		busValue = &val;				val = 0xff
-#define read_mem(val, addr)		nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &val;				val	= 0xff
-#define throwaway_read(addr)	nextBusOperation = BusOperation::Read;			busAddress = addr;		busValue = &throwaway_target;	throwaway_target = 0xff
-#define write_mem(val, addr)	nextBusOperation = BusOperation::Write;			busAddress = addr;		busValue = &val
+#define read_op(val, addr)		next_bus_operation_ = BusOperation::ReadOpcode;	bus_address_ = addr;		bus_value_ = &val;				val = 0xff
+#define read_mem(val, addr)		next_bus_operation_ = BusOperation::Read;		bus_address_ = addr;		bus_value_ = &val;				val	= 0xff
+#define throwaway_read(addr)	next_bus_operation_ = BusOperation::Read;		bus_address_ = addr;		bus_value_ = &bus_throwaway_;	bus_throwaway_ = 0xff
+#define write_mem(val, addr)	next_bus_operation_ = BusOperation::Write;		bus_address_ = addr;		bus_value_ = &val
 
 				switch(cycle) {
 
@@ -155,17 +145,17 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case OperationBRKPickVector:
 						if(is_65c02(personality)) {
-							nextAddress.full = 0xfffe;
+							next_address_.full = 0xfffe;
 						} else {
 							// NMI can usurp BRK-vector operations on the pre-C 6502s.
-							nextAddress.full = (interrupt_requests_ & InterruptRequestFlags::NMI) ? 0xfffa : 0xfffe;
+							next_address_.full = (interrupt_requests_ & InterruptRequestFlags::NMI) ? 0xfffa : 0xfffe;
 							interrupt_requests_ &= ~InterruptRequestFlags::NMI;
 						}
 					continue;
-					case OperationNMIPickVector:		nextAddress.full = 0xfffa;											continue;
-					case OperationRSTPickVector:		nextAddress.full = 0xfffc;											continue;
-					case CycleReadVectorLow:			read_mem(pc_.halves.low, nextAddress.full);							break;
-					case CycleReadVectorHigh:			read_mem(pc_.halves.high, nextAddress.full+1);						break;
+					case OperationNMIPickVector:		next_address_.full = 0xfffa;										continue;
+					case OperationRSTPickVector:		next_address_.full = 0xfffc;										continue;
+					case CycleReadVectorLow:			read_mem(pc_.halves.low, next_address_.full);						break;
+					case CycleReadVectorHigh:			read_mem(pc_.halves.high, next_address_.full+1);					break;
 					case OperationSetIRQFlags:
 						flags_.inverse_interrupt = 0;
 						if(is_65c02(personality)) flags_.decimal = 0;
@@ -464,36 +454,36 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 	}
 
 					case CycleAddXToAddressLow:
-						nextAddress.full = address_.full + x_;
-						address_.halves.low = nextAddress.halves.low;
-						if(address_.halves.high != nextAddress.halves.high) {
+						next_address_.full = address_.full + x_;
+						address_.halves.low = next_address_.halves.low;
+						if(address_.halves.high != next_address_.halves.high) {
 							page_crossing_stall_read();
 							break;
 						}
 					continue;
 					case CycleAddXToAddressLowRead:
-						nextAddress.full = address_.full + x_;
-						address_.halves.low = nextAddress.halves.low;
+						next_address_.full = address_.full + x_;
+						address_.halves.low = next_address_.halves.low;
 						page_crossing_stall_read();
 					break;
 					case CycleAddYToAddressLow:
-						nextAddress.full = address_.full + y_;
-						address_.halves.low = nextAddress.halves.low;
-						if(address_.halves.high != nextAddress.halves.high) {
+						next_address_.full = address_.full + y_;
+						address_.halves.low = next_address_.halves.low;
+						if(address_.halves.high != next_address_.halves.high) {
 							page_crossing_stall_read();
 							break;
 						}
 					continue;
 					case CycleAddYToAddressLowRead:
-						nextAddress.full = address_.full + y_;
-						address_.halves.low = nextAddress.halves.low;
+						next_address_.full = address_.full + y_;
+						address_.halves.low = next_address_.halves.low;
 						page_crossing_stall_read();
 					break;
 
 #undef page_crossing_stall_read
 
 					case OperationCorrectAddressHigh:
-						address_.full = nextAddress.full;
+						address_.full = next_address_.full;
 					continue;
 					case CycleIncrementPCFetchAddressLowFromOperand:
 						pc_.full++;
@@ -573,12 +563,12 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 #undef BRA
 
 					case CycleAddSignedOperandToPC:
-						nextAddress.full = uint16_t(pc_.full + int8_t(operand_));
-						pc_.halves.low = nextAddress.halves.low;
-						if(nextAddress.halves.high != pc_.halves.high) {
-							uint16_t halfUpdatedPc = pc_.full;
-							pc_.full = nextAddress.full;
-							throwaway_read(halfUpdatedPc);
+						next_address_.full = uint16_t(pc_.full + int8_t(operand_));
+						pc_.halves.low = next_address_.halves.low;
+						if(next_address_.halves.high != pc_.halves.high) {
+							const uint16_t half_updated_pc = pc_.full;
+							pc_.full = next_address_.full;
+							throwaway_read(half_updated_pc);
 							break;
 						} else if(is_65c02(personality)) {
 							// 65C02 modification to all branches: a branch that is taken but requires only a single cycle
@@ -650,7 +640,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 				if(has_stpwai(personality) && (stop_is_active_ || wait_is_active_)) {
 					break;
 				}
-				if(uses_ready_line && ready_line_is_enabled_ && (is_65c02(personality) || isReadOperation(nextBusOperation))) {
+				if(uses_ready_line && ready_line_is_enabled_ && (is_65c02(personality) || isReadOperation(next_bus_operation_))) {
 					ready_is_active_ = true;
 					break;
 				}
@@ -660,11 +650,6 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 	}
 
 	cycles_left_to_run_ = number_of_cycles;
-	next_address_ = nextAddress;
-	next_bus_operation_ = nextBusOperation;
-	bus_address_ = busAddress;
-	bus_value_ = busValue;
-
 	bus_handler_.flush();
 }
 
