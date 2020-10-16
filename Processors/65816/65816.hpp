@@ -35,6 +35,7 @@ class ProcessorBase: protected ProcessorStorage {
 		inline void set_nmi_line(bool);
 		inline void set_reset_line(bool);
 		inline void set_abort_line(bool);
+		inline bool get_is_resetting() const;
 		void set_value_of_register(Register r, uint16_t value);
 
 		inline bool is_jammed() const;
