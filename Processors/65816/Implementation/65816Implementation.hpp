@@ -150,8 +150,8 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				//
 
 #define stack_access(value, operation)	\
-	bus_address_ = stack_address();	\
-	bus_value_ = value;	\
+	bus_address_ = stack_address();		\
+	bus_value_ = value;					\
 	bus_operation_ = operation;
 
 				case CyclePush:
@@ -763,21 +763,21 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 	} else {			\
 		data_buffer_.size = 2;	\
 		data_buffer_.value = registers_.pc + int8_t(instruction_buffer_.value);	\
-																		\
+																				\
 		if((registers_.pc & 0xff00) == (instruction_buffer_.value & 0xff00)) {	\
-			++next_op_;													\
-		}																\
+			++next_op_;															\
+		}																		\
 	}
 
 						case BPL: BRA(!(registers_.flags.negative_result&0x80));	break;
 						case BMI: BRA(registers_.flags.negative_result&0x80);		break;
-						case BVC: BRA(!registers_.flags.overflow);				break;
+						case BVC: BRA(!registers_.flags.overflow);					break;
 						case BVS: BRA(registers_.flags.overflow);					break;
-						case BCC: BRA(!registers_.flags.carry);					break;
-						case BCS: BRA(registers_.flags.carry);					break;
+						case BCC: BRA(!registers_.flags.carry);						break;
+						case BCS: BRA(registers_.flags.carry);						break;
 						case BNE: BRA(registers_.flags.zero_result);				break;
 						case BEQ: BRA(!registers_.flags.zero_result);				break;
-						case BRA: BRA(true);							break;
+						case BRA: BRA(true);										break;
 
 #undef BRA
 
@@ -838,10 +838,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 								unsigned int result = 0;
 								unsigned int borrow = registers_.flags.carry ^ 1;
 
-#define nibble(mask, adjustment, carry)						\
+#define nibble(mask, adjustment, carry)								\
 	result += (a & mask) - (data_buffer_.value & mask) - borrow;	\
-	if(result > mask) result -= adjustment;\
-	borrow = (result > mask) ? carry : 0;	\
+	if(result > mask) result -= adjustment;							\
+	borrow = (result > mask) ? carry : 0;							\
 	result &= (carry - 1);
 
 								nibble(0x000f, 0x0006, 0x00010);
