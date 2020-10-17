@@ -156,6 +156,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	static void read_modify_write(bool is8bit, const std::function<void(MicroOp)> &target) {
+		target(OperationSetMemoryLock);
+
 		if(!is8bit)	target(CycleFetchIncrementData);	// Data low.
 		target(CycleFetchData);							// Data [high].
 

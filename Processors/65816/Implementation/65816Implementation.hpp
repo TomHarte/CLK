@@ -55,6 +55,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					instruction_buffer_.clear();
 					data_buffer_.clear();
 					last_operation_pc_ = registers_.pc;
+					memory_lock_ = false;
 				} continue;
 
 				case OperationDecode: {
@@ -175,6 +176,14 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				break;
 
 #undef stack_access
+
+				//
+				// Memory lock control.
+				//
+
+				case OperationSetMemoryLock:
+					memory_lock_ = true;
+				continue;
 
 				//
 				// STP and WAI.
@@ -984,4 +993,12 @@ bool ProcessorBase::is_jammed() const { return false; }
 
 bool ProcessorBase::get_is_resetting() const {
 	return pending_exceptions_ & (Reset | PowerOn);
+}
+
+int ProcessorBase::get_extended_bus_output() {
+	return
+		(memory_lock_ ? ExtendedBusOutput::MemoryLock : 0) |
+		(registers_.mx_flags[0] ? ExtendedBusOutput::MemorySize : 0) |
+		(registers_.mx_flags[1] ? ExtendedBusOutput::IndexSize : 0) |
+		(registers_.emulation_flag ? ExtendedBusOutput::Emulation : 0);
 }

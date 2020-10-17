@@ -149,6 +149,9 @@ enum MicroOp: uint8_t {
 	/// address register.
 	OperationPrepareException,
 
+	/// Sets the memory lock output for the rest of this instruction.
+	OperationSetMemoryLock,
+
 	/// Complete this set of micr-ops.
 	OperationMoveToNextProgram,
 
@@ -289,6 +292,7 @@ struct ProcessorStorage {
 	int selected_exceptions_ = 0;
 
 	bool ready_line_ = false;
+	bool memory_lock_ = false;
 
 	// Just to be safe.
 	static_assert(PowerOn != IRQ);

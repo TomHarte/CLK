@@ -25,6 +25,13 @@ using BusOperation = CPU::MOS6502Esque::BusOperation;
 using Register = CPU::MOS6502Esque::Register;
 using Flag = CPU::MOS6502Esque::Flag;
 
+enum ExtendedBusOutput {
+	Emulation = (1 << 0),
+	MemorySize = (1 << 1),
+	IndexSize = (1 << 2),
+	MemoryLock = (1 << 3),
+};
+
 #include "Implementation/65816Storage.hpp"
 
 class ProcessorBase: protected ProcessorStorage {
@@ -35,9 +42,18 @@ class ProcessorBase: protected ProcessorStorage {
 		inline void set_reset_line(bool);
 		inline void set_abort_line(bool);
 		inline bool get_is_resetting() const;
-		void set_value_of_register(Register r, uint16_t value);
 
+		/*!
+			Returns the current state of all lines not ordinarily pushed to the BusHandler.
+		*/
+		inline int get_extended_bus_output();
+
+		/*!
+			Provided for symmetry with the 6502; a 65816 is never jammed.
+		*/
 		inline bool is_jammed() const;
+
+		void set_value_of_register(Register r, uint16_t value);
 		uint16_t get_value_of_register(Register r) const;
 };
 
