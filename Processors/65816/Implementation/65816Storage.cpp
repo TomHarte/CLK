@@ -156,12 +156,11 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	static void read_modify_write(bool is8bit, const std::function<void(MicroOp)> &target) {
-		target(OperationSetMemoryLock);
+		target(OperationSetMemoryLock);					// Set the memory lock output until the end of this instruction.
 
 		if(!is8bit)	target(CycleFetchIncrementData);	// Data low.
 		target(CycleFetchData);							// Data [high].
 
-		// TODO: does this look like another read? Or if VDA and VPA are both low, does the 65816 actually do no access?
 		if(!is8bit)	target(CycleFetchDataThrowaway);	// 16-bit: reread final byte of data.
 		else target(CycleStoreDataThrowaway);			// 8-bit rewrite final byte of data.
 
@@ -182,7 +181,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	// 1b. Absolute; a, JMP.
 	static void absolute_jmp(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchIncrementPC);			// New PCL.
+		target(CycleFetchIncrementPC);			// New PCL.]
 		target(CycleFetchPC);					// New PCH.
 		target(OperationPerform);				// [JMP]
 	}
@@ -199,9 +198,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	// 1d. Absolute; a, read-modify-write.
 	static void absolute_rmw(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchIncrementPC);					// AAL.
-		target(CycleFetchIncrementPC);					// AAH.
-		target(OperationConstructAbsolute);				// Calculate data address.
+		target(CycleFetchIncrementPC);			// AAL.
+		target(CycleFetchIncrementPC);			// AAH.
+		target(OperationConstructAbsolute);		// Calculate data address.
 
 		read_modify_write(is8bit, target);
 	}
@@ -382,10 +381,10 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	// 10a. Direct; d.
 	// (That's zero page in 6502 terms)
 	static void direct(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchIncrementPC);					// DO.
+		target(CycleFetchIncrementPC);		// DO.
 
 		target(OperationConstructDirect);
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPCThrowaway);		// IO.
 
 		read_write(type, is8bit, target);
 	}
@@ -594,9 +593,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePush);					// PCL
 		target(CyclePush);					// P
 
-		// TODO: I think I need a seperate vector fetch here, to signal vector pull?
-		target(CycleFetchIncrementData);	// AAVL
-		target(CycleFetchData);				// AAVH
+		target(CycleFetchIncrementVector);	// AAVL
+		target(CycleFetchVector);			// AAVH
 
 		target(OperationPerform);			// Jumps to the vector address.
 	}
@@ -704,9 +702,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePush);					// PCL
 		target(CyclePush);					// P
 
-		// TODO: I think I need a seperate vector fetch here, to signal vector pull?
-		target(CycleFetchIncrementData);	// AAVL
-		target(CycleFetchData);				// AAVH
+		target(CycleFetchIncrementVector);	// AAVL
+		target(CycleFetchVector);			// AAVH
 
 		target(OperationPerform);			// Jumps to the vector address.
 	}

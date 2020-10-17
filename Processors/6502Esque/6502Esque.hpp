@@ -79,37 +79,39 @@ enum BusOperation {
 	/// 6502: never signalled.
 	/// 65816: indicates that a read was signalled with VPB.
 	ReadVector,
+	/// 6502: never signalled.
+	/// 65816: indicates that a read was signalled, but neither VDA nor VPA were active.
+	InternalOperationRead,
 
 	/// 6502: indicates that a write was signalled.
 	/// 65816: indicates that a write was signalled with VDA.
 	Write,
+	/// 6502: never signalled.
+	/// 65816: indicates that a write was signalled, but neither VDA nor VPA were active.
+	InternalOperationWrite,
 
-	/// All processors: indicates that the processor is holding state due to the RDY input.
+	/// All processors: indicates that the processor is paused due to the RDY input.
 	/// 65C02 and 65816: indicates a WAI is ongoing.
 	Ready,
-
-	/// 6502: never signalled.
-	/// 65816: indicates that a read was signalled, but neither VDA or VPA were active.
-	InternalOperation,
 
 	/// 65C02 and 65816: indicates a STP condition.
 	None,
 };
 
 /*!
-	Evaluates to @c true if the operation is any sort of read; @c false otherwise.
+	For a machine watching only the RWB line, evaluates to @c true if the operation should be treated as a read; @c false otherwise.
 */
-#define isReadOperation(v)	(v < CPU::MOS6502Esque::BusOperation::Write)
+#define isReadOperation(v)		(v < CPU::MOS6502Esque::Write)
 
 /*!
-	Evaluates to @c true if the operation is any sort of write; @c false otherwise.
+	For a machine watching only the RWB line, evaluates to @c true if the operation is any sort of write; @c false otherwise.
 */
-#define isWriteOperation(v)	(v == CPU::MOS6502Esque::BusOperation::Write)
+#define isWriteOperation(v)		(v == CPU::MOS6502Esque::Write || v == CPU::MOS6502Esque::InternalOperationWrite)
 
 /*!
-	Evaluates to @c true if the operation is any sort of memory access; @c false otherwise.
+	Evaluates to @c true if the operation actually expects a response; @c false otherwise.
 */
-#define isAccessOperation(v)	(v < CPU::MOS6502Esque::BusOperation::Ready)
+#define isAccessOperation(v)	((v < CPU::MOS6502Esque::Ready) && (v != CPU::MOS6502Esque::InternalOperationRead) && (v != CPU::MOS6502Esque::InternalOperationWrite))
 
 /*!
 	A class providing empty implementations of the methods a 6502 uses to access the bus. To wire the 6502 to a bus,

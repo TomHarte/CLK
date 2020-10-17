@@ -25,6 +25,10 @@ enum MicroOp: uint8_t {
 	CycleFetchIncorrectDataAddress,
 	/// Fetches a byte from the data address and throws it away.
 	CycleFetchDataThrowaway,
+	/// Fetches a byte from the data address to the data buffer, signalling VPB .
+	CycleFetchVector,
+	/// Fetches a byte from the data address to the data buffer and increments the data address, signalling VPB.
+	CycleFetchIncrementVector,
 
 	// Dedicated block-move cycles; these use the data buffer as an intermediary.
 	CycleFetchBlockX,
