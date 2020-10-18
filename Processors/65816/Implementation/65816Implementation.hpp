@@ -432,7 +432,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						}
 					}
 
-					data_buffer_.value = (registers_.pc << 8) | get_flags();
+					data_buffer_.value = uint32_t((registers_.pc << 8) | get_flags());
 					if(registers_.emulation_flag) {
 						if(is_brk) data_buffer_.value |= Flag::Break;
 						data_buffer_.size = 3;
@@ -480,16 +480,16 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 						case PLB:
 							registers_.data_bank = (data_buffer_.value & 0xff) << 16;
-							registers_.flags.set_nz(instruction_buffer_.value);
+							registers_.flags.set_nz(uint8_t(data_buffer_.value));
 						break;
 
 						case PLD:
-							registers_.direct = data_buffer_.value;
-							registers_.flags.set_nz(instruction_buffer_.value);
+							registers_.direct = uint16_t(data_buffer_.value);
+							registers_.flags.set_nz(uint16_t(data_buffer_.value), 8);
 						break;
 
 						case PLP:
-							set_flags(data_buffer_.value);
+							set_flags(uint8_t(data_buffer_.value));
 						break;
 
 						case STA:
@@ -622,11 +622,11 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						break;
 
 						case JMPind:
-							registers_.pc = data_buffer_.value;
+							registers_.pc = uint16_t(data_buffer_.value);
 						break;
 
 						case RTS:
-							registers_.pc = data_buffer_.value + 1;
+							registers_.pc = uint16_t(data_buffer_.value + 1);
 						break;
 
 						case JSL:
@@ -637,7 +637,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							data_buffer_.value = registers_.pc;
 							data_buffer_.size = 2;
 
-							registers_.pc = instruction_buffer_.value;
+							registers_.pc = uint16_t(instruction_buffer_.value);
 						break;
 
 						case RTI:
@@ -683,11 +683,11 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						case SED: registers_.flags.decimal = Flag::Decimal;				break;
 
 						case REP:
-							set_flags(get_flags() &~ instruction_buffer_.value);
+							set_flags(uint8_t(get_flags() &~ instruction_buffer_.value));
 						break;
 
 						case SEP:
-							set_flags(get_flags() | instruction_buffer_.value);
+							set_flags(uint8_t(get_flags() | instruction_buffer_.value));
 						break;
 
 						case XCE: {
@@ -702,12 +702,12 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 						case INC:
 							++data_buffer_.value;
-							registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
+							registers_.flags.set_nz(uint16_t(data_buffer_.value), registers_.m_shift);
 						break;;
 
 						case DEC:
 							--data_buffer_.value;
-							registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
+							registers_.flags.set_nz(uint16_t(data_buffer_.value), registers_.m_shift);
 						break;
 
 						case INX: {
@@ -754,8 +754,8 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						break;
 
 						case BIT:
-							registers_.flags.set_n(data_buffer_.value, registers_.m_shift);
-							registers_.flags.set_z(data_buffer_.value & registers_.a.full, registers_.m_shift);
+							registers_.flags.set_n(uint16_t(data_buffer_.value), registers_.m_shift);
+							registers_.flags.set_z(uint16_t(data_buffer_.value & registers_.a.full), registers_.m_shift);
 							registers_.flags.overflow = data_buffer_.value & Flag::Overflow;
 						break;
 
@@ -782,11 +782,11 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 		next_op_ += 3;	\
 	} else {			\
 		data_buffer_.size = 2;	\
-		data_buffer_.value = registers_.pc + int8_t(instruction_buffer_.value);	\
-																				\
-		if((registers_.pc & 0xff00) == (instruction_buffer_.value & 0xff00)) {	\
-			++next_op_;															\
-		}																		\
+		data_buffer_.value = uint32_t(registers_.pc + int8_t(instruction_buffer_.value));	\
+																							\
+		if((registers_.pc & 0xff00) == (instruction_buffer_.value & 0xff00)) {				\
+			++next_op_;																		\
+		}																					\
 	}
 
 						case BPL: BRA(!(registers_.flags.negative_result&0x80));	break;
@@ -810,28 +810,28 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						//
 
 						case ASL:
-							registers_.flags.carry = data_buffer_.value >> (7 + registers_.m_shift);
+							registers_.flags.carry = uint8_t(data_buffer_.value >> (7 + registers_.m_shift));
 							data_buffer_.value <<= 1;
-							registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
+							registers_.flags.set_nz(uint16_t(data_buffer_.value), registers_.m_shift);
 						break;
 
 						case LSR:
-							registers_.flags.carry = data_buffer_.value & 1;
+							registers_.flags.carry = uint8_t(data_buffer_.value & 1);
 							data_buffer_.value >>= 1;
-							registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
+							registers_.flags.set_nz(uint16_t(data_buffer_.value), registers_.m_shift);
 						break;
 
 						case ROL:
 							data_buffer_.value = (data_buffer_.value << 1) | registers_.flags.carry;
-							registers_.flags.carry = data_buffer_.value >> (8 + registers_.m_shift);
-							registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
+							registers_.flags.carry = uint8_t(data_buffer_.value >> (8 + registers_.m_shift));
+							registers_.flags.set_nz(uint16_t(data_buffer_.value), registers_.m_shift);
 						break;
 
 						case ROR: {
 							const uint8_t next_carry = data_buffer_.value & 1;
-							data_buffer_.value = (data_buffer_.value >> 1) | (registers_.flags.carry << (7 + registers_.m_shift));
+							data_buffer_.value = (data_buffer_.value >> 1) | (uint32_t(registers_.flags.carry) << (7 + registers_.m_shift));
 							registers_.flags.carry = next_carry;
-							registers_.flags.set_nz(data_buffer_.value, registers_.m_shift);
+							registers_.flags.set_nz(uint16_t(data_buffer_.value), registers_.m_shift);
 						} break;
 
 						//
@@ -872,7 +872,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 #undef nibble
 
 								registers_.flags.overflow = ~(( (result ^ registers_.a.full) & (result ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
-								registers_.flags.set_nz(result, registers_.m_shift);
+								registers_.flags.set_nz(uint16_t(result), registers_.m_shift);
 								registers_.flags.carry = ((borrow >> 16)&1)^1;
 								LD(registers_.a, result, registers_.m_masks);
 
@@ -901,11 +901,11 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 #undef nibble
 
 							} else {
-								result = a + data_buffer_.value + registers_.flags.carry;
+								result = int(a + data_buffer_.value + registers_.flags.carry);
 							}
 
-							registers_.flags.overflow = (( (result ^ registers_.a.full) & (result ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
-							registers_.flags.set_nz(result, registers_.m_shift);
+							registers_.flags.overflow = (( (uint16_t(result) ^ registers_.a.full) & (uint16_t(result) ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
+							registers_.flags.set_nz(uint16_t(result), registers_.m_shift);
 							registers_.flags.carry = (result >> (8 + registers_.m_shift))&1;
 							LD(registers_.a, result, registers_.m_masks);
 						} break;
