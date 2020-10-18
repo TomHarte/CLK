@@ -101,7 +101,7 @@ enum BusOperation {
 /*!
 	For a machine watching only the RWB line, evaluates to @c true if the operation should be treated as a read; @c false otherwise.
 */
-#define isReadOperation(v)		(v < CPU::MOS6502Esque::Write)
+#define isReadOperation(v)		(v <= CPU::MOS6502Esque::InternalOperationRead)
 
 /*!
 	For a machine watching only the RWB line, evaluates to @c true if the operation is any sort of write; @c false otherwise.
