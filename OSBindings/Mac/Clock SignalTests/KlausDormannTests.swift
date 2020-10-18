@@ -11,7 +11,7 @@ import XCTest
 
 class KlausDormannTests: XCTestCase {
 
-	fileprivate func runTest(resource: String, processor: CSTestMachine6502Processor) -> UInt16 {
+	private func runTest(resource: String, processor: CSTestMachine6502Processor) -> UInt16 {
 		if let filename = Bundle(for: type(of: self)).path(forResource: resource, ofType: "bin") {
 			if let functionalTest = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
 				let machine = CSTestMachine6502(processor: processor)
@@ -39,7 +39,7 @@ class KlausDormannTests: XCTestCase {
 		return 0
 	}
 
-	func runTest6502(processor: CSTestMachine6502Processor) {
+	private func runTest6502(processor: CSTestMachine6502Processor) {
 		func errorForTrapAddress(_ address: UInt16) -> String? {
 			switch address {
 				case 0x3399: return nil // success!
@@ -70,7 +70,7 @@ class KlausDormannTests: XCTestCase {
 		XCTAssert(error == nil, "Failed with error \(error!)")
 	}
 
-	func runTest65C02(processor: CSTestMachine6502Processor) {
+	private func runTest65C02(processor: CSTestMachine6502Processor) {
 		func errorForTrapAddress(_ address: UInt16) -> String? {
 			switch address {
 				case 0x24f1: return nil // success!

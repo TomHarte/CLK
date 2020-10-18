@@ -11,8 +11,8 @@ import Foundation
 
 class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 
-	fileprivate var done = false
-	fileprivate var output = ""
+	private var done = false
+	private var output = ""
 
 	private func runTest(_ name: String) {
 		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: "com") {
@@ -177,4 +177,5 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 				break
 		}
 	}
+
 }

@@ -9,6 +9,7 @@
 import XCTest
 
 class Z80MemptrTester: XCTestCase {
+
 	let machine = CSTestMachineZ80()
 
 	private func test(program : [UInt8], initialValue : UInt16) -> UInt16 {

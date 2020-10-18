@@ -27,4 +27,5 @@ class AllSuiteATests: XCTestCase {
 			}
 		}
 	}
+
 }

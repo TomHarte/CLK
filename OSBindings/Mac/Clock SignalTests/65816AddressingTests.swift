@@ -542,4 +542,5 @@ class WDC65816AddressingTests: XCTestCase {
 
 		XCTAssertEqual(machine.value(for: .A), 0xcdab)
 	}
+
 }

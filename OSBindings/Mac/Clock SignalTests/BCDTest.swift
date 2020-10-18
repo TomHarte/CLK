@@ -40,7 +40,7 @@ class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 		}
 	}
 
-	fileprivate var output: String = ""
+	private var output: String = ""
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
 		let machine6502 = testMachine as! CSTestMachine6502
 
@@ -48,4 +48,5 @@ class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 		let character = machine6502.value(for: .A)
 		output.append(Character(UnicodeScalar(character)!))
 	}
+
 }

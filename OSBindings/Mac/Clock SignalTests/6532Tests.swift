@@ -11,7 +11,7 @@ import Foundation
 
 class MOS6532Tests: XCTestCase {
 
-	fileprivate func with6532(_ action: (MOS6532Bridge) -> ()) {
+	private func with6532(_ action: (MOS6532Bridge) -> ()) {
 		let bridge = MOS6532Bridge()
 		action(bridge)
 	}
