@@ -43,7 +43,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	typedef void (* Generator)(AccessType, bool, const std::function<void(MicroOp)>&);
 	using GeneratorKey = std::tuple<AccessType, Generator>;
-	std::map<GeneratorKey, std::pair<size_t, size_t>> installed_patterns;
+	using PatternTable = std::map<GeneratorKey, std::pair<size_t, size_t>>;
+	PatternTable installed_patterns;
 
 	int opcode = 0;
 	enum class AccessMode {
@@ -51,55 +52,15 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		Always8Bit,
 		Always16Bit
 	};
+
 	void install(Generator generator, Operation operation, AccessMode access_mode = AccessMode::Mixed) {
 		// Determine the access type implied by this operation.
 		const AccessType access_type = access_type_for_operation(operation);
 
-		// Check whether this access type + addressing mode generator has already been generated.
-		const auto key = std::make_pair(access_type, generator);
-		const auto map_entry = installed_patterns.find(key);
-		size_t micro_op_location_8, micro_op_location_16;
-
-		// If it wasn't found, generate it now in both 8- and 16-bit variants.
-		// Otherwise, get the location of the existing entries.
-		if(map_entry == installed_patterns.end()) {
-			// Generate 8-bit steps.
-			micro_op_location_8 = storage_.micro_ops_.size();
-			(*generator)(access_type, true, [this] (MicroOp op) {
-				this->storage_.micro_ops_.push_back(op);
-			});
-			storage_.micro_ops_.push_back(OperationMoveToNextProgram);
-
-			// Generate 16-bit steps.
-			micro_op_location_16 = storage_.micro_ops_.size();
-			(*generator)(access_type, false, [this] (MicroOp op) {
-				this->storage_.micro_ops_.push_back(op);
-			});
-			storage_.micro_ops_.push_back(OperationMoveToNextProgram);
-
-			// Minor optimisation: elide the steps if 8- and 16-bit steps are equal.
-			bool are_equal = true;
-			size_t c = 0;
-			while(true) {
-				if(storage_.micro_ops_[micro_op_location_8 + c] != storage_.micro_ops_[micro_op_location_16 + c]) {
-					are_equal = false;
-					break;
-				}
-				if(storage_.micro_ops_[micro_op_location_8 + c] == OperationMoveToNextProgram) break;
-				++c;
-			}
-
-			if(are_equal) {
-				storage_.micro_ops_.resize(micro_op_location_16);
-				micro_op_location_16 = micro_op_location_8;
-			}
-
-			// Insert into the map.
-			installed_patterns[key] = std::make_pair(micro_op_location_8, micro_op_location_16);
-		} else {
-			micro_op_location_8 = map_entry->second.first;
-			micro_op_location_16 = map_entry->second.second;
-		}
+		// Install the bus pattern.
+		const auto map_entry = install(generator, access_type);
+		const size_t micro_op_location_8 = map_entry->second.first;
+		const size_t micro_op_location_16 = map_entry->second.second;
 
 		// Fill in the proper table entries and increment the opcode pointer.
 		storage_.instructions[opcode].program_offsets[0] = (access_mode == AccessMode::Always8Bit) ? uint16_t(micro_op_location_8) : uint16_t(micro_op_location_16);
@@ -110,8 +71,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	void set_exception_generator(Generator generator) {
-		const auto key = std::make_pair(AccessType::Read, generator);
-		const auto map_entry = installed_patterns.find(key);
+		const auto map_entry = install(generator);
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[0] =
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[1] = uint16_t(map_entry->second.first);
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].operation = JMPind;
@@ -123,6 +83,57 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		storage_.micro_ops_.push_back(CycleFetchOpcode);
 		storage_.micro_ops_.push_back(OperationDecode);
 	}
+
+	private:
+
+	PatternTable::iterator install(Generator generator, AccessType access_type = AccessType::Read) {
+		// Check whether this access type + addressing mode generator has already been generated.
+		const auto key = std::make_pair(access_type, generator);
+		const auto map_entry = installed_patterns.find(key);
+
+		// If it wasn't found, generate it now in both 8- and 16-bit variants.
+		// Otherwise, get the location of the existing entries.
+		if(map_entry != installed_patterns.end()) {
+			return map_entry;
+		}
+
+		// Generate 8-bit steps.
+		const size_t micro_op_location_8 = storage_.micro_ops_.size();
+		(*generator)(access_type, true, [this] (MicroOp op) {
+			this->storage_.micro_ops_.push_back(op);
+		});
+		storage_.micro_ops_.push_back(OperationMoveToNextProgram);
+
+		// Generate 16-bit steps.
+		size_t micro_op_location_16 = storage_.micro_ops_.size();
+		(*generator)(access_type, false, [this] (MicroOp op) {
+			this->storage_.micro_ops_.push_back(op);
+		});
+		storage_.micro_ops_.push_back(OperationMoveToNextProgram);
+
+		// Minor optimisation: elide the steps if 8- and 16-bit steps are equal.
+		bool are_equal = true;
+		size_t c = 0;
+		while(true) {
+			if(storage_.micro_ops_[micro_op_location_8 + c] != storage_.micro_ops_[micro_op_location_16 + c]) {
+				are_equal = false;
+				break;
+			}
+			if(storage_.micro_ops_[micro_op_location_8 + c] == OperationMoveToNextProgram) break;
+			++c;
+		}
+
+		if(are_equal) {
+			storage_.micro_ops_.resize(micro_op_location_16);
+			micro_op_location_16 = micro_op_location_8;
+		}
+
+		// Insert into the map.
+		auto [iterator, _] = installed_patterns.insert(std::make_pair(key, std::make_pair(micro_op_location_8, micro_op_location_16)));
+		return iterator;
+	}
+
+	public:
 
 	/*
 		Code below is structured to ease translation from Table 5-7 of the 2018

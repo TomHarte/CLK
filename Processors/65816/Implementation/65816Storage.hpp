@@ -292,8 +292,10 @@ struct ProcessorStorage {
 	static constexpr int IRQ = Flag::Interrupt;	// This makes masking a lot easier later on; this is 1 << 2.
 	static constexpr int NMI = 1 << 3;
 	static constexpr int Abort = 1 << 4;
-	int pending_exceptions_ = PowerOn;	// By default.
-	int selected_exceptions_ = 0;
+
+	static constexpr int default_exceptions = PowerOn;
+	int pending_exceptions_ = default_exceptions;
+	int selected_exceptions_ = default_exceptions;
 
 	bool ready_line_ = false;
 	bool memory_lock_ = false;

@@ -50,8 +50,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					// The exception program will determine the appropriate way to respond
 					// based on the pending exception if one exists; otherwise just do a
 					// standard fetch-decode-execute.
-					const auto offset = instructions[selected_exceptions_ ? size_t(OperationSlot::Exception) : size_t(OperationSlot::FetchDecodeExecute)].program_offsets[0];
-					next_op_ = &micro_ops_[offset];
+					const size_t slot = size_t(selected_exceptions_ ? OperationSlot::Exception : OperationSlot::FetchDecodeExecute);
+					active_instruction_ = &instructions[slot];
+
+					next_op_ = &micro_ops_[active_instruction_->program_offsets[0]];
 					instruction_buffer_.clear();
 					data_buffer_.clear();
 					last_operation_pc_ = registers_.pc;
@@ -954,6 +956,7 @@ void ProcessorBase::set_power_on(bool active) {
 		pending_exceptions_ |= PowerOn;
 	} else {
 		pending_exceptions_ &= ~PowerOn;
+		selected_exceptions_ &= ~PowerOn;
 	}
 }
 
