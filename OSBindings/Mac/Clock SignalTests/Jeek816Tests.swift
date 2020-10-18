@@ -10,6 +10,7 @@ import XCTest
 import Foundation
 
 class Jeek816Tests: XCTestCase {
+
 	func testJeek816() {
 		var machine: CSTestMachine6502!
 
@@ -39,4 +40,5 @@ class Jeek816Tests: XCTestCase {
 			NSException(name: NSExceptionName(rawValue: "Failed Test"), reason: "Failed tests with bitmap: \(String(format:"%02x", machine.value(forAddress: 0x401)))", userInfo: nil).raise()
 		}
 	}
+
 }
