@@ -124,6 +124,11 @@ class KlausDormannTests: XCTestCase {
 		runTest6502(processor: .processor6502)
 	}
 
+	/// Runs Klaus Dormann's standard 6502 tests on a 65C02.
+	func test65C02As6502() {
+		runTest6502(processor: .processor65C02)
+	}
+
 	/// Runs Klaus Dormann's standard 6502 tests on a 65816.
 	func test65816As6502() {
 		runTest6502(processor: .processor65816)
