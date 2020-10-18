@@ -118,8 +118,10 @@ enum BusOperation {
 	machines should subclass BusHandler and then declare a realisation of the 6502 template, suplying their bus
 	handler.
 */
-template <typename AddressType> class BusHandler {
+template <typename addr_t> class BusHandler {
 	public:
+		using AddressType = addr_t;
+
 		/*!
 			Announces that the 6502 has performed the cycle defined by operation, address and value. On the 6502,
 			all bus cycles take one clock cycle so the amoutn of time advanced is implicit.
@@ -136,7 +138,7 @@ template <typename AddressType> class BusHandler {
 			during some periods; one way to simulate that is to have the bus handler return a number other than
 			Cycles(1) to describe lengthened bus cycles.
 		*/
-		Cycles perform_bus_operation([[maybe_unused]] BusOperation operation, [[maybe_unused]] AddressType address, [[maybe_unused]] uint8_t *value) {
+		Cycles perform_bus_operation([[maybe_unused]] BusOperation operation, [[maybe_unused]] addr_t address, [[maybe_unused]] uint8_t *value) {
 			return Cycles(1);
 		}
 

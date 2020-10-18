@@ -27,7 +27,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 	while(number_of_cycles > Cycles(0)) {
 		// Wait for ready to be inactive before proceeding.
 		while(uses_ready_line && ready_line_ && number_of_cycles > Cycles(0)) {
-			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, bus_address_, &bus_throwaway_);
+			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, static_cast<typename BusHandler::AddressType>(bus_address_), &bus_throwaway_);
 		}
 
 		// Process for as much time is left and/or until ready is signalled.
@@ -934,7 +934,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 			// Store a selection as to the exceptions, if any, that would be honoured after this cycle if the
 			// next thing is a MoveToNextProgram.
 			selected_exceptions_ = pending_exceptions_ & (registers_.flags.inverse_interrupt | PowerOn | Reset | NMI);
-			number_of_cycles -= bus_handler_.perform_bus_operation(bus_operation_, bus_address_, bus_value_);
+			number_of_cycles -= bus_handler_.perform_bus_operation(bus_operation_, static_cast<typename BusHandler::AddressType>(bus_address_), bus_value_);
 		}
 	}
 
