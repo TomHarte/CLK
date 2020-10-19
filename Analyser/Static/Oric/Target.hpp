@@ -33,8 +33,14 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 		BD500
 	);
 
+	ReflectableEnum(Processor,
+		MOS6502,
+		WDC65816
+	);
+
 	ROM rom = ROM::BASIC11;
 	DiskInterface disk_interface = DiskInterface::None;
+	Processor processor = Processor::MOS6502;
 	std::string loading_command;
 	bool should_start_jasmin = false;
 
@@ -42,8 +48,10 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 		if(needs_declare()) {
 			DeclareField(rom);
 			DeclareField(disk_interface);
+			DeclareField(processor);
 			AnnounceEnum(ROM);
 			AnnounceEnum(DiskInterface);
+			AnnounceEnum(Processor);
 		}
 	}
 };
