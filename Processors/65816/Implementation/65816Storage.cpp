@@ -775,7 +775,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x11 ORA (d), y */		op(direct_indirect_indexed, ORA);
 	/* 0x12 ORA (d) */			op(direct_indirect, ORA);
 	/* 0x13 ORA (d, s), y */	op(stack_relative_indexed_indirect, ORA);
-	/* 0x14 TRB d */			op(absolute_rmw, TRB);
+	/* 0x14 TRB d */			op(direct_rmw, TRB);
 	/* 0x15 ORA d, x */			op(direct_x, ORA);
 	/* 0x16 ASL d, x */			op(direct_x_rmw, ASL);
 	/* 0x17 ORA [d], y */		op(direct_indirect_indexed_long, ORA);

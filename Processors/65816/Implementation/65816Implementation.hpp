@@ -444,6 +444,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					}
 
 					registers_.flags.inverse_interrupt = 0;
+					registers_.flags.decimal = 0;
 				} continue;
 
 				//
