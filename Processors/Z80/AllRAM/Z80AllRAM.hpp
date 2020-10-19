@@ -29,7 +29,7 @@ class AllRAMProcessor:
 		}
 
 		struct PortAccessDelegate {
-			virtual uint8_t z80_all_ram_processor_input(uint16_t port) { return 0xff; }
+			virtual uint8_t z80_all_ram_processor_input(uint16_t) { return 0xff; }
 		};
 		inline void set_port_access_delegate(PortAccessDelegate *delegate) {
 			port_delegate_ = delegate;

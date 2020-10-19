@@ -20,7 +20,7 @@
 #include "../Utility/MemoryFuzzer.hpp"
 #include "../Utility/StringSerialiser.hpp"
 
-#include "../../Processors/6502/6502.hpp"
+#include "../../Processors/6502Esque/6502Selector.hpp"
 #include "../../Components/6522/6522.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
 #include "../../Components/DiskII/DiskII.hpp"
@@ -41,6 +41,7 @@
 namespace Oric {
 
 using DiskInterface = Analyser::Static::Oric::Target::DiskInterface;
+using Processor = Analyser::Static::Oric::Target::Processor;
 using AY = GI::AY38910::AY38910<false>;
 using Speaker = Outputs::Speaker::LowpassSpeaker<AY>;
 
@@ -205,7 +206,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		Keyboard &keyboard_;
 };
 
-template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class ConcreteMachine:
+template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS6502Esque::Type processor_type> class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::AudioProducer,
@@ -424,8 +425,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					!tape_player_.get_tape()->is_at_end()) {
 
 					uint8_t next_byte = tape_player_.get_next_byte(!ram_[tape_speed_address_]);
-					m6502_.set_value_of_register(CPU::MOS6502::A, next_byte);
-					m6502_.set_value_of_register(CPU::MOS6502::Flags, next_byte ? 0 : CPU::MOS6502::Flag::Zero);
+					m6502_.set_value_of_register(CPU::MOS6502Esque::A, next_byte);
+					m6502_.set_value_of_register(CPU::MOS6502Esque::Flags, next_byte ? 0 : CPU::MOS6502::Flag::Zero);
 					*value = 0x60; // i.e. RTS
 				}
 			} else {
@@ -656,7 +657,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		const uint16_t basic_invisible_ram_top_ = 0xffff;
 		const uint16_t basic_visible_ram_top_ = 0xbfff;
 
-		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
+		CPU::MOS6502Esque::Processor<processor_type, ConcreteMachine, false> m6502_;
 
 		// RAM and ROM
 		std::vector<uint8_t> rom_, disk_rom_;
@@ -759,13 +760,23 @@ using namespace Oric;
 
 Machine *Machine::Oric(const Analyser::Static::Target *target_hint, const ROMMachine::ROMFetcher &rom_fetcher) {
 	auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target_hint);
-	switch(oric_target->disk_interface) {
-		default:						return new ConcreteMachine<DiskInterface::None>(*oric_target, rom_fetcher);
-		case DiskInterface::Microdisc:	return new ConcreteMachine<DiskInterface::Microdisc>(*oric_target, rom_fetcher);
-		case DiskInterface::Pravetz:	return new ConcreteMachine<DiskInterface::Pravetz>(*oric_target, rom_fetcher);
-		case DiskInterface::Jasmin:		return new ConcreteMachine<DiskInterface::Jasmin>(*oric_target, rom_fetcher);
-		case DiskInterface::BD500:		return new ConcreteMachine<DiskInterface::BD500>(*oric_target, rom_fetcher);
+
+#define DiskInterfaceSwitch(processor) \
+	switch(oric_target->disk_interface) {	\
+		default:						return new ConcreteMachine<DiskInterface::None, processor>(*oric_target, rom_fetcher);			\
+		case DiskInterface::Microdisc:	return new ConcreteMachine<DiskInterface::Microdisc, processor>(*oric_target, rom_fetcher);	\
+		case DiskInterface::Pravetz:	return new ConcreteMachine<DiskInterface::Pravetz, processor>(*oric_target, rom_fetcher);		\
+		case DiskInterface::Jasmin:		return new ConcreteMachine<DiskInterface::Jasmin, processor>(*oric_target, rom_fetcher);		\
+		case DiskInterface::BD500:		return new ConcreteMachine<DiskInterface::BD500, processor>(*oric_target, rom_fetcher);		\
 	}
+
+	switch(oric_target->processor) {
+		case Processor::WDC65816:	DiskInterfaceSwitch(CPU::MOS6502Esque::Type::TWDC65816);
+		case Processor::MOS6502:	DiskInterfaceSwitch(CPU::MOS6502Esque::Type::T6502);
+	}
+
+#undef DiskInterfaceSwitch
+
 }
 
 Machine::~Machine() {}

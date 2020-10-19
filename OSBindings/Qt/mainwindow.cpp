@@ -287,7 +287,7 @@ void MainWindow::launchMachine() {
 				// Populate request text.
 				QString requestText = romRequestBaseText;
 				size_t index = 0;
-				for(const auto rom: missingRoms) {
+				for(const auto &rom: missingRoms) {
 					requestText += "• ";
 					requestText += rom.descriptive_name.c_str();
 

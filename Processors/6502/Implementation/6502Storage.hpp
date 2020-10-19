@@ -6,9 +6,6 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef MOS6502Storage_h
-#define MOS6502Storage_h
-
 /*!
 	A repository for all the internal state of a CPU::MOS6502::Processor; extracted into a separate base
 	class in order to remove it from visibility within the main 6502.hpp.
@@ -231,7 +228,7 @@ class ProcessorStorage {
 		*/
 		RegisterPair16 pc_, last_operation_pc_;
 		uint8_t a_, x_, y_, s_ = 0;
-		uint8_t carry_flag_, negative_result_, zero_result_, decimal_flag_, overflow_flag_, inverse_interrupt_flag_ = 0;
+		MOS6502Esque::LazyFlags flags_;
 
 		/*
 			Temporary state for the micro programs.
@@ -246,6 +243,7 @@ class ProcessorStorage {
 		BusOperation next_bus_operation_ = BusOperation::None;
 		uint16_t bus_address_;
 		uint8_t *bus_value_;
+		static inline uint8_t bus_throwaway_;
 
 		/*!
 			Gets the flags register.
@@ -270,7 +268,7 @@ class ProcessorStorage {
 
 		enum InterruptRequestFlags: uint8_t {
 			Reset		= 0x80,
-			IRQ			= Flag::Interrupt,
+			IRQ			= MOS6502Esque::Flag::Interrupt,
 			NMI			= 0x20,
 
 			PowerOn		= 0x10,
@@ -288,5 +286,3 @@ class ProcessorStorage {
 		// Allow state objects to capture and apply state.
 		friend struct State;
 };
-
-#endif /* _502Storage_h */

@@ -23,7 +23,7 @@ class BusOperationHandler: public CPU::Z80::AllRAMProcessor::MemoryAccessDelegat
 	public:
 		BusOperationHandler(CSTestMachineZ80 *targetMachine) : target_(targetMachine) {}
 
-		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &processor, CPU::Z80::PartialMachineCycle::Operation operation, uint16_t address, uint8_t value, HalfCycles time_stamp) {
+		void z80_all_ram_processor_did_perform_bus_operation(CPU::Z80::AllRAMProcessor &, CPU::Z80::PartialMachineCycle::Operation operation, uint16_t address, uint8_t value, HalfCycles time_stamp) {
 			[target_ testMachineDidPerformBusOperation:operation address:address value:value timeStamp:time_stamp];
 		}
 
@@ -77,7 +77,7 @@ struct PortAccessDelegateTopByte: public CPU::Z80::AllRAMProcessor::PortAccessDe
 };
 
 struct PortAccessDelegate191: public CPU::Z80::AllRAMProcessor::PortAccessDelegate {
-	uint8_t z80_all_ram_processor_input(uint16_t port) final { return 191; }
+	uint8_t z80_all_ram_processor_input(uint16_t) final { return 191; }
 };
 
 #pragma mark - Capture class

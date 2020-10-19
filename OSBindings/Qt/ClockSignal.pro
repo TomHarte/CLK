@@ -91,6 +91,7 @@ SOURCES += \
 \
 	$$SRC/Processors/6502/Implementation/*.cpp \
 	$$SRC/Processors/6502/State/*.cpp \
+	$$SRC/Processors/65816/Implementation/*.cpp \
 	$$SRC/Processors/68000/Implementation/*.cpp \
 	$$SRC/Processors/68000/State/*.cpp \
 	$$SRC/Processors/Z80/Implementation/*.cpp \
@@ -214,6 +215,10 @@ HEADERS += \
 	$$SRC/Processors/6502/*.hpp \
 	$$SRC/Processors/6502/Implementation/*.hpp \
 	$$SRC/Processors/6502/State/*.hpp \
+	$$SRC/Processors/6502Esque/*.hpp \
+	$$SRC/Processors/6502Esque/Implementation/*.hpp \
+	$$SRC/Processors/65816/*.hpp \
+	$$SRC/Processors/65816/Implementation/*.hpp \
 	$$SRC/Processors/68000/*.hpp \
 	$$SRC/Processors/68000/Implementation/*.hpp \
 	$$SRC/Processors/68000/State/*.hpp \

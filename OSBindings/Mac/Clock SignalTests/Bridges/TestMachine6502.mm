@@ -24,6 +24,10 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 		case CSTestMachine6502RegisterX:					return CPU::MOS6502::Register::X;
 		case CSTestMachine6502RegisterY:					return CPU::MOS6502::Register::Y;
 		case CSTestMachine6502RegisterStackPointer:			return CPU::MOS6502::Register::StackPointer;
+		case CSTestMachine6502RegisterEmulationFlag:		return CPU::MOS6502::Register::EmulationFlag;
+		case CSTestMachine6502RegisterDataBank:				return CPU::MOS6502::Register::DataBank;
+		case CSTestMachine6502RegisterProgramBank:			return CPU::MOS6502::Register::ProgramBank;
+		case CSTestMachine6502RegisterDirect:				return CPU::MOS6502::Register::Direct;
 	}
 }
 
@@ -35,12 +39,20 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 
 #pragma mark - Lifecycle
 
-- (instancetype)initIs65C02:(BOOL)is65C02 {
+- (instancetype)initWithProcessor:(CSTestMachine6502Processor)processor {
 	self = [super init];
 
 	if(self) {
-		_processor = CPU::MOS6502::AllRAMProcessor::Processor(
-			is65C02 ? CPU::MOS6502::Personality::PWDC65C02 : CPU::MOS6502::Personality::P6502);
+		switch(processor) {
+			case CSTestMachine6502Processor6502:
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::T6502);
+			break;
+			case CSTestMachine6502Processor65C02:
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::TWDC65C02);
+			break;
+			case CSTestMachine6502Processor65816:
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::TWDC65816);
+		}
 	}
 
 	return self;
@@ -52,13 +64,13 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 
 #pragma mark - Accessors
 
-- (uint8_t)valueForAddress:(uint16_t)address {
+- (uint8_t)valueForAddress:(uint32_t)address {
 	uint8_t value;
 	_processor->get_data_at_address(address, 1, &value);
 	return value;
 }
 
-- (void)setValue:(uint8_t)value forAddress:(uint16_t)address {
+- (void)setValue:(uint8_t)value forAddress:(uint32_t)address {
 	_processor->set_data_at_address(address, 1, &value);
 }
 
@@ -70,7 +82,7 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 	return _processor->get_value_of_register(registerForRegister(reg));
 }
 
-- (void)setData:(NSData *)data atAddress:(uint16_t)startAddress {
+- (void)setData:(NSData *)data atAddress:(uint32_t)startAddress {
 	_processor->set_data_at_address(startAddress, data.length, (const uint8_t *)data.bytes);
 }
 

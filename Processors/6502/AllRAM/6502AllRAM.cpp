@@ -11,28 +11,51 @@
 #include <algorithm>
 #include <cstring>
 
+//#define BE_NOISY
+
 using namespace CPU::MOS6502;
 
 namespace {
 
-template <Personality personality> class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
+using Type = CPU::MOS6502Esque::Type;
+
+template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 	public:
-		ConcreteAllRAMProcessor() :
+		ConcreteAllRAMProcessor(size_t memory_size) :
+			AllRAMProcessor(memory_size),
 			mos6502_(*this) {
 			mos6502_.set_power_on(false);
 		}
 
-		inline Cycles perform_bus_operation(BusOperation operation, uint16_t address, uint8_t *value) {
+		inline Cycles perform_bus_operation(BusOperation operation, uint32_t address, uint8_t *value) {
 			timestamp_ += Cycles(1);
 
 			if(operation == BusOperation::ReadOpcode) {
+#ifdef BE_NOISY
+				printf("[%04x] %02x a:%04x x:%04x y:%04x p:%02x s:%02x\n", address, memory_[address],
+					mos6502_.get_value_of_register(Register::A),
+					mos6502_.get_value_of_register(Register::X),
+					mos6502_.get_value_of_register(Register::Y),
+					mos6502_.get_value_of_register(Register::Flags) & 0xff,
+					mos6502_.get_value_of_register(Register::StackPointer) & 0xff);
+#endif
 				check_address_for_trap(address);
 			}
 
 			if(isReadOperation(operation)) {
 				*value = memory_[address];
+#ifdef BE_NOISY
+//				if((address&0xff00) == 0x100) {
+					printf("%04x -> %02x\n", address, *value);
+//				}
+#endif
 			} else {
 				memory_[address] = *value;
+#ifdef BE_NOISY
+//				if((address&0xff00) == 0x100) {
+					printf("%04x <- %02x\n", address, *value);
+//				}
+#endif
 			}
 
 			return Cycles(1);
@@ -63,20 +86,21 @@ template <Personality personality> class ConcreteAllRAMProcessor: public AllRAMP
 		}
 
 	private:
-		CPU::MOS6502::Processor<personality, ConcreteAllRAMProcessor, false> mos6502_;
+		CPU::MOS6502Esque::Processor<type, ConcreteAllRAMProcessor, false> mos6502_;
 };
 
 }
 
-AllRAMProcessor *AllRAMProcessor::Processor(Personality personality) {
-#define Bind(p) case p: return new ConcreteAllRAMProcessor<p>();
-	switch(personality) {
+AllRAMProcessor *AllRAMProcessor::Processor(Type type) {
+#define Bind(p) case p: return new ConcreteAllRAMProcessor<p>(type == Type::TWDC65816 ? 16*1024*1024 : 64*1024);
+	switch(type) {
 		default:
-		Bind(Personality::P6502)
-		Bind(Personality::PNES6502)
-		Bind(Personality::PSynertek65C02)
-		Bind(Personality::PWDC65C02)
-		Bind(Personality::PRockwell65C02)
+		Bind(Type::T6502)
+		Bind(Type::TNES6502)
+		Bind(Type::TSynertek65C02)
+		Bind(Type::TWDC65C02)
+		Bind(Type::TRockwell65C02)
+		Bind(Type::TWDC65816)
 	}
 #undef Bind
 }

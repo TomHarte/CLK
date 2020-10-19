@@ -1,0 +1,147 @@
+65816 behavior on VICE and true hardware
+========================================
+
+Johann Klasek, j AT klasek at
+2017-12-02
+
+
+Testenvironment:
+
+  Hardware:
+	Tested on LTC64, a turbo card for the Commodore 64
+	in-place of CPU 6510 (which moves to the card)
+	with a WDC's 65C816, 32 KByte ROM and 256 KByte RAM.
+	based on magazine article c't "C64 aufgemotzt", 1987/06 p. 94
+	http://klasek.at/c64/ltc64 (german)
+	Redesigned and implemented by Christoph Egretzberger
+	and software integration by Johann Klasek
+
+  Software:
+	Jamaica Monitor (Jammon) 4.1, native '816
+	C64 ROMs (Kernal+BASIC)
+
+---------------------------------------------------------------------
+Case 1: Wrap-around for addressing mode "absolute"
+	for opcodes TSB, TRB, STX, STY, LDX, LDY
+
+		VICE	WDC
+!e
+a 1000 clc
+xce				native mode
+rep #$30			16-bit for X/Y and A/M
+lda #$0404			Data Bank Register register
+pha				akku in 16 bit
+plb				pull DBR twice
+plb
+lda #$7777			no-wrap marker
+sta $050000			to bank 5
+sta $058887		
+lda #$5555			unchanged marker
+sta $048887			into bank 4
+ldy #$8888			change marker
+tyx				now in X and Y
+sty $ffff			high byte of Y is where?
+ldy $ffff,x	Y=5555	Y=7777	value for Y comes from which bank?
+sty $0002			save as intermediate result, because we do more
+lda $ffff	A=7788	A=8888	fetch, does no wrap even on VICE
+ldx $0000	X=2088	X=20b5	see if wrapping occured (from sty above)
+eor #$ffff	A=8877	A=7777	invert akku, 2nd part ...
+trb $ffff	M=0088	M=8888	reset bits (which are already cleared)
+tsb $ffff	M=88ff	M=ffff	set these bits giving a $ffff value
+ldy $ffff	Y=88ff	Y=ffff	back to ldy test
+brk
+
+!d				Jammon alternate display mode
+d				disassemble on current PC
+m 04ffff			show memory including 050000
+m 040000			start of bank 4 (wrap around area),
+				and intermediate result in 040002
+m 048887			X indexed wrap area
+m 058887			X indexed no wrap area
+z 1000				start single-stepping
+z				single step until BRK or ...
+g				go to BRK
+
+Results VICE	WDC
+
+$050001 $77	$77 marker, never changed
+$050000 $77	$ff modified by TRB/TSB
+$04ffff $ff	$ff modified by TRB/TSB
+$040003 $55	$77 read value (low) from LDY $FFFF,X
+$040002 $55	$77 read value (high) from LDY $FFFF,X
+		    read value 
+$040000 $88	??  (if no wrapping for STY $FFFF, TRB/TSB $FFFF)
+                    only changed if wrapping
+$058888 $77	$77 marker, never changed
+$058887 $77	$77 marker, never changed
+$048888 $55	$55 marker, never changed
+$048887 $55	$55 marker, never changed
+
+A:	$8877	$7777 value from $04ffff/$050000 after STY $FFFF
+X:	$??88 	$???? value from $040000/$040001 with high byte of Y 
+		      in low byte of X after STY $FFFF
+Y:	$88ff	$ffff value from TRB/TSB $FFFF
+
+
+
+---------------------------------------------------------------------
+Case 2: Wrap-around for Direct Page Indexed Addressing
+	in Emulation Mode
+
+### Variant 1
+
+r
+# set M X E to "1"
+e
+# set DBR to 00
+
+a 1000 sec
+xce			emulation mode
+lda #$20		set highbyte
+xba
+lda #$00		lowbyte 16-bit akku
+tcd			direct page address to $2000
+ldx #$20		index
+lda #$88		marker for wrap
+sta $2010
+lda #$77		marker for no-wrap
+sta $2110
+lda $f0,x		which marker?
+stz $f0,x		write (non-6502)
+brk
+
+!d			Jammon alternate display mode
+d			disassemble on PC
+m 2010			show wrap area
+m 2110			show no-wrap area
+z 1000			start single-stepping
+z			single step until BRK or ...
+g			go to BRK
+
+Results VICE	WDC
+
+$2010	00	00	wrap area: =00 from STZ
+$2110	77 	77	no-wrap area
+
+A:	$2088	$2088	A low: 88 = wrap, 77 = no-wrap
+
+
+### Variant 2
+
+Based on variant 1:
+
+a 1005 lda #$01		direct page not aligned!
+tcd			direct page at $2001
+ldx #$1f		correction to hit the
+			same memory locations
+			for monitoring
+
+g 1000
+
+Results VICE	WDC
+
+$2011	88	88	wrap area: =00 from STZ
+$2111	00 	00	no-wrap area
+
+A:	$2077	$2077	A low: 88 = wrap, 77 = no-wrap
+

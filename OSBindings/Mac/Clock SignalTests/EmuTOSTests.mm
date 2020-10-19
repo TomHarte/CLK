@@ -36,7 +36,7 @@ class EmuTOS: public ComparativeBusHandler {
 			return m68000_.get_state();
 		}
 
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
+		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
 			const uint32_t address = cycle.word_address();
 			uint32_t word_address = address;
 

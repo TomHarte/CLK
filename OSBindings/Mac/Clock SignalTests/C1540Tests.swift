@@ -10,21 +10,21 @@ import XCTest
 
 class C1540Tests: XCTestCase {
 
-	fileprivate func with1540(_ action: (C1540Bridge) -> ()) {
+	private func with1540(_ action: (C1540Bridge) -> ()) {
 		let bridge = C1540Bridge()
 		action(bridge)
 	}
 
-	fileprivate func transmit(_ c1540: C1540Bridge, value: Int) {
+	private func transmit(_ c1540: C1540Bridge, value: Int) {
 		var shiftedValue = value
 
 		c1540.dataLine = true
 		c1540.run(forCycles: 256)
-		XCTAssert(c1540.dataLine == false, "Listener should have taken data line low for start of transmission")
+		XCTAssertFalse(c1540.dataLine, "Listener should have taken data line low for start of transmission")
 
 		c1540.clockLine = true
 		c1540.run(forCycles: 256)	// this isn't time limited on real hardware
-		XCTAssert(c1540.dataLine == true, "Listener should have let data line go high again")
+		XCTAssertTrue(c1540.dataLine, "Listener should have let data line go high again")
 
 		// set up for byte transfer
 		c1540.clockLine = false
@@ -47,7 +47,7 @@ class C1540Tests: XCTestCase {
 		// check for acknowledgment
 		c1540.dataLine = true
 		c1540.run(forCycles: 1000)
-		XCTAssert(c1540.dataLine == false, "Listener should have acknowledged byte")
+		XCTAssertFalse(c1540.dataLine, "Listener should have acknowledged byte")
 	}
 
 	// MARK: EOI
@@ -64,10 +64,11 @@ class C1540Tests: XCTestCase {
 
 			// proceed 1 ms and check that the 1540 pulled the data line low
 			$0.run(forCycles: 1000)
-			XCTAssert($0.dataLine == false, "Listener should have taken data line low")
+			XCTAssertFalse($0.dataLine, "Listener should have taken data line low")
 
 			// transmit LISTEN #8
-			self.transmit($0, value: 0x28)
+			transmit($0, value: 0x28)
 		}
 	}
+
 }

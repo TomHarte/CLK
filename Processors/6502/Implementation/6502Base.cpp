@@ -8,8 +8,6 @@
 
 #include "../6502.hpp"
 
-#include <cassert>
-
 using namespace CPU::MOS6502;
 
 const uint8_t CPU::MOS6502::JamOpcode = 0xf2;
