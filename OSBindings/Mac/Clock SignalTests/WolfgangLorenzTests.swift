@@ -216,13 +216,14 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	func testBIT65816()	{
 		runTest("bit", suffixes: ["z", "a"], processor: .processor65816)
 	}
-	func testFlow65816()	{
-		testFlow(processor: .processor65816)
-	}
+	/*
+		The flow tests don't apply; the 65816 [and 65C02] reset the decimal flag upon a BRK, but the 6502 that Lorenz
+		tests doesn't do so.
+	*/
 	func testBranch65816()	{
 		testBranch(processor: .processor65816)
 	}
-	/* The NOP tests also don't apply; the 65816 has only one, well-defined NOP (well, not counting COP or WDM). */
+	/* The NOP tests also don't apply; the 65816 has only one, well-defined NOP. */
 
 
 	// MARK: - Collections
