@@ -118,6 +118,24 @@ class KlausDormannTests: XCTestCase {
 		XCTAssert(error == nil, "Failed with error \(error!)")
 	}
 
+	private func runTest65C02NoRockwell(processor: CSTestMachine6502Processor) {
+		func errorForTrapAddress(_ address: UInt16) -> String? {
+			switch address {
+				case 0x11e0: return nil // success!
+
+				case 0x1474: return "BRK didn't clear the decimal flag"
+				case 0x0e3d: return "TRB set flags incorrectly"
+
+				case 0: return "Didn't find tests"
+				default: return "Unknown error at \(String(format:"%04x", address))"
+			}
+		}
+
+		let destination = runTest(resource: "65C02_no_Rockwell_test", processor: processor)
+		let error = errorForTrapAddress(destination)
+		XCTAssert(error == nil, "Failed with error \(error!)")
+	}
+
 
 	/// Runs Klaus Dormann's 6502 tests.
 	func test6502() {
@@ -132,6 +150,11 @@ class KlausDormannTests: XCTestCase {
 	/// Runs Klaus Dormann's standard 6502 tests on a 65816.
 	func test65816As6502() {
 		runTest6502(processor: .processor65816)
+	}
+
+	/// Runs Klaus Dormann's standard 6502 tests on a 65816.
+	func test65816AsNonRockwell65C02() {
+		runTest65C02NoRockwell(processor: .processor65816)
 	}
 
 	/// Runs Klaus Dormann's 65C02 tests.
