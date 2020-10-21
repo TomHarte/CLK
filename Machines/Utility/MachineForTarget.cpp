@@ -10,9 +10,10 @@
 
 #include <algorithm>
 
-// Sources for runtime options.
+// Sources for runtime options and machines.
 #include "../AmstradCPC/AmstradCPC.hpp"
 #include "../Apple/AppleII/AppleII.hpp"
+#include "../Apple/AppleIIgs/AppleIIgs.hpp"
 #include "../Apple/Macintosh/Macintosh.hpp"
 #include "../Atari/2600/Atari2600.hpp"
 #include "../Atari/ST/AtariST.hpp"
@@ -28,6 +29,7 @@
 #include "../../Analyser/Static/Acorn/Target.hpp"
 #include "../../Analyser/Static/AmstradCPC/Target.hpp"
 #include "../../Analyser/Static/AppleII/Target.hpp"
+#include "../../Analyser/Static/AppleIIgs/Target.hpp"
 #include "../../Analyser/Static/Atari2600/Target.hpp"
 #include "../../Analyser/Static/AtariST/Target.hpp"
 #include "../../Analyser/Static/Commodore/Target.hpp"
@@ -50,6 +52,7 @@ Machine::DynamicMachine *Machine::MachineForTarget(const Analyser::Static::Targe
 		switch(target->machine) {
 			Bind(AmstradCPC)
 			BindD(Apple::II, AppleII)
+			BindD(Apple::IIgs, AppleIIgs)
 			BindD(Apple::Macintosh, Macintosh)
 			Bind(Atari2600)
 			BindD(Atari::ST, AtariST)
@@ -116,6 +119,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 	switch(machine) {
 		case Analyser::Machine::AmstradCPC:		return "AmstradCPC";
 		case Analyser::Machine::AppleII:		return "AppleII";
+		case Analyser::Machine::AppleIIgs:		return "AppleIIgs";
 		case Analyser::Machine::Atari2600:		return "Atari2600";
 		case Analyser::Machine::AtariST:		return "AtariST";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
@@ -135,6 +139,7 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 	switch(machine) {
 		case Analyser::Machine::AmstradCPC:		return "Amstrad CPC";
 		case Analyser::Machine::AppleII:		return "Apple II";
+		case Analyser::Machine::AppleIIgs:		return "Apple IIgs";
 		case Analyser::Machine::Atari2600:		return "Atari 2600";
 		case Analyser::Machine::AtariST:		return "Atari ST";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
@@ -164,6 +169,7 @@ std::vector<std::string> Machine::AllMachines(Type type, bool long_names) {
 	if(type == Type::Any || type == Type::DoesntRequireMedia) {
 		AddName(AmstradCPC);
 		AddName(AppleII);
+		AddName(AppleIIgs);
 		AddName(AtariST);
 		AddName(Electron);
 		AddName(Macintosh);
@@ -210,6 +216,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 
 	Add(AmstradCPC);
 	Add(AppleII);
+	Add(AppleIIgs);
 	Add(AtariST);
 	AddMapped(Electron, Acorn);
 	Add(Macintosh);

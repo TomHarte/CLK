@@ -16,6 +16,7 @@
 #include "../../../../../Analyser/Static/Acorn/Target.hpp"
 #include "../../../../../Analyser/Static/AmstradCPC/Target.hpp"
 #include "../../../../../Analyser/Static/AppleII/Target.hpp"
+#include "../../../../../Analyser/Static/AppleIIgs/Target.hpp"
 #include "../../../../../Analyser/Static/AtariST/Target.hpp"
 #include "../../../../../Analyser/Static/Commodore/Target.hpp"
 #include "../../../../../Analyser/Static/Macintosh/Target.hpp"
@@ -82,6 +83,27 @@
 	}
 	return self;
 }
+
+- (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::AppleIIgs::Target;
+		auto target = std::make_unique<Target>();
+		switch(model) {
+			default:								target->model = Target::Model::ROM00;			break;
+			case CSMachineAppleIIgsModelROM01:		target->model = Target::Model::ROM01;			break;
+			case CSMachineAppleIIgsModelROM03:		target->model = Target::Model::ROM03;			break;
+		}
+		switch(memorySize) {
+			default:			target->memory_model = Target::MemoryModel::EightMB;					break;
+			case 1024:			target->memory_model = Target::MemoryModel::OneMB;						break;
+			case 256:			target->memory_model = Target::MemoryModel::TwoHundredAndFiftySixKB;	break;
+		}
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
 
 - (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model {
 	self = [super init];

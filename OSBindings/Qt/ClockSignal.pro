@@ -33,6 +33,7 @@ SOURCES += \
 	$$SRC/Analyser/Static/Acorn/*.cpp \
 	$$SRC/Analyser/Static/AmstradCPC/*.cpp \
 	$$SRC/Analyser/Static/AppleII/*.cpp \
+	$$SRC/Analyser/Static/AppleIIgs/*.cpp \
 	$$SRC/Analyser/Static/Atari2600/*.cpp \
 	$$SRC/Analyser/Static/AtariST/*.cpp \
 	$$SRC/Analyser/Static/Coleco/*.cpp \
@@ -69,6 +70,7 @@ SOURCES += \
 	$$SRC/Machines/*.cpp \
 	$$SRC/Machines/AmstradCPC/*.cpp \
 	$$SRC/Machines/Apple/AppleII/*.cpp \
+	$$SRC/Machines/Apple/AppleIIgs/*.cpp \
 	$$SRC/Machines/Apple/Macintosh/*.cpp \
 	$$SRC/Machines/Atari/2600/*.cpp \
 	$$SRC/Machines/Atari/ST/*.cpp \
@@ -140,6 +142,7 @@ HEADERS += \
 	$$SRC/Analyser/Static/Acorn/*.hpp \
 	$$SRC/Analyser/Static/AmstradCPC/*.hpp \
 	$$SRC/Analyser/Static/AppleII/*.hpp \
+	$$SRC/Analyser/Static/AppleIIgs/*.hpp \
 	$$SRC/Analyser/Static/Atari2600/*.hpp \
 	$$SRC/Analyser/Static/AtariST/*.hpp \
 	$$SRC/Analyser/Static/Coleco/*.hpp \
@@ -187,6 +190,7 @@ HEADERS += \
 	$$SRC/Machines/*.hpp \
 	$$SRC/Machines/AmstradCPC/*.hpp \
 	$$SRC/Machines/Apple/AppleII/*.hpp \
+	$$SRC/Machines/Apple/AppleIIgs/*.hpp \
 	$$SRC/Machines/Apple/Macintosh/*.hpp \
 	$$SRC/Machines/Atari/2600/*.hpp \
 	$$SRC/Machines/Atari/ST/*.hpp \

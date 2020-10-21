@@ -85,6 +85,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 	private:
 		void start_appleII();
+		void start_appleIIgs();
 		void start_amstradCPC();
 		void start_atariST();
 		void start_electron();

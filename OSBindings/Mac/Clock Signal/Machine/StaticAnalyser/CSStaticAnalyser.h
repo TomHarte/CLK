@@ -23,6 +23,12 @@ typedef NS_ENUM(NSInteger, CSMachineAppleIIDiskController) {
 	CSMachineAppleIIDiskControllerThirteenSector
 };
 
+typedef NS_ENUM(NSInteger, CSMachineAppleIIgsModel) {
+	CSMachineAppleIIgsModelROM00,
+	CSMachineAppleIIgsModelROM01,
+	CSMachineAppleIIgsModelROM03,
+};
+
 typedef NS_ENUM(NSInteger, CSMachineAtariSTModel) {
 	CSMachineAtariSTModel512k,
 };
@@ -74,16 +80,17 @@ typedef int Kilobytes;
 
 - (instancetype)initWithFileAtURL:(NSURL *)url;
 
-- (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs;
 - (instancetype)initWithAmstradCPCModel:(CSMachineCPCModel)model;
+- (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController;
+- (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize;
+- (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model;
+- (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs;
+- (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
 - (instancetype)initWithMSXRegion:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive;
 - (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface;
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region memorySize:(Kilobytes)memorySize hasC1540:(BOOL)hasC1540;
 - (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize useZX81ROM:(BOOL)useZX81ROM;
 - (instancetype)initWithZX81MemorySize:(Kilobytes)memorySize;
-- (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController;
-- (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
-- (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model;
 
 @property(nonatomic, readonly) NSString *optionsPanelNibName;
 @property(nonatomic, readonly) NSString *displayName;

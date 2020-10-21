@@ -15,6 +15,10 @@ class MachinePicker: NSObject {
 	@IBOutlet var appleIIModelButton: NSPopUpButton?
 	@IBOutlet var appleIIDiskControllerButton: NSPopUpButton?
 
+	// MARK: - Apple IIgs properties
+	@IBOutlet var appleIIgsModelButton: NSPopUpButton?
+	@IBOutlet var appleIIgsMemorySizeButton: NSPopUpButton?
+
 	// MARK: - Electron properties
 	@IBOutlet var electronDFSButton: NSButton?
 	@IBOutlet var electronADFSButton: NSButton?
@@ -58,6 +62,10 @@ class MachinePicker: NSObject {
 		appleIIModelButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIModel"))
 		appleIIDiskControllerButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIDiskController"))
 
+		// Apple IIgs settings
+		appleIIgsModelButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIgsModel"))
+		appleIIgsMemorySizeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIgsMemorySize"))
+
 		// Electron settings
 		electronDFSButton?.state = standardUserDefaults.bool(forKey: "new.electronDFS") ? .on : .off
 		electronADFSButton?.state = standardUserDefaults.bool(forKey: "new.electronADFS") ? .on : .off
@@ -98,6 +106,10 @@ class MachinePicker: NSObject {
 		// Apple II settings
 		standardUserDefaults.set(appleIIModelButton!.selectedTag(), forKey: "new.appleIIModel")
 		standardUserDefaults.set(appleIIDiskControllerButton!.selectedTag(), forKey: "new.appleIIDiskController")
+
+		// Apple IIgs settings
+		standardUserDefaults.set(appleIIgsModelButton!.selectedTag(), forKey: "new.appleIIgsModel")
+		standardUserDefaults.set(appleIIgsMemorySizeButton!.selectedTag(), forKey: "new.appleIIgsMemorySize")
 
 		// Electron settings
 		standardUserDefaults.set(electronDFSButton!.state == .on, forKey: "new.electronDFS")
@@ -157,6 +169,18 @@ class MachinePicker: NSObject {
 				}
 
 				return CSStaticAnalyser(appleIIModel: model, diskController: diskController)
+
+			case "appleiigs":
+				var model: CSMachineAppleIIgsModel = .ROM00
+				switch appleIIgsModelButton!.selectedTag() {
+					case 1:		model = .ROM01
+					case 2:		model = .ROM03
+					case 0:		fallthrough
+					default:	model = .ROM00
+				}
+
+				let memorySize = Kilobytes(appleIIgsMemorySizeButton!.selectedItem!.tag)
+				return CSStaticAnalyser(appleIIgsModel: model, memorySize: memorySize)
 
 			case "atarist":
 				return CSStaticAnalyser(atariSTModel: .model512k)

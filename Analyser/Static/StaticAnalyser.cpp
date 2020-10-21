@@ -17,6 +17,7 @@
 #include "Acorn/StaticAnalyser.hpp"
 #include "AmstradCPC/StaticAnalyser.hpp"
 #include "AppleII/StaticAnalyser.hpp"
+#include "AppleIIgs/StaticAnalyser.hpp"
 #include "Atari2600/StaticAnalyser.hpp"
 #include "AtariST/StaticAnalyser.hpp"
 #include "Coleco/StaticAnalyser.hpp"
@@ -188,6 +189,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	if(potential_platforms & TargetPlatform::Acorn)			Append(Acorn);
 	if(potential_platforms & TargetPlatform::AmstradCPC)	Append(AmstradCPC);
 	if(potential_platforms & TargetPlatform::AppleII)		Append(AppleII);
+	if(potential_platforms & TargetPlatform::AppleIIgs)		Append(AppleIIgs);
 	if(potential_platforms & TargetPlatform::Atari2600)		Append(Atari2600);
 	if(potential_platforms & TargetPlatform::AtariST)		Append(AtariST);
 	if(potential_platforms & TargetPlatform::ColecoVision)	Append(Coleco);
