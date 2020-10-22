@@ -37,6 +37,7 @@ namespace II {
 #define is_iie() ((model == Analyser::Static::AppleII::Target::Model::IIe) || (model == Analyser::Static::AppleII::Target::Model::EnhancedIIe))
 
 template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
+	public Apple::II::Machine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::AudioProducer,
@@ -46,7 +47,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
 	public Configurable::Device,
-	public Apple::II::Machine,
 	public Activity::Source,
 	public Apple::II::Card::Delegate {
 	private:
@@ -175,7 +175,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			to paging every 6502 page of memory independently. It makes the paging events more expensive,
 			but hopefully more clear.
 		*/
-		uint8_t *read_pages_[256];	// each is a pointer to the 256-block of memory the CPU should read when accessing that page of memory
+		const uint8_t *read_pages_[256];	// each is a pointer to the 256-block of memory the CPU should read when accessing that page of memory
 		uint8_t *write_pages_[256];	// as per read_pages_, but this is where the CPU should write. If a pointer is nullptr, don't write.
 		void page(int start, int end, uint8_t *read, uint8_t *write) {
 			for(int position = start; position < end; ++position) {
@@ -227,13 +227,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		bool alternative_zero_page_ = false;
 		void set_zero_page_paging() {
 			if(alternative_zero_page_) {
-				read_pages_[0] = aux_ram_;
+				write_pages_[0] = aux_ram_;
 			} else {
-				read_pages_[0] = ram_;
+				write_pages_[0] = ram_;
 			}
-			read_pages_[1] = read_pages_[0] + 256;
-			write_pages_[0] = read_pages_[0];
-			write_pages_[1] = read_pages_[1];
+			write_pages_[1] = write_pages_[0] + 256;
+			read_pages_[0] = write_pages_[0];
+			read_pages_[1] = write_pages_[1];
 		}
 
 		bool read_auxiliary_memory_ = false;
