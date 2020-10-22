@@ -252,9 +252,17 @@ struct ActivityObserver: public Activity::Observer {
 //	}];
 }
 
+- (Outputs::Speaker::Speaker *)speaker {
+	const auto audio_producer = _machine->audio_producer();
+	if(!audio_producer) {
+		return nullptr;
+	}
+	return audio_producer->get_speaker();
+}
+
 - (float)idealSamplingRateFromRange:(NSRange)range {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = [self speaker];
 		if(speaker) {
 			return speaker->get_ideal_clock_rate_in_range((float)range.location, (float)(range.location + range.length));
 		}
@@ -264,7 +272,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (BOOL)isStereo {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = [self speaker];
 		if(speaker) {
 			return speaker->get_is_stereo();
 		}
@@ -280,7 +288,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = [self speaker];
 		if(speaker) {
 			speaker->set_output_rate(sampleRate, (int)bufferSize, stereo);
 			speaker->set_delegate(delegate);
@@ -678,7 +686,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)setVolume:(float)volume {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = [self speaker];
 		if(speaker) {
 			return speaker->set_output_volume(volume);
 		}
@@ -687,7 +695,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (BOOL)hasAudioOutput {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = [self speaker];
 		return speaker ? YES : NO;
 	}
 }
