@@ -1809,7 +1809,8 @@
 		4BEF6AA81D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DigitalPhaseLockedLoopBridge.h; sourceTree = "<group>"; };
 		4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DigitalPhaseLockedLoopBridge.mm; sourceTree = "<group>"; };
 		4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DPLLTests.swift; sourceTree = "<group>"; };
-		4BF40A5525424C770033EA39 /* LanguageCard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LanguageCard.hpp; sourceTree = "<group>"; };
+		4BF40A5525424C770033EA39 /* LanguageCardSwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LanguageCardSwitches.hpp; sourceTree = "<group>"; };
+		4BF40A5A254263140033EA39 /* AuxiliaryMemorySwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AuxiliaryMemorySwitches.hpp; sourceTree = "<group>"; };
 		4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SegmentParser.cpp; sourceTree = "<group>"; };
 		4BF437ED209D0F7E008CBD6B /* SegmentParser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SegmentParser.hpp; sourceTree = "<group>"; };
 		4BF437F0209D112F008CBD6B /* Sector.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sector.hpp; sourceTree = "<group>"; };
@@ -3744,10 +3745,11 @@
 				4BCE004E227CE8CA000CA200 /* DiskIICard.cpp */,
 				4BCE004D227CE8CA000CA200 /* Video.cpp */,
 				4BCE004A227CE8CA000CA200 /* AppleII.hpp */,
+				4BF40A5A254263140033EA39 /* AuxiliaryMemorySwitches.hpp */,
 				4BCE004B227CE8CA000CA200 /* Card.hpp */,
 				4BCE004C227CE8CA000CA200 /* DiskIICard.hpp */,
+				4BF40A5525424C770033EA39 /* LanguageCardSwitches.hpp */,
 				4BCE004F227CE8CA000CA200 /* Video.hpp */,
-				4BF40A5525424C770033EA39 /* LanguageCard.hpp */,
 			);
 			path = AppleII;
 			sourceTree = "<group>";

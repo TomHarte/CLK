@@ -19,9 +19,10 @@
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Outputs/Log.hpp"
 
+#include "AuxiliaryMemorySwitches.hpp"
 #include "Card.hpp"
 #include "DiskIICard.hpp"
-#include "LanguageCard.hpp"
+#include "LanguageCardSwitches.hpp"
 #include "Video.hpp"
 
 #include "../../../Analyser/Static/AppleII/Target.hpp"
@@ -188,42 +189,39 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 		}
 
-		// MARK: - The language card.
-		LanguageCard<ConcreteMachine> language_card_;
-		friend LanguageCard<ConcreteMachine>;
+		// MARK: The language card.
+		LanguageCardSwitches<ConcreteMachine> language_card_;
+		AuxiliaryMemorySwitches<ConcreteMachine> auxiliary_switches_;
+		friend LanguageCardSwitches<ConcreteMachine>;
+		friend AuxiliaryMemorySwitches<ConcreteMachine>;
+
 		void set_language_card_paging() {
-			uint8_t *const ram = alternative_zero_page_ ? aux_ram_ : ram_;
+			const auto language_state = language_card_.state();
+			const auto zero_state = auxiliary_switches_.zero_state();
+
+			uint8_t *const ram = zero_state ? aux_ram_ : ram_;
 			uint8_t *const rom = is_iie() ? &rom_[3840] : rom_.data();
 
-			const auto state = language_card_.state();
 			page(0xd0, 0xe0,
-				state.read ? &ram[state.bank1 ? 0xd000 : 0xc000] : rom,
-				state.write ? nullptr : &ram[state.bank1 ? 0xd000 : 0xc000]);
+				language_state.read ? &ram[language_state.bank1 ? 0xd000 : 0xc000] : rom,
+				language_state.write ? nullptr : &ram[language_state.bank1 ? 0xd000 : 0xc000]);
 
 			page(0xe0, 0x100,
-				state.read ? &ram[0xe000] : &rom[0x1000],
-				state.write ? nullptr : &ram[0xe000]);
+				language_state.read ? &ram[0xe000] : &rom[0x1000],
+				language_state.write ? nullptr : &ram[0xe000]);
 		}
 
-		// MARK - The IIe's ROM controls.
-		bool internal_CX_rom_ = false;
-		bool slot_C3_rom_ = false;
-		bool internal_c8_rom_ = false;
-
+		// MARK: Auxiliary memory and the other IIe improvements.
 		void set_card_paging() {
-			page(0xc1, 0xc8, internal_CX_rom_ ? rom_.data() : nullptr, nullptr);
+			const auto state = auxiliary_switches_.card_state();
 
-			if(!internal_CX_rom_) {
-				if(!slot_C3_rom_) read_pages_[0xc3] = &rom_[0xc300 - 0xc100];
-			}
-
-			page(0xc8, 0xd0, (internal_CX_rom_ || internal_c8_rom_) ? &rom_[0xc800 - 0xc100] : nullptr, nullptr);
+			page(0xc1, 0xc4, state.region_C1_C3 ? &rom_[0xc100 - 0xc100] : nullptr, nullptr);
+			read_pages_[0xc3] = state.region_C3 ? &rom_[0xc300 - 0xc100] : nullptr;
+			page(0xc4, 0xc8, state.region_C4_C8 ? &rom_[0xc400 - 0xc100]  : nullptr, nullptr);
+			page(0xc8, 0xd0, state.region_C8_D0 ? &rom_[0xc800 - 0xc100]  : nullptr, nullptr);
 		}
-
-		// MARK - The IIe's auxiliary RAM controls.
-		bool alternative_zero_page_ = false;
 		void set_zero_page_paging() {
-			if(alternative_zero_page_) {
+			if(auxiliary_switches_.zero_state()) {
 				write_pages_[0] = aux_ram_;
 			} else {
 				write_pages_[0] = ram_;
@@ -231,27 +229,30 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			write_pages_[1] = write_pages_[0] + 256;
 			read_pages_[0] = write_pages_[0];
 			read_pages_[1] = write_pages_[1];
+
+			// Zero page banking also affects interpretation of the language card's switches.
+			set_language_card_paging();
 		}
-
-		bool read_auxiliary_memory_ = false;
-		bool write_auxiliary_memory_ = false;
 		void set_main_paging() {
-			page(0x02, 0xc0,
-				read_auxiliary_memory_ ? &aux_ram_[0x0200] : &ram_[0x0200],
-				write_auxiliary_memory_ ? &aux_ram_[0x0200] : &ram_[0x0200]);
+			const auto state = auxiliary_switches_.main_state();
 
-			if(video_.get_80_store()) {
-				bool use_aux_ram = video_.get_page2();
-				page(0x04, 0x08,
-					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400],
-					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400]);
+			page(0x02, 0x04,
+				state.base.read ? &aux_ram_[0x0200] : &ram_[0x0200],
+				state.base.write ? &aux_ram_[0x0200] : &ram_[0x0200]);
+			page(0x08, 0x20,
+				state.base.read ? &aux_ram_[0x0800] : &ram_[0x0800],
+				state.base.write ? &aux_ram_[0x0800] : &ram_[0x0800]);
+			page(0x40, 0xc0,
+				state.base.read ? &aux_ram_[0x4000] : &ram_[0x4000],
+				state.base.write ? &aux_ram_[0x4000] : &ram_[0x4000]);
 
-				if(video_.get_high_resolution()) {
-					page(0x20, 0x40,
-						use_aux_ram ? &aux_ram_[0x2000] : &ram_[0x2000],
-						use_aux_ram ? &aux_ram_[0x2000] : &ram_[0x2000]);
-				}
-			}
+			page(0x04, 0x08,
+				state.region_04_08.read ? &aux_ram_[0x0400] : &ram_[0x0400],
+				state.region_04_08.write ? &aux_ram_[0x0400] : &ram_[0x0400]);
+
+			page(0x20, 0x40,
+				state.region_20_40.read ? &aux_ram_[0x2000] : &ram_[0x2000],
+				state.region_20_40.write ? &aux_ram_[0x2000] : &ram_[0x2000]);
 		}
 
 		// MARK - typing
@@ -318,7 +319,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			video_(video_bus_handler_),
 			audio_toggle_(audio_queue_),
 			speaker_(audio_toggle_),
-			language_card_(*this) {
+			language_card_(*this),
+			auxiliary_switches_(*this) {
 			// The system's master clock rate.
 			constexpr float master_clock = 14318180.0;
 
@@ -398,9 +400,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			// Set the whole card area to initially backed by nothing.
 			page(0xc0, 0xd0, nullptr, nullptr);
 
-			// Set proper values for the language card/ROM area.
-			set_language_card_paging();
-
 			insert_media(target.media);
 		}
 
@@ -455,14 +454,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
 				}
 
-				if(is_iie() && address >= 0xc300 && address < 0xd000) {
-					bool internal_c8_rom = internal_c8_rom_;
-					internal_c8_rom |= ((address >> 8) == 0xc3) && !slot_C3_rom_;
-					internal_c8_rom &= (address != 0xcfff);
-					if(internal_c8_rom != internal_c8_rom_) {
-						internal_c8_rom_ = internal_c8_rom;
-						set_card_paging();
-					}
+				if(is_iie()) {
+					auxiliary_switches_.access(address, isReadOperation(operation));
 				}
 			} else {
 				// Assume a vapour read unless it turns out otherwise; this is a little
@@ -534,11 +527,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 #define IIeSwitchRead(s)	*value = get_keyboard_input(); if(is_iie()) *value = (*value & 0x7f) | (s ? 0x80 : 0x00);
 								case 0xc011:	IIeSwitchRead(language_card_.state().bank1);								break;
 								case 0xc012:	IIeSwitchRead(language_card_.state().read);									break;
-								case 0xc013:	IIeSwitchRead(read_auxiliary_memory_);										break;
-								case 0xc014:	IIeSwitchRead(write_auxiliary_memory_);										break;
-								case 0xc015:	IIeSwitchRead(internal_CX_rom_);											break;
-								case 0xc016:	IIeSwitchRead(alternative_zero_page_);										break;
-								case 0xc017:	IIeSwitchRead(slot_C3_rom_);												break;
+								case 0xc013:	IIeSwitchRead(auxiliary_switches_.switches().read_auxiliary_memory);		break;
+								case 0xc014:	IIeSwitchRead(auxiliary_switches_.switches().write_auxiliary_memory);		break;
+								case 0xc015:	IIeSwitchRead(auxiliary_switches_.switches().internal_CX_rom);				break;
+								case 0xc016:	IIeSwitchRead(auxiliary_switches_.switches().alternative_zero_page);		break;
+								case 0xc017:	IIeSwitchRead(auxiliary_switches_.switches().slot_C3_rom);					break;
 								case 0xc018:	IIeSwitchRead(video_.get_80_store());										break;
 								case 0xc019:	IIeSwitchRead(video_.get_is_vertical_blank(cycles_since_video_update_));	break;
 								case 0xc01a:	IIeSwitchRead(video_.get_text());											break;
@@ -556,6 +549,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						} else {
 							// Write-only switches. All IIe as currently implemented.
 							if(is_iie()) {
+								auxiliary_switches_.access(address, false);
 								switch(address) {
 									default: break;
 
@@ -563,40 +557,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 									case 0xc001:
 										update_video();
 										video_.set_80_store(!!(address&1));
-										set_main_paging();
-									break;
-
-									case 0xc002:
-									case 0xc003:
-										read_auxiliary_memory_ = !!(address&1);
-										set_main_paging();
-									break;
-
-									case 0xc004:
-									case 0xc005:
-										write_auxiliary_memory_ = !!(address&1);
-										set_main_paging();
-									break;
-
-									case 0xc006:
-									case 0xc007:
-										internal_CX_rom_ = !!(address&1);
-										set_card_paging();
-									break;
-
-									case 0xc008:
-									case 0xc009:
-										// The alternative zero page setting affects both bank 0 and any RAM
-										// that's paged as though it were on a language card.
-										alternative_zero_page_ = !!(address&1);
-										set_zero_page_paging();
-										set_language_card_paging();
-									break;
-
-									case 0xc00a:
-									case 0xc00b:
-										slot_C3_rom_ = !!(address&1);
-										set_card_paging();
 									break;
 
 									case 0xc00c:
@@ -639,13 +599,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case 0xc055:
 						update_video();
 						video_.set_page2(!!(address&1));
-						set_main_paging();
+						auxiliary_switches_.access(address, isReadOperation(operation));
 					break;
 					case 0xc056:
 					case 0xc057:
 						update_video();
 						video_.set_high_resolution(!!(address&1));
-						set_main_paging();
+						auxiliary_switches_.access(address, isReadOperation(operation));
 					break;
 
 					case 0xc05e:

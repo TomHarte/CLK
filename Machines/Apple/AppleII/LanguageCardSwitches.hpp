@@ -1,18 +1,18 @@
 //
-//  LanguageCard.hpp
+//  LanguageCardSwitches.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 22/10/2020.
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef LanguageCard_h
-#define LanguageCard_h
+#ifndef LanguageCardSwitches_h
+#define LanguageCardSwitches_h
 
 namespace Apple {
 namespace II {
 
-template <typename Machine> class LanguageCard {
+template <typename Machine> class LanguageCardSwitches {
 	public:
 		struct State {
 			/// Indicates which 4kb chunk of RAM should be visible at $Dxxx if RAM is visible at all.
@@ -30,9 +30,9 @@ template <typename Machine> class LanguageCard {
 			bool pre_write = false;
 		};
 
-		LanguageCard(Machine &machine) : machine_(machine) {}
+		LanguageCardSwitches(Machine &machine) : machine_(machine) {}
 
-		/// Should be used by an owner to forward any access to $c08x.
+		/// Used by an owner to forward any access to $c08x.
 		void access(uint16_t address, bool is_read) {
 			// Quotes below taken from Understanding the Apple II, p. 5-28 and 5-29.
 
