@@ -21,6 +21,7 @@
 
 #include "Card.hpp"
 #include "DiskIICard.hpp"
+#include "LanguageCard.hpp"
 #include "Video.hpp"
 
 #include "../../../Analyser/Static/AppleII/Target.hpp"
@@ -188,24 +189,20 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		// MARK: - The language card.
-		struct {
-			bool bank1 = false;
-			bool read = false;
-			bool pre_write = false;
-			bool write = false;
-		} language_card_;
-		bool has_language_card_ = true;
+		LanguageCard<ConcreteMachine> language_card_;
+		friend LanguageCard<ConcreteMachine>;
 		void set_language_card_paging() {
 			uint8_t *const ram = alternative_zero_page_ ? aux_ram_ : ram_;
 			uint8_t *const rom = is_iie() ? &rom_[3840] : rom_.data();
 
+			const auto state = language_card_.state();
 			page(0xd0, 0xe0,
-				language_card_.read ? &ram[language_card_.bank1 ? 0xd000 : 0xc000] : rom,
-				language_card_.write ? nullptr : &ram[language_card_.bank1 ? 0xd000 : 0xc000]);
+				state.read ? &ram[state.bank1 ? 0xd000 : 0xc000] : rom,
+				state.write ? nullptr : &ram[state.bank1 ? 0xd000 : 0xc000]);
 
 			page(0xe0, 0x100,
-				language_card_.read ? &ram[0xe000] : &rom[0x1000],
-				language_card_.write ? nullptr : &ram[0xe000]);
+				state.read ? &ram[0xe000] : &rom[0x1000],
+				state.write ? nullptr : &ram[0xe000]);
 		}
 
 		// MARK - The IIe's ROM controls.
@@ -320,7 +317,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			video_bus_handler_(ram_, aux_ram_),
 			video_(video_bus_handler_),
 			audio_toggle_(audio_queue_),
-			speaker_(audio_toggle_) {
+			speaker_(audio_toggle_),
+			language_card_(*this) {
 			// The system's master clock rate.
 			constexpr float master_clock = 14318180.0;
 
@@ -534,8 +532,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 								// The IIe-only state reads follow...
 #define IIeSwitchRead(s)	*value = get_keyboard_input(); if(is_iie()) *value = (*value & 0x7f) | (s ? 0x80 : 0x00);
-								case 0xc011:	IIeSwitchRead(language_card_.bank1);										break;
-								case 0xc012:	IIeSwitchRead(language_card_.read);											break;
+								case 0xc011:	IIeSwitchRead(language_card_.state().bank1);								break;
+								case 0xc012:	IIeSwitchRead(language_card_.state().read);									break;
 								case 0xc013:	IIeSwitchRead(read_auxiliary_memory_);										break;
 								case 0xc014:	IIeSwitchRead(write_auxiliary_memory_);										break;
 								case 0xc015:	IIeSwitchRead(internal_CX_rom_);											break;
@@ -681,28 +679,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case 0xc081: case 0xc085: case 0xc089: case 0xc08d:
 					case 0xc082: case 0xc086: case 0xc08a: case 0xc08e:
 					case 0xc083: case 0xc087: case 0xc08b: case 0xc08f:
-						// Quotes below taken from Understanding the Apple II, p. 5-28 and 5-29.
-
-						// "A3 controls the 4K bank selection"
-						language_card_.bank1 = (address&8);
-
-						// "Access to $C080, $C083, $C084, $0087, $C088, $C08B, $C08C, or $C08F sets the READ ENABLE flip-flop"
-						// (other accesses reset it)
-						language_card_.read = !(((address&2) >> 1) ^ (address&1));
-
-						// "The WRITE ENABLE' flip-flop is reset by an odd read access to the $C08X range when the PRE-WRITE flip-flop is set."
-						if(language_card_.pre_write && isReadOperation(operation) && (address&1)) language_card_.write = false;
-
-						// "[The WRITE ENABLE' flip-flop] is set by an even access in the $C08X range."
-						if(!(address&1)) language_card_.write = true;
-
-						// ("Any other type of access causes the WRITE ENABLE' flip-flop to hold its current state.")
-
-						// "The PRE-WRITE flip-flop is set by an odd read access in the $C08X range. It is reset by an even access or a write access."
-						language_card_.pre_write = isReadOperation(operation) ? (address&1) : false;
-
-						// Apply whatever the net effect of all that is to the memory map.
-						set_language_card_paging();
+						language_card_.access(address, isReadOperation(operation));
 					break;
 				}
 
