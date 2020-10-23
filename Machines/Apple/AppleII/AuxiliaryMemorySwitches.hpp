@@ -12,6 +12,17 @@
 namespace Apple {
 namespace II {
 
+/*!
+	Models the auxiliary memory soft switches, added as of the Apple IIe, which allow access to the auxiliary 64kb of RAM and to
+	the additional almost-4kb of ROM.
+
+	Relevant memory accesses should be fed to this class; it'll call:
+		* machine.set_main_paging() if anything in the 'main' state changes, i.e. the lower 48kb excluding the zero and stack pages;
+		* machine.set_card_state() if anything changes with where ROM should appear rather than cards in the $Cxxx range; and
+		* machine.set_zero_page_paging() if the selection of the lowest two pages of RAM changes.
+
+	Implementation observation: as implemented on the IIe, the zero page setting also affects what happens in the language card area.
+*/
 template <typename Machine> class AuxiliaryMemorySwitches {
 	public:
 		static constexpr bool Auxiliary = true;
@@ -35,7 +46,7 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 			/// Describes banking state in the range $2000–$3FFF.
 			Region region_20_40;
 
-			bool operator != (const MainState &rhs) {
+			bool operator != (const MainState &rhs) const {
 				return
 					base.read != rhs.base.read || base.write != rhs.base.write ||
 					region_04_08.read != rhs.region_04_08.read || region_04_08.write != rhs.region_04_08.write ||
@@ -54,7 +65,7 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 			/// @c true indicates that the built-in ROM should appear from $C800 to $CFFF; @c false indicates that cards should service those accesses.
 			bool region_C8_D0 = false;
 
-			bool operator != (const CardState &rhs) {
+			bool operator != (const CardState &rhs) const {
 				return
 					region_C1_C3 != rhs.region_C1_C3 ||
 					region_C3 != rhs.region_C3 ||
@@ -164,7 +175,7 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 
 		MainState main_state_;
 		void set_main_paging() {
-			MainState previous_state = main_state_;
+			const auto previous_state = main_state_;
 
 			// The two appropriately named switches provide the base case.
 			main_state_.base.read = switches_.read_auxiliary_memory;
@@ -191,7 +202,7 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 
 		CardState card_state_;
 		void set_card_paging() {
-			CardState previous_state = card_state_;
+			const auto previous_state = card_state_;
 
 			// By default apply the CX switch through to $C7FF.
 			card_state_.region_C1_C3 = card_state_.region_C4_C8 = switches_.internal_CX_rom;

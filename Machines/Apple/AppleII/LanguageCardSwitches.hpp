@@ -12,6 +12,12 @@
 namespace Apple {
 namespace II {
 
+/*!
+	Models the language card soft switches, present on any Apple II with a language card and provided built-in from the IIe onwards.
+
+	Relevant memory accesses should be fed to this class; it'll call:
+		* machine.set_language_card_paging() if the proper mapped state changes.
+*/
 template <typename Machine> class LanguageCardSwitches {
 	public:
 		struct State {
@@ -26,14 +32,20 @@ template <typename Machine> class LanguageCardSwitches {
 			/// @c false indicates that RAM is selected for writing.
 			bool write = false;
 
-			/// Contains the state of the internal pre-write flip flop; it does not directly affect the current memory map.
-			bool pre_write = false;
+			bool operator != (const State &rhs) const {
+				return
+					bank1 != rhs.bank1 ||
+					read != rhs.read ||
+					write != rhs.write;
+			}
 		};
 
 		LanguageCardSwitches(Machine &machine) : machine_(machine) {}
 
 		/// Used by an owner to forward any access to $c08x.
 		void access(uint16_t address, bool is_read) {
+			const auto previous_state = state_;
+
 			// Quotes below taken from Understanding the Apple II, p. 5-28 and 5-29.
 
 			// "A3 controls the 4K bank selection"
@@ -44,7 +56,7 @@ template <typename Machine> class LanguageCardSwitches {
 			state_.read = !(((address&2) >> 1) ^ (address&1));
 
 			// "The WRITE ENABLE' flip-flop is reset by an odd read access to the $C08X range when the PRE-WRITE flip-flop is set."
-			if(state_.pre_write && is_read && (address&1)) state_.write = false;
+			if(pre_write_ && is_read && (address&1)) state_.write = false;
 
 			// "[The WRITE ENABLE' flip-flop] is set by an even access in the $C08X range."
 			if(!(address&1)) state_.write = true;
@@ -52,10 +64,12 @@ template <typename Machine> class LanguageCardSwitches {
 			// ("Any other type of access causes the WRITE ENABLE' flip-flop to hold its current state.")
 
 			// "The PRE-WRITE flip-flop is set by an odd read access in the $C08X range. It is reset by an even access or a write access."
-			state_.pre_write = is_read ? (address&1) : false;
+			pre_write_ = is_read ? (address&1) : false;
 
 			// Apply whatever the net effect of all that is to the memory map.
-			machine_.set_language_card_paging();
+			if(previous_state != state_) {
+				machine_.set_language_card_paging();
+			}
 		}
 
 		/// Provides read-only access to the current language card switch state.
@@ -66,6 +80,11 @@ template <typename Machine> class LanguageCardSwitches {
 	private:
 		Machine &machine_;
 		State state_;
+
+		// This is an additional flip flop contained on the language card, but
+		// it is one step removed from current banking state, so I've excluded it
+		// from the State struct.
+		bool pre_write_ = false;
 };
 
 }
