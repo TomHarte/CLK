@@ -13,6 +13,9 @@
 
 #include "../../../Analyser/Static/AppleIIgs/Target.hpp"
 
+#include "../AppleII/LanguageCardSwitches.hpp"
+#include "../AppleII/AuxiliaryMemorySwitches.hpp"
+
 namespace Apple {
 namespace IIgs {
 
@@ -24,7 +27,9 @@ class ConcreteMachine:
 
 	public:
 		ConcreteMachine(const Analyser::Static::AppleIIgs::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-			m65816_(*this) {
+			m65816_(*this),
+			auxiliary_switches_(*this),
+			language_card_(*this) {
 
 			set_clock_rate(14318180.0);
 
@@ -55,16 +60,48 @@ class ConcreteMachine:
 				break;
 
 				case Target::MemoryModel::OneMB:
-					ram_size = 256 + 1024;
+					ram_size = 128 + 1024;
 				break;
 
 				case Target::MemoryModel::EightMB:
-					ram_size = 256 + 8 * 1024;
+					ram_size = 128 + 8 * 1024;
 				break;
 			}
 			ram_.resize(ram_size * 1024);
 
-			// TODO: establish initial bus mapping and storage.
+			// Establish bank storage.
+
+			// Fast RAM storage.
+			for(size_t c = 0; c < 0x80; ++c) {
+				if(c * 64 < (ram_size - 128)) {
+					bank_storage_[c].read = bank_storage_[c].write = &ram_[c * 0x10000];
+				}
+			}
+
+			// Mega II RAM storage.
+			bank_storage_[0xe0].read = bank_storage_[0xe0].write = &ram_[ram_.size() - 0x20000];
+			bank_storage_[0xe1].read = bank_storage_[0xe1].write = &ram_[ram_.size() - 0x10000];
+
+			// ROM storage.
+			const size_t rom_page_count = rom_.size() >> 16;
+			const size_t first_rom_page = 0x100 - rom_page_count;
+			for(size_t c = 0; c < rom_page_count; ++c) {
+				bank_storage_[first_rom_page + c].read = &rom_[c * 0x10000];
+			}
+
+			// Establish initial bank mapping.
+			for(size_t c = 0; c < 65536; ++c) {
+				bank_mapping_[c].destination = uint8_t(c >> 8);
+			}
+			for(size_t c = 0; c < 256; ++c) {
+				bank_mapping_[0xe000 + c].flags = BankMapping::Is1Mhz;
+				bank_mapping_[0xe100 + c].flags = BankMapping::Is1Mhz;
+			}
+
+			// Apply initial language/auxiliary state. [TODO: including shadowing register].
+			set_card_paging();
+			set_zero_page_paging();
+			set_main_paging();
 		}
 
 		void run_for(const Cycles cycles) override {
@@ -115,8 +152,21 @@ class ConcreteMachine:
 			return duration;
 		}
 
+		// MARK: - Memory banking.
+		void set_language_card_paging() {
+		}
+		void set_card_paging() {
+		}
+		void set_zero_page_paging() {
+			set_language_card_paging();
+		}
+		void set_main_paging() {
+		}
+
 	private:
 		CPU::WDC65816::Processor<ConcreteMachine, false> m65816_;
+		Apple::II::AuxiliaryMemorySwitches<ConcreteMachine> auxiliary_switches_;
+		Apple::II::LanguageCardSwitches<ConcreteMachine> language_card_;
 
 		int fast_access_phase_ = 0;
 		int slow_access_phase_ = 0;
