@@ -104,41 +104,51 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 				return;
 			}
 
-			if(is_read) return;
+			if(address < 0xc000 || address >= 0xc058) return;
 
 			switch(address) {
 				default: break;
 
 				case 0xc000: case 0xc001:
-					switches_.store_80 = address & 1;
-					set_main_paging();
+					if(!is_read) {
+						switches_.store_80 = address & 1;
+						set_main_paging();
+					}
 				break;
 
 				case 0xc002: case 0xc003:
-					switches_.read_auxiliary_memory = address & 1;
-					set_main_paging();
+					if(!is_read) {
+						switches_.read_auxiliary_memory = address & 1;
+						set_main_paging();
+					}
 				break;
 
 				case 0xc004: case 0xc005:
-					switches_.write_auxiliary_memory = address & 1;
-					set_main_paging();
+					if(!is_read) {
+						switches_.write_auxiliary_memory = address & 1;
+						set_main_paging();
+					}
 				break;
 
 				case 0xc006: case 0xc007:
-					switches_.internal_CX_rom = address & 1;
-					set_card_paging();
+					if(!is_read) {
+						switches_.internal_CX_rom = address & 1;
+						set_card_paging();
+					}
 				break;
 
 				case 0xc008: case 0xc009:
-					if(switches_.alternative_zero_page != bool(address & 1)) {
+					if(!is_read && switches_.alternative_zero_page != bool(address & 1)) {
 						switches_.alternative_zero_page = address & 1;
 						set_zero_page_paging();
 					}
 				break;
 
 				case 0xc00a: case 0xc00b:
-					switches_.slot_C3_rom = address & 1;
-					set_card_paging();
+					if(!is_read) {
+						switches_.slot_C3_rom = address & 1;
+						set_card_paging();
+					}
 				break;
 
 				case 0xc054: case 0xc055:

@@ -598,13 +598,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case 0xc054:
 					case 0xc055:
 						update_video();
-						video_.set_page2(!!(address&1));
+						video_.set_page2(address&1);
 						auxiliary_switches_.access(address, isReadOperation(operation));
 					break;
 					case 0xc056:
 					case 0xc057:
 						update_video();
-						video_.set_high_resolution(!!(address&1));
+						video_.set_high_resolution(address&1);
 						auxiliary_switches_.access(address, isReadOperation(operation));
 					break;
 
