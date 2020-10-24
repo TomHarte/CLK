@@ -270,26 +270,26 @@ void VideoBase::output_double_low_resolution(uint8_t *target, const uint8_t *con
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
 		if((column + int(c))&1) {
-			target[0] = target[4] = (auxiliary_source[c] >> row_shift) & 2;
-			target[1] = target[5] = (auxiliary_source[c] >> row_shift) & 4;
-			target[2] = target[6] = (auxiliary_source[c] >> row_shift) & 8;
-			target[3] = (auxiliary_source[c] >> row_shift) & 1;
+			target[0] = target[4] = (auxiliary_source[c] >> row_shift) & 4;
+			target[1] = target[5] = (auxiliary_source[c] >> row_shift) & 8;
+			target[2] = target[6] = (auxiliary_source[c] >> row_shift) & 1;
+			target[3] = (auxiliary_source[c] >> row_shift) & 2;
 
-			target[8] = target[12] = (source[c] >> row_shift) & 4;
-			target[9] = target[13] = (source[c] >> row_shift) & 8;
-			target[10] = (source[c] >> row_shift) & 1;
-			target[7] = target[11] = (source[c] >> row_shift) & 2;
+			target[8] = target[12] = (source[c] >> row_shift) & 8;
+			target[9] = target[13] = (source[c] >> row_shift) & 1;
+			target[10] = (source[c] >> row_shift) & 2;
+			target[7] = target[11] = (source[c] >> row_shift) & 4;
 			graphics_carry_ = (source[c] >> row_shift) & 8;
 		} else {
-			target[0] = target[4] = (auxiliary_source[c] >> row_shift) & 8;
-			target[1] = target[5] = (auxiliary_source[c] >> row_shift) & 1;
-			target[2] = target[6] = (auxiliary_source[c] >> row_shift) & 2;
-			target[3] = (auxiliary_source[c] >> row_shift) & 4;
+			target[0] = target[4] = (auxiliary_source[c] >> row_shift) & 1;
+			target[1] = target[5] = (auxiliary_source[c] >> row_shift) & 2;
+			target[2] = target[6] = (auxiliary_source[c] >> row_shift) & 4;
+			target[3] = (auxiliary_source[c] >> row_shift) & 8;
 
-			target[8] = target[12] = (source[c] >> row_shift) & 1;
-			target[9] = target[13] = (source[c] >> row_shift) & 2;
-			target[10] = (source[c] >> row_shift) & 4;
-			target[7] = target[11] = (source[c] >> row_shift) & 8;
+			target[8] = target[12] = (source[c] >> row_shift) & 2;
+			target[9] = target[13] = (source[c] >> row_shift) & 4;
+			target[10] = (source[c] >> row_shift) & 8;
+			target[7] = target[11] = (source[c] >> row_shift) & 1;
 			graphics_carry_ = (source[c] >> row_shift) & 2;
 		}
 		target += 14;
