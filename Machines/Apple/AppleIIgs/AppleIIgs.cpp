@@ -16,6 +16,9 @@
 #include "../AppleII/LanguageCardSwitches.hpp"
 #include "../AppleII/AuxiliaryMemorySwitches.hpp"
 
+#include <cassert>
+#include <array>
+
 namespace Apple {
 namespace IIgs {
 
@@ -69,33 +72,159 @@ class ConcreteMachine:
 			}
 			ram_.resize(ram_size * 1024);
 
-			// Establish bank storage.
+			// Establish bank mapping.
+			uint8_t next_region = 0;
+			auto region = [&next_region, this]() -> uint8_t {
+				assert(next_region != memory_regions_.size());
+				return next_region++;
+			};
+			auto set_region = [this](uint8_t bank, uint16_t start, uint16_t end, uint8_t region) {
+				assert((end == 0xffff) || !(end&0xff));
+				assert(!(start&0xff));
 
-			// Fast RAM storage.
-			for(size_t c = 0; c < 0x80; ++c) {
-				if(c * 64 < (ram_size - 128)) {
-					bank_storage_[c].read = bank_storage_[c].write = &ram_[c * 0x10000];
+				// Fill in memory map.
+				size_t target = size_t((bank << 8) | (start >> 8));
+				for(int c = start; c < end; c += 0x100) {
+					memory_map_[target] = region;
+					++target;
+				}
+			};
+
+			// Current beliefs about the IIgs memory map:
+			//
+			//	* language card banking applies to banks $00, $01, $e0 and $e1;
+			//	* auxiliary memory switches apply to banks $00 only;
+			//	* shadowing may be enabled only on banks $00 and $01, or on all RAM pages.
+			//
+			// So banks $00 and $01 need their own divided spaces at the shadowing resolution,
+			// all the other fast RAM banks can share a set of divided spaces, $e0 and $e1 need
+			// to be able to deal with language card-level division but no further, and the pure
+			// ROM pages don't need to be subdivided at all.
+
+			// Reserve region 0 as that for unmapped memory.
+			region();
+
+			// Bank $00: all locations potentially affected by the auxiliary switches or the
+			// language switches. Which will naturally align with shadowable zones.
+			set_region(0x00, 0x0000, 0x0200, region());
+			set_region(0x00, 0x0200, 0x0400, region());
+			set_region(0x00, 0x0400, 0x0800, region());
+			set_region(0x00, 0x0800, 0x2000, region());
+			set_region(0x00, 0x2000, 0x4000, region());
+			set_region(0x00, 0x4000, 0xc000, region());
+			set_region(0x00, 0xc000, 0xc100, region());
+			set_region(0x00, 0xc100, 0xc300, region());
+			set_region(0x00, 0xc300, 0xc400, region());
+			set_region(0x00, 0xc400, 0xc800, region());
+			set_region(0x00, 0xc800, 0xd000, region());
+			set_region(0x00, 0xd000, 0xe000, region());
+			set_region(0x00, 0xe000, 0xffff, region());
+
+			// Bank $01: all locations potentially affected by the language switches, by shadowing,
+			// or marked for IO.
+			set_region(0x01, 0x0000, 0x0400, region());
+			set_region(0x01, 0x0400, 0x0800, region());
+			set_region(0x01, 0x0800, 0x0c00, region());
+			set_region(0x01, 0x0c00, 0x2000, region());
+			set_region(0x01, 0x2000, 0x4000, region());
+			set_region(0x01, 0x4000, 0x6000, region());
+			set_region(0x01, 0x6000, 0xa000, region());
+			set_region(0x01, 0xa000, 0xc000, region());
+			set_region(0x01, 0xc000, 0xd000, region());
+			set_region(0x01, 0xd000, 0xe000, region());
+			set_region(0x01, 0xe000, 0xffff, region());
+
+			// Banks $02–[end of RAM]: all locations potentially affected by shadowing.
+			const uint8_t fast_ram_bank_count = uint8_t((ram_size - 128)/64);
+			if(fast_ram_bank_count > 2) {
+				const uint8_t evens[] = {
+					region(),	// 0x0000 – 0x0400.
+					region(),	// 0x0400 – 0x0800.
+					region(),	// 0x0800 – 0x0c00.
+					region(),	// 0x0c00 – 0x2000.
+					region(),	// 0x2000 – 0x4000.
+					region(),	// 0x4000 – 0x6000.
+					region(),	// 0x6000 – [end].
+				};
+				const uint8_t odds[] = {
+					region(),	// 0x0000 – 0x0400.
+					region(),	// 0x0400 – 0x0800.
+					region(),	// 0x0800 – 0x0c00.
+					region(),	// 0x0c00 – 0x2000.
+					region(),	// 0x2000 – 0x4000.
+					region(),	// 0x4000 – 0x6000.
+					region(),	// 0x6000 – 0xa000.
+					region(),	// 0xa000 – [end].
+				};
+				for(uint8_t bank = 0x02; bank < fast_ram_bank_count; bank += 2) {
+					set_region(bank, 0x0000, 0x0400, evens[0]);
+					set_region(bank, 0x0400, 0x0800, evens[1]);
+					set_region(bank, 0x0800, 0x0c00, evens[2]);
+					set_region(bank, 0x0c00, 0x2000, evens[3]);
+					set_region(bank, 0x2000, 0x4000, evens[4]);
+					set_region(bank, 0x4000, 0x6000, evens[5]);
+					set_region(bank, 0x6000, 0xffff, evens[6]);
+
+					set_region(bank+1, 0x0000, 0x0400, odds[0]);
+					set_region(bank+1, 0x0400, 0x0800, odds[1]);
+					set_region(bank+1, 0x0800, 0x0c00, odds[2]);
+					set_region(bank+1, 0x0c00, 0x2000, odds[3]);
+					set_region(bank+1, 0x2000, 0x4000, odds[4]);
+					set_region(bank+1, 0x4000, 0x6000, odds[5]);
+					set_region(bank+1, 0x6000, 0xa000, odds[6]);
+					set_region(bank+1, 0xa000, 0xffff, odds[7]);
 				}
 			}
 
-			// Mega II RAM storage.
-			bank_storage_[0xe0].read = bank_storage_[0xe0].write = &ram_[ram_.size() - 0x20000];
-			bank_storage_[0xe1].read = bank_storage_[0xe1].write = &ram_[ram_.size() - 0x10000];
+			// [Banks $80–$e0: empty].
 
-			// ROM storage.
-			const size_t rom_page_count = rom_.size() >> 16;
-			const size_t first_rom_page = 0x100 - rom_page_count;
-			for(size_t c = 0; c < rom_page_count; ++c) {
-				bank_storage_[first_rom_page + c].read = &rom_[c * 0x10000];
+			// Banks $e0, $e1: all locations potentially affected by the language switches or marked for IO.
+			for(uint8_t c = 0; c < 2; c++) {
+				set_region(0xe0 + c, 0x0000, 0xc000, region());
+				set_region(0xe0 + c, 0xc000, 0xd000, region());
+				set_region(0xe0 + c, 0xd000, 0xffff, region());
 			}
 
-			// Establish initial bank mapping.
-			for(size_t c = 0; c < 65536; ++c) {
-				bank_mapping_[c].destination = uint8_t(c >> 8);
+			// [Banks $e2–[ROM start]: empty].
+
+			// ROM banks: directly mapped to ROM.
+			const uint8_t rom_bank_count = uint8_t(rom_.size() >> 16);
+			const uint8_t first_rom_bank = uint8_t(0x100 - rom_bank_count);
+			const uint8_t rom_region = region();
+			for(uint8_t c = 0; c < rom_bank_count; ++c) {
+				set_region(first_rom_bank + c, 0x0000, 0xff00, rom_region);
 			}
-			for(size_t c = 0; c < 256; ++c) {
-				bank_mapping_[0xe000 + c].flags = BankMapping::Is1Mhz;
-				bank_mapping_[0xe100 + c].flags = BankMapping::Is1Mhz;
+
+			// Apply proper storage to those banks.
+			auto set_storage = [this](uint32_t address, const uint8_t *read, uint8_t *write) {
+				// Don't allow the reserved null region to be modified.
+				assert(memory_map_[address >> 8]);
+
+				// Either set or apply a quick bit of testing as to the logic at play.
+				auto &region = memory_regions_[memory_map_[address >> 8]];
+				if(read) read -= address;
+				if(write) write -= address;
+				if(!region.read) {
+					region.read = read;
+					region.write = write;
+				} else {
+					assert(region.read == read);
+					assert(region.write == write);
+				}
+			};
+
+			// This is highly redundant, but decouples this step from the above.
+			for(size_t c = 0; c < 0x800000; c += 0x100) {
+				if(c < (ram_size - 128)*1024) {
+					set_storage(uint32_t(c), &ram_[c], &ram_[c]);
+				}
+			}
+			uint8_t *const slow_ram = &ram_[ram_.size() - 0x20000];
+			for(size_t c = 0xe00000; c < 0xe20000; c += 0x100) {
+				set_storage(uint32_t(c), &slow_ram[c - 0xe00000], &slow_ram[c - 0xe00000]);
+			}
+			for(uint32_t c = 0; c < uint32_t(rom_bank_count); ++c) {
+				set_storage((first_rom_bank + c) << 16, &rom_[c << 16], &rom_[c << 16]);
 			}
 
 			// Apply initial language/auxiliary state. [TODO: including shadowing register].
@@ -116,37 +245,38 @@ class ConcreteMachine:
 		}
 
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
-			const BankMapping &mapping = bank_mapping_[address >> 8];
+			const MemoryRegion &region = memory_regions_[memory_map_[address >> 8]];
 
-			if(mapping.flags & BankMapping::IsIO) {
+			if(region.flags & MemoryRegion::IsIO) {
 				// TODO: all IO accesses.
 			} else {
-				const BankStorage &storage = bank_storage_[mapping.destination];
-
 				// TODO: branching below is predicated on the idea that an extra 64kb of scratch write area
 				// and 64kb of 0xffs would be worse than branching due to the data set increase. Verify that?
 				if(isReadOperation(operation)) {
-					*value = storage.read ? storage.read[address & 0xffff] : 0xff;
+					*value = region.read ? region.read[address] : 0xff;
 				} else {
-					if(storage.write) {
-						storage.write[address & 0xffff] = *value;
-						if(mapping.flags & BankMapping::IsShadowed) {
-							bank_storage_[mapping.destination + 0xe0].write[address & 0xffff] = *value;
+					if(region.write) {
+						region.write[address] = *value;
+
+						// Apply shadowing.
+						if(region.flags & (MemoryRegion::IsShadowedE0|MemoryRegion::IsShadowedE1)) {
+							const uint32_t shadowed_address = (address & 0xffff) + (uint32_t(0xe1 - (region.flags&MemoryRegion::IsShadowedE0)) << 16);
+							memory_regions_[memory_map_[shadowed_address >> 8]].write[shadowed_address] = *value;
 						}
 					}
 				}
 			}
 
-			Cycles duration;
+			Cycles duration = Cycles(5);
 
-			// Determine the cost of this access.
-			if((mapping.flags & BankMapping::Is1Mhz) || ((mapping.flags & BankMapping::IsShadowed) && !isReadOperation(operation))) {
-				// TODO: (i) get into phase; (ii) allow for the 1Mhz bus length being sporadically 16 rather than 14.
-				duration = Cycles(14);
-			} else {
-				// TODO: (i) get into phase; (ii) allow for collisions with the refresh cycle.
-				duration = Cycles(5);
-			}
+			// TODO: determine the cost of this access.
+//			if((mapping.flags & BankMapping::Is1Mhz) || ((mapping.flags & BankMapping::IsShadowed) && !isReadOperation(operation))) {
+//				// TODO: (i) get into phase; (ii) allow for the 1Mhz bus length being sporadically 16 rather than 14.
+//				duration = Cycles(14);
+//			} else {
+//				// TODO: (i) get into phase; (ii) allow for collisions with the refresh cycle.
+//				duration = Cycles(5);
+//			}
 			fast_access_phase_ = (fast_access_phase_ + duration.as<int>()) % 5;		// TODO: modulo something else, to allow for refresh.
 			slow_access_phase_ = (slow_access_phase_ + duration.as<int>()) % 14;	// TODO: modulo something else, to allow for stretched cycles.
 			return duration;
@@ -173,34 +303,31 @@ class ConcreteMachine:
 
 		// MARK: - Memory layout and storage.
 
-		// Memory layout part 1: the bank mapping. Indexed by the top 16 bits of the address,
-		// each entry provides the actual bank that should be used plus some flags affecting the
-		// access: whether this section of memory is currently enabled for shadowing, whether
-		// accesses should cost 1 Mhz, and whether this is actually an IO area.
+		// Memory layout here is done via double indirection; the main loop should:
+		//	(i) use the top two bytes of the address to get an index from memory_map_; and
+		//	(ii) use that to index the memory_regions_ table.
 		//
-		// Implementation note: the shadow and IO flags are more sensibly part of this table;
-		// logically the 1Mhz flag would ideally go with BankStorage but since there's no space
-		// in there currently set aside for flags, keeping it in the mapping will do.
-		struct BankMapping {
-			uint8_t destination = 0;
+		// Pointers are eight bytes at the time of writing, so the extra level of indirection
+		// reduces what would otherwise be a 1.25mb table down to not a great deal more than 64kb.
+		std::array<uint8_t, 65536> memory_map_;
+
+		struct MemoryRegion {
+			uint8_t *write = nullptr;
+			const uint8_t *read = nullptr;
 			uint8_t flags = 0;
 
 			enum Flag: uint8_t {
-				IsShadowed = 1 << 0,
-				Is1Mhz = 1 << 1,
-				IsIO = 1 << 2,
+				IsShadowedE0 = 1 << 0,	// i.e. writes should also be written to bank $e0, and costed appropriately.
+				IsShadowedE1 = 1 << 1,	// i.e. writes should also be written to bank $e1, and costed appropriately.
+				Is1Mhz = 1 << 2,		// Both reads and writes should be synchronised with the 1Mhz clock.
+				IsIO = 1 << 3,			// Indicates that this region should be checked for soft switches, registers, etc.
 			};
 		};
-		static_assert(sizeof(BankMapping) == 2);
-		BankMapping bank_mapping_[65536];
+		std::array<MemoryRegion, 47> memory_regions_;	// The assert above ensures that this is large enough; there's no
+														// doctrinal reason for it to be whatever size it is now, just
+														// adjust as required.
 
-		// Memory layout part 2: the bank storage. For each bank both a read and a write pointer
-		// are offered, indicating where the contents of this bank actually reside.
-		struct BankStorage {
-			uint8_t *write = nullptr;
-			const uint8_t *read = nullptr;
-		};
-		BankStorage bank_storage_[256];
+		// MARK: - Memory storage.
 
 		// Actual memory storage.
 		std::vector<uint8_t> ram_;
