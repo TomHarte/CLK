@@ -224,7 +224,7 @@ class ConcreteMachine:
 				set_storage(uint32_t(c), &slow_ram[c - 0xe00000], &slow_ram[c - 0xe00000]);
 			}
 			for(uint32_t c = 0; c < uint32_t(rom_bank_count); ++c) {
-				set_storage((first_rom_bank + c) << 16, &rom_[c << 16], &rom_[c << 16]);
+				set_storage((first_rom_bank + c) << 16, &rom_[c << 16], nullptr);
 			}
 
 			// Apply initial language/auxiliary state. [TODO: including shadowing register].
