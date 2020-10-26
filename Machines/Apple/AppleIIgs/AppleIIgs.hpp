@@ -6,8 +6,8 @@
 //  Copyright 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef AppleIIgs_hpp
-#define AppleIIgs_hpp
+#ifndef Machines_Apple_AppleIIgs_hpp
+#define Machines_Apple_AppleIIgs_hpp
 
 #include "../../../Configurable/Configurable.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
@@ -30,4 +30,4 @@ class Machine {
 }
 }
 
-#endif /* AppleII_hpp */
+#endif /* Machines_Apple_AppleIIgs_hpp */

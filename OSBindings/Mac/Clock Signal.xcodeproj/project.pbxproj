@@ -1311,6 +1311,7 @@
 		4B894540201967D6007DE474 /* Machines.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Machines.hpp; sourceTree = "<group>"; };
 		4B8A7E85212F988200F2BBC6 /* DeferredQueue.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DeferredQueue.hpp; sourceTree = "<group>"; };
 		4B8D287E1F77207100645199 /* TrackSerialiser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TrackSerialiser.hpp; sourceTree = "<group>"; };
+		4B8DF4D62546561300F3433C /* MemoryMap.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemoryMap.hpp; sourceTree = "<group>"; };
 		4B8E4ECD1DCE483D003716C3 /* KeyboardMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardMachine.hpp; sourceTree = "<group>"; };
 		4B8EF6071FE5AF830076CCDD /* LowpassSpeaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = LowpassSpeaker.hpp; sourceTree = "<group>"; };
 		4B8FE2141DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Atari2600Options.xib"; sourceTree = SOURCE_ROOT; };
@@ -3911,6 +3912,7 @@
 			children = (
 				4BE2120E253FCE9C00435408 /* AppleIIgs.hpp */,
 				4BE21214253FCE9C00435408 /* AppleIIgs.cpp */,
+				4B8DF4D62546561300F3433C /* MemoryMap.hpp */,
 			);
 			path = AppleIIgs;
 			sourceTree = "<group>";
