@@ -87,7 +87,7 @@ class MemoryMap {
 			set_region(0x01, 0xe000, 0xffff, region());
 
 			// Banks $02–[end of RAM]: all locations potentially affected by shadowing.
-			const uint8_t fast_ram_bank_count = uint8_t((ram.size() - 128*1024) / 6536);
+			const uint8_t fast_ram_bank_count = uint8_t((ram.size() - 128*1024) / 65536);
 			if(fast_ram_bank_count > 2) {
 				const uint8_t evens[] = {
 					region(),	// 0x0000 – 0x0400.

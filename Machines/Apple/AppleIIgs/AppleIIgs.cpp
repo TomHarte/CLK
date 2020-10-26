@@ -68,6 +68,7 @@ class ConcreteMachine:
 			}
 			ram_.resize(ram_size * 1024);
 
+			memory_.set_storage(ram_, rom_);
 		}
 
 		void run_for(const Cycles cycles) override {
