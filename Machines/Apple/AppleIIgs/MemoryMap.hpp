@@ -24,6 +24,9 @@ class MemoryMap {
 		MemoryMap() : auxiliary_switches_(*this), language_card_(*this) {}
 
 		void set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
+			// Keep a pointer for later.
+			ram_ = ram.data();
+
 			// Establish bank mapping.
 			uint8_t next_region = 0;
 			auto region = [&next_region, this]() -> uint8_t {
@@ -144,7 +147,7 @@ class MemoryMap {
 			const uint8_t first_rom_bank = uint8_t(0x100 - rom_bank_count);
 			const uint8_t rom_region = region();
 			for(uint8_t c = 0; c < rom_bank_count; ++c) {
-				set_region(first_rom_bank + c, 0x0000, 0xff00, rom_region);
+				set_region(first_rom_bank + c, 0x0000, 0xffff, rom_region);
 			}
 
 			// Apply proper storage to those banks.
@@ -175,7 +178,7 @@ class MemoryMap {
 			for(size_t c = 0xe00000; c < 0xe20000; c += 0x100) {
 				set_storage(uint32_t(c), &slow_ram[c - 0xe00000], &slow_ram[c - 0xe00000]);
 			}
-			for(uint32_t c = 0; c < uint32_t(rom_bank_count); ++c) {
+			for(uint32_t c = 0; c < uint32_t(rom_bank_count); c++) {
 				set_storage((first_rom_bank + c) << 16, &rom[c << 16], nullptr);
 			}
 
@@ -187,6 +190,30 @@ class MemoryMap {
 
 		// MARK: - Memory banking.
 		void set_language_card_paging() {
+			const auto language_state = language_card_.state();
+			const auto zero_state = auxiliary_switches_.zero_state();
+
+			uint8_t *const ram = zero_state ? &ram_[65536] : ram_;
+			const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffffd0];
+
+			// Assumption: the language card regions are unique.
+			auto &d0_region = regions[region_map[0x00d0]];
+			d0_region.read = (language_state.read ? &ram[language_state.bank1 ? 0xd000 : 0xc000] : rom) - 0xd000;
+			if(language_state.write) {
+				d0_region.write = nullptr;
+			} else {
+				d0_region.write = &ram[language_state.bank1 ? 0xd000 : 0xc000] - 0xd000;
+			}
+
+			auto &e0_region = regions[region_map[0x00e0]];
+			e0_region.read = (language_state.read ? &ram[0xe000] : rom) - 0xd000;
+			if(language_state.write) {
+				e0_region.write = nullptr;
+			} else {
+				e0_region.write = ram;
+			}
+
+			// TODO: banks other than zero!
 		}
 		void set_card_paging() {
 		}
@@ -199,6 +226,7 @@ class MemoryMap {
 	private:
 		Apple::II::AuxiliaryMemorySwitches<MemoryMap> auxiliary_switches_;
 		Apple::II::LanguageCardSwitches<MemoryMap> language_card_;
+		uint8_t *ram_ = nullptr;
 
 	public:
 		// Memory layout here is done via double indirection; the main loop should:
