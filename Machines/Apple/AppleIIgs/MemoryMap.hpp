@@ -194,7 +194,7 @@ class MemoryMap {
 			const auto zero_state = auxiliary_switches_.zero_state();
 
 			uint8_t *const ram = zero_state ? &ram_[65536] : ram_;
-			const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffffd0];
+			const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffd000];
 
 			// Assumption: the language card regions are unique.
 			auto &d0_region = regions[region_map[0x00d0]];
