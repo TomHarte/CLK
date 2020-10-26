@@ -228,12 +228,14 @@ class MemoryMap {
 };
 
 #define MemoryMapRegion(map, address) map.regions[map.region_map[address >> 8]]
-#define MemoryMapRead(region, address, value) *value = region.read ? region.read[address] : 0xff;
+#define MemoryMapRead(region, address, value) *value = region.read ? region.read[address] : 0xff
 #define MemoryMapWrite(map, region, address, value) \
-	region.write[address] = *value;	\
-	if(region.flags & (MemoryMap::Region::IsShadowed)) {	\
-		const uint32_t shadowed_address = (address & 0xffff) + (uint32_t(0xe1 - (region.flags & MemoryMap::Region::IsShadowedE0)) << 16);	\
-		map.regions[map.region_map[shadowed_address >> 8]].write[shadowed_address] = *value;	\
+	if(region.write) {	\
+		region.write[address] = *value;	\
+		if(region.flags & (MemoryMap::Region::IsShadowed)) {	\
+			const uint32_t shadowed_address = (address & 0xffff) + (uint32_t(0xe1 - (region.flags & MemoryMap::Region::IsShadowedE0)) << 16);	\
+			map.regions[map.region_map[shadowed_address >> 8]].write[shadowed_address] = *value;	\
+		}	\
 	}
 
 }
