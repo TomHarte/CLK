@@ -21,6 +21,8 @@ namespace IIgs {
 
 class MemoryMap {
 	public:
+		// MARK: - Initial construction and configuration.
+
 		MemoryMap() : auxiliary_switches_(*this), language_card_(*this) {}
 
 		void set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
@@ -134,10 +136,12 @@ class MemoryMap {
 			// [Banks $80–$e0: empty].
 
 			// Banks $e0, $e1: all locations potentially affected by the language switches or marked for IO.
+			// TODO: do I need to break up the Cx pages?
 			for(uint8_t c = 0; c < 2; c++) {
-				set_region(0xe0 + c, 0x0000, 0xc000, region());
-				set_region(0xe0 + c, 0xc000, 0xd000, region());
-				set_region(0xe0 + c, 0xd000, 0xffff, region());
+				set_region(0xe0 + c, 0x0000, 0xc000, region());	// Immovable.
+				set_region(0xe0 + c, 0xc000, 0xd000, region());	// IO.
+				set_region(0xe0 + c, 0xd000, 0xe000, region());	// Lower language card.
+				set_region(0xe0 + c, 0xe000, 0xffff, region());	// Upper language card.
 			}
 
 			// [Banks $e2–[ROM start]: empty].
@@ -188,45 +192,102 @@ class MemoryMap {
 			set_main_paging();
 		}
 
-		// MARK: - Memory banking.
-		void set_language_card_paging() {
-			const auto language_state = language_card_.state();
-			const auto zero_state = auxiliary_switches_.zero_state();
+		// MARK: - Live bus access notifications.
 
-			uint8_t *const ram = zero_state ? &ram_[65536] : ram_;
-			const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffd000];
+		void set_shadow_register(uint8_t value) {
+			const uint8_t diff = value ^ shadow_register_;
+			shadow_register_ = value;
 
-			// Assumption: the language card regions are unique.
-			auto &d0_region = regions[region_map[0x00d0]];
-			d0_region.read = (language_state.read ? &ram[language_state.bank1 ? 0xd000 : 0xc000] : rom) - 0xd000;
-			if(language_state.write) {
-				d0_region.write = nullptr;
-			} else {
-				d0_region.write = &ram[language_state.bank1 ? 0xd000 : 0xc000] - 0xd000;
+			if(diff & 0x40) {	// IO/language-card inhibit
+				set_language_card_paging();
+				set_card_paging();
 			}
 
-			auto &e0_region = regions[region_map[0x00e0]];
-			e0_region.read = (language_state.read ? &ram[0xe000] : rom) - 0xd000;
-			if(language_state.write) {
-				e0_region.write = nullptr;
-			} else {
-				e0_region.write = ram;
+			if(diff & 0x3f) {
+				set_shadowing();
 			}
+		}
 
-			// TODO: banks other than zero!
-		}
-		void set_card_paging() {
-		}
-		void set_zero_page_paging() {
-			set_language_card_paging();
-		}
-		void set_main_paging() {
+		void set_speed_register(uint8_t value) {
+			const uint8_t diff = value ^ speed_register_;
+			speed_register_ = value;
+			if(diff & 0x10) {
+				set_shadowing();
+			}
 		}
 
 	private:
 		Apple::II::AuxiliaryMemorySwitches<MemoryMap> auxiliary_switches_;
 		Apple::II::LanguageCardSwitches<MemoryMap> language_card_;
+		friend Apple::II::AuxiliaryMemorySwitches<MemoryMap>;
+		friend Apple::II::LanguageCardSwitches<MemoryMap>;
 		uint8_t *ram_ = nullptr;
+
+		uint8_t shadow_register_ = 0x08;
+		uint8_t speed_register_ = 0x00;
+
+		// MARK: - Memory banking.
+		void set_language_card_paging() {
+			const auto language_state = language_card_.state();
+			const auto zero_state = auxiliary_switches_.zero_state();
+			const bool inhibit_banks0001 = shadow_register_ & 0x40;
+
+			// Crib the ROM pointer from a page it's always visible on.
+			const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffd000] - 0xd000;
+			auto apply = [&language_state, &zero_state, rom, this](uint32_t bank_base, uint8_t *ram) {
+				// All references below are to 0xc000, 0xd000 and 0xe000 but should
+				// work regardless of bank.
+
+				// TODO: verify order of ternary here — on the plain Apple II it was arbitrary.
+				uint8_t *const lower_ram_bank = ram - (language_state.bank1 ? 0x0000 : 0x1000);
+
+				auto &d0_region = regions[region_map[bank_base | 0xd0]];
+				d0_region.read = language_state.read ? lower_ram_bank : rom;
+				d0_region.write = language_state.write ? nullptr : lower_ram_bank;
+
+				auto &e0_region = regions[region_map[bank_base | 0xe0]];
+				e0_region.read = language_state.read ? ram : rom;
+				e0_region.write = language_state.write ? nullptr : ram;
+
+				// Assert assumptions made above re: memory layout.
+				assert(region_map[bank_base | 0xd0] + 1 == region_map[bank_base | 0xe0]);
+				assert(region_map[bank_base | 0xe0] == region_map[bank_base | 0xff]);
+			};
+			auto set_no_card = [this](uint32_t bank_base) {
+				auto &d0_region = regions[region_map[bank_base | 0xd0]];
+				d0_region.read = ram_;
+				d0_region.write = ram_;
+
+				auto &e0_region = regions[region_map[bank_base | 0xe0]];
+				e0_region.read = ram_;
+				e0_region.write = ram_;
+			};
+
+			if(inhibit_banks0001) {
+				set_no_card(0x0000);
+				set_no_card(0x0100);
+			} else {
+				apply(0x0000, zero_state ? &ram_[0x10000] : ram_);
+				apply(0x0100, ram_);
+			}
+
+			uint8_t *const e0_ram = regions[region_map[0xe000]].write;
+			apply(0xe000, e0_ram);
+			apply(0xe100, e0_ram);
+		}
+
+		void set_card_paging() {
+		}
+
+		void set_zero_page_paging() {
+			set_language_card_paging();
+		}
+
+		void set_main_paging() {
+		}
+
+		void set_shadowing() {
+		}
 
 	public:
 		// Memory layout here is done via double indirection; the main loop should:
@@ -250,7 +311,7 @@ class MemoryMap {
 				IsIO = 1 << 3,			// Indicates that this region should be checked for soft switches, registers, etc.
 			};
 		};
-		std::array<Region, 47> regions;	// The assert above ensures that this is large enough; there's no
+		std::array<Region, 64> regions;	// The assert above ensures that this is large enough; there's no
 										// doctrinal reason for it to be whatever size it is now, just
 										// adjust as required.
 };
