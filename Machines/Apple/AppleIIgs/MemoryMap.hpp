@@ -26,8 +26,9 @@ class MemoryMap {
 		MemoryMap() : auxiliary_switches_(*this), language_card_(*this) {}
 
 		void set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
-			// Keep a pointer for later.
+			// Keep a pointer for later; also note the proper RAM offset.
 			ram_ = ram.data();
+			shadow_offset = ram.size() - (128*1024);
 
 			// Establish bank mapping.
 			uint8_t next_region = 0;
@@ -87,7 +88,7 @@ class MemoryMap {
 			set_regions(0x01, {
 				0x0400,	0x0800, 0x0c00,
 				0x2000,	0x4000, 0x6000, 0xa000,
-				0xc000,		/* I don't think ROM-over-$Cx00 works in bank $01? */
+				0xc000,	0xc100,	0xc300,	0xc400,	0xc800,
 				0xd000,	0xe000,
 				0xffff
 			});
@@ -123,9 +124,9 @@ class MemoryMap {
 			// [Banks $80–$e0: empty].
 
 			// Banks $e0, $e1: all locations potentially affected by the language switches or marked for IO.
-			// TODO: do I need to break up the Cx pages?
+			// Alas, separate regions are needed due to the same ROM appearing on both pages.
 			for(uint8_t c = 0; c < 2; c++) {
-				set_regions(0xe0 + c, {0xc000, 0xd000, 0xe000, 0xffff});
+				set_regions(0xe0 + c, {0xc000, 0xc100, 0xc300, 0xc400, 0xc800, 0xd000, 0xe000, 0xffff});
 			}
 
 			// [Banks $e2–[ROM start]: empty].
@@ -170,10 +171,13 @@ class MemoryMap {
 				set_storage((first_rom_bank + c) << 16, &rom[c << 16], nullptr);
 			}
 
-			// Apply initial language/auxiliary state. [TODO: including shadowing register].
+			// TODO: set 1Mhz flags.
+
+			// Apply initial language/auxiliary state.
 			set_card_paging();
 			set_zero_page_paging();
 			set_main_paging();
+			set_shadowing();
 		}
 
 		// MARK: - Live bus access notifications.
@@ -266,17 +270,62 @@ class MemoryMap {
 			const bool inhibit_banks0001 = shadow_register_ & 0x40;
 			const auto state = auxiliary_switches_.card_state();
 
-			// TODO: all work.
+			auto apply = [&state, this](uint32_t bank_base) {
+				auto &c0_region = regions[region_map[bank_base | 0xc0]];
+				auto &c1_region = regions[region_map[bank_base | 0xc1]];
+				auto &c3_region = regions[region_map[bank_base | 0xc3]];
+				auto &c4_region = regions[region_map[bank_base | 0xc4]];
+				auto &c8_region = regions[region_map[bank_base | 0xc8]];
+
+				const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffc100] - ((bank_base << 8) + 0xc100);
+
+				// This is applied dynamically as it may be added or lost in banks $00 and $01.
+				c0_region.flags |= Region::IsIO;
+
+#define apply_region(flag, region)	\
+				if(flag) {	\
+					region.read = rom;	\
+					region.flags &= ~Region::IsIO;	\
+				} else {	\
+					region.flags |= Region::IsIO;	\
+				}
+
+				apply_region(state.region_C1_C3, c1_region);
+				apply_region(state.region_C3, c3_region);
+				apply_region(state.region_C4_C8, c4_region);
+				apply_region(state.region_C8_D0, c8_region);
+
+#undef apply_region
+
+				// Sanity checks.
+				assert(region_map[bank_base | 0xc1] == region_map[bank_base | 0xc0]+1);
+				assert(region_map[bank_base | 0xc3] == region_map[bank_base | 0xc1]+1);
+				assert(region_map[bank_base | 0xc4] == region_map[bank_base | 0xc3]+1);
+				assert(region_map[bank_base | 0xc8] == region_map[bank_base | 0xc4]+1);
+			};
 
 			if(inhibit_banks0001) {
-				// Set no IO anywhere, all the Cx regions point to regular RAM
-				// (or possibly auxiliary).
+				// Set no IO in the Cx00 range for banks $00 and $01, just
+				// regular RAM (or possibly auxiliary).
+				const auto auxiliary_state = auxiliary_switches_.main_state();
+				for(uint8_t region = region_map[0x00c0]; region < region_map[0x00d0]; region++) {
+					regions[region].read = auxiliary_state.base.read ? &ram_[0x10000] : ram_;
+					regions[region].write = auxiliary_state.base.write ? &ram_[0x10000] : ram_;
+					regions[region].flags &= ~Region::IsIO;
+				}
+				for(uint8_t region = region_map[0x01c0]; region < region_map[0x01d0]; region++) {
+					regions[region].read = regions[region].write = ram_;
+					regions[region].flags &= ~Region::IsIO;
+				}
 			} else {
 				// Obey the card state for banks $00 and $01.
+				apply(0x0000);
+				apply(0x0100);
 			}
 
 			// Obey the card state for banks $e0 and $e1.
-			(void)state;
+			apply(0xe000);
+			apply(0xe100);
 		}
 
 		void set_zero_page_paging() {
@@ -291,6 +340,7 @@ class MemoryMap {
 		}
 
 		void set_shadowing() {
+			// TODO.
 		}
 
 		void set_main_paging() {
@@ -309,8 +359,11 @@ class MemoryMap {
 			set(0x20, state.region_20_40);
 
 #undef set
-			// This also affects shadowing flags, if shadowing is enabled at all.
+			// This also affects shadowing flags, if shadowing is enabled at all,
+			// and might affect RAM in the IO area of bank $00 because the language
+			// card can be inhibited on a IIgs.
 			set_shadowing();
+			set_card_paging();
 		}
 
 	public:
@@ -321,6 +374,7 @@ class MemoryMap {
 		// Pointers are eight bytes at the time of writing, so the extra level of indirection
 		// reduces what would otherwise be a 1.25mb table down to not a great deal more than 64kb.
 		std::array<uint8_t, 65536> region_map;
+		size_t shadow_offset;
 
 		struct Region {
 			uint8_t *write = nullptr;
@@ -328,11 +382,10 @@ class MemoryMap {
 			uint8_t flags = 0;
 
 			enum Flag: uint8_t {
-				IsShadowedE0 = 1 << 0,	// i.e. writes should also be written to bank $e0, and costed appropriately.
-				IsShadowedE1 = 1 << 1,	// i.e. writes should also be written to bank $e1, and costed appropriately.
-				IsShadowed = IsShadowedE0 | IsShadowedE1,
-				Is1Mhz = 1 << 2,		// Both reads and writes should be synchronised with the 1Mhz clock.
-				IsIO = 1 << 3,			// Indicates that this region should be checked for soft switches, registers, etc.
+				IsShadowed = 1 << 0,	// Writes should be shadowed to [end of RAM - 128kb + base offset].
+				Is1Mhz = 1 << 1,		// Both reads and writes should be synchronised with the 1Mhz clock.
+				IsIO = 1 << 2,			// Indicates that this region should be checked for soft switches, registers, etc;
+										// usurps the shadowed flags.
 			};
 		};
 		std::array<Region, 64> regions;	// The assert above ensures that this is large enough; there's no
@@ -345,9 +398,8 @@ class MemoryMap {
 #define MemoryMapWrite(map, region, address, value) \
 	if(region.write) {	\
 		region.write[address] = *value;	\
-		if(region.flags & (MemoryMap::Region::IsShadowed)) {	\
-			const uint32_t shadowed_address = (address & 0xffff) + (uint32_t(0xe1 - (region.flags & MemoryMap::Region::IsShadowedE0)) << 16);	\
-			map.regions[map.region_map[shadowed_address >> 8]].write[shadowed_address] = *value;	\
+		if(region.flags & MemoryMap::Region::IsShadowed) {	\
+			region.write[address + map.shadow_offset] = *value;	\
 		}	\
 	}
 
