@@ -62,16 +62,21 @@ namespace {
 	XCTAssertEqual(_rom[0], 0xc0);
 }
 
-- (void)testROMInBank0 {
+- (void)testROM {
 	_rom.back() = 0xa8;
+	auto test_bank = [self](uint32_t bank) {
+		const uint32_t address = bank | 0x00ffff;
+		const auto &region = MemoryMapRegion(_memoryMap, address);
+		uint8_t value;
+		MemoryMapRead(region, address, &value);
+		XCTAssertEqual(value, 0xa8);
 
-	// Test that ROM is properly visible in bank 0.
-	const uint32_t address = 0x00ffff;
-	const auto &region = MemoryMapRegion(_memoryMap, address);
-	uint8_t value;
-	MemoryMapRead(region, address, &value);
+	};
 
-	XCTAssertEqual(value, 0xa8);
+	test_bank(0x000000);
+	test_bank(0x010000);
+	test_bank(0xe00000);
+	test_bank(0xe10000);
 }
 
 @end

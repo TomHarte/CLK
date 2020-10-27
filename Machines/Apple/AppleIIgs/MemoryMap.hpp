@@ -217,14 +217,15 @@ class MemoryMap {
 			const auto zero_state = auxiliary_switches_.zero_state();
 			const bool inhibit_banks0001 = shadow_register_ & 0x40;
 
-			// Crib the ROM pointer from a page it's always visible on.
-			const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffd000] - 0xd000;
-			auto apply = [&language_state, &zero_state, rom, this](uint32_t bank_base, uint8_t *ram) {
+			auto apply = [&language_state, &zero_state, this](uint32_t bank_base, uint8_t *ram) {
 				// All references below are to 0xc000, 0xd000 and 0xe000 but should
 				// work regardless of bank.
 
 				// TODO: verify order of ternary here — on the plain Apple II it was arbitrary.
 				uint8_t *const lower_ram_bank = ram - (language_state.bank1 ? 0x0000 : 0x1000);
+
+				// Crib the ROM pointer from a page it's always visible on.
+				const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffd000] - ((bank_base << 8) + 0xd000);
 
 				auto &d0_region = regions[region_map[bank_base | 0xd0]];
 				d0_region.read = language_state.read ? lower_ram_bank : rom;
