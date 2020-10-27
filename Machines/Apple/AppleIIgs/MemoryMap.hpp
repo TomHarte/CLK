@@ -340,7 +340,40 @@ class MemoryMap {
 		}
 
 		void set_shadowing() {
-			// TODO.
+			// TODO: check speed register bit to determine potential effect
+			// on all pages beyond $00 and $01.
+
+#define apply(flag, zone)	\
+	if(flag) {	\
+		regions[region_map[zone]].flags &= ~Region::IsShadowed; \
+	} else {	\
+		regions[region_map[zone]].flags |= Region::IsShadowed; \
+	}
+
+			// Text Page 1, main and auxiliary.
+			apply(shadow_register_ & 0x01, 0x0004);
+			apply(shadow_register_ & 0x01, 0x0104);
+
+			// Text Page 2, main and auxiliary.
+			// TODO: on a ROM03 machine only.
+			apply(shadow_register_ & 0x20, 0x0008);
+			apply(shadow_register_ & 0x20, 0x0108);
+
+			// Hi-res graphics Page 1, main and auxiliary.
+			apply(shadow_register_ & 0x02, 0x0020);
+			apply(shadow_register_ & 0x12, 0x0120);
+
+			// Hi-res graphics Page 2, main and auxiliary.
+			apply(shadow_register_ & 0x04, 0x0040);
+			apply(shadow_register_ & 0x14, 0x0140);
+
+			// Residue of Super Hi-Res.
+			apply(shadow_register_ & 0x08, 0x0160);
+
+			// TODO: does inhibiting Super Hi-Res also affect the regular hi-res pages?
+
+#undef apply
+
 		}
 
 		void set_main_paging() {
