@@ -46,6 +46,17 @@ class MemoryMap {
 					++target;
 				}
 			};
+			auto set_regions = [this, set_region, region](uint8_t bank, std::initializer_list<uint16_t> addresses, std::vector<uint8_t> allocated_regions = {}) {
+				uint16_t previous = 0x0000;
+				auto next_region = allocated_regions.begin();
+				for(uint16_t address: addresses) {
+					set_region(bank, previous, address, next_region != allocated_regions.end() ? *next_region : region());
+					previous = address;
+					assert(next_region != allocated_regions.end() || allocated_regions.empty());
+					if(next_region != allocated_regions.end()) ++next_region;
+				}
+				assert(next_region == allocated_regions.end());
+			};
 
 			// Current beliefs about the IIgs memory map:
 			//
@@ -63,38 +74,28 @@ class MemoryMap {
 
 			// Bank $00: all locations potentially affected by the auxiliary switches or the
 			// language switches. Which will naturally align with shadowable zones.
-			set_region(0x00, 0x0000, 0x0200, region());
-			set_region(0x00, 0x0200, 0x0400, region());
-			set_region(0x00, 0x0400, 0x0800, region());
-			set_region(0x00, 0x0800, 0x2000, region());
-			set_region(0x00, 0x2000, 0x4000, region());
-			set_region(0x00, 0x4000, 0xc000, region());
-			set_region(0x00, 0xc000, 0xc100, region());
-			set_region(0x00, 0xc100, 0xc300, region());
-			set_region(0x00, 0xc300, 0xc400, region());
-			set_region(0x00, 0xc400, 0xc800, region());
-			set_region(0x00, 0xc800, 0xd000, region());
-			set_region(0x00, 0xd000, 0xe000, region());
-			set_region(0x00, 0xe000, 0xffff, region());
+			set_regions(0x00, {
+				0x0200,	0x0400,	0x0800, 0x0c00,
+				0x2000,	0x4000,
+				0xc000,	0xc100,	0xc300,	0xc400,	0xc800,
+				0xd000,	0xe000,
+				0xffff
+			});
 
 			// Bank $01: all locations potentially affected by the language switches, by shadowing,
 			// or marked for IO.
-			set_region(0x01, 0x0000, 0x0400, region());
-			set_region(0x01, 0x0400, 0x0800, region());
-			set_region(0x01, 0x0800, 0x0c00, region());
-			set_region(0x01, 0x0c00, 0x2000, region());
-			set_region(0x01, 0x2000, 0x4000, region());
-			set_region(0x01, 0x4000, 0x6000, region());
-			set_region(0x01, 0x6000, 0xa000, region());
-			set_region(0x01, 0xa000, 0xc000, region());
-			set_region(0x01, 0xc000, 0xd000, region());
-			set_region(0x01, 0xd000, 0xe000, region());
-			set_region(0x01, 0xe000, 0xffff, region());
+			set_regions(0x01, {
+				0x0400,	0x0800, 0x0c00,
+				0x2000,	0x4000, 0x6000, 0xa000,
+				0xc000,		/* I don't think ROM-over-$Cx00 works in bank $01? */
+				0xd000,	0xe000,
+				0xffff
+			});
 
 			// Banks $02–[end of RAM]: all locations potentially affected by shadowing.
 			const uint8_t fast_ram_bank_count = uint8_t((ram.size() - 128*1024) / 65536);
 			if(fast_ram_bank_count > 2) {
-				const uint8_t evens[] = {
+				const std::vector<uint8_t> evens = {
 					region(),	// 0x0000 – 0x0400.
 					region(),	// 0x0400 – 0x0800.
 					region(),	// 0x0800 – 0x0c00.
@@ -103,7 +104,7 @@ class MemoryMap {
 					region(),	// 0x4000 – 0x6000.
 					region(),	// 0x6000 – [end].
 				};
-				const uint8_t odds[] = {
+				const std::vector<uint8_t> odds = {
 					region(),	// 0x0000 – 0x0400.
 					region(),	// 0x0400 – 0x0800.
 					region(),	// 0x0800 – 0x0c00.
@@ -114,22 +115,8 @@ class MemoryMap {
 					region(),	// 0xa000 – [end].
 				};
 				for(uint8_t bank = 0x02; bank < fast_ram_bank_count; bank += 2) {
-					set_region(bank, 0x0000, 0x0400, evens[0]);
-					set_region(bank, 0x0400, 0x0800, evens[1]);
-					set_region(bank, 0x0800, 0x0c00, evens[2]);
-					set_region(bank, 0x0c00, 0x2000, evens[3]);
-					set_region(bank, 0x2000, 0x4000, evens[4]);
-					set_region(bank, 0x4000, 0x6000, evens[5]);
-					set_region(bank, 0x6000, 0xffff, evens[6]);
-
-					set_region(bank+1, 0x0000, 0x0400, odds[0]);
-					set_region(bank+1, 0x0400, 0x0800, odds[1]);
-					set_region(bank+1, 0x0800, 0x0c00, odds[2]);
-					set_region(bank+1, 0x0c00, 0x2000, odds[3]);
-					set_region(bank+1, 0x2000, 0x4000, odds[4]);
-					set_region(bank+1, 0x4000, 0x6000, odds[5]);
-					set_region(bank+1, 0x6000, 0xa000, odds[6]);
-					set_region(bank+1, 0xa000, 0xffff, odds[7]);
+					set_regions(bank,	{0x0400, 0x0800, 0x0c00, 0x2000, 0x4000, 0x6000, 0xffff}, evens);
+					set_regions(bank+1,	{0x0400, 0x0800, 0x0c00, 0x2000, 0x4000, 0x6000, 0xa000, 0xffff}, odds);
 				}
 			}
 
@@ -138,10 +125,7 @@ class MemoryMap {
 			// Banks $e0, $e1: all locations potentially affected by the language switches or marked for IO.
 			// TODO: do I need to break up the Cx pages?
 			for(uint8_t c = 0; c < 2; c++) {
-				set_region(0xe0 + c, 0x0000, 0xc000, region());	// Immovable.
-				set_region(0xe0 + c, 0xc000, 0xd000, region());	// IO.
-				set_region(0xe0 + c, 0xd000, 0xe000, region());	// Lower language card.
-				set_region(0xe0 + c, 0xe000, 0xffff, region());	// Upper language card.
+				set_regions(0xe0 + c, {0xc000, 0xd000, 0xe000, 0xffff});
 			}
 
 			// [Banks $e2–[ROM start]: empty].
@@ -227,6 +211,7 @@ class MemoryMap {
 		uint8_t speed_register_ = 0x00;
 
 		// MARK: - Memory banking.
+
 		void set_language_card_paging() {
 			const auto language_state = language_card_.state();
 			const auto zero_state = auxiliary_switches_.zero_state();
@@ -277,16 +262,54 @@ class MemoryMap {
 		}
 
 		void set_card_paging() {
+			const bool inhibit_banks0001 = shadow_register_ & 0x40;
+			const auto state = auxiliary_switches_.card_state();
+
+			// TODO: all work.
+
+			if(inhibit_banks0001) {
+				// Set no IO anywhere, all the Cx regions point to regular RAM
+				// (or possibly auxiliary).
+			} else {
+				// Obey the card state for banks $00 and $01.
+			}
+
+			// Obey the card state for banks $e0 and $e1.
+			(void)state;
 		}
 
 		void set_zero_page_paging() {
+			// Affects bank $00 only, and should be a single region.
+			auto &region = regions[region_map[0]];
+			region.read = region.write = auxiliary_switches_.zero_state() ? &ram_[0x10000] : ram_;
+
+			// Switching to or from auxiliary RAM potentially affects the language
+			// and regular card areas.
+			set_card_paging();
 			set_language_card_paging();
 		}
 
-		void set_main_paging() {
+		void set_shadowing() {
 		}
 
-		void set_shadowing() {
+		void set_main_paging() {
+			const auto state = auxiliary_switches_.main_state();
+
+#define set(page, flags)	{\
+			auto &region = regions[region_map[page]];	\
+			region.read = flags.read ? &ram_[0x10000] : ram_;	\
+			region.write = flags.write ? &ram_[0x10000] : ram_;	\
+		}
+
+			set(0x02, state.base);
+			set(0x08, state.base);
+			set(0x40, state.base);
+			set(0x04, state.region_04_08);
+			set(0x20, state.region_20_40);
+
+#undef set
+			// This also affects shadowing flags, if shadowing is enabled at all.
+			set_shadowing();
 		}
 
 	public:
