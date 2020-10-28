@@ -27,7 +27,7 @@ class MemoryMap {
 
 		void set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
 			// Keep a pointer for later; also note the proper RAM offset.
-			ram_ = ram.data();
+			ram_base = ram.data();
 			shadow_offset = ram.size() - (128*1024);
 
 			// Establish bank mapping.
@@ -209,7 +209,6 @@ class MemoryMap {
 		Apple::II::LanguageCardSwitches<MemoryMap> language_card_;
 		friend Apple::II::AuxiliaryMemorySwitches<MemoryMap>;
 		friend Apple::II::LanguageCardSwitches<MemoryMap>;
-		uint8_t *ram_ = nullptr;
 
 		uint8_t shadow_register_ = 0x08;
 		uint8_t speed_register_ = 0x00;
@@ -245,20 +244,20 @@ class MemoryMap {
 			};
 			auto set_no_card = [this](uint32_t bank_base) {
 				auto &d0_region = regions[region_map[bank_base | 0xd0]];
-				d0_region.read = ram_;
-				d0_region.write = ram_;
+				d0_region.read = ram_base;
+				d0_region.write = ram_base;
 
 				auto &e0_region = regions[region_map[bank_base | 0xe0]];
-				e0_region.read = ram_;
-				e0_region.write = ram_;
+				e0_region.read = ram_base;
+				e0_region.write = ram_base;
 			};
 
 			if(inhibit_banks0001) {
 				set_no_card(0x0000);
 				set_no_card(0x0100);
 			} else {
-				apply(0x0000, zero_state ? &ram_[0x10000] : ram_);
-				apply(0x0100, ram_);
+				apply(0x0000, zero_state ? &ram_base[0x10000] : ram_base);
+				apply(0x0100, ram_base);
 			}
 
 			uint8_t *const e0_ram = regions[region_map[0xe000]].write;
@@ -309,12 +308,12 @@ class MemoryMap {
 				// regular RAM (or possibly auxiliary).
 				const auto auxiliary_state = auxiliary_switches_.main_state();
 				for(uint8_t region = region_map[0x00c0]; region < region_map[0x00d0]; region++) {
-					regions[region].read = auxiliary_state.base.read ? &ram_[0x10000] : ram_;
-					regions[region].write = auxiliary_state.base.write ? &ram_[0x10000] : ram_;
+					regions[region].read = auxiliary_state.base.read ? &ram_base[0x10000] : ram_base;
+					regions[region].write = auxiliary_state.base.write ? &ram_base[0x10000] : ram_base;
 					regions[region].flags &= ~Region::IsIO;
 				}
 				for(uint8_t region = region_map[0x01c0]; region < region_map[0x01d0]; region++) {
-					regions[region].read = regions[region].write = ram_;
+					regions[region].read = regions[region].write = ram_base;
 					regions[region].flags &= ~Region::IsIO;
 				}
 			} else {
@@ -331,7 +330,7 @@ class MemoryMap {
 		void set_zero_page_paging() {
 			// Affects bank $00 only, and should be a single region.
 			auto &region = regions[region_map[0]];
-			region.read = region.write = auxiliary_switches_.zero_state() ? &ram_[0x10000] : ram_;
+			region.read = region.write = auxiliary_switches_.zero_state() ? &ram_base[0x10000] : ram_base;
 
 			// Switching to or from auxiliary RAM potentially affects the language
 			// and regular card areas.
@@ -373,7 +372,6 @@ class MemoryMap {
 			// TODO: does inhibiting Super Hi-Res also affect the regular hi-res pages?
 
 #undef apply
-
 		}
 
 		void set_main_paging() {
@@ -381,8 +379,8 @@ class MemoryMap {
 
 #define set(page, flags)	{\
 			auto &region = regions[region_map[page]];	\
-			region.read = flags.read ? &ram_[0x10000] : ram_;	\
-			region.write = flags.write ? &ram_[0x10000] : ram_;	\
+			region.read = flags.read ? &ram_base[0x10000] : ram_base;	\
+			region.write = flags.write ? &ram_base[0x10000] : ram_base;	\
 		}
 
 			set(0x02, state.base);
@@ -407,6 +405,7 @@ class MemoryMap {
 		// Pointers are eight bytes at the time of writing, so the extra level of indirection
 		// reduces what would otherwise be a 1.25mb table down to not a great deal more than 64kb.
 		std::array<uint8_t, 65536> region_map;
+		uint8_t *ram_base = nullptr;
 		size_t shadow_offset;
 
 		struct Region {
@@ -432,7 +431,7 @@ class MemoryMap {
 	if(region.write) {	\
 		region.write[address] = *value;	\
 		if(region.flags & MemoryMap::Region::IsShadowed) {	\
-			region.write[address + map.shadow_offset] = *value;	\
+			map.ram_base[(&region.write[address] - map.ram_base) % (128 * 1024) + map.shadow_offset] = *value;	\
 		}	\
 	}
 
