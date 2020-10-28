@@ -28,7 +28,7 @@ class MemoryMap {
 		void set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
 			// Keep a pointer for later; also note the proper RAM offset.
 			ram_base = ram.data();
-			shadow_offset = ram.size() - (128*1024);
+			shadow_base[1] = &ram[ram.size() - 128*1024];
 
 			// Establish bank mapping.
 			uint8_t next_region = 0;
@@ -397,6 +397,8 @@ class MemoryMap {
 			set_card_paging();
 		}
 
+		uint8_t shadow_throwaway_;
+
 	public:
 		// Memory layout here is done via double indirection; the main loop should:
 		//	(i) use the top two bytes of the address to get an index from memory_map_; and
@@ -406,7 +408,8 @@ class MemoryMap {
 		// reduces what would otherwise be a 1.25mb table down to not a great deal more than 64kb.
 		std::array<uint8_t, 65536> region_map;
 		uint8_t *ram_base = nullptr;
-		size_t shadow_offset;
+		uint8_t *shadow_base[2] = {&shadow_throwaway_, nullptr};
+		const int shadow_modulo[2] = {1, 128*1024};
 
 		struct Region {
 			uint8_t *write = nullptr;
@@ -430,10 +433,21 @@ class MemoryMap {
 #define MemoryMapWrite(map, region, address, value) \
 	if(region.write) {	\
 		region.write[address] = *value;	\
-		if(region.flags & MemoryMap::Region::IsShadowed) {	\
-			map.ram_base[(&region.write[address] - map.ram_base) % (128 * 1024) + map.shadow_offset] = *value;	\
-		}	\
+		const auto is_shadowed = region.flags & MemoryMap::Region::IsShadowed;	\
+		map.shadow_base[is_shadowed][(&region.write[address] - map.ram_base) % map.shadow_modulo[is_shadowed]] = *value;	\
 	}
+
+// Quick notes on ::IsShadowed contortions:
+//
+// The objective is to support shadowing:
+//	1. without storing a whole extra pointer, and such that the shadowing flags are orthogonal to the current auxiliary memory settings;
+//	2. in such a way as to support shadowing both in banks $00/$01 and elsewhere; and
+//	3. to do so without introducing too much in the way of branching.
+//
+// Hence the implemented solution: if shadowing is enabled then use the distance from the start of physical RAM
+// modulo 128k indexed into the bank $e0/$e1 RAM.
+//
+// With a further twist: the modulo and pointer are indexed on ::IsShadowed to eliminate a branch even on that.
 
 }
 }
