@@ -112,7 +112,7 @@ class ConcreteMachine:
 				}
 			}
 
-			printf("%06x [%02x]\n", address, *value);
+			printf("%06x [%02x] %c\n", address, *value, operation == CPU::WDC65816::BusOperation::ReadOpcode ? '*' : ' ');
 
 			Cycles duration = Cycles(5);
 

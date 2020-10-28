@@ -298,7 +298,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePush);						// PBR.
 		target(CycleAccessStack);				// IO.
 
-		target(CycleFetchIncrementPC);			// New PBR.
+		target(CycleFetchPC);					// New PBR.
 
 		target(OperationConstructAbsolute);		// Calculate data address.
 		target(OperationPerform);				// [JSL]
@@ -699,7 +699,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePull);				// New PCH.
 		target(CyclePull);				// New PBR.
 
-		target(OperationPerform);		// [JML, to perform the RTL]
+		target(OperationPerform);		// [RTL]
 	}
 
 	// 22j. Stack; s, BRK/COP.
@@ -867,7 +867,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x68 PLA s */			op(stack_pull, LDA);
 	/* 0x69 ADC # */			op(immediate, ADC);
 	/* 0x6a ROR A */			op(accumulator, ROR);
-	/* 0x6b RTL s */			op(stack_rtl, JML);
+	/* 0x6b RTL s */			op(stack_rtl, RTL);
 	/* 0x6c JMP (a) */			op(absolute_indirect_jmp, JMPind);
 	/* 0x6d ADC a */			op(absolute, ADC);
 	/* 0x6e ROR a */			op(absolute_rmw, ROR);

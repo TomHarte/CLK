@@ -626,6 +626,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							registers_.pc = uint16_t(data_buffer_.value);
 						break;
 
+						case RTL:
+							registers_.program_bank = data_buffer_.value & 0xff0000;
+						[[fallthrough]];
+
 						case RTS:
 							registers_.pc = uint16_t(data_buffer_.value + 1);
 						break;

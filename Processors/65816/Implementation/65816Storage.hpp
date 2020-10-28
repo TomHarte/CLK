@@ -220,6 +220,9 @@ enum Operation: uint8_t {
 
 	/// Loads the PC with the contents of the data buffer + 1.
 	RTS,
+
+	/// Loads the PC and program bank with the contents of the data buffer + 1.
+	RTL,
 };
 
 struct ProcessorStorageConstructor;
