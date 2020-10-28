@@ -77,7 +77,7 @@ class MemoryMap {
 			// language switches. Which will naturally align with shadowable zones.
 			set_regions(0x00, {
 				0x0200,	0x0400,	0x0800, 0x0c00,
-				0x2000,	0x4000,
+				0x2000,	0x4000, 0x6000,
 				0xc000,	0xc100,	0xc300,	0xc400,	0xc800,
 				0xd000,	0xe000,
 				0xffff
@@ -339,8 +339,7 @@ class MemoryMap {
 		}
 
 		void set_shadowing() {
-			// TODO: check speed register bit to determine potential effect
-			// on all pages beyond $00 and $01.
+			const bool inhibit_all_pages = speed_register_ & 0x10;
 
 #define apply(flag, zone)	\
 	if(flag) {	\
@@ -352,22 +351,31 @@ class MemoryMap {
 			// Text Page 1, main and auxiliary.
 			apply(shadow_register_ & 0x01, 0x0004);
 			apply(shadow_register_ & 0x01, 0x0104);
+			apply((shadow_register_ & 0x01) && inhibit_all_pages, 0x0204);
+			apply((shadow_register_ & 0x01) && inhibit_all_pages, 0x0304);
 
 			// Text Page 2, main and auxiliary.
 			// TODO: on a ROM03 machine only.
 			apply(shadow_register_ & 0x20, 0x0008);
 			apply(shadow_register_ & 0x20, 0x0108);
+			apply((shadow_register_ & 0x20) && inhibit_all_pages, 0x0208);
+			apply((shadow_register_ & 0x20) && inhibit_all_pages, 0x0308);
 
 			// Hi-res graphics Page 1, main and auxiliary.
 			apply(shadow_register_ & 0x02, 0x0020);
 			apply(shadow_register_ & 0x12, 0x0120);
+			apply((shadow_register_ & 0x02) && inhibit_all_pages, 0x0220);
+			apply((shadow_register_ & 0x12) && inhibit_all_pages, 0x0320);
 
 			// Hi-res graphics Page 2, main and auxiliary.
 			apply(shadow_register_ & 0x04, 0x0040);
 			apply(shadow_register_ & 0x14, 0x0140);
+			apply((shadow_register_ & 0x04) && inhibit_all_pages, 0x0240);
+			apply((shadow_register_ & 0x14) && inhibit_all_pages, 0x0340);
 
 			// Residue of Super Hi-Res.
 			apply(shadow_register_ & 0x08, 0x0160);
+			apply((shadow_register_ & 0x08) && inhibit_all_pages, 0x0360);
 
 			// TODO: does inhibiting Super Hi-Res also affect the regular hi-res pages?
 
