@@ -85,11 +85,25 @@ class ConcreteMachine:
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
 			const auto &region = MemoryMapRegion(memory_, address);
 
-			printf("%06x\n", address);
-
 			if(region.flags & MemoryMap::Region::IsIO) {
-				// TODO: all IO accesses.
-				assert(false);
+				switch(address & 0xffff) {
+
+					// New video register.
+					case 0xc029:
+						if(isReadOperation(operation)) {
+							*value = 0;
+						} else {
+							printf("New video: %02x\n", *value);
+							// TODO: this bit should affect memory bank selection, somehow?
+							// Cf. Page 90.
+						}
+					break;
+
+					default:
+						// TODO: all other IO accesses.
+						printf("Unhandled IO: %04x\n", address);
+						assert(false);
+				}
 			} else {
 				if(isReadOperation(operation)) {
 					MemoryMapRead(region, address, value);
@@ -97,6 +111,8 @@ class ConcreteMachine:
 					MemoryMapWrite(memory_, region, address, value);
 				}
 			}
+
+			printf("%06x [%02x]\n", address, *value);
 
 			Cycles duration = Cycles(5);
 
