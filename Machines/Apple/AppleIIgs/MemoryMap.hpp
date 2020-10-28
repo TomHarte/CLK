@@ -204,6 +204,11 @@ class MemoryMap {
 			}
 		}
 
+		void access(uint16_t address, bool is_read) {
+			auxiliary_switches_.access(address, is_read);
+			if(address &0xfff0 == 0xc080) language_card_.access(address, is_read);
+		}
+
 	private:
 		Apple::II::AuxiliaryMemorySwitches<MemoryMap> auxiliary_switches_;
 		Apple::II::LanguageCardSwitches<MemoryMap> language_card_;
@@ -435,6 +440,9 @@ class MemoryMap {
 										// doctrinal reason for it to be whatever size it is now, just
 										// adjust as required.
 };
+
+// TODO: branching below on region.read/write is predicated on the idea that extra scratch space
+// would be less efficient. Verify that?
 
 #define MemoryMapRegion(map, address) map.regions[map.region_map[address >> 8]]
 #define MemoryMapRead(region, address, value) *value = region.read ? region.read[address] : 0xff

@@ -85,11 +85,12 @@ class ConcreteMachine:
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
 			const auto &region = MemoryMapRegion(memory_, address);
 
+			printf("%06x\n", address);
+
 			if(region.flags & MemoryMap::Region::IsIO) {
 				// TODO: all IO accesses.
+				assert(false);
 			} else {
-				// TODO: branching below is predicated on the idea that an extra 64kb of scratch write area
-				// and 64kb of 0xffs would be worse than branching due to the data set increase. Verify that?
 				if(isReadOperation(operation)) {
 					MemoryMapRead(region, address, value);
 				} else {
