@@ -70,11 +70,16 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		++opcode;
 	}
 
-	void set_exception_generator(Generator generator) {
+	void set_exception_generator(Generator generator, Generator reset_tail_generator) {
 		const auto map_entry = install(generator);
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[0] =
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[1] = uint16_t(map_entry->second.first);
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].operation = JMPind;
+
+		const auto reset_tail_entry = install(reset_tail_generator);
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::ResetTail)].program_offsets[0] =
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::ResetTail)].program_offsets[1] = uint16_t(reset_tail_entry->second.first);
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::ResetTail)].operation = JMPind;
 	}
 
 	void install_fetch_decode_execute() {
@@ -597,13 +602,28 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchPCThrowaway);		// IO.
 		target(CycleFetchPCThrowaway);		// IO.
 
-		target(OperationPrepareException);	// Populates the data buffer; this skips a micro-op if
-											// in emulation mode.
+		target(OperationPrepareException);	// Populates the data buffer; if the exception is a
+											// reset then switches to the reset tail program.
+											// Otherwise skips a micro-op if in emulation mode.
 
 		target(CyclePush);					// PBR	[skipped in emulation mode].
 		target(CyclePush);					// PCH.
 		target(CyclePush);					// PCL.
 		target(CyclePush);					// P.
+
+		target(CycleFetchIncrementVector);	// AAVL.
+		target(CycleFetchVector);			// AAVH.
+
+		target(OperationPerform);			// Jumps to the vector address.
+	}
+
+	static void reset_tail(AccessType, bool, const std::function<void(MicroOp)> &target) {
+		// The reset program still walks through three stack accesses as if it were doing
+		// the usual exception stack activity, but forces them to reads that don't modify
+		// the stack pointer. Here they are:
+		target(CycleAccessStack);			// PCH.
+		target(CycleAccessStack);			// PCL.
+		target(CycleAccessStack);			// P.
 
 		target(CycleFetchIncrementVector);	// AAVL.
 		target(CycleFetchVector);			// AAVH.
@@ -1027,7 +1047,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xff SBC al, x */		op(absolute_long_x, SBC);
 #undef op
 
-	constructor.set_exception_generator(&ProcessorStorageConstructor::stack_exception);
+	constructor.set_exception_generator(&ProcessorStorageConstructor::stack_exception, &ProcessorStorageConstructor::reset_tail);
 	constructor.install_fetch_decode_execute();
 
 	// Find any OperationMoveToNextProgram.

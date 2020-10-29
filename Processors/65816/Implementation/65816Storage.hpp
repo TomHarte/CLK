@@ -241,14 +241,16 @@ struct ProcessorStorage {
 		/// So the program to perform is that at @c program_offsets[mx_flags[size_field]]
 		uint8_t size_field = 0;
 	};
-	Instruction instructions[256 + 2];	// Arranged as:
+	Instruction instructions[256 + 3];	// Arranged as:
 										//	256 entries: instructions;
-										//	the entry for 'exceptions' (i.e. reset, irq, nmi); and
+										//	the entry for 'exceptions' (i.e. reset, irq, nmi);
+										//	a duplicate entry for the final part of exceptions if the selected exception is a reset; and
 										//	the entry for fetch-decode-execute.
 
 	enum class OperationSlot {
 		Exception = 256,
-		FetchDecodeExecute
+		ResetTail,
+		FetchDecodeExecute,
 	};
 
 	// A helper for testing.

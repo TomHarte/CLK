@@ -410,6 +410,13 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						pending_exceptions_ &= ~(Reset | PowerOn);
 						data_address_ = 0xfffc;
 						set_reset_state();
+
+						// Also switch tracks to the reset program, and don't load up the
+						// data buffer. set_reset_state() will already have fixed the
+						// interrupt and decimal flags.
+						active_instruction_ = &instructions[size_t(OperationSlot::ResetTail)];
+						next_op_ = &micro_ops_[active_instruction_->program_offsets[0]];
+						continue;
 					} else if(pending_exceptions_ & NMI) {
 						pending_exceptions_ &= ~NMI;
 						data_address_ = registers_.emulation_flag ? 0xfffa : 0xffea;
