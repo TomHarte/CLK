@@ -169,9 +169,9 @@ class ConcreteMachine:
 					break;
 
 					default:
-						if(address < 0xc100) {
+						if((address & 0xffff) < 0xc100) {
 							// TODO: all other IO accesses.
-							printf("Unhandled IO: %04x\n", address);
+							printf("Unhandled IO: %04x\n", address & 0xffff);
 							assert(false);
 						} else {
 							// Card IO. Not implemented!
