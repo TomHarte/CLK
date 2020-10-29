@@ -14,6 +14,9 @@
 #include "../../../Analyser/Static/AppleIIgs/Target.hpp"
 #include "MemoryMap.hpp"
 
+#include "../../../Components/8530/z8530.hpp"
+#include "../../../Components/DiskII/IWM.hpp"
+
 #include <cassert>
 #include <array>
 
@@ -149,6 +152,15 @@ class ConcreteMachine:
 #undef LanguageRead
 #undef SwitchRead
 
+					// The SCC.
+					case 0xc038: case 0xc039: case 0xc03a: case 0xc03b:
+						if(isReadOperation(operation)) {
+							*value = scc_.read(int(address));
+						} else {
+							scc_.write(int(address), *value);
+						}
+					break;
+
 					// These were all dealt with by the call to memory_.access.
 					// TODO: subject to read data? Does vapour lock apply?
 					case 0xc000: case 0xc001: case 0xc002: case 0xc003: case 0xc004: case 0xc005:
@@ -206,6 +218,9 @@ class ConcreteMachine:
 
 		std::vector<uint8_t> ram_;
 		std::vector<uint8_t> rom_;
+
+		// MARK: - Other components.
+ 		Zilog::SCC::z8530 scc_;
 };
 
 }
