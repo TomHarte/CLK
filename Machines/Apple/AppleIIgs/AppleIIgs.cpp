@@ -69,6 +69,9 @@ class ConcreteMachine:
 			ram_.resize(ram_size * 1024);
 
 			memory_.set_storage(ram_, rom_);
+
+			// Sync up initial values.
+			memory_.set_speed_register(speed_register_);
 		}
 
 		void run_for(const Cycles cycles) override {
@@ -96,6 +99,17 @@ class ConcreteMachine:
 							printf("New video: %02x\n", *value);
 							// TODO: this bit should affect memory bank selection, somehow?
 							// Cf. Page 90.
+						}
+					break;
+
+					// Speed register.
+					case 0xc036:
+						if(isReadOperation(operation)) {
+							*value = speed_register_;
+						} else {
+							memory_.set_speed_register(*value);
+							speed_register_ = *value;
+							printf("[Unimplemented] most of speed register: %02x\n", *value);
 						}
 					break;
 
@@ -136,9 +150,10 @@ class ConcreteMachine:
 		int fast_access_phase_ = 0;
 		int slow_access_phase_ = 0;
 
+		uint8_t speed_register_ = 0x00;
+
 		// MARK: - Memory storage.
 
-		// Actual memory storage.
 		std::vector<uint8_t> ram_;
 		std::vector<uint8_t> rom_;
 };
