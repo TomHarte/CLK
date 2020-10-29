@@ -656,6 +656,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void stack_pea(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);	// AAL.
 		target(CycleFetchIncrementPC);	// AAH.
+
+		target(OperationCopyInstructionToData);
+
 		target(CyclePush);				// AAH.
 		target(CyclePush);				// AAL.
 	}
