@@ -163,19 +163,32 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 			}
 		}
 
-		const MainState &main_state() {
+		/// Provides part of the IIgs interface.
+		void set_state(uint8_t value) {
+			switches_.alternative_zero_page = value & 0x80;
+			switches_.video_page_2 = value & 0x40;
+			switches_.read_auxiliary_memory = value & 0x20;
+			switches_.write_auxiliary_memory = value & 0x10;
+			switches_.internal_CX_rom = value & 0x01;
+
+			set_main_paging();
+			set_zero_page_paging();
+			set_card_paging();
+		}
+
+		const MainState &main_state() const {
 			return main_state_;
 		}
 
-		const CardState &card_state() {
+		const CardState &card_state() const {
 			return card_state_;
 		}
 
-		const ZeroState zero_state() {
+		const ZeroState zero_state() const {
 			return switches_.alternative_zero_page;
 		}
 
-		const SwitchState switches() {
+		const SwitchState switches() const {
 			return switches_;
 		}
 

@@ -180,7 +180,7 @@ class MemoryMap {
 			set_shadowing();
 		}
 
-		// MARK: - Live bus access notifications.
+		// MARK: - Live bus access notifications and register access.
 
 		void set_shadow_register(uint8_t value) {
 			const uint8_t diff = value ^ shadow_register_;
@@ -196,6 +196,10 @@ class MemoryMap {
 			}
 		}
 
+		uint8_t get_shadow_register() const {
+			return shadow_register_;
+		}
+
 		void set_speed_register(uint8_t value) {
 			const uint8_t diff = value ^ speed_register_;
 			speed_register_ = value;
@@ -204,16 +208,45 @@ class MemoryMap {
 			}
 		}
 
+		void set_state_register(uint8_t value) {
+			auxiliary_switches_.set_state(value);
+			language_card_.set_state(value);
+		}
+
+		uint8_t get_state_register() const {
+			const auto auxiliary_switches = auxiliary_switches_.switches();
+			const auto language_state = language_card_.state();
+
+			return
+				(auxiliary_switches.alternative_zero_page ? 0x80 : 0x00) |
+				(auxiliary_switches.video_page_2 ? 0x40 : 0x00) |
+				(auxiliary_switches.read_auxiliary_memory ? 0x20 : 0x00) |
+				(auxiliary_switches.write_auxiliary_memory ? 0x10 : 0x00) |
+				(language_state.read ? 0x08 : 0x00) |
+				(language_state.bank1 ? 0x04 : 0x00) |
+				(auxiliary_switches.internal_CX_rom ? 0x01 : 0x00);
+		}
+
 		void access(uint16_t address, bool is_read) {
 			auxiliary_switches_.access(address, is_read);
-			if(address &0xfff0 == 0xc080) language_card_.access(address, is_read);
+			if((address & 0xfff0) == 0xc080) language_card_.access(address, is_read);
+		}
+
+		using AuxiliaryMemorySwitches = Apple::II::AuxiliaryMemorySwitches<MemoryMap>;
+		const AuxiliaryMemorySwitches &auxiliary_switches() const {
+			return auxiliary_switches_;
+		}
+
+		using LanguageCardSwitches = Apple::II::LanguageCardSwitches<MemoryMap>;
+		const LanguageCardSwitches &language_card_switches() const {
+			return language_card_;
 		}
 
 	private:
-		Apple::II::AuxiliaryMemorySwitches<MemoryMap> auxiliary_switches_;
-		Apple::II::LanguageCardSwitches<MemoryMap> language_card_;
-		friend Apple::II::AuxiliaryMemorySwitches<MemoryMap>;
-		friend Apple::II::LanguageCardSwitches<MemoryMap>;
+		AuxiliaryMemorySwitches auxiliary_switches_;
+		LanguageCardSwitches language_card_;
+		friend AuxiliaryMemorySwitches;
+		friend LanguageCardSwitches;
 
 		uint8_t shadow_register_ = 0x08;
 		uint8_t speed_register_ = 0x00;

@@ -89,6 +89,9 @@ class ConcreteMachine:
 			const auto &region = MemoryMapRegion(memory_, address);
 
 			if(region.flags & MemoryMap::Region::IsIO) {
+				// Ensure classic auxiliary and language card accesses have effect.
+				memory_.access(uint16_t(address), isReadOperation(operation));
+
 				switch(address & 0xffff) {
 
 					// New video register.
@@ -99,6 +102,15 @@ class ConcreteMachine:
 							printf("New video: %02x\n", *value);
 							// TODO: this bit should affect memory bank selection, somehow?
 							// Cf. Page 90.
+						}
+					break;
+
+					// Shadow register.
+					case 0xc035:
+						if(isReadOperation(operation)) {
+							*value = memory_.get_shadow_register();
+						} else {
+							memory_.set_shadow_register(*value);
 						}
 					break;
 
@@ -113,10 +125,48 @@ class ConcreteMachine:
 						}
 					break;
 
+					// [Memory] State register.
+					case 0xc068:
+						if(isReadOperation(operation)) {
+							*value = memory_.get_state_register();
+						} else {
+							memory_.set_state_register(*value);
+						}
+					break;
+
+					// Various independent memory switch reads [TODO: does the IIe-style keyboard the low seven?].
+#define SwitchRead(s) *value = memory_.s ? 0x80 : 0x00
+#define LanguageRead(s) SwitchRead(language_card_switches().state().s)
+#define AuxiliaryRead(s) SwitchRead(auxiliary_switches().switches().s)
+					case 0xc011:	LanguageRead(bank1);						break;
+					case 0xc012:	LanguageRead(read);							break;
+					case 0xc013:	AuxiliaryRead(read_auxiliary_memory);		break;
+					case 0xc014:	AuxiliaryRead(write_auxiliary_memory);		break;
+					case 0xc015:	AuxiliaryRead(internal_CX_rom);				break;
+					case 0xc016:	AuxiliaryRead(alternative_zero_page);		break;
+					case 0xc017:	AuxiliaryRead(slot_C3_rom);					break;
+#undef AuxiliaryRead
+#undef LanguageRead
+#undef SwitchRead
+
+					// These were all dealt with by the call to memory_.access.
+					// TODO: subject to read data? Does vapour lock apply?
+					case 0xc000: case 0xc001: case 0xc002: case 0xc003: case 0xc004: case 0xc005:
+					case 0xc006: case 0xc007: case 0xc008: case 0xc009: case 0xc00a: case 0xc00b:
+					case 0xc054: case 0xc055: case 0xc056: case 0xc057:
+					break;
+
 					default:
-						// TODO: all other IO accesses.
-						printf("Unhandled IO: %04x\n", address);
-						assert(false);
+						if(address < 0xc100) {
+							// TODO: all other IO accesses.
+							printf("Unhandled IO: %04x\n", address);
+							assert(false);
+						} else {
+							// Card IO. Not implemented!
+							if(isReadOperation(operation)) {
+								*value = 0xff;
+							}
+						}
 				}
 			} else {
 				if(isReadOperation(operation)) {

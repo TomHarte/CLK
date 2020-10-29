@@ -73,8 +73,20 @@ template <typename Machine> class LanguageCardSwitches {
 		}
 
 		/// Provides read-only access to the current language card switch state.
-		const State &state() {
+		const State &state() const {
 			return state_;
+		}
+
+		/// Provides relevant parts of the IIgs interface.
+		void set_state(uint8_t value) {
+			const auto previous_state = state_;
+
+			state_.read = value & 0x08;
+			state_.bank1 = value & 0x04;
+
+			if(previous_state != state_) {
+				machine_.set_language_card_paging();
+			}
 		}
 
 	private:
