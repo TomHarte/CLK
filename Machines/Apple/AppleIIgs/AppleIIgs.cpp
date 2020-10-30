@@ -15,6 +15,7 @@
 #include "MemoryMap.hpp"
 
 #include "../../../Components/8530/z8530.hpp"
+#include "../../../Components/AppleClock/AppleClock.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
 
 #include <cassert>
@@ -91,15 +92,18 @@ class ConcreteMachine:
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
 			const auto &region = MemoryMapRegion(memory_, address);
 
+			// TODO: potentially push time to clock_.
+
 			if(region.flags & MemoryMap::Region::IsIO) {
 				// Ensure classic auxiliary and language card accesses have effect.
-				memory_.access(uint16_t(address), isReadOperation(operation));
+				const bool is_read = isReadOperation(operation);
+				memory_.access(uint16_t(address), is_read);
 
 				switch(address & 0xffff) {
 
 					// New video register.
 					case 0xc029:
-						if(isReadOperation(operation)) {
+						if(is_read) {
 							*value = 0;
 						} else {
 							printf("New video: %02x\n", *value);
@@ -110,16 +114,35 @@ class ConcreteMachine:
 
 					// Shadow register.
 					case 0xc035:
-						if(isReadOperation(operation)) {
+						if(is_read) {
 							*value = memory_.get_shadow_register();
 						} else {
 							memory_.set_shadow_register(*value);
 						}
 					break;
 
+					// Clock data.
+					case 0xc033:
+						if(is_read) {
+							*value = clock_.get_data();
+						} else {
+							clock_.set_data(*value);
+						}
+					break;
+
+					// Clock and border control.
+					case 0xc034:
+						if(is_read) {
+							*value = clock_.get_control();
+						} else {
+							clock_.set_control(*value);
+							// TODO: also set border colour.
+						}
+					break;
+
 					// Speed register.
 					case 0xc036:
-						if(isReadOperation(operation)) {
+						if(is_read) {
 							*value = speed_register_;
 						} else {
 							memory_.set_speed_register(*value);
@@ -130,7 +153,7 @@ class ConcreteMachine:
 
 					// [Memory] State register.
 					case 0xc068:
-						if(isReadOperation(operation)) {
+						if(is_read) {
 							*value = memory_.get_state_register();
 						} else {
 							memory_.set_state_register(*value);
@@ -208,6 +231,7 @@ class ConcreteMachine:
 	private:
 		CPU::WDC65816::Processor<ConcreteMachine, false> m65816_;
 		MemoryMap memory_;
+		Apple::Clock::ParallelClock clock_;
 
 		int fast_access_phase_ = 0;
 		int slow_access_phase_ = 0;
