@@ -452,7 +452,7 @@ class MemoryMap {
 		//
 		// Pointers are eight bytes at the time of writing, so the extra level of indirection
 		// reduces what would otherwise be a 1.25mb table down to not a great deal more than 64kb.
-		std::array<uint8_t, 65536> region_map;
+		std::array<uint8_t, 65536> region_map{};
 		uint8_t *ram_base = nullptr;
 		uint8_t *shadow_base[2] = {&shadow_throwaway_, nullptr};
 		const int shadow_modulo[2] = {1, 128*1024};
