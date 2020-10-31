@@ -204,6 +204,10 @@ class ConcreteMachine:
 						}
 				}
 			} else {
+				// For debugging purposes; if execution heads off into an unmapped page then
+				// it's pretty certain that my 65816 still has issues.
+				assert(operation != CPU::WDC65816::BusOperation::ReadOpcode || region.read);
+
 				if(isReadOperation(operation)) {
 					MemoryMapRead(region, address, value);
 				} else {
@@ -211,7 +215,21 @@ class ConcreteMachine:
 				}
 			}
 
-			printf("%06x [%02x] %c\n", address, *value, operation == CPU::WDC65816::BusOperation::ReadOpcode ? '*' : ' ');
+			printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
+			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+				printf(" a:%04x x:%04x y:%04x s:%04x e:%d p:%02x db:%02x pb:%02x d:%04x\n",
+					m65816_.get_value_of_register(CPU::WDC65816::Register::A),
+					m65816_.get_value_of_register(CPU::WDC65816::Register::X),
+					m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
+					m65816_.get_value_of_register(CPU::WDC65816::Register::StackPointer),
+					m65816_.get_value_of_register(CPU::WDC65816::Register::EmulationFlag),
+					m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
+					m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank),
+					m65816_.get_value_of_register(CPU::WDC65816::Register::ProgramBank),
+					m65816_.get_value_of_register(CPU::WDC65816::Register::Direct)
+				);
+			} else printf("\n");
+
 
 			Cycles duration = Cycles(5);
 
