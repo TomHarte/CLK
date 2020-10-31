@@ -191,6 +191,14 @@ class ConcreteMachine:
 					case 0xc054: case 0xc055: case 0xc056: case 0xc057:
 					break;
 
+					// Interrupt ROM addresses; Cf. P25 of the Hardware Reference.
+					case 0xc071: case 0xc072: case 0xc073: case 0xc074: case 0xc075: case 0xc076: case 0xc077:
+					case 0xc078: case 0xc079: case 0xc07a: case 0xc07b: case 0xc07c: case 0xc07d: case 0xc07e: case 0xc07f:
+						if(isReadOperation(operation)) {
+							*value = rom_[rom_.size() - 65536 + (address & 0xffff)];
+						}
+					break;
+
 					default:
 						if((address & 0xffff) < 0xc100) {
 							// TODO: all other IO accesses.
