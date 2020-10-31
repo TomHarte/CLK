@@ -785,7 +785,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x05 ORA d */			op(direct, ORA);
 	/* 0x06 ASL d */			op(direct_rmw, ASL);
 	/* 0x07 ORA [d] */			op(direct_indirect_long, ORA);
-	/* 0x08 PHP s */			op(stack_push, PHP);
+	/* 0x08 PHP s */			op(stack_push, PHP, AccessMode::Always8Bit);
 	/* 0x09 ORA # */			op(immediate, ORA);
 	/* 0x0a ASL A */			op(accumulator, ASL);
 	/* 0x0b PHD s */			op(stack_push, PHD, AccessMode::Always8Bit);
