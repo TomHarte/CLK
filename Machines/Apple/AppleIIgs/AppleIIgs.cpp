@@ -262,7 +262,7 @@ class ConcreteMachine:
 		int fast_access_phase_ = 0;
 		int slow_access_phase_ = 0;
 
-		uint8_t speed_register_ = 0x00;
+		uint8_t speed_register_ = 0x40;	// i.e. Power-on status. (TODO: only if ROM03?)
 
 		// MARK: - Memory storage.
 
