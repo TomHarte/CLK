@@ -93,7 +93,7 @@ class ClockStorage {
 							// Either a register access or an extended instruction.
 							if(command & 0x08) {
 								address_ = (command & 0x7) << 5;
-								phase_ = (command & 0x80) ? Phase::SecondAddressByteWrite : Phase::SecondAddressByteRead;
+								phase_ = (command & 0x80) ? Phase::SecondAddressByteRead : Phase::SecondAddressByteWrite;
 								return NoResult;
 							} else {
 								address_ = (command & 4) ? RegisterWriteProtect : RegisterTest;
