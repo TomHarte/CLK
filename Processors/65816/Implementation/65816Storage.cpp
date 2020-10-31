@@ -788,7 +788,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x08 PHP s */			op(stack_push, PHP, AccessMode::Always8Bit);
 	/* 0x09 ORA # */			op(immediate, ORA);
 	/* 0x0a ASL A */			op(accumulator, ASL);
-	/* 0x0b PHD s */			op(stack_push, PHD, AccessMode::Always8Bit);
+	/* 0x0b PHD s */			op(stack_push, PHD, AccessMode::Always16Bit);
 	/* 0x0c TSB a */			op(absolute_rmw, TSB);
 	/* 0x0d ORA a */			op(absolute, ORA);
 	/* 0x0e ASL a */			op(absolute_rmw, ASL);
@@ -819,10 +819,10 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x25 AND d */			op(direct, AND);
 	/* 0x26 ROL d */			op(direct_rmw, ROL);
 	/* 0x27 AND [d] */			op(direct_indirect_long, AND);
-	/* 0x28 PLP s */			op(stack_pull, PLP);
+	/* 0x28 PLP s */			op(stack_pull, PLP, AccessMode::Always8Bit);
 	/* 0x29 AND # */			op(immediate, AND);
 	/* 0x2a ROL A */			op(accumulator, ROL);
-	/* 0x2b PLD s */			op(stack_pull, PLD, AccessMode::Always8Bit);
+	/* 0x2b PLD s */			op(stack_pull, PLD, AccessMode::Always16Bit);
 	/* 0x2c BIT a */			op(absolute, BIT);
 	/* 0x2d AND a */			op(absolute, AND);
 	/* 0x2e ROL a */			op(absolute_rmw, ROL);
