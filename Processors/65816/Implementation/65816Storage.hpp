@@ -237,8 +237,9 @@ struct ProcessorStorage {
 		uint16_t program_offsets[2] = {0xffff, 0xffff};
 		/// The operation to perform upon an OperationPerform.
 		Operation operation = NOP;
-		/// An index into the mx field indicating which of M or X affects whether this is an 8-bit or 16-bit field.
-		/// So the program to perform is that at @c program_offsets[mx_flags[size_field]]
+		/// An index into the mx field indicating which of M or X affects whether this is an 8-bit or 16-bit field;
+		/// if this is 0 then this instruction picks its size based on the M flag; otherwise it does so based on X.
+		/// So the program to perform is that at @c program_offsets[mx_flags[size_field]] .
 		uint8_t size_field = 0;
 	};
 	Instruction instructions[256 + 3];	// Arranged as:

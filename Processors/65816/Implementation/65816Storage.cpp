@@ -23,6 +23,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		Read, Write
 	};
 
+	/// Divides memory-accessing instructions by whether they read or write.
+	/// Read-modify-writes are documented with completely distinct bus programs,
+	/// so there's no real ambiguity there.
 	constexpr static AccessType access_type_for_operation(Operation operation) {
 		switch(operation) {
 			case ADC:	case AND:	case BIT:	case CMP:
@@ -39,6 +42,21 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 			case STA:	case STX:	case STY:	case STZ:
 			return AccessType::Write;
 		}
+	}
+
+	/// Indicates which of the memory-accessing instructions take their cue from the current
+	/// size of the index registers, rather than 'memory'[/accumulator].
+	constexpr static bool operation_is_index_sized(Operation operation) {
+		switch(operation) {
+			case CPX:	case CPY:
+			case LDX:	case LDY:
+			case STX:	case STY:
+			return true;
+
+			default:
+			return false;
+		}
+		return false;
 	}
 
 	typedef void (* Generator)(AccessType, bool, const std::function<void(MicroOp)>&);
@@ -66,6 +84,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		storage_.instructions[opcode].program_offsets[0] = (access_mode == AccessMode::Always8Bit) ? uint16_t(micro_op_location_8) : uint16_t(micro_op_location_16);
 		storage_.instructions[opcode].program_offsets[1] = (access_mode == AccessMode::Always16Bit) ? uint16_t(micro_op_location_16) : uint16_t(micro_op_location_8);
 		storage_.instructions[opcode].operation = operation;
+		storage_.instructions[opcode].size_field = operation_is_index_sized(operation);
 
 		++opcode;
 	}
