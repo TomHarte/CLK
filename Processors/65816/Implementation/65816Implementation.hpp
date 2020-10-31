@@ -445,7 +445,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						data_buffer_.size = 3;
 						++next_op_;
 					} else {
-						data_buffer_.value |= registers_.program_bank << 24;
+						data_buffer_.value |= registers_.program_bank << 8;
 						data_buffer_.size = 4;
 						registers_.program_bank = 0;
 					}
