@@ -1315,6 +1315,7 @@
 		4B8DF4D62546561300F3433C /* MemoryMap.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemoryMap.hpp; sourceTree = "<group>"; };
 		4B8DF4D725465B7500F3433C /* IIgsMemoryMapTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = IIgsMemoryMapTests.mm; sourceTree = "<group>"; };
 		4B8DF4ED254B840B00F3433C /* AppleClock.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AppleClock.hpp; sourceTree = "<group>"; };
+		4B8DF4F2254E141700F3433C /* VideoSwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = VideoSwitches.hpp; sourceTree = "<group>"; };
 		4B8E4ECD1DCE483D003716C3 /* KeyboardMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardMachine.hpp; sourceTree = "<group>"; };
 		4B8EF6071FE5AF830076CCDD /* LowpassSpeaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = LowpassSpeaker.hpp; sourceTree = "<group>"; };
 		4B8FE2141DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Atari2600Options.xib"; sourceTree = SOURCE_ROOT; };
@@ -3761,6 +3762,7 @@
 				4BCE004C227CE8CA000CA200 /* DiskIICard.hpp */,
 				4BF40A5525424C770033EA39 /* LanguageCardSwitches.hpp */,
 				4BCE004F227CE8CA000CA200 /* Video.hpp */,
+				4B8DF4F2254E141700F3433C /* VideoSwitches.hpp */,
 			);
 			path = AppleII;
 			sourceTree = "<group>";

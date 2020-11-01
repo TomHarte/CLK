@@ -11,9 +11,9 @@
 using namespace Apple::II::Video;
 
 VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
+	VideoSwitches<Cycles>(Cycles(2), std::move(target)),
 	crt_(910, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance1),
-	is_iie_(is_iie),
-	deferrer_(std::move(target)) {
+	is_iie_(is_iie) {
 
 	// Show only the centre 75% of the TV frame.
 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
@@ -59,97 +59,20 @@ Outputs::Display::DisplayType VideoBase::get_display_type() const {
 	return crt_.get_display_type();
 }
 
-/*
-	Rote setters and getters.
-*/
-void VideoBase::set_alternative_character_set(bool alternative_character_set) {
-	set_alternative_character_set_ = alternative_character_set;
-	deferrer_.defer(Cycles(2), [this, alternative_character_set] {
-		alternative_character_set_ = alternative_character_set;
-		if(alternative_character_set) {
-			character_zones[1].address_mask = 0xff;
-			character_zones[1].xor_mask = 0;
-		} else {
-			character_zones[1].address_mask = 0x3f;
-			character_zones[1].xor_mask = flash_mask();
-		}
-	});
+void VideoBase::did_set_alternative_character_set(bool alternative_character_set) {
+	alternative_character_set_ = alternative_character_set;
+	if(alternative_character_set) {
+		character_zones[1].address_mask = 0xff;
+		character_zones[1].xor_mask = 0;
+	} else {
+		character_zones[1].address_mask = 0x3f;
+		character_zones[1].xor_mask = flash_mask();
+		// The XOR mask is seeded here; it's dynamic, so updated elsewhere.
+	}
 }
 
-bool VideoBase::get_alternative_character_set() {
-	return set_alternative_character_set_;
-}
-
-void VideoBase::set_80_columns(bool columns_80) {
-	set_columns_80_ = columns_80;
-	deferrer_.defer(Cycles(2), [this, columns_80] {
-		columns_80_ = columns_80;
-	});
-}
-
-bool VideoBase::get_80_columns() {
-	return set_columns_80_;
-}
-
-void VideoBase::set_80_store(bool store_80) {
-	set_store_80_ = store_80_ = store_80;
-}
-
-bool VideoBase::get_80_store() {
-	return set_store_80_;
-}
-
-void VideoBase::set_page2(bool page2) {
-	set_page2_ = page2_ = page2;
-}
-
-bool VideoBase::get_page2() {
-	return set_page2_;
-}
-
-void VideoBase::set_text(bool text) {
-	set_text_ = text;
-	deferrer_.defer(Cycles(2), [this, text] {
-		text_ = text;
-	});
-}
-
-bool VideoBase::get_text() {
-	return set_text_;
-}
-
-void VideoBase::set_mixed(bool mixed) {
-	set_mixed_ = mixed;
-	deferrer_.defer(Cycles(2), [this, mixed] {
-		mixed_ = mixed;
-	});
-}
-
-bool VideoBase::get_mixed() {
-	return set_mixed_;
-}
-
-void VideoBase::set_high_resolution(bool high_resolution) {
-	set_high_resolution_ = high_resolution;
-	deferrer_.defer(Cycles(2), [this, high_resolution] {
-		high_resolution_ = high_resolution;
-	});
-}
-
-bool VideoBase::get_high_resolution() {
-	return set_high_resolution_;
-}
-
-void VideoBase::set_annunciator_3(bool annunciator_3) {
-	set_annunciator_3_ = annunciator_3;
-	deferrer_.defer(Cycles(2), [this, annunciator_3] {
-		annunciator_3_ = annunciator_3;
-		high_resolution_mask_ = annunciator_3_ ? 0x7f : 0xff;
-	});
-}
-
-bool VideoBase::get_annunciator_3() {
-	return set_annunciator_3_;
+void VideoBase::did_set_annunciator_3(bool annunciator_3) {
+	high_resolution_mask_ = annunciator_3 ? 0x7f : 0xff;
 }
 
 void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
