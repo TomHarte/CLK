@@ -299,20 +299,20 @@ class ConcreteMachine:
 				}
 			}
 
-			printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
-			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-				printf(" a:%04x x:%04x y:%04x s:%04x e:%d p:%02x db:%02x pb:%02x d:%04x\n",
-					m65816_.get_value_of_register(CPU::WDC65816::Register::A),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::X),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::StackPointer),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::EmulationFlag),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::ProgramBank),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::Direct)
-				);
-			} else printf("\n");
+//			printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
+//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+//				printf(" a:%04x x:%04x y:%04x s:%04x e:%d p:%02x db:%02x pb:%02x d:%04x\n",
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::A),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::X),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::StackPointer),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::EmulationFlag),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::ProgramBank),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::Direct)
+//				);
+//			} else printf("\n");
 
 			Cycles duration = Cycles(5);
 
