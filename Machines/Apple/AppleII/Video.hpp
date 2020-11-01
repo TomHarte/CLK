@@ -6,8 +6,8 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Video_hpp
-#define Video_hpp
+#ifndef Apple_II_Video_hpp
+#define Apple_II_Video_hpp
 
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
@@ -462,4 +462,4 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 }
 }
 
-#endif /* Video_hpp */
+#endif /* Apple_II_Video_hpp */

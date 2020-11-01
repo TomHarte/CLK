@@ -454,6 +454,8 @@
 		4B89453E201967B4007DE474 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894517201967B4007DE474 /* StaticAnalyser.cpp */; };
 		4B89453F201967B4007DE474 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894517201967B4007DE474 /* StaticAnalyser.cpp */; };
 		4B8DF4D825465B7500F3433C /* IIgsMemoryMapTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B8DF4D725465B7500F3433C /* IIgsMemoryMapTests.mm */; };
+		4B8DF4F9254E36AE00F3433C /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8DF4F7254E36AD00F3433C /* Video.cpp */; };
+		4B8DF4FA254E36AE00F3433C /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8DF4F7254E36AD00F3433C /* Video.cpp */; };
 		4B8FE21B1DA19D5F0090D3CE /* Atari2600Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */; };
 		4B8FE21C1DA19D5F0090D3CE /* MachineDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */; };
 		4B8FE21D1DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2171DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib */; };
@@ -1316,6 +1318,8 @@
 		4B8DF4D725465B7500F3433C /* IIgsMemoryMapTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = IIgsMemoryMapTests.mm; sourceTree = "<group>"; };
 		4B8DF4ED254B840B00F3433C /* AppleClock.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AppleClock.hpp; sourceTree = "<group>"; };
 		4B8DF4F2254E141700F3433C /* VideoSwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = VideoSwitches.hpp; sourceTree = "<group>"; };
+		4B8DF4F7254E36AD00F3433C /* Video.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Video.cpp; sourceTree = "<group>"; };
+		4B8DF4F8254E36AD00F3433C /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
 		4B8E4ECD1DCE483D003716C3 /* KeyboardMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardMachine.hpp; sourceTree = "<group>"; };
 		4B8EF6071FE5AF830076CCDD /* LowpassSpeaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = LowpassSpeaker.hpp; sourceTree = "<group>"; };
 		4B8FE2141DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Atari2600Options.xib"; sourceTree = SOURCE_ROOT; };
@@ -3922,8 +3926,10 @@
 			isa = PBXGroup;
 			children = (
 				4BE21214253FCE9C00435408 /* AppleIIgs.cpp */,
+				4B8DF4F7254E36AD00F3433C /* Video.cpp */,
 				4BE2120E253FCE9C00435408 /* AppleIIgs.hpp */,
 				4B8DF4D62546561300F3433C /* MemoryMap.hpp */,
+				4B8DF4F8254E36AD00F3433C /* Video.hpp */,
 			);
 			path = AppleIIgs;
 			sourceTree = "<group>";
@@ -4529,6 +4535,7 @@
 				4B055AD51FAE9B0B0060FFFF /* Video.cpp in Sources */,
 				4B894521201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B8318B522D3E548006DB630 /* Macintosh.cpp in Sources */,
+				4B8DF4FA254E36AE00F3433C /* Video.cpp in Sources */,
 				4B7BA03123C2B19C00B98D9E /* Jasmin.cpp in Sources */,
 				4B7F188F2154825E00388727 /* MasterSystem.cpp in Sources */,
 				4B055AA51FAE85EF0060FFFF /* Encoder.cpp in Sources */,
@@ -4796,6 +4803,7 @@
 				4BC57CD92436A62900FBC404 /* State.cpp in Sources */,
 				4BDA00E622E699B000AC3CD0 /* CSMachine.mm in Sources */,
 				4B4518831F75E91A00926311 /* PCMTrack.cpp in Sources */,
+				4B8DF4F9254E36AE00F3433C /* Video.cpp in Sources */,
 				4B0ACC3223775819008902D0 /* Atari2600.cpp in Sources */,
 				4B45189F1F75FD1C00926311 /* AcornADF.cpp in Sources */,
 				4B7BA03023C2B19C00B98D9E /* Jasmin.cpp in Sources */,

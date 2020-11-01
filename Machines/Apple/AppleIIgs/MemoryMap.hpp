@@ -18,7 +18,6 @@
 namespace Apple {
 namespace IIgs {
 
-
 class MemoryMap {
 	public:
 		// MARK: - Initial construction and configuration.

@@ -13,6 +13,7 @@
 
 #include "../../../Analyser/Static/AppleIIgs/Target.hpp"
 #include "MemoryMap.hpp"
+#include "Video.hpp"
 
 #include "../../../Components/8530/z8530.hpp"
 #include "../../../Components/AppleClock/AppleClock.hpp"
@@ -169,6 +170,7 @@ class ConcreteMachine:
 #define SwitchRead(s) *value = memory_.s ? 0x80 : 0x00
 #define LanguageRead(s) SwitchRead(language_card_switches().state().s)
 #define AuxiliaryRead(s) SwitchRead(auxiliary_switches().switches().s)
+#define VideoRead(s) video_.s
 					case 0xc011:	LanguageRead(bank1);						break;
 					case 0xc012:	LanguageRead(read);							break;
 					case 0xc013:	AuxiliaryRead(read_auxiliary_memory);		break;
@@ -176,9 +178,36 @@ class ConcreteMachine:
 					case 0xc015:	AuxiliaryRead(internal_CX_rom);				break;
 					case 0xc016:	AuxiliaryRead(alternative_zero_page);		break;
 					case 0xc017:	AuxiliaryRead(slot_C3_rom);					break;
+					case 0xc018:	VideoRead(get_80_store());										break;
+//					case 0xc019:	VideoRead(get_is_vertical_blank(cycles_since_video_update_));	break;
+					case 0xc01a:	VideoRead(get_text());											break;
+					case 0xc01b:	VideoRead(get_mixed());											break;
+					case 0xc01c:	VideoRead(get_page2());											break;
+					case 0xc01d:	VideoRead(get_high_resolution());								break;
+					case 0xc01e:	VideoRead(get_alternative_character_set());						break;
+					case 0xc01f:	VideoRead(get_80_columns());									break;
+					case 0xc046:	VideoRead(get_annunciator_3());									break;
+#undef VideoRead
 #undef AuxiliaryRead
 #undef LanguageRead
 #undef SwitchRead
+
+					// Video switches.
+					case 0xc050: case 0xc051:
+						video_.set_text(address & 1);
+					break;
+					case 0xc052: case 0xc053:
+						video_.set_mixed(address & 1);
+					break;
+					case 0xc054: case 0xc055:
+						video_.set_page2(address&1);
+					break;
+					case 0xc056: case 0xc057:
+						video_.set_high_resolution(address&1);
+					break;
+					case 0xc05e: case 0xc05f:
+						video_.set_annunciator_3(!(address&1));
+					break;
 
 					// The SCC.
 					case 0xc038: case 0xc039: case 0xc03a: case 0xc03b:
@@ -193,7 +222,6 @@ class ConcreteMachine:
 					// TODO: subject to read data? Does vapour lock apply?
 					case 0xc000: case 0xc001: case 0xc002: case 0xc003: case 0xc004: case 0xc005:
 					case 0xc006: case 0xc007: case 0xc008: case 0xc009: case 0xc00a: case 0xc00b:
-					case 0xc054: case 0xc055: case 0xc056: case 0xc057:
 					break;
 
 					// Interrupt ROM addresses; Cf. P25 of the Hardware Reference.
@@ -261,7 +289,9 @@ class ConcreteMachine:
 	private:
 		CPU::WDC65816::Processor<ConcreteMachine, false> m65816_;
 		MemoryMap memory_;
+
 		Apple::Clock::ParallelClock clock_;
+		Apple::IIgs::Video::Video video_;
 
 		int fast_access_phase_ = 0;
 		int slow_access_phase_ = 0;

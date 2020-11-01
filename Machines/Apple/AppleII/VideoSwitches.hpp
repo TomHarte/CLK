@@ -31,7 +31,7 @@ constexpr bool is_double_mode(GraphicsMode m) { return int(m) & 1; }
 template <typename TimeUnit> class VideoSwitches {
 	public:
 		/*!
-			Constructs a new instance of VideoSwitches in which changes to the switch
+			Constructs a new instance of VideoSwitches in which changes to relevant switches
 			affect the video mode only after @c delay cycles.
 		*/
 		VideoSwitches(TimeUnit delay, std::function<void(TimeUnit)> &&target) : delay_(delay), deferrer_(std::move(target)) {}
