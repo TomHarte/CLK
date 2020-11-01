@@ -12,6 +12,7 @@
 #include "../../../Processors/65816/65816.hpp"
 
 #include "../../../Analyser/Static/AppleIIgs/Target.hpp"
+#include "ADB.hpp"
 #include "MemoryMap.hpp"
 #include "Video.hpp"
 
@@ -208,10 +209,52 @@ class ConcreteMachine:
 					case 0xc05e: case 0xc05f:
 						video_.set_annunciator_3(!(address&1));
 					break;
+					case 0xc001:	/* 0xc000 is dealt with in the ADB section. */
+						if(!is_read) video_.set_80_store(true);
+					break;
+					case 0xc00c: case 0xc00d:
+						if(!is_read) video_.set_80_columns(address & 1);
+					break;
+					case 0xc00e: case 0xc00f:
+						if(!is_read) video_.set_alternative_character_set(address & 1);
+					break;
+
+					// ADB.
+					case 0xc000:
+						if(is_read) {
+							*value = adb_glu_.get_keyboard_data();
+						} else {
+							video_.set_80_store(false);
+						}
+					break;
+					case 0xc024:
+						if(is_read) {
+							*value = adb_glu_.get_mouse_data();
+						}
+					break;
+					case 0xc025:
+						if(is_read) {
+							*value = adb_glu_.get_modifier_status();
+						}
+					break;
+					case 0xc026:
+						if(is_read) {
+							*value = adb_glu_.get_data();
+						} else {
+							adb_glu_.set_command(*value);
+						}
+					break;
+					case 0xc027:
+						if(is_read) {
+							*value = adb_glu_.get_status();
+						} else {
+							adb_glu_.set_status(*value);
+						}
+					break;
 
 					// The SCC.
 					case 0xc038: case 0xc039: case 0xc03a: case 0xc03b:
-						if(isReadOperation(operation)) {
+						if(is_read) {
 							*value = scc_.read(int(address));
 						} else {
 							scc_.write(int(address), *value);
@@ -220,14 +263,14 @@ class ConcreteMachine:
 
 					// These were all dealt with by the call to memory_.access.
 					// TODO: subject to read data? Does vapour lock apply?
-					case 0xc000: case 0xc001: case 0xc002: case 0xc003: case 0xc004: case 0xc005:
+					case 0xc002: case 0xc003: case 0xc004: case 0xc005:
 					case 0xc006: case 0xc007: case 0xc008: case 0xc009: case 0xc00a: case 0xc00b:
 					break;
 
 					// Interrupt ROM addresses; Cf. P25 of the Hardware Reference.
 					case 0xc071: case 0xc072: case 0xc073: case 0xc074: case 0xc075: case 0xc076: case 0xc077:
 					case 0xc078: case 0xc079: case 0xc07a: case 0xc07b: case 0xc07c: case 0xc07d: case 0xc07e: case 0xc07f:
-						if(isReadOperation(operation)) {
+						if(is_read) {
 							*value = rom_[rom_.size() - 65536 + (address & 0xffff)];
 						}
 					break;
@@ -292,6 +335,7 @@ class ConcreteMachine:
 
 		Apple::Clock::ParallelClock clock_;
 		Apple::IIgs::Video::Video video_;
+		Apple::IIgs::ADB::GLU adb_glu_;
 
 		int fast_access_phase_ = 0;
 		int slow_access_phase_ = 0;
