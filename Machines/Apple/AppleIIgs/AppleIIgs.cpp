@@ -18,6 +18,8 @@
 #include "../../../Components/AppleClock/AppleClock.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
 
+#include "../../Utility/MemoryFuzzer.hpp"
+
 #include <cassert>
 #include <array>
 
@@ -74,6 +76,9 @@ class ConcreteMachine:
 
 			memory_.set_storage(ram_, rom_);
 
+			// TODO: enable once machine is otherwise sane.
+//			Memory::Fuzz(ram_);
+
 			// Sync up initial values.
 			memory_.set_speed_register(speed_register_);
 		}
@@ -104,7 +109,7 @@ class ConcreteMachine:
 					// New video register.
 					case 0xc029:
 						if(is_read) {
-							*value = 0;
+							*value = 0x01;
 						} else {
 							printf("New video: %02x\n", *value);
 							// TODO: this bit should affect memory bank selection, somehow?
@@ -238,7 +243,6 @@ class ConcreteMachine:
 				);
 			} else printf("\n");
 
-
 			Cycles duration = Cycles(5);
 
 			// TODO: determine the cost of this access.
@@ -266,7 +270,7 @@ class ConcreteMachine:
 
 		// MARK: - Memory storage.
 
-		std::vector<uint8_t> ram_;
+		std::vector<uint8_t> ram_{};
 		std::vector<uint8_t> rom_;
 
 		// MARK: - Other components.
