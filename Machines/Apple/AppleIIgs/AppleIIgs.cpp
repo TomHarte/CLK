@@ -98,6 +98,7 @@ class ConcreteMachine:
 
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
 			const auto &region = MemoryMapRegion(memory_, address);
+			static bool log = false;
 
 			// TODO: potentially push time to clock_.
 
@@ -106,7 +107,8 @@ class ConcreteMachine:
 				const bool is_read = isReadOperation(operation);
 				memory_.access(uint16_t(address), is_read);
 
-				switch(address & 0xffff) {
+				const auto address_suffix = address & 0xffff;
+				switch(address_suffix) {
 
 					// New video register.
 					case 0xc029:
@@ -193,7 +195,7 @@ class ConcreteMachine:
 #undef LanguageRead
 #undef SwitchRead
 
-					// Video switches.
+					// Video switches (and annunciators).
 					case 0xc050: case 0xc051:
 						video_.set_text(address & 1);
 					break;
@@ -205,6 +207,11 @@ class ConcreteMachine:
 					break;
 					case 0xc056: case 0xc057:
 						video_.set_high_resolution(address&1);
+					break;
+					case 0xc058: case 0xc059:
+					case 0xc05a: case 0xc05b:
+					case 0xc05c: case 0xc05d:
+						// Annunciators 0, 1 and 2.
 					break;
 					case 0xc05e: case 0xc05f:
 						video_.set_annunciator_3(!(address&1));
@@ -271,19 +278,105 @@ class ConcreteMachine:
 					case 0xc071: case 0xc072: case 0xc073: case 0xc074: case 0xc075: case 0xc076: case 0xc077:
 					case 0xc078: case 0xc079: case 0xc07a: case 0xc07b: case 0xc07c: case 0xc07d: case 0xc07e: case 0xc07f:
 						if(is_read) {
-							*value = rom_[rom_.size() - 65536 + (address & 0xffff)];
+							*value = rom_[rom_.size() - 65536 + address_suffix];
+						}
+					break;
+
+					// Analogue inputs. All TODO.
+					case 0xc060: case 0xc061: case 0xc062: case 0xc063:
+						// Joystick buttons (and keyboard modifiers).
+						if(is_read) {
+							*value = 0x00;
+						}
+					break;
+
+					case 0xc064: case 0xc065: case 0xc066: case 0xc067:
+						// Analogue inputs.
+						if(is_read) {
+							*value = 0x00;
+						}
+					break;
+
+					case 0xc070:
+						// TODO: begin analogue channel charge.
+					break;
+
+					case 0xc02d:
+						// TODO: slot register selection.
+						// b7: 0 = internal ROM code for slot 7;
+						// b6: 0 = internal ROM code for slot 6;
+						// b5: 0 = internal ROM code for slot 5;
+						// b4: 0 = internal ROM code for slot 4;
+						// b3: reserved;
+						// b2: internal ROM code for slot 2;
+						// b1: internal ROM code for slot 1;
+						// b0: reserved.
+						if(is_read) {
+							*value = card_mask_;
+						} else {
+							card_mask_ = *value;
+						}
+					break;
+
+					// Addresses that seemingly map to nothing; provided as a separate break out for now,
+					// while I have an assert on unknown reads.
+					case 0xc049: case 0xc04a: case 0xc04b: case 0xc04c: case 0xc04d: case 0xc04e: case 0xc04f:
+					case 0xc069: case 0xc06a: case 0xc06b: case 0xc06c:
+						printf("Ignoring %04x\n", address_suffix);
+						log = true;
+					break;
+
+					// 'Test Mode', whatever that is (?)
+					case 0xc06e: case 0xc06f:
+						test_mode_ = address & 1;
+					break;
+					case 0xc06d:
+						if(is_read) {
+							*value = test_mode_ * 0x80;
 						}
 					break;
 
 					default:
-						if((address & 0xffff) < 0xc100) {
-							// TODO: all other IO accesses.
-							printf("Unhandled IO: %04x\n", address & 0xffff);
-							assert(false);
+						// Check for a card access.
+						if(address_suffix >= 0xc080 && address_suffix < 0xc800) {
+							// This is an abridged version of the similar code in AppleII.cpp from
+							// line 653; it would be good to factor that out and support cards here.
+							// For now just either supply the internal ROM or nothing as per the
+							// current card mask.
+
+							size_t card_number = 0;
+							if(address >= 0xc100) {
+								/*
+									Decode the area conventionally used by cards for ROMs:
+										0xCn00 to 0xCnff: card n.
+								*/
+								card_number = (address - 0xc000) >> 8;
+							} else {
+								/*
+									Decode the area conventionally used by cards for registers:
+										C0n0 to C0nF: card n - 8.
+								*/
+								card_number = (address - 0xc080) >> 4;
+							}
+
+							const uint8_t permitted_card_mask_ = card_mask_ & 0xf6;
+							if(permitted_card_mask_ & (1 << card_number)) {
+								// TODO: Access an actual card.
+								if(is_read) {
+									*value = 0xff;
+								}
+							} else {
+								// TODO: disk-port soft switches should be in COEx.
+								printf("Internal card-area access: %04x\n", address_suffix);
+								if(is_read) {
+									*value = rom_[rom_.size() - 65536 + address_suffix];
+								}
+							}
 						} else {
-							// Card IO. Not implemented!
-							if(isReadOperation(operation)) {
-								*value = 0xff;
+							if(address_suffix < 0xc080) {
+								// TODO: all other IO accesses.
+								printf("Unhandled IO: %04x\n", address_suffix);
+								assert(false);
 							}
 						}
 				}
@@ -299,20 +392,23 @@ class ConcreteMachine:
 				}
 			}
 
-//			printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
-//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-//				printf(" a:%04x x:%04x y:%04x s:%04x e:%d p:%02x db:%02x pb:%02x d:%04x\n",
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::A),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::X),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::StackPointer),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::EmulationFlag),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::ProgramBank),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::Direct)
-//				);
-//			} else printf("\n");
+//			log |= (address >= 0xffa6d9) && (address < 0xffa6ec);
+			if(log) {
+				printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
+				if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+					printf(" a:%04x x:%04x y:%04x s:%04x e:%d p:%02x db:%02x pb:%02x d:%04x\n",
+						m65816_.get_value_of_register(CPU::WDC65816::Register::A),
+						m65816_.get_value_of_register(CPU::WDC65816::Register::X),
+						m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
+						m65816_.get_value_of_register(CPU::WDC65816::Register::StackPointer),
+						m65816_.get_value_of_register(CPU::WDC65816::Register::EmulationFlag),
+						m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
+						m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank),
+						m65816_.get_value_of_register(CPU::WDC65816::Register::ProgramBank),
+						m65816_.get_value_of_register(CPU::WDC65816::Register::Direct)
+					);
+				} else printf("\n");
+			}
 
 			Cycles duration = Cycles(5);
 
@@ -333,9 +429,7 @@ class ConcreteMachine:
 		CPU::WDC65816::Processor<ConcreteMachine, false> m65816_;
 		MemoryMap memory_;
 
-		Apple::Clock::ParallelClock clock_;
-		Apple::IIgs::Video::Video video_;
-		Apple::IIgs::ADB::GLU adb_glu_;
+		// MARK: - Timing.
 
 		int fast_access_phase_ = 0;
 		int slow_access_phase_ = 0;
@@ -348,7 +442,18 @@ class ConcreteMachine:
 		std::vector<uint8_t> rom_;
 
 		// MARK: - Other components.
+
+		Apple::Clock::ParallelClock clock_;
+		Apple::IIgs::Video::Video video_;
+		Apple::IIgs::ADB::GLU adb_glu_;
  		Zilog::SCC::z8530 scc_;
+
+		// MARK: - Cards.
+
+		// TODO: most of cards.
+		uint8_t card_mask_ = 0x00;
+
+		bool test_mode_ = false;
 };
 
 }

@@ -185,7 +185,7 @@ class MemoryMap {
 			const uint8_t diff = value ^ shadow_register_;
 			shadow_register_ = value;
 
-			if(diff & 0x40) {	// IO/language-card inhibit
+			if(diff & 0x40) {	// IO/language-card inhibit.
 				set_language_card_paging();
 				set_card_paging();
 			}
