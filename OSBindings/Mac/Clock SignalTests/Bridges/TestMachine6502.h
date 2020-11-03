@@ -39,6 +39,7 @@ extern const uint8_t CSTestMachine6502JamOpcode;
 
 - (void)setData:(nonnull NSData *)data atAddress:(uint32_t)startAddress;
 - (void)runForNumberOfCycles:(int)cycles;
+- (void)runForNumberOfInstructions:(int)instructions;
 
 - (void)setValue:(uint8_t)value forAddress:(uint32_t)address;
 - (uint8_t)valueForAddress:(uint32_t)address;

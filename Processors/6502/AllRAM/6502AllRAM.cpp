@@ -40,6 +40,7 @@ template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, publ
 					mos6502_.get_value_of_register(Register::StackPointer) & 0xff);
 #endif
 				check_address_for_trap(address);
+				--instructions_;
 			}
 
 			if(isReadOperation(operation)) {
@@ -65,6 +66,13 @@ template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, publ
 			mos6502_.run_for(cycles);
 		}
 
+		void run_for_instructions(int count) {
+			instructions_ = count;
+			while(instructions_) {
+				mos6502_.run_for(Cycles(1));
+			}
+		}
+
 		bool is_jammed() {
 			return mos6502_.is_jammed();
 		}
@@ -87,6 +95,7 @@ template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, publ
 
 	private:
 		CPU::MOS6502Esque::Processor<type, ConcreteAllRAMProcessor, false> mos6502_;
+		int instructions_ = 0;
 };
 
 }

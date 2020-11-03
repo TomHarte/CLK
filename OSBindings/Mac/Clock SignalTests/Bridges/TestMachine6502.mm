@@ -114,4 +114,8 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 	_processor->run_for(Cycles(cycles));
 }
 
+- (void)runForNumberOfInstructions:(int)instructions {
+	_processor->run_for_instructions(instructions);
+}
+
 @end

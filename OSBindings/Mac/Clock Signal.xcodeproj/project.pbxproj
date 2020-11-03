@@ -458,6 +458,54 @@
 		4B8DF4FA254E36AE00F3433C /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8DF4F7254E36AD00F3433C /* Video.cpp */; };
 		4B8DF505254E3C9D00F3433C /* ADB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8DF503254E3C9D00F3433C /* ADB.cpp */; };
 		4B8DF506254E3C9D00F3433C /* ADB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8DF503254E3C9D00F3433C /* ADB.cpp */; };
+		4B8DF5142550D62A00F3433C /* 65816kromTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8DF5132550D62900F3433C /* 65816kromTests.swift */; };
+		4B8DF6212550D91600F3433C /* CPULDR-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5222550D91400F3433C /* CPULDR-trace_compare.log */; };
+		4B8DF6222550D91600F3433C /* CPULSR-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5232550D91400F3433C /* CPULSR-trace_compare.log */; };
+		4B8DF6232550D91600F3433C /* CPUROL-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5242550D91400F3433C /* CPUROL-trace_compare.log */; };
+		4B8DF6242550D91600F3433C /* CPUBIT-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5252550D91400F3433C /* CPUBIT-trace_compare.log */; };
+		4B8DF6252550D91600F3433C /* CPUROR-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5262550D91400F3433C /* CPUROR-trace_compare.log */; };
+		4B8DF6262550D91600F3433C /* CPUEOR-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5272550D91400F3433C /* CPUEOR-trace_compare.log */; };
+		4B8DF6272550D91600F3433C /* CPUORA-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5282550D91400F3433C /* CPUORA-trace_compare.log */; };
+		4B8DF6282550D91600F3433C /* CPUDEC-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5292550D91400F3433C /* CPUDEC-trace_compare.log */; };
+		4B8DF6292550D91600F3433C /* CPUAND-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF52A2550D91400F3433C /* CPUAND-trace_compare.log */; };
+		4B8DF62A2550D91600F3433C /* CPUINC-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF52B2550D91400F3433C /* CPUINC-trace_compare.log */; };
+		4B8DF62B2550D91600F3433C /* CPUMOV-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF52C2550D91400F3433C /* CPUMOV-trace_compare.log */; };
+		4B8DF62C2550D91600F3433C /* CPUBRA-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF52D2550D91400F3433C /* CPUBRA-trace_compare.log */; };
+		4B8DF62D2550D91600F3433C /* CPUASL-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF52E2550D91400F3433C /* CPUASL-trace_compare.log */; };
+		4B8DF62E2550D91600F3433C /* CPUPSR-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF52F2550D91400F3433C /* CPUPSR-trace_compare.log */; };
+		4B8DF62F2550D91600F3433C /* CPUCMP-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5302550D91400F3433C /* CPUCMP-trace_compare.log */; };
+		4B8DF6302550D91600F3433C /* CPUMSC-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5312550D91400F3433C /* CPUMSC-trace_compare.log */; };
+		4B8DF6312550D91600F3433C /* CPUSBC-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5322550D91400F3433C /* CPUSBC-trace_compare.log */; };
+		4B8DF6322550D91600F3433C /* CPUPHL-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5332550D91400F3433C /* CPUPHL-trace_compare.log */; };
+		4B8DF6332550D91600F3433C /* CPUJMP-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5342550D91400F3433C /* CPUJMP-trace_compare.log */; };
+		4B8DF6342550D91600F3433C /* CPURET-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5352550D91400F3433C /* CPURET-trace_compare.log */; };
+		4B8DF6352550D91600F3433C /* CPUTRN-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5362550D91400F3433C /* CPUTRN-trace_compare.log */; };
+		4B8DF6362550D91600F3433C /* CPUSTR-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5372550D91400F3433C /* CPUSTR-trace_compare.log */; };
+		4B8DF6372550D91600F3433C /* CPUADC-trace_compare.log in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5382550D91400F3433C /* CPUADC-trace_compare.log */; };
+		4B8DF63A2550D91600F3433C /* CPUBRA.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF53D2550D91500F3433C /* CPUBRA.sfc */; };
+		4B8DF6412550D91600F3433C /* CPUROR.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5462550D91500F3433C /* CPUROR.sfc */; };
+		4B8DF6492550D91600F3433C /* CPUCMP.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5502550D91500F3433C /* CPUCMP.sfc */; };
+		4B8DF6512550D91600F3433C /* CPURET.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF55A2550D91500F3433C /* CPURET.sfc */; };
+		4B8DF6592550D91600F3433C /* CPUINC.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5642550D91500F3433C /* CPUINC.sfc */; };
+		4B8DF6612550D91600F3433C /* CPUTRN.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF56E2550D91500F3433C /* CPUTRN.sfc */; };
+		4B8DF6682550D91600F3433C /* CPUSBC.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5772550D91500F3433C /* CPUSBC.sfc */; };
+		4B8DF6722550D91600F3433C /* CPUBIT.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5832550D91500F3433C /* CPUBIT.sfc */; };
+		4B8DF67F2550D91700F3433C /* CPUASL.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5932550D91500F3433C /* CPUASL.sfc */; };
+		4B8DF6812550D91700F3433C /* CPULDR.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5962550D91500F3433C /* CPULDR.sfc */; };
+		4B8DF68E2550D91700F3433C /* CPUORA.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5A62550D91500F3433C /* CPUORA.sfc */; };
+		4B8DF6962550D91700F3433C /* CPUJMP.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5B02550D91500F3433C /* CPUJMP.sfc */; };
+		4B8DF69F2550D91700F3433C /* CPUPHL.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5BB2550D91500F3433C /* CPUPHL.sfc */; };
+		4B8DF6A02550D91700F3433C /* readme.md in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5BC2550D91500F3433C /* readme.md */; };
+		4B8DF6A62550D91700F3433C /* CPUAND.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5C42550D91500F3433C /* CPUAND.sfc */; };
+		4B8DF6A92550D91700F3433C /* CPUROL.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5C82550D91500F3433C /* CPUROL.sfc */; };
+		4B8DF6B72550D91700F3433C /* CPUADC.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5D92550D91500F3433C /* CPUADC.sfc */; };
+		4B8DF6C02550D91700F3433C /* CPUMSC.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5E42550D91500F3433C /* CPUMSC.sfc */; };
+		4B8DF6C12550D91700F3433C /* CPUDEC.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5E62550D91500F3433C /* CPUDEC.sfc */; };
+		4B8DF6D02550D91700F3433C /* CPUPSR.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF5F82550D91600F3433C /* CPUPSR.sfc */; };
+		4B8DF6D72550D91700F3433C /* CPUSTR.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF6012550D91600F3433C /* CPUSTR.sfc */; };
+		4B8DF6DA2550D91700F3433C /* CPULSR.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF6052550D91600F3433C /* CPULSR.sfc */; };
+		4B8DF6E32550D91700F3433C /* CPUEOR.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF6102550D91600F3433C /* CPUEOR.sfc */; };
+		4B8DF6EA2550D91700F3433C /* CPUMOV.sfc in Resources */ = {isa = PBXBuildFile; fileRef = 4B8DF6192550D91600F3433C /* CPUMOV.sfc */; };
 		4B8FE21B1DA19D5F0090D3CE /* Atari2600Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */; };
 		4B8FE21C1DA19D5F0090D3CE /* MachineDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */; };
 		4B8FE21D1DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2171DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib */; };
@@ -1324,6 +1372,54 @@
 		4B8DF4F8254E36AD00F3433C /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
 		4B8DF503254E3C9D00F3433C /* ADB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ADB.cpp; sourceTree = "<group>"; };
 		4B8DF504254E3C9D00F3433C /* ADB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ADB.hpp; sourceTree = "<group>"; };
+		4B8DF5132550D62900F3433C /* 65816kromTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 65816kromTests.swift; sourceTree = "<group>"; };
+		4B8DF5222550D91400F3433C /* CPULDR-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPULDR-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5232550D91400F3433C /* CPULSR-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPULSR-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5242550D91400F3433C /* CPUROL-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUROL-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5252550D91400F3433C /* CPUBIT-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUBIT-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5262550D91400F3433C /* CPUROR-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUROR-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5272550D91400F3433C /* CPUEOR-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUEOR-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5282550D91400F3433C /* CPUORA-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUORA-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5292550D91400F3433C /* CPUDEC-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUDEC-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF52A2550D91400F3433C /* CPUAND-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUAND-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF52B2550D91400F3433C /* CPUINC-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUINC-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF52C2550D91400F3433C /* CPUMOV-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUMOV-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF52D2550D91400F3433C /* CPUBRA-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUBRA-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF52E2550D91400F3433C /* CPUASL-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUASL-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF52F2550D91400F3433C /* CPUPSR-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUPSR-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5302550D91400F3433C /* CPUCMP-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUCMP-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5312550D91400F3433C /* CPUMSC-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUMSC-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5322550D91400F3433C /* CPUSBC-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUSBC-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5332550D91400F3433C /* CPUPHL-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUPHL-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5342550D91400F3433C /* CPUJMP-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUJMP-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5352550D91400F3433C /* CPURET-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPURET-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5362550D91400F3433C /* CPUTRN-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUTRN-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5372550D91400F3433C /* CPUSTR-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUSTR-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF5382550D91400F3433C /* CPUADC-trace_compare.log */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "CPUADC-trace_compare.log"; sourceTree = "<group>"; };
+		4B8DF53D2550D91500F3433C /* CPUBRA.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUBRA.sfc; sourceTree = "<group>"; };
+		4B8DF5462550D91500F3433C /* CPUROR.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUROR.sfc; sourceTree = "<group>"; };
+		4B8DF5502550D91500F3433C /* CPUCMP.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUCMP.sfc; sourceTree = "<group>"; };
+		4B8DF55A2550D91500F3433C /* CPURET.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPURET.sfc; sourceTree = "<group>"; };
+		4B8DF5642550D91500F3433C /* CPUINC.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUINC.sfc; sourceTree = "<group>"; };
+		4B8DF56E2550D91500F3433C /* CPUTRN.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUTRN.sfc; sourceTree = "<group>"; };
+		4B8DF5772550D91500F3433C /* CPUSBC.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUSBC.sfc; sourceTree = "<group>"; };
+		4B8DF5832550D91500F3433C /* CPUBIT.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUBIT.sfc; sourceTree = "<group>"; };
+		4B8DF5932550D91500F3433C /* CPUASL.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUASL.sfc; sourceTree = "<group>"; };
+		4B8DF5962550D91500F3433C /* CPULDR.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPULDR.sfc; sourceTree = "<group>"; };
+		4B8DF5A62550D91500F3433C /* CPUORA.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUORA.sfc; sourceTree = "<group>"; };
+		4B8DF5B02550D91500F3433C /* CPUJMP.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUJMP.sfc; sourceTree = "<group>"; };
+		4B8DF5BB2550D91500F3433C /* CPUPHL.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUPHL.sfc; sourceTree = "<group>"; };
+		4B8DF5BC2550D91500F3433C /* readme.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = readme.md; sourceTree = "<group>"; };
+		4B8DF5C42550D91500F3433C /* CPUAND.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUAND.sfc; sourceTree = "<group>"; };
+		4B8DF5C82550D91500F3433C /* CPUROL.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUROL.sfc; sourceTree = "<group>"; };
+		4B8DF5D92550D91500F3433C /* CPUADC.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUADC.sfc; sourceTree = "<group>"; };
+		4B8DF5E42550D91500F3433C /* CPUMSC.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUMSC.sfc; sourceTree = "<group>"; };
+		4B8DF5E62550D91500F3433C /* CPUDEC.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUDEC.sfc; sourceTree = "<group>"; };
+		4B8DF5F82550D91600F3433C /* CPUPSR.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUPSR.sfc; sourceTree = "<group>"; };
+		4B8DF6012550D91600F3433C /* CPUSTR.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUSTR.sfc; sourceTree = "<group>"; };
+		4B8DF6052550D91600F3433C /* CPULSR.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPULSR.sfc; sourceTree = "<group>"; };
+		4B8DF6102550D91600F3433C /* CPUEOR.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUEOR.sfc; sourceTree = "<group>"; };
+		4B8DF6192550D91600F3433C /* CPUMOV.sfc */ = {isa = PBXFileReference; lastKnownFileType = file; path = CPUMOV.sfc; sourceTree = "<group>"; };
 		4B8E4ECD1DCE483D003716C3 /* KeyboardMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardMachine.hpp; sourceTree = "<group>"; };
 		4B8EF6071FE5AF830076CCDD /* LowpassSpeaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = LowpassSpeaker.hpp; sourceTree = "<group>"; };
 		4B8FE2141DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Atari2600Options.xib"; sourceTree = SOURCE_ROOT; };
@@ -2022,9 +2118,11 @@
 				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
 				4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */,
 				4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */,
+				4B8DF5212550D91400F3433C /* emudev.de krom traces */,
 				4B2530F2244E6773007980BF /* FM Synthesis */,
 				4BBF49B41ED2881600AB3669 /* FUSE */,
 				4B4F475B2533EA64004245B8 /* jeek816 */,
+				4B8DF5392550D91400F3433C /* krom 65816 */,
 				4B670A822401CB8400D4E002 /* Patrik Rak Z80 Tests */,
 				4B9F11C72272375400701480 /* QL Startup */,
 				4B85322B227793CA00F26553 /* TOS Startup */,
@@ -3031,6 +3129,251 @@
 			path = AppleClock;
 			sourceTree = "<group>";
 		};
+		4B8DF5212550D91400F3433C /* emudev.de krom traces */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5222550D91400F3433C /* CPULDR-trace_compare.log */,
+				4B8DF5232550D91400F3433C /* CPULSR-trace_compare.log */,
+				4B8DF5242550D91400F3433C /* CPUROL-trace_compare.log */,
+				4B8DF5252550D91400F3433C /* CPUBIT-trace_compare.log */,
+				4B8DF5262550D91400F3433C /* CPUROR-trace_compare.log */,
+				4B8DF5272550D91400F3433C /* CPUEOR-trace_compare.log */,
+				4B8DF5282550D91400F3433C /* CPUORA-trace_compare.log */,
+				4B8DF5292550D91400F3433C /* CPUDEC-trace_compare.log */,
+				4B8DF52A2550D91400F3433C /* CPUAND-trace_compare.log */,
+				4B8DF52B2550D91400F3433C /* CPUINC-trace_compare.log */,
+				4B8DF52C2550D91400F3433C /* CPUMOV-trace_compare.log */,
+				4B8DF52D2550D91400F3433C /* CPUBRA-trace_compare.log */,
+				4B8DF52E2550D91400F3433C /* CPUASL-trace_compare.log */,
+				4B8DF52F2550D91400F3433C /* CPUPSR-trace_compare.log */,
+				4B8DF5302550D91400F3433C /* CPUCMP-trace_compare.log */,
+				4B8DF5312550D91400F3433C /* CPUMSC-trace_compare.log */,
+				4B8DF5322550D91400F3433C /* CPUSBC-trace_compare.log */,
+				4B8DF5332550D91400F3433C /* CPUPHL-trace_compare.log */,
+				4B8DF5342550D91400F3433C /* CPUJMP-trace_compare.log */,
+				4B8DF5352550D91400F3433C /* CPURET-trace_compare.log */,
+				4B8DF5362550D91400F3433C /* CPUTRN-trace_compare.log */,
+				4B8DF5372550D91400F3433C /* CPUSTR-trace_compare.log */,
+				4B8DF5382550D91400F3433C /* CPUADC-trace_compare.log */,
+			);
+			path = "emudev.de krom traces";
+			sourceTree = "<group>";
+		};
+		4B8DF5392550D91400F3433C /* krom 65816 */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF53A2550D91400F3433C /* BRA */,
+				4B8DF5442550D91500F3433C /* ROR */,
+				4B8DF54E2550D91500F3433C /* CMP */,
+				4B8DF5582550D91500F3433C /* RET */,
+				4B8DF5622550D91500F3433C /* INC */,
+				4B8DF56C2550D91500F3433C /* TRN */,
+				4B8DF5762550D91500F3433C /* SBC */,
+				4B8DF5802550D91500F3433C /* BIT */,
+				4B8DF58A2550D91500F3433C /* ASL */,
+				4B8DF5942550D91500F3433C /* LDR */,
+				4B8DF59E2550D91500F3433C /* ORA */,
+				4B8DF5A82550D91500F3433C /* JMP */,
+				4B8DF5B22550D91500F3433C /* PHL */,
+				4B8DF5BC2550D91500F3433C /* readme.md */,
+				4B8DF5BD2550D91500F3433C /* AND */,
+				4B8DF5C72550D91500F3433C /* ROL */,
+				4B8DF5D12550D91500F3433C /* ADC */,
+				4B8DF5DB2550D91500F3433C /* MSC */,
+				4B8DF5E52550D91500F3433C /* DEC */,
+				4B8DF5EF2550D91500F3433C /* PSR */,
+				4B8DF5F92550D91600F3433C /* STR */,
+				4B8DF6032550D91600F3433C /* LSR */,
+				4B8DF60D2550D91600F3433C /* EOR */,
+				4B8DF6172550D91600F3433C /* MOV */,
+			);
+			path = "krom 65816";
+			sourceTree = "<group>";
+		};
+		4B8DF53A2550D91400F3433C /* BRA */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF53D2550D91500F3433C /* CPUBRA.sfc */,
+			);
+			path = BRA;
+			sourceTree = "<group>";
+		};
+		4B8DF5442550D91500F3433C /* ROR */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5462550D91500F3433C /* CPUROR.sfc */,
+			);
+			path = ROR;
+			sourceTree = "<group>";
+		};
+		4B8DF54E2550D91500F3433C /* CMP */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5502550D91500F3433C /* CPUCMP.sfc */,
+			);
+			path = CMP;
+			sourceTree = "<group>";
+		};
+		4B8DF5582550D91500F3433C /* RET */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF55A2550D91500F3433C /* CPURET.sfc */,
+			);
+			path = RET;
+			sourceTree = "<group>";
+		};
+		4B8DF5622550D91500F3433C /* INC */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5642550D91500F3433C /* CPUINC.sfc */,
+			);
+			path = INC;
+			sourceTree = "<group>";
+		};
+		4B8DF56C2550D91500F3433C /* TRN */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF56E2550D91500F3433C /* CPUTRN.sfc */,
+			);
+			path = TRN;
+			sourceTree = "<group>";
+		};
+		4B8DF5762550D91500F3433C /* SBC */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5772550D91500F3433C /* CPUSBC.sfc */,
+			);
+			path = SBC;
+			sourceTree = "<group>";
+		};
+		4B8DF5802550D91500F3433C /* BIT */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5832550D91500F3433C /* CPUBIT.sfc */,
+			);
+			path = BIT;
+			sourceTree = "<group>";
+		};
+		4B8DF58A2550D91500F3433C /* ASL */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5932550D91500F3433C /* CPUASL.sfc */,
+			);
+			path = ASL;
+			sourceTree = "<group>";
+		};
+		4B8DF5942550D91500F3433C /* LDR */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5962550D91500F3433C /* CPULDR.sfc */,
+			);
+			path = LDR;
+			sourceTree = "<group>";
+		};
+		4B8DF59E2550D91500F3433C /* ORA */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5A62550D91500F3433C /* CPUORA.sfc */,
+			);
+			path = ORA;
+			sourceTree = "<group>";
+		};
+		4B8DF5A82550D91500F3433C /* JMP */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5B02550D91500F3433C /* CPUJMP.sfc */,
+			);
+			path = JMP;
+			sourceTree = "<group>";
+		};
+		4B8DF5B22550D91500F3433C /* PHL */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5BB2550D91500F3433C /* CPUPHL.sfc */,
+			);
+			path = PHL;
+			sourceTree = "<group>";
+		};
+		4B8DF5BD2550D91500F3433C /* AND */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5C42550D91500F3433C /* CPUAND.sfc */,
+			);
+			path = AND;
+			sourceTree = "<group>";
+		};
+		4B8DF5C72550D91500F3433C /* ROL */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5C82550D91500F3433C /* CPUROL.sfc */,
+			);
+			path = ROL;
+			sourceTree = "<group>";
+		};
+		4B8DF5D12550D91500F3433C /* ADC */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5D92550D91500F3433C /* CPUADC.sfc */,
+			);
+			path = ADC;
+			sourceTree = "<group>";
+		};
+		4B8DF5DB2550D91500F3433C /* MSC */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5E42550D91500F3433C /* CPUMSC.sfc */,
+			);
+			path = MSC;
+			sourceTree = "<group>";
+		};
+		4B8DF5E52550D91500F3433C /* DEC */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5E62550D91500F3433C /* CPUDEC.sfc */,
+			);
+			path = DEC;
+			sourceTree = "<group>";
+		};
+		4B8DF5EF2550D91500F3433C /* PSR */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF5F82550D91600F3433C /* CPUPSR.sfc */,
+			);
+			path = PSR;
+			sourceTree = "<group>";
+		};
+		4B8DF5F92550D91600F3433C /* STR */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF6012550D91600F3433C /* CPUSTR.sfc */,
+			);
+			path = STR;
+			sourceTree = "<group>";
+		};
+		4B8DF6032550D91600F3433C /* LSR */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF6052550D91600F3433C /* CPULSR.sfc */,
+			);
+			path = LSR;
+			sourceTree = "<group>";
+		};
+		4B8DF60D2550D91600F3433C /* EOR */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF6102550D91600F3433C /* CPUEOR.sfc */,
+			);
+			path = EOR;
+			sourceTree = "<group>";
+		};
+		4B8DF6172550D91600F3433C /* MOV */ = {
+			isa = PBXGroup;
+			children = (
+				4B8DF6192550D91600F3433C /* CPUMOV.sfc */,
+			);
+			path = MOV;
+			sourceTree = "<group>";
+		};
 		4B8EF6051FE5AF830076CCDD /* Implementation */ = {
 			isa = PBXGroup;
 			children = (
@@ -3473,6 +3816,7 @@
 			children = (
 				4B85322922778E4200F26553 /* Comparative68000.hpp */,
 				4B90467222C6FA31000E2074 /* TestRunner68000.hpp */,
+				4B90467522C6FD6E000E2074 /* 68000ArithmeticTests.mm */,
 				4B9D0C4A22C7D70900DE1AD3 /* 68000BCDTests.mm */,
 				4B90467322C6FADD000E2074 /* 68000BitwiseTests.mm */,
 				4B680CE123A5553100451D43 /* 68000ComparativeTests.mm */,
@@ -3501,6 +3845,7 @@
 				4BC751B11D157E61006C31D9 /* 6522Tests.swift */,
 				4B1E85801D176468001EF87D /* 6532Tests.swift */,
 				4B4F478925367EDC004245B8 /* 65816AddressingTests.swift */,
+				4B8DF5132550D62900F3433C /* 65816kromTests.swift */,
 				4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */,
 				4B049CDC1DA3C82F00322067 /* BCDTest.swift */,
 				4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */,
@@ -3516,7 +3861,6 @@
 				4BFCA12A1ECBE7C400AC40C1 /* ZexallTests.swift */,
 				4B3BA0C41D318B44005DD7A7 /* Bridges */,
 				4B1414631B588A1100E04248 /* Test Binaries */,
-				4B90467522C6FD6E000E2074 /* 68000ArithmeticTests.mm */,
 			);
 			path = "Clock SignalTests";
 			sourceTree = "<group>";
@@ -4236,13 +4580,16 @@
 				4BB299521B587D8400A49093 /* eoray in Resources */,
 				4BB299411B587D8400A49093 /* cpyb in Resources */,
 				4BB299A61B587D8400A49093 /* phan in Resources */,
+				4B8DF6352550D91600F3433C /* CPUTRN-trace_compare.log in Resources */,
 				4BB299D91B587D8400A49093 /* staix in Resources */,
 				4BB299EA1B587D8400A49093 /* trap14 in Resources */,
 				4BB2990F1B587D8400A49093 /* asoiy in Resources */,
+				4B8DF6592550D91600F3433C /* CPUINC.sfc in Resources */,
 				4BB298FF1B587D8400A49093 /* andb in Resources */,
 				4BB299021B587D8400A49093 /* andz in Resources */,
 				4BB299E31B587D8400A49093 /* taxn in Resources */,
 				4BB299551B587D8400A49093 /* eoriy in Resources */,
+				4B8DF62B2550D91600F3433C /* CPUMOV-trace_compare.log in Resources */,
 				4BB298F91B587D8400A49093 /* adczx in Resources */,
 				4BB299F21B587D8400A49093 /* trap6 in Resources */,
 				4B670A9B2401CB8400D4E002 /* z80memptr.tap in Resources */,
@@ -4252,6 +4599,7 @@
 				4BB299AF1B587D8400A49093 /* rlaz in Resources */,
 				4BB2999C1B587D8400A49093 /* nopzx in Resources */,
 				4BB299A01B587D8400A49093 /* oraay in Resources */,
+				4B8DF6E32550D91700F3433C /* CPUEOR.sfc in Resources */,
 				4BB299C01B587D8400A49093 /* rraz in Resources */,
 				4BB299771B587D8400A49093 /* ldab in Resources */,
 				4BB299031B587D8400A49093 /* andzx in Resources */,
@@ -4265,6 +4613,7 @@
 				4BB299881B587D8400A49093 /* lseax in Resources */,
 				4BB299B91B587D8400A49093 /* rorz in Resources */,
 				4BB299F61B587D8400A49093 /* tsxn in Resources */,
+				4B8DF6682550D91600F3433C /* CPUSBC.sfc in Resources */,
 				4BB298F11B587D8400A49093 /*  start in Resources */,
 				4BDA00DD22E622C200AC3CD0 /* ROMImages in Resources */,
 				4BB299061B587D8400A49093 /* asla in Resources */,
@@ -4276,6 +4625,7 @@
 				4BB299431B587D8400A49093 /* dcma in Resources */,
 				4BB298FD1B587D8400A49093 /* andax in Resources */,
 				4B85322D227793CB00F26553 /* etos192uk.trace.txt.gz in Resources */,
+				4B8DF6262550D91600F3433C /* CPUEOR-trace_compare.log in Resources */,
 				4BB299401B587D8400A49093 /* cpya in Resources */,
 				4BB299BE1B587D8400A49093 /* rraix in Resources */,
 				4BB299E41B587D8400A49093 /* tayn in Resources */,
@@ -4286,12 +4636,14 @@
 				4BB299361B587D8400A49093 /* cmpiy in Resources */,
 				4BB299B01B587D8400A49093 /* rlazx in Resources */,
 				4BB2999F1B587D8400A49093 /* oraax in Resources */,
+				4B8DF6A92550D91700F3433C /* CPUROL.sfc in Resources */,
 				4BB299B71B587D8400A49093 /* rorax in Resources */,
 				4B670AB02401CB8400D4E002 /* z80full.tap in Resources */,
 				4BB299DB1B587D8400A49093 /* staz in Resources */,
 				4BB299961B587D8400A49093 /* nmi in Resources */,
 				4BB299241B587D8400A49093 /* cia1ta in Resources */,
 				4BB2990E1B587D8400A49093 /* asoix in Resources */,
+				4B8DF6D72550D91700F3433C /* CPUSTR.sfc in Resources */,
 				4BE211DE253E4E4800435408 /* 65C02_no_Rockwell_test.bin in Resources */,
 				4BB299F51B587D8400A49093 /* trap9 in Resources */,
 				4BB299C81B587D8400A49093 /* sbcb(eb) in Resources */,
@@ -4299,6 +4651,7 @@
 				4BB299D01B587D8400A49093 /* sein in Resources */,
 				4BB299151B587D8400A49093 /* axszy in Resources */,
 				4BB2994D1B587D8400A49093 /* deczx in Resources */,
+				4B8DF63A2550D91600F3433C /* CPUBRA.sfc in Resources */,
 				4BB299B11B587D8400A49093 /* rola in Resources */,
 				4BB299CE1B587D8400A49093 /* secn in Resources */,
 				4BB298F31B587D8400A49093 /* adcax in Resources */,
@@ -4307,6 +4660,7 @@
 				4BB299E61B587D8400A49093 /* trap10 in Resources */,
 				4BB299651B587D8400A49093 /* insz in Resources */,
 				4B44EBF91DC9898E00A7820C /* BCDTEST_beeb in Resources */,
+				4B8DF6272550D91600F3433C /* CPUORA-trace_compare.log in Resources */,
 				4BB299161B587D8400A49093 /* bccr in Resources */,
 				4BB299211B587D8400A49093 /* bvsr in Resources */,
 				4BB2991F1B587D8400A49093 /* brkn in Resources */,
@@ -4316,6 +4670,7 @@
 				4BB299511B587D8400A49093 /* eorax in Resources */,
 				4BB299A11B587D8400A49093 /* orab in Resources */,
 				4BB298F81B587D8400A49093 /* adcz in Resources */,
+				4B8DF6D02550D91700F3433C /* CPUPSR.sfc in Resources */,
 				4BB299EC1B587D8400A49093 /* trap16 in Resources */,
 				4BB299741B587D8400A49093 /* ldaa in Resources */,
 				4BB299871B587D8400A49093 /* lsea in Resources */,
@@ -4325,6 +4680,7 @@
 				4BB17D4E1ED7909F00ABD1E1 /* tests.expected.json in Resources */,
 				4BB2998F1B587D8400A49093 /* lsrax in Resources */,
 				4BB299001B587D8400A49093 /* andix in Resources */,
+				4B8DF6242550D91600F3433C /* CPUBIT-trace_compare.log in Resources */,
 				4BB2993A1B587D8400A49093 /* cnto2 in Resources */,
 				4BB298FA1B587D8400A49093 /* alrb in Resources */,
 				4BB299C71B587D8400A49093 /* sbcb in Resources */,
@@ -4333,7 +4689,10 @@
 				4BB299AB1B587D8400A49093 /* rlaax in Resources */,
 				4BB299B81B587D8400A49093 /* rorn in Resources */,
 				4BB2997A1B587D8400A49093 /* ldaz in Resources */,
+				4B8DF6212550D91600F3433C /* CPULDR-trace_compare.log in Resources */,
 				4BB299381B587D8400A49093 /* cmpzx in Resources */,
+				4B8DF6A02550D91700F3433C /* readme.md in Resources */,
+				4B8DF6A62550D91700F3433C /* CPUAND.sfc in Resources */,
 				4BB2997F1B587D8400A49093 /* ldxz in Resources */,
 				4BB2992D1B587D8400A49093 /* clcn in Resources */,
 				4BB299E01B587D8400A49093 /* stya in Resources */,
@@ -4346,10 +4705,12 @@
 				4B670AB12401CB8400D4E002 /* z80docflags.tap in Resources */,
 				4BB299D51B587D8400A49093 /* shyax in Resources */,
 				4BB2992F1B587D8400A49093 /* clin in Resources */,
+				4B8DF6332550D91600F3433C /* CPUJMP-trace_compare.log in Resources */,
 				4BB299D21B587D8400A49093 /* shaiy in Resources */,
 				4BB2991A1B587D8400A49093 /* bitz in Resources */,
 				4BB299531B587D8400A49093 /* eorb in Resources */,
 				4BB299661B587D8400A49093 /* inszx in Resources */,
+				4B8DF62D2550D91600F3433C /* CPUASL-trace_compare.log in Resources */,
 				4BB299101B587D8400A49093 /* asoz in Resources */,
 				4BB2998B1B587D8400A49093 /* lseiy in Resources */,
 				4B9252CE1E74D28200B76AF1 /* Atari ROMs in Resources */,
@@ -4364,6 +4725,7 @@
 				4BB299F81B587D8400A49093 /* txsn in Resources */,
 				4BB299E81B587D8400A49093 /* trap12 in Resources */,
 				4BB299891B587D8400A49093 /* lseay in Resources */,
+				4B8DF62C2550D91600F3433C /* CPUBRA-trace_compare.log in Resources */,
 				4BB2997B1B587D8400A49093 /* ldazx in Resources */,
 				4BB2990D1B587D8400A49093 /* asoay in Resources */,
 				4BB299AD1B587D8400A49093 /* rlaix in Resources */,
@@ -4380,21 +4742,25 @@
 				4BB299C61B587D8400A49093 /* sbcay in Resources */,
 				4BB299601B587D8400A49093 /* insa in Resources */,
 				4BB299951B587D8400A49093 /* mmufetch in Resources */,
+				4B8DF62E2550D91600F3433C /* CPUPSR-trace_compare.log in Resources */,
 				4BB17D4F1ED7909F00ABD1E1 /* tests.in.json in Resources */,
 				4BB299A71B587D8400A49093 /* phpn in Resources */,
 				4BB299CC1B587D8400A49093 /* sbczx in Resources */,
 				4BB299C91B587D8400A49093 /* sbcix in Resources */,
 				4BB2991B1B587D8400A49093 /* bmir in Resources */,
+				4B8DF6DA2550D91700F3433C /* CPULSR.sfc in Resources */,
 				4BB299EF1B587D8400A49093 /* trap3 in Resources */,
 				4BB299D31B587D8400A49093 /* shsay in Resources */,
 				4BB299AE1B587D8400A49093 /* rlaiy in Resources */,
 				4BB299181B587D8400A49093 /* beqr in Resources */,
 				4BB299311B587D8400A49093 /* cmpa in Resources */,
+				4B8DF6282550D91600F3433C /* CPUDEC-trace_compare.log in Resources */,
 				4BB2997E1B587D8400A49093 /* ldxb in Resources */,
 				4BB298F51B587D8400A49093 /* adcb in Resources */,
 				4BB299981B587D8400A49093 /* nopax in Resources */,
 				4BB299931B587D8400A49093 /* lxab in Resources */,
 				4BB299F01B587D8400A49093 /* trap4 in Resources */,
+				4B8DF6722550D91600F3433C /* CPUBIT.sfc in Resources */,
 				4BB299451B587D8400A49093 /* dcmay in Resources */,
 				4BB299081B587D8400A49093 /* asln in Resources */,
 				4BB2996E1B587D8400A49093 /* laxa in Resources */,
@@ -4406,7 +4772,9 @@
 				4B670AA12401CB8400D4E002 /* z80doc.tap in Resources */,
 				4BB299941B587D8400A49093 /* mmu in Resources */,
 				4BB299E11B587D8400A49093 /* styz in Resources */,
+				4B8DF6812550D91700F3433C /* CPULDR.sfc in Resources */,
 				4BB299BA1B587D8400A49093 /* rorzx in Resources */,
+				4B8DF6512550D91600F3433C /* CPURET.sfc in Resources */,
 				4BB299491B587D8400A49093 /* dcmzx in Resources */,
 				4BB299AC1B587D8400A49093 /* rlaay in Resources */,
 				4BB299131B587D8400A49093 /* axsix in Resources */,
@@ -4416,8 +4784,10 @@
 				4BE9A6B11EDE293000CBCB47 /* zexdoc.com in Resources */,
 				4BB2994A1B587D8400A49093 /* deca in Resources */,
 				4BB299CA1B587D8400A49093 /* sbciy in Resources */,
+				4B8DF6252550D91600F3433C /* CPUROR-trace_compare.log in Resources */,
 				4BB2993D1B587D8400A49093 /* cpxa in Resources */,
 				4BB299721B587D8400A49093 /* laxz in Resources */,
+				4B8DF6312550D91600F3433C /* CPUSBC-trace_compare.log in Resources */,
 				4BB299011B587D8400A49093 /* andiy in Resources */,
 				4BB2992B1B587D8400A49093 /* cia2tb in Resources */,
 				4BB299221B587D8400A49093 /* cia1pb6 in Resources */,
@@ -4425,6 +4795,7 @@
 				4BB2996C1B587D8400A49093 /* jsrw in Resources */,
 				4BB299EE1B587D8400A49093 /* trap2 in Resources */,
 				4BB299921B587D8400A49093 /* lsrzx in Resources */,
+				4B8DF6232550D91600F3433C /* CPUROL-trace_compare.log in Resources */,
 				4BB299371B587D8400A49093 /* cmpz in Resources */,
 				4BB298FC1B587D8400A49093 /* anda in Resources */,
 				4BB299CB1B587D8400A49093 /* sbcz in Resources */,
@@ -4445,28 +4816,41 @@
 				4BB2995E1B587D8400A49093 /* incz in Resources */,
 				4BB299791B587D8400A49093 /* ldaiy in Resources */,
 				4BB299A31B587D8400A49093 /* oraiy in Resources */,
+				4B8DF68E2550D91700F3433C /* CPUORA.sfc in Resources */,
 				4BB2990B1B587D8400A49093 /* asoa in Resources */,
 				4BB299DA1B587D8400A49093 /* staiy in Resources */,
 				4BB299761B587D8400A49093 /* ldaay in Resources */,
+				4B8DF6EA2550D91700F3433C /* CPUMOV.sfc in Resources */,
 				4BB299631B587D8400A49093 /* insix in Resources */,
 				4BB299B61B587D8400A49093 /* rora in Resources */,
 				4BB299BC1B587D8400A49093 /* rraax in Resources */,
 				4BB299B21B587D8400A49093 /* rolax in Resources */,
+				4B8DF6342550D91600F3433C /* CPURET-trace_compare.log in Resources */,
 				4BB299481B587D8400A49093 /* dcmz in Resources */,
+				4B8DF6492550D91600F3433C /* CPUCMP.sfc in Resources */,
 				4BB2996A1B587D8400A49093 /* jmpi in Resources */,
+				4B8DF6322550D91600F3433C /* CPUPHL-trace_compare.log in Resources */,
 				4BB299831B587D8400A49093 /* ldyb in Resources */,
 				4BB299911B587D8400A49093 /* lsrz in Resources */,
 				4BB299A51B587D8400A49093 /* orazx in Resources */,
 				4BB299B31B587D8400A49093 /* roln in Resources */,
+				4B8DF6C12550D91700F3433C /* CPUDEC.sfc in Resources */,
+				4B8DF6302550D91600F3433C /* CPUMSC-trace_compare.log in Resources */,
 				4BB2995D1B587D8400A49093 /* incax in Resources */,
 				4BB2992E1B587D8400A49093 /* cldn in Resources */,
+				4B8DF62F2550D91600F3433C /* CPUCMP-trace_compare.log in Resources */,
+				4B8DF6412550D91600F3433C /* CPUROR.sfc in Resources */,
 				4BB299691B587D8400A49093 /* irq in Resources */,
+				4B8DF6962550D91700F3433C /* CPUJMP.sfc in Resources */,
 				4BB299851B587D8400A49093 /* ldyzx in Resources */,
 				4BB299F31B587D8400A49093 /* trap7 in Resources */,
+				4B8DF6292550D91600F3433C /* CPUAND-trace_compare.log in Resources */,
 				4BB299571B587D8400A49093 /* eorzx in Resources */,
 				4BB299701B587D8400A49093 /* laxix in Resources */,
+				4B8DF6372550D91600F3433C /* CPUADC-trace_compare.log in Resources */,
 				4BB299441B587D8400A49093 /* dcmax in Resources */,
 				4BB2996F1B587D8400A49093 /* laxay in Resources */,
+				4B8DF6C02550D91700F3433C /* CPUMSC.sfc in Resources */,
 				4BB298F71B587D8400A49093 /* adciy in Resources */,
 				4BB299271B587D8400A49093 /* cia1tb123 in Resources */,
 				4BB299C51B587D8400A49093 /* sbcax in Resources */,
@@ -4476,6 +4860,7 @@
 				4BB298F61B587D8400A49093 /* adcix in Resources */,
 				4BB299261B587D8400A49093 /* cia1tb in Resources */,
 				4BB2997C1B587D8400A49093 /* ldxa in Resources */,
+				4B8DF6362550D91600F3433C /* CPUSTR-trace_compare.log in Resources */,
 				4BB299A41B587D8400A49093 /* oraz in Resources */,
 				4BB299611B587D8400A49093 /* insax in Resources */,
 				4BB299351B587D8400A49093 /* cmpix in Resources */,
@@ -4486,8 +4871,10 @@
 				4BB299091B587D8400A49093 /* aslz in Resources */,
 				4BB299ED1B587D8400A49093 /* trap17 in Resources */,
 				4BB299731B587D8400A49093 /* laxzy in Resources */,
+				4B8DF69F2550D91700F3433C /* CPUPHL.sfc in Resources */,
 				4BB299F91B587D8400A49093 /* tyan in Resources */,
 				4BB299DF1B587D8400A49093 /* stxzy in Resources */,
+				4B8DF67F2550D91700F3433C /* CPUASL.sfc in Resources */,
 				4BB299231B587D8400A49093 /* cia1pb7 in Resources */,
 				4BB2998D1B587D8400A49093 /* lsezx in Resources */,
 				4BB299811B587D8400A49093 /* ldya in Resources */,
@@ -4496,16 +4883,20 @@
 				4BB299D11B587D8400A49093 /* shaay in Resources */,
 				4BB299A21B587D8400A49093 /* oraix in Resources */,
 				4BB299AA1B587D8400A49093 /* rlaa in Resources */,
+				4B8DF6612550D91600F3433C /* CPUTRN.sfc in Resources */,
 				4BB299541B587D8400A49093 /* eorix in Resources */,
 				4BB2993C1B587D8400A49093 /* cputiming in Resources */,
 				4BB2999E1B587D8400A49093 /* oraa in Resources */,
 				4BB299D81B587D8400A49093 /* staay in Resources */,
+				4B8DF62A2550D91600F3433C /* CPUINC-trace_compare.log in Resources */,
 				4BB2993F1B587D8400A49093 /* cpxz in Resources */,
 				4BB299861B587D8400A49093 /* loadth in Resources */,
 				4BB299321B587D8400A49093 /* cmpax in Resources */,
 				4BB2999A1B587D8400A49093 /* nopn in Resources */,
 				4BB2996D1B587D8400A49093 /* lasay in Resources */,
 				4BB299421B587D8400A49093 /* cpyz in Resources */,
+				4B8DF6B72550D91700F3433C /* CPUADC.sfc in Resources */,
+				4B8DF6222550D91600F3433C /* CPULSR-trace_compare.log in Resources */,
 				4B680CE423A555CA00451D43 /* 68000 Comparative Tests in Resources */,
 				4BB299DE1B587D8400A49093 /* stxz in Resources */,
 				4BB2991C1B587D8400A49093 /* bner in Resources */,
@@ -5016,6 +5407,7 @@
 				4B778F6223A5F35F0000D260 /* File.cpp in Sources */,
 				4B778F3523A5F1040000D260 /* SCSI.cpp in Sources */,
 				4BD388882239E198002D14B5 /* 68000Tests.mm in Sources */,
+				4B8DF5142550D62A00F3433C /* 65816kromTests.swift in Sources */,
 				4BA91E1D216D85BA00F79557 /* MasterSystemVDPTests.mm in Sources */,
 				4B98A0611FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm in Sources */,
 				4BE34438238389E10058E78F /* AtariSTVideoTests.mm in Sources */,
