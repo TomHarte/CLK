@@ -52,55 +52,103 @@ class Krom65816Tests: XCTestCase {
 		machine.setValue(0x00ff, for: .stackPointer)
 		machine.setValue(0x34, for: .flags)
 
+		// Poke some fixed values for SNES registers to get past initial setup.
+		machine.setValue(0x42, forAddress: 0x4210)	// "RDNMI", apparently; this says: CPU version 2, vblank interrupt request.
+		var allowNegativeError = false
+
 		var lineNumber = 1
+		var previousPC = 0
 		for line in outputLines {
 			machine.runForNumber(ofInstructions: 1)
 
-			// Formulate my 65816 state in the same form as the test machine
-			var cpuState = ""
-			let emulationFlag = machine.value(for: .emulationFlag) != 0
-			cpuState += String(format: "%06x ", machine.value(for: .lastOperationAddress))
-			cpuState += String(format: "A:%04x ", machine.value(for: .A))
-			cpuState += String(format: "X:%04x ", machine.value(for: .X))
-			cpuState += String(format: "Y:%04x ", machine.value(for: .Y))
-			if emulationFlag {
-				cpuState += String(format: "S:01%02x ", machine.value(for: .stackPointer))
-			} else {
-				cpuState += String(format: "S:%04x ", machine.value(for: .stackPointer))
+			func machineState() -> String {
+				// Formulate my 65816 state in the same form as the test machine
+				var cpuState = ""
+				let emulationFlag = machine.value(for: .emulationFlag) != 0
+				cpuState += String(format: "%06x ", machine.value(for: .lastOperationAddress))
+				cpuState += String(format: "A:%04x ", machine.value(for: .A))
+				cpuState += String(format: "X:%04x ", machine.value(for: .X))
+				cpuState += String(format: "Y:%04x ", machine.value(for: .Y))
+				if emulationFlag {
+					cpuState += String(format: "S:01%02x ", machine.value(for: .stackPointer))
+				} else {
+					cpuState += String(format: "S:%04x ", machine.value(for: .stackPointer))
+				}
+				cpuState += String(format: "D:%04x ", machine.value(for: .direct))
+				cpuState += String(format: "DB:%02x ", machine.value(for: .dataBank))
+
+				let flags = machine.value(for: .flags)
+				cpuState += (flags & 0x80) != 0 ? "N" : "n"
+				cpuState += (flags & 0x40) != 0 ? "V" : "v"
+				if emulationFlag {
+					cpuState += "1B"
+				} else {
+					cpuState += (flags & 0x20) != 0 ? "M" : "m"
+					cpuState += (flags & 0x10) != 0 ? "X" : "x"
+				}
+				cpuState += (flags & 0x08) != 0 ? "D" : "d"
+				cpuState += (flags & 0x04) != 0 ? "I" : "i"
+				cpuState += (flags & 0x02) != 0 ? "Z" : "z"
+				cpuState += (flags & 0x01) != 0 ? "C" : "c"
+
+				cpuState += " "
+
+				return cpuState
 			}
-			cpuState += String(format: "D:%04x ", machine.value(for: .direct))
-			cpuState += String(format: "DB:%02x ", machine.value(for: .dataBank))
 
-			let flags = machine.value(for: .flags)
-			cpuState += (flags & 0x80) != 0 ? "N" : "n"
-			cpuState += (flags & 0x40) != 0 ? "V" : "v"
-			if emulationFlag {
-				// These logs seem always to have the break flag set (?)
-				cpuState += (flags & 0x20) != 0 ? "1" : "?"
-				cpuState += "B" 	//(flags & 0x10) != 0 ? "B" : "b"
-			} else {
-				cpuState += (flags & 0x20) != 0 ? "M" : "m"
-				cpuState += (flags & 0x10) != 0 ? "X" : "x"
+			// Permit a fix-up of the negative flag only if this line followed a test of $4210.
+			var cpuState = machineState()
+			if cpuState != line && allowNegativeError {
+				machine.setValue(machine.value(for: .flags) ^ 0x80, for: .flags)
+				cpuState = machineState()
 			}
-			cpuState += (flags & 0x08) != 0 ? "D" : "d"
-			cpuState += (flags & 0x04) != 0 ? "I" : "i"
-			cpuState += (flags & 0x02) != 0 ? "Z" : "z"
-			cpuState += (flags & 0x01) != 0 ? "C" : "c"
 
-			cpuState += " "
-
-			XCTAssertEqual(cpuState, line, "Mismatch on line #\(lineNumber)")
+			XCTAssertEqual(cpuState, line, "Mismatch on line #\(lineNumber); after instruction #\(String(format:"%02x", machine.value(forAddress: UInt32(previousPC))))")
 			if cpuState != line {
 				break
 			}
 			lineNumber += 1
+			previousPC = Int(machine.value(for: .lastOperationAddress))
+
+			// Check whether a 'RDNMI' toggle needs to happen by peeking at the next instruction;
+			// if it's BIT $4210 then toggle the top bit at address $4210.
+			//
+			// Coupling here: assume that by the time the test 65816 is aware it's on a new instruction
+			// it's because the actual 65816 has read a new opcode, and that if the 65816 has just read
+			// a new opcode then it has already advanced the program counter.
+			let programCounter = machine.value(for: .programCounter)
+			let nextInstr = [
+				machine.value(forAddress: UInt32(programCounter - 1)),
+				machine.value(forAddress: UInt32(programCounter + 0)),
+				machine.value(forAddress: UInt32(programCounter + 1))
+			]
+			allowNegativeError = nextInstr[0] == 0x2c && nextInstr[1] == 0x10 && nextInstr[2] == 0x42
 		}
 	}
 
 	// MARK: - Tests
 
-	func testADC() {
-		runTest("CPUADC")
-	}
+	func testADC() {	runTest("CPUADC")	}
+	func testAND() {	runTest("CPUAND")	}
+	func testASL() {	runTest("CPUASL")	}
+	func testBIT() {	runTest("CPUBIT")	}
+	func testBRA() {	runTest("CPUBRA")	}
+	func testCMP() {	runTest("CPUCMP")	}
+	func testDEC() {	runTest("CPUDEC")	}
+	func testEOR() {	runTest("CPUEOR")	}
+	func testINC() {	runTest("CPUINC")	}
+	func testJMP() {	runTest("CPUJMP")	}
+	func testLDR() {	runTest("CPULDR")	}
+	func testLSR() {	runTest("CPULSR")	}
+	func testMOV() {	runTest("CPUMOV")	}
+	func testMSC() {	runTest("CPUMSC")	}
+	func testORA() {	runTest("CPUORA")	}
+	func testPHL() {	runTest("CPUPHL")	}
+	func testPSR() {	runTest("CPUPSR")	}
+	func testROL() {	runTest("CPUROL")	}
+	func testROR() {	runTest("CPUROR")	}
+	func testSBC() {	runTest("CPUSBC")	}
+	func testSTR() {	runTest("CPUSTR")	}
+	func testTRN() {	runTest("CPUTRN")	}
 
 }
