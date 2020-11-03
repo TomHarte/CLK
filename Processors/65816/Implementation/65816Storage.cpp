@@ -310,6 +310,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);				// New PCH.
 		target(CycleFetchPC);						// New PBR.
 
+		target(OperationCopyInstructionToData);
 		target(OperationPerform);					// ['JMP' (though it's JML in internal terms)]
 	}
 

@@ -59,6 +59,12 @@ class Krom65816Tests: XCTestCase {
 		var lineNumber = 1
 		var previousPC = 0
 		for line in outputLines {
+			// At least one of the traces ends with an empty line; my preference is not to
+			// modify the originals if possible.
+			if line == "" {
+				break
+			}
+
 			machine.runForNumber(ofInstructions: 1)
 
 			func machineState() -> String {

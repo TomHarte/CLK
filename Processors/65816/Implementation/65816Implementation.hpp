@@ -622,8 +622,9 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						//
 
 						case JML:
-							registers_.program_bank = instruction_buffer_.value & 0xff0000;
-						[[fallthrough]];
+							registers_.program_bank = data_buffer_.value & 0xff0000;
+							registers_.pc = uint16_t(data_buffer_.value);
+						break;
 
 						case JMP:
 							registers_.pc = uint16_t(instruction_buffer_.value);
@@ -898,11 +899,17 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							int result;
 							const uint16_t a = registers_.a.full & registers_.m_masks[1];
 
+							// As implemented below, this applies the 6502 test for overflow (i.e. based on the result
+							// prior to fixing up the final nibble) rather than the 65C02 (i.e. based on the final result).
+							// This tracks the online tests I found, which hail from Nintendo world. So I'm currently unclear
+							// whether this is correct or merely a figment of Nintendo's custom chip.
 							if(registers_.flags.decimal) {
+								uint16_t partials = 0;
 								result = registers_.flags.carry;
 
 #define nibble(mask, limit, adjustment, carry)			\
 	result += (a & mask) + (data_buffer_.value & mask);	\
+	partials += result & mask;							\
 	if(result >= limit) result = ((result + (adjustment)) & (carry - 1)) + carry;
 
 								nibble(0x000f, 0x000a, 0x0006, 0x00010);
@@ -912,11 +919,13 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 #undef nibble
 
+								registers_.flags.overflow = (( (partials ^ registers_.a.full) & (partials ^ data_buffer_.value) )  >> (1 + registers_.m_shift))&0x40;
+
 							} else {
 								result = int(a + data_buffer_.value + registers_.flags.carry);
+								registers_.flags.overflow = (( (uint16_t(result) ^ registers_.a.full) & (uint16_t(result) ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
 							}
 
-							registers_.flags.overflow = (( (uint16_t(result) ^ registers_.a.full) & (uint16_t(result) ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
 							registers_.flags.set_nz(uint16_t(result), registers_.m_shift);
 							registers_.flags.carry = (result >> (8 + registers_.m_shift))&1;
 							LD(registers_.a, result, registers_.m_masks);
