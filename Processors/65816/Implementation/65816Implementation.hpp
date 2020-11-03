@@ -151,7 +151,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				break;
 
 				case CycleStoreBlockY:
-					write(((instruction_buffer_.value & 0xff00) << 8) | x(), data_buffer_.any_byte());
+					write(((instruction_buffer_.value & 0xff00) << 8) | y(), data_buffer_.any_byte());
 				break;
 
 #undef increment_data_address
@@ -670,16 +670,16 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							registers_.data_bank = (instruction_buffer_.value & 0xff) << 16;
 							--registers_.x.full;
 							--registers_.y.full;
-							--registers_.a.full;
 							if(registers_.a.full) registers_.pc -= 3;
+							--registers_.a.full;
 						break;
 
 						case MVN:
 							registers_.data_bank = (instruction_buffer_.value & 0xff) << 16;
 							++registers_.x.full;
 							++registers_.y.full;
-							--registers_.a.full;
 							if(registers_.a.full) registers_.pc -= 3;
+							--registers_.a.full;
 						break;
 
 						//
