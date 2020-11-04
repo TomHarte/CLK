@@ -205,7 +205,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						continue;
 					} else {
 						--next_op_;
-						perform_bus(0xffffff, nullptr, (required_exceptions_ & IRQ) ? MOS6502Esque::Ready : MOS6502Esque::None);
+						perform_bus(0xffffff, &bus_throwaway_, (required_exceptions_ & IRQ) ? MOS6502Esque::Ready : MOS6502Esque::None);
 					}
 				break;
 
@@ -517,7 +517,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 						case STY:
 							data_buffer_.value = registers_.y.full & registers_.x_masks[1];
-							data_buffer_.size = 2 - m_flag();
+							data_buffer_.size = 2 - x_flag();
 						break;
 
 						case PHB:
