@@ -18,9 +18,13 @@ import XCTest
 // https://emudev.de/q00-snes/65816-the-cpu/ for the traces.
 class Krom65816Tests: XCTestCase {
 
-	// MARK: - Test Machine
+	// MARK: - Test Runner
 
 	func runTest(_ name: String) {
+		runTest(name, pcLimit: nil)
+	}
+
+	func runTest(_ name: String, pcLimit: UInt32?) {
 		var testData: Data?
 		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: "sfc") {
 			testData = try? Data(contentsOf: URL(fileURLWithPath: filename))
@@ -69,6 +73,12 @@ class Krom65816Tests: XCTestCase {
 			}
 
 			machine.runForNumber(ofInstructions: 1)
+			let newPC = Int(machine.value(for: .lastOperationAddress))
+
+			// Stop right now if a PC limit has been specified and this is it.
+			if let pcLimit = pcLimit, pcLimit == newPC {
+				break
+			}
 
 			func machineState() -> String {
 				// Formulate my 65816 state in the same form as the test machine
@@ -117,7 +127,7 @@ class Krom65816Tests: XCTestCase {
 				break
 			}
 			lineNumber += 1
-			previousPC = Int(machine.value(for: .lastOperationAddress))
+			previousPC = newPC
 
 			// Check whether a 'RDNMI' toggle needs to happen by peeking at the next instruction;
 			// if it's BIT $4210 then toggle the top bit at address $4210.
@@ -159,10 +169,7 @@ class Krom65816Tests: XCTestCase {
 	func testSTR() {	runTest("CPUSTR")	}
 	func testTRN() {	runTest("CPUTRN")	}
 
-	// MSC isn't usable because it tests WAI and STP, having set itself up to receive
-	// some SNES-specific interrupts. Luckily those are the two final things it tests,
-	// and life seems to be good until there.
-	//
-	// TODO: reintroduce with a special stop-before inserted?
-//	func testMSC() {	runTest("CPUMSC")	}
+	// Ensure the MSC tests stop before they attempt to test STP and WAI;
+	// the test relies on SNES means for scheduling a future interrupt.
+	func testMSC() {	runTest("CPUMSC", pcLimit: 0x8523)	}
 }
