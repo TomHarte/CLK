@@ -865,6 +865,11 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 #undef cp
 
+						// As implemented below, both ADC and SBC apply the 6502 test for overflow (i.e. based
+						// on intermediate results) rather than the 65C02 (i.e. based on the final result).
+						// This tracks the online tests I found, which hail from Nintendo world. So I'm currently
+						// unclear whether this is correct or merely a figment of Nintendo's custom chip.
+
 						case SBC:
 							if(registers_.flags.decimal) {
 								// I've yet to manage to find a rational way to map this to an ADC,
@@ -872,6 +877,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 								const uint16_t a = registers_.a.full & registers_.m_masks[1];
 								unsigned int result = 0;
 								unsigned int borrow = registers_.flags.carry ^ 1;
+								const uint16_t decimal_result = uint16_t(registers_.a.full - data_buffer_.value - borrow);
 
 #define nibble(mask, adjustment, carry)								\
 	result += (a & mask) - (data_buffer_.value & mask) - borrow;	\
@@ -886,7 +892,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 #undef nibble
 
-								registers_.flags.overflow = ~(( (result ^ registers_.a.full) & (result ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
+								registers_.flags.overflow = (( (decimal_result ^ registers_.a.full) & (~decimal_result ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
 								registers_.flags.set_nz(uint16_t(result), registers_.m_shift);
 								registers_.flags.carry = ((borrow >> 16)&1)^1;
 								LD(registers_.a, result, registers_.m_masks);
@@ -901,10 +907,6 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							int result;
 							const uint16_t a = registers_.a.full & registers_.m_masks[1];
 
-							// As implemented below, this applies the 6502 test for overflow (i.e. based on the result
-							// prior to fixing up the final nibble) rather than the 65C02 (i.e. based on the final result).
-							// This tracks the online tests I found, which hail from Nintendo world. So I'm currently unclear
-							// whether this is correct or merely a figment of Nintendo's custom chip.
 							if(registers_.flags.decimal) {
 								uint16_t partials = 0;
 								result = registers_.flags.carry;
