@@ -435,7 +435,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							data_address_ = registers_.emulation_flag ? 0xfffe : 0xffe6;
 						} else {
 							// Implicitly: COP.
-							data_address_ = registers_.emulation_flag ? 0xfff4 : 0xffe8;
+							data_address_ = registers_.emulation_flag ? 0xfff4 : 0xffe4;
 						}
 					}
 
@@ -545,7 +545,9 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							}
 						break;
 
-						case NOP:	break;
+						case NOP:						break;
+						case WDM:	++registers_.pc;	break;
+
 
 						// The below attempt to obey the 8/16-bit mixed transfer rules
 						// as documented in https://softpixel.com/~cwright/sianse/docs/65816NFO.HTM

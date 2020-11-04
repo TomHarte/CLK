@@ -867,7 +867,7 @@ ProcessorStorage::ProcessorStorage() {
 
 	/* 0x40 RTI s */			op(stack_rti, RTI);
 	/* 0x41	EOR (d, x) */		op(direct_indexed_indirect, EOR);
-	/* 0x42	WDM i */			op(implied, NOP);
+	/* 0x42	WDM i */			op(implied, WDM);
 	/* 0x43	EOR d, s */			op(stack_relative, EOR);
 	/* 0x44	MVP xyc */			op(block_move, MVP);
 	/* 0x45	EOR d */			op(direct, EOR);

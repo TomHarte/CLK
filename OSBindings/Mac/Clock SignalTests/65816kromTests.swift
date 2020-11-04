@@ -52,6 +52,9 @@ class Krom65816Tests: XCTestCase {
 		machine.setValue(0x00ff, for: .stackPointer)
 		machine.setValue(0x34, for: .flags)
 
+		// There seems to be some Nintendo-special register at address 0x0000.
+		machine.setValue(0xb5, forAddress: 0x0000)
+
 		// Poke some fixed values for SNES registers to get past initial setup.
 		machine.setValue(0x42, forAddress: 0x4210)	// "RDNMI", apparently; this says: CPU version 2, vblank interrupt request.
 		var allowNegativeError = false

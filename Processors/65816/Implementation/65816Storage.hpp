@@ -193,7 +193,7 @@ enum Operation: uint8_t {
 	// These are all implicit.
 	CLC, CLD, CLI, CLV, DEX, DEY, INX, INY, NOP, SEC, SED, SEI,
 	TAX, TAY, TCD, TCS, TDC, TSC, TSX, TXA, TXS, TXY, TYA, TYX,
-	XCE, XBA,
+	XCE, XBA, WDM,
 
 	STP, WAI,
 
