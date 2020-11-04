@@ -83,19 +83,19 @@ enum BusOperation {
 	/// 65816: indicates that a read was signalled, but neither VDA nor VPA were active.
 	InternalOperationRead,
 
-	/// 6502: indicates that a write was signalled.
-	/// 65816: indicates that a write was signalled with VDA.
-	Write,
-	/// 6502: never signalled.
-	/// 65816: indicates that a write was signalled, but neither VDA nor VPA were active.
-	InternalOperationWrite,
-
 	/// All processors: indicates that the processor is paused due to the RDY input.
 	/// 65C02 and 65816: indicates a WAI is ongoing.
 	Ready,
 
 	/// 65C02 and 65816: indicates a STP condition.
 	None,
+
+	/// 6502: indicates that a write was signalled.
+	/// 65816: indicates that a write was signalled with VDA.
+	Write,
+	/// 6502: never signalled.
+	/// 65816: indicates that a write was signalled, but neither VDA nor VPA were active.
+	InternalOperationWrite,
 };
 
 /*!
@@ -106,12 +106,12 @@ enum BusOperation {
 /*!
 	For a machine watching only the RWB line, evaluates to @c true if the operation is any sort of write; @c false otherwise.
 */
-#define isWriteOperation(v)		(v == CPU::MOS6502Esque::Write || v == CPU::MOS6502Esque::InternalOperationWrite)
+#define isWriteOperation(v)		(v >= CPU::MOS6502Esque::Write)
 
 /*!
 	Evaluates to @c true if the operation actually expects a response; @c false otherwise.
 */
-#define isAccessOperation(v)	((v < CPU::MOS6502Esque::Ready) && (v != CPU::MOS6502Esque::InternalOperationRead) && (v != CPU::MOS6502Esque::InternalOperationWrite))
+#define isAccessOperation(v)	((v <= CPU::MOS6502Esque::ReadVector) || (v == CPU::MOS6502Esque::Write))
 
 /*!
 	A class providing empty implementations of the methods a 6502 uses to access the bus. To wire the 6502 to a bus,
