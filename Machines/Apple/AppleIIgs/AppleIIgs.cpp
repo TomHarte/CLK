@@ -15,6 +15,7 @@
 #include "ADB.hpp"
 #include "MemoryMap.hpp"
 #include "Video.hpp"
+#include "Sound.hpp"
 
 #include "../../../Components/8530/z8530.hpp"
 #include "../../../Components/AppleClock/AppleClock.hpp"
@@ -275,6 +276,37 @@ class ConcreteMachine:
 						}
 					break;
 
+					// The audio GLU.
+					case 0xc03c:
+						if(is_read) {
+							*value = sound_glu_.get_control();
+						} else {
+							sound_glu_.set_control(*value);
+						}
+					break;
+					case 0xc03d:
+						if(is_read) {
+							*value = sound_glu_.get_data();
+						} else {
+							sound_glu_.set_data(*value);
+						}
+					break;
+					case 0xc03e:
+						if(is_read) {
+							*value = sound_glu_.get_address_low();
+						} else {
+							sound_glu_.set_address_low(*value);
+						}
+					break;
+					case 0xc03f:
+						if(is_read) {
+							*value = sound_glu_.get_address_high();
+						} else {
+							sound_glu_.set_address_high(*value);
+						}
+					break;
+
+
 					// These were all dealt with by the call to memory_.access.
 					// TODO: subject to read data? Does vapour lock apply?
 					case 0xc002: case 0xc003: case 0xc004: case 0xc005:
@@ -458,6 +490,7 @@ class ConcreteMachine:
 		Apple::Clock::ParallelClock clock_;
 		Apple::IIgs::Video::Video video_;
 		Apple::IIgs::ADB::GLU adb_glu_;
+		Apple::IIgs::Sound::GLU sound_glu_;
  		Zilog::SCC::z8530 scc_;
 
 		// MARK: - Cards.
