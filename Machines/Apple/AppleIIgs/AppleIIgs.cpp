@@ -26,6 +26,12 @@
 #include <cassert>
 #include <array>
 
+namespace {
+
+constexpr int CLOCK_RATE = 14318180;
+
+}
+
 namespace Apple {
 namespace IIgs {
 
@@ -39,7 +45,7 @@ class ConcreteMachine:
 		ConcreteMachine(const Analyser::Static::AppleIIgs::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			m65816_(*this) {
 
-			set_clock_rate(14318180.0);
+			set_clock_rate(double(CLOCK_RATE));
 
 			using Target = Analyser::Static::AppleIIgs::Target;
 			std::vector<ROMMachine::ROM> rom_descriptions;
@@ -101,8 +107,6 @@ class ConcreteMachine:
 			const auto &region = MemoryMapRegion(memory_, address);
 			static bool log = false;
 
-			// TODO: potentially push time to clock_.
-
 			if(region.flags & MemoryMap::Region::IsIO) {
 				// Ensure classic auxiliary and language card accesses have effect.
 				const bool is_read = isReadOperation(operation);
@@ -114,11 +118,29 @@ class ConcreteMachine:
 					// New video register.
 					case 0xc029:
 						if(is_read) {
-							*value = 0x01;
+							*value = video_.get_new_video();;
 						} else {
-							printf("New video: %02x\n", *value);
-							// TODO: this bit should affect memory bank selection, somehow?
-							// Cf. Page 90.
+							video_.set_new_video(*value);
+
+							// TODO: I think bits 7 and 0 might also affect the memory map.
+							// The descripton isn't especially clear — P.90 of the Hardware Reference.
+							// Revisit if necessary.
+						}
+					break;
+
+					// Video [and clock] interrupt register.
+					case 0xc023:
+						if(is_read) {
+							*value = video_.get_interrupt_register();
+						} else {
+							video_.set_interrupt_register(*value);
+						}
+					break;
+
+					// Video onterrupt-clear register.
+					case 0xc032:
+						if(!is_read) {
+							video_.clear_interrupts(*value);
 						}
 					break;
 
@@ -183,21 +205,15 @@ class ConcreteMachine:
 					case 0xc015:	AuxiliaryRead(internal_CX_rom);				break;
 					case 0xc016:	AuxiliaryRead(alternative_zero_page);		break;
 					case 0xc017:	AuxiliaryRead(slot_C3_rom);					break;
-					case 0xc018:	VideoRead(get_80_store());										break;
-//					case 0xc019:	VideoRead(get_is_vertical_blank(cycles_since_video_update_));	break;
-					case 0xc019: {
-						printf("TODO: vertical blank check\n");
-						static uint8_t vblank = 0x80;
-						*value = vblank;
-						vblank ^= 0x80;
-					} break;
-					case 0xc01a:	VideoRead(get_text());											break;
-					case 0xc01b:	VideoRead(get_mixed());											break;
-					case 0xc01c:	VideoRead(get_page2());											break;
-					case 0xc01d:	VideoRead(get_high_resolution());								break;
-					case 0xc01e:	VideoRead(get_alternative_character_set());						break;
-					case 0xc01f:	VideoRead(get_80_columns());									break;
-					case 0xc046:	VideoRead(get_annunciator_3());									break;
+					case 0xc018:	VideoRead(get_80_store());					break;
+					case 0xc019:	VideoRead(get_is_vertical_blank());			break;
+					case 0xc01a:	VideoRead(get_text());						break;
+					case 0xc01b:	VideoRead(get_mixed());						break;
+					case 0xc01c:	VideoRead(get_page2());						break;
+					case 0xc01d:	VideoRead(get_high_resolution());			break;
+					case 0xc01e:	VideoRead(get_alternative_character_set());	break;
+					case 0xc01f:	VideoRead(get_80_columns());				break;
+					case 0xc046:	VideoRead(get_annunciator_3());				break;
 #undef VideoRead
 #undef AuxiliaryRead
 #undef LanguageRead
@@ -472,6 +488,22 @@ class ConcreteMachine:
 //			}
 			fast_access_phase_ = (fast_access_phase_ + duration.as<int>()) % 5;		// TODO: modulo something else, to allow for refresh.
 			slow_access_phase_ = (slow_access_phase_ + duration.as<int>()) % 14;	// TODO: modulo something else, to allow for stretched cycles.
+
+
+			// Propagate time far and wide.
+			cycles_since_clock_tick_ += duration;
+			auto ticks = cycles_since_clock_tick_.divide(Cycles(CLOCK_RATE)).as_integral();
+			while(ticks--) {
+				clock_.update();
+				video_.notify_clock_tick();	// The video controller marshalls the one-second interrupt.
+			}
+
+			video_.run_for(duration);
+
+			// Update the interrupt line. TODO: should include the sound GLU too.
+			m65816_.set_irq_line(video_.get_interrupt_register() & 0x80);
+
+
 			return duration;
 		}
 
@@ -498,6 +530,7 @@ class ConcreteMachine:
 		Apple::IIgs::ADB::GLU adb_glu_;
 		Apple::IIgs::Sound::GLU sound_glu_;
  		Zilog::SCC::z8530 scc_;
+ 		Cycles cycles_since_clock_tick_;
 
 		// MARK: - Cards.
 

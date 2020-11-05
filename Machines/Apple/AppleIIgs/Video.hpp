@@ -10,6 +10,7 @@
 #define Apple_IIgs_Video_hpp
 
 #include "../AppleII/VideoSwitches.hpp"
+#include "../../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Apple {
 namespace IIgs {
@@ -19,9 +20,27 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 	public:
 		VideoBase();
 
+		void run_for(Cycles);
+		bool get_is_vertical_blank();
+
+		void set_new_video(uint8_t);
+		uint8_t get_new_video();
+
+		void clear_interrupts(uint8_t);
+		uint8_t get_interrupt_register();
+		void set_interrupt_register(uint8_t);
+
+		void notify_clock_tick();
+
 	private:
 		void did_set_annunciator_3(bool) override;
 		void did_set_alternative_character_set(bool) override;
+
+		uint8_t new_video_ = 0x01;
+		uint8_t interrupts_ = 0x00;
+		void set_interrupts(uint8_t);
+
+		int cycles_into_frame_ = 0;
 };
 
 class Video: public VideoBase {
