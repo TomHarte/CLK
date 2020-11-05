@@ -1109,16 +1109,10 @@ void ProcessorStorage::set_emulation_mode(bool enabled) {
 }
 
 void ProcessorStorage::set_m_x_flags(bool m, bool x) {
-	// Reset the top byte of x and y if _exiting_ 8-bit mode.
-	// TODO: rationalise this sort of logic, both here and
-	// with regards to the stack pointer.
-	if(!x && registers_.mx_flags[1]) {
-		registers_.x.halves.high = registers_.y.halves.high = 0;
-	}
-
-	registers_.x_masks[0] = x ? 0xff00 : 0x0000;
-	registers_.x_masks[1] = x ? 0x00ff : 0xffff;
+	registers_.x_mask = x ? 0x00ff : 0xffff;
 	registers_.x_shift = x ? 0 : 8;
+	registers_.x.full &= registers_.x_mask;
+	registers_.y.full &= registers_.x_mask;
 
 	registers_.m_masks[0] = m ? 0xff00 : 0x0000;
 	registers_.m_masks[1] = m ? 0x00ff : 0xffff;

@@ -19,8 +19,6 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 #define m_flag() registers_.mx_flags[0]
 #define x_flag() registers_.mx_flags[1]
 
-#define x()	(registers_.x.full & registers_.x_masks[1])
-#define y()	(registers_.y.full & registers_.x_masks[1])
 #define stack_address()	((registers_.s.full & registers_.e_masks[1]) | (0x0100 & registers_.e_masks[0]))
 
 	Cycles number_of_cycles = cycles + cycles_left_to_run_;
@@ -143,15 +141,15 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				break;
 
 				case CycleFetchBlockX:
-					read(((instruction_buffer_.value & 0xff00) << 8) | x(), data_buffer_.any_byte());
+					read(((instruction_buffer_.value & 0xff00) << 8) | registers_.x.full, data_buffer_.any_byte());
 				break;
 
 				case CycleFetchBlockY:
-					perform_bus(((instruction_buffer_.value & 0xff00) << 8) | y(), &bus_throwaway_, MOS6502Esque::InternalOperationRead);
+					perform_bus(((instruction_buffer_.value & 0xff00) << 8) | registers_.y.full, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
 				break;
 
 				case CycleStoreBlockY:
-					write(((instruction_buffer_.value & 0xff00) << 8) | y(), data_buffer_.any_byte());
+					write(((instruction_buffer_.value & 0xff00) << 8) | registers_.y.full, data_buffer_.any_byte());
 				break;
 
 #undef increment_data_address
@@ -266,18 +264,18 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 				// Used for JMP and JSR (absolute, x).
 				case OperationConstructAbsoluteIndexedIndirect:
-					data_address_ = registers_.program_bank + ((instruction_buffer_.value + x()) & 0xffff);
+					data_address_ = registers_.program_bank + ((instruction_buffer_.value + registers_.x.full) & 0xffff);
 					data_address_increment_mask_ = 0x00'ff'ff;
 				continue;
 
 				case OperationConstructAbsoluteLongX:
-					data_address_ = instruction_buffer_.value + x();
+					data_address_ = instruction_buffer_.value + registers_.x.full;
 					data_address_increment_mask_ = 0xff'ff'ff;
 				continue;
 
 				case OperationConstructAbsoluteXRead:
 				case OperationConstructAbsoluteX:
-					data_address_ = instruction_buffer_.value + x() + registers_.data_bank;
+					data_address_ = instruction_buffer_.value + registers_.x.full + registers_.data_bank;
 					incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) + registers_.data_bank;
 
 					// If the incorrect address isn't actually incorrect, skip its usage.
@@ -289,7 +287,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 				case OperationConstructAbsoluteYRead:
 				case OperationConstructAbsoluteY:
-					data_address_ = instruction_buffer_.value + y() + registers_.data_bank;
+					data_address_ = instruction_buffer_.value + registers_.y.full + registers_.data_bank;
 					incorrect_data_address_ = (data_address_ & 0xff) + (instruction_buffer_.value & 0xff00) + registers_.data_bank;
 
 					// If the incorrect address isn't actually incorrect, skip its usage.
@@ -326,7 +324,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 				case OperationConstructDirectIndexedIndirect:
 					data_address_ = registers_.data_bank + (
-						((registers_.direct + x() + instruction_buffer_.value) & registers_.e_masks[1]) +
+						((registers_.direct + registers_.x.full + instruction_buffer_.value) & registers_.e_masks[1]) +
 						(registers_.direct & registers_.e_masks[0])
 					) & 0xffff;
 					data_address_increment_mask_ = 0x00'ff'ff;
@@ -337,7 +335,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				continue;
 
 				case OperationConstructDirectIndirectIndexedLong:
-					data_address_ = y() + data_buffer_.value;
+					data_address_ = registers_.y.full + data_buffer_.value;
 					data_address_increment_mask_ = 0xff'ff'ff;
 					data_buffer_.clear();
 				continue;
@@ -353,7 +351,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				case OperationConstructDirectX:
 					data_address_ = (
 						(registers_.direct & registers_.e_masks[0]) +
-						((instruction_buffer_.value + registers_.direct + x()) & registers_.e_masks[1])
+						((instruction_buffer_.value + registers_.direct + registers_.x.full) & registers_.e_masks[1])
 					) & 0xffff;
 					data_address_increment_mask_ = 0x00'ff'ff;
 
@@ -366,7 +364,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				case OperationConstructDirectY:
 					data_address_ = (
 						(registers_.direct & registers_.e_masks[0]) +
-						((instruction_buffer_.value + registers_.direct + y()) & registers_.e_masks[1])
+						((instruction_buffer_.value + registers_.direct + registers_.y.full) & registers_.e_masks[1])
 					) & 0xffff;
 					data_address_increment_mask_ = 0x00'ff'ff;
 
@@ -382,7 +380,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				continue;
 
 				case OperationConstructStackRelativeIndexedIndirect:
-					data_address_ = registers_.data_bank + data_buffer_.value + y();
+					data_address_ = registers_.data_bank + data_buffer_.value + registers_.y.full;
 					data_address_increment_mask_ = 0xff'ff'ff;
 					data_buffer_.clear();
 				continue;
@@ -458,11 +456,8 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				// Performance.
 				//
 
-#define LD(dest, src, masks) dest.full = (dest.full & masks[0]) | (src & masks[1])
-#define m_top() (instruction_buffer_.value >> registers_.m_shift) & 0xff
-#define x_top() (registers_.x.full >> registers_.x_shift) & 0xff
-#define y_top() (registers_.y.full >> registers_.x_shift) & 0xff
-#define a_top() (registers_.a.full >> registers_.m_shift) & 0xff
+#define LDA(src) 		registers_.a.full = (registers_.a.full & registers_.m_masks[0]) | (src & registers_.m_masks[1])
+#define LDXY(dest, src)	dest = (src) & registers_.x_mask
 
 				case OperationPerform:
 					switch(active_instruction_->operation) {
@@ -472,17 +467,17 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						//
 
 						case LDA:
-							LD(registers_.a, data_buffer_.value, registers_.m_masks);
+							LDA(data_buffer_.value);
 							registers_.flags.set_nz(registers_.a.full, registers_.m_shift);
 						break;
 
 						case LDX:
-							LD(registers_.x, data_buffer_.value, registers_.x_masks);
+							LDXY(registers_.x, data_buffer_.value);
 							registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
 						break;
 
 						case LDY:
-							LD(registers_.y, data_buffer_.value, registers_.x_masks);
+							LDXY(registers_.y, data_buffer_.value);
 							registers_.flags.set_nz(registers_.y.full, registers_.x_shift);
 						break;
 
@@ -511,12 +506,12 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						break;
 
 						case STX:
-							data_buffer_.value = registers_.x.full & registers_.x_masks[1];
+							data_buffer_.value = registers_.x.full;
 							data_buffer_.size = 2 - x_flag();
 						break;
 
 						case STY:
-							data_buffer_.value = registers_.y.full & registers_.x_masks[1];
+							data_buffer_.value = registers_.y.full;
 							data_buffer_.size = 2 - x_flag();
 						break;
 
@@ -554,41 +549,41 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						// (and make reasonable guesses as to the N flag).
 
 						case TXS:
-							registers_.s = registers_.x.full & registers_.x_masks[1];
+							registers_.s = registers_.x.full;
 						break;
 
 						case TSX:
-							LD(registers_.x, registers_.s.full, registers_.x_masks);
+							LDXY(registers_.x, registers_.s.full);
 							registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
 						break;
 
 						case TXY:
-							LD(registers_.y, registers_.x.full, registers_.x_masks);
+							LDXY(registers_.y, registers_.x.full);
 							registers_.flags.set_nz(registers_.y.full, registers_.x_shift);
 						break;
 
 						case TYX:
-							LD(registers_.x, registers_.y.full, registers_.x_masks);
+							LDXY(registers_.x, registers_.y.full);
 							registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
 						break;
 
 						case TAX:
-							LD(registers_.x, registers_.a.full, registers_.x_masks);
+							LDXY(registers_.x, registers_.a.full);
 							registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
 						break;
 
 						case TAY:
-							LD(registers_.y, registers_.a.full, registers_.x_masks);
+							LDXY(registers_.y, registers_.a.full);
 							registers_.flags.set_nz(registers_.y.full, registers_.x_shift);
 						break;
 
 						case TXA:
-							LD(registers_.a, registers_.x.full, registers_.m_masks);
+							LDA(registers_.x.full);
 							registers_.flags.set_nz(registers_.a.full, registers_.m_shift);
 						break;
 
 						case TYA:
-							LD(registers_.a, registers_.y.full, registers_.m_masks);
+							LDA(registers_.y.full);
 							registers_.flags.set_nz(registers_.a.full, registers_.m_shift);
 						break;
 
@@ -670,16 +665,16 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 						case MVP:
 							registers_.data_bank = (instruction_buffer_.value & 0xff) << 16;
-							--registers_.x.full;
-							--registers_.y.full;
+							LDXY(registers_.x.full, registers_.x.full - 1);
+							LDXY(registers_.y.full, registers_.y.full - 1);
 							if(registers_.a.full) registers_.pc -= 3;
 							--registers_.a.full;
 						break;
 
 						case MVN:
 							registers_.data_bank = (instruction_buffer_.value & 0xff) << 16;
-							++registers_.x.full;
-							++registers_.y.full;
+							LDXY(registers_.x.full, registers_.x.full + 1);
+							LDXY(registers_.y.full, registers_.y.full + 1);
 							if(registers_.a.full) registers_.pc -= 3;
 							--registers_.a.full;
 						break;
@@ -725,29 +720,25 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							registers_.flags.set_nz(uint16_t(data_buffer_.value), registers_.m_shift);
 						break;
 
-						case INX: {
-							const uint16_t x_inc = registers_.x.full + 1;
-							LD(registers_.x, x_inc, registers_.x_masks);
+						case INX:
+							LDXY(registers_.x.full, registers_.x.full + 1);
 							registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
-						} break;
+						break;
 
-						case DEX: {
-							const uint16_t x_dec = registers_.x.full - 1;
-							LD(registers_.x, x_dec, registers_.x_masks);
+						case DEX:
+							LDXY(registers_.x.full, registers_.x.full - 1);
 							registers_.flags.set_nz(registers_.x.full, registers_.x_shift);
-						} break;
+						break;
 
-						case INY: {
-							const uint16_t y_inc = registers_.y.full + 1;
-							LD(registers_.y, y_inc, registers_.x_masks);
+						case INY:
+							LDXY(registers_.y.full, registers_.y.full + 1);
 							registers_.flags.set_nz(registers_.y.full, registers_.x_shift);
-						} break;
+						break;
 
-						case DEY: {
-							const uint16_t y_dec = registers_.y.full - 1;
-							LD(registers_.y, y_dec, registers_.x_masks);
+						case DEY:
+							LDXY(registers_.y.full, registers_.y.full - 1);
 							registers_.flags.set_nz(registers_.y.full, registers_.x_shift);
-						} break;
+						break;
 
 						//
 						// Bitwise operations.
@@ -853,15 +844,15 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						// Arithmetic.
 						//
 
-#define cp(v, shift, masks)	{\
-	const uint32_t temp32 = (v.full & masks[1]) - (data_buffer_.value & masks[1]);	\
+#define cp(v, shift, mask)	{\
+	const uint32_t temp32 = (v.full & mask) - (data_buffer_.value & mask);	\
 	registers_.flags.set_nz(uint16_t(temp32), shift);	\
 	registers_.flags.carry = ((~temp32) >> (8 + shift))&1;	\
 }
 
-						case CMP:	cp(registers_.a, registers_.m_shift, registers_.m_masks);	break;
-						case CPX:	cp(registers_.x, registers_.x_shift, registers_.x_masks);	break;
-						case CPY:	cp(registers_.y, registers_.x_shift, registers_.x_masks);	break;
+						case CMP:	cp(registers_.a, registers_.m_shift, registers_.m_masks[1]);	break;
+						case CPX:	cp(registers_.x, registers_.x_shift, registers_.x_mask);		break;
+						case CPY:	cp(registers_.y, registers_.x_shift, registers_.x_mask);		break;
 
 #undef cp
 
@@ -895,7 +886,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 								registers_.flags.overflow = (( (decimal_result ^ registers_.a.full) & (~decimal_result ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
 								registers_.flags.set_nz(uint16_t(result), registers_.m_shift);
 								registers_.flags.carry = ((borrow >> 16)&1)^1;
-								LD(registers_.a, result, registers_.m_masks);
+								LDA(result);
 
 								break;
 							}
@@ -932,7 +923,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 							registers_.flags.set_nz(uint16_t(result), registers_.m_shift);
 							registers_.flags.carry = (result >> (8 + registers_.m_shift))&1;
-							LD(registers_.a, result, registers_.m_masks);
+							LDA(result);
 						} break;
 
 						//
@@ -950,12 +941,6 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				continue;
 			}
 
-#undef LD
-#undef m_top
-#undef x_top
-#undef y_top
-#undef a_top
-
 			// Store a selection as to the exceptions, if any, that would be honoured after this cycle if the
 			// next thing is a MoveToNextProgram.
 			selected_exceptions_ = pending_exceptions_ & (registers_.flags.inverse_interrupt | PowerOn | Reset | NMI);
@@ -963,6 +948,8 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 		}
 	}
 
+#undef LDA
+#undef LDXY
 #undef read
 #undef write
 #undef bus_operation

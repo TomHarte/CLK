@@ -17,8 +17,8 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 		case Register::StackPointer:			return registers_.s.full & (registers_.emulation_flag ? 0xff : 0xffff);
 		case Register::Flags:					return get_flags();
 		case Register::A:						return registers_.a.full;
-		case Register::X:						return registers_.x.full & registers_.x_masks[1];
-		case Register::Y:						return registers_.y.full & registers_.x_masks[1];
+		case Register::X:						return registers_.x.full;
+		case Register::Y:						return registers_.y.full;
 		case Register::EmulationFlag:			return registers_.emulation_flag;
 		case Register::DataBank:				return registers_.data_bank >> 16;
 		case Register::ProgramBank:				return registers_.program_bank >> 16;
@@ -33,8 +33,8 @@ void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 		case Register::StackPointer:	registers_.s.full = value;								break;
 		case Register::Flags:			set_flags(uint8_t(value));								break;
 		case Register::A:				registers_.a.full = value;								break;
-		case Register::X:				registers_.x.full = value;								break;
-		case Register::Y:				registers_.y.full = value;								break;
+		case Register::X:				registers_.x.full = value & registers_.x_mask;			break;
+		case Register::Y:				registers_.y.full = value & registers_.x_mask;			break;
 		case Register::EmulationFlag:	set_emulation_mode(value);								break;
 		case Register::DataBank:		registers_.data_bank = uint32_t(value & 0xff) << 16;	break;
 		case Register::ProgramBank:		registers_.program_bank = uint32_t(value &0xff) << 16;	break;

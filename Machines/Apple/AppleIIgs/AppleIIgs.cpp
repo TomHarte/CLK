@@ -392,6 +392,9 @@ class ConcreteMachine:
 				}
 			}
 
+			if(operation == CPU::WDC65816::BusOperation::ReadOpcode && address == 0x00fa56) {
+				printf("?");
+			}
 //			log |= (address >= 0xffa6d9) && (address < 0xffa6ec);
 			if(log) {
 				printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
@@ -405,7 +408,8 @@ class ConcreteMachine:
 						m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
 						m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank),
 						m65816_.get_value_of_register(CPU::WDC65816::Register::ProgramBank),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::Direct)
+						m65816_.get_value_of_register(CPU::WDC65816::Register::Direct
+						)
 					);
 				} else printf("\n");
 			}
