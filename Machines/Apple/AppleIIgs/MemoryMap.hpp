@@ -261,8 +261,8 @@ class MemoryMap {
 				// All references below are to 0xc000, 0xd000 and 0xe000 but should
 				// work regardless of bank.
 
-				// TODO: verify order of ternary here — on the plain Apple II it was arbitrary.
-				uint8_t *const lower_ram_bank = ram - (language_state.bank1 ? 0x0000 : 0x1000);
+				// This assumes bank 1 is the one before bank 2 when RAM is linear.
+				uint8_t *const lower_ram_bank = ram - (language_state.bank1 ? 0x1000 : 0x0000);
 
 				// Crib the ROM pointer from a page it's always visible on.
 				const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffd000] - ((bank_base << 8) + 0xd000);

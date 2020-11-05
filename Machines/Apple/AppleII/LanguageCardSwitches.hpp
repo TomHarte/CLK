@@ -21,11 +21,13 @@ namespace II {
 template <typename Machine> class LanguageCardSwitches {
 	public:
 		struct State {
-			/// Indicates which 4kb chunk of RAM should be visible at $Dxxx if RAM is visible at all.
+			/// When RAM is visible in the range $D000–$FFFF:
+			/// @c true indicates that bank 1 should be used;
+			/// @c false indicates bank 2.
 			bool bank1 = false;
 
 			/// @c true indicates that RAM should be readable in the range $D000–$FFFF;
-			/// @c indicates ROM should be readable.
+			/// @c false indicates ROM should be readable.
 			bool read = false;
 
 			/// @c true indicates that ROM is selected for 'writing' in the range $D000–$FFFF (i.e. writes are a no-op);
@@ -48,7 +50,7 @@ template <typename Machine> class LanguageCardSwitches {
 
 			// Quotes below taken from Understanding the Apple II, p. 5-28 and 5-29.
 
-			// "A3 controls the 4K bank selection"
+			// "A3 controls the 4K bank selection"; 0 = bank 2, 1 = bank 1.
 			state_.bank1 = address & 8;
 
 			// "Access to $C080, $C083, $C084, $0087, $C088, $C08B, $C08C, or $C08F sets the READ ENABLE flip-flop"
@@ -81,7 +83,9 @@ template <typename Machine> class LanguageCardSwitches {
 		void set_state(uint8_t value) {
 			const auto previous_state = state_;
 
-			state_.read = value & 0x08;
+			// Bit 3: 1 => enable ROM, 0 => enable RAM.
+			state_.read = !(value & 0x08);
+			// Bit 2: 1 => select bank 1, 0 => select bank 2.
 			state_.bank1 = value & 0x04;
 
 			if(previous_state != state_) {

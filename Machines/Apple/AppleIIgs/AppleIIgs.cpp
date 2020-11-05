@@ -153,6 +153,7 @@ class ConcreteMachine:
 					case 0xc036:
 						if(is_read) {
 							*value = speed_register_;
+							printf("Reading speed register: %02x\n", *value);
 						} else {
 							memory_.set_speed_register(*value);
 							speed_register_ = *value;
@@ -169,7 +170,7 @@ class ConcreteMachine:
 						}
 					break;
 
-					// Various independent memory switch reads [TODO: does the IIe-style keyboard the low seven?].
+					// Various independent memory switch reads [TODO: does the IIe-style keyboard provide the low seven?].
 #define SwitchRead(s) *value = memory_.s ? 0x80 : 0x00
 #define LanguageRead(s) SwitchRead(language_card_switches().state().s)
 #define AuxiliaryRead(s) SwitchRead(auxiliary_switches().switches().s)
@@ -183,6 +184,10 @@ class ConcreteMachine:
 					case 0xc017:	AuxiliaryRead(slot_C3_rom);					break;
 					case 0xc018:	VideoRead(get_80_store());										break;
 //					case 0xc019:	VideoRead(get_is_vertical_blank(cycles_since_video_update_));	break;
+					case 0xc019:
+						printf("TODO: vertical blank check\n");
+						*value = 0x80;	// i.e. not VBL.
+					break;
 					case 0xc01a:	VideoRead(get_text());											break;
 					case 0xc01b:	VideoRead(get_mixed());											break;
 					case 0xc01c:	VideoRead(get_page2());											break;
@@ -323,7 +328,7 @@ class ConcreteMachine:
 					case 0xc049: case 0xc04a: case 0xc04b: case 0xc04c: case 0xc04d: case 0xc04e: case 0xc04f:
 					case 0xc069: case 0xc06a: case 0xc06b: case 0xc06c:
 						printf("Ignoring %04x\n", address_suffix);
-						log = true;
+//						log = true;
 					break;
 
 					// 'Test Mode', whatever that is (?)
@@ -367,6 +372,7 @@ class ConcreteMachine:
 								}
 							} else {
 								// TODO: disk-port soft switches should be in COEx.
+//								log = true;
 								printf("Internal card-area access: %04x\n", address_suffix);
 								if(is_read) {
 									*value = rom_[rom_.size() - 65536 + address_suffix];
@@ -392,8 +398,8 @@ class ConcreteMachine:
 				}
 			}
 
-			if(operation == CPU::WDC65816::BusOperation::ReadOpcode && address == 0x00fa56) {
-				printf("?");
+			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+				assert(address);
 			}
 //			log |= (address >= 0xffa6d9) && (address < 0xffa6ec);
 			if(log) {
