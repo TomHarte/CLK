@@ -19,6 +19,7 @@ namespace Video {
 class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 	public:
 		VideoBase();
+		void set_internal_ram(const uint8_t *);
 
 		void run_for(Cycles);
 		bool get_is_vertical_blank();
@@ -41,6 +42,7 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		void set_interrupts(uint8_t);
 
 		int cycles_into_frame_ = 0;
+		const uint8_t *ram_ = nullptr;
 };
 
 class Video: public VideoBase {

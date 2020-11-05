@@ -84,6 +84,7 @@ class ConcreteMachine:
 			ram_.resize(ram_size * 1024);
 
 			memory_.set_storage(ram_, rom_);
+			video_.set_internal_ram(&ram_[ram_.size() - 128*1024]);
 
 			// TODO: enable once machine is otherwise sane.
 //			Memory::Fuzz(ram_);
