@@ -184,10 +184,12 @@ class ConcreteMachine:
 					case 0xc017:	AuxiliaryRead(slot_C3_rom);					break;
 					case 0xc018:	VideoRead(get_80_store());										break;
 //					case 0xc019:	VideoRead(get_is_vertical_blank(cycles_since_video_update_));	break;
-					case 0xc019:
+					case 0xc019: {
 						printf("TODO: vertical blank check\n");
-						*value = 0x80;	// i.e. not VBL.
-					break;
+						static uint8_t vblank = 0x80;
+						*value = vblank;
+						vblank ^= 0x80;
+					} break;
 					case 0xc01a:	VideoRead(get_text());											break;
 					case 0xc01b:	VideoRead(get_mixed());											break;
 					case 0xc01c:	VideoRead(get_page2());											break;
