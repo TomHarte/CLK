@@ -234,12 +234,18 @@ class ConcreteMachine:
 						if(!is_read) video_.set_alternative_character_set(address & 1);
 					break;
 
-					// ADB.
+					// ADB and keyboard.
 					case 0xc000:
 						if(is_read) {
 							*value = adb_glu_.get_keyboard_data();
 						} else {
 							video_.set_80_store(false);
+						}
+					break;
+					case 0xc010:
+						adb_glu_.clear_key_strobe();
+						if(is_read) {
+							*value = adb_glu_.get_any_key_down() ? 0x80 : 0x00;
 						}
 					break;
 					case 0xc024:

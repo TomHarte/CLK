@@ -19,6 +19,15 @@ uint8_t GLU::get_keyboard_data() {
 	return 0x00;
 }
 
+void GLU::clear_key_strobe() {
+	// Clears the key strobe of the classic Apple II serial keyboard register.
+}
+
+uint8_t GLU::get_any_key_down() {
+	// The Apple IIe check-for-any-key-down bit.
+	return 0x00;
+}
+
 uint8_t GLU::get_mouse_data() {
 	// Alternates between returning x and y values.
 	//

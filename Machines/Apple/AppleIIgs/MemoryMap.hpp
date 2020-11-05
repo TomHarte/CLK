@@ -275,8 +275,6 @@ class MemoryMap {
 				e0_region.read = language_state.read ? ram : rom;
 				e0_region.write = language_state.write ? nullptr : ram;
 
-				if(!bank_base) printf("eo region read: %d!\n", language_state.read);
-
 				// Assert assumptions made above re: memory layout.
 				assert(region_map[bank_base | 0xd0] + 1 == region_map[bank_base | 0xe0]);
 				assert(region_map[bank_base | 0xe0] == region_map[bank_base | 0xff]);
@@ -292,7 +290,6 @@ class MemoryMap {
 			};
 
 			if(inhibit_banks0001) {
-				printf("Language card: disabled!\n");
 				set_no_card(0x0000);
 				set_no_card(0x0100);
 			} else {
