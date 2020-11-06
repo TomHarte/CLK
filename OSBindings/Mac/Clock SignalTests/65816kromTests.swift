@@ -20,11 +20,7 @@ class Krom65816Tests: XCTestCase {
 
 	// MARK: - Test Runner
 
-	func runTest(_ name: String) {
-		runTest(name, pcLimit: nil)
-	}
-
-	func runTest(_ name: String, pcLimit: UInt32?) {
+	func runTest(_ name: String, pcLimit: UInt32? = nil) {
 		var testData: Data?
 		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: "sfc") {
 			testData = try? Data(contentsOf: URL(fileURLWithPath: filename))
