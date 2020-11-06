@@ -195,10 +195,10 @@ class ConcreteMachine:
 					break;
 
 					// Various independent memory switch reads [TODO: does the IIe-style keyboard provide the low seven?].
-#define SwitchRead(s) *value = memory_.s ? 0x80 : 0x00
+#define SwitchRead(s) if(is_read) *value = memory_.s ? 0x80 : 0x00
 #define LanguageRead(s) SwitchRead(language_card_switches().state().s)
 #define AuxiliaryRead(s) SwitchRead(auxiliary_switches().switches().s)
-#define VideoRead(s) video_.s
+#define VideoRead(s) if(is_read) *value = video_.s ? 0x80 : 0x00
 					case 0xc011:	LanguageRead(bank1);						break;
 					case 0xc012:	LanguageRead(read);							break;
 					case 0xc013:	AuxiliaryRead(read_auxiliary_memory);		break;
@@ -364,7 +364,6 @@ class ConcreteMachine:
 					break;
 
 					case 0xc02d:
-						// TODO: slot register selection.
 						// b7: 0 = internal ROM code for slot 7;
 						// b6: 0 = internal ROM code for slot 6;
 						// b5: 0 = internal ROM code for slot 5;
@@ -458,7 +457,7 @@ class ConcreteMachine:
 			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
 				assert(address);
 			}
-//			log |= (address >= 0xffa6d9) && (address < 0xffa6ec);
+//			log |= (address >= 0xff9b00) && (address < 0xff9b32);
 			if(log) {
 				printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
 				if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
