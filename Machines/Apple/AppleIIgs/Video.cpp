@@ -83,6 +83,6 @@ void VideoBase::notify_clock_tick() {
 
 void VideoBase::set_interrupts(uint8_t new_value) {
 	interrupts_ = new_value & 0x7f;
-	if((interrupts_ >> 4) & 0x6)
+	if((interrupts_ >> 4) & interrupts_ & 0x6)
 		interrupts_ |= 0x80;
 }
