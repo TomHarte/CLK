@@ -21,7 +21,6 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		VideoBase();
 		void set_internal_ram(const uint8_t *);
 
-		void run_for(Cycles);
 		bool get_is_vertical_blank();
 
 		void set_new_video(uint8_t);
@@ -34,8 +33,7 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		void notify_clock_tick();
 
 	private:
-		void did_set_annunciator_3(bool) override;
-		void did_set_alternative_character_set(bool) override;
+		void advance(Cycles);
 
 		uint8_t new_video_ = 0x01;
 		uint8_t interrupts_ = 0x00;

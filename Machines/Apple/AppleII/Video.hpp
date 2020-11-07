@@ -51,9 +51,6 @@ class VideoBase: public VideoSwitches<Cycles> {
 		/// Gets the type of output.
 		Outputs::Display::DisplayType get_display_type() const;
 
-		// Setup for text mode.
-		void set_character_rom(const std::vector<uint8_t> &);
-
 	protected:
 		Outputs::CRT::CRT crt_;
 
@@ -61,26 +58,13 @@ class VideoBase: public VideoSwitches<Cycles> {
 		uint8_t *pixel_pointer_ = nullptr;
 
 		// State affecting logical state.
-		int row_ = 0, column_ = 0, flash_ = 0;
-		uint8_t flash_mask() {
-			return uint8_t((flash_ / flash_length) * 0xff);
-		}
-
-		bool alternative_character_set_ = false;
-		void did_set_annunciator_3(bool) override;
-		void did_set_alternative_character_set(bool) override;
+		int row_ = 0, column_ = 0;
 
 		// Graphics carry is the final level output in a fetch window;
 		// it carries on into the next if it's high resolution with
 		// the delay bit set.
 		mutable uint8_t graphics_carry_ = 0;
 		bool was_double_ = false;
-		uint8_t high_resolution_mask_ = 0xff;
-
-		// This holds a copy of the character ROM. The regular character
-		// set is assumed to be in the first 64*8 bytes; the alternative
-		// is in the 128*8 bytes after that.
-		std::vector<uint8_t> character_rom_;
 
 		// Memory is fetched ahead of time into this array;
 		// this permits the correct delay between fetching
@@ -89,15 +73,6 @@ class VideoBase: public VideoSwitches<Cycles> {
 		std::array<uint8_t, 40> auxiliary_stream_;
 
 		const bool is_iie_ = false;
-		static constexpr int flash_length = 8406;
-
-		// Describes the current text mode mapping from in-memory character index
-		// to output character.
-		struct CharacterMapping {
-			uint8_t address_mask;
-			uint8_t xor_mask;
-		};
-		CharacterMapping character_zones[4];
 
 		/*!
 			Outputs 40-column text to @c target, using @c length bytes from @c source.
@@ -438,10 +413,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 				column_ = (column_ + cycles_this_line) % 65;
 				if(!column_) {
 					row_ = (row_ + 1) % 262;
-					flash_ = (flash_ + 1) % (2 * flash_length);
-					if(!alternative_character_set_) {
-						character_zones[1].xor_mask = flash_mask();
-					}
+					did_end_line();
 
 					// Add an extra half a colour cycle of blank; this isn't counted in the run_for
 					// count explicitly but is promised. If this is a vertical sync line, output sync

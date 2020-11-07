@@ -11,7 +11,7 @@
 using namespace Apple::II::Video;
 
 VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
-	VideoSwitches<Cycles>(Cycles(2), std::move(target)),
+	VideoSwitches<Cycles>(is_iie, Cycles(2), std::move(target)),
 	crt_(910, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance1),
 	is_iie_(is_iie) {
 
@@ -24,23 +24,6 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 	// use default_colour_bursts elsewhere, though it otherwise should be. If/when
 	// it is, start doing so and return to setting the immediate phase up here.
 //	crt_.set_immediate_default_phase(0.5f);
-
-	character_zones[0].xor_mask = 0;
-	character_zones[0].address_mask = 0x3f;
-	character_zones[1].xor_mask = 0;
-	character_zones[1].address_mask = 0x3f;
-	character_zones[2].xor_mask = 0;
-	character_zones[2].address_mask = 0x3f;
-	character_zones[3].xor_mask = 0;
-	character_zones[3].address_mask = 0x3f;
-
-	if(is_iie) {
-		character_zones[0].xor_mask =
-		character_zones[2].xor_mask =
-		character_zones[3].xor_mask = 0xff;
-		character_zones[2].address_mask =
-		character_zones[3].address_mask = 0xff;
-	}
 }
 
 void VideoBase::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
@@ -59,44 +42,10 @@ Outputs::Display::DisplayType VideoBase::get_display_type() const {
 	return crt_.get_display_type();
 }
 
-void VideoBase::did_set_alternative_character_set(bool alternative_character_set) {
-	alternative_character_set_ = alternative_character_set;
-	if(alternative_character_set) {
-		character_zones[1].address_mask = 0xff;
-		character_zones[1].xor_mask = 0;
-	} else {
-		character_zones[1].address_mask = 0x3f;
-		character_zones[1].xor_mask = flash_mask();
-		// The XOR mask is seeded here; it's dynamic, so updated elsewhere.
-	}
-}
-
-void VideoBase::did_set_annunciator_3(bool annunciator_3) {
-	high_resolution_mask_ = annunciator_3 ? 0x7f : 0xff;
-}
-
-void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
-	character_rom_ = character_rom;
-
-	// Flip all character contents based on the second line of the $ graphic.
-	if(character_rom_[0x121] == 0x3c || character_rom_[0x122] == 0x3c) {
-		for(auto &graphic : character_rom_) {
-			graphic =
-				((graphic & 0x01) ? 0x40 : 0x00) |
-				((graphic & 0x02) ? 0x20 : 0x00) |
-				((graphic & 0x04) ? 0x10 : 0x00) |
-				((graphic & 0x08) ? 0x08 : 0x00) |
-				((graphic & 0x10) ? 0x04 : 0x00) |
-				((graphic & 0x20) ? 0x02 : 0x00) |
-				((graphic & 0x40) ? 0x01 : 0x00);
-		}
-	}
-}
-
 void VideoBase::output_text(uint8_t *target, const uint8_t *const source, size_t length, size_t pixel_row) const {
 	for(size_t c = 0; c < length; ++c) {
-		const int character = source[c] & character_zones[source[c] >> 6].address_mask;
-		const uint8_t xor_mask = character_zones[source[c] >> 6].xor_mask;
+		const int character = source[c] & character_zones_[source[c] >> 6].address_mask;
+		const uint8_t xor_mask = character_zones_[source[c] >> 6].xor_mask;
 		const std::size_t character_address = size_t(character << 3) + pixel_row;
 		const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
 
@@ -117,19 +66,19 @@ void VideoBase::output_double_text(uint8_t *target, const uint8_t *const source,
 	for(size_t c = 0; c < length; ++c) {
 		const std::size_t character_addresses[2] = {
 			size_t(
-				(auxiliary_source[c] & character_zones[auxiliary_source[c] >> 6].address_mask) << 3
+				(auxiliary_source[c] & character_zones_[auxiliary_source[c] >> 6].address_mask) << 3
 			) + pixel_row,
 			size_t(
-				(source[c] & character_zones[source[c] >> 6].address_mask) << 3
+				(source[c] & character_zones_[source[c] >> 6].address_mask) << 3
 			) + pixel_row
 		};
 
 		const uint8_t character_patterns[2] = {
 			uint8_t(
-				character_rom_[character_addresses[0]] ^ character_zones[auxiliary_source[c] >> 6].xor_mask
+				character_rom_[character_addresses[0]] ^ character_zones_[auxiliary_source[c] >> 6].xor_mask
 			),
 			uint8_t(
-				character_rom_[character_addresses[1]] ^ character_zones[source[c] >> 6].xor_mask
+				character_rom_[character_addresses[1]] ^ character_zones_[source[c] >> 6].xor_mask
 			)
 		};
 

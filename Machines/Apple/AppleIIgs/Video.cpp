@@ -19,17 +19,14 @@ constexpr int FinalPixelLine = 192;
 }
 
 VideoBase::VideoBase() :
-	VideoSwitches<Cycles>(Cycles(2), [] (Cycles) {}) {
+	VideoSwitches<Cycles>(true, Cycles(2), [this] (Cycles cycles) { advance(cycles); }) {
 }
 
 void VideoBase::set_internal_ram(const uint8_t *ram) {
 	ram_ = ram;
 }
 
-void VideoBase::did_set_annunciator_3(bool) {}
-void VideoBase::did_set_alternative_character_set(bool) {}
-
-void VideoBase::run_for(Cycles cycles) {
+void VideoBase::advance(Cycles cycles) {
 	// TODO: everything else!
 	const auto old = cycles_into_frame_;
 	cycles_into_frame_ = (cycles_into_frame_ + cycles.as<int>()) % (CyclesPerLine * Lines);

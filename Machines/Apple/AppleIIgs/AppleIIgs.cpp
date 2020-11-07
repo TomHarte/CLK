@@ -61,11 +61,14 @@ class ConcreteMachine:
 					rom_descriptions.emplace_back(machine_name, "the Apple IIgs ROM03", "apple2gs.rom2", 256*1024, 0xde7ddf29);
 				break;
 			}
+			rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::EnhancedIIe));
+
 			const auto roms = rom_fetcher(rom_descriptions);
-			if(!roms[0]) {
+			if(!roms[0] || !roms[1]) {
 				throw ROMMachine::Error::MissingROMs;
 			}
 			rom_ = *roms[0];
+			video_.set_character_rom(*roms[1]);
 
 			size_t ram_size = 0;
 			switch(target.memory_model) {
