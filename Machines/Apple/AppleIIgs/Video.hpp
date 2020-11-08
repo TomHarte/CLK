@@ -10,6 +10,7 @@
 #define Apple_IIgs_Video_hpp
 
 #include "../AppleII/VideoSwitches.hpp"
+#include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Apple {
@@ -37,7 +38,21 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 
 		void notify_clock_tick();
 
+		/// Sets the scan target.
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+
+		/// Gets the current scan status.
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
+
+		/// Sets the type of output.
+		void set_display_type(Outputs::Display::DisplayType);
+
+		/// Gets the type of output.
+		Outputs::Display::DisplayType get_display_type() const;
+
 	private:
+		Outputs::CRT::CRT crt_;
+
 		void advance(Cycles);
 
 		uint8_t new_video_ = 0x01;
@@ -46,6 +61,8 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 
 		int cycles_into_frame_ = 0;
 		const uint8_t *ram_ = nullptr;
+
+		void output_row(int row, int start, int end);
 };
 
 class Video: public VideoBase {

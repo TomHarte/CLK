@@ -102,11 +102,24 @@ class ConcreteMachine:
 			m65816_.run_for(cycles);
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *) override {
+		void flush() {
+			video_.flush();
+		}
+
+		void set_scan_target(Outputs::Display::ScanTarget *target) override {
+			video_->set_scan_target(target);
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const override {
-			return Outputs::Display::ScanStatus();
+			return video_->get_scaled_scan_status() * 2.0f;	// TODO: expose multiplier and divider via the JustInTime template?
+		}
+
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
+			video_->set_display_type(display_type);
+		}
+
+		Outputs::Display::DisplayType get_display_type() const final {
+			return video_->get_display_type();
 		}
 
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
@@ -544,7 +557,7 @@ class ConcreteMachine:
 		// MARK: - Other components.
 
 		Apple::Clock::ParallelClock clock_;
-		JustInTimeActor<Apple::IIgs::Video::Video, 1, 7, Cycles> video_;	// i.e. run video at twice the 1Mhz clock.
+		JustInTimeActor<Apple::IIgs::Video::Video, 1, 2, Cycles> video_;	// i.e. run video at twice the 1Mhz clock.
 		Apple::IIgs::ADB::GLU adb_glu_;
 		Apple::IIgs::Sound::GLU sound_glu_;
  		Zilog::SCC::z8530 scc_;
