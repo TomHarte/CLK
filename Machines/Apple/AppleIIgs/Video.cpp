@@ -24,7 +24,7 @@ constexpr auto FinalColumn = CyclesPerLine / CyclesPerTick;
 
 VideoBase::VideoBase() :
 	VideoSwitches<Cycles>(true, Cycles(2), [this] (Cycles cycles) { advance(cycles); }),
-	crt_(130, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red4Green4Blue4) {
+	crt_(CyclesPerLine - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red4Green4Blue4) {
 }
 
 void VideoBase::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
@@ -123,38 +123,48 @@ void VideoBase::output_row(int row, int start, int end) {
 
 		// Output left border as far as currently known.
 		if(start >= start_of_left_border && start < start_of_pixels) {
-			const int duration = std::max(left_border_ticks, end - start_of_left_border);
-			start += duration;
+			const int end_of_period = std::min(start_of_pixels, end);
 
 			// TODO: output real border colour.
-			crt_.output_blank(duration * CyclesPerTick);
+			crt_.output_blank((end_of_period - start) * CyclesPerTick);
+
+			start = end_of_period;
+			if(start == end) return;
 		}
 
 		// Output left border as far as currently known.
 		if(start >= start_of_pixels && start < start_of_right_border) {
-			const int duration = std::max(pixel_ticks, end - start_of_pixels);
-			start += duration;
+			const int end_of_period = std::min(start_of_right_border, end);
 
 			// TODO: output real pixels.
 			uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
 			if(pixel) *pixel = 0xffff;
-			crt_.output_data(duration * CyclesPerTick, 1);
+			crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
+
+			start = end_of_period;
+			if(start == end) return;
 		}
 
 		// Output left border as far as currently known.
 		if(start >= start_of_right_border && start < start_of_sync) {
-			const int duration = std::max(right_border_ticks, end - start_of_right_border);
-			start += duration;
+			const int end_of_period = std::min(start_of_sync, end);
 
 			// TODO: output real border colour.
-			crt_.output_blank(duration * CyclesPerTick);
+			crt_.output_blank((end_of_period - start) * CyclesPerTick);
+
+			start = end_of_period;
+			if(start == end) return;
 		}
 
 		// Output sync if the moment has arrived.
 		if(end == FinalColumn) {
 			crt_.output_sync(sync_period);
 		}
+
+		return;
 	}
+
+	assert(false);
 }
 
 bool VideoBase::get_is_vertical_blank() {
