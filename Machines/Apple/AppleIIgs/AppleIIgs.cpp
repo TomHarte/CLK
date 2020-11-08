@@ -23,6 +23,8 @@
 
 #include "../../Utility/MemoryFuzzer.hpp"
 
+#include "../../../ClockReceiver/JustInTime.hpp"
+
 #include <cassert>
 #include <array>
 
@@ -61,14 +63,14 @@ class ConcreteMachine:
 					rom_descriptions.emplace_back(machine_name, "the Apple IIgs ROM03", "apple2gs.rom2", 256*1024, 0xde7ddf29);
 				break;
 			}
-			rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::EnhancedIIe));
+			rom_descriptions.push_back(video_->rom_description(Video::VideoBase::CharacterROM::EnhancedIIe));
 
 			const auto roms = rom_fetcher(rom_descriptions);
 			if(!roms[0] || !roms[1]) {
 				throw ROMMachine::Error::MissingROMs;
 			}
 			rom_ = *roms[0];
-			video_.set_character_rom(*roms[1]);
+			video_->set_character_rom(*roms[1]);
 
 			size_t ram_size = 0;
 			switch(target.memory_model) {
@@ -87,7 +89,7 @@ class ConcreteMachine:
 			ram_.resize(ram_size * 1024);
 
 			memory_.set_storage(ram_, rom_);
-			video_.set_internal_ram(&ram_[ram_.size() - 128*1024]);
+			video_->set_internal_ram(&ram_[ram_.size() - 128*1024]);
 
 			// TODO: enable once machine is otherwise sane.
 //			Memory::Fuzz(ram_);
@@ -122,9 +124,9 @@ class ConcreteMachine:
 					// New video register.
 					case 0xc029:
 						if(is_read) {
-							*value = video_.get_new_video();;
+							*value = video_->get_new_video();;
 						} else {
-							video_.set_new_video(*value);
+							video_->set_new_video(*value);
 
 							// TODO: I think bits 7 and 0 might also affect the memory map.
 							// The descripton isn't especially clear — P.90 of the Hardware Reference.
@@ -135,16 +137,16 @@ class ConcreteMachine:
 					// Video [and clock] interrupt register.
 					case 0xc023:
 						if(is_read) {
-							*value = video_.get_interrupt_register();
+							*value = video_->get_interrupt_register();
 						} else {
-							video_.set_interrupt_register(*value);
+							video_->set_interrupt_register(*value);
 						}
 					break;
 
 					// Video onterrupt-clear register.
 					case 0xc032:
 						if(!is_read) {
-							video_.clear_interrupts(*value);
+							video_->clear_interrupts(*value);
 						}
 					break;
 
@@ -201,7 +203,7 @@ class ConcreteMachine:
 #define SwitchRead(s) if(is_read) *value = memory_.s ? 0x80 : 0x00
 #define LanguageRead(s) SwitchRead(language_card_switches().state().s)
 #define AuxiliaryRead(s) SwitchRead(auxiliary_switches().switches().s)
-#define VideoRead(s) if(is_read) *value = video_.s ? 0x80 : 0x00
+#define VideoRead(s) if(is_read) *value = video_->s ? 0x80 : 0x00
 					case 0xc011:	LanguageRead(bank1);						break;
 					case 0xc012:	LanguageRead(read);							break;
 					case 0xc013:	AuxiliaryRead(read_auxiliary_memory);		break;
@@ -225,16 +227,16 @@ class ConcreteMachine:
 
 					// Video switches (and annunciators).
 					case 0xc050: case 0xc051:
-						video_.set_text(address & 1);
+						video_->set_text(address & 1);
 					break;
 					case 0xc052: case 0xc053:
-						video_.set_mixed(address & 1);
+						video_->set_mixed(address & 1);
 					break;
 					case 0xc054: case 0xc055:
-						video_.set_page2(address&1);
+						video_->set_page2(address&1);
 					break;
 					case 0xc056: case 0xc057:
-						video_.set_high_resolution(address&1);
+						video_->set_high_resolution(address&1);
 					break;
 					case 0xc058: case 0xc059:
 					case 0xc05a: case 0xc05b:
@@ -242,16 +244,16 @@ class ConcreteMachine:
 						// Annunciators 0, 1 and 2.
 					break;
 					case 0xc05e: case 0xc05f:
-						video_.set_annunciator_3(!(address&1));
+						video_->set_annunciator_3(!(address&1));
 					break;
 					case 0xc001:	/* 0xc000 is dealt with in the ADB section. */
-						if(!is_read) video_.set_80_store(true);
+						if(!is_read) video_->set_80_store(true);
 					break;
 					case 0xc00c: case 0xc00d:
-						if(!is_read) video_.set_80_columns(address & 1);
+						if(!is_read) video_->set_80_columns(address & 1);
 					break;
 					case 0xc00e: case 0xc00f:
-						if(!is_read) video_.set_alternative_character_set(address & 1);
+						if(!is_read) video_->set_alternative_character_set(address & 1);
 					break;
 
 					// ADB and keyboard.
@@ -259,7 +261,7 @@ class ConcreteMachine:
 						if(is_read) {
 							*value = adb_glu_.get_keyboard_data();
 						} else {
-							video_.set_80_store(false);
+							video_->set_80_store(false);
 						}
 					break;
 					case 0xc010:
@@ -453,6 +455,12 @@ class ConcreteMachine:
 				if(isReadOperation(operation)) {
 					MemoryMapRead(region, address, value);
 				} else {
+					// Use a very broad test for flushing video: any write to $e0 or $e1, or any write that is shadowed.
+					// TODO: at least restrict the e0/e1 test to possible video buffers!
+					if((address >= 0xe00000 && address < 0xe1000000) || region.flags & MemoryMap::Region::IsShadowed) {
+						video_.flush();
+					}
+
 					MemoryMapWrite(memory_, region, address, value);
 				}
 			}
@@ -498,16 +506,23 @@ class ConcreteMachine:
 			auto ticks = cycles_since_clock_tick_.divide(Cycles(CLOCK_RATE)).as_integral();
 			while(ticks--) {
 				clock_.update();
-				video_.notify_clock_tick();	// The video controller marshalls the one-second interrupt.
+				video_.last_valid()->notify_clock_tick();	// The video controller marshalls the one-second interrupt.
+				update_interrupts();
 			}
 
-			video_.run_for(duration);
+			video_ += duration;
 
-			// Update the interrupt line. TODO: should include the sound GLU too.
-			m65816_.set_irq_line(video_.get_interrupt_register() & 0x80);
-
+			// Ensure no more than a single line is enqueued for just-in-time video purposes.
+			if(video_.check_flush_threshold<131>()) {
+				update_interrupts();
+			}
 
 			return duration;
+		}
+
+		void update_interrupts() {
+			// Update the interrupt line. TODO: should include the sound GLU too.
+			m65816_.set_irq_line(video_.last_valid()->get_interrupt_register() & 0x80);
 		}
 
 	private:
@@ -529,7 +544,7 @@ class ConcreteMachine:
 		// MARK: - Other components.
 
 		Apple::Clock::ParallelClock clock_;
-		Apple::IIgs::Video::Video video_;
+		JustInTimeActor<Apple::IIgs::Video::Video, 1, 7, Cycles> video_;	// i.e. run video at twice the 1Mhz clock.
 		Apple::IIgs::ADB::GLU adb_glu_;
 		Apple::IIgs::Sound::GLU sound_glu_;
  		Zilog::SCC::z8530 scc_;

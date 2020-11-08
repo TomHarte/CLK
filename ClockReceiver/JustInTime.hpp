@@ -70,6 +70,16 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 			}
 		}
 
+		/// Flushes only if the @c threshold (measured in LocalTimeScale) has been crossed.
+		template<int threshold> forceinline bool check_flush_threshold() {
+			if(time_since_update_.as_integral() >= threshold) {
+				flush();
+				return true;
+			} else {
+				return false;
+			}
+		}
+
 	private:
 		T object_;
 		LocalTimeScale time_since_update_;

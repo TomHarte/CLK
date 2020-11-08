@@ -16,6 +16,11 @@ namespace Apple {
 namespace IIgs {
 namespace Video {
 
+/*!
+	Provides IIgs video output; assumed clocking here is twice the usual Apple II clock.
+	So it'll produce a single line of video every 131 cycles — 65*2 + 1, allowing for the
+	stretched cycle.
+*/
 class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 	public:
 		VideoBase();
