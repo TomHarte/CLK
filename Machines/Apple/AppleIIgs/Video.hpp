@@ -37,7 +37,9 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		void set_interrupt_register(uint8_t);
 
 		void notify_clock_tick();
+
 		void set_border_colour(uint8_t);
+		void set_text_colour(uint8_t);
 
 		/// Sets the scan target.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
@@ -62,7 +64,11 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 
 		int cycles_into_frame_ = 0;
 		const uint8_t *ram_ = nullptr;
+
+		// The modal colours.
 		uint16_t border_colour_ = 0;
+		uint16_t text_colour_ = 0xfff;
+		uint16_t background_colour_ = 0;
 
 		void output_row(int row, int start, int end);
 };

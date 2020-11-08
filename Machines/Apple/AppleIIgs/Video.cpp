@@ -152,7 +152,7 @@ void VideoBase::output_row(int row, int start, int end) {
 	}
 
 	// Possibly output border, pixels, border, if this is a pixel line.
-	if(row < 200) {	// TODO: use real test here; should be 192 for classic Apple II modes.
+	if(row < 192 + ((new_video_&0x80) >> 4)) {	// i.e. 192 lines for classic Apple II video, 200 for IIgs video.
 
 		// Output left border as far as currently known.
 		if(start >= start_of_left_border && start < start_of_pixels) {
@@ -211,6 +211,8 @@ void VideoBase::output_row(int row, int start, int end) {
 }
 
 bool VideoBase::get_is_vertical_blank() {
+	// Cf. http://www.1000bit.it/support/manuali/apple/technotes/iigs/tn.iigs.040.html ;
+	// this bit covers the entire vertical border area, not just the NTSC-sense vertical blank.
 	return cycles_into_frame_ >= FinalPixelLine * CyclesPerLine;
 }
 
@@ -245,5 +247,10 @@ void VideoBase::set_interrupts(uint8_t new_value) {
 }
 
 void VideoBase::set_border_colour(uint8_t colour) {
-	border_colour_ = appleii_palette[colour];
+	border_colour_ = appleii_palette[colour & 0xf];
+}
+
+void VideoBase::set_text_colour(uint8_t colour) {
+	text_colour_ = appleii_palette[colour >> 4];
+	background_colour_ = appleii_palette[colour & 0xf];
 }
