@@ -142,15 +142,17 @@ void VideoBase::output_row(int row, int start, int end) {
 		return;
 	}
 
-	// Output pixels.
-	if(row < 900) {	// TODO: use real test here; should be 192 for classic Apple II modes.
+	// Pixel or pure border => blank as usual.
 
-		// Output blank only at the end of its window.
-		if(start < blank_ticks && end >= blank_ticks) {
-			crt_.output_blank(blank_ticks * CyclesPerTick);
-			start = blank_ticks;
-			if(start == end) return;
-		}
+	// Output blank only at the end of its window.
+	if(start < blank_ticks && end >= blank_ticks) {
+		crt_.output_blank(blank_ticks * CyclesPerTick);
+		start = blank_ticks;
+		if(start == end) return;
+	}
+
+	// Possibly output border, pixels, border, if this is a pixel line.
+	if(row < 200) {	// TODO: use real test here; should be 192 for classic Apple II modes.
 
 		// Output left border as far as currently known.
 		if(start >= start_of_left_border && start < start_of_pixels) {
@@ -170,7 +172,7 @@ void VideoBase::output_row(int row, int start, int end) {
 
 			// TODO: output real pixels.
 			uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-			if(pixel) *pixel = 0xfff;//appleii_palette[15];
+			if(pixel) *pixel = appleii_palette[7];
 			crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
 
 			start = end_of_period;
@@ -188,18 +190,24 @@ void VideoBase::output_row(int row, int start, int end) {
 			// There's no point updating start here; just fall
 			// through to the end == FinalColumn test.
 		}
+	} else {
+		// This line is all border, all the time.
+		if(start >= start_of_left_border && start < start_of_sync) {
+			const int end_of_period = std::min(start_of_sync, end);
 
-		// Output sync if the moment has arrived.
-		if(end == FinalColumn) {
-			crt_.output_sync(sync_period);
+			uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
+			if(pixel) *pixel = border_colour_;
+			crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
+
+			start = end_of_period;
+			if(start == end) return;
 		}
-
-		return;
 	}
 
-	// Not a vertical sync or pixel line => pure border.
-
-	assert(false);
+	// Output sync if the moment has arrived.
+	if(end == FinalColumn) {
+		crt_.output_sync(sync_period);
+	}
 }
 
 bool VideoBase::get_is_vertical_blank() {
