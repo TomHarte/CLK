@@ -20,11 +20,37 @@ constexpr int FinalPixelLine = 192;
 
 constexpr auto FinalColumn = CyclesPerLine / CyclesPerTick;
 
+// Converts from Apple's RGB ordering to this emulator's.
+#define PaletteConvulve(x)	((x&0xf00) >> 8) | ((x&0x00f) << 8) | (x&0x0f0)
+
+// The 12-bit values used by the Apple IIgs to approximate Apple II colours,
+// as implied by tech note #63's use of them as border colours.
+// http://www.1000bit.it/support/manuali/apple/technotes/iigs/tn.iigs.063.html
+constexpr uint16_t appleii_palette[16] = {
+	PaletteConvulve(0x0000),	// Black.
+	PaletteConvulve(0x0d03),	// Deep Red.
+	PaletteConvulve(0x0009),	// Dark Blue.
+	PaletteConvulve(0x0d2d),	// Purple.
+	PaletteConvulve(0x0072),	// Dark Green.
+	PaletteConvulve(0x0555),	// Dark Gray.
+	PaletteConvulve(0x022f),	// Medium Blue.
+	PaletteConvulve(0x06af),	// Light Blue.
+	PaletteConvulve(0x0850),	// Brown.
+	PaletteConvulve(0x0f60),	// Orange.
+	PaletteConvulve(0x0aaa),	// Light Grey.
+	PaletteConvulve(0x0f98),	// Pink.
+	PaletteConvulve(0x01d0),	// Light Green.
+	PaletteConvulve(0x0ff0),	// Yellow.
+	PaletteConvulve(0x04f9),	// Aquamarine.
+	PaletteConvulve(0x0fff),	// White.
+};
+
 }
 
 VideoBase::VideoBase() :
 	VideoSwitches<Cycles>(true, Cycles(2), [this] (Cycles cycles) { advance(cycles); }),
 	crt_(CyclesPerLine - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red4Green4Blue4) {
+	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 }
 
 void VideoBase::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
@@ -116,8 +142,8 @@ void VideoBase::output_row(int row, int start, int end) {
 		return;
 	}
 
-	// Deal with the pixel area.
-	if(row < Lines) {	// TODO: use real test here.
+	// Output pixels.
+	if(row < 900) {	// TODO: use real test here; should be 192 for classic Apple II modes.
 
 		// Output blank only at the end of its window.
 		if(start < blank_ticks && end >= blank_ticks) {
@@ -130,8 +156,9 @@ void VideoBase::output_row(int row, int start, int end) {
 		if(start >= start_of_left_border && start < start_of_pixels) {
 			const int end_of_period = std::min(start_of_pixels, end);
 
-			// TODO: output real border colour.
-			crt_.output_blank((end_of_period - start) * CyclesPerTick);
+			uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
+			if(pixel) *pixel = border_colour_;
+			crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
 
 			start = end_of_period;
 			if(start == end) return;
@@ -143,7 +170,7 @@ void VideoBase::output_row(int row, int start, int end) {
 
 			// TODO: output real pixels.
 			uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-			if(pixel) *pixel = 0xffff;
+			if(pixel) *pixel = 0xfff;//appleii_palette[15];
 			crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
 
 			start = end_of_period;
@@ -154,8 +181,9 @@ void VideoBase::output_row(int row, int start, int end) {
 		if(start >= start_of_right_border && start < start_of_sync) {
 			const int end_of_period = std::min(start_of_sync, end);
 
-			// TODO: output real border colour.
-			crt_.output_blank((end_of_period - start) * CyclesPerTick);
+			uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
+			if(pixel) *pixel = border_colour_;
+			crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
 
 			// There's no point updating start here; just fall
 			// through to the end == FinalColumn test.
@@ -168,6 +196,8 @@ void VideoBase::output_row(int row, int start, int end) {
 
 		return;
 	}
+
+	// Not a vertical sync or pixel line => pure border.
 
 	assert(false);
 }
@@ -204,4 +234,8 @@ void VideoBase::set_interrupts(uint8_t new_value) {
 	interrupts_ = new_value & 0x7f;
 	if((interrupts_ >> 4) & interrupts_ & 0x6)
 		interrupts_ |= 0x80;
+}
+
+void VideoBase::set_border_colour(uint8_t colour) {
+	border_colour_ = appleii_palette[colour];
 }

@@ -187,6 +187,7 @@ class ConcreteMachine:
 							*value = clock_.get_control();
 						} else {
 							clock_.set_control(*value);
+							video_->set_border_colour(*value & 0xf);
 							// TODO: also set border colour.
 						}
 					break;
