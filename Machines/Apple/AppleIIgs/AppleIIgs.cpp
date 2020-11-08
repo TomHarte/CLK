@@ -533,6 +533,7 @@ class ConcreteMachine:
 			video_ += duration;
 
 			// Ensure no more than a single line is enqueued for just-in-time video purposes.
+			// TODO: as implemented, check_flush_threshold doesn't actually work. Can it be made to, or is it a bad idea?
 			if(video_.check_flush_threshold<131>()) {
 				update_interrupts();
 			}

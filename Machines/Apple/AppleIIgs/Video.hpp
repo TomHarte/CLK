@@ -70,6 +70,9 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		uint16_t text_colour_ = 0xfff;
 		uint16_t background_colour_ = 0;
 
+		// Current pixel output buffer.
+		uint16_t *pixels_ = nullptr, *next_pixel_ = nullptr;
+
 		void output_row(int row, int start, int end);
 };
 

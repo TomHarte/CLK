@@ -111,7 +111,7 @@ void VideoBase::output_row(int row, int start, int end) {
 	//
 	// Guessing four cycles of sync, I've chosen to arrange one output row for this emulator as:
 	//
-	//	5 cycles of back porch;
+	//	5 cycles of back porch;	[TODO: include a colour burst]
 	//	8 windows left border, the final five of which fetch palette and control if in IIgs mode;
 	//	40 windows of pixel output;
 	//	8 cycles of right border;
@@ -166,20 +166,47 @@ void VideoBase::output_row(int row, int start, int end) {
 			if(start == end) return;
 		}
 
-		// Output left border as far as currently known.
+		// Fetch and output such pixels as it is time for.
 		if(start >= start_of_pixels && start < start_of_right_border) {
 			const int end_of_period = std::min(start_of_right_border, end);
 
-			// TODO: output real pixels.
-			uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-			if(pixel) *pixel = appleii_palette[7];
-			crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
+			if(start == start_of_pixels) {
+				// 640 is the absolute most number of pixels that might be generated
+				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(640, 2));
+			}
+
+			// TODO: support modes other than 40-column text.
+			if(next_pixel_) {
+				uint16_t row_address = get_row_address(row);
+				for(int c = start; c < end_of_period; c++) {
+					const uint8_t source = ram_[row_address + c];
+					const int character = source & character_zones_[source >> 6].address_mask;
+					const uint8_t xor_mask = character_zones_[source >> 6].xor_mask;
+					const std::size_t character_address = size_t(character << 3) + (row & 7);
+					const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
+					const uint16_t colours[2] = {background_colour_, text_colour_};
+
+					next_pixel_[0] = colours[(character_pattern & 0x40) >> 6];
+					next_pixel_[1] = colours[(character_pattern & 0x20) >> 5];
+					next_pixel_[2] = colours[(character_pattern & 0x10) >> 4];
+					next_pixel_[3] = colours[(character_pattern & 0x08) >> 3];
+					next_pixel_[4] = colours[(character_pattern & 0x04) >> 2];
+					next_pixel_[5] = colours[(character_pattern & 0x02) >> 1];
+					next_pixel_[6] = colours[(character_pattern & 0x01) >> 0];
+					next_pixel_ += 7;
+				}
+			}
+
+			if(end_of_period == start_of_right_border) {
+				crt_.output_data((start_of_right_border - start_of_pixels) * CyclesPerTick, next_pixel_ ? size_t(next_pixel_ - pixels_) : 1);
+				next_pixel_ = pixels_ = nullptr;
+			}
 
 			start = end_of_period;
 			if(start == end) return;
 		}
 
-		// Output left border as far as currently known.
+		// Output right border as far as currently known.
 		if(start >= start_of_right_border && start < start_of_sync) {
 			const int end_of_period = std::min(start_of_sync, end);
 
