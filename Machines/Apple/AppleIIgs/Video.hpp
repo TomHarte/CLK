@@ -67,7 +67,7 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 
 		// The modal colours.
 		uint16_t border_colour_ = 0;
-		uint16_t text_colour_ = 0xfff;
+		uint16_t text_colour_ = 0xffff;
 		uint16_t background_colour_ = 0;
 
 		// Current pixel output buffer.

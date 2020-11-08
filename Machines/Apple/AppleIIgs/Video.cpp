@@ -179,7 +179,7 @@ void VideoBase::output_row(int row, int start, int end) {
 			if(next_pixel_) {
 				uint16_t row_address = get_row_address(row);
 				for(int c = start; c < end_of_period; c++) {
-					const uint8_t source = ram_[row_address + c];
+					const uint8_t source = ram_[row_address + c - start_of_pixels];
 					const int character = source & character_zones_[source >> 6].address_mask;
 					const uint8_t xor_mask = character_zones_[source >> 6].xor_mask;
 					const std::size_t character_address = size_t(character << 3) + (row & 7);
