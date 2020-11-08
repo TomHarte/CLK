@@ -57,9 +57,13 @@ void VideoBase::advance(Cycles cycles) {
 	const int row_end = cycles_into_frame_ / CyclesPerLine;
 
 	if(row_end == row_start) {
-		output_row(row_start, column_start, column_end);
+		if(column_end != column_start) {
+			output_row(row_start, column_start, column_end);
+		}
 	} else {
-		output_row(row_start, column_start, FinalColumn);
+		if(column_start != FinalColumn) {
+			output_row(row_start, column_start, FinalColumn);
+		}
 		for(int row = row_start+1; row < row_end; row++) {
 			output_row(row, 0, FinalColumn);
 		}
@@ -119,6 +123,7 @@ void VideoBase::output_row(int row, int start, int end) {
 		if(start < blank_ticks && end >= blank_ticks) {
 			crt_.output_blank(blank_ticks * CyclesPerTick);
 			start = blank_ticks;
+			if(start == end) return;
 		}
 
 		// Output left border as far as currently known.
@@ -152,8 +157,8 @@ void VideoBase::output_row(int row, int start, int end) {
 			// TODO: output real border colour.
 			crt_.output_blank((end_of_period - start) * CyclesPerTick);
 
-			start = end_of_period;
-			if(start == end) return;
+			// There's no point updating start here; just fall
+			// through to the end == FinalColumn test.
 		}
 
 		// Output sync if the moment has arrived.
