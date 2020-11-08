@@ -332,12 +332,12 @@ half3 convertRed8Green8Blue8(SourceInterpolator vert, texture2d<half> texture) {
 
 half3 convertRed4Green4Blue4(SourceInterpolator vert, texture2d<ushort> texture) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).rg;
-	return clamp(half3(sample.r&15, (sample.g >> 4)&15, sample.g&15), half(0.0f), half(1.0f));
+	return half3(sample.r&15, (sample.g >> 4)&15, sample.g&15) / 15.0f;
 }
 
 half3 convertRed2Green2Blue2(SourceInterpolator vert, texture2d<ushort> texture) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
-	return clamp(half3((sample >> 4)&3, (sample >> 2)&3, sample&3), half(0.0f), half(1.0f));
+	return half3((sample >> 4)&3, (sample >> 2)&3, sample&3) / 3.0f;
 }
 
 half3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture) {
