@@ -174,7 +174,10 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 			// Apply carry into the row counter and test it for location.
 			int mapped_row = row_ + (mapped_column / 65);
-			return (mapped_row % 262) >= 192;
+
+			// Per http://www.1000bit.it/support/manuali/apple/technotes/iigs/tn.iigs.040.html
+			// "on the IIe, the screen is blanked when the bit is low".
+			return (mapped_row % 262) < 192;
 		}
 
 	private:
