@@ -176,6 +176,15 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 			set_card_paging();
 		}
 
+		uint8_t get_state() const {
+			return
+				(switches_.alternative_zero_page ? 0x80 : 0x00) |
+				(switches_.video_page_2 ? 0x40 : 0x00) |
+				(switches_.read_auxiliary_memory ? 0x20 : 0x00) |
+				(switches_.write_auxiliary_memory ? 0x10 : 0x00) |
+				(switches_.internal_CX_rom ? 0x01 : 0x00);
+		}
+
 		const MainState &main_state() const {
 			return main_state_;
 		}

@@ -213,17 +213,7 @@ class MemoryMap {
 		}
 
 		uint8_t get_state_register() const {
-			const auto auxiliary_switches = auxiliary_switches_.switches();
-			const auto language_state = language_card_.state();
-
-			return
-				(auxiliary_switches.alternative_zero_page ? 0x80 : 0x00) |
-				(auxiliary_switches.video_page_2 ? 0x40 : 0x00) |
-				(auxiliary_switches.read_auxiliary_memory ? 0x20 : 0x00) |
-				(auxiliary_switches.write_auxiliary_memory ? 0x10 : 0x00) |
-				(language_state.read ? 0x08 : 0x00) |
-				(language_state.bank1 ? 0x04 : 0x00) |
-				(auxiliary_switches.internal_CX_rom ? 0x01 : 0x00);
+			return language_card_.get_state() | auxiliary_switches_.get_state();
 		}
 
 		void access(uint16_t address, bool is_read) {

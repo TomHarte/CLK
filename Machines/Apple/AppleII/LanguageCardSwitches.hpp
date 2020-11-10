@@ -93,6 +93,12 @@ template <typename Machine> class LanguageCardSwitches {
 			}
 		}
 
+		uint8_t get_state() const {
+			return
+				(state_.read ? 0x00 : 0x08) |
+				(state_.bank1 ? 0x04 : 0x00);
+		}
+
 	private:
 		Machine &machine_;
 		State state_;
