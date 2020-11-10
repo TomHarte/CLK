@@ -20,6 +20,7 @@
 #include "../../../Components/8530/z8530.hpp"
 #include "../../../Components/AppleClock/AppleClock.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
+#include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
 
 #include "../../Utility/MemoryFuzzer.hpp"
 
@@ -45,7 +46,12 @@ class ConcreteMachine:
 
 	public:
 		ConcreteMachine(const Analyser::Static::AppleIIgs::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-			m65816_(*this) {
+			m65816_(*this),
+			iwm_(CLOCK_RATE),
+			drives_{
+		 		{CLOCK_RATE, true},
+		 		{CLOCK_RATE, true}
+			} {
 
 			set_clock_rate(double(CLOCK_RATE));
 
@@ -94,6 +100,11 @@ class ConcreteMachine:
 			// Select appropriate ADB behaviour.
 			adb_glu_.set_is_rom03(target.model == Target::Model::ROM03);
 
+			// Attach drives to the IWM.
+			// TODO: presumably attach more, some of which are 5.25"?
+			iwm_->set_drive(0, &drives_[0]);
+			iwm_->set_drive(1, &drives_[1]);
+
 			// TODO: enable once machine is otherwise sane.
 //			Memory::Fuzz(ram_);
 
@@ -107,6 +118,7 @@ class ConcreteMachine:
 
 		void flush() {
 			video_.flush();
+			iwm_.flush();
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *target) override {
@@ -486,12 +498,30 @@ class ConcreteMachine:
 									*value = 0xff;
 								}
 							} else {
+								switch(address_suffix) {
+									default:
+										printf("Internal card-area access: %04x\n", address_suffix);
+										if(is_read) {
+											*value = rom_[rom_.size() - 65536 + address_suffix];
+										}
+									break;
+
+									// IWM.
+									case 0xc0e0:	case 0xc0e1:	case 0xc0e2:	case 0xc0e3:
+									case 0xc0e4:	case 0xc0e5:	case 0xc0e6:	case 0xc0e7:
+									case 0xc0e8:	case 0xc0e9:	case 0xc0ea:	case 0xc0eb:
+									case 0xc0ec:	case 0xc0ed:	case 0xc0ee:	case 0xc0ef:
+										if(is_read) {
+											*value = iwm_->read(int(address_suffix));
+										} else {
+											iwm_->write(int(address_suffix), *value);
+										}
+									break;
+
+									// TODO: 0xc0c8, 0xc0c9, 0xc0d8, 0xc0d9, 0xc0f8, 0xc0f9 drive motors.
+								}
 								// TODO: disk-port soft switches should be in COEx.
 //								log = true;
-								printf("Internal card-area access: %04x\n", address_suffix);
-								if(is_read) {
-									*value = rom_[rom_.size() - 65536 + address_suffix];
-								}
 							}
 						} else {
 							if(address_suffix < 0xc080) {
@@ -565,6 +595,7 @@ class ConcreteMachine:
 			}
 
 			video_ += duration;
+			iwm_ += duration;
 
 			// Ensure no more than a single line is enqueued for just-in-time video purposes.
 			// TODO: as implemented, check_flush_threshold doesn't actually work. Can it be made to, or is it a bad idea?
@@ -603,7 +634,10 @@ class ConcreteMachine:
 		Apple::IIgs::ADB::GLU adb_glu_;
 		Apple::IIgs::Sound::GLU sound_glu_;
  		Zilog::SCC::z8530 scc_;
+ 		JustInTimeActor<Apple::IWM, 1, 1, Cycles> iwm_;
  		Cycles cycles_since_clock_tick_;
+
+		Apple::Macintosh::DoubleDensityDrive drives_[2];
 
 		// MARK: - Cards.
 
