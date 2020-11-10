@@ -51,6 +51,7 @@ VideoBase::VideoBase() :
 	VideoSwitches<Cycles>(true, Cycles(2), [this] (Cycles cycles) { advance(cycles); }),
 	crt_(CyclesPerLine - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red4Green4Blue4) {
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+	crt_.set_visible_area(Outputs::Display::Rect(0.097f, 0.085f, 0.85f, 0.85f));
 }
 
 void VideoBase::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
