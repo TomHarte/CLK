@@ -91,6 +91,9 @@ class ConcreteMachine:
 			memory_.set_storage(ram_, rom_);
 			video_->set_internal_ram(&ram_[ram_.size() - 128*1024]);
 
+			// Select appropriate ADB behaviour.
+			adb_glu_.set_is_rom03(target.model == Target::Model::ROM03);
+
 			// TODO: enable once machine is otherwise sane.
 //			Memory::Fuzz(ram_);
 
