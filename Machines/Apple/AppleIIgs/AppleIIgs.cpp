@@ -466,6 +466,14 @@ class ConcreteMachine:
 						// b7: 0 = use head 0; 1 = use head 1.
 						// b6: 0 = use 5.25" disks; 1 = use 3.5".
 						printf("TODO: Disk interface register [%d]\n", is_read);
+						if(!is_read) {
+							disk_select_ = *value;
+							iwm_->set_select(*value & 0x80);
+
+							// Presumably bit 6 selects between two 5.25" drives rather than the two 3.5"?
+						} else {
+							*value = disk_select_;
+						}
 					break;
 
 					default:
@@ -646,6 +654,7 @@ class ConcreteMachine:
 
 		bool test_mode_ = false;
 		uint8_t language_ = 0;
+		uint8_t disk_select_ = 0;
 };
 
 }
