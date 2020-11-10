@@ -41,6 +41,9 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		void set_border_colour(uint8_t);
 		void set_text_colour(uint8_t);
 
+		void set_composite_is_colour(bool);
+		bool get_composite_is_colour();
+
 		/// Sets the scan target.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 

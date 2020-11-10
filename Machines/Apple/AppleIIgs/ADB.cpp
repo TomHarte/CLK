@@ -87,7 +87,7 @@ uint8_t GLU::get_status() {
 	// b0:	1 = command register is full (set when command is written); 0 = empty (cleared when data is read).
 	const uint8_t status =
 		(pending_response_.empty() ? 0 : 0x20);	// Data is valid if a response is pending.
-	printf("ADB get status : %02x\n", status);
+//	printf("ADB get status : %02x\n", status);
 	return status;
 }
 

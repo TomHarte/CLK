@@ -281,3 +281,10 @@ void VideoBase::set_text_colour(uint8_t colour) {
 	text_colour_ = appleii_palette[colour >> 4];
 	background_colour_ = appleii_palette[colour & 0xf];
 }
+
+void VideoBase::set_composite_is_colour(bool) {
+}
+
+bool VideoBase::get_composite_is_colour() {
+	return true;
+}

@@ -391,6 +391,26 @@ class ConcreteMachine:
 						// TODO: begin analogue channel charge.
 					break;
 
+					// Monochome/colour register.
+					case 0xc021:
+						// "Uses bit 7 to determine whether composite output is colour 9) or gray scale (1)."
+						if(is_read) {
+							*value = video_->get_composite_is_colour() ? 0x00 : 0x80;
+						} else {
+							video_->set_composite_is_colour(!(*value & 0x80));
+						}
+					break;
+
+					// Language select. (?)
+					case 0xc02b:
+						if(is_read) {
+							*value = language_;
+						} else {
+							language_ = *value;
+						}
+					break;
+
+					// Slot select.
 					case 0xc02d:
 						// b7: 0 = internal ROM code for slot 7;
 						// b6: 0 = internal ROM code for slot 6;
@@ -580,6 +600,7 @@ class ConcreteMachine:
 		uint8_t card_mask_ = 0x00;
 
 		bool test_mode_ = false;
+		uint8_t language_ = 0;
 };
 
 }
