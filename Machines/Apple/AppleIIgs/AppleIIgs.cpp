@@ -427,6 +427,10 @@ class ConcreteMachine:
 						}
 					break;
 
+					case 0xc030:
+						printf("TODO: audio toggle\n");
+					break;
+
 					// Addresses that seemingly map to nothing; provided as a separate break out for now,
 					// while I have an assert on unknown reads.
 					case 0xc049: case 0xc04a: case 0xc04b: case 0xc04c: case 0xc04d: case 0xc04e: case 0xc04f:
@@ -443,6 +447,13 @@ class ConcreteMachine:
 						if(is_read) {
 							*value = test_mode_ * 0x80;
 						}
+					break;
+
+					// Disk drive controls additional to the IWM.
+					case 0xc031:
+						// b7: 0 = use head 0; 1 = use head 1.
+						// b6: 0 = use 5.25" disks; 1 = use 3.5".
+						printf("TODO: Disk interface register [%d]\n", is_read);
 					break;
 
 					default:
