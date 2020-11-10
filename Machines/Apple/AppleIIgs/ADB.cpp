@@ -95,14 +95,12 @@ void GLU::set_command(uint8_t command) {
 	// Accumulate input until a full comamnd is received;
 	// the state machine otherwise gets somewhat oversized.
 	next_command_.push_back(command);
-	printf("ADB command: %02x\n", command);
 
 	// Command dispatch; each entry should do whatever it needs
 	// to do and then either: (i) break, if completed; or
 	// (ii) return, if awaiting further input.
 #define RequireSize(n)	if(next_command_.size() < (n)) return;
 	switch(next_command_[0]) {
-		// One-byte commands.
 		case 0x01:	abort();					break;
 		case 0x02:	reset_microcontroller();	break;
 		case 0x03:	flush_keyboard_buffer();	break;
@@ -118,7 +116,7 @@ void GLU::set_command(uint8_t command) {
 		break;
 
 		case 0x06:	// Set configuration bytes
-			RequireSize(4);
+			RequireSize(is_rom03_ ? 8 : 4);
 			set_configuration_bytes(&next_command_[1]);
 		break;
 
@@ -130,6 +128,11 @@ void GLU::set_command(uint8_t command) {
 			// ROM03 seems to expect to send an extra four bytes here,
 			// with values 0x20, 0x26, 0x2d, 0x2d.
 			// TODO: what does the ROM03-paired ADB GLU do with the extra four bytes?
+		break;
+
+		case 0x09:	// Read microcontroller memory.
+			RequireSize(3);
+			pending_response_.push_back(read_microcontroller_address(uint16_t(next_command_[1] | (next_command_[2] << 8))));
 		break;
 
 		case 0x0d:	// Get version number.
@@ -153,6 +156,10 @@ void GLU::set_command(uint8_t command) {
 		break;
 	}
 #undef RequireSize
+
+	printf("ADB executed: ");
+	for(auto c : next_command_) printf("%02x ", c);
+	printf("\n");
 
 	// Input was dealt with, so throw it away.
 	next_command_.clear();
@@ -183,4 +190,9 @@ void GLU::set_configuration_bytes(uint8_t *) {
 void GLU::set_device_srq(int mask) {
 	// TODO: do I need to do any more than this here?
 	device_srq_ = mask;
+}
+
+uint8_t GLU::read_microcontroller_address(uint16_t address) {
+	printf("Read from microcontroller %04x\n", address);
+	return 0;
 }

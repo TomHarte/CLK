@@ -50,6 +50,8 @@ class GLU {
 		int device_srq_ = 0;
 
 		void set_configuration_bytes(uint8_t *);
+
+		uint8_t read_microcontroller_address(uint16_t);
 };
 
 }
