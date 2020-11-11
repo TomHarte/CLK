@@ -170,9 +170,7 @@ bool DoubleDensityDrive::read() {
 
 		case CA2|CA1|CA0|SEL:	// Drive installed.
 								// (0 = present, 1 = missing)
-								//
-								// TODO: why do I need to return this the wrong way around for the Mac Plus?
-		return true;
+		return false;
 	}
 }
 
