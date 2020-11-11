@@ -470,11 +470,18 @@ class ConcreteMachine:
 							iwm_->set_select(*value & 0x80);
 
 							// Presumably bit 6 selects between two 5.25" drives rather than the two 3.5"?
+							if(*value & 0x40) {
+								iwm_->set_drive(0, &drives_[0]);
+								iwm_->set_drive(1, &drives_[1]);
+							} else {
+								// TODO: add 5.25" drives.
+								// (and any Smartport devices?)
+								iwm_->set_drive(0, nullptr);
+								iwm_->set_drive(1, nullptr);
+							}
 						} else {
 							*value = disk_select_;
 						}
-
-						printf("TODO: Disk interface register [%d; %02x]\n", is_read, *value);
 					break;
 
 					default:
