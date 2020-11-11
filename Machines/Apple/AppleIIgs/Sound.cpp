@@ -13,7 +13,7 @@
 using namespace Apple::IIgs::Sound;
 
 void GLU::set_control(uint8_t control) {
-	printf("UNIMPLEMENTED: set control %02x\n", control);
+//	printf("UNIMPLEMENTED: set control %02x\n", control);
 }
 
 uint8_t GLU::get_control() {
@@ -21,7 +21,7 @@ uint8_t GLU::get_control() {
 }
 
 void GLU::set_data(uint8_t data) {
-	printf("UNIMPLEMENTED: set data %02x\n", data);
+//	printf("UNIMPLEMENTED: set data %02x\n", data);
 }
 
 uint8_t GLU::get_data() {
