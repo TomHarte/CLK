@@ -263,7 +263,7 @@ void IWM::run_for(const Cycles cycles) {
 		} break;
 
 		case ShiftMode::Writing:
-			if(drives_[active_drive_]->is_writing()) {
+			if(drives_[active_drive_] && drives_[active_drive_]->is_writing()) {
 				while(cycles_since_shift_ + integer_cycles >= bit_length_) {
 					const auto cycles_until_write = bit_length_ - cycles_since_shift_;
 					drives_[active_drive_]->run_for(cycles_until_write);
@@ -293,11 +293,11 @@ void IWM::run_for(const Cycles cycles) {
 				}
 
 				cycles_since_shift_ = integer_cycles;
-				if(integer_cycles) {
+				if(drives_[active_drive_] && integer_cycles) {
 					drives_[active_drive_]->run_for(cycles_since_shift_);
 				}
 			} else {
-				drives_[active_drive_]->run_for(cycles);
+				if(drives_[active_drive_]) drives_[active_drive_]->run_for(cycles);
 			}
 		break;
 
@@ -386,16 +386,20 @@ void IWM::propose_shift(uint8_t bit) {
 
 void IWM::set_drive(int slot, IWMDrive *drive) {
 	drives_[slot] = drive;
-	drive->set_event_delegate(this);
-	drive->set_clocking_hint_observer(this);
+	if(drive) {
+		drive->set_event_delegate(this);
+		drive->set_clocking_hint_observer(this);
+	} else {
+		drive_is_rotating_[slot] = false;
+	}
 }
 
 void IWM::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) {
 	const bool is_rotating = clocking != ClockingHint::Preference::None;
 
-	if(component == static_cast<ClockingHint::Source *>(drives_[0])) {
+	if(drives_[0] && component == static_cast<ClockingHint::Source *>(drives_[0])) {
 		drive_is_rotating_[0] = is_rotating;
-	} else {
+	} else if(drives_[1] && component == static_cast<ClockingHint::Source *>(drives_[1])) {
 		drive_is_rotating_[1] = is_rotating;
 	}
 }
