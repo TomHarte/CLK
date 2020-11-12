@@ -19,8 +19,11 @@
 
 #include "../../../Components/8530/z8530.hpp"
 #include "../../../Components/AppleClock/AppleClock.hpp"
+#include "../../../Components/AudioToggle/AudioToggle.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
 #include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
+
+#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "../../Utility/MemoryFuzzer.hpp"
 
@@ -42,6 +45,7 @@ class ConcreteMachine:
 	public Apple::IIgs::Machine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
 	public CPU::MOS6502Esque::BusHandler<uint32_t> {
 
 	public:
@@ -51,9 +55,12 @@ class ConcreteMachine:
 			drives_{
 		 		{CLOCK_RATE, true},
 		 		{CLOCK_RATE, true}
-			} {
+			},
+			audio_toggle_(audio_queue_),
+			speaker_(audio_toggle_) {
 
 			set_clock_rate(double(CLOCK_RATE));
+			speaker_.set_input_rate(float(CLOCK_RATE) / float(audio_divider));
 
 			using Target = Analyser::Static::AppleIIgs::Target;
 			std::vector<ROMMachine::ROM> rom_descriptions;
@@ -118,7 +125,9 @@ class ConcreteMachine:
 
 		void flush() {
 			video_.flush();
+			update_audio();
 			iwm_.flush();
+			audio_queue_.perform();
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *target) override {
@@ -135,6 +144,10 @@ class ConcreteMachine:
 
 		Outputs::Display::DisplayType get_display_type() const final {
 			return video_->get_display_type();
+		}
+
+		Outputs::Speaker::Speaker *get_speaker() final {
+			return &speaker_;
 		}
 
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
@@ -440,7 +453,8 @@ class ConcreteMachine:
 					break;
 
 					case 0xc030:
-						printf("TODO: audio toggle\n");
+						update_audio();
+						audio_toggle_.set_output(!audio_toggle_.get_output());
 					break;
 
 					// Addresses that seemingly map to nothing; provided as a separate break out for now,
@@ -612,6 +626,7 @@ class ConcreteMachine:
 
 			video_ += duration;
 			iwm_ += duration;
+			cycles_since_audio_update_ += duration;
 
 			// Ensure no more than a single line is enqueued for just-in-time video purposes.
 			// TODO: as implemented, check_flush_threshold doesn't actually work. Can it be made to, or is it a bad idea?
@@ -648,12 +663,21 @@ class ConcreteMachine:
 		Apple::Clock::ParallelClock clock_;
 		JustInTimeActor<Apple::IIgs::Video::Video, 1, 2, Cycles> video_;	// i.e. run video at twice the 1Mhz clock.
 		Apple::IIgs::ADB::GLU adb_glu_;
-		Apple::IIgs::Sound::GLU sound_glu_;
  		Zilog::SCC::z8530 scc_;
  		JustInTimeActor<Apple::IWM, 1, 1, Cycles> iwm_;
  		Cycles cycles_since_clock_tick_;
-
 		Apple::Macintosh::DoubleDensityDrive drives_[2];
+
+		// The audio parts.
+		Apple::IIgs::Sound::GLU sound_glu_;
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		Audio::Toggle audio_toggle_;
+		Outputs::Speaker::LowpassSpeaker<Audio::Toggle> speaker_;
+		Cycles cycles_since_audio_update_;
+		static constexpr int audio_divider = 8;
+		void update_audio() {
+			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
+		}
 
 		// MARK: - Cards.
 
