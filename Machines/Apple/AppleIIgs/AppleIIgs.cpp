@@ -54,8 +54,8 @@ class ConcreteMachine:
 			m65816_(*this),
 			iwm_(CLOCK_RATE),
 			drives_{
-		 		{CLOCK_RATE, true},
-		 		{CLOCK_RATE, true}
+		 		{CLOCK_RATE / 2, true},
+		 		{CLOCK_RATE / 2, true}
 			},
 			audio_toggle_(audio_queue_),
 			speaker_(audio_toggle_) {
@@ -676,7 +676,7 @@ class ConcreteMachine:
 		JustInTimeActor<Apple::IIgs::Video::Video, 1, 2, Cycles> video_;	// i.e. run video at twice the 1Mhz clock.
 		Apple::IIgs::ADB::GLU adb_glu_;
  		Zilog::SCC::z8530 scc_;
- 		JustInTimeActor<Apple::IWM, 1, 1, Cycles> iwm_;
+ 		JustInTimeActor<Apple::IWM, 1, 2, Cycles> iwm_;
  		Cycles cycles_since_clock_tick_;
 		Apple::Macintosh::DoubleDensityDrive drives_[2];
 
