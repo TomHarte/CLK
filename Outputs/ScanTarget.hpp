@@ -88,7 +88,8 @@ enum class InputDataType {
 
 	Red1Green1Blue1,		// 1 byte/pixel; bit 0 is blue on or off, bit 1 is green, bit 2 is red.
 	Red2Green2Blue2,		// 1 byte/pixel; bits 0 and 1 are blue, bits 2 and 3 are green, bits 4 and 5 are blue.
-	Red4Green4Blue4,		// 2 bytes/pixel; first nibble is red, second is green, third is blue.
+	Red4Green4Blue4,		// 2 bytes/pixel; low nibble in first byte is red, high nibble in second is green, low is blue.
+							// i.e. if it were a little endian word, 0xgb0r; or 0x0rgb big endian.
 	Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
 };
 

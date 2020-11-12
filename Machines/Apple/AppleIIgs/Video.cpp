@@ -21,7 +21,11 @@ constexpr int FinalPixelLine = 192;
 constexpr auto FinalColumn = CyclesPerLine / CyclesPerTick;
 
 // Converts from Apple's RGB ordering to this emulator's.
-#define PaletteConvulve(x)	((x&0xf00) >> 8) | ((x&0x00f) << 8) | (x&0x0f0)
+#if TARGET_RT_BIG_ENDIAN
+#define PaletteConvulve(x)	x
+#else
+#define PaletteConvulve(x)	((x&0xf00) >> 8) | ((x&0x0ff) << 8)
+#endif
 
 // The 12-bit values used by the Apple IIgs to approximate Apple II colours,
 // as implied by tech note #63's use of them as border colours.
