@@ -279,7 +279,6 @@ void IWM::run_for(const Cycles cycles) {
 				--output_bits_remaining_;
 				if(!output_bits_remaining_) {
 					if(!(write_handshake_ & 0x80)) {
-						write_handshake_ |= 0x80;
 						shift_register_ = next_output_;
 						output_bits_remaining_ = 8;
 //						LOG("Next byte: " << PADHEX(2) << int(shift_register_));
@@ -287,12 +286,20 @@ void IWM::run_for(const Cycles cycles) {
 						write_handshake_ &= ~0x40;
 						if(drives_[active_drive_]) drives_[active_drive_]->end_writing();
 						LOG("Overrun; done.");
-						select_shift_mode();
+						output_bits_remaining_ = 1;
 					}
+
+					// Either way, the IWM is ready for more data.
+					write_handshake_ |= 0x80;
 				}
 			}
 
-			cycles_since_shift_ = integer_cycles;
+			// Either some bits were output, in which case cycles_since_shift_ is no 0 and
+			// integer_cycles is some number less than bit_length_, or none were and
+			// cycles_since_shift_ + integer_cycles is less than bit_length, and the new
+			// part should be accumulated.
+			cycles_since_shift_ += integer_cycles;
+
 			if(drives_[active_drive_] && integer_cycles) {
 				drives_[active_drive_]->run_for(cycles_since_shift_);
 			}
@@ -329,8 +336,8 @@ void IWM::select_shift_mode() {
 	}
 
 	// If writing mode just began, set the drive into write mode and cue up the first output byte.
-	if(drives_[active_drive_] && old_shift_mode != ShiftMode::Writing && shift_mode_ == ShiftMode::Writing) {
-		drives_[active_drive_]->begin_writing(Storage::Time(1, clock_rate_ / bit_length_.as_integral()), false);
+	if(old_shift_mode != ShiftMode::Writing && shift_mode_ == ShiftMode::Writing) {
+		if(drives_[active_drive_]) drives_[active_drive_]->begin_writing(Storage::Time(1, clock_rate_ / bit_length_.as_integral()), false);
 		shift_register_ = next_output_;
 		write_handshake_ |= 0x80 | 0x40;
 		output_bits_remaining_ = 8;
