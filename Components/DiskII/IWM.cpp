@@ -263,41 +263,38 @@ void IWM::run_for(const Cycles cycles) {
 		} break;
 
 		case ShiftMode::Writing:
-			if(drives_[active_drive_] && drives_[active_drive_]->is_writing()) {
-				while(cycles_since_shift_ + integer_cycles >= bit_length_) {
-					const auto cycles_until_write = bit_length_ - cycles_since_shift_;
+			while(cycles_since_shift_ + integer_cycles >= bit_length_) {
+				const auto cycles_until_write = bit_length_ - cycles_since_shift_;
+				if(drives_[active_drive_]) {
 					drives_[active_drive_]->run_for(cycles_until_write);
 
 					// Output a flux transition if the top bit is set.
 					drives_[active_drive_]->write_bit(shift_register_ & 0x80);
-					shift_register_ <<= 1;
+				}
+				shift_register_ <<= 1;
 
-					integer_cycles -= cycles_until_write.as_integral();
-					cycles_since_shift_ = Cycles(0);
+				integer_cycles -= cycles_until_write.as_integral();
+				cycles_since_shift_ = Cycles(0);
 
-					--output_bits_remaining_;
-					if(!output_bits_remaining_) {
-						if(!(write_handshake_ & 0x80)) {
-							write_handshake_ |= 0x80;
-							shift_register_ = next_output_;
-							output_bits_remaining_ = 8;
-//							LOG("Next byte: " << PADHEX(2) << int(shift_register_));
-						} else {
-							write_handshake_ &= ~0x40;
-							drives_[active_drive_]->end_writing();
-//							printf("\n");
-							LOG("Overrun; done.");
-							select_shift_mode();
-						}
+				--output_bits_remaining_;
+				if(!output_bits_remaining_) {
+					if(!(write_handshake_ & 0x80)) {
+						write_handshake_ |= 0x80;
+						shift_register_ = next_output_;
+						output_bits_remaining_ = 8;
+//						LOG("Next byte: " << PADHEX(2) << int(shift_register_));
+					} else {
+						write_handshake_ &= ~0x40;
+						if(drives_[active_drive_]) drives_[active_drive_]->end_writing();
+						LOG("Overrun; done.");
+						select_shift_mode();
 					}
 				}
+			}
 
-				cycles_since_shift_ = integer_cycles;
-				if(drives_[active_drive_] && integer_cycles) {
-					drives_[active_drive_]->run_for(cycles_since_shift_);
-				}
-			} else {
-				if(drives_[active_drive_]) drives_[active_drive_]->run_for(cycles);
+			cycles_since_shift_ = integer_cycles;
+			if(drives_[active_drive_] && integer_cycles) {
+				drives_[active_drive_]->run_for(cycles_since_shift_);
 			}
 		break;
 
