@@ -99,7 +99,7 @@ uint8_t IWM::read(int address) {
 				bit 6: 1 = write state (0 = underrun has occurred; 1 = no underrun so far).
 				bit 7: 1 = write data buffer ready for data (1 = ready; 0 = busy).
 			*/
-//			LOG("Reading write handshake: " << PADHEX(2) << (0x3f | write_handshake_));
+//			LOG("Reading write handshake: " << PADHEX(2) << int(0x3f | write_handshake_));
 		return 0x3f | write_handshake_;
 	}
 
@@ -341,7 +341,7 @@ void IWM::select_shift_mode() {
 		shift_register_ = next_output_;
 		write_handshake_ |= 0x80 | 0x40;
 		output_bits_remaining_ = 8;
-		LOG("Seeding output with " << PADHEX(2) << shift_register_);
+		LOG("Seeding output with " << PADHEX(2) << int(shift_register_));
 	}
 }
 
