@@ -79,20 +79,20 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	std::string extension = file_name.substr(final_dot + 1);
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 
-#define Insert(list, class, platforms) \
-	list.emplace_back(new Storage::class(file_name));\
+#define Insert(list, class, platforms, ...) \
+	list.emplace_back(new Storage::class(__VA_ARGS__));\
 	potential_platforms |= platforms;\
 	TargetPlatform::TypeDistinguisher *distinguisher = dynamic_cast<TargetPlatform::TypeDistinguisher *>(list.back().get());\
 	if(distinguisher) potential_platforms &= distinguisher->target_platform_type();
 
-#define TryInsert(list, class, platforms) \
+#define TryInsert(list, class, platforms, ...) \
 	try {\
-		Insert(list, class, platforms) \
+		Insert(list, class, platforms, __VA_ARGS__) \
 	} catch(...) {}
 
 #define Format(ext, list, class, platforms) \
 	if(extension == ext)	{		\
-		TryInsert(list, class, platforms)	\
+		TryInsert(list, class, platforms, file_name)	\
 	}
 
 	Format("80", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// 80
@@ -129,17 +129,23 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)				// NIB
 	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// O
 	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P
-	Format("po", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// PO
+	Format("po", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// PO (original Apple II kind)
+
+	// PO (Apple IIgs kind)
+	if(extension == "po")	{
+		TryInsert(result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::AppleIIgs, file_name, Storage::Disk::MacintoshIMG::FixedType::GCR)
+	}
+
 	Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P81
 
 	// PRG
 	if(extension == "prg") {
 		// try instantiating as a ROM; failing that accept as a tape
 		try {
-			Insert(result.cartridges, Cartridge::PRG, TargetPlatform::Commodore)
+			Insert(result.cartridges, Cartridge::PRG, TargetPlatform::Commodore, file_name)
 		} catch(...) {
 			try {
-				Insert(result.tapes, Tape::PRG, TargetPlatform::Commodore)
+				Insert(result.tapes, Tape::PRG, TargetPlatform::Commodore, file_name)
 			} catch(...) {}
 		}
 	}

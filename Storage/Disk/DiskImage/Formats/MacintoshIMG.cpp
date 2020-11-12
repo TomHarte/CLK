@@ -23,6 +23,16 @@
 
 using namespace Storage::Disk;
 
+MacintoshIMG::MacintoshIMG(const std::string &file_name, FixedType type) :
+	file_(file_name) {
+
+	switch(type) {
+		case FixedType::GCR:
+			construct_raw_gcr();
+		break;
+	}
+}
+
 MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	file_(file_name) {
 
@@ -35,24 +45,11 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	// DiskCopy 4.2 format, so there's no ambiguity here.
 	const auto name_length = file_.get8();
 	if(name_length == 0x4c || !name_length) {
-		is_diskCopy_file_ = false;
-		if(file_.stats().st_size != 819200 && file_.stats().st_size != 409600)
-			throw Error::InvalidFormat;
-
 		uint32_t magic_word = file_.get8();
 		if(!((name_length == 0x4c && magic_word == 0x4b) || (name_length == 0x00 && magic_word == 0x00)))
 			throw Error::InvalidFormat;
 
-		file_.seek(0, SEEK_SET);
-		if(file_.stats().st_size == 819200) {
-			encoding_ = Encoding::GCR800;
-			format_ = 0x22;
-			data_ = file_.read(819200);
-		} else {
-			encoding_ = Encoding::GCR400;
-			format_ = 0x02;
-			data_ = file_.read(409600);
-		}
+		construct_raw_gcr();
 	} else {
 		// DiskCopy 4.2 it is then:
 		//
@@ -120,6 +117,23 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 
 //		if(computed_tag_checksum != tag_checksum || computed_data_checksum != data_checksum)
 //			throw Error::InvalidFormat;
+	}
+}
+
+void MacintoshIMG::construct_raw_gcr() {
+	is_diskCopy_file_ = false;
+	if(file_.stats().st_size != 819200 && file_.stats().st_size != 409600)
+		throw Error::InvalidFormat;
+
+	file_.seek(0, SEEK_SET);
+	if(file_.stats().st_size == 819200) {
+		encoding_ = Encoding::GCR800;
+		format_ = 0x22;
+		data_ = file_.read(819200);
+	} else {
+		encoding_ = Encoding::GCR400;
+		format_ = 0x02;
+		data_ = file_.read(409600);
 	}
 }
 

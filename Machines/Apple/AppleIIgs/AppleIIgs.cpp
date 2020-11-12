@@ -43,9 +43,10 @@ namespace IIgs {
 
 class ConcreteMachine:
 	public Apple::IIgs::Machine,
-	public MachineTypes::TimedMachine,
-	public MachineTypes::ScanProducer,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::TimedMachine,
 	public CPU::MOS6502Esque::BusHandler<uint32_t> {
 
 	public:
@@ -117,6 +118,8 @@ class ConcreteMachine:
 
 			// Sync up initial values.
 			memory_.set_speed_register(speed_register_);
+
+			insert_media(target.media);
 		}
 
 		void run_for(const Cycles cycles) override {
@@ -150,6 +153,15 @@ class ConcreteMachine:
 			return &speaker_;
 		}
 
+		// MARK: MediaTarget.
+		bool insert_media(const Analyser::Static::Media &media) final {
+			if(!media.disks.empty()) {
+				drives_[0].set_disk(media.disks[0]);
+			}
+			return true;
+		}
+
+		// MARK: BusHandler.
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
 			const auto &region = MemoryMapRegion(memory_, address);
 			static bool log = false;
