@@ -52,7 +52,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::AppleIIgs::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			m65816_(*this),
-			iwm_(CLOCK_RATE),
+			iwm_(CLOCK_RATE / 2),
 			drives_{
 		 		{CLOCK_RATE / 2, true},
 		 		{CLOCK_RATE / 2, true}
@@ -120,6 +120,10 @@ class ConcreteMachine:
 			memory_.set_speed_register(speed_register_);
 
 			insert_media(target.media);
+		}
+
+		~ConcreteMachine() {
+			audio_queue_.flush();
 		}
 
 		void run_for(const Cycles cycles) override {
