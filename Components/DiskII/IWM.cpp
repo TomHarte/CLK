@@ -142,6 +142,7 @@ void IWM::write(int address, uint8_t input) {
 				case 0x18:		bit_length_ = Cycles(16);		break;	// fast mode, 8Mhz
 			}
 			LOG("Mode is now " << PADHEX(2) << int(mode_));
+			LOG("New bit length is " << std::dec << bit_length_.as_integral());
 		break;
 
 		case Q7|Q6|ENABLE:	// Write data register.
@@ -362,6 +363,7 @@ void IWM::process_event(const Storage::Disk::Drive::Event &event) {
 	switch(event.type) {
 		case Storage::Disk::Track::Event::IndexHole: return;
 		case Storage::Disk::Track::Event::FluxTransition:
+			LOG("Shifting 1 at " << std::dec << cycles_since_shift_.as_integral());
 			propose_shift(1);
 		break;
 	}
@@ -370,12 +372,13 @@ void IWM::process_event(const Storage::Disk::Drive::Event &event) {
 void IWM::propose_shift(uint8_t bit) {
 	// TODO: synchronous mode.
 
+//	LOG("Shifting at " << std::dec << cycles_since_shift_.as_integral());
 //	LOG("Shifting input");
 
 	// See above for text from the IWM patent, column 7, around line 35 onwards.
 	// The error_margin here implements the 'before' part of that contract.
 	//
-	// Basic effective logic: if at least 1 is fozund in the bit_length_ cycles centred
+	// Basic effective logic: if at least 1 is found in the bit_length_ cycles centred
 	// on the current expected bit delivery time as implied by cycles_since_shift_,
 	// shift in a 1 and start a new window wherever the first found 1 was.
 	//
@@ -385,6 +388,7 @@ void IWM::propose_shift(uint8_t bit) {
 
 	shift_register_ = uint8_t((shift_register_ << 1) | bit);
 	if(shift_register_ & 0x80) {
+		if(data_register_ & 0x80) LOG("Byte missed");
 		data_register_ = shift_register_;
 		shift_register_ = 0;
 	}
