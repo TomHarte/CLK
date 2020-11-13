@@ -144,35 +144,37 @@ class MachineDocument:
 	private var interactionMode: InteractionMode = .notStarted
 
 	// Attempting to show a sheet before the window is visible (such as when the NIB is loaded) results in
-	// a sheet mysteriously floating on its own. For now, use windowDidUpdate as a proxy to know that the window
-	// is visible, though it's a little premature.
+	// a sheet mysteriously floating on its own. For now, use windowDidUpdate as a proxy to check whether
+	// the window is visible.
 	func windowDidUpdate(_ notification: Notification) {
-		// Grab the regular window title, if it's not already stored.
-		if self.unadornedWindowTitle.count == 0 {
-			self.unadornedWindowTitle = self.windowControllers[0].window!.title
-		}
-
-		// If an interaction mode is not yet in effect, pick the proper one and display the relevant thing.
-		if self.interactionMode == .notStarted {
-			// If a full machine exists, just continue showing it.
-			if self.machine != nil {
-				self.interactionMode = .showingMachine
-				setupMachineOutput()
-				return
+		if let window = self.windowControllers[0].window, window.isVisible {
+			// Grab the regular window title, if it's not already stored.
+			if self.unadornedWindowTitle.count == 0 {
+				self.unadornedWindowTitle = window.title
 			}
 
-			// If a machine has been picked but is not showing, there must be ROMs missing.
-			if self.machineDescription != nil {
-				self.interactionMode = .showingROMRequester
-				requestRoms()
-				return
-			}
+			// If an interaction mode is not yet in effect, pick the proper one and display the relevant thing.
+			if self.interactionMode == .notStarted {
+				// If a full machine exists, just continue showing it.
+				if self.machine != nil {
+					self.interactionMode = .showingMachine
+					setupMachineOutput()
+					return
+				}
 
-			// If a machine hasn't even been picked yet, show the machine picker.
-			self.interactionMode = .showingMachinePicker
-			Bundle.main.loadNibNamed("MachinePicker", owner: self, topLevelObjects: nil)
-			self.machinePicker?.establishStoredOptions()
-			self.windowControllers[0].window?.beginSheet(self.machinePickerPanel!, completionHandler: nil)
+				// If a machine has been picked but is not showing, there must be ROMs missing.
+				if self.machineDescription != nil {
+					self.interactionMode = .showingROMRequester
+					requestRoms()
+					return
+				}
+
+				// If a machine hasn't even been picked yet, show the machine picker.
+				self.interactionMode = .showingMachinePicker
+				Bundle.main.loadNibNamed("MachinePicker", owner: self, topLevelObjects: nil)
+				self.machinePicker?.establishStoredOptions()
+				window.beginSheet(self.machinePickerPanel!, completionHandler: nil)
+			}
 		}
 	}
 
