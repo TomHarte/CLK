@@ -8,6 +8,7 @@
 
 #include "IWM.hpp"
 
+#define LOG_PREFIX "[IWM] "
 #include "../../Outputs/Log.hpp"
 
 using namespace Apple;
@@ -50,7 +51,7 @@ uint8_t IWM::read(int address) {
 
 	switch(state_ & (Q6 | Q7 | ENABLE)) {
 		default:
-			LOG("[IWM] Invalid read\n");
+			LOG("Invalid read\n");
 		return 0xff;
 
 		// "Read all 1s".
@@ -62,9 +63,8 @@ uint8_t IWM::read(int address) {
 			const auto result = data_register_;
 
 			if(data_register_ & 0x80) {
-//				printf("\n\nIWM:%02x\n\n", data_register_);
-//				printf(".");
 				data_register_ = 0;
+				LOG("Reading data: " << PADHEX(2) << int(result));
 			}
 //			LOG("Reading data register: " << PADHEX(2) << int(result));
 
@@ -128,13 +128,20 @@ void IWM::write(int address, uint8_t input) {
 
 			mode_ = input;
 
+			// TEMPORARY. To test for the unimplemented mode.
+			if(input&0x2) {
+				LOG("Switched to asynchronous mode");
+			} else {
+				LOG("Switched to synchronous mode");
+			}
+
 			switch(mode_ & 0x18) {
 				case 0x00:		bit_length_ = Cycles(24);		break;	// slow mode, 7Mhz
 				case 0x08:		bit_length_ = Cycles(12);		break;	// fast mode, 7Mhz
 				case 0x10:		bit_length_ = Cycles(32);		break;	// slow mode, 8Mhz
 				case 0x18:		bit_length_ = Cycles(16);		break;	// fast mode, 8Mhz
 			}
-			LOG("IWM mode is now " << PADHEX(2) << int(mode_));
+			LOG("Mode is now " << PADHEX(2) << int(mode_));
 		break;
 
 		case Q7|Q6|ENABLE:	// Write data register.
