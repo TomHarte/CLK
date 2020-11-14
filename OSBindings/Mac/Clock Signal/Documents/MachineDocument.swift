@@ -164,7 +164,7 @@ class MachineDocument:
 	// a sheet mysteriously floating on its own. For now, use windowDidUpdate as a proxy to check whether
 	// the window is visible.
 	func windowDidUpdate(_ notification: Notification) {
-		if let window = self.windowControllers[0].window, window.isVisible {
+		if self.windowControllers.count > 0, let window = self.windowControllers[0].window, window.isVisible {
 			// Grab the regular window title, if it's not already stored.
 			if self.unadornedWindowTitle.count == 0 {
 				self.unadornedWindowTitle = window.title
