@@ -364,6 +364,8 @@ class MachineDocument:
 	}
 
 	@IBAction func cancelCreateMachine(_ sender: NSButton?) {
+		self.windowControllers[0].window?.endSheet(self.machinePickerPanel!)
+		self.machinePicker = nil
 		close()
 	}
 
