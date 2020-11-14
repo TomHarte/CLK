@@ -8,6 +8,7 @@
 
 #include "AppleIIgs.hpp"
 
+#include "../../../Activity/Source.hpp"
 #include "../../MachineTypes.hpp"
 #include "../../../Processors/65816/65816.hpp"
 
@@ -42,6 +43,7 @@ namespace Apple {
 namespace IIgs {
 
 class ConcreteMachine:
+	public Activity::Source,
 	public Apple::IIgs::Machine,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MediaTarget,
@@ -163,6 +165,12 @@ class ConcreteMachine:
 				drives_[0].set_disk(media.disks[0]);
 			}
 			return true;
+		}
+
+		// MARK: Activity::Source
+		void set_activity_observer(Activity::Observer *observer) final {
+			drives_[0].set_activity_observer(observer, "First 3.5\" Drive", true);
+			drives_[1].set_activity_observer(observer, "Second 3.5\" Drive", true);
 		}
 
 		// MARK: BusHandler.
