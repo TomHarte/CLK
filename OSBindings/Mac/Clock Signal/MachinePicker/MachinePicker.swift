@@ -55,7 +55,11 @@ class MachinePicker: NSObject {
 
 		// Machine type
 		if let machineIdentifier = standardUserDefaults.string(forKey: "new.machine") {
-			machineSelector?.selectTabViewItem(withIdentifier: machineIdentifier as Any)
+			// If I've changed my mind about visible tabs between versions, there may not be one that corresponds
+			// to the stored identifier. Make sure not to raise an NSRangeException in that scenario.
+			if let index = machineSelector?.indexOfTabViewItem(withIdentifier: machineIdentifier as Any), index != NSNotFound {
+				machineSelector?.selectTabViewItem(at: index)
+			}
 		}
 
 		// Apple II settings

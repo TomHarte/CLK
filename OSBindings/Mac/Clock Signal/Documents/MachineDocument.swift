@@ -88,14 +88,30 @@ class MachineDocument:
 	}
 
 	override func close() {
+		// Close any dangling sheets.
+		//
+		// Be warned: in 11.0 at least, if there are any panels then posting the endSheet request
+		// will defer the close(), and close() will be called again at the end of that animation.
+		//
+		// So: MAKE SURE IT'S SAFE TO ENTER THIS FUNCTION TWICE. Hence the non-assumption here about
+		// any windows still existing.
+		if self.windowControllers.count > 0, let window = self.windowControllers[0].window {
+			for sheet in window.sheets {
+				window.endSheet(sheet)
+			}
+		}
+
+		// Stop the machine, if any.
 		machine?.stop()
 
+		// Dismiss panels.
 		activityPanel?.setIsVisible(false)
 		activityPanel = nil
 
 		optionsPanel?.setIsVisible(false)
 		optionsPanel = nil
 
+		// End the update cycle.
 		actionLock.lock()
 		drawLock.lock()
 		machine = nil
@@ -103,6 +119,7 @@ class MachineDocument:
 		actionLock.unlock()
 		drawLock.unlock()
 
+		// Let the document controller do its thing.
 		super.close()
 	}
 
@@ -147,7 +164,7 @@ class MachineDocument:
 	// a sheet mysteriously floating on its own. For now, use windowDidUpdate as a proxy to check whether
 	// the window is visible.
 	func windowDidUpdate(_ notification: Notification) {
-		if let window = self.windowControllers[0].window, window.isVisible {
+		if self.windowControllers.count > 0, let window = self.windowControllers[0].window, window.isVisible {
 			// Grab the regular window title, if it's not already stored.
 			if self.unadornedWindowTitle.count == 0 {
 				self.unadornedWindowTitle = window.title
