@@ -184,226 +184,211 @@ class ConcreteMachine:
 				memory_.access(uint16_t(address), is_read);
 
 				const auto address_suffix = address & 0xffff;
-				switch(address_suffix) {
+#define ReadWrite(x)	(x) | (is_read * 0x10000)
+#define Read(x)			(x) | 0x10000
+#define Write(x)		(x)
+				switch(ReadWrite(address_suffix)) {
 
 					// New video register.
-					case 0xc029:
-						if(is_read) {
-							*value = video_->get_new_video();;
-						} else {
-							video_->set_new_video(*value);
+					case Read(0xc029):
+						*value = video_->get_new_video();;
+					break;
+					case Write(0xc029):
+						video_->set_new_video(*value);
 
-							// TODO: I think bits 7 and 0 might also affect the memory map.
-							// The descripton isn't especially clear — P.90 of the Hardware Reference.
-							// Revisit if necessary.
-						}
+						// TODO: I think bits 7 and 0 might also affect the memory map.
+						// The descripton isn't especially clear — P.90 of the Hardware Reference.
+						// Revisit if necessary.
 					break;
 
 					// Video [and clock] interrupt register.
-					case 0xc023:
-						if(is_read) {
-							*value = video_->get_interrupt_register();
-						} else {
-							video_->set_interrupt_register(*value);
-						}
+					case Read(0xc023):
+						*value = video_->get_interrupt_register();
+					break;
+					case Write(0xc023):
+						video_->set_interrupt_register(*value);
 					break;
 
-					// Video onterrupt-clear register.
-					case 0xc032:
-						if(!is_read) {
-							video_->clear_interrupts(*value);
-						}
+					// Video interrupt-clear register.
+					case Write(0xc032):
+						video_->clear_interrupts(*value);
 					break;
 
 					// Shadow register.
-					case 0xc035:
-						if(is_read) {
-							*value = memory_.get_shadow_register();
-						} else {
-							memory_.set_shadow_register(*value);
-						}
+					case Read(0xc035):
+						*value = memory_.get_shadow_register();
+					break;
+					case Write(0xc035):
+						memory_.set_shadow_register(*value);
 					break;
 
 					// Clock data.
-					case 0xc033:
-						if(is_read) {
-							*value = clock_.get_data();
-						} else {
-							clock_.set_data(*value);
-						}
+					case Read(0xc033):
+						*value = clock_.get_data();
+					break;
+					case Write(0xc033):
+						clock_.set_data(*value);
 					break;
 
 					// Clock and border control.
-					case 0xc034:
-						if(is_read) {
-							*value = clock_.get_control();
-						} else {
-							clock_.set_control(*value);
-							video_->set_border_colour(*value);
-						}
+					case Read(0xc034):
+						*value = clock_.get_control();
+					break;
+					case Write(0xc034):
+						clock_.set_control(*value);
+						video_->set_border_colour(*value);
 					break;
 
 					// Colour text control.
-					case 0xc022:
-						if(!is_read) {
-							video_->set_text_colour(*value);
-						}
+					case Write(0xc022):
+						video_->set_text_colour(*value);
 					break;
 
 					// Speed register.
-					case 0xc036:
-						if(is_read) {
-							*value = speed_register_;
-							printf("Reading speed register: %02x\n", *value);
-						} else {
-							memory_.set_speed_register(*value);
-							speed_register_ = *value;
-							printf("[Unimplemented] most of speed register: %02x\n", *value);
-						}
+					case Read(0xc036):
+						*value = speed_register_;
+					break;
+					case Write(0xc036):
+						memory_.set_speed_register(*value);
+						speed_register_ = *value;
+						printf("[Unimplemented] most of speed register: %02x\n", *value);
 					break;
 
 					// [Memory] State register.
-					case 0xc068:
-						if(is_read) {
-							*value = memory_.get_state_register();
-						} else {
-							memory_.set_state_register(*value);
-						}
+					case Read(0xc068):
+						*value = memory_.get_state_register();
+					break;
+					case Write(0xc068):
+						memory_.set_state_register(*value);
 					break;
 
 					// Various independent memory switch reads [TODO: does the IIe-style keyboard provide the low seven?].
-#define SwitchRead(s) if(is_read) *value = memory_.s ? 0x80 : 0x00
+#define SwitchRead(s) *value = memory_.s ? 0x80 : 0x00
 #define LanguageRead(s) SwitchRead(language_card_switches().state().s)
 #define AuxiliaryRead(s) SwitchRead(auxiliary_switches().switches().s)
-#define VideoRead(s) if(is_read) *value = video_->s ? 0x80 : 0x00
-					case 0xc011:	LanguageRead(bank1);						break;
-					case 0xc012:	LanguageRead(read);							break;
-					case 0xc013:	AuxiliaryRead(read_auxiliary_memory);		break;
-					case 0xc014:	AuxiliaryRead(write_auxiliary_memory);		break;
-					case 0xc015:	AuxiliaryRead(internal_CX_rom);				break;
-					case 0xc016:	AuxiliaryRead(alternative_zero_page);		break;
-					case 0xc017:	AuxiliaryRead(slot_C3_rom);					break;
-					case 0xc018:	VideoRead(get_80_store());					break;
-					case 0xc019:	VideoRead(get_is_vertical_blank());			break;
-					case 0xc01a:	VideoRead(get_text());						break;
-					case 0xc01b:	VideoRead(get_mixed());						break;
-					case 0xc01c:	VideoRead(get_page2());						break;
-					case 0xc01d:	VideoRead(get_high_resolution());			break;
-					case 0xc01e:	VideoRead(get_alternative_character_set());	break;
-					case 0xc01f:	VideoRead(get_80_columns());				break;
-					case 0xc046:	VideoRead(get_annunciator_3());				break;
+#define VideoRead(s) *value = video_->s ? 0x80 : 0x00
+					case Read(0xc011):	LanguageRead(bank1);						break;
+					case Read(0xc012):	LanguageRead(read);							break;
+					case Read(0xc013):	AuxiliaryRead(read_auxiliary_memory);		break;
+					case Read(0xc014):	AuxiliaryRead(write_auxiliary_memory);		break;
+					case Read(0xc015):	AuxiliaryRead(internal_CX_rom);				break;
+					case Read(0xc016):	AuxiliaryRead(alternative_zero_page);		break;
+					case Read(0xc017):	AuxiliaryRead(slot_C3_rom);					break;
+					case Read(0xc018):	VideoRead(get_80_store());					break;
+					case Read(0xc019):	VideoRead(get_is_vertical_blank());			break;
+					case Read(0xc01a):	VideoRead(get_text());						break;
+					case Read(0xc01b):	VideoRead(get_mixed());						break;
+					case Read(0xc01c):	VideoRead(get_page2());						break;
+					case Read(0xc01d):	VideoRead(get_high_resolution());			break;
+					case Read(0xc01e):	VideoRead(get_alternative_character_set());	break;
+					case Read(0xc01f):	VideoRead(get_80_columns());				break;
+					case Read(0xc046):	VideoRead(get_annunciator_3());				break;
 #undef VideoRead
 #undef AuxiliaryRead
 #undef LanguageRead
 #undef SwitchRead
 
 					// Video switches (and annunciators).
-					case 0xc050: case 0xc051:
+					case Read(0xc050): case Read(0xc051):
+					case Write(0xc050): case Write(0xc051):
 						video_->set_text(address & 1);
 					break;
-					case 0xc052: case 0xc053:
+					case Read(0xc052): case Read(0xc053):
+					case Write(0xc052): case Write(0xc053):
 						video_->set_mixed(address & 1);
 					break;
-					case 0xc054: case 0xc055:
+					case Read(0xc054): case Read(0xc055):
+					case Write(0xc054): case Write(0xc055):
 						video_->set_page2(address&1);
 					break;
-					case 0xc056: case 0xc057:
+					case Read(0xc056): case Read(0xc057):
+					case Write(0xc056): case Write(0xc057):
 						video_->set_high_resolution(address&1);
 					break;
-					case 0xc058: case 0xc059:
-					case 0xc05a: case 0xc05b:
-					case 0xc05c: case 0xc05d:
+					case Read(0xc058): case Read(0xc059):
+					case Write(0xc058): case Write(0xc059):
+					case Read(0xc05a): case Read(0xc05b):
+					case Write(0xc05a): case Write(0xc05b):
+					case Read(0xc05c): case Read(0xc05d):
+					case Write(0xc05c): case Write(0xc05d):
 						// Annunciators 0, 1 and 2.
 					break;
-					case 0xc05e: case 0xc05f:
+					case Read(0xc05e): case Read(0xc05f):
+					case Write(0xc05e): case Write(0xc05f):
 						video_->set_annunciator_3(!(address&1));
 					break;
-					case 0xc001:	/* 0xc000 is dealt with in the ADB section. */
-						if(!is_read) video_->set_80_store(true);
+					case Write(0xc000): case Write(0xc001):
+						video_->set_80_store(address & 1);
 					break;
-					case 0xc00c: case 0xc00d:
-						if(!is_read) video_->set_80_columns(address & 1);
+					case Write(0xc00c): case Write(0xc00d):
+						video_->set_80_columns(address & 1);
 					break;
-					case 0xc00e: case 0xc00f:
-						if(!is_read) video_->set_alternative_character_set(address & 1);
+					case Write(0xc00e): case Write(0xc00f):
+						video_->set_alternative_character_set(address & 1);
 					break;
 
 					// ADB and keyboard.
-					case 0xc000:
-						if(is_read) {
-							*value = adb_glu_.get_keyboard_data();
-						} else {
-							video_->set_80_store(false);
-						}
+					case Read(0xc000):
+						*value = adb_glu_.get_keyboard_data();
 					break;
-					case 0xc010:
+					case Read(0xc010):
+						*value = adb_glu_.get_any_key_down() ? 0x80 : 0x00;
+						[[fallthrough]];
+					case Write(0xc010):
 						adb_glu_.clear_key_strobe();
-						if(is_read) {
-							*value = adb_glu_.get_any_key_down() ? 0x80 : 0x00;
-						}
 					break;
-					case 0xc024:
-						if(is_read) {
-							*value = adb_glu_.get_mouse_data();
-						}
+
+					case Read(0xc024):
+						*value = adb_glu_.get_mouse_data();
 					break;
-					case 0xc025:
-						if(is_read) {
-							*value = adb_glu_.get_modifier_status();
-						}
+					case Read(0xc025):
+						*value = adb_glu_.get_modifier_status();
 					break;
-					case 0xc026:
-						if(is_read) {
-							*value = adb_glu_.get_data();
-						} else {
-							adb_glu_.set_command(*value);
-						}
+					case Read(0xc026):
+						*value = adb_glu_.get_data();
 					break;
-					case 0xc027:
-						if(is_read) {
-							*value = adb_glu_.get_status();
-						} else {
-							adb_glu_.set_status(*value);
-						}
+					case Write(0xc026):
+						adb_glu_.set_command(*value);
+					break;
+					case Read(0xc027):
+						*value = adb_glu_.get_status();
+					break;
+					case Write(0xc027):
+						adb_glu_.set_status(*value);
 					break;
 
 					// The SCC.
-					case 0xc038: case 0xc039: case 0xc03a: case 0xc03b:
-						if(is_read) {
-							*value = scc_.read(int(address));
-						} else {
-							scc_.write(int(address), *value);
-						}
+					case Read(0xc038): case Read(0xc039): case Read(0xc03a): case Read(0xc03b):
+						*value = scc_.read(int(address));
+					break;
+					case Write(0xc038): case Write(0xc039): case Write(0xc03a): case Write(0xc03b):
+						scc_.write(int(address), *value);
 					break;
 
 					// The audio GLU.
-					case 0xc03c:
-						if(is_read) {
-							*value = sound_glu_.get_control();
-						} else {
-							sound_glu_.set_control(*value);
-						}
+					case Read(0xc03c):
+						*value = sound_glu_.get_control();
 					break;
-					case 0xc03d:
-						if(is_read) {
-							*value = sound_glu_.get_data();
-						} else {
-							sound_glu_.set_data(*value);
-						}
+					case Write(0xc03c):
+						sound_glu_.set_control(*value);
 					break;
-					case 0xc03e:
-						if(is_read) {
-							*value = sound_glu_.get_address_low();
-						} else {
-							sound_glu_.set_address_low(*value);
-						}
+					case Read(0xc03d):
+						*value = sound_glu_.get_data();
 					break;
-					case 0xc03f:
-						if(is_read) {
-							*value = sound_glu_.get_address_high();
-						} else {
-							sound_glu_.set_address_high(*value);
-						}
+					case Write(0xc03d):
+						sound_glu_.set_data(*value);
+					break;
+					case Read(0xc03e):
+						*value = sound_glu_.get_address_low();
+					break;
+					case Write(0xc03e):
+						sound_glu_.set_address_low(*value);
+					break;
+					case Read(0xc03f):
+						*value = sound_glu_.get_address_high();
+					break;
+					case Write(0xc03f):
+						sound_glu_.set_address_high(*value);
 					break;
 
 
@@ -414,53 +399,47 @@ class ConcreteMachine:
 					break;
 
 					// Interrupt ROM addresses; Cf. P25 of the Hardware Reference.
-					case 0xc071: case 0xc072: case 0xc073: case 0xc074: case 0xc075: case 0xc076: case 0xc077:
-					case 0xc078: case 0xc079: case 0xc07a: case 0xc07b: case 0xc07c: case 0xc07d: case 0xc07e: case 0xc07f:
-						if(is_read) {
-							*value = rom_[rom_.size() - 65536 + address_suffix];
-						}
+					case Read(0xc071): case Read(0xc072): case Read(0xc073):
+					case Read(0xc074): case Read(0xc075): case Read(0xc076): case Read(0xc077):
+					case Read(0xc078): case Read(0xc079): case Read(0xc07a): case Read(0xc07b):
+					case Read(0xc07c): case Read(0xc07d): case Read(0xc07e): case Read(0xc07f):
+						*value = rom_[rom_.size() - 65536 + address_suffix];
 					break;
 
 					// Analogue inputs. All TODO.
-					case 0xc060: case 0xc061: case 0xc062: case 0xc063:
+					case Read(0xc060): case Read(0xc061): case Read(0xc062): case Read(0xc063):
 						// Joystick buttons (and keyboard modifiers).
-						if(is_read) {
-							*value = 0x00;
-						}
+						*value = 0x00;
 					break;
 
-					case 0xc064: case 0xc065: case 0xc066: case 0xc067:
+					case Read(0xc064): case Read(0xc065): case Read(0xc066): case Read(0xc067):
 						// Analogue inputs.
-						if(is_read) {
-							*value = 0x00;
-						}
+						*value = 0x00;
 					break;
 
-					case 0xc070:
+					case Read(0xc070): case Write(0xc070):
 						// TODO: begin analogue channel charge.
 					break;
 
 					// Monochome/colour register.
-					case 0xc021:
+					case Read(0xc021):
 						// "Uses bit 7 to determine whether composite output is colour 9) or gray scale (1)."
-						if(is_read) {
-							*value = video_->get_composite_is_colour() ? 0x00 : 0x80;
-						} else {
-							video_->set_composite_is_colour(!(*value & 0x80));
-						}
+						*value = video_->get_composite_is_colour() ? 0x00 : 0x80;
+					break;
+					case Write(0xc021):
+						video_->set_composite_is_colour(!(*value & 0x80));
 					break;
 
 					// Language select. (?)
-					case 0xc02b:
-						if(is_read) {
-							*value = language_;
-						} else {
-							language_ = *value;
-						}
+					case Read(0xc02b):
+						*value = language_;
+					break;
+					case Write(0xc02b):
+						language_ = *value;
 					break;
 
 					// Slot select.
-					case 0xc02d:
+					case Read(0xc02d):
 						// b7: 0 = internal ROM code for slot 7;
 						// b6: 0 = internal ROM code for slot 6;
 						// b5: 0 = internal ROM code for slot 5;
@@ -469,20 +448,19 @@ class ConcreteMachine:
 						// b2: internal ROM code for slot 2;
 						// b1: internal ROM code for slot 1;
 						// b0: reserved.
-						if(is_read) {
-							*value = card_mask_;
-						} else {
-							card_mask_ = *value;
-						}
+						*value = card_mask_;
+					break;
+					case Write(0xc02d):
+						card_mask_ = *value;
 					break;
 
-					case 0xc030:
+					case Read(0xc030): case Write(0xc030):
 						update_audio();
 						audio_toggle_.set_output(!audio_toggle_.get_output());
 					break;
 
 					// Addresses that seemingly map to nothing; provided as a separate break out for now,
-					// while I have an assert on unknown reads.
+					// while I have an assert on unknown accesses.
 					case 0xc049: case 0xc04a: case 0xc04b: case 0xc04c: case 0xc04d: case 0xc04e: case 0xc04f:
 					case 0xc069: case 0xc06a: case 0xc06b: case 0xc06c:
 						printf("Ignoring %04x\n", address_suffix);
@@ -490,35 +468,33 @@ class ConcreteMachine:
 					break;
 
 					// 'Test Mode', whatever that is (?)
-					case 0xc06e: case 0xc06f:
+					case Read(0xc06e): case Read(0xc06f):
+					case Write(0xc06e): case Write(0xc06f):
 						test_mode_ = address & 1;
 					break;
-					case 0xc06d:
-						if(is_read) {
-							*value = test_mode_ * 0x80;
-						}
+					case Read(0xc06d):
+						*value = test_mode_ * 0x80;
 					break;
 
 					// Disk drive controls additional to the IWM.
-					case 0xc031:
+					case Read(0xc031):
+						*value = disk_select_;
+					break;
+					case Write(0xc031):
 						// b7: 0 = use head 0; 1 = use head 1.
 						// b6: 0 = use 5.25" disks; 1 = use 3.5".
-						if(!is_read) {
-							disk_select_ = *value;
-							iwm_->set_select(*value & 0x80);
+						disk_select_ = *value;
+						iwm_->set_select(*value & 0x80);
 
-							// Presumably bit 6 selects between two 5.25" drives rather than the two 3.5"?
-							if(*value & 0x40) {
-								iwm_->set_drive(0, &drives_[0]);
-								iwm_->set_drive(1, &drives_[1]);
-							} else {
-								// TODO: add 5.25" drives.
-								// (and any Smartport devices?)
-								iwm_->set_drive(0, nullptr);
-								iwm_->set_drive(1, nullptr);
-							}
+						// Presumably bit 6 selects between two 5.25" drives rather than the two 3.5"?
+						if(*value & 0x40) {
+							iwm_->set_drive(0, &drives_[0]);
+							iwm_->set_drive(1, &drives_[1]);
 						} else {
-							*value = disk_select_;
+							// TODO: add 5.25" drives.
+							// (and any Smartport devices?)
+							iwm_->set_drive(0, nullptr);
+							iwm_->set_drive(1, nullptr);
 						}
 					break;
 
@@ -577,10 +553,13 @@ class ConcreteMachine:
 								// TODO: disk-port soft switches should be in COEx.
 //								log = true;
 							}
+#undef ReadWrite
+#undef Read
+#undef Write
 						} else {
 							if(address_suffix < 0xc080) {
 								// TODO: all other IO accesses.
-								printf("Unhandled IO: %04x\n", address_suffix);
+								printf("Unhandled IO %s: %04x\n", is_read ? "read" : "write", address_suffix);
 								assert(false);
 							}
 						}
