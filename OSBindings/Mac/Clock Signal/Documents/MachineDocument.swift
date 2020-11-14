@@ -395,6 +395,7 @@ class MachineDocument:
 	}
 
 	@IBAction func cancelRequestROMs(_ sender: NSButton?) {
+		self.windowControllers[0].window?.endSheet(self.romRequesterPanel!)
 		close()
 	}
 
