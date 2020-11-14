@@ -177,11 +177,14 @@ class ConcreteMachine:
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
 			const auto &region = MemoryMapRegion(memory_, address);
 			static bool log = false;
+			bool is_1Mhz = (region.flags & MemoryMap::Region::Is1Mhz) || !(speed_register_ & 0x80) || (speed_register_ & motor_flags_);
 
 			if(region.flags & MemoryMap::Region::IsIO) {
 				// Ensure classic auxiliary and language card accesses have effect.
 				const bool is_read = isReadOperation(operation);
 				memory_.access(uint16_t(address), is_read);
+
+				// TODO: which of these are actually 2.8Mhz?
 
 				const auto address_suffix = address & 0xffff;
 #define ReadWrite(x)	(x) | (is_read * 0x10000)
@@ -249,9 +252,18 @@ class ConcreteMachine:
 						*value = speed_register_;
 					break;
 					case Write(0xc036):
+						// b7: 1 => operate at 2.8Mhz; 0 => 1Mhz.
+						// b6: power-on status; 1 => system has been turned on by the power switch (TODO: what clears this?)
+						// b5: reserved
+						// b4: [bank shadowing bit; cf. the memory map]
+						// b0–3: motor on-off speed detectors;
+						//		1 => switch to 1Mhz if motor is on; 0 => don't;
+						//		b0 = slot 4 (i.e. watches addresses c0c9, c0c8)
+						//		b1 = slot 5 (i.e. c0d9, c0d8)
+						//		b2 = slot 6 (i.e. c0e9, c0e8)
+						//		b3 = slot 7 (i.e. c0f9, c0f8)
 						memory_.set_speed_register(*value);
 						speed_register_ = *value;
-						printf("[Unimplemented] most of speed register: %02x\n", *value);
 					break;
 
 					// [Memory] State register.
@@ -499,6 +511,18 @@ class ConcreteMachine:
 					break;
 
 					default:
+						// Update motor mask bits.
+						switch(address_suffix) {
+							case 0xc0c8: motor_flags_ &= ~0x01;	break;
+							case 0xc0c9: motor_flags_ |= 0x01;	break;
+							case 0xc0d8: motor_flags_ &= ~0x02;	break;
+							case 0xc0d9: motor_flags_ |= 0x02;	break;
+							case 0xc0e8: motor_flags_ &= ~0x04;	break;
+							case 0xc0e9: motor_flags_ |= 0x04;	break;
+							case 0xc0f8: motor_flags_ &= ~0x08;	break;
+							case 0xc0f9: motor_flags_ |= 0x08;	break;
+						}
+
 						// Check for a card access.
 						if(address_suffix >= 0xc080 && address_suffix < 0xc800) {
 							// This is an abridged version of the similar code in AppleII.cpp from
@@ -547,10 +571,7 @@ class ConcreteMachine:
 											iwm_->write(int(address_suffix), *value);
 										}
 									break;
-
-									// TODO: 0xc0c8, 0xc0c9, 0xc0d8, 0xc0d9, 0xc0f8, 0xc0f9 drive motors.
 								}
-								// TODO: disk-port soft switches should be in COEx.
 //								log = true;
 							}
 #undef ReadWrite
@@ -572,6 +593,15 @@ class ConcreteMachine:
 				if(isReadOperation(operation)) {
 					MemoryMapRead(region, address, value);
 				} else {
+					// Shadowed writes also occur "at 1Mhz".
+					// TODO: this is probably an approximation. I'm assuming that there's the ability asynchronously to post
+					// both a 1Mhz cycle and a 2.8Mhz cycle and since the latter always fits into the former, this is sufficiently
+					// descriptive. I suspect this isn't true as it wouldn't explain the speed boost that Wolfenstein and others
+					// get by adding periodic NOPs within their copy-to-shadow step.
+					//
+					// Maybe the interaction with 2.8Mhz refresh isn't as straightforward as I think?
+					is_1Mhz |= region.flags & MemoryMap::Region::IsShadowed;
+
 					// Use a very broad test for flushing video: any write to $e0 or $e1, or any write that is shadowed.
 					// TODO: at least restrict the e0/e1 test to possible video buffers!
 					if((address >= 0xe00000 && address < 0xe1000000) || region.flags & MemoryMap::Region::IsShadowed) {
@@ -604,16 +634,16 @@ class ConcreteMachine:
 				} else printf("\n");
 			}
 
-			Cycles duration = Cycles(5);
-
-			// TODO: determine the cost of this access.
-//			if((mapping.flags & BankMapping::Is1Mhz) || ((mapping.flags & BankMapping::IsShadowed) && !isReadOperation(operation))) {
-//				// TODO: (i) get into phase; (ii) allow for the 1Mhz bus length being sporadically 16 rather than 14.
-//				duration = Cycles(14);
-//			} else {
-//				// TODO: (i) get into phase; (ii) allow for collisions with the refresh cycle.
-//				duration = Cycles(5);
-//			}
+			// TODO: fully determine the cost of this access.
+			// Below is very vague on real details. Won't do.
+			Cycles duration;
+			if(is_1Mhz) {
+				// TODO: (i) get into phase; (ii) allow for the 1Mhz bus length being sporadically 16 rather than 14.
+				duration = Cycles(14);
+			} else {
+				// TODO: (i) get into phase; (ii) allow for collisions with the refresh cycle.
+				duration = Cycles(5);
+			}
 			fast_access_phase_ = (fast_access_phase_ + duration.as<int>()) % 5;		// TODO: modulo something else, to allow for refresh.
 			slow_access_phase_ = (slow_access_phase_ + duration.as<int>()) % 14;	// TODO: modulo something else, to allow for stretched cycles.
 
@@ -655,6 +685,7 @@ class ConcreteMachine:
 		int slow_access_phase_ = 0;
 
 		uint8_t speed_register_ = 0x40;	// i.e. Power-on status. (TODO: only if ROM03?)
+		uint8_t motor_flags_ = 0x00;
 
 		// MARK: - Memory storage.
 
