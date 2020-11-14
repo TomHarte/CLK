@@ -64,7 +64,7 @@ uint8_t IWM::read(int address) {
 
 			if(data_register_ & 0x80) {
 				data_register_ = 0;
-				LOG("Reading data: " << PADHEX(2) << int(result));
+//				LOG("Reading data: " << PADHEX(2) << int(result));
 			}
 //			LOG("Reading data register: " << PADHEX(2) << int(result));
 
@@ -136,8 +136,8 @@ void IWM::write(int address, uint8_t input) {
 			}
 
 			switch(mode_ & 0x18) {
-				case 0x00:		bit_length_ = Cycles(24);		break;	// slow mode, 7Mhz
-				case 0x08:		bit_length_ = Cycles(12);		break;	// fast mode, 7Mhz
+				case 0x00:		bit_length_ = Cycles(28);		break;	// slow mode, 7Mhz
+				case 0x08:		bit_length_ = Cycles(14);		break;	// fast mode, 7Mhz
 				case 0x10:		bit_length_ = Cycles(32);		break;	// slow mode, 8Mhz
 				case 0x18:		bit_length_ = Cycles(16);		break;	// fast mode, 8Mhz
 			}
@@ -256,6 +256,7 @@ void IWM::run_for(const Cycles cycles) {
 					drives_[active_drive_]->run_for(Cycles(1));
 					++cycles_since_shift_;
 					if(cycles_since_shift_ == bit_length_ + error_margin) {
+//						LOG("Shifting 0 at " << std::dec << cycles_since_shift_.as_integral());
 						propose_shift(0);
 					}
 				}
@@ -363,7 +364,7 @@ void IWM::process_event(const Storage::Disk::Drive::Event &event) {
 	switch(event.type) {
 		case Storage::Disk::Track::Event::IndexHole: return;
 		case Storage::Disk::Track::Event::FluxTransition:
-			LOG("Shifting 1 at " << std::dec << cycles_since_shift_.as_integral());
+//			LOG("Shifting 1 at " << std::dec << cycles_since_shift_.as_integral());
 			propose_shift(1);
 		break;
 	}
