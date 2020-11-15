@@ -22,9 +22,9 @@ constexpr auto FinalColumn = CyclesPerLine / CyclesPerTick;
 
 // Converts from Apple's RGB ordering to this emulator's.
 #if TARGET_RT_BIG_ENDIAN
-#define PaletteConvulve(x)	x
+#define PaletteConvulve(x)	uint16_t(x)
 #else
-#define PaletteConvulve(x)	((x&0xf00) >> 8) | ((x&0x0ff) << 8)
+#define PaletteConvulve(x)	uint16_t(((x&0xf00) >> 8) | ((x&0x0ff) << 8))
 #endif
 
 // The 12-bit values used by the Apple IIgs to approximate Apple II colours,
@@ -178,6 +178,21 @@ void VideoBase::output_row(int row, int start, int end) {
 			if(start == start_of_pixels) {
 				// 640 is the absolute most number of pixels that might be generated
 				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(640, 2));
+
+				// YUCKY HACK. I do not know when the IIgs fetches its super high-res palette
+				// and control byte. Since I do not know, any guess is equally likely negatively
+				// to affect software. Therefore this hack is as good as any other guess:
+				// assume RAM has magical burst bandwidth, and fetch the whole set instantly.
+				// I could spread this stuff out to allow for real bandwidth, but it'd likely be
+				// no more accurate, while having less of an obvious I-HACKED-THIS red flag attached.
+				line_control_ = ram_[0x19d00 + row];
+				const int palette_base = (line_control_ & 15) * 16 + 0x19e00;
+				for(int c = 0; c < 16; c++) {
+					const int entry = ram_[palette_base + (c << 1)] | (ram_[palette_base + (c << 1) + 1] << 8);
+					palette_[c] = PaletteConvulve(entry);
+				}
+
+				// TODO: obey line_control_ & 0x40 interrupt control bit.
 			}
 
 			if(next_pixel_) {
@@ -289,7 +304,7 @@ bool VideoBase::get_composite_is_colour() {
 // MARK: - Outputters.
 
 uint16_t *VideoBase::output_text(uint16_t *target, int start, int end, int row) const {
-	uint16_t row_address = get_row_address(row);
+	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
 		const uint8_t source = ram_[row_address + c];
 		const int character = source & character_zones_[source >> 6].address_mask;
@@ -311,12 +326,30 @@ uint16_t *VideoBase::output_text(uint16_t *target, int start, int end, int row) 
 	return target;
 }
 
-uint16_t *VideoBase::output_super_high_res(uint16_t *target, int start, int end, int row [[maybe_unused]]) const {
-	for(int c = start; c < end; c++) {
-		// TODO!
-		target[0] = 0x0000;
-		target[1] = 0xffff;
-		target += 2;
+uint16_t *VideoBase::output_super_high_res(uint16_t *target, int start, int end, int row) const {
+	// TODO: both the palette and the mode byte should have been fetched by now, and just be
+	// available. I haven't implemented that yet, so the below just tries to show _something_.
+	// The use of appleii_palette is complete nonsense, as is the assumption of two pixels per byte.
+
+	const int row_address = row * 160 + 0x12000;
+
+	// TODO: line_control_ & 0x20 should enable or disable colour fill mode.
+	if(line_control_ & 0x80) {
+		for(int c = start * 4; c < end * 4; c++) {
+			const uint8_t source = ram_[row_address + c];
+			target[0] =  palette_[(source >> 6) & 0x3 + 0x8];
+			target[1] =  palette_[(source >> 4) & 0x3 + 0xc];
+			target[2] =  palette_[(source >> 2) & 0x3 + 0x0];
+			target[3] =  palette_[(source >> 0) & 0x3 + 0x4];
+			target += 4;
+		}
+	} else {
+		for(int c = start * 4; c < end * 4; c++) {
+			const uint8_t source = ram_[row_address + c];
+			target[0] =  palette_[(source >> 4) & 0xf];
+			target[1] =  palette_[source & 0xf];
+			target += 2;
+		}
 	}
 
 	return target;
