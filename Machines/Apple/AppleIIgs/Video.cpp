@@ -180,25 +180,17 @@ void VideoBase::output_row(int row, int start, int end) {
 				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(640, 2));
 			}
 
-			// TODO: support modes other than 40-column text.
 			if(next_pixel_) {
-				uint16_t row_address = get_row_address(row);
-				for(int c = start; c < end_of_period; c++) {
-					const uint8_t source = ram_[row_address + c - start_of_pixels];
-					const int character = source & character_zones_[source >> 6].address_mask;
-					const uint8_t xor_mask = character_zones_[source >> 6].xor_mask;
-					const std::size_t character_address = size_t(character << 3) + (row & 7);
-					const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
-					const uint16_t colours[2] = {background_colour_, text_colour_};
+				const int window_start = start - start_of_pixels;
+				const int window_end = end_of_period - start_of_pixels;
 
-					next_pixel_[0] = colours[(character_pattern & 0x40) >> 6];
-					next_pixel_[1] = colours[(character_pattern & 0x20) >> 5];
-					next_pixel_[2] = colours[(character_pattern & 0x10) >> 4];
-					next_pixel_[3] = colours[(character_pattern & 0x08) >> 3];
-					next_pixel_[4] = colours[(character_pattern & 0x04) >> 2];
-					next_pixel_[5] = colours[(character_pattern & 0x02) >> 1];
-					next_pixel_[6] = colours[(character_pattern & 0x01) >> 0];
-					next_pixel_ += 7;
+				if(new_video_ & 0x80) {
+					next_pixel_ = output_super_high_res(next_pixel_, window_start, window_end, row);
+				} else {
+					next_pixel_ = output_text(next_pixel_, window_start, window_end, row);
+
+					// TODO: support modes other than 40-column text.
+					if(graphics_mode(row) != Apple::II::GraphicsMode::Text) printf("Outputting incorrect graphics mode!\n");
 				}
 			}
 
@@ -292,4 +284,40 @@ void VideoBase::set_composite_is_colour(bool) {
 
 bool VideoBase::get_composite_is_colour() {
 	return true;
+}
+
+// MARK: - Outputters.
+
+uint16_t *VideoBase::output_text(uint16_t *target, int start, int end, int row) const {
+	uint16_t row_address = get_row_address(row);
+	for(int c = start; c < end; c++) {
+		const uint8_t source = ram_[row_address + c];
+		const int character = source & character_zones_[source >> 6].address_mask;
+		const uint8_t xor_mask = character_zones_[source >> 6].xor_mask;
+		const std::size_t character_address = size_t(character << 3) + (row & 7);
+		const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
+		const uint16_t colours[2] = {background_colour_, text_colour_};
+
+		target[0] = colours[(character_pattern & 0x40) >> 6];
+		target[1] = colours[(character_pattern & 0x20) >> 5];
+		target[2] = colours[(character_pattern & 0x10) >> 4];
+		target[3] = colours[(character_pattern & 0x08) >> 3];
+		target[4] = colours[(character_pattern & 0x04) >> 2];
+		target[5] = colours[(character_pattern & 0x02) >> 1];
+		target[6] = colours[(character_pattern & 0x01) >> 0];
+		target += 7;
+	}
+
+	return target;
+}
+
+uint16_t *VideoBase::output_super_high_res(uint16_t *target, int start, int end, int row [[maybe_unused]]) const {
+	for(int c = start; c < end; c++) {
+		// TODO!
+		target[0] = 0x0000;
+		target[1] = 0xffff;
+		target += 2;
+	}
+
+	return target;
 }

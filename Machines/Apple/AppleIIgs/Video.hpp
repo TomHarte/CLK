@@ -77,6 +77,9 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		uint16_t *pixels_ = nullptr, *next_pixel_ = nullptr;
 
 		void output_row(int row, int start, int end);
+
+		uint16_t *output_super_high_res(uint16_t *target, int start, int end, int row) const;
+		uint16_t *output_text(uint16_t *target, int start, int end, int row) const;
 };
 
 class Video: public VideoBase {
