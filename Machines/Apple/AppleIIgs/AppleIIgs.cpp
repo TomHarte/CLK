@@ -615,6 +615,10 @@ class ConcreteMachine:
 			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
 				assert(address);
 			}
+//			if((address > 0x200 && address < 0x2000) || (address > 0x010200 && address < 0x012000)) {
+//				printf("%06x %s %02x%s\n", address, isReadOperation(operation) ? "->" : "<-", *value,
+//					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "");
+//			}
 //			log |= (address >= 0xff9b00) && (address < 0xff9b32);
 			if(log) {
 				printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
@@ -641,10 +645,21 @@ class ConcreteMachine:
 				// TODO: (i) get into phase; (ii) allow for the 1Mhz bus length being sporadically 16 rather than 14.
 				duration = Cycles(14);
 			} else {
-				// TODO: (i) get into phase; (ii) allow for collisions with the refresh cycle.
-				duration = Cycles(5);
+				// Clues as to 'fast' refresh timing:
+				//
+				//	(i)	"The time required for the refresh cycles reduces the effective processor speed
+				//		for programs in RAM by about 8 percent.";
+				//	(ii)	"These cycles occur approximately every 3.5 microseconds"
+				//
+				// 3.5µs @ 14,318,180Hz => one every 50.11 cycles. Safe to assume every 10th fast cycle
+				// is refresh? That feels like a lot.
+				//
+				// (and the IIgs is smart enough that refresh is applicable only to RAM accesses).
+				const int phase_adjust = (5 - fast_access_phase_%5)%5;
+				const int refresh = (fast_access_phase_ / 45) * bool(region.write) * 5;
+				duration = Cycles(5 + phase_adjust + refresh);
 			}
-			fast_access_phase_ = (fast_access_phase_ + duration.as<int>()) % 5;		// TODO: modulo something else, to allow for refresh.
+			fast_access_phase_ = (fast_access_phase_ + duration.as<int>()) % 50;
 			slow_access_phase_ = (slow_access_phase_ + duration.as<int>()) % 14;	// TODO: modulo something else, to allow for stretched cycles.
 
 
