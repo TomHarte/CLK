@@ -145,11 +145,11 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				break;
 
 				case CycleFetchBlockY:
-					perform_bus(((instruction_buffer_.value & 0xff00) << 8) | registers_.y.full, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
+					perform_bus(((instruction_buffer_.value & 0x00ff) << 16) | registers_.y.full, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
 				break;
 
 				case CycleStoreBlockY:
-					write(((instruction_buffer_.value & 0xff00) << 8) | registers_.y.full, data_buffer_.any_byte());
+					write(((instruction_buffer_.value & 0x00ff) << 16) | registers_.y.full, data_buffer_.any_byte());
 				break;
 
 #undef increment_data_address

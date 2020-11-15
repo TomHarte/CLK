@@ -177,6 +177,7 @@ class ConcreteMachine:
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
 			const auto &region = MemoryMapRegion(memory_, address);
 			static bool log = false;
+			static uint64_t total = 0;
 			bool is_1Mhz = (region.flags & MemoryMap::Region::Is1Mhz) || !(speed_register_ & 0x80) || (speed_register_ & motor_flags_);
 
 			if(region.flags & MemoryMap::Region::IsIO) {
@@ -554,7 +555,11 @@ class ConcreteMachine:
 							} else {
 								switch(address_suffix) {
 									default:
-										printf("Internal card-area access: %04x\n", address_suffix);
+										// Temporary: log _potential_ mistakes.
+										if(address_suffix < 0xc100) {
+											printf("Internal card-area access: %04x\n", address_suffix);
+											log |= operation == CPU::WDC65816::BusOperation::ReadOpcode;
+										}
 										if(is_read) {
 											*value = rom_[rom_.size() - 65536 + address_suffix];
 										}
@@ -620,10 +625,16 @@ class ConcreteMachine:
 //					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "");
 //			}
 //			log |= (address >= 0xff9b00) && (address < 0xff9b32);
-			if(log) {
+//			log |= (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address < 0x100);
+//			log |= total >= 77750000;
+//			log |= (address == 0x1f6) && (total >= 60000000);
+//			log |= (address == 0x48) && (*value == 0x02);
+//			log |= (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address >= 0x800) && (address < 0x900);
+//			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address == 0x0002));
+			if(log || address == 0x48 || address == 0x49) {
 				printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
 				if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-					printf(" a:%04x x:%04x y:%04x s:%04x e:%d p:%02x db:%02x pb:%02x d:%04x\n",
+					printf(" a:%04x x:%04x y:%04x s:%04x e:%d p:%02x db:%02x pb:%02x d:%04x [tot:%llu]\n",
 						m65816_.get_value_of_register(CPU::WDC65816::Register::A),
 						m65816_.get_value_of_register(CPU::WDC65816::Register::X),
 						m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
@@ -632,8 +643,8 @@ class ConcreteMachine:
 						m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
 						m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank),
 						m65816_.get_value_of_register(CPU::WDC65816::Register::ProgramBank),
-						m65816_.get_value_of_register(CPU::WDC65816::Register::Direct
-						)
+						m65816_.get_value_of_register(CPU::WDC65816::Register::Direct),
+						total
 					);
 				} else printf("\n");
 			}
@@ -651,8 +662,8 @@ class ConcreteMachine:
 			} else {
 				// Clues as to 'fast' refresh timing:
 				//
-				//	(i)	"The time required for the refresh cycles reduces the effective processor speed
-				//		for programs in RAM by about 8 percent.";
+				//	(i)		"The time required for the refresh cycles reduces the effective
+				//			processor speed for programs in RAM by about 8 percent.";
 				//	(ii)	"These cycles occur approximately every 3.5 microseconds"
 				//
 				// 3.5µs @ 14,318,180Hz => one every 50.11 cycles. Safe to assume every 10th fast cycle
@@ -663,6 +674,7 @@ class ConcreteMachine:
 				const int refresh = (fast_access_phase_ / 45) * bool(region.write) * 5;
 				duration = Cycles(5 + phase_adjust + refresh);
 			}
+			// TODO: lookup tables to avoid the above? LCM of the two phases is 22,800 so probably 912+50 bytes plus two counters.
 			fast_access_phase_ = (fast_access_phase_ + duration.as<int>()) % 50;
 			slow_access_phase_ = (slow_access_phase_ + duration.as<int>()) % 912;
 
@@ -679,6 +691,7 @@ class ConcreteMachine:
 			video_ += duration;
 			iwm_ += duration;
 			cycles_since_audio_update_ += duration;
+			total += decltype(total)(duration.as_integral());
 
 			// Ensure no more than a single line is enqueued for just-in-time video purposes.
 			// TODO: as implemented, check_flush_threshold doesn't actually work. Can it be made to without forcing cost to non-users, or is it a bad idea?
