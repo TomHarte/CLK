@@ -642,8 +642,12 @@ class ConcreteMachine:
 			// Below is very vague on real details. Won't do.
 			Cycles duration;
 			if(is_1Mhz) {
-				// TODO: (i) get into phase; (ii) allow for the 1Mhz bus length being sporadically 16 rather than 14.
-				duration = Cycles(14);
+				// TODO: this is very implicitly linked to the video timing; make that overt somehow. Even if it's just with a redundant video setter at construction.
+				const int current_length = 14 + 2*(slow_access_phase_ / 896);						// Length of cycle currently ongoing.
+				const int phase_adjust = (current_length - slow_access_phase_%14)%current_length;	// Amount of time to expand waiting until end of cycle, if not actually at start.
+				const int access_phase = (slow_access_phase_ + phase_adjust)%912;					// Phase at which access will begin.
+				const int next_length = 14 + 2*(access_phase / 896);								// Length of cycle that this access will occur within.
+				duration = Cycles(next_length + phase_adjust);
 			} else {
 				// Clues as to 'fast' refresh timing:
 				//
@@ -660,7 +664,7 @@ class ConcreteMachine:
 				duration = Cycles(5 + phase_adjust + refresh);
 			}
 			fast_access_phase_ = (fast_access_phase_ + duration.as<int>()) % 50;
-			slow_access_phase_ = (slow_access_phase_ + duration.as<int>()) % 14;	// TODO: modulo something else, to allow for stretched cycles.
+			slow_access_phase_ = (slow_access_phase_ + duration.as<int>()) % 912;
 
 
 			// Propagate time far and wide.
