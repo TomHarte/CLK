@@ -685,6 +685,8 @@ class ConcreteMachine:
 			while(ticks--) {
 				clock_.update();
 				video_.last_valid()->notify_clock_tick();	// The video controller marshalls the one-second interrupt.
+															// TODO: I think I may have made a false assumption here; does
+															// the VGC have an independent 1-second interrupt?
 				update_interrupts();
 			}
 

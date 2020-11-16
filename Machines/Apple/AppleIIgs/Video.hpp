@@ -56,6 +56,9 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		/// Gets the type of output.
 		Outputs::Display::DisplayType get_display_type() const;
 
+		/// Determines the period until video might autonomously update its interrupt lines.
+		Cycles get_next_sequence_point() const;
+
 	private:
 		Outputs::CRT::CRT crt_;
 

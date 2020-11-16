@@ -104,6 +104,21 @@ void VideoBase::advance(Cycles cycles) {
 	}
 }
 
+Cycles VideoBase::get_next_sequence_point() const {
+	const int cycles_into_row = cycles_into_frame_ % CyclesPerLine;
+	const int row = cycles_into_frame_ / CyclesPerLine;
+
+	constexpr int sequence_point_offset = (5 + 8) * CyclesPerTick;
+
+	// Handle every case that doesn't involve wrapping to the next row 0.
+	if(row <= 200) {
+		if(cycles_into_row < sequence_point_offset) return Cycles(sequence_point_offset - cycles_into_row);
+		if(row < 200) return Cycles(CyclesPerLine + sequence_point_offset - cycles_into_row);
+	}
+
+	return Cycles(CyclesPerLine + sequence_point_offset - cycles_into_row + (Lines - row - 1)*CyclesPerLine);
+}
+
 void VideoBase::output_row(int row, int start, int end) {
 	// Reasoned guesswork ahoy!
 	//
@@ -192,7 +207,8 @@ void VideoBase::output_row(int row, int start, int end) {
 					palette_[c] = PaletteConvulve(entry);
 				}
 
-				// TODO: obey line_control_ & 0x40 interrupt control bit.
+				// Post an interrupt if requested.
+				if(line_control_ & 0x40) set_interrupts(0x20);
 			}
 
 			if(next_pixel_) {

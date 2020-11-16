@@ -50,11 +50,13 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		/// Flushes all accumulated time and returns a pointer to the included object.
 		forceinline T *operator->() {
 			flush();
+			// TODO: I actually need to update time_until_event_ after the access occurring here has ended.
+			// So I guess I need to supply some sort of proxy object and jump on its destructor?
 			return &object_;
 		}
 
 		/// Acts exactly as per the standard ->, but preserves constness.
-		forceinline const T *operator->() const {
+		forceinline const T *operator -> () const {
 			auto non_const_this = const_cast<JustInTimeActor<T, multiplier, divider, LocalTimeScale, TargetTimeScale> *>(this);
 			non_const_this->flush();
 			return &object_;
@@ -78,6 +80,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 						object_.run_for(duration);
 				}
 
+				// TODO: this probably shouldn't be per-flush(), merely per-operator-> and when a previous point is passed.
 				if constexpr (has_sequence_points<T>::value) {
 					time_until_event_ = object_.get_next_sequence_point();
 					assert(time_until_event_ > LocalTimeScale(0));
