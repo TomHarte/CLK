@@ -21,6 +21,9 @@
 
 	Machines that accumulate HalfCycle time but supply to a Cycle-counted device may supply a
 	separate @c TargetTimeScale at template declaration.
+
+	If the held object implements get_next_sequence_point() then it'll be used to flush implicitly
+	as and when sequence points are hit. Callers can use will_flush() to predict these.
 */
 template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class JustInTimeActor {
 	public:
@@ -28,13 +31,20 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		template<typename... Args> JustInTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {}
 
 		/// Adds time to the actor.
-		forceinline void operator += (const LocalTimeScale &rhs) {
+		forceinline void operator += (LocalTimeScale rhs) {
 			if constexpr (multiplier != 1) {
 				time_since_update_ += rhs * multiplier;
 			} else {
 				time_since_update_ += rhs;
 			}
 			is_flushed_ = false;
+
+			if constexpr (has_sequence_points<T>::value) {
+				time_until_event_ -= rhs;
+				if(time_until_event_ < LocalTimeScale(0)) {
+					flush();
+				}
+			}
 		}
 
 		/// Flushes all accumulated time and returns a pointer to the included object.
@@ -67,23 +77,35 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 					if(duration > TargetTimeScale(0))
 						object_.run_for(duration);
 				}
+
+				if constexpr (has_sequence_points<T>::value) {
+					time_until_event_ = object_.get_next_sequence_point();
+					assert(time_until_event_ > LocalTimeScale(0));
+				}
 			}
 		}
 
-		/// Flushes only if the next window of size @c threshold (measured in LocalTimeScale) has been crossed since the last flush.
-		template<int threshold> forceinline bool check_flush_threshold() {
-			if(time_since_update_.as_integral() >= threshold) {
-				flush();
-				return true;
-			} else {
+		/// Indicates whether a sequence-point-caused flush will occur if the specified period is added.
+		forceinline bool will_flush(LocalTimeScale rhs) const {
+			if constexpr (!has_sequence_points<T>::value) {
 				return false;
 			}
+			return rhs >= time_until_event_;
+		}
+
+		/// @returns the number of cycles until the next sequence-point-based flush, if the embedded object
+		/// supports sequence points; @c LocalTimeScale() otherwise.
+		LocalTimeScale cycles_until_implicit_flush() const {
+			return time_until_event_;
 		}
 
 	private:
 		T object_;
-		LocalTimeScale time_since_update_;
+		LocalTimeScale time_since_update_, time_until_event_;
 		bool is_flushed_ = true;
+
+		template <typename S, typename = void> struct has_sequence_points : std::false_type {};
+		template <typename S> struct has_sequence_points<S, decltype(void(std::declval<S &>().get_next_sequence_point()))> : std::true_type {};
 };
 
 /*!

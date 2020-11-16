@@ -688,14 +688,13 @@ class ConcreteMachine:
 				update_interrupts();
 			}
 
+			const bool will_flush_video = video_.will_flush(duration);
 			video_ += duration;
 			iwm_ += duration;
 			cycles_since_audio_update_ += duration;
 			total += decltype(total)(duration.as_integral());
 
-			// Ensure no more than a single line is enqueued for just-in-time video purposes.
-			// TODO: as implemented, check_flush_threshold doesn't actually work. Can it be made to without forcing cost to non-users, or is it a bad idea?
-			if(video_.check_flush_threshold<131>()) {
+			if(will_flush_video) {
 				update_interrupts();
 			}
 
