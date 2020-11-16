@@ -190,8 +190,10 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(uint16_t data_offset) {
 	Display::ScanTarget::Scan::EndPoint end_point;
 
-	end_point.x = uint16_t(horizontal_flywheel_->get_current_output_position());
-	end_point.y = uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
+	// Clamp the available range on endpoints. These will almost always be within range, but may go
+	// out during times of resync.
+	end_point.x = uint16_t(std::min(horizontal_flywheel_->get_current_output_position(), 65535));
+	end_point.y = uint16_t(std::min(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_, 65535));
 	end_point.data_offset = data_offset;
 
 	// Ensure .composite_angle is sampled at the location indicated by .cycles_since_end_of_horizontal_retrace.
