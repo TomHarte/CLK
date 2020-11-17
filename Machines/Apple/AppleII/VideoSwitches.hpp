@@ -232,8 +232,10 @@ template <typename TimeUnit> class VideoSwitches {
 			II,
 			/// The ROM that shipped with the original IIe.
 			IIe,
-			/// The ROM that shipped with the Enhanced IIe, the IIc and the IIgs.
-			EnhancedIIe
+			/// The ROM that shipped with the Enhanced IIe.
+			EnhancedIIe,
+			/// The ROM that shipped with the IIgs.
+			IIgs
 		};
 
 		/// @returns A file-level description of @c rom.
@@ -246,9 +248,11 @@ template <typename TimeUnit> class VideoSwitches {
 				case CharacterROM::IIe:
 					return ROMMachine::ROM(machine_name, "the Apple IIe character ROM", "apple2eu-character.rom", 4*1024, 0x816a86f1);
 
-				default:
 				case CharacterROM::EnhancedIIe:
 					return ROMMachine::ROM(machine_name, "the Enhanced Apple IIe character ROM", "apple2e-character.rom", 4*1024, 0x2651014d);
+
+				case CharacterROM::IIgs:
+					return ROMMachine::ROM(machine_name, "the Apple IIgs character ROM", "apple2gs.chr", 4*1024, 0x91e53cd8);
 			}
 		}
 
