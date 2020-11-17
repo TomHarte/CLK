@@ -179,9 +179,13 @@ void VideoBase::output_row(int row, int start, int end) {
 		if(start >= start_of_left_border && start < start_of_pixels) {
 			const int end_of_period = std::min(start_of_pixels, end);
 
-			uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-			if(pixel) *pixel = border_colour_;
-			crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
+			if(border_colour_) {
+				uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
+				if(pixel) *pixel = border_colour_;
+				crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
+			} else {
+				crt_.output_blank((end_of_period - start) * CyclesPerTick);
+			}
 
 			start = end_of_period;
 			if(start == end) return;
@@ -241,9 +245,13 @@ void VideoBase::output_row(int row, int start, int end) {
 		if(start >= start_of_right_border && start < start_of_sync) {
 			const int end_of_period = std::min(start_of_sync, end);
 
-			uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-			if(pixel) *pixel = border_colour_;
-			crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
+			if(border_colour_) {
+				uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
+				if(pixel) *pixel = border_colour_;
+				crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
+			} else {
+				crt_.output_blank((end_of_period - start) * CyclesPerTick);
+			}
 
 			// There's no point updating start here; just fall
 			// through to the end == FinalColumn test.
@@ -253,9 +261,13 @@ void VideoBase::output_row(int row, int start, int end) {
 		if(start >= start_of_left_border && start < start_of_sync) {
 			const int end_of_period = std::min(start_of_sync, end);
 
-			uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-			if(pixel) *pixel = border_colour_;
-			crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
+			if(border_colour_) {
+				uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
+				if(pixel) *pixel = border_colour_;
+				crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
+			} else {
+				crt_.output_blank((end_of_period - start) * CyclesPerTick);
+			}
 
 			start = end_of_period;
 			if(start == end) return;
@@ -268,10 +280,11 @@ void VideoBase::output_row(int row, int start, int end) {
 	}
 }
 
-bool VideoBase::get_is_vertical_blank() {
+bool VideoBase::get_is_vertical_blank(Cycles offset) {
 	// Cf. http://www.1000bit.it/support/manuali/apple/technotes/iigs/tn.iigs.040.html ;
-	// this bit covers the entire vertical border area, not just the NTSC-sense vertical blank.
-	return cycles_into_frame_ >= FinalPixelLine * CyclesPerLine;
+	// this bit covers the entire vertical border area, not just the NTSC-sense vertical blank,
+	// and considers the border to begin at 192 even though Super High-res mode is 200 lines.
+	return (cycles_into_frame_ + offset.as<int>())%(Lines * CyclesPerLine) >= FinalPixelLine * CyclesPerLine;
 }
 
 void VideoBase::set_new_video(uint8_t new_video) {

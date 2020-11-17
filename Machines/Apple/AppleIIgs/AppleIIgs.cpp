@@ -279,7 +279,7 @@ class ConcreteMachine:
 #define SwitchRead(s) *value = memory_.s ? 0x80 : 0x00
 #define LanguageRead(s) SwitchRead(language_card_switches().state().s)
 #define AuxiliaryRead(s) SwitchRead(auxiliary_switches().switches().s)
-#define VideoRead(s) *value = video_->s ? 0x80 : 0x00
+#define VideoRead(s) *value = video_.last_valid()->s ? 0x80 : 0x00
 					case Read(0xc011):	LanguageRead(bank1);						break;
 					case Read(0xc012):	LanguageRead(read);							break;
 					case Read(0xc013):	AuxiliaryRead(read_auxiliary_memory);		break;
@@ -288,7 +288,9 @@ class ConcreteMachine:
 					case Read(0xc016):	AuxiliaryRead(alternative_zero_page);		break;
 					case Read(0xc017):	AuxiliaryRead(slot_C3_rom);					break;
 					case Read(0xc018):	VideoRead(get_80_store());					break;
-					case Read(0xc019):	VideoRead(get_is_vertical_blank());			break;
+					case Read(0xc019):
+						VideoRead(get_is_vertical_blank(video_.time_since_flush()));
+					break;
 					case Read(0xc01a):	VideoRead(get_text());						break;
 					case Read(0xc01b):	VideoRead(get_mixed());						break;
 					case Read(0xc01c):	VideoRead(get_page2());						break;

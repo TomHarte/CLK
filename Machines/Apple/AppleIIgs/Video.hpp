@@ -27,7 +27,7 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		VideoBase();
 		void set_internal_ram(const uint8_t *);
 
-		bool get_is_vertical_blank();
+		bool get_is_vertical_blank(Cycles offset);
 
 		void set_new_video(uint8_t);
 		uint8_t get_new_video();

@@ -81,9 +81,14 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 			return std::unique_ptr<const T, SequencePointAwareDeleter>(&object_, SequencePointAwareDeleter(non_const_this));
 		}
 
-		/// Returns a pointer to the included object without flushing time.
+		/// @returns a pointer to the included object, without flushing time.
 		forceinline T *last_valid() {
 			return &object_;
+		}
+
+		/// @returns the amount of time since the object was last flushed.
+		forceinline LocalTimeScale time_since_flush() const {
+			return time_since_update_;
 		}
 
 		/// Flushes all accumulated time.
