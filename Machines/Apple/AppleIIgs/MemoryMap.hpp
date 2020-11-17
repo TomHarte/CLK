@@ -414,6 +414,10 @@ class MemoryMap {
 
 			// Hi-res graphics Page 1, main and auxiliary — $2000–$4000;
 			// also part of the super high-res graphics page.
+			//
+			// Test applied: both the graphics page inhibit and, on odd
+			// pages, the super high-res inhibit must be applied to inhibit
+			// this area.
 			apply(shadow_register_ & 0x02, 0x0020);
 			apply((shadow_register_ & 0x12) && (shadow_register_ & 0x08), 0x0120);
 			apply((shadow_register_ & 0x02) || inhibit_all_pages, 0x0220);
@@ -425,6 +429,10 @@ class MemoryMap {
 
 			// Hi-res graphics Page 2, main and auxiliary — $4000–$6000;
 			// also part of the super high-res graphics page.
+			//
+			// Test applied: both the graphics page inhibit and, on odd
+			// pages, the super high-res inhibit must be applied to inhibit
+			// this area.
 			apply(shadow_register_ & 0x04, 0x0040);
 			apply((shadow_register_ & 0x14) && (shadow_register_ & 0x08), 0x0140);
 			apply((shadow_register_ & 0x04) || inhibit_all_pages, 0x0240);
@@ -434,7 +442,7 @@ class MemoryMap {
 			assert(region_map[0x0260] == region_map[0x0240]+1);
 			assert(region_map[0x0360] == region_map[0x0340]+1);
 
-			// Residue of Super Hi-Res — $6000–$a000
+			// Residue of Super Hi-Res — $6000–$a000 (odd pages only).
 			apply(shadow_register_ & 0x08, 0x0160);
 			apply((shadow_register_ & 0x08) || inhibit_all_pages, 0x0360);
 			assert(region_map[0x01a0] == region_map[0x0160]+1);
