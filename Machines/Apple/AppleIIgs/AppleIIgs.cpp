@@ -631,7 +631,7 @@ class ConcreteMachine:
 //			log |= (address == 0x48) && (*value == 0x02);
 //			log |= (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address >= 0x800) && (address < 0x900);
 //			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address == 0x0002));
-			if(log || address == 0x48 || address == 0x49) {
+			if(log) {
 				printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
 				if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
 					printf(" a:%04x x:%04x y:%04x s:%04x e:%d p:%02x db:%02x pb:%02x d:%04x [tot:%llu]\n",
