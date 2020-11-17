@@ -116,6 +116,7 @@ Cycles VideoBase::get_next_sequence_point() const {
 		if(row < 200) return Cycles(CyclesPerLine + sequence_point_offset - cycles_into_row);
 	}
 
+	// Calculate distance to the relevant point in row 0.
 	return Cycles(CyclesPerLine + sequence_point_offset - cycles_into_row + (Lines - row - 1)*CyclesPerLine);
 }
 
@@ -208,7 +209,9 @@ void VideoBase::output_row(int row, int start, int end) {
 				}
 
 				// Post an interrupt if requested.
-				if(line_control_ & 0x40) set_interrupts(0x20);
+				if(line_control_ & 0x40) {
+					set_interrupts(0x20);
+				}
 			}
 
 			if(next_pixel_) {
