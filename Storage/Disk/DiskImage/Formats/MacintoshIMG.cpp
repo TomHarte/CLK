@@ -202,7 +202,7 @@ std::shared_ptr<::Storage::Disk::Track> MacintoshIMG::get_track_at_position(::St
 		int destination = 0;
 		for(int c = 0; c < included_sectors.length; ++c) {
 			// Deal with collisions by finding the next non-colliding spot.
-			while(source_sectors[destination] != 0xff) ++destination;
+			while(source_sectors[destination] != 0xff) destination = (destination + 1) % included_sectors.length;
 			source_sectors[destination] = uint8_t(c);
 			destination = (destination + (format_ & 0x1f)) % included_sectors.length;
 		}
