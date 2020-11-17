@@ -366,8 +366,10 @@ class MemoryMap {
 		}
 
 		void set_shadowing() {
-			const bool inhibit_all_pages = speed_register_ & 0x10;
+			const bool inhibit_all_pages = !(speed_register_ & 0x10);
 
+			// Disables shadowing for the region starting from @c zone if @c flag is true;
+			// otherwise enables it.
 #define apply(flag, zone)	\
 	if(flag) {	\
 		regions[region_map[zone]].flags &= ~Region::IsShadowed; \
@@ -375,36 +377,68 @@ class MemoryMap {
 		regions[region_map[zone]].flags |= Region::IsShadowed; \
 	}
 
-			// Text Page 1, main and auxiliary.
+			printf("Shadowing: %02x\n", shadow_register_);
+
+			// Relevant bits:
+			//
+			//	b5: inhibit shadowing, text page 2	[if ROM 03; as if always set otherwise]
+			//	b4: inhibit shadowing, auxiliary high-res graphics
+			//	b3: inhibit shadowing, super high-res graphics
+			//	b2: inhibit shadowing, high-res graphics page 2
+			//	b1: inhibit shadowing, high-res graphics page 1
+			//	b0: inhibit shadowing, text page 1
+			//
+			// The interpretations of how the overlapping high-res and super high-res inhibit
+			// bits apply used below is taken from The Apple IIgs Technical Reference, P. 178.
+
+			// Text Page 1, main and auxiliary — $0400–$0800.
 			apply(shadow_register_ & 0x01, 0x0004);
 			apply(shadow_register_ & 0x01, 0x0104);
-			apply((shadow_register_ & 0x01) && inhibit_all_pages, 0x0204);
-			apply((shadow_register_ & 0x01) && inhibit_all_pages, 0x0304);
+			apply((shadow_register_ & 0x01) || inhibit_all_pages, 0x0204);	// All other pages uses the same shadowing flags.
+			apply((shadow_register_ & 0x01) || inhibit_all_pages, 0x0304);
+			assert(region_map[0x0008] == region_map[0x0004]+1);
+			assert(region_map[0x0108] == region_map[0x0104]+1);
+			assert(region_map[0x0208] == region_map[0x0204]+1);
+			assert(region_map[0x0308] == region_map[0x0304]+1);
 
-			// Text Page 2, main and auxiliary.
+			// Text Page 2, main and auxiliary — 0x0800–0x0c00.
 			// TODO: on a ROM03 machine only.
 			apply(shadow_register_ & 0x20, 0x0008);
 			apply(shadow_register_ & 0x20, 0x0108);
-			apply((shadow_register_ & 0x20) && inhibit_all_pages, 0x0208);
-			apply((shadow_register_ & 0x20) && inhibit_all_pages, 0x0308);
+			apply((shadow_register_ & 0x20) || inhibit_all_pages, 0x0208);
+			apply((shadow_register_ & 0x20) || inhibit_all_pages, 0x0308);
+			assert(region_map[0x000c] == region_map[0x0008]+1);
+			assert(region_map[0x010c] == region_map[0x0108]+1);
+			assert(region_map[0x020c] == region_map[0x0208]+1);
+			assert(region_map[0x030c] == region_map[0x0308]+1);
 
-			// Hi-res graphics Page 1, main and auxiliary.
+			// Hi-res graphics Page 1, main and auxiliary — $2000–$4000;
+			// also part of the super high-res graphics page.
 			apply(shadow_register_ & 0x02, 0x0020);
-			apply(shadow_register_ & 0x12, 0x0120);
-			apply((shadow_register_ & 0x02) && inhibit_all_pages, 0x0220);
-			apply((shadow_register_ & 0x12) && inhibit_all_pages, 0x0320);
+			apply((shadow_register_ & 0x12) && (shadow_register_ & 0x08), 0x0120);
+			apply((shadow_register_ & 0x02) || inhibit_all_pages, 0x0220);
+			apply(((shadow_register_ & 0x12) && (shadow_register_ & 0x08)) || inhibit_all_pages, 0x0320);
+			assert(region_map[0x0040] == region_map[0x0020]+1);
+			assert(region_map[0x0140] == region_map[0x0120]+1);
+			assert(region_map[0x0240] == region_map[0x0220]+1);
+			assert(region_map[0x0340] == region_map[0x0320]+1);
 
-			// Hi-res graphics Page 2, main and auxiliary.
+			// Hi-res graphics Page 2, main and auxiliary — $4000–$6000;
+			// also part of the super high-res graphics page.
 			apply(shadow_register_ & 0x04, 0x0040);
-			apply(shadow_register_ & 0x14, 0x0140);
-			apply((shadow_register_ & 0x04) && inhibit_all_pages, 0x0240);
-			apply((shadow_register_ & 0x14) && inhibit_all_pages, 0x0340);
+			apply((shadow_register_ & 0x14) && (shadow_register_ & 0x08), 0x0140);
+			apply((shadow_register_ & 0x04) || inhibit_all_pages, 0x0240);
+			apply(((shadow_register_ & 0x14) && (shadow_register_ & 0x08)) || inhibit_all_pages, 0x0340);
+			assert(region_map[0x0060] == region_map[0x0040]+1);
+			assert(region_map[0x0160] == region_map[0x0140]+1);
+			assert(region_map[0x0260] == region_map[0x0240]+1);
+			assert(region_map[0x0360] == region_map[0x0340]+1);
 
-			// Residue of Super Hi-Res.
+			// Residue of Super Hi-Res — $6000–$a000
 			apply(shadow_register_ & 0x08, 0x0160);
-			apply((shadow_register_ & 0x08) && inhibit_all_pages, 0x0360);
-
-			// TODO: does inhibiting Super Hi-Res also affect the regular hi-res pages?
+			apply((shadow_register_ & 0x08) || inhibit_all_pages, 0x0360);
+			assert(region_map[0x01a0] == region_map[0x0160]+1);
+			assert(region_map[0x03a0] == region_map[0x0360]+1);
 
 #undef apply
 		}
