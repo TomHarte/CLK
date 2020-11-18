@@ -94,6 +94,7 @@ enum class InputDataType {
 };
 
 /// @returns the number of bytes per sample for data of type @c data_type.
+/// Guaranteed to be 1, 2 or 4 for valid data types.
 constexpr inline size_t size_for_data_type(InputDataType data_type) {
 	switch(data_type) {
 		case InputDataType::Luminance1:
