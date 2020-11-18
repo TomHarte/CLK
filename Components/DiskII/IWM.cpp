@@ -389,7 +389,7 @@ void IWM::propose_shift(uint8_t bit) {
 
 	shift_register_ = uint8_t((shift_register_ << 1) | bit);
 	if(shift_register_ & 0x80) {
-		if(data_register_ & 0x80) LOG("Byte missed");
+//		if(data_register_ & 0x80) LOG("Byte missed");
 		data_register_ = shift_register_;
 		shift_register_ = 0;
 	}

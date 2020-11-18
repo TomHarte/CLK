@@ -24,6 +24,7 @@
 #include "../../../Components/DiskII/IWM.hpp"
 #include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
 
+#include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "../../Utility/MemoryFuzzer.hpp"
@@ -59,8 +60,10 @@ class ConcreteMachine:
 		 		{CLOCK_RATE / 2, true},
 		 		{CLOCK_RATE / 2, true}
 			},
+			sound_glu_(audio_queue_),
 			audio_toggle_(audio_queue_),
-			speaker_(audio_toggle_) {
+			mixer_(sound_glu_, audio_toggle_),
+			speaker_(mixer_) {
 
 			set_clock_rate(double(CLOCK_RATE));
 			speaker_.set_input_rate(float(CLOCK_RATE) / float(audio_divider));
@@ -738,14 +741,18 @@ class ConcreteMachine:
 		Apple::Macintosh::DoubleDensityDrive drives_[2];
 
 		// The audio parts.
-		Apple::IIgs::Sound::GLU sound_glu_;
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		Apple::IIgs::Sound::GLU sound_glu_;
 		Audio::Toggle audio_toggle_;
-		Outputs::Speaker::LowpassSpeaker<Audio::Toggle> speaker_;
+		using AudioSource = Outputs::Speaker::CompoundSource<Apple::IIgs::Sound::GLU, Audio::Toggle>;
+		AudioSource mixer_;
+		Outputs::Speaker::LowpassSpeaker<AudioSource> speaker_;
 		Cycles cycles_since_audio_update_;
 		static constexpr int audio_divider = 8;
 		void update_audio() {
-			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
+			const auto divided_cycles = cycles_since_audio_update_.divide(Cycles(audio_divider));
+			sound_glu_.run_for(divided_cycles);
+			speaker_.run_for(audio_queue_, divided_cycles);
 		}
 
 		// MARK: - Cards.
