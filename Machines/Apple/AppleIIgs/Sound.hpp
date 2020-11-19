@@ -9,6 +9,8 @@
 #ifndef Apple_IIgs_Sound_hpp
 #define Apple_IIgs_Sound_hpp
 
+#include <atomic>
+
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
@@ -42,6 +44,26 @@ class GLU: public Outputs::Speaker::SampleSource {
 
 		uint16_t address_ = 0;
 
+		// Use a circular buffer for piping memory alterations onto the audio
+		// thread; it would be prohibitive to defer every write individually.
+		//
+		// Assumed: on most modern architectures, an atomic 64-bit read or
+		// write can be achieved locklessly.
+		struct MemoryWrite {
+			uint32_t time;
+			uint16_t address;
+			uint8_t value;
+			bool enabled = false;
+		};
+		static_assert(sizeof(MemoryWrite) == 8);
+		constexpr static int StoreBufferSize = 16384;
+
+		std::atomic<MemoryWrite> pending_stores_[StoreBufferSize];
+		uint32_t pending_store_read_ = 0, pending_store_read_time_ = 0;
+		uint32_t pending_store_write_ = 0, pending_store_write_time_ = 0;
+
+		// Maintain state both 'locally' (i.e. on the emulation thread) and
+		// 'remotely' (i.e. on the audio thread).
 		struct EnsoniqState {
 			uint8_t ram_[65536];
 			struct Oscillator {
@@ -55,16 +77,18 @@ class GLU: public Outputs::Speaker::SampleSource {
 				uint8_t table_size;
 			} oscillators_[32];
 
+			// TODO: do all of these need to be on the audio thread?
 			uint8_t control;
-
-			void generate_audio(size_t number_of_samples, std::int16_t *target, int16_t range);
-			void skip_audio(size_t number_of_samples);
+			uint8_t interrupt_state;
+			uint8_t oscillator_enable;
 		} local_, remote_;
-		uint8_t interrupt_state_;
-		uint8_t oscillator_enable_;
 
-		uint8_t control_ = 0x00;
+		// Functions to update an EnsoniqState; these don't belong to the state itself
+		// because they also access the pending stores (inter alia).
+		void generate_audio(size_t number_of_samples, std::int16_t *target, int16_t range);
+		void skip_audio(EnsoniqState &state, size_t number_of_samples);
 
+		// Audio-thread state.
 		int16_t output_range_ = 0;
 };
 
