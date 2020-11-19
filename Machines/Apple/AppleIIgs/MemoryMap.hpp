@@ -328,6 +328,7 @@ class MemoryMap {
 				assert(region_map[bank_base | 0xc3] == region_map[bank_base | 0xc1]+1);
 				assert(region_map[bank_base | 0xc4] == region_map[bank_base | 0xc3]+1);
 				assert(region_map[bank_base | 0xc8] == region_map[bank_base | 0xc4]+1);
+				assert(region_map[bank_base | 0xd0] == region_map[bank_base | 0xc8]+1);
 			};
 
 			if(inhibit_banks0001) {
