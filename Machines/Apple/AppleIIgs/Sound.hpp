@@ -54,11 +54,18 @@ class GLU: public Outputs::Speaker::SampleSource {
 				uint8_t control;
 				uint8_t table_size;
 			} oscillators_[32];
+
+			uint8_t control;
+
+			void generate_audio(size_t number_of_samples, std::int16_t *target, int16_t range);
+			void skip_audio(size_t number_of_samples);
 		} local_, remote_;
 		uint8_t interrupt_state_;
 		uint8_t oscillator_enable_;
 
 		uint8_t control_ = 0x00;
+
+		int16_t output_range_ = 0;
 };
 
 }
