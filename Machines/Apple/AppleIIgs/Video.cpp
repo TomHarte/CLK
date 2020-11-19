@@ -225,10 +225,20 @@ void VideoBase::output_row(int row, int start, int end) {
 				if(new_video_ & 0x80) {
 					next_pixel_ = output_super_high_res(next_pixel_, window_start, window_end, row);
 				} else {
-					next_pixel_ = output_text(next_pixel_, window_start, window_end, row);
+					switch(graphics_mode(row)) {
+						case Apple::II::GraphicsMode::Text:
+							next_pixel_ = output_text(next_pixel_, window_start, window_end, row);
+						break;
+						case Apple::II::GraphicsMode::DoubleText:
+							next_pixel_ = output_double_text(next_pixel_, window_start, window_end, row);
+						break;
+
+						default:
+							assert(false);
+					}
 
 					// TODO: support modes other than 40-column text.
-					if(graphics_mode(row) != Apple::II::GraphicsMode::Text) printf("Outputting incorrect graphics mode!\n");
+//					if(graphics_mode(row) != Apple::II::GraphicsMode::Text) printf("Outputting incorrect graphics mode!\n");
 				}
 			}
 
@@ -335,24 +345,37 @@ bool VideoBase::get_composite_is_colour() {
 
 // MARK: - Outputters.
 
+forceinline uint16_t *VideoBase::output_char(uint16_t *target, uint8_t source, int row) const {
+	const int character = source & character_zones_[source >> 6].address_mask;
+	const uint8_t xor_mask = character_zones_[source >> 6].xor_mask;
+	const std::size_t character_address = size_t(character << 3) + (row & 7);
+	const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
+	const uint16_t colours[2] = {background_colour_, text_colour_};
+
+	target[0] = colours[(character_pattern & 0x40) >> 6];
+	target[1] = colours[(character_pattern & 0x20) >> 5];
+	target[2] = colours[(character_pattern & 0x10) >> 4];
+	target[3] = colours[(character_pattern & 0x08) >> 3];
+	target[4] = colours[(character_pattern & 0x04) >> 2];
+	target[5] = colours[(character_pattern & 0x02) >> 1];
+	target[6] = colours[(character_pattern & 0x01) >> 0];
+	return target + 7;
+}
+
 uint16_t *VideoBase::output_text(uint16_t *target, int start, int end, int row) const {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
-		const uint8_t source = ram_[row_address + c];
-		const int character = source & character_zones_[source >> 6].address_mask;
-		const uint8_t xor_mask = character_zones_[source >> 6].xor_mask;
-		const std::size_t character_address = size_t(character << 3) + (row & 7);
-		const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
-		const uint16_t colours[2] = {background_colour_, text_colour_};
+		target = output_char(target, ram_[row_address + c], row);
+	}
 
-		target[0] = colours[(character_pattern & 0x40) >> 6];
-		target[1] = colours[(character_pattern & 0x20) >> 5];
-		target[2] = colours[(character_pattern & 0x10) >> 4];
-		target[3] = colours[(character_pattern & 0x08) >> 3];
-		target[4] = colours[(character_pattern & 0x04) >> 2];
-		target[5] = colours[(character_pattern & 0x02) >> 1];
-		target[6] = colours[(character_pattern & 0x01) >> 0];
-		target += 7;
+	return target;
+}
+
+uint16_t *VideoBase::output_double_text(uint16_t *target, int start, int end, int row) const {
+	const uint16_t row_address = get_row_address(row);
+	for(int c = start; c < end; c++) {
+		target = output_char(target, ram_[0x10000 + row_address + c], row);
+		target = output_char(target, ram_[row_address + c], row);
 	}
 
 	return target;

@@ -82,7 +82,10 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		void output_row(int row, int start, int end);
 
 		uint16_t *output_super_high_res(uint16_t *target, int start, int end, int row) const;
+
 		uint16_t *output_text(uint16_t *target, int start, int end, int row) const;
+		uint16_t *output_double_text(uint16_t *target, int start, int end, int row) const;
+		forceinline uint16_t *output_char(uint16_t *target, uint8_t source, int row) const;
 
 		// Super high-res per-line state.
 		uint8_t line_control_;
