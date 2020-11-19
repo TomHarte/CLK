@@ -345,7 +345,7 @@ bool VideoBase::get_composite_is_colour() {
 
 // MARK: - Outputters.
 
-forceinline uint16_t *VideoBase::output_char(uint16_t *target, uint8_t source, int row) const {
+uint16_t *VideoBase::output_char(uint16_t *target, uint8_t source, int row) const {
 	const int character = source & character_zones_[source >> 6].address_mask;
 	const uint8_t xor_mask = character_zones_[source >> 6].xor_mask;
 	const std::size_t character_address = size_t(character << 3) + (row & 7);
