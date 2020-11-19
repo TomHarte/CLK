@@ -31,15 +31,11 @@ void GLU::set_data(uint8_t data) {
 		pending_store_write_ = (pending_store_write_ + 1) % (StoreBufferSize - 1);
 	} else {
 		// Register access.
-		switch(address_ & 0xe0) {
-			case 0x00:
-//				oscillators_[address_ & 0x1f].velocity = (oscillators_[address_ & 0x1f].velocity & 0xff00) | (data << 8);
-			break;
-			case 0x20:
-//				oscillators_[address_ & 0x1f].velocity = (oscillators_[address_ & 0x1f].velocity & 0x00ff) | (data << 8);
-			break;
-		}
-//		printf("Register write %04x\n", address_);
+		const auto address = address_;	// To make sure I don't inadvertently 'capture' address_.
+		local_.set_register(address, data);
+		audio_queue_.defer([this, address, data] () {
+			remote_.set_register(address, data);
+		});
 	}
 
 	if(local_.control & 0x20) {
@@ -47,7 +43,49 @@ void GLU::set_data(uint8_t data) {
 	}
 }
 
+void GLU::EnsoniqState::set_register(uint16_t address, uint8_t value) {
+	switch(address & 0xe0) {
+		case 0x00:
+			oscillators[address & 0x1f].velocity = uint16_t((oscillators[address & 0x1f].velocity & 0xff00) | (value << 0));
+		break;
+		case 0x20:
+			oscillators[address & 0x1f].velocity = uint16_t((oscillators[address & 0x1f].velocity & 0x00ff) | (value << 8));
+		break;
+		case 0x40:
+			oscillators[address & 0x1f].volume = value;
+		break;
+		case 0x60:
+			/* Does setting the last sample make any sense? */
+		break;
+		case 0x80:
+			oscillators[address & 0x1f].address = value;
+		break;
+		case 0xa0:
+			oscillators[address & 0x1f].control = value;
+		break;
+		case 0xc0:
+			oscillators[address & 0x1f].table_size = value;
+		break;
+
+		default:
+			switch(address & 0xff) {
+				case 0xe0:
+					/* Does setting the interrupt register really make any sense? */
+					interrupt_state = value;
+				break;
+				case 0xe1:
+					oscillator_count = (value >> 1) ? (value >> 1) : 1;
+				break;
+				case 0xe2:
+					/* Writing to the analogue to digital input definitely makes no sense. */
+				break;
+			}
+		break;
+	}
+}
+
 uint8_t GLU::get_data() {
+	// TODO: all of this. From local_, with just-in-time generation of the data sample and AD values.
 	return 0;
 }
 

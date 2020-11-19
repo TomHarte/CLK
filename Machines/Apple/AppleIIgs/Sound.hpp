@@ -75,12 +75,14 @@ class GLU: public Outputs::Speaker::SampleSource {
 				uint8_t address;
 				uint8_t control;
 				uint8_t table_size;
-			} oscillators_[32];
+			} oscillators[32];
 
 			// TODO: do all of these need to be on the audio thread?
 			uint8_t control;
 			uint8_t interrupt_state;
-			uint8_t oscillator_enable;
+			int oscillator_count;
+
+			void set_register(uint16_t address, uint8_t value);
 		} local_, remote_;
 
 		// Functions to update an EnsoniqState; these don't belong to the state itself
