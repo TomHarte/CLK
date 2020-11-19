@@ -385,27 +385,35 @@ class ConcreteMachine:
 
 					// The audio GLU.
 					case Read(0xc03c):
+						update_audio();
 						*value = sound_glu_.get_control();
 					break;
 					case Write(0xc03c):
+						update_audio();
 						sound_glu_.set_control(*value);
 					break;
 					case Read(0xc03d):
+						update_audio();
 						*value = sound_glu_.get_data();
 					break;
 					case Write(0xc03d):
+						update_audio();
 						sound_glu_.set_data(*value);
 					break;
 					case Read(0xc03e):
+						update_audio();
 						*value = sound_glu_.get_address_low();
 					break;
 					case Write(0xc03e):
+						update_audio();
 						sound_glu_.set_address_low(*value);
 					break;
 					case Read(0xc03f):
+						update_audio();
 						*value = sound_glu_.get_address_high();
 					break;
 					case Write(0xc03f):
+						update_audio();
 						sound_glu_.set_address_high(*value);
 					break;
 
@@ -588,6 +596,14 @@ class ConcreteMachine:
 #undef Read
 #undef Write
 						} else {
+							// Access the internal ROM.
+							//
+							// TODO: should probably occur only if there was a preceding access to a built-in
+							// card ROM?
+							if(is_read) {
+								*value = rom_[rom_.size() - 65536 + address_suffix];
+							}
+
 							if(address_suffix < 0xc080) {
 								// TODO: all other IO accesses.
 								printf("Unhandled IO %s: %04x\n", is_read ? "read" : "write", address_suffix);
