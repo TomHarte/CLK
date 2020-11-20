@@ -50,10 +50,12 @@ class GLU: public Outputs::Speaker::SampleSource {
 		// Assumed: on most modern architectures, an atomic 64-bit read or
 		// write can be achieved locklessly.
 		struct MemoryWrite {
+			MemoryWrite() : enabled(false) {}
+
 			uint32_t time;
 			uint16_t address;
 			uint8_t value;
-			bool enabled = false;
+			bool enabled;
 		};
 		static_assert(sizeof(MemoryWrite) == 8);
 		constexpr static int StoreBufferSize = 16384;

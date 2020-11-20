@@ -382,20 +382,16 @@ uint16_t *VideoBase::output_double_text(uint16_t *target, int start, int end, in
 }
 
 uint16_t *VideoBase::output_super_high_res(uint16_t *target, int start, int end, int row) const {
-	// TODO: both the palette and the mode byte should have been fetched by now, and just be
-	// available. I haven't implemented that yet, so the below just tries to show _something_.
-	// The use of appleii_palette is complete nonsense, as is the assumption of two pixels per byte.
-
 	const int row_address = row * 160 + 0x12000;
 
 	// TODO: line_control_ & 0x20 should enable or disable colour fill mode.
 	if(line_control_ & 0x80) {
 		for(int c = start * 4; c < end * 4; c++) {
 			const uint8_t source = ram_[row_address + c];
-			target[0] =  palette_[(source >> 6) & 0x3 + 0x8];
-			target[1] =  palette_[(source >> 4) & 0x3 + 0xc];
-			target[2] =  palette_[(source >> 2) & 0x3 + 0x0];
-			target[3] =  palette_[(source >> 0) & 0x3 + 0x4];
+			target[0] =  palette_[0x8 + (source >> 6) & 0x3];
+			target[1] =  palette_[0xc + (source >> 4) & 0x3];
+			target[2] =  palette_[0x0 + (source >> 2) & 0x3];
+			target[3] =  palette_[0x4 + (source >> 0) & 0x3];
 			target += 4;
 		}
 	} else {

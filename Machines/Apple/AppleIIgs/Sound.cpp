@@ -8,6 +8,7 @@
 
 #include "Sound.hpp"
 
+#include <cassert>
 #include <cstdio>
 
 // TODO: is it safe not to check for back-pressure in pending_stores_?

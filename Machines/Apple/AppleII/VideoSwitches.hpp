@@ -248,6 +248,7 @@ template <typename TimeUnit> class VideoSwitches {
 				case CharacterROM::IIe:
 					return ROMMachine::ROM(machine_name, "the Apple IIe character ROM", "apple2eu-character.rom", 4*1024, 0x816a86f1);
 
+				default:	// To appease GCC.
 				case CharacterROM::EnhancedIIe:
 					return ROMMachine::ROM(machine_name, "the Enhanced Apple IIe character ROM", "apple2e-character.rom", 4*1024, 0x2651014d);
 
