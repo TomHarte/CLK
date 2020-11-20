@@ -15,7 +15,14 @@
 
 using namespace Apple::IIgs::Sound;
 
-GLU::GLU(Concurrency::DeferringAsyncTaskQueue &audio_queue) : audio_queue_(audio_queue) {}
+GLU::GLU(Concurrency::DeferringAsyncTaskQueue &audio_queue) : audio_queue_(audio_queue) {
+	// Reset all pending stores.
+	MemoryWrite disabled_write;
+	disabled_write.enabled = false;
+	for(int c = 0; c < StoreBufferSize; c++) {
+		pending_stores_[c].store(disabled_write);
+	}
+}
 
 void GLU::set_data(uint8_t data) {
 	if(local_.control & 0x40) {
