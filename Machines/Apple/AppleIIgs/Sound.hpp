@@ -75,6 +75,9 @@ class GLU: public Outputs::Speaker::SampleSource {
 				uint8_t address;
 				uint8_t control;
 				uint8_t table_size;
+
+				uint8_t sample(uint8_t *ram);
+				int16_t output(uint8_t *ram);
 			} oscillators[32];
 
 			// TODO: do all of these need to be on the audio thread?

@@ -764,7 +764,7 @@ class ConcreteMachine:
 		AudioSource mixer_;
 		Outputs::Speaker::LowpassSpeaker<AudioSource> speaker_;
 		Cycles cycles_since_audio_update_;
-		static constexpr int audio_divider = 8;
+		static constexpr int audio_divider = 16;
 		void update_audio() {
 			const auto divided_cycles = cycles_since_audio_update_.divide(Cycles(audio_divider));
 			sound_glu_.run_for(divided_cycles);

@@ -74,7 +74,7 @@ void GLU::EnsoniqState::set_register(uint16_t address, uint8_t value) {
 					interrupt_state = value;
 				break;
 				case 0xe1:
-					oscillator_count = (value >> 1) ? (value >> 1) : 1;
+					oscillator_count = 1 + ((value >> 1) & 31);
 				break;
 				case 0xe2:
 					/* Writing to the analogue to digital input definitely makes no sense. */
@@ -164,8 +164,49 @@ void GLU::generate_audio(size_t number_of_samples, std::int16_t *target, int16_t
 	(void)range;
 
 	auto next_store = pending_stores_[pending_store_read_].load(std::memory_order::memory_order_acquire);
-	for(size_t c = 0; c < number_of_samples; c++) {
-		target[c] = 0;
+	for(size_t sample = 0; sample < number_of_samples; sample++) {
+
+		// TODO: there's a bit of a hack here where it is assumed that the input clock has been
+		// divided in advance. Real hardware divides by 8, I think?
+
+		// Seed output as 0.
+		int output = 0;
+
+		// Apply phase updates to all enabled oscillators.
+		for(int c = 0; c < remote_.oscillator_count; c++) {
+			// Don't do anything for halted oscillators.
+			if(remote_.oscillators[c].control&1) continue;
+
+			remote_.oscillators[c].position += remote_.oscillators[c].velocity;
+
+			// Test for a new halting event.
+			switch(remote_.oscillators[c].control & 6) {
+				case 0:	// Free-run mode; just keep the counter to its genuine 24 bits and always update sample.
+					remote_.oscillators[c].position &= 0x00ffffff;
+					output += remote_.oscillators[c].output(remote_.ram_);
+				break;
+
+				case 2:	// One-shot mode; check for end of run. Otherwise update sample.
+					if(remote_.oscillators[c].position & 0xff000000) {
+						remote_.oscillators[c].position = 0;
+						remote_.oscillators[c].control |= 1;
+					} else {
+						output += remote_.oscillators[c].output(remote_.ram_);
+					}
+				break;
+
+				case 4:	// Sync/AM mode.
+					assert(false);
+				break;
+
+				case 6:	// Swap mode.
+					assert(false);
+				break;
+			}
+		}
+
+		// Maximum total output was 32 channels times a 16-bit range. Map that down.
+		target[sample] = (output * output_range_) >> 20;
 
 		// Apply any RAM writes that interleave here.
 		++pending_store_read_time_;
@@ -176,6 +217,29 @@ void GLU::generate_audio(size_t number_of_samples, std::int16_t *target, int16_t
 		pending_stores_[pending_store_read_].store(next_store, std::memory_order::memory_order_relaxed);
 		pending_store_read_ = (pending_store_read_ + 1) & (StoreBufferSize - 1);
 	}
+}
+
+uint8_t GLU::EnsoniqState::Oscillator::sample(uint8_t *ram) {
+	// Table size mask should be 0x8000 for the largest table size, and 0xff00 for
+	// the smallest.
+	const uint16_t table_size_mask = 0xffff >> (8 - ((table_size >> 3) & 7));
+
+	// The pointer should use (at most) 15 bits; starting with bit 1 for resolution 0
+	// and starting at bit 8 for resolution 7.
+	const uint16_t table_pointer = uint16_t(position >> (1 + table_size&7));
+
+	// The full pointer is composed of the bits of the programmed address not touched by
+	// the table pointer, plus the table pointer.
+	const uint16_t sample_address = (address & ~table_size_mask) | (table_pointer & table_size_mask);
+
+	// Ignored here: bit 6 should select between RAM banks. But for now this is IIgs-centric,
+	// and that has only one bank of RAM.
+	return ram[sample_address];
+}
+
+int16_t GLU::EnsoniqState::Oscillator::output(uint8_t *ram) {
+	// Samples are unsigned 8-bit; do the proper work to make volume work correctly.
+	return int8_t(sample(ram) ^ 128) * volume;
 }
 
 void GLU::skip_audio(EnsoniqState &state, size_t number_of_samples) {
