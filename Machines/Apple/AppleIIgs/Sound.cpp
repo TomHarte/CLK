@@ -233,13 +233,17 @@ void GLU::generate_audio(size_t number_of_samples, std::int16_t *target, int16_t
 }
 
 uint8_t GLU::EnsoniqState::Oscillator::sample(uint8_t *ram) {
+	// Determines how many you'd have to shift a 16-bit pointer to the right for,
+	// in order to hit only the position-supplied bits.
+	const int pointer_shift = 8 - ((table_size >> 3) & 7);
+
 	// Table size mask should be 0x8000 for the largest table size, and 0xff00 for
 	// the smallest.
-	const uint16_t table_size_mask = 0xffff >> (8 - ((table_size >> 3) & 7));
+	const uint16_t table_size_mask = 0xffff >> pointer_shift;
 
 	// The pointer should use (at most) 15 bits; starting with bit 1 for resolution 0
 	// and starting at bit 8 for resolution 7.
-	const uint16_t table_pointer = uint16_t(position >> (1 + table_size&7));
+	const uint16_t table_pointer = uint16_t(position >> ((table_size&7) + pointer_shift));
 
 	// The full pointer is composed of the bits of the programmed address not touched by
 	// the table pointer, plus the table pointer.
