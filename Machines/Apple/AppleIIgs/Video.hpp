@@ -87,9 +87,32 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		uint16_t *output_double_text(uint16_t *target, int start, int end, int row) const;
 		uint16_t *output_char(uint16_t *target, uint8_t source, int row) const;
 
+		uint16_t *output_low_resolution(uint16_t *target, int start, int end, int row);
+
+		uint16_t *output_high_resolution(uint16_t *target, int start, int end, int row);
+
 		// Super high-res per-line state.
 		uint8_t line_control_;
 		uint16_t palette_[16];
+
+		// Lookup tables and state to assist in the IIgs' mapping from NTSC to RGB.
+		//
+		// My understanding of the real-life algorithm is: maintain a four-bit buffer.
+		// Fill it in a circular fashion. Ordinarily, output the result of looking
+		// up the RGB mapping of those four bits of Apple II output (which outputs four
+		// bits per NTSC colour cycle), commuted as per current phase. But if the bit
+		// being inserted differs from that currently in its position in the shift
+		// register, hold the existing output for three shifts.
+		//
+		// From there I am using the following:
+
+		// Maps from the most recent eight bits of Apple II output to how far back
+		// into history the graphics system should look for output.
+		uint8_t ntsc_shift_lookup_[256];
+		int ntsc_shift_ = 0;
+
+		/// Outputs the lowest 14 bits from @c ntsc_shift_, mapping to RGB.
+		uint16_t *output_shift(uint16_t *target, int phase) const;
 };
 
 class Video: public VideoBase {

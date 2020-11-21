@@ -56,6 +56,22 @@ VideoBase::VideoBase() :
 	crt_(CyclesPerLine - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red4Green4Blue4) {
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	crt_.set_visible_area(Outputs::Display::Rect(0.097f, 0.1f, 0.85f, 0.85f));
+
+	// Establish the shift lookup table for NTSC -> RGB output.
+	for(int c = 0; c < 256; c++) {
+		const auto top_nibble = c >> 4;
+
+		// Otherwise, check for descending disagreements.
+		ntsc_shift_lookup_[c] = 4;
+		int mask = 0x10;
+		while(mask) {
+			if((top_nibble & mask) != (c & mask)) break;
+			mask >>= 1;
+			--ntsc_shift_lookup_[c];
+		}
+
+		ntsc_shift_lookup_[c] &= 3;
+	}
 }
 
 void VideoBase::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
@@ -197,6 +213,7 @@ void VideoBase::output_row(int row, int start, int end) {
 
 			if(start == start_of_pixels) {
 				// 640 is the absolute most number of pixels that might be generated
+//				printf("Begin\n");
 				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(640, 2));
 
 				// YUCKY HACK. I do not know when the IIgs fetches its super high-res palette
@@ -232,6 +249,12 @@ void VideoBase::output_row(int row, int start, int end) {
 						case Apple::II::GraphicsMode::DoubleText:
 							next_pixel_ = output_double_text(next_pixel_, window_start, window_end, row);
 						break;
+						case Apple::II::GraphicsMode::LowRes:
+							next_pixel_ = output_low_resolution(next_pixel_, window_start, window_end, row);
+						break;
+						case Apple::II::GraphicsMode::HighRes:
+							next_pixel_ = output_high_resolution(next_pixel_, window_start, window_end, row);
+						break;
 
 						default:
 							assert(false);
@@ -243,6 +266,7 @@ void VideoBase::output_row(int row, int start, int end) {
 			}
 
 			if(end_of_period == start_of_right_border) {
+//				printf("Output\n");
 				crt_.output_data((start_of_right_border - start_of_pixels) * CyclesPerTick, next_pixel_ ? size_t(next_pixel_ - pixels_) : 1);
 				next_pixel_ = pixels_ = nullptr;
 			}
@@ -404,4 +428,116 @@ uint16_t *VideoBase::output_super_high_res(uint16_t *target, int start, int end,
 	}
 
 	return target;
+}
+
+uint16_t *VideoBase::output_low_resolution(uint16_t *target, int start, int end, int row) {
+	const int row_shift = row&4;
+	const uint16_t row_address = get_row_address(row);
+	for(int c = start; c < end; c++) {
+		ntsc_shift_ <<= 14;
+
+		const uint8_t source = ram_[row_address + c] >> row_shift;
+
+		// Convulve input as a function of odd/even row.
+		if((start + c)&1) {
+			ntsc_shift_ |= ((source & 4) >> 2) * 0x2222;
+			ntsc_shift_ |= ((source & 8) >> 3) * 0x1111;
+			ntsc_shift_ |= ((source & 1) >> 0) * 0x0888;
+			ntsc_shift_ |= ((source & 2) >> 1) * 0x0444;
+		} else {
+			ntsc_shift_ |= ((source & 1) >> 0) * 0x2222;
+			ntsc_shift_ |= ((source & 2) >> 1) * 0x1111;
+			ntsc_shift_ |= ((source & 4) >> 2) * 0x0888;
+			ntsc_shift_ |= ((source & 8) >> 3) * 0x0444;
+		}
+
+		// TODO: initial state?
+		target = output_shift(target, (c * 14) & 3);
+	}
+
+	return target;
+}
+
+uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end, int row) {
+	const uint16_t row_address = get_row_address(row);
+	for(int c = start; c < end; c++) {
+		ntsc_shift_ <<= 14;
+
+		uint8_t source = ram_[row_address + c];
+
+		// HACK: bit reverse, for now.
+		// Because I'd forgotten which order the Apple II serialises bits in, and have predicated too much upon it.
+		source = ((source >> 6) & 0x01) | ((source >> 4) & 0x02) | ((source >> 2) & 0x04) | ((source >> 0) & 0x08) | ((source << 2) & 0x10) | ((source << 4) & 0x20) | ((source << 6) & 0x40);
+
+		// TODO: can do this in two multiplies, I think.
+		const uint16_t doubled_source =
+			((source&0x01) * (0x0003 >> 0)) +
+			((source&0x02) * (0x000c >> 1)) +
+			((source&0x04) * (0x0030 >> 2)) +
+			((source&0x08) * (0x00c0 >> 3)) +
+			((source&0x10) * (0x0300 >> 4)) +
+			((source&0x20) * (0x0c00 >> 5)) +
+			((source&0x40) * (0x3000 >> 6));
+
+		// Just append new bits, doubled up (and possibly delayed).
+		// TODO: I can kill the conditional here.
+		if(source & high_resolution_mask_ & 0x80) {
+			ntsc_shift_ |= ((ntsc_shift_ >> 1) & 0x2000) | (doubled_source >> 1);
+		} else {
+			ntsc_shift_ |= doubled_source;
+		}
+
+		// TODO: initial state?
+		target = output_shift(target, (c * 14) & 3);
+	}
+
+	return target;
+}
+
+uint16_t *VideoBase::output_shift(uint16_t *target, int phase) const {
+	constexpr uint8_t rolls[4][16] = {
+		{
+			0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf
+		},
+		{
+			0x0, 0x8,		0x1, 0x9,		0x2, 0xa,		0x3, 0xb,
+			0x4, 0xc,		0x5, 0xd,		0x6, 0xe,		0x7, 0xf
+		},
+		{
+			0x0, 0x4, 0x8, 0xc,		0x1, 0x5, 0x9, 0xd,
+			0x2, 0x6, 0xa, 0xe,		0x3, 0x7, 0xb, 0xf
+		},
+		{
+			0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe,
+			0x1, 0x3, 0x5, 0x7, 0x9, 0xb, 0xd, 0xf
+		},
+	};
+
+#define OutputPixel(offset)	{\
+	const auto phase_offset = ntsc_shift_lookup_[(ntsc_shift_ >> offset) & 0xff];	\
+	const auto raw_bits = (ntsc_shift_ >> (offset + phase_offset)) & 0x0f; \
+	target[13 - offset] = appleii_palette[rolls[(phase + 13 - offset - phase_offset)&3][raw_bits]];	\
+}
+//#define OutputPixel(offset)	{\
+//	target[13 - offset] = appleii_palette[(ntsc_shift_ >> offset) & 0xf];	\
+//}
+
+	OutputPixel(13);
+	OutputPixel(12);
+	OutputPixel(11);
+	OutputPixel(10);
+	OutputPixel(9);
+	OutputPixel(8);
+	OutputPixel(7);
+	OutputPixel(6);
+	OutputPixel(5);
+	OutputPixel(4);
+	OutputPixel(3);
+	OutputPixel(2);
+	OutputPixel(1);
+	OutputPixel(0);
+
+#undef OutputPixel
+
+	return target + 14;
 }
