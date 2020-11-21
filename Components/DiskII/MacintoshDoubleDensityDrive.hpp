@@ -21,7 +21,7 @@ class DoubleDensityDrive: public IWMDrive {
 		/*!
 			@returns @c true if this is an 800kb drive; @c false otherwise.
 		*/
-		bool is_800k() {
+		bool is_800k() const {
 			return is_800k_;
 		}
 

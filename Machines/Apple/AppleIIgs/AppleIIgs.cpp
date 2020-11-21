@@ -23,6 +23,7 @@
 #include "../../../Components/AudioToggle/AudioToggle.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
 #include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
+#include "../../../Components/DiskII/DiskIIDrive.hpp"
 
 #include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
@@ -56,9 +57,13 @@ class ConcreteMachine:
 		ConcreteMachine(const Analyser::Static::AppleIIgs::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			m65816_(*this),
 			iwm_(CLOCK_RATE / 2),
-			drives_{
+			drives35_{
 		 		{CLOCK_RATE / 2, true},
 		 		{CLOCK_RATE / 2, true}
+			},
+			drives525_{
+				{CLOCK_RATE / 2},
+				{CLOCK_RATE / 2}
 			},
 			sound_glu_(audio_queue_),
 			audio_toggle_(audio_queue_),
@@ -114,9 +119,8 @@ class ConcreteMachine:
 			adb_glu_.set_is_rom03(target.model == Target::Model::ROM03);
 
 			// Attach drives to the IWM.
-			// TODO: presumably attach more, some of which are 5.25"?
-			iwm_->set_drive(0, &drives_[0]);
-			iwm_->set_drive(1, &drives_[1]);
+			iwm_->set_drive(0, &drives35_[0]);
+			iwm_->set_drive(1, &drives35_[1]);
 
 			// TODO: enable once machine is otherwise sane.
 //			Memory::Fuzz(ram_);
@@ -165,15 +169,22 @@ class ConcreteMachine:
 		// MARK: MediaTarget.
 		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.disks.empty()) {
-				drives_[0].set_disk(media.disks[0]);
+				const auto disk = media.disks[0];
+				if(disk->get_maximum_head_position().as_int() > 35) {
+					drives35_[0].set_disk(media.disks[0]);
+				} else {
+					drives525_[0].set_disk(media.disks[0]);
+				}
 			}
 			return true;
 		}
 
 		// MARK: Activity::Source
 		void set_activity_observer(Activity::Observer *observer) final {
-			drives_[0].set_activity_observer(observer, "First 3.5\" Drive", true);
-			drives_[1].set_activity_observer(observer, "Second 3.5\" Drive", true);
+			drives35_[0].set_activity_observer(observer, "First 3.5\" Drive", true);
+			drives35_[1].set_activity_observer(observer, "Second 3.5\" Drive", true);
+			drives525_[0].set_activity_observer(observer, "First 5.25\" Drive", true);
+			drives525_[1].set_activity_observer(observer, "Second 5.25\" Drive", true);
 		}
 
 		// MARK: BusHandler.
@@ -514,13 +525,11 @@ class ConcreteMachine:
 
 						// Presumably bit 6 selects between two 5.25" drives rather than the two 3.5"?
 						if(*value & 0x40) {
-							iwm_->set_drive(0, &drives_[0]);
-							iwm_->set_drive(1, &drives_[1]);
+							iwm_->set_drive(0, &drives35_[0]);
+							iwm_->set_drive(1, &drives35_[1]);
 						} else {
-							// TODO: add 5.25" drives.
-							// (and any Smartport devices?)
-							iwm_->set_drive(0, nullptr);
-							iwm_->set_drive(1, nullptr);
+							iwm_->set_drive(0, &drives525_[0]);
+							iwm_->set_drive(1, &drives525_[1]);
 						}
 					break;
 
@@ -754,7 +763,8 @@ class ConcreteMachine:
  		Zilog::SCC::z8530 scc_;
  		JustInTimeActor<Apple::IWM, 1, 2, Cycles> iwm_;
  		Cycles cycles_since_clock_tick_;
-		Apple::Macintosh::DoubleDensityDrive drives_[2];
+		Apple::Macintosh::DoubleDensityDrive drives35_[2];
+		Apple::Disk::DiskIIDrive drives525_[2];
 
 		// The audio parts.
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
