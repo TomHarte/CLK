@@ -31,7 +31,7 @@ class ClockStorage {
 				0x00, 0x02, 0x63, 0x00,
 				0x03, 0x88, 0x00, 0x4c
 			};
-			memcpy(data_, default_data, sizeof(data_));
+			memcpy(data_, default_data, sizeof(default_data));
 			memset(&data_[sizeof(default_data)], 0xff, sizeof(data_) - sizeof(default_data));
 		}
 
