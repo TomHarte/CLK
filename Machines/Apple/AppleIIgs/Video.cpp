@@ -213,7 +213,6 @@ void VideoBase::output_row(int row, int start, int end) {
 
 			if(start == start_of_pixels) {
 				// 640 is the absolute most number of pixels that might be generated
-//				printf("Begin\n");
 				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(640, 2));
 
 				// YUCKY HACK. I do not know when the IIgs fetches its super high-res palette
@@ -266,7 +265,6 @@ void VideoBase::output_row(int row, int start, int end) {
 			}
 
 			if(end_of_period == start_of_right_border) {
-//				printf("Output\n");
 				crt_.output_data((start_of_right_border - start_of_pixels) * CyclesPerTick, next_pixel_ ? size_t(next_pixel_ - pixels_) : 1);
 				next_pixel_ = pixels_ = nullptr;
 			}
@@ -467,6 +465,7 @@ uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end
 
 		// HACK: bit reverse, for now.
 		// Because I'd forgotten which order the Apple II serialises bits in, and have predicated too much upon it.
+		// TODO: undo hack.
 		source = ((source >> 6) & 0x01) | ((source >> 4) & 0x02) | ((source >> 2) & 0x04) | ((source >> 0) & 0x08) | ((source << 2) & 0x10) | ((source << 4) & 0x20) | ((source << 6) & 0x40);
 
 		// TODO: can do this in two multiplies, I think.
@@ -488,7 +487,7 @@ uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end
 		}
 
 		// TODO: initial state?
-		target = output_shift(target, (c * 14) & 3);
+		target = output_shift(target, (2 + (c * 14)) & 3);
 	}
 
 	return target;
@@ -518,9 +517,6 @@ uint16_t *VideoBase::output_shift(uint16_t *target, int phase) const {
 	const auto raw_bits = (ntsc_shift_ >> (offset + phase_offset)) & 0x0f; \
 	target[13 - offset] = appleii_palette[rolls[(phase + 13 - offset - phase_offset)&3][raw_bits]];	\
 }
-//#define OutputPixel(offset)	{\
-//	target[13 - offset] = appleii_palette[(ntsc_shift_ >> offset) & 0xf];	\
-//}
 
 	OutputPixel(13);
 	OutputPixel(12);
