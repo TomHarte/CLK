@@ -554,18 +554,18 @@ class ConcreteMachine:
 							// current card mask.
 
 							size_t card_number = 0;
-							if(address >= 0xc100) {
+							if(address_suffix >= 0xc100) {
 								/*
 									Decode the area conventionally used by cards for ROMs:
 										0xCn00 to 0xCnff: card n.
 								*/
-								card_number = (address - 0xc000) >> 8;
+								card_number = (address_suffix - 0xc000) >> 8;
 							} else {
 								/*
 									Decode the area conventionally used by cards for registers:
 										C0n0 to C0nF: card n - 8.
 								*/
-								card_number = (address - 0xc080) >> 4;
+								card_number = (address_suffix - 0xc080) >> 4;
 							}
 
 							const uint8_t permitted_card_mask_ = card_mask_ & 0xf6;
