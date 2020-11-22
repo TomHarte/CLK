@@ -171,7 +171,7 @@ template <typename... T> class CompoundSource:
 		CompoundSourceHolder<T...> source_holder_;
 		std::vector<double> volumes_;
 		int16_t volume_range_ = 0;
-		std::atomic<double> average_output_peak_;
+		std::atomic<double> average_output_peak_{1.0};
 };
 
 }
