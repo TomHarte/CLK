@@ -93,11 +93,12 @@ template <typename DataUnit> void BufferingScanTarget::end_data(size_t actual_le
 	// Acquire the producer lock.
 	std::lock_guard lock_guard(producer_mutex_);
 
-	// Record that no further end_data calls are expected.
+	// Do nothing if no data write is actually ongoing.
+	if(!data_is_allocated_) return;
 	data_is_allocated_ = false;
 
-	// Do nothing if no data write is actually ongoing.
-	if(allocation_has_failed_ || !data_is_allocated_) return;
+	// Check for other allocation failures.
+	if(allocation_has_failed_) return;
 
 	// Bookend the start and end of the new data, to safeguard for precision errors in sampling.
 	DataUnit *const sized_write_area = &reinterpret_cast<DataUnit *>(write_area_)[write_pointers_.write_area];
