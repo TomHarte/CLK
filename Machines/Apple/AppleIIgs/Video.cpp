@@ -70,6 +70,14 @@ VideoBase::VideoBase() :
 			++ntsc_shift_lookup_[c];
 		}
 
+		// If b0 and b4 disagreed, use the top part. That means that
+		// there was a diference, but the maximum wait time for new
+		// data was hit.
+		if(!ntsc_shift_lookup_[c]) {
+			ntsc_shift_lookup_[c] = 4;
+		}
+
+		// Note in case bit packing becomes desirable:
 		// If no incompatibilities were found then the low four bits are identical
 		// to the top four; can just leave the lookup at a shift of 0 as 0 == 4.
 	}
@@ -484,18 +492,14 @@ uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end
 
 		// Just append new bits, doubled up (and possibly delayed).
 		// TODO: I can kill the conditional here. Probably?
-//		if(source & high_resolution_mask_ & 0x80) {
-//			ntsc_shift_ |= doubled_source << 5;
-//		} else {
-//			ntsc_shift_ = (ntsc_shift_ & 0xf) | (doubled_source << 4) | ((doubled_source << 5) & 0x80000);
-//		}
-
-		// TODO: reintroduce delay bit. Delay bit should: (i) hold existing bit; and (ii) store top bit for potential
-		// delay into the next word.
-		ntsc_shift_ |= doubled_source << 4;
+		if(source & high_resolution_mask_ & 0x80) {
+			ntsc_shift_ |= (doubled_source << 5) | ((ntsc_shift_ & 0x08) << 1);
+		} else {
+			ntsc_shift_ = (ntsc_shift_ & 0xf) | (doubled_source << 4);
+		}
 
 		// TODO: initial state?
-		target = output_shift(target, (2 + (c * 14)) & 3);
+		target = output_shift(target, ((c * 14)) & 3);
 	}
 
 	return target;
@@ -507,16 +511,16 @@ uint16_t *VideoBase::output_shift(uint16_t *target, int phase) const {
 			0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf
 		},
 		{
-			0x0, 0x8,		0x1, 0x9,		0x2, 0xa,		0x3, 0xb,
-			0x4, 0xc,		0x5, 0xd,		0x6, 0xe,		0x7, 0xf
+			0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe,
+			0x1, 0x3, 0x5, 0x7, 0x9, 0xb, 0xd, 0xf
 		},
 		{
 			0x0, 0x4, 0x8, 0xc,		0x1, 0x5, 0x9, 0xd,
 			0x2, 0x6, 0xa, 0xe,		0x3, 0x7, 0xb, 0xf
 		},
 		{
-			0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe,
-			0x1, 0x3, 0x5, 0x7, 0x9, 0xb, 0xd, 0xf
+			0x0, 0x8,		0x1, 0x9,		0x2, 0xa,		0x3, 0xb,
+			0x4, 0xc,		0x5, 0xd,		0x6, 0xe,		0x7, 0xf
 		},
 	};
 
