@@ -58,19 +58,20 @@ VideoBase::VideoBase() :
 	crt_.set_visible_area(Outputs::Display::Rect(0.097f, 0.1f, 0.85f, 0.85f));
 
 	// Establish the shift lookup table for NTSC -> RGB output.
-	for(int c = 0; c < 256; c++) {
+	for(size_t c = 0; c < sizeof(ntsc_shift_lookup_) / sizeof(*ntsc_shift_lookup_); c++) {
 		const auto top_nibble = c >> 4;
 
 		// Otherwise, check for descending disagreements.
-		ntsc_shift_lookup_[c] = 4;
-		int mask = 0x10;
-		while(mask) {
+		ntsc_shift_lookup_[c] = 0;
+		decltype(c) mask = 0x01;
+		while(ntsc_shift_lookup_[c] < 4) {
 			if((top_nibble & mask) != (c & mask)) break;
-			mask >>= 1;
-			--ntsc_shift_lookup_[c];
+			mask <<= 1;
+			++ntsc_shift_lookup_[c];
 		}
 
-		ntsc_shift_lookup_[c] &= 3;
+		// If no incompatibilities were found then the low four bits are identical
+		// to the top four; can just leave the lookup at a shift of 0 as 0 == 4.
 	}
 }
 
@@ -207,11 +208,14 @@ void VideoBase::output_row(int row, int start, int end) {
 			if(start == end) return;
 		}
 
+		assert(end > start);
+
 		// Fetch and output such pixels as it is time for.
 		if(start >= start_of_pixels && start < start_of_right_border) {
 			const int end_of_period = std::min(start_of_right_border, end);
 
 			if(start == start_of_pixels) {
+//				printf("Begin\n");
 				// 640 is the absolute most number of pixels that might be generated
 				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(640, 2));
 
@@ -265,6 +269,7 @@ void VideoBase::output_row(int row, int start, int end) {
 			}
 
 			if(end_of_period == start_of_right_border) {
+//				printf("End\n");
 				crt_.output_data((start_of_right_border - start_of_pixels) * CyclesPerTick, next_pixel_ ? size_t(next_pixel_ - pixels_) : 1);
 				next_pixel_ = pixels_ = nullptr;
 			}
@@ -272,6 +277,8 @@ void VideoBase::output_row(int row, int start, int end) {
 			start = end_of_period;
 			if(start == end) return;
 		}
+
+		assert(end > start);
 
 		// Output right border as far as currently known.
 		if(start >= start_of_right_border && start < start_of_sync) {
@@ -432,9 +439,11 @@ uint16_t *VideoBase::output_low_resolution(uint16_t *target, int start, int end,
 	const int row_shift = row&4;
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
-		ntsc_shift_ <<= 14;
+		ntsc_shift_ >>= 14;
 
 		const uint8_t source = ram_[row_address + c] >> row_shift;
+
+		// TODO: below is all wrong, now that I've corrected ntsc_shift_ direction.
 
 		// Convulve input as a function of odd/even row.
 		if((start + c)&1) {
@@ -459,14 +468,9 @@ uint16_t *VideoBase::output_low_resolution(uint16_t *target, int start, int end,
 uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end, int row) {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
-		ntsc_shift_ <<= 14;
+		ntsc_shift_ >>= 14;
 
 		uint8_t source = ram_[row_address + c];
-
-		// HACK: bit reverse, for now.
-		// Because I'd forgotten which order the Apple II serialises bits in, and have predicated too much upon it.
-		// TODO: undo hack.
-		source = ((source >> 6) & 0x01) | ((source >> 4) & 0x02) | ((source >> 2) & 0x04) | ((source >> 0) & 0x08) | ((source << 2) & 0x10) | ((source << 4) & 0x20) | ((source << 6) & 0x40);
 
 		// TODO: can do this in two multiplies, I think.
 		const uint16_t doubled_source =
@@ -479,12 +483,16 @@ uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end
 			((source&0x40) * (0x3000 >> 6));
 
 		// Just append new bits, doubled up (and possibly delayed).
-		// TODO: I can kill the conditional here.
-		if(source & high_resolution_mask_ & 0x80) {
-			ntsc_shift_ |= ((ntsc_shift_ >> 1) & 0x2000) | (doubled_source >> 1);
-		} else {
-			ntsc_shift_ |= doubled_source;
-		}
+		// TODO: I can kill the conditional here. Probably?
+//		if(source & high_resolution_mask_ & 0x80) {
+//			ntsc_shift_ |= doubled_source << 5;
+//		} else {
+//			ntsc_shift_ = (ntsc_shift_ & 0xf) | (doubled_source << 4) | ((doubled_source << 5) & 0x80000);
+//		}
+
+		// TODO: reintroduce delay bit. Delay bit should: (i) hold existing bit; and (ii) store top bit for potential
+		// delay into the next word.
+		ntsc_shift_ |= doubled_source << 4;
 
 		// TODO: initial state?
 		target = output_shift(target, (2 + (c * 14)) & 3);
@@ -515,23 +523,23 @@ uint16_t *VideoBase::output_shift(uint16_t *target, int phase) const {
 #define OutputPixel(offset)	{\
 	const auto phase_offset = ntsc_shift_lookup_[(ntsc_shift_ >> offset) & 0xff];	\
 	const auto raw_bits = (ntsc_shift_ >> (offset + phase_offset)) & 0x0f; \
-	target[13 - offset] = appleii_palette[rolls[(phase + 13 - offset - phase_offset)&3][raw_bits]];	\
+	target[offset] = appleii_palette[rolls[(phase + offset + phase_offset)&3][raw_bits]];	\
 }
 
-	OutputPixel(13);
-	OutputPixel(12);
-	OutputPixel(11);
-	OutputPixel(10);
-	OutputPixel(9);
-	OutputPixel(8);
-	OutputPixel(7);
-	OutputPixel(6);
-	OutputPixel(5);
-	OutputPixel(4);
-	OutputPixel(3);
-	OutputPixel(2);
-	OutputPixel(1);
 	OutputPixel(0);
+	OutputPixel(1);
+	OutputPixel(2);
+	OutputPixel(3);
+	OutputPixel(4);
+	OutputPixel(5);
+	OutputPixel(6);
+	OutputPixel(7);
+	OutputPixel(8);
+	OutputPixel(9);
+	OutputPixel(10);
+	OutputPixel(11);
+	OutputPixel(12);
+	OutputPixel(13);
 
 #undef OutputPixel
 
