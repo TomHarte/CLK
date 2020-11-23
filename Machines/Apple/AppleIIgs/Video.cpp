@@ -49,6 +49,37 @@ constexpr uint16_t appleii_palette[16] = {
 	PaletteConvulve(0x0fff),	// White.
 };
 
+// Reasoned guesswork ahoy!
+//
+// The IIgs VGC can fetch four bytes per column — I'm unclear physically how, but that's definitely true
+// since the IIgs modes packs 160 bytes work of graphics into the Apple II's usual 40-cycle fetch area;
+// it's possible that if I understood the meaning of the linear video bit in the new video flag I'd know more.
+//
+// Super Hi-Res also fetches 16*2 = 32 bytes of palette and a control byte sometime before each row.
+// So it needs five windows for that.
+//
+// Guessing four cycles of sync, I've chosen to arrange one output row for this emulator as:
+//
+//	5 cycles of back porch;	[TODO: include a colour burst]
+//	8 windows left border, the final five of which fetch palette and control if in IIgs mode;
+//	40 windows of pixel output;
+//	8 cycles of right border;
+//	4 cycles of sync (including the extra 1/7th window, as it has to go _somewhere_).
+//
+// Otherwise, the first 200 rows may be pixels and the 192 in the middle of those are the II set.
+constexpr int first_sync_line = 220;	// A complete guess. Information needed.
+
+constexpr int blank_ticks = 5;
+constexpr int left_border_ticks = 8;
+constexpr int pixel_ticks = 40;
+constexpr int right_border_ticks = 8;
+
+constexpr int start_of_left_border = blank_ticks;
+constexpr int start_of_pixels = start_of_left_border + left_border_ticks;
+constexpr int start_of_right_border = start_of_pixels + pixel_ticks;
+constexpr int start_of_sync = start_of_right_border + right_border_ticks;
+constexpr int sync_period = CyclesPerLine - start_of_sync*CyclesPerTick;
+
 }
 
 VideoBase::VideoBase() :
@@ -58,28 +89,18 @@ VideoBase::VideoBase() :
 	crt_.set_visible_area(Outputs::Display::Rect(0.097f, 0.1f, 0.85f, 0.85f));
 
 	// Establish the shift lookup table for NTSC -> RGB output.
-	for(size_t c = 0; c < sizeof(ntsc_shift_lookup_) / sizeof(*ntsc_shift_lookup_); c++) {
-		const auto top_nibble = c >> 4;
+	for(size_t c = 0; c < sizeof(ntsc_delay_lookup_) / sizeof(*ntsc_delay_lookup_); c++) {
+		const auto old_delay = c >> 2;
 
-		// Otherwise, check for descending disagreements.
-		ntsc_shift_lookup_[c] = 0;
-		decltype(c) mask = 0x01;
-		while(ntsc_shift_lookup_[c] < 4) {
-			if((top_nibble & mask) != (c & mask)) break;
-			mask <<= 1;
-			++ntsc_shift_lookup_[c];
+		// If delay is 3, 2, 1 or 0 the output is just that minus 1.
+		// Otherwise the output is either still 4, or 3 if the two lowest bits don't match.
+		if(old_delay < 4) {
+			ntsc_delay_lookup_[c] = (old_delay > 0) ? uint8_t(old_delay - 1) : 4;
+		} else {
+			ntsc_delay_lookup_[c] = (c&1) == ((c >> 1)&1) ? 4 : 3;
 		}
 
-		// If b0 and b4 disagreed, use the top part. That means that
-		// there was a diference, but the maximum wait time for new
-		// data was hit.
-		if(!ntsc_shift_lookup_[c]) {
-			ntsc_shift_lookup_[c] = 4;
-		}
-
-		// Note in case bit packing becomes desirable:
-		// If no incompatibilities were found then the low four bits are identical
-		// to the top four; can just leave the lookup at a shift of 0 as 0 == 4.
+		ntsc_delay_lookup_[c] = 4;
 	}
 }
 
@@ -146,36 +167,6 @@ Cycles VideoBase::get_next_sequence_point() const {
 }
 
 void VideoBase::output_row(int row, int start, int end) {
-	// Reasoned guesswork ahoy!
-	//
-	// The IIgs VGC can fetch four bytes per column — I'm unclear physically how, but that's definitely true
-	// since the IIgs modes packs 160 bytes work of graphics into the Apple II's usual 40-cycle fetch area;
-	// it's possible that if I understood the meaning of the linear video bit in the new video flag I'd know more.
-	//
-	// Super Hi-Res also fetches 16*2 = 32 bytes of palette and a control byte sometime before each row.
-	// So it needs five windows for that.
-	//
-	// Guessing four cycles of sync, I've chosen to arrange one output row for this emulator as:
-	//
-	//	5 cycles of back porch;	[TODO: include a colour burst]
-	//	8 windows left border, the final five of which fetch palette and control if in IIgs mode;
-	//	40 windows of pixel output;
-	//	8 cycles of right border;
-	//	4 cycles of sync (including the extra 1/7th window, as it has to go _somewhere_).
-	//
-	// Otherwise, the first 200 rows may be pixels and the 192 in the middle of those are the II set.
-	constexpr int first_sync_line = 220;	// A complete guess. Information needed.
-
-	constexpr int blank_ticks = 5;
-	constexpr int left_border_ticks = 8;
-	constexpr int pixel_ticks = 40;
-	constexpr int right_border_ticks = 8;
-
-	constexpr int start_of_left_border = blank_ticks;
-	constexpr int start_of_pixels = start_of_left_border + left_border_ticks;
-	constexpr int start_of_right_border = start_of_pixels + pixel_ticks;
-	constexpr int start_of_sync = start_of_right_border + right_border_ticks;
-	constexpr int sync_period = CyclesPerLine - start_of_sync*CyclesPerTick;
 
 	// Deal with vertical sync.
 	if(row >= first_sync_line && row < first_sync_line + 3) {
@@ -244,6 +235,9 @@ void VideoBase::output_row(int row, int start, int end) {
 				if(line_control_ & 0x40) {
 					set_interrupts(0x20);
 				}
+
+				// Reset NTSC decoding.
+				ntsc_delay_ = 4;
 			}
 
 			if(next_pixel_) {
@@ -476,12 +470,11 @@ uint16_t *VideoBase::output_low_resolution(uint16_t *target, int start, int end,
 uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end, int row) {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
-		ntsc_shift_ >>= 14;
-
 		uint8_t source = ram_[row_address + c];
 
 		// TODO: can do this in two multiplies, I think.
-		const uint16_t doubled_source =
+		// Or, at worst, a 512-byte lookup.
+		const uint32_t doubled_source =
 			((source&0x01) * (0x0003 >> 0)) +
 			((source&0x02) * (0x000c >> 1)) +
 			((source&0x04) * (0x0030 >> 2)) +
@@ -493,19 +486,29 @@ uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end
 		// Just append new bits, doubled up (and possibly delayed).
 		// TODO: I can kill the conditional here. Probably?
 		if(source & high_resolution_mask_ & 0x80) {
-			ntsc_shift_ |= (doubled_source << 5) | ((ntsc_shift_ & 0x08) << 1);
+			ntsc_shift_ = (doubled_source << 19) | ((ntsc_shift_ >> 13) & 0x40000) | (ntsc_shift_ >> 14);
 		} else {
-			ntsc_shift_ = (ntsc_shift_ & 0xf) | (doubled_source << 4);
+			ntsc_shift_ = (doubled_source << 18) | (ntsc_shift_ >> 14);
 		}
 
-		// TODO: initial state?
-		target = output_shift(target, ((c * 14)) & 3);
+		// Make sure that at least two columns are enqueued before output begins;
+		// the top bits can't be understood without reference to bits that come afterwards.
+		if(c) {
+			target = output_shift(target, 2 + (c * 14));
+		} else {
+			ntsc_shift_ |= ntsc_shift_ >> 14;
+		}
+	}
+
+	if(end == 40) {
+		ntsc_shift_ >>= 14;
+		target = output_shift(target, 2 + (40 * 14));
 	}
 
 	return target;
 }
 
-uint16_t *VideoBase::output_shift(uint16_t *target, int phase) const {
+uint16_t *VideoBase::output_shift(uint16_t *target, int phase) {
 	constexpr uint8_t rolls[4][16] = {
 		{
 			0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf
@@ -525,9 +528,9 @@ uint16_t *VideoBase::output_shift(uint16_t *target, int phase) const {
 	};
 
 #define OutputPixel(offset)	{\
-	const auto phase_offset = ntsc_shift_lookup_[(ntsc_shift_ >> offset) & 0xff];	\
-	const auto raw_bits = (ntsc_shift_ >> (offset + phase_offset)) & 0x0f; \
-	target[offset] = appleii_palette[rolls[(phase + offset + phase_offset)&3][raw_bits]];	\
+	ntsc_delay_ = ntsc_delay_lookup_[unsigned(ntsc_delay_ << 2) | ((ntsc_shift_ >> offset)&1) | ((ntsc_shift_ >> (offset + 3))&2)];	\
+	const auto raw_bits = (ntsc_shift_ >> (offset + ntsc_delay_)) & 0x0f; \
+	target[offset] = appleii_palette[rolls[(phase + offset + ntsc_delay_)&3][raw_bits]];	\
 }
 
 	OutputPixel(0);

@@ -106,13 +106,19 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		//
 		// From there I am using the following:
 
-		// Maps from the most recent eight bits of Apple II output to how far back
-		// into history the graphics system should look for output.
-		uint8_t ntsc_shift_lookup_[256];
-		int ntsc_shift_ = 0;
+		// Maps from:
+		//
+		//	b0 = b0 of the shift register
+		//	b1 = b4 of the shift register
+		//	b2– = current delay count
+		//
+		// to a new delay count.
+		uint8_t ntsc_delay_lookup_[20];
+		uint32_t ntsc_shift_ = 0;	// Assumption here: logical shifts will ensue, rather than arithmetic.
+		int ntsc_delay_ = 0;
 
 		/// Outputs the lowest 14 bits from @c ntsc_shift_, mapping to RGB.
-		uint16_t *output_shift(uint16_t *target, int phase) const;
+		uint16_t *output_shift(uint16_t *target, int phase);
 };
 
 class Video: public VideoBase {
