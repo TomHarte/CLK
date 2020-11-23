@@ -235,6 +235,11 @@ void VideoBase::output_row(int row, int start, int end) {
 					set_interrupts(0x20);
 				}
 
+				// Set up appropriately for fill mode (or not).
+				for(int c = 0; c < 4; c++) {
+					palette_zero_[c] = (line_control_ & 0x20) ? &palette_[c * 4] : &palette_throwaway_;
+				}
+
 				// Reset NTSC decoding and total line buffering.
 				ntsc_delay_ = 4;
 				pixels_start_column_ = start;
@@ -431,21 +436,22 @@ uint16_t *VideoBase::output_double_text(uint16_t *target, int start, int end, in
 uint16_t *VideoBase::output_super_high_res(uint16_t *target, int start, int end, int row) const {
 	const int row_address = row * 160 + 0x12000;
 
-	// TODO: line_control_ & 0x20 should enable or disable colour fill mode.
+	// The palette_zero_ writes ensure that palette colour 0 is replaced by whatever was last output,
+	// if fill mode is enabled. Otherwise they go to throwaway storage.
 	if(line_control_ & 0x80) {
 		for(int c = start * 4; c < end * 4; c++) {
 			const uint8_t source = ram_[row_address + c];
-			target[0] =  palette_[0x8 + ((source >> 6) & 0x3)];
-			target[1] =  palette_[0xc + ((source >> 4) & 0x3)];
-			target[2] =  palette_[0x0 + ((source >> 2) & 0x3)];
-			target[3] =  palette_[0x4 + ((source >> 0) & 0x3)];
+			*palette_zero_[3] = target[0] = palette_[0x8 + ((source >> 6) & 0x3)];
+			*palette_zero_[0] = target[1] = palette_[0xc + ((source >> 4) & 0x3)];
+			*palette_zero_[1] = target[2] = palette_[0x0 + ((source >> 2) & 0x3)];
+			*palette_zero_[2] = target[3] = palette_[0x4 + ((source >> 0) & 0x3)];
 			target += 4;
 		}
 	} else {
 		for(int c = start * 4; c < end * 4; c++) {
 			const uint8_t source = ram_[row_address + c];
-			target[0] =  palette_[(source >> 4) & 0xf];
-			target[1] =  palette_[source & 0xf];
+			*palette_zero_[0] = target[0] = palette_[(source >> 4) & 0xf];
+			*palette_zero_[0] = target[1] = palette_[source & 0xf];
 			target += 2;
 		}
 	}

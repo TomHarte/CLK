@@ -144,6 +144,9 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		uint8_t line_control_;
 		uint16_t palette_[16];
 
+		// Storage used for fill mode.
+		uint16_t *palette_zero_[4] = {nullptr, nullptr, nullptr, nullptr}, palette_throwaway_;
+
 		// Lookup tables and state to assist in the IIgs' mapping from NTSC to RGB.
 		//
 		// My understanding of the real-life algorithm is: maintain a four-bit buffer.
