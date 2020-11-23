@@ -80,6 +80,8 @@ constexpr int start_of_right_border = start_of_pixels + pixel_ticks;
 constexpr int start_of_sync = start_of_right_border + right_border_ticks;
 constexpr int sync_period = CyclesPerLine - start_of_sync*CyclesPerTick;
 
+// TODO: above completely forgets about double high-res, etc, starting half a column earler. Hmmm.
+
 }
 
 VideoBase::VideoBase() :
@@ -212,12 +214,9 @@ void VideoBase::output_row(int row, int start, int end) {
 		// Fetch and output such pixels as it is time for.
 		if(start >= start_of_pixels && start < start_of_right_border) {
 			const int end_of_period = std::min(start_of_right_border, end);
+			const auto mode = graphics_mode(row);
 
 			if(start == start_of_pixels) {
-//				printf("Begin\n");
-				// 640 is the absolute most number of pixels that might be generated
-				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(640, 2));
-
 				// YUCKY HACK. I do not know when the IIgs fetches its super high-res palette
 				// and control byte. Since I do not know, any guess is equally likely negatively
 				// to affect software. Therefore this hack is as good as any other guess:
@@ -236,43 +235,60 @@ void VideoBase::output_row(int row, int start, int end) {
 					set_interrupts(0x20);
 				}
 
-				// Reset NTSC decoding.
+				// Reset NTSC decoding and total line buffering.
 				ntsc_delay_ = 4;
+				pixels_start_column_ = start;
+			}
+
+			if(!next_pixel_ || pixels_format_ != format_for_mode(mode)) {
+				// Flush anything already in a buffer.
+				if(pixels_start_column_ < start) {
+					crt_.output_data((start - pixels_start_column_) * CyclesPerTick, next_pixel_ ? size_t(next_pixel_ - pixels_) : 1);
+					next_pixel_ = pixels_ = nullptr;
+				}
+
+				// Allocate a new buffer; 640 is as bad as it gets.
+				// TODO: make proper size estimate?
+				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(640, 2));
+				pixels_start_column_ = start;
+				pixels_format_ = format_for_mode(mode);
 			}
 
 			if(next_pixel_) {
 				const int window_start = start - start_of_pixels;
 				const int window_end = end_of_period - start_of_pixels;
 
-				if(new_video_ & 0x80) {
-					next_pixel_ = output_super_high_res(next_pixel_, window_start, window_end, row);
-				} else {
-					switch(graphics_mode(row)) {
-						case Apple::II::GraphicsMode::Text:
-							next_pixel_ = output_text(next_pixel_, window_start, window_end, row);
-						break;
-						case Apple::II::GraphicsMode::DoubleText:
-							next_pixel_ = output_double_text(next_pixel_, window_start, window_end, row);
-						break;
-						case Apple::II::GraphicsMode::LowRes:
-							next_pixel_ = output_low_resolution(next_pixel_, window_start, window_end, row);
-						break;
-						case Apple::II::GraphicsMode::HighRes:
-							next_pixel_ = output_high_resolution(next_pixel_, window_start, window_end, row);
-						break;
+				switch(mode) {
+					case GraphicsMode::SuperHighRes:
+						next_pixel_ = output_super_high_res(next_pixel_, window_start, window_end, row);
+					break;
+					case GraphicsMode::Text:
+						next_pixel_ = output_text(next_pixel_, window_start, window_end, row);
+					break;
+					case GraphicsMode::DoubleText:
+						next_pixel_ = output_double_text(next_pixel_, window_start, window_end, row);
+					break;
+					case GraphicsMode::LowRes:
+						next_pixel_ = output_low_resolution(next_pixel_, window_start, window_end, row);
+					break;
+					case GraphicsMode::HighRes:
+						next_pixel_ = output_high_resolution(next_pixel_, window_start, window_end, row);
+					break;
 
-						default:
-							assert(false);
-					}
-
-					// TODO: support modes other than 40-column text.
-//					if(graphics_mode(row) != Apple::II::GraphicsMode::Text) printf("Outputting incorrect graphics mode!\n");
+					default:
+						assert(false);	// i.e. other modes yet to do.
 				}
 			}
 
 			if(end_of_period == start_of_right_border) {
-//				printf("End\n");
-				crt_.output_data((start_of_right_border - start_of_pixels) * CyclesPerTick, next_pixel_ ? size_t(next_pixel_ - pixels_) : 1);
+				// Flush what remains in the NTSC queue, if applicable.
+				// TODO: with real NTSC test, why not?
+				if(next_pixel_ && is_colour_ntsc(mode)) {
+					ntsc_shift_ >>= 14;
+					next_pixel_ = output_shift(next_pixel_, 81);
+				}
+
+				crt_.output_data((start_of_right_border - pixels_start_column_) * CyclesPerTick, next_pixel_ ? size_t(next_pixel_ - pixels_) : 1);
 				next_pixel_ = pixels_ = nullptr;
 			}
 
@@ -452,17 +468,7 @@ uint16_t *VideoBase::output_low_resolution(uint16_t *target, int start, int end,
 		}
 
 		ntsc_shift_ = (long_source << 18) | (ntsc_shift_ >> 14);
-
-		if(c) {
-			target = output_shift(target, 2 + (c * 14));
-		} else {
-			ntsc_shift_ |= ntsc_shift_ >> 14;
-		}
-	}
-
-	if(end == 40) {
-		ntsc_shift_ >>= 14;
-		target = output_shift(target, 2 + (40 * 14));
+		target = output_shift(target, 1 + c*2);
 	}
 
 	return target;
@@ -492,24 +498,24 @@ uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end
 			ntsc_shift_ = (doubled_source << 18) | (ntsc_shift_ >> 14);
 		}
 
-		// Make sure that at least two columns are enqueued before output begins;
-		// the top bits can't be understood without reference to bits that come afterwards.
-		if(c) {
-			target = output_shift(target, 2 + (c * 14));
-		} else {
-			ntsc_shift_ |= ntsc_shift_ >> 14;
-		}
-	}
-
-	if(end == 40) {
-		ntsc_shift_ >>= 14;
-		target = output_shift(target, 2 + (40 * 14));
+		target = output_shift(target, 1 + c*2);
 	}
 
 	return target;
 }
 
-uint16_t *VideoBase::output_shift(uint16_t *target, int phase) {
+uint16_t *VideoBase::output_shift(uint16_t *target, int column) {
+	// Make sure that at least two columns are enqueued before output begins;
+	// the top bits can't be understood without reference to bits that come afterwards.
+	if(!column) {
+		ntsc_shift_ |= ntsc_shift_ >> 14;
+		return target;
+	}
+
+	// Phase here is kind of arbitrary; it pairs off with the order
+	// I've picked for my rolls table and with my decision to count
+	// columns as aligned with double-mode.
+	const int phase = column * 7 + 3;
 	constexpr uint8_t rolls[4][16] = {
 		{
 			0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf

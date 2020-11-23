@@ -16,7 +16,7 @@
 namespace Apple {
 namespace II {
 
-// Enumerates all Apple II, IIe and IIgs display modes.
+// Enumerates all Apple II and IIe display modes.
 enum class GraphicsMode {
 	Text = 0,
 	DoubleText,
