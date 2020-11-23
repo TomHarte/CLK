@@ -156,6 +156,8 @@ class ClockStorage {
 					phase_ = Phase::Command;
 				return DidComplete;
 			}
+
+			return NoResult;
 		}
 
 

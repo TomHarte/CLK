@@ -276,7 +276,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				case OperationConstructAbsoluteXRead:
 				case OperationConstructAbsoluteX:
 					data_address_ = instruction_buffer_.value + registers_.x.full + registers_.data_bank;
-					incorrect_data_address_ = (data_address_ & 0xff) | (instruction_buffer_.value & 0xff00) + registers_.data_bank;
+					incorrect_data_address_ = ((data_address_ & 0x00ff) | (instruction_buffer_.value & 0xff00)) + registers_.data_bank;
 
 					// If the incorrect address isn't actually incorrect, skip its usage.
 					if(operation == OperationConstructAbsoluteXRead && data_address_ == incorrect_data_address_) {
@@ -323,10 +323,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				continue;
 
 				case OperationConstructDirectIndexedIndirect:
-					data_address_ = registers_.data_bank + (
+					data_address_ = registers_.data_bank + ((
 						((registers_.direct + registers_.x.full + instruction_buffer_.value) & registers_.e_masks[1]) +
 						(registers_.direct & registers_.e_masks[0])
-					) & 0xffff;
+					) & 0xffff);
 					data_address_increment_mask_ = 0x00'ff'ff;
 
 					if(!(registers_.direct&0xff)) {
