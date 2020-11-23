@@ -441,27 +441,28 @@ uint16_t *VideoBase::output_low_resolution(uint16_t *target, int start, int end,
 	const int row_shift = row&4;
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
-		ntsc_shift_ >>= 14;
-
-		const uint8_t source = ram_[row_address + c] >> row_shift;
-
-		// TODO: below is all wrong, now that I've corrected ntsc_shift_ direction.
+		const uint8_t source = (ram_[row_address + c] >> row_shift) & 0xf;
 
 		// Convulve input as a function of odd/even row.
-		if((start + c)&1) {
-			ntsc_shift_ |= ((source & 4) >> 2) * 0x2222;
-			ntsc_shift_ |= ((source & 8) >> 3) * 0x1111;
-			ntsc_shift_ |= ((source & 1) >> 0) * 0x0888;
-			ntsc_shift_ |= ((source & 2) >> 1) * 0x0444;
+		uint32_t long_source;
+		if(c&1) {
+			long_source = uint32_t((source >> 2) | (source << 2) | (source << 6) | (source << 10));
 		} else {
-			ntsc_shift_ |= ((source & 1) >> 0) * 0x2222;
-			ntsc_shift_ |= ((source & 2) >> 1) * 0x1111;
-			ntsc_shift_ |= ((source & 4) >> 2) * 0x0888;
-			ntsc_shift_ |= ((source & 8) >> 3) * 0x0444;
+			long_source = uint32_t((source | (source << 4) | (source << 8) | (source << 12)) & 0x3fff);
 		}
 
-		// TODO: initial state?
-		target = output_shift(target, (c * 14) & 3);
+		ntsc_shift_ = (long_source << 18) | (ntsc_shift_ >> 14);
+
+		if(c) {
+			target = output_shift(target, 2 + (c * 14));
+		} else {
+			ntsc_shift_ |= ntsc_shift_ >> 14;
+		}
+	}
+
+	if(end == 40) {
+		ntsc_shift_ >>= 14;
+		target = output_shift(target, 2 + (40 * 14));
 	}
 
 	return target;
