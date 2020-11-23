@@ -152,9 +152,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 			micro_op_location_16 = micro_op_location_8;
 		}
 
-		// Insert into the map.
-		auto [iterator, _] = installed_patterns.insert(std::make_pair(key, std::make_pair(micro_op_location_8, micro_op_location_16)));
-		return iterator;
+		// Insert into the map and return the resulting iterator.
+		return installed_patterns.insert(std::make_pair(key, std::make_pair(micro_op_location_8, micro_op_location_16))).first;
 	}
 
 	public:
