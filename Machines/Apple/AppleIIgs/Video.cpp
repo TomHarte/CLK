@@ -156,7 +156,7 @@ Cycles VideoBase::get_next_sequence_point() const {
 	const int cycles_into_row = cycles_into_frame_ % CyclesPerLine;
 	const int row = cycles_into_frame_ / CyclesPerLine;
 
-	constexpr int sequence_point_offset = (5 + 8) * CyclesPerTick;
+	constexpr int sequence_point_offset = (blank_ticks + left_border_ticks) * CyclesPerTick;
 
 	// Handle every case that doesn't involve wrapping to the next row 0.
 	if(row <= 200) {
