@@ -190,12 +190,16 @@ void VideoBase::output_row(int row, int start, int end) {
 		if(start == end) return;
 	}
 
+	// The pixel buffer will actually be allocated a column early, to allow double high/low res to start
+	// half a column before everything else.
+	constexpr int pixel_buffer_allocation = start_of_pixels - 1;
+
 	// Possibly output border, pixels, border, if this is a pixel line.
 	if(row < 192 + ((new_video_&0x80) >> 4)) {	// i.e. 192 lines for classic Apple II video, 200 for IIgs video.
 
 		// Output left border as far as currently known.
-		if(start >= start_of_left_border && start < start_of_pixels) {
-			const int end_of_period = std::min(start_of_pixels, end);
+		if(start >= start_of_left_border && start < pixel_buffer_allocation) {
+			const int end_of_period = std::min(pixel_buffer_allocation, end);
 
 			if(border_colour_) {
 				uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
@@ -212,11 +216,11 @@ void VideoBase::output_row(int row, int start, int end) {
 		assert(end > start);
 
 		// Fetch and output such pixels as it is time for.
-		if(start >= start_of_pixels && start < start_of_right_border) {
+		if(start >= pixel_buffer_allocation && start < start_of_right_border) {
 			const int end_of_period = std::min(start_of_right_border, end);
 			const auto mode = graphics_mode(row);
 
-			if(start == start_of_pixels) {
+			if(start == pixel_buffer_allocation) {
 				// YUCKY HACK. I do not know when the IIgs fetches its super high-res palette
 				// and control byte. Since I do not know, any guess is equally likely negatively
 				// to affect software. Therefore this hack is as good as any other guess:
@@ -254,30 +258,69 @@ void VideoBase::output_row(int row, int start, int end) {
 
 				// Allocate a new buffer; 640 is as bad as it gets.
 				// TODO: make proper size estimate?
-				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(640, 2));
+				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(644, 2));
 				pixels_start_column_ = start;
 				pixels_format_ = format_for_mode(mode);
 			}
 
 			if(next_pixel_) {
-				const int window_start = start - start_of_pixels;
+				int window_start = start - start_of_pixels;
 				const int window_end = end_of_period - start_of_pixels;
+
+				// Fill in border colour if this is the first column.
+				if(window_start == -1) {
+					if(next_pixel_) {
+						int extra_border_length;
+						switch(mode) {
+							case GraphicsMode::DoubleText:
+							case GraphicsMode::Text:
+							case GraphicsMode::DoubleHighRes:
+							case GraphicsMode::DoubleLowRes:
+							case GraphicsMode::DoubleHighResMono:
+								extra_border_length = 7;
+							break;
+							case GraphicsMode::HighRes:
+							case GraphicsMode::LowRes:
+							case GraphicsMode::FatLowRes:
+								extra_border_length = 14;
+							break;
+							case GraphicsMode::SuperHighRes:
+								extra_border_length = (line_control_ & 0x80) ? 4 : 2;
+							break;
+						}
+						for(int c = 0; c < extra_border_length; c++) {
+							next_pixel_[c] = border_colour_;
+						}
+						next_pixel_ += extra_border_length;
+					}
+					++window_start;
+					if(window_start == window_end) return;
+				}
 
 				switch(mode) {
 					case GraphicsMode::SuperHighRes:
 						next_pixel_ = output_super_high_res(next_pixel_, window_start, window_end, row);
 					break;
+
 					case GraphicsMode::Text:
 						next_pixel_ = output_text(next_pixel_, window_start, window_end, row);
 					break;
 					case GraphicsMode::DoubleText:
 						next_pixel_ = output_double_text(next_pixel_, window_start, window_end, row);
 					break;
+
 					case GraphicsMode::LowRes:
 						next_pixel_ = output_low_resolution(next_pixel_, window_start, window_end, row);
 					break;
+					case GraphicsMode::DoubleLowRes:
+						next_pixel_ = output_double_low_resolution(next_pixel_, window_start, window_end, row);
+					break;
+
 					case GraphicsMode::HighRes:
 						next_pixel_ = output_high_resolution(next_pixel_, window_start, window_end, row);
+					break;
+					case GraphicsMode::DoubleHighRes:
+						next_pixel_ = output_double_high_resolution(next_pixel_, window_start, window_end, row);
 					break;
 
 					default:
@@ -480,6 +523,34 @@ uint16_t *VideoBase::output_low_resolution(uint16_t *target, int start, int end,
 	return target;
 }
 
+uint16_t *VideoBase::output_double_low_resolution(uint16_t *target, int start, int end, int row) {
+	const int row_shift = row&4;
+	const uint16_t row_address = get_row_address(row);
+	for(int c = start; c < end; c++) {
+		const uint8_t source[2] = {
+			uint8_t((ram_[row_address + c] >> row_shift) & 0xf),
+			uint8_t((ram_[0x10000 + row_address + c] >> row_shift) & 0xf)
+		};
+
+		// Convulve input as a function of odd/even row; this is very much like low
+		// resolution mode except that the first 7 bits to be output will come from
+		// source[1] and the next 7 from source[0]. Also shifting is offset by
+		// half a window compared to regular low resolution, so the conditional
+		// works the other way around.
+		uint32_t long_source;
+		if(c&1) {
+			long_source = uint32_t((source[1] | ((source[1] << 4) & 0x70) | ((source[0] << 4) & 0x80) | (source[0] << 8) | (source[0] << 12)) & 0x3fff);
+		} else {
+			long_source = uint32_t((source[1] >> 2) | (source[1] << 2) | ((source[1] << 6) & 0x40) | ((source[0] << 6) & 0x380) | (source[0] << 10));
+		}
+
+		ntsc_shift_ = (long_source << 18) | (ntsc_shift_ >> 14);
+		target = output_shift(target, c*2);
+	}
+
+	return target;
+}
+
 uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end, int row) {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
@@ -499,12 +570,27 @@ uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end
 		// Just append new bits, doubled up (and possibly delayed).
 		// TODO: I can kill the conditional here. Probably?
 		if(source & high_resolution_mask_ & 0x80) {
-			ntsc_shift_ = (doubled_source << 19) | ((ntsc_shift_ >> 13) & 0x40000) | (ntsc_shift_ >> 14);
+			ntsc_shift_ = ((doubled_source & 0x1fff) << 19) | ((ntsc_shift_ >> 13) & 0x40000) | (ntsc_shift_ >> 14);
 		} else {
 			ntsc_shift_ = (doubled_source << 18) | (ntsc_shift_ >> 14);
 		}
 
 		target = output_shift(target, 1 + c*2);
+	}
+
+	return target;
+}
+
+uint16_t *VideoBase::output_double_high_resolution(uint16_t *target, int start, int end, int row) {
+	const uint16_t row_address = get_row_address(row);
+	for(int c = start; c < end; c++) {
+		const uint8_t source[2] = {
+			ram_[0x10000 + row_address + c],
+			ram_[row_address + c],
+		};
+
+		ntsc_shift_ = unsigned(source[1] << 25) | unsigned(source[0] << 18) | (ntsc_shift_ >> 14);
+		target = output_shift(target, c*2);
 	}
 
 	return target;
