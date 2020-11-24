@@ -24,6 +24,7 @@ enum class GraphicsMode {
 	DoubleHighRes,
 	LowRes,
 	DoubleLowRes,
+	/// Fat low res mode is regular low res mode, but clocked out at 7Mhz rather than 14, leading to improper colours.
 	FatLowRes
 };
 constexpr bool is_text_mode(GraphicsMode m) { return m <= GraphicsMode::DoubleText; }

@@ -80,7 +80,26 @@ constexpr int start_of_right_border = start_of_pixels + pixel_ticks;
 constexpr int start_of_sync = start_of_right_border + right_border_ticks;
 constexpr int sync_period = CyclesPerLine - start_of_sync*CyclesPerTick;
 
-// TODO: above completely forgets about double high-res, etc, starting half a column earler. Hmmm.
+
+// A table to map from 7-bit integers to 14-bit versions with all bits doubled.
+constexpr uint16_t double_bytes[128] = {
+	0x0000, 0x0003, 0x000c, 0x000f, 0x0030, 0x0033, 0x003c, 0x003f,
+	0x00c0, 0x00c3, 0x00cc, 0x00cf, 0x00f0, 0x00f3, 0x00fc, 0x00ff,
+	0x0300, 0x0303, 0x030c, 0x030f, 0x0330, 0x0333, 0x033c, 0x033f,
+	0x03c0, 0x03c3, 0x03cc, 0x03cf, 0x03f0, 0x03f3, 0x03fc, 0x03ff,
+	0x0c00, 0x0c03, 0x0c0c, 0x0c0f, 0x0c30, 0x0c33, 0x0c3c, 0x0c3f,
+	0x0cc0, 0x0cc3, 0x0ccc, 0x0ccf, 0x0cf0, 0x0cf3, 0x0cfc, 0x0cff,
+	0x0f00, 0x0f03, 0x0f0c, 0x0f0f, 0x0f30, 0x0f33, 0x0f3c, 0x0f3f,
+	0x0fc0, 0x0fc3, 0x0fcc, 0x0fcf, 0x0ff0, 0x0ff3, 0x0ffc, 0x0fff,
+	0x3000, 0x3003, 0x300c, 0x300f, 0x3030, 0x3033, 0x303c, 0x303f,
+	0x30c0, 0x30c3, 0x30cc, 0x30cf, 0x30f0, 0x30f3, 0x30fc, 0x30ff,
+	0x3300, 0x3303, 0x330c, 0x330f, 0x3330, 0x3333, 0x333c, 0x333f,
+	0x33c0, 0x33c3, 0x33cc, 0x33cf, 0x33f0, 0x33f3, 0x33fc, 0x33ff,
+	0x3c00, 0x3c03, 0x3c0c, 0x3c0f, 0x3c30, 0x3c33, 0x3c3c, 0x3c3f,
+	0x3cc0, 0x3cc3, 0x3ccc, 0x3ccf, 0x3cf0, 0x3cf3, 0x3cfc, 0x3cff,
+	0x3f00, 0x3f03, 0x3f0c, 0x3f0f, 0x3f30, 0x3f33, 0x3f3c, 0x3f3f,
+	0x3fc0, 0x3fc3, 0x3fcc, 0x3fcf, 0x3ff0, 0x3ff3, 0x3ffc, 0x3fff,
+};
 
 }
 
@@ -309,6 +328,9 @@ void VideoBase::output_row(int row, int start, int end) {
 						next_pixel_ = output_double_text(next_pixel_, window_start, window_end, row);
 					break;
 
+					case GraphicsMode::FatLowRes:
+						next_pixel_ = output_fat_low_resolution(next_pixel_, window_start, window_end, row);
+					break;
 					case GraphicsMode::LowRes:
 						next_pixel_ = output_low_resolution(next_pixel_, window_start, window_end, row);
 					break;
@@ -321,6 +343,9 @@ void VideoBase::output_row(int row, int start, int end) {
 					break;
 					case GraphicsMode::DoubleHighRes:
 						next_pixel_ = output_double_high_resolution(next_pixel_, window_start, window_end, row);
+					break;
+					case GraphicsMode::DoubleHighResMono:
+						next_pixel_ = output_double_high_resolution_mono(next_pixel_, window_start, window_end, row);
 					break;
 
 					default:
@@ -502,6 +527,38 @@ uint16_t *VideoBase::output_super_high_res(uint16_t *target, int start, int end,
 	return target;
 }
 
+uint16_t *VideoBase::output_double_high_resolution_mono(uint16_t *target, int start, int end, int row) {
+	const uint16_t row_address = get_row_address(row);
+	constexpr uint16_t colours[] = {0, 0xffff};
+	for(int c = start; c < end; c++) {
+		const uint8_t source[2] = {
+			ram_[0x10000 + row_address + c],
+			ram_[row_address + c],
+		};
+
+		target[0] = colours[(source[1] >> 0) & 0x1];
+		target[1] = colours[(source[1] >> 1) & 0x1];
+		target[2] = colours[(source[1] >> 2) & 0x1];
+		target[3] = colours[(source[1] >> 3) & 0x1];
+		target[4] = colours[(source[1] >> 4) & 0x1];
+		target[5] = colours[(source[1] >> 5) & 0x1];
+		target[6] = colours[(source[1] >> 6) & 0x1];
+
+		target[7] = colours[(source[0] >> 0) & 0x1];
+		target[8] = colours[(source[0] >> 1) & 0x1];
+		target[9] = colours[(source[0] >> 2) & 0x1];
+		target[10] = colours[(source[0] >> 3) & 0x1];
+		target[11] = colours[(source[0] >> 4) & 0x1];
+		target[12] = colours[(source[0] >> 5) & 0x1];
+		target[13] = colours[(source[0] >> 6) & 0x1];
+
+		target += 14;
+	}
+
+	return target;
+}
+
+
 uint16_t *VideoBase::output_low_resolution(uint16_t *target, int start, int end, int row) {
 	const int row_shift = row&4;
 	const uint16_t row_address = get_row_address(row);
@@ -515,6 +572,21 @@ uint16_t *VideoBase::output_low_resolution(uint16_t *target, int start, int end,
 		} else {
 			long_source = uint32_t((source | (source << 4) | (source << 8) | (source << 12)) & 0x3fff);
 		}
+
+		ntsc_shift_ = (long_source << 18) | (ntsc_shift_ >> 14);
+		target = output_shift(target, 1 + c*2);
+	}
+
+	return target;
+}
+
+uint16_t *VideoBase::output_fat_low_resolution(uint16_t *target, int start, int end, int row) {
+	const int row_shift = row&4;
+	const uint16_t row_address = get_row_address(row);
+	for(int c = start; c < end; c++) {
+		const uint32_t doubled_source = uint32_t(double_bytes[(ram_[row_address + c] >> row_shift) & 0xf]);
+		const uint32_t long_source = doubled_source | (doubled_source << 8);
+		// TODO: verify the above.
 
 		ntsc_shift_ = (long_source << 18) | (ntsc_shift_ >> 14);
 		target = output_shift(target, 1 + c*2);
@@ -555,17 +627,7 @@ uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
 		uint8_t source = ram_[row_address + c];
-
-		// TODO: can do this in two multiplies, I think.
-		// Or, at worst, a 512-byte lookup.
-		const uint32_t doubled_source =
-			((source&0x01) * (0x0003 >> 0)) +
-			((source&0x02) * (0x000c >> 1)) +
-			((source&0x04) * (0x0030 >> 2)) +
-			((source&0x08) * (0x00c0 >> 3)) +
-			((source&0x10) * (0x0300 >> 4)) +
-			((source&0x20) * (0x0c00 >> 5)) +
-			((source&0x40) * (0x3000 >> 6));
+		const uint32_t doubled_source = uint32_t(double_bytes[source]);
 
 		// Just append new bits, doubled up (and possibly delayed).
 		// TODO: I can kill the conditional here. Probably?
