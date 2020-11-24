@@ -627,7 +627,7 @@ uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
 		uint8_t source = ram_[row_address + c];
-		const uint32_t doubled_source = uint32_t(double_bytes[source]);
+		const uint32_t doubled_source = uint32_t(double_bytes[source & 0x7f]);
 
 		// Just append new bits, doubled up (and possibly delayed).
 		// TODO: I can kill the conditional here. Probably?
