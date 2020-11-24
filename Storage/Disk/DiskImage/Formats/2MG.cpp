@@ -8,6 +8,8 @@
 
 #include "2MG.hpp"
 
+#include "MacintoshIMG.hpp"
+
 using namespace Storage::Disk;
 
 DiskImageHolderBase *Disk2MG::open(const std::string &file_name) {
@@ -56,7 +58,12 @@ DiskImageHolderBase *Disk2MG::open(const std::string &file_name) {
 			// TODO: DOS 3.3 sector order.
 		break;
 		case 1:
-			// TODO: ProDOS sector order.
+			// ProDOS order, which could still mean Macintosh-style or Apple II-style. Try them both.
+			try {
+				return new DiskImageHolder<Storage::Disk::MacintoshIMG>(file_name, MacintoshIMG::FixedType::GCR, data_start, data_size);
+			} catch(...) {}
+
+			// TODO: Apple II-style.
 		break;
 		case 2:
 			// TODO: NIB data (yuck!).
@@ -67,8 +74,6 @@ DiskImageHolderBase *Disk2MG::open(const std::string &file_name) {
 	// a proper holder? Probably more valid than having each actual disk class do
 	// its own range logic?
 	(void)flags;
-	(void)data_start;
-	(void)data_size;
 
 	throw Error::InvalidFormat;
 	return nullptr;

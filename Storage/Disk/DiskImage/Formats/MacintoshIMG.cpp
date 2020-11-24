@@ -23,13 +23,15 @@
 
 using namespace Storage::Disk;
 
-MacintoshIMG::MacintoshIMG(const std::string &file_name, FixedType type) :
+MacintoshIMG::MacintoshIMG(const std::string &file_name, FixedType type, size_t offset, off_t length) :
 	file_(file_name) {
 
 	switch(type) {
 		case FixedType::GCR:
-			construct_raw_gcr();
+			construct_raw_gcr(offset, length);
 		break;
+		default:
+			throw Error::InvalidFormat;
 	}
 }
 
@@ -49,7 +51,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 		if(!((name_length == 0x4c && magic_word == 0x4b) || (name_length == 0x00 && magic_word == 0x00)))
 			throw Error::InvalidFormat;
 
-		construct_raw_gcr();
+		construct_raw_gcr(0, -1);
 	} else {
 		// DiskCopy 4.2 it is then:
 		//
@@ -120,13 +122,17 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	}
 }
 
-void MacintoshIMG::construct_raw_gcr() {
+void MacintoshIMG::construct_raw_gcr(size_t offset, off_t size) {
 	is_diskCopy_file_ = false;
-	if(file_.stats().st_size != 819200 && file_.stats().st_size != 409600)
+	if(size == -1) {
+		size = file_.stats().st_size;
+	}
+	if(size != 819200 && size != 409600)
 		throw Error::InvalidFormat;
 
-	file_.seek(0, SEEK_SET);
-	if(file_.stats().st_size == 819200) {
+	raw_offset_ = long(offset);
+	file_.seek(raw_offset_, SEEK_SET);
+	if(size == 819200) {
 		encoding_ = Encoding::GCR800;
 		format_ = 0x22;
 		data_ = file_.read(819200);
@@ -300,8 +306,8 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::shared_ptr<Tra
 		std::lock_guard lock_guard(file_.get_file_access_mutex());
 
 		if(!is_diskCopy_file_) {
-			// Just dump out the new sectors. Grossly lazy, possibly worth improving.
-			file_.seek(0, SEEK_SET);
+			// Just dump out the entire disk. Grossly lazy, possibly worth improving.
+			file_.seek(raw_offset_, SEEK_SET);
 			file_.write(data_);
 		} else {
 			// Write out the sectors, and possibly the tags, and update checksums.
