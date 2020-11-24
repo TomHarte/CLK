@@ -247,7 +247,7 @@ void VideoBase::output_row(int row, int start, int end) {
 				// I could spread this stuff out to allow for real bandwidth, but it'd likely be
 				// no more accurate, while having less of an obvious I-HACKED-THIS red flag attached.
 				line_control_ = ram_[0x19d00 + row];
-				const int palette_base = (line_control_ & 15) * 16 + 0x19e00;
+				const int palette_base = (line_control_ & 15) * 32 + 0x19e00;
 				for(int c = 0; c < 16; c++) {
 					const int entry = ram_[palette_base + (c << 1)] | (ram_[palette_base + (c << 1) + 1] << 8);
 					palette_[c] = PaletteConvulve(entry);
