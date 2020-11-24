@@ -34,6 +34,7 @@
 #include "../../Storage/Cartridge/Formats/PRG.hpp"
 
 // Disks
+#include "../../Storage/Disk/DiskImage/Formats/2MG.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/AcornADF.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/AppleDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/CPCDSK.hpp"
@@ -79,11 +80,14 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	std::string extension = file_name.substr(final_dot + 1);
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 
-#define Insert(list, class, platforms, ...) \
-	list.emplace_back(new Storage::class(__VA_ARGS__));\
+#define InsertInstance(list, instance, platforms) \
+	list.emplace_back(instance);\
 	potential_platforms |= platforms;\
 	TargetPlatform::TypeDistinguisher *distinguisher = dynamic_cast<TargetPlatform::TypeDistinguisher *>(list.back().get());\
-	if(distinguisher) potential_platforms &= distinguisher->target_platform_type();
+	if(distinguisher) potential_platforms &= distinguisher->target_platform_type(); \
+
+#define Insert(list, class, platforms, ...) \
+	InsertInstance(list, new Storage::class(__VA_ARGS__), platforms);
 
 #define TryInsert(list, class, platforms, ...) \
 	try {\
@@ -93,6 +97,14 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 #define Format(ext, list, class, platforms) \
 	if(extension == ext)	{		\
 		TryInsert(list, class, platforms, file_name)	\
+	}
+
+	// 2MG
+	if(extension == "2mg") {
+		// 2MG uses a factory method; defer to it.
+		try {
+			InsertInstance(result.disks, Storage::Disk::Disk2MG::open(file_name), TargetPlatform::DiskII)
+		} catch(...) {}
 	}
 
 	Format("80", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// 80
@@ -169,6 +181,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 #undef Format
 #undef Insert
 #undef TryInsert
+#undef InsertInstance
 
 	return result;
 }
