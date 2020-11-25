@@ -116,7 +116,7 @@ void GLU::set_command(uint8_t command) {
 		break;
 
 		case 0x06:	// Set configuration bytes
-			RequireSize(is_rom03_ ? 8 : 4);
+			RequireSize(4);
 			set_configuration_bytes(&next_command_[1]);
 		break;
 
@@ -139,6 +139,14 @@ void GLU::set_command(uint8_t command) {
 			pending_response_.push_back(6);	// Seems to be what ROM03 is looking for?
 		break;
 
+		case 0x12:	// ???
+			RequireSize(3);
+		break;
+
+		case 0x13: // ???
+			RequireSize(3);
+		break;
+
 		// Enable device SRQ.
 		case 0x50:	case 0x51:	case 0x52:	case 0x53:	case 0x54:	case 0x55:	case 0x56:	case 0x57:
 		case 0x58:	case 0x59:	case 0x5a:	case 0x5b:	case 0x5c:	case 0x5d:	case 0x5e:	case 0x5f:
@@ -149,6 +157,11 @@ void GLU::set_command(uint8_t command) {
 		case 0x70:	case 0x71:	case 0x72:	case 0x73:	case 0x74:	case 0x75:	case 0x76:	case 0x77:
 		case 0x78:	case 0x79:	case 0x7a:	case 0x7b:	case 0x7c:	case 0x7d:	case 0x7e:	case 0x7f:
 			set_device_srq(device_srq_ & ~(1 << (next_command_[1] & 0xf)));
+		break;
+
+		// Transmit two bytes.
+		case 0xb3:
+			RequireSize(3);
 		break;
 
 		default:
@@ -194,5 +207,7 @@ void GLU::set_device_srq(int mask) {
 
 uint8_t GLU::read_microcontroller_address(uint16_t address) {
 	printf("Read from microcontroller %04x\n", address);
+	if(address == 0xe8)
+		return 0x40;
 	return 0;
 }
