@@ -90,6 +90,16 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 }
 
 template <typename DataUnit> void BufferingScanTarget::end_data(size_t actual_length) {
+	// Bookend the start and end of the new data, to safeguard for precision errors in sampling.
+	DataUnit *const sized_write_area = &reinterpret_cast<DataUnit *>(write_area_)[write_pointers_.write_area];
+	sized_write_area[-1] = sized_write_area[0];
+	sized_write_area[actual_length] = sized_write_area[actual_length - 1];
+}
+
+void BufferingScanTarget::end_data(size_t actual_length) {
+	// Acquire the producer lock.
+	std::lock_guard lock_guard(producer_mutex_);
+
 	// Do nothing if no data write is actually ongoing.
 	if(!data_is_allocated_) return;
 	data_is_allocated_ = false;
@@ -97,10 +107,18 @@ template <typename DataUnit> void BufferingScanTarget::end_data(size_t actual_le
 	// Check for other allocation failures.
 	if(allocation_has_failed_) return;
 
-	// Bookend the start and end of the new data, to safeguard for precision errors in sampling.
-	DataUnit *const sized_write_area = &reinterpret_cast<DataUnit *>(write_area_)[write_pointers_.write_area];
-	sized_write_area[-1] = sized_write_area[0];
-	sized_write_area[actual_length] = sized_write_area[actual_length - 1];
+	// Apply necessary bookends.
+	switch(data_type_size_) {
+		default: assert(false);
+		case 0:
+			// This just means that modals haven't been grabbed yet. So it's not
+			// a valid data type size, but it is a value that might legitimately
+			// be seen here.
+		break;
+		case 1:	end_data<uint8_t>(actual_length);	break;
+		case 2:	end_data<uint16_t>(actual_length);	break;
+		case 4:	end_data<uint32_t>(actual_length);	break;
+	}
 
 	// Advance to the end of the current run.
 	write_pointers_.write_area += actual_length + 1;
@@ -109,22 +127,6 @@ template <typename DataUnit> void BufferingScanTarget::end_data(size_t actual_le
 	// distance left on the current line, but there's a risk of exactly filling
 	// the final line, in which case this should wrap back to 0.
 	write_pointers_.write_area %= WriteAreaWidth*WriteAreaHeight;
-}
-
-void BufferingScanTarget::end_data(size_t actual_length) {
-	// Acquire the producer lock.
-	std::lock_guard lock_guard(producer_mutex_);
-
-	// Just dispatch appropriately.
-	switch(data_type_size_) {
-		default: assert(false);
-		case 0:
-			// This just means that modals haven't been grabbed yet.
-		break;
-		case 1:	end_data<uint8_t>(actual_length);	break;
-		case 2:	end_data<uint16_t>(actual_length);	break;
-		case 4:	end_data<uint32_t>(actual_length);	break;
-	}
 }
 
 // MARK: - Producer; scans.
