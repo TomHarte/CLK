@@ -96,7 +96,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		/// This does not affect this actor's record of when the next sequence point will occur.
 		forceinline void flush() {
 			if(!is_flushed_) {
-				is_flushed_ = true;
+				did_flush_ = is_flushed_ = true;
 				if constexpr (divider == 1) {
 					const auto duration = time_since_update_.template flush<TargetTimeScale>();
 					object_.run_for(duration);
@@ -108,18 +108,25 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 			}
 		}
 
-		/// Indicates whether a sequence-point-caused flush will occur if the specified period is added.
-		forceinline bool will_flush(LocalTimeScale rhs) const {
-			if constexpr (!has_sequence_points<T>::value) {
-				return false;
-			}
-			return rhs >= time_until_event_;
+		/// Indicates whether a flush has occurred since the last call to did_flush().
+		forceinline bool did_flush() {
+			const bool did_flush = did_flush_;
+			did_flush_ = false;
+			return did_flush;
 		}
 
 		/// @returns the number of cycles until the next sequence-point-based flush, if the embedded object
 		/// supports sequence points; @c LocalTimeScale() otherwise.
 		LocalTimeScale cycles_until_implicit_flush() const {
 			return time_until_event_;
+		}
+
+		/// Indicates whether a sequence-point-caused flush will occur if the specified period is added.
+		forceinline bool will_flush(LocalTimeScale rhs) const {
+			if constexpr (!has_sequence_points<T>::value) {
+				return false;
+			}
+			return rhs >= time_until_event_;
 		}
 
 		/// Updates this template's record of the next sequence point.
@@ -134,6 +141,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		T object_;
 		LocalTimeScale time_since_update_, time_until_event_;
 		bool is_flushed_ = true;
+		bool did_flush_ = false;
 
 		template <typename S, typename = void> struct has_sequence_points : std::false_type {};
 		template <typename S> struct has_sequence_points<S, decltype(void(std::declval<S &>().get_next_sequence_point()))> : std::true_type {};

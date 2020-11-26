@@ -719,13 +719,12 @@ class ConcreteMachine:
 				update_interrupts();
 			}
 
-			const bool will_flush_video = video_.will_flush(duration);
 			video_ += duration;
 			iwm_ += duration;
 			cycles_since_audio_update_ += duration;
 			total += decltype(total)(duration.as_integral());
 
-			if(will_flush_video) {
+			if(video_.did_flush()) {
 				update_interrupts();
 			}
 
