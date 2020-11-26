@@ -174,6 +174,27 @@ uint8_t GLU::get_address_high() {
 
 // MARK: - Update logic.
 
+void GLU::skip_audio(EnsoniqState &state, size_t number_of_samples) {
+	// Just advance all oscillator pointers and check for interrupts.
+	// If a read occurs to the current-output level, generate it then.
+
+	for(int c = 0; c < local_.oscillator_count; c++) {
+		// Don't do anything for halted oscillators.
+		if(state.oscillators[c].control&1) continue;
+
+		// Update phase.
+		state.oscillators[c].position += state.oscillators[c].velocity * number_of_samples;
+
+		// Check for stops, and any interrupts that therefore flow.
+		if((state.oscillators[c].control & 1) && (state.oscillators[c].position & state.oscillators[c].overflow_mask)) {
+			// Apply halt, set interrupt request flag.
+			state.oscillators[c].position = 0;
+			state.oscillators[c].control |= 1;
+			state.oscillators[c].interrupt_request = true;
+		}
+	}
+}
+
 void GLU::generate_audio(size_t number_of_samples, std::int16_t *target) {
 	auto next_store = pending_stores_[pending_store_read_].load(std::memory_order::memory_order_acquire);
 	uint8_t next_amplitude = 255;
@@ -290,12 +311,4 @@ int16_t GLU::EnsoniqState::Oscillator::output(uint8_t *ram) {
 
 	// Samples are unsigned 8-bit; do the proper work to make volume work correctly.
 	return int8_t(level ^ 128) * volume;
-}
-
-void GLU::skip_audio(EnsoniqState &state, size_t number_of_samples) {
-	(void)number_of_samples;
-	(void)state;
-
-	// Just advance all oscillator pointers and check for interrupts.
-	// If a read occurs to the current-output level, generate it then.
 }

@@ -77,14 +77,16 @@ class GLU: public Outputs::Speaker::SampleSource {
 				uint8_t table_size;
 
 				// Derived state.
-				uint32_t overflow_mask;	// If a non-zero bit gets anywhere into the overflow mask, this channel
-										// has wrapped around. It's a function of table_size.
+				uint32_t overflow_mask;			// If a non-zero bit gets anywhere into the overflow mask, this channel
+												// has wrapped around. It's a function of table_size.
+				bool interrupt_request = false;	// Will be non-zero if this channel would request an interrupt, were
+												// it currently enabled to do so.
 
 				uint8_t sample(uint8_t *ram);
 				int16_t output(uint8_t *ram);
 			} oscillators[32];
 
-			// TODO: do all of these need to be on the audio thread?
+			// Some of these aren't actually needed on both threads.
 			uint8_t control;
 			uint8_t interrupt_state;
 			int oscillator_count;
