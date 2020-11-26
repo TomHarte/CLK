@@ -250,7 +250,7 @@ class ConcreteMachine:
 
 					// Clock and border control.
 					case Read(0xc034):
-						*value = clock_.get_control();
+						*value = (clock_.get_control() & 0xf0) | (video_.last_valid()->get_border_colour() & 0x0f);
 					break;
 					case Write(0xc034):
 						clock_.set_control(*value);

@@ -448,7 +448,12 @@ void Video::set_interrupts(uint8_t new_value) {
 }
 
 void Video::set_border_colour(uint8_t colour) {
-	border_colour_ = appleii_palette[colour & 0xf];
+	border_colour_entry_ = colour & 0x0f;
+	border_colour_ = appleii_palette[border_colour_entry_];
+}
+
+uint8_t Video::get_border_colour() {
+	return border_colour_entry_;
 }
 
 void Video::set_text_colour(uint8_t colour) {

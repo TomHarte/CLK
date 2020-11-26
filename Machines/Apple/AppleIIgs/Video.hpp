@@ -40,6 +40,7 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 
 		void set_border_colour(uint8_t);
 		void set_text_colour(uint8_t);
+		uint8_t get_border_colour();
 
 		void set_composite_is_colour(bool);
 		bool get_composite_is_colour();
@@ -120,6 +121,7 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 
 		// The modal colours.
 		uint16_t border_colour_ = 0;
+		uint8_t border_colour_entry_ = 0;
 		uint16_t text_colour_ = 0xffff;
 		uint16_t background_colour_ = 0;
 
