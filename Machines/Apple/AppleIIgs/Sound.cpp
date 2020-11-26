@@ -102,8 +102,12 @@ void GLU::EnsoniqState::set_register(uint16_t address, uint8_t value) {
 }
 
 uint8_t GLU::get_data() {
-	// TODO: all of this. From local_, with just-in-time generation of the data sample and AD values.
+	// TODO: all of this. From local_, with just-in-time generation of the data sample, AD values and interrupt status.
 	return 0;
+}
+
+bool GLU::get_interrupt_line() {
+	return false;
 }
 
 // MARK: - Time entry points.

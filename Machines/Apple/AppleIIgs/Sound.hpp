@@ -34,6 +34,7 @@ class GLU: public Outputs::Speaker::SampleSource {
 
 		void run_for(Cycles);
 		Cycles get_next_sequence_point() const;
+		bool get_interrupt_line();
 
 		// SampleSource.
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
