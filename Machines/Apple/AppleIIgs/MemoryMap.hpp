@@ -359,6 +359,7 @@ class MemoryMap {
 			// Affects bank $00 only, and should be a single region.
 			auto &region = regions[region_map[0]];
 			region.read = region.write = auxiliary_switches_.zero_state() ? &ram_base[0x10000] : ram_base;
+			assert(region_map[0x0000]+1 == region_map[0x0002]);
 
 			// Switching to or from auxiliary RAM potentially affects the language
 			// and regular card areas.
