@@ -76,6 +76,10 @@ class GLU: public Outputs::Speaker::SampleSource {
 				uint8_t control;
 				uint8_t table_size;
 
+				// Derived state.
+				uint32_t overflow_mask;	// If a non-zero bit gets anywhere into the overflow mask, this channel
+										// has wrapped around. It's a function of table_size.
+
 				uint8_t sample(uint8_t *ram);
 				int16_t output(uint8_t *ram);
 			} oscillators[32];

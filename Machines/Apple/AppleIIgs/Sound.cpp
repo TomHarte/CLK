@@ -78,6 +78,9 @@ void GLU::EnsoniqState::set_register(uint16_t address, uint8_t value) {
 		} break;
 		case 0xc0:
 			oscillators[address & 0x1f].table_size = value;
+
+			// The most-significant bit that should be used is 16 + (value & 7).
+			oscillators[address & 0x1f].overflow_mask = ~(0xffffff >> (7 - (value & 7)));
 		break;
 
 		default:
@@ -194,13 +197,13 @@ void GLU::generate_audio(size_t number_of_samples, std::int16_t *target, int16_t
 
 			// Test for a new halting event.
 			switch(remote_.oscillators[c].control & 6) {
-				case 0:	// Free-run mode; just keep the counter to its genuine 24 bits and always update sample.
-					remote_.oscillators[c].position &= 0x00ffffff;
+				case 0:	// Free-run mode; don't truncate the position at all, in case the
+						// accumulator bits in use changes.
 					output += remote_.oscillators[c].output(remote_.ram_);
 				break;
 
 				case 2:	// One-shot mode; check for end of run. Otherwise update sample.
-					if(remote_.oscillators[c].position & 0xff000000) {
+					if(remote_.oscillators[c].position & remote_.oscillators[c].overflow_mask) {
 						remote_.oscillators[c].position = 0;
 						remote_.oscillators[c].control |= 1;
 					} else {
@@ -213,9 +216,10 @@ void GLU::generate_audio(size_t number_of_samples, std::int16_t *target, int16_t
 				break;
 
 				case 6:	// Swap mode; possibly trigger partner, and update sample.
-					// TODO: possibly this function argues in favour of summing the output
-					// in a separate loop?
-					if(remote_.oscillators[c].position & 0xff000000) {
+						// Per tech note #11: "Whenever a swap occurs from a higher-numbered
+						// oscillator to a lower-numbered one, the output signal from the corresponding
+						// generator temporarily falls to the zero-crossing level (silence)"
+					if(remote_.oscillators[c].position & remote_.oscillators[c].overflow_mask) {
 						remote_.oscillators[c].control |= 1;
 						remote_.oscillators[c].position = 0;
 						remote_.oscillators[c^1].control &= ~1;
@@ -227,6 +231,7 @@ void GLU::generate_audio(size_t number_of_samples, std::int16_t *target, int16_t
 		}
 
 		// Maximum total output was 32 channels times a 16-bit range. Map that down.
+		// TODO: dynamic total volume?
 		target[sample] = (output * output_range_) >> 20;
 
 		// Apply any RAM writes that interleave here.
@@ -266,6 +271,7 @@ int16_t GLU::EnsoniqState::Oscillator::output(uint8_t *ram) {
 	const auto level = sample(ram);
 
 	// "An oscillator will halt when a zero is encountered in its waveform table."
+	// TODO: only if in free-run mode, I think? Or?
 	if(!level) {
 		control |= 1;
 		return 0;
