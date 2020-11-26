@@ -271,7 +271,7 @@ uint8_t GLU::EnsoniqState::Oscillator::sample(uint8_t *ram) {
 
 	// The full pointer is composed of the bits of the programmed address not touched by
 	// the table pointer, plus the table pointer.
-	const uint16_t sample_address = (address & ~table_size_mask) | (table_pointer & table_size_mask);
+	const uint16_t sample_address = ((address << 8) & ~table_size_mask) | (table_pointer & table_size_mask);
 
 	// Ignored here: bit 6 should select between RAM banks. But for now this is IIgs-centric,
 	// and that has only one bank of RAM.
