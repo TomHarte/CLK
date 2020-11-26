@@ -13,29 +13,10 @@
 @interface MasterSystemVDPTests : XCTestCase
 @end
 
-@implementation MasterSystemVDPTests {
-	NSOpenGLContext *_openGLContext;
-}
+@implementation MasterSystemVDPTests
 
 - (void)setUp {
 	[super setUp];
-
-	// Create a valid OpenGL context, so that a VDP can be constructed.
-	NSOpenGLPixelFormatAttribute attributes[] = {
-		NSOpenGLPFAOpenGLProfile,	NSOpenGLProfileVersion3_2Core,
-		0
-	};
-
-	NSOpenGLPixelFormat *pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attributes];
-	_openGLContext = [[NSOpenGLContext alloc] initWithFormat:pixelFormat shareContext:nil];
-	[_openGLContext makeCurrentContext];
-}
-
-- (void)tearDown {
-	// Put teardown code here. This method is called after the invocation of each test method in the class.
-	_openGLContext = nil;
-
-	[super tearDown];
 }
 
 - (void)testLineInterrupt {
