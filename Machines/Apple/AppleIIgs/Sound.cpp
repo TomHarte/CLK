@@ -102,7 +102,32 @@ void GLU::EnsoniqState::set_register(uint16_t address, uint8_t value) {
 }
 
 uint8_t GLU::get_data() {
-	// TODO: all of this. From local_, with just-in-time generation of the data sample, AD values and interrupt status.
+	const auto address = address_;
+	if(local_.control & 0x20) {
+		++address_;
+	}
+
+	switch(address & 0xe0) {
+		case 0x00:	return local_.oscillators[address & 0x1f].velocity & 0xff;
+		case 0x20:	return local_.oscillators[address & 0x1f].velocity >> 8;;
+		case 0x40:	return local_.oscillators[address & 0x1f].volume;
+		case 0x60:	return local_.oscillators[address & 0x1f].sample(local_.ram_);	// i.e. look up what the sample was on demand.
+		case 0x80:	return local_.oscillators[address & 0x1f].address;
+		case 0xa0:	return local_.oscillators[address & 0x1f].control;
+		case 0xc0:	return local_.oscillators[address & 0x1f].table_size;
+
+		default:
+			switch(address & 0xff) {
+				case 0xe0:
+					/* TODO: generate the actual interrupt state. */
+					return local_.interrupt_state;
+				break;
+				case 0xe1:	return uint8_t((local_.oscillator_count - 1) << 1);	// TODO: should other bits be 0 or 1?
+				case 0xe2:	return 128;											// Input audio. Unimplemented!
+			}
+		break;
+	}
+
 	return 0;
 }
 
