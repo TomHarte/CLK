@@ -141,8 +141,9 @@ class ConcreteMachine:
 
 		void flush() {
 			video_.flush();
-			update_audio();
 			iwm_.flush();
+
+			AudioUpdater updater(this);
 			audio_queue_.perform();
 		}
 
@@ -395,38 +396,38 @@ class ConcreteMachine:
 					break;
 
 					// The audio GLU.
-					case Read(0xc03c):
-						update_audio();
+					case Read(0xc03c): {
+						AudioUpdater updater(this);
 						*value = sound_glu_.get_control();
-					break;
-					case Write(0xc03c):
-						update_audio();
+					} break;
+					case Write(0xc03c): {
+						AudioUpdater updater(this);
 						sound_glu_.set_control(*value);
-					break;
-					case Read(0xc03d):
-						update_audio();
+					} break;
+					case Read(0xc03d): {
+						AudioUpdater updater(this);
 						*value = sound_glu_.get_data();
-					break;
-					case Write(0xc03d):
-						update_audio();
+					} break;
+					case Write(0xc03d): {
+						AudioUpdater updater(this);
 						sound_glu_.set_data(*value);
-					break;
-					case Read(0xc03e):
-						update_audio();
+					} break;
+					case Read(0xc03e): {
+						AudioUpdater updater(this);
 						*value = sound_glu_.get_address_low();
-					break;
-					case Write(0xc03e):
-						update_audio();
+					} break;
+					case Write(0xc03e): {
+						AudioUpdater updater(this);
 						sound_glu_.set_address_low(*value);
-					break;
-					case Read(0xc03f):
-						update_audio();
+					} break;
+					case Read(0xc03f): {
+						AudioUpdater updater(this);
 						*value = sound_glu_.get_address_high();
-					break;
-					case Write(0xc03f):
-						update_audio();
+					} break;
+					case Write(0xc03f): {
+						AudioUpdater updater(this);
 						sound_glu_.set_address_high(*value);
-					break;
+					} break;
 
 
 					// These were all dealt with by the call to memory_.access.
@@ -491,10 +492,10 @@ class ConcreteMachine:
 						card_mask_ = *value;
 					break;
 
-					case Read(0xc030): case Write(0xc030):
-						update_audio();
+					case Read(0xc030): case Write(0xc030): {
+						AudioUpdater updater(this);
 						audio_toggle_.set_output(!audio_toggle_.get_output());
-					break;
+					} break;
 
 					// Addresses that seemingly map to nothing; provided as a separate break out for now,
 					// while I have an assert on unknown accesses.
@@ -724,6 +725,10 @@ class ConcreteMachine:
 			cycles_since_audio_update_ += duration;
 			total += decltype(total)(duration.as_integral());
 
+			if(cycles_since_audio_update_ >= cycles_until_audio_event_) {
+				AudioUpdater updater(this);
+				update_interrupts();
+			}
 			if(video_.did_flush()) {
 				update_interrupts();
 			}
@@ -732,8 +737,9 @@ class ConcreteMachine:
 		}
 
 		void update_interrupts() {
-			// Update the interrupt line. TODO: should include the sound GLU too.
-			m65816_.set_irq_line(video_.last_valid()->get_interrupt_register() & 0x80);
+			// Update the interrupt line.
+			// TODO: are there other interrupt sources?
+			m65816_.set_irq_line((video_.last_valid()->get_interrupt_register() & 0x80) || sound_glu_.get_interrupt_line());
 		}
 
 	private:
@@ -772,12 +778,25 @@ class ConcreteMachine:
 		AudioSource mixer_;
 		Outputs::Speaker::LowpassSpeaker<AudioSource> speaker_;
 		Cycles cycles_since_audio_update_;
+		Cycles cycles_until_audio_event_;
 		static constexpr int audio_divider = 16;
 		void update_audio() {
 			const auto divided_cycles = cycles_since_audio_update_.divide(Cycles(audio_divider));
 			sound_glu_.run_for(divided_cycles);
 			speaker_.run_for(audio_queue_, divided_cycles);
 		}
+		class AudioUpdater {
+			public:
+				AudioUpdater(ConcreteMachine *machine) : machine_(machine) {
+					machine_->update_audio();
+				}
+				~AudioUpdater() {
+					machine_->cycles_until_audio_event_ = machine_->sound_glu_.get_next_sequence_point();
+				}
+			private:
+				ConcreteMachine *machine_;
+		};
+		friend AudioUpdater;
 
 		// MARK: - Cards.
 
