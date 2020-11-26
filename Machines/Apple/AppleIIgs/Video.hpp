@@ -17,43 +17,14 @@ namespace Apple {
 namespace IIgs {
 namespace Video {
 
-// This is coupled to Apple::II::GraphicsMode, but adds detail for the IIgs.
-enum class GraphicsMode {
-	Text = 0,
-	DoubleText,
-	HighRes,
-	DoubleHighRes,
-	LowRes,
-	DoubleLowRes,
-	FatLowRes,
-
-	// Additions:
-	DoubleHighResMono,
-	SuperHighRes
-};
-constexpr bool is_colour_ntsc(GraphicsMode m) { return m >= GraphicsMode::HighRes && m <= GraphicsMode::FatLowRes; }
-
-enum class PixelBufferFormat {
-	Text, DoubleText, NTSC, NTSCMono, SuperHighRes
-};
-constexpr PixelBufferFormat format_for_mode(GraphicsMode m) {
-	switch(m) {
-		case GraphicsMode::Text:				return PixelBufferFormat::Text;
-		case GraphicsMode::DoubleText:			return PixelBufferFormat::DoubleText;
-		default: 								return PixelBufferFormat::NTSC;
-		case GraphicsMode::DoubleHighResMono:	return PixelBufferFormat::NTSCMono;
-		case GraphicsMode::SuperHighRes:		return PixelBufferFormat::SuperHighRes;
-	}
-}
-
 /*!
-	Provides IIgs video output; assumed clocking here is twice the usual Apple II clock.
-	So it'll produce a single line of video every 131 cycles — 65*2 + 1, allowing for the
+	Provides IIgs video output; assumed clocking here is seven times the usual Apple II clock.
+	So it'll produce a single line of video every 456 cycles — 65*7 + 1, allowing for the
 	stretched cycle.
 */
-class VideoBase: public Apple::II::VideoSwitches<Cycles> {
+class Video: public Apple::II::VideoSwitches<Cycles> {
 	public:
-		VideoBase();
+		Video();
 		void set_internal_ram(const uint8_t *);
 
 		bool get_is_vertical_blank(Cycles offset);
@@ -91,6 +62,22 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 	private:
 		Outputs::CRT::CRT crt_;
 
+		// This is coupled to Apple::II::GraphicsMode, but adds detail for the IIgs.
+		enum class GraphicsMode {
+			Text = 0,
+			DoubleText,
+			HighRes,
+			DoubleHighRes,
+			LowRes,
+			DoubleLowRes,
+			FatLowRes,
+
+			// Additions:
+			DoubleHighResMono,
+			SuperHighRes
+		};
+		constexpr bool is_colour_ntsc(GraphicsMode m) { return m >= GraphicsMode::HighRes && m <= GraphicsMode::FatLowRes; }
+
 		GraphicsMode graphics_mode(int row) const {
 			if(new_video_ & 0x80) {
 				return GraphicsMode::SuperHighRes;
@@ -106,6 +93,19 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 				[[fallthrough]];
 
 				default: return GraphicsMode(int(ii_mode));	break;
+			}
+		}
+
+		enum class PixelBufferFormat {
+			Text, DoubleText, NTSC, NTSCMono, SuperHighRes
+		};
+		constexpr PixelBufferFormat format_for_mode(GraphicsMode m) {
+			switch(m) {
+				case GraphicsMode::Text:				return PixelBufferFormat::Text;
+				case GraphicsMode::DoubleText:			return PixelBufferFormat::DoubleText;
+				default: 								return PixelBufferFormat::NTSC;
+				case GraphicsMode::DoubleHighResMono:	return PixelBufferFormat::NTSCMono;
+				case GraphicsMode::SuperHighRes:		return PixelBufferFormat::SuperHighRes;
 			}
 		}
 
@@ -176,11 +176,6 @@ class VideoBase: public Apple::II::VideoSwitches<Cycles> {
 		/// Outputs the lowest 14 bits from @c ntsc_shift_, mapping to RGB.
 		/// Phase is derived from @c column.
 		uint16_t *output_shift(uint16_t *target, int column);
-};
-
-class Video: public VideoBase {
-	public:
-		using VideoBase::VideoBase;
 };
 
 }

@@ -103,7 +103,7 @@ constexpr uint16_t double_bytes[128] = {
 
 }
 
-VideoBase::VideoBase() :
+Video::Video() :
 	VideoSwitches<Cycles>(true, Cycles(2), [this] (Cycles cycles) { advance(cycles); }),
 	crt_(CyclesPerLine - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red4Green4Blue4) {
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
@@ -125,27 +125,27 @@ VideoBase::VideoBase() :
 	}
 }
 
-void VideoBase::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
-Outputs::Display::ScanStatus VideoBase::get_scaled_scan_status() const {
+Outputs::Display::ScanStatus Video::get_scaled_scan_status() const {
 	return crt_.get_scaled_scan_status();
 }
 
-void VideoBase::set_display_type(Outputs::Display::DisplayType display_type) {
+void Video::set_display_type(Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 }
 
-Outputs::Display::DisplayType VideoBase::get_display_type() const {
+Outputs::Display::DisplayType Video::get_display_type() const {
 	return crt_.get_display_type();
 }
 
-void VideoBase::set_internal_ram(const uint8_t *ram) {
+void Video::set_internal_ram(const uint8_t *ram) {
 	ram_ = ram;
 }
 
-void VideoBase::advance(Cycles cycles) {
+void Video::advance(Cycles cycles) {
 	const int column_start = (cycles_into_frame_ % CyclesPerLine) / CyclesPerTick;
 	const int row_start = cycles_into_frame_ / CyclesPerLine;
 
@@ -171,7 +171,7 @@ void VideoBase::advance(Cycles cycles) {
 	}
 }
 
-Cycles VideoBase::get_next_sequence_point() const {
+Cycles Video::get_next_sequence_point() const {
 	const int cycles_into_row = cycles_into_frame_ % CyclesPerLine;
 	const int row = cycles_into_frame_ / CyclesPerLine;
 
@@ -187,7 +187,7 @@ Cycles VideoBase::get_next_sequence_point() const {
 	return Cycles(CyclesPerLine + sequence_point_offset - cycles_into_row + (Lines - row - 1)*CyclesPerLine);
 }
 
-void VideoBase::output_row(int row, int start, int end) {
+void Video::output_row(int row, int start, int end) {
 
 	// Deal with vertical sync.
 	if(row >= first_sync_line && row < first_sync_line + 3) {
@@ -410,62 +410,62 @@ void VideoBase::output_row(int row, int start, int end) {
 	}
 }
 
-bool VideoBase::get_is_vertical_blank(Cycles offset) {
+bool Video::get_is_vertical_blank(Cycles offset) {
 	// Cf. http://www.1000bit.it/support/manuali/apple/technotes/iigs/tn.iigs.040.html ;
 	// this bit covers the entire vertical border area, not just the NTSC-sense vertical blank,
 	// and considers the border to begin at 192 even though Super High-res mode is 200 lines.
 	return (cycles_into_frame_ + offset.as<int>())%(Lines * CyclesPerLine) >= FinalPixelLine * CyclesPerLine;
 }
 
-void VideoBase::set_new_video(uint8_t new_video) {
+void Video::set_new_video(uint8_t new_video) {
 	new_video_ = new_video;
 }
 
-uint8_t VideoBase::get_new_video() {
+uint8_t Video::get_new_video() {
 	return new_video_;
 }
 
-void VideoBase::clear_interrupts(uint8_t mask) {
+void Video::clear_interrupts(uint8_t mask) {
 	set_interrupts(interrupts_ & ~(mask & 0x60));
 }
 
-void VideoBase::set_interrupt_register(uint8_t mask) {
+void Video::set_interrupt_register(uint8_t mask) {
 	set_interrupts(interrupts_ | (mask & 0x6));
 }
 
-uint8_t VideoBase::get_interrupt_register() {
+uint8_t Video::get_interrupt_register() {
 	return interrupts_;
 }
 
-void VideoBase::notify_clock_tick() {
+void Video::notify_clock_tick() {
 	set_interrupts(interrupts_ | 0x40);
 }
 
-void VideoBase::set_interrupts(uint8_t new_value) {
+void Video::set_interrupts(uint8_t new_value) {
 	interrupts_ = new_value & 0x7f;
 	if((interrupts_ >> 4) & interrupts_ & 0x6)
 		interrupts_ |= 0x80;
 }
 
-void VideoBase::set_border_colour(uint8_t colour) {
+void Video::set_border_colour(uint8_t colour) {
 	border_colour_ = appleii_palette[colour & 0xf];
 }
 
-void VideoBase::set_text_colour(uint8_t colour) {
+void Video::set_text_colour(uint8_t colour) {
 	text_colour_ = appleii_palette[colour >> 4];
 	background_colour_ = appleii_palette[colour & 0xf];
 }
 
-void VideoBase::set_composite_is_colour(bool) {
+void Video::set_composite_is_colour(bool) {
 }
 
-bool VideoBase::get_composite_is_colour() {
+bool Video::get_composite_is_colour() {
 	return true;
 }
 
 // MARK: - Outputters.
 
-uint16_t *VideoBase::output_char(uint16_t *target, uint8_t source, int row) const {
+uint16_t *Video::output_char(uint16_t *target, uint8_t source, int row) const {
 	const int character = source & character_zones_[source >> 6].address_mask;
 	const uint8_t xor_mask = character_zones_[source >> 6].xor_mask;
 	const std::size_t character_address = size_t(character << 3) + (row & 7);
@@ -482,7 +482,7 @@ uint16_t *VideoBase::output_char(uint16_t *target, uint8_t source, int row) cons
 	return target + 7;
 }
 
-uint16_t *VideoBase::output_text(uint16_t *target, int start, int end, int row) const {
+uint16_t *Video::output_text(uint16_t *target, int start, int end, int row) const {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
 		target = output_char(target, ram_[row_address + c], row);
@@ -491,7 +491,7 @@ uint16_t *VideoBase::output_text(uint16_t *target, int start, int end, int row) 
 	return target;
 }
 
-uint16_t *VideoBase::output_double_text(uint16_t *target, int start, int end, int row) const {
+uint16_t *Video::output_double_text(uint16_t *target, int start, int end, int row) const {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
 		target = output_char(target, ram_[0x10000 + row_address + c], row);
@@ -501,7 +501,7 @@ uint16_t *VideoBase::output_double_text(uint16_t *target, int start, int end, in
 	return target;
 }
 
-uint16_t *VideoBase::output_super_high_res(uint16_t *target, int start, int end, int row) const {
+uint16_t *Video::output_super_high_res(uint16_t *target, int start, int end, int row) const {
 	const int row_address = row * 160 + 0x12000;
 
 	// The palette_zero_ writes ensure that palette colour 0 is replaced by whatever was last output,
@@ -527,7 +527,7 @@ uint16_t *VideoBase::output_super_high_res(uint16_t *target, int start, int end,
 	return target;
 }
 
-uint16_t *VideoBase::output_double_high_resolution_mono(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_double_high_resolution_mono(uint16_t *target, int start, int end, int row) {
 	const uint16_t row_address = get_row_address(row);
 	constexpr uint16_t colours[] = {0, 0xffff};
 	for(int c = start; c < end; c++) {
@@ -559,7 +559,7 @@ uint16_t *VideoBase::output_double_high_resolution_mono(uint16_t *target, int st
 }
 
 
-uint16_t *VideoBase::output_low_resolution(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_low_resolution(uint16_t *target, int start, int end, int row) {
 	const int row_shift = row&4;
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
@@ -580,7 +580,7 @@ uint16_t *VideoBase::output_low_resolution(uint16_t *target, int start, int end,
 	return target;
 }
 
-uint16_t *VideoBase::output_fat_low_resolution(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_fat_low_resolution(uint16_t *target, int start, int end, int row) {
 	const int row_shift = row&4;
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
@@ -595,7 +595,7 @@ uint16_t *VideoBase::output_fat_low_resolution(uint16_t *target, int start, int 
 	return target;
 }
 
-uint16_t *VideoBase::output_double_low_resolution(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_double_low_resolution(uint16_t *target, int start, int end, int row) {
 	const int row_shift = row&4;
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
@@ -623,7 +623,7 @@ uint16_t *VideoBase::output_double_low_resolution(uint16_t *target, int start, i
 	return target;
 }
 
-uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_high_resolution(uint16_t *target, int start, int end, int row) {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
 		uint8_t source = ram_[row_address + c];
@@ -643,7 +643,7 @@ uint16_t *VideoBase::output_high_resolution(uint16_t *target, int start, int end
 	return target;
 }
 
-uint16_t *VideoBase::output_double_high_resolution(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_double_high_resolution(uint16_t *target, int start, int end, int row) {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
 		const uint8_t source[2] = {
@@ -658,7 +658,7 @@ uint16_t *VideoBase::output_double_high_resolution(uint16_t *target, int start, 
 	return target;
 }
 
-uint16_t *VideoBase::output_shift(uint16_t *target, int column) {
+uint16_t *Video::output_shift(uint16_t *target, int column) {
 	// Make sure that at least two columns are enqueued before output begins;
 	// the top bits can't be understood without reference to bits that come afterwards.
 	if(!column) {

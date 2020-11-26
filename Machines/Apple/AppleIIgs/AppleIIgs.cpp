@@ -87,7 +87,7 @@ class ConcreteMachine:
 					rom_descriptions.emplace_back(machine_name, "the Apple IIgs ROM03", "apple2gs.rom2", 256*1024, 0xde7ddf29);
 				break;
 			}
-			rom_descriptions.push_back(video_->rom_description(Video::VideoBase::CharacterROM::EnhancedIIe));
+			rom_descriptions.push_back(video_->rom_description(Video::Video::CharacterROM::EnhancedIIe));
 
 			const auto roms = rom_fetcher(rom_descriptions);
 			if(!roms[0] || !roms[1]) {
@@ -757,7 +757,7 @@ class ConcreteMachine:
 		// MARK: - Other components.
 
 		Apple::Clock::ParallelClock clock_;
-		JustInTimeActor<Apple::IIgs::Video::Video, 1, 2, Cycles> video_;	// i.e. run video at twice the 1Mhz clock.
+		JustInTimeActor<Apple::IIgs::Video::Video, 1, 2, Cycles> video_;	// i.e. run video at 7Mhz.
 		Apple::IIgs::ADB::GLU adb_glu_;
  		Zilog::SCC::z8530 scc_;
  		JustInTimeActor<Apple::IWM, 1, 2, Cycles> iwm_;
