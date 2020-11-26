@@ -10,6 +10,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <numeric>
 
 // TODO: is it safe not to check for back-pressure in pending_stores_?
 
@@ -174,11 +175,28 @@ uint8_t GLU::get_address_high() {
 
 // MARK: - Update logic.
 
+Cycles GLU::get_next_sequence_point() const {
+	uint32_t result = std::numeric_limits<decltype(result)>::max();
+
+	for(int c = 0; c < local_.oscillator_count; c++) {
+		// Don't do anything for halted oscillators, or for oscillators that can't hit stops.
+		if((local_.oscillators[c].control&3) != 2) {
+			continue;
+		}
+
+		// Determine how many cycles until a stop is hit and update the pending result
+		// if this is the new soonest-to-expire oscillator.
+		const auto first_overflow_value = (local_.oscillators[c].overflow_mask - 1) << 1;
+		const auto time_until_stop = (first_overflow_value - local_.oscillators[c].position + local_.oscillators[c].velocity - 1) / local_.oscillators[c].velocity;
+		result = std::min(result, time_until_stop);
+	}
+	return Cycles(result);
+}
+
 void GLU::skip_audio(EnsoniqState &state, size_t number_of_samples) {
 	// Just advance all oscillator pointers and check for interrupts.
 	// If a read occurs to the current-output level, generate it then.
-
-	for(int c = 0; c < local_.oscillator_count; c++) {
+	for(int c = 0; c < state.oscillator_count; c++) {
 		// Don't do anything for halted oscillators.
 		if(state.oscillators[c].control&1) continue;
 
@@ -186,7 +204,7 @@ void GLU::skip_audio(EnsoniqState &state, size_t number_of_samples) {
 		state.oscillators[c].position += state.oscillators[c].velocity * number_of_samples;
 
 		// Check for stops, and any interrupts that therefore flow.
-		if((state.oscillators[c].control & 1) && (state.oscillators[c].position & state.oscillators[c].overflow_mask)) {
+		if((state.oscillators[c].control & 2) && (state.oscillators[c].position & state.oscillators[c].overflow_mask)) {
 			// Apply halt, set interrupt request flag.
 			state.oscillators[c].position = 0;
 			state.oscillators[c].control |= 1;
