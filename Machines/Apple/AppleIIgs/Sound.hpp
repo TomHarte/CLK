@@ -94,7 +94,7 @@ class GLU: public Outputs::Speaker::SampleSource {
 
 		// Functions to update an EnsoniqState; these don't belong to the state itself
 		// because they also access the pending stores (inter alia).
-		void generate_audio(size_t number_of_samples, std::int16_t *target, int16_t range);
+		void generate_audio(size_t number_of_samples, std::int16_t *target);
 		void skip_audio(EnsoniqState &state, size_t number_of_samples);
 
 		// Audio-thread state.

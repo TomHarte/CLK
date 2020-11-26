@@ -117,7 +117,7 @@ void GLU::run_for(Cycles cycles) {
 
 void GLU::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 	// Update remote state, generating audio.
-	generate_audio(number_of_samples, target, output_range_);
+	generate_audio(number_of_samples, target);
 }
 
 void GLU::skip_samples(const std::size_t number_of_samples) {
@@ -174,12 +174,9 @@ uint8_t GLU::get_address_high() {
 
 // MARK: - Update logic.
 
-void GLU::generate_audio(size_t number_of_samples, std::int16_t *target, int16_t range) {
-	(void)number_of_samples;
-	(void)target;
-	(void)range;
-
+void GLU::generate_audio(size_t number_of_samples, std::int16_t *target) {
 	auto next_store = pending_stores_[pending_store_read_].load(std::memory_order::memory_order_acquire);
+	uint8_t next_amplitude = 255;
 	for(size_t sample = 0; sample < number_of_samples; sample++) {
 
 		// TODO: there's a bit of a hack here where it is assumed that the input clock has been
@@ -206,13 +203,22 @@ void GLU::generate_audio(size_t number_of_samples, std::int16_t *target, int16_t
 					if(remote_.oscillators[c].position & remote_.oscillators[c].overflow_mask) {
 						remote_.oscillators[c].position = 0;
 						remote_.oscillators[c].control |= 1;
-					} else {
-						output += remote_.oscillators[c].output(remote_.ram_);
 					}
 				break;
 
 				case 4:	// Sync/AM mode.
-					assert(false);
+					if(c&1) {
+						// Oscillator is odd-numbered; it will amplitude-modulate the next voice.
+						next_amplitude = remote_.oscillators[c].sample(remote_.ram_);
+						continue;
+					} else {
+						// Oscillator is even-numbered; it will 'sync' to the even voice, i.e. any
+						// time it wraps around, it will reset the next oscillator.
+						if(remote_.oscillators[c].position & remote_.oscillators[c].overflow_mask) {
+							remote_.oscillators[c].position &= remote_.oscillators[c].overflow_mask;
+							remote_.oscillators[c+1].position = 0;
+						}
+					}
 				break;
 
 				case 6:	// Swap mode; possibly trigger partner, and update sample.
@@ -223,11 +229,16 @@ void GLU::generate_audio(size_t number_of_samples, std::int16_t *target, int16_t
 						remote_.oscillators[c].control |= 1;
 						remote_.oscillators[c].position = 0;
 						remote_.oscillators[c^1].control &= ~1;
-					} else {
-						output += remote_.oscillators[c].output(remote_.ram_);
 					}
 				break;
 			}
+
+			// Don't add output for newly-halted oscillators.
+			if(remote_.oscillators[c].control&1) continue;
+
+			// Append new output.
+			output += (remote_.oscillators[c].output(remote_.ram_) * next_amplitude) / 255;
+			next_amplitude = 255;
 		}
 
 		// Maximum total output was 32 channels times a 16-bit range. Map that down.
