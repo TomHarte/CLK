@@ -122,8 +122,8 @@ class ConcreteMachine:
 			iwm_->set_drive(0, &drives35_[0]);
 			iwm_->set_drive(1, &drives35_[1]);
 
-			// TODO: enable once machine is otherwise sane.
-//			Memory::Fuzz(ram_);
+			// Randomise RAM contents.
+			Memory::Fuzz(ram_);
 
 			// Sync up initial values.
 			memory_.set_speed_register(speed_register_);
@@ -533,6 +533,10 @@ class ConcreteMachine:
 						}
 					break;
 
+					// Addresses on other Apple II devices which do nothing on the GS.
+					case Write(0xc07e):
+					break;
+
 					default:
 						// Update motor mask bits.
 						switch(address_suffix) {
@@ -650,17 +654,12 @@ class ConcreteMachine:
 			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
 				assert(address);
 			}
-//			if((address > 0x200 && address < 0x2000) || (address > 0x010200 && address < 0x012000)) {
+//			if(address == 0xe115fe || address == 0xe115ff) {
 //				printf("%06x %s %02x%s\n", address, isReadOperation(operation) ? "->" : "<-", *value,
 //					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "");
 //			}
-//			log |= (address >= 0xff9b00) && (address < 0xff9b32);
-//			log |= (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address < 0x100);
-//			log |= total >= 77750000;
-//			log |= (address == 0x1f6) && (total >= 60000000);
-//			log |= (address == 0x48) && (*value == 0x02);
-//			log |= (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address >= 0x800) && (address < 0x900);
-//			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address == 0x0002));
+//			log |= (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address == 0xfc0d50);
+//			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address >= 0xfc0d5b) || (address < 0xfc0d50)));
 			if(log) {
 				printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
 				if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
