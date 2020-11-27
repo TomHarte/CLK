@@ -90,7 +90,6 @@ class GLU: public Outputs::Speaker::SampleSource {
 
 			// Some of these aren't actually needed on both threads.
 			uint8_t control;
-			uint8_t interrupt_state;
 			int oscillator_count;
 
 			void set_register(uint16_t address, uint8_t value);

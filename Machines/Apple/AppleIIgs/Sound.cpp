@@ -88,7 +88,6 @@ void GLU::EnsoniqState::set_register(uint16_t address, uint8_t value) {
 			switch(address & 0xff) {
 				case 0xe0:
 					/* Does setting the interrupt register really make any sense? */
-					interrupt_state = value;
 				break;
 				case 0xe1:
 					oscillator_count = 1 + ((value >> 1) & 31);
@@ -118,10 +117,18 @@ uint8_t GLU::get_data() {
 
 		default:
 			switch(address & 0xff) {
-				case 0xe0:
-					/* TODO: generate the actual interrupt state. */
-					return local_.interrupt_state;
-				break;
+				case 0xe0: {
+					// Find the first enabled oscillator that is signalling an interrupt and has interrupts enabled.
+					for(int c = 0; c < local_.oscillator_count; c++) {
+						if(local_.oscillators[c].interrupt_request && (local_.oscillators[c].control & 0x08)) {
+							local_.oscillators[c].interrupt_request = false;
+							return uint8_t(0x41 | (c << 1));
+						}
+					}
+
+					// No interrupt found.
+					return 0xc1;
+				} break;
 				case 0xe1:	return uint8_t((local_.oscillator_count - 1) << 1);	// TODO: should other bits be 0 or 1?
 				case 0xe2:	return 128;											// Input audio. Unimplemented!
 			}
@@ -132,6 +139,13 @@ uint8_t GLU::get_data() {
 }
 
 bool GLU::get_interrupt_line() {
+	// Return @c true if any oscillator currently has its interrupt request
+	// set, and has interrupts enabled.
+	for(int c = 0; c < local_.oscillator_count; c++) {
+		if(local_.oscillators[c].interrupt_request && (local_.oscillators[c].control & 0x08)) {
+			return true;
+		}
+	}
 	return false;
 }
 
