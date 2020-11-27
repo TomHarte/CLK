@@ -468,13 +468,48 @@ class ConcreteMachine:
 						video_->set_composite_is_colour(!(*value & 0x80));
 					break;
 
-					// Language select. (?)
+//					case Read(0xc02e):
+//						// TODO: read vertical video counter.
+//					break;
+//					case Read(0xc02f):
+//						// TODO: read horizontal video counter.
+//					break;
+
+//					case Read(0xc037): case Write(0xc037):
+//						// TODO: "Used during DMA as bank address"?
+//					break;
+
+//					case Read(0xc041): case Write(0xc041):
+//						// TODO: 'INTEN'; seems possibly to provide the same interrupt behaviour as a IIc?
+//					break;
+//					case Read(0xc044): case Write(0xc044):
+//						// TODO: MMDELTAX byte?
+//					break;
+//					case Read(0xc045): case Write(0xc045):
+//						// TODO: MMDELTAX byte?
+//					break;
+//					case Read(0xc046): case Write(0xc046):
+//						// TODO: DIAGTYPE byte? And INTFLAG?
+//					break;
+//					case Read(0xc047): case Write(0xc047):
+//						// TODO: Clear the VBL/3.75Hz interrupt flags (?)
+//					break;
+//					case Read(0xc048): case Write(0xc048):
+//						// TODO: Clear Mega II mouse interrupt flags
+//					break;
+
+					// Language select.
+					// b7, b6, b5: character generator language select;
+					// b4: NTSC/PAL (0 = NTC);
+					// b3: language select — primary or secondary.
 					case Read(0xc02b):
 						*value = language_;
 					break;
 					case Write(0xc02b):
 						language_ = *value;
 					break;
+
+					// TODO: 0xc02c is "Addr for tst mode read of character ROM". So it reads... what?
 
 					// Slot select.
 					case Read(0xc02d):
@@ -496,14 +531,6 @@ class ConcreteMachine:
 						AudioUpdater updater(this);
 						audio_toggle_.set_output(!audio_toggle_.get_output());
 					} break;
-
-					// Addresses that seemingly map to nothing; provided as a separate break out for now,
-					// while I have an assert on unknown accesses.
-					case 0xc049: case 0xc04a: case 0xc04b: case 0xc04c: case 0xc04d: case 0xc04e: case 0xc04f:
-					case 0xc069: case 0xc06a: case 0xc06b: case 0xc06c:
-						printf("Ignoring %04x\n", address_suffix);
-//						log = true;
-					break;
 
 					// 'Test Mode', whatever that is (?)
 					case Read(0xc06e): case Read(0xc06f):
@@ -535,6 +562,21 @@ class ConcreteMachine:
 					break;
 
 					// Addresses on other Apple II devices which do nothing on the GS.
+					case Read(0xc020): case Write(0xc020):	// Reserved for future system expansion.
+					case Read(0xc028): case Write(0xc028):	// ROMBANK; "not used in Apple IIGS".
+					case Read(0xc02a): case Write(0xc02a):	// Reserved for future system expansion.
+					case Read(0xc040): case Write(0xc040):	// Reserved for future system expansion.
+					case Read(0xc042): case Write(0xc042):	// Reserved for future system expansion.
+					case Read(0xc043): case Write(0xc043):	// Reserved for future system expansion.
+					case Read(0xc049): case Write(0xc049):	// Reserved for future system expansion.
+					case Read(0xc04a): case Write(0xc04a):	// Reserved for future system expansion.
+					case Read(0xc04b): case Write(0xc04b):	// Reserved for future system expansion.
+					case Read(0xc04c): case Write(0xc04c):	// Reserved for future system expansion.
+					case Read(0xc04d): case Write(0xc04d):	// Reserved for future system expansion.
+					case Read(0xc04e): case Write(0xc04e):	// Reserved for future system expansion.
+					case Read(0xc04f): case Write(0xc04f):	// Reserved for future system expansion.
+					case Read(0xc06b): case Write(0xc06b):	// Reserved for future system expansion.
+					case Read(0xc06c): case Write(0xc06c):	// Reserved for future system expansion.
 					case Write(0xc07e):
 					break;
 

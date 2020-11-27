@@ -462,6 +462,7 @@ void Video::set_text_colour(uint8_t colour) {
 }
 
 void Video::set_composite_is_colour(bool) {
+	// TODO.
 }
 
 bool Video::get_composite_is_colour() {
