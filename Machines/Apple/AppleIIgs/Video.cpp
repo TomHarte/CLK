@@ -306,6 +306,9 @@ void Video::output_row(int row, int start, int end) {
 							case GraphicsMode::SuperHighRes:
 								extra_border_length = (line_control_ & 0x80) ? 4 : 2;
 							break;
+							default:	// Unreachable.
+								extra_border_length = 0;
+							break;
 						}
 						for(int c = 0; c < extra_border_length; c++) {
 							next_pixel_[c] = border_colour_;
