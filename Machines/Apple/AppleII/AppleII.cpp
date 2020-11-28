@@ -809,33 +809,53 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		bool set_key_pressed(Key key, char value, bool is_pressed) final {
+			// If no ASCII value is supplied, look for a few special cases.
 			switch(key) {
-				default: break;
-				case Key::F12:
-					m6502_.set_reset_line(is_pressed);
-				return true;
+				case Key::Left:			value = 0x08;	break;
+				case Key::Right:		value = 0x15;	break;
+				case Key::Down:			value = 0x0a;	break;
+				case Key::Up:			value = 0x0b;	break;
+				case Key::Backspace:	value = 0x7f;	break;
+				case Key::Enter:		value = 0x0d;	break;
+				case Key::Tab:			value = '\t';	break;
+				case Key::Escape:		value = 0x1b;	break;
+
 				case Key::LeftOption:
+				case Key::RightMeta:
 					open_apple_is_pressed_ = is_pressed;
 				return true;
+
 				case Key::RightOption:
+				case Key::LeftMeta:
 					closed_apple_is_pressed_ = is_pressed;
 				return true;
-			}
 
-			// If no ASCII value is supplied, look for a few special cases.
-			if(!value) {
-				switch(key) {
-					case Key::Left:			value = 0x08;	break;
-					case Key::Right:		value = 0x15;	break;
-					case Key::Down:			value = 0x0a;	break;
-					case Key::Up:			value = 0x0b;	break;
-					case Key::Backspace:	value = 0x7f;	break;
-					default: return false;
-				}
-			}
+				case Key::F1:	case Key::F2:	case Key::F3:	case Key::F4:
+				case Key::F5:	case Key::F6:	case Key::F7:	case Key::F8:
+				case Key::F9:	case Key::F10:	case Key::F11:	case Key::F12:
+				case Key::PrintScreen:
+				case Key::ScrollLock:
+				case Key::Pause:
+				case Key::Insert:
+				case Key::Home:
+				case Key::PageUp:
+				case Key::PageDown:
+				case Key::End:
+					// Accept a bunch non-symbolic other keys, as
+					// reset, in the hope that the user can find
+					// at least one usable key.
+					m6502_.set_reset_line(is_pressed);
+				return true;
 
-			// Prior to the IIe, the keyboard could produce uppercase only.
-			if(!is_iie()) value = char(toupper(value));
+				default:
+					if(!value) {
+						return false;
+					}
+
+					// Prior to the IIe, the keyboard could produce uppercase only.
+					if(!is_iie()) value = char(toupper(value));
+				break;
+			}
 
 			if(is_pressed) {
 				keyboard_input_ = uint8_t(value | 0x80);
