@@ -808,6 +808,10 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			open_apple_is_pressed_ = closed_apple_is_pressed_ = key_is_down_ = false;
 		}
 
+		bool prefers_logical_input() final {
+			return true;
+		}
+
 		bool set_key_pressed(Key key, char value, bool is_pressed) final {
 			// If no ASCII value is supplied, look for a few special cases.
 			switch(key) {

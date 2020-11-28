@@ -32,6 +32,11 @@ struct KeyActions {
 		Instructs that all keys should now be treated as released.
 	*/
 	virtual void clear_all_keys() {}
+
+	/*!
+		Indicates whether a machine most naturally accepts logical rather than physical input.
+	*/
+	virtual bool prefers_logical_input() { return false; }
 };
 
 /*!
