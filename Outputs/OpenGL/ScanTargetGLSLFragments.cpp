@@ -341,7 +341,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		vertex_shader +=
 			"compositeAngle = (mix(startCompositeAngle, endCompositeAngle, lateral) / 32.0) * 3.141592654;"
 			"compositeAmplitude = lineCompositeAmplitude / 255.0;"
-			"oneOverCompositeAmplitude = mix(0.0, 255.0 / lineCompositeAmplitude, step(0.01, lineCompositeAmplitude));";
+			"oneOverCompositeAmplitude = mix(0.0, 255.0 / lineCompositeAmplitude, step(0.95, lineCompositeAmplitude));";
 	}
 
 	vertex_shader +=
@@ -622,7 +622,7 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 
 			"compositeAngle = compositeAngle * 2.0 * 3.141592654;"
 			"compositeAmplitude = lineCompositeAmplitude / 255.0;"
-			"oneOverCompositeAmplitude = mix(0.0, 255.0 / lineCompositeAmplitude, step(0.01, lineCompositeAmplitude));";
+			"oneOverCompositeAmplitude = mix(0.0, 255.0 / lineCompositeAmplitude, step(0.95, lineCompositeAmplitude));";
 
 	if(is_svideo) {
 		vertex_shader +=
