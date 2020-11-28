@@ -194,8 +194,9 @@ std::vector<std::string> ScanTarget::bindings(ShaderType type) const {
 std::string ScanTarget::sampling_function() const {
 	std::string fragment_shader;
 	const auto modals = BufferingScanTarget::modals();
+	const bool is_svideo = modals.display_type == DisplayType::SVideo;
 
-	if(modals.display_type == DisplayType::SVideo) {
+	if(is_svideo) {
 		fragment_shader +=
 			"vec2 svideo_sample(vec2 coordinate, float angle) {";
 	} else {
@@ -203,7 +204,6 @@ std::string ScanTarget::sampling_function() const {
 			"float composite_sample(vec2 coordinate, float angle) {";
 	}
 
-	const bool is_svideo = modals.display_type == DisplayType::SVideo;
 	switch(modals.input_data_type) {
 		case InputDataType::Luminance1:
 		case InputDataType::Luminance8:

@@ -783,8 +783,10 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	// Check whether a 'logical' keyboard has been requested.
-	const bool logical_keyboard = arguments.selections.find("logical-keyboard") != arguments.selections.end();
+	// Check whether a 'logical' keyboard has been requested, or the machine would prefer one anyway.
+	const bool logical_keyboard =
+		(arguments.selections.find("logical-keyboard") != arguments.selections.end()) ||
+		(machine->keyboard_machine() && machine->keyboard_machine()->prefers_logical_input());
 	if(logical_keyboard) {
 		SDL_StartTextInput();
 	}
@@ -1162,13 +1164,8 @@ int main(int argc, char *argv[]) {
 					} else {
 						// This is a slightly terrible way of obtaining a symbol for the key, e.g. for letters it will always return
 						// the capital letter version, at least empirically. But it'll have to do for now.
-						//
-						// TODO: ideally have a keyboard machine declare whether it wants either key events or text input? But that
-						// doesn't match machines like the IIe that, to some extent, expose both. So then eliding as attempted above,
-						// and keeping ephemeral track of which symbols have been tied to which keys for the benefit of future key up
-						// events is probably the way forward?
 						const char *key_name = SDL_GetKeyName(keypress.keycode);
-						if(keyboard_machine->get_keyboard().set_key_pressed(key, key_name[0], keypress.is_down)) {
+						if(keyboard_machine->get_keyboard().set_key_pressed(key, (strlen(key_name) == 1) ? key_name[0] : 0, keypress.is_down)) {
 							continue;
 						}
 					}
