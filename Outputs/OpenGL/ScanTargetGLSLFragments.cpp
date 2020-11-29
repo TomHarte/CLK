@@ -379,40 +379,42 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 	switch(modals.display_type) {
 		case DisplayType::CompositeColour:
-			fragment_shader +=
-				"vec4 angles = compositeAngle + compositeAngleOffsets;"
+			fragment_shader += R"x(
+				vec4 angles = compositeAngle + compositeAngleOffsets;
 
 				// Sample four times over, at proper angle offsets.
-				"vec4 samples = vec4("
-					"composite_sample(textureCoordinates[0], angles.x),"
-					"composite_sample(textureCoordinates[1], angles.y),"
-					"composite_sample(textureCoordinates[2], angles.z),"
-					"composite_sample(textureCoordinates[3], angles.w)"
-				");"
+				vec4 samples = vec4(
+					composite_sample(textureCoordinates[0], angles.x),
+					composite_sample(textureCoordinates[1], angles.y),
+					composite_sample(textureCoordinates[2], angles.z),
+					composite_sample(textureCoordinates[3], angles.w)
+				);
 
-				// Compute a luminance for use if there's no colour information, now, before
-				// modifying samples.
-				"float mono_luminance = dot(samples, vec4(0.15, 0.35, 0.35, 0.15));"
+				// The outer structure of the OpenGL scan target means in practice that
+				// oneOverCompositeAmplitude will be the same value across a piece of
+				// geometry. I am therefore optimistic that this conditional will not
+				// cause a divergence in fragment execution.
+				if(oneOverCompositeAmplitude < 0.01) {
+					// Compute only a luminance for use if there's no colour information.
+					fragColour3 = vec3(dot(samples, vec4(0.15, 0.35, 0.35, 0.15)));
+				} else {
+					// Take the average to calculate luminance, then subtract that from all four samples to
+					// give chrominance.
+					float luminance = dot(samples, vec4(0.25));
 
-				// Take the average to calculate luminance, then subtract that from all four samples to
-				// give chrominance.
-				"float luminance = dot(samples, vec4(0.25));"
+					// Split and average chrominance.
+					vec2 chrominances[4] = vec2[4](
+						textureLod(qamTextureName, qamTextureCoordinates[0], 0).gb,
+						textureLod(qamTextureName, qamTextureCoordinates[1], 0).gb,
+						textureLod(qamTextureName, qamTextureCoordinates[2], 0).gb,
+						textureLod(qamTextureName, qamTextureCoordinates[3], 0).gb
+					);
+					vec2 channels = (chrominances[0] + chrominances[1] + chrominances[2] + chrominances[3])*0.5 - vec2(1.0);
 
-				// Split and average chrominance.
-				"vec2 chrominances[4] = vec2[4]("
-					"textureLod(qamTextureName, qamTextureCoordinates[0], 0).gb,"
-					"textureLod(qamTextureName, qamTextureCoordinates[1], 0).gb,"
-					"textureLod(qamTextureName, qamTextureCoordinates[2], 0).gb,"
-					"textureLod(qamTextureName, qamTextureCoordinates[3], 0).gb"
-				");"
-				"vec2 channels = (chrominances[0] + chrominances[1] + chrominances[2] + chrominances[3])*0.5 - vec2(1.0);"
-
-				// Apply a colour space conversion to get RGB.
-				"fragColour3 = mix("
-					"lumaChromaToRGB * vec3(luminance / (1.0 - compositeAmplitude), channels),"
-					"vec3(mono_luminance),"
-					"step(oneOverCompositeAmplitude, 0.01)"
-				");";
+					// Apply a colour space conversion to get RGB.
+					fragColour3 = lumaChromaToRGB * vec3(luminance / (1.0 - compositeAmplitude), channels);
+				}
+			)x";
 		break;
 
 		case DisplayType::CompositeMonochrome:
