@@ -391,10 +391,10 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 				);
 
 				// The outer structure of the OpenGL scan target means in practice that
-				// oneOverCompositeAmplitude will be the same value across a piece of
+				// compositeAmplitude will be the same value across a piece of
 				// geometry. I am therefore optimistic that this conditional will not
 				// cause a divergence in fragment execution.
-				if(oneOverCompositeAmplitude < 0.01) {
+				if(compositeAmplitude < 0.01) {
 					// Compute only a luminance for use if there's no colour information.
 					fragColour3 = vec3(dot(samples, vec4(0.15, 0.35, 0.35, 0.15)));
 				} else {
