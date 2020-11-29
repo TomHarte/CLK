@@ -31,7 +31,7 @@
       </Testables>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Release"
+      buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       disableMainThreadChecker = "YES"
@@ -58,7 +58,15 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/Macintosh/MusicWorks 0.42.image&quot;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/thomasharte/Library/Mobile\ Documents/com\~apple\~CloudDocs/Desktop/Soft/Apple\ II/Keplermatik.dsk"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/thomasharte/Library/Mobile\ Documents/com\~apple\~CloudDocs/Desktop/Soft/Apple\ II/WOZs/Prince\ of\ Persia\ side\ A.woz"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--volume=0.001"
