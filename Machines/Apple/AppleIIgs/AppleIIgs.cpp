@@ -635,6 +635,7 @@ class ConcreteMachine:
 							const uint8_t permitted_card_mask_ = card_mask_ & 0xf6;
 							if(permitted_card_mask_ & (1 << card_number)) {
 								// TODO: Access an actual card.
+								assert(operation != CPU::WDC65816::BusOperation::ReadOpcode);
 								if(is_read) {
 									*value = 0xff;
 								}
@@ -733,7 +734,7 @@ class ConcreteMachine:
 						m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank),
 						m65816_.get_value_of_register(CPU::WDC65816::Register::ProgramBank),
 						m65816_.get_value_of_register(CPU::WDC65816::Register::Direct),
-						total
+						static_cast<unsigned long long>(total)
 					);
 				} else printf("\n");
 			}
