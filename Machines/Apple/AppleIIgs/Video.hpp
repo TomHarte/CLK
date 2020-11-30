@@ -28,6 +28,8 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 		void set_internal_ram(const uint8_t *);
 
 		bool get_is_vertical_blank(Cycles offset);
+		uint8_t get_horizontal_counter(Cycles offset);
+		uint8_t get_vertical_counter(Cycles offset);
 
 		void set_new_video(uint8_t);
 		uint8_t get_new_video();
@@ -178,6 +180,13 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 		/// Outputs the lowest 14 bits from @c ntsc_shift_, mapping to RGB.
 		/// Phase is derived from @c column.
 		uint16_t *output_shift(uint16_t *target, int column);
+
+		// Common getter for the two counters.
+		struct Counters {
+			Counters(int v, int h) : vertical(v), horizontal(h) {}
+			const int vertical, horizontal;
+		};
+		Counters get_counters(Cycles offset);
 };
 
 }
@@ -185,3 +194,4 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 }
 
 #endif /* Video_hpp */
+

@@ -15,7 +15,7 @@ namespace {
 constexpr int CyclesPerTick = 7;	// One 'tick' being the non-stretched length of a cycle on the old Apple II 1Mhz clock.
 constexpr int CyclesPerLine = 456;	// Each of the Mega II's cycles lasts 7 cycles, making 455/line except for the
 									// final on on a line which lasts an additional 1 (i.e. is 1/7th longer).
-constexpr int Lines = 263;
+constexpr int Lines = 262;
 constexpr int FinalPixelLine = 192;
 
 constexpr auto FinalColumn = CyclesPerLine / CyclesPerTick;
@@ -418,6 +418,44 @@ bool Video::get_is_vertical_blank(Cycles offset) {
 	// this bit covers the entire vertical border area, not just the NTSC-sense vertical blank,
 	// and considers the border to begin at 192 even though Super High-res mode is 200 lines.
 	return (cycles_into_frame_ + offset.as<int>())%(Lines * CyclesPerLine) >= FinalPixelLine * CyclesPerLine;
+}
+
+Video::Counters Video::get_counters(Cycles offset) {
+	// Tech note #39:
+	//
+	// "The seven-bit horizontal counter starts at $00 and counts from $40 to $7F (the sequence
+	// is $00, $40, $41,...,$7E, $7F, $00, $40,...). The active video time consists of 40 one
+	// microsecond clock cycles starting with $58 and ending with $7F."
+	//
+	// "The nine-bit vertical counter ranges from $FA through $1FF (250 through 511) in NTSC mode
+	// (vertical line count of 262) and from $C8 through $1FF (200 through 511) in PAL video timing
+	// mode (vertical line count of 312). Vertical counter value $100 corresponds to scan line
+	// zero in NTSC mode."
+
+	// Work out the internal offset into frame.
+	auto cycles_into_frame = cycles_into_frame_ + offset.as<int>();
+
+	// Nudge slightly so that the regular start of line matches mine.
+	// TODO: reorient my drawing around the native offsets?
+	cycles_into_frame = (cycles_into_frame + 25 - start_of_pixels)%(Lines * CyclesPerLine);
+
+	// Break it down.
+	const auto cycles_into_line = cycles_into_frame / CyclesPerLine;
+	const auto lines_into_frame = (cycles_into_frame % CyclesPerLine) + 0x100;
+
+	return Counters(
+		lines_into_frame - ((lines_into_frame / 0x200) * 0x106),	// TODO: this assumes NTSC.
+		cycles_into_line + bool(cycles_into_line) * 0x40);
+}
+
+uint8_t Video::get_horizontal_counter(Cycles offset) {
+	const auto counters = get_counters(offset);
+	return uint8_t(counters.horizontal | (counters.vertical << 7));
+}
+
+uint8_t Video::get_vertical_counter(Cycles offset) {
+	const auto counters = get_counters(offset);
+	return uint8_t(counters.vertical >> 1);
 }
 
 void Video::set_new_video(uint8_t new_video) {

@@ -462,18 +462,18 @@ class ConcreteMachine:
 					// Monochome/colour register.
 					case Read(0xc021):
 						// "Uses bit 7 to determine whether composite output is colour 9) or gray scale (1)."
-						*value = video_->get_composite_is_colour() ? 0x00 : 0x80;
+						*value = video_.last_valid()->get_composite_is_colour() ? 0x00 : 0x80;
 					break;
 					case Write(0xc021):
 						video_->set_composite_is_colour(!(*value & 0x80));
 					break;
 
-//					case Read(0xc02e):
-//						// TODO: read vertical video counter.
-//					break;
-//					case Read(0xc02f):
-//						// TODO: read horizontal video counter.
-//					break;
+					case Read(0xc02e):
+						*value = video_.last_valid()->get_vertical_counter(video_.time_since_flush());
+					break;
+					case Read(0xc02f):
+						*value = video_.last_valid()->get_horizontal_counter(video_.time_since_flush());
+					break;
 
 //					case Read(0xc037): case Write(0xc037):
 //						// TODO: "Used during DMA as bank address"?
