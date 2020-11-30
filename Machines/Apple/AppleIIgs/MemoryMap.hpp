@@ -247,12 +247,14 @@ class MemoryMap {
 			const auto zero_state = auxiliary_switches_.zero_state();
 			const bool inhibit_banks0001 = shadow_register_ & 0x40;
 
-			auto apply = [&language_state, &zero_state, this](uint32_t bank_base, uint8_t *ram) {
+			auto apply = [&language_state, this](uint32_t bank_base, uint8_t *ram) {
 				// All references below are to 0xc000, 0xd000 and 0xe000 but should
 				// work regardless of bank.
 
-				// This assumes bank 1 is the one before bank 2 when RAM is linear.
-				uint8_t *const lower_ram_bank = ram - (language_state.bank1 ? 0x1000 : 0x0000);
+				// This assumes bank 1 is the one before bank 2 when RAM is linear;
+				// also cf. the errata in tech note #30 — this flag enabled means bank 2;
+				// it disabled means bank 1.
+				uint8_t *const lower_ram_bank = ram - (language_state.bank1 ? 0x0000 : 0x1000);
 
 				// Crib the ROM pointer from a page it's always visible on.
 				const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffd000] - ((bank_base << 8) + 0xd000);
