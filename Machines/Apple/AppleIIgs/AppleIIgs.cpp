@@ -439,8 +439,12 @@ class ConcreteMachine:
 
 					// These were all dealt with by the call to memory_.access.
 					// TODO: subject to read data? Does vapour lock apply?
-					case 0xc002: case 0xc003: case 0xc004: case 0xc005:
-					case 0xc006: case 0xc007: case 0xc008: case 0xc009: case 0xc00a: case 0xc00b:
+					case Read(0xc002): case Read(0xc003): case Read(0xc004): case Read(0xc005):
+					case Read(0xc006): case Read(0xc007): case Read(0xc008): case Read(0xc009): case Read(0xc00a): case Read(0xc00b):
+						*value = 0xff;
+					break;
+					case Write(0xc002): case Write(0xc003): case Write(0xc004): case Write(0xc005):
+					case Write(0xc006): case Write(0xc007): case Write(0xc008): case Write(0xc009): case Write(0xc00a): case Write(0xc00b):
 					break;
 
 					// Interrupt ROM addresses; Cf. P25 of the Hardware Reference.
