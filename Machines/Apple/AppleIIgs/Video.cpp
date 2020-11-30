@@ -80,6 +80,10 @@ constexpr int start_of_right_border = start_of_pixels + pixel_ticks;
 constexpr int start_of_sync = start_of_right_border + right_border_ticks;
 constexpr int sync_period = CyclesPerLine - start_of_sync*CyclesPerTick;
 
+// I have made the guess that this occurs when the Mega II horizontal counter rolls over.
+// This is just a guess.
+constexpr int megaii_interrupt_point = 192*CyclesPerLine + (start_of_pixels - 28)*CyclesPerTick - 2;
+
 
 // A table to map from 7-bit integers to 14-bit versions with all bits doubled.
 constexpr uint16_t double_bytes[128] = {
@@ -146,10 +150,20 @@ void Video::set_internal_ram(const uint8_t *ram) {
 }
 
 void Video::advance(Cycles cycles) {
+	const int next_cycles_into_frame = cycles_into_frame_ + cycles.as<int>();
+
+	// Check for Mega II-style interrupt sources, prior to updating cycles_into_frame_.
+	if(cycles_into_frame_ < megaii_interrupt_point && next_cycles_into_frame >= megaii_interrupt_point) {
+		++megaii_frame_counter_;
+		megaii_interrupt_state_ |= 0x08 | ((megaii_frame_counter_ / 15) * 0x10);
+		megaii_frame_counter_ %= 15;
+	}
+
+	// Update video output.
 	const int column_start = (cycles_into_frame_ % CyclesPerLine) / CyclesPerTick;
 	const int row_start = cycles_into_frame_ / CyclesPerLine;
 
-	cycles_into_frame_ = (cycles_into_frame_ + cycles.as<int>()) % (CyclesPerLine * Lines);
+	cycles_into_frame_ = next_cycles_into_frame % (CyclesPerLine * Lines);
 
 	const int column_end = (cycles_into_frame_ % CyclesPerLine) / CyclesPerTick;
 	const int row_end = cycles_into_frame_ / CyclesPerLine;
@@ -177,14 +191,24 @@ Cycles Video::get_next_sequence_point() const {
 
 	constexpr int sequence_point_offset = (blank_ticks + left_border_ticks) * CyclesPerTick;
 
-	// Handle every case that doesn't involve wrapping to the next row 0.
+	// Seed as the distance ot the next row 0.
+	int result = CyclesPerLine + sequence_point_offset - cycles_into_row + (Lines - row - 1)*CyclesPerLine;
+
+	// Replace with the start of the next line, if closer.
 	if(row <= 200) {
 		if(cycles_into_row < sequence_point_offset) return Cycles(sequence_point_offset - cycles_into_row);
-		if(row < 200) return Cycles(CyclesPerLine + sequence_point_offset - cycles_into_row);
+		if(row < 200) result = CyclesPerLine + sequence_point_offset - cycles_into_row;
 	}
 
-	// Calculate distance to the relevant point in row 0.
-	return Cycles(CyclesPerLine + sequence_point_offset - cycles_into_row + (Lines - row - 1)*CyclesPerLine);
+	// Replace with the next Mega II interrupt point if those are enabled and it is sooner.
+	if(megaii_interrupt_mask_) {
+		const int time_until_megaii = megaii_interrupt_point - cycles_into_frame_;
+		if(time_until_megaii > 0 && time_until_megaii < result) {
+			result = time_until_megaii;
+		}
+	}
+
+	return Cycles(result);
 }
 
 void Video::output_row(int row, int start, int end) {
@@ -476,6 +500,22 @@ void Video::set_interrupt_register(uint8_t mask) {
 
 uint8_t Video::get_interrupt_register() {
 	return interrupts_;
+}
+
+bool Video::get_interrupt_line() {
+	return (interrupts_&0x80) || (megaii_interrupt_mask_&megaii_interrupt_state_);
+}
+
+void Video::set_megaii_interrupts_enabled(uint8_t mask) {
+	megaii_interrupt_mask_ = mask;
+}
+
+uint8_t Video::get_megaii_interrupt_status() {
+	return megaii_interrupt_state_ | (get_annunciator_3() ? 0x20 : 0x00);
+}
+
+void Video::clear_megaii_interrupts() {
+	megaii_interrupt_state_ = 0;
 }
 
 void Video::notify_clock_tick() {

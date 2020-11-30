@@ -37,6 +37,7 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 		void clear_interrupts(uint8_t);
 		uint8_t get_interrupt_register();
 		void set_interrupt_register(uint8_t);
+		bool get_interrupt_line();
 
 		void notify_clock_tick();
 
@@ -61,6 +62,14 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 
 		/// Determines the period until video might autonomously update its interrupt lines.
 		Cycles get_next_sequence_point() const;
+
+		/// Sets the Mega II interrupt enable state — 1/4-second and VBL interrupts are
+		/// generated here.
+		void set_megaii_interrupts_enabled(uint8_t);
+
+		uint8_t get_megaii_interrupt_status();
+
+		void clear_megaii_interrupts();
 
 	private:
 		Outputs::CRT::CRT crt_;
@@ -187,6 +196,11 @@ class Video: public Apple::II::VideoSwitches<Cycles> {
 			const int vertical, horizontal;
 		};
 		Counters get_counters(Cycles offset);
+
+		// Marshalls the Mega II-style interrupt state.
+		uint8_t megaii_interrupt_mask_ = 0;
+		uint8_t megaii_interrupt_state_ = 0;
+		int megaii_frame_counter_ = 0;	// To count up to quarter-second interrupts.
 };
 
 }

@@ -316,7 +316,6 @@ class ConcreteMachine:
 					case Read(0xc01d):	VideoRead(get_high_resolution());			break;
 					case Read(0xc01e):	VideoRead(get_alternative_character_set());	break;
 					case Read(0xc01f):	VideoRead(get_80_columns());				break;
-					case Read(0xc046):	VideoRead(get_annunciator_3());				break;
 #undef VideoRead
 #undef AuxiliaryRead
 #undef LanguageRead
@@ -483,24 +482,30 @@ class ConcreteMachine:
 //						// TODO: "Used during DMA as bank address"?
 //					break;
 
-//					case Read(0xc041): case Write(0xc041):
-//						// TODO: 'INTEN'; seems possibly to provide the same interrupt behaviour as a IIc?
-//					break;
-//					case Read(0xc044): case Write(0xc044):
-//						// TODO: MMDELTAX byte?
-//					break;
-//					case Read(0xc045): case Write(0xc045):
-//						// TODO: MMDELTAX byte?
-//					break;
-//					case Read(0xc046): case Write(0xc046):
-//						// TODO: DIAGTYPE byte? And INTFLAG?
-//					break;
-//					case Read(0xc047): case Write(0xc047):
-//						// TODO: Clear the VBL/3.75Hz interrupt flags (?)
-//					break;
-//					case Read(0xc048): case Write(0xc048):
-//						// TODO: Clear Mega II mouse interrupt flags
-//					break;
+					case Read(0xc041):
+						*value = megaii_interrupt_mask_;
+					break;
+					case Write(0xc041):
+						megaii_interrupt_mask_ = *value;
+						video_->set_megaii_interrupts_enabled(*value);
+					break;
+					case Read(0xc044):
+						// MMDELTAX byte.
+						*value = 0;
+					break;
+					case Read(0xc045):
+						// MMDELTAX byte.
+						*value = 0;
+					break;
+					case Read(0xc046):
+						*value = video_->get_megaii_interrupt_status();
+					break;
+					case Read(0xc047): case Write(0xc047):
+						video_->clear_megaii_interrupts();
+					break;
+					case Read(0xc048): case Write(0xc048):
+						// No-op: Clear Mega II mouse interrupt flags
+					break;
 
 					// Language select.
 					// b7, b6, b5: character generator language select;
@@ -785,7 +790,7 @@ class ConcreteMachine:
 		void update_interrupts() {
 			// Update the interrupt line.
 			// TODO: are there other interrupt sources?
-			m65816_.set_irq_line((video_.last_valid()->get_interrupt_register() & 0x80) || sound_glu_.get_interrupt_line());
+			m65816_.set_irq_line(video_.last_valid()->get_interrupt_line() || sound_glu_.get_interrupt_line());
 		}
 
 	private:
@@ -852,6 +857,8 @@ class ConcreteMachine:
 		bool test_mode_ = false;
 		uint8_t language_ = 0;
 		uint8_t disk_select_ = 0;
+
+		uint8_t megaii_interrupt_mask_ = 0;
 };
 
 }
