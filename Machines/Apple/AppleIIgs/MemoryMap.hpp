@@ -490,7 +490,7 @@ class MemoryMap {
 		std::array<uint8_t, 65536> region_map{};
 		uint8_t *ram_base = nullptr;
 		uint8_t *shadow_base[2] = {&shadow_throwaway_, nullptr};
-		const int shadow_modulo[2] = {1, 128*1024};
+		static constexpr int shadow_mask[2] = {0, 128*1024 - 1};
 
 		struct Region {
 			uint8_t *write = nullptr;
@@ -518,7 +518,7 @@ class MemoryMap {
 	if(region.write) {	\
 		region.write[address] = *value;	\
 		const auto is_shadowed = region.flags & MemoryMap::Region::IsShadowed;	\
-		map.shadow_base[is_shadowed][(&region.write[address] - map.ram_base) % map.shadow_modulo[is_shadowed]] = *value;	\
+		map.shadow_base[is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[is_shadowed]] = *value;	\
 	}
 
 // Quick notes on ::IsShadowed contortions:
