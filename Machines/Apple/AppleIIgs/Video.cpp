@@ -155,8 +155,10 @@ void Video::advance(Cycles cycles) {
 	// Check for Mega II-style interrupt sources, prior to updating cycles_into_frame_.
 	if(cycles_into_frame_ < megaii_interrupt_point && next_cycles_into_frame >= megaii_interrupt_point) {
 		++megaii_frame_counter_;
-		megaii_interrupt_state_ |= 0x08 | ((megaii_frame_counter_ / 15) * 0x10);
-		megaii_frame_counter_ %= 15;
+		megaii_interrupt_state_ |= 0x08 | (megaii_frame_counter_ & 0x10);
+		megaii_frame_counter_ &= 15;
+		// The "quarter second interrupt" is also called the "3.75Hz interrupt" elsewhere.
+		// So trigger it every 16 frames.
 	}
 
 	// Update video output.
