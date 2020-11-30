@@ -242,6 +242,10 @@ class MemoryMap {
 
 		// MARK: - Memory banking.
 
+		// Cf. LanguageCardSwitches; this function should update the region from
+		// $D000 onwards as per the state of the language card flags — there may
+		// end up being ROM or RAM (or auxiliary RAM), and the first 4kb of it
+		// may be drawn from either of two pools.
 		void set_language_card_paging() {
 			const auto language_state = language_card_.state();
 			const auto zero_state = auxiliary_switches_.zero_state();
@@ -294,6 +298,14 @@ class MemoryMap {
 			apply(0xe100, e0_ram);
 		}
 
+		// Cf. AuxiliarySwitches; this should establish whether ROM or card switches
+		// are exposed in the distinct regions C100–C2FF, C300–C3FF, C400–C7FF and
+		// C800–CFFF.
+		//
+		// On the IIgs it intersects with the current shadow register.
+		//
+		// TODO: so... shouldn't the card mask be incorporated here? I've got it implemented
+		// distinctly at present, but does that create any invalid state interactions?
 		void set_card_paging() {
 			const bool inhibit_banks0001 = shadow_register_ & 0x40;
 			const auto state = auxiliary_switches_.card_state();
@@ -357,18 +369,24 @@ class MemoryMap {
 			apply(0xe100);
 		}
 
+		// Cf. LanguageCardSwitches; this should update whether base or auxiliary RAM is
+		// visible in: (i) the zero and stack pages; and (ii) anywhere that the language
+		// card is exposing RAM instead of ROM.
 		void set_zero_page_paging() {
 			// Affects bank $00 only, and should be a single region.
 			auto &region = regions[region_map[0]];
 			region.read = region.write = auxiliary_switches_.zero_state() ? &ram_base[0x10000] : ram_base;
 			assert(region_map[0x0000]+1 == region_map[0x0002]);
 
-			// Switching to or from auxiliary RAM potentially affects the language
-			// and regular card areas.
-			set_card_paging();
+			// Switching to or from auxiliary RAM potentially affects the
+			// language card area.
 			set_language_card_paging();
 		}
 
+		// IIgs specific: sets or resets the ::IsShadowed flag across affected banks as
+		// per the current state of the shadow register.
+		//
+		// Completely distinct from the auxiliary and language card switches.
 		void set_shadowing() {
 			const bool inhibit_all_pages = !(speed_register_ & 0x10);
 
@@ -455,6 +473,8 @@ class MemoryMap {
 #undef apply
 		}
 
+		// Cf. the AuxiliarySwitches; establishes whether main or auxiliary RAM
+		// is exposed in bank $00 for a bunch of regions.
 		void set_main_paging() {
 			const auto state = auxiliary_switches_.main_state();
 
@@ -474,10 +494,10 @@ class MemoryMap {
 			// This also affects shadowing flags, if shadowing is enabled at all,
 			// and might affect RAM in the IO area of bank $00 because the language
 			// card can be inhibited on a IIgs.
-			set_shadowing();
 			set_card_paging();
 		}
 
+		// Throwaway storage to facilitate branchless handling of shadowing.
 		uint8_t shadow_throwaway_;
 
 	public:
