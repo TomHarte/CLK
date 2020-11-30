@@ -720,8 +720,10 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		// Store a means to map from CVTimeStamp.hostTime to Time::Nanos;
 		// there is an extremely dodgy assumption here that the former is in ns.
+		// If you can find a well-defined way to get the CVTimeStamp.hostTime units,
+		// whether at runtime or via preprocessor define, I'd love to know about it.
 		if(!_timeDiff) {
-			_timeDiff = int64_t(now->hostTime) - int64_t(timeNow);
+			_timeDiff = int64_t(timeNow) - int64_t(now->hostTime);
 		}
 
 		// Store the next end-of-frame time. TODO: and start of next and implied visible duration, if raster racing?
