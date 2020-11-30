@@ -440,8 +440,8 @@ Video::Counters Video::get_counters(Cycles offset) {
 	cycles_into_frame = (cycles_into_frame + 25 - start_of_pixels)%(Lines * CyclesPerLine);
 
 	// Break it down.
-	const auto cycles_into_line = cycles_into_frame / CyclesPerLine;
-	const auto lines_into_frame = (cycles_into_frame % CyclesPerLine) + 0x100;
+	const auto cycles_into_line = cycles_into_frame / (CyclesPerLine * CyclesPerTick);
+	const auto lines_into_frame = (cycles_into_frame % (CyclesPerLine * CyclesPerTick)) + 0x100;
 
 	return Counters(
 		lines_into_frame - ((lines_into_frame / 0x200) * 0x106),	// TODO: this assumes NTSC.

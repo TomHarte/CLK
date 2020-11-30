@@ -232,6 +232,10 @@ class ConcreteMachine:
 					case Write(0xc032):
 						video_->clear_interrupts(*value);
 					break;
+					case Read(0xc032):
+						// TODO: this seems to be undocumented, but used. What value is likely?
+						*value = 0xff;
+					break;
 
 					// Shadow register.
 					case Read(0xc035):
