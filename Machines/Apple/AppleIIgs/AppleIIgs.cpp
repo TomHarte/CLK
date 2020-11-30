@@ -195,7 +195,11 @@ class ConcreteMachine:
 			static uint64_t total = 0;
 			bool is_1Mhz = (region.flags & MemoryMap::Region::Is1Mhz) || !(speed_register_ & 0x80) || (speed_register_ & motor_flags_);
 
-			if(region.flags & MemoryMap::Region::IsIO) {
+			if(operation == CPU::WDC65816::BusOperation::ReadVector) {
+				// I think vector pulls always go to ROM?
+				// That's slightly implied in the documentation, and doing so makes GS/OS boot, so...
+				*value = rom_[rom_.size() - 65536 + address];
+			} else if(region.flags & MemoryMap::Region::IsIO) {
 				// Ensure classic auxiliary and language card accesses have effect.
 				const bool is_read = isReadOperation(operation);
 				memory_.access(uint16_t(address), is_read);
