@@ -202,9 +202,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			uint8_t *const ram = zero_state ? aux_ram_ : ram_;
 			uint8_t *const rom = is_iie() ? &rom_[3840] : rom_.data();
 
+			// Which way the region here is mapped to be banks 1 and 2 is
+			// arbitrary.
 			page(0xd0, 0xe0,
-				language_state.read ? &ram[language_state.bank1 ? 0xd000 : 0xc000] : rom,
-				language_state.write ? nullptr : &ram[language_state.bank1 ? 0xd000 : 0xc000]);
+				language_state.read ? &ram[language_state.bank2 ? 0xd000 : 0xc000] : rom,
+				language_state.write ? nullptr : &ram[language_state.bank2 ? 0xd000 : 0xc000]);
 
 			page(0xe0, 0x100,
 				language_state.read ? &ram[0xe000] : &rom[0x1000],
@@ -525,7 +527,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 								// The IIe-only state reads follow...
 #define IIeSwitchRead(s)	*value = get_keyboard_input(); if(is_iie()) *value = (*value & 0x7f) | (s ? 0x80 : 0x00);
-								case 0xc011:	IIeSwitchRead(language_card_.state().bank1);								break;
+								case 0xc011:	IIeSwitchRead(language_card_.state().bank2);								break;
 								case 0xc012:	IIeSwitchRead(language_card_.state().read);									break;
 								case 0xc013:	IIeSwitchRead(auxiliary_switches_.switches().read_auxiliary_memory);		break;
 								case 0xc014:	IIeSwitchRead(auxiliary_switches_.switches().write_auxiliary_memory);		break;

@@ -303,7 +303,7 @@ class ConcreteMachine:
 #define LanguageRead(s) SwitchRead(language_card_switches().state().s)
 #define AuxiliaryRead(s) SwitchRead(auxiliary_switches().switches().s)
 #define VideoRead(s) *value = video_.last_valid()->s ? 0x80 : 0x00
-					case Read(0xc011):	LanguageRead(bank1);						break;
+					case Read(0xc011):	LanguageRead(bank2);						break;
 					case Read(0xc012):	LanguageRead(read);							break;
 					case Read(0xc013):	AuxiliaryRead(read_auxiliary_memory);		break;
 					case Read(0xc014):	AuxiliaryRead(write_auxiliary_memory);		break;
@@ -458,7 +458,7 @@ class ConcreteMachine:
 					// Analogue inputs. All TODO.
 					case Read(0xc060): case Read(0xc061): case Read(0xc062): case Read(0xc063):
 						// Joystick buttons (and keyboard modifiers).
-						*value = 0x00;
+						*value = 0x80;
 					break;
 
 					case Read(0xc064): case Read(0xc065): case Read(0xc066): case Read(0xc067):
@@ -681,7 +681,7 @@ class ConcreteMachine:
 							if(address_suffix < 0xc080) {
 								// TODO: all other IO accesses.
 								printf("Unhandled IO %s: %04x\n", is_read ? "read" : "write", address_suffix);
-								assert(false);
+//								assert(false);
 							}
 						}
 				}
@@ -715,12 +715,12 @@ class ConcreteMachine:
 			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
 				assert(address);
 			}
-//			if(address == 0xe115fe || address == 0xe115ff) {
+//			if(address >= 0xE11700 && address < 0xe11b00) {
 //				printf("%06x %s %02x%s\n", address, isReadOperation(operation) ? "->" : "<-", *value,
 //					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "");
 //			}
-//			log |= (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address == 0xfc0d50);
-//			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address >= 0xfc0d5b) || (address < 0xfc0d50)));
+			log = (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address >= 0xff6a2c) && (address < 0xff6a9c);
+//			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address >= 0xff9a2c) || (address < 0xff6a2c)));
 			if(log) {
 				printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
 				if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {

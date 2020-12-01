@@ -22,9 +22,9 @@ template <typename Machine> class LanguageCardSwitches {
 	public:
 		struct State {
 			/// When RAM is visible in the range $D000–$FFFF:
-			/// @c true indicates that bank 1 should be used;
-			/// @c false indicates bank 2.
-			bool bank1 = false;
+			/// @c true indicates that bank 2 should be used;
+			/// @c false indicates bank 1.
+			bool bank2 = true;
 
 			/// @c true indicates that RAM should be readable in the range $D000–$FFFF;
 			/// @c false indicates ROM should be readable.
@@ -36,7 +36,7 @@ template <typename Machine> class LanguageCardSwitches {
 
 			bool operator != (const State &rhs) const {
 				return
-					bank1 != rhs.bank1 ||
+					bank2 != rhs.bank2 ||
 					read != rhs.read ||
 					write != rhs.write;
 			}
@@ -51,7 +51,7 @@ template <typename Machine> class LanguageCardSwitches {
 			// Quotes below taken from Understanding the Apple II, p. 5-28 and 5-29.
 
 			// "A3 controls the 4K bank selection"; 0 = bank 2, 1 = bank 1.
-			state_.bank1 = address & 8;
+			state_.bank2 = !(address & 8);
 
 			// "Access to $C080, $C083, $C084, $0087, $C088, $C08B, $C08C, or $C08F sets the READ ENABLE flip-flop"
 			// (other accesses reset it)
@@ -85,8 +85,8 @@ template <typename Machine> class LanguageCardSwitches {
 
 			// Bit 3: 1 => enable ROM, 0 => enable RAM.
 			state_.read = !(value & 0x08);
-			// Bit 2: 1 => select bank 1, 0 => select bank 2.
-			state_.bank1 = value & 0x04;
+			// Bit 2: 1 => select bank 2, 0 => select bank 1. [per errata to the Hardware Reference, which lists them the other way around]
+			state_.bank2 = value & 0x04;
 
 			if(previous_state != state_) {
 				machine_.set_language_card_paging();
@@ -96,7 +96,7 @@ template <typename Machine> class LanguageCardSwitches {
 		uint8_t get_state() const {
 			return
 				(state_.read ? 0x00 : 0x08) |
-				(state_.bank1 ? 0x04 : 0x00);
+				(state_.bank2 ? 0x04 : 0x00);
 		}
 
 	private:
