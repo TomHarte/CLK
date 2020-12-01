@@ -458,7 +458,7 @@ Video::Counters Video::get_counters(Cycles offset) {
 	// mode (vertical line count of 312). Vertical counter value $100 corresponds to scan line
 	// zero in NTSC mode."
 
-	// Work out the internal offset into frame.
+	// Work out the internal offset into frame; a modulo willoccur momentarily...
 	auto cycles_into_frame = cycles_into_frame_ + offset.as<int>();
 
 	// Nudge slightly so that the regular start of line matches mine.
@@ -466,9 +466,10 @@ Video::Counters Video::get_counters(Cycles offset) {
 	cycles_into_frame = (cycles_into_frame + 25 - start_of_pixels)%(Lines * CyclesPerLine);
 
 	// Break it down.
-	const auto cycles_into_line = cycles_into_frame / (CyclesPerLine * CyclesPerTick);
-	const auto lines_into_frame = (cycles_into_frame % (CyclesPerLine * CyclesPerTick)) + 0x100;
+	const auto cycles_into_line = (cycles_into_frame % CyclesPerLine) / CyclesPerTick;
+	auto lines_into_frame = cycles_into_frame / CyclesPerLine;
 
+	lines_into_frame += 0x100;
 	return Counters(
 		lines_into_frame - ((lines_into_frame / 0x200) * 0x106),	// TODO: this assumes NTSC.
 		cycles_into_line + bool(cycles_into_line) * 0x40);

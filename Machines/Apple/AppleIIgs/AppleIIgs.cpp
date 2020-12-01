@@ -742,9 +742,9 @@ class ConcreteMachine:
 //				printf("%06x %s %02x%s\n", address, isReadOperation(operation) ? "->" : "<-", *value,
 //					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "");
 //			}
-			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-				log = (address >= 0xff6ac7) && (address < 0xff6b09);
-			}
+//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+//				log = (address >= 0xff6ac7) && (address < 0xff6b09);
+//			}
 //			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address < 0xff6a2c) || (address >= 0xff6a9c)));
 			if(log) {
 				printf("%06x %s %02x [%s]", address, isReadOperation(operation) ? "->" : "<-", *value, (is_1Mhz || (speed_register_ & motor_flags_)) ? "1.0" : "2.8");
