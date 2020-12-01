@@ -86,9 +86,13 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 			return &object_;
 		}
 
-		/// @returns the amount of time since the object was last flushed.
-		forceinline LocalTimeScale time_since_flush() const {
-			return time_since_update_;
+		/// @returns the amount of time since the object was last flushed, in the target time scale.
+		forceinline TargetTimeScale time_since_flush() const {
+			// TODO: does this handle conversions properly where TargetTimeScale != LocalTimeScale?
+			if constexpr (divider == 1) {
+				return time_since_update_;
+			}
+			return TargetTimeScale(time_since_update_.as_integral() / divider);
 		}
 
 		/// Flushes all accumulated time.
