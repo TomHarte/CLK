@@ -296,6 +296,7 @@ class ConcreteMachine:
 					break;
 					case Write(0xc068):
 						memory_.set_state_register(*value);
+						video_->set_page2(*value & 0x40);
 					break;
 
 					// Various independent memory switch reads [TODO: does the IIe-style keyboard provide the low seven?].
@@ -336,7 +337,7 @@ class ConcreteMachine:
 					break;
 					case Read(0xc054): case Read(0xc055):
 					case Write(0xc054): case Write(0xc055):
-						video_->set_page2(address&1);
+						video_->set_page2(address & 1);
 					break;
 					case Read(0xc056): case Read(0xc057):
 					case Write(0xc056): case Write(0xc057):
@@ -719,8 +720,8 @@ class ConcreteMachine:
 //				printf("%06x %s %02x%s\n", address, isReadOperation(operation) ? "->" : "<-", *value,
 //					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "");
 //			}
-			log = (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address >= 0xff6a2c) && (address < 0xff6a9c);
-//			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address >= 0xff9a2c) || (address < 0xff6a2c)));
+//			log |= (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address >= 0xff6a2c) && (address < 0xff6a9c);
+//			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address < 0xff6a2c) || (address >= 0xff6a9c)));
 			if(log) {
 				printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
 				if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
