@@ -126,7 +126,7 @@ class ConcreteMachine:
 			Memory::Fuzz(ram_);
 
 			// Sync up initial values.
-			memory_.set_speed_register(speed_register_);
+			memory_.set_speed_register(speed_register_ ^ 0x80);
 
 			insert_media(target.media);
 		}
@@ -193,7 +193,7 @@ class ConcreteMachine:
 			const auto &region = MemoryMapRegion(memory_, address);
 			static bool log = false;
 			static uint64_t total = 0;
-			bool is_1Mhz = (region.flags & MemoryMap::Region::Is1Mhz) || !(speed_register_ & 0x80) || (speed_register_ & motor_flags_);
+			bool is_1Mhz = false;
 
 			if(operation == CPU::WDC65816::BusOperation::ReadVector) {
 				// I think vector pulls always go to ROM?
@@ -273,7 +273,7 @@ class ConcreteMachine:
 
 					// Speed register.
 					case Read(0xc036):
-						*value = speed_register_;
+						*value = speed_register_ ^ 0x80;
 					break;
 					case Write(0xc036):
 						// b7: 1 => operate at 2.8Mhz; 0 => 1Mhz.
@@ -287,7 +287,7 @@ class ConcreteMachine:
 						//		b2 = slot 6 (i.e. c0e9, c0e8)
 						//		b3 = slot 7 (i.e. c0f9, c0f8)
 						memory_.set_speed_register(*value);
-						speed_register_ = *value;
+						speed_register_ = *value ^ 0x80;
 					break;
 
 					// [Memory] State register.
@@ -300,10 +300,10 @@ class ConcreteMachine:
 					break;
 
 					// Various independent memory switch reads [TODO: does the IIe-style keyboard provide the low seven?].
-#define SwitchRead(s) *value = memory_.s ? 0x80 : 0x00
+#define SwitchRead(s) *value = memory_.s ? 0x80 : 0x00; is_1Mhz = true;
 #define LanguageRead(s) SwitchRead(language_card_switches().state().s)
 #define AuxiliaryRead(s) SwitchRead(auxiliary_switches().switches().s)
-#define VideoRead(s) *value = video_.last_valid()->s ? 0x80 : 0x00
+#define VideoRead(s) *value = video_.last_valid()->s ? 0x80 : 0x00; is_1Mhz = true;
 					case Read(0xc011):	LanguageRead(bank2);						break;
 					case Read(0xc012):	LanguageRead(read);							break;
 					case Read(0xc013):	AuxiliaryRead(read_auxiliary_memory);		break;
@@ -330,18 +330,22 @@ class ConcreteMachine:
 					case Read(0xc050): case Read(0xc051):
 					case Write(0xc050): case Write(0xc051):
 						video_->set_text(address & 1);
+						is_1Mhz = true;
 					break;
 					case Read(0xc052): case Read(0xc053):
 					case Write(0xc052): case Write(0xc053):
 						video_->set_mixed(address & 1);
+						is_1Mhz = true;
 					break;
 					case Read(0xc054): case Read(0xc055):
 					case Write(0xc054): case Write(0xc055):
 						video_->set_page2(address & 1);
+						is_1Mhz = true;
 					break;
 					case Read(0xc056): case Read(0xc057):
 					case Write(0xc056): case Write(0xc057):
 						video_->set_high_resolution(address&1);
+						is_1Mhz = true;
 					break;
 					case Read(0xc058): case Read(0xc059):
 					case Write(0xc058): case Write(0xc059):
@@ -350,19 +354,24 @@ class ConcreteMachine:
 					case Read(0xc05c): case Read(0xc05d):
 					case Write(0xc05c): case Write(0xc05d):
 						// Annunciators 0, 1 and 2.
+						is_1Mhz = true;
 					break;
 					case Read(0xc05e): case Read(0xc05f):
 					case Write(0xc05e): case Write(0xc05f):
 						video_->set_annunciator_3(!(address&1));
+						is_1Mhz = true;
 					break;
 					case Write(0xc000): case Write(0xc001):
 						video_->set_80_store(address & 1);
+						is_1Mhz = true;
 					break;
 					case Write(0xc00c): case Write(0xc00d):
 						video_->set_80_columns(address & 1);
+						is_1Mhz = true;
 					break;
 					case Write(0xc00e): case Write(0xc00f):
 						video_->set_alternative_character_set(address & 1);
+						is_1Mhz = true;
 					break;
 
 					// ADB and keyboard.
@@ -460,15 +469,18 @@ class ConcreteMachine:
 					case Read(0xc060): case Read(0xc061): case Read(0xc062): case Read(0xc063):
 						// Joystick buttons (and keyboard modifiers).
 						*value = 0x80;
+						is_1Mhz = true;
 					break;
 
 					case Read(0xc064): case Read(0xc065): case Read(0xc066): case Read(0xc067):
 						// Analogue inputs.
 						*value = 0x00;
+						is_1Mhz = true;
 					break;
 
 					case Read(0xc070): case Write(0xc070):
 						// TODO: begin analogue channel charge.
+						is_1Mhz = true;
 					break;
 
 					// Monochome/colour register.
@@ -482,9 +494,11 @@ class ConcreteMachine:
 
 					case Read(0xc02e):
 						*value = video_.last_valid()->get_vertical_counter(video_.time_since_flush());
+						is_1Mhz = true;
 					break;
 					case Read(0xc02f):
 						*value = video_.last_valid()->get_horizontal_counter(video_.time_since_flush());
+						is_1Mhz = true;
 					break;
 
 //					case Read(0xc037): case Write(0xc037):
@@ -493,27 +507,34 @@ class ConcreteMachine:
 
 					case Read(0xc041):
 						*value = megaii_interrupt_mask_;
+						is_1Mhz = true;
 					break;
 					case Write(0xc041):
 						megaii_interrupt_mask_ = *value;
 						video_->set_megaii_interrupts_enabled(*value);
+						is_1Mhz = true;
 					break;
 					case Read(0xc044):
 						// MMDELTAX byte.
 						*value = 0;
+						is_1Mhz = true;
 					break;
 					case Read(0xc045):
 						// MMDELTAX byte.
 						*value = 0;
+						is_1Mhz = true;
 					break;
 					case Read(0xc046):
 						*value = video_->get_megaii_interrupt_status();
+						is_1Mhz = true;
 					break;
 					case Read(0xc047): case Write(0xc047):
 						video_->clear_megaii_interrupts();
+						is_1Mhz = true;
 					break;
 					case Read(0xc048): case Write(0xc048):
 						// No-op: Clear Mega II mouse interrupt flags
+						is_1Mhz = true;
 					break;
 
 					// Language select.
@@ -690,6 +711,7 @@ class ConcreteMachine:
 				// For debugging purposes; if execution heads off into an unmapped page then
 				// it's pretty certain that my 65816 still has issues.
 				assert(operation != CPU::WDC65816::BusOperation::ReadOpcode || region.read);
+				is_1Mhz = region.flags & MemoryMap::Region::Is1Mhz;
 
 				if(isReadOperation(operation)) {
 					MemoryMapRead(region, address, value);
@@ -720,10 +742,12 @@ class ConcreteMachine:
 //				printf("%06x %s %02x%s\n", address, isReadOperation(operation) ? "->" : "<-", *value,
 //					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "");
 //			}
-//			log |= (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address >= 0xff6a2c) && (address < 0xff6a9c);
+			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+				log = (address >= 0xff6ac7) && (address < 0xff6b09);
+			}
 //			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address < 0xff6a2c) || (address >= 0xff6a9c)));
 			if(log) {
-				printf("%06x %s %02x", address, isReadOperation(operation) ? "->" : "<-", *value);
+				printf("%06x %s %02x [%s]", address, isReadOperation(operation) ? "->" : "<-", *value, (is_1Mhz || (speed_register_ & motor_flags_)) ? "1.0" : "2.8");
 				if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
 					printf(" a:%04x x:%04x y:%04x s:%04x e:%d p:%02x db:%02x pb:%02x d:%04x [tot:%llu]\n",
 						m65816_.get_value_of_register(CPU::WDC65816::Register::A),
@@ -740,10 +764,11 @@ class ConcreteMachine:
 				} else printf("\n");
 			}
 
-			// TODO: fully determine the cost of this access.
-			// Below is very vague on real details. Won't do.
 			Cycles duration;
-			if(is_1Mhz) {
+
+			// In preparation for this test: the top bit of speed_register_ has been inverted,
+			// so 1 => 1Mhz, 0 => 2.8Mhz, and motor_flags_ always has that bit set.
+			if(is_1Mhz || (speed_register_ & motor_flags_)) {
 				// TODO: this is very implicitly linked to the video timing; make that overt somehow. Even if it's just with a redundant video setter at construction.
 				const int current_length = 14 + 2*(slow_access_phase_ / 896);						// Length of cycle currently ongoing.
 				const int phase_adjust = (current_length - slow_access_phase_%14)%current_length;	// Amount of time to expand waiting until end of cycle, if not actually at start.
@@ -813,7 +838,7 @@ class ConcreteMachine:
 		int slow_access_phase_ = 0;
 
 		uint8_t speed_register_ = 0x40;	// i.e. Power-on status. (TODO: only if ROM03?)
-		uint8_t motor_flags_ = 0x00;
+		uint8_t motor_flags_ = 0x80;
 
 		// MARK: - Memory storage.
 
