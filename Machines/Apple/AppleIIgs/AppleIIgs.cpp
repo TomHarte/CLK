@@ -96,6 +96,48 @@ class ConcreteMachine:
 			rom_ = *roms[0];
 			video_->set_character_rom(*roms[1]);
 
+			// Run only the currently-interesting self test.
+			rom_[0x36402] = 2;
+//			rom_[0x36403] = 0x7c;	// ROM_CHECKSUM	[working, when hacks like this are removed]
+//			rom_[0x36404] = 0x6c;
+
+//			rom_[0x36403] = 0x82;	// MOVIRAM		[working]
+//			rom_[0x36404] = 0x67;
+
+//			rom_[0x36403] = 0x2c;	// SOFT_SW		[working]
+//			rom_[0x36404] = 0x6a;
+
+//			rom_[0x36403] = 0xe8;	// RAM_ADDR		[working]
+//			rom_[0x36404] = 0x6f;
+
+//			rom_[0x36403] = 0xc7;	// FPI_SPEED	[working]
+//			rom_[0x36404] = 0x6a;
+
+//			rom_[0x36403] = 0xd7;	// SER_TST		[broken]
+//			rom_[0x36404] = 0x68;
+
+//			rom_[0x36403] = 0xdc;	// CLOCK		[broken]
+//			rom_[0x36404] = 0x6c;
+
+			rom_[0x36403] = 0x1b;	// BAT_RAM		[broken]
+			rom_[0x36404] = 0x6e;
+
+//			rom_[0x36403] = 0x11;	// FDB (/ADB?)	[broken]
+//			rom_[0x36404] = 0x6f;
+
+//			rom_[0x36403] = 0x41;	// SHADOW_TST	[working]
+//			rom_[0x36404] = 0x6d;
+
+//			rom_[0x36403] = 0x09;	// CUSTOM_IRQ	[broken?]
+//			rom_[0x36404] = 0x6b;
+
+//			rom_[0x36403] = 0xf4;	// DOC_EXEC
+//			rom_[0x36404] = 0x70;
+
+//			rom_[0x36403] = 0xab;	// ECT_SEQ
+//			rom_[0x36404] = 0x64;
+
+
 			size_t ram_size = 0;
 			switch(target.memory_model) {
 				case Target::MemoryModel::TwoHundredAndFiftySixKB:
@@ -742,9 +784,9 @@ class ConcreteMachine:
 //				printf("%06x %s %02x%s\n", address, isReadOperation(operation) ? "->" : "<-", *value,
 //					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "");
 //			}
-//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-//				log = (address >= 0xff6ac7) && (address < 0xff6b09);
-//			}
+			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+				log = (address >= 0xff6cdc) && (address < 0xff6d43);
+			}
 //			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address < 0xff6a2c) || (address >= 0xff6a9c)));
 			if(log) {
 				printf("%06x %s %02x [%s]", address, isReadOperation(operation) ? "->" : "<-", *value, (is_1Mhz || (speed_register_ & motor_flags_)) ? "1.0" : "2.8");
@@ -763,6 +805,18 @@ class ConcreteMachine:
 					);
 				} else printf("\n");
 			}
+
+
+			// Automatic test overrides.
+//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+//				// SCC.
+//				if(address == 0xff68d7) *value = 0x18;	// CLC
+//				if(address == 0xff68d8) *value = 0x6b;	// RTL
+//
+//				// Clock.
+//				if(address == 0xff68d7) *value = 0x18;	// CLC
+//				if(address == 0xff68d8) *value = 0x6b;	// RTL
+//			}
 
 			Cycles duration;
 
