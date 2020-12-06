@@ -301,9 +301,9 @@ void Video::output_row(int row, int start, int end) {
 					next_pixel_ = pixels_ = nullptr;
 				}
 
-				// Allocate a new buffer; 640 is as bad as it gets.
+				// Allocate a new buffer; 640 plus one column is as bad as it gets.
 				// TODO: make proper size estimate?
-				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(644, 2));
+				next_pixel_ = pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(656, 2));
 				pixels_start_column_ = start;
 				pixels_format_ = format_for_mode(mode);
 			}
