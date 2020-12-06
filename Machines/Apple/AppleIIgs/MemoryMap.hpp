@@ -570,7 +570,7 @@ class MemoryMap {
 #define MemoryMapWrite(map, region, address, value) \
 	if(region.write) {	\
 		region.write[address] = *value;	\
-		const auto is_shadowed = region.flags & MemoryMap::Region::IsShadowed;	\
+		const bool is_shadowed = region.flags & MemoryMap::Region::IsShadowed;	\
 		map.shadow_base[is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[is_shadowed]] = *value;	\
 	}
 
