@@ -22,7 +22,7 @@ template <typename Machine> class LanguageCardSwitches {
 	public:
 		struct State {
 			/// When RAM is visible in the range $D000–$FFFF:
-			/// @c true indicates that bank 2 should be used;
+			/// @c true indicates that bank 2 should be used between $D000 and $DFFF;
 			/// @c false indicates bank 1.
 			bool bank2 = true;
 

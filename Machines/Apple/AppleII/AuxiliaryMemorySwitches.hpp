@@ -39,9 +39,9 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 				bool write = false;
 			};
 
-			/// Describes banking state in the ranges $0200–$3FFF, $0800–$1FFF and $4000–$BFFF.
+			/// Describes banking state in the ranges $0200–$03FF, $0800–$1FFF and $4000–$BFFF.
 			Region base;
-			/// Describes banking state in the range $0400–$7FFF.
+			/// Describes banking state in the range $0400–$07FF.
 			Region region_04_08;
 			/// Describes banking state in the range $2000–$3FFF.
 			Region region_20_40;
