@@ -61,13 +61,48 @@ class MemoryMap {
 			// Current beliefs about the IIgs memory map:
 			//
 			//	* language card banking applies to banks $00, $01, $e0 and $e1;
-			//	* auxiliary memory switches apply to banks $00 only;
-			//	* shadowing may be enabled only on banks $00 and $01, or on all RAM pages.
+			//	* auxiliary memory switches apply to bank $e0 only, but thereby also affect shadowed writes from $00;
+			//	* shadowing may be enabled only on banks $00 and $01, or on all RAM pages; and
+			//	* whether bit 16 of the address is passed to the Mega II is selectable — this affects both the destination
+			//	of odd-bank shadows, and whether bank $e1 is actually distinct from $e0.
 			//
-			// So banks $00 and $01 need their own divided spaces at the shadowing resolution,
-			// all the other fast RAM banks can share a set of divided spaces, $e0 and $e1 need
-			// to be able to deal with language card-level division but no further, and the pure
-			// ROM pages don't need to be subdivided at all.
+			// So:
+			//
+			//	* banks $00 and $01 need to be divided both by shadowing zones and by the language card;
+			//	* all other fast RAM banks need be divided by shadowing zone only;
+			//	* $e0 needs to be ready for any language/auxiliary arrangement;
+			//	* $e1 needs to apply the language card mapping only; and
+			//	* ROM banks don't need to be divided? Or probably they shadow writes back to $e0/$e1 too?
+
+			// Shadowing zones:
+			//
+			//	$0400–$0800	Text Page 1
+			//	$0800–$0C00	Text Page 2								[ROM 03 machines]
+			//	$2000–$4000	High-res Page 1, and Super High-res in odd banks
+			//	$4000–$6000	High-res Page 2, and Huper High-res in odd banks
+			//	$6000–$a000 Odd banks only, rest of Super High-res
+			//	[plus IO and language card space, subject to your definition of shadowing]
+
+			// Language card zones:
+			//
+			//	$D000–$E000	4kb window, into either bank 1 or bank 2
+			//	$E000–end	12kb window, always the same RAM.
+
+			// Auxiliary zones:
+			//
+			//	$0000–$0200	Zero page (and stack)
+			//	$0200–$0400	[space in between]
+			//	$0400–$0800	Text Page 1
+			//	$0800–$2000	[space in between]
+			//	$2000–$4000	High-res Page 1
+			//	$4000–$C000	[space in between]
+
+			// Card zones:
+			//
+			//	$C100–$C2FF	either cards or IIe-style ROM
+			//	$C300–$C3FF	IIe-supplied 80-column card replacement ROM
+			//	$C400–$C7FF either cards or IIe-style ROM
+			//	$C800–$CFFF	Standard extended card area
 
 			// Reserve region 0 as that for unmapped memory.
 			region();
