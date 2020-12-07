@@ -256,10 +256,11 @@ class ConcreteMachine:
 
 					// New video register.
 					case Read(0xc029):
-						*value = video_->get_new_video();;
+						*value = video_->get_new_video();
 					break;
 					case Write(0xc029):
 						video_->set_new_video(*value);
+						assert(*value & 1);
 
 						// TODO: I think bits 7 and 0 might also affect the memory map.
 						// The descripton isn't especially clear — P.90 of the Hardware Reference.
@@ -510,7 +511,7 @@ class ConcreteMachine:
 					// Analogue inputs. All TODO.
 					case Read(0xc060): case Read(0xc061): case Read(0xc062): case Read(0xc063):
 						// Joystick buttons (and keyboard modifiers).
-						*value = 0x80;
+						*value = 0x00;
 						is_1Mhz = true;
 					break;
 
