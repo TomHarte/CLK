@@ -27,6 +27,11 @@ namespace {
 	_ram.resize((128 + 8 * 1024) * 1024);
 	_rom.resize(256 * 1024);
 	_memoryMap.set_storage(_ram, _rom);
+
+	// If this isn't the first test run, RAM and ROM may have old values.
+	// Initialise to a known state.
+	memset(_ram.data(), 0, _ram.size());
+	memset(_rom.data(), 0, _rom.size());
 }
 
 - (void)write:(uint8_t)value address:(uint32_t)address {
