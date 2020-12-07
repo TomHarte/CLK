@@ -31,6 +31,7 @@ namespace {
 
 - (void)write:(uint8_t)value address:(uint32_t)address {
 	const auto &region = MemoryMapRegion(_memoryMap, address);
+	XCTAssertFalse(region.flags & MemoryMap::Region::IsIO);
 	MemoryMapWrite(_memoryMap, region, address, &value);
 }
 
@@ -101,11 +102,19 @@ namespace {
 	_memoryMap.set_shadow_register(0x00);
 
 	// Establish a different value in bank $e1, then write
-	// to bank $00 and check bank $e1.
+	// to bank $00 and check banks $01 and $e1.
 	[self write: 0xcb address:0xe1'0400];
 	[self write: 0xde address:0x00'0400];
 
 	XCTAssertEqual([self readAddress:0xe1'0400], 0xde);
+	XCTAssertEqual([self readAddress:0x01'0400], 0xde);
+
+	// Reset the $e1 page version and check all three detinations.
+	[self write: 0xcb address:0xe1'0400];
+
+	XCTAssertEqual([self readAddress:0xe1'0400], 0xcb);
+	XCTAssertEqual([self readAddress:0x00'0400], 0xde);
+	XCTAssertEqual([self readAddress:0x01'0400], 0xde);
 }
 
 @end
