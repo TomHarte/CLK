@@ -42,16 +42,19 @@ namespace {
 	return value;
 }
 
-- (void)testHigherRAM {
+- (void)testAllRAM {
+	// Disable IO/LC 'shadowing', to give linear memory up to bank $80.
+	_memoryMap.set_shadow_register(0x5f);
+
 	// Fill memory via the map.
-	for(int address = 0x02'0000; address < 0x80'0000; ++address) {
-		const uint8_t value = uint8_t(address ^ (address >> 8));
+	for(int address = 0x00'0000; address < 0x80'0000; ++address) {
+		const uint8_t value = uint8_t(address ^ (address >> 8) ^ (address >> 16));
 		[self write:value address:address];
 	}
 
 	// Test by direct access.
-	for(int address = 0x02'0000; address < 0x80'0000; ++address) {
-		const uint8_t value = uint8_t(address ^ (address >> 8));
+	for(int address = 0x00'0000; address < 0x80'0000; ++address) {
+		const uint8_t value = uint8_t(address ^ (address >> 8) ^ (address >> 16));
 		XCTAssertEqual([self readAddress:address], value);
 	}
 }
