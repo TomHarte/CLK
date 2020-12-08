@@ -708,7 +708,7 @@ class ConcreteMachine:
 								switch(address_suffix) {
 									default:
 										// Temporary: log _potential_ mistakes.
-										if(address_suffix < 0xc100) {
+										if((address_suffix < 0xc100 && address_suffix >= 0xc090) || (address_suffix < 0xc080)) {
 											printf("Internal card-area access: %04x\n", address_suffix);
 											log |= operation == CPU::WDC65816::BusOperation::ReadOpcode;
 										}
@@ -770,7 +770,7 @@ class ConcreteMachine:
 
 					// Use a very broad test for flushing video: any write to $e0 or $e1, or any write that is shadowed.
 					// TODO: at least restrict the e0/e1 test to possible video buffers!
-					if((address >= 0xe00000 && address < 0xe1000000) || region.flags & MemoryMap::Region::IsShadowed) {
+					if((address >= 0xe0'0400 && address < 0xe1'a000) || region.flags & MemoryMap::Region::IsShadowed) {
 						video_.flush();
 					}
 
@@ -860,6 +860,10 @@ class ConcreteMachine:
 															// the VGC have an independent 1-second interrupt?
 				update_interrupts();
 			}
+
+//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode && *value == 0x00) {
+//				printf("%06x: %02x\n", address, *value);
+//			}
 
 			video_ += duration;
 			iwm_ += duration;
