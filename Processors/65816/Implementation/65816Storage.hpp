@@ -148,10 +148,16 @@ enum MicroOp: uint8_t {
 	/// Copies the data buffer to A.
 	OperationCopyDataToA,
 
+	/// Clears the data buffer.
+	OperationClearDataBuffer,
+
 	/// Fills the data buffer with three or four bytes, depending on emulation mode, containing the program
-	/// counter, flags and possibly the program bank. Also puts the appropriate vector address into the
-	/// address register.
+	/// counter, flags and possibly the program bank. Skips the next operation if only three are filled.
 	OperationPrepareException,
+
+	/// Picks the appropriate vector address to service the current exception and places it into
+	/// the data address register.
+	OperationPickExceptionVector,
 
 	/// Sets the memory lock output for the rest of this instruction.
 	OperationSetMemoryLock,
@@ -250,7 +256,7 @@ struct ProcessorStorage {
 
 	enum class OperationSlot {
 		Exception = 256,
-		ResetTail,
+		Reset,
 		FetchDecodeExecute,
 	};
 
@@ -302,6 +308,7 @@ struct ProcessorStorage {
 	static constexpr int default_exceptions = PowerOn;
 	int pending_exceptions_ = default_exceptions;
 	int selected_exceptions_ = default_exceptions;
+	bool exception_is_interrupt_ = false;
 
 	bool ready_line_ = false;
 	bool memory_lock_ = false;

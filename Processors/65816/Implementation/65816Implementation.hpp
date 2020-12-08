@@ -48,8 +48,19 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					// The exception program will determine the appropriate way to respond
 					// based on the pending exception if one exists; otherwise just do a
 					// standard fetch-decode-execute.
-					const size_t slot = size_t(selected_exceptions_ ? OperationSlot::Exception : OperationSlot::FetchDecodeExecute);
-					active_instruction_ = &instructions[slot];
+					if(selected_exceptions_) {
+						exception_is_interrupt_ = true;
+
+						// Do enough quick early decoding to spot a reset.
+						if(selected_exceptions_ & (Reset | PowerOn)) {
+							active_instruction_ = &instructions[size_t(OperationSlot::Reset)];
+						} else {
+							active_instruction_ = &instructions[size_t(OperationSlot::Exception)];
+						}
+					} else {
+						exception_is_interrupt_ = false;
+						active_instruction_ = &instructions[size_t(OperationSlot::FetchDecodeExecute)];
+					}
 
 					next_op_ = &micro_ops_[active_instruction_->program_offsets[0]];
 					instruction_buffer_.clear();
@@ -199,7 +210,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				//
 
 				case CycleRepeatingNone:
-					if(pending_exceptions_ & required_exceptions_) {
+					if(selected_exceptions_ & required_exceptions_) {
 						continue;
 					} else {
 						--next_op_;
@@ -241,6 +252,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 				case OperationCopyDataToPC:
 					registers_.pc = uint16_t(data_buffer_.value);
+				continue;
+
+				case OperationClearDataBuffer:
+					data_buffer_.clear();
 				continue;
 
 				//
@@ -390,62 +405,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					data_buffer_.size = 2;
 				continue;
 
-				case OperationPrepareException: {
-					// Put the proper exception vector into the data address, put the flags and PC
-					// into the data buffer (possibly also PBR), and skip an instruction if in
-					// emulation mode.
-					//
-					// I've assumed here that interrupts, BRKs and COPs can be usurped similarly
-					// to a 6502 but may not have the exact details correct. E.g. if IRQ has
-					// become inactive since the decision was made to start an interrupt, should
-					// that turn into a BRK?
-					//
-					// Also: priority here is a guess.
-
-					bool is_brk = false;
-
-					if(pending_exceptions_ & (Reset | PowerOn)) {
-						pending_exceptions_ &= ~(Reset | PowerOn);
-						data_address_ = 0xfffc;
-						set_reset_state();
-
-						// Also switch tracks to the reset program, and don't load up the
-						// data buffer. set_reset_state() will already have fixed the
-						// interrupt and decimal flags.
-						active_instruction_ = &instructions[size_t(OperationSlot::ResetTail)];
-						next_op_ = &micro_ops_[active_instruction_->program_offsets[0]];
-						continue;
-					} else if(pending_exceptions_ & NMI) {
-						pending_exceptions_ &= ~NMI;
-						data_address_ = registers_.emulation_flag ? 0xfffa : 0xffea;
-					} else if(pending_exceptions_ & IRQ & registers_.flags.inverse_interrupt) {
-						// TODO: this isn't a correct way to handle usurption, I think;
-						// if an IRQ was selected for servicing I think it'll now be servied
-						// even if the IRQ line has gone low in the interim.
-						pending_exceptions_ &= ~IRQ;
-						data_address_ = registers_.emulation_flag ? 0xfffe : 0xffee;
-					} else if(pending_exceptions_ & Abort) {
-						// Special case: restore registers from start of instruction.
-						registers_ = abort_registers_copy_;
-
-						pending_exceptions_ &= ~Abort;
-						data_address_ = registers_.emulation_flag ? 0xfff8 : 0xffe8;;
-					} else {
-						// Test that this really is BRK or COP.
-						assert((active_instruction_ == instructions) || (active_instruction_ == &instructions[0x02]));
-
-						is_brk = active_instruction_ == instructions;	// Given that BRK has opcode 00.
-						if(is_brk) {
-							data_address_ = registers_.emulation_flag ? 0xfffe : 0xffe6;
-						} else {
-							// Implicitly: COP.
-							data_address_ = registers_.emulation_flag ? 0xfff4 : 0xffe4;
-						}
-					}
-
+				case OperationPrepareException:
 					data_buffer_.value = uint32_t((registers_.pc << 8) | get_flags());
 					if(registers_.emulation_flag) {
-						if(is_brk) data_buffer_.value |= Flag::Break;
+						if(!exception_is_interrupt_) data_buffer_.value |= Flag::Break;
 						data_buffer_.size = 3;
 						++next_op_;
 					} else {
@@ -456,7 +419,50 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 					registers_.flags.inverse_interrupt = 0;
 					registers_.flags.decimal = 0;
-				} continue;
+				continue;
+
+				case OperationPickExceptionVector:
+					// Priority for abort and reset here is a guess.
+
+					if(pending_exceptions_ & (Reset | PowerOn)) {
+						pending_exceptions_ &= ~(Reset | PowerOn);
+						data_address_ = 0xfffc;
+						set_reset_state();
+						continue;
+					}
+
+					if(pending_exceptions_ & Abort) {
+						// Special case: restore registers from start of instruction.
+						registers_ = abort_registers_copy_;
+
+						pending_exceptions_ &= ~Abort;
+						data_address_ = registers_.emulation_flag ? 0xfff8 : 0xffe8;
+						continue;
+					}
+
+					if(pending_exceptions_ & NMI) {
+						pending_exceptions_ &= ~NMI;
+						data_address_ = registers_.emulation_flag ? 0xfffa : 0xffea;
+						continue;
+					}
+
+					// Last chance saloon for the interrupt process.
+					if(exception_is_interrupt_) {
+						data_address_ = registers_.emulation_flag ? 0xfffe : 0xffee;
+						continue;
+					}
+
+					// ... then this must be a BRK or COP that is being treated as such.
+					assert((active_instruction_ == instructions) || (active_instruction_ == &instructions[0x02]));
+
+					// Test for BRK, given that it has opcode 00.
+					if(active_instruction_ == instructions) {
+						data_address_ = registers_.emulation_flag ? 0xfffe : 0xffe6;
+					} else {
+						// Implicitly: COP.
+						data_address_ = registers_.emulation_flag ? 0xfff4 : 0xffe4;
+					}
+				continue;
 
 				//
 				// Performance.

@@ -89,16 +89,16 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		++opcode;
 	}
 
-	void set_exception_generator(Generator generator, Generator reset_tail_generator) {
+	void set_exception_generator(Generator generator, Generator reset_generator) {
 		const auto map_entry = install(generator);
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[0] =
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[1] = uint16_t(map_entry->second.first);
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].operation = JMPind;
 
-		const auto reset_tail_entry = install(reset_tail_generator);
-		storage_.instructions[size_t(ProcessorStorage::OperationSlot::ResetTail)].program_offsets[0] =
-		storage_.instructions[size_t(ProcessorStorage::OperationSlot::ResetTail)].program_offsets[1] = uint16_t(reset_tail_entry->second.first);
-		storage_.instructions[size_t(ProcessorStorage::OperationSlot::ResetTail)].operation = JMPind;
+		const auto reset_tail_entry = install(reset_generator);
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Reset)].program_offsets[0] =
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Reset)].program_offsets[1] = uint16_t(reset_tail_entry->second.first);
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Reset)].operation = JMPind;
 	}
 
 	void install_fetch_decode_execute() {
@@ -617,7 +617,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 22a. Stack; s, abort/irq/nmi/res.
-	static void stack_exception(AccessType, bool, const std::function<void(MicroOp)> &target) {
+	//
+	// Combined here with reset, which is the same sequence but with a different stack access.
+	static void stack_exception_impl(AccessType, bool, const std::function<void(MicroOp)> &target, MicroOp stack_op) {
 		target(CycleFetchPCThrowaway);		// IO.
 		target(CycleFetchPCThrowaway);		// IO.
 
@@ -625,10 +627,15 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 											// reset then switches to the reset tail program.
 											// Otherwise skips a micro-op if in emulation mode.
 
-		target(CyclePush);					// PBR	[skipped in emulation mode].
-		target(CyclePush);					// PCH.
-		target(CyclePush);					// PCL.
-		target(CyclePush);					// P.
+		target(stack_op);					// PBR	[skipped in emulation mode].
+		target(stack_op);					// PCH.
+		target(stack_op);					// PCL.
+
+		target(OperationPickExceptionVector);	// Select vector address.
+
+		target(stack_op);					// P.
+
+		target(OperationClearDataBuffer);	// Prepare to fetch the vector.
 
 		target(CycleFetchIncrementVector);	// AAVL.
 		target(CycleFetchVector);			// AAVH.
@@ -636,18 +643,13 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(OperationPerform);			// Jumps to the vector address.
 	}
 
-	static void reset_tail(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		// The reset program still walks through three stack accesses as if it were doing
-		// the usual exception stack activity, but forces them to reads that don't modify
-		// the stack pointer. Here they are:
-		target(CycleAccessStack);			// PCH.
-		target(CycleAccessStack);			// PCL.
-		target(CycleAccessStack);			// P.
+	static void stack_exception(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+		stack_exception_impl(type, is8bit, target, CyclePush);
+	}
 
-		target(CycleFetchIncrementVector);	// AAVL.
-		target(CycleFetchVector);			// AAVH.
-
-		target(OperationPerform);			// Jumps to the vector address.
+	static void reset(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+		// The reset program just disables the usual pushes.
+		stack_exception_impl(type, is8bit, target, CycleAccessStack);
 	}
 
 	// 22b. Stack; s, PLx.
@@ -754,6 +756,11 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePush);					// PBR	[skipped in emulation mode].
 		target(CyclePush);					// PCH.
 		target(CyclePush);					// PCL.
+
+		target(OperationPickExceptionVector);	// Selects the exception's target; I've assumed the same
+												// logic as a 6502 here — i.e. that some interrupts can
+												// usurp the vectors of others.
+
 		target(CyclePush);					// P.
 
 		target(CycleFetchIncrementVector);	// AAVL.
@@ -1069,7 +1076,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xff SBC al, x */		op(absolute_long_x, SBC);
 #undef op
 
-	constructor.set_exception_generator(&ProcessorStorageConstructor::stack_exception, &ProcessorStorageConstructor::reset_tail);
+	constructor.set_exception_generator(&ProcessorStorageConstructor::stack_exception, &ProcessorStorageConstructor::reset);
 	constructor.install_fetch_decode_execute();
 
 	// Find any OperationMoveToNextProgram.
