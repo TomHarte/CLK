@@ -419,6 +419,9 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						pending_exceptions_ &= ~NMI;
 						data_address_ = registers_.emulation_flag ? 0xfffa : 0xffea;
 					} else if(pending_exceptions_ & IRQ & registers_.flags.inverse_interrupt) {
+						// TODO: this isn't a correct way to handle usurption, I think;
+						// if an IRQ was selected for servicing I think it'll now be servied
+						// even if the IRQ line has gone low in the interim.
 						pending_exceptions_ &= ~IRQ;
 						data_address_ = registers_.emulation_flag ? 0xfffe : 0xffee;
 					} else if(pending_exceptions_ & Abort) {
@@ -428,6 +431,9 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						pending_exceptions_ &= ~Abort;
 						data_address_ = registers_.emulation_flag ? 0xfff8 : 0xffe8;;
 					} else {
+						// Test that this really is BRK or COP.
+						assert((active_instruction_ == instructions) || (active_instruction_ == &instructions[0x02]));
+
 						is_brk = active_instruction_ == instructions;	// Given that BRK has opcode 00.
 						if(is_brk) {
 							data_address_ = registers_.emulation_flag ? 0xfffe : 0xffe6;
