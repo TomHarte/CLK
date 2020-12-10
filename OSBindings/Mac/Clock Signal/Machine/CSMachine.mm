@@ -244,12 +244,6 @@ struct ActivityObserver: public Activity::Observer {
 	[_delegateMachineAccessLock lock];
 	_speakerDelegate.machine = nil;
 	[_delegateMachineAccessLock unlock];
-
-//	[_view performWithGLContext:^{
-//		@synchronized(self) {
-//			self->_scanTarget.reset();
-//		}
-//	}];
 }
 
 - (Outputs::Speaker::Speaker *)speaker {
@@ -765,7 +759,11 @@ struct ActivityObserver: public Activity::Observer {
 			}
 
 			// If this tick includes vsync then inspect the machine.
-			if(timeNow >= self->_syncTime && lastTime < self->_syncTime) {
+			//
+			// _syncTime = 0 is used here as a sentinel to mark that a sync time is known;
+			// this with the >= test ensures that no syncs are missed even if some sort of
+			// performance problem is afoot (e.g. I'm debugging).
+			if(self->_syncTime && timeNow >= self->_syncTime) {
 				splitAndSync = self->_isSyncLocking = self->_scanSynchroniser.can_synchronise(self->_machine->scan_producer()->get_scan_status(), self->_refreshPeriod);
 
 				// If the time window is being split, run up to the split, then check out machine speed, possibly
@@ -777,6 +775,8 @@ struct ActivityObserver: public Activity::Observer {
 					);
 					self->_machine->timed_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
 				}
+
+				self->_syncTime = 0;
 			}
 
 			// If the time window is being split, run up to the split, then check out machine speed, possibly
