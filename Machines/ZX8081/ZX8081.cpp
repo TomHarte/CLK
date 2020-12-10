@@ -466,7 +466,7 @@ template<bool is_zx81> class ConcreteMachine:
 		void set_use_fast_tape() {
 			use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_player_.has_tape();
 		}
-		bool use_automatic_tape_motor_control_;
+		bool use_automatic_tape_motor_control_ = true;
 		HalfCycles tape_advance_delay_ = 0;
 
 		// MARK: - Video
