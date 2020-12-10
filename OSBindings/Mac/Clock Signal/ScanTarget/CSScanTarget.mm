@@ -499,6 +499,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
 		id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
 
+		[computeEncoder setTexture:_finalisedLineTexture atIndex:0];
 		[self dispatchComputeCommandEncoder:computeEncoder pipelineState:clearPipeline width:lineTextureDescriptor.width height:lineTextureDescriptor.height offsetBuffer:[self bufferForOffset:0]];
 
 		[computeEncoder endEncoding];
