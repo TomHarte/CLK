@@ -89,8 +89,8 @@ class GLU: public Outputs::Speaker::SampleSource {
 			} oscillators[32];
 
 			// Some of these aren't actually needed on both threads.
-			uint8_t control;
-			int oscillator_count;
+			uint8_t control = 0;
+			int oscillator_count = 1;
 
 			void set_register(uint16_t address, uint8_t value);
 		} local_, remote_;
