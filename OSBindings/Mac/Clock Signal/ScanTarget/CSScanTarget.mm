@@ -396,8 +396,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (void)updateSizeBuffersToSize:(CGSize)size {
-	const NSUInteger frameBufferWidth = NSUInteger(size.width * _view.layer.contentsScale) * (_isUsingSupersampling ? 2 : 1);
-	const NSUInteger frameBufferHeight = NSUInteger(size.height * _view.layer.contentsScale) * (_isUsingSupersampling ? 2 : 1);
+	// Anecdotally, the size provided here, which ultimately is from _view.drawableSize,
+	// already factors in Retina-style scaling.
+	//
+	// 16384 has been the maximum texture size in all Mac versions of Metal so far, and
+	// I haven't yet found a way to query it dynamically. So it's hard-coded.
+	const NSUInteger frameBufferWidth = MIN(NSUInteger(size.width) * (_isUsingSupersampling ? 2 : 1), 16384);
+	const NSUInteger frameBufferHeight = MIN(NSUInteger(size.height) * (_isUsingSupersampling ? 2 : 1), 16384);
 
 	// Generate a framebuffer and a stencil.
 	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
