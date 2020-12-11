@@ -27,7 +27,8 @@ class MemoryMap {
 		void set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
 			// Keep a pointer for later; also note the proper RAM offset.
 			ram_base = ram.data();
-			shadow_base[1] = &ram[ram.size() - 128*1024];
+			shadow_base[1] = &ram[ram.size() - 0x02'0000];	// i.e. all shadowed writes go somewhere in the last
+															// 128bk of RAM.
 
 			// Establish bank mapping.
 			uint8_t next_region = 0;
@@ -128,7 +129,7 @@ class MemoryMap {
 			});
 
 			// Banks $02–[end of RAM]: all locations potentially affected by shadowing.
-			const uint8_t fast_ram_bank_count = uint8_t((ram.size() - 128*1024) / 65536);
+			const uint8_t fast_ram_bank_count = uint8_t((ram.size() - 0x02'0000) / 0x01'0000);
 			if(fast_ram_bank_count > 2) {
 				const std::vector<uint8_t> evens = {
 					region(),	// 0x0000 – 0x0400.
@@ -192,7 +193,7 @@ class MemoryMap {
 			};
 
 			// This is highly redundant, but decouples this step from the above.
-			for(size_t c = 0; c < 0x800000; c += 0x100) {
+			for(size_t c = 0; c < 0x80'0000; c += 0x100) {
 				if(c < ram.size() - 0x02'0000) {
 					set_storage(uint32_t(c), &ram[c], &ram[c]);
 				}
@@ -208,10 +209,7 @@ class MemoryMap {
 			// TODO: set 1Mhz flags.
 
 			// Apply initial language/auxiliary state.
-			set_card_paging();
-			set_zero_page_paging();
-			set_main_paging();
-			set_shadowing();
+			set_all_paging();
 		}
 
 		// MARK: - Live bus access notifications and register access.
@@ -291,7 +289,7 @@ class MemoryMap {
 				uint8_t *const d0_ram_bank = ram - (language_state.bank2 ? 0x0000 : 0x1000);
 
 				// Crib the ROM pointer from a page it's always visible on.
-				const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffd000] - ((bank_base << 8) + 0xd000);
+				const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xff'd000] - ((bank_base << 8) + 0xd000);
 
 				auto &d0_region = regions[region_map[bank_base | 0xd0]];
 				d0_region.read = language_state.read ? d0_ram_bank : rom;
@@ -323,7 +321,7 @@ class MemoryMap {
 				set_no_card(0x0000);
 				set_no_card(0x0100);
 			} else {
-				apply(0x0000, zero_state ? &ram_base[0x10000] : ram_base);
+				apply(0x0000, zero_state ? &ram_base[0x01'0000] : ram_base);
 				apply(0x0100, ram_base);
 			}
 
@@ -386,8 +384,8 @@ class MemoryMap {
 				// regular RAM (or possibly auxiliary).
 				const auto auxiliary_state = auxiliary_switches_.main_state();
 				for(uint8_t region = region_map[0x00c0]; region < region_map[0x00d0]; region++) {
-					regions[region].read = auxiliary_state.base.read ? &ram_base[0x10000] : ram_base;
-					regions[region].write = auxiliary_state.base.write ? &ram_base[0x10000] : ram_base;
+					regions[region].read = auxiliary_state.base.read ? &ram_base[0x01'0000] : ram_base;
+					regions[region].write = auxiliary_state.base.write ? &ram_base[0x01'0000] : ram_base;
 					regions[region].flags &= ~Region::IsIO;
 				}
 				for(uint8_t region = region_map[0x01c0]; region < region_map[0x01d0]; region++) {
@@ -411,7 +409,7 @@ class MemoryMap {
 		void set_zero_page_paging() {
 			// Affects bank $00 only, and should be a single region.
 			auto &region = regions[region_map[0]];
-			region.read = region.write = auxiliary_switches_.zero_state() ? &ram_base[0x10000] : ram_base;
+			region.read = region.write = auxiliary_switches_.zero_state() ? &ram_base[0x01'0000] : ram_base;
 			assert(region_map[0x0000]+1 == region_map[0x0002]);
 
 			// Switching to or from auxiliary RAM potentially affects the
@@ -516,8 +514,8 @@ class MemoryMap {
 
 #define set(page, flags)	{\
 			auto &region = regions[region_map[page]];	\
-			region.read = flags.read ? &ram_base[0x10000] : ram_base;	\
-			region.write = flags.write ? &ram_base[0x10000] : ram_base;	\
+			region.read = flags.read ? &ram_base[0x01'0000] : ram_base;	\
+			region.write = flags.write ? &ram_base[0x01'0000] : ram_base;	\
 		}
 
 			// Base: $0200–$03FF.
@@ -547,11 +545,17 @@ class MemoryMap {
 
 #undef set
 
-
 			// This also affects shadowing flags, if shadowing is enabled at all,
 			// and might affect RAM in the IO area of bank $00 because the language
 			// card can be inhibited on a IIgs.
 			set_card_paging();
+		}
+
+		void set_all_paging() {
+			set_card_paging();
+			set_zero_page_paging();	// ... which calls set_language_card_paging().
+			set_main_paging();
+			set_shadowing();
 		}
 
 		// Throwaway storage to facilitate branchless handling of shadowing.
@@ -567,7 +571,7 @@ class MemoryMap {
 		std::array<uint8_t, 65536> region_map{};
 		uint8_t *ram_base = nullptr;
 		uint8_t *shadow_base[2] = {&shadow_throwaway_, nullptr};
-		static constexpr int shadow_mask[2] = {0, 128*1024 - 1};
+		static constexpr int shadow_mask[2] = {0, 0x01'ffff};
 
 		struct Region {
 			uint8_t *write = nullptr;

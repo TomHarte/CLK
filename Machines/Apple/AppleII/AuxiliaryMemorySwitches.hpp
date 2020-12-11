@@ -165,6 +165,11 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 
 		/// Provides part of the IIgs interface.
 		void set_state(uint8_t value) {
+			// b7: 1 => use auxiliary memory for zero page; 0 => use main.	[I think the Hardware Reference gets this the wrong way around]
+			// b6: 1 => text page 2 is selected; 0 => text page 1.
+			// b5: 1 => auxiliary RAM bank is selected for reads; 0 => main.
+			// b4: 1 => auxiliary RAM bank is selected for writes; 0 => main.
+			// b0: 1 => the internal ROM is selected for C800+; 0 => card ROM.
 			switches_.alternative_zero_page = value & 0x80;
 			switches_.video_page_2 = value & 0x40;
 			switches_.read_auxiliary_memory = value & 0x20;
@@ -193,6 +198,7 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 			return card_state_;
 		}
 
+		/// @returns @c true if the alternative zero page should be used; @c false otherwise.
 		const ZeroState zero_state() const {
 			return switches_.alternative_zero_page;
 		}

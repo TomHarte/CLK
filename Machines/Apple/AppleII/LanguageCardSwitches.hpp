@@ -85,7 +85,8 @@ template <typename Machine> class LanguageCardSwitches {
 
 			// Bit 3: 1 => enable ROM, 0 => enable RAM.
 			state_.read = !(value & 0x08);
-			// Bit 2: 1 => select bank 2, 0 => select bank 1. [per errata to the Hardware Reference, which lists them the other way around]
+			// Bit 2: 1 => select bank 2, 0 => select bank 1. [per errata to the Hardware Reference
+			// correcting the original, which lists them the other way around]
 			state_.bank2 = value & 0x04;
 
 			if(previous_state != state_) {
