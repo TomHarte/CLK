@@ -433,8 +433,6 @@ class MemoryMap {
 		regions[region_map[zone]].flags |= Region::IsShadowed; \
 	}
 
-			printf("Shadowing: %02x\n", shadow_register_);
-
 			// Relevant bits:
 			//
 			//	b5: inhibit shadowing, text page 2	[if ROM 03; as if always set otherwise]
@@ -469,11 +467,14 @@ class MemoryMap {
 			assert(region_map[0x030c] == region_map[0x0308]+1);
 
 			// Hi-res graphics Page 1, main and auxiliary — $2000–$4000;
-			// also part of the super high-res graphics page.
+			// also part of the super high-res graphics page on odd pages.
 			//
-			// Test applied: both the graphics page inhibit and, on odd
-			// pages, the super high-res inhibit must be applied to inhibit
-			// this area.
+			// Even test applied:
+			//	high-res graphics page 1 inhibit bit alone is definitive.
+			//
+			// Odd test:
+			//	(high-res graphics inhibit or auxiliary high res graphics inhibit) _and_ (super high-res inhibit).
+			//
 			apply(shadow_register_ & 0x02, 0x0020);
 			apply((shadow_register_ & 0x12) && (shadow_register_ & 0x08), 0x0120);
 			apply((shadow_register_ & 0x02) || inhibit_all_pages, 0x0220);
@@ -486,9 +487,7 @@ class MemoryMap {
 			// Hi-res graphics Page 2, main and auxiliary — $4000–$6000;
 			// also part of the super high-res graphics page.
 			//
-			// Test applied: both the graphics page inhibit and, on odd
-			// pages, the super high-res inhibit must be applied to inhibit
-			// this area.
+			// Test applied: much like that for page 1.
 			apply(shadow_register_ & 0x04, 0x0040);
 			apply((shadow_register_ & 0x14) && (shadow_register_ & 0x08), 0x0140);
 			apply((shadow_register_ & 0x04) || inhibit_all_pages, 0x0240);

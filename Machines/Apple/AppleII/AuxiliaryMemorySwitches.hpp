@@ -33,9 +33,9 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 		/// Describes banking state between $0200 and $BFFF.
 		struct MainState {
 			struct Region {
-				/// @c true indicates auxiliary memory should be read from in this region; @c false indicates that main memory should be used.
+				/// @c true indicates auxiliary memory should be read from; @c false indicates main.
 				bool read = false;
-				/// @c true indicates auxiliary memory should be written to in this region; @c false indicates that main memory should be used.
+				/// @c true indicates auxiliary memory should be written to; @c false indicates main.
 				bool write = false;
 			};
 
