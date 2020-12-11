@@ -736,7 +736,7 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
-#define TICKS	600
+#define TICKS	1000
 
 - (void)start {
 	__block auto lastTime = Time::nanos_now();
