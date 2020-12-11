@@ -125,4 +125,16 @@ namespace {
 	XCTAssertEqual([self readAddress:0x01'0400], 0xde);
 }
 
+- (void)testE0E1RAMConsistent {
+	// Do some random language card paging, to hit set_language_card.
+	_memoryMap.set_state_register(0x00);
+	_memoryMap.set_state_register(0xff);
+
+	[self write: 0x12 address:0xe0'0000];
+	[self write: 0x34 address:0xe1'0000];
+
+	XCTAssertEqual(_ram[_ram.size() - 128*1024], 0x12);
+	XCTAssertEqual(_ram[_ram.size() - 64*1024], 0x34);
+}
+
 @end

@@ -193,13 +193,13 @@ class MemoryMap {
 
 			// This is highly redundant, but decouples this step from the above.
 			for(size_t c = 0; c < 0x800000; c += 0x100) {
-				if(c < ram.size() - 128*1024) {
+				if(c < ram.size() - 0x02'0000) {
 					set_storage(uint32_t(c), &ram[c], &ram[c]);
 				}
 			}
-			uint8_t *const slow_ram = &ram[ram.size() - 0x20000];
-			for(size_t c = 0xe00000; c < 0xe20000; c += 0x100) {
-				set_storage(uint32_t(c), &slow_ram[c - 0xe00000], &slow_ram[c - 0xe00000]);
+			uint8_t *const slow_ram = &ram[ram.size() - 0x02'0000] - 0xe0'0000;
+			for(size_t c = 0xe0'0000; c < 0xe2'0000; c += 0x100) {
+				set_storage(uint32_t(c), &slow_ram[c], &slow_ram[c]);
 			}
 			for(uint32_t c = 0; c < uint32_t(rom_bank_count); c++) {
 				set_storage((first_rom_bank + c) << 16, &rom[c << 16], nullptr);
@@ -287,18 +287,15 @@ class MemoryMap {
 			const bool inhibit_banks0001 = shadow_register_ & 0x40;
 
 			auto apply = [&language_state, this](uint32_t bank_base, uint8_t *ram) {
-				// All references below are to 0xc000, 0xd000 and 0xe000 but should
-				// work regardless of bank.
-
 				// This assumes bank 1 is the one before bank 2 when RAM is linear.
-				uint8_t *const lower_ram_bank = ram - (language_state.bank2 ? 0x0000 : 0x1000);
+				uint8_t *const d0_ram_bank = ram - (language_state.bank2 ? 0x0000 : 0x1000);
 
 				// Crib the ROM pointer from a page it's always visible on.
 				const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffd000] - ((bank_base << 8) + 0xd000);
 
 				auto &d0_region = regions[region_map[bank_base | 0xd0]];
-				d0_region.read = language_state.read ? lower_ram_bank : rom;
-				d0_region.write = language_state.write ? nullptr : lower_ram_bank;
+				d0_region.read = language_state.read ? d0_ram_bank : rom;
+				d0_region.write = language_state.write ? nullptr : d0_ram_bank;
 
 				auto &e0_region = regions[region_map[bank_base | 0xe0]];
 				e0_region.read = language_state.read ? ram : rom;
@@ -316,6 +313,10 @@ class MemoryMap {
 				auto &e0_region = regions[region_map[bank_base | 0xe0]];
 				e0_region.read = ram_base;
 				e0_region.write = ram_base;
+
+				// Assert assumptions made above re: memory layout.
+				assert(region_map[bank_base | 0xd0] + 1 == region_map[bank_base | 0xe0]);
+				assert(region_map[bank_base | 0xe0] == region_map[bank_base | 0xff]);
 			};
 
 			if(inhibit_banks0001) {
@@ -326,6 +327,8 @@ class MemoryMap {
 				apply(0x0100, ram_base);
 			}
 
+			// The pointer stored in region_map[0xe000] has already been adjusted for
+			// the 0xe0'0000 addressing offset.
 			uint8_t *const e0_ram = regions[region_map[0xe000]].write;
 			apply(0xe000, e0_ram);
 			apply(0xe100, e0_ram);
@@ -517,13 +520,34 @@ class MemoryMap {
 			region.write = flags.write ? &ram_base[0x10000] : ram_base;	\
 		}
 
+			// Base: $0200–$03FF.
 			set(0x02, state.base);
-			set(0x08, state.base);
-			set(0x40, state.base);
+			assert(region_map[0x02] == region_map[0x00]+1);
+			assert(region_map[0x04] == region_map[0x02]+1);
+
+			// Region $0400–$07ff.
 			set(0x04, state.region_04_08);
+			assert(region_map[0x08] == region_map[0x04]+1);
+
+			// Base: $0800–$1FFF.
+			set(0x08, state.base);
+			set(0x0c, state.base);
+			assert(region_map[0x0c] == region_map[0x08]+1);
+			assert(region_map[0x20] == region_map[0x0c]+1);
+
+			// Region $2000–$3FFF.
 			set(0x20, state.region_20_40);
+			assert(region_map[0x40] == region_map[0x20]+1);
+
+			// Base: $4000–$BFFF.
+			set(0x40, state.base);
+			set(0x60, state.base);
+			assert(region_map[0x60] == region_map[0x40]+1);
+			assert(region_map[0xc0] == region_map[0x60]+1);
 
 #undef set
+
+
 			// This also affects shadowing flags, if shadowing is enabled at all,
 			// and might affect RAM in the IO area of bank $00 because the language
 			// card can be inhibited on a IIgs.
