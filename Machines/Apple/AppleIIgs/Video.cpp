@@ -541,8 +541,13 @@ uint8_t Video::get_border_colour() {
 }
 
 void Video::set_text_colour(uint8_t colour) {
+	text_colour_entry_ = colour;
 	text_colour_ = appleii_palette[colour >> 4];
 	background_colour_ = appleii_palette[colour & 0xf];
+}
+
+uint8_t Video::get_text_colour() {
+	return text_colour_entry_;
 }
 
 void Video::set_composite_is_colour(bool) {

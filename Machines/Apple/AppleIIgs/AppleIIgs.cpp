@@ -313,6 +313,9 @@ class ConcreteMachine:
 					case Write(0xc022):
 						video_->set_text_colour(*value);
 					break;
+					case Read(0xc022):
+						*value = video_.last_valid()->get_text_colour();
+					break;
 
 					// Speed register.
 					case Read(0xc036):
