@@ -137,12 +137,13 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 					}
 				break;
 
-				case 0xc008: case 0xc009:
-					if(!is_read && switches_.alternative_zero_page != bool(address & 1)) {
-						switches_.alternative_zero_page = address & 1;
+				case 0xc008: case 0xc009: {
+					const bool alternative_zero_page = address & 1;
+					if(!is_read && switches_.alternative_zero_page != alternative_zero_page) {
+						switches_.alternative_zero_page = alternative_zero_page;
 						set_zero_page_paging();
 					}
-				break;
+				} break;
 
 				case 0xc00a: case 0xc00b:
 					if(!is_read) {
