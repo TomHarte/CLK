@@ -137,4 +137,95 @@ namespace {
 	XCTAssertEqual(_ram[_ram.size() - 64*1024], 0x34);
 }
 
+- (void)testAuxiliarySwitches {
+	// Inhibit IO/LC 'shadowing'.
+	_memoryMap.set_shadow_register(0x40);
+
+	// Check that all writes and reads currently occur to main RAM.
+	XCTAssertEqual(_memoryMap.get_state_register() & 0xf0, 0x00);
+	for(int c = 0; c < 65536; c++) {
+		const uint8_t value = c ^ (c >> 8);
+		[self write:value address:c];
+		XCTAssertEqual(_ram[c], value);
+	}
+	
+	// Reset.
+	memset(_ram.data(), 0, 128*1024);
+
+	// Set writing to auxiliary memory.
+	// Reading should still be from main.
+	_memoryMap.access(0xc005, false);
+	XCTAssertEqual(_memoryMap.get_state_register() & 0xf0, 0x10);
+	for(int c = 0x0200; c < 0xc000; c++) {
+		const uint8_t value = c ^ (c >> 8);
+		[self write:value address:c];
+		XCTAssertEqual(_ram[c + 64*1024], value);
+		XCTAssertEqual([self readAddress:c], 0);
+	}
+
+	// Reset.
+	memset(_ram.data(), 0, 128*1024);
+
+	// Switch reading and writing.
+	_memoryMap.access(0xc004, false);
+	_memoryMap.access(0xc003, false);
+	XCTAssertEqual(_memoryMap.get_state_register() & 0xf0, 0x20);
+	for(int c = 0x0200; c < 0xc000; c++) {
+		const uint8_t value = c ^ (c >> 8);
+		[self write:value address:c];
+		XCTAssertEqual(_ram[c], value);
+		XCTAssertEqual([self readAddress:c], 0);
+	}
+
+	// Reset.
+	memset(_ram.data(), 0, 128*1024);
+
+	// Test main zero page.
+	for(int c = 0x0000; c < 0x0200; c++) {
+		const uint8_t value = c ^ (c >> 8);
+		[self write:value address:c];
+		XCTAssertEqual(_ram[c], value);
+		XCTAssertEqual([self readAddress:c], value);
+	}
+
+	// Reset.
+	memset(_ram.data(), 0, 128*1024);
+
+	// Enable the alternate zero page.
+	_memoryMap.access(0xc009, false);
+	XCTAssertEqual(_memoryMap.get_state_register() & 0xf0, 0xa0);
+	for(int c = 0x0000; c < 0x0200; c++) {
+		const uint8_t value = c ^ (c >> 8);
+		[self write:value address:c];
+		XCTAssertEqual(_ram[c + 64*1024], value);
+		XCTAssertEqual([self readAddress:c], value);
+	}
+
+	// Reset.
+	memset(_ram.data(), 0, 128*1024);
+
+	// Enable 80STORE and PAGE2 and test for access to the second video page.
+	_memoryMap.access(0xc001, false);
+	_memoryMap.access(0xc055, true);
+	XCTAssertEqual(_memoryMap.get_state_register() & 0xf0, 0xe0);
+	for(int c = 0x0400; c < 0x0800; c++) {
+		const uint8_t value = c ^ (c >> 8);
+		[self write:value address:c];
+		XCTAssertEqual(_ram[c + 64*1024], value);
+		XCTAssertEqual([self readAddress:c], value);
+	}
+
+	// Reset.
+	memset(_ram.data(), 0, 128*1024);
+
+	// Enable HIRES and test for access to the second video page.
+	_memoryMap.access(0xc057, true);
+	for(int c = 0x2000; c < 0x4000; c++) {
+		const uint8_t value = c ^ (c >> 8);
+		[self write:value address:c];
+		XCTAssertEqual(_ram[c + 64*1024], value);
+		XCTAssertEqual([self readAddress:c], value);
+	}
+}
+
 @end
