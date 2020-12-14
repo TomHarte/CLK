@@ -320,6 +320,10 @@ API_AVAILABLE(macos(11.0))
 	return [NSString stringWithFormat:@"<CSGCJoystickAxis: %p>; type %d, value %0.2f", self, (int)self.type, self.position];
 }
 
+- (void)setPosition:(float)position {
+	_position = position;
+}
+
 @end
 
 @implementation CSGCJoystickButton 
@@ -334,6 +338,10 @@ API_AVAILABLE(macos(11.0))
 
 - (NSString *)description {
 	return [NSString stringWithFormat:@"<CSGCJoystickButton: %p>; button %ld, %@", self, (long)self.index, self.isPressed ? @"pressed" : @"released"];
+}
+
+- (void)setIsPressed:(bool)isPressed {
+	_isPressed = isPressed;
 }
 
 @end
@@ -360,9 +368,38 @@ API_AVAILABLE(macos(11.0))
 	return self;
 }
 
-
 -(void)update {
-	// TODO: implement
+	// Update buttons.
+	for(CSGCJoystickButton *button in _buttons) {
+		// This assumes that the values provided by GCDeviceButtonInput are
+		// digital. This might not always be the case.
+		button.isPressed = button.button.pressed;
+	}
+	for(CSGCJoystickAxis *axis in _axes) {
+		float val = axis.axis.value;
+		val += 1;
+		val /= 2;
+		axis.position = val;
+	}
+	for(CSGCJoystickHat *hat in _hats) {
+		// This assumes that the values provided by GCDeviceDirectionPad are
+		// digital. this might not always be the case.
+		CSJoystickHatDirection hatDir = 0;
+		if (hat.directionPad.down.pressed) {
+			hatDir |= CSJoystickHatDirectionDown;
+		}
+		if (hat.directionPad.up.pressed) {
+			hatDir |= CSJoystickHatDirectionUp;
+		}
+		if (hat.directionPad.left.pressed) {
+			hatDir |= CSJoystickHatDirectionLeft;
+		}
+		if (hat.directionPad.right.pressed) {
+			hatDir |= CSJoystickHatDirectionRight;
+		}
+		// There shouldn't be any conflicting directions.
+		hat.direction = hatDir;
+	}
 }
 
 - (NSString *)description {
@@ -442,7 +479,23 @@ static void DeviceRemoved(void *context, IOReturn result, void *sender, IOHIDDev
 	NSMutableArray<CSJoystickAxis *> *axes = [[NSMutableArray alloc] init];
 	NSMutableArray<CSJoystickHat *> *hats = [[NSMutableArray alloc] init];
 
-	//TODO: write!
+	if (controller.extendedGamepad) {
+		GCExtendedGamepad *gp = controller.extendedGamepad;
+		// Let's go a b x y
+		//          1 2 3 4
+		[buttons addObject:[[CSGCJoystickButton alloc] initWithButton:gp.buttonA index:1]];
+		[buttons addObject:[[CSGCJoystickButton alloc] initWithButton:gp.buttonB index:2]];
+		[buttons addObject:[[CSGCJoystickButton alloc] initWithButton:gp.buttonX index:3]];
+		[buttons addObject:[[CSGCJoystickButton alloc] initWithButton:gp.buttonY index:4]];
+		
+		[hats addObject:[[CSGCJoystickHat alloc] initWithDirectionPad:gp.dpad]];
+		
+		[axes addObject:[[CSGCJoystickAxis alloc] initWithAxis:gp.leftThumbstick.xAxis type:CSJoystickAxisTypeX]];
+		[axes addObject:[[CSGCJoystickAxis alloc] initWithAxis:gp.leftThumbstick.yAxis type:CSJoystickAxisTypeY]];
+		[axes addObject:[[CSGCJoystickAxis alloc] initWithAxis:gp.rightThumbstick.xAxis type:CSJoystickAxisTypeZ]];
+	} else {
+		return;
+	}
 	
 	// Add this joystick to the list.
 	[_joysticks addObject:[[CSGCJoystick alloc] initWithButtons:buttons axes:axes hats:hats device:controller]];
