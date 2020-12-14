@@ -471,7 +471,7 @@ static void DeviceRemoved(void *context, IOReturn result, void *sender, IOHIDDev
 		if (![joystick isKindOfClass:[CSGCJoystick class]]) {
 			continue;
 		}
-		if(joystick.device == controller) return;
+		if([joystick.device isEqual:controller]) return;
 	}
 
 	// Prepare to collate a list of buttons, axes and hats for the new device.
@@ -509,7 +509,7 @@ static void DeviceRemoved(void *context, IOReturn result, void *sender, IOHIDDev
 		if (![joystick isKindOfClass:[CSGCJoystick class]]) {
 			continue;
 		}
-		if(joystick.device == controller) {
+		if([joystick.device isEqual:controller]) {
 			[_joysticks removeObject:joystick];
 			return;
 		}
@@ -521,7 +521,8 @@ static void DeviceRemoved(void *context, IOReturn result, void *sender, IOHIDDev
 	IOHIDManagerClose(_hidManager, kIOHIDOptionsTypeNone);
 	CFRelease(_hidManager);
 	if (@available(macOS 11.0, *)) {
-		[[NSNotificationCenter defaultCenter] removeObserver:self];
+		[[NSNotificationCenter defaultCenter] removeObserver:self name:GCControllerDidConnectNotification object:nil];
+		[[NSNotificationCenter defaultCenter] removeObserver:self name:GCControllerDidDisconnectNotification object:nil];
 	}
 }
 
