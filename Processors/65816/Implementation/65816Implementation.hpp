@@ -407,14 +407,19 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 				case OperationPrepareException:
 					data_buffer_.value = uint32_t((registers_.pc << 8) | get_flags());
+					registers_.program_bank = 0;
 					if(registers_.emulation_flag) {
 						if(!exception_is_interrupt_) data_buffer_.value |= Flag::Break;
 						data_buffer_.size = 3;
+						registers_.data_bank = 0;
 						++next_op_;
 					} else {
-						data_buffer_.value |= registers_.program_bank << 8;
+						data_buffer_.value |= registers_.program_bank << 8;	// The PBR is always held such that
+																			// PBR+PC produces a 24-bit address;
+																			// therefore a shift by 8 is correct
+																			// here — it matches the shift applied
+																			// to .pc above.
 						data_buffer_.size = 4;
-						registers_.program_bank = 0;
 					}
 
 					registers_.flags.inverse_interrupt = 0;
