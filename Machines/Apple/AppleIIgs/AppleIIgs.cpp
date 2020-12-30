@@ -237,9 +237,10 @@ class ConcreteMachine:
 			static uint64_t total = 0;
 			bool is_1Mhz = false;
 
-			if(operation == CPU::WDC65816::BusOperation::ReadVector) {
+			if(operation == CPU::WDC65816::BusOperation::ReadVector && !(memory_.get_shadow_register()&0x40)) {
 				// I think vector pulls always go to ROM?
 				// That's slightly implied in the documentation, and doing so makes GS/OS boot, so...
+				// TODO: but is my guess above re: not doing that if IOLC shadowing is disabled correct?
 				*value = rom_[rom_.size() - 65536 + address];
 			} else if(region.flags & MemoryMap::Region::IsIO) {
 				// Ensure classic auxiliary and language card accesses have effect.
@@ -789,7 +790,8 @@ class ConcreteMachine:
 //					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "");
 //			}
 			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-				log = (address >= 0xff6cdc) && (address < 0xff6d43);
+//				log = (address >= 0xff6cdc) && (address < 0xff6d43);
+				log = (address >= 0x00d300) && (address < 0x00d600);
 			}
 //			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address < 0xff6a2c) || (address >= 0xff6a9c)));
 			if(log) {
