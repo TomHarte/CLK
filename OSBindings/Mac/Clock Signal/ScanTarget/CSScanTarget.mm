@@ -410,7 +410,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		width:frameBufferWidth
 		height:frameBufferHeight
 		mipmapped:NO];
-	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
 	textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
 	id<MTLTexture> _oldFrameBuffer = _frameBuffer;
 	_frameBuffer = [_view.device newTextureWithDescriptor:textureDescriptor];
@@ -447,6 +447,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	if(_oldFrameBuffer) {
 		[self copyTexture:_oldFrameBuffer to:_frameBuffer];
 	} else {
+		// TODO: this use of clearTexture is the only reasn _frameBuffer has a marked usage of MTLTextureUsageShaderWrite;
+		// it'd probably be smarter to blank it with  geometry rather than potentially complicating
+		// its storage further?
 		[self clearTexture:_frameBuffer];
 	}
 
