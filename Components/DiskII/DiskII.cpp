@@ -180,29 +180,40 @@ void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
 	if(state_machine[0] != 0x18) {
 		for(size_t source_address = 0; source_address < 256; ++source_address) {
 			// Remap into Beneath Apple Pro-DOS address form.
-			size_t destination_address =
-				((source_address&0x80) ? 0x10 : 0x00) |
-				((source_address&0x01) ? 0x20 : 0x00) |
-				((source_address&0x40) ? 0x40 : 0x00) |
+			const size_t destination_address =
 				((source_address&0x20) ? 0x80 : 0x00) |
-				((source_address&0x10) ? 0x01 : 0x00) |
+				((source_address&0x40) ? 0x40 : 0x00) |
+				((source_address&0x01) ? 0x20 : 0x00) |
+				((source_address&0x80) ? 0x10 : 0x00) |
 				((source_address&0x08) ? 0x08 : 0x00) |
 				((source_address&0x04) ? 0x04 : 0x00) |
-				((source_address&0x02) ? 0x02 : 0x00);
-			uint8_t source_value = state_machine[source_address];
+				((source_address&0x02) ? 0x02 : 0x00) |
+				((source_address&0x10) ? 0x01 : 0x00);
 
-			source_value =
+			// Store.
+			const uint8_t source_value = state_machine[source_address];
+			state_machine_[destination_address] =
 				((source_value & 0x80) ? 0x10 : 0x0) |
 				((source_value & 0x40) ? 0x20 : 0x0) |
 				((source_value & 0x20) ? 0x40 : 0x0) |
 				((source_value & 0x10) ? 0x80 : 0x0) |
 				(source_value & 0x0f);
-
-			// Store.
-			state_machine_[destination_address] = source_value;
 		}
 	} else {
-		memcpy(&state_machine_[0], &state_machine[0], 128);
+		for(size_t source_address = 0; source_address < 256; ++source_address) {
+			// Reshuffle ordering of bytes only, to retain indexing by the high nibble.
+			const size_t destination_address =
+				((source_address&0x80) ? 0x80 : 0x00) |
+				((source_address&0x40) ? 0x40 : 0x00) |
+				((source_address&0x01) ? 0x20 : 0x00) |
+				((source_address&0x20) ? 0x10 : 0x00) |
+				((source_address&0x08) ? 0x08 : 0x00) |
+				((source_address&0x04) ? 0x04 : 0x00) |
+				((source_address&0x02) ? 0x02 : 0x00) |
+				((source_address&0x10) ? 0x01 : 0x00);
+
+			state_machine_[destination_address] = state_machine[source_address];
+		}
 	}
 }
 
