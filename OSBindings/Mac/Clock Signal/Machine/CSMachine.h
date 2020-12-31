@@ -14,7 +14,7 @@
 #import "CSStaticAnalyser.h"
 
 @class CSMachine;
-@protocol CSMachineDelegate
+@protocol CSMachineDelegate <NSObject>
 - (void)machineSpeakerDidChangeInputClock:(nonnull CSMachine *)machine;
 - (void)machine:(nonnull CSMachine *)machine led:(nonnull NSString *)led didChangeToLit:(BOOL)isLit;
 - (void)machine:(nonnull CSMachine *)machine ledShouldBlink:(nonnull NSString *)led;
@@ -59,7 +59,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 - (nullable instancetype)initWithAnalyser:(nonnull CSStaticAnalyser *)result missingROMs:(nullable inout NSMutableArray<CSMissingROM *> *)missingROMs NS_DESIGNATED_INITIALIZER;
 
 - (float)idealSamplingRateFromRange:(NSRange)range;
-- (BOOL)isStereo;
+@property (readonly, getter=isStereo) BOOL stereo;
 - (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo;
 
 - (void)setView:(nullable CSScanTargetView *)view aspectRatio:(float)aspectRatio;
