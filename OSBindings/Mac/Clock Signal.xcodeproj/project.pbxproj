@@ -844,6 +844,8 @@
 		4BDB61EB2032806E0048AF91 /* CSAtari2600.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A539A1D117D36003C6002 /* CSAtari2600.mm */; };
 		4BDB61EC203285AE0048AF91 /* Atari2600OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8FE21F1DA19D7C0090D3CE /* Atari2600OptionsPanel.swift */; };
 		4BDDBA991EF3451200347E61 /* Z80MachineCycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */; };
+		4BDDBBD7259D757800CEFF58 /* PowerPC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BDDBBD5259D757800CEFF58 /* PowerPC.cpp */; };
+		4BDDBBD8259D757800CEFF58 /* PowerPC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BDDBBD5259D757800CEFF58 /* PowerPC.cpp */; };
 		4BE0A3EE237BB170002AB46F /* ST.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE0A3EC237BB170002AB46F /* ST.cpp */; };
 		4BE0A3EF237BB170002AB46F /* ST.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE0A3EC237BB170002AB46F /* ST.cpp */; };
 		4BE211DE253E4E4800435408 /* 65C02_no_Rockwell_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4BE211DD253E4E4800435408 /* 65C02_no_Rockwell_test.bin */; };
@@ -1767,6 +1769,8 @@
 		4BDB3D8522833321002D3CEE /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4BDCC5F81FB27A5E001220C5 /* ROMMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ROMMachine.hpp; sourceTree = "<group>"; };
 		4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MachineCycleTests.swift; sourceTree = "<group>"; };
+		4BDDBBD5259D757800CEFF58 /* PowerPC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PowerPC.cpp; sourceTree = "<group>"; };
+		4BDDBBD6259D757800CEFF58 /* PowerPC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PowerPC.hpp; sourceTree = "<group>"; };
 		4BE0A3EC237BB170002AB46F /* ST.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ST.cpp; sourceTree = "<group>"; };
 		4BE0A3ED237BB170002AB46F /* ST.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ST.hpp; sourceTree = "<group>"; };
 		4BE211DD253E4E4800435408 /* 65C02_no_Rockwell_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 65C02_no_Rockwell_test.bin; path = "Klaus Dormann/65C02_no_Rockwell_test.bin"; sourceTree = "<group>"; };
@@ -3539,6 +3543,7 @@
 				4B4DEC15252BFA9C004583AC /* 6502Esque */,
 				4BF8D4CC251C0C9C00BBE21B /* 65816 */,
 				4BFF1D332233778C00838EA1 /* 68000 */,
+				4BDDBBD3259D757800CEFF58 /* Decoders */,
 				4B77069E1EC9045B0053B588 /* Z80 */,
 			);
 			name = Processors;
@@ -3879,6 +3884,23 @@
 				4BDACBEB22FFA5D20045EF7E /* ncr5380.hpp */,
 			);
 			path = 5380;
+			sourceTree = "<group>";
+		};
+		4BDDBBD3259D757800CEFF58 /* Decoders */ = {
+			isa = PBXGroup;
+			children = (
+				4BDDBBD4259D757800CEFF58 /* PowerPC */,
+			);
+			path = Decoders;
+			sourceTree = "<group>";
+		};
+		4BDDBBD4259D757800CEFF58 /* PowerPC */ = {
+			isa = PBXGroup;
+			children = (
+				4BDDBBD5259D757800CEFF58 /* PowerPC.cpp */,
+				4BDDBBD6259D757800CEFF58 /* PowerPC.hpp */,
+			);
+			path = PowerPC;
 			sourceTree = "<group>";
 		};
 		4BE5F85A1C3E1C2500C43F01 /* Resources */ = {
@@ -4607,6 +4629,7 @@
 				4BD67DD1209BF27B00AB2146 /* Encoder.cpp in Sources */,
 				4B89451F201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055AA81FAE85EF0060FFFF /* Shifter.cpp in Sources */,
+				4BDDBBD8259D757800CEFF58 /* PowerPC.cpp in Sources */,
 				4B8318B422D3E546006DB630 /* DriveSpeedAccumulator.cpp in Sources */,
 				4B055AC81FAE9AFB0060FFFF /* C1540.cpp in Sources */,
 				4B055A8F1FAE85A90060FFFF /* FileHolder.cpp in Sources */,
@@ -4749,6 +4772,7 @@
 				4B45189F1F75FD1C00926311 /* AcornADF.cpp in Sources */,
 				4B7BA03023C2B19C00B98D9E /* Jasmin.cpp in Sources */,
 				4B7136911F789C93008B8ED9 /* SegmentParser.cpp in Sources */,
+				4BDDBBD7259D757800CEFF58 /* PowerPC.cpp in Sources */,
 				4B4518A21F75FD1C00926311 /* G64.cpp in Sources */,
 				4B89452C201967B4007DE474 /* Tape.cpp in Sources */,
 				4B448E811F1C45A00009ABD6 /* TZX.cpp in Sources */,
