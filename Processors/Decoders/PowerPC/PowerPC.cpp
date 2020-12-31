@@ -26,10 +26,15 @@ Instruction Decoder::decode(uint32_t opcode) {
 	//
 	// I've decided to hew directly to the mnemonics.
 
-#define Bind(mask, operation)	case mask: return Instruction(Operation::operation, opcode);
+#define Bind(mask, operation)				case mask: return Instruction(Operation::operation, opcode);
+#define BindSupervisor(mask, operation)		case mask: return Instruction(Operation::operation, opcode, true);
 #define BindConditional(condition, mask, operation)	\
 	case mask: \
 		if(condition()) return Instruction(Operation::operation, opcode);	\
+	return Instruction(opcode);
+#define BindSupervisorConditional(condition, mask, operation)	\
+	case mask: \
+		if(condition()) return Instruction(Operation::operation, opcode, true);	\
 	return Instruction(opcode);
 
 #define Six(x)			(unsigned(x) << 26)
@@ -81,6 +86,19 @@ Instruction Decoder::decode(uint32_t opcode) {
 		BindConditional(is64bit, SixTen(0b011111, 0b0000001001), mulhdux);
 		BindConditional(is64bit, SixTen(0b011111, 0b0000010101), ldx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0000011011), sldx);
+		BindConditional(is64bit, SixTen(0b011111, 0b0000110101), ldux);
+		BindConditional(is64bit, SixTen(0b011111, 0b0000111010), cntlzdx);
+		BindConditional(is64bit, SixTen(0b011111, 0b0001000100), td);
+		BindConditional(is64bit, SixTen(0b011111, 0b0001001001), mulhdx);
+		BindConditional(is64bit, SixTen(0b011111, 0b0001010100), ldarx);
+		BindConditional(is64bit, SixTen(0b011111, 0b0010010101), stdx);
+		BindConditional(is64bit, SixTen(0b011111, 0b0010110101), stdux);
+		BindConditional(is64bit, SixTen(0b011111, 0b0011101001), mulld);	BindConditional(is64bit, SixTen(0b011111, 0b1011101001), mulld);
+		BindConditional(is64bit, SixTen(0b011111, 0b0101010101), lwax);
+		BindConditional(is64bit, SixTen(0b011111, 0b0101110101), lwaux);
+//		BindConditional(is64bit, SixTen(0b011111, 0b1100111011), sradix);	// TODO: encoding is unclear re: the sh flag.
+		BindConditional(is64bit, SixTen(0b011111, 0b0110110010), slbie);
+		BindConditional(is64bit, SixTen(0b011111, 0b0111001001), divdux);	BindConditional(is64bit, SixTen(0b011111, 0b1111001001), divdux);
 
 		Bind(SixTen(0b010011, 0b0000000000), mcrf);
 		Bind(SixTen(0b010011, 0b0000010000), bclrx);
@@ -108,7 +126,59 @@ Instruction Decoder::decode(uint32_t opcode) {
 		Bind(SixTen(0b011111, 0b0000011100), andx);
 		Bind(SixTen(0b011111, 0b0000100000), cmpl);
 		Bind(SixTen(0b011111, 0b0000101000), subfx);	Bind(SixTen(0b011111, 0b1000101000), subfx);
+		Bind(SixTen(0b011111, 0b0000110110), dcbst);
+		Bind(SixTen(0b011111, 0b0000110111), lwzux);
+		Bind(SixTen(0b011111, 0b0000111100), andcx);
+		Bind(SixTen(0b011111, 0b0001001011), mulhwx);
+		Bind(SixTen(0b011111, 0b0001010011), mfmsr);
+		Bind(SixTen(0b011111, 0b0001010110), dcbf);
+		Bind(SixTen(0b011111, 0b0001010111), lbzx);
+		Bind(SixTen(0b011111, 0b0001101000), negx);		Bind(SixTen(0b011111, 0b1001101000), negx);
+		Bind(SixTen(0b011111, 0b0001110111), lbzux);
+		Bind(SixTen(0b011111, 0b0001111100), norx);
+		Bind(SixTen(0b011111, 0b0010001000), subfex);	Bind(SixTen(0b011111, 0b1010001000), subfex);
+		Bind(SixTen(0b011111, 0b0010001010), addex);	Bind(SixTen(0b011111, 0b1010001010), addex);
+		Bind(SixTen(0b011111, 0b0010010000), mtcrf);
+		Bind(SixTen(0b011111, 0b0010010010), mtmsr);
+		Bind(SixTen(0b011111, 0b0010010111), stwx);
+		Bind(SixTen(0b011111, 0b0010110111), stwux);
+		Bind(SixTen(0b011111, 0b0011001000), subfzex);	Bind(SixTen(0b011111, 0b1011001000), subfzex);
+		Bind(SixTen(0b011111, 0b0011001010), addzex);	Bind(SixTen(0b011111, 0b1011001010), addzex);
+		Bind(SixTen(0b011111, 0b0011010111), stbx);
+		Bind(SixTen(0b011111, 0b0011101000), subfmex);	Bind(SixTen(0b011111, 0b1011101000), subfmex);
+		Bind(SixTen(0b011111, 0b0011101010), addmex);	Bind(SixTen(0b011111, 0b1011101010), addmex);
+		Bind(SixTen(0b011111, 0b0011101011), mullwx);	Bind(SixTen(0b011111, 0b1011101011), mullwx);
+		Bind(SixTen(0b011111, 0b0011110110), dcbtst);
+		Bind(SixTen(0b011111, 0b0011110111), stbux);
+		Bind(SixTen(0b011111, 0b0100001010), addx);		Bind(SixTen(0b011111, 0b1100001010), addx);
+		Bind(SixTen(0b011111, 0b0100010110), dcbt);
+		Bind(SixTen(0b011111, 0b0100010111), lhzx);
+		Bind(SixTen(0b011111, 0b0100011100), eqvx);
+		Bind(SixTen(0b011111, 0b0100110110), eciwx);
+		Bind(SixTen(0b011111, 0b0100110111), lhzux);
+		Bind(SixTen(0b011111, 0b0100111100), xorx);
+		Bind(SixTen(0b011111, 0b0101010111), lhax);
+		Bind(SixTen(0b011111, 0b0101110011), mftb);
+		Bind(SixTen(0b011111, 0b0101110111), lhaux);
+		Bind(SixTen(0b011111, 0b0110010111), sthx);
+		Bind(SixTen(0b011111, 0b0110011100), orcx);
+		Bind(SixTen(0b011111, 0b0110110110), ecowx);
+		Bind(SixTen(0b011111, 0b0110110111), sthux);
+		Bind(SixTen(0b011111, 0b0110111100), orx);
+		Bind(SixTen(0b011111, 0b0111001011), divwux);		Bind(SixTen(0b011111, 0b1111001011), divwux);
+		Bind(SixTen(0b011111, 0b0111010110), dcbi);
+
+		Bind(SixTen(0b011111, 0b0101010011), mfspr);	// Flagged as "supervisor and user"?
+		Bind(SixTen(0b011111, 0b0111010011), mtspr);	// Flagged as "supervisor and user"?
+
+		BindSupervisorConditional(is32bit, SixTen(0b011111, 0b0011010010), mtsr);
+		BindSupervisorConditional(is32bit, SixTen(0b011111, 0b0011110010), mtsrin);
+
+		BindSupervisor(SixTen(0b011111, 0b0100110010), tlbie);	// TODO: mark formally as optional?
+		BindSupervisor(SixTen(0b011111, 0b0101110010), tlbia);	// TODO: mark formally as optional?
 	}
+	
+	// TODO: stwcx., stdcx.
 	
 	// Check for sc.
 	if((opcode & 0b010001'00000'00000'00000000000000'1'0) == 0b010001'00000'00000'00000000000000'1'0) {
@@ -116,6 +186,7 @@ Instruction Decoder::decode(uint32_t opcode) {
 	}
 
 #undef Six
+#undef SixTen
 
 #undef Bind
 #undef BindConditional

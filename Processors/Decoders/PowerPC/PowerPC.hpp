@@ -46,17 +46,20 @@ enum class Operation: uint8_t {
 	sc, slwx, srawx, srawix, srwx, stb, stbu, stbux, stbx, stfd, stfdu,
 	stfdux, stfdx, stfs, stfsu, stfsux, stfsx, sth, sthbrx, sthu, sthux, sthx,
 	stmw, stswi, stswx, stw, stwbrx, stwcx_, stwu, stwux, stwx, subfx, subfcx,
-	subfex, subfic, subfmex, subfzex, sync, tlbie, tw, twi, xorx, xori, xoris,
+	subfex, subfic, subfmex, subfzex, sync, tw, twi, xorx, xori, xoris, mftb,
 	
 	// 32-bit, supervisor level.
 	dcbi,
+	
+	// Supervisor, optional.
+	tlbia, tlbie,
 	
 	// Optional.
 	fresx, frsqrtex, fselx, fsqrtx, frsqrtsx, slbia, slbie,
 
 	// 64-bit only PowerPC instructions.
 	cntlzdx, divdx, divdux, extswx, fcfidx, fctidx, fctidzx, tdi, mulhdux, ldx,
-	sldx
+	sldx, ldux, td, mulhdx, ldarx, stdx, stdux, mulld, lwax, lwaux, sradix,
 };
 
 /*!
@@ -67,10 +70,11 @@ enum class Operation: uint8_t {
 */
 struct Instruction {
 	const Operation operation = Operation::Undefined;
+	const bool is_supervisor = false;
 	const uint32_t opcode = 0;
 
 	Instruction(uint32_t opcode) : opcode(opcode) {}
-	Instruction(Operation operation, uint32_t opcode) : operation(operation), opcode(opcode) {}
+	Instruction(Operation operation, uint32_t opcode, bool is_supervisor = false) : operation(operation), is_supervisor(is_supervisor), opcode(opcode) {}
 
 	// Instruction fields are decoded below; naming is as directly dictated by
 	// Motorola's documentation, and the definitions below are sorted by synonym.
@@ -100,6 +104,7 @@ struct Instruction {
 	int l() 		{	return (opcode >> 21) & 0x01;		}
 	int aa()		{	return (opcode >> 1) & 0x01;		}
 	int lk()		{	return opcode & 0x01;				}
+	int rc()		{	return opcode & 0x01;				}
 };
 
 struct Decoder {
@@ -113,6 +118,10 @@ struct Decoder {
 
 		bool is64bit() {
 			return false;
+		}
+
+		bool is32bit() {
+			return true;
 		}
 
 		bool is601() {
