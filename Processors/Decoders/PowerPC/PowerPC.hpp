@@ -55,16 +55,17 @@ enum class Operation: uint8_t {
 	fresx, frsqrtex, fselx, fsqrtx, frsqrtsx, slbia, slbie,
 
 	// 64-bit only PowerPC instructions.
-	cntlzdx, divdx, divdux, extswx, fcfidx, fctidx, fctidzx
+	cntlzdx, divdx, divdux, extswx, fcfidx, fctidx, fctidzx, tdi
 };
 
 struct Instruction {
-	Operation operation = Operation::Undefined;
+	const Operation operation = Operation::Undefined;
+	const uint32_t opcode = 0;
 
-	//
+	Instruction(uint32_t opcode) : opcode(opcode) {}
+	Instruction(Operation operation, uint32_t opcode) : operation(operation), opcode(opcode) {}
 
-	Instruction() {}
-	Instruction(Operation operation) : operation(operation) {}
+	// TODO: all field decoding here.
 };
 
 struct Decoder {
@@ -75,6 +76,14 @@ struct Decoder {
 
 	private:
 		Model model_;
+
+		bool is64bit() {
+			return false;
+		}
+
+		bool is601() {
+			return model_ == Model::MPC601;
+		}
 };
 
 }
