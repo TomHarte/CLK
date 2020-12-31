@@ -55,9 +55,16 @@ enum class Operation: uint8_t {
 	fresx, frsqrtex, fselx, fsqrtx, frsqrtsx, slbia, slbie,
 
 	// 64-bit only PowerPC instructions.
-	cntlzdx, divdx, divdux, extswx, fcfidx, fctidx, fctidzx, tdi
+	cntlzdx, divdx, divdux, extswx, fcfidx, fctidx, fctidzx, tdi, mulhdux, ldx,
+	sldx
 };
 
+/*!
+	Holds a decoded PowerPC instruction.
+
+	Implementation note: because the PowerPC encoding is particularly straightforward,
+	only the operation has been decoded ahead of time; all other fields are decoded on-demand.
+*/
 struct Instruction {
 	const Operation operation = Operation::Undefined;
 	const uint32_t opcode = 0;
@@ -65,7 +72,34 @@ struct Instruction {
 	Instruction(uint32_t opcode) : opcode(opcode) {}
 	Instruction(Operation operation, uint32_t opcode) : operation(operation), opcode(opcode) {}
 
-	// TODO: all field decoding here.
+	// Instruction fields are decoded below; naming is as directly dictated by
+	// Motorola's documentation, and the definitions below are sorted by synonym.
+	uint16_t uimm() {	return uint16_t(opcode & 0xffff);	}
+	int16_t simm()	{	return int16_t(opcode & 0xffff);	}
+
+	int to() 		{	return (opcode >> 21) & 0x1f;		}
+	int d() 		{	return (opcode >> 21) & 0x1f;		}
+	int bo() 		{	return (opcode >> 21) & 0x1f;		}
+	int crbD() 		{	return (opcode >> 21) & 0x1f;		}
+	int s() 		{	return (opcode >> 21) & 0x1f;		}
+
+	int a() 		{	return (opcode >> 16) & 0x1f;		}
+	int bi() 		{	return (opcode >> 16) & 0x1f;		}
+	int crbA() 		{	return (opcode >> 16) & 0x1f;		}
+
+	int b() 		{	return (opcode >> 11) & 0x1f;		}
+	int crbB() 		{	return (opcode >> 11) & 0x1f;		}
+
+	int crfd() 		{	return (opcode >> 23) & 0x07;		}
+	
+	int bd()		{	return (opcode >> 2) & 0x3fff;		}
+	
+	int li()		{	return (opcode >> 2) & 0x0fff;		}
+
+	// Various single bit fields.
+	int l() 		{	return (opcode >> 21) & 0x01;		}
+	int aa()		{	return (opcode >> 1) & 0x01;		}
+	int lk()		{	return opcode & 0x01;				}
 };
 
 struct Decoder {

@@ -32,7 +32,8 @@ Instruction Decoder::decode(uint32_t opcode) {
 		if(condition()) return Instruction(Operation::operation, opcode);	\
 	return Instruction(opcode);
 
-#define Six(x)	(unsigned(x) << 26)
+#define Six(x)			(unsigned(x) << 26)
+#define SixTen(x, y)	(Six(x) | (y << 1))
 
 	// First pass: weed out all those instructions identified entirely by the
 	// top six bits.
@@ -73,6 +74,47 @@ Instruction Decoder::decode(uint32_t opcode) {
 		Bind(Six(0b001010), cmpli);		Bind(Six(0b001011), cmpi);
 	}
 	
+	// Second pass: all those with a top six bits and a bottom nine or ten.
+	switch(opcode & SixTen(0b111111, 0b1111111111)) {
+		default: break;
+		
+		BindConditional(is64bit, SixTen(0b011111, 0b0000001001), mulhdux);
+		BindConditional(is64bit, SixTen(0b011111, 0b0000010101), ldx);
+		BindConditional(is64bit, SixTen(0b011111, 0b0000011011), sldx);
+
+		Bind(SixTen(0b010011, 0b0000000000), mcrf);
+		Bind(SixTen(0b010011, 0b0000010000), bclrx);
+		Bind(SixTen(0b010011, 0b0000100001), crnor);
+		Bind(SixTen(0b010011, 0b0000110010), rfi);
+		Bind(SixTen(0b010011, 0b0010000001), crandc);
+		Bind(SixTen(0b010011, 0b0010010110), isync);
+		Bind(SixTen(0b010011, 0b0011000001), crxor);
+		Bind(SixTen(0b010011, 0b0011100001), crnand);
+		Bind(SixTen(0b010011, 0b0100000001), crand);
+		Bind(SixTen(0b010011, 0b0100100001), creqv);
+		Bind(SixTen(0b010011, 0b0110100001), crorc);
+		Bind(SixTen(0b010011, 0b0111000001), cror);
+		Bind(SixTen(0b010011, 0b1000010000), bcctrx);
+		Bind(SixTen(0b011111, 0b0000000000), cmp);
+		Bind(SixTen(0b011111, 0b0000000100), tw);
+		Bind(SixTen(0b011111, 0b0000001000), subfcx);	Bind(SixTen(0b011111, 0b1000001000), subfcx);
+		Bind(SixTen(0b011111, 0b0000001010), addcx);	Bind(SixTen(0b011111, 0b1000001010), addcx);
+		Bind(SixTen(0b011111, 0b0000001011), mulhwux);
+		Bind(SixTen(0b011111, 0b0000010011), mfcr);
+		Bind(SixTen(0b011111, 0b0000010100), lwarx);
+		Bind(SixTen(0b011111, 0b0000010111), lwzx);
+		Bind(SixTen(0b011111, 0b0000011000), slwx);
+		Bind(SixTen(0b011111, 0b0000011010), cntlzwx);
+		Bind(SixTen(0b011111, 0b0000011100), andx);
+		Bind(SixTen(0b011111, 0b0000100000), cmpl);
+		Bind(SixTen(0b011111, 0b0000101000), subfx);	Bind(SixTen(0b011111, 0b1000101000), subfx);
+	}
+	
+	// Check for sc.
+	if((opcode & 0b010001'00000'00000'00000000000000'1'0) == 0b010001'00000'00000'00000000000000'1'0) {
+		return Instruction(Operation::sc, opcode);
+	}
+
 #undef Six
 
 #undef Bind
