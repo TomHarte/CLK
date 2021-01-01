@@ -19,7 +19,6 @@ enum class Model {
 	MPC601,
 };
 
-// TODO: complete the following table.
 enum class Operation: uint8_t {
 	Undefined,
 
@@ -47,19 +46,20 @@ enum class Operation: uint8_t {
 	stfdux, stfdx, stfs, stfsu, stfsux, stfsx, sth, sthbrx, sthu, sthux, sthx,
 	stmw, stswi, stswx, stw, stwbrx, stwcx_, stwu, stwux, stwx, subfx, subfcx,
 	subfex, subfic, subfmex, subfzex, sync, tw, twi, xorx, xori, xoris, mftb,
-	
+
 	// 32-bit, supervisor level.
 	dcbi,
-	
+
 	// Supervisor, optional.
-	tlbia, tlbie,
-	
+	tlbia, tlbie, tlbsync,
+
 	// Optional.
-	fresx, frsqrtex, fselx, fsqrtx, frsqrtsx, slbia, slbie,
+	fresx, frsqrtex, fselx, fsqrtx, frsqrtsx, slbia, slbie, stfiwx,
 
 	// 64-bit only PowerPC instructions.
-	cntlzdx, divdx, divdux, extswx, fcfidx, fctidx, fctidzx, tdi, mulhdux, ldx,
-	sldx, ldux, td, mulhdx, ldarx, stdx, stdux, mulld, lwax, lwaux, sradix,
+	cntlzdx, divdx, divdux, extswx, fcfidx, fctidx, fctidzx, tdi, mulhdux,
+	ldx, sldx, ldux, td, mulhdx, ldarx, stdx, stdux, mulld, lwax, lwaux,
+	sradix, srdx, sradx, extsw, fsqrtsx
 };
 
 /*!
@@ -93,6 +93,8 @@ struct Instruction {
 
 	int b() 		{	return (opcode >> 11) & 0x1f;		}
 	int crbB() 		{	return (opcode >> 11) & 0x1f;		}
+
+	int c() 		{	return (opcode >> 6) & 0x1f;		}
 
 	int crfd() 		{	return (opcode >> 23) & 0x07;		}
 	

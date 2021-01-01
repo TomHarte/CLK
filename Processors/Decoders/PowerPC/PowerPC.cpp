@@ -10,6 +10,18 @@
 
 using namespace CPU::Decoder::PowerPC;
 
+// Unmapped:
+//
+//	absx, clcs, divx, divsx, dozx, dozi, lscbxx, maskgx, maskirx, mulx,
+//	nabsx, rlmix, rribx, slex, sleqx, sliqx, slliqx, sllqx, slqx,
+//	sraiqx, sraqx, srex, sreax, sreqx, sriqx, srliqx, srlqx, srqx,
+//
+//	stwcx_,
+//
+//	frsqrtsx,
+//
+//	extswx,
+
 Decoder::Decoder(Model model) : model_(model) {}
 
 Instruction Decoder::decode(uint32_t opcode) {
@@ -99,6 +111,10 @@ Instruction Decoder::decode(uint32_t opcode) {
 //		BindConditional(is64bit, SixTen(0b011111, 0b1100111011), sradix);	// TODO: encoding is unclear re: the sh flag.
 		BindConditional(is64bit, SixTen(0b011111, 0b0110110010), slbie);
 		BindConditional(is64bit, SixTen(0b011111, 0b0111001001), divdux);	BindConditional(is64bit, SixTen(0b011111, 0b1111001001), divdux);
+		BindConditional(is64bit, SixTen(0b011111, 0b0111101001), divdx);	BindConditional(is64bit, SixTen(0b011111, 0b1111101001), divdx);
+		BindConditional(is64bit, SixTen(0b011111, 0b1000011011), srdx);
+		BindConditional(is64bit, SixTen(0b011111, 0b1100011010), sradx);
+		BindConditional(is64bit, SixTen(0b011111, 0b1111011010), extsw);
 
 		Bind(SixTen(0b010011, 0b0000000000), mcrf);
 		Bind(SixTen(0b010011, 0b0000010000), bclrx);
@@ -167,19 +183,104 @@ Instruction Decoder::decode(uint32_t opcode) {
 		Bind(SixTen(0b011111, 0b0110111100), orx);
 		Bind(SixTen(0b011111, 0b0111001011), divwux);		Bind(SixTen(0b011111, 0b1111001011), divwux);
 		Bind(SixTen(0b011111, 0b0111010110), dcbi);
+		Bind(SixTen(0b011111, 0b0111011100), nandx);
+		Bind(SixTen(0b011111, 0b0111101011), divwx);		Bind(SixTen(0b011111, 0b1111101011), divwx);
+		Bind(SixTen(0b011111, 0b1000000000), mcrxr);
+		Bind(SixTen(0b011111, 0b1000010101), lswx);
+		Bind(SixTen(0b011111, 0b1000010110), lwbrx);
+		Bind(SixTen(0b011111, 0b1000010111), lfsx);
+		Bind(SixTen(0b011111, 0b1000011000), srwx);
+		Bind(SixTen(0b011111, 0b1000110111), lfsux);
+		Bind(SixTen(0b011111, 0b1001010101), lswi);
+		Bind(SixTen(0b011111, 0b1001010110), sync);
+		Bind(SixTen(0b011111, 0b1001010111), lfdx);
+		Bind(SixTen(0b011111, 0b1001110111), lfdux);
+		Bind(SixTen(0b011111, 0b1010010101), stswx);
+		Bind(SixTen(0b011111, 0b1010010110), stwbrx);
+		Bind(SixTen(0b011111, 0b1010010111), stfsx);
+		Bind(SixTen(0b011111, 0b1010110111), stfsux);
+		Bind(SixTen(0b011111, 0b1011010101), stswi);
+		Bind(SixTen(0b011111, 0b1011010111), stfdx);
+		Bind(SixTen(0b011111, 0b1011110111), stfdux);
+		Bind(SixTen(0b011111, 0b1100010110), lhbrx);
+		Bind(SixTen(0b011111, 0b1100011000), srawx);
+		Bind(SixTen(0b011111, 0b1100111000), srawix);
+		Bind(SixTen(0b011111, 0b1101010110), eieio);
+		Bind(SixTen(0b011111, 0b1110010110), sthbrx);
+		Bind(SixTen(0b011111, 0b1110011010), extshx);
+		Bind(SixTen(0b011111, 0b1110111010), extsbx);
+		Bind(SixTen(0b011111, 0b1111010110), icbi);
+		Bind(SixTen(0b011111, 0b1111010111), stfiwx);
+		Bind(SixTen(0b011111, 0b1111110110), dcbz);
+		Bind(SixTen(0b111111, 0b0000000000), fcmpu);
+		Bind(SixTen(0b111111, 0b0000001100), frspx);
+		Bind(SixTen(0b111111, 0b0000001110), fctiwx);
+		Bind(SixTen(0b111111, 0b0000001111), fctiwzx);
+		Bind(SixTen(0b111111, 0b0000100000), fcmpo);
+		Bind(SixTen(0b111111, 0b0000100110), mtfsb1x);
+		Bind(SixTen(0b111111, 0b0000101000), fnegx);
+		Bind(SixTen(0b111111, 0b0001000000), mcrfs);
+		Bind(SixTen(0b111111, 0b0001000110), mtfsb0x);
+		Bind(SixTen(0b111111, 0b0001001000), fmrx);
+		Bind(SixTen(0b111111, 0b0010000110), mtfsfix);
+		Bind(SixTen(0b111111, 0b0010001000), fnabsx);
+		Bind(SixTen(0b111111, 0b0100001000), fabsx);
+		Bind(SixTen(0b111111, 0b1001000111), mffsx);
+		Bind(SixTen(0b111111, 0b1011000111), mtfsfx);
+		Bind(SixTen(0b111111, 0b1100101110), fctidx);
+		Bind(SixTen(0b111111, 0b1100101111), fctidzx);
+		Bind(SixTen(0b111111, 0b1101001110), fcfidx);
 
 		Bind(SixTen(0b011111, 0b0101010011), mfspr);	// Flagged as "supervisor and user"?
 		Bind(SixTen(0b011111, 0b0111010011), mtspr);	// Flagged as "supervisor and user"?
 
 		BindSupervisorConditional(is32bit, SixTen(0b011111, 0b0011010010), mtsr);
 		BindSupervisorConditional(is32bit, SixTen(0b011111, 0b0011110010), mtsrin);
+		BindSupervisorConditional(is32bit, SixTen(0b011111, 0b1001010011), mfsr);
+		BindSupervisorConditional(is32bit, SixTen(0b011111, 0b1010010011), mfsrin);
 
-		BindSupervisor(SixTen(0b011111, 0b0100110010), tlbie);	// TODO: mark formally as optional?
-		BindSupervisor(SixTen(0b011111, 0b0101110010), tlbia);	// TODO: mark formally as optional?
+		BindSupervisorConditional(is64bit, SixTen(0b011111, 0b0111110010), slbia);	// optional
+
+		// The following are all optional; should I record that?
+		BindSupervisor(SixTen(0b011111, 0b0100110010), tlbie);
+		BindSupervisor(SixTen(0b011111, 0b0101110010), tlbia);
+		BindSupervisor(SixTen(0b011111, 0b1000110110), tlbsync);
 	}
-	
-	// TODO: stwcx., stdcx.
-	
+
+	// Third pass: like six-ten except that the top five of the final ten
+	// are reserved (i.e. ignored here).
+	switch(opcode & SixTen(0b111111, 0b11111)) {
+		default: break;
+
+		Bind(SixTen(0b111011, 0b10010), fdivsx);
+		Bind(SixTen(0b111011, 0b10100), fsubsx);
+		Bind(SixTen(0b111011, 0b10101), faddsx);
+		Bind(SixTen(0b111011, 0b11001), fmulsx);
+		Bind(SixTen(0b111011, 0b11100), fmsubsx);
+		Bind(SixTen(0b111011, 0b11101), fmaddsx);
+		Bind(SixTen(0b111011, 0b11110), fnmsubsx);
+		Bind(SixTen(0b111011, 0b11111), fnmaddsx);
+
+		Bind(SixTen(0b111111, 0b10010), fdivx);
+		Bind(SixTen(0b111111, 0b10100), fsubx);
+		Bind(SixTen(0b111111, 0b10101), faddx);
+		Bind(SixTen(0b111111, 0b11001), fmulx);
+		Bind(SixTen(0b111111, 0b11100), fmsubx);
+		Bind(SixTen(0b111111, 0b11101), fmaddx);
+		Bind(SixTen(0b111111, 0b11110), fnmsubx);
+		Bind(SixTen(0b111111, 0b11111), fnmaddx);
+
+		BindConditional(is64bit, SixTen(0b111011, 0b10110), fsqrtsx);
+		BindConditional(is64bit, SixTen(0b111011, 0b11000), fresx);
+
+		// Optional...
+		Bind(SixTen(0b111111, 0b10110), fsqrtx);
+		Bind(SixTen(0b111111, 0b10111), fselx);
+		Bind(SixTen(0b111111, 0b11010), frsqrtex);
+	}
+
+	// TODO: stwcx., stdcx.		stwcx_
+
 	// Check for sc.
 	if((opcode & 0b010001'00000'00000'00000000000000'1'0) == 0b010001'00000'00000'00000000000000'1'0) {
 		return Instruction(Operation::sc, opcode);
