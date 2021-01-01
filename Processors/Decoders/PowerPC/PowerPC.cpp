@@ -10,18 +10,6 @@
 
 using namespace CPU::Decoder::PowerPC;
 
-// Unmapped:
-//
-//	absx, clcs, divx, divsx, dozx, dozi, lscbxx, maskgx, maskirx, mulx,
-//	nabsx, rlmix, rribx, slex, sleqx, sliqx, slliqx, sllqx, slqx,
-//	sraiqx, sraqx, srex, sreax, sreqx, sriqx, srliqx, srlqx, srqx,
-//
-//	stwcx_,
-//
-//	frsqrtsx,
-//
-//	extswx,
-
 Decoder::Decoder(Model model) : model_(model) {}
 
 Instruction Decoder::decode(uint32_t opcode) {
@@ -37,6 +25,12 @@ Instruction Decoder::decode(uint32_t opcode) {
 	// it as a 9-bit field with a flag at the top.
 	//
 	// I've decided to hew directly to the mnemonics.
+	//
+	// Various opcodes in the 1995 documentation define reserved bits,
+	// which are given the nominal value of 0. It does not give a formal
+	// definition of a reserved bit. As a result this code does not
+	// currently check the value of reserved bits. That may need to change
+	// if/when I add support for extended instruction sets.
 
 #define Bind(mask, operation)				case mask: return Instruction(Operation::operation, opcode);
 #define BindSupervisor(mask, operation)		case mask: return Instruction(Operation::operation, opcode, true);
@@ -50,7 +44,7 @@ Instruction Decoder::decode(uint32_t opcode) {
 	return Instruction(opcode);
 
 #define Six(x)			(unsigned(x) << 26)
-#define SixTen(x, y)	(Six(x) | (y << 1))
+#define SixTen(x, y)	(Six(x) | ((y) << 1))
 
 	// First pass: weed out all those instructions identified entirely by the
 	// top six bits.
@@ -86,36 +80,69 @@ Instruction Decoder::decode(uint32_t opcode) {
 		Bind(Six(0b110100), stfs);		Bind(Six(0b110101), stfsu);
 		Bind(Six(0b110110), stfd);		Bind(Six(0b110111), stfdu);
 
-		// Assumed below here: reserved bits can be ignored.
-		// This might need to be a function of CPU model.
+		BindConditional(is601, Six(9), dozi);
+		BindConditional(is601, Six(22), rlmix);
+
 		Bind(Six(0b001010), cmpli);		Bind(Six(0b001011), cmpi);
 	}
 	
 	// Second pass: all those with a top six bits and a bottom nine or ten.
 	switch(opcode & SixTen(0b111111, 0b1111111111)) {
 		default: break;
-		
-		BindConditional(is64bit, SixTen(0b011111, 0b0000001001), mulhdux);
+
+		// 64-bit instructions.
+		BindConditional(is64bit, SixTen(0b011111, 0b0000001001), mulhdux);	BindConditional(is64bit, SixTen(0b011111, 0b1000001001), mulhdux);
 		BindConditional(is64bit, SixTen(0b011111, 0b0000010101), ldx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0000011011), sldx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0000110101), ldux);
 		BindConditional(is64bit, SixTen(0b011111, 0b0000111010), cntlzdx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0001000100), td);
-		BindConditional(is64bit, SixTen(0b011111, 0b0001001001), mulhdx);
+		BindConditional(is64bit, SixTen(0b011111, 0b0001001001), mulhdx);	BindConditional(is64bit, SixTen(0b011111, 0b1001001001), mulhdx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0001010100), ldarx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0010010101), stdx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0010110101), stdux);
 		BindConditional(is64bit, SixTen(0b011111, 0b0011101001), mulld);	BindConditional(is64bit, SixTen(0b011111, 0b1011101001), mulld);
 		BindConditional(is64bit, SixTen(0b011111, 0b0101010101), lwax);
 		BindConditional(is64bit, SixTen(0b011111, 0b0101110101), lwaux);
-//		BindConditional(is64bit, SixTen(0b011111, 0b1100111011), sradix);	// TODO: encoding is unclear re: the sh flag.
+		BindConditional(is64bit, SixTen(0b011111, 0b1100111011), sradix);	BindConditional(is64bit, SixTen(0b011111, 0b1100111010), sradix);
 		BindConditional(is64bit, SixTen(0b011111, 0b0110110010), slbie);
 		BindConditional(is64bit, SixTen(0b011111, 0b0111001001), divdux);	BindConditional(is64bit, SixTen(0b011111, 0b1111001001), divdux);
 		BindConditional(is64bit, SixTen(0b011111, 0b0111101001), divdx);	BindConditional(is64bit, SixTen(0b011111, 0b1111101001), divdx);
 		BindConditional(is64bit, SixTen(0b011111, 0b1000011011), srdx);
 		BindConditional(is64bit, SixTen(0b011111, 0b1100011010), sradx);
-		BindConditional(is64bit, SixTen(0b011111, 0b1111011010), extsw);
+		BindConditional(is64bit, SixTen(0b111111, 0b1111011010), extsw);
 
+		// Power instructions; these are all taken from the MPC601 manual rather than
+		// the PowerPC Programmer's Reference Guide, hence the decimal encoding of the
+		// ten-bit field.
+		BindConditional(is601, SixTen(0b011111, 360), absx);	BindConditional(is601, SixTen(0b011111, 512 + 360), absx);
+		BindConditional(is601, SixTen(0b011111, 531), clcs);
+		BindConditional(is601, SixTen(0b011111, 331), divx);	BindConditional(is601, SixTen(0b011111, 512 + 331), divx);
+		BindConditional(is601, SixTen(0b011111, 363), divsx);	BindConditional(is601, SixTen(0b011111, 512 + 363), divsx);
+		BindConditional(is601, SixTen(0b011111, 264), dozx);	BindConditional(is601, SixTen(0b011111, 512 + 264), dozx);
+		BindConditional(is601, SixTen(0b011111, 277), lscbxx);
+		BindConditional(is601, SixTen(0b011111, 29), maskgx);
+		BindConditional(is601, SixTen(0b011111, 541), maskirx);
+		BindConditional(is601, SixTen(0b011111, 107), mulx);	BindConditional(is601, SixTen(0b011111, 512 + 107), mulx);
+		BindConditional(is601, SixTen(0b011111, 488), nabsx);	BindConditional(is601, SixTen(0b011111, 512 + 488), nabsx);
+		BindConditional(is601, SixTen(0b011111, 537), rribx);
+		BindConditional(is601, SixTen(0b011111, 153), slex);
+		BindConditional(is601, SixTen(0b011111, 217), sleqx);
+		BindConditional(is601, SixTen(0b011111, 184), sliqx);
+		BindConditional(is601, SixTen(0b011111, 248), slliqx);
+		BindConditional(is601, SixTen(0b011111, 216), sllqx);
+		BindConditional(is601, SixTen(0b011111, 152), slqx);
+		BindConditional(is601, SixTen(0b011111, 952), sraiqx);
+		BindConditional(is601, SixTen(0b011111, 920), sraqx);
+		BindConditional(is601, SixTen(0b011111, 665), srex);
+		BindConditional(is601, SixTen(0b011111, 921), sreax);
+		BindConditional(is601, SixTen(0b011111, 729), sreqx);
+		BindConditional(is601, SixTen(0b011111, 696), sriqx);
+		BindConditional(is601, SixTen(0b011111, 760), srliqx);
+		BindConditional(is601, SixTen(0b011111, 728), srlqx);
+		BindConditional(is601, SixTen(0b011111, 664), srqx);
+
+		// 32-bit instructions.
 		Bind(SixTen(0b010011, 0b0000000000), mcrf);
 		Bind(SixTen(0b010011, 0b0000010000), bclrx);
 		Bind(SixTen(0b010011, 0b0000100001), crnor);
@@ -133,7 +160,7 @@ Instruction Decoder::decode(uint32_t opcode) {
 		Bind(SixTen(0b011111, 0b0000000100), tw);
 		Bind(SixTen(0b011111, 0b0000001000), subfcx);	Bind(SixTen(0b011111, 0b1000001000), subfcx);
 		Bind(SixTen(0b011111, 0b0000001010), addcx);	Bind(SixTen(0b011111, 0b1000001010), addcx);
-		Bind(SixTen(0b011111, 0b0000001011), mulhwux);
+		Bind(SixTen(0b011111, 0b0000001011), mulhwux);	Bind(SixTen(0b011111, 0b1000001011), mulhwux);
 		Bind(SixTen(0b011111, 0b0000010011), mfcr);
 		Bind(SixTen(0b011111, 0b0000010100), lwarx);
 		Bind(SixTen(0b011111, 0b0000010111), lwzx);
@@ -145,7 +172,7 @@ Instruction Decoder::decode(uint32_t opcode) {
 		Bind(SixTen(0b011111, 0b0000110110), dcbst);
 		Bind(SixTen(0b011111, 0b0000110111), lwzux);
 		Bind(SixTen(0b011111, 0b0000111100), andcx);
-		Bind(SixTen(0b011111, 0b0001001011), mulhwx);
+		Bind(SixTen(0b011111, 0b0001001011), mulhwx);	Bind(SixTen(0b011111, 0b1001001011), mulhwx);
 		Bind(SixTen(0b011111, 0b0001010011), mfmsr);
 		Bind(SixTen(0b011111, 0b0001010110), dcbf);
 		Bind(SixTen(0b011111, 0b0001010111), lbzx);
@@ -279,10 +306,22 @@ Instruction Decoder::decode(uint32_t opcode) {
 		Bind(SixTen(0b111111, 0b11010), frsqrtex);
 	}
 
-	// TODO: stwcx., stdcx.		stwcx_
+	// stwcx. and stdcx.
+	switch(opcode & 0b111111'00'00000000'000'111111111'1){
+		case 0b011111'00'00000000'00000'0010010110'1:	return Instruction(Operation::stwcx_, opcode);
+		case 0b011111'00'00000000'00000'0011010110'1:
+			if(is64bit()) return Instruction(Operation::stdcx_, opcode);
+		return Instruction(opcode);
+	}
 
-	// Check for sc.
-	if((opcode & 0b010001'00000'00000'00000000000000'1'0) == 0b010001'00000'00000'00000000000000'1'0) {
+	// std and stdu
+	switch(opcode & 0b111111'00'00000000'00000000'000000'11){
+		case 0b111110'00'00000000'00000000'000000'00:	return Instruction(Operation::std, opcode);
+		case 0b111110'00'00000000'00000000'000000'01:	return Instruction(Operation::stdu, opcode);
+	}
+
+	// sc
+	if((opcode & 0b111111'00'00000000'00000000'000000'1'0) == 0b010001'00'00000000'00000000'000000'1'0) {
 		return Instruction(Operation::sc, opcode);
 	}
 

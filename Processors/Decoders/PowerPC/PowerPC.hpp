@@ -9,6 +9,7 @@
 #ifndef PowerPC_hpp
 #define PowerPC_hpp
 
+#include <cstddef>
 #include <cstdint>
 
 namespace CPU {
@@ -54,12 +55,12 @@ enum class Operation: uint8_t {
 	tlbia, tlbie, tlbsync,
 
 	// Optional.
-	fresx, frsqrtex, fselx, fsqrtx, frsqrtsx, slbia, slbie, stfiwx,
+	fresx, frsqrtex, fselx, fsqrtx, slbia, slbie, stfiwx,
 
 	// 64-bit only PowerPC instructions.
 	cntlzdx, divdx, divdux, extswx, fcfidx, fctidx, fctidzx, tdi, mulhdux,
 	ldx, sldx, ldux, td, mulhdx, ldarx, stdx, stdux, mulld, lwax, lwaux,
-	sradix, srdx, sradx, extsw, fsqrtsx
+	sradix, srdx, sradx, extsw, fsqrtsx, std, stdu, stdcx_,
 };
 
 /*!
@@ -73,40 +74,98 @@ struct Instruction {
 	const bool is_supervisor = false;
 	const uint32_t opcode = 0;
 
+	// PowerPC uses a fixed-size instruction word.
+	size_t size() {
+		return 4;
+	}
+
 	Instruction(uint32_t opcode) : opcode(opcode) {}
 	Instruction(Operation operation, uint32_t opcode, bool is_supervisor = false) : operation(operation), is_supervisor(is_supervisor), opcode(opcode) {}
 
-	// Instruction fields are decoded below; naming is as directly dictated by
-	// Motorola's documentation, and the definitions below are sorted by synonym.
+	// Instruction fields are decoded below; naming is a compromise between
+	// Motorola's documentation and IBM's.
+	//
+	// I've dutifully implemented various synonyms with unique entry points,
+	// in order to capture that information here rather than thrusting it upon
+	// the reader of whatever implementation may follow.
+
+	// TODO: d, ds, FM, MB, ME, NB, OPCD, SH, SR, XO
+
+	/// Immediate field used to specify an unsigned 16-bit integer.
 	uint16_t uimm() {	return uint16_t(opcode & 0xffff);	}
+	/// Immediate field used to specify a signed 16-bit integer.
 	int16_t simm()	{	return int16_t(opcode & 0xffff);	}
+	/// Immediate field used as data to be placed into a field in the floating point status and condition register.
+	int32_t imm()	{	return (opcode >> 12) & 0xf;		}
 
-	int to() 		{	return (opcode >> 21) & 0x1f;		}
-	int d() 		{	return (opcode >> 21) & 0x1f;		}
-	int bo() 		{	return (opcode >> 21) & 0x1f;		}
-	int crbD() 		{	return (opcode >> 21) & 0x1f;		}
-	int s() 		{	return (opcode >> 21) & 0x1f;		}
+	/// Specifies the conditions on which to trap.
+	int32_t to() 	{	return (opcode >> 21) & 0x1f;		}
 
-	int a() 		{	return (opcode >> 16) & 0x1f;		}
-	int bi() 		{	return (opcode >> 16) & 0x1f;		}
-	int crbA() 		{	return (opcode >> 16) & 0x1f;		}
+	/// Register source A or destination.
+	uint32_t rA() 	{	return (opcode >> 16) & 0x1f;		}
+	/// Register source B.
+	uint32_t rB() 	{	return (opcode >> 11) & 0x1f;		}
+	/// Register destination.
+	uint32_t rD() 	{	return (opcode >> 21) & 0x1f;		}
+	/// Register source.
+	uint32_t rS() 	{	return (opcode >> 21) & 0x1f;		}
 
-	int b() 		{	return (opcode >> 11) & 0x1f;		}
-	int crbB() 		{	return (opcode >> 11) & 0x1f;		}
+	/// Floating point register source A.
+	uint32_t frA() 	{	return (opcode >> 16) & 0x1f;		}
+	/// Floating point register source B.
+	uint32_t frB() 	{	return (opcode >> 11) & 0x1f;		}
+	/// Floating point register source C.
+	uint32_t frC() 	{	return (opcode >> 6) & 0x1f;		}
+	/// Floating point register source.
+	uint32_t frS() 	{	return (opcode >> 21) & 0x1f;		}
+	/// Floating point register destination.
+	uint32_t frD() 	{	return (opcode >> 21) & 0x1f;		}
 
-	int c() 		{	return (opcode >> 6) & 0x1f;		}
+	/// Branch conditional options.
+	uint32_t bo() 	{	return (opcode >> 21) & 0x1f;		}
+	/// Source condition register bit for branch conditionals.
+	uint32_t bi() 	{	return (opcode >> 16) & 0x1f;		}
+	/// Branch displacement; provided as already sign extended.
+	int16_t bd()	{	return int16_t(opcode & 0xfffc);	}
 
-	int crfd() 		{	return (opcode >> 23) & 0x07;		}
-	
-	int bd()		{	return (opcode >> 2) & 0x3fff;		}
-	
-	int li()		{	return (opcode >> 2) & 0x0fff;		}
+	/// Condition register source bit A.
+	uint32_t crbA() {	return (opcode >> 16) & 0x1f;		}
+	/// Condition register source bit B.
+	uint32_t crbB() {	return (opcode >> 11) & 0x1f;		}
+	/// Condition register (or floating point status & condition register) destination bit.
+	uint32_t crbD() {	return (opcode >> 21) & 0x1f;		}
 
-	// Various single bit fields.
-	int l() 		{	return (opcode >> 21) & 0x01;		}
-	int aa()		{	return (opcode >> 1) & 0x01;		}
-	int lk()		{	return opcode & 0x01;				}
-	int rc()		{	return opcode & 0x01;				}
+	/// Condition register (or floating point status & condition register) destination field.
+	uint32_t crfD() {	return (opcode >> 23) & 0x07;		}
+	/// Condition register (or floating point status & condition register) source field.
+	uint32_t crfS() {	return (opcode >> 18) & 0x07;		}
+
+	/// Mask identifying fields to be updated by mtcrf.
+	uint32_t crm()	{	return (opcode >> 12) & 0xff;		}
+
+	/// Mask identifying fields to be updated by mtfsf.
+	uint32_t fm()	{	return (opcode >> 17) & 0xff;		}
+
+	/// A 24-bit signed number; provided as already sign extended.
+	int32_t li() {
+		constexpr uint32_t extensions[2] = {
+			0x0000'0000,
+			0xfc00'0000
+		};
+		const uint32_t value = (opcode & 0x3fff'fffc) | extensions[(opcode >> 26) & 1];
+		return int32_t(value);
+	}
+
+	/// Absolute address bit; @c 0 or @c non-0.
+	uint32_t aa()	{	return opcode & 0x02;		}
+	/// Link bit; @c 0 or @c non-0.
+	uint32_t lk()	{	return opcode & 0x01;		}
+	/// Record bit; @c 0 or @c non-0.
+	uint32_t rc()	{	return opcode & 0x01;		}
+	/// Whether to compare 32-bit or 64-bit numbers [for 64-bit implementations only]; @c 0 or @c non-0.
+	uint32_t l() 	{	return opcode & 0x200000;	}
+	/// Enables setting of OV and SO in the XER; @c 0 or @c non-0.
+	uint32_t oe()	{	return opcode & 0x800;		}
 };
 
 struct Decoder {
