@@ -1076,6 +1076,7 @@
 		4B3BA0CD1D318B44005DD7A7 /* TestMachine6502.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachine6502.mm; sourceTree = "<group>"; };
 		4B3BF5AE1F146264005B6C36 /* CSW.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CSW.cpp; sourceTree = "<group>"; };
 		4B3BF5AF1F146264005B6C36 /* CSW.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CSW.hpp; sourceTree = "<group>"; };
+		4B3F769E259FCE0F00178AEC /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		4B3FCC3E201EC24200960631 /* MultiMachine.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MultiMachine.hpp; sourceTree = "<group>"; };
 		4B3FCC3F201EC24200960631 /* MultiMachine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MultiMachine.cpp; sourceTree = "<group>"; };
 		4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPM.cpp; path = Parsers/CPM.cpp; sourceTree = "<group>"; };
@@ -3889,6 +3890,7 @@
 		4BDDBBD3259D757800CEFF58 /* Decoders */ = {
 			isa = PBXGroup;
 			children = (
+				4B3F769E259FCE0F00178AEC /* README.md */,
 				4BDDBBD4259D757800CEFF58 /* PowerPC */,
 			);
 			path = Decoders;
