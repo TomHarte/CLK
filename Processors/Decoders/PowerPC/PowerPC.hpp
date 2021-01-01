@@ -17,7 +17,12 @@ namespace Decoder {
 namespace PowerPC {
 
 enum class Model {
+	/// i.e. 32-bit, with POWER carry-over instructions.
 	MPC601,
+	/// i.e. 32-bit, no POWER instructions.
+	MPC603,
+	/// i.e. 64-bit.
+	MPC620,
 };
 
 enum class Operation: uint8_t {
@@ -198,11 +203,11 @@ struct Decoder {
 		Model model_;
 
 		bool is64bit() {
-			return false;
+			return model_ == Model::MPC620;
 		}
 
 		bool is32bit() {
-			return true;
+			return !is64bit();
 		}
 
 		bool is601() {
