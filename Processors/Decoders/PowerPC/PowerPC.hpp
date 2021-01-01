@@ -89,12 +89,17 @@ struct Instruction {
 	// in order to capture that information here rather than thrusting it upon
 	// the reader of whatever implementation may follow.
 
-	// TODO: d, ds, FM, MB, ME, NB, OPCD, SH, SR, XO
+	// Currently omitted: OPCD and XO, which I think are unnecessary given that
+	// full decoding has already occurred.
 
 	/// Immediate field used to specify an unsigned 16-bit integer.
 	uint16_t uimm() {	return uint16_t(opcode & 0xffff);	}
 	/// Immediate field used to specify a signed 16-bit integer.
 	int16_t simm()	{	return int16_t(opcode & 0xffff);	}
+	/// Immediate field used to specify a signed 16-bit integer.
+	int16_t d()		{	return int16_t(opcode & 0xffff);	}
+	/// Immediate field used to specify a signed 14-bit integer [64-bit only].
+	int16_t ds()	{	return int16_t(opcode & 0xfffc);	}
 	/// Immediate field used as data to be placed into a field in the floating point status and condition register.
 	int32_t imm()	{	return (opcode >> 12) & 0xf;		}
 
@@ -128,6 +133,11 @@ struct Instruction {
 	/// Branch displacement; provided as already sign extended.
 	int16_t bd()	{	return int16_t(opcode & 0xfffc);	}
 
+	/// Specifies the first 1 bit of a 32/64-bit mask for rotate operations.
+	uint32_t mb()	{	return (opcode >> 6) & 0x1f;		}
+	/// Specifies the first 1 bit of a 32/64-bit mask for rotate operations.
+	uint32_t me()	{	return (opcode >> 1) & 0x1f;		}
+
 	/// Condition register source bit A.
 	uint32_t crbA() {	return (opcode >> 16) & 0x1f;		}
 	/// Condition register source bit B.
@@ -145,6 +155,16 @@ struct Instruction {
 
 	/// Mask identifying fields to be updated by mtfsf.
 	uint32_t fm()	{	return (opcode >> 17) & 0xff;		}
+
+	/// Specifies the number of bytes to move in an immediate string load or store.
+	uint32_t nb()	{	return (opcode >> 11) & 0x1f;		}
+
+	/// Specifies a shift amount.
+	/// TODO: possibly bit 30 is also used in 64-bit mode, find out.
+	uint32_t sh()	{	return (opcode >> 11) & 0x1f;		}
+
+	/// Specifies one of the 16 segment registers [32-bit only].
+	uint32_t sr()	{	return (opcode >> 16) & 0xf;		}
 
 	/// A 24-bit signed number; provided as already sign extended.
 	int32_t li() {
