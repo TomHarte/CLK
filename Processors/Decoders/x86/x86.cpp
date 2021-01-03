@@ -8,6 +8,7 @@
 
 #include "x86.hpp"
 
+#include <algorithm>
 #include <cassert>
 
 using namespace CPU::Decoder::x86;
@@ -16,7 +17,8 @@ using namespace CPU::Decoder::x86;
 Decoder::Decoder(Model) {}
 
 Instruction Decoder::decode(uint8_t *source, size_t length) {
-	uint8_t *const limit = source + length;
+	uint8_t *const begin = source;
+	uint8_t *const end = source + length;
 
 #define MapPartial(value, op, lrg, fmt, phs)	\
 	case value:									\
@@ -31,10 +33,11 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 		operation_ = Operation::op;				\
 		source_ = Source::src;					\
 		destination_ = Source::dest;			\
+		format_ = Format::Implied;				\
 		phase_ = Phase::ReadyToPost;			\
 	break
 
-	while(phase_ == Phase::Instruction && source != limit) {
+	while(phase_ == Phase::Instruction && source != end) {
 		// Retain the instruction byte, in case additional decoding is deferred
 		// to the ModRM byte.
 		instr_ = *source;
@@ -169,7 +172,7 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 
 #undef MapInstr
 
-	if(phase_ == Phase::ModRM && source != limit) {
+	if(phase_ == Phase::ModRM && source != end) {
 		const uint8_t mod = *source >> 6;		// i.e. mode.
 		const uint8_t reg = (*source >> 3) & 7;	// i.e. register.
 		const uint8_t rm = *source & 7;			// i.e. register/memory.
@@ -234,12 +237,51 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 		++consumed_;
 	}
 
-	if(phase_ == Phase::AwaitingOperands && source != limit) {
+	if(phase_ == Phase::AwaitingOperands && source != end) {
 		// TODO: calculate number of expected operands.
+		const int required_bytes = large_operand_ ? 2 : 1;
+
+		const int outstanding_bytes = required_bytes - operand_bytes_;
+		const int bytes_to_consume = std::min(int(end - source), outstanding_bytes);
+		source += bytes_to_consume;
+		consumed_ += bytes_to_consume;
+		operand_bytes_ += bytes_to_consume;
+		if(bytes_to_consume == outstanding_bytes) {
+			phase_ = Phase::ReadyToPost;
+		} else {
+			// Provide a genuine measure of further bytes required.
+			return Instruction(-(outstanding_bytes - bytes_to_consume));
+		}
 	}
 
 	if(phase_ == Phase::ReadyToPost) {
-		// TODO: construct actual Instruction.
+		Instruction result;
+		switch(format_) {
+			case Format::Ac_Data:
+				if(large_operand_) {
+					result = Instruction(operation_, Size::Word, Source::AX, Source::Immediate, consumed_);
+				} else {
+					result = Instruction(operation_, Size::Byte, Source::AL, Source::Immediate, consumed_);
+				}
+			break;
+
+			case Format::Disp:
+				result = Instruction(operation_, Size::Byte, Source::Immediate, Source::None, consumed_);
+			break;
+
+			case Format::Implied:
+				result = Instruction(operation_, large_operand_ ? Size::Word : Size::Byte, source_, destination_, consumed_);
+			break;
+
+			default: break;
+		}
+
+		// Reset parser.
+		consumed_ = operand_bytes_ = 0;
+		lock_ = add_offset_ = large_offset_ = false;
+		phase_ = Phase::Instruction;
+
+		return result;
 	}
 
 	return Instruction();

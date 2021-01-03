@@ -61,6 +61,78 @@ namespace {
 		0xb8, 0xad, 0xe8, 0xc8, 0x16, 0x4a, 0xb0, 0x9e, 0xf9, 0xbf, 0x56, 0xea, 0x4e, 0xfd, 0xe4, 0x5a,
 		0x23, 0xaa, 0x2c, 0x5b, 0x2a, 0xd2, 0xf7, 0x5f, 0x18, 0x86, 0x90, 0x25, 0x64, 0xb7, 0xc3
 	}];
+
+	// 68 instructions are expected.
+	XCTAssertEqual(instructions.size(), 68);
+
+	// sub    $0xea77,%ax
+	// jb     0x00000001
+	// dec    %bx
+	// mov    $0x28,%ch
+	// ret
+	// lret   $0x4826
+	// gs insw (%dx),%es:(%di)
+	// jnp    0xffffffaf
+	// ret    $0x4265
+	// dec    %si
+	// out    %ax,(%dx)
+	// jo     0x00000037
+	// xchg   %ax,%sp
+	// (bad)
+	// aam    $0x93
+	// inc    %bx
+	// cmp    $0x8e,%al
+	// push   $0x65
+	// sbb    0x45(%bx,%si),%bh
+	// adc    %bh,0x3c(%bx)
+	// sbb    %bx,0x16(%bp,%si)
+	// xor    %sp,0x2c(%si)
+	// out    %ax,$0xc6
+	// jge    0xffffffe0
+	// mov    $0x49,%ch
+	// addr32 popa
+	// mov    $0xcbc0,%dx
+	// adc    $0x7e,%al
+	// jno    0x0000000b
+	// push   %ax
+	// js     0x0000007b
+	// add    (%di),%bx
+	// in     $0xc9,%ax
+	// xchg   %ax,%di
+	// ret
+	// fwait
+	// out    %al,$0xd3
+	// insb   (%dx),%es:(%di)
+	// pop    %ax
+	// dec    %bp
+	// jbe    0xffffffcc
+	// inc    %sp
+	// (bad)
+	// lahf
+	// movsw  %ds:(%si),%es:(%di)
+	// mov    $0x12a1,%bp
+	// lds    (%bx,%di),%bp
+	// leave
+	// sahf
+	// fdiv   %st(3),%st
+	// iret
+	// xchg   %ax,%dx
+	// cmp    %bx,-0x70(%di)
+	// adc    $0xb8c3,%ax
+	// lods   %ds:(%si),%ax
+	// call   0x0000172d
+	// dec    %dx
+	// mov    $0x9e,%al
+	// stc
+	// mov    $0xea56,%di
+	// dec    %si
+	// std
+	// in     $0x5a,%al
+	// and    0x5b2c(%bp,%si),%bp
+	// sub    %dl,%dl
+	// negw   0x18(%bx)
+	// xchg   %dl,0x6425(%bx,%si)
+	// mov    $0xc3,%bh
 }
 
 @end

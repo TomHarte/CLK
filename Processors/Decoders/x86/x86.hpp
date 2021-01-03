@@ -76,18 +76,23 @@ enum class Source: uint8_t {
 
 class Instruction {
 	public:
-		const Operation operation = Operation::Invalid;
-		const Size operand_size = Size::Byte;
+		Operation operation = Operation::Invalid;
+		Size operand_size = Size::Byte;
 
-		const Source source = Source::AL;
-		const Source destination = Source::AL;
+		Source source = Source::AL;
+		Source destination = Source::AL;
 
 		int size() const {
 			return size_;
 		}
 
+		Instruction() {}
+		Instruction(int size) : size_(size) {}
+		Instruction(Operation operation, Size operand_size, Source source, Source destination, int size) :
+			operation(operation), operand_size(operand_size), source(source), destination(destination), size_(size) {}
+
 	private:
-		int size_ = 0;
+		int size_ = -1;
 };
 
 /*!
@@ -117,6 +122,7 @@ struct Decoder {
 		} phase_ = Phase::Instruction;
 
 		enum class Format: uint8_t {
+			Implied,
 			MemReg_Reg,
 			Reg_MemReg,
 			Ac_Data,
@@ -134,8 +140,8 @@ struct Decoder {
 			None, RepE, RepNE
 		} repetition_ = Repetition::None;
 
-
 		int consumed_ = 0;
+		int operand_bytes_ = 0;
 		Operation operation_ = Operation::Invalid;
 		bool large_operand_ = false;
 		Source source_ = Source::None;
