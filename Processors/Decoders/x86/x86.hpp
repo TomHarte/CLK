@@ -109,6 +109,8 @@ struct Decoder {
 			Reg_MemReg,
 			Ac_Data,
 			MemReg_Data,
+			SegReg_MemReg,
+			Reg_Addr,
 			Disp
 		} format_ = Format::MemReg_Reg;
 
@@ -118,6 +120,7 @@ struct Decoder {
 		Source source_ = Source::None;
 		Source destination_ = Source::None;
 		Source segment_override_ = Source::None;
+		uint8_t instr_ = 0x00;
 };
 
 }

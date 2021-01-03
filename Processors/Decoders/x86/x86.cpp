@@ -13,13 +13,13 @@ using namespace CPU::Decoder::x86;
 Instruction Decoder::decode(uint8_t *source, size_t length) {
 	uint8_t *const limit = source + length;
 
-#define MapPartial(value, op, sz, fmt, phs)	\
-	case value:								\
-		operation_ = Operation::op;			\
-		operand_size_ = Size::sz;			\
-		format_ = Format::fmt;				\
-		phase_ = Phase::phs;				\
-	break;
+#define MapPartial(value, op, sz, fmt, phs)			\
+	case value:										\
+		operation_ = Operation::op;					\
+		operand_size_ = Size::sz;					\
+		format_ = Format::fmt;						\
+		phase_ = Phase::phs;						\
+	break
 
 #define MapComplete(value, op, sz, src, dest)		\
 	case value:										\
@@ -28,10 +28,13 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 		source_ = Source::src;						\
 		destination_ = Source::dest;				\
 		phase_ = Phase::ReadyToPost;				\
-	break;
+	break
 
 	while(phase_ == Phase::Instruction && source != limit) {
-		switch(*source) {
+		// Retain the instruction byte, in case additional decoding is deferred
+		// to the ModRM byte.
+		instr_ = *source;
+		switch(instr_) {
 #define PartialBlock(start, operation)	\
 	MapPartial(start + 0x00, operation, Byte, MemReg_Reg, ModRM);			\
 	MapPartial(start + 0x01, operation, Word, MemReg_Reg, ModRM);			\
@@ -110,6 +113,42 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 			MapPartial(0x7e, JLE, Byte, Disp, AwaitingOperands);
 			MapPartial(0x7f, JNLE, Byte, Disp, AwaitingOperands);
 
+			// TODO:
+			//
+			//	0x80, 0x81, 0x82, 0x83, which all require more
+			//	input, from the ModRM byte.
+
+			MapPartial(0x84, TEST, Byte, MemReg_Reg, ModRM);
+			MapPartial(0x85, TEST, Word, MemReg_Reg, ModRM);
+			MapPartial(0x86, XCHG, Byte, Reg_MemReg, ModRM);
+			MapPartial(0x87, XCHG, Word, Reg_MemReg, ModRM);
+			MapPartial(0x88, MOV, Byte, MemReg_Reg, ModRM);
+			MapPartial(0x89, MOV, Word, MemReg_Reg, ModRM);
+			MapPartial(0x8a, MOV, Byte, Reg_MemReg, ModRM);
+			MapPartial(0x8b, MOV, Word, Reg_MemReg, ModRM);
+			/* 0x8c: not used. */
+			MapPartial(0x8d, LEA, Word, Reg_Addr, ModRM);
+			MapPartial(0x8e, MOV, Word, SegReg_MemReg, ModRM);
+
+			// TODO: 0x8f, which requires further selection from the ModRM byte.
+
+			MapComplete(0x90, NOP, Implied, None, None);	// Or XCHG AX, AX?
+			MapComplete(0x91, XCHG, Word, AX, CX);
+			MapComplete(0x92, XCHG, Word, AX, DX);
+			MapComplete(0x93, XCHG, Word, AX, BX);
+			MapComplete(0x94, XCHG, Word, AX, SP);
+			MapComplete(0x95, XCHG, Word, AX, BP);
+			MapComplete(0x96, XCHG, Word, AX, SI);
+			MapComplete(0x97, XCHG, Word, AX, DI);
+
+			MapComplete(0x98, CBW, Implied, None, None);
+			MapComplete(0x99, CWD, Implied, None, None);
+			MapPartial(0x9a, CALL, Word, Disp, AwaitingOperands);
+			MapComplete(0x9b, WAIT, Implied, None, None);
+			MapComplete(0x9c, PUSHF, Implied, None, None);
+			MapComplete(0x9d, POPF, Implied, None, None);
+			MapComplete(0x9e, SAHF, Implied, None, None);
+			MapComplete(0x9f, LAHF, Implied, None, None);
 		}
 		++source;
 		++consumed_;
