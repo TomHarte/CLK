@@ -46,6 +46,7 @@ enum class Size: uint8_t {
 	Implied = 0,
 	Byte = 1,
 	Word = 2,
+	DWord = 4,
 };
 
 enum class Source: uint8_t {
@@ -60,7 +61,17 @@ enum class Source: uint8_t {
 	SI, DI,
 	BP, SP,
 
-	Memory, Immediate
+	IndBXPlusSI,
+	IndBXPlusDI,
+	IndBPPlusSI,
+	IndBPPlusDI,
+	IndSI,
+	IndDI,
+	DirectAddress,
+	IndBP,
+	IndBX,
+
+	Immediate
 };
 
 class Instruction {
@@ -111,16 +122,28 @@ struct Decoder {
 			MemReg_Data,
 			SegReg_MemReg,
 			Reg_Addr,
-			Disp
+			Addr_Reg,
+			Disp,
+			Addr
 		} format_ = Format::MemReg_Reg;
+		// TODO: figure out which Formats can be folded together,
+		// and which are improperly elided.
+
+		enum class Repetition: uint8_t {
+			None, RepE, RepNE
+		} repetition_ = Repetition::None;
+
 
 		int consumed_ = 0;
 		Operation operation_ = Operation::Invalid;
-		Size operand_size_ = Size::Implied;
+		bool large_operand_ = false;
 		Source source_ = Source::None;
 		Source destination_ = Source::None;
 		Source segment_override_ = Source::None;
 		uint8_t instr_ = 0x00;
+		bool lock_ = false;
+		bool add_offset_ = false;
+		bool large_offset_ = false;
 };
 
 }
