@@ -178,7 +178,7 @@ struct Instruction {
 			0x0000'0000,
 			0xfc00'0000
 		};
-		const uint32_t value = (opcode & 0x03ff'fffc) | extensions[(opcode >> 26) & 1];
+		const uint32_t value = (opcode & 0x03ff'fffc) | extensions[(opcode >> 25) & 1];
 		return int32_t(value);
 	}
 
