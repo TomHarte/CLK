@@ -75,15 +75,16 @@ enum class Operation: uint8_t {
 	only the operation has been decoded ahead of time; all other fields are decoded on-demand.
 */
 struct Instruction {
-	const Operation operation = Operation::Undefined;
-	const bool is_supervisor = false;
-	const uint32_t opcode = 0;
+	Operation operation = Operation::Undefined;
+	bool is_supervisor = false;
+	uint32_t opcode = 0;
 
 	// PowerPC uses a fixed-size instruction word.
-	size_t size() {
+	int size() {
 		return 4;
 	}
 
+	Instruction() {}
 	Instruction(uint32_t opcode) : opcode(opcode) {}
 	Instruction(Operation operation, uint32_t opcode, bool is_supervisor = false) : operation(operation), is_supervisor(is_supervisor), opcode(opcode) {}
 
@@ -177,7 +178,7 @@ struct Instruction {
 			0x0000'0000,
 			0xfc00'0000
 		};
-		const uint32_t value = (opcode & 0x3fff'fffc) | extensions[(opcode >> 26) & 1];
+		const uint32_t value = (opcode & 0x03ff'fffc) | extensions[(opcode >> 26) & 1];
 		return int32_t(value);
 	}
 

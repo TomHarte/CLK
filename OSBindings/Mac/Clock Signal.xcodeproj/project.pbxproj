@@ -185,6 +185,7 @@
 		4B3BF5B01F146265005B6C36 /* CSW.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BF5AE1F146264005B6C36 /* CSW.cpp */; };
 		4B3F76AE25A0196100178AEC /* x86.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3F76AD25A0196100178AEC /* x86.cpp */; };
 		4B3F76AF25A0196100178AEC /* x86.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3F76AD25A0196100178AEC /* x86.cpp */; };
+		4B3F76B925A1635300178AEC /* PowerPCDecoderTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3F76B825A1635300178AEC /* PowerPCDecoderTests.mm */; };
 		4B3FCC40201EC24200960631 /* MultiMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FCC3F201EC24200960631 /* MultiMachine.cpp */; };
 		4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */; };
 		4B448E811F1C45A00009ABD6 /* TZX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B448E7F1F1C45A00009ABD6 /* TZX.cpp */; };
@@ -1081,6 +1082,7 @@
 		4B3F769E259FCE0F00178AEC /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		4B3F76AC25A0196100178AEC /* x86.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = x86.hpp; sourceTree = "<group>"; };
 		4B3F76AD25A0196100178AEC /* x86.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = x86.cpp; sourceTree = "<group>"; };
+		4B3F76B825A1635300178AEC /* PowerPCDecoderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PowerPCDecoderTests.mm; sourceTree = "<group>"; };
 		4B3FCC3E201EC24200960631 /* MultiMachine.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MultiMachine.hpp; sourceTree = "<group>"; };
 		4B3FCC3F201EC24200960631 /* MultiMachine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MultiMachine.cpp; sourceTree = "<group>"; };
 		4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPM.cpp; path = Parsers/CPM.cpp; sourceTree = "<group>"; };
@@ -3479,6 +3481,7 @@
 				4BC0CB272446BC7B00A79DBB /* OPLTests.mm */,
 				4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */,
 				4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */,
+				4B3F76B825A1635300178AEC /* PowerPCDecoderTests.mm */,
 				4BE76CF822641ED300ACD6FA /* QLTests.mm */,
 				4B2AF8681E513FC20027EE29 /* TIATests.mm */,
 				4B1D08051E0F7A1100763741 /* TimeTests.mm */,
@@ -4919,6 +4922,7 @@
 				4B778F4223A5F1A70000D260 /* MemoryFuzzer.cpp in Sources */,
 				4B778F0123A5EBA00000D260 /* MacintoshIMG.cpp in Sources */,
 				4BFF1D3D2235C3C100838EA1 /* EmuTOSTests.mm in Sources */,
+				4B3F76B925A1635300178AEC /* PowerPCDecoderTests.mm in Sources */,
 				4B778F0A23A5EC150000D260 /* TapePRG.cpp in Sources */,
 				4B778F0823A5EC150000D260 /* CSW.cpp in Sources */,
 				4B778F5323A5F23F0000D260 /* SerialBus.cpp in Sources */,

@@ -58,7 +58,17 @@ Instruction Decoder::decode(uint32_t opcode) {
 		Bind(Six(0b001000), subfic);
 		Bind(Six(0b001100), addic);		Bind(Six(0b001101), addic_);
 		Bind(Six(0b001110), addi);		Bind(Six(0b001111), addis);
-		Bind(Six(0b010000), bcx);
+		case Six(0b010000): {
+			// This might be a bcx, but check for a valid bo field.
+			switch((opcode >> 21) & 0x1f) {
+				case 0: case 1: case 2: case 3: case 4: case 5:
+				case 8: case 9: case 10: case 11: case 12: case 13:
+				case 16: case 17: case 18: case 19: case 20:
+				return Instruction(Operation::bcx, opcode);
+
+				default: return Instruction(opcode);
+			}
+		} break;
 		Bind(Six(0b010010), bx);
 		Bind(Six(0b010100), rlwimix);
 		Bind(Six(0b010101), rlwinmx);
@@ -317,7 +327,9 @@ Instruction Decoder::decode(uint32_t opcode) {
 	// std and stdu
 	switch(opcode & 0b111111'00'00000000'00000000'000000'11){
 		case 0b111110'00'00000000'00000000'000000'00:	return Instruction(Operation::std, opcode);
-		case 0b111110'00'00000000'00000000'000000'01:	return Instruction(Operation::stdu, opcode);
+		case 0b111110'00'00000000'00000000'000000'01:
+			if(is64bit()) return Instruction(Operation::stdu, opcode);
+		return Instruction(opcode);
 	}
 
 	// sc
