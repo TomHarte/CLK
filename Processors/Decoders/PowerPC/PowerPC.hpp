@@ -193,6 +193,11 @@ struct Instruction {
 	uint32_t oe()	{	return opcode & 0x800;		}
 };
 
+/*!
+	Implements PowerPC instruction decoding.
+
+	This is an experimental implementation; it has not yet undergone significant testing.
+*/
 struct Decoder {
 	public:
 		Decoder(Model model);
