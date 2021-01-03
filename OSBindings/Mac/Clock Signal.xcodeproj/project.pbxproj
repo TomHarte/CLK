@@ -867,6 +867,8 @@
 		4BEE149A227FC0EA00133682 /* IWM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE1498227FC0EA00133682 /* IWM.cpp */; };
 		4BEE1EC022B5E236000A26A6 /* MacGCRTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE1EBF22B5E236000A26A6 /* MacGCRTests.mm */; };
 		4BEE1EC122B5E2FD000A26A6 /* Encoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD67DCE209BF27B00AB2146 /* Encoder.cpp */; };
+		4BEE4BD425A26E2B00011BD2 /* x86DecoderTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE4BD325A26E2B00011BD2 /* x86DecoderTests.mm */; };
+		4BEE4BE125A26F8100011BD2 /* x86.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3F76AD25A0196100178AEC /* x86.cpp */; };
 		4BEEE6BD20DC72EB003723BF /* CompositeOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BEEE6BB20DC72EA003723BF /* CompositeOptions.xib */; };
 		4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */; };
 		4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */; };
@@ -1807,6 +1809,7 @@
 		4BEE1498227FC0EA00133682 /* IWM.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IWM.cpp; sourceTree = "<group>"; };
 		4BEE1499227FC0EA00133682 /* IWM.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IWM.hpp; sourceTree = "<group>"; };
 		4BEE1EBF22B5E236000A26A6 /* MacGCRTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = MacGCRTests.mm; sourceTree = "<group>"; };
+		4BEE4BD325A26E2B00011BD2 /* x86DecoderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = x86DecoderTests.mm; sourceTree = "<group>"; };
 		4BEEE6BC20DC72EA003723BF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/CompositeOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4BEF6AA81D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DigitalPhaseLockedLoopBridge.h; sourceTree = "<group>"; };
 		4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DigitalPhaseLockedLoopBridge.mm; sourceTree = "<group>"; };
@@ -3485,6 +3488,7 @@
 				4BE76CF822641ED300ACD6FA /* QLTests.mm */,
 				4B2AF8681E513FC20027EE29 /* TIATests.mm */,
 				4B1D08051E0F7A1100763741 /* TimeTests.mm */,
+				4BEE4BD325A26E2B00011BD2 /* x86DecoderTests.mm */,
 				4BB73EB81B587A5100552FC2 /* Info.plist */,
 				4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */,
 				4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */,
@@ -4967,6 +4971,7 @@
 				4B4F477C253530B7004245B8 /* Jeek816Tests.swift in Sources */,
 				4B778F0F23A5EC560000D260 /* PCMTrack.cpp in Sources */,
 				4B778F1123A5EC650000D260 /* FileHolder.cpp in Sources */,
+				4BEE4BE125A26F8100011BD2 /* x86.cpp in Sources */,
 				4B778EFC23A5EB8B0000D260 /* AcornADF.cpp in Sources */,
 				4B778F2023A5EDCE0000D260 /* HFV.cpp in Sources */,
 				4B778F3323A5F0FB0000D260 /* MassStorageDevice.cpp in Sources */,
@@ -5047,6 +5052,7 @@
 				4B778F2123A5EDD50000D260 /* TrackSerialiser.cpp in Sources */,
 				4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */,
 				4B778F3923A5F11C0000D260 /* Shifter.cpp in Sources */,
+				4BEE4BD425A26E2B00011BD2 /* x86DecoderTests.mm in Sources */,
 				4B778F3623A5F1040000D260 /* Target.cpp in Sources */,
 				4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */,
 				4B778F3D23A5F1750000D260 /* ncr5380.cpp in Sources */,

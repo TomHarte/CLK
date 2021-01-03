@@ -12,6 +12,9 @@
 
 using namespace CPU::Decoder::x86;
 
+// Only 8086 is suppoted for now.
+Decoder::Decoder(Model) {}
+
 Instruction Decoder::decode(uint8_t *source, size_t length) {
 	uint8_t *const limit = source + length;
 
