@@ -140,17 +140,23 @@ struct Decoder {
 			None, RepE, RepNE
 		} repetition_ = Repetition::None;
 
-		int consumed_ = 0;
-		int operand_bytes_ = 0;
 		Operation operation_ = Operation::Invalid;
 		bool large_operand_ = false;
 		Source source_ = Source::None;
 		Source destination_ = Source::None;
-		Source segment_override_ = Source::None;
 		uint8_t instr_ = 0x00;
-		bool lock_ = false;
 		bool add_offset_ = false;
 		bool large_offset_ = false;
+
+		int consumed_ = 0;
+		int operand_bytes_ = 0;
+		bool lock_ = false;
+		Source segment_override_ = Source::None;
+		void reset_parsing() {
+			consumed_ = operand_bytes_ = 0;
+			lock_ = false;
+			segment_override_ = Source::None;
+		}
 };
 
 }

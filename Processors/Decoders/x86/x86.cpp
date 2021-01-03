@@ -17,7 +17,6 @@ using namespace CPU::Decoder::x86;
 Decoder::Decoder(Model) {}
 
 Instruction Decoder::decode(uint8_t *source, size_t length) {
-	uint8_t *const begin = source;
 	uint8_t *const end = source + length;
 
 #define MapPartial(value, op, lrg, fmt, phs)	\
@@ -42,6 +41,10 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 		// to the ModRM byte.
 		instr_ = *source;
 		switch(instr_) {
+			default:
+				reset_parsing();
+			return Instruction();
+
 #define PartialBlock(start, operation)	\
 	MapPartial(start + 0x00, operation, false, MemReg_Reg, ModRM);			\
 	MapPartial(start + 0x01, operation, true, MemReg_Reg, ModRM);			\
@@ -220,13 +223,9 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 					case 3:	memreg = reg_table[large_operand_][rm];	break;
 				}
 
-				if(format_ == Format::Reg_MemReg) {
-					destination_ = reg_table[large_operand_][reg];
-					source_ = memreg;
-				} else {
-					source_ = reg_table[large_operand_][reg];
-					destination_ = memreg;
-				}
+				// These will be switched over at ReadyToPost if the format_ requires it.
+				source_ = reg_table[large_operand_][reg];
+				destination_ = memreg;
 				phase_ = (add_offset_ || memreg == Source::DirectAddress) ? Phase::AwaitingOperands : Phase::ReadyToPost;
 			} break;
 
@@ -273,12 +272,19 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 				result = Instruction(operation_, large_operand_ ? Size::Word : Size::Byte, source_, destination_, consumed_);
 			break;
 
-			default: break;
+			case Format::MemReg_Reg:
+				result = Instruction(operation_, large_operand_ ? Size::Word : Size::Byte, source_, destination_, consumed_);
+			break;
+
+			case Format::Reg_MemReg:
+				result = Instruction(operation_, large_operand_ ? Size::Word : Size::Byte, destination_, source_, consumed_);
+			break;
+
+			default: assert(false);
 		}
 
 		// Reset parser.
-		consumed_ = operand_bytes_ = 0;
-		lock_ = add_offset_ = large_offset_ = false;
+		reset_parsing();
 		phase_ = Phase::Instruction;
 
 		return result;
