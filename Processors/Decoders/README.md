@@ -36,11 +36,13 @@ If instructions are a variable size, the decoder should maintain internal state 
 
 A sample interface:
 
-    size_t decode(Instruction &target, word_type *stream, size_t length) { ... }
+    Instruction decode(word_type *stream, size_t length) { ... }
 
-Returns either the number of further words necessary fully to decode, if known, or a negative number to indicate a generic sense of 'more needed'. A value of `0` means 'an instruction was fully decoded', and the instruction itself should be able to report its size.  
+The returned instruction has a size that is one of:
+* a positive number, indicating a successful decoding that consumed that many `word_type`s; or
+* a negative number, indicating the [negatived] minimum number of `word_type`s that the caller should try to get hold of before calling `decode` again.
 
-`target` is populated only if an instruction is decoded; `stream` and `length` provide as much further instruction stream data as the caller currently possesses. 
+A caller is permitted to react in any way it prefers to negative numbers; they're a hint potentially to reduce calling overhead only. 
 
 ## Tying Decoders into Instruction Executors
 

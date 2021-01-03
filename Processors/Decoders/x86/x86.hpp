@@ -101,9 +101,10 @@ struct Decoder {
 
 		/*!
 			@returns an @c Instruction with a positive size to indicate successful decoding; a
-				negative size specifies the number of further bytes required fully to decode, and
-				a zero size indicates that further bytes are required but the decoder does not yet
-				know exactly how many.
+				negative size specifies the [negatived] number of further bytes the caller should ideally
+				collect before calling again. The caller is free to call with fewer, but may not get a decoded
+				instruction in response, and the decoder may still not be able to complete decoding
+				even if given that number of bytes.
 		*/
 		Instruction decode(uint8_t *source, size_t length);
 
