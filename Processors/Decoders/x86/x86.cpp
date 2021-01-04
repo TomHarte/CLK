@@ -16,8 +16,8 @@ using namespace CPU::Decoder::x86;
 // Only 8086 is suppoted for now.
 Decoder::Decoder(Model) {}
 
-Instruction Decoder::decode(uint8_t *source, size_t length) {
-	uint8_t *const end = source + length;
+Instruction Decoder::decode(const uint8_t *source, size_t length) {
+	const uint8_t *const end = source + length;
 
 #define MapPartial(value, op, lrg, fmt, phs)	\
 	case value:									\
@@ -49,10 +49,15 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 		// Retain the instruction byte, in case additional decoding is deferred
 		// to the ModRM byte.
 		instr_ = *source;
+		++source;
+		++consumed_;
+
 		switch(instr_) {
-			default:
+			default: {
+				const Instruction instruction(consumed_);
 				reset_parsing();
-			return Instruction();
+				return instruction;
+			}
 
 #define PartialBlock(start, operation)	\
 	MapPartial(start + 0x00, operation, false, MemReg_Reg, ModRM);			\
@@ -115,7 +120,7 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 
 			/* 0x60–0x6f: not used. */
 
-#define MapJump(value, operation)	MapPartial(value, operation, false, Disp, AwaitingOperands);
+#define MapJump(value, operation)	MapPartial(value, operation, false, Immediate, AwaitingOperands);
 			MapJump(0x70, JO);
 			MapJump(0x71, JNO);
 			MapJump(0x72, JB);
@@ -164,7 +169,7 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 
 			MapComplete(0x98, CBW, None, None);
 			MapComplete(0x99, CWD, None, None);
-			MapPartial(0x9a, CALL, true, Addr, AwaitingOperands);
+			MapPartial(0x9a, CALL, true, Immediate, AwaitingOperands);
 			MapComplete(0x9b, WAIT, None, None);
 			MapComplete(0x9c, PUSHF, None, None);
 			MapComplete(0x9d, POPF, None, None);
@@ -182,18 +187,24 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 			MapRegData(0xbc, MOV, true, SP);	MapRegData(0xbd, MOV, true, BP);
 			MapRegData(0xbe, MOV, true, SI);	MapRegData(0xbf, MOV, true, DI);
 
-			MapPartial(0xc2, RETIntra, true, Disp, AwaitingOperands);
+			MapPartial(0xc2, RETIntra, true, Immediate, AwaitingOperands);
 			MapComplete(0xc3, RETIntra, None, None);
-			MapPartial(0xca, RETInter, true, Disp, AwaitingOperands);
+			MapPartial(0xca, RETInter, true, Immediate, AwaitingOperands);
 			MapComplete(0xcb, RETInter, None, None);
+
+			MapPartial(0xd4, AAM, false, Immediate, AwaitingOperands);
+			MapPartial(0xd5, AAD, false, Immediate, AwaitingOperands);
+
+//			MapPartial(0xe4, IN, false, Immediate, AwaitingOperands);
+
+			MapComplete(0xec, IN, DX, AL);		MapComplete(0xed, IN, DX, AX);
+			MapComplete(0xee, OUT, AL, DX);		MapComplete(0xef, OUT, AX, DX);
 
 			// Other prefix bytes.
 			case 0xf0:	lock_ = true;						break;
 			case 0xf2:	repetition_ = Repetition::RepNE;	break;
 			case 0xf3:	repetition_ = Repetition::RepE;		break;
 		}
-		++source;
-		++consumed_;
 	}
 
 #undef MapInstr
@@ -283,7 +294,7 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 				result = Instruction(operation_, large_operand_ ? Size::Word : Size::Byte, source_, destination_, consumed_);
 			break;
 
-			case Format::Disp:
+			case Format::Immediate:
 				result = Instruction(operation_, Size::Byte, Source::Immediate, Source::None, consumed_);
 			break;
 

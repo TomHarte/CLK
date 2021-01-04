@@ -114,7 +114,7 @@ struct Decoder {
 				instruction in response, and the decoder may still not be able to complete decoding
 				even if given that number of bytes.
 		*/
-		Instruction decode(uint8_t *source, size_t length);
+		Instruction decode(const uint8_t *source, size_t length);
 
 	private:
 		enum class Phase {
@@ -151,8 +151,8 @@ struct Decoder {
 			Addr_Reg,
 
 			SegReg_MemReg,
-			Disp,
-			Addr
+
+			Immediate,
 		} format_ = Format::MemReg_Reg;
 		// TODO: figure out which Formats can be folded together,
 		// and which are improperly elided.
