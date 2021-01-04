@@ -182,7 +182,9 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 			MapRegData(0xbc, MOV, true, SP);	MapRegData(0xbd, MOV, true, BP);
 			MapRegData(0xbe, MOV, true, SI);	MapRegData(0xbf, MOV, true, DI);
 
+			MapPartial(0xc2, RETIntra, true, Disp, AwaitingOperands);
 			MapComplete(0xc3, RETIntra, None, None);
+			MapPartial(0xca, RETInter, true, Disp, AwaitingOperands);
 			MapComplete(0xcb, RETInter, None, None);
 
 			// Other prefix bytes.
