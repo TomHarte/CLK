@@ -115,31 +115,46 @@ struct Decoder {
 
 	private:
 		enum class Phase {
+			/// Captures all prefixes and continues until an instruction byte is encountered.
 			Instruction,
+			/// Receives a ModRM byte and either populates the source_ and dest_ fields appropriately
+			/// or completes decoding of the instruction, as per the instruction format.
 			ModRM,
+			/// Waits for sufficiently many bytes to pass for all associated operands to be captured.
 			AwaitingOperands,
+			/// Forms and returns an Instruction, and resets parsing state.
 			ReadyToPost
 		} phase_ = Phase::Instruction;
 
+		/// During the ModRM phase, format dictates interpretation of the ModRM byte.
+		///
+		/// During the ReadyToPost phase, format determines how transiently-recorded fields
+		/// are packaged into an Instruction.
 		enum class Format: uint8_t {
 			Implied,
+
+			// In both cases: pass the ModRM for mode, register and register/memory
+			// flags and populate the source_ and destination_ fields appropriate.
+			// During the ModRM phase they'll be populated as source_ = register,
+			// destination_ = register/memory; the ReadyToPost phase should switch
+			// those around as necessary.
 			MemReg_Reg,
 			Reg_MemReg,
-			Ac_Data,
-			MemReg_Data,
-			SegReg_MemReg,
+
+			Reg_Data,
+
+			//
 			Reg_Addr,
 			Addr_Reg,
+
+			SegReg_MemReg,
 			Disp,
 			Addr
 		} format_ = Format::MemReg_Reg;
 		// TODO: figure out which Formats can be folded together,
 		// and which are improperly elided.
 
-		enum class Repetition: uint8_t {
-			None, RepE, RepNE
-		} repetition_ = Repetition::None;
-
+		// Ephemeral decoding state.
 		Operation operation_ = Operation::Invalid;
 		bool large_operand_ = false;
 		Source source_ = Source::None;
@@ -148,14 +163,23 @@ struct Decoder {
 		bool add_offset_ = false;
 		bool large_offset_ = false;
 
-		int consumed_ = 0;
-		int operand_bytes_ = 0;
+		// Prefix capture fields.
+		enum class Repetition: uint8_t {
+			None, RepE, RepNE
+		} repetition_ = Repetition::None;
 		bool lock_ = false;
 		Source segment_override_ = Source::None;
+
+		// Size capture.
+		int consumed_ = 0;
+		int operand_bytes_ = 0;
+
+		/// Resets size capture and all fields with default values.
 		void reset_parsing() {
 			consumed_ = operand_bytes_ = 0;
 			lock_ = false;
 			segment_override_ = Source::None;
+			repetition_ = Repetition::None;
 		}
 };
 

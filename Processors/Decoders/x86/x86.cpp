@@ -27,6 +27,15 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 		phase_ = Phase::phs;					\
 	break
 
+#define MapRegData(value, op, lrg, dest)		\
+	case value:									\
+		operation_ = Operation::op;				\
+		large_operand_ = lrg;					\
+		source_ = Source::Immediate;			\
+		destination_ = Source::dest;			\
+		phase_ = Phase::AwaitingOperands;		\
+	break
+
 #define MapComplete(value, op, src, dest)		\
 	case value:									\
 		operation_ = Operation::op;				\
@@ -50,8 +59,8 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 	MapPartial(start + 0x01, operation, true, MemReg_Reg, ModRM);			\
 	MapPartial(start + 0x02, operation, false, Reg_MemReg, ModRM);			\
 	MapPartial(start + 0x03, operation, true, Reg_MemReg, ModRM);			\
-	MapPartial(start + 0x04, operation, false, Ac_Data, AwaitingOperands);	\
-	MapPartial(start + 0x05, operation, true, Ac_Data, AwaitingOperands);
+	MapRegData(start + 0x04, operation, false, AL);							\
+	MapRegData(start + 0x05, operation, true, AX);
 
 			PartialBlock(0x00, ADD);
 			MapComplete(0x06, PUSH, ES, None);
@@ -164,6 +173,15 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 
 			MapPartial(0xa0, MOV, false, Reg_Addr, AwaitingOperands);
 
+			MapRegData(0xb0, MOV, false, AL);	MapRegData(0xb1, MOV, false, CL);
+			MapRegData(0xb2, MOV, false, DL);	MapRegData(0xb3, MOV, false, BL);
+			MapRegData(0xb4, MOV, false, AH);	MapRegData(0xb5, MOV, false, CH);
+			MapRegData(0xb6, MOV, false, DH);	MapRegData(0xb7, MOV, false, BH);
+			MapRegData(0xb8, MOV, true, AX);	MapRegData(0xb9, MOV, true, CX);
+			MapRegData(0xba, MOV, true, DX);	MapRegData(0xbb, MOV, true, BX);
+			MapRegData(0xbc, MOV, true, SP);	MapRegData(0xbd, MOV, true, BP);
+			MapRegData(0xbe, MOV, true, SI);	MapRegData(0xbf, MOV, true, DI);
+
 			// Other prefix bytes.
 			case 0xf0:	lock_ = true;						break;
 			case 0xf2:	repetition_ = Repetition::RepNE;	break;
@@ -256,12 +274,8 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 	if(phase_ == Phase::ReadyToPost) {
 		Instruction result;
 		switch(format_) {
-			case Format::Ac_Data:
-				if(large_operand_) {
-					result = Instruction(operation_, Size::Word, Source::AX, Source::Immediate, consumed_);
-				} else {
-					result = Instruction(operation_, Size::Byte, Source::AL, Source::Immediate, consumed_);
-				}
+			case Format::Reg_Data:
+				result = Instruction(operation_, large_operand_ ? Size::Word : Size::Byte, source_, destination_, consumed_);
 			break;
 
 			case Format::Disp:
