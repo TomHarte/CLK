@@ -37,9 +37,12 @@ enum class Operation: uint8_t {
 	JMP, JCXZ,
 	LAHF, LDS, LEA,
 	LODS, LOOPE, LOOPNE, MOV, MOVS, MUL, NEG, NOP, NOT, OR, OUT,
-	POP, POPF, PUSH, PUSHF, RCL, RCR, REP, RET, ROL, ROR, SAHF,
+	POP, POPF, PUSH, PUSHF, RCL, RCR, REP, ROL, ROR, SAHF,
 	SAR, SBB, SCAS, SHL, SHR, STC, STD, STI, STOS, SUB, TEST,
-	WAIT, XCHG, XLAT, XOR
+	WAIT, XCHG, XLAT, XOR,
+
+	RETInter,
+	RETIntra,
 };
 
 enum class Size: uint8_t {

@@ -182,6 +182,9 @@ Instruction Decoder::decode(uint8_t *source, size_t length) {
 			MapRegData(0xbc, MOV, true, SP);	MapRegData(0xbd, MOV, true, BP);
 			MapRegData(0xbe, MOV, true, SI);	MapRegData(0xbf, MOV, true, DI);
 
+			MapComplete(0xc3, RETIntra, None, None);
+			MapComplete(0xcb, RETInter, None, None);
+
 			// Other prefix bytes.
 			case 0xf0:	lock_ = true;						break;
 			case 0xf2:	repetition_ = Repetition::RepNE;	break;
