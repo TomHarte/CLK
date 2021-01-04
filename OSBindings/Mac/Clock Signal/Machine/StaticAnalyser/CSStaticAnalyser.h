@@ -8,6 +8,8 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class CSMachine;
 
 typedef NS_ENUM(NSInteger, CSMachineAppleIIModel) {
@@ -78,7 +80,7 @@ typedef int Kilobytes;
 
 @interface CSStaticAnalyser : NSObject
 
-- (instancetype)initWithFileAtURL:(NSURL *)url;
+- (nullable instancetype)initWithFileAtURL:(NSURL *)url;
 
 - (instancetype)initWithAmstradCPCModel:(CSMachineCPCModel)model;
 - (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController;
@@ -92,7 +94,7 @@ typedef int Kilobytes;
 - (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize useZX81ROM:(BOOL)useZX81ROM;
 - (instancetype)initWithZX81MemorySize:(Kilobytes)memorySize;
 
-@property(nonatomic, readonly) NSString *optionsPanelNibName;
+@property(nonatomic, readonly, nullable) NSString *optionsPanelNibName;
 @property(nonatomic, readonly) NSString *displayName;
 
 @end
@@ -103,3 +105,5 @@ typedef int Kilobytes;
 - (void)applyToMachine:(CSMachine *)machine;
 
 @end
+
+NS_ASSUME_NONNULL_END

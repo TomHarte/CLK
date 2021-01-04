@@ -95,7 +95,7 @@ class MachineDocument:
 		//
 		// So: MAKE SURE IT'S SAFE TO ENTER THIS FUNCTION TWICE. Hence the non-assumption here about
 		// any windows still existing.
-		if self.windowControllers.count > 0, let window = self.windowControllers[0].window {
+		if let window = self.windowControllers.first?.window {
 			for sheet in window.sheets {
 				window.endSheet(sheet)
 			}
@@ -146,10 +146,7 @@ class MachineDocument:
 		} else {
 			// Store the selected machine and list of missing ROMs, and
 			// show the missing ROMs dialogue.
-			self.missingROMs = []
-			for untypedMissingROM in missingROMs {
-				self.missingROMs.append(untypedMissingROM as! CSMissingROM)
-			}
+			self.missingROMs = missingROMs.map({$0 as! CSMissingROM})
 
 			requestRoms()
 		}
@@ -252,7 +249,7 @@ class MachineDocument:
 		// TODO: this needs to be threadsafe. FIX!
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
 		let selectedSamplingRate = Float64(self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate))))
-		let isStereo = self.machine.isStereo()
+		let isStereo = self.machine.isStereo
 		if selectedSamplingRate > 0 {
 			// [Re]create the audio queue only if necessary.
 			if self.audioQueue == nil || self.audioQueue.samplingRate != selectedSamplingRate {
@@ -284,9 +281,7 @@ class MachineDocument:
 	/// Delegate message to receive drag and drop files.
 	final func scanTargetView(_ view: CSScanTargetView, didReceiveFileAt URL: URL) {
 		let mediaSet = CSMediaSet(fileAt: URL)
-		if let mediaSet = mediaSet {
-			mediaSet.apply(to: self.machine)
-		}
+		mediaSet.apply(to: self.machine)
 	}
 
 	/// Action for the insert menu command; displays an NSOpenPanel and then segues into the same process
@@ -298,9 +293,7 @@ class MachineDocument:
 			if response == .OK {
 				for url in openPanel.urls {
 					let mediaSet = CSMediaSet(fileAt: url)
-					if let mediaSet = mediaSet {
-						mediaSet.apply(to: self.machine)
-					}
+					mediaSet.apply(to: self.machine)
 				}
 			}
 		}

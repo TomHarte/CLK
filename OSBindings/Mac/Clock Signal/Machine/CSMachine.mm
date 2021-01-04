@@ -74,7 +74,7 @@ struct ActivityObserver: public Activity::Observer {
 	__unsafe_unretained CSMachine *machine;
 };
 
-@interface CSMissingROM (Mutability)
+@interface CSMissingROM (/*Mutability*/)
 @property (nonatomic, nonnull, copy) NSString *machineName;
 @property (nonatomic, nonnull, copy) NSString *fileName;
 @property (nonatomic, nullable, copy) NSString *descriptiveName;
@@ -82,53 +82,13 @@ struct ActivityObserver: public Activity::Observer {
 @property (nonatomic, copy) NSArray<NSNumber *> *crc32s;
 @end
 
-@implementation CSMissingROM {
-	NSString *_machineName;
-	NSString *_fileName;
-	NSString *_descriptiveName;
-	NSUInteger _size;
-	NSArray<NSNumber *> *_crc32s;
-}
+@implementation CSMissingROM
 
-- (NSString *)machineName {
-	return _machineName;
-}
-
-- (void)setMachineName:(NSString *)machineName {
-	_machineName = [machineName copy];
-}
-
-- (NSString *)fileName {
-	return _fileName;
-}
-
-- (void)setFileName:(NSString *)fileName {
-	_fileName = [fileName copy];
-}
-
-- (NSString *)descriptiveName {
-	return _descriptiveName;
-}
-
-- (void)setDescriptiveName:(NSString *)descriptiveName {
-	_descriptiveName = [descriptiveName copy];
-}
-
-- (NSUInteger)size {
-	return _size;
-}
-
-- (void)setSize:(NSUInteger)size {
-	_size = size;
-}
-
-- (NSArray<NSNumber *> *)crc32s {
-	return _crc32s;
-}
-
-- (void)setCrc32s:(NSArray<NSNumber *> *)crc32s {
-	_crc32s = [crc32s copy];
-}
+@synthesize machineName=_machineName;
+@synthesize fileName=_fileName;
+@synthesize descriptiveName=_descriptiveName;
+@synthesize size=_size;
+@synthesize crc32s=_crc32s;
 
 - (NSString *)description {
 	return [NSString stringWithFormat:@"%@/%@, %lu bytes, CRCs: %@", _fileName, _descriptiveName, (unsigned long)_size, _crc32s];
@@ -179,17 +139,17 @@ struct ActivityObserver: public Activity::Observer {
 				CSMissingROM *rom = [[CSMissingROM alloc] init];
 
 				// Copy/convert the primitive fields.
-				rom.machineName = [NSString stringWithUTF8String:missing_rom.machine_name.c_str()];
-				rom.fileName = [NSString stringWithUTF8String:missing_rom.file_name.c_str()];
-				rom.descriptiveName = missing_rom.descriptive_name.empty() ? nil : [NSString stringWithUTF8String:missing_rom.descriptive_name.c_str()];
+				rom.machineName = @(missing_rom.machine_name.c_str());
+				rom.fileName = @(missing_rom.file_name.c_str());
+				rom.descriptiveName = missing_rom.descriptive_name.empty() ? nil : @(missing_rom.descriptive_name.c_str());
 				rom.size = missing_rom.size;
 
 				// Convert the CRC list.
-				NSMutableArray<NSNumber *> *crc32s = [[NSMutableArray alloc] init];
+				NSMutableArray<NSNumber *> *crc32s = [[NSMutableArray alloc] initWithCapacity:missing_rom.crc32s.size()];
 				for(const auto &crc : missing_rom.crc32s) {
 					[crc32s addObject:@(crc)];
 				}
-				rom.crc32s = [crc32s copy];
+				rom.crc32s = crc32s;
 
 				// Add to the missing list.
 				[missingROMs addObject:rom];

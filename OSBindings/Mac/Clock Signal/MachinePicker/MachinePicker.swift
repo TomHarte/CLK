@@ -152,7 +152,7 @@ class MachinePicker: NSObject {
 
 		switch machineSelector!.selectedTabViewItem!.identifier as! String {
 			case "electron":
-				return CSStaticAnalyser(electronDFS: electronDFSButton!.state == .on, adfs: electronADFSButton!.state == .on)!
+				return CSStaticAnalyser(electronDFS: electronDFSButton!.state == .on, adfs: electronADFSButton!.state == .on)
 
 			case "appleii":
 				var model: CSMachineAppleIIModel = .appleII
