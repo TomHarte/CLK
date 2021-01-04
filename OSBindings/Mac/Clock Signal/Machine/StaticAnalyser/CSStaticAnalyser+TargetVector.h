@@ -8,7 +8,7 @@
 
 #import "CSStaticAnalyser.h"
 
-@interface CSStaticAnalyser (ResultVector)
+@interface CSStaticAnalyser ()
 
 - (Analyser::Static::TargetList &)targets;
 

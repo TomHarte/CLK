@@ -39,7 +39,7 @@
 
 		// TODO: could this better be supplied by the analyser? A hypothetical file format might
 		// provide a better name for it contents than the file name?
-		_displayName = [[url pathComponents] lastObject];
+		_displayName = [url.lastPathComponent copy];
 	}
 	return self;
 }
