@@ -80,7 +80,7 @@ struct Instruction {
 	uint32_t opcode = 0;
 
 	// PowerPC uses a fixed-size instruction word.
-	int size() {
+	int size() const {
 		return 4;
 	}
 
@@ -99,81 +99,81 @@ struct Instruction {
 	// full decoding has already occurred.
 
 	/// Immediate field used to specify an unsigned 16-bit integer.
-	uint16_t uimm() {	return uint16_t(opcode & 0xffff);	}
+	uint16_t uimm() const	{	return uint16_t(opcode & 0xffff);	}
 	/// Immediate field used to specify a signed 16-bit integer.
-	int16_t simm()	{	return int16_t(opcode & 0xffff);	}
+	int16_t simm() const	{	return int16_t(opcode & 0xffff);	}
 	/// Immediate field used to specify a signed 16-bit integer.
-	int16_t d()		{	return int16_t(opcode & 0xffff);	}
+	int16_t d() const		{	return int16_t(opcode & 0xffff);	}
 	/// Immediate field used to specify a signed 14-bit integer [64-bit only].
-	int16_t ds()	{	return int16_t(opcode & 0xfffc);	}
+	int16_t ds() const		{	return int16_t(opcode & 0xfffc);	}
 	/// Immediate field used as data to be placed into a field in the floating point status and condition register.
-	int32_t imm()	{	return (opcode >> 12) & 0xf;		}
+	int32_t imm() const		{	return (opcode >> 12) & 0xf;		}
 
 	/// Specifies the conditions on which to trap.
-	int32_t to() 	{	return (opcode >> 21) & 0x1f;		}
+	int32_t to() const	 	{	return (opcode >> 21) & 0x1f;		}
 
 	/// Register source A or destination.
-	uint32_t rA() 	{	return (opcode >> 16) & 0x1f;		}
+	uint32_t rA() const 	{	return (opcode >> 16) & 0x1f;		}
 	/// Register source B.
-	uint32_t rB() 	{	return (opcode >> 11) & 0x1f;		}
+	uint32_t rB() const 	{	return (opcode >> 11) & 0x1f;		}
 	/// Register destination.
-	uint32_t rD() 	{	return (opcode >> 21) & 0x1f;		}
+	uint32_t rD() const 	{	return (opcode >> 21) & 0x1f;		}
 	/// Register source.
-	uint32_t rS() 	{	return (opcode >> 21) & 0x1f;		}
+	uint32_t rS() const 	{	return (opcode >> 21) & 0x1f;		}
 
 	/// Floating point register source A.
-	uint32_t frA() 	{	return (opcode >> 16) & 0x1f;		}
+	uint32_t frA() const 	{	return (opcode >> 16) & 0x1f;		}
 	/// Floating point register source B.
-	uint32_t frB() 	{	return (opcode >> 11) & 0x1f;		}
+	uint32_t frB() const 	{	return (opcode >> 11) & 0x1f;		}
 	/// Floating point register source C.
-	uint32_t frC() 	{	return (opcode >> 6) & 0x1f;		}
+	uint32_t frC() const 	{	return (opcode >> 6) & 0x1f;		}
 	/// Floating point register source.
-	uint32_t frS() 	{	return (opcode >> 21) & 0x1f;		}
+	uint32_t frS() const 	{	return (opcode >> 21) & 0x1f;		}
 	/// Floating point register destination.
-	uint32_t frD() 	{	return (opcode >> 21) & 0x1f;		}
+	uint32_t frD() const 	{	return (opcode >> 21) & 0x1f;		}
 
 	/// Branch conditional options.
-	uint32_t bo() 	{	return (opcode >> 21) & 0x1f;		}
+	uint32_t bo() const 	{	return (opcode >> 21) & 0x1f;		}
 	/// Source condition register bit for branch conditionals.
-	uint32_t bi() 	{	return (opcode >> 16) & 0x1f;		}
+	uint32_t bi() const 	{	return (opcode >> 16) & 0x1f;		}
 	/// Branch displacement; provided as already sign extended.
-	int16_t bd()	{	return int16_t(opcode & 0xfffc);	}
+	int16_t bd() const		{	return int16_t(opcode & 0xfffc);	}
 
 	/// Specifies the first 1 bit of a 32/64-bit mask for rotate operations.
-	uint32_t mb()	{	return (opcode >> 6) & 0x1f;		}
+	uint32_t mb() const		{	return (opcode >> 6) & 0x1f;		}
 	/// Specifies the first 1 bit of a 32/64-bit mask for rotate operations.
-	uint32_t me()	{	return (opcode >> 1) & 0x1f;		}
+	uint32_t me() const		{	return (opcode >> 1) & 0x1f;		}
 
 	/// Condition register source bit A.
-	uint32_t crbA() {	return (opcode >> 16) & 0x1f;		}
+	uint32_t crbA() const	{	return (opcode >> 16) & 0x1f;		}
 	/// Condition register source bit B.
-	uint32_t crbB() {	return (opcode >> 11) & 0x1f;		}
+	uint32_t crbB() const	{	return (opcode >> 11) & 0x1f;		}
 	/// Condition register (or floating point status & condition register) destination bit.
-	uint32_t crbD() {	return (opcode >> 21) & 0x1f;		}
+	uint32_t crbD() const	{	return (opcode >> 21) & 0x1f;		}
 
 	/// Condition register (or floating point status & condition register) destination field.
-	uint32_t crfD() {	return (opcode >> 23) & 0x07;		}
+	uint32_t crfD() const	{	return (opcode >> 23) & 0x07;		}
 	/// Condition register (or floating point status & condition register) source field.
-	uint32_t crfS() {	return (opcode >> 18) & 0x07;		}
+	uint32_t crfS() const	{	return (opcode >> 18) & 0x07;		}
 
 	/// Mask identifying fields to be updated by mtcrf.
-	uint32_t crm()	{	return (opcode >> 12) & 0xff;		}
+	uint32_t crm() const	{	return (opcode >> 12) & 0xff;		}
 
 	/// Mask identifying fields to be updated by mtfsf.
-	uint32_t fm()	{	return (opcode >> 17) & 0xff;		}
+	uint32_t fm() const		{	return (opcode >> 17) & 0xff;		}
 
 	/// Specifies the number of bytes to move in an immediate string load or store.
-	uint32_t nb()	{	return (opcode >> 11) & 0x1f;		}
+	uint32_t nb() const		{	return (opcode >> 11) & 0x1f;		}
 
 	/// Specifies a shift amount.
 	/// TODO: possibly bit 30 is also used in 64-bit mode, find out.
-	uint32_t sh()	{	return (opcode >> 11) & 0x1f;		}
+	uint32_t sh() const		{	return (opcode >> 11) & 0x1f;		}
 
 	/// Specifies one of the 16 segment registers [32-bit only].
-	uint32_t sr()	{	return (opcode >> 16) & 0xf;		}
+	uint32_t sr() const		{	return (opcode >> 16) & 0xf;		}
 
 	/// A 24-bit signed number; provided as already sign extended.
-	int32_t li() {
+	int32_t li() const {
 		constexpr uint32_t extensions[2] = {
 			0x0000'0000,
 			0xfc00'0000
@@ -183,15 +183,15 @@ struct Instruction {
 	}
 
 	/// Absolute address bit; @c 0 or @c non-0.
-	uint32_t aa()	{	return opcode & 0x02;		}
+	uint32_t aa() const	{	return opcode & 0x02;		}
 	/// Link bit; @c 0 or @c non-0.
-	uint32_t lk()	{	return opcode & 0x01;		}
+	uint32_t lk() const	{	return opcode & 0x01;		}
 	/// Record bit; @c 0 or @c non-0.
-	uint32_t rc()	{	return opcode & 0x01;		}
+	uint32_t rc() const	{	return opcode & 0x01;		}
 	/// Whether to compare 32-bit or 64-bit numbers [for 64-bit implementations only]; @c 0 or @c non-0.
-	uint32_t l() 	{	return opcode & 0x200000;	}
+	uint32_t l() const	{	return opcode & 0x200000;	}
 	/// Enables setting of OV and SO in the XER; @c 0 or @c non-0.
-	uint32_t oe()	{	return opcode & 0x800;		}
+	uint32_t oe() const	{	return opcode & 0x800;		}
 };
 
 /*!
@@ -208,15 +208,15 @@ struct Decoder {
 	private:
 		Model model_;
 
-		bool is64bit() {
+		bool is64bit() const {
 			return model_ == Model::MPC620;
 		}
 
-		bool is32bit() {
+		bool is32bit() const {
 			return !is64bit();
 		}
 
-		bool is601() {
+		bool is601() const {
 			return model_ == Model::MPC601;
 		}
 };
