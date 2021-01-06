@@ -19,35 +19,79 @@ Decoder::Decoder(Model) {}
 Instruction Decoder::decode(const uint8_t *source, size_t length) {
 	const uint8_t *const end = source + length;
 
-#define MapPartial(value, op, lrg, fmt, phs)	\
-	case value:									\
-		operation_ = Operation::op;				\
-		large_operand_ = lrg;					\
-		format_ = Format::fmt;					\
-		phase_ = Phase::phs;					\
+	// MARK: - Prefixes (if present) and the opcode.
+
+/// Covers anything which is complete as soon as the opcode is encountered.
+#define MapComplete(value, op, src, dest, size)		\
+	case value:										\
+		operation_ = Operation::op;					\
+		source_ = Source::src;						\
+		destination_ = Source::dest;				\
+		phase_ = Phase::ReadyToPost;				\
+		operation_size_ = size;						\
 	break
 
-#define MapRegData(value, op, lrg, dest)		\
-	case value:									\
-		operation_ = Operation::op;				\
-		large_operand_ = lrg;					\
-		source_ = Source::Immediate;			\
-		destination_ = Source::dest;			\
-		phase_ = Phase::AwaitingOperands;		\
+/// Handles instructions of the form rr, kk and rr, jjkk, i.e. a destination register plus an operand.
+#define MapRegData(value, op, dest, size)					\
+	case value:												\
+		operation_ = Operation::op;							\
+		source_ = Source::Immediate;						\
+		destination_ = Source::dest;						\
+		phase_ = Phase::AwaitingDisplacementOrOperand;		\
+		operand_size_ = size;								\
 	break
 
-#define MapComplete(value, op, src, dest)		\
-	case value:									\
-		operation_ = Operation::op;				\
-		source_ = Source::src;					\
-		destination_ = Source::dest;			\
-		format_ = Format::Implied;				\
-		phase_ = Phase::ReadyToPost;			\
+/// Handles instructions of the form Ax, jjkk where the latter is implicitly an address.
+#define MapRegAddr(value, op, dest, op_size, addr_size)		\
+	case value:												\
+		operation_ = Operation::op;							\
+		destination_ = Source::dest;						\
+		source_ = Source::DirectAddress;					\
+		phase_ = Phase::AwaitingDisplacementOrOperand;		\
+		operand_size_ = addr_size;							\
+		operation_size_ = op_size;							\
+	break
+
+/// Handles instructions of the form jjkk, Ax where the former is implicitly an address.
+#define MapAddrReg(value, op, source, op_size, addr_size)	\
+	case value:												\
+		operation_ = Operation::op;							\
+		source_ = Source::source;							\
+		destination_ = Source::DirectAddress;				\
+		phase_ = Phase::AwaitingDisplacementOrOperand;		\
+		operand_size_ = addr_size;							\
+		operation_size_ = op_size;							\
+	break
+
+/// Covers both `mem/reg, reg` and `reg, mem/reg`.
+#define MapMemRegReg(value, op, format, size)		\
+	case value:										\
+		operation_ = Operation::op;					\
+		phase_ = Phase::ModRegRM;					\
+		modregrm_format_ = ModRegRMFormat::format;	\
+		operand_size_ = 0;							\
+		operation_size_ = size;						\
+	break
+
+/// Handles JO, JNO, JB, etc — jumps with a single byte displacement.
+#define MapJump(value, op)								\
+	case value:											\
+		operation_ = Operation::op;						\
+		phase_ = Phase::AwaitingDisplacementOrOperand;	\
+		operand_size_ = 1;								\
+	break
+
+/// Handles far CALL and far JMP — fixed four byte operand operations.
+#define MapFar(value, op)								\
+	case value:											\
+		operation_ = Operation::op;						\
+		phase_ = Phase::AwaitingDisplacementOrOperand;	\
+		operand_size_ = 4;								\
 	break
 
 	while(phase_ == Phase::Instruction && source != end) {
 		// Retain the instruction byte, in case additional decoding is deferred
-		// to the ModRM byte.
+		// to the ModRegRM byte.
 		instr_ = *source;
 		++source;
 		++consumed_;
@@ -59,57 +103,57 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 				return instruction;
 			}
 
-#define PartialBlock(start, operation)	\
-	MapPartial(start + 0x00, operation, false, MemReg_Reg, ModRM);			\
-	MapPartial(start + 0x01, operation, true, MemReg_Reg, ModRM);			\
-	MapPartial(start + 0x02, operation, false, Reg_MemReg, ModRM);			\
-	MapPartial(start + 0x03, operation, true, Reg_MemReg, ModRM);			\
-	MapRegData(start + 0x04, operation, false, AL);							\
-	MapRegData(start + 0x05, operation, true, AX);
+#define PartialBlock(start, operation)						\
+	MapMemRegReg(start + 0x00, operation, MemReg_Reg, 1);	\
+	MapMemRegReg(start + 0x01, operation, MemReg_Reg, 2);	\
+	MapMemRegReg(start + 0x02, operation, Reg_MemReg, 1);	\
+	MapMemRegReg(start + 0x03, operation, Reg_MemReg, 2);	\
+	MapRegData(start + 0x04, operation, AL, 1);				\
+	MapRegData(start + 0x05, operation, AX, 2);
 
 			PartialBlock(0x00, ADD);
-			MapComplete(0x06, PUSH, ES, None);
-			MapComplete(0x07, POP, ES, None);
+			MapComplete(0x06, PUSH, ES, None, 2);
+			MapComplete(0x07, POP, ES, None, 2);
 
 			PartialBlock(0x08, OR);
-			MapComplete(0x0e, PUSH, CS, None);
-			/* 0x0f: not used. */
+			MapComplete(0x0e, PUSH, CS, None, 2);
+			// 0x0f: not used.
 
 			PartialBlock(0x10, ADC);
-			MapComplete(0x16, PUSH, SS, None);
-			MapComplete(0x17, POP, SS, None);
+			MapComplete(0x16, PUSH, SS, None, 2);
+			MapComplete(0x17, POP, SS, None, 2);
 
 			PartialBlock(0x18, SBB);
-			MapComplete(0x1e, PUSH, DS, None);
-			MapComplete(0x1f, POP, DS, None);
+			MapComplete(0x1e, PUSH, DS, None, 2);
+			MapComplete(0x1f, POP, DS, None, 2);
 
 			PartialBlock(0x20, AND);
 			case 0x26:	segment_override_ = Source::ES;	break;
-			MapComplete(0x27, DAA, None, None);
+			MapComplete(0x27, DAA, None, None, 1);
 
 			PartialBlock(0x28, SUB);
 			case 0x2e:	segment_override_ = Source::CS;	break;
-			MapComplete(0x2f, DAS, None, None);
+			MapComplete(0x2f, DAS, None, None, 1);
 
 			PartialBlock(0x30, XOR);
 			case 0x36:	segment_override_ = Source::SS;	break;
-			MapComplete(0x37, AAA, None, None);
+			MapComplete(0x37, AAA, None, None, 1);
 
 			PartialBlock(0x38, CMP);
 			case 0x3e:	segment_override_ = Source::DS;	break;
-			MapComplete(0x3f, AAS, None, None);
+			MapComplete(0x3f, AAS, None, None, 1);
 
 #undef PartialBlock
 
 #define RegisterBlock(start, operation)	\
-	MapComplete(start + 0x00, operation, AX, AX);	\
-	MapComplete(start + 0x01, operation, CX, CX);	\
-	MapComplete(start + 0x02, operation, DX, DX);	\
-	MapComplete(start + 0x03, operation, BX, BX);	\
-	MapComplete(start + 0x04, operation, SP, SP);	\
-	MapComplete(start + 0x05, operation, BP, BP);	\
-	MapComplete(start + 0x06, operation, SI, SI);	\
-	MapComplete(start + 0x07, operation, DI, DI);	\
+	MapComplete(start + 0x00, operation, AX, AX, 2);	\
+	MapComplete(start + 0x01, operation, CX, CX, 2);	\
+	MapComplete(start + 0x02, operation, DX, DX, 2);	\
+	MapComplete(start + 0x03, operation, BX, BX, 2);	\
+	MapComplete(start + 0x04, operation, SP, SP, 2);	\
+	MapComplete(start + 0x05, operation, BP, BP, 2);	\
+	MapComplete(start + 0x06, operation, SI, SI, 2);	\
+	MapComplete(start + 0x07, operation, DI, DI, 2);	\
 
 			RegisterBlock(0x40, INC);
 			RegisterBlock(0x48, DEC);
@@ -118,9 +162,8 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 
 #undef RegisterBlock
 
-			/* 0x60–0x6f: not used. */
+			// 0x60–0x6f: not used.
 
-#define MapJump(value, operation)	MapPartial(value, operation, false, Immediate, AwaitingOperands);
 			MapJump(0x70, JO);
 			MapJump(0x71, JNO);
 			MapJump(0x72, JB);
@@ -137,68 +180,104 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			MapJump(0x7d, JNL);
 			MapJump(0x7e, JLE);
 			MapJump(0x7f, JNLE);
-#undef MapJump
 
 			// TODO:
 			//
 			//	0x80, 0x81, 0x82, 0x83, which all require more
-			//	input, from the ModRM byte.
+			//	input, from the ModRegRM byte.
 
-			MapPartial(0x84, TEST, false, MemReg_Reg, ModRM);
-			MapPartial(0x85, TEST, true, MemReg_Reg, ModRM);
-			MapPartial(0x86, XCHG, false, Reg_MemReg, ModRM);
-			MapPartial(0x87, XCHG, true, Reg_MemReg, ModRM);
-			MapPartial(0x88, MOV, false, MemReg_Reg, ModRM);
-			MapPartial(0x89, MOV, true, MemReg_Reg, ModRM);
-			MapPartial(0x8a, MOV, false, Reg_MemReg, ModRM);
-			MapPartial(0x8b, MOV, true, Reg_MemReg, ModRM);
-			/* 0x8c: not used. */
-			MapPartial(0x8d, LEA, true, Reg_Addr, ModRM);
-			MapPartial(0x8e, MOV, true, SegReg_MemReg, ModRM);
+			MapMemRegReg(0x84, TEST, MemReg_Reg, 1);
+			MapMemRegReg(0x85, TEST, MemReg_Reg, 2);
+			MapMemRegReg(0x86, XCHG, Reg_MemReg, 1);
+			MapMemRegReg(0x87, XCHG, Reg_MemReg, 2);
+			MapMemRegReg(0x88, MOV, MemReg_Reg, 1);
+			MapMemRegReg(0x89, MOV, MemReg_Reg, 2);
+			MapMemRegReg(0x8a, MOV, Reg_MemReg, 1);
+			MapMemRegReg(0x8b, MOV, Reg_MemReg, 2);
+			// 0x8c: not used.
+			MapMemRegReg(0x8d, LEA, Reg_MemReg, 2);
+//			MapMemRegReg(0x8e, MOV, SegReg_MemReg, 1);	// TODO: SegReg_MemReg
 
-			// TODO: 0x8f, which requires further selection from the ModRM byte.
+			// TODO: 0x8f, which requires further selection from the ModRegRM byte.
 
-			MapComplete(0x90, NOP, None, None);	// Or XCHG AX, AX?
-			MapComplete(0x91, XCHG, AX, CX);
-			MapComplete(0x92, XCHG, AX, DX);
-			MapComplete(0x93, XCHG, AX, BX);
-			MapComplete(0x94, XCHG, AX, SP);
-			MapComplete(0x95, XCHG, AX, BP);
-			MapComplete(0x96, XCHG, AX, SI);
-			MapComplete(0x97, XCHG, AX, DI);
+			MapComplete(0x90, NOP, None, None, 0);	// Or XCHG AX, AX?
+			MapComplete(0x91, XCHG, AX, CX, 2);
+			MapComplete(0x92, XCHG, AX, DX, 2);
+			MapComplete(0x93, XCHG, AX, BX, 2);
+			MapComplete(0x94, XCHG, AX, SP, 2);
+			MapComplete(0x95, XCHG, AX, BP, 2);
+			MapComplete(0x96, XCHG, AX, SI, 2);
+			MapComplete(0x97, XCHG, AX, DI, 2);
 
-			MapComplete(0x98, CBW, None, None);
-			MapComplete(0x99, CWD, None, None);
-			MapPartial(0x9a, CALL, true, Immediate, AwaitingOperands);
-			MapComplete(0x9b, WAIT, None, None);
-			MapComplete(0x9c, PUSHF, None, None);
-			MapComplete(0x9d, POPF, None, None);
-			MapComplete(0x9e, SAHF, None, None);
-			MapComplete(0x9f, LAHF, None, None);
+			MapComplete(0x98, CBW, None, None, 1);
+			MapComplete(0x99, CWD, None, None, 2);
+			MapFar(0x9a, CALL);
+			MapComplete(0x9b, WAIT, None, None, 0);
+			MapComplete(0x9c, PUSHF, None, None, 2);
+			MapComplete(0x9d, POPF, None, None, 2);
+			MapComplete(0x9e, SAHF, None, None, 1);
+			MapComplete(0x9f, LAHF, None, None, 1);
 
-			MapPartial(0xa0, MOV, false, Reg_Addr, AwaitingOperands);
+			MapRegAddr(0xa0, MOV, AL, 1, 1);	MapRegAddr(0xa1, MOV, AX, 2, 2);
+			MapAddrReg(0xa2, MOV, AL, 1, 1);	MapAddrReg(0xa3, MOV, AX, 2, 2);
 
-			MapRegData(0xb0, MOV, false, AL);	MapRegData(0xb1, MOV, false, CL);
-			MapRegData(0xb2, MOV, false, DL);	MapRegData(0xb3, MOV, false, BL);
-			MapRegData(0xb4, MOV, false, AH);	MapRegData(0xb5, MOV, false, CH);
-			MapRegData(0xb6, MOV, false, DH);	MapRegData(0xb7, MOV, false, BH);
-			MapRegData(0xb8, MOV, true, AX);	MapRegData(0xb9, MOV, true, CX);
-			MapRegData(0xba, MOV, true, DX);	MapRegData(0xbb, MOV, true, BX);
-			MapRegData(0xbc, MOV, true, SP);	MapRegData(0xbd, MOV, true, BP);
-			MapRegData(0xbe, MOV, true, SI);	MapRegData(0xbf, MOV, true, DI);
+			MapComplete(0xa4, MOVS, None, None, 1);
+			MapComplete(0xa5, MOVS, None, None, 2);
+			MapComplete(0xa6, CMPS, None, None, 1);
+			MapComplete(0xa7, CMPS, None, None, 2);
 
-			MapPartial(0xc2, RETIntra, true, Immediate, AwaitingOperands);
-			MapComplete(0xc3, RETIntra, None, None);
-			MapPartial(0xca, RETInter, true, Immediate, AwaitingOperands);
-			MapComplete(0xcb, RETInter, None, None);
+			MapComplete(0xaa, STOS, None, None, 1);
+			MapComplete(0xab, STOS, None, None, 2);
+			MapComplete(0xac, LODS, None, None, 1);
+			MapComplete(0xad, LODS, None, None, 2);
+			MapComplete(0xae, SCAS, None, None, 1);
+			MapComplete(0xaf, SCAS, None, None, 2);
 
-			MapPartial(0xd4, AAM, false, Immediate, AwaitingOperands);
-			MapPartial(0xd5, AAD, false, Immediate, AwaitingOperands);
+			MapRegData(0xb0, MOV, AL, 1);	MapRegData(0xb1, MOV, CL, 1);
+			MapRegData(0xb2, MOV, DL, 1);	MapRegData(0xb3, MOV, BL, 1);
+			MapRegData(0xb4, MOV, AH, 1);	MapRegData(0xb5, MOV, CH, 1);
+			MapRegData(0xb6, MOV, DH, 1);	MapRegData(0xb7, MOV, BH, 1);
+			MapRegData(0xb8, MOV, AX, 2);	MapRegData(0xb9, MOV, CX, 2);
+			MapRegData(0xba, MOV, DX, 2);	MapRegData(0xbb, MOV, BX, 2);
+			MapRegData(0xbc, MOV, SP, 2);	MapRegData(0xbd, MOV, BP, 2);
+			MapRegData(0xbe, MOV, SI, 2);	MapRegData(0xbf, MOV, DI, 2);
 
-//			MapPartial(0xe4, IN, false, Immediate, AwaitingOperands);
+			MapRegData(0xc2, RETIntra, None, 2);
+			MapComplete(0xc3, RETIntra, None, None, 2);
 
-			MapComplete(0xec, IN, DX, AL);		MapComplete(0xed, IN, DX, AX);
-			MapComplete(0xee, OUT, AL, DX);		MapComplete(0xef, OUT, AX, DX);
+			MapMemRegReg(0xc4, LES, Reg_MemReg, 4);
+			MapMemRegReg(0xc5, LDS, Reg_MemReg, 4);
+
+			MapRegData(0xca, RETInter, None, 2);
+			MapComplete(0xcb, RETInter, None, None, 4);
+
+			MapComplete(0xcf, IRET, None, None, 0);
+
+			MapRegData(0xd4, AAM, None, 1);
+			MapRegData(0xd5, AAD, None, 1);
+
+			MapMemRegReg(0xd8, ESC, MemReg_Reg, 0);
+			MapMemRegReg(0xd9, ESC, MemReg_Reg, 0);
+			MapMemRegReg(0xda, ESC, MemReg_Reg, 0);
+			MapMemRegReg(0xdb, ESC, MemReg_Reg, 0);
+			MapMemRegReg(0xdc, ESC, MemReg_Reg, 0);
+			MapMemRegReg(0xdd, ESC, MemReg_Reg, 0);
+			MapMemRegReg(0xde, ESC, MemReg_Reg, 0);
+			MapMemRegReg(0xdf, ESC, MemReg_Reg, 0);
+
+			MapRegAddr(0xe4, IN, AL, 1, 1);		MapRegAddr(0xe5, IN, AX, 2, 1);
+			MapAddrReg(0xe6, OUT, AL, 1, 1);	MapAddrReg(0xe7, OUT, AX, 2, 1);
+
+			MapRegData(0xe8, CALL, None, 2);
+			MapRegData(0xe9, JMP, None, 2);
+
+			MapFar(0xea, JMP);
+
+			MapComplete(0xec, IN, DX, AL, 1);	MapComplete(0xed, IN, DX, AX, 1);
+			MapComplete(0xee, OUT, AL, DX, 1);	MapComplete(0xef, OUT, AX, DX, 1);
+
+			MapComplete(0xf9, STC, None, None, 1);
+			MapComplete(0xfd, STD, None, None, 1);
 
 			// Other prefix bytes.
 			case 0xf0:	lock_ = true;						break;
@@ -209,17 +288,22 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 
 #undef MapInstr
 
-	if(phase_ == Phase::ModRM && source != end) {
+	// MARK: - ModRegRM byte, if any.
+
+	if(phase_ == Phase::ModRegRM && source != end) {
 		const uint8_t mod = *source >> 6;		// i.e. mode.
 		const uint8_t reg = (*source >> 3) & 7;	// i.e. register.
 		const uint8_t rm = *source & 7;			// i.e. register/memory.
+		++source;
+		++consumed_;
 
-		switch(format_) {
-			case Format::Reg_MemReg:
-			case Format::MemReg_Reg: {
+		switch(modregrm_format_) {
+			case ModRegRMFormat::Reg_MemReg:
+			case ModRegRMFormat::MemReg_Reg: {
 				Source memreg;
 
-				constexpr Source reg_table[2][8] = {
+				constexpr Source reg_table[3][8] = {
+					{},
 					{
 						Source::AL,	Source::CL,	Source::DL,	Source::BL,
 						Source::AH,	Source::CH,	Source::DH,	Source::BH,
@@ -231,7 +315,6 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 
 				switch(mod) {
 					case 0: {
-						add_offset_ = false;
 						constexpr Source rm_table[8] = {
 							Source::IndBXPlusSI,	Source::IndBXPlusDI,
 							Source::IndBPPlusSI,	Source::IndBPPlusDI,
@@ -242,8 +325,6 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 					} break;
 
 					default: {
-						add_offset_ = true;
-						large_offset_ = (mod == 2);
 						constexpr Source rm_table[8] = {
 							Source::IndBXPlusSI,	Source::IndBXPlusDI,
 							Source::IndBPPlusSI,	Source::IndBPPlusDI,
@@ -251,28 +332,35 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 							Source::IndBP,			Source::IndBX,
 						};
 						memreg = rm_table[rm];
+
+						displacement_size_ = 1 + (mod == 2);
 					} break;
 
 					// Other operand is just a register.
-					case 3:	memreg = reg_table[large_operand_][rm];	break;
+					case 3:
+						memreg = reg_table[operation_size_][rm];
+					break;
 				}
 
-				// These will be switched over at ReadyToPost if the format_ requires it.
-				source_ = reg_table[large_operand_][reg];
-				destination_ = memreg;
-				phase_ = (add_offset_ || memreg == Source::DirectAddress) ? Phase::AwaitingOperands : Phase::ReadyToPost;
+				if(modregrm_format_ == ModRegRMFormat::Reg_MemReg) {
+					source_ = memreg;
+					destination_ = reg_table[operation_size_][reg];
+				} else {
+					source_ = reg_table[operation_size_][reg];
+					destination_ = memreg;
+				}
+				phase_ = Phase::AwaitingDisplacementOrOperand;
 			} break;
 
 			default: assert(false);
 		}
-
-		++source;
-		++consumed_;
 	}
 
-	if(phase_ == Phase::AwaitingOperands && source != end) {
+	// MARK: - Displacement and operand.
+
+	if(phase_ == Phase::AwaitingDisplacementOrOperand && source != end) {
 		// TODO: calculate number of expected operands.
-		const int required_bytes = large_operand_ ? 2 : 1;
+		const int required_bytes = displacement_size_ + operand_size_;
 
 		const int outstanding_bytes = required_bytes - operand_bytes_;
 		const int bytes_to_consume = std::min(int(end - source), outstanding_bytes);
@@ -287,38 +375,15 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 		}
 	}
 
+	// MARK: - Check for completion.
+
 	if(phase_ == Phase::ReadyToPost) {
-		Instruction result;
-		switch(format_) {
-			case Format::Reg_Data:
-				result = Instruction(operation_, large_operand_ ? Size::Word : Size::Byte, source_, destination_, consumed_);
-			break;
-
-			case Format::Immediate:
-				result = Instruction(operation_, Size::Byte, Source::Immediate, Source::None, consumed_);
-			break;
-
-			case Format::Implied:
-				result = Instruction(operation_, large_operand_ ? Size::Word : Size::Byte, source_, destination_, consumed_);
-			break;
-
-			case Format::MemReg_Reg:
-				result = Instruction(operation_, large_operand_ ? Size::Word : Size::Byte, source_, destination_, consumed_);
-			break;
-
-			case Format::Reg_MemReg:
-				result = Instruction(operation_, large_operand_ ? Size::Word : Size::Byte, destination_, source_, consumed_);
-			break;
-
-			default: assert(false);
-		}
-
-		// Reset parser.
+		Instruction result(operation_, Size(operation_size_), source_, destination_, consumed_);
 		reset_parsing();
 		phase_ = Phase::Instruction;
-
 		return result;
 	}
 
+	// i.e. not done yet.
 	return Instruction();
 }

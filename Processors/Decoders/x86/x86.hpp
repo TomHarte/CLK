@@ -40,6 +40,7 @@ enum class Operation: uint8_t {
 	POP, POPF, PUSH, PUSHF, RCL, RCR, REP, ROL, ROR, SAHF,
 	SAR, SBB, SCAS, SHL, SHR, STC, STD, STI, STOS, SUB, TEST,
 	WAIT, XCHG, XLAT, XOR,
+	LES,
 
 	RETInter,
 	RETIntra,
@@ -77,6 +78,10 @@ enum class Source: uint8_t {
 	Immediate
 };
 
+enum class Repetition: uint8_t {
+	None, RepE, RepNE
+};
+
 class Instruction {
 	public:
 		Operation operation = Operation::Invalid;
@@ -89,6 +94,10 @@ class Instruction {
 			return size_;
 		}
 
+		bool lock() const {
+			return false;
+		}
+
 		Instruction() {}
 		Instruction(int size) : size_(size) {}
 		Instruction(Operation operation, Size operand_size, Source source, Source destination, int size) :
@@ -96,6 +105,8 @@ class Instruction {
 
 	private:
 		int size_ = -1;
+		int16_t displacement_ = 0;
+		int16_t operand_ = 0;
 };
 
 /*!
@@ -120,66 +131,51 @@ struct Decoder {
 		enum class Phase {
 			/// Captures all prefixes and continues until an instruction byte is encountered.
 			Instruction,
-			/// Receives a ModRM byte and either populates the source_ and dest_ fields appropriately
+			/// Receives a ModRegRM byte and either populates the source_ and dest_ fields appropriately
 			/// or completes decoding of the instruction, as per the instruction format.
-			ModRM,
-			/// Waits for sufficiently many bytes to pass for all associated operands to be captured.
-			AwaitingOperands,
+			ModRegRM,
+			/// Waits for sufficiently many bytes to pass for the required displacement and operand to be captured.
+			/// Cf. displacement_size_ and operand_size_.
+			AwaitingDisplacementOrOperand,
 			/// Forms and returns an Instruction, and resets parsing state.
 			ReadyToPost
 		} phase_ = Phase::Instruction;
 
-		/// During the ModRM phase, format dictates interpretation of the ModRM byte.
+		/// During the ModRegRM phase, format dictates interpretation of the ModRegRM byte.
 		///
 		/// During the ReadyToPost phase, format determines how transiently-recorded fields
 		/// are packaged into an Instruction.
-		enum class Format: uint8_t {
-			Implied,
-
-			// In both cases: pass the ModRM for mode, register and register/memory
-			// flags and populate the source_ and destination_ fields appropriate.
-			// During the ModRM phase they'll be populated as source_ = register,
-			// destination_ = register/memory; the ReadyToPost phase should switch
-			// those around as necessary.
+		enum class ModRegRMFormat: uint8_t {
+			// Parse the ModRegRM for mode, register and register/memory flags
+			// and populate the source_ and destination_ fields appropriate.
 			MemReg_Reg,
 			Reg_MemReg,
 
-			Reg_Data,
-
-			//
-			Reg_Addr,
-			Addr_Reg,
-
-			SegReg_MemReg,
-
-			Immediate,
-		} format_ = Format::MemReg_Reg;
-		// TODO: figure out which Formats can be folded together,
-		// and which are improperly elided.
+		} modregrm_format_ = ModRegRMFormat::MemReg_Reg;
 
 		// Ephemeral decoding state.
 		Operation operation_ = Operation::Invalid;
-		bool large_operand_ = false;
+		uint8_t instr_ = 0x00;	// TODO: is this desired, versus loading more context into ModRegRMFormat?
+		int consumed_ = 0, operand_bytes_ = 0;
+
+		// Source and destination locations.
 		Source source_ = Source::None;
 		Source destination_ = Source::None;
-		uint8_t instr_ = 0x00;
-		bool add_offset_ = false;
-		bool large_offset_ = false;
+
+		// Facts about the instruction.
+		int displacement_size_ = 0;		// i.e. size of in-stream displacement, if any.
+		int operand_size_ = 0;			// i.e. size of in-stream operand, if any.
+		int operation_size_ = 0;		// i.e. size of data manipulated by the operation.
 
 		// Prefix capture fields.
-		enum class Repetition: uint8_t {
-			None, RepE, RepNE
-		} repetition_ = Repetition::None;
+		Repetition repetition_ = Repetition::None;
 		bool lock_ = false;
 		Source segment_override_ = Source::None;
-
-		// Size capture.
-		int consumed_ = 0;
-		int operand_bytes_ = 0;
 
 		/// Resets size capture and all fields with default values.
 		void reset_parsing() {
 			consumed_ = operand_bytes_ = 0;
+			displacement_size_ = operand_size_ = 0;
 			lock_ = false;
 			segment_override_ = Source::None;
 			repetition_ = Repetition::None;
