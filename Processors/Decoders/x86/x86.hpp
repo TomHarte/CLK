@@ -146,10 +146,15 @@ struct Decoder {
 		/// During the ReadyToPost phase, format determines how transiently-recorded fields
 		/// are packaged into an Instruction.
 		enum class ModRegRMFormat: uint8_t {
-			// Parse the ModRegRM for mode, register and register/memory flags
+			// Parse the ModRegRM for mode, register and register/memory fields
 			// and populate the source_ and destination_ fields appropriate.
 			MemReg_Reg,
 			Reg_MemReg,
+
+			// Parse for mode and register/memory fields, populating both
+			// source_ and destination_ fields with the result. Use the 'register'
+			// field to pick an operation from the TEST/NOT/NEG/MUL/IMUL/DIV/IDIV group.
+			MemRegTEST_to_IDIV,
 
 		} modregrm_format_ = ModRegRMFormat::MemReg_Reg;
 

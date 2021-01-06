@@ -276,6 +276,9 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			MapComplete(0xec, IN, DX, AL, 1);	MapComplete(0xed, IN, DX, AX, 1);
 			MapComplete(0xee, OUT, AL, DX, 1);	MapComplete(0xef, OUT, AX, DX, 1);
 
+			MapMemRegReg(0xf6, Invalid, MemRegTEST_to_IDIV, 1);
+			MapMemRegReg(0xf7, Invalid, MemRegTEST_to_IDIV, 2);
+
 			MapComplete(0xf9, STC, None, None, 1);
 			MapComplete(0xfd, STD, None, None, 1);
 
@@ -297,51 +300,49 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 		++source;
 		++consumed_;
 
+		Source memreg;
+		constexpr Source reg_table[3][8] = {
+			{},
+			{
+				Source::AL,	Source::CL,	Source::DL,	Source::BL,
+				Source::AH,	Source::CH,	Source::DH,	Source::BH,
+			}, {
+				Source::AX,	Source::CX,	Source::DX,	Source::BX,
+				Source::SP,	Source::BP,	Source::SI,	Source::DI,
+			}
+		};
+		switch(mod) {
+			case 0: {
+				constexpr Source rm_table[8] = {
+					Source::IndBXPlusSI,	Source::IndBXPlusDI,
+					Source::IndBPPlusSI,	Source::IndBPPlusDI,
+					Source::IndSI,			Source::IndDI,
+					Source::DirectAddress,	Source::IndBX,
+				};
+				memreg = rm_table[rm];
+			} break;
+
+			default: {
+				constexpr Source rm_table[8] = {
+					Source::IndBXPlusSI,	Source::IndBXPlusDI,
+					Source::IndBPPlusSI,	Source::IndBPPlusDI,
+					Source::IndSI,			Source::IndDI,
+					Source::IndBP,			Source::IndBX,
+				};
+				memreg = rm_table[rm];
+
+				displacement_size_ = 1 + (mod == 2);
+			} break;
+
+			// Other operand is just a register.
+			case 3:
+				memreg = reg_table[operation_size_][rm];
+			break;
+		}
+
 		switch(modregrm_format_) {
 			case ModRegRMFormat::Reg_MemReg:
 			case ModRegRMFormat::MemReg_Reg: {
-				Source memreg;
-
-				constexpr Source reg_table[3][8] = {
-					{},
-					{
-						Source::AL,	Source::CL,	Source::DL,	Source::BL,
-						Source::AH,	Source::CH,	Source::DH,	Source::BH,
-					}, {
-						Source::AX,	Source::CX,	Source::DX,	Source::BX,
-						Source::SP,	Source::BP,	Source::SI,	Source::DI,
-					}
-				};
-
-				switch(mod) {
-					case 0: {
-						constexpr Source rm_table[8] = {
-							Source::IndBXPlusSI,	Source::IndBXPlusDI,
-							Source::IndBPPlusSI,	Source::IndBPPlusDI,
-							Source::IndSI,			Source::IndDI,
-							Source::DirectAddress,	Source::IndBX,
-						};
-						memreg = rm_table[rm];
-					} break;
-
-					default: {
-						constexpr Source rm_table[8] = {
-							Source::IndBXPlusSI,	Source::IndBXPlusDI,
-							Source::IndBPPlusSI,	Source::IndBPPlusDI,
-							Source::IndSI,			Source::IndDI,
-							Source::IndBP,			Source::IndBX,
-						};
-						memreg = rm_table[rm];
-
-						displacement_size_ = 1 + (mod == 2);
-					} break;
-
-					// Other operand is just a register.
-					case 3:
-						memreg = reg_table[operation_size_][rm];
-					break;
-				}
-
 				if(modregrm_format_ == ModRegRMFormat::Reg_MemReg) {
 					source_ = memreg;
 					destination_ = reg_table[operation_size_][reg];
@@ -349,11 +350,30 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 					source_ = reg_table[operation_size_][reg];
 					destination_ = memreg;
 				}
-				phase_ = Phase::AwaitingDisplacementOrOperand;
 			} break;
+
+			case ModRegRMFormat::MemRegTEST_to_IDIV:
+				source_ = destination_ = memreg;
+
+				switch(reg) {
+					default:
+						reset_parsing();
+					return Instruction();
+
+					case 0: 	operation_ = Operation::TEST;	break;
+					case 2: 	operation_ = Operation::NOT;	break;
+					case 3: 	operation_ = Operation::NEG;	break;
+					case 4: 	operation_ = Operation::MUL;	break;
+					case 5: 	operation_ = Operation::IMUL;	break;
+					case 6: 	operation_ = Operation::DIV;	break;
+					case 7: 	operation_ = Operation::IDIV;	break;
+				}
+			break;
 
 			default: assert(false);
 		}
+
+		phase_ = Phase::AwaitingDisplacementOrOperand;
 	}
 
 	// MARK: - Displacement and operand.
