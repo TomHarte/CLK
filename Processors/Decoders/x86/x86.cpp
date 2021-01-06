@@ -225,7 +225,8 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			MapComplete(0xa5, MOVS, None, None, 2);
 			MapComplete(0xa6, CMPS, None, None, 1);
 			MapComplete(0xa7, CMPS, None, None, 2);
-
+			MapRegData(0xa8, TEST, AL, 1);
+			MapRegData(0xa9, TEST, AX, 2);
 			MapComplete(0xaa, STOS, None, None, 1);
 			MapComplete(0xab, STOS, None, None, 2);
 			MapComplete(0xac, LODS, None, None, 1);
@@ -244,17 +245,21 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 
 			MapRegData(0xc2, RETIntra, None, 2);
 			MapComplete(0xc3, RETIntra, None, None, 2);
-
 			MapMemRegReg(0xc4, LES, Reg_MemReg, 4);
 			MapMemRegReg(0xc5, LDS, Reg_MemReg, 4);
 
 			MapRegData(0xca, RETInter, None, 2);
 			MapComplete(0xcb, RETInter, None, None, 4);
 
+			MapComplete(0xcc, INT3, None, None, 0);
+			MapRegData(0xcd, INT, None, 1);
+			MapComplete(0xce, INTO, None, None, 0);
 			MapComplete(0xcf, IRET, None, None, 0);
 
 			MapRegData(0xd4, AAM, None, 1);
 			MapRegData(0xd5, AAD, None, 1);
+
+			MapComplete(0xd7, XLAT, None, None, 1);
 
 			MapMemRegReg(0xd8, ESC, MemReg_Reg, 0);
 			MapMemRegReg(0xd9, ESC, MemReg_Reg, 0);
@@ -265,22 +270,43 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			MapMemRegReg(0xde, ESC, MemReg_Reg, 0);
 			MapMemRegReg(0xdf, ESC, MemReg_Reg, 0);
 
+			MapJump(0xe0, LOOPNE);	MapJump(0xe1, LOOPE);
+			MapJump(0xe2, LOOP);	MapJump(0xe3, JPCX);
+
 			MapRegAddr(0xe4, IN, AL, 1, 1);		MapRegAddr(0xe5, IN, AX, 2, 1);
 			MapAddrReg(0xe6, OUT, AL, 1, 1);	MapAddrReg(0xe7, OUT, AX, 2, 1);
 
 			MapRegData(0xe8, CALL, None, 2);
 			MapRegData(0xe9, JMP, None, 2);
-
 			MapFar(0xea, JMP);
+			MapJump(0xeb, JMP);
 
 			MapComplete(0xec, IN, DX, AL, 1);	MapComplete(0xed, IN, DX, AX, 1);
 			MapComplete(0xee, OUT, AL, DX, 1);	MapComplete(0xef, OUT, AX, DX, 1);
 
+			MapComplete(0xf4, HLT, None, None, 1);
+			MapComplete(0xf5, CMC, None, None, 1);
 			MapMemRegReg(0xf6, Invalid, MemRegTEST_to_IDIV, 1);
 			MapMemRegReg(0xf7, Invalid, MemRegTEST_to_IDIV, 2);
 
+			MapComplete(0xf8, CLC, None, None, 1);
 			MapComplete(0xf9, STC, None, None, 1);
+			MapComplete(0xfa, CLI, None, None, 1);
+			MapComplete(0xfb, STI, None, None, 1);
+			MapComplete(0xfc, CLD, None, None, 1);
 			MapComplete(0xfd, STD, None, None, 1);
+
+			/*
+				Unimplemented (but should be):
+
+					0x8e, 0x8f,
+					0xc6, 0xc7,
+					0xd0, 0xd1, 0xd2, 0xd3,
+					0xfe, 0xff
+
+				[and consider which others are unused but seem to be
+				known to consume a second byte?]
+			*/
 
 			// Other prefix bytes.
 			case 0xf0:	lock_ = true;						break;

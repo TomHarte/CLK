@@ -25,7 +25,7 @@ enum class Operation: uint8_t {
 
 	AAA, AAD, AAM, AAS, ADC, ADD, AND, CALL, CBW, CLC, CLD, CLI, CMC,
 	CMP, CMPS, CWD, DAA, DAS, DEC, DIV, ESC, HLT, IDIV, IMUL, IN,
-	INC, INT, INTO, IRET,
+	INC, INT, INT3, INTO, IRET,
 	JO, JNO,
 	JB, JNB,
 	JE, JNE,
@@ -40,7 +40,7 @@ enum class Operation: uint8_t {
 	POP, POPF, PUSH, PUSHF, RCL, RCR, REP, ROL, ROR, SAHF,
 	SAR, SBB, SCAS, SHL, SHR, STC, STD, STI, STOS, SUB, TEST,
 	WAIT, XCHG, XLAT, XOR,
-	LES,
+	LES, LOOP, JPCX,
 
 	RETInter,
 	RETIntra,
