@@ -197,8 +197,7 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			// 0x8c: not used.
 			MapMemRegReg(0x8d, LEA, Reg_MemReg, 2);
 //			MapMemRegReg(0x8e, MOV, SegReg_MemReg, 1);	// TODO: SegReg_MemReg
-
-			// TODO: 0x8f, which requires further selection from the ModRegRM byte.
+			MapMemRegReg(0x8f, POP, MemRegPOP, 2);
 
 			MapComplete(0x90, NOP, None, None, 0);	// Or XCHG AX, AX?
 			MapComplete(0x91, XCHG, AX, CX, 2);
@@ -243,13 +242,15 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			MapRegData(0xbc, MOV, SP, 2);	MapRegData(0xbd, MOV, BP, 2);
 			MapRegData(0xbe, MOV, SI, 2);	MapRegData(0xbf, MOV, DI, 2);
 
-			MapRegData(0xc2, RETIntra, None, 2);
-			MapComplete(0xc3, RETIntra, None, None, 2);
+			MapRegData(0xc2, RETN, None, 2);
+			MapComplete(0xc3, RETN, None, None, 2);
 			MapMemRegReg(0xc4, LES, Reg_MemReg, 4);
 			MapMemRegReg(0xc5, LDS, Reg_MemReg, 4);
+			MapMemRegReg(0xc6, MOV, MemRegMOV, 1);
+			MapMemRegReg(0xc7, MOV, MemRegMOV, 2);
 
-			MapRegData(0xca, RETInter, None, 2);
-			MapComplete(0xcb, RETInter, None, None, 4);
+			MapRegData(0xca, RETF, None, 2);
+			MapComplete(0xcb, RETF, None, None, 4);
 
 			MapComplete(0xcc, INT3, None, None, 0);
 			MapRegData(0xcd, INT, None, 1);
@@ -299,8 +300,7 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			/*
 				Unimplemented (but should be):
 
-					0x8e, 0x8f,
-					0xc6, 0xc7,
+					0x8e,
 					0xd0, 0xd1, 0xd2, 0xd3,
 					0xfe, 0xff
 
@@ -384,7 +384,7 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 				switch(reg) {
 					default:
 						reset_parsing();
-					return Instruction();
+					return Instruction(consumed_);
 
 					case 0: 	operation_ = Operation::TEST;	break;
 					case 2: 	operation_ = Operation::NOT;	break;
@@ -394,6 +394,21 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 					case 6: 	operation_ = Operation::DIV;	break;
 					case 7: 	operation_ = Operation::IDIV;	break;
 				}
+			break;
+
+			case ModRegRMFormat::MemRegPOP:
+				source_ = destination_ = memreg;
+
+				if(reg != 0) {
+					reset_parsing();
+					return Instruction(consumed_);
+				}
+			break;
+
+			case ModRegRMFormat::MemRegMOV:
+				source_ = Source::Immediate;
+				destination_ = memreg;
+				operand_size_ = operation_size_;
 			break;
 
 			default: assert(false);

@@ -23,6 +23,7 @@ enum class Model {
 enum class Operation: uint8_t {
 	Invalid,
 
+	/// ASCII adjust for addition;
 	AAA, AAD, AAM, AAS, ADC, ADD, AND, CALL, CBW, CLC, CLD, CLI, CMC,
 	CMP, CMPS, CWD, DAA, DAS, DEC, DIV, ESC, HLT, IDIV, IMUL, IN,
 	INC, INT, INT3, INTO, IRET,
@@ -42,8 +43,8 @@ enum class Operation: uint8_t {
 	WAIT, XCHG, XLAT, XOR,
 	LES, LOOP, JPCX,
 
-	RETInter,
-	RETIntra,
+	RETF,
+	RETN,
 };
 
 enum class Size: uint8_t {
@@ -155,6 +156,16 @@ struct Decoder {
 			// source_ and destination_ fields with the result. Use the 'register'
 			// field to pick an operation from the TEST/NOT/NEG/MUL/IMUL/DIV/IDIV group.
 			MemRegTEST_to_IDIV,
+
+			// Parse for mode and register/memory fields, populating both
+			// source_ and destination_ fields with the result. Use the 'register'
+			// field to check for the POP operation.
+			MemRegPOP,
+
+			// Parse for mode and register/memory fields, populating both
+			// the destination_ field with the result and setting source_ to Immediate.
+			// Use the 'register' field to check for the MOV operation.
+			MemRegMOV,
 
 		} modregrm_format_ = ModRegRMFormat::MemReg_Reg;
 
