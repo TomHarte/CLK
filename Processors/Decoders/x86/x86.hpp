@@ -41,7 +41,7 @@ enum class Operation: uint8_t {
 	CALLF,
 	/// Displacement call; followed by a 16-bit operand providing a call offset.
 	CALLD,
-	/* TODO: other CALLs */
+	CALLN,
 	/// Convert byte into word; source will be AL, destination will be AH.
 	CBW,
 	/// Clear carry flag; no source or destination provided.
@@ -68,7 +68,9 @@ enum class Operation: uint8_t {
 	INC, INT, INT3, INTO, IRET,
 	JO,	JNO,	JB, JNB,	JE, JNE,	JBE, JNBE,
 	JS, JNS,	JP, JNP,	JL, JNL,	JLE, JNLE,
-	JMP, JCXZ,
+	JMPN,
+	JMPF,
+	JCXZ,
 	LAHF, LDS, LEA,
 	LODS, LOOPE, LOOPNE, MOV, MOVS, MUL, NEG, NOP, NOT, OR, OUT,
 	POP, POPF, PUSH, PUSHF, RCL, RCR, REP, ROL, ROR, SAHF,
@@ -210,6 +212,16 @@ struct Decoder {
 			// register based on the reg field.
 			SegReg,
 
+			// Parse for mode and register/memory fields, populating the
+			// source_ and destination_ fields with the result. Uses the
+			// 'register' field to pick INC or DEC.
+			MemRegINC_DEC,
+
+			// Parse for mode and register/memory fields, populating the
+			// source_ and destination_ fields with the result. Uses the
+			// 'register' field to pick from INC/DEC/CALL/JMP/PUSH, altering
+			// the source to ::Immediate and setting an operand size if necessary.
+			MemRegINC_to_PUSH,
 		} modregrm_format_ = ModRegRMFormat::MemReg_Reg;
 
 		// Ephemeral decoding state.

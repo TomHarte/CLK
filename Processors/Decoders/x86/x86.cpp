@@ -285,9 +285,9 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			case 0xe7: AddrReg(OUT, AX, 2, 1);	break;
 
 			case 0xe8: RegData(CALLD, None, 2);	break;
-			case 0xe9: RegData(JMP, None, 2);	break;
-			case 0xea: Far(JMP);				break;
-			case 0xeb: Jump(JMP);				break;
+			case 0xe9: RegData(JMPN, None, 2);	break;
+			case 0xea: Far(JMPF);				break;
+			case 0xeb: Jump(JMPN);				break;
 
 			case 0xec: Complete(IN, DX, AL, 1);		break;
 			case 0xed: Complete(IN, DX, AX, 1);		break;
@@ -306,14 +306,8 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			case 0xfc: Complete(CLD, None, None, 1);	break;
 			case 0xfd: Complete(STD, None, None, 1);	break;
 
-			/*
-				Unimplemented (but should be):
-
-					0xfe, 0xff
-
-				[and consider which others are unused but seem to be
-				known to consume a second byte?]
-			*/
+			case 0xfe: MemRegReg(Invalid, MemRegINC_DEC, 1);		break;
+			case 0xff: MemRegReg(Invalid, MemRegINC_to_PUSH, 1);	break;
 
 			// Other prefix bytes.
 			case 0xf0:	lock_ = true;						break;
@@ -441,6 +435,45 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 					case 5: 	operation_ = Operation::SAL;	break;
 					case 6: 	operation_ = Operation::SHR;	break;
 					case 7: 	operation_ = Operation::SAR;	break;
+				}
+			break;
+
+			case ModRegRMFormat::MemRegINC_DEC:
+				source_ = destination_ = memreg;
+
+				switch(reg) {
+					default:
+						reset_parsing();
+					return Instruction(consumed_);
+
+					case 0:		operation_ = Operation::INC;	break;
+					case 1:		operation_ = Operation::DEC;	break;
+				}
+			break;
+
+			case ModRegRMFormat::MemRegINC_to_PUSH:
+				source_ = destination_ = memreg;
+
+				switch(reg) {
+					default:
+						reset_parsing();
+					return Instruction(consumed_);
+
+					case 0:		operation_ = Operation::INC;	break;
+					case 1:		operation_ = Operation::DEC;	break;
+					case 2:		operation_ = Operation::CALLN;	break;
+					case 3:
+						operation_ = Operation::CALLF;
+						operand_size_ = 4;
+						source_ = Source::Immediate;
+					break;
+					case 4:		operation_ = Operation::JMPN;	break;
+					case 5:
+						operation_ = Operation::JMPF;
+						operand_size_ = 4;
+						source_ = Source::Immediate;
+					break;
+					case 6:	operation_ = Operation::PUSH;		break;
 				}
 			break;
 
