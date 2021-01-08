@@ -205,6 +205,11 @@ struct Decoder {
 			// to pick an operation from the ROL/ROR/RCL/RCR/SAL/SHR/SAR group.
 			MemRegROL_to_SAR,
 
+			// Parse for mode and register/memory fields, populating the
+			// source_ field with the result. Fills destination_ with a segment
+			// register based on the reg field.
+			SegReg,
+
 		} modregrm_format_ = ModRegRMFormat::MemReg_Reg;
 
 		// Ephemeral decoding state.

@@ -176,7 +176,7 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			case 0x8b: MemRegReg(MOV, Reg_MemReg, 2);	break;
 			// 0x8c: not used.
 			case 0x8d: MemRegReg(LEA, Reg_MemReg, 2);	break;
-//			case 0x84: MemRegReg(0x8e, MOV, SegReg_MemReg, 1);	// TODO: SegReg_MemReg
+			case 0x8e: MemRegReg(MOV, SegReg, 2);		break;
 			case 0x8f: MemRegReg(POP, MemRegPOP, 2);	break;
 
 			case 0x90: Complete(NOP, None, None, 0);	break;	// Or XCHG AX, AX?
@@ -309,7 +309,6 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			/*
 				Unimplemented (but should be):
 
-					0x8e,
 					0xfe, 0xff
 
 				[and consider which others are unused but seem to be
@@ -410,6 +409,22 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 					case 7: 	operation_ = Operation::IDIV;	break;
 				}
 			break;
+
+			case ModRegRMFormat::SegReg: {
+				source_ = memreg;
+
+				constexpr Source seg_table[4] = {
+					Source::ES,	Source::CS,
+					Source::SS,	Source::DS,
+				};
+
+				if(reg & 4) {
+					reset_parsing();
+					return Instruction(consumed_);
+				}
+
+				destination_ = seg_table[reg];
+			} break;
 
 			case ModRegRMFormat::MemRegROL_to_SAR:
 				destination_ = memreg;
