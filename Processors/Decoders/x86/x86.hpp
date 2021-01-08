@@ -23,23 +23,56 @@ enum class Model {
 enum class Operation: uint8_t {
 	Invalid,
 
-	/// ASCII adjust for addition;
-	AAA, AAD, AAM, AAS, ADC, ADD, AND, CALL, CBW, CLC, CLD, CLI, CMC,
-	CMP, CMPS, CWD, DAA, DAS, DEC, DIV, ESC, HLT, IDIV, IMUL, IN,
+	/// ASCII adjust after addition; source will be AL and destination will be AX.
+	AAA,
+	/// ASCII adjust before division; destination will be AX and source will be a multiplier.
+	AAD,
+	/// ASCII adjust after multiplication; destination will be AX and source will be a divider.
+	AAM,
+	/// ASCII adjust after subtraction; source will be AL and destination will be AX.
+	AAS,
+	/// Add with carry; source, destination, operand and displacement will be populated appropriately.
+	ADC,
+	/// Add; source, destination, operand and displacement will be populated appropriately.
+	ADD,
+	/// And; source, destination, operand and displacement will be populated appropriately.
+	AND,
+	/// Far call; followed by a 32-bit operand.
+	CALLF,
+	/// Displacement call; followed by a 16-bit operand providing a call offset.
+	CALLD,
+	/* TODO: other CALLs */
+	/// Convert byte into word; source will be AL, destination will be AH.
+	CBW,
+	/// Clear carry flag; no source or destination provided.
+	CLC,
+	/// Clear direction flag; no source or destination provided.
+	CLD,
+	/// Clear interrupt flag; no source or destination provided.
+	CLI,
+	/// Complement carry flag; no source or destination provided.
+	CMC,
+	/// Compare; source, destination, operand and displacement will be populated appropriately.
+	CMP,
+	/// Compare [bytes or words, per operation size]; source and destination implied to be DS:[SI] and ES:[DI].
+	CMPS,
+	/// Convert word to double word; source will be AX and destination will be DX.
+	CWD,
+	/// Decimal adjust after addition; source and destination will be AL.
+	DAA,
+	/// Decimal adjust after subtraction; source and destination will be AL.
+	DAS,
+	/// Dec; source, destination, operand and displacement will be populated appropriately.
+	DEC,
+	DIV, ESC, HLT, IDIV, IMUL, IN,
 	INC, INT, INT3, INTO, IRET,
-	JO, JNO,
-	JB, JNB,
-	JE, JNE,
-	JBE, JNBE,
-	JS, JNS,
-	JP, JNP,
-	JL, JNL,
-	JLE, JNLE,
+	JO,	JNO,	JB, JNB,	JE, JNE,	JBE, JNBE,
+	JS, JNS,	JP, JNP,	JL, JNL,	JLE, JNLE,
 	JMP, JCXZ,
 	LAHF, LDS, LEA,
 	LODS, LOOPE, LOOPNE, MOV, MOVS, MUL, NEG, NOP, NOT, OR, OUT,
 	POP, POPF, PUSH, PUSHF, RCL, RCR, REP, ROL, ROR, SAHF,
-	SAR, SBB, SCAS, SHL, SHR, STC, STD, STI, STOS, SUB, TEST,
+	SAR, SBB, SCAS, SAL, SHR, STC, STD, STI, STOS, SUB, TEST,
 	WAIT, XCHG, XLAT, XOR,
 	LES, LOOP, JPCX,
 
@@ -166,6 +199,11 @@ struct Decoder {
 			// the destination_ field with the result and setting source_ to Immediate.
 			// Use the 'register' field to check for the MOV operation.
 			MemRegMOV,
+
+			// Parse for mode and register/memory fields, populating the
+			// destination_ field with the result. Use the 'register' field
+			// to pick an operation from the ROL/ROR/RCL/RCR/SAL/SHR/SAR group.
+			MemRegROL_to_SAR,
 
 		} modregrm_format_ = ModRegRMFormat::MemReg_Reg;
 
