@@ -254,7 +254,7 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 				modregrm_format_ = ModRegRMFormat::MemRegROL_to_SAR;
 				operation_size_ = 1 + (instr_ & 1);
 				source_ = Source::Immediate;
-				// TODO: set operand to 1.
+				operand_ = 1;
 			break;
 			case 0xd2: case 0xd3:
 				phase_ = Phase::ModRegRM;
@@ -512,19 +512,26 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 	// MARK: - Displacement and operand.
 
 	if(phase_ == Phase::AwaitingDisplacementOrOperand && source != end) {
-		// TODO: calculate number of expected operands.
 		const int required_bytes = displacement_size_ + operand_size_;
 
-		const int outstanding_bytes = required_bytes - operand_bytes_;
-		const int bytes_to_consume = std::min(int(end - source), outstanding_bytes);
-		source += bytes_to_consume;
-		consumed_ += bytes_to_consume;
-		operand_bytes_ += bytes_to_consume;
-		if(bytes_to_consume == outstanding_bytes) {
+		if(!required_bytes) {
 			phase_ = Phase::ReadyToPost;
 		} else {
-			// Provide a genuine measure of further bytes required.
-			return std::make_pair(-(outstanding_bytes - bytes_to_consume), Instruction());
+			const int outstanding_bytes = required_bytes - operand_bytes_;
+			const int bytes_to_consume = std::min(int(end - source), outstanding_bytes);
+
+			// TODO: fill displacement_ and operand_ here... efficiently?
+
+			source += bytes_to_consume;
+			consumed_ += bytes_to_consume;
+			operand_bytes_ += bytes_to_consume;
+
+			if(bytes_to_consume == outstanding_bytes) {
+				phase_ = Phase::ReadyToPost;
+			} else {
+				// Provide a genuine measure of further bytes required.
+				return std::make_pair(-(outstanding_bytes - bytes_to_consume), Instruction());
+			}
 		}
 	}
 
