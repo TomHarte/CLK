@@ -91,13 +91,13 @@ enum class Size: uint8_t {
 
 enum class Source: uint8_t {
 	None,
+	CS, DS, ES, SS,
 
 	AL, AH, AX,
 	BL, BH, BX,
 	CL, CH, CX,
 	DL, DH, DX,
 
-	CS, DS, ES, SS,
 	SI, DI,
 	BP, SP,
 
@@ -121,28 +121,43 @@ enum class Repetition: uint8_t {
 class Instruction {
 	public:
 		Operation operation = Operation::Invalid;
-		Size operand_size = Size::Byte;
-
-		Source source = Source::AL;
-		Source destination = Source::AL;
-
-		int size() const {
-			return size_;
-		}
-
-		bool lock() const {
-			return false;
-		}
-
-		Instruction() {}
-		Instruction(int size) : size_(size) {}
-		Instruction(Operation operation, Size operand_size, Source source, Source destination, int size) :
-			operation(operation), operand_size(operand_size), source(source), destination(destination), size_(size) {}
 
 	private:
-		int size_ = -1;
+		// b0, b1: a Repetition;
+		// b2+: size.
+		uint8_t repetition_size_ = 0;
+
+		// b0–b5: source;
+		// b6–b11: repetition;
+		// b12–b14: segment override;
+		// b15: lock.
+		uint16_t sources_ = 0;
+
+		// Unpackable fields.
 		int16_t displacement_ = 0;
-		int16_t operand_ = 0;
+		int16_t operand_ = 0;		// ... or used to store a segment for far operations.
+
+	public:
+		Source source() const			{	return Source(sources_ & 0x3f);			}
+		Source destination() const		{	return Source((sources_ >> 6) & 0x3f);	}
+		bool lock() const				{	return sources_ & 0x8000;				}
+		Source segment_override() const	{	return Source((sources_ >> 12) & 7);	}
+
+		Size operand_size() const 		{	return Size::Implied;		}
+		Size operation_size() const 	{	return Size::Implied;		}
+
+		uint16_t segment() const		{	return uint16_t(operand_);	}
+
+		Repetition repetition() const	{	return Repetition(repetition_size_ & 3);	}
+		int size() const				{	return int(repetition_size_ >> 2);			}
+
+		template <typename type> type displacement();
+		template <typename type> type immediate();
+
+
+		Instruction() {}
+		Instruction(int) {}
+		Instruction(Operation, Size, Source, Source, int)  {}
 };
 
 /*!
