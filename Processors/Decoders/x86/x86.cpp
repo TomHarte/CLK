@@ -165,8 +165,11 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 
 			// TODO:
 			//
-			//	0x80, 0x81, 0x82, 0x83, which all require more
-			//	input, from the ModRegRM byte.
+			//	0x82, 0x83, which will require me to do something
+			//	re: word-sign extended.
+
+			case 0x80: MemRegReg(Invalid, MemRegADD_to_CMP, 1);	break;
+			case 0x81: MemRegReg(Invalid, MemRegADD_to_CMP, 2);	break;
 
 			case 0x84: MemRegReg(TEST, MemReg_Reg, 1);	break;
 			case 0x85: MemRegReg(TEST, MemReg_Reg, 2);	break;
@@ -501,6 +504,22 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 				source_ = Source::Immediate;
 				destination_ = memreg;
 				operand_size_ = operation_size_;
+			break;
+
+			case ModRegRMFormat::MemRegADD_to_CMP:
+				destination_ = memreg;
+				operand_size_ = operation_size_;
+
+				switch(reg) {
+					default:	operation_ = Operation::ADD;	break;
+					case 1:		operation_ = Operation::OR;		break;
+					case 2:		operation_ = Operation::ADC;	break;
+					case 3:		operation_ = Operation::SBB;	break;
+					case 4:		operation_ = Operation::AND;	break;
+					case 5:		operation_ = Operation::SUB;	break;
+					case 6:		operation_ = Operation::XOR;	break;
+					case 7:		operation_ = Operation::CMP;	break;
+				}
 			break;
 
 			default: assert(false);

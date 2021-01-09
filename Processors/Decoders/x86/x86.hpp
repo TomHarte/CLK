@@ -239,6 +239,12 @@ struct Decoder {
 			MemRegROL_to_SAR,
 
 			// Parse for mode and register/memory fields, populating the
+			// destination_ field with the result. Use the 'register' field
+			// to pick an operation from the ADD/OR/ADC/SBB/AND/SUB/XOR/CMP group and
+			// waits for an operand equal to the operation size.
+			MemRegADD_to_CMP,
+
+			// Parse for mode and register/memory fields, populating the
 			// source_ field with the result. Fills destination_ with a segment
 			// register based on the reg field.
 			SegReg,
