@@ -37,6 +37,7 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 /// Handles instructions of the form rr, kk and rr, jjkk, i.e. a destination register plus an operand.
 #define RegData(op, dest, size)							\
 	SetOpSrcDestSize(op, DirectAddress, dest, size);	\
+	source_ = Source::Immediate;						\
 	operand_size_ = size;								\
 	phase_ = Phase::AwaitingDisplacementOrOperand
 

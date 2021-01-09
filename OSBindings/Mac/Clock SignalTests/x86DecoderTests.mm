@@ -15,6 +15,8 @@
 namespace {
 	using Operation = CPU::Decoder::x86::Operation;
 	using Instruction = CPU::Decoder::x86::Instruction;
+	using Source = CPU::Decoder::x86::Source;
+	using Size = CPU::Decoder::x86::Size;
 }
 
 @interface x86DecoderTests : XCTestCase
@@ -31,7 +33,13 @@ namespace {
 
 // MARK: - Specific instruction asserts.
 
-/* ... TODO ... */
+- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size operand:(uint16_t)operand destination:(Source)destination {
+	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.operation_size(), CPU::Decoder::x86::Size(size));
+	XCTAssertEqual(instruction.destination(), destination);
+	XCTAssertEqual(instruction.source(), Source::Immediate);
+	XCTAssertEqual(instruction.operand(), operand);
+}
 
 // MARK: - Decoder
 
@@ -81,6 +89,8 @@ namespace {
 
 	// 68 instructions are expected.
 	XCTAssertEqual(instructions.size(), 63);
+
+	[self assert:instructions[0] operation:Operation::SUB size:2 operand:0xea77 destination:Source::AX];
 
 	// sub    $0xea77,%ax
 	// jb     0x00000001
