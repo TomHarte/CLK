@@ -82,9 +82,9 @@ struct Instruction {
 	bool is_supervisor = false;
 	uint32_t opcode = 0;
 
-	Instruction() {}
-	Instruction(uint32_t opcode) : opcode(opcode) {}
-	Instruction(Operation operation, uint32_t opcode, bool is_supervisor = false) : operation(operation), is_supervisor(is_supervisor), opcode(opcode) {}
+	Instruction() noexcept {}
+	Instruction(uint32_t opcode) noexcept : opcode(opcode) {}
+	Instruction(Operation operation, uint32_t opcode, bool is_supervisor = false) noexcept : operation(operation), is_supervisor(is_supervisor), opcode(opcode) {}
 
 	// Instruction fields are decoded below; naming is a compromise between
 	// Motorola's documentation and IBM's.
@@ -191,6 +191,8 @@ struct Instruction {
 	/// Enables setting of OV and SO in the XER; @c 0 or @c non-0.
 	uint32_t oe() const	{	return opcode & 0x800;		}
 };
+
+static_assert(sizeof(Instruction) <= 8);
 
 /*!
 	Implements PowerPC instruction decoding.

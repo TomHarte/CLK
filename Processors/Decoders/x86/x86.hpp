@@ -134,7 +134,7 @@ class Instruction {
 		uint16_t sources_ = 0;
 
 		// Unpackable fields.
-		uint16_t displacement_ = 0;
+		int16_t displacement_ = 0;
 		uint16_t operand_ = 0;		// ... or used to store a segment for far operations.
 
 	public:
@@ -148,10 +148,10 @@ class Instruction {
 
 		uint16_t segment() const		{	return uint16_t(operand_);					}
 
-		template <typename type> type displacement();
-		template <typename type> type immediate();
+		int16_t displacement() const	{	return displacement_;						}
+		uint16_t operand() const		{	return operand_;							}
 
-		Instruction() {}
+		Instruction() noexcept {}
 		Instruction(
 			Operation operation,
 			Source source,
@@ -160,8 +160,8 @@ class Instruction {
 			Source segment_override,
 			Repetition repetition,
 			Size operation_size,
-			uint16_t displacement,
-			uint16_t operand) :
+			int16_t displacement,
+			uint16_t operand) noexcept :
 				operation(operation),
 				repetition_size_(uint8_t((int(operation_size) << 2) | int(repetition))),
 				sources_(uint16_t(
@@ -263,6 +263,10 @@ struct Decoder {
 		// Source and destination locations.
 		Source source_ = Source::None;
 		Source destination_ = Source::None;
+
+		// Immediate fields.
+		int16_t displacement_ = 0;
+		uint16_t operand_ = 0;
 
 		// Facts about the instruction.
 		int displacement_size_ = 0;		// i.e. size of in-stream displacement, if any.

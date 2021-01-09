@@ -541,8 +541,8 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 				segment_override_,
 				repetition_,
 				Size(operation_size_),
-				0,
-				0)
+				displacement_,
+				operand_)
 		);
 		reset_parsing();
 		phase_ = Phase::Instruction;
