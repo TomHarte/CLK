@@ -33,6 +33,13 @@ namespace {
 
 // MARK: - Specific instruction asserts.
 
+- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(Source)source destination:(Source)destination {
+	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.operation_size(), CPU::Decoder::x86::Size(size));
+	XCTAssertEqual(instruction.source(), source);
+	XCTAssertEqual(instruction.destination(), destination);
+}
+
 - (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size operand:(uint16_t)operand destination:(Source)destination {
 	XCTAssertEqual(instruction.operation, operation);
 	XCTAssertEqual(instruction.operation_size(), CPU::Decoder::x86::Size(size));
@@ -40,6 +47,12 @@ namespace {
 	XCTAssertEqual(instruction.source(), Source::Immediate);
 	XCTAssertEqual(instruction.operand(), operand);
 }
+
+- (void)assert:(Instruction &)instruction operation:(Operation)operation displacement:(int16_t)displacement {
+	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.displacement(), displacement);
+}
+
 
 // MARK: - Decoder
 
@@ -90,12 +103,15 @@ namespace {
 	// 68 instructions are expected.
 	XCTAssertEqual(instructions.size(), 63);
 
-	[self assert:instructions[0] operation:Operation::SUB size:2 operand:0xea77 destination:Source::AX];
-
 	// sub    $0xea77,%ax
 	// jb     0x00000001
 	// dec    %bx
 	// mov    $0x28,%ch
+	[self assert:instructions[0] operation:Operation::SUB size:2 operand:0xea77 destination:Source::AX];
+	[self assert:instructions[1] operation:Operation::JB displacement:0x01];
+	[self assert:instructions[2] operation:Operation::DEC size:2 source:Source::BX destination:Source::BX];
+	[self assert:instructions[3] operation:Operation::MOV size:1 operand:0x28 destination:Source::CH];
+
 	// ret
 	// lret   $0x4826
 	// gs insw (%dx),%es:(%di)
