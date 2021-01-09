@@ -50,10 +50,10 @@ namespace {
 	instructions.clear();
 	const uint8_t *byte = stream.begin();
 	while(byte != stream.end()) {
-		const auto next = decoder.decode(byte, stream.end() - byte);
-		if(next.size() <= 0) break;
+		const auto [size, next] = decoder.decode(byte, stream.end() - byte);
+		if(size <= 0) break;
 		instructions.push_back(next);
-		byte += next.size();
+		byte += size;
 	}
 }
 

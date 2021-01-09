@@ -124,41 +124,57 @@ class Instruction {
 
 	private:
 		// b0, b1: a Repetition;
-		// b2+: size.
+		// b2+: operation size.
 		uint8_t repetition_size_ = 0;
 
 		// b0–b5: source;
-		// b6–b11: repetition;
+		// b6–b11: destination;
 		// b12–b14: segment override;
 		// b15: lock.
 		uint16_t sources_ = 0;
 
 		// Unpackable fields.
-		int16_t displacement_ = 0;
-		int16_t operand_ = 0;		// ... or used to store a segment for far operations.
+		uint16_t displacement_ = 0;
+		uint16_t operand_ = 0;		// ... or used to store a segment for far operations.
 
 	public:
-		Source source() const			{	return Source(sources_ & 0x3f);			}
-		Source destination() const		{	return Source((sources_ >> 6) & 0x3f);	}
-		bool lock() const				{	return sources_ & 0x8000;				}
-		Source segment_override() const	{	return Source((sources_ >> 12) & 7);	}
-
-		Size operand_size() const 		{	return Size::Implied;		}
-		Size operation_size() const 	{	return Size::Implied;		}
-
-		uint16_t segment() const		{	return uint16_t(operand_);	}
+		Source source() const			{	return Source(sources_ & 0x3f);				}
+		Source destination() const		{	return Source((sources_ >> 6) & 0x3f);		}
+		bool lock() const				{	return sources_ & 0x8000;					}
+		Source segment_override() const	{	return Source((sources_ >> 12) & 7);		}
 
 		Repetition repetition() const	{	return Repetition(repetition_size_ & 3);	}
-		int size() const				{	return int(repetition_size_ >> 2);			}
+		Size operation_size() const 	{	return Size(repetition_size_ >> 2);			}
+
+		uint16_t segment() const		{	return uint16_t(operand_);					}
 
 		template <typename type> type displacement();
 		template <typename type> type immediate();
 
-
 		Instruction() {}
-		Instruction(int) {}
-		Instruction(Operation, Size, Source, Source, int)  {}
+		Instruction(
+			Operation operation,
+			Source source,
+			Source destination,
+			bool lock,
+			Source segment_override,
+			Repetition repetition,
+			Size operation_size,
+			uint16_t displacement,
+			uint16_t operand) :
+				operation(operation),
+				repetition_size_(uint8_t((int(operation_size) << 2) | int(repetition))),
+				sources_(uint16_t(
+					int(source) |
+					(int(destination) << 6) |
+					(int(segment_override) << 12) |
+					(int(lock) << 15)
+				)),
+				displacement_(displacement),
+				operand_(operand) {}
 };
+
+static_assert(sizeof(Instruction) <= 8);
 
 /*!
 	Implements Intel x86 instruction decoding.
@@ -170,13 +186,13 @@ struct Decoder {
 		Decoder(Model model);
 
 		/*!
-			@returns an @c Instruction with a positive size to indicate successful decoding; a
+			@returns an @c Instruction plus a size; a positive size to indicate successful decoding; a
 				negative size specifies the [negatived] number of further bytes the caller should ideally
 				collect before calling again. The caller is free to call with fewer, but may not get a decoded
 				instruction in response, and the decoder may still not be able to complete decoding
 				even if given that number of bytes.
 		*/
-		Instruction decode(const uint8_t *source, size_t length);
+		std::pair<int, Instruction> decode(const uint8_t *source, size_t length);
 
 	private:
 		enum class Phase {

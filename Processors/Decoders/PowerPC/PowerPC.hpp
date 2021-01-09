@@ -73,16 +73,14 @@ enum class Operation: uint8_t {
 
 	Implementation note: because the PowerPC encoding is particularly straightforward,
 	only the operation has been decoded ahead of time; all other fields are decoded on-demand.
+
+	It would be possible to partition the ordering of Operations into user followed by supervisor,
+	eliminating the storage necessary for a flag, but it wouldn't save anything due to alignment.
 */
 struct Instruction {
 	Operation operation = Operation::Undefined;
 	bool is_supervisor = false;
 	uint32_t opcode = 0;
-
-	// PowerPC uses a fixed-size instruction word.
-	int size() const {
-		return 4;
-	}
 
 	Instruction() {}
 	Instruction(uint32_t opcode) : opcode(opcode) {}

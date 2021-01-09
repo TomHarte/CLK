@@ -10,13 +10,14 @@
 
 #include <algorithm>
 #include <cassert>
+#include <utility>
 
 using namespace CPU::Decoder::x86;
 
 // Only 8086 is suppoted for now.
 Decoder::Decoder(Model) {}
 
-Instruction Decoder::decode(const uint8_t *source, size_t length) {
+std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length) {
 	const uint8_t *const end = source + length;
 
 	// MARK: - Prefixes (if present) and the opcode.
@@ -36,6 +37,7 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 /// Handles instructions of the form rr, kk and rr, jjkk, i.e. a destination register plus an operand.
 #define RegData(op, dest, size)							\
 	SetOpSrcDestSize(op, DirectAddress, dest, size);	\
+	operand_size_ = size;								\
 	phase_ = Phase::AwaitingDisplacementOrOperand
 
 /// Handles instructions of the form Ax, jjkk where the latter is implicitly an address.
@@ -79,9 +81,9 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 
 		switch(instr_) {
 			default: {
-				const Instruction instruction(consumed_);
+				const auto result = std::make_pair(consumed_, Instruction());
 				reset_parsing();
-				return instruction;
+				return result;
 			}
 
 #define PartialBlock(start, operation)								\
@@ -390,9 +392,11 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 				source_ = destination_ = memreg;
 
 				switch(reg) {
-					default:
+					default: {
+						const auto result = std::make_pair(consumed_, Instruction());
 						reset_parsing();
-					return Instruction(consumed_);
+						return result;
+					}
 
 					case 0: 	operation_ = Operation::TEST;	break;
 					case 2: 	operation_ = Operation::NOT;	break;
@@ -413,8 +417,9 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 				};
 
 				if(reg & 4) {
+					const auto result = std::make_pair(consumed_, Instruction());
 					reset_parsing();
-					return Instruction(consumed_);
+					return result;
 				}
 
 				destination_ = seg_table[reg];
@@ -424,9 +429,11 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 				destination_ = memreg;
 
 				switch(reg) {
-					default:
+					default: {
+						const auto result = std::make_pair(consumed_, Instruction());
 						reset_parsing();
-					return Instruction(consumed_);
+						return result;
+					}
 
 					case 0: 	operation_ = Operation::ROL;	break;
 					case 2: 	operation_ = Operation::ROR;	break;
@@ -442,9 +449,11 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 				source_ = destination_ = memreg;
 
 				switch(reg) {
-					default:
+					default: {
+						const auto result = std::make_pair(consumed_, Instruction());
 						reset_parsing();
-					return Instruction(consumed_);
+						return result;
+					}
 
 					case 0:		operation_ = Operation::INC;	break;
 					case 1:		operation_ = Operation::DEC;	break;
@@ -455,9 +464,11 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 				source_ = destination_ = memreg;
 
 				switch(reg) {
-					default:
+					default: {
+						const auto result = std::make_pair(consumed_, Instruction());
 						reset_parsing();
-					return Instruction(consumed_);
+						return result;
+					}
 
 					case 0:		operation_ = Operation::INC;	break;
 					case 1:		operation_ = Operation::DEC;	break;
@@ -482,7 +493,7 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 
 				if(reg != 0) {
 					reset_parsing();
-					return Instruction(consumed_);
+					return std::make_pair(consumed_, Instruction());
 				}
 			break;
 
@@ -513,19 +524,31 @@ Instruction Decoder::decode(const uint8_t *source, size_t length) {
 			phase_ = Phase::ReadyToPost;
 		} else {
 			// Provide a genuine measure of further bytes required.
-			return Instruction(-(outstanding_bytes - bytes_to_consume));
+			return std::make_pair(-(outstanding_bytes - bytes_to_consume), Instruction());
 		}
 	}
 
 	// MARK: - Check for completion.
 
 	if(phase_ == Phase::ReadyToPost) {
-		Instruction result(operation_, Size(operation_size_), source_, destination_, consumed_);
+		const auto result = std::make_pair(
+			consumed_,
+			Instruction(
+				operation_,
+				source_,
+				destination_,
+				lock_,
+				segment_override_,
+				repetition_,
+				Size(operation_size_),
+				0,
+				0)
+		);
 		reset_parsing();
 		phase_ = Phase::Instruction;
 		return result;
 	}
 
 	// i.e. not done yet.
-	return Instruction();
+	return std::make_pair(0, Instruction());
 }
