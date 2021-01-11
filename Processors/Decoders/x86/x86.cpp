@@ -65,7 +65,7 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 #define Jump(op)									\
 	operation_ = Operation::op;						\
 	phase_ = Phase::AwaitingDisplacementOrOperand;	\
-	operand_size_ = 1
+	displacement_size_ = 1
 
 /// Handles far CALL and far JMP — fixed four byte operand operations.
 #define Far(op)										\
@@ -298,7 +298,7 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 			case 0xec: Complete(IN, DX, AL, 1);		break;
 			case 0xed: Complete(IN, DX, AX, 1);		break;
 			case 0xee: Complete(OUT, AL, DX, 1);	break;
-			case 0xef: Complete(OUT, AX, DX, 1);	break;
+			case 0xef: Complete(OUT, AX, DX, 2);	break;
 
 			case 0xf4: Complete(HLT, None, None, 1);				break;
 			case 0xf5: Complete(CMC, None, None, 1);				break;
@@ -540,14 +540,28 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 			const int outstanding_bytes = required_bytes - operand_bytes_;
 			const int bytes_to_consume = std::min(int(end - source), outstanding_bytes);
 
-			// TODO: fill displacement_ and operand_ here... efficiently?
+			// TODO: I can surely do better than this?
+			for(int c = 0; c < bytes_to_consume; c++) {
+				inward_data_ = (inward_data_ >> 8) | (uint64_t(source[0]) << 56);
+				++source;
+			}
 
-			source += bytes_to_consume;
 			consumed_ += bytes_to_consume;
 			operand_bytes_ += bytes_to_consume;
 
 			if(bytes_to_consume == outstanding_bytes) {
 				phase_ = Phase::ReadyToPost;
+
+				switch(operand_size_) {
+					default:	operand_ = 0;										break;
+					case 1:		operand_ = inward_data_ >> 56; inward_data_ <<= 8;	break;
+					case 2:		operand_ = inward_data_ >> 48; inward_data_ <<= 16;	break;
+				}
+				switch(displacement_size_) {
+					default:	displacement_ = 0;									break;
+					case 1:		displacement_ = int8_t(inward_data_ >> 56);			break;
+					case 2:		displacement_ = int16_t(inward_data_ >> 48);		break;
+				}
 			} else {
 				// Provide a genuine measure of further bytes required.
 				return std::make_pair(-(outstanding_bytes - bytes_to_consume), Instruction());

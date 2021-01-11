@@ -33,6 +33,10 @@ namespace {
 
 // MARK: - Specific instruction asserts.
 
+- (void)assert:(Instruction &)instruction operation:(Operation)operation {
+	XCTAssertEqual(instruction.operation, operation);
+}
+
 - (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(Source)source destination:(Source)destination {
 	XCTAssertEqual(instruction.operation, operation);
 	XCTAssertEqual(instruction.operation_size(), CPU::Decoder::x86::Size(size));
@@ -53,6 +57,10 @@ namespace {
 	XCTAssertEqual(instruction.displacement(), displacement);
 }
 
+- (void)assert:(Instruction &)instruction operation:(Operation)operation operand:(uint16_t)operand {
+	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.operand(), operand);
+}
 
 // MARK: - Decoder
 
@@ -108,23 +116,35 @@ namespace {
 	// dec    %bx
 	// mov    $0x28,%ch
 	[self assert:instructions[0] operation:Operation::SUB size:2 operand:0xea77 destination:Source::AX];
-	[self assert:instructions[1] operation:Operation::JB displacement:0x01];
+	[self assert:instructions[1] operation:Operation::JB displacement:0xfffc];
 	[self assert:instructions[2] operation:Operation::DEC size:2 source:Source::BX destination:Source::BX];
 	[self assert:instructions[3] operation:Operation::MOV size:1 operand:0x28 destination:Source::CH];
 
 	// ret
 	// lret   $0x4826
-	// gs insw (%dx),%es:(%di)
+	// [[ gs insw (%dx),%es:(%di) ]]
 	// jnp    0xffffffaf
 	// ret    $0x4265
+	[self assert:instructions[4] operation:Operation::RETN];
+	[self assert:instructions[5] operation:Operation::RETF operand:0x4826];
+	[self assert:instructions[6] operation:Operation::JNP displacement:0xff9f];
+	[self assert:instructions[7] operation:Operation::RETN operand:0x4265];
+
 	// dec    %si
 	// out    %ax,(%dx)
 	// jo     0x00000037
 	// xchg   %ax,%sp
+	[self assert:instructions[8] operation:Operation::DEC size:2 source:Source::SI destination:Source::SI];
+	[self assert:instructions[9] operation:Operation::OUT size:2 source:Source::AX destination:Source::DX];
+	[self assert:instructions[10] operation:Operation::JO displacement:0x20];
+	[self assert:instructions[11] operation:Operation::XCHG size:2 source:Source::AX destination:Source::SP];
+
 	// (bad)
 	// aam    $0x93
 	// inc    %bx
 	// cmp    $0x8e,%al
+//	[self assert:instructions[12] operation:Operation::Invalid];
+
 	// push   $0x65
 	// sbb    0x45(%bx,%si),%bh
 	// adc    %bh,0x3c(%bx)

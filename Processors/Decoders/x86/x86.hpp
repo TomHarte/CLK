@@ -273,6 +273,7 @@ struct Decoder {
 		// Immediate fields.
 		int16_t displacement_ = 0;
 		uint16_t operand_ = 0;
+		uint64_t inward_data_ = 0;
 
 		// Facts about the instruction.
 		int displacement_size_ = 0;		// i.e. size of in-stream displacement, if any.
