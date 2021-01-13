@@ -289,9 +289,11 @@ struct Decoder {
 		void reset_parsing() {
 			consumed_ = operand_bytes_ = 0;
 			displacement_size_ = operand_size_ = 0;
+			displacement_ = operand_ = 0;
 			lock_ = false;
 			segment_override_ = Source::None;
 			repetition_ = Repetition::None;
+			phase_ = Phase::Instruction;
 		}
 };
 

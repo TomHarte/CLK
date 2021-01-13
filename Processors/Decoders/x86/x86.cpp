@@ -51,6 +51,7 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 #define AddrReg(op, source, op_size, addr_size)				\
 	SetOpSrcDestSize(op, source, DirectAddress, op_size);	\
 	operand_size_ = addr_size;								\
+	destination_ = Source::DirectAddress;					\
 	phase_ = Phase::AwaitingDisplacementOrOperand
 
 /// Covers both `mem/reg, reg` and `reg, mem/reg`.
@@ -377,6 +378,13 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 			// Other operand is just a register.
 			case 3:
 				memreg = reg_table[operation_size_][rm];
+
+				// LES and LDS accept a real memory argument only.
+				if(operation_ == Operation::LES || operation_ == Operation::LDS) {
+					const auto result = std::make_pair(consumed_, Instruction());
+					reset_parsing();
+					return result;
+				}
 			break;
 		}
 
@@ -586,7 +594,6 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 				operand_)
 		);
 		reset_parsing();
-		phase_ = Phase::Instruction;
 		return result;
 	}
 
