@@ -23,7 +23,7 @@ namespace {
 @end
 
 /*!
-	Tests PowerPC decoding by throwing a bunch of randomly-generated
+	Tests 8086 decoding by throwing a bunch of randomly-generated
 	word streams and checking that the result matches what I got from a
 	disassembler elsewhere.
 */
@@ -98,25 +98,29 @@ namespace {
 // MARK: - Decoder
 
 - (void)decode:(const std::initializer_list<uint8_t> &)stream {
+	// Decode by offering up all data at once.
 	CPU::Decoder::x86::Decoder decoder(CPU::Decoder::x86::Model::i8086);
-
-	// TODO: test that byte-at-a-time decoding gives the same results, as a freebie.
-//	instructions.clear();
-//	for(auto item: stream) {
-//		const auto next = decoder.decode(&item, 1);
-//		if(next.size() > 0) {
-//			instructions.push_back(next);
-//		}
-//	}
-
 	instructions.clear();
 	const uint8_t *byte = stream.begin();
 	while(byte != stream.end()) {
 		const auto [size, next] = decoder.decode(byte, stream.end() - byte);
 		if(size <= 0) break;
-		NSLog(@"%@ %@", @(instructions.size()), @(size));
 		instructions.push_back(next);
 		byte += size;
+	}
+
+	// Grab a byte-at-a-time decoding and check that it matches the previous.
+	{
+		CPU::Decoder::x86::Decoder decoder(CPU::Decoder::x86::Model::i8086);
+
+		auto previous_instruction = instructions.begin();
+		for(auto item: stream) {
+			const auto [size, next] = decoder.decode(&item, 1);
+			if(size > 0) {
+				XCTAssert(next == *previous_instruction);
+				++previous_instruction;
+			}
+		}
 	}
 }
 
@@ -256,7 +260,7 @@ namespace {
 	// sahf
 	// fdiv   %st(3),%st
 	// iret
-	[self assert:instructions[42] operation:Operation::LDS size:4];
+	[self assert:instructions[42] operation:Operation::LDS size:2];
 	[self assert:instructions[43] operation:Operation::SAHF];
 	[self assert:instructions[44] operation:Operation::ESC];
 	[self assert:instructions[45] operation:Operation::IRET];

@@ -238,8 +238,8 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 
 			case 0xc2: RegData(RETN, None, 2);			break;
 			case 0xc3: Complete(RETN, None, None, 2);	break;
-			case 0xc4: MemRegReg(LES, Reg_MemReg, 4);	break;
-			case 0xc5: MemRegReg(LDS, Reg_MemReg, 4);	break;
+			case 0xc4: MemRegReg(LES, Reg_MemReg, 2);	break;
+			case 0xc5: MemRegReg(LDS, Reg_MemReg, 2);	break;
 			case 0xc6: MemRegReg(MOV, MemRegMOV, 1);	break;
 			case 0xc7: MemRegReg(MOV, MemRegMOV, 2);	break;
 
@@ -552,7 +552,7 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 			default: assert(false);
 		}
 
-		phase_ = Phase::AwaitingDisplacementOrOperand;
+		phase_ = (displacement_size_ + operand_size_) ? Phase::AwaitingDisplacementOrOperand : Phase::ReadyToPost;
 	}
 
 	// MARK: - Displacement and operand.
@@ -560,45 +560,41 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 	if(phase_ == Phase::AwaitingDisplacementOrOperand && source != end) {
 		const int required_bytes = displacement_size_ + operand_size_;
 
-		if(!required_bytes) {
+		const int outstanding_bytes = required_bytes - operand_bytes_;
+		const int bytes_to_consume = std::min(int(end - source), outstanding_bytes);
+
+		// TODO: I can surely do better than this?
+		for(int c = 0; c < bytes_to_consume; c++) {
+			inward_data_ = (inward_data_ >> 8) | (uint64_t(source[0]) << 56);
+			++source;
+		}
+
+		consumed_ += bytes_to_consume;
+		operand_bytes_ += bytes_to_consume;
+
+		if(bytes_to_consume == outstanding_bytes) {
 			phase_ = Phase::ReadyToPost;
+
+			switch(operand_size_) {
+				default:	operand_ = 0;										break;
+				case 1:
+					operand_ = inward_data_ >> 56; inward_data_ <<= 8;
+
+					// Sign extend if a single byte operand is feeding a two-byte instruction.
+					if(operation_size_ == 2 && operation_ != Operation::IN && operation_ != Operation::OUT) {
+						operand_ |= (operand_ & 0x80) ? 0xff00 : 0x0000;
+					}
+				break;
+				case 2:		operand_ = inward_data_ >> 48; inward_data_ <<= 16;	break;
+			}
+			switch(displacement_size_) {
+				default:	displacement_ = 0;									break;
+				case 1:		displacement_ = int8_t(inward_data_ >> 56);			break;
+				case 2:		displacement_ = int16_t(inward_data_ >> 48);		break;
+			}
 		} else {
-			const int outstanding_bytes = required_bytes - operand_bytes_;
-			const int bytes_to_consume = std::min(int(end - source), outstanding_bytes);
-
-			// TODO: I can surely do better than this?
-			for(int c = 0; c < bytes_to_consume; c++) {
-				inward_data_ = (inward_data_ >> 8) | (uint64_t(source[0]) << 56);
-				++source;
-			}
-
-			consumed_ += bytes_to_consume;
-			operand_bytes_ += bytes_to_consume;
-
-			if(bytes_to_consume == outstanding_bytes) {
-				phase_ = Phase::ReadyToPost;
-
-				switch(operand_size_) {
-					default:	operand_ = 0;										break;
-					case 1:
-						operand_ = inward_data_ >> 56; inward_data_ <<= 8;
-
-						// Sign extend if a single byte operand is feeding a two-byte instruction.
-						if(operation_size_ == 2) {
-							operand_ |= (operand_ & 0x80) ? 0xff00 : 0x0000;
-						}
-					break;
-					case 2:		operand_ = inward_data_ >> 48; inward_data_ <<= 16;	break;
-				}
-				switch(displacement_size_) {
-					default:	displacement_ = 0;									break;
-					case 1:		displacement_ = int8_t(inward_data_ >> 56);			break;
-					case 2:		displacement_ = int16_t(inward_data_ >> 48);		break;
-				}
-			} else {
-				// Provide a genuine measure of further bytes required.
-				return std::make_pair(-(outstanding_bytes - bytes_to_consume), Instruction());
-			}
+			// Provide a genuine measure of further bytes required.
+			return std::make_pair(-(outstanding_bytes - bytes_to_consume), Instruction());
 		}
 	}
 

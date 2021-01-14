@@ -122,6 +122,14 @@ class Instruction {
 	public:
 		Operation operation = Operation::Invalid;
 
+		bool operator ==(const Instruction &rhs) const {
+			return
+				repetition_size_ == rhs.repetition_size_ &&
+				sources_ == rhs.sources_ &&
+				displacement_ == rhs.displacement_ &&
+				operand_ == rhs.operand_;
+		}
+
 	private:
 		// b0, b1: a Repetition;
 		// b2+: operation size.
@@ -300,6 +308,7 @@ struct Decoder {
 			segment_override_ = Source::None;
 			repetition_ = Repetition::None;
 			phase_ = Phase::Instruction;
+			source_ = destination_ = Source::None;
 		}
 };
 
