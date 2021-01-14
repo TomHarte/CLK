@@ -585,7 +585,7 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 
 						// Sign extend if a single byte operand is feeding a two-byte instruction.
 						if(operation_size_ == 2) {
-							operand_ |= (operand_ & 0x80) ? 0xff : 0x00;
+							operand_ |= (operand_ & 0x80) ? 0xff00 : 0x0000;
 						}
 					break;
 					case 2:		operand_ = inward_data_ >> 48; inward_data_ <<= 16;	break;

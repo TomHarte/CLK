@@ -142,7 +142,7 @@ namespace {
 		0x23, 0xaa, 0x2c, 0x5b, 0x2a, 0xd2, 0xf7, 0x5f, 0x18, 0x86, 0x90, 0x25, 0x64, 0xb7, 0xc3
 	}];
 
-	// 68 instructions are expected.
+	// 63 instructions are expected.
 	XCTAssertEqual(instructions.size(), 63);
 
 	// sub    $0xea77,%ax
@@ -299,6 +299,21 @@ namespace {
 
 	// mov    $0xc3,%bh
 	[self assert:instructions[62] operation:Operation::MOV size:1 operand:0xc3 destination:Source::BH];
+}
+
+- (void)test83 {
+	[self decode:{
+		0x83, 0x10, 0x80,	// adcw   $0xff80,(%bx,%si)
+		0x83, 0x3b, 0x04,	// cmpw   $0x4,(%bp,%di)
+		0x83, 0x2f, 0x09,	// subw   $0x9,(%bx)
+	}];
+
+	// 68 instructions are expected.
+	XCTAssertEqual(instructions.size(), 3);
+
+	[self assert:instructions[0] operation:Operation::ADC size:2 source:Source::Immediate destination:Source::IndBXPlusSI operand:0xff80];
+	[self assert:instructions[1] operation:Operation::CMP size:2 source:Source::Immediate destination:Source::IndBPPlusDI operand:0x4];
+	[self assert:instructions[2] operation:Operation::SUB size:2 source:Source::Immediate destination:Source::IndBX operand:0x9];
 }
 
 @end
