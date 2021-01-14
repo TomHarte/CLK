@@ -259,6 +259,12 @@ struct Decoder {
 			// 'register' field to pick from INC/DEC/CALL/JMP/PUSH, altering
 			// the source to ::Immediate and setting an operand size if necessary.
 			MemRegINC_to_PUSH,
+
+			// Parse for mode and register/memory fields, populating the
+			// source_ and destination_ fields with the result. Uses the
+			// 'register' field to pick from ADD/ADC/SBB/SUB/CMP, altering
+			// the source to ::Immediate and setting an appropriate operand size.
+			MemRegADC_to_CMP,
 		} modregrm_format_ = ModRegRMFormat::MemReg_Reg;
 
 		// Ephemeral decoding state.
