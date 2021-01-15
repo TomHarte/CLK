@@ -15,6 +15,12 @@ namespace CPU {
 namespace Decoder {
 namespace x86 {
 
+/*
+	Operations are documented below to establish expectations as to which
+	instruction fields will be meaningful for each; this is a work-in-progress
+	and may currently contain errors in the opcode descriptions — especially
+	where implicit register dependencies are afoot.
+*/
 enum class Operation: uint8_t {
 	Invalid,
 
@@ -58,12 +64,27 @@ enum class Operation: uint8_t {
 	DAA,
 	/// Decimal adjust after subtraction; source and destination will be AL.
 	DAS,
-	/// Dec; source, destination, operand and displacement will be populated appropriately.
+	/// Decrement; source, destination, operand and displacement will be populated appropriately.
 	DEC,
-	DIV, ESC, HLT, IDIV, IMUL, IN,
-	INC, INT, INT3, INTO, IRET,
+	/// Unsigned divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
+	DIV,
+	/// Signed divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
+	IDIV,
+	/// Escape, for a coprocessor; perform the bus cycles necessary to read the source and destination and perform a NOP.
+	ESC,
+	HLT,
+	IMUL,
+	IN,
+	INC,
+	INT,
+	INT3,
+	INTO,
+	IRET,
+
+	// Various jumps; see the displacement to calculate targets.
 	JO,	JNO,	JB, JNB,	JE, JNE,	JBE, JNBE,
 	JS, JNS,	JP, JNP,	JL, JNL,	JLE, JNLE,
+
 	JMPN,
 	JMPF,
 	JCXZ,
