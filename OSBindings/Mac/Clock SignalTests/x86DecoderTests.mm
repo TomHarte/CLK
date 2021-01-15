@@ -95,6 +95,12 @@ namespace {
 	XCTAssertEqual(instruction.displacement(), 0);
 }
 
+- (void)assert:(Instruction &)instruction operation:(Operation)operation segment:(uint16_t)segment offset:(uint16_t)offset {
+	XCTAssertEqual(instruction.operation, operation);
+	XCTAssertEqual(instruction.segment(), segment);
+	XCTAssertEqual(instruction.offset(), offset);
+}
+
 // MARK: - Decoder
 
 - (void)decode:(const std::initializer_list<uint8_t> &)stream {
@@ -312,12 +318,19 @@ namespace {
 		0x83, 0x2f, 0x09,	// subw   $0x9,(%bx)
 	}];
 
-	// 68 instructions are expected.
 	XCTAssertEqual(instructions.size(), 3);
-
 	[self assert:instructions[0] operation:Operation::ADC size:2 source:Source::Immediate destination:Source::IndBXPlusSI operand:0xff80];
 	[self assert:instructions[1] operation:Operation::CMP size:2 source:Source::Immediate destination:Source::IndBPPlusDI operand:0x4];
 	[self assert:instructions[2] operation:Operation::SUB size:2 source:Source::Immediate destination:Source::IndBX operand:0x9];
+}
+
+- (void)testFar {
+	[self decode:{
+		0x9a, 0x12, 0x34, 0x56, 0x78,	// lcall 0x7856, 0x3412
+	}];
+
+	XCTAssertEqual(instructions.size(), 1);
+	[self assert:instructions[0] operation:Operation::CALLF segment:0x7856 offset:0x3412];
 }
 
 @end

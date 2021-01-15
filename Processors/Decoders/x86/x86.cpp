@@ -585,7 +585,9 @@ std::pair<int, Instruction> Decoder::decode(const uint8_t *source, size_t length
 						operand_ |= (operand_ & 0x80) ? 0xff00 : 0x0000;
 					}
 				break;
+				case 4:		displacement_size_ = 2;								[[fallthrough]];
 				case 2:		operand_ = inward_data_ >> 48; inward_data_ <<= 16;	break;
+				break;
 			}
 			switch(displacement_size_) {
 				default:	displacement_ = 0;									break;

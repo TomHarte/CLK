@@ -37,10 +37,11 @@ enum class Operation: uint8_t {
 	ADD,
 	/// And; source, destination, operand and displacement will be populated appropriately.
 	AND,
-	/// Far call; followed by a 32-bit operand.
+	/// Far call; see the segment() and offset() fields.
 	CALLF,
 	/// Displacement call; followed by a 16-bit operand providing a call offset.
 	CALLD,
+	/// Near call.
 	CALLN,
 	/// Convert byte into word; source will be AL, destination will be AH.
 	CBW,
@@ -155,6 +156,7 @@ class Instruction {
 		Size operation_size() const 	{	return Size(repetition_size_ >> 2);			}
 
 		uint16_t segment() const		{	return uint16_t(operand_);					}
+		uint16_t offset() const			{	return uint16_t(displacement_);				}
 
 		int16_t displacement() const	{	return displacement_;						}
 		uint16_t operand() const		{	return operand_;							}
