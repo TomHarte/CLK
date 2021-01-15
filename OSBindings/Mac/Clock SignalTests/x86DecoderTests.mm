@@ -10,7 +10,7 @@
 
 #include <initializer_list>
 #include <vector>
-#include "../../../Processors/Decoders/x86/x86.hpp"
+#include "../../../InstructionSets/x86/Decoder.hpp"
 
 namespace {
 	using Operation = CPU::Decoder::x86::Operation;

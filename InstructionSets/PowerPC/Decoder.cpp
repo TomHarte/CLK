@@ -1,12 +1,12 @@
 //
-//  PowerPC.cpp
+//  Decoder.cpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 12/30/20.
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#include "PowerPC.hpp"
+#include "Decoder.hpp"
 
 using namespace CPU::Decoder::PowerPC;
 

@@ -1,29 +1,19 @@
 //
-//  PowerPC.hpp
+//  Instruction.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 12/30/20.
-//  Copyright © 2020 Thomas Harte. All rights reserved.
+//  Created by Thomas Harte on 1/15/21.
+//  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef PowerPC_hpp
-#define PowerPC_hpp
+#ifndef InstructionSets_PowerPC_Instruction_h
+#define InstructionSets_PowerPC_Instruction_h
 
-#include <cstddef>
 #include <cstdint>
 
 namespace CPU {
 namespace Decoder {
 namespace PowerPC {
-
-enum class Model {
-	/// i.e. 32-bit, with POWER carry-over instructions.
-	MPC601,
-	/// i.e. 32-bit, no POWER instructions.
-	MPC603,
-	/// i.e. 64-bit.
-	MPC620,
-};
 
 enum class Operation: uint8_t {
 	Undefined,
@@ -33,7 +23,7 @@ enum class Operation: uint8_t {
 	absx, clcs, divx, divsx, dozx, dozi, lscbxx, maskgx, maskirx, mulx,
 	nabsx, rlmix, rribx, slex, sleqx, sliqx, slliqx, sllqx, slqx,
 	sraiqx, sraqx, srex, sreax, sreqx, sriqx, srliqx, srlqx, srqx,
-	
+
 	// 32- and 64-bit PowerPC instructions.
 	addx, addcx, addex, addi, addic, addic_, addis, addmex, addzex, andx,
 	andcx, andi_, andis_, bx, bcx, bcctrx, bclrx, cmp, cmpi, cmpl, cmpli,
@@ -192,39 +182,11 @@ struct Instruction {
 	uint32_t oe() const	{	return opcode & 0x800;		}
 };
 
+// Sanity check on Instruction size.
 static_assert(sizeof(Instruction) <= 8);
 
-/*!
-	Implements PowerPC instruction decoding.
-
-	This is an experimental implementation; it has not yet undergone significant testing.
-*/
-struct Decoder {
-	public:
-		Decoder(Model model);
-
-		Instruction decode(uint32_t opcode);
-
-	private:
-		Model model_;
-
-		bool is64bit() const {
-			return model_ == Model::MPC620;
-		}
-
-		bool is32bit() const {
-			return !is64bit();
-		}
-
-		bool is601() const {
-			return model_ == Model::MPC601;
-		}
-};
-
 }
 }
 }
 
-#include <stdio.h>
-
-#endif /* PowerPC_hpp */
+#endif /* InstructionSets_PowerPC_Instruction_h */

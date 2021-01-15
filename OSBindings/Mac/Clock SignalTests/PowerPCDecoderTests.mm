@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../Processors/Decoders/PowerPC/PowerPC.hpp"
+#include "../../../InstructionSets/PowerPC/Decoder.hpp"
 
 namespace {
 	using Operation = CPU::Decoder::PowerPC::Operation;
