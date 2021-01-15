@@ -36,8 +36,6 @@ enum class Operation: uint8_t {
 	ADC,
 	/// Add; source, destination, operand and displacement will be populated appropriately.
 	ADD,
-	/// And; source, destination, operand and displacement will be populated appropriately.
-	AND,
 	/// Far call; see the segment() and offset() fields.
 	CALLF,
 	/// Displacement call; followed by a 16-bit operand providing a call offset.
@@ -66,36 +64,83 @@ enum class Operation: uint8_t {
 	DAS,
 	/// Decrement; source, destination, operand and displacement will be populated appropriately.
 	DEC,
+	/// Increment; source, destination, operand and displacement will be populated appropriately.
+	INC,
 	/// Unsigned divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
 	DIV,
 	/// Signed divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
 	IDIV,
 	/// Escape, for a coprocessor; perform the bus cycles necessary to read the source and destination and perform a NOP.
 	ESC,
+	/// Stops the processor until the next interrupt is fired.
 	HLT,
+	/// Unsigned multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
+	MUL,
+	/// Signed multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
 	IMUL,
+	/// Reads from the port specified by source to the destination.
 	IN,
-	INC,
+	/// Writes from the port specified by destination from the source.
+	OUT,
+	/// Generates a software interrupt of the level stated in the operand.
 	INT,
+	/// Generates a software interrupt of level 3.
 	INT3,
+	/// Generates a software interrupt of level 4 if overflow is set.
 	INTO,
-	IRET,
 
 	// Various jumps; see the displacement to calculate targets.
 	JO,	JNO,	JB, JNB,	JE, JNE,	JBE, JNBE,
 	JS, JNS,	JP, JNP,	JL, JNL,	JLE, JNLE,
 
+	/// Near jump; if an operand is not ::None then it gives an absolute destination; otherwise see the displacement.
 	JMPN,
+	/// Far jump to the indicated segment and offset.
 	JMPF,
-	JCXZ,
-	LAHF, LDS, LEA,
-	LODS, LOOPE, LOOPNE, MOV, MOVS, MUL, NEG, NOP, NOT, OR, OUT,
-	POP, POPF, PUSH, PUSHF, RCL, RCR, REP, ROL, ROR, SAHF,
-	SAR, SBB, SCAS, SAL, SHR, STC, STD, STI, STOS, SUB, TEST,
-	WAIT, XCHG, XLAT, XOR,
-	LES, LOOP, JPCX,
+	/// Relative jump performed only if CX = 0; see the displacement.
+	JPCX,
+	/// Load status flags to AH.
+	LAHF,
+	/// Load status flags from AH.
+	SAHF,
+	/// Load a segment and offset from the source into DS and the destination.
+	LDS,
+	/// Computes the effective address of the source and loads it into the destination.
+	LEA,
+	/// Load string; reads from DS:SI into AL or AX, subject to segment override.
+	LODS,
+	/// Move string; moves a byte or word from DS:SI to ES:DI. If a segment override is provided, it overrides the the source.
+	MOVS,
 
+	// Perform a possibly-conditional loop, decrementing CX. See the displacement.
+	LOOP, LOOPE, LOOPNE,
+
+	/// Loads the destination with the source.
+	MOV,
+	/// Negatives; source and destination point to the same thing, to negative.
+	NEG,
+	/// Logical NOT;  source and destination point to the same thing, to negative.
+	NOT,
+	/// Logical AND; source, destination, operand and displacement will be populated appropriately.
+	AND,
+	/// Logical OR of source onto destination.
+	OR,
+	/// Logical XOR of source onto destination.
+	XOR,
+	/// NOP; no further fields.
+	NOP,
+
+	POP, POPF, PUSH, PUSHF, RCL, RCR, REP,
+	ROL, ROR,
+	SAR, SBB, SCAS, SAL, SHR, STC, STD, STI, STOS, SUB, TEST,
+	WAIT, XCHG, XLAT,
+	LES,
+
+	/// Return from interrupt.
+	IRET,
+	/// Near return; if source is not ::None then it will be an ::Immediate indicating how many additional bytes to remove from the stack.
 	RETF,
+	/// Far return; if source is not ::None then it will be an ::Immediate indicating how many additional bytes to remove from the stack.
 	RETN,
 };
 

@@ -376,7 +376,7 @@ std::pair<int, CPU::Decoder::x86::Instruction> Decoder::decode(const uint8_t *so
 			case 3:
 				memreg = reg_table[operation_size_][rm];
 
-				// LES and LDS accept a real memory argument only.
+				// LES and LDS accept a memory argument only, not a register.
 				if(operation_ == Operation::LES || operation_ == Operation::LDS) {
 					const auto result = std::make_pair(consumed_, Instruction());
 					reset_parsing();
