@@ -98,18 +98,18 @@ std::pair<int, CPU::Decoder::x86::Instruction> Decoder::decode(const uint8_t *so
 
 			PartialBlock(0x00, ADD);					break;
 			case 0x06: Complete(PUSH, ES, None, 2);		break;
-			case 0x07: Complete(POP, ES, None, 2);		break;
+			case 0x07: Complete(POP, None, ES, 2);		break;
 
 			PartialBlock(0x08, OR);						break;
 			case 0x0e: Complete(PUSH, CS, None, 2);		break;
 
 			PartialBlock(0x10, ADC);					break;
 			case 0x16: Complete(PUSH, SS, None, 2);		break;
-			case 0x17: Complete(POP, SS, None, 2);		break;
+			case 0x17: Complete(POP, None, SS, 2);		break;
 
 			PartialBlock(0x18, SBB);					break;
 			case 0x1e: Complete(PUSH, DS, None, 2);		break;
-			case 0x1f: Complete(POP, DS, None, 2);		break;
+			case 0x1f: Complete(POP, None, DS, 2);		break;
 
 			PartialBlock(0x20, AND);					break;
 			case 0x26: segment_override_ = Source::ES;	break;

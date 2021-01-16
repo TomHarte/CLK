@@ -32,24 +32,9 @@ enum class Operation: uint8_t {
 	AAM,
 	/// ASCII adjust after subtraction; source will be AL and destination will be AX.
 	AAS,
-	/// Add with carry; source, destination, operand and displacement will be populated appropriately.
-	ADC,
-	/// Add; source, destination, operand and displacement will be populated appropriately.
-	ADD,
-	/// Far call; see the segment() and offset() fields.
-	CALLF,
-	/// Displacement call; followed by a 16-bit operand providing a call offset.
-	CALLD,
-	/// Near call.
-	CALLN,
+
 	/// Convert byte into word; source will be AL, destination will be AH.
 	CBW,
-	/// Clear carry flag; no source or destination provided.
-	CLC,
-	/// Clear direction flag; no source or destination provided.
-	CLD,
-	/// Clear interrupt flag; no source or destination provided.
-	CLI,
 	/// Complement carry flag; no source or destination provided.
 	CMC,
 	/// Compare; source, destination, operand and displacement will be populated appropriately.
@@ -66,22 +51,61 @@ enum class Operation: uint8_t {
 	DEC,
 	/// Increment; source, destination, operand and displacement will be populated appropriately.
 	INC,
-	/// Unsigned divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
-	DIV,
-	/// Signed divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
-	IDIV,
 	/// Escape, for a coprocessor; perform the bus cycles necessary to read the source and destination and perform a NOP.
 	ESC,
+
 	/// Stops the processor until the next interrupt is fired.
 	HLT,
+	/// Waits until the WAIT input is asserted; if an interrupt occurs then it is serviced but returns to the WAIT.
+	WAIT,
+
+
+	/// Add with carry; source, destination, operand and displacement will be populated appropriately.
+	ADC,
+	/// Add; source, destination, operand and displacement will be populated appropriately.
+	ADD,
+	/// Subtract with borrow; source, destination, operand and displacement will be populated appropriately.
+	SBB,
+	/// Subtract; source, destination, operand and displacement will be populated appropriately.
+	SUB,
 	/// Unsigned multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
 	MUL,
 	/// Signed multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
 	IMUL,
+	/// Unsigned divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
+	DIV,
+	/// Signed divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
+	IDIV,
+
+
 	/// Reads from the port specified by source to the destination.
 	IN,
 	/// Writes from the port specified by destination from the source.
 	OUT,
+
+
+	// Various jumps; see the displacement to calculate targets.
+	JO,	JNO,	JB, JNB,	JE, JNE,	JBE, JNBE,
+	JS, JNS,	JP, JNP,	JL, JNL,	JLE, JNLE,
+
+	/// Far call; see the segment() and offset() fields.
+	CALLF,
+	/// Displacement call; followed by a 16-bit operand providing a call offset.
+	CALLD,
+	/// Near call.
+	CALLN,
+	/// Return from interrupt.
+	IRET,
+	/// Near return; if source is not ::None then it will be an ::Immediate indicating how many additional bytes to remove from the stack.
+	RETF,
+	/// Far return; if source is not ::None then it will be an ::Immediate indicating how many additional bytes to remove from the stack.
+	RETN,
+	/// Near jump; if an operand is not ::None then it gives an absolute destination; otherwise see the displacement.
+	JMPN,
+	/// Far jump to the indicated segment and offset.
+	JMPF,
+	/// Relative jump performed only if CX = 0; see the displacement.
+	JPCX,
 	/// Generates a software interrupt of the level stated in the operand.
 	INT,
 	/// Generates a software interrupt of level 3.
@@ -89,28 +113,25 @@ enum class Operation: uint8_t {
 	/// Generates a software interrupt of level 4 if overflow is set.
 	INTO,
 
-	// Various jumps; see the displacement to calculate targets.
-	JO,	JNO,	JB, JNB,	JE, JNE,	JBE, JNBE,
-	JS, JNS,	JP, JNP,	JL, JNL,	JLE, JNLE,
-
-	/// Near jump; if an operand is not ::None then it gives an absolute destination; otherwise see the displacement.
-	JMPN,
-	/// Far jump to the indicated segment and offset.
-	JMPF,
-	/// Relative jump performed only if CX = 0; see the displacement.
-	JPCX,
 	/// Load status flags to AH.
 	LAHF,
 	/// Load status flags from AH.
 	SAHF,
 	/// Load a segment and offset from the source into DS and the destination.
 	LDS,
+	/// Load a segment and offset from the source into ES and the destination.
+	LES,
 	/// Computes the effective address of the source and loads it into the destination.
 	LEA,
+
 	/// Load string; reads from DS:SI into AL or AX, subject to segment override.
 	LODS,
 	/// Move string; moves a byte or word from DS:SI to ES:DI. If a segment override is provided, it overrides the the source.
 	MOVS,
+	/// Scan string; reads a byte or word from DS:SI and compares it to AL or AX.
+	SCAS,
+	/// Store string; store AL or AX to ES:DI.
+	STOS,
 
 	// Perform a possibly-conditional loop, decrementing CX. See the displacement.
 	LOOP, LOOPE, LOOPNE,
@@ -129,19 +150,50 @@ enum class Operation: uint8_t {
 	XOR,
 	/// NOP; no further fields.
 	NOP,
+	/// POP from the stack to destination.
+	POP,
+	/// POP from the stack to the flags register.
+	POPF,
+	/// PUSH the source to the stack.
+	PUSH,
+	/// PUSH the flags register to the stack.
+	PUSHF,
+	/// Rotate the destination left through carry the number of bits indicated by source.
+	RCL,
+	/// Rotate the destination right through carry the number of bits indicated by source.
+	RCR,
+	/// Rotate the destination left the number of bits indicated by source.
+	ROL,
+	/// Rotate the destination right the number of bits indicated by source.
+	ROR,
+	/// Arithmetic shift left the destination by the number of bits indicated by source.
+	SAL,
+	/// Arithmetic shift right the destination by the number of bits indicated by source.
+	SAR,
+	/// Logical shift right the destination by the number of bits indicated by source.
+	SHR,
 
-	POP, POPF, PUSH, PUSHF, RCL, RCR, REP,
-	ROL, ROR,
-	SAR, SBB, SCAS, SAL, SHR, STC, STD, STI, STOS, SUB, TEST,
-	WAIT, XCHG, XLAT,
-	LES,
+	/// Clear carry flag; no source or destination provided.
+	CLC,
+	/// Clear direction flag; no source or destination provided.
+	CLD,
+	/// Clear interrupt flag; no source or destination provided.
+	CLI,
+	/// Set carry flag.
+	STC,
+	/// Set decimal flag.
+	STD,
+	/// Set interrupt flag.
+	STI,
 
-	/// Return from interrupt.
-	IRET,
-	/// Near return; if source is not ::None then it will be an ::Immediate indicating how many additional bytes to remove from the stack.
-	RETF,
-	/// Far return; if source is not ::None then it will be an ::Immediate indicating how many additional bytes to remove from the stack.
-	RETN,
+	/// Compares source and destination.
+	TEST,
+
+	/// Exchanges the contents of the source and destination.
+	XCHG,
+
+	/// Load AL with DS:[AL+BX].
+	XLAT,
 };
 
 enum class Size: uint8_t {
