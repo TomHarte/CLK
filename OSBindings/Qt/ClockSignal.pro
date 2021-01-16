@@ -67,6 +67,10 @@ SOURCES += \
 \
 	$$SRC/Inputs/*.cpp \
 \
+	$$SRC/InstructionSets/M50740/*.cpp \
+	$$SRC/InstructionSets/PowerPC/*.cpp \
+	$$SRC/InstructionSets/x86/*.cpp \
+\
 	$$SRC/Machines/*.cpp \
 	$$SRC/Machines/AmstradCPC/*.cpp \
 	$$SRC/Machines/Apple/AppleII/*.cpp \
@@ -186,6 +190,10 @@ HEADERS += \
 \
 	$$SRC/Inputs/*.hpp \
 	$$SRC/Inputs/QuadratureMouse/*.hpp \
+\
+	$$SRC/InstructionSets/M50740/*.hpp \
+	$$SRC/InstructionSets/PowerPC/*.hpp \
+	$$SRC/InstructionSets/x86/*.hpp \
 \
 	$$SRC/Machines/*.hpp \
 	$$SRC/Machines/AmstradCPC/*.hpp \
