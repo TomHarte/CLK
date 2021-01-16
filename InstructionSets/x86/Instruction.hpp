@@ -32,25 +32,16 @@ enum class Operation: uint8_t {
 	AAM,
 	/// ASCII adjust after subtraction; source will be AL and destination will be AX.
 	AAS,
-
-	/// Convert byte into word; source will be AL, destination will be AH.
-	CBW,
-	/// Complement carry flag; no source or destination provided.
-	CMC,
-	/// Compare; source, destination, operand and displacement will be populated appropriately.
-	CMP,
-	/// Compare [bytes or words, per operation size]; source and destination implied to be DS:[SI] and ES:[DI].
-	CMPS,
-	/// Convert word to double word; source will be AX and destination will be DX.
-	CWD,
 	/// Decimal adjust after addition; source and destination will be AL.
 	DAA,
 	/// Decimal adjust after subtraction; source and destination will be AL.
 	DAS,
-	/// Decrement; source, destination, operand and displacement will be populated appropriately.
-	DEC,
-	/// Increment; source, destination, operand and displacement will be populated appropriately.
-	INC,
+
+	/// Convert byte into word; source will be AL, destination will be AH.
+	CBW,
+	/// Convert word to double word; source will be AX and destination will be DX.
+	CWD,
+
 	/// Escape, for a coprocessor; perform the bus cycles necessary to read the source and destination and perform a NOP.
 	ESC,
 
@@ -58,7 +49,6 @@ enum class Operation: uint8_t {
 	HLT,
 	/// Waits until the WAIT input is asserted; if an interrupt occurs then it is serviced but returns to the WAIT.
 	WAIT,
-
 
 	/// Add with carry; source, destination, operand and displacement will be populated appropriately.
 	ADC,
@@ -77,12 +67,15 @@ enum class Operation: uint8_t {
 	/// Signed divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
 	IDIV,
 
+	/// Increment; source, destination, operand and displacement will be populated appropriately.
+	INC,
+	/// Decrement; source, destination, operand and displacement will be populated appropriately.
+	DEC,
 
 	/// Reads from the port specified by source to the destination.
 	IN,
 	/// Writes from the port specified by destination from the source.
 	OUT,
-
 
 	// Various jumps; see the displacement to calculate targets.
 	JO,	JNO,	JB, JNB,	JE, JNE,	JBE, JNBE,
@@ -124,6 +117,8 @@ enum class Operation: uint8_t {
 	/// Computes the effective address of the source and loads it into the destination.
 	LEA,
 
+	/// Compare [bytes or words, per operation size]; source and destination implied to be DS:[SI] and ES:[DI].
+	CMPS,
 	/// Load string; reads from DS:SI into AL or AX, subject to segment override.
 	LODS,
 	/// Move string; moves a byte or word from DS:SI to ES:DI. If a segment override is provided, it overrides the the source.
@@ -185,8 +180,12 @@ enum class Operation: uint8_t {
 	STD,
 	/// Set interrupt flag.
 	STI,
+	/// Complement carry flag; no source or destination provided.
+	CMC,
 
-	/// Compares source and destination.
+	/// Compare; source, destination, operand and displacement will be populated appropriately.
+	CMP,
+	/// Sets flags based on the result of a logical AND of source and destination.
 	TEST,
 
 	/// Exchanges the contents of the source and destination.
