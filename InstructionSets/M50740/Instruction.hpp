@@ -15,20 +15,12 @@ namespace InstructionSet {
 namespace M50740 {
 
 enum class AddressingMode {
-	Implied,
-	Accumulator,
-	Immediate,
-	Absolute,
-	AbsoluteX,
-	AbsoluteY,
-	ZeroPage,
-	ZeroPageX,
-	ZeroPageY,
-	XIndirect,
-	IndirectY,
+	Implied,			Accumulator,			Immediate,
+	Absolute,			AbsoluteX,				AbsoluteY,
+	ZeroPage,			ZeroPageX,				ZeroPageY,
+	XIndirect,			IndirectY,
 	Relative,
-	AbsoluteIndirect,
-	ZeroPageIndirect,
+	AbsoluteIndirect,	ZeroPageIndirect,
 	SpecialPage,
 	ImmediateZeroPage,
 
@@ -44,6 +36,29 @@ enum class AddressingMode {
 	Bit0ZeroPageRelative,		Bit1ZeroPageRelative,		Bit2ZeroPageRelative,		Bit3ZeroPageRelative,
 	Bit4ZeroPageRelative,		Bit5ZeroPageRelative,		Bit6ZeroPageRelative,		Bit7ZeroPageRelative,
 };
+
+inline int size(AddressingMode mode) {
+	// This is coupled to the AddressingMode list above; be careful!
+	constexpr int sizes[] = {
+		0, 0, 0,
+		2, 2, 2,
+		1, 1, 1,
+		1, 1,
+		1,
+		2, 1,
+		1,
+		2,
+		0,	0,	0,	0,
+		0,	0,	0,	0,
+		1,	1,	1,	1,
+		1,	1,	1,	1,
+		1,	1,	1,	1,
+		1,	1,	1,	1,
+		2,	2,	2,	2,
+		2,	2,	2,	2,
+	};
+	return sizes[int(mode)];
+}
 
 enum class Operation: uint8_t {
 	Invalid,

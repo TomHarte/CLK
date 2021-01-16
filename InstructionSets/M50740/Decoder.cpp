@@ -8,6 +8,8 @@
 
 #include "Decoder.hpp"
 
+#include <algorithm>
+
 namespace InstructionSet {
 namespace M50740 {
 
@@ -21,6 +23,7 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 
 		switch(instruction) {
 			default:
+				consumed_ = 0;
 			return std::make_pair(1, Instruction());
 
 #define Map(opcode, operation, addressing_mode)	case opcode: instr_ = Instruction(Operation::operation, AddressingMode::addressing_mode); break
@@ -236,11 +239,31 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 #undef Map
 		}
 
-		// TODO: can I build these into the AddressingMode constants, to avoid the switch?
-		switch(instr_.addressing_mode) {
-			default: operand_size_ = 0; break;
-		}
+		operand_size_ = size(instr_.addressing_mode);
+		phase_ = operand_size_ ? Phase::AwaitingOperand : Phase::ReadyToPost;
+		operand_bytes_ = 0;
+	}
 
+	if(phase_ == Phase::AwaitingOperand && source != end) {
+		const int outstanding_bytes = operand_size_ - operand_bytes_;
+		const int bytes_to_consume = std::min(int(end - source), outstanding_bytes);
+
+		consumed_ += bytes_to_consume;
+		source += bytes_to_consume;
+		operand_bytes_ += bytes_to_consume;
+
+		if(operand_size_ == operand_bytes_) {
+			phase_ = Phase::ReadyToPost;
+		} else {
+			return std::make_pair(-(operand_size_ - operand_bytes_), Instruction());
+		}
+	}
+
+	if(phase_ == Phase::ReadyToPost) {
+		const auto result = std::make_pair(consumed_, instr_);
+		consumed_ = 0;
+		phase_ = Phase::Instruction;
+		return result;
 	}
 
 	return std::make_pair(0, Instruction());
