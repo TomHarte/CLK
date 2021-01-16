@@ -235,6 +235,12 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 
 #undef Map
 		}
+
+		// TODO: can I build these into the AddressingMode constants, to avoid the switch?
+		switch(instr_.addressing_mode) {
+			default: operand_size_ = 0; break;
+		}
+
 	}
 
 	return std::make_pair(0, Instruction());

@@ -11,6 +11,7 @@
 
 #include "Instruction.hpp"
 
+#include <cstddef>
 #include <utility>
 
 namespace InstructionSet {
