@@ -11,8 +11,7 @@
 
 #include <cstdint>
 
-namespace CPU {
-namespace Decoder {
+namespace InstructionSet {
 namespace x86 {
 
 /*
@@ -298,7 +297,6 @@ class Instruction {
 
 static_assert(sizeof(Instruction) <= 8);
 
-}
 }
 }
 

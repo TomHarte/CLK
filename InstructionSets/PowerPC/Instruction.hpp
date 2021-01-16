@@ -11,8 +11,7 @@
 
 #include <cstdint>
 
-namespace CPU {
-namespace Decoder {
+namespace InstructionSet {
 namespace PowerPC {
 
 enum class Operation: uint8_t {
@@ -185,7 +184,6 @@ struct Instruction {
 // Sanity check on Instruction size.
 static_assert(sizeof(Instruction) <= 8);
 
-}
 }
 }
 

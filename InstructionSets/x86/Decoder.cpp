@@ -12,12 +12,12 @@
 #include <cassert>
 #include <utility>
 
-using namespace CPU::Decoder::x86;
+using namespace InstructionSet::x86;
 
 // Only 8086 is suppoted for now.
 Decoder::Decoder(Model) {}
 
-std::pair<int, CPU::Decoder::x86::Instruction> Decoder::decode(const uint8_t *source, size_t length) {
+std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *source, size_t length) {
 	const uint8_t *const end = source + length;
 
 	// MARK: - Prefixes (if present) and the opcode.

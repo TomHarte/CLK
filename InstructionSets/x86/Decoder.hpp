@@ -13,8 +13,7 @@
 
 #include <utility>
 
-namespace CPU {
-namespace Decoder {
+namespace InstructionSet {
 namespace x86 {
 
 enum class Model {
@@ -26,7 +25,7 @@ enum class Model {
 
 	This is an experimental implementation; it has not yet undergone significant testing.
 */
-struct Decoder {
+class Decoder {
 	public:
 		Decoder(Model model);
 
@@ -149,7 +148,6 @@ struct Decoder {
 		}
 };
 
-}
 }
 }
 

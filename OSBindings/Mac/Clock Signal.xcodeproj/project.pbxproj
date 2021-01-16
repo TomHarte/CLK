@@ -928,6 +928,9 @@
 		4BEDA3BF25B25563000C2DBD /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA3B925B25563000C2DBD /* Decoder.cpp */; };
 		4BEDA3C025B25563000C2DBD /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA3B925B25563000C2DBD /* Decoder.cpp */; };
 		4BEDA3C125B25563000C2DBD /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA3B925B25563000C2DBD /* Decoder.cpp */; };
+		4BEDA40C25B2844B000C2DBD /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA40B25B2844B000C2DBD /* Decoder.cpp */; };
+		4BEDA40D25B2844B000C2DBD /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA40B25B2844B000C2DBD /* Decoder.cpp */; };
+		4BEDA40E25B2844B000C2DBD /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA40B25B2844B000C2DBD /* Decoder.cpp */; };
 		4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6A1D72496600532C7B /* Cartridge.cpp */; };
 		4BEE0A701D72496600532C7B /* PRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6D1D72496600532C7B /* PRG.cpp */; };
 		4BEE149A227FC0EA00133682 /* IWM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE1498227FC0EA00133682 /* IWM.cpp */; };
@@ -1934,6 +1937,9 @@
 		4BEDA3B925B25563000C2DBD /* Decoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Decoder.cpp; sourceTree = "<group>"; };
 		4BEDA3D225B257F2000C2DBD /* Instruction.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Instruction.hpp; sourceTree = "<group>"; };
 		4BEDA3DB25B2588F000C2DBD /* Instruction.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Instruction.hpp; sourceTree = "<group>"; };
+		4BEDA40A25B2844B000C2DBD /* Decoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Decoder.hpp; sourceTree = "<group>"; };
+		4BEDA40B25B2844B000C2DBD /* Decoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Decoder.cpp; sourceTree = "<group>"; };
+		4BEDA41725B2845D000C2DBD /* Instruction.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Instruction.hpp; sourceTree = "<group>"; };
 		4BEE0A6A1D72496600532C7B /* Cartridge.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cartridge.cpp; sourceTree = "<group>"; };
 		4BEE0A6B1D72496600532C7B /* Cartridge.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4BEE0A6D1D72496600532C7B /* PRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PRG.cpp; sourceTree = "<group>"; };
@@ -4353,6 +4359,7 @@
 			isa = PBXGroup;
 			children = (
 				4BEDA3B625B25563000C2DBD /* README.md */,
+				4BEDA40925B2844B000C2DBD /* M50740 */,
 				4BEDA3B325B25563000C2DBD /* PowerPC */,
 				4BEDA3B725B25563000C2DBD /* x86 */,
 			);
@@ -4378,6 +4385,16 @@
 				4BEDA3DB25B2588F000C2DBD /* Instruction.hpp */,
 			);
 			path = x86;
+			sourceTree = "<group>";
+		};
+		4BEDA40925B2844B000C2DBD /* M50740 */ = {
+			isa = PBXGroup;
+			children = (
+				4BEDA40B25B2844B000C2DBD /* Decoder.cpp */,
+				4BEDA40A25B2844B000C2DBD /* Decoder.hpp */,
+				4BEDA41725B2845D000C2DBD /* Instruction.hpp */,
+			);
+			path = M50740;
 			sourceTree = "<group>";
 		};
 		4BEE0A691D72496600532C7B /* Cartridge */ = {
@@ -5127,6 +5144,7 @@
 				4B055A941FAE85B50060FFFF /* CommodoreROM.cpp in Sources */,
 				4BBB70A5202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
 				4B8318BC22D3E588006DB630 /* DisplayMetrics.cpp in Sources */,
+				4BEDA40E25B2844B000C2DBD /* Decoder.cpp in Sources */,
 				4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */,
 				4BE0A3EF237BB170002AB46F /* ST.cpp in Sources */,
 				4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */,
@@ -5231,6 +5249,7 @@
 				4B2BF19623E10F0100C3AD60 /* CSHighPrecisionTimer.m in Sources */,
 				4BE211FF253FC80900435408 /* StaticAnalyser.cpp in Sources */,
 				4B8334951F5E25B60097E338 /* C1540.cpp in Sources */,
+				4BEDA40C25B2844B000C2DBD /* Decoder.cpp in Sources */,
 				4B89453C201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */,
 				4B1497921EE4B5A800CE2596 /* ZX8081.cpp in Sources */,
@@ -5557,6 +5576,7 @@
 				4B778F2B23A5EF0F0000D260 /* Commodore.cpp in Sources */,
 				4B778F3F23A5F1890000D260 /* MacintoshDoubleDensityDrive.cpp in Sources */,
 				4B778F1623A5ECA00000D260 /* Z80AllRAM.cpp in Sources */,
+				4BEDA40D25B2844B000C2DBD /* Decoder.cpp in Sources */,
 				4B778EF723A5EB670000D260 /* SSD.cpp in Sources */,
 				4B778F5723A5F2BB0000D260 /* ZX8081.cpp in Sources */,
 				4B778F2F23A5F0B10000D260 /* ScanTarget.cpp in Sources */,

@@ -13,10 +13,10 @@
 #include "../../../InstructionSets/x86/Decoder.hpp"
 
 namespace {
-	using Operation = CPU::Decoder::x86::Operation;
-	using Instruction = CPU::Decoder::x86::Instruction;
-	using Source = CPU::Decoder::x86::Source;
-	using Size = CPU::Decoder::x86::Size;
+	using Operation = InstructionSet::x86::Operation;
+	using Instruction = InstructionSet::x86::Instruction;
+	using Source = InstructionSet::x86::Source;
+	using Size = InstructionSet::x86::Size;
 }
 
 @interface x86DecoderTests : XCTestCase
@@ -39,12 +39,12 @@ namespace {
 
 - (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size {
 	XCTAssertEqual(instruction.operation, operation);
-	XCTAssertEqual(instruction.operation_size(), CPU::Decoder::x86::Size(size));
+	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
 }
 
 - (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(Source)source destination:(Source)destination displacement:(int16_t)displacement {
 	XCTAssertEqual(instruction.operation, operation);
-	XCTAssertEqual(instruction.operation_size(), CPU::Decoder::x86::Size(size));
+	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
 	XCTAssertEqual(instruction.source(), source);
 	XCTAssertEqual(instruction.destination(), destination);
 	XCTAssertEqual(instruction.displacement(), displacement);
@@ -65,19 +65,17 @@ namespace {
 
 - (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(Source)source {
 	XCTAssertEqual(instruction.operation, operation);
-	XCTAssertEqual(instruction.operation_size(), CPU::Decoder::x86::Size(size));
+	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
 	XCTAssertEqual(instruction.source(), source);
 }
 
 - (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size destination:(Source)destination {
-	XCTAssertEqual(instruction.operation, operation);
-	XCTAssertEqual(instruction.operation_size(), CPU::Decoder::x86::Size(size));
+	[self assert:instruction operation:operation size:size];
 	XCTAssertEqual(instruction.destination(), destination);
 }
 
 - (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size operand:(uint16_t)operand destination:(Source)destination {
-	XCTAssertEqual(instruction.operation, operation);
-	XCTAssertEqual(instruction.operation_size(), CPU::Decoder::x86::Size(size));
+	[self assert:instruction operation:operation size:size];
 	XCTAssertEqual(instruction.destination(), destination);
 	XCTAssertEqual(instruction.source(), Source::Immediate);
 	XCTAssertEqual(instruction.operand(), operand);
@@ -105,7 +103,7 @@ namespace {
 
 - (void)decode:(const std::initializer_list<uint8_t> &)stream {
 	// Decode by offering up all data at once.
-	CPU::Decoder::x86::Decoder decoder(CPU::Decoder::x86::Model::i8086);
+	InstructionSet::x86::Decoder decoder(InstructionSet::x86::Model::i8086);
 	instructions.clear();
 	const uint8_t *byte = stream.begin();
 	while(byte != stream.end()) {
@@ -117,7 +115,7 @@ namespace {
 
 	// Grab a byte-at-a-time decoding and check that it matches the previous.
 	{
-		CPU::Decoder::x86::Decoder decoder(CPU::Decoder::x86::Model::i8086);
+		InstructionSet::x86::Decoder decoder(InstructionSet::x86::Model::i8086);
 
 		auto previous_instruction = instructions.begin();
 		for(auto item: stream) {

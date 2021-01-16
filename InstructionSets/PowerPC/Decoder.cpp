@@ -8,7 +8,7 @@
 
 #include "Decoder.hpp"
 
-using namespace CPU::Decoder::PowerPC;
+using namespace InstructionSet::PowerPC;
 
 Decoder::Decoder(Model model) : model_(model) {}
 

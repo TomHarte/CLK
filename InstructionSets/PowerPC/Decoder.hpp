@@ -11,8 +11,7 @@
 
 #include "Instruction.hpp"
 
-namespace CPU {
-namespace Decoder {
+namespace InstructionSet {
 namespace PowerPC {
 
 enum class Model {
@@ -51,7 +50,6 @@ struct Decoder {
 		}
 };
 
-}
 }
 }
 
