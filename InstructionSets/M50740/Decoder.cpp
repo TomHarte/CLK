@@ -76,6 +76,58 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 			Map(0x3c, LDM, ImmediateZeroPage);			Map(0x3d, AND, AbsoluteX);
 			Map(0x3e, ROL, AbsoluteX);					Map(0x3f, CLB, Bit1ZeroPage);
 
+			/* 0x40 – 0x4f */
+			Map(0x40, RTI, Implied);					Map(0x41, EOR, XIndirect);
+			Map(0x42, STP, Implied);					Map(0x43, BBS, Bit2AccumulatorRelative);
+
+			Map(0x44, COM, ZeroPage);					Map(0x45, EOR, ZeroPage);
+			Map(0x46, LSR, ZeroPage);					Map(0x47, BBS, Bit2ZeroPageRelative);
+
+			Map(0x48, PHA, Implied);					Map(0x49, EOR, Immediate);
+			Map(0x4a, LSR, Accumulator);				Map(0x4b, SEB, Bit2Accumulator);
+
+			Map(0x4c, JMP, Absolute);					Map(0x4d, EOR, Absolute);
+			Map(0x4e, LSR, Absolute);					Map(0x4f, SEB, Bit2ZeroPage);
+
+			/* 0x50 – 0x5f */
+			Map(0x50, BVC, Relative);					Map(0x51, EOR, IndirectY);
+														Map(0x53, BBC, Bit2AccumulatorRelative);
+
+														Map(0x55, EOR, ZeroPageX);
+			Map(0x56, LSR, ZeroPageX);					Map(0x57, BBC, Bit2ZeroPageRelative);
+
+			Map(0x58, CLI, Implied);					Map(0x59, EOR, AbsoluteY);
+														Map(0x5b, CLB, Bit2Accumulator);
+
+														Map(0x5d, EOR, AbsoluteX);
+			Map(0x5e, LSR, AbsoluteX);					Map(0x5f, CLB, Bit2ZeroPage);
+
+			/* 0x60 – 0x6f */
+			Map(0x60, RTS, Implied);					Map(0x61, ADC, XIndirect);
+														Map(0x63, BBS, Bit3AccumulatorRelative);
+
+			Map(0x64, TST, ZeroPage);					Map(0x65, ADC, ZeroPage);
+			Map(0x66, ROR, ZeroPage);					Map(0x67, BBS, Bit3ZeroPageRelative);
+
+			Map(0x68, PLA, Implied);					Map(0x69, ADC, Immediate);
+			Map(0x6a, ROR, Accumulator);				Map(0x6b, SEB, Bit3Accumulator);
+
+			Map(0x6c, JMP, AbsoluteIndirect);			Map(0x6d, ADC, Absolute);
+			Map(0x6e, ROR, Absolute);					Map(0x6f, SEB, Bit3ZeroPage);
+
+			/* 0x70 – 0x7f */
+			Map(0x70, BVS, Relative);					Map(0x71, ADC, IndirectY);
+														Map(0x73, BBC, Bit3AccumulatorRelative);
+
+														Map(0x75, ADC, ZeroPageX);
+			Map(0x76, ROR, ZeroPageX);					Map(0x77, BBC, Bit3ZeroPageRelative);
+
+			Map(0x78, SEI, Implied);					Map(0x79, ADC, AbsoluteY);
+														Map(0x7b, CLB, Bit3Accumulator);
+
+														Map(0x7d, ADC, AbsoluteX);
+			Map(0x7e, ROR, AbsoluteX);					Map(0x7f, CLB, Bit3ZeroPage);
+
 #undef Map
 		}
 	}
