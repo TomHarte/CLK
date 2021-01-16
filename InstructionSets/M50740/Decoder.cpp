@@ -24,7 +24,8 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 			return std::make_pair(1, Instruction());
 
 #define Map(opcode, operation, addressing_mode)	case opcode: instr_ = Instruction(Operation::operation, AddressingMode::addressing_mode); break
-			/* 0x00 – 0x0f */
+
+		/* 0x00 – 0x0f */
 			Map(0x00, BRK, Implied);					Map(0x01, ORA, XIndirect);
 			Map(0x02, JSR, ZeroPageIndirect);			Map(0x03, BBS, Bit0AccumulatorRelative);
 
@@ -37,7 +38,7 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 														Map(0x0d, ORA, Absolute);
 			Map(0x0e, ASL, Absolute);					Map(0x0f, SEB, Bit0ZeroPage);
 
-			/* 0x10 – 0x1f */
+		/* 0x10 – 0x1f */
 			Map(0x10, BPL, Relative);					Map(0x11, ORA, IndirectY);
 			Map(0x12, CLT, Implied);					Map(0x13, BBC, Bit0AccumulatorRelative);
 
@@ -50,7 +51,7 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 														Map(0x1d, ORA, AbsoluteX);
 			Map(0x1e, ASL, AbsoluteX);					Map(0x1f, CLB, Bit0ZeroPage);
 
-			/* 0x20 – 0x2f */
+		/* 0x20 – 0x2f */
 			Map(0x20, JSR, Absolute);					Map(0x21, AND, XIndirect);
 			Map(0x22, JSR, SpecialPage);				Map(0x23, BBS, Bit1AccumulatorRelative);
 
@@ -63,7 +64,7 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 			Map(0x2c, BIT, Absolute);					Map(0x2d, AND, Absolute);
 			Map(0x2e, ROL, Absolute);					Map(0x2f, SEB, Bit1ZeroPage);
 
-			/* 0x30 – 0x3f */
+		/* 0x30 – 0x3f */
 			Map(0x30, BMI, Relative);					Map(0x31, AND, IndirectY);
 			Map(0x32, SET, Implied);					Map(0x33, BBC, Bit1AccumulatorRelative);
 
@@ -76,7 +77,7 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 			Map(0x3c, LDM, ImmediateZeroPage);			Map(0x3d, AND, AbsoluteX);
 			Map(0x3e, ROL, AbsoluteX);					Map(0x3f, CLB, Bit1ZeroPage);
 
-			/* 0x40 – 0x4f */
+		/* 0x40 – 0x4f */
 			Map(0x40, RTI, Implied);					Map(0x41, EOR, XIndirect);
 			Map(0x42, STP, Implied);					Map(0x43, BBS, Bit2AccumulatorRelative);
 
@@ -89,7 +90,7 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 			Map(0x4c, JMP, Absolute);					Map(0x4d, EOR, Absolute);
 			Map(0x4e, LSR, Absolute);					Map(0x4f, SEB, Bit2ZeroPage);
 
-			/* 0x50 – 0x5f */
+		/* 0x50 – 0x5f */
 			Map(0x50, BVC, Relative);					Map(0x51, EOR, IndirectY);
 														Map(0x53, BBC, Bit2AccumulatorRelative);
 
@@ -102,7 +103,7 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 														Map(0x5d, EOR, AbsoluteX);
 			Map(0x5e, LSR, AbsoluteX);					Map(0x5f, CLB, Bit2ZeroPage);
 
-			/* 0x60 – 0x6f */
+		/* 0x60 – 0x6f */
 			Map(0x60, RTS, Implied);					Map(0x61, ADC, XIndirect);
 														Map(0x63, BBS, Bit3AccumulatorRelative);
 
@@ -115,7 +116,7 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 			Map(0x6c, JMP, AbsoluteIndirect);			Map(0x6d, ADC, Absolute);
 			Map(0x6e, ROR, Absolute);					Map(0x6f, SEB, Bit3ZeroPage);
 
-			/* 0x70 – 0x7f */
+		/* 0x70 – 0x7f */
 			Map(0x70, BVS, Relative);					Map(0x71, ADC, IndirectY);
 														Map(0x73, BBC, Bit3AccumulatorRelative);
 
@@ -127,6 +128,110 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 
 														Map(0x7d, ADC, AbsoluteX);
 			Map(0x7e, ROR, AbsoluteX);					Map(0x7f, CLB, Bit3ZeroPage);
+
+		/* 0x80 – 0x8f */
+			Map(0x80, BRA, Relative);					Map(0x81, STA, XIndirect);
+			Map(0x82, RRF, ZeroPage);					Map(0x83, BBS, Bit4AccumulatorRelative);
+
+			Map(0x84, STY, ZeroPage);					Map(0x85, STA, ZeroPage);
+			Map(0x86, STX, ZeroPage);					Map(0x87, BBS, Bit4ZeroPageRelative);
+
+			Map(0x88, DEY, Implied);
+			Map(0x8a, TXA, Implied);					Map(0x8b, SEB, Bit4Accumulator);
+
+			Map(0x8c, STY, Absolute);					Map(0x8d, STA, Absolute);
+			Map(0x8e, STX, Absolute);					Map(0x8f, SEB, Bit4ZeroPage);
+
+		/* 0x90 – 0x9f */
+			Map(0x90, BCC, Relative);					Map(0x91, STA, IndirectY);
+														Map(0x93, BBC, Bit4AccumulatorRelative);
+
+			Map(0x94, STY, ZeroPageX);					Map(0x95, STA, ZeroPageX);
+			Map(0x96, STX, ZeroPageX);					Map(0x97, BBC, Bit4ZeroPageRelative);
+
+			Map(0x98, TYA, Implied);					Map(0x99, STA, AbsoluteY);
+			Map(0x9a, TXS, AbsoluteY);					Map(0x9b, CLB, Bit4Accumulator);
+
+														Map(0x9d, ADC, AbsoluteX);
+														Map(0x9f, CLB, Bit4ZeroPage);
+
+		/* 0xa0 – 0xaf */
+			Map(0xa0, LDY, Immediate);					Map(0xa1, LDA, XIndirect);
+			Map(0xa2, LDX, Immediate);					Map(0xa3, BBS, Bit5AccumulatorRelative);
+
+			Map(0xa4, LDY, ZeroPage);					Map(0xa5, LDA, ZeroPage);
+			Map(0xa6, LDX, ZeroPage);					Map(0xa7, BBS, Bit5ZeroPageRelative);
+
+			Map(0xa8, TAY, Implied);					Map(0xa9, LDA, Immediate);
+			Map(0xaa, TAX, Implied);					Map(0xab, SEB, Bit5Accumulator);
+
+			Map(0xac, LDY, Absolute);					Map(0xad, LDA, Absolute);
+			Map(0xae, LDX, Absolute);					Map(0xaf, SEB, Bit5ZeroPage);
+
+		/* 0xb0 – 0xbf */
+			Map(0xb0, BCS, Relative);					Map(0xb1, STA, IndirectY);
+			Map(0xb2, JMP, ZeroPageIndirect);			Map(0xb3, BBC, Bit5AccumulatorRelative);
+
+			Map(0xb4, LDY, ZeroPageX);					Map(0xb5, LDA, ZeroPageX);
+			Map(0xb6, LDX, ZeroPageY);					Map(0xb7, BBC, Bit5ZeroPageRelative);
+
+			Map(0xb8, CLV, Implied);					Map(0xb9, LDA, AbsoluteY);
+			Map(0xba, TSX, AbsoluteY);					Map(0xbb, CLB, Bit5Accumulator);
+
+			Map(0xbc, LDY, AbsoluteX);					Map(0xbd, LDA, AbsoluteX);
+			Map(0xbe, LDX, AbsoluteY);					Map(0xbf, CLB, Bit5ZeroPage);
+
+		/* 0xc0 – 0xcf */
+			Map(0xc0, CPY, Immediate);					Map(0xc1, CMP, XIndirect);
+			Map(0xc2, SLW, Implied);					Map(0xc3, BBS, Bit6AccumulatorRelative);
+
+			Map(0xc4, CPY, ZeroPage);					Map(0xc5, CMP, ZeroPage);
+			Map(0xc6, DEC, ZeroPage);					Map(0xc7, BBS, Bit6ZeroPageRelative);
+
+			Map(0xc8, INY, Implied);					Map(0xc9, CMP, Immediate);
+			Map(0xca, DEX, Implied);					Map(0xcb, SEB, Bit6Accumulator);
+
+			Map(0xcc, CPY, Absolute);					Map(0xcd, CMP, Absolute);
+			Map(0xce, DEC, Absolute);					Map(0xcf, SEB, Bit6ZeroPage);
+
+		/* 0xd0 – 0xdf */
+			Map(0xd0, BNE, Relative);					Map(0xd1, CMP, IndirectY);
+														Map(0xd3, BBC, Bit6AccumulatorRelative);
+
+														Map(0xd5, CMP, ZeroPageX);
+			Map(0xd6, DEC, ZeroPageX);					Map(0xd7, BBC, Bit6ZeroPageRelative);
+
+			Map(0xd8, CLD, Implied);					Map(0xd9, CMP, AbsoluteY);
+														Map(0xdb, CLB, Bit6Accumulator);
+
+														Map(0xdd, CMP, AbsoluteX);
+			Map(0xde, DEC, AbsoluteX);					Map(0xdf, CLB, Bit6ZeroPage);
+
+		/* 0xe0 – 0xef */
+			Map(0xe0, CPX, Immediate);					Map(0xe1, SBC, XIndirect);
+			Map(0xe2, FST, Implied);					Map(0xe3, BBS, Bit7AccumulatorRelative);
+
+			Map(0xe4, CPX, ZeroPage);					Map(0xe5, SBC, ZeroPage);
+			Map(0xe6, INC, ZeroPage);					Map(0xe7, BBS, Bit7ZeroPageRelative);
+
+			Map(0xe8, INX, Implied);					Map(0xe9, SBC, Immediate);
+			Map(0xea, NOP, Implied);					Map(0xeb, SEB, Bit7Accumulator);
+
+			Map(0xec, CPX, Absolute);					Map(0xed, SBC, Absolute);
+			Map(0xee, INC, Absolute);					Map(0xef, SEB, Bit7ZeroPage);
+
+		/* 0xf0 – 0xff */
+			Map(0xf0, BEQ, Relative);					Map(0xf1, SBC, IndirectY);
+														Map(0xf3, BBC, Bit7AccumulatorRelative);
+
+														Map(0xf5, SBC, ZeroPageX);
+			Map(0xf6, INC, ZeroPageX);					Map(0xf7, BBC, Bit7ZeroPageRelative);
+
+			Map(0xf8, SED, Implied);					Map(0xf9, SBC, AbsoluteY);
+														Map(0xfb, CLB, Bit7Accumulator);
+
+														Map(0xfd, SBC, AbsoluteX);
+			Map(0xfe, INC, AbsoluteX);					Map(0xff, CLB, Bit7ZeroPage);
 
 #undef Map
 		}
