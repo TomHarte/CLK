@@ -24,8 +24,10 @@ class Decoder {
 		enum class Phase {
 			Instruction,
 			AwaitingOperand
-		};
-		int operand_size_;
+		} phase_ = Phase::Instruction;
+		int operand_size_ = 0;
+		int consumed_ = 0;
+		Instruction instr_;
 };
 
 }

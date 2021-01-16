@@ -30,11 +30,24 @@ enum class AddressingMode {
 	AbsoluteIndirect,
 	ZeroPageIndirect,
 	SpecialPage,
-	BitAccumulator,
-	BitZeroPage
+	ImmediateZeroPage,
+
+	Bit0Accumulator,			Bit1Accumulator,			Bit2Accumulator,			Bit3Accumulator,
+	Bit4Accumulator,			Bit5Accumulator,			Bit6Accumulator,			Bit37ccumulator,
+
+	Bit0ZeroPage,				Bit1ZeroPage,				Bit2ZeroPage,				Bit3ZeroPage,
+	Bit4ZeroPage,				Bit5ZeroPage,				Bit6ZeroPage,				Bit7ZeroPage,
+
+	Bit0AccumulatorRelative,	Bit1AccumulatorRelative,	Bit2AccumulatorRelative,	Bit3AccumulatorRelative,
+	Bit4AccumulatorRelative,	Bit5AccumulatorRelative,	Bit6AccumulatorRelative,	Bit7AccumulatorRelative,
+
+	Bit0ZeroPageRelative,		Bit1ZeroPageRelative,		Bit2ZeroPageRelative,		Bit3ZeroPageRelative,
+	Bit4ZeroPageRelative,		Bit5ZeroPageRelative,		Bit6ZeroPageRelative,		Bit7ZeroPageRelative,
 };
 
 enum class Operation: uint8_t {
+	Invalid,
+
 	ADC,
 	AND,
 	ASL,
@@ -107,10 +120,12 @@ enum class Operation: uint8_t {
 };
 
 struct Instruction {
-	Operation operation;
-	AddressingMode addressing_mode;
+	Operation operation = Operation::Invalid;
+	AddressingMode addressing_mode = AddressingMode::Implied;
 
 	Instruction(Operation operation, AddressingMode addressing_mode) : operation(operation), addressing_mode(addressing_mode) {}
+	Instruction(Operation operation) : operation(operation) {}
+	Instruction() {}
 };
 
 }
