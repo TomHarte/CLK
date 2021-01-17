@@ -2,7 +2,7 @@
 //  x86.cpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 1/1/21.
+//  Created by Thomas Harte on 01/01/21.
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
