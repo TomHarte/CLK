@@ -101,7 +101,7 @@ enum class Operation: uint8_t {
 
 constexpr AccessType access_type(Operation operation) {
 	if(operation < Operation::ADC)	return AccessType::None;
-	if(operation < Operation::LDM)	return AccessType::Read;
+	if(operation < Operation::ASL)	return AccessType::Read;
 	if(operation < Operation::LDM)	return AccessType::Write;
 	return AccessType::ReadModifyWrite;
 }
