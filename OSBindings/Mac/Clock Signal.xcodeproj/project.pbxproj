@@ -934,6 +934,9 @@
 		4BEDA43025B3C700000C2DBD /* Executor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA42F25B3C700000C2DBD /* Executor.cpp */; };
 		4BEDA43125B3C700000C2DBD /* Executor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA42F25B3C700000C2DBD /* Executor.cpp */; };
 		4BEDA43225B3C700000C2DBD /* Executor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA42F25B3C700000C2DBD /* Executor.cpp */; };
+		4BEDA43D25B3DE66000C2DBD /* CachingExecutor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA43B25B3DE66000C2DBD /* CachingExecutor.cpp */; };
+		4BEDA43E25B3DE66000C2DBD /* CachingExecutor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA43B25B3DE66000C2DBD /* CachingExecutor.cpp */; };
+		4BEDA43F25B3DE66000C2DBD /* CachingExecutor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA43B25B3DE66000C2DBD /* CachingExecutor.cpp */; };
 		4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6A1D72496600532C7B /* Cartridge.cpp */; };
 		4BEE0A701D72496600532C7B /* PRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6D1D72496600532C7B /* PRG.cpp */; };
 		4BEE149A227FC0EA00133682 /* IWM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE1498227FC0EA00133682 /* IWM.cpp */; };
@@ -1947,6 +1950,8 @@
 		4BEDA42925B3C26B000C2DBD /* AccessType.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AccessType.hpp; sourceTree = "<group>"; };
 		4BEDA42E25B3C613000C2DBD /* Executor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Executor.hpp; sourceTree = "<group>"; };
 		4BEDA42F25B3C700000C2DBD /* Executor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Executor.cpp; sourceTree = "<group>"; };
+		4BEDA43B25B3DE66000C2DBD /* CachingExecutor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CachingExecutor.cpp; sourceTree = "<group>"; };
+		4BEDA43C25B3DE66000C2DBD /* CachingExecutor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CachingExecutor.hpp; sourceTree = "<group>"; };
 		4BEE0A6A1D72496600532C7B /* Cartridge.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cartridge.cpp; sourceTree = "<group>"; };
 		4BEE0A6B1D72496600532C7B /* Cartridge.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4BEE0A6D1D72496600532C7B /* PRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PRG.cpp; sourceTree = "<group>"; };
@@ -4365,7 +4370,9 @@
 		4BEDA3B225B25563000C2DBD /* InstructionSets */ = {
 			isa = PBXGroup;
 			children = (
+				4BEDA43B25B3DE66000C2DBD /* CachingExecutor.cpp */,
 				4BEDA42925B3C26B000C2DBD /* AccessType.hpp */,
+				4BEDA43C25B3DE66000C2DBD /* CachingExecutor.hpp */,
 				4BEDA3B625B25563000C2DBD /* README.md */,
 				4BEDA40925B2844B000C2DBD /* M50740 */,
 				4BEDA3B325B25563000C2DBD /* PowerPC */,
@@ -5086,6 +5093,7 @@
 				4B4B1A3D200198CA00A0F866 /* KonamiSCC.cpp in Sources */,
 				4B055AC31FAE9AE80060FFFF /* AmstradCPC.cpp in Sources */,
 				4B055A9E1FAE85DA0060FFFF /* G64.cpp in Sources */,
+				4BEDA43F25B3DE66000C2DBD /* CachingExecutor.cpp in Sources */,
 				4B055AB81FAE860F0060FFFF /* ZX80O81P.cpp in Sources */,
 				4B055AB01FAE86070060FFFF /* PulseQueuedTape.cpp in Sources */,
 				4B055AAC1FAE85FD0060FFFF /* PCMSegment.cpp in Sources */,
@@ -5279,6 +5287,7 @@
 				4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */,
 				4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */,
 				4BEDA3BF25B25563000C2DBD /* Decoder.cpp in Sources */,
+				4BEDA43D25B3DE66000C2DBD /* CachingExecutor.cpp in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
 				4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */,
 				4BAE49582032881E004BE78E /* CSZX8081.mm in Sources */,
@@ -5459,6 +5468,7 @@
 				4B778F5523A5F2A70000D260 /* Keyboard.cpp in Sources */,
 				4B778F5D23A5F3230000D260 /* Commodore.cpp in Sources */,
 				4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */,
+				4BEDA43E25B3DE66000C2DBD /* CachingExecutor.cpp in Sources */,
 				4BC0CB282446BC7B00A79DBB /* OPLTests.mm in Sources */,
 				4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */,
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,

@@ -11,26 +11,31 @@
 
 #include "Instruction.hpp"
 #include "Parser.hpp"
+#include "../CachingExecutor.hpp"
 
 namespace InstructionSet {
 namespace M50740 {
 
 class Executor;
 
-class Executor {
-	public:
-		/*!
-			M50740 actions require no further context; the addressing mode and operation is baked in,
-			so using the Executor to enquire of memory and the program counter is sufficient.
-		*/
-		struct Action {
-			using Performer = void (*)(Executor *);
-			Performer perform = nullptr;
-		};
+/*!
+	M50740 actions require no further context; the addressing mode and operation is baked in,
+	so using the Executor to enquire of memory and the program counter is sufficient.
+*/
+struct Action {
+	using Performer = void (*)(Executor *);
+	Performer perform = nullptr;
 
-		Action action_for(Instruction);
+	inline Action(Performer performer) noexcept : perform(performer) {}
+};
+
+class Executor: public CachingExecutor<Executor, Action, uint16_t, 0x2000> {
+	public:
 
 	private:
+		friend CachingExecutor<Executor, Action, uint16_t, 0x2000>;
+		Action action_for(Instruction);
+
 		/*!
 			Performs @c operation using @c operand as the value fetched from memory, if any.
 		*/
@@ -74,6 +79,7 @@ class Executor {
 		};
 
 		inline static PerformerLookup performer_lookup_;
+		uint8_t memory_[0x2000];
 };
 
 }
