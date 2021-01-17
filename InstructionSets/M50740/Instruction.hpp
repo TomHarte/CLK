@@ -10,6 +10,7 @@
 #define InstructionSets_M50740_Instruction_h
 
 #include <cstdint>
+#include "../AccessType.hpp"
 
 namespace InstructionSet {
 namespace M50740 {
@@ -37,7 +38,7 @@ enum class AddressingMode {
 	Bit4ZeroPageRelative,		Bit5ZeroPageRelative,		Bit6ZeroPageRelative,		Bit7ZeroPageRelative,
 };
 
-inline int size(AddressingMode mode) {
+constexpr int size(AddressingMode mode) {
 	// This is coupled to the AddressingMode list above; be careful!
 	constexpr int sizes[] = {
 		0, 0, 0,
@@ -86,17 +87,24 @@ enum class Operation: uint8_t {
 	LDA,	LDX,	LDY,
 	TST,
 
-	// Write operations.
-	LDM,
-	STA,	STX,	STY,
-
 	// Read-modify-write operations.
 	ASL,	LSR,
 	CLB,	SEB,
 	COM,
 	DEC,	INC,
 	ROL,	ROR,	RRF,
+
+	// Write operations.
+	LDM,
+	STA,	STX,	STY,
 };
+
+constexpr AccessType access_type(Operation operation) {
+	if(operation < Operation::ADC)	return AccessType::None;
+	if(operation < Operation::LDM)	return AccessType::Read;
+	if(operation < Operation::LDM)	return AccessType::Write;
+	return AccessType::ReadModifyWrite;
+}
 
 struct Instruction {
 	Operation operation = Operation::Invalid;
