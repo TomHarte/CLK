@@ -60,7 +60,7 @@ class Executor {
 				template<int operation, int addressing_mode> void fill_operation(Action::Performer *target) {
 					*target = &Executor::perform<Operation(operation), AddressingMode(addressing_mode)>;
 					if constexpr (addressing_mode+1 < MaxAddressingMode) {
-						fill<operation, addressing_mode+1>(target + 1);
+						fill_operation<operation, addressing_mode+1>(target + 1);
 					}
 				}
 
