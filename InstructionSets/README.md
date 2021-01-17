@@ -1,5 +1,13 @@
 #  Instruction Sets
 
+Code in here provides the means to disassemble, and to execute code for certain instruction sets.
+
+It **does not seek to emulate specific processors** other than in terms of implementing their instruction sets. So:
+* it doesn't involve itself in the actual bus signalling of real processors; and
+* instruction-level timing (e.g. total cycle counts) may be unimplemented, and is likely to be incomplete. 
+
+This part of CLK is intended primarily to provide disassembly services for static analysis, and processing for machines where timing is not part of the specification — i.e. anything that's an instruction set and a HAL.
+
 ## Decoders
 
 A decoder extracts fully-decoded instructions from a data stream for its associated architecture. 
