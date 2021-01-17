@@ -16,8 +16,9 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform(Executor *) {
 }
 
-Executor::Action Executor::action_for(Instruction) {
-	Action action;
-	action.perform = &perform<Operation::ADC, AddressingMode::Immediate>;
+Executor::Action Executor::action_for(Instruction instruction) {
+	Action action {
+		.perform = performer_lookup_.performer(instruction.operation, instruction.addressing_mode)
+	};
 	return action;
 }

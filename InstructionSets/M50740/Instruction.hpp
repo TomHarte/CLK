@@ -38,6 +38,9 @@ enum class AddressingMode {
 	Bit4ZeroPageRelative,		Bit5ZeroPageRelative,		Bit6ZeroPageRelative,		Bit7ZeroPageRelative,
 };
 
+static constexpr auto MaxAddressingMode = int(AddressingMode::Bit7ZeroPageRelative);
+static constexpr auto MinAddressingMode = int(AddressingMode::Implied);
+
 constexpr int size(AddressingMode mode) {
 	// This is coupled to the AddressingMode list above; be careful!
 	constexpr int sizes[] = {
@@ -58,6 +61,7 @@ constexpr int size(AddressingMode mode) {
 		2,	2,	2,	2,
 		2,	2,	2,	2,
 	};
+	static_assert(sizeof(sizes)/sizeof(*sizes) == int(MaxAddressingMode) + 1);
 	return sizes[int(mode)];
 }
 
@@ -98,6 +102,9 @@ enum class Operation: uint8_t {
 	LDM,
 	STA,	STX,	STY,
 };
+
+static constexpr auto MaxOperation = int(Operation::STY);
+static constexpr auto MinOperation = int(Operation::BBC);
 
 constexpr AccessType access_type(Operation operation) {
 	if(operation < Operation::ADC)	return AccessType::None;
