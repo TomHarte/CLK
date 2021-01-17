@@ -1940,6 +1940,7 @@
 		4BEDA40A25B2844B000C2DBD /* Decoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Decoder.hpp; sourceTree = "<group>"; };
 		4BEDA40B25B2844B000C2DBD /* Decoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Decoder.cpp; sourceTree = "<group>"; };
 		4BEDA41725B2845D000C2DBD /* Instruction.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Instruction.hpp; sourceTree = "<group>"; };
+		4BEDA41D25B388E4000C2DBD /* Parser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Parser.hpp; sourceTree = "<group>"; };
 		4BEE0A6A1D72496600532C7B /* Cartridge.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cartridge.cpp; sourceTree = "<group>"; };
 		4BEE0A6B1D72496600532C7B /* Cartridge.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4BEE0A6D1D72496600532C7B /* PRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PRG.cpp; sourceTree = "<group>"; };
@@ -4393,6 +4394,7 @@
 				4BEDA40B25B2844B000C2DBD /* Decoder.cpp */,
 				4BEDA40A25B2844B000C2DBD /* Decoder.hpp */,
 				4BEDA41725B2845D000C2DBD /* Instruction.hpp */,
+				4BEDA41D25B388E4000C2DBD /* Parser.hpp */,
 			);
 			path = M50740;
 			sourceTree = "<group>";

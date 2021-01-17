@@ -63,24 +63,39 @@ inline int size(AddressingMode mode) {
 enum class Operation: uint8_t {
 	Invalid,
 
-	ADC,	AND,	ASL,	BBC,
-	BBS,	BCC,	BCS,	BEQ,
-	BIT,	BMI,	BNE,	BPL,
-	BRA,	BRK,	BVC,	BVS,
-	CLB,	CLC,	CLD,	CLI,
-	CLT,	CLV,	CMP,	COM,
-	CPX,	CPY,	DEC,	DEX,
-	DEY,	EOR,	FST,	INC,
-	INX,	INY,	JMP,	JSR,
-	LDA,	LDM,	LDX,	LDY,
-	LSR,	NOP,	ORA,	PHA,
-	PHP,	PLA,	PLP,	ROL,
-	ROR,	RRF,	RTI,	RTS,
-	SBC,	SEB,	SEC,	SED,
-	SEI,	SET,	SLW,	STA,
-	STP,	STX,	STY,	TAX,
-	TAY,	TST,	TSX,	TXA,
-	TXS,	TYA
+	// Operations that don't access memory.
+	BBC,	BBS,	BCC,	BCS,
+	BEQ,	BMI,	BNE,	BPL,
+	BVC,	BVS,	BRA,	BRK,
+	JMP,	JSR,
+	RTI,	RTS,
+	CLC,	CLD,	CLI,	CLT,	CLV,
+	SEC,	SED,	SEI,	SET,
+	INX,	INY,	DEX,	DEY,
+	FST,	SLW,
+	NOP,
+	PHA, 	PHP, 	PLA,	PLP,
+	STP,
+	TAX,	TAY,	TSX,	TXA,
+	TXS,	TYA,
+
+	// Read operations.
+	ADC,	SBC,
+	AND,	ORA,	EOR,	BIT,
+	CMP,	CPX,	CPY,
+	LDA,	LDX,	LDY,
+	TST,
+
+	// Write operations.
+	LDM,
+	STA,	STX,	STY,
+
+	// Read-modify-write operations.
+	ASL,	LSR,
+	CLB,	SEB,
+	COM,
+	DEC,	INC,
+	ROL,	ROR,	RRF,
 };
 
 struct Instruction {
