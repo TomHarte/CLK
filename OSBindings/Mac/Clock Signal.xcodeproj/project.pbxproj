@@ -931,6 +931,9 @@
 		4BEDA40C25B2844B000C2DBD /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA40B25B2844B000C2DBD /* Decoder.cpp */; };
 		4BEDA40D25B2844B000C2DBD /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA40B25B2844B000C2DBD /* Decoder.cpp */; };
 		4BEDA40E25B2844B000C2DBD /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA40B25B2844B000C2DBD /* Decoder.cpp */; };
+		4BEDA43025B3C700000C2DBD /* Executor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA42F25B3C700000C2DBD /* Executor.cpp */; };
+		4BEDA43125B3C700000C2DBD /* Executor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA42F25B3C700000C2DBD /* Executor.cpp */; };
+		4BEDA43225B3C700000C2DBD /* Executor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA42F25B3C700000C2DBD /* Executor.cpp */; };
 		4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6A1D72496600532C7B /* Cartridge.cpp */; };
 		4BEE0A701D72496600532C7B /* PRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6D1D72496600532C7B /* PRG.cpp */; };
 		4BEE149A227FC0EA00133682 /* IWM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE1498227FC0EA00133682 /* IWM.cpp */; };
@@ -1942,6 +1945,8 @@
 		4BEDA41725B2845D000C2DBD /* Instruction.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Instruction.hpp; sourceTree = "<group>"; };
 		4BEDA41D25B388E4000C2DBD /* Parser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Parser.hpp; sourceTree = "<group>"; };
 		4BEDA42925B3C26B000C2DBD /* AccessType.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AccessType.hpp; sourceTree = "<group>"; };
+		4BEDA42E25B3C613000C2DBD /* Executor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Executor.hpp; sourceTree = "<group>"; };
+		4BEDA42F25B3C700000C2DBD /* Executor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Executor.cpp; sourceTree = "<group>"; };
 		4BEE0A6A1D72496600532C7B /* Cartridge.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cartridge.cpp; sourceTree = "<group>"; };
 		4BEE0A6B1D72496600532C7B /* Cartridge.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4BEE0A6D1D72496600532C7B /* PRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PRG.cpp; sourceTree = "<group>"; };
@@ -4393,8 +4398,10 @@
 		4BEDA40925B2844B000C2DBD /* M50740 */ = {
 			isa = PBXGroup;
 			children = (
+				4BEDA42F25B3C700000C2DBD /* Executor.cpp */,
 				4BEDA40B25B2844B000C2DBD /* Decoder.cpp */,
 				4BEDA40A25B2844B000C2DBD /* Decoder.hpp */,
+				4BEDA42E25B3C613000C2DBD /* Executor.hpp */,
 				4BEDA41725B2845D000C2DBD /* Instruction.hpp */,
 				4BEDA41D25B388E4000C2DBD /* Parser.hpp */,
 			);
@@ -5127,6 +5134,7 @@
 				4B1B58F7246CC4E8009C171E /* State.cpp in Sources */,
 				4B0ACC03237756F6008902D0 /* Line.cpp in Sources */,
 				4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */,
+				4BEDA43225B3C700000C2DBD /* Executor.cpp in Sources */,
 				4BC1317B2346DF2B00E4FF3D /* MSA.cpp in Sources */,
 				4B894533201967B4007DE474 /* 6502.cpp in Sources */,
 				4B055AA91FAE85EF0060FFFF /* CommodoreGCR.cpp in Sources */,
@@ -5248,6 +5256,7 @@
 				4B9BE400203A0C0600FFAE60 /* MultiSpeaker.cpp in Sources */,
 				4B894538201967B4007DE474 /* Tape.cpp in Sources */,
 				4B54C0CB1F8D92590050900F /* Keyboard.cpp in Sources */,
+				4BEDA43025B3C700000C2DBD /* Executor.cpp in Sources */,
 				4B1B58F6246CC4E8009C171E /* State.cpp in Sources */,
 				4BEA525E1DF33323007E74F2 /* Tape.cpp in Sources */,
 				4B2BF19623E10F0100C3AD60 /* CSHighPrecisionTimer.m in Sources */,
@@ -5434,6 +5443,7 @@
 				4B778F1423A5EC960000D260 /* Z80Storage.cpp in Sources */,
 				4B778F1F23A5EDC70000D260 /* Audio.cpp in Sources */,
 				4B778F1523A5EC980000D260 /* PartialMachineCycle.cpp in Sources */,
+				4BEDA43125B3C700000C2DBD /* Executor.cpp in Sources */,
 				4B778F6123A5F3560000D260 /* Disk.cpp in Sources */,
 				4B778F2523A5EDF40000D260 /* Encoder.cpp in Sources */,
 				4B778F4223A5F1A70000D260 /* MemoryFuzzer.cpp in Sources */,
