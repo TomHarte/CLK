@@ -144,7 +144,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 }
 
 template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_unused]]) {
-	switch(operation) {
-		default: assert(false);
-	}
+//	switch(operation) {
+//		default: assert(false);
+//	}
 }

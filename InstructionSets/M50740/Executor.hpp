@@ -20,7 +20,7 @@ namespace InstructionSet {
 namespace M50740 {
 
 class Executor;
-using CachingExecutor = CachingExecutor<Executor, 0x1fff, 256, Instruction, false>;
+using CachingExecutor = CachingExecutor<Executor, 0x1fff, 255, Instruction, false>;
 
 class Executor: public CachingExecutor {
 	public:
@@ -58,28 +58,35 @@ class Executor: public CachingExecutor {
 		class PerformerLookup {
 			public:
 				PerformerLookup() {
-					fill<int(MinOperation), int(MinAddressingMode)>(performers);
+					fill<int(MinOperation)>(performers_);
 				}
 
 				Performer performer(Operation operation, AddressingMode addressing_mode) {
-					return performers[int(addressing_mode) * (MaxOperation - MinOperation) + int(operation) - MinOperation];
+					const auto index =
+						(int(operation) - MinOperation) * (1 + MaxAddressingMode - MinAddressingMode) +
+						(int(addressing_mode) - MinAddressingMode);
+
+					assert(index < decltype(index)(sizeof(performers_)/sizeof(*performers_)));
+					return performers_[index];
 				}
 
 			private:
-				Performer performers[(MaxAddressingMode - MinAddressingMode) * (MaxOperation - MinOperation)];
+				Performer performers_[(1 + MaxAddressingMode - MinAddressingMode) * (1 + MaxOperation - MinOperation)];
 
 				template<int operation, int addressing_mode> void fill_operation(Performer *target) {
 					*target = &Executor::perform<Operation(operation), AddressingMode(addressing_mode)>;
-					if constexpr (addressing_mode+1 < MaxAddressingMode) {
+
+					if constexpr (addressing_mode+1 <= MaxAddressingMode) {
 						fill_operation<operation, addressing_mode+1>(target + 1);
 					}
 				}
 
-				template<int operation, int addressing_mode> void fill(Performer *target) {
-					fill_operation<operation, addressing_mode>(target);
-					target += MaxOperation - MinOperation;
-					if constexpr (operation+1 < MaxOperation) {
-						fill<operation+1, addressing_mode>(target);
+				template<int operation> void fill(Performer *target) {
+					fill_operation<operation, int(MinAddressingMode)>(target);
+					target += 1 + MaxAddressingMode - MinAddressingMode;
+
+					if constexpr (operation+1 <= MaxOperation) {
+						fill<operation+1>(target);
 					}
 				}
 		};

@@ -127,7 +127,8 @@ template <
 			// and until one branches.
 			has_branched_ = false;
 			for(auto index: program_) {
-				performers_[index]();
+				const auto performer = performers_[index];
+				(static_cast<Executor *>(this)->*performer)();
 				if(has_branched_) break;
 			}
 		}
