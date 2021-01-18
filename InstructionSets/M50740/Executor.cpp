@@ -53,6 +53,11 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				program_counter_ += 2;
 			return;
 
+			case AddressingMode::Relative:
+				// These are all the branches...
+//				address = program_counter_ + size(addressing_mode) + int8_t(next8());
+			return;
+
 		// Addressing modes with a memory access.
 
 			case AddressingMode::Absolute:		address = next16();					break;
@@ -82,7 +87,6 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				address = memory_[address] | (memory_[(address + 1) & 0x1fff] << 8);
 			break;
 
-
 			/* TODO:
 
 					ImmediateZeroPage (for LDM)
@@ -92,10 +96,6 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 					BitXZeroPageRelative
 			*/
 
-			case AddressingMode::Relative:
-				address = program_counter_ + size(addressing_mode) + int8_t(next8());
-				// TODO: should be a special case; doesn't become a read, write or read-modify-write.
-			break;
 
 			default:
 				assert(false);

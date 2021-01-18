@@ -18,14 +18,14 @@ namespace M50740 {
 
 class Executor;
 
-class Executor: public CachingExecutor<Executor, 0x2000, 256, false> {
+class Executor: public CachingExecutor<Executor, 0x2000, 256, void> {
 	public:
 		Executor();
 
 	private:
 		// MARK: - CachingExecutor-facing interface.
 
-		friend CachingExecutor<Executor, 0x2000, 256, false>;
+		friend CachingExecutor<Executor, 0x2000, 256, void>;
 
 		/*!
 			Maps instructions to performers; called by the CachingExecutor and for this instruction set, extremely trivial.
