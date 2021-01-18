@@ -63,7 +63,7 @@ template <
 	public:
 
 	protected:
-		using Performer = void (*)(Executor *);
+		using Performer = void (Executor::*)();
 		using PerformerIndex = typename MinIntTypeValue<max_performer_count>::type;
 
 		std::array<Performer, max_performer_count> performers_;
