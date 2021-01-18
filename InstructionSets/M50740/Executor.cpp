@@ -77,10 +77,6 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				address = (memory_[next8()] | (memory_[(next8()+1)&0xff] << 8)) + y_;
 			break;
 
-			case AddressingMode::Relative:
-				address = program_counter_ + size(addressing_mode) + int8_t(next8());
-			break;
-
 			case AddressingMode::AbsoluteIndirect:
 				address = next16();
 				address = memory_[address] | (memory_[(address + 1) & 0x1fff] << 8);
@@ -96,6 +92,11 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 					BitXZeroPageRelative
 			*/
 
+			case AddressingMode::Relative:
+				address = program_counter_ + size(addressing_mode) + int8_t(next8());
+				// TODO: should be a special case; doesn't become a read, write or read-modify-write.
+			break;
+
 			default:
 				assert(false);
 	}
@@ -106,6 +107,9 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 	program_counter_ += 1 + size(addressing_mode);
 	assert(access_type(operation) != AccessType::None);
 
+	// TODO: full reading/writing logic here; only the first 96 bytes are RAM,
+	// there are also timers and IO ports to handle.
+
 	if constexpr(access_type(operation) == AccessType::Read) {
 		perform<operation>(&memory_[address & 0x1fff]);
 		return;
@@ -114,10 +118,11 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 	uint8_t value = memory_[address & 0x1fff];
 	perform<operation>(&value);
 
-	// TODO: full writing logic here; only the first 96 bytes are RAM,
-	// there are also timers and IO ports to handle.
 	memory_[address & 0x1fff] = value;
 }
 
 template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_unused]]) {
+	switch(operation) {
+		default: assert(false);
+	}
 }
