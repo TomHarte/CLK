@@ -65,8 +65,6 @@ class Executor: public CachingExecutor {
 					const auto index =
 						(int(operation) - MinOperation) * (1 + MaxAddressingMode - MinAddressingMode) +
 						(int(addressing_mode) - MinAddressingMode);
-
-					assert(index < decltype(index)(sizeof(performers_)/sizeof(*performers_)));
 					return performers_[index];
 				}
 
