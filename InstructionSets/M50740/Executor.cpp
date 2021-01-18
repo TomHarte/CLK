@@ -27,9 +27,6 @@ Executor::Executor() {
 			performers_[c] = performer_lookup_.performer(instruction.operation, instruction.addressing_mode);
 		}
 	}
-
-	// TODO: read reset vector, etc. This is just the start of ROM.
-	set_program_counter(0x1400);
 }
 
 void Executor::set_rom(const std::vector<uint8_t> &rom) {
@@ -37,11 +34,14 @@ void Executor::set_rom(const std::vector<uint8_t> &rom) {
 	const auto length = std::min(size_t(0x1000), rom.size());
 	memcpy(&memory_[0x2000 - length], rom.data(), length);
 	reset();
+
+	// TEMPORARY: just to test initial wiring.
+	perform_all();
 }
 
 void Executor::reset() {
 	// Just jump to the reset vector.
-	set_program_counter(uint16_t(memory_[0x1ffe] | (memory_[0x1fff] << 8)));
+	set_program_counter(uint16_t(memory_[0x1ffe] | (memory_[0x1fff] << 8)) & 0x1fff);
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {

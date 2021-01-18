@@ -105,6 +105,10 @@ template <
 			and doing any translation as is necessary.
 		*/
 		void set_program_counter(ProgramCounterType address) {
+			// Set flag to terminate any inner loop currently running through
+			// previously-parsed content.
+			has_branched_ = true;
+
 			// Temporary implementation: just interpret.
 			program_.clear();
 			static_cast<Executor *>(this)->parse(address, ProgramCounterType(max_address));
@@ -117,6 +121,19 @@ template <
 //				// translate it.
 //			}
 		}
+
+		void perform_all() {
+			// TEMPORARY (?). Execute all current instructions, unless
+			// and until one branches.
+			has_branched_ = false;
+			for(auto index: program_) {
+				performers_[index]();
+				if(has_branched_) break;
+			}
+		}
+
+	private:
+		bool has_branched_ = false;
 
 	private:
 		std::vector<PerformerIndex> program_;
