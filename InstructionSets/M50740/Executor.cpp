@@ -32,6 +32,8 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 #define next8()		memory_[(program_counter_ + 1) & 0x1fff]
 #define next16()	(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8))
 
+	// Underlying assumption below: the instruction stream will never
+	// overlap with IO ports.
 	switch(addressing_mode) {
 
 		// Addressing modes with no further memory access.
@@ -53,22 +55,46 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 
 		// Addressing modes with a memory access.
 
-			case AddressingMode::Absolute:
+			case AddressingMode::Absolute:		address = next16();					break;
+			case AddressingMode::AbsoluteX:		address = next16() + x_;			break;
+			case AddressingMode::AbsoluteY:		address = next16() + y_;			break;
+			case AddressingMode::ZeroPage:		address = next8();					break;
+			case AddressingMode::ZeroPageX:		address = (next8() + x_) & 0xff;	break;
+			case AddressingMode::ZeroPageY:		address = (next8() + x_) & 0xff;	break;
+			case AddressingMode::SpecialPage:	address = 0x1f00 | next8();			break;
+
+			case AddressingMode::ZeroPageIndirect:
+				address = next8();
+				address = memory_[address] | (memory_[(address + 1) & 0xff] << 8);
+			break;
+
+			case AddressingMode::XIndirect:
+				address = (next8() + x_) & 0xff;
+				address = memory_[address] | (memory_[(address + 1)&0xff] << 8);
+			break;
+
+			case AddressingMode::IndirectY:
+				address = (memory_[next8()] | (memory_[(next8()+1)&0xff] << 8)) + y_;
+			break;
+
+			case AddressingMode::Relative:
+				address = program_counter_ + size(addressing_mode) + int8_t(next8());
+			break;
+
+			case AddressingMode::AbsoluteIndirect:
 				address = next16();
-				program_counter_ += 3;
+				address = memory_[address] | (memory_[(address + 1) & 0x1fff] << 8);
 			break;
 
-			case AddressingMode::AbsoluteX:
-				address = next16() + x_;
-				program_counter_ += 3;
-			break;
 
-			case AddressingMode::AbsoluteY:
-				address = next16() + y_;
-				program_counter_ += 3;
-			break;
+			/* TODO:
 
-			/* TODO: the rest. */
+					ImmediateZeroPage (for LDM)
+					BitXAccumulator
+					BitXZeroPage
+					BitXAccumulatorRelative
+					BitXZeroPageRelative
+			*/
 
 			default:
 				assert(false);
@@ -77,6 +103,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 #undef next16
 #undef next8
 
+	program_counter_ += 1 + size(addressing_mode);
 	assert(access_type(operation) != AccessType::None);
 
 	if constexpr(access_type(operation) == AccessType::Read) {
