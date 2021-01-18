@@ -29,11 +29,11 @@ struct Action {
 	inline Action(Performer performer) noexcept : perform(performer) {}
 };
 
-class Executor: public CachingExecutor<Executor, Action, uint16_t, 0x2000> {
+class Executor: public CachingExecutor<Executor, 0x2000, 256, false> {
 	public:
 
 	private:
-		friend CachingExecutor<Executor, Action, uint16_t, 0x2000>;
+		friend CachingExecutor<Executor, 0x2000, 256, false>;
 		Action action_for(Instruction);
 
 		/*!
