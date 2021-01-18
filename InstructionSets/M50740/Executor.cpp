@@ -8,6 +8,8 @@
 
 #include "Executor.hpp"
 
+#include <cassert>
+
 using namespace InstructionSet::M50740;
 
 Executor::Executor() {
@@ -28,7 +30,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 
 	int address;
 #define next8()		memory_[(program_counter_ + 1) & 0x1fff]
-#define next16()	memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8)
+#define next16()	(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8))
 
 	switch(addressing_mode) {
 
