@@ -61,15 +61,34 @@ template <
 	uint64_t max_address,
 	/// Indicates the maximum number of potential performers that will be provided.
 	uint64_t max_performer_count,
-	/// Provides the type of Instruction to
-	typename InstructionType
+	/// Provides the type of Instruction to expect.
+	typename InstructionType,
+	/// Indicates whether instructions should be treated as ephemeral or included in the cache.
+	bool retain_instructions
 > class CachingExecutor {
 	public:
-
-	protected:
 		using Performer = void (Executor::*)();
 		using PerformerIndex = typename MinIntTypeValue<max_performer_count>::type;
 		using ProgramCounterType = typename MinIntTypeValue<max_address>::type;
+
+		// MARK: - Parser call-ins.
+
+		void announce_overflow(ProgramCounterType) {
+			/*
+				Should be impossible for now; this is intended to provide information
+				when page caching.
+			*/
+		}
+		void announce_instruction(ProgramCounterType, InstructionType instruction) {
+			// Dutifully map the instruction to a performer and keep it.
+			program_.push_back(static_cast<Executor *>(this)->action_for(instruction));
+
+			if constexpr (retain_instructions) {
+				// TODO.
+			}
+		}
+
+	protected:
 
 		// Storage for the statically-allocated list of performers. It's a bit more
 		// work for executors to fill this array, but subsequently performers can be
@@ -86,37 +105,47 @@ template <
 			and doing any translation as is necessary.
 		*/
 		void set_program_counter(ProgramCounterType address) {
-			const auto page = find_page(address);
-			const auto entry = page->entry_points.find(address);
-			if(entry == page->entry_points.end()) {
-				// Requested segment wasn't found; check whether it was
-				// within the recently translated list and otherwise
-				// translate it.
-			}
+			// Temporary implementation: just interpret.
+			program_.clear();
+			static_cast<Executor *>(this)->parse(address, ProgramCounterType(max_address));
+
+//			const auto page = find_page(address);
+//			const auto entry = page->entry_points.find(address);
+//			if(entry == page->entry_points.end()) {
+//				// Requested segment wasn't found; check whether it was
+//				// within the recently translated list and otherwise
+//				// translate it.
+//			}
 		}
 
 	private:
-		struct Page {
-			std::map<ProgramCounterType, PerformerIndex> entry_points;
+		std::vector<PerformerIndex> program_;
+
+		/* TODO: almost below here can be shoved off into an LRUCache object, or similar. */
+
+//		static constexpr size_t max_cached_pages = 64;
+
+//		struct Page {
+//			std::map<ProgramCounterType, PerformerIndex> entry_points;
 
 			// TODO: can I statically these two? Should I?
-			std::vector<PerformerIndex> actions_;
+//			std::vector<PerformerIndex> actions_;
 //			std::vector<typename std::enable_if<!std::is_same<InstructionType, void>::value, InstructionType>::type> instructions_;
-		};
+//		};
+//		std::array<Page, max_cached_pages> pages_;
 
 		// Maps from page numbers to pages.
-		std::unordered_map<ProgramCounterType, Page> cached_pages_;
+//		std::unordered_map<ProgramCounterType, Page *> cached_pages_;
 
 		// Maintains an LRU of recently-used pages in case of a need for reuse.
-		std::list<ProgramCounterType> touched_pages_;
+//		std::list<ProgramCounterType> touched_pages_;
 
 		/*!
 			Finds or creates the page that contains @c address.
 		*/
-		Page *find_page(ProgramCounterType address) {
+/*		Page *find_page(ProgramCounterType address) {
 			// TODO: are 1kb pages always appropriate? Is 64 the correct amount to keep?
-			const auto page_address = address >> 10;
-			constexpr size_t max_cached_pages = 64;
+			const auto page_address = ProgramCounterType(address >> 10);
 
 			auto page = cached_pages_.find(page_address);
 			if(page == cached_pages_.end()) {
@@ -130,7 +159,9 @@ template <
 			} else {
 				// Page was found; LRU shuffle it.
 			}
-		}
+
+			return nullptr;
+		}*/
 };
 
 }

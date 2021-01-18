@@ -20,8 +20,8 @@ template<typename Target, bool include_entries_and_accesses> struct Parser {
 	void parse(Target &target, const uint8_t *storage, uint16_t start, uint16_t closing_bound) {
 		Decoder decoder;
 
-		while(start != closing_bound) {
-			const auto next = decoder.decode(&storage[start], closing_bound - start);
+		while(start <= closing_bound) {
+			const auto next = decoder.decode(&storage[start], 1 + closing_bound - start);
 			if(next.first <= 0) {
 				// If there weren't enough bytes left before the closing bound to complete
 				// an instruction, but implicitly there were some bytes left, announce overflow
@@ -36,7 +36,7 @@ template<typename Target, bool include_entries_and_accesses> struct Parser {
 					// Do a simplified test: is this a terminating operation?
 					switch(next.second.operation) {
 						case Operation::RTS: case Operation::RTI: case Operation::BRK:
-						case Operation::JMP:	case Operation::BRA:
+						case Operation::JMP: case Operation::BRA:
 						return;
 
 						default: break;

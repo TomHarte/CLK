@@ -20,6 +20,9 @@ Executor::Executor() {
 		const auto instruction = decoder.instrucion_for_opcode(uint8_t(c));
 		performers_[c] = performer_lookup_.performer(instruction.operation, instruction.addressing_mode);
 	}
+
+	// TODO: read reset vector, etc. This is just the start of ROM.
+	set_program_counter(0x1400);
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {

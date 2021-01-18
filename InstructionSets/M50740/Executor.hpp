@@ -17,15 +17,16 @@ namespace InstructionSet {
 namespace M50740 {
 
 class Executor;
+using CachingExecutor = CachingExecutor<Executor, 0x1fff, 256, Instruction, false>;
 
-class Executor: public CachingExecutor<Executor, 0x2000, 256, void> {
+class Executor: public CachingExecutor {
 	public:
 		Executor();
 
 	private:
 		// MARK: - CachingExecutor-facing interface.
 
-		friend CachingExecutor<Executor, 0x2000, 256, void>;
+		friend CachingExecutor;
 
 		/*!
 			Maps instructions to performers; called by the CachingExecutor and for this instruction set, extremely trivial.
@@ -33,6 +34,14 @@ class Executor: public CachingExecutor<Executor, 0x2000, 256, void> {
 		inline PerformerIndex action_for(Instruction instruction) {
 			// This is a super-simple processor, so the opcode can be used directly to index the performers.
 			return instruction.opcode;
+		}
+
+		/*!
+			Parses from @c start and no later than @c max_address, using the CachingExecutor as a target.
+		*/
+		inline void parse(uint16_t start, uint16_t closing_bound) {
+			Parser<Executor, false> parser;
+			parser.parse(*this, memory_, start, closing_bound);
 		}
 
 	private:
