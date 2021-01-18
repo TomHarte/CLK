@@ -20,6 +20,7 @@ namespace M50740 {
 class Decoder {
 	public:
 		std::pair<int, Instruction> decode(const uint8_t *source, size_t length);
+		Instruction instrucion_for_opcode(uint8_t opcode);
 
 	private:
 		enum class Phase {

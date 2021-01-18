@@ -38,7 +38,18 @@ template <uint64_t max_value> struct MinIntTypeValue {
 };
 
 
+/*!
+	A caching executor makes use of an instruction set-specific executor to cache 'performers' (i.e. function pointers)
+	that result from decoding.
 
+	In other words, it's almost a JIT compiler, but producing threaded code (in the Forth sense) and then incurring whatever
+	costs sit behind using the C ABI for calling. Since there'll always be exactly one parameter, being the specific executor,
+	hopefully the calling costs are acceptable.
+
+	Intended usage is for specific executors to subclass from this and declare it a friend.
+
+	TODO: determine promises re: interruption, amongst other things.
+*/
 template <
 	/// Indicates the Executor for this platform.
 	typename Executor,
@@ -53,11 +64,13 @@ template <
 
 	protected:
 		using Performer = void (*)(Executor *);
+		using PerformerIndex = typename MinIntTypeValue<max_performer_count>::type;
+
 		std::array<Performer, max_performer_count> performers_;
 		typename MinIntTypeValue<max_address>::type program_counter_;
 
 	private:
-		typename MinIntTypeValue<max_performer_count>::type actions_[100];
+		PerformerIndex actions_[100];
 };
 
 }

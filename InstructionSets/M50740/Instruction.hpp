@@ -116,9 +116,10 @@ constexpr AccessType access_type(Operation operation) {
 struct Instruction {
 	Operation operation = Operation::Invalid;
 	AddressingMode addressing_mode = AddressingMode::Implied;
+	uint8_t opcode = 0;
 
-	Instruction(Operation operation, AddressingMode addressing_mode) : operation(operation), addressing_mode(addressing_mode) {}
-	Instruction(Operation operation) : operation(operation) {}
+	Instruction(Operation operation, AddressingMode addressing_mode, uint8_t opcode) : operation(operation), addressing_mode(addressing_mode), opcode(opcode) {}
+	Instruction(uint8_t opcode) : opcode(opcode) {}
 	Instruction() {}
 };
 

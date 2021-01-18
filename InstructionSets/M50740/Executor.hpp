@@ -31,20 +31,23 @@ struct Action {
 
 class Executor: public CachingExecutor<Executor, 0x2000, 256, false> {
 	public:
+		Executor();
 
 	private:
+		// MARK: - CachingExecutor-facing interface.
+
 		friend CachingExecutor<Executor, 0x2000, 256, false>;
-		Action action_for(Instruction);
 
 		/*!
-			Performs @c operation using @c operand as the value fetched from memory, if any.
+			Maps instructions to performers; called by the CachingExecutor and for this instruction set, extremely trivial.
 		*/
-		template <Operation operation> static void perform(uint8_t *operand);
+		inline PerformerIndex action_for(Instruction instruction) {
+			// This is a super-simple processor, so the opcode can be used directly to index the performers.
+			return instruction.opcode;
+		}
 
-		/*!
-			Performs @c operation in @c addressing_mode.
-		*/
-		template <Operation operation, AddressingMode addressing_mode> static void perform(Executor *);
+	private:
+		// MARK: - Internal framework for generator performers.
 
 		/*!
 			Provides dynamic lookup of @c perform(Executor*).
@@ -77,8 +80,20 @@ class Executor: public CachingExecutor<Executor, 0x2000, 256, false> {
 					}
 				}
 		};
-
 		inline static PerformerLookup performer_lookup_;
+
+		/*!
+			Performs @c operation using @c operand as the value fetched from memory, if any.
+		*/
+		template <Operation operation> static void perform(uint8_t *operand);
+
+		/*!
+			Performs @c operation in @c addressing_mode.
+		*/
+		template <Operation operation, AddressingMode addressing_mode> static void perform(Executor *);
+
+	private:
+		// MARK: - Instruction set state.
 		uint8_t memory_[0x2000];
 };
 
