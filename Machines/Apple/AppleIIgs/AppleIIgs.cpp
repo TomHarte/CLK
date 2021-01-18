@@ -88,13 +88,15 @@ class ConcreteMachine:
 				break;
 			}
 			rom_descriptions.push_back(video_->rom_description(Video::Video::CharacterROM::EnhancedIIe));
+			rom_descriptions.emplace_back(machine_name, "the Apple IIgs ADB microcontroller ROM", "341s0632-2", 4*1024, 0xe1c11fb0);
 
 			const auto roms = rom_fetcher(rom_descriptions);
-			if(!roms[0] || !roms[1]) {
+			if(!roms[0] || !roms[1] || !roms[2]) {
 				throw ROMMachine::Error::MissingROMs;
 			}
 			rom_ = *roms[0];
 			video_->set_character_rom(*roms[1]);
+			adb_glu_.set_microcontroller_rom(*roms[2]);
 
 			// Run only the currently-interesting self test.
 			rom_[0x36402] = 2;

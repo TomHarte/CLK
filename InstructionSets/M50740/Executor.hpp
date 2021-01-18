@@ -13,6 +13,9 @@
 #include "Parser.hpp"
 #include "../CachingExecutor.hpp"
 
+#include <cstdint>
+#include <vector>
+
 namespace InstructionSet {
 namespace M50740 {
 
@@ -22,6 +25,8 @@ using CachingExecutor = CachingExecutor<Executor, 0x1fff, 256, Instruction, fals
 class Executor: public CachingExecutor {
 	public:
 		Executor();
+		void set_rom(const std::vector<uint8_t> &rom);
+		void reset();
 
 	private:
 		// MARK: - CachingExecutor-facing interface.

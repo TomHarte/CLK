@@ -211,3 +211,7 @@ uint8_t GLU::read_microcontroller_address(uint16_t address) {
 		return 0x40;
 	return 0;
 }
+
+void GLU::set_microcontroller_rom(const std::vector<uint8_t> &rom) {
+	executor_.set_rom(rom);
+}

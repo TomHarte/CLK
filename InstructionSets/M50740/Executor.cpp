@@ -8,6 +8,7 @@
 
 #include "Executor.hpp"
 
+#include <algorithm>
 #include <cassert>
 
 using namespace InstructionSet::M50740;
@@ -18,11 +19,29 @@ Executor::Executor() {
 	Decoder decoder;
 	for(size_t c = 0; c < 256; c++) {
 		const auto instruction = decoder.instrucion_for_opcode(uint8_t(c));
-		performers_[c] = performer_lookup_.performer(instruction.operation, instruction.addressing_mode);
+
+		// Treat invalid as NOP, because I've got to do _something_.
+		if(instruction.operation == Operation::Invalid) {
+			performers_[c] = performer_lookup_.performer(Operation::NOP, instruction.addressing_mode);
+		} else {
+			performers_[c] = performer_lookup_.performer(instruction.operation, instruction.addressing_mode);
+		}
 	}
 
 	// TODO: read reset vector, etc. This is just the start of ROM.
 	set_program_counter(0x1400);
+}
+
+void Executor::set_rom(const std::vector<uint8_t> &rom) {
+	// Copy into place, and reset.
+	const auto length = std::min(size_t(0x1000), rom.size());
+	memcpy(&memory_[0x2000 - length], rom.data(), length);
+	reset();
+}
+
+void Executor::reset() {
+	// Just jump to the reset vector.
+	set_program_counter(uint16_t(memory_[0x1ffe] | (memory_[0x1fff] << 8)));
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {

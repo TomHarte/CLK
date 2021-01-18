@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <vector>
+#include "../../../InstructionSets/M50740/Executor.hpp"
 
 namespace Apple {
 namespace IIgs {
@@ -34,6 +35,8 @@ class GLU {
 		void set_status(uint8_t);
 		void clear_key_strobe();
 
+		void set_microcontroller_rom(const std::vector<uint8_t> &rom);
+
 	private:
 		bool is_rom03_ = false;
 		std::vector<uint8_t> next_command_;
@@ -52,6 +55,8 @@ class GLU {
 		void set_configuration_bytes(uint8_t *);
 
 		uint8_t read_microcontroller_address(uint16_t);
+
+		InstructionSet::M50740::Executor executor_;
 };
 
 }
