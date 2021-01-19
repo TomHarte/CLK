@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstring>
 
 using namespace InstructionSet::M50740;
 
@@ -144,7 +145,20 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 }
 
 template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_unused]]) {
-//	switch(operation) {
-//		default: assert(false);
-//	}
+	switch(operation) {
+		case Operation::LDA:	a_ = *operand;	break;	// TODO: flags (for all three here).
+		case Operation::LDX:	x_ = *operand;	break;
+		case Operation::LDY:	y_ = *operand;	break;
+
+		case Operation::STA:	*operand = a_;	break;
+		case Operation::STX:	*operand = x_;	break;
+		case Operation::STY:	*operand = y_;	break;
+
+		default: assert(false);
+	}
+}
+
+void Executor::set_program_counter(uint16_t address) {
+	program_counter_ = address;
+	CachingExecutor::set_program_counter(address);
 }

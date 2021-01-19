@@ -95,10 +95,6 @@ template <
 		// indexed by array position, which is a lot more compact than a generic pointer.
 		std::array<Performer, max_performer_count> performers_;
 
-		// TODO: should I include a program counter at all? Are there platforms
-		// for which the expense of retaining opcode length doesn't buy any benefit?
-		ProgramCounterType program_counter_;
-
 
 		/*!
 			Moves the current point of execution to @c address, updating necessary performer caches
