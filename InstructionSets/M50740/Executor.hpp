@@ -110,7 +110,11 @@ class Executor: public CachingExecutor {
 
 		// Registers.
 		uint16_t program_counter_;
-		uint8_t a_, x_, y_;
+		uint8_t a_, x_, y_, s_;
+
+		uint8_t negative_result_ = 0;
+		uint8_t zero_result_ = 0;
+		uint8_t interrupt_disable_ = 0;
 };
 
 }

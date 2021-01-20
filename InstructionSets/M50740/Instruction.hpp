@@ -21,24 +21,13 @@ enum class AddressingMode {
 	ZeroPage,			ZeroPageX,				ZeroPageY,
 	XIndirect,			IndirectY,
 	Relative,
-	AbsoluteIndirect,	ZeroPageIndirect,
+	AbsoluteIndirect,		ZeroPageIndirect,
 	SpecialPage,
 	ImmediateZeroPage,
-
-	Bit0Accumulator,			Bit1Accumulator,			Bit2Accumulator,			Bit3Accumulator,
-	Bit4Accumulator,			Bit5Accumulator,			Bit6Accumulator,			Bit7Accumulator,
-
-	Bit0ZeroPage,				Bit1ZeroPage,				Bit2ZeroPage,				Bit3ZeroPage,
-	Bit4ZeroPage,				Bit5ZeroPage,				Bit6ZeroPage,				Bit7ZeroPage,
-
-	Bit0AccumulatorRelative,	Bit1AccumulatorRelative,	Bit2AccumulatorRelative,	Bit3AccumulatorRelative,
-	Bit4AccumulatorRelative,	Bit5AccumulatorRelative,	Bit6AccumulatorRelative,	Bit7AccumulatorRelative,
-
-	Bit0ZeroPageRelative,		Bit1ZeroPageRelative,		Bit2ZeroPageRelative,		Bit3ZeroPageRelative,
-	Bit4ZeroPageRelative,		Bit5ZeroPageRelative,		Bit6ZeroPageRelative,		Bit7ZeroPageRelative,
+	AccumulatorRelative,	ZeroPageRelative
 };
 
-static constexpr auto MaxAddressingMode = int(AddressingMode::Bit7ZeroPageRelative);
+static constexpr auto MaxAddressingMode = int(AddressingMode::ZeroPageRelative);
 static constexpr auto MinAddressingMode = int(AddressingMode::Implied);
 
 constexpr int size(AddressingMode mode) {
@@ -52,14 +41,7 @@ constexpr int size(AddressingMode mode) {
 		2, 1,
 		1,
 		2,
-		0,	0,	0,	0,
-		0,	0,	0,	0,
-		1,	1,	1,	1,
-		1,	1,	1,	1,
-		1,	1,	1,	1,
-		1,	1,	1,	1,
-		2,	2,	2,	2,
-		2,	2,	2,	2,
+		1,	2
 	};
 	static_assert(sizeof(sizes)/sizeof(*sizes) == int(MaxAddressingMode) + 1);
 	return sizes[int(mode)];
@@ -69,7 +51,9 @@ enum class Operation: uint8_t {
 	Invalid,
 
 	// Operations that don't access memory.
-	BBC,	BBS,	BCC,	BCS,
+	BBC0,	BBS0,	BBC1,	BBS1,	BBC2,	BBS2,	BBC3,	BBS3,
+	BBC4,	BBS4,	BBC5,	BBS5,	BBC6,	BBS6,	BBC7,	BBS7,
+	BCC,	BCS,
 	BEQ,	BMI,	BNE,	BPL,
 	BVC,	BVS,	BRA,	BRK,
 	JMP,	JSR,
@@ -93,7 +77,8 @@ enum class Operation: uint8_t {
 
 	// Read-modify-write operations.
 	ASL,	LSR,
-	CLB,	SEB,
+	CLB0,	SEB0,	CLB1,	SEB1,	CLB2,	SEB2,	CLB3,	SEB3,
+	CLB4,	SEB4,	CLB5,	SEB5,	CLB6,	SEB6,	CLB7,	SEB7,
 	COM,
 	DEC,	INC,
 	ROL,	ROR,	RRF,
@@ -104,7 +89,7 @@ enum class Operation: uint8_t {
 };
 
 static constexpr auto MaxOperation = int(Operation::STY);
-static constexpr auto MinOperation = int(Operation::BBC);
+static constexpr auto MinOperation = int(Operation::BBC0);
 
 constexpr AccessType access_type(Operation operation) {
 	if(operation < Operation::ADC)	return AccessType::None;

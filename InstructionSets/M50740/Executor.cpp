@@ -76,10 +76,25 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				program_counter_ += 2;
 			return;
 
-			case AddressingMode::Relative:
+//			case AddressingMode::Relative:
 				// These are all the branches...
 //				address = program_counter_ + size(addressing_mode) + int8_t(next8());
-			return;
+//			return;
+
+//			case AddressingMode::ImmediateZeroPage:
+				// LDM only...
+//			return;
+
+//			case AddressingMode::SpecialPage:	address = 0x1f00 | next8();			break;
+				// JSR only...
+
+			/* TODO:
+
+					AccumulatorRelative
+					ZeroPageRelative
+
+					... which are BBC/BBS-exclusive.
+			*/
 
 		// Addressing modes with a memory access.
 
@@ -89,7 +104,6 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 			case AddressingMode::ZeroPage:		address = next8();					break;
 			case AddressingMode::ZeroPageX:		address = (next8() + x_) & 0xff;	break;
 			case AddressingMode::ZeroPageY:		address = (next8() + x_) & 0xff;	break;
-			case AddressingMode::SpecialPage:	address = 0x1f00 | next8();			break;
 
 			case AddressingMode::ZeroPageIndirect:
 				address = next8();
@@ -109,16 +123,6 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				address = next16();
 				address = memory_[address] | (memory_[(address + 1) & 0x1fff] << 8);
 			break;
-
-			/* TODO:
-
-					ImmediateZeroPage (for LDM)
-					BitXAccumulator
-					BitXZeroPage
-					BitXAccumulatorRelative
-					BitXZeroPageRelative
-			*/
-
 
 			default:
 				assert(false);
@@ -145,17 +149,33 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 }
 
 template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_unused]]) {
+#define set_nz(a)	negative_result_ = zero_result_ = (a)
 	switch(operation) {
-		case Operation::LDA:	a_ = *operand;	break;	// TODO: flags (for all three here).
-		case Operation::LDX:	x_ = *operand;	break;
-		case Operation::LDY:	y_ = *operand;	break;
+		case Operation::LDA:	set_nz(a_ = *operand);	break;
+		case Operation::LDX:	set_nz(x_ = *operand);	break;
+		case Operation::LDY:	set_nz(y_ = *operand);	break;
 
 		case Operation::STA:	*operand = a_;	break;
 		case Operation::STX:	*operand = x_;	break;
 		case Operation::STY:	*operand = y_;	break;
 
-		default: assert(false);
+		case Operation::SEB0:	case Operation::SEB1:	case Operation::SEB2:	case Operation::SEB3:
+		case Operation::SEB4:	case Operation::SEB5:	case Operation::SEB6:	case Operation::SEB7:
+			*operand |= 1 << (int(operation) - int(Operation::SEB0));
+		break;
+		case Operation::CLB0:	case Operation::CLB1:	case Operation::CLB2:	case Operation::CLB3:
+		case Operation::CLB4:	case Operation::CLB5:	case Operation::CLB6:	case Operation::CLB7:
+			*operand &= ~(1 << (int(operation) - int(Operation::CLB0)));
+		break;
+
+		case Operation::CLI:	interrupt_disable_ = 0x00;		break;
+		case Operation::SEI:	interrupt_disable_ = 0xff;		break;
+
+		default:
+			printf("Unimplemented operation: %d\n", int(operation));
+			assert(false);
 	}
+#undef set_nz
 }
 
 void Executor::set_program_counter(uint16_t address) {

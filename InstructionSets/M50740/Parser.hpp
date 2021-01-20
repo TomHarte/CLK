@@ -57,7 +57,7 @@ template<typename Target, bool include_entries_and_accesses> struct Parser {
 						return;
 
 						// Instructions that suggest another entry point but don't terminate parsing.
-						case Operation::BBS: case Operation::BBC:
+//						case Operation::BBS: case Operation::BBC:	// TODO: BBS, BBC
 						case Operation::BCC: case Operation::BCS:
 						case Operation::BVC: case Operation::BVS:
 						case Operation::BMI: case Operation::BPL:
@@ -68,6 +68,16 @@ template<typename Target, bool include_entries_and_accesses> struct Parser {
 							target.add_entry(storage[start + 1] | (storage[start + 2] << 8));
 						break;
 
+//						// TODO: addressing like the below for the relevant BBC and BBS.
+//						case AddressingMode::Bit0AccumulatorRelative:
+//							target.add_access(start + 2 + int8_t(storage[start + 1]), access_type(next.second.operation));
+//						break;
+
+//						// TODO: this is a potential addressing mode for JSR.
+//						case AddressingMode::SpecialPage:
+//							target.add_access(storage[start + 1] | 0x1f00, access_type(next.second.operation));
+//						break;
+
 						default: break;
 					}
 
@@ -77,20 +87,10 @@ template<typename Target, bool include_entries_and_accesses> struct Parser {
 							target.add_access(storage[start + 1] | (storage[start + 2] << 8), access_type(next.second.operation));
 						break;
 						case AddressingMode::ZeroPage:
-						case AddressingMode::Bit0ZeroPage:	case AddressingMode::Bit1ZeroPage:
-						case AddressingMode::Bit2ZeroPage:	case AddressingMode::Bit3ZeroPage:
-						case AddressingMode::Bit4ZeroPage:	case AddressingMode::Bit5ZeroPage:
-						case AddressingMode::Bit6ZeroPage:	case AddressingMode::Bit7ZeroPage:
 							target.add_access(storage[start + 1], access_type(next.second.operation));
-						break;
-						case AddressingMode::SpecialPage:
-							target.add_access(storage[start + 1] | 0x1f00, access_type(next.second.operation));
 						break;
 						case AddressingMode::ImmediateZeroPage:
 							target.add_access(storage[start + 2], access_type(next.second.operation));
-						break;
-						case AddressingMode::Bit0AccumulatorRelative:
-							target.add_access(start + 2 + int8_t(storage[start + 1]), access_type(next.second.operation));
 						break;
 
 						default: break;
