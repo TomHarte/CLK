@@ -118,9 +118,10 @@ template <
 //			}
 		}
 
-		void perform_all() {
-			// TEMPORARY (?). Execute all current instructions, unless
-			// and until one branches.
+		/*!
+			Executes up to the next branch.
+		*/
+		void run_to_branch() {
 			has_branched_ = false;
 			for(auto index: program_) {
 				const auto performer = performers_[index];

@@ -37,12 +37,57 @@ void Executor::set_rom(const std::vector<uint8_t> &rom) {
 	reset();
 
 	// TEMPORARY: just to test initial wiring.
-	perform_all();
+	for(int c = 0; c < 130; c++) {
+		run_to_branch();
+	}
 }
 
 void Executor::reset() {
 	// Just jump to the reset vector.
 	set_program_counter(uint16_t(memory_[0x1ffe] | (memory_[0x1fff] << 8)));
+}
+
+uint8_t Executor::read(uint16_t address) {
+	address &= 0x1fff;
+	switch(address) {
+		default: return memory_[address];
+
+		// TODO: external IO ports.
+
+		// "Port R"; sixteen four-bit ports
+		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
+		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
+			printf("TODO: Port R\n");
+		return 0xff;
+
+		// Ports P0–P3.
+		case 0xe0: case 0xe1:
+		case 0xe2: case 0xe3:
+		case 0xe4: case 0xe5:
+		case 0xe8: case 0xe9:
+			printf("TODO: Ports P0–P3\n");
+		return 0xff;
+
+		// Timers.
+		case 0xf9: case 0xfa: case 0xfb: case 0xfc: case 0xfd: case 0xfe: case 0xff:
+			printf("TODO: Timers\n");
+		return 0xff;
+	}
+}
+
+void Executor::write(uint16_t address, uint8_t value) {
+	address &= 0x1fff;
+	if(address < 0x60) {
+		memory_[address] = value;
+		return;
+	}
+
+	// TODO: all external IO ports.
+}
+
+void Executor::push(uint8_t value) {
+	write(s_, value);
+	--s_;
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
@@ -55,7 +100,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 #define next8()		memory_[(program_counter_ + 1) & 0x1fff]
 #define next16()	(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8))
 
-	printf("%d %d\n", int(operation), int(addressing_mode));
+	printf("%04x\t%d %d\n", program_counter_ & 0x1fff, int(operation), int(addressing_mode));
 
 	// Underlying assumption below: the instruction stream will never
 	// overlap with IO ports.
@@ -78,17 +123,19 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				program_counter_ += 2;
 			return;
 
-//			case AddressingMode::Relative:
-				// These are all the branches...
-//				address = program_counter_ + size(addressing_mode) + int8_t(next8());
-//			return;
+		// Special-purpose addressing modes.
 
-//			case AddressingMode::ImmediateZeroPage:
+			case AddressingMode::Relative:
+				address = program_counter_ + 1 + size(addressing_mode) + int8_t(next8());
+			break;
+
+			case AddressingMode::SpecialPage:	address = 0x1f00 | next8();			break;
+
+			case AddressingMode::ImmediateZeroPage:
 				// LDM only...
-//			return;
-
-//			case AddressingMode::SpecialPage:	address = 0x1f00 | next8();			break;
-				// JSR only...
+				write(memory_[(program_counter_+2)&0x1fff], memory_[(program_counter_+1)&0x1fff]);
+				program_counter_ += 1 + size(addressing_mode);
+			return;
 
 			/* TODO:
 
@@ -136,16 +183,23 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 
 	// Check for a branch; those don't go through the memory accesses below.
 	switch(operation) {
-		case Operation::JMP:
+		case Operation::BRA: case Operation::JMP:
 			set_program_counter(uint16_t(address));
 		return;
 
-		case Operation::JSR:
-			// TODO: push!
+		case Operation::JSR: {
+			const auto return_address = program_counter_ - 1;
+			push(uint8_t(return_address >> 8));
+			push(uint8_t(return_address & 0xff));
 			set_program_counter(uint16_t(address));
-		return;
+		} return;
 
-		/* TODO: all other types of branches and calls. */
+		case Operation::BPL:	if(!(negative_result_&0x80))	set_program_counter(uint16_t(address));	return;
+		case Operation::BMI:	if(negative_result_&0x80)		set_program_counter(uint16_t(address));	return;
+		case Operation::BEQ:	if(!zero_result_)				set_program_counter(uint16_t(address));	return;
+		case Operation::BNE:	if(zero_result_)				set_program_counter(uint16_t(address));	return;
+
+		/* TODO: all other types of branches. */
 
 		default: break;
 	}
@@ -153,18 +207,20 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 
 	assert(access_type(operation) != AccessType::None);
 
-	// TODO: full reading/writing logic here; only the first 96 bytes are RAM,
-	// there are also timers and IO ports to handle.
-
 	if constexpr(access_type(operation) == AccessType::Read) {
-		perform<operation>(&memory_[address & 0x1fff]);
+		uint8_t source = read(uint16_t(address));
+		perform<operation>(&source);
 		return;
 	}
 
-	uint8_t value = memory_[address & 0x1fff];
+	uint8_t value;
+	if constexpr(access_type(operation) == AccessType::ReadModifyWrite) {
+		value = read(uint16_t(address));
+	} else {
+		value = 0xff;
+	}
 	perform<operation>(&value);
-
-	memory_[address & 0x1fff] = value;
+	write(uint16_t(address), value);
 }
 
 template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_unused]]) {
@@ -201,6 +257,20 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		case Operation::CLD:	decimal_mode_ = false;			break;
 		case Operation::SED:	decimal_mode_ = true;			break;
 
+		case Operation::DEX:	--x_; set_nz(x_);				break;
+		case Operation::INX:	++x_; set_nz(x_);				break;
+		case Operation::DEY:	--y_; set_nz(y_);				break;
+		case Operation::INY:	++y_; set_nz(y_);				break;
+		case Operation::DEC:	--*operand; set_nz(*operand);	break;
+		case Operation::INC:	++*operand; set_nz(*operand);	break;
+
+		/*
+			Already removed from the instruction stream:
+
+				* all branches and jumps;
+				* LDM.
+		*/
+
 		default:
 			printf("Unimplemented operation: %d\n", int(operation));
 			assert(false);
@@ -209,6 +279,7 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 }
 
 void Executor::set_program_counter(uint16_t address) {
+	printf("--- %04x ---\n", (address & 0x1fff) - 0x1000);
 	program_counter_ = address;
 	CachingExecutor::set_program_counter(address);
 }

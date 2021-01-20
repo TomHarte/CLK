@@ -117,6 +117,10 @@ class Executor: public CachingExecutor {
 		uint8_t interrupt_disable_ = 0;
 		bool index_mode_ = false;
 		bool decimal_mode_ = false;
+
+		inline uint8_t read(uint16_t address);
+		inline void write(uint16_t address, uint8_t value);
+		inline void push(uint8_t value);
 };
 
 }
