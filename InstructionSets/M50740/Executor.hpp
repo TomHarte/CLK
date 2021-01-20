@@ -115,6 +115,8 @@ class Executor: public CachingExecutor {
 		uint8_t negative_result_ = 0;
 		uint8_t zero_result_ = 0;
 		uint8_t interrupt_disable_ = 0;
+		bool index_mode_ = false;
+		bool decimal_mode_ = false;
 };
 
 }

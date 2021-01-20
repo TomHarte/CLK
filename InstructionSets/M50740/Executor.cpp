@@ -170,6 +170,10 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 
 		case Operation::CLI:	interrupt_disable_ = 0x00;		break;
 		case Operation::SEI:	interrupt_disable_ = 0xff;		break;
+		case Operation::CLT:	index_mode_ = false;			break;
+		case Operation::SET:	index_mode_ = true;				break;
+		case Operation::CLD:	decimal_mode_ = false;			break;
+		case Operation::SED:	decimal_mode_ = true;			break;
 
 		default:
 			printf("Unimplemented operation: %d\n", int(operation));
