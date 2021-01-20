@@ -46,7 +46,7 @@ class Executor: public CachingExecutor {
 		*/
 		inline void parse(uint16_t start, uint16_t closing_bound) {
 			Parser<Executor, false> parser;
-			parser.parse(*this, memory_, start, closing_bound);
+			parser.parse(*this, memory_, start & 0x1fff, closing_bound);
 		}
 
 	private:

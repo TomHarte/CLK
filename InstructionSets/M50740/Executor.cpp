@@ -42,7 +42,7 @@ void Executor::set_rom(const std::vector<uint8_t> &rom) {
 
 void Executor::reset() {
 	// Just jump to the reset vector.
-	set_program_counter(uint16_t(memory_[0x1ffe] | (memory_[0x1fff] << 8)) & 0x1fff);
+	set_program_counter(uint16_t(memory_[0x1ffe] | (memory_[0x1fff] << 8)));
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
@@ -54,6 +54,8 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 	int address;
 #define next8()		memory_[(program_counter_ + 1) & 0x1fff]
 #define next16()	(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8))
+
+	printf("%d %d\n", int(operation), int(addressing_mode));
 
 	// Underlying assumption below: the instruction stream will never
 	// overlap with IO ports.
@@ -130,8 +132,25 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 
 #undef next16
 #undef next8
-
 	program_counter_ += 1 + size(addressing_mode);
+
+	// Check for a branch; those don't go through the memory accesses below.
+	switch(operation) {
+		case Operation::JMP:
+			set_program_counter(uint16_t(address));
+		return;
+
+		case Operation::JSR:
+			// TODO: push!
+			set_program_counter(uint16_t(address));
+		return;
+
+		/* TODO: all other types of branches and calls. */
+
+		default: break;
+	}
+
+
 	assert(access_type(operation) != AccessType::None);
 
 	// TODO: full reading/writing logic here; only the first 96 bytes are RAM,
@@ -158,6 +177,13 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		case Operation::STA:	*operand = a_;	break;
 		case Operation::STX:	*operand = x_;	break;
 		case Operation::STY:	*operand = y_;	break;
+
+		case Operation::TXA:	set_nz(a_ = x_);	break;
+		case Operation::TYA:	set_nz(a_ = y_);	break;
+		case Operation::TXS:	s_ = x_;			break;
+		case Operation::TAX:	set_nz(x_ = a_);	break;
+		case Operation::TAY:	set_nz(y_ = a_);	break;
+		case Operation::TSX:	set_nz(x_ = s_);	break;
 
 		case Operation::SEB0:	case Operation::SEB1:	case Operation::SEB2:	case Operation::SEB3:
 		case Operation::SEB4:	case Operation::SEB5:	case Operation::SEB6:	case Operation::SEB7:

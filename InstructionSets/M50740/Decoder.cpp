@@ -144,7 +144,7 @@ Instruction Decoder::instrucion_for_opcode(uint8_t opcode) {
 		Map(0x96, STX, ZeroPageX);					Map(0x97, BBC4, ZeroPageRelative);
 
 		Map(0x98, TYA, Implied);					Map(0x99, STA, AbsoluteY);
-		Map(0x9a, TXS, AbsoluteY);					Map(0x9b, CLB4, Accumulator);
+		Map(0x9a, TXS, Implied);					Map(0x9b, CLB4, Accumulator);
 
 													Map(0x9d, ADC, AbsoluteX);
 													Map(0x9f, CLB4, ZeroPage);

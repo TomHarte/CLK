@@ -16,10 +16,10 @@ namespace InstructionSet {
 namespace M50740 {
 
 enum class AddressingMode {
-	Implied,			Accumulator,			Immediate,
-	Absolute,			AbsoluteX,				AbsoluteY,
-	ZeroPage,			ZeroPageX,				ZeroPageY,
-	XIndirect,			IndirectY,
+	Implied,				Accumulator,			Immediate,
+	Absolute,				AbsoluteX,				AbsoluteY,
+	ZeroPage,				ZeroPageX,				ZeroPageY,
+	XIndirect,				IndirectY,
 	Relative,
 	AbsoluteIndirect,		ZeroPageIndirect,
 	SpecialPage,
@@ -33,7 +33,7 @@ static constexpr auto MinAddressingMode = int(AddressingMode::Implied);
 constexpr int size(AddressingMode mode) {
 	// This is coupled to the AddressingMode list above; be careful!
 	constexpr int sizes[] = {
-		0, 0, 0,
+		0, 0, 1,
 		2, 2, 2,
 		1, 1, 1,
 		1, 1,
