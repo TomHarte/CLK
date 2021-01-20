@@ -90,6 +90,11 @@ void Executor::push(uint8_t value) {
 	--s_;
 }
 
+uint8_t Executor::pull() {
+	++s_;
+	return read(s_);
+}
+
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
 	// Deal with all modes that don't access memory up here;
 	// those that access memory will go through a slightly longer
@@ -263,6 +268,13 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		case Operation::INY:	++y_; set_nz(y_);				break;
 		case Operation::DEC:	--*operand; set_nz(*operand);	break;
 		case Operation::INC:	++*operand; set_nz(*operand);	break;
+
+		case Operation::RTS: {
+			uint16_t target = pull();
+			target |= pull() << 8;
+			++target;
+			set_program_counter(target);
+		} break;
 
 		/*
 			Already removed from the instruction stream:
