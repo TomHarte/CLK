@@ -22,6 +22,12 @@ namespace M50740 {
 class Executor;
 using CachingExecutor = CachingExecutor<Executor, 0x1fff, 255, Instruction, false>;
 
+/*!
+	Executes M50740 code subject to heavy limitations:
+
+		* the instruction stream cannot run across any of the specialised IO addresses; and
+		* timing is correct to whole-opcode boundaries only.
+*/
 class Executor: public CachingExecutor {
 	public:
 		Executor();
@@ -115,6 +121,8 @@ class Executor: public CachingExecutor {
 		uint8_t negative_result_ = 0;
 		uint8_t zero_result_ = 0;
 		uint8_t interrupt_disable_ = 0;
+		uint8_t carry_flag_ = 0;
+		uint8_t overflow_result_;
 		bool index_mode_ = false;
 		bool decimal_mode_ = false;
 

@@ -105,7 +105,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 #define next8()		memory_[(program_counter_ + 1) & 0x1fff]
 #define next16()	(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8))
 
-	printf("%04x\t%d %d\n", program_counter_ & 0x1fff, int(operation), int(addressing_mode));
+	printf("%04x\t%02x\t%d %d\t[x:%02x s:%02x]\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), x_, s_);
 
 	// Underlying assumption below: the instruction stream will never
 	// overlap with IO ports.
@@ -261,6 +261,9 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		case Operation::SET:	index_mode_ = true;				break;
 		case Operation::CLD:	decimal_mode_ = false;			break;
 		case Operation::SED:	decimal_mode_ = true;			break;
+		case Operation::CLC:	carry_flag_ = 0;				break;
+		case Operation::SEC:	carry_flag_ = 1;				break;
+		case Operation::CLV:	overflow_result_ = 0;			break;
 
 		case Operation::DEX:	--x_; set_nz(x_);				break;
 		case Operation::INX:	++x_; set_nz(x_);				break;
@@ -272,8 +275,9 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		case Operation::RTS: {
 			uint16_t target = pull();
 			target |= pull() << 8;
-			++target;
-			set_program_counter(target);
+			set_program_counter(target+1);
+			--program_counter_;				// To undo the unavoidable increment
+											// after exiting from here.
 		} break;
 
 		/*
