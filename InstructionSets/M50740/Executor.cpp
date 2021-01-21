@@ -314,14 +314,24 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 											// after exiting from here.
 		} break;
 
-		case Operation::ORA:	set_nz(a_ |= *operand);	break;
-		case Operation::AND:	set_nz(a_ &= *operand);	break;
-		case Operation::EOR:	set_nz(a_ ^= *operand);	break;
+		case Operation::ORA:	set_nz(a_ |= *operand);		break;
+		case Operation::AND:	set_nz(a_ &= *operand);		break;
+		case Operation::EOR:	set_nz(a_ ^= *operand);		break;
+		case Operation::COM:	set_nz(*operand ^= 0xff);	break;
+
+		case Operation::FST:	case Operation::SLW:	case Operation::NOP:
+			// TODO: communicate FST and SLW onwards, I imagine. Find out what they interface with.
+		break;
+
+		case Operation::PHA:	push(a_);				break;
+		case Operation::PHP:	push(flags());			break;
+		case Operation::PLA:	set_nz(a_ = pull());	break;
+		case Operation::PLP:	set_flags(pull());		break;
 
 		// TODO:
 		//
-		//	BRK, FST, SLW, NOP, PHA, PHP, PLA, PLP, STP,
-		//	ADC, SBC, BIT, CMP, CPX, CPY, ASL, LSR, COM, ROL, ROR, RRF
+		//	BRK, STP,
+		//	ADC, SBC, BIT, CMP, CPX, CPY, ASL, LSR, ROL, ROR, RRF
 
 		/*
 			Operations affected by the index mode flag: ADC, AND, CMP, EOR, LDA, ORA, and SBC.
