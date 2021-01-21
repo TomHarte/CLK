@@ -350,7 +350,6 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		// TODO:
 		//
 		//	BRK, STP
-		//	ADC, SBC
 
 		case Operation::ASL:
 			carry_flag_ = *operand >> 7;
@@ -408,6 +407,7 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 #undef op_eor
 #undef op_and
 #undef op_ora
+#undef index
 
 #define op_cmp(x)	{								\
 			const uint16_t temp16 = x - *operand;	\
@@ -425,7 +425,68 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		case Operation::CPY:	op_cmp(y_);			break;
 #undef op_cmp
 
-#undef index
+		case Operation::SBC:
+		case Operation::ADC: {
+			const uint8_t a = index_mode_ ? read(x_) : a_;
+
+			if(decimal_mode_) {
+				if(operation == Operation::ADC) {
+					uint16_t partials = 0;
+					int result = carry_flag_;
+
+#define nibble(mask, limit, adjustment, carry)		\
+	result += (a & mask) + (*operand & mask);		\
+	partials += result & mask;						\
+	if(result >= limit) result = ((result + (adjustment)) & (carry - 1)) + carry;
+
+					nibble(0x000f, 0x000a, 0x0006, 0x00010);
+					nibble(0x00f0, 0x00a0, 0x0060, 0x00100);
+
+#undef nibble
+
+					overflow_result_ = uint8_t((partials ^ a) & (partials ^ *operand));
+					set_nz(uint8_t(result));
+					carry_flag_ = (result >> 8) & 1;
+				} else {
+					unsigned int result = 0;
+					unsigned int borrow = carry_flag_ ^ 1;
+					const uint16_t decimal_result = uint16_t(a - *operand - borrow);
+
+#define nibble(mask, adjustment, carry)					\
+	result += (a & mask) - (*operand & mask) - borrow;	\
+	if(result > mask) result -= adjustment;				\
+	borrow = (result > mask) ? carry : 0;				\
+	result &= (carry - 1);
+
+					nibble(0x000f, 0x0006, 0x00010);
+					nibble(0x00f0, 0x0060, 0x00100);
+
+#undef nibble
+
+					overflow_result_ = uint8_t((decimal_result ^ a) & (~decimal_result ^ *operand));
+					set_nz(uint8_t(result));
+					carry_flag_ = ((borrow >> 8)&1)^1;
+				}
+			} else {
+				int result;
+				if(operation == Operation::ADC) {
+					result = int(a + *operand + carry_flag_);
+					overflow_result_ = uint8_t((result ^ a) & (result ^ *operand));
+				} else {
+					result = int(a + ~*operand + carry_flag_);
+					overflow_result_ = uint8_t((result ^ a) & (result ^ ~*operand));
+				}
+				set_nz(uint8_t(result));
+				carry_flag_ = (result >> 8) & 1;
+			}
+
+			if(index_mode_) {
+				write(x_, a);
+			} else {
+				a_ = a;
+			}
+		} break;
+
 
 		/*
 			Already removed from the instruction stream:
