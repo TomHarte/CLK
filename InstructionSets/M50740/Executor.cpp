@@ -349,8 +349,8 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 
 		// TODO:
 		//
-		//	BRK, STP,
-		//	ADC, SBC, BIT
+		//	BRK, STP
+		//	ADC, SBC
 
 		case Operation::ASL:
 			carry_flag_ = *operand >> 7;
@@ -378,6 +378,12 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 
 		case Operation::RRF:
 			*operand = uint8_t((*operand >> 4) | (*operand << 4));
+		break;
+
+		case Operation::BIT:
+			zero_result_ = *operand & a_;
+			negative_result_ = *operand;
+			overflow_result_ = uint8_t(*operand << 1);
 		break;
 
 	/*
