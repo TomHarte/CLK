@@ -885,7 +885,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 								const uint16_t a = registers_.a.full & registers_.m_masks[1];
 								unsigned int result = 0;
 								unsigned int borrow = registers_.flags.carry ^ 1;
-								const uint16_t decimal_result = uint16_t(registers_.a.full - data_buffer_.value - borrow);
+								const uint16_t decimal_result = uint16_t(a - data_buffer_.value - borrow);
 
 #define nibble(mask, adjustment, carry)								\
 	result += (a & mask) - (data_buffer_.value & mask) - borrow;	\
@@ -900,7 +900,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 #undef nibble
 
-								registers_.flags.overflow = (( (decimal_result ^ registers_.a.full) & (~decimal_result ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
+								registers_.flags.overflow = (( (decimal_result ^ a) & (~decimal_result ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
 								registers_.flags.set_nz(uint16_t(result), registers_.m_shift);
 								registers_.flags.carry = ((borrow >> 16)&1)^1;
 								LDA(result);
