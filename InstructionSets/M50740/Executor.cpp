@@ -318,6 +318,11 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		case Operation::AND:	set_nz(a_ &= *operand);	break;
 		case Operation::EOR:	set_nz(a_ ^= *operand);	break;
 
+		// TODO:
+		//
+		//	BRK, FST, SLW, NOP, PHA, PHP, PLA, PLP, STP,
+		//	ADC, SBC, BIT, CMP, CPX, CPY, ASL, LSR, COM, ROL, ROR, RRF
+
 		/*
 			Operations affected by the index mode flag: ADC, AND, CMP, EOR, LDA, ORA, and SBC.
 		*/
