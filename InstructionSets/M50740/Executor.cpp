@@ -37,7 +37,7 @@ void Executor::set_rom(const std::vector<uint8_t> &rom) {
 	reset();
 
 	// TEMPORARY: just to test initial wiring.
-	for(int c = 0; c < 130; c++) {
+	for(int c = 0; c < 1300; c++) {
 		run_to_branch();
 	}
 }
@@ -184,6 +184,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 					case Operation::BBC4:	case Operation::BBC5:	case Operation::BBC6:	case Operation::BBC7:
 						if(value & (1 << (int(operation) - int(Operation::BBC0)))) set_program_counter(uint16_t(address));
 					return;
+					default: assert(false);
 				}
 			} break;
 
@@ -267,6 +268,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 }
 
 template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_unused]]) {
+
 #define set_nz(a)	negative_result_ = zero_result_ = (a)
 	switch(operation) {
 		case Operation::LDA:	set_nz(a_ = *operand);	break;
@@ -327,9 +329,6 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 											// after exiting from here.
 		} break;
 
-		case Operation::ORA:	set_nz(a_ |= *operand);		break;
-		case Operation::AND:	set_nz(a_ &= *operand);		break;
-		case Operation::EOR:	set_nz(a_ ^= *operand);		break;
 		case Operation::COM:	set_nz(*operand ^= 0xff);	break;
 
 		case Operation::FST:	case Operation::SLW:	case Operation::NOP:
@@ -344,11 +343,42 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		// TODO:
 		//
 		//	BRK, STP,
-		//	ADC, SBC, BIT, CMP, CPX, CPY, ASL, LSR, ROL, ROR, RRF
+		//	ADC, SBC, BIT, ASL, LSR, ROL, ROR, RRF
 
-		/*
-			Operations affected by the index mode flag: ADC, AND, CMP, EOR, LDA, ORA, and SBC.
-		*/
+	/*
+		Operations affected by the index mode flag: ADC, AND, CMP, EOR, LDA, ORA, and SBC.
+	*/
+
+#define index(op)					\
+		if(index_mode_) {			\
+			uint8_t t = read(x_);	\
+			op(t);					\
+			write(x_, t);			\
+		} else {					\
+			op(a_);					\
+		}
+
+#define op_ora(x)	set_nz(x |= *operand)
+#define op_and(x)	set_nz(x &= *operand)
+#define op_eor(x)	set_nz(x ^= *operand)
+		case Operation::ORA:	index(op_ora);		break;
+		case Operation::AND:	index(op_and);		break;
+		case Operation::EOR:	index(op_eor);		break;
+#undef op_eor
+#undef op_and
+#undef op_ora
+
+#define op_cmp(x)	{								\
+			const uint16_t temp16 = x - *operand;	\
+			set_nz(uint8_t(temp16));				\
+			carry_flag_ = (~temp16 >> 8)&1;			\
+		}
+		case Operation::CMP:	index(op_cmp);		break;
+		case Operation::CPX:	op_cmp(x_);			break;
+		case Operation::CPY:	op_cmp(y_);			break;
+#undef op_cmp
+
+#undef index
 
 		/*
 			Already removed from the instruction stream:

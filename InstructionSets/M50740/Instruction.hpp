@@ -98,6 +98,14 @@ constexpr AccessType access_type(Operation operation) {
 	return AccessType::ReadModifyWrite;
 }
 
+constexpr bool uses_index_mode(Operation operation) {
+	return
+		operation == Operation::ADC || operation == Operation::AND ||
+		operation == Operation::CMP || operation == Operation::EOR ||
+		operation == Operation::LDA || operation == Operation::ORA ||
+		operation == Operation::SBC;
+}
+
 struct Instruction {
 	Operation operation = Operation::Invalid;
 	AddressingMode addressing_mode = AddressingMode::Implied;
