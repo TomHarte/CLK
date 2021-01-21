@@ -119,7 +119,7 @@ namespace {
 // MARK: - Decoder
 
 - (void)decode:(const uint32_t *)stream {
-	InstructionSet::PowerPC::Decoder decoder(InstructionSet::Model::MPC601);
+	InstructionSet::PowerPC::Decoder decoder(InstructionSet::PowerPC::Model::MPC601);
 	for(int c = 0; c < 32; c++) {
 		instructions[c] = decoder.decode(stream[c]);
 	}
