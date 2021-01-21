@@ -130,6 +130,8 @@ class Executor: public CachingExecutor {
 		inline void write(uint16_t address, uint8_t value);
 		inline void push(uint8_t value);
 		inline uint8_t pull();
+		inline void set_flags(uint8_t);
+		inline uint8_t flags();
 };
 
 }

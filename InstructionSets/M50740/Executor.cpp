@@ -95,6 +95,27 @@ uint8_t Executor::pull() {
 	return read(s_);
 }
 
+void Executor::set_flags(uint8_t flags) {
+	negative_result_ = flags;
+	overflow_result_ = uint8_t(flags << 1);
+	index_mode_ = flags & 0x20;
+	decimal_mode_ = flags & 0x08;
+	interrupt_disable_ = flags & 0x04;
+	zero_result_ = !(flags & 0x02);
+	carry_flag_ = flags & 0x01;
+}
+
+uint8_t Executor::flags() {
+	return
+		(negative_result_ & 0x80) |
+		((overflow_result_ & 0x80) >> 1) |
+		(index_mode_ ? 0x20 : 0x00) |
+		(decimal_mode_ ? 0x08 : 0x00) |
+		interrupt_disable_ |
+		(zero_result_ ? 0x00 : 0x02) |
+		carry_flag_;
+}
+
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
 	// Deal with all modes that don't access memory up here;
 	// those that access memory will go through a slightly longer
@@ -203,8 +224,12 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 		case Operation::BMI:	if(negative_result_&0x80)		set_program_counter(uint16_t(address));	return;
 		case Operation::BEQ:	if(!zero_result_)				set_program_counter(uint16_t(address));	return;
 		case Operation::BNE:	if(zero_result_)				set_program_counter(uint16_t(address));	return;
+		case Operation::BCS:	if(carry_flag_)					set_program_counter(uint16_t(address));	return;
+		case Operation::BCC:	if(!carry_flag_)				set_program_counter(uint16_t(address));	return;
+		case Operation::BVS:	if(overflow_result_ & 0x80)		set_program_counter(uint16_t(address));	return;
+		case Operation::BVC:	if(!(overflow_result_ & 0x80))	set_program_counter(uint16_t(address));	return;
 
-		/* TODO: all other types of branches. */
+		/* TODO: BBC, BBS. */
 
 		default: break;
 	}
@@ -256,7 +281,7 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		break;
 
 		case Operation::CLI:	interrupt_disable_ = 0x00;		break;
-		case Operation::SEI:	interrupt_disable_ = 0xff;		break;
+		case Operation::SEI:	interrupt_disable_ = 0x04;		break;
 		case Operation::CLT:	index_mode_ = false;			break;
 		case Operation::SET:	index_mode_ = true;				break;
 		case Operation::CLD:	decimal_mode_ = false;			break;
@@ -279,6 +304,23 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 			--program_counter_;				// To undo the unavoidable increment
 											// after exiting from here.
 		} break;
+
+		case Operation::RTI: {
+			set_flags(pull());
+			uint16_t target = pull();
+			target |= pull() << 8;
+			set_program_counter(target);
+			--program_counter_;				// To undo the unavoidable increment
+											// after exiting from here.
+		} break;
+
+		case Operation::ORA:	set_nz(a_ |= *operand);	break;
+		case Operation::AND:	set_nz(a_ &= *operand);	break;
+		case Operation::EOR:	set_nz(a_ ^= *operand);	break;
+
+		/*
+			Operations affected by the index mode flag: ADC, AND, CMP, EOR, LDA, ORA, and SBC.
+		*/
 
 		/*
 			Already removed from the instruction stream:
