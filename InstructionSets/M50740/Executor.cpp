@@ -163,13 +163,29 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				program_counter_ += 1 + size(addressing_mode);
 			return;
 
-			/* TODO:
-
-					AccumulatorRelative
-					ZeroPageRelative
-
-					... which are BBC/BBS-exclusive.
-			*/
+			case AddressingMode::AccumulatorRelative:
+			case AddressingMode::ZeroPageRelative: {
+				// Order of bytes is: (i) zero page address; (ii) relative jump.
+				uint8_t value;
+				if constexpr (addressing_mode == AddressingMode::AccumulatorRelative) {
+					value = a_;
+					address = program_counter_ + 1 + size(addressing_mode) + int8_t(next8());
+				} else {
+					value = read(next8());
+					address = program_counter_ + 1 + size(addressing_mode) + int8_t(memory_[(program_counter_+2)&0x1fff]);
+				}
+				program_counter_ += 1 + size(addressing_mode);
+				switch(operation) {
+					case Operation::BBS0:	case Operation::BBS1:	case Operation::BBS2:	case Operation::BBS3:
+					case Operation::BBS4:	case Operation::BBS5:	case Operation::BBS6:	case Operation::BBS7:
+						if(value & (1 << (int(operation) - int(Operation::BBS0)))) set_program_counter(uint16_t(address));
+					return;
+					case Operation::BBC0:	case Operation::BBC1:	case Operation::BBC2:	case Operation::BBC3:
+					case Operation::BBC4:	case Operation::BBC5:	case Operation::BBC6:	case Operation::BBC7:
+						if(value & (1 << (int(operation) - int(Operation::BBC0)))) set_program_counter(uint16_t(address));
+					return;
+				}
+			} break;
 
 		// Addressing modes with a memory access.
 
@@ -229,11 +245,8 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 		case Operation::BVS:	if(overflow_result_ & 0x80)		set_program_counter(uint16_t(address));	return;
 		case Operation::BVC:	if(!(overflow_result_ & 0x80))	set_program_counter(uint16_t(address));	return;
 
-		/* TODO: BBC, BBS. */
-
 		default: break;
 	}
-
 
 	assert(access_type(operation) != AccessType::None);
 
