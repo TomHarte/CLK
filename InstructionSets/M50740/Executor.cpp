@@ -350,7 +350,35 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		// TODO:
 		//
 		//	BRK, STP,
-		//	ADC, SBC, BIT, ASL, LSR, ROL, ROR, RRF
+		//	ADC, SBC, BIT
+
+		case Operation::ASL:
+			carry_flag_ = *operand >> 7;
+			*operand <<= 1;
+			set_nz(*operand);
+		break;
+
+		case Operation::LSR:
+			carry_flag_ = *operand & 1;
+			*operand >>= 1;
+			set_nz(*operand);
+		break;
+
+		case Operation::ROL: {
+			const uint8_t temp8 = uint8_t((*operand << 1) | carry_flag_);
+			carry_flag_ = *operand >> 7;
+			set_nz(*operand = temp8);
+		} break;
+
+		case Operation::ROR: {
+			const uint8_t temp8 = uint8_t((*operand >> 1) | (carry_flag_ << 7));
+			carry_flag_ = *operand & 1;
+			set_nz(*operand = temp8);
+		} break;
+
+		case Operation::RRF:
+			*operand = uint8_t((*operand >> 4) | (*operand << 4));
+		break;
 
 	/*
 		Operations affected by the index mode flag: ADC, AND, CMP, EOR, LDA, ORA, and SBC.
