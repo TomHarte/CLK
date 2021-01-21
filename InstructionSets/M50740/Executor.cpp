@@ -271,7 +271,14 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 
 #define set_nz(a)	negative_result_ = zero_result_ = (a)
 	switch(operation) {
-		case Operation::LDA:	set_nz(a_ = *operand);	break;
+		case Operation::LDA:
+			if(index_mode_) {
+				write(x_, *operand);
+				set_nz(*operand);
+			} else {
+				set_nz(a_ = *operand);
+			}
+		break;
 		case Operation::LDX:	set_nz(x_ = *operand);	break;
 		case Operation::LDY:	set_nz(y_ = *operand);	break;
 
@@ -373,7 +380,13 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 			set_nz(uint8_t(temp16));				\
 			carry_flag_ = (~temp16 >> 8)&1;			\
 		}
-		case Operation::CMP:	index(op_cmp);		break;
+		case Operation::CMP:
+			if(index_mode_) {
+				op_cmp(read(x_));
+			} else {
+				op_cmp(a_);
+			}
+		break;
 		case Operation::CPX:	op_cmp(x_);			break;
 		case Operation::CPY:	op_cmp(y_);			break;
 #undef op_cmp
