@@ -108,6 +108,7 @@ template <
 
 			// Temporary implementation: just interpret.
 			program_.clear();
+			program_index_ = 0;
 			static_cast<Executor *>(this)->parse(address, ProgramCounterType(max_address));
 
 //			const auto page = find_page(address);
@@ -149,8 +150,9 @@ template <
 			while(remaining_duration_ > 0) {
 				has_branched_ = false;
 				while(remaining_duration_ > 0 && !has_branched_) {
-					(static_cast<Executor *>(this)->*performers_[program_index_])();
+					const auto performer = performers_[program_[program_index_]];
 					++program_index_;
+					(static_cast<Executor *>(this)->*performer)();
 				}
 			}
 		}

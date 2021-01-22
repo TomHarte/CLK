@@ -128,7 +128,7 @@ template<bool is_brk> inline void Executor::perform_interrupt() {
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
-	printf("%04x\t%02x\t%d %d\t[x:%02x s:%02x]\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), x_, s_);
+	printf("%04x\t%02x\t%d %d\t[x:%02x s:%02x]\t(%s)\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), x_, s_, __PRETTY_FUNCTION__ );
 
 	// Post cycle cost; this emulation _does not provide accurate timing_.
 	// TODO: post actual cycle counts. For now count instructions only.
