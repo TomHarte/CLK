@@ -12,6 +12,7 @@
 #include "Instruction.hpp"
 #include "Parser.hpp"
 #include "../CachingExecutor.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -33,6 +34,11 @@ class Executor: public CachingExecutor {
 		Executor();
 		void set_rom(const std::vector<uint8_t> &rom);
 		void reset();
+
+		/*!
+			Runs, in discrete steps, the minimum number of instructions as it takes to complete at least @c cycles.
+		*/
+		void run_for(Cycles cycles);
 
 	private:
 		// MARK: - CachingExecutor-facing interface.
@@ -106,8 +112,6 @@ class Executor: public CachingExecutor {
 		*/
 		template <Operation operation, AddressingMode addressing_mode> void perform();
 
-		void set_program_counter(uint16_t address);
-
 	private:
 		// MARK: - Instruction set state.
 
@@ -115,7 +119,6 @@ class Executor: public CachingExecutor {
 		uint8_t memory_[0x2000];
 
 		// Registers.
-		uint16_t program_counter_;
 		uint8_t a_, x_, y_, s_;
 
 		uint8_t negative_result_ = 0;

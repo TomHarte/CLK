@@ -94,7 +94,7 @@ template <
 		// work for executors to fill this array, but subsequently performers can be
 		// indexed by array position, which is a lot more compact than a generic pointer.
 		std::array<Performer, max_performer_count> performers_;
-
+		ProgramCounterType program_counter_;
 
 		/*!
 			Moves the current point of execution to @c address, updating necessary performer caches
@@ -104,6 +104,7 @@ template <
 			// Set flag to terminate any inner loop currently running through
 			// previously-parsed content.
 			has_branched_ = true;
+			program_counter_ = address;
 
 			// Temporary implementation: just interpret.
 			program_.clear();
@@ -137,11 +138,36 @@ template <
 			}
 		}
 
-	private:
-		bool has_branched_ = false;
+		/*!
+			Runs for @c duration; the intention is that subclasses provide a method
+			that is clear about units, and call this to count down in whatever units they
+			count down in.
+		*/
+		void run_for(int duration) {
+			remaining_duration_ += duration;
+
+			while(remaining_duration_ > 0) {
+				has_branched_ = false;
+				while(remaining_duration_ > 0 && !has_branched_) {
+					(static_cast<Executor *>(this)->*performers_[program_index_])();
+					++program_index_;
+				}
+			}
+		}
+
+		/*!
+			Should be called by a specific executor to subtract from the remaining
+			running duration.
+		*/
+		inline void subtract_duration(int duration) {
+			remaining_duration_ -= duration;
+		}
 
 	private:
+		bool has_branched_ = false;
+		int remaining_duration_ = 0;
 		std::vector<PerformerIndex> program_;
+		size_t program_index_ = 0;
 
 		/* TODO: almost below here can be shoved off into an LRUCache object, or similar. */
 

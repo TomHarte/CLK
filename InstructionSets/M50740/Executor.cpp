@@ -37,9 +37,11 @@ void Executor::set_rom(const std::vector<uint8_t> &rom) {
 	reset();
 
 	// TEMPORARY: just to test initial wiring.
-	for(int c = 0; c < 1300; c++) {
-		run_to_branch();
-	}
+	run_for(Cycles(13000));
+}
+
+void Executor::run_for(Cycles cycles) {
+	CachingExecutor::run_for(cycles.as<int>());
 }
 
 void Executor::reset() {
@@ -126,6 +128,12 @@ template<bool is_brk> inline void Executor::perform_interrupt() {
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
+	printf("%04x\t%02x\t%d %d\t[x:%02x s:%02x]\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), x_, s_);
+
+	// Post cycle cost; this emulation _does not provide accurate timing_.
+	// TODO: post actual cycle counts. For now count instructions only.
+	subtract_duration(1);
+
 	// Deal with all modes that don't access memory up here;
 	// those that access memory will go through a slightly longer
 	// sequence below that wraps the address and checks whether
@@ -134,8 +142,6 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 	int address;
 #define next8()		memory_[(program_counter_ + 1) & 0x1fff]
 #define next16()	(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8))
-
-	printf("%04x\t%02x\t%d %d\t[x:%02x s:%02x]\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), x_, s_);
 
 	// Underlying assumption below: the instruction stream will never
 	// overlap with IO ports.
@@ -204,7 +210,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 			case AddressingMode::AbsoluteY:		address = next16() + y_;			break;
 			case AddressingMode::ZeroPage:		address = next8();					break;
 			case AddressingMode::ZeroPageX:		address = (next8() + x_) & 0xff;	break;
-			case AddressingMode::ZeroPageY:		address = (next8() + x_) & 0xff;	break;
+			case AddressingMode::ZeroPageY:		address = (next8() + y_) & 0xff;	break;
 
 			case AddressingMode::ZeroPageIndirect:
 				address = next8();
@@ -398,6 +404,10 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 			overflow_result_ = uint8_t(*operand << 1);
 		break;
 
+		case Operation::TST:
+			set_nz(*operand);
+		break;
+
 	/*
 		Operations affected by the index mode flag: ADC, AND, CMP, EOR, LDA, ORA, and SBC.
 	*/
@@ -513,10 +523,4 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 			assert(false);
 	}
 #undef set_nz
-}
-
-void Executor::set_program_counter(uint16_t address) {
-	printf("--- %04x ---\n", (address & 0x1fff) - 0x1000);
-	program_counter_ = address;
-	CachingExecutor::set_program_counter(address);
 }
