@@ -51,8 +51,8 @@ enum class Operation: uint8_t {
 	Invalid,
 
 	// Operations that don't access memory.
-	BBC0,	BBS0,	BBC1,	BBS1,	BBC2,	BBS2,	BBC3,	BBS3,
-	BBC4,	BBS4,	BBC5,	BBS5,	BBC6,	BBS6,	BBC7,	BBS7,
+	BBC0,	BBC1,	BBC2,	BBC3,	BBC4,	BBC5,	BBC6,	BBC7,
+	BBS0,	BBS1,	BBS2,	BBS3,	BBS4,	BBS5,	BBS6,	BBS7,
 	BCC,	BCS,
 	BEQ,	BMI,	BNE,	BPL,
 	BVC,	BVS,	BRA,	BRK,
@@ -77,8 +77,8 @@ enum class Operation: uint8_t {
 
 	// Read-modify-write operations.
 	ASL,	LSR,
-	CLB0,	SEB0,	CLB1,	SEB1,	CLB2,	SEB2,	CLB3,	SEB3,
-	CLB4,	SEB4,	CLB5,	SEB5,	CLB6,	SEB6,	CLB7,	SEB7,
+	CLB0,	CLB1,	CLB2,	CLB3,	CLB4,	CLB5,	CLB6,	CLB7,
+	SEB0,	SEB1,	SEB2,	SEB3,	SEB4,	SEB5,	SEB6,	SEB7,
 	COM,
 	DEC,	INC,
 	ROL,	ROR,	RRF,
