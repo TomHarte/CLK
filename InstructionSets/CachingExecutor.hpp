@@ -119,6 +119,13 @@ template <
 		}
 
 		/*!
+			Indicates whether the processor is currently 'stopped', i.e. whether all attempts to run
+			should produce no activity. Some processors have such a state when waiting for
+			interrupts or for a reset.
+		*/
+		void set_is_stopped(bool) {}
+
+		/*!
 			Executes up to the next branch.
 		*/
 		void run_to_branch() {

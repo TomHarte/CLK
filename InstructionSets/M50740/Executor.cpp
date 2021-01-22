@@ -116,6 +116,15 @@ uint8_t Executor::flags() {
 		carry_flag_;
 }
 
+template<bool is_brk> inline void Executor::perform_interrupt() {
+	// BRK has an unused operand.
+	++program_counter_;
+	push(uint8_t(program_counter_ >> 8));
+	push(uint8_t(program_counter_ & 0xff));
+	push(flags() | (is_brk ? 0x10 : 0x00));
+	set_program_counter(uint16_t(memory_[0x1ff4] | (memory_[0x1ff5] << 8)));
+}
+
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
 	// Deal with all modes that don't access memory up here;
 	// those that access memory will go through a slightly longer
@@ -336,6 +345,14 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 											// after exiting from here.
 		} break;
 
+		case Operation::BRK:
+			perform_interrupt<true>();
+			--program_counter_;				// To undo the unavoidable increment
+											// after exiting from here.
+		break;
+
+		case Operation::STP:	set_is_stopped(true);		break;
+
 		case Operation::COM:	set_nz(*operand ^= 0xff);	break;
 
 		case Operation::FST:	case Operation::SLW:	case Operation::NOP:
@@ -346,10 +363,6 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		case Operation::PHP:	push(flags());			break;
 		case Operation::PLA:	set_nz(a_ = pull());	break;
 		case Operation::PLP:	set_flags(pull());		break;
-
-		// TODO:
-		//
-		//	BRK, STP
 
 		case Operation::ASL:
 			carry_flag_ = *operand >> 7;
