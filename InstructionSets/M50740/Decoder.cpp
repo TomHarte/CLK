@@ -170,7 +170,7 @@ Instruction Decoder::instrucion_for_opcode(uint8_t opcode) {
 		Map(0xb6, LDX, ZeroPageY);					Map(0xb7, BBC5, ZeroPageRelative);
 
 		Map(0xb8, CLV, Implied);					Map(0xb9, LDA, AbsoluteY);
-		Map(0xba, TSX, AbsoluteY);					Map(0xbb, CLB5, Accumulator);
+		Map(0xba, TSX, Implied);					Map(0xbb, CLB5, Accumulator);
 
 		Map(0xbc, LDY, AbsoluteX);					Map(0xbd, LDA, AbsoluteX);
 		Map(0xbe, LDX, AbsoluteY);					Map(0xbf, CLB5, ZeroPage);
