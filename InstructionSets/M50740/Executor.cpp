@@ -131,8 +131,145 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 	printf("%04x\t%02x\t%d %d\t[x:%02x s:%02x]\t(%s)\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), x_, s_, __PRETTY_FUNCTION__ );
 
 	// Post cycle cost; this emulation _does not provide accurate timing_.
-	// TODO: post actual cycle counts. For now count instructions only.
-	subtract_duration(1);
+#define TLength(mode, base)	case AddressingMode::mode: subtract_duration(base + t_lengths[index_mode_]); break;
+#define Length(mode, base)	case AddressingMode::mode: subtract_duration(base); break;
+
+	switch(operation) {
+		case Operation::ADC:	case Operation::AND:	case Operation::CMP:	case Operation::EOR:
+		case Operation::LDA:	case Operation::ORA:	case Operation::SBC:
+		{
+			constexpr int t_lengths[] = {
+				0,
+				operation == Operation::LDA ? 2 : (operation == Operation::CMP ? 1 : 3)
+			};
+			switch(addressing_mode) {
+				TLength(XIndirect, 6);
+				TLength(ZeroPage, 3);
+				TLength(Immediate, 2);
+				TLength(Absolute, 4);
+				TLength(IndirectY, 6);
+				TLength(ZeroPageX, 4);
+				TLength(AbsoluteY, 5);
+				TLength(AbsoluteX, 5);
+				default: assert(false);
+			}
+		} break;
+
+		case Operation::ASL:	case Operation::DEC:	case Operation::INC:	case Operation::LSR:
+		case Operation::ROL:	case Operation::ROR:
+			switch(addressing_mode) {
+				Length(ZeroPage, 5);
+				Length(Accumulator, 2);
+				Length(Absolute, 6);
+				Length(ZeroPageX, 6);
+				Length(AbsoluteX, 7);
+				default: assert(false);
+			}
+		break;
+
+		case Operation::BBC0:	case Operation::BBC1:	case Operation::BBC2:	case Operation::BBC3:
+		case Operation::BBC4:	case Operation::BBC5:	case Operation::BBC6:	case Operation::BBC7:
+		case Operation::BBS0:	case Operation::BBS1:	case Operation::BBS2:	case Operation::BBS3:
+		case Operation::BBS4:	case Operation::BBS5:	case Operation::BBS6:	case Operation::BBS7:
+			switch(addressing_mode) {
+				Length(AccumulatorRelative, 4);
+				Length(ZeroPageRelative, 5);
+				default: assert(false);
+			}
+		break;
+		case Operation::BPL:	case Operation::BMI:	case Operation::BEQ:	case Operation::BNE:
+		case Operation::BCS:	case Operation::BCC:	case Operation::BVS:	case Operation::BVC:
+		case Operation::INX:	case Operation::INY:
+			subtract_duration(2);
+		break;
+
+		case Operation::CPX:	case Operation::CPY:	case Operation::BIT:	case Operation::LDX:
+		case Operation::LDY:
+			switch(addressing_mode) {
+				Length(Immediate, 2);
+				Length(ZeroPage, 3);
+				Length(Absolute, 4);
+				Length(ZeroPageX, 4);
+				Length(ZeroPageY, 4);
+				Length(AbsoluteX, 5);
+				Length(AbsoluteY, 5);
+				default: assert(false);
+			}
+		break;
+
+		case Operation::BRA:	subtract_duration(4);	break;
+		case Operation::BRK:	subtract_duration(7);	break;
+
+		case Operation::CLB0:	case Operation::CLB1:	case Operation::CLB2:	case Operation::CLB3:
+		case Operation::CLB4:	case Operation::CLB5:	case Operation::CLB6:	case Operation::CLB7:
+		case Operation::SEB0:	case Operation::SEB1:	case Operation::SEB2:	case Operation::SEB3:
+		case Operation::SEB4:	case Operation::SEB5:	case Operation::SEB6:	case Operation::SEB7:
+			switch(addressing_mode) {
+				Length(Accumulator, 2);
+				Length(ZeroPage, 5);
+				default: assert(false);
+			}
+		break;
+
+		case Operation::CLC:	case Operation::CLD:	case Operation::CLT:	case Operation::CLV:
+		case Operation::CLI:
+		case Operation::DEX:	case Operation::DEY:	case Operation::FST:	case Operation::NOP:
+		case Operation::SEC:	case Operation::SED:	case Operation::SEI:	case Operation::SET:
+		case Operation::SLW:	case Operation::STP:	case Operation::TAX:	case Operation::TAY:
+		case Operation::TSX:	case Operation::TXA:	case Operation::TXS:	case Operation::TYA:
+			subtract_duration(2);
+		break;
+
+		case Operation::COM:	subtract_duration(5);	break;
+
+		case Operation::JMP:
+			switch(addressing_mode) {
+				Length(Absolute, 3);
+				Length(AbsoluteIndirect, 5);
+				Length(ZeroPageIndirect, 4);
+				default: assert(false);
+			}
+		break;
+
+		case Operation::JSR:
+			switch(addressing_mode) {
+				Length(ZeroPageIndirect, 7);
+				Length(Absolute, 6);
+				Length(SpecialPage, 5);
+				default: assert(false);
+			}
+		break;
+
+		case Operation::LDM:	subtract_duration(4);	break;
+
+		case Operation::PHA:	case Operation::PHP:	case Operation::TST:
+			subtract_duration(3);
+		break;
+
+		case Operation::PLA:	case Operation::PLP:
+			subtract_duration(4);
+		break;
+
+		case Operation::RRF:	subtract_duration(8);	break;
+		case Operation::RTI:	subtract_duration(6);	break;
+		case Operation::RTS:	subtract_duration(6);	break;
+
+		case Operation::STA:	case Operation::STX:	case Operation::STY:
+			switch(addressing_mode) {
+				Length(XIndirect, 7);
+				Length(ZeroPage, 4);
+				Length(Absolute, 5);
+				Length(IndirectY, 7);
+				Length(ZeroPageX, 5);
+				Length(ZeroPageY, 5);
+				Length(AbsoluteY, 6);
+				Length(AbsoluteX, 6);
+				default: assert(false);
+			}
+		break;
+
+		default: assert(false);
+	}
 
 	// Deal with all modes that don't access memory up here;
 	// those that access memory will go through a slightly longer
@@ -193,11 +330,21 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				switch(operation) {
 					case Operation::BBS0:	case Operation::BBS1:	case Operation::BBS2:	case Operation::BBS3:
 					case Operation::BBS4:	case Operation::BBS5:	case Operation::BBS6:	case Operation::BBS7:
-						if(value & (1 << (int(operation) - int(Operation::BBS0)))) set_program_counter(uint16_t(address));
+						if constexpr (operation >= Operation::BBS0 && operation < Operation::BBS7) {
+							if(value & (1 << (int(operation) - int(Operation::BBS0)))) {
+								set_program_counter(uint16_t(address));
+								subtract_duration(2);
+							}
+						}
 					return;
 					case Operation::BBC0:	case Operation::BBC1:	case Operation::BBC2:	case Operation::BBC3:
 					case Operation::BBC4:	case Operation::BBC5:	case Operation::BBC6:	case Operation::BBC7:
-						if(value & (1 << (int(operation) - int(Operation::BBC0)))) set_program_counter(uint16_t(address));
+						if constexpr (operation >= Operation::BBC0 && operation < Operation::BBS7) {
+							if(value & (1 << (int(operation) - int(Operation::BBC0)))) {
+								set_program_counter(uint16_t(address));
+								subtract_duration(2);
+							}
+						}
 					return;
 					default: assert(false);
 				}
@@ -252,14 +399,16 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 			set_program_counter(uint16_t(address));
 		} return;
 
-		case Operation::BPL:	if(!(negative_result_&0x80))	set_program_counter(uint16_t(address));	return;
-		case Operation::BMI:	if(negative_result_&0x80)		set_program_counter(uint16_t(address));	return;
-		case Operation::BEQ:	if(!zero_result_)				set_program_counter(uint16_t(address));	return;
-		case Operation::BNE:	if(zero_result_)				set_program_counter(uint16_t(address));	return;
-		case Operation::BCS:	if(carry_flag_)					set_program_counter(uint16_t(address));	return;
-		case Operation::BCC:	if(!carry_flag_)				set_program_counter(uint16_t(address));	return;
-		case Operation::BVS:	if(overflow_result_ & 0x80)		set_program_counter(uint16_t(address));	return;
-		case Operation::BVC:	if(!(overflow_result_ & 0x80))	set_program_counter(uint16_t(address));	return;
+#define Bcc(c)	if(c) { set_program_counter(uint16_t(address)); subtract_duration(2); } return
+		case Operation::BPL:	Bcc(!(negative_result_&0x80));
+		case Operation::BMI:	Bcc(negative_result_&0x80);
+		case Operation::BEQ:	Bcc(!zero_result_);
+		case Operation::BNE:	Bcc(zero_result_);
+		case Operation::BCS:	Bcc(carry_flag_);
+		case Operation::BCC:	Bcc(!carry_flag_);
+		case Operation::BVS:	Bcc(overflow_result_ & 0x80);
+		case Operation::BVC:	Bcc(!(overflow_result_ & 0x80));
+#undef Bcc
 
 		default: break;
 	}
