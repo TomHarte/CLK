@@ -23,6 +23,11 @@ namespace M50740 {
 class Executor;
 using CachingExecutor = CachingExecutor<Executor, 0x1fff, 255, Instruction, false>;
 
+struct PortHandler {
+	virtual void set_port_output(int port, uint8_t value) = 0;
+	virtual uint8_t get_port_input(int port) = 0;
+};
+
 /*!
 	Executes M50740 code subject to heavy limitations:
 
@@ -31,7 +36,7 @@ using CachingExecutor = CachingExecutor<Executor, 0x1fff, 255, Instruction, fals
 */
 class Executor: public CachingExecutor {
 	public:
-		Executor();
+		Executor(PortHandler &);
 		void set_rom(const std::vector<uint8_t> &rom);
 		void reset();
 
@@ -138,6 +143,7 @@ class Executor: public CachingExecutor {
 		template<bool is_brk> inline void perform_interrupt();
 
 		Cycles cycles_;
+		PortHandler &port_handler_;
 };
 
 }

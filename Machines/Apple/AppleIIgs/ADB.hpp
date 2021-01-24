@@ -17,8 +17,10 @@ namespace Apple {
 namespace IIgs {
 namespace ADB {
 
-class GLU {
+class GLU: public InstructionSet::M50740::PortHandler {
 	public:
+		GLU();
+
 		// Behaviour varies slightly between the controller shipped with ROM01 machines
 		// and that shipped with ROM03 machines; use this to set the desired behaviour.
 		void set_is_rom03(bool);
@@ -59,6 +61,12 @@ class GLU {
 		uint8_t read_microcontroller_address(uint16_t);
 
 		InstructionSet::M50740::Executor executor_;
+
+		void set_port_output(int port, uint8_t value) override;
+		uint8_t get_port_input(int port) override;
+
+		uint8_t registers_[16];
+		uint8_t register_address_;
 };
 
 }

@@ -8,9 +8,12 @@
 
 #include "ADB.hpp"
 
+#include <cassert>
 #include <cstdio>
 
 using namespace Apple::IIgs::ADB;
+
+GLU::GLU() : executor_(*this) {}
 
 // MARK: - Configuration.
 
@@ -218,4 +221,52 @@ void GLU::set_microcontroller_rom(const std::vector<uint8_t> &rom) {
 
 void GLU::run_for(Cycles cycles) {
 	executor_.run_for(cycles);
+}
+
+// MARK: - M50470 port handler
+
+void GLU::set_port_output(int port, uint8_t value) {
+	switch(port) {
+		case 0:
+			printf("Set R%d: %02x\n", register_address_, value);
+			registers_[register_address_] = value;
+		break;
+		case 1:
+//			printf("Keyboard write: %02x???\n", value);
+		break;
+		case 2:
+//			printf("ADB data line input: %d???\n", value >> 7);
+//			printf("IIe keyboard reset line: %d\n", (value >> 6)&1);
+//			printf("IIgs reset line: %d\n", (value >> 5)&1);
+//			printf("GLU strobe: %d\n", (value >> 4)&1);
+			printf("Select GLU register: %d [%02x]\n", value & 0xf, value);
+			register_address_ = value & 0xf;
+		break;
+		case 3:
+//			printf("IIe KWS: %d\n", (value >> 6)&3);
+			printf("ADB data line output: %d\n", (value >> 3)&1);
+		break;
+
+		default: assert(false);
+	}
+}
+
+uint8_t GLU::get_port_input(int port) {
+	switch(port) {
+		case 0:
+			printf("Get R%d\n", register_address_);
+		return registers_[register_address_];
+		case 1:
+//			printf("IIe keyboard read\n");
+		return 0x06;
+		case 2:
+			printf("ADB data line input, etc\n");
+		return 0xff;
+		case 3:
+//			printf("ADB data line output, etc\n");
+		break;
+
+		default: assert(false);
+	}
+	return 0xff;
 }

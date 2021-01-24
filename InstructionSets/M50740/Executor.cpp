@@ -14,7 +14,11 @@
 
 using namespace InstructionSet::M50740;
 
-Executor::Executor() {
+namespace {
+	constexpr int port_remap[] = {0, 1, 2, 0, 3};
+}
+
+Executor::Executor(PortHandler &port_handler) : port_handler_(port_handler) {
 	// Cut down the list of all generated performers to those the processor actually uses, and install that
 	// for future referencing by action_for.
 	Decoder decoder;
@@ -58,20 +62,22 @@ uint8_t Executor::read(uint16_t address) {
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
-			printf("TODO: Port R\n");
+			printf("TODO: Port R [r %04x]\n", address);
 		return 0xff;
 
 		// Ports P0–P3.
-		case 0xe0: case 0xe1:
-		case 0xe2: case 0xe3:
-		case 0xe4: case 0xe5:
-		case 0xe8: case 0xe9:
-			printf("TODO: Ports P0–P3\n");
+		case 0xe0: case 0xe2:
+		case 0xe4: case 0xe8:
+		return port_handler_.get_port_input(port_remap[(address - 0xe0) >> 1]);
+
+		case 0xe1: case 0xe3:
+		case 0xe5: case 0xe9:
+			printf("TODO: Ports P0–P3 direction [r %04x]\n", address);
 		return 0xff;
 
 		// Timers.
 		case 0xf9: case 0xfa: case 0xfb: case 0xfc: case 0xfd: case 0xfe: case 0xff:
-			printf("TODO: Timers\n");
+			printf("TODO: Timers [r %04x]\n", address);
 		return 0xff;
 	}
 }
@@ -84,6 +90,30 @@ void Executor::write(uint16_t address, uint8_t value) {
 	}
 
 	// TODO: all external IO ports.
+	switch(address) {
+		default: break;
+
+		// "Port R"; sixteen four-bit ports
+		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
+		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
+			printf("TODO: Port R [w %04x %02x]\n", address, value);
+		break;
+
+		// Ports P0–P3.
+		case 0xe0: case 0xe2:
+		case 0xe4: case 0xe8:
+		return port_handler_.set_port_output(port_remap[(address - 0xe0) >> 1], value);
+
+		case 0xe1: case 0xe3:
+		case 0xe5: case 0xe9:
+			printf("TODO: Ports P0–P3 direction [w %04x %02x]\n", address, value);
+		break;
+
+		// Timers.
+		case 0xf9: case 0xfa: case 0xfb: case 0xfc: case 0xfd: case 0xfe: case 0xff:
+			printf("TODO: Timers [w %04x %02x]\n", address, value);
+		break;
+	}
 }
 
 void Executor::push(uint8_t value) {
