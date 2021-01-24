@@ -96,7 +96,7 @@ class ConcreteMachine:
 			}
 			rom_ = *roms[0];
 			video_->set_character_rom(*roms[1]);
-			adb_glu_.set_microcontroller_rom(*roms[2]);
+			adb_glu_->set_microcontroller_rom(*roms[2]);
 
 			// Run only the currently-interesting self test.
 			rom_[0x36402] = 2;
@@ -160,7 +160,7 @@ class ConcreteMachine:
 			video_->set_internal_ram(&ram_[ram_.size() - 128*1024]);
 
 			// Select appropriate ADB behaviour.
-			adb_glu_.set_is_rom03(target.model == Target::Model::ROM03);
+			adb_glu_->set_is_rom03(target.model == Target::Model::ROM03);
 
 			// Attach drives to the IWM.
 			iwm_->set_drive(0, &drives35_[0]);
@@ -425,32 +425,32 @@ class ConcreteMachine:
 
 					// ADB and keyboard.
 					case Read(0xc000):
-						*value = adb_glu_.get_keyboard_data();
+						*value = adb_glu_->get_keyboard_data();
 					break;
 					case Read(0xc010):
-						*value = adb_glu_.get_any_key_down() ? 0x80 : 0x00;
+						*value = adb_glu_->get_any_key_down() ? 0x80 : 0x00;
 						[[fallthrough]];
 					case Write(0xc010):
-						adb_glu_.clear_key_strobe();
+						adb_glu_->clear_key_strobe();
 					break;
 
 					case Read(0xc024):
-						*value = adb_glu_.get_mouse_data();
+						*value = adb_glu_->get_mouse_data();
 					break;
 					case Read(0xc025):
-						*value = adb_glu_.get_modifier_status();
+						*value = adb_glu_->get_modifier_status();
 					break;
 					case Read(0xc026):
-						*value = adb_glu_.get_data();
+						*value = adb_glu_->get_data();
 					break;
 					case Write(0xc026):
-						adb_glu_.set_command(*value);
+						adb_glu_->set_command(*value);
 					break;
 					case Read(0xc027):
-						*value = adb_glu_.get_status();
+						*value = adb_glu_->get_status();
 					break;
 					case Write(0xc027):
-						adb_glu_.set_status(*value);
+						adb_glu_->set_status(*value);
 					break;
 
 					// The SCC.
@@ -875,6 +875,7 @@ class ConcreteMachine:
 			video_ += duration;
 			iwm_ += duration;
 			cycles_since_audio_update_ += duration;
+			adb_glu_ += duration;
 			total += decltype(total)(duration.as_integral());
 
 			if(cycles_since_audio_update_ >= cycles_until_audio_event_) {
@@ -915,7 +916,7 @@ class ConcreteMachine:
 
 		Apple::Clock::ParallelClock clock_;
 		JustInTimeActor<Apple::IIgs::Video::Video, 1, 2, Cycles> video_;	// i.e. run video at 7Mhz.
-		Apple::IIgs::ADB::GLU adb_glu_;
+		JustInTimeActor<Apple::IIgs::ADB::GLU, 1, 4, Cycles> adb_glu_;
  		Zilog::SCC::z8530 scc_;
  		JustInTimeActor<Apple::IWM, 1, 2, Cycles> iwm_;
  		Cycles cycles_since_clock_tick_;

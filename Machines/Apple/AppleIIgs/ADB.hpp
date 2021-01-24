@@ -37,6 +37,8 @@ class GLU {
 
 		void set_microcontroller_rom(const std::vector<uint8_t> &rom);
 
+		void run_for(Cycles cycles);
+
 	private:
 		bool is_rom03_ = false;
 		std::vector<uint8_t> next_command_;

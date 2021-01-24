@@ -35,13 +35,12 @@ void Executor::set_rom(const std::vector<uint8_t> &rom) {
 	const auto length = std::min(size_t(0x1000), rom.size());
 	memcpy(&memory_[0x2000 - length], rom.data(), length);
 	reset();
-
-	// TEMPORARY: just to test initial wiring.
-	run_for(Cycles(13000));
 }
 
 void Executor::run_for(Cycles cycles) {
-	CachingExecutor::run_for(cycles.as<int>());
+	// The incoming clock is divided by four.
+	cycles_ += cycles;
+	CachingExecutor::run_for(cycles_.divide(Cycles(4)).as<int>());
 }
 
 void Executor::reset() {
@@ -128,7 +127,7 @@ template<bool is_brk> inline void Executor::perform_interrupt() {
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
-	printf("%04x\t%02x\t%d %d\t[x:%02x s:%02x]\t(%s)\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), x_, s_, __PRETTY_FUNCTION__ );
+//	printf("%04x\t%02x\t%d %d\t[x:%02x s:%02x]\t(%s)\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), x_, s_, __PRETTY_FUNCTION__ );
 
 	// Post cycle cost; this emulation _does not provide accurate timing_.
 #define TLength(mode, base)	case AddressingMode::mode: subtract_duration(base + t_lengths[index_mode_]); break;

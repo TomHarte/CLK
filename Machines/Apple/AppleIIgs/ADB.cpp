@@ -215,3 +215,7 @@ uint8_t GLU::read_microcontroller_address(uint16_t address) {
 void GLU::set_microcontroller_rom(const std::vector<uint8_t> &rom) {
 	executor_.set_rom(rom);
 }
+
+void GLU::run_for(Cycles cycles) {
+	executor_.run_for(cycles);
+}

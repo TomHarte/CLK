@@ -136,6 +136,8 @@ class Executor: public CachingExecutor {
 		inline void set_flags(uint8_t);
 		inline uint8_t flags();
 		template<bool is_brk> inline void perform_interrupt();
+
+		Cycles cycles_;
 };
 
 }
