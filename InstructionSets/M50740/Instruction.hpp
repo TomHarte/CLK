@@ -94,8 +94,8 @@ static constexpr auto MinOperation = int(Operation::BBC0);
 constexpr AccessType access_type(Operation operation) {
 	if(operation < Operation::ADC)	return AccessType::None;
 	if(operation < Operation::ASL)	return AccessType::Read;
-	if(operation < Operation::LDM)	return AccessType::Write;
-	return AccessType::ReadModifyWrite;
+	if(operation < Operation::LDM)	return AccessType::ReadModifyWrite;
+	return AccessType::Write;
 }
 
 constexpr bool uses_index_mode(Operation operation) {

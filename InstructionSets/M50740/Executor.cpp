@@ -305,9 +305,9 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 	// sequence below that wraps the address and checks whether
 	// a write is valid [if required].
 
-	int address;
+	unsigned int address;
 #define next8()		memory_[(program_counter_ + 1) & 0x1fff]
-#define next16()	(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8))
+#define next16()	uint16_t(memory_[(program_counter_ + 1) & 0x1fff] | (memory_[(program_counter_ + 2) & 0x1fff] << 8))
 
 	// Underlying assumption below: the instruction stream will never
 	// overlap with IO ports.
@@ -333,7 +333,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 		// Special-purpose addressing modes.
 
 			case AddressingMode::Relative:
-				address = program_counter_ + 1 + size(addressing_mode) + int8_t(next8());
+				address = unsigned(program_counter_ + 1 + size(addressing_mode) + int8_t(next8()));
 			break;
 
 			case AddressingMode::SpecialPage:	address = 0x1f00 | next8();			break;
@@ -350,16 +350,16 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				uint8_t value;
 				if constexpr (addressing_mode == AddressingMode::AccumulatorRelative) {
 					value = a_;
-					address = program_counter_ + 1 + size(addressing_mode) + int8_t(next8());
+					address = unsigned(program_counter_ + 1 + size(addressing_mode) + int8_t(next8()));
 				} else {
 					value = read(next8());
-					address = program_counter_ + 1 + size(addressing_mode) + int8_t(memory_[(program_counter_+2)&0x1fff]);
+					address = unsigned(program_counter_ + 1 + size(addressing_mode) + int8_t(memory_[(program_counter_+2)&0x1fff]));
 				}
 				program_counter_ += 1 + size(addressing_mode);
 				switch(operation) {
 					case Operation::BBS0:	case Operation::BBS1:	case Operation::BBS2:	case Operation::BBS3:
 					case Operation::BBS4:	case Operation::BBS5:	case Operation::BBS6:	case Operation::BBS7:
-						if constexpr (operation >= Operation::BBS0 && operation < Operation::BBS7) {
+						if constexpr (operation >= Operation::BBS0 && operation <= Operation::BBS7) {
 							if(value & (1 << (int(operation) - int(Operation::BBS0)))) {
 								set_program_counter(uint16_t(address));
 								subtract_duration(2);
@@ -368,7 +368,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 					return;
 					case Operation::BBC0:	case Operation::BBC1:	case Operation::BBC2:	case Operation::BBC3:
 					case Operation::BBC4:	case Operation::BBC5:	case Operation::BBC6:	case Operation::BBC7:
-						if constexpr (operation >= Operation::BBC0 && operation < Operation::BBS7) {
+						if constexpr (operation >= Operation::BBC0 && operation <= Operation::BBS7) {
 							if(value & (1 << (int(operation) - int(Operation::BBC0)))) {
 								set_program_counter(uint16_t(address));
 								subtract_duration(2);
@@ -390,21 +390,21 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 
 			case AddressingMode::ZeroPageIndirect:
 				address = next8();
-				address = memory_[address] | (memory_[(address + 1) & 0xff] << 8);
+				address = unsigned(memory_[address] | (memory_[(address + 1) & 0xff] << 8));
 			break;
 
 			case AddressingMode::XIndirect:
 				address = (next8() + x_) & 0xff;
-				address = memory_[address] | (memory_[(address + 1)&0xff] << 8);
+				address = unsigned(memory_[address] | (memory_[(address + 1)&0xff] << 8));
 			break;
 
 			case AddressingMode::IndirectY:
-				address = (memory_[next8()] | (memory_[(next8()+1)&0xff] << 8)) + y_;
+				address = unsigned((memory_[next8()] | (memory_[(next8()+1)&0xff] << 8)) + y_);
 			break;
 
 			case AddressingMode::AbsoluteIndirect:
 				address = next16();
-				address = memory_[address] | (memory_[(address + 1) & 0x1fff] << 8);
+				address = unsigned(memory_[address] | (memory_[(address + 1) & 0x1fff] << 8));
 			break;
 
 			default:
@@ -488,11 +488,15 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 
 		case Operation::SEB0:	case Operation::SEB1:	case Operation::SEB2:	case Operation::SEB3:
 		case Operation::SEB4:	case Operation::SEB5:	case Operation::SEB6:	case Operation::SEB7:
-			*operand |= 1 << (int(operation) - int(Operation::SEB0));
+			if constexpr(operation >= Operation::SEB0 && operation <= Operation::SEB7) {
+				*operand |= 1 << (int(operation) - int(Operation::SEB0));
+			}
 		break;
 		case Operation::CLB0:	case Operation::CLB1:	case Operation::CLB2:	case Operation::CLB3:
 		case Operation::CLB4:	case Operation::CLB5:	case Operation::CLB6:	case Operation::CLB7:
-			*operand &= ~(1 << (int(operation) - int(Operation::CLB0)));
+			if constexpr(operation >= Operation::CLB0 && operation <= Operation::CLB7) {
+				*operand &= ~(1 << (int(operation) - int(Operation::CLB0)));
+			}
 		break;
 
 		case Operation::CLI:	interrupt_disable_ = 0x00;		break;

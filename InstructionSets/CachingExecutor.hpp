@@ -93,7 +93,7 @@ template <
 		// Storage for the statically-allocated list of performers. It's a bit more
 		// work for executors to fill this array, but subsequently performers can be
 		// indexed by array position, which is a lot more compact than a generic pointer.
-		std::array<Performer, max_performer_count> performers_;
+		std::array<Performer, max_performer_count+1> performers_;
 		ProgramCounterType program_counter_;
 
 		/*!
@@ -149,10 +149,12 @@ template <
 
 			while(remaining_duration_ > 0) {
 				has_branched_ = false;
+				Executor *const executor = static_cast<Executor *>(this);
 				while(remaining_duration_ > 0 && !has_branched_) {
 					const auto performer = performers_[program_[program_index_]];
 					++program_index_;
-					(static_cast<Executor *>(this)->*performer)();
+
+					(executor->*performer)();
 				}
 			}
 		}

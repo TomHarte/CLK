@@ -14,6 +14,7 @@
 #include "../CachingExecutor.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -63,7 +64,7 @@ class Executor: public CachingExecutor {
 		*/
 		inline void parse(uint16_t start, uint16_t closing_bound) {
 			Parser<Executor, false> parser;
-			parser.parse(*this, memory_, start & 0x1fff, closing_bound);
+			parser.parse(*this, &memory_[0], start & 0x1fff, closing_bound);
 		}
 
 	private:
@@ -121,7 +122,7 @@ class Executor: public CachingExecutor {
 		// MARK: - Instruction set state.
 
 		// Memory.
-		uint8_t memory_[0x2000];
+		std::array<uint8_t, 0x2000> memory_;
 
 		// Registers.
 		uint8_t a_, x_, y_, s_;

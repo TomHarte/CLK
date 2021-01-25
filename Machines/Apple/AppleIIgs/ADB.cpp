@@ -226,6 +226,7 @@ void GLU::run_for(Cycles cycles) {
 // MARK: - M50470 port handler
 
 void GLU::set_port_output(int port, uint8_t value) {
+	ports_[port] = value;
 	switch(port) {
 		case 0:
 			printf("Set R%d: %02x\n", register_address_, value);
@@ -261,10 +262,10 @@ uint8_t GLU::get_port_input(int port) {
 		return 0x06;
 		case 2:
 			printf("ADB data line input, etc\n");
-		return 0xff;
+		return ports_[2];
 		case 3:
 //			printf("ADB data line output, etc\n");
-		break;
+		return ports_[3];
 
 		default: assert(false);
 	}
