@@ -62,12 +62,17 @@ class GLU: public InstructionSet::M50740::PortHandler {
 
 		InstructionSet::M50740::Executor executor_;
 
+		void run_ports_for(Cycles) override;
 		void set_port_output(int port, uint8_t value) override;
 		uint8_t get_port_input(int port) override;
 
 		uint8_t registers_[16];
 		uint8_t register_address_;
 		uint8_t ports_[4];
+
+		// TODO: this should be per peripheral. But I'm putting it here for now as an exploratory step.
+		bool adb_level_ = true;
+		Cycles low_period_, total_period_;
 };
 
 }

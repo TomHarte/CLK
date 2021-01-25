@@ -240,13 +240,36 @@ void GLU::set_port_output(int port, uint8_t value) {
 //			printf("IIe keyboard reset line: %d\n", (value >> 6)&1);
 //			printf("IIgs reset line: %d\n", (value >> 5)&1);
 //			printf("GLU strobe: %d\n", (value >> 4)&1);
-			printf("Select GLU register: %d [%02x]\n", value & 0xf, value);
+//			printf("Select GLU register: %d [%02x]\n", value & 0xf, value);
 			register_address_ = value & 0xf;
 		break;
-		case 3:
+		case 3: {
 //			printf("IIe KWS: %d\n", (value >> 6)&3);
-			printf("ADB data line output: %d\n", (value >> 3)&1);
-		break;
+//			printf("ADB data line output: %d\n", (value >> 3)&1);
+
+			const bool new_adb_level = value & 0x08;
+			if(new_adb_level != adb_level_) {
+				if(!new_adb_level) {
+					// Transition to low.
+					constexpr float clock_rate = 894886.25;
+					const float seconds = float(total_period_.as<int>()) / clock_rate;
+
+					// Check for a valid bit length — 70 to 130 microseconds.
+					// (Plus a little).
+					if(seconds >= 0.000'56 && seconds <= 0.001'04) {
+						printf("Attention\n");
+					} else if(seconds >= 0.000'06 && seconds <= 0.000'14) {
+						printf("bit: %d\n", (low_period_.as<int>() * 2) < total_period_.as<int>());
+//						printf("tested: %0.2f\n", float(low_period_.as<int>()) / float(total_period_.as<int>()));
+					} else {
+						printf("Rejected %d microseconds\n", int(seconds * 1'000'000.0f));
+					}
+
+					total_period_ = low_period_ = Cycles(0);
+				}
+				adb_level_ = new_adb_level;
+			}
+		} break;
 
 		default: assert(false);
 	}
@@ -261,7 +284,7 @@ uint8_t GLU::get_port_input(int port) {
 //			printf("IIe keyboard read\n");
 		return 0x06;
 		case 2:
-			printf("ADB data line input, etc\n");
+//			printf("ADB data line input, etc\n");
 		return ports_[2];
 		case 3:
 //			printf("ADB data line output, etc\n");
@@ -270,4 +293,11 @@ uint8_t GLU::get_port_input(int port) {
 		default: assert(false);
 	}
 	return 0xff;
+}
+
+void GLU::run_ports_for(Cycles cycles) {
+	total_period_ += cycles;
+	if(!adb_level_) {
+		low_period_ += cycles;
+	}
 }

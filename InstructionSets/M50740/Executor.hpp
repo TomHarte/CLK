@@ -25,6 +25,7 @@ class Executor;
 using CachingExecutor = CachingExecutor<Executor, 0x1fff, 255, Instruction, false>;
 
 struct PortHandler {
+	virtual void run_ports_for(Cycles) = 0;
 	virtual void set_port_output(int port, uint8_t value) = 0;
 	virtual uint8_t get_port_input(int port) = 0;
 };
@@ -143,8 +144,12 @@ class Executor: public CachingExecutor {
 		inline uint8_t flags();
 		template<bool is_brk> inline void perform_interrupt();
 
+		// MARK: - Execution time
+
 		Cycles cycles_;
+		Cycles cycles_since_port_handler_;
 		PortHandler &port_handler_;
+		inline void subtract_duration(int duration);
 };
 
 }

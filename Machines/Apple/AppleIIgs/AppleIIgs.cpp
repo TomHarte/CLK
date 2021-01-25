@@ -186,6 +186,7 @@ class ConcreteMachine:
 		void flush() {
 			video_.flush();
 			iwm_.flush();
+			adb_glu_.flush();
 
 			AudioUpdater updater(this);
 			audio_queue_.perform();
@@ -916,7 +917,7 @@ class ConcreteMachine:
 
 		Apple::Clock::ParallelClock clock_;
 		JustInTimeActor<Apple::IIgs::Video::Video, 1, 2, Cycles> video_;	// i.e. run video at 7Mhz.
-		JustInTimeActor<Apple::IIgs::ADB::GLU, 1, 4, Cycles> adb_glu_;
+		JustInTimeActor<Apple::IIgs::ADB::GLU, 1, 4, Cycles> adb_glu_;		// i.e. 3,579,545Mhz.
  		Zilog::SCC::z8530 scc_;
  		JustInTimeActor<Apple::IWM, 1, 2, Cycles> iwm_;
  		Cycles cycles_since_clock_tick_;

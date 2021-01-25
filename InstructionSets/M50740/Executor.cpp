@@ -42,7 +42,8 @@ void Executor::set_rom(const std::vector<uint8_t> &rom) {
 }
 
 void Executor::run_for(Cycles cycles) {
-	// The incoming clock is divided by four.
+	// The incoming clock is divided by four; the local cycles_ count
+	// ensures that fractional parts are kept track of.
 	cycles_ += cycles;
 	CachingExecutor::run_for(cycles_.divide(Cycles(4)).as<int>());
 }
@@ -54,8 +55,13 @@ void Executor::reset() {
 
 uint8_t Executor::read(uint16_t address) {
 	address &= 0x1fff;
+	if(address < 0x60) {
+		return memory_[address];
+	}
+
+	port_handler_.run_ports_for(cycles_since_port_handler_.flush<Cycles>());
 	switch(address) {
-		default: return memory_[address];
+		default: return 0xff;
 
 		// TODO: external IO ports.
 
@@ -88,6 +94,8 @@ void Executor::write(uint16_t address, uint8_t value) {
 		memory_[address] = value;
 		return;
 	}
+
+	port_handler_.run_ports_for(cycles_since_port_handler_.flush<Cycles>());
 
 	// TODO: all external IO ports.
 	switch(address) {
@@ -705,4 +713,9 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 			assert(false);
 	}
 #undef set_nz
+}
+
+inline void Executor::subtract_duration(int duration) {
+	cycles_since_port_handler_ += Cycles(duration);
+	CachingExecutor::subtract_duration(duration);
 }
