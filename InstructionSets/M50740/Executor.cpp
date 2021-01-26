@@ -165,7 +165,7 @@ template<bool is_brk> inline void Executor::perform_interrupt() {
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
-//	printf("%04x\t%02x\t%d %d\t[x:%02x s:%02x]\t(%s)\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), x_, s_, __PRETTY_FUNCTION__ );
+//	printf("%04x\t%02x\t%d %d\t[a:%02x x:%02x y:%02x p:%02x s:%02x]\t(%s)\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), a_, x_, y_, flags(), s_, __PRETTY_FUNCTION__ );
 
 	// Post cycle cost; this emulation _does not provide accurate timing_.
 #define TLength(mode, base)	case AddressingMode::mode: subtract_duration(base + t_lengths[index_mode_]); break;
@@ -366,23 +366,25 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 				program_counter_ += 1 + size(addressing_mode);
 				switch(operation) {
 					case Operation::BBS0:	case Operation::BBS1:	case Operation::BBS2:	case Operation::BBS3:
-					case Operation::BBS4:	case Operation::BBS5:	case Operation::BBS6:	case Operation::BBS7:
+					case Operation::BBS4:	case Operation::BBS5:	case Operation::BBS6:	case Operation::BBS7: {
 						if constexpr (operation >= Operation::BBS0 && operation <= Operation::BBS7) {
-							if(value & (1 << (int(operation) - int(Operation::BBS0)))) {
+							constexpr uint8_t mask = 1 << (int(operation) - int(Operation::BBS0));
+							if(value & mask) {
 								set_program_counter(uint16_t(address));
 								subtract_duration(2);
 							}
 						}
-					return;
+					} return;
 					case Operation::BBC0:	case Operation::BBC1:	case Operation::BBC2:	case Operation::BBC3:
-					case Operation::BBC4:	case Operation::BBC5:	case Operation::BBC6:	case Operation::BBC7:
-						if constexpr (operation >= Operation::BBC0 && operation <= Operation::BBS7) {
-							if(value & (1 << (int(operation) - int(Operation::BBC0)))) {
+					case Operation::BBC4:	case Operation::BBC5:	case Operation::BBC6:	case Operation::BBC7: {
+						if constexpr (operation >= Operation::BBC0 && operation <= Operation::BBC7) {
+							constexpr uint8_t mask = 1 << (int(operation) - int(Operation::BBC0));
+							if(!(value & mask)) {
 								set_program_counter(uint16_t(address));
 								subtract_duration(2);
 							}
 						}
-					return;
+					} return;
 					default: assert(false);
 				}
 			} break;
