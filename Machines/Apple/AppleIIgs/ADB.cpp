@@ -229,7 +229,7 @@ void GLU::set_port_output(int port, uint8_t value) {
 	ports_[port] = value;
 	switch(port) {
 		case 0:
-			printf("Set R%d: %02x\n", register_address_, value);
+//			printf("Set R%d: %02x\n", register_address_, value);
 			registers_[register_address_] = value;
 		break;
 		case 1:
@@ -247,7 +247,7 @@ void GLU::set_port_output(int port, uint8_t value) {
 //			printf("IIe KWS: %d\n", (value >> 6)&3);
 //			printf("ADB data line output: %d\n", (value >> 3)&1);
 
-			const bool new_adb_level = value & 0x08;
+			const bool new_adb_level = !(value & 0x08);
 			if(new_adb_level != adb_level_) {
 				if(!new_adb_level) {
 					// Transition to low.
@@ -278,7 +278,7 @@ void GLU::set_port_output(int port, uint8_t value) {
 uint8_t GLU::get_port_input(int port) {
 	switch(port) {
 		case 0:
-			printf("Get R%d\n", register_address_);
+//			printf("Get R%d\n", register_address_);
 		return registers_[register_address_];
 		case 1:
 //			printf("IIe keyboard read\n");

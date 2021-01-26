@@ -68,7 +68,7 @@ uint8_t Executor::read(uint16_t address) {
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
-			printf("TODO: Port R [r %04x]\n", address);
+//			printf("TODO: Port R [r %04x]\n", address);
 		return 0xff;
 
 		// Ports P0–P3.
@@ -78,12 +78,12 @@ uint8_t Executor::read(uint16_t address) {
 
 		case 0xe1: case 0xe3:
 		case 0xe5: case 0xe9:
-			printf("TODO: Ports P0–P3 direction [r %04x]\n", address);
+//			printf("TODO: Ports P0–P3 direction [r %04x]\n", address);
 		return 0xff;
 
 		// Timers.
 		case 0xf9: case 0xfa: case 0xfb: case 0xfc: case 0xfd: case 0xfe: case 0xff:
-			printf("TODO: Timers [r %04x]\n", address);
+//			printf("TODO: Timers [r %04x]\n", address);
 		return 0xff;
 	}
 }
@@ -104,7 +104,7 @@ void Executor::write(uint16_t address, uint8_t value) {
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
-			printf("TODO: Port R [w %04x %02x]\n", address, value);
+//			printf("TODO: Port R [w %04x %02x]\n", address, value);
 		break;
 
 		// Ports P0–P3.
@@ -114,12 +114,12 @@ void Executor::write(uint16_t address, uint8_t value) {
 
 		case 0xe1: case 0xe3:
 		case 0xe5: case 0xe9:
-			printf("TODO: Ports P0–P3 direction [w %04x %02x]\n", address, value);
+//			printf("TODO: Ports P0–P3 direction [w %04x %02x]\n", address, value);
 		break;
 
 		// Timers.
 		case 0xf9: case 0xfa: case 0xfb: case 0xfc: case 0xfd: case 0xfe: case 0xff:
-			printf("TODO: Timers [w %04x %02x]\n", address, value);
+//			printf("TODO: Timers [w %04x %02x]\n", address, value);
 		break;
 	}
 }
