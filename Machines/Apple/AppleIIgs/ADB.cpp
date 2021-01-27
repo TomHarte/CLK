@@ -10,6 +10,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <iostream>
 
 // TEST.
 #include "../../../InstructionSets/M50740/Parser.hpp"

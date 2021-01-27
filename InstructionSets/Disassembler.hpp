@@ -48,7 +48,7 @@ template <
 				pending_entry_points_.pop_front();
 
 				if(next_entry_point >= location) {
-					parser.parse(*this, memory - location, next_entry_point % max_address, length + location);
+					parser.parse(*this, memory - location, next_entry_point & max_address, length + location);
 				}
 			}
 		}
