@@ -11,6 +11,10 @@
 #include <cassert>
 #include <cstdio>
 
+// TEST.
+#include "../../../InstructionSets/M50740/Parser.hpp"
+#include "../../../InstructionSets/Disassembler.hpp"
+
 using namespace Apple::IIgs::ADB;
 
 GLU::GLU() : executor_(*this) {}
@@ -217,6 +221,9 @@ uint8_t GLU::read_microcontroller_address(uint16_t address) {
 
 void GLU::set_microcontroller_rom(const std::vector<uint8_t> &rom) {
 	executor_.set_rom(rom);
+
+	InstructionSet::Disassembler<InstructionSet::M50740::Parser, 0x1fff, InstructionSet::M50740::Instruction, uint8_t, uint16_t> disassembler;
+	disassembler.disassemble(rom.data(), 0x1000, uint16_t(rom.size()), 0x1000);
 }
 
 void GLU::run_for(Cycles cycles) {

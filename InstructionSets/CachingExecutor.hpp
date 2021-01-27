@@ -9,6 +9,8 @@
 #ifndef CachingExecutor_hpp
 #define CachingExecutor_hpp
 
+#include "Sizes.hpp"
+
 #include <array>
 #include <cstdint>
 #include <limits>
@@ -18,29 +20,6 @@
 #include <unordered_map>
 
 namespace InstructionSet {
-
-/*!
-	Maps to the smallest of the following integers that can contain max_value:
-
-	* uint8_t;
-	* uint16_t;
-	* uint32_t; or
-	* uint64_t.
-*/
-template <uint64_t max_value> struct MinIntTypeValue {
-	using type =
-		std::conditional_t<
-			max_value <= std::numeric_limits<uint8_t>::max(), uint8_t,
-			std::conditional_t<
-				max_value <= std::numeric_limits<uint16_t>::max(), uint16_t,
-				std::conditional_t<
-					max_value <= std::numeric_limits<uint32_t>::max(), uint32_t,
-					uint64_t
-				>
-			>
-		>;
-};
-
 
 /*!
 	A caching executor makes use of an instruction set-specific executor to cache 'performers' (i.e. function pointers)
