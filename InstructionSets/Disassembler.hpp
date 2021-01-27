@@ -31,7 +31,6 @@ template <
 > class Disassembler {
 	public:
 		using ProgramCounterType = typename MinIntTypeValue<max_address>::type;
-		static_assert(!std::is_same_v<ProgramCounterType, void>);
 
 		/*!
 			Adds the result of disassembling @c memory which is @c length @c MemoryWords long from @c start_address
@@ -48,8 +47,18 @@ template <
 				const auto next_entry_point = pending_entry_points_.front();
 				pending_entry_points_.pop_front();
 
-				parser.parse(*this, memory - location, next_entry_point, length + location);
+				if(next_entry_point >= location) {
+					parser.parse(*this, memory - location, next_entry_point % max_address, length + location);
+				}
 			}
+		}
+
+		const std::map<ProgramCounterType, InstructionType> &instructions() const {
+			return instructions_;
+		}
+
+		const std::set<ProgramCounterType> &entry_points() const {
+			return entry_points_;
 		}
 
 		void announce_overflow(ProgramCounterType) {}

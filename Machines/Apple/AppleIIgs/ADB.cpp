@@ -222,8 +222,24 @@ uint8_t GLU::read_microcontroller_address(uint16_t address) {
 void GLU::set_microcontroller_rom(const std::vector<uint8_t> &rom) {
 	executor_.set_rom(rom);
 
+	// TEST invocation.
 	InstructionSet::Disassembler<InstructionSet::M50740::Parser, 0x1fff, InstructionSet::M50740::Instruction, uint8_t, uint16_t> disassembler;
 	disassembler.disassemble(rom.data(), 0x1000, uint16_t(rom.size()), 0x1000);
+
+	const auto instructions = disassembler.instructions();
+	const auto entry_points = disassembler.entry_points();
+	for(const auto &pair : instructions) {
+		std::cout << std::hex << pair.first << "\t\t";
+		if(entry_points.find(pair.first) != entry_points.end()) {
+			std::cout << "L" << pair.first << "\t";
+		} else {
+			std::cout << "\t\t";
+		}
+		std::cout << operation_name(pair.second.operation) << " ";
+		std::cout << address(pair.second.addressing_mode, &rom[pair.first - 0x1000], pair.first);
+
+		std::cout << std::endl;
+	}
 }
 
 void GLU::run_for(Cycles cycles) {

@@ -169,31 +169,37 @@ inline constexpr const char *addressing_mode_name(AddressingMode addressing_mode
 		would appear in an assembler. E.g. '$5a' for that zero page address, or '$5a, x' for zero-page indexed from $5a. This function
 		may access up to three bytes from @c operation onwards.
 */
-inline std::string address(AddressingMode addressing_mode, const uint8_t *operation) {
+inline std::string address(AddressingMode addressing_mode, const uint8_t *operation, uint16_t program_counter) {
 	std::stringstream output;
-	output << std::hex << std::setfill('0') << std::setw(2);
+	output << std::hex;
 
+#define NUM(x) std::setfill('0') << std::setw(2) << int(x)
+#define NUM4(x) std::setfill('0') << std::setw(4) << int(x)
 	switch(addressing_mode) {
 		default: 									return "???";
 		case AddressingMode::Implied:				return "";
-		case AddressingMode::Accumulator:			return "A";
-		case AddressingMode::Immediate:				output << "#$" << int(operation[1]);											break;
-		case AddressingMode::Absolute:				output << "$" << int(operation[2]) << int(operation[1]);						break;
-		case AddressingMode::AbsoluteX:				output << "$" << int(operation[2]) << int(operation[1]) << ", x";				break;
-		case AddressingMode::AbsoluteY:				output << "$" << int(operation[2]) << int(operation[1]) << ", y";				break;
-		case AddressingMode::ZeroPage:				output << "$" << int(operation[1]);												break;
-		case AddressingMode::ZeroPageX:				output << "$" << int(operation[1]) << ", x";									break;
-		case AddressingMode::ZeroPageY:				output << "$" << int(operation[1]) << ", y";									break;
-		case AddressingMode::XIndirect:				output << "(($" << int(operation[1]) << ", x))";								break;
-		case AddressingMode::IndirectY:				output << "(($" << int(operation[1]) << "), y)";								break;
-		case AddressingMode::Relative:				output << "+#$" << int(int8_t(operation[1]));									break;
-		case AddressingMode::AbsoluteIndirect:		output << "($" << int(operation[2]) << int(operation[1]) << ")";				break;
-		case AddressingMode::ZeroPageIndirect:		output << "($" << int(operation[1]) << ")";										break;
-		case AddressingMode::SpecialPage:			output << "$1f" << int(operation[1]);											break;
-		case AddressingMode::ImmediateZeroPage:		output << "#$" << int(operation[1]) << ", $"  << int(int8_t(operation[2]));		break;
-		case AddressingMode::AccumulatorRelative:	output << "A, +#$"  << int(int8_t(operation[1]));								break;
-		case AddressingMode::ZeroPageRelative:		output << "$" << int(operation[1]) << ", +#$"  << int(int8_t(operation[2]));	break;
+		case AddressingMode::Accumulator:			return "A ";
+		case AddressingMode::Immediate:				output << "#$" << NUM(operation[1]);									break;
+		case AddressingMode::Absolute:				output << "$" << NUM(operation[2]) << NUM(operation[1]);				break;
+		case AddressingMode::AbsoluteX:				output << "$" << NUM(operation[2]) << NUM(operation[1]) << ", x";		break;
+		case AddressingMode::AbsoluteY:				output << "$" << NUM(operation[2]) << NUM(operation[1]) << ", y";		break;
+		case AddressingMode::ZeroPage:				output << "$" << NUM(operation[1]);										break;
+		case AddressingMode::ZeroPageX:				output << "$" << NUM(operation[1]) << ", x";							break;
+		case AddressingMode::ZeroPageY:				output << "$" << NUM(operation[1]) << ", y";							break;
+		case AddressingMode::XIndirect:				output << "(($" << NUM(operation[1]) << ", x))";						break;
+		case AddressingMode::IndirectY:				output << "(($" << NUM(operation[1]) << "), y)";						break;
+		case AddressingMode::Relative:				output << "#$" << NUM4(2 + program_counter + int8_t(operation[1]));		break;
+		case AddressingMode::AbsoluteIndirect:		output << "($" << NUM(operation[2]) << NUM(operation[1]) << ") ";		break;
+		case AddressingMode::ZeroPageIndirect:		output << "($" << NUM(operation[1]) << ")";								break;
+		case AddressingMode::SpecialPage:			output << "$1f" << NUM(operation[1]);									break;
+		case AddressingMode::ImmediateZeroPage:		output << "#$" << NUM(operation[1]) << ", $"  << NUM(operation[2]);		break;
+		case AddressingMode::AccumulatorRelative:	output << "A, $"  << NUM4(2 + program_counter + int8_t(operation[1]));	break;
+		case AddressingMode::ZeroPageRelative:
+			output << "$" << NUM(operation[1]) << ", $"  << NUM4(2 + program_counter + int8_t(operation[2]));
+		break;
 	}
+#undef NUM4
+#undef NUM
 
 	return output.str();
 }
