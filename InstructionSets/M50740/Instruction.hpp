@@ -10,6 +10,9 @@
 #define InstructionSets_M50740_Instruction_h
 
 #include <cstdint>
+#include <iomanip>
+#include <string>
+#include <sstream>
 #include "../AccessType.hpp"
 
 namespace InstructionSet {
@@ -106,6 +109,98 @@ constexpr bool uses_index_mode(Operation operation) {
 		operation == Operation::SBC;
 }
 
+/*!
+	@returns The name of @c operation.
+*/
+inline constexpr const char *operation_name(Operation operation) {
+#define MAP(x)	case Operation::x: return #x;
+	switch(operation) {
+		default: break;
+		MAP(BBC0);	MAP(BBC1);	MAP(BBC2);	MAP(BBC3);	MAP(BBC4);	MAP(BBC5);	MAP(BBC6);	MAP(BBC7);
+		MAP(BBS0);	MAP(BBS1);	MAP(BBS2);	MAP(BBS3);	MAP(BBS4);	MAP(BBS5);	MAP(BBS6);	MAP(BBS7);
+		MAP(BCC);	MAP(BCS);	MAP(BEQ);	MAP(BMI);	MAP(BNE);	MAP(BPL);	MAP(BVC);	MAP(BVS);
+		MAP(BRA);	MAP(BRK);	MAP(JMP);	MAP(JSR);	MAP(RTI);	MAP(RTS);	MAP(CLC);	MAP(CLD);
+		MAP(CLI);	MAP(CLT);	MAP(CLV);	MAP(SEC);	MAP(SED);	MAP(SEI);	MAP(SET);	MAP(INX);
+		MAP(INY);	MAP(DEX);	MAP(DEY);	MAP(FST);	MAP(SLW);	MAP(NOP);	MAP(PHA); 	MAP(PHP);
+		MAP(PLA);	MAP(PLP);	MAP(STP);	MAP(TAX);	MAP(TAY);	MAP(TSX);	MAP(TXA);	MAP(TXS);
+		MAP(TYA);	MAP(ADC);	MAP(SBC);	MAP(AND);	MAP(ORA);	MAP(EOR);	MAP(BIT);	MAP(CMP);
+		MAP(CPX);	MAP(CPY);	MAP(LDA);	MAP(LDX);	MAP(LDY);	MAP(TST);	MAP(ASL);	MAP(LSR);
+		MAP(CLB0);	MAP(CLB1);	MAP(CLB2);	MAP(CLB3);	MAP(CLB4);	MAP(CLB5);	MAP(CLB6);	MAP(CLB7);
+		MAP(SEB0);	MAP(SEB1);	MAP(SEB2);	MAP(SEB3);	MAP(SEB4);	MAP(SEB5);	MAP(SEB6);	MAP(SEB7);
+		MAP(COM);	MAP(DEC);	MAP(INC);	MAP(ROL);	MAP(ROR);	MAP(RRF);	MAP(LDM);	MAP(STA);
+		MAP(STX);	MAP(STY);
+	}
+#undef MAP
+
+	return "???";
+}
+
+/*!
+	@returns The name of @c addressing_mode.
+*/
+inline constexpr const char *addressing_mode_name(AddressingMode addressing_mode) {
+	switch(addressing_mode) {
+		default: break;
+		case AddressingMode::Implied:				return "";
+		case AddressingMode::Accumulator:			return "A";
+		case AddressingMode::Immediate:				return "#";
+		case AddressingMode::Absolute:				return "abs";
+		case AddressingMode::AbsoluteX:				return "abs, x";
+		case AddressingMode::AbsoluteY:				return "abs, y";
+		case AddressingMode::ZeroPage:				return "zp";
+		case AddressingMode::ZeroPageX:				return "zp, x";
+		case AddressingMode::ZeroPageY:				return "zp, y";
+		case AddressingMode::XIndirect:				return "((zp, x))";
+		case AddressingMode::IndirectY:				return "((zp), y)";
+		case AddressingMode::Relative:				return "rel";
+		case AddressingMode::AbsoluteIndirect:		return "(abs)";
+		case AddressingMode::ZeroPageIndirect:		return "(zp)";
+		case AddressingMode::SpecialPage:			return "\\sp";
+		case AddressingMode::ImmediateZeroPage:		return "#, zp";
+		case AddressingMode::AccumulatorRelative:	return "A, rel";
+		case AddressingMode::ZeroPageRelative:		return "zp, rel";
+	}
+
+	return "???";
+}
+
+/*!
+	@returns The way that the address for an operation with @c addressing_mode and encoded starting from @c operation
+		would appear in an assembler. E.g. '$5a' for that zero page address, or '$5a, x' for zero-page indexed from $5a. This function
+		may access up to three bytes from @c operation onwards.
+*/
+inline std::string address(AddressingMode addressing_mode, const uint8_t *operation) {
+	std::stringstream output;
+	output << std::hex << std::setfill('0') << std::setw(2);
+
+	switch(addressing_mode) {
+		default: 									return "???";
+		case AddressingMode::Implied:				return "";
+		case AddressingMode::Accumulator:			return "A";
+		case AddressingMode::Immediate:				output << "#$" << int(operation[1]);											break;
+		case AddressingMode::Absolute:				output << "$" << int(operation[2]) << int(operation[1]);						break;
+		case AddressingMode::AbsoluteX:				output << "$" << int(operation[2]) << int(operation[1]) << ", x";				break;
+		case AddressingMode::AbsoluteY:				output << "$" << int(operation[2]) << int(operation[1]) << ", y";				break;
+		case AddressingMode::ZeroPage:				output << "$" << int(operation[1]);												break;
+		case AddressingMode::ZeroPageX:				output << "$" << int(operation[1]) << ", x";									break;
+		case AddressingMode::ZeroPageY:				output << "$" << int(operation[1]) << ", y";									break;
+		case AddressingMode::XIndirect:				output << "(($" << int(operation[1]) << ", x))";								break;
+		case AddressingMode::IndirectY:				output << "(($" << int(operation[1]) << "), y)";								break;
+		case AddressingMode::Relative:				output << "+#$" << int(int8_t(operation[1]));									break;
+		case AddressingMode::AbsoluteIndirect:		output << "($" << int(operation[2]) << int(operation[1]) << ")";				break;
+		case AddressingMode::ZeroPageIndirect:		output << "($" << int(operation[1]) << ")";										break;
+		case AddressingMode::SpecialPage:			output << "$1f" << int(operation[1]);											break;
+		case AddressingMode::ImmediateZeroPage:		output << "#$" << int(operation[1]) << ", $"  << int(int8_t(operation[2]));		break;
+		case AddressingMode::AccumulatorRelative:	output << "A, +#$"  << int(int8_t(operation[1]));								break;
+		case AddressingMode::ZeroPageRelative:		output << "$" << int(operation[1]) << ", +#$"  << int(int8_t(operation[2]));	break;
+	}
+
+	return output.str();
+}
+
+/*!
+	Models a complete M50740-style instruction, including its operation, addressing mode and opcode.
+*/
 struct Instruction {
 	Operation operation = Operation::Invalid;
 	AddressingMode addressing_mode = AddressingMode::Implied;
@@ -115,6 +210,14 @@ struct Instruction {
 	Instruction(uint8_t opcode) : opcode(opcode) {}
 	Instruction() {}
 };
+
+/*!
+	Outputs a description of @c instruction to @c stream.
+*/
+inline std::ostream &operator <<(std::ostream &stream, const Instruction &instruction) {
+	stream << operation_name(instruction.operation) << " " << addressing_mode_name(instruction.addressing_mode);
+	return stream;
+}
 
 }
 }
