@@ -73,8 +73,13 @@ uint8_t Executor::read(uint16_t address) {
 
 		// Ports P0–P3.
 		case 0xe0: case 0xe2:
-		case 0xe4: case 0xe8:
-		return port_handler_.get_port_input(port_remap[(address - 0xe0) >> 1]);
+		case 0xe4: case 0xe8: {
+			const int port = port_remap[(address - 0xe0) >> 1];
+			const uint8_t input = port_handler_.get_port_input(port);
+
+			// In the direction registers, a 0 indicates input, a 1 indicates output.
+			return (input &~ port_directions_[port]) | (port_outputs_[port] & port_directions_[port]);
+		}
 
 		case 0xe1: case 0xe3:
 		case 0xe5: case 0xe9:
@@ -109,12 +114,15 @@ void Executor::write(uint16_t address, uint8_t value) {
 
 		// Ports P0–P3.
 		case 0xe0: case 0xe2:
-		case 0xe4: case 0xe8:
-		return port_handler_.set_port_output(port_remap[(address - 0xe0) >> 1], value);
+		case 0xe4: case 0xe8: {
+			const int port = port_remap[(address - 0xe0) >> 1];
+			port_outputs_[port] = value;
+			return port_handler_.set_port_output(port, value);
+		}
 
 		case 0xe1: case 0xe3:
 		case 0xe5: case 0xe9:
-//			printf("TODO: Ports P0–P3 direction [w %04x %02x]\n", address, value);
+			port_directions_[port_remap[(address - 0xe0) >> 1]] = value;
 		break;
 
 		// Timers.

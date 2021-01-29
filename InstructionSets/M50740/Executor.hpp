@@ -136,6 +136,9 @@ class Executor: public CachingExecutor {
 		bool index_mode_ = false;
 		bool decimal_mode_ = false;
 
+		uint8_t port_directions_[4] = {0xff, 0xff, 0xff, 0xff};
+		uint8_t port_outputs_[4] = {0xff, 0xff, 0xff, 0xff};
+
 		inline uint8_t read(uint16_t address);
 		inline void write(uint16_t address, uint8_t value);
 		inline void push(uint8_t value);
