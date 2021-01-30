@@ -23,7 +23,7 @@ class GLU: public InstructionSet::M50740::PortHandler {
 
 		// Behaviour varies slightly between the controller shipped with ROM01 machines
 		// and that shipped with ROM03 machines; use this to set the desired behaviour.
-		void set_is_rom03(bool);
+//		void set_is_rom03(bool);
 
 		uint8_t get_keyboard_data();
 		uint8_t get_mouse_data();
@@ -42,24 +42,6 @@ class GLU: public InstructionSet::M50740::PortHandler {
 		void run_for(Cycles cycles);
 
 	private:
-		bool is_rom03_ = false;
-		std::vector<uint8_t> next_command_;
-		std::vector<uint8_t> pending_response_;
-
-		void abort();
-		void reset_microcontroller();
-		void flush_keyboard_buffer();
-
-		void set_modes(uint8_t modes);
-		uint8_t modes_ = 0;
-
-		void set_device_srq(int mask);
-		int device_srq_ = 0;
-
-		void set_configuration_bytes(uint8_t *);
-
-		uint8_t read_microcontroller_address(uint16_t);
-
 		InstructionSet::M50740::Executor executor_;
 
 		void run_ports_for(Cycles) override;
@@ -69,6 +51,9 @@ class GLU: public InstructionSet::M50740::PortHandler {
 		uint8_t registers_[16];
 		uint8_t register_address_;
 		uint8_t ports_[4];
+		uint8_t register_latch_ = 0xff;
+
+		uint8_t status_ = 0x00;
 
 		// TODO: this should be per peripheral. But I'm putting it here for now as an exploratory step.
 		bool adb_level_ = true;

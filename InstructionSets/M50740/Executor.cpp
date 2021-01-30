@@ -54,14 +54,19 @@ void Executor::reset() {
 }
 
 uint8_t Executor::read(uint16_t address) {
+//	printf("%04x -> ", address);
+
 	address &= 0x1fff;
 	if(address < 0x60) {
+//		printf("%02x\n", memory_[address]);
 		return memory_[address];
 	}
 
 	port_handler_.run_ports_for(cycles_since_port_handler_.flush<Cycles>());
 	switch(address) {
-		default: return 0xff;
+		default:
+//			printf("??? [ff]\n");
+		return 0xff;
 
 		// TODO: external IO ports.
 
@@ -69,6 +74,7 @@ uint8_t Executor::read(uint16_t address) {
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
 //			printf("TODO: Port R [r %04x]\n", address);
+//			printf("R?? [ff]\n");
 		return 0xff;
 
 		// Ports P0–P3.
@@ -77,6 +83,8 @@ uint8_t Executor::read(uint16_t address) {
 			const int port = port_remap[(address - 0xe0) >> 1];
 			const uint8_t input = port_handler_.get_port_input(port);
 
+//			printf("P%d %02x\n", port, (input &~ port_directions_[port]) | (port_outputs_[port] & port_directions_[port]));
+
 			// In the direction registers, a 0 indicates input, a 1 indicates output.
 			return (input &~ port_directions_[port]) | (port_outputs_[port] & port_directions_[port]);
 		}
@@ -84,16 +92,20 @@ uint8_t Executor::read(uint16_t address) {
 		case 0xe1: case 0xe3:
 		case 0xe5: case 0xe9:
 //			printf("TODO: Ports P0–P3 direction [r %04x]\n", address);
-		return 0xff;
+//			printf("dir%d %02x\n", port_remap[(address - 0xe0) >> 1], port_directions_[port_remap[(address - 0xe0) >> 1]]);
+		return port_directions_[port_remap[(address - 0xe0) >> 1]];
 
 		// Timers.
 		case 0xf9: case 0xfa: case 0xfb: case 0xfc: case 0xfd: case 0xfe: case 0xff:
 //			printf("TODO: Timers [r %04x]\n", address);
+//			printf("T?? [ff]\n");
 		return 0xff;
 	}
 }
 
 void Executor::write(uint16_t address, uint8_t value) {
+//	printf("%04x <- %02x\n", address, value);
+
 	address &= 0x1fff;
 	if(address < 0x60) {
 		memory_[address] = value;
@@ -173,6 +185,8 @@ template<bool is_brk> inline void Executor::perform_interrupt() {
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
+//	printf("%04x\t[a:%02x x:%02x y:%02x p:%02x s:%02x]\n", program_counter_ & 0x1fff, a_, x_, y_, flags(), s_);
+//	printf("%04x")
 //	printf("%04x\t%02x\t%d %d\t[a:%02x x:%02x y:%02x p:%02x s:%02x]\t(%s)\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), a_, x_, y_, flags(), s_, __PRETTY_FUNCTION__ );
 
 	// Post cycle cost; this emulation _does not provide accurate timing_.
@@ -440,6 +454,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 		return;
 
 		case Operation::JSR: {
+			// Push one less than the actual return address.
 			const auto return_address = program_counter_ - 1;
 			push(uint8_t(return_address >> 8));
 			push(uint8_t(return_address & 0xff));

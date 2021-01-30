@@ -88,6 +88,8 @@ class ConcreteMachine:
 				break;
 			}
 			rom_descriptions.push_back(video_->rom_description(Video::Video::CharacterROM::EnhancedIIe));
+
+			// TODO: pick a different ADB ROM for earlier machine revisions?
 			rom_descriptions.emplace_back(machine_name, "the Apple IIgs ADB microcontroller ROM", "341s0632-2", 4*1024, 0xe1c11fb0);
 
 			const auto roms = rom_fetcher(rom_descriptions);
@@ -158,9 +160,6 @@ class ConcreteMachine:
 
 			memory_.set_storage(ram_, rom_);
 			video_->set_internal_ram(&ram_[ram_.size() - 128*1024]);
-
-			// Select appropriate ADB behaviour.
-			adb_glu_->set_is_rom03(target.model == Target::Model::ROM03);
 
 			// Attach drives to the IWM.
 			iwm_->set_drive(0, &drives35_[0]);

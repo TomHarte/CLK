@@ -18,13 +18,28 @@
 
 using namespace Apple::IIgs::ADB;
 
-GLU::GLU() : executor_(*this) {}
+namespace {
 
-// MARK: - Configuration.
+// Flags affecting the CPU-visible status register.
+enum class CPUFlags: uint8_t {
+	MouseDataFull = 0x80,
+	MouseInterruptEnabled = 0x40,
+	CommandDataIsValid = 0x20,
+	CommandDataInterruptEnabled = 0x10,
+	KeyboardDataFull = 0x08,
+	KeyboardDataInterruptEnabled = 0x04,
+	MouseXIsAvailable = 0x02,
+	CommandRegisterFull = 0x01,
+};
 
-void GLU::set_is_rom03(bool is_rom03) {
-	is_rom03_ = is_rom03;
+// Flags affecting the microcontroller-visible register.
+enum class MicrocontrollerFlags: uint8_t {
+	CommandRegisterFull = 0x40,
+};
+
 }
+
+GLU::GLU() : executor_(*this) {}
 
 // MARK: - External interface.
 
@@ -32,16 +47,17 @@ uint8_t GLU::get_keyboard_data() {
 	// The classic Apple II serial keyboard register:
 	// b7:		key strobe.
 	// b6–b0:	ASCII code.
-	return 0x00;
+	return registers_[0];
 }
 
 void GLU::clear_key_strobe() {
 	// Clears the key strobe of the classic Apple II serial keyboard register.
+	registers_[0] &= 0x7f;	// ???
 }
 
 uint8_t GLU::get_any_key_down() {
 	// The Apple IIe check-for-any-key-down bit.
-	return 0x00;
+	return registers_[5];
 }
 
 uint8_t GLU::get_mouse_data() {
@@ -50,7 +66,7 @@ uint8_t GLU::get_mouse_data() {
 	// b7: 		1 = button is up; 0 = button is down.
 	// b6:		delta sign bit; 1 = negative.
 	// b5–b0:	mouse delta.
-	return 0x80;
+	return 0x80;	// TODO. Should alternate between registers 2 and 3.
 }
 
 uint8_t GLU::get_modifier_status() {
@@ -62,26 +78,18 @@ uint8_t GLU::get_modifier_status() {
 	// b2:		caps lock is pressed.
 	// b1:		control key.
 	// b0:		shift key.
-	return 0x00;
+	return registers_[6];
 }
 
 uint8_t GLU::get_data() {
-	printf("ADB get data\n");
-	if(!pending_response_.empty()) {
-		// A bit yucky, pull from the from the front.
-		// This keeps my life simple for now, even though it's inefficient.
-		const uint8_t next = pending_response_[0];
-		pending_response_.erase(pending_response_.begin());
-		return next;
-	}
-
 	// b0–2:	number of data bytes to be returned.
 	// b3:		1 = a valid service request is pending; 0 = no request pending.
 	// b4:		1 = control, command and delete keys have been pressed simultaneously; 0 = they haven't.
 	// b5:		1 = control, command and reset have all been pressed together; 0 = they haven't.
 	// b6:		1 = ADB controller encountered an error and reset itself; 0 = no error.
 	// b7:		1 = ADB has received a response from the addressed ADB device; 0 = no respone.
-	return 0x00;
+//	status_ &= ~(CPUFlags::CommandDataIsValid | CPUFlags::CommandRegisterFull);
+	return registers_[7];
 }
 
 uint8_t GLU::get_status() {
@@ -93,138 +101,27 @@ uint8_t GLU::get_status() {
 	// b2:	1 = keyboard data interrupt is enabled.
 	// b1:	1 = mouse x-data is available; 0 = y.
 	// b0:	1 = command register is full (set when command is written); 0 = empty (cleared when data is read).
-	const uint8_t status =
-		(pending_response_.empty() ? 0 : 0x20);	// Data is valid if a response is pending.
-//	printf("ADB get status : %02x\n", status);
-	return status;
+	return status_;
 }
 
 void GLU::set_command(uint8_t command) {
-	// Accumulate input until a full comamnd is received;
-	// the state machine otherwise gets somewhat oversized.
-	next_command_.push_back(command);
-
-	// Command dispatch; each entry should do whatever it needs
-	// to do and then either: (i) break, if completed; or
-	// (ii) return, if awaiting further input.
-#define RequireSize(n)	if(next_command_.size() < (n)) return;
-	switch(next_command_[0]) {
-		case 0x01:	abort();					break;
-		case 0x02:	reset_microcontroller();	break;
-		case 0x03:	flush_keyboard_buffer();	break;
-
-		case 0x04:	// Set modes.
-			RequireSize(2);
-			set_modes(modes_ | next_command_[1]);
-		break;
-
-		case 0x05:	// Clear modes.
-			RequireSize(2);
-			set_modes(modes_ & ~next_command_[1]);
-		break;
-
-		case 0x06:	// Set configuration bytes
-			RequireSize(4);
-			set_configuration_bytes(&next_command_[1]);
-		break;
-
-		case 0x07:	// Sync.
-			RequireSize(is_rom03_ ? 9 : 5);
-			set_modes(next_command_[1]);
-			set_configuration_bytes(&next_command_[2]);
-
-			// ROM03 seems to expect to send an extra four bytes here,
-			// with values 0x20, 0x26, 0x2d, 0x2d.
-			// TODO: what does the ROM03-paired ADB GLU do with the extra four bytes?
-		break;
-
-		case 0x09:	// Read microcontroller memory.
-			RequireSize(3);
-			pending_response_.push_back(read_microcontroller_address(uint16_t(next_command_[1] | (next_command_[2] << 8))));
-		break;
-
-		case 0x0d:	// Get version number.
-			pending_response_.push_back(6);	// Seems to be what ROM03 is looking for?
-		break;
-
-		case 0x12:	// ???
-			RequireSize(3);
-		break;
-
-		case 0x13: // ???
-			RequireSize(3);
-		break;
-
-		// Enable device SRQ.
-		case 0x50:	case 0x51:	case 0x52:	case 0x53:	case 0x54:	case 0x55:	case 0x56:	case 0x57:
-		case 0x58:	case 0x59:	case 0x5a:	case 0x5b:	case 0x5c:	case 0x5d:	case 0x5e:	case 0x5f:
-			set_device_srq(device_srq_ | (1 << (next_command_[1] & 0xf)));
-		break;
-
-		// Disable device SRQ.
-		case 0x70:	case 0x71:	case 0x72:	case 0x73:	case 0x74:	case 0x75:	case 0x76:	case 0x77:
-		case 0x78:	case 0x79:	case 0x7a:	case 0x7b:	case 0x7c:	case 0x7d:	case 0x7e:	case 0x7f:
-			set_device_srq(device_srq_ & ~(1 << (next_command_[1] & 0xf)));
-		break;
-
-		// Transmit two bytes.
-		case 0xb3:
-			RequireSize(3);
-		break;
-
-		default:
-			printf("TODO: ADB command %02x\n", next_command_[0]);
-		break;
-	}
-#undef RequireSize
-
-	printf("ADB executed: ");
-	for(auto c : next_command_) printf("%02x ", c);
-	printf("\n");
-
-	// Input was dealt with, so throw it away.
-	next_command_.clear();
+	registers_[1] = command;
+	registers_[4] |= uint8_t(MicrocontrollerFlags::CommandRegisterFull);
+	status_ |= uint8_t(CPUFlags::CommandRegisterFull);
+//	printf("!!!%02x!!!\n", command);
 }
 
 void GLU::set_status(uint8_t status) {
 	printf("TODO: set ADB status %02x\n", status);
 }
 
-// MARK: - Internal commands.
-
-void GLU::set_modes(uint8_t modes) {
-	modes_ = modes;	// TODO: and this has what effect?
-}
-
-void GLU::abort() {
-}
-
-void GLU::reset_microcontroller() {
-}
-
-void GLU::flush_keyboard_buffer() {
-}
-
-void GLU::set_configuration_bytes(uint8_t *) {
-}
-
-void GLU::set_device_srq(int mask) {
-	// TODO: do I need to do any more than this here?
-	device_srq_ = mask;
-}
-
-uint8_t GLU::read_microcontroller_address(uint16_t address) {
-	printf("Read from microcontroller %04x\n", address);
-	if(address == 0xe8)
-		return 0x40;
-	return 0;
-}
+// MARK: - Setup and run.
 
 void GLU::set_microcontroller_rom(const std::vector<uint8_t> &rom) {
 	executor_.set_rom(rom);
 
 	// TEST invocation.
-	InstructionSet::Disassembler<InstructionSet::M50740::Parser, 0x1fff, InstructionSet::M50740::Instruction, uint8_t, uint16_t> disassembler;
+/*	InstructionSet::Disassembler<InstructionSet::M50740::Parser, 0x1fff, InstructionSet::M50740::Instruction, uint8_t, uint16_t> disassembler;
 	disassembler.disassemble(rom.data(), 0x1000, uint16_t(rom.size()), 0x1000);
 
 	const auto instructions = disassembler.instructions();
@@ -240,7 +137,7 @@ void GLU::set_microcontroller_rom(const std::vector<uint8_t> &rom) {
 		std::cout << address(pair.second.addressing_mode, &rom[pair.first - 0x1000], pair.first);
 
 		std::cout << std::endl;
-	}
+	}*/
 }
 
 void GLU::run_for(Cycles cycles) {
@@ -253,8 +150,13 @@ void GLU::set_port_output(int port, uint8_t value) {
 	ports_[port] = value;
 	switch(port) {
 		case 0:
+//			printf(" {R%d} ", register_address_);
 //			printf("Set R%d: %02x\n", register_address_, value);
 			registers_[register_address_] = value;
+			switch(register_address_) {
+				default: break;
+				case 7:				status_ |= uint8_t(CPUFlags::CommandDataIsValid);	break;
+			}
 		break;
 		case 1:
 //			printf("Keyboard write: %02x???\n", value);
@@ -281,12 +183,12 @@ void GLU::set_port_output(int port, uint8_t value) {
 					// Check for a valid bit length — 70 to 130 microseconds.
 					// (Plus a little).
 					if(seconds >= 0.000'56 && seconds <= 0.001'04) {
-						printf("Attention\n");
+						printf("!!! Attention\n");
 					} else if(seconds >= 0.000'06 && seconds <= 0.000'14) {
-						printf("bit: %d\n", (low_period_.as<int>() * 2) < total_period_.as<int>());
+						printf("!!! bit: %d\n", (low_period_.as<int>() * 2) < total_period_.as<int>());
 //						printf("tested: %0.2f\n", float(low_period_.as<int>()) / float(total_period_.as<int>()));
 					} else {
-						printf("Rejected %d microseconds\n", int(seconds * 1'000'000.0f));
+						printf("!!! Rejected %d microseconds\n", int(seconds * 1'000'000.0f));
 					}
 
 					total_period_ = low_period_ = Cycles(0);
@@ -302,7 +204,14 @@ void GLU::set_port_output(int port, uint8_t value) {
 uint8_t GLU::get_port_input(int port) {
 	switch(port) {
 		case 0:
-//			printf("Get R%d\n", register_address_);
+//			printf(" {R%d} ", register_address_);
+			switch(register_address_) {
+				default: break;
+				case 1:
+					registers_[4] &= ~uint8_t(MicrocontrollerFlags::CommandRegisterFull);
+					status_ &= ~uint8_t(CPUFlags::CommandRegisterFull);
+				break;
+			}
 		return registers_[register_address_];
 		case 1:
 //			printf("IIe keyboard read\n");
