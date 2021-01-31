@@ -64,9 +64,14 @@ class ConcreteMachine:
 				{machine_name, "the Acorn BASIC II ROM", "basic.rom", 16*1024, 0x79434781},
 				{machine_name, "the Electron MOS ROM", "os.rom", 16*1024, 0xbf63fb1f}
 			};
-			if(target.has_adfs) {
+			const size_t pres_adfs_rom_position = required_roms.size();
+			if(target.has_pres_adfs) {
 				required_roms.emplace_back(machine_name, "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16*1024, 0x51523993);
 				required_roms.emplace_back(machine_name, "the E00 ADFS ROM, second slot", "ADFS-E00_2.rom", 16*1024, 0x8d17de0e);
+			}
+			const size_t acorn_adfs_rom_position = required_roms.size();
+			if(target.has_acorn_adfs) {
+				required_roms.emplace_back(machine_name, "the Acorn ADFS ROM", "adfs.rom", 16*1024, 0x3289bdc6);
 			}
 			const size_t dfs_rom_position = required_roms.size();
 			if(target.has_dfs) {
@@ -91,19 +96,23 @@ class ConcreteMachine:
 
 					* the keyboard and BASIC ROMs occupy slots 8, 9, 10 and 11;
 					* the DFS, if in use, occupies slot 1;
-					* the ADFS, if in use, occupies slots 4 and 5;
+					* the Pres ADFS, if in use, occupies slots 4 and 5;
+					* the Acorn ADFS, if in use, occupies slot 6;
 					* the AP6, if in use, occupies slot 15; and
 					* if sideways RAM was asked for, all otherwise unused slots are populated with sideways RAM.
 			*/
-			if(target.has_dfs || target.has_adfs) {
+			if(target.has_dfs || target.has_acorn_adfs || target.has_pres_adfs) {
 				plus3_ = std::make_unique<Plus3>();
 
 				if(target.has_dfs) {
 					set_rom(ROM::Slot0, *roms[dfs_rom_position], true);
 				}
-				if(target.has_adfs) {
-					set_rom(ROM::Slot4, *roms[2], true);
-					set_rom(ROM::Slot5, *roms[3], true);
+				if(target.has_pres_adfs) {
+					set_rom(ROM::Slot4, *roms[pres_adfs_rom_position], true);
+					set_rom(ROM::Slot5, *roms[pres_adfs_rom_position+1], true);
+				}
+				if(target.has_acorn_adfs) {
+					set_rom(ROM::Slot6, *roms[acorn_adfs_rom_position], true);
 				}
 			}
 
@@ -298,6 +307,7 @@ class ConcreteMachine:
 					break;
 
 					case 0xfc04: case 0xfc05: case 0xfc06: case 0xfc07:
+						printf("%04x %s %02x\n", address, isReadOperation(operation) ? "->" : "<-", *value);
 						if(plus3_ && (address&0x00f0) == 0x00c0) {
 							if(is_holding_shift_ && address == 0xfcc4) {
 								is_holding_shift_ = false;
@@ -310,12 +320,39 @@ class ConcreteMachine:
 						}
 					break;
 					case 0xfc00:
+						printf("%04x %s %02x\n", address, isReadOperation(operation) ? "->" : "<-", *value);
 						if(plus3_ && (address&0x00f0) == 0x00c0) {
 							if(!isReadOperation(operation)) {
 								plus3_->set_control_register(*value);
 							} else *value = 1;
 						}
 					break;
+					case 0xfc03:
+						printf("%04x %s %02x\n", address, isReadOperation(operation) ? "->" : "<-", *value);
+					break;
+
+					// SCSI locations:
+					//
+					//	fc40:	data, read and write
+					//	fc41:	status read
+					//	fc42:	select write
+					//	fc43:	interrupt latch
+					//
+					// Status byte is:
+					//
+					//	b7:	SCSI C/D
+					//	b6: SCSI I/O
+					//	b5: SCSI REQ
+					//	b4: interrupt flag
+					//	b3:	0
+					//	b2:	0
+					//	b1:	SCSI BSY
+					//	b0: SCSI MSG
+					//
+					// Interrupt latch is:
+					//
+					//	b0: enable or disable IRQ on REQ
+					//	(and, possibly, writing to the latch acknowledges?)
 
 					default:
 						if(address >= 0xc000) {
