@@ -17,6 +17,9 @@
 #include "../../Configurable/StandardOptions.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Processors/6502/6502.hpp"
+
+#include "../../Storage/MassStorage/SCSI/SCSI.hpp"
+#include "../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../Utility/Typer.hpp"
@@ -31,7 +34,7 @@
 
 namespace Electron {
 
-class ConcreteMachine:
+template <bool has_scsi_bus> class ConcreteMachine:
 	public Machine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
@@ -46,6 +49,9 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Acorn::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 				m6502_(*this),
+				scsi_bus_(4'000'000),
+				hard_drive_(scsi_bus_, 0),
+				scsi_device_(scsi_bus_.add_device()),
 				video_output_(ram_),
 				sound_generator_(audio_queue_),
 				speaker_(sound_generator_) {
@@ -202,7 +208,12 @@ class ConcreteMachine:
 				set_rom(slot, cartridge->get_segments().front().data, false);
 			}
 
-			return !media.tapes.empty() || !media.disks.empty() || !media.cartridges.empty();
+			// TODO: allow this only at machine startup?
+			if(!media.mass_storage_devices.empty()) {
+				hard_drive_->set_storage(media.mass_storage_devices.front());
+			}
+
+			return !media.empty();
 		}
 
 		forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
@@ -307,7 +318,6 @@ class ConcreteMachine:
 					break;
 
 					case 0xfc04: case 0xfc05: case 0xfc06: case 0xfc07:
-						printf("%04x %s %02x\n", address, isReadOperation(operation) ? "->" : "<-", *value);
 						if(plus3_ && (address&0x00f0) == 0x00c0) {
 							if(is_holding_shift_ && address == 0xfcc4) {
 								is_holding_shift_ = false;
@@ -320,15 +330,62 @@ class ConcreteMachine:
 						}
 					break;
 					case 0xfc00:
-						printf("%04x %s %02x\n", address, isReadOperation(operation) ? "->" : "<-", *value);
 						if(plus3_ && (address&0x00f0) == 0x00c0) {
 							if(!isReadOperation(operation)) {
 								plus3_->set_control_register(*value);
 							} else *value = 1;
 						}
+
+						if(has_scsi_bus && (address&0x00f0) == 0x0040) {
+							scsi_acknowledge_ = true;
+							if(!isReadOperation(operation)) {
+								scsi_data_ = *value;
+								push_scsi_output();
+							} else {
+								*value = SCSI::data_lines(scsi_bus_.get_state());
+								push_scsi_output();
+							}
+						}
 					break;
 					case 0xfc03:
-						printf("%04x %s %02x\n", address, isReadOperation(operation) ? "->" : "<-", *value);
+						if(has_scsi_bus && (address&0x00f0) == 0x0040) {
+							printf("SCSI IRQ: %s %02x\n", isReadOperation(operation) ? "->" : "<-", *value);
+						}
+					break;
+					case 0xfc01:
+						if(has_scsi_bus && (address&0x00f0) == 0x0040 && isReadOperation(operation)) {
+							// Status byte is:
+							//
+							//	b7:	SCSI C/D
+							//	b6: SCSI I/O
+							//	b5: SCSI REQ
+							//	b4: interrupt flag
+							//	b3:	0
+							//	b2:	0
+							//	b1:	SCSI BSY
+							//	b0: SCSI MSG
+							const auto state = scsi_bus_.get_state();
+							*value =
+								(state & SCSI::Line::Control ? 0x80 : 0x00) |
+								(state & SCSI::Line::Input ? 0x40 : 0x00) |
+								(state & SCSI::Line::Request ? 0x20 : 0x00) |
+								(state & SCSI::Line::Busy ? 0x02 : 0x00) |
+								(state & SCSI::Line::Message ? 0x01 : 0x00);
+								// TODO: interrupt flag.
+
+							// Empirical guess: this is also the trigger to affect busy/request/acknowledge
+							// signalling. Maybe?
+							if(scsi_select_ && scsi_bus_.get_state() & SCSI::Line::Busy) {
+								scsi_select_ = false;
+								push_scsi_output();
+							}
+						}
+					break;
+					case 0xfc02:
+						if(has_scsi_bus && (address&0x00f0) == 0x0040) {
+							scsi_select_ = true;
+							push_scsi_output();
+						}
 					break;
 
 					// SCSI locations:
@@ -338,16 +395,6 @@ class ConcreteMachine:
 					//	fc42:	select write
 					//	fc43:	interrupt latch
 					//
-					// Status byte is:
-					//
-					//	b7:	SCSI C/D
-					//	b6: SCSI I/O
-					//	b5: SCSI REQ
-					//	b4: interrupt flag
-					//	b3:	0
-					//	b2:	0
-					//	b1:	SCSI BSY
-					//	b0: SCSI MSG
 					//
 					// Interrupt latch is:
 					//
@@ -448,6 +495,16 @@ class ConcreteMachine:
 					m6502_.set_power_on(true);
 					set_key_state(KeyShift, true);
 					is_holding_shift_ = true;
+				}
+			}
+
+			// TODO: clock/change observe.
+			if(has_scsi_bus) {
+				scsi_bus_.run_for(Cycles(int(cycles)));
+
+				if(scsi_acknowledge_ && !(scsi_bus_.get_state() & SCSI::Line::Request)) {
+					scsi_acknowledge_ = false;
+					push_scsi_output();
 				}
 			}
 
@@ -681,6 +738,21 @@ class ConcreteMachine:
 		bool is_holding_shift_ = false;
 		int shift_restart_counter_ = 0;
 
+		// Hard drive.
+		SCSI::Bus scsi_bus_;
+		SCSI::Target::Target<SCSI::DirectAccessDevice> hard_drive_;
+		const size_t scsi_device_ = 0;
+		uint8_t scsi_data_ = 0;
+		bool scsi_select_ = false;
+		bool scsi_acknowledge_ = false;
+		void push_scsi_output() {
+			scsi_bus_.set_device_output(scsi_device_,
+				scsi_data_ |
+				(scsi_select_ ? SCSI::Line::SelectTarget : 0) |
+				(scsi_acknowledge_ ? SCSI::Line::Acknowledge : 0)
+			);
+		}
+
 		// Outputs
 		VideoOutput video_output_;
 
@@ -703,7 +775,12 @@ using namespace Electron;
 Machine *Machine::Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::Acorn::Target;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
-	return new Electron::ConcreteMachine(*acorn_target, rom_fetcher);
+
+	if(acorn_target->media.mass_storage_devices.empty()) {
+		return new Electron::ConcreteMachine<false>(*acorn_target, rom_fetcher);
+	} else {
+		return new Electron::ConcreteMachine<true>(*acorn_target, rom_fetcher);
+	}
 }
 
 Machine::~Machine() {}

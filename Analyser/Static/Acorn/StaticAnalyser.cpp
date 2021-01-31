@@ -146,6 +146,9 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 	if(!media.mass_storage_devices.empty()) {
 		target->has_pres_adfs = false;
 		target->has_acorn_adfs = true;
+
+		// TODO: validate an ADFS catalogue, at least.
+		target->media.mass_storage_devices = media.mass_storage_devices;
 	}
 
 	TargetList targets;

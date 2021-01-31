@@ -6,8 +6,8 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef AcornADF_hpp
-#define AcornADF_hpp
+#ifndef MassStorage_AcornADF_hpp
+#define MassStorage_AcornADF_hpp
 
 #include "../MassStorageDevice.hpp"
 #include "../../FileHolder.hpp"
@@ -36,4 +36,4 @@ class AcornADF: public MassStorageDevice {
 }
 }
 
-#endif /* AcornADF_hpp */
+#endif /* MassStorage_AcornADF_hpp */

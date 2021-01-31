@@ -17,8 +17,8 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 	/*
 		"The target determines that it is selected when the SEL# signal
 		and its SCSI ID bit are active and the BSY# and I#/O signals
-		are false. It then asserts the signal within a selection abort
-		time."
+		are false. It then asserts the signal within a selection
+		abort time."
 	*/
 
 	// Wait for deskew, at the very least.
