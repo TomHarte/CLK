@@ -1164,6 +1164,8 @@ void MainWindow::start_electron() {
 
 	target->has_dfs = ui->electronDFSCheckBox->isChecked();
 	target->has_adfs = ui->electronADFSCheckBox->isChecked();
+	target->has_ap6_rom = ui->electronAP6CheckBox->isChecked();
+	target->has_sideways_ram = ui->electronSidewaysRAMCheckBox->isChecked();
 
 	launchTarget(std::move(target));
 }
@@ -1298,6 +1300,8 @@ void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target
 	/* Electron. */														\
 	CheckBox(electronDFSCheckBox, "electron.hasDFS");					\
 	CheckBox(electronADFSCheckBox, "electron.hasADFS");					\
+	CheckBox(electronAP6CheckBox, "electron.hasAP6");					\
+	CheckBox(electronSidewaysRAMCheckBox, "electron.fillSidewaysRAM");	\
 																		\
 	/* Macintosh. */													\
 	ComboBox(macintoshModelComboBox, "macintosh.model");				\

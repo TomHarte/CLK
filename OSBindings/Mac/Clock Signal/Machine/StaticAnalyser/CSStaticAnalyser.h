@@ -76,7 +76,7 @@ typedef int Kilobytes;
 
 - (nullable instancetype)initWithFileAtURL:(NSURL *)url;
 
-- (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs;
+- (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs ap6:(BOOL)ap6 sidewaysRAM:(BOOL)sidewaysRAM;
 - (instancetype)initWithAmstradCPCModel:(CSMachineCPCModel)model;
 - (instancetype)initWithMSXRegion:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive;
 - (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface;
