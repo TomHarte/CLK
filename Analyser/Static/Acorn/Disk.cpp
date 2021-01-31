@@ -123,7 +123,7 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 		name[c] = '\0';
 
 		// Skip if the name is empty.
-		if(!strlen(name)) continue;
+		if(name[0] == '\0') continue;
 
 		// Populate a file then.
 		File new_file;
