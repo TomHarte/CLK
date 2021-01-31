@@ -12,6 +12,8 @@
 #include "Tape.hpp"
 #include "Target.hpp"
 
+#include <algorithm>
+
 using namespace Analyser::Static::Acorn;
 
 static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
@@ -121,7 +123,24 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 				target->loading_command = "*CAT\n";
 			}
 
-			// TODO: check whether adding the AP6 ROM is justified.
+			// Check whether adding the AP6 ROM is justified.
+			// For now this is an incredibly dense text search;
+			// if any of the commands that aren't usually present
+			// on a stock Electron are here, add the AP6 ROM and
+			// some sideways RAM such that the SR commands are useful.
+			for(const auto &file: dfs_catalogue ? dfs_catalogue->files : adfs_catalogue->files) {
+				for(const auto &command: {
+					"AQRPAGE", "BUILD", "DUMP", "FORMAT", "INSERT", "LANG", "LIST", "LOADROM",
+					"LOCK", "LROMS", "RLOAD", "ROMS", "RSAVE", "SAVEROM", "SRLOAD", "SRPAGE",
+					"SRUNLOCK", "SRWIPE", "TUBE", "TYPE", "UNLOCK", "UNPLUG", "UROMS",
+					"VERIFY", "ZERO"
+				}) {
+					if(std::search(file.data.begin(), file.data.end(), command, command+strlen(command)) != file.data.end()) {
+						target->has_ap6_rom = true;
+						target->has_sideways_ram = true;
+					}
+				}
+			}
 		}
 	}
 
