@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17701" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17506"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17701"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -18,7 +18,7 @@
             <windowStyleMask key="styleMask" titled="YES" documentModal="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="725" height="205"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="725" height="205"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -189,19 +189,33 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Electron" identifier="electron" id="muc-z9-Vqc">
                                 <view key="view" id="SRc-2D-95G">
-                                    <rect key="frame" x="10" y="33" width="674" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="679" height="95"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JqM-IK-FMP">
-                                            <rect key="frame" x="15" y="75" width="164" height="18"/>
+                                            <rect key="frame" x="15" y="75" width="168" height="18"/>
                                             <buttonCell key="cell" type="check" title="With Disk Filing System" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="tpW-5C-xKp">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="945-wU-JOH">
-                                            <rect key="frame" x="15" y="55" width="228" height="18"/>
+                                            <rect key="frame" x="15" y="53" width="232" height="18"/>
                                             <buttonCell key="cell" type="check" title="With Advanced Disk Filing System" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="S0c-Jg-7Pu">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                        </button>
+                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cG2-Ph-S3Z">
+                                            <rect key="frame" x="15" y="31" width="231" height="18"/>
+                                            <buttonCell key="cell" type="check" title="With Advanced Plus 6 Utility ROM" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="yjF-XS-zx6">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                        </button>
+                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lzo-8g-o4S">
+                                            <rect key="frame" x="15" y="9" width="284" height="18"/>
+                                            <buttonCell key="cell" type="check" title="Fill unused ROM banks with sideways RAM" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="JEz-eK-uWp">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
@@ -209,11 +223,15 @@ Gw
                                     </subviews>
                                     <constraints>
                                         <constraint firstItem="945-wU-JOH" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="17" id="1iM-70-oZq"/>
-                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="945-wU-JOH" secondAttribute="bottom" constant="17" id="7ZL-rR-aaz"/>
+                                        <constraint firstItem="cG2-Ph-S3Z" firstAttribute="top" secondItem="945-wU-JOH" secondAttribute="bottom" constant="6" symbolic="YES" id="E9b-RP-9vj"/>
+                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="lzo-8g-o4S" secondAttribute="bottom" constant="8" id="FM6-AA-Vhf"/>
                                         <constraint firstItem="JqM-IK-FMP" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="17" id="NfY-dE-aJw"/>
+                                        <constraint firstItem="lzo-8g-o4S" firstAttribute="top" secondItem="cG2-Ph-S3Z" secondAttribute="bottom" constant="6" symbolic="YES" id="S45-42-Gtv"/>
+                                        <constraint firstItem="lzo-8g-o4S" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="17" id="b5a-SX-2ty"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="945-wU-JOH" secondAttribute="trailing" constant="20" id="dmY-PV-ap4"/>
                                         <constraint firstItem="JqM-IK-FMP" firstAttribute="top" secondItem="SRc-2D-95G" secondAttribute="top" constant="3" id="ggl-QH-mV4"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="JqM-IK-FMP" secondAttribute="trailing" constant="20" id="mvO-UZ-BtT"/>
+                                        <constraint firstItem="cG2-Ph-S3Z" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="17" id="npw-IZ-6xU"/>
                                         <constraint firstItem="945-wU-JOH" firstAttribute="top" secondItem="JqM-IK-FMP" secondAttribute="bottom" constant="6" id="pes-xi-zkv"/>
                                     </constraints>
                                 </view>
@@ -257,18 +275,18 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="MSX" identifier="msx" id="6SR-DY-zdI">
                                 <view key="view" id="mWD-An-tR7">
-                                    <rect key="frame" x="10" y="33" width="674" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="679" height="95"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8xT-Pr-8SE">
-                                            <rect key="frame" x="15" y="48" width="124" height="18"/>
+                                            <rect key="frame" x="15" y="49" width="128" height="18"/>
                                             <buttonCell key="cell" type="check" title="Attach disk drive" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="CB3-nA-VTM">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LG6-mP-SeG">
-                                            <rect key="frame" x="69" y="67" width="145" height="25"/>
+                                            <rect key="frame" x="68" y="68" width="146" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="European (PAL)" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="xAh-Ch-tby" id="yR4-yv-Lvu">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -282,7 +300,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZaD-7v-rMS">
-                                            <rect key="frame" x="15" y="73" width="50" height="16"/>
+                                            <rect key="frame" x="15" y="74" width="50" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Region:" id="x4m-eh-Nif">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -551,7 +569,7 @@ Gw
                     <constraint firstItem="VUb-QG-x7c" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" id="zT3-Ea-QQJ"/>
                 </constraints>
             </view>
-            <point key="canvasLocation" x="34" y="88.5"/>
+            <point key="canvasLocation" x="33.5" y="88.5"/>
         </window>
         <customObject id="192-Eb-Rpg" customClass="MachinePicker" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
@@ -559,7 +577,9 @@ Gw
                 <outlet property="appleIIModelButton" destination="jli-ac-Sij" id="Jm3-f7-C17"/>
                 <outlet property="cpcModelTypeButton" destination="00d-sg-Krh" id="VyV-b1-A6x"/>
                 <outlet property="electronADFSButton" destination="945-wU-JOH" id="Fjm-W8-kvh"/>
+                <outlet property="electronAP6Button" destination="cG2-Ph-S3Z" id="vkq-1J-KBG"/>
                 <outlet property="electronDFSButton" destination="JqM-IK-FMP" id="C80-1k-TdQ"/>
+                <outlet property="electronSidewaysRAMButton" destination="lzo-8g-o4S" id="LtS-wv-tMf"/>
                 <outlet property="machineSelector" destination="VUb-QG-x7c" id="crR-hB-jGd"/>
                 <outlet property="macintoshModelTypeButton" destination="xa6-NA-JY5" id="2jX-PY-v2z"/>
                 <outlet property="msxHasDiskDriveButton" destination="8xT-Pr-8SE" id="zGH-GA-9QF"/>

@@ -18,6 +18,8 @@ class MachinePicker: NSObject {
 	// MARK: - Electron properties
 	@IBOutlet var electronDFSButton: NSButton?
 	@IBOutlet var electronADFSButton: NSButton?
+	@IBOutlet var electronAP6Button: NSButton?
+	@IBOutlet var electronSidewaysRAMButton: NSButton?
 
 	// MARK: - CPC properties
 	@IBOutlet var cpcModelTypeButton: NSPopUpButton?
@@ -65,6 +67,8 @@ class MachinePicker: NSObject {
 		// Electron settings
 		electronDFSButton?.state = standardUserDefaults.bool(forKey: "new.electronDFS") ? .on : .off
 		electronADFSButton?.state = standardUserDefaults.bool(forKey: "new.electronADFS") ? .on : .off
+		electronAP6Button?.state = standardUserDefaults.bool(forKey: "new.electronAP6") ? .on : .off
+		electronSidewaysRAMButton?.state = standardUserDefaults.bool(forKey: "new.electronSidewaysRAM") ? .on : .off
 
 		// CPC settings
 		cpcModelTypeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.cpcModel"))
@@ -106,6 +110,8 @@ class MachinePicker: NSObject {
 		// Electron settings
 		standardUserDefaults.set(electronDFSButton!.state == .on, forKey: "new.electronDFS")
 		standardUserDefaults.set(electronADFSButton!.state == .on, forKey: "new.electronADFS")
+		standardUserDefaults.set(electronAP6Button!.state == .on, forKey: "new.electronAP6")
+		standardUserDefaults.set(electronSidewaysRAMButton!.state == .on, forKey: "new.electronSidewaysRAM")
 
 		// CPC settings
 		standardUserDefaults.set(cpcModelTypeButton!.selectedTag(), forKey: "new.cpcModel")
@@ -140,7 +146,11 @@ class MachinePicker: NSObject {
 
 		switch machineSelector!.selectedTabViewItem!.identifier as! String {
 			case "electron":
-				return CSStaticAnalyser(electronDFS: electronDFSButton!.state == .on, adfs: electronADFSButton!.state == .on)
+				return CSStaticAnalyser(
+					electronDFS: electronDFSButton!.state == .on,
+					adfs: electronADFSButton!.state == .on,
+					ap6: electronAP6Button!.state == .on,
+					sidewaysRAM: electronSidewaysRAMButton!.state == .on)
 
 			case "appleii":
 				var model: CSMachineAppleIIModel = .appleII
