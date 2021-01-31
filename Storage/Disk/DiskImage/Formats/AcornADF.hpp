@@ -34,6 +34,7 @@ class AcornADF: public MFMSectorDump {
 
 	private:
 		long get_file_offset_for_position(Track::Address address) final;
+		int head_count_ = 1;
 };
 
 }

@@ -20,6 +20,8 @@ namespace Acorn {
 struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	bool has_adfs = false;
 	bool has_dfs = false;
+	bool has_ap6_rom = false;
+	bool has_sideways_ram = false;
 	bool should_shift_restart = false;
 	std::string loading_command;
 
@@ -27,6 +29,8 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 		if(needs_declare()) {
 			DeclareField(has_adfs);
 			DeclareField(has_dfs);
+			DeclareField(has_ap6_rom);
+			DeclareField(has_sideways_ram);
 		}
 	}
 };

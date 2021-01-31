@@ -86,7 +86,7 @@ typedef int Kilobytes;
 - (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController;
 - (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize;
 - (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model;
-- (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs;
+- (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs ap6:(BOOL)ap6 sidewaysRAM:(BOOL)sidewaysRAM;
 - (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
 - (instancetype)initWithMSXRegion:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive;
 - (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface;

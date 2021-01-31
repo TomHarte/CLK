@@ -282,6 +282,20 @@
          </widget>
         </item>
         <item>
+         <widget class="QCheckBox" name="electronAP6CheckBox">
+          <property name="text">
+           <string>With Advanced Plus 6 Utility ROM</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="electronSidewaysRAMCheckBox">
+          <property name="text">
+           <string>Fill unused ROM banks with sideways RAM</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="verticalSpacer">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
