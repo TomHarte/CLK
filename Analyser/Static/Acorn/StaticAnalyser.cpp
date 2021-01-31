@@ -77,8 +77,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 		if(!files.empty()) {
 			bool is_basic = true;
 
-			// protected files are always for *RUNning only
-			if(files.front().is_protected) is_basic = false;
+			// If a file is execute-only, that means *RUN.
+			if(files.front().flags & File::Flags::ExecuteOnly) is_basic = false;
 
 			// check also for a continuous threading of BASIC lines; if none then this probably isn't BASIC code,
 			// so that's also justification to *RUN

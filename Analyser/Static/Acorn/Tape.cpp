@@ -109,7 +109,12 @@ static std::unique_ptr<File> GetNextFile(std::deque<File::Chunk> &chunks) {
 	file->name = file->chunks.front().name;
 	file->load_address = file->chunks.front().load_address;
 	file->execution_address = file->chunks.front().execution_address;
-	file->is_protected = !!(file->chunks.back().block_flag & 0x01);	// I think the last flags are the ones that count; TODO: check.
+	// I think the final chunk's flags are the ones that count; TODO: check.
+	if(file->chunks.back().block_flag & 0x01) {
+		// File is locked, which in more generalised terms means it is
+		// for execution only.
+		file->flags |= File::Flags::ExecuteOnly;
+	}
 
 	// copy all data into a single big block
 	for(File::Chunk chunk : file->chunks) {
