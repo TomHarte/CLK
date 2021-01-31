@@ -452,8 +452,17 @@ class ConcreteMachine:
 			evaluate_interrupts();
 		}
 
-		HalfCycles get_typer_delay() const final {
-			return m6502_.get_is_resetting() ? Cycles(750'000) : Cycles(0);
+		HalfCycles get_typer_delay(const std::string &text) const final {
+			if(!m6502_.get_is_resetting()) {
+				return Cycles(0);
+			}
+
+			// Add a longer delay for a command at reset that involves pressing a modifier;
+			// empirically this seems to be a requirement, in order to avoid a collision with
+			// the system's built-in modifier-at-startup test (e.g. to perform shift+break).
+			CharacterMapper test_mapper;
+			const uint16_t *const sequence = test_mapper.sequence_for_character(text[0]);
+			return is_modifier(Key(sequence[0])) ? Cycles(1'000'000) : Cycles(750'000);
 		}
 
 		HalfCycles get_typer_frequency() const final {
