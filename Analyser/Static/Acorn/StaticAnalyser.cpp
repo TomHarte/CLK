@@ -12,6 +12,8 @@
 #include "Tape.hpp"
 #include "Target.hpp"
 
+#include <algorithm>
+
 using namespace Analyser::Static::Acorn;
 
 static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
@@ -77,8 +79,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 		if(!files.empty()) {
 			bool is_basic = true;
 
-			// protected files are always for *RUNning only
-			if(files.front().is_protected) is_basic = false;
+			// If a file is execute-only, that means *RUN.
+			if(files.front().flags & File::Flags::ExecuteOnly) is_basic = false;
 
 			// check also for a continuous threading of BASIC lines; if none then this probably isn't BASIC code,
 			// so that's also justification to *RUN
@@ -108,15 +110,37 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 		dfs_catalogue = GetDFSCatalogue(disk);
 		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
 		if(dfs_catalogue || adfs_catalogue) {
+			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
 			target->media.disks = media.disks;
-			target->has_dfs = !!dfs_catalogue;
-			target->has_adfs = !!adfs_catalogue;
+			target->has_dfs = bool(dfs_catalogue);
+			target->has_adfs = bool(adfs_catalogue);
 
+			// Check whether a simple shift+break will do for loading this disk.
 			Catalogue::BootOption bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
-			if(bootOption != Catalogue::BootOption::None)
+			if(bootOption != Catalogue::BootOption::None) {
 				target->should_shift_restart = true;
-			else
+			} else {
 				target->loading_command = "*CAT\n";
+			}
+
+			// Check whether adding the AP6 ROM is justified.
+			// For now this is an incredibly dense text search;
+			// if any of the commands that aren't usually present
+			// on a stock Electron are here, add the AP6 ROM and
+			// some sideways RAM such that the SR commands are useful.
+			for(const auto &file: dfs_catalogue ? dfs_catalogue->files : adfs_catalogue->files) {
+				for(const auto &command: {
+					"AQRPAGE", "BUILD", "DUMP", "FORMAT", "INSERT", "LANG", "LIST", "LOADROM",
+					"LOCK", "LROMS", "RLOAD", "ROMS", "RSAVE", "SAVEROM", "SRLOAD", "SRPAGE",
+					"SRUNLOCK", "SRWIPE", "TUBE", "TYPE", "UNLOCK", "UNPLUG", "UROMS",
+					"VERIFY", "ZERO"
+				}) {
+					if(std::search(file.data.begin(), file.data.end(), command, command+strlen(command)) != file.data.end()) {
+						target->has_ap6_rom = true;
+						target->has_sideways_ram = true;
+					}
+				}
+			}
 		}
 	}
 

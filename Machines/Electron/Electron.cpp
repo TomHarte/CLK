@@ -72,6 +72,10 @@ class ConcreteMachine:
 			if(target.has_dfs) {
 				required_roms.emplace_back(machine_name, "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16*1024, 0xf3dc9bc5);
 			}
+			const size_t ap6_rom_position = required_roms.size();
+			if(target.has_ap6_rom) {
+				required_roms.emplace_back(machine_name, "the 8kb Advanced Plus 6 ROM", "AP6v133.rom", 8*1024, 0xe0013cfc);
+			}
 			const auto roms = rom_fetcher(required_roms);
 
 			for(const auto &rom: roms) {
@@ -82,6 +86,15 @@ class ConcreteMachine:
 			set_rom(ROM::BASIC, *roms[0], false);
 			set_rom(ROM::OS, *roms[1], false);
 
+			/*
+				ROM slot mapping applied:
+
+					* the keyboard and BASIC ROMs occupy slots 8, 9, 10 and 11;
+					* the DFS, if in use, occupies slot 1;
+					* the ADFS, if in use, occupies slots 4 and 5;
+					* the AP6, if in use, occupies slot 15; and
+					* if sideways RAM was asked for, all otherwise unused slots are populated with sideways RAM.
+			*/
 			if(target.has_dfs || target.has_adfs) {
 				plus3_ = std::make_unique<Plus3>();
 
@@ -91,6 +104,18 @@ class ConcreteMachine:
 				if(target.has_adfs) {
 					set_rom(ROM::Slot4, *roms[2], true);
 					set_rom(ROM::Slot5, *roms[3], true);
+				}
+			}
+
+			if(target.has_ap6_rom) {
+				set_rom(ROM::Slot15, *roms[ap6_rom_position], true);
+			}
+
+			if(target.has_sideways_ram) {
+				for(int c = 0; c < 16; c++) {
+					if(rom_inserted_[c]) continue;
+					if(c >= int(ROM::Keyboard) && c < int(ROM::BASIC)+1) continue;
+					set_sideways_ram(ROM(c));
 				}
 			}
 
@@ -517,8 +542,20 @@ class ConcreteMachine:
 				rom_ptr += size_to_copy;
 			}
 
-			if(int(slot) < 16)
+			if(int(slot) < 16) {
 				rom_inserted_[int(slot)] = true;
+			}
+		}
+
+		/*!
+			Enables @c slot as sideways RAM; ensures that it does not currently contain a valid ROM signature.
+		*/
+		void set_sideways_ram(ROM slot) {
+			std::memset(roms_[int(slot)], 0xff, 16*1024);
+			if(int(slot) < 16) {
+				rom_inserted_[int(slot)] = true;
+				rom_write_masks_[int(slot)] = true;
+			}
 		}
 
 		// MARK: - Work deferral updates.
