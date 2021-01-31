@@ -108,15 +108,20 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 		dfs_catalogue = GetDFSCatalogue(disk);
 		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
 		if(dfs_catalogue || adfs_catalogue) {
+			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
 			target->media.disks = media.disks;
-			target->has_dfs = !!dfs_catalogue;
-			target->has_adfs = !!adfs_catalogue;
+			target->has_dfs = bool(dfs_catalogue);
+			target->has_adfs = bool(adfs_catalogue);
 
+			// Check whether a simple shift+break will do for loading this disk.
 			Catalogue::BootOption bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
-			if(bootOption != Catalogue::BootOption::None)
+			if(bootOption != Catalogue::BootOption::None) {
 				target->should_shift_restart = true;
-			else
+			} else {
 				target->loading_command = "*CAT\n";
+			}
+
+			// TODO: check whether adding the AP6 ROM is justified.
 		}
 	}
 
