@@ -850,6 +850,7 @@
 		4BE211DE253E4E4800435408 /* 65C02_no_Rockwell_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4BE211DD253E4E4800435408 /* 65C02_no_Rockwell_test.bin */; };
 		4BE34438238389E10058E78F /* AtariSTVideoTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BE34437238389E10058E78F /* AtariSTVideoTests.mm */; };
 		4BE76CF922641ED400ACD6FA /* QLTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BE76CF822641ED300ACD6FA /* QLTests.mm */; };
+		4BE8EB6625C750B50040BC40 /* AcornADF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE8EB6425C750B50040BC40 /* AcornADF.cpp */; };
 		4BE90FFD22D5864800FB464D /* MacintoshVideoTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BE90FFC22D5864800FB464D /* MacintoshVideoTests.mm */; };
 		4BE9A6B11EDE293000CBCB47 /* zexdoc.com in Resources */ = {isa = PBXBuildFile; fileRef = 4BE9A6B01EDE293000CBCB47 /* zexdoc.com */; };
 		4BEA525E1DF33323007E74F2 /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEA525D1DF33323007E74F2 /* Tape.cpp */; };
@@ -1788,6 +1789,8 @@
 		4BE34437238389E10058E78F /* AtariSTVideoTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AtariSTVideoTests.mm; sourceTree = "<group>"; };
 		4BE76CF822641ED300ACD6FA /* QLTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = QLTests.mm; sourceTree = "<group>"; };
 		4BE845201F2FF7F100A5EA22 /* CRTC6845.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CRTC6845.hpp; path = 6845/CRTC6845.hpp; sourceTree = "<group>"; };
+		4BE8EB6425C750B50040BC40 /* AcornADF.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AcornADF.cpp; sourceTree = "<group>"; };
+		4BE8EB6525C750B50040BC40 /* AcornADF.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AcornADF.hpp; sourceTree = "<group>"; };
 		4BE90FFC22D5864800FB464D /* MacintoshVideoTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = MacintoshVideoTests.mm; sourceTree = "<group>"; };
 		4BE9A6B01EDE293000CBCB47 /* zexdoc.com */ = {isa = PBXFileReference; lastKnownFileType = file; name = zexdoc.com; path = Zexall/zexdoc.com; sourceTree = "<group>"; };
 		4BEA525D1DF33323007E74F2 /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Tape.cpp; path = Electron/Tape.cpp; sourceTree = "<group>"; };
@@ -2733,6 +2736,8 @@
 			children = (
 				4B74CF7F2312FA9C00500CE8 /* HFV.hpp */,
 				4B74CF802312FA9C00500CE8 /* HFV.cpp */,
+				4BE8EB6425C750B50040BC40 /* AcornADF.cpp */,
+				4BE8EB6525C750B50040BC40 /* AcornADF.hpp */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -4770,6 +4775,7 @@
 				4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */,
 				4BEDA3BF25B25563000C2DBD /* Decoder.cpp in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
+				4BE8EB6625C750B50040BC40 /* AcornADF.cpp in Sources */,
 				4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */,
 				4BAE49582032881E004BE78E /* CSZX8081.mm in Sources */,
 				4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */,
