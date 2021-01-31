@@ -387,7 +387,7 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// MARK: - Typer timing
-		HalfCycles get_typer_delay() const final {
+		HalfCycles get_typer_delay(const std::string &) const final {
 			return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
 		}
 

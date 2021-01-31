@@ -109,7 +109,7 @@ class TypeRecipient: public Typer::Delegate {
 		/// Attaches a typer to this class that will type @c string using @c character_mapper as a source.
 		void add_typer(const std::string &string) {
 			if(!typer_) {
-				typer_ = std::make_unique<Typer>(string, get_typer_delay(), get_typer_frequency(), character_mapper, this);
+				typer_ = std::make_unique<Typer>(string, get_typer_delay(string), get_typer_frequency(), character_mapper, this);
 			} else {
 				typer_->append(string);
 			}
@@ -137,7 +137,7 @@ class TypeRecipient: public Typer::Delegate {
 			typer_ = nullptr;
 		}
 
-		virtual HalfCycles get_typer_delay() const { return HalfCycles(0); }
+		virtual HalfCycles get_typer_delay(const std::string &) const { return HalfCycles(0); }
 		virtual HalfCycles get_typer_frequency() const { return HalfCycles(0); }
 		std::unique_ptr<Typer> typer_;
 
