@@ -45,7 +45,9 @@ template <bool has_scsi_bus> class ConcreteMachine:
 	public CPU::MOS6502::BusHandler,
 	public Tape::Delegate,
 	public Utility::TypeRecipient<CharacterMapper>,
-	public Activity::Source {
+	public Activity::Source,
+	public SCSI::Bus::Observer,
+	public ClockingHint::Observer {
 	public:
 		ConcreteMachine(const Analyser::Static::Acorn::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 				m6502_(*this),
@@ -142,6 +144,11 @@ template <bool has_scsi_bus> class ConcreteMachine:
 
 			if(target.should_shift_restart) {
 				shift_restart_counter_ = 1000000;
+			}
+
+			if(has_scsi_bus) {
+				scsi_bus_.add_observer(this);
+				scsi_bus_.set_clocking_hint_observer(this);
 			}
 		}
 
@@ -498,13 +505,9 @@ template <bool has_scsi_bus> class ConcreteMachine:
 				}
 			}
 
-			// TODO: clock/change observe.
-			if(has_scsi_bus) {
-				scsi_bus_.run_for(Cycles(int(cycles)));
-
-				if(scsi_acknowledge_ && !(scsi_bus_.get_state() & SCSI::Line::Request)) {
-					scsi_acknowledge_ = false;
-					push_scsi_output();
+			if constexpr (has_scsi_bus) {
+				if(scsi_is_clocked_) {
+					scsi_bus_.run_for(Cycles(int(cycles)));
 				}
 			}
 
@@ -539,6 +542,18 @@ template <bool has_scsi_bus> class ConcreteMachine:
 
 		void run_for(const Cycles cycles) final {
 			m6502_.run_for(cycles);
+		}
+
+		void scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double) final {
+			// Release acknowledge when request is released.
+			if(scsi_acknowledge_ && !(new_state & SCSI::Line::Request)) {
+				scsi_acknowledge_ = false;
+				push_scsi_output();
+			}
+		}
+
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference preference) final {
+			scsi_is_clocked_ = preference != ClockingHint::Preference::None;
 		}
 
 		void tape_did_change_interrupt_status(Tape *) final {
@@ -745,6 +760,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 		uint8_t scsi_data_ = 0;
 		bool scsi_select_ = false;
 		bool scsi_acknowledge_ = false;
+		bool scsi_is_clocked_ = false;
 		void push_scsi_output() {
 			scsi_bus_.set_device_output(scsi_device_,
 				scsi_data_ |
