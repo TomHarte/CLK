@@ -1163,7 +1163,7 @@ void MainWindow::start_electron() {
 	auto target = std::make_unique<Target>();
 
 	target->has_dfs = ui->electronDFSCheckBox->isChecked();
-	target->has_adfs = ui->electronADFSCheckBox->isChecked();
+	target->has_pres_adfs = ui->electronADFSCheckBox->isChecked();
 	target->has_ap6_rom = ui->electronAP6CheckBox->isChecked();
 	target->has_sideways_ram = ui->electronSidewaysRAMCheckBox->isChecked();
 

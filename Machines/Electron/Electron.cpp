@@ -356,7 +356,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 					break;
 					case 0xfc03:
 						if(has_scsi_bus && (address&0x00f0) == 0x0040) {
-							printf("SCSI IRQ: %s %02x\n", isReadOperation(operation) ? "->" : "<-", *value);
+							// TODO: SCSI IRQ. Once I'm clear on the use.
 						}
 					break;
 					case 0xfc01:
