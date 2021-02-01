@@ -144,8 +144,14 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 	// Enable the Acorn ADFS if a mass-storage device is attached;
 	// unlike the Pres ADFS it retains SCSI logic.
 	if(!media.mass_storage_devices.empty()) {
-		target->has_pres_adfs = false;
+		target->has_pres_adfs = false;	// To override a floppy selection, if one was made.
 		target->has_acorn_adfs = true;
+
+		// Assume some sort of later-era Acorn work is likely to happen;
+		// so ensure *TYPE, etc are present.
+		target->has_ap6_rom = true;
+		target->has_sideways_ram = true;
+
 		target->media.mass_storage_devices = media.mass_storage_devices;
 
 		// Check for a boot option.

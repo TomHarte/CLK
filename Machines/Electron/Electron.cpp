@@ -612,10 +612,14 @@ template <bool has_scsi_bus> class ConcreteMachine:
 			if(activity_observer_) {
 				activity_observer_->register_led(caps_led);
 				activity_observer_->set_led_status(caps_led, caps_led_state_);
+			}
 
-				if(plus3_) {
-					plus3_->set_activity_observer(observer);
-				}
+			if(plus3_) {
+				plus3_->set_activity_observer(observer);
+			}
+
+			if(has_scsi_bus) {
+				scsi_bus_.set_activity_observer(observer);
 			}
 		}
 
