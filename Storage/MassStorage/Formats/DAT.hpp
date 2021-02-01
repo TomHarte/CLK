@@ -1,13 +1,13 @@
 //
-//  AcornADF.hpp
+//  DAT.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 31/01/2021.
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef MassStorage_AcornADF_hpp
-#define MassStorage_AcornADF_hpp
+#ifndef MassStorage_DAT_hpp
+#define MassStorage_DAT_hpp
 
 #include "../MassStorageDevice.hpp"
 #include "../../FileHolder.hpp"
@@ -17,11 +17,12 @@ namespace MassStorage {
 
 /*!
 	Provides a @c MassStorageDevice containing an Acorn ADFS image, which is just a
-	sector dump of an ADFS volume.
+	sector dump of an ADFS volume. It will be validated for an ADFS catalogue and communicate
+	in 256-byte blocks.
 */
-class AcornADF: public MassStorageDevice {
+class DAT: public MassStorageDevice {
 	public:
-		AcornADF(const std::string &file_name);
+		DAT(const std::string &file_name);
 
 	private:
 		FileHolder file_;
@@ -36,4 +37,4 @@ class AcornADF: public MassStorageDevice {
 }
 }
 
-#endif /* MassStorage_AcornADF_hpp */
+#endif /* MassStorage_DAT_hpp */

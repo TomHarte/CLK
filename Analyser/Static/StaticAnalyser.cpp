@@ -51,6 +51,7 @@
 #include "../../Storage/Disk/DiskImage/Formats/WOZ.hpp"
 
 // Mass Storage Devices (i.e. usually, hard disks)
+#include "../../Storage/MassStorage/Formats/DAT.hpp"
 #include "../../Storage/MassStorage/Formats/HFV.hpp"
 
 // Tapes
@@ -105,6 +106,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("col", result.cartridges, Cartridge::BinaryDump, TargetPlatform::ColecoVision)						// COL
 	Format("csw", result.tapes, Tape::CSW, TargetPlatform::AllTape)												// CSW
 	Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)			// D64
+	Format("dat", result.mass_storage_devices, MassStorage::DAT, TargetPlatform::Acorn)							// DAT
 	Format("dmk", result.disks, Disk::DiskImageHolder<Storage::Disk::DMK>, TargetPlatform::MSX)					// DMK
 	Format("do", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// DO
 	Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)				// DSD
