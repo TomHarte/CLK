@@ -356,7 +356,9 @@ template <bool has_scsi_bus> class ConcreteMachine:
 					break;
 					case 0xfc03:
 						if(has_scsi_bus && (address&0x00f0) == 0x0040) {
-							// TODO: SCSI IRQ. Once I'm clear on the use.
+							scsi_interrupt_state_ = false;
+							scsi_interrupt_mask_ = *value & 1;
+							evaluate_interrupts();
 						}
 					break;
 					case 0xfc01:
@@ -376,9 +378,9 @@ template <bool has_scsi_bus> class ConcreteMachine:
 								(state & SCSI::Line::Control ? 0x80 : 0x00) |
 								(state & SCSI::Line::Input ? 0x40 : 0x00) |
 								(state & SCSI::Line::Request ? 0x20 : 0x00) |
+								((scsi_interrupt_state_ && scsi_interrupt_mask_) ? 0x10 : 0x00) |
 								(state & SCSI::Line::Busy ? 0x02 : 0x00) |
 								(state & SCSI::Line::Message ? 0x01 : 0x00);
-								// TODO: interrupt flag.
 
 							// Empirical guess: this is also the trigger to affect busy/request/acknowledge
 							// signalling. Maybe?
@@ -550,6 +552,10 @@ template <bool has_scsi_bus> class ConcreteMachine:
 				scsi_acknowledge_ = false;
 				push_scsi_output();
 			}
+
+			scsi_interrupt_state_ |= (new_state^previous_bus_state_)&new_state & SCSI::Line::Request;
+			previous_bus_state_ = new_state;
+			evaluate_interrupts();
 		}
 
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference preference) final {
@@ -713,7 +719,12 @@ template <bool has_scsi_bus> class ConcreteMachine:
 			} else {
 				interrupt_status_ &= ~1;
 			}
-			m6502_.set_irq_line(interrupt_status_ & 1);
+
+			if constexpr (has_scsi_bus) {
+				m6502_.set_irq_line((scsi_interrupt_state_ && scsi_interrupt_mask_) | (interrupt_status_ & 1));
+			} else {
+				m6502_.set_irq_line(interrupt_status_ & 1);
+			}
 		}
 
 		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
@@ -760,11 +771,14 @@ template <bool has_scsi_bus> class ConcreteMachine:
 		// Hard drive.
 		SCSI::Bus scsi_bus_;
 		SCSI::Target::Target<SCSI::DirectAccessDevice> hard_drive_;
+		SCSI::BusState previous_bus_state_ = SCSI::DefaultBusState;
 		const size_t scsi_device_ = 0;
 		uint8_t scsi_data_ = 0;
 		bool scsi_select_ = false;
 		bool scsi_acknowledge_ = false;
 		bool scsi_is_clocked_ = false;
+		bool scsi_interrupt_state_ = false;
+		bool scsi_interrupt_mask_ = false;
 		void push_scsi_output() {
 			scsi_bus_.set_device_output(scsi_device_,
 				scsi_data_ |
