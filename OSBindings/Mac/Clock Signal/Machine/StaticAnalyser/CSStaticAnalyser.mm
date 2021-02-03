@@ -121,7 +121,7 @@
 		using Target = Analyser::Static::Acorn::Target;
 		auto target = std::make_unique<Target>();
 		target->has_dfs = dfs;
-		target->has_adfs = adfs;
+		target->has_pres_adfs = adfs;
 		target->has_ap6_rom = ap6;
 		target->has_sideways_ram = sidewaysRAM;
 		_targets.push_back(std::move(target));

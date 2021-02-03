@@ -90,6 +90,13 @@ constexpr double DeskewDelay		= ns(45.0);
 /// any two devices.
 constexpr double CableSkew			= ns(10.0);
 
+/*!
+	@returns The value of the data lines per @c state.
+*/
+constexpr uint8_t data_lines(BusState state) {
+	return uint8_t(state & 0xff);
+}
+
 #undef ns
 #undef us
 

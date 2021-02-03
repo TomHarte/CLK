@@ -31,10 +31,14 @@ enum Key: uint16_t {
 	KeyShift		= 0x00d0 | 0x08,	KeyControl		= 0x00d0 | 0x04,	KeyFunc			= 0x00d0 | 0x02,	KeyEscape		= 0x00d0 | 0x01,
 
 	// Virtual keys.
-	KeyF1	= 0xfff0, KeyF2, KeyF3, KeyF4, KeyF5, KeyF6, KeyF7, KeyF8, KeyF9, KeyF0,
+	KeyF1			= 0xfff0, KeyF2, KeyF3, KeyF4, KeyF5, KeyF6, KeyF7, KeyF8, KeyF9, KeyF0,
 
 	KeyBreak		= 0xfffd,
 };
+
+constexpr bool is_modifier(Key key) {
+	return (key == KeyShift) || (key == KeyControl) || (key == KeyFunc);
+}
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;

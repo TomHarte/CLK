@@ -38,6 +38,7 @@ bool DirectAccessDevice::write(const Target::CommandState &state, Target::Respon
 	if(!device_) return false;
 
 	const auto specs = state.read_write_specs();
+	LOG("Write: " << specs.number_of_blocks << " to " << specs.address);
 
 	responder.receive_data(device_->get_block_size() * specs.number_of_blocks, [this, specs] (const Target::CommandState &state, Target::Responder &responder) {
 		const auto received_data = state.received_data();
