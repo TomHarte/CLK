@@ -413,7 +413,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 		// to satisfy CPU::MOS6502::BusHandler
 		forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			if(address > ram_top_) {
-				if(isReadOperation(operation)) *value = paged_rom_[address - ram_top_ - 1];
+				if(!isWriteOperation(operation)) *value = paged_rom_[address - ram_top_ - 1];
 
 				// 024D = 0 => fast; otherwise slow
 				// E6C9 = read byte: return byte in A
@@ -432,39 +432,39 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 			} else {
 				if((address & 0xff00) == 0x0300) {
 					if(address < 0x0310 || (disk_interface == DiskInterface::None)) {
-						if(isReadOperation(operation)) *value = via_.read(address);
+						if(!isWriteOperation(operation)) *value = via_.read(address);
 						else via_.write(address, *value);
 					} else {
 						switch(disk_interface) {
 							default: break;
 							case DiskInterface::BD500:
-								if(isReadOperation(operation)) *value = bd500_.read(address);
+								if(!isWriteOperation(operation)) *value = bd500_.read(address);
 								else bd500_.write(address, *value);
 							break;
 							case DiskInterface::Jasmin:
 								if(address >= 0x3f4) {
-									if(isReadOperation(operation)) *value = jasmin_.read(address);
+									if(!isWriteOperation(operation)) *value = jasmin_.read(address);
 									else jasmin_.write(address, *value);
 								}
 							break;
 							case DiskInterface::Microdisc:
 								switch(address) {
 									case 0x0310: case 0x0311: case 0x0312: case 0x0313:
-										if(isReadOperation(operation)) *value = microdisc_.read(address);
+										if(!isWriteOperation(operation)) *value = microdisc_.read(address);
 										else microdisc_.write(address, *value);
 									break;
 									case 0x314: case 0x315: case 0x316: case 0x317:
-										if(isReadOperation(operation)) *value = microdisc_.get_interrupt_request_register();
+										if(!isWriteOperation(operation)) *value = microdisc_.get_interrupt_request_register();
 										else microdisc_.set_control_register(*value);
 									break;
 									case 0x318: case 0x319: case 0x31a: case 0x31b:
-										if(isReadOperation(operation)) *value = microdisc_.get_data_request_register();
+										if(!isWriteOperation(operation)) *value = microdisc_.get_data_request_register();
 									break;
 								}
 							break;
 							case DiskInterface::Pravetz:
 								if(address >= 0x0320) {
-									if(isReadOperation(operation)) *value = pravetz_rom_[pravetz_rom_base_pointer_ + (address & 0xff)];
+									if(!isWriteOperation(operation)) *value = pravetz_rom_[pravetz_rom_base_pointer_ + (address & 0xff)];
 									else {
 										switch(address) {
 											case 0x380:	case 0x381:	case 0x382:	case 0x383:
@@ -476,13 +476,13 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 								} else {
 									flush_diskii();
 									const int disk_value = diskii_.read_address(address);
-									if(isReadOperation(operation) && disk_value != diskii_.DidNotLoad) *value = uint8_t(disk_value);
+									if(!isWriteOperation(operation) && disk_value != diskii_.DidNotLoad) *value = uint8_t(disk_value);
 								}
 							break;
 						}
 					}
 				} else {
-					if(isReadOperation(operation))
+					if(!isWriteOperation(operation))
 						*value = ram_[address];
 					else {
 						if(address >= 0x9800 && address <= 0xc000) update_video();
