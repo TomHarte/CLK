@@ -553,6 +553,12 @@ template <bool has_scsi_bus> class ConcreteMachine:
 				push_scsi_output();
 			}
 
+			// Output occurs only while SCSI::Line::Input is inactive; therefore a change
+			// in that line affects what's on the bus.
+			if(((new_state^previous_bus_state_)&SCSI::Line::Input)) {
+				push_scsi_output();
+			}
+
 			scsi_interrupt_state_ |= (new_state^previous_bus_state_)&new_state & SCSI::Line::Request;
 			previous_bus_state_ = new_state;
 			evaluate_interrupts();
@@ -781,7 +787,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 		bool scsi_interrupt_mask_ = false;
 		void push_scsi_output() {
 			scsi_bus_.set_device_output(scsi_device_,
-				scsi_data_ |
+				(scsi_bus_.get_state()&SCSI::Line::Input ? 0 : scsi_data_) |
 				(scsi_select_ ? SCSI::Line::SelectTarget : 0) |
 				(scsi_acknowledge_ ? SCSI::Line::Acknowledge : 0)
 			);
