@@ -18,7 +18,8 @@ namespace Static {
 namespace Acorn {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
-	bool has_adfs = false;
+	bool has_acorn_adfs = false;
+	bool has_pres_adfs = false;
 	bool has_dfs = false;
 	bool has_ap6_rom = false;
 	bool has_sideways_ram = false;
@@ -27,7 +28,8 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 
 	Target() : Analyser::Static::Target(Machine::Electron) {
 		if(needs_declare()) {
-			DeclareField(has_adfs);
+			DeclareField(has_pres_adfs);
+			DeclareField(has_acorn_adfs);
 			DeclareField(has_dfs);
 			DeclareField(has_ap6_rom);
 			DeclareField(has_sideways_ram);

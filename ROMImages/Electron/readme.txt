@@ -8,10 +8,9 @@ DFS-1770-2.20.rom	— used only if the user opens a DFS disk image
 ADFS-E00_1.rom		— used only if the user opens an ADFS disk image
 ADFS-E00_2.rom
 AP6v133.rom			— used only if the user opens a disk image that makes use of any of the commands given below.
+adfs.rom			- used only if the user opens a hard disk image
 
 Possibly to be desired in the future:
-* adfs.rom
-* ElectronExpansionRomPresAP2-v1.23.rom
 * os300.rom
 
 Commands that trigger a request for the AP6v133 ROM:

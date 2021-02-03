@@ -61,10 +61,6 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 
 Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	auto target = std::make_unique<Target>();
-	target->confidence = 0.5; // TODO: a proper estimation
-	target->has_dfs = false;
-	target->has_adfs = false;
-	target->should_shift_restart = false;
 
 	// strip out inappropriate cartridges
 	target->media.cartridges = AcornCartridgesFrom(media.cartridges);
@@ -111,9 +107,10 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
 		if(dfs_catalogue || adfs_catalogue) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
+			// Use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
 			target->media.disks = media.disks;
 			target->has_dfs = bool(dfs_catalogue);
-			target->has_adfs = bool(adfs_catalogue);
+			target->has_pres_adfs = bool(adfs_catalogue);
 
 			// Check whether a simple shift+break will do for loading this disk.
 			Catalogue::BootOption bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
@@ -141,6 +138,28 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 					}
 				}
 			}
+		}
+	}
+
+	// Enable the Acorn ADFS if a mass-storage device is attached;
+	// unlike the Pres ADFS it retains SCSI logic.
+	if(!media.mass_storage_devices.empty()) {
+		target->has_pres_adfs = false;	// To override a floppy selection, if one was made.
+		target->has_acorn_adfs = true;
+
+		// Assume some sort of later-era Acorn work is likely to happen;
+		// so ensure *TYPE, etc are present.
+		target->has_ap6_rom = true;
+		target->has_sideways_ram = true;
+
+		target->media.mass_storage_devices = media.mass_storage_devices;
+
+		// Check for a boot option.
+		const auto sector = target->media.mass_storage_devices.front()->get_block(1);
+		if(sector[0xfd]) {
+			target->should_shift_restart = true;
+		} else {
+			target->loading_command = "*CAT\n";
 		}
 	}
 
