@@ -793,7 +793,7 @@ class ConcreteMachine:
 //			}
 			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
 //				log = (address >= 0xff6cdc) && (address < 0xff6d43);
-				log = (address >= 0x00d300) && (address < 0x00d600);
+//				log = (address >= 0x00d300) && (address < 0x00d600);
 			}
 //			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address < 0xff6a2c) || (address >= 0xff6a9c)));
 			if(log) {

@@ -136,9 +136,22 @@ class Executor: public CachingExecutor {
 		bool index_mode_ = false;
 		bool decimal_mode_ = false;
 
+		// IO ports.
 		uint8_t port_directions_[4] = {0xff, 0xff, 0xff, 0xff};
 		uint8_t port_outputs_[4] = {0xff, 0xff, 0xff, 0xff};
 
+		// Timers.
+		struct Timer {
+			uint8_t value = 0, reload_value = 0;
+		};
+		int timer_divider_ = 0;
+		Timer timers_[3], prescalers_[2];
+		inline int update_timer(Timer &timer, int count);
+
+		// Interrupt and timer  control.
+		uint8_t interrupt_control_ = 0, timer_control_ = 0;
+
+		// Access helpers.
 		inline uint8_t read(uint16_t address);
 		inline void write(uint16_t address, uint8_t value);
 		inline void push(uint8_t value);

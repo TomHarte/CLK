@@ -68,8 +68,6 @@ uint8_t Executor::read(uint16_t address) {
 //			printf("??? [ff]\n");
 		return 0xff;
 
-		// TODO: external IO ports.
-
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
@@ -83,23 +81,23 @@ uint8_t Executor::read(uint16_t address) {
 			const int port = port_remap[(address - 0xe0) >> 1];
 			const uint8_t input = port_handler_.get_port_input(port);
 
-//			printf("P%d %02x\n", port, (input &~ port_directions_[port]) | (port_outputs_[port] & port_directions_[port]));
-
 			// In the direction registers, a 0 indicates input, a 1 indicates output.
 			return (input &~ port_directions_[port]) | (port_outputs_[port] & port_directions_[port]);
 		}
 
 		case 0xe1: case 0xe3:
 		case 0xe5: case 0xe9:
-//			printf("TODO: Ports P0–P3 direction [r %04x]\n", address);
-//			printf("dir%d %02x\n", port_remap[(address - 0xe0) >> 1], port_directions_[port_remap[(address - 0xe0) >> 1]]);
 		return port_directions_[port_remap[(address - 0xe0) >> 1]];
 
 		// Timers.
-		case 0xf9: case 0xfa: case 0xfb: case 0xfc: case 0xfd: case 0xfe: case 0xff:
-//			printf("TODO: Timers [r %04x]\n", address);
-//			printf("T?? [ff]\n");
-		return 0xff;
+		case 0xf9:	return prescalers_[0].value;
+		case 0xfa:	return timers_[0].value;
+		case 0xfb:	return timers_[1].value;
+		case 0xfc:	return prescalers_[1].value;
+		case 0xfd:	return timers_[2].value;
+
+		case 0xfe:	return interrupt_control_;
+		case 0xff:	return timer_control_;
 	}
 }
 
@@ -138,9 +136,14 @@ void Executor::write(uint16_t address, uint8_t value) {
 		break;
 
 		// Timers.
-		case 0xf9: case 0xfa: case 0xfb: case 0xfc: case 0xfd: case 0xfe: case 0xff:
-//			printf("TODO: Timers [w %04x %02x]\n", address, value);
-		break;
+		case 0xf9:	prescalers_[0].reload_value = value;	break;
+		case 0xfa:	timers_[0].reload_value = value;		break;
+		case 0xfb:	timers_[1].reload_value = value;		break;
+		case 0xfc:	prescalers_[1].reload_value = value;	break;
+		case 0xfd:	timers_[2].reload_value = value;		break;
+
+		case 0xfe:	interrupt_control_ = value;				break;
+		case 0xff:	timer_control_ = value;					break;
 	}
 }
 
@@ -184,8 +187,21 @@ template<bool is_brk> inline void Executor::perform_interrupt() {
 	set_program_counter(uint16_t(memory_[0x1ff4] | (memory_[0x1ff5] << 8)));
 }
 
+bool log_print = false;
+
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
-//	printf("%04x\t[a:%02x x:%02x y:%02x p:%02x s:%02x]\n", program_counter_ & 0x1fff, a_, x_, y_, flags(), s_);
+//	log_print |= (program_counter_&0x1fff) == 0x106c;
+//	log_print &= (program_counter_&0x1fff) != 0x1015;
+
+	if((program_counter_&0x1fff) == 0x1f24) {
+		printf("\n");
+	}
+	if((program_counter_&0x1fff) == 0x1f33) {
+		printf("");
+	}
+	if(log_print) {
+		printf("%04x\t[a:%02x x:%02x y:%02x p:%02x s:%02x]\n", program_counter_ & 0x1fff, a_, x_, y_, flags(), s_);
+	}
 //	printf("%04x")
 //	printf("%04x\t%02x\t%d %d\t[a:%02x x:%02x y:%02x p:%02x s:%02x]\t(%s)\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), a_, x_, y_, flags(), s_, __PRETTY_FUNCTION__ );
 
@@ -741,6 +757,35 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 }
 
 inline void Executor::subtract_duration(int duration) {
+	// Update count for potential port accesses.
 	cycles_since_port_handler_ += Cycles(duration);
+
+	// Update timer 1/2 prescaler.
+	constexpr int t12_divider = 1;	// TODO: should be 4, I think.
+	timer_divider_ += duration;
+	const int t12_ticks = update_timer(prescalers_[0], timer_divider_ / t12_divider);
+	timer_divider_ &= (t12_divider-1);
+
+	// Update timers 1 and 2. TODO: interrupts (elsewhere).
+	if(update_timer(timers_[0], t12_ticks)) interrupt_control_ |= 0x20;
+	if(update_timer(timers_[1], t12_ticks)) interrupt_control_ |= 0x08;
+
+	// TODO: timer X.
+//	update_timer(timers_[2], update_timer(prescalers_[1], duration));
+
+	// Pass along.
 	CachingExecutor::subtract_duration(duration);
+}
+
+inline int Executor::update_timer(Timer &timer, int count) {
+	int next_value = timer.value - count;
+	if(next_value < 0) {
+		// Determine how many reloads were required to get above zero.
+		const int reload_value = timer.reload_value ? timer.reload_value : 256;
+		const int underflow_count = 1 + (-next_value) / reload_value;
+		timer.value = uint8_t((next_value % reload_value) + timer.reload_value);
+		return underflow_count;
+	}
+	timer.value = uint8_t(next_value);
+	return 0;
 }

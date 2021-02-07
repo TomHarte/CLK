@@ -175,6 +175,7 @@ void GLU::set_port_output(int port, uint8_t value) {
 
 			const bool new_adb_level = !(value & 0x08);
 			if(new_adb_level != adb_level_) {
+				printf(".");
 				if(!new_adb_level) {
 					// Transition to low.
 					constexpr float clock_rate = 894886.25;
@@ -211,6 +212,10 @@ uint8_t GLU::get_port_input(int port) {
 					registers_[4] &= ~uint8_t(MicrocontrollerFlags::CommandRegisterFull);
 					status_ &= ~uint8_t(CPUFlags::CommandRegisterFull);
 				break;
+			}
+
+			if(register_address_ == 1) {
+				printf("[C %02x]", registers_[1]);
 			}
 		return registers_[register_address_];
 		case 1:
