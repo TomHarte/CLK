@@ -101,6 +101,11 @@ uint8_t Executor::read(uint16_t address) {
 	}
 }
 
+void Executor::set_port_output(int port) {
+	// Force 'output' to a 1 anywhere that a bit is set as input.
+	port_handler_.set_port_output(port, port_outputs_[port] | ~port_directions_[port]);
+}
+
 void Executor::write(uint16_t address, uint8_t value) {
 //	printf("%04x <- %02x\n", address, value);
 
@@ -127,13 +132,16 @@ void Executor::write(uint16_t address, uint8_t value) {
 		case 0xe4: case 0xe8: {
 			const int port = port_remap[(address - 0xe0) >> 1];
 			port_outputs_[port] = value;
-			return port_handler_.set_port_output(port, value);
+			set_port_output(port);
 		}
+		break;
 
 		case 0xe1: case 0xe3:
-		case 0xe5: case 0xe9:
-			port_directions_[port_remap[(address - 0xe0) >> 1]] = value;
-		break;
+		case 0xe5: case 0xe9: {
+			const int port = port_remap[(address - 0xe0) >> 1];
+			port_directions_[port] = value;
+			set_port_output(port);
+		} break;
 
 		// Timers.
 		case 0xf9:	prescalers_[0].reload_value = value;	break;
