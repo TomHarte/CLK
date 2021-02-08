@@ -130,19 +130,19 @@ class Executor: public CachingExecutor {
 
 		uint8_t negative_result_ = 0;
 		uint8_t zero_result_ = 0;
-		uint8_t interrupt_disable_ = 0;
+		uint8_t interrupt_disable_ = 0x04;
 		uint8_t carry_flag_ = 0;
 		uint8_t overflow_result_;
 		bool index_mode_ = false;
 		bool decimal_mode_ = false;
 
 		// IO ports.
-		uint8_t port_directions_[4] = {0xff, 0xff, 0xff, 0xff};
+		uint8_t port_directions_[4] = {0x00, 0x00, 0x00, 0x00};
 		uint8_t port_outputs_[4] = {0xff, 0xff, 0xff, 0xff};
 
 		// Timers.
 		struct Timer {
-			uint8_t value = 0, reload_value = 0;
+			uint8_t value = 0xff, reload_value = 0xff;
 		};
 		int timer_divider_ = 0;
 		Timer timers_[3], prescalers_[2];

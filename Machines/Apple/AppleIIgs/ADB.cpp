@@ -173,7 +173,7 @@ void GLU::set_port_output(int port, uint8_t value) {
 //			printf("IIe KWS: %d\n", (value >> 6)&3);
 //			printf("ADB data line output: %d\n", (value >> 3)&1);
 
-			const bool new_adb_level = !(value & 0x08);
+			const bool new_adb_level = value & 0x08;
 			if(new_adb_level != adb_level_) {
 				printf(".");
 				if(!new_adb_level) {

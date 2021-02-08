@@ -760,9 +760,11 @@ inline void Executor::subtract_duration(int duration) {
 	// Update count for potential port accesses.
 	cycles_since_port_handler_ += Cycles(duration);
 
-	// Update timer 1/2 prescaler.
-	constexpr int t12_divider = 1;	// TODO: should be 4, I think.
-	timer_divider_ += duration;
+	// Update timer 1 and 2 prescaler.
+	constexpr int t12_divider = 4;		// TODO: should be 4, I think.
+	constexpr int t12_multiplier = 16;
+
+	timer_divider_ += duration * t12_multiplier;
 	const int t12_ticks = update_timer(prescalers_[0], timer_divider_ / t12_divider);
 	timer_divider_ &= (t12_divider-1);
 
@@ -778,11 +780,11 @@ inline void Executor::subtract_duration(int duration) {
 }
 
 inline int Executor::update_timer(Timer &timer, int count) {
-	int next_value = timer.value - count;
+	const int next_value = timer.value - count;
 	if(next_value < 0) {
 		// Determine how many reloads were required to get above zero.
 		const int reload_value = timer.reload_value ? timer.reload_value : 256;
-		const int underflow_count = 1 + (-next_value) / reload_value;
+		const int underflow_count = 1 - next_value / reload_value;
 		timer.value = uint8_t((next_value % reload_value) + timer.reload_value);
 		return underflow_count;
 	}
