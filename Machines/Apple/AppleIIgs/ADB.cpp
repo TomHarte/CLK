@@ -147,7 +147,6 @@ void GLU::run_for(Cycles cycles) {
 // MARK: - M50470 port handler
 
 void GLU::set_port_output(int port, uint8_t value) {
-	ports_[port] = value;
 	switch(port) {
 		case 0:
 //			printf(" {R%d} ", register_address_);
@@ -223,10 +222,10 @@ uint8_t GLU::get_port_input(int port) {
 		return 0x06;
 		case 2:
 //			printf("ADB data line input, etc\n");
-		return ports_[2];
+		return adb_level_ ? 0x00 : 0x80;	// Unclear on this; possibly ADB output is inverted? Or the input is somehow isolated from the output?
 		case 3:
 //			printf("ADB data line output, etc\n");
-		return ports_[3];
+		return 0x00;
 
 		default: assert(false);
 	}

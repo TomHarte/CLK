@@ -50,7 +50,6 @@ class GLU: public InstructionSet::M50740::PortHandler {
 
 		uint8_t registers_[16];
 		uint8_t register_address_;
-		uint8_t ports_[4];
 		uint8_t register_latch_ = 0xff;
 
 		uint8_t status_ = 0x00;

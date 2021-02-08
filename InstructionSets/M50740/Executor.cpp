@@ -190,7 +190,7 @@ template<bool is_brk> inline void Executor::perform_interrupt() {
 bool log_print = false;
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
-//	log_print |= (program_counter_&0x1fff) == 0x106c;
+//	log_print |= (program_counter_&0x1fff) == 0x1468;
 //	log_print &= (program_counter_&0x1fff) != 0x1015;
 
 	if((program_counter_&0x1fff) == 0x1f24) {
@@ -762,7 +762,7 @@ inline void Executor::subtract_duration(int duration) {
 
 	// Update timer 1 and 2 prescaler.
 	constexpr int t12_divider = 4;		// TODO: should be 4, I think.
-	constexpr int t12_multiplier = 16;
+	constexpr int t12_multiplier = 1;
 
 	timer_divider_ += duration * t12_multiplier;
 	const int t12_ticks = update_timer(prescalers_[0], timer_divider_ / t12_divider);
