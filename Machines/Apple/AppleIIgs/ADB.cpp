@@ -172,25 +172,41 @@ void GLU::set_port_output(int port, uint8_t value) {
 //			printf("IIe KWS: %d\n", (value >> 6)&3);
 //			printf("ADB data line output: %d\n", (value >> 3)&1);
 
-			const bool new_adb_level = value & 0x08;
-			if(new_adb_level != adb_level_) {
-				printf(".");
-				if(!new_adb_level) {
-					// Transition to low.
-					constexpr float clock_rate = 894886.25;
-					const float seconds = float(total_period_.as<int>()) / clock_rate;
+			// Output is inverted respective to input; the microcontroller
+			// sets a value of '1' in order to pull the ADB bus low.
+			const bool new_adb_level = !(value & 0x08);
 
-					// Check for a valid bit length — 70 to 130 microseconds.
-					// (Plus a little).
-					if(seconds >= 0.000'56 && seconds <= 0.001'04) {
+			// React to signal edges only.
+			if(new_adb_level != adb_level_) {
+				if(new_adb_level) {
+					// This was a transition to high; classify what just happened according to
+					// the duration of the low period.
+					const uint64_t low_microseconds = (low_period_.as<uint64_t>() * uint64_t(800000)) / uint64_t(715909);
+
+					// Low periods:
+					// (partly as adapted from the AN591 data sheet; otherwise from the IIgs reference manual)
+					//
+					//	> 1040 µs		reset
+					//	560–1040 µs		attention
+					//	< 50 µs			1
+					//	50–72 µs		0
+					//	300 µs			service request
+					printf("%llu -> ", low_microseconds);
+					if(low_microseconds > 1040) {
+						printf("!!! Reset\n");
+					} else if(low_microseconds >= 560) {
 						printf("!!! Attention\n");
-					} else if(seconds >= 0.000'06 && seconds <= 0.000'14) {
-						printf("!!! bit: %d\n", (low_period_.as<int>() * 2) < total_period_.as<int>());
-//						printf("tested: %0.2f\n", float(low_period_.as<int>()) / float(total_period_.as<int>()));
+					} else if(low_microseconds < 50) {
+						printf("!!! bit: 1\n");
+					} else if(low_microseconds < 72) {
+						printf("!!! bit: 0\n");
+					} else if(low_microseconds >= 291 && low_microseconds <= 309) {
+						printf("!!! SRQ\n");
 					} else {
-						printf("!!! Rejected %d microseconds\n", int(seconds * 1'000'000.0f));
+						printf("!!! Rejected\n");
 					}
 
+					// TODO: eliminate total_period_ ?
 					total_period_ = low_period_ = Cycles(0);
 				}
 				adb_level_ = new_adb_level;
@@ -222,7 +238,7 @@ uint8_t GLU::get_port_input(int port) {
 		return 0x06;
 		case 2:
 //			printf("ADB data line input, etc\n");
-		return adb_level_ ? 0x00 : 0x80;	// Unclear on this; possibly ADB output is inverted? Or the input is somehow isolated from the output?
+		return adb_level_ ? 0x80 : 0x00;
 		case 3:
 //			printf("ADB data line output, etc\n");
 		return 0x00;
