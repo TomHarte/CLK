@@ -73,6 +73,7 @@ SOURCES += \
 \
 	$$SRC/Machines/*.cpp \
 	$$SRC/Machines/AmstradCPC/*.cpp \
+	$$SRC/Machines/Apple/ADB/*.cpp \
 	$$SRC/Machines/Apple/AppleII/*.cpp \
 	$$SRC/Machines/Apple/AppleIIgs/*.cpp \
 	$$SRC/Machines/Apple/Macintosh/*.cpp \
@@ -197,6 +198,7 @@ HEADERS += \
 \
 	$$SRC/Machines/*.hpp \
 	$$SRC/Machines/AmstradCPC/*.hpp \
+	$$SRC/Machines/Apple/ADB/*.hpp \
 	$$SRC/Machines/Apple/AppleII/*.hpp \
 	$$SRC/Machines/Apple/AppleIIgs/*.hpp \
 	$$SRC/Machines/Apple/Macintosh/*.hpp \

@@ -27,12 +27,25 @@ class Bus {
 	public:
 		Bus(HalfCycles clock_speed);
 
+		/*!
+			Advances time; ADB is a clocked serial signal.
+		*/
 		void run_for(HalfCycles);
 
+		/*!
+			Adds a device to the bus, returning the index it should use
+			to refer to itself in subsequent calls to set_device_output.
+		*/
 		size_t add_device();
 
+		/*!
+			Sets the current data line output for @c device.
+		*/
 		void set_device_output(size_t device, bool output);
 
+		/*!
+			@returns The current state of the ADB data line.
+		*/
 		bool get_state() const;
 
 		enum class Event {
@@ -46,7 +59,7 @@ class Bus {
 
 		struct Observer {
 			/// Reports to an observer that @c event was observed in the activity
-			/// observed on this bus.
+			/// observed on this bus. If this was a byte event, that byte's value is given as @c value.
 			virtual void adb_bus_did_observe_event(Bus *, Event event, uint8_t value = 0xff);
 		};
 		/*!

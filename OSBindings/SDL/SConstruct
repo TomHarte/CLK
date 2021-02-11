@@ -67,6 +67,7 @@ SOURCES += glob.glob('../../InstructionSets/x86/*.cpp')
 
 SOURCES += glob.glob('../../Machines/*.cpp')
 SOURCES += glob.glob('../../Machines/AmstradCPC/*.cpp')
+SOURCES += glob.glob('../../Machines/Apple/ADB/*.cpp')
 SOURCES += glob.glob('../../Machines/Apple/AppleII/*.cpp')
 SOURCES += glob.glob('../../Machines/Apple/AppleIIgs/*.cpp')
 SOURCES += glob.glob('../../Machines/Apple/Macintosh/*.cpp')

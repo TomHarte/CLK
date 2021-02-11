@@ -22,10 +22,6 @@ class GLU: public InstructionSet::M50740::PortHandler {
 	public:
 		GLU();
 
-		// Behaviour varies slightly between the controller shipped with ROM01 machines
-		// and that shipped with ROM03 machines; use this to set the desired behaviour.
-//		void set_is_rom03(bool);
-
 		uint8_t get_keyboard_data();
 		uint8_t get_mouse_data();
 		uint8_t get_modifier_status();
