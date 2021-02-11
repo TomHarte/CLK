@@ -18,6 +18,42 @@
 namespace Apple {
 namespace ADB {
 
+struct Command {
+	enum class Type {
+		Reset,
+		Flush,
+		Reserved,
+		Listen,
+		Talk
+	};
+	const Type type = Type::Reserved;
+	const uint8_t device = 0xff;
+	const uint8_t reg = 0xff;
+
+	Command() {}
+	Command(Type type) : type(type) {}
+	Command(Type type, uint8_t device) : type(type), device(device) {}
+	Command(Type type, uint8_t device, uint8_t reg) : type(type), device(device), reg(reg) {}
+};
+
+/*!
+	@returns The @c Command encoded in @c code.
+*/
+inline Command decode_command(uint8_t code) {
+	switch(code & 0x0f) {
+		default: return Command();
+
+		case 0: return Command(Command::Type::Reset);
+		case 1: return Command(Command::Type::Flush, code >> 4);
+
+		case 8: case 9: case 10: case 11:
+		return Command(Command::Type::Listen, code >> 4, code & 3);
+
+		case 12: case 13: case 14: case 15:
+		return Command(Command::Type::Talk, code >> 4, code & 3);
+	}
+}
+
 /*!
 	The ADB bus models the data line of the ADB bus; it allows multiple devices to
 	post their current data level, or read the current level, and also offers a tokenised
