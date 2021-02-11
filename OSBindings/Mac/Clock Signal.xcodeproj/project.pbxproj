@@ -875,6 +875,8 @@
 		4BCE005A227CFFCA000CA200 /* Macintosh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE0058227CFFCA000CA200 /* Macintosh.cpp */; };
 		4BCE005D227D30CC000CA200 /* MemoryPacker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE005B227D30CC000CA200 /* MemoryPacker.cpp */; };
 		4BCE0060227D39AB000CA200 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE005E227D39AB000CA200 /* Video.cpp */; };
+		4BCE1DF125D4C3FA00AE7A2B /* Bus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE1DEF25D4C3FA00AE7A2B /* Bus.cpp */; };
+		4BCE1DF225D4C3FA00AE7A2B /* Bus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE1DEF25D4C3FA00AE7A2B /* Bus.cpp */; };
 		4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */; };
 		4BD0FBC3233706A200148981 /* CSApplication.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD0FBC2233706A200148981 /* CSApplication.m */; };
 		4BD191F52191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
@@ -1860,6 +1862,8 @@
 		4BCE005C227D30CC000CA200 /* MemoryPacker.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemoryPacker.hpp; sourceTree = "<group>"; };
 		4BCE005E227D39AB000CA200 /* Video.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Video.cpp; sourceTree = "<group>"; };
 		4BCE005F227D39AB000CA200 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
+		4BCE1DEF25D4C3FA00AE7A2B /* Bus.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Bus.cpp; sourceTree = "<group>"; };
+		4BCE1DF025D4C3FA00AE7A2B /* Bus.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Bus.hpp; sourceTree = "<group>"; };
 		4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Oric.cpp; path = Oric/Oric.cpp; sourceTree = "<group>"; };
 		4BCF1FA31DADC3DD0039D2E7 /* Oric.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Oric.hpp; path = Oric/Oric.hpp; sourceTree = "<group>"; };
 		4BD060A51FE49D3C006E14BE /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Speaker.hpp; sourceTree = "<group>"; };
@@ -4137,8 +4141,9 @@
 		4BCE0048227CE8CA000CA200 /* Apple */ = {
 			isa = PBXGroup;
 			children = (
-				4BE2120D253FCE9C00435408 /* AppleIIgs */,
+				4BCE1DEE25D4C3FA00AE7A2B /* ADB */,
 				4BCE0049227CE8CA000CA200 /* AppleII */,
+				4BE2120D253FCE9C00435408 /* AppleIIgs */,
 				4BCE0057227CFFCA000CA200 /* Macintosh */,
 			);
 			path = Apple;
@@ -4177,6 +4182,15 @@
 				4BCE005F227D39AB000CA200 /* Video.hpp */,
 			);
 			path = Macintosh;
+			sourceTree = "<group>";
+		};
+		4BCE1DEE25D4C3FA00AE7A2B /* ADB */ = {
+			isa = PBXGroup;
+			children = (
+				4BCE1DEF25D4C3FA00AE7A2B /* Bus.cpp */,
+				4BCE1DF025D4C3FA00AE7A2B /* Bus.hpp */,
+			);
+			path = ADB;
 			sourceTree = "<group>";
 		};
 		4BCF1FA51DADC3E10039D2E7 /* Oric */ = {
@@ -4983,6 +4997,7 @@
 			files = (
 				4B0E04FB1FC9FA3100F43484 /* 9918.cpp in Sources */,
 				4B1B88C9202E469400B67DFF /* MultiJoystickMachine.cpp in Sources */,
+				4BCE1DF225D4C3FA00AE7A2B /* Bus.cpp in Sources */,
 				4B055AAA1FAE85F50060FFFF /* CPM.cpp in Sources */,
 				4B055A9A1FAE85CB0060FFFF /* MFMDiskController.cpp in Sources */,
 				4B0ACC3123775819008902D0 /* TIASound.cpp in Sources */,
@@ -5355,6 +5370,7 @@
 				4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */,
 				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
 				4BCE005D227D30CC000CA200 /* MemoryPacker.cpp in Sources */,
+				4BCE1DF125D4C3FA00AE7A2B /* Bus.cpp in Sources */,
 				4BCE0051227CE8CA000CA200 /* Video.cpp in Sources */,
 				4B894536201967B4007DE474 /* Z80.cpp in Sources */,
 				4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */,

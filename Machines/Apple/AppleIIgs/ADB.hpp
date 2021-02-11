@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <vector>
 #include "../../../InstructionSets/M50740/Executor.hpp"
+#include "../ADB/Bus.hpp"
 
 namespace Apple {
 namespace IIgs {
@@ -54,9 +55,10 @@ class GLU: public InstructionSet::M50740::PortHandler {
 
 		uint8_t status_ = 0x00;
 
-		// TODO: this should be per peripheral. But I'm putting it here for now as an exploratory step.
-		bool adb_level_ = true;
-		Cycles low_period_, total_period_;
+		Apple::ADB::Bus bus_;
+		size_t controller_id_;
+
+		// TODO: add some other devices, and attach them to the ADB bus.
 };
 
 }

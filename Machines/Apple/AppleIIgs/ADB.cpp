@@ -39,7 +39,7 @@ enum class MicrocontrollerFlags: uint8_t {
 
 }
 
-GLU::GLU() : executor_(*this) {}
+GLU::GLU() : executor_(*this), bus_(HalfCycles(1'789'772)), controller_id_(bus_.add_device()) {}
 
 // MARK: - External interface.
 
@@ -168,50 +168,14 @@ void GLU::set_port_output(int port, uint8_t value) {
 //			printf("Select GLU register: %d [%02x]\n", value & 0xf, value);
 			register_address_ = value & 0xf;
 		break;
-		case 3: {
+		case 3:
 //			printf("IIe KWS: %d\n", (value >> 6)&3);
 //			printf("ADB data line output: %d\n", (value >> 3)&1);
 
 			// Output is inverted respective to input; the microcontroller
 			// sets a value of '1' in order to pull the ADB bus low.
-			const bool new_adb_level = !(value & 0x08);
-
-			// React to signal edges only.
-			if(new_adb_level != adb_level_) {
-				if(new_adb_level) {
-					// This was a transition to high; classify what just happened according to
-					// the duration of the low period.
-					const uint64_t low_microseconds = (low_period_.as<uint64_t>() * uint64_t(800000)) / uint64_t(715909);
-
-					// Low periods:
-					// (partly as adapted from the AN591 data sheet; otherwise from the IIgs reference manual)
-					//
-					//	> 1040 µs		reset
-					//	560–1040 µs		attention
-					//	< 50 µs			1
-					//	50–72 µs		0
-					//	300 µs			service request
-					printf("%llu -> ", low_microseconds);
-					if(low_microseconds > 1040) {
-						printf("!!! Reset\n");
-					} else if(low_microseconds >= 560) {
-						printf("!!! Attention\n");
-					} else if(low_microseconds < 50) {
-						printf("!!! bit: 1\n");
-					} else if(low_microseconds < 72) {
-						printf("!!! bit: 0\n");
-					} else if(low_microseconds >= 291 && low_microseconds <= 309) {
-						printf("!!! SRQ\n");
-					} else {
-						printf("!!! Rejected\n");
-					}
-
-					// TODO: eliminate total_period_ ?
-					total_period_ = low_period_ = Cycles(0);
-				}
-				adb_level_ = new_adb_level;
-			}
-		} break;
+			bus_.set_device_output(controller_id_, !(value & 0x08));
+		break;
 
 		default: assert(false);
 	}
@@ -238,7 +202,7 @@ uint8_t GLU::get_port_input(int port) {
 		return 0x06;
 		case 2:
 //			printf("ADB data line input, etc\n");
-		return adb_level_ ? 0x80 : 0x00;
+		return bus_.get_state() ? 0x80 : 0x00;
 		case 3:
 //			printf("ADB data line output, etc\n");
 		return 0x00;
@@ -249,8 +213,5 @@ uint8_t GLU::get_port_input(int port) {
 }
 
 void GLU::run_ports_for(Cycles cycles) {
-	total_period_ += cycles;
-	if(!adb_level_) {
-		low_period_ += cycles;
-	}
+	bus_.run_for(cycles);
 }
