@@ -12,6 +12,9 @@
 #include <cassert>
 #include <cstring>
 
+#define LOG_PREFIX "[M50740] "
+#include "../../Outputs/Log.hpp"
+
 using namespace InstructionSet::M50740;
 
 namespace {
@@ -54,25 +57,21 @@ void Executor::reset() {
 }
 
 uint8_t Executor::read(uint16_t address) {
-//	printf("%04x -> ", address);
-
 	address &= 0x1fff;
-	if(address < 0x60) {
-//		printf("%02x\n", memory_[address]);
-		return memory_[address];
-	}
+
+	// Deal with a RAM access quickly.
+	if(address < 0x60) return memory_[address];
 
 	port_handler_.run_ports_for(cycles_since_port_handler_.flush<Cycles>());
 	switch(address) {
 		default:
-//			printf("??? [ff]\n");
+			LOG("Unrecognised read from " << PADHEX(4) << address);
 		return 0xff;
 
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
-//			printf("TODO: Port R [r %04x]\n", address);
-//			printf("R?? [ff]\n");
+			LOG("Unimplemented Port R read from " << PADHEX(4) << address);
 		return 0xff;
 
 		// Ports P0–P3.
@@ -107,24 +106,26 @@ void Executor::set_port_output(int port) {
 }
 
 void Executor::write(uint16_t address, uint8_t value) {
-//	printf("%04x <- %02x\n", address, value);
-
 	address &= 0x1fff;
+
+	// RAM writes are easy.
 	if(address < 0x60) {
 		memory_[address] = value;
 		return;
 	}
 
+	// Push time to the port handler.
 	port_handler_.run_ports_for(cycles_since_port_handler_.flush<Cycles>());
 
-	// TODO: all external IO ports.
 	switch(address) {
-		default: break;
+		default:
+			LOG("Unrecognised write of " << PADHEX(2) << value << " to " << PADHEX(4) << address);
+		break;
 
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
-//			printf("TODO: Port R [w %04x %02x]\n", address, value);
+			LOG("Unimplemented Port R write of " << PADHEX(2) << value << " from " << PADHEX(4) << address);
 		break;
 
 		// Ports P0–P3.
@@ -195,24 +196,7 @@ template<bool is_brk> inline void Executor::perform_interrupt() {
 	set_program_counter(uint16_t(memory_[0x1ff4] | (memory_[0x1ff5] << 8)));
 }
 
-bool log_print = false;
-
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
-//	log_print |= (program_counter_&0x1fff) == 0x1468;
-//	log_print &= (program_counter_&0x1fff) != 0x1015;
-
-	if((program_counter_&0x1fff) == 0x1f24) {
-		printf("\n");
-	}
-	if((program_counter_&0x1fff) == 0x1f33) {
-		printf("");
-	}
-	if(log_print) {
-		printf("%04x\t[a:%02x x:%02x y:%02x p:%02x s:%02x]\n", program_counter_ & 0x1fff, a_, x_, y_, flags(), s_);
-	}
-//	printf("%04x")
-//	printf("%04x\t%02x\t%d %d\t[a:%02x x:%02x y:%02x p:%02x s:%02x]\t(%s)\n", program_counter_ & 0x1fff, memory_[program_counter_ & 0x1fff], int(operation), int(addressing_mode), a_, x_, y_, flags(), s_, __PRETTY_FUNCTION__ );
-
 	// Post cycle cost; this emulation _does not provide accurate timing_.
 #define TLength(mode, base)	case AddressingMode::mode: subtract_duration(base + t_lengths[index_mode_]); break;
 #define Length(mode, base)	case AddressingMode::mode: subtract_duration(base); break;
@@ -758,7 +742,7 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		*/
 
 		default:
-			printf("Unimplemented operation: %d\n", int(operation));
+			LOG("Unimplemented operation: " << operation);
 			assert(false);
 	}
 #undef set_nz

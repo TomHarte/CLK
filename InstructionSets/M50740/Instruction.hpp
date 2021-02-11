@@ -135,6 +135,11 @@ inline constexpr const char *operation_name(Operation operation) {
 	return "???";
 }
 
+inline std::ostream &operator <<(std::ostream &stream, Operation operation) {
+	stream << operation_name(operation);
+	return stream;
+}
+
 /*!
 	@returns The name of @c addressing_mode.
 */
@@ -162,6 +167,11 @@ inline constexpr const char *addressing_mode_name(AddressingMode addressing_mode
 	}
 
 	return "???";
+}
+
+inline std::ostream &operator <<(std::ostream &stream, AddressingMode mode) {
+	stream << addressing_mode_name(mode);
+	return stream;
 }
 
 /*!
