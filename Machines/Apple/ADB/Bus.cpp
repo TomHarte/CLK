@@ -14,17 +14,12 @@ Bus::Bus(HalfCycles clock_speed) : half_cycles_to_microseconds_(1'000'000.0 / cl
 
 void Bus::run_for(HalfCycles duration) {
 	time_in_state_ += duration;
+	time_since_get_state_ += duration;
 }
 
-size_t Bus::add_device() {
-	const size_t id = next_device_id_;
-	++next_device_id_;
-	return id;
-}
-
-void Bus::set_device_output(size_t device, bool output) {
+void Bus::set_device_output(size_t device_id, bool output) {
 	// Modify the all-devices bus state.
-	bus_state_[device] = output;
+	bus_state_[device_id] = output;
 
 	// React to signal edges only.
 	const bool data_level = get_state();
@@ -45,12 +40,12 @@ void Bus::set_device_output(size_t device, bool output) {
 			//	50–72 µs		0
 			//	300 µs			service request
 			if(low_microseconds > 1040.0) {
-				for(auto observer: observers_) {
-					observer->adb_bus_did_observe_event(this, Event::Reset);
+				for(auto device: devices_) {
+					device->adb_bus_did_observe_event(Event::Reset);
 				}
 			} else if(low_microseconds >= 560.0) {
-				for(auto observer: observers_) {
-					observer->adb_bus_did_observe_event(this, Event::Attention);
+				for(auto device: devices_) {
+					device->adb_bus_did_observe_event(Event::Attention);
 				}
 				shift_register_ = 1;
 			} else if(low_microseconds < 50.0) {
@@ -58,12 +53,12 @@ void Bus::set_device_output(size_t device, bool output) {
 			} else if(low_microseconds < 72.0) {
 				shift(0);
 			} else if(low_microseconds >= 291.0 && low_microseconds <= 309.0) {
-				for(auto observer: observers_) {
-					observer->adb_bus_did_observe_event(this, Event::ServiceRequest);
+				for(auto device: devices_) {
+					device->adb_bus_did_observe_event(Event::ServiceRequest);
 				}
 			} else {
-				for(auto observer: observers_) {
-					observer->adb_bus_did_observe_event(this, Event::Unrecognised);
+				for(auto device: devices_) {
+					device->adb_bus_did_observe_event(Event::Unrecognised);
 				}
 			}
 		}
@@ -77,17 +72,30 @@ void Bus::shift(unsigned int value) {
 
 	// Trigger a byte whenever a start bit hits bit 9.
 	if(shift_register_ & 0x200) {
-		for(auto observer: observers_) {
-			observer->adb_bus_did_observe_event(this, Event::Byte, uint8_t(shift_register_ >> 1));
+		for(auto device: devices_) {
+			device->adb_bus_did_observe_event(Event::Byte, uint8_t(shift_register_ >> 1));
 		}
 		shift_register_ = 0;
 	}
 }
 
 bool Bus::get_state() const {
+	const auto microseconds = time_since_get_state_.as<double>() * half_cycles_to_microseconds_;
+	time_since_get_state_ = HalfCycles(0);
+
+	for(auto device: devices_) {
+		device->advance_state(microseconds);
+	}
 	return bus_state_.all();
 }
 
-void Bus::add_observer(Observer *observer) {
-	observers_.push_back(observer);
+size_t Bus::add_device() {
+	const size_t id = next_device_id_;
+	++next_device_id_;
+	return id;
+}
+
+size_t Bus::add_device(Device *device) {
+	devices_.push_back(device);
+	return add_device();
 }

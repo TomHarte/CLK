@@ -58,6 +58,15 @@ inline Command decode_command(uint8_t code) {
 	The ADB bus models the data line of the ADB bus; it allows multiple devices to
 	post their current data level, or read the current level, and also offers a tokenised
 	version of all activity on the bus.
+
+	In implementation terms, two types of device are envisaged:
+
+		* proactive devices, which use @c add_device() and then merely @c set_device_output
+		and @c get_state() as required, according to their own tracking of time; and
+
+		* reactive devices, which use @c add_device(Device*) and then merely react to
+		@c adb_bus_did_observe_event and @c advance_state in order to
+		update @c set_device_output.
 */
 class Bus {
 	public:
@@ -77,7 +86,7 @@ class Bus {
 		/*!
 			Sets the current data line output for @c device.
 		*/
-		void set_device_output(size_t device, bool output);
+		void set_device_output(size_t device_id, bool output);
 
 		/*!
 			@returns The current state of the ADB data line.
@@ -93,20 +102,28 @@ class Bus {
 			Unrecognised
 		};
 
-		struct Observer {
+		struct Device {
 			/// Reports to an observer that @c event was observed in the activity
 			/// observed on this bus. If this was a byte event, that byte's value is given as @c value.
-			virtual void adb_bus_did_observe_event(Bus *, Event event, uint8_t value = 0xff);
+			virtual void adb_bus_did_observe_event(Event event, uint8_t value = 0xff) = 0;
+
+			/// Requests that the device update itself @c microseconds and, if necessary, post a
+			/// new value ot @c set_device_output. This will be called only when the bus needs
+			/// to reevaluate its current level. It cannot reliably be used to track the timing between
+			/// observed events.
+			virtual void advance_state(double microseconds) = 0;
 		};
 		/*!
-			Adds an observer.
+			Adds a device.
 		*/
-		void add_observer(Observer *);
+		size_t add_device(Device *);
 
 	private:
 		HalfCycles time_in_state_;
+		mutable HalfCycles time_since_get_state_;
+
 		double half_cycles_to_microseconds_ = 1.0;
-		std::vector<Observer *> observers_;
+		std::vector<Device *> devices_;
 		unsigned int shift_register_ = 0;
 		bool data_level_ = true;
 

@@ -172,6 +172,8 @@
 		4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */; };
 		4B2C45421E3C3896002A2389 /* cartridge.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B2C45411E3C3896002A2389 /* cartridge.png */; };
 		4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D9B1C3A070400138695 /* Electron.cpp */; };
+		4B2E86B725D7490E0024F1E9 /* ReactiveDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E86B525D7490E0024F1E9 /* ReactiveDevice.cpp */; };
+		4B2E86B825D7490E0024F1E9 /* ReactiveDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E86B525D7490E0024F1E9 /* ReactiveDevice.cpp */; };
 		4B302184208A550100773308 /* DiskII.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B302183208A550100773308 /* DiskII.cpp */; };
 		4B302185208A550100773308 /* DiskII.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B302183208A550100773308 /* DiskII.cpp */; };
 		4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
@@ -1116,6 +1118,8 @@
 		4B2C455C1EC9442600FC74DD /* RegisterSizes.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RegisterSizes.hpp; sourceTree = "<group>"; };
 		4B2E2D9B1C3A070400138695 /* Electron.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Electron.cpp; path = Electron/Electron.cpp; sourceTree = "<group>"; };
 		4B2E2D9C1C3A070400138695 /* Electron.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Electron.hpp; path = Electron/Electron.hpp; sourceTree = "<group>"; };
+		4B2E86B525D7490E0024F1E9 /* ReactiveDevice.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ReactiveDevice.cpp; sourceTree = "<group>"; };
+		4B2E86B625D7490E0024F1E9 /* ReactiveDevice.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ReactiveDevice.hpp; sourceTree = "<group>"; };
 		4B302182208A550100773308 /* DiskII.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskII.hpp; sourceTree = "<group>"; };
 		4B302183208A550100773308 /* DiskII.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DiskII.cpp; sourceTree = "<group>"; };
 		4B30512B1D989E2200B4FED8 /* Drive.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Drive.cpp; sourceTree = "<group>"; };
@@ -4189,6 +4193,8 @@
 			children = (
 				4BCE1DEF25D4C3FA00AE7A2B /* Bus.cpp */,
 				4BCE1DF025D4C3FA00AE7A2B /* Bus.hpp */,
+				4B2E86B525D7490E0024F1E9 /* ReactiveDevice.cpp */,
+				4B2E86B625D7490E0024F1E9 /* ReactiveDevice.hpp */,
 			);
 			path = ADB;
 			sourceTree = "<group>";
@@ -5108,6 +5114,7 @@
 				4B055A991FAE85CB0060FFFF /* DiskController.cpp in Sources */,
 				4B25B5F925BD083C00362C84 /* DiskIIDrive.cpp in Sources */,
 				4B055ACC1FAE9B030060FFFF /* Electron.cpp in Sources */,
+				4B2E86B825D7490E0024F1E9 /* ReactiveDevice.cpp in Sources */,
 				4B74CF822312FA9C00500CE8 /* HFV.cpp in Sources */,
 				4B8318B022D3E531006DB630 /* AppleII.cpp in Sources */,
 				4B1B58F7246CC4E8009C171E /* State.cpp in Sources */,
@@ -5284,6 +5291,7 @@
 				4BE21219253FCE9C00435408 /* AppleIIgs.cpp in Sources */,
 				4BCE0060227D39AB000CA200 /* Video.cpp in Sources */,
 				4B0ACC2E23775819008902D0 /* TIA.cpp in Sources */,
+				4B2E86B725D7490E0024F1E9 /* ReactiveDevice.cpp in Sources */,
 				4B74CF85231370BC00500CE8 /* MacintoshVolume.cpp in Sources */,
 				4B4518A51F75FD1C00926311 /* SSD.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
