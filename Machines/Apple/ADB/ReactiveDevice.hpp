@@ -25,8 +25,12 @@ class ReactiveDevice: public Bus::Device {
 		void advance_state(double microseconds) override;
 
 	private:
+		Bus &bus_;
 		const size_t device_id_;
+
 		std::vector<uint8_t> response_;
+		int bit_offset_ = 0;
+		double microseconds_at_bit_ = 0;
 };
 
 }
