@@ -8,9 +8,15 @@
 
 #include "ReactiveDevice.hpp"
 
+#define LOG_PREFIX "[ADB device] "
+#include "../../../Outputs/Log.hpp"
+
 using namespace Apple::ADB;
 
-ReactiveDevice::ReactiveDevice(Apple::ADB::Bus &bus) : bus_(bus), device_id_(bus.add_device(this)) {}
+ReactiveDevice::ReactiveDevice(Apple::ADB::Bus &bus, uint8_t adb_device_id) :
+	bus_(bus),
+	device_id_(bus.add_device(this)),
+	adb_device_id_(adb_device_id) {}
 
 void ReactiveDevice::post_response(const std::vector<uint8_t> &&response) {
 	response_ = std::move(response);
@@ -52,4 +58,23 @@ void ReactiveDevice::advance_state(double microseconds) {
 
 	constexpr double low_periods[] = {66, 33};
 	bus_.set_device_output(device_id_, microseconds_at_bit_ > low_periods[bit]);
+}
+
+void ReactiveDevice::adb_bus_did_observe_event(Bus::Event event, uint8_t value) {
+	if(!next_is_command_ && event != Bus::Event::Attention) {
+		return;
+	}
+
+	if(next_is_command_ && event == Bus::Event::Byte) {
+		next_is_command_ = false;
+
+		const auto command = decode_command(value);
+		LOG(command);
+		if(command.device == adb_device_id_) {
+			// TODO: handle fixed commands here (like register 3?)
+			perform_command(command);
+		}
+	} else if(event == Bus::Event::Attention) {
+		next_is_command_ = true;
+	}
 }

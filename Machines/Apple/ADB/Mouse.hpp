@@ -18,10 +18,7 @@ class Mouse: public ReactiveDevice {
 	public:
 		Mouse(Bus &);
 
-		void adb_bus_did_observe_event(Bus::Event event, uint8_t value) override;
-
-	private:
-		bool next_is_command_ = false;
+		void perform_command(const Command &command) override;
 };
 
 }

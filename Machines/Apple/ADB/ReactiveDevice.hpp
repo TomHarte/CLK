@@ -19,10 +19,14 @@ namespace ADB {
 
 class ReactiveDevice: public Bus::Device {
 	protected:
-		ReactiveDevice(Bus &bus);
+		ReactiveDevice(Bus &bus, uint8_t adb_device_id);
 
 		void post_response(const std::vector<uint8_t> &&response);
+		virtual void perform_command(const Command &command) = 0;
+
+	private:
 		void advance_state(double microseconds) override;
+		void adb_bus_did_observe_event(Bus::Event event, uint8_t value) override;
 
 	private:
 		Bus &bus_;
@@ -31,6 +35,9 @@ class ReactiveDevice: public Bus::Device {
 		std::vector<uint8_t> response_;
 		int bit_offset_ = 0;
 		double microseconds_at_bit_ = 0;
+
+		bool next_is_command_ = false;
+		uint8_t adb_device_id_;
 };
 
 }

@@ -38,7 +38,9 @@ Executor::Executor(PortHandler &port_handler) : port_handler_(port_handler) {
 		}
 	}
 
+	// Fuzz RAM; then set anything that may be replaced by ROM to FF.
 	Memory::Fuzz(memory_);
+	memset(&memory_[0x100], 0xff, memory_.size() - 0x100);
 }
 
 void Executor::set_rom(const std::vector<uint8_t> &rom) {
@@ -63,8 +65,8 @@ void Executor::reset() {
 uint8_t Executor::read(uint16_t address) {
 	address &= 0x1fff;
 
-	// Deal with a RAM access quickly.
-	if(address < 0x60) return memory_[address];
+	// Deal with RAM and ROM accesses quickly.
+	if(address < 0x60 || address >= 0x100) return memory_[address];
 
 	port_handler_.run_ports_for(cycles_since_port_handler_.flush<Cycles>());
 	switch(address) {
@@ -115,6 +117,12 @@ void Executor::write(uint16_t address, uint8_t value) {
 	// RAM writes are easy.
 	if(address < 0x60) {
 		memory_[address] = value;
+		return;
+	}
+
+	// ROM 'writes' are almost as easy (albeit unexpected).
+	if(address >= 0x100) {
+		LOG("Attempted ROM write of " << PADHEX(2) << value << " to " << PADHEX(4) << address);
 		return;
 	}
 
