@@ -13,6 +13,7 @@
 
 #include <bitset>
 #include <cstddef>
+#include <ostream>
 #include <vector>
 
 namespace Apple {
@@ -37,6 +38,26 @@ struct Command {
 	Command(Type type, uint8_t device) : type(type), device(device) {}
 	Command(Type type, uint8_t device, uint8_t reg) : type(type), device(device), reg(reg) {}
 };
+
+inline std::ostream &operator <<(std::ostream &stream, Command::Type type) {
+	switch(type) {
+		case Command::Type::Reset:	stream << "reset";		break;
+		case Command::Type::Flush:	stream << "flush";		break;
+		case Command::Type::Listen:	stream << "listen";		break;
+		case Command::Type::Talk:	stream << "talk";		break;
+		default: 					stream << "reserved";	break;
+	}
+	return stream;
+}
+
+inline std::ostream &operator <<(std::ostream &stream, Command command) {
+	stream << "Command {";
+	if(command.device != 0xff) stream << "device " << int(command.device) << ", ";
+	if(command.reg != 0xff) stream << "register " << int(command.reg) << ", ";
+	stream << command.type;
+	stream << "}";
+	return stream;
+}
 
 /*!
 	@returns The @c Command encoded in @c code.

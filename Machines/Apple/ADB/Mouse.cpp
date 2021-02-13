@@ -8,6 +8,9 @@
 
 #include "Mouse.hpp"
 
+#define LOG_PREFIX "[Mouse] "
+#include "../../../Outputs/Log.hpp"
+
 using namespace Apple::ADB;
 
 Mouse::Mouse(Bus &bus) : ReactiveDevice(bus) {}
@@ -21,6 +24,7 @@ void Mouse::adb_bus_did_observe_event(Bus::Event event, uint8_t value) {
 		next_is_command_ = false;
 
 		const auto command = decode_command(value);
+		LOG(command);
 		if(command.device != 3) {
 			return;
 		}

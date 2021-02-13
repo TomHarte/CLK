@@ -149,25 +149,46 @@ void GLU::run_for(Cycles cycles) {
 void GLU::set_port_output(int port, uint8_t value) {
 	switch(port) {
 		case 0:
-//			printf(" {R%d} ", register_address_);
-//			printf("Set R%d: %02x\n", register_address_, value);
-			registers_[register_address_] = value;
-			switch(register_address_) {
-				default: break;
-				case 7:				status_ |= uint8_t(CPUFlags::CommandDataIsValid);	break;
-			}
+			register_latch_ = value;
 		break;
 		case 1:
 //			printf("Keyboard write: %02x???\n", value);
 		break;
-		case 2:
+		case 2: {
 //			printf("ADB data line input: %d???\n", value >> 7);
 //			printf("IIe keyboard reset line: %d\n", (value >> 6)&1);
 //			printf("IIgs reset line: %d\n", (value >> 5)&1);
 //			printf("GLU strobe: %d\n", (value >> 4)&1);
 //			printf("Select GLU register: %d [%02x]\n", value & 0xf, value);
+
 			register_address_ = value & 0xf;
-		break;
+
+			// Check the strobe; I think:
+			//
+			//	high -> low, read => fill latch from register;
+			//	low -> high => fill register from latch.
+			const bool strobe = value & 0x10;
+			if(strobe != register_strobe_) {
+				register_strobe_ = strobe;
+
+				if(register_strobe_) {
+					registers_[register_address_] = register_latch_;
+					switch(register_address_) {
+						default: break;
+						case 7:		status_ |= uint8_t(CPUFlags::CommandDataIsValid);	break;
+					}
+				} else {
+					register_latch_ = registers_[register_address_];
+					switch(register_address_) {
+						default: break;
+						case 1:
+							registers_[4] &= ~uint8_t(MicrocontrollerFlags::CommandRegisterFull);
+							status_ &= ~uint8_t(CPUFlags::CommandRegisterFull);
+						break;
+					}
+				}
+			}
+		} break;
 		case 3:
 //			printf("IIe KWS: %d\n", (value >> 6)&3);
 //			printf("ADB data line output: %d\n", (value >> 3)&1);
@@ -183,20 +204,7 @@ void GLU::set_port_output(int port, uint8_t value) {
 
 uint8_t GLU::get_port_input(int port) {
 	switch(port) {
-		case 0:
-//			printf(" {R%d} ", register_address_);
-			switch(register_address_) {
-				default: break;
-				case 1:
-					registers_[4] &= ~uint8_t(MicrocontrollerFlags::CommandRegisterFull);
-					status_ &= ~uint8_t(CPUFlags::CommandRegisterFull);
-				break;
-			}
-
-			if(register_address_ == 1) {
-				printf("[C %02x]", registers_[1]);
-			}
-		return registers_[register_address_];
+		case 0:	return register_latch_;
 		case 1:
 //			printf("IIe keyboard read\n");
 		return 0x06;

@@ -48,8 +48,10 @@ class GLU: public InstructionSet::M50740::PortHandler {
 		uint8_t get_port_input(int port) override;
 
 		uint8_t registers_[16];
+
 		uint8_t register_address_;
 		uint8_t register_latch_ = 0xff;
+		bool register_strobe_ = false;
 
 		uint8_t status_ = 0x00;
 
