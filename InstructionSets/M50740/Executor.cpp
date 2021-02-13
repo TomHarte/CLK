@@ -12,6 +12,8 @@
 #include <cassert>
 #include <cstring>
 
+#include "../../Machines/Utility/MemoryFuzzer.hpp"
+
 #define LOG_PREFIX "[M50740] "
 #include "../../Outputs/Log.hpp"
 
@@ -35,6 +37,8 @@ Executor::Executor(PortHandler &port_handler) : port_handler_(port_handler) {
 			performers_[c] = performer_lookup_.performer(instruction.operation, instruction.addressing_mode);
 		}
 	}
+
+	Memory::Fuzz(memory_);
 }
 
 void Executor::set_rom(const std::vector<uint8_t> &rom) {

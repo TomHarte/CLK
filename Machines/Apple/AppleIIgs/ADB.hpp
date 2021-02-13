@@ -12,7 +12,9 @@
 #include <cstdint>
 #include <vector>
 #include "../../../InstructionSets/M50740/Executor.hpp"
+
 #include "../ADB/Bus.hpp"
+#include "../ADB/Mouse.hpp"
 
 namespace Apple {
 namespace IIgs {
@@ -55,6 +57,7 @@ class GLU: public InstructionSet::M50740::PortHandler {
 		size_t controller_id_;
 
 		// TODO: add some other devices, and attach them to the ADB bus.
+		Apple::ADB::Mouse mouse_;
 };
 
 }

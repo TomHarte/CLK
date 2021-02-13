@@ -23,7 +23,9 @@ struct Command {
 		Reset,
 		Flush,
 		Reserved,
+		/// The host wishes the device to store register contents.
 		Listen,
+		/// The host wishes the device to broadcast register contents.
 		Talk
 	};
 	const Type type = Type::Reserved;
