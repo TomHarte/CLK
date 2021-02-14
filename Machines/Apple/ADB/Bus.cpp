@@ -21,8 +21,10 @@ void Bus::set_device_output(size_t device_id, bool output) {
 	// Modify the all-devices bus state.
 	bus_state_[device_id] = output;
 
-	// React to signal edges only.
-	const bool data_level = get_state();
+	// React to signal edges only; don't use get_state here to avoid
+	// endless recursion should any reactive devices set new output
+	// during the various calls made below.
+	const bool data_level = bus_state_.all();
 	if(data_level_ != data_level) {
 		data_level_ = data_level;
 

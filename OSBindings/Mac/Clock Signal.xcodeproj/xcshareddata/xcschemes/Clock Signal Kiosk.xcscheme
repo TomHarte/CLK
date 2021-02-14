@@ -62,7 +62,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/thomasharte/Library/Mobile\ Documents/com\~apple\~CloudDocs/Desktop/Soft/Apple\ II/Keplermatik.dsk"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/thomasharte/Library/Mobile\ Documents/com\~apple\~CloudDocs/Desktop/Soft/Apple\ II/WOZs/Prince\ of\ Persia\ side\ A.woz"
@@ -106,11 +106,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--rompath=/Users/thomasharte/Projects/CLK/ROMImages"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--help"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model=cpc6128"

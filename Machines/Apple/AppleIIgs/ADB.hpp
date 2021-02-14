@@ -15,6 +15,7 @@
 
 #include "../ADB/Bus.hpp"
 #include "../ADB/Mouse.hpp"
+#include "../ADB/Keyboard.hpp"
 
 namespace Apple {
 namespace IIgs {
@@ -58,8 +59,9 @@ class GLU: public InstructionSet::M50740::PortHandler {
 		Apple::ADB::Bus bus_;
 		size_t controller_id_;
 
-		// TODO: add some other devices, and attach them to the ADB bus.
+		// For now, attach only a keyboard and mouse.
 		Apple::ADB::Mouse mouse_;
+		Apple::ADB::Keyboard keyboard_;
 };
 
 }

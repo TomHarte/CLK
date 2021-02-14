@@ -42,8 +42,9 @@ void ReactiveDevice::advance_state(double microseconds) {
 	}
 
 	// Advance the implied number of bits.
-	bit_offset_ += int(microseconds_at_bit_ / 100);
-	microseconds_at_bit_ -= double(bit_offset_ * 100.0);
+	const int step = int(microseconds_at_bit_ / 100);
+	bit_offset_ += step;
+	microseconds_at_bit_ -= double(step * 100.0);
 
 	// Check for end-of-transmission.
 	if(bit_offset_ >= int(response_.size() * 10)) {

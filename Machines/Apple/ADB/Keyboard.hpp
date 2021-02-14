@@ -1,22 +1,22 @@
 //
-//  Mouse.hpp
+//  Keyboard.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 12/02/2021.
+//  Created by Thomas Harte on 13/02/2021.
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Mouse_hpp
-#define Mouse_hpp
+#ifndef Keyboard_hpp
+#define Keyboard_hpp
 
 #include "ReactiveDevice.hpp"
 
 namespace Apple {
 namespace ADB {
 
-class Mouse: public ReactiveDevice {
+class Keyboard: public ReactiveDevice {
 	public:
-		Mouse(Bus &);
+		Keyboard(Bus &);
 
 	private:
 		void perform_command(const Command &command) override;
@@ -25,4 +25,4 @@ class Mouse: public ReactiveDevice {
 }
 }
 
-#endif /* Mouse_hpp */
+#endif /* Keyboard_hpp */

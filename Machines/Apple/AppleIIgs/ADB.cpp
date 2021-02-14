@@ -39,7 +39,12 @@ enum class MicrocontrollerFlags: uint8_t {
 
 }
 
-GLU::GLU() : executor_(*this), bus_(HalfCycles(1'789'772)), controller_id_(bus_.add_device()), mouse_(bus_) {}
+GLU::GLU() :
+	executor_(*this),
+	bus_(HalfCycles(1'789'772)),
+	controller_id_(bus_.add_device()),
+	mouse_(bus_),
+	keyboard_(bus_) {}
 
 // MARK: - External interface.
 
