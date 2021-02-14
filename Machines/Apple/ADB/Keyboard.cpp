@@ -18,6 +18,11 @@ void Keyboard::perform_command(const Command &command) {
 			case 0:
 				// Post up to two key events, or nothing if there are
 				// no events pending.
+				//
+				// Events are:
+				//
+				//	b7 = 0 for down 1, for up;
+				//	b6–b0: key code (mostly 7-bit ASCII)
 //				post_response({0x00, 0x00});
 			break;
 

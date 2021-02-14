@@ -134,7 +134,7 @@ class Bus {
 			/// new value ot @c set_device_output. This will be called only when the bus needs
 			/// to reevaluate its current level. It cannot reliably be used to track the timing between
 			/// observed events.
-			virtual void advance_state(double microseconds) = 0;
+			virtual void advance_state(double microseconds, bool current_level) = 0;
 		};
 		/*!
 			Adds a device.

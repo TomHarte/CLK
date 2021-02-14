@@ -72,12 +72,12 @@ void Bus::set_device_output(size_t device_id, bool output) {
 void Bus::shift(unsigned int value) {
 	shift_register_ = (shift_register_ << 1) | value;
 
-	// Trigger a byte whenever a start bit hits bit 9.
-	if(shift_register_ & 0x200) {
+	// Trigger a byte whenever a start bit hits bit 8.
+	if(shift_register_ & 0x100) {
 		for(auto device: devices_) {
-			device->adb_bus_did_observe_event(Event::Byte, uint8_t(shift_register_ >> 1));
+			device->adb_bus_did_observe_event(Event::Byte, uint8_t(shift_register_));
 		}
-		shift_register_ = 0;
+		shift_register_ = 1;
 	}
 }
 
@@ -85,8 +85,9 @@ bool Bus::get_state() const {
 	const auto microseconds = time_since_get_state_.as<double>() * half_cycles_to_microseconds_;
 	time_since_get_state_ = HalfCycles(0);
 
+	const bool current_level = bus_state_.all();
 	for(auto device: devices_) {
-		device->advance_state(microseconds);
+		device->advance_state(microseconds, current_level);
 	}
 	return bus_state_.all();
 }

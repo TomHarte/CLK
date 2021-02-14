@@ -22,10 +22,11 @@ class ReactiveDevice: public Bus::Device {
 		ReactiveDevice(Bus &bus, uint8_t adb_device_id);
 
 		void post_response(const std::vector<uint8_t> &&response);
+		void post_service_request();
 		virtual void perform_command(const Command &command) = 0;
 
 	private:
-		void advance_state(double microseconds) override;
+		void advance_state(double microseconds, bool current_level) override;
 		void adb_bus_did_observe_event(Bus::Event event, uint8_t value) override;
 
 	private:

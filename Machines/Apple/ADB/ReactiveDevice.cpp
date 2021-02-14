@@ -21,42 +21,53 @@ ReactiveDevice::ReactiveDevice(Apple::ADB::Bus &bus, uint8_t adb_device_id) :
 void ReactiveDevice::post_response(const std::vector<uint8_t> &&response) {
 	response_ = std::move(response);
 	microseconds_at_bit_ = 0.0;
-	bit_offset_ = -1;
+	bit_offset_ = -2;
 }
 
-void ReactiveDevice::advance_state(double microseconds) {
+void ReactiveDevice::advance_state(double microseconds, bool current_level) {
 	// Do nothing if not in the process of posting a response.
 	if(response_.empty()) return;
 
-	// Otherwise advance time appropriately.
+	// Wait for the bus to be clear if transmission has not yet begun.
+	if(!current_level && bit_offset_ == -2) return;
+
+	// Advance time.
 	microseconds_at_bit_ += microseconds;
 
-	// Bit '-1' is the sync signal.
-	if(bit_offset_ == -1) {
-		bus_.set_device_output(device_id_, false);
-		if(microseconds_at_bit_ < 300) {
+	// If this is the start of the packet, wait an appropriate stop-to-start time.
+	if(bit_offset_ == -2) {
+		if(microseconds_at_bit_ < 250.0) {
 			return;
 		}
-		microseconds_at_bit_ -= 300;
+		microseconds_at_bit_ -= 250.0;
 		++bit_offset_;
 	}
 
 	// Advance the implied number of bits.
-	const int step = int(microseconds_at_bit_ / 100);
+	const int step = int(microseconds_at_bit_ / 100.0);
 	bit_offset_ += step;
 	microseconds_at_bit_ -= double(step * 100.0);
 
 	// Check for end-of-transmission.
-	if(bit_offset_ >= int(response_.size() * 10)) {
+	const int response_bit_length = int(response_.size() * 8);
+	if(bit_offset_ >= 1 + response_bit_length) {
 		bus_.set_device_output(device_id_, true);
 		response_.clear();
 		return;
 	}
 
-	// Otherwise pick an output level.
-	const int byte = bit_offset_ / 10;
-	const int bit = ((0x200 | (int(response_[size_t(byte)]) << 1)) >> (bit_offset_ % 10)) & 1;
+	// Otherwise pick the bit to output: it'll either be the start bit of 1,
+	// from the provided data, or a stop bit of 0.
+	int bit = 0;
+	if(bit_offset_ < 0) {
+		bit = 1;
+	} else if(bit_offset_ < response_bit_length) {
+		const int byte = bit_offset_ >> 3;
+		const int packet = int(response_[size_t(byte)]);
+		bit = (packet >> (7 - (bit_offset_ & 7))) & 1;
+	}
 
+	// Convert that into a level.
 	constexpr double low_periods[] = {66, 33};
 	bus_.set_device_output(device_id_, microseconds_at_bit_ > low_periods[bit]);
 }
@@ -78,4 +89,8 @@ void ReactiveDevice::adb_bus_did_observe_event(Bus::Event event, uint8_t value) 
 	} else if(event == Bus::Event::Attention) {
 		next_is_command_ = true;
 	}
+}
+
+void ReactiveDevice::post_service_request() {
+	// TODO.
 }
