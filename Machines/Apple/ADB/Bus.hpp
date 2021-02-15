@@ -159,6 +159,10 @@ class Bus {
 		size_t next_device_id_ = 0;
 
 		inline void shift(unsigned int);
+		enum class Phase {
+			PacketCapture,
+			AttentionCapture
+		} phase_ = Phase::AttentionCapture;
 };
 
 }
