@@ -51,9 +51,24 @@ void Keyboard::perform_command(const Command &command) {
 			}
 		break;
 
+		case Command::Type::Listen:
+			// If a listen is incoming for register 2, prepare to capture LED statuses.
+			if(command.reg == 2) {
+				receive_bytes(2);
+			}
+		break;
+
+
 		default: break;
 	}
 }
+
+void Keyboard::did_receive_data(const Command &, const std::vector<uint8_t> &data) {
+	// This must be a register 2 listen; update the LED statuses.
+	// TODO: and possibly display these.
+	modifiers_ = (modifiers_ & 0xfff8) | (data[1] & 7);
+}
+
 
 bool Keyboard::set_key_pressed(Key key, bool is_pressed) {
 	// ADB keyboard events: low 7 bits are a key code; bit 7 is either 0 for pressed or 1 for released.
