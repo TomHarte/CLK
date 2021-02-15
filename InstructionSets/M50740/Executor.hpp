@@ -40,7 +40,9 @@ class Executor: public CachingExecutor {
 	public:
 		Executor(PortHandler &);
 		void set_rom(const std::vector<uint8_t> &rom);
+
 		void reset();
+		void set_interrupt_line(bool);
 
 		/*!
 			Runs, in discrete steps, the minimum number of instructions as it takes to complete at least @c cycles.
@@ -150,6 +152,7 @@ class Executor: public CachingExecutor {
 
 		// Interrupt and timer  control.
 		uint8_t interrupt_control_ = 0, timer_control_ = 0;
+		bool interrupt_line_ = false;
 
 		// Access helpers.
 		inline uint8_t read(uint16_t address);
@@ -158,7 +161,7 @@ class Executor: public CachingExecutor {
 		inline uint8_t pull();
 		inline void set_flags(uint8_t);
 		inline uint8_t flags();
-		template<bool is_brk> inline void perform_interrupt();
+		template<bool is_brk> inline void perform_interrupt(uint16_t vector);
 		inline void set_port_output(int port);
 
 		// MARK: - Execution time

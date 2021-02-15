@@ -16,6 +16,9 @@
 #include "../../../InstructionSets/M50740/Parser.hpp"
 #include "../../../InstructionSets/Disassembler.hpp"
 
+#define LOG_PREFIX "[ADB GLU] "
+#include "../../../Outputs/Log.hpp"
+
 using namespace Apple::IIgs::ADB;
 
 namespace {
@@ -199,7 +202,10 @@ void GLU::set_port_output(int port, uint8_t value) {
 			}
 		} break;
 		case 3:
-			modifier_state_ = value;
+			if(modifier_state_ != (value & 0x30)) {
+				modifier_state_ = value & 0x30;
+				LOG("Modifier state: " << int(value & 0x30));
+			}
 
 			// Output is inverted respective to input; the microcontroller
 			// sets a value of '1' in order to pull the ADB bus low.
@@ -238,4 +244,8 @@ uint8_t GLU::get_port_input(int port) {
 
 void GLU::run_ports_for(Cycles cycles) {
 	bus_.run_for(cycles);
+}
+
+void GLU::set_vertical_blank(bool is_blank) {
+	executor_.set_interrupt_line(is_blank);
 }

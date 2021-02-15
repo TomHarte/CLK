@@ -193,7 +193,7 @@ Cycles Video::get_next_sequence_point() const {
 
 	constexpr int sequence_point_offset = (blank_ticks + left_border_ticks) * CyclesPerTick;
 
-	// Seed as the distance ot the next row 0.
+	// Seed as the distance to the next row 0.
 	int result = CyclesPerLine + sequence_point_offset - cycles_into_row + (Lines - row - 1)*CyclesPerLine;
 
 	// Replace with the start of the next line, if closer.

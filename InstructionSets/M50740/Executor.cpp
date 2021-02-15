@@ -62,6 +62,20 @@ void Executor::reset() {
 	set_program_counter(uint16_t(memory_[0x1ffe] | (memory_[0x1fff] << 8)));
 }
 
+void Executor::set_interrupt_line(bool line) {
+	// Super hack: interrupt now, if permitted. Otherwise do nothing.
+	// So this will fail to catch enabling of interrupts while the line
+	// is active, amongst other things.
+	if(interrupt_line_ != line) {
+		interrupt_line_ = line;
+
+		// TODO: verify interrupt connection. Externally, but stubbed off here.
+//		if(!interrupt_disable_ && line) {
+//			perform_interrupt<false>(0x1ff4);
+//		}
+	}
+}
+
 uint8_t Executor::read(uint16_t address) {
 	address &= 0x1fff;
 
@@ -78,7 +92,7 @@ uint8_t Executor::read(uint16_t address) {
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
 			LOG("Unimplemented Port R read from " << PADHEX(4) << address);
-		return 0xff;
+		return 0x00;
 
 		// Ports P0–P3.
 		case 0xe0: case 0xe2:
@@ -199,7 +213,7 @@ uint8_t Executor::flags() {
 		carry_flag_;
 }
 
-template<bool is_brk> inline void Executor::perform_interrupt() {
+template<bool is_brk> inline void Executor::perform_interrupt(uint16_t vector) {
 	// BRK has an unused operand.
 	++program_counter_;
 	push(uint8_t(program_counter_ >> 8));
@@ -456,7 +470,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 
 			case AddressingMode::AbsoluteIndirect:
 				address = next16();
-				address = unsigned(memory_[address] | (memory_[(address + 1) & 0x1fff] << 8));
+				address = unsigned(memory_[address & 0x1fff] | (memory_[(address + 1) & 0x1fff] << 8));
 			break;
 
 			default:
@@ -587,7 +601,7 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		} break;
 
 		case Operation::BRK:
-			perform_interrupt<true>();
+			perform_interrupt<true>(0x1ff4);
 			--program_counter_;				// To undo the unavoidable increment
 											// after exiting from here.
 		break;

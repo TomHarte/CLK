@@ -895,6 +895,9 @@ class ConcreteMachine:
 			}
 			if(video_.did_flush()) {
 				update_interrupts();
+
+				const bool is_vertical_blank = video_.last_valid()->get_is_vertical_blank(video_.time_since_flush());
+				adb_glu_->set_vertical_blank(is_vertical_blank);
 			}
 
 			return duration;

@@ -44,6 +44,8 @@ class GLU: public InstructionSet::M50740::PortHandler {
 		bool get_command_button() const;
 		bool get_option_button() const;
 
+		void set_vertical_blank(bool);
+
 	private:
 		InstructionSet::M50740::Executor executor_;
 
