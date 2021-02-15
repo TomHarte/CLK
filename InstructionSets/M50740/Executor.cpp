@@ -775,26 +775,47 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 }
 
 inline void Executor::subtract_duration(int duration) {
+	// Pass along.
+	CachingExecutor::subtract_duration(duration);
+
 	// Update count for potential port accesses.
 	cycles_since_port_handler_ += Cycles(duration);
 
 	// Update timer 1 and 2 prescaler.
-	constexpr int t12_divider = 4;		// TODO: should be 4, I think.
-	constexpr int t12_multiplier = 1;
+	constexpr int t12_divider = 4;		// A divide by 4 has already been applied before counting instruction lengths; therefore
+										// this additional divide by 4 produces the correct net divide by 16.
 
-	timer_divider_ += duration * t12_multiplier;
+	timer_divider_ += duration;
 	const int t12_ticks = update_timer(prescalers_[0], timer_divider_ / t12_divider);
 	timer_divider_ &= (t12_divider-1);
 
-	// Update timers 1 and 2. TODO: interrupts (elsewhere).
+	// Update timers 1 and 2. TODO: interrupts (elsewhere?).
 	if(update_timer(timers_[0], t12_ticks)) interrupt_control_ |= 0x20;
 	if(update_timer(timers_[1], t12_ticks)) interrupt_control_ |= 0x08;
 
-	// TODO: timer X.
-//	update_timer(timers_[2], update_timer(prescalers_[1], duration));
+	// If timer X is disabled, stop.
+	if(timer_control_&0x20) {
+		return;
+	}
 
-	// Pass along.
-	CachingExecutor::subtract_duration(duration);
+	// Update timer X prescaler.
+	switch(timer_control_ & 0x0c) {
+		default: {
+			const int tx_ticks = update_timer(prescalers_[1], duration * 4);	// Update at 3.58Mhz.
+			if(update_timer(timers_[2], tx_ticks))
+				timer_control_ |= 0x80;	// TODO: interrupt result of this.
+		} break;
+		case 0x04:
+			LOG("TODO: Timer X; Pulse output mode");
+		break;
+		case 0x08:
+			LOG("TODO: Timer X; Event counter mode");
+		break;
+		case 0x0c:
+			LOG("TODO: Timer X; Pulse width measurement mode");
+		break;
+	}
+//	update_timer(timers_[2], update_timer(prescalers_[1], duration));
 }
 
 inline int Executor::update_timer(Timer &timer, int count) {
