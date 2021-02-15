@@ -50,6 +50,7 @@ void Bus::set_device_output(size_t device_id, bool output) {
 					device->adb_bus_did_observe_event(Event::Attention);
 				}
 				shift_register_ = 1;
+				printf("!!! atn\n");
 			} else if(low_microseconds < 50.0) {
 				shift(1);
 			} else if(low_microseconds < 72.0) {
@@ -71,6 +72,7 @@ void Bus::set_device_output(size_t device_id, bool output) {
 
 void Bus::shift(unsigned int value) {
 	shift_register_ = (shift_register_ << 1) | value;
+	printf("!!! %d\n", value);
 
 	// Trigger a byte whenever a start bit hits bit 8.
 	if(shift_register_ & 0x100) {

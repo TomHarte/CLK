@@ -23,7 +23,10 @@ class ReactiveDevice: public Bus::Device {
 
 		void post_response(const std::vector<uint8_t> &&response);
 		void post_service_request();
+		void receive_bytes(size_t count);
+
 		virtual void perform_command(const Command &command) = 0;
+		virtual void did_receive_data(const Command &, const std::vector<uint8_t> &) {}
 
 	private:
 		void advance_state(double microseconds, bool current_level) override;
@@ -37,8 +40,19 @@ class ReactiveDevice: public Bus::Device {
 		int bit_offset_ = 0;
 		double microseconds_at_bit_ = 0;
 
-		bool next_is_command_ = false;
-		uint8_t adb_device_id_;
+		enum class Phase {
+			AwaitingAttention,
+			AwaitingCommand,
+			AwaitingContent,
+		} phase_ = Phase::AwaitingAttention;
+		std::vector<uint8_t> content_;
+		size_t expected_content_size_ = 0;
+		Command command_;
+
+		uint16_t register3_;
+		const uint8_t default_adb_device_id_;
+
+		void reset();
 };
 
 }

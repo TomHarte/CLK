@@ -29,9 +29,12 @@ struct Command {
 		/// The host wishes the device to broadcast register contents.
 		Talk
 	};
-	const Type type = Type::Reserved;
-	const uint8_t device = 0xff;
-	const uint8_t reg = 0xff;
+	static constexpr uint8_t AllDevices = 0xff;
+	static constexpr uint8_t NoRegister = 0xff;
+
+	Type type = Type::Reserved;
+	uint8_t device = AllDevices;
+	uint8_t reg = NoRegister;
 
 	Command() {}
 	Command(Type type) : type(type) {}

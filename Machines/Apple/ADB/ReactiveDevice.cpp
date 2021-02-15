@@ -16,7 +16,9 @@ using namespace Apple::ADB;
 ReactiveDevice::ReactiveDevice(Apple::ADB::Bus &bus, uint8_t adb_device_id) :
 	bus_(bus),
 	device_id_(bus.add_device(this)),
-	adb_device_id_(adb_device_id) {}
+	default_adb_device_id_(adb_device_id) {
+	reset();
+}
 
 void ReactiveDevice::post_response(const std::vector<uint8_t> &&response) {
 	response_ = std::move(response);
@@ -27,6 +29,18 @@ void ReactiveDevice::post_response(const std::vector<uint8_t> &&response) {
 void ReactiveDevice::advance_state(double microseconds, bool current_level) {
 	// Do nothing if not in the process of posting a response.
 	if(response_.empty()) return;
+
+	/*
+		Total process below:
+
+			(1)	assume that the data was enqueued before the stop bit had
+				concluded; wait for the end of that;
+			(2)	wait for the stop-to-start time period;
+			(3)	output a start bit of '1';
+			(4)	output all enqueued bytes, MSB to LSB;
+			(5)	output a stop bit of '0'; and
+			(6)	return this device's output level to high and top.
+	*/
 
 	// Wait for the bus to be clear if transmission has not yet begun.
 	if(!current_level && bit_offset_ == -2) return;
@@ -73,22 +87,72 @@ void ReactiveDevice::advance_state(double microseconds, bool current_level) {
 }
 
 void ReactiveDevice::adb_bus_did_observe_event(Bus::Event event, uint8_t value) {
-	if(!next_is_command_ && event != Bus::Event::Attention) {
+	if(phase_ == Phase::AwaitingAttention) {
+		if(event != Bus::Event::Attention) return;
+		phase_ = Phase::AwaitingCommand;
 		return;
 	}
 
-	if(next_is_command_ && event == Bus::Event::Byte) {
-		next_is_command_ = false;
+	if(event != Bus::Event::Byte) return;
 
-		const auto command = decode_command(value);
-		LOG(command);
-		if(command.device == adb_device_id_) {
-			// TODO: handle fixed commands here (like register 3?)
-			perform_command(command);
+	if(phase_ == Phase::AwaitingContent) {
+		content_.push_back(value);
+		if(content_.size() == expected_content_size_) {
+			phase_ = Phase::AwaitingAttention;
+
+			if(command_.reg == 3) {
+				register3_ = uint16_t((content_[0] << 8) | content_[1]);
+			} else {
+				did_receive_data(command_, content_);
+			}
+			content_.clear();
 		}
-	} else if(event == Bus::Event::Attention) {
-		next_is_command_ = true;
 	}
+
+	if(phase_ == Phase::AwaitingCommand) {
+		phase_ = Phase::AwaitingAttention;
+
+		command_ = decode_command(value);
+		LOG(command_);
+
+		// Don't do anything if this command isn't relevant here.
+		if(command_.device != Command::AllDevices && command_.device != ((register3_ >> 8) & 0xf)) {
+			return;
+		}
+
+		// Handle reset and register 3 here automatically; pass everything else along.
+		switch(command_.type) {
+			case Command::Type::Reset:
+				reset();
+			[[fallthrough]];
+			default:
+				perform_command(command_);
+			break;
+
+			case Command::Type::Listen:
+			case Command::Type::Talk:
+				if(command_.reg == 3) {
+					if(command_.type == Command::Type::Talk) {
+						post_response({uint8_t(register3_ >> 8), uint8_t(register3_ & 0xff)});
+					} else {
+						receive_bytes(2);
+					}
+				} else {
+					perform_command(command_);
+				}
+			break;
+		}
+	}
+}
+
+void ReactiveDevice::receive_bytes(size_t count) {
+	content_.clear();
+	expected_content_size_ = count;
+	phase_ = Phase::AwaitingContent;
+}
+
+void ReactiveDevice::reset() {
+	register3_ = uint16_t(0x6000 | (default_adb_device_id_ << 8));
 }
 
 void ReactiveDevice::post_service_request() {
