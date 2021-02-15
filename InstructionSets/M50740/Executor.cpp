@@ -801,7 +801,7 @@ inline void Executor::subtract_duration(int duration) {
 	// Update timer X prescaler.
 	switch(timer_control_ & 0x0c) {
 		default: {
-			const int tx_ticks = update_timer(prescalers_[1], duration * 4);	// Update at 3.58Mhz.
+			const int tx_ticks = update_timer(prescalers_[1], t12_ticks);	// TODO: don't hard code this. And is this even right?
 			if(update_timer(timers_[2], tx_ticks))
 				timer_control_ |= 0x80;	// TODO: interrupt result of this.
 		} break;
@@ -815,7 +815,6 @@ inline void Executor::subtract_duration(int duration) {
 			LOG("TODO: Timer X; Pulse width measurement mode");
 		break;
 	}
-//	update_timer(timers_[2], update_timer(prescalers_[1], duration));
 }
 
 inline int Executor::update_timer(Timer &timer, int count) {
