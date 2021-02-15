@@ -46,6 +46,10 @@ class GLU: public InstructionSet::M50740::PortHandler {
 
 		void set_vertical_blank(bool);
 
+		Apple::ADB::Keyboard &keyboard() {
+			return keyboard_;
+		}
+
 	private:
 		InstructionSet::M50740::Executor executor_;
 

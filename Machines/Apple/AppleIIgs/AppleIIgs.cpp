@@ -51,6 +51,7 @@ class ConcreteMachine:
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
+	public MachineTypes::MappedKeyboardMachine,
 	public CPU::MOS6502Esque::BusHandler<uint32_t> {
 
 	public:
@@ -909,6 +910,19 @@ class ConcreteMachine:
 			m65816_.set_irq_line(video_.last_valid()->get_interrupt_line() || sound_glu_.get_interrupt_line());
 		}
 
+		// MARK: - Keyboard input.
+		KeyboardMapper *get_keyboard_mapper() final {
+			return &keyboard_mapper_;
+		}
+
+		void set_key_state(uint16_t key, bool is_pressed) final {
+			adb_glu_.last_valid()->keyboard().set_key_pressed(Apple::ADB::Key(key), is_pressed);
+		}
+
+		void clear_all_keys() final {
+			adb_glu_.last_valid()->keyboard().clear_all_keys();
+		}
+
 	private:
 		CPU::WDC65816::Processor<ConcreteMachine, false> m65816_;
 		MemoryMap memory_;
@@ -964,6 +978,9 @@ class ConcreteMachine:
 				ConcreteMachine *machine_;
 		};
 		friend AudioUpdater;
+
+		// MARK: - Keyboard.
+		Apple::ADB::KeyboardMapper keyboard_mapper_;
 
 		// MARK: - Cards.
 
