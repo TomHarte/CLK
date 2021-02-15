@@ -32,11 +32,10 @@ void DiskIIDrive::set_control_lines(int lines) {
 		const int bits_set = (lines&1) + ((lines >> 1)&1) + ((lines >> 2)&1) + ((lines >> 3)&1);
 		direction /= bits_set;
 
-		// Compare to the stepper position to decide whether that pulls in the current cog notch,
-		// or grabs a later one.
+		// Compare to the stepper position to decide whether that pulls in the
+		// current cog notch, or grabs a later one.
 		step(Storage::Disk::HeadPosition(-direction, 4));
 		stepper_position_ = (stepper_position_ - direction + 8) & 7;
-		printf("Step %0.2f\n", float(-direction) / 4.0f);
 	}
 	stepper_mask_ = lines;
 }
