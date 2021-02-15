@@ -199,8 +199,7 @@ void GLU::set_port_output(int port, uint8_t value) {
 			}
 		} break;
 		case 3:
-//			printf("IIe KWS: %d\n", (value >> 6)&3);
-//			printf("ADB data line output: %d\n", (value >> 3)&1);
+			modifier_state_ = value;
 
 			// Output is inverted respective to input; the microcontroller
 			// sets a value of '1' in order to pull the ADB bus low.
@@ -209,6 +208,14 @@ void GLU::set_port_output(int port, uint8_t value) {
 
 		default: assert(false);
 	}
+}
+
+bool GLU::get_command_button() const {
+	return modifier_state_ & 0x20;
+}
+
+bool GLU::get_option_button() const {
+	return modifier_state_ & 0x10;
 }
 
 uint8_t GLU::get_port_input(int port) {

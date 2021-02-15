@@ -514,9 +514,20 @@ class ConcreteMachine:
 						*value = rom_[rom_.size() - 65536 + address_suffix];
 					break;
 
-					// Analogue inputs. All TODO.
-					case Read(0xc060): case Read(0xc061): case Read(0xc062): case Read(0xc063):
-						// Joystick buttons (and keyboard modifiers).
+					// Analogue inputs. Joystick parts are TODO.
+					case Read(0xc061):
+						*value = adb_glu_->get_command_button() ? 0x80 : 0x00;
+						is_1Mhz = true;
+					break;
+
+					case Read(0xc062):
+						*value = adb_glu_->get_option_button() ? 0x80 : 0x00;
+						is_1Mhz = true;
+					break;
+
+					case Read(0xc060):
+					case Read(0xc063):
+						// Joystick buttons.
 						*value = 0x00;
 						is_1Mhz = true;
 					break;

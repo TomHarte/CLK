@@ -41,6 +41,9 @@ class GLU: public InstructionSet::M50740::PortHandler {
 
 		void run_for(Cycles cycles);
 
+		bool get_command_button() const;
+		bool get_option_button() const;
+
 	private:
 		InstructionSet::M50740::Executor executor_;
 
@@ -58,6 +61,8 @@ class GLU: public InstructionSet::M50740::PortHandler {
 
 		Apple::ADB::Bus bus_;
 		size_t controller_id_;
+
+		uint8_t modifier_state_ = 0;
 
 		// For now, attach only a keyboard and mouse.
 		Apple::ADB::Mouse mouse_;
