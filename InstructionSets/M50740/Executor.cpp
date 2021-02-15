@@ -219,7 +219,7 @@ template<bool is_brk> inline void Executor::perform_interrupt(uint16_t vector) {
 	push(uint8_t(program_counter_ >> 8));
 	push(uint8_t(program_counter_ & 0xff));
 	push(flags() | (is_brk ? 0x10 : 0x00));
-	set_program_counter(uint16_t(memory_[0x1ff4] | (memory_[0x1ff5] << 8)));
+	set_program_counter(uint16_t(memory_[vector] | (memory_[vector+1] << 8)));
 }
 
 template <Operation operation, AddressingMode addressing_mode> void Executor::perform() {
