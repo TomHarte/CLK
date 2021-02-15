@@ -152,7 +152,7 @@ void ReactiveDevice::receive_bytes(size_t count) {
 }
 
 void ReactiveDevice::reset() {
-	register3_ = uint16_t(0x6000 | (default_adb_device_id_ << 8));
+	register3_ = uint16_t(0x6001 | (default_adb_device_id_ << 8));
 }
 
 void ReactiveDevice::post_service_request() {
