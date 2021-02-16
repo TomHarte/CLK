@@ -52,6 +52,7 @@ class ConcreteMachine:
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MouseMachine,
 	public CPU::MOS6502Esque::BusHandler<uint32_t> {
 
 	public:
@@ -898,7 +899,9 @@ class ConcreteMachine:
 				update_interrupts();
 
 				const bool is_vertical_blank = video_.last_valid()->get_is_vertical_blank(video_.time_since_flush());
-				adb_glu_->set_vertical_blank(is_vertical_blank);
+				if(is_vertical_blank != adb_glu_.last_valid()->get_vertical_blank()) {
+					adb_glu_->set_vertical_blank(is_vertical_blank);
+				}
 			}
 
 			return duration;
@@ -910,7 +913,7 @@ class ConcreteMachine:
 			m65816_.set_irq_line(video_.last_valid()->get_interrupt_line() || sound_glu_.get_interrupt_line());
 		}
 
-		// MARK: - Keyboard input.
+		// MARK: - Input.
 		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
@@ -921,6 +924,10 @@ class ConcreteMachine:
 
 		void clear_all_keys() final {
 			adb_glu_.last_valid()->keyboard().clear_all_keys();
+		}
+
+		Inputs::Mouse &get_mouse() final {
+			return adb_glu_.last_valid()->get_mouse();
 		}
 
 	private:

@@ -125,7 +125,7 @@ void ReactiveDevice::adb_bus_did_observe_event(Bus::Event event, uint8_t value) 
 		phase_ = Phase::AwaitingAttention;
 
 		command_ = decode_command(value);
-		LOG(command_);
+//		LOG(command_);
 
 		// If this command doesn't apply here, but a service request is requested,
 		// post a service request.

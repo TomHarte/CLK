@@ -45,9 +45,15 @@ class GLU: public InstructionSet::M50740::PortHandler {
 		bool get_option_button() const;
 
 		void set_vertical_blank(bool);
+		bool get_vertical_blank() {
+			return vertical_blank_;
+		}
 
 		Apple::ADB::Keyboard &keyboard() {
 			return keyboard_;
+		}
+		Inputs::Mouse &get_mouse() {
+			return mouse_;
 		}
 
 	private:
@@ -69,6 +75,8 @@ class GLU: public InstructionSet::M50740::PortHandler {
 		size_t controller_id_;
 
 		uint8_t modifier_state_ = 0;
+
+		bool vertical_blank_ = false;
 
 		// For now, attach only a keyboard and mouse.
 		Apple::ADB::Mouse mouse_;
