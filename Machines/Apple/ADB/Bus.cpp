@@ -50,6 +50,7 @@ void Bus::set_device_output(size_t device_id, bool output) {
 					device->adb_bus_did_observe_event(Event::Attention);
 				}
 				shift_register_ = 1;
+				start_target_ = 9;		// Consume the stop bit before posting the next byte.
 				phase_ = Phase::AttentionCapture;
 			} else if(low_microseconds < 50.0) {
 				shift(1);
@@ -73,15 +74,18 @@ void Bus::set_device_output(size_t device_id, bool output) {
 void Bus::shift(unsigned int value) {
 	shift_register_ = (shift_register_ << 1) | value;
 
-	// Trigger a byte whenever a start bit hits bit 8.
-	if(shift_register_ & 0x100) {
+	// Trigger a byte whenever either:
+	//	* a 'start bit' hits bit 8; or
+	//	* if this was a command byte, wait for the stop bit (i.e. the start bit hits 9).
+	if(shift_register_ & (1 << start_target_)) {
 		for(auto device: devices_) {
-			device->adb_bus_did_observe_event(Event::Byte, uint8_t(shift_register_));
+			device->adb_bus_did_observe_event(Event::Byte, uint8_t(shift_register_ >> (start_target_ - 8)));
 		}
 
 		// Expect a real start bit only if moving from attention capture to packet
 		// capture. Otherwise adopt an implied start bit.
 		shift_register_ = phase_ == Phase::PacketCapture;
+		start_target_ = 8;
 		phase_ = Phase::PacketCapture;
 	}
 }

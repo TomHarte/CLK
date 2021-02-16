@@ -132,6 +132,8 @@ bool Keyboard::set_key_pressed(Key key, bool is_pressed) {
 	}
 #undef SetModifierBit
 
+	// Ensure service occurs.
+	post_service_request();
 	return true;
 }
 
@@ -144,6 +146,7 @@ void Keyboard::clear_all_keys() {
 			pressed_keys_[key] = false;
 		}
 	}
+	if(!pending_events_.empty()) post_service_request();
 
 	// Mark all modifiers as released.
 	modifiers_ |= 0xfff8;

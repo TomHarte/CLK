@@ -27,6 +27,18 @@ void ReactiveDevice::post_response(const std::vector<uint8_t> &&response) {
 }
 
 void ReactiveDevice::advance_state(double microseconds, bool current_level) {
+	// First test: is a service request desired?
+	if(phase_ == Phase::ServiceRequestPending) {
+		microseconds_at_bit_ += microseconds;
+		if(microseconds_at_bit_ < 240.0) {
+			bus_.set_device_output(device_id_, false);
+		} else {
+			bus_.set_device_output(device_id_, true);
+			phase_ = Phase::AwaitingAttention;
+		}
+		return;
+	}
+
 	// Do nothing if not in the process of posting a response.
 	if(response_.empty()) return;
 
@@ -50,10 +62,10 @@ void ReactiveDevice::advance_state(double microseconds, bool current_level) {
 
 	// If this is the start of the packet, wait an appropriate stop-to-start time.
 	if(bit_offset_ == -2) {
-		if(microseconds_at_bit_ < 250.0) {
+		if(microseconds_at_bit_ < 150.0) {
 			return;
 		}
-		microseconds_at_bit_ -= 250.0;
+		microseconds_at_bit_ -= 150.0;
 		++bit_offset_;
 	}
 
@@ -115,8 +127,15 @@ void ReactiveDevice::adb_bus_did_observe_event(Bus::Event event, uint8_t value) 
 		command_ = decode_command(value);
 		LOG(command_);
 
-		// Don't do anything if this command isn't relevant here.
+		// If this command doesn't apply here, but a service request is requested,
+		// post a service request.
 		if(command_.device != Command::AllDevices && command_.device != ((register3_ >> 8) & 0xf)) {
+			if(service_desired_) {
+				service_desired_ = false;
+				stop_has_begin_ = false;
+				phase_ = Phase::ServiceRequestPending;
+				microseconds_at_bit_ = 0.0;
+			}
 			return;
 		}
 
@@ -138,6 +157,7 @@ void ReactiveDevice::adb_bus_did_observe_event(Bus::Event event, uint8_t value) 
 						receive_bytes(2);
 					}
 				} else {
+					service_desired_ = false;
 					perform_command(command_);
 				}
 			break;
@@ -156,5 +176,5 @@ void ReactiveDevice::reset() {
 }
 
 void ReactiveDevice::post_service_request() {
-	// TODO.
+	service_desired_ = true;
 }

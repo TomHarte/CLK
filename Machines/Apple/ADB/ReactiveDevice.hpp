@@ -11,6 +11,7 @@
 
 #include "Bus.hpp"
 
+#include <atomic>
 #include <cstddef>
 #include <vector>
 
@@ -44,13 +45,17 @@ class ReactiveDevice: public Bus::Device {
 			AwaitingAttention,
 			AwaitingCommand,
 			AwaitingContent,
+			ServiceRequestPending,
 		} phase_ = Phase::AwaitingAttention;
 		std::vector<uint8_t> content_;
 		size_t expected_content_size_ = 0;
 		Command command_;
+		bool stop_has_begin_ = false;
 
 		uint16_t register3_;
 		const uint8_t default_adb_device_id_;
+
+		std::atomic<bool> service_desired_ = false;
 
 		void reset();
 };

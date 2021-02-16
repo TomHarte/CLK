@@ -151,6 +151,7 @@ class Bus {
 		double half_cycles_to_microseconds_ = 1.0;
 		std::vector<Device *> devices_;
 		unsigned int shift_register_ = 0;
+		unsigned int start_target_ = 8;
 		bool data_level_ = true;
 
 		// ADB addressing supports at most 16 devices but that doesn't include
