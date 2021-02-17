@@ -63,8 +63,8 @@ class JoystickPair {
 			return (1.0f - static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1]) < analogue_charge_ + analogue_biases_[channel];
 		}
 
-		inline void update_charge() {
-			analogue_charge_ = std::min(analogue_charge_ + 1.0f / 2820.0f, 1.1f);
+		inline void update_charge(float one_mhz_cycles = 1.0f) {
+			analogue_charge_ = std::min(analogue_charge_ + one_mhz_cycles * (1.0f / 2820.0f), 1.1f);
 		}
 
 		inline void access_c070() {

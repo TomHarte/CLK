@@ -10,20 +10,23 @@
 
 #include "../../../Activity/Source.hpp"
 #include "../../MachineTypes.hpp"
-#include "../../../Processors/65816/65816.hpp"
 
 #include "../../../Analyser/Static/AppleIIgs/Target.hpp"
+
 #include "ADB.hpp"
 #include "MemoryMap.hpp"
 #include "Video.hpp"
 #include "Sound.hpp"
 
+#include "../../../Processors/65816/65816.hpp"
 #include "../../../Components/8530/z8530.hpp"
 #include "../../../Components/AppleClock/AppleClock.hpp"
 #include "../../../Components/AudioToggle/AudioToggle.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
 #include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
 #include "../../../Components/DiskII/DiskIIDrive.hpp"
+
+#include "../AppleII/Joystick.hpp"
 
 #include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
@@ -37,7 +40,7 @@
 
 namespace {
 
-constexpr int CLOCK_RATE = 14318180;
+constexpr int CLOCK_RATE = 14'318'180;
 
 }
 
@@ -48,11 +51,12 @@ class ConcreteMachine:
 	public Activity::Source,
 	public Apple::IIgs::Machine,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine,
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
+	public MachineTypes::MouseMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
-	public MachineTypes::MappedKeyboardMachine,
-	public MachineTypes::MouseMachine,
 	public CPU::MOS6502Esque::BusHandler<uint32_t> {
 
 	public:
@@ -516,32 +520,34 @@ class ConcreteMachine:
 						*value = rom_[rom_.size() - 65536 + address_suffix];
 					break;
 
-					// Analogue inputs. Joystick parts are TODO.
+					// Analogue inputs.
 					case Read(0xc061):
-						*value = adb_glu_->get_command_button() ? 0x80 : 0x00;
+						*value = (adb_glu_->get_command_button() || joysticks_.button(0)) ? 0x80 : 0x00;
 						is_1Mhz = true;
 					break;
 
 					case Read(0xc062):
-						*value = adb_glu_->get_option_button() ? 0x80 : 0x00;
+						*value = (adb_glu_->get_option_button() || joysticks_.button(1)) ? 0x80 : 0x00;
 						is_1Mhz = true;
 					break;
 
-					case Read(0xc060):
 					case Read(0xc063):
-						// Joystick buttons.
-						*value = 0x00;
+						*value = joysticks_.button(2) ? 0x80 : 0x00;
 						is_1Mhz = true;
 					break;
 
-					case Read(0xc064): case Read(0xc065): case Read(0xc066): case Read(0xc067):
+					case Read(0xc064):
+					case Read(0xc065):
+					case Read(0xc066):
+					case Read(0xc067): {
 						// Analogue inputs.
-						*value = 0x00;
+						const size_t input = address_suffix - 0xc064;
+						*value = joysticks_.analogue_channel_is_discharged(input) ? 0x00 : 0x80;
 						is_1Mhz = true;
-					break;
+					} break;
 
 					case Read(0xc070): case Write(0xc070):
-						// TODO: begin analogue channel charge.
+						joysticks_.access_c070();
 						is_1Mhz = true;
 					break;
 
@@ -904,6 +910,8 @@ class ConcreteMachine:
 				}
 			}
 
+			joysticks_.update_charge(duration.as<float>() / 14.0f);
+
 			return duration;
 		}
 
@@ -928,6 +936,10 @@ class ConcreteMachine:
 
 		Inputs::Mouse &get_mouse() final {
 			return adb_glu_.last_valid()->get_mouse();
+		}
+
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
+			return joysticks_.get_joysticks();
 		}
 
 	private:
@@ -986,8 +998,9 @@ class ConcreteMachine:
 		};
 		friend AudioUpdater;
 
-		// MARK: - Keyboard.
+		// MARK: - Keyboard and joystick.
 		Apple::ADB::KeyboardMapper keyboard_mapper_;
+		Apple::II::JoystickPair joysticks_;
 
 		// MARK: - Cards.
 
