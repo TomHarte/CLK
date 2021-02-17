@@ -519,28 +519,35 @@ class MemoryMap {
 
 			// Base: $0200–$03FF.
 			set(0x02, state.base);
-			assert(region_map[0x02] == region_map[0x00]+1);
-			assert(region_map[0x04] == region_map[0x02]+1);
+			assert(region_map[0x02] == region_map[0x01]+1);
+			assert(region_map[0x03] == region_map[0x02]);
+			assert(region_map[0x04] == region_map[0x03]+1);
 
 			// Region $0400–$07ff.
 			set(0x04, state.region_04_08);
-			assert(region_map[0x08] == region_map[0x04]+1);
+			assert(region_map[0x07] == region_map[0x04]);
+			assert(region_map[0x08] == region_map[0x07]+1);
 
 			// Base: $0800–$1FFF.
 			set(0x08, state.base);
 			set(0x0c, state.base);
-			assert(region_map[0x0c] == region_map[0x08]+1);
-			assert(region_map[0x20] == region_map[0x0c]+1);
+			assert(region_map[0x0b] == region_map[0x08]);
+			assert(region_map[0x0c] == region_map[0x0b]+1);
+			assert(region_map[0x1f] == region_map[0x0c]);
+			assert(region_map[0x20] == region_map[0x1f]+1);
 
 			// Region $2000–$3FFF.
 			set(0x20, state.region_20_40);
-			assert(region_map[0x40] == region_map[0x20]+1);
+			assert(region_map[0x3f] == region_map[0x20]);
+			assert(region_map[0x40] == region_map[0x3f]+1);
 
 			// Base: $4000–$BFFF.
 			set(0x40, state.base);
 			set(0x60, state.base);
-			assert(region_map[0x60] == region_map[0x40]+1);
-			assert(region_map[0xc0] == region_map[0x60]+1);
+			assert(region_map[0x5f] == region_map[0x40]);
+			assert(region_map[0x60] == region_map[0x5f]+1);
+			assert(region_map[0xbf] == region_map[0x60]);
+			assert(region_map[0xc0] == region_map[0xbf]+1);
 
 #undef set
 
