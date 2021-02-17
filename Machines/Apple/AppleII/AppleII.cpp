@@ -22,6 +22,7 @@
 #include "AuxiliaryMemorySwitches.hpp"
 #include "Card.hpp"
 #include "DiskIICard.hpp"
+#include "Joystick.hpp"
 #include "LanguageCardSwitches.hpp"
 #include "Video.hpp"
 
@@ -260,55 +261,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		// MARK - typing
 		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
 
-		// MARK - joysticks
-		class Joystick: public Inputs::ConcreteJoystick {
-			public:
-				Joystick() :
-					ConcreteJoystick({
-						Input(Input::Horizontal),
-						Input(Input::Vertical),
-
-						// The Apple II offers three buttons between two joysticks;
-						// this emulator puts three buttons on each joystick and
-						// combines them.
-						Input(Input::Fire, 0),
-						Input(Input::Fire, 1),
-						Input(Input::Fire, 2),
-					}) {}
-
-					void did_set_input(const Input &input, float value) final {
-						if(!input.info.control.index && (input.type == Input::Type::Horizontal || input.type == Input::Type::Vertical))
-							axes[(input.type == Input::Type::Horizontal) ? 0 : 1] = 1.0f - value;
-					}
-
-					void did_set_input(const Input &input, bool value) final {
-						if(input.type == Input::Type::Fire && input.info.control.index < 3) {
-							buttons[input.info.control.index] = value;
-						}
-					}
-
-				bool buttons[3] = {false, false, false};
-				float axes[2] = {0.5f, 0.5f};
-		};
-
-		// On an Apple II, the programmer strobes 0xc070 and that causes each analogue input
-		// to begin a charge and discharge cycle **if they are not already charging**.
-		// The greater the analogue input, the faster they will charge and therefore the sooner
-		// they will discharge.
-		//
-		// This emulator models that with analogue_charge_ being essentially the amount of time,
-		// in charge threshold units, since 0xc070 was last strobed. But if any of the analogue
-		// inputs were already partially charged then they gain a bias in analogue_biases_.
-		//
-		// It's a little indirect, but it means only having to increment the one value in the
-		// main loop.
-		float analogue_charge_ = 0.0f;
-		float analogue_biases_[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-
-		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
-		bool analogue_channel_is_discharged(size_t channel) {
-			return (1.0f - static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1]) < analogue_charge_ + analogue_biases_[channel];
-		}
+		// MARK - Joysticks.
+		JoystickPair joysticks_;
 
 		// The IIe has three keys that are wired directly to the same input as the joystick buttons.
 		bool open_apple_is_pressed_ = false;
@@ -343,10 +297,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			// Also, start with randomised memory contents.
 			Memory::Fuzz(ram_, sizeof(ram_));
 			Memory::Fuzz(aux_ram_, sizeof(aux_ram_));
-
-			// Add a couple of joysticks.
-			joysticks_.emplace_back(new Joystick);
-			joysticks_.emplace_back(new Joystick);
 
 			// Pick the required ROMs.
 			using Target = Analyser::Static::AppleII::Target;
@@ -495,7 +445,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								case 0xc061:	// Switch input 0.
 									*value &= 0x7f;
 									if(
-										static_cast<Joystick *>(joysticks_[0].get())->buttons[0] || static_cast<Joystick *>(joysticks_[1].get())->buttons[2] ||
+										joysticks_.button(0) ||
 										(is_iie() && open_apple_is_pressed_)
 									)
 										*value |= 0x80;
@@ -503,14 +453,14 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								case 0xc062:	// Switch input 1.
 									*value &= 0x7f;
 									if(
-										static_cast<Joystick *>(joysticks_[0].get())->buttons[1] || static_cast<Joystick *>(joysticks_[1].get())->buttons[1] ||
+										joysticks_.button(1) ||
 										(is_iie() && closed_apple_is_pressed_)
 									)
 										*value |= 0x80;
 								break;
 								case 0xc063:	// Switch input 2.
 									*value &= 0x7f;
-									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[2] || static_cast<Joystick *>(joysticks_[1].get())->buttons[0])
+									if(joysticks_.button(2))
 										*value |= 0x80;
 								break;
 
@@ -520,7 +470,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								case 0xc067: {	// Analogue input 3.
 									const size_t input = address - 0xc064;
 									*value &= 0x7f;
-									if(!analogue_channel_is_discharged(input)) {
+									if(!joysticks_.analogue_channel_is_discharged(input)) {
 										*value |= 0x80;
 									}
 								} break;
@@ -577,17 +527,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						}
 					break;
 
-					case 0xc070: {	// Permit analogue inputs that are currently discharged to begin a charge cycle.
-									// Ensure those that were still charging retain that state.
-						for(size_t c = 0; c < 4; ++c) {
-							if(analogue_channel_is_discharged(c)) {
-								analogue_biases_[c] = 0.0f;
-							} else {
-								analogue_biases_[c] += analogue_charge_;
-							}
-						}
-						analogue_charge_ = 0.0f;
-					} break;
+					case 0xc070: joysticks_.access_c070(); break;
 
 					/* Switches triggered by reading or writing. */
 					case 0xc050:
@@ -727,7 +667,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			// Update analogue charge level.
-			analogue_charge_ = std::min(analogue_charge_ + 1.0f / 2820.0f, 1.1f);
+			joysticks_.update_charge();
 
 			return Cycles(1);
 		}
@@ -855,7 +795,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		// MARK: JoystickMachine
 		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
-			return joysticks_;
+			return joysticks_.get_joysticks();
 		}
 };
 

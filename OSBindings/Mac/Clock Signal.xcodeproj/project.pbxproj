@@ -179,6 +179,8 @@
 		4B2E86C925D892EF0024F1E9 /* DAT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE8EB6425C750B50040BC40 /* DAT.cpp */; };
 		4B2E86CF25D8D8C70024F1E9 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E86CD25D8D8C70024F1E9 /* Keyboard.cpp */; };
 		4B2E86D025D8D8C70024F1E9 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E86CD25D8D8C70024F1E9 /* Keyboard.cpp */; };
+		4B2E86E225DC95150024F1E9 /* Joystick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E86E025DC95150024F1E9 /* Joystick.cpp */; };
+		4B2E86E325DC95150024F1E9 /* Joystick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E86E025DC95150024F1E9 /* Joystick.cpp */; };
 		4B302184208A550100773308 /* DiskII.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B302183208A550100773308 /* DiskII.cpp */; };
 		4B302185208A550100773308 /* DiskII.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B302183208A550100773308 /* DiskII.cpp */; };
 		4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
@@ -1129,6 +1131,8 @@
 		4B2E86BD25D74F160024F1E9 /* Mouse.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Mouse.hpp; sourceTree = "<group>"; };
 		4B2E86CD25D8D8C70024F1E9 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B2E86CE25D8D8C70024F1E9 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
+		4B2E86E025DC95150024F1E9 /* Joystick.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Joystick.cpp; sourceTree = "<group>"; };
+		4B2E86E125DC95150024F1E9 /* Joystick.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Joystick.hpp; sourceTree = "<group>"; };
 		4B302182208A550100773308 /* DiskII.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskII.hpp; sourceTree = "<group>"; };
 		4B302183208A550100773308 /* DiskII.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DiskII.cpp; sourceTree = "<group>"; };
 		4B30512B1D989E2200B4FED8 /* Drive.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Drive.cpp; sourceTree = "<group>"; };
@@ -4167,11 +4171,13 @@
 			children = (
 				4BCE0050227CE8CA000CA200 /* AppleII.cpp */,
 				4BCE004E227CE8CA000CA200 /* DiskIICard.cpp */,
+				4B2E86E025DC95150024F1E9 /* Joystick.cpp */,
 				4BCE004D227CE8CA000CA200 /* Video.cpp */,
 				4BCE004A227CE8CA000CA200 /* AppleII.hpp */,
 				4BF40A5A254263140033EA39 /* AuxiliaryMemorySwitches.hpp */,
 				4BCE004B227CE8CA000CA200 /* Card.hpp */,
 				4BCE004C227CE8CA000CA200 /* DiskIICard.hpp */,
+				4B2E86E125DC95150024F1E9 /* Joystick.hpp */,
 				4BF40A5525424C770033EA39 /* LanguageCardSwitches.hpp */,
 				4BCE004F227CE8CA000CA200 /* Video.hpp */,
 				4B8DF4F2254E141700F3433C /* VideoSwitches.hpp */,
@@ -5106,6 +5112,7 @@
 				4B055AD11FAE9B030060FFFF /* Video.cpp in Sources */,
 				4BB4BFBA22A4372F0069048D /* StaticAnalyser.cpp in Sources */,
 				4B055AA21FAE85DA0060FFFF /* SSD.cpp in Sources */,
+				4B2E86E325DC95150024F1E9 /* Joystick.cpp in Sources */,
 				4BEBFB4E2002C4BF000708CC /* MSXDSK.cpp in Sources */,
 				4B055ADD1FAE9B460060FFFF /* i8272.cpp in Sources */,
 				4B055A9C1FAE85DA0060FFFF /* CPCDSK.cpp in Sources */,
@@ -5301,6 +5308,7 @@
 				4B80CD6F2568A82C00176FCC /* DiskIIDrive.cpp in Sources */,
 				4B894532201967B4007DE474 /* 6502.cpp in Sources */,
 				4BDB61EC203285AE0048AF91 /* Atari2600OptionsPanel.swift in Sources */,
+				4B2E86E225DC95150024F1E9 /* Joystick.cpp in Sources */,
 				4BBB70A8202014E2002FE009 /* MultiProducer.cpp in Sources */,
 				4B8805F71DCFF6C9003085B1 /* Commodore.cpp in Sources */,
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
