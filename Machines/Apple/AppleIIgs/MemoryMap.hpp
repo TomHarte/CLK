@@ -275,6 +275,11 @@ class MemoryMap {
 
 		// MARK: - Memory banking.
 
+#define assert_is_region(start, end)					\
+	assert(region_map[start] == region_map[start-1]+1);	\
+	assert(region_map[end-1] == region_map[start]);		\
+	assert(region_map[end] == region_map[end-1]+1);
+
 		// Cf. LanguageCardSwitches; this function should update the region from
 		// $D000 onwards as per the state of the language card flags — there may
 		// end up being ROM or RAM (or auxiliary RAM), and the first 4kb of it
@@ -373,10 +378,13 @@ class MemoryMap {
 
 				// Sanity checks.
 				assert(region_map[bank_base | 0xc1] == region_map[bank_base | 0xc0]+1);
-				assert(region_map[bank_base | 0xc3] == region_map[bank_base | 0xc1]+1);
+				assert(region_map[bank_base | 0xc2] == region_map[bank_base | 0xc1]);
+				assert(region_map[bank_base | 0xc3] == region_map[bank_base | 0xc2]+1);
 				assert(region_map[bank_base | 0xc4] == region_map[bank_base | 0xc3]+1);
-				assert(region_map[bank_base | 0xc8] == region_map[bank_base | 0xc4]+1);
-				assert(region_map[bank_base | 0xd0] == region_map[bank_base | 0xc8]+1);
+				assert(region_map[bank_base | 0xc7] == region_map[bank_base | 0xc4]);
+				assert(region_map[bank_base | 0xc8] == region_map[bank_base | 0xc7]+1);
+				assert(region_map[bank_base | 0xcf] == region_map[bank_base | 0xc8]);
+				assert(region_map[bank_base | 0xd0] == region_map[bank_base | 0xcf]+1);
 			};
 
 			if(inhibit_banks0001) {
@@ -410,7 +418,8 @@ class MemoryMap {
 			// Affects bank $00 only, and should be a single region.
 			auto &region = regions[region_map[0]];
 			region.read = region.write = auxiliary_switches_.zero_state() ? &ram_base[0x01'0000] : ram_base;
-			assert(region_map[0x0000]+1 == region_map[0x0002]);
+			assert(region_map[0x0000] == region_map[0x0001]);
+			assert(region_map[0x0001]+1 == region_map[0x0002]);
 
 			// Switching to or from auxiliary RAM potentially affects the
 			// language card area.
@@ -450,10 +459,10 @@ class MemoryMap {
 			apply(shadow_register_ & 0x01, 0x0104);
 			apply((shadow_register_ & 0x01) || inhibit_all_pages, 0x0204);	// All other pages uses the same shadowing flags.
 			apply((shadow_register_ & 0x01) || inhibit_all_pages, 0x0304);
-			assert(region_map[0x0008] == region_map[0x0004]+1);
-			assert(region_map[0x0108] == region_map[0x0104]+1);
-			assert(region_map[0x0208] == region_map[0x0204]+1);
-			assert(region_map[0x0308] == region_map[0x0304]+1);
+			assert_is_region(0x004, 0x008);
+			assert_is_region(0x104, 0x108);
+			assert_is_region(0x204, 0x208);
+			assert_is_region(0x304, 0x308);
 
 			// Text Page 2, main and auxiliary — 0x0800–0x0c00.
 			// TODO: on a ROM03 machine only.
@@ -461,10 +470,10 @@ class MemoryMap {
 			apply(shadow_register_ & 0x20, 0x0108);
 			apply((shadow_register_ & 0x20) || inhibit_all_pages, 0x0208);
 			apply((shadow_register_ & 0x20) || inhibit_all_pages, 0x0308);
-			assert(region_map[0x000c] == region_map[0x0008]+1);
-			assert(region_map[0x010c] == region_map[0x0108]+1);
-			assert(region_map[0x020c] == region_map[0x0208]+1);
-			assert(region_map[0x030c] == region_map[0x0308]+1);
+			assert_is_region(0x008, 0x00c);
+			assert_is_region(0x108, 0x10c);
+			assert_is_region(0x208, 0x20c);
+			assert_is_region(0x308, 0x30c);
 
 			// Hi-res graphics Page 1, main and auxiliary — $2000–$4000;
 			// also part of the super high-res graphics page on odd pages.
@@ -479,10 +488,10 @@ class MemoryMap {
 			apply((shadow_register_ & 0x12) && (shadow_register_ & 0x08), 0x0120);
 			apply((shadow_register_ & 0x02) || inhibit_all_pages, 0x0220);
 			apply(((shadow_register_ & 0x12) && (shadow_register_ & 0x08)) || inhibit_all_pages, 0x0320);
-			assert(region_map[0x0040] == region_map[0x0020]+1);
-			assert(region_map[0x0140] == region_map[0x0120]+1);
-			assert(region_map[0x0240] == region_map[0x0220]+1);
-			assert(region_map[0x0340] == region_map[0x0320]+1);
+			assert_is_region(0x020, 0x040);
+			assert_is_region(0x120, 0x140);
+			assert_is_region(0x220, 0x240);
+			assert_is_region(0x320, 0x340);
 
 			// Hi-res graphics Page 2, main and auxiliary — $4000–$6000;
 			// also part of the super high-res graphics page.
@@ -492,16 +501,16 @@ class MemoryMap {
 			apply((shadow_register_ & 0x14) && (shadow_register_ & 0x08), 0x0140);
 			apply((shadow_register_ & 0x04) || inhibit_all_pages, 0x0240);
 			apply(((shadow_register_ & 0x14) && (shadow_register_ & 0x08)) || inhibit_all_pages, 0x0340);
-			assert(region_map[0x0060] == region_map[0x0040]+1);
-			assert(region_map[0x0160] == region_map[0x0140]+1);
-			assert(region_map[0x0260] == region_map[0x0240]+1);
-			assert(region_map[0x0360] == region_map[0x0340]+1);
+			assert_is_region(0x040, 0x060);
+			assert_is_region(0x140, 0x160);
+			assert_is_region(0x240, 0x260);
+			assert_is_region(0x340, 0x360);
 
 			// Residue of Super Hi-Res — $6000–$a000 (odd pages only).
 			apply(shadow_register_ & 0x08, 0x0160);
 			apply((shadow_register_ & 0x08) || inhibit_all_pages, 0x0360);
-			assert(region_map[0x01a0] == region_map[0x0160]+1);
-			assert(region_map[0x03a0] == region_map[0x0360]+1);
+			assert_is_region(0x160, 0x1a0);
+			assert_is_region(0x360, 0x3a0);
 
 #undef apply
 		}
@@ -519,35 +528,27 @@ class MemoryMap {
 
 			// Base: $0200–$03FF.
 			set(0x02, state.base);
-			assert(region_map[0x02] == region_map[0x01]+1);
-			assert(region_map[0x03] == region_map[0x02]);
-			assert(region_map[0x04] == region_map[0x03]+1);
+			assert_is_region(0x02, 0x04);
 
 			// Region $0400–$07ff.
 			set(0x04, state.region_04_08);
-			assert(region_map[0x07] == region_map[0x04]);
-			assert(region_map[0x08] == region_map[0x07]+1);
+			assert_is_region(0x04, 0x08);
 
 			// Base: $0800–$1FFF.
 			set(0x08, state.base);
 			set(0x0c, state.base);
-			assert(region_map[0x0b] == region_map[0x08]);
-			assert(region_map[0x0c] == region_map[0x0b]+1);
-			assert(region_map[0x1f] == region_map[0x0c]);
-			assert(region_map[0x20] == region_map[0x1f]+1);
+			assert_is_region(0x08, 0x0c);
+			assert_is_region(0x0c, 0x20);
 
 			// Region $2000–$3FFF.
 			set(0x20, state.region_20_40);
-			assert(region_map[0x3f] == region_map[0x20]);
-			assert(region_map[0x40] == region_map[0x3f]+1);
+			assert_is_region(0x20, 0x40);
 
 			// Base: $4000–$BFFF.
 			set(0x40, state.base);
 			set(0x60, state.base);
-			assert(region_map[0x5f] == region_map[0x40]);
-			assert(region_map[0x60] == region_map[0x5f]+1);
-			assert(region_map[0xbf] == region_map[0x60]);
-			assert(region_map[0xc0] == region_map[0xbf]+1);
+			assert_is_region(0x40, 0x60);
+			assert_is_region(0x60, 0xc0);
 
 #undef set
 
@@ -566,6 +567,8 @@ class MemoryMap {
 
 		// Throwaway storage to facilitate branchless handling of shadowing.
 		uint8_t shadow_throwaway_;
+
+#undef assert_is_region
 
 	public:
 		// Memory layout here is done via double indirection; the main loop should:
