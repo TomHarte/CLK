@@ -18,8 +18,8 @@ DiskImageHolderBase *Disk2MG::open(const std::string &file_name) {
 	// Check the signature.
 	if(!file.check_signature("2IMG")) throw Error::InvalidFormat;
 
-	// Skip the creator.
-	file.seek(4, SEEK_CUR);
+	// Grab the creator, potential to fix the data size momentarily.
+	const auto creator = file.read(4);
 
 	// Grab the header size, version number and image format.
 	const uint16_t header_size = file.get16le();
@@ -32,7 +32,12 @@ DiskImageHolderBase *Disk2MG::open(const std::string &file_name) {
 
 	// Get the offset and size of the disk image data.
 	const uint32_t data_start = file.get32le();
-	const uint32_t data_size = file.get32le();
+	uint32_t data_size = file.get32le();
+
+	// Correct for the Sweet 16 emulator, which writes broken 2MGs.
+	if(!data_size && !memcmp(creator.data(), "WOOF", 4)) {
+		data_size = uint32_t(file.stats().st_size - header_size);
+	}
 
 	// Skipped:
 	//
