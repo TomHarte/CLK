@@ -10,6 +10,8 @@
 
 #include "MacintoshIMG.hpp"
 
+#include <cstring>
+
 using namespace Storage::Disk;
 
 DiskImageHolderBase *Disk2MG::open(const std::string &file_name) {
