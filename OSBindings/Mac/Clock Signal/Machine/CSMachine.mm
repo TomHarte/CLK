@@ -723,17 +723,22 @@ struct ActivityObserver: public Activity::Observer {
 			// _syncTime = 0 is used here as a sentinel to mark that a sync time is known;
 			// this with the >= test ensures that no syncs are missed even if some sort of
 			// performance problem is afoot (e.g. I'm debugging).
-			if(self->_syncTime && timeNow >= self->_syncTime && self->_syncTime >= lastTime) {
+			if(self->_syncTime && timeNow >= self->_syncTime) {
 				splitAndSync = self->_isSyncLocking = self->_scanSynchroniser.can_synchronise(self->_machine->scan_producer()->get_scan_status(), self->_refreshPeriod);
 
 				// If the time window is being split, run up to the split, then check out machine speed, possibly
-				// adjusting multiplier, then run after the split.
+				// adjusting multiplier, then run after the split. Include a sanity check against an out-of-bounds
+				// _syncTime; that can happen when debugging (possibly inter alia?).
 				if(splitAndSync) {
-					self->_machine->timed_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
-					self->_machine->timed_machine()->set_speed_multiplier(
-						self->_scanSynchroniser.next_speed_multiplier(self->_machine->scan_producer()->get_scan_status())
-					);
-					self->_machine->timed_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
+					if(self->_syncTime >= lastTime) {
+						self->_machine->timed_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
+						self->_machine->timed_machine()->set_speed_multiplier(
+							self->_scanSynchroniser.next_speed_multiplier(self->_machine->scan_producer()->get_scan_status())
+						);
+						self->_machine->timed_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
+					} else {
+						self->_machine->timed_machine()->run_for((double)(timeNow - lastTime) / 1e9);
+					}
 				}
 
 				self->_syncTime = 0;
