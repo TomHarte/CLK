@@ -239,25 +239,25 @@ class ConcreteMachine:
 		}
 
 		// MARK: BusHandler.
+		uint64_t total = 0;
 		forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
 			const auto &region = MemoryMapRegion(memory_, address);
 			static bool log = false;
-			static uint64_t total = 0;
 			bool is_1Mhz = false;
 
 			if(operation == CPU::WDC65816::BusOperation::ReadVector && !(memory_.get_shadow_register()&0x40)) {
 				// I think vector pulls always go to ROM?
 				// That's slightly implied in the documentation, and doing so makes GS/OS boot, so...
 				// TODO: but is my guess above re: not doing that if IOLC shadowing is disabled correct?
+				assert(address <= 0xffff && address >= 0xffe4);
 				*value = rom_[rom_.size() - 65536 + address];
 			} else if(region.flags & MemoryMap::Region::IsIO) {
 				// Ensure classic auxiliary and language card accesses have effect.
 				const bool is_read = isReadOperation(operation);
 				memory_.access(uint16_t(address), is_read);
 
-				// TODO: which of these are actually 2.8Mhz?
-
 				const auto address_suffix = address & 0xffff;
+				assert(address_suffix >= 0xc000 && address_suffix < 0xd000);
 #define ReadWrite(x)	(x) | (is_read * 0x10000)
 #define Read(x)			(x) | 0x10000
 #define Write(x)		(x)
@@ -754,7 +754,6 @@ class ConcreteMachine:
 										}
 									break;
 								}
-//								log = true;
 							}
 #undef ReadWrite
 #undef Read
@@ -810,11 +809,21 @@ class ConcreteMachine:
 //				printf("%06x %s %02x%s\n", address, isReadOperation(operation) ? "->" : "<-", *value,
 //					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "");
 //			}
+//			log |= (total == 611808545);
+//			log |= (total == 663201455);
 			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+//				log |= address == 0xfc01ba;
+//				log |= address == 0xfc10fd;
+//				log &= address != 0xff4a73;
 //				log = (address >= 0xff6cdc) && (address < 0xff6d43);
 //				log = (address >= 0x00d300) && (address < 0x00d600);
 			}
 //			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address < 0xff6a2c) || (address >= 0xff6a9c)));
+
+//			if(address == 0x00bca9 && operation == CPU::WDC65816::BusOperation::Write && !*value) {
+//				printf("%06x <- %02x [%d]\n", address, *value, static_cast<unsigned long long>(total));
+//			}
+
 			if(log) {
 				printf("%06x %s %02x [%s]", address, isReadOperation(operation) ? "->" : "<-", *value, (is_1Mhz || (speed_register_ & motor_flags_)) ? "1.0" : "2.8");
 				if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
