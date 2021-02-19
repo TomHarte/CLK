@@ -128,13 +128,13 @@ class Executor: public CachingExecutor {
 		std::array<uint8_t, 0x2000> memory_;
 
 		// Registers.
-		uint8_t a_, x_, y_, s_;
+		uint8_t a_ = 0, x_ = 0, y_ = 0, s_ = 0;
 
 		uint8_t negative_result_ = 0;
 		uint8_t zero_result_ = 0;
 		uint8_t interrupt_disable_ = 0x04;
 		uint8_t carry_flag_ = 0;
-		uint8_t overflow_result_;
+		uint8_t overflow_result_ = 0;
 		bool index_mode_ = false;
 		bool decimal_mode_ = false;
 

@@ -63,7 +63,7 @@ class GLU: public InstructionSet::M50740::PortHandler {
 		void set_port_output(int port, uint8_t value) override;
 		uint8_t get_port_input(int port) override;
 
-		uint8_t registers_[16];
+		uint8_t registers_[16]{};
 
 		uint8_t register_address_;
 		uint8_t register_latch_ = 0xff;
