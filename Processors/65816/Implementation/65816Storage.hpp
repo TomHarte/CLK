@@ -262,6 +262,7 @@ struct ProcessorStorage {
 
 	// A helper for testing.
 	uint16_t last_operation_pc_;
+	uint8_t last_operation_program_bank_;
 	Instruction *active_instruction_;
 	Cycles cycles_left_to_run_;
 
