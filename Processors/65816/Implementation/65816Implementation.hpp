@@ -30,11 +30,6 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 		// Process for as much time is left and/or until ready is signalled.
 		while((!uses_ready_line || !ready_line_) && number_of_cycles > Cycles(0)) {
-			++count_;
-			if(count_ == 148933250) {
-				printf("");
-			}
-
 			const MicroOp operation = *next_op_;
 			++next_op_;
 

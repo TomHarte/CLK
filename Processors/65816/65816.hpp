@@ -80,7 +80,6 @@ template <typename BusHandler, bool uses_ready_line> class Processor: public Pro
 
 	private:
 		BusHandler &bus_handler_;
-		int count_ = 0;
 };
 
 #include "Implementation/65816Implementation.hpp"
