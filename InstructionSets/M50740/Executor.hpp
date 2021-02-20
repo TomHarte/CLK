@@ -44,6 +44,8 @@ class Executor: public CachingExecutor {
 		void reset();
 		void set_interrupt_line(bool);
 
+		uint8_t get_output_mask(int port);
+
 		/*!
 			Runs, in discrete steps, the minimum number of instructions as it takes to complete at least @c cycles.
 		*/

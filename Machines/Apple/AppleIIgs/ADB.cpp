@@ -55,7 +55,7 @@ uint8_t GLU::get_keyboard_data() {
 	// The classic Apple II serial keyboard register:
 	// b7:		key strobe.
 	// b6–b0:	ASCII code.
-	return registers_[0] | (status_ & uint8_t(CPUFlags::KeyboardDataFull)) ? 0x80 : 0x00;
+	return (registers_[0] & 0x7f) | (status_ & uint8_t(CPUFlags::KeyboardDataFull)) ? 0x80 : 0x00;
 }
 
 void GLU::clear_key_strobe() {
@@ -175,29 +175,54 @@ void GLU::set_port_output(int port, uint8_t value) {
 
 			register_address_ = value & 0xf;
 
-			// Check the strobe; I think:
+			// This is an ugly hack, I think. Per Neil Parker's Inside the Apple IIGS ADB Controller
+			// http://nparker.llx.com/a2/adb.html#external:
 			//
-			//	high -> low, read => fill latch from register;
-			//	low -> high => fill register from latch.
+			// The protocol for reading an ADB GLU register is as follows:
+			//
+			// 1. Put the register number of the ADB GLU register in port P2 bits 0-3.
+			// 2. Clear bit 4 of port P2, read the data from P0, and set bit 4 of P0.
+			//
+			// The protocol for writing a GLU register is similar:
+			//
+			// 1. Write the register number to port P2 bits 0-3.
+			// 2. Write the data to port P0.
+			// 3. Configure port P0 for output by writing $FF to $E1.
+			// 4. Clear bit 4 of P2, and immediately set it again.
+			// 5. Configure port P0 for input by writing 0 to $E1.
+			//
+			// ---
+			//
+			// I tried: linking a read or write to rising or falling edges of the strobe.
+			// Including with hysteresis as per the "immediately" (which, in practice, seems
+			// to mean "in the very next instruction", i.e. 5 cycles later). That didn't seem
+			// properly to differentiate.
+			//
+			// So I'm focussing on the "configure port P0 for output" bit. Which I don't see
+			// would be visible here unless it is actually an exposed signal, which is unlikely.
+			//
+			// Ergo: ugly. HACK.
 			const bool strobe = value & 0x10;
 			if(strobe != register_strobe_) {
 				register_strobe_ = strobe;
 
-				if(register_strobe_) {
-					registers_[register_address_] = register_latch_;
-					switch(register_address_) {
-						default: break;
-						case 0:		status_ |= uint8_t(CPUFlags::KeyboardDataFull);		break;
-						case 7:		status_ |= uint8_t(CPUFlags::CommandDataIsValid);	break;
-					}
-				} else {
-					register_latch_ = registers_[register_address_];
-					switch(register_address_) {
-						default: break;
-						case 1:
-							registers_[4] &= ~uint8_t(MicrocontrollerFlags::CommandRegisterFull);
-							status_ &= ~uint8_t(CPUFlags::CommandRegisterFull);
-						break;
+				if(!register_strobe_) {
+					if(executor_.get_output_mask(0)) {
+						registers_[register_address_] = register_latch_;
+						switch(register_address_) {
+							default: break;
+							case 0:		status_ |= uint8_t(CPUFlags::KeyboardDataFull);		break;
+							case 7:		status_ |= uint8_t(CPUFlags::CommandDataIsValid);	break;
+						}
+					} else {
+						register_latch_ = registers_[register_address_];
+						switch(register_address_) {
+							default: break;
+							case 1:
+								registers_[4] &= ~uint8_t(MicrocontrollerFlags::CommandRegisterFull);
+								status_ &= ~uint8_t(CPUFlags::CommandRegisterFull);
+							break;
+						}
 					}
 				}
 			}

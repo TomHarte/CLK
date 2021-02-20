@@ -829,3 +829,7 @@ inline int Executor::update_timer(Timer &timer, int count) {
 	timer.value = uint8_t(next_value);
 	return 0;
 }
+
+uint8_t Executor::get_output_mask(int port) {
+	return port_directions_[port];
+}
