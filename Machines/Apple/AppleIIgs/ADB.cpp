@@ -74,7 +74,11 @@ uint8_t GLU::get_mouse_data() {
 	// b7: 		1 = button is up; 0 = button is down.
 	// b6:		delta sign bit; 1 = negative.
 	// b5–b0:	mouse delta.
-	return 0x80;	// TODO. Should alternate between registers 2 and 3.
+	status_ &= ~uint8_t(CPUFlags::MouseDataFull);
+
+	const uint8_t result = registers_[visible_mouse_register_];
+	visible_mouse_register_ += (visible_mouse_register_ == 2);
+	return result;
 }
 
 uint8_t GLU::get_modifier_status() {
@@ -109,7 +113,7 @@ uint8_t GLU::get_status() {
 	// b2:	1 = keyboard data interrupt is enabled.
 	// b1:	1 = mouse x-data is available; 0 = y.
 	// b0:	1 = command register is full (set when command is written); 0 = empty (cleared when data is read).
-	return status_;
+	return status_ | ((visible_mouse_register_ == 2) ? uint8_t(CPUFlags::MouseXIsAvailable) : 0);
 }
 
 void GLU::set_status(uint8_t status) {
@@ -212,6 +216,12 @@ void GLU::set_port_output(int port, uint8_t value) {
 						switch(register_address_) {
 							default: break;
 							case 0:		status_ |= uint8_t(CPUFlags::KeyboardDataFull);		break;
+							case 2:
+							case 3:
+								status_ |= uint8_t(CPUFlags::MouseDataFull);
+								visible_mouse_register_ = 2;
+								printf("Mouse: %d <- %02x\n", register_address_, register_latch_);
+							break;
 							case 7:		status_ |= uint8_t(CPUFlags::CommandDataIsValid);	break;
 						}
 					} else {

@@ -78,6 +78,8 @@ class GLU: public InstructionSet::M50740::PortHandler {
 
 		bool vertical_blank_ = false;
 
+		int visible_mouse_register_ = 2;
+
 		// For now, attach only a keyboard and mouse.
 		Apple::ADB::Mouse mouse_;
 		Apple::ADB::Keyboard keyboard_;
