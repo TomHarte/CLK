@@ -55,7 +55,7 @@ uint8_t GLU::get_keyboard_data() {
 	// The classic Apple II serial keyboard register:
 	// b7:		key strobe.
 	// b6–b0:	ASCII code.
-	return (registers_[0] & 0x7f) | (status_ & uint8_t(CPUFlags::KeyboardDataFull)) ? 0x80 : 0x00;
+	return (registers_[0] & 0x7f) | ((status_ & uint8_t(CPUFlags::KeyboardDataFull)) ? 0x80 : 0x00);
 }
 
 void GLU::clear_key_strobe() {
