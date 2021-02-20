@@ -96,7 +96,7 @@ uint8_t GLU::get_data() {
 	// b5:		1 = control, command and reset have all been pressed together; 0 = they haven't.
 	// b6:		1 = ADB controller encountered an error and reset itself; 0 = no error.
 	// b7:		1 = ADB has received a response from the addressed ADB device; 0 = no respone.
-//	status_ &= ~(CPUFlags::CommandDataIsValid | CPUFlags::CommandRegisterFull);
+	status_ &= ~uint8_t(CPUFlags::CommandDataIsValid);
 	return registers_[7];
 }
 
