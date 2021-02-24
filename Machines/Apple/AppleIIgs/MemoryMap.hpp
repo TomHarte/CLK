@@ -27,6 +27,7 @@ class MemoryMap {
 		void set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
 			// Keep a pointer for later; also note the proper RAM offset.
 			ram_base = ram.data();
+			shadow_base[0] = ram_base;						// i.e. all unshadowed writes go to where they've already gone (to make a no-op).
 			shadow_base[1] = &ram[ram.size() - 0x02'0000];	// i.e. all shadowed writes go somewhere in the last
 															// 128bk of RAM.
 
@@ -435,11 +436,11 @@ class MemoryMap {
 
 			// Disables shadowing for the region starting from @c zone if @c flag is true;
 			// otherwise enables it.
-#define apply(flag, zone)	\
-	if(flag) {	\
+#define apply(disable, zone)									\
+	if(disable) {												\
 		regions[region_map[zone]].flags &= ~Region::IsShadowed; \
-	} else {	\
-		regions[region_map[zone]].flags |= Region::IsShadowed; \
+	} else {													\
+		regions[region_map[zone]].flags |= Region::IsShadowed;	\
 	}
 
 			// Relevant bits:
@@ -457,8 +458,8 @@ class MemoryMap {
 			// Text Page 1, main and auxiliary — $0400–$0800.
 			apply(shadow_register_ & 0x01, 0x0004);
 			apply(shadow_register_ & 0x01, 0x0104);
-			apply((shadow_register_ & 0x01) || inhibit_all_pages, 0x0204);	// All other pages uses the same shadowing flags.
-			apply((shadow_register_ & 0x01) || inhibit_all_pages, 0x0304);
+//			apply((shadow_register_ & 0x01) || inhibit_all_pages, 0x0204);	// All other pages uses the same shadowing flags.
+//			apply((shadow_register_ & 0x01) || inhibit_all_pages, 0x0304);
 			assert_is_region(0x004, 0x008);
 			assert_is_region(0x104, 0x108);
 			assert_is_region(0x204, 0x208);
@@ -565,9 +566,6 @@ class MemoryMap {
 			set_shadowing();
 		}
 
-		// Throwaway storage to facilitate branchless handling of shadowing.
-		uint8_t shadow_throwaway_;
-
 #undef assert_is_region
 
 	public:
@@ -579,8 +577,8 @@ class MemoryMap {
 		// reduces what would otherwise be a 1.25mb table down to not a great deal more than 64kb.
 		std::array<uint8_t, 65536> region_map{};
 		uint8_t *ram_base = nullptr;
-		uint8_t *shadow_base[2] = {&shadow_throwaway_, nullptr};
-		static constexpr int shadow_mask[2] = {0, 0x01'ffff};
+		uint8_t *shadow_base[2] = {nullptr, nullptr};
+		static constexpr int shadow_mask[2] = {0xff'ffff, 0x01'ffff};
 
 		struct Region {
 			uint8_t *write = nullptr;
@@ -607,7 +605,7 @@ class MemoryMap {
 #define MemoryMapWrite(map, region, address, value) \
 	if(region.write) {	\
 		region.write[address] = *value;	\
-		const bool is_shadowed = region.flags & MemoryMap::Region::IsShadowed;	\
+		const auto is_shadowed = region.flags & MemoryMap::Region::IsShadowed;	\
 		map.shadow_base[is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[is_shadowed]] = *value;	\
 	}
 
