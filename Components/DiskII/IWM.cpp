@@ -8,6 +8,7 @@
 
 #include "IWM.hpp"
 
+#define NDEBUG
 #define LOG_PREFIX "[IWM] "
 #include "../../Outputs/Log.hpp"
 
