@@ -74,10 +74,13 @@ uint8_t GLU::get_mouse_data() {
 	// b7: 		1 = button is up; 0 = button is down.
 	// b6:		delta sign bit; 1 = negative.
 	// b5–b0:	mouse delta.
-	status_ &= ~uint8_t(CPUFlags::MouseDataFull);
 
 	const uint8_t result = registers_[visible_mouse_register_];
-	visible_mouse_register_ += (visible_mouse_register_ == 2);
+	if(visible_mouse_register_ == 2) {
+		++visible_mouse_register_;
+	} else {
+		status_ &= ~uint8_t(CPUFlags::MouseDataFull);
+	}
 	return result;
 }
 
