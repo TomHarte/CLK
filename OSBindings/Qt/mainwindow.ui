@@ -330,6 +330,16 @@
              <widget class="QComboBox" name="macintoshModelComboBox">
               <item>
                <property name="text">
+                <string>128k</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>512k</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
                 <string>512ke</string>
                </property>
               </item>

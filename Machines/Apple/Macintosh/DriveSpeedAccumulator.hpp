@@ -34,8 +34,9 @@ class DriveSpeedAccumulator {
 		}
 
 	private:
-		std::array<uint8_t, 20> samples_;
-		std::size_t sample_pointer_ = 0;
+		static constexpr int samples_per_bucket = 20;
+		int sample_count_ = 0;
+		int sample_total_ = 0;
 		Delegate *delegate_ = nullptr;
 };
 

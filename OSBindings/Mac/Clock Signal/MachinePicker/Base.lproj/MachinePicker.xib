@@ -303,11 +303,11 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Macintosh" identifier="mac" id="lmR-z3-xSm">
                                 <view key="view" id="7Yf-vi-Q0W">
-                                    <rect key="frame" x="10" y="33" width="674" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="679" height="95"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZOY-4E-Cfl">
-                                            <rect key="frame" x="15" y="73" width="46" height="16"/>
+                                            <rect key="frame" x="15" y="74" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="h9r-i6-66j">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -315,13 +315,15 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="xa6-NA-JY5">
-                                            <rect key="frame" x="65" y="67" width="74" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="Plus" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="3" imageScaling="proportionallyDown" inset="2" selectedItem="R6T-hg-rOF" id="1Kb-Q2-BGM">
+                                            <rect key="frame" x="64" y="68" width="75" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="128k" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="WCG-6u-ANQ" id="1Kb-Q2-BGM">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="ofy-j9-YnU">
                                                     <items>
-                                                        <menuItem title="512ke" tag="2" id="WCG-6u-ANQ"/>
+                                                        <menuItem title="128k" id="WCG-6u-ANQ"/>
+                                                        <menuItem title="512k" tag="1" id="FlG-je-OOM"/>
+                                                        <menuItem title="512ke" tag="2" id="xaj-em-oZa"/>
                                                         <menuItem title="Plus" state="on" tag="3" id="R6T-hg-rOF"/>
                                                     </items>
                                                 </menu>
