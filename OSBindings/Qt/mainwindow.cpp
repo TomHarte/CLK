@@ -1175,8 +1175,10 @@ void MainWindow::start_macintosh() {
 	auto target = std::make_unique<Target>();
 
 	switch(ui->macintoshModelComboBox->currentIndex()) {
-		default:	target->model = Target::Model::Mac512ke;	break;
-		case 1:		target->model = Target::Model::MacPlus;		break;
+		default:	target->model = Target::Model::Mac128k;		break;
+		case 1:		target->model = Target::Model::Mac512k;		break;
+		case 2:		target->model = Target::Model::Mac512ke;	break;
+		case 3:		target->model = Target::Model::MacPlus;		break;
 	}
 
 	launchTarget(std::move(target));

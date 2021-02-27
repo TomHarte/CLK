@@ -19,6 +19,19 @@ Analyser::Static::TargetList Analyser::Static::Macintosh::GetTargets(const Media
 	using Target = Analyser::Static::Macintosh::Target;
 	auto *const target = new Target;
 	target->media = media;
+
+	// If this is a single-sided floppy disk, guess the Macintosh 512kb.
+	if(media.mass_storage_devices.empty()) {
+		bool has_800kb_disks = false;
+		for(const auto &disk: media.disks) {
+			has_800kb_disks |= disk->get_head_count() > 1;
+		}
+
+		if(!has_800kb_disks) {
+			target->model = Target::Model::Mac512k;
+		}
+	}
+
 	targets.push_back(std::unique_ptr<Analyser::Static::Target>(target));
 
 	return targets;
