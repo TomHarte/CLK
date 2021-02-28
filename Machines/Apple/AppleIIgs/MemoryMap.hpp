@@ -187,6 +187,9 @@ class MemoryMap {
 				set_storage((first_rom_bank + c) << 16, &rom[c << 16], nullptr);
 			}
 
+			// Set shadowing as working from banks 0 and 1 (forever).
+			shadow_banks[0] = true;
+
 			// TODO: set 1Mhz flags.
 
 			// Apply initial language/auxiliary state.
@@ -215,7 +218,11 @@ class MemoryMap {
 
 		void set_speed_register(uint8_t value) {
 			speed_register_ = value;
-			enable_all_pages_shadowing = speed_register_ & 0x10;
+
+			// Enable or disable shadowing from banks 0x02–0x80.
+			for(size_t c = 0x01; c < 0x40; c++) {
+				shadow_banks[c] = speed_register_ & 0x10;
+			}
 		}
 
 		void set_state_register(uint8_t value) {
@@ -426,13 +433,13 @@ class MemoryMap {
 
 			// Text Page 1, main and auxiliary — $0400–$0800.
 			for(size_t c = 0x0400 >> shadow_shift; c < 0x0800 >> shadow_shift; c++) {
-				is_shadowed[c] = is_shadowed[c+auxiliary_offset] = !(shadow_register_ & 0x01);
+				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x01);
 			}
 
 			// Text Page 2, main and auxiliary — 0x0800–0x0c00.
 			// TODO: on a ROM03 machine only.
 			for(size_t c = 0x0800 >> shadow_shift; c < 0x0c00 >> shadow_shift; c++) {
-				is_shadowed[c] = is_shadowed[c+auxiliary_offset] = !(shadow_register_ & 0x20);
+				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x20);
 			}
 
 			// Hi-res graphics Page 1, main and auxiliary — $2000–$4000;
@@ -445,8 +452,8 @@ class MemoryMap {
 			//	(high-res graphics inhibit or auxiliary high res graphics inhibit) _and_ (super high-res inhibit).
 			//
 			for(size_t c = 0x2000 >> shadow_shift; c < 0x4000 >> shadow_shift; c++) {
-				is_shadowed[c] = !(shadow_register_ & 0x02);
-				is_shadowed[c+auxiliary_offset] = !(shadow_register_ & 0x12);
+				shadow_pages[c] = !(shadow_register_ & 0x02);
+				shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x12);
 			}
 
 			// Hi-res graphics Page 2, main and auxiliary — $4000–$6000;
@@ -454,13 +461,13 @@ class MemoryMap {
 			//
 			// Test applied: much like that for page 1.
 			for(size_t c = 0x4000 >> shadow_shift; c < 0x6000 >> shadow_shift; c++) {
-				is_shadowed[c] = !(shadow_register_ & 0x04);
-				is_shadowed[c+auxiliary_offset] = !(shadow_register_ & 0x14);
+				shadow_pages[c] = !(shadow_register_ & 0x04);
+				shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x14);
 			}
 
 			// Residue of Super Hi-Res — $6000–$a000 (odd pages only).
 			for(size_t c = 0x6000 >> shadow_shift; c < 0xa000 >> shadow_shift; c++) {
-				is_shadowed[c+auxiliary_offset] = !(shadow_register_ & 0x08);
+				shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x08);
 			}
 		}
 
@@ -559,10 +566,12 @@ class MemoryMap {
 										// doctrinal reason for it to be whatever size it is now, just
 										// adjust as required.
 
-		// Contains a flag for every page in the final 128kb of memory, indicating whether it is
-		// currently subject to shadowing.
-		std::bitset<128> is_shadowed;
-		bool enable_all_pages_shadowing = false;
+		// Shadow_pages: divides the final 128kb of memory into 1kb chunks and includes a flag to indicate whether
+		// each is a potential destination for shadowing.
+		//
+		// Shadow_banks: divides the whole 16mb of memory into 128kb chunks and includes a flag to indicate whether
+		// each is a potential source of shadowing.
+		std::bitset<128> shadow_pages, shadow_banks;
 };
 
 // TODO: branching below on region.read/write is predicated on the idea that extra scratch space
@@ -571,7 +580,7 @@ class MemoryMap {
 // TODO: somehow eliminate bank 0/1 conditional in IsShadowed.
 
 #define MemoryMapRegion(map, address) 			map.regions[map.region_map[address >> 8]]
-#define IsShadowed(map, region, address)		map.is_shadowed[((&region.write[address] - map.ram_base) >> 10) & 127] && (map.enable_all_pages_shadowing || (address < 0x2'0000))
+#define IsShadowed(map, region, address)		(map.shadow_pages[((&region.write[address] - map.ram_base) >> 10) & 127] & map.shadow_banks[address >> 17])
 #define MemoryMapRead(region, address, value)	*value = region.read ? region.read[address] : 0xff
 #define MemoryMapWrite(map, region, address, value) \
 	if(region.write) {	\
@@ -579,9 +588,6 @@ class MemoryMap {
 		const bool _mm_is_shadowed = IsShadowed(map, region, address);	\
 		map.shadow_base[is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[_mm_is_shadowed]] = *value;	\
 	}
-
-//		const auto is_shadowed = region.flags & MemoryMap::Region::IsShadowed;	\
-//		map.shadow_base[is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[is_shadowed]] = *value;	\
 
 // Quick notes on ::IsShadowed contortions:
 //
