@@ -234,11 +234,8 @@ class MemoryMap {
 		}
 
 		void set_speed_register(uint8_t value) {
-			const uint8_t diff = value ^ speed_register_;
 			speed_register_ = value;
-			if(diff & 0x10) {
-				set_shadowing();
-			}
+			enable_all_pages_shadowing = speed_register_ & 0x10;
 		}
 
 		void set_state_register(uint8_t value) {
@@ -432,8 +429,6 @@ class MemoryMap {
 		//
 		// Completely distinct from the auxiliary and language card switches.
 		void set_shadowing() {
-			const bool inhibit_all_pages = !(speed_register_ & 0x10);
-
 			// Disables shadowing for the region starting from @c zone if @c flag is true;
 			// otherwise enables it.
 #define apply(disable, zone)									\
@@ -455,26 +450,19 @@ class MemoryMap {
 			// The interpretations of how the overlapping high-res and super high-res inhibit
 			// bits apply used below is taken from The Apple IIgs Technical Reference, P. 178.
 
+			constexpr int shadow_shift = 10;
+			constexpr int auxiliary_offset = 0x10000 >> shadow_shift;
+
 			// Text Page 1, main and auxiliary — $0400–$0800.
-			apply(shadow_register_ & 0x01, 0x0004);
-			apply(shadow_register_ & 0x01, 0x0104);
-//			apply((shadow_register_ & 0x01) || inhibit_all_pages, 0x0204);	// All other pages uses the same shadowing flags.
-//			apply((shadow_register_ & 0x01) || inhibit_all_pages, 0x0304);
-			assert_is_region(0x004, 0x008);
-			assert_is_region(0x104, 0x108);
-			assert_is_region(0x204, 0x208);
-			assert_is_region(0x304, 0x308);
+			for(size_t c = 0x0400 >> shadow_shift; c < 0x0800 >> shadow_shift; c++) {
+				is_shadowed[c] = is_shadowed[c+auxiliary_offset] = !(shadow_register_ & 0x01);
+			}
 
 			// Text Page 2, main and auxiliary — 0x0800–0x0c00.
 			// TODO: on a ROM03 machine only.
-			apply(shadow_register_ & 0x20, 0x0008);
-			apply(shadow_register_ & 0x20, 0x0108);
-			apply((shadow_register_ & 0x20) || inhibit_all_pages, 0x0208);
-			apply((shadow_register_ & 0x20) || inhibit_all_pages, 0x0308);
-			assert_is_region(0x008, 0x00c);
-			assert_is_region(0x108, 0x10c);
-			assert_is_region(0x208, 0x20c);
-			assert_is_region(0x308, 0x30c);
+			for(size_t c = 0x0800 >> shadow_shift; c < 0x0c00 >> shadow_shift; c++) {
+				is_shadowed[c] = is_shadowed[c+auxiliary_offset] = !(shadow_register_ & 0x20);
+			}
 
 			// Hi-res graphics Page 1, main and auxiliary — $2000–$4000;
 			// also part of the super high-res graphics page on odd pages.
@@ -485,33 +473,24 @@ class MemoryMap {
 			// Odd test:
 			//	(high-res graphics inhibit or auxiliary high res graphics inhibit) _and_ (super high-res inhibit).
 			//
-			apply(shadow_register_ & 0x02, 0x0020);
-			apply((shadow_register_ & 0x12) && (shadow_register_ & 0x08), 0x0120);
-			apply((shadow_register_ & 0x02) || inhibit_all_pages, 0x0220);
-			apply(((shadow_register_ & 0x12) && (shadow_register_ & 0x08)) || inhibit_all_pages, 0x0320);
-			assert_is_region(0x020, 0x040);
-			assert_is_region(0x120, 0x140);
-			assert_is_region(0x220, 0x240);
-			assert_is_region(0x320, 0x340);
+			for(size_t c = 0x2000 >> shadow_shift; c < 0x4000 >> shadow_shift; c++) {
+				is_shadowed[c] = !(shadow_register_ & 0x02);
+				is_shadowed[c+auxiliary_offset] = !(shadow_register_ & 0x12);
+			}
 
 			// Hi-res graphics Page 2, main and auxiliary — $4000–$6000;
 			// also part of the super high-res graphics page.
 			//
 			// Test applied: much like that for page 1.
-			apply(shadow_register_ & 0x04, 0x0040);
-			apply((shadow_register_ & 0x14) && (shadow_register_ & 0x08), 0x0140);
-			apply((shadow_register_ & 0x04) || inhibit_all_pages, 0x0240);
-			apply(((shadow_register_ & 0x14) && (shadow_register_ & 0x08)) || inhibit_all_pages, 0x0340);
-			assert_is_region(0x040, 0x060);
-			assert_is_region(0x140, 0x160);
-			assert_is_region(0x240, 0x260);
-			assert_is_region(0x340, 0x360);
+			for(size_t c = 0x4000 >> shadow_shift; c < 0x6000 >> shadow_shift; c++) {
+				is_shadowed[c] = !(shadow_register_ & 0x04);
+				is_shadowed[c+auxiliary_offset] = !(shadow_register_ & 0x14);
+			}
 
 			// Residue of Super Hi-Res — $6000–$a000 (odd pages only).
-			apply(shadow_register_ & 0x08, 0x0160);
-			apply((shadow_register_ & 0x08) || inhibit_all_pages, 0x0360);
-			assert_is_region(0x160, 0x1a0);
-			assert_is_region(0x360, 0x3a0);
+			for(size_t c = 0x6000 >> shadow_shift; c < 0xa000 >> shadow_shift; c++) {
+				is_shadowed[c+auxiliary_offset] = !(shadow_register_ & 0x08);
+			}
 
 #undef apply
 		}
@@ -566,6 +545,23 @@ class MemoryMap {
 			set_shadowing();
 		}
 
+		void print_state() {
+			uint8_t region = region_map[0];
+			uint32_t start = 0;
+			for(uint32_t top = 0; top < 65536; top++) {
+				if(region_map[top] == region) continue;
+
+				printf("%06x -> %06x\t", start, top << 8);
+				printf("%c%c\n",
+					(regions[region_map[top] - 1].flags & Region::Is1Mhz) ? '1' : '-',
+					(regions[region_map[top] - 1].flags & Region::IsIO) ? 'x' : '-'
+				);
+
+				start = top << 8;
+				region = region_map[top];
+			}
+		}
+
 #undef assert_is_region
 
 	public:
@@ -586,28 +582,37 @@ class MemoryMap {
 			uint8_t flags = 0;
 
 			enum Flag: uint8_t {
-				IsShadowed = 1 << 0,	// Writes should be shadowed to [end of RAM - 128kb + base offset].
-				Is1Mhz = 1 << 1,		// Both reads and writes should be synchronised with the 1Mhz clock.
-				IsIO = 1 << 2,			// Indicates that this region should be checked for soft switches, registers, etc;
-										// usurps the shadowed flags.
+				Is1Mhz = 1 << 0,		// Both reads and writes should be synchronised with the 1Mhz clock.
+				IsIO = 1 << 1,			// Indicates that this region should be checked for soft switches, registers, etc.
 			};
 		};
 		std::array<Region, 64> regions;	// The assert above ensures that this is large enough; there's no
 										// doctrinal reason for it to be whatever size it is now, just
 										// adjust as required.
+
+		// Contains a flag for every page in the final 128kb of memory, indicating whether it is
+		// currently subject to shadowing.
+		std::bitset<128> is_shadowed;
+		bool enable_all_pages_shadowing = true;
 };
 
 // TODO: branching below on region.read/write is predicated on the idea that extra scratch space
 // would be less efficient. Verify that?
 
-#define MemoryMapRegion(map, address) map.regions[map.region_map[address >> 8]]
-#define MemoryMapRead(region, address, value) *value = region.read ? region.read[address] : 0xff
+// TODO: somehow eliminate bank 0/1 conditional in IsShadowed.
+
+#define MemoryMapRegion(map, address) 			map.regions[map.region_map[address >> 8]]
+#define IsShadowed(map, region, address)		map.is_shadowed[((&region.write[address] - map.ram_base) >> 10) & 127] && (map.enable_all_pages_shadowing || (address < 0x2'0000))
+#define MemoryMapRead(region, address, value)	*value = region.read ? region.read[address] : 0xff
 #define MemoryMapWrite(map, region, address, value) \
 	if(region.write) {	\
 		region.write[address] = *value;	\
-		const auto is_shadowed = region.flags & MemoryMap::Region::IsShadowed;	\
-		map.shadow_base[is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[is_shadowed]] = *value;	\
+		const bool _mm_is_shadowed = IsShadowed(map, region, address);	\
+		map.shadow_base[is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[_mm_is_shadowed]] = *value;	\
 	}
+
+//		const auto is_shadowed = region.flags & MemoryMap::Region::IsShadowed;	\
+//		map.shadow_base[is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[is_shadowed]] = *value;	\
 
 // Quick notes on ::IsShadowed contortions:
 //
