@@ -10,6 +10,7 @@
 #define Machines_Apple_AppleIIgs_MemoryMap_hpp
 
 #include <array>
+#include <bitset>
 #include <vector>
 
 #include "../AppleII/LanguageCardSwitches.hpp"
