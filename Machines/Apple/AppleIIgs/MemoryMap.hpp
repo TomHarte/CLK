@@ -64,27 +64,16 @@ class MemoryMap {
 			// Current beliefs about the IIgs memory map:
 			//
 			//	* language card banking applies to banks $00, $01, $e0 and $e1;
-			//	* auxiliary memory switches apply to bank $e0 only, but thereby also affect shadowed writes from $00;
+			//	* auxiliary memory switches apply to bank $00 only;
 			//	* shadowing may be enabled only on banks $00 and $01, or on all RAM pages; and
 			//	* whether bit 16 of the address is passed to the Mega II is selectable — this affects both the destination
 			//	of odd-bank shadows, and whether bank $e1 is actually distinct from $e0.
 			//
 			// So:
 			//
-			//	* banks $00 and $01 need to be divided both by shadowing zones and by the language card;
-			//	* all other fast RAM banks need be divided by shadowing zone only;
-			//	* $e0 needs to be ready for any language/auxiliary arrangement;
-			//	* $e1 needs to apply the language card mapping only; and
-			//	* ROM banks don't need to be divided? Or probably they shadow writes back to $e0/$e1 too?
-
-			// Shadowing zones:
-			//
-			//	$0400–$0800	Text Page 1
-			//	$0800–$0C00	Text Page 2								[ROM 03 machines]
-			//	$2000–$4000	High-res Page 1, and Super High-res in odd banks
-			//	$4000–$6000	High-res Page 2, and Huper High-res in odd banks
-			//	$6000–$a000 Odd banks only, rest of Super High-res
-			//	[plus IO and language card space, subject to your definition of shadowing]
+			//	* bank $00 needs to be divided by auxiliary and language card zones;
+			//	* banks $01, $e0 and $e1 need to be divided by language card zones only; and
+			//	* ROM banks and all other fast RAM banks don't need subdivision.
 
 			// Language card zones:
 			//
@@ -111,20 +100,17 @@ class MemoryMap {
 			region();
 
 			// Bank $00: all locations potentially affected by the auxiliary switches or the
-			// language switches. Which will naturally align with shadowable zones.
+			// language switches.
 			set_regions(0x00, {
-				0x0200,	0x0400,	0x0800, 0x0c00,
-				0x2000,	0x4000, 0x6000,
+				0x0200,	0x0400,	0x0800,
+				0x2000,	0x4000,
 				0xc000,	0xc100,	0xc300,	0xc400,	0xc800,
 				0xd000,	0xe000,
 				0xffff
 			});
 
-			// Bank $01: all locations potentially affected by the language switches, by shadowing,
-			// or marked for IO.
+			// Bank $01: all locations potentially affected by the language switches and card switches.
 			set_regions(0x01, {
-				0x0400,	0x0800, 0x0c00,
-				0x2000,	0x4000, 0x6000, 0xa000,
 				0xc000,	0xc100,	0xc300,	0xc400,	0xc800,
 				0xd000,	0xe000,
 				0xffff
@@ -428,6 +414,15 @@ class MemoryMap {
 			// The interpretations of how the overlapping high-res and super high-res inhibit
 			// bits apply used below is taken from The Apple IIgs Technical Reference, P. 178.
 
+			// Of course, zones are:
+			//
+			//	$0400–$0800	Text Page 1
+			//	$0800–$0C00	Text Page 2								[ROM 03 machines]
+			//	$2000–$4000	High-res Page 1, and Super High-res in odd banks
+			//	$4000–$6000	High-res Page 2, and Huper High-res in odd banks
+			//	$6000–$a000 Odd banks only, rest of Super High-res
+			//	[plus IO and language card space, subject to your definition of shadowing]
+
 			constexpr int shadow_shift = 10;
 			constexpr int auxiliary_offset = 0x10000 >> shadow_shift;
 
@@ -492,9 +487,7 @@ class MemoryMap {
 
 			// Base: $0800–$1FFF.
 			set(0x08, state.base);
-			set(0x0c, state.base);
-			assert_is_region(0x08, 0x0c);
-			assert_is_region(0x0c, 0x20);
+			assert_is_region(0x08, 0x20);
 
 			// Region $2000–$3FFF.
 			set(0x20, state.region_20_40);
@@ -502,9 +495,7 @@ class MemoryMap {
 
 			// Base: $4000–$BFFF.
 			set(0x40, state.base);
-			set(0x60, state.base);
-			assert_is_region(0x40, 0x60);
-			assert_is_region(0x60, 0xc0);
+			assert_is_region(0x40, 0xc0);
 
 #undef set
 
@@ -562,9 +553,6 @@ class MemoryMap {
 				IsIO = 1 << 1,			// Indicates that this region should be checked for soft switches, registers, etc.
 			};
 		};
-		std::array<Region, 64> regions;	// The assert above ensures that this is large enough; there's no
-										// doctrinal reason for it to be whatever size it is now, just
-										// adjust as required.
 
 		// Shadow_pages: divides the final 128kb of memory into 1kb chunks and includes a flag to indicate whether
 		// each is a potential destination for shadowing.
@@ -572,6 +560,10 @@ class MemoryMap {
 		// Shadow_banks: divides the whole 16mb of memory into 128kb chunks and includes a flag to indicate whether
 		// each is a potential source of shadowing.
 		std::bitset<128> shadow_pages, shadow_banks;
+
+		std::array<Region, 40> regions;	// An assert above ensures that this is large enough; there's no
+										// doctrinal reason for it to be whatever size it is now, just
+										// adjust as required.
 };
 
 // TODO: branching below on region.read/write is predicated on the idea that extra scratch space
