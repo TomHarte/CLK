@@ -171,11 +171,14 @@ void Executor::write(uint16_t address, uint8_t value) {
 		} break;
 
 		// Timers.
-		case 0xf9:	prescalers_[0].reload_value = value;	break;
-		case 0xfa:	timers_[0].reload_value = value;		break;
-		case 0xfb:	timers_[1].reload_value = value;		break;
-		case 0xfc:	prescalers_[1].reload_value = value;	break;
-		case 0xfd:	timers_[2].reload_value = value;		break;
+		//
+		// Reloading of value with the reload value is a guess, based upon what I take
+		// to be the intended usage of timer 2 in handling key repeat on the Apple IIgs.
+		case 0xf9:	prescalers_[0].value = prescalers_[0].reload_value = value;	break;
+		case 0xfa:	timers_[0].value = timers_[0].reload_value = value;			break;
+		case 0xfb:	timers_[1].value = timers_[1].reload_value = value;			break;
+		case 0xfc:	prescalers_[1].value = prescalers_[1].reload_value = value;	break;
+		case 0xfd:	timers_[2].value = timers_[2].reload_value = value;			break;
 
 		case 0xfe:	interrupt_control_ = value;				break;
 		case 0xff:	timer_control_ = value;					break;
