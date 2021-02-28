@@ -130,32 +130,11 @@ class MemoryMap {
 				0xffff
 			});
 
-			// Banks $02–[end of RAM]: all locations potentially affected by shadowing.
-			const uint8_t fast_ram_bank_count = uint8_t((ram.size() - 0x02'0000) / 0x01'0000);
-			if(fast_ram_bank_count > 2) {
-				const std::vector<uint8_t> evens = {
-					region(),	// 0x0000 – 0x0400.
-					region(),	// 0x0400 – 0x0800.
-					region(),	// 0x0800 – 0x0c00.
-					region(),	// 0x0c00 – 0x2000.
-					region(),	// 0x2000 – 0x4000.
-					region(),	// 0x4000 – 0x6000.
-					region(),	// 0x6000 – [end].
-				};
-				const std::vector<uint8_t> odds = {
-					region(),	// 0x0000 – 0x0400.
-					region(),	// 0x0400 – 0x0800.
-					region(),	// 0x0800 – 0x0c00.
-					region(),	// 0x0c00 – 0x2000.
-					region(),	// 0x2000 – 0x4000.
-					region(),	// 0x4000 – 0x6000.
-					region(),	// 0x6000 – 0xa000.
-					region(),	// 0xa000 – [end].
-				};
-				for(uint8_t bank = 0x02; bank < fast_ram_bank_count; bank += 2) {
-					set_regions(bank,	{0x0400, 0x0800, 0x0c00, 0x2000, 0x4000, 0x6000, 0xffff}, evens);
-					set_regions(bank+1,	{0x0400, 0x0800, 0x0c00, 0x2000, 0x4000, 0x6000, 0xa000, 0xffff}, odds);
-				}
+			// Banks $02–[end of RAM]: a single region.
+			const auto fast_region = region();
+			const uint8_t fast_ram_bank_limit = uint8_t(ram.size() / 0x01'0000);
+			for(uint8_t bank = 0x02; bank < fast_ram_bank_limit; bank++) {
+				set_region(bank, 0x0000, 0xffff, fast_region);
 			}
 
 			// [Banks $80–$e0: empty].
@@ -430,15 +409,6 @@ class MemoryMap {
 		//
 		// Completely distinct from the auxiliary and language card switches.
 		void set_shadowing() {
-			// Disables shadowing for the region starting from @c zone if @c flag is true;
-			// otherwise enables it.
-#define apply(disable, zone)									\
-	if(disable) {												\
-		regions[region_map[zone]].flags &= ~Region::IsShadowed; \
-	} else {													\
-		regions[region_map[zone]].flags |= Region::IsShadowed;	\
-	}
-
 			// Relevant bits:
 			//
 			//	b5: inhibit shadowing, text page 2	[if ROM 03; as if always set otherwise]
@@ -492,8 +462,6 @@ class MemoryMap {
 			for(size_t c = 0x6000 >> shadow_shift; c < 0xa000 >> shadow_shift; c++) {
 				is_shadowed[c+auxiliary_offset] = !(shadow_register_ & 0x08);
 			}
-
-#undef apply
 		}
 
 		// Cf. the AuxiliarySwitches; establishes whether main or auxiliary RAM
@@ -594,7 +562,7 @@ class MemoryMap {
 		// Contains a flag for every page in the final 128kb of memory, indicating whether it is
 		// currently subject to shadowing.
 		std::bitset<128> is_shadowed;
-		bool enable_all_pages_shadowing = true;
+		bool enable_all_pages_shadowing = false;
 };
 
 // TODO: branching below on region.read/write is predicated on the idea that extra scratch space
