@@ -107,7 +107,7 @@ class ConcreteMachine:
 			adb_glu_->set_microcontroller_rom(*roms[2]);
 
 			// Run only the currently-interesting self test.
-			rom_[0x36402] = 2;
+//			rom_[0x36402] = 2;
 //			rom_[0x36403] = 0x7c;	// ROM_CHECKSUM	[working, when hacks like this are removed]
 //			rom_[0x36404] = 0x6c;
 
@@ -129,8 +129,8 @@ class ConcreteMachine:
 //			rom_[0x36403] = 0xdc;	// CLOCK		[broken]
 //			rom_[0x36404] = 0x6c;
 
-			rom_[0x36403] = 0x1b;	// BAT_RAM		[broken]
-			rom_[0x36404] = 0x6e;
+//			rom_[0x36403] = 0x1b;	// BAT_RAM		[broken]
+//			rom_[0x36404] = 0x6e;
 
 //			rom_[0x36403] = 0x11;	// FDB (/ADB?)	[broken]
 //			rom_[0x36404] = 0x6f;
@@ -172,6 +172,7 @@ class ConcreteMachine:
 			iwm_->set_drive(1, &drives35_[1]);
 
 			// Randomise RAM contents.
+//			std::srand(23);
 			Memory::Fuzz(ram_);
 
 			// Sync up initial values.
@@ -214,6 +215,7 @@ class ConcreteMachine:
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
+//			return nullptr;
 			return &speaker_;
 		}
 
@@ -236,6 +238,93 @@ class ConcreteMachine:
 			drives35_[1].set_activity_observer(observer, "Second 3.5\" Drive", true);
 			drives525_[0].set_activity_observer(observer, "First 5.25\" Drive", true);
 			drives525_[1].set_activity_observer(observer, "Second 5.25\" Drive", true);
+		}
+
+		int handle_total_ = 0;
+		bool dump_bank(const char *name, uint32_t address) {
+			const auto handles = memory_.regions[memory_.region_map[0xe117]].read;
+
+			printf("%s: ", name);
+			int max = 52;
+			uint32_t last_visited = 0;
+
+			// Seed address.
+			address = uint32_t(handles[address] | (handles[address+1] << 8) | (handles[address+2] << 16) | (handles[address+3] << 24));
+
+			while(true) {
+				if(!address) {
+					printf("nil\n");
+					break;
+				}
+				++handle_total_;
+				if(address < 0xe11700 || address > 0xe11aff) {
+					printf("Out of bounds error with address = %06x!\n", address);
+					return false;
+				}
+				if((address - 0xe11700)%20) {
+					printf("Address alignment error!\n");
+					return false;
+				}
+
+				const uint32_t previous = uint32_t(handles[address+12] | (handles[address+13] << 8) | (handles[address+14] << 16) | (handles[address+15] << 24));
+				const uint32_t next = uint32_t(handles[address+16] | (handles[address+17] << 8) | (handles[address+18] << 16) | (handles[address+19] << 24));
+				const uint32_t pointer = uint32_t(handles[address] | (handles[address+1] << 8) | (handles[address+2] << 16) | (handles[address+3] << 24));
+				const uint32_t size = uint32_t(handles[address+8] | (handles[address+9] << 8) | (handles[address+10] << 16) | (handles[address+11] << 24));
+				printf("%06x (<- %06x | %06x ->) [%06x:%06x] -> \n", address, previous, next, pointer, size);
+
+				if(previous && ((previous < 0xe0'0000) || (previous > 0xe2'0000))) {
+					printf("Out of bounds error with previous = %06x! [%d && (%d || %d)]\n", previous, bool(previous), previous < 0xe0'0000, previous > 0xe2'0000);
+					return false;
+				}
+				if((previous || last_visited) && (previous != last_visited)) {
+					printf("Back link error!\n");
+					return false;
+				}
+
+				last_visited = address;
+				address = next;
+
+				--max;
+				if(!max) {
+					printf("Endless loop error!\n");
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool has_seen_valid_memory_ = false;
+		bool dump_memory_manager() {
+			const auto pointers = memory_.regions[memory_.region_map[0xe116]].read;
+
+			// Check for initial state having been reached.
+//			if(!has_seen_valid_memory_) {
+//				if(pointers[0xe11624]) return true;
+//				for(int c = 0xe1160c; c < 0xe1161c; c++) {
+//					if(pointers[c]) return true;
+//				}
+//				has_seen_valid_memory_ = true;
+//			}
+
+			// Output.
+			printf("\nNumber of banks: %d\n", pointers[0xe11624]);
+			bool result = true;
+
+			handle_total_ = 0;
+			result &= dump_bank("Mem", 0xe11600);
+			result &= dump_bank("Purge", 0xe11604);
+			result &= dump_bank("Free", 0xe11608);
+			printf("Total: %d\n", handle_total_);
+			if(handle_total_ != 51) return false;
+
+//			result &= dump_bank("Bank 0", 0xe1160c);
+//			result &= dump_bank("Bank 1", 0xe11610);
+//			result &= dump_bank("Bank E0", 0xe11614);
+//			result &= dump_bank("Bank E1", 0xe11618);
+//			result &= dump_bank("Bank FF", 0xe1161c);
+
+			return result;
 		}
 
 		// MARK: BusHandler.
@@ -569,9 +658,13 @@ class ConcreteMachine:
 						is_1Mhz = true;
 					break;
 
-//					case Read(0xc037): case Write(0xc037):
-//						// TODO: "Used during DMA as bank address"?
-//					break;
+					// C037 seems to be just a full-speed storage register.
+					case Read(0xc037):
+						*value = c037_;
+					break;
+					case Write(0xc037):
+						c037_ = *value;
+					break;
 
 					case Read(0xc041):
 						*value = megaii_interrupt_mask_;
@@ -735,7 +828,7 @@ class ConcreteMachine:
 										// Temporary: log _potential_ mistakes.
 										if((address_suffix < 0xc100 && address_suffix >= 0xc090) || (address_suffix < 0xc080)) {
 											printf("Internal card-area access: %04x\n", address_suffix);
-											log |= operation == CPU::WDC65816::BusOperation::ReadOpcode;
+//											log |= operation == CPU::WDC65816::BusOperation::ReadOpcode;
 										}
 										if(is_read) {
 											*value = rom_[rom_.size() - 65536 + address_suffix];
@@ -790,11 +883,12 @@ class ConcreteMachine:
 					// get by adding periodic NOPs within their copy-to-shadow step.
 					//
 					// Maybe the interaction with 2.8Mhz refresh isn't as straightforward as I think?
-					is_1Mhz |= region.flags & MemoryMap::Region::IsShadowed;
+					const bool is_shadowed = IsShadowed(memory_, region, address);
+					is_1Mhz |= is_shadowed;
 
 					// Use a very broad test for flushing video: any write to $e0 or $e1, or any write that is shadowed.
 					// TODO: at least restrict the e0/e1 test to possible video buffers!
-					if((address >= 0xe0'0400 && address < 0xe1'a000) || region.flags & MemoryMap::Region::IsShadowed) {
+					if((address >= 0xe0'0400 && address < 0xe1'a000) || is_shadowed) {
 						video_.flush();
 					}
 
@@ -805,24 +899,78 @@ class ConcreteMachine:
 			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
 				assert(address);
 			}
-//			if(address >= 0xE11700 && address < 0xe11b00) {
-//				printf("%06x %s %02x%s\n", address, isReadOperation(operation) ? "->" : "<-", *value,
-//					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "");
+
+//			if(operation == CPU::WDC65816::BusOperation::Write && address >= 0xe11700 && address < 0xe11b00) {
+//				dump_memory_manager();
+//				printf("%04x <- %02x	[%llu]\n", address, *value, static_cast<unsigned long long>(total));
+//			}
+//			if(address >= 0x00bc5d && address <= 0x00bc5f) {
+//				printf("%06x %s %02x%s [%llu] [%p/%p]\n", address, isReadOperation(operation) ? "->" : "<-", *value,
+//					operation == CPU::WDC65816::BusOperation::ReadOpcode ? " [*]" : "",
+//					static_cast<unsigned long long>(total),
+//					memory_.regions[memory_.region_map[0xe119]].read,
+//					memory_.regions[memory_.region_map[0xe119]].write);
+//			}
+
+//			bool result = dump_bank(0, 0xe1160c);
+//			result &= dump_bank(1, 0xe11610);
+//			result &= dump_bank(0xe0, 0xe11614);
+//			result &= dump_bank(0xe1, 0xe11618);
+
+//			if(operation == CPU::WDC65816::BusOperation::Write && (
+//				(address >= 0xe11700 && address <= 0xe11aff) ||
+//				address == 0xe11624 || (address >= 0xe1160c && address < 0xe1161c))
+//				) {
+//				// Test for breakages in the chain.
+//				if(!dump_memory_manager()) {
+//					printf("Broken at %llu\n", static_cast<unsigned long long>(total));
+//				} else {
+//					printf("Correct at %llu\n", static_cast<unsigned long long>(total));
+//				}
+//			}
+
+//			if(operation == CPU::WDC65816::BusOperation::Write && (address >= 0xe11750 + 16 && address < 0xe11750 + 20)) {
+//				printf("%06x <- %02x [%llu]\n", address, *value, static_cast<unsigned long long>(total));
+//			}
+//			if(memory_.regions[memory_.region_map[0x755b]].read[0x755b4d] == 0x7f) {
+//				printf("%llu\n", static_cast<unsigned long long>(total));
+//			}
+//			if(operation == CPU::WDC65816::BusOperation::Write && address == 0x755b4d) {
+//				printf("%04x <- %02x	[%llu]\n", address, *value, static_cast<unsigned long long>(total));
 //			}
 //			log |= (total == 611808545);
 //			log |= (total == 663201455);
-			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+
+//			log |= total == 502083045;
+//			log |= total == 502070045;
+//			log |= total == 497920695;
+
+//			log |= total == 495795545;
+//			log |= total == 342435845;
+
+//			log |= total == 492330040;
+
+//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+//				log |= address == 0xfc0fa6;
+//				log &= address != 0xfc0fa8;
 //				log |= address == 0xfc01ba;
 //				log |= address == 0xfc10fd;
 //				log &= address != 0xff4a73;
 //				log = (address >= 0xff6cdc) && (address < 0xff6d43);
 //				log = (address >= 0x00d300) && (address < 0x00d600);
-			}
+
+//				if(address == 0xfc02b1) {
+//					dump_memory_manager();
+//				}
+
+//			}
 //			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address < 0xff6a2c) || (address >= 0xff6a9c)));
 
 //			if(address == 0x00bca9 && operation == CPU::WDC65816::BusOperation::Write && !*value) {
 //				printf("%06x <- %02x [%d]\n", address, *value, static_cast<unsigned long long>(total));
 //			}
+
+//			log |= (address == 0x755b4d);
 
 			if(log) {
 				printf("%06x %s %02x [%s]", address, isReadOperation(operation) ? "->" : "<-", *value, (is_1Mhz || (speed_register_ & motor_flags_)) ? "1.0" : "2.8");
@@ -965,8 +1113,9 @@ class ConcreteMachine:
 
 		// MARK: - Memory storage.
 
-		std::vector<uint8_t> ram_{};
+		std::vector<uint8_t> ram_;
 		std::vector<uint8_t> rom_;
+		uint8_t c037_ = 0;
 
 		// MARK: - Other components.
 
