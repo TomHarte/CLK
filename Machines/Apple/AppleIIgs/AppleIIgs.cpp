@@ -241,10 +241,10 @@ class ConcreteMachine:
 		}
 
 		int handle_total_ = 0;
-		bool dump_bank(const char *name, uint32_t address) {
+		bool dump_bank(const char *name, uint32_t address, bool print) {
 			const auto handles = memory_.regions[memory_.region_map[0xe117]].read;
 
-			printf("%s: ", name);
+			if(print) printf("%s: ", name);
 			int max = 52;
 			uint32_t last_visited = 0;
 
@@ -253,16 +253,16 @@ class ConcreteMachine:
 
 			while(true) {
 				if(!address) {
-					printf("nil\n");
+					if(print) printf("nil\n");
 					break;
 				}
 				++handle_total_;
 				if(address < 0xe11700 || address > 0xe11aff) {
-					printf("Out of bounds error with address = %06x!\n", address);
+					if(print) printf("Out of bounds error with address = %06x!\n", address);
 					return false;
 				}
 				if((address - 0xe11700)%20) {
-					printf("Address alignment error!\n");
+					if(print) printf("Address alignment error!\n");
 					return false;
 				}
 
@@ -270,14 +270,14 @@ class ConcreteMachine:
 				const uint32_t next = uint32_t(handles[address+16] | (handles[address+17] << 8) | (handles[address+18] << 16) | (handles[address+19] << 24));
 				const uint32_t pointer = uint32_t(handles[address] | (handles[address+1] << 8) | (handles[address+2] << 16) | (handles[address+3] << 24));
 				const uint32_t size = uint32_t(handles[address+8] | (handles[address+9] << 8) | (handles[address+10] << 16) | (handles[address+11] << 24));
-				printf("%06x (<- %06x | %06x ->) [%06x:%06x] -> \n", address, previous, next, pointer, size);
+				if(print) printf("%06x (<- %06x | %06x ->) [%06x:%06x] -> \n", address, previous, next, pointer, size);
 
 				if(previous && ((previous < 0xe0'0000) || (previous > 0xe2'0000))) {
-					printf("Out of bounds error with previous = %06x! [%d && (%d || %d)]\n", previous, bool(previous), previous < 0xe0'0000, previous > 0xe2'0000);
+					if(print) printf("Out of bounds error with previous = %06x! [%d && (%d || %d)]\n", previous, bool(previous), previous < 0xe0'0000, previous > 0xe2'0000);
 					return false;
 				}
 				if((previous || last_visited) && (previous != last_visited)) {
-					printf("Back link error!\n");
+					if(print) printf("Back link error!\n");
 					return false;
 				}
 
@@ -286,7 +286,7 @@ class ConcreteMachine:
 
 				--max;
 				if(!max) {
-					printf("Endless loop error!\n");
+					if(print) printf("Endless loop error!\n");
 					return false;
 				}
 			}
@@ -295,7 +295,8 @@ class ConcreteMachine:
 		}
 
 		bool has_seen_valid_memory_ = false;
-		bool dump_memory_manager() {
+		bool should_validate_ = false;
+		bool validate_memory_manager(bool print) {
 			const auto pointers = memory_.regions[memory_.region_map[0xe116]].read;
 
 			// Check for initial state having been reached.
@@ -308,21 +309,34 @@ class ConcreteMachine:
 //			}
 
 			// Output.
-			printf("\nNumber of banks: %d\n", pointers[0xe11624]);
+			if(print) printf("\nNumber of banks: %d\n", pointers[0xe11624]);
 			bool result = true;
 
 			handle_total_ = 0;
-			result &= dump_bank("Mem", 0xe11600);
-			result &= dump_bank("Purge", 0xe11604);
-			result &= dump_bank("Free", 0xe11608);
-			printf("Total: %d\n", handle_total_);
-			if(handle_total_ != 51) return false;
+			result &= dump_bank("Mem", 0xe11600, print);
+			result &= dump_bank("Purge", 0xe11604, print);
+			result &= dump_bank("Free", 0xe11608, print);
+
+			// Check LastHighHandle
+
+			const auto handles = memory_.regions[memory_.region_map[0xe116]].read;
+			uint32_t address = 0xe1162c;
+			address = uint32_t(handles[address] | (handles[address+1] << 8) | (handles[address+2] << 16) | (handles[address+3] << 24));
+			if(print) printf("LastHighHandle: ");
+			while(address) {
+				if(print) printf("%06x ->", address);
+				address = uint32_t(handles[address+12] | (handles[address+13] << 8) | (handles[address+14] << 16) | (handles[address+15] << 24));
+			}
+			if(print) printf("\n");
 
 //			result &= dump_bank("Bank 0", 0xe1160c);
 //			result &= dump_bank("Bank 1", 0xe11610);
 //			result &= dump_bank("Bank E0", 0xe11614);
 //			result &= dump_bank("Bank E1", 0xe11618);
 //			result &= dump_bank("Bank FF", 0xe1161c);
+
+			if(print) printf("Total: %d\n", handle_total_);
+			if(handle_total_ != 51) result &= false;
 
 			return result;
 		}
@@ -896,8 +910,28 @@ class ConcreteMachine:
 				}
 			}
 
-			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-				assert(address);
+//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+//				assert(address);
+//
+//				if(address < 0xe2'0000 &&
+//					address != 0x00f8c9 &&
+//					address != 0xe11690 &&
+//					address != 0xe11694 &&
+//					address != 0xe1168c &&
+//					address != 0xe10068 &&
+//					!validate_memory_manager(false)) {
+//					if(should_validate_) {
+//						printf("@%llu\n", total);
+//						validate_memory_manager(true);
+//////						printf("!OH MY! [%06x]\n", address);
+//////						printf("!OH MY! [%06x]\n", address);
+//					}
+//					should_validate_ |= address == 0xe101ad;
+//				}
+//			}
+
+			if(total == 132222166 || total == 467891275 || total == 491026055) {
+				validate_memory_manager(true);
 			}
 
 //			if(operation == CPU::WDC65816::BusOperation::Write && address >= 0xe11700 && address < 0xe11b00) {
@@ -950,7 +984,14 @@ class ConcreteMachine:
 
 //			log |= total == 492330040;
 
-//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+			// 491037040
+//			log |= (total > 491010040) && (operation == CPU::WDC65816::BusOperation::ReadOpcode) && (address < 0xe1'0000);
+//			log &= !(total == 491037040);
+
+
+			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+				log |= address == 0x01f1bd;	// RTL goes to 01f1c1 (as 01f1c0 is on the stack).
+				log &= address != 0x01f1c1;
 //				log |= address == 0xfc0fa6;
 //				log &= address != 0xfc0fa8;
 //				log |= address == 0xfc01ba;
@@ -961,7 +1002,7 @@ class ConcreteMachine:
 
 //				if(address == 0xfc02b1) {
 //					dump_memory_manager();
-//				}
+				}
 
 //			}
 //			log &= !((operation == CPU::WDC65816::BusOperation::ReadOpcode) && ((address < 0xff6a2c) || (address >= 0xff6a9c)));
