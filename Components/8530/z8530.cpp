@@ -8,6 +8,7 @@
 
 #include "z8530.hpp"
 
+#define NDEBUG
 #define LOG_PREFIX "[SCC] "
 #include "../../Outputs/Log.hpp"
 
