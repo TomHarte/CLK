@@ -569,8 +569,6 @@ class MemoryMap {
 // TODO: branching below on region.read/write is predicated on the idea that extra scratch space
 // would be less efficient. Verify that?
 
-// TODO: somehow eliminate bank 0/1 conditional in IsShadowed.
-
 #define MemoryMapRegion(map, address) 			map.regions[map.region_map[address >> 8]]
 #define IsShadowed(map, region, address)		(map.shadow_pages[((&region.write[address] - map.ram_base) >> 10) & 127] & map.shadow_banks[address >> 17])
 #define MemoryMapRead(region, address, value)	*value = region.read ? region.read[address] : 0xff
