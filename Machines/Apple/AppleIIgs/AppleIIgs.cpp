@@ -990,8 +990,8 @@ class ConcreteMachine:
 
 
 			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-				log |= address == 0x01f1bd;	// RTL goes to 01f1c1 (as 01f1c0 is on the stack).
-				log &= address != 0x01f1c1;
+//				log |= address == 0x01f1bd;	// RTL goes to 01f1c1 (as 01f1c0 is on the stack).
+//				log &= address != 0x01f1c1;
 //				log |= address == 0xfc0fa6;
 //				log &= address != 0xfc0fa8;
 //				log |= address == 0xfc01ba;
