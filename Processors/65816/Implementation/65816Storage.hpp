@@ -277,14 +277,14 @@ struct ProcessorStorage {
 		// Flags aplenty.
 		MOS6502Esque::LazyFlags flags;
 		uint8_t mx_flags[2] = {1, 1};			// [0] = m; [1] = x. In both cases either `0` or `1`; `1` => 8-bit.
-		uint16_t m_masks[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
-		uint16_t x_mask = 0x00ff;				// Just a mask representing the current size of the index registers.
-		uint16_t e_masks[2] = {0xff00, 0x00ff};
-		int m_shift = 0;
-		int x_shift = 0;
-		bool emulation_flag = true;
+		uint16_t m_masks[2] = {0xff00, 0x00ff};	// [0] = src mask (i.e. that which is unaffected by an operation); [1] = dst mask (i.e. 0xffff ^ src mask).
+		uint16_t x_mask = 0x00ff;				// A mask representing the current size of the index registers. Equivalent to m_masks[1].
+		uint16_t e_masks[2] = {0xff00, 0x00ff};	// Akin to m_masks, but set as per emulation mode.
+		int m_shift = 0;						// How far to shift memory/A to align its sign bit with that of the flags register. i.e. 8 for 16-bit mode, 0 for 8-bit mode.
+		int x_shift = 0;						// m_shift equivalent for X and Y.
+		bool emulation_flag = true;				// The emulation flag; true = in emulation mode.
 
-		// I.e. the offset for direct addressing (outside of emulation mode).
+		// The offset for direct addressing (i.e. outside of emulation mode).
 		uint16_t direct = 0;
 
 		// Banking registers are all stored with the relevant byte
