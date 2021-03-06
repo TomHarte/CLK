@@ -112,6 +112,9 @@ void MainWindow::init() {
 
 	createActions();
 	restoreSelections();
+
+	// TEMPORARY: remove the Apple IIgs tab; this machine isn't ready yet.
+	ui->machineSelectionTabs->removeTab(ui->machineSelectionTabs->indexOf(ui->appleIIgsTab));
 }
 
 void MainWindow::createActions() {
@@ -719,6 +722,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 			for(const auto &url: event->mimeData()->urls()) {
 				const char *const name = url.toLocalFile().toUtf8();
 				FILE *const file = fopen(name, "rb");
+				if(!file) continue;
 				const auto contents = fileContentsAndClose(file);
 				if(!contents) continue;
 
