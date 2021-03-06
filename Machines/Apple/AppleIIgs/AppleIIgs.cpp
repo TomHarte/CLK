@@ -1047,8 +1047,8 @@ class ConcreteMachine:
 
 		void update_interrupts() {
 			// Update the interrupt line.
-			// TODO: are there other interrupt sources?
-//			m65816_.set_irq_line(video_.last_valid()->get_interrupt_line() || sound_glu_.get_interrupt_line());
+			// TODO: add ADB controller as event source.
+			m65816_.set_irq_line(video_.last_valid()->get_interrupt_line() || sound_glu_.get_interrupt_line());
 		}
 
 		// MARK: - Input.
