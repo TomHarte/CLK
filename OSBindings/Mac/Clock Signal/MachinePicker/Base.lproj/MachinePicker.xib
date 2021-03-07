@@ -303,7 +303,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Macintosh" identifier="mac" id="lmR-z3-xSm">
                                 <view key="view" id="7Yf-vi-Q0W">
-                                    <rect key="frame" x="10" y="33" width="679" height="95"/>
+                                    <rect key="frame" x="10" y="33" width="764" height="95"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZOY-4E-Cfl">
@@ -316,7 +316,7 @@ Gw
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="xa6-NA-JY5">
                                             <rect key="frame" x="64" y="68" width="75" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="128k" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="WCG-6u-ANQ" id="1Kb-Q2-BGM">
+                                            <popUpButtonCell key="cell" type="push" title="Plus" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="3" imageScaling="proportionallyDown" inset="2" selectedItem="R6T-hg-rOF" id="1Kb-Q2-BGM">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="ofy-j9-YnU">
@@ -649,6 +649,7 @@ Gw
                 <outlet property="electronAP6Button" destination="cG2-Ph-S3Z" id="vkq-1J-KBG"/>
                 <outlet property="electronDFSButton" destination="JqM-IK-FMP" id="C80-1k-TdQ"/>
                 <outlet property="electronSidewaysRAMButton" destination="lzo-8g-o4S" id="LtS-wv-tMf"/>
+                <outlet property="machineSelectionTabs" destination="VUb-QG-x7c" id="20Q-8e-Vjs"/>
                 <outlet property="machineSelector" destination="VUb-QG-x7c" id="crR-hB-jGd"/>
                 <outlet property="macintoshModelTypeButton" destination="xa6-NA-JY5" id="2jX-PY-v2z"/>
                 <outlet property="msxHasDiskDriveButton" destination="8xT-Pr-8SE" id="zGH-GA-9QF"/>
