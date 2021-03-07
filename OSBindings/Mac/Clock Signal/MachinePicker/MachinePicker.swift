@@ -56,6 +56,10 @@ class MachinePicker: NSObject {
 	func establishStoredOptions() {
 		let standardUserDefaults = UserDefaults.standard
 
+		// TEMPORARY: remove the Apple IIgs option. It's not yet a fully-working machine; no need to publicise it.
+		let appleIIgsTabIndex = machineSelectionTabs.indexOfTabViewItem(withIdentifier: "appleiigs")
+		machineSelectionTabs.removeTabViewItem(machineSelectionTabs.tabViewItem(at: appleIIgsTabIndex))
+
 		// Machine type
 		if let machineIdentifier = standardUserDefaults.string(forKey: "new.machine") {
 			// If I've changed my mind about visible tabs between versions, there may not be one that corresponds
@@ -105,10 +109,6 @@ class MachinePicker: NSObject {
 
 		// ZX81
 		zx81MemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.zx81MemorySize"))
-
-		// TEMPORARY: remove the Apple IIgs option. It's not yet a fully-working machine; no need to publicise it.
-		let appleIIgsTabIndex = machineSelectionTabs.indexOfTabViewItem(withIdentifier: "appleiigs")
-		machineSelectionTabs.removeTabViewItem(machineSelectionTabs.tabViewItem(at: appleIIgsTabIndex))
 	}
 
 	fileprivate func storeOptions() {
