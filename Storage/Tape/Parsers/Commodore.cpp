@@ -76,7 +76,7 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 	reset_parity_byte();
 
 	// get header type
-	uint8_t header_type = get_next_byte(tape);
+	const uint8_t header_type = get_next_byte(tape);
 	switch(header_type) {
 		default:	header->type = Header::Unknown;					break;
 		case 0x01:	header->type = Header::RelocatableProgram;		break;
@@ -92,7 +92,7 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 		header->data.push_back(get_next_byte(tape));
 	}
 
-	uint8_t parity_byte = get_parity_byte();
+	const uint8_t parity_byte = get_parity_byte();
 	header->parity_was_valid = get_next_byte(tape) == parity_byte;
 
 	// parse if this is not pure data
@@ -110,7 +110,7 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 	return header;
 }
 
-void Header::serialise(uint8_t *target, uint16_t length) {
+void Header::serialise(uint8_t *target, [[maybe_unused]] uint16_t length) {
 	switch(type) {
 		default:							target[0] = 0xff;	break;
 		case Header::RelocatableProgram:	target[0] = 0x01;	break;
@@ -121,7 +121,6 @@ void Header::serialise(uint8_t *target, uint16_t length) {
 	}
 
 	// TODO: validate length.
-	(void)length;
 
 	std::memcpy(&target[1], data.data(), 191);
 }
@@ -178,7 +177,7 @@ void Parser::proceed_to_landing_zone(const std::shared_ptr<Storage::Tape::Tape> 
 */
 void Parser::proceed_to_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape, SymbolType required_symbol) {
 	while(!tape->is_at_end()) {
-		SymbolType symbol = get_next_symbol(tape);
+		const SymbolType symbol = get_next_symbol(tape);
 		if(symbol == required_symbol) return;
 	}
 }
@@ -187,7 +186,7 @@ void Parser::proceed_to_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape,
 	Swallows the next byte; sets the error flag if it is not equal to @c value.
 */
 void Parser::expect_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, uint8_t value) {
-	uint8_t next_byte = get_next_byte(tape);
+	const uint8_t next_byte = get_next_byte(tape);
 	if(next_byte != value) set_error_flag();
 }
 
@@ -247,7 +246,7 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 	// short: 182us		=>	0.000364s cycle
 	// medium: 262us	=>	0.000524s cycle
 	// long: 342us		=>	0.000684s cycle
-	bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
+	const bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
 	if(!is_high && previous_was_high_) {
 		if(wave_period_ >= 0.000764)		push_wave(WaveType::Unrecognised);
 		else if(wave_period_ >= 0.000604)	push_wave(WaveType::Long);

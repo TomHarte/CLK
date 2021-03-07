@@ -24,12 +24,13 @@ int Parser::get_next_bit(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 }
 
 int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-	int value = 0;
-	int c = 8;
 	if(get_next_bit(tape)) {
 		set_error_flag();
 		return -1;
 	}
+
+	int value = 0;
+	int c = 8;
 	while(c--) {
 		value = (value >> 1) | (get_next_bit(tape) << 7);
 	}
@@ -74,7 +75,7 @@ Shifter::Shifter() :
 void Shifter::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 	pll_.run_for(Cycles(int(float(PLLClockRate) * pulse.length.get<float>())));
 
-	bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
+	const bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
 	if(is_high != was_high_) {
 		pll_.add_pulse();
 	}

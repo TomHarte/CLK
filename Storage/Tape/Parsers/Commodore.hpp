@@ -126,7 +126,7 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 			indicates a high to low transition, inspects the time since the last transition, to produce
 			a long, medium, short or unrecognised wave period.
 		*/
-		void process_pulse(const Storage::Tape::Tape::Pulse &pulse);
+		void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
 		bool previous_was_high_ = false;
 		float wave_period_ = 0.0f;
 
@@ -134,7 +134,7 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 			Per the contract with Analyser::Static::TapeParser; produces any of a word marker, an end-of-block marker,
 			a zero, a one or a lead-in symbol based on the currently captured waves.
 		*/
-		void inspect_waves(const std::vector<WaveType> &waves);
+		void inspect_waves(const std::vector<WaveType> &waves) override;
 };
 
 }

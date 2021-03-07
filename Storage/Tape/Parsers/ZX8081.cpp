@@ -15,8 +15,8 @@ Parser::Parser() : pulse_was_high_(false), pulse_time_(0) {}
 void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 	// If this is anything other than a transition from low to high, just add it to the
 	// count of time.
-	bool pulse_is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
-	bool pulse_did_change = pulse_is_high != pulse_was_high_;
+	const bool pulse_is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
+	const bool pulse_did_change = pulse_is_high != pulse_was_high_;
 	pulse_was_high_ = pulse_is_high;
 	if(!pulse_did_change || !pulse_is_high) {
 		pulse_time_ += pulse.length;
@@ -31,7 +31,7 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 void Parser::post_pulse() {
 	constexpr float expected_pulse_length = 300.0f / 1000000.0f;
 	constexpr float expected_gap_length = 1300.0f / 1000000.0f;
-	auto pulse_time = pulse_time_.get<float>();
+	const auto pulse_time = pulse_time_.get<float>();
 
 	if(pulse_time > expected_gap_length * 1.25f) {
 		push_wave(WaveType::LongGap);

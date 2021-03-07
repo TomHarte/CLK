@@ -57,10 +57,10 @@ class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate
 		void reset_crc();
 		uint16_t get_crc();
 
-		void acorn_shifter_output_bit(int value);
-		void process_pulse(const Storage::Tape::Tape::Pulse &pulse);
-
 	private:
+		void acorn_shifter_output_bit(int value) override;
+		void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
+
 		bool did_update_shifter(int new_value, int length);
 		CRC::Generator<uint16_t, 0x0000, 0x0000, false, false> crc_;
 		Shifter shifter_;
