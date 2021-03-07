@@ -101,6 +101,8 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 			Memory::Fuzz(ram_);
 
+			// Ensure valid initial key state.
+			clear_all_keys();
 			if(!target.loading_command.empty()) {
 				type_string(target.loading_command);
 				should_autorun_ = true;
@@ -163,6 +165,7 @@ template<bool is_zx81> class ConcreteMachine:
 					}
 					if(!(address & 2)) nmi_is_enabled_ = false;
 					if(!(address & 1)) nmi_is_enabled_ = is_zx81;
+					if(!nmi_is_enabled_) z80_.set_wait_line(false);
 
 					// The below emulates the ZonX AY expansion device.
 					if constexpr (is_zx81) {
@@ -254,8 +257,6 @@ template<bool is_zx81> class ConcreteMachine:
 						type_string(is_zx81 ? "r \n" : "r\n ");	// Spaces here are not especially scientific; they merely ensure sufficient pauses for both the ZX80 and 81, empirically.
 						should_autorun_ = false;
 					}
-
-					if(address >= 0x24d && address < 0x256) printf("PC: %04x\n", address);
 
 					// Check for automatic tape control.
 					if(use_automatic_tape_motor_control_) {
