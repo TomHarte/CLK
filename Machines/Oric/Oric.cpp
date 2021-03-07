@@ -763,10 +763,10 @@ Machine *Machine::Oric(const Analyser::Static::Target *target_hint, const ROMMac
 
 #define DiskInterfaceSwitch(processor) \
 	switch(oric_target->disk_interface) {	\
-		default:						return new ConcreteMachine<DiskInterface::None, processor>(*oric_target, rom_fetcher);			\
+		default:						return new ConcreteMachine<DiskInterface::None, processor>(*oric_target, rom_fetcher);		\
 		case DiskInterface::Microdisc:	return new ConcreteMachine<DiskInterface::Microdisc, processor>(*oric_target, rom_fetcher);	\
-		case DiskInterface::Pravetz:	return new ConcreteMachine<DiskInterface::Pravetz, processor>(*oric_target, rom_fetcher);		\
-		case DiskInterface::Jasmin:		return new ConcreteMachine<DiskInterface::Jasmin, processor>(*oric_target, rom_fetcher);		\
+		case DiskInterface::Pravetz:	return new ConcreteMachine<DiskInterface::Pravetz, processor>(*oric_target, rom_fetcher);	\
+		case DiskInterface::Jasmin:		return new ConcreteMachine<DiskInterface::Jasmin, processor>(*oric_target, rom_fetcher);	\
 		case DiskInterface::BD500:		return new ConcreteMachine<DiskInterface::BD500, processor>(*oric_target, rom_fetcher);		\
 	}
 
@@ -777,6 +777,7 @@ Machine *Machine::Oric(const Analyser::Static::Target *target_hint, const ROMMac
 
 #undef DiskInterfaceSwitch
 
+	return nullptr;
 }
 
 Machine::~Machine() {}

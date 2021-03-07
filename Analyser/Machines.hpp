@@ -14,6 +14,7 @@ namespace Analyser {
 enum class Machine {
 	AmstradCPC,
 	AppleII,
+	AppleIIgs,
 	Atari2600,
 	AtariST,
 	ColecoVision,

@@ -50,7 +50,7 @@ struct SectorSpan {
 
 /*!
 	@returns the span of sectors included on track @c track using the Macintosh's
-	ordinary CLV variable-speed mechanish.
+	ordinary CLV variable-speed mechanish. Guaranteed to be 12 or fewer.
 */
 SectorSpan sectors_in_track(int track);
 

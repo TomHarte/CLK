@@ -2,7 +2,7 @@
 //  Decoder.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 12/30/20.
+//  Created by Thomas Harte on 30/12/20.
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
@@ -11,8 +11,7 @@
 
 #include "Instruction.hpp"
 
-namespace CPU {
-namespace Decoder {
+namespace InstructionSet {
 namespace PowerPC {
 
 enum class Model {
@@ -51,7 +50,6 @@ struct Decoder {
 		}
 };
 
-}
 }
 }
 

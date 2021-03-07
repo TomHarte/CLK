@@ -410,7 +410,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		width:frameBufferWidth
 		height:frameBufferHeight
 		mipmapped:NO];
-	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
 	textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
 	id<MTLTexture> _oldFrameBuffer = _frameBuffer;
 	_frameBuffer = [_view.device newTextureWithDescriptor:textureDescriptor];
@@ -443,17 +443,37 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
 	_drawStencilState = [_view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 
-	// Draw from _oldFrameBuffer to _frameBuffer.
+	// Draw from _oldFrameBuffer to _frameBuffer; otherwise clear the new framebuffer.
 	if(_oldFrameBuffer) {
 		[self copyTexture:_oldFrameBuffer to:_frameBuffer];
-
-		// Don't clear the framebuffer at the end of this frame.
-		_dontClearFrameBuffer = YES;
+	} else {
+		// TODO: this use of clearTexture is the only reasn _frameBuffer has a marked usage of MTLTextureUsageShaderWrite;
+		// it'd probably be smarter to blank it with  geometry rather than potentially complicating
+		// its storage further?
+		[self clearTexture:_frameBuffer];
 	}
+
+	// Don't clear the framebuffer at the end of this frame.
+	_dontClearFrameBuffer = YES;
 }
 
 - (BOOL)shouldApplyGamma {
 	return fabsf(float(uniforms()->outputGamma) - 1.0f) > 0.01f;
+}
+
+- (void)clearTexture:(id<MTLTexture>)texture {
+	id<MTLLibrary> library = [_view.device newDefaultLibrary];
+
+	// Ensure finalised line texture is initially clear.
+	id<MTLComputePipelineState> clearPipeline = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:@"clearKernel"] error:nil];
+	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+	id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
+
+	[computeEncoder setTexture:texture atIndex:0];
+	[self dispatchComputeCommandEncoder:computeEncoder pipelineState:clearPipeline width:texture.width height:texture.height offsetBuffer:[self bufferForOffset:0]];
+
+	[computeEncoder endEncoding];
+	[commandBuffer commit];
 }
 
 - (void)updateModalBuffers {
@@ -490,19 +510,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// The finalised texture will definitely exist, and may or may not require a gamma conversion when written to.
 	if(!_finalisedLineTexture) {
 		_finalisedLineTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
+		[self clearTexture:_finalisedLineTexture];
 
 		NSString *const kernelFunction = [self shouldApplyGamma] ? @"filterChromaKernelWithGamma" : @"filterChromaKernelNoGamma";
 		_finalisedLineState = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction] error:nil];
-
-		// Ensure finalised line texture is initially clear.
-		id<MTLComputePipelineState> clearPipeline = [_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:@"clearKernel"] error:nil];
-		id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-		id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
-
-		[self dispatchComputeCommandEncoder:computeEncoder pipelineState:clearPipeline width:lineTextureDescriptor.width height:lineTextureDescriptor.height offsetBuffer:[self bufferForOffset:0]];
-
-		[computeEncoder endEncoding];
-		[commandBuffer commit];
 	}
 
 	// A luma separation texture will exist only for composite colour.

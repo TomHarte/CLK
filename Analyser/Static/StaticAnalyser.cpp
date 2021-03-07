@@ -17,6 +17,7 @@
 #include "Acorn/StaticAnalyser.hpp"
 #include "AmstradCPC/StaticAnalyser.hpp"
 #include "AppleII/StaticAnalyser.hpp"
+#include "AppleIIgs/StaticAnalyser.hpp"
 #include "Atari2600/StaticAnalyser.hpp"
 #include "AtariST/StaticAnalyser.hpp"
 #include "Coleco/StaticAnalyser.hpp"
@@ -33,6 +34,7 @@
 #include "../../Storage/Cartridge/Formats/PRG.hpp"
 
 // Disks
+#include "../../Storage/Disk/DiskImage/Formats/2MG.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/AcornADF.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/AppleDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/CPCDSK.hpp"
@@ -79,20 +81,31 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	std::string extension = file_name.substr(final_dot + 1);
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 
-#define Insert(list, class, platforms) \
-	list.emplace_back(new Storage::class(file_name));\
+#define InsertInstance(list, instance, platforms) \
+	list.emplace_back(instance);\
 	potential_platforms |= platforms;\
 	TargetPlatform::TypeDistinguisher *distinguisher = dynamic_cast<TargetPlatform::TypeDistinguisher *>(list.back().get());\
-	if(distinguisher) potential_platforms &= distinguisher->target_platform_type();
+	if(distinguisher) potential_platforms &= distinguisher->target_platform_type(); \
 
-#define TryInsert(list, class, platforms) \
+#define Insert(list, class, platforms, ...) \
+	InsertInstance(list, new Storage::class(__VA_ARGS__), platforms);
+
+#define TryInsert(list, class, platforms, ...) \
 	try {\
-		Insert(list, class, platforms) \
+		Insert(list, class, platforms, __VA_ARGS__) \
 	} catch(...) {}
 
 #define Format(ext, list, class, platforms) \
 	if(extension == ext)	{		\
-		TryInsert(list, class, platforms)	\
+		TryInsert(list, class, platforms, file_name)	\
+	}
+
+	// 2MG
+	if(extension == "2mg") {
+		// 2MG uses a factory method; defer to it.
+		try {
+			InsertInstance(result.disks, Storage::Disk::Disk2MG::open(file_name), TargetPlatform::DiskII)
+		} catch(...) {}
 	}
 
 	Format("80", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// 80
@@ -131,17 +144,23 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)				// NIB
 	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// O
 	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P
-	Format("po", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// PO
+	Format("po", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// PO (original Apple II kind)
+
+	// PO (Apple IIgs kind)
+	if(extension == "po")	{
+		TryInsert(result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::AppleIIgs, file_name, Storage::Disk::MacintoshIMG::FixedType::GCR)
+	}
+
 	Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P81
 
 	// PRG
 	if(extension == "prg") {
 		// try instantiating as a ROM; failing that accept as a tape
 		try {
-			Insert(result.cartridges, Cartridge::PRG, TargetPlatform::Commodore)
+			Insert(result.cartridges, Cartridge::PRG, TargetPlatform::Commodore, file_name)
 		} catch(...) {
 			try {
-				Insert(result.tapes, Tape::PRG, TargetPlatform::Commodore)
+				Insert(result.tapes, Tape::PRG, TargetPlatform::Commodore, file_name)
 			} catch(...) {}
 		}
 	}
@@ -165,6 +184,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 #undef Format
 #undef Insert
 #undef TryInsert
+#undef InsertInstance
 
 	return result;
 }
@@ -191,6 +211,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	if(potential_platforms & TargetPlatform::Acorn)			Append(Acorn);
 	if(potential_platforms & TargetPlatform::AmstradCPC)	Append(AmstradCPC);
 	if(potential_platforms & TargetPlatform::AppleII)		Append(AppleII);
+	if(potential_platforms & TargetPlatform::AppleIIgs)		Append(AppleIIgs);
 	if(potential_platforms & TargetPlatform::Atari2600)		Append(Atari2600);
 	if(potential_platforms & TargetPlatform::AtariST)		Append(AtariST);
 	if(potential_platforms & TargetPlatform::ColecoVision)	Append(Coleco);

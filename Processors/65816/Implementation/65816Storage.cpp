@@ -23,6 +23,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		Read, Write
 	};
 
+	/// Divides memory-accessing instructions by whether they read or write.
+	/// Read-modify-writes are documented with completely distinct bus programs,
+	/// so there's no real ambiguity there.
 	constexpr static AccessType access_type_for_operation(Operation operation) {
 		switch(operation) {
 			case ADC:	case AND:	case BIT:	case CMP:
@@ -39,6 +42,21 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 			case STA:	case STX:	case STY:	case STZ:
 			return AccessType::Write;
 		}
+	}
+
+	/// Indicates which of the memory-accessing instructions take their cue from the current
+	/// size of the index registers, rather than 'memory'[/accumulator].
+	constexpr static bool operation_is_index_sized(Operation operation) {
+		switch(operation) {
+			case CPX:	case CPY:
+			case LDX:	case LDY:
+			case STX:	case STY:
+			return true;
+
+			default:
+			return false;
+		}
+		return false;
 	}
 
 	typedef void (* Generator)(AccessType, bool, const std::function<void(MicroOp)>&);
@@ -66,15 +84,21 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		storage_.instructions[opcode].program_offsets[0] = (access_mode == AccessMode::Always8Bit) ? uint16_t(micro_op_location_8) : uint16_t(micro_op_location_16);
 		storage_.instructions[opcode].program_offsets[1] = (access_mode == AccessMode::Always16Bit) ? uint16_t(micro_op_location_16) : uint16_t(micro_op_location_8);
 		storage_.instructions[opcode].operation = operation;
+		storage_.instructions[opcode].size_field = operation_is_index_sized(operation);
 
 		++opcode;
 	}
 
-	void set_exception_generator(Generator generator) {
+	void set_exception_generator(Generator generator, Generator reset_generator) {
 		const auto map_entry = install(generator);
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[0] =
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].program_offsets[1] = uint16_t(map_entry->second.first);
 		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Exception)].operation = JMPind;
+
+		const auto reset_tail_entry = install(reset_generator);
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Reset)].program_offsets[0] =
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Reset)].program_offsets[1] = uint16_t(reset_tail_entry->second.first);
+		storage_.instructions[size_t(ProcessorStorage::OperationSlot::Reset)].operation = JMPind;
 	}
 
 	void install_fetch_decode_execute() {
@@ -128,9 +152,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 			micro_op_location_16 = micro_op_location_8;
 		}
 
-		// Insert into the map.
-		auto [iterator, _] = installed_patterns.insert(std::make_pair(key, std::make_pair(micro_op_location_8, micro_op_location_16)));
-		return iterator;
+		// Insert into the map and return the resulting iterator.
+		return installed_patterns.insert(std::make_pair(key, std::make_pair(micro_op_location_8, micro_op_location_16))).first;
 	}
 
 	public:
@@ -286,6 +309,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);				// New PCH.
 		target(CycleFetchPC);						// New PBR.
 
+		target(OperationCopyInstructionToData);
 		target(OperationPerform);					// ['JMP' (though it's JML in internal terms)]
 	}
 
@@ -298,7 +322,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePush);						// PBR.
 		target(CycleAccessStack);				// IO.
 
-		target(CycleFetchIncrementPC);			// New PBR.
+		target(CycleFetchPC);					// New PBR.
 
 		target(OperationConstructAbsolute);		// Calculate data address.
 		target(OperationPerform);				// [JSL]
@@ -593,22 +617,39 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	}
 
 	// 22a. Stack; s, abort/irq/nmi/res.
-	static void stack_exception(AccessType, bool, const std::function<void(MicroOp)> &target) {
+	//
+	// Combined here with reset, which is the same sequence but with a different stack access.
+	static void stack_exception_impl(AccessType, bool, const std::function<void(MicroOp)> &target, MicroOp stack_op) {
 		target(CycleFetchPCThrowaway);		// IO.
 		target(CycleFetchPCThrowaway);		// IO.
 
-		target(OperationPrepareException);	// Populates the data buffer; this skips a micro-op if
-											// in emulation mode.
+		target(OperationPrepareException);	// Populates the data buffer; if the exception is a
+											// reset then switches to the reset tail program.
+											// Otherwise skips a micro-op if in emulation mode.
 
-		target(CyclePush);					// PBR	[skipped in emulation mode].
-		target(CyclePush);					// PCH.
-		target(CyclePush);					// PCL.
-		target(CyclePush);					// P.
+		target(stack_op);					// PBR	[skipped in emulation mode].
+		target(stack_op);					// PCH.
+		target(stack_op);					// PCL.
+
+		target(OperationPickExceptionVector);	// Select vector address.
+
+		target(stack_op);					// P.
+
+		target(OperationClearDataBuffer);	// Prepare to fetch the vector.
 
 		target(CycleFetchIncrementVector);	// AAVL.
 		target(CycleFetchVector);			// AAVH.
 
 		target(OperationPerform);			// Jumps to the vector address.
+	}
+
+	static void stack_exception(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+		stack_exception_impl(type, is8bit, target, CyclePush);
+	}
+
+	static void reset(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
+		// The reset program just disables the usual pushes.
+		stack_exception_impl(type, is8bit, target, CycleAccessStack);
 	}
 
 	// 22b. Stack; s, PLx.
@@ -636,6 +677,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void stack_pea(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);	// AAL.
 		target(CycleFetchIncrementPC);	// AAH.
+
+		target(OperationCopyInstructionToData);
+
 		target(CyclePush);				// AAH.
 		target(CyclePush);				// AAL.
 	}
@@ -699,7 +743,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePull);				// New PCH.
 		target(CyclePull);				// New PBR.
 
-		target(OperationPerform);		// [JML, to perform the RTL]
+		target(OperationPerform);		// [RTL]
 	}
 
 	// 22j. Stack; s, BRK/COP.
@@ -712,6 +756,11 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CyclePush);					// PBR	[skipped in emulation mode].
 		target(CyclePush);					// PCH.
 		target(CyclePush);					// PCL.
+
+		target(OperationPickExceptionVector);	// Selects the exception's target; I've assumed the same
+												// logic as a 6502 here — i.e. that some interrupts can
+												// usurp the vectors of others.
+
 		target(CyclePush);					// P.
 
 		target(CycleFetchIncrementVector);	// AAVL.
@@ -762,10 +811,10 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x05 ORA d */			op(direct, ORA);
 	/* 0x06 ASL d */			op(direct_rmw, ASL);
 	/* 0x07 ORA [d] */			op(direct_indirect_long, ORA);
-	/* 0x08 PHP s */			op(stack_push, PHP);
+	/* 0x08 PHP s */			op(stack_push, PHP, AccessMode::Always8Bit);
 	/* 0x09 ORA # */			op(immediate, ORA);
 	/* 0x0a ASL A */			op(accumulator, ASL);
-	/* 0x0b PHD s */			op(stack_push, PHD, AccessMode::Always8Bit);
+	/* 0x0b PHD s */			op(stack_push, PHD, AccessMode::Always16Bit);
 	/* 0x0c TSB a */			op(absolute_rmw, TSB);
 	/* 0x0d ORA a */			op(absolute, ORA);
 	/* 0x0e ASL a */			op(absolute_rmw, ASL);
@@ -796,10 +845,10 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x25 AND d */			op(direct, AND);
 	/* 0x26 ROL d */			op(direct_rmw, ROL);
 	/* 0x27 AND [d] */			op(direct_indirect_long, AND);
-	/* 0x28 PLP s */			op(stack_pull, PLP);
+	/* 0x28 PLP s */			op(stack_pull, PLP, AccessMode::Always8Bit);
 	/* 0x29 AND # */			op(immediate, AND);
 	/* 0x2a ROL A */			op(accumulator, ROL);
-	/* 0x2b PLD s */			op(stack_pull, PLD, AccessMode::Always8Bit);
+	/* 0x2b PLD s */			op(stack_pull, PLD, AccessMode::Always16Bit);
 	/* 0x2c BIT a */			op(absolute, BIT);
 	/* 0x2d AND a */			op(absolute, AND);
 	/* 0x2e ROL a */			op(absolute_rmw, ROL);
@@ -824,7 +873,7 @@ ProcessorStorage::ProcessorStorage() {
 
 	/* 0x40 RTI s */			op(stack_rti, RTI);
 	/* 0x41	EOR (d, x) */		op(direct_indexed_indirect, EOR);
-	/* 0x42	WDM i */			op(implied, NOP);
+	/* 0x42	WDM i */			op(implied, WDM);
 	/* 0x43	EOR d, s */			op(stack_relative, EOR);
 	/* 0x44	MVP xyc */			op(block_move, MVP);
 	/* 0x45	EOR d */			op(direct, EOR);
@@ -867,7 +916,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0x68 PLA s */			op(stack_pull, LDA);
 	/* 0x69 ADC # */			op(immediate, ADC);
 	/* 0x6a ROR A */			op(accumulator, ROR);
-	/* 0x6b RTL s */			op(stack_rtl, JML);
+	/* 0x6b RTL s */			op(stack_rtl, RTL);
 	/* 0x6c JMP (a) */			op(absolute_indirect_jmp, JMPind);
 	/* 0x6d ADC a */			op(absolute, ADC);
 	/* 0x6e ROR a */			op(absolute_rmw, ROR);
@@ -1027,7 +1076,7 @@ ProcessorStorage::ProcessorStorage() {
 	/* 0xff SBC al, x */		op(absolute_long_x, SBC);
 #undef op
 
-	constructor.set_exception_generator(&ProcessorStorageConstructor::stack_exception);
+	constructor.set_exception_generator(&ProcessorStorageConstructor::stack_exception, &ProcessorStorageConstructor::reset);
 	constructor.install_fetch_decode_execute();
 
 	// Find any OperationMoveToNextProgram.
@@ -1055,7 +1104,6 @@ void ProcessorStorage::set_emulation_mode(bool enabled) {
 
 	if(enabled) {
 		set_m_x_flags(true, true);
-		registers_.x.halves.high = registers_.y.halves.high = 0;
 		registers_.e_masks[0] = 0xff00;
 		registers_.e_masks[1] = 0x00ff;
 	} else {
@@ -1067,17 +1115,18 @@ void ProcessorStorage::set_emulation_mode(bool enabled) {
 }
 
 void ProcessorStorage::set_m_x_flags(bool m, bool x) {
-	// true/1 => 8bit for both flags.
-	registers_.mx_flags[0] = m;
-	registers_.mx_flags[1] = x;
+	registers_.x_mask = x ? 0x00ff : 0xffff;
+	registers_.x_shift = x ? 0 : 8;
+	registers_.x.full &= registers_.x_mask;
+	registers_.y.full &= registers_.x_mask;
 
 	registers_.m_masks[0] = m ? 0xff00 : 0x0000;
 	registers_.m_masks[1] = m ? 0x00ff : 0xffff;
 	registers_.m_shift = m ? 0 : 8;
 
-	registers_.x_masks[0] = x ? 0xff00 : 0x0000;
-	registers_.x_masks[1] = x ? 0x00ff : 0xffff;
-	registers_.x_shift = x ? 0 : 8;
+	// true/1 => 8bit for both flags.
+	registers_.mx_flags[0] = m;
+	registers_.mx_flags[1] = x;
 }
 
 uint8_t ProcessorStorage::get_flags() const {

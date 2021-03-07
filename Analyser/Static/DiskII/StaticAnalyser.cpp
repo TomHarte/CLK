@@ -9,6 +9,7 @@
 #include "StaticAnalyser.hpp"
 
 #include "../AppleII/Target.hpp"
+#include "../AppleIIgs/Target.hpp"
 #include "../Oric/Target.hpp"
 #include "../Disassembler/6502.hpp"
 #include "../Disassembler/AddressMapper.hpp"
@@ -18,7 +19,7 @@
 
 namespace {
 
-Analyser::Static::Target *AppleTarget(const Storage::Encodings::AppleGCR::Sector *sector_zero) {
+Analyser::Static::Target *AppleIITarget(const Storage::Encodings::AppleGCR::Sector *sector_zero) {
 	using Target = Analyser::Static::AppleII::Target;
 	auto *const target = new Target;
 
@@ -29,6 +30,10 @@ Analyser::Static::Target *AppleTarget(const Storage::Encodings::AppleGCR::Sector
 	}
 
 	return target;
+}
+
+Analyser::Static::Target *AppleIIgsTarget() {
+	return new Analyser::Static::AppleIIgs::Target();
 }
 
 Analyser::Static::Target *OricTarget(const Storage::Encodings::AppleGCR::Sector *) {
@@ -46,8 +51,18 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &m
 	// This analyser can comprehend disks only.
 	if(media.disks.empty()) return {};
 
+	auto &disk = media.disks.front();
+	TargetList targets;
+
+	// If the disk image is too large for a 5.25" disk, map this to the IIgs.
+	if(disk->get_maximum_head_position() > Storage::Disk::HeadPosition(40)) {
+		targets.push_back(std::unique_ptr<Analyser::Static::Target>(AppleIIgsTarget()));
+		targets.back()->media = media;
+		return targets;
+	}
+
 	// Grab track 0, sector 0: the boot sector.
-	const auto track_zero = media.disks.front()->get_track_at_position(Storage::Disk::Track::Address(0, Storage::Disk::HeadPosition(0)));
+	const auto track_zero = disk->get_track_at_position(Storage::Disk::Track::Address(0, Storage::Disk::HeadPosition(0)));
 	const auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
 		Storage::Disk::track_serialisation(*track_zero, Storage::Time(1, 50000)));
 
@@ -61,12 +76,11 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &m
 
 	// If there's no boot sector then if there are also no sectors at all,
 	// decline to nominate a machine. Otherwise go with an Apple as the default.
-	TargetList targets;
 	if(!sector_zero) {
 		if(sector_map.empty()) {
 			return targets;
 		} else {
-			targets.push_back(std::unique_ptr<Analyser::Static::Target>(AppleTarget(nullptr)));
+			targets.push_back(std::unique_ptr<Analyser::Static::Target>(AppleIITarget(nullptr)));
 			targets.back()->media = media;
 			return targets;
 		}
@@ -116,7 +130,7 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &m
 	if(is_oric) {
 		targets.push_back(std::unique_ptr<Analyser::Static::Target>(OricTarget(sector_zero)));
 	} else {
-		targets.push_back(std::unique_ptr<Analyser::Static::Target>(AppleTarget(sector_zero)));
+		targets.push_back(std::unique_ptr<Analyser::Static::Target>(AppleIITarget(sector_zero)));
 	}
 	targets.back()->media = media;
 	return targets;

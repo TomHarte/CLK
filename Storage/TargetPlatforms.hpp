@@ -12,9 +12,13 @@
 namespace TargetPlatform {
 
 typedef int IntType;
+
+// The below is somehwat overspecified because some of the file formats already supported by this
+// emulator can self-specify platforms beyond those the emulator otherwise implements.
 enum Type: IntType {
-	AmstradCPC		=	1 << 1,
-	AppleII			=	1 << 2,
+	AmstradCPC		=	1 << 0,
+	AppleII			=	1 << 1,
+	AppleIIgs		=	1 << 2,
 	Atari2600		=	1 << 3,
 	AtariST			=	1 << 4,
 	AcornAtom		=	1 << 5,

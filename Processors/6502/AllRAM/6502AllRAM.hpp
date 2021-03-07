@@ -22,6 +22,7 @@ class AllRAMProcessor:
 		virtual ~AllRAMProcessor() {}
 
 		virtual void run_for(const Cycles cycles) = 0;
+		virtual void run_for_instructions(int) = 0;
 		virtual bool is_jammed() = 0;
 		virtual void set_irq_line(bool value) = 0;
 		virtual void set_nmi_line(bool value) = 0;

@@ -465,16 +465,14 @@ class ConcreteMachine:
 			}
 
 			// Update the video output, checking whether a sequence point has been hit.
-			while(length >= cycles_until_video_event_) {
-				length -= cycles_until_video_event_;
-				video_ += cycles_until_video_event_;
-				cycles_until_video_event_ = video_->get_next_sequence_point();
-				assert(cycles_until_video_event_ > HalfCycles(0));
+			if(video_.will_flush(length)) {
+				length -= video_.cycles_until_implicit_flush();
+				video_ += video_.cycles_until_implicit_flush();
 
 				mfp_->set_timer_event_input(1, video_->display_enabled());
 				update_interrupt_input();
 			}
-			cycles_until_video_event_ -= length;
+
 			video_ += length;
 		}
 
@@ -486,7 +484,6 @@ class ConcreteMachine:
 		HalfCycles bus_phase_;
 
 		JustInTimeActor<Video> video_;
-		HalfCycles cycles_until_video_event_;
 
 		// The MFP runs at 819200/2673749ths of the CPU clock rate.
 		JustInTimeActor<Motorola::MFP68901::MFP68901, 819200, 2673749> mfp_;

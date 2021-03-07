@@ -8,6 +8,8 @@
 
 #include "IWM.hpp"
 
+#define NDEBUG
+#define LOG_PREFIX "[IWM] "
 #include "../../Outputs/Log.hpp"
 
 using namespace Apple;
@@ -50,7 +52,7 @@ uint8_t IWM::read(int address) {
 
 	switch(state_ & (Q6 | Q7 | ENABLE)) {
 		default:
-			LOG("[IWM] Invalid read\n");
+			LOG("Invalid read\n");
 		return 0xff;
 
 		// "Read all 1s".
@@ -62,9 +64,8 @@ uint8_t IWM::read(int address) {
 			const auto result = data_register_;
 
 			if(data_register_ & 0x80) {
-//				printf("\n\nIWM:%02x\n\n", data_register_);
-//				printf(".");
 				data_register_ = 0;
+//				LOG("Reading data: " << PADHEX(2) << int(result));
 			}
 //			LOG("Reading data register: " << PADHEX(2) << int(result));
 
@@ -99,7 +100,7 @@ uint8_t IWM::read(int address) {
 				bit 6: 1 = write state (0 = underrun has occurred; 1 = no underrun so far).
 				bit 7: 1 = write data buffer ready for data (1 = ready; 0 = busy).
 			*/
-//			LOG("Reading write handshake: " << PADHEX(2) << (0x3f | write_handshake_));
+//			LOG("Reading write handshake: " << PADHEX(2) << int(0x3f | write_handshake_));
 		return 0x3f | write_handshake_;
 	}
 
@@ -128,13 +129,21 @@ void IWM::write(int address, uint8_t input) {
 
 			mode_ = input;
 
+			// TEMPORARY. To test for the unimplemented mode.
+			if(input&0x2) {
+				LOG("Switched to asynchronous mode");
+			} else {
+				LOG("Switched to synchronous mode");
+			}
+
 			switch(mode_ & 0x18) {
-				case 0x00:		bit_length_ = Cycles(24);		break;	// slow mode, 7Mhz
-				case 0x08:		bit_length_ = Cycles(12);		break;	// fast mode, 7Mhz
+				case 0x00:		bit_length_ = Cycles(28);		break;	// slow mode, 7Mhz
+				case 0x08:		bit_length_ = Cycles(14);		break;	// fast mode, 7Mhz
 				case 0x10:		bit_length_ = Cycles(32);		break;	// slow mode, 8Mhz
 				case 0x18:		bit_length_ = Cycles(16);		break;	// fast mode, 8Mhz
 			}
-			LOG("IWM mode is now " << PADHEX(2) << int(mode_));
+			LOG("Mode is now " << PADHEX(2) << int(mode_));
+			LOG("New bit length is " << std::dec << bit_length_.as_integral());
 		break;
 
 		case Q7|Q6|ENABLE:	// Write data register.
@@ -248,6 +257,7 @@ void IWM::run_for(const Cycles cycles) {
 					drives_[active_drive_]->run_for(Cycles(1));
 					++cycles_since_shift_;
 					if(cycles_since_shift_ == bit_length_ + error_margin) {
+//						LOG("Shifting 0 at " << std::dec << cycles_since_shift_.as_integral());
 						propose_shift(0);
 					}
 				}
@@ -263,41 +273,45 @@ void IWM::run_for(const Cycles cycles) {
 		} break;
 
 		case ShiftMode::Writing:
-			if(drives_[active_drive_]->is_writing()) {
-				while(cycles_since_shift_ + integer_cycles >= bit_length_) {
-					const auto cycles_until_write = bit_length_ - cycles_since_shift_;
+			while(cycles_since_shift_ + integer_cycles >= bit_length_) {
+				const auto cycles_until_write = bit_length_ - cycles_since_shift_;
+				if(drives_[active_drive_]) {
 					drives_[active_drive_]->run_for(cycles_until_write);
 
 					// Output a flux transition if the top bit is set.
 					drives_[active_drive_]->write_bit(shift_register_ & 0x80);
-					shift_register_ <<= 1;
+				}
+				shift_register_ <<= 1;
 
-					integer_cycles -= cycles_until_write.as_integral();
-					cycles_since_shift_ = Cycles(0);
+				integer_cycles -= cycles_until_write.as_integral();
+				cycles_since_shift_ = Cycles(0);
 
-					--output_bits_remaining_;
-					if(!output_bits_remaining_) {
-						if(!(write_handshake_ & 0x80)) {
-							write_handshake_ |= 0x80;
-							shift_register_ = next_output_;
-							output_bits_remaining_ = 8;
-//							LOG("Next byte: " << PADHEX(2) << int(shift_register_));
-						} else {
-							write_handshake_ &= ~0x40;
-							drives_[active_drive_]->end_writing();
-//							printf("\n");
-							LOG("Overrun; done.");
-							select_shift_mode();
-						}
+				--output_bits_remaining_;
+				if(!output_bits_remaining_) {
+					if(!(write_handshake_ & 0x80)) {
+						shift_register_ = next_output_;
+						output_bits_remaining_ = 8;
+//						LOG("Next byte: " << PADHEX(2) << int(shift_register_));
+					} else {
+						write_handshake_ &= ~0x40;
+						if(drives_[active_drive_]) drives_[active_drive_]->end_writing();
+						LOG("Overrun; done.");
+						output_bits_remaining_ = 1;
 					}
-				}
 
-				cycles_since_shift_ = integer_cycles;
-				if(integer_cycles) {
-					drives_[active_drive_]->run_for(cycles_since_shift_);
+					// Either way, the IWM is ready for more data.
+					write_handshake_ |= 0x80;
 				}
-			} else {
-				drives_[active_drive_]->run_for(cycles);
+			}
+
+			// Either some bits were output, in which case cycles_since_shift_ is no 0 and
+			// integer_cycles is some number less than bit_length_, or none were and
+			// cycles_since_shift_ + integer_cycles is less than bit_length, and the new
+			// part should be accumulated.
+			cycles_since_shift_ += integer_cycles;
+
+			if(drives_[active_drive_] && integer_cycles) {
+				drives_[active_drive_]->run_for(cycles_since_shift_);
 			}
 		break;
 
@@ -332,12 +346,12 @@ void IWM::select_shift_mode() {
 	}
 
 	// If writing mode just began, set the drive into write mode and cue up the first output byte.
-	if(drives_[active_drive_] && old_shift_mode != ShiftMode::Writing && shift_mode_ == ShiftMode::Writing) {
-		drives_[active_drive_]->begin_writing(Storage::Time(1, clock_rate_ / bit_length_.as_integral()), false);
+	if(old_shift_mode != ShiftMode::Writing && shift_mode_ == ShiftMode::Writing) {
+		if(drives_[active_drive_]) drives_[active_drive_]->begin_writing(Storage::Time(1, clock_rate_ / bit_length_.as_integral()), false);
 		shift_register_ = next_output_;
 		write_handshake_ |= 0x80 | 0x40;
 		output_bits_remaining_ = 8;
-		LOG("Seeding output with " << PADHEX(2) << shift_register_);
+		LOG("Seeding output with " << PADHEX(2) << int(shift_register_));
 	}
 }
 
@@ -351,6 +365,7 @@ void IWM::process_event(const Storage::Disk::Drive::Event &event) {
 	switch(event.type) {
 		case Storage::Disk::Track::Event::IndexHole: return;
 		case Storage::Disk::Track::Event::FluxTransition:
+//			LOG("Shifting 1 at " << std::dec << cycles_since_shift_.as_integral());
 			propose_shift(1);
 		break;
 	}
@@ -359,12 +374,13 @@ void IWM::process_event(const Storage::Disk::Drive::Event &event) {
 void IWM::propose_shift(uint8_t bit) {
 	// TODO: synchronous mode.
 
+//	LOG("Shifting at " << std::dec << cycles_since_shift_.as_integral());
 //	LOG("Shifting input");
 
 	// See above for text from the IWM patent, column 7, around line 35 onwards.
 	// The error_margin here implements the 'before' part of that contract.
 	//
-	// Basic effective logic: if at least 1 is fozund in the bit_length_ cycles centred
+	// Basic effective logic: if at least 1 is found in the bit_length_ cycles centred
 	// on the current expected bit delivery time as implied by cycles_since_shift_,
 	// shift in a 1 and start a new window wherever the first found 1 was.
 	//
@@ -374,6 +390,7 @@ void IWM::propose_shift(uint8_t bit) {
 
 	shift_register_ = uint8_t((shift_register_ << 1) | bit);
 	if(shift_register_ & 0x80) {
+//		if(data_register_ & 0x80) LOG("Byte missed");
 		data_register_ = shift_register_;
 		shift_register_ = 0;
 	}
@@ -386,16 +403,20 @@ void IWM::propose_shift(uint8_t bit) {
 
 void IWM::set_drive(int slot, IWMDrive *drive) {
 	drives_[slot] = drive;
-	drive->set_event_delegate(this);
-	drive->set_clocking_hint_observer(this);
+	if(drive) {
+		drive->set_event_delegate(this);
+		drive->set_clocking_hint_observer(this);
+	} else {
+		drive_is_rotating_[slot] = false;
+	}
 }
 
 void IWM::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) {
 	const bool is_rotating = clocking != ClockingHint::Preference::None;
 
-	if(component == static_cast<ClockingHint::Source *>(drives_[0])) {
+	if(drives_[0] && component == static_cast<ClockingHint::Source *>(drives_[0])) {
 		drive_is_rotating_[0] = is_rotating;
-	} else {
+	} else if(drives_[1] && component == static_cast<ClockingHint::Source *>(drives_[1])) {
 		drive_is_rotating_[1] = is_rotating;
 	}
 }

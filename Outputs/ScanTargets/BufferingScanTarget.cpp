@@ -38,8 +38,8 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 	// If allocation has already failed on this line, continue the trend.
 	if(allocation_has_failed_) return nullptr;
 
-	// If there isn't yet a write area then mark allocation as failed and finish.
-	if(!write_area_) {
+	// If there isn't yet a write area or data size then mark allocation as failed and finish.
+	if(!write_area_ || !data_type_size_) {
 		allocation_has_failed_ = true;
 		return nullptr;
 	}
@@ -89,35 +89,44 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 	//		write_pointers_.write_area points to the first pixel the client is expected to draw to.
 }
 
+template <typename DataUnit> void BufferingScanTarget::end_data(size_t actual_length) {
+	// Bookend the start and end of the new data, to safeguard for precision errors in sampling.
+	DataUnit *const sized_write_area = &reinterpret_cast<DataUnit *>(write_area_)[write_pointers_.write_area];
+	sized_write_area[-1] = sized_write_area[0];
+	sized_write_area[actual_length] = sized_write_area[actual_length - 1];
+}
+
 void BufferingScanTarget::end_data(size_t actual_length) {
 	// Acquire the producer lock.
 	std::lock_guard lock_guard(producer_mutex_);
 
 	// Do nothing if no data write is actually ongoing.
-	if(allocation_has_failed_ || !data_is_allocated_) return;
+	if(!data_is_allocated_) return;
+	data_is_allocated_ = false;
 
-	// Bookend the start of the new data, to safeguard for precision errors in sampling.
-	memcpy(
-		&write_area_[size_t(write_pointers_.write_area - 1) * data_type_size_],
-		&write_area_[size_t(write_pointers_.write_area) * data_type_size_],
-		data_type_size_);
+	// Check for other allocation failures.
+	if(allocation_has_failed_) return;
+
+	// Apply necessary bookends.
+	switch(data_type_size_) {
+		default: assert(false);
+		case 0:
+			// This just means that modals haven't been grabbed yet. So it's not
+			// a valid data type size, but it is a value that might legitimately
+			// be seen here.
+		break;
+		case 1:	end_data<uint8_t>(actual_length);	break;
+		case 2:	end_data<uint16_t>(actual_length);	break;
+		case 4:	end_data<uint32_t>(actual_length);	break;
+	}
 
 	// Advance to the end of the current run.
 	write_pointers_.write_area += actual_length + 1;
-
-	// Also bookend the end.
-	memcpy(
-		&write_area_[size_t(write_pointers_.write_area - 1) * data_type_size_],
-		&write_area_[size_t(write_pointers_.write_area - 2) * data_type_size_],
-		data_type_size_);
 
 	// The write area was allocated in the knowledge that there's sufficient
 	// distance left on the current line, but there's a risk of exactly filling
 	// the final line, in which case this should wrap back to 0.
 	write_pointers_.write_area %= WriteAreaWidth*WriteAreaHeight;
-
-	// Record that no further end_data calls are expected.
-	data_is_allocated_ = false;
 }
 
 // MARK: - Producer; scans.
@@ -375,6 +384,7 @@ const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
 	// But either way it's now appropriate to start treating the data size as implied by the data type.
 	std::lock_guard lock_guard(producer_mutex_);
 	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
+	assert((data_type_size_ == 1) || (data_type_size_ == 2) || (data_type_size_ == 4));
 
 	return &modals_;
 }

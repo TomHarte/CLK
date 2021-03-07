@@ -2,13 +2,13 @@
 //  Decoder.cpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 12/30/20.
+//  Created by Thomas Harte on 30/12/20.
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
 #include "Decoder.hpp"
 
-using namespace CPU::Decoder::PowerPC;
+using namespace InstructionSet::PowerPC;
 
 Decoder::Decoder(Model model) : model_(model) {}
 

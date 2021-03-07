@@ -13,7 +13,6 @@
 #include "DeferredAudio.hpp"
 #include "DriveSpeedAccumulator.hpp"
 #include "Keyboard.hpp"
-#include "RealTimeClock.hpp"
 #include "Video.hpp"
 
 #include "../../MachineTypes.hpp"
@@ -32,6 +31,7 @@
 #include "../../../Components/5380/ncr5380.hpp"
 #include "../../../Components/6522/6522.hpp"
 #include "../../../Components/8530/z8530.hpp"
+#include "../../../Components/AppleClock/AppleClock.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
 #include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
 #include "../../../Processors/68000/68000.hpp"
@@ -648,7 +648,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:
-				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, DeferredAudio &audio, IWMActor &iwm, Inputs::QuadratureMouse &mouse) :
+				VIAPortHandler(ConcreteMachine &machine, Apple::Clock::SerialClock &clock, Keyboard &keyboard, DeferredAudio &audio, IWMActor &iwm, Inputs::QuadratureMouse &mouse) :
 					machine_(machine), clock_(clock), keyboard_(keyboard), audio_(audio), iwm_(iwm), mouse_(mouse) {}
 
 				using Port = MOS::MOS6522::Port;
@@ -751,7 +751,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			private:
 				ConcreteMachine &machine_;
-				RealTimeClock &clock_;
+				Apple::Clock::SerialClock &clock_;
 				Keyboard &keyboard_;
 				DeferredAudio &audio_;
 				IWMActor &iwm_;
@@ -766,7 +766,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		DeferredAudio audio_;
 		Video video_;
 
-		RealTimeClock clock_;
+		Apple::Clock::SerialClock clock_;
 		Keyboard keyboard_;
 
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;

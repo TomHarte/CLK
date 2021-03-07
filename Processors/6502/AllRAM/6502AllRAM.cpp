@@ -30,32 +30,35 @@ template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, publ
 		inline Cycles perform_bus_operation(BusOperation operation, uint32_t address, uint8_t *value) {
 			timestamp_ += Cycles(1);
 
-			if(operation == BusOperation::ReadOpcode) {
+			if(isAccessOperation(operation)) {
+				if(operation == BusOperation::ReadOpcode) {
 #ifdef BE_NOISY
-				printf("[%04x] %02x a:%04x x:%04x y:%04x p:%02x s:%02x\n", address, memory_[address],
-					mos6502_.get_value_of_register(Register::A),
-					mos6502_.get_value_of_register(Register::X),
-					mos6502_.get_value_of_register(Register::Y),
-					mos6502_.get_value_of_register(Register::Flags) & 0xff,
-					mos6502_.get_value_of_register(Register::StackPointer) & 0xff);
+					printf("[%04x] %02x a:%04x x:%04x y:%04x p:%02x s:%02x\n", address, memory_[address],
+						mos6502_.get_value_of_register(Register::A),
+						mos6502_.get_value_of_register(Register::X),
+						mos6502_.get_value_of_register(Register::Y),
+						mos6502_.get_value_of_register(Register::Flags) & 0xff,
+						mos6502_.get_value_of_register(Register::StackPointer) & 0xff);
 #endif
-				check_address_for_trap(address);
-			}
+					check_address_for_trap(address);
+					--instructions_;
+				}
 
-			if(isReadOperation(operation)) {
-				*value = memory_[address];
+				if(isReadOperation(operation)) {
+					*value = memory_[address];
 #ifdef BE_NOISY
-//				if((address&0xff00) == 0x100) {
-					printf("%04x -> %02x\n", address, *value);
-//				}
+//					if((address&0xff00) == 0x100) {
+						printf("%04x -> %02x\n", address, *value);
+//					}
 #endif
-			} else {
-				memory_[address] = *value;
+				} else {
+					memory_[address] = *value;
 #ifdef BE_NOISY
-//				if((address&0xff00) == 0x100) {
-					printf("%04x <- %02x\n", address, *value);
-//				}
+//					if((address&0xff00) == 0x100) {
+						printf("%04x <- %02x\n", address, *value);
+//					}
 #endif
+				}
 			}
 
 			return Cycles(1);
@@ -63,6 +66,13 @@ template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, publ
 
 		void run_for(const Cycles cycles) {
 			mos6502_.run_for(cycles);
+		}
+
+		void run_for_instructions(int count) {
+			instructions_ = count;
+			while(instructions_) {
+				mos6502_.run_for(Cycles(1));
+			}
 		}
 
 		bool is_jammed() {
@@ -87,6 +97,7 @@ template <Type type> class ConcreteAllRAMProcessor: public AllRAMProcessor, publ
 
 	private:
 		CPU::MOS6502Esque::Processor<type, ConcreteAllRAMProcessor, false> mos6502_;
+		int instructions_ = 0;
 };
 
 }

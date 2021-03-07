@@ -21,9 +21,9 @@ void Fuzz(uint8_t *buffer, std::size_t size);
 /// Stores @c size random 16-bit words from @c buffer onwards.
 void Fuzz(uint16_t *buffer, std::size_t size);
 
-/// Replaces all existing vector contents with random bytes.
-template <typename T> void Fuzz(std::vector<T> &buffer) {
-	Fuzz(reinterpret_cast<uint8_t *>(buffer.data()), buffer.size() * sizeof(buffer[0]));
+/// Replaces all existing vector or array contents with random bytes.
+template <typename T> void Fuzz(T &buffer) {
+	Fuzz(reinterpret_cast<uint8_t *>(buffer.data()), buffer.size() * sizeof(typename T::value_type));
 }
 
 }

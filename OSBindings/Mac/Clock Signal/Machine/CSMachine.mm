@@ -204,17 +204,19 @@ struct ActivityObserver: public Activity::Observer {
 	[_delegateMachineAccessLock lock];
 	_speakerDelegate.machine = nil;
 	[_delegateMachineAccessLock unlock];
+}
 
-//	[_view performWithGLContext:^{
-//		@synchronized(self) {
-//			self->_scanTarget.reset();
-//		}
-//	}];
+- (Outputs::Speaker::Speaker *)speaker {
+	const auto audio_producer = _machine->audio_producer();
+	if(!audio_producer) {
+		return nullptr;
+	}
+	return audio_producer->get_speaker();
 }
 
 - (float)idealSamplingRateFromRange:(NSRange)range {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = [self speaker];
 		if(speaker) {
 			return speaker->get_ideal_clock_rate_in_range((float)range.location, (float)(range.location + range.length));
 		}
@@ -224,7 +226,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (BOOL)isStereo {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = [self speaker];
 		if(speaker) {
 			return speaker->get_is_stereo();
 		}
@@ -240,7 +242,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = [self speaker];
 		if(speaker) {
 			speaker->set_output_rate(sampleRate, (int)bufferSize, stereo);
 			speaker->set_delegate(delegate);
@@ -638,7 +640,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)setVolume:(float)volume {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = [self speaker];
 		if(speaker) {
 			return speaker->set_output_volume(volume);
 		}
@@ -647,7 +649,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (BOOL)hasAudioOutput {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = [self speaker];
 		return speaker ? YES : NO;
 	}
 }
@@ -672,8 +674,10 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		// Store a means to map from CVTimeStamp.hostTime to Time::Nanos;
 		// there is an extremely dodgy assumption here that the former is in ns.
+		// If you can find a well-defined way to get the CVTimeStamp.hostTime units,
+		// whether at runtime or via preprocessor define, I'd love to know about it.
 		if(!_timeDiff) {
-			_timeDiff = int64_t(now->hostTime) - int64_t(timeNow);
+			_timeDiff = int64_t(timeNow) - int64_t(now->hostTime);
 		}
 
 		// Store the next end-of-frame time. TODO: and start of next and implied visible duration, if raster racing?
@@ -692,7 +696,7 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
-#define TICKS	600
+#define TICKS	1000
 
 - (void)start {
 	__block auto lastTime = Time::nanos_now();
@@ -715,18 +719,29 @@ struct ActivityObserver: public Activity::Observer {
 			}
 
 			// If this tick includes vsync then inspect the machine.
-			if(timeNow >= self->_syncTime && lastTime < self->_syncTime) {
+			//
+			// _syncTime = 0 is used here as a sentinel to mark that a sync time is known;
+			// this with the >= test ensures that no syncs are missed even if some sort of
+			// performance problem is afoot (e.g. I'm debugging).
+			if(self->_syncTime && timeNow >= self->_syncTime) {
 				splitAndSync = self->_isSyncLocking = self->_scanSynchroniser.can_synchronise(self->_machine->scan_producer()->get_scan_status(), self->_refreshPeriod);
 
 				// If the time window is being split, run up to the split, then check out machine speed, possibly
-				// adjusting multiplier, then run after the split.
+				// adjusting multiplier, then run after the split. Include a sanity check against an out-of-bounds
+				// _syncTime; that can happen when debugging (possibly inter alia?).
 				if(splitAndSync) {
-					self->_machine->timed_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
-					self->_machine->timed_machine()->set_speed_multiplier(
-						self->_scanSynchroniser.next_speed_multiplier(self->_machine->scan_producer()->get_scan_status())
-					);
-					self->_machine->timed_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
+					if(self->_syncTime >= lastTime) {
+						self->_machine->timed_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
+						self->_machine->timed_machine()->set_speed_multiplier(
+							self->_scanSynchroniser.next_speed_multiplier(self->_machine->scan_producer()->get_scan_status())
+						);
+						self->_machine->timed_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
+					} else {
+						self->_machine->timed_machine()->run_for((double)(timeNow - lastTime) / 1e9);
+					}
 				}
+
+				self->_syncTime = 0;
 			}
 
 			// If the time window is being split, run up to the split, then check out machine speed, possibly

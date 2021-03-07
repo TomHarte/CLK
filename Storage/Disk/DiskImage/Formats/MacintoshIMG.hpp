@@ -25,11 +25,24 @@ namespace Disk {
 class MacintoshIMG: public DiskImage {
 	public:
 		/*!
-			Construct a @c DiskCopy42 containing content from the file with name @c file_name.
+			Construct a @c MacintoshIMG containing content from the file with name @c file_name.
 
 			@throws Error::InvalidFormat if this file doesn't appear to be in Disk Copy 4.2 format.
 		*/
 		MacintoshIMG(const std::string &file_name);
+
+		enum class FixedType {
+			GCR
+		};
+		/*!
+			Constructs a @c MacintoshIMG without attempting to autodetect whether this is a raw
+			image or a Disk Copy 4.2 image; if GCR is specified and the file size checks out then
+			it is accepted as a GCR image.
+
+			If @c offset and @c length are specified and non-zero, only that portion of the file
+			will be modified.
+		*/
+		MacintoshIMG(const std::string &file_name, FixedType type, size_t offset = 0, off_t length = -1);
 
 		// implemented to satisfy @c Disk
 		HeadPosition get_maximum_head_position() final;
@@ -56,6 +69,8 @@ class MacintoshIMG: public DiskImage {
 		std::mutex buffer_mutex_;
 
 		uint32_t checksum(const std::vector<uint8_t> &, size_t bytes_to_skip = 0);
+		void construct_raw_gcr(size_t offset, off_t length);
+		long raw_offset_ = 0;
 };
 
 }

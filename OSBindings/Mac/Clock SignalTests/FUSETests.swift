@@ -10,14 +10,14 @@ import XCTest
 import Foundation
 
 fileprivate func readHexInt16(from scanner: Scanner) -> UInt16 {
-	var temporary: UInt32 = 0
-	scanner.scanHexInt32(&temporary)
+	var temporary: UInt64 = 0
+	scanner.scanHexInt64(&temporary)
 	return UInt16(temporary)
 }
 
 fileprivate func readHexInt8(from scanner: Scanner) -> UInt8 {
-	var temporary: UInt32 = 0
-	scanner.scanHexInt32(&temporary)
+	var temporary: UInt64 = 0
+	scanner.scanHexInt64(&temporary)
 	return UInt8(temporary)
 }
 

@@ -27,7 +27,7 @@
     <item>
      <widget class="QTabWidget" name="machineSelectionTabs">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="appleIITab">
        <attribute name="title">
@@ -99,6 +99,86 @@
           </item>
           <item>
            <spacer name="appleIIHSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="appleIIgsTab">
+       <attribute name="title">
+        <string>Apple IIgs</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="appleIIgsLayout">
+        <item>
+         <layout class="QHBoxLayout" name="appleIIgsHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="appleIIgsFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="appleIIgsModelLabel">
+              <property name="text">
+               <string>Model:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="appleIIgsModelComboBox">
+              <item>
+               <property name="text">
+                <string>ROM 00</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>ROM 01</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>ROM 03</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="appleIIgsMemorySizeLabel">
+              <property name="text">
+               <string>Memory Size:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="appleIIgsMemorySizeComboBox">
+              <item>
+               <property name="text">
+                <string>256kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>1mb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>8mb</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="appleIIgsHSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>

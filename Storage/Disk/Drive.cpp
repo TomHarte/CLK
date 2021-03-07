@@ -58,12 +58,13 @@ void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
 	if(ready_type_ == ReadyType::ShugartModifiedRDY || ready_type_ == ReadyType::IBMRDY) {
 		is_ready_ = false;
 	}
+	const bool had_disk = bool(disk_);
 	if(disk_) disk_->flush_tracks();
 	disk_ = disk;
 	has_disk_ = !!disk_;
 
 	invalidate_track();
-	did_set_disk();
+	did_set_disk(had_disk);
 	update_clocking_observer();
 }
 

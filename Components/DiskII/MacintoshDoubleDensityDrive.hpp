@@ -21,7 +21,7 @@ class DoubleDensityDrive: public IWMDrive {
 		/*!
 			@returns @c true if this is an 800kb drive; @c false otherwise.
 		*/
-		bool is_800k() {
+		bool is_800k() const {
 			return is_800k_;
 		}
 
@@ -39,7 +39,7 @@ class DoubleDensityDrive: public IWMDrive {
 
 		// To receive the proper notifications from Storage::Disk::Drive.
 		void did_step(Storage::Disk::HeadPosition to_position) final;
-		void did_set_disk() final;
+		void did_set_disk(bool) final;
 
 		const bool is_800k_;
 		bool has_new_disk_ = false;

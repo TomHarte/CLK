@@ -2,7 +2,7 @@
 //  Instruction.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 1/15/21.
+//  Created by Thomas Harte on 15/01/21.
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
@@ -11,8 +11,7 @@
 
 #include <cstdint>
 
-namespace CPU {
-namespace Decoder {
+namespace InstructionSet {
 namespace PowerPC {
 
 enum class Operation: uint8_t {
@@ -185,7 +184,6 @@ struct Instruction {
 // Sanity check on Instruction size.
 static_assert(sizeof(Instruction) <= 8);
 
-}
 }
 }
 

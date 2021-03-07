@@ -255,6 +255,11 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		Modals modals_;
 		bool modals_are_dirty_ = false;
 
+		// Provides a per-data size implementation of end_data; a previous
+		// implementation used blind memcpy and that turned into something
+		// of a profiling hot spot.
+		template <typename DataUnit> void end_data(size_t actual_length);
+
 #ifndef NDEBUG
 		// Debug features; these amount to API validation.
 		bool scan_is_ongoing_ = false;

@@ -148,10 +148,16 @@ enum MicroOp: uint8_t {
 	/// Copies the data buffer to A.
 	OperationCopyDataToA,
 
+	/// Clears the data buffer.
+	OperationClearDataBuffer,
+
 	/// Fills the data buffer with three or four bytes, depending on emulation mode, containing the program
-	/// counter, flags and possibly the program bank. Also puts the appropriate vector address into the
-	/// address register.
+	/// counter, flags and possibly the program bank. Skips the next operation if only three are filled.
 	OperationPrepareException,
+
+	/// Picks the appropriate vector address to service the current exception and places it into
+	/// the data address register.
+	OperationPickExceptionVector,
 
 	/// Sets the memory lock output for the rest of this instruction.
 	OperationSetMemoryLock,
@@ -193,7 +199,7 @@ enum Operation: uint8_t {
 	// These are all implicit.
 	CLC, CLD, CLI, CLV, DEX, DEY, INX, INY, NOP, SEC, SED, SEI,
 	TAX, TAY, TCD, TCS, TDC, TSC, TSX, TXA, TXS, TXY, TYA, TYX,
-	XCE, XBA,
+	XCE, XBA, WDM,
 
 	STP, WAI,
 
@@ -220,6 +226,9 @@ enum Operation: uint8_t {
 
 	/// Loads the PC with the contents of the data buffer + 1.
 	RTS,
+
+	/// Loads the PC and program bank with the contents of the data buffer + 1.
+	RTL,
 };
 
 struct ProcessorStorageConstructor;
@@ -234,22 +243,26 @@ struct ProcessorStorage {
 		uint16_t program_offsets[2] = {0xffff, 0xffff};
 		/// The operation to perform upon an OperationPerform.
 		Operation operation = NOP;
-		/// An index into the mx field indicating which of M or X affects whether this is an 8-bit or 16-bit field.
-		/// So the program to perform is that at @c program_offsets[mx_flags[size_field]]
+		/// An index into the mx field indicating which of M or X affects whether this is an 8-bit or 16-bit field;
+		/// if this is 0 then this instruction picks its size based on the M flag; otherwise it does so based on X.
+		/// So the program to perform is that at @c program_offsets[mx_flags[size_field]] .
 		uint8_t size_field = 0;
 	};
-	Instruction instructions[256 + 2];	// Arranged as:
+	Instruction instructions[256 + 3];	// Arranged as:
 										//	256 entries: instructions;
-										//	the entry for 'exceptions' (i.e. reset, irq, nmi); and
+										//	the entry for 'exceptions' (i.e. reset, irq, nmi);
+										//	a duplicate entry for the final part of exceptions if the selected exception is a reset; and
 										//	the entry for fetch-decode-execute.
 
 	enum class OperationSlot {
 		Exception = 256,
-		FetchDecodeExecute
+		Reset,
+		FetchDecodeExecute,
 	};
 
 	// A helper for testing.
 	uint16_t last_operation_pc_;
+	uint8_t last_operation_program_bank_;
 	Instruction *active_instruction_;
 	Cycles cycles_left_to_run_;
 
@@ -263,15 +276,15 @@ struct ProcessorStorage {
 
 		// Flags aplenty.
 		MOS6502Esque::LazyFlags flags;
-		uint8_t mx_flags[2] = {1, 1};				// [0] = m; [1] = x. In both cases either `0` or `1`; `1` => 8-bit.
-		uint16_t m_masks[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
-		uint16_t x_masks[2] = {0xff00, 0x00ff};	// [0] = src mask; [1] = dst mask.
-		uint16_t e_masks[2] = {0xff00, 0x00ff};
-		int m_shift = 0;
-		int x_shift = 0;
-		bool emulation_flag = true;
+		uint8_t mx_flags[2] = {1, 1};			// [0] = m; [1] = x. In both cases either `0` or `1`; `1` => 8-bit.
+		uint16_t m_masks[2] = {0xff00, 0x00ff};	// [0] = src mask (i.e. that which is unaffected by an operation); [1] = dst mask (i.e. 0xffff ^ src mask).
+		uint16_t x_mask = 0x00ff;				// A mask representing the current size of the index registers. Equivalent to m_masks[1].
+		uint16_t e_masks[2] = {0xff00, 0x00ff};	// Akin to m_masks, but set as per emulation mode.
+		int m_shift = 0;						// How far to shift memory/A to align its sign bit with that of the flags register. i.e. 8 for 16-bit mode, 0 for 8-bit mode.
+		int x_shift = 0;						// m_shift equivalent for X and Y.
+		bool emulation_flag = true;				// The emulation flag; true = in emulation mode.
 
-		// I.e. the offset for direct addressing (outside of emulation mode).
+		// The offset for direct addressing (i.e. outside of emulation mode).
 		uint16_t direct = 0;
 
 		// Banking registers are all stored with the relevant byte
@@ -296,6 +309,7 @@ struct ProcessorStorage {
 	static constexpr int default_exceptions = PowerOn;
 	int pending_exceptions_ = default_exceptions;
 	int selected_exceptions_ = default_exceptions;
+	bool exception_is_interrupt_ = false;
 
 	bool ready_line_ = false;
 	bool memory_lock_ = false;

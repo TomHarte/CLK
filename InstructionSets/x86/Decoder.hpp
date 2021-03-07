@@ -2,7 +2,7 @@
 //  Decoder.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 1/1/21.
+//  Created by Thomas Harte on 01/01/21.
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
@@ -11,10 +11,10 @@
 
 #include "Instruction.hpp"
 
+#include <cstddef>
 #include <utility>
 
-namespace CPU {
-namespace Decoder {
+namespace InstructionSet {
 namespace x86 {
 
 enum class Model {
@@ -26,7 +26,7 @@ enum class Model {
 
 	This is an experimental implementation; it has not yet undergone significant testing.
 */
-struct Decoder {
+class Decoder {
 	public:
 		Decoder(Model model);
 
@@ -149,7 +149,6 @@ struct Decoder {
 		}
 };
 
-}
 }
 }
 

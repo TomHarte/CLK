@@ -2,7 +2,7 @@
 //  Instruction.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 1/15/21.
+//  Created by Thomas Harte on 15/01/21.
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
@@ -11,8 +11,7 @@
 
 #include <cstdint>
 
-namespace CPU {
-namespace Decoder {
+namespace InstructionSet {
 namespace x86 {
 
 /*
@@ -298,7 +297,6 @@ class Instruction {
 
 static_assert(sizeof(Instruction) <= 8);
 
-}
 }
 }
 

@@ -187,8 +187,10 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		/*!
 			Announces new media installation.
+
+			@c did_replace is @c true if a previous disk was replaced; @c false if the drive was previously empty.
 		*/
-		virtual void did_set_disk() {}
+		virtual void did_set_disk(bool did_replace [[maybe_unused]]) {}
 
 		/*!
 			@returns the current rotation of the disk, a float in the half-open range

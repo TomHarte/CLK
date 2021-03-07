@@ -112,6 +112,9 @@ void MainWindow::init() {
 
 	createActions();
 	restoreSelections();
+
+	// TEMPORARY: remove the Apple IIgs tab; this machine isn't ready yet.
+	ui->machineSelectionTabs->removeTab(ui->machineSelectionTabs->indexOf(ui->appleIIgsTab));
 }
 
 void MainWindow::createActions() {
@@ -719,6 +722,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 			for(const auto &url: event->mimeData()->urls()) {
 				const char *const name = url.toLocalFile().toUtf8();
 				FILE *const file = fopen(name, "rb");
+				if(!file) continue;
 				const auto contents = fileContentsAndClose(file);
 				if(!contents) continue;
 
@@ -1086,6 +1090,7 @@ void MainWindow::setButtonPressed(int index, bool isPressed) {
 #include "../../Analyser/Static/Acorn/Target.hpp"
 #include "../../Analyser/Static/AmstradCPC/Target.hpp"
 #include "../../Analyser/Static/AppleII/Target.hpp"
+#include "../../Analyser/Static/AppleIIgs/Target.hpp"
 #include "../../Analyser/Static/AtariST/Target.hpp"
 #include "../../Analyser/Static/Commodore/Target.hpp"
 #include "../../Analyser/Static/Macintosh/Target.hpp"
@@ -1103,6 +1108,7 @@ void MainWindow::startMachine() {
 	}
 
 	TEST(appleII);
+	TEST(appleIIgs);
 	TEST(amstradCPC);
 	TEST(atariST);
 	TEST(electron);
@@ -1131,6 +1137,25 @@ void MainWindow::start_appleII() {
 		default:	target->disk_controller = Target::DiskController::SixteenSector;	break;
 		case 1:		target->disk_controller = Target::DiskController::ThirteenSector;	break;
 		case 2:		target->disk_controller = Target::DiskController::None;				break;
+	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_appleIIgs() {
+	using Target = Analyser::Static::AppleIIgs::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->appleIIgsModelComboBox->currentIndex()) {
+		default:	target->model = Target::Model::ROM00;	break;
+		case 1:		target->model = Target::Model::ROM01;	break;
+		case 2:		target->model = Target::Model::ROM03;	break;
+	}
+
+	switch(ui->appleIIgsMemorySizeComboBox->currentIndex()) {
+		default:	target->memory_model = Target::MemoryModel::TwoHundredAndFiftySixKB;	break;
+		case 1:		target->memory_model = Target::MemoryModel::OneMB;						break;
+		case 2:		target->memory_model = Target::MemoryModel::EightMB;					break;
 	}
 
 	launchTarget(std::move(target));
@@ -1293,6 +1318,10 @@ void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target
 	/* Apple II. */														\
 	ComboBox(appleIIModelComboBox, "appleII.model");					\
 	ComboBox(appleIIDiskControllerComboBox, "appleII.diskController");	\
+																		\
+	/* Apple IIgs. */													\
+	ComboBox(appleIIgsModelComboBox, "appleIIgs.model");				\
+	ComboBox(appleIIgsMemorySizeComboBox, "appleIIgs.memorySize");		\
 																		\
 	/* Amstrad CPC. */													\
 	ComboBox(amstradCPCModelComboBox, "amstradcpc.model");				\

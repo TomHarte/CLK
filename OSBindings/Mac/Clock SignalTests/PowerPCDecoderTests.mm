@@ -11,8 +11,8 @@
 #include "../../../InstructionSets/PowerPC/Decoder.hpp"
 
 namespace {
-	using Operation = CPU::Decoder::PowerPC::Operation;
-	using Instruction = CPU::Decoder::PowerPC::Instruction;
+	using Operation = InstructionSet::PowerPC::Operation;
+	using Instruction = InstructionSet::PowerPC::Instruction;
 }
 
 @interface PowerPCDecoderTests : XCTestCase
@@ -119,7 +119,7 @@ namespace {
 // MARK: - Decoder
 
 - (void)decode:(const uint32_t *)stream {
-	CPU::Decoder::PowerPC::Decoder decoder(CPU::Decoder::PowerPC::Model::MPC601);
+	InstructionSet::PowerPC::Decoder decoder(InstructionSet::PowerPC::Model::MPC601);
 	for(int c = 0; c < 32; c++) {
 		instructions[c] = decoder.decode(stream[c]);
 	}

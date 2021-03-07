@@ -9,43 +9,48 @@
 import Cocoa
 
 class MachinePicker: NSObject {
-	@IBOutlet var machineSelector: NSTabView?
+	@IBOutlet var machineSelector: NSTabView!
+	@IBOutlet var machineSelectionTabs: NSTabView!
 
 	// MARK: - Apple II properties
-	@IBOutlet var appleIIModelButton: NSPopUpButton?
-	@IBOutlet var appleIIDiskControllerButton: NSPopUpButton?
+	@IBOutlet var appleIIModelButton: NSPopUpButton!
+	@IBOutlet var appleIIDiskControllerButton: NSPopUpButton!
+
+	// MARK: - Apple IIgs properties
+	@IBOutlet var appleIIgsModelButton: NSPopUpButton!
+	@IBOutlet var appleIIgsMemorySizeButton: NSPopUpButton!
 
 	// MARK: - Electron properties
-	@IBOutlet var electronDFSButton: NSButton?
-	@IBOutlet var electronADFSButton: NSButton?
-	@IBOutlet var electronAP6Button: NSButton?
-	@IBOutlet var electronSidewaysRAMButton: NSButton?
+	@IBOutlet var electronDFSButton: NSButton!
+	@IBOutlet var electronADFSButton: NSButton!
+	@IBOutlet var electronAP6Button: NSButton!
+	@IBOutlet var electronSidewaysRAMButton: NSButton!
 
 	// MARK: - CPC properties
-	@IBOutlet var cpcModelTypeButton: NSPopUpButton?
+	@IBOutlet var cpcModelTypeButton: NSPopUpButton!
 
 	// MARK: - Macintosh properties
-	@IBOutlet var macintoshModelTypeButton: NSPopUpButton?
+	@IBOutlet var macintoshModelTypeButton: NSPopUpButton!
 
 	// MARK: - MSX properties
-	@IBOutlet var msxRegionButton: NSPopUpButton?
-	@IBOutlet var msxHasDiskDriveButton: NSButton?
+	@IBOutlet var msxRegionButton: NSPopUpButton!
+	@IBOutlet var msxHasDiskDriveButton: NSButton!
 
 	// MARK: - Oric properties
-	@IBOutlet var oricModelTypeButton: NSPopUpButton?
-	@IBOutlet var oricDiskInterfaceButton: NSPopUpButton?
+	@IBOutlet var oricModelTypeButton: NSPopUpButton!
+	@IBOutlet var oricDiskInterfaceButton: NSPopUpButton!
 
 	// MARK: - Vic-20 properties
-	@IBOutlet var vic20RegionButton: NSPopUpButton?
-	@IBOutlet var vic20MemorySizeButton: NSPopUpButton?
-	@IBOutlet var vic20HasC1540Button: NSButton?
+	@IBOutlet var vic20RegionButton: NSPopUpButton!
+	@IBOutlet var vic20MemorySizeButton: NSPopUpButton!
+	@IBOutlet var vic20HasC1540Button: NSButton!
 
 	// MARK: - ZX80 properties
-	@IBOutlet var zx80MemorySizeButton: NSPopUpButton?
-	@IBOutlet var zx80UsesZX81ROMButton: NSButton?
+	@IBOutlet var zx80MemorySizeButton: NSPopUpButton!
+	@IBOutlet var zx80UsesZX81ROMButton: NSButton!
 
 	// MARK: - ZX81 properties
-	@IBOutlet var zx81MemorySizeButton: NSPopUpButton?
+	@IBOutlet var zx81MemorySizeButton: NSPopUpButton!
 
 	// MARK: - Preferences
 	func establishStoredOptions() {
@@ -55,106 +60,119 @@ class MachinePicker: NSObject {
 		if let machineIdentifier = standardUserDefaults.string(forKey: "new.machine") {
 			// If I've changed my mind about visible tabs between versions, there may not be one that corresponds
 			// to the stored identifier. Make sure not to raise an NSRangeException in that scenario.
-			if let index = machineSelector?.indexOfTabViewItem(withIdentifier: machineIdentifier as Any), index != NSNotFound {
-				machineSelector?.selectTabViewItem(at: index)
+			let index = machineSelector.indexOfTabViewItem(withIdentifier: machineIdentifier as Any)
+			if index != NSNotFound {
+				machineSelector.selectTabViewItem(at: index)
 			}
 		}
 
 		// Apple II settings
-		appleIIModelButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIModel"))
-		appleIIDiskControllerButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIDiskController"))
+		appleIIModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIModel"))
+		appleIIDiskControllerButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIDiskController"))
+
+		// Apple IIgs settings
+		appleIIgsModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIgsModel"))
+		appleIIgsMemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIgsMemorySize"))
 
 		// Electron settings
-		electronDFSButton?.state = standardUserDefaults.bool(forKey: "new.electronDFS") ? .on : .off
-		electronADFSButton?.state = standardUserDefaults.bool(forKey: "new.electronADFS") ? .on : .off
-		electronAP6Button?.state = standardUserDefaults.bool(forKey: "new.electronAP6") ? .on : .off
-		electronSidewaysRAMButton?.state = standardUserDefaults.bool(forKey: "new.electronSidewaysRAM") ? .on : .off
+		electronDFSButton.state = standardUserDefaults.bool(forKey: "new.electronDFS") ? .on : .off
+		electronADFSButton.state = standardUserDefaults.bool(forKey: "new.electronADFS") ? .on : .off
+		electronAP6Button.state = standardUserDefaults.bool(forKey: "new.electronAP6") ? .on : .off
+		electronSidewaysRAMButton.state = standardUserDefaults.bool(forKey: "new.electronSidewaysRAM") ? .on : .off
 
 		// CPC settings
-		cpcModelTypeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.cpcModel"))
+		cpcModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.cpcModel"))
 
 		// Macintosh settings
-		macintoshModelTypeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.macintoshModel"))
+		macintoshModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.macintoshModel"))
 
 		// MSX settings
-		msxRegionButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.msxRegion"))
-		msxHasDiskDriveButton?.state = standardUserDefaults.bool(forKey: "new.msxDiskDrive") ? .on : .off
+		msxRegionButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.msxRegion"))
+		msxHasDiskDriveButton.state = standardUserDefaults.bool(forKey: "new.msxDiskDrive") ? .on : .off
 
 		// Oric settings
-		oricDiskInterfaceButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricDiskInterface"))
-		oricModelTypeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricModel"))
+		oricDiskInterfaceButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricDiskInterface"))
+		oricModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricModel"))
 
 		// Vic-20 settings
-		vic20RegionButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.vic20Region"))
-		vic20MemorySizeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.vic20MemorySize"))
-		vic20HasC1540Button?.state = standardUserDefaults.bool(forKey: "new.vic20C1540") ? .on : .off
+		vic20RegionButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.vic20Region"))
+		vic20MemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.vic20MemorySize"))
+		vic20HasC1540Button.state = standardUserDefaults.bool(forKey: "new.vic20C1540") ? .on : .off
 
 		// ZX80
-		zx80MemorySizeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.zx80MemorySize"))
-		zx80UsesZX81ROMButton?.state = standardUserDefaults.bool(forKey: "new.zx80UsesZX81ROM") ? .on : .off
+		zx80MemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.zx80MemorySize"))
+		zx80UsesZX81ROMButton.state = standardUserDefaults.bool(forKey: "new.zx80UsesZX81ROM") ? .on : .off
 
 		// ZX81
-		zx81MemorySizeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.zx81MemorySize"))
+		zx81MemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.zx81MemorySize"))
+
+		// TEMPORARY: remove the Apple IIgs option. It's not yet a fully-working machine; no need to publicise it.
+		let appleIIgsTabIndex = machineSelectionTabs.indexOfTabViewItem(withIdentifier: "appleiigs")
+		machineSelectionTabs.removeTabViewItem(machineSelectionTabs.tabViewItem(at: appleIIgsTabIndex))
 	}
 
 	fileprivate func storeOptions() {
 		let standardUserDefaults = UserDefaults.standard
 
 		// Machine type
-		standardUserDefaults.set(machineSelector!.selectedTabViewItem!.identifier as! String, forKey: "new.machine")
+		standardUserDefaults.set(machineSelector.selectedTabViewItem!.identifier as! String, forKey: "new.machine")
 
 		// Apple II settings
-		standardUserDefaults.set(appleIIModelButton!.selectedTag(), forKey: "new.appleIIModel")
-		standardUserDefaults.set(appleIIDiskControllerButton!.selectedTag(), forKey: "new.appleIIDiskController")
+		standardUserDefaults.set(appleIIModelButton.selectedTag(), forKey: "new.appleIIModel")
+		standardUserDefaults.set(appleIIDiskControllerButton.selectedTag(), forKey: "new.appleIIDiskController")
+
+		// Apple IIgs settings
+		standardUserDefaults.set(appleIIgsModelButton.selectedTag(), forKey: "new.appleIIgsModel")
+		standardUserDefaults.set(appleIIgsMemorySizeButton.selectedTag(), forKey: "new.appleIIgsMemorySize")
 
 		// Electron settings
-		standardUserDefaults.set(electronDFSButton!.state == .on, forKey: "new.electronDFS")
-		standardUserDefaults.set(electronADFSButton!.state == .on, forKey: "new.electronADFS")
-		standardUserDefaults.set(electronAP6Button!.state == .on, forKey: "new.electronAP6")
-		standardUserDefaults.set(electronSidewaysRAMButton!.state == .on, forKey: "new.electronSidewaysRAM")
+		standardUserDefaults.set(electronDFSButton.state == .on, forKey: "new.electronDFS")
+		standardUserDefaults.set(electronADFSButton.state == .on, forKey: "new.electronADFS")
+		standardUserDefaults.set(electronAP6Button.state == .on, forKey: "new.electronAP6")
+		standardUserDefaults.set(electronSidewaysRAMButton.state == .on, forKey: "new.electronSidewaysRAM")
 
 		// CPC settings
-		standardUserDefaults.set(cpcModelTypeButton!.selectedTag(), forKey: "new.cpcModel")
+		standardUserDefaults.set(cpcModelTypeButton.selectedTag(), forKey: "new.cpcModel")
 
 		// Macintosh settings
-		standardUserDefaults.set(macintoshModelTypeButton!.selectedTag(), forKey: "new.macintoshModel")
+		standardUserDefaults.set(macintoshModelTypeButton.selectedTag(), forKey: "new.macintoshModel")
 
 		// MSX settings
-		standardUserDefaults.set(msxRegionButton!.selectedTag(), forKey: "new.msxRegion")
-		standardUserDefaults.set(msxHasDiskDriveButton?.state == .on, forKey: "new.msxDiskDrive")
+		standardUserDefaults.set(msxRegionButton.selectedTag(), forKey: "new.msxRegion")
+		standardUserDefaults.set(msxHasDiskDriveButton.state == .on, forKey: "new.msxDiskDrive")
 
 		// Oric settings
-		standardUserDefaults.set(oricDiskInterfaceButton!.selectedTag(), forKey: "new.oricDiskInterface")
-		standardUserDefaults.set(oricModelTypeButton!.selectedTag(), forKey: "new.oricModel")
+		standardUserDefaults.set(oricDiskInterfaceButton.selectedTag(), forKey: "new.oricDiskInterface")
+		standardUserDefaults.set(oricModelTypeButton.selectedTag(), forKey: "new.oricModel")
 
 		// Vic-20 settings
-		standardUserDefaults.set(vic20RegionButton!.selectedTag(), forKey: "new.vic20Region")
-		standardUserDefaults.set(vic20MemorySizeButton!.selectedTag(), forKey: "new.vic20MemorySize")
-		standardUserDefaults.set(vic20HasC1540Button?.state == .on, forKey: "new.vic20C1540")
+		standardUserDefaults.set(vic20RegionButton.selectedTag(), forKey: "new.vic20Region")
+		standardUserDefaults.set(vic20MemorySizeButton.selectedTag(), forKey: "new.vic20MemorySize")
+		standardUserDefaults.set(vic20HasC1540Button.state == .on, forKey: "new.vic20C1540")
 
 		// ZX80
-		standardUserDefaults.set(zx80MemorySizeButton!.selectedTag(), forKey: "new.zx80MemorySize")
-		standardUserDefaults.set(zx80UsesZX81ROMButton?.state == .on, forKey: "new.zx80UsesZX81ROM")
+		standardUserDefaults.set(zx80MemorySizeButton.selectedTag(), forKey: "new.zx80MemorySize")
+		standardUserDefaults.set(zx80UsesZX81ROMButton.state == .on, forKey: "new.zx80UsesZX81ROM")
 
 		// ZX81
-		standardUserDefaults.set(zx81MemorySizeButton!.selectedTag(), forKey: "new.zx81MemorySize")
+		standardUserDefaults.set(zx81MemorySizeButton.selectedTag(), forKey: "new.zx81MemorySize")
 	}
 
 	// MARK: - Machine builder
 	func selectedMachine() -> CSStaticAnalyser {
 		storeOptions()
 
-		switch machineSelector!.selectedTabViewItem!.identifier as! String {
+		switch machineSelector.selectedTabViewItem!.identifier as! String {
 			case "electron":
 				return CSStaticAnalyser(
-					electronDFS: electronDFSButton!.state == .on,
-					adfs: electronADFSButton!.state == .on,
-					ap6: electronAP6Button!.state == .on,
-					sidewaysRAM: electronSidewaysRAMButton!.state == .on)
+					electronDFS: electronDFSButton.state == .on,
+					adfs: electronADFSButton.state == .on,
+					ap6: electronAP6Button.state == .on,
+					sidewaysRAM: electronSidewaysRAMButton.state == .on)
 
 			case "appleii":
 				var model: CSMachineAppleIIModel = .appleII
-				switch appleIIModelButton!.selectedTag() {
+				switch appleIIModelButton.selectedTag() {
 					case 1:		model = .appleIIPlus
 					case 2:		model = .appleIIe
 					case 3:		model = .appleEnhancedIIe
@@ -163,7 +181,7 @@ class MachinePicker: NSObject {
 				}
 
 				var diskController: CSMachineAppleIIDiskController = .none
-				switch appleIIDiskControllerButton!.selectedTag() {
+				switch appleIIDiskControllerButton.selectedTag() {
 					case 13:	diskController = .thirteenSector
 					case 16:	diskController = .sixteenSector
 					case 0:		fallthrough
@@ -172,11 +190,23 @@ class MachinePicker: NSObject {
 
 				return CSStaticAnalyser(appleIIModel: model, diskController: diskController)
 
+			case "appleiigs":
+				var model: CSMachineAppleIIgsModel = .ROM00
+				switch appleIIgsModelButton.selectedTag() {
+					case 1:		model = .ROM01
+					case 2:		model = .ROM03
+					case 0:		fallthrough
+					default:	model = .ROM00
+				}
+
+				let memorySize = Kilobytes(appleIIgsMemorySizeButton.selectedItem!.tag)
+				return CSStaticAnalyser(appleIIgsModel: model, memorySize: memorySize)
+
 			case "atarist":
 				return CSStaticAnalyser(atariSTModel: .model512k)
 
 			case "cpc":
-				switch cpcModelTypeButton!.selectedItem!.tag {
+				switch cpcModelTypeButton.selectedItem!.tag {
 					case 464:	return CSStaticAnalyser(amstradCPCModel: .model464)
 					case 664:	return CSStaticAnalyser(amstradCPCModel: .model664)
 					case 6128:	fallthrough
@@ -184,7 +214,7 @@ class MachinePicker: NSObject {
 				}
 
 			case "mac":
-				switch macintoshModelTypeButton!.selectedItem!.tag {
+				switch macintoshModelTypeButton.selectedItem!.tag {
 					case 0:		return CSStaticAnalyser(macintoshModel: .model128k)
 					case 1:		return CSStaticAnalyser(macintoshModel: .model512k)
 					case 2:		return CSStaticAnalyser(macintoshModel: .model512ke)
@@ -193,8 +223,8 @@ class MachinePicker: NSObject {
 				}
 
 			case "msx":
-				let hasDiskDrive = msxHasDiskDriveButton!.state == .on
-				switch msxRegionButton!.selectedItem?.tag {
+				let hasDiskDrive = msxHasDiskDriveButton.state == .on
+				switch msxRegionButton.selectedItem!.tag {
 					case 2:
 						return CSStaticAnalyser(msxRegion: .japanese, hasDiskDrive: hasDiskDrive)
 					case 1:
@@ -206,7 +236,7 @@ class MachinePicker: NSObject {
 
 			case "oric":
 				var diskInterface: CSMachineOricDiskInterface = .none
-				switch oricDiskInterfaceButton!.selectedTag() {
+				switch oricDiskInterfaceButton.selectedTag() {
 					case 1:		diskInterface = .microdisc
 					case 2:		diskInterface = .pravetz
 					case 3:		diskInterface = .jasmin
@@ -215,7 +245,7 @@ class MachinePicker: NSObject {
 
 				}
 				var model: CSMachineOricModel = .oric1
-				switch oricModelTypeButton!.selectedItem!.tag {
+				switch oricModelTypeButton.selectedItem!.tag {
 					case 1:		model = .oricAtmos
 					case 2:		model = .pravetz
 					default:	break;
@@ -224,9 +254,9 @@ class MachinePicker: NSObject {
 				return CSStaticAnalyser(oricModel: model, diskInterface: diskInterface)
 
 			case "vic20":
-				let memorySize = Kilobytes(vic20MemorySizeButton!.selectedItem!.tag)
-				let hasC1540 = vic20HasC1540Button!.state == .on
-				switch vic20RegionButton!.selectedItem?.tag {
+				let memorySize = Kilobytes(vic20MemorySizeButton.selectedItem!.tag)
+				let hasC1540 = vic20HasC1540Button.state == .on
+				switch vic20RegionButton.selectedItem!.tag {
 					case 1:
 						return CSStaticAnalyser(vic20Region: .american, memorySize: memorySize, hasC1540: hasC1540)
 					case 2:
@@ -241,10 +271,10 @@ class MachinePicker: NSObject {
 				}
 
 			case "zx80":
-				return CSStaticAnalyser(zx80MemorySize: Kilobytes(zx80MemorySizeButton!.selectedItem!.tag), useZX81ROM: zx80UsesZX81ROMButton!.state == .on)
+				return CSStaticAnalyser(zx80MemorySize: Kilobytes(zx80MemorySizeButton.selectedItem!.tag), useZX81ROM: zx80UsesZX81ROMButton.state == .on)
 
 			case "zx81":
-				return CSStaticAnalyser(zx81MemorySize: Kilobytes(zx81MemorySizeButton!.selectedItem!.tag))
+				return CSStaticAnalyser(zx81MemorySize: Kilobytes(zx81MemorySizeButton.selectedItem!.tag))
 
 			default: return CSStaticAnalyser()
 		}
