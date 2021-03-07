@@ -528,7 +528,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			const auto options = dynamic_cast<Options *>(str.get());
 			quickboot_ = options->quickboot;
-			if(quickboot_) {
+
+			using Model = Analyser::Static::Macintosh::Target::Model;
+			const bool is_plus_rom = model == Model::Mac512ke || model == Model::MacPlus;
+			if(quickboot_ && is_plus_rom) {
 				// Cf. Big Mess o' Wires' disassembly of the Mac Plus ROM, and the
 				// test at $E00. TODO: adapt as(/if?) necessary for other Macs.
 				ram_[0x02ae] = 0x40;
