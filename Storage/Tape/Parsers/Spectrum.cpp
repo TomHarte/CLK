@@ -8,6 +8,8 @@
 
 #include "Spectrum.hpp"
 
+#include <cstring>
+
 //
 // Source used for the logic below was primarily https://sinclair.wiki.zxnet.co.uk/wiki/Spectrum_tape_interface
 //
