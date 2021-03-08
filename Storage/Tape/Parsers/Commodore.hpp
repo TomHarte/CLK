@@ -89,12 +89,6 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 		void proceed_to_landing_zone(const std::shared_ptr<Storage::Tape::Tape> &tape, bool is_original);
 
 		/*!
-			Swallows symbols until it reaches the first instance of the required symbol, swallows that
-			and returns.
-		*/
-		void proceed_to_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape, SymbolType required_symbol);
-
-		/*!
 			Swallows the next byte; sets the error flag if it is not equal to @c value.
 		*/
 		void expect_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, uint8_t value);

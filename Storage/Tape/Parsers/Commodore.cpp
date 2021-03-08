@@ -136,7 +136,7 @@ std::unique_ptr<Data> Parser::get_next_data_body(const std::shared_ptr<Storage::
 
 	// accumulate until the next non-word marker is hit
 	while(!tape->is_at_end()) {
-		SymbolType start_symbol = get_next_symbol(tape);
+		const SymbolType start_symbol = get_next_symbol(tape);
 		if(start_symbol != SymbolType::Word) break;
 		data->data.push_back(get_next_byte_contents(tape));
 	}
@@ -172,17 +172,6 @@ void Parser::proceed_to_landing_zone(const std::shared_ptr<Storage::Tape::Tape> 
 }
 
 /*!
-	Swallows symbols until it reaches the first instance of the required symbol, swallows that
-	and returns.
-*/
-void Parser::proceed_to_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape, SymbolType required_symbol) {
-	while(!tape->is_at_end()) {
-		const SymbolType symbol = get_next_symbol(tape);
-		if(symbol == required_symbol) return;
-	}
-}
-
-/*!
 	Swallows the next byte; sets the error flag if it is not equal to @c value.
 */
 void Parser::expect_byte(const std::shared_ptr<Storage::Tape::Tape> &tape, uint8_t value) {
@@ -211,7 +200,7 @@ uint8_t Parser::get_next_byte_contents(const std::shared_ptr<Storage::Tape::Tape
 	int byte_plus_parity = 0;
 	int c = 9;
 	while(c--) {
-		SymbolType next_symbol = get_next_symbol(tape);
+		const SymbolType next_symbol = get_next_symbol(tape);
 		if((next_symbol != SymbolType::One) && (next_symbol != SymbolType::Zero)) set_error_flag();
 		byte_plus_parity = (byte_plus_parity >> 1) | (((next_symbol == SymbolType::One) ? 1 : 0) << 8);
 	}
