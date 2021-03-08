@@ -45,8 +45,7 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 		bool wave_was_high_;
 		float cycle_length_;
 
-		struct Pattern
-		{
+		struct Pattern {
 			WaveType type;
 			int count = 0;
 		};

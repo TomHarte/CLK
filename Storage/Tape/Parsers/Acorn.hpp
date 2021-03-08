@@ -55,7 +55,7 @@ class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate
 		unsigned int get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape);
 		unsigned int get_next_word(const std::shared_ptr<Storage::Tape::Tape> &tape);
 		void reset_crc();
-		uint16_t get_crc();
+		uint16_t get_crc() const;
 
 	private:
 		void acorn_shifter_output_bit(int value) override;
