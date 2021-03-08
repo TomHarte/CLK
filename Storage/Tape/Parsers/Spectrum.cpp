@@ -111,6 +111,11 @@ std::optional<Header> Parser::find_header(const std::shared_ptr<Storage::Tape::T
 	// Read market byte.
 	const auto type = get_byte(tape);
 	if(!type) return std::nullopt;
+
+	// TODO: possibly 0x00 is just the Spectrum's preferred identifier; a CPC reference
+	// suggests it might be 0x16 for data, 0x2c for a header on that platform.
+	//
+	// Which would be fantastic for automatically recognising tapes. But we'll see.
 	if(*type != 0x00) return std::nullopt;
 	reset_checksum();
 
