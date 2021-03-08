@@ -96,3 +96,55 @@ void Parser::inspect_waves(const std::vector<Storage::Tape::ZXSpectrum::WaveType
 		break;
 	}
 }
+
+std::optional<Header> Parser::find_header(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+	// Find pilot tone.
+	proceed_to_symbol(tape, SymbolType::Pilot);
+	if(is_at_end(tape)) return std::nullopt;
+
+	// Find sync.
+	proceed_to_symbol(tape, SymbolType::Sync);
+	if(is_at_end(tape)) return std::nullopt;
+
+	// Read market byte.
+	const auto type = get_byte(tape);
+	if(!type) return std::nullopt;
+	if(*type != 0x00) return std::nullopt;
+	reset_checksum();
+
+	// Read header contents.
+	uint8_t header_bytes[17];
+	for(size_t c = 0; c < sizeof(header_bytes); c++) {
+		const auto next_byte = get_byte(tape);
+		if(!next_byte) return std::nullopt;
+		header_bytes[c] = *next_byte;
+	}
+
+	// Check checksum.
+	const auto post_checksum = get_byte(tape);
+	if(!post_checksum || *post_checksum) return std::nullopt;
+
+	// Unpack and return.
+	Header header;
+	header.type = header_bytes[0];
+	memcpy(&header.name, &header_bytes[1], 10);
+	header.data_length = uint16_t(header_bytes[11] | (header_bytes[12] << 8));
+	header.parameters[0] = uint16_t(header_bytes[13] | (header_bytes[14] << 8));
+	header.parameters[1] = uint16_t(header_bytes[15] | (header_bytes[16] << 8));
+	return header;
+}
+
+void Parser::reset_checksum() {
+	checksum_ = 0;
+}
+
+std::optional<uint8_t> Parser::get_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+	uint8_t result = 0;
+	for(int c = 0; c < 8; c++) {
+		const SymbolType symbol = get_next_symbol(tape);
+		if(symbol != SymbolType::One && symbol != SymbolType::Zero) return std::nullopt;
+		result = uint8_t((result << 1) | (symbol == SymbolType::One));
+	}
+	checksum_ ^= result;
+	return result;
+}
