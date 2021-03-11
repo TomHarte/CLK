@@ -8,13 +8,22 @@
 
 #include "Spectrum.hpp"
 
+#include "../../../Numeric/CRC.hpp"
+
 #include <cstring>
 
 //
-// Source used for the logic below was primarily https://sinclair.wiki.zxnet.co.uk/wiki/Spectrum_tape_interface
+// Sources used for the logic below:
+//
+//		https://sinclair.wiki.zxnet.co.uk/wiki/Spectrum_tape_interface
+//		http://www.cpctech.cpc-live.com/docs/manual/s968se08.pdf
+//		https://www.alessandrogrussu.it/tapir/tzxform120.html
 //
 
 using namespace Storage::Tape::ZXSpectrum;
+
+Parser::Parser(MachineType machine_type) :
+	machine_type_(machine_type) {}
 
 void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 	if(pulse.type == Storage::Tape::Tape::Pulse::Type::Zero) {
@@ -25,44 +34,102 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 	// Only pulse duration matters; the ZX Spectrum et al do not rely on polarity.
 	const float t_states = pulse.length.get<float>() * 3'500'000.0f;
 
-	// Too long => gap.
-	if(t_states > 2400.0f) {
+	switch(speed_phase_) {
+		case SpeedDetectionPhase::WaitingForGap:
+			// A gap is: any 'pulse' of at least 3000 t-states.
+			if(t_states >= 3000.0f) {
+				speed_phase_ = SpeedDetectionPhase::WaitingForPilot;
+			}
+		return;
+
+		case SpeedDetectionPhase::WaitingForPilot:
+			// Pilot tone might be: any pulse of less than 3000 t-states.
+			if(t_states >= 3000.0f) return;
+			speed_phase_ = SpeedDetectionPhase::CalibratingPilot;
+			calibration_pulse_pointer_ = 0;
+		[[fallthrough]];
+
+		case SpeedDetectionPhase::CalibratingPilot: {
+			// Pilot calibration: await at least 8 consecutive pulses of similar length.
+			calibration_pulses_[calibration_pulse_pointer_] = t_states;
+			++calibration_pulse_pointer_;
+
+			// Decide whether it looks like this isn't actually pilot tone.
+			float mean = 0.0f;
+			for(size_t c = 0; c < calibration_pulse_pointer_; c++) {
+				mean += calibration_pulses_[c];
+			}
+			mean /= float(calibration_pulse_pointer_);
+			for(size_t c = 0; c < calibration_pulse_pointer_; c++) {
+				if(calibration_pulses_[c] < mean * 0.9f || calibration_pulses_[c] > mean * 1.1f) {
+					speed_phase_ = SpeedDetectionPhase::WaitingForGap;
+					return;
+				}
+			}
+
+			// Advance only if 8 are present.
+			if(calibration_pulse_pointer_ == calibration_pulses_.size()) {
+				speed_phase_ = SpeedDetectionPhase::Done;
+
+				// Note at least one full cycle of pilot tone.
+				push_wave(WaveType::Pilot);
+				push_wave(WaveType::Pilot);
+
+				// Configure proper parameters for the autodetection machines.
+				switch(machine_type_) {
+					default: break;
+
+					case MachineType::AmstradCPC:
+						// CPC: pilot tone is length of bit 1; bit 0 is half that.
+						// So no more detecting formal pilot waves.
+						is_one_ = mean * 0.75f;
+						too_long_ = mean * 1.0f / 0.75f;
+						too_short_ = is_one_ * 0.5f;
+						is_pilot_ = too_long_;
+					break;
+
+					case MachineType::Enterprise:
+						// There's a third validation check here: is this one of the two
+						// permitted recording speeds?
+						if(!(
+								(mean >= 742.0f*0.9f && mean <= 742.0f*1.0f/0.9f) ||
+								(mean >= 1750.0f*0.9f && mean <= 1750.0f*1.0f/0.9f)
+							)) {
+							speed_phase_ = SpeedDetectionPhase::WaitingForGap;
+							return;
+						}
+
+						// TODO: not yet supported. As below, needs to deal with sync != zero.
+						assert(false);
+					break;
+
+					case MachineType::SAMCoupe: {
+						// TODO: not yet supported. Specifically because I don't think my sync = zero
+						// assumption even vaguely works here?
+						assert(false);
+					} break;
+				}
+			}
+		} return;
+
+		default:
+		break;
+	}
+
+	// Too long or too short => gap.
+	if(t_states >= too_long_ || t_states <= too_short_) {
 		push_wave(WaveType::Gap);
 		return;
 	}
 
-	// 1940–2400 t-states => pilot.
-	if(t_states > 1940.0f) {
+	// Potentially announce pilot.
+	if(t_states >= is_pilot_) {
 		push_wave(WaveType::Pilot);
 		return;
 	}
 
-	// 1282–1940 t-states => one.
-	if(t_states > 1282.0f) {
-		push_wave(WaveType::One);
-		return;
-	}
-
-	// 895–1282 => zero.
-	if(t_states > 795.0f) {
-		push_wave(WaveType::Zero);
-		return;
-	}
-
-	// 701–895 => sync 2.
-	if(t_states > 701.0f) {
-		push_wave(WaveType::Sync2);
-		return;
-	}
-
-	// Anything remaining above 600 => sync 1.
-	if(t_states > 600.0f) {
-		push_wave(WaveType::Sync1);
-		return;
-	}
-
-	// Whatever this was, it's too short. Call it a gap.
-	push_wave(WaveType::Gap);
+	// Otherwise it's either a one or a zero.
+	push_wave(t_states > is_one_ ? WaveType::One : WaveType::Zero);
 }
 
 void Parser::inspect_waves(const std::vector<Storage::Tape::ZXSpectrum::WaveType> &waves) {
@@ -70,21 +137,6 @@ void Parser::inspect_waves(const std::vector<Storage::Tape::ZXSpectrum::WaveType
 		// Gap and Pilot map directly.
 		case WaveType::Gap:		push_symbol(SymbolType::Gap, 1);	break;
 		case WaveType::Pilot:	push_symbol(SymbolType::Pilot, 1);	break;
-
-		// Encountering a sync 2 on its own is unexpected.
-		case WaveType::Sync2:
-			push_symbol(SymbolType::Gap, 1);
-		break;
-
-		// A sync 1 should be followed by a sync 2 in order to make a sync.
-		case WaveType::Sync1:
-			if(waves.size() < 2) return;
-			if(waves[1] == WaveType::Sync2) {
-				push_symbol(SymbolType::Sync, 2);
-			} else {
-				push_symbol(SymbolType::Gap, 1);
-			}
-		break;
 
 		// Both one and zero waves should come in pairs.
 		case WaveType::One:
@@ -99,50 +151,45 @@ void Parser::inspect_waves(const std::vector<Storage::Tape::ZXSpectrum::WaveType
 	}
 }
 
-std::optional<Header> Parser::find_header(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+std::optional<Block> Parser::find_block(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+	// Decide whether to kick off a speed detection phase.
+	if(should_detect_speed()) {
+		speed_phase_ = SpeedDetectionPhase::WaitingForGap;
+	}
+
 	// Find pilot tone.
 	proceed_to_symbol(tape, SymbolType::Pilot);
 	if(is_at_end(tape)) return std::nullopt;
 
-	// Find sync.
-	proceed_to_symbol(tape, SymbolType::Sync);
+	// Find sync bit.
+	proceed_to_symbol(tape, SymbolType::Zero);
 	if(is_at_end(tape)) return std::nullopt;
 
-	// Read market byte.
+	// Read marker byte.
 	const auto type = get_byte(tape);
 	if(!type) return std::nullopt;
 
-	// TODO: possibly 0x00 is just the Spectrum's preferred identifier; a CPC reference
-	// suggests it might be 0x16 for data, 0x2c for a header on that platform.
-	//
-	// Which would be fantastic for automatically recognising tapes. But we'll see.
-	if(*type != 0x00) return std::nullopt;
-	reset_checksum();
-
-	// Read header contents.
-	uint8_t header_bytes[17];
-	for(size_t c = 0; c < sizeof(header_bytes); c++) {
-		const auto next_byte = get_byte(tape);
-		if(!next_byte) return std::nullopt;
-		header_bytes[c] = *next_byte;
-	}
-
-	// Check checksum.
-	const auto post_checksum = get_byte(tape);
-	if(!post_checksum || *post_checksum) return std::nullopt;
-
-	// Unpack and return.
-	Header header;
-	header.type = header_bytes[0];
-	memcpy(&header.name, &header_bytes[1], 10);
-	header.data_length = uint16_t(header_bytes[11] | (header_bytes[12] << 8));
-	header.parameters[0] = uint16_t(header_bytes[13] | (header_bytes[14] << 8));
-	header.parameters[1] = uint16_t(header_bytes[15] | (header_bytes[16] << 8));
-	return header;
+	// That succeeded.
+	Block block = {
+		.type = *type
+	};
+	return block;
 }
 
-void Parser::reset_checksum() {
-	checksum_ = 0;
+std::vector<uint8_t> Parser::get_block_body(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+	std::vector<uint8_t> result;
+
+	while(true) {
+		const auto next_byte = get_byte(tape);
+		if(!next_byte) break;
+		result.push_back(*next_byte);
+	}
+
+	return result;
+}
+
+void Parser::seed_checksum(uint8_t value) {
+	checksum_ = value;
 }
 
 std::optional<uint8_t> Parser::get_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
@@ -152,6 +199,11 @@ std::optional<uint8_t> Parser::get_byte(const std::shared_ptr<Storage::Tape::Tap
 		if(symbol != SymbolType::One && symbol != SymbolType::Zero) return std::nullopt;
 		result = uint8_t((result << 1) | (symbol == SymbolType::One));
 	}
+
+	if(should_flip_bytes()) {
+		result = CRC::reverse_byte(result);
+	}
+
 	checksum_ ^= result;
 	return result;
 }

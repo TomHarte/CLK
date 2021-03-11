@@ -14,6 +14,18 @@
 
 namespace CRC {
 
+constexpr uint8_t reverse_byte(uint8_t byte) {
+	return
+		((byte & 0x80) ? 0x01 : 0x00) |
+		((byte & 0x40) ? 0x02 : 0x00) |
+		((byte & 0x20) ? 0x04 : 0x00) |
+		((byte & 0x10) ? 0x08 : 0x00) |
+		((byte & 0x08) ? 0x10 : 0x00) |
+		((byte & 0x04) ? 0x20 : 0x00) |
+		((byte & 0x02) ? 0x40 : 0x00) |
+		((byte & 0x01) ? 0x80 : 0x00);
+}
+
 /*! Provides a class capable of generating a CRC from source data. */
 template <typename IntType, IntType reset_value, IntType output_xor, bool reflect_input, bool reflect_output> class Generator {
 	public:
@@ -90,18 +102,6 @@ template <typename IntType, IntType reset_value, IntType output_xor, bool reflec
 		static constexpr int multibyte_shift = (sizeof(IntType) * 8) - 8;
 		IntType xor_table[256];
 		IntType value_;
-
-		constexpr uint8_t reverse_byte(uint8_t byte) const {
-			return
-				((byte & 0x80) ? 0x01 : 0x00) |
-				((byte & 0x40) ? 0x02 : 0x00) |
-				((byte & 0x20) ? 0x04 : 0x00) |
-				((byte & 0x10) ? 0x08 : 0x00) |
-				((byte & 0x08) ? 0x10 : 0x00) |
-				((byte & 0x04) ? 0x20 : 0x00) |
-				((byte & 0x02) ? 0x40 : 0x00) |
-				((byte & 0x01) ? 0x80 : 0x00);
-		}
 };
 
 /*!
