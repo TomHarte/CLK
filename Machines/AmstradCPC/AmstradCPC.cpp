@@ -24,6 +24,7 @@
 #include "../MachineTypes.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
+#include "../../Storage/Tape/Parsers/Spectrum.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
@@ -915,6 +916,30 @@ template <bool has_fdc> class ConcreteMachine:
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
+					if(address == tape_read_byte_address && read_pointers_[0] == roms_[ROMType::OS].data()) {
+						using Parser = Storage::Tape::ZXSpectrum::Parser;
+						Parser parser(Parser::MachineType::AmstradCPC);
+						parser.set_cpc_read_speed(read_pointers_[tape_speed_value_address >> 14][tape_speed_value_address & 16383]);
+
+						const auto byte = parser.get_byte(tape_player_.get_tape());
+						auto flags = z80_.get_value_of_register(CPU::Z80::Register::Flags);
+
+						if(byte) {
+							z80_.set_value_of_register(CPU::Z80::Register::A, *byte);
+							flags |= CPU::Z80::Flag::Carry;
+						} else {
+							// TODO: return tape player to previous state and decline to serve.
+							z80_.set_value_of_register(CPU::Z80::Register::A, 0);
+							flags &= ~CPU::Z80::Flag::Carry;
+						}
+						z80_.set_value_of_register(CPU::Z80::Register::Flags, flags);
+
+						// RET.
+						*cycle.value = 0xc9;
+						break;
+					}
+
+				[[fallthrough]];
 				case CPU::Z80::PartialMachineCycle::Read:
 					*cycle.value = read_pointers_[address >> 14][address & 16383];
 				break;
@@ -1202,6 +1227,11 @@ template <bool has_fdc> class ConcreteMachine:
 
 		InterruptTimer interrupt_timer_;
 		Storage::Tape::BinaryTapePlayer tape_player_;
+
+		// By luck these values are the same between the 664 and the 6128;
+		// therefore the has_fdc template flag is sufficient to locate them.
+		static constexpr uint16_t tape_read_byte_address = has_fdc ? 0x2b20 : 0x29b0;
+		static constexpr uint16_t tape_speed_value_address = has_fdc ? 0xb1e7 : 0xbc8f;
 
 		HalfCycles clock_offset_;
 		HalfCycles crtc_counter_;
