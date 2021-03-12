@@ -9,6 +9,8 @@
 #ifndef Sizes_h
 #define Sizes_h
 
+#include <limits>
+
 /*!
 	Maps to the smallest of the following integers that can contain max_value:
 
