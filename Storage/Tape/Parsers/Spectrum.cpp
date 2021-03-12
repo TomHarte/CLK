@@ -82,10 +82,7 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 					case MachineType::AmstradCPC:
 						// CPC: pilot tone is length of bit 1; bit 0 is half that.
 						// So no more detecting formal pilot waves.
-						is_one_ = mean * 0.75f;
-						too_long_ = mean * 1.0f / 0.75f;
-						too_short_ = is_one_ * 0.5f;
-						is_pilot_ = too_long_;
+						set_cpc_one_zero_boundary(mean * 0.75f);
 					break;
 
 					case MachineType::Enterprise:
@@ -130,6 +127,20 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 
 	// Otherwise it's either a one or a zero.
 	push_wave(t_states > is_one_ ? WaveType::One : WaveType::Zero);
+}
+
+void Parser::set_cpc_read_speed(uint8_t speed) {
+	// This may not be exactly right; I wish there were more science here but
+	// instead it's empirical based on tape speed versus value stored plus
+	// a guess as to where the CPC puts the dividing line.
+	set_cpc_one_zero_boundary(float(speed) * 14.35f);
+}
+
+void Parser::set_cpc_one_zero_boundary(float boundary) {
+	is_one_ = boundary;
+	too_long_ = is_one_ * 16.0f / 9.0f;
+	too_short_ = is_one_ * 0.5f;
+	is_pilot_ = too_long_;
 }
 
 void Parser::inspect_waves(const std::vector<Storage::Tape::ZXSpectrum::WaveType> &waves) {

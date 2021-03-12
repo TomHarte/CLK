@@ -64,6 +64,11 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 		Parser(MachineType);
 
 		/*!
+			Calibrates the expected data speed using a value in the CPC's native tape-speed measurement scale.
+		*/
+		void set_cpc_read_speed(uint8_t);
+
+		/*!
 			Finds the next block from the tape, if any.
 
 			Following this call the tape will be positioned immediately after the byte that indicated the block type —
@@ -117,6 +122,8 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 
 		std::array<float, 8> calibration_pulses_;
 		size_t calibration_pulse_pointer_ = 0;
+
+		void set_cpc_one_zero_boundary(float);
 };
 
 }
