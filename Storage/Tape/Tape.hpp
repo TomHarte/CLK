@@ -16,6 +16,8 @@
 
 #include "../TimedEventLoop.hpp"
 
+#include "../../Activity/Source.hpp"
+
 namespace Storage {
 namespace Tape {
 
@@ -151,11 +153,15 @@ class BinaryTapePlayer : public TapePlayer {
 
 		ClockingHint::Preference preferred_clocking() const final;
 
+		void set_activity_observer(Activity::Observer *observer);
+
 	protected:
 		Delegate *delegate_ = nullptr;
 		void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) final;
 		bool input_level_ = false;
 		bool motor_is_running_ = false;
+
+		Activity::Observer *observer_ = nullptr;
 };
 
 }

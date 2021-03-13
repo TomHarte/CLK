@@ -135,6 +135,18 @@ void BinaryTapePlayer::set_motor_control(bool enabled) {
 	if(motor_is_running_ != enabled) {
 		motor_is_running_ = enabled;
 		update_clocking_observer();
+
+		if(observer_) {
+			observer_->set_led_status("Tape motor", enabled);
+		}
+	}
+}
+
+void BinaryTapePlayer::set_activity_observer(Activity::Observer *observer) {
+	observer_ = observer;
+	if(observer) {
+		observer->register_led("Tape motor");
+		observer_->set_led_status("Tape motor", motor_is_running_);
 	}
 }
 

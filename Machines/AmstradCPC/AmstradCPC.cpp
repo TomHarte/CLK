@@ -1167,6 +1167,7 @@ template <bool has_fdc> class ConcreteMachine:
 		// MARK: - Activity Source
 		void set_activity_observer([[maybe_unused]] Activity::Observer *observer) final {
 			if constexpr (has_fdc) fdc_.set_activity_observer(observer);
+			tape_player_.set_activity_observer(observer);
 		}
 
 		// MARK: - Configuration options.
