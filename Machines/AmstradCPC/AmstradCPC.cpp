@@ -918,7 +918,7 @@ template <bool has_fdc> class ConcreteMachine:
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
-					if(address == tape_read_byte_address && read_pointers_[0] == roms_[ROMType::OS].data()) {
+					if(use_fast_tape_hack_ && address == tape_read_byte_address && read_pointers_[0] == roms_[ROMType::OS].data()) {
 						using Parser = Storage::Tape::ZXSpectrum::Parser;
 						Parser parser(Parser::MachineType::AmstradCPC);
 
@@ -965,8 +965,8 @@ template <bool has_fdc> class ConcreteMachine:
 						*cycle.value = 0xc9;
 						break;
 					}
-
 				[[fallthrough]];
+
 				case CPU::Z80::PartialMachineCycle::Read:
 					*cycle.value = read_pointers_[address >> 14][address & 16383];
 				break;
@@ -1017,6 +1017,7 @@ template <bool has_fdc> class ConcreteMachine:
 						}
 					}
 				break;
+
 				case CPU::Z80::PartialMachineCycle::Input:
 					// Default to nothing answering
 					*cycle.value = 0xff;
@@ -1172,12 +1173,15 @@ template <bool has_fdc> class ConcreteMachine:
 		std::unique_ptr<Reflection::Struct> get_options() final {
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 			options->output = get_video_signal_configurable();
+			options->quickload = allow_fast_tape_hack_;
 			return options;
 		}
 
 		void set_options(const std::unique_ptr<Reflection::Struct> &str) {
 			const auto options = dynamic_cast<Options *>(str.get());
 			set_video_signal_configurable(options->output);
+			allow_fast_tape_hack_ = options->quickload;
+			set_use_fast_tape_hack();
 		}
 
 		// MARK: - Joysticks
@@ -1261,6 +1265,11 @@ template <bool has_fdc> class ConcreteMachine:
 		static constexpr uint16_t tape_speed_value_address = has_fdc ? 0xb1e7 : 0xbc8f;
 		static constexpr uint16_t tape_crc_address = has_fdc ? 0xb1eb : 0xb8d3;
 		CRC::CCITT tape_crc_;
+		bool use_fast_tape_hack_ = false;
+		bool allow_fast_tape_hack_ = false;
+		void set_use_fast_tape_hack() {
+			use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_player_.has_tape();
+		}
 
 		HalfCycles clock_offset_;
 		HalfCycles crtc_counter_;
