@@ -223,7 +223,7 @@ Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(const Medi
 			// Ugliness flows here: assume the CPC isn't smart enough to pause between pressing
 			// enter and responding to the follow-on prompt to press a key, so just type for
 			// a while. Yuck!
-			target->loading_command = "|tape\nrun\"\n1234567890";
+			target->loading_command = "|tape\nrun\"\n123";
 		}
 	}
 
