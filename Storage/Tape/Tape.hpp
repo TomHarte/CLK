@@ -110,6 +110,9 @@ class TapePlayer: public TimedEventLoop, public ClockingHint::Source {
 
 		ClockingHint::Preference preferred_clocking() const override;
 
+		Tape::Pulse get_current_pulse();
+		void complete_pulse();
+
 	protected:
 		virtual void process_next_event() override;
 		virtual void process_input_pulse(const Tape::Pulse &pulse) = 0;

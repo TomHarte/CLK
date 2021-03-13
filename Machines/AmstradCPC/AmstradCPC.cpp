@@ -919,12 +919,21 @@ template <bool has_fdc> class ConcreteMachine:
 					if(address == tape_read_byte_address && read_pointers_[0] == roms_[ROMType::OS].data()) {
 						using Parser = Storage::Tape::ZXSpectrum::Parser;
 						Parser parser(Parser::MachineType::AmstradCPC);
-						parser.set_cpc_read_speed(read_pointers_[tape_speed_value_address >> 14][tape_speed_value_address & 16383]);
 
+						const auto speed = read_pointers_[tape_speed_value_address >> 14][tape_speed_value_address & 16383];
+						parser.set_cpc_read_speed(speed);
+
+						// Seed with the current pulse; the CPC will have finished the
+						// preceding symbol and be a short way into the pulse that should determine the
+						// first bit of this byte.
+						parser.process_pulse(tape_player_.get_current_pulse());
 						const auto byte = parser.get_byte(tape_player_.get_tape());
 						auto flags = z80_.get_value_of_register(CPU::Z80::Register::Flags);
 
 						if(byte) {
+							// In A ROM-esque fashion, begin the first pulse after the final one
+							// that was just consumed.
+							tape_player_.complete_pulse();
 							z80_.set_value_of_register(CPU::Z80::Register::A, *byte);
 							flags |= CPU::Z80::Flag::Carry;
 						} else {

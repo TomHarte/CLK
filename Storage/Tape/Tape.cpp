@@ -97,6 +97,14 @@ void TapePlayer::get_next_pulse() {
 	set_next_event_time_interval(current_pulse_.length);
 }
 
+Tape::Pulse TapePlayer::get_current_pulse() {
+	return current_pulse_;
+}
+
+void TapePlayer::complete_pulse() {
+	jump_to_next_event();
+}
+
 void TapePlayer::run_for(const Cycles cycles) {
 	if(has_tape()) {
 		TimedEventLoop::run_for(cycles);

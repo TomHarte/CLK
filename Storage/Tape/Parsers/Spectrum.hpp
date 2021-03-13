@@ -94,6 +94,12 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 		*/
 		void seed_checksum(uint8_t value = 0x00);
 
+		/*!
+			Push a pulse; primarily provided for Storage::Tape::PulseClassificationParser but also potentially useful
+			for picking up fast loading from an ongoing tape.
+		*/
+		void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
+
 	private:
 		const MachineType machine_type_;
 		constexpr bool should_flip_bytes() {
@@ -103,7 +109,6 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 			return machine_type_ != MachineType::ZXSpectrum;
 		}
 
-		void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
 		void inspect_waves(const std::vector<WaveType> &waves) override;
 
 		uint8_t checksum_ = 0;
