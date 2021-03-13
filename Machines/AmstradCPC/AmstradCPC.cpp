@@ -32,6 +32,8 @@
 
 #include "../../Analyser/Static/AmstradCPC/Target.hpp"
 
+#include "../../Numeric/CRC.hpp"
+
 #include <array>
 #include <cstdint>
 #include <vector>
@@ -934,6 +936,22 @@ template <bool has_fdc> class ConcreteMachine:
 							// In A ROM-esque fashion, begin the first pulse after the final one
 							// that was just consumed.
 							tape_player_.complete_pulse();
+
+							// Update in-memory CRC.
+							auto crc_value =
+								uint16_t(
+									read_pointers_[tape_crc_address >> 14][tape_crc_address & 16383] |
+									(read_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] << 8)
+								);
+
+							tape_crc_.set_value(crc_value);
+							tape_crc_.add(*byte);
+							crc_value = tape_crc_.get_value();
+
+							write_pointers_[tape_crc_address >> 14][tape_crc_address & 16383] = uint8_t(crc_value);
+							write_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] = uint8_t(crc_value >> 8);
+
+							// Indicate successful byte read.
 							z80_.set_value_of_register(CPU::Z80::Register::A, *byte);
 							flags |= CPU::Z80::Flag::Carry;
 						} else {
@@ -1241,6 +1259,8 @@ template <bool has_fdc> class ConcreteMachine:
 		// therefore the has_fdc template flag is sufficient to locate them.
 		static constexpr uint16_t tape_read_byte_address = has_fdc ? 0x2b20 : 0x29b0;
 		static constexpr uint16_t tape_speed_value_address = has_fdc ? 0xb1e7 : 0xbc8f;
+		static constexpr uint16_t tape_crc_address = has_fdc ? 0xb1eb : 0xb8d3;
+		CRC::CCITT tape_crc_;
 
 		HalfCycles clock_offset_;
 		HalfCycles crtc_counter_;
@@ -1258,7 +1278,7 @@ template <bool has_fdc> class ConcreteMachine:
 		ROMType upper_rom_;
 
 		uint8_t *ram_pages_[4];
-		uint8_t *read_pointers_[4];
+		const uint8_t *read_pointers_[4];
 		uint8_t *write_pointers_[4];
 
 		KeyboardState key_state_;
