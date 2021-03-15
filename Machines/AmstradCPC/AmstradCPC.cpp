@@ -918,6 +918,10 @@ template <bool has_fdc> class ConcreteMachine:
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
+
+					// TODO: just capturing byte reads as below doesn't seem to do that much in terms of acceleration;
+					// I'm not immediately clear whether that's just because the machine still has to sit through
+					// pilot tone in real time, or just that almost no software uses the ROM loader.
 					if(use_fast_tape_hack_ && address == tape_read_byte_address && read_pointers_[0] == roms_[ROMType::OS].data()) {
 						using Parser = Storage::Tape::ZXSpectrum::Parser;
 						Parser parser(Parser::MachineType::AmstradCPC);
