@@ -29,7 +29,11 @@ class Machine {
 		static Machine *AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		/// Defines the runtime options available for an Amstrad CPC.
-		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options>, public Configurable::QuickloadOption<Options> {
+		class Options:
+			public Reflection::StructImpl<Options>,
+			public Configurable::DisplayOption<Options>,
+			public Configurable::QuickloadOption<Options>
+		{
 			friend Configurable::DisplayOption<Options>;
 			friend Configurable::QuickloadOption<Options>;
 			public:
