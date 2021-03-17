@@ -28,6 +28,7 @@
 #include "Oric/StaticAnalyser.hpp"
 #include "Sega/StaticAnalyser.hpp"
 #include "ZX8081/StaticAnalyser.hpp"
+#include "ZXSpectrum/StaticAnalyser.hpp"
 
 // Cartridges
 #include "../../Storage/Cartridge/Formats/BinaryDump.hpp"
@@ -116,7 +117,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::AllCartridge)						// BIN (cartridge dump)
 	Format("cas", result.tapes, Tape::CAS, TargetPlatform::MSX)													// CAS
 	Format("cdt", result.tapes, Tape::TZX, TargetPlatform::AmstradCPC)											// CDT
-	Format("col", result.cartridges, Cartridge::BinaryDump, TargetPlatform::ColecoVision)						// COL
+	Format("col", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Coleco)								// COL
 	Format("csw", result.tapes, Tape::CSW, TargetPlatform::AllTape)												// CSW
 	Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)			// D64
 	Format("dat", result.mass_storage_devices, MassStorage::DAT, TargetPlatform::Acorn)							// DAT
@@ -168,7 +169,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format(	"rom",
 			result.cartridges,
 			Cartridge::BinaryDump,
-			TargetPlatform::AcornElectron | TargetPlatform::ColecoVision | TargetPlatform::MSX)					// ROM
+			TargetPlatform::AcornElectron | TargetPlatform::Coleco | TargetPlatform::MSX)						// ROM
 	Format("sg", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)								// SG
 	Format("sms", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)								// SMS
 	Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)				// SSD
@@ -177,7 +178,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)									// TAP (Commodore)
 	Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)											// TAP (Oric)
 	Format("tsx", result.tapes, Tape::TZX, TargetPlatform::MSX)													// TSX
-	Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081)												// TZX
+	Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081 | TargetPlatform::ZXSpectrum)					// TZX
 	Format("uef", result.tapes, Tape::UEF, TargetPlatform::Acorn)												// UEF (tape)
 	Format("woz", result.disks, Disk::DiskImageHolder<Storage::Disk::WOZ>, TargetPlatform::DiskII)				// WOZ
 
@@ -204,27 +205,28 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 
 	// Hand off to platform-specific determination of whether these things are actually compatible and,
 	// if so, how to load them.
-	#define Append(x) {\
-		auto new_targets = x::GetTargets(media, file_name, potential_platforms);\
-		std::move(new_targets.begin(), new_targets.end(), std::back_inserter(targets));\
-	}
-	if(potential_platforms & TargetPlatform::Acorn)			Append(Acorn);
-	if(potential_platforms & TargetPlatform::AmstradCPC)	Append(AmstradCPC);
-	if(potential_platforms & TargetPlatform::AppleII)		Append(AppleII);
-	if(potential_platforms & TargetPlatform::AppleIIgs)		Append(AppleIIgs);
-	if(potential_platforms & TargetPlatform::Atari2600)		Append(Atari2600);
-	if(potential_platforms & TargetPlatform::AtariST)		Append(AtariST);
-	if(potential_platforms & TargetPlatform::ColecoVision)	Append(Coleco);
-	if(potential_platforms & TargetPlatform::Commodore)		Append(Commodore);
-	if(potential_platforms & TargetPlatform::DiskII)		Append(DiskII);
-	if(potential_platforms & TargetPlatform::Macintosh)		Append(Macintosh);
-	if(potential_platforms & TargetPlatform::MSX)			Append(MSX);
-	if(potential_platforms & TargetPlatform::Oric)			Append(Oric);
-	if(potential_platforms & TargetPlatform::Sega)			Append(Sega);
-	if(potential_platforms & TargetPlatform::ZX8081)		Append(ZX8081);
-	#undef Append
+#define Append(x) if(potential_platforms & TargetPlatform::x) {\
+	auto new_targets = x::GetTargets(media, file_name, potential_platforms);\
+	std::move(new_targets.begin(), new_targets.end(), std::back_inserter(targets));\
+}
+	Append(Acorn);
+	Append(AmstradCPC);
+	Append(AppleII);
+	Append(AppleIIgs);
+	Append(Atari2600);
+	Append(AtariST);
+	Append(Coleco);
+	Append(Commodore);
+	Append(DiskII);
+	Append(Macintosh);
+	Append(MSX);
+	Append(Oric);
+	Append(Sega);
+	Append(ZX8081);
+	Append(ZXSpectrum);
+#undef Append
 
-	// Reset any tapes to their initial position
+	// Reset any tapes to their initial position.
 	for(const auto &target : targets) {
 		for(auto &tape : target->media.tapes) {
 			tape->reset();

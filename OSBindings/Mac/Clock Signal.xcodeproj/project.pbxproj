@@ -125,6 +125,8 @@
 		4B0E04FA1FC9FA3100F43484 /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04F91FC9FA3100F43484 /* 9918.cpp */; };
 		4B0E04FB1FC9FA3100F43484 /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04F91FC9FA3100F43484 /* 9918.cpp */; };
 		4B0E61071FF34737002A9DBD /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E61051FF34737002A9DBD /* MSX.cpp */; };
+		4B0F1BB22602645900B85C66 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BB02602645900B85C66 /* StaticAnalyser.cpp */; };
+		4B0F1BB32602645900B85C66 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BB02602645900B85C66 /* StaticAnalyser.cpp */; };
 		4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
@@ -1053,6 +1055,8 @@
 		4B0E04F91FC9FA3100F43484 /* 9918.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = 9918.cpp; path = 9918/9918.cpp; sourceTree = "<group>"; };
 		4B0E61051FF34737002A9DBD /* MSX.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MSX.cpp; path = Parsers/MSX.cpp; sourceTree = "<group>"; };
 		4B0E61061FF34737002A9DBD /* MSX.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = MSX.hpp; path = Parsers/MSX.hpp; sourceTree = "<group>"; };
+		4B0F1BB02602645900B85C66 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
+		4B0F1BB12602645900B85C66 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4B0F94FC208C1A1600FE41D9 /* NIB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NIB.cpp; sourceTree = "<group>"; };
 		4B0F94FD208C1A1600FE41D9 /* NIB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NIB.hpp; sourceTree = "<group>"; };
 		4B0F9500208C42A300FE41D9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Target.hpp; path = AppleII/Target.hpp; sourceTree = "<group>"; };
@@ -2150,6 +2154,15 @@
 			name = 9918;
 			sourceTree = "<group>";
 		};
+		4B0F1BAF2602645900B85C66 /* ZXSpectrum */ = {
+			isa = PBXGroup;
+			children = (
+				4B0F1BB02602645900B85C66 /* StaticAnalyser.cpp */,
+				4B0F1BB12602645900B85C66 /* StaticAnalyser.hpp */,
+			);
+			path = ZXSpectrum;
+			sourceTree = "<group>";
+		};
 		4B1414561B58879D00E04248 /* 6502 */ = {
 			isa = PBXGroup;
 			children = (
@@ -3089,6 +3102,7 @@
 				4B8944F6201967B4007DE474 /* Oric */,
 				4B7F1894215486A100388727 /* Sega */,
 				4B894504201967B4007DE474 /* ZX8081 */,
+				4B0F1BAF2602645900B85C66 /* ZXSpectrum */,
 			);
 			path = Static;
 			sourceTree = "<group>";
@@ -5214,6 +5228,7 @@
 				4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */,
 				4B055AB91FAE86170060FFFF /* Acorn.cpp in Sources */,
 				4B302185208A550100773308 /* DiskII.cpp in Sources */,
+				4B0F1BB32602645900B85C66 /* StaticAnalyser.cpp in Sources */,
 				4B055A931FAE85B50060FFFF /* BinaryDump.cpp in Sources */,
 				4B89452D201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055AD61FAE9B130060FFFF /* MemoryFuzzer.cpp in Sources */,
@@ -5400,6 +5415,7 @@
 				4B7F188E2154825E00388727 /* MasterSystem.cpp in Sources */,
 				4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */,
 				4B3FCC40201EC24200960631 /* MultiMachine.cpp in Sources */,
+				4B0F1BB22602645900B85C66 /* StaticAnalyser.cpp in Sources */,
 				4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */,
 				4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */,
 				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
