@@ -56,6 +56,17 @@ template <typename SymbolType> class Parser {
 			return tape->is_at_end() && !has_next_symbol_;
 		}
 
+		/*!
+			Swallows symbols until it reaches the first instance of the required symbol, swallows that
+			and returns.
+		*/
+		void proceed_to_symbol(const std::shared_ptr<Storage::Tape::Tape> &tape, SymbolType required_symbol) {
+			while(!is_at_end(tape)) {
+				const SymbolType symbol = get_next_symbol(tape);
+				if(symbol == required_symbol) return;
+			}
+		}
+
 	protected:
 		/*!
 			Should be implemented by subclasses. Consumes @c pulse.

@@ -19,17 +19,18 @@ Parser::Parser(): crc_(0x1021) {
 }
 
 int Parser::get_next_bit(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-	SymbolType symbol = get_next_symbol(tape);
+	const SymbolType symbol = get_next_symbol(tape);
 	return (symbol == SymbolType::One) ? 1 : 0;
 }
 
 int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-	int value = 0;
-	int c = 8;
 	if(get_next_bit(tape)) {
 		set_error_flag();
 		return -1;
 	}
+
+	int value = 0;
+	int c = 8;
 	while(c--) {
 		value = (value >> 1) | (get_next_bit(tape) << 7);
 	}
@@ -53,8 +54,8 @@ unsigned int Parser::get_next_word(const std::shared_ptr<Storage::Tape::Tape> &t
 	return result;
 }
 
-void Parser::reset_crc()	{	crc_.reset();				}
-uint16_t Parser::get_crc()	{	return crc_.get_value();	}
+void Parser::reset_crc()			{	crc_.reset();				}
+uint16_t Parser::get_crc() const	{	return crc_.get_value();	}
 
 void Parser::acorn_shifter_output_bit(int value) {
 	push_symbol(value ? SymbolType::One : SymbolType::Zero);
@@ -74,7 +75,7 @@ Shifter::Shifter() :
 void Shifter::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 	pll_.run_for(Cycles(int(float(PLLClockRate) * pulse.length.get<float>())));
 
-	bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
+	const bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
 	if(is_high != was_high_) {
 		pll_.add_pulse();
 	}

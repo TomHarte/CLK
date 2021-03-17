@@ -24,12 +24,15 @@
 #include "../MachineTypes.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
+#include "../../Storage/Tape/Parsers/Spectrum.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
 
 #include "../../Analyser/Static/AmstradCPC/Target.hpp"
+
+#include "../../Numeric/CRC.hpp"
 
 #include <array>
 #include <cstdint>
@@ -915,6 +918,59 @@ template <bool has_fdc> class ConcreteMachine:
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
+
+					// TODO: just capturing byte reads as below doesn't seem to do that much in terms of acceleration;
+					// I'm not immediately clear whether that's just because the machine still has to sit through
+					// pilot tone in real time, or just that almost no software uses the ROM loader.
+					if(use_fast_tape_hack_ && address == tape_read_byte_address && read_pointers_[0] == roms_[ROMType::OS].data()) {
+						using Parser = Storage::Tape::ZXSpectrum::Parser;
+						Parser parser(Parser::MachineType::AmstradCPC);
+
+						const auto speed = read_pointers_[tape_speed_value_address >> 14][tape_speed_value_address & 16383];
+						parser.set_cpc_read_speed(speed);
+
+						// Seed with the current pulse; the CPC will have finished the
+						// preceding symbol and be a short way into the pulse that should determine the
+						// first bit of this byte.
+						parser.process_pulse(tape_player_.get_current_pulse());
+						const auto byte = parser.get_byte(tape_player_.get_tape());
+						auto flags = z80_.get_value_of_register(CPU::Z80::Register::Flags);
+
+						if(byte) {
+							// In A ROM-esque fashion, begin the first pulse after the final one
+							// that was just consumed.
+							tape_player_.complete_pulse();
+
+							// Update in-memory CRC.
+							auto crc_value =
+								uint16_t(
+									read_pointers_[tape_crc_address >> 14][tape_crc_address & 16383] |
+									(read_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] << 8)
+								);
+
+							tape_crc_.set_value(crc_value);
+							tape_crc_.add(*byte);
+							crc_value = tape_crc_.get_value();
+
+							write_pointers_[tape_crc_address >> 14][tape_crc_address & 16383] = uint8_t(crc_value);
+							write_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] = uint8_t(crc_value >> 8);
+
+							// Indicate successful byte read.
+							z80_.set_value_of_register(CPU::Z80::Register::A, *byte);
+							flags |= CPU::Z80::Flag::Carry;
+						} else {
+							// TODO: return tape player to previous state and decline to serve.
+							z80_.set_value_of_register(CPU::Z80::Register::A, 0);
+							flags &= ~CPU::Z80::Flag::Carry;
+						}
+						z80_.set_value_of_register(CPU::Z80::Register::Flags, flags);
+
+						// RET.
+						*cycle.value = 0xc9;
+						break;
+					}
+				[[fallthrough]];
+
 				case CPU::Z80::PartialMachineCycle::Read:
 					*cycle.value = read_pointers_[address >> 14][address & 16383];
 				break;
@@ -965,6 +1021,7 @@ template <bool has_fdc> class ConcreteMachine:
 						}
 					}
 				break;
+
 				case CPU::Z80::PartialMachineCycle::Input:
 					// Default to nothing answering
 					*cycle.value = 0xff;
@@ -1114,18 +1171,22 @@ template <bool has_fdc> class ConcreteMachine:
 		// MARK: - Activity Source
 		void set_activity_observer([[maybe_unused]] Activity::Observer *observer) final {
 			if constexpr (has_fdc) fdc_.set_activity_observer(observer);
+			tape_player_.set_activity_observer(observer);
 		}
 
 		// MARK: - Configuration options.
 		std::unique_ptr<Reflection::Struct> get_options() final {
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 			options->output = get_video_signal_configurable();
+			options->quickload = allow_fast_tape_hack_;
 			return options;
 		}
 
 		void set_options(const std::unique_ptr<Reflection::Struct> &str) {
 			const auto options = dynamic_cast<Options *>(str.get());
 			set_video_signal_configurable(options->output);
+			allow_fast_tape_hack_ = options->quickload;
+			set_use_fast_tape_hack();
 		}
 
 		// MARK: - Joysticks
@@ -1203,6 +1264,18 @@ template <bool has_fdc> class ConcreteMachine:
 		InterruptTimer interrupt_timer_;
 		Storage::Tape::BinaryTapePlayer tape_player_;
 
+		// By luck these values are the same between the 664 and the 6128;
+		// therefore the has_fdc template flag is sufficient to locate them.
+		static constexpr uint16_t tape_read_byte_address = has_fdc ? 0x2b20 : 0x29b0;
+		static constexpr uint16_t tape_speed_value_address = has_fdc ? 0xb1e7 : 0xbc8f;
+		static constexpr uint16_t tape_crc_address = has_fdc ? 0xb1eb : 0xb8d3;
+		CRC::CCITT tape_crc_;
+		bool use_fast_tape_hack_ = false;
+		bool allow_fast_tape_hack_ = false;
+		void set_use_fast_tape_hack() {
+			use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_player_.has_tape();
+		}
+
 		HalfCycles clock_offset_;
 		HalfCycles crtc_counter_;
 		HalfCycles half_cycles_since_ay_update_;
@@ -1219,7 +1292,7 @@ template <bool has_fdc> class ConcreteMachine:
 		ROMType upper_rom_;
 
 		uint8_t *ram_pages_[4];
-		uint8_t *read_pointers_[4];
+		const uint8_t *read_pointers_[4];
 		uint8_t *write_pointers_[4];
 
 		KeyboardState key_state_;

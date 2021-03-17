@@ -50,10 +50,9 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 		Time pulse_time_;
 		void post_pulse();
 
-		void process_pulse(const Storage::Tape::Tape::Pulse &pulse);
-		void mark_end();
-
-		void inspect_waves(const std::vector<WaveType> &waves);
+		void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
+		void mark_end() override;
+		void inspect_waves(const std::vector<WaveType> &waves) override;
 
 		std::shared_ptr<std::vector<uint8_t>> get_next_file_data(const std::shared_ptr<Storage::Tape::Tape> &tape);
 };
