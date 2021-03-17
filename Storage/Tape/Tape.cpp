@@ -97,6 +97,14 @@ void TapePlayer::get_next_pulse() {
 	set_next_event_time_interval(current_pulse_.length);
 }
 
+Tape::Pulse TapePlayer::get_current_pulse() {
+	return current_pulse_;
+}
+
+void TapePlayer::complete_pulse() {
+	jump_to_next_event();
+}
+
 void TapePlayer::run_for(const Cycles cycles) {
 	if(has_tape()) {
 		TimedEventLoop::run_for(cycles);
@@ -127,6 +135,18 @@ void BinaryTapePlayer::set_motor_control(bool enabled) {
 	if(motor_is_running_ != enabled) {
 		motor_is_running_ = enabled;
 		update_clocking_observer();
+
+		if(observer_) {
+			observer_->set_led_status("Tape motor", enabled);
+		}
+	}
+}
+
+void BinaryTapePlayer::set_activity_observer(Activity::Observer *observer) {
+	observer_ = observer;
+	if(observer) {
+		observer->register_led("Tape motor");
+		observer_->set_led_status("Tape motor", motor_is_running_);
 	}
 }
 
