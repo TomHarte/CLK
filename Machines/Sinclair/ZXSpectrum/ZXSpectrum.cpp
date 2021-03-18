@@ -8,9 +8,19 @@
 
 #include "ZXSpectrum.hpp"
 
+#define LOG_PREFIX "[Spectrum] "
+
 #include "../../MachineTypes.hpp"
 
 #include "../../../Processors/Z80/Z80.hpp"
+
+#include "../../../Components/AudioToggle/AudioToggle.hpp"
+#include "../../../Components/AY38910/AY38910.hpp"
+
+#include "../../../Outputs/Log.hpp"
+#include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
+#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
 #include "../../../Analyser/Static/ZXSpectrum/Target.hpp"
 
@@ -32,7 +42,11 @@ template<Model model> class ConcreteMachine:
 	public CPU::Z80::BusHandler {
 	public:
 		ConcreteMachine(const Analyser::Static::ZXSpectrum::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-			z80_(*this)
+			z80_(*this),
+			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
+			audio_toggle_(audio_queue_),
+			mixer_(ay_, audio_toggle_),
+			speaker_(mixer_)
 		{
 			set_clock_rate(ClockRate);
 
@@ -70,7 +84,50 @@ template<Model model> class ConcreteMachine:
 		// MARK: - BusHandler
 
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-			(void)cycle;
+			// Ignore all but terminal cycles.
+			// TODO: I doubt this is correct for timing.
+			if(!cycle.is_terminal()) return HalfCycles(0);
+
+			uint16_t address = cycle.address ? *cycle.address : 0x0000;
+			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
+			switch(cycle.operation) {
+				default: break;
+				case PartialMachineCycle::ReadOpcode:
+				case PartialMachineCycle::Read:
+					*cycle.value = read_pointers_[address >> 14][address];
+				break;
+
+				case PartialMachineCycle::Write:
+					write_pointers_[address >> 14][address] = *cycle.value;
+				break;
+
+				case PartialMachineCycle::Output:
+					if(!(address&1)) {
+						// TODO: port FE.
+					}
+
+					switch(address) {
+						default: break;
+
+						case 0x1ffd:
+							port1ffd_ = *cycle.value;
+							update_memory_map();
+						break;
+
+						case 0x7ffd:
+							disable_paging_ |= *cycle.value & 0x20;
+							port7ffd_ = *cycle.value;
+							update_memory_map();
+						break;
+					}
+				break;
+
+				case PartialMachineCycle::Input:
+					if(!(address&1)) {
+						// TODO: port FE.
+					}
+				break;
+			}
 
 			return HalfCycles(0);
 		}
@@ -91,12 +148,8 @@ template<Model model> class ConcreteMachine:
 		bool disable_paging_ = false;
 
 		void update_memory_map() {
+			// If paging is permanently disabled, don't react.
 			if(disable_paging_) {
-				// Set 48kb-esque memory map.
-				set_memory(0, rom_.data(), nullptr);
-				set_memory(1, &ram_[5 * 16384], &ram_[5 * 16384]);
-				set_memory(2, &ram_[2 * 16384], &ram_[2 * 16384]);
-				set_memory(3, &ram_[0 * 16384], &ram_[0 * 16384]);
 				return;
 			}
 
@@ -153,6 +206,13 @@ template<Model model> class ConcreteMachine:
 			read_pointers_[bank] = read - bank*16384;
 			write_pointers_[bank] = (write ? write : scratch_.data()) - bank*16384;
 		}
+
+		// MARK: - Audio.
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		GI::AY38910::AY38910<false> ay_;
+		Audio::Toggle audio_toggle_;
+		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle> mixer_;
+		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle>> speaker_;
 };
 
 
