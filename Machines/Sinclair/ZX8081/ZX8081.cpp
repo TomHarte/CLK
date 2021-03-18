@@ -34,7 +34,7 @@
 
 namespace {
 	// The clock rate is 3.25Mhz.
-	const unsigned int ZX8081ClockRate = 3250000;
+	constexpr unsigned int ZX8081ClockRate = 3250000;
 }
 
 // TODO:
