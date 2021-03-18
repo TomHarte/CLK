@@ -42,7 +42,7 @@ namespace {
 //  7FFFh.W   PSG index
 //  7FFEh.R/W PSG data
 
-namespace Sinclair{
+namespace Sinclair {
 namespace ZX8081 {
 
 enum ROMType: uint8_t {
