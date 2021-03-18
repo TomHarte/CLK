@@ -9,8 +9,8 @@
 #ifndef Machines_ZX8081_Video_hpp
 #define Machines_ZX8081_Video_hpp
 
-#include "../../Outputs/CRT/CRT.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../Outputs/CRT/CRT.hpp"
+#include "../../../ClockReceiver/ClockReceiver.hpp"
 
 namespace ZX8081 {
 

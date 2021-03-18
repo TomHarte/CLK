@@ -9,8 +9,8 @@
 #ifndef Machines_ZX8081_Keyboard_hpp
 #define Machines_ZX8081_Keyboard_hpp
 
-#include "../KeyboardMachine.hpp"
-#include "../Utility/Typer.hpp"
+#include "../../KeyboardMachine.hpp"
+#include "../../Utility/Typer.hpp"
 
 namespace ZX8081 {
 
