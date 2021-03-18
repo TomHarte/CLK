@@ -8,6 +8,8 @@
 
 #include "ZXSpectrum.hpp"
 
+#include "Video.hpp"
+
 #define LOG_PREFIX "[Spectrum] "
 
 #include "../../MachineTypes.hpp"
@@ -23,6 +25,8 @@
 #include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
 #include "../../../Analyser/Static/ZXSpectrum/Target.hpp"
+
+#include "../../../ClockReceiver/JustInTime.hpp"
 
 #include <array>
 
@@ -280,6 +284,10 @@ template<Model model> class ConcreteMachine:
 		void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(2)));
 		}
+
+		// MARK: - Video.
+		static constexpr VideoTiming video_timing = VideoTiming::Plus3;
+		Video<video_timing> video_;
 };
 
 

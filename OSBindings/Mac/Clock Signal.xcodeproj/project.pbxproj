@@ -132,6 +132,8 @@
 		4B0F1BEB2602FFA100B85C66 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCF2602F17B00B85C66 /* Keyboard.cpp */; };
 		4B0F1BFC260300D900B85C66 /* ZXSpectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */; };
 		4B0F1BFD260300D900B85C66 /* ZXSpectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */; };
+		4B0F1C0A2603BA5F00B85C66 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1C082603BA5F00B85C66 /* Video.cpp */; };
+		4B0F1C0B2603BA5F00B85C66 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1C082603BA5F00B85C66 /* Video.cpp */; };
 		4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
@@ -1070,6 +1072,8 @@
 		4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZXSpectrum.cpp; sourceTree = "<group>"; };
 		4B0F1BFB260300D900B85C66 /* ZXSpectrum.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ZXSpectrum.hpp; sourceTree = "<group>"; };
 		4B0F1C04260391F100B85C66 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
+		4B0F1C082603BA5F00B85C66 /* Video.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Video.cpp; sourceTree = "<group>"; };
+		4B0F1C092603BA5F00B85C66 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
 		4B0F94FC208C1A1600FE41D9 /* NIB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NIB.cpp; sourceTree = "<group>"; };
 		4B0F94FD208C1A1600FE41D9 /* NIB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NIB.hpp; sourceTree = "<group>"; };
 		4B0F9500208C42A300FE41D9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Target.hpp; path = AppleII/Target.hpp; sourceTree = "<group>"; };
@@ -2200,6 +2204,8 @@
 			children = (
 				4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */,
 				4B0F1BFB260300D900B85C66 /* ZXSpectrum.hpp */,
+				4B0F1C082603BA5F00B85C66 /* Video.cpp */,
+				4B0F1C092603BA5F00B85C66 /* Video.hpp */,
 			);
 			path = ZXSpectrum;
 			sourceTree = "<group>";
@@ -5152,6 +5158,7 @@
 				4B055AED1FAE9BA20060FFFF /* Z80Storage.cpp in Sources */,
 				4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
 				4BC890D4230F86020025A55A /* DirectAccessDevice.cpp in Sources */,
+				4B0F1C0B2603BA5F00B85C66 /* Video.cpp in Sources */,
 				4B2E86C925D892EF0024F1E9 /* DAT.cpp in Sources */,
 				4B6AAEAE230E40250078E864 /* Target.cpp in Sources */,
 				4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */,
@@ -5297,6 +5304,7 @@
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
 				4BC23A2C2467600F001A6030 /* OPLL.cpp in Sources */,
 				4B80CD76256CA16400176FCC /* 2MG.cpp in Sources */,
+				4B0F1C0A2603BA5F00B85C66 /* Video.cpp in Sources */,
 				4B8DF505254E3C9D00F3433C /* ADB.cpp in Sources */,
 				4B322E041F5A2E3C004EB04C /* Z80Base.cpp in Sources */,
 				4B0ACC2623775819008902D0 /* AtariST.cpp in Sources */,
