@@ -8,21 +8,21 @@
 
 #include "ZX8081.hpp"
 
-#include "../MachineTypes.hpp"
+#include "../../MachineTypes.hpp"
 
-#include "../../Components/AY38910/AY38910.hpp"
-#include "../../Processors/Z80/Z80.hpp"
-#include "../../Storage/Tape/Tape.hpp"
-#include "../../Storage/Tape/Parsers/ZX8081.hpp"
+#include "../../../Components/AY38910/AY38910.hpp"
+#include "../../../Processors/Z80/Z80.hpp"
+#include "../../../Storage/Tape/Tape.hpp"
+#include "../../../Storage/Tape/Parsers/ZX8081.hpp"
 
-#include "../../ClockReceiver/ForceInline.hpp"
+#include "../../../ClockReceiver/ForceInline.hpp"
 
-#include "../Utility/MemoryFuzzer.hpp"
-#include "../Utility/Typer.hpp"
+#include "../../Utility/MemoryFuzzer.hpp"
+#include "../../Utility/Typer.hpp"
 
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
-#include "../../Analyser/Static/ZX8081/Target.hpp"
+#include "../../../Analyser/Static/ZX8081/Target.hpp"
 
 #include "Keyboard.hpp"
 #include "Video.hpp"
@@ -42,6 +42,7 @@ namespace {
 //  7FFFh.W   PSG index
 //  7FFEh.R/W PSG data
 
+namespace Sinclair{
 namespace ZX8081 {
 
 enum ROMType: uint8_t {
@@ -516,16 +517,17 @@ template<bool is_zx81> class ConcreteMachine:
 };
 
 }
+}
 
-using namespace ZX8081;
+using namespace Sinclair::ZX8081;
 
 // See header; constructs and returns an instance of the ZX80 or 81.
 Machine *Machine::ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	const Analyser::Static::ZX8081::Target *const zx_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
+	const auto zx_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
 
 	// Instantiate the correct type of machine.
-	if(zx_target->is_ZX81)	return new ZX8081::ConcreteMachine<true>(*zx_target, rom_fetcher);
-	else					return new ZX8081::ConcreteMachine<false>(*zx_target, rom_fetcher);
+	if(zx_target->is_ZX81)	return new ConcreteMachine<true>(*zx_target, rom_fetcher);
+	else					return new ConcreteMachine<false>(*zx_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

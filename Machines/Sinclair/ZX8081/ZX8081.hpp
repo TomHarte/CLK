@@ -9,13 +9,14 @@
 #ifndef ZX8081_hpp
 #define ZX8081_hpp
 
-#include "../../Configurable/Configurable.hpp"
-#include "../../Configurable/StandardOptions.hpp"
-#include "../../Analyser/Static/StaticAnalyser.hpp"
-#include "../ROMMachine.hpp"
+#include "../../../Configurable/Configurable.hpp"
+#include "../../../Configurable/StandardOptions.hpp"
+#include "../../../Analyser/Static/StaticAnalyser.hpp"
+#include "../../ROMMachine.hpp"
 
 #include <memory>
 
+namespace Sinclair {
 namespace ZX8081 {
 
 /// The ZX80/81 machine.
@@ -47,6 +48,7 @@ class Machine {
 		};
 };
 
+}
 }
 
 #endif /* ZX8081_hpp */

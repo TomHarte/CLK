@@ -23,7 +23,7 @@
 #include "../MasterSystem/MasterSystem.hpp"
 #include "../MSX/MSX.hpp"
 #include "../Oric/Oric.hpp"
-#include "../ZX8081/ZX8081.hpp"
+#include "../Sinclair/ZX8081/ZX8081.hpp"
 
 // Sources for construction options.
 #include "../../Analyser/Static/Acorn/Target.hpp"
@@ -62,7 +62,7 @@ Machine::DynamicMachine *Machine::MachineForTarget(const Analyser::Static::Targe
 			Bind(MSX)
 			Bind(Oric)
 			BindD(Sega::MasterSystem, MasterSystem)
-			Bind(ZX8081)
+			BindD(Sinclair::ZX8081, ZX8081)
 
 			default:
 				error = Machine::Error::UnknownMachine;
@@ -200,7 +200,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	Emplace(MSX, MSX::Machine);
 	Emplace(Oric, Oric::Machine);
 	Emplace(Vic20, Commodore::Vic20::Machine);
-	Emplace(ZX8081, ZX8081::Machine);
+	Emplace(ZX8081, Sinclair::ZX8081::Machine);
 
 #undef Emplace
 

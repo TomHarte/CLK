@@ -11,14 +11,14 @@
 #include "ZX8081.hpp"
 
 @implementation CSZX8081 {
-	ZX8081::Machine *_zx8081;
+	Sinclair::ZX8081::Machine *_zx8081;
 	__weak CSMachine *_machine;
 }
 
 - (instancetype)initWithZX8081:(void *)zx8081 owner:(CSMachine *)machine {
 	self = [super init];
 	if(self) {
-		_zx8081 = (ZX8081::Machine *)zx8081;
+		_zx8081 = (Sinclair::ZX8081::Machine *)zx8081;
 		_machine = machine;
 	}
 	return self;
