@@ -12,6 +12,7 @@
 #include "../../KeyboardMachine.hpp"
 #include "../../Utility/Typer.hpp"
 
+namespace Sinclair {
 namespace ZX8081 {
 
 enum Key: uint16_t {
@@ -44,6 +45,7 @@ class CharacterMapper: public ::Utility::CharacterMapper {
 		bool is_zx81_;
 };
 
-};
+}
+}
 
 #endif /* KeyboardMapper_hpp */

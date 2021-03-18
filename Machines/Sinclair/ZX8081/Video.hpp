@@ -12,6 +12,7 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
+namespace Sinclair {
 namespace ZX8081 {
 
 /*!
@@ -57,6 +58,7 @@ class Video {
 		void flush(bool next_sync);
 };
 
+}
 }
 
 #endif /* Video_hpp */
