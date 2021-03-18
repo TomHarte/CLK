@@ -9,6 +9,7 @@
 #include "StaticAnalyser.hpp"
 
 #include "../../../Storage/Tape/Parsers/Spectrum.hpp"
+#include "Target.hpp"
 
 namespace {
 
@@ -33,7 +34,7 @@ bool IsSpectrumTape(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 
 Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	TargetList destination;
-	auto target = std::make_unique<Target>(Machine::ZXSpectrum);
+	auto target = std::make_unique<Target>();
 	target->confidence = 0.5;
 
 	if(!media.tapes.empty()) {
