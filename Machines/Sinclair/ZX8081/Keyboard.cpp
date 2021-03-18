@@ -8,7 +8,7 @@
 
 #include "Keyboard.hpp"
 
-using namespace ZX8081;
+using namespace Sinclair::ZX8081;
 
 uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 #define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return ZX8081::dest
