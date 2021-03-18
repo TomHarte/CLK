@@ -124,6 +124,12 @@
 		4B0E61071FF34737002A9DBD /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E61051FF34737002A9DBD /* MSX.cpp */; };
 		4B0F1BB22602645900B85C66 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BB02602645900B85C66 /* StaticAnalyser.cpp */; };
 		4B0F1BB32602645900B85C66 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BB02602645900B85C66 /* StaticAnalyser.cpp */; };
+		4B0F1BDA2602FF9800B85C66 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCD2602F17B00B85C66 /* Video.cpp */; };
+		4B0F1BDE2602FF9900B85C66 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCD2602F17B00B85C66 /* Video.cpp */; };
+		4B0F1BE22602FF9C00B85C66 /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCC2602F17B00B85C66 /* ZX8081.cpp */; };
+		4B0F1BE62602FF9D00B85C66 /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCC2602F17B00B85C66 /* ZX8081.cpp */; };
+		4B0F1BEA2602FFA000B85C66 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCF2602F17B00B85C66 /* Keyboard.cpp */; };
+		4B0F1BEB2602FFA100B85C66 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCF2602F17B00B85C66 /* Keyboard.cpp */; };
 		4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
@@ -5070,6 +5076,7 @@
 				4B65086122F4CFE0009C1100 /* Keyboard.cpp in Sources */,
 				4BBB70A9202014E2002FE009 /* MultiProducer.cpp in Sources */,
 				4B2E86BF25D74F160024F1E9 /* Mouse.cpp in Sources */,
+				4B0F1BEB2602FFA100B85C66 /* Keyboard.cpp in Sources */,
 				4B6ED2F1208E2F8A0047B343 /* WOZ.cpp in Sources */,
 				4B5D5C9825F56FC7001B4623 /* Spectrum.cpp in Sources */,
 				4B2E86D025D8D8C70024F1E9 /* Keyboard.cpp in Sources */,
@@ -5086,6 +5093,8 @@
 				4B2BF19123DCC6A200C3AD60 /* BD500.cpp in Sources */,
 				4B055ADA1FAE9B460060FFFF /* 1770.cpp in Sources */,
 				4B80CD77256CA16600176FCC /* 2MG.cpp in Sources */,
+				4B0F1BE62602FF9D00B85C66 /* ZX8081.cpp in Sources */,
+				4B0F1BDE2602FF9900B85C66 /* Video.cpp in Sources */,
 				4B055ADC1FAE9B460060FFFF /* AY38910.cpp in Sources */,
 				4BD67DCC209BE4D700AB2146 /* StaticAnalyser.cpp in Sources */,
 				4B055AB61FAE860F0060FFFF /* TapeUEF.cpp in Sources */,
@@ -5291,6 +5300,7 @@
 				4BEA525E1DF33323007E74F2 /* Tape.cpp in Sources */,
 				4B2BF19623E10F0100C3AD60 /* CSHighPrecisionTimer.m in Sources */,
 				4BE211FF253FC80900435408 /* StaticAnalyser.cpp in Sources */,
+				4B0F1BE22602FF9C00B85C66 /* ZX8081.cpp in Sources */,
 				4B8334951F5E25B60097E338 /* C1540.cpp in Sources */,
 				4BEDA40C25B2844B000C2DBD /* Decoder.cpp in Sources */,
 				4B89453C201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
@@ -5407,6 +5417,7 @@
 				4B0ACC02237756ED008902D0 /* Line.cpp in Sources */,
 				4B89453A201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
+				4B0F1BEA2602FFA000B85C66 /* Keyboard.cpp in Sources */,
 				4BDACBEC22FFA5D20045EF7E /* ncr5380.cpp in Sources */,
 				4B54C0C21F8D91CD0050900F /* Keyboard.cpp in Sources */,
 				4BD0FBC3233706A200148981 /* CSApplication.m in Sources */,
@@ -5443,6 +5454,7 @@
 				4B6ED2F0208E2F8A0047B343 /* WOZ.cpp in Sources */,
 				4B15A9FC208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,
 				4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */,
+				4B0F1BDA2602FF9800B85C66 /* Video.cpp in Sources */,
 				4B54C0C81F8D91E50050900F /* Keyboard.cpp in Sources */,
 				4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */,
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,
