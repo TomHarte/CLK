@@ -130,6 +130,8 @@
 		4B0F1BE62602FF9D00B85C66 /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCC2602F17B00B85C66 /* ZX8081.cpp */; };
 		4B0F1BEA2602FFA000B85C66 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCF2602F17B00B85C66 /* Keyboard.cpp */; };
 		4B0F1BEB2602FFA100B85C66 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCF2602F17B00B85C66 /* Keyboard.cpp */; };
+		4B0F1BFC260300D900B85C66 /* ZXSpectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */; };
+		4B0F1BFD260300D900B85C66 /* ZXSpectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */; };
 		4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
@@ -1065,6 +1067,8 @@
 		4B0F1BCE2602F17B00B85C66 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
 		4B0F1BCF2602F17B00B85C66 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B0F1BD02602F17B00B85C66 /* ZX8081.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ZX8081.hpp; sourceTree = "<group>"; };
+		4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZXSpectrum.cpp; sourceTree = "<group>"; };
+		4B0F1BFB260300D900B85C66 /* ZXSpectrum.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ZXSpectrum.hpp; sourceTree = "<group>"; };
 		4B0F94FC208C1A1600FE41D9 /* NIB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NIB.cpp; sourceTree = "<group>"; };
 		4B0F94FD208C1A1600FE41D9 /* NIB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NIB.hpp; sourceTree = "<group>"; };
 		4B0F9500208C42A300FE41D9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Target.hpp; path = AppleII/Target.hpp; sourceTree = "<group>"; };
@@ -2171,6 +2175,7 @@
 			isa = PBXGroup;
 			children = (
 				4B0F1BCA2602F17B00B85C66 /* ZX8081 */,
+				4B0F1BF9260300D900B85C66 /* ZXSpectrum */,
 			);
 			path = Sinclair;
 			sourceTree = "<group>";
@@ -2186,6 +2191,15 @@
 				4B0F1BD02602F17B00B85C66 /* ZX8081.hpp */,
 			);
 			path = ZX8081;
+			sourceTree = "<group>";
+		};
+		4B0F1BF9260300D900B85C66 /* ZXSpectrum */ = {
+			isa = PBXGroup;
+			children = (
+				4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */,
+				4B0F1BFB260300D900B85C66 /* ZXSpectrum.hpp */,
+			);
+			path = ZXSpectrum;
 			sourceTree = "<group>";
 		};
 		4B1414561B58879D00E04248 /* 6502 */ = {
@@ -5212,6 +5226,7 @@
 				4B894525201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055ACD1FAE9B030060FFFF /* Keyboard.cpp in Sources */,
 				4B055AB21FAE860F0060FFFF /* CommodoreTAP.cpp in Sources */,
+				4B0F1BFD260300D900B85C66 /* ZXSpectrum.cpp in Sources */,
 				4B055ADF1FAE9B4C0060FFFF /* IRQDelegatePortHandler.cpp in Sources */,
 				4B74CF86231370BC00500CE8 /* MacintoshVolume.cpp in Sources */,
 				4B0ACC3323775819008902D0 /* Atari2600.cpp in Sources */,
@@ -5464,6 +5479,7 @@
 				4B8334861F5DA3780097E338 /* 6502Storage.cpp in Sources */,
 				4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */,
 				4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */,
+				4B0F1BFC260300D900B85C66 /* ZXSpectrum.cpp in Sources */,
 				4B55DD8320DF06680043F2E5 /* MachinePicker.swift in Sources */,
 				4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */,
 				4B89453E201967B4007DE474 /* StaticAnalyser.cpp in Sources */,

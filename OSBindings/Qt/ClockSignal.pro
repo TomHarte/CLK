@@ -90,6 +90,7 @@ SOURCES += \
 	$$SRC/Machines/Oric/*.cpp \
 	$$SRC/Machines/Utility/*.cpp \
 	$$SRC/Machines/Sinclair/ZX8081/*.cpp \
+	$$SRC/Machines/Sinclair/ZXSpectrum/*.cpp \
 \
 	$$SRC/Outputs/*.cpp \
 	$$SRC/Outputs/CRT/*.cpp \
@@ -215,6 +216,7 @@ HEADERS += \
 	$$SRC/Machines/Oric/*.hpp \
 	$$SRC/Machines/Utility/*.hpp \
 	$$SRC/Machines/Sinclair/ZX8081/*.hpp \
+	$$SRC/Machines/Sinclair/ZXSpectrum/*.hpp \
 \
 	$$SRC/Numeric/*.hpp \
 \

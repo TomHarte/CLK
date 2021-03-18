@@ -24,6 +24,7 @@
 #include "../MSX/MSX.hpp"
 #include "../Oric/Oric.hpp"
 #include "../Sinclair/ZX8081/ZX8081.hpp"
+#include "../Sinclair/ZXSpectrum/ZXSpectrum.hpp"
 
 // Sources for construction options.
 #include "../../Analyser/Static/Acorn/Target.hpp"
@@ -63,6 +64,7 @@ Machine::DynamicMachine *Machine::MachineForTarget(const Analyser::Static::Targe
 			Bind(Oric)
 			BindD(Sega::MasterSystem, MasterSystem)
 			BindD(Sinclair::ZX8081, ZX8081)
+			BindD(Sinclair::ZXSpectrum, ZXSpectrum)
 
 			default:
 				error = Machine::Error::UnknownMachine;
