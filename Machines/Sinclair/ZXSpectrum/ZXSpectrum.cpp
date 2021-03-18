@@ -26,10 +26,6 @@
 
 #include <array>
 
-namespace {
-	const unsigned int ClockRate = 3'500'000;
-}
-
 
 namespace Sinclair {
 namespace ZXSpectrum {
@@ -48,8 +44,8 @@ template<Model model> class ConcreteMachine:
 			mixer_(ay_, audio_toggle_),
 			speaker_(mixer_)
 		{
-			set_clock_rate(ClockRate);
-			speaker_.set_input_rate(float(ClockRate) / 2.0f);
+			set_clock_rate(clock_rate());
+			speaker_.set_input_rate(float(clock_rate()) / 2.0f);
 
 			// With only the +2a and +3 currently supported, the +3 ROM is always
 			// the one required.
@@ -67,6 +63,12 @@ template<Model model> class ConcreteMachine:
 
 		~ConcreteMachine() {
 			audio_queue_.flush();
+		}
+
+		static constexpr unsigned int clock_rate() {
+//			constexpr unsigned int ClockRate = 3'500'000;
+			constexpr unsigned int Plus3ClockRate = 3'546'900;
+			return Plus3ClockRate;
 		}
 
 		// MARK: - TimedMachine
@@ -114,8 +116,8 @@ template<Model model> class ConcreteMachine:
 				break;
 
 				case PartialMachineCycle::Output:
+					// Test for port FE.
 					if(!(address&1)) {
-						// TODO: rest of port FE.
 						update_audio();
 						audio_toggle_.set_output(*cycle.value & 0x10);
 
@@ -123,6 +125,14 @@ template<Model model> class ConcreteMachine:
 						// b3: enable tape input (?)
 						// b4: tape and speaker output
 					}
+
+					// Test for classic 128kb paging.
+//					if(!(address&0x8002)) {
+//					}
+
+					// Test for +2a/+3 paging.
+//					if((address & 0xc002) == 0x4000) {
+//					}
 
 					switch(address) {
 						default: break;
