@@ -118,6 +118,10 @@ template<Model model> class ConcreteMachine:
 						// TODO: rest of port FE.
 						update_audio();
 						audio_toggle_.set_output(*cycle.value & 0x10);
+
+						// b0–b2: border colour
+						// b3: enable tape input (?)
+						// b4: tape and speaker output
 					}
 
 					switch(address) {
@@ -157,6 +161,10 @@ template<Model model> class ConcreteMachine:
 				case PartialMachineCycle::Input:
 					if(!(address&1)) {
 						// TODO: port FE.
+
+						// address b8+: mask of keyboard lines to select
+						// result: b0–b4: mask of keys pressed
+						// b6: tape input
 					}
 
 					switch(address) {
