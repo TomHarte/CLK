@@ -49,6 +49,7 @@ template<Model model> class ConcreteMachine:
 			speaker_(mixer_)
 		{
 			set_clock_rate(ClockRate);
+			speaker_.set_input_rate(float(ClockRate) / 2.0f);
 
 			// With only the +2a and +3 currently supported, the +3 ROM is always
 			// the one required.
@@ -64,10 +65,19 @@ template<Model model> class ConcreteMachine:
 			(void)target;
 		}
 
+		~ConcreteMachine() {
+			audio_queue_.flush();
+		}
+
 		// MARK: - TimedMachine
 
 		void run_for(const Cycles cycles) override {
 			z80_.run_for(cycles);
+		}
+
+		void flush() {
+			update_audio();
+			audio_queue_.perform();
 		}
 
 		// MARK: - ScanProducer
@@ -84,6 +94,8 @@ template<Model model> class ConcreteMachine:
 		// MARK: - BusHandler
 
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+			time_since_audio_update_ += cycle.length;
+
 			// Ignore all but terminal cycles.
 			// TODO: I doubt this is correct for timing.
 			if(!cycle.is_terminal()) return HalfCycles(0);
@@ -103,21 +115,41 @@ template<Model model> class ConcreteMachine:
 
 				case PartialMachineCycle::Output:
 					if(!(address&1)) {
-						// TODO: port FE.
+						// TODO: rest of port FE.
+						update_audio();
+						audio_toggle_.set_output(*cycle.value & 0x10);
 					}
 
 					switch(address) {
 						default: break;
 
 						case 0x1ffd:
+							// Write to +2a/+3 paging register.
 							port1ffd_ = *cycle.value;
 							update_memory_map();
 						break;
 
 						case 0x7ffd:
+							// Write to classic 128kb paging register.
 							disable_paging_ |= *cycle.value & 0x20;
 							port7ffd_ = *cycle.value;
 							update_memory_map();
+						break;
+
+						case 0xfffd:
+							// Select AY register.
+							update_audio();
+							ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2 | GI::AY38910::BC1));
+							ay_.set_data_input(*cycle.value);
+							ay_.set_control_lines(GI::AY38910::ControlLines(0));
+						break;
+
+						case 0xbffd:
+							// Write to AY register.
+							update_audio();
+							ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2));
+							ay_.set_data_input(*cycle.value);
+							ay_.set_control_lines(GI::AY38910::ControlLines(0));
 						break;
 					}
 				break;
@@ -125,6 +157,18 @@ template<Model model> class ConcreteMachine:
 				case PartialMachineCycle::Input:
 					if(!(address&1)) {
 						// TODO: port FE.
+					}
+
+					switch(address) {
+						default: break;
+
+						case 0xfffd:
+							// Read from AY register.
+							update_audio();
+							ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
+							*cycle.value &= ay_.get_data_output();
+							ay_.set_control_lines(GI::AY38910::ControlLines(0));
+						break;
 					}
 				break;
 			}
@@ -213,6 +257,11 @@ template<Model model> class ConcreteMachine:
 		Audio::Toggle audio_toggle_;
 		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle> mixer_;
 		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle>> speaker_;
+
+		HalfCycles time_since_audio_update_;
+		void update_audio() {
+			speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(2)));
+		}
 };
 
 
