@@ -30,8 +30,10 @@
 
 #include "../../../ClockReceiver/JustInTime.hpp"
 
-#include <array>
+// TODO: Factor this file into an appropriate place and namespace.
+#include "../ZX8081/Keyboard.hpp"
 
+#include <array>
 
 namespace Sinclair {
 namespace ZXSpectrum {
@@ -39,6 +41,7 @@ namespace ZXSpectrum {
 using Model = Analyser::Static::ZXSpectrum::Target::Model;
 template<Model model> class ConcreteMachine:
 	public Machine,
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
 	public CPU::Z80::BusHandler {
@@ -48,7 +51,8 @@ template<Model model> class ConcreteMachine:
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			audio_toggle_(audio_queue_),
 			mixer_(ay_, audio_toggle_),
-			speaker_(mixer_)
+			speaker_(mixer_),
+			keyboard_(true)
 		{
 			set_clock_rate(clock_rate());
 			speaker_.set_input_rate(float(clock_rate()) / 2.0f);
@@ -186,7 +190,7 @@ template<Model model> class ConcreteMachine:
 					*cycle.value = 0xff;
 
 					if(!(address&1)) {
-						// TODO: port FE.
+						*cycle.value &= keyboard_.read(address);
 
 						// address b8+: mask of keyboard lines to select
 						// result: b0–b4: mask of keys pressed
@@ -208,6 +212,28 @@ template<Model model> class ConcreteMachine:
 			}
 
 			return HalfCycles(0);
+		}
+
+		// MARK: - Typer
+//		HalfCycles get_typer_delay(const std::string &) const final {
+//			return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
+//		}
+//
+//		HalfCycles get_typer_frequency() const final {
+//			return Cycles(146'250);
+//		}
+
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
+		}
+
+		// MARK: - Keyboard
+		void set_key_state(uint16_t key, bool is_pressed) override {
+			keyboard_.set_key_state(key, is_pressed);
+		}
+
+		void clear_all_keys() override {
+			keyboard_.clear_all_keys();
 		}
 
 	private:
@@ -303,6 +329,10 @@ template<Model model> class ConcreteMachine:
 		// MARK: - Video.
 		static constexpr VideoTiming video_timing = VideoTiming::Plus3;
 		JustInTimeActor<Video<video_timing>> video_;
+
+		// MARK: - Keyboard.
+		Sinclair::ZX8081::Keyboard keyboard_;
+		ZX8081::KeyboardMapper keyboard_mapper_;
 };
 
 
