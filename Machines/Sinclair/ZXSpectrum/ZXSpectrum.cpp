@@ -41,6 +41,7 @@ using Model = Analyser::Static::ZXSpectrum::Target::Model;
 template<Model model> class ConcreteMachine:
 	public Machine,
 	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
 	public CPU::Z80::BusHandler {
@@ -52,7 +53,8 @@ template<Model model> class ConcreteMachine:
 			mixer_(ay_, audio_toggle_),
 			speaker_(mixer_),
 			keyboard_(Sinclair::ZX::Keyboard::Machine::ZXSpectrum),
-			keyboard_mapper_(Sinclair::ZX::Keyboard::Machine::ZXSpectrum)
+			keyboard_mapper_(Sinclair::ZX::Keyboard::Machine::ZXSpectrum),
+			tape_player_(clock_rate() * 2)
 		{
 			set_clock_rate(clock_rate());
 			speaker_.set_input_rate(float(clock_rate()) / 2.0f);
@@ -68,8 +70,11 @@ template<Model model> class ConcreteMachine:
 			update_memory_map();
 			Memory::Fuzz(ram_);
 
-			// TODO: insert media.
-			(void)target;
+			// Insert media.
+			insert_media(target.media);
+
+			// TODO: intelligent motor control (?)
+			tape_player_.set_motor_control(true);
 		}
 
 		~ConcreteMachine() {
@@ -199,11 +204,14 @@ template<Model model> class ConcreteMachine:
 					*cycle.value = 0xff;
 
 					if(!(address&1)) {
-						*cycle.value &= keyboard_.read(address);
-
+						// Port FE:
+						//
 						// address b8+: mask of keyboard lines to select
 						// result: b0–b4: mask of keys pressed
 						// b6: tape input
+
+						*cycle.value &= keyboard_.read(address);
+						*cycle.value &= tape_player_.get_input() ? 0xbf : 0xff;
 					}
 
 					switch(address) {
@@ -232,6 +240,9 @@ template<Model model> class ConcreteMachine:
 			if(video_.did_flush()) {
 				z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line());
 			}
+
+			// TODO: sleeping support here.
+			tape_player_.run_for(duration.as_integral());
 		}
 
 	public:
@@ -256,6 +267,16 @@ template<Model model> class ConcreteMachine:
 
 		void clear_all_keys() override {
 			keyboard_.clear_all_keys();
+		}
+
+		// MARK: - MediaTarget.
+		bool insert_media(const Analyser::Static::Media &media) override {
+			// If there are any tapes supplied, use the first of them.
+			if(!media.tapes.empty()) {
+				tape_player_.set_tape(media.tapes.front());
+			}
+
+			return !media.tapes.empty();
 		}
 
 	private:
@@ -357,6 +378,9 @@ template<Model model> class ConcreteMachine:
 		// MARK: - Keyboard.
 		Sinclair::ZX::Keyboard::Keyboard keyboard_;
 		Sinclair::ZX::Keyboard::KeyboardMapper keyboard_mapper_;
+
+		// MARK: - Tape and disc.
+		Storage::Tape::BinaryTapePlayer tape_player_;
 };
 
 
