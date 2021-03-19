@@ -126,7 +126,7 @@ template <VideoTiming timing> class Video {
 
 							pixel_target_ = crt_.begin_data(256);
 							attribute_address_ = ((pixel_line / 8) * 32) + 6144;
-							pixel_address_ = ((pixel_line & 0x07) << 8) | ((pixel_line&0x38) << 2) | ((pixel_line&0xc0) << 3);
+							pixel_address_ = ((pixel_line & 0x07) << 8) | ((pixel_line&0x38) << 2) | ((pixel_line&0xc0) << 5);
 						}
 
 						if(pixel_target_) {
@@ -139,8 +139,8 @@ template <VideoTiming timing> class Video {
 								const uint8_t pixels = memory_[pixel_address_] ^ masks[flash_mask_ & (attributes >> 7)];
 
 								const uint8_t colours[2] = {
-									palette[((attributes & 0x40) >> 3) | (attributes & 0x07)],
 									palette[(attributes & 0x78) >> 3],
+									palette[((attributes & 0x40) >> 3) | (attributes & 0x07)],
 								};
 
 								pixel_target_[0] = colours[(pixels >> 7) & 1];
