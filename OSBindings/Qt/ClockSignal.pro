@@ -89,6 +89,7 @@ SOURCES += \
 	$$SRC/Machines/MSX/*.cpp \
 	$$SRC/Machines/Oric/*.cpp \
 	$$SRC/Machines/Utility/*.cpp \
+	$$SRC/Machines/Sinclair/Keyboard/*.cpp \
 	$$SRC/Machines/Sinclair/ZX8081/*.cpp \
 	$$SRC/Machines/Sinclair/ZXSpectrum/*.cpp \
 \
@@ -215,6 +216,7 @@ HEADERS += \
 	$$SRC/Machines/MSX/*.hpp \
 	$$SRC/Machines/Oric/*.hpp \
 	$$SRC/Machines/Utility/*.hpp \
+	$$SRC/Machines/Sinclair/Keyboard/*.hpp \
 	$$SRC/Machines/Sinclair/ZX8081/*.hpp \
 	$$SRC/Machines/Sinclair/ZXSpectrum/*.hpp \
 \
