@@ -224,6 +224,9 @@ template<Model model> class ConcreteMachine:
 				return;
 			}
 
+			// Set the proper video base pointer.
+			video_->set_video_source(&ram_[((port7ffd_ & 0x08) ? 7 : 5) * 16384]);
+
 			if(port1ffd_ & 1) {
 				// "Special paging mode", i.e. one of four fixed
 				// RAM configurations, port 7ffd doesn't matter.

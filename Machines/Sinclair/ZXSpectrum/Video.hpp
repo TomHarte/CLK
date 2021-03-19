@@ -95,6 +95,10 @@ template <VideoTiming timing> class Video {
 
 		}
 
+		void set_video_source(const uint8_t *source) {
+			memory_ = source;
+		}
+
 		HalfCycles get_next_sequence_point() {
 			if(time_since_interrupt_ < interrupt_duration) {
 				return HalfCycles(interrupt_duration - time_since_interrupt_);
@@ -135,6 +139,7 @@ template <VideoTiming timing> class Video {
 	private:
 		int time_since_interrupt_ = 0;
 		Outputs::CRT::CRT crt_;
+		const uint8_t *memory_ = nullptr;
 };
 
 }
