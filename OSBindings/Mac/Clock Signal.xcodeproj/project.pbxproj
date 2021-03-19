@@ -128,10 +128,10 @@
 		4B0F1BDE2602FF9900B85C66 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCD2602F17B00B85C66 /* Video.cpp */; };
 		4B0F1BE22602FF9C00B85C66 /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCC2602F17B00B85C66 /* ZX8081.cpp */; };
 		4B0F1BE62602FF9D00B85C66 /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCC2602F17B00B85C66 /* ZX8081.cpp */; };
-		4B0F1BEA2602FFA000B85C66 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCF2602F17B00B85C66 /* Keyboard.cpp */; };
-		4B0F1BEB2602FFA100B85C66 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BCF2602F17B00B85C66 /* Keyboard.cpp */; };
 		4B0F1BFC260300D900B85C66 /* ZXSpectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */; };
 		4B0F1BFD260300D900B85C66 /* ZXSpectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */; };
+		4B0F1C1C2604EA1000B85C66 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1C1B2604EA1000B85C66 /* Keyboard.cpp */; };
+		4B0F1C1D2604EA1000B85C66 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1C1B2604EA1000B85C66 /* Keyboard.cpp */; };
 		4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
@@ -1061,16 +1061,16 @@
 		4B0E61061FF34737002A9DBD /* MSX.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = MSX.hpp; path = Parsers/MSX.hpp; sourceTree = "<group>"; };
 		4B0F1BB02602645900B85C66 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4B0F1BB12602645900B85C66 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
-		4B0F1BCB2602F17B00B85C66 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4B0F1BCC2602F17B00B85C66 /* ZX8081.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ZX8081.cpp; sourceTree = "<group>"; };
 		4B0F1BCD2602F17B00B85C66 /* Video.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Video.cpp; sourceTree = "<group>"; };
 		4B0F1BCE2602F17B00B85C66 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
-		4B0F1BCF2602F17B00B85C66 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B0F1BD02602F17B00B85C66 /* ZX8081.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ZX8081.hpp; sourceTree = "<group>"; };
 		4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZXSpectrum.cpp; sourceTree = "<group>"; };
 		4B0F1BFB260300D900B85C66 /* ZXSpectrum.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ZXSpectrum.hpp; sourceTree = "<group>"; };
 		4B0F1C04260391F100B85C66 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4B0F1C092603BA5F00B85C66 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
+		4B0F1C1A2604EA1000B85C66 /* Keyboard.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
+		4B0F1C1B2604EA1000B85C66 /* Keyboard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B0F94FC208C1A1600FE41D9 /* NIB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NIB.cpp; sourceTree = "<group>"; };
 		4B0F94FD208C1A1600FE41D9 /* NIB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NIB.hpp; sourceTree = "<group>"; };
 		4B0F9500208C42A300FE41D9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Target.hpp; path = AppleII/Target.hpp; sourceTree = "<group>"; };
@@ -2177,6 +2177,7 @@
 		4B0F1BC92602F17B00B85C66 /* Sinclair */ = {
 			isa = PBXGroup;
 			children = (
+				4B0F1C192604EA1000B85C66 /* Keyboard */,
 				4B0F1BCA2602F17B00B85C66 /* ZX8081 */,
 				4B0F1BF9260300D900B85C66 /* ZXSpectrum */,
 			);
@@ -2186,11 +2187,9 @@
 		4B0F1BCA2602F17B00B85C66 /* ZX8081 */ = {
 			isa = PBXGroup;
 			children = (
-				4B0F1BCB2602F17B00B85C66 /* Keyboard.hpp */,
 				4B0F1BCC2602F17B00B85C66 /* ZX8081.cpp */,
 				4B0F1BCD2602F17B00B85C66 /* Video.cpp */,
 				4B0F1BCE2602F17B00B85C66 /* Video.hpp */,
-				4B0F1BCF2602F17B00B85C66 /* Keyboard.cpp */,
 				4B0F1BD02602F17B00B85C66 /* ZX8081.hpp */,
 			);
 			path = ZX8081;
@@ -2204,6 +2203,15 @@
 				4B0F1C092603BA5F00B85C66 /* Video.hpp */,
 			);
 			path = ZXSpectrum;
+			sourceTree = "<group>";
+		};
+		4B0F1C192604EA1000B85C66 /* Keyboard */ = {
+			isa = PBXGroup;
+			children = (
+				4B0F1C1A2604EA1000B85C66 /* Keyboard.hpp */,
+				4B0F1C1B2604EA1000B85C66 /* Keyboard.cpp */,
+			);
+			path = Keyboard;
 			sourceTree = "<group>";
 		};
 		4B1414561B58879D00E04248 /* 6502 */ = {
@@ -5094,7 +5102,6 @@
 				4B65086122F4CFE0009C1100 /* Keyboard.cpp in Sources */,
 				4BBB70A9202014E2002FE009 /* MultiProducer.cpp in Sources */,
 				4B2E86BF25D74F160024F1E9 /* Mouse.cpp in Sources */,
-				4B0F1BEB2602FFA100B85C66 /* Keyboard.cpp in Sources */,
 				4B6ED2F1208E2F8A0047B343 /* WOZ.cpp in Sources */,
 				4B5D5C9825F56FC7001B4623 /* Spectrum.cpp in Sources */,
 				4B2E86D025D8D8C70024F1E9 /* Keyboard.cpp in Sources */,
@@ -5141,6 +5148,7 @@
 				4B055A9E1FAE85DA0060FFFF /* G64.cpp in Sources */,
 				4B055AB81FAE860F0060FFFF /* ZX80O81P.cpp in Sources */,
 				4B055AB01FAE86070060FFFF /* PulseQueuedTape.cpp in Sources */,
+				4B0F1C1D2604EA1000B85C66 /* Keyboard.cpp in Sources */,
 				4B055AAC1FAE85FD0060FFFF /* PCMSegment.cpp in Sources */,
 				4BB307BC235001C300457D33 /* 6850.cpp in Sources */,
 				4B055AB31FAE860F0060FFFF /* CSW.cpp in Sources */,
@@ -5291,6 +5299,7 @@
 				4B0E04EA1FC9E5DA00F43484 /* CAS.cpp in Sources */,
 				4B7A90ED20410A85008514A2 /* StaticAnalyser.cpp in Sources */,
 				4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */,
+				4B0F1C1C2604EA1000B85C66 /* Keyboard.cpp in Sources */,
 				4B228CD924DA12C60077EF25 /* CSScanTargetView.m in Sources */,
 				4B6AAEAD230E40250078E864 /* Target.cpp in Sources */,
 				4B448E841F1C4C480009ABD6 /* PulseQueuedTape.cpp in Sources */,
@@ -5436,7 +5445,6 @@
 				4B0ACC02237756ED008902D0 /* Line.cpp in Sources */,
 				4B89453A201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
-				4B0F1BEA2602FFA000B85C66 /* Keyboard.cpp in Sources */,
 				4BDACBEC22FFA5D20045EF7E /* ncr5380.cpp in Sources */,
 				4B54C0C21F8D91CD0050900F /* Keyboard.cpp in Sources */,
 				4BD0FBC3233706A200148981 /* CSApplication.m in Sources */,

@@ -24,7 +24,7 @@
 
 #include "../../../Analyser/Static/ZX8081/Target.hpp"
 
-#include "Keyboard.hpp"
+#include "../Keyboard/Keyboard.hpp"
 #include "Video.hpp"
 
 #include <cstdint>
@@ -49,6 +49,8 @@ enum ROMType: uint8_t {
 	ZX80 = 0, ZX81
 };
 
+using CharacterMapper = Sinclair::ZX::Keyboard::CharacterMapper;
+
 template<bool is_zx81> class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
@@ -61,9 +63,10 @@ template<bool is_zx81> class ConcreteMachine:
 	public Machine {
 	public:
 		ConcreteMachine(const Analyser::Static::ZX8081::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-			Utility::TypeRecipient<CharacterMapper>(is_zx81),
+			Utility::TypeRecipient<CharacterMapper>(keyboard_machine()),
 			z80_(*this),
-			keyboard_(is_zx81),
+			keyboard_(keyboard_machine()),
+			keyboard_mapper_(keyboard_machine()),
 			tape_player_(ZX8081ClockRate),
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			speaker_(ay_) {
@@ -341,6 +344,10 @@ template<bool is_zx81> class ConcreteMachine:
 			keyboard_.clear_all_keys();
 		}
 
+		static constexpr Sinclair::ZX::Keyboard::Machine keyboard_machine() {
+			return is_zx81 ? Sinclair::ZX::Keyboard::Machine::ZX81 : Sinclair::ZX::Keyboard::Machine::ZX80;
+		}
+
 		// MARK: - Tape control
 
 		void set_use_automatic_tape_motor_control(bool enabled) {
@@ -418,8 +425,8 @@ template<bool is_zx81> class ConcreteMachine:
 		bool vsync_ = false, hsync_ = false;
 		int line_counter_ = 0;
 
-		Keyboard keyboard_;
-		ZX8081::KeyboardMapper keyboard_mapper_;
+		Sinclair::ZX::Keyboard::Keyboard keyboard_;
+		Sinclair::ZX::Keyboard::KeyboardMapper keyboard_mapper_;
 
 		HalfClockReceiver<Storage::Tape::BinaryTapePlayer> tape_player_;
 		Storage::Tape::ZX8081::Parser parser_;

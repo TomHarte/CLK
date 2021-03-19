@@ -10,10 +10,12 @@
 
 #include <cstring>
 
-using namespace Sinclair::ZX8081;
+using namespace Sinclair::ZX::Keyboard;
+
+KeyboardMapper::KeyboardMapper(Machine machine) : machine_(machine) {}
 
 uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
-#define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return ZX8081::dest
+#define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return dest
 	switch(key) {
 		default: break;
 
@@ -44,7 +46,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }
 
-CharacterMapper::CharacterMapper(bool is_zx81) : is_zx81_(is_zx81) {}
+CharacterMapper::CharacterMapper(Machine machine) : machine_(machine) {}
 
 const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 #define KEYS(...)	{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
@@ -185,17 +187,21 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 #undef SHIFT
 #undef X
 
-	if(is_zx81_)
+	switch(machine_) {
+		case Machine::ZX81:
+		case Machine::ZXSpectrum:	// TODO: some differences exist for the Spectrum.
 		return table_lookup_sequence_for_character(zx81_key_sequences, sizeof(zx81_key_sequences), character);
-	else
+
+		case Machine::ZX80:
 		return table_lookup_sequence_for_character(zx80_key_sequences, sizeof(zx80_key_sequences), character);
+	}
 }
 
 bool CharacterMapper::needs_pause_after_key(uint16_t key) const {
 	return key != KeyShift;
 }
 
-Keyboard::Keyboard(bool is_zx81) : is_zx81_(is_zx81) {
+Keyboard::Keyboard(Machine machine) : machine_(machine) {
 	clear_all_keys();
 }
 
@@ -217,7 +223,7 @@ void Keyboard::set_key_state(uint16_t key, bool is_pressed) {
 			ShiftedKey(KeyDown, Key6);
 			ShiftedKey(KeyLeft, Key5);
 			ShiftedKey(KeyRight, Key8);
-			ShiftedKey(KeyEdit, is_zx81_ ? Key1 : KeyEnter);
+			ShiftedKey(KeyEdit, (machine_ == Machine::ZX80) ? KeyEnter : Key1);
 
 #undef ShiftedKey
 		}

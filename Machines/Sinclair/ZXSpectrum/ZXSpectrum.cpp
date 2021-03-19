@@ -30,8 +30,7 @@
 
 #include "../../../ClockReceiver/JustInTime.hpp"
 
-// TODO: Factor this file into an appropriate place and namespace.
-#include "../ZX8081/Keyboard.hpp"
+#include "../Keyboard/Keyboard.hpp"
 
 #include <array>
 
@@ -52,7 +51,8 @@ template<Model model> class ConcreteMachine:
 			audio_toggle_(audio_queue_),
 			mixer_(ay_, audio_toggle_),
 			speaker_(mixer_),
-			keyboard_(true)
+			keyboard_(Sinclair::ZX::Keyboard::Machine::ZXSpectrum),
+			keyboard_mapper_(Sinclair::ZX::Keyboard::Machine::ZXSpectrum)
 		{
 			set_clock_rate(clock_rate());
 			speaker_.set_input_rate(float(clock_rate()) / 2.0f);
@@ -355,8 +355,8 @@ template<Model model> class ConcreteMachine:
 		JustInTimeActor<Video<video_timing>> video_;
 
 		// MARK: - Keyboard.
-		Sinclair::ZX8081::Keyboard keyboard_;
-		ZX8081::KeyboardMapper keyboard_mapper_;
+		Sinclair::ZX::Keyboard::Keyboard keyboard_;
+		Sinclair::ZX::Keyboard::KeyboardMapper keyboard_mapper_;
 };
 
 
