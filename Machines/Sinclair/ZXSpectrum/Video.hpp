@@ -89,6 +89,12 @@ template <VideoTiming timing> class Video {
 				const int cycles_this_line = std::min(cycles_remaining, timings.cycles_per_line - offset);
 				const int end_offset = offset + cycles_this_line;
 
+				if(!line && !offset) {
+					++flash_counter_;
+					flash_mask_ = uint8_t(flash_counter_ >> 4);
+					flash_counter_ &= 31;
+				}
+
 				if(line < 3) {
 					// Output sync line.
 					crt_.output_sync(cycles_this_line);
@@ -127,8 +133,10 @@ template <VideoTiming timing> class Video {
 							const int start_column = offset >> 3;
 							const int end_column = (offset + pixel_duration) >> 3;
 							for(int column = start_column; column < end_column; column++) {
-								const uint8_t pixels = memory_[pixel_address_];
 								const uint8_t attributes = memory_[attribute_address_];
+
+								constexpr uint8_t masks[] = {0, 0xff};
+								const uint8_t pixels = memory_[pixel_address_] ^ masks[flash_mask_ & (attributes >> 7)];
 
 								const uint8_t colours[2] = {
 									palette[((attributes & 0x40) >> 3) | (attributes & 0x07)],
@@ -254,6 +262,9 @@ template <VideoTiming timing> class Video {
 		uint8_t *pixel_target_ = nullptr;
 		int attribute_address_ = 0;
 		int pixel_address_ = 0;
+
+		uint8_t flash_mask_ = 0;
+		int flash_counter_ = 0;
 
 #define RGB(r, g, b)	(r << 4) | (g << 2) | b
 		static constexpr uint8_t palette[] = {

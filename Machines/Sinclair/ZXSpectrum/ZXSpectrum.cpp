@@ -26,6 +26,8 @@
 
 #include "../../../Analyser/Static/ZXSpectrum/Target.hpp"
 
+#include "../../Utility/MemoryFuzzer.hpp"
+
 #include "../../../ClockReceiver/JustInTime.hpp"
 
 #include <array>
@@ -60,6 +62,7 @@ template<Model model> class ConcreteMachine:
 
 			// Set up initial memory map.
 			update_memory_map();
+			Memory::Fuzz(ram_);
 
 			// TODO: insert media.
 			(void)target;
