@@ -63,12 +63,12 @@ template<bool is_zx81> class ConcreteMachine:
 		ConcreteMachine(const Analyser::Static::ZX8081::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			Utility::TypeRecipient<CharacterMapper>(is_zx81),
 			z80_(*this),
+			keyboard_(is_zx81),
 			tape_player_(ZX8081ClockRate),
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			speaker_(ay_) {
 			set_clock_rate(ZX8081ClockRate);
 			speaker_.set_input_rate(float(ZX8081ClockRate) / 2.0f);
-			clear_all_keys();
 
 			const bool use_zx81_rom = target.is_ZX81 || target.ZX80_uses_ZX81_ROM;
 			const auto roms =
@@ -183,12 +183,7 @@ template<bool is_zx81> class ConcreteMachine:
 					if(!(address&1)) {
 						if(!nmi_is_enabled_) set_vsync(true);
 
-						uint16_t mask = 0x100;
-						for(int c = 0; c < 8; c++) {
-							if(!(address & mask)) value &= key_states_[c];
-							mask <<= 1;
-						}
-
+						value &= keyboard_.read(address);
 						value &= ~(tape_player_.get_input() ? 0x00 : 0x80);
 					}
 
@@ -339,36 +334,11 @@ template<bool is_zx81> class ConcreteMachine:
 
 		// MARK: - Keyboard
 		void set_key_state(uint16_t key, bool is_pressed) final {
-			const auto line = key >> 8;
-
-			// Check for special cases.
-			if(line > 7) {
-				switch(key) {
-#define ShiftedKey(source, base)	\
-					case source:	\
-						set_key_state(KeyShift, is_pressed);	\
-						set_key_state(base, is_pressed);		\
-					break;
-
-					ShiftedKey(KeyDelete, Key0);
-					ShiftedKey(KeyBreak, KeySpace);
-					ShiftedKey(KeyUp, Key7);
-					ShiftedKey(KeyDown, Key6);
-					ShiftedKey(KeyLeft, Key5);
-					ShiftedKey(KeyRight, Key8);
-					ShiftedKey(KeyEdit, is_zx81 ? Key1 : KeyEnter);
-#undef ShiftedKey
-				}
-			} else {
-				if(is_pressed)
-					key_states_[line] &= uint8_t(~key);
-				else
-					key_states_[line] |= uint8_t(key);
-			}
+			keyboard_.set_key_state(key, is_pressed);
 		}
 
 		void clear_all_keys() final {
-			memset(key_states_, 0xff, 8);
+			keyboard_.clear_all_keys();
 		}
 
 		// MARK: - Tape control
@@ -448,7 +418,7 @@ template<bool is_zx81> class ConcreteMachine:
 		bool vsync_ = false, hsync_ = false;
 		int line_counter_ = 0;
 
-		uint8_t key_states_[8];
+		Keyboard keyboard_;
 		ZX8081::KeyboardMapper keyboard_mapper_;
 
 		HalfClockReceiver<Storage::Tape::BinaryTapePlayer> tape_player_;

@@ -30,6 +30,19 @@ enum Key: uint16_t {
 	KeyBreak, KeyLeft, KeyRight, KeyUp, KeyDown, KeyEdit
 };
 
+struct Keyboard {
+	Keyboard(bool is_zx81);
+
+	void set_key_state(uint16_t key, bool is_pressed);
+	void clear_all_keys();
+
+	uint8_t read(uint16_t address);
+
+	private:
+		uint8_t key_states_[8];
+		const bool is_zx81_;
+};
+
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const override;
 };

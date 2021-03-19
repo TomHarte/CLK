@@ -192,3 +192,53 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 bool CharacterMapper::needs_pause_after_key(uint16_t key) const {
 	return key != KeyShift;
 }
+
+Keyboard::Keyboard(bool is_zx81) : is_zx81_(is_zx81) {
+	clear_all_keys();
+}
+
+void Keyboard::set_key_state(uint16_t key, bool is_pressed) {
+	const auto line = key >> 8;
+
+	// Check for special cases.
+	if(line > 7) {
+		switch(key) {
+#define ShiftedKey(source, base)	\
+			case source:			\
+				set_key_state(KeyShift, is_pressed);	\
+				set_key_state(base, is_pressed);		\
+			break;
+
+			ShiftedKey(KeyDelete, Key0);
+			ShiftedKey(KeyBreak, KeySpace);
+			ShiftedKey(KeyUp, Key7);
+			ShiftedKey(KeyDown, Key6);
+			ShiftedKey(KeyLeft, Key5);
+			ShiftedKey(KeyRight, Key8);
+			ShiftedKey(KeyEdit, is_zx81_ ? Key1 : KeyEnter);
+
+#undef ShiftedKey
+		}
+	} else {
+		if(is_pressed)
+			key_states_[line] &= uint8_t(~key);
+		else
+			key_states_[line] |= uint8_t(key);
+	}
+}
+
+void Keyboard::clear_all_keys() {
+	memset(key_states_, 0xff, 8);
+}
+
+uint8_t Keyboard::read(uint16_t address) {
+	uint8_t value = 0xff;
+
+	uint16_t mask = 0x100;
+	for(int c = 0; c < 8; c++) {
+		if(!(address & mask)) value &= key_states_[c];
+		mask <<= 1;
+	}
+
+	return value;
+}
