@@ -90,12 +90,11 @@ template<Model model> class ConcreteMachine:
 		// MARK: - ScanProducer
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
-			(void)scan_target;
+			video_->set_scan_target(scan_target);
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-			// TODO.
-			return Outputs::Display::ScanStatus();
+			return video_->get_scaled_scan_status();
 		}
 
 		// MARK: - BusHandler

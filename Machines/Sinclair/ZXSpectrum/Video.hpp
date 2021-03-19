@@ -9,7 +9,7 @@
 #ifndef Video_hpp
 #define Video_hpp
 
-
+#include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Sinclair {
@@ -86,6 +86,14 @@ template <VideoTiming timing> class Video {
 		static constexpr int interrupt_duration = 48;
 
 	public:
+		Video() :
+			crt_(227 * 2, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2)
+		{
+			// Show only the centre 80% of the TV frame.
+			crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+			crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
+
+		}
 
 		HalfCycles get_next_sequence_point() {
 			if(time_since_interrupt_ < interrupt_duration) {
@@ -114,8 +122,19 @@ template <VideoTiming timing> class Video {
 			return timings.delays[line_position & 7];
 		}
 
+		/// Sets the scan target.
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+			crt_.set_scan_target(scan_target);
+		}
+
+		/// Gets the current scan status.
+		Outputs::Display::ScanStatus get_scaled_scan_status() const {
+			return crt_.get_scaled_scan_status();
+		}
+
 	private:
 		int time_since_interrupt_ = 0;
+		Outputs::CRT::CRT crt_;
 };
 
 }
