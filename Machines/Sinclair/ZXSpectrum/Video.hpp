@@ -113,12 +113,48 @@ template <VideoTiming timing> class Video {
 				} else {
 					// Output pixel line.
 					if(offset < 256) {
-						// TODO: actual pixels.
 						const int pixel_duration = std::min(256, end_offset) - offset;
-						uint8_t *const colour_pointer = crt_.begin_data(1);
-						if(colour_pointer) *colour_pointer = 0;
-						crt_.output_level(pixel_duration);
+
+						if(!offset) {
+							const int pixel_line = line - first_line;
+
+							pixel_target_ = crt_.begin_data(256);
+							attribute_address_ = ((pixel_line / 8) * 32) + 6144;
+							pixel_address_ = ((pixel_line & 0x07) << 8) | ((pixel_line&0x38) << 2) | ((pixel_line&0xc0) << 3);
+						}
+
+						if(pixel_target_) {
+							const int start_column = offset >> 3;
+							const int end_column = (offset + pixel_duration) >> 3;
+							for(int column = start_column; column < end_column; column++) {
+								const uint8_t pixels = memory_[pixel_address_];
+								const uint8_t attributes = memory_[attribute_address_];
+
+								const uint8_t colours[2] = {
+									palette[((attributes & 0x40) >> 3) | (attributes & 0x07)],
+									palette[(attributes & 0x78) >> 3],
+								};
+
+								pixel_target_[0] = colours[(pixels >> 7) & 1];
+								pixel_target_[1] = colours[(pixels >> 6) & 1];
+								pixel_target_[2] = colours[(pixels >> 5) & 1];
+								pixel_target_[3] = colours[(pixels >> 4) & 1];
+								pixel_target_[4] = colours[(pixels >> 3) & 1];
+								pixel_target_[5] = colours[(pixels >> 2) & 1];
+								pixel_target_[6] = colours[(pixels >> 1) & 1];
+								pixel_target_[7] = colours[(pixels >> 0) & 1];
+								pixel_target_ += 8;
+
+								++pixel_address_;
+								++attribute_address_;
+							}
+						}
+
 						offset += pixel_duration;
+						if(offset == 256) {
+							crt_.output_data(256);
+							pixel_target_ = nullptr;
+						}
 					}
 
 					if(offset >= 256 && offset < sync_position && end_offset > offset) {
@@ -156,7 +192,7 @@ template <VideoTiming timing> class Video {
 
 	public:
 		Video() :
-			crt_(227 * 2, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2)
+			crt_(227 * 2, 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2)
 		{
 			// Show only the centre 80% of the TV frame.
 			crt_.set_display_type(Outputs::Display::DisplayType::RGB);
@@ -214,6 +250,10 @@ template <VideoTiming timing> class Video {
 		Outputs::CRT::CRT crt_;
 		const uint8_t *memory_ = nullptr;
 		uint8_t border_colour_ = 0;
+
+		uint8_t *pixel_target_ = nullptr;
+		int attribute_address_ = 0;
+		int pixel_address_ = 0;
 
 #define RGB(r, g, b)	(r << 4) | (g << 2) | b
 		static constexpr uint8_t palette[] = {
