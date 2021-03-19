@@ -36,7 +36,7 @@ enum Key: uint16_t {
 	// Add some virtual keys; these do not exist on a real ZX80, ZX81 or early Spectrum, those all were added to the 128kb Spectrums.
 	// Either way, they're a convenience.
 	KeyDelete	= 0x0801,
-	KeyBreak, KeyLeft, KeyRight, KeyUp, KeyDown, KeyEdit
+	KeyBreak, KeyLeft, KeyRight, KeyUp, KeyDown, KeyEdit, KeySpectrumDot, KeyComma,
 };
 
 class Keyboard {

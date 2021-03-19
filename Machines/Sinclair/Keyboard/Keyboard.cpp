@@ -29,9 +29,27 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 		BIND(B, KeyB);		BIND(N, KeyN);		BIND(M, KeyM);
 
 		BIND(LeftShift, KeyShift);	BIND(RightShift, KeyShift);
-		BIND(FullStop, KeyDot);
 		BIND(Enter, KeyEnter);
 		BIND(Space, KeySpace);
+
+		// Full stop has a key on the ZX80 and ZX81; it doesn't have a dedicated key on the Spectrum.
+		case Inputs::Keyboard::Key::FullStop:
+			if(machine_ == Machine::ZXSpectrum) {
+				return KeySpectrumDot;
+			} else {
+				return KeyDot;
+			}
+		break;
+
+		// Map controls and options to symbol shift, if this is a ZX Spectrum.
+		case Inputs::Keyboard::Key::LeftOption:
+		case Inputs::Keyboard::Key::RightOption:
+		case Inputs::Keyboard::Key::LeftControl:
+		case Inputs::Keyboard::Key::RightControl:
+			if(machine_ == Machine::ZXSpectrum) {
+				return KeySymbolShift;
+			}
+		break;
 
 		// Virtual keys follow.
 		BIND(Backspace, KeyDelete);
@@ -41,6 +59,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 		BIND(Left, KeyLeft);
 		BIND(Right, KeyRight);
 		BIND(BackTick, KeyEdit);	BIND(F1, KeyEdit);
+		BIND(Comma, KeyComma);
 	}
 #undef BIND
 	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
@@ -211,19 +230,33 @@ void Keyboard::set_key_state(uint16_t key, bool is_pressed) {
 	// Check for special cases.
 	if(line > 7) {
 		switch(key) {
-#define ShiftedKey(source, base)	\
-			case source:			\
-				set_key_state(KeyShift, is_pressed);	\
-				set_key_state(base, is_pressed);		\
+#define ShiftedKey(source, base, shift)	\
+			case source:				\
+				set_key_state(shift, is_pressed);	\
+				set_key_state(base, is_pressed);	\
 			break;
 
-			ShiftedKey(KeyDelete, Key0);
-			ShiftedKey(KeyBreak, KeySpace);
-			ShiftedKey(KeyUp, Key7);
-			ShiftedKey(KeyDown, Key6);
-			ShiftedKey(KeyLeft, Key5);
-			ShiftedKey(KeyRight, Key8);
-			ShiftedKey(KeyEdit, (machine_ == Machine::ZX80) ? KeyEnter : Key1);
+			ShiftedKey(KeyDelete, Key0, KeyShift);
+			ShiftedKey(KeyBreak, KeySpace, KeyShift);
+			ShiftedKey(KeyUp, Key7, KeyShift);
+			ShiftedKey(KeyDown, Key6, KeyShift);
+			ShiftedKey(KeyLeft, Key5, KeyShift);
+			ShiftedKey(KeyRight, Key8, KeyShift);
+			ShiftedKey(KeyEdit, (machine_ == Machine::ZX80) ? KeyEnter : Key1, KeyShift);
+
+			ShiftedKey(KeySpectrumDot, KeyM, KeySymbolShift);
+
+			case KeyComma:
+				if(machine_ == Machine::ZXSpectrum) {
+					// Spectrum: comma = symbol shift + n.
+					set_key_state(KeySymbolShift, is_pressed);
+					set_key_state(KeyN, is_pressed);
+				} else {
+					// ZX80/81: comma = shift + dot.
+					set_key_state(KeyShift, is_pressed);
+					set_key_state(KeyDot, is_pressed);
+				}
+			break;
 
 #undef ShiftedKey
 		}
