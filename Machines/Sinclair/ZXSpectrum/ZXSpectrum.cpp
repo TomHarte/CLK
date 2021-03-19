@@ -107,27 +107,36 @@ template<Model model> class ConcreteMachine:
 		// MARK: - BusHandler
 
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-			time_since_audio_update_ += cycle.length;
-
-			video_ += cycle.length;
-			if(video_.did_flush()) {
-				z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line());
-			}
-
 			// Ignore all but terminal cycles.
 			// TODO: I doubt this is correct for timing.
-			if(!cycle.is_terminal()) return HalfCycles(0);
+			if(!cycle.is_terminal()) {
+				advance(cycle.length);
+				return HalfCycles(0);
+			}
 
+			HalfCycles delay(0);
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
 			switch(cycle.operation) {
 				default: break;
 				case PartialMachineCycle::ReadOpcode:
 				case PartialMachineCycle::Read:
+					// Apply contention if necessary.
+					if(is_contended_[address >> 14]) {
+						delay = video_.last_valid()->access_delay(video_.time_since_flush());
+					}
+
 					*cycle.value = read_pointers_[address >> 14][address];
 				break;
 
 				case PartialMachineCycle::Write:
+					// Apply contention if necessary.
+					// For now this causes a video sync up every time any contended area is written to.
+					// TODO: flush only upon a video-area write.
+					if(is_contended_[address >> 14]) {
+						delay = video_->access_delay(HalfCycles(0));
+					}
+
 					write_pointers_[address >> 14][address] = *cycle.value;
 				break;
 
@@ -211,8 +220,21 @@ template<Model model> class ConcreteMachine:
 				break;
 			}
 
-			return HalfCycles(0);
+			advance(cycle.length + delay);
+			return delay;
 		}
+
+	private:
+		void advance(HalfCycles duration) {
+			time_since_audio_update_ += duration;
+
+			video_ += duration;
+			if(video_.did_flush()) {
+				z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line());
+			}
+		}
+
+	public:
 
 		// MARK: - Typer
 //		HalfCycles get_typer_delay(const std::string &) const final {
@@ -246,6 +268,7 @@ template<Model model> class ConcreteMachine:
 		std::array<uint8_t, 16*1024> scratch_;
 		const uint8_t *read_pointers_[4];
 		uint8_t *write_pointers_[4];
+		bool is_contended_[4];
 
 		uint8_t port1ffd_ = 0;
 		uint8_t port7ffd_ = 0;
@@ -267,31 +290,31 @@ template<Model model> class ConcreteMachine:
 				switch(port1ffd_ & 0x6) {
 					default:
 					case 0x00:
-						set_memory(0, &ram_[0 * 16384], &ram_[0 * 16384]);
-						set_memory(1, &ram_[1 * 16384], &ram_[1 * 16384]);
-						set_memory(2, &ram_[2 * 16384], &ram_[2 * 16384]);
-						set_memory(3, &ram_[3 * 16384], &ram_[3 * 16384]);
+						set_memory(0, &ram_[0 * 16384], &ram_[0 * 16384], false);
+						set_memory(1, &ram_[1 * 16384], &ram_[1 * 16384], false);
+						set_memory(2, &ram_[2 * 16384], &ram_[2 * 16384], false);
+						set_memory(3, &ram_[3 * 16384], &ram_[3 * 16384], false);
 					break;
 
 					case 0x02:
-						set_memory(0, &ram_[4 * 16384], &ram_[4 * 16384]);
-						set_memory(1, &ram_[5 * 16384], &ram_[5 * 16384]);
-						set_memory(2, &ram_[6 * 16384], &ram_[6 * 16384]);
-						set_memory(3, &ram_[7 * 16384], &ram_[7 * 16384]);
+						set_memory(0, &ram_[4 * 16384], &ram_[4 * 16384], true);
+						set_memory(1, &ram_[5 * 16384], &ram_[5 * 16384], true);
+						set_memory(2, &ram_[6 * 16384], &ram_[6 * 16384], true);
+						set_memory(3, &ram_[7 * 16384], &ram_[7 * 16384], true);
 					break;
 
 					case 0x04:
-						set_memory(0, &ram_[4 * 16384], &ram_[4 * 16384]);
-						set_memory(1, &ram_[5 * 16384], &ram_[5 * 16384]);
-						set_memory(2, &ram_[6 * 16384], &ram_[6 * 16384]);
-						set_memory(3, &ram_[3 * 16384], &ram_[3 * 16384]);
+						set_memory(0, &ram_[4 * 16384], &ram_[4 * 16384], true);
+						set_memory(1, &ram_[5 * 16384], &ram_[5 * 16384], true);
+						set_memory(2, &ram_[6 * 16384], &ram_[6 * 16384], true);
+						set_memory(3, &ram_[3 * 16384], &ram_[3 * 16384], false);
 					break;
 
 					case 0x06:
-						set_memory(0, &ram_[4 * 16384], &ram_[4 * 16384]);
-						set_memory(1, &ram_[7 * 16384], &ram_[7 * 16384]);
-						set_memory(2, &ram_[6 * 16384], &ram_[6 * 16384]);
-						set_memory(3, &ram_[3 * 16384], &ram_[3 * 16384]);
+						set_memory(0, &ram_[4 * 16384], &ram_[4 * 16384], true);
+						set_memory(1, &ram_[7 * 16384], &ram_[7 * 16384], true);
+						set_memory(2, &ram_[6 * 16384], &ram_[6 * 16384], true);
+						set_memory(3, &ram_[3 * 16384], &ram_[3 * 16384], false);
 					break;
 				}
 
@@ -300,16 +323,17 @@ template<Model model> class ConcreteMachine:
 
 			// Apply standard 128kb-esque mapping (albeit with extra ROM to pick from).
 			const auto rom = &rom_[ (((port1ffd_ >> 1) & 2) | ((port7ffd_ >> 4) & 1)) * 16384];
-			set_memory(0, rom, nullptr);
+			set_memory(0, rom, nullptr, false);
 
-			set_memory(1, &ram_[5 * 16384], &ram_[5 * 16384]);
-			set_memory(2, &ram_[2 * 16384], &ram_[2 * 16384]);
+			set_memory(1, &ram_[5 * 16384], &ram_[5 * 16384], true);
+			set_memory(2, &ram_[2 * 16384], &ram_[2 * 16384], false);
 
 			const auto high_ram = &ram_[(port7ffd_ & 7) * 16384];
-			set_memory(3, high_ram, high_ram);
+			set_memory(3, high_ram, high_ram, (port7ffd_ & 7) >= 4);
 		}
 
-		void set_memory(int bank, const uint8_t *read, uint8_t *write) {
+		void set_memory(int bank, const uint8_t *read, uint8_t *write, bool is_contended) {
+			is_contended_[bank] = is_contended;
 			read_pointers_[bank] = read - bank*16384;
 			write_pointers_[bank] = (write ? write : scratch_.data()) - bank*16384;
 		}

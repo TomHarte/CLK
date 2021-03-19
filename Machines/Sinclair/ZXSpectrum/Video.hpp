@@ -225,11 +225,13 @@ template <VideoTiming timing> class Video {
 			return time_since_interrupt_ < interrupt_duration;
 		}
 
-		int access_delay() const {
+		int access_delay(HalfCycles offset) const {
 			constexpr auto timings = get_timings();
-			if(time_since_interrupt_ < timings.first_delay) return 0;
+			const int delay_time = (time_since_interrupt_ + offset.as<int>()) % (timings.cycles_per_line * timings.lines_per_frame);
 
-			const int time_since = time_since_interrupt_ - timings.first_delay;
+			if(delay_time < timings.first_delay) return 0;
+
+			const int time_since = delay_time - timings.first_delay;
 			const int lines = time_since / timings.cycles_per_line;
 			if(lines >= 192) return 0;
 
