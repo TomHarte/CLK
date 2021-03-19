@@ -183,6 +183,8 @@ template<Model model> class ConcreteMachine:
 				break;
 
 				case PartialMachineCycle::Input:
+					*cycle.value = 0xff;
+
 					if(!(address&1)) {
 						// TODO: port FE.
 
