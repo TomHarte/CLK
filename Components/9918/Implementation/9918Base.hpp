@@ -350,11 +350,14 @@ class Base {
 
 				case MemoryAccess::Write:
 					if(master_system_.cram_is_selected) {
-						// Adjust the palette.
+						// Adjust the palette. In a Master System blue has a slightly different
+						// scale; cf. https://www.retrorgb.com/sega-master-system-non-linear-blue-channel-findings.html
+						constexpr uint8_t rg_scale[] = {0, 85, 170, 255};
+						constexpr uint8_t b_scale[] = {0, 104, 170, 255};
 						master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
-							uint8_t(((read_ahead_buffer_ >> 0) & 3) * 255 / 3),
-							uint8_t(((read_ahead_buffer_ >> 2) & 3) * 255 / 3),
-							uint8_t(((read_ahead_buffer_ >> 4) & 3) * 255 / 3)
+							rg_scale[(read_ahead_buffer_ >> 0) & 3],
+							rg_scale[(read_ahead_buffer_ >> 2) & 3],
+							b_scale[(read_ahead_buffer_ >> 4) & 3]
 						);
 
 						// Schedule a CRAM dot; this is scheduled for wherever it should appear
