@@ -82,6 +82,7 @@ template<Model model> class ConcreteMachine:
 		}
 
 		void flush() {
+			video_.flush();
 			update_audio();
 			audio_queue_.perform();
 		}
@@ -101,6 +102,11 @@ template<Model model> class ConcreteMachine:
 
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			time_since_audio_update_ += cycle.length;
+
+			video_ += cycle.length;
+			if(video_.did_flush()) {
+				z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line());
+			}
 
 			// Ignore all but terminal cycles.
 			// TODO: I doubt this is correct for timing.
@@ -287,7 +293,7 @@ template<Model model> class ConcreteMachine:
 
 		// MARK: - Video.
 		static constexpr VideoTiming video_timing = VideoTiming::Plus3;
-		Video<video_timing> video_;
+		JustInTimeActor<Video<video_timing>> video_;
 };
 
 
