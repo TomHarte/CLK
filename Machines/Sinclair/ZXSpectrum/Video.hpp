@@ -79,7 +79,7 @@ template <VideoTiming timing> class Video {
 		void run_for(HalfCycles duration) {
 			constexpr auto timings = get_timings();
 			constexpr int first_line = timings.first_delay / timings.cycles_per_line;
-			constexpr int sync_position = 200 * 2;
+			constexpr int sync_position = 166 * 2;
 			constexpr int sync_length = 14 * 2;
 
 			int cycles_remaining = duration.as<int>();
@@ -92,7 +92,7 @@ template <VideoTiming timing> class Video {
 				if(line < 3) {
 					// Output sync line.
 					crt_.output_sync(cycles_this_line);
-				} else /* if((line < first_line) || (line >= first_line+192)) */ {
+				} else if((line < first_line) || (line >= first_line+192)) {
 					// Output plain border line.
 					if(offset < sync_position) {
 						const int border_duration = std::min(sync_position, end_offset) - offset;
@@ -110,9 +110,34 @@ template <VideoTiming timing> class Video {
 						const int border_duration = end_offset - offset;
 						output_border(border_duration);
 					}
-				} /* else {
-					// TODO: output pixel line.
-				} */
+				} else {
+					// Output pixel line.
+					if(offset < 256) {
+						// TODO: actual pixels.
+						const int pixel_duration = std::min(256, end_offset) - offset;
+						uint8_t *const colour_pointer = crt_.begin_data(1);
+						if(colour_pointer) *colour_pointer = 0;
+						crt_.output_level(pixel_duration);
+						offset += pixel_duration;
+					}
+
+					if(offset >= 256 && offset < sync_position && end_offset > offset) {
+						const int border_duration = std::min(sync_position, end_offset) - offset;
+						output_border(border_duration);
+						offset += border_duration;
+					}
+
+					if(offset >= sync_position && offset < sync_position+sync_length && end_offset > offset) {
+						const int sync_duration = std::min(sync_position + sync_length, end_offset) - offset;
+						crt_.output_sync(sync_duration);
+						offset += sync_duration;
+					}
+
+					if(offset >= sync_position + sync_length && end_offset > offset) {
+						const int border_duration = end_offset - offset;
+						output_border(border_duration);
+					}
+				}
 
 				cycles_remaining -= cycles_this_line;
 				time_since_interrupt_ = (time_since_interrupt_ + cycles_this_line) % (timings.cycles_per_line * timings.lines_per_frame);
