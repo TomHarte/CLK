@@ -8,6 +8,8 @@
 
 #include "Keyboard.hpp"
 
+#include <cstring>
+
 using namespace Sinclair::ZX8081;
 
 uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
