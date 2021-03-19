@@ -12,6 +12,8 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
+#include <algorithm>
+
 namespace Sinclair {
 namespace ZXSpectrum {
 
@@ -76,14 +78,56 @@ template <VideoTiming timing> class Video {
 	public:
 		void run_for(HalfCycles duration) {
 			constexpr auto timings = get_timings();
+			constexpr int first_line = timings.first_delay / timings.cycles_per_line;
+			constexpr int sync_position = 200 * 2;
+			constexpr int sync_length = 14 * 2;
 
-			// Advance time. TODO: all the drawing.
-			time_since_interrupt_ = (time_since_interrupt_ + duration.as<int>()) % (timings.cycles_per_line * timings.lines_per_frame);
+			int cycles_remaining = duration.as<int>();
+			while(cycles_remaining) {
+				int line = time_since_interrupt_ / timings.cycles_per_line;
+				int offset = time_since_interrupt_ % timings.cycles_per_line;
+				const int cycles_this_line = std::min(cycles_remaining, timings.cycles_per_line - offset);
+				const int end_offset = offset + cycles_this_line;
+
+				if(line < 3) {
+					// Output sync line.
+					crt_.output_sync(cycles_this_line);
+				} else /* if((line < first_line) || (line >= first_line+192)) */ {
+					// Output plain border line.
+					if(offset < sync_position) {
+						const int border_duration = std::min(sync_position, end_offset) - offset;
+						output_border(border_duration);
+						offset += border_duration;
+					}
+
+					if(offset >= sync_position && offset < sync_position+sync_length && end_offset > offset) {
+						const int sync_duration = std::min(sync_position + sync_length, end_offset) - offset;
+						crt_.output_sync(sync_duration);
+						offset += sync_duration;
+					}
+
+					if(offset >= sync_position + sync_length && end_offset > offset) {
+						const int border_duration = end_offset - offset;
+						output_border(border_duration);
+					}
+				} /* else {
+					// TODO: output pixel line.
+				} */
+
+				cycles_remaining -= cycles_this_line;
+				time_since_interrupt_ = (time_since_interrupt_ + cycles_this_line) % (timings.cycles_per_line * timings.lines_per_frame);
+			}
 		}
 
 	private:
 		// TODO: how long is the interrupt line held for?
 		static constexpr int interrupt_duration = 48;
+
+		void output_border(int duration) {
+			uint8_t *const colour_pointer = crt_.begin_data(1);
+			if(colour_pointer) *colour_pointer = border_colour_;
+			crt_.output_level(duration);
+		}
 
 	public:
 		Video() :
@@ -126,6 +170,10 @@ template <VideoTiming timing> class Video {
 			return timings.delays[line_position & 7];
 		}
 
+		void set_border_colour(uint8_t colour) {
+			border_colour_ = palette[colour];
+		}
+
 		/// Sets the scan target.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 			crt_.set_scan_target(scan_target);
@@ -140,6 +188,16 @@ template <VideoTiming timing> class Video {
 		int time_since_interrupt_ = 0;
 		Outputs::CRT::CRT crt_;
 		const uint8_t *memory_ = nullptr;
+		uint8_t border_colour_ = 0;
+
+#define RGB(r, g, b)	(r << 4) | (g << 2) | b
+		static constexpr uint8_t palette[] = {
+			RGB(0, 0, 0),	RGB(0, 0, 2),	RGB(2, 0, 0),	RGB(2, 0, 2),
+			RGB(0, 2, 0),	RGB(0, 2, 2),	RGB(2, 2, 0),	RGB(2, 2, 2),
+			RGB(0, 0, 0),	RGB(0, 0, 3),	RGB(3, 0, 0),	RGB(3, 0, 3),
+			RGB(0, 3, 0),	RGB(0, 3, 3),	RGB(3, 3, 0),	RGB(3, 3, 3),
+		};
+#undef RGB
 };
 
 }

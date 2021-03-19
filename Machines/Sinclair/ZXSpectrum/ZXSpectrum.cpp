@@ -130,6 +130,8 @@ template<Model model> class ConcreteMachine:
 						update_audio();
 						audio_toggle_.set_output(*cycle.value & 0x10);
 
+						video_->set_border_colour(*cycle.value & 7);
+
 						// b0–b2: border colour
 						// b3: enable tape input (?)
 						// b4: tape and speaker output
