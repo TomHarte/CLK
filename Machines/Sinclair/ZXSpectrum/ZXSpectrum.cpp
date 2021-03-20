@@ -82,7 +82,32 @@ template<Model model> class ConcreteMachine:
 
 		static constexpr unsigned int clock_rate() {
 //			constexpr unsigned int ClockRate = 3'500'000;
-			constexpr unsigned int Plus3ClockRate = 3'546'900;
+			constexpr unsigned int Plus3ClockRate = 3'546'875;	// See notes below; this is a guess.
+
+			// Notes on timing for the +2a and +3:
+			//
+			// Standard PAL produces 283.7516 colour cycles per line, each line being 64µs.
+			// The oft-quoted 3.5469 Mhz would seem to imply 227.0016 clock cycles per line.
+			// Since those Spectrums actually produce 228 cycles per line, but software like
+			// Chromatrons seems to assume a fixed phase relationship, I guess that the real
+			// clock speed is whatever gives:
+			//
+			// 228 / [cycles per line] * 283.7516 = [an integer].
+			//
+			// i.e. 228 * 283.7516 = [an integer] * [cycles per line], such that cycles per line ~= 227
+			// ... which would imply that 'an integer' is probably 285, i.e.
+			//
+			// 228 / [cycles per line] * 283.7516 = 285
+			// => 227.00128 = [cycles per line]
+			// => clock rate = 3.546895 Mhz?
+			//
+			// That is... unless I'm mistaken about the PAL colour subcarrier and it's actually 283.75,
+			// which would give exactly 227 cycles/line and therefore 3.546875 Mhz.
+			//
+			// A real TV would be likely to accept either, I guess. But it does seem like
+			// the Spectrum is a PAL machine with a fixed colour phase relationship. For
+			// this emulator's world, that's a first!
+
 			return Plus3ClockRate;
 		}
 
