@@ -41,6 +41,7 @@ using Model = Analyser::Static::ZXSpectrum::Target::Model;
 template<Model model> class ConcreteMachine:
 	public Configurable::Device,
 	public Machine,
+	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
@@ -341,6 +342,12 @@ template<Model model> class ConcreteMachine:
 			set_use_automatic_tape_motor_control(options->automatic_tape_motor_control);
 			allow_fast_tape_hack_ = options->quickload;
 			set_use_fast_tape();
+		}
+
+		// MARK: - AudioProducer.
+
+		Outputs::Speaker::Speaker *get_speaker() override {
+			return &speaker_;
 		}
 
 	private:
