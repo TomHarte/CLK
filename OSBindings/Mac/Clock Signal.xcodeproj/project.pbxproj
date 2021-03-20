@@ -132,6 +132,8 @@
 		4B0F1BFD260300D900B85C66 /* ZXSpectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */; };
 		4B0F1C1C2604EA1000B85C66 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1C1B2604EA1000B85C66 /* Keyboard.cpp */; };
 		4B0F1C1D2604EA1000B85C66 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1C1B2604EA1000B85C66 /* Keyboard.cpp */; };
+		4B0F1C232605996900B85C66 /* ZXSpectrumTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1C212605996900B85C66 /* ZXSpectrumTAP.cpp */; };
+		4B0F1C242605996900B85C66 /* ZXSpectrumTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1C212605996900B85C66 /* ZXSpectrumTAP.cpp */; };
 		4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
@@ -1071,6 +1073,8 @@
 		4B0F1C092603BA5F00B85C66 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
 		4B0F1C1A2604EA1000B85C66 /* Keyboard.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4B0F1C1B2604EA1000B85C66 /* Keyboard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
+		4B0F1C212605996900B85C66 /* ZXSpectrumTAP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ZXSpectrumTAP.cpp; sourceTree = "<group>"; };
+		4B0F1C222605996900B85C66 /* ZXSpectrumTAP.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ZXSpectrumTAP.hpp; sourceTree = "<group>"; };
 		4B0F94FC208C1A1600FE41D9 /* NIB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NIB.cpp; sourceTree = "<group>"; };
 		4B0F94FD208C1A1600FE41D9 /* NIB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NIB.hpp; sourceTree = "<group>"; };
 		4B0F9500208C42A300FE41D9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Target.hpp; path = AppleII/Target.hpp; sourceTree = "<group>"; };
@@ -2862,6 +2866,7 @@
 				4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */,
 				4B448E7F1F1C45A00009ABD6 /* TZX.cpp */,
 				4B1497861EE4A1DA00CE2596 /* ZX80O81P.cpp */,
+				4B0F1C212605996900B85C66 /* ZXSpectrumTAP.cpp */,
 				4B0E04E91FC9E5DA00F43484 /* CAS.hpp */,
 				4BC91B821D1F160E00884B76 /* CommodoreTAP.hpp */,
 				4B3BF5AF1F146264005B6C36 /* CSW.hpp */,
@@ -2870,6 +2875,7 @@
 				4B69FB431C4D941400B5F0AA /* TapeUEF.hpp */,
 				4B448E801F1C45A00009ABD6 /* TZX.hpp */,
 				4B1497871EE4A1DA00CE2596 /* ZX80O81P.hpp */,
+				4B0F1C222605996900B85C66 /* ZXSpectrumTAP.hpp */,
 				4B69FB451C4D950F00B5F0AA /* libz.tbd */,
 			);
 			path = Formats;
@@ -5269,6 +5275,7 @@
 				4BEDA3C125B25563000C2DBD /* Decoder.cpp in Sources */,
 				4BB0A65C2044FD3000FB3688 /* SN76489.cpp in Sources */,
 				4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */,
+				4B0F1C242605996900B85C66 /* ZXSpectrumTAP.cpp in Sources */,
 				4B055AB91FAE86170060FFFF /* Acorn.cpp in Sources */,
 				4B302185208A550100773308 /* DiskII.cpp in Sources */,
 				4B0F1BB32602645900B85C66 /* StaticAnalyser.cpp in Sources */,
@@ -5376,6 +5383,7 @@
 				4B0ACC2E23775819008902D0 /* TIA.cpp in Sources */,
 				4B2E86B725D7490E0024F1E9 /* ReactiveDevice.cpp in Sources */,
 				4B74CF85231370BC00500CE8 /* MacintoshVolume.cpp in Sources */,
+				4B0F1C232605996900B85C66 /* ZXSpectrumTAP.cpp in Sources */,
 				4B4518A51F75FD1C00926311 /* SSD.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
 				4B1B58FF246E19FD009C171E /* State.cpp in Sources */,

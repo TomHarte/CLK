@@ -66,6 +66,7 @@
 #include "../../Storage/Tape/Formats/TapeUEF.hpp"
 #include "../../Storage/Tape/Formats/TZX.hpp"
 #include "../../Storage/Tape/Formats/ZX80O81P.hpp"
+#include "../../Storage/Tape/Formats/ZXSpectrumTAP.hpp"
 
 // Target Platform Types
 #include "../../Storage/TargetPlatforms.hpp"
@@ -177,6 +178,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("stx", result.disks, Disk::DiskImageHolder<Storage::Disk::STX>, TargetPlatform::AtariST)				// STX
 	Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)									// TAP (Commodore)
 	Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)											// TAP (Oric)
+	Format("tap", result.tapes, Tape::ZXSpectrumTAP, TargetPlatform::ZXSpectrum)								// TAP (ZX Spectrum)
 	Format("tsx", result.tapes, Tape::TZX, TargetPlatform::MSX)													// TSX
 	Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081 | TargetPlatform::ZXSpectrum)					// TZX
 	Format("uef", result.tapes, Tape::UEF, TargetPlatform::Acorn)												// UEF (tape)
