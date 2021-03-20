@@ -39,6 +39,7 @@ namespace ZXSpectrum {
 
 using Model = Analyser::Static::ZXSpectrum::Target::Model;
 template<Model model> class ConcreteMachine:
+	public Configurable::Device,
 	public Machine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
@@ -101,12 +102,16 @@ template<Model model> class ConcreteMachine:
 
 		// MARK: - ScanProducer
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			video_->set_scan_target(scan_target);
 		}
 
-		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+		Outputs::Display::ScanStatus get_scaled_scan_status() const override {
 			return video_->get_scaled_scan_status();
+		}
+
+		void set_display_type(Outputs::Display::DisplayType display_type) override {
+			video_->set_display_type(display_type);
 		}
 
 		// MARK: - BusHandler
@@ -279,6 +284,40 @@ template<Model model> class ConcreteMachine:
 			return !media.tapes.empty();
 		}
 
+		// MARK: - Tape control
+
+		void set_use_automatic_tape_motor_control(bool enabled) {
+			use_automatic_tape_motor_control_ = enabled;
+			if(!enabled) {
+				tape_player_.set_motor_control(false);
+			}
+		}
+
+		void set_tape_is_playing(bool is_playing) final {
+			tape_player_.set_motor_control(is_playing);
+		}
+
+		bool get_tape_is_playing() final {
+			return tape_player_.get_motor_control();
+		}
+
+		// MARK: - Configuration options.
+
+		std::unique_ptr<Reflection::Struct> get_options() override {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);	// OptionsType is arbitrary, but not optional.
+			options->automatic_tape_motor_control = use_automatic_tape_motor_control_;
+			options->quickload = allow_fast_tape_hack_;
+			return options;
+		}
+
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) override {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
+			set_use_automatic_tape_motor_control(options->automatic_tape_motor_control);
+			allow_fast_tape_hack_ = options->quickload;
+			set_use_fast_tape();
+		}
+
 	private:
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 
@@ -381,6 +420,14 @@ template<Model model> class ConcreteMachine:
 
 		// MARK: - Tape and disc.
 		Storage::Tape::BinaryTapePlayer tape_player_;
+
+		bool use_automatic_tape_motor_control_ = false;
+		HalfCycles cycles_since_tape_input_read_;
+
+		bool allow_fast_tape_hack_ = false;
+		void set_use_fast_tape() {
+
+		}
 };
 
 

@@ -263,6 +263,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 		case Analyser::Machine::Oric:			return @"OricOptions";
 		case Analyser::Machine::Vic20:			return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::ZX8081:			return @"ZX8081Options";
+		case Analyser::Machine::ZXSpectrum:		return @"QuickLoadCompositeOptions"; // TODO: @"ZXSpectrumOptions";
 		default: return nil;
 	}
 }
