@@ -81,6 +81,8 @@ template <VideoTiming timing> class Video {
 			constexpr int first_line = timings.first_delay / timings.cycles_per_line;
 			constexpr int sync_position = 166 * 2;
 			constexpr int sync_length = 14 * 2;
+			constexpr int burst_position = sync_position + 40;
+			constexpr int burst_length = 17;
 
 			int cycles_remaining = duration.as<int>();
 			while(cycles_remaining) {
@@ -106,13 +108,25 @@ template <VideoTiming timing> class Video {
 						offset += border_duration;
 					}
 
-					if(offset >= sync_position && offset < sync_position+sync_length && end_offset > offset) {
+					if(offset >= sync_position && offset < sync_position + sync_length && end_offset > offset) {
 						const int sync_duration = std::min(sync_position + sync_length, end_offset) - offset;
 						crt_.output_sync(sync_duration);
 						offset += sync_duration;
 					}
 
-					if(offset >= sync_position + sync_length && end_offset > offset) {
+					if(offset >= sync_position + sync_length && offset < burst_position && end_offset > offset) {
+						const int blank_duration = std::min(burst_position, end_offset) - offset;
+						crt_.output_blank(blank_duration);
+						offset += blank_duration;
+					}
+
+					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
+						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
+						crt_.output_default_colour_burst(burst_duration);
+						offset += burst_duration;
+					}
+
+					if(offset >= burst_position+burst_length && end_offset > offset) {
 						const int border_duration = end_offset - offset;
 						output_border(border_duration);
 					}
@@ -177,7 +191,19 @@ template <VideoTiming timing> class Video {
 						offset += sync_duration;
 					}
 
-					if(offset >= sync_position + sync_length && end_offset > offset) {
+					if(offset >= sync_position + sync_length && offset < burst_position && end_offset > offset) {
+						const int blank_duration = std::min(burst_position, end_offset) - offset;
+						crt_.output_blank(blank_duration);
+						offset += blank_duration;
+					}
+
+					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
+						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
+						crt_.output_default_colour_burst(burst_duration);
+						offset += burst_duration;
+					}
+
+					if(offset >= burst_position + burst_length && end_offset > offset) {
 						const int border_duration = end_offset - offset;
 						output_border(border_duration);
 					}
@@ -253,6 +279,11 @@ template <VideoTiming timing> class Video {
 		/// Gets the current scan status.
 		Outputs::Display::ScanStatus get_scaled_scan_status() const {
 			return crt_.get_scaled_scan_status();
+		}
+
+		/*! Sets the type of display the CRT will request. */
+		void set_display_type(Outputs::Display::DisplayType type) {
+			crt_.set_display_type(type);
 		}
 
 	private:
