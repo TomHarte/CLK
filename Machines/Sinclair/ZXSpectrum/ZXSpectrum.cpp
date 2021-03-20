@@ -73,9 +73,6 @@ template<Model model> class ConcreteMachine:
 
 			// Insert media.
 			insert_media(target.media);
-
-			// TODO: intelligent motor control (?)
-			tape_player_.set_motor_control(true);
 		}
 
 		~ConcreteMachine() {
@@ -217,6 +214,23 @@ template<Model model> class ConcreteMachine:
 
 						*cycle.value &= keyboard_.read(address);
 						*cycle.value &= tape_player_.get_input() ? 0xbf : 0xff;
+
+						// If this read is within 200 cycles of the previous,
+						// count it as an adjacent hit; if 20 of those have
+						// occurred then start the tape motor.
+						if(use_automatic_tape_motor_control_) {
+							if(cycles_since_tape_input_read_ < HalfCycles(400)) {
+								++recent_tape_hits_;
+
+								if(recent_tape_hits_ == 20) {
+									tape_player_.set_motor_control(true);
+								}
+							} else {
+								recent_tape_hits_ = 0;
+							}
+
+							cycles_since_tape_input_read_ = HalfCycles(0);
+						}
 					}
 
 					switch(address) {
@@ -248,6 +262,17 @@ template<Model model> class ConcreteMachine:
 
 			// TODO: sleeping support here.
 			tape_player_.run_for(duration.as_integral());
+
+			// Update automatic tape motor control, if enabled; if it's been
+			// 3 seconds since software last possibly polled the tape, stop it.
+			if(use_automatic_tape_motor_control_ && cycles_since_tape_input_read_ < HalfCycles(clock_rate() * 6)) {
+				cycles_since_tape_input_read_ += duration;
+
+				if(cycles_since_tape_input_read_ >= HalfCycles(clock_rate() * 6)) {
+					tape_player_.set_motor_control(false);
+					recent_tape_hits_ = 0;
+				}
+			}
 		}
 
 	public:
@@ -421,12 +446,13 @@ template<Model model> class ConcreteMachine:
 		// MARK: - Tape and disc.
 		Storage::Tape::BinaryTapePlayer tape_player_;
 
-		bool use_automatic_tape_motor_control_ = false;
+		bool use_automatic_tape_motor_control_ = true;
 		HalfCycles cycles_since_tape_input_read_;
+		int recent_tape_hits_ = 0;
 
 		bool allow_fast_tape_hack_ = false;
 		void set_use_fast_tape() {
-
+			// TODO.
 		}
 };
 

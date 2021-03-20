@@ -35,7 +35,8 @@ class Machine {
 
 				Options(Configurable::OptionsType type) :
 					Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour),
-					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly)
+					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly),
+					automatic_tape_motor_control(type == Configurable::OptionsType::UserFriendly)
 				{
 					if(needs_declare()) {
 						DeclareField(automatic_tape_motor_control);
