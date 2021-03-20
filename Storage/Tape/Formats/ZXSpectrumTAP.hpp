@@ -39,6 +39,15 @@ class ZXSpectrumTAP: public Tape {
 		Storage::FileHolder file_;
 
 		uint16_t block_length_ = 0;
+		uint8_t block_type_ = 0;
+		uint8_t data_byte_ = 0;
+		enum Phase {
+			PilotTone,
+			Data,
+			Gap
+		} phase_ = Phase::PilotTone;
+		int distance_into_phase_ = 0;
+		void read_next_block();
 
 		// Implemented to satisfy @c Tape.
 		bool is_at_end() override;
