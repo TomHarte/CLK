@@ -80,7 +80,7 @@ template <VideoTiming timing> class Video {
 			constexpr auto timings = get_timings();
 			constexpr int first_line = timings.first_delay / timings.cycles_per_line;
 			constexpr int sync_position = 166 * 2;
-			constexpr int sync_length = 14 * 2;
+			constexpr int sync_length = 17 * 2;
 			constexpr int burst_position = sync_position + 40;
 			constexpr int burst_length = 17;
 
@@ -122,7 +122,7 @@ template <VideoTiming timing> class Video {
 
 					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
 						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
-						crt_.output_default_colour_burst(burst_duration);
+						crt_.output_colour_burst(burst_duration, 0);
 						offset += burst_duration;
 					}
 
@@ -199,7 +199,7 @@ template <VideoTiming timing> class Video {
 
 					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
 						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
-						crt_.output_default_colour_burst(burst_duration);
+						crt_.output_colour_burst(burst_duration, 0);
 						offset += burst_duration;
 					}
 
