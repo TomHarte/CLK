@@ -32,7 +32,7 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	phase_numerator_ = 0;
 	colour_cycle_numerator_ = int64_t(colour_cycle_numerator);
 	phase_alternates_ = should_alternate;
-	is_alernate_line_ &= phase_alternates_;
+	should_be_alternate_line_ &= phase_alternates_;
 	cycles_per_line_ = cycles_per_line;
 	const int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
 
@@ -275,7 +275,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 			// If retrace is starting, update phase if required and mark no colour burst spotted yet.
 			if(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
-				is_alernate_line_ ^= phase_alternates_;
+				should_be_alternate_line_ ^= phase_alternates_;
 				colour_burst_amplitude_ = 0;
 			}
 		}
@@ -408,18 +408,19 @@ void CRT::output_level(int number_of_cycles) {
 	output_scan(&scan);
 }
 
-void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, uint8_t amplitude) {
+void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, bool is_alternate_line, uint8_t amplitude) {
 	Scan scan;
 	scan.type = Scan::Type::ColourBurst;
 	scan.number_of_cycles = number_of_cycles;
 	scan.phase = phase;
 	scan.amplitude = amplitude >> 1;
+	is_alernate_line_ = is_alternate_line;
 	output_scan(&scan);
 }
 
 void CRT::output_default_colour_burst(int number_of_cycles, uint8_t amplitude) {
 	// TODO: avoid applying a rounding error here?
-	output_colour_burst(number_of_cycles, uint8_t((phase_numerator_ * 256) / phase_denominator_), amplitude);
+	output_colour_burst(number_of_cycles, uint8_t((phase_numerator_ * 256) / phase_denominator_), should_be_alternate_line_, amplitude);
 }
 
 void CRT::set_immediate_default_phase(float phase) {
