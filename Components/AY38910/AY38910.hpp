@@ -164,6 +164,31 @@ template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource
 		uint8_t c_left_ = 255, c_right_ = 255;
 };
 
+/*!
+	Provides helper code, to provide something closer to the interface exposed by many
+	AY-deploying machines of the era.
+*/
+struct Utility {
+	template <typename AY> static void select_register(AY &ay, uint8_t reg) {
+		ay.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2 | GI::AY38910::BC1));
+		ay.set_data_input(reg);
+		ay.set_control_lines(GI::AY38910::ControlLines(0));
+	}
+
+	template <typename AY> static void write_data(AY &ay, uint8_t reg) {
+		ay.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2));
+		ay.set_data_input(reg);
+		ay.set_control_lines(GI::AY38910::ControlLines(0));
+	}
+
+	template <typename AY> static uint8_t read_data(AY &ay) {
+		ay.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
+		const uint8_t result = ay.get_data_output();
+		ay.set_control_lines(GI::AY38910::ControlLines(0));
+		return result;
+	}
+
+};
 
 }
 }

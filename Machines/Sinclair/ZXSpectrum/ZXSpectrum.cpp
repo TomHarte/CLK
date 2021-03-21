@@ -213,17 +213,13 @@ template<Model model> class ConcreteMachine:
 						case 0xfffd:
 							// Select AY register.
 							update_audio();
-							ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2 | GI::AY38910::BC1));
-							ay_.set_data_input(*cycle.value);
-							ay_.set_control_lines(GI::AY38910::ControlLines(0));
+							GI::AY38910::Utility::select_register(ay_, *cycle.value);
 						break;
 
 						case 0xbffd:
 							// Write to AY register.
 							update_audio();
-							ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2));
-							ay_.set_data_input(*cycle.value);
-							ay_.set_control_lines(GI::AY38910::ControlLines(0));
+							GI::AY38910::Utility::write_data(ay_, *cycle.value);
 						break;
 					}
 				break;
@@ -265,9 +261,7 @@ template<Model model> class ConcreteMachine:
 						case 0xfffd:
 							// Read from AY register.
 							update_audio();
-							ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
-							*cycle.value &= ay_.get_data_output();
-							ay_.set_control_lines(GI::AY38910::ControlLines(0));
+							*cycle.value &= GI::AY38910::Utility::read_data(ay_);
 						break;
 					}
 				break;
