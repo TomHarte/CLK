@@ -264,7 +264,7 @@ template <VideoTiming timing> class Video {
 			const int line_position = time_since % timings.cycles_per_line;
 			if(line_position >= timings.first_border - timings.first_delay) return 0;
 
-			return timings.delays[line_position & 7];
+			return timings.delays[line_position & 15];
 		}
 
 		void set_border_colour(uint8_t colour) {
