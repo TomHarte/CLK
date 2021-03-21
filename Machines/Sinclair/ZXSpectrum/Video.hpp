@@ -122,7 +122,7 @@ template <VideoTiming timing> class Video {
 
 					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
 						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
-						crt_.output_colour_burst(burst_duration, 0);
+						crt_.output_colour_burst(burst_duration, (line&1) * 128);
 						offset += burst_duration;
 					}
 
@@ -199,7 +199,7 @@ template <VideoTiming timing> class Video {
 
 					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
 						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
-						crt_.output_colour_burst(burst_duration, 0);
+						crt_.output_colour_burst(burst_duration, (line&1) * 128);
 						offset += burst_duration;
 					}
 
