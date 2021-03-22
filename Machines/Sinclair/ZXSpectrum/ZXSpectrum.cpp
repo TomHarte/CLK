@@ -19,6 +19,10 @@
 #include "../../../Components/AudioToggle/AudioToggle.hpp"
 #include "../../../Components/AY38910/AY38910.hpp"
 
+// TODO: possibly there's a better factoring than this, but for now
+// just grab the CPC's version of an FDC.
+#include "../../AmstradCPC/FDC.hpp"
+
 #include "../../../Outputs/Log.hpp"
 #include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
@@ -59,7 +63,8 @@ template<Model model> class ConcreteMachine:
 			speaker_(mixer_),
 			keyboard_(Sinclair::ZX::Keyboard::Machine::ZXSpectrum),
 			keyboard_mapper_(Sinclair::ZX::Keyboard::Machine::ZXSpectrum),
-			tape_player_(clock_rate() * 2)
+			tape_player_(clock_rate() * 2),
+			fdc_(clock_rate() * 2)
 		{
 			set_clock_rate(clock_rate());
 			speaker_.set_input_rate(float(clock_rate()) / 2.0f);
@@ -125,6 +130,10 @@ template<Model model> class ConcreteMachine:
 			video_.flush();
 			update_audio();
 			audio_queue_.perform();
+
+			if constexpr (model == Model::Plus3) {
+				fdc_.flush();
+			}
 		}
 
 		// MARK: - ScanProducer
@@ -201,7 +210,7 @@ template<Model model> class ConcreteMachine:
 						// b4: tape and speaker output
 					}
 
-					// Test for classic 128kb paging register.
+					// Test for classic 128kb paging register (i.e. port 7ffd).
 					if((address & 0xc002) == 0x4000) {
 						port7ffd_ = *cycle.value;
 						update_memory_map();
@@ -214,11 +223,15 @@ template<Model model> class ConcreteMachine:
 						disable_paging_ |= *cycle.value & 0x20;
 					}
 
-					// Test for +2a/+3 paging.
+					// Test for +2a/+3 paging (i.e. port 1ffd).
 					if((address & 0xf002) == 0x1000) {
 						port1ffd_ = *cycle.value;
 						update_memory_map();
 						update_video_base();
+
+						if constexpr (model == Model::Plus3) {
+							fdc_->set_motor_on(*cycle.value & 0x08);
+						}
 					}
 
 					if((address & 0xc002) == 0xc000) {
@@ -236,11 +249,8 @@ template<Model model> class ConcreteMachine:
 					if constexpr (model == Model::Plus3) {
 						switch(address) {
 							default: break;
-							case 0x3ffd:
-								// TODO: floppy data register.
-							break;
-							case 0x2ffd:
-								// TODO: floppy status register.
+							case 0x3ffd: case 0x2ffd:
+								fdc_->write((address >> 12) & 1, *cycle.value);
 							break;
 						}
 					}
@@ -282,6 +292,15 @@ template<Model model> class ConcreteMachine:
 						update_audio();
 						*cycle.value &= GI::AY38910::Utility::read_data(ay_);
 					}
+
+					if constexpr (model == Model::Plus3) {
+						switch(address) {
+							default: break;
+							case 0x3ffd: case 0x2ffd:
+								*cycle.value &= fdc_->read((address >> 12) & 1);
+							break;
+						}
+					}
 				break;
 			}
 
@@ -310,6 +329,10 @@ template<Model model> class ConcreteMachine:
 					tape_player_.set_motor_control(false);
 					recent_tape_hits_ = 0;
 				}
+			}
+
+			if constexpr (model == Model::Plus3) {
+				fdc_ += Cycles(duration.as_integral());
 			}
 		}
 
@@ -344,7 +367,15 @@ template<Model model> class ConcreteMachine:
 				tape_player_.set_tape(media.tapes.front());
 			}
 
-			return !media.tapes.empty();
+			// Insert up to four disks.
+			int c = 0;
+			for(auto &disk : media.disks) {
+				fdc_->set_disk(disk, c);
+				c++;
+				if(c == 4) break;
+			}
+
+			return !media.tapes.empty()  || (!media.disks.empty() && model == Model::Plus3);
 		}
 
 		// MARK: - Tape control
@@ -498,7 +529,7 @@ template<Model model> class ConcreteMachine:
 		Sinclair::ZX::Keyboard::Keyboard keyboard_;
 		Sinclair::ZX::Keyboard::KeyboardMapper keyboard_mapper_;
 
-		// MARK: - Tape and disc.
+		// MARK: - Tape.
 		Storage::Tape::BinaryTapePlayer tape_player_;
 
 		bool use_automatic_tape_motor_control_ = true;
@@ -551,6 +582,9 @@ template<Model model> class ConcreteMachine:
 			z80_.set_value_of_register(Register::Flags, flags);
 			return true;
 		}
+
+		// MARK: - Disc.
+		JustInTimeActor<Amstrad::FDC, 1, 1, Cycles> fdc_;
 };
 
 
