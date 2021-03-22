@@ -22,19 +22,15 @@ ZXSpectrumTAP::ZXSpectrumTAP(const std::string &file_name) :
 	file_(file_name)
 {
 	// Check for a continuous series of blocks through to
-	// file end, alternating header and data.
-	uint8_t next_block_type = 0x00;
+	// exactly file end.
+	//
+	// To consider: could also check those blocks of type 0
+	// and type ff for valid checksums?
 	while(true) {
 		const uint16_t block_length = file_.get16le();
-		const uint8_t block_type = file_.get8();
 		if(file_.eof()) throw ErrorNotZXSpectrumTAP;
 
-		if(block_type != next_block_type) {
-			throw ErrorNotZXSpectrumTAP;
-		}
-		next_block_type ^= 0xff;
-
-		file_.seek(block_length - 1, SEEK_CUR);
+		file_.seek(block_length, SEEK_CUR);
 		if(file_.tell() == file_.stats().st_size) break;
 	}
 
