@@ -107,8 +107,8 @@ class MemManagerChecker {
 		return true;
 	}
 
-	bool has_seen_valid_memory_ = false;
-	bool should_validate_ = false;
+//	bool has_seen_valid_memory_ = false;
+//	bool should_validate_ = false;
 
 	public:
 		bool validate_memory_manager(const Apple::IIgs::MemoryMap &memory, bool print) {
