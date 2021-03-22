@@ -219,6 +219,18 @@ template<Model model> class ConcreteMachine:
 						update_audio();
 						GI::AY38910::Utility::write_data(ay_, *cycle.value);
 					}
+
+					if constexpr (model == Model::Plus3) {
+						switch(address) {
+							default: break;
+							case 0x3ffd:
+								// TODO: floppy data register.
+							break;
+							case 0x2ffd:
+								// TODO: floppy status register.
+							break;
+						}
+					}
 				break;
 
 				case PartialMachineCycle::Input:
