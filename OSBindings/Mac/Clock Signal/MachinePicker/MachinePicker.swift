@@ -40,6 +40,9 @@ class MachinePicker: NSObject {
 	@IBOutlet var oricModelTypeButton: NSPopUpButton!
 	@IBOutlet var oricDiskInterfaceButton: NSPopUpButton!
 
+	// MARK: - Spectrum properties
+	@IBOutlet var spectrumModelTypeButton: NSPopUpButton!
+
 	// MARK: - Vic-20 properties
 	@IBOutlet var vic20RegionButton: NSPopUpButton!
 	@IBOutlet var vic20MemorySizeButton: NSPopUpButton!
@@ -98,6 +101,9 @@ class MachinePicker: NSObject {
 		oricDiskInterfaceButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricDiskInterface"))
 		oricModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricModel"))
 
+		// Spectrum settings
+		spectrumModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.spectrumModel"))
+
 		// Vic-20 settings
 		vic20RegionButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.vic20Region"))
 		vic20MemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.vic20MemorySize"))
@@ -144,6 +150,9 @@ class MachinePicker: NSObject {
 		// Oric settings
 		standardUserDefaults.set(oricDiskInterfaceButton.selectedTag(), forKey: "new.oricDiskInterface")
 		standardUserDefaults.set(oricModelTypeButton.selectedTag(), forKey: "new.oricModel")
+
+		// Spectrum settings
+		standardUserDefaults.set(spectrumModelTypeButton.selectedTag(), forKey: "new.spectrumModel")
 
 		// Vic-20 settings
 		standardUserDefaults.set(vic20RegionButton.selectedTag(), forKey: "new.vic20Region")
@@ -241,17 +250,27 @@ class MachinePicker: NSObject {
 					case 2:		diskInterface = .pravetz
 					case 3:		diskInterface = .jasmin
 					case 4:		diskInterface = .BD500
-					default:	break;
+					default:	break
 
 				}
 				var model: CSMachineOricModel = .oric1
 				switch oricModelTypeButton.selectedItem!.tag {
 					case 1:		model = .oricAtmos
 					case 2:		model = .pravetz
-					default:	break;
+					default:	break
 				}
 
 				return CSStaticAnalyser(oricModel: model, diskInterface: diskInterface)
+
+			case "spectrum":
+				var model: CSMachineSpectrumModel = .plus2a
+				switch oricModelTypeButton.selectedItem!.tag {
+					case 21:	model = .plus2a
+					case 3:		model = .plus3
+					default:	break
+				}
+
+				return CSStaticAnalyser(spectrumModel: model)
 
 			case "vic20":
 				let memorySize = Kilobytes(vic20MemorySizeButton.selectedItem!.tag)

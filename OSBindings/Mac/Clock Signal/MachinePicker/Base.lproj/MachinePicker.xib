@@ -17,14 +17,14 @@
         <window title="Window" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" titleVisibility="hidden" id="QvC-M9-y7g">
             <windowStyleMask key="styleMask" titled="YES" documentModal="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="196" y="240" width="810" height="205"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
+            <rect key="contentRect" x="196" y="240" width="881" height="205"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
-                <rect key="frame" x="0.0" y="0.0" width="810" height="205"/>
+                <rect key="frame" x="0.0" y="0.0" width="881" height="205"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hKn-1l-OSN">
-                        <rect key="frame" x="716" y="13" width="81" height="32"/>
+                        <rect key="frame" x="787" y="13" width="81" height="32"/>
                         <buttonCell key="cell" type="push" title="Choose" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="MnM-xo-4Qa">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -37,7 +37,7 @@ DQ
                         </connections>
                     </button>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JQy-Cj-AOK">
-                        <rect key="frame" x="643" y="13" width="76" height="32"/>
+                        <rect key="frame" x="714" y="13" width="76" height="32"/>
                         <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="sub-rB-Req">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -59,7 +59,7 @@ Gw
                         </textFieldCell>
                     </textField>
                     <tabView translatesAutoresizingMaskIntoConstraints="NO" id="VUb-QG-x7c">
-                        <rect key="frame" x="13" y="50" width="784" height="141"/>
+                        <rect key="frame" x="13" y="50" width="855" height="141"/>
                         <font key="font" metaFont="system"/>
                         <tabViewItems>
                             <tabViewItem label="Apple II" identifier="appleii" id="P59-QG-LOa">
@@ -195,7 +195,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Amstrad CPC" identifier="cpc" id="JmB-OF-xcM">
                                 <view key="view" id="5zS-Nj-Ynx">
-                                    <rect key="frame" x="10" y="33" width="764" height="95"/>
+                                    <rect key="frame" x="10" y="33" width="835" height="95"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="00d-sg-Krh">
@@ -457,9 +457,46 @@ Gw
                                     </constraints>
                                 </view>
                             </tabViewItem>
+                            <tabViewItem label="Spectrum" identifier="spectrum" id="HQv-oF-k8b">
+                                <view key="view" id="bMx-F6-JUb">
+                                    <rect key="frame" x="10" y="33" width="835" height="95"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gFZ-d4-WFv">
+                                            <rect key="frame" x="63" y="66" width="62" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="+2a" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="Fo7-NL-Kv5" id="tYs-sA-oek">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="8lt-dk-zPr">
+                                                    <items>
+                                                        <menuItem title="+2a" tag="21" id="Fo7-NL-Kv5"/>
+                                                        <menuItem title="+3" tag="3" id="jwx-fZ-vXp"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                        </popUpButton>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fJ3-ma-Byy">
+                                            <rect key="frame" x="18" y="72" width="42" height="16"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model" id="JId-Tp-LrE">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                    </subviews>
+                                    <constraints>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="gFZ-d4-WFv" secondAttribute="trailing" constant="20" symbolic="YES" id="90E-uI-MQg"/>
+                                        <constraint firstItem="fJ3-ma-Byy" firstAttribute="leading" secondItem="bMx-F6-JUb" secondAttribute="leading" constant="20" symbolic="YES" id="9kE-iQ-dxd"/>
+                                        <constraint firstItem="fJ3-ma-Byy" firstAttribute="centerY" secondItem="gFZ-d4-WFv" secondAttribute="centerY" id="LxG-5E-Q5Y"/>
+                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="gFZ-d4-WFv" secondAttribute="bottom" constant="5" id="d8S-vX-B5e"/>
+                                        <constraint firstItem="gFZ-d4-WFv" firstAttribute="leading" secondItem="fJ3-ma-Byy" secondAttribute="trailing" constant="8" symbolic="YES" id="hKS-47-R2y"/>
+                                        <constraint firstItem="gFZ-d4-WFv" firstAttribute="top" secondItem="bMx-F6-JUb" secondAttribute="top" constant="5" id="wsX-Wq-iPt"/>
+                                    </constraints>
+                                </view>
+                            </tabViewItem>
                             <tabViewItem label="Vic-20" identifier="vic20" id="cyO-PU-hSU">
                                 <view key="view" id="fLI-XB-QCr">
-                                    <rect key="frame" x="10" y="33" width="764" height="95"/>
+                                    <rect key="frame" x="10" y="33" width="819" height="95"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ueK-gq-gaF">
@@ -638,7 +675,7 @@ Gw
                     <constraint firstItem="VUb-QG-x7c" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" id="zT3-Ea-QQJ"/>
                 </constraints>
             </view>
-            <point key="canvasLocation" x="94.5" y="90.5"/>
+            <point key="canvasLocation" x="129.5" y="90.5"/>
         </window>
         <customObject id="192-Eb-Rpg" customClass="MachinePicker" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
@@ -658,6 +695,7 @@ Gw
                 <outlet property="msxRegionButton" destination="LG6-mP-SeG" id="3a9-VG-6Wf"/>
                 <outlet property="oricDiskInterfaceButton" destination="fYL-p6-wyn" id="aAt-wM-hRZ"/>
                 <outlet property="oricModelTypeButton" destination="ENP-hI-BVZ" id="n9i-Ym-miE"/>
+                <outlet property="spectrumModelTypeButton" destination="gFZ-d4-WFv" id="tdX-Cv-Swe"/>
                 <outlet property="vic20HasC1540Button" destination="Lrf-gL-6EI" id="21g-dJ-mOo"/>
                 <outlet property="vic20MemorySizeButton" destination="2eV-Us-eEv" id="5j4-jw-89d"/>
                 <outlet property="vic20RegionButton" destination="ueK-gq-gaF" id="qMq-uP-y4r"/>

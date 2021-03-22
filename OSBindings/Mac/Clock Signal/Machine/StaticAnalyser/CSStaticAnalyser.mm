@@ -23,6 +23,7 @@
 #include "../../../../../Analyser/Static/MSX/Target.hpp"
 #include "../../../../../Analyser/Static/Oric/Target.hpp"
 #include "../../../../../Analyser/Static/ZX8081/Target.hpp"
+#include "../../../../../Analyser/Static/ZXSpectrum/Target.hpp"
 
 #import "Clock_Signal-Swift.h"
 
@@ -181,6 +182,20 @@
 			case CSMachineOricDiskInterfacePravetz:		target->disk_interface = Target::DiskInterface::Pravetz;	break;
 			case CSMachineOricDiskInterfaceJasmin:		target->disk_interface = Target::DiskInterface::Jasmin;		break;
 			case CSMachineOricDiskInterfaceBD500:		target->disk_interface = Target::DiskInterface::BD500;		break;
+		}
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
+- (instancetype)initWithSpectrumModel:(CSMachineSpectrumModel)model {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::ZXSpectrum::Target;
+		auto target = std::make_unique<Target>();
+		switch(model) {
+			case CSMachineSpectrumModelPlus2a:	target->model = Target::Model::Plus2a;	break;
+			case CSMachineSpectrumModelPlus3:	target->model = Target::Model::Plus3;	break;
 		}
 		_targets.push_back(std::move(target));
 	}

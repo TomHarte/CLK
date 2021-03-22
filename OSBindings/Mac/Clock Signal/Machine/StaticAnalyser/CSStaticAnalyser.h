@@ -62,6 +62,11 @@ typedef NS_ENUM(NSInteger, CSMachineOricDiskInterface) {
 	CSMachineOricDiskInterfaceBD500
 };
 
+typedef NS_ENUM(NSInteger, CSMachineSpectrumModel) {
+	CSMachineSpectrumModelPlus2a,
+	CSMachineSpectrumModelPlus3,
+};
+
 typedef NS_ENUM(NSInteger, CSMachineVic20Region) {
 	CSMachineVic20RegionAmerican,
 	CSMachineVic20RegionEuropean,
@@ -90,6 +95,7 @@ typedef int Kilobytes;
 - (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
 - (instancetype)initWithMSXRegion:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive;
 - (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface;
+- (instancetype)initWithSpectrumModel:(CSMachineSpectrumModel)model;
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region memorySize:(Kilobytes)memorySize hasC1540:(BOOL)hasC1540;
 - (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize useZX81ROM:(BOOL)useZX81ROM;
 - (instancetype)initWithZX81MemorySize:(Kilobytes)memorySize;

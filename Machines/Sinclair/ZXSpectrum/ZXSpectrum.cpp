@@ -189,13 +189,15 @@ template<Model model> class ConcreteMachine:
 
 					// Test for classic 128kb paging register.
 					if((address & 0xc002) == 0x4000) {
-						disable_paging_ |= *cycle.value & 0x20;
-
 						// Set the proper video base pointer.
 						set_video_address();
 
 						port7ffd_ = *cycle.value;
 						update_memory_map();
+
+						// Potentially lock paging, _after_ the current
+						// port values have taken effect.
+						disable_paging_ |= *cycle.value & 0x20;
 					}
 
 					// Test for +2a/+3 paging.
