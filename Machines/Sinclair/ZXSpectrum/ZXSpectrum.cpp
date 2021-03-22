@@ -70,6 +70,7 @@ template<Model model> class ConcreteMachine:
 
 			// Set up initial memory map.
 			update_memory_map();
+			set_video_address();
 			Memory::Fuzz(ram_);
 
 			// Insert media.
@@ -186,29 +187,25 @@ template<Model model> class ConcreteMachine:
 						// b4: tape and speaker output
 					}
 
-					// Test for classic 128kb paging.
-//					if(!(address&0x8002)) {
-//					}
+					// Test for classic 128kb paging register.
+					if((address & 0xc002) == 0x4000) {
+						disable_paging_ |= *cycle.value & 0x20;
+
+						// Set the proper video base pointer.
+						set_video_address();
+
+						port7ffd_ = *cycle.value;
+						update_memory_map();
+					}
 
 					// Test for +2a/+3 paging.
-//					if((address & 0xc002) == 0x4000) {
-//					}
+					if((address & 0xf002) == 0x1000) {
+						port1ffd_ = *cycle.value;
+						update_memory_map();
+					}
 
 					switch(address) {
 						default: break;
-
-						case 0x1ffd:
-							// Write to +2a/+3 paging register.
-							port1ffd_ = *cycle.value;
-							update_memory_map();
-						break;
-
-						case 0x7ffd:
-							// Write to classic 128kb paging register.
-							disable_paging_ |= *cycle.value & 0x20;
-							port7ffd_ = *cycle.value;
-							update_memory_map();
-						break;
 
 						case 0xfffd:
 							// Select AY register.
@@ -391,14 +388,11 @@ template<Model model> class ConcreteMachine:
 				return;
 			}
 
-			// Set the proper video base pointer.
-			video_->set_video_source(&ram_[((port7ffd_ & 0x08) ? 7 : 5) * 16384]);
-
-			if(port1ffd_ & 1) {
+			if(port1ffd_ & 0x01) {
 				// "Special paging mode", i.e. one of four fixed
 				// RAM configurations, port 7ffd doesn't matter.
 
-				switch(port1ffd_ & 0x6) {
+				switch(port1ffd_ & 0x06) {
 					default:
 					case 0x00:
 						set_memory(0, &ram_[0 * 16384], &ram_[0 * 16384], false);
@@ -447,6 +441,10 @@ template<Model model> class ConcreteMachine:
 			is_contended_[bank] = is_contended;
 			read_pointers_[bank] = read - bank*16384;
 			write_pointers_[bank] = (write ? write : scratch_.data()) - bank*16384;
+		}
+
+		void set_video_address() {
+			video_->set_video_source(&ram_[((port7ffd_ & 0x08) ? 7 : 5) * 16384]);
 		}
 
 		// MARK: - Audio.
