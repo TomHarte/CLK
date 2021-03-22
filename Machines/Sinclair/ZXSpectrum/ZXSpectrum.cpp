@@ -141,36 +141,35 @@ template<Model model> class ConcreteMachine:
 		// MARK: - BusHandler
 
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-			// Ignore all but terminal cycles.
-			// TODO: I doubt this is correct for timing.
-			if(!cycle.is_terminal()) {
-				advance(cycle.length);
-				return HalfCycles(0);
-			}
+			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
 
 			HalfCycles delay(0);
-			uint16_t address = cycle.address ? *cycle.address : 0x0000;
-			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
+			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				default: break;
+
+				case PartialMachineCycle::ReadOpcodeStart:
+				case PartialMachineCycle::ReadStart:
+				case PartialMachineCycle::WriteStart:
+					// Apply contention if necessary.
+					// For now this causes a video sync up every time any contended area is written to.
+					// TODO: flush only upon a video-area write.
+					//
+					// Assumption here: the trigger for the ULA inserting a delay is the falling edge
+					// of MREQ, which is always half a cycle into a read or write.
+					//
+					// TODO: somehow provide that information in the PartialMachineCycle?
+					if(is_contended_[address >> 14]) {
+						delay = video_->access_delay(HalfCycles(1));
+					}
+				break;
+
 				case PartialMachineCycle::ReadOpcode:
 				case PartialMachineCycle::Read:
-					// Apply contention if necessary.
-					if(is_contended_[address >> 14]) {
-						delay = video_.last_valid()->access_delay(video_.time_since_flush());
-					}
-
 					*cycle.value = read_pointers_[address >> 14][address];
 				break;
 
 				case PartialMachineCycle::Write:
-					// Apply contention if necessary.
-					// For now this causes a video sync up every time any contended area is written to.
-					// TODO: flush only upon a video-area write.
-					if(is_contended_[address >> 14]) {
-						delay = video_->access_delay(HalfCycles(0));
-					}
-
 					write_pointers_[address >> 14][address] = *cycle.value;
 				break;
 
