@@ -165,7 +165,7 @@ template<bool is_zx81> class ConcreteMachine:
 					}
 					if(!(address & 2)) nmi_is_enabled_ = false;
 					if(!(address & 1)) nmi_is_enabled_ = is_zx81;
-					if(!nmi_is_enabled_) z80_.set_wait_line(false);
+					if(is_zx81 && !nmi_is_enabled_) z80_.set_wait_line(false);
 
 					// The below emulates the ZonX AY expansion device.
 					if constexpr (is_zx81) {
