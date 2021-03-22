@@ -204,20 +204,16 @@ template<Model model> class ConcreteMachine:
 						update_memory_map();
 					}
 
-					switch(address) {
-						default: break;
+					if((address & 0xc002) == 0xc000) {
+						// Select AY register.
+						update_audio();
+						GI::AY38910::Utility::select_register(ay_, *cycle.value);
+					}
 
-						case 0xfffd:
-							// Select AY register.
-							update_audio();
-							GI::AY38910::Utility::select_register(ay_, *cycle.value);
-						break;
-
-						case 0xbffd:
-							// Write to AY register.
-							update_audio();
-							GI::AY38910::Utility::write_data(ay_, *cycle.value);
-						break;
+					if((address & 0xc002) == 0x8000) {
+						// Write to AY register.
+						update_audio();
+						GI::AY38910::Utility::write_data(ay_, *cycle.value);
 					}
 				break;
 
@@ -252,14 +248,10 @@ template<Model model> class ConcreteMachine:
 						}
 					}
 
-					switch(address) {
-						default: break;
-
-						case 0xfffd:
-							// Read from AY register.
-							update_audio();
-							*cycle.value &= GI::AY38910::Utility::read_data(ay_);
-						break;
+					if((address & 0xc002) == 0xc000) {
+						// Read from AY register.
+						update_audio();
+						*cycle.value &= GI::AY38910::Utility::read_data(ay_);
 					}
 				break;
 			}
