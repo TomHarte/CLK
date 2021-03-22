@@ -64,7 +64,7 @@ Gw
                         <tabViewItems>
                             <tabViewItem label="Apple II" identifier="appleii" id="P59-QG-LOa">
                                 <view key="view" id="dHz-Yv-GNq">
-                                    <rect key="frame" x="10" y="33" width="764" height="95"/>
+                                    <rect key="frame" x="10" y="33" width="835" height="95"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="V5Z-dX-Ns4">
@@ -464,12 +464,12 @@ Gw
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gFZ-d4-WFv">
                                             <rect key="frame" x="63" y="66" width="62" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="+2a" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="Fo7-NL-Kv5" id="tYs-sA-oek">
+                                            <popUpButtonCell key="cell" type="push" title="+2a" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="Fo7-NL-Kv5" id="tYs-sA-oek">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="8lt-dk-zPr">
                                                     <items>
-                                                        <menuItem title="+2a" tag="21" id="Fo7-NL-Kv5"/>
+                                                        <menuItem title="+2a" state="on" tag="21" id="Fo7-NL-Kv5"/>
                                                         <menuItem title="+3" tag="3" id="jwx-fZ-vXp"/>
                                                     </items>
                                                 </menu>

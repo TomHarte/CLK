@@ -264,7 +264,7 @@ class MachinePicker: NSObject {
 
 			case "spectrum":
 				var model: CSMachineSpectrumModel = .plus2a
-				switch oricModelTypeButton.selectedItem!.tag {
+				switch spectrumModelTypeButton.selectedItem!.tag {
 					case 21:	model = .plus2a
 					case 3:		model = .plus3
 					default:	break
