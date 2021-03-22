@@ -128,7 +128,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format(	"dsk",
 			result.disks,
 			Disk::DiskImageHolder<Storage::Disk::CPCDSK>,
-			TargetPlatform::AmstradCPC | TargetPlatform::Oric)													// DSK (Amstrad CPC)
+			TargetPlatform::AmstradCPC | TargetPlatform::Oric | TargetPlatform::ZXSpectrum)						// DSK (Amstrad CPC, etc)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// DSK (Apple II)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// DSK (Macintosh, floppy disk)
 	Format("dsk", result.mass_storage_devices, MassStorage::HFV, TargetPlatform::Macintosh)						// DSK (Macintosh, hard disk)
