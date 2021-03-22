@@ -24,6 +24,9 @@
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
+#include "../../../Storage/Tape/Tape.hpp"
+#include "../../../Storage/Tape/Parsers/Spectrum.hpp"
+
 #include "../../../Analyser/Static/ZXSpectrum/Target.hpp"
 
 #include "../../Utility/MemoryFuzzer.hpp"
@@ -163,6 +166,16 @@ template<Model model> class ConcreteMachine:
 				break;
 
 				case PartialMachineCycle::ReadOpcode:
+					// Fast loading: ROM version.
+					//
+					// The below patches over the 'LD-BYTES' routine from the 48kb ROM.
+					if(use_fast_tape_hack_ && address == 0x0556 && read_pointers_[0] == &rom_[0xc000]) {
+						if(perform_rom_ld_bytes()) {
+							*cycle.value = 0xc9; // i.e. RET.
+							break;
+						}
+					}
+
 				case PartialMachineCycle::Read:
 					*cycle.value = read_pointers_[address >> 14][address];
 				break;
@@ -493,8 +506,50 @@ template<Model model> class ConcreteMachine:
 		int recent_tape_hits_ = 0;
 
 		bool allow_fast_tape_hack_ = false;
+		bool use_fast_tape_hack_ = false;
 		void set_use_fast_tape() {
-			// TODO.
+			use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_player_.has_tape();
+		}
+
+		// Reimplements the 'LD-BYTES' routine, as documented at
+		// https://skoolkid.github.io/rom/asm/0556.html i.e.
+		//
+		// In:
+		//	A: 0x00 or 0xff for block type;
+		//	F: carry set if loading, clear if verifying;
+		//	DE: block length;
+		//	IX: start address.
+		//
+		// Out:
+		//	F: carry set for success, clear for error.
+		bool perform_rom_ld_bytes() {
+			using Parser = Storage::Tape::ZXSpectrum::Parser;
+			Parser parser(Parser::MachineType::ZXSpectrum);
+
+			using Register = CPU::Z80::Register;
+			uint8_t flags = uint8_t(z80_.get_value_of_register(Register::Flags));
+			if(!(flags & 1)) return false;
+
+			const uint8_t block_type = uint8_t(z80_.get_value_of_register(Register::A));
+			const auto block = parser.find_block(tape_player_.get_tape());
+			if(!block || block_type != (*block).type) return false;
+
+			uint16_t length = z80_.get_value_of_register(Register::DE);
+			uint16_t target = z80_.get_value_of_register(Register::IX);
+
+			while(length--) {
+				auto next = parser.get_byte(tape_player_.get_tape());
+				if(!next) {
+					flags &= ~1;
+					break;
+				}
+
+				write_pointers_[target >> 14][target] = *next;
+				++target;
+			}
+
+			z80_.set_value_of_register(Register::Flags, flags);
+			return true;
 		}
 };
 
