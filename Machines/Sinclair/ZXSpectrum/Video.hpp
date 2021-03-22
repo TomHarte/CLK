@@ -51,7 +51,7 @@ template <VideoTiming timing> class Video {
 			int cycles_per_line;
 			int lines_per_frame;
 			int first_delay;
-			int first_border;
+			int contended_period;
 			int delays[16];
 		};
 
@@ -60,7 +60,7 @@ template <VideoTiming timing> class Video {
 				.cycles_per_line = 228 * 2,
 				.lines_per_frame = 311,
 				.first_delay = 14361 * 2,
-				.first_border = 14490 * 2,
+				.contended_period = (14490 - 14361) * 2,
 				.delays = {
 					2, 1,
 					0, 0,
@@ -246,7 +246,7 @@ template <VideoTiming timing> class Video {
 			if(lines >= 192) return 0;
 
 			const int line_position = time_since % timings.cycles_per_line;
-			if(line_position >= timings.first_border - timings.first_delay) return 0;
+			if(line_position >= timings.contended_period) return 0;
 
 			return timings.delays[line_position & 15];
 		}
