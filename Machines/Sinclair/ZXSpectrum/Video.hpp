@@ -210,8 +210,9 @@ template <VideoTiming timing> class Video {
 
 					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
 						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
-						crt_.output_colour_burst(burst_duration, 0, is_alternate_line_);
+						crt_.output_colour_burst(burst_duration, 116, is_alternate_line_);
 						offset += burst_duration;
+						// The colour burst phase above is an empirical guess. I need to research further.
 					}
 
 					if(offset >= burst_position+burst_length && end_offset > offset) {
