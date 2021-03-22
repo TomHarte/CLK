@@ -152,15 +152,13 @@ template<Model model> class ConcreteMachine:
 				case PartialMachineCycle::ReadStart:
 				case PartialMachineCycle::WriteStart:
 					// Apply contention if necessary.
-					// For now this causes a video sync up every time any contended area is written to.
-					// TODO: flush only upon a video-area write.
 					//
 					// Assumption here: the trigger for the ULA inserting a delay is the falling edge
 					// of MREQ, which is always half a cycle into a read or write.
 					//
 					// TODO: somehow provide that information in the PartialMachineCycle?
 					if(is_contended_[address >> 14]) {
-						delay = video_->access_delay(HalfCycles(1));
+						delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
 					}
 				break;
 
@@ -170,6 +168,10 @@ template<Model model> class ConcreteMachine:
 				break;
 
 				case PartialMachineCycle::Write:
+					// Flush video if this access modifies screen contents.
+					if(address >= video_base_ && address < video_base_ + 6912) {
+						video_.flush();
+					}
 					write_pointers_[address >> 14][address] = *cycle.value;
 				break;
 
@@ -188,11 +190,11 @@ template<Model model> class ConcreteMachine:
 
 					// Test for classic 128kb paging register.
 					if((address & 0xc002) == 0x4000) {
-						// Set the proper video base pointer.
-						set_video_address();
-
 						port7ffd_ = *cycle.value;
 						update_memory_map();
+
+						// Set the proper video base pointer.
+						set_video_address();
 
 						// Potentially lock paging, _after_ the current
 						// port values have taken effect.
@@ -203,6 +205,7 @@ template<Model model> class ConcreteMachine:
 					if((address & 0xf002) == 0x1000) {
 						port1ffd_ = *cycle.value;
 						update_memory_map();
+						update_video_base();
 					}
 
 					if((address & 0xc002) == 0xc000) {
@@ -369,7 +372,9 @@ template<Model model> class ConcreteMachine:
 		std::array<uint8_t, 16*1024> scratch_;
 		const uint8_t *read_pointers_[4];
 		uint8_t *write_pointers_[4];
+		uint8_t pages_[4];
 		bool is_contended_[4];
+		int video_base_ = 0x4000;
 
 		uint8_t port1ffd_ = 0;
 		uint8_t port7ffd_ = 0;
@@ -388,56 +393,66 @@ template<Model model> class ConcreteMachine:
 				switch(port1ffd_ & 0x06) {
 					default:
 					case 0x00:
-						set_memory(0, &ram_[0 * 16384], &ram_[0 * 16384], false);
-						set_memory(1, &ram_[1 * 16384], &ram_[1 * 16384], false);
-						set_memory(2, &ram_[2 * 16384], &ram_[2 * 16384], false);
-						set_memory(3, &ram_[3 * 16384], &ram_[3 * 16384], false);
+						set_memory(0, 0);
+						set_memory(1, 1);
+						set_memory(2, 2);
+						set_memory(3, 3);
 					break;
 
 					case 0x02:
-						set_memory(0, &ram_[4 * 16384], &ram_[4 * 16384], true);
-						set_memory(1, &ram_[5 * 16384], &ram_[5 * 16384], true);
-						set_memory(2, &ram_[6 * 16384], &ram_[6 * 16384], true);
-						set_memory(3, &ram_[7 * 16384], &ram_[7 * 16384], true);
+						set_memory(0, 4);
+						set_memory(1, 5);
+						set_memory(2, 6);
+						set_memory(3, 7);
 					break;
 
 					case 0x04:
-						set_memory(0, &ram_[4 * 16384], &ram_[4 * 16384], true);
-						set_memory(1, &ram_[5 * 16384], &ram_[5 * 16384], true);
-						set_memory(2, &ram_[6 * 16384], &ram_[6 * 16384], true);
-						set_memory(3, &ram_[3 * 16384], &ram_[3 * 16384], false);
+						set_memory(0, 4);
+						set_memory(1, 5);
+						set_memory(2, 6);
+						set_memory(3, 3);
 					break;
 
 					case 0x06:
-						set_memory(0, &ram_[4 * 16384], &ram_[4 * 16384], true);
-						set_memory(1, &ram_[7 * 16384], &ram_[7 * 16384], true);
-						set_memory(2, &ram_[6 * 16384], &ram_[6 * 16384], true);
-						set_memory(3, &ram_[3 * 16384], &ram_[3 * 16384], false);
+						set_memory(0, 4);
+						set_memory(1, 7);
+						set_memory(2, 6);
+						set_memory(3, 3);
 					break;
 				}
-
-				return;
+			} else {
+				// Apply standard 128kb-esque mapping (albeit with extra ROM to pick from).
+				set_memory(0, 0x80 | ((port1ffd_ >> 1) & 2) | ((port7ffd_ >> 4) & 1));
+				set_memory(1, 5);
+				set_memory(2, 2);
+				set_memory(3, port7ffd_ & 7);
 			}
-
-			// Apply standard 128kb-esque mapping (albeit with extra ROM to pick from).
-			const auto rom = &rom_[ (((port1ffd_ >> 1) & 2) | ((port7ffd_ >> 4) & 1)) * 16384];
-			set_memory(0, rom, nullptr, false);
-
-			set_memory(1, &ram_[5 * 16384], &ram_[5 * 16384], true);
-			set_memory(2, &ram_[2 * 16384], &ram_[2 * 16384], false);
-
-			const auto high_ram = &ram_[(port7ffd_ & 7) * 16384];
-			set_memory(3, high_ram, high_ram, (port7ffd_ & 7) >= 4);
 		}
 
-		void set_memory(int bank, const uint8_t *read, uint8_t *write, bool is_contended) {
-			is_contended_[bank] = is_contended;
-			read_pointers_[bank] = read - bank*16384;
-			write_pointers_[bank] = (write ? write : scratch_.data()) - bank*16384;
+		void set_memory(int bank, uint8_t source) {
+			is_contended_[bank] = (source >= 4 && source < 8);
+			pages_[bank] = source;
+
+			uint8_t *read = (source < 0x80) ? &ram_[source * 16384] : &rom_[(source & 0x7f) * 16384];
+			const auto offset = bank*16384;
+
+			read_pointers_[bank] = read - offset;
+			write_pointers_[bank] = ((source < 0x80) ? read : scratch_.data()) - offset;
 		}
 
 		void set_video_address() {
 			video_->set_video_source(&ram_[((port7ffd_ & 0x08) ? 7 : 5) * 16384]);
+			update_video_base();
+		}
+
+		void update_video_base() {
+			const uint8_t video_page = (port7ffd_ & 0x08) ? 7 : 5;
+			video_base_ = 0x1'0000;	// i.e. not in memory.
+
+			if(pages_[0] == video_page) video_base_ = 0x0000;
+			else if(pages_[1] == video_page) video_base_ = 0x4000;
+			else if(pages_[2] == video_page) video_base_ = 0x8000;
+			else if(pages_[3] == video_page) video_base_ = 0xc000;
 		}
 
 		// MARK: - Audio.
