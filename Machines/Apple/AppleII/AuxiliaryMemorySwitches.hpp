@@ -200,7 +200,7 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 		}
 
 		/// @returns @c true if the alternative zero page should be used; @c false otherwise.
-		const ZeroState zero_state() const {
+		ZeroState zero_state() const {
 			return switches_.alternative_zero_page;
 		}
 

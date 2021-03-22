@@ -35,7 +35,7 @@ class MemoryMap {
 			// Establish bank mapping.
 			uint8_t next_region = 0;
 			auto region = [&next_region, this]() -> uint8_t {
-				assert(next_region != regions.size());
+				assert(next_region != this->regions.size());
 				return next_region++;
 			};
 			auto set_region = [this](uint8_t bank, uint16_t start, uint16_t end, uint8_t region) {
@@ -49,7 +49,7 @@ class MemoryMap {
 					++target;
 				}
 			};
-			auto set_regions = [this, set_region, region](uint8_t bank, std::initializer_list<uint16_t> addresses, std::vector<uint8_t> allocated_regions = {}) {
+			auto set_regions = [set_region, region](uint8_t bank, std::initializer_list<uint16_t> addresses, std::vector<uint8_t> allocated_regions = {}) {
 				uint16_t previous = 0x0000;
 				auto next_region = allocated_regions.begin();
 				for(uint16_t address: addresses) {
