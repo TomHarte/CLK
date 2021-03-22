@@ -1075,6 +1075,7 @@
 		4B0F1C1B2604EA1000B85C66 /* Keyboard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B0F1C212605996900B85C66 /* ZXSpectrumTAP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ZXSpectrumTAP.cpp; sourceTree = "<group>"; };
 		4B0F1C222605996900B85C66 /* ZXSpectrumTAP.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ZXSpectrumTAP.hpp; sourceTree = "<group>"; };
+		4B0F1C3D26095AC600B85C66 /* FDC.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = FDC.hpp; path = AmstradCPC/FDC.hpp; sourceTree = "<group>"; };
 		4B0F94FC208C1A1600FE41D9 /* NIB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NIB.cpp; sourceTree = "<group>"; };
 		4B0F94FD208C1A1600FE41D9 /* NIB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NIB.hpp; sourceTree = "<group>"; };
 		4B0F9500208C42A300FE41D9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Target.hpp; path = AppleII/Target.hpp; sourceTree = "<group>"; };
@@ -2504,6 +2505,7 @@
 				4B54C0C11F8D91CD0050900F /* Keyboard.cpp */,
 				4B38F3471F2EC11D00D9235D /* AmstradCPC.hpp */,
 				4B54C0C01F8D91CD0050900F /* Keyboard.hpp */,
+				4B0F1C3D26095AC600B85C66 /* FDC.hpp */,
 			);
 			name = AmstradCPC;
 			sourceTree = "<group>";
