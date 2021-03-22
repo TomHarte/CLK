@@ -52,6 +52,7 @@ template <VideoTiming timing> class Video {
 			int lines_per_frame;
 			int first_delay;
 			int contended_period;
+			int first_fetch;
 			int delays[16];
 		};
 
@@ -61,6 +62,7 @@ template <VideoTiming timing> class Video {
 				.lines_per_frame = 311,
 				.first_delay = 14361 * 2,
 				.contended_period = (14490 - 14361) * 2,
+				.first_fetch = 14364 * 2,	// TODO: find a source for this, a guess.
 				.delays = {
 					2, 1,
 					0, 0,
@@ -78,7 +80,7 @@ template <VideoTiming timing> class Video {
 	public:
 		void run_for(HalfCycles duration) {
 			constexpr auto timings = get_timings();
-			constexpr int first_line = timings.first_delay / timings.cycles_per_line;
+			constexpr int first_line = timings.first_fetch / timings.cycles_per_line;
 			constexpr int sync_position = 166 * 2;
 			constexpr int sync_length = 17 * 2;
 			constexpr int burst_position = sync_position + 40;
@@ -125,31 +127,56 @@ template <VideoTiming timing> class Video {
 							}
 
 							if(pixel_target_) {
-								const int start_column = offset >> 3;
-								const int end_column = (offset + pixel_duration) >> 3;
+								const int start_column = offset >> 4;
+								const int end_column = (offset + pixel_duration) >> 4;
 								for(int column = start_column; column < end_column; column++) {
-									const uint8_t attributes = memory_[attribute_address_];
-
-									constexpr uint8_t masks[] = {0, 0xff};
-									const uint8_t pixels = memory_[pixel_address_] ^ masks[flash_mask_ & (attributes >> 7)];
-
-									const uint8_t colours[2] = {
-										palette[(attributes & 0x78) >> 3],
-										palette[((attributes & 0x40) >> 3) | (attributes & 0x07)],
+									const uint8_t attributes[2] = {
+										memory_[attribute_address_],
+										memory_[attribute_address_+1],
 									};
 
-									pixel_target_[0] = colours[(pixels >> 7) & 1];
-									pixel_target_[1] = colours[(pixels >> 6) & 1];
-									pixel_target_[2] = colours[(pixels >> 5) & 1];
-									pixel_target_[3] = colours[(pixels >> 4) & 1];
-									pixel_target_[4] = colours[(pixels >> 3) & 1];
-									pixel_target_[5] = colours[(pixels >> 2) & 1];
-									pixel_target_[6] = colours[(pixels >> 1) & 1];
-									pixel_target_[7] = colours[(pixels >> 0) & 1];
-									pixel_target_ += 8;
+									constexpr uint8_t masks[] = {0, 0xff};
+									const uint8_t pixels[2] = {
+										uint8_t(memory_[pixel_address_] ^ masks[flash_mask_ & (attributes[0] >> 7)]),
+										uint8_t(memory_[pixel_address_+1] ^ masks[flash_mask_ & (attributes[1] >> 7)]),
+									};
 
-									++pixel_address_;
-									++attribute_address_;
+									{
+										const uint8_t colours[2] = {
+											palette[(attributes[0] & 0x78) >> 3],
+											palette[((attributes[0] & 0x40) >> 3) | (attributes[0] & 0x07)],
+										};
+
+										pixel_target_[0] = colours[(pixels[0] >> 7) & 1];
+										pixel_target_[1] = colours[(pixels[0] >> 6) & 1];
+										pixel_target_[2] = colours[(pixels[0] >> 5) & 1];
+										pixel_target_[3] = colours[(pixels[0] >> 4) & 1];
+										pixel_target_[4] = colours[(pixels[0] >> 3) & 1];
+										pixel_target_[5] = colours[(pixels[0] >> 2) & 1];
+										pixel_target_[6] = colours[(pixels[0] >> 1) & 1];
+										pixel_target_[7] = colours[(pixels[0] >> 0) & 1];
+										pixel_target_ += 8;
+									}
+
+									{
+										const uint8_t colours[2] = {
+											palette[(attributes[1] & 0x78) >> 3],
+											palette[((attributes[1] & 0x40) >> 3) | (attributes[1] & 0x07)],
+										};
+
+										pixel_target_[0] = colours[(pixels[1] >> 7) & 1];
+										pixel_target_[1] = colours[(pixels[1] >> 6) & 1];
+										pixel_target_[2] = colours[(pixels[1] >> 5) & 1];
+										pixel_target_[3] = colours[(pixels[1] >> 4) & 1];
+										pixel_target_[4] = colours[(pixels[1] >> 3) & 1];
+										pixel_target_[5] = colours[(pixels[1] >> 2) & 1];
+										pixel_target_[6] = colours[(pixels[1] >> 1) & 1];
+										pixel_target_[7] = colours[(pixels[1] >> 0) & 1];
+										pixel_target_ += 8;
+									}
+
+									pixel_address_ += 2;
+									attribute_address_ += 2;
 								}
 							}
 
