@@ -91,10 +91,13 @@ template <VideoTiming timing> class Video {
 				const int cycles_this_line = std::min(cycles_remaining, timings.cycles_per_line - offset);
 				const int end_offset = offset + cycles_this_line;
 
-				if(!line && !offset) {
-					++flash_counter_;
-					flash_mask_ = uint8_t(flash_counter_ >> 4);
-					flash_counter_ &= 31;
+				if(!offset) {
+					is_alternate_line_ ^= true;
+
+					if(!line) {
+						flash_counter_ = (flash_counter_ + 1) & 31;
+						flash_mask_ = uint8_t(flash_counter_ >> 4);
+					}
 				}
 
 				if(line < 3) {
@@ -122,7 +125,7 @@ template <VideoTiming timing> class Video {
 
 					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
 						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
-						crt_.output_colour_burst(burst_duration, (line&1) * 128);
+						crt_.output_colour_burst(burst_duration, line, is_alternate_line_);
 						offset += burst_duration;
 					}
 
@@ -199,7 +202,7 @@ template <VideoTiming timing> class Video {
 
 					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
 						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
-						crt_.output_colour_burst(burst_duration, (line&1) * 128);
+						crt_.output_colour_burst(burst_duration, 0, is_alternate_line_);
 						offset += burst_duration;
 					}
 
@@ -298,6 +301,7 @@ template <VideoTiming timing> class Video {
 
 		uint8_t flash_mask_ = 0;
 		int flash_counter_ = 0;
+		bool is_alternate_line_ = false;
 
 #define RGB(r, g, b)	(r << 4) | (g << 2) | b
 		static constexpr uint8_t palette[] = {
