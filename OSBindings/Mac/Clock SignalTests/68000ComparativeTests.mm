@@ -43,7 +43,7 @@
 	// Issue each test file.
 	for(NSURL *url in tests) {
 		// Compare against a file set if one has been supplied.
-		if(_fileSet && ![_fileSet containsObject:[[url path] lastPathComponent]]) continue;
+		if(_fileSet && ![_fileSet containsObject:[url lastPathComponent]]) continue;
 		NSLog(@"Testing %@", url);
 		[self testJSONAtURL:url];
 	}
