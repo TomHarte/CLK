@@ -169,7 +169,7 @@ template<Model model> class ConcreteMachine:
 
 				case PartialMachineCycle::Write:
 					// Flush video if this access modifies screen contents.
-					if(address >= video_base_ && address < video_base_ + 6912) {
+					if(is_video_[address >> 14] && (address & 0x3fff) < 6912) {
 						video_.flush();
 					}
 					write_pointers_[address >> 14][address] = *cycle.value;
@@ -386,7 +386,7 @@ template<Model model> class ConcreteMachine:
 		uint8_t *write_pointers_[4];
 		uint8_t pages_[4];
 		bool is_contended_[4];
-		int video_base_ = 0x4000;
+		bool is_video_[4];
 
 		uint8_t port1ffd_ = 0;
 		uint8_t port7ffd_ = 0;
@@ -459,12 +459,10 @@ template<Model model> class ConcreteMachine:
 
 		void update_video_base() {
 			const uint8_t video_page = (port7ffd_ & 0x08) ? 7 : 5;
-			video_base_ = 0x1'0000;	// i.e. not in memory.
-
-			if(pages_[0] == video_page) video_base_ = 0x0000;
-			else if(pages_[1] == video_page) video_base_ = 0x4000;
-			else if(pages_[2] == video_page) video_base_ = 0x8000;
-			else if(pages_[3] == video_page) video_base_ = 0xc000;
+			is_video_[0] = pages_[0] == video_page;
+			is_video_[1] = pages_[1] == video_page;
+			is_video_[2] = pages_[2] == video_page;
+			is_video_[3] = pages_[3] == video_page;
 		}
 
 		// MARK: - Audio.
