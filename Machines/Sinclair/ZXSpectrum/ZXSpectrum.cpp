@@ -329,6 +329,12 @@ template<Model model> class ConcreteMachine:
 						*cycle.value &= GI::AY38910::Utility::read_data(ay_);
 					}
 
+					// Check for a floating bus read; these are particularly arcane
+					// on the +2a/+3. See footnote to https://spectrumforeveryone.com/technical/memory-contention-floating-bus/
+					if((address & 0xf003) == 0x0001) {
+						*cycle.value &= video_->get_current_fetch();
+					}
+
 					if constexpr (model == Model::Plus3) {
 						switch(address) {
 							default: break;
