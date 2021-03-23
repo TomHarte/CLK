@@ -198,6 +198,12 @@ template<Model model> class ConcreteMachine:
 					// The below patches over the 'LD-BYTES' routine from the 48kb ROM.
 					if(use_fast_tape_hack_ && address == 0x0556 && read_pointers_[0] == &rom_[0xc000]) {
 						if(perform_rom_ld_bytes()) {
+							// Stop pressing enter, if neccessry.
+							if(duration_to_press_enter_ > Cycles(0)) {
+								duration_to_press_enter_ = Cycles(0);
+								keyboard_.set_key_state(ZX::Keyboard::KeyEnter, false);
+							}
+
 							*cycle.value = 0xc9; // i.e. RET.
 							break;
 						}
