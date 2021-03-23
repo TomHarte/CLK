@@ -12,6 +12,7 @@
 
 #define LOG_PREFIX "[Spectrum] "
 
+#include "../../../Activity/Source.hpp"
 #include "../../MachineTypes.hpp"
 
 #include "../../../Processors/Z80/Z80.hpp"
@@ -46,6 +47,7 @@ namespace ZXSpectrum {
 
 using Model = Analyser::Static::ZXSpectrum::Target::Model;
 template<Model model> class ConcreteMachine:
+	public Activity::Source,
 	public Configurable::Device,
 	public Machine,
 	public MachineTypes::AudioProducer,
@@ -445,6 +447,12 @@ template<Model model> class ConcreteMachine:
 
 		Outputs::Speaker::Speaker *get_speaker() override {
 			return &speaker_;
+		}
+
+		// MARK: - Activity Source
+		void set_activity_observer(Activity::Observer *observer) override {
+			if constexpr (model == Model::Plus3) fdc_->set_activity_observer(observer);
+			tape_player_.set_activity_observer(observer);
 		}
 
 	private:
