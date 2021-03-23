@@ -79,13 +79,18 @@ template <VideoTiming timing> class Video {
 			//
 			// Contention begins four cycles before the first video fetch, so it begins at 70904. I don't currently
 			// know whether the four cycles is true across all models, so it's given here as convention_leadin.
+			//
+			// ... except that empirically that all seems to be two cycles off. So maybe I misunderstand what the
+			// contention patterns are supposed to indicate relative to MREQ? It's frustrating that all documentation
+			// I can find is vaguely in terms of contention patterns, and what they mean isn't well-defined in terms
+			// of regular Z80 signalling.
 			constexpr Timings result = {
 				.cycles_per_line = 228 * 2,
 				.lines_per_frame = 311,
 
-				.interrupt_time = 56543 * 2,
+				.interrupt_time = 56545 * 2,
 
-				.contention_leadin = 4 * 2,
+				.contention_leadin = 2 * 2,		// TODO: is this 2? Or 4? Or... ?
 				.contention_duration = 129 * 2,
 
 				.delays = {
