@@ -51,6 +51,7 @@ using CharacterMapper = Sinclair::ZX::Keyboard::CharacterMapper;
 
 template<Model model> class ConcreteMachine:
 	public Activity::Source,
+ 	public ClockingHint::Observer,
 	public Configurable::Device,
 	public CPU::Z80::BusHandler,
 	public Machine,
@@ -82,6 +83,10 @@ template<Model model> class ConcreteMachine:
 				rom_fetcher({ {"ZXSpectrum", "the +2a/+3 ROM", "plus3.rom", 64 * 1024, 0x96e3c17a} });
 			if(!roms[0]) throw ROMMachine::Error::MissingROMs;
 			memcpy(rom_.data(), roms[0]->data(), std::min(rom_.size(), roms[0]->size()));
+
+			// Register for sleeping notifications.
+			fdc_->set_clocking_hint_observer(this);
+			tape_player_.set_clocking_hint_observer(this);
 
 			// Set up initial memory map.
 			update_memory_map();
@@ -134,7 +139,7 @@ template<Model model> class ConcreteMachine:
 			return Plus3ClockRate;
 		}
 
-		// MARK: - TimedMachine
+		// MARK: - TimedMachine.
 
 		void run_for(const Cycles cycles) override {
 			z80_.run_for(cycles);
@@ -161,7 +166,7 @@ template<Model model> class ConcreteMachine:
 			}
 		}
 
-		// MARK: - ScanProducer
+		// MARK: - ScanProducer.
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			video_->set_scan_target(scan_target);
@@ -175,7 +180,7 @@ template<Model model> class ConcreteMachine:
 			video_->set_display_type(display_type);
 		}
 
-		// MARK: - BusHandler
+		// MARK: - BusHandler.
 
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
@@ -348,8 +353,7 @@ template<Model model> class ConcreteMachine:
 				z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line());
 			}
 
-			// TODO: sleeping support here.
-			tape_player_.run_for(duration.as_integral());
+			if(!tape_player_is_sleeping_) tape_player_.run_for(duration.as_integral());
 
 			// Update automatic tape motor control, if enabled; if it's been
 			// 3 seconds since software last possibly polled the tape, stop it.
@@ -363,7 +367,7 @@ template<Model model> class ConcreteMachine:
 			}
 
 			if constexpr (model == Model::Plus3) {
-				fdc_ += Cycles(duration.as_integral());
+				if(!fdc_is_sleeping_) fdc_ += Cycles(duration.as_integral());
 			}
 
 			if(typer_) typer_->run_for(duration);
@@ -379,7 +383,7 @@ template<Model model> class ConcreteMachine:
 
 	public:
 
-		// MARK: - Typer
+		// MARK: - Typer.
 		HalfCycles get_typer_delay(const std::string &) const override {
 			return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
 		}
@@ -392,7 +396,7 @@ template<Model model> class ConcreteMachine:
 			return &keyboard_mapper_;
 		}
 
-		// MARK: - Keyboard
+		// MARK: - Keyboard.
 		void set_key_state(uint16_t key, bool is_pressed) override {
 			keyboard_.set_key_state(key, is_pressed);
 		}
@@ -424,7 +428,14 @@ template<Model model> class ConcreteMachine:
 			return !media.tapes.empty()  || (!media.disks.empty() && model == Model::Plus3);
 		}
 
-		// MARK: - Tape control
+		// MARK: - ClockingHint::Observer.
+
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) override {
+			fdc_is_sleeping_ = fdc_.last_valid()->preferred_clocking() == ClockingHint::Preference::None;
+			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
+		}
+
+		// MARK: - Tape control.
 
 		void set_use_automatic_tape_motor_control(bool enabled) {
 			use_automatic_tape_motor_control_ = enabled;
@@ -464,7 +475,7 @@ template<Model model> class ConcreteMachine:
 			return &speaker_;
 		}
 
-		// MARK: - Activity Source
+		// MARK: - Activity Source.
 		void set_activity_observer(Activity::Observer *observer) override {
 			if constexpr (model == Model::Plus3) fdc_->set_activity_observer(observer);
 			tape_player_.set_activity_observer(observer);
@@ -583,6 +594,7 @@ template<Model model> class ConcreteMachine:
 
 		// MARK: - Tape.
 		Storage::Tape::BinaryTapePlayer tape_player_;
+		bool tape_player_is_sleeping_ = false;
 
 		bool use_automatic_tape_motor_control_ = true;
 		HalfCycles cycles_since_tape_input_read_;
@@ -637,6 +649,7 @@ template<Model model> class ConcreteMachine:
 
 		// MARK: - Disc.
 		JustInTimeActor<Amstrad::FDC, 1, 1, Cycles> fdc_;
+		bool fdc_is_sleeping_ = false;
 
 		// MARK: - Automatic startup.
 		Cycles duration_to_press_enter_;
