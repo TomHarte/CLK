@@ -48,21 +48,46 @@ enum class VideoTiming {
 template <VideoTiming timing> class Video {
 	private:
 		struct Timings {
+			// Number of cycles per line. Will be 224 or 228.
 			int cycles_per_line;
+			// Number of lines comprising a whole frame. Will be 311 or 312.
 			int lines_per_frame;
-			int first_delay;
-			int contended_period;
-			int first_fetch;
+
+			// Number of cycles after first pixel fetch at which interrupt is first signalled.
+			int interrupt_time;
+
+			// Number of cycles before first pixel fetch that contention starts to be applied.
+			int contention_leadin;
+			// Period in a line for which contention is applied.
+			int contention_duration;
+
+			// Contention to apply, in half-cycles, as a function of number of half cycles since
+			// contention began.
 			int delays[16];
 		};
 
 		static constexpr Timings get_timings() {
+			// Amstrad gate array timings, classic statement:
+			//
+			// Contention begins 14361 cycles "after interrupt" and follows the pattern [1, 0, 7, 6 5 4, 3, 2].
+			// The first four bytes of video are fetched at 14365–14368 cycles, in the order [pixels, attribute, pixels, attribute].
+			//
+			// For my purposes:
+			//
+			// Video fetching always begins at 0. Since there are 311*228 = 70908 cycles per frame, and the interrupt
+			// should "occur" (I assume: begin) 14365 before that, it should actually begin at 70908 - 14365 = 56543.
+			//
+			// Contention begins four cycles before the first video fetch, so it begins at 70904. I don't currently
+			// know whether the four cycles is true across all models, so it's given here as convention_leadin.
 			constexpr Timings result = {
 				.cycles_per_line = 228 * 2,
 				.lines_per_frame = 311,
-				.first_delay = 14361 * 2,
-				.contended_period = (14490 - 14361) * 2,
-				.first_fetch = 14364 * 2,	// TODO: find a source for this, a guess.
+
+				.interrupt_time = 56543 * 2,
+
+				.contention_leadin = 4 * 2,
+				.contention_duration = 129 * 2,
+
 				.delays = {
 					2, 1,
 					0, 0,
@@ -77,10 +102,15 @@ template <VideoTiming timing> class Video {
 			return result;
 		}
 
+		// TODO: how long is the interrupt line held for?
+		static constexpr int interrupt_duration = 48;
+
 	public:
 		void run_for(HalfCycles duration) {
 			constexpr auto timings = get_timings();
-			constexpr int first_line = timings.first_fetch / timings.cycles_per_line;
+
+			constexpr int sync_line = (timings.interrupt_time / timings.cycles_per_line) + 1;
+
 			constexpr int sync_position = 166 * 2;
 			constexpr int sync_length = 17 * 2;
 			constexpr int burst_position = sync_position + 40;
@@ -88,8 +118,8 @@ template <VideoTiming timing> class Video {
 
 			int cycles_remaining = duration.as<int>();
 			while(cycles_remaining) {
-				int line = time_since_interrupt_ / timings.cycles_per_line;
-				int offset = time_since_interrupt_ % timings.cycles_per_line;
+				int line = time_into_frame_ / timings.cycles_per_line;
+				int offset = time_into_frame_ % timings.cycles_per_line;
 				const int cycles_this_line = std::min(cycles_remaining, timings.cycles_per_line - offset);
 				const int end_offset = offset + cycles_this_line;
 
@@ -102,11 +132,11 @@ template <VideoTiming timing> class Video {
 					}
 				}
 
-				if(line < 3) {
+				if(line >= sync_line && line < sync_line + 3) {
 					// Output sync line.
 					crt_.output_sync(cycles_this_line);
 				} else {
-					if((line < first_line) || (line >= first_line+192)) {
+					if(line >= 192) {
 						// Output plain border line.
 						if(offset < sync_position) {
 							const int border_duration = std::min(sync_position, end_offset) - offset;
@@ -119,11 +149,9 @@ template <VideoTiming timing> class Video {
 							const int pixel_duration = std::min(256, end_offset) - offset;
 
 							if(!offset) {
-								const int pixel_line = line - first_line;
-
 								pixel_target_ = crt_.begin_data(256);
-								attribute_address_ = ((pixel_line / 8) * 32) + 6144;
-								pixel_address_ = ((pixel_line & 0x07) << 8) | ((pixel_line&0x38) << 2) | ((pixel_line&0xc0) << 5);
+								attribute_address_ = ((line >> 3) << 5) + 6144;
+								pixel_address_ = ((line & 0x07) << 8) | ((line & 0x38) << 2) | ((line & 0xc0) << 5);
 							}
 
 							if(pixel_target_) {
@@ -222,14 +250,11 @@ template <VideoTiming timing> class Video {
 				}
 
 				cycles_remaining -= cycles_this_line;
-				time_since_interrupt_ = (time_since_interrupt_ + cycles_this_line) % (timings.cycles_per_line * timings.lines_per_frame);
+				time_into_frame_ = (time_into_frame_ + cycles_this_line) % (timings.cycles_per_line * timings.lines_per_frame);
 			}
 		}
 
 	private:
-		// TODO: how long is the interrupt line held for?
-		static constexpr int interrupt_duration = 48;
-
 		void output_border(int duration) {
 			uint8_t *const colour_pointer = crt_.begin_data(1);
 			if(colour_pointer) *colour_pointer = border_colour_;
@@ -250,35 +275,56 @@ template <VideoTiming timing> class Video {
 			memory_ = source;
 		}
 
+		/*!
+			@returns The amount of time until the next change in the interrupt line, that being the only internally-observeable output.
+		*/
 		HalfCycles get_next_sequence_point() {
-			if(time_since_interrupt_ < interrupt_duration) {
-				return HalfCycles(interrupt_duration - time_since_interrupt_);
+			constexpr auto timings = get_timings();
+
+			// Is the frame still ahead of this interrupt?
+			if(time_into_frame_ < timings.interrupt_time) {
+				return HalfCycles(timings.interrupt_time - time_into_frame_);
 			}
 
-			constexpr auto timings = get_timings();
-			return timings.cycles_per_line * timings.lines_per_frame - time_since_interrupt_;
+			// If not, is it within this interrupt?
+			if(time_into_frame_ < timings.interrupt_time + interrupt_duration) {
+				return HalfCycles(timings.interrupt_time + interrupt_duration - time_into_frame_);
+			}
+
+			// If not, it'll be in the next batch.
+			return timings.interrupt_time + timings.cycles_per_line * timings.lines_per_frame - time_into_frame_;
 		}
 
+		/*!
+			@returns The current state of the interrupt output.
+		*/
 		bool get_interrupt_line() const {
-			return time_since_interrupt_ < interrupt_duration;
+			constexpr auto timings = get_timings();
+			return time_into_frame_ >= timings.interrupt_time && time_into_frame_ < timings.interrupt_time + interrupt_duration;
 		}
 
+		/*!
+			@returns How many cycles the [ULA/gate array] would delay the CPU for if it were to recognise that contention
+			needs to be applied in @c offset half-cycles from now.
+		*/
 		int access_delay(HalfCycles offset) const {
 			constexpr auto timings = get_timings();
-			const int delay_time = (time_since_interrupt_ + offset.as<int>()) % (timings.cycles_per_line * timings.lines_per_frame);
+			const int delay_time = (time_into_frame_ + offset.as<int>() + timings.contention_leadin) % (timings.cycles_per_line * timings.lines_per_frame);
 
-			if(delay_time < timings.first_delay) return 0;
+			// Check for a time within the no-contention window.
+			if(delay_time >= (191*timings.cycles_per_line + timings.contention_duration)) {
+				return 0;
+			}
 
-			const int time_since = delay_time - timings.first_delay;
-			const int lines = time_since / timings.cycles_per_line;
-			if(lines >= 192) return 0;
+			const int time_into_line = delay_time % timings.cycles_per_line;
+			if(time_into_line >= timings.contention_duration) return 0;
 
-			const int line_position = time_since % timings.cycles_per_line;
-			if(line_position >= timings.contended_period) return 0;
-
-			return timings.delays[line_position & 15];
+			return timings.delays[time_into_line & 15];
 		}
 
+		/*!
+			Sets the current border colour.
+		*/
 		void set_border_colour(uint8_t colour) {
 			border_colour_ = palette[colour];
 		}
@@ -299,7 +345,7 @@ template <VideoTiming timing> class Video {
 		}
 
 	private:
-		int time_since_interrupt_ = 0;
+		int time_into_frame_ = 0;
 		Outputs::CRT::CRT crt_;
 		const uint8_t *memory_ = nullptr;
 		uint8_t border_colour_ = 0;
