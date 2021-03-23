@@ -20,8 +20,9 @@ It currently contains emulations of the:
 * Macintosh 512ke and Plus;
 * MSX 1;
 * Oric 1/Atmos;
-* Sega Master System; and
-* Sinclair ZX80/81.
+* Sega Master System;
+* Sinclair ZX80/81; and
+* Sinclair ZX Spectrum +2a/+3.
 
 ## Single-click Loading
 
@@ -75,6 +76,7 @@ This emulator attempts cycle-accurate emulation of all supported machines. In so
 |![ZX81 3D Monster Maze](READMEImages/ZX81MonsterMaze.png) | ![ZX80 Kong](READMEImages/ZX80Kong.png)
 |![SG1000 Chack'n'Pop](READMEImages/SGChackNPop.png) | ![Atari 2600 Solaris](READMEImages/Atari2600Solaris.png)
 |![Vic-20 Gridrunner](READMEImages/Vic20Gridrunner.png) | ![VIC-20 BASIC](READMEImages/Vic20BASIC.png)
+|![ZX Spectrum Menu](READMEImages/ZXSpectrumMenu.png) | ![ZX Spectrum Chromatrons Attack](READMEImages/ZXSpectrumChromatronsAttack.png)
 
 ![macOS Version](READMEImages/MultipleSystems.png)
 ![Qt Version](READMEImages/MultipleSystems-Ubuntu.png)
