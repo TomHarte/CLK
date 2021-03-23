@@ -68,10 +68,76 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 CharacterMapper::CharacterMapper(Machine machine) : machine_(machine) {}
 
 const uint16_t *CharacterMapper::sequence_for_character(char character) const {
-#define KEYS(...)	{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
-#define SHIFT(...)	{KeyShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
-#define X			{MachineTypes::MappedKeyboardMachine::KeyNotMapped}
-	static KeySequence zx81_key_sequences[] = {
+#define KEYS(...)		{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
+#define SHIFT(...)		{KeyShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
+#define SYMSHIFT(...)	{KeySymbolShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
+#define X				{MachineTypes::MappedKeyboardMachine::KeyNotMapped}
+	constexpr KeySequence spectrum_key_sequences[] = {
+		/* NUL */	X,							/* SOH */	X,
+		/* STX */	X,							/* ETX */	X,
+		/* EOT */	X,							/* ENQ */	X,
+		/* ACK */	X,							/* BEL */	X,
+		/* BS */	SHIFT(Key0),				/* HT */	X,
+		/* LF */	KEYS(KeyEnter),				/* VT */	X,
+		/* FF */	X,							/* CR */	KEYS(KeyEnter),
+		/* SO */	X,							/* SI */	X,
+		/* DLE */	X,							/* DC1 */	X,
+		/* DC2 */	X,							/* DC3 */	X,
+		/* DC4 */	X,							/* NAK */	X,
+		/* SYN */	X,							/* ETB */	X,
+		/* CAN */	X,							/* EM */	X,
+		/* SUB */	X,							/* ESC */	X,
+		/* FS */	X,							/* GS */	X,
+		/* RS */	X,							/* US */	X,
+		/* space */	KEYS(KeySpace),				/* ! */		SYMSHIFT(Key1),
+		/* " */		SYMSHIFT(KeyP),				/* # */		SYMSHIFT(Key3),
+		/* $ */		SYMSHIFT(Key4),				/* % */		SYMSHIFT(Key5),
+		/* & */		SYMSHIFT(Key6),				/* ' */		SYMSHIFT(Key7),
+		/* ( */		SYMSHIFT(Key8),				/* ) */		SYMSHIFT(Key9),
+		/* * */		SYMSHIFT(KeyB),				/* + */		SYMSHIFT(KeyK),
+		/* , */		SYMSHIFT(KeyN),				/* - */		SYMSHIFT(KeyJ),
+		/* . */		SYMSHIFT(KeyM),				/* / */		SYMSHIFT(KeyV),
+		/* 0 */		KEYS(Key0),					/* 1 */		KEYS(Key1),
+		/* 2 */		KEYS(Key2),					/* 3 */		KEYS(Key3),
+		/* 4 */		KEYS(Key4),					/* 5 */		KEYS(Key5),
+		/* 6 */		KEYS(Key6),					/* 7 */		KEYS(Key7),
+		/* 8 */		KEYS(Key8),					/* 9 */		KEYS(Key9),
+		/* : */		SYMSHIFT(KeyZ),				/* ; */		SYMSHIFT(KeyO),
+		/* < */		SYMSHIFT(KeyR),				/* = */		SYMSHIFT(KeyL),
+		/* > */		SYMSHIFT(KeyT),				/* ? */		SYMSHIFT(KeyC),
+		/* @ */		SYMSHIFT(Key2),				/* A */		SHIFT(KeyA),
+		/* B */		SHIFT(KeyB),				/* C */		SHIFT(KeyC),
+		/* D */		SHIFT(KeyD),				/* E */		SHIFT(KeyE),
+		/* F */		SHIFT(KeyF),				/* G */		SHIFT(KeyG),
+		/* H */		SHIFT(KeyH),				/* I */		SHIFT(KeyI),
+		/* J */		SHIFT(KeyJ),				/* K */		SHIFT(KeyK),
+		/* L */		SHIFT(KeyL),				/* M */		SHIFT(KeyM),
+		/* N */		SHIFT(KeyN),				/* O */		SHIFT(KeyO),
+		/* P */		SHIFT(KeyP),				/* Q */		SHIFT(KeyQ),
+		/* R */		SHIFT(KeyR),				/* S */		SHIFT(KeyS),
+		/* T */		SHIFT(KeyT),				/* U */		SHIFT(KeyU),
+		/* V */		SHIFT(KeyV),				/* W */		SHIFT(KeyW),
+		/* X */		SHIFT(KeyX),				/* Y */		SHIFT(KeyY),
+		/* Z */		SHIFT(KeyZ),				/* [ */		X,
+		/* \ */		X,							/* ] */		X,
+		/* ^ */		SYMSHIFT(KeyH),				/* _ */		SYMSHIFT(Key0),
+		/* ` */		X,							/* a */		KEYS(KeyA),
+		/* b */		KEYS(KeyB),					/* c */		KEYS(KeyC),
+		/* d */		KEYS(KeyD),					/* e */		KEYS(KeyE),
+		/* f */		KEYS(KeyF),					/* g */		KEYS(KeyG),
+		/* h */		KEYS(KeyH),					/* i */		KEYS(KeyI),
+		/* j */		KEYS(KeyJ),					/* k */		KEYS(KeyK),
+		/* l */		KEYS(KeyL),					/* m */		KEYS(KeyM),
+		/* n */		KEYS(KeyN),					/* o */		KEYS(KeyO),
+		/* p */		KEYS(KeyP),					/* q */		KEYS(KeyQ),
+		/* r */		KEYS(KeyR),					/* s */		KEYS(KeyS),
+		/* t */		KEYS(KeyT),					/* u */		KEYS(KeyU),
+		/* v */		KEYS(KeyV),					/* w */		KEYS(KeyW),
+		/* x */		KEYS(KeyX),					/* y */		KEYS(KeyY),
+		/* z */		KEYS(KeyZ),
+	};
+
+	constexpr KeySequence zx81_key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,
 		/* EOT */	X,							/* ENQ */	X,
@@ -204,20 +270,23 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 	};
 #undef KEYS
 #undef SHIFT
+#undef SYMSHIFT
 #undef X
 
 	switch(machine_) {
-		case Machine::ZX81:
-		case Machine::ZXSpectrum:	// TODO: some differences exist for the Spectrum.
-		return table_lookup_sequence_for_character(zx81_key_sequences, sizeof(zx81_key_sequences), character);
-
 		case Machine::ZX80:
 		return table_lookup_sequence_for_character(zx80_key_sequences, sizeof(zx80_key_sequences), character);
+
+		case Machine::ZX81:
+		return table_lookup_sequence_for_character(zx81_key_sequences, sizeof(zx81_key_sequences), character);
+
+		case Machine::ZXSpectrum:
+		return table_lookup_sequence_for_character(spectrum_key_sequences, sizeof(zx81_key_sequences), character);
 	}
 }
 
 bool CharacterMapper::needs_pause_after_key(uint16_t key) const {
-	return key != KeyShift;
+	return key != KeyShift && !(machine_ == Machine::ZXSpectrum && key == KeySymbolShift);
 }
 
 Keyboard::Keyboard(Machine machine) : machine_(machine) {

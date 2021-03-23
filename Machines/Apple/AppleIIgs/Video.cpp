@@ -113,6 +113,10 @@ Video::Video() :
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	crt_.set_visible_area(Outputs::Display::Rect(0.097f, 0.1f, 0.85f, 0.85f));
 
+	// Reduce the initial bounce by cueing up the part of the frame that initial drawing actually
+	// starts with. More or less.
+	crt_.output_blank(228*63*2);
+
 	// Establish the shift lookup table for NTSC -> RGB output.
 	for(size_t c = 0; c < sizeof(ntsc_delay_lookup_) / sizeof(*ntsc_delay_lookup_); c++) {
 		const auto old_delay = c >> 2;

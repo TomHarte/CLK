@@ -323,11 +323,11 @@ template <VideoTiming timing> class Video {
 			if(line >= 192) return 0xff;
 
 			const int time_into_line = time_into_frame_ % timings.cycles_per_line;
-			if(time_into_line >= 256 || (time_into_line&4)) {
+			if(time_into_line >= 256 || (time_into_line&8)) {
 				return 0xff;
 			}
 
-			return last_fetches_[time_into_line & 3];
+			return last_fetches_[(time_into_line >> 1) & 3];
 		}
 
 		/*!

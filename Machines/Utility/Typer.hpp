@@ -48,7 +48,7 @@ class CharacterMapper {
 			with @c length entries, returns the sequence for character @c character if it exists; otherwise
 			returns @c nullptr.
 		*/
-		uint16_t *table_lookup_sequence_for_character(KeySequence *sequences, std::size_t length, char character) const;
+		const uint16_t *table_lookup_sequence_for_character(const KeySequence *sequences, std::size_t length, char character) const;
 };
 
 /*!
