@@ -138,7 +138,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format(	"hfe",
 			result.disks,
 			Disk::DiskImageHolder<Storage::Disk::HFE>,
-			TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric)
+			TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric | TargetPlatform::ZXSpectrum)
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
 	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
 	Format("image", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
