@@ -158,53 +158,40 @@ template <VideoTiming timing> class Video {
 								const int start_column = offset >> 4;
 								const int end_column = (offset + pixel_duration) >> 4;
 								for(int column = start_column; column < end_column; column++) {
-									const uint8_t attributes[2] = {
-										memory_[attribute_address_],
-										memory_[attribute_address_+1],
-									};
-
-									constexpr uint8_t masks[] = {0, 0xff};
-									const uint8_t pixels[2] = {
-										uint8_t(memory_[pixel_address_] ^ masks[flash_mask_ & (attributes[0] >> 7)]),
-										uint8_t(memory_[pixel_address_+1] ^ masks[flash_mask_ & (attributes[1] >> 7)]),
-									};
-
-									{
-										const uint8_t colours[2] = {
-											palette[(attributes[0] & 0x78) >> 3],
-											palette[((attributes[0] & 0x40) >> 3) | (attributes[0] & 0x07)],
-										};
-
-										pixel_target_[0] = colours[(pixels[0] >> 7) & 1];
-										pixel_target_[1] = colours[(pixels[0] >> 6) & 1];
-										pixel_target_[2] = colours[(pixels[0] >> 5) & 1];
-										pixel_target_[3] = colours[(pixels[0] >> 4) & 1];
-										pixel_target_[4] = colours[(pixels[0] >> 3) & 1];
-										pixel_target_[5] = colours[(pixels[0] >> 2) & 1];
-										pixel_target_[6] = colours[(pixels[0] >> 1) & 1];
-										pixel_target_[7] = colours[(pixels[0] >> 0) & 1];
-										pixel_target_ += 8;
-									}
-
-									{
-										const uint8_t colours[2] = {
-											palette[(attributes[1] & 0x78) >> 3],
-											palette[((attributes[1] & 0x40) >> 3) | (attributes[1] & 0x07)],
-										};
-
-										pixel_target_[0] = colours[(pixels[1] >> 7) & 1];
-										pixel_target_[1] = colours[(pixels[1] >> 6) & 1];
-										pixel_target_[2] = colours[(pixels[1] >> 5) & 1];
-										pixel_target_[3] = colours[(pixels[1] >> 4) & 1];
-										pixel_target_[4] = colours[(pixels[1] >> 3) & 1];
-										pixel_target_[5] = colours[(pixels[1] >> 2) & 1];
-										pixel_target_[6] = colours[(pixels[1] >> 1) & 1];
-										pixel_target_[7] = colours[(pixels[1] >> 0) & 1];
-										pixel_target_ += 8;
-									}
-
+									last_fetches_[0] = memory_[pixel_address_];
+									last_fetches_[1] = memory_[attribute_address_];
+									last_fetches_[2] = memory_[pixel_address_+1];
+									last_fetches_[3] = memory_[attribute_address_+1];
 									pixel_address_ += 2;
 									attribute_address_ += 2;
+
+									constexpr uint8_t masks[] = {0, 0xff};
+
+#define Output(n)	\
+	{				\
+		const uint8_t pixels =														\
+			uint8_t(last_fetches_[n] ^ masks[flash_mask_ & (last_fetches_[n+1] >> 7)]);	\
+			\
+		const uint8_t colours[2] = {													\
+			palette[(last_fetches_[n+1] & 0x78) >> 3],									\
+			palette[((last_fetches_[n+1] & 0x40) >> 3) | (last_fetches_[n+1] & 0x07)],	\
+		};	\
+			\
+		pixel_target_[0] = colours[(pixels >> 7) & 1];	\
+		pixel_target_[1] = colours[(pixels >> 6) & 1];	\
+		pixel_target_[2] = colours[(pixels >> 5) & 1];	\
+		pixel_target_[3] = colours[(pixels >> 4) & 1];	\
+		pixel_target_[4] = colours[(pixels >> 3) & 1];	\
+		pixel_target_[5] = colours[(pixels >> 2) & 1];	\
+		pixel_target_[6] = colours[(pixels >> 1) & 1];	\
+		pixel_target_[7] = colours[(pixels >> 0) & 1];	\
+		pixel_target_ += 8;									\
+	}
+
+									Output(0);
+									Output(2);
+
+#undef Output
 								}
 							}
 
@@ -323,6 +310,22 @@ template <VideoTiming timing> class Video {
 		}
 
 		/*!
+			@returns Whatever the ULA or gate array has fetched this cycle, or 0xff if it has fetched nothing.
+		*/
+		uint8_t get_current_fetch() const {
+			constexpr auto timings = get_timings();
+			const int line = time_into_frame_ / timings.cycles_per_line;
+			if(line >= 192) return 0xff;
+
+			const int time_into_line = time_into_frame_ % timings.cycles_per_line;
+			if(time_into_line >= 256 || (time_into_line&4)) {
+				return 0xff;
+			}
+
+			return last_fetches_[time_into_line & 3];
+		}
+
+		/*!
 			Sets the current border colour.
 		*/
 		void set_border_colour(uint8_t colour) {
@@ -357,6 +360,8 @@ template <VideoTiming timing> class Video {
 		uint8_t flash_mask_ = 0;
 		int flash_counter_ = 0;
 		bool is_alternate_line_ = false;
+
+		uint8_t last_fetches_[4] = {0xff, 0xff, 0xff, 0xff};
 
 #define RGB(r, g, b)	(r << 4) | (g << 2) | b
 		static constexpr uint8_t palette[] = {
