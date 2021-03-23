@@ -35,6 +35,7 @@
 #include "../../../Analyser/Static/ZXSpectrum/Target.hpp"
 
 #include "../../Utility/MemoryFuzzer.hpp"
+#include "../../Utility/Typer.hpp"
 
 #include "../../../ClockReceiver/JustInTime.hpp"
 
@@ -46,18 +47,22 @@ namespace Sinclair {
 namespace ZXSpectrum {
 
 using Model = Analyser::Static::ZXSpectrum::Target::Model;
+using CharacterMapper = Sinclair::ZX::Keyboard::CharacterMapper;
+
 template<Model model> class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
+	public CPU::Z80::BusHandler,
 	public Machine,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
-	public CPU::Z80::BusHandler {
+	public Utility::TypeRecipient<CharacterMapper> {
 	public:
 		ConcreteMachine(const Analyser::Static::ZXSpectrum::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+			Utility::TypeRecipient<CharacterMapper>(Sinclair::ZX::Keyboard::Machine::ZXSpectrum),
 			z80_(*this),
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			audio_toggle_(audio_queue_),
@@ -360,18 +365,28 @@ template<Model model> class ConcreteMachine:
 			if constexpr (model == Model::Plus3) {
 				fdc_ += Cycles(duration.as_integral());
 			}
+
+			if(typer_) typer_->run_for(duration);
+		}
+
+		void type_string(const std::string &string) override {
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+		}
+
+		bool can_type(char c) const override {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 
 	public:
 
 		// MARK: - Typer
-//		HalfCycles get_typer_delay(const std::string &) const final {
-//			return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
-//		}
-//
-//		HalfCycles get_typer_frequency() const final {
-//			return Cycles(146'250);
-//		}
+		HalfCycles get_typer_delay(const std::string &) const override {
+			return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
+		}
+
+		HalfCycles get_typer_frequency() const override{
+			return Cycles(146'250);
+		}
 
 		KeyboardMapper *get_keyboard_mapper() override {
 			return &keyboard_mapper_;
