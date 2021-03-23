@@ -389,7 +389,7 @@ template<Model model> class ConcreteMachine:
 		}
 
 		HalfCycles get_typer_frequency() const override{
-			return Cycles(146'250);
+			return Cycles(70'908);
 		}
 
 		KeyboardMapper *get_keyboard_mapper() override {
