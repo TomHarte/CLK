@@ -10,7 +10,7 @@
 
 #include <algorithm>
 
-using namespace ZX8081;
+using namespace Sinclair::ZX8081;
 
 namespace {
 

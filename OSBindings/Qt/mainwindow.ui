@@ -533,6 +533,55 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="spectrumTab">
+       <attribute name="title">
+        <string>Spectrum</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="spectrumLayout">
+        <item>
+         <layout class="QHBoxLayout" name="spectrumHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="spectrumFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="spectrumModelLabel">
+              <property name="text">
+               <string>Model:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="spectrumModelComboBox">
+              <item>
+               <property name="text">
+                <string>+2a</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>+3</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="spectrumHSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="vic20Tab">
        <attribute name="title">
         <string>Vic-20</string>

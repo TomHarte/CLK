@@ -9,20 +9,20 @@
 #ifndef ZX8081_hpp
 #define ZX8081_hpp
 
-#include "../../Configurable/Configurable.hpp"
-#include "../../Configurable/StandardOptions.hpp"
-#include "../../Analyser/Static/StaticAnalyser.hpp"
-#include "../ROMMachine.hpp"
+#include "../../../Configurable/Configurable.hpp"
+#include "../../../Configurable/StandardOptions.hpp"
+#include "../../../Analyser/Static/StaticAnalyser.hpp"
+#include "../../ROMMachine.hpp"
 
 #include <memory>
 
+namespace Sinclair {
 namespace ZX8081 {
 
 /// The ZX80/81 machine.
 class Machine {
 	public:
 		virtual ~Machine();
-
 		static Machine *ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		virtual void set_tape_is_playing(bool is_playing) = 0;
@@ -47,6 +47,7 @@ class Machine {
 		};
 };
 
+}
 }
 
 #endif /* ZX8081_hpp */

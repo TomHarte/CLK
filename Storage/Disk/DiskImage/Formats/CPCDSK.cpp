@@ -200,12 +200,12 @@ std::size_t CPCDSK::index_for_track(::Storage::Disk::Track::Address address) {
 
 std::shared_ptr<Track> CPCDSK::get_track_at_position(::Storage::Disk::Track::Address address) {
 	// Given that thesea are interleaved images, determine which track, chronologically, is being requested.
-	std::size_t chronological_track = index_for_track(address);
+	const std::size_t chronological_track = index_for_track(address);
 
 	// Return a nullptr if out of range or not provided.
 	if(chronological_track >= tracks_.size()) return nullptr;
 
-	Track *track = tracks_[chronological_track].get();
+	Track *const track = tracks_[chronological_track].get();
 	if(!track) return nullptr;
 
 	std::vector<const Storage::Encodings::MFM::Sector *> sectors;
@@ -228,7 +228,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 				is_double_density);
 
 		// Find slot for track, making it if neccessary.
-		std::size_t chronological_track = index_for_track(pair.first);
+		const std::size_t chronological_track = index_for_track(pair.first);
 		if(chronological_track >= tracks_.size()) {
 			tracks_.resize(chronological_track+1);
 			head_position_count_ = pair.first.position.as_int();
@@ -310,7 +310,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 	// Output each track.
 	for(std::size_t index = 0; index < size_t(head_position_count_ * head_count_); ++index) {
 		if(index >= tracks_.size()) continue;
-		Track *track = tracks_[index].get();
+		Track *const track = tracks_[index].get();
 		if(!track) continue;
 
 		// Output track header.

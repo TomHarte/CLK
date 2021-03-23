@@ -19,7 +19,7 @@
 #include "../../Activity/Observer.hpp"
 
 // There are machine-specific controls for the following:
-#include "../../Machines/ZX8081/ZX8081.hpp"
+#include "../../Machines/Sinclair/ZX8081/ZX8081.hpp"
 #include "../../Machines/Atari/2600/Atari2600.hpp"
 
 QT_BEGIN_NAMESPACE
@@ -92,6 +92,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void start_macintosh();
 		void start_msx();
 		void start_oric();
+		void start_spectrum();
 		void start_vic20();
 		void start_zx80();
 		void start_zx81();

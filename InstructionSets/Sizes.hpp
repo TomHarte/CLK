@@ -12,7 +12,7 @@
 #include <limits>
 
 /*!
-	Maps to the smallest of the following integers that can contain max_value:
+	Maps to the smallest integral type that can contain max_value, from the following options:
 
 	* uint8_t;
 	* uint16_t;

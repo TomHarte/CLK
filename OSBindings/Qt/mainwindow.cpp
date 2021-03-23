@@ -1,12 +1,14 @@
+#include "mainwindow.h"
+#include "settings.h"
+#include "timer.h"
+
 #include <QObject>
 #include <QStandardPaths>
 
 #include <QtWidgets>
 #include <QtGlobal>
 
-#include "mainwindow.h"
-#include "settings.h"
-#include "timer.h"
+#include <cstdio>
 
 #include "../../Numeric/CRC.hpp"
 
@@ -462,6 +464,11 @@ void MainWindow::launchMachine() {
 			addZX8081Menu(settingsPrefix);
 		break;
 
+		case Analyser::Machine::ZXSpectrum:
+			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
+			addEnhancementsMenu(settingsPrefix, true, false);
+		break;
+
 		default: break;
 	}
 
@@ -599,7 +606,7 @@ void MainWindow::addZX8081Menu(const std::string &machinePrefix) {
 	controlsMenu->addAction(startTapeAction);
 	connect(startTapeAction, &QAction::triggered, this, [=] {
 		std::lock_guard lock_guard(machineMutex);
-		static_cast<ZX8081::Machine *>(machine->raw_pointer())->set_tape_is_playing(true);
+		static_cast<Sinclair::ZX8081::Machine *>(machine->raw_pointer())->set_tape_is_playing(true);
 		updateTapeControls();
 	});
 
@@ -607,7 +614,7 @@ void MainWindow::addZX8081Menu(const std::string &machinePrefix) {
 	controlsMenu->addAction(stopTapeAction);
 	connect(stopTapeAction, &QAction::triggered, this, [=] {
 		std::lock_guard lock_guard(machineMutex);
-		static_cast<ZX8081::Machine *>(machine->raw_pointer())->set_tape_is_playing(false);
+		static_cast<Sinclair::ZX8081::Machine *>(machine->raw_pointer())->set_tape_is_playing(false);
 		updateTapeControls();
 	});
 
@@ -620,7 +627,7 @@ void MainWindow::addZX8081Menu(const std::string &machinePrefix) {
 
 void MainWindow::updateTapeControls() {
 	const bool startStopEnabled = !automaticTapeControlAction->isChecked();
-	const bool isPlaying = static_cast<ZX8081::Machine *>(machine->raw_pointer())->get_tape_is_playing();
+	const bool isPlaying = static_cast<Sinclair::ZX8081::Machine *>(machine->raw_pointer())->get_tape_is_playing();
 
 	startTapeAction->setEnabled(!isPlaying && startStopEnabled);
 	stopTapeAction->setEnabled(isPlaying && startStopEnabled);
@@ -1097,6 +1104,7 @@ void MainWindow::setButtonPressed(int index, bool isPressed) {
 #include "../../Analyser/Static/MSX/Target.hpp"
 #include "../../Analyser/Static/Oric/Target.hpp"
 #include "../../Analyser/Static/ZX8081/Target.hpp"
+#include "../../Analyser/Static/ZXSpectrum/Target.hpp"
 
 void MainWindow::startMachine() {
 	const auto selectedTab = ui->machineSelectionTabs->currentWidget();
@@ -1115,6 +1123,7 @@ void MainWindow::startMachine() {
 	TEST(macintosh);
 	TEST(msx);
 	TEST(oric);
+	TEST(spectrum);
 	TEST(vic20);
 	TEST(zx80);
 	TEST(zx81);
@@ -1240,6 +1249,18 @@ void MainWindow::start_oric() {
 		case 2:		target->disk_interface = Target::DiskInterface::Jasmin;		break;
 		case 3:		target->disk_interface = Target::DiskInterface::Pravetz;	break;
 		case 4:		target->disk_interface = Target::DiskInterface::BD500;		break;
+	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_spectrum() {
+	using Target = Analyser::Static::ZXSpectrum::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->oricModelComboBox->currentIndex()) {
+		default:	target->model = Target::Model::Plus2a;	break;
+		case 1:		target->model = Target::Model::Plus3;	break;
 	}
 
 	launchTarget(std::move(target));

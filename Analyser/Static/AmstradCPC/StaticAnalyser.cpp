@@ -11,11 +11,11 @@
 #include <algorithm>
 #include <cstring>
 
-#include "Target.hpp"
-
 #include "../../../Storage/Disk/Parsers/CPM.hpp"
 #include "../../../Storage/Disk/Encodings/MFM/Parser.hpp"
 #include "../../../Storage/Tape/Parsers/Spectrum.hpp"
+
+#include "Target.hpp"
 
 namespace {
 

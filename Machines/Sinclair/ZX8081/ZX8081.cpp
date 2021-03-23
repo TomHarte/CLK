@@ -8,23 +8,23 @@
 
 #include "ZX8081.hpp"
 
-#include "../MachineTypes.hpp"
+#include "../../MachineTypes.hpp"
 
-#include "../../Components/AY38910/AY38910.hpp"
-#include "../../Processors/Z80/Z80.hpp"
-#include "../../Storage/Tape/Tape.hpp"
-#include "../../Storage/Tape/Parsers/ZX8081.hpp"
+#include "../../../Components/AY38910/AY38910.hpp"
+#include "../../../Processors/Z80/Z80.hpp"
+#include "../../../Storage/Tape/Tape.hpp"
+#include "../../../Storage/Tape/Parsers/ZX8081.hpp"
 
-#include "../../ClockReceiver/ForceInline.hpp"
+#include "../../../ClockReceiver/ForceInline.hpp"
 
-#include "../Utility/MemoryFuzzer.hpp"
-#include "../Utility/Typer.hpp"
+#include "../../Utility/MemoryFuzzer.hpp"
+#include "../../Utility/Typer.hpp"
 
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
-#include "../../Analyser/Static/ZX8081/Target.hpp"
+#include "../../../Analyser/Static/ZX8081/Target.hpp"
 
-#include "Keyboard.hpp"
+#include "../Keyboard/Keyboard.hpp"
 #include "Video.hpp"
 
 #include <cstdint>
@@ -34,7 +34,7 @@
 
 namespace {
 	// The clock rate is 3.25Mhz.
-	const unsigned int ZX8081ClockRate = 3250000;
+	constexpr unsigned int ZX8081ClockRate = 3250000;
 }
 
 // TODO:
@@ -42,11 +42,14 @@ namespace {
 //  7FFFh.W   PSG index
 //  7FFEh.R/W PSG data
 
+namespace Sinclair {
 namespace ZX8081 {
 
 enum ROMType: uint8_t {
 	ZX80 = 0, ZX81
 };
+
+using CharacterMapper = Sinclair::ZX::Keyboard::CharacterMapper;
 
 template<bool is_zx81> class ConcreteMachine:
 	public MachineTypes::TimedMachine,
@@ -60,14 +63,15 @@ template<bool is_zx81> class ConcreteMachine:
 	public Machine {
 	public:
 		ConcreteMachine(const Analyser::Static::ZX8081::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-			Utility::TypeRecipient<CharacterMapper>(is_zx81),
+			Utility::TypeRecipient<CharacterMapper>(keyboard_machine()),
 			z80_(*this),
+			keyboard_(keyboard_machine()),
+			keyboard_mapper_(keyboard_machine()),
 			tape_player_(ZX8081ClockRate),
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			speaker_(ay_) {
 			set_clock_rate(ZX8081ClockRate);
 			speaker_.set_input_rate(float(ZX8081ClockRate) / 2.0f);
-			clear_all_keys();
 
 			const bool use_zx81_rom = target.is_ZX81 || target.ZX80_uses_ZX81_ROM;
 			const auto roms =
@@ -182,12 +186,7 @@ template<bool is_zx81> class ConcreteMachine:
 					if(!(address&1)) {
 						if(!nmi_is_enabled_) set_vsync(true);
 
-						uint16_t mask = 0x100;
-						for(int c = 0; c < 8; c++) {
-							if(!(address & mask)) value &= key_states_[c];
-							mask <<= 1;
-						}
-
+						value &= keyboard_.read(address);
 						value &= ~(tape_player_.get_input() ? 0x00 : 0x80);
 					}
 
@@ -338,36 +337,15 @@ template<bool is_zx81> class ConcreteMachine:
 
 		// MARK: - Keyboard
 		void set_key_state(uint16_t key, bool is_pressed) final {
-			const auto line = key >> 8;
-
-			// Check for special cases.
-			if(line > 7) {
-				switch(key) {
-#define ShiftedKey(source, base)	\
-					case source:	\
-						set_key_state(KeyShift, is_pressed);	\
-						set_key_state(base, is_pressed);		\
-					break;
-
-					ShiftedKey(KeyDelete, Key0);
-					ShiftedKey(KeyBreak, KeySpace);
-					ShiftedKey(KeyUp, Key7);
-					ShiftedKey(KeyDown, Key6);
-					ShiftedKey(KeyLeft, Key5);
-					ShiftedKey(KeyRight, Key8);
-					ShiftedKey(KeyEdit, is_zx81 ? Key1 : KeyEnter);
-#undef ShiftedKey
-				}
-			} else {
-				if(is_pressed)
-					key_states_[line] &= uint8_t(~key);
-				else
-					key_states_[line] |= uint8_t(key);
-			}
+			keyboard_.set_key_state(key, is_pressed);
 		}
 
 		void clear_all_keys() final {
-			memset(key_states_, 0xff, 8);
+			keyboard_.clear_all_keys();
+		}
+
+		static constexpr Sinclair::ZX::Keyboard::Machine keyboard_machine() {
+			return is_zx81 ? Sinclair::ZX::Keyboard::Machine::ZX81 : Sinclair::ZX::Keyboard::Machine::ZX80;
 		}
 
 		// MARK: - Tape control
@@ -401,6 +379,7 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
+
 		std::unique_ptr<Reflection::Struct> get_options() final {
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);	// OptionsType is arbitrary, but not optional.
 			options->automatic_tape_motor_control = use_automatic_tape_motor_control_;
@@ -447,8 +426,8 @@ template<bool is_zx81> class ConcreteMachine:
 		bool vsync_ = false, hsync_ = false;
 		int line_counter_ = 0;
 
-		uint8_t key_states_[8];
-		ZX8081::KeyboardMapper keyboard_mapper_;
+		Sinclair::ZX::Keyboard::Keyboard keyboard_;
+		Sinclair::ZX::Keyboard::KeyboardMapper keyboard_mapper_;
 
 		HalfClockReceiver<Storage::Tape::BinaryTapePlayer> tape_player_;
 		Storage::Tape::ZX8081::Parser parser_;
@@ -516,16 +495,17 @@ template<bool is_zx81> class ConcreteMachine:
 };
 
 }
+}
 
-using namespace ZX8081;
+using namespace Sinclair::ZX8081;
 
 // See header; constructs and returns an instance of the ZX80 or 81.
 Machine *Machine::ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	const Analyser::Static::ZX8081::Target *const zx_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
+	const auto zx_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
 
 	// Instantiate the correct type of machine.
-	if(zx_target->is_ZX81)	return new ZX8081::ConcreteMachine<true>(*zx_target, rom_fetcher);
-	else					return new ZX8081::ConcreteMachine<false>(*zx_target, rom_fetcher);
+	if(zx_target->is_ZX81)	return new ConcreteMachine<true>(*zx_target, rom_fetcher);
+	else					return new ConcreteMachine<false>(*zx_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

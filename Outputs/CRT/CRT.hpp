@@ -61,7 +61,7 @@ class CRT {
 		int64_t phase_denominator_ = 1;
 		int64_t phase_numerator_ = 0;
 		int64_t colour_cycle_numerator_ = 1;
-		bool is_alernate_line_ = false, phase_alternates_ = false;
+		bool is_alernate_line_ = false, phase_alternates_ = false, should_be_alternate_line_ = false;
 
 		void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type, int number_of_samples);
 		Flywheel::SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
@@ -207,7 +207,7 @@ class CRT {
 			@param amplitude The amplitude of the colour burst in 1/255ths of the amplitude of the
 			positive portion of the wave.
 		*/
-		void output_colour_burst(int number_of_cycles, uint8_t phase, uint8_t amplitude = DefaultAmplitude);
+		void output_colour_burst(int number_of_cycles, uint8_t phase, bool is_alternate_line = false, uint8_t amplitude = DefaultAmplitude);
 
 		/*! Outputs a colour burst exactly in phase with CRT expectations using the idiomatic amplitude.
 

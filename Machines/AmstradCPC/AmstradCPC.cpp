@@ -9,12 +9,12 @@
 #include "AmstradCPC.hpp"
 
 #include "Keyboard.hpp"
+#include "FDC.hpp"
 
 #include "../../Processors/Z80/Z80.hpp"
 
 #include "../../Components/6845/CRTC6845.hpp"
 #include "../../Components/8255/i8255.hpp"
-#include "../../Components/8272/i8272.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
 
 #include "../Utility/MemoryFuzzer.hpp"
@@ -677,37 +677,6 @@ class KeyboardState: public GI::AY38910::PortHandler {
 };
 
 /*!
-	Wraps the 8272 so as to provide proper clocking and RPM counts, and just directly
-	exposes motor control, applying the same value to all drives.
-*/
-class FDC: public Intel::i8272::i8272 {
-	private:
-		Intel::i8272::BusHandler bus_handler_;
-
-	public:
-		FDC() : i8272(bus_handler_, Cycles(8000000)) {
-			emplace_drive(8000000, 300, 1);
-			set_drive(1);
-		}
-
-		void set_motor_on(bool on) {
-			get_drive().set_motor_on(on);
-		}
-
-		void select_drive(int) {
-			// TODO: support more than one drive. (and in set_disk)
-		}
-
-		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int) {
-			get_drive().set_disk(disk);
-		}
-
-		void set_activity_observer(Activity::Observer *observer) {
-			get_drive().set_activity_observer(observer, "Drive 1", true);
-		}
-};
-
-/*!
 	Provides the mechanism of receipt for input and output of the 8255's various ports.
 */
 class i8255PortHandler : public Intel::i8255::PortHandler {
@@ -1249,7 +1218,7 @@ template <bool has_fdc> class ConcreteMachine:
 		i8255PortHandler i8255_port_handler_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
-		FDC fdc_;
+		Amstrad::FDC fdc_;
 		HalfCycles time_since_fdc_update_;
 		void flush_fdc() {
 			if constexpr (has_fdc) {

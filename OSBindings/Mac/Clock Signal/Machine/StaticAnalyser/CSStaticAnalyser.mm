@@ -23,6 +23,7 @@
 #include "../../../../../Analyser/Static/MSX/Target.hpp"
 #include "../../../../../Analyser/Static/Oric/Target.hpp"
 #include "../../../../../Analyser/Static/ZX8081/Target.hpp"
+#include "../../../../../Analyser/Static/ZXSpectrum/Target.hpp"
 
 #import "Clock_Signal-Swift.h"
 
@@ -187,6 +188,20 @@
 	return self;
 }
 
+- (instancetype)initWithSpectrumModel:(CSMachineSpectrumModel)model {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::ZXSpectrum::Target;
+		auto target = std::make_unique<Target>();
+		switch(model) {
+			case CSMachineSpectrumModelPlus2a:	target->model = Target::Model::Plus2a;	break;
+			case CSMachineSpectrumModelPlus3:	target->model = Target::Model::Plus3;	break;
+		}
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region memorySize:(Kilobytes)memorySize hasC1540:(BOOL)hasC1540 {
 	self = [super init];
 	if(self) {
@@ -263,6 +278,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 		case Analyser::Machine::Oric:			return @"OricOptions";
 		case Analyser::Machine::Vic20:			return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::ZX8081:			return @"ZX8081Options";
+		case Analyser::Machine::ZXSpectrum:		return @"QuickLoadCompositeOptions"; // TODO: @"ZXSpectrumOptions";
 		default: return nil;
 	}
 }

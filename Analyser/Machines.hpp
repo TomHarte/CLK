@@ -24,7 +24,8 @@ enum class Machine {
 	MSX,
 	Oric,
 	Vic20,
-	ZX8081
+	ZX8081,
+	ZXSpectrum,
 };
 
 }

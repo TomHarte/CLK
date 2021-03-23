@@ -45,6 +45,7 @@ SOURCES += \
 	$$SRC/Analyser/Static/Oric/*.cpp \
 	$$SRC/Analyser/Static/Sega/*.cpp \
 	$$SRC/Analyser/Static/ZX8081/*.cpp \
+	$$SRC/Analyser/Static/ZXSpectrum/*.cpp \
 \
 	$$SRC/Components/1770/*.cpp \
 	$$SRC/Components/5380/*.cpp \
@@ -88,7 +89,9 @@ SOURCES += \
 	$$SRC/Machines/MSX/*.cpp \
 	$$SRC/Machines/Oric/*.cpp \
 	$$SRC/Machines/Utility/*.cpp \
-	$$SRC/Machines/ZX8081/*.cpp \
+	$$SRC/Machines/Sinclair/Keyboard/*.cpp \
+	$$SRC/Machines/Sinclair/ZX8081/*.cpp \
+	$$SRC/Machines/Sinclair/ZXSpectrum/*.cpp \
 \
 	$$SRC/Outputs/*.cpp \
 	$$SRC/Outputs/CRT/*.cpp \
@@ -213,7 +216,9 @@ HEADERS += \
 	$$SRC/Machines/MSX/*.hpp \
 	$$SRC/Machines/Oric/*.hpp \
 	$$SRC/Machines/Utility/*.hpp \
-	$$SRC/Machines/ZX8081/*.hpp \
+	$$SRC/Machines/Sinclair/Keyboard/*.hpp \
+	$$SRC/Machines/Sinclair/ZX8081/*.hpp \
+	$$SRC/Machines/Sinclair/ZXSpectrum/*.hpp \
 \
 	$$SRC/Numeric/*.hpp \
 \

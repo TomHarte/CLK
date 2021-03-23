@@ -8,10 +8,14 @@
 
 #include "Keyboard.hpp"
 
-using namespace ZX8081;
+#include <cstring>
+
+using namespace Sinclair::ZX::Keyboard;
+
+KeyboardMapper::KeyboardMapper(Machine machine) : machine_(machine) {}
 
 uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
-#define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return ZX8081::dest
+#define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return dest
 	switch(key) {
 		default: break;
 
@@ -25,9 +29,27 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 		BIND(B, KeyB);		BIND(N, KeyN);		BIND(M, KeyM);
 
 		BIND(LeftShift, KeyShift);	BIND(RightShift, KeyShift);
-		BIND(FullStop, KeyDot);
 		BIND(Enter, KeyEnter);
 		BIND(Space, KeySpace);
+
+		// Full stop has a key on the ZX80 and ZX81; it doesn't have a dedicated key on the Spectrum.
+		case Inputs::Keyboard::Key::FullStop:
+			if(machine_ == Machine::ZXSpectrum) {
+				return KeySpectrumDot;
+			} else {
+				return KeyDot;
+			}
+		break;
+
+		// Map controls and options to symbol shift, if this is a ZX Spectrum.
+		case Inputs::Keyboard::Key::LeftOption:
+		case Inputs::Keyboard::Key::RightOption:
+		case Inputs::Keyboard::Key::LeftControl:
+		case Inputs::Keyboard::Key::RightControl:
+			if(machine_ == Machine::ZXSpectrum) {
+				return KeySymbolShift;
+			}
+		break;
 
 		// Virtual keys follow.
 		BIND(Backspace, KeyDelete);
@@ -37,12 +59,13 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 		BIND(Left, KeyLeft);
 		BIND(Right, KeyRight);
 		BIND(BackTick, KeyEdit);	BIND(F1, KeyEdit);
+		BIND(Comma, KeyComma);
 	}
 #undef BIND
 	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }
 
-CharacterMapper::CharacterMapper(bool is_zx81) : is_zx81_(is_zx81) {}
+CharacterMapper::CharacterMapper(Machine machine) : machine_(machine) {}
 
 const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 #define KEYS(...)	{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
@@ -183,12 +206,80 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 #undef SHIFT
 #undef X
 
-	if(is_zx81_)
+	switch(machine_) {
+		case Machine::ZX81:
+		case Machine::ZXSpectrum:	// TODO: some differences exist for the Spectrum.
 		return table_lookup_sequence_for_character(zx81_key_sequences, sizeof(zx81_key_sequences), character);
-	else
+
+		case Machine::ZX80:
 		return table_lookup_sequence_for_character(zx80_key_sequences, sizeof(zx80_key_sequences), character);
+	}
 }
 
 bool CharacterMapper::needs_pause_after_key(uint16_t key) const {
 	return key != KeyShift;
+}
+
+Keyboard::Keyboard(Machine machine) : machine_(machine) {
+	clear_all_keys();
+}
+
+void Keyboard::set_key_state(uint16_t key, bool is_pressed) {
+	const auto line = key >> 8;
+
+	// Check for special cases.
+	if(line > 7) {
+		switch(key) {
+#define ShiftedKey(source, base, shift)	\
+			case source:				\
+				set_key_state(shift, is_pressed);	\
+				set_key_state(base, is_pressed);	\
+			break;
+
+			ShiftedKey(KeyDelete, Key0, KeyShift);
+			ShiftedKey(KeyBreak, KeySpace, KeyShift);
+			ShiftedKey(KeyUp, Key7, KeyShift);
+			ShiftedKey(KeyDown, Key6, KeyShift);
+			ShiftedKey(KeyLeft, Key5, KeyShift);
+			ShiftedKey(KeyRight, Key8, KeyShift);
+			ShiftedKey(KeyEdit, (machine_ == Machine::ZX80) ? KeyEnter : Key1, KeyShift);
+
+			ShiftedKey(KeySpectrumDot, KeyM, KeySymbolShift);
+
+			case KeyComma:
+				if(machine_ == Machine::ZXSpectrum) {
+					// Spectrum: comma = symbol shift + n.
+					set_key_state(KeySymbolShift, is_pressed);
+					set_key_state(KeyN, is_pressed);
+				} else {
+					// ZX80/81: comma = shift + dot.
+					set_key_state(KeyShift, is_pressed);
+					set_key_state(KeyDot, is_pressed);
+				}
+			break;
+
+#undef ShiftedKey
+		}
+	} else {
+		if(is_pressed)
+			key_states_[line] &= uint8_t(~key);
+		else
+			key_states_[line] |= uint8_t(key);
+	}
+}
+
+void Keyboard::clear_all_keys() {
+	memset(key_states_, 0xff, 8);
+}
+
+uint8_t Keyboard::read(uint16_t address) {
+	uint8_t value = 0xff;
+
+	uint16_t mask = 0x100;
+	for(int c = 0; c < 8; c++) {
+		if(!(address & mask)) value &= key_states_[c];
+		mask <<= 1;
+	}
+
+	return value;
 }

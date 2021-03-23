@@ -23,7 +23,8 @@
 #include "../MasterSystem/MasterSystem.hpp"
 #include "../MSX/MSX.hpp"
 #include "../Oric/Oric.hpp"
-#include "../ZX8081/ZX8081.hpp"
+#include "../Sinclair/ZX8081/ZX8081.hpp"
+#include "../Sinclair/ZXSpectrum/ZXSpectrum.hpp"
 
 // Sources for construction options.
 #include "../../Analyser/Static/Acorn/Target.hpp"
@@ -38,6 +39,7 @@
 #include "../../Analyser/Static/Oric/Target.hpp"
 #include "../../Analyser/Static/Sega/Target.hpp"
 #include "../../Analyser/Static/ZX8081/Target.hpp"
+#include "../../Analyser/Static/ZXSpectrum/Target.hpp"
 
 #include "../../Analyser/Dynamic/MultiMachine/MultiMachine.hpp"
 #include "TypedDynamicMachine.hpp"
@@ -62,7 +64,8 @@ Machine::DynamicMachine *Machine::MachineForTarget(const Analyser::Static::Targe
 			Bind(MSX)
 			Bind(Oric)
 			BindD(Sega::MasterSystem, MasterSystem)
-			Bind(ZX8081)
+			BindD(Sinclair::ZX8081, ZX8081)
+			BindD(Sinclair::ZXSpectrum, ZXSpectrum)
 
 			default:
 				error = Machine::Error::UnknownMachine;
@@ -130,6 +133,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Vic20:			return "Vic20";
 		case Analyser::Machine::ZX8081:			return "ZX8081";
+		case Analyser::Machine::ZXSpectrum:		return "ZXSpectrum";
 
 		default:	return "";
 	}
@@ -150,6 +154,7 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Vic20:			return "Vic 20";
 		case Analyser::Machine::ZX8081:			return "ZX80/81";
+		case Analyser::Machine::ZXSpectrum:		return "ZX Spectrum";
 
 		default:	return "";
 	}
@@ -200,7 +205,8 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	Emplace(MSX, MSX::Machine);
 	Emplace(Oric, Oric::Machine);
 	Emplace(Vic20, Commodore::Vic20::Machine);
-	Emplace(ZX8081, ZX8081::Machine);
+	Emplace(ZX8081, Sinclair::ZX8081::Machine);
+	Emplace(ZXSpectrum, Sinclair::ZXSpectrum::Machine);
 
 #undef Emplace
 
@@ -224,6 +230,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	Add(Oric);
 	AddMapped(Vic20, Commodore);
 	Add(ZX8081);
+	Add(ZXSpectrum);
 
 	if(!meaningful_without_media_only) {
 		Add(Atari2600);
@@ -232,7 +239,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	}
 
 #undef Add
-#undef AddTwo
+#undef AddMapped
 
 	return options;
 }
