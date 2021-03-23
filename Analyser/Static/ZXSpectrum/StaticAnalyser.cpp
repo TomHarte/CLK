@@ -86,8 +86,10 @@ Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(const Medi
 	}
 
 	// If any media survived, add the target.
-	if(!target->media.empty())
+	if(!target->media.empty()) {
+		target->should_hold_enter = true;	// To force entry into the 'loader' and thereby load the media.
 		destination.push_back(std::move(target));
+	}
 
 	return destination;
 }

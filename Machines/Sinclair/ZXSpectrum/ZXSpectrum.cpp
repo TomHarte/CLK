@@ -83,6 +83,13 @@ template<Model model> class ConcreteMachine:
 
 			// Insert media.
 			insert_media(target.media);
+
+			// Possibly depress the enter key.
+			if(target.should_hold_enter) {
+				// Hold it for five seconds, more or less.
+				duration_to_press_enter_ = Cycles(5 * clock_rate());
+				keyboard_.set_key_state(ZX::Keyboard::KeyEnter, true);
+			}
 		}
 
 		~ConcreteMachine() {
@@ -124,6 +131,17 @@ template<Model model> class ConcreteMachine:
 
 		void run_for(const Cycles cycles) override {
 			z80_.run_for(cycles);
+
+			// Use this very broad timing base for the automatic enter depression.
+			// It's not worth polluting the main loop.
+			if(duration_to_press_enter_ > Cycles(0)) {
+				if(duration_to_press_enter_ < cycles) {
+					duration_to_press_enter_ = Cycles(0);
+					keyboard_.set_key_state(ZX::Keyboard::KeyEnter, false);
+				} else {
+					duration_to_press_enter_ -= cycles;
+				}
+			}
 		}
 
 		void flush() {
@@ -358,6 +376,11 @@ template<Model model> class ConcreteMachine:
 
 		void clear_all_keys() override {
 			keyboard_.clear_all_keys();
+
+			// Caveat: if holding enter synthetically, continue to do so.
+			if(duration_to_press_enter_ > Cycles(0)) {
+				keyboard_.set_key_state(ZX::Keyboard::KeyEnter, true);
+			}
 		}
 
 		// MARK: - MediaTarget.
@@ -585,6 +608,9 @@ template<Model model> class ConcreteMachine:
 
 		// MARK: - Disc.
 		JustInTimeActor<Amstrad::FDC, 1, 1, Cycles> fdc_;
+
+		// MARK: - Automatic startup.
+		Cycles duration_to_press_enter_;
 };
 
 
