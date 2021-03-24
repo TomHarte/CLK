@@ -45,7 +45,7 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 	constexpr float maximum_medium_length = 0.000728f;
 	constexpr float maximum_long_length = 0.001456f;
 
-	bool wave_is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
+	const bool wave_is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
 	if(!wave_was_high_ && wave_is_high != wave_was_high_) {
 		if(cycle_length_ < maximum_short_length) push_wave(WaveType::Short);
 		else if(cycle_length_ < maximum_medium_length) push_wave(WaveType::Medium);
@@ -138,7 +138,7 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 				return;
 			}
 			if(slow_sync_matching_depth < waves.size() && fast_sync_matching_depth < waves.size()) {
-				int least_depth = static_cast<int>(std::min(slow_sync_matching_depth, fast_sync_matching_depth));
+				int least_depth = int(std::min(slow_sync_matching_depth, fast_sync_matching_depth));
 				remove_waves(least_depth ? least_depth : 1);
 			}
 

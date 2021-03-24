@@ -9,6 +9,8 @@
 #ifndef Analyser_Static_MSX_Target_h
 #define Analyser_Static_MSX_Target_h
 
+#include "../../../Reflection/Enum.hpp"
+#include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 #include <string>
 
@@ -16,15 +18,24 @@ namespace Analyser {
 namespace Static {
 namespace MSX {
 
-struct Target: public ::Analyser::Static::Target {
+struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	bool has_disk_drive = false;
 	std::string loading_command;
 
-	enum class Region {
+	ReflectableEnum(Region,
 		Japan,
 		USA,
 		Europe
-	} region = Region::USA;
+	);
+	Region region = Region::USA;
+
+	Target(): Analyser::Static::Target(Machine::MSX) {
+		if(needs_declare()) {
+			DeclareField(has_disk_drive);
+			DeclareField(region);
+			AnnounceEnum(Region);
+		}
+	}
 };
 
 }

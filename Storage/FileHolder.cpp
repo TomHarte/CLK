@@ -27,8 +27,8 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 			file_ = std::fopen(file_name.c_str(), "rb+");
 			if(file_) break;
 			is_read_only_ = true;
+			[[fallthrough]];
 
-		// deliberate fallthrough...
 		case FileMode::Read:
 			file_ = std::fopen(file_name.c_str(), "rb");
 		break;
@@ -42,55 +42,55 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 }
 
 uint32_t FileHolder::get32le() {
-	uint32_t result = static_cast<uint32_t>(std::fgetc(file_));
-	result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
-	result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
-	result |= static_cast<uint32_t>(std::fgetc(file_)) << 24;
+	uint32_t result = uint32_t(std::fgetc(file_));
+	result |= uint32_t(std::fgetc(file_)) << 8;
+	result |= uint32_t(std::fgetc(file_)) << 16;
+	result |= uint32_t(std::fgetc(file_)) << 24;
 
 	return result;
 }
 
 uint32_t FileHolder::get32be() {
-	uint32_t result = static_cast<uint32_t>(std::fgetc(file_)) << 24;
-	result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
-	result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
-	result |= static_cast<uint32_t>(std::fgetc(file_));
+	uint32_t result = uint32_t(std::fgetc(file_)) << 24;
+	result |= uint32_t(std::fgetc(file_)) << 16;
+	result |= uint32_t(std::fgetc(file_)) << 8;
+	result |= uint32_t(std::fgetc(file_));
 
 	return result;
 }
 
 uint32_t FileHolder::get24le() {
-	uint32_t result = static_cast<uint32_t>(std::fgetc(file_));
-	result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
-	result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
+	uint32_t result = uint32_t(std::fgetc(file_));
+	result |= uint32_t(std::fgetc(file_)) << 8;
+	result |= uint32_t(std::fgetc(file_)) << 16;
 
 	return result;
 }
 
 uint32_t FileHolder::get24be() {
-	uint32_t result = static_cast<uint32_t>(std::fgetc(file_)) << 16;
-	result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
-	result |= static_cast<uint32_t>(std::fgetc(file_));
+	uint32_t result = uint32_t(std::fgetc(file_)) << 16;
+	result |= uint32_t(std::fgetc(file_)) << 8;
+	result |= uint32_t(std::fgetc(file_));
 
 	return result;
 }
 
 uint16_t FileHolder::get16le() {
-	uint16_t result = static_cast<uint16_t>(std::fgetc(file_));
-	result |= static_cast<uint16_t>(static_cast<uint16_t>(std::fgetc(file_)) << 8);
+	uint16_t result = uint16_t(std::fgetc(file_));
+	result |= uint16_t(uint16_t(std::fgetc(file_)) << 8);
 
 	return result;
 }
 
 uint16_t FileHolder::get16be() {
-	uint16_t result = static_cast<uint16_t>(static_cast<uint16_t>(std::fgetc(file_)) << 8);
-	result |= static_cast<uint16_t>(std::fgetc(file_));
+	uint16_t result = uint16_t(uint16_t(std::fgetc(file_)) << 8);
+	result |= uint16_t(std::fgetc(file_));
 
 	return result;
 }
 
 uint8_t FileHolder::get8() {
-	return static_cast<uint8_t>(std::fgetc(file_));
+	return uint8_t(std::fgetc(file_));
 }
 
 void FileHolder::put16be(uint16_t value) {
@@ -173,8 +173,8 @@ void FileHolder::ensure_is_at_least_length(long length) {
 	std::fseek(file_, 0, SEEK_END);
 	long bytes_to_write = length - ftell(file_);
 	if(bytes_to_write > 0) {
-		std::vector<uint8_t> empty(static_cast<std::size_t>(bytes_to_write), 0);
-		std::fwrite(empty.data(), sizeof(uint8_t), static_cast<std::size_t>(bytes_to_write), file_);
+		std::vector<uint8_t> empty(size_t(bytes_to_write), 0);
+		std::fwrite(empty.data(), sizeof(uint8_t), size_t(bytes_to_write), file_);
 	}
 }
 

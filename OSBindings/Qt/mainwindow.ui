@@ -1,0 +1,879 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>400</width>
+    <height>300</height>
+   </size>
+  </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="ScanTargetWidget" name="openGLWidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QTabWidget" name="machineSelectionTabs">
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
+      <widget class="QWidget" name="appleIITab">
+       <attribute name="title">
+        <string>Apple II</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="appleIILayout">
+        <item>
+         <layout class="QHBoxLayout" name="appleIIHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="appleIIFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="appleIIModelLabel">
+              <property name="text">
+               <string>Model:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="appleIIModelComboBox">
+              <item>
+               <property name="text">
+                <string>Apple II</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Apple II+</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Apple IIe</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Enhanced IIe</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="appleIIDiskControllerLabel">
+              <property name="text">
+               <string>Disk Controller:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="appleIIDiskControllerComboBox">
+              <item>
+               <property name="text">
+                <string>Sixteen Sector</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Thirteen Sector</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>None</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="appleIIHSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="appleIIgsTab">
+       <attribute name="title">
+        <string>Apple IIgs</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="appleIIgsLayout">
+        <item>
+         <layout class="QHBoxLayout" name="appleIIgsHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="appleIIgsFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="appleIIgsModelLabel">
+              <property name="text">
+               <string>Model:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="appleIIgsModelComboBox">
+              <item>
+               <property name="text">
+                <string>ROM 00</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>ROM 01</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>ROM 03</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="appleIIgsMemorySizeLabel">
+              <property name="text">
+               <string>Memory Size:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="appleIIgsMemorySizeComboBox">
+              <item>
+               <property name="text">
+                <string>256kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>1mb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>8mb</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="appleIIgsHSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="amstradCPCTab">
+       <attribute name="title">
+        <string>Amstrad CPC</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="amstradCPCLayout">
+        <item>
+         <layout class="QHBoxLayout" name="amstradCPCHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="amstradCPCFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="amstradCPCModelLabel">
+              <property name="text">
+               <string>Model:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="amstradCPCModelComboBox">
+              <item>
+               <property name="text">
+                <string>CPC464</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>CPC664</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>CPC6128</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="amstradCPCHSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="atariSTTab">
+       <attribute name="title">
+        <string>Atari ST</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="atariSTLayout">
+        <item alignment="Qt::AlignTop">
+         <widget class="QLabel" name="atariSTLabel">
+          <property name="text">
+           <string>At present only a 512k Atari ST is supported.</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="electronTab">
+       <attribute name="title">
+        <string>Electron</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="electronLayout">
+        <item>
+         <widget class="QCheckBox" name="electronDFSCheckBox">
+          <property name="text">
+           <string>With Disk Filing System</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="electronADFSCheckBox">
+          <property name="text">
+           <string>With Advanced Disk Filing System</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="electronAP6CheckBox">
+          <property name="text">
+           <string>With Advanced Plus 6 Utility ROM</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="electronSidewaysRAMCheckBox">
+          <property name="text">
+           <string>Fill unused ROM banks with sideways RAM</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="macintoshTab">
+       <attribute name="title">
+        <string>Macintosh</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="macintoshLayout">
+        <item>
+         <layout class="QHBoxLayout" name="macintoshHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="macintoshFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="macintoshModelLabel">
+              <property name="text">
+               <string>Model:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="macintoshModelComboBox">
+              <item>
+               <property name="text">
+                <string>128k</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>512k</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>512ke</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Plus</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="macintoshSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="msxTab">
+       <attribute name="title">
+        <string>MSX</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="msxLayout">
+        <item>
+         <layout class="QHBoxLayout" name="msxHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="msxFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="msxRegionLabel">
+              <property name="text">
+               <string>Region</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="msxRegionComboBox">
+              <item>
+               <property name="text">
+                <string>European (PAL)</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>American (NTSC)</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Japanese (NTSC)</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="msxSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="msxDiskDriveCheckBox">
+          <property name="text">
+           <string>Attach disk drive</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="oricTab">
+       <attribute name="title">
+        <string>Oric</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="oricLayout">
+        <item>
+         <layout class="QHBoxLayout" name="oricHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="oricFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="oricModelLabel">
+              <property name="text">
+               <string>Model:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="oricModelComboBox">
+              <item>
+               <property name="text">
+                <string>Oric-1</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Oric Atmos</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Pravetz 8D</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="oricDiskInterfaceLabel">
+              <property name="text">
+               <string>Disk Interface:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="oricDiskInterfaceComboBox">
+              <item>
+               <property name="text">
+                <string>None</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Microdisc</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Jasmin</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>8DOS</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Byte Drive 500</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="oricHSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="spectrumTab">
+       <attribute name="title">
+        <string>Spectrum</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="spectrumLayout">
+        <item>
+         <layout class="QHBoxLayout" name="spectrumHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="spectrumFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="spectrumModelLabel">
+              <property name="text">
+               <string>Model:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="spectrumModelComboBox">
+              <item>
+               <property name="text">
+                <string>+2a</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>+3</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="spectrumHSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="vic20Tab">
+       <attribute name="title">
+        <string>Vic-20</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="vic20Layout">
+        <item>
+         <layout class="QHBoxLayout" name="vic20HorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="vic20FormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="vic20RegionLabel">
+              <property name="text">
+               <string>Region:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="vic20RegionComboBox">
+              <item>
+               <property name="text">
+                <string>European (PAL)</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>American (NTSC)</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Danish (PAL)</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Swedish (PAL)</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Japanese (NTSC)</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="vic20MemorySizeLabel">
+              <property name="text">
+               <string>Memory Size:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="vic20MemorySizeComboBox">
+              <item>
+               <property name="text">
+                <string>Unexpanded</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>8 kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>32 kb</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="vic20HSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="vic20C1540CheckBox">
+          <property name="text">
+           <string>Attach C-1540 disk drive</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="vic20VSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="zx80Tab">
+       <attribute name="title">
+        <string>ZX80</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="zx80Layout">
+        <item>
+         <layout class="QHBoxLayout" name="zx80HorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="zx80FormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="zx80MemorySizeLabel">
+              <property name="text">
+               <string>Memory Size:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="zx80MemorySizeComboBox">
+              <item>
+               <property name="text">
+                <string>Unexpanded</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>16 kb</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="zx80HSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="zx80UseZX81ROMCheckBox">
+          <property name="text">
+           <string>Use ZX81 ROM</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="zx81VSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="zx81Tab">
+       <attribute name="title">
+        <string>ZX81</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="zx81Layout">
+        <item>
+         <layout class="QHBoxLayout" name="zx81HorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="zx81FormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="zx81MemorySizeLabel">
+              <property name="text">
+               <string>Memory Size:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="zx81MemorySizeComboBox">
+              <item>
+               <property name="text">
+                <string>Unexpanded</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>16 kb</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="zx81Spacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item alignment="Qt::AlignBottom">
+     <widget class="QLabel" name="topTipLabel">
+      <property name="text">
+       <string>TIP: the easiest way to get started is just to open the disk, tape or cartridge you want to use. The emulator will automatically configure a suitable machine and attempt to launch the software you've selected. Use this method to load Atari 2600, ColecoVision or Master System games.</string>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item alignment="Qt::AlignRight|Qt::AlignBottom">
+     <widget class="QPushButton" name="startMachineButton">
+      <property name="text">
+       <string>Start Machine</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPlainTextEdit" name="missingROMsBox">
+      <property name="acceptDrops">
+       <bool>true</bool>
+      </property>
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+      <property name="plainText">
+       <string>Clock Signal requires you to provide images of the system ROMs for this machine. They will be stored permanently; you need do this only once.
+
+Please drag and drop the following over this window:
+
+</string>
+      </property>
+     </widget>
+    </item>
+    <item alignment="Qt::AlignHCenter|Qt::AlignBottom">
+     <widget class="QSlider" name="volumeSlider">
+      <property name="minimumSize">
+       <size>
+        <width>250</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <action name="actionDo_this">
+   <property name="text">
+    <string>Do this</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ScanTargetWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>scantargetwidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

@@ -32,11 +32,11 @@ class EmuTOS: public ComparativeBusHandler {
 			m68000_.run_for(cycles);
 		}
 
-		CPU::MC68000::ProcessorState get_state() override {
+		CPU::MC68000::ProcessorState get_state() final {
 			return m68000_.get_state();
 		}
 
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
+		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
 			const uint32_t address = cycle.word_address();
 			uint32_t word_address = address;
 
@@ -105,15 +105,15 @@ class EmuTOS: public ComparativeBusHandler {
 
 - (void)testImage:(NSString *)image trace:(NSString *)trace length:(int)length {
 	const std::vector<ROMMachine::ROM> rom_names = {{"AtariST", "", image.UTF8String, 0, 0 }};
-    const auto roms = CSROMFetcher()(rom_names);
+	const auto roms = CSROMFetcher()(rom_names);
 	NSString *const traceLocation = [[NSBundle bundleForClass:[self class]] pathForResource:trace ofType:@"trace.txt.gz"];
-    _machine = std::make_unique<EmuTOS>(*roms[0], traceLocation.UTF8String);
-    _machine->run_for(HalfCycles(length));
+	_machine = std::make_unique<EmuTOS>(*roms[0], traceLocation.fileSystemRepresentation);
+	_machine->run_for(HalfCycles(length));
 }
 
 - (void)testEmuTOSStartup {
 	[self testImage:@"etos192uk.img" trace:@"etos192uk" length:313490];
-    // TODO: assert that machine is now STOPped.
+	// TODO: assert that machine is now STOPped.
 }
 
 - (void)testTOSStartup {

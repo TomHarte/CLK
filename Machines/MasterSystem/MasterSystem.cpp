@@ -12,15 +12,18 @@
 
 #include "../../Components/9918/9918.hpp"
 #include "../../Components/SN76489/SN76489.hpp"
+#include "../../Components/OPx/OPLL.hpp"
 
-#include "../CRTMachine.hpp"
-#include "../JoystickMachine.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../MachineTypes.hpp"
+#include "../../Configurable/Configurable.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../ClockReceiver/JustInTime.hpp"
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
+
+#define LOG_PREFIX "[SMS] "
 #include "../../Outputs/Log.hpp"
 
 #include "../../Analyser/Static/Sega/Target.hpp"
@@ -29,17 +32,11 @@
 #include <iostream>
 
 namespace {
-constexpr int sn76489_divider = 2;
+constexpr int audio_divider = 1;
 }
 
 namespace Sega {
 namespace MasterSystem {
-
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayCompositeColour)
-	);
-}
 
 class Joystick: public Inputs::ConcreteJoystick {
 	public:
@@ -54,7 +51,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 				Input(Input::Fire, 1)
 			}) {}
 
-		void did_set_input(const Input &digital_input, bool is_active) override {
+		void did_set_input(const Input &digital_input, bool is_active) final {
 			switch(digital_input.type) {
 				default: return;
 
@@ -83,11 +80,13 @@ class Joystick: public Inputs::ConcreteJoystick {
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
-	public CRTMachine::Machine,
-	public KeyboardMachine::Machine,
-	public Inputs::Keyboard::Delegate,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::KeyboardMachine,
+	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
-	public JoystickMachine::Machine {
+	public Inputs::Keyboard::Delegate {
 
 	public:
 		ConcreteMachine(const Analyser::Static::Sega::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -99,12 +98,14 @@ class ConcreteMachine:
 			sn76489_(
 				(target.model == Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
 				audio_queue_,
-				sn76489_divider),
-			speaker_(sn76489_),
+				audio_divider),
+			opll_(audio_queue_, audio_divider),
+			mixer_(sn76489_, opll_),
+			speaker_(mixer_),
 			keyboard_({Inputs::Keyboard::Key::Enter, Inputs::Keyboard::Key::Escape}, {}) {
 			// Pick the clock rate based on the region.
 			const double clock_rate = target.region == Target::Region::Europe ? 3546893.0 : 3579540.0;
-			speaker_.set_input_rate(static_cast<float>(clock_rate / sn76489_divider));
+			speaker_.set_input_rate(float(clock_rate / audio_divider));
 			set_clock_rate(clock_rate);
 
 			// Instantiate the joysticks.
@@ -116,7 +117,9 @@ class ConcreteMachine:
 			map(write_pointers_, nullptr, 0x10000, 0);
 
 			// Take a copy of the cartridge and place it into memory.
-			cartridge_ = target.media.cartridges[0]->get_segments()[0].data;
+			if(!target.media.cartridges.empty()) {
+				cartridge_ = target.media.cartridges[0]->get_segments()[0].data;
+			}
 			if(cartridge_.size() < 48*1024) {
 				std::size_t new_space = 48*1024 - cartridge_.size();
 				cartridge_.resize(48*1024);
@@ -129,25 +132,34 @@ class ConcreteMachine:
 				paging_registers_[1] = 1;
 				paging_registers_[2] = 0;
 			}
-			page_cartridge();
 
-			// Load the BIOS if relevant.
-			if(has_bios()) {
-				// TODO: there's probably a million other versions of the Master System BIOS; try to build a
-				// CRC32 catalogue of those. So far:
-				//
-				//	0072ed54 = US/European BIOS 1.3
-				//	48d44a13 = Japanese BIOS 2.1
-				const auto roms = rom_fetcher({ {"MasterSystem", "the Master System BIOS", "bios.sms", 8*1024, { 0x0072ed54, 0x48d44a13 } } });
-				if(!roms[0]) {
-					// No BIOS found; attempt to boot as though it has already disabled itself.
-					memory_control_ |= 0x08;
-					std::cerr << "No BIOS found; attempting to start cartridge directly" << std::endl;
-				} else {
-					roms[0]->resize(8*1024);
-					memcpy(&bios_, roms[0]->data(), roms[0]->size());
-				}
+			// Load the BIOS if available.
+			//
+			// TODO: there's probably a million other versions of the Master System BIOS; try to build a
+			// CRC32 catalogue of those. So far:
+			//
+			//	0072ed54 = US/European BIOS 1.3
+			//	48d44a13 = Japanese BIOS 2.1
+			const bool is_japanese = target.region == Target::Region::Japan;
+			const auto roms = rom_fetcher(
+				{ {"MasterSystem",
+					is_japanese ? "the Japanese Master System BIOS" : "the European/US Master System BIOS",
+					is_japanese ? "japanese-bios.sms" : "bios.sms",
+					8*1024,
+					{ is_japanese ? 0x48d44a13u : 0x0072ed54u }
+				} }
+			);
+			if(!roms[0]) {
+				// No BIOS found; attempt to boot as though it has already disabled itself.
+				has_bios_ = false;
+				memory_control_ |= 0x08;
+				std::cerr << "No BIOS found; attempting to start cartridge directly" << std::endl;
+			} else {
+				has_bios_ = true;
+				roms[0]->resize(8*1024);
+				memcpy(&bios_, roms[0]->data(), roms[0]->size());
 			}
+			page_cartridge();
 
 			// Map RAM.
 			if(is_master_system(model_)) {
@@ -158,8 +170,12 @@ class ConcreteMachine:
 				map(write_pointers_, ram_, 1024, 0xc000, 0x10000);
 			}
 
-			// Apple a relatively low low-pass filter. More guidance needed here.
-			speaker_.set_high_frequency_cutoff(8000);
+			// Apply a relatively low low-pass filter. More guidance needed here.
+			// TODO: this is disabled for now since it isn't applicable for the FM chip, I think.
+//			speaker_.set_high_frequency_cutoff(8000);
+
+			// Set default mixer levels: FM off, SN full-throttle.
+			set_mixer_levels(0);
 
 			keyboard_.set_delegate(this);
 		}
@@ -168,7 +184,7 @@ class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			vdp_->set_tv_standard(
 				(region_ == Target::Region::Europe) ?
 					TI::TMS::TVStandard::PAL : TI::TMS::TVStandard::NTSC);
@@ -181,15 +197,19 @@ class ConcreteMachine:
 			return vdp_->get_scaled_scan_status();
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			vdp_->set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Display::DisplayType get_display_type() const final {
+			return vdp_->get_display_type();
+		}
+
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
-		void run_for(const Cycles cycles) override {
+		void run_for(const Cycles cycles) final {
 			z80_.run_for(cycles);
 		}
 
@@ -249,17 +269,29 @@ class ConcreteMachine:
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc0: {
-								Joystick *const joypad1 = static_cast<Joystick *>(joysticks_[0].get());
-								Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
-								*cycle.value = static_cast<uint8_t>(joypad1->get_state() | (joypad2->get_state() << 6));
+								if(memory_control_ & 0x4) {
+									if(has_fm_audio_ && (address & 0xff) == 0xf2) {
+										*cycle.value = opll_detection_word_;
+									} else {
+										*cycle.value = 0xff;
+									}
+								} else {
+									Joystick *const joypad1 = static_cast<Joystick *>(joysticks_[0].get());
+									Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
+									*cycle.value = uint8_t(joypad1->get_state() | (joypad2->get_state() << 6));
+								}
 							} break;
 							case 0xc1: {
-								Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
+								if(memory_control_ & 0x4) {
+									*cycle.value = 0xff;
+								} else {
+									Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
 
-								*cycle.value =
-									(joypad2->get_state() >> 2) |
-									0x30 |
-									get_th_values();
+									*cycle.value =
+										(joypad2->get_state() >> 2) |
+										0x30 |
+										get_th_values();
+								}
 							} break;
 
 							default:
@@ -270,14 +302,15 @@ class ConcreteMachine:
 
 					case CPU::Z80::PartialMachineCycle::Output:
 						switch(address & 0xc1) {
-							case 0x00:
+							case 0x00:		// i.e. even ports less than 0x40.
 								if(is_master_system(model_)) {
 									// TODO: Obey the RAM enable.
+									printf("Memory control: %02x\n", memory_control_);
 									memory_control_ = *cycle.value;
 									page_cartridge();
 								}
 							break;
-							case 0x01: {
+							case 0x01: {	// i.e. odd ports less than 0x40.
 								// A programmer can force the TH lines to 0 here,
 								// causing a phoney lightgun latch, so check for any
 								// discontinuity in TH inputs.
@@ -290,20 +323,28 @@ class ConcreteMachine:
 									vdp_->latch_horizontal_counter();
 								}
 							} break;
-							case 0x40: case 0x41:
+							case 0x40: case 0x41:	// i.e. ports 0x40–0x7f.
 								update_audio();
 								sn76489_.write(*cycle.value);
 							break;
-							case 0x80: case 0x81:
+							case 0x80: case 0x81:	// i.e. ports 0x80–0xbf.
 								vdp_->write(address, *cycle.value);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
-							case 0xc0:
-								LOG("TODO: [output] I/O port A/N; " << int(*cycle.value));
-							break;
-							case 0xc1:
-								LOG("TODO: [output] I/O port B/misc");
+							case 0xc1: case 0xc0:	// i.e. ports 0xc0–0xff.
+								if(has_fm_audio_) {
+									switch(address & 0xff) {
+										case 0xf0: case 0xf1:
+											update_audio();
+											opll_.write(address, *cycle.value);
+										break;
+										case 0xf2:
+											opll_detection_word_ = *cycle.value;
+											set_mixer_levels(opll_detection_word_);
+										break;
+									}
+								}
 							break;
 
 							default:
@@ -311,6 +352,19 @@ class ConcreteMachine:
 							break;
 						}
 					break;
+
+/*
+	TODO: implementation of the below is incomplete.
+	Re: io_port_control_
+
+	Set the TH pins for ports A and B as outputs. Set their output level
+	to any value desired by writing to bits 7 and 5. Read the state of both
+	TH pins back through bits 7 and 6 of port $DD. If the data returned is
+	the same as the data written, it's an export machine, otherwise it's
+	a domestic one.
+
+	— Charles MacDonald
+ */
 
 					case CPU::Z80::PartialMachineCycle::Interrupt:
 						*cycle.value = 0xff;
@@ -344,48 +398,42 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return joysticks_;
 		}
 
 		// MARK: - Keyboard (i.e. the pause and reset buttons).
-		Inputs::Keyboard &get_keyboard() override {
+		Inputs::Keyboard &get_keyboard() final {
 			return keyboard_;
 		}
 
-		void keyboard_did_change_key(Inputs::Keyboard *, Inputs::Keyboard::Key key, bool is_pressed) override {
+		bool keyboard_did_change_key(Inputs::Keyboard *, Inputs::Keyboard::Key key, bool is_pressed) final {
 			if(key == Inputs::Keyboard::Key::Enter) {
 				pause_is_pressed_ = is_pressed;
-			} else if(key == Inputs::Keyboard::Key::Escape) {
-				reset_is_pressed_ = is_pressed;
+				return true;
 			}
+
+			if(key == Inputs::Keyboard::Key::Escape) {
+				reset_is_pressed_ = is_pressed;
+				return true;
+			}
+
+			return false;
 		}
 
-		void reset_all_keys(Inputs::Keyboard *) override {
+		void reset_all_keys(Inputs::Keyboard *) final {
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			return Sega::MasterSystem::get_options();
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-			return selection_set;
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
 		}
 
 	private:
@@ -402,7 +450,7 @@ class ConcreteMachine:
 			// Quick not on TH inputs here: if either is setup as an output, then the
 			// currently output level is returned. Otherwise they're fixed at 1.
 			return
-				static_cast<uint8_t>(
+				uint8_t(
 					((io_port_control_ & 0x02) << 5) | ((io_port_control_&0x20) << 1) |
 					((io_port_control_ & 0x08) << 4) | (io_port_control_&0x80)
 				);
@@ -410,19 +458,47 @@ class ConcreteMachine:
 		}
 
 		inline void update_audio() {
-			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
+			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(audio_divider)));
+		}
+
+		void set_mixer_levels(uint8_t mode) {
+			// This is as per the audio control register;
+			// see https://www.smspower.org/Development/AudioControlPort
+			update_audio();
+			audio_queue_.defer([this, mode] {
+				switch(mode & 3) {
+					case 0:	// SN76489 only; the default.
+						mixer_.set_relative_volumes({1.0f, 0.0f});
+					break;
+
+					case 1: // FM only.
+						mixer_.set_relative_volumes({0.0f, 1.0f});
+					break;
+
+					case 2: // No audio.
+						mixer_.set_relative_volumes({0.0f, 0.0f});
+					break;
+
+					case 3: // Both FM and SN76489.
+						mixer_.set_relative_volumes({0.5f, 0.5f});
+					break;
+				}
+			});
 		}
 
 		using Target = Analyser::Static::Sega::Target;
-		Target::Model model_;
-		Target::Region region_;
-		Target::PagingScheme paging_scheme_;
+		const Target::Model model_;
+		const Target::Region region_;
+		const Target::PagingScheme paging_scheme_;
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		JustInTimeActor<TI::TMS::TMS9918> vdp_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;
-		Outputs::Speaker::LowpassSpeaker<TI::SN76489> speaker_;
+		Yamaha::OPL::OPLL opll_;
+		Outputs::Speaker::CompoundSource<decltype(sn76489_), decltype(opll_)> mixer_;
+		Outputs::Speaker::LowpassSpeaker<decltype(mixer_)> speaker_;
+		uint8_t opll_detection_word_ = 0xff;
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 		Inputs::Keyboard keyboard_;
@@ -437,6 +513,9 @@ class ConcreteMachine:
 		std::vector<uint8_t> cartridge_;
 
 		uint8_t io_port_control_ = 0x0f;
+
+		// This is a static constexpr for now; I may use it in the future.
+		static constexpr bool has_fm_audio_ = true;
 
 		// The memory map has a 1kb granularity; this is determined by the SG1000's 1kb of RAM.
 		const uint8_t *read_pointers_[64];
@@ -459,7 +538,7 @@ class ConcreteMachine:
 					map(
 						read_pointers_,
 						cartridge_.data() + start_addr,
-						std::min(static_cast<size_t>(0x4000), cartridge_.size() - start_addr),
+						std::min(size_t(0x4000), cartridge_.size() - start_addr),
 						c * 0x4000);
 				}
 
@@ -472,13 +551,11 @@ class ConcreteMachine:
 			}
 
 			// Throw the BIOS on top if this machine has one and it isn't disabled.
-			if(has_bios() && !(memory_control_ & 0x08)) {
+			if(has_bios_ && !(memory_control_ & 0x08)) {
 				map(read_pointers_, bios_, 8*1024, 0);
 			}
 		}
-		bool has_bios() {
-			return is_master_system(model_) && region_ != Target::Region::Japan;
-		}
+		bool has_bios_ = true;
 };
 
 }

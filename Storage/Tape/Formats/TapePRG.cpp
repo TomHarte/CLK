@@ -57,7 +57,7 @@ PRG::PRG(const std::string &file_name) :
 		throw ErrorBadFormat;
 
 	load_address_ = file_.get16le();
-	length_ = static_cast<uint16_t>(file_.stats().st_size - 2);
+	length_ = uint16_t(file_.stats().st_size - 2);
 
 	if (load_address_ + length_ >= 65536)
 		throw ErrorBadFormat;
@@ -156,7 +156,7 @@ void PRG::get_next_output_token() {
 	if(bit_offset == 0) {
 		// the first nine bytes are countdown; the high bit is set if this is a header
 		if(byte_offset < countdown_bytes) {
-			output_byte_ = static_cast<uint8_t>(countdown_bytes - byte_offset) | copy_mask_;
+			output_byte_ = uint8_t(countdown_bytes - byte_offset) | copy_mask_;
 		} else {
 			if(file_phase_ == FilePhaseHeader) {
 				if(byte_offset == countdown_bytes + block_length) {

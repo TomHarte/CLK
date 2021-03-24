@@ -129,7 +129,7 @@ struct Flywheel {
 
 		@returns The current output position.
 	*/
-	inline int get_current_output_position() {
+	inline int get_current_output_position() const {
 		if(counter_ < retrace_time_) {
 			const int retrace_distance = int((int64_t(counter_) * int64_t(standard_period_)) / int64_t(retrace_time_));
 			if(retrace_distance > counter_before_retrace_) return 0;
@@ -140,44 +140,61 @@ struct Flywheel {
 	}
 
 	/*!
+		Returns the current 'phase' — 0 is the start of the display; a count up to 0 from a negative number represents
+		the retrace period and it will then count up to get_locked_scan_period().
+
+		@returns The current output position.
+	*/
+	inline int get_current_phase() const {
+		return counter_ - retrace_time_;
+	}
+
+	/*!
 		@returns the amount of time since retrace last began. Time then counts monotonically up from zero.
 	*/
-	inline int get_current_time() {
+	inline int get_current_time() const {
 		return counter_;
 	}
 
 	/*!
 		@returns whether the output is currently retracing.
 	*/
-	inline bool is_in_retrace() {
+	inline bool is_in_retrace() const {
 		return counter_ < retrace_time_;
 	}
 
 	/*!
 		@returns the expected length of the scan period (excluding retrace).
 	*/
-	inline int get_scan_period() {
+	inline int get_scan_period() const {
 		return standard_period_ - retrace_time_;
+	}
+
+	/*!
+		@returns the actual length of the scan period (excluding retrace).
+	*/
+	inline int get_locked_scan_period() const {
+		return expected_next_sync_ - retrace_time_;
 	}
 
 	/*!
 		@returns the expected length of a complete scan and retrace cycle.
 	*/
-	inline int get_standard_period() {
+	inline int get_standard_period() const {
 		return standard_period_;
 	}
 
 	/*!
 		@returns the actual current period for a complete scan (including retrace).
 	*/
-	inline int get_locked_period() {
+	inline int get_locked_period() const {
 		return expected_next_sync_;
 	}
 
 	/*!
 		@returns the amount by which the @c locked_period was adjusted, the last time that an adjustment was applied.
 	*/
-	inline int get_last_period_adjustment() {
+	inline int get_last_period_adjustment() const {
 		return last_adjustment_;
 	}
 
@@ -194,21 +211,21 @@ struct Flywheel {
 	/*!
 		@returns A count of the number of retraces so far performed.
 	*/
-	inline int get_number_of_retraces() {
+	inline int get_number_of_retraces() const {
 		return number_of_retraces_;
 	}
 
 	/*!
 		@returns The amount of time this flywheel spends in retrace, as supplied at construction.
 	*/
-	inline int get_retrace_period() {
+	inline int get_retrace_period() const {
 		return retrace_time_;
 	}
 
 	/*!
 		@returns `true` if a sync is expected soon or if the time at which it was expected (or received) was recent.
 	*/
-	inline bool is_near_expected_sync() {
+	inline bool is_near_expected_sync() const {
 		return
 			(counter_ < (standard_period_ / 100)) ||
 			(counter_ >= expected_next_sync_ - (standard_period_ / 100));

@@ -11,12 +11,15 @@
 #include <algorithm>
 #include <cstring>
 
-#include "Target.hpp"
-
 #include "../../../Storage/Disk/Parsers/CPM.hpp"
 #include "../../../Storage/Disk/Encodings/MFM/Parser.hpp"
+#include "../../../Storage/Tape/Parsers/Spectrum.hpp"
 
-static bool strcmp_insensitive(const char *a, const char *b) {
+#include "Target.hpp"
+
+namespace {
+
+bool strcmp_insensitive(const char *a, const char *b) {
 	if(std::strlen(a) != std::strlen(b)) return false;
 	while(*a) {
 		if(std::tolower(*a) != std::tolower(*b)) return false;
@@ -26,20 +29,20 @@ static bool strcmp_insensitive(const char *a, const char *b) {
 	return true;
 }
 
-static bool is_implied_extension(const std::string &extension) {
+bool is_implied_extension(const std::string &extension) {
 	return
 		extension == "   " ||
 		strcmp_insensitive(extension.c_str(), "BAS") ||
 		strcmp_insensitive(extension.c_str(), "BIN");
 }
 
-static void right_trim(std::string &string) {
+void right_trim(std::string &string) {
 	string.erase(std::find_if(string.rbegin(), string.rend(), [](int ch) {
 		return !std::isspace(ch);
 	}).base(), string.end());
 }
 
-static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
+std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
 	// Trim spaces from the name.
 	std::string name = file.name;
 	right_trim(name);
@@ -58,7 +61,7 @@ static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
 	return command + "\n";
 }
 
-static void InspectCatalogue(
+void InspectCatalogue(
 	const Storage::Disk::CPM::Catalogue &catalogue,
 	const std::unique_ptr<Analyser::Static::AmstradCPC::Target> &target) {
 
@@ -155,7 +158,7 @@ static void InspectCatalogue(
 	target->loading_command = "cat\n";
 }
 
-static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, const std::unique_ptr<Analyser::Static::AmstradCPC::Target> &target) {
+bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, const std::unique_ptr<Analyser::Static::AmstradCPC::Target> &target) {
 	Storage::Encodings::MFM::Parser parser(true, disk);
 	Storage::Encodings::MFM::Sector *boot_sector = parser.get_sector(0, 0, 0x41);
 	if(boot_sector != nullptr && !boot_sector->samples.empty() && boot_sector->samples[0].size() == 512) {
@@ -179,22 +182,49 @@ static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, co
 	return false;
 }
 
-Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+bool IsAmstradTape(const std::shared_ptr<Storage::Tape::Tape> &tape) {
+	// Limited sophistication here; look for a CPC-style file header, that is
+	// any Spectrum-esque block with a synchronisation character of 0x2c.
+	//
+	// More could be done here: parse the header, look for 0x16 data records.
+	using Parser = Storage::Tape::ZXSpectrum::Parser;
+	Parser parser(Parser::MachineType::AmstradCPC);
+
+	while(true) {
+		const auto block = parser.find_block(tape);
+		if(!block) break;
+
+		if(block->type == 0x2c) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+} // namespace
+
+Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	TargetList destination;
 	auto target = std::make_unique<Target>();
-	target->machine = Machine::AmstradCPC;
 	target->confidence = 0.5;
 
 	target->model = Target::Model::CPC6128;
 
 	if(!media.tapes.empty()) {
-		// TODO: which of these are actually potentially CPC tapes?
-		target->media.tapes = media.tapes;
+		bool has_cpc_tape = false;
+		for(auto &tape: media.tapes) {
+			has_cpc_tape |= IsAmstradTape(tape);
+		}
 
-		// Ugliness flows here: assume the CPC isn't smart enough to pause between pressing
-		// enter and responding to the follow-on prompt to press a key, so just type for
-		// a while. Yuck!
-		target->loading_command = "|tape\nrun\"\n1234567890";
+		if(has_cpc_tape) {
+			target->media.tapes = media.tapes;
+
+			// Ugliness flows here: assume the CPC isn't smart enough to pause between pressing
+			// enter and responding to the follow-on prompt to press a key, so just type for
+			// a while. Yuck!
+			target->loading_command = "|tape\nrun\"\n123";
+		}
 	}
 
 	if(!media.disks.empty()) {

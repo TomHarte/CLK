@@ -8,11 +8,7 @@
 
 #include "AtariST.hpp"
 
-#include "../../CRTMachine.hpp"
-#include "../../JoystickMachine.hpp"
-#include "../../KeyboardMachine.hpp"
-#include "../../MouseMachine.hpp"
-#include "../../MediaTarget.hpp"
+#include "../../MachineTypes.hpp"
 #include "../../../Activity/Source.hpp"
 
 //#define LOG_TRACE
@@ -42,28 +38,24 @@
 namespace Atari {
 namespace ST {
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayCompositeColour | Configurable::QuickLoadTape)
-	);
-}
-
 constexpr int CLOCK_RATE = 8021247;
 
 using Target = Analyser::Static::Target;
 class ConcreteMachine:
 	public Atari::ST::Machine,
 	public CPU::MC68000::BusHandler,
-	public CRTMachine::Machine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MouseMachine,
+	public MachineTypes::JoystickMachine,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaTarget,
 	public ClockingHint::Observer,
 	public Motorola::ACIA::ACIA::InterruptDelegate,
 	public Motorola::MFP68901::MFP68901::InterruptDelegate,
 	public DMAController::Delegate,
-	public MouseMachine::Machine,
-	public JoystickMachine::Machine,
-	public KeyboardMachine::MappedMachine,
 	public Activity::Source,
-	public MediaTarget::Machine,
 	public GI::AY38910::PortHandler,
 	public Configurable::Device,
 	public Video::RangeObserver {
@@ -101,8 +93,10 @@ class ConcreteMachine:
 
 			const bool is_early_tos = true;
 			if(is_early_tos) {
+				rom_start_ = 0xfc0000;
 				for(c = 0xfc; c < 0xff; ++c) memory_map_[c] = BusDevice::ROM;
 			} else {
+				rom_start_ = 0xe00000;
 				for(c = 0xe0; c < 0xe4; ++c) memory_map_[c] = BusDevice::ROM;
 			}
 
@@ -145,6 +139,10 @@ class ConcreteMachine:
 
 		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			video_->set_display_type(display_type);
+		}
+
+		Outputs::Display::DisplayType get_display_type() const final {
+			return video_->get_display_type();
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
@@ -239,13 +237,14 @@ class ConcreteMachine:
 						memory = rom_.data();
 						break;
 					}
+					[[fallthrough]];
 				case BusDevice::RAM:
 					memory = ram_.data();
 				break;
 
 				case BusDevice::ROM:
 					memory = rom_.data();
-					address %= rom_.size();
+					address -= rom_start_;
 				break;
 
 				case BusDevice::Floating:
@@ -439,7 +438,8 @@ class ConcreteMachine:
 			// Advance the relevant counters.
 			cycles_since_audio_update_ += length;
 			mfp_ += length;
-			dma_ += length;
+			if(dma_clocking_preference_ != ClockingHint::Preference::None)
+				dma_ += length;
 			keyboard_acia_ += length;
 			midi_acia_ += length;
 			bus_phase_ += length;
@@ -460,20 +460,19 @@ class ConcreteMachine:
 				mfp_.flush();
 			}
 
-			if(dma_is_realtime_) {
+			if(dma_clocking_preference_ == ClockingHint::Preference::RealTime) {
 				dma_.flush();
 			}
 
 			// Update the video output, checking whether a sequence point has been hit.
-			while(length >= cycles_until_video_event_) {
-				length -= cycles_until_video_event_;
-				video_ += cycles_until_video_event_;
-				cycles_until_video_event_ = video_->get_next_sequence_point();
+			if(video_.will_flush(length)) {
+				length -= video_.cycles_until_implicit_flush();
+				video_ += video_.cycles_until_implicit_flush();
 
 				mfp_->set_timer_event_input(1, video_->display_enabled());
 				update_interrupt_input();
 			}
-			cycles_until_video_event_ -= length;
+
 			video_ += length;
 		}
 
@@ -485,7 +484,6 @@ class ConcreteMachine:
 		HalfCycles bus_phase_;
 
 		JustInTimeActor<Video> video_;
-		HalfCycles cycles_until_video_event_;
 
 		// The MFP runs at 819200/2673749ths of the CPU clock rate.
 		JustInTimeActor<Motorola::MFP68901::MFP68901, 819200, 2673749> mfp_;
@@ -493,8 +491,8 @@ class ConcreteMachine:
 		JustInTimeActor<Motorola::ACIA::ACIA, 16> midi_acia_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
-		GI::AY38910::AY38910 ay_;
-		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
+		GI::AY38910::AY38910<false> ay_;
+		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910<false>> speaker_;
 		HalfCycles cycles_since_audio_update_;
 
 		JustInTimeActor<DMAController> dma_;
@@ -504,6 +502,7 @@ class ConcreteMachine:
 
 		std::vector<uint8_t> ram_;
 		std::vector<uint8_t> rom_;
+		uint32_t rom_start_ = 0;
 
 		enum class BusDevice {
 			/// A mostly RAM page is one that returns ROM for the first 8 bytes, RAM elsewhere.
@@ -527,8 +526,8 @@ class ConcreteMachine:
 		bool may_defer_acias_ = true;
 		bool keyboard_needs_clock_ = false;
 		bool mfp_is_realtime_ = false;
-		bool dma_is_realtime_ = false;
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
+		ClockingHint::Preference dma_clocking_preference_ = ClockingHint::Preference::None;
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final {
 			// This is being called by one of the components; avoid any time flushing here as that's
 			// already dealt with (and, just to be absolutely sure, to avoid recursive mania).
 			may_defer_acias_ =
@@ -536,7 +535,7 @@ class ConcreteMachine:
 				(midi_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime);
 			keyboard_needs_clock_ = ikbd_.preferred_clocking() != ClockingHint::Preference::None;
 			mfp_is_realtime_ = mfp_.last_valid()->preferred_clocking() == ClockingHint::Preference::RealTime;
-			dma_is_realtime_ = dma_.last_valid()->preferred_clocking() == ClockingHint::Preference::RealTime;
+			dma_clocking_preference_ = dma_.last_valid()->preferred_clocking();
 		}
 
 		// MARK: - GPIP input.
@@ -567,7 +566,7 @@ class ConcreteMachine:
 					GPIP 0: centronics busy
 			*/
 			mfp_->set_port_input(
-				0x80 |	// b7: Monochrome monitor detect (1 = is monochrome).
+				0x80 |	// b7: Monochrome monitor detect (0 = is monochrome).
 				0x40 |	// b6: RS-232 ring indicator.
 				(dma_->get_interrupt_line() ? 0x00 : 0x20) |	// b5: FD/HS interrupt (0 = interrupt requested).
 				((keyboard_acia_->get_interrupt_line() || midi_acia_->get_interrupt_line()) ? 0x00 : 0x10) |	// b4: Keyboard/MIDI interrupt (0 = interrupt requested).
@@ -579,7 +578,7 @@ class ConcreteMachine:
 		}
 
 		// MARK - MFP input.
-		void mfp68901_did_change_interrupt_status(Motorola::MFP68901::MFP68901 *mfp) final {
+		void mfp68901_did_change_interrupt_status(Motorola::MFP68901::MFP68901 *) final {
 			update_interrupt_input();
 		}
 
@@ -662,7 +661,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			dma_->set_activity_observer(observer);
 		}
 
@@ -673,27 +672,15 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
-			return Atari::ST::get_options();
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-			return selection_set;
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
 		}
 };
 

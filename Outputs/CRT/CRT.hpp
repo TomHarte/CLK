@@ -55,15 +55,13 @@ class CRT {
 		};
 		void output_scan(const Scan *scan);
 
-		int16_t colour_burst_angle_ = 0;
 		uint8_t colour_burst_amplitude_ = 30;
 		int colour_burst_phase_adjustment_ = 0xff;
-		bool is_writing_composite_run_ = false;
 
 		int64_t phase_denominator_ = 1;
 		int64_t phase_numerator_ = 0;
 		int64_t colour_cycle_numerator_ = 1;
-		bool is_alernate_line_ = false, phase_alternates_ = false;
+		bool is_alernate_line_ = false, phase_alternates_ = false, should_be_alternate_line_ = false;
 
 		void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type, int number_of_samples);
 		Flywheel::SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
@@ -83,7 +81,7 @@ class CRT {
 
 		Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
 		Outputs::Display::ScanTarget::Modals scan_target_modals_;
-		static const uint8_t DefaultAmplitude = 80;
+		static constexpr uint8_t DefaultAmplitude = 41;	// Based upon a black level to maximum excursion and positive burst peak of: NTSC: 882 & 143; PAL: 933 & 150.
 
 #ifndef NDEBUG
 		size_t allocated_data_length_ = std::numeric_limits<size_t>::min();
@@ -121,6 +119,15 @@ class CRT {
 			int colour_cycle_denominator,
 			int vertical_sync_half_lines,
 			bool should_alternate,
+			Outputs::Display::InputDataType data_type);
+
+		/*! Constructs a monitor-style CRT — one that will take only an RGB or monochrome signal, and therefore has
+			no colour space or colour subcarrier frequency. This monitor will automatically map colour bursts to the black level.
+		*/
+		CRT(int cycles_per_line,
+			int clocks_per_pixel_greatest_common_divisor,
+			int height_of_display,
+			int vertical_sync_half_lines,
 			Outputs::Display::InputDataType data_type);
 
 		/*!	Exactly identical to calling the designated constructor with colour subcarrier information
@@ -200,7 +207,7 @@ class CRT {
 			@param amplitude The amplitude of the colour burst in 1/255ths of the amplitude of the
 			positive portion of the wave.
 		*/
-		void output_colour_burst(int number_of_cycles, uint8_t phase, uint8_t amplitude = DefaultAmplitude);
+		void output_colour_burst(int number_of_cycles, uint8_t phase, bool is_alternate_line = false, uint8_t amplitude = DefaultAmplitude);
 
 		/*! Outputs a colour burst exactly in phase with CRT expectations using the idiomatic amplitude.
 
@@ -227,10 +234,15 @@ class CRT {
 			@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 		*/
 		inline uint8_t *begin_data(std::size_t required_length, std::size_t required_alignment = 1) {
+			const auto result = scan_target_->begin_data(required_length, required_alignment);
 #ifndef NDEBUG
-			allocated_data_length_ = required_length;
+			// If data was allocated, make a record of how much so as to be able to hold the caller to that
+			// contract later. If allocation failed, don't constrain the caller. This allows callers that
+			// allocate on demand but may allow one failure to hold for a longer period — e.g. until the
+			// next line.
+			allocated_data_length_ = result ? required_length : std::numeric_limits<size_t>::max();
 #endif
-			return scan_target_->begin_data(required_length, required_alignment);
+			return result;
 		}
 
 		/*!	Sets the gamma exponent for the simulated screen. */
@@ -284,6 +296,9 @@ class CRT {
 		/*! Sets the display type that will be nominated to the scan target. */
 		void set_display_type(Outputs::Display::DisplayType);
 
+		/*! Gets the last display type provided to set_display_type. */
+		Outputs::Display::DisplayType get_display_type() const;
+
 		/*! Sets the offset to apply to phase when using the PhaseLinkedLuminance8 input data type. */
 		void set_phase_linked_luminance_offset(float);
 
@@ -302,7 +317,7 @@ template <typename Receiver> class CRTFrequencyMismatchWarner: public Outputs::C
 	public:
 		CRTFrequencyMismatchWarner(Receiver &receiver) : receiver_(receiver) {}
 
-		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) final {
+		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *, int number_of_frames, int number_of_unexpected_vertical_syncs) final {
 			frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_frames = number_of_frames;
 			frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
 			++frame_record_pointer_;

@@ -89,7 +89,7 @@ void Line::reset_writing() {
 	events_.clear();
 }
 
-bool Line::read() {
+bool Line::read() const {
 	return level_;
 }
 
@@ -136,5 +136,5 @@ void Line::update_delegate(bool level) {
 
 Cycles::IntType Line::minimum_write_cycles_for_read_delegate_bit() {
 	if(!read_delegate_) return 0;
-	return 1 + (read_delegate_bit_length_ * static_cast<unsigned int>(clock_rate_.as_integral())).get<int>();
+	return 1 + (read_delegate_bit_length_ * unsigned(clock_rate_.as_integral())).get<int>();
 }

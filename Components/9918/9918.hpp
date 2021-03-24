@@ -50,6 +50,9 @@ class TMS9918: public Base {
 		/*! Sets the type of display the CRT will request. */
 		void set_display_type(Outputs::Display::DisplayType);
 
+		/*! Gets the type of display the CRT will request. */
+		Outputs::Display::DisplayType get_display_type() const;
+
 		/*!
 			Runs the VCP for the number of cycles indicate; it is an implicit assumption of the code
 			that the input clock rate is 3579545 Hz, the NTSC colour clock rate.

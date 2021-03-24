@@ -33,8 +33,8 @@ enum Key: uint16_t {
 #undef Line
 };
 
-struct KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
-	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key);
+struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 };
 
 };

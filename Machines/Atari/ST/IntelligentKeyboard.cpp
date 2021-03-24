@@ -22,11 +22,6 @@ IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &outp
 	// Add two joysticks into the mix.
 	joysticks_.emplace_back(new Joystick);
 	joysticks_.emplace_back(new Joystick);
-
-	mouse_button_state_ = 0;
-	mouse_button_events_ = 0;
-	mouse_movement_[0] = 0;
-	mouse_movement_[1] = 0;
 }
 
 bool IntelligentKeyboard::serial_line_did_produce_bit(Serial::Line *, int bit) {
@@ -45,7 +40,7 @@ bool IntelligentKeyboard::serial_line_did_produce_bit(Serial::Line *, int bit) {
 	return true;
 }
 
-ClockingHint::Preference IntelligentKeyboard::preferred_clocking() {
+ClockingHint::Preference IntelligentKeyboard::preferred_clocking() const {
 	return output_line_.transmission_data_time_remaining().as_integral() ? ClockingHint::Preference::RealTime : ClockingHint::Preference::None;
 }
 
@@ -89,7 +84,7 @@ void IntelligentKeyboard::run_for(HalfCycles duration) {
 	// Forward key changes; implicit assumption here: mutexs are cheap while there's
 	// negligible contention.
 	{
-		std::lock_guard<decltype(key_queue_mutex_)> guard(key_queue_mutex_);
+		std::lock_guard guard(key_queue_mutex_);
 		for(uint8_t key: key_queue_) {
 			output_bytes({key});
 		}
@@ -291,7 +286,7 @@ void IntelligentKeyboard::set_mouse_position(uint16_t x, uint16_t y) {
 	mouse_position_[1] = std::min(int(y), mouse_range_[1]);
 }
 
-void IntelligentKeyboard::set_mouse_keycode_reporting(uint8_t delta_x, uint8_t delta_y) {
+void IntelligentKeyboard::set_mouse_keycode_reporting(uint8_t, uint8_t) {
 	LOG("Unimplemented: set mouse keycode reporting");
 }
 
@@ -313,7 +308,7 @@ void IntelligentKeyboard::set_mouse_y_upward() {
 	mouse_y_multiplier_ = -1;
 }
 
-void IntelligentKeyboard::set_mouse_button_actions(uint8_t actions) {
+void IntelligentKeyboard::set_mouse_button_actions(uint8_t) {
 	LOG("Unimplemented: set mouse button actions");
 }
 
@@ -353,7 +348,7 @@ void IntelligentKeyboard::post_relative_mouse_event(int x, int y) {
 
 // MARK: - Keyboard Input
 void IntelligentKeyboard::set_key_state(Key key, bool is_pressed) {
-	std::lock_guard<decltype(key_queue_mutex_)> guard(key_queue_mutex_);
+	std::lock_guard guard(key_queue_mutex_);
 	if(is_pressed) {
 		key_queue_.push_back(uint8_t(key));
 	} else {
@@ -361,11 +356,11 @@ void IntelligentKeyboard::set_key_state(Key key, bool is_pressed) {
 	}
 }
 
-uint16_t IntelligentKeyboard::KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
+uint16_t IntelligentKeyboard::KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 	using Key = Inputs::Keyboard::Key;
 	using STKey = Atari::ST::Key;
 	switch(key) {
-		default: return KeyboardMachine::MappedMachine::KeyNotMapped;
+		default: return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 
 #define Bind(x, y) case Key::x: return uint16_t(STKey::y)
 #define QBind(x) case Key::x: return uint16_t(STKey::x)
@@ -466,6 +461,10 @@ void IntelligentKeyboard::set_joystick_interrogation_mode() {
 }
 
 void IntelligentKeyboard::set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical) {
+	// TODO: honour velocity thresholds.
+	(void)horizontal;
+	(void)vertical;
+
 	joystick_mode_ = JoystickMode::KeyCode;
 	clear_joystick_events();
 }
@@ -499,7 +498,7 @@ void IntelligentKeyboard::interrogate_joysticks() {
 	}
 }
 
-void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t rate) {
+void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t) {
 	LOG("Unimplemented: joystick monitoring mode");
 }
 

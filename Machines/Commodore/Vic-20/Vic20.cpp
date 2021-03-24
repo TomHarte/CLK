@@ -11,10 +11,7 @@
 #include "Keyboard.hpp"
 
 #include "../../../Activity/Source.hpp"
-#include "../../MediaTarget.hpp"
-#include "../../CRTMachine.hpp"
-#include "../../KeyboardMachine.hpp"
-#include "../../JoystickMachine.hpp"
+#include "../../MachineTypes.hpp"
 
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../Components/6560/6560.hpp"
@@ -48,12 +45,6 @@ enum ROMSlot {
 	Characters,
 	Drive
 };
-
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplaySVideo | Configurable::DisplayCompositeColour | Configurable::QuickLoadTape)
-	);
-}
 
 enum JoystickInput {
 	Up = 0x04,
@@ -108,7 +99,7 @@ class UserPortVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 		}
 
 		/// Receives announcements from the 6522 of user-port output, which might affect what's currently being presented onto the serial bus.
-		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t mask) {
+		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 			// Line 7 of port A is inverted and output as serial ATN.
 			if(!port) {
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
@@ -215,7 +206,7 @@ class SerialPort : public ::Commodore::Serial::Port {
 		/// Receives an input change from the base serial port class, and communicates it to the user-port VIA.
 		void set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
 			std::shared_ptr<UserPortVIA> userPortVIA = user_port_via_.lock();
-			if(userPortVIA) userPortVIA->set_serial_line_state(line, static_cast<bool>(level));
+			if(userPortVIA) userPortVIA->set_serial_line_state(line, bool(level));
 		}
 
 		/// Sets the user-port VIA with which this serial port communicates.
@@ -259,7 +250,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 			user_port_via_port_handler_(user_port_via_port_handler),
 			keyboard_via_port_handler_(keyboard_via_port_handler) {}
 
-		void did_set_input(const Input &digital_input, bool is_active) override {
+		void did_set_input(const Input &digital_input, bool is_active) final {
 			JoystickInput mapped_input;
 			switch(digital_input.type) {
 				default: return;
@@ -280,14 +271,16 @@ class Joystick: public Inputs::ConcreteJoystick {
 };
 
 class ConcreteMachine:
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
-	public JoystickMachine::Machine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
-	public Utility::TypeRecipient,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Machine,
 	public ClockingHint::Observer,
@@ -397,9 +390,10 @@ class ConcreteMachine:
 			memset(processor_write_memory_map_, 0, sizeof(processor_write_memory_map_));
 			memset(mos6560_bus_handler_.video_memory_map, 0, sizeof(mos6560_bus_handler_.video_memory_map));
 
-#define set_ram(baseaddr, length)	\
-	write_to_map(processor_read_memory_map_, &ram_[baseaddr], baseaddr, length);	\
-	write_to_map(processor_write_memory_map_, &ram_[baseaddr], baseaddr, length);
+#define set_ram(baseaddr, length)	{ \
+		write_to_map(processor_read_memory_map_, &ram_[baseaddr], baseaddr, length);	\
+		write_to_map(processor_write_memory_map_, &ram_[baseaddr], baseaddr, length);	\
+	}
 
 			// Add 6502-visible RAM as requested.
 			set_ram(0x0000, 0x0400);
@@ -431,19 +425,19 @@ class ConcreteMachine:
 				for(auto addr = video_range.start; addr < video_range.end; addr += 0x400) {
 					auto destination_address = (addr & 0x1fff) | (((addr & 0x8000) >> 2) ^ 0x2000);
 					if(processor_read_memory_map_[addr >> 10]) {
-						write_to_map(mos6560_bus_handler_.video_memory_map, &ram_[addr], static_cast<uint16_t>(destination_address), 0x400);
+						write_to_map(mos6560_bus_handler_.video_memory_map, &ram_[addr], uint16_t(destination_address), 0x400);
 					}
 				}
 			}
 			mos6560_bus_handler_.colour_memory = colour_ram_;
 
 			// install the BASIC ROM
-			write_to_map(processor_read_memory_map_, basic_rom_.data(), 0xc000, static_cast<uint16_t>(basic_rom_.size()));
+			write_to_map(processor_read_memory_map_, basic_rom_.data(), 0xc000, uint16_t(basic_rom_.size()));
 
 			// install the system ROM
-			write_to_map(processor_read_memory_map_, character_rom_.data(), 0x8000, static_cast<uint16_t>(character_rom_.size()));
-			write_to_map(mos6560_bus_handler_.video_memory_map, character_rom_.data(), 0x0000, static_cast<uint16_t>(character_rom_.size()));
-			write_to_map(processor_read_memory_map_, kernel_rom_.data(), 0xe000, static_cast<uint16_t>(kernel_rom_.size()));
+			write_to_map(processor_read_memory_map_, character_rom_.data(), 0x8000, uint16_t(character_rom_.size()));
+			write_to_map(mos6560_bus_handler_.video_memory_map, character_rom_.data(), 0x0000, uint16_t(character_rom_.size()));
+			write_to_map(processor_read_memory_map_, kernel_rom_.data(), 0xe000, uint16_t(kernel_rom_.size()));
 
 			// The insert_media occurs last, so if there's a conflict between cartridges and RAM,
 			// the cartridge wins.
@@ -453,7 +447,7 @@ class ConcreteMachine:
 			}
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.tapes.empty()) {
 				tape_->set_tape(media.tapes.front());
 			}
@@ -465,7 +459,7 @@ class ConcreteMachine:
 			if(!media.cartridges.empty()) {
 				rom_address_ = 0xa000;
 				std::vector<uint8_t> rom_image = media.cartridges.front()->get_segments().front().data;
-				rom_length_ = static_cast<uint16_t>(rom_image.size());
+				rom_length_ = uint16_t(rom_image.size());
 
 				rom_ = rom_image;
 				rom_.resize(0x2000);
@@ -477,18 +471,36 @@ class ConcreteMachine:
 			return !media.tapes.empty() || (!media.disks.empty() && c1540_ != nullptr) || !media.cartridges.empty();
 		}
 
-		void set_key_state(uint16_t key, bool is_pressed) override final {
-			if(key != KeyRestore)
+		void set_key_state(uint16_t key, bool is_pressed) final {
+			if(key < 0xfff0) {
 				keyboard_via_port_handler_->set_key_state(key, is_pressed);
-			else
-				user_port_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !is_pressed);
+			} else {
+				switch(key) {
+					case KeyRestore:
+						user_port_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !is_pressed);
+					break;
+#define ShiftedMap(source, target)	\
+					case source:	\
+						keyboard_via_port_handler_->set_key_state(KeyLShift, is_pressed);	\
+						keyboard_via_port_handler_->set_key_state(target, is_pressed);	\
+					break;
+
+					ShiftedMap(KeyUp, KeyDown);
+					ShiftedMap(KeyLeft, KeyRight);
+					ShiftedMap(KeyF2, KeyF1);
+					ShiftedMap(KeyF4, KeyF3);
+					ShiftedMap(KeyF6, KeyF5);
+					ShiftedMap(KeyF8, KeyF7);
+#undef ShiftedMap
+				}
+			}
 		}
 
-		void clear_all_keys() override final {
+		void clear_all_keys() final {
 			keyboard_via_port_handler_->clear_all_keys();
 		}
 
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return joysticks_;
 		}
 
@@ -521,7 +533,7 @@ class ConcreteMachine:
 						const uint64_t tape_position = tape_->get_tape()->get_offset();
 						if(header) {
 							// serialise to wherever b2:b3 points
-							const uint16_t tape_buffer_pointer = static_cast<uint16_t>(ram_[0xb2]) | static_cast<uint16_t>(ram_[0xb3] << 8);
+							const uint16_t tape_buffer_pointer = uint16_t(ram_[0xb2]) | uint16_t(ram_[0xb3] << 8);
 							header->serialise(&ram_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
 							hold_tape_ = true;
 							LOG("Vic-20: Found header");
@@ -538,15 +550,15 @@ class ConcreteMachine:
 
 						*value = 0x0c;	// i.e. NOP abs, to swallow the entire JSR
 					} else if(address == 0xf90b) {
-						uint8_t x = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
+						uint8_t x = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
 						if(x == 0xe) {
 							Storage::Tape::Commodore::Parser parser;
 							const uint64_t tape_position = tape_->get_tape()->get_offset();
 							const std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
 							if(data) {
 								uint16_t start_address, end_address;
-								start_address = static_cast<uint16_t>(ram_[0xc1] | (ram_[0xc2] << 8));
-								end_address = static_cast<uint16_t>(ram_[0xae] | (ram_[0xaf] << 8));
+								start_address = uint16_t(ram_[0xc1] | (ram_[0xc2] << 8));
+								end_address = uint16_t(ram_[0xae] | (ram_[0xaf] << 8));
 
 								// perform a via-processor_write_memory_map_ memcpy
 								uint8_t *data_ptr = data->data.data();
@@ -561,8 +573,8 @@ class ConcreteMachine:
 
 								// set tape status, carry and flag
 								ram_[0x90] |= 0x40;
-								uint8_t	flags = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::Flags));
-								flags &= ~static_cast<uint8_t>((CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt));
+								uint8_t	flags = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::Flags));
+								flags &= ~uint8_t((CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt));
 								m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, flags);
 
 								// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and
@@ -618,11 +630,11 @@ class ConcreteMachine:
 			mos6560_.flush();
 		}
 
-		void run_for(const Cycles cycles) override final {
+		void run_for(const Cycles cycles) final {
 			m6502_.run_for(cycles);
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			mos6560_.set_scan_target(scan_target);
 		}
 
@@ -630,70 +642,62 @@ class ConcreteMachine:
 			return mos6560_.get_scaled_scan_status();
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override final {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			mos6560_.set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override final {
+		Outputs::Display::DisplayType get_display_type() const final {
+			return mos6560_.get_display_type();
+		}
+
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return mos6560_.get_speaker();
 		}
 
-		void mos6522_did_change_interrupt_status(void *mos6522) override final {
+		void mos6522_did_change_interrupt_status(void *) final {
 			m6502_.set_nmi_line(user_port_via_.get_interrupt_line());
 			m6502_.set_irq_line(keyboard_via_.get_interrupt_line());
 		}
 
-		void type_string(const std::string &string) override final {
-			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
+		void type_string(const std::string &string) final {
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
-		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) override final {
+		bool can_type(char c) const final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
+		}
+
+		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) final {
 			keyboard_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !tape->get_input());
 		}
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			return Commodore::Vic20::get_options();
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			options->quickload = allow_fast_tape_hack_;
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			bool quickload;
-			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				allow_fast_tape_hack_ = quickload;
-				set_use_fast_tape();
-			}
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
 
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
+			set_video_signal_configurable(options->output);
+			allow_fast_tape_hack_ = options->quickload;
+			set_use_fast_tape();
 		}
 
-		Configurable::SelectionSet get_accurate_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, true);
-			Configurable::append_display_selection(selection_set, Configurable::Display::SVideo);
-			return selection_set;
-		}
-
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override {
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference clocking) final {
 			tape_is_sleeping_ = clocking == ClockingHint::Preference::None;
 			set_use_fast_tape();
 		}
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			if(c1540_) c1540_->set_activity_observer(observer);
 		}
 

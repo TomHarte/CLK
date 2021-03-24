@@ -31,7 +31,7 @@ D64::D64(const std::string &file_name) :
 	disk_id_ = 0;
 	for(const auto &character: file_name) {
 		disk_id_ ^= character;
-		disk_id_ = static_cast<uint16_t>((disk_id_ << 2) ^ (disk_id_ >> 13));
+		disk_id_ = uint16_t((disk_id_ << 2) ^ (disk_id_ >> 13));
 	}
 }
 
@@ -79,23 +79,23 @@ std::shared_ptr<Track> D64::get_track_at_position(Track::Address address) {
 	//
 	// = 349 GCR bytes per sector
 
-	std::size_t track_bytes = 349 * static_cast<std::size_t>(sectors_by_zone[zone]);
+	std::size_t track_bytes = 349 * size_t(sectors_by_zone[zone]);
 	std::vector<uint8_t> data(track_bytes);
 
 	for(int sector = 0; sector < sectors_by_zone[zone]; sector++) {
-		uint8_t *sector_data = &data[static_cast<size_t>(sector) * 349];
+		uint8_t *sector_data = &data[size_t(sector) * 349];
 		sector_data[0] = sector_data[1] = sector_data[2] = 0xff;
 
-		uint8_t sector_number = static_cast<uint8_t>(sector);						// sectors count from 0
-		uint8_t track_number = static_cast<uint8_t>(address.position.as_int() + 1);	// tracks count from 1
-		uint8_t checksum = static_cast<uint8_t>(sector_number ^ track_number ^ disk_id_ ^ (disk_id_ >> 8));
+		uint8_t sector_number = uint8_t(sector);						// sectors count from 0
+		uint8_t track_number = uint8_t(address.position.as_int() + 1);	// tracks count from 1
+		uint8_t checksum = uint8_t(sector_number ^ track_number ^ disk_id_ ^ (disk_id_ >> 8));
 		uint8_t header_start[4] = {
 			0x08, checksum, sector_number, track_number
 		};
 		Encodings::CommodoreGCR::encode_block(&sector_data[3], header_start);
 
 		uint8_t header_end[4] = {
-			static_cast<uint8_t>(disk_id_ & 0xff), static_cast<uint8_t>(disk_id_ >> 8), 0, 0
+			uint8_t(disk_id_ & 0xff), uint8_t(disk_id_ >> 8), 0, 0
 		};
 		Encodings::CommodoreGCR::encode_block(&sector_data[8], header_end);
 

@@ -10,7 +10,7 @@
 
 @class CSROMReceiverView;
 
-@protocol CSROMReciverViewDelegate
+@protocol CSROMReciverViewDelegate <NSObject>
 /*!
 	Announces receipt of a file by drag and drop to the delegate.
 	@param view The view making the request.

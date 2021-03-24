@@ -42,7 +42,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return vic20_cartridges;
 }
 
-Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType) {
 	TargetList destination;
 
 	auto target = std::make_unique<Target>();
@@ -94,6 +94,7 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media
 		switch(files.front().starting_address) {
 			default:
 				LOG("Unrecognised loading address for Commodore program: " << PADHEX(4) <<  files.front().starting_address);
+				[[fallthrough]];
 			case 0x1001:
 				memory_model = Target::MemoryModel::Unexpanded;
 			break;

@@ -10,11 +10,11 @@
 
 using namespace Apple::Macintosh;
 
-uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
+uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 	using Key = Inputs::Keyboard::Key;
 	using MacKey = Apple::Macintosh::Key;
 	switch(key) {
-		default: return KeyboardMachine::MappedMachine::KeyNotMapped;
+		default: return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 
 #define Bind(x, y) case Key::x: return uint16_t(y)
 

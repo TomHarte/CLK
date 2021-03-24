@@ -1,0 +1,2 @@
+xscpu64 -scpu64 /usr/local/lib64/vice/SCPU64/scpu64 suite-a.prg
+#xscpu64.devel -scpu64 /usr/local/lib64/vice/SCPU64/scpu64 suite-a.prg

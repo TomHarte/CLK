@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <cstring>
 
+#define CYCLE(x)	((x) * 2)
+
 using namespace Atari::ST;
 
 namespace {
@@ -29,7 +31,7 @@ const struct VerticalParams {
 } vertical_params[3] = {
 	{63, 263, 313},	// 47 rather than 63 on early machines.
 	{34, 234, 263},
-	{1, 401, 500}	// 72 Hz mode: who knows?
+	{34, 434, 500}	// Guesswork: (i) nobody ever recommends 72Hz mode for opening the top border, so it's likely to be the same as another mode; (ii) being the same as PAL feels too late.
 };
 
 /// @returns The correct @c VerticalParams for output at @c frequency.
@@ -37,8 +39,6 @@ const VerticalParams &vertical_parameters(Video::FieldFrequency frequency) {
 	return vertical_params[int(frequency)];
 }
 
-
-#define CYCLE(x)	((x) * 2)
 /*!
 	Defines the horizontal counts at which mode-specific events will occur:
 	horizontal enable being set and being reset, blank being set and reset, and the
@@ -57,12 +57,22 @@ const struct HorizontalParams {
 	const int set_blank;
 	const int reset_blank;
 
-	const int length;
+	const int vertical_decision;
+
+	LineLength length;
 } horizontal_params[3] = {
-	{CYCLE(56), CYCLE(376),		CYCLE(450), CYCLE(28),		CYCLE(512)},
-	{CYCLE(52), CYCLE(372),		CYCLE(450), CYCLE(24),		CYCLE(508)},
-	{CYCLE(4),	CYCLE(164),		CYCLE(999), CYCLE(999),		CYCLE(224)}	// 72Hz mode doesn't set or reset blank.
+	{CYCLE(56), CYCLE(376),		CYCLE(450), CYCLE(28),		CYCLE(502),		{ CYCLE(512), CYCLE(464), CYCLE(504) }},
+	{CYCLE(52), CYCLE(372),		CYCLE(450), CYCLE(24),		CYCLE(502),		{ CYCLE(508), CYCLE(460), CYCLE(500) }},
+	{CYCLE(4),	CYCLE(164),		CYCLE(999), CYCLE(999),		CYCLE(214),		{ CYCLE(224), CYCLE(194), CYCLE(212) }}
+		// 72Hz mode doesn't set or reset blank.
 };
+
+// Re: 'vertical_decision':
+// This is cycle 502 if in 50 or 60 Hz mode; in 70 Hz mode I've put it on cycle 214
+// in order to be analogous to 50 and 60 Hz mode. I have no idea where it should
+// actually go.
+//
+// Ditto the horizontal sync timings for 72Hz are plucked out of thin air.
 
 const HorizontalParams &horizontal_parameters(Video::FieldFrequency frequency) {
 	return horizontal_params[int(frequency)];
@@ -79,10 +89,10 @@ struct Checker {
 				assert(horizontal.reset_blank < horizontal.set_enable);
 				assert(horizontal.set_enable < horizontal.reset_enable);
 				assert(horizontal.reset_enable < horizontal.set_blank);
-				assert(horizontal.set_blank+50 < horizontal.length);
+				assert(horizontal.set_blank+50 < horizontal.length.length);
 			} else {
 				assert(horizontal.set_enable < horizontal.reset_enable);
-				assert(horizontal.set_enable+50 <horizontal.length);
+				assert(horizontal.set_enable+50 <horizontal.length.length);
 			}
 
 			// Expected vertical order of events: reset blank, enable display, disable display, enable blank (at least 50 before end of line), end of line
@@ -97,11 +107,12 @@ struct Checker {
 const int de_delay_period = CYCLE(28);		// Amount of time after DE that observed DE changes. NB: HACK HERE. This currently incorporates the MFP recognition delay. MUST FIX.
 const int vsync_x_position = CYCLE(56);		// Horizontal cycle on which vertical sync changes happen.
 
-const int hsync_start = CYCLE(48);			// Cycles before end of line when hsync starts.
-const int hsync_end = CYCLE(8);				// Cycles before end of line when hsync ends.
+const int line_length_latch_position = CYCLE(54);
 
-const int hsync_delay_period = hsync_end;			// Signal hsync at the end of the line.
+const int hsync_delay_period = CYCLE(8);			// Signal hsync at the end of the line.
 const int vsync_delay_period = hsync_delay_period;	// Signal vsync with the same delay as hsync.
+
+const int load_delay_period = CYCLE(4);		// Amount of time after DE that observed DE changes. NB: HACK HERE. This currently incorporates the MFP recognition delay. MUST FIX.
 
 // "VSYNC starts 104 cycles after the start of the previous line's HSYNC, so that's 4 cycles before DE would be activated. ";
 // that's an inconsistent statement since it would imply VSYNC at +54, which is 2 cycles before DE in 60Hz mode and 6 before
@@ -110,16 +121,16 @@ const int vsync_delay_period = hsync_delay_period;	// Signal vsync with the same
 }
 
 Video::Video() :
-	deferrer_([=] (HalfCycles duration) { advance(duration); }),
-	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+	crt_(2048, 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+//	crt_(896, 1, 500, 5, Outputs::Display::InputDataType::Red4Green4Blue4),
 	video_stream_(crt_, palette_) {
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
-	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 220, 850, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 440, 1700, 4.0f / 3.0f));
 }
 
-void Video::set_ram(uint16_t *ram, size_t size) {
+void Video::set_ram(uint16_t *ram, size_t) {
 	ram_ = ram;
 }
 
@@ -128,55 +139,44 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 Outputs::Display::ScanStatus Video::get_scaled_scan_status() const {
-	return crt_.get_scaled_scan_status() / 2.0f;
+	return crt_.get_scaled_scan_status() / 4.0f;
 }
 
 void Video::set_display_type(Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 }
 
-void Video::run_for(HalfCycles duration) {
-	deferrer_.run_for(duration);
+Outputs::Display::DisplayType Video::get_display_type() const {
+	return crt_.get_display_type();
 }
 
-void Video::advance(HalfCycles duration) {
-	const auto horizontal_timings = horizontal_parameters(field_frequency_);
-	const auto vertical_timings = vertical_parameters(field_frequency_);
+void Video::run_for(HalfCycles duration) {
 	int integer_duration = int(duration.as_integral());
-
-	// Effect any changes in visible state out here; they're not relevant in the inner loop.
-	if(!pending_events_.empty()) {
-		auto erase_iterator = pending_events_.begin();
-		int duration_remaining = integer_duration;
-		while(erase_iterator != pending_events_.end()) {
-			erase_iterator->delay -= duration_remaining;
-			if(erase_iterator->delay <= 0) {
-				duration_remaining = -erase_iterator->delay;
-				erase_iterator->apply(public_state_);
-				++erase_iterator;
-			} else {
-				break;
-			}
-		}
-		if(erase_iterator != pending_events_.begin()) {
-			pending_events_.erase(pending_events_.begin(), erase_iterator);
-		}
-	}
+	assert(integer_duration >= 0);
 
 	while(integer_duration) {
+		const auto horizontal_timings = horizontal_parameters(field_frequency_);
+		const auto vertical_timings = vertical_parameters(field_frequency_);
+
+		// Determine time to next event; this'll either be one of the ones informally scheduled in here,
+		// or something from the deferral queue.
+
 		// Seed next event to end of line.
-		int next_event = line_length_;
+		int next_event = line_length_.length;
+
+		const int next_deferred_event = deferrer_.time_until_next_action().as<int>();
+		if(next_deferred_event >= 0)
+			next_event = std::min(next_event, next_deferred_event + x_);
 
 		// Check the explicitly-placed events.
 		if(horizontal_timings.reset_blank > x_)		next_event = std::min(next_event, horizontal_timings.reset_blank);
 		if(horizontal_timings.set_blank > x_)		next_event = std::min(next_event, horizontal_timings.set_blank);
 		if(horizontal_timings.reset_enable > x_)	next_event = std::min(next_event, horizontal_timings.reset_enable);
 		if(horizontal_timings.set_enable > x_) 		next_event = std::min(next_event, horizontal_timings.set_enable);
-		if(next_load_toggle_ > x_) 					next_event = std::min(next_event, next_load_toggle_);
 
 		// Check for events that are relative to existing latched state.
-		if(line_length_ - hsync_start > x_)			next_event = std::min(next_event, line_length_ - hsync_start);
-		if(line_length_ - hsync_end > x_)			next_event = std::min(next_event, line_length_ - hsync_end);
+		if(line_length_.hsync_start > x_)			next_event = std::min(next_event, line_length_.hsync_start);
+		if(line_length_.hsync_end > x_)				next_event = std::min(next_event, line_length_.hsync_end);
 
 		// Also, a vertical sync event might intercede.
 		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ < vsync_x_position && next_event >= vsync_x_position) {
@@ -189,6 +189,8 @@ void Video::advance(HalfCycles duration) {
 		const bool hsync = horizontal_.sync;
 		const bool vsync = vertical_.sync;
 
+		assert(run_length > 0);
+
 		// Ensure proper fetching irrespective of the output.
 		if(load_) {
 			const int since_load = x_ - load_base_;
@@ -196,8 +198,8 @@ void Video::advance(HalfCycles duration) {
 			// There will be pixels this line, subject to the shifter pipeline.
 			// Divide into 8-[half-]cycle windows; at the start of each window fetch a word,
 			// and during the rest of the window, shift out.
-			int start_column = since_load >> 3;
-			const int end_column = (since_load + run_length) >> 3;
+			int start_column = (since_load - 1) >> 3;
+			const int end_column = (since_load + run_length - 1) >> 3;
 
 			while(start_column != end_column) {
 				data_latch_[data_latch_position_] = ram_[current_address_ & 262143];
@@ -214,13 +216,16 @@ void Video::advance(HalfCycles duration) {
 		} else if(!load_) {
 			video_stream_.output(run_length, VideoStream::OutputMode::Pixels);
 		} else {
-			const int since_load = x_ - load_base_;
+			const int start = x_ - load_base_;
+			const int end = start + run_length;
 
 			// There will be pixels this line, subject to the shifter pipeline.
 			// Divide into 8-[half-]cycle windows; at the start of each window fetch a word,
 			// and during the rest of the window, shift out.
-			int start_column = since_load >> 3;
-			const int end_column = (since_load + run_length) >> 3;
+			int start_column = start >> 3;
+			const int end_column = end >> 3;
+			const int start_offset = start & 7;
+			const int end_offset = end & 7;
 
 			// Rules obeyed below:
 			//
@@ -229,35 +234,40 @@ void Video::advance(HalfCycles duration) {
 			//	was reloaded by the fetch depends on the FIFO.
 
 			if(start_column == end_column) {
+				if(!start_offset) {
+					push_latched_data();
+				}
 				video_stream_.output(run_length, VideoStream::OutputMode::Pixels);
 			} else {
 				// Continue the current column if partway across.
-				if(since_load&7) {
+				if(start_offset) {
 					// If at least one column boundary is crossed, complete this column.
-					video_stream_.output(8 - (since_load & 7), VideoStream::OutputMode::Pixels);
+					video_stream_.output(8 - start_offset, VideoStream::OutputMode::Pixels);
 					++start_column;	// This starts a new column, so latch a new word.
-					push_latched_data();
 				}
 
 				// Run for all columns that have their starts in this time period.
 				int complete_columns = end_column - start_column;
 				while(complete_columns--) {
-					video_stream_.output(8, VideoStream::OutputMode::Pixels);
 					push_latched_data();
+					video_stream_.output(8, VideoStream::OutputMode::Pixels);
 				}
 
 				// Output the start of the next column, if necessary.
-				if((since_load + run_length) & 7) {
-					video_stream_.output((since_load + run_length) & 7, VideoStream::OutputMode::Pixels);
+				if(end_offset) {
+					push_latched_data();
+					video_stream_.output(end_offset, VideoStream::OutputMode::Pixels);
 				}
 			}
 		}
 
 		// Check for whether line length should have been latched during this run.
-		if(x_ <= CYCLE(54) && (x_ + run_length) > CYCLE(54)) line_length_ = horizontal_timings.length;
+		if(x_ < line_length_latch_position && (x_ + run_length) >= line_length_latch_position) {
+			line_length_ = horizontal_timings.length;
+		}
 
-		// Make a decision about vertical state on cycle 502.
-		if(x_ <= CYCLE(502) && (x_ + run_length) > CYCLE(502)) {
+		// Make a decision about vertical state on the appropriate cycle.
+		if(x_ < horizontal_timings.vertical_decision && (x_ + run_length) >= horizontal_timings.vertical_decision) {
 			next_y_ = y_ + 1;
 			next_vertical_ = vertical_;
 			next_vertical_.sync_schedule = VerticalState::SyncSchedule::None;
@@ -282,23 +292,17 @@ void Video::advance(HalfCycles duration) {
 
 		// Apply the next event.
 		x_ += run_length;
+		assert(integer_duration >= run_length);
 		integer_duration -= run_length;
+		deferrer_.advance(HalfCycles(run_length));
 
 		// Check horizontal events; the first six are guaranteed to occur separately.
 		if(horizontal_timings.reset_blank == x_)		horizontal_.blank = false;
 		else if(horizontal_timings.set_blank == x_)		horizontal_.blank = true;
 		else if(horizontal_timings.reset_enable == x_)	horizontal_.enable = false;
 		else if(horizontal_timings.set_enable == x_) 	horizontal_.enable = true;
-		else if(line_length_ - hsync_start == x_)		{ horizontal_.sync = true; horizontal_.enable = false; }
-		else if(line_length_ - hsync_end == x_)			horizontal_.sync = false;
-
-		// next_load_toggle_ is less predictable; test separately because it may coincide
-		// with one of the above tests.
-		if(next_load_toggle_ == x_)	{
-			next_load_toggle_ = -1;
-			load_ ^= true;
-			load_base_ = x_;
-		}
+		else if(line_length_.hsync_start == x_)			{ horizontal_.sync = true; horizontal_.enable = false; }
+		else if(line_length_.hsync_end == x_)			horizontal_.sync = false;
 
 		// Check vertical events.
 		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ == vsync_x_position) {
@@ -310,7 +314,7 @@ void Video::advance(HalfCycles duration) {
 
 		// Check whether the terminating event was end-of-line; if so then advance
 		// the vertical bits of state.
-		if(x_ == line_length_) {
+		if(x_ == line_length_.length) {
 			x_ = 0;
 			vertical_ = next_vertical_;
 			y_ = next_y_;
@@ -333,21 +337,30 @@ void Video::advance(HalfCycles duration) {
 		// Chuck any deferred output changes into the queue.
 		const bool next_display_enable = vertical_.enable && horizontal_.enable;
 		if(display_enable != next_display_enable) {
-			// Schedule change in outwardly-visible DE line.
-			add_event(de_delay_period - integer_duration, next_display_enable ? Event::Type::SetDisplayEnable : Event::Type::ResetDisplayEnable);
+			// Schedule change in load line.
+			deferrer_.defer(load_delay_period, [this, next_display_enable] {
+				this->load_ = next_display_enable;
+				this->load_base_ = this->x_;
+			});
 
-			// Schedule change in inwardly-visible effect.
-			next_load_toggle_ = x_ + 8;	// 4 cycles = 8 half-cycles
+			// Schedule change in outwardly-visible DE line.
+			deferrer_.defer(de_delay_period, [this, next_display_enable] {
+				this->public_state_.display_enable = next_display_enable;
+			});
 		}
 
 		if(horizontal_.sync != hsync) {
 			// Schedule change in outwardly-visible hsync line.
-			add_event(hsync_delay_period - integer_duration, horizontal_.sync ? Event::Type::SetHsync : Event::Type::ResetHsync);
+			deferrer_.defer(hsync_delay_period, [this, next_horizontal_sync = horizontal_.sync] {
+				this->public_state_.hsync = next_horizontal_sync;
+			});
 		}
 
 		if(vertical_.sync != vsync) {
 			// Schedule change in outwardly-visible hsync line.
-			add_event(vsync_delay_period - integer_duration, vertical_.sync ? Event::Type::SetVsync : Event::Type::ResetVsync);
+			deferrer_.defer(vsync_delay_period, [this, next_vertical_sync = vertical_.sync] {
+				this->public_state_.vsync = next_vertical_sync;
+			});
 		}
 	}
 }
@@ -400,11 +413,12 @@ HalfCycles Video::get_next_sequence_point() {
 
 	const auto horizontal_timings = horizontal_parameters(field_frequency_);
 
-	int event_time = line_length_;	// Worst case: report end of line.
+	int event_time = line_length_.length;	// Worst case: report end of line.
 
 	// If any events are pending, give the first of those the chance to be next.
-	if(!pending_events_.empty()) {
-		event_time = std::min(event_time, x_ + pending_events_.front().delay);
+	const auto next_deferred_item = deferrer_.time_until_next_action();
+	if(next_deferred_item != HalfCycles(-1)) {
+		event_time = std::min(event_time, x_ + next_deferred_item.as<int>());
 	}
 
 	// If this is a vertically-enabled line, check for the display enable boundaries, + the standard delay.
@@ -423,11 +437,17 @@ HalfCycles Video::get_next_sequence_point() {
 	}
 
 	// Test for beginning and end of horizontal sync.
-	if(x_ < line_length_ - hsync_start + hsync_delay_period) {
-		event_time = std::min(line_length_ - hsync_start + hsync_delay_period, event_time);
+	if(x_ < line_length_.hsync_start + hsync_delay_period) {
+		event_time = std::min(line_length_.hsync_start + hsync_delay_period, event_time);
 	}
-	/* Hereby assumed: hsync end will be communicated at end of line: */
-	static_assert(hsync_end == hsync_delay_period);
+	if(x_ < line_length_.hsync_end + hsync_delay_period) {
+		event_time = std::min(line_length_.hsync_end + hsync_delay_period, event_time);
+	}
+
+	// Also factor in the line length latching time.
+	if(x_ < line_length_latch_position) {
+		event_time = std::min(line_length_latch_position, event_time);
+	}
 
 	// It wasn't any of those, just supply end of line. That's when the static_assert above assumes a visible hsync transition.
 	return HalfCycles(event_time - x_);
@@ -469,7 +489,7 @@ void Video::write(int address, uint16_t value) {
 		// Sync mode and pixel mode.
 		case 0x05:
 			// Writes to sync mode have a one-cycle delay in effect.
-			deferrer_.defer(HalfCycles(2), [=] {
+			deferrer_.defer(HalfCycles(2), [this, value] {
 				sync_mode_ = value;
 				update_output_mode();
 			});
@@ -559,12 +579,12 @@ void Video::VideoStream::generate(int duration, OutputMode mode, bool is_termina
 	if(mode != OutputMode::Pixels) {
 		switch(mode) {
 			default:
-			case OutputMode::Sync:			crt_.output_sync(duration_);					break;
-			case OutputMode::Blank:			crt_.output_blank(duration_);					break;
-			case OutputMode::ColourBurst:	crt_.output_default_colour_burst(duration_);	break;
+			case OutputMode::Sync:			crt_.output_sync(duration_*2);					break;
+			case OutputMode::Blank:			crt_.output_blank(duration_*2);					break;
+			case OutputMode::ColourBurst:	crt_.output_default_colour_burst(duration_*2);	break;
 		}
 
-		// Reseed duration
+		// Reseed duration.
 		duration_ = duration;
 
 		// The shifter should keep running, so throw away the proper amount of content.
@@ -614,7 +634,7 @@ void Video::VideoStream::flush_border() {
 	// Output colour 0 for the entirety of duration_ (or black, if this is 1bpp mode).
 	uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
 	if(colour_pointer) *colour_pointer = (bpp_ != OutputBpp::One) ?  palette_[0] : 0;
-	crt_.output_level(duration_);
+	crt_.output_level(duration_*2);
 
 	duration_ = 0;
 }
@@ -715,7 +735,7 @@ void Video::VideoStream::output_pixels(int duration) {
 		}
 
 		// Check whether the limit has been reached.
-		if(pixel_pointer_ == allocation_size) {
+		if(pixel_pointer_ >= allocation_size - 32) {
 			flush_pixels();
 		}
 	}
@@ -725,12 +745,12 @@ void Video::VideoStream::output_pixels(int duration) {
 	if(pixels) {
 		int leftover_duration = pixels;
 		switch(bpp_) {
-			case OutputBpp::One: leftover_duration >>= 1;	break;
-			default: break;
-			case OutputBpp::Four: leftover_duration <<= 1;	break;
+			default: 				leftover_duration >>= 1;	break;
+			case OutputBpp::Two:								break;
+			case OutputBpp::Four:	leftover_duration <<= 1;	break;
 		}
 		shift(leftover_duration);
-		crt_.output_data(leftover_duration);
+		crt_.output_data(leftover_duration*2);
 	}
 }
 
@@ -738,9 +758,9 @@ void Video::VideoStream::flush_pixels() {
 	// Flush only if there's something to flush.
 	if(pixel_pointer_) {
 		switch(bpp_) {
-			case OutputBpp::One:	crt_.output_data(pixel_pointer_ >> 1, size_t(pixel_pointer_)); break;
-			default: 				crt_.output_data(pixel_pointer_); break;
-			case OutputBpp::Four:	crt_.output_data(pixel_pointer_ << 1, size_t(pixel_pointer_)); break;
+			case OutputBpp::One:	crt_.output_data(pixel_pointer_); 								break;
+			default:				crt_.output_data(pixel_pointer_ << 1, size_t(pixel_pointer_));	break;
+			case OutputBpp::Four:	crt_.output_data(pixel_pointer_ << 2, size_t(pixel_pointer_));	break;
 		}
 	}
 
@@ -761,7 +781,13 @@ void Video::VideoStream::set_bpp(OutputBpp bpp) {
 }
 
 void Video::VideoStream::load(uint64_t value) {
-	output_shifter_ = value;
+	// In 1bpp mode, a 0 bit is white and a 1 bit is black.
+	// Invert the input so that the 'just output the border colour
+	// when the shifter is empty' optimisation works.
+	if(bpp_ == OutputBpp::One)
+		output_shifter_ = ~value;
+	else
+		output_shifter_ = value;
 }
 
 // MARK: - Range observer.

@@ -53,8 +53,9 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
-		bool is_zero_level();
+		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
+		constexpr static bool get_is_stereo() { return false; }
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue &task_queue_;
@@ -62,7 +63,7 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 		// A queue of fetched samples; read from by one thread,
 		// written to by another.
 		struct {
-			std::array<uint8_t, 740> buffer;
+			std::array<std::atomic<uint8_t>, 740> buffer;
 			size_t read_pointer = 0, write_pointer = 0;
 		} sample_queue_;
 

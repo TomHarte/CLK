@@ -12,9 +12,13 @@
 namespace TargetPlatform {
 
 typedef int IntType;
+
+// The below is somehwat overspecified because some of the file formats already supported by this
+// emulator can self-specify platforms beyond those the emulator otherwise implements.
 enum Type: IntType {
-	AmstradCPC		=	1 << 1,
-	AppleII			=	1 << 2,
+	AmstradCPC		=	1 << 0,
+	AppleII			=	1 << 1,
+	AppleIIgs		=	1 << 2,
 	Atari2600		=	1 << 3,
 	AtariST			=	1 << 4,
 	AcornAtom		=	1 << 5,
@@ -22,7 +26,7 @@ enum Type: IntType {
 	BBCMaster		=	1 << 7,
 	BBCModelA		=	1 << 8,
 	BBCModelB		=	1 << 9,
-	ColecoVision	=	1 << 10,
+	Coleco			=	1 << 10,
 	Commodore		=	1 << 11,
 	DiskII			=	1 << 12,
 	Sega			=	1 << 13,
@@ -31,12 +35,13 @@ enum Type: IntType {
 	Oric			=	1 << 16,
 	ZX80			=	1 << 17,
 	ZX81			=	1 << 18,
+	ZXSpectrum		=	1 << 19,
 
 	Acorn			=	AcornAtom | AcornElectron | BBCMaster | BBCModelA | BBCModelB,
 	ZX8081			=	ZX80 | ZX81,
-	AllCartridge	=	Atari2600 | AcornElectron | ColecoVision | MSX,
+	AllCartridge	=	Atari2600 | AcornElectron | Coleco | MSX,
 	AllDisk			=	Acorn | AmstradCPC | Commodore | Oric | MSX,	// TODO: | AtariST
-	AllTape			=	Acorn | AmstradCPC | Commodore | Oric | ZX80 | ZX81 | MSX,
+	AllTape			=	Acorn | AmstradCPC | Commodore | Oric | ZX80 | ZX81 | MSX | ZXSpectrum,
 };
 
 class TypeDistinguisher {

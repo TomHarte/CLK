@@ -79,7 +79,7 @@ namespace Storage {
 				forward between calls into run_for; a subclass can receive arbitrarily many instructions to
 				advance before receiving a process_next_event.
 			*/
-			virtual void advance(const Cycles cycles) {};
+			virtual void advance([[maybe_unused]] const Cycles cycles) {};
 
 			/*!
 				Resets timing, throwing away any current internal state. So clears any fractional ticks
@@ -103,7 +103,7 @@ namespace Storage {
 		private:
 			Cycles::IntType input_clock_rate_ = 0;
 			Cycles::IntType cycles_until_event_ = 0;
-			float subcycles_until_event_ = 0.0;
+			float subcycles_until_event_ = 0.0f;
 	};
 
 }

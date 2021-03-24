@@ -26,8 +26,19 @@ class Jasmin: public DiskController {
 	private:
 		void set_motor_on(bool on) final;
 		bool motor_on_ = false;
+		uint8_t selected_drives_ = 0;
 
 		Activity::Observer *observer_ = nullptr;
+
+		bool enable_overlay_ram_ = false;
+		bool disable_basic_rom_ = false;
+		void select_paged_item() {
+			PagedItem item = PagedItem::RAM;
+			if(!enable_overlay_ram_) {
+				item = disable_basic_rom_ ? PagedItem::DiskROM : PagedItem::BASIC;
+			}
+			set_paged_item(item);
+		}
 };
 
 };

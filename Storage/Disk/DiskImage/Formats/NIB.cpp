@@ -12,6 +12,9 @@
 #include "../../Track/TrackSerialiser.hpp"
 #include "../../Encodings/AppleGCR/Encoder.hpp"
 
+#include "../../Encodings/AppleGCR/Encoder.hpp"
+#include "../../Encodings/AppleGCR/SegmentParser.hpp"
+
 #include <vector>
 
 using namespace Storage::Disk;
@@ -48,7 +51,7 @@ bool NIB::get_is_read_only() {
 }
 
 long NIB::file_offset(Track::Address address) {
-	return static_cast<long>(address.position.as_int()) * track_length;
+	return long(address.position.as_int()) * track_length;
 }
 
 std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Disk::Track::Address address) {
@@ -58,7 +61,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	long offset = file_offset(address);
 	std::vector<uint8_t> track_data;
 	{
-		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.get_file_access_mutex());
 		file_.seek(offset, SEEK_SET);
 		track_data = file_.read(track_length);
 	}
@@ -84,7 +87,10 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 				++length;
 			}
 
-			// Record a sync position only if there were at least five FFs.
+			// Record a sync position only if there were at least five FFs, and
+			// sync only in the final five. One of the many crazy fictions of NIBs
+			// is the fixed track length in bytes, which is quite long. So the aim
+			// is to be as conservative as possible with sync placement.
 			if(length == 5) {
 				sync_starts.insert((start + 1) % track_data.size());
 
@@ -101,16 +107,21 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 
 	// If the track started in a sync block, write sync first.
 	if(start_index) {
-		segment += Encodings::AppleGCR::six_and_two_sync(static_cast<int>(start_index));
+		segment += Encodings::AppleGCR::six_and_two_sync(int(start_index));
 	}
 
 	std::size_t index = start_index;
 	for(const auto location: sync_starts) {
 		// Write data from index to sync_start.
-		std::vector<uint8_t> data_segment(
-			track_data.begin() + static_cast<off_t>(index),
-			track_data.begin() + static_cast<off_t>(location));
-		segment += PCMSegment(data_segment);
+		if(location > index) {
+			// This is the usual case; the only occasion on which it won't be true is
+			// when the initial sync was detected to carry over the index hole,
+			// in which case there's nothing to copy.
+			std::vector<uint8_t> data_segment(
+				track_data.begin() + off_t(index),
+				track_data.begin() + off_t(location));
+			segment += PCMSegment(data_segment);
+		}
 
 		// Add a sync from sync_start to end of 0xffs, if there are
 		// any before the end of data.
@@ -119,13 +130,15 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 			++index;
 
 		if(index - location)
-			segment += Encodings::AppleGCR::six_and_two_sync(static_cast<int>(index - location));
+			segment += Encodings::AppleGCR::six_and_two_sync(int(index - location));
 	}
 
-	// If there's still data remaining on the track, write it out.
+	// If there's still data remaining on the track, write it out. If a sync ran over
+	// the notional index hole, the loop above will already have completed the track
+	// with sync, so no need to deal with that case here.
 	if(index < track_length) {
 		std::vector<uint8_t> data_segment(
-			track_data.begin() + static_cast<off_t>(index),
+			track_data.begin() + off_t(index),
 			track_data.end());
 		segment += PCMSegment(data_segment);
 	}
@@ -149,7 +162,7 @@ void NIB::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 		int bit_count = 0;
 		size_t sync_location = 0, location = 0;
 		for(const auto bit: segment.data) {
-			shifter = static_cast<uint8_t>((shifter << 1) | (bit ? 1 : 0));
+			shifter = uint8_t((shifter << 1) | (bit ? 1 : 0));
 			++bit_count;
 			++location;
 			if(shifter & 0x80) {
@@ -167,8 +180,8 @@ void NIB::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 			track.resize(track_length);
 		} else {
 			while(track.size() < track_length) {
-				std::vector<uint8_t> extra_data(static_cast<size_t>(track_length) - track.size(), 0xff);
-				track.insert(track.begin() + static_cast<off_t>(sync_location), extra_data.begin(), extra_data.end());
+				std::vector<uint8_t> extra_data(size_t(track_length) - track.size(), 0xff);
+				track.insert(track.begin() + off_t(sync_location), extra_data.begin(), extra_data.end());
 			}
 		}
 
@@ -176,7 +189,7 @@ void NIB::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 	}
 
 	// Lock the file and spool out.
-	std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+	std::lock_guard lock_guard(file_.get_file_access_mutex());
 	for(const auto &track: tracks_by_address) {
 		file_.seek(file_offset(track.first), SEEK_SET);
 		file_.write(track.second);

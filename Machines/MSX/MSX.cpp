@@ -33,10 +33,8 @@
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../../Activity/Source.hpp"
-#include "../CRTMachine.hpp"
-#include "../JoystickMachine.hpp"
-#include "../MediaTarget.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../MachineTypes.hpp"
+#include "../../Configurable/Configurable.hpp"
 
 #include "../../Outputs/Log.hpp"
 #include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
@@ -50,12 +48,6 @@
 #include "../../Analyser/Static/MSX/Target.hpp"
 
 namespace MSX {
-
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplaySVideo | Configurable::DisplayCompositeColour | Configurable::QuickLoadTape)
-	);
-}
 
 class AYPortHandler: public GI::AY38910::PortHandler {
 	public:
@@ -110,7 +102,7 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 						Input(Input::Fire, 1),
 					}) {}
 
-				void did_set_input(const Input &input, bool is_active) override {
+				void did_set_input(const Input &input, bool is_active) final {
 					uint8_t mask = 0;
 					switch(input.type) {
 						default: return;
@@ -139,11 +131,13 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
-	public JoystickMachine::Machine,
 	public MemoryMap,
 	public ClockingHint::Observer,
 	public Activity::Source {
@@ -278,7 +272,7 @@ class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			vdp_->set_scan_target(scan_target);
 		}
 
@@ -286,19 +280,23 @@ class ConcreteMachine:
 			return vdp_->get_scaled_scan_status();
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			vdp_->set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Display::DisplayType get_display_type() const final {
+			return vdp_->get_display_type();
+		}
+
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
-		void run_for(const Cycles cycles) override {
+		void run_for(const Cycles cycles) final {
 			z80_.run_for(cycles);
 		}
 
-		float get_confidence() override {
+		float get_confidence() final {
 			if(performed_unmapped_access_ || pc_zero_accesses_ > 1) return 0.0f;
 			if(memory_slots_[1].handler) {
 				return memory_slots_[1].handler->get_confidence();
@@ -306,18 +304,18 @@ class ConcreteMachine:
 			return 0.5f;
 		}
 
-		std::string debug_type() override {
+		std::string debug_type() final {
 			if(memory_slots_[1].handler) {
 				return "MSX:" + memory_slots_[1].handler->debug_type();
 			}
 			return "MSX";
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
 				memory_slots_[1].source = segment.data;
-				map(1, 0, static_cast<uint16_t>(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
+				map(1, 0, uint16_t(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
 
 				auto msx_cartridge = dynamic_cast<Analyser::Static::MSX::Cartridge *>(media.cartridges.front().get());
 				if(msx_cartridge) {
@@ -360,7 +358,7 @@ class ConcreteMachine:
 			return true;
 		}
 
-		void type_string(const std::string &string) override final {
+		void type_string(const std::string &string) final {
 			std::transform(
 				string.begin(),
 				string.end(),
@@ -369,11 +367,16 @@ class ConcreteMachine:
 			);
 		}
 
+		bool can_type(char c) const final {
+			// Make an effort to type the entire printable ASCII range.
+			return c >= 32 && c < 127;
+		}
+
 		// MARK: MSX::MemoryMap
-		void map(int slot, std::size_t source_address, uint16_t destination_address, std::size_t length) override {
+		void map(int slot, std::size_t source_address, uint16_t destination_address, std::size_t length) final {
 			assert(!(destination_address & 8191));
 			assert(!(length & 8191));
-			assert(static_cast<std::size_t>(destination_address) + length <= 65536);
+			assert(size_t(destination_address) + length <= 65536);
 
 			for(std::size_t c = 0; c < (length >> 13); ++c) {
 				if(memory_slots_[slot].wrapping_strategy == ROMSlotHandler::WrappingStrategy::Repeat) source_address %= memory_slots_[slot].source.size();
@@ -385,10 +388,10 @@ class ConcreteMachine:
 			page_memory(paged_memory_);
 		}
 
-		void unmap(int slot, uint16_t destination_address, std::size_t length) override {
+		void unmap(int slot, uint16_t destination_address, std::size_t length) final {
 			assert(!(destination_address & 8191));
 			assert(!(length & 8191));
-			assert(static_cast<std::size_t>(destination_address) + length <= 65536);
+			assert(size_t(destination_address) + length <= 65536);
 
 			for(std::size_t c = 0; c < (length >> 13); ++c) {
 				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] = nullptr;
@@ -470,7 +473,7 @@ class ConcreteMachine:
 								// If a byte was found, return it with carry unset. Otherwise set carry to
 								// indicate error.
 								if(next_byte >= 0) {
-									z80_.set_value_of_register(CPU::Z80::Register::A, static_cast<uint16_t>(next_byte));
+									z80_.set_value_of_register(CPU::Z80::Register::A, uint16_t(next_byte));
 									z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
 								} else {
 									z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
@@ -489,6 +492,8 @@ class ConcreteMachine:
 							performed_unmapped_access_ = true;
 						}
 						pc_address_ = address;	// This is retained so as to be able to name the source of an access to cartridge handlers.
+						[[fallthrough]];
+
 					case CPU::Z80::PartialMachineCycle::Read:
 						if(read_pointers_[address >> 13]) {
 							*cycle.value = read_pointers_[address >> 13][address & 8191];
@@ -520,9 +525,9 @@ class ConcreteMachine:
 
 							case 0xa2:
 								update_audio();
-								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BC2 | GI::AY38910::BC1));
+								ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
 								*cycle.value = ay_.get_data_output();
-								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
+								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							break;
 
 							case 0xa8:	case 0xa9:
@@ -547,9 +552,9 @@ class ConcreteMachine:
 
 							case 0xa0:	case 0xa1:
 								update_audio();
-								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | ((port == 0xa0) ? GI::AY38910::BC1 : 0)));
+								ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2 | ((port == 0xa0) ? GI::AY38910::BC1 : 0)));
 								ay_.set_data_input(*cycle.value);
-								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
+								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							break;
 
 							case 0xa8:	case 0xa9:
@@ -585,16 +590,16 @@ class ConcreteMachine:
 							while(characters_written < input_text_.size()) {
 								const int next_write_address = (write_address + 1) % buffer_size;
 								if(next_write_address == read_address) break;
-								ram_[write_address + buffer_start] = static_cast<uint8_t>(input_text_[characters_written]);
+								ram_[write_address + buffer_start] = uint8_t(input_text_[characters_written]);
 								++characters_written;
 								write_address = next_write_address;
 							}
-							input_text_.erase(input_text_.begin(), input_text_.begin() + static_cast<std::string::difference_type>(characters_written));
+							input_text_.erase(input_text_.begin(), input_text_.begin() + std::string::difference_type(characters_written));
 
 							// Map the write address back into absolute terms and write it out again as PUTPNT.
 							write_address += buffer_start;
-							ram_[0xf3f8] = static_cast<uint8_t>(write_address);
-							ram_[0xf3f9] = static_cast<uint8_t>(write_address >> 8);
+							ram_[0xf3f8] = uint8_t(write_address);
+							ram_[0xf3f9] = uint8_t(write_address >> 8);
 						}
 					break;
 
@@ -628,60 +633,43 @@ class ConcreteMachine:
 			return key_states_[selected_key_line_];
 		}
 
-		void clear_all_keys() override {
+		void clear_all_keys() final {
 			std::memset(key_states_, 0xff, sizeof(key_states_));
 		}
 
-		void set_key_state(uint16_t key, bool is_pressed) override {
+		void set_key_state(uint16_t key, bool is_pressed) final {
 			int mask = 1 << (key & 7);
 			int line = key >> 4;
 			if(is_pressed) key_states_[line] &= ~mask; else key_states_[line] |= mask;
 		}
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			return MSX::get_options();
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			options->quickload = allow_fast_tape_;
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			bool quickload;
-			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				allow_fast_tape_ = quickload;
-				set_use_fast_tape();
-			}
-
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, true);
-			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-			return selection_set;
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
+			allow_fast_tape_ = options->quickload;
+			set_use_fast_tape();
 		}
 
 		// MARK: - Sleeper
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override {
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final {
 			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 			set_use_fast_tape();
 		}
 
 		// MARK: - Activity::Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			DiskROM *disk_rom = get_disk_rom();
 			if(disk_rom) {
 				disk_rom->set_activity_observer(observer);
@@ -690,7 +678,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Joysticks
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return ay_port_handler_.get_joysticks();
 		}
 
@@ -760,11 +748,11 @@ class ConcreteMachine:
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
-		GI::AY38910::AY38910 ay_;
+		GI::AY38910::AY38910<false> ay_;
 		Audio::Toggle audio_toggle_;
 		Konami::SCC scc_;
-		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, Audio::Toggle, Konami::SCC> mixer_;
-		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, Audio::Toggle, Konami::SCC>> speaker_;
+		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle, Konami::SCC> mixer_;
+		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle, Konami::SCC>> speaker_;
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
 		bool tape_player_is_sleeping_ = false;

@@ -21,6 +21,12 @@ class VideoTester;
 namespace Atari {
 namespace ST {
 
+struct LineLength {
+	int length = 1024;
+	int hsync_start = 1024;
+	int hsync_end = 1024;
+};
+
 /*!
 	Models a combination of the parts of the GLUE, MMU and Shifter that in net
 	form the video subsystem of the Atari ST. So not accurate to a real chip, but
@@ -47,6 +53,11 @@ class Video {
 			Sets the type of output.
 		*/
 		void set_display_type(Outputs::Display::DisplayType);
+
+		/*!
+			Gets the type of output.
+		*/
+		Outputs::Display::DisplayType get_display_type() const;
 
 		/*!
 			Produces the next @c duration period of pixels.
@@ -115,7 +126,6 @@ class Video {
 		Range get_memory_access_range();
 
 	private:
-		void advance(HalfCycles duration);
 		DeferredQueue<HalfCycles> deferrer_;
 
 		Outputs::CRT::CRT crt_;
@@ -128,10 +138,8 @@ class Video {
 		int current_address_ = 0;
 
 		uint16_t *ram_ = nullptr;
-		uint16_t line_buffer_[256];
 
 		int x_ = 0, y_ = 0, next_y_ = 0;
-		int next_load_toggle_ = -1;
 		bool load_ = false;
 		int load_base_ = 0;
 
@@ -163,7 +171,7 @@ class Video {
 			} sync_schedule = SyncSchedule::None;
 			bool sync = false;
 		} vertical_, next_vertical_;
-		int line_length_ = 1024;
+		LineLength line_length_;
 
 		int data_latch_position_ = 0;
 		int data_latch_read_position_ = 0;
@@ -236,59 +244,6 @@ class Video {
 			bool hsync = false;
 			bool vsync = false;
 		} public_state_;
-
-		struct Event {
-			int delay;
-			enum class Type {
-				SetDisplayEnable, ResetDisplayEnable,
-				SetHsync, ResetHsync,
-				SetVsync, ResetVsync,
-			} type;
-
-			Event(Type type, int delay) : delay(delay), type(type) {}
-
-			void apply(PublicState &state) {
-				apply(type, state);
-			}
-
-			static void apply(Type type, PublicState &state) {
-				switch(type) {
-					default:
-					case Type::SetDisplayEnable:	state.display_enable = true;	break;
-					case Type::ResetDisplayEnable:	state.display_enable = false;	break;
-					case Type::SetHsync:			state.hsync = true;				break;
-					case Type::ResetHsync:			state.hsync = false;			break;
-					case Type::SetVsync:			state.vsync = true;				break;
-					case Type::ResetVsync:			state.vsync = false;			break;
-				}
-			}
-		};
-
-		std::vector<Event> pending_events_;
-		void add_event(int delay, Event::Type type) {
-			// Apply immediately if there's no delay (or a negative delay).
-			if(delay <= 0) {
-				Event::apply(type, public_state_);
-				return;
-			}
-
-			if(!pending_events_.empty()) {
-				// Otherwise enqueue, having subtracted the delay for any preceding events,
-				// and subtracting from the subsequent, if any.
-				auto insertion_point = pending_events_.begin();
-				while(insertion_point != pending_events_.end() && insertion_point->delay < delay) {
-					delay -= insertion_point->delay;
-					++insertion_point;
-				}
-				if(insertion_point != pending_events_.end()) {
-					insertion_point->delay -= delay;
-				}
-
-				pending_events_.emplace(insertion_point, type, delay);
-			} else {
-				pending_events_.emplace_back(type, delay);
-			}
-		}
 
 		friend class ::VideoTester;
 };

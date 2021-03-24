@@ -16,7 +16,7 @@ namespace {
 
 class MultiJoystick: public Inputs::Joystick {
 	public:
-		MultiJoystick(std::vector<JoystickMachine::Machine *> &machines, std::size_t index) {
+		MultiJoystick(std::vector<MachineTypes::JoystickMachine *> &machines, std::size_t index) {
 			for(const auto &machine: machines) {
 				const auto &joysticks = machine->get_joysticks();
 				if(joysticks.size() >= index) {
@@ -25,7 +25,7 @@ class MultiJoystick: public Inputs::Joystick {
 			}
 		}
 
-		std::vector<Input> &get_inputs() override {
+		const std::vector<Input> &get_inputs() final {
 			if(inputs.empty()) {
 				for(const auto &joystick: joysticks_) {
 					std::vector<Input> joystick_inputs = joystick->get_inputs();
@@ -40,19 +40,19 @@ class MultiJoystick: public Inputs::Joystick {
 			return inputs;
 		}
 
-		void set_input(const Input &digital_input, bool is_active) override {
+		void set_input(const Input &digital_input, bool is_active) final {
 			for(const auto &joystick: joysticks_) {
 				joystick->set_input(digital_input, is_active);
 			}
 		}
 
-		void set_input(const Input &digital_input, float value) override {
+		void set_input(const Input &digital_input, float value) final {
 			for(const auto &joystick: joysticks_) {
 				joystick->set_input(digital_input, value);
 			}
 		}
 
-		void reset_all_inputs() override {
+		void reset_all_inputs() final {
 			for(const auto &joystick: joysticks_) {
 				joystick->reset_all_inputs();
 			}
@@ -67,9 +67,9 @@ class MultiJoystick: public Inputs::Joystick {
 
 MultiJoystickMachine::MultiJoystickMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) {
 	std::size_t total_joysticks = 0;
-	std::vector<JoystickMachine::Machine *> joystick_machines;
+	std::vector<MachineTypes::JoystickMachine *> joystick_machines;
 	for(const auto &machine: machines) {
-		JoystickMachine::Machine *joystick_machine = machine->joystick_machine();
+		auto joystick_machine = machine->joystick_machine();
 		if(joystick_machine) {
 			joystick_machines.push_back(joystick_machine);
 			total_joysticks = std::max(total_joysticks, joystick_machine->get_joysticks().size());

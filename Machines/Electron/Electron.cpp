@@ -9,15 +9,17 @@
 #include "Electron.hpp"
 
 #include "../../Activity/Source.hpp"
-#include "../MediaTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../MachineTypes.hpp"
+#include "../../Configurable/Configurable.hpp"
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../Configurable/StandardOptions.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Processors/6502/6502.hpp"
+
+#include "../../Storage/MassStorage/SCSI/SCSI.hpp"
+#include "../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../Utility/Typer.hpp"
@@ -32,25 +34,26 @@
 
 namespace Electron {
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayCompositeColour | Configurable::QuickLoadTape)
-	);
-}
-
-class ConcreteMachine:
+template <bool has_scsi_bus> class ConcreteMachine:
 	public Machine,
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public Tape::Delegate,
-	public Utility::TypeRecipient,
-	public Activity::Source {
+	public Utility::TypeRecipient<CharacterMapper>,
+	public Activity::Source,
+	public SCSI::Bus::Observer,
+	public ClockingHint::Observer {
 	public:
 		ConcreteMachine(const Analyser::Static::Acorn::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 				m6502_(*this),
+				scsi_bus_(4'000'000),
+				hard_drive_(scsi_bus_, 0),
+				scsi_device_(scsi_bus_.add_device()),
 				video_output_(ram_),
 				sound_generator_(audio_queue_),
 				speaker_(sound_generator_) {
@@ -62,20 +65,29 @@ class ConcreteMachine:
 			set_clock_rate(2000000);
 
 			speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
-			speaker_.set_high_frequency_cutoff(7000);
+			speaker_.set_high_frequency_cutoff(6000);
 
 			const std::string machine_name = "Electron";
 			std::vector<ROMMachine::ROM> required_roms = {
 				{machine_name, "the Acorn BASIC II ROM", "basic.rom", 16*1024, 0x79434781},
 				{machine_name, "the Electron MOS ROM", "os.rom", 16*1024, 0xbf63fb1f}
 			};
-			if(target.has_adfs) {
+			const size_t pres_adfs_rom_position = required_roms.size();
+			if(target.has_pres_adfs) {
 				required_roms.emplace_back(machine_name, "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16*1024, 0x51523993);
 				required_roms.emplace_back(machine_name, "the E00 ADFS ROM, second slot", "ADFS-E00_2.rom", 16*1024, 0x8d17de0e);
+			}
+			const size_t acorn_adfs_rom_position = required_roms.size();
+			if(target.has_acorn_adfs) {
+				required_roms.emplace_back(machine_name, "the Acorn ADFS ROM", "adfs.rom", 16*1024, 0x3289bdc6);
 			}
 			const size_t dfs_rom_position = required_roms.size();
 			if(target.has_dfs) {
 				required_roms.emplace_back(machine_name, "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16*1024, 0xf3dc9bc5);
+			}
+			const size_t ap6_rom_position = required_roms.size();
+			if(target.has_ap6_rom) {
+				required_roms.emplace_back(machine_name, "the 8kb Advanced Plus 6 ROM", "AP6v133.rom", 8*1024, 0xe0013cfc);
 			}
 			const auto roms = rom_fetcher(required_roms);
 
@@ -87,15 +99,40 @@ class ConcreteMachine:
 			set_rom(ROM::BASIC, *roms[0], false);
 			set_rom(ROM::OS, *roms[1], false);
 
-			if(target.has_dfs || target.has_adfs) {
+			/*
+				ROM slot mapping applied:
+
+					* the keyboard and BASIC ROMs occupy slots 8, 9, 10 and 11;
+					* the DFS, if in use, occupies slot 1;
+					* the Pres ADFS, if in use, occupies slots 4 and 5;
+					* the Acorn ADFS, if in use, occupies slot 6;
+					* the AP6, if in use, occupies slot 15; and
+					* if sideways RAM was asked for, all otherwise unused slots are populated with sideways RAM.
+			*/
+			if(target.has_dfs || target.has_acorn_adfs || target.has_pres_adfs) {
 				plus3_ = std::make_unique<Plus3>();
 
 				if(target.has_dfs) {
 					set_rom(ROM::Slot0, *roms[dfs_rom_position], true);
 				}
-				if(target.has_adfs) {
-					set_rom(ROM::Slot4, *roms[2], true);
-					set_rom(ROM::Slot5, *roms[3], true);
+				if(target.has_pres_adfs) {
+					set_rom(ROM::Slot4, *roms[pres_adfs_rom_position], true);
+					set_rom(ROM::Slot5, *roms[pres_adfs_rom_position+1], true);
+				}
+				if(target.has_acorn_adfs) {
+					set_rom(ROM::Slot6, *roms[acorn_adfs_rom_position], true);
+				}
+			}
+
+			if(target.has_ap6_rom) {
+				set_rom(ROM::Slot15, *roms[ap6_rom_position], true);
+			}
+
+			if(target.has_sideways_ram) {
+				for(int c = 0; c < 16; c++) {
+					if(rom_inserted_[c]) continue;
+					if(c >= int(ROM::Keyboard) && c < int(ROM::BASIC)+1) continue;
+					set_sideways_ram(ROM(c));
 				}
 			}
 
@@ -108,29 +145,57 @@ class ConcreteMachine:
 			if(target.should_shift_restart) {
 				shift_restart_counter_ = 1000000;
 			}
+
+			if(has_scsi_bus) {
+				scsi_bus_.add_observer(this);
+				scsi_bus_.set_clocking_hint_observer(this);
+			}
 		}
 
 		~ConcreteMachine() {
 			audio_queue_.flush();
 		}
 
-		void set_key_state(uint16_t key, bool isPressed) override final {
-			if(key == KeyBreak) {
-				m6502_.set_reset_line(isPressed);
-			} else {
-				if(isPressed)
-					key_states_[key >> 4] |= key&0xf;
-				else
-					key_states_[key >> 4] &= ~(key&0xf);
+		void set_key_state(uint16_t key, bool isPressed) final {
+			switch(key) {
+				default:
+					if(isPressed)
+						key_states_[key >> 4] |= key&0xf;
+					else
+						key_states_[key >> 4] &= ~(key&0xf);
+				break;
+
+				case KeyBreak:
+					m6502_.set_reset_line(isPressed);
+				break;
+
+#define FuncShiftedKey(source, dest)	\
+				case source:	\
+					set_key_state(KeyFunc, isPressed);	\
+					set_key_state(dest, isPressed);	\
+				break;
+
+				FuncShiftedKey(KeyF1, Key1);
+				FuncShiftedKey(KeyF2, Key2);
+				FuncShiftedKey(KeyF3, Key3);
+				FuncShiftedKey(KeyF4, Key4);
+				FuncShiftedKey(KeyF5, Key5);
+				FuncShiftedKey(KeyF6, Key6);
+				FuncShiftedKey(KeyF7, Key7);
+				FuncShiftedKey(KeyF8, Key8);
+				FuncShiftedKey(KeyF9, Key9);
+				FuncShiftedKey(KeyF0, Key0);
+
+#undef FuncShiftedKey
 			}
 		}
 
-		void clear_all_keys() override final {
+		void clear_all_keys() final {
 			memset(key_states_, 0, sizeof(key_states_));
 			if(is_holding_shift_) set_key_state(KeyShift, true);
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.tapes.empty()) {
 				tape_.set_tape(media.tapes.front());
 			}
@@ -143,14 +208,19 @@ class ConcreteMachine:
 			ROM slot = ROM::Slot12;
 			for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : media.cartridges) {
 				const ROM first_slot_tried = slot;
-				while(rom_inserted_[static_cast<int>(slot)]) {
-					slot = static_cast<ROM>((static_cast<int>(slot) + 1) & 15);
+				while(rom_inserted_[int(slot)]) {
+					slot = ROM((int(slot) + 1) & 15);
 					if(slot == first_slot_tried) return false;
 				}
 				set_rom(slot, cartridge->get_segments().front().data, false);
 			}
 
-			return !media.tapes.empty() || !media.disks.empty() || !media.cartridges.empty();
+			// TODO: allow this only at machine startup?
+			if(!media.mass_storage_devices.empty()) {
+				hard_drive_->set_storage(media.mass_storage_devices.front());
+			}
+
+			return !media.empty();
 		}
 
 		forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
@@ -197,7 +267,8 @@ class ConcreteMachine:
 								activity_observer_->set_led_status(caps_led, caps_led_state_);
 						}
 
-					// deliberate fallthrough; fe07 contains the display mode.
+						[[fallthrough]];	// fe07 contains the display mode.
+
 
 					case 0xfe02: case 0xfe03:
 					case 0xfe08: case 0xfe09: case 0xfe0a: case 0xfe0b:
@@ -271,7 +342,73 @@ class ConcreteMachine:
 								plus3_->set_control_register(*value);
 							} else *value = 1;
 						}
+
+						if(has_scsi_bus && (address&0x00f0) == 0x0040) {
+							scsi_acknowledge_ = true;
+							if(!isReadOperation(operation)) {
+								scsi_data_ = *value;
+								push_scsi_output();
+							} else {
+								*value = SCSI::data_lines(scsi_bus_.get_state());
+								push_scsi_output();
+							}
+						}
 					break;
+					case 0xfc03:
+						if(has_scsi_bus && (address&0x00f0) == 0x0040) {
+							scsi_interrupt_state_ = false;
+							scsi_interrupt_mask_ = *value & 1;
+							evaluate_interrupts();
+						}
+					break;
+					case 0xfc01:
+						if(has_scsi_bus && (address&0x00f0) == 0x0040 && isReadOperation(operation)) {
+							// Status byte is:
+							//
+							//	b7:	SCSI C/D
+							//	b6: SCSI I/O
+							//	b5: SCSI REQ
+							//	b4: interrupt flag
+							//	b3:	0
+							//	b2:	0
+							//	b1:	SCSI BSY
+							//	b0: SCSI MSG
+							const auto state = scsi_bus_.get_state();
+							*value =
+								(state & SCSI::Line::Control ? 0x80 : 0x00) |
+								(state & SCSI::Line::Input ? 0x40 : 0x00) |
+								(state & SCSI::Line::Request ? 0x20 : 0x00) |
+								((scsi_interrupt_state_ && scsi_interrupt_mask_) ? 0x10 : 0x00) |
+								(state & SCSI::Line::Busy ? 0x02 : 0x00) |
+								(state & SCSI::Line::Message ? 0x01 : 0x00);
+
+							// Empirical guess: this is also the trigger to affect busy/request/acknowledge
+							// signalling. Maybe?
+							if(scsi_select_ && scsi_bus_.get_state() & SCSI::Line::Busy) {
+								scsi_select_ = false;
+								push_scsi_output();
+							}
+						}
+					break;
+					case 0xfc02:
+						if(has_scsi_bus && (address&0x00f0) == 0x0040) {
+							scsi_select_ = true;
+							push_scsi_output();
+						}
+					break;
+
+					// SCSI locations:
+					//
+					//	fc40:	data, read and write
+					//	fc41:	status read
+					//	fc42:	select write
+					//	fc43:	interrupt latch
+					//
+					//
+					// Interrupt latch is:
+					//
+					//	b0: enable or disable IRQ on REQ
+					//	(and, possibly, writing to the latch acknowledges?)
 
 					default:
 						if(address >= 0xc000) {
@@ -295,7 +432,7 @@ class ConcreteMachine:
 																						// allow the PC read to return an RTS.
 									)
 								) {
-									uint8_t service_call = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
+									uint8_t service_call = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
 									if(address == 0xf0a8) {
 										if(!ram_[0x247] && service_call == 14) {
 											tape_.set_delegate(nullptr);
@@ -336,7 +473,7 @@ class ConcreteMachine:
 									}
 								}
 								if(basic_is_active_) {
-									*value &= roms_[static_cast<int>(ROM::BASIC)][address & 16383];
+									*value &= roms_[int(ROM::BASIC)][address & 16383];
 								}
 							} else if(rom_write_masks_[active_rom_]) {
 								roms_[active_rom_][address & 16383] = *value;
@@ -346,10 +483,10 @@ class ConcreteMachine:
 				}
 			}
 
-			cycles_since_display_update_ += Cycles(static_cast<int>(cycles));
-			cycles_since_audio_update_ += Cycles(static_cast<int>(cycles));
+			cycles_since_display_update_ += Cycles(int(cycles));
+			cycles_since_audio_update_ += Cycles(int(cycles));
 			if(cycles_since_audio_update_ > Cycles(16384)) update_audio();
-			tape_.run_for(Cycles(static_cast<int>(cycles)));
+			tape_.run_for(Cycles(int(cycles)));
 
 			cycles_until_display_interrupt_ -= cycles;
 			if(cycles_until_display_interrupt_ < 0) {
@@ -358,8 +495,8 @@ class ConcreteMachine:
 				queue_next_display_interrupt();
 			}
 
-			if(typer_) typer_->run_for(Cycles(static_cast<int>(cycles)));
-			if(plus3_) plus3_->run_for(Cycles(4*static_cast<int>(cycles)));
+			if(typer_) typer_->run_for(Cycles(int(cycles)));
+			if(plus3_) plus3_->run_for(Cycles(4*int(cycles)));
 			if(shift_restart_counter_) {
 				shift_restart_counter_ -= cycles;
 				if(shift_restart_counter_ <= 0) {
@@ -370,7 +507,13 @@ class ConcreteMachine:
 				}
 			}
 
-			return Cycles(static_cast<int>(cycles));
+			if constexpr (has_scsi_bus) {
+				if(scsi_is_clocked_) {
+					scsi_bus_.run_for(Cycles(int(cycles)));
+				}
+			}
+
+			return Cycles(int(cycles));
 		}
 
 		forceinline void flush() {
@@ -379,7 +522,7 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_output_.set_scan_target(scan_target);
 		}
 
@@ -387,81 +530,108 @@ class ConcreteMachine:
 			return video_output_.get_scaled_scan_status();
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			video_output_.set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override final {
+		Outputs::Display::DisplayType get_display_type() const final {
+			return video_output_.get_display_type();
+		}
+
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
-		void run_for(const Cycles cycles) override final {
+		void run_for(const Cycles cycles) final {
 			m6502_.run_for(cycles);
 		}
 
-		void tape_did_change_interrupt_status(Tape *tape) override final {
+		void scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double) final {
+			// Release acknowledge when request is released.
+			if(scsi_acknowledge_ && !(new_state & SCSI::Line::Request)) {
+				scsi_acknowledge_ = false;
+				push_scsi_output();
+			}
+
+			// Output occurs only while SCSI::Line::Input is inactive; therefore a change
+			// in that line affects what's on the bus.
+			if(((new_state^previous_bus_state_)&SCSI::Line::Input)) {
+				push_scsi_output();
+			}
+
+			scsi_interrupt_state_ |= (new_state^previous_bus_state_)&new_state & SCSI::Line::Request;
+			previous_bus_state_ = new_state;
+			evaluate_interrupts();
+		}
+
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference preference) final {
+			scsi_is_clocked_ = preference != ClockingHint::Preference::None;
+		}
+
+		void tape_did_change_interrupt_status(Tape *) final {
 			interrupt_status_ = (interrupt_status_ & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | tape_.get_interrupt_status();
 			evaluate_interrupts();
 		}
 
-		HalfCycles get_typer_delay() override final {
-			return m6502_.get_is_resetting() ? Cycles(625*25*128) : Cycles(0);	// wait one second if resetting
+		HalfCycles get_typer_delay(const std::string &text) const final {
+			if(!m6502_.get_is_resetting()) {
+				return Cycles(0);
+			}
+
+			// Add a longer delay for a command at reset that involves pressing a modifier;
+			// empirically this seems to be a requirement, in order to avoid a collision with
+			// the system's built-in modifier-at-startup test (e.g. to perform shift+break).
+			CharacterMapper test_mapper;
+			const uint16_t *const sequence = test_mapper.sequence_for_character(text[0]);
+			return is_modifier(Key(sequence[0])) ? Cycles(1'000'000) : Cycles(750'000);
 		}
 
-		HalfCycles get_typer_frequency() override final {
-			return Cycles(625*128*2);	// accept a new character every two frames
+		HalfCycles get_typer_frequency() const final {
+			return Cycles(60'000);
 		}
 
-		void type_string(const std::string &string) override final {
-			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
+		void type_string(const std::string &string) final {
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		bool can_type(char c) const final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
+		}
+
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			return Electron::get_options();
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			options->quickload = allow_fast_tape_hack_;
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			bool quickload;
-			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				allow_fast_tape_hack_ = quickload;
-				set_use_fast_tape_hack();
-			}
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
 
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, true);
-			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-			return selection_set;
+			set_video_signal_configurable(options->output);
+			allow_fast_tape_hack_ = options->quickload;
+			set_use_fast_tape_hack();
 		}
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			activity_observer_ = observer;
 			if(activity_observer_) {
 				activity_observer_->register_led(caps_led);
 				activity_observer_->set_led_status(caps_led, caps_led_state_);
+			}
 
-				if(plus3_) {
-					plus3_->set_activity_observer(observer);
-				}
+			if(plus3_) {
+				plus3_->set_activity_observer(observer);
+			}
+
+			if(has_scsi_bus) {
+				scsi_bus_.set_activity_observer(observer);
 			}
 		}
 
@@ -493,8 +663,8 @@ class ConcreteMachine:
 
 				case ROM::OS:		target = os_;			break;
 				default:
-					target = roms_[static_cast<int>(slot)];
-					rom_write_masks_[static_cast<int>(slot)] = is_writeable;
+					target = roms_[int(slot)];
+					rom_write_masks_[int(slot)] = is_writeable;
 				break;
 			}
 
@@ -506,8 +676,20 @@ class ConcreteMachine:
 				rom_ptr += size_to_copy;
 			}
 
-			if(static_cast<int>(slot) < 16)
-				rom_inserted_[static_cast<int>(slot)] = true;
+			if(int(slot) < 16) {
+				rom_inserted_[int(slot)] = true;
+			}
+		}
+
+		/*!
+			Enables @c slot as sideways RAM; ensures that it does not currently contain a valid ROM signature.
+		*/
+		void set_sideways_ram(ROM slot) {
+			std::memset(roms_[int(slot)], 0xff, 16*1024);
+			if(int(slot) < 16) {
+				rom_inserted_[int(slot)] = true;
+				rom_write_masks_[int(slot)] = true;
+			}
 		}
 
 		// MARK: - Work deferral updates.
@@ -543,7 +725,12 @@ class ConcreteMachine:
 			} else {
 				interrupt_status_ &= ~1;
 			}
-			m6502_.set_irq_line(interrupt_status_ & 1);
+
+			if constexpr (has_scsi_bus) {
+				m6502_.set_irq_line((scsi_interrupt_state_ && scsi_interrupt_mask_) | (interrupt_status_ & 1));
+			} else {
+				m6502_.set_irq_line(interrupt_status_ & 1);
+			}
 		}
 
 		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
@@ -556,7 +743,7 @@ class ConcreteMachine:
 		std::vector<uint8_t> dfs_, adfs1_, adfs2_;
 
 		// Paging
-		int active_rom_ = static_cast<int>(ROM::Slot0);
+		int active_rom_ = int(ROM::Slot0);
 		bool keyboard_is_active_ = false;
 		bool basic_is_active_ = false;
 
@@ -587,6 +774,25 @@ class ConcreteMachine:
 		bool is_holding_shift_ = false;
 		int shift_restart_counter_ = 0;
 
+		// Hard drive.
+		SCSI::Bus scsi_bus_;
+		SCSI::Target::Target<SCSI::DirectAccessDevice> hard_drive_;
+		SCSI::BusState previous_bus_state_ = SCSI::DefaultBusState;
+		const size_t scsi_device_ = 0;
+		uint8_t scsi_data_ = 0;
+		bool scsi_select_ = false;
+		bool scsi_acknowledge_ = false;
+		bool scsi_is_clocked_ = false;
+		bool scsi_interrupt_state_ = false;
+		bool scsi_interrupt_mask_ = false;
+		void push_scsi_output() {
+			scsi_bus_.set_device_output(scsi_device_,
+				(scsi_bus_.get_state()&SCSI::Line::Input ? 0 : scsi_data_) |
+				(scsi_select_ ? SCSI::Line::SelectTarget : 0) |
+				(scsi_acknowledge_ ? SCSI::Line::Acknowledge : 0)
+			);
+		}
+
 		// Outputs
 		VideoOutput video_output_;
 
@@ -609,7 +815,12 @@ using namespace Electron;
 Machine *Machine::Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::Acorn::Target;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
-	return new Electron::ConcreteMachine(*acorn_target, rom_fetcher);
+
+	if(acorn_target->media.mass_storage_devices.empty()) {
+		return new Electron::ConcreteMachine<false>(*acorn_target, rom_fetcher);
+	} else {
+		return new Electron::ConcreteMachine<true>(*acorn_target, rom_fetcher);
+	}
 }
 
 Machine::~Machine() {}

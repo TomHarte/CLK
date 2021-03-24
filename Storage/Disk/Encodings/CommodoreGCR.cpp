@@ -63,9 +63,9 @@ void Storage::Encodings::CommodoreGCR::encode_block(uint8_t *destination, uint8_
 		encoding_for_byte(source[3]),
 	};
 
-	destination[0] = static_cast<uint8_t>(encoded_bytes[0] >> 2);
-	destination[1] = static_cast<uint8_t>((encoded_bytes[0] << 6) | (encoded_bytes[1] >> 4));
-	destination[2] = static_cast<uint8_t>((encoded_bytes[1] << 4) | (encoded_bytes[2] >> 6));
-	destination[3] = static_cast<uint8_t>((encoded_bytes[2] << 2) | (encoded_bytes[3] >> 8));
-	destination[4] = static_cast<uint8_t>(encoded_bytes[3]);
+	destination[0] = uint8_t(encoded_bytes[0] >> 2);
+	destination[1] = uint8_t((encoded_bytes[0] << 6) | (encoded_bytes[1] >> 4));
+	destination[2] = uint8_t((encoded_bytes[1] << 4) | (encoded_bytes[2] >> 6));
+	destination[3] = uint8_t((encoded_bytes[2] << 2) | (encoded_bytes[3] >> 8));
+	destination[4] = uint8_t(encoded_bytes[3]);
 }

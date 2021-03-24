@@ -27,11 +27,11 @@ class ST: public MFMSectorDump {
 		*/
 		ST(const std::string &file_name);
 
-		HeadPosition get_maximum_head_position() override;
-		int get_head_count() override;
+		HeadPosition get_maximum_head_position() final;
+		int get_head_count() final;
 
 	private:
-		long get_file_offset_for_position(Track::Address address) override;
+		long get_file_offset_for_position(Track::Address address) final;
 
 		int head_count_;
 		int track_count_;

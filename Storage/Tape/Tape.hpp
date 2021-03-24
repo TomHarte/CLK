@@ -16,6 +16,8 @@
 
 #include "../TimedEventLoop.hpp"
 
+#include "../../Activity/Source.hpp"
+
 namespace Storage {
 namespace Tape {
 
@@ -98,6 +100,7 @@ class Tape {
 class TapePlayer: public TimedEventLoop, public ClockingHint::Source {
 	public:
 		TapePlayer(int input_clock_rate);
+		virtual ~TapePlayer() {}
 
 		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 		bool has_tape();
@@ -107,7 +110,10 @@ class TapePlayer: public TimedEventLoop, public ClockingHint::Source {
 
 		void run_for_input_pulse();
 
-		ClockingHint::Preference preferred_clocking() override;
+		ClockingHint::Preference preferred_clocking() const override;
+
+		Tape::Pulse get_current_pulse();
+		void complete_pulse();
 
 	protected:
 		virtual void process_next_event() override;
@@ -145,13 +151,17 @@ class BinaryTapePlayer : public TapePlayer {
 		};
 		void set_delegate(Delegate *delegate);
 
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
+
+		void set_activity_observer(Activity::Observer *observer);
 
 	protected:
 		Delegate *delegate_ = nullptr;
-		void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
+		void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) final;
 		bool input_level_ = false;
 		bool motor_is_running_ = false;
+
+		Activity::Observer *observer_ = nullptr;
 };
 
 }

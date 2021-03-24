@@ -30,6 +30,7 @@ class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		void skip_samples(std::size_t number_of_samples);
 		void set_sample_volume_range(std::int16_t range);
+		static constexpr bool get_is_stereo() { return false; }
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
@@ -42,7 +43,7 @@ class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 };
 
 struct BusHandler {
-	void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data) {
+	void perform_read([[maybe_unused]] uint16_t address, [[maybe_unused]] uint8_t *pixel_data, [[maybe_unused]] uint8_t *colour_data) {
 		*pixel_data = 0xff;
 		*colour_data = 0xff;
 	}
@@ -80,13 +81,14 @@ template <class BusHandler> class MOS6560 {
 		}
 
 		void set_clock_rate(double clock_rate) {
-			speaker_.set_input_rate(static_cast<float>(clock_rate / 4.0));
+			speaker_.set_input_rate(float(clock_rate / 4.0));
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target)		{ crt_.set_scan_target(scan_target); 			}
 		Outputs::Display::ScanStatus get_scaled_scan_status() const			{ return crt_.get_scaled_scan_status() / 4.0f;	}
 		void set_display_type(Outputs::Display::DisplayType display_type)	{ crt_.set_display_type(display_type); 			}
-		Outputs::Speaker::Speaker *get_speaker() { return &speaker_; }
+		Outputs::Display::DisplayType get_display_type() const				{ return crt_.get_display_type(); 				}
+		Outputs::Speaker::Speaker *get_speaker()	 						{ return &speaker_; 							}
 
 		void set_high_frequency_cutoff(float cutoff) {
 			speaker_.set_high_frequency_cutoff(cutoff);
@@ -233,7 +235,7 @@ template <class BusHandler> class MOS6560 {
 					if(column_counter_&1) {
 						fetch_address = registers_.character_cell_start_address + (character_code_*(registers_.tall_characters ? 16 : 8)) + current_character_row_;
 					} else {
-						fetch_address = static_cast<uint16_t>(registers_.video_matrix_start_address + video_matrix_address_counter_);
+						fetch_address = uint16_t(registers_.video_matrix_start_address + video_matrix_address_counter_);
 						video_matrix_address_counter_++;
 						if(
 							(current_character_row_ == 15) ||
@@ -369,7 +371,7 @@ template <class BusHandler> class MOS6560 {
 
 				case 0x2:
 					registers_.number_of_columns = value & 0x7f;
-					registers_.video_matrix_start_address = static_cast<uint16_t>((registers_.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
+					registers_.video_matrix_start_address = uint16_t((registers_.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
 				break;
 
 				case 0x3:
@@ -378,8 +380,8 @@ template <class BusHandler> class MOS6560 {
 				break;
 
 				case 0x5:
-					registers_.character_cell_start_address = static_cast<uint16_t>((value & 0x0f) << 10);
-					registers_.video_matrix_start_address = static_cast<uint16_t>((registers_.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
+					registers_.character_cell_start_address = uint16_t((value & 0x0f) << 10);
+					registers_.video_matrix_start_address = uint16_t((registers_.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
 				break;
 
 				case 0xa:
@@ -418,11 +420,11 @@ template <class BusHandler> class MOS6560 {
 		/*
 			Reads from a 6560 register.
 		*/
-		uint8_t read(int address) {
+		uint8_t read(int address) const {
 			address &= 0xf;
 			switch(address) {
 				default: return registers_.direct_values[address];
-				case 0x03: return static_cast<uint8_t>(raster_value() << 7) | (registers_.direct_values[3] & 0x7f);
+				case 0x03: return uint8_t(raster_value() << 7) | (registers_.direct_values[3] & 0x7f);
 				case 0x04: return (raster_value() >> 1) & 0xff;
 			}
 		}
@@ -443,28 +445,28 @@ template <class BusHandler> class MOS6560 {
 		// register state
 		struct {
 			bool interlaced = false, tall_characters = false;
-			uint8_t first_column_location, first_row_location;
-			uint8_t number_of_columns, number_of_rows;
-			uint16_t character_cell_start_address, video_matrix_start_address;
-			uint16_t backgroundColour, borderColour, auxiliary_colour;
+			uint8_t first_column_location = 0, first_row_location = 0;
+			uint8_t number_of_columns = 0, number_of_rows = 0;
+			uint16_t character_cell_start_address = 0, video_matrix_start_address = 0;
+			uint16_t backgroundColour = 0, borderColour = 0, auxiliary_colour = 0;
 			bool invertedCells = false;
 
-			uint8_t direct_values[16];
+			uint8_t direct_values[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		} registers_;
 
 		// output state
 		enum State {
 			Sync, ColourBurst, Border, Pixels
-		} this_state_, output_state_;
-		int cycles_in_state_;
+		} this_state_ = State::Sync, output_state_ = State::Sync;
+		int cycles_in_state_ = 0;
 
 		// counters that cover an entire field
 		int horizontal_counter_ = 0, vertical_counter_ = 0;
-		const int lines_this_field() {
+		int lines_this_field() const {
 			// Necessary knowledge here: only the NTSC 6560 supports interlaced video.
 			return registers_.interlaced ? (is_odd_frame_ ? 262 : 263) : timing_.lines_per_progressive_field;
 		}
-		const int raster_value() {
+		int raster_value() const {
 			const int bonus_line = (horizontal_counter_ + timing_.line_counter_increment_offset) / timing_.cycles_per_line;
 			const int line = vertical_counter_ + bonus_line;
 			const int final_line = lines_this_field();
@@ -479,29 +481,29 @@ template <class BusHandler> class MOS6560 {
 			}
 			// Cf. http://www.sleepingelephant.com/ipw-web/bulletin/bb/viewtopic.php?f=14&t=7237&start=15#p80737
 		}
-		bool is_odd_frame() {
+		bool is_odd_frame() const {
 			return is_odd_frame_ || !registers_.interlaced;
 		}
 
 		// latches dictating start and length of drawing
 		bool vertical_drawing_latch_ = false, horizontal_drawing_latch_ = false;
-		int rows_this_field_, columns_this_line_;
+		int rows_this_field_ = 0, columns_this_line_ = 0;
 
 		// current drawing position counter
-		int pixel_line_cycle_, column_counter_;
-		int current_row_;
-		uint16_t current_character_row_;
-		uint16_t video_matrix_address_counter_, base_video_matrix_address_counter_;
+		int pixel_line_cycle_ = 0, column_counter_ = 0;
+		int current_row_ = 0;
+		uint16_t current_character_row_ = 0;
+		uint16_t video_matrix_address_counter_ = 0, base_video_matrix_address_counter_ = 0;
 
 		// data latched from the bus
-		uint8_t character_code_, character_colour_, character_value_;
+		uint8_t character_code_ = 0, character_colour_ = 0, character_value_ = 0;
 
 		bool is_odd_frame_ = false, is_odd_line_ = false;
 
 		// lookup table from 6560 colour index to appropriate PAL/NTSC value
-		uint16_t colours_[16];
+		uint16_t colours_[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-		uint16_t *pixel_pointer;
+		uint16_t *pixel_pointer = nullptr;
 		void output_border(int number_of_cycles) {
 			uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
 			if(colour_pointer) *colour_pointer = registers_.borderColour;
@@ -509,13 +511,13 @@ template <class BusHandler> class MOS6560 {
 		}
 
 		struct {
-			int cycles_per_line;
-			int line_counter_increment_offset;
-			int final_line_increment_position;
-			int lines_per_progressive_field;
-			bool supports_interlacing;
+			int cycles_per_line = 0;
+			int line_counter_increment_offset = 0;
+			int final_line_increment_position = 0;
+			int lines_per_progressive_field = 0;
+			bool supports_interlacing = 0;
 		} timing_;
-		OutputMode output_mode_;
+		OutputMode output_mode_ = OutputMode::NTSC;
 };
 
 }

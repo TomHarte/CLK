@@ -20,7 +20,9 @@ DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sec
 	} else {
 		roms = rom_fetcher({
 			{"DiskII", "the Disk II 13-sector boot ROM", "boot-13.rom", 256, 0xd34eb2ff},
-			{"DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620 }
+			{"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0x9796a238, 0xb72a2c70 } }
+//			{"DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620 }
+			/* TODO: once the DiskII knows how to decode common images of the 13-sector state machine, use that instead of the 16-sector. */
 		});
 	}
 	if(!roms[0] || !roms[1]) {
@@ -41,7 +43,7 @@ void DiskIICard::perform_bus_operation(Select select, bool is_read, uint16_t add
 			const int disk_value = diskii_.read_address(address);
 			if(is_read) {
 				if(disk_value != diskii_.DidNotLoad)
-					*value = static_cast<uint8_t>(disk_value);
+					*value = uint8_t(disk_value);
 			}
 		} break;
 		case Device:
@@ -50,7 +52,7 @@ void DiskIICard::perform_bus_operation(Select select, bool is_read, uint16_t add
 	}
 }
 
-void DiskIICard::run_for(Cycles cycles, int stretches) {
+void DiskIICard::run_for(Cycles cycles, int) {
 	if(diskii_clocking_preference_ == ClockingHint::Preference::None) return;
 	diskii_.run_for(Cycles(cycles.as_integral() * 2));
 }
@@ -63,7 +65,7 @@ void DiskIICard::set_activity_observer(Activity::Observer *observer) {
 	diskii_.set_activity_observer(observer);
 }
 
-void DiskIICard::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) {
+void DiskIICard::set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference preference) {
 	diskii_clocking_preference_ = preference;
 	set_select_constraints((preference != ClockingHint::Preference::RealTime) ? (IO | Device) : None);
 }

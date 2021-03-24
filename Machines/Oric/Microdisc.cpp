@@ -33,16 +33,15 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 
 	// b65: drive select
 	if((changes >> 5)&3) {
-		selected_drive_ = (control >> 5)&3;
-		set_drive(drives_[selected_drive_]);
+		set_drive(1 << (control >> 5)&3);
 	}
 
 	// b4: side select
 	if(changes & 0x10) {
-		const int head = (control & 0x10) ? 1 : 0;
-		for(auto &drive : drives_) {
-			if(drive) drive->set_head(head);
-		}
+		const int head = (control & 0x10) >> 4;
+		for_all_drives([head] (Storage::Disk::Drive &drive, size_t) {
+			drive.set_head(head);
+		});
 	}
 
 	// b3: double density select (0 = double)
@@ -53,7 +52,7 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 	// b0: IRQ enable
 	if(changes & 0x01) {
 		const bool had_irq = get_interrupt_request_line();
-		irq_enable_ = !!(control & 0x01);
+		irq_enable_ = bool(control & 0x01);
 		const bool has_irq = get_interrupt_request_line();
 		if(has_irq != had_irq && delegate_) {
 			delegate_->wd1770_did_change_output(this);
@@ -63,9 +62,14 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 	// b7: EPROM select (0 = select)
 	// b1: ROM disable (0 = disable)
 	if(changes & 0x82) {
-		enable_overlay_ram_ = control & 0x80;
-		disable_basic_rom_ = !(control & 0x02);
-		select_paged_item();
+		PagedItem item;
+		if(control & 0x02) item = PagedItem::BASIC;
+		else if(control & 0x80) {
+			item = PagedItem::RAM;
+		} else {
+			item = PagedItem::DiskROM;
+		}
+		set_paged_item(item);
 	}
 }
 
@@ -86,9 +90,9 @@ void Microdisc::set_head_load_request(bool head_load) {
 
 	// The drive motors (at present: I believe **all drive motors** regardless of the selected drive) receive
 	// the current head load request state.
-	for(auto &drive : drives_) {
-		if(drive) drive->set_motor_on(head_load);
-	}
+	for_all_drives([head_load] (Storage::Disk::Drive &drive, size_t) {
+		drive.set_motor_on(head_load);
+	});
 
 	// A request to load the head results in a delay until the head is confirmed loaded. This delay is handled
 	// in ::run_for. A request to unload the head results in an instant answer that the head is unloaded.

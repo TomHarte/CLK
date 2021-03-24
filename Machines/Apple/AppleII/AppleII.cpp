@@ -9,10 +9,7 @@
 #include "AppleII.hpp"
 
 #include "../../../Activity/Source.hpp"
-#include "../../MediaTarget.hpp"
-#include "../../CRTMachine.hpp"
-#include "../../JoystickMachine.hpp"
-#include "../../KeyboardMachine.hpp"
+#include "../../MachineTypes.hpp"
 #include "../../Utility/MemoryFuzzer.hpp"
 #include "../../Utility/StringSerialiser.hpp"
 
@@ -22,8 +19,11 @@
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Outputs/Log.hpp"
 
+#include "AuxiliaryMemorySwitches.hpp"
 #include "Card.hpp"
 #include "DiskIICard.hpp"
+#include "Joystick.hpp"
+#include "LanguageCardSwitches.hpp"
 #include "Video.hpp"
 
 #include "../../../Analyser/Static/AppleII/Target.hpp"
@@ -37,24 +37,20 @@
 namespace Apple {
 namespace II {
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayCompositeMonochrome | Configurable::DisplayCompositeColour)
-	);
-}
-
 #define is_iie() ((model == Analyser::Static::AppleII::Target::Model::IIe) || (model == Analyser::Static::AppleII::Target::Model::EnhancedIIe))
 
 template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
+	public Apple::II::Machine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::JoystickMachine,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
 	public Configurable::Device,
-	public Apple::II::Machine,
 	public Activity::Source,
-	public JoystickMachine::Machine,
 	public Apple::II::Card::Delegate {
 	private:
 		struct VideoBusHandler : public Apple::II::Video::BusHandler {
@@ -147,7 +143,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			card_became_just_in_time_ |= !is_every_cycle;
 		}
 
-		void card_did_change_select_constraints(Apple::II::Card *card) override {
+		void card_did_change_select_constraints(Apple::II::Card *card) final {
 			pick_card_messaging_group(card);
 		}
 
@@ -182,7 +178,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			to paging every 6502 page of memory independently. It makes the paging events more expensive,
 			but hopefully more clear.
 		*/
-		uint8_t *read_pages_[256];	// each is a pointer to the 256-block of memory the CPU should read when accessing that page of memory
+		const uint8_t *read_pages_[256];	// each is a pointer to the 256-block of memory the CPU should read when accessing that page of memory
 		uint8_t *write_pages_[256];	// as per read_pages_, but this is where the CPU should write. If a pointer is nullptr, don't write.
 		void page(int start, int end, uint8_t *read, uint8_t *write) {
 			for(int position = start; position < end; ++position) {
@@ -194,128 +190,79 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 		}
 
-		// MARK: - The language card.
-		struct {
-			bool bank1 = false;
-			bool read = false;
-			bool pre_write = false;
-			bool write = false;
-		} language_card_;
-		bool has_language_card_ = true;
+		// MARK: The language card.
+		LanguageCardSwitches<ConcreteMachine> language_card_;
+		AuxiliaryMemorySwitches<ConcreteMachine> auxiliary_switches_;
+		friend LanguageCardSwitches<ConcreteMachine>;
+		friend AuxiliaryMemorySwitches<ConcreteMachine>;
+
 		void set_language_card_paging() {
-			uint8_t *const ram = alternative_zero_page_ ? aux_ram_ : ram_;
+			const auto language_state = language_card_.state();
+			const auto zero_state = auxiliary_switches_.zero_state();
+
+			uint8_t *const ram = zero_state ? aux_ram_ : ram_;
 			uint8_t *const rom = is_iie() ? &rom_[3840] : rom_.data();
 
+			// Which way the region here is mapped to be banks 1 and 2 is
+			// arbitrary.
 			page(0xd0, 0xe0,
-				language_card_.read ? &ram[language_card_.bank1 ? 0xd000 : 0xc000] : rom,
-				language_card_.write ? nullptr : &ram[language_card_.bank1 ? 0xd000 : 0xc000]);
+				language_state.read ? &ram[language_state.bank2 ? 0xd000 : 0xc000] : rom,
+				language_state.write ? nullptr : &ram[language_state.bank2 ? 0xd000 : 0xc000]);
 
 			page(0xe0, 0x100,
-				language_card_.read ? &ram[0xe000] : &rom[0x1000],
-				language_card_.write ? nullptr : &ram[0xe000]);
+				language_state.read ? &ram[0xe000] : &rom[0x1000],
+				language_state.write ? nullptr : &ram[0xe000]);
 		}
 
-		// MARK - The IIe's ROM controls.
-		bool internal_CX_rom_ = false;
-		bool slot_C3_rom_ = false;
-		bool internal_c8_rom_ = false;
-
+		// MARK: Auxiliary memory and the other IIe improvements.
 		void set_card_paging() {
-			page(0xc1, 0xc8, internal_CX_rom_ ? rom_.data() : nullptr, nullptr);
+			const auto state = auxiliary_switches_.card_state();
 
-			if(!internal_CX_rom_) {
-				if(!slot_C3_rom_) read_pages_[0xc3] = &rom_[0xc300 - 0xc100];
-			}
-
-			page(0xc8, 0xd0, (internal_CX_rom_ || internal_c8_rom_) ? &rom_[0xc800 - 0xc100] : nullptr, nullptr);
+			page(0xc1, 0xc4, state.region_C1_C3 ? &rom_[0xc100 - 0xc100] : nullptr, nullptr);
+			read_pages_[0xc3] = state.region_C3 ? &rom_[0xc300 - 0xc100] : nullptr;
+			page(0xc4, 0xc8, state.region_C4_C8 ? &rom_[0xc400 - 0xc100]  : nullptr, nullptr);
+			page(0xc8, 0xd0, state.region_C8_D0 ? &rom_[0xc800 - 0xc100]  : nullptr, nullptr);
 		}
-
-		// MARK - The IIe's auxiliary RAM controls.
-		bool alternative_zero_page_ = false;
 		void set_zero_page_paging() {
-			if(alternative_zero_page_) {
-				read_pages_[0] = aux_ram_;
+			if(auxiliary_switches_.zero_state()) {
+				write_pages_[0] = aux_ram_;
 			} else {
-				read_pages_[0] = ram_;
+				write_pages_[0] = ram_;
 			}
-			read_pages_[1] = read_pages_[0] + 256;
-			write_pages_[0] = read_pages_[0];
-			write_pages_[1] = read_pages_[1];
+			write_pages_[1] = write_pages_[0] + 256;
+			read_pages_[0] = write_pages_[0];
+			read_pages_[1] = write_pages_[1];
+
+			// Zero page banking also affects interpretation of the language card's switches.
+			set_language_card_paging();
 		}
-
-		bool read_auxiliary_memory_ = false;
-		bool write_auxiliary_memory_ = false;
 		void set_main_paging() {
-			page(0x02, 0xc0,
-				read_auxiliary_memory_ ? &aux_ram_[0x0200] : &ram_[0x0200],
-				write_auxiliary_memory_ ? &aux_ram_[0x0200] : &ram_[0x0200]);
+			const auto state = auxiliary_switches_.main_state();
 
-			if(video_.get_80_store()) {
-				bool use_aux_ram = video_.get_page2();
-				page(0x04, 0x08,
-					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400],
-					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400]);
+			page(0x02, 0x04,
+				state.base.read ? &aux_ram_[0x0200] : &ram_[0x0200],
+				state.base.write ? &aux_ram_[0x0200] : &ram_[0x0200]);
+			page(0x08, 0x20,
+				state.base.read ? &aux_ram_[0x0800] : &ram_[0x0800],
+				state.base.write ? &aux_ram_[0x0800] : &ram_[0x0800]);
+			page(0x40, 0xc0,
+				state.base.read ? &aux_ram_[0x4000] : &ram_[0x4000],
+				state.base.write ? &aux_ram_[0x4000] : &ram_[0x4000]);
 
-				if(video_.get_high_resolution()) {
-					page(0x20, 0x40,
-						use_aux_ram ? &aux_ram_[0x2000] : &ram_[0x2000],
-						use_aux_ram ? &aux_ram_[0x2000] : &ram_[0x2000]);
-				}
-			}
+			page(0x04, 0x08,
+				state.region_04_08.read ? &aux_ram_[0x0400] : &ram_[0x0400],
+				state.region_04_08.write ? &aux_ram_[0x0400] : &ram_[0x0400]);
+
+			page(0x20, 0x40,
+				state.region_20_40.read ? &aux_ram_[0x2000] : &ram_[0x2000],
+				state.region_20_40.write ? &aux_ram_[0x2000] : &ram_[0x2000]);
 		}
 
 		// MARK - typing
 		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
 
-		// MARK - joysticks
-		class Joystick: public Inputs::ConcreteJoystick {
-			public:
-				Joystick() :
-					ConcreteJoystick({
-						Input(Input::Horizontal),
-						Input(Input::Vertical),
-
-						// The Apple II offers three buttons between two joysticks;
-						// this emulator puts three buttons on each joystick and
-						// combines them.
-						Input(Input::Fire, 0),
-						Input(Input::Fire, 1),
-						Input(Input::Fire, 2),
-					}) {}
-
-					void did_set_input(const Input &input, float value) override {
-						if(!input.info.control.index && (input.type == Input::Type::Horizontal || input.type == Input::Type::Vertical))
-							axes[(input.type == Input::Type::Horizontal) ? 0 : 1] = 1.0f - value;
-					}
-
-					void did_set_input(const Input &input, bool value) override {
-						if(input.type == Input::Type::Fire && input.info.control.index < 3) {
-							buttons[input.info.control.index] = value;
-						}
-					}
-
-				bool buttons[3] = {false, false, false};
-				float axes[2] = {0.5f, 0.5f};
-		};
-
-		// On an Apple II, the programmer strobes 0xc070 and that causes each analogue input
-		// to begin a charge and discharge cycle **if they are not already charging**.
-		// The greater the analogue input, the faster they will charge and therefore the sooner
-		// they will discharge.
-		//
-		// This emulator models that with analogue_charge_ being essentially the amount of time,
-		// in charge threshold units, since 0xc070 was last strobed. But if any of the analogue
-		// inputs were already partially charged then they gain a bias in analogue_biases_.
-		//
-		// It's a little indirect, but it means only having to increment the one value in the
-		// main loop.
-		float analogue_charge_ = 0.0f;
-		float analogue_biases_[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-
-		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
-		bool analogue_channel_is_discharged(size_t channel) {
-			return (1.0f - static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1]) < analogue_charge_ + analogue_biases_[channel];
-		}
+		// MARK - Joysticks.
+		JoystickPair joysticks_;
 
 		// The IIe has three keys that are wired directly to the same input as the joystick buttons.
 		bool open_apple_is_pressed_ = false;
@@ -327,7 +274,9 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			video_bus_handler_(ram_, aux_ram_),
 			video_(video_bus_handler_),
 			audio_toggle_(audio_queue_),
-			speaker_(audio_toggle_) {
+			speaker_(audio_toggle_),
+			language_card_(*this),
+			auxiliary_switches_(*this) {
 			// The system's master clock rate.
 			constexpr float master_clock = 14318180.0;
 
@@ -338,7 +287,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			// The speaker, however, should think it is clocked at half the master clock, per a general
 			// decision to sample it at seven times the CPU clock (plus stretches).
-			speaker_.set_input_rate(static_cast<float>(master_clock / (2.0 * static_cast<float>(audio_divider))));
+			speaker_.set_input_rate(float(master_clock / (2.0 * float(audio_divider))));
 
 			// Apply a 6Khz low-pass filter. This was picked by ear and by an attempt to understand the
 			// Apple II schematic but, well, I don't claim much insight on the latter. This is definitely
@@ -349,10 +298,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			Memory::Fuzz(ram_, sizeof(ram_));
 			Memory::Fuzz(aux_ram_, sizeof(aux_ram_));
 
-			// Add a couple of joysticks.
-			joysticks_.emplace_back(new Joystick);
-			joysticks_.emplace_back(new Joystick);
-
 			// Pick the required ROMs.
 			using Target = Analyser::Static::AppleII::Target;
 			const std::string machine_name = "AppleII";
@@ -360,21 +305,21 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			size_t rom_size = 12*1024;
 			switch(target.model) {
 				default:
-					rom_descriptions.emplace_back(machine_name, "the basic Apple II character ROM", "apple2-character.rom", 2*1024, 0x64f415c6);
+					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::II));
 					rom_descriptions.emplace_back(machine_name, "the original Apple II ROM", "apple2o.rom", 12*1024, 0xba210588);
 				break;
 				case Target::Model::IIplus:
-					rom_descriptions.emplace_back(machine_name, "the basic Apple II character ROM", "apple2-character.rom", 2*1024, 0x64f415c6);
+					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::II));
 					rom_descriptions.emplace_back(machine_name, "the Apple II+ ROM", "apple2.rom", 12*1024, 0xf66f9c26);
 				break;
 				case Target::Model::IIe:
 					rom_size += 3840;
-					rom_descriptions.emplace_back(machine_name, "the Apple IIe character ROM", "apple2eu-character.rom", 4*1024, 0x816a86f1);
+					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::IIe));
 					rom_descriptions.emplace_back(machine_name, "the Apple IIe ROM", "apple2eu.rom", 32*1024, 0xe12be18d);
 				break;
 				case Target::Model::EnhancedIIe:
 					rom_size += 3840;
-					rom_descriptions.emplace_back(machine_name, "the Enhanced Apple IIe character ROM", "apple2e-character.rom", 4*1024, 0x2651014d);
+					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::EnhancedIIe));
 					rom_descriptions.emplace_back(machine_name, "the Enhanced Apple IIe ROM", "apple2e.rom", 32*1024, 0x65989942);
 				break;
 			}
@@ -394,7 +339,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			rom_ = std::move(*roms[1]);
 			if(rom_.size() > rom_size) {
-				rom_.erase(rom_.begin(), rom_.end() - static_cast<off_t>(rom_size));
+				rom_.erase(rom_.begin(), rom_.end() - off_t(rom_size));
 			}
 
 			video_.set_character_rom(*roms[0]);
@@ -407,9 +352,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			// Set the whole card area to initially backed by nothing.
 			page(0xc0, 0xd0, nullptr, nullptr);
 
-			// Set proper values for the language card/ROM area.
-			set_language_card_paging();
-
 			insert_media(target.media);
 		}
 
@@ -417,7 +359,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_.set_scan_target(scan_target);
 		}
 
@@ -426,11 +368,15 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		/// Sets the type of display.
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			video_.set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Display::DisplayType get_display_type() const final {
+			return video_.get_display_type();
+		}
+
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
@@ -460,14 +406,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
 				}
 
-				if(is_iie() && address >= 0xc300 && address < 0xd000) {
-					bool internal_c8_rom = internal_c8_rom_;
-					internal_c8_rom |= ((address >> 8) == 0xc3) && !slot_C3_rom_;
-					internal_c8_rom &= (address != 0xcfff);
-					if(internal_c8_rom != internal_c8_rom_) {
-						internal_c8_rom_ = internal_c8_rom;
-						set_card_paging();
-					}
+				if(is_iie()) {
+					auxiliary_switches_.access(address, isReadOperation(operation));
 				}
 			} else {
 				// Assume a vapour read unless it turns out otherwise; this is a little
@@ -505,7 +445,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								case 0xc061:	// Switch input 0.
 									*value &= 0x7f;
 									if(
-										static_cast<Joystick *>(joysticks_[0].get())->buttons[0] || static_cast<Joystick *>(joysticks_[1].get())->buttons[2] ||
+										joysticks_.button(0) ||
 										(is_iie() && open_apple_is_pressed_)
 									)
 										*value |= 0x80;
@@ -513,14 +453,14 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								case 0xc062:	// Switch input 1.
 									*value &= 0x7f;
 									if(
-										static_cast<Joystick *>(joysticks_[0].get())->buttons[1] || static_cast<Joystick *>(joysticks_[1].get())->buttons[1] ||
+										joysticks_.button(1) ||
 										(is_iie() && closed_apple_is_pressed_)
 									)
 										*value |= 0x80;
 								break;
 								case 0xc063:	// Switch input 2.
 									*value &= 0x7f;
-									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[2] || static_cast<Joystick *>(joysticks_[1].get())->buttons[0])
+									if(joysticks_.button(2))
 										*value |= 0x80;
 								break;
 
@@ -530,20 +470,20 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								case 0xc067: {	// Analogue input 3.
 									const size_t input = address - 0xc064;
 									*value &= 0x7f;
-									if(!analogue_channel_is_discharged(input)) {
+									if(!joysticks_.analogue_channel_is_discharged(input)) {
 										*value |= 0x80;
 									}
 								} break;
 
 								// The IIe-only state reads follow...
 #define IIeSwitchRead(s)	*value = get_keyboard_input(); if(is_iie()) *value = (*value & 0x7f) | (s ? 0x80 : 0x00);
-								case 0xc011:	IIeSwitchRead(language_card_.bank1);										break;
-								case 0xc012:	IIeSwitchRead(language_card_.read);											break;
-								case 0xc013:	IIeSwitchRead(read_auxiliary_memory_);										break;
-								case 0xc014:	IIeSwitchRead(write_auxiliary_memory_);										break;
-								case 0xc015:	IIeSwitchRead(internal_CX_rom_);											break;
-								case 0xc016:	IIeSwitchRead(alternative_zero_page_);										break;
-								case 0xc017:	IIeSwitchRead(slot_C3_rom_);												break;
+								case 0xc011:	IIeSwitchRead(language_card_.state().bank2);								break;
+								case 0xc012:	IIeSwitchRead(language_card_.state().read);									break;
+								case 0xc013:	IIeSwitchRead(auxiliary_switches_.switches().read_auxiliary_memory);		break;
+								case 0xc014:	IIeSwitchRead(auxiliary_switches_.switches().write_auxiliary_memory);		break;
+								case 0xc015:	IIeSwitchRead(auxiliary_switches_.switches().internal_CX_rom);				break;
+								case 0xc016:	IIeSwitchRead(auxiliary_switches_.switches().alternative_zero_page);		break;
+								case 0xc017:	IIeSwitchRead(auxiliary_switches_.switches().slot_C3_rom);					break;
 								case 0xc018:	IIeSwitchRead(video_.get_80_store());										break;
 								case 0xc019:	IIeSwitchRead(video_.get_is_vertical_blank(cycles_since_video_update_));	break;
 								case 0xc01a:	IIeSwitchRead(video_.get_text());											break;
@@ -561,6 +501,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						} else {
 							// Write-only switches. All IIe as currently implemented.
 							if(is_iie()) {
+								auxiliary_switches_.access(address, false);
 								switch(address) {
 									default: break;
 
@@ -568,40 +509,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 									case 0xc001:
 										update_video();
 										video_.set_80_store(!!(address&1));
-										set_main_paging();
-									break;
-
-									case 0xc002:
-									case 0xc003:
-										read_auxiliary_memory_ = !!(address&1);
-										set_main_paging();
-									break;
-
-									case 0xc004:
-									case 0xc005:
-										write_auxiliary_memory_ = !!(address&1);
-										set_main_paging();
-									break;
-
-									case 0xc006:
-									case 0xc007:
-										internal_CX_rom_ = !!(address&1);
-										set_card_paging();
-									break;
-
-									case 0xc008:
-									case 0xc009:
-										// The alternative zero page setting affects both bank 0 and any RAM
-										// that's paged as though it were on a language card.
-										alternative_zero_page_ = !!(address&1);
-										set_zero_page_paging();
-										set_language_card_paging();
-									break;
-
-									case 0xc00a:
-									case 0xc00b:
-										slot_C3_rom_ = !!(address&1);
-										set_card_paging();
 									break;
 
 									case 0xc00c:
@@ -620,17 +527,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						}
 					break;
 
-					case 0xc070: {	// Permit analogue inputs that are currently discharged to begin a charge cycle.
-									// Ensure those that were still charging retain that state.
-						for(size_t c = 0; c < 4; ++c) {
-							if(analogue_channel_is_discharged(c)) {
-								analogue_biases_[c] = 0.0f;
-							} else {
-								analogue_biases_[c] += analogue_charge_;
-							}
-						}
-						analogue_charge_ = 0.0f;
-					} break;
+					case 0xc070: joysticks_.access_c070(); break;
 
 					/* Switches triggered by reading or writing. */
 					case 0xc050:
@@ -643,14 +540,14 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case 0xc054:
 					case 0xc055:
 						update_video();
-						video_.set_page2(!!(address&1));
-						set_main_paging();
+						video_.set_page2(address&1);
+						auxiliary_switches_.access(address, isReadOperation(operation));
 					break;
 					case 0xc056:
 					case 0xc057:
 						update_video();
-						video_.set_high_resolution(!!(address&1));
-						set_main_paging();
+						video_.set_high_resolution(address&1);
+						auxiliary_switches_.access(address, isReadOperation(operation));
 					break;
 
 					case 0xc05e:
@@ -684,28 +581,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case 0xc081: case 0xc085: case 0xc089: case 0xc08d:
 					case 0xc082: case 0xc086: case 0xc08a: case 0xc08e:
 					case 0xc083: case 0xc087: case 0xc08b: case 0xc08f:
-						// Quotes below taken from Understanding the Apple II, p. 5-28 and 5-29.
-
-						// "A3 controls the 4K bank selection"
-						language_card_.bank1 = (address&8);
-
-						// "Access to $C080, $C083, $C084, $0087, $C088, $C08B, $C08C, or $C08F sets the READ ENABLE flip-flop"
-						// (other accesses reset it)
-						language_card_.read = !(((address&2) >> 1) ^ (address&1));
-
-						// "The WRITE ENABLE' flip-flop is reset by an odd read access to the $C08X range when the PRE-WRITE flip-flop is set."
-						if(language_card_.pre_write && isReadOperation(operation) && (address&1)) language_card_.write = false;
-
-						// "[The WRITE ENABLE' flip-flop] is set by an even access in the $C08X range."
-						if(!(address&1)) language_card_.write = true;
-
-						// ("Any other type of access causes the WRITE ENABLE' flip-flop to hold its current state.")
-
-						// "The PRE-WRITE flip-flop is set by an odd read access in the $C08X range. It is reset by an even access or a write access."
-						language_card_.pre_write = isReadOperation(operation) ? (address&1) : false;
-
-						// Apply whatever the net effect of all that is to the memory map.
-						set_language_card_paging();
+						language_card_.access(address, isReadOperation(operation));
 					break;
 				}
 
@@ -738,7 +614,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					// If the selected card is a just-in-time card, update the just-in-time cards,
 					// and then message it specifically.
 					const bool is_read = isReadOperation(operation);
-					Apple::II::Card *const target = cards_[static_cast<size_t>(card_number)].get();
+					Apple::II::Card *const target = cards_[size_t(card_number)].get();
 					if(target && !is_every_cycle_card(target)) {
 						update_just_in_time_cards();
 						target->perform_bus_operation(select, is_read, address, value);
@@ -791,7 +667,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			// Update analogue charge level.
-			analogue_charge_ = std::min(analogue_charge_ + 1.0f / 2820.0f, 1.1f);
+			joysticks_.update_charge();
 
 			return Cycles(1);
 		}
@@ -803,85 +679,106 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		void run_for(const Cycles cycles) override {
+		void run_for(const Cycles cycles) final {
 			m6502_.run_for(cycles);
 		}
 
-		void reset_all_keys() override {
+		void reset_all_keys() final {
 			open_apple_is_pressed_ = closed_apple_is_pressed_ = key_is_down_ = false;
 		}
 
-		void set_key_pressed(Key key, char value, bool is_pressed) override {
-			switch(key) {
-				default: break;
-				case Key::F12:
-					m6502_.set_reset_line(is_pressed);
-				return;
-				case Key::LeftOption:
-					open_apple_is_pressed_ = is_pressed;
-				return;
-				case Key::RightOption:
-					closed_apple_is_pressed_ = is_pressed;
-				return;
-			}
+		bool prefers_logical_input() final {
+			return true;
+		}
 
+		bool set_key_pressed(Key key, char value, bool is_pressed) final {
 			// If no ASCII value is supplied, look for a few special cases.
-			if(!value) {
-				switch(key) {
-					case Key::Left:			value = 0x08;	break;
-					case Key::Right:		value = 0x15;	break;
-					case Key::Down:			value = 0x0a;	break;
-					case Key::Up:			value = 0x0b;	break;
-					case Key::Backspace:	value = 0x7f;	break;
-					default: return;
-				}
-			}
+			switch(key) {
+				case Key::Left:			value = 0x08;	break;
+				case Key::Right:		value = 0x15;	break;
+				case Key::Down:			value = 0x0a;	break;
+				case Key::Up:			value = 0x0b;	break;
+				case Key::Backspace:	value = 0x7f;	break;
+				case Key::Enter:		value = 0x0d;	break;
+				case Key::Tab:			value = '\t';	break;
+				case Key::Escape:		value = 0x1b;	break;
 
-			// Prior to the IIe, the keyboard could produce uppercase only.
-			if(!is_iie()) value = static_cast<char>(toupper(value));
+				case Key::LeftOption:
+				case Key::RightMeta:
+					open_apple_is_pressed_ = is_pressed;
+				return true;
+
+				case Key::RightOption:
+				case Key::LeftMeta:
+					closed_apple_is_pressed_ = is_pressed;
+				return true;
+
+				case Key::F1:	case Key::F2:	case Key::F3:	case Key::F4:
+				case Key::F5:	case Key::F6:	case Key::F7:	case Key::F8:
+				case Key::F9:	case Key::F10:	case Key::F11:	case Key::F12:
+				case Key::PrintScreen:
+				case Key::ScrollLock:
+				case Key::Pause:
+				case Key::Insert:
+				case Key::Home:
+				case Key::PageUp:
+				case Key::PageDown:
+				case Key::End:
+					// Accept a bunch non-symbolic other keys, as
+					// reset, in the hope that the user can find
+					// at least one usable key.
+					m6502_.set_reset_line(is_pressed);
+				return true;
+
+				default:
+					if(!value) {
+						return false;
+					}
+
+					// Prior to the IIe, the keyboard could produce uppercase only.
+					if(!is_iie()) value = char(toupper(value));
+				break;
+			}
 
 			if(is_pressed) {
-				keyboard_input_ = static_cast<uint8_t>(value | 0x80);
+				keyboard_input_ = uint8_t(value | 0x80);
 				key_is_down_ = true;
 			} else {
 				if((keyboard_input_ & 0x7f) == value) {
 					key_is_down_ = false;
 				}
 			}
+
+			return true;
 		}
 
-		Inputs::Keyboard &get_keyboard() override {
+		Inputs::Keyboard &get_keyboard() final {
 			return *this;
 		}
 
-		void type_string(const std::string &string) override {
+		void type_string(const std::string &string) final {
 			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
 		}
 
+		bool can_type(char c) const final {
+			// Make an effort to type the entire printable ASCII range.
+			return c >= 32 && c < 127;
+		}
+
 		// MARK:: Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			return Apple::II::get_options();
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() override {
-			return get_accurate_selections();
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
 		}
 
 		// MARK: MediaTarget
-		bool insert_media(const Analyser::Static::Media &media) override {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.disks.empty()) {
 				auto diskii = diskii_card();
 				if(diskii) diskii->set_disk(media.disks[0], 0);
@@ -890,15 +787,15 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		// MARK: Activity::Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			for(const auto &card: cards_) {
 				if(card) card->set_activity_observer(observer);
 			}
 		}
 
 		// MARK: JoystickMachine
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
-			return joysticks_;
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
+			return joysticks_.get_joysticks();
 		}
 };
 

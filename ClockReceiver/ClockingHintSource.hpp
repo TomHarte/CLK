@@ -67,7 +67,7 @@ class Source {
 		}
 
 		/// @returns the current preferred clocking strategy.
-		virtual Preference preferred_clocking() = 0;
+		virtual Preference preferred_clocking() const = 0;
 
 	private:
 		Observer *observer_ = nullptr;

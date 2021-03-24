@@ -20,11 +20,12 @@ Jasmin::Jasmin() : DiskController(P1770, 8000000, Storage::Disk::Drive::ReadyTyp
 void Jasmin::write(int address, uint8_t value) {
 	switch(address) {
 		// Set side.
-		case 0x3f8:
-			for(auto &drive : drives_) {
-				if(drive) drive->set_head(value & 1);
-			}
-		break;
+		case 0x3f8: {
+			const int head = value & 1;
+			for_all_drives([head] (Storage::Disk::Drive &drive, size_t) {
+				drive.set_head(head);
+			});
+		} break;
 
 		case 0x3f9:
 			/* TODO: reset. */
@@ -43,9 +44,19 @@ void Jasmin::write(int address, uint8_t value) {
 		break;
 
 		case 0x3fc: case 0x3fd: case 0x3fe: case 0x3ff: {
-			if(drives_[selected_drive_]) drives_[selected_drive_]->set_motor_on(false);
-			select_drive(size_t(address - 0x3fc));
-			if(drives_[selected_drive_]) drives_[selected_drive_]->set_motor_on(motor_on_);
+			// Updated selected drives mask.
+			const uint8_t mask = uint8_t(1 << (address - 0x3fc));
+			selected_drives_ = (selected_drives_ & ~mask) | (mask * (value & 1));
+
+			// Select drive.
+			set_drive(selected_drives_);
+
+			// Update motor inputs: apply the motor only to selected drives.
+			// Which may or may not be correct.
+			for_all_drives([mask, this] (Storage::Disk::Drive &drive, size_t index) {
+				const uint8_t shift_mask = uint8_t(1 << index);
+				drive.set_motor_on( (mask & shift_mask) ? motor_on_ : false );
+			});
 		} break;
 
 		default:
@@ -55,7 +66,7 @@ void Jasmin::write(int address, uint8_t value) {
 
 void Jasmin::set_motor_on(bool on) {
 	motor_on_ = on;
-	if(drives_[selected_drive_]) drives_[selected_drive_]->set_motor_on(motor_on_);
+	get_drive().set_motor_on(motor_on_);
 	if(observer_) {
 		observer_->set_led_status("Jasmin", on);
 	}

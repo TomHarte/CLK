@@ -27,7 +27,7 @@ static std::unique_ptr<Analyser::Static::Target> CartridgeTarget(
 	std::vector<Storage::Cartridge::Cartridge::Segment> output_segments;
 	if(segment.data.size() & 0x1fff) {
 		std::vector<uint8_t> truncated_data;
-		std::vector<uint8_t>::difference_type truncated_size = static_cast<std::vector<uint8_t>::difference_type>(segment.data.size()) & ~0x1fff;
+		std::vector<uint8_t>::difference_type truncated_size = std::vector<uint8_t>::difference_type(segment.data.size()) & ~0x1fff;
 		truncated_data.insert(truncated_data.begin(), segment.data.begin(), segment.data.begin() + truncated_size);
 		output_segments.emplace_back(start_address, truncated_data);
 	} else {
@@ -35,7 +35,6 @@ static std::unique_ptr<Analyser::Static::Target> CartridgeTarget(
 	}
 
 	auto target = std::make_unique<Analyser::Static::MSX::Target>();
-	target->machine = Analyser::Machine::MSX;
 	target->confidence = confidence;
 
 	if(type == Analyser::Static::MSX::Cartridge::Type::None) {
@@ -97,7 +96,7 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 		// Reject cartridge if the ROM header wasn't found.
 		if(!found_start) continue;
 
-		uint16_t init_address = static_cast<uint16_t>(segment.data[2] | (segment.data[3] << 8));
+		uint16_t init_address = uint16_t(segment.data[2] | (segment.data[3] << 8));
 		// TODO: check for a rational init address?
 
 		// If this ROM is less than 48kb in size then it's an ordinary ROM. Just emplace it and move on.
@@ -147,7 +146,7 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 //				) &&
 //				((next_iterator->second.operand >> 13) != (0x4000 >> 13))
 //			) {
-//				const uint16_t address = static_cast<uint16_t>(next_iterator->second.operand);
+//				const uint16_t address = uint16_t(next_iterator->second.operand);
 //				switch(iterator->second.operand) {
 //					case 0x6000:
 //						if(address >= 0x6000 && address < 0x8000) {
@@ -208,13 +207,13 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 			if(	instruction_pair.second.operation == Instruction::Operation::LD &&
 				instruction_pair.second.destination == Instruction::Location::Operand_Indirect &&
 				instruction_pair.second.source == Instruction::Location::A) {
-				address_counts[static_cast<uint16_t>(instruction_pair.second.operand)]++;
+				address_counts[uint16_t(instruction_pair.second.operand)]++;
 			}
 		}
 
 		// Weight confidences by number of observed hits.
 		float total_hits =
-			static_cast<float>(
+			float(
 				address_counts[0x6000] + address_counts[0x6800] +
 				address_counts[0x7000] + address_counts[0x7800] +
 				address_counts[0x77ff] + address_counts[0x8000] +
@@ -226,42 +225,42 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 			segment,
 			start_address,
 			Analyser::Static::MSX::Cartridge::ASCII8kb,
-			static_cast<float>(	address_counts[0x6000] +
-								address_counts[0x6800] +
-								address_counts[0x7000] +
-								address_counts[0x7800]) / total_hits));
+			float(	address_counts[0x6000] +
+					address_counts[0x6800] +
+					address_counts[0x7000] +
+					address_counts[0x7800]) / total_hits));
 		targets.push_back(CartridgeTarget(
 			segment,
 			start_address,
 			Analyser::Static::MSX::Cartridge::ASCII16kb,
-			static_cast<float>(	address_counts[0x6000] +
-								address_counts[0x7000] +
-								address_counts[0x77ff]) / total_hits));
+			float(	address_counts[0x6000] +
+					address_counts[0x7000] +
+					address_counts[0x77ff]) / total_hits));
 		if(!is_ascii) {
 			targets.push_back(CartridgeTarget(
 				segment,
 				start_address,
 				Analyser::Static::MSX::Cartridge::Konami,
-				static_cast<float>(	address_counts[0x6000] +
-									address_counts[0x8000] +
-									address_counts[0xa000]) / total_hits));
+				float(	address_counts[0x6000] +
+						address_counts[0x8000] +
+						address_counts[0xa000]) / total_hits));
 		}
 		if(!is_ascii) {
 			targets.push_back(CartridgeTarget(
 				segment,
 				start_address,
 				Analyser::Static::MSX::Cartridge::KonamiWithSCC,
-				static_cast<float>(	address_counts[0x5000] +
-									address_counts[0x7000] +
-									address_counts[0x9000] +
-									address_counts[0xb000]) / total_hits));
+				float(	address_counts[0x5000] +
+						address_counts[0x7000] +
+						address_counts[0x9000] +
+						address_counts[0xb000]) / total_hits));
 		}
 	}
 
 	return targets;
 }
 
-Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	TargetList destination;
 
 	// Append targets for any cartridges that look correct.
@@ -295,7 +294,6 @@ Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &medi
 	target->has_disk_drive = !media.disks.empty();
 
 	if(!target->media.empty()) {
-		target->machine = Machine::MSX;
 		target->confidence = 0.5;
 		destination.push_back(std::move(target));
 	}

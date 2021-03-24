@@ -30,16 +30,33 @@ class z8530 {
 				A/B = A0
 				C/D = A1
 		*/
+
+		/// Performs a read from the SCC; see above for conventions as to 'address'.
 		std::uint8_t read(int address);
+		/// Performs a write to the SCC; see above for conventions as to 'address'.
 		void write(int address, std::uint8_t value);
+		/// Resets the SCC.
 		void reset();
-		bool get_interrupt_line();
+
+		/// @returns The current value of the status output: @c true for active; @c false for inactive.
+		bool get_interrupt_line() const;
 
 		struct Delegate {
-			virtual void did_change_interrupt_status(z8530 *, bool new_status) = 0;
+			/*!
+				Communicates that @c scc now has the interrupt line status @c new_status.
+			*/
+			virtual void did_change_interrupt_status(z8530 *scc, bool new_status) = 0;
 		};
+
+		/*!
+			Sets the delegate for this SCC. If this is a new delegate it is sent
+			an immediate did_change_interrupt_status message, to get it
+			up to speed.
+		*/
 		void set_delegate(Delegate *delegate) {
+			if(delegate_ == delegate) return;
 			delegate_ = delegate;
+			delegate_->did_change_interrupt_status(this, get_interrupt_line());
 		}
 
 		/*
@@ -53,7 +70,7 @@ class z8530 {
 				uint8_t read(bool data, uint8_t pointer);
 				void write(bool data, uint8_t pointer, uint8_t value);
 				void set_dcd(bool level);
-				bool get_interrupt_line();
+				bool get_interrupt_line() const;
 
 			private:
 				uint8_t data_ = 0xff;

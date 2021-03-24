@@ -13,7 +13,7 @@
 
 @class CSApplication;
 
-@protocol CSApplicationEventDelegate
+@protocol CSApplicationEventDelegate <NSObject>
 - (BOOL)application:(nonnull CSApplication *)application shouldSendEvent:(nonnull NSEvent *)event;
 @end
 

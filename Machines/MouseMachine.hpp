@@ -11,10 +11,11 @@
 
 #include "../Inputs/Mouse.hpp"
 
-namespace MouseMachine {
+namespace MachineTypes {
 
-class Machine {
+class MouseMachine {
 	public:
+		// TODO: support multiple mice?
 		virtual Inputs::Mouse &get_mouse() = 0;
 };
 

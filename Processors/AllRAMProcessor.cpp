@@ -15,14 +15,14 @@ AllRAMProcessor::AllRAMProcessor(std::size_t memory_size) :
 	traps_(memory_size, false),
 	timestamp_(0) {}
 
-void AllRAMProcessor::set_data_at_address(uint16_t startAddress, std::size_t length, const uint8_t *data) {
-	std::size_t endAddress = std::min(startAddress + length, static_cast<std::size_t>(65536));
-	std::memcpy(&memory_[startAddress], data, endAddress - startAddress);
+void AllRAMProcessor::set_data_at_address(size_t start_address, std::size_t length, const uint8_t *data) {
+	const size_t end_address = std::min(start_address + length, memory_.size());
+	memcpy(&memory_[start_address], data, end_address - start_address);
 }
 
-void AllRAMProcessor::get_data_at_address(uint16_t startAddress, std::size_t length, uint8_t *data) {
-	std::size_t endAddress = std::min(startAddress + length, static_cast<std::size_t>(65536));
-	std::memcpy(data, &memory_[startAddress], endAddress - startAddress);
+void AllRAMProcessor::get_data_at_address(size_t start_address, std::size_t length, uint8_t *data) {
+	const size_t end_address = std::min(start_address + length, memory_.size());
+	memcpy(data, &memory_[start_address], end_address - start_address);
 }
 
 HalfCycles AllRAMProcessor::get_timestamp() {

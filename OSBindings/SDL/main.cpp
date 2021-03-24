@@ -8,10 +8,13 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -21,34 +24,161 @@
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
 
-#include "../../Machines/MediaTarget.hpp"
-#include "../../Machines/CRTMachine.hpp"
+#include "../../ClockReceiver/TimeTypes.hpp"
+#include "../../ClockReceiver/ScanSynchroniser.hpp"
 
-#include "../../Concurrency/BestEffortUpdater.hpp"
+#include "../../Machines/MachineTypes.hpp"
 
 #include "../../Activity/Observer.hpp"
 #include "../../Outputs/OpenGL/Primitives/Rectangle.hpp"
 #include "../../Outputs/OpenGL/ScanTarget.hpp"
 #include "../../Outputs/OpenGL/Screenshot.hpp"
 
+#include "../../Reflection/Enum.hpp"
+#include "../../Reflection/Struct.hpp"
+
 namespace {
 
-struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
-	Time::Seconds update(Concurrency::BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update, int flags) override {
-		std::lock_guard<std::mutex> lock_guard(*machine_mutex);
-		return machine->crt_machine()->run_until(duration, flags);
+struct MachineRunner {
+	MachineRunner() {
+		frame_lock_.clear();
+	}
+
+	~MachineRunner() {
+		stop();
+	}
+
+	void start() {
+		last_time_ = Time::nanos_now();
+		timer_ = SDL_AddTimer(timer_period, &sdl_callback, reinterpret_cast<void *>(this));
+	}
+
+	void stop() {
+		if(timer_) {
+			// SDL doesn't define whether SDL_RemoveTimer will block until any pending calls
+			// have been completed, or will return instantly. So: do an ordered shutdown,
+			// then remove the timer.
+			state_ = State::Stopping;
+			while(state_ == State::Stopping) {
+				frame_lock_.clear();
+			}
+
+			SDL_RemoveTimer(timer_);
+			timer_ = 0;
+		}
+	}
+
+	void signal_vsync() {
+		const auto now = Time::nanos_now();
+		const auto previous_vsync_time = vsync_time_.load();
+		vsync_time_.store(now);
+
+		// Update estimate of current frame time.
+		frame_time_average_ -= frame_times_[frame_time_pointer_];
+		frame_times_[frame_time_pointer_] = now - previous_vsync_time;
+		frame_time_average_ += frame_times_[frame_time_pointer_];
+		frame_time_pointer_ = (frame_time_pointer_ + 1) & (frame_times_.size() - 1);
+
+		_frame_period.store((1e9 * 32.0) / double(frame_time_average_));
+	}
+
+	void signal_did_draw() {
+		frame_lock_.clear();
+	}
+
+	void set_speed_multiplier(double multiplier) {
+		scan_synchroniser_.set_base_speed_multiplier(multiplier);
 	}
 
 	std::mutex *machine_mutex;
 	Machine::DynamicMachine *machine;
+
+	private:
+		SDL_TimerID timer_ = 0;
+		Time::Nanos last_time_ = 0;
+		std::atomic<Time::Nanos> vsync_time_;
+		std::atomic_flag frame_lock_;
+
+		enum class State {
+			Running,
+			Stopping,
+			Stopped
+		};
+		std::atomic<State> state_{State::Running};
+
+		Time::ScanSynchroniser scan_synchroniser_;
+
+		// A slightly clumsy means of trying to derive frame rate from calls to
+		// signal_vsync(); SDL_DisplayMode provides only an integral quantity
+		// whereas, empirically, it's fairly common for monitors to run at the
+		// NTSC-esque frame rates of 59.94Hz.
+		std::array<Time::Nanos, 32> frame_times_;
+		Time::Nanos frame_time_average_ = 0;
+		size_t frame_time_pointer_ = 0;
+		std::atomic<double> _frame_period;
+
+		static constexpr Uint32 timer_period = 4;
+		static Uint32 sdl_callback(Uint32, void *param) {
+			reinterpret_cast<MachineRunner *>(param)->update();
+			return timer_period;
+		}
+
+		void update() {
+			// If a shutdown is in progress, signal stoppage and do nothing.
+			if(state_ != State::Running) {
+				state_ = State::Stopped;
+				return;
+			}
+
+			// Get time now and determine how long it has been since the last time this
+			// function was called. If it's more than half a second then forego any activity
+			// now, as there's obviously been some sort of substantial time glitch.
+			const auto time_now = Time::nanos_now();
+			if(time_now - last_time_ > Time::Nanos(500'000'000)) {
+				last_time_ = time_now - Time::Nanos(500'000'000);
+			}
+
+			const auto vsync_time = vsync_time_.load();
+
+			std::unique_lock lock_guard(*machine_mutex);
+			const auto scan_producer = machine->scan_producer();
+			const auto timed_machine = machine->timed_machine();
+
+			bool split_and_sync = false;
+			if(last_time_ < vsync_time && time_now >= vsync_time) {
+				split_and_sync = scan_synchroniser_.can_synchronise(scan_producer->get_scan_status(), _frame_period);
+			}
+
+			if(split_and_sync) {
+				timed_machine->run_for(double(vsync_time - last_time_) / 1e9);
+				timed_machine->set_speed_multiplier(
+					scan_synchroniser_.next_speed_multiplier(scan_producer->get_scan_status())
+				);
+
+				// This is a bit of an SDL ugliness; wait here until the next frame is drawn.
+				// That is, unless and until I can think of a good way of running background
+				// updates via a share group — possibly an extra intermediate buffer is needed?
+				lock_guard.unlock();
+				while(frame_lock_.test_and_set());
+				lock_guard.lock();
+
+				timed_machine->run_for(double(time_now - vsync_time) / 1e9);
+			} else {
+				timed_machine->set_speed_multiplier(scan_synchroniser_.get_base_speed_multiplier());
+				timed_machine->run_for(double(time_now - last_time_) / 1e9);
+			}
+			last_time_ = time_now;
+		}
 };
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
-	// This is set to a relatively large number for now.
-	static constexpr int buffer_size = 1024;
+	// This is empirically the best that I can seem to do with SDL's timer precision.
+	static constexpr size_t buffered_samples = 1024;
+	bool is_stereo = false;
 
-	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override {
-		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
+	void speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) final {
+		std::lock_guard lock_guard(audio_buffer_mutex_);
+		const size_t buffer_size = buffered_samples * (is_stereo ? 2 : 1);
 		if(audio_buffer_.size() > buffer_size) {
 			audio_buffer_.erase(audio_buffer_.begin(), audio_buffer_.end() - buffer_size);
 		}
@@ -56,12 +186,12 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	}
 
 	void audio_callback(Uint8 *stream, int len) {
-		updater->update();
-		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
+		std::lock_guard lock_guard(audio_buffer_mutex_);
 
-		std::size_t sample_length = static_cast<std::size_t>(len) / sizeof(int16_t);
-		std::size_t copy_length = std::min(sample_length, audio_buffer_.size());
-		int16_t *target = static_cast<int16_t *>(static_cast<void *>(stream));
+		// SDL buffer length is in bytes, so there's no need to adjust for stereo/mono in here.
+		const std::size_t sample_length = size_t(len) / sizeof(int16_t);
+		const std::size_t copy_length = std::min(sample_length, audio_buffer_.size());
+		int16_t *const target = static_cast<int16_t *>(static_cast<void *>(stream));
 
 		std::memcpy(stream, audio_buffer_.data(), copy_length * sizeof(int16_t));
 		if(copy_length < sample_length) {
@@ -75,7 +205,6 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	}
 
 	SDL_AudioDeviceID audio_device;
-	Concurrency::BestEffortUpdater *updater;
 
 	std::mutex audio_buffer_mutex_;
 	std::vector<int16_t> audio_buffer_;
@@ -105,7 +234,7 @@ class ActivityObserver: public Activity::Observer {
 		}
 
 		void set_aspect_ratio(float aspect_ratio) {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+			std::lock_guard lock_guard(mutex);
 			lights_.clear();
 
 			// Generate a bunch of LEDs for connected drives.
@@ -132,7 +261,7 @@ class ActivityObserver: public Activity::Observer {
 		}
 
 		void draw() {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+			std::lock_guard lock_guard(mutex);
 			for(const auto &lit_led: lit_leds_) {
 				if(blinking_leds_.find(lit_led) == blinking_leds_.end() && lights_.find(lit_led) != lights_.end())
 					lights_[lit_led]->draw(0.0, 0.8, 0.0);
@@ -142,25 +271,25 @@ class ActivityObserver: public Activity::Observer {
 
 	private:
 		std::vector<std::string> leds_;
-		void register_led(const std::string &name) override {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+		void register_led(const std::string &name) final {
+			std::lock_guard lock_guard(mutex);
 			leds_.push_back(name);
 		}
 
 		std::vector<std::string> drives_;
-		void register_drive(const std::string &name) override {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+		void register_drive(const std::string &name) final {
+			std::lock_guard lock_guard(mutex);
 			drives_.push_back(name);
 		}
 
-		void set_led_status(const std::string &name, bool lit) override {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+		void set_led_status(const std::string &name, bool lit) final {
+			std::lock_guard lock_guard(mutex);
 			if(lit) lit_leds_.insert(name);
 			else lit_leds_.erase(name);
 		}
 
-		void announce_drive_event(const std::string &name, DriveEvent event) override {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+		void announce_drive_event(const std::string &name, DriveEvent) final {
+			std::lock_guard lock_guard(mutex);
 			blinking_leds_.insert(name);
 		}
 
@@ -170,7 +299,7 @@ class ActivityObserver: public Activity::Observer {
 		std::mutex mutex;
 };
 
-bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key) {
+bool KeyboardKeyForSDLScancode(SDL_Scancode scancode, Inputs::Keyboard::Key &key) {
 #define BIND(x, y) case SDL_SCANCODE_##x: key = Inputs::Keyboard::Key::y; break;
 	switch(scancode) {
 		default: return false;
@@ -231,8 +360,22 @@ bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key)
 }
 
 struct ParsedArguments {
-	std::string file_name;
-	Configurable::SelectionSet selections;
+	std::vector<std::string> file_names;
+	std::map<std::string, std::string> selections;	// The empty string will be inserted for arguments without an = suffix.
+
+	void apply(Reflection::Struct *reflectable) const {
+		for(const auto &argument: selections) {
+			// Replace any dashes with underscores in the argument name.
+			std::string property;
+			std::transform(argument.first.begin(), argument.first.end(), std::back_inserter(property), [](char c) { return c == '-' ? '_' : c; });
+
+			if(argument.second.empty()) {
+				Reflection::set<bool>(*reflectable, property, true);
+			} else {
+				Reflection::fuzzy_set(*reflectable, property, argument.second);
+			}
+		}
+	}
 };
 
 /*! Parses an argc/argv pair to discern program arguments. */
@@ -257,14 +400,14 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 			std::size_t split_index = argument.find("=");
 
 			if(split_index == std::string::npos) {
-				arguments.selections[argument] = std::make_unique<Configurable::BooleanSelection>(true);
+				arguments.selections[argument];	// To create an entry with the default empty string.
 			} else {
-				std::string name = argument.substr(0, split_index);
+				const std::string name = argument.substr(0, split_index);
 				std::string value = argument.substr(split_index+1, std::string::npos);
-				arguments.selections[name] = std::make_unique<Configurable::ListSelection>(value);
+				arguments.selections[name] = value;
 			}
 		} else {
-			arguments.file_name = arg;
+			arguments.file_names.push_back(arg);
 		}
 	}
 
@@ -342,57 +485,165 @@ int main(int argc, char *argv[]) {
 	SDL_Window *window = nullptr;
 
 	// Attempt to parse arguments.
-	ParsedArguments arguments = parse_arguments(argc, argv);
+	const ParsedArguments arguments = parse_arguments(argc, argv);
 
 	// This may be printed either as
-	const std::string usage_suffix = " [file] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]";
+	const std::string usage_suffix = " [file or --new={machine}] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]  [--logical-keyboard] [--volume={0.0 to 1.0}]";
 
 	// Print a help message if requested.
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
+		const auto all_machines = Machine::AllMachines(Machine::Type::DoesntRequireMedia, false);
+
 		std::cout << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
 		std::cout << "Use alt+enter to toggle full screen display. Use control+shift+V to paste text." << std::endl;
-		std::cout << "Required machine type and configuration is determined from the file. Machines with further options:" << std::endl << std::endl;
+		std::cout << "Required machine type **and all options** are determined from the file if specified; otherwise use:" << std::endl << std::endl;
+		std::cout << "\t--new={";
+		bool is_first = true;
+		for(const auto &name: all_machines) {
+			if(!is_first) std::cout << "|";
+			std::cout << name;
+			is_first = false;
+		}
+		std::cout << "}" << std::endl << std::endl;
 
-		auto all_options = Machine::AllOptionsByMachineName();
-		for(const auto &machine_options: all_options) {
-			std::cout << machine_options.first << ":" << std::endl;
-			for(const auto &option: machine_options.second) {
-				std::cout << '\t' << "--" << option->short_name;
+		std::cout << "Media is required to start the: ";
+		const auto other_machines = Machine::AllMachines(Machine::Type::RequiresMedia, true);
+		is_first = true;
+		for(const auto &name: other_machines) {
+			if(!is_first) std::cout << ", ";
+			std::cout << name;
+			is_first = false;
+		}
+		std::cout << "." << std::endl << std::endl;
 
-				Configurable::ListOption *list_option = dynamic_cast<Configurable::ListOption *>(option.get());
-				if(list_option) {
+		std::cout << "Further machine options:" << std::endl << std::endl;;
+
+		const auto targets = Machine::TargetsByMachineName(false);
+		const auto runtime_options = Machine::AllOptionsByMachineName();
+		const auto machine_names = Machine::AllMachines(Machine::Type::Any, true);
+		for(const auto &machine: machine_names) {
+			const auto target = targets.find(machine);
+			const auto options = runtime_options.find(machine);
+
+			const auto target_reflectable = dynamic_cast<Reflection::Struct *>(target != targets.end() ? target->second.get() : nullptr);
+			const auto options_reflectable = dynamic_cast<Reflection::Struct *>(options != runtime_options.end() ? options->second.get() : nullptr);
+
+			// Don't print a section for this machine if it has no construction and no runtime options objects.
+			if(!target_reflectable && !options_reflectable) continue;
+
+			const auto target_keys = target_reflectable ? target_reflectable->all_keys() : std::vector<std::string>();
+			const auto options_keys = options_reflectable ? options_reflectable->all_keys() : std::vector<std::string>();
+
+			// Don't print a section for this machine if it doesn't actually have any options.
+			if(target_keys.empty() && options_keys.empty()) {
+				continue;
+			}
+
+			std::cout << machine << ":" << std::endl;
+
+			// Join the two lists of properties and sort the result.
+			std::vector<std::string> all_options = options_keys;
+			all_options.insert(all_options.end(), target_keys.begin(), target_keys.end());
+			std::sort(all_options.begin(), all_options.end());
+
+			for(const auto &option: all_options) {
+				// Replace any underscores with hyphens, better to conform to command-line norms.
+				std::string mapped_option;
+				std::transform(option.begin(), option.end(), std::back_inserter(mapped_option), [](char c) { return c == '_' ? '-' : c; });
+				std::cout << '\t' << "--" << mapped_option;
+
+				auto source = target_reflectable;
+				auto type = target_reflectable ? target_reflectable->type_of(option) : nullptr;
+				if(!type) {
+					source = options_reflectable;
+					type = options_reflectable->type_of(option);
+				}
+
+				// Is this a registered enum? If so, list options.
+				if(!Reflection::Enum::name(*type).empty()) {
 					std::cout << "={";
 					bool is_first = true;
-					for(const auto &option: list_option->options) {
+					for(const auto &value: source->values_for(option)) {
 						if(!is_first) std::cout << '|';
 						is_first = false;
-						std::cout << option;
+
+						std::cout << value;
 					}
 					std::cout << "}";
 				}
+
+				// The above effectively assumes that every field is either a
+				// Boolean or an enum. This may need to be revisted. It also
+				// assumes no name collisions, but that's kind of unavoidable.
+
 				std::cout << std::endl;
 			}
+
 			std::cout << std::endl;
 		}
 		return EXIT_SUCCESS;
 	}
 
-	// Perform a sanity check on arguments.
-	if(arguments.file_name.empty()) {
+	// Determine the machine for the supplied file, if any, or from --new.
+	Analyser::Static::TargetList targets;
+
+	const auto new_argument = arguments.selections.find("new");
+	std::string long_machine_name;
+	if(new_argument != arguments.selections.end() && !new_argument->second.empty()) {
+		// Perform for a case-insensitive search against short names.
+		const auto short_names = Machine::AllMachines(Machine::Type::DoesntRequireMedia, false);
+		auto short_name = short_names.begin();
+		while(short_name != short_names.end()) {
+			if(std::equal(
+				short_name->begin(), short_name->end(),
+				new_argument->second.begin(), new_argument->second.end(),
+				[](char a, char b) { return tolower(b) == tolower(a); })) {
+				break;
+			}
+			++short_name;
+		}
+
+		// If a match was found, use the corresponding long name to look up a suitable
+		// Analyser::Statuc::Target and move that to the targets list.
+		if(short_name != short_names.end()) {
+			long_machine_name = Machine::AllMachines(Machine::Type::DoesntRequireMedia, true)[short_name - short_names.begin()];
+			auto targets_by_machine = Machine::TargetsByMachineName(false);
+			std::unique_ptr<Analyser::Static::Target> tgt = std::move(targets_by_machine[long_machine_name]);
+			targets.push_back(std::move(tgt));
+		}
+	} else if(!arguments.file_names.empty()) {
+		// Take the first file name that actually implies a machine.
+		auto file_name = arguments.file_names.begin();
+		while(file_name != arguments.file_names.end() && targets.empty()) {
+			targets = Analyser::Static::GetTargets(*file_name);
+			++file_name;
+		}
+	}
+
+	if(targets.empty()) {
+		if(!arguments.file_names.empty()) {
+			std::cerr << "Cannot open ";
+			bool is_first = true;
+			for(const auto &name: arguments.file_names) {
+				if(!is_first) std::cerr << ", ";
+				is_first = false;
+				std::cerr << name;
+			}
+			std::cerr << "; no target machine found" << std::endl;
+			return EXIT_FAILURE;
+		}
+
+		if(!new_argument->second.empty()) {
+			std::cerr << "Unknown machine: " << new_argument->second << std::endl;
+			return EXIT_FAILURE;
+		}
+
 		std::cerr << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
 		std::cerr << "Use --help to learn more about available options." << std::endl;
 		return EXIT_FAILURE;
 	}
 
-	// Determine the machine for the supplied file.
-	const auto targets = Analyser::Static::GetTargets(arguments.file_name);
-	if(targets.empty()) {
-		std::cerr << "Cannot open " << arguments.file_name << "; no target machine found" << std::endl;
-		return EXIT_FAILURE;
-	}
-
-	Concurrency::BestEffortUpdater updater;
-	BestEffortUpdaterDelegate best_effort_updater_delegate;
+	MachineRunner machine_runner;
 	SpeakerDelegate speaker_delegate;
 
 	// For vanilla SDL purposes, assume system ROMs can be found in one of:
@@ -409,12 +660,13 @@ int main(int argc, char *argv[]) {
 				"/usr/local/share/CLK/",
 				"/usr/share/CLK/"
 			};
-			if(arguments.selections.find("rompath") != arguments.selections.end()) {
-				const std::string user_path = arguments.selections["rompath"]->list_selection()->value;
-				if(user_path.back() != '/') {
-					paths.push_back(user_path + "/");
+
+			const auto rompath = arguments.selections.find("rompath");
+			if(rompath != arguments.selections.end()) {
+				if(rompath->second.back() != '/') {
+					paths.push_back(rompath->second + "/");
 				} else {
-					paths.push_back(user_path);
+					paths.push_back(rompath->second);
 				}
 			}
 
@@ -449,6 +701,13 @@ int main(int argc, char *argv[]) {
 			return results;
 		};
 
+	// Apply all command-line options to the targets.
+	for(auto &target: targets) {
+		auto reflectable_target = dynamic_cast<Reflection::Struct *>(target.get());
+		if(!reflectable_target) continue;
+		arguments.apply(reflectable_target);
+	}
+
 	// Create and configure a machine.
 	::Machine::Error error;
 	std::mutex machine_mutex;
@@ -460,11 +719,18 @@ int main(int argc, char *argv[]) {
 				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath." << std::endl;
 				std::cerr << "One or more of the following was needed but not found:" << std::endl;
 				for(const auto &rom: requested_roms) {
-					std::cerr << rom.machine_name << '/' << rom.file_name;
+					std::cerr << rom.machine_name << '/' << rom.file_name << " (";
 					if(!rom.descriptive_name.empty()) {
-						std::cerr << " (" << rom.descriptive_name << ")";
+						std::cerr << rom.descriptive_name << "; ";
 					}
-					std::cerr << std::endl;
+					std::cerr << "accepted crc32s: ";
+					bool is_first = true;
+					for(const auto crc32: rom.crc32s) {
+						if(!is_first) std::cerr << ", ";
+						is_first = false;
+						std::cerr << std::hex << std::setfill('0') << std::setw(8) << crc32;
+					}
+					std::cerr << ")" << std::endl;
 				}
 			break;
 		}
@@ -472,27 +738,74 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	// Apply the speed multiplier, if one was requested.
-	if(arguments.selections.find("speed") != arguments.selections.end()) {
-		const char *speed_string = arguments.selections["speed"]->list_selection()->value.c_str();
-		char *end;
-		double speed = strtod(speed_string, &end);
+	// Apply all command-line options to the machines.
+	auto configurable = machine->configurable_device();
+	if(configurable) {
+		const auto options = configurable->get_options();
+		arguments.apply(options.get());
+		configurable->set_options(options);
+	}
 
-		if(end-speed_string != strlen(speed_string)) {
-			std::cerr << "Unable to parse speed: " << speed_string << std::endl;
-		} else if(speed <= 0.0) {
-			std::cerr << "Cannot run at speed " << speed_string << "; speeds must be positive." << std::endl;
-		} else {
-			machine->crt_machine()->set_speed_multiplier(speed);
-			// TODO: what if not a 'CRT' machine? Likely rests on resolving this project's machine naming policy.
+	// Apply the speed multiplier, if one was requested.
+	{
+		const auto speed_argument = arguments.selections.find("speed");
+		if(speed_argument != arguments.selections.end()) {
+			const char *speed_string = speed_argument->second.c_str();
+			char *end;
+			const double speed = strtod(speed_string, &end);
+
+			if(size_t(end - speed_string) != strlen(speed_string)) {
+				std::cerr << "Unable to parse speed: " << speed_string << std::endl;
+			} else if(speed <= 0.0) {
+				std::cerr << "Cannot run at speed " << speed_string << "; speeds must be positive." << std::endl;
+			} else {
+				machine_runner.set_speed_multiplier(speed);
+			}
 		}
 	}
 
+	// Apply the desired output volume, if requested.
+	{
+		const auto volume_argument = arguments.selections.find("volume");
+		if(volume_argument != arguments.selections.end()) {
+			const char *volume_string = volume_argument->second.c_str();
+			char *end;
+			const double volume = strtod(volume_string, &end);
+
+			if(size_t(end - volume_string) != strlen(volume_string)) {
+				std::cerr << "Unable to parse volume: " << volume_string << std::endl;
+			} else if(volume < 0.0 || volume > 1.0) {
+				std::cerr << "Cannot run with volume " << volume_string << "; volumes must be between 0.0 and 1.0." << std::endl;
+			} else {
+				const auto speaker = machine->audio_producer()->get_speaker();
+				if(speaker) speaker->set_output_volume(volume);
+			}
+		}
+	}
+
+	// Check whether a 'logical' keyboard has been requested, or the machine would prefer one anyway.
+	const bool logical_keyboard =
+		(arguments.selections.find("logical-keyboard") != arguments.selections.end()) ||
+		(machine->keyboard_machine() && machine->keyboard_machine()->prefers_logical_input());
+	if(logical_keyboard) {
+		SDL_StartTextInput();
+	}
+
 	// Wire up the best-effort updater, its delegate, and the speaker delegate.
-	best_effort_updater_delegate.machine = machine.get();
-	best_effort_updater_delegate.machine_mutex = &machine_mutex;
-	speaker_delegate.updater = &updater;
-	updater.set_delegate(&best_effort_updater_delegate);
+	machine_runner.machine = machine.get();
+	machine_runner.machine_mutex = &machine_mutex;
+
+	// Ensure all media is inserted, if this machine accepts it.
+	{
+		auto media_target = machine->media_target();
+		if(media_target) {
+			Analyser::Static::Media media;
+			for(const auto &file_name: arguments.file_names) {
+				media += Analyser::Static::GetMedia(file_name);
+			}
+			media_target->insert_media(media);
+		}
+	}
 
 	// Attempt to set up video and audio.
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
@@ -507,7 +820,7 @@ int main(int argc, char *argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 	SDL_GL_SetSwapInterval(1);
 
-	window = SDL_CreateWindow(	final_path_component(arguments.file_name).c_str(),
+	window = SDL_CreateWindow(	long_machine_name.empty() ? final_path_component(arguments.file_names.front()).c_str() : long_machine_name.c_str(),
 								SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 								400, 300,
 								SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
@@ -531,10 +844,10 @@ int main(int argc, char *argv[]) {
 
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
 	Outputs::Display::OpenGL::ScanTarget scan_target(target_framebuffer);
-	machine->crt_machine()->set_scan_target(&scan_target);
+	machine->scan_producer()->set_scan_target(&scan_target);
 
 	// For now, lie about audio output intentions.
-	auto speaker = machine->crt_machine()->get_speaker();
+	auto speaker = machine->audio_producer()->get_speaker();
 	if(speaker) {
 		// Create an audio pipe.
 		SDL_AudioSpec desired_audio_spec;
@@ -543,45 +856,21 @@ int main(int argc, char *argv[]) {
 		SDL_zero(desired_audio_spec);
 		desired_audio_spec.freq = 48000;	// TODO: how can I get SDL to reveal the output rate of this machine?
 		desired_audio_spec.format = AUDIO_S16;
-		desired_audio_spec.channels = 1;
-		desired_audio_spec.samples = SpeakerDelegate::buffer_size;
+		desired_audio_spec.channels = 1 + int(speaker->get_is_stereo());
+		desired_audio_spec.samples = Uint16(SpeakerDelegate::buffered_samples);
 		desired_audio_spec.callback = SpeakerDelegate::SDL_audio_callback;
 		desired_audio_spec.userdata = &speaker_delegate;
 
 		speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
 
-		speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples);
+		speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples, obtained_audio_spec.channels == 2);
+		speaker_delegate.is_stereo = obtained_audio_spec.channels == 2;
 		speaker->set_delegate(&speaker_delegate);
 		SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
 	}
 
 	int window_width, window_height;
 	SDL_GetWindowSize(window, &window_width, &window_height);
-
-	Configurable::Device *const configurable_device = machine->configurable_device();
-	if(configurable_device) {
-		// Establish user-friendly options by default.
-		configurable_device->set_selections(configurable_device->get_user_friendly_selections());
-
-		// Consider transcoding any list selections that map to Boolean options.
-		for(const auto &option: configurable_device->get_options()) {
-			// Check for a corresponding selection.
-			auto selection = arguments.selections.find(option->short_name);
-			if(selection != arguments.selections.end()) {
-				// Transcode selection if necessary.
-				if(dynamic_cast<Configurable::BooleanOption *>(option.get())) {
-					arguments.selections[selection->first] =  std::unique_ptr<Configurable::Selection>(selection->second->boolean_selection());
-				}
-
-				if(dynamic_cast<Configurable::ListOption *>(option.get())) {
-					arguments.selections[selection->first] =  std::unique_ptr<Configurable::Selection>(selection->second->list_selection());
-				}
-			}
-		}
-
-		// Apply the user's actual selections to override the defaults.
-		configurable_device->set_selections(arguments.selections);
-	}
 
 	// If this is a joystick machine, check for and open attached joysticks.
 	/*!
@@ -622,7 +911,7 @@ int main(int argc, char *argv[]) {
 			std::vector<Uint8> hat_values_;
 	};
 	std::vector<SDLJoystick> joysticks;
-	JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
+	const auto joystick_machine = machine->joystick_machine();
 	if(joystick_machine) {
 		SDL_InitSubSystem(SDL_INIT_JOYSTICK);
 		for(int c = 0; c < SDL_NumJoysticks(); ++c) {
@@ -640,22 +929,44 @@ int main(int argc, char *argv[]) {
 		activity_observer = std::make_unique<ActivityObserver>(activity_source, 4.0f / 3.0f);
 	}
 
+	// SDL 2.x delivers key up/down events and text inputs separately even when they're correlated;
+	// this struct and map is used to correlate them by time.
+	struct KeyPress {
+		uint32_t timestamp = 0;
+		std::string input;
+		SDL_Scancode scancode = SDL_SCANCODE_UNKNOWN;
+		SDL_Keycode keycode = SDLK_UNKNOWN;
+		bool is_down = true;
+
+		KeyPress(uint32_t timestamp, const char *text) : timestamp(timestamp), input(text) {}
+		KeyPress(uint32_t timestamp, SDL_Scancode scancode, SDL_Keycode keycode, bool is_down) : timestamp(timestamp), scancode(scancode), keycode(keycode), is_down(is_down) {}
+		KeyPress() {}
+	};
+	std::vector<KeyPress> keypresses;
+
 	// Run the main event loop until the OS tells us to quit.
 	const bool uses_mouse = !!machine->mouse_machine();
 	bool should_quit = false;
 	Uint32 fullscreen_mode = 0;
+	machine_runner.start();
 	while(!should_quit) {
-		// Wait for vsync, draw a new frame and post a machine update.
-		// NB: machine_mutex is *not* currently locked, therefore it shouldn't
-		// be 'most' of the time.
-		SDL_GL_SwapWindow(window);
+		// Draw a new frame, indicating completion of the draw to the machine runner.
 		scan_target.update(int(window_width), int(window_height));
 		scan_target.draw(int(window_width), int(window_height));
 		if(activity_observer) activity_observer->draw();
-		updater.update();
+		machine_runner.signal_did_draw();
+
+		// Wait for presentation of that frame, posting a vsync.
+		SDL_GL_SwapWindow(window);
+		machine_runner.signal_vsync();
+
+		// NB: machine_mutex is *not* currently locked, therefore it shouldn't
+		// be 'most' of the time — assuming most of the time is spent waiting
+		// on vsync, anyway.
 
 		// Grab the machine lock and process all pending events.
-		std::lock_guard<std::mutex> lock_guard(machine_mutex);
+		std::lock_guard lock_guard(machine_mutex);
+		const auto keyboard_machine = machine->keyboard_machine();
 		SDL_Event event;
 		while(SDL_PollEvent(&event)) {
 			switch(event.type) {
@@ -668,7 +979,7 @@ int main(int argc, char *argv[]) {
 							glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
 							scan_target.set_target_framebuffer(target_framebuffer);
 							SDL_GetWindowSize(window, &window_width, &window_height);
-							if(activity_observer) activity_observer->set_aspect_ratio(static_cast<float>(window_width) / static_cast<float>(window_height));
+							if(activity_observer) activity_observer->set_aspect_ratio(float(window_width) / float(window_height));
 						} break;
 
 						default: break;
@@ -680,10 +991,12 @@ int main(int argc, char *argv[]) {
 					machine->media_target()->insert_media(media);
 				} break;
 
+				case SDL_TEXTINPUT:
+					keypresses.emplace_back(event.text.timestamp, event.text.text);
+				break;
+
 				case SDL_KEYDOWN:
 				case SDL_KEYUP: {
-					const auto keyboard_machine = machine->keyboard_machine();
-
 					if(event.type == SDL_KEYDOWN) {
 						// Syphon off the key-press if it's control+shift+V (paste).
 						if(event.key.keysym.sym == SDLK_v && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
@@ -742,60 +1055,25 @@ int main(int argc, char *argv[]) {
 							SDL_FreeSurface(surface);
 							break;
 						}
-
-
-						// Syphon off alt+enter (toggle full-screen) upon key up only; this was previously a key down action,
-						// but the SDL_KEYDOWN announcement was found to be reposted after changing graphics mode on some
-						// systems so key up is safer.
-						if(event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
-							fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
-							SDL_SetWindowFullscreen(window, fullscreen_mode);
-							SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
-
-							// Announce a potential discontinuity in keyboard input.
-							const auto keyboard_machine = machine->keyboard_machine();
-							if(keyboard_machine) {
-								keyboard_machine->get_keyboard().reset_all_keys();
-							}
-							break;
-						}
 					}
 
-					const bool is_pressed = event.type == SDL_KEYDOWN;
+					// Syphon off alt+enter (toggle full-screen) upon key up only; this was previously a key down action,
+					// but the SDL_KEYDOWN announcement was found to be reposted after changing graphics mode on some
+					// systems, causing a loop of changes, so key up is safer.
+					if(event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
+						fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
+						SDL_SetWindowFullscreen(window, fullscreen_mode);
+						SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
 
-					if(keyboard_machine) {
-						Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
-						if(!KeyboardKeyForSDLScancode(event.key.keysym.scancode, key)) break;
-
-						if(keyboard_machine->get_keyboard().observed_keys().find(key) != keyboard_machine->get_keyboard().observed_keys().end()) {
-							char key_value = '\0';
-							const char *key_name = SDL_GetKeyName(event.key.keysym.sym);
-							if(key_name[0] >= 0) key_value = key_name[0];
-
-							keyboard_machine->get_keyboard().set_key_pressed(key, key_value, is_pressed);
-							break;
+						// Announce a potential discontinuity in keyboard input.
+						const auto keyboard_machine = machine->keyboard_machine();
+						if(keyboard_machine) {
+							keyboard_machine->get_keyboard().reset_all_keys();
 						}
+						break;
 					}
 
-					JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
-					if(joystick_machine) {
-						auto &joysticks = joystick_machine->get_joysticks();
-						if(!joysticks.empty()) {
-							switch(event.key.keysym.scancode) {
-								case SDL_SCANCODE_LEFT:		joysticks[0]->set_input(Inputs::Joystick::Input::Left, is_pressed);		break;
-								case SDL_SCANCODE_RIGHT:	joysticks[0]->set_input(Inputs::Joystick::Input::Right, is_pressed);	break;
-								case SDL_SCANCODE_UP:		joysticks[0]->set_input(Inputs::Joystick::Input::Up, is_pressed);		break;
-								case SDL_SCANCODE_DOWN:		joysticks[0]->set_input(Inputs::Joystick::Input::Down, is_pressed);		break;
-								case SDL_SCANCODE_SPACE:	joysticks[0]->set_input(Inputs::Joystick::Input::Fire, is_pressed);		break;
-								case SDL_SCANCODE_A:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 0), is_pressed);	break;
-								case SDL_SCANCODE_S:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 1), is_pressed);	break;
-								default: {
-									const char *key_name = SDL_GetKeyName(event.key.keysym.sym);
-									joysticks[0]->set_input(Inputs::Joystick::Input(key_name[0]), is_pressed);
-								} break;
-							}
-						}
-					}
+					keypresses.emplace_back(event.text.timestamp, event.key.keysym.scancode, event.key.keysym.sym, event.type == SDL_KEYDOWN);
 				} break;
 
 				case SDL_MOUSEBUTTONDOWN:
@@ -827,8 +1105,100 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
+		std::vector<KeyPress> matched_keypresses;
+		if(logical_keyboard) {
+			// Look for potential keypress merges; SDL doesn't in any capacity guarantee that keypresses that produce
+			// symbols will be delivered with the same timestamp. So look for any pairs of recorded kepresses that are
+			// close together temporally and otherwise seem to match.
+			if(keypresses.size()) {
+				auto next_keypress = keypresses.begin();
+
+				while(next_keypress != keypresses.end()) {
+					auto keypress = next_keypress;
+					++next_keypress;
+
+					// If the two appear to pair off, push a combination and advance twice.
+					// Otherwise, keep just the first and advance once.
+					if(
+						next_keypress != keypresses.end() &&
+						keypress->timestamp >= next_keypress->timestamp - 5 &&
+						keypress->is_down && next_keypress->is_down &&
+						!keypress->input.size() != !next_keypress->input.size() &&
+						(keypress->scancode != SDL_SCANCODE_UNKNOWN) != (next_keypress->scancode != SDL_SCANCODE_UNKNOWN)) {
+
+						KeyPress combined_keypress;
+
+						if(keypress->scancode != SDL_SCANCODE_UNKNOWN) {
+							combined_keypress.scancode = keypress->scancode;
+							combined_keypress.keycode = keypress->keycode;
+							combined_keypress.input = std::move(next_keypress->input);
+						} else {
+							combined_keypress.scancode = next_keypress->scancode;
+							combined_keypress.keycode = next_keypress->keycode;
+							combined_keypress.input = std::move(keypress->input);
+						};
+						++next_keypress;
+
+						matched_keypresses.push_back(combined_keypress);
+					} else {
+						matched_keypresses.push_back(*keypress);
+					}
+				}
+			}
+		}
+
+		// Handle accumulated key states.
+		const auto joystick_machine = machine->joystick_machine();
+		for (const auto &keypress: logical_keyboard ? matched_keypresses : keypresses) {
+			// Try to set this key on the keyboard first, if there is one.
+			if(keyboard_machine) {
+				Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
+				if(KeyboardKeyForSDLScancode(keypress.scancode, key)) {
+					// In principle there's no need for a conditional here; in practice logical_keyboard mode
+					// is sufficiently untested on SDL, and somewhat too reliant on empirical timestamp behaviour,
+					// for it to be trustworthy enough otherwise to expose.
+					if(logical_keyboard) {
+						if(keyboard_machine->apply_key(key, keypress.input.size() ? keypress.input[0] : 0, keypress.is_down, logical_keyboard)) {
+							continue;
+						}
+					} else {
+						// This is a slightly terrible way of obtaining a symbol for the key, e.g. for letters it will always return
+						// the capital letter version, at least empirically. But it'll have to do for now.
+						const char *key_name = SDL_GetKeyName(keypress.keycode);
+						if(keyboard_machine->get_keyboard().set_key_pressed(key, (strlen(key_name) == 1) ? key_name[0] : 0, keypress.is_down)) {
+							continue;
+						}
+					}
+				}
+			}
+
+			// Having failed that, try converting it into a joystick action.
+			if(joystick_machine) {
+				auto &joysticks = joystick_machine->get_joysticks();
+				if(!joysticks.empty()) {
+					const bool is_pressed = keypress.is_down;
+					switch(keypress.scancode) {
+						case SDL_SCANCODE_LEFT:		joysticks[0]->set_input(Inputs::Joystick::Input::Left, is_pressed);		break;
+						case SDL_SCANCODE_RIGHT:	joysticks[0]->set_input(Inputs::Joystick::Input::Right, is_pressed);	break;
+						case SDL_SCANCODE_UP:		joysticks[0]->set_input(Inputs::Joystick::Input::Up, is_pressed);		break;
+						case SDL_SCANCODE_DOWN:		joysticks[0]->set_input(Inputs::Joystick::Input::Down, is_pressed);		break;
+						case SDL_SCANCODE_SPACE:	joysticks[0]->set_input(Inputs::Joystick::Input::Fire, is_pressed);		break;
+						case SDL_SCANCODE_A:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 0), is_pressed);	break;
+						case SDL_SCANCODE_S:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 1), is_pressed);	break;
+						case SDL_SCANCODE_D:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 2), is_pressed);	break;
+						case SDL_SCANCODE_F:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 3), is_pressed);	break;
+						default: {
+							if(keypress.input.size()) {
+								joysticks[0]->set_input(Inputs::Joystick::Input(keypress.input[0]), is_pressed);
+							}
+						} break;
+					}
+				}
+			}
+		}
+		keypresses.clear();
+
 		// Push new joystick state, if any.
-		JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
 		if(joystick_machine) {
 			auto &machine_joysticks = joystick_machine->get_joysticks();
 			for(size_t c = 0; c < joysticks.size(); ++c) {
@@ -838,8 +1208,8 @@ int main(int argc, char *argv[]) {
 				// unless the user seems to be using a hat.
 				// SDL will return a value in the range [-32768, 32767], so map from that to [0, 1.0]
 				if(!joysticks[c].hat_values()) {
-					const float x_axis = static_cast<float>(SDL_JoystickGetAxis(joysticks[c].get(), 0) + 32768) / 65535.0f;
-					const float y_axis = static_cast<float>(SDL_JoystickGetAxis(joysticks[c].get(), 1) + 32768) / 65535.0f;
+					const float x_axis = float(SDL_JoystickGetAxis(joysticks[c].get(), 0) + 32768) / 65535.0f;
+					const float y_axis = float(SDL_JoystickGetAxis(joysticks[c].get(), 1) + 32768) / 65535.0f;
 					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Horizontal), x_axis);
 					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Vertical), y_axis);
 				}
@@ -877,7 +1247,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Clean up.
-	updater.flush();	// Ensure no further updates will occur.
+	machine_runner.stop();	// Ensure no further updates will occur.
 	joysticks.clear();
 	SDL_DestroyWindow( window );
 	SDL_Quit();

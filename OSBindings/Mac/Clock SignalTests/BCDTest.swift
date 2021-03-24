@@ -14,7 +14,7 @@ class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 	func testBCD() {
 		if let filename = Bundle(for: type(of: self)).path(forResource: "BCDTEST_beeb", ofType: nil) {
 			if let bcdTest = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
-				let machine = CSTestMachine6502(is65C02: false)
+				let machine = CSTestMachine6502(processor: .processor6502)
 				machine.trapHandler = self
 
 				machine.setData(bcdTest, atAddress: 0x2900)
@@ -40,7 +40,7 @@ class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 		}
 	}
 
-	fileprivate var output: String = ""
+	private var output: String = ""
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
 		let machine6502 = testMachine as! CSTestMachine6502
 
@@ -48,4 +48,5 @@ class BCDTest: XCTestCase, CSTestMachineTrapHandler {
 		let character = machine6502.value(for: .A)
 		output.append(Character(UnicodeScalar(character)!))
 	}
+
 }

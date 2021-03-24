@@ -9,23 +9,27 @@
 #ifndef Analyser_Static_Sega_Target_h
 #define Analyser_Static_Sega_Target_h
 
+#include "../../../Reflection/Enum.hpp"
+#include "../../../Reflection/Struct.hpp"
+#include "../StaticAnalyser.hpp"
+
 namespace Analyser {
 namespace Static {
 namespace Sega {
 
-struct Target: public ::Analyser::Static::Target {
+struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	enum class Model {
 		SG1000,
 		MasterSystem,
 		MasterSystem2,
 	};
 
-	enum class Region {
+	ReflectableEnum(Region,
 		Japan,
 		USA,
 		Europe,
 		Brazil
-	};
+	);
 
 	enum class PagingScheme {
 		Sega,
@@ -35,6 +39,13 @@ struct Target: public ::Analyser::Static::Target {
 	Model model = Model::MasterSystem;
 	Region region = Region::Japan;
 	PagingScheme paging_scheme = PagingScheme::Sega;
+
+	Target() : Analyser::Static::Target(Machine::MasterSystem) {
+		if(needs_declare()) {
+			DeclareField(region);
+			AnnounceEnum(Region);
+		}
+	}
 };
 
 #define is_master_system(v) v >= Analyser::Static::Sega::Target::Model::MasterSystem

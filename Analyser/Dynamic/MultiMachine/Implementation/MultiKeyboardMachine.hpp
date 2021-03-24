@@ -24,34 +24,35 @@ namespace Dynamic {
 	Makes a static internal copy of the list of machines; makes no guarantees about the
 	order of delivered messages.
 */
-class MultiKeyboardMachine: public KeyboardMachine::Machine {
+class MultiKeyboardMachine: public MachineTypes::KeyboardMachine {
 	private:
-		std::vector<::KeyboardMachine::Machine *> machines_;
+		std::vector<MachineTypes::KeyboardMachine *> machines_;
 
 		class MultiKeyboard: public Inputs::Keyboard {
 			public:
-				MultiKeyboard(const std::vector<::KeyboardMachine::Machine *> &machines);
+				MultiKeyboard(const std::vector<MachineTypes::KeyboardMachine *> &machines);
 
-				void set_key_pressed(Key key, char value, bool is_pressed) override;
-				void reset_all_keys() override;
-				const std::set<Key> &observed_keys() override;
-				bool is_exclusive() override;
+				bool set_key_pressed(Key key, char value, bool is_pressed) final;
+				void reset_all_keys() final;
+				const std::set<Key> &observed_keys() const final;
+				bool is_exclusive() const final;
 
 			private:
-				const std::vector<::KeyboardMachine::Machine *> &machines_;
+				const std::vector<MachineTypes::KeyboardMachine *> &machines_;
 				std::set<Key> observed_keys_;
 				bool is_exclusive_ = false;
 		};
-		MultiKeyboard keyboard_;
+		std::unique_ptr<MultiKeyboard> keyboard_;
 
 	public:
 		MultiKeyboardMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
 
 		// Below is the standard KeyboardMachine::Machine interface; see there for documentation.
-		void clear_all_keys() override;
-		void set_key_state(uint16_t key, bool is_pressed) override;
-		void type_string(const std::string &) override;
-		Inputs::Keyboard &get_keyboard() override;
+		void clear_all_keys() final;
+		void set_key_state(uint16_t key, bool is_pressed) final;
+		void type_string(const std::string &) final;
+		bool can_type(char c) const final;
+		Inputs::Keyboard &get_keyboard() final;
 };
 
 }

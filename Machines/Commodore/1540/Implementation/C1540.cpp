@@ -19,7 +19,6 @@ using namespace Commodore::C1540;
 MachineBase::MachineBase(Personality personality, const ROMMachine::ROMFetcher &rom_fetcher) :
 		Storage::Disk::Controller(1000000),
 		m6502_(*this),
-		drive_(new Storage::Disk::Drive(1000000, 300, 2)),
 		serial_port_VIA_port_handler_(new SerialPortVIA(serial_port_VIA_)),
 		serial_port_(new SerialPort),
 		drive_VIA_(drive_VIA_port_handler_),
@@ -37,7 +36,8 @@ MachineBase::MachineBase(Personality personality, const ROMMachine::ROMFetcher &
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(3));
 
 	// attach the only drive there is
-	set_drive(drive_);
+	emplace_drive(1000000, 300, 2);
+	set_drive(1);
 
 	std::string device_name;
 	uint32_t crc = 0;
@@ -103,26 +103,26 @@ Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, 
 }
 
 void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
-	drive_->set_disk(disk);
+	get_drive().set_disk(disk);
 }
 
 void Machine::run_for(const Cycles cycles) {
 	m6502_.run_for(cycles);
 
-	bool drive_motor = drive_VIA_port_handler_.get_motor_enabled();
-	drive_->set_motor_on(drive_motor);
+	const bool drive_motor = drive_VIA_port_handler_.get_motor_enabled();
+	get_drive().set_motor_on(drive_motor);
 	if(drive_motor)
 		Storage::Disk::Controller::run_for(cycles);
 }
 
 void MachineBase::set_activity_observer(Activity::Observer *observer) {
 	drive_VIA_.bus_handler().set_activity_observer(observer);
-	drive_->set_activity_observer(observer, "Drive", false);
+	get_drive().set_activity_observer(observer, "Drive", false);
 }
 
 // MARK: - 6522 delegate
 
-void MachineBase::mos6522_did_change_interrupt_status(void *mos6522) {
+void MachineBase::mos6522_did_change_interrupt_status(void *) {
 	// both VIAs are connected to the IRQ line
 	m6502_.set_irq_line(serial_port_VIA_.get_interrupt_line() || drive_VIA_.get_interrupt_line());
 }
@@ -139,7 +139,7 @@ void MachineBase::process_input_bit(int value) {
 	}
 	bit_window_offset_++;
 	if(bit_window_offset_ == 8) {
-		drive_VIA_port_handler_.set_data_input(static_cast<uint8_t>(shift_register_));
+		drive_VIA_port_handler_.set_data_input(uint8_t(shift_register_));
 		bit_window_offset_ = 0;
 		if(drive_VIA_port_handler_.get_should_set_overflow()) {
 			m6502_.set_overflow_line(true);
@@ -153,12 +153,12 @@ void MachineBase::process_index_hole()	{}
 
 // MARK: - Drive VIA delegate
 
-void MachineBase::drive_via_did_step_head(void *driveVIA, int direction) {
-	drive_->step(Storage::Disk::HeadPosition(direction, 2));
+void MachineBase::drive_via_did_step_head(void *, int direction) {
+	get_drive().step(Storage::Disk::HeadPosition(direction, 2));
 }
 
-void MachineBase::drive_via_did_set_data_density(void *driveVIA, int density) {
-	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(density)));
+void MachineBase::drive_via_did_set_data_density(void *, int density) {
+	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(unsigned(density)));
 }
 
 // MARK: - SerialPortVIA
@@ -170,14 +170,14 @@ uint8_t SerialPortVIA::get_port_input(MOS::MOS6522::Port port) {
 	return 0xff;
 }
 
-void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t mask) {
+void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 	if(port) {
 		std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
 		if(serialPort) {
 			attention_acknowledge_level_ = !(value&0x10);
 			data_level_output_ = (value&0x02);
 
-			serialPort->set_output(::Commodore::Serial::Line::Clock, static_cast<::Commodore::Serial::LineLevel>(!(value&0x08)));
+			serialPort->set_output(::Commodore::Serial::Line::Clock, ::Commodore::Serial::LineLevel(!(value&0x08)));
 			update_data_line();
 		}
 	}
@@ -206,7 +206,7 @@ void SerialPortVIA::update_data_line() {
 	if(serialPort) {
 		// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
 		serialPort->set_output(::Commodore::Serial::Line::Data,
-			static_cast<::Commodore::Serial::LineLevel>(!data_level_output_ && (attention_level_input_ != attention_acknowledge_level_)));
+			::Commodore::Serial::LineLevel(!data_level_output_ && (attention_level_input_ != attention_acknowledge_level_)));
 	}
 }
 
@@ -243,7 +243,7 @@ void DriveVIA::set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Li
 	}
 }
 
-void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask) {
+void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 	if(port) {
 		if(previous_port_b_output_ != value) {
 			// record drive motor state
@@ -281,7 +281,7 @@ void DriveVIA::set_activity_observer(Activity::Observer *observer) {
 
 void SerialPort::set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
 	std::shared_ptr<SerialPortVIA> serialPortVIA = serial_port_VIA_.lock();
-	if(serialPortVIA) serialPortVIA->set_serial_line_state(line, static_cast<bool>(level));
+	if(serialPortVIA) serialPortVIA->set_serial_line_state(line, bool(level));
 }
 
 void SerialPort::set_serial_port_via(const std::shared_ptr<SerialPortVIA> &serialPortVIA) {

@@ -76,13 +76,7 @@ using namespace CPU::MOS6502;
 #define JAM									{CycleFetchOperand, OperationScheduleJam}
 
 ProcessorStorage::ProcessorStorage(Personality personality) {
-	// only the interrupt flag is defined upon reset but get_flags isn't going to
-	// mask the other flags so we need to do that, at least
-	carry_flag_ &= Flag::Carry;
-	decimal_flag_ &= Flag::Decimal;
-	overflow_flag_ &= Flag::Overflow;
-
-	const InstructionList operations_6502[256] = {
+	const InstructionList operations_6502[] = {
 		/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetIRQFlags, CycleReadVectorLow, CycleReadVectorHigh),
 		/* 0x01 ORA x, ind */	IndexedIndirectRead(OperationORA),
 		/* 0x02 JAM */			JAM,																	/* 0x03 ASO x, ind */	IndexedIndirectReadModifyWrite(OperationASO),
@@ -218,7 +212,78 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		/* 0xfa NOP # */		ImpliedNop(),															/* 0xfb INS abs, y */	AbsoluteYReadModifyWrite(OperationINS),
 		/* 0xfc NOP abs, x */	AbsoluteXNop(),															/* 0xfd SBC abs, x */	AbsoluteXRead(OperationSBC),
 		/* 0xfe INC abs, x */	AbsoluteXReadModifyWrite(OperationINC),									/* 0xff INS abs, x */	AbsoluteXReadModifyWrite(OperationINS),
+
+		/* 0x100: Fetch, decode, execute. */
+		{
+			CycleFetchOperation,
+			CycleFetchOperand,
+			OperationDecodeOperation
+		},
+
+		/* 0x101: Reset. */
+		Program(
+			CycleFetchOperand,
+			CycleFetchOperand,
+			CycleNoWritePush,
+			CycleNoWritePush,
+			OperationRSTPickVector,
+			CycleNoWritePush,
+			OperationSetNMIRSTFlags,
+			CycleReadVectorLow,
+			CycleReadVectorHigh
+		),
+
+		/* 0x102: IRQ. */
+		Program(
+			CycleFetchOperand,
+			CycleFetchOperand,
+			CyclePushPCH,
+			CyclePushPCL,
+			OperationBRKPickVector,
+			OperationSetOperandFromFlags,
+			CyclePushOperand,
+			OperationSetIRQFlags,
+			CycleReadVectorLow,
+			CycleReadVectorHigh
+		),
+
+		/* 0x103: NMI. */
+		Program(
+			CycleFetchOperand,
+			CycleFetchOperand,
+			CyclePushPCH,
+			CyclePushPCL,
+			OperationNMIPickVector,
+			OperationSetOperandFromFlags,
+			CyclePushOperand,
+			OperationSetNMIRSTFlags,
+			CycleReadVectorLow,
+			CycleReadVectorHigh
+		),
+
+		/* 0x104: Do BRA. */
+		Program(
+			CycleReadFromPC,
+			CycleAddSignedOperandToPC
+		),
+
+		/* 0x105: Do BBR or BBS. */
+		Program(
+			CycleFetchOperand,				// Fetch offset.
+			OperationIncrementPC,
+			CycleFetchFromHalfUpdatedPC,
+			OperationAddSignedOperandToPC16
+		),
+
+		/* 0x106: Complete BBR or BBS without branching. */
+		Program(
+			CycleFetchOperand,
+			OperationIncrementPC,
+			CycleFetchFromHalfUpdatedPC
+		)
 	};
+
+	static_assert(sizeof(operations_6502) == sizeof(operations_));
 
 	// Install the basic 6502 table.
 	memcpy(operations_, operations_6502, sizeof(operations_));

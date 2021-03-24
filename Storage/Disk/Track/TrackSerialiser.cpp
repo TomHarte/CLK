@@ -35,7 +35,7 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 	length_multiplier.simplify();
 
 	// start at the index hole
-	track_copy->seek_to(Time(0));
+	track_copy->seek_to(0.0f);
 
 	// grab events until the next index hole
 	Time time_error = Time(0);
@@ -45,7 +45,7 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 		Time extended_length = next_event.length * length_multiplier + time_error;
 		time_error.clock_rate = extended_length.clock_rate;
 		time_error.length = extended_length.length % extended_length.clock_rate;
-		pll.run_for(Cycles(static_cast<int>(extended_length.get<int64_t>())));
+		pll.run_for(Cycles(int(extended_length.get<int64_t>())));
 
 		if(next_event.type == Track::Event::IndexHole) break;
 		pll.add_pulse();
@@ -54,7 +54,7 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 		if(history_size) {
 			history_size--;
 			if(!history_size) {
-				track_copy->seek_to(Time(0));
+				track_copy->seek_to(0.0f);
 				time_error.set_zero();
 				result_accumulator.is_recording = true;
 			}

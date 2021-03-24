@@ -41,8 +41,8 @@ DMK::DMK(const std::string &file_name) :
 	is_read_only_ = (read_only_byte == 0xff) || file_.get_is_known_read_only();
 
 	// Read track count and size.
-	head_position_count_ = static_cast<int>(file_.get8());
-	track_length_ = static_cast<long>(file_.get16le());
+	head_position_count_ = int(file_.get8());
+	track_length_ = long(file_.get16le());
 
 	// Track length must be at least 0x80, as that's the size of the IDAM
 	// table before track contents.
@@ -93,7 +93,7 @@ std::shared_ptr<::Storage::Disk::Track> DMK::get_track_at_position(::Storage::Di
 	}
 
 	// Grab the rest of the track.
-	std::vector<uint8_t> track = file_.read(static_cast<std::size_t>(track_length_ - 0x80));
+	std::vector<uint8_t> track = file_.read(size_t(track_length_ - 0x80));
 
 	// Default to outputting double density unless the disk doesn't support it.
 	bool is_double_density = !is_purely_single_density_;
@@ -104,7 +104,7 @@ std::shared_ptr<::Storage::Disk::Track> DMK::get_track_at_position(::Storage::Di
 
 	std::size_t idam_pointer = 0;
 
-	const std::size_t track_length = static_cast<std::size_t>(track_length_) - 0x80;
+	const std::size_t track_length = size_t(track_length_) - 0x80;
 	std::size_t track_pointer = 0;
 	while(track_pointer < track_length) {
 		// Determine bytes left until next IDAM.

@@ -61,6 +61,12 @@ class Disk {
 			@returns whether the disk image is read only. Defaults to @c true if not overridden.
 		*/
 		virtual bool get_is_read_only() = 0;
+
+		/*!
+			@returns @c true if the tracks at the two addresses are different. @c false if they are the same track.
+				This can avoid some degree of work when disk images offer sub-head-position precision.
+		*/
+		virtual bool tracks_differ(Track::Address, Track::Address) = 0;
 };
 
 }

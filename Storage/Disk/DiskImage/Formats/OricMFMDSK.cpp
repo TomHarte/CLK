@@ -30,30 +30,30 @@ OricMFMDSK::OricMFMDSK(const std::string &file_name) :
 }
 
 HeadPosition OricMFMDSK::get_maximum_head_position() {
-	return HeadPosition(static_cast<int>(track_count_));
+	return HeadPosition(int(track_count_));
 }
 
 int OricMFMDSK::get_head_count() {
-	return static_cast<int>(head_count_);
+	return int(head_count_);
 }
 
 long OricMFMDSK::get_file_offset_for_position(Track::Address address) {
 	int seek_offset = 0;
 	switch(geometry_type_) {
 		case 1:
-			seek_offset = address.head * static_cast<int>(track_count_) + address.position.as_int();
+			seek_offset = address.head * int(track_count_) + address.position.as_int();
 		break;
 		case 2:
-			seek_offset = address.position.as_int() * static_cast<int>(track_count_ * head_count_) + address.head;
+			seek_offset = address.position.as_int() * int(track_count_ * head_count_) + address.head;
 		break;
 	}
-	return static_cast<long>(seek_offset) * 6400 + 256;
+	return long(seek_offset) * 6400 + 256;
 }
 
 std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address) {
 	PCMSegment segment;
 	{
-		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.get_file_access_mutex());
 		file_.seek(get_file_offset_for_position(address), SEEK_SET);
 
 		// The file format omits clock bits. So it's not a genuine MFM capture.
@@ -157,9 +157,9 @@ void OricMFMDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track
 
 		long file_offset = get_file_offset_for_position(track.first);
 
-		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.get_file_access_mutex());
 		file_.seek(file_offset, SEEK_SET);
-		std::size_t track_size = std::min(static_cast<std::size_t>(6400), parsed_track.size());
+		std::size_t track_size = std::min(size_t(6400), parsed_track.size());
 		file_.write(parsed_track.data(), track_size);
 	}
 }

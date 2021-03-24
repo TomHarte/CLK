@@ -12,7 +12,7 @@ import XCTest
 class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 
 	private var endTime: UInt32 = 0
-	private let machine = CSTestMachine6502(is65C02: false)
+	private let machine = CSTestMachine6502(processor: .processor6502)
 
 	func testImplied() {
 		let code: [UInt8] = [
@@ -22,7 +22,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x18,		// [2] CLC
 			0x2a,		// [2] ROL A
 		]
-		self.runTest(code, expectedRunLength: 10)
+		runTest(code, expectedRunLength: 10)
 	}
 
 	func testLDA() {
@@ -40,7 +40,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0xb1, 0x00,			// [5] LDA ($00), y (no wrap)
 			0xb1, 0x02,			// [6] LDA ($01), y (wrap)
 		]
-		self.runTest(code, expectedRunLength: 48)
+		runTest(code, expectedRunLength: 48)
 	}
 
 	func testBIT() {
@@ -48,7 +48,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x24, 0x2a,			// [3] BIT $2a
 			0x2c, 0x2a, 0x2b,	// [4] BIT $2b2a
 		]
-		self.runTest(code, expectedRunLength: 7)
+		runTest(code, expectedRunLength: 7)
 	}
 
 	func testSTA() {
@@ -64,7 +64,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x91, 0x00,			// [6] STA ($00), y (no wrap)
 			0x91, 0x02,			// [6] STA ($01), y (wrap)
 		]
-		self.runTest(code, expectedRunLength: 49)
+		runTest(code, expectedRunLength: 49)
 	}
 
 	func testINC() {
@@ -75,7 +75,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0xfe, 0x00, 0x00,	// [7] INC $0000, x (no wrap)
 			0xfe, 0x02, 0x00,	// [7] INC $0002, x (wrap)
 		]
-		self.runTest(code, expectedRunLength: 31)
+		runTest(code, expectedRunLength: 31)
 	}
 
 	func testJSR() {
@@ -85,7 +85,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x60,				// [6] RTS
 		]
 		machine.addTrapAddress(0x0203)
-		self.runTest(code, expectedRunLength: 12)
+		runTest(code, expectedRunLength: 12)
 	}
 
 	func testJMP() {
@@ -94,7 +94,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x00, 0x00, 0x00, 0x00, 0x00,
 			0x4c, 0x0b, 0x02,	// [3] JMP 020b
 		]
-		self.runTest(code, expectedRunLength: 8)
+		runTest(code, expectedRunLength: 8)
 	}
 
 	func testPHAPLA() {
@@ -103,7 +103,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x48, // [3] PHA
 			0x68, // [4] PLA
 		]
-		self.runTest(code, expectedRunLength: 10)
+		runTest(code, expectedRunLength: 10)
 	}
 
 	func testBCS() {
@@ -130,7 +130,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		]
-		self.runTest(code, expectedRunLength: 14)
+		runTest(code, expectedRunLength: 14)
 	}
 
 	func testSnippet1() {
@@ -138,7 +138,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x8d, 0x08, 0x00,	// [4] STA $0008
 			0xc6, 0xb4,			// [5] DEC $B4
 		]
-		self.runTest(code, expectedRunLength: 9)
+		runTest(code, expectedRunLength: 9)
 	}
 
 	func testSnippet2() {
@@ -146,7 +146,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x16, 0x16,			// [6] ASL $16, x
 			0x46, 0x46,			// [5] LSR $46
 		]
-		self.runTest(code, expectedRunLength: 11)
+		runTest(code, expectedRunLength: 11)
 	}
 
 	func testSnippet3() {
@@ -174,7 +174,7 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0x60,				// [6] RTS
 		]
 		machine.addTrapAddress(0x0203)
-		self.runTest(code, expectedRunLength: 66)
+		runTest(code, expectedRunLength: 66)
 	}
 
 	func testNOP() {
@@ -194,13 +194,13 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 			0xe2, 0x00,	// [2] NOP #
 			0xf4, 0x00,	// [4] NOP zpg, x
 		]
-		self.runTest(code, expectedRunLength: 43)
+		runTest(code, expectedRunLength: 43)
 	}
 
-	func runTest(_ code: [UInt8], expectedRunLength: UInt32) {
+	private func runTest(_ code: [UInt8], expectedRunLength: UInt32) {
 		machine.trapHandler = self
 
-		let immediateCode = Data(bytes: UnsafePointer<UInt8>(code), count: code.count)
+		let immediateCode = Data(code)
 		machine.setData(immediateCode, atAddress: 0x200)
 		machine.addTrapAddress(UInt16(0x200 + code.count))
 		machine.setValue(0x00, forAddress: 0x0000)
@@ -213,17 +213,17 @@ class MOS6502TimingTests: XCTestCase, CSTestMachineTrapHandler {
 		machine.setValue(0xff, for: CSTestMachine6502Register.X)
 		machine.setValue(0xfe, for: CSTestMachine6502Register.Y)
 
-		self.endTime = 0
-		while self.endTime == 0 {
+		endTime = 0
+		while endTime == 0 {
 			machine.runForNumber(ofCycles: 10)
 		}
 
-		XCTAssert(self.endTime == expectedRunLength, "Took \(self.endTime) cycles to perform rather than \(expectedRunLength)")
+		XCTAssertEqual(endTime, expectedRunLength, "Took \(endTime) cycles to perform rather than \(expectedRunLength)")
 	}
 
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
-		if self.endTime == 0 {
-			self.endTime = (machine.timestamp / 2) - 1
+		if endTime == 0 {
+			endTime = (machine.timestamp / 2) - 1
 		}
 	}
 }

@@ -30,7 +30,7 @@ class MFMEncoder: public Encoder {
 		void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
 			crc_generator_.add(input);
 			const uint16_t spread_value =
-				static_cast<uint16_t>(
+				uint16_t(
 					((input & 0x01) << 0) |
 					((input & 0x02) << 1) |
 					((input & 0x04) << 2) |
@@ -40,11 +40,11 @@ class MFMEncoder: public Encoder {
 					((input & 0x40) << 6) |
 					((input & 0x80) << 7)
 				);
-			const uint16_t or_bits = static_cast<uint16_t>((spread_value << 1) | (spread_value >> 1) | (last_output_ << 15));
+			const uint16_t or_bits = uint16_t((spread_value << 1) | (spread_value >> 1) | (last_output_ << 15));
 			const uint16_t output = spread_value | ((~or_bits) & 0xaaaa);
 
 			const uint16_t spread_mask =
-				static_cast<uint16_t>(
+				uint16_t(
 					((fuzzy_mask & 0x01) << 0) |
 					((fuzzy_mask & 0x02) << 1) |
 					((fuzzy_mask & 0x04) << 2) |
@@ -108,7 +108,7 @@ class FMEncoder: public Encoder {
 		void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
 			crc_generator_.add(input);
 			output_short(
-				static_cast<uint16_t>(
+				uint16_t(
 					((input & 0x01) << 0) |
 					((input & 0x02) << 1) |
 					((input & 0x04) << 2) |
@@ -119,7 +119,7 @@ class FMEncoder: public Encoder {
 					((input & 0x80) << 7) |
 					0xaaaa
 				),
-				static_cast<uint16_t>(
+				uint16_t(
 					((fuzzy_mask & 0x01) << 0) |
 					((fuzzy_mask & 0x02) << 1) |
 					((fuzzy_mask & 0x04) << 2) |
@@ -156,7 +156,7 @@ class FMEncoder: public Encoder {
 			output_short(FMDeletedDataAddressMark);
 		}
 
-		size_t item_size(SurfaceItem item) {
+		size_t item_size(SurfaceItem) {
 			// Marks are just slightly-invalid bytes, so everything is the same length.
 			return 2;
 		}
@@ -242,7 +242,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 				shifter.add_data_address_mark();
 
 			std::size_t c = 0;
-			std::size_t declared_length = static_cast<std::size_t>(128 << sector->size);
+			std::size_t declared_length = size_t(128 << sector->size);
 			if(sector->samples.size() > 1) {
 				// For each byte, mark as fuzzy any bits that differ. Which isn't exactly the
 				// same thing as obeying the multiple samples, as it discards the implied
@@ -335,7 +335,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSec
 		sector_pointers(sectors),
 		26, 0xff,
 		6,
-		11, 0xff,
+		11, sector_gap_filler_byte,
 		6,
 		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 27, 0xff,
 		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
@@ -346,7 +346,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSec
 		sectors,
 		26, 0xff,
 		6,
-		11, 0xff,
+		11, sector_gap_filler_byte,
 		6,
 		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 27, 0xff,
 		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
@@ -357,7 +357,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		sector_pointers(sectors),
 		50, 0x4e,
 		12,
-		22, 0x4e,
+		22, sector_gap_filler_byte,
 		12,
 		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 54, 0xff,
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kbps @ 300 rpm)
@@ -368,7 +368,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		sectors,
 		50, 0x4e,
 		12,
-		22, 0x4e,
+		22, sector_gap_filler_byte,
 		12,
 		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 54, 0xff,
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kbps @ 300 rpm)

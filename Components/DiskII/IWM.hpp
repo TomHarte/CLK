@@ -24,7 +24,7 @@ namespace Apple {
 	Defines the drive interface used by the IWM, derived from the external pinout as
 	per e.g. https://old.pinouts.ru/HD/MacExtDrive_pinout.shtml
 
-	These are subclassed of Storage::Disk::Drive, so accept any disk the emulator supports,
+	These are subclasses of Storage::Disk::Drive, so accept any disk the emulator supports,
 	and provide the usual read/write interface for on-disk data.
 */
 struct IWMDrive: public Storage::Disk::Drive {
@@ -76,14 +76,15 @@ class IWM:
 
 	private:
 		// Storage::Disk::Drive::EventDelegate.
-		void process_event(const Storage::Disk::Drive::Event &event) override;
+		void process_event(const Storage::Disk::Drive::Event &event) final;
 
 		const int clock_rate_;
 
 		uint8_t data_register_ = 0;
 		uint8_t mode_ = 0;
-		bool read_write_ready_ = true;
-		bool write_overran_ = false;
+		// These related to functionality not-yet implemented.
+		// bool read_write_ready_ = true;
+		// bool write_overran_ = false;
 
 		int state_ = 0;
 
@@ -91,7 +92,7 @@ class IWM:
 		IWMDrive *drives_[2] = {nullptr, nullptr};
 		bool drive_is_rotating_[2] = {false, false};
 
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override;
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final;
 
 		Cycles cycles_until_disable_;
 		uint8_t write_handshake_ = 0x80;

@@ -64,7 +64,7 @@ void Tape::set_offset(uint64_t offset) {
 
 // MARK: - Player
 
-ClockingHint::Preference TapePlayer::preferred_clocking() {
+ClockingHint::Preference TapePlayer::preferred_clocking() const {
 	return (!tape_ || tape_->is_at_end()) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
@@ -80,7 +80,7 @@ std::shared_ptr<Storage::Tape::Tape> TapePlayer::get_tape() {
 }
 
 bool TapePlayer::has_tape() {
-	return static_cast<bool>(tape_);
+	return bool(tape_);
 }
 
 void TapePlayer::get_next_pulse() {
@@ -95,6 +95,14 @@ void TapePlayer::get_next_pulse() {
 	}
 
 	set_next_event_time_interval(current_pulse_.length);
+}
+
+Tape::Pulse TapePlayer::get_current_pulse() {
+	return current_pulse_;
+}
+
+void TapePlayer::complete_pulse() {
+	jump_to_next_event();
 }
 
 void TapePlayer::run_for(const Cycles cycles) {
@@ -118,7 +126,7 @@ BinaryTapePlayer::BinaryTapePlayer(int input_clock_rate) :
 	TapePlayer(input_clock_rate)
 {}
 
-ClockingHint::Preference BinaryTapePlayer::preferred_clocking() {
+ClockingHint::Preference BinaryTapePlayer::preferred_clocking() const {
 	if(!motor_is_running_) return ClockingHint::Preference::None;
 	return TapePlayer::preferred_clocking();
 }
@@ -127,6 +135,18 @@ void BinaryTapePlayer::set_motor_control(bool enabled) {
 	if(motor_is_running_ != enabled) {
 		motor_is_running_ = enabled;
 		update_clocking_observer();
+
+		if(observer_) {
+			observer_->set_led_status("Tape motor", enabled);
+		}
+	}
+}
+
+void BinaryTapePlayer::set_activity_observer(Activity::Observer *observer) {
+	observer_ = observer;
+	if(observer) {
+		observer->register_led("Tape motor");
+		observer_->set_led_status("Tape motor", motor_is_running_);
 	}
 }
 
@@ -134,7 +154,7 @@ bool BinaryTapePlayer::get_motor_control() const {
 	return motor_is_running_;
 }
 
-void BinaryTapePlayer::set_tape_output(bool set) {
+void BinaryTapePlayer::set_tape_output(bool) {
 	// TODO
 }
 

@@ -13,25 +13,19 @@
 #include <cstdio>
 #include <cstdint>
 
+#include "../6502Esque/6502Esque.hpp"
+#include "../6502Esque/Implementation/LazyFlags.hpp"
 #include "../RegisterSizes.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace CPU {
 namespace MOS6502 {
 
-/*
-	The list of registers that can be accessed via @c set_value_of_register and @c set_value_of_register.
-*/
-enum Register {
-	LastOperationAddress,
-	ProgramCounter,
-	StackPointer,
-	Flags,
-	A,
-	X,
-	Y,
-	S
-};
+// Adopt a bunch of things from MOS6502Esque.
+using BusOperation = CPU::MOS6502Esque::BusOperation;
+using BusHandler = CPU::MOS6502Esque::BusHandler<uint16_t>;
+using Register = CPU::MOS6502Esque::Register;
+using Flag = CPU::MOS6502Esque::Flag;
 
 /*
 	The list of 6502 variants supported by this implementation.
@@ -49,75 +43,10 @@ enum Personality {
 #define has_bbrbbsrmbsmb(p)	((p) >= Personality::PRockwell65C02)
 #define has_stpwai(p)		((p) >= Personality::PWDC65C02)
 
-/*
-	Flags as defined on the 6502; can be used to decode the result of @c get_value_of_register(Flags) or to form a value for
-	the corresponding set.
-*/
-enum Flag: uint8_t {
-	Sign		= 0x80,
-	Overflow	= 0x40,
-	Always		= 0x20,
-	Break		= 0x10,
-	Decimal		= 0x08,
-	Interrupt	= 0x04,
-	Zero		= 0x02,
-	Carry		= 0x01
-};
-
-/*!
-	Subclasses will be given the task of performing bus operations, allowing them to provide whatever interface they like
-	between a 6502 and the rest of the system. @c BusOperation lists the types of bus operation that may be requested.
-
-	@c None is reserved for internal use. It will never be requested from a subclass. It is safe always to use the
-	isReadOperation macro to make a binary choice between reading and writing.
-*/
-enum BusOperation {
-	Read, ReadOpcode, Write, Ready, None
-};
-
-/*!
-	Evaluates to `true` if the operation is a read; `false` if it is a write.
-*/
-#define isReadOperation(v)	(v == CPU::MOS6502::BusOperation::Read || v == CPU::MOS6502::BusOperation::ReadOpcode)
-
 /*!
 	An opcode that is guaranteed to cause the CPU to jam.
 */
 extern const uint8_t JamOpcode;
-
-/*!
-	A class providing empty implementations of the methods a 6502 uses to access the bus. To wire the 6502 to a bus,
-	machines should subclass BusHandler and then declare a realisation of the 6502 template, suplying their bus
-	handler.
-*/
-class BusHandler {
-	public:
-		/*!
-			Announces that the 6502 has performed the cycle defined by operation, address and value. On the 6502,
-			all bus cycles take one clock cycle so the amoutn of time advanced is implicit.
-
-			@param operation The type of bus cycle: read, read opcode (i.e. read, with sync active),
-			write or ready.
-			@param address The value of the address bus during this bus cycle.
-			@param value If this is a cycle that puts a value onto the data bus, *value is that value. If this is
-			a cycle that reads the bus, the bus handler should write a value to *value. Writing to *value during
-			a read cycle will produce undefined behaviour.
-
-			@returns The number of cycles that passed in objective time while this 6502 bus cycle was ongoing.
-			On an archetypal machine this will be Cycles(1) but some architectures may choose not to clock the 6502
-			during some periods; one way to simulate that is to have the bus handler return a number other than
-			Cycles(1) to describe lengthened bus cycles.
-		*/
-		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
-			return Cycles(1);
-		}
-
-		/*!
-			Announces completion of all the cycles supplied to a .run_for request on the 6502. Intended to allow
-			bus handlers to perform any deferred output work.
-		*/
-		void flush() {}
-};
 
 #include "Implementation/6502Storage.hpp"
 
@@ -136,7 +65,7 @@ class ProcessorBase: public ProcessorStorage {
 			@param r The register to set.
 			@returns The value of the register. 8-bit registers will be returned as unsigned.
 		*/
-		uint16_t get_value_of_register(Register r);
+		uint16_t get_value_of_register(Register r) const;
 
 		/*!
 			Sets the value of a register.
@@ -160,7 +89,7 @@ class ProcessorBase: public ProcessorStorage {
 
 			@returns @c true if the line is logically active; @c false otherwise.
 		*/
-		inline bool get_is_resetting();
+		inline bool get_is_resetting() const;
 
 		/*!
 			This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
@@ -195,7 +124,7 @@ class ProcessorBase: public ProcessorStorage {
 
 			@returns @c true if the 6502 is jammed; @c false otherwise.
 		*/
-		bool is_jammed();
+		bool is_jammed() const;
 };
 
 /*!
@@ -206,12 +135,12 @@ class ProcessorBase: public ProcessorStorage {
 	can also nominate whether the processor includes support for the ready line. Declining to support the ready line
 	can produce a minor runtime performance improvement.
 */
-template <Personality personality, typename T, bool uses_ready_line> class Processor: public ProcessorBase {
+template <Personality personality, typename BusHandler, bool uses_ready_line> class Processor: public ProcessorBase {
 	public:
 		/*!
 			Constructs an instance of the 6502 that will use @c bus_handler for all bus communications.
 		*/
-		Processor(T &bus_handler) : ProcessorBase(personality), bus_handler_(bus_handler) {}
+		Processor(BusHandler &bus_handler) : ProcessorBase(personality), bus_handler_(bus_handler) {}
 
 		/*!
 			Runs the 6502 for a supplied number of cycles.
@@ -228,7 +157,7 @@ template <Personality personality, typename T, bool uses_ready_line> class Proce
 		void set_ready_line(bool active);
 
 	private:
-		T &bus_handler_;
+		BusHandler &bus_handler_;
 };
 
 #include "Implementation/6502Implementation.hpp"

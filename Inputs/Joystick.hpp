@@ -98,7 +98,7 @@ class Joystick {
 		};
 
 		/// @returns The list of all inputs defined on this joystick.
-		virtual std::vector<Input> &get_inputs() = 0;
+		virtual const std::vector<Input> &get_inputs() = 0;
 
 		/*!
 			Sets the digital value of @c input. This may have direct effect or
@@ -161,20 +161,20 @@ class ConcreteJoystick: public Joystick {
 				const bool is_digital_axis = input.is_digital_axis();
 				const bool is_analogue_axis = input.is_analogue_axis();
 				if(is_digital_axis || is_analogue_axis) {
-					const size_t required_size = static_cast<size_t>(input.info.control.index+1);
+					const size_t required_size = size_t(input.info.control.index+1);
 					if(stick_types_.size() < required_size) {
 						stick_types_.resize(required_size);
 					}
-					stick_types_[static_cast<size_t>(input.info.control.index)] = is_digital_axis ? StickType::Digital : StickType::Analogue;
+					stick_types_[size_t(input.info.control.index)] = is_digital_axis ? StickType::Digital : StickType::Analogue;
 				}
 			}
 		}
 
-		std::vector<Input> &get_inputs() override final {
+		const std::vector<Input> &get_inputs() final {
 			return inputs_;
 		}
 
-		void set_input(const Input &input, bool is_active) override final {
+		void set_input(const Input &input, bool is_active) final {
 			// If this is a digital setting to a digital property, just pass it along.
 			if(input.is_button() || stick_types_[input.info.control.index] == StickType::Digital) {
 				did_set_input(input, is_active);
@@ -193,7 +193,7 @@ class ConcreteJoystick: public Joystick {
 			}
 		}
 
-		void set_input(const Input &input, float value) override final {
+		void set_input(const Input &input, float value) final {
 			// If this is an analogue setting to an analogue property, just pass it along.
 			if(!input.is_button() && stick_types_[input.info.control.index] == StickType::Analogue) {
 				did_set_input(input, value);
@@ -216,14 +216,11 @@ class ConcreteJoystick: public Joystick {
 		}
 
 	protected:
-		virtual void did_set_input(const Input &input, float value) {
-		}
-
-		virtual void did_set_input(const Input &input, bool value) {
-		}
+		virtual void did_set_input([[maybe_unused]] const Input &input, [[maybe_unused]] float value) {}
+		virtual void did_set_input([[maybe_unused]] const Input &input, [[maybe_unused]] bool value) {}
 
 	private:
-		std::vector<Input> inputs_;
+		const std::vector<Input> inputs_;
 
 		enum class StickType {
 			Digital,

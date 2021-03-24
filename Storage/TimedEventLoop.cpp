@@ -69,16 +69,16 @@ void TimedEventLoop::set_next_event_time_interval(Time interval) {
 
 void TimedEventLoop::set_next_event_time_interval(float interval) {
 	// Calculate [interval]*[input clock rate] + [subcycles until this event]
-	float float_interval = interval * float(input_clock_rate_) + subcycles_until_event_;
+	const float float_interval = interval * float(input_clock_rate_) + subcycles_until_event_;
 
-	// So this event will fire in the integral number of cycles from now, putting us at the remainder
-	// number of subcycles
+	// This event will fire in the integral number of cycles from now, putting us at the remainder
+	// number of subcycles.
 	const Cycles::IntType addition = Cycles::IntType(float_interval);
 	cycles_until_event_ += addition;
-	subcycles_until_event_ = fmodf(float_interval, 1.0);
+	subcycles_until_event_ = fmodf(float_interval, 1.0f);
 
 	assert(cycles_until_event_ >= 0);
-	assert(subcycles_until_event_ >= 0.0);
+	assert(subcycles_until_event_ >= 0.0f);
 }
 
 Time TimedEventLoop::get_time_into_next_event() {

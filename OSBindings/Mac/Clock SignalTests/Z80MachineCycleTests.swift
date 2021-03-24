@@ -1247,4 +1247,5 @@ class Z80MachineCycleTests: XCTestCase {
 			]
 		)
 	}
+
 }

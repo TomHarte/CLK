@@ -11,8 +11,9 @@
 
 #include "../../../Machines/DynamicMachine.hpp"
 
+#include "Implementation/MultiProducer.hpp"
 #include "Implementation/MultiConfigurable.hpp"
-#include "Implementation/MultiCRTMachine.hpp"
+#include "Implementation/MultiProducer.hpp"
 #include "Implementation/MultiJoystickMachine.hpp"
 #include "Implementation/MultiKeyboardMachine.hpp"
 #include "Implementation/MultiMediaTarget.hpp"
@@ -38,7 +39,7 @@ namespace Dynamic {
 	If confidence for any machine becomes disproportionately low compared to
 	the others in the set, that machine stops running.
 */
-class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::Delegate {
+class MultiMachine: public ::Machine::DynamicMachine, public MultiTimedMachine::Delegate {
 	public:
 		/*!
 			Allows a potential MultiMachine creator to enquire as to whether there's any benefit in
@@ -50,23 +51,27 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::De
 		static bool would_collapse(const std::vector<std::unique_ptr<DynamicMachine>> &machines);
 		MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machines);
 
-		Activity::Source *activity_source() override;
-		Configurable::Device *configurable_device() override;
-		CRTMachine::Machine *crt_machine() override;
-		JoystickMachine::Machine *joystick_machine() override;
-		MouseMachine::Machine *mouse_machine() override;
-		KeyboardMachine::Machine *keyboard_machine() override;
-		MediaTarget::Machine *media_target() override;
-		void *raw_pointer() override;
+		Activity::Source *activity_source() final;
+		Configurable::Device *configurable_device() final;
+		MachineTypes::TimedMachine *timed_machine() final;
+		MachineTypes::ScanProducer *scan_producer() final;
+		MachineTypes::AudioProducer *audio_producer() final;
+		MachineTypes::JoystickMachine *joystick_machine() final;
+		MachineTypes::KeyboardMachine *keyboard_machine() final;
+		MachineTypes::MouseMachine *mouse_machine() final;
+		MachineTypes::MediaTarget *media_target() final;
+		void *raw_pointer() final;
 
 	private:
-		void multi_crt_did_run_machines() override;
+		void did_run_machines(MultiTimedMachine *) final;
 
 		std::vector<std::unique_ptr<DynamicMachine>> machines_;
 		std::recursive_mutex machines_mutex_;
 
 		MultiConfigurable configurable_;
-		MultiCRTMachine crt_machine_;
+		MultiTimedMachine timed_machine_;
+		MultiScanProducer scan_producer_;
+		MultiAudioProducer audio_producer_;
 		MultiJoystickMachine joystick_machine_;
 		MultiKeyboardMachine keyboard_machine_;
 		MultiMediaTarget media_target_;

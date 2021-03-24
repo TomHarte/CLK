@@ -14,6 +14,7 @@ namespace Analyser {
 enum class Machine {
 	AmstradCPC,
 	AppleII,
+	AppleIIgs,
 	Atari2600,
 	AtariST,
 	ColecoVision,
@@ -23,7 +24,8 @@ enum class Machine {
 	MSX,
 	Oric,
 	Vic20,
-	ZX8081
+	ZX8081,
+	ZXSpectrum,
 };
 
 }

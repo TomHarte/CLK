@@ -27,7 +27,7 @@ MSXDSK::MSXDSK(const std::string &file_name) :
 	// Throw if there would seemingly be an incomplete track.
 	if(file_size % track_size) throw Error::InvalidFormat;
 
-	track_count_ = static_cast<int>(file_size / track_size);
+	track_count_ = int(file_size / track_size);
 	head_count_ = 1;
 
 	// Throw if too large or too small or too large for single sided and

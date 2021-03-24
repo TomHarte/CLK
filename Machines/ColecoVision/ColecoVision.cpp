@@ -14,8 +14,8 @@
 #include "../../Components/AY38910/AY38910.hpp"	// For the Super Game Module.
 #include "../../Components/SN76489/SN76489.hpp"
 
-#include "../CRTMachine.hpp"
-#include "../JoystickMachine.hpp"
+#include "../MachineTypes.hpp"
+#include "../../Configurable/Configurable.hpp"
 
 #include "../../Configurable/StandardOptions.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
@@ -32,12 +32,6 @@ constexpr int sn76489_divider = 2;
 
 namespace Coleco {
 namespace Vision {
-
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplaySVideo | Configurable::DisplayCompositeColour)
-	);
-}
 
 class Joystick: public Inputs::ConcreteJoystick {
 	public:
@@ -57,7 +51,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 				Input('9'),	Input('*'),	Input('#'),
 			}) {}
 
-		void did_set_input(const Input &digital_input, bool is_active) override {
+		void did_set_input(const Input &digital_input, bool is_active) final {
 			switch(digital_input.type) {
 				default: return;
 
@@ -114,9 +108,11 @@ class Joystick: public Inputs::ConcreteJoystick {
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
-	public CRTMachine::Machine,
 	public Configurable::Device,
-	public JoystickMachine::Machine {
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine {
 
 	public:
 		ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -126,7 +122,7 @@ class ConcreteMachine:
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			mixer_(sn76489_, ay_),
 			speaker_(mixer_) {
-			speaker_.set_input_rate(3579545.0f / static_cast<float>(sn76489_divider));
+			speaker_.set_input_rate(3579545.0f / float(sn76489_divider));
 			set_clock_rate(3579545);
 			joysticks_.emplace_back(new Joystick);
 			joysticks_.emplace_back(new Joystick);
@@ -147,7 +143,7 @@ class ConcreteMachine:
 				if(cartridge_.size() >= 32768)
 					cartridge_address_limit_ = 0xffff;
 				else
-					cartridge_address_limit_ = static_cast<uint16_t>(0x8000 + cartridge_.size() - 1);
+					cartridge_address_limit_ = uint16_t(0x8000 + cartridge_.size() - 1);
 
 				if(cartridge_.size() > 32768) {
 					// Ensure the cartrige is a multiple of 16kb in size, as that won't
@@ -177,11 +173,11 @@ class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return joysticks_;
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			vdp_->set_scan_target(scan_target);
 		}
 
@@ -189,15 +185,19 @@ class ConcreteMachine:
 			return vdp_->get_scaled_scan_status();
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			vdp_->set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Display::DisplayType get_display_type() const final {
+			return vdp_->get_display_type();
+		}
+
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
-		void run_for(const Cycles cycles) override {
+		void run_for(const Cycles cycles) final {
 			z80_.run_for(cycles);
 		}
 
@@ -224,6 +224,7 @@ class ConcreteMachine:
 				switch(cycle.operation) {
 					case CPU::Z80::PartialMachineCycle::ReadOpcode:
 						if(!address) pc_zero_accesses_++;
+						[[fallthrough]];
 					case CPU::Z80::PartialMachineCycle::Read:
 						if(address < 0x2000) {
 							if(super_game_module_.replace_bios) {
@@ -362,38 +363,26 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		float get_confidence() override {
+		float get_confidence() final {
 			if(pc_zero_accesses_ > 1) return 0.0f;
 			return confidence_counter_.get_confidence();
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			return Coleco::Vision::get_options();
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::SVideo);
-			return selection_set;
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
 		}
 
 	private:
 		inline void page_megacart(uint16_t address) {
-			const std::size_t selected_start = (static_cast<std::size_t>(address&63) << 14) % cartridge_.size();
+			const std::size_t selected_start = (size_t(address&63) << 14) % cartridge_.size();
 			cartridge_pages_[1] = &cartridge_[selected_start];
 		}
 		inline void update_audio() {
@@ -405,9 +394,9 @@ class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;
-		GI::AY38910::AY38910 ay_;
-		Outputs::Speaker::CompoundSource<TI::SN76489, GI::AY38910::AY38910> mixer_;
-		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<TI::SN76489, GI::AY38910::AY38910>> speaker_;
+		GI::AY38910::AY38910<false> ay_;
+		Outputs::Speaker::CompoundSource<TI::SN76489, GI::AY38910::AY38910<false>> mixer_;
+		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<TI::SN76489, GI::AY38910::AY38910<false>>> speaker_;
 
 		std::vector<uint8_t> bios_;
 		std::vector<uint8_t> cartridge_;

@@ -8,13 +8,13 @@
 
 import AudioToolbox
 import Cocoa
+import QuartzCore
 
 class MachineDocument:
 	NSDocument,
 	NSWindowDelegate,
 	CSMachineDelegate,
-	CSOpenGLViewDelegate,
-	CSOpenGLViewResponderDelegate,
+	CSScanTargetViewResponderDelegate,
 	CSAudioQueueDelegate,
 	CSROMReciverViewDelegate
 {
@@ -24,8 +24,6 @@ class MachineDocument:
 	private let actionLock = NSLock()
 	/// Ensures exclusive access between calls to machine.updateView and machine.drawView, and close().
 	private let drawLock = NSLock()
-	/// Ensures exclusive access to the best-effort updater.
-	private let bestEffortLock = NSLock()
 
 	// MARK: - Machine details.
 
@@ -43,13 +41,10 @@ class MachineDocument:
 	/// The output audio queue, if any.
 	private var audioQueue: CSAudioQueue!
 
-	/// The best-effort updater.
-	private var bestEffortUpdater: CSBestEffortUpdater?
-
 	// MARK: - Main NIB connections.
 
 	/// The OpenGL view to receive this machine's display.
-	@IBOutlet weak var openGLView: CSOpenGLView!
+	@IBOutlet weak var scanTargetView: CSScanTargetView!
 
 	/// The options panel, if any.
 	@IBOutlet var optionsPanel: MachinePanel!
@@ -66,6 +61,10 @@ class MachineDocument:
 	@IBAction func showActivity(_ sender: AnyObject!) {
 		activityPanel.setIsVisible(true)
 	}
+
+	/// The volume view.
+	@IBOutlet var volumeView: NSBox!
+	@IBOutlet var volumeSlider: NSSlider!
 
 	// MARK: - NSDocument Overrides and NSWindowDelegate methods.
 
@@ -89,27 +88,38 @@ class MachineDocument:
 	}
 
 	override func close() {
+		// Close any dangling sheets.
+		//
+		// Be warned: in 11.0 at least, if there are any panels then posting the endSheet request
+		// will defer the close(), and close() will be called again at the end of that animation.
+		//
+		// So: MAKE SURE IT'S SAFE TO ENTER THIS FUNCTION TWICE. Hence the non-assumption here about
+		// any windows still existing.
+		if let window = self.windowControllers.first?.window {
+			for sheet in window.sheets {
+				window.endSheet(sheet)
+			}
+		}
+
+		// Stop the machine, if any.
+		machine?.stop()
+
+		// Dismiss panels.
 		activityPanel?.setIsVisible(false)
 		activityPanel = nil
 
 		optionsPanel?.setIsVisible(false)
 		optionsPanel = nil
 
-		bestEffortLock.lock()
-		if let bestEffortUpdater = bestEffortUpdater {
-			bestEffortUpdater.flush()
-			self.bestEffortUpdater = nil
-		}
-		bestEffortLock.unlock()
-
+		// End the update cycle.
 		actionLock.lock()
 		drawLock.lock()
 		machine = nil
-		openGLView.delegate = nil
-		openGLView.invalidate()
+		scanTargetView.invalidate()
 		actionLock.unlock()
 		drawLock.unlock()
 
+		// Let the document controller do its thing.
 		super.close()
 	}
 
@@ -120,6 +130,7 @@ class MachineDocument:
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 		aController.window?.contentAspectRatio = self.aspectRatio()
+		volumeSlider.floatValue = userDefaultsVolume()
 	}
 
 	private var missingROMs: [CSMissingROM] = []
@@ -131,13 +142,11 @@ class MachineDocument:
 			self.machine = machine
 			setupMachineOutput()
 			setupActivityDisplay()
+			machine.setVolume(userDefaultsVolume())
 		} else {
 			// Store the selected machine and list of missing ROMs, and
 			// show the missing ROMs dialogue.
-			self.missingROMs = []
-			for untypedMissingROM in missingROMs {
-				self.missingROMs.append(untypedMissingROM as! CSMissingROM)
-			}
+			self.missingROMs = missingROMs.map({$0 as! CSMissingROM})
 
 			requestRoms()
 		}
@@ -149,47 +158,47 @@ class MachineDocument:
 	private var interactionMode: InteractionMode = .notStarted
 
 	// Attempting to show a sheet before the window is visible (such as when the NIB is loaded) results in
-	// a sheet mysteriously floating on its own. For now, use windowDidUpdate as a proxy to know that the window
-	// is visible, though it's a little premature.
+	// a sheet mysteriously floating on its own. For now, use windowDidUpdate as a proxy to check whether
+	// the window is visible.
 	func windowDidUpdate(_ notification: Notification) {
-		// Grab the regular window title, if it's not already stored.
-		if self.unadornedWindowTitle.count == 0 {
-			self.unadornedWindowTitle = self.windowControllers[0].window!.title
-		}
-
-		// If an interaction mode is not yet in effect, pick the proper one and display the relevant thing.
-		if self.interactionMode == .notStarted {
-			// If a full machine exists, just continue showing it.
-			if self.machine != nil {
-				self.interactionMode = .showingMachine
-				setupMachineOutput()
-				return
+		if self.windowControllers.count > 0, let window = self.windowControllers[0].window, window.isVisible {
+			// Grab the regular window title, if it's not already stored.
+			if self.unadornedWindowTitle.count == 0 {
+				self.unadornedWindowTitle = window.title
 			}
 
-			// If a machine has been picked but is not showing, there must be ROMs missing.
-			if self.machineDescription != nil {
-				self.interactionMode = .showingROMRequester
-				requestRoms()
-				return
-			}
+			// If an interaction mode is not yet in effect, pick the proper one and display the relevant thing.
+			if self.interactionMode == .notStarted {
+				// If a full machine exists, just continue showing it.
+				if self.machine != nil {
+					self.interactionMode = .showingMachine
+					setupMachineOutput()
+					return
+				}
 
-			// If a machine hasn't even been picked yet, show the machine picker.
-			self.interactionMode = .showingMachinePicker
-			Bundle.main.loadNibNamed("MachinePicker", owner: self, topLevelObjects: nil)
-			self.machinePicker?.establishStoredOptions()
-			self.windowControllers[0].window?.beginSheet(self.machinePickerPanel!, completionHandler: nil)
+				// If a machine has been picked but is not showing, there must be ROMs missing.
+				if self.machineDescription != nil {
+					self.interactionMode = .showingROMRequester
+					requestRoms()
+					return
+				}
+
+				// If a machine hasn't even been picked yet, show the machine picker.
+				self.interactionMode = .showingMachinePicker
+				Bundle.main.loadNibNamed("MachinePicker", owner: self, topLevelObjects: nil)
+				self.machinePicker?.establishStoredOptions()
+				window.beginSheet(self.machinePickerPanel!, completionHandler: nil)
+			}
 		}
 	}
 
 	// MARK: - Connections Between Machine and the Outside World
 
 	private func setupMachineOutput() {
-		if let machine = self.machine, let openGLView = self.openGLView {
+		if let machine = self.machine, let scanTargetView = self.scanTargetView, machine.view != scanTargetView {
 			// Establish the output aspect ratio and audio.
 			let aspectRatio = self.aspectRatio()
-			openGLView.perform(glContext: {
-				machine.setView(openGLView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
-			})
+			machine.setView(scanTargetView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
 
 			// Attach an options panel if one is available.
 			if let optionsPanelNibName = self.machineDescription?.optionsPanelNibName {
@@ -200,27 +209,26 @@ class MachineDocument:
 			}
 
 			machine.delegate = self
-			self.bestEffortUpdater = CSBestEffortUpdater()
 
 			// Callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
 			// hence the full setup of the best-effort updater prior to setting self as a delegate.
-			openGLView.delegate = self
-			openGLView.responderDelegate = self
+//			scanTargetView.delegate = self
+			scanTargetView.responderDelegate = self
 
 			// If this machine has a mouse, enable mouse capture; also indicate whether usurption
 			// of the command key is desired.
-			openGLView.shouldCaptureMouse = machine.hasMouse
-			openGLView.shouldUsurpCommand = machine.shouldUsurpCommand
+			scanTargetView.shouldCaptureMouse = machine.hasMouse
+			scanTargetView.shouldUsurpCommand = machine.shouldUsurpCommand
 
 			setupAudioQueueClockRate()
 
 			// Bring OpenGL view-holding window on top of the options panel and show the content.
-			openGLView.isHidden = false
-			openGLView.window!.makeKeyAndOrderFront(self)
-			openGLView.window!.makeFirstResponder(openGLView)
+			scanTargetView.isHidden = false
+			scanTargetView.window!.makeKeyAndOrderFront(self)
+			scanTargetView.window!.makeFirstResponder(scanTargetView)
 
 			// Start forwarding best-effort updates.
-			self.bestEffortUpdater!.setMachine(machine)
+			machine.start()
 		}
 	}
 
@@ -240,42 +248,22 @@ class MachineDocument:
 		//
 		// TODO: this needs to be threadsafe. FIX!
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
-		let selectedSamplingRate = self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
+		let selectedSamplingRate = Float64(self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate))))
+		let isStereo = self.machine.isStereo
 		if selectedSamplingRate > 0 {
-			self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
-			self.audioQueue.delegate = self
-			self.machine.audioQueue = self.audioQueue
-			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.preferredBufferSize)
+			// [Re]create the audio queue only if necessary.
+			if self.audioQueue == nil || self.audioQueue.samplingRate != selectedSamplingRate {
+				self.machine.audioQueue = nil
+				self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate), isStereo:isStereo)
+				self.audioQueue.delegate = self
+				self.machine.audioQueue = self.audioQueue
+				self.machine.setAudioSamplingRate(Float(selectedSamplingRate), bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
+			}
 		}
 	}
 
 	/// Responds to the CSAudioQueueDelegate dry-queue warning message by requesting a machine update.
 	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
-		bestEffortLock.lock()
-		bestEffortUpdater?.update(with: .audioNeeded)
-		bestEffortLock.unlock()
-	}
-
-	/// Responds to the CSOpenGLViewDelegate redraw message by requesting a machine update if this is a timed
-	/// request, and ordering a redraw regardless of the motivation.
-	final func openGLViewRedraw(_ view: CSOpenGLView, event redrawEvent: CSOpenGLViewRedrawEvent) {
-		if redrawEvent == .timer {
-			bestEffortLock.lock()
-			if let bestEffortUpdater = bestEffortUpdater {
-				bestEffortLock.unlock()
-				bestEffortUpdater.update()
-			} else {
-				bestEffortLock.unlock()
-			}
-		}
-
-		if drawLock.try() {
-			if redrawEvent == .timer {
-				machine.updateView(forPixelSize: view.backingSize)
-			}
-			machine.drawView(forPixelSize: view.backingSize)
-			drawLock.unlock()
-		}
 	}
 
 	// MARK: - Pasteboard Forwarding.
@@ -291,11 +279,9 @@ class MachineDocument:
 	// MARK: - Runtime Media Insertion.
 
 	/// Delegate message to receive drag and drop files.
-	final func openGLView(_ view: CSOpenGLView, didReceiveFileAt URL: URL) {
+	final func scanTargetView(_ view: CSScanTargetView, didReceiveFileAt URL: URL) {
 		let mediaSet = CSMediaSet(fileAt: URL)
-		if let mediaSet = mediaSet {
-			mediaSet.apply(to: self.machine)
-		}
+		mediaSet.apply(to: self.machine)
 	}
 
 	/// Action for the insert menu command; displays an NSOpenPanel and then segues into the same process
@@ -307,9 +293,7 @@ class MachineDocument:
 			if response == .OK {
 				for url in openPanel.urls {
 					let mediaSet = CSMediaSet(fileAt: url)
-					if let mediaSet = mediaSet {
-						mediaSet.apply(to: self.machine)
-					}
+					mediaSet.apply(to: self.machine)
 				}
 			}
 		}
@@ -324,7 +308,7 @@ class MachineDocument:
 			machine.clearAllKeys()
 			machine.joystickManager = nil
 		}
-		self.openGLView.releaseMouse()
+		self.scanTargetView.releaseMouse()
 	}
 
 	/// Upon becoming key, attaches joystick input to the machine.
@@ -552,8 +536,12 @@ class MachineDocument:
 	}
 
 	// MARK: Joystick-via-the-keyboard selection
-	@IBAction func useKeyboardAsKeyboard(_ sender: NSMenuItem?) {
-		machine.inputMode = .keyboard
+	@IBAction func useKeyboardAsPhysicalKeyboard(_ sender: NSMenuItem?) {
+		machine.inputMode = .keyboardPhysical
+	}
+
+	@IBAction func useKeyboardAsLogicalKeyboard(_ sender: NSMenuItem?) {
+		machine.inputMode = .keyboardLogical
 	}
 
 	@IBAction func useKeyboardAsJoystick(_ sender: NSMenuItem?) {
@@ -566,13 +554,22 @@ class MachineDocument:
 	override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
 		if let menuItem = item as? NSMenuItem {
 			switch item.action {
-				case #selector(self.useKeyboardAsKeyboard):
+				case #selector(self.useKeyboardAsPhysicalKeyboard):
 					if machine == nil || !machine.hasExclusiveKeyboard {
 						menuItem.state = .off
 						return false
 					}
 
-					menuItem.state = machine.inputMode == .keyboard ? .on : .off
+					menuItem.state = machine.inputMode == .keyboardPhysical ? .on : .off
+					return true
+
+				case #selector(self.useKeyboardAsLogicalKeyboard):
+					if machine == nil || !machine.hasExclusiveKeyboard {
+						menuItem.state = .off
+						return false
+					}
+
+					menuItem.state = machine.inputMode == .keyboardLogical ? .on : .off
 					return true
 
 				case #selector(self.useKeyboardAsJoystick):
@@ -609,23 +606,20 @@ class MachineDocument:
 		let url = desktopURL.appendingPathComponent(filename)
 
 		// Obtain the machine's current display.
-		var imageRepresentation: NSBitmapImageRep? = nil
-		self.openGLView.perform {
-			imageRepresentation = self.machine.imageRepresentation
-		}
+		let imageRepresentation = self.machine.imageRepresentation
 
 		// Encode as a PNG and save.
-		let pngData = imageRepresentation!.representation(using: .png, properties: [:])
+		let pngData = imageRepresentation.representation(using: .png, properties: [:])
 		try! pngData?.write(to: url)
 	}
 
 	// MARK: - Window Title Updates.
 	private var unadornedWindowTitle = ""
-	func openGLViewDidCaptureMouse(_ view: CSOpenGLView) {
+	internal func scanTargetViewDidCaptureMouse(_ view: CSScanTargetView) {
 		self.windowControllers[0].window?.title = self.unadornedWindowTitle + " (press ⌘+control to release mouse)"
 	}
 
-	func openGLViewDidReleaseMouse(_ view: CSOpenGLView) {
+	internal func scanTargetViewDidReleaseMouse(_ view: CSScanTargetView) {
 		self.windowControllers[0].window?.title = self.unadornedWindowTitle
 	}
 
@@ -719,5 +713,67 @@ class MachineDocument:
 				led.isLit = isLit
 			}
 		}
+	}
+
+	// MARK: - Volume Control.
+	@IBAction func setVolume(_ sender: NSSlider!) {
+		if let machine = self.machine {
+			machine.setVolume(sender.floatValue)
+			setUserDefaultsVolume(sender.floatValue)
+		}
+	}
+
+	// This class is pure nonsense to work around Xcode's opaque behaviour.
+	// If I make the main class a sub of CAAnimationDelegate then the compiler
+	// generates a bridging header that doesn't include QuartzCore and therefore
+	// can't find a declaration of the CAAnimationDelegate protocol. Doesn't
+	// seem to matter what I add explicitly to the link stage, which version of
+	// macOS I set as the target, etc.
+	//
+	// So, the workaround: make my CAAnimationDelegate something that doesn't
+	// appear in the bridging header.
+	fileprivate class ViewFader: NSObject, CAAnimationDelegate {
+		var volumeView: NSView
+
+		init(view: NSView) {
+			volumeView = view
+		}
+
+		func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
+			volumeView.isHidden = true
+		}
+	}
+	fileprivate var animationFader: ViewFader? = nil
+
+	internal func scanTargetViewDidShowOSMouseCursor(_ view: CSScanTargetView) {
+		// The OS mouse cursor became visible, so show the volume controls.
+		animationFader = nil
+		volumeView.layer?.removeAllAnimations()
+		volumeView.isHidden = false
+		volumeView.layer?.opacity = 1.0
+	}
+
+	internal func scanTargetViewWillHideOSMouseCursor(_ view: CSScanTargetView) {
+		// The OS mouse cursor will be hidden, so hide the volume controls.
+		if !volumeView.isHidden && volumeView.layer?.animation(forKey: "opacity") == nil {
+			let fadeAnimation = CABasicAnimation(keyPath: "opacity")
+			fadeAnimation.fromValue = 1.0
+			fadeAnimation.toValue = 0.0
+			fadeAnimation.duration = 0.2
+			animationFader = ViewFader(view: volumeView)
+			fadeAnimation.delegate = animationFader
+			volumeView.layer?.add(fadeAnimation, forKey: "opacity")
+			volumeView.layer?.opacity = 0.0
+		}
+	}
+
+	// The user's selected volume is stored as 1 - volume in the user defaults in order
+	// to take advantage of the default value being 0.
+	private func userDefaultsVolume() -> Float {
+		return 1.0 - UserDefaults.standard.float(forKey: "defaultVolume")
+	}
+
+	private func setUserDefaultsVolume(_ volume: Float) {
+		UserDefaults.standard.set(1.0 - volume, forKey: "defaultVolume")
 	}
 }

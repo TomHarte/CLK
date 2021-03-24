@@ -1,22 +1,16 @@
 name: SDL/Ubuntu
 
-on:
-  push:
-    branches: 
-      - master
-
-  pull_request:
-    branches: 
-      - master
+on: [push, pull_request]
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Install dependencies
-      run: sudo apt-get --allow-releaseinfo-change update; sudo apt-get install libsdl2-dev scons
+      run: sudo apt-get --allow-releaseinfo-change update && sudo apt-get --fix-missing install libsdl2-dev scons
     - name: Make
-      run: cd OSBindings/SDL; scons
+      working-directory: OSBindings/SDL
+      run: scons -j$(nproc --all)

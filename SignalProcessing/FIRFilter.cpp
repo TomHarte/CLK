@@ -9,6 +9,10 @@
 #include "FIRFilter.hpp"
 #include <cmath>
 
+#ifndef M_PI
+#define M_PI 3.1415926f
+#endif
+
 using namespace SignalProcessing;
 
 /*
@@ -64,11 +68,11 @@ void FIRFilter::coefficients_for_idealised_filter_response(short *filter_coeffic
 	/* work out the right hand side of the filter coefficients */
 	std::size_t Np = (number_of_taps - 1) / 2;
 	float I0 = ino(a);
-	float Np_squared = static_cast<float>(Np * Np);
+	float Np_squared = float(Np * Np);
 	for(unsigned int i = 0; i <= Np; ++i) {
 		filter_coefficients_float[Np + i] =
 				A[i] *
-				ino(a * sqrtf(1.0f - (static_cast<float>(i * i) / Np_squared) )) /
+				ino(a * sqrtf(1.0f - (float(i * i) / Np_squared) )) /
 				I0;
 	}
 
@@ -86,14 +90,14 @@ void FIRFilter::coefficients_for_idealised_filter_response(short *filter_coeffic
 	/* we'll also need integer versions, potentially */
 	float coefficientMultiplier = 1.0f / coefficientTotal;
 	for(std::size_t i = 0; i < number_of_taps; ++i) {
-		filter_coefficients[i] = static_cast<short>(filter_coefficients_float[i] * FixedMultiplier * coefficientMultiplier);
+		filter_coefficients[i] = short(filter_coefficients_float[i] * FixedMultiplier * coefficientMultiplier);
 	}
 }
 
 std::vector<float> FIRFilter::get_coefficients() const {
 	std::vector<float> coefficients;
 	for(const auto short_coefficient: filter_coefficients_) {
-		coefficients.push_back(static_cast<float>(short_coefficient) / FixedMultiplier);
+		coefficients.push_back(float(short_coefficient) / FixedMultiplier);
 	}
 	return coefficients;
 }
@@ -120,7 +124,7 @@ FIRFilter::FIRFilter(std::size_t number_of_taps, float input_sample_rate, float 
 	std::vector<float> A(Np+1);
 	A[0] = 2.0f * (high_frequency - low_frequency) / input_sample_rate;
 	for(unsigned int i = 1; i <= Np; ++i) {
-		float i_pi = static_cast<float>(i) * static_cast<float>(M_PI);
+		float i_pi = float(i) * float(M_PI);
 		A[i] =
 			(
 				sinf(two_over_sample_rate * i_pi * high_frequency) -
@@ -133,7 +137,7 @@ FIRFilter::FIRFilter(std::size_t number_of_taps, float input_sample_rate, float 
 
 FIRFilter::FIRFilter(const std::vector<float> &coefficients) {
 	for(const auto coefficient: coefficients) {
-		filter_coefficients_.push_back(static_cast<short>(coefficient * FixedMultiplier));
+		filter_coefficients_.push_back(short(coefficient * FixedMultiplier));
 	}
 }
 

@@ -19,7 +19,7 @@ class BusExtender: public CPU::MOS6502::BusHandler {
 	public:
 		BusExtender(uint8_t *rom_base, std::size_t rom_size) : rom_base_(rom_base), rom_size_(rom_size) {}
 
-		void advance_cycles(int cycles) {}
+		void advance_cycles(int) {}
 
 	protected:
 		uint8_t *rom_base_;
@@ -75,7 +75,7 @@ template<class T> class Cartridge:
 			cycles_since_6532_update_ += Cycles(cycles_run_for / 3);
 			bus_extender_.advance_cycles(cycles_run_for / 3);
 
-			if(operation != CPU::MOS6502::BusOperation::Ready) {
+			if(isAccessOperation(operation)) {
 				// give the cartridge a chance to respond to the bus access
 				bus_extender_.perform_bus_operation(operation, address, value);
 

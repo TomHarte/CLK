@@ -38,7 +38,6 @@ class Shifter {
 		bool was_high_;
 
 		unsigned int input_pattern_;
-		unsigned int input_bit_counter_;
 
 		Delegate *delegate_;
 };
@@ -56,12 +55,12 @@ class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate
 		unsigned int get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape);
 		unsigned int get_next_word(const std::shared_ptr<Storage::Tape::Tape> &tape);
 		void reset_crc();
-		uint16_t get_crc();
-
-		void acorn_shifter_output_bit(int value);
-		void process_pulse(const Storage::Tape::Tape::Pulse &pulse);
+		uint16_t get_crc() const;
 
 	private:
+		void acorn_shifter_output_bit(int value) override;
+		void process_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
+
 		bool did_update_shifter(int new_value, int length);
 		CRC::Generator<uint16_t, 0x0000, 0x0000, false, false> crc_;
 		Shifter shifter_;

@@ -13,14 +13,12 @@
 #include <algorithm>
 #include <cstring>
 
-Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType) {
 	if(media.cartridges.empty())
 		return {};
 
 	TargetList targets;
 	auto target = std::make_unique<Target>();
-
-	target->machine = Machine::MasterSystem;
 
 	// Files named .sg are treated as for the SG1000; otherwise assume a Master System.
 	if(file_name.size() >= 2 && *(file_name.end() - 2) == 's' && *(file_name.end() - 1) == 'g') {

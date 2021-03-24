@@ -43,7 +43,7 @@
 	// Issue each test file.
 	for(NSURL *url in tests) {
 		// Compare against a file set if one has been supplied.
-		if(_fileSet && ![_fileSet containsObject:[[url path] lastPathComponent]]) continue;
+		if(_fileSet && ![_fileSet containsObject:[url lastPathComponent]]) continue;
 		NSLog(@"Testing %@", url);
 		[self testJSONAtURL:url];
 	}
@@ -91,12 +91,12 @@
 		Test68000() : processor(*this) {
 		}
 
-		void will_perform(uint32_t address, uint16_t opcode) {
+		void will_perform(uint32_t, uint16_t) {
 			--instructions_remaining_;
 			if(!instructions_remaining_) comparitor();
 		}
 
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
+		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
 			using Microcycle = CPU::MC68000::Microcycle;
 			if(cycle.data_select_active()) {
 				cycle.apply(&ram[cycle.host_endian_byte_address()]);

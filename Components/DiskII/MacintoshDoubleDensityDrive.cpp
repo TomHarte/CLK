@@ -142,8 +142,11 @@ bool DoubleDensityDrive::read() {
 		return !get_is_track_zero();
 
 		case CA1|CA0:			// Disk has been ejected.
-								// (0 = user has ejected disk)
-		return !has_new_disk_;
+								// (1 = user has ejected disk)
+								//
+								// TODO: does this really mean _user_ has ejected disk? If so then I should avoid
+								// changing the flag upon a programmatic eject.
+		return has_new_disk_;
 
 		case CA1|CA0|SEL:		// Tachometer.
 								// (arbitrary)
@@ -170,12 +173,10 @@ bool DoubleDensityDrive::read() {
 
 		case CA2|CA1|CA0|SEL:	// Drive installed.
 								// (0 = present, 1 = missing)
-								//
-								// TODO: why do I need to return this the wrong way around for the Mac Plus?
-		return true;
+		return false;
 	}
 }
 
-void DoubleDensityDrive::did_set_disk() {
-	has_new_disk_ = true;
+void DoubleDensityDrive::did_set_disk(bool did_replace) {
+	has_new_disk_ = did_replace;
 }

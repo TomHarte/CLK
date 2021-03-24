@@ -64,6 +64,10 @@ void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 }
 
+Outputs::Display::DisplayType VideoOutput::get_display_type() const {
+	return crt_.get_display_type();
+}
+
 // MARK: - Display update methods
 
 void VideoOutput::start_pixel_line() {
@@ -257,11 +261,11 @@ void VideoOutput::run_for(const Cycles cycles) {
 void VideoOutput::write(int address, uint8_t value) {
 	switch(address & 0xf) {
 		case 0x02:
-			start_screen_address_ = (start_screen_address_ & 0xfe00) | static_cast<uint16_t>((value & 0xe0) << 1);
+			start_screen_address_ = (start_screen_address_ & 0xfe00) | uint16_t((value & 0xe0) << 1);
 			if(!start_screen_address_) start_screen_address_ |= 0x8000;
 		break;
 		case 0x03:
-			start_screen_address_ = (start_screen_address_ & 0x01ff) | static_cast<uint16_t>((value & 0x3f) << 9);
+			start_screen_address_ = (start_screen_address_ & 0x01ff) | uint16_t((value & 0x3f) << 9);
 			if(!start_screen_address_) start_screen_address_ |= 0x8000;
 		break;
 		case 0x07: {
@@ -416,9 +420,9 @@ unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time) 
 				}
 
 				// Mode 3 ends after 250 lines, not the usual 256.
-				if(implied_row < 8 && current_line < 250) result += static_cast<unsigned int>(80 - current_column);
+				if(implied_row < 8 && current_line < 250) result += unsigned(80 - current_column);
 			}
-			else result += static_cast<unsigned int>(80 - current_column);
+			else result += unsigned(80 - current_column);
 		}
 	}
 	return result;

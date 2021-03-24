@@ -110,7 +110,7 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 - (void)setUp {
-    _machine = std::make_unique<RAM68000>();
+	_machine = std::make_unique<RAM68000>();
 }
 
 - (void)tearDown {

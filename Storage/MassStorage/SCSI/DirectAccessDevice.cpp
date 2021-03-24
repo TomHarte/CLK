@@ -27,7 +27,7 @@ bool DirectAccessDevice::read(const Target::CommandState &state, Target::Respond
 		std::copy(next_block.begin(), next_block.end(), std::back_inserter(output));
 	}
 
-	responder.send_data(std::move(output), [] (const Target::CommandState &state, Target::Responder &responder) {
+	responder.send_data(std::move(output), [] (const Target::CommandState &, Target::Responder &responder) {
 		responder.terminate_command(Target::Responder::Status::Good);
 	});
 
@@ -38,6 +38,7 @@ bool DirectAccessDevice::write(const Target::CommandState &state, Target::Respon
 	if(!device_) return false;
 
 	const auto specs = state.read_write_specs();
+	LOG("Write: " << specs.number_of_blocks << " to " << specs.address);
 
 	responder.receive_data(device_->get_block_size() * specs.number_of_blocks, [this, specs] (const Target::CommandState &state, Target::Responder &responder) {
 		const auto received_data = state.received_data();
@@ -53,7 +54,7 @@ bool DirectAccessDevice::write(const Target::CommandState &state, Target::Respon
 	return true;
 }
 
-bool DirectAccessDevice::read_capacity(const Target::CommandState &state, Target::Responder &responder) {
+bool DirectAccessDevice::read_capacity(const Target::CommandState &, Target::Responder &responder) {
 	const auto final_block = device_->get_number_of_blocks() - 1;
 	const auto block_size = device_->get_block_size();
 	std::vector<uint8_t> data = {
@@ -68,7 +69,7 @@ bool DirectAccessDevice::read_capacity(const Target::CommandState &state, Target
 		uint8_t(block_size >> 0),
 	};
 
-	responder.send_data(std::move(data), [] (const Target::CommandState &state, Target::Responder &responder) {
+	responder.send_data(std::move(data), [] (const Target::CommandState &, Target::Responder &responder) {
 		responder.terminate_command(Target::Responder::Status::Good);
 	});
 
@@ -79,7 +80,7 @@ Target::Executor::Inquiry DirectAccessDevice::inquiry_values() {
 	return Inquiry("Apple", "ProFile", "1");	// All just guesses.
 }
 
-bool DirectAccessDevice::format_unit(const Target::CommandState &state, Target::Responder &responder) {
+bool DirectAccessDevice::format_unit(const Target::CommandState &, Target::Responder &responder) {
 	// Formatting: immediate.
 	responder.terminate_command(Target::Responder::Status::Good);
 	return true;

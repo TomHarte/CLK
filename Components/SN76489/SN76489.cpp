@@ -39,9 +39,9 @@ SN76489::SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &
 void SN76489::set_sample_volume_range(std::int16_t range) {
 	// Build a volume table.
 	double multiplier = pow(10.0, -0.1);
-	double volume = static_cast<float>(range) / 4.0f;	// As there are four channels.
+	double volume = float(range) / 4.0f;	// As there are four channels.
 	for(int c = 0; c < 16; ++c) {
-		volumes_[c] = (int)round(volume);
+		volumes_[c] = int(round(volume));
 		volume *= multiplier;
 	}
 	volumes_[15] = 0;
@@ -65,7 +65,7 @@ void SN76489::write(uint8_t value) {
 				if(value & 0x80) {
 					channels_[channel].divider = (channels_[channel].divider & ~0xf) | (value & 0xf);
 				} else {
-					channels_[channel].divider = static_cast<uint16_t>((channels_[channel].divider & 0xf) | ((value & 0x3f) << 4));
+					channels_[channel].divider = uint16_t((channels_[channel].divider & 0xf) | ((value & 0x3f) << 4));
 				}
 			} else {
 				// writes to the noise register always reset the shifter
@@ -77,7 +77,7 @@ void SN76489::write(uint8_t value) {
 					noise_mode_ = shifter_is_16bit_ ? Periodic16 : Periodic15;
 				}
 
-				channels_[3].divider = static_cast<uint16_t>(0x10 << (value & 3));
+				channels_[3].divider = uint16_t(0x10 << (value & 3));
 				// Special case: if these bits are both set, the noise channel should track channel 2,
 				// which is marked with a divider of 0xffff.
 				if(channels_[3].divider == 0x80) channels_[3].divider = 0xffff;
@@ -86,12 +86,12 @@ void SN76489::write(uint8_t value) {
 	});
 }
 
-bool SN76489::is_zero_level() {
+bool SN76489::is_zero_level() const {
 	return channels_[0].volume == 0xf && channels_[1].volume == 0xf && channels_[2].volume == 0xf && channels_[3].volume == 0xf;
 }
 
 void SN76489::evaluate_output_volume() {
-	output_volume_ = static_cast<int16_t>(
+	output_volume_ = int16_t(
 		channels_[0].level * volumes_[channels_[0].volume] +
 		channels_[1].level * volumes_[channels_[1].volume] +
 		channels_[2].level * volumes_[channels_[2].volume] +

@@ -25,7 +25,7 @@ Audio::Audio(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(tas
 void Audio::post_sample(uint8_t sample) {
 	// Store sample directly indexed by current write pointer; this ensures that collected samples
 	// directly map to volume and enabled/disabled states.
-	sample_queue_.buffer[sample_queue_.write_pointer] = sample;
+	sample_queue_.buffer[sample_queue_.write_pointer].store(sample, std::memory_order::memory_order_relaxed);
 	sample_queue_.write_pointer = (sample_queue_.write_pointer + 1) % sample_queue_.buffer.size();
 }
 
@@ -35,7 +35,7 @@ void Audio::set_volume(int volume) {
 	posted_volume_ = volume;
 
 	// Post the volume change as a deferred event.
-	task_queue_.defer([=] () {
+	task_queue_.defer([this, volume] () {
 		volume_ = volume;
 		set_volume_multiplier();
 	});
@@ -47,7 +47,7 @@ void Audio::set_enabled(bool on) {
 	posted_enable_mask_ = int(on);
 
 	// Post the enabled mask change as a deferred event.
-	task_queue_.defer([=] () {
+	task_queue_.defer([this, on] () {
 		enabled_mask_ = int(on);
 		set_volume_multiplier();
 	});
@@ -55,7 +55,7 @@ void Audio::set_enabled(bool on) {
 
 // MARK: - Output generation
 
-bool Audio::is_zero_level() {
+bool Audio::is_zero_level() const {
 	return !volume_ || !enabled_mask_;
 }
 
@@ -80,7 +80,7 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 
 		// Determine the output level, and output that many samples.
 		// (Hoping that the copiler substitutes an effective memset16-type operation here).
-		const int16_t output_level = volume_multiplier_ * (int16_t(sample_queue_.buffer[sample_queue_.read_pointer]) - 128);
+		const int16_t output_level = volume_multiplier_ * (int16_t(sample_queue_.buffer[sample_queue_.read_pointer].load(std::memory_order::memory_order_relaxed)) - 128);
 		for(size_t c = 0; c < cycles_left_in_sample; ++c) {
 			target[c] = output_level;
 		}

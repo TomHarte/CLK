@@ -21,7 +21,7 @@ using namespace Storage::Disk;
 std::shared_ptr<Track> Storage::Disk::track_for_sectors(const uint8_t *const source, int number_of_sectors, uint8_t track, uint8_t side, uint8_t first_sector, uint8_t size, bool is_double_density) {
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
 
-	off_t byte_size = static_cast<off_t>(128 << size);
+	off_t byte_size = off_t(128 << size);
 	off_t source_pointer = 0;
 	for(int sector = 0; sector < number_of_sectors; sector++) {
 		sectors.emplace_back();
@@ -51,7 +51,7 @@ void Storage::Disk::decode_sectors(Track &track, uint8_t *const destination, uin
 			Storage::Disk::track_serialisation(track, is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength),
 			is_double_density);
 
-	std::size_t byte_size = static_cast<std::size_t>(128 << sector_size);
+	std::size_t byte_size = size_t(128 << sector_size);
 	for(const auto &pair : sectors) {
 		if(pair.second.address.sector > last_sector) continue;
 		if(pair.second.address.sector < first_sector) continue;

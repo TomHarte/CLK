@@ -10,17 +10,13 @@
 #define Electron_hpp
 
 #include "../../Configurable/Configurable.hpp"
+#include "../../Configurable/StandardOptions.hpp"
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
 
-#include <cstdint>
 #include <memory>
-#include <vector>
 
 namespace Electron {
-
-/// @returns The options available for an Electron.
-std::vector<std::unique_ptr<Configurable::Option>> get_options();
 
 /*!
 	@abstract Represents an Acorn Electron.
@@ -34,6 +30,22 @@ class Machine {
 
 		/// Creates and returns an Electron.
 		static Machine *Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+
+		/// Defines the runtime options available for an Electron.
+		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options>, public Configurable::QuickloadOption<Options> {
+			friend Configurable::DisplayOption<Options>;
+			friend Configurable::QuickloadOption<Options>;
+			public:
+				Options(Configurable::OptionsType type) :
+					Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour),
+					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {
+					if(needs_declare()) {
+						declare_display_option();
+						declare_quickload_option();
+						limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, Configurable::Display::CompositeMonochrome, -1);
+					}
+				}
+		};
 };
 
 }

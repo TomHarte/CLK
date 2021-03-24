@@ -85,13 +85,13 @@ void DiskII::run_for(const Cycles cycles) {
 			--flux_duration_;
 			if(!flux_duration_) inputs_ |= input_flux;
 		}
-		state_ = state_machine_[static_cast<std::size_t>(address)];
+		state_ = state_machine_[size_t(address)];
 		switch(state_ & 0xf) {
-			default:	shift_register_ = 0;													break;	// clear
-			case 0x8:																			break;	// nop
+			default:	shift_register_ = 0;										break;	// clear
+			case 0x8:																break;	// nop
 
-			case 0x9:	shift_register_ = static_cast<uint8_t>(shift_register_ << 1);			break;	// shift left, bringing in a zero
-			case 0xd:	shift_register_ = static_cast<uint8_t>((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
+			case 0x9:	shift_register_ = uint8_t(shift_register_ << 1);			break;	// shift left, bringing in a zero
+			case 0xd:	shift_register_ = uint8_t((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
 
 			case 0xa:	// shift right, bringing in write protected status
 				shift_register_ = (shift_register_ >> 1) | (is_write_protected() ? 0x80 : 0x00);
@@ -105,7 +105,7 @@ void DiskII::run_for(const Cycles cycles) {
 					return;
 				}
 			break;
-			case 0xb:	shift_register_ = data_input_;											break;	// load data register from data bus
+			case 0xb:	shift_register_ = data_input_;								break;	// load data register from data bus
 		}
 
 		// Currently writing?
@@ -180,30 +180,40 @@ void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
 	if(state_machine[0] != 0x18) {
 		for(size_t source_address = 0; source_address < 256; ++source_address) {
 			// Remap into Beneath Apple Pro-DOS address form.
-			size_t destination_address =
-				((source_address&0x80) ? 0x10 : 0x00) |
-				((source_address&0x01) ? 0x20 : 0x00) |
-				((source_address&0x40) ? 0x40 : 0x00) |
+			const size_t destination_address =
 				((source_address&0x20) ? 0x80 : 0x00) |
-				((source_address&0x10) ? 0x01 : 0x00) |
+				((source_address&0x40) ? 0x40 : 0x00) |
+				((source_address&0x01) ? 0x20 : 0x00) |
+				((source_address&0x80) ? 0x10 : 0x00) |
 				((source_address&0x08) ? 0x08 : 0x00) |
 				((source_address&0x04) ? 0x04 : 0x00) |
-				((source_address&0x02) ? 0x02 : 0x00);
-			uint8_t source_value = state_machine[source_address];
+				((source_address&0x02) ? 0x02 : 0x00) |
+				((source_address&0x10) ? 0x01 : 0x00);
 
-			// Remap into Beneath Apple Pro-DOS value form.
-			source_value =
+			// Store.
+			const uint8_t source_value = state_machine[source_address];
+			state_machine_[destination_address] =
 				((source_value & 0x80) ? 0x10 : 0x0) |
 				((source_value & 0x40) ? 0x20 : 0x0) |
 				((source_value & 0x20) ? 0x40 : 0x0) |
 				((source_value & 0x10) ? 0x80 : 0x0) |
 				(source_value & 0x0f);
-
-			// Store.
-			state_machine_[destination_address] = source_value;
 		}
 	} else {
-		memcpy(&state_machine_[0], &state_machine[0], 128);
+		for(size_t source_address = 0; source_address < 256; ++source_address) {
+			// Reshuffle ordering of bytes only, to retain indexing by the high nibble.
+			const size_t destination_address =
+				((source_address&0x80) ? 0x80 : 0x00) |
+				((source_address&0x40) ? 0x40 : 0x00) |
+				((source_address&0x01) ? 0x20 : 0x00) |
+				((source_address&0x20) ? 0x10 : 0x00) |
+				((source_address&0x08) ? 0x08 : 0x00) |
+				((source_address&0x04) ? 0x04 : 0x00) |
+				((source_address&0x02) ? 0x02 : 0x00) |
+				((source_address&0x10) ? 0x01 : 0x00);
+
+			state_machine_[destination_address] = state_machine[source_address];
+		}
 	}
 }
 
@@ -219,13 +229,13 @@ void DiskII::process_event(const Storage::Disk::Drive::Event &event) {
 	}
 }
 
-void DiskII::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) {
+void DiskII::set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) {
 	drive_is_sleeping_[0] = drives_[0].preferred_clocking() == ClockingHint::Preference::None;
 	drive_is_sleeping_[1] = drives_[1].preferred_clocking() == ClockingHint::Preference::None;
 	decide_clocking_preference();
 }
 
-ClockingHint::Preference DiskII::preferred_clocking() {
+ClockingHint::Preference DiskII::preferred_clocking() const {
 	return clocking_preference_;
 }
 

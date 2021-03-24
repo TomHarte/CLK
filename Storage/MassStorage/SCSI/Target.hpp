@@ -135,8 +135,8 @@ struct Responder {
 		Terminates a SCSI command, sending the proper sequence of status and message phases.
 	*/
 	void terminate_command(Status status) {
-		send_status(status, [] (const Target::CommandState &state, Target::Responder &responder) {
-			responder.send_message(Target::Responder::Message::CommandComplete, [] (const Target::CommandState &state, Target::Responder &responder) {
+		send_status(status, [] (const Target::CommandState &, Target::Responder &responder) {
+			responder.send_message(Target::Responder::Message::CommandComplete, [] (const Target::CommandState &, Target::Responder &responder) {
 				responder.end_command();
 			});
 		});
@@ -191,7 +191,7 @@ struct Executor {
 		if(specs.allocated_bytes < response.size()) {
 			response.resize(specs.allocated_bytes);
 		}
-		responder.send_data(std::move(response), [] (const Target::CommandState &state, Target::Responder &responder) {
+		responder.send_data(std::move(response), [] (const Target::CommandState &, Target::Responder &responder) {
 			responder.terminate_command(Target::Responder::Status::Good);
 		});
 
@@ -201,7 +201,7 @@ struct Executor {
 	bool mode_select(const CommandState &state, Responder &responder) {
 		const auto specs = state.mode_select_specs();
 
-		responder.receive_data(specs.parameter_list_length, [] (const Target::CommandState &state, Target::Responder &responder) {
+		responder.receive_data(specs.parameter_list_length, [] (const Target::CommandState &, Target::Responder &responder) {
 			// TODO: parse data according to current sense mode.
 			responder.terminate_command(Target::Responder::Status::Good);
 		});
@@ -278,12 +278,12 @@ struct Executor {
 		};
 
 		auto copy_string = [] (uint8_t *destination, const char *source, size_t length) -> void {
-			// Copy as much of the string as will fit, and pad with spaces.
-			uint8_t *end = reinterpret_cast<uint8_t *>(stpncpy(reinterpret_cast<char *>(destination), source, length));
-			while(end < destination + length) {
-				*end = ' ';
-				++end;
-			}
+			// Determine length of source and copy in as much as possible.
+			const auto source_length = std::min(strlen(source), length);
+			memcpy(destination, source, source_length);
+
+			// Fill the rest with spaces.
+			memset(&destination[source_length], ' ', length - source_length);
 		};
 		copy_string(&response[8], inq.vendor_identifier, 8);
 		copy_string(&response[16], inq.product_identifier, 16);
@@ -295,7 +295,7 @@ struct Executor {
 			response.resize(allocated_bytes);
 		}
 
-		responder.send_data(std::move(response), [] (const Target::CommandState &state, Target::Responder &responder) {
+		responder.send_data(std::move(response), [] (const Target::CommandState &, Target::Responder &responder) {
 			responder.terminate_command(Target::Responder::Status::Good);
 		});
 

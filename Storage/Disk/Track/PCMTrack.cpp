@@ -17,18 +17,18 @@ PCMTrack::PCMTrack(const std::vector<PCMSegment> &segments) : PCMTrack() {
 	// sum total length of all segments
 	Time total_length;
 	for(const auto &segment : segments) {
-		total_length += segment.length_of_a_bit * static_cast<unsigned int>(segment.data.size());
+		total_length += segment.length_of_a_bit * unsigned(segment.data.size());
 	}
 	total_length.simplify();
 
 	// each segment is then some proportion of the total; for them all to sum to 1 they'll
 	// need to be adjusted to be
 	for(const auto &segment : segments) {
-		Time original_length_of_segment = segment.length_of_a_bit * static_cast<unsigned int>(segment.data.size());
+		Time original_length_of_segment = segment.length_of_a_bit * unsigned(segment.data.size());
 		Time proportion_of_whole = original_length_of_segment / total_length;
 		proportion_of_whole.simplify();
 		PCMSegment length_adjusted_segment = segment;
-		length_adjusted_segment.length_of_a_bit = proportion_of_whole / static_cast<unsigned int>(segment.data.size());
+		length_adjusted_segment.length_of_a_bit = proportion_of_whole / unsigned(segment.data.size());
 		length_adjusted_segment.length_of_a_bit.simplify();
 		segment_event_sources_.emplace_back(length_adjusted_segment);
 	}
@@ -38,7 +38,7 @@ PCMTrack::PCMTrack(const PCMSegment &segment) : PCMTrack() {
 	// a single segment necessarily fills the track
 	PCMSegment length_adjusted_segment = segment;
 	length_adjusted_segment.length_of_a_bit.length = 1;
-	length_adjusted_segment.length_of_a_bit.clock_rate = static_cast<unsigned int>(segment.data.size());
+	length_adjusted_segment.length_of_a_bit.clock_rate = unsigned(segment.data.size());
 	segment_event_sources_.emplace_back(std::move(length_adjusted_segment));
 }
 
@@ -74,7 +74,7 @@ Track *PCMTrack::clone() const {
 
 PCMTrack *PCMTrack::resampled_clone(size_t bits_per_track) {
 	// Create an empty track.
-	PCMTrack *const new_track = new PCMTrack(static_cast<unsigned int>(bits_per_track));
+	PCMTrack *const new_track = new PCMTrack(unsigned(bits_per_track));
 
 	// Plot all segments from this track onto the destination.
 	Time start_time;
@@ -121,17 +121,17 @@ Track::Event PCMTrack::get_next_event() {
 	return event;
 }
 
-Storage::Time PCMTrack::seek_to(const Time &time_since_index_hole) {
+float PCMTrack::seek_to(float time_since_index_hole) {
 	// initial condition: no time yet accumulated, the whole thing requested yet to navigate
-	Storage::Time accumulated_time;
-	Storage::Time time_left_to_seek = time_since_index_hole;
+	float accumulated_time = 0.0f;
+	float time_left_to_seek = time_since_index_hole;
 
 	// search from the first segment
 	segment_pointer_ = 0;
 	do {
 		// if this segment extends beyond the amount of time left to seek, trust it to complete
 		// the seek
-		Storage::Time segment_time = segment_event_sources_[segment_pointer_].get_length();
+		const float segment_time = segment_event_sources_[segment_pointer_].get_length().get<float>();
 		if(segment_time > time_left_to_seek) {
 			return accumulated_time + segment_event_sources_[segment_pointer_].seek_to(time_left_to_seek);
 		}

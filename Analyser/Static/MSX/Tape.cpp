@@ -44,7 +44,7 @@ std::vector<File> Analyser::Static::MSX::GetFiles(const std::shared_ptr<Storage:
 		for(std::size_t c = 0; c < sizeof(header); ++c) {
 			int next_byte = Parser::get_byte(*file_speed, tape_player);
 			if(next_byte == -1) break;
-			header[c] = static_cast<uint8_t>(next_byte);
+			header[c] = uint8_t(next_byte);
 		}
 
 		bool bytes_are_same = true;
@@ -67,7 +67,7 @@ std::vector<File> Analyser::Static::MSX::GetFiles(const std::shared_ptr<Storage:
 		// Read file name.
 		char name[7];
 		for(std::size_t c = 1; c < 6; ++c)
-			name[c] = static_cast<char>(Parser::get_byte(*file_speed, tape_player));
+			name[c] = char(Parser::get_byte(*file_speed, tape_player));
 		name[6] = '\0';
 		file.name = name;
 
@@ -82,7 +82,7 @@ std::vector<File> Analyser::Static::MSX::GetFiles(const std::shared_ptr<Storage:
 					int byte = Parser::get_byte(*file_speed, tape_player);
 					if(byte == -1) break;
 					contains_end_of_file |= (byte == 0x1a);
-					file.data.push_back(static_cast<uint8_t>(byte));
+					file.data.push_back(uint8_t(byte));
 				}
 				if(c != -1) break;
 				if(contains_end_of_file) {
@@ -105,13 +105,13 @@ std::vector<File> Analyser::Static::MSX::GetFiles(const std::shared_ptr<Storage:
 			for(c = 0; c < sizeof(locations); ++c) {
 				int byte = Parser::get_byte(*file_speed, tape_player);
 				if(byte == -1) break;
-				locations[c] = static_cast<uint8_t>(byte);
+				locations[c] = uint8_t(byte);
 			}
 			if(c != sizeof(locations)) continue;
 
-			file.starting_address = static_cast<uint16_t>(locations[0] | (locations[1] << 8));
-			end_address = static_cast<uint16_t>(locations[2] | (locations[3] << 8));
-			file.entry_address = static_cast<uint16_t>(locations[4] | (locations[5] << 8));
+			file.starting_address = uint16_t(locations[0] | (locations[1] << 8));
+			end_address = uint16_t(locations[2] | (locations[3] << 8));
+			file.entry_address = uint16_t(locations[4] | (locations[5] << 8));
 
 			if(end_address < file.starting_address) continue;
 
@@ -119,7 +119,7 @@ std::vector<File> Analyser::Static::MSX::GetFiles(const std::shared_ptr<Storage:
 			while(length--) {
 				int byte = Parser::get_byte(*file_speed, tape_player);
 				if(byte == -1) continue;
-				file.data.push_back(static_cast<uint8_t>(byte));
+				file.data.push_back(uint8_t(byte));
 			}
 
 			files.push_back(std::move(file));
@@ -135,10 +135,10 @@ std::vector<File> Analyser::Static::MSX::GetFiles(const std::shared_ptr<Storage:
 			next_address_buffer[1] = Parser::get_byte(*file_speed, tape_player);
 
 			if(next_address_buffer[0] == -1 || next_address_buffer[1] == -1) break;
-			file.data.push_back(static_cast<uint8_t>(next_address_buffer[0]));
-			file.data.push_back(static_cast<uint8_t>(next_address_buffer[1]));
+			file.data.push_back(uint8_t(next_address_buffer[0]));
+			file.data.push_back(uint8_t(next_address_buffer[1]));
 
-			uint16_t next_address = static_cast<uint16_t>(next_address_buffer[0] | (next_address_buffer[1] << 8));
+			uint16_t next_address = uint16_t(next_address_buffer[0] | (next_address_buffer[1] << 8));
 			if(!next_address) {
 				files.push_back(std::move(file));
 				break;
@@ -155,7 +155,7 @@ std::vector<File> Analyser::Static::MSX::GetFiles(const std::shared_ptr<Storage:
 					found_error = true;
 					break;
 				}
-				file.data.push_back(static_cast<uint8_t>(byte));
+				file.data.push_back(uint8_t(byte));
 			}
 			if(found_error) break;
 		}

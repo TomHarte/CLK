@@ -9,12 +9,12 @@
 #import <Foundation/Foundation.h>
 
 #import "CSAudioQueue.h"
-#import "CSOpenGLView.h"
-#import "CSStaticAnalyser.h"
 #import "CSJoystickManager.h"
+#import "CSScanTargetView.h"
+#import "CSStaticAnalyser.h"
 
 @class CSMachine;
-@protocol CSMachineDelegate
+@protocol CSMachineDelegate <NSObject>
 - (void)machineSpeakerDidChangeInputClock:(nonnull CSMachine *)machine;
 - (void)machine:(nonnull CSMachine *)machine led:(nonnull NSString *)led didChangeToLit:(BOOL)isLit;
 - (void)machine:(nonnull CSMachine *)machine ledShouldBlink:(nonnull NSString *)led;
@@ -28,8 +28,9 @@ typedef NS_ENUM(NSInteger, CSMachineVideoSignal) {
 };
 
 typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
-	CSMachineKeyboardInputModeKeyboard,
-	CSMachineKeyboardInputModeJoystick
+	CSMachineKeyboardInputModeKeyboardPhysical,
+	CSMachineKeyboardInputModeKeyboardLogical,
+	CSMachineKeyboardInputModeJoystick,
 };
 
 @interface CSMissingROM: NSObject
@@ -57,15 +58,14 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 */
 - (nullable instancetype)initWithAnalyser:(nonnull CSStaticAnalyser *)result missingROMs:(nullable inout NSMutableArray<CSMissingROM *> *)missingROMs NS_DESIGNATED_INITIALIZER;
 
-- (NSTimeInterval)runForInterval:(NSTimeInterval)interval untilEvent:(int)events;
-
 - (float)idealSamplingRateFromRange:(NSRange)range;
-- (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize;
+@property (readonly, getter=isStereo) BOOL stereo;
+- (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo;
 
-- (void)setView:(nullable CSOpenGLView *)view aspectRatio:(float)aspectRatio;
+- (void)setView:(nullable CSScanTargetView *)view aspectRatio:(float)aspectRatio;
 
-- (void)updateViewForPixelSize:(CGSize)pixelSize;
-- (void)drawViewForPixelSize:(CGSize)pixelSize;
+- (void)start;
+- (void)stop;
 
 - (void)setKey:(uint16_t)key characters:(nullable NSString *)characters isPressed:(BOOL)isPressed;
 - (void)clearAllKeys;
@@ -73,8 +73,8 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 - (void)setMouseButton:(int)button isPressed:(BOOL)isPressed;
 - (void)addMouseMotionX:(CGFloat)deltaX y:(CGFloat)deltaY;
 
-@property (nonatomic, strong, nullable) CSAudioQueue *audioQueue;
-@property (nonatomic, readonly, nonnull) CSOpenGLView *view;
+@property (atomic, strong, nullable) CSAudioQueue *audioQueue;
+@property (nonatomic, readonly, nonnull) CSScanTargetView *view;
 @property (nonatomic, weak, nullable) id<CSMachineDelegate> delegate;
 
 @property (nonatomic, readonly, nonnull) NSString *userDefaultsPrefix;
@@ -89,7 +89,11 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 
 @property (nonatomic, readonly) BOOL canInsertMedia;
 
-- (bool)supportsVideoSignal:(CSMachineVideoSignal)videoSignal;
+- (BOOL)supportsVideoSignal:(CSMachineVideoSignal)videoSignal;
+
+// Volume contorl.
+- (void)setVolume:(float)volume;
+@property (nonatomic, readonly) BOOL hasAudioOutput;
 
 // Input control.
 @property (nonatomic, readonly) BOOL hasExclusiveKeyboard;

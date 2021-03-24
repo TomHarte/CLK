@@ -30,7 +30,7 @@ class PortHandler {
 
 			@param port_b @c true if the input being queried is Port B. @c false if it is Port A.
 		*/
-		virtual uint8_t get_port_input(bool port_b) {
+		virtual uint8_t get_port_input([[maybe_unused]] bool port_b) {
 			return 0xff;
 		}
 
@@ -40,7 +40,7 @@ class PortHandler {
 			@param port_b @c true if the output being posted is Port B. @c false if it is Port A.
 			@param value the value now being output.
 		*/
-		virtual void set_port_output(bool port_b, uint8_t value) {}
+		virtual void set_port_output([[maybe_unused]] bool port_b, [[maybe_unused]] uint8_t value) {}
 };
 
 /*!
@@ -63,8 +63,10 @@ enum class Personality {
 	Provides emulation of an AY-3-8910 / YM2149, which is a three-channel sound chip with a
 	noise generator and a volume envelope generator, which also provides two bidirectional
 	interface ports.
+
+	This AY has an attached mono or stereo mixer.
 */
-class AY38910: public ::Outputs::Speaker::SampleSource {
+template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource {
 	public:
 		/// Creates a new AY38910.
 		AY38910(Personality, Concurrency::DeferringAsyncTaskQueue &);
@@ -91,10 +93,23 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 		*/
 		void set_port_handler(PortHandler *);
 
+		/*!
+			Enables or disables stereo output; if stereo output is enabled then also sets the weight of each of the AY's
+			channels in each of the output channels.
+
+			If a_left_ = b_left = c_left = a_right = b_right = c_right = 1.0 then you'll get output that's effectively mono.
+
+			a_left = 0.0, a_right = 1.0 will make A full volume on the right output, and silent on the left.
+
+			a_left = 0.5, a_right = 0.5 will make A half volume on both outputs.
+		*/
+		void set_output_mixing(float a_left, float b_left, float c_left, float a_right = 1.0, float b_right = 1.0, float c_right = 1.0);
+
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
-		bool is_zero_level();
+		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
+		static constexpr bool get_is_stereo() { return is_stereo; }
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue &task_queue_;
@@ -135,12 +150,44 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 
 		uint8_t data_input_, data_output_;
 
-		int16_t output_volume_;
-		void evaluate_output_volume();
+		uint32_t output_volume_;
 
 		void update_bus();
 		PortHandler *port_handler_ = nullptr;
 		void set_port_output(bool port_b);
+
+		void evaluate_output_volume();
+
+		// Output mixing control.
+		uint8_t a_left_ = 255, a_right_ = 255;
+		uint8_t b_left_ = 255, b_right_ = 255;
+		uint8_t c_left_ = 255, c_right_ = 255;
+};
+
+/*!
+	Provides helper code, to provide something closer to the interface exposed by many
+	AY-deploying machines of the era.
+*/
+struct Utility {
+	template <typename AY> static void select_register(AY &ay, uint8_t reg) {
+		ay.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2 | GI::AY38910::BC1));
+		ay.set_data_input(reg);
+		ay.set_control_lines(GI::AY38910::ControlLines(0));
+	}
+
+	template <typename AY> static void write_data(AY &ay, uint8_t reg) {
+		ay.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2));
+		ay.set_data_input(reg);
+		ay.set_control_lines(GI::AY38910::ControlLines(0));
+	}
+
+	template <typename AY> static uint8_t read_data(AY &ay) {
+		ay.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
+		const uint8_t result = ay.get_data_output();
+		ay.set_control_lines(GI::AY38910::ControlLines(0));
+		return result;
+	}
+
 };
 
 }

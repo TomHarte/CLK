@@ -6,9 +6,6 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef MOS6502Storage_h
-#define MOS6502Storage_h
-
 /*!
 	A repository for all the internal state of a CPU::MOS6502::Processor; extracted into a separate base
 	class in order to remove it from visibility within the main 6502.hpp.
@@ -24,7 +21,7 @@ class ProcessorStorage {
 
 			This micro-instruction set was put together in a fairly ad hoc fashion, I'm afraid, so is unlikely to be optimal.
 		*/
-		enum MicroOp {
+		enum MicroOp: uint8_t {
 			CycleFetchOperation,		// fetches (PC) to operation_, storing PC to last_operation_pc_ before incrementing it
 			CycleFetchOperand,			// 6502: fetches from (PC) to operand_; 65C02: as 6502 unless operation_ indicates a one-cycle NOP, in which case this is a no0op
 			OperationDecodeOperation,	// schedules the microprogram associated with operation_
@@ -197,8 +194,32 @@ class ProcessorStorage {
 			OperationScheduleStop,		// puts the processor into STP mode (i.e. it'll do nothing until a reset is received)
 		};
 
-		using InstructionList = MicroOp[10];
-		InstructionList operations_[256];
+		using InstructionList = MicroOp[12];
+		/// Defines the locations in operations_ of various named microprograms; the first 256 entries
+		/// in operations_ are mapped directly from instruction codes and therefore not named.
+		enum class OperationsSlot {
+			/// Fetches the next operation, and its operand, then schedules the corresponding set of operations_.
+			/// [Caveat: the 65C02 adds single-cycle NOPs; this microprogram won't fetch an operand for those].
+			FetchDecodeExecute = 256,
+
+			/// Performs the 6502's reset sequence.
+			Reset,
+			/// Performs the 6502's IRQ sequence.
+			IRQ,
+			/// Performs the 6502's NMI sequence.
+			NMI,
+
+			/// Performs a branch, e.g. the entry for BCC will evaluate whether carry is clear and, if so, will jump
+			/// to this instruction list.
+			DoBRA,
+
+			/// On a 65c02,
+			DoBBRBBS,
+			DoNotBBRBBS,
+
+			Max
+		};
+		InstructionList operations_[size_t(OperationsSlot::Max)];
 
 		const MicroOp *scheduled_program_counter_ = nullptr;
 
@@ -207,7 +228,7 @@ class ProcessorStorage {
 		*/
 		RegisterPair16 pc_, last_operation_pc_;
 		uint8_t a_, x_, y_, s_ = 0;
-		uint8_t carry_flag_, negative_result_, zero_result_, decimal_flag_, overflow_flag_, inverse_interrupt_flag_ = 0;
+		MOS6502Esque::LazyFlags flags_;
 
 		/*
 			Temporary state for the micro programs.
@@ -222,6 +243,7 @@ class ProcessorStorage {
 		BusOperation next_bus_operation_ = BusOperation::None;
 		uint16_t bus_address_;
 		uint8_t *bus_value_;
+		static inline uint8_t bus_throwaway_;
 
 		/*!
 			Gets the flags register.
@@ -230,7 +252,7 @@ class ProcessorStorage {
 
 			@returns The current value of the flags register.
 		*/
-		inline uint8_t get_flags();
+		inline uint8_t get_flags() const;
 
 		/*!
 			Sets the flags register.
@@ -246,7 +268,7 @@ class ProcessorStorage {
 
 		enum InterruptRequestFlags: uint8_t {
 			Reset		= 0x80,
-			IRQ			= Flag::Interrupt,
+			IRQ			= MOS6502Esque::Flag::Interrupt,
 			NMI			= 0x20,
 
 			PowerOn		= 0x10,
@@ -261,26 +283,6 @@ class ProcessorStorage {
 		uint8_t irq_line_ = 0, irq_request_history_ = 0;
 		bool nmi_line_is_enabled_ = false, set_overflow_line_is_enabled_ = false;
 
-		/*!
-			Gets the program representing an RST response.
-
-			@returns The program representing an RST response.
-		*/
-		inline const MicroOp *get_reset_program();
-
-		/*!
-			Gets the program representing an IRQ response.
-
-			@returns The program representing an IRQ response.
-		*/
-		inline const MicroOp *get_irq_program();
-
-		/*!
-			Gets the program representing an NMI response.
-
-			@returns The program representing an NMI response.
-		*/
-		inline const MicroOp *get_nmi_program();
+		// Allow state objects to capture and apply state.
+		friend struct State;
 };
-
-#endif /* _502Storage_h */

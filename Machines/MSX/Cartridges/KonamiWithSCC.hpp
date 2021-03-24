@@ -20,7 +20,7 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 		KonamiWithSCCROMSlotHandler(MSX::MemoryMap &map, int slot, Konami::SCC &scc) :
 			map_(map), slot_(slot), scc_(scc) {}
 
-		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) override {
+		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) final {
 			switch(address >> 11) {
 				default:
 					if(pc_is_outside_bios) confidence_counter_.add_miss();
@@ -66,7 +66,7 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 			}
 		}
 
-		uint8_t read(uint16_t address) override {
+		uint8_t read(uint16_t address) final {
 			if(scc_is_visible_ && address >= 0x9800 && address < 0xa000) {
 				confidence_counter_.add_hit();
 				return scc_.read(address);
@@ -75,7 +75,7 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 			return 0xff;
 		}
 
-		virtual std::string debug_type() override {
+		virtual std::string debug_type() final {
 			return "KSCC";
 		}
 

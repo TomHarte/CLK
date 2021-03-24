@@ -24,7 +24,7 @@ Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_hea
 	ready_type_(rdy_type) {
 	set_rotation_speed(revolutions_per_minute);
 
-	const auto seed = static_cast<std::default_random_engine::result_type>(std::chrono::system_clock::now().time_since_epoch().count());
+	const auto seed = std::default_random_engine::result_type(std::chrono::system_clock::now().time_since_epoch().count());
 	std::default_random_engine randomiser(seed);
 
 	// Get at least 64 bits of random information; rounding is likey to give this a slight bias.
@@ -45,7 +45,7 @@ void Drive::set_rotation_speed(float revolutions_per_minute) {
 	// From there derive the appropriate rotational multiplier and possibly update the
 	// count of cycles since the index hole proportionally.
 	const float new_rotational_multiplier = float(cycles_per_revolution_) / float(get_input_clock_rate());
-	cycles_since_index_hole_ *= new_rotational_multiplier / rotational_multiplier_;
+	cycles_since_index_hole_ = Cycles::IntType(float(cycles_since_index_hole_) * new_rotational_multiplier / rotational_multiplier_);
 	rotational_multiplier_ = new_rotational_multiplier;
 	cycles_since_index_hole_ %= cycles_per_revolution_;
 }
@@ -58,12 +58,13 @@ void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
 	if(ready_type_ == ReadyType::ShugartModifiedRDY || ready_type_ == ReadyType::IBMRDY) {
 		is_ready_ = false;
 	}
+	const bool had_disk = bool(disk_);
 	if(disk_) disk_->flush_tracks();
 	disk_ = disk;
 	has_disk_ = !!disk_;
 
 	invalidate_track();
-	did_set_disk();
+	did_set_disk(had_disk);
 	update_clocking_observer();
 }
 
@@ -71,7 +72,7 @@ bool Drive::has_disk() const {
 	return has_disk_;
 }
 
-ClockingHint::Preference Drive::preferred_clocking() {
+ClockingHint::Preference Drive::preferred_clocking() const {
 	return (!has_disk_ || (time_until_motor_transition == Cycles(0) && !disk_is_rotating_)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
@@ -80,6 +81,10 @@ bool Drive::get_is_track_zero() const {
 }
 
 void Drive::step(HeadPosition offset) {
+	if(offset == HeadPosition(0)) {
+		return;
+	}
+
 	if(ready_type_ == ReadyType::IBMRDY) {
 		is_ready_ = true;
 	}
@@ -94,7 +99,7 @@ void Drive::step(HeadPosition offset) {
 	}
 
 	// If the head moved, flush the old track.
-	if(head_position_ != old_head_position) {
+	if(disk_ && disk_->tracks_differ(Track::Address(head_, head_position_), Track::Address(head_, old_head_position))) {
 		track_ = nullptr;
 	}
 
@@ -170,6 +175,7 @@ void Drive::set_motor_on(bool motor_is_on) {
 	// TODO: momentum.
 	if(motor_is_on) {
 		set_disk_is_rotating(true);
+		time_until_motor_transition = Cycles(0);
 		return;
 	}
 
@@ -249,6 +255,15 @@ void Drive::run_for(const Cycles cycles) {
 // MARK: - Track timed event loop
 
 void Drive::get_next_event(float duration_already_passed) {
+	/*
+		Quick word on random-bit generation logic below; it seeks to obey the following logic:
+		if there is a gap of 15µs between recorded bits, start generating flux transitions
+		at random intervals thereafter, unless and until one is within 5µs of the next real transition.
+
+		This behaviour is based on John Morris' observations of an MC3470, as described in his WOZ
+		file format documentation — https://applesaucefdc.com/woz/reference2/
+	*/
+
 	if(!disk_) {
 		current_event_.type = Track::Event::IndexHole;
 		current_event_.length = 1.0f;
@@ -267,17 +282,18 @@ void Drive::get_next_event(float duration_already_passed) {
 	// If gain has now been turned up so as to generate noise, generate some noise.
 	if(random_interval_ > 0.0f) {
 		current_event_.type = Track::Event::FluxTransition;
-		current_event_.length = float(2 + (random_source_&1)) / 1000000.0f;
+		current_event_.length = float(2 + (random_source_&1)) / 1'000'000.0f;
 		random_source_ = (random_source_ >> 1) | (random_source_ << 63);
 
-		if(random_interval_ < current_event_.length) {
-			current_event_.length = random_interval_;
+		// If this random transition is closer than 5µs to the next real bit,
+		// discard it.
+		if(random_interval_ - 5.0f / 1'000'000.f < current_event_.length) {
 			random_interval_ = 0.0f;
 		} else {
 			random_interval_ -= current_event_.length;
+			set_next_event_time_interval(current_event_.length);
+			return;
 		}
-		set_next_event_time_interval(current_event_.length);
-		return;
 	}
 
 	if(track_) {
@@ -289,18 +305,13 @@ void Drive::get_next_event(float duration_already_passed) {
 		current_event_.type = Track::Event::IndexHole;
 	}
 
-	// Begin a 2ms period of holding the index line pulse active if this is an index pulse event.
-	if(current_event_.type == Track::Event::IndexHole) {
-		index_pulse_remaining_ = Cycles((get_input_clock_rate() * 2) / 1000);
-	}
-
 	// divide interval, which is in terms of a single rotation of the disk, by rotation speed to
 	// convert it into revolutions per second; this is achieved by multiplying by rotational_multiplier_
 	float interval = std::max((current_event_.length - duration_already_passed) * rotational_multiplier_, 0.0f);
 
-	// An interval greater than 15ms => adjust gain up the point where noise starts happening.
-	// Seed that up and leave a 15ms gap until it starts.
-	constexpr float safe_gain_period = 15.0f / 1000000.0f;
+	// An interval greater than 15µs => adjust gain up the point where noise starts happening.
+	// Seed that up and leave a 15µs gap until it starts.
+	constexpr float safe_gain_period = 15.0f / 1'000'000.0f;
 	if(interval >= safe_gain_period) {
 		random_interval_ = interval - safe_gain_period;
 		interval = safe_gain_period;
@@ -316,6 +327,9 @@ void Drive::process_next_event() {
 			is_ready_ = true;
 		}
 		cycles_since_index_hole_ = 0;
+
+		// Begin a 2ms period of holding the index line pulse active.
+		index_pulse_remaining_ = Cycles((get_input_clock_rate() * 2) / 1000);
 	}
 	if(
 		event_delegate_ &&
@@ -344,8 +358,8 @@ void Drive::setup_track() {
 	}
 
 	float offset = 0.0f;
-	const auto track_time_now = get_time_into_track();
-	const auto time_found = track_->seek_to(Time(track_time_now)).get<float>();
+	const float track_time_now = get_time_into_track();
+	const float time_found = track_->seek_to(track_time_now);
 
 	// `time_found` can be greater than `track_time_now` if limited precision caused rounding.
 	if(time_found <= track_time_now) {
@@ -431,9 +445,9 @@ void Drive::set_disk_is_rotating(bool is_rotating) {
 	disk_is_rotating_ = is_rotating;
 
 	if(observer_) {
-		observer_->set_drive_motor_status(drive_name_, motor_input_is_on_);
+		observer_->set_drive_motor_status(drive_name_, disk_is_rotating_);
 		if(announce_motor_led_) {
-			observer_->set_led_status(drive_name_, motor_input_is_on_);
+			observer_->set_led_status(drive_name_, disk_is_rotating_);
 		}
 	}
 

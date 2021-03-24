@@ -76,7 +76,7 @@ class MFP68901: public ClockingHint::Source {
 		void set_interrupt_delegate(InterruptDelegate *delegate);
 
 		// ClockingHint::Source.
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 
 	private:
 		// MARK: - Timers

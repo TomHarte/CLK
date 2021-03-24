@@ -9,6 +9,7 @@
 #ifndef Outputs_Display_ScanTarget_h
 #define Outputs_Display_ScanTarget_h
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include "../ClockReceiver/TimeTypes.hpp"
@@ -31,8 +32,8 @@ struct Rect {
 		float width, height;
 	} size;
 
-	Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
-	Rect(float x, float y, float width, float height) :
+	constexpr Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
+	constexpr Rect(float x, float y, float width, float height) :
 		origin({x, y}), size({width, height}) {}
 };
 
@@ -53,6 +54,9 @@ enum class DisplayType {
 
 /*!
 	Enumerates the potential formats of input data.
+
+	All types are designed to be 1, 2 or 4 bytes per pixel; this hopefully creates appropriate alignment
+	on all formats.
 */
 enum class InputDataType {
 
@@ -72,8 +76,10 @@ enum class InputDataType {
 	// of a colour subcarrier. So they can be used to generate a luminance signal,
 	// or an s-video pipeline.
 
-	Luminance8Phase8,		// 2 bytes/pixel; first is luminance, second is phase.
-							// Phase is encoded on a 192-unit circle; anything
+	Luminance8Phase8,		// 2 bytes/pixel; first is luminance, second is phase
+							// of a cosine wave.
+							//
+							// Phase is encoded on a 128-unit circle; anything
 							// greater than 192 implies that the colour part of
 							// the signal should be omitted.
 
@@ -82,11 +88,14 @@ enum class InputDataType {
 
 	Red1Green1Blue1,		// 1 byte/pixel; bit 0 is blue on or off, bit 1 is green, bit 2 is red.
 	Red2Green2Blue2,		// 1 byte/pixel; bits 0 and 1 are blue, bits 2 and 3 are green, bits 4 and 5 are blue.
-	Red4Green4Blue4,		// 2 bytes/pixel; first nibble is red, second is green, third is blue.
+	Red4Green4Blue4,		// 2 bytes/pixel; low nibble in first byte is red, high nibble in second is green, low is blue.
+							// i.e. if it were a little endian word, 0xgb0r; or 0x0rgb big endian.
 	Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
 };
 
-inline size_t size_for_data_type(InputDataType data_type) {
+/// @returns the number of bytes per sample for data of type @c data_type.
+/// Guaranteed to be 1, 2 or 4 for valid data types.
+constexpr inline size_t size_for_data_type(InputDataType data_type) {
 	switch(data_type) {
 		case InputDataType::Luminance1:
 		case InputDataType::Luminance8:
@@ -107,7 +116,28 @@ inline size_t size_for_data_type(InputDataType data_type) {
 	}
 }
 
-inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
+/// @returns @c true if this data type presents normalised data, i.e. each byte holds a
+/// value in the range [0, 255] representing a real number in the range [0.0, 1.0]; @c false otherwise.
+constexpr inline size_t data_type_is_normalised(InputDataType data_type) {
+	switch(data_type) {
+		case InputDataType::Luminance8:
+		case InputDataType::Luminance8Phase8:
+		case InputDataType::Red8Green8Blue8:
+		case InputDataType::PhaseLinkedLuminance8:
+			return true;
+
+		default:
+		case InputDataType::Luminance1:
+		case InputDataType::Red1Green1Blue1:
+		case InputDataType::Red2Green2Blue2:
+		case InputDataType::Red4Green4Blue4:
+			return false;
+	}
+}
+
+/// @returns The 'natural' display type for data of type @c data_type. The natural display is whichever would
+/// display it with the least number of conversions. Caveat: a colour display is assumed for pure-composite data types.
+constexpr inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
 	switch(data_type) {
 		default:
 		case InputDataType::Luminance1:
@@ -126,6 +156,34 @@ inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
 	}
 }
 
+/// @returns A 3x3 matrix in row-major order to convert from @c colour_space to RGB.
+inline std::array<float, 9> to_rgb_matrix(ColourSpace colour_space) {
+	const std::array<float, 9> yiq_to_rgb = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
+	const std::array<float, 9> yuv_to_rgb = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
+
+	switch(colour_space) {
+		case ColourSpace::YIQ:	return yiq_to_rgb;
+		case ColourSpace::YUV:	return yuv_to_rgb;
+	}
+
+	// Should be unreachable.
+	return std::array<float, 9>{};
+}
+
+/// @returns A 3x3 matrix in row-major order to convert to @c colour_space to RGB.
+inline std::array<float, 9> from_rgb_matrix(ColourSpace colour_space) {
+	const std::array<float, 9> rgb_to_yiq = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
+	const std::array<float, 9> rgb_to_yuv = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
+
+	switch(colour_space) {
+		case ColourSpace::YIQ:	return rgb_to_yiq;
+		case ColourSpace::YUV:	return rgb_to_yuv;
+	}
+
+	// Should be unreachable.
+	return std::array<float, 9>{};
+}
+
 /*!
 	Provides an abstract target for 'scans' i.e. continuous sweeps of output data,
 	which are identified by 2d start and end coordinates, and the PCM-sampled data
@@ -138,6 +196,8 @@ inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
 	for use of shared memory where available.
 */
 struct ScanTarget {
+		virtual ~ScanTarget() {}
+
 
 	/*
 		This top section of the interface deals with modal settings. A ScanTarget can
@@ -267,24 +327,28 @@ struct ScanTarget {
 		/// and indicates that its actual final size was @c actual_length.
 		///
 		/// It is required that every call to begin_data be paired with a call to end_data.
-		virtual void end_data(size_t actual_length) {}
+		virtual void end_data([[maybe_unused]] size_t actual_length) {}
 
 		/// Tells the scan target that its owner is about to change; this is a hint that existing
 		/// data and scan allocations should be invalidated.
 		virtual void will_change_owner() {}
 
-		/// Marks the end of an atomic set of data. Drawing is best effort, so the scan target should either:
+		/// Acts as a fence, marking the end of an atomic set of [begin/end]_[scan/data] calls] — all future pieces of
+		/// data will have no relation to scans prior to the submit() and all future scans will similarly have no relation to
+		/// prior runs of data.
+		///
+		/// Drawing is defined to be best effort, so the scan target should either:
 		///
 		///		(i)	output everything received since the previous submit; or
-		///		(ii) output nothing.
+		///		(ii)	output nothing.
 		///
 		/// If there were any allocation failures — i.e. any nullptr responses to begin_data or
 		/// begin_scan — then (ii) is a required response. But a scan target may also need to opt for (ii)
 		/// for any other reason.
 		///
 		/// The ScanTarget isn't bound to take any drawing action immediately; it may sit on submitted data for
-		/// as long as it feels is appropriate subject to an @c flush.
-		virtual void submit() = 0;
+		/// as long as it feels is appropriate, subject to a @c flush.
+		virtual void submit() {}
 
 
 	/*
@@ -303,32 +367,38 @@ struct ScanTarget {
 		/*!
 			Provides a hint that the named event has occurred.
 
+			Guarantee:
+			* any announce acts as an implicit fence on data/scans, much as a submit().
+
+			Permitted ScanTarget implementation:
+			* ignore all output during retrace periods.
+
 			@param event The event.
 			@param is_visible @c true if the output stream is visible immediately after this event; @c false otherwise.
 			@param location The location of the event.
 			@param composite_amplitude The amplitude of the colour burst on this line (0, if no colour burst was found).
 		*/
-		virtual void announce(Event event, bool is_visible, const Scan::EndPoint &location, uint8_t composite_amplitude) {}
+		virtual void announce([[maybe_unused]] Event event, [[maybe_unused]] bool is_visible, [[maybe_unused]] const Scan::EndPoint &location, [[maybe_unused]] uint8_t composite_amplitude) {}
 };
 
 struct ScanStatus {
 	/// The current (prediced) length of a field (including retrace).
-	Time::Seconds field_duration;
+	Time::Seconds field_duration = 0.0;
 	/// The difference applied to the field_duration estimate during the last field.
-	Time::Seconds field_duration_gradient;
+	Time::Seconds field_duration_gradient = 0.0;
 	/// The amount of time this device spends in retrace.
-	Time::Seconds retrace_duration;
+	Time::Seconds retrace_duration = 0.0;
 	/// The distance into the current field, from a small negative amount (in retrace) through
 	/// 0 (start of visible area field) to 1 (end of field).
 	///
 	/// This will increase monotonically, being a measure
 	/// of the current vertical position — i.e. if current_position = 0.8 then a caller can
 	/// conclude that the top 80% of the visible part of the display has been painted.
-	float current_position;
+	float current_position = 0.0f;
 	/// The total number of hsyncs so far encountered;
-	int hsync_count;
+	int hsync_count = 0;
 	/// @c true if retrace is currently going on; @c false otherwise.
-	bool is_in_retrace;
+	bool is_in_retrace = false;
 
 	/*!
 		@returns this ScanStatus, with time-relative fields scaled by dividing them by @c dividend.
@@ -340,6 +410,7 @@ struct ScanStatus {
 			.retrace_duration = retrace_duration / dividend,
 			.current_position = current_position,
 			.hsync_count = hsync_count,
+			.is_in_retrace = is_in_retrace,
 		};
 		return result;
 	}
@@ -354,6 +425,7 @@ struct ScanStatus {
 			.retrace_duration = retrace_duration * multiplier,
 			.current_position = current_position,
 			.hsync_count = hsync_count,
+			.is_in_retrace = is_in_retrace,
 		};
 		return result;
 	}
@@ -363,10 +435,10 @@ struct ScanStatus {
 	Provides a null target for scans.
 */
 struct NullScanTarget: public ScanTarget {
-	void set_modals(Modals) {}
-	Scan *begin_scan() { return nullptr; }
-	uint8_t *begin_data(size_t required_length, size_t required_alignment = 1) { return nullptr; }
-	void submit() {}
+	void set_modals(Modals) override {}
+	Scan *begin_scan() override { return nullptr; }
+	uint8_t *begin_data(size_t, size_t) override { return nullptr; }
+	void submit() override {}
 
 	static NullScanTarget singleton;
 };

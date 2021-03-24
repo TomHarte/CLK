@@ -35,7 +35,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
 		Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
-		~Drive();
+		virtual ~Drive();
 
 		/*!
 			Replaces whatever is in the drive with @c disk. Supply @c nullptr to eject any current disk and leave none inserted.
@@ -145,14 +145,14 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 			virtual void process_write_completed() {}
 
 			/// Informs the delegate of the passing of @c cycles.
-			virtual void advance(const Cycles cycles) {}
+			virtual void advance([[maybe_unused]] Cycles cycles) {}
 		};
 
 		/// Sets the current event delegate.
 		void set_event_delegate(EventDelegate *);
 
 		// As per Sleeper.
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 
 		/// Adds an activity observer; it'll be notified of disk activity.
 		/// The caller can specify whether to add an LED based on disk motor.
@@ -183,12 +183,14 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		/*!
 			Announces the result of a step.
 		*/
-		virtual void did_step(HeadPosition to_position) {}
+		virtual void did_step([[maybe_unused]] HeadPosition to_position) {}
 
 		/*!
 			Announces new media installation.
+
+			@c did_replace is @c true if a previous disk was replaced; @c false if the drive was previously empty.
 		*/
-		virtual void did_set_disk() {}
+		virtual void did_set_disk(bool did_replace [[maybe_unused]]) {}
 
 		/*!
 			@returns the current rotation of the disk, a float in the half-open range
@@ -205,7 +207,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		// Contains the multiplier that converts between track-relative lengths
 		// to real-time lengths. So it's the reciprocal of rotation speed.
-		float rotational_multiplier_;
+		float rotational_multiplier_ = 1.0f;
 
 		// A count of time since the index hole was last seen. Which is used to
 		// determine how far the drive is into a full rotation when switching to

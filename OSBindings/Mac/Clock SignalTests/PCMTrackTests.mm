@@ -73,16 +73,14 @@
 	}
 
 	Storage::Disk::PCMTrack track(segments);
-	Storage::Time late_time(967445, 2045454);
+	const float late_time = 967445.0f / 2045454.0f;
 	const auto offset = track.seek_to(late_time);
 	XCTAssert(offset <= late_time, "Found location should be at or before sought time");
 
 	const auto difference = late_time - offset;
-	const double difference_duration = difference.get<double>();
-	XCTAssert(difference_duration >= 0.0 && difference_duration < 0.005, "Next event should occur soon");
+	XCTAssert(difference >= 0.0 && difference < 0.005, "Next event should occur soon");
 
-	const double offset_duration = offset.get<double>();
-	XCTAssert(offset_duration >= 0.0 && offset_duration < 0.5, "Next event should occur soon");
+	XCTAssert(offset >= 0.0 && offset < 0.5, "Next event should occur soon");
 
 	auto next_event = track.get_next_event();
 	double next_event_duration = next_event.length.get<double>();
