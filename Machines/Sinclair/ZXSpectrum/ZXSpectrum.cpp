@@ -223,6 +223,10 @@ template<Model model> class ConcreteMachine:
 
 				case PartialMachineCycle::Read:
 					*cycle.value = read_pointers_[address >> 14][address];
+
+					if(is_contended_[address >> 14]) {
+						video_.last_valid()->set_last_contended_area_access(*cycle.value);
+					}
 				break;
 
 				case PartialMachineCycle::Write:
@@ -230,7 +234,13 @@ template<Model model> class ConcreteMachine:
 					if(is_video_[address >> 14] && (address & 0x3fff) < 6912) {
 						video_.flush();
 					}
+
 					write_pointers_[address >> 14][address] = *cycle.value;
+
+					// Fill the floating bus buffer if this write is within the contended area.
+					if(is_contended_[address >> 14]) {
+						video_.last_valid()->set_last_contended_area_access(*cycle.value);
+					}
 				break;
 
 				case PartialMachineCycle::Output:
@@ -331,8 +341,9 @@ template<Model model> class ConcreteMachine:
 
 					// Check for a floating bus read; these are particularly arcane
 					// on the +2a/+3. See footnote to https://spectrumforeveryone.com/technical/memory-contention-floating-bus/
-					if((address & 0xf003) == 0x0001) {
-						*cycle.value &= video_->get_current_fetch();
+					// and, much more rigorously, http://sky.relative-path.com/zx/floating_bus.html
+					if(!disable_paging_ && (address & 0xf003) == 0x0001) {
+						*cycle.value &= video_->get_floating_value();
 					}
 
 					if constexpr (model == Model::Plus3) {
