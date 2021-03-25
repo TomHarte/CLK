@@ -130,7 +130,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Apple IIgs" identifier="appleiigs" id="u5E-8n-ghF">
                                 <view key="view" ambiguous="YES" id="jOM-9f-vkk">
-                                    <rect key="frame" x="10" y="7" width="716" height="111"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0d9-IG-gKU">
@@ -195,7 +195,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Amstrad CPC" identifier="cpc" id="JmB-OF-xcM">
                                 <view key="view" id="5zS-Nj-Ynx">
-                                    <rect key="frame" x="10" y="7" width="716" height="111"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="00d-sg-Krh">
@@ -233,7 +233,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Atari ST" identifier="atarist" id="a6Y-mx-yFn">
                                 <view key="view" id="nnv-Wi-7hc">
-                                    <rect key="frame" x="10" y="7" width="716" height="111"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nLf-LI-nWO">
@@ -254,7 +254,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Electron" identifier="electron" id="muc-z9-Vqc">
                                 <view key="view" id="SRc-2D-95G">
-                                    <rect key="frame" x="10" y="7" width="716" height="111"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JqM-IK-FMP">
@@ -305,7 +305,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Macintosh" identifier="mac" id="lmR-z3-xSm">
                                 <view key="view" id="7Yf-vi-Q0W">
-                                    <rect key="frame" x="10" y="7" width="716" height="111"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZOY-4E-Cfl">
@@ -344,7 +344,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="MSX" identifier="msx" id="6SR-DY-zdI">
                                 <view key="view" id="mWD-An-tR7">
-                                    <rect key="frame" x="10" y="7" width="716" height="111"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8xT-Pr-8SE">
@@ -392,7 +392,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Oric" identifier="oric" id="NSx-DC-p4M">
                                 <view key="view" id="sOR-e0-8iZ">
-                                    <rect key="frame" x="10" y="7" width="716" height="111"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0ct-tf-uRH">
@@ -457,46 +457,9 @@ Gw
                                     </constraints>
                                 </view>
                             </tabViewItem>
-                            <tabViewItem label="Spectrum" identifier="spectrum" id="HQv-oF-k8b">
-                                <view key="view" id="bMx-F6-JUb">
-                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
-                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                    <subviews>
-                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gFZ-d4-WFv">
-                                            <rect key="frame" x="67" y="82" width="62" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="+2a" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="Fo7-NL-Kv5" id="tYs-sA-oek">
-                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
-                                                <menu key="menu" id="8lt-dk-zPr">
-                                                    <items>
-                                                        <menuItem title="+2a" state="on" tag="21" id="Fo7-NL-Kv5"/>
-                                                        <menuItem title="+3" tag="3" id="jwx-fZ-vXp"/>
-                                                    </items>
-                                                </menu>
-                                            </popUpButtonCell>
-                                        </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fJ3-ma-Byy">
-                                            <rect key="frame" x="18" y="88" width="46" height="16"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="JId-Tp-LrE">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
-                                    </subviews>
-                                    <constraints>
-                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="gFZ-d4-WFv" secondAttribute="trailing" constant="20" symbolic="YES" id="90E-uI-MQg"/>
-                                        <constraint firstItem="fJ3-ma-Byy" firstAttribute="leading" secondItem="bMx-F6-JUb" secondAttribute="leading" constant="20" symbolic="YES" id="9kE-iQ-dxd"/>
-                                        <constraint firstItem="fJ3-ma-Byy" firstAttribute="centerY" secondItem="gFZ-d4-WFv" secondAttribute="centerY" id="LxG-5E-Q5Y"/>
-                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="gFZ-d4-WFv" secondAttribute="bottom" constant="5" id="d8S-vX-B5e"/>
-                                        <constraint firstItem="gFZ-d4-WFv" firstAttribute="leading" secondItem="fJ3-ma-Byy" secondAttribute="trailing" constant="8" symbolic="YES" id="hKS-47-R2y"/>
-                                        <constraint firstItem="gFZ-d4-WFv" firstAttribute="top" secondItem="bMx-F6-JUb" secondAttribute="top" constant="5" id="wsX-Wq-iPt"/>
-                                    </constraints>
-                                </view>
-                            </tabViewItem>
                             <tabViewItem label="Vic-20" identifier="vic20" id="cyO-PU-hSU">
                                 <view key="view" id="fLI-XB-QCr">
-                                    <rect key="frame" x="10" y="7" width="716" height="111"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ueK-gq-gaF">
@@ -573,7 +536,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="ZX80" identifier="zx80" id="tMH-kF-GUz">
                                 <view key="view" id="8hL-Vn-Hg0">
-                                    <rect key="frame" x="10" y="7" width="716" height="111"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="I1a-Eu-5UB">
@@ -621,7 +584,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="ZX81" identifier="zx81" id="Wnn-nQ-gZ6">
                                 <view key="view" id="bmd-gL-gzT">
-                                    <rect key="frame" x="10" y="7" width="716" height="111"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="5aO-UX-HnX">
@@ -654,6 +617,43 @@ Gw
                                         <constraint firstItem="8tU-73-XEE" firstAttribute="leading" secondItem="bmd-gL-gzT" secondAttribute="leading" constant="20" symbolic="YES" id="M6Y-jN-LAf"/>
                                         <constraint firstItem="5aO-UX-HnX" firstAttribute="top" secondItem="bmd-gL-gzT" secondAttribute="top" constant="5" id="PPD-Jz-qCL"/>
                                         <constraint firstItem="5aO-UX-HnX" firstAttribute="leading" secondItem="8tU-73-XEE" secondAttribute="trailing" constant="8" symbolic="YES" id="j1u-n4-2IK"/>
+                                    </constraints>
+                                </view>
+                            </tabViewItem>
+                            <tabViewItem label="ZX Spectrum" identifier="spectrum" id="HQv-oF-k8b">
+                                <view key="view" id="bMx-F6-JUb">
+                                    <rect key="frame" x="10" y="7" width="400" height="111"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gFZ-d4-WFv">
+                                            <rect key="frame" x="67" y="82" width="62" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="+2a" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="Fo7-NL-Kv5" id="tYs-sA-oek">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="8lt-dk-zPr">
+                                                    <items>
+                                                        <menuItem title="+2a" state="on" tag="21" id="Fo7-NL-Kv5"/>
+                                                        <menuItem title="+3" tag="3" id="jwx-fZ-vXp"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                        </popUpButton>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fJ3-ma-Byy">
+                                            <rect key="frame" x="18" y="88" width="46" height="16"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="JId-Tp-LrE">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                    </subviews>
+                                    <constraints>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="gFZ-d4-WFv" secondAttribute="trailing" constant="20" symbolic="YES" id="90E-uI-MQg"/>
+                                        <constraint firstItem="fJ3-ma-Byy" firstAttribute="leading" secondItem="bMx-F6-JUb" secondAttribute="leading" constant="20" symbolic="YES" id="9kE-iQ-dxd"/>
+                                        <constraint firstItem="fJ3-ma-Byy" firstAttribute="centerY" secondItem="gFZ-d4-WFv" secondAttribute="centerY" id="LxG-5E-Q5Y"/>
+                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="gFZ-d4-WFv" secondAttribute="bottom" constant="5" id="d8S-vX-B5e"/>
+                                        <constraint firstItem="gFZ-d4-WFv" firstAttribute="leading" secondItem="fJ3-ma-Byy" secondAttribute="trailing" constant="8" symbolic="YES" id="hKS-47-R2y"/>
+                                        <constraint firstItem="gFZ-d4-WFv" firstAttribute="top" secondItem="bMx-F6-JUb" secondAttribute="top" constant="5" id="wsX-Wq-iPt"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
