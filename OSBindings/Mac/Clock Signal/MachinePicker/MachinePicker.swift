@@ -192,6 +192,14 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		machineSelector.selectTabViewItem(at: machineNameTable.selectedRow)
 	}
 
+	func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+		let font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+
+		// YUCK. TODO: find a way to use larger cells, with vertically-centred text.
+		// Likely that means not using NSTextFieldCell.
+		return font.ascender - font.descender + 2.0
+	}
+
 	// MARK: - Machine builder
 	func selectedMachine() -> CSStaticAnalyser {
 		storeOptions()
