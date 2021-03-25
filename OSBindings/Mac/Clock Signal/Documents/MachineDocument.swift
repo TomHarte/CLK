@@ -140,9 +140,9 @@ class MachineDocument:
 		let missingROMs = NSMutableArray()
 		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
 			self.machine = machine
-			setupMachineOutput()
 			setupActivityDisplay()
 			machine.setVolume(userDefaultsVolume())
+			setupMachineOutput()
 		} else {
 			// Store the selected machine and list of missing ROMs, and
 			// show the missing ROMs dialogue.
