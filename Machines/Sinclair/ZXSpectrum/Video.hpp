@@ -167,6 +167,8 @@ template <VideoTiming timing> class Video {
 									last_fetches_[1] = memory_[attribute_address_];
 									last_fetches_[2] = memory_[pixel_address_+1];
 									last_fetches_[3] = memory_[attribute_address_+1];
+									set_last_contended_area_access(last_fetches_[3]);
+
 									pixel_address_ += 2;
 									attribute_address_ += 2;
 
@@ -315,19 +317,35 @@ template <VideoTiming timing> class Video {
 		}
 
 		/*!
-			@returns Whatever the ULA or gate array has fetched this cycle, or 0xff if it has fetched nothing.
+			@returns Whatever the ULA or gate array would expose via the floating bus, this cycle.
 		*/
-		uint8_t get_current_fetch() const {
+		uint8_t get_floating_value() const {
 			constexpr auto timings = get_timings();
 			const int line = time_into_frame_ / timings.cycles_per_line;
 			if(line >= 192) return 0xff;
 
 			const int time_into_line = time_into_frame_ % timings.cycles_per_line;
 			if(time_into_line >= 256 || (time_into_line&8)) {
-				return 0xff;
+				return last_contended_access_;
+			}
+
+			// The +2a and +3 always return the low bit as set.
+			if constexpr (timing == VideoTiming::Plus3) {
+				return last_fetches_[(time_into_line >> 1) & 3] | 1;
 			}
 
 			return last_fetches_[(time_into_line >> 1) & 3];
+		}
+
+		/*!
+			Relevant to the +2a and +3 only, sets the most recent value read from or
+			written to contended memory. This is what will be returned if the floating
+			bus is accessed when the gate array isn't currently reading.
+		*/
+		void set_last_contended_area_access([[maybe_unused]] uint8_t value) {
+			if constexpr (timing == VideoTiming::Plus3) {
+				last_contended_access_ = value | 1;
+			}
 		}
 
 		/*!
@@ -367,6 +385,7 @@ template <VideoTiming timing> class Video {
 		bool is_alternate_line_ = false;
 
 		uint8_t last_fetches_[4] = {0xff, 0xff, 0xff, 0xff};
+		uint8_t last_contended_access_ = 0xff;
 
 #define RGB(r, g, b)	(r << 4) | (g << 2) | b
 		static constexpr uint8_t palette[] = {
