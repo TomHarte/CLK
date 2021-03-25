@@ -373,6 +373,10 @@ class MachineDocument:
 		self.configureAs(selectedMachine)
 	}
 
+	@IBAction func tableViewDoubleClick(_ sender: NSTableView?) {
+		createMachine(nil)
+	}
+
 	@IBAction func cancelCreateMachine(_ sender: NSButton?) {
 		close()
 	}

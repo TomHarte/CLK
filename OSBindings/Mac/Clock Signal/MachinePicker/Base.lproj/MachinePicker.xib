@@ -687,6 +687,7 @@ Gw
                                         </tableColumn>
                                     </tableColumns>
                                     <connections>
+                                        <action trigger="doubleAction" selector="tableViewDoubleClick:" target="-2" id="umS-by-Fc6"/>
                                         <outlet property="dataSource" destination="192-Eb-Rpg" id="f5p-Gi-Ddh"/>
                                         <outlet property="delegate" destination="192-Eb-Rpg" id="rOg-Hi-zwb"/>
                                     </connections>
