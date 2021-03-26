@@ -8,9 +8,16 @@
 
 import Cocoa
 
-class MachinePicker: NSObject {
+// Quick note on structure below: I have an NSTableView to contain machine names,
+// programmatically manipulating the selected tab in an NSTabView. I admit that this
+// is odd. It's partly for historical reasons — this was purely an NSTabView until
+// the number of options got too large — and partly because it makes designing things
+// in the interface builder easier.
+//
+// I accept that I'll have to rethink this again if the machine list keeps growing.
+class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	@IBOutlet var machineSelector: NSTabView!
-	@IBOutlet var machineSelectionTabs: NSTabView!
+	@IBOutlet var machineNameTable: NSTableView!
 
 	// MARK: - Apple II properties
 	@IBOutlet var appleIIModelButton: NSPopUpButton!
@@ -59,9 +66,12 @@ class MachinePicker: NSObject {
 	func establishStoredOptions() {
 		let standardUserDefaults = UserDefaults.standard
 
+		// Set up data soure.
+
 		// TEMPORARY: remove the Apple IIgs option. It's not yet a fully-working machine; no need to publicise it.
-		let appleIIgsTabIndex = machineSelectionTabs.indexOfTabViewItem(withIdentifier: "appleiigs")
-		machineSelectionTabs.removeTabViewItem(machineSelectionTabs.tabViewItem(at: appleIIgsTabIndex))
+		let appleIIgsTabIndex = machineSelector.indexOfTabViewItem(withIdentifier: "appleiigs")
+		machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: appleIIgsTabIndex))
+		machineNameTable.reloadData()
 
 		// Machine type
 		if let machineIdentifier = standardUserDefaults.string(forKey: "new.machine") {
@@ -70,6 +80,8 @@ class MachinePicker: NSObject {
 			let index = machineSelector.indexOfTabViewItem(withIdentifier: machineIdentifier as Any)
 			if index != NSNotFound {
 				machineSelector.selectTabViewItem(at: index)
+				machineNameTable.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+				machineNameTable.scrollRowToVisible(index)
 			}
 		}
 
@@ -165,6 +177,27 @@ class MachinePicker: NSObject {
 
 		// ZX81
 		standardUserDefaults.set(zx81MemorySizeButton.selectedTag(), forKey: "new.zx81MemorySize")
+	}
+
+	// MARK: - Table view handling
+	func numberOfRows(in tableView: NSTableView) -> Int {
+		return machineSelector.numberOfTabViewItems
+	}
+
+	func tableView(_ tableView: NSTableView, objectValueFor tableColumn: NSTableColumn?, row: Int) -> Any? {
+		return machineSelector.tabViewItem(at: row).label
+	}
+
+	func tableViewSelectionDidChange(_ notification: Notification) {
+		machineSelector.selectTabViewItem(at: machineNameTable.selectedRow)
+	}
+
+	func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+		let font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+
+		// YUCK. TODO: find a way to use cells with vertically-centred text.
+		// Likely that means not using NSTextFieldCell.
+		return font.ascender - font.descender + 2.5
 	}
 
 	// MARK: - Machine builder

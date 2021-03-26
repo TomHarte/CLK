@@ -140,9 +140,9 @@ class MachineDocument:
 		let missingROMs = NSMutableArray()
 		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
 			self.machine = machine
-			setupMachineOutput()
 			setupActivityDisplay()
 			machine.setVolume(userDefaultsVolume())
+			setupMachineOutput()
 		} else {
 			// Store the selected machine and list of missing ROMs, and
 			// show the missing ROMs dialogue.
@@ -373,6 +373,10 @@ class MachineDocument:
 		self.configureAs(selectedMachine)
 	}
 
+	@IBAction func tableViewDoubleClick(_ sender: NSTableView?) {
+		createMachine(nil)
+	}
+
 	@IBAction func cancelCreateMachine(_ sender: NSButton?) {
 		close()
 	}
@@ -593,7 +597,7 @@ class MachineDocument:
 		return super.validateUserInterfaceItem(item)
 	}
 
-	/// Saves a screenshot of the
+	/// Saves a screenshot of the machine's current display.
 	@IBAction func saveScreenshot(_ sender: AnyObject!) {
 		// Grab a date formatter and form a file name.
 		let dateFormatter = DateFormatter()
@@ -602,8 +606,8 @@ class MachineDocument:
 
 		let filename = ("Clock Signal Screen Shot " + dateFormatter.string(from: Date()) + ".png").replacingOccurrences(of: "/", with: "-")
 			.replacingOccurrences(of: ":", with: ".")
-		let pictursURL = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask)[0]
-		let url = pictursURL.appendingPathComponent(filename)
+		let desktopURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0]
+		let url = desktopURL.appendingPathComponent(filename)
 
 		// Obtain the machine's current display.
 		let imageRepresentation = self.machine.imageRepresentation
