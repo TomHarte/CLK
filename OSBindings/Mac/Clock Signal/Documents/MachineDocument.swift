@@ -606,8 +606,8 @@ class MachineDocument:
 
 		let filename = ("Clock Signal Screen Shot " + dateFormatter.string(from: Date()) + ".png").replacingOccurrences(of: "/", with: "-")
 			.replacingOccurrences(of: ":", with: ".")
-		let desktopURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0]
-		let url = desktopURL.appendingPathComponent(filename)
+		let pictursURL = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask)[0]
+		let url = pictursURL.appendingPathComponent(filename)
 
 		// Obtain the machine's current display.
 		let imageRepresentation = self.machine.imageRepresentation
