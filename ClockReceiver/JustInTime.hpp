@@ -10,6 +10,7 @@
 #define JustInTime_h
 
 #include "../Concurrency/AsyncTaskQueue.hpp"
+#include "ClockingHintSource.hpp"
 #include "ForceInline.hpp"
 
 /*!
@@ -24,8 +25,13 @@
 
 	If the held object implements get_next_sequence_point() then it'll be used to flush implicitly
 	as and when sequence points are hit. Callers can use will_flush() to predict these.
+
+	If the held object is a subclass of ClockingHint::Source, this template will register as an
+	observer and potentially stop clocking or stop delaying clocking until just-in-time references
+	as directed.
 */
-template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class JustInTimeActor {
+template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class JustInTimeActor:
+	public ClockingHint::Observer {
 	private:
 		class SequencePointAwareDeleter {
 			public:
@@ -43,10 +49,20 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 
 	public:
 		/// Constructs a new JustInTimeActor using the same construction arguments as the included object.
-		template<typename... Args> JustInTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {}
+		template<typename... Args> JustInTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {
+			if constexpr (std::is_base_of<ClockingHint::Source, T>::value) {
+				object_.set_clocking_hint_observer(this);
+			}
+		}
 
 		/// Adds time to the actor.
 		forceinline void operator += (LocalTimeScale rhs) {
+			if constexpr (std::is_base_of<ClockingHint::Source, T>::value) {
+				if(clocking_preference_ == ClockingHint::Preference::None) {
+					return;
+				}
+			}
+
 			if constexpr (multiplier != 1) {
 				time_since_update_ += rhs * multiplier;
 			} else {
@@ -54,11 +70,17 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 			}
 			is_flushed_ = false;
 
+			if constexpr (std::is_base_of<ClockingHint::Source, T>::value) {
+				if (clocking_preference_ == ClockingHint::Preference::RealTime) {
+					flush();
+					return;
+				}
+			}
+
 			if constexpr (has_sequence_points<T>::value) {
 				time_until_event_ -= rhs;
 				if(time_until_event_ <= LocalTimeScale(0)) {
 					flush();
-					update_sequence_point();
 				}
 			}
 		}
@@ -149,6 +171,11 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 
 		template <typename S, typename = void> struct has_sequence_points : std::false_type {};
 		template <typename S> struct has_sequence_points<S, decltype(void(std::declval<S &>().get_next_sequence_point()))> : std::true_type {};
+
+		ClockingHint::Preference clocking_preference_ = ClockingHint::Preference::JustInTime;
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference clocking) {
+			clocking_preference_ = clocking;
+		}
 };
 
 /*!
