@@ -169,19 +169,21 @@ template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource
 	AY-deploying machines of the era.
 */
 struct Utility {
-	template <typename AY> static void select_register(AY &ay, uint8_t reg) {
-		ay.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2 | GI::AY38910::BC1));
-		ay.set_data_input(reg);
+	template <typename AY> static void write(AY &ay, bool is_data_write, uint8_t data) {
+		ay.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2 | (is_data_write ? 0 : GI::AY38910::BC1)));
+		ay.set_data_input(data);
 		ay.set_control_lines(GI::AY38910::ControlLines(0));
+	}
+
+	template <typename AY> static void select_register(AY &ay, uint8_t reg) {
+		write(ay, false, reg);
 	}
 
 	template <typename AY> static void write_data(AY &ay, uint8_t reg) {
-		ay.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2));
-		ay.set_data_input(reg);
-		ay.set_control_lines(GI::AY38910::ControlLines(0));
+		write(ay, true, reg);
 	}
 
-	template <typename AY> static uint8_t read_data(AY &ay) {
+	template <typename AY> static uint8_t read(AY &ay) {
 		ay.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
 		const uint8_t result = ay.get_data_output();
 		ay.set_control_lines(GI::AY38910::ControlLines(0));

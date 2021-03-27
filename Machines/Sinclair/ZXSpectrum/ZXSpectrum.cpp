@@ -336,7 +336,7 @@ template<Model model> class ConcreteMachine:
 					if((address & 0xc002) == 0xc000) {
 						// Read from AY register.
 						update_audio();
-						*cycle.value &= GI::AY38910::Utility::read_data(ay_);
+						*cycle.value &= GI::AY38910::Utility::read(ay_);
 					}
 
 					// Check for a floating bus read; these are particularly arcane

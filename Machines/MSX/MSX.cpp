@@ -525,9 +525,7 @@ class ConcreteMachine:
 
 							case 0xa2:
 								update_audio();
-								ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
-								*cycle.value = ay_.get_data_output();
-								ay_.set_control_lines(GI::AY38910::ControlLines(0));
+								*cycle.value = GI::AY38910::Utility::read(ay_);
 							break;
 
 							case 0xa8:	case 0xa9:
@@ -552,9 +550,7 @@ class ConcreteMachine:
 
 							case 0xa0:	case 0xa1:
 								update_audio();
-								ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2 | ((port == 0xa0) ? GI::AY38910::BC1 : 0)));
-								ay_.set_data_input(*cycle.value);
-								ay_.set_control_lines(GI::AY38910::ControlLines(0));
+								GI::AY38910::Utility::write(ay_, port == 0xa1, *cycle.value);
 							break;
 
 							case 0xa8:	case 0xa9:
