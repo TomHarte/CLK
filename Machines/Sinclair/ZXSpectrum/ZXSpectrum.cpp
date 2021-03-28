@@ -432,6 +432,7 @@ template<Model model> class ConcreteMachine:
 			// If there are any tapes supplied, use the first of them.
 			if(!media.tapes.empty()) {
 				tape_player_.set_tape(media.tapes.front());
+				set_use_fast_tape();
 			}
 
 			// Insert up to four disks.
