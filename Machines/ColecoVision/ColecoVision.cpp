@@ -287,9 +287,7 @@ class ConcreteMachine:
 									case 0x52:
 										// Read AY data.
 										update_audio();
-										ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
-										*cycle.value = ay_.get_data_output();
-										ay_.set_control_lines(GI::AY38910::ControlLines(0));
+										*cycle.value = GI::AY38910::Utility::read(ay_);
 									break;
 								}
 							break;
@@ -324,16 +322,12 @@ class ConcreteMachine:
 									case 0x50:
 										// Set AY address.
 										update_audio();
-										ay_.set_control_lines(GI::AY38910::BC1);
-										ay_.set_data_input(*cycle.value);
-										ay_.set_control_lines(GI::AY38910::ControlLines(0));
+										GI::AY38910::Utility::select_register(ay_, *cycle.value);
 									break;
 									case 0x51:
 										// Set AY data.
 										update_audio();
-										ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
-										ay_.set_data_input(*cycle.value);
-										ay_.set_control_lines(GI::AY38910::ControlLines(0));
+										GI::AY38910::Utility::write_data(ay_, *cycle.value);
 									break;
 									case 0x53:
 										super_game_module_.replace_ram = !!((*cycle.value)&0x1);

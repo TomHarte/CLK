@@ -472,22 +472,15 @@ template<bool is_zx81> class ConcreteMachine:
 		HalfCycles time_since_ay_update_;
 		inline void ay_set_register(uint8_t value) {
 			update_audio();
-			ay_.set_control_lines(GI::AY38910::BC1);
-			ay_.set_data_input(value);
-			ay_.set_control_lines(GI::AY38910::ControlLines(0));
+			GI::AY38910::Utility::select_register(ay_, value);
 		}
 		inline void ay_set_data(uint8_t value) {
 			update_audio();
-			ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
-			ay_.set_data_input(value);
-			ay_.set_control_lines(GI::AY38910::ControlLines(0));
+			GI::AY38910::Utility::write_data(ay_, value);
 		}
 		inline uint8_t ay_read_data() {
 			update_audio();
-			ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
-			const uint8_t value = ay_.get_data_output();
-			ay_.set_control_lines(GI::AY38910::ControlLines(0));
-			return value;
+			return GI::AY38910::Utility::read(ay_);
 		}
 		inline void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));

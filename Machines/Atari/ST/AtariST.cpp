@@ -347,18 +347,11 @@ class ConcreteMachine:
 							update_audio();
 
 							if(cycle.operation & Microcycle::Read) {
-								ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
-								cycle.set_value8_high(ay_.get_data_output());
-								ay_.set_control_lines(GI::AY38910::ControlLines(0));
+								cycle.set_value8_high(GI::AY38910::Utility::read(ay_));
 							} else {
 								// Net effect here: addresses with bit 1 set write to a register,
 								// addresses with bit 1 clear select a register.
-								ay_.set_control_lines(GI::AY38910::ControlLines(
-									GI::AY38910::BC2 | GI::AY38910::BDIR
-									| ((address&2) ? 0 : GI::AY38910::BC1)
-								));
-								ay_.set_data_input(cycle.value8_high());
-								ay_.set_control_lines(GI::AY38910::ControlLines(0));
+								GI::AY38910::Utility::write(ay_, address&2, cycle.value8_high());
 							}
 						return delay + HalfCycles(2);
 
