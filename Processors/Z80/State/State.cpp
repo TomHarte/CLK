@@ -19,6 +19,7 @@ State::State(const ProcessorBase &src): State() {
 	registers.bc = src.bc_.full;
 	registers.de = src.de_.full;
 	registers.hl = src.hl_.full;
+	registers.afDash = src.afDash_.full;
 	registers.bcDash = src.bcDash_.full;
 	registers.deDash = src.deDash_.full;
 	registers.hlDash = src.hlDash_.full;
@@ -107,6 +108,7 @@ void State::apply(ProcessorBase &target) {
 	target.bc_.full = registers.bc;
 	target.de_.full = registers.de;
 	target.hl_.full = registers.hl;
+	target.afDash_.full = registers.afDash;
 	target.bcDash_.full = registers.bcDash;
 	target.deDash_.full = registers.deDash;
 	target.hlDash_.full = registers.hlDash;
@@ -177,6 +179,7 @@ State::Registers::Registers() {
 		DeclareField(bc);
 		DeclareField(de);
 		DeclareField(hl);
+		DeclareField(afDash);
 		DeclareField(bcDash);
 		DeclareField(deDash);
 		DeclareField(hlDash);
