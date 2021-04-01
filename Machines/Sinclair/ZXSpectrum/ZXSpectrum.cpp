@@ -206,7 +206,11 @@ template<Model model> class ConcreteMachine:
 			// the read/write, then complete the bus cycle. Only via the 48/128k Spectrum contended
 			// timings am I now learning what happens with MREQ during extended read/write bus cycles
 			// (i.e. those longer than 3 cycles)
-			advance(cycle.length);
+			if(cycle.length > HalfCycles(5)) {
+				advance(HalfCycles(5));
+			} else {
+				advance(cycle.length);
+			}
 
 			switch(cycle.operation) {
 				default: break;
@@ -364,6 +368,9 @@ template<Model model> class ConcreteMachine:
 				break;
 			}
 
+			if(cycle.length > HalfCycles(5)) {
+				advance(cycle.length - HalfCycles(5));
+			}
 			return HalfCycles(0);
 		}
 
