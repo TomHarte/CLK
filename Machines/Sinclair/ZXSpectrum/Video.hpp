@@ -53,13 +53,13 @@ template <VideoTiming timing> class Video {
 			// Number of lines comprising a whole frame. Will be 311 or 312.
 			int lines_per_frame;
 
-			// Number of cycles after first pixel fetch at which interrupt is first signalled.
-			int interrupt_time;
-
 			// Number of cycles before first pixel fetch that contention starts to be applied.
 			int contention_leadin;
 			// Period in a line for which contention is applied.
 			int contention_duration;
+
+			// Number of cycles after first pixel fetch at which interrupt is first signalled.
+			int interrupt_time;
 
 			// Contention to apply, in half-cycles, as a function of number of half cycles since
 			// contention began.
