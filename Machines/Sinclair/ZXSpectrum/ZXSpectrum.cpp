@@ -185,24 +185,31 @@ template<Model model> class ConcreteMachine:
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
 
-			HalfCycles delay(0);
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
+			if(
+				is_contended_[address >> 14] &&
+				cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
+				cycle.operation <= PartialMachineCycle::WriteStart) {
+				// Apply contention if necessary.
+				//
+				// Assumption here: the trigger for the ULA inserting a delay is the falling edge
+				// of MREQ, which is always half a cycle into a read or write.
+				//
+				// TODO: somehow provide that information in the PartialMachineCycle?
+
+				const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
+				advance(cycle.length + delay);
+				return delay;
+			}
+
+			// TODO: for read/write this should advance only until the rising edge of MREQ, then do
+			// the read/write, then complete the bus cycle. Only via the 48/128k Spectrum contended
+			// timings am I now learning what happens with MREQ during extended read/write bus cycles
+			// (i.e. those longer than 3 cycles)
+			advance(cycle.length);
+
 			switch(cycle.operation) {
 				default: break;
-
-				case PartialMachineCycle::ReadOpcodeStart:
-				case PartialMachineCycle::ReadStart:
-				case PartialMachineCycle::WriteStart:
-					// Apply contention if necessary.
-					//
-					// Assumption here: the trigger for the ULA inserting a delay is the falling edge
-					// of MREQ, which is always half a cycle into a read or write.
-					//
-					// TODO: somehow provide that information in the PartialMachineCycle?
-					if(is_contended_[address >> 14]) {
-						delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
-					}
-				break;
 
 				case PartialMachineCycle::ReadOpcode:
 					// Fast loading: ROM version.
@@ -225,7 +232,7 @@ template<Model model> class ConcreteMachine:
 					*cycle.value = read_pointers_[address >> 14][address];
 
 					if(is_contended_[address >> 14]) {
-						video_.last_valid()->set_last_contended_area_access(*cycle.value);
+						video_->set_last_contended_area_access(*cycle.value);
 					}
 				break;
 
@@ -239,7 +246,7 @@ template<Model model> class ConcreteMachine:
 
 					// Fill the floating bus buffer if this write is within the contended area.
 					if(is_contended_[address >> 14]) {
-						video_.last_valid()->set_last_contended_area_access(*cycle.value);
+						video_->set_last_contended_area_access(*cycle.value);
 					}
 				break;
 
@@ -357,8 +364,7 @@ template<Model model> class ConcreteMachine:
 				break;
 			}
 
-			advance(cycle.length + delay);
-			return delay;
+			return HalfCycles(0);
 		}
 
 	private:
