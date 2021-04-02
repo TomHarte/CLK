@@ -24,7 +24,7 @@ It currently contains emulations of the:
 * Sinclair ZX80/81; and
 * Sinclair ZX Spectrum +2a/+3.
 
-## Single-click Loading
+## Single-step Loading
 
 Through static and runtime analysis CLK seeks automatically to select and configure the appropriate machine to run any provided disk, tape or ROM; to issue any commands necessary to run the software contained on the disk, tape or ROM; and to provide accelerated loading where feasible.
 
@@ -37,7 +37,7 @@ With CLK installed the full process of loading a piece of software — even if y
 
 So there's no need to wade through creating a new machine, inserting media into it or figuring out which loading command goes with this piece of software, and no import procedure — CLK does not attempt to take ownership of your files or to usurp your OS.
 
-Keep your emulated titles on your desktop, in your Dock, or wherever else you usually prefer to launch software from, and launch in a single step. Just like you'd expect from any other piece of desktop software.
+Keep your emulated titles on your desktop, in your dock, or wherever else you usually prefer to launch software from, and launch in a single step. Just like you'd expect from any other piece of desktop software.
 
 ## Signal Processing
 
