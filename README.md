@@ -28,10 +28,16 @@ It currently contains emulations of the:
 
 Through static and runtime analysis CLK seeks automatically to select and configure the appropriate machine to run any provided disk, tape or ROM; to issue any commands necessary to run the software contained on the disk, tape or ROM; and to provide accelerated loading where feasible.
 
-The full process of loading a title — even if you've never used the emulated machine before — is therefore:
+With CLK installed the full process of loading a piece of software — even if you've never used the machine it runs on before — is therefore:
 
 1. locate it in your OS;
 2. double click it.
+
+![Loading a piece of software](READMEImages/JustDoubleClick.gif)
+
+So there's no need to wade through creating a new machine, inserting media into it or figuring out which loading command goes with this piece of software, and no import procedure — CLK does not attempt to take ownership of your files or to usurp your OS.
+
+Keep your emulated titles on your desktop, in your Dock, or wherever else you usually prefer to launch software from, and launch in a single step. Just like you'd expect from any other piece of desktop software.
 
 ## Signal Processing
 
