@@ -75,20 +75,31 @@ struct PartialMachineCycle {
 		Output,
 		Interrupt,
 
+		// The two-cycle refresh part of an M1 cycle.
 		Refresh,
 		Internal,
 		BusAcknowledge,
 
+		// A WAIT-induced wait state within an M1 cycle.
 		ReadOpcodeWait,
+		// A WAIT-induced wait state within a read cycle.
 		ReadWait,
+		// A WAIT-induced wait state within a write cycle.
 		WriteWait,
+		// A WAIT-induced wait state within an input cycle.
 		InputWait,
+		// A WAIT-induced wait state within an output cycle.
 		OutputWait,
+		// A WAIT-induced wait state within an interrupt acknowledge cycle.
 		InterruptWait,
 
+		// The first 1.5 cycles of an M1 bus cycle, up to the sampling of WAIT.
 		ReadOpcodeStart,
+		// The first 1.5 cycles of a read cycle, up to the sampling of WAIT.
 		ReadStart,
+		// The first 1.5 cycles of a write cycle, up to the sampling of WAIT.
 		WriteStart,
+
 		InputStart,
 		OutputStart,
 		InterruptStart,
@@ -124,6 +135,127 @@ struct PartialMachineCycle {
 	forceinline bool is_wait() const {
 		return operation >= Operation::ReadOpcodeWait && operation <= Operation::InterruptWait;
 	}
+
+	enum Line {
+		CLK = 1 << 0,
+
+		MREQ = 1 << 1,
+		IOREQ = 1 << 2,
+
+		RD = 1 << 3,
+		WR = 1 << 4,
+		RFSH = 1 << 5,
+
+		M1 = 1 << 6,
+	};
+
+	/// @returns A C-style array of the bus state at the beginning of each half cycle in this
+	/// partial machine cycle. Each element is a combination of bit masks from the Line enum;
+	/// bit set means line active, bit clear means line inactive.
+	const uint8_t *bus_state() const {
+		switch(operation) {
+
+			//
+			// M1 cycle
+			//
+
+			case Operation::ReadOpcodeStart: {
+				static constexpr uint8_t states[] = {
+					Line::CLK |	Line::M1,
+								Line::M1 |	Line::MREQ |	Line::RD,
+					Line::CLK |	Line::M1 |	Line::MREQ |	Line::RD,
+				};
+				return states;
+			}
+
+			case Operation::ReadOpcode:
+			case Operation::ReadOpcodeWait: {
+				static constexpr uint8_t states[] = {
+								Line::M1 |	Line::MREQ |	Line::RD,
+					Line::CLK |	Line::M1 |	Line::MREQ |	Line::RD,
+				};
+				return states;
+			}
+
+			case Operation::Refresh: {
+				static constexpr uint8_t states[] = {
+					Line::CLK |	Line::RFSH,
+								Line::RFSH |	Line::MREQ,
+					Line::CLK |	Line::RFSH |	Line::MREQ,
+								Line::RFSH,
+					Line::CLK |	Line::RFSH,
+								Line::RFSH,
+				};
+				return states;
+			}
+
+			//
+			// Standard read/write cycle.
+			//
+
+			case Operation::ReadStart: {
+				static constexpr uint8_t states[] = {
+					Line::CLK,
+								Line::RD |	Line::MREQ,
+					Line::CLK |	Line::RD |	Line::MREQ,
+				};
+				return states;
+			}
+
+			case Operation::ReadWait: {
+				static constexpr uint8_t states[] = {
+								Line::MREQ |	Line::RD,
+					Line::CLK |	Line::MREQ |	Line::RD,
+								Line::MREQ |	Line::RD,
+					Line::CLK |	Line::MREQ |	Line::RD,
+								Line::MREQ |	Line::RD,
+					Line::CLK |	Line::MREQ |	Line::RD,
+				};
+				return states;
+			}
+
+			case Operation::Read: {
+				static constexpr uint8_t states[] = {
+								Line::MREQ |	Line::RD,
+					Line::CLK |	Line::MREQ |	Line::RD,
+								0,
+				};
+				return states;
+			}
+
+			// TODO: write, input, output, bus acknowledge, interrupt acknowledge
+
+			default: break;
+		}
+
+		static constexpr uint8_t none[] = {};
+		return none;
+	}
+
+	/// @returns The state of the MREQ line during this partial machine cycle.
+//	HalfCycles *mreq_spans() const {
+//		return nullptr;
+//		switch(operation) {
+//			default: return LineOutput();
+//
+//			case Operation::ReadOpcodeStart:
+//			case Operation::ReadStart:
+//			case Operation::WriteStart:
+//			return LineOutput(false, HalfCycles(1));
+//
+//			case Operation::ReadOpcode:
+//			return LineOutput(true, HalfCycles(1));
+//
+//			case Operation::Read:
+//			case Operation::Write:
+//			return LineOutput(true, HalfCycles(2));
+//
+//			case Operation::ReadOpcodeWait:
+//			case Operation::ReadWait:
+//			case Operation::WriteWait:
+//			return LineOutput(true);
+//		}
+//	}
 
 	PartialMachineCycle(const PartialMachineCycle &rhs) noexcept;
 	PartialMachineCycle(Operation operation, HalfCycles length, uint16_t *address, uint8_t *value, bool was_requested) noexcept;
