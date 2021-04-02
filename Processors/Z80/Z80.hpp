@@ -367,31 +367,6 @@ struct PartialMachineCycle {
 		return none;
 	}
 
-	/// @returns The state of the MREQ line during this partial machine cycle.
-//	HalfCycles *mreq_spans() const {
-//		return nullptr;
-//		switch(operation) {
-//			default: return LineOutput();
-//
-//			case Operation::ReadOpcodeStart:
-//			case Operation::ReadStart:
-//			case Operation::WriteStart:
-//			return LineOutput(false, HalfCycles(1));
-//
-//			case Operation::ReadOpcode:
-//			return LineOutput(true, HalfCycles(1));
-//
-//			case Operation::Read:
-//			case Operation::Write:
-//			return LineOutput(true, HalfCycles(2));
-//
-//			case Operation::ReadOpcodeWait:
-//			case Operation::ReadWait:
-//			case Operation::WriteWait:
-//			return LineOutput(true);
-//		}
-//	}
-
 	PartialMachineCycle(const PartialMachineCycle &rhs) noexcept;
 	PartialMachineCycle(Operation operation, HalfCycles length, uint16_t *address, uint8_t *value, bool was_requested) noexcept;
 	PartialMachineCycle() noexcept;
