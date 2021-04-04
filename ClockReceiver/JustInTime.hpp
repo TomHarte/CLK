@@ -207,7 +207,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 };
 
 /*!
-	A AsyncJustInTimeActor acts like a JustInTimeActor but additionally contains an AsyncTaskQueue.
+	An AsyncJustInTimeActor acts like a JustInTimeActor but additionally contains an AsyncTaskQueue.
 	Any time the amount of accumulated time crosses a threshold provided at construction time,
 	the object will be updated on the AsyncTaskQueue.
 */
