@@ -185,12 +185,12 @@ template<Model model> class ConcreteMachine:
 			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
 
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
+
+			// Apply contention if necessary.
 			if(
 				is_contended_[address >> 14] &&
 				cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
 				cycle.operation <= PartialMachineCycle::WriteStart) {
-				// Apply contention if necessary.
-				//
 				// Assumption here: the trigger for the ULA inserting a delay is the falling edge
 				// of MREQ, which is always half a cycle into a read or write.
 				//
@@ -201,15 +201,9 @@ template<Model model> class ConcreteMachine:
 				return delay;
 			}
 
-			// TODO: for read/write this should advance only until the rising edge of MREQ, then do
-			// the read/write, then complete the bus cycle. Only via the 48/128k Spectrum contended
-			// timings am I now learning what happens with MREQ during extended read/write bus cycles
-			// (i.e. those longer than 3 cycles)
-			if(cycle.length > HalfCycles(3)) {
-				advance(HalfCycles(3));
-			} else {
-				advance(cycle.length);
-			}
+			// For all other machine cycles, model the action as happening at the end of the machine cycle;
+			// that means advancing time now.
+			advance(cycle.length);
 
 			switch(cycle.operation) {
 				default: break;
@@ -367,9 +361,6 @@ template<Model model> class ConcreteMachine:
 				break;
 			}
 
-			if(cycle.length > HalfCycles(3)) {
-				advance(cycle.length - HalfCycles(3));
-			}
 			return HalfCycles(0);
 		}
 
