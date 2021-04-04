@@ -29,15 +29,30 @@
 	If the held object is a subclass of ClockingHint::Source, this template will register as an
 	observer and potentially stop clocking or stop delaying clocking until just-in-time references
 	as directed.
+
+	TODO: can TargetTimeScale be inferred from the argument type of T::run_for?
+
+	TODO: incorporate and codify AsyncJustInTimeActor.
 */
 template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class JustInTimeActor:
 	public ClockingHint::Observer {
 	private:
+		/*!
+			A std::unique_ptr deleter which causes an update_sequence_point to occur on the actor supplied
+			to it at construction if it implements get_next_sequence_point(). Otherwise destruction is a no-op.
+
+			**Does not delete the object.**
+
+			This is used by the -> operators below, which provide a unique pointer to the enclosed object and
+			update their sequence points upon its destruction — i.e. after the caller has made whatever call
+			or calls as were relevant to the enclosed object.
+		*/
 		class SequencePointAwareDeleter {
 			public:
-				explicit SequencePointAwareDeleter(JustInTimeActor<T, multiplier, divider, LocalTimeScale, TargetTimeScale> *actor) : actor_(actor) {}
+				explicit SequencePointAwareDeleter(JustInTimeActor<T, multiplier, divider, LocalTimeScale, TargetTimeScale> *actor) noexcept
+					: actor_(actor) {}
 
-				void operator ()(const T *const) const {
+				forceinline void operator ()(const T *const) const {
 					if constexpr (has_sequence_points<T>::value) {
 						actor_->update_sequence_point();
 					}
