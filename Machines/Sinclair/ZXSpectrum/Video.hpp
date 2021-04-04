@@ -88,19 +88,14 @@ template <VideoTiming timing> class Video {
 				.cycles_per_line = 228 * 2,
 				.lines_per_frame = 311,
 
-				// i.e. video fetching begins five cycles after the start of the
+				// i.e. video fetching begins six cycles after the start of the
 				// contended memory pattern below; that should put a clear two
 				// cycles between a Z80 access and the first video fetch.
-				.contention_leadin = 5 * 2,
+				.contention_leadin = 6 * 2,
 				.contention_duration = 129 * 2,
 
-				// i.e. interrupt is first signalled
-				// 311*228 - 5 - 56543 = 14364 cycles before the beginning of
-				// contended accesses.
-				//
-				// (which, as above, include a bit of guesswork as to the meaning of
-				// 'time since interrupt' in the commonly-cited documentation)
-				.interrupt_time = 56543 * 2,
+				// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
+				.interrupt_time = (228*311 - 14368) * 2,
 
 				.delays = {
 					2, 1,
