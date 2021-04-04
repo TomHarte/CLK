@@ -664,7 +664,7 @@ template<Model model> class ConcreteMachine:
 		}
 
 		// MARK: - Disc.
-		JustInTimeActor<Amstrad::FDC, 1, 1, Cycles> fdc_;
+		JustInTimeActor<Amstrad::FDC, Cycles> fdc_;
 
 		// MARK: - Automatic startup.
 		Cycles duration_to_press_enter_;

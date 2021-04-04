@@ -32,7 +32,7 @@
 
 	TODO: incorporate and codify AsyncJustInTimeActor.
 */
-template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles> class JustInTimeActor:
+template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int divider = 1> class JustInTimeActor:
 	public ClockingHint::Observer {
 	private:
 		/*!
@@ -47,7 +47,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		*/
 		class SequencePointAwareDeleter {
 			public:
-				explicit SequencePointAwareDeleter(JustInTimeActor<T, multiplier, divider, LocalTimeScale> *actor) noexcept
+				explicit SequencePointAwareDeleter(JustInTimeActor<T, LocalTimeScale, multiplier, divider> *actor) noexcept
 					: actor_(actor) {}
 
 				forceinline void operator ()(const T *const) const {
@@ -57,7 +57,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 				}
 
 			private:
-				JustInTimeActor<T, multiplier, divider, LocalTimeScale> *const actor_;
+				JustInTimeActor<T, LocalTimeScale, multiplier, divider> *const actor_;
 		};
 
 		// This block of SFINAE determines whether objects of type T accepts Cycles or HalfCycles.
@@ -126,7 +126,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		///
 		/// Despite being const, this will flush the object and, if relevant, update the next sequence point.
 		[[nodiscard]] forceinline auto operator -> () const {
-			auto non_const_this = const_cast<JustInTimeActor<T, multiplier, divider, LocalTimeScale> *>(this);
+			auto non_const_this = const_cast<JustInTimeActor<T, LocalTimeScale, multiplier, divider> *>(this);
 			non_const_this->flush();
 			return std::unique_ptr<const T, SequencePointAwareDeleter>(&object_, SequencePointAwareDeleter(non_const_this));
 		}
