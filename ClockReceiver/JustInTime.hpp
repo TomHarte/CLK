@@ -30,11 +30,9 @@
 	observer and potentially stop clocking or stop delaying clocking until just-in-time references
 	as directed.
 
-	TODO: can TargetTimeScale be inferred from the argument type of T::run_for?
-
 	TODO: incorporate and codify AsyncJustInTimeActor.
 */
-template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class JustInTimeActor:
+template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles> class JustInTimeActor:
 	public ClockingHint::Observer {
 	private:
 		/*!
@@ -49,7 +47,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		*/
 		class SequencePointAwareDeleter {
 			public:
-				explicit SequencePointAwareDeleter(JustInTimeActor<T, multiplier, divider, LocalTimeScale, TargetTimeScale> *actor) noexcept
+				explicit SequencePointAwareDeleter(JustInTimeActor<T, multiplier, divider, LocalTimeScale> *actor) noexcept
 					: actor_(actor) {}
 
 				forceinline void operator ()(const T *const) const {
@@ -59,8 +57,18 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 				}
 
 			private:
-				JustInTimeActor<T, multiplier, divider, LocalTimeScale, TargetTimeScale> *const actor_;
+				JustInTimeActor<T, multiplier, divider, LocalTimeScale> *const actor_;
 		};
+
+		// This block of SFINAE determines whether objects of type T accepts Cycles or HalfCycles.
+		using HalfRunFor = void (T::*const)(HalfCycles);
+		static uint8_t half_sig(...);
+		static uint16_t half_sig(HalfRunFor);
+		using TargetTimeScale =
+			std::conditional_t<
+				sizeof(half_sig(&T::run_for)) == sizeof(uint16_t),
+				HalfCycles,
+				Cycles>;
 
 	public:
 		/// Constructs a new JustInTimeActor using the same construction arguments as the included object.
@@ -118,7 +126,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		///
 		/// Despite being const, this will flush the object and, if relevant, update the next sequence point.
 		[[nodiscard]] forceinline auto operator -> () const {
-			auto non_const_this = const_cast<JustInTimeActor<T, multiplier, divider, LocalTimeScale, TargetTimeScale> *>(this);
+			auto non_const_this = const_cast<JustInTimeActor<T, multiplier, divider, LocalTimeScale> *>(this);
 			non_const_this->flush();
 			return std::unique_ptr<const T, SequencePointAwareDeleter>(&object_, SequencePointAwareDeleter(non_const_this));
 		}
