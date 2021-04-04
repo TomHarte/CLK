@@ -1093,10 +1093,10 @@ class ConcreteMachine:
 		// MARK: - Other components.
 
 		Apple::Clock::ParallelClock clock_;
-		JustInTimeActor<Apple::IIgs::Video::Video, 1, 2, Cycles> video_;	// i.e. run video at 7Mhz.
-		JustInTimeActor<Apple::IIgs::ADB::GLU, 1, 4, Cycles> adb_glu_;		// i.e. 3,579,545Mhz.
+		JustInTimeActor<Apple::IIgs::Video::Video, Cycles, 1, 2> video_;	// i.e. run video at 7Mhz.
+		JustInTimeActor<Apple::IIgs::ADB::GLU, Cycles, 1, 4> adb_glu_;		// i.e. 3,579,545Mhz.
  		Zilog::SCC::z8530 scc_;
- 		JustInTimeActor<Apple::IWM, 1, 2, Cycles> iwm_;
+ 		JustInTimeActor<Apple::IWM, Cycles, 1, 2> iwm_;
  		Cycles cycles_since_clock_tick_;
 		Apple::Macintosh::DoubleDensityDrive drives35_[2];
 		Apple::Disk::DiskIIDrive drives525_[2];

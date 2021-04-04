@@ -234,7 +234,23 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 
 void VideoOutput::run_for(const Cycles cycles) {
 	int number_of_cycles = int(cycles.as_integral());
+	const auto start_position = output_position_;
 	output_position_ = (output_position_ + number_of_cycles) % cycles_per_frame;
+
+	if(
+		(start_position < real_time_clock_interrupt_1 && output_position_ >= real_time_clock_interrupt_1) ||
+		(start_position < real_time_clock_interrupt_2 && output_position_ >= real_time_clock_interrupt_2)
+	) {
+		interrupts_ = Electron::Interrupt(interrupts_ | Electron::Interrupt::RealTimeClock);
+	}
+
+	if(
+		(start_position < display_end_interrupt_1 && output_position_ >= display_end_interrupt_1) ||
+		(start_position < display_end_interrupt_2 && output_position_ >= display_end_interrupt_2)
+	) {
+		interrupts_ = Electron::Interrupt(interrupts_ | Electron::Interrupt::DisplayEnd);
+	}
+
 	while(number_of_cycles) {
 		int draw_action_length = screen_map_[screen_map_pointer_].length;
 		int time_left_in_action = std::min(number_of_cycles, draw_action_length - cycles_into_draw_action_);
@@ -354,36 +370,30 @@ void VideoOutput::setup_base_address() {
 
 // MARK: - Interrupts
 
-VideoOutput::Interrupt VideoOutput::get_next_interrupt() {
-	VideoOutput::Interrupt interrupt;
-
+Cycles VideoOutput::get_next_sequence_point() {
 	if(output_position_ < real_time_clock_interrupt_1) {
-		interrupt.cycles = real_time_clock_interrupt_1 - output_position_;
-		interrupt.interrupt = RealTimeClock;
-		return interrupt;
+		return real_time_clock_interrupt_1 - output_position_;
 	}
 
 	if(output_position_ < display_end_interrupt_1) {
-		interrupt.cycles = display_end_interrupt_1 - output_position_;
-		interrupt.interrupt = DisplayEnd;
-		return interrupt;
+		return display_end_interrupt_1 - output_position_;
 	}
 
 	if(output_position_ < real_time_clock_interrupt_2) {
-		interrupt.cycles = real_time_clock_interrupt_2 - output_position_;
-		interrupt.interrupt = RealTimeClock;
-		return interrupt;
+		return real_time_clock_interrupt_2 - output_position_;
 	}
 
 	if(output_position_ < display_end_interrupt_2) {
-		interrupt.cycles = display_end_interrupt_2 - output_position_;
-		interrupt.interrupt = DisplayEnd;
-		return interrupt;
+		return display_end_interrupt_2 - output_position_;
 	}
 
-	interrupt.cycles = real_time_clock_interrupt_1 + cycles_per_frame - output_position_;
-	interrupt.interrupt = RealTimeClock;
-	return interrupt;
+	return real_time_clock_interrupt_1 + cycles_per_frame - output_position_;
+}
+
+Electron::Interrupt VideoOutput::get_interrupts() {
+	const auto interrupts = interrupts_;
+	interrupts_ = Electron::Interrupt(0);
+	return interrupts;
 }
 
 // MARK: - RAM timing and access information

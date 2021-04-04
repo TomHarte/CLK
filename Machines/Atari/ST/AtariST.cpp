@@ -479,9 +479,9 @@ class ConcreteMachine:
 		JustInTimeActor<Video> video_;
 
 		// The MFP runs at 819200/2673749ths of the CPU clock rate.
-		JustInTimeActor<Motorola::MFP68901::MFP68901, 819200, 2673749> mfp_;
-		JustInTimeActor<Motorola::ACIA::ACIA, 16> keyboard_acia_;
-		JustInTimeActor<Motorola::ACIA::ACIA, 16> midi_acia_;
+		JustInTimeActor<Motorola::MFP68901::MFP68901, HalfCycles, 819200, 2673749> mfp_;
+		JustInTimeActor<Motorola::ACIA::ACIA, HalfCycles, 16> keyboard_acia_;
+		JustInTimeActor<Motorola::ACIA::ACIA, HalfCycles, 16> midi_acia_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910<false> ay_;
