@@ -363,8 +363,7 @@ struct PartialMachineCycle {
 			default: break;
 		}
 
-		static constexpr uint8_t none[] = {};
-		return none;
+		return nullptr;
 	}
 
 	PartialMachineCycle(const PartialMachineCycle &rhs) noexcept;
