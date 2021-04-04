@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <cmath>
 
+#define LOG_PREFIX "[UEF] "
 #include "../../../Outputs/Log.hpp"
 
 // MARK: - ZLib extensions
@@ -155,7 +156,7 @@ void UEF::get_next_pulses() {
 			break;
 
 			default:
-				LOG("!!! Skipping " << std::hex << next_chunk.id << std::endl);
+				LOG("Skipping chunk of type " << PADHEX(4) << next_chunk.id);
 			break;
 		}
 
