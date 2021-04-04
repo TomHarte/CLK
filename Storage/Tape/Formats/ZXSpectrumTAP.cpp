@@ -38,7 +38,7 @@ ZXSpectrumTAP::ZXSpectrumTAP(const std::string &file_name) :
 }
 
 bool ZXSpectrumTAP::is_at_end() {
-	return file_.tell() == file_.stats().st_size;
+	return file_.tell() == file_.stats().st_size && phase_ == Phase::Gap;
 }
 
 void ZXSpectrumTAP::virtual_reset() {
@@ -111,7 +111,7 @@ Tape::Pulse ZXSpectrumTAP::virtual_get_next_pulse() {
 }
 
 void ZXSpectrumTAP::read_next_block() {
-	if(is_at_end()) {
+	if(file_.tell() == file_.stats().st_size) {
 		phase_ = Phase::Gap;
 	} else {
 		block_length_ = file_.get16le();
