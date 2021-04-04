@@ -85,7 +85,6 @@ template<Model model> class ConcreteMachine:
 			memcpy(rom_.data(), roms[0]->data(), std::min(rom_.size(), roms[0]->size()));
 
 			// Register for sleeping notifications.
-			fdc_->set_clocking_hint_observer(this);
 			tape_player_.set_clocking_hint_observer(this);
 
 			// Set up initial memory map.
@@ -397,7 +396,7 @@ template<Model model> class ConcreteMachine:
 			}
 
 			if constexpr (model == Model::Plus3) {
-				if(!fdc_is_sleeping_) fdc_ += Cycles(duration.as_integral());
+				fdc_ += Cycles(duration.as_integral());
 			}
 
 			if(typer_) typer_->run_for(duration);
@@ -462,7 +461,6 @@ template<Model model> class ConcreteMachine:
 		// MARK: - ClockingHint::Observer.
 
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) override {
-			fdc_is_sleeping_ = fdc_.last_valid()->preferred_clocking() == ClockingHint::Preference::None;
 			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 		}
 
@@ -679,8 +677,7 @@ template<Model model> class ConcreteMachine:
 		}
 
 		// MARK: - Disc.
-		JustInTimeActor<Amstrad::FDC, 1, 1, Cycles> fdc_;
-		bool fdc_is_sleeping_ = false;
+		JustInTimeActor<Amstrad::FDC, Cycles> fdc_;
 
 		// MARK: - Automatic startup.
 		Cycles duration_to_press_enter_;
