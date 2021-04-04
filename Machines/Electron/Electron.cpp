@@ -427,14 +427,14 @@ template <bool has_scsi_bus> class ConcreteMachine:
 										(address == 0xf0a8)								// 0xf0a8 is from where a service call would normally be
 																						// dispatched; we can check whether it would be call 14
 																						// (i.e. read byte) and, if so, whether the OS was about to
-																						// issue a read byte call to a ROM despite being the tape
+																						// issue a read byte call to a ROM despite the tape
 																						// FS being selected. If so then this is a get byte that
 																						// we should service synthetically. Put the byte into Y
 																						// and set A to zero to report that action was taken, then
 																						// allow the PC read to return an RTS.
 									)
 								) {
-									uint8_t service_call = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
+									const auto service_call = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
 									if(address == 0xf0a8) {
 										if(!ram_[0x247] && service_call == 14) {
 											tape_.set_delegate(nullptr);
@@ -443,7 +443,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 											tape_.clear_interrupts(Interrupt::ReceiveDataFull);
 											while(!tape_.get_tape()->is_at_end()) {
 												tape_.run_for_input_pulse();
-												cycles_left_while_plausibly_in_data--;
+												--cycles_left_while_plausibly_in_data;
 												if(!cycles_left_while_plausibly_in_data) fast_load_is_in_data_ = false;
 												if(	(tape_.get_interrupt_status() & Interrupt::ReceiveDataFull) &&
 													(fast_load_is_in_data_ || tape_.get_data_register() == 0x2a)
