@@ -50,7 +50,7 @@ struct Struct {
 		@returns A string describing this struct. This string has no guaranteed layout, may not be
 			sufficiently formed for a formal language parser, etc.
 	*/
-	std::string description() const;
+	std::string description(bool use_pretty_names = true) const;
 
 	/*!
 		Serialises this struct in BSON format.
@@ -83,7 +83,7 @@ struct Struct {
 	virtual bool should_serialise([[maybe_unused]] const std::string &key) const { return true; }
 
 	private:
-		void append(std::ostringstream &stream, const std::string &key, const std::type_info *type, size_t offset) const;
+		void append(std::ostringstream &stream, const std::string &key, const std::type_info *type, size_t offset, bool use_pretty_names) const;
 		bool deserialise(const uint8_t *bson, size_t size);
 };
 
