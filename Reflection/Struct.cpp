@@ -205,6 +205,7 @@ void Reflection::Struct::append(std::ostringstream &stream, const std::string &k
 
 std::string Reflection::Struct::description() const {
 	std::ostringstream stream;
+	const auto name_map = pretty_names();
 
 	stream << "{";
 
@@ -212,7 +213,10 @@ std::string Reflection::Struct::description() const {
 	for(const auto &key: all_keys()) {
 		if(!is_first) stream << ", ";
 		is_first = false;
-		stream << key << ": ";
+
+		// Use the pretty name for this key, if defined.
+		const auto mapped_key = name_map.find(key);
+		stream << (mapped_key != name_map.end() ? mapped_key->second : key) << ": ";
 
 		const auto count = count_of(key);
 		const auto type = type_of(key);

@@ -27,6 +27,14 @@ namespace Reflection {
 #define DeclareField(Name) declare(&Name, #Name)
 
 struct Struct {
+	/*!
+		Maps from internal key names to more human-friendly ones; e.g. might contain
+		a mapping from afDash to af'.
+	*/
+	virtual std::unordered_map<std::string, std::string> pretty_names() const {
+		return {};
+	}
+
 	virtual std::vector<std::string> all_keys() const = 0;
 	virtual const std::type_info *type_of(const std::string &name) const = 0;
 	virtual size_t count_of(const std::string &name) const = 0;

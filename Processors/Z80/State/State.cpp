@@ -195,6 +195,18 @@ State::Registers::Registers() {
 	}
 }
 
+std::unordered_map<std::string, std::string> State::Registers::pretty_names() const {
+	return {
+		{ "afDash", "af'" },
+		{ "bcDash", "bc'" },
+		{ "deDash", "de'" },
+		{ "hlDash", "hl'" },
+		{ "program_counter", "pc" },
+		{ "stack_pointer", "sp" },
+		{ "interrupt_mode", "im" },
+	};
+}
+
 State::ExecutionState::ExecutionState() {
 	if(needs_declare()) {
 		DeclareField(is_halted);
