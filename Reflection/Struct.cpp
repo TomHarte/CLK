@@ -212,6 +212,7 @@ std::string Reflection::Struct::description() const {
 	for(const auto &key: all_keys()) {
 		if(!is_first) stream << ", ";
 		is_first = false;
+
 		stream << key << ": ";
 
 		const auto count = count_of(key);

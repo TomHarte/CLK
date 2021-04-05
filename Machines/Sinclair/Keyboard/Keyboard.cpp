@@ -72,7 +72,7 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 #define SHIFT(...)		{KeyShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define SYMSHIFT(...)	{KeySymbolShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define X				{MachineTypes::MappedKeyboardMachine::KeyNotMapped}
-	constexpr KeySequence spectrum_key_sequences[] = {
+	static constexpr KeySequence spectrum_key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,
 		/* EOT */	X,							/* ENQ */	X,
@@ -137,7 +137,7 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 		/* z */		KEYS(KeyZ),
 	};
 
-	constexpr KeySequence zx81_key_sequences[] = {
+	static constexpr KeySequence zx81_key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,
 		/* EOT */	X,							/* ENQ */	X,
@@ -203,7 +203,7 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 		/* | */		X,							/* } */		X,
 	};
 
-	static KeySequence zx80_key_sequences[] = {
+	static constexpr KeySequence zx80_key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,
 		/* EOT */	X,							/* ENQ */	X,
