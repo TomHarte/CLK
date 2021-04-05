@@ -34,6 +34,8 @@
 
 #include "../../Analyser/Static/Oric/Target.hpp"
 
+#include "../../ClockReceiver/JustInTime.hpp"
+
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -217,7 +219,6 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public DiskController::Delegate,
-	public ClockingHint::Observer,
 	public Activity::Source,
 	public Machine,
 	public Keyboard::SpecialKeyHandler {
@@ -225,7 +226,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 	public:
 		ConcreteMachine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 				m6502_(*this),
-				video_output_(ram_),
+				video_(ram_),
 				ay8910_(GI::AY38910::Personality::AY38910, audio_queue_),
 				speaker_(ay8910_),
 				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),
@@ -245,10 +246,6 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 			Memory::Fuzz(ram_, sizeof(ram_));
 			for(size_t c = 0; c < sizeof(ram_); ++c) {
 				ram_[c] |= 0x40;
-			}
-
-			if constexpr (disk_interface == DiskInterface::Pravetz) {
-				diskii_.set_clocking_hint_observer(this);
 			}
 
 			const std::string machine_name = "Oric";
@@ -292,7 +289,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 				}
 			}
 
-			video_output_.set_colour_rom(*roms[0]);
+			video_->set_colour_rom(*roms[0]);
 			rom_ = std::move(*roms[1]);
 
 			switch(disk_interface) {
@@ -313,7 +310,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 					pravetz_rom_ = std::move(*roms[2]);
 					pravetz_rom_.resize(512);
 
-					diskii_.set_state_machine(*roms[diskii_state_machine_index]);
+					diskii_->set_state_machine(*roms[diskii_state_machine_index]);
 				} break;
 			}
 
@@ -402,7 +399,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 					case DiskInterface::BD500:		inserted |= insert_disks(media, bd500_, 4);		break;
 					case DiskInterface::Jasmin:		inserted |= insert_disks(media, jasmin_, 4);	break;
 					case DiskInterface::Microdisc:	inserted |= insert_disks(media, microdisc_, 4);	break;
-					case DiskInterface::Pravetz:	inserted |= insert_disks(media, diskii_, 2);	break;
+					case DiskInterface::Pravetz:	inserted |= insert_disks(media, *diskii_.last_valid(), 2);	break;
 					default: break;
 				}
 			}
@@ -474,9 +471,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 										}
 									}
 								} else {
-									flush_diskii();
-									const int disk_value = diskii_.read_address(address);
-									if(!isWriteOperation(operation) && disk_value != diskii_.DidNotLoad) *value = uint8_t(disk_value);
+									const int disk_value = diskii_->read_address(address);
+									if(!isWriteOperation(operation) && disk_value != Apple::DiskII::DidNotLoad) *value = uint8_t(disk_value);
 								}
 							break;
 						}
@@ -485,7 +481,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 					if(!isWriteOperation(operation))
 						*value = ram_[address];
 					else {
-						if(address >= 0x9800 && address <= 0xc000) update_video();
+						if(address >= 0x9800 && address <= 0xc000) video_.flush();
 						ram_[address] = *value;
 					}
 				}
@@ -508,7 +504,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 					bd500_.run_for(Cycles(9));		// i.e. effective clock rate of 9Mhz.
 				break;
 				case DiskInterface::Jasmin:
-					jasmin_.run_for(Cycles(8));;	// i.e. effective clock rate of 8Mhz.
+					jasmin_.run_for(Cycles(8));		// i.e. effective clock rate of 8Mhz.
 
 					// Jasmin autostart hack: wait for a period, then trigger a reset, having forced
 					// the Jasmin to page its ROM in first. I assume the latter being what the Jasmin's
@@ -521,43 +517,41 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 					}
 				break;
 				case DiskInterface::Microdisc:
-					microdisc_.run_for(Cycles(8));;	// i.e. effective clock rate of 8Mhz.
+					microdisc_.run_for(Cycles(8));	// i.e. effective clock rate of 8Mhz.
 				break;
 				case DiskInterface::Pravetz:
-					if(diskii_clocking_preference_ == ClockingHint::Preference::RealTime) {
-						diskii_.set_data_input(*value);
-						diskii_.run_for(Cycles(2));;	// i.e. effective clock rate of 2Mhz.
-					} else {
-						cycles_since_diskii_update_ += Cycles(2);
+					if(diskii_.clocking_preference() == ClockingHint::Preference::RealTime) {
+						diskii_->set_data_input(*value);
 					}
+					diskii_ += Cycles(2);		// i.e. effective clock rate of 2Mhz.
 				break;
 			}
-			cycles_since_video_update_++;
 
+			video_ += Cycles(1);
 			return Cycles(1);
 		}
 
 		forceinline void flush() {
-			update_video();
+			video_.flush();
 			via_.flush();
-			flush_diskii();
+			diskii_.flush();
 		}
 
 		// to satisfy CRTMachine::Machine
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
-			video_output_.set_scan_target(scan_target);
+			video_.last_valid()->set_scan_target(scan_target);
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-			return video_output_.get_scaled_scan_status();
+			return video_.last_valid()->get_scaled_scan_status();
 		}
 
 		void set_display_type(Outputs::Display::DisplayType display_type) final {
-			video_output_.set_display_type(display_type);
+			video_.last_valid()->set_display_type(display_type);
 		}
 
 		Outputs::Display::DisplayType get_display_type() const final {
-			return video_output_.get_display_type();
+			return video_.last_valid()->get_display_type();
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
@@ -644,13 +638,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 					microdisc_.set_activity_observer(observer);
 				break;
 				case DiskInterface::Pravetz:
-					diskii_.set_activity_observer(observer);
+					diskii_->set_activity_observer(observer);
 				break;
 			}
-		}
-
-		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final {
-			diskii_clocking_preference_ = diskii_.preferred_clocking();
 		}
 
 	private:
@@ -662,17 +652,13 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 		// RAM and ROM
 		std::vector<uint8_t> rom_, disk_rom_;
 		uint8_t ram_[65536];
-		Cycles cycles_since_video_update_;
-		inline void update_video() {
-			video_output_.run_for(cycles_since_video_update_.flush<Cycles>());
-		}
 
 		// ROM bookkeeping
 		uint16_t tape_get_byte_address_ = 0, tape_speed_address_ = 0;
 		int keyboard_read_count_ = 0;
 
 		// Outputs
-		VideoOutput video_output_;
+		JustInTimeActor<VideoOutput, Cycles> video_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910<false> ay8910_;
@@ -700,14 +686,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 		BD500 bd500_;
 
 		// the Pravetz/Disk II, if in use.
-		Apple::DiskII diskii_;
-		Cycles cycles_since_diskii_update_;
-		void flush_diskii() {
-			diskii_.run_for(cycles_since_diskii_update_.flush<Cycles>());
-		}
+		JustInTimeActor<Apple::DiskII, Cycles> diskii_;
 		std::vector<uint8_t> pravetz_rom_;
 		std::size_t pravetz_rom_base_pointer_ = 0;
-		ClockingHint::Preference diskii_clocking_preference_ = ClockingHint::Preference::RealTime;
 
 		// Overlay RAM
 		uint16_t ram_top_ = basic_visible_ram_top_;

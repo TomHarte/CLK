@@ -136,6 +136,11 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 			return &object_;
 		}
 
+		/// @returns a const pointer to the included object, without flushing time.
+		[[nodiscard]] forceinline const T *last_valid() const {
+			return &object_;
+		}
+
 		/// @returns the amount of time since the object was last flushed, in the target time scale.
 		[[nodiscard]] forceinline TargetTimeScale time_since_flush() const {
 			// TODO: does this handle conversions properly where TargetTimeScale != LocalTimeScale?
@@ -189,6 +194,11 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 				time_until_event_ = object_.get_next_sequence_point();
 				assert(time_until_event_ > LocalTimeScale(0));
 			}
+		}
+
+		/// @returns A cached copy of the object's clocking preference.
+		ClockingHint::Preference clocking_preference() const {
+			return clocking_preference_;
 		}
 
 	private:
