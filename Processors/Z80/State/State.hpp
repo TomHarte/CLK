@@ -38,8 +38,6 @@ struct State: public Reflection::StructImpl<State> {
 		int interrupt_mode;
 		bool iff1, iff2;
 
-		std::unordered_map<std::string, std::string> pretty_names() const override;
-
 		Registers();
 	} registers;
 

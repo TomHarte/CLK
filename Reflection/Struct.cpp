@@ -159,7 +159,7 @@ bool Reflection::fuzzy_set(Struct &target, const std::string &name, const std::s
 
 // MARK: - Description
 
-void Reflection::Struct::append(std::ostringstream &stream, const std::string &key, const std::type_info *const type, size_t offset, bool use_pretty_names) const {
+void Reflection::Struct::append(std::ostringstream &stream, const std::string &key, const std::type_info *const type, size_t offset) const {
 	// Output Bools as yes/no.
 	if(*type == typeid(bool)) {
 		stream << ::Reflection::get<bool>(*this, key, offset);
@@ -198,14 +198,13 @@ void Reflection::Struct::append(std::ostringstream &stream, const std::string &k
 	// Recurse to deal with embedded objects.
 	if(*type == typeid(Reflection::Struct)) {
 		const Reflection::Struct *const child = reinterpret_cast<const Reflection::Struct *>(get(key));
-		stream << child->description(use_pretty_names);
+		stream << child->description();
 		return;
 	}
 }
 
-std::string Reflection::Struct::description(bool use_pretty_names) const {
+std::string Reflection::Struct::description() const {
 	std::ostringstream stream;
-	const auto name_map = pretty_names();
 
 	stream << "{";
 
@@ -214,9 +213,7 @@ std::string Reflection::Struct::description(bool use_pretty_names) const {
 		if(!is_first) stream << ", ";
 		is_first = false;
 
-		// Use the pretty name for this key, if defined.
-		const auto mapped_key = name_map.find(key);
-		stream << (use_pretty_names && mapped_key != name_map.end() ? mapped_key->second : key) << ": ";
+		stream << key << ": ";
 
 		const auto count = count_of(key);
 		const auto type = type_of(key);
@@ -226,7 +223,7 @@ std::string Reflection::Struct::description(bool use_pretty_names) const {
 		}
 
 		for(size_t index = 0; index < count; ++index) {
-			append(stream, key, type, index, use_pretty_names);
+			append(stream, key, type, index);
 			if(index != count-1) stream << ", ";
 		}
 

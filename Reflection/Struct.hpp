@@ -27,14 +27,6 @@ namespace Reflection {
 #define DeclareField(Name) declare(&Name, #Name)
 
 struct Struct {
-	/*!
-		Maps from internal key names to more human-friendly ones; e.g. might contain
-		a mapping from afDash to af'.
-	*/
-	virtual std::unordered_map<std::string, std::string> pretty_names() const {
-		return {};
-	}
-
 	virtual std::vector<std::string> all_keys() const = 0;
 	virtual const std::type_info *type_of(const std::string &name) const = 0;
 	virtual size_t count_of(const std::string &name) const = 0;
@@ -50,7 +42,7 @@ struct Struct {
 		@returns A string describing this struct. This string has no guaranteed layout, may not be
 			sufficiently formed for a formal language parser, etc.
 	*/
-	std::string description(bool use_pretty_names = true) const;
+	std::string description() const;
 
 	/*!
 		Serialises this struct in BSON format.
@@ -83,7 +75,7 @@ struct Struct {
 	virtual bool should_serialise([[maybe_unused]] const std::string &key) const { return true; }
 
 	private:
-		void append(std::ostringstream &stream, const std::string &key, const std::type_info *type, size_t offset, bool use_pretty_names) const;
+		void append(std::ostringstream &stream, const std::string &key, const std::type_info *type, size_t offset) const;
 		bool deserialise(const uint8_t *bson, size_t size);
 };
 
