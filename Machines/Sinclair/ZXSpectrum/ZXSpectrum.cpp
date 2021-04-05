@@ -188,14 +188,6 @@ template<Model model> class ConcreteMachine:
 
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
 
-//			using Register = CPU::Z80::Register;
-//			if(cycle.operation == PartialMachineCycle::WriteStart && z80_.get_value_of_register(Register::ProgramCounter) == 0x5b1) {
-//				printf("%04x <- %02x\n", address, *cycle.value);
-//			}
-//			if(cycle.operation == PartialMachineCycle::ReadOpcodeStart && address == 0x0562) {
-//				printf("\n");
-//			}
-
 			// Apply contention if necessary.
 			if(
 				is_contended_[address >> 14] &&
