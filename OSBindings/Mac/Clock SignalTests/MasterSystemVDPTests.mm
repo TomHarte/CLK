@@ -34,10 +34,10 @@
 	vdp.write(1, 0x8a);
 
 	// Get time until interrupt.
-	auto time_until_interrupt = vdp.get_time_until_interrupt().as_integral() - 1;
+	auto time_until_interrupt = vdp.get_next_sequence_point().as_integral() - 1;
 
 	// Check that an interrupt is now scheduled.
-	NSAssert(time_until_interrupt != -2, @"No interrupt scheduled");
+	NSAssert(time_until_interrupt != HalfCycles::max().as_integral() - 1, @"No interrupt scheduled");
 	NSAssert(time_until_interrupt > 0, @"Interrupt is scheduled in the past");
 
 	// Check interrupt flag isn't set prior to the reported time.
@@ -53,7 +53,7 @@
 	NSAssert(!vdp.get_interrupt_line(), @"Interrupt wasn't reset by status read");
 
 	// Check interrupt flag isn't set prior to the reported time.
-	time_until_interrupt = vdp.get_time_until_interrupt().as_integral() - 1;
+	time_until_interrupt = vdp.get_next_sequence_point().as_integral() - 1;
 	vdp.run_for(HalfCycles(time_until_interrupt));
 	NSAssert(!vdp.get_interrupt_line(), @"Interrupt line went active early [2]");
 
@@ -80,10 +80,10 @@
 
 	// Clear the pending interrupt and ask about the next one (i.e. the first one).
 	vdp.read(1);
-	auto time_until_interrupt = vdp.get_time_until_interrupt().as_integral() - 1;
+	auto time_until_interrupt = vdp.get_next_sequence_point().as_integral() - 1;
 
 	// Check that an interrupt is now scheduled.
-	NSAssert(time_until_interrupt != -2, @"No interrupt scheduled");
+	NSAssert(time_until_interrupt != HalfCycles::max().as_integral() - 1, @"No interrupt scheduled");
 	NSAssert(time_until_interrupt > 0, @"Interrupt is scheduled in the past");
 
 	// Check interrupt flag isn't set prior to the reported time.
@@ -114,20 +114,24 @@
 
 			// Now run through an entire frame...
 			int half_cycles = 262*228*2;
-			auto last_time_until_interrupt = vdp.get_time_until_interrupt().as_integral();
+			auto last_time_until_interrupt = vdp.get_next_sequence_point().as_integral();
 			while(half_cycles--) {
 				// Validate that an interrupt happened if one was expected, and clear anything that's present.
-				NSAssert(vdp.get_interrupt_line() == (last_time_until_interrupt == 0), @"Unexpected interrupt state change; expected %d but got %d; position %d %d @ %d", (last_time_until_interrupt == 0), vdp.get_interrupt_line(), c, with_eof, half_cycles);
-				vdp.read(1);
+				NSAssert(vdp.get_interrupt_line() == (last_time_until_interrupt == HalfCycles::max().as_integral()), @"Unexpected interrupt state change; expected %d but got %d; position %d %d @ %d", (last_time_until_interrupt == 0), vdp.get_interrupt_line(), c, with_eof, half_cycles);
+
+				if(vdp.get_interrupt_line()) {
+					vdp.read(1);
+					last_time_until_interrupt = 0;
+				}
 
 				vdp.run_for(HalfCycles(1));
 
 				// Get the time until interrupt.
-				auto time_until_interrupt = vdp.get_time_until_interrupt().as_integral();
-				NSAssert(time_until_interrupt != -1, @"No interrupt scheduled; position %d %d @ %d", c, with_eof, half_cycles);
+				auto time_until_interrupt = vdp.get_next_sequence_point().as_integral();
+				NSAssert(time_until_interrupt != HalfCycles::max().as_integral() || vdp.get_interrupt_line(), @"No interrupt scheduled; position %d %d @ %d", c, with_eof, half_cycles);
 				NSAssert(time_until_interrupt >= 0, @"Interrupt is scheduled in the past; position %d %d @ %d", c, with_eof, half_cycles);
 
-				if(last_time_until_interrupt) {
+				if(last_time_until_interrupt > 1) {
 					NSAssert(
 						time_until_interrupt == (last_time_until_interrupt - 1),
 						@"Discontinuity found in interrupt prediction; from %@ to %@; position %d %d @ %d",

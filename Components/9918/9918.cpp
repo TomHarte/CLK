@@ -708,9 +708,9 @@ HalfCycles Base::half_cycles_before_internal_cycles(int internal_cycles) {
 	return HalfCycles(((internal_cycles << 2) + (2 - cycles_error_)) / 3);
 }
 
-HalfCycles TMS9918::get_time_until_interrupt() {
-	if(!generate_interrupts_ && !enable_line_interrupts_) return HalfCycles(-1);
-	if(get_interrupt_line()) return HalfCycles(0);
+HalfCycles TMS9918::get_next_sequence_point() {
+	if(!generate_interrupts_ && !enable_line_interrupts_) return HalfCycles::max();
+	if(get_interrupt_line()) return HalfCycles::max();
 
 	// Calculate the amount of time until the next end-of-frame interrupt.
 	const int frame_length = 342 * mode_timing_.total_lines;
