@@ -10,7 +10,9 @@
 #define ClockReceiver_hpp
 
 #include "ForceInline.hpp"
+
 #include <cstdint>
+#include <limits>
 
 /*
 	Informal pattern for all classes that run from a clock cycle:
@@ -176,6 +178,9 @@ class Cycles: public WrappedInt<Cycles> {
 	public:
 		forceinline constexpr Cycles(IntType l) noexcept : WrappedInt<Cycles>(l) {}
 		forceinline constexpr Cycles() noexcept : WrappedInt<Cycles>() {}
+		forceinline static constexpr Cycles max() {
+			return Cycles(std::numeric_limits<IntType>::max());
+		}
 
 	private:
 		friend WrappedInt;
@@ -195,6 +200,9 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 	public:
 		forceinline constexpr HalfCycles(IntType l) noexcept : WrappedInt<HalfCycles>(l) {}
 		forceinline constexpr HalfCycles() noexcept : WrappedInt<HalfCycles>() {}
+		forceinline static constexpr HalfCycles max() {
+			return HalfCycles(std::numeric_limits<IntType>::max());
+		}
 
 		forceinline constexpr HalfCycles(const Cycles &cycles) noexcept : WrappedInt<HalfCycles>(cycles.as_integral() * 2) {}
 

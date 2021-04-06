@@ -75,13 +75,13 @@ class TMS9918: public Base {
 		void latch_horizontal_counter();
 
 		/*!
-			Returns the amount of time until @c get_interrupt_line would next return true if
+			Returns the amount of time until @c get_interrupt_line would next change if
 			there are no interceding calls to @c write or to @c read.
 
-			If get_interrupt_line is true now, returns zero. If get_interrupt_line would
-			never return true, returns -1.
+			If get_interrupt_line is true now of if get_interrupt_line would
+			never return true, returns HalfCycles::max().
 		*/
-		HalfCycles get_time_until_interrupt();
+		HalfCycles get_next_sequence_point();
 
 		/*!
 			Returns the amount of time until the nominated line interrupt position is

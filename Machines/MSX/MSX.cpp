@@ -419,7 +419,9 @@ class ConcreteMachine:
 			// but otherwise runs without pause.
 			const HalfCycles addition((cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) ? 2 : 0);
 			const HalfCycles total_length = addition + cycle.length;
-			vdp_ += total_length;
+			if(vdp_ += total_length) {
+				z80_.set_interrupt_line(vdp_->get_interrupt_line(), vdp_.last_sequence_point_overrun());
+			}
 			time_since_ay_update_ += total_length;
 			memory_slots_[0].cycles_since_update += total_length;
 			memory_slots_[1].cycles_since_update += total_length;
@@ -520,7 +522,6 @@ class ConcreteMachine:
 							case 0x98:	case 0x99:
 								*cycle.value = vdp_->read(address);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
-								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 
 							case 0xa2:
@@ -545,7 +546,6 @@ class ConcreteMachine:
 							case 0x98:	case 0x99:
 								vdp_->write(address, *cycle.value);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
-								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 
 							case 0xa0:	case 0xa1:
@@ -606,12 +606,6 @@ class ConcreteMachine:
 			if(!tape_player_is_sleeping_)
 				tape_player_.run_for(int(cycle.length.as_integral()));
 
-			if(time_until_interrupt_ > 0) {
-				time_until_interrupt_ -= total_length;
-				if(time_until_interrupt_ <= HalfCycles(0)) {
-					z80_.set_interrupt_line(true, time_until_interrupt_);
-				}
-			}
 			return addition;
 		}
 
@@ -785,7 +779,6 @@ class ConcreteMachine:
 		uint8_t unpopulated_[8192];
 
 		HalfCycles time_since_ay_update_;
-		HalfCycles time_until_interrupt_;
 
 		uint8_t key_states_[16];
 		int selected_key_line_ = 0;
