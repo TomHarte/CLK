@@ -576,7 +576,7 @@ class MemoryMap {
 	if(region.write) {	\
 		region.write[address] = *value;	\
 		const bool _mm_is_shadowed = IsShadowed(map, region, address);	\
-		map.shadow_base[is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[_mm_is_shadowed]] = *value;	\
+		map.shadow_base[_mm_is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[_mm_is_shadowed]] = *value;	\
 	}
 
 // Quick notes on ::IsShadowed contortions:
