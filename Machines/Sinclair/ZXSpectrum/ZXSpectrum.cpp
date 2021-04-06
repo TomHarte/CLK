@@ -372,7 +372,7 @@ template<Model model> class ConcreteMachine:
 
 			video_ += duration;
 			if(video_.did_flush()) {
-				z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line());
+				z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line(), video_.last_sequence_point_overrun());
 			}
 
 			if(!tape_player_is_sleeping_) tape_player_.run_for(duration.as_integral());
