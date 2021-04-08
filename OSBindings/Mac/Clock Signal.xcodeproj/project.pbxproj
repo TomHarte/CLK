@@ -917,6 +917,7 @@
 		4BDA00E022E644AF00AC3CD0 /* CSROMReceiverView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BDA00DF22E644AF00AC3CD0 /* CSROMReceiverView.m */; };
 		4BDA00E422E663B900AC3CD0 /* NSData+CRC32.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BDA00E222E663B900AC3CD0 /* NSData+CRC32.m */; };
 		4BDA00E622E699B000AC3CD0 /* CSMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A53961D117D36003C6002 /* CSMachine.mm */; };
+		4BDA8235261E8E000021AA19 /* Z80ContentionTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BDA8234261E8E000021AA19 /* Z80ContentionTests.mm */; };
 		4BDACBEC22FFA5D20045EF7E /* ncr5380.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BDACBEA22FFA5D20045EF7E /* ncr5380.cpp */; };
 		4BDACBED22FFA5D20045EF7E /* ncr5380.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BDACBEA22FFA5D20045EF7E /* ncr5380.cpp */; };
 		4BDB61EB2032806E0048AF91 /* CSAtari2600.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A539A1D117D36003C6002 /* CSAtari2600.mm */; };
@@ -1934,6 +1935,7 @@
 		4BDA00DF22E644AF00AC3CD0 /* CSROMReceiverView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CSROMReceiverView.m; sourceTree = "<group>"; };
 		4BDA00E222E663B900AC3CD0 /* NSData+CRC32.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSData+CRC32.m"; sourceTree = "<group>"; };
 		4BDA00E322E663B900AC3CD0 /* NSData+CRC32.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+CRC32.h"; sourceTree = "<group>"; };
+		4BDA8234261E8E000021AA19 /* Z80ContentionTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Z80ContentionTests.mm; sourceTree = "<group>"; };
 		4BDACBEA22FFA5D20045EF7E /* ncr5380.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ncr5380.cpp; sourceTree = "<group>"; };
 		4BDACBEB22FFA5D20045EF7E /* ncr5380.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ncr5380.hpp; sourceTree = "<group>"; };
 		4BDB3D8522833321002D3CEE /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
@@ -3964,6 +3966,7 @@
 				4B2AF8681E513FC20027EE29 /* TIATests.mm */,
 				4B1D08051E0F7A1100763741 /* TimeTests.mm */,
 				4BEE4BD325A26E2B00011BD2 /* x86DecoderTests.mm */,
+				4BDA8234261E8E000021AA19 /* Z80ContentionTests.mm */,
 				4BB73EB81B587A5100552FC2 /* Info.plist */,
 				4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */,
 				4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */,
@@ -5649,6 +5652,7 @@
 				4B9D0C4B22C7D70A00DE1AD3 /* 68000BCDTests.mm in Sources */,
 				4B778F5E23A5F3230000D260 /* Oric.cpp in Sources */,
 				4B3BA0C31D318AEC005DD7A7 /* C1540Tests.swift in Sources */,
+				4BDA8235261E8E000021AA19 /* Z80ContentionTests.mm in Sources */,
 				4B778F1A23A5ED320000D260 /* Video.cpp in Sources */,
 				4B778F3B23A5F1650000D260 /* KeyboardMachine.cpp in Sources */,
 				4B778F2E23A5F09E0000D260 /* IRQDelegatePortHandler.cpp in Sources */,
