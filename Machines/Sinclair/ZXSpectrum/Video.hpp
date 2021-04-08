@@ -53,13 +53,13 @@ template <VideoTiming timing> class Video {
 			// Number of lines comprising a whole frame. Will be 311 or 312.
 			int lines_per_frame;
 
-			// Number of cycles after first pixel fetch at which interrupt is first signalled.
-			int interrupt_time;
-
 			// Number of cycles before first pixel fetch that contention starts to be applied.
 			int contention_leadin;
 			// Period in a line for which contention is applied.
 			int contention_duration;
+
+			// Number of cycles after first pixel fetch at which interrupt is first signalled.
+			int interrupt_time;
 
 			// Contention to apply, in half-cycles, as a function of number of half cycles since
 			// contention began.
@@ -88,10 +88,14 @@ template <VideoTiming timing> class Video {
 				.cycles_per_line = 228 * 2,
 				.lines_per_frame = 311,
 
-				.interrupt_time = 56545 * 2,
-
-				.contention_leadin = 2 * 2,		// TODO: is this 2? Or 4? Or... ?
+				// i.e. video fetching begins five cycles after the start of the
+				// contended memory pattern below; that should put a clear two
+				// cycles between a Z80 access and the first video fetch.
+				.contention_leadin = 5 * 2,
 				.contention_duration = 129 * 2,
+
+				// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
+				.interrupt_time = (228*311 - 14368) * 2,
 
 				.delays = {
 					2, 1,
@@ -311,7 +315,9 @@ template <VideoTiming timing> class Video {
 			}
 
 			const int time_into_line = delay_time % timings.cycles_per_line;
-			if(time_into_line >= timings.contention_duration) return 0;
+			if(time_into_line >= timings.contention_duration) {
+				return 0;
+			}
 
 			return timings.delays[time_into_line & 15];
 		}

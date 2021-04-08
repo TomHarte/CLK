@@ -10,6 +10,7 @@
 #define JustInTime_h
 
 #include "../Concurrency/AsyncTaskQueue.hpp"
+#include "ClockingHintSource.hpp"
 #include "ForceInline.hpp"
 
 /*!
@@ -24,29 +25,69 @@
 
 	If the held object implements get_next_sequence_point() then it'll be used to flush implicitly
 	as and when sequence points are hit. Callers can use will_flush() to predict these.
+
+	If the held object is a subclass of ClockingHint::Source, this template will register as an
+	observer and potentially stop clocking or stop delaying clocking until just-in-time references
+	as directed.
+
+	TODO: incorporate and codify AsyncJustInTimeActor.
 */
-template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class JustInTimeActor {
+template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int divider = 1> class JustInTimeActor:
+	public ClockingHint::Observer {
 	private:
+		/*!
+			A std::unique_ptr deleter which causes an update_sequence_point to occur on the actor supplied
+			to it at construction if it implements get_next_sequence_point(). Otherwise destruction is a no-op.
+
+			**Does not delete the object.**
+
+			This is used by the -> operators below, which provide a unique pointer to the enclosed object and
+			update their sequence points upon its destruction — i.e. after the caller has made whatever call
+			or calls as were relevant to the enclosed object.
+		*/
 		class SequencePointAwareDeleter {
 			public:
-				explicit SequencePointAwareDeleter(JustInTimeActor<T, multiplier, divider, LocalTimeScale, TargetTimeScale> *actor) : actor_(actor) {}
+				explicit SequencePointAwareDeleter(JustInTimeActor<T, LocalTimeScale, multiplier, divider> *actor) noexcept
+					: actor_(actor) {}
 
-				void operator ()(const T *const) const {
+				forceinline void operator ()(const T *const) const {
 					if constexpr (has_sequence_points<T>::value) {
 						actor_->update_sequence_point();
 					}
 				}
 
 			private:
-				JustInTimeActor<T, multiplier, divider, LocalTimeScale, TargetTimeScale> *const actor_;
+				JustInTimeActor<T, LocalTimeScale, multiplier, divider> *const actor_;
 		};
+
+		// This block of SFINAE determines whether objects of type T accepts Cycles or HalfCycles.
+		using HalfRunFor = void (T::*const)(HalfCycles);
+		static uint8_t half_sig(...);
+		static uint16_t half_sig(HalfRunFor);
+		using TargetTimeScale =
+			std::conditional_t<
+				sizeof(half_sig(&T::run_for)) == sizeof(uint16_t),
+				HalfCycles,
+				Cycles>;
 
 	public:
 		/// Constructs a new JustInTimeActor using the same construction arguments as the included object.
-		template<typename... Args> JustInTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {}
+		template<typename... Args> JustInTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {
+			if constexpr (std::is_base_of<ClockingHint::Source, T>::value) {
+				object_.set_clocking_hint_observer(this);
+			}
+		}
 
 		/// Adds time to the actor.
-		forceinline void operator += (LocalTimeScale rhs) {
+		///
+		/// @returns @c true if adding time caused a flush; @c false otherwise.
+		forceinline bool operator += (LocalTimeScale rhs) {
+			if constexpr (std::is_base_of<ClockingHint::Source, T>::value) {
+				if(clocking_preference_ == ClockingHint::Preference::None) {
+					return false;
+				}
+			}
+
 			if constexpr (multiplier != 1) {
 				time_since_update_ += rhs * multiplier;
 			} else {
@@ -54,20 +95,31 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 			}
 			is_flushed_ = false;
 
+			if constexpr (std::is_base_of<ClockingHint::Source, T>::value) {
+				if (clocking_preference_ == ClockingHint::Preference::RealTime) {
+					flush();
+					return true;
+				}
+			}
+
 			if constexpr (has_sequence_points<T>::value) {
 				time_until_event_ -= rhs;
 				if(time_until_event_ <= LocalTimeScale(0)) {
+					time_overrun_ = time_until_event_;
 					flush();
 					update_sequence_point();
+					return true;
 				}
 			}
+
+			return false;
 		}
 
 		/// Flushes all accumulated time and returns a pointer to the included object.
 		///
 		/// If this object provides sequence points, checks for changes to the next
 		/// sequence point upon deletion of the pointer.
-		forceinline auto operator->() {
+		[[nodiscard]] forceinline auto operator->() {
 			flush();
 			return std::unique_ptr<T, SequencePointAwareDeleter>(&object_, SequencePointAwareDeleter(this));
 		}
@@ -75,19 +127,24 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		/// Acts exactly as per the standard ->, but preserves constness.
 		///
 		/// Despite being const, this will flush the object and, if relevant, update the next sequence point.
-		forceinline auto operator -> () const {
-			auto non_const_this = const_cast<JustInTimeActor<T, multiplier, divider, LocalTimeScale, TargetTimeScale> *>(this);
+		[[nodiscard]] forceinline auto operator -> () const {
+			auto non_const_this = const_cast<JustInTimeActor<T, LocalTimeScale, multiplier, divider> *>(this);
 			non_const_this->flush();
 			return std::unique_ptr<const T, SequencePointAwareDeleter>(&object_, SequencePointAwareDeleter(non_const_this));
 		}
 
 		/// @returns a pointer to the included object, without flushing time.
-		forceinline T *last_valid() {
+		[[nodiscard]] forceinline T *last_valid() {
+			return &object_;
+		}
+
+		/// @returns a const pointer to the included object, without flushing time.
+		[[nodiscard]] forceinline const T *last_valid() const {
 			return &object_;
 		}
 
 		/// @returns the amount of time since the object was last flushed, in the target time scale.
-		forceinline TargetTimeScale time_since_flush() const {
+		[[nodiscard]] forceinline TargetTimeScale time_since_flush() const {
 			// TODO: does this handle conversions properly where TargetTimeScale != LocalTimeScale?
 			if constexpr (divider == 1) {
 				return time_since_update_;
@@ -113,20 +170,26 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		}
 
 		/// Indicates whether a flush has occurred since the last call to did_flush().
-		forceinline bool did_flush() {
+		[[nodiscard]] forceinline bool did_flush() {
 			const bool did_flush = did_flush_;
 			did_flush_ = false;
 			return did_flush;
 		}
 
+		/// @returns a number in the range [-max, 0] indicating the offset of the most recent sequence
+		/// point from the final time at the end of the += that triggered the sequence point.
+		[[nodiscard]] forceinline LocalTimeScale last_sequence_point_overrun() {
+			return time_overrun_;
+		}
+
 		/// @returns the number of cycles until the next sequence-point-based flush, if the embedded object
 		/// supports sequence points; @c LocalTimeScale() otherwise.
-		LocalTimeScale cycles_until_implicit_flush() const {
+		[[nodiscard]] LocalTimeScale cycles_until_implicit_flush() const {
 			return time_until_event_;
 		}
 
 		/// Indicates whether a sequence-point-caused flush will occur if the specified period is added.
-		forceinline bool will_flush(LocalTimeScale rhs) const {
+		[[nodiscard]] forceinline bool will_flush(LocalTimeScale rhs) const {
 			if constexpr (!has_sequence_points<T>::value) {
 				return false;
 			}
@@ -141,60 +204,28 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 			}
 		}
 
+		/// @returns A cached copy of the object's clocking preference.
+		ClockingHint::Preference clocking_preference() const {
+			return clocking_preference_;
+		}
+
 	private:
 		T object_;
-		LocalTimeScale time_since_update_, time_until_event_;
+		LocalTimeScale time_since_update_, time_until_event_, time_overrun_;
 		bool is_flushed_ = true;
 		bool did_flush_ = false;
 
 		template <typename S, typename = void> struct has_sequence_points : std::false_type {};
 		template <typename S> struct has_sequence_points<S, decltype(void(std::declval<S &>().get_next_sequence_point()))> : std::true_type {};
-};
 
-/*!
-	A RealTimeActor presents the same interface as a JustInTimeActor but doesn't defer work.
-	Time added will be performed immediately.
-
-	Its primary purpose is to allow consumers to remain flexible in their scheduling.
-*/
-template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class RealTimeActor {
-	public:
-		template<typename... Args> RealTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {}
-
-		forceinline void operator += (const LocalTimeScale &rhs) {
-			if constexpr (multiplier == 1 && divider == 1) {
-				object_.run_for(TargetTimeScale(rhs));
-				return;
-			}
-
-			if constexpr (multiplier == 1) {
-				accumulated_time_ += rhs;
-			} else {
-				accumulated_time_ += rhs * multiplier;
-			}
-
-			if constexpr (divider == 1) {
-				const auto duration = accumulated_time_.template flush<TargetTimeScale>();
-				object_.run_for(duration);
-			} else {
-				const auto duration = accumulated_time_.template divide<TargetTimeScale>(LocalTimeScale(divider));
-				if(duration > TargetTimeScale(0))
-					object_.run_for(duration);
-			}
+		ClockingHint::Preference clocking_preference_ = ClockingHint::Preference::JustInTime;
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference clocking) {
+			clocking_preference_ = clocking;
 		}
-
-		forceinline T *operator->()				{	return &object_;	}
-		forceinline const T *operator->() const	{	return &object_;	}
-		forceinline T *last_valid() 			{	return &object_;	}
-		forceinline void flush()				{}
-
-	private:
-		T object_;
-		LocalTimeScale accumulated_time_;
 };
 
 /*!
-	A AsyncJustInTimeActor acts like a JustInTimeActor but additionally contains an AsyncTaskQueue.
+	An AsyncJustInTimeActor acts like a JustInTimeActor but additionally contains an AsyncTaskQueue.
 	Any time the amount of accumulated time crosses a threshold provided at construction time,
 	the object will be updated on the AsyncTaskQueue.
 */

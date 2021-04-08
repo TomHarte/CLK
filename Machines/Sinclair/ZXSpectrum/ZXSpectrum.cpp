@@ -39,6 +39,8 @@
 
 #include "../../../ClockReceiver/JustInTime.hpp"
 
+#include "../../../Processors/Z80/State/State.hpp"
+
 #include "../Keyboard/Keyboard.hpp"
 
 #include <array>
@@ -85,7 +87,6 @@ template<Model model> class ConcreteMachine:
 			memcpy(rom_.data(), roms[0]->data(), std::min(rom_.size(), roms[0]->size()));
 
 			// Register for sleeping notifications.
-			fdc_->set_clocking_hint_observer(this);
 			tape_player_.set_clocking_hint_observer(this);
 
 			// Set up initial memory map.
@@ -185,37 +186,42 @@ template<Model model> class ConcreteMachine:
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
 
-			HalfCycles delay(0);
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
+
+			// Apply contention if necessary.
+			if(
+				is_contended_[address >> 14] &&
+				cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
+				cycle.operation <= PartialMachineCycle::WriteStart) {
+				// Assumption here: the trigger for the ULA inserting a delay is the falling edge
+				// of MREQ, which is always half a cycle into a read or write.
+				//
+				// TODO: somehow provide that information in the PartialMachineCycle?
+
+				const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
+				advance(cycle.length + delay);
+				return delay;
+			}
+
+			// For all other machine cycles, model the action as happening at the end of the machine cycle;
+			// that means advancing time now.
+			advance(cycle.length);
+
 			switch(cycle.operation) {
 				default: break;
-
-				case PartialMachineCycle::ReadOpcodeStart:
-				case PartialMachineCycle::ReadStart:
-				case PartialMachineCycle::WriteStart:
-					// Apply contention if necessary.
-					//
-					// Assumption here: the trigger for the ULA inserting a delay is the falling edge
-					// of MREQ, which is always half a cycle into a read or write.
-					//
-					// TODO: somehow provide that information in the PartialMachineCycle?
-					if(is_contended_[address >> 14]) {
-						delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
-					}
-				break;
 
 				case PartialMachineCycle::ReadOpcode:
 					// Fast loading: ROM version.
 					//
-					// The below patches over the 'LD-BYTES' routine from the 48kb ROM.
-					if(use_fast_tape_hack_ && address == 0x0556 && read_pointers_[0] == &rom_[0xc000]) {
-						if(perform_rom_ld_bytes()) {
-							// Stop pressing enter, if neccessry.
-							if(duration_to_press_enter_ > Cycles(0)) {
-								duration_to_press_enter_ = Cycles(0);
-								keyboard_.set_key_state(ZX::Keyboard::KeyEnter, false);
-							}
+					// The below patches over part of the 'LD-BYTES' routine from the 48kb ROM.
+					if(use_fast_tape_hack_ && address == 0x056b && read_pointers_[0] == &rom_[0xc000]) {
+						// Stop pressing enter, if neccessry.
+						if(duration_to_press_enter_ > Cycles(0)) {
+							duration_to_press_enter_ = Cycles(0);
+							keyboard_.set_key_state(ZX::Keyboard::KeyEnter, false);
+						}
 
+						if(perform_rom_ld_bytes_56b()) {
 							*cycle.value = 0xc9; // i.e. RET.
 							break;
 						}
@@ -225,7 +231,7 @@ template<Model model> class ConcreteMachine:
 					*cycle.value = read_pointers_[address >> 14][address];
 
 					if(is_contended_[address >> 14]) {
-						video_.last_valid()->set_last_contended_area_access(*cycle.value);
+						video_->set_last_contended_area_access(*cycle.value);
 					}
 				break;
 
@@ -239,7 +245,7 @@ template<Model model> class ConcreteMachine:
 
 					// Fill the floating bus buffer if this write is within the contended area.
 					if(is_contended_[address >> 14]) {
-						video_.last_valid()->set_last_contended_area_access(*cycle.value);
+						video_->set_last_contended_area_access(*cycle.value);
 					}
 				break;
 
@@ -357,8 +363,7 @@ template<Model model> class ConcreteMachine:
 				break;
 			}
 
-			advance(cycle.length + delay);
-			return delay;
+			return HalfCycles(0);
 		}
 
 	private:
@@ -367,7 +372,7 @@ template<Model model> class ConcreteMachine:
 
 			video_ += duration;
 			if(video_.did_flush()) {
-				z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line());
+				z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line(), video_.last_sequence_point_overrun());
 			}
 
 			if(!tape_player_is_sleeping_) tape_player_.run_for(duration.as_integral());
@@ -384,7 +389,7 @@ template<Model model> class ConcreteMachine:
 			}
 
 			if constexpr (model == Model::Plus3) {
-				if(!fdc_is_sleeping_) fdc_ += Cycles(duration.as_integral());
+				fdc_ += Cycles(duration.as_integral());
 			}
 
 			if(typer_) typer_->run_for(duration);
@@ -449,7 +454,6 @@ template<Model model> class ConcreteMachine:
 		// MARK: - ClockingHint::Observer.
 
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) override {
-			fdc_is_sleeping_ = fdc_.last_valid()->preferred_clocking() == ClockingHint::Preference::None;
 			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 		}
 
@@ -625,31 +629,42 @@ template<Model model> class ConcreteMachine:
 		}
 
 		// Reimplements the 'LD-BYTES' routine, as documented at
-		// https://skoolkid.github.io/rom/asm/0556.html i.e.
+		// https://skoolkid.github.io/rom/asm/0556.html but picking
+		// up from address 56b i.e.
 		//
 		// In:
-		//	A: 0x00 or 0xff for block type;
-		//	F: carry set if loading, clear if verifying;
+		//	A': 0x00 or 0xff for block type;
+		//	F': carry set if loading, clear if verifying;
 		//	DE: block length;
 		//	IX: start address.
 		//
 		// Out:
 		//	F: carry set for success, clear for error.
-		bool perform_rom_ld_bytes() {
+		//
+		// And, empirically:
+		//	IX: one beyond final address written;
+		//	DE: 0;
+		//	L: parity byte;
+		//	H: 0 for no error, 0xff for error;
+		//	A: same as H.
+		//	BC: ???
+		bool perform_rom_ld_bytes_56b() {
 			using Parser = Storage::Tape::ZXSpectrum::Parser;
 			Parser parser(Parser::MachineType::ZXSpectrum);
 
 			using Register = CPU::Z80::Register;
-			uint8_t flags = uint8_t(z80_.get_value_of_register(Register::Flags));
+			uint8_t flags = uint8_t(z80_.get_value_of_register(Register::FlagsDash));
 			if(!(flags & 1)) return false;
 
-			const uint8_t block_type = uint8_t(z80_.get_value_of_register(Register::A));
+			const uint8_t block_type = uint8_t(z80_.get_value_of_register(Register::ADash));
 			const auto block = parser.find_block(tape_player_.get_tape());
 			if(!block || block_type != (*block).type) return false;
 
 			uint16_t length = z80_.get_value_of_register(Register::DE);
 			uint16_t target = z80_.get_value_of_register(Register::IX);
 
+			flags = 0x93;
+			uint8_t parity = 0x00;
 			while(length--) {
 				auto next = parser.get_byte(tape_player_.get_tape());
 				if(!next) {
@@ -658,16 +673,30 @@ template<Model model> class ConcreteMachine:
 				}
 
 				write_pointers_[target >> 14][target] = *next;
+				parity ^= *next;
 				++target;
 			}
 
+			auto stored_parity = parser.get_byte(tape_player_.get_tape());
+			if(!stored_parity) {
+				flags &= ~1;
+			} else {
+				z80_.set_value_of_register(Register::L, *stored_parity);
+			}
+
 			z80_.set_value_of_register(Register::Flags, flags);
+			z80_.set_value_of_register(Register::DE, length);
+			z80_.set_value_of_register(Register::IX, target);
+
+			const uint8_t h = (flags & 1) ? 0x00 : 0xff;
+			z80_.set_value_of_register(Register::H, h);
+			z80_.set_value_of_register(Register::A, h);
+
 			return true;
 		}
 
 		// MARK: - Disc.
-		JustInTimeActor<Amstrad::FDC, 1, 1, Cycles> fdc_;
-		bool fdc_is_sleeping_ = false;
+		JustInTimeActor<Amstrad::FDC, Cycles> fdc_;
 
 		// MARK: - Automatic startup.
 		Cycles duration_to_press_enter_;

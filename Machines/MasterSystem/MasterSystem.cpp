@@ -214,7 +214,9 @@ class ConcreteMachine:
 		}
 
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-			vdp_ += cycle.length;
+			if(vdp_ += cycle.length) {
+				z80_.set_interrupt_line(vdp_->get_interrupt_line(), vdp_.last_sequence_point_overrun());
+			}
 			time_since_sn76489_update_ += cycle.length;
 
 			if(cycle.is_terminal()) {
@@ -266,7 +268,6 @@ class ConcreteMachine:
 							case 0x80: case 0x81:
 								*cycle.value = vdp_->read(address);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
-								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc0: {
 								if(memory_control_ & 0x4) {
@@ -330,7 +331,6 @@ class ConcreteMachine:
 							case 0x80: case 0x81:	// i.e. ports 0x80–0xbf.
 								vdp_->write(address, *cycle.value);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
-								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc1: case 0xc0:	// i.e. ports 0xc0–0xff.
 								if(has_fm_audio_) {
@@ -371,13 +371,6 @@ class ConcreteMachine:
 					break;
 
 					default: break;
-				}
-			}
-
-			if(time_until_interrupt_ > 0) {
-				time_until_interrupt_ -= cycle.length;
-				if(time_until_interrupt_ <= HalfCycles(0)) {
-					z80_.set_interrupt_line(true, time_until_interrupt_);
 				}
 			}
 
@@ -505,7 +498,6 @@ class ConcreteMachine:
 		bool reset_is_pressed_ = false, pause_is_pressed_ = false;
 
 		HalfCycles time_since_sn76489_update_;
-		HalfCycles time_until_interrupt_;
 		HalfCycles time_until_debounce_;
 
 		uint8_t ram_[8*1024];

@@ -25,6 +25,8 @@
 #include "../Utility/Typer.hpp"
 #include "../../Analyser/Static/Acorn/Target.hpp"
 
+#include "../../ClockReceiver/JustInTime.hpp"
+
 #include "Interrupts.hpp"
 #include "Keyboard.hpp"
 #include "Plus3.hpp"
@@ -54,7 +56,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 				scsi_bus_(4'000'000),
 				hard_drive_(scsi_bus_, 0),
 				scsi_device_(scsi_bus_.add_device()),
-				video_output_(ram_),
+				video_(ram_),
 				sound_generator_(audio_queue_),
 				speaker_(sound_generator_) {
 			memset(key_states_, 0, sizeof(key_states_));
@@ -230,13 +232,15 @@ template <bool has_scsi_bus> class ConcreteMachine:
 				if(isReadOperation(operation)) {
 					*value = ram_[address];
 				} else {
-					if(address >= video_access_range_.low_address && address <= video_access_range_.high_address) update_display();
+					if(address >= video_access_range_.low_address && address <= video_access_range_.high_address) {
+						video_.flush();
+					}
 					ram_[address] = *value;
 				}
 
-				// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
-				// it's also accessible only outside of the pixel regions
-				cycles += video_output_.get_cycles_until_next_ram_availability(int(cycles_since_display_update_.as_integral()) + 1);
+				// For the entire frame, RAM is accessible only on odd cycles; in modes below 4
+				// it's also accessible only outside of the pixel regions.
+				cycles += video_.last_valid()->get_cycles_until_next_ram_availability(video_.time_since_flush().template as<int>() + 1);
 			} else {
 				switch(address & 0xff0f) {
 					case 0xfe00:
@@ -274,10 +278,8 @@ template <bool has_scsi_bus> class ConcreteMachine:
 					case 0xfe08: case 0xfe09: case 0xfe0a: case 0xfe0b:
 					case 0xfe0c: case 0xfe0d: case 0xfe0e: case 0xfe0f:
 						if(!isReadOperation(operation)) {
-							update_display();
-							video_output_.write(address, *value);
-							video_access_range_ = video_output_.get_memory_access_range();
-							queue_next_display_interrupt();
+							video_->write(address, *value);
+							video_access_range_ = video_.last_valid()->get_memory_access_range();
 						}
 					break;
 					case 0xfe04:
@@ -425,14 +427,14 @@ template <bool has_scsi_bus> class ConcreteMachine:
 										(address == 0xf0a8)								// 0xf0a8 is from where a service call would normally be
 																						// dispatched; we can check whether it would be call 14
 																						// (i.e. read byte) and, if so, whether the OS was about to
-																						// issue a read byte call to a ROM despite being the tape
+																						// issue a read byte call to a ROM despite the tape
 																						// FS being selected. If so then this is a get byte that
 																						// we should service synthetically. Put the byte into Y
 																						// and set A to zero to report that action was taken, then
 																						// allow the PC read to return an RTS.
 									)
 								) {
-									uint8_t service_call = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
+									const auto service_call = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
 									if(address == 0xf0a8) {
 										if(!ram_[0x247] && service_call == 14) {
 											tape_.set_delegate(nullptr);
@@ -441,7 +443,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 											tape_.clear_interrupts(Interrupt::ReceiveDataFull);
 											while(!tape_.get_tape()->is_at_end()) {
 												tape_.run_for_input_pulse();
-												cycles_left_while_plausibly_in_data--;
+												--cycles_left_while_plausibly_in_data;
 												if(!cycles_left_while_plausibly_in_data) fast_load_is_in_data_ = false;
 												if(	(tape_.get_interrupt_status() & Interrupt::ReceiveDataFull) &&
 													(fast_load_is_in_data_ || tape_.get_data_register() == 0x2a)
@@ -483,17 +485,13 @@ template <bool has_scsi_bus> class ConcreteMachine:
 				}
 			}
 
-			cycles_since_display_update_ += Cycles(int(cycles));
+			if(video_ += Cycles(int(cycles))) {
+				signal_interrupt(video_.last_valid()->get_interrupts());
+			}
+
 			cycles_since_audio_update_ += Cycles(int(cycles));
 			if(cycles_since_audio_update_ > Cycles(16384)) update_audio();
 			tape_.run_for(Cycles(int(cycles)));
-
-			cycles_until_display_interrupt_ -= cycles;
-			if(cycles_until_display_interrupt_ < 0) {
-				signal_interrupt(next_display_interrupt_);
-				update_display();
-				queue_next_display_interrupt();
-			}
 
 			if(typer_) typer_->run_for(Cycles(int(cycles)));
 			if(plus3_) plus3_->run_for(Cycles(4*int(cycles)));
@@ -517,25 +515,25 @@ template <bool has_scsi_bus> class ConcreteMachine:
 		}
 
 		forceinline void flush() {
-			update_display();
+			video_.flush();
 			update_audio();
 			audio_queue_.perform();
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
-			video_output_.set_scan_target(scan_target);
+			video_.last_valid()->set_scan_target(scan_target);
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-			return video_output_.get_scaled_scan_status();
+			return video_.last_valid()->get_scaled_scan_status();
 		}
 
 		void set_display_type(Outputs::Display::DisplayType display_type) final {
-			video_output_.set_display_type(display_type);
+			video_.last_valid()->set_display_type(display_type);
 		}
 
 		Outputs::Display::DisplayType get_display_type() const final {
-			return video_output_.get_display_type();
+			return video_.last_valid()->get_display_type();
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
@@ -693,18 +691,6 @@ template <bool has_scsi_bus> class ConcreteMachine:
 		}
 
 		// MARK: - Work deferral updates.
-		inline void update_display() {
-			if(cycles_since_display_update_ > 0) {
-				video_output_.run_for(cycles_since_display_update_.flush<Cycles>());
-			}
-		}
-
-		inline void queue_next_display_interrupt() {
-			VideoOutput::Interrupt next_interrupt = video_output_.get_next_interrupt();
-			cycles_until_display_interrupt_ = next_interrupt.cycles;
-			next_display_interrupt_ = next_interrupt.interrupt;
-		}
-
 		inline void update_audio() {
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(SoundGenerator::clock_rate_divider)));
 		}
@@ -754,10 +740,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 		Electron::KeyboardMapper keyboard_mapper_;
 
 		// Counters related to simultaneous subsystems
-		Cycles cycles_since_display_update_ = 0;
 		Cycles cycles_since_audio_update_ = 0;
-		int cycles_until_display_interrupt_ = 0;
-		Interrupt next_display_interrupt_ = Interrupt::RealTimeClock;
 		VideoOutput::Range video_access_range_ = {0, 0xffff};
 
 		// Tape
@@ -794,7 +777,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 		}
 
 		// Outputs
-		VideoOutput video_output_;
+		JustInTimeActor<VideoOutput, Cycles> video_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		SoundGenerator sound_generator_;

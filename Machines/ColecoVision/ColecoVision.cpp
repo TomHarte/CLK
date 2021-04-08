@@ -215,7 +215,9 @@ class ConcreteMachine:
 			}
 			const HalfCycles length = cycle.length + penalty;
 
-			vdp_ += length;
+			if(vdp_ += length) {
+				z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
+			}
 			time_since_sn76489_update_ += length;
 
 			// Act only if necessary.
@@ -263,7 +265,6 @@ class ConcreteMachine:
 							case 5:
 								*cycle.value = vdp_->read(address);
 								z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
-								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 
 							case 7: {
@@ -304,7 +305,6 @@ class ConcreteMachine:
 							case 5:
 								vdp_->write(address, *cycle.value);
 								z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
-								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 
 							case 7:
@@ -338,13 +338,6 @@ class ConcreteMachine:
 					} break;
 
 					default: break;
-				}
-			}
-
-			if(time_until_interrupt_ > 0) {
-				time_until_interrupt_ -= length;
-				if(time_until_interrupt_ <= HalfCycles(0)) {
-					z80_.set_non_maskable_interrupt_line(true, time_until_interrupt_);
 				}
 			}
 
@@ -384,7 +377,7 @@ class ConcreteMachine:
 		}
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<TI::TMS::TMS9918, 1, 1, HalfCycles> vdp_;
+		JustInTimeActor<TI::TMS::TMS9918> vdp_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;
@@ -408,7 +401,6 @@ class ConcreteMachine:
 		bool joysticks_in_keypad_mode_ = false;
 
 		HalfCycles time_since_sn76489_update_;
-		HalfCycles time_until_interrupt_;
 
 		Analyser::Dynamic::ConfidenceCounter confidence_counter_;
 		int pc_zero_accesses_ = 0;

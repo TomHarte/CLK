@@ -55,22 +55,18 @@ class VideoOutput {
 		void write(int address, uint8_t value);
 
 		/*!
-			Describes an interrupt the video hardware will generate by its identity and scheduling time.
-		*/
-		struct Interrupt {
-			/// The interrupt that will be signalled.
-			Electron::Interrupt interrupt;
-			/// The number of cycles until it is signalled.
-			int cycles;
-		};
-		/*!
 			@returns the next interrupt that should be generated as a result of the video hardware.
 			The time until signalling returned is the number of cycles after the final one triggered
 			by the most recent call to @c run_for.
 
 			This result may be mutated by calls to @c write.
 		*/
-		Interrupt get_next_interrupt();
+		Cycles get_next_sequence_point();
+
+		/*!
+			@returns a bit mask of all interrupts that have been triggered since the last call to get_interrupt().
+		*/
+		Electron::Interrupt get_interrupts();
 
 		/*!
 			@returns the number of cycles after (final cycle of last run_for batch + @c from_time)
@@ -136,6 +132,8 @@ class VideoOutput {
 		void emplace_pixel_line();
 		std::size_t screen_map_pointer_ = 0;
 		int cycles_into_draw_action_ = 0;
+
+		Electron::Interrupt interrupts_ = Electron::Interrupt(0);
 };
 
 }
