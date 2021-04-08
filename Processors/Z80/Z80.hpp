@@ -164,6 +164,8 @@ struct PartialMachineCycle {
 	/// @returns A C-style array of the bus state at the beginning of each half cycle in this
 	/// partial machine cycle. Each element is a combination of bit masks from the Line enum;
 	/// bit set means line active, bit clear means line inactive. For the CLK line set means high.
+	///
+	/// @discussion This discrete sampling is prone to aliasing errors. Beware.
 	const uint8_t *bus_state() const {
 		switch(operation) {
 
@@ -191,10 +193,10 @@ struct PartialMachineCycle {
 
 			case Operation::Refresh: {
 				static constexpr uint8_t states[] = {
-					Line::CLK |	Line::RFSH,
-								Line::RFSH |	Line::MREQ,
 					Line::CLK |	Line::RFSH |	Line::MREQ,
 								Line::RFSH,
+					Line::CLK |	Line::RFSH |	Line::MREQ,
+								Line::RFSH |	Line::MREQ,
 					Line::CLK |	Line::RFSH,
 								Line::RFSH,
 				};

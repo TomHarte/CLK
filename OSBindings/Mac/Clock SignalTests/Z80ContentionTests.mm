@@ -128,7 +128,7 @@ struct ContentionCheck {
 		if(
 			!count ||								// i.e. is at start.
 			(&record == &bus_records.back()) ||		// i.e. is at end.
-			!(record.mreq || record.refresh)		// i.e. beginning of a new contention.
+			!record.mreq							// i.e. beginning of a new contention.
 		) {
 			if(count) {
 				XCTAssertNotEqual(contention, contentions.end());
