@@ -199,6 +199,8 @@ struct PartialMachineCycle {
 								Line::RFSH |	Line::MREQ,
 					Line::CLK |	Line::RFSH,
 								Line::RFSH,
+					Line::CLK |	Line::RFSH,
+								Line::RFSH,
 				};
 				return states;
 			}
