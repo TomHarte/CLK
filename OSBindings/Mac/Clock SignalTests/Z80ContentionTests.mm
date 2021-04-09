@@ -125,18 +125,14 @@ struct ContentionCheck {
 	for(size_t c = 0; c < bus_records.size(); c++) {
 		++count;
 
-		const bool is_final = c == bus_records.size() - 1;
 		if(
-			c && (						// i.e. not at front.
-				is_final ||
-				!bus_records[c].mreq	// i.e. beginning of a new contention.
-			)
+			c &&					// i.e. not at front.
+			!bus_records[c].mreq	// i.e. beginning of a new contention.
 		) {
 			XCTAssertNotEqual(contention, contentions.end());
 
 			XCTAssertEqual(contention->address, address);
-			XCTAssertEqual(contention->length, count - !is_final);	// Subtract 1 if not at end, because in that case this cycle
-																	// is one after the previous group ended.
+			XCTAssertEqual(contention->length, count - 1);
 
 			++contention;
 			count = 1;
@@ -144,6 +140,9 @@ struct ContentionCheck {
 		}
 	}
 
+	XCTAssertEqual(contention->address, address);
+	XCTAssertEqual(contention->length, count);
+	++contention;
 	XCTAssertEqual(contention, contentions.end());
 }
 
@@ -163,17 +162,14 @@ struct ContentionCheck {
 		++count;
 
 		const bool is_leading_edge = !bus_records[c].mreq && bus_records[c+1].mreq && !bus_records[c].refresh;
-		const bool is_final = c == bus_records.size() - 2;
 		if(
-			c && (		// i.e. not at front.
-				is_final ||
-				is_leading_edge							// i.e. beginning of a new contention.
-			)
+			c &&				// i.e. not at front.
+			is_leading_edge		// i.e. beginning of a new contention.
 		) {
 			XCTAssertNotEqual(contention, contentions.end());
 
 			XCTAssertEqual(contention->address, address, "Address mismatch at half-cycle %zu", c);
-			XCTAssertEqual(contention->length, count - !is_final, "Length mismatch at half-cycle %zu", c);	// See validate48Contention for exposition.
+			XCTAssertEqual(contention->length, count - 1, "Length mismatch at half-cycle %zu", c);
 			++contention;
 
 			count = 1;
@@ -181,6 +177,10 @@ struct ContentionCheck {
 		}
 	}
 
+	XCTAssertEqual(contention->address, address, "Address mismatch at end");
+	XCTAssertEqual(contention->length, count, "Length mismatch at end");
+
+	++contention;
 	XCTAssertEqual(contention, contentions.end(), "Not all supplied contentions used");
 }
 
@@ -315,12 +315,12 @@ struct ContentionCheck {
 		{0xcb, 0xfc},	{0xcb, 0xfd},	{0xcb, 0xff},
 
 		// NEG
-		{0xed, 0x04},	{0xed, 0x0c},	{0xed, 0x14},	{0xed, 0x1c},
-		{0xed, 0x24},	{0xed, 0x2c},	{0xed, 0x34},	{0xed, 0x3c},
+		{0xed, 0x44},	{0xed, 0x4c},	{0xed, 0x54},	{0xed, 0x5c},
+		{0xed, 0x64},	{0xed, 0x6c},	{0xed, 0x74},	{0xed, 0x7c},
 
 		// IM 0/1/2
-		{0xed, 0x06},	{0xed, 0x0e},	{0xed, 0x16},	{0xed, 0x1e},
-		{0xed, 0x26},	{0xed, 0x2e},	{0xed, 0x36},	{0xed, 0x3e},
+		{0xed, 0x46},	{0xed, 0x4e},	{0xed, 0x56},	{0xed, 0x5e},
+		{0xed, 0x66},	{0xed, 0x6e},	{0xed, 0x66},	{0xed, 0x6e},
 	}) {
 		CapturingZ80 z80(sequence);
 		z80.run_for(8);
@@ -332,15 +332,15 @@ struct ContentionCheck {
 
 - (void)testAIR {
 	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
-		{0xed, 0x17},	// LD A, I
-		{0xed, 0x1f},	// LD A, R
-		{0xed, 0x07},	// LD I, A
-		{0xed, 0x0f},	// LD R, A
+		{0xed, 0x57},	// LD A, I
+		{0xed, 0x5f},	// LD A, R
+		{0xed, 0x47},	// LD I, A
+		{0xed, 0x4f},	// LD R, A
 	}) {
 		CapturingZ80 z80(sequence);
 		z80.run_for(9);
 
-		[self validate48Contention:{{initial_pc, 4}, {initial_pc+1, 4}, {initial_ir+2, 1}} z80:z80];
+		[self validate48Contention:{{initial_pc, 4}, {initial_pc+1, 4}, {initial_ir+1, 1}} z80:z80];
 		[self validatePlus3Contention:{{initial_pc, 4}, {initial_pc+1, 5}} z80:z80];
 	}
 }
