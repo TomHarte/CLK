@@ -344,4 +344,26 @@ struct ContentionCheck {
 		[self validatePlus3Contention:{{initial_pc, 4}, {initial_pc+1, 5}} z80:z80];
 	}
 }
+
+- (void)testINCDEC16 {
+	for(uint8_t opcode : {
+		// INC rr
+		0x03, 0x13, 0x23, 0x33,
+
+		// DEC rr
+		0x0b, 0x1b, 0x2b, 0x3b,
+
+		// LD SP, HL
+		0xf9,
+	}) {
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
+		z80.run_for(6);
+
+		[self validate48Contention:{{initial_pc, 4}, {initial_ir, 1}, {initial_ir, 1}} z80:z80];
+		[self validatePlus3Contention:{{initial_pc, 6}} z80:z80];
+	}
+}
+
+
 @end
