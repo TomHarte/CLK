@@ -16,7 +16,7 @@ static constexpr uint16_t initial_pc = 0;
 
 struct CapturingZ80: public CPU::Z80::BusHandler {
 
-	CapturingZ80(const std::initializer_list<uint8_t> &code) : z80_(*this) {
+	template <typename Collection> CapturingZ80(const Collection &code) : z80_(*this) {
 		// Take a copy of the code.
 		std::copy(code.begin(), code.end(), ram_);
 
@@ -97,8 +97,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	observed by ZX Spectrum users in the software-side documentation of
 	contended memory timings.
 */
-@implementation Z80ContentionTests {
-}
+@implementation Z80ContentionTests
 
 struct ContentionCheck {
 	uint16_t address;
@@ -112,31 +111,28 @@ struct ContentionCheck {
 - (void)validate48Contention:(const std::initializer_list<ContentionCheck> &)contentions z80:(const CapturingZ80 &)z80 {
 	// 48[/128]k contention logic: triggered on address alone, _unless_
 	// MREQ is also active.
-	//
-	// I think the source I'm using also implicitly assumes that refresh
-	// addresses are outside of the contended area, and doesn't check them.
-	// So unlike the actual ULA I'm also ignoring any address while refresh
-	// is asserted.
-	int count = -1;
-	uint16_t address = 0;
 	auto contention = contentions.begin();
-
 	const auto bus_records = z80.cycle_records();
+
+	int count = 0;
+	uint16_t address = bus_records.front().address;
 	for(const auto &record: bus_records) {
 		++count;
 
+		const bool is_final = &record == &bus_records.back();
 		if(
-			!count ||								// i.e. is at start.
-			(&record == &bus_records.back()) ||		// i.e. is at end.
-			!record.mreq							// i.e. beginning of a new contention.
+			&record != &bus_records.front() && (		// i.e. not at front.
+				is_final ||
+				!record.mreq							// i.e. beginning of a new contention.
+			)
 		) {
-			if(count) {
-				XCTAssertNotEqual(contention, contentions.end());
-				XCTAssertEqual(contention->address, address);
-				XCTAssertEqual(contention->length, count);
-				++contention;
-			}
+			XCTAssertNotEqual(contention, contentions.end());
 
+			XCTAssertEqual(contention->address, address);
+			XCTAssertEqual(contention->length, count - !is_final);	// Subtract 1 if not at end, because in that case this cycle
+																	// is one after the previous group ended.
+
+			++contention;
 			count = 1;
 			address = record.address;
 		}
@@ -151,27 +147,28 @@ struct ContentionCheck {
 */
 - (void)validatePlus3Contention:(const std::initializer_list<ContentionCheck> &)contentions z80:(const CapturingZ80 &)z80 {
 	// +3 contention logic: triggered by the leading edge of MREQ, sans refresh.
-	int count = -1;
-	uint16_t address = 0;
 	auto contention = contentions.begin();
-
 	const auto bus_records = z80.bus_records();
 
-	for(size_t c = 0; c < bus_records.size(); c += 2) {
-		const bool is_leading_edge = !bus_records[c].mreq && bus_records[c+1].mreq && !bus_records[c].refresh;
+	int count = 0;
+	uint16_t address = bus_records.front().address;
 
+	for(size_t c = 0; c < bus_records.size(); c += 2) {
 		++count;
+
+		const bool is_leading_edge = !bus_records[c].mreq && bus_records[c+1].mreq && !bus_records[c].refresh;
+		const bool is_final = c == bus_records.size() - 2;
 		if(
-			!count ||								// i.e. is at start.
-			(c == bus_records.size() - 2) ||		// i.e. is at end.
-			is_leading_edge							// i.e. beginning of a new contention.
+			c && (		// i.e. not at front.
+				is_final ||
+				is_leading_edge							// i.e. beginning of a new contention.
+			)
 		) {
-			if(count) {
-				XCTAssertNotEqual(contention, contentions.end());
-				XCTAssertEqual(contention->address, address);
-				XCTAssertEqual(contention->length, count);
-				++contention;
-			}
+			XCTAssertNotEqual(contention, contentions.end());
+
+			XCTAssertEqual(contention->address, address);
+			XCTAssertEqual(contention->length, count - !is_final);	// See validate48Contention for exposition.
+			++contention;
 
 			count = 1;
 			address = bus_records[c].address;
@@ -183,7 +180,7 @@ struct ContentionCheck {
 
 // MARK: - Opcode tests.
 
-- (void)testSimpleSingleBytes {
+- (void)testSimpleOneBytes {
 	for(uint8_t opcode : {
 		0x00,	// NOP
 
@@ -225,11 +222,29 @@ struct ContentionCheck {
 		0x0f,	// RRCA
 		0xe9,	// JP (HL)
 	}) {
-		CapturingZ80 z80({opcode});
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
 		z80.run_for(4);
 
 		[self validate48Contention:{{initial_pc, 4}} z80:z80];
 		[self validatePlus3Contention:{{initial_pc, 4}} z80:z80];
+	}
+}
+
+- (void)testSimpleTwoBytes {
+	// This group should apparently also include 'NOPD'. Neither I nor any other
+	// page I could find seems to have heard of 'NOPD'.
+
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		// sro d (i.e. RLC, RRC, RL, RR, SLA, SRA, SRL and SLL)
+		{0xcb, 0x00},	{0xcb, 0x01},	{0xcb, 0x02},	{0xcb, 0x03},
+		{0xcb, 0x04},	{0xcb, 0x05},	{0xcb, 0x07},
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(8);
+
+		[self validate48Contention:{{initial_pc, 4}, {initial_pc+1, 4}} z80:z80];
+		[self validatePlus3Contention:{{initial_pc, 4}, {initial_pc+1, 4}} z80:z80];
 	}
 }
 
