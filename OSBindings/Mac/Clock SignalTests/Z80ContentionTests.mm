@@ -12,21 +12,24 @@
 
 namespace {
 
-static constexpr uint16_t initial_pc = 0;
+static constexpr uint16_t initial_pc = 0x0000;
+static constexpr uint16_t initial_ir = 0xe000;
 
 struct CapturingZ80: public CPU::Z80::BusHandler {
 
 	template <typename Collection> CapturingZ80(const Collection &code) : z80_(*this) {
 		// Take a copy of the code.
 		std::copy(code.begin(), code.end(), ram_);
+		code_length_ = uint16_t(code.size());
 
 		// Skip the three cycles the Z80 spends on a reset, and
 		// purge them from the record.
 		run_for(3);
 		bus_records_.clear();
 
-		// Set the refresh address to the EE page.
+		// Set the refresh address to the EE page and set A to 0x80.
 		z80_.set_value_of_register(CPU::Z80::Register::I, 0xe0);
+		z80_.set_value_of_register(CPU::Z80::Register::A, 0x80);
 	}
 
 	void run_for(int cycles) {
@@ -63,6 +66,8 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 			cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode
 		) {
 			*cycle.value = ram_[*cycle.address];
+
+			XCTAssert(cycle.operation != CPU::Z80::PartialMachineCycle::ReadOpcode || *cycle.address < code_length_);
 		}
 
 		return HalfCycles(0);
@@ -83,6 +88,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	private:
 		CPU::Z80::Processor<CapturingZ80, false, false> z80_;
 		uint8_t ram_[65536];
+		uint16_t code_length_ = 0;
 
 		std::vector<BusRecord> bus_records_;
 };
@@ -116,14 +122,14 @@ struct ContentionCheck {
 
 	int count = 0;
 	uint16_t address = bus_records.front().address;
-	for(const auto &record: bus_records) {
+	for(size_t c = 0; c < bus_records.size(); c++) {
 		++count;
 
-		const bool is_final = &record == &bus_records.back();
+		const bool is_final = c == bus_records.size() - 1;
 		if(
-			&record != &bus_records.front() && (		// i.e. not at front.
+			c && (						// i.e. not at front.
 				is_final ||
-				!record.mreq							// i.e. beginning of a new contention.
+				!bus_records[c].mreq	// i.e. beginning of a new contention.
 			)
 		) {
 			XCTAssertNotEqual(contention, contentions.end());
@@ -134,7 +140,7 @@ struct ContentionCheck {
 
 			++contention;
 			count = 1;
-			address = record.address;
+			address = bus_records[c].address;
 		}
 	}
 
@@ -166,8 +172,8 @@ struct ContentionCheck {
 		) {
 			XCTAssertNotEqual(contention, contentions.end());
 
-			XCTAssertEqual(contention->address, address);
-			XCTAssertEqual(contention->length, count - !is_final);	// See validate48Contention for exposition.
+			XCTAssertEqual(contention->address, address, "Address mismatch at half-cycle %zu", c);
+			XCTAssertEqual(contention->length, count - !is_final, "Length mismatch at half-cycle %zu", c);	// See validate48Contention for exposition.
 			++contention;
 
 			count = 1;
@@ -175,7 +181,7 @@ struct ContentionCheck {
 		}
 	}
 
-	XCTAssertEqual(contention, contentions.end());
+	XCTAssertEqual(contention, contentions.end(), "Not all supplied contentions used");
 }
 
 // MARK: - Opcode tests.
@@ -324,4 +330,18 @@ struct ContentionCheck {
 	}
 }
 
+- (void)testAIR {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xed, 0x17},	// LD A, I
+		{0xed, 0x1f},	// LD A, R
+		{0xed, 0x07},	// LD I, A
+		{0xed, 0x0f},	// LD R, A
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(9);
+
+		[self validate48Contention:{{initial_pc, 4}, {initial_pc+1, 4}, {initial_ir+2, 1}} z80:z80];
+		[self validatePlus3Contention:{{initial_pc, 4}, {initial_pc+1, 5}} z80:z80];
+	}
+}
 @end
