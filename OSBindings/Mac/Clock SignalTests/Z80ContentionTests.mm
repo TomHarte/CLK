@@ -347,10 +347,10 @@ struct ContentionCheck {
 
 - (void)testINCDEC16 {
 	for(uint8_t opcode : {
-		// INC rr
+		// INC dd
 		0x03, 0x13, 0x23, 0x33,
 
-		// DEC rr
+		// DEC dd
 		0x0b, 0x1b, 0x2b, 0x3b,
 
 		// LD SP, HL
@@ -365,5 +365,27 @@ struct ContentionCheck {
 	}
 }
 
+- (void)testADDHLdd {
+	for(uint8_t opcode : {
+		// ADD hl, dd
+		0x09, 0x19, 0x29, 0x39,
+	}) {
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
+		z80.run_for(11);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_ir, 1},
+			{initial_ir, 1},
+			{initial_ir, 1},
+			{initial_ir, 1},
+			{initial_ir, 1},
+			{initial_ir, 1},
+			{initial_ir, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{{initial_pc, 11}} z80:z80];
+	}
+}
 
 @end
