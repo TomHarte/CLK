@@ -376,13 +376,13 @@ struct ContentionCheck {
 
 		[self validate48Contention:{
 			{initial_pc, 4},
-			{initial_ir, 1},
-			{initial_ir, 1},
-			{initial_ir, 1},
-			{initial_ir, 1},
-			{initial_ir, 1},
-			{initial_ir, 1},
-			{initial_ir, 1},
+			{initial_ir+1, 1},
+			{initial_ir+1, 1},
+			{initial_ir+1, 1},
+			{initial_ir+1, 1},
+			{initial_ir+1, 1},
+			{initial_ir+1, 1},
+			{initial_ir+1, 1},
 		} z80:z80];
 		[self validatePlus3Contention:{{initial_pc, 11}} z80:z80];
 	}
