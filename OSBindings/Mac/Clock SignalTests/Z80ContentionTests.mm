@@ -34,6 +34,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 
 	void run_for(int cycles) {
 		z80_.run_for(HalfCycles(Cycles(cycles)));
+		XCTAssertEqual(bus_records_.size(), cycles * 2);
 	}
 
 	/// A record of the state of the address bus, MREQ, IOREQ and RFSH lines,
@@ -385,6 +386,50 @@ struct ContentionCheck {
 			{initial_ir+1, 1},
 		} z80:z80];
 		[self validatePlus3Contention:{{initial_pc, 11}} z80:z80];
+	}
+}
+
+- (void)testADCSBCHLdd {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		// ADC HL, dd
+		{0xed, 0x4a},	{0xed, 0x5a},	{0xed, 0x6a},	{0xed, 0x7a},
+
+		// SBC HL, dd
+		{0xed, 0x42},	{0xed, 0x52},	{0xed, 0x62},	{0xed, 0x72},
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(15);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_ir+2, 1},
+			{initial_ir+2, 1},
+			{initial_ir+2, 1},
+			{initial_ir+2, 1},
+			{initial_ir+2, 1},
+			{initial_ir+2, 1},
+			{initial_ir+2, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{{initial_pc, 4}, {initial_pc+1, 11}} z80:z80];
+	}
+}
+
+- (void)testLDrnALOAn {
+	for(uint8_t opcode : {
+		// LD r, n
+		0x06, 0x0e, 0x16, 0x1e, 0x26, 0x2e, 0x3e,
+
+		0xc6,	// ADD a, n
+		0xce,	// ADC A, n
+		0xde,	// SBC A, n
+	}) {
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
+		z80.run_for(7);
+
+		[self validate48Contention:{{initial_pc, 4}, {initial_pc+1, 3}} z80:z80];
+		[self validatePlus3Contention:{{initial_pc, 4}, {initial_pc+1, 3}} z80:z80];
 	}
 }
 
