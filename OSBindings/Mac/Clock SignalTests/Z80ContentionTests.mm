@@ -14,6 +14,7 @@ namespace {
 
 static constexpr uint16_t initial_pc = 0x0000;
 static constexpr uint16_t initial_ir = 0xe000;
+static constexpr uint16_t initial_bc_de_hl = 0xabcd;
 
 struct CapturingZ80: public CPU::Z80::BusHandler {
 
@@ -30,6 +31,11 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		// Set the refresh address to the EE page and set A to 0x80.
 		z80_.set_value_of_register(CPU::Z80::Register::I, 0xe0);
 		z80_.set_value_of_register(CPU::Z80::Register::A, 0x80);
+
+		// Set BC, DE and HL.
+		z80_.set_value_of_register(CPU::Z80::Register::BC, initial_bc_de_hl);
+		z80_.set_value_of_register(CPU::Z80::Register::DE, initial_bc_de_hl);
+		z80_.set_value_of_register(CPU::Z80::Register::HL, initial_bc_de_hl);
 	}
 
 	void run_for(int cycles) {
@@ -420,7 +426,7 @@ struct ContentionCheck {
 		// LD r, n
 		0x06, 0x0e, 0x16, 0x1e, 0x26, 0x2e, 0x3e,
 
-		0xc6,	// ADD a, n
+		0xc6,	// ADD A, n
 		0xce,	// ADC A, n
 		0xde,	// SBC A, n
 	}) {
@@ -430,6 +436,28 @@ struct ContentionCheck {
 
 		[self validate48Contention:{{initial_pc, 4}, {initial_pc+1, 3}} z80:z80];
 		[self validatePlus3Contention:{{initial_pc, 4}, {initial_pc+1, 3}} z80:z80];
+	}
+}
+
+- (void)testLDrind {
+	for(uint8_t opcode : {
+		// LD r, (dd)
+		0x0a, 0x1a,
+		0x46, 0x4e, 0x56, 0x5e, 0x66, 0x6e, 0x7e, 0x86,
+
+		// LD (ss), r
+		0x02, 0x12,
+		0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x77,
+
+		// ALO A, (HL)
+		0x86, 0x8e, 0x96, 0x9e, 0xa6, 0xae, 0xb6, 0xbe
+	}) {
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
+		z80.run_for(7);
+
+		[self validate48Contention:{{initial_pc, 4}, {initial_bc_de_hl, 3}} z80:z80];
+		[self validatePlus3Contention:{{initial_pc, 4}, {initial_bc_de_hl, 3}} z80:z80];
 	}
 }
 
