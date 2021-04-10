@@ -523,4 +523,28 @@ struct ContentionCheck {
 	}
 }
 
+- (void)testBITbhl {
+	constexpr uint8_t offset = 0x10;
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xcb, 0x46, offset},	{0xcb, 0x4e, offset},
+		{0xcb, 0x56, offset},	{0xcb, 0x5e, offset},
+		{0xcb, 0x66, offset},	{0xcb, 0x6e, offset},
+		{0xcb, 0x76, offset},	{0xcb, 0x7e, offset},
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(12);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 3},
+			{initial_bc_de_hl, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 4},
+		} z80:z80];
+	}
+}
 @end
