@@ -48,13 +48,15 @@ ProcessorStorage::ProcessorStorage() {
 
 // Compound bus operations, as micro-ops
 
+#define InternalOperation(len)			{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, HalfCycles(len), &last_address_bus_, nullptr, false}}
+
 // Read3 is a standard read cycle: 1.5 cycles, then check the wait line, then 1.5 cycles;
 // Read4 is a four-cycle read that has to do something to calculate the address: 1.5 cycles, then an extra wait cycle, then check the wait line, then 1.5 cycles;
-// Read4Pre is a four-cycle read that has to do something after reading: 1.5 cycles, then check the wait line, then an extra wait cycle, then 1.5 cycles;
+// Read4Pre is a four-cycle read that has to do something after reading: 1.5 cycles, then check the wait line, then 1.5 cycles, then a 1-cycle internal operation;
 // Read5 is a five-cycle read: 1.5 cycles, two wait cycles, check the wait line, 1.5 cycles.
 #define Read3(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
 #define Read4(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, false)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
-#define Read4Pre(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadWait(2, addr, val, false)), BusOp(ReadEnd(addr, val))
+#define Read4Pre(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val)), InternalOperation(2)
 #define Read5(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(4, addr, val, false)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
 
 #define Write3(addr, val)				BusOp(WriteStart(addr, val)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val))
@@ -62,7 +64,6 @@ ProcessorStorage::ProcessorStorage() {
 
 #define Input(addr, val)				BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
 #define Output(addr, val)				BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
-#define InternalOperation(len)			{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, HalfCycles(len), &last_address_bus_, nullptr, false}}
 
 /// A sequence is a series of micro-ops that ends in a move-to-next-program operation.
 #define Sequence(...)				{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
