@@ -62,7 +62,7 @@ ProcessorStorage::ProcessorStorage() {
 
 #define Input(addr, val)				BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
 #define Output(addr, val)				BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
-#define InternalOperation(len)			{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, HalfCycles(len), &ir_.full, nullptr, false}}
+#define InternalOperation(len)			{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, HalfCycles(len), &last_address_bus_, nullptr, false}}
 
 /// A sequence is a series of micro-ops that ends in a move-to-next-program operation.
 #define Sequence(...)				{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }

@@ -149,6 +149,8 @@ class ProcessorStorage {
 													// that knowledge of what the last opcode did is necessary to get bits 5 & 3
 													// correct for SCF and CCF.
 
+		uint16_t last_address_bus_ = 0;				// The value most recently put out on the address bus.
+
 		HalfCycles number_of_cycles_;
 
 		enum Interrupt: uint8_t {

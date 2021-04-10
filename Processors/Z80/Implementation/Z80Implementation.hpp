@@ -82,6 +82,10 @@ template <	class T,
 					}
 					number_of_cycles_ -= operation->machine_cycle.length;
 					last_request_status_ = request_status_;
+
+					// TODO: eliminate this conditional if all bus cycles have an address filled in.
+					last_address_bus_ = operation->machine_cycle.address ? *operation->machine_cycle.address : 0xdead;
+
 					number_of_cycles_ -= bus_handler_.perform_machine_cycle(operation->machine_cycle);
 					if(uses_bus_request && bus_request_line_) goto do_bus_acknowledge;
 				break;
