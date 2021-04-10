@@ -524,12 +524,11 @@ struct ContentionCheck {
 }
 
 - (void)testBITbhl {
-	constexpr uint8_t offset = 0x10;
 	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
-		{0xcb, 0x46, offset},	{0xcb, 0x4e, offset},
-		{0xcb, 0x56, offset},	{0xcb, 0x5e, offset},
-		{0xcb, 0x66, offset},	{0xcb, 0x6e, offset},
-		{0xcb, 0x76, offset},	{0xcb, 0x7e, offset},
+		{0xcb, 0x46},	{0xcb, 0x4e},
+		{0xcb, 0x56},	{0xcb, 0x5e},
+		{0xcb, 0x66},	{0xcb, 0x6e},
+		{0xcb, 0x76},	{0xcb, 0x7e},
 	}) {
 		CapturingZ80 z80(sequence);
 		z80.run_for(12);
@@ -547,4 +546,43 @@ struct ContentionCheck {
 		} z80:z80];
 	}
 }
+
+- (void)testBITbiin {
+	constexpr uint8_t offset = 0x10;
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		// BIT b, (ix+d)
+		{0xdd, 0xcb, offset, 0x46},	{0xdd, 0xcb, offset, 0x4e},
+		{0xdd, 0xcb, offset, 0x56},	{0xdd, 0xcb, offset, 0x5e},
+		{0xdd, 0xcb, offset, 0x66},	{0xdd, 0xcb, offset, 0x6e},
+		{0xdd, 0xcb, offset, 0x76},	{0xdd, 0xcb, offset, 0x7e},
+
+		// BIT b, (iy+d)
+		{0xfd, 0xcb, offset, 0x46},	{0xfd, 0xcb, offset, 0x4e},
+		{0xfd, 0xcb, offset, 0x56},	{0xfd, 0xcb, offset, 0x5e},
+		{0xfd, 0xcb, offset, 0x66},	{0xfd, 0xcb, offset, 0x6e},
+		{0xfd, 0xcb, offset, 0x76},	{0xfd, 0xcb, offset, 0x7e},
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(20);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_pc+2, 3},
+			{initial_pc+3, 3},
+			{initial_pc+3, 1},
+			{initial_pc+3, 1},
+			{initial_ix_iy + offset, 3},
+			{initial_ix_iy + offset, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_pc+2, 3},
+			{initial_pc+3, 5},
+			{initial_ix_iy + offset, 4},
+		} z80:z80];
+	}
+}
+
 @end
