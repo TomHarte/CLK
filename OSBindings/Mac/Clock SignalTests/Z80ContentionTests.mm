@@ -15,6 +15,7 @@ namespace {
 static constexpr uint16_t initial_pc = 0x0000;
 static constexpr uint16_t initial_ir = 0xe000;
 static constexpr uint16_t initial_bc_de_hl = 0xabcd;
+static constexpr uint16_t initial_ix_iy = 0x3412;
 
 struct CapturingZ80: public CPU::Z80::BusHandler {
 
@@ -36,6 +37,10 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		z80_.set_value_of_register(CPU::Z80::Register::BC, initial_bc_de_hl);
 		z80_.set_value_of_register(CPU::Z80::Register::DE, initial_bc_de_hl);
 		z80_.set_value_of_register(CPU::Z80::Register::HL, initial_bc_de_hl);
+
+		// Set IX and IY.
+		z80_.set_value_of_register(CPU::Z80::Register::IX, initial_ix_iy);
+		z80_.set_value_of_register(CPU::Z80::Register::IY, initial_ix_iy);
 	}
 
 	void run_for(int cycles) {
@@ -458,6 +463,63 @@ struct ContentionCheck {
 
 		[self validate48Contention:{{initial_pc, 4}, {initial_bc_de_hl, 3}} z80:z80];
 		[self validatePlus3Contention:{{initial_pc, 4}, {initial_bc_de_hl, 3}} z80:z80];
+	}
+}
+
+- (void)testLDiiPlusn {
+	constexpr uint8_t offset = 0x10;
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		// LD r, (ii+n)
+		{0xdd, 0x46, offset},	{0xdd, 0x4e, offset},
+		{0xdd, 0x56, offset},	{0xdd, 0x5e, offset},
+		{0xdd, 0x66, offset},	{0xdd, 0x6e, offset},
+
+		{0xfd, 0x46, offset},	{0xfd, 0x4e, offset},
+		{0xfd, 0x56, offset},	{0xfd, 0x5e, offset},
+		{0xfd, 0x66, offset},	{0xfd, 0x6e, offset},
+
+		// LD (ii+n), r
+		{0xdd, 0x70, offset},	{0xdd, 0x71, offset},
+		{0xdd, 0x72, offset},	{0xdd, 0x73, offset},
+		{0xdd, 0x74, offset},	{0xdd, 0x75, offset},
+		{0xdd, 0x77, offset},
+
+		{0xfd, 0x70, offset},	{0xfd, 0x71, offset},
+		{0xfd, 0x72, offset},	{0xfd, 0x73, offset},
+		{0xfd, 0x74, offset},	{0xfd, 0x75, offset},
+		{0xfd, 0x77, offset},
+
+		// ALO A, (ii+n)
+		{0xdd, 0x86, offset},	{0xdd, 0x8e, offset},
+		{0xdd, 0x96, offset},	{0xdd, 0x9e, offset},
+		{0xdd, 0xa6, offset},	{0xdd, 0xae, offset},
+		{0xdd, 0xb6, offset},	{0xdd, 0xbe, offset},
+
+		{0xfd, 0x86, offset},	{0xfd, 0x8e, offset},
+		{0xfd, 0x96, offset},	{0xfd, 0x9e, offset},
+		{0xfd, 0xa6, offset},	{0xfd, 0xae, offset},
+		{0xfd, 0xb6, offset},	{0xfd, 0xbe, offset},
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(19);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_pc+2, 3},
+			{initial_pc+2, 1},
+			{initial_pc+2, 1},
+			{initial_pc+2, 1},
+			{initial_pc+2, 1},
+			{initial_pc+2, 1},
+			{initial_ix_iy + offset, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_pc+2, 8},
+			{initial_ix_iy + offset, 3},
+		} z80:z80];
 	}
 }
 
