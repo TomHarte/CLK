@@ -154,14 +154,14 @@ ProcessorStorage::ProcessorStorage() {
 				RMWI(a_, op)
 
 #define IX_READ_OP_GROUP(op)	\
-				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				StdInstr(Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_})
+				StdInstr(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_})
 
 #define ADD16(d, s) StdInstr(InternalOperation(8), InternalOperation(6), {MicroOp::ADD16, &s.full, &d.full})
 #define ADC16(d, s) StdInstr(InternalOperation(8), InternalOperation(6), {MicroOp::ADC16, &s.full, &d.full})
@@ -537,10 +537,10 @@ void ProcessorStorage::assemble_fetch_decode_execute(InstructionPage &target, in
 	};
 	const MicroOp short_fetch_decode_execute[] = {
 		BusOp(ReadOpcodeStart()),
-		BusOp(ReadOpcodeWait(false)),
 		BusOp(ReadOpcodeWait(true)),
+		BusOp(ReadOpcodeWait(false)),
 		BusOp(ReadOpcodeEnd()),
-		{ MicroOp::DecodeOperation }
+		{ MicroOp::DecodeOperation },
 	};
 	copy_program((length == 4) ? normal_fetch_decode_execute : short_fetch_decode_execute, target.fetch_decode_execute);
 	target.fetch_decode_execute_data = target.fetch_decode_execute.data();
