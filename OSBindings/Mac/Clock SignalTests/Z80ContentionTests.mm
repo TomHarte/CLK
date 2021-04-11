@@ -122,6 +122,25 @@ struct ContentionCheck {
 	int length;
 };
 
+- (void)compareExpectedContentions:(const std::initializer_list<ContentionCheck> &)contentions found:(const std::vector<ContentionCheck> &)found label:(const char *)label {
+	XCTAssertEqual(contentions.size(), found.size(), "[%s] found %lu contentions but expected %zu", label, found.size(), contentions.size());
+
+	auto contention = contentions.begin();
+	auto found_contention = found.begin();
+
+	while(contention != contentions.end() && found_contention != found.end()) {
+		XCTAssertEqual(contention->address, found_contention->address, "[%s] mismatched address at step %zu; expected %04x but found %04x", label, contention - contentions.begin(), contention->address, found_contention->address);
+		XCTAssertEqual(contention->length, found_contention->length, "[%s] mismatched length at step %zu; expected %d but found %d", label, contention - contentions.begin(), contention->length, found_contention->length);
+
+		if(contention->address != found_contention->address || contention->length != found_contention->length) {
+			break;
+		}
+
+		++contention;
+		++found_contention;
+	}
+}
+
 /*!
 	Checks that the accumulated bus activity in @c z80 matches the expectations given in @c contentions if
 	processed by a Sinclair 48k or 128k ULA.
@@ -129,11 +148,12 @@ struct ContentionCheck {
 - (void)validate48Contention:(const std::initializer_list<ContentionCheck> &)contentions z80:(const CapturingZ80 &)z80 {
 	// 48[/128]k contention logic: triggered on address alone, _unless_
 	// MREQ is also active.
-	auto contention = contentions.begin();
 	const auto bus_records = z80.cycle_records();
+	std::vector<ContentionCheck> found_contentions;
 
 	int count = 0;
 	uint16_t address = bus_records.front().address;
+
 	for(size_t c = 0; c < bus_records.size(); c++) {
 		++count;
 
@@ -141,21 +161,20 @@ struct ContentionCheck {
 			c &&					// i.e. not at front.
 			!bus_records[c].mreq	// i.e. beginning of a new contention.
 		) {
-			XCTAssertNotEqual(contention, contentions.end());
+			found_contentions.emplace_back();
+			found_contentions.back().address = address;
+			found_contentions.back().length = count - 1;
 
-			XCTAssertEqual(contention->address, address);
-			XCTAssertEqual(contention->length, count - 1);
-
-			++contention;
 			count = 1;
 			address = bus_records[c].address;
 		}
 	}
 
-	XCTAssertEqual(contention->address, address);
-	XCTAssertEqual(contention->length, count);
-	++contention;
-	XCTAssertEqual(contention, contentions.end());
+	found_contentions.emplace_back();
+	found_contentions.back().address = address;
+	found_contentions.back().length = count;
+
+	[self compareExpectedContentions:contentions found:found_contentions label:"48kb"];
 }
 
 /*!
@@ -164,8 +183,8 @@ struct ContentionCheck {
 */
 - (void)validatePlus3Contention:(const std::initializer_list<ContentionCheck> &)contentions z80:(const CapturingZ80 &)z80 {
 	// +3 contention logic: triggered by the leading edge of MREQ, sans refresh.
-	auto contention = contentions.begin();
 	const auto bus_records = z80.bus_records();
+	std::vector<ContentionCheck> found_contentions;
 
 	int count = 0;
 	uint16_t address = bus_records.front().address;
@@ -178,22 +197,20 @@ struct ContentionCheck {
 			c &&				// i.e. not at front.
 			is_leading_edge		// i.e. beginning of a new contention.
 		) {
-			XCTAssertNotEqual(contention, contentions.end());
-
-			XCTAssertEqual(contention->address, address, "Address mismatch at half-cycle %zu", c);
-			XCTAssertEqual(contention->length, count - 1, "Length mismatch at half-cycle %zu", c);
-			++contention;
+			found_contentions.emplace_back();
+			found_contentions.back().address = address;
+			found_contentions.back().length = count - 1;
 
 			count = 1;
 			address = bus_records[c].address;
 		}
 	}
 
-	XCTAssertEqual(contention->address, address, "Address mismatch at end");
-	XCTAssertEqual(contention->length, count, "Length mismatch at end");
+	found_contentions.emplace_back();
+	found_contentions.back().address = address;
+	found_contentions.back().length = count;
 
-	++contention;
-	XCTAssertEqual(contention, contentions.end(), "Not all supplied contentions used");
+	[self compareExpectedContentions:contentions found:found_contentions label:"+3"];
 }
 
 // MARK: - Opcode tests.
