@@ -57,7 +57,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 
 	HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 		// Log the activity.
-		const uint8_t* const bus_state = cycle.bus_state();
+		const uint8_t *const bus_state = cycle.bus_state();
 		for(int c = 0; c < cycle.length.as<int>(); c++) {
 			bus_records_.emplace_back();
 

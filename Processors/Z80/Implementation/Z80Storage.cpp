@@ -524,6 +524,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 }
 
 void ProcessorStorage::assemble_fetch_decode_execute(InstructionPage &target, int length) {
+	/// The fetch-decode-execute sequence for a regular four-clock M1 cycle.
 	const MicroOp normal_fetch_decode_execute[] = {
 		BusOp(ReadOpcodeStart()),
 		BusOp(ReadOpcodeWait(true)),
@@ -532,15 +533,18 @@ void ProcessorStorage::assemble_fetch_decode_execute(InstructionPage &target, in
 		BusOp(Refresh()),
 		{ MicroOp::DecodeOperation }
 	};
+
+	/// The concluding fetch-decode-execute of a [dd/fd]cb nn oo sequence, i.e. an (IX+n) or (IY+n) operation.
+	/// Per the observed 48kb/128kb Spectrum timings, this appears not to include a refresh cycle. So I've also
+	/// taken a punt on it not incrementing R.
 	const MicroOp short_fetch_decode_execute[] = {
-		BusOp(ReadOpcodeStart()),
-		BusOp(ReadOpcodeWait(true)),
-		BusOp(ReadOpcodeWait(false)),
-		BusOp(ReadOpcodeEnd()),
-		{ MicroOp::IncrementR },
-		BusOp(Refresh()),
+		BusOp(ReadStart(pc_, operation_)),
+		BusOp(ReadWait(2, pc_, operation_, true)),
+		BusOp(ReadEnd(pc_, operation_)),
+		InternalOperation(4),
 		{ MicroOp::DecodeOperation },
 	};
+
 	copy_program((length == 4) ? normal_fetch_decode_execute : short_fetch_decode_execute, target.fetch_decode_execute);
 	target.fetch_decode_execute_data = target.fetch_decode_execute.data();
 }
