@@ -677,4 +677,109 @@ struct ContentionCheck {
 	}
 }
 
+- (void)testLDAind {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0x32, 0xcd, 0xab},	// LD (nn), a
+		{0x3a, 0xcd, 0xab},	// LD a, (nn)
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(13);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{initial_pc+2, 3},
+			{0xabcd, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{initial_pc+2, 3},
+			{0xabcd, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testLDHLind {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0x22, 0xcd, 0xab},	// LD (nn), HL
+		{0x2a, 0xcd, 0xab},	// LD HL, (nn)
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(16);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{initial_pc+2, 3},
+			{0xabcd, 3},
+			{0xabce, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{initial_pc+2, 3},
+			{0xabcd, 3},
+			{0xabce, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testLDrrind {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xed, 0x43, 0xcd, 0xab},	// LD (nn), BC
+		{0xed, 0x53, 0xcd, 0xab},	// LD (nn), DE
+		{0xed, 0x63, 0xcd, 0xab},	// LD (nn), HL
+		{0xed, 0x73, 0xcd, 0xab},	// LD (nn), SP
+
+		{0xed, 0x4b, 0xcd, 0xab},	// LD BC, (nn)
+		{0xed, 0x5b, 0xcd, 0xab},	// LD DE, (nn)
+		{0xed, 0x6b, 0xcd, 0xab},	// LD HL, (nn)
+		{0xed, 0x7b, 0xcd, 0xab},	// LD SP, (nn)
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(20);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_pc+2, 3},
+			{initial_pc+3, 3},
+			{0xabcd, 3},
+			{0xabce, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_pc+2, 3},
+			{initial_pc+3, 3},
+			{0xabcd, 3},
+			{0xabce, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testINCDECHL {
+	for(uint8_t opcode : {
+		0x34,	// INC (HL)
+		0x35,	// DEC (HL)
+	}) {
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
+		z80.run_for(11);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_bc_de_hl, 3},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_bc_de_hl, 4},
+			{initial_bc_de_hl, 3},
+		} z80:z80];
+	}
+}
+
 @end
