@@ -16,8 +16,8 @@ class ProcessorStorage {
 		struct MicroOp {
 			enum Type {
 				BusOperation,
+				IncrementR,
 				DecodeOperation,
-				DecodeOperationNoRChange,
 				MoveToNextProgram,
 
 				Increment8NoFlags,
