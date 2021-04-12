@@ -602,4 +602,79 @@ struct ContentionCheck {
 	}
 }
 
+- (void)testLDJPJRnn {
+	for(uint8_t opcode : {
+		// LD rr, dd
+		0x01, 0x11, 0x21, 0x31,
+
+		// JP nn, JP cc, nn
+		0xc2, 0xc3, 0xd2, 0xe2, 0xf2,
+	}) {
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
+		z80.run_for(10);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{initial_pc+2, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{initial_pc+2, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testLDindHLn {
+	for(uint8_t opcode : {
+		// LD (HL), n
+		0x36
+	}) {
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
+		z80.run_for(10);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{initial_bc_de_hl, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{initial_bc_de_hl, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testLDiiPlusnn {
+	constexpr uint8_t offset = 0x10;
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		// LD (ii+n), n
+		{0xdd, 0x36, offset},	{0xfd, 0x36, offset},
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(19);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_pc+2, 3},
+			{initial_pc+3, 3},
+			{initial_pc+3, 1},
+			{initial_pc+3, 1},
+			{initial_ix_iy + offset, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_pc+2, 3},
+			{initial_pc+3, 5},
+			{initial_ix_iy + offset, 3},
+		} z80:z80];
+	}
+}
+
 @end
