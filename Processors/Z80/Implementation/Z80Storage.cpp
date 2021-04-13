@@ -94,9 +94,6 @@ ProcessorStorage::ProcessorStorage() {
 #define Push(x)					{MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.halves.high), {MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.halves.low)
 #define Pop(x)					Read3(sp_, x.halves.low), {MicroOp::Increment16, &sp_.full}, Read3(sp_, x.halves.high), {MicroOp::Increment16, &sp_.full}
 
-#define Push8(x)				{MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.halves.high), {MicroOp::Decrement16, &sp_.full}, Write5(sp_, x.halves.low)
-#define Pop7(x)					Read3(sp_, x.halves.low), {MicroOp::Increment16, &sp_.full}, Read4(sp_, x.halves.high), {MicroOp::Increment16, &sp_.full}
-
 /* The following are actual instructions */
 #define NOP						{ {MicroOp::MoveToNextProgram} }
 
@@ -489,7 +486,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		/* 0xde SBC A, n */	Sequence(ReadInc(pc_, temp8_), {MicroOp::SBC8, &temp8_}),
 		/* 0xdf RST 18h */	RST(),
 		/* 0xe0 RET PO */	RET(TestPO),							/* 0xe1 POP HL */	Sequence(Pop(index)),
-		/* 0xe2 JP PO */	JP(TestPO),								/* 0xe3 EX (SP), HL */Sequence(Pop7(memptr_), Push8(index), {MicroOp::Move16, &memptr_.full, &index.full}),
+		/* 0xe2 JP PO */	JP(TestPO),								/* 0xe3 EX (SP), HL */Sequence(Pop(memptr_), InternalOperation(2), Push(index), InternalOperation(4), {MicroOp::Move16, &memptr_.full, &index.full}),
 		/* 0xe4 CALL PO */	CALL(TestPO),							/* 0xe5 PUSH HL */	Sequence(InternalOperation(2), Push(index)),
 		/* 0xe6 AND n */	Sequence(ReadInc(pc_, temp8_), {MicroOp::And, &temp8_}),
 		/* 0xe7 RST 20h */	RST(),
