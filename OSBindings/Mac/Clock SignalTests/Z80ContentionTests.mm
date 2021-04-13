@@ -131,6 +131,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 struct ContentionCheck {
 	uint16_t address;
 	int length;
+	bool is_io = false;
 };
 
 - (void)compareExpectedContentions:(const std::initializer_list<ContentionCheck> &)contentions found:(const std::vector<ContentionCheck> &)found label:(const char *)label {
@@ -142,6 +143,7 @@ struct ContentionCheck {
 	while(contention != contentions.end() && found_contention != found.end()) {
 		XCTAssertEqual(contention->address, found_contention->address, "[%s] mismatched address at step %zu; expected %04x but found %04x", label, contention - contentions.begin(), contention->address, found_contention->address);
 		XCTAssertEqual(contention->length, found_contention->length, "[%s] mismatched length at step %zu; expected %d but found %d", label, contention - contentions.begin(), contention->length, found_contention->length);
+		XCTAssertEqual(contention->is_io, found_contention->is_io, "[%s] mismatched IO flag at step %zu; expected %d but found %d", label, contention - contentions.begin(), contention->is_io, found_contention->is_io);
 
 		if(contention->address != found_contention->address || contention->length != found_contention->length) {
 			break;
@@ -164,26 +166,32 @@ struct ContentionCheck {
 
 	int count = 0;
 	uint16_t address = bus_records.front().address;
+	bool is_io = false;
 
 	for(size_t c = 0; c < bus_records.size(); c++) {
 		++count;
 
 		if(
 			c &&					// i.e. not at front.
-			!bus_records[c].mreq	// i.e. beginning of a new contention.
+			!bus_records[c].mreq &&	// i.e. beginning of a new contention.
+			!bus_records[c].ioreq	// i.e. not during an IO cycle.
 		) {
 			found_contentions.emplace_back();
 			found_contentions.back().address = address;
 			found_contentions.back().length = count - 1;
+			found_contentions.back().is_io = is_io;
 
 			count = 1;
 			address = bus_records[c].address;
 		}
+
+		is_io = bus_records[c].ioreq;
 	}
 
 	found_contentions.emplace_back();
 	found_contentions.back().address = address;
 	found_contentions.back().length = count;
+	found_contentions.back().is_io = is_io;
 
 	[self compareExpectedContentions:contentions found:found_contentions label:"48kb"];
 }
@@ -199,27 +207,35 @@ struct ContentionCheck {
 
 	int count = 0;
 	uint16_t address = bus_records.front().address;
+	bool is_io = false;
 
 	for(size_t c = 0; c < bus_records.size(); c += 2) {
 		++count;
 
-		const bool is_leading_edge = !bus_records[c].mreq && bus_records[c+1].mreq && !bus_records[c].refresh;
+		// The IOREQ test below is a little inauthentic; it's included to match the published Spectrum
+		// tables, even though the +3 doesn't contend IO.
+		const bool is_mreq_leading_edge = !bus_records[c].mreq && bus_records[c+1].mreq && !bus_records[c].refresh;
+		const bool is_ioreq_leading_edge = c < bus_records.size() - 2 && !bus_records[c].ioreq && bus_records[c+2].ioreq;
 		if(
 			c &&				// i.e. not at front.
-			is_leading_edge		// i.e. beginning of a new contention.
+			(is_mreq_leading_edge || is_ioreq_leading_edge)		// i.e. beginning of a new contention.
 		) {
 			found_contentions.emplace_back();
 			found_contentions.back().address = address;
 			found_contentions.back().length = count - 1;
+			found_contentions.back().is_io = is_io;
 
 			count = 1;
 			address = bus_records[c].address;
 		}
+
+		is_io = bus_records[c].ioreq;
 	}
 
 	found_contentions.emplace_back();
 	found_contentions.back().address = address;
 	found_contentions.back().length = count;
+	found_contentions.back().is_io = is_io;
 
 	[self compareExpectedContentions:contentions found:found_contentions label:"+3"];
 }
@@ -1127,6 +1143,27 @@ struct ContentionCheck {
 			{initial_pc+1, 4},
 			{initial_bc_de_hl, 7},
 			{initial_bc_de_hl, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testINOUTA {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xdb, 0xef},	// IN A, (n)
+		{0xd3, 0xef},	// OUT (n), A
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(11);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{0x80ef, 4, true},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{0x80ef, 4, true},
 		} z80:z80];
 	}
 }
