@@ -1147,7 +1147,7 @@ struct ContentionCheck {
 	}
 }
 
-- (void)testINOUTA {
+- (void)testINOUTn {
 	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
 		{0xdb, 0xef},	// IN A, (n)
 		{0xd3, 0xef},	// OUT (n), A
@@ -1167,5 +1167,58 @@ struct ContentionCheck {
 		} z80:z80];
 	}
 }
+
+- (void)testINOUTC {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		// IN r, (C)
+		{0xed, 0x40},	{0xed, 0x48},	{0xed, 0x50},	{0xed, 0x58},
+		{0xed, 0x60},	{0xed, 0x68},	{0xed, 0x70},	{0xed, 0x78},
+
+		// OUT r, (C)
+		{0xed, 0x41},	{0xed, 0x49},	{0xed, 0x51},	{0xed, 0x59},
+		{0xed, 0x61},	{0xed, 0x69},	{0xed, 0x71},	{0xed, 0x79},
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(12);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 4, true},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 4, true},
+		} z80:z80];
+	}
+}
+
+- (void)testEXSPHL {
+	for(uint8_t opcode : {
+		0xe3,
+	}) {
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
+		z80.run_for(19);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_sp, 3},
+			{initial_sp+1, 3},
+			{initial_sp+1, 1},
+			{initial_sp+1, 3},
+			{initial_sp, 3},
+			{initial_sp, 1},
+			{initial_sp, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_sp, 3},
+			{initial_sp+1, 4},
+			{initial_sp+1, 3},
+			{initial_sp, 5},
+		} z80:z80];
+	}}
 
 @end
