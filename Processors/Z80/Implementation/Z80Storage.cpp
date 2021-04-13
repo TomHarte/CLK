@@ -55,7 +55,7 @@ ProcessorStorage::ProcessorStorage() {
 // Read4Pre is a four-cycle read that has to do something after reading: 1.5 cycles, then check the wait line, then 1.5 cycles, then a 1-cycle internal operation;
 // Read5 is a five-cycle read: 1.5 cycles, two wait cycles, check the wait line, 1.5 cycles.
 #define Read3(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
-#define Read4(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, false)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
+#define Read4(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val)), InternalOperation(2)
 #define Read4Pre(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val)), InternalOperation(2)
 #define Read5(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val)), InternalOperation(4)
 
