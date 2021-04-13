@@ -16,6 +16,7 @@ static constexpr uint16_t initial_pc = 0x0000;
 static constexpr uint16_t initial_ir = 0xe000;
 static constexpr uint16_t initial_bc_de_hl = 0xabcd;
 static constexpr uint16_t initial_ix_iy = 0x3412;
+static constexpr uint16_t initial_sp = 0x6800;
 
 struct CapturingZ80: public CPU::Z80::BusHandler {
 
@@ -29,6 +30,13 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		run_for(3);
 		bus_records_.clear();
 
+		// Set the flags so that if this is a conditional operation, it'll succeed.
+		if((*code.begin())&0x8) {
+			z80_.set_value_of_register(CPU::Z80::Register::Flags, 0xff);
+		} else {
+			z80_.set_value_of_register(CPU::Z80::Register::Flags, 0x00);
+		}
+
 		// Set the refresh address to the EE page and set A to 0x80.
 		z80_.set_value_of_register(CPU::Z80::Register::I, 0xe0);
 		z80_.set_value_of_register(CPU::Z80::Register::A, 0x80);
@@ -41,6 +49,9 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		// Set IX and IY.
 		z80_.set_value_of_register(CPU::Z80::Register::IX, initial_ix_iy);
 		z80_.set_value_of_register(CPU::Z80::Register::IY, initial_ix_iy);
+
+		// Set SP.
+		z80_.set_value_of_register(CPU::Z80::Register::StackPointer, initial_sp);
 	}
 
 	void run_for(int cycles) {
@@ -910,4 +921,214 @@ struct ContentionCheck {
 		} z80:z80];
 	}
 }
+
+- (void)testPOPddRET {
+	for(uint8_t opcode : {
+		// POP dd
+		0xc1, 0xd1, 0xe1, 0xf1,
+
+		// RET
+		0xc9,
+	}) {
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
+		z80.run_for(10);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_sp, 3},
+			{initial_sp+1, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_sp, 3},
+			{initial_sp+1, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testRETIN {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		// RETN
+		{0xed, 0x45},	{0xed, 0x55},	{0xed, 0x5d},
+		{0xed, 0x65},	{0xed, 0x6d},	{0xed, 0x75},	{0xed, 0x7d},
+
+		{0xed, 0x4d},	// RETI
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(14);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_sp, 3},
+			{initial_sp+1, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_sp, 3},
+			{initial_sp+1, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testRETcc {
+	for(uint8_t opcode : {
+		0xc0,	0xc8,	0xd0,	0xd8,
+		0xe0,	0xe8,	0xf0,	0xf8,
+	}) {
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
+		z80.run_for(11);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_ir, 1},
+			{initial_sp, 3},
+			{initial_sp+1, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 5},
+			{initial_sp, 3},
+			{initial_sp+1, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testPUSHRST {
+	for(uint8_t opcode : {
+		// PUSH dd
+		0xc5,	0xd5,	0xe5,	0xf5,
+
+		// RST x
+		0xc7,	0xcf,	0xd7,	0xdf,	0xe7,	0xef,	0xf7,	0xff,
+	}) {
+		const std::initializer_list<uint8_t> opcodes = {opcode};
+		CapturingZ80 z80(opcodes);
+		z80.run_for(11);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_ir, 1},
+			{initial_sp-1, 3},
+			{initial_sp-2, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 5},
+			{initial_sp-1, 3},
+			{initial_sp-2, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testCALL {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		// CALL cc
+		{0xc4, 0x00, 0x00},	{0xcc, 0x00, 0x00},
+		{0xd4, 0x00, 0x00},	{0xdc, 0x00, 0x00},
+		{0xe4, 0x00, 0x00},	{0xec, 0x00, 0x00},
+		{0xf4, 0x00, 0x00},	{0xfc, 0x00, 0x00},
+
+		{0xcd, 0x00, 0x00},	// CALL
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(17);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{initial_pc+2, 3},
+			{initial_pc+2, 1},
+			{initial_sp-1, 3},
+			{initial_sp-2, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{initial_pc+2, 4},
+			{initial_sp-1, 3},
+			{initial_sp-2, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testJR {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		// JR cc
+		{0x20, 0x00},	{0x28, 0x00},
+		{0x30, 0x00},	{0x38, 0x00},
+
+		{0x18, 0x00},	// JR
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(12);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 3},
+			{initial_pc+1, 1},
+			{initial_pc+1, 1},
+			{initial_pc+1, 1},
+			{initial_pc+1, 1},
+			{initial_pc+1, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 8},
+		} z80:z80];
+	}
+}
+
+- (void)testDJNZ {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0x10, 0x00}
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(13);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_ir, 1},
+			{initial_pc+1, 3},
+			{initial_pc+1, 1},
+			{initial_pc+1, 1},
+			{initial_pc+1, 1},
+			{initial_pc+1, 1},
+			{initial_pc+1, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 5},
+			{initial_pc+1, 8},
+		} z80:z80];
+	}
+}
+
+- (void)testRLDRRD {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xed, 0x6f},	// RLD
+		{0xed, 0x67},	// RRD
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(18);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 3},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 7},
+			{initial_bc_de_hl, 3},
+		} z80:z80];
+	}
+}
+
 @end
