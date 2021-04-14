@@ -23,11 +23,11 @@ ProcessorStorage::ProcessorStorage() {
 #define Refresh()					PartialMachineCycle(PartialMachineCycle::Refresh, HalfCycles(4), &refresh_addr_.full, nullptr, false)
 
 #define ReadStart(addr, val)		PartialMachineCycle(PartialMachineCycle::ReadStart, HalfCycles(3), &addr.full, &val, false)
-#define ReadWait(l, addr, val, f)	PartialMachineCycle(PartialMachineCycle::ReadWait, HalfCycles(l), &addr.full, &val, f)
+#define ReadWait(addr, val)			PartialMachineCycle(PartialMachineCycle::ReadWait, HalfCycles(2), &addr.full, &val, true)
 #define ReadEnd(addr, val)			PartialMachineCycle(PartialMachineCycle::Read, HalfCycles(3), &addr.full, &val, false)
 
 #define WriteStart(addr, val)		PartialMachineCycle(PartialMachineCycle::WriteStart,HalfCycles(3), &addr.full, &val, false)
-#define WriteWait(l, addr, val, f)	PartialMachineCycle(PartialMachineCycle::WriteWait, HalfCycles(l), &addr.full, &val, f)
+#define WriteWait(addr, val)		PartialMachineCycle(PartialMachineCycle::WriteWait, HalfCycles(2), &addr.full, &val, true)
 #define WriteEnd(addr, val)			PartialMachineCycle(PartialMachineCycle::Write, HalfCycles(3), &addr.full, &val, false)
 
 #define InputStart(addr, val)		PartialMachineCycle(PartialMachineCycle::InputStart, HalfCycles(3), &addr.full, &val, false)
@@ -47,21 +47,9 @@ ProcessorStorage::ProcessorStorage() {
 #define BusOp(op)					{MicroOp::BusOperation, nullptr, nullptr, op}
 
 // Compound bus operations, as micro-ops
-
 #define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, HalfCycles(len), &last_address_bus_, nullptr, false}}
-
-// Read3 is a standard read cycle: 1.5 cycles, then check the wait line, then 1.5 cycles;
-// Read4 is a four-cycle read that has to do something to calculate the address: 1.5 cycles, then an extra wait cycle, then check the wait line, then 1.5 cycles;
-// Read4Pre is a four-cycle read that has to do something after reading: 1.5 cycles, then check the wait line, then 1.5 cycles, then a 1-cycle internal operation;
-// Read5 is a five-cycle read: 1.5 cycles, two wait cycles, check the wait line, 1.5 cycles.
-#define Read3(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
-#define Read4(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val)), InternalOperation(2)
-#define Read4Pre(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val)), InternalOperation(2)
-#define Read5(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val)), InternalOperation(4)
-
-#define Write3(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val))
-#define Write5(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val)), InternalOperation(4)
-
+#define Read(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(addr, val)), BusOp(ReadEnd(addr, val))
+#define Write(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(addr, val)), BusOp(WriteEnd(addr, val))
 #define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
 #define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
 
@@ -77,28 +65,26 @@ ProcessorStorage::ProcessorStorage() {
 #define Inc16(r)				{(&r == &pc_) ? MicroOp::IncrementPC : MicroOp::Increment16, &r.full}
 #define Inc8NoFlags(r)			{MicroOp::Increment8NoFlags, &r}
 
-#define ReadInc(addr, val)		Read3(addr, val), Inc16(addr)
-#define Read4Inc(addr, val)		Read4(addr, val), Inc16(addr)
-#define Read5Inc(addr, val)		Read5(addr, val), Inc16(addr)
-#define WriteInc(addr, val)		Write3(addr, val), {MicroOp::Increment16, &addr.full}
+#define ReadInc(addr, val)		Read(addr, val), Inc16(addr)
+#define WriteInc(addr, val)		Write(addr, val), {MicroOp::Increment16, &addr.full}
 
 #define Read16Inc(addr, val)	ReadInc(addr, val.halves.low), ReadInc(addr, val.halves.high)
-#define Read16(addr, val)		ReadInc(addr, val.halves.low), Read3(addr, val.halves.high)
+#define Read16(addr, val)		ReadInc(addr, val.halves.low), Read(addr, val.halves.high)
 
-#define Write16(addr, val)		WriteInc(addr, val.halves.low), Write3(addr, val.halves.high)
+#define Write16(addr, val)		WriteInc(addr, val.halves.low), Write(addr, val.halves.high)
 
 #define INDEX()					{MicroOp::IndexedPlaceHolder}, ReadInc(pc_, temp8_), InternalOperation(10), {MicroOp::CalculateIndexAddress, &index}
 #define FINDEX()				{MicroOp::IndexedPlaceHolder}, ReadInc(pc_, temp8_), {MicroOp::CalculateIndexAddress, &index}
 #define INDEX_ADDR()			(add_offsets ? memptr_ : index)
 
-#define Push(x)					{MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.halves.high), {MicroOp::Decrement16, &sp_.full}, Write3(sp_, x.halves.low)
-#define Pop(x)					Read3(sp_, x.halves.low), {MicroOp::Increment16, &sp_.full}, Read3(sp_, x.halves.high), {MicroOp::Increment16, &sp_.full}
+#define Push(x)					{MicroOp::Decrement16, &sp_.full}, Write(sp_, x.halves.high), {MicroOp::Decrement16, &sp_.full}, Write(sp_, x.halves.low)
+#define Pop(x)					Read(sp_, x.halves.low), {MicroOp::Increment16, &sp_.full}, Read(sp_, x.halves.high), {MicroOp::Increment16, &sp_.full}
 
 /* The following are actual instructions */
 #define NOP						{ {MicroOp::MoveToNextProgram} }
 
 #define JP(cc)					Sequence(Read16Inc(pc_, memptr_), {MicroOp::cc, nullptr}, {MicroOp::Move16, &memptr_.full, &pc_.full})
-#define CALL(cc)				Sequence(ReadInc(pc_, memptr_.halves.low), {MicroOp::cc, conditional_call_untaken_program_.data()}, Read4Inc(pc_, memptr_.halves.high), Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define CALL(cc)				Sequence(ReadInc(pc_, memptr_.halves.low), {MicroOp::cc, conditional_call_untaken_program_.data()}, ReadInc(pc_, memptr_.halves.high), InternalOperation(2), Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RET(cc)					Sequence(InternalOperation(2), {MicroOp::cc, nullptr}, Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define JR(cc)					Sequence(ReadInc(pc_, temp8_), {MicroOp::cc, nullptr}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RST()					Sequence(InternalOperation(2), {MicroOp::CalculateRSTDestination}, Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
@@ -107,25 +93,25 @@ ProcessorStorage::ProcessorStorage() {
 #define LD_GROUP(r, ri)	\
 				LD(r, bc_.halves.high),		LD(r, bc_.halves.low),		LD(r, de_.halves.high),		LD(r, de_.halves.low),	\
 				LD(r, index.halves.high),	LD(r, index.halves.low),		\
-				Sequence(INDEX(), Read3(INDEX_ADDR(), temp8_), {MicroOp::Move8, &temp8_, &ri}),		\
+				Sequence(INDEX(), Read(INDEX_ADDR(), temp8_), {MicroOp::Move8, &temp8_, &ri}),		\
 				LD(r, a_)
 
 #define READ_OP_GROUP(op)	\
 				Sequence({MicroOp::op, &bc_.halves.high}),		Sequence({MicroOp::op, &bc_.halves.low}),	\
 				Sequence({MicroOp::op, &de_.halves.high}),		Sequence({MicroOp::op, &de_.halves.low}),	\
 				Sequence({MicroOp::op, &index.halves.high}),	Sequence({MicroOp::op, &index.halves.low}),	\
-				Sequence(INDEX(), Read3(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				Sequence(INDEX(), Read(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
 				Sequence({MicroOp::op, &a_})
 
 #define READ_OP_GROUP_D(op)	\
 				Sequence({MicroOp::op, &bc_.halves.high}),		Sequence({MicroOp::op, &bc_.halves.low}),	\
 				Sequence({MicroOp::op, &de_.halves.high}),		Sequence({MicroOp::op, &de_.halves.low}),	\
 				Sequence({MicroOp::op, &index.halves.high}),	Sequence({MicroOp::op, &index.halves.low}),	\
-				Sequence(INDEX(), Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				Sequence(INDEX(), Read(INDEX_ADDR(), temp8_), InternalOperation(2), {MicroOp::op, &temp8_}),	\
 				Sequence({MicroOp::op, &a_})
 
-#define RMW(x, op, ...) Sequence(INDEX(), Read4Pre(INDEX_ADDR(), x), {MicroOp::op, &x}, Write3(INDEX_ADDR(), x))
-#define RMWI(x, op, ...) Sequence(Read4(INDEX_ADDR(), x), {MicroOp::op, &x}, Write3(INDEX_ADDR(), x))
+#define RMW(x, op, ...) Sequence(INDEX(), Read(INDEX_ADDR(), x), InternalOperation(2), {MicroOp::op, &x}, Write(INDEX_ADDR(), x))
+#define RMWI(x, op, ...) Sequence(Read(INDEX_ADDR(), x), InternalOperation(2), {MicroOp::op, &x}, Write(INDEX_ADDR(), x))
 
 #define MODIFY_OP_GROUP(op)	\
 				Sequence({MicroOp::op, &bc_.halves.high}),		Sequence({MicroOp::op, &bc_.halves.low}),	\
@@ -145,14 +131,14 @@ ProcessorStorage::ProcessorStorage() {
 				RMWI(a_, op)
 
 #define IX_READ_OP_GROUP(op)	\
-				Sequence(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Sequence(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Sequence(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Sequence(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Sequence(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Sequence(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Sequence(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
-				Sequence(Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_})
+				Sequence(Read(INDEX_ADDR(), temp8_), InternalOperation(2), {MicroOp::op, &temp8_}),	\
+				Sequence(Read(INDEX_ADDR(), temp8_), InternalOperation(2), {MicroOp::op, &temp8_}),	\
+				Sequence(Read(INDEX_ADDR(), temp8_), InternalOperation(2), {MicroOp::op, &temp8_}),	\
+				Sequence(Read(INDEX_ADDR(), temp8_), InternalOperation(2), {MicroOp::op, &temp8_}),	\
+				Sequence(Read(INDEX_ADDR(), temp8_), InternalOperation(2), {MicroOp::op, &temp8_}),	\
+				Sequence(Read(INDEX_ADDR(), temp8_), InternalOperation(2), {MicroOp::op, &temp8_}),	\
+				Sequence(Read(INDEX_ADDR(), temp8_), InternalOperation(2), {MicroOp::op, &temp8_}),	\
+				Sequence(Read(INDEX_ADDR(), temp8_), InternalOperation(2), {MicroOp::op, &temp8_})
 
 #define ADD16(d, s) Sequence(InternalOperation(8), InternalOperation(6), {MicroOp::ADD16, &s.full, &d.full})
 #define ADC16(d, s) Sequence(InternalOperation(8), InternalOperation(6), {MicroOp::ADC16, &s.full, &d.full})
@@ -266,11 +252,11 @@ void ProcessorStorage::assemble_ed_page(InstructionPage &target) {
 		/* 0x60 IN H, (C);	0x61 OUT (C), H */	IN_OUT(hl_.halves.high),
 		/* 0x62 SBC HL, HL */	SBC16(hl_, hl_),				/* 0x63 LD (nn), HL */	Sequence(Read16Inc(pc_, memptr_), Write16(memptr_, hl_)),
 		/* 0x64 NEG */			Sequence({MicroOp::NEG}),		/* 0x65 RETN */			Sequence(Pop(pc_), {MicroOp::RETN}),
-		/* 0x66 IM 0 */			Sequence({MicroOp::IM}),		/* 0x67 RRD */			Sequence(Read3(hl_, temp8_), InternalOperation(8), {MicroOp::RRD}, Write3(hl_, temp8_)),
+		/* 0x66 IM 0 */			Sequence({MicroOp::IM}),		/* 0x67 RRD */			Sequence(Read(hl_, temp8_), InternalOperation(8), {MicroOp::RRD}, Write(hl_, temp8_)),
 		/* 0x68 IN L, (C);	0x69 OUT (C), L */	IN_OUT(hl_.halves.low),
 		/* 0x6a ADC HL, HL */	ADC16(hl_, hl_),				/* 0x6b LD HL, (nn) */	Sequence(Read16Inc(pc_, memptr_), Read16(memptr_, hl_)),
 		/* 0x6c NEG */			Sequence({MicroOp::NEG}),		/* 0x6d RETN */			Sequence(Pop(pc_), {MicroOp::RETN}),
-		/* 0x6e IM 0/1 */		Sequence({MicroOp::IM}),		/* 0x6f RLD */			Sequence(Read3(hl_, temp8_), InternalOperation(8), {MicroOp::RLD}, Write3(hl_, temp8_)),
+		/* 0x6e IM 0/1 */		Sequence({MicroOp::IM}),		/* 0x6f RLD */			Sequence(Read(hl_, temp8_), InternalOperation(8), {MicroOp::RLD}, Write(hl_, temp8_)),
 		/* 0x70 IN (C) */		IN_C(temp8_),					/* 0x71 OUT (C), 0 */	Sequence({MicroOp::SetZero}, Output(bc_, temp8_), {MicroOp::SetOutFlags}),
 		/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	Sequence(Read16Inc(pc_, memptr_), Write16(memptr_, sp_)),
 		/* 0x74 NEG */			Sequence({MicroOp::NEG}),		/* 0x75 RETN */			Sequence(Pop(pc_), {MicroOp::RETN}),
@@ -281,25 +267,25 @@ void ProcessorStorage::assemble_ed_page(InstructionPage &target) {
 		/* 0x7e IM 2 */			Sequence({MicroOp::IM}),		/* 0x7f XX */			NOP,
 		NOP_ROW(),	/* 0x80 ... 0x8f */
 		NOP_ROW(),	/* 0x90 ... 0x9f */
-		/* 0xa0 LDI */		Sequence(Read3(hl_, temp8_), Write5(de_, temp8_), {MicroOp::LDI}),
-		/* 0xa1 CPI */		Sequence(Read3(hl_, temp8_), InternalOperation(10), {MicroOp::CPI}),
-		/* 0xa2 INI */		Sequence(InternalOperation(2), Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::INI}),
-		/* 0xa3 OTI */		Sequence(InternalOperation(2), Read3(hl_, temp8_), {MicroOp::OUTI}, Output(bc_, temp8_)),
+		/* 0xa0 LDI */		Sequence(Read(hl_, temp8_), Write(de_, temp8_), InternalOperation(4), {MicroOp::LDI}),
+		/* 0xa1 CPI */		Sequence(Read(hl_, temp8_), InternalOperation(10), {MicroOp::CPI}),
+		/* 0xa2 INI */		Sequence(InternalOperation(2), Input(bc_, temp8_), Write(hl_, temp8_), {MicroOp::INI}),
+		/* 0xa3 OTI */		Sequence(InternalOperation(2), Read(hl_, temp8_), {MicroOp::OUTI}, Output(bc_, temp8_)),
 		NOP, NOP, NOP, NOP,
-		/* 0xa8 LDD */		Sequence(Read3(hl_, temp8_), Write5(de_, temp8_), {MicroOp::LDD}),
-		/* 0xa9 CPD */		Sequence(Read3(hl_, temp8_), InternalOperation(10), {MicroOp::CPD}),
-		/* 0xaa IND */		Sequence(InternalOperation(2), Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::IND}),
-		/* 0xab OTD */		Sequence(InternalOperation(2), Read3(hl_, temp8_), {MicroOp::OUTD}, Output(bc_, temp8_)),
+		/* 0xa8 LDD */		Sequence(Read(hl_, temp8_), Write(de_, temp8_), InternalOperation(4), {MicroOp::LDD}),
+		/* 0xa9 CPD */		Sequence(Read(hl_, temp8_), InternalOperation(10), {MicroOp::CPD}),
+		/* 0xaa IND */		Sequence(InternalOperation(2), Input(bc_, temp8_), Write(hl_, temp8_), {MicroOp::IND}),
+		/* 0xab OTD */		Sequence(InternalOperation(2), Read(hl_, temp8_), {MicroOp::OUTD}, Output(bc_, temp8_)),
 		NOP, NOP, NOP, NOP,
-		/* 0xb0 LDIR */		Sequence(Read3(hl_, temp8_), Write5(de_, temp8_), {MicroOp::LDIR}, InternalOperation(10)),
-		/* 0xb1 CPIR */		Sequence(Read3(hl_, temp8_), InternalOperation(10), {MicroOp::CPIR}, InternalOperation(10)),
-		/* 0xb2 INIR */		Sequence(InternalOperation(2), Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::INIR}, InternalOperation(10)),
-		/* 0xb3 OTIR */		Sequence(InternalOperation(2), Read3(hl_, temp8_), {MicroOp::OUTI}, Output(bc_, temp8_), {MicroOp::OUT_R}, InternalOperation(10)),
+		/* 0xb0 LDIR */		Sequence(Read(hl_, temp8_), Write(de_, temp8_), InternalOperation(4), {MicroOp::LDIR}, InternalOperation(10)),
+		/* 0xb1 CPIR */		Sequence(Read(hl_, temp8_), InternalOperation(10), {MicroOp::CPIR}, InternalOperation(10)),
+		/* 0xb2 INIR */		Sequence(InternalOperation(2), Input(bc_, temp8_), Write(hl_, temp8_), {MicroOp::INIR}, InternalOperation(10)),
+		/* 0xb3 OTIR */		Sequence(InternalOperation(2), Read(hl_, temp8_), {MicroOp::OUTI}, Output(bc_, temp8_), {MicroOp::OUT_R}, InternalOperation(10)),
 		NOP, NOP, NOP, NOP,
-		/* 0xb8 LDDR */		Sequence(Read3(hl_, temp8_), Write5(de_, temp8_), {MicroOp::LDDR}, InternalOperation(10)),
-		/* 0xb9 CPDR */		Sequence(Read3(hl_, temp8_), InternalOperation(10), {MicroOp::CPDR}, InternalOperation(10)),
-		/* 0xba INDR */		Sequence(InternalOperation(2), Input(bc_, temp8_), Write3(hl_, temp8_), {MicroOp::INDR}, InternalOperation(10)),
-		/* 0xbb OTDR */		Sequence(InternalOperation(2), Read3(hl_, temp8_), {MicroOp::OUTD}, Output(bc_, temp8_), {MicroOp::OUT_R}, InternalOperation(10)),
+		/* 0xb8 LDDR */		Sequence(Read(hl_, temp8_), Write(de_, temp8_), InternalOperation(4), {MicroOp::LDDR}, InternalOperation(10)),
+		/* 0xb9 CPDR */		Sequence(Read(hl_, temp8_), InternalOperation(10), {MicroOp::CPDR}, InternalOperation(10)),
+		/* 0xba INDR */		Sequence(InternalOperation(2), Input(bc_, temp8_), Write(hl_, temp8_), {MicroOp::INDR}, InternalOperation(10)),
+		/* 0xbb OTDR */		Sequence(InternalOperation(2), Read(hl_, temp8_), {MicroOp::OUTD}, Output(bc_, temp8_), {MicroOp::OUT_R}, InternalOperation(10)),
 		NOP, NOP, NOP, NOP,
 		NOP_ROW(),	/* 0xc0 */
 		NOP_ROW(),	/* 0xd0 */
@@ -351,14 +337,14 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 
 	InstructionTable base_program_table = {
 		/* 0x00 NOP */			NOP,								/* 0x01 LD BC, nn */	Sequence(Read16Inc(pc_, bc_)),
-		/* 0x02 LD (BC), A */	Sequence({MicroOp::SetAddrAMemptr, &bc_.full}, Write3(bc_, a_)),
+		/* 0x02 LD (BC), A */	Sequence({MicroOp::SetAddrAMemptr, &bc_.full}, Write(bc_, a_)),
 
 		/* 0x03 INC BC;	0x04 INC B;	0x05 DEC B;	0x06 LD B, n */
 		INC_INC_DEC_LD(bc_, bc_.halves.high),
 
 		/* 0x07 RLCA */			Sequence({MicroOp::RLCA}),
 		/* 0x08 EX AF, AF' */	Sequence({MicroOp::ExAFAFDash}),	/* 0x09 ADD HL, BC */	ADD16(index, bc_),
-		/* 0x0a LD A, (BC) */	Sequence({MicroOp::Move16, &bc_.full, &memptr_.full}, Read3(memptr_, a_), Inc16(memptr_)),
+		/* 0x0a LD A, (BC) */	Sequence({MicroOp::Move16, &bc_.full, &memptr_.full}, Read(memptr_, a_), Inc16(memptr_)),
 
 		/* 0x0b DEC BC;	0x0c INC C; 0x0d DEC C; 0x0e LD C, n */
 		DEC_INC_DEC_LD(bc_, bc_.halves.low),
@@ -366,7 +352,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		/* 0x0f RRCA */			Sequence({MicroOp::RRCA}),
 		/* 0x10 DJNZ */			Sequence(InternalOperation(2), ReadInc(pc_, temp8_), {MicroOp::DJNZ}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0x11 LD DE, nn */	Sequence(Read16Inc(pc_, de_)),
-		/* 0x12 LD (DE), A */	Sequence({MicroOp::SetAddrAMemptr, &de_.full}, Write3(de_, a_)),
+		/* 0x12 LD (DE), A */	Sequence({MicroOp::SetAddrAMemptr, &de_.full}, Write(de_, a_)),
 
 		/* 0x13 INC DE;	0x14 INC D;	0x15 DEC D;	0x16 LD D, n */
 		INC_INC_DEC_LD(de_, de_.halves.high),
@@ -374,7 +360,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		/* 0x17 RLA */			Sequence({MicroOp::RLA}),
 		/* 0x18 JR */			Sequence(ReadInc(pc_, temp8_), InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0x19 ADD HL, DE */	ADD16(index, de_),
-		/* 0x1a LD A, (DE) */	Sequence({MicroOp::Move16, &de_.full, &memptr_.full}, Read3(memptr_, a_), Inc16(memptr_)),
+		/* 0x1a LD A, (DE) */	Sequence({MicroOp::Move16, &de_.full, &memptr_.full}, Read(memptr_, a_), Inc16(memptr_)),
 
 		/* 0x1b DEC DE;	0x1c INC E; 0x1d DEC E; 0x1e LD E, n */
 		DEC_INC_DEC_LD(de_, de_.halves.low),
@@ -395,15 +381,15 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 
 		/* 0x2f CPL */			Sequence({MicroOp::CPL}),
 		/* 0x30 JR NC */		JR(TestNC),							/* 0x31 LD SP, nn */	Sequence(Read16Inc(pc_, sp_)),
-		/* 0x32 LD (nn), A */	Sequence(Read16Inc(pc_, temp16_), {MicroOp::SetAddrAMemptr, &temp16_.full}, Write3(temp16_, a_)),
+		/* 0x32 LD (nn), A */	Sequence(Read16Inc(pc_, temp16_), {MicroOp::SetAddrAMemptr, &temp16_.full}, Write(temp16_, a_)),
 		/* 0x33 INC SP */		Sequence(InternalOperation(4), {MicroOp::Increment16, &sp_.full}),
-		/* 0x34 INC (HL) */		Sequence(INDEX(), Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::Increment8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
-		/* 0x35 DEC (HL) */		Sequence(INDEX(), Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::Decrement8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
-		/* 0x36 LD (HL), n */	Sequence(ReadInc(pc_, temp8_), Write3(INDEX_ADDR(), temp8_)),
+		/* 0x34 INC (HL) */		Sequence(INDEX(), Read(INDEX_ADDR(), temp8_), InternalOperation(2), {MicroOp::Increment8, &temp8_}, Write(INDEX_ADDR(), temp8_)),
+		/* 0x35 DEC (HL) */		Sequence(INDEX(), Read(INDEX_ADDR(), temp8_), InternalOperation(2), {MicroOp::Decrement8, &temp8_}, Write(INDEX_ADDR(), temp8_)),
+		/* 0x36 LD (HL), n */	Sequence(ReadInc(pc_, temp8_), Write(INDEX_ADDR(), temp8_)),
 		/* 0x37 SCF */			Sequence({MicroOp::SCF}),
 		/* 0x38 JR C */			JR(TestC),
 		/* 0x39 ADD HL, SP */	ADD16(index, sp_),
-		/* 0x3a LD A, (nn) */	Sequence(Read16Inc(pc_, memptr_), Read3(memptr_, a_), Inc16(memptr_)),
+		/* 0x3a LD A, (nn) */	Sequence(Read16Inc(pc_, memptr_), Read(memptr_, a_), Inc16(memptr_)),
 		/* 0x3b DEC SP */		Sequence(InternalOperation(4), {MicroOp::Decrement16, &sp_.full}),
 
 		/* 0x3c INC A;	0x3d DEC A;	0x3e LD A, n */
@@ -429,14 +415,14 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		/* 0x68 LD L, B;  0x69 LD L, C;	0x6a LD L, D;	0x6b LD L, E;	0x6c LD L, H;	0x6d LD H, L;	0x6e LD L, (HL);	0x6f LD L, A */
 		LD_GROUP(index.halves.low, hl_.halves.low),
 
-		/* 0x70 LD (HL), B */	Sequence(INDEX(), Write3(INDEX_ADDR(), bc_.halves.high)),
-		/* 0x71 LD (HL), C */	Sequence(INDEX(), Write3(INDEX_ADDR(), bc_.halves.low)),
-		/* 0x72 LD (HL), D */	Sequence(INDEX(), Write3(INDEX_ADDR(), de_.halves.high)),
-		/* 0x73 LD (HL), E */	Sequence(INDEX(), Write3(INDEX_ADDR(), de_.halves.low)),
-		/* 0x74 LD (HL), H */	Sequence(INDEX(), Write3(INDEX_ADDR(), hl_.halves.high)),	// neither of these stores parts of the index register;
-		/* 0x75 LD (HL), L */	Sequence(INDEX(), Write3(INDEX_ADDR(), hl_.halves.low)),	// they always store exactly H and L.
+		/* 0x70 LD (HL), B */	Sequence(INDEX(), Write(INDEX_ADDR(), bc_.halves.high)),
+		/* 0x71 LD (HL), C */	Sequence(INDEX(), Write(INDEX_ADDR(), bc_.halves.low)),
+		/* 0x72 LD (HL), D */	Sequence(INDEX(), Write(INDEX_ADDR(), de_.halves.high)),
+		/* 0x73 LD (HL), E */	Sequence(INDEX(), Write(INDEX_ADDR(), de_.halves.low)),
+		/* 0x74 LD (HL), H */	Sequence(INDEX(), Write(INDEX_ADDR(), hl_.halves.high)),	// neither of these stores parts of the index register;
+		/* 0x75 LD (HL), L */	Sequence(INDEX(), Write(INDEX_ADDR(), hl_.halves.low)),	// they always store exactly H and L.
 		/* 0x76 HALT */			Sequence({MicroOp::HALT}),
-		/* 0x77 LD (HL), A */	Sequence(INDEX(), Write3(INDEX_ADDR(), a_)),
+		/* 0x77 LD (HL), A */	Sequence(INDEX(), Write(INDEX_ADDR(), a_)),
 
 		/* 0x78 LD A, B;  0x79 LD A, C;	0x7a LD A, D;	0x7b LD A, E;	0x7c LD A, H;	0x7d LD A, L;	0x7e LD A, (HL);	0x7f LD A, A */
 		LD_GROUP(a_, a_),
@@ -472,7 +458,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		/* 0xc7 RST 00h */	RST(),
 		/* 0xc8 RET Z */	RET(TestZ),								/* 0xc9 RET */		Sequence(Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0xca JP Z */		JP(TestZ),								/* 0xcb [CB page] */Sequence(FINDEX(), {MicroOp::SetInstructionPage, &cb_page}),
-		/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		Sequence(ReadInc(pc_, memptr_.halves.low), Read4Inc(pc_, memptr_.halves.high), Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full}),
+		/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		Sequence(ReadInc(pc_, memptr_.halves.low), ReadInc(pc_, memptr_.halves.high), InternalOperation(2), Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0xce ADC A, n */	Sequence(ReadInc(pc_, temp8_), {MicroOp::ADC8, &temp8_}),
 		/* 0xcf RST 08h */	RST(),
 		/* 0xd0 RET NC */	RET(TestNC),							/* 0xd1 POP DE */	Sequence(Pop(de_)),
@@ -511,7 +497,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		// The indexed version of 0x36 differs substantially from the non-indexed by building index calculation into
 		// the cycle that fetches the final operand. So patch in a different microprogram if building an indexed table.
 		InstructionTable copy_table = {
-			Sequence(FINDEX(), Read5Inc(pc_, temp8_), Write3(INDEX_ADDR(), temp8_))
+			Sequence(FINDEX(), ReadInc(pc_, temp8_), InternalOperation(4), Write(INDEX_ADDR(), temp8_))
 		};
 		std::memcpy(&base_program_table[0x36], &copy_table[0], sizeof(copy_table[0]));
 	}
@@ -536,7 +522,7 @@ void ProcessorStorage::assemble_fetch_decode_execute(InstructionPage &target, in
 	/// taken a punt on it not incrementing R.
 	const MicroOp short_fetch_decode_execute[] = {
 		BusOp(ReadStart(pc_, operation_)),
-		BusOp(ReadWait(2, pc_, operation_, true)),
+		BusOp(ReadWait(pc_, operation_)),
 		BusOp(ReadEnd(pc_, operation_)),
 		InternalOperation(4),
 		{ MicroOp::DecodeOperation },
