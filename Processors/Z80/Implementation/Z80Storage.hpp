@@ -16,8 +16,8 @@ class ProcessorStorage {
 		struct MicroOp {
 			enum Type {
 				BusOperation,
+				IncrementR,
 				DecodeOperation,
-				DecodeOperationNoRChange,
 				MoveToNextProgram,
 
 				Increment8NoFlags,
@@ -121,7 +121,6 @@ class ProcessorStorage {
 			std::vector<MicroOp> all_operations;
 			std::vector<MicroOp> fetch_decode_execute;
 			MicroOp *fetch_decode_execute_data = nullptr;
-			uint8_t r_step = 1;
 			bool is_indexed = false;
 		};
 
@@ -148,6 +147,8 @@ class ProcessorStorage {
 		unsigned int flag_adjustment_history_ = 0;	// a shifting record of whether each opcode set any flags; it turns out
 													// that knowledge of what the last opcode did is necessary to get bits 5 & 3
 													// correct for SCF and CCF.
+
+		uint16_t last_address_bus_ = 0;				// The value most recently put out on the address bus.
 
 		HalfCycles number_of_cycles_;
 

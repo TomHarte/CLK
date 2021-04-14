@@ -82,23 +82,24 @@ template <	class T,
 					}
 					number_of_cycles_ -= operation->machine_cycle.length;
 					last_request_status_ = request_status_;
+
+					// TODO: eliminate this conditional if all bus cycles have an address filled in.
+					last_address_bus_ = operation->machine_cycle.address ? *operation->machine_cycle.address : 0xdead;
+
 					number_of_cycles_ -= bus_handler_.perform_machine_cycle(operation->machine_cycle);
 					if(uses_bus_request && bus_request_line_) goto do_bus_acknowledge;
 				break;
 				case MicroOp::MoveToNextProgram:
 					advance_operation();
 				break;
-				case MicroOp::DecodeOperation:
+				case MicroOp::IncrementR:
 					refresh_addr_ = ir_;
-					ir_.halves.low = (ir_.halves.low & 0x80) | ((ir_.halves.low + current_instruction_page_->r_step) & 0x7f);
+					ir_.halves.low = (ir_.halves.low & 0x80) | ((ir_.halves.low + 1) & 0x7f);
+				break;
+				case MicroOp::DecodeOperation:
 					pc_.full += pc_increment_ & uint16_t(halt_mask_);
 					scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 					flag_adjustment_history_ <<= 1;
-				break;
-				case MicroOp::DecodeOperationNoRChange:
-					refresh_addr_ = ir_;
-					pc_.full += pc_increment_ & uint16_t(halt_mask_);
-					scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 				break;
 
 				case MicroOp::Increment8NoFlags:	++ *static_cast<uint8_t *>(operation->source);			break;
@@ -927,7 +928,7 @@ template <	class T,
 	return wait_line_;
 }
 
-#define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation || n == MicroOp::DecodeOperationNoRChange)
+#define isTerminal(n)	(n == MicroOp::MoveToNextProgram || n == MicroOp::DecodeOperation)
 
 template <	class T,
 			bool uses_bus_request,

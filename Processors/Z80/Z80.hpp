@@ -68,29 +68,50 @@ enum Flag: uint8_t {
 */
 struct PartialMachineCycle {
 	enum Operation {
+		/// The final half cycle of the opcode fetch part of an M1 cycle.
 		ReadOpcode = 0,
+		/// The 1.5 cycles of a read cycle.
 		Read,
+		/// The 1.5 cycles of a write cycle.
 		Write,
+		/// The 1.5 cycles of an input cycle.
 		Input,
+		/// The 1.5 cycles of an output cycle.
 		Output,
+		/// The 1.5 cycles of an interrupt acknowledgment.
 		Interrupt,
 
+		/// The two-cycle refresh part of an M1 cycle.
 		Refresh,
+		/// A period with no changes in bus signalling.
 		Internal,
+		/// A bus acknowledgement cycle.
 		BusAcknowledge,
 
+		/// A wait state within an M1 cycle.
 		ReadOpcodeWait,
+		/// A wait state within a read cycle.
 		ReadWait,
+		/// A wait state within a write cycle.
 		WriteWait,
+		/// A wait state within an input cycle.
 		InputWait,
+		/// A wait state within an output cycle.
 		OutputWait,
+		/// A wait state within an interrupt acknowledge cycle.
 		InterruptWait,
 
+		/// The first 1.5 cycles of an M1 bus cycle, up to the sampling of WAIT.
 		ReadOpcodeStart,
+		/// The first 1.5 cycles of a read cycle, up to the sampling of WAIT.
 		ReadStart,
+		/// The first 1.5 cycles of a write cycle, up to the sampling of WAIT.
 		WriteStart,
+		/// The first 1.5 samples of an input bus cycle, up to the sampling of WAIT.
 		InputStart,
+		/// The first 1.5 samples of an output bus cycle, up to the sampling of WAIT.
 		OutputStart,
+		/// The first portion of an interrupt acknowledgement — 2.5 or 3.5 cycles, depending on interrupt mode.
 		InterruptStart,
 	};
 	/// The operation being carried out by the Z80. See the various getters below for better classification.
@@ -123,6 +144,230 @@ struct PartialMachineCycle {
 	*/
 	forceinline bool is_wait() const {
 		return operation >= Operation::ReadOpcodeWait && operation <= Operation::InterruptWait;
+	}
+
+	enum Line {
+		CLK = 1 << 0,
+
+		MREQ = 1 << 1,
+		IOREQ = 1 << 2,
+
+		RD = 1 << 3,
+		WR = 1 << 4,
+		RFSH = 1 << 5,
+
+		M1 = 1 << 6,
+
+		BUSACK = 1 << 7,
+	};
+
+	/// @returns A C-style array of the bus state at the beginning of each half cycle in this
+	/// partial machine cycle. Each element is a combination of bit masks from the Line enum;
+	/// bit set means line active, bit clear means line inactive. For the CLK line set means high.
+	///
+	/// @discussion This discrete sampling is prone to aliasing errors. Beware.
+	const uint8_t *bus_state() const {
+		switch(operation) {
+
+			//
+			// M1 cycle
+			//
+
+			case Operation::ReadOpcodeStart: {
+				static constexpr uint8_t states[] = {
+					Line::CLK |	Line::M1,
+								Line::M1 |	Line::MREQ |	Line::RD,
+					Line::CLK |	Line::M1 |	Line::MREQ |	Line::RD,
+				};
+				return states;
+			}
+
+			case Operation::ReadOpcode:
+			case Operation::ReadOpcodeWait: {
+				static constexpr uint8_t states[] = {
+								Line::M1 |	Line::MREQ |	Line::RD,
+					Line::CLK |	Line::M1 |	Line::MREQ |	Line::RD,
+				};
+				return states;
+			}
+
+			case Operation::Refresh: {
+				static constexpr uint8_t states[] = {
+					Line::CLK |	Line::RFSH |	Line::MREQ,
+								Line::RFSH,
+					Line::CLK |	Line::RFSH |	Line::MREQ,
+								Line::RFSH |	Line::MREQ,
+					Line::CLK |	Line::RFSH,
+								Line::RFSH,
+					Line::CLK |	Line::RFSH,
+								Line::RFSH,
+				};
+				return states;
+			}
+
+			//
+			// Read cycle.
+			//
+
+			case Operation::ReadStart: {
+				static constexpr uint8_t states[] = {
+					Line::CLK,
+								Line::RD |	Line::MREQ,
+					Line::CLK |	Line::RD |	Line::MREQ,
+				};
+				return states;
+			}
+
+			case Operation::ReadWait: {
+				static constexpr uint8_t states[] = {
+								Line::MREQ |	Line::RD,
+					Line::CLK |	Line::MREQ |	Line::RD,
+								Line::MREQ |	Line::RD,
+					Line::CLK |	Line::MREQ |	Line::RD,
+								Line::MREQ |	Line::RD,
+					Line::CLK |	Line::MREQ |	Line::RD,
+				};
+				return states;
+			}
+
+			case Operation::Read: {
+				static constexpr uint8_t states[] = {
+								Line::MREQ |	Line::RD,
+					Line::CLK |	Line::MREQ |	Line::RD,
+								0,
+				};
+				return states;
+			}
+
+			//
+			// Write cycle.
+			//
+
+			case Operation::WriteStart: {
+				static constexpr uint8_t states[] = {
+					Line::CLK,
+								Line::MREQ,
+					Line::CLK |	Line::MREQ,
+				};
+				return states;
+			}
+
+			case Operation::WriteWait: {
+				static constexpr uint8_t states[] = {
+								Line::MREQ,
+					Line::CLK |	Line::MREQ,
+								Line::MREQ,
+					Line::CLK |	Line::MREQ,
+								Line::MREQ,
+					Line::CLK |	Line::MREQ,
+				};
+				return states;
+			}
+
+			case Operation::Write: {
+				static constexpr uint8_t states[] = {
+								Line::MREQ |	Line::WR,
+					Line::CLK |	Line::MREQ |	Line::WR,
+								0,
+				};
+				return states;
+			}
+
+			//
+			// Input cycle.
+			//
+
+			case Operation::InputStart: {
+				static constexpr uint8_t states[] = {
+					Line::CLK,
+								0,
+					Line::CLK |	Line::IOREQ |	Line::RD,
+				};
+				return states;
+			}
+
+			case Operation::InputWait: {
+				static constexpr uint8_t states[] = {
+								Line::IOREQ |	Line::RD,
+					Line::CLK |	Line::IOREQ |	Line::RD,
+				};
+				return states;
+			}
+
+			case Operation::Input: {
+				static constexpr uint8_t states[] = {
+								Line::IOREQ |	Line::RD,
+					Line::CLK |	Line::IOREQ |	Line::RD,
+								0,
+				};
+				return states;
+			}
+
+			//
+			// Output cycle.
+			//
+
+			case Operation::OutputStart: {
+				static constexpr uint8_t states[] = {
+					Line::CLK,
+								0,
+					Line::CLK |	Line::IOREQ |	Line::WR,
+				};
+				return states;
+			}
+
+			case Operation::OutputWait: {
+				static constexpr uint8_t states[] = {
+								Line::IOREQ |	Line::WR,
+					Line::CLK |	Line::IOREQ |	Line::WR,
+				};
+				return states;
+			}
+
+			case Operation::Output: {
+				static constexpr uint8_t states[] = {
+								Line::IOREQ |	Line::WR,
+					Line::CLK |	Line::IOREQ |	Line::WR,
+								0,
+				};
+				return states;
+			}
+
+			//
+			// TODO: Interrupt acknowledge.
+			//
+
+			//
+			// Bus acknowldge.
+			//
+
+			case Operation::BusAcknowledge: {
+				static constexpr uint8_t states[] = {
+					Line::CLK |	Line::BUSACK,
+								Line::BUSACK,
+				};
+				return states;
+			}
+
+			//
+			// Internal.
+			//
+
+			case Operation::Internal: {
+				static constexpr uint8_t states[] = {
+					Line::CLK, 0,
+					Line::CLK, 0,
+					Line::CLK, 0,
+					Line::CLK, 0,
+					Line::CLK, 0,
+				};
+				return states;
+			}
+
+			default: break;
+		}
+
+		return nullptr;
 	}
 
 	PartialMachineCycle(const PartialMachineCycle &rhs) noexcept;
