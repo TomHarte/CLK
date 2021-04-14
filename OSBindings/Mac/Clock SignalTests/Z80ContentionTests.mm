@@ -1291,4 +1291,62 @@ struct ContentionCheck {
 	}
 }
 
+- (void)testCPICPD {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xed, 0xa1},	// CPI
+		{0xed, 0xa9},	// CPD
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(16);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 3},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 8},
+		} z80:z80];
+	}
+}
+
+- (void)testCPIRCPDR {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xed, 0xb1},	// CPIR
+		{0xed, 0xb9},	// CPDR
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(21);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 3},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 13},
+		} z80:z80];
+	}
+}
+
+
 @end
