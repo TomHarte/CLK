@@ -60,7 +60,7 @@ ProcessorStorage::ProcessorStorage() {
 #define Read5(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val)), InternalOperation(4)
 
 #define Write3(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val))
-#define Write5(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(4, addr, val, false)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val))
+#define Write5(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val)), InternalOperation(4)
 
 #define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
 #define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
