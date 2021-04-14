@@ -54,6 +54,10 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		z80_.set_value_of_register(CPU::Z80::Register::StackPointer, initial_sp);
 	}
 
+	void set_de(uint16_t value) {
+		z80_.set_value_of_register(CPU::Z80::Register::DE, value);
+	}
+
 	void run_for(int cycles) {
 		z80_.run_for(HalfCycles(Cycles(cycles)));
 		XCTAssertEqual(bus_records_.size(), cycles * 2);
@@ -1219,6 +1223,72 @@ struct ContentionCheck {
 			{initial_sp+1, 3},
 			{initial_sp, 5},
 		} z80:z80];
-	}}
+	}
+}
+
+- (void)testLDILDD {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xed, 0xa0},	// LDI
+		{0xed, 0xa8},	// LDD
+	}) {
+		CapturingZ80 z80(sequence);
+
+		// Establish a distinct value for DE.
+		constexpr uint16_t de = 0x9876;
+		z80.set_de(de);
+
+		z80.run_for(16);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 3},
+			{de, 3},
+			{de, 1},
+			{de, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 3},
+			{de, 5},
+		} z80:z80];
+	}
+}
+
+- (void)testLDIRLDDR {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xed, 0xb0},	// LDIR
+		{0xed, 0xb8},	// LDDR
+	}) {
+		CapturingZ80 z80(sequence);
+
+		// Establish a distinct value for DE.
+		constexpr uint16_t de = 0x9876;
+		z80.set_de(de);
+
+		z80.run_for(21);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 3},
+			{de, 3},
+			{de, 1},
+			{de, 1},
+			{de, 1},
+			{de, 1},
+			{de, 1},
+			{de, 1},
+			{de, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_bc_de_hl, 3},
+			{de, 10},
+		} z80:z80];
+	}
+}
 
 @end
