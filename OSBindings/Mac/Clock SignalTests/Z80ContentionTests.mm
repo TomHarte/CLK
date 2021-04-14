@@ -58,6 +58,10 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		z80_.set_value_of_register(CPU::Z80::Register::DE, value);
 	}
 
+	void set_bc(uint16_t value) {
+		z80_.set_value_of_register(CPU::Z80::Register::BC, value);
+	}
+
 	void run_for(int cycles) {
 		z80_.run_for(HalfCycles(Cycles(cycles)));
 		XCTAssertEqual(bus_records_.size(), cycles * 2);
@@ -1348,5 +1352,121 @@ struct ContentionCheck {
 	}
 }
 
+- (void)testINIIND {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xed, 0xa2},	// INI
+		{0xed, 0xaa},	// IND
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(16);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_ir+1, 1},
+			{initial_bc_de_hl, 4, true},
+			{initial_bc_de_hl, 3},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 5},
+			{initial_bc_de_hl, 4, true},
+			{initial_bc_de_hl, 3},
+		} z80:z80];
+	}
+}
+
+- (void)testINIRINDR {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xed, 0xb2},	// INIR
+		{0xed, 0xba},	// INDR
+	}) {
+		CapturingZ80 z80(sequence);
+		z80.run_for(21);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_ir+1, 1},
+			{initial_bc_de_hl, 4, true},
+			{initial_bc_de_hl, 3},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+			{initial_bc_de_hl, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 5},
+			{initial_bc_de_hl, 4, true},
+			{initial_bc_de_hl, 8},
+		} z80:z80];
+	}
+}
+
+- (void)testOUTIOUTD {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xed, 0xa3},	// OUTI
+		{0xed, 0xab},	// OUTD
+	}) {
+		CapturingZ80 z80(sequence);
+
+		// Establish a distinct value for BC.
+		constexpr uint16_t bc = 0x9876;
+		z80.set_bc(bc);
+
+		z80.run_for(16);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_ir+1, 1},
+			{initial_bc_de_hl, 3},
+			{bc - 256, 4, true},			// B is decremented before the output.
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 5},
+			{initial_bc_de_hl, 3},
+			{bc - 256, 4, true},
+		} z80:z80];
+	}
+}
+
+- (void)testOTIROTDR {
+	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
+		{0xed, 0xb3},	// OTIR
+		{0xed, 0xbb},	// OTDR
+	}) {
+		CapturingZ80 z80(sequence);
+
+		// Establish a distinct value for BC.
+		constexpr uint16_t bc = 0x9876;
+		z80.set_bc(bc);
+
+		z80.run_for(21);
+
+		[self validate48Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 4},
+			{initial_ir+1, 1},
+			{initial_bc_de_hl, 3},
+			{bc - 256, 4, true},			// B is decremented before the output.
+			{bc - 256, 1},
+			{bc - 256, 1},
+			{bc - 256, 1},
+			{bc - 256, 1},
+			{bc - 256, 1},
+		} z80:z80];
+		[self validatePlus3Contention:{
+			{initial_pc, 4},
+			{initial_pc+1, 5},
+			{initial_bc_de_hl, 3},
+			{bc - 256, 9, false},			// Abuse of the is_io flag here for the purposes of testing;
+											// the +3 doesn't contend output so this doesn't matter.
+		} z80:z80];
+	}
+}
 
 @end
