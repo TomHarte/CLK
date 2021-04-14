@@ -121,7 +121,6 @@ class ProcessorStorage {
 			std::vector<MicroOp> all_operations;
 			std::vector<MicroOp> fetch_decode_execute;
 			MicroOp *fetch_decode_execute_data = nullptr;
-			uint8_t r_step = 1;
 			bool is_indexed = false;
 		};
 

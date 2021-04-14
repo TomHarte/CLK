@@ -94,7 +94,7 @@ template <	class T,
 				break;
 				case MicroOp::IncrementR:
 					refresh_addr_ = ir_;
-					ir_.halves.low = (ir_.halves.low & 0x80) | ((ir_.halves.low + current_instruction_page_->r_step) & 0x7f);
+					ir_.halves.low = (ir_.halves.low & 0x80) | ((ir_.halves.low + 1) & 0x7f);
 				break;
 				case MicroOp::DecodeOperation:
 					pc_.full += pc_increment_ & uint16_t(halt_mask_);

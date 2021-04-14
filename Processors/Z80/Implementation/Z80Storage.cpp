@@ -153,11 +153,8 @@ void ProcessorStorage::install_default_instruction_set() {
 	assemble_base_page(fd_page_, iy_, true, fdcb_page_);
 	assemble_ed_page(ed_page_);
 
-	fdcb_page_.r_step = 0;
 	fd_page_.is_indexed = true;
 	fdcb_page_.is_indexed = true;
-
-	ddcb_page_.r_step = 0;
 	dd_page_.is_indexed = true;
 	ddcb_page_.is_indexed = true;
 
