@@ -18,7 +18,9 @@ namespace Sinclair {
 namespace ZXSpectrum {
 
 enum class VideoTiming {
-	Plus3
+	FortyEightK,
+	OneTwoEightK,
+	Plus3,
 };
 
 /*

@@ -9,3 +9,6 @@ material but retain that copyright"."
 With that in mind, Amstrad have kindly given their permission for the redistribution of their copyrighted material but retain that copyright. Material expected here, copyright Amstrad:
 
 plus3.rom	— the +2a/+3 ROM file, 64kb in size.
+plus2.rom	– the +2 ROM file, 32kb in size.
+128.rom		– the 128kb ROM file, 32kb in size.
+48.rom		– the 16/48kb ROM file, 16kb in size.

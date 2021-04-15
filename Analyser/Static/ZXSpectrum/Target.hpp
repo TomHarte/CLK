@@ -19,6 +19,10 @@ namespace ZXSpectrum {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model,
+		SixteenK,
+		FortyEightK,
+		OneTwoEightK,
+		Plus2,
 		Plus2a,
 		Plus3,
 	);

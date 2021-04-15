@@ -63,6 +63,10 @@ typedef NS_ENUM(NSInteger, CSMachineOricDiskInterface) {
 };
 
 typedef NS_ENUM(NSInteger, CSMachineSpectrumModel) {
+	CSMachineSpectrumModelSixteenK,
+	CSMachineSpectrumModelFortyEightK,
+	CSMachineSpectrumModelOneTwoEightK,
+	CSMachineSpectrumModelPlus2,
 	CSMachineSpectrumModelPlus2a,
 	CSMachineSpectrumModelPlus3,
 };

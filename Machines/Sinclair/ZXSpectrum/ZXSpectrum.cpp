@@ -81,8 +81,29 @@ template<Model model> class ConcreteMachine:
 
 			// With only the +2a and +3 currently supported, the +3 ROM is always
 			// the one required.
-			const auto roms =
-				rom_fetcher({ {"ZXSpectrum", "the +2a/+3 ROM", "plus3.rom", 64 * 1024, 0x96e3c17a} });
+			std::vector<ROMMachine::ROM> rom_names;
+			const std::string machine = "ZXSpectrum";
+			switch(model) {
+				case Model::SixteenK:
+				case Model::FortyEightK:
+					rom_names.emplace_back(machine, "the 48kb ROM", "48.rom", 16 * 1024, 0xddee531f);
+				break;
+
+				case Model::OneTwoEightK:
+					rom_names.emplace_back(machine, "the 128kb ROM", "128.rom", 32 * 1024, 0x2cbe8995);
+				break;
+
+				case Model::Plus2:
+					rom_names.emplace_back(machine, "the +2 ROM", "plus2.rom", 32 * 1024, 0xe7a517dc);
+				break;
+
+				case Model::Plus2a:
+				case Model::Plus3: {
+					const std::initializer_list<uint32_t> crc32s = { 0x96e3c17a, 0xbe0d9ec4 };
+					rom_names.emplace_back(machine, "the +2a/+3 ROM", "plus3.rom", 64 * 1024, crc32s);
+				} break;
+			}
+			const auto roms = rom_fetcher(rom_names);
 			if(!roms[0]) throw ROMMachine::Error::MissingROMs;
 			memcpy(rom_.data(), roms[0]->data(), std::min(rom_.size(), roms[0]->size()));
 
@@ -110,7 +131,7 @@ template<Model model> class ConcreteMachine:
 		}
 
 		static constexpr unsigned int clock_rate() {
-//			constexpr unsigned int ClockRate = 3'500'000;
+			constexpr unsigned int OriginalClockRate = 3'500'000;
 			constexpr unsigned int Plus3ClockRate = 3'546'875;	// See notes below; this is a guess.
 
 			// Notes on timing for the +2a and +3:
@@ -137,7 +158,7 @@ template<Model model> class ConcreteMachine:
 			// the Spectrum is a PAL machine with a fixed colour phase relationship. For
 			// this emulator's world, that's a first!
 
-			return Plus3ClockRate;
+			return model < Model::OneTwoEightK ? OriginalClockRate : Plus3ClockRate;
 		}
 
 		// MARK: - TimedMachine.
@@ -189,18 +210,22 @@ template<Model model> class ConcreteMachine:
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
 
 			// Apply contention if necessary.
-			if(
-				is_contended_[address >> 14] &&
-				cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
-				cycle.operation <= PartialMachineCycle::WriteStart) {
-				// Assumption here: the trigger for the ULA inserting a delay is the falling edge
-				// of MREQ, which is always half a cycle into a read or write.
-				//
-				// TODO: somehow provide that information in the PartialMachineCycle?
+			if constexpr (model >= Model::Plus2a) {
+				if(
+					is_contended_[address >> 14] &&
+					cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
+					cycle.operation <= PartialMachineCycle::WriteStart) {
+					// Assumption here: the trigger for the ULA inserting a delay is the falling edge
+					// of MREQ, which is always half a cycle into a read or write.
+					//
+					// TODO: somehow provide that information in the PartialMachineCycle?
 
-				const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
-				advance(cycle.length + delay);
-				return delay;
+					const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
+					advance(cycle.length + delay);
+					return delay;
+				}
+			} else {
+				// TODO.
 			}
 
 			// For all other machine cycles, model the action as happening at the end of the machine cycle;
@@ -263,39 +288,45 @@ template<Model model> class ConcreteMachine:
 					}
 
 					// Test for classic 128kb paging register (i.e. port 7ffd).
-					if((address & 0xc002) == 0x4000) {
-						port7ffd_ = *cycle.value;
-						update_memory_map();
+					if constexpr (model >= Model::OneTwoEightK) {
+						if((address & 0xc002) == 0x4000) {
+							port7ffd_ = *cycle.value;
+							update_memory_map();
 
-						// Set the proper video base pointer.
-						set_video_address();
+							// Set the proper video base pointer.
+							set_video_address();
 
-						// Potentially lock paging, _after_ the current
-						// port values have taken effect.
-						disable_paging_ |= *cycle.value & 0x20;
-					}
-
-					// Test for +2a/+3 paging (i.e. port 1ffd).
-					if((address & 0xf002) == 0x1000) {
-						port1ffd_ = *cycle.value;
-						update_memory_map();
-						update_video_base();
-
-						if constexpr (model == Model::Plus3) {
-							fdc_->set_motor_on(*cycle.value & 0x08);
+							// Potentially lock paging, _after_ the current
+							// port values have taken effect.
+							disable_paging_ |= *cycle.value & 0x20;
 						}
 					}
 
-					if((address & 0xc002) == 0xc000) {
-						// Select AY register.
-						update_audio();
-						GI::AY38910::Utility::select_register(ay_, *cycle.value);
+					// Test for +2a/+3 paging (i.e. port 1ffd).
+					if constexpr (model >= Model::Plus2a) {
+						if((address & 0xf002) == 0x1000) {
+							port1ffd_ = *cycle.value;
+							update_memory_map();
+							update_video_base();
+
+							if constexpr (model == Model::Plus3) {
+								fdc_->set_motor_on(*cycle.value & 0x08);
+							}
+						}
 					}
 
-					if((address & 0xc002) == 0x8000) {
-						// Write to AY register.
-						update_audio();
-						GI::AY38910::Utility::write_data(ay_, *cycle.value);
+					if constexpr (model >= Model::OneTwoEightK) {
+						if((address & 0xc002) == 0xc000) {
+							// Select AY register.
+							update_audio();
+							GI::AY38910::Utility::select_register(ay_, *cycle.value);
+						}
+
+						if((address & 0xc002) == 0x8000) {
+							// Write to AY register.
+							update_audio();
+							GI::AY38910::Utility::write_data(ay_, *cycle.value);
+						}
 					}
 
 					if constexpr (model == Model::Plus3) {
@@ -574,7 +605,7 @@ template<Model model> class ConcreteMachine:
 			is_contended_[bank] = (source >= 4 && source < 8);
 			pages_[bank] = source;
 
-			uint8_t *read = (source < 0x80) ? &ram_[source * 16384] : &rom_[(source & 0x7f) * 16384];
+			uint8_t *const read = (source < 0x80) ? &ram_[source * 16384] : &rom_[(source & 0x7f) * 16384];
 			const auto offset = bank*16384;
 
 			read_pointers_[bank] = read - offset;
@@ -712,8 +743,12 @@ Machine *Machine::ZXSpectrum(const Analyser::Static::Target *target, const ROMMa
 	const auto zx_target = dynamic_cast<const Analyser::Static::ZXSpectrum::Target *>(target);
 
 	switch(zx_target->model) {
-		case Model::Plus2a:	return new ConcreteMachine<Model::Plus2a>(*zx_target, rom_fetcher);
-		case Model::Plus3:	return new ConcreteMachine<Model::Plus3>(*zx_target, rom_fetcher);
+		case Model::SixteenK:		return new ConcreteMachine<Model::SixteenK>(*zx_target, rom_fetcher);
+		case Model::FortyEightK:	return new ConcreteMachine<Model::FortyEightK>(*zx_target, rom_fetcher);
+		case Model::OneTwoEightK:	return new ConcreteMachine<Model::OneTwoEightK>(*zx_target, rom_fetcher);
+		case Model::Plus2:			return new ConcreteMachine<Model::Plus2>(*zx_target, rom_fetcher);
+		case Model::Plus2a:			return new ConcreteMachine<Model::Plus2a>(*zx_target, rom_fetcher);
+		case Model::Plus3:			return new ConcreteMachine<Model::Plus3>(*zx_target, rom_fetcher);
 	}
 
 	return nullptr;
