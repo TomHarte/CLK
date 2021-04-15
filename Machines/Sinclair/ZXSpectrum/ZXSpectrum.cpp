@@ -239,7 +239,7 @@ template<Model model> class ConcreteMachine:
 					// Fast loading: ROM version.
 					//
 					// The below patches over part of the 'LD-BYTES' routine from the 48kb ROM.
-					if(use_fast_tape_hack_ && address == 0x056b && read_pointers_[0] == &rom_[0xc000]) {
+					if(use_fast_tape_hack_ && address == 0x056b && read_pointers_[0] == &rom_[classic_rom_offset()]) {
 						// Stop pressing enter, if neccessry.
 						if(duration_to_press_enter_ > Cycles(0)) {
 							duration_to_press_enter_ = Cycles(0);
@@ -731,6 +731,22 @@ template<Model model> class ConcreteMachine:
 			z80_.set_value_of_register(Register::A, h);
 
 			return true;
+		}
+
+		static constexpr int classic_rom_offset() {
+			switch(model) {
+				case Model::SixteenK:
+				case Model::FortyEightK:
+				return 0x0000;
+
+				case Model::OneTwoEightK:
+				case Model::Plus2:
+				return 0x4000;
+
+				case Model::Plus2a:
+				case Model::Plus3:
+				return 0xc000;
+			}
 		}
 
 		// MARK: - Disc.
