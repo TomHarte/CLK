@@ -228,17 +228,62 @@ template<Model model> class ConcreteMachine:
 						advance(cycle.length);
 					return HalfCycles(0);
 
+					case CPU::Z80::PartialMachineCycle::InputStart:
+					case CPU::Z80::PartialMachineCycle::OutputStart: {
+						// The port address is loaded prior to IOREQ being visible; a contention
+						// always occurs if it is in the $4000–$8000 range regardless of current
+						// memory mapping.
+						HalfCycles delay;
+						HalfCycles time = video_.time_since_flush() + HalfCycles(1);
+
+						if((address & 0xc000) == 0x4000) {
+							for(int c = 0; c < ((address & 1) ? 4 : 2); c++) {
+								const auto next_delay = video_.last_valid()->access_delay(time);
+								delay += next_delay;
+								time += next_delay + 2;
+							}
+						} else {
+							if(!(address & 1)) {
+								delay = video_.last_valid()->access_delay(time + HalfCycles(2));
+							}
+						}
+
+						advance(cycle.length + delay);
+						return delay;
+					}
+
 					case PartialMachineCycle::ReadOpcodeStart:
 					case PartialMachineCycle::ReadStart:
-					case PartialMachineCycle::WriteStart:
-					break;
+					case PartialMachineCycle::WriteStart: {
+						// These all start by loading the address bus, then set MREQ
+						// half a cycle later.
+						if(is_contended_[address >> 14]) {
+							const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
 
-					case CPU::Z80::PartialMachineCycle::InputStart:
-					case CPU::Z80::PartialMachineCycle::OutputStart:
-					break;
+							advance(cycle.length + delay);
+							return delay;
+						}
+					}
 
-					case PartialMachineCycle::Internal:
-					break;
+					case PartialMachineCycle::Internal: {
+						// Whatever's on the address bus will remain there, without IOREQ or
+						// MREQ interceding, for this entire bus cycle. So apply contentions
+						// all the way along.
+						if(is_contended_[address >> 14]) {
+							const auto half_cycles = cycle.length.as<int>();
+							assert(!(half_cycles & 1));
+
+							HalfCycles time = video_.time_since_flush() + HalfCycles(1);
+							HalfCycles delay;
+							for(int c = 0; c < half_cycles; c += 2) {
+								const auto next_delay = video_.last_valid()->access_delay(time);
+								delay += next_delay;
+								time += next_delay + 2;
+							}
+
+							return delay;
+						}
+					}
 
 					case CPU::Z80::PartialMachineCycle::Input:
 					case CPU::Z80::PartialMachineCycle::Output:
@@ -630,7 +675,11 @@ template<Model model> class ConcreteMachine:
 		}
 
 		void set_memory(int bank, uint8_t source) {
-			is_contended_[bank] = (source >= 4 && source < 8);
+			if constexpr (model >= Model::Plus2a) {
+				is_contended_[bank] = (source >= 4 && source < 8);
+			} else {
+				is_contended_[bank] = source & 1;
+			}
 			pages_[bank] = source;
 
 			uint8_t *const read = (source < 0x80) ? &ram_[source * 16384] : &rom_[(source & 0x7f) * 16384];
