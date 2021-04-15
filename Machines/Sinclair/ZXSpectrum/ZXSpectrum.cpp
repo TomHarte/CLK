@@ -281,6 +281,7 @@ template<Model model> class ConcreteMachine:
 								time += next_delay + 2;
 							}
 
+							advance(cycle.length + delay);
 							return delay;
 						}
 					}

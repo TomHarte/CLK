@@ -122,13 +122,9 @@ template <VideoTiming timing> class Video {
 					.cycles_per_line = 228 * 2,
 					.lines_per_frame = 311,
 
-					// i.e. video fetching begins five cycles after the start of the
-					// contended memory pattern below; that should put a clear two
-					// cycles between a Z80 access and the first video fetch.
 					.contention_leadin = 5 * 2,
 					.contention_duration = 128 * 2,
 
-					// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
 					.interrupt_time = (228*311 - 14361) * 2,
 
 					.delays = {
@@ -151,14 +147,10 @@ template <VideoTiming timing> class Video {
 					.cycles_per_line = 224 * 2,
 					.lines_per_frame = 312,
 
-					// i.e. video fetching begins five cycles after the start of the
-					// contended memory pattern below; that should put a clear two
-					// cycles between a Z80 access and the first video fetch.
 					.contention_leadin = 5 * 2,
 					.contention_duration = 128 * 2,
 
-					// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
-					.interrupt_time = (224*312 - 14361) * 2,
+					.interrupt_time = (224*312 - 14330) * 2,
 
 					.delays = {
 						12, 11,
