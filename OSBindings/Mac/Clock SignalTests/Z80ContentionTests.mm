@@ -18,6 +18,12 @@ static constexpr uint16_t initial_bc_de_hl = 0xabcd;
 static constexpr uint16_t initial_ix_iy = 0x3412;
 static constexpr uint16_t initial_sp = 0x6800;
 
+struct ContentionCheck {
+	uint16_t address;
+	int length;
+	bool is_io = false;
+};
+
 struct CapturingZ80: public CPU::Z80::BusHandler {
 
 	template <typename Collection> CapturingZ80(const Collection &code) : z80_(*this) {
@@ -29,6 +35,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		// purge them from the record.
 		run_for(3);
 		bus_records_.clear();
+		contentions_48k_.clear();
 
 		// Set the flags so that if this is a conditional operation, it'll succeed.
 		if((*code.begin())&0x8) {
@@ -75,7 +82,9 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	};
 
 	HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-		// Log the activity.
+		//
+		// Log the plain bus activity.
+		//
 		const uint8_t *const bus_state = cycle.bus_state();
 		for(int c = 0; c < cycle.length.as<int>(); c++) {
 			bus_records_.emplace_back();
@@ -91,7 +100,57 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 			bus_records_.back().refresh = bus_state[c] & CPU::Z80::PartialMachineCycle::Line::RFSH;
 		}
 
-		// Provide only reads.
+		//
+		// Attempt to predict how the 48kb would contend this, based on machine cycle alone.
+		//
+		switch(cycle.operation) {
+			default: assert(false);
+
+			case CPU::Z80::PartialMachineCycle::ReadStart:
+			case CPU::Z80::PartialMachineCycle::WriteStart:
+				contentions_48k_.emplace_back();
+				contentions_48k_.back().address = *cycle.address;
+				contentions_48k_.back().length = 3;
+			break;
+
+			case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
+				contentions_48k_.emplace_back();
+				contentions_48k_.back().address = *cycle.address;
+				contentions_48k_.back().length = 4;
+			break;
+
+			case CPU::Z80::PartialMachineCycle::InputStart:
+			case CPU::Z80::PartialMachineCycle::OutputStart:
+				contentions_48k_.emplace_back();
+				contentions_48k_.back().address = *cycle.address;
+				contentions_48k_.back().length = 4;
+				contentions_48k_.back().is_io = true;
+			break;
+
+			case CPU::Z80::PartialMachineCycle::Refresh:
+			case CPU::Z80::PartialMachineCycle::Read:
+			case CPU::Z80::PartialMachineCycle::Write:
+			case CPU::Z80::PartialMachineCycle::ReadOpcode:
+			case CPU::Z80::PartialMachineCycle::Input:
+			case CPU::Z80::PartialMachineCycle::Output:
+			case CPU::Z80::PartialMachineCycle::InputWait:
+			case CPU::Z80::PartialMachineCycle::OutputWait:
+				// All already accounted for.
+			break;
+
+			case CPU::Z80::PartialMachineCycle::Internal:
+				for(int c = 0; c < cycle.length.cycles().as<int>(); c++) {
+					contentions_48k_.emplace_back();
+					contentions_48k_.back().address = *cycle.address;
+					contentions_48k_.back().length = 1;
+				}
+			break;
+		}
+
+
+		//
+		// Do the actual action: albeit, only reads.
+		//
 		if(
 			cycle.operation == CPU::Z80::PartialMachineCycle::Read ||
 			cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode
@@ -116,12 +175,17 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		return cycle_records;
 	}
 
+	const std::vector<ContentionCheck> &contention_predictions_48k() const {
+		return contentions_48k_;
+	}
+
 	private:
 		CPU::Z80::Processor<CapturingZ80, false, false> z80_;
 		uint8_t ram_[65536];
 		uint16_t code_length_ = 0;
 
 		std::vector<BusRecord> bus_records_;
+		std::vector<ContentionCheck> contentions_48k_;
 };
 
 }
@@ -136,22 +200,18 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 */
 @implementation Z80ContentionTests
 
-struct ContentionCheck {
-	uint16_t address;
-	int length;
-	bool is_io = false;
-};
+template <typename LHSCollectionT, typename RHSCollectionT>
+	void compareExpectedContentions(LHSCollectionT lhs, RHSCollectionT rhs, const char *label)
+{
+	XCTAssertEqual(lhs.size(), rhs.size(), "[%s] found %lu contentions but expected %zu", label, lhs.size(), rhs.size());
 
-- (void)compareExpectedContentions:(const std::initializer_list<ContentionCheck> &)contentions found:(const std::vector<ContentionCheck> &)found label:(const char *)label {
-	XCTAssertEqual(contentions.size(), found.size(), "[%s] found %lu contentions but expected %zu", label, found.size(), contentions.size());
+	auto contention = lhs.begin();
+	auto found_contention = rhs.begin();
 
-	auto contention = contentions.begin();
-	auto found_contention = found.begin();
-
-	while(contention != contentions.end() && found_contention != found.end()) {
-		XCTAssertEqual(contention->address, found_contention->address, "[%s] mismatched address at step %zu; expected %04x but found %04x", label, contention - contentions.begin(), contention->address, found_contention->address);
-		XCTAssertEqual(contention->length, found_contention->length, "[%s] mismatched length at step %zu; expected %d but found %d", label, contention - contentions.begin(), contention->length, found_contention->length);
-		XCTAssertEqual(contention->is_io, found_contention->is_io, "[%s] mismatched IO flag at step %zu; expected %d but found %d", label, contention - contentions.begin(), contention->is_io, found_contention->is_io);
+	while(contention != lhs.end() && found_contention != rhs.end()) {
+		XCTAssertEqual(contention->address, found_contention->address, "[%s] mismatched address at step %zu; expected %04x but found %04x", label, contention - lhs.begin(), contention->address, found_contention->address);
+		XCTAssertEqual(contention->length, found_contention->length, "[%s] mismatched length at step %zu; expected %d but found %d", label, contention - lhs.begin(), contention->length, found_contention->length);
+		XCTAssertEqual(contention->is_io, found_contention->is_io, "[%s] mismatched IO flag at step %zu; expected %d but found %d", label, contention - lhs.begin(), contention->is_io, found_contention->is_io);
 
 		if(contention->address != found_contention->address || contention->length != found_contention->length) {
 			break;
@@ -201,7 +261,8 @@ struct ContentionCheck {
 	found_contentions.back().length = count;
 	found_contentions.back().is_io = is_io;
 
-	[self compareExpectedContentions:contentions found:found_contentions label:"48kb"];
+	compareExpectedContentions(contentions, found_contentions, "48kb");
+	compareExpectedContentions(z80.contention_predictions_48k(), found_contentions, "48kb prediction");
 }
 
 /*!
@@ -245,7 +306,7 @@ struct ContentionCheck {
 	found_contentions.back().length = count;
 	found_contentions.back().is_io = is_io;
 
-	[self compareExpectedContentions:contentions found:found_contentions label:"+3"];
+	compareExpectedContentions(contentions, found_contentions, "+3");
 }
 
 // MARK: - Opcode tests.
