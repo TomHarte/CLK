@@ -69,48 +69,111 @@ template <VideoTiming timing> class Video {
 		};
 
 		static constexpr Timings get_timings() {
-			// Amstrad gate array timings, classic statement:
-			//
-			// Contention begins 14361 cycles "after interrupt" and follows the pattern [1, 0, 7, 6 5 4, 3, 2].
-			// The first four bytes of video are fetched at 14365–14368 cycles, in the order [pixels, attribute, pixels, attribute].
-			//
-			// For my purposes:
-			//
-			// Video fetching always begins at 0. Since there are 311*228 = 70908 cycles per frame, and the interrupt
-			// should "occur" (I assume: begin) 14365 before that, it should actually begin at 70908 - 14365 = 56543.
-			//
-			// Contention begins four cycles before the first video fetch, so it begins at 70904. I don't currently
-			// know whether the four cycles is true across all models, so it's given here as convention_leadin.
-			//
-			// ... except that empirically that all seems to be two cycles off. So maybe I misunderstand what the
-			// contention patterns are supposed to indicate relative to MREQ? It's frustrating that all documentation
-			// I can find is vaguely in terms of contention patterns, and what they mean isn't well-defined in terms
-			// of regular Z80 signalling.
-			constexpr Timings result = {
-				.cycles_per_line = 228 * 2,
-				.lines_per_frame = 311,
+			if constexpr (timing == VideoTiming::Plus3) {
+				// Amstrad gate array timings, classic statement:
+				//
+				// Contention begins 14361 cycles "after interrupt" and follows the pattern [1, 0, 7, 6 5 4, 3, 2].
+				// The first four bytes of video are fetched at 14365–14368 cycles, in the order [pixels, attribute, pixels, attribute].
+				//
+				// For my purposes:
+				//
+				// Video fetching always begins at 0. Since there are 311*228 = 70908 cycles per frame, and the interrupt
+				// should "occur" (I assume: begin) 14365 before that, it should actually begin at 70908 - 14365 = 56543.
+				//
+				// Contention begins four cycles before the first video fetch, so it begins at 70904. I don't currently
+				// know whether the four cycles is true across all models, so it's given here as convention_leadin.
+				//
+				// ... except that empirically that all seems to be two cycles off. So maybe I misunderstand what the
+				// contention patterns are supposed to indicate relative to MREQ? It's frustrating that all documentation
+				// I can find is vaguely in terms of contention patterns, and what they mean isn't well-defined in terms
+				// of regular Z80 signalling.
+				constexpr Timings result = {
+					.cycles_per_line = 228 * 2,
+					.lines_per_frame = 311,
 
-				// i.e. video fetching begins five cycles after the start of the
-				// contended memory pattern below; that should put a clear two
-				// cycles between a Z80 access and the first video fetch.
-				.contention_leadin = 5 * 2,
-				.contention_duration = 129 * 2,
+					// i.e. video fetching begins five cycles after the start of the
+					// contended memory pattern below; that should put a clear two
+					// cycles between a Z80 access and the first video fetch.
+					.contention_leadin = 5 * 2,
+					.contention_duration = 129 * 2,
 
-				// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
-				.interrupt_time = (228*311 - 14368) * 2,
+					// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
+					.interrupt_time = (228*311 - 14368) * 2,
 
-				.delays = {
-					2, 1,
-					0, 0,
-					14, 13,
-					12, 11,
-					10, 9,
-					8, 7,
-					6, 5,
-					4, 3,
-				}
-			};
-			return result;
+					.delays = {
+						2, 1,
+						0, 0,
+						14, 13,
+						12, 11,
+						10, 9,
+						8, 7,
+						6, 5,
+						4, 3,
+					}
+				};
+
+				return result;
+			}
+
+			// TODO: fix 48kb and 128kb timings, below.
+
+			if constexpr (timing == VideoTiming::OneTwoEightK) {
+				constexpr Timings result = {
+					.cycles_per_line = 228 * 2,
+					.lines_per_frame = 311,
+
+					// i.e. video fetching begins five cycles after the start of the
+					// contended memory pattern below; that should put a clear two
+					// cycles between a Z80 access and the first video fetch.
+					.contention_leadin = 5 * 2,
+					.contention_duration = 128 * 2,
+
+					// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
+					.interrupt_time = (228*311 - 14361) * 2,
+
+					.delays = {
+						12, 11,
+						10, 9,
+						8, 7,
+						6, 5,
+						4, 3,
+						2, 1,
+						0, 0,
+						0, 0,
+					}
+				};
+
+				return result;
+			}
+
+			if constexpr (timing == VideoTiming::FortyEightK) {
+				constexpr Timings result = {
+					.cycles_per_line = 224 * 2,
+					.lines_per_frame = 312,
+
+					// i.e. video fetching begins five cycles after the start of the
+					// contended memory pattern below; that should put a clear two
+					// cycles between a Z80 access and the first video fetch.
+					.contention_leadin = 5 * 2,
+					.contention_duration = 128 * 2,
+
+					// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
+					.interrupt_time = (224*312 - 14361) * 2,
+
+					.delays = {
+						12, 11,
+						10, 9,
+						8, 7,
+						6, 5,
+						4, 3,
+						2, 1,
+						0, 0,
+						0, 0,
+					}
+				};
+
+				return result;
+			}
 		}
 
 		// TODO: how long is the interrupt line held for?
@@ -238,9 +301,14 @@ template <VideoTiming timing> class Video {
 
 					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
 						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
-						crt_.output_colour_burst(burst_duration, 116, is_alternate_line_);
+
+						if constexpr (timing >= VideoTiming::OneTwoEightK) {
+							crt_.output_colour_burst(burst_duration, 116, is_alternate_line_);
+							// The colour burst phase above is an empirical guess. I need to research further.
+						} else {
+							crt_.output_default_colour_burst(burst_duration);
+						}
 						offset += burst_duration;
-						// The colour burst phase above is an empirical guess. I need to research further.
 					}
 
 					if(offset >= burst_position+burst_length && end_offset > offset) {
@@ -261,9 +329,21 @@ template <VideoTiming timing> class Video {
 			crt_.output_level(duration);
 		}
 
+		static constexpr int half_cycles_per_line() {
+			if constexpr (timing == VideoTiming::FortyEightK) {
+				// TODO: determine real figure here, if one exists.
+				// The source I'm looking at now suggests that the theoretical
+				// ideal of 224*2 ignores the real-life effects of separate
+				// crystals, so I've nudged this experimentally.
+				return 224*2 - 1;
+			} else {
+				return 227*2;
+			}
+		}
+
 	public:
 		Video() :
-			crt_(227 * 2, 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2)
+			crt_(half_cycles_per_line(), 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2)
 		{
 			// Show only the centre 80% of the TV frame.
 			crt_.set_display_type(Outputs::Display::DisplayType::RGB);

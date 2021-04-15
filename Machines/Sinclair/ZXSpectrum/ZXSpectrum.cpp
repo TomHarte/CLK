@@ -638,8 +638,15 @@ template<Model model> class ConcreteMachine:
 		}
 
 		// MARK: - Video.
-		static constexpr VideoTiming video_timing = VideoTiming::Plus3;
-		JustInTimeActor<Video<video_timing>> video_;
+		using VideoType =
+			std::conditional_t<
+				model <= Model::FortyEightK, Video<VideoTiming::FortyEightK>,
+				std::conditional_t<
+					model <= Model::Plus2, Video<VideoTiming::OneTwoEightK>,
+					Video<VideoTiming::Plus3>
+				>
+			>;
+		JustInTimeActor<VideoType> video_;
 
 		// MARK: - Keyboard.
 		Sinclair::ZX::Keyboard::Keyboard keyboard_;
