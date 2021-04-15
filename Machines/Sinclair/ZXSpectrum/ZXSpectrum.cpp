@@ -211,21 +211,43 @@ template<Model model> class ConcreteMachine:
 
 			// Apply contention if necessary.
 			if constexpr (model >= Model::Plus2a) {
+				// Model applied: the trigger for the ULA inserting a delay is the falling edge
+				// of MREQ, which is always half a cycle into a read or write.
 				if(
 					is_contended_[address >> 14] &&
 					cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
 					cycle.operation <= PartialMachineCycle::WriteStart) {
-					// Assumption here: the trigger for the ULA inserting a delay is the falling edge
-					// of MREQ, which is always half a cycle into a read or write.
-					//
-					// TODO: somehow provide that information in the PartialMachineCycle?
 
 					const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
 					advance(cycle.length + delay);
 					return delay;
 				}
 			} else {
-				// TODO.
+				switch(cycle.operation) {
+					default:
+						advance(cycle.length);
+					return HalfCycles(0);
+
+					case PartialMachineCycle::ReadOpcodeStart:
+					case PartialMachineCycle::ReadStart:
+					case PartialMachineCycle::WriteStart:
+					break;
+
+					case CPU::Z80::PartialMachineCycle::InputStart:
+					case CPU::Z80::PartialMachineCycle::OutputStart:
+					break;
+
+					case PartialMachineCycle::Internal:
+					break;
+
+					case CPU::Z80::PartialMachineCycle::Input:
+					case CPU::Z80::PartialMachineCycle::Output:
+					case CPU::Z80::PartialMachineCycle::Read:
+					case CPU::Z80::PartialMachineCycle::Write:
+					case CPU::Z80::PartialMachineCycle::ReadOpcode:
+						// For these, carry on into the actual handler, below.
+					break;
+				}
 			}
 
 			// For all other machine cycles, model the action as happening at the end of the machine cycle;
@@ -315,6 +337,7 @@ template<Model model> class ConcreteMachine:
 						}
 					}
 
+					// Route to the AY if one is fitted.
 					if constexpr (model >= Model::OneTwoEightK) {
 						if((address & 0xc002) == 0xc000) {
 							// Select AY register.
@@ -329,6 +352,7 @@ template<Model model> class ConcreteMachine:
 						}
 					}
 
+					// Check for FDC accesses.
 					if constexpr (model == Model::Plus3) {
 						switch(address) {
 							default: break;
@@ -370,17 +394,21 @@ template<Model model> class ConcreteMachine:
 						}
 					}
 
-					if((address & 0xc002) == 0xc000) {
-						// Read from AY register.
-						update_audio();
-						*cycle.value &= GI::AY38910::Utility::read(ay_);
+					if constexpr (model >= Model::OneTwoEightK) {
+						if((address & 0xc002) == 0xc000) {
+							// Read from AY register.
+							update_audio();
+							*cycle.value &= GI::AY38910::Utility::read(ay_);
+						}
 					}
 
-					// Check for a floating bus read; these are particularly arcane
-					// on the +2a/+3. See footnote to https://spectrumforeveryone.com/technical/memory-contention-floating-bus/
-					// and, much more rigorously, http://sky.relative-path.com/zx/floating_bus.html
-					if(!disable_paging_ && (address & 0xf003) == 0x0001) {
-						*cycle.value &= video_->get_floating_value();
+					if constexpr (model >= Model::Plus2a) {
+						// Check for a +2a/+3 floating bus read; these are particularly arcane.
+						// See footnote to https://spectrumforeveryone.com/technical/memory-contention-floating-bus/
+						// and, much more rigorously, http://sky.relative-path.com/zx/floating_bus.html
+						if(!disable_paging_ && (address & 0xf003) == 0x0001) {
+							*cycle.value &= video_->get_floating_value();
+						}
 					}
 
 					if constexpr (model == Model::Plus3) {
