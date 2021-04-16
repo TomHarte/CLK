@@ -323,8 +323,10 @@ template<Model model> class ConcreteMachine:
 				case PartialMachineCycle::Read:
 					*cycle.value = read_pointers_[address >> 14][address];
 
-					if(is_contended_[address >> 14]) {
-						video_->set_last_contended_area_access(*cycle.value);
+					if constexpr (model >= Model::Plus2a) {
+						if(is_contended_[address >> 14]) {
+							video_->set_last_contended_area_access(*cycle.value);
+						}
 					}
 				break;
 
@@ -336,9 +338,11 @@ template<Model model> class ConcreteMachine:
 
 					write_pointers_[address >> 14][address] = *cycle.value;
 
-					// Fill the floating bus buffer if this write is within the contended area.
-					if(is_contended_[address >> 14]) {
-						video_->set_last_contended_area_access(*cycle.value);
+					if constexpr (model >= Model::Plus2a) {
+						// Fill the floating bus buffer if this write is within the contended area.
+						if(is_contended_[address >> 14]) {
+							video_->set_last_contended_area_access(*cycle.value);
+						}
 					}
 				break;
 
