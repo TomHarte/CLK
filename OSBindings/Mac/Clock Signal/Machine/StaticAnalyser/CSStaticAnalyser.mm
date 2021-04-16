@@ -194,8 +194,12 @@
 		using Target = Analyser::Static::ZXSpectrum::Target;
 		auto target = std::make_unique<Target>();
 		switch(model) {
-			case CSMachineSpectrumModelPlus2a:	target->model = Target::Model::Plus2a;	break;
-			case CSMachineSpectrumModelPlus3:	target->model = Target::Model::Plus3;	break;
+			case CSMachineSpectrumModelSixteenK:		target->model = Target::Model::SixteenK;		break;
+			case CSMachineSpectrumModelFortyEightK:		target->model = Target::Model::FortyEightK;		break;
+			case CSMachineSpectrumModelOneTwoEightK:	target->model = Target::Model::OneTwoEightK;	break;
+			case CSMachineSpectrumModelPlus2:			target->model = Target::Model::Plus2;			break;
+			case CSMachineSpectrumModelPlus2a:			target->model = Target::Model::Plus2a;			break;
+			case CSMachineSpectrumModelPlus3:			target->model = Target::Model::Plus3;			break;
 		}
 		_targets.push_back(std::move(target));
 	}

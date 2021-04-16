@@ -19,11 +19,15 @@ namespace ZXSpectrum {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model,
+		SixteenK,
+		FortyEightK,
+		OneTwoEightK,
+		Plus2,
 		Plus2a,
 		Plus3,
 	);
 
-	Model model = Model::Plus2a;
+	Model model = Model::Plus2;
 	bool should_hold_enter = false;
 
 	Target(): Analyser::Static::Target(Machine::ZXSpectrum) {

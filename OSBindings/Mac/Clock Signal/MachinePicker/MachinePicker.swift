@@ -298,6 +298,10 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 			case "spectrum":
 				var model: CSMachineSpectrumModel = .plus2a
 				switch spectrumModelTypeButton.selectedItem!.tag {
+					case 16:	model = .sixteenK
+					case 48:	model = .fortyEightK
+					case 128:	model = .oneTwoEightK
+					case 2:		model = .plus2
 					case 21:	model = .plus2a
 					case 3:		model = .plus3
 					default:	break

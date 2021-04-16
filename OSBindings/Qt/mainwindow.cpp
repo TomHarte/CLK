@@ -1258,9 +1258,13 @@ void MainWindow::start_spectrum() {
 	using Target = Analyser::Static::ZXSpectrum::Target;
 	auto target = std::make_unique<Target>();
 
-	switch(ui->oricModelComboBox->currentIndex()) {
-		default:	target->model = Target::Model::Plus2a;	break;
-		case 1:		target->model = Target::Model::Plus3;	break;
+	switch(ui->spectrumModelComboBox->currentIndex()) {
+		default:	target->model = Target::Model::SixteenK;		break;
+		case 1:		target->model = Target::Model::FortyEightK;		break;
+		case 2:		target->model = Target::Model::OneTwoEightK;	break;
+		case 3:		target->model = Target::Model::Plus2;			break;
+		case 4:		target->model = Target::Model::Plus2a;			break;
+		case 5:		target->model = Target::Model::Plus3;			break;
 	}
 
 	launchTarget(std::move(target));

@@ -18,7 +18,7 @@
             <windowStyleMask key="styleMask" titled="YES" documentModal="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="590" height="316"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="590" height="316"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -584,11 +584,11 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="ZX81" identifier="zx81" id="Wnn-nQ-gZ6">
                                 <view key="view" id="bmd-gL-gzT">
-                                    <rect key="frame" x="10" y="7" width="400" height="76"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="186"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="5aO-UX-HnX">
-                                            <rect key="frame" x="108" y="47" width="116" height="25"/>
+                                            <rect key="frame" x="108" y="157" width="116" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="7QC-Ij-hES" id="d3W-Gl-3Mf">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -602,7 +602,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8tU-73-XEE">
-                                            <rect key="frame" x="18" y="53" width="87" height="16"/>
+                                            <rect key="frame" x="18" y="163" width="87" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size:" id="z4b-oR-Yl2">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -622,24 +622,28 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="ZX Spectrum" identifier="spectrum" id="HQv-oF-k8b">
                                 <view key="view" id="bMx-F6-JUb">
-                                    <rect key="frame" x="10" y="7" width="400" height="76"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="186"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gFZ-d4-WFv">
-                                            <rect key="frame" x="67" y="47" width="62" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="+2a" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="Fo7-NL-Kv5" id="tYs-sA-oek">
+                                            <rect key="frame" x="67" y="157" width="76" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="16kb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" tag="16" imageScaling="axesIndependently" inset="2" selectedItem="Fo7-NL-Kv5" id="tYs-sA-oek">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="8lt-dk-zPr">
                                                     <items>
-                                                        <menuItem title="+2a" state="on" tag="21" id="Fo7-NL-Kv5"/>
+                                                        <menuItem title="16kb" tag="16" id="Fo7-NL-Kv5"/>
+                                                        <menuItem title="48kb" tag="48" id="xks-Rv-Umd"/>
+                                                        <menuItem title="128kb" tag="128" id="w8h-lY-JLX"/>
+                                                        <menuItem title="+2" tag="2" id="Vvu-ua-pjg"/>
+                                                        <menuItem title="+2a" state="on" tag="21" id="bFk-nC-Txe"/>
                                                         <menuItem title="+3" tag="3" id="jwx-fZ-vXp"/>
                                                     </items>
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fJ3-ma-Byy">
-                                            <rect key="frame" x="18" y="53" width="46" height="16"/>
+                                            <rect key="frame" x="18" y="163" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="JId-Tp-LrE">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>

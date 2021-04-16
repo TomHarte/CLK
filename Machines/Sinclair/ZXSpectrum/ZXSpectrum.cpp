@@ -81,8 +81,29 @@ template<Model model> class ConcreteMachine:
 
 			// With only the +2a and +3 currently supported, the +3 ROM is always
 			// the one required.
-			const auto roms =
-				rom_fetcher({ {"ZXSpectrum", "the +2a/+3 ROM", "plus3.rom", 64 * 1024, 0x96e3c17a} });
+			std::vector<ROMMachine::ROM> rom_names;
+			const std::string machine = "ZXSpectrum";
+			switch(model) {
+				case Model::SixteenK:
+				case Model::FortyEightK:
+					rom_names.emplace_back(machine, "the 48kb ROM", "48.rom", 16 * 1024, 0xddee531f);
+				break;
+
+				case Model::OneTwoEightK:
+					rom_names.emplace_back(machine, "the 128kb ROM", "128.rom", 32 * 1024, 0x2cbe8995);
+				break;
+
+				case Model::Plus2:
+					rom_names.emplace_back(machine, "the +2 ROM", "plus2.rom", 32 * 1024, 0xe7a517dc);
+				break;
+
+				case Model::Plus2a:
+				case Model::Plus3: {
+					const std::initializer_list<uint32_t> crc32s = { 0x96e3c17a, 0xbe0d9ec4 };
+					rom_names.emplace_back(machine, "the +2a/+3 ROM", "plus3.rom", 64 * 1024, crc32s);
+				} break;
+			}
+			const auto roms = rom_fetcher(rom_names);
 			if(!roms[0]) throw ROMMachine::Error::MissingROMs;
 			memcpy(rom_.data(), roms[0]->data(), std::min(rom_.size(), roms[0]->size()));
 
@@ -110,7 +131,7 @@ template<Model model> class ConcreteMachine:
 		}
 
 		static constexpr unsigned int clock_rate() {
-//			constexpr unsigned int ClockRate = 3'500'000;
+			constexpr unsigned int OriginalClockRate = 3'500'000;
 			constexpr unsigned int Plus3ClockRate = 3'546'875;	// See notes below; this is a guess.
 
 			// Notes on timing for the +2a and +3:
@@ -137,7 +158,7 @@ template<Model model> class ConcreteMachine:
 			// the Spectrum is a PAL machine with a fixed colour phase relationship. For
 			// this emulator's world, that's a first!
 
-			return Plus3ClockRate;
+			return model < Model::OneTwoEightK ? OriginalClockRate : Plus3ClockRate;
 		}
 
 		// MARK: - TimedMachine.
@@ -189,18 +210,90 @@ template<Model model> class ConcreteMachine:
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
 
 			// Apply contention if necessary.
-			if(
-				is_contended_[address >> 14] &&
-				cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
-				cycle.operation <= PartialMachineCycle::WriteStart) {
-				// Assumption here: the trigger for the ULA inserting a delay is the falling edge
+			if constexpr (model >= Model::Plus2a) {
+				// Model applied: the trigger for the ULA inserting a delay is the falling edge
 				// of MREQ, which is always half a cycle into a read or write.
-				//
-				// TODO: somehow provide that information in the PartialMachineCycle?
+				if(
+					is_contended_[address >> 14] &&
+					cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
+					cycle.operation <= PartialMachineCycle::WriteStart) {
 
-				const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
-				advance(cycle.length + delay);
-				return delay;
+					const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
+					advance(cycle.length + delay);
+					return delay;
+				}
+			} else {
+				switch(cycle.operation) {
+					default:
+						advance(cycle.length);
+					return HalfCycles(0);
+
+					case CPU::Z80::PartialMachineCycle::InputStart:
+					case CPU::Z80::PartialMachineCycle::OutputStart: {
+						// The port address is loaded prior to IOREQ being visible; a contention
+						// always occurs if it is in the $4000–$8000 range regardless of current
+						// memory mapping.
+						HalfCycles delay;
+						HalfCycles time = video_.time_since_flush() + HalfCycles(1);
+
+						if((address & 0xc000) == 0x4000) {
+							for(int c = 0; c < ((address & 1) ? 4 : 2); c++) {
+								const auto next_delay = video_.last_valid()->access_delay(time);
+								delay += next_delay;
+								time += next_delay + 2;
+							}
+						} else {
+							if(!(address & 1)) {
+								delay = video_.last_valid()->access_delay(time + HalfCycles(2));
+							}
+						}
+
+						advance(cycle.length + delay);
+						return delay;
+					}
+
+					case PartialMachineCycle::ReadOpcodeStart:
+					case PartialMachineCycle::ReadStart:
+					case PartialMachineCycle::WriteStart: {
+						// These all start by loading the address bus, then set MREQ
+						// half a cycle later.
+						if(is_contended_[address >> 14]) {
+							const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
+
+							advance(cycle.length + delay);
+							return delay;
+						}
+					}
+
+					case PartialMachineCycle::Internal: {
+						// Whatever's on the address bus will remain there, without IOREQ or
+						// MREQ interceding, for this entire bus cycle. So apply contentions
+						// all the way along.
+						if(is_contended_[address >> 14]) {
+							const auto half_cycles = cycle.length.as<int>();
+							assert(!(half_cycles & 1));
+
+							HalfCycles time = video_.time_since_flush() + HalfCycles(1);
+							HalfCycles delay;
+							for(int c = 0; c < half_cycles; c += 2) {
+								const auto next_delay = video_.last_valid()->access_delay(time);
+								delay += next_delay;
+								time += next_delay + 2;
+							}
+
+							advance(cycle.length + delay);
+							return delay;
+						}
+					}
+
+					case CPU::Z80::PartialMachineCycle::Input:
+					case CPU::Z80::PartialMachineCycle::Output:
+					case CPU::Z80::PartialMachineCycle::Read:
+					case CPU::Z80::PartialMachineCycle::Write:
+					case CPU::Z80::PartialMachineCycle::ReadOpcode:
+						// For these, carry on into the actual handler, below.
+					break;
+				}
 			}
 
 			// For all other machine cycles, model the action as happening at the end of the machine cycle;
@@ -214,7 +307,7 @@ template<Model model> class ConcreteMachine:
 					// Fast loading: ROM version.
 					//
 					// The below patches over part of the 'LD-BYTES' routine from the 48kb ROM.
-					if(use_fast_tape_hack_ && address == 0x056b && read_pointers_[0] == &rom_[0xc000]) {
+					if(use_fast_tape_hack_ && address == 0x056b && read_pointers_[0] == &rom_[classic_rom_offset()]) {
 						// Stop pressing enter, if neccessry.
 						if(duration_to_press_enter_ > Cycles(0)) {
 							duration_to_press_enter_ = Cycles(0);
@@ -228,10 +321,21 @@ template<Model model> class ConcreteMachine:
 					}
 
 				case PartialMachineCycle::Read:
+					if constexpr (model == Model::SixteenK) {
+						// Assumption: with nothing mapped above 0x8000 on the 16kb Spectrum,
+						// read the floating bus.
+						if(address >= 0x8000) {
+							*cycle.value = video_->get_floating_value();
+							break;
+						}
+					}
+
 					*cycle.value = read_pointers_[address >> 14][address];
 
-					if(is_contended_[address >> 14]) {
-						video_->set_last_contended_area_access(*cycle.value);
+					if constexpr (model >= Model::Plus2a) {
+						if(is_contended_[address >> 14]) {
+							video_->set_last_contended_area_access(*cycle.value);
+						}
 					}
 				break;
 
@@ -243,9 +347,11 @@ template<Model model> class ConcreteMachine:
 
 					write_pointers_[address >> 14][address] = *cycle.value;
 
-					// Fill the floating bus buffer if this write is within the contended area.
-					if(is_contended_[address >> 14]) {
-						video_->set_last_contended_area_access(*cycle.value);
+					if constexpr (model >= Model::Plus2a) {
+						// Fill the floating bus buffer if this write is within the contended area.
+						if(is_contended_[address >> 14]) {
+							video_->set_last_contended_area_access(*cycle.value);
+						}
 					}
 				break;
 
@@ -263,41 +369,49 @@ template<Model model> class ConcreteMachine:
 					}
 
 					// Test for classic 128kb paging register (i.e. port 7ffd).
-					if((address & 0xc002) == 0x4000) {
-						port7ffd_ = *cycle.value;
-						update_memory_map();
+					if constexpr (model >= Model::OneTwoEightK) {
+						if((address & 0xc002) == 0x4000) {
+							port7ffd_ = *cycle.value;
+							update_memory_map();
 
-						// Set the proper video base pointer.
-						set_video_address();
+							// Set the proper video base pointer.
+							set_video_address();
 
-						// Potentially lock paging, _after_ the current
-						// port values have taken effect.
-						disable_paging_ |= *cycle.value & 0x20;
-					}
-
-					// Test for +2a/+3 paging (i.e. port 1ffd).
-					if((address & 0xf002) == 0x1000) {
-						port1ffd_ = *cycle.value;
-						update_memory_map();
-						update_video_base();
-
-						if constexpr (model == Model::Plus3) {
-							fdc_->set_motor_on(*cycle.value & 0x08);
+							// Potentially lock paging, _after_ the current
+							// port values have taken effect.
+							disable_paging_ |= *cycle.value & 0x20;
 						}
 					}
 
-					if((address & 0xc002) == 0xc000) {
-						// Select AY register.
-						update_audio();
-						GI::AY38910::Utility::select_register(ay_, *cycle.value);
+					// Test for +2a/+3 paging (i.e. port 1ffd).
+					if constexpr (model >= Model::Plus2a) {
+						if((address & 0xf002) == 0x1000) {
+							port1ffd_ = *cycle.value;
+							update_memory_map();
+							update_video_base();
+
+							if constexpr (model == Model::Plus3) {
+								fdc_->set_motor_on(*cycle.value & 0x08);
+							}
+						}
 					}
 
-					if((address & 0xc002) == 0x8000) {
-						// Write to AY register.
-						update_audio();
-						GI::AY38910::Utility::write_data(ay_, *cycle.value);
+					// Route to the AY if one is fitted.
+					if constexpr (model >= Model::OneTwoEightK) {
+						if((address & 0xc002) == 0xc000) {
+							// Select AY register.
+							update_audio();
+							GI::AY38910::Utility::select_register(ay_, *cycle.value);
+						}
+
+						if((address & 0xc002) == 0x8000) {
+							// Write to AY register.
+							update_audio();
+							GI::AY38910::Utility::write_data(ay_, *cycle.value);
+						}
 					}
 
+					// Check for FDC accesses.
 					if constexpr (model == Model::Plus3) {
 						switch(address) {
 							default: break;
@@ -308,10 +422,13 @@ template<Model model> class ConcreteMachine:
 					}
 				break;
 
-				case PartialMachineCycle::Input:
+				case PartialMachineCycle::Input: {
+					bool did_match = false;
 					*cycle.value = 0xff;
 
 					if(!(address&1)) {
+						did_match = true;
+
 						// Port FE:
 						//
 						// address b8+: mask of keyboard lines to select
@@ -339,17 +456,23 @@ template<Model model> class ConcreteMachine:
 						}
 					}
 
-					if((address & 0xc002) == 0xc000) {
-						// Read from AY register.
-						update_audio();
-						*cycle.value &= GI::AY38910::Utility::read(ay_);
+					if constexpr (model >= Model::OneTwoEightK) {
+						if((address & 0xc002) == 0xc000) {
+							did_match = true;
+
+							// Read from AY register.
+							update_audio();
+							*cycle.value &= GI::AY38910::Utility::read(ay_);
+						}
 					}
 
-					// Check for a floating bus read; these are particularly arcane
-					// on the +2a/+3. See footnote to https://spectrumforeveryone.com/technical/memory-contention-floating-bus/
-					// and, much more rigorously, http://sky.relative-path.com/zx/floating_bus.html
-					if(!disable_paging_ && (address & 0xf003) == 0x0001) {
-						*cycle.value &= video_->get_floating_value();
+					if constexpr (model >= Model::Plus2a) {
+						// Check for a +2a/+3 floating bus read; these are particularly arcane.
+						// See footnote to https://spectrumforeveryone.com/technical/memory-contention-floating-bus/
+						// and, much more rigorously, http://sky.relative-path.com/zx/floating_bus.html
+						if(!disable_paging_ && (address & 0xf003) == 0x0001) {
+							*cycle.value &= video_->get_floating_value();
+						}
 					}
 
 					if constexpr (model == Model::Plus3) {
@@ -360,7 +483,13 @@ template<Model model> class ConcreteMachine:
 							break;
 						}
 					}
-				break;
+
+					if constexpr (model < Model::Plus2) {
+						if(!did_match) {
+							*cycle.value = video_->get_floating_value();
+						}
+					}
+				} break;
 			}
 
 			return HalfCycles(0);
@@ -571,10 +700,14 @@ template<Model model> class ConcreteMachine:
 		}
 
 		void set_memory(int bank, uint8_t source) {
-			is_contended_[bank] = (source >= 4 && source < 8);
+			if constexpr (model >= Model::Plus2a) {
+				is_contended_[bank] = (source >= 4 && source < 8);
+			} else {
+				is_contended_[bank] = source & 1;
+			}
 			pages_[bank] = source;
 
-			uint8_t *read = (source < 0x80) ? &ram_[source * 16384] : &rom_[(source & 0x7f) * 16384];
+			uint8_t *const read = (source < 0x80) ? &ram_[source * 16384] : &rom_[(source & 0x7f) * 16384];
 			const auto offset = bank*16384;
 
 			read_pointers_[bank] = read - offset;
@@ -607,8 +740,15 @@ template<Model model> class ConcreteMachine:
 		}
 
 		// MARK: - Video.
-		static constexpr VideoTiming video_timing = VideoTiming::Plus3;
-		JustInTimeActor<Video<video_timing>> video_;
+		using VideoType =
+			std::conditional_t<
+				model <= Model::FortyEightK, Video<VideoTiming::FortyEightK>,
+				std::conditional_t<
+					model <= Model::Plus2, Video<VideoTiming::OneTwoEightK>,
+					Video<VideoTiming::Plus3>
+				>
+			>;
+		JustInTimeActor<VideoType> video_;
 
 		// MARK: - Keyboard.
 		Sinclair::ZX::Keyboard::Keyboard keyboard_;
@@ -695,6 +835,22 @@ template<Model model> class ConcreteMachine:
 			return true;
 		}
 
+		static constexpr int classic_rom_offset() {
+			switch(model) {
+				case Model::SixteenK:
+				case Model::FortyEightK:
+				return 0x0000;
+
+				case Model::OneTwoEightK:
+				case Model::Plus2:
+				return 0x4000;
+
+				case Model::Plus2a:
+				case Model::Plus3:
+				return 0xc000;
+			}
+		}
+
 		// MARK: - Disc.
 		JustInTimeActor<Amstrad::FDC, Cycles> fdc_;
 
@@ -712,8 +868,12 @@ Machine *Machine::ZXSpectrum(const Analyser::Static::Target *target, const ROMMa
 	const auto zx_target = dynamic_cast<const Analyser::Static::ZXSpectrum::Target *>(target);
 
 	switch(zx_target->model) {
-		case Model::Plus2a:	return new ConcreteMachine<Model::Plus2a>(*zx_target, rom_fetcher);
-		case Model::Plus3:	return new ConcreteMachine<Model::Plus3>(*zx_target, rom_fetcher);
+		case Model::SixteenK:		return new ConcreteMachine<Model::SixteenK>(*zx_target, rom_fetcher);
+		case Model::FortyEightK:	return new ConcreteMachine<Model::FortyEightK>(*zx_target, rom_fetcher);
+		case Model::OneTwoEightK:	return new ConcreteMachine<Model::OneTwoEightK>(*zx_target, rom_fetcher);
+		case Model::Plus2:			return new ConcreteMachine<Model::Plus2>(*zx_target, rom_fetcher);
+		case Model::Plus2a:			return new ConcreteMachine<Model::Plus2a>(*zx_target, rom_fetcher);
+		case Model::Plus3:			return new ConcreteMachine<Model::Plus3>(*zx_target, rom_fetcher);
 	}
 
 	return nullptr;
