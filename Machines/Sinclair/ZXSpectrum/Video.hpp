@@ -122,10 +122,10 @@ template <VideoTiming timing> class Video {
 					.cycles_per_line = 228 * 2,
 					.lines_per_frame = 311,
 
-					.contention_leadin = 5 * 2,
+					.contention_leadin = 2 * 2,
 					.contention_duration = 128 * 2,
 
-					.interrupt_time = (228*311 - 14361) * 2,
+					.interrupt_time = (228*311 - 14366) * 2,
 
 					.delays = {
 						12, 11,
@@ -147,10 +147,10 @@ template <VideoTiming timing> class Video {
 					.cycles_per_line = 224 * 2,
 					.lines_per_frame = 312,
 
-					.contention_leadin = 5 * 2,
+					.contention_leadin = 2 * 2,
 					.contention_duration = 128 * 2,
 
-					.interrupt_time = (224*312 - 14330) * 2,
+					.interrupt_time = (224*312 - 14339) * 2,
 
 					.delays = {
 						12, 11,
