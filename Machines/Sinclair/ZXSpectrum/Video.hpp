@@ -401,20 +401,24 @@ template <VideoTiming timing> class Video {
 		*/
 		uint8_t get_floating_value() const {
 			constexpr auto timings = get_timings();
+			const uint8_t out_of_bounds = (timing == VideoTiming::Plus3) ? last_contended_access_ : 0xff;
+
 			const int line = time_into_frame_ / timings.cycles_per_line;
-			if(line >= 192) return 0xff;
+			if(line >= 192) {
+				return out_of_bounds;
+			}
 
 			const int time_into_line = time_into_frame_ % timings.cycles_per_line;
 			if(time_into_line >= 256 || (time_into_line&8)) {
-				return last_contended_access_;
+				return out_of_bounds;
 			}
 
 			// The +2a and +3 always return the low bit as set.
+			const uint8_t value = last_fetches_[(time_into_line >> 1) & 3];
 			if constexpr (timing == VideoTiming::Plus3) {
-				return last_fetches_[(time_into_line >> 1) & 3] | 1;
+				return value | 1;
 			}
-
-			return last_fetches_[(time_into_line >> 1) & 3];
+			return value;
 		}
 
 		/*!
