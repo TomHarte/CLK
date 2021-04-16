@@ -553,6 +553,26 @@
              <widget class="QComboBox" name="spectrumModelComboBox">
               <item>
                <property name="text">
+                <string>16kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>48kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>128kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>+2</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
                 <string>+2a</string>
                </property>
               </item>
