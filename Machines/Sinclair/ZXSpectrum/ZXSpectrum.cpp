@@ -321,6 +321,15 @@ template<Model model> class ConcreteMachine:
 					}
 
 				case PartialMachineCycle::Read:
+					if constexpr (model == Model::SixteenK) {
+						// Assumption: with nothing mapped above 0x8000 on the 16kb Spectrum,
+						// read the floating bus.
+						if(address >= 0x8000) {
+							*cycle.value = video_->get_floating_value();
+							break;
+						}
+					}
+
 					*cycle.value = read_pointers_[address >> 14][address];
 
 					if constexpr (model >= Model::Plus2a) {
@@ -413,10 +422,13 @@ template<Model model> class ConcreteMachine:
 					}
 				break;
 
-				case PartialMachineCycle::Input:
+				case PartialMachineCycle::Input: {
+					bool did_match = false;
 					*cycle.value = 0xff;
 
 					if(!(address&1)) {
+						did_match = true;
+
 						// Port FE:
 						//
 						// address b8+: mask of keyboard lines to select
@@ -446,6 +458,8 @@ template<Model model> class ConcreteMachine:
 
 					if constexpr (model >= Model::OneTwoEightK) {
 						if((address & 0xc002) == 0xc000) {
+							did_match = true;
+
 							// Read from AY register.
 							update_audio();
 							*cycle.value &= GI::AY38910::Utility::read(ay_);
@@ -469,7 +483,13 @@ template<Model model> class ConcreteMachine:
 							break;
 						}
 					}
-				break;
+
+					if constexpr (model < Model::Plus2) {
+						if(!did_match) {
+							*cycle.value = video_->get_floating_value();
+						}
+					}
+				} break;
 			}
 
 			return HalfCycles(0);
