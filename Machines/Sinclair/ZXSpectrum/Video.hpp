@@ -98,9 +98,9 @@ template <VideoTiming timing> class Video {
 					.contention_duration = 129 * 2,
 
 					// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
-					.interrupt_time = (228*311 - 14368) * 2,
+					.interrupt_time = (228*311 - 14360) * 2,
 
-					.delays = {
+					.delays = {		// Should start at 14365
 						2, 1,
 						0, 0,
 						14, 13,
@@ -115,19 +115,17 @@ template <VideoTiming timing> class Video {
 				return result;
 			}
 
-			// TODO: fix 48kb and 128kb timings, below.
-
 			if constexpr (timing == VideoTiming::OneTwoEightK) {
 				constexpr Timings result = {
 					.cycles_per_line = 228 * 2,
 					.lines_per_frame = 311,
 
-					.contention_leadin = 2 * 2,
+					.contention_leadin = 4 * 2,
 					.contention_duration = 128 * 2,
 
-					.interrupt_time = (228*311 - 14366) * 2,
+					.interrupt_time = (228*311 - 14357) * 2,
 
-					.delays = {
+					.delays = {		// Should start at 14361.
 						12, 11,
 						10, 9,
 						8, 7,
@@ -147,12 +145,12 @@ template <VideoTiming timing> class Video {
 					.cycles_per_line = 224 * 2,
 					.lines_per_frame = 312,
 
-					.contention_leadin = 2 * 2,
+					.contention_leadin = 4 * 2,
 					.contention_duration = 128 * 2,
 
-					.interrupt_time = (224*312 - 14339) * 2,
+					.interrupt_time = (224*312 - 14331) * 2,
 
-					.delays = {
+					.delays = {		// Should start at 14335.
 						12, 11,
 						10, 9,
 						8, 7,
