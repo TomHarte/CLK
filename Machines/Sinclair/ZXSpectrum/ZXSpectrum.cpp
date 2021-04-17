@@ -355,6 +355,9 @@ template<Model model> class ConcreteMachine:
 					}
 				break;
 
+				// Partial port decodings here and in ::Input are as documented
+				// at https://worldofspectrum.org/faq/reference/ports.htm
+
 				case PartialMachineCycle::Output:
 					// Test for port FE.
 					if(!(address&1)) {
@@ -369,18 +372,19 @@ template<Model model> class ConcreteMachine:
 					}
 
 					// Test for classic 128kb paging register (i.e. port 7ffd).
-					if constexpr (model >= Model::OneTwoEightK) {
-						if((address & 0xc002) == 0x4000) {
-							port7ffd_ = *cycle.value;
-							update_memory_map();
+					if (
+						(model >= Model::OneTwoEightK && model <= Model::Plus2 && (address & 0x8002) == 0x0000) ||
+						(model >= Model::Plus2a && (address & 0xc002) == 0x4000)
+					) {
+						port7ffd_ = *cycle.value;
+						update_memory_map();
 
-							// Set the proper video base pointer.
-							set_video_address();
+						// Set the proper video base pointer.
+						set_video_address();
 
-							// Potentially lock paging, _after_ the current
-							// port values have taken effect.
-							disable_paging_ |= *cycle.value & 0x20;
-						}
+						// Potentially lock paging, _after_ the current
+						// port values have taken effect.
+						disable_paging_ |= *cycle.value & 0x20;
 					}
 
 					// Test for +2a/+3 paging (i.e. port 1ffd).
@@ -398,24 +402,26 @@ template<Model model> class ConcreteMachine:
 
 					// Route to the AY if one is fitted.
 					if constexpr (model >= Model::OneTwoEightK) {
-						if((address & 0xc002) == 0xc000) {
-							// Select AY register.
-							update_audio();
-							GI::AY38910::Utility::select_register(ay_, *cycle.value);
-						}
+						switch(address & 0xc002) {
+							case 0xc000:
+								// Select AY register.
+								update_audio();
+								GI::AY38910::Utility::select_register(ay_, *cycle.value);
+							break;
 
-						if((address & 0xc002) == 0x8000) {
-							// Write to AY register.
-							update_audio();
-							GI::AY38910::Utility::write_data(ay_, *cycle.value);
+							case 0x8000:
+								// Write to AY register.
+								update_audio();
+								GI::AY38910::Utility::write_data(ay_, *cycle.value);
+							break;
 						}
 					}
 
 					// Check for FDC accesses.
 					if constexpr (model == Model::Plus3) {
-						switch(address) {
+						switch(address & 0xf002) {
 							default: break;
-							case 0x3ffd: case 0x2ffd:
+							case 0x3000: case 0x2000:
 								fdc_->write((address >> 12) & 1, *cycle.value);
 							break;
 						}
@@ -476,15 +482,15 @@ template<Model model> class ConcreteMachine:
 					}
 
 					if constexpr (model == Model::Plus3) {
-						switch(address) {
+						switch(address & 0xf002) {
 							default: break;
-							case 0x3ffd: case 0x2ffd:
+							case 0x3000: case 0x2000:
 								*cycle.value &= fdc_->read((address >> 12) & 1);
 							break;
 						}
 					}
 
-					if constexpr (model < Model::Plus2) {
+					if constexpr (model <= Model::Plus2) {
 						if(!did_match) {
 							*cycle.value = video_->get_floating_value();
 						}
