@@ -31,7 +31,7 @@ class Machine {
 			friend Configurable::DisplayOption<Options>;
 			friend Configurable::QuickloadOption<Options>;
 			public:
-				bool automatic_tape_motor_control;
+				bool automatic_tape_motor_control = true;
 
 				Options(Configurable::OptionsType type) :
 					Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour),
