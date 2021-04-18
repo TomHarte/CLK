@@ -245,7 +245,7 @@ template<Model model> class ConcreteMachine:
 						// always occurs if it is in the $4000–$8000 range regardless of current
 						// memory mapping.
 						HalfCycles delay;
-						HalfCycles time = video_.time_since_flush() + HalfCycles(1);
+						HalfCycles time = video_.time_since_flush();
 
 						if((address & 0xc000) == 0x4000) {
 							for(int c = 0; c < ((address & 1) ? 4 : 2); c++) {
@@ -269,7 +269,7 @@ template<Model model> class ConcreteMachine:
 						// These all start by loading the address bus, then set MREQ
 						// half a cycle later.
 						if(is_contended_[address >> 14]) {
-							const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
+							const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush());
 
 							advance(cycle.length + delay);
 							return delay;
@@ -284,7 +284,7 @@ template<Model model> class ConcreteMachine:
 							const auto half_cycles = cycle.length.as<int>();
 							assert(!(half_cycles & 1));
 
-							HalfCycles time = video_.time_since_flush() + HalfCycles(1);
+							HalfCycles time = video_.time_since_flush();
 							HalfCycles delay;
 							for(int c = 0; c < half_cycles; c += 2) {
 								const auto next_delay = video_.last_valid()->access_delay(time);
