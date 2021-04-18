@@ -224,6 +224,17 @@ template<Model model> class ConcreteMachine:
 				}
 			} else {
 				switch(cycle.operation) {
+					case CPU::Z80::PartialMachineCycle::Input:
+					case CPU::Z80::PartialMachineCycle::Output:
+					case CPU::Z80::PartialMachineCycle::Read:
+					case CPU::Z80::PartialMachineCycle::Write:
+					case CPU::Z80::PartialMachineCycle::ReadOpcode:
+					case CPU::Z80::PartialMachineCycle::Interrupt:
+						// For these, carry on into the actual handler, below.
+					break;
+
+					// For anything else that isn't listed below, just advance
+					// time and conclude here.
 					default:
 						advance(cycle.length);
 					return HalfCycles(0);
@@ -250,7 +261,7 @@ template<Model model> class ConcreteMachine:
 
 						advance(cycle.length + delay);
 						return delay;
-					}
+					} break;
 
 					case PartialMachineCycle::ReadOpcodeStart:
 					case PartialMachineCycle::ReadStart:
@@ -263,7 +274,7 @@ template<Model model> class ConcreteMachine:
 							advance(cycle.length + delay);
 							return delay;
 						}
-					}
+					} break;
 
 					case PartialMachineCycle::Internal: {
 						// Whatever's on the address bus will remain there, without IOREQ or
@@ -284,15 +295,7 @@ template<Model model> class ConcreteMachine:
 							advance(cycle.length + delay);
 							return delay;
 						}
-					}
-
-					case CPU::Z80::PartialMachineCycle::Input:
-					case CPU::Z80::PartialMachineCycle::Output:
-					case CPU::Z80::PartialMachineCycle::Read:
-					case CPU::Z80::PartialMachineCycle::Write:
-					case CPU::Z80::PartialMachineCycle::ReadOpcode:
-						// For these, carry on into the actual handler, below.
-					break;
+					} break;
 				}
 			}
 
@@ -496,6 +499,13 @@ template<Model model> class ConcreteMachine:
 						}
 					}
 				} break;
+
+				case PartialMachineCycle::Interrupt:
+					// At least one piece of Spectrum software, Escape from M.O.N.J.A.S. explicitly
+					// assumes that a 0xff value will be on the bus during an interrupt acknowledgment.
+					// I wasn't otherwise aware that this value is reliable.
+					*cycle.value = 0xff;
+				break;
 			}
 
 			return HalfCycles(0);

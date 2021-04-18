@@ -32,7 +32,7 @@ class Machine {
 		class Options: public Reflection::StructImpl<Options>, public Configurable::QuickloadOption<Options> {
 			friend Configurable::QuickloadOption<Options>;
 			public:
-				bool automatic_tape_motor_control;
+				bool automatic_tape_motor_control = true;
 
 				Options(Configurable::OptionsType type):
 					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly),
