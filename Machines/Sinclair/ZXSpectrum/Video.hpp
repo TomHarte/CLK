@@ -98,7 +98,7 @@ template <VideoTiming timing> class Video {
 					.contention_duration = 129 * 2,
 
 					// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
-					.interrupt_time = (228*311 - 14360) * 2,
+					.interrupt_time = (1 + 228*311 - 14365 - 5) * 2,
 
 					.delays = {		// Should start at 14365
 						2, 1,
@@ -123,7 +123,7 @@ template <VideoTiming timing> class Video {
 					.contention_leadin = 4 * 2,
 					.contention_duration = 128 * 2,
 
-					.interrupt_time = (228*311 - 14357) * 2,
+					.interrupt_time = (1 + 228*311 - 14361 - 4) * 2,
 
 					.delays = {		// Should start at 14361.
 						12, 11,
@@ -148,7 +148,7 @@ template <VideoTiming timing> class Video {
 					.contention_leadin = 4 * 2,
 					.contention_duration = 128 * 2,
 
-					.interrupt_time = (224*312 - 14331) * 2,
+					.interrupt_time = (1 + 224*312 - 14335 - 4) * 2,
 
 					.delays = {		// Should start at 14335.
 						12, 11,
