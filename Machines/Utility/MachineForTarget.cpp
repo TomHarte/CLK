@@ -182,6 +182,7 @@ std::vector<std::string> Machine::AllMachines(Type type, bool long_names) {
 		AddName(Oric);
 		AddName(Vic20);
 		AddName(ZX8081);
+		AddName(ZXSpectrum);
 	}
 
 #undef AddName
