@@ -38,9 +38,9 @@ ProcessorStorage::ProcessorStorage() {
 #define OutputWait(addr, val, f)	PartialMachineCycle(PartialMachineCycle::OutputWait, HalfCycles(2), &addr.full, &val, f)
 #define OutputEnd(addr, val)		PartialMachineCycle(PartialMachineCycle::Output, HalfCycles(3), &addr.full, &val, false)
 
-#define IntAckStart(length, val)	PartialMachineCycle(PartialMachineCycle::InterruptStart, HalfCycles(length), nullptr, &val, false)
-#define IntWait(val)				PartialMachineCycle(PartialMachineCycle::InterruptWait, HalfCycles(2), nullptr, &val, true)
-#define IntAckEnd(val)				PartialMachineCycle(PartialMachineCycle::Interrupt, HalfCycles(3), nullptr, &val, false)
+#define IntAckStart(length, val)	PartialMachineCycle(PartialMachineCycle::InterruptStart, HalfCycles(length), &pc_.full, &val, false)
+#define IntWait(val)				PartialMachineCycle(PartialMachineCycle::InterruptWait, HalfCycles(2), &pc_.full, &val, true)
+#define IntAckEnd(val)				PartialMachineCycle(PartialMachineCycle::Interrupt, HalfCycles(3), &pc_.full, &val, false)
 
 
 // A wrapper to express a bus operation as a micro-op
