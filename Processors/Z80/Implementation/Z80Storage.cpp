@@ -83,10 +83,10 @@ ProcessorStorage::ProcessorStorage() {
 /* The following are actual instructions */
 #define NOP						{ {MicroOp::MoveToNextProgram} }
 
-#define JP(cc)					Sequence(Read16Inc(pc_, memptr_), {MicroOp::cc, nullptr}, {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define JP(cc)					Sequence(Read16Inc(pc_, memptr_), {MicroOp::cc}, {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define CALL(cc)				Sequence(ReadInc(pc_, memptr_.halves.low), {MicroOp::cc, conditional_call_untaken_program_.data()}, ReadInc(pc_, memptr_.halves.high), InternalOperation(2), Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
-#define RET(cc)					Sequence(InternalOperation(2), {MicroOp::cc, nullptr}, Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
-#define JR(cc)					Sequence(ReadInc(pc_, temp8_), {MicroOp::cc, nullptr}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define RET(cc)					Sequence(InternalOperation(2), {MicroOp::cc}, Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define JR(cc)					Sequence(ReadInc(pc_, temp8_), {MicroOp::cc}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RST()					Sequence(InternalOperation(2), {MicroOp::CalculateRSTDestination}, Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define LD(a, b)				Sequence({MicroOp::Move8, &b, &a})
 
@@ -180,7 +180,7 @@ void ProcessorStorage::install_default_instruction_set() {
 		BusOp(Refresh()),
 		InternalOperation(2),
 		Push(pc_),
-		{ MicroOp::JumpTo66, nullptr, nullptr},
+		{ MicroOp::JumpTo66 },
 		{ MicroOp::MoveToNextProgram }
 	};
 	MicroOp irq_mode0_program[] = {
