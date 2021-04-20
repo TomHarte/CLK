@@ -27,7 +27,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 		Plus3,
 	);
 
-	Model model = Model::Plus2;
+	Model model = Model::Plus2a;
 	bool should_hold_enter = false;
 
 	Target(): Analyser::Static::Target(Machine::ZXSpectrum) {
