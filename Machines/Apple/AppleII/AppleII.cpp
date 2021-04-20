@@ -48,7 +48,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::JoystickMachine,
 	public CPU::MOS6502::BusHandler,
-	public Inputs::Keyboard,
 	public Configurable::Device,
 	public Activity::Source,
 	public Apple::II::Card::Delegate {
@@ -66,7 +65,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				uint8_t *ram_, *aux_ram_;
 		};
 
-		CPU::MOS6502::Processor<(model == Analyser::Static::AppleII::Target::Model::EnhancedIIe) ? CPU::MOS6502::Personality::PSynertek65C02 : CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
+		using Processor = CPU::MOS6502::Processor<
+			(model == Analyser::Static::AppleII::Target::Model::EnhancedIIe) ? CPU::MOS6502::Personality::PSynertek65C02 : CPU::MOS6502::Personality::P6502,
+			ConcreteMachine,
+			false>;
+		Processor m6502_;
 		VideoBusHandler video_bus_handler_;
 		Apple::II::Video::Video<VideoBusHandler, is_iie()> video_;
 		int cycles_into_current_line_ = 0;
@@ -91,16 +94,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		uint8_t ram_[65536], aux_ram_[65536];
 		std::vector<uint8_t> rom_;
-		uint8_t keyboard_input_ = 0x00;
-		bool key_is_down_ = false;
-
-		uint8_t get_keyboard_input() {
-			if(string_serialiser_) {
-				return string_serialiser_->head() | 0x80;
-			} else {
-				return keyboard_input_;
-			}
-		}
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		Audio::Toggle audio_toggle_;
@@ -258,15 +251,98 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				state.region_20_40.write ? &aux_ram_[0x2000] : &ram_[0x2000]);
 		}
 
-		// MARK - typing
-		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
+		// MARK: - Keyboard and typing.
 
-		// MARK - Joysticks.
+		struct Keyboard: public Inputs::Keyboard {
+			Keyboard(Processor *m6502) : m6502_(m6502) {}
+
+			void reset_all_keys() final {
+				open_apple_is_pressed = closed_apple_is_pressed = key_is_down = false;
+			}
+
+			bool set_key_pressed(Key key, char value, bool is_pressed) final {
+				// If no ASCII value is supplied, look for a few special cases.
+				switch(key) {
+					case Key::Left:			value = 0x08;	break;
+					case Key::Right:		value = 0x15;	break;
+					case Key::Down:			value = 0x0a;	break;
+					case Key::Up:			value = 0x0b;	break;
+					case Key::Backspace:	value = 0x7f;	break;
+					case Key::Enter:		value = 0x0d;	break;
+					case Key::Tab:			value = '\t';	break;
+					case Key::Escape:		value = 0x1b;	break;
+
+					case Key::LeftOption:
+					case Key::RightMeta:
+						open_apple_is_pressed = is_pressed;
+					return true;
+
+					case Key::RightOption:
+					case Key::LeftMeta:
+						closed_apple_is_pressed = is_pressed;
+					return true;
+
+					case Key::F1:	case Key::F2:	case Key::F3:	case Key::F4:
+					case Key::F5:	case Key::F6:	case Key::F7:	case Key::F8:
+					case Key::F9:	case Key::F10:	case Key::F11:	case Key::F12:
+					case Key::PrintScreen:
+					case Key::ScrollLock:
+					case Key::Pause:
+					case Key::Insert:
+					case Key::Home:
+					case Key::PageUp:
+					case Key::PageDown:
+					case Key::End:
+						// Accept a bunch non-symbolic other keys, as
+						// reset, in the hope that the user can find
+						// at least one usable key.
+						m6502_->set_reset_line(is_pressed);
+					return true;
+
+					default:
+						if(!value) {
+							return false;
+						}
+
+						// Prior to the IIe, the keyboard could produce uppercase only.
+						if(!is_iie()) value = char(toupper(value));
+					break;
+				}
+
+				if(is_pressed) {
+					keyboard_input = uint8_t(value | 0x80);
+					key_is_down = true;
+				} else {
+					if((keyboard_input & 0x7f) == value) {
+						key_is_down = false;
+					}
+				}
+
+				return true;
+			}
+
+			uint8_t get_keyboard_input() {
+				if(string_serialiser) {
+					return string_serialiser->head() | 0x80;
+				} else {
+					return keyboard_input;
+				}
+			}
+
+			// The IIe has three keys that are wired directly to the same input as the joystick buttons.
+			bool open_apple_is_pressed = false;
+			bool closed_apple_is_pressed = false;
+			uint8_t keyboard_input = 0x00;
+			bool key_is_down = false;
+			std::unique_ptr<Utility::StringSerialiser> string_serialiser;
+
+			private:
+			Processor *const m6502_;
+		};
+		Keyboard keyboard_;
+
+		// MARK: - Joysticks.
 		JoystickPair joysticks_;
-
-		// The IIe has three keys that are wired directly to the same input as the joystick buttons.
-		bool open_apple_is_pressed_ = false;
-		bool closed_apple_is_pressed_ = false;
 
 	public:
 		ConcreteMachine(const Analyser::Static::AppleII::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
@@ -276,7 +352,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			audio_toggle_(audio_queue_),
 			speaker_(audio_toggle_),
 			language_card_(*this),
-			auxiliary_switches_(*this) {
+			auxiliary_switches_(*this),
+			keyboard_(&m6502_) {
 			// The system's master clock rate.
 			constexpr float master_clock = 14318180.0;
 
@@ -435,18 +512,18 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								default: break;
 
 								case 0xc000:
-									*value = get_keyboard_input();
+									*value = keyboard_.get_keyboard_input();
 								break;
 								case 0xc001: case 0xc002: case 0xc003: case 0xc004: case 0xc005: case 0xc006: case 0xc007:
 								case 0xc008: case 0xc009: case 0xc00a: case 0xc00b: case 0xc00c: case 0xc00d: case 0xc00e: case 0xc00f:
-									*value = (*value & 0x80) | (get_keyboard_input() & 0x7f);
+									*value = (*value & 0x80) | (keyboard_.get_keyboard_input() & 0x7f);
 								break;
 
 								case 0xc061:	// Switch input 0.
 									*value &= 0x7f;
 									if(
 										joysticks_.button(0) ||
-										(is_iie() && open_apple_is_pressed_)
+										(is_iie() && keyboard_.open_apple_is_pressed)
 									)
 										*value |= 0x80;
 								break;
@@ -454,7 +531,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 									*value &= 0x7f;
 									if(
 										joysticks_.button(1) ||
-										(is_iie() && closed_apple_is_pressed_)
+										(is_iie() && keyboard_.closed_apple_is_pressed)
 									)
 										*value |= 0x80;
 								break;
@@ -476,7 +553,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								} break;
 
 								// The IIe-only state reads follow...
-#define IIeSwitchRead(s)	*value = get_keyboard_input(); if(is_iie()) *value = (*value & 0x7f) | (s ? 0x80 : 0x00);
+#define IIeSwitchRead(s)	*value = keyboard_.get_keyboard_input(); if(is_iie()) *value = (*value & 0x7f) | (s ? 0x80 : 0x00);
 								case 0xc011:	IIeSwitchRead(language_card_.state().bank2);								break;
 								case 0xc012:	IIeSwitchRead(language_card_.state().read);									break;
 								case 0xc013:	IIeSwitchRead(auxiliary_switches_.switches().read_auxiliary_memory);		break;
@@ -559,15 +636,15 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					break;
 
 					case 0xc010:
-						keyboard_input_ &= 0x7f;
-						if(string_serialiser_) {
-							if(!string_serialiser_->advance())
-								string_serialiser_.reset();
+						keyboard_.keyboard_input &= 0x7f;
+						if(keyboard_.string_serialiser) {
+							if(!keyboard_.string_serialiser->advance())
+								keyboard_.string_serialiser.reset();
 						}
 
 						// On the IIe, reading C010 returns additional key info.
 						if(is_iie() && isReadOperation(operation)) {
-							*value = (key_is_down_ ? 0x80 : 0x00) | (keyboard_input_ & 0x7f);
+							*value = (keyboard_.key_is_down ? 0x80 : 0x00) | (keyboard_.keyboard_input & 0x7f);
 						}
 					break;
 
@@ -683,81 +760,16 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			m6502_.run_for(cycles);
 		}
 
-		void reset_all_keys() final {
-			open_apple_is_pressed_ = closed_apple_is_pressed_ = key_is_down_ = false;
-		}
-
 		bool prefers_logical_input() final {
 			return true;
 		}
 
-		bool set_key_pressed(Key key, char value, bool is_pressed) final {
-			// If no ASCII value is supplied, look for a few special cases.
-			switch(key) {
-				case Key::Left:			value = 0x08;	break;
-				case Key::Right:		value = 0x15;	break;
-				case Key::Down:			value = 0x0a;	break;
-				case Key::Up:			value = 0x0b;	break;
-				case Key::Backspace:	value = 0x7f;	break;
-				case Key::Enter:		value = 0x0d;	break;
-				case Key::Tab:			value = '\t';	break;
-				case Key::Escape:		value = 0x1b;	break;
-
-				case Key::LeftOption:
-				case Key::RightMeta:
-					open_apple_is_pressed_ = is_pressed;
-				return true;
-
-				case Key::RightOption:
-				case Key::LeftMeta:
-					closed_apple_is_pressed_ = is_pressed;
-				return true;
-
-				case Key::F1:	case Key::F2:	case Key::F3:	case Key::F4:
-				case Key::F5:	case Key::F6:	case Key::F7:	case Key::F8:
-				case Key::F9:	case Key::F10:	case Key::F11:	case Key::F12:
-				case Key::PrintScreen:
-				case Key::ScrollLock:
-				case Key::Pause:
-				case Key::Insert:
-				case Key::Home:
-				case Key::PageUp:
-				case Key::PageDown:
-				case Key::End:
-					// Accept a bunch non-symbolic other keys, as
-					// reset, in the hope that the user can find
-					// at least one usable key.
-					m6502_.set_reset_line(is_pressed);
-				return true;
-
-				default:
-					if(!value) {
-						return false;
-					}
-
-					// Prior to the IIe, the keyboard could produce uppercase only.
-					if(!is_iie()) value = char(toupper(value));
-				break;
-			}
-
-			if(is_pressed) {
-				keyboard_input_ = uint8_t(value | 0x80);
-				key_is_down_ = true;
-			} else {
-				if((keyboard_input_ & 0x7f) == value) {
-					key_is_down_ = false;
-				}
-			}
-
-			return true;
-		}
-
 		Inputs::Keyboard &get_keyboard() final {
-			return *this;
+			return keyboard_;
 		}
 
 		void type_string(const std::string &string) final {
-			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
+			keyboard_.string_serialiser = std::make_unique<Utility::StringSerialiser>(string, true);
 		}
 
 		bool can_type(char c) const final {
