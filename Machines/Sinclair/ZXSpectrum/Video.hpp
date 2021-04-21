@@ -63,9 +63,9 @@ template <VideoTiming timing> class Video {
 			// Number of cycles after first pixel fetch at which interrupt is first signalled.
 			int interrupt_time;
 
-			// Contention to apply, in half-cycles, as a function of number of half cycles since
+			// Contention to apply, in whole cycles, as a function of number of whole cycles since
 			// contention began.
-			int delays[16];
+			int delays[8];
 		};
 
 		static constexpr Timings get_timings() {
@@ -98,17 +98,10 @@ template <VideoTiming timing> class Video {
 					.contention_duration = 129 * 2,
 
 					// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
-					.interrupt_time = (1 + 228*311 - 14365 - 5) * 2,
+					.interrupt_time = (228*311 - 14365 - 5) * 2,
 
 					.delays = {		// Should start at 14365
-						2, 1,
-						0, 0,
-						14, 13,
-						12, 11,
-						10, 9,
-						8, 7,
-						6, 5,
-						4, 3,
+						1, 0, 7, 6, 5, 4, 3, 2,
 					}
 				};
 
@@ -123,17 +116,10 @@ template <VideoTiming timing> class Video {
 					.contention_leadin = 4 * 2,
 					.contention_duration = 128 * 2,
 
-					.interrupt_time = (1 + 228*311 - 14361 - 4) * 2,
+					.interrupt_time = (228*311 - 14361 - 4) * 2,
 
 					.delays = {		// Should start at 14361.
-						12, 11,
-						10, 9,
-						8, 7,
-						6, 5,
-						4, 3,
-						2, 1,
-						0, 0,
-						0, 0,
+						6, 5, 4, 3, 2, 1, 0, 0
 					}
 				};
 
@@ -148,17 +134,10 @@ template <VideoTiming timing> class Video {
 					.contention_leadin = 4 * 2,
 					.contention_duration = 128 * 2,
 
-					.interrupt_time = (1 + 224*312 - 14335 - 4) * 2,
+					.interrupt_time = (224*312 - 14335 - 4) * 2,
 
 					.delays = {		// Should start at 14335.
-						12, 11,
-						10, 9,
-						8, 7,
-						6, 5,
-						4, 3,
-						2, 1,
-						0, 0,
-						0, 0,
+						6, 5, 4, 3, 2, 1, 0, 0
 					}
 				};
 
@@ -377,9 +356,10 @@ template <VideoTiming timing> class Video {
 			@returns How many cycles the [ULA/gate array] would delay the CPU for if it were to recognise that contention
 			needs to be applied in @c offset half-cycles from now.
 		*/
-		int access_delay(HalfCycles offset) const {
+		HalfCycles access_delay(HalfCycles offset) const {
 			constexpr auto timings = get_timings();
 			const int delay_time = (time_into_frame_ + offset.as<int>() + timings.contention_leadin) % (timings.cycles_per_line * timings.lines_per_frame);
+			assert(!(delay_time&1));
 
 			// Check for a time within the no-contention window.
 			if(delay_time >= (191*timings.cycles_per_line + timings.contention_duration)) {
@@ -391,7 +371,7 @@ template <VideoTiming timing> class Video {
 				return 0;
 			}
 
-			return timings.delays[time_into_line & 15];
+			return timings.delays[(time_into_line >> 1) & 7] * 2;
 		}
 
 		/*!
