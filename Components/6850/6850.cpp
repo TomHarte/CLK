@@ -129,8 +129,8 @@ ClockingHint::Preference ACIA::preferred_clocking() const {
 	// because it's unclear when the interrupt might come.
 	if(bits_incoming_ && receive_interrupt_enabled_) return ClockingHint::Preference::RealTime;
 
-	// No clocking required then.
-	return ClockingHint::Preference::None;
+	// Real-time clocking not required then.
+	return ClockingHint::Preference::JustInTime;
 }
 
 bool ACIA::get_interrupt_line() const {
