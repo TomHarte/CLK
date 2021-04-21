@@ -218,7 +218,7 @@ template<Model model> class ConcreteMachine:
 					cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
 					cycle.operation <= PartialMachineCycle::WriteStart) {
 
-					const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush() + HalfCycles(1));
+					const auto delay = video_.last_valid()->access_delay(video_.time_since_flush());
 					advance(cycle.length + delay);
 					return delay;
 				}
@@ -269,7 +269,7 @@ template<Model model> class ConcreteMachine:
 						// These all start by loading the address bus, then set MREQ
 						// half a cycle later.
 						if(is_contended_[address >> 14]) {
-							const HalfCycles delay = video_.last_valid()->access_delay(video_.time_since_flush());
+							const auto delay = video_.last_valid()->access_delay(video_.time_since_flush());
 
 							advance(cycle.length + delay);
 							return delay;
