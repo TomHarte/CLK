@@ -717,9 +717,9 @@ template<Model model> class ConcreteMachine:
 
 		void set_memory(int bank, uint8_t source) {
 			if constexpr (model >= Model::Plus2a) {
-				is_contended_[bank] = (source >= 4 && source < 8);
+				is_contended_[bank] = source >= 4 && source < 8;
 			} else {
-				is_contended_[bank] = source & 1;
+				is_contended_[bank] = source < 0x80 && source & 1;
 			}
 			pages_[bank] = source;
 
