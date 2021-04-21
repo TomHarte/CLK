@@ -66,82 +66,31 @@ template <VideoTiming timing> class Video {
 			// Contention to apply, in whole cycles, as a function of number of whole cycles since
 			// contention began.
 			int delays[8];
+
+			constexpr Timings(int cycles_per_line, int lines_per_frame, int contention_leadin, int contention_duration, int interrupt_offset, const int *delays) noexcept :
+				cycles_per_line(cycles_per_line * 2),
+				lines_per_frame(lines_per_frame),
+				contention_leadin(contention_leadin * 2),
+				contention_duration(contention_duration * 2),
+				interrupt_time((cycles_per_line * lines_per_frame - interrupt_offset - contention_leadin) * 2),
+				delays{ delays[0] * 2, delays[1] * 2, delays[2] * 2, delays[3] * 2, delays[4] * 2, delays[5] * 2, delays[6] * 2, delays[7] * 2}
+			 {}
 		};
 
 		static constexpr Timings get_timings() {
 			if constexpr (timing == VideoTiming::Plus3) {
-				// Amstrad gate array timings, classic statement:
-				//
-				// Contention begins 14361 cycles "after interrupt" and follows the pattern [1, 0, 7, 6 5 4, 3, 2].
-				// The first four bytes of video are fetched at 14365–14368 cycles, in the order [pixels, attribute, pixels, attribute].
-				//
-				// For my purposes:
-				//
-				// Video fetching always begins at 0. Since there are 311*228 = 70908 cycles per frame, and the interrupt
-				// should "occur" (I assume: begin) 14365 before that, it should actually begin at 70908 - 14365 = 56543.
-				//
-				// Contention begins four cycles before the first video fetch, so it begins at 70904. I don't currently
-				// know whether the four cycles is true across all models, so it's given here as convention_leadin.
-				//
-				// ... except that empirically that all seems to be two cycles off. So maybe I misunderstand what the
-				// contention patterns are supposed to indicate relative to MREQ? It's frustrating that all documentation
-				// I can find is vaguely in terms of contention patterns, and what they mean isn't well-defined in terms
-				// of regular Z80 signalling.
-				constexpr Timings result = {
-					.cycles_per_line = 228 * 2,
-					.lines_per_frame = 311,
-
-					// i.e. video fetching begins five cycles after the start of the
-					// contended memory pattern below; that should put a clear two
-					// cycles between a Z80 access and the first video fetch.
-					.contention_leadin = 5 * 2,
-					.contention_duration = 129 * 2,
-
-					// i.e. interrupt is first signalled 14368 cycles before the first video fetch.
-					.interrupt_time = (228*311 - 14365 - 5) * 2,
-
-					.delays = {		// Should start at 14365
-						1, 0, 7, 6, 5, 4, 3, 2,
-					}
-				};
-
-				return result;
+				constexpr int delays[] = {1, 0, 7, 6, 5, 4, 3, 2};
+				return Timings(228, 311, 6, 129, 14365, delays);
 			}
 
 			if constexpr (timing == VideoTiming::OneTwoEightK) {
-				constexpr Timings result = {
-					.cycles_per_line = 228 * 2,
-					.lines_per_frame = 311,
-
-					.contention_leadin = 4 * 2,
-					.contention_duration = 128 * 2,
-
-					.interrupt_time = (228*311 - 14361 - 4) * 2,
-
-					.delays = {		// Should start at 14361.
-						6, 5, 4, 3, 2, 1, 0, 0
-					}
-				};
-
-				return result;
+				constexpr int delays[] = {6, 5, 4, 3, 2, 1, 0, 0};
+				return Timings(228, 311, 4, 128, 14361, delays);
 			}
 
 			if constexpr (timing == VideoTiming::FortyEightK) {
-				constexpr Timings result = {
-					.cycles_per_line = 224 * 2,
-					.lines_per_frame = 312,
-
-					.contention_leadin = 4 * 2,
-					.contention_duration = 128 * 2,
-
-					.interrupt_time = (224*312 - 14335 - 4) * 2,
-
-					.delays = {		// Should start at 14335.
-						6, 5, 4, 3, 2, 1, 0, 0
-					}
-				};
-
-				return result;
+				constexpr int delays[] = {6, 5, 4, 3, 2, 1, 0, 0};
+				return Timings(224, 312, 4, 128, 14335, delays);
 			}
 		}
 
@@ -371,7 +320,7 @@ template <VideoTiming timing> class Video {
 				return 0;
 			}
 
-			return timings.delays[(time_into_line >> 1) & 7] * 2;
+			return HalfCycles(timings.delays[(time_into_line >> 1) & 7]);
 		}
 
 		/*!
