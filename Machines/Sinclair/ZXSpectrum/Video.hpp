@@ -103,7 +103,7 @@ template <VideoTiming timing> class Video {
 
 			constexpr int sync_line = (timings.interrupt_time / timings.cycles_per_line) + 1;
 
-			constexpr int sync_position = 166 * 2;
+			constexpr int sync_position = (timing == VideoTiming::FortyEightK) ? 164 * 2 : 166 * 2;
 			constexpr int sync_length = 17 * 2;
 			constexpr int burst_position = sync_position + 40;
 			constexpr int burst_length = 17;
