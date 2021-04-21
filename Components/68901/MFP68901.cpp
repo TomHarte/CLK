@@ -208,7 +208,7 @@ void MFP68901::run_for(HalfCycles time) {
 }
 
 HalfCycles MFP68901::get_next_sequence_point() {
-	return HalfCycles(-1);
+	return HalfCycles::max();
 }
 
 // MARK: - Timers
