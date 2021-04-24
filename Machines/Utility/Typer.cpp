@@ -131,13 +131,3 @@ bool Typer::type_next_character() {
 
 	return true;
 }
-
-// MARK: - Character mapper
-
-const uint16_t *CharacterMapper::table_lookup_sequence_for_character(const KeySequence *sequences, std::size_t length, char character) const {
-	std::size_t ucharacter = size_t((unsigned char)character);
-	if(ucharacter >= (length / sizeof(KeySequence))) return nullptr;
-	if(sequences[ucharacter][0] == MachineTypes::MappedKeyboardMachine::KeyNotMapped) return nullptr;
-	return sequences[ucharacter];
-}
-
