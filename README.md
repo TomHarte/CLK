@@ -22,7 +22,7 @@ It currently contains emulations of the:
 * Oric 1/Atmos;
 * Sega Master System;
 * Sinclair ZX80/81; and
-* Sinclair ZX Spectrum +2a/+3.
+* Sinclair ZX Spectrum.
 
 ## Single-step Loading
 
