@@ -80,7 +80,7 @@ template <VideoTiming timing> class Video {
 		static constexpr Timings get_timings() {
 			if constexpr (timing == VideoTiming::Plus3) {
 				constexpr int delays[] = {1, 0, 7, 6, 5, 4, 3, 2};
-				return Timings(228, 311, 6, 129, 14365, delays);
+				return Timings(228, 311, 6, 129, 14361, delays);
 			}
 
 			if constexpr (timing == VideoTiming::OneTwoEightK) {
@@ -94,8 +94,8 @@ template <VideoTiming timing> class Video {
 			}
 		}
 
-		// TODO: how long is the interrupt line held for?
-		static constexpr int interrupt_duration = 48;
+		// Interrupt should be held for 32 cycles.
+		static constexpr int interrupt_duration = 64;
 
 	public:
 		void run_for(HalfCycles duration) {
