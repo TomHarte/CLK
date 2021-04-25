@@ -43,7 +43,7 @@ class FileHolder final {
 				Rewrite		opens the file for rewriting; none of the original content is preserved; whatever
 							the caller outputs will replace the existing file.
 
-			@raises ErrorCantOpen if the file cannot be opened.
+			@throws ErrorCantOpen if the file cannot be opened.
 		*/
 		FileHolder(const std::string &file_name, FileMode ideal_mode = FileMode::ReadWrite);
 
