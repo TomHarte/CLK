@@ -25,24 +25,28 @@ std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is
 	std::vector<uint8_t> result(size);
 	size_t cursor = 0;
 
-	uint8_t incoming[2] = { file.get8(), file.get8() };
-	while(true) {
-		if(incoming[0] == 0xed && incoming[1] == 0xed) {
-			const uint8_t count = file.get8();
-			const uint8_t value = file.get8();
+	while(cursor != size) {
+		const uint8_t next = file.get8();
 
-			memset(&result[cursor], value, count);
-			cursor += count;
-			if(cursor == size) break;
-			incoming[0] = file.get8();
-			incoming[1] = file.get8();
-		} else {
-			result[cursor] = incoming[0];
+		if(next != 0xed) {
+			result[cursor] = next;
 			++cursor;
-			if(cursor == size) break;
-			incoming[0] = incoming[1];
-			incoming[1] = file.get8();
+			continue;
 		}
+
+		const uint8_t after = file.get8();
+		if(after != 0xed) {
+			result[cursor] = next;
+			++cursor;
+			file.seek(-1, SEEK_CUR);
+			continue;
+		}
+
+		const uint8_t count = file.get8();
+		const uint8_t value = file.get8();
+
+		memset(&result[cursor], value, count);
+		cursor += count;
 	}
 
 	return result;
