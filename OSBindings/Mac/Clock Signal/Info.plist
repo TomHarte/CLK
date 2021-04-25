@@ -598,7 +598,27 @@
 				<string>sna</string>
 			</array>
 			<key>CFBundleTypeName</key>
-			<string>ZX Spectrum SNA image</string>
+			<string>ZX Spectrum SNA snapshot</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>z80</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>ZX Spectrum Z80 snapshot</string>
 			<key>CFBundleTypeOSTypes</key>
 			<array>
 				<string>????</string>

@@ -59,6 +59,7 @@
 
 // State Snapshots
 #include "../../Storage/State/SNA.hpp"
+#include "../../Storage/State/Z80.hpp"
 
 // Tapes
 #include "../../Storage/Tape/Formats/CAS.hpp"
@@ -200,7 +201,6 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 #undef TryInsert
 #undef InsertInstance
 
-
 	return result;
 }
 
@@ -226,6 +226,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	}
 
 	Format("sna", SNA);
+	Format("z80", Z80);
 
 #undef TryInsert
 
