@@ -70,12 +70,11 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name
 	//	1B–	48kb RAM contents
 	state->ram = file.read(48*1024);
 
-	// Establish program counter.
-	state->z80.registers.program_counter = state->ram[state->z80.registers.stack_pointer];
-	state->ram[state->z80.registers.stack_pointer] = 0;
-	state->z80.registers.program_counter |= state->ram[state->z80.registers.stack_pointer+1] << 8;
-	state->ram[state->z80.registers.stack_pointer+1] = 0;
-	state->z80.registers.stack_pointer += 2;
+	// To establish program counter, point it to a RET that
+	// I know is in the 16/48kb ROM. This avoids having to
+	// try to do a pop here, given that the true program counter
+	// might currently be in the ROM.
+	state->z80.registers.program_counter = 0x1d83;
 
 	return result;
 }
