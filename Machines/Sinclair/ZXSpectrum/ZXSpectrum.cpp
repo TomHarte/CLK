@@ -125,7 +125,10 @@ template<Model model> class ConcreteMachine:
 
 			// Install state if supplied.
 			if(target.state) {
-				LOG("TODO: state");
+				const auto state = static_cast<State *>(target.state.get());
+				state->z80.apply(z80_);
+
+				LOG("TODO: apply rest of state");
 			}
 		}
 
