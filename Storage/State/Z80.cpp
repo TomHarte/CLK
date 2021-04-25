@@ -193,6 +193,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 			}
 		}
 
+		assert(location + block_size == file.tell());
 		file.seek(location + block_size, SEEK_SET);
 	}
 
