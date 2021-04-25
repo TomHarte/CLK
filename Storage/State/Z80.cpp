@@ -25,7 +25,7 @@ std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is
 	std::vector<uint8_t> result(size);
 	size_t cursor = 0;
 
-	uint8_t incoming[2] = { file.get8(), file.get8()};
+	uint8_t incoming[2] = { file.get8(), file.get8() };
 	while(true) {
 		if(incoming[0] == 0xed && incoming[1] == 0xed) {
 			const uint8_t count = file.get8();
@@ -166,15 +166,31 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	}
 
 	// Grab RAM.
-	state->ram.resize(128 * 1024);
+	switch(result->model) {
+		case Target::Model::SixteenK:		state->ram.resize(16 * 1024);	break;
+		case Target::Model::FortyEightK:	state->ram.resize(48 * 1024);	break;
+		default:							state->ram.resize(128 * 1024);	break;
+	}
+
 	while(true) {
 		const uint16_t block_size = file.get16le();
 		const uint8_t page = file.get8();
 		const auto location = file.tell();
 		if(file.eof()) break;
 
-		switch(page) {
-			default: break;
+		const auto data = read_memory(file, 16384, block_size != 0xffff);
+
+		if(result->model == Target::Model::SixteenK || result->model == Target::Model::FortyEightK) {
+			switch(page) {
+				default: break;
+				case 4:	memcpy(&state->ram[0x4000], data.data(), 16384);	break;
+				case 5:	memcpy(&state->ram[0x8000], data.data(), 16384);	break;
+				case 8:	memcpy(&state->ram[0x0000], data.data(), 16384);	break;
+			}
+		} else {
+			if(page >= 3 && page <= 10) {
+				memcpy(&state->ram[(page - 3) * 0x4000], data.data(), 16384);
+			}
 		}
 
 		file.seek(location + block_size, SEEK_SET);
