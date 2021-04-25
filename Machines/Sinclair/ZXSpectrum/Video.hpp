@@ -366,6 +366,7 @@ template <Timing timing> class Video {
 			Sets the current border colour.
 		*/
 		void set_border_colour(uint8_t colour) {
+			border_byte_ = colour;
 			border_colour_ = palette[colour];
 		}
 
@@ -389,6 +390,7 @@ template <Timing timing> class Video {
 		Outputs::CRT::CRT crt_;
 		const uint8_t *memory_ = nullptr;
 		uint8_t border_colour_ = 0;
+		uint8_t border_byte_ = 0;
 
 		uint8_t *pixel_target_ = nullptr;
 		int attribute_address_ = 0;
@@ -428,6 +430,14 @@ struct State: public Reflection::StructImpl<State> {
 			DeclareField(flash_counter);
 			DeclareField(is_alternate_line);
 		}
+	}
+
+	template <typename Video> State(const Video &source) : State() {
+		border_colour = source.border_byte_;
+		time_into_frame = source.time_into_frame_;
+		flash = source.flash_mask_;
+		flash_counter = source.flash_counter_;
+		is_alternate_line = source. is_alternate_line_;
 	}
 
 	template <typename Video> void apply(Video &target) {
