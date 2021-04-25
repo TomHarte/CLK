@@ -7,10 +7,17 @@
 //
 
 #include "SNA.hpp"
+#include "../../Analyser/Static/ZXSpectrum/Target.hpp"
 
 using namespace Storage::State;
 
 std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name) {
+	using Target = Analyser::Static::ZXSpectrum::Target;
+	auto result = std::make_unique<Target>();
+
+	// SNAs are always for 48kb machines.
+	result->model = Target::Model::FortyEightK;
+
 	// 0x1a byte header:
 	//
 	//	00	I
@@ -34,5 +41,6 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name
 	// (perform a POP to get the PC)
 
 	(void)file_name;
-	return nullptr;
+
+	return result;
 }
