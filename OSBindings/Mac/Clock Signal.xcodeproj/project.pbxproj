@@ -1434,6 +1434,7 @@
 		4B8DD375263481BB00B3C866 /* StateProducer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = StateProducer.hpp; sourceTree = "<group>"; };
 		4B8DD3842634D37E00B3C866 /* SNA.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SNA.cpp; sourceTree = "<group>"; };
 		4B8DD3852634D37E00B3C866 /* SNA.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SNA.hpp; sourceTree = "<group>"; };
+		4B8DD3912635A72F00B3C866 /* State.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = State.hpp; sourceTree = "<group>"; };
 		4B8DF4D62546561300F3433C /* MemoryMap.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemoryMap.hpp; sourceTree = "<group>"; };
 		4B8DF4D725465B7500F3433C /* IIgsMemoryMapTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = IIgsMemoryMapTests.mm; sourceTree = "<group>"; };
 		4B8DF4ED254B840B00F3433C /* AppleClock.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AppleClock.hpp; sourceTree = "<group>"; };
@@ -2215,6 +2216,7 @@
 				4B0F1BFA260300D900B85C66 /* ZXSpectrum.cpp */,
 				4B0F1BFB260300D900B85C66 /* ZXSpectrum.hpp */,
 				4B0F1C092603BA5F00B85C66 /* Video.hpp */,
+				4B8DD3912635A72F00B3C866 /* State.hpp */,
 			);
 			path = ZXSpectrum;
 			sourceTree = "<group>";

@@ -214,13 +214,15 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	const std::string extension = get_extension(file_name);
 
 	// Check whether the file directly identifies a target; if so then just return that.
-#define Format(ext, class) 										\
-	if(extension == ext)	{									\
-		auto target = Storage::State::class::load(file_name);	\
-		if(target) {											\
-			targets.push_back(std::move(target));				\
-			return targets;										\
-		}														\
+#define Format(ext, class) 											\
+	if(extension == ext)	{										\
+		try {														\
+			auto target = Storage::State::class::load(file_name);	\
+			if(target) {											\
+				targets.push_back(std::move(target));				\
+				return targets;										\
+			}														\
+		} catch(...) {}												\
 	}
 
 	Format("sna", SNA);

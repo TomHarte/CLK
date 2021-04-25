@@ -8,9 +8,9 @@
 
 #include "ZXSpectrum.hpp"
 
+#include "State.hpp"
 #include "Video.hpp"
-
-#define LOG_PREFIX "[Spectrum] "
+#include "../Keyboard/Keyboard.hpp"
 
 #include "../../../Activity/Source.hpp"
 #include "../../MachineTypes.hpp"
@@ -24,7 +24,9 @@
 // just grab the CPC's version of an FDC.
 #include "../../AmstradCPC/FDC.hpp"
 
+#define LOG_PREFIX "[Spectrum] "
 #include "../../../Outputs/Log.hpp"
+
 #include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
@@ -38,10 +40,6 @@
 #include "../../Utility/Typer.hpp"
 
 #include "../../../ClockReceiver/JustInTime.hpp"
-
-#include "../../../Processors/Z80/State/State.hpp"
-
-#include "../Keyboard/Keyboard.hpp"
 
 #include <array>
 
@@ -123,6 +121,11 @@ template<Model model> class ConcreteMachine:
 				// Hold it for five seconds, more or less.
 				duration_to_press_enter_ = Cycles(5 * clock_rate());
 				keyboard_.set_key_state(ZX::Keyboard::KeyEnter, true);
+			}
+
+			// Install state if supplied.
+			if(target.state) {
+				LOG("TODO: state");
 			}
 		}
 
