@@ -6,8 +6,8 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Z80_hpp
-#define Z80_hpp
+#ifndef Storage_State_Z80_hpp
+#define Storage_State_Z80_hpp
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 
@@ -21,4 +21,4 @@ struct Z80 {
 }
 }
 
-#endif /* Z80_hpp */
+#endif /* Storage_State_Z80_hpp */

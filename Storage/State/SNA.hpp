@@ -6,8 +6,8 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef SNA_hpp
-#define SNA_hpp
+#ifndef Storage_State_SNA_hpp
+#define Storage_State_SNA_hpp
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 
@@ -21,4 +21,4 @@ struct SNA {
 }
 }
 
-#endif /* SNA_hpp */
+#endif /* Storage_State_SNA_hpp */
