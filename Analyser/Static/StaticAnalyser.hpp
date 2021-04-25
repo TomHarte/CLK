@@ -59,7 +59,7 @@ struct Target {
 	virtual ~Target() {}
 
 	// This field is entirely optional.
-	std::shared_ptr<Reflection::Struct> state;
+	std::unique_ptr<Reflection::Struct> state;
 
 	Machine machine;
 	Media media;
