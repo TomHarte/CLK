@@ -461,17 +461,17 @@ template <	class T,
 				case MicroOp::ExAFAFDash: {
 					const uint8_t a = a_;
 					const uint8_t f = get_flags();
-					set_flags(afDash_.halves.low);
-					a_ = afDash_.halves.high;
-					afDash_.halves.high = a;
-					afDash_.halves.low = f;
+					set_flags(af_dash_.halves.low);
+					a_ = af_dash_.halves.high;
+					af_dash_.halves.high = a;
+					af_dash_.halves.low = f;
 				} break;
 
 				case MicroOp::EXX: {
 					uint16_t temp;
-					swap(de_, deDash_);
-					swap(bc_, bcDash_);
-					swap(hl_, hlDash_);
+					swap(de_, de_dash_);
+					swap(bc_, bc_dash_);
+					swap(hl_, hl_dash_);
 				} break;
 
 #undef swap

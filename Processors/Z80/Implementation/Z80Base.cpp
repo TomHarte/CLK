@@ -33,18 +33,18 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 		case Register::L:						return hl_.halves.low;
 		case Register::HL:						return hl_.full;
 
-		case Register::ADash:					return afDash_.halves.high;
-		case Register::FlagsDash:				return afDash_.halves.low;
-		case Register::AFDash:					return afDash_.full;
-		case Register::BDash:					return bcDash_.halves.high;
-		case Register::CDash:					return bcDash_.halves.low;
-		case Register::BCDash:					return bcDash_.full;
-		case Register::DDash:					return deDash_.halves.high;
-		case Register::EDash:					return deDash_.halves.low;
-		case Register::DEDash:					return deDash_.full;
-		case Register::HDash:					return hlDash_.halves.high;
-		case Register::LDash:					return hlDash_.halves.low;
-		case Register::HLDash:					return hlDash_.full;
+		case Register::ADash:					return af_dash_.halves.high;
+		case Register::FlagsDash:				return af_dash_.halves.low;
+		case Register::AFDash:					return af_dash_.full;
+		case Register::BDash:					return bc_dash_.halves.high;
+		case Register::CDash:					return bc_dash_.halves.low;
+		case Register::BCDash:					return bc_dash_.full;
+		case Register::DDash:					return de_dash_.halves.high;
+		case Register::EDash:					return de_dash_.halves.low;
+		case Register::DEDash:					return de_dash_.full;
+		case Register::HDash:					return hl_dash_.halves.high;
+		case Register::LDash:					return hl_dash_.halves.low;
+		case Register::HLDash:					return hl_dash_.full;
 
 		case Register::IXh:						return ix_.halves.high;
 		case Register::IXl:						return ix_.halves.low;
@@ -86,18 +86,18 @@ void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 		case Register::L:				hl_.halves.low = uint8_t(value);	break;
 		case Register::HL:				hl_.full = value;					break;
 
-		case Register::ADash:			afDash_.halves.high = uint8_t(value);	break;
-		case Register::FlagsDash:		afDash_.halves.low = uint8_t(value);	break;
-		case Register::AFDash:			afDash_.full = value;					break;
-		case Register::BDash:			bcDash_.halves.high = uint8_t(value);	break;
-		case Register::CDash:			bcDash_.halves.low = uint8_t(value);	break;
-		case Register::BCDash:			bcDash_.full = value;					break;
-		case Register::DDash:			deDash_.halves.high = uint8_t(value);	break;
-		case Register::EDash:			deDash_.halves.low = uint8_t(value);	break;
-		case Register::DEDash:			deDash_.full = value;					break;
-		case Register::HDash:			hlDash_.halves.high = uint8_t(value);	break;
-		case Register::LDash:			hlDash_.halves.low = uint8_t(value);	break;
-		case Register::HLDash:			hlDash_.full = value;					break;
+		case Register::ADash:			af_dash_.halves.high = uint8_t(value);	break;
+		case Register::FlagsDash:		af_dash_.halves.low = uint8_t(value);	break;
+		case Register::AFDash:			af_dash_.full = value;					break;
+		case Register::BDash:			bc_dash_.halves.high = uint8_t(value);	break;
+		case Register::CDash:			bc_dash_.halves.low = uint8_t(value);	break;
+		case Register::BCDash:			bc_dash_.full = value;					break;
+		case Register::DDash:			de_dash_.halves.high = uint8_t(value);	break;
+		case Register::EDash:			de_dash_.halves.low = uint8_t(value);	break;
+		case Register::DEDash:			de_dash_.full = value;					break;
+		case Register::HDash:			hl_dash_.halves.high = uint8_t(value);	break;
+		case Register::LDash:			hl_dash_.halves.low = uint8_t(value);	break;
+		case Register::HLDash:			hl_dash_.full = value;					break;
 
 		case Register::IXh:				ix_.halves.high = uint8_t(value);		break;
 		case Register::IXl:				ix_.halves.low = uint8_t(value);		break;

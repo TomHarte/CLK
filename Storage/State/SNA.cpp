@@ -37,10 +37,10 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name
 	const uint8_t i = file.get8();
 
 	//	01	HL';	03	DE';	05	BC';	07	AF'
-	state->z80.registers.hlDash = file.get16le();
-	state->z80.registers.deDash = file.get16le();
-	state->z80.registers.bcDash = file.get16le();
-	state->z80.registers.afDash = file.get16le();
+	state->z80.registers.hl_dash = file.get16le();
+	state->z80.registers.de_dash = file.get16le();
+	state->z80.registers.bc_dash = file.get16le();
+	state->z80.registers.af_dash = file.get16le();
 
 	//	09	HL;		0B	DE;		0D	BC;		0F	IY;		11	IX
 	state->z80.registers.hl = file.get16le();

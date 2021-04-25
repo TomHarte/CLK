@@ -31,7 +31,7 @@ struct State: public Reflection::StructImpl<State> {
 		uint8_t a;
 		uint8_t flags;
 		uint16_t bc, de, hl;
-		uint16_t afDash, bcDash, deDash, hlDash;
+		uint16_t af_dash, bc_dash, de_dash, hl_dash;
 		uint16_t ix, iy, ir;
 		uint16_t program_counter, stack_pointer;
 		uint16_t memptr;

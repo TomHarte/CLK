@@ -129,7 +129,7 @@ class ProcessorStorage {
 
 		uint8_t a_;
 		RegisterPair16 bc_, de_, hl_;
-		RegisterPair16 afDash_, bcDash_, deDash_, hlDash_;
+		RegisterPair16 af_dash_, bc_dash_, de_dash_, hl_dash_;
 		RegisterPair16 ix_, iy_, pc_, sp_;
 		RegisterPair16 ir_, refresh_addr_;
 		bool iff1_ = false, iff2_ = false;
