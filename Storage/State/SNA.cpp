@@ -30,6 +30,8 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name
 	//	19	interrupt mode
 	//	1A	border colour
 	//	1B–	48kb RAM contents
+	//
+	// (perform a POP to get the PC)
 
 	(void)file_name;
 	return nullptr;
