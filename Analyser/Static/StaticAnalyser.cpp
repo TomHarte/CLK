@@ -57,6 +57,9 @@
 #include "../../Storage/MassStorage/Formats/DAT.hpp"
 #include "../../Storage/MassStorage/Formats/HFV.hpp"
 
+// State Snapshots
+#include "../../Storage/State/SNA.hpp"
+
 // Tapes
 #include "../../Storage/Tape/Formats/CAS.hpp"
 #include "../../Storage/Tape/Formats/CommodoreTAP.hpp"
@@ -73,15 +76,23 @@
 
 using namespace Analyser::Static;
 
-static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::IntType &potential_platforms) {
-	Media result;
+namespace {
 
+std::string get_extension(const std::string &name) {
 	// Get the extension, if any; it will be assumed that extensions are reliable, so an extension is a broad-phase
 	// test as to file format.
-	std::string::size_type final_dot = file_name.find_last_of(".");
-	if(final_dot == std::string::npos) return result;
-	std::string extension = file_name.substr(final_dot + 1);
+	std::string::size_type final_dot = name.find_last_of(".");
+	if(final_dot == std::string::npos) return name;
+	std::string extension = name.substr(final_dot + 1);
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+	return extension;
+}
+
+}
+
+static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::IntType &potential_platforms) {
+	Media result;
+	const std::string extension = get_extension(file_name);
 
 #define InsertInstance(list, instance, platforms) \
 	list.emplace_back(instance);\
@@ -189,6 +200,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 #undef TryInsert
 #undef InsertInstance
 
+
 	return result;
 }
 
@@ -199,14 +211,31 @@ Media Analyser::Static::GetMedia(const std::string &file_name) {
 
 TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	TargetList targets;
+	const std::string extension = get_extension(file_name);
 
+	// Check whether the file directly identifies a target; if so then just return that.
+#define Format(ext, class) 										\
+	if(extension == ext)	{									\
+		auto target = Storage::State::class::load(file_name);	\
+		if(target) {											\
+			targets.push_back(std::move(target));				\
+			return targets;										\
+		}														\
+	}
+
+	Format("sna", SNA);
+
+#undef TryInsert
+
+	// Otherwise:
+	//
 	// Collect all disks, tapes ROMs, etc as can be extrapolated from this file, forming the
 	// union of all platforms this file might be a target for.
 	TargetPlatform::IntType potential_platforms = 0;
 	Media media = GetMediaAndPlatforms(file_name, potential_platforms);
 
-	// Hand off to platform-specific determination of whether these things are actually compatible and,
-	// if so, how to load them.
+	// Hand off to platform-specific determination of whether these
+	// things are actually compatible and, if so, how to load them.
 #define Append(x) if(potential_platforms & TargetPlatform::x) {\
 	auto new_targets = x::GetTargets(media, file_name, potential_platforms);\
 	std::move(new_targets.begin(), new_targets.end(), std::back_inserter(targets));\

@@ -15,6 +15,7 @@
 #include "../../Storage/Disk/Disk.hpp"
 #include "../../Storage/MassStorage/MassStorageDevice.hpp"
 #include "../../Storage/Tape/Tape.hpp"
+#include "../../Reflection/Struct.hpp"
 
 #include <memory>
 #include <string>
@@ -23,8 +24,10 @@
 namespace Analyser {
 namespace Static {
 
+struct State;
+
 /*!
-	A list of disks, tapes and cartridges.
+	A list of disks, tapes and cartridges, and possibly a state snapshot.
 */
 struct Media {
 	std::vector<std::shared_ptr<Storage::Disk::Disk>> disks;
@@ -48,12 +51,15 @@ struct Media {
 };
 
 /*!
-	A list of disks, tapes and cartridges plus information about the machine to which to attach them and its configuration,
-	and instructions on how to launch the software attached, plus a measure of confidence in this target's correctness.
+	Describes a machine and possibly its state; conventionally subclassed to add other machine-specific configuration fields and any
+	necessary instructions on how to launch any software provided, plus a measure of confidence in this target's correctness.
 */
 struct Target {
 	Target(Machine machine) : machine(machine) {}
 	virtual ~Target() {}
+
+	// This field is entirely optional.
+	std::shared_ptr<Reflection::Struct> state;
 
 	Machine machine;
 	Media media;
