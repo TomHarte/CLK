@@ -12,12 +12,15 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
+#include "../../../Reflection/Struct.hpp"
+
 #include <algorithm>
 
 namespace Sinclair {
 namespace ZXSpectrum {
+namespace Video {
 
-enum class VideoTiming {
+enum class Timing {
 	FortyEightK,
 	OneTwoEightK,
 	Plus3,
@@ -47,7 +50,7 @@ enum class VideoTiming {
 
 */
 
-template <VideoTiming timing> class Video {
+template <Timing timing> class Video {
 	private:
 		struct Timings {
 			// Number of cycles per line. Will be 224 or 228.
@@ -78,17 +81,17 @@ template <VideoTiming timing> class Video {
 		};
 
 		static constexpr Timings get_timings() {
-			if constexpr (timing == VideoTiming::Plus3) {
+			if constexpr (timing == Timing::Plus3) {
 				constexpr int delays[] = {1, 0, 7, 6, 5, 4, 3, 2};
 				return Timings(228, 311, 6, 129, 14361, delays);
 			}
 
-			if constexpr (timing == VideoTiming::OneTwoEightK) {
+			if constexpr (timing == Timing::OneTwoEightK) {
 				constexpr int delays[] = {6, 5, 4, 3, 2, 1, 0, 0};
 				return Timings(228, 311, 4, 128, 14361, delays);
 			}
 
-			if constexpr (timing == VideoTiming::FortyEightK) {
+			if constexpr (timing == Timing::FortyEightK) {
 				constexpr int delays[] = {6, 5, 4, 3, 2, 1, 0, 0};
 				return Timings(224, 312, 4, 128, 14335, delays);
 			}
@@ -103,7 +106,7 @@ template <VideoTiming timing> class Video {
 
 			constexpr int sync_line = (timings.interrupt_time / timings.cycles_per_line) + 1;
 
-			constexpr int sync_position = (timing == VideoTiming::FortyEightK) ? 164 * 2 : 166 * 2;
+			constexpr int sync_position = (timing == Timing::FortyEightK) ? 164 * 2 : 166 * 2;
 			constexpr int sync_length = 17 * 2;
 			constexpr int burst_position = sync_position + 40;
 			constexpr int burst_length = 17;
@@ -220,7 +223,7 @@ template <VideoTiming timing> class Video {
 					if(offset >= burst_position && offset < burst_position+burst_length && end_offset > offset) {
 						const int burst_duration = std::min(burst_position + burst_length, end_offset) - offset;
 
-						if constexpr (timing >= VideoTiming::OneTwoEightK) {
+						if constexpr (timing >= Timing::OneTwoEightK) {
 							crt_.output_colour_burst(burst_duration, 116, is_alternate_line_);
 							// The colour burst phase above is an empirical guess. I need to research further.
 						} else {
@@ -248,7 +251,7 @@ template <VideoTiming timing> class Video {
 		}
 
 		static constexpr int half_cycles_per_line() {
-			if constexpr (timing == VideoTiming::FortyEightK) {
+			if constexpr (timing == Timing::FortyEightK) {
 				// TODO: determine real figure here, if one exists.
 				// The source I'm looking at now suggests that the theoretical
 				// ideal of 224*2 ignores the real-life effects of separate
@@ -328,7 +331,7 @@ template <VideoTiming timing> class Video {
 		*/
 		uint8_t get_floating_value() const {
 			constexpr auto timings = get_timings();
-			const uint8_t out_of_bounds = (timing == VideoTiming::Plus3) ? last_contended_access_ : 0xff;
+			const uint8_t out_of_bounds = (timing == Timing::Plus3) ? last_contended_access_ : 0xff;
 
 			const int line = time_into_frame_ / timings.cycles_per_line;
 			if(line >= 192) {
@@ -342,7 +345,7 @@ template <VideoTiming timing> class Video {
 
 			// The +2a and +3 always return the low bit as set.
 			const uint8_t value = last_fetches_[(time_into_line >> 1) & 3];
-			if constexpr (timing == VideoTiming::Plus3) {
+			if constexpr (timing == Timing::Plus3) {
 				return value | 1;
 			}
 			return value;
@@ -354,7 +357,7 @@ template <VideoTiming timing> class Video {
 			bus is accessed when the gate array isn't currently reading.
 		*/
 		void set_last_contended_area_access([[maybe_unused]] uint8_t value) {
-			if constexpr (timing == VideoTiming::Plus3) {
+			if constexpr (timing == Timing::Plus3) {
 				last_contended_access_ = value | 1;
 			}
 		}
@@ -408,6 +411,17 @@ template <VideoTiming timing> class Video {
 #undef RGB
 };
 
+struct State: public Reflection::StructImpl<State> {
+	uint8_t border_colour;
+
+	State() {
+		if(needs_declare()) {
+			DeclareField(border_colour);
+		}
+	}
+};
+
+}
 }
 }
 

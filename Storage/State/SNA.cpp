@@ -64,8 +64,7 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name
 	state->z80.registers.interrupt_mode = file.get8();
 
 	//	1A	border colour
-	const uint8_t border_colour = file.get8();
-	(void)border_colour;	// TODO.
+	state->video.border_colour = file.get8();
 
 	//	1B–	48kb RAM contents
 	state->ram = file.read(48*1024);

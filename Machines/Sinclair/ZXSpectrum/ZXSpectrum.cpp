@@ -775,10 +775,10 @@ template<Model model> class ConcreteMachine:
 		// MARK: - Video.
 		using VideoType =
 			std::conditional_t<
-				model <= Model::FortyEightK, Video<VideoTiming::FortyEightK>,
+				model <= Model::FortyEightK, Video::Video<Video::Timing::FortyEightK>,
 				std::conditional_t<
-					model <= Model::Plus2, Video<VideoTiming::OneTwoEightK>,
-					Video<VideoTiming::Plus3>
+					model <= Model::Plus2, Video::Video<Video::Timing::OneTwoEightK>,
+					Video::Video<Video::Timing::Plus3>
 				>
 			>;
 		JustInTimeActor<VideoType> video_;
