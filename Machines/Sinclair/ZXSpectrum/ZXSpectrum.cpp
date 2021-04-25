@@ -127,6 +127,7 @@ template<Model model> class ConcreteMachine:
 			if(target.state) {
 				const auto state = static_cast<State *>(target.state.get());
 				state->z80.apply(z80_);
+				state->video.apply(*video_.last_valid());
 
 				// If this is a 48k or 16k machine, remap source data from its original
 				// linear form to whatever the banks end up being; otherwise copy as is.
@@ -138,8 +139,6 @@ template<Model model> class ConcreteMachine:
 				} else {
 					memcpy(ram_.data(), state->ram.data(), std::min(ram_.size(), state->ram.size()));
 				}
-
-				LOG("TODO: apply rest of state");
 			}
 		}
 

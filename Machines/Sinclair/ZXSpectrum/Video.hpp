@@ -401,6 +401,8 @@ template <Timing timing> class Video {
 		uint8_t last_fetches_[4] = {0xff, 0xff, 0xff, 0xff};
 		uint8_t last_contended_access_ = 0xff;
 
+		friend struct State;
+
 #define RGB(r, g, b)	(r << 4) | (g << 2) | b
 		static constexpr uint8_t palette[] = {
 			RGB(0, 0, 0),	RGB(0, 0, 2),	RGB(2, 0, 0),	RGB(2, 0, 2),
@@ -412,12 +414,28 @@ template <Timing timing> class Video {
 };
 
 struct State: public Reflection::StructImpl<State> {
-	uint8_t border_colour;
+	uint8_t border_colour = 0;
+	int time_into_frame = 0;
+	bool flash = 0;
+	int flash_counter = 0;
+	bool is_alternate_line = false;
 
 	State() {
 		if(needs_declare()) {
 			DeclareField(border_colour);
+			DeclareField(time_into_frame);
+			DeclareField(flash);
+			DeclareField(flash_counter);
+			DeclareField(is_alternate_line);
 		}
+	}
+
+	template <typename Video> void apply(Video &target) {
+		target.set_border_colour(border_colour);
+		target.time_into_frame_ = time_into_frame;
+		target.flash_mask_ = flash ? 0xff : 0x00;
+		target.flash_counter_ = flash_counter;
+		target.is_alternate_line_ = is_alternate_line;
 	}
 };
 
