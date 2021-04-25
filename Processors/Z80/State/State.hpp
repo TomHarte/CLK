@@ -60,25 +60,25 @@ struct State: public Reflection::StructImpl<State> {
 		obviously doesn't.
 	*/
 	struct ExecutionState: public Reflection::StructImpl<ExecutionState> {
-		bool is_halted;
+		bool is_halted = false;
 
-		uint8_t requests;
-		uint8_t last_requests;
-		uint8_t temp8;
-		uint8_t operation;
-		uint16_t temp16;
-		unsigned int flag_adjustment_history;
-		uint16_t pc_increment;
-		uint16_t refresh_address;
+		uint8_t requests = 0;
+		uint8_t last_requests = 0;
+		uint8_t temp8 = 0;
+		uint8_t operation = 0;
+		uint16_t temp16 = 0;
+		unsigned int flag_adjustment_history = 0;
+		uint16_t pc_increment = 1;
+		uint16_t refresh_address = 0;
 
 		ReflectableEnum(Phase,
 			UntakenConditionalCall, Reset, IRQMode0, IRQMode1, IRQMode2,
 			NMI, FetchDecode, Operation
 		);
 
-		Phase phase;
-		int half_cycles_into_step;
-		int steps_into_phase;
+		Phase phase = Phase::FetchDecode;
+		int half_cycles_into_step = 0;
+		int steps_into_phase = 0;
 		uint16_t instruction_page = 0;
 
 		ExecutionState();
