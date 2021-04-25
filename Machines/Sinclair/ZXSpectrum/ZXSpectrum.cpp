@@ -132,9 +132,9 @@ template<Model model> class ConcreteMachine:
 				// If this is a 48k or 16k machine, remap source data from its original
 				// linear form to whatever the banks end up being; otherwise copy as is.
 				if(model <= Model::FortyEightK) {
-					for(size_t c = 0; c < 48*1024 && c < state->ram.size(); c++) {
-						const auto address = c + 0x4000;
-						write_pointers_[address >> 14][address] = state->ram[c];
+					const size_t num_banks = std::min(size_t(48*1024), state->ram.size()) >> 14;
+					for(size_t c = 0; c < num_banks; c++) {
+						memcpy(&write_pointers_[c + 1][(c+1) * 0x4000], &state->ram[c * 0x4000], 0x4000);
 					}
 				} else {
 					memcpy(ram_.data(), state->ram.data(), std::min(ram_.size(), state->ram.size()));
