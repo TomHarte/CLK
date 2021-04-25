@@ -127,7 +127,17 @@ template<Model model> class ConcreteMachine:
 			if(target.state) {
 				const auto state = static_cast<State *>(target.state.get());
 				state->z80.apply(z80_);
-				memcpy(ram_.data(), state->ram.data(), std::min(ram_.size(), state->ram.size()));
+
+				// If this is a 48k or 16k machine, remap source data from its original
+				// linear form to whatever the banks end up being; otherwise copy as is.
+				if(model <= Model::FortyEightK) {
+					for(size_t c = 0; c < 48*1024 && c < state->ram.size(); c++) {
+						const auto address = c + 0x4000;
+						write_pointers_[address >> 14][address] = state->ram[c];
+					}
+				} else {
+					memcpy(ram_.data(), state->ram.data(), std::min(ram_.size(), state->ram.size()));
+				}
 
 				LOG("TODO: apply rest of state");
 			}
