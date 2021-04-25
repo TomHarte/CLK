@@ -18,10 +18,12 @@ namespace ZXSpectrum {
 
 struct State: public Reflection::StructImpl<State> {
 	CPU::Z80::State z80;
+	std::vector<uint8_t> ram;
 
 	State() {
 		if(needs_declare()) {
 			DeclareField(z80);
+			DeclareField(ram);
 		}
 	}
 };

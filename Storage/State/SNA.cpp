@@ -63,9 +63,19 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name
 	state->z80.registers.stack_pointer = file.get16le();
 	state->z80.registers.interrupt_mode = file.get8();
 
-	// TODO: border colour, RAM contents, then pop the program counter.
 	//	1A	border colour
+	const uint8_t border_colour = file.get8();
+	(void)border_colour;	// TODO.
+
 	//	1B–	48kb RAM contents
+	state->ram = file.read(48*1024);
+
+	// Establish program counter.
+	state->z80.registers.program_counter = state->ram[state->z80.registers.stack_pointer];
+	state->ram[state->z80.registers.stack_pointer] = 0;
+	state->z80.registers.program_counter |= state->ram[state->z80.registers.stack_pointer+1] << 8;
+	state->ram[state->z80.registers.stack_pointer+1] = 0;
+	state->z80.registers.stack_pointer += 2;
 
 	return result;
 }

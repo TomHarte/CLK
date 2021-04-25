@@ -127,6 +127,7 @@ template<Model model> class ConcreteMachine:
 			if(target.state) {
 				const auto state = static_cast<State *>(target.state.get());
 				state->z80.apply(z80_);
+				memcpy(ram_.data(), state->ram.data(), std::min(ram_.size(), state->ram.size()));
 
 				LOG("TODO: apply rest of state");
 			}
