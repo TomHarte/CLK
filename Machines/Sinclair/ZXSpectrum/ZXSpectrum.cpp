@@ -224,6 +224,10 @@ template<Model model> class ConcreteMachine:
 			video_->set_display_type(display_type);
 		}
 
+		Outputs::Display::DisplayType get_display_type() const override {
+			return video_->get_display_type();
+		}
+
 		// MARK: - BusHandler.
 
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
@@ -643,6 +647,7 @@ template<Model model> class ConcreteMachine:
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);	// OptionsType is arbitrary, but not optional.
 			options->automatic_tape_motor_control = use_automatic_tape_motor_control_;
 			options->quickload = allow_fast_tape_hack_;
+			options->output = get_video_signal_configurable();
 			return options;
 		}
 

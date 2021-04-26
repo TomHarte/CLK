@@ -390,6 +390,11 @@ template <Timing timing> class Video {
 			crt_.set_display_type(type);
 		}
 
+		/*! Gets the display type. */
+		Outputs::Display::DisplayType get_display_type() const {
+			return crt_.get_display_type();
+		}
+
 	private:
 		int time_into_frame_ = 0;
 		Outputs::CRT::CRT crt_;
