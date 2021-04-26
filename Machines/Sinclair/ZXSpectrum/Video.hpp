@@ -270,6 +270,11 @@ template <Timing timing> class Video {
 			crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 			crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 
+			// Get the CRT roughly into phase.
+			//
+			// TODO: this is coupled to an assumption about the initial CRT. Fix.
+			const auto timings = get_timings();
+			crt_.output_blank(timings.lines_per_frame*timings.cycles_per_line - timings.interrupt_time);
 		}
 
 		void set_video_source(const uint8_t *source) {
