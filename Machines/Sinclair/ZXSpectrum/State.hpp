@@ -20,13 +20,27 @@ namespace ZXSpectrum {
 struct State: public Reflection::StructImpl<State> {
 	CPU::Z80::State z80;
 	Video::State video;
+
+	// In 16kb or 48kb mode, RAM will be 16kb or 48kb and represent
+	// memory in standard linear order. In 128kb mode, RAM will be
+	// 128kb with the first 16kb representing bank 0, the next bank 1, etc.
 	std::vector<uint8_t> ram;
+
+	// Meaningful for 128kb machines only.
+	uint8_t last_7ffd = 0;
+	uint8_t last_fffd = 0;
+
+	// Meaningful for the +2a and +3 only.
+	uint8_t last_1ffd = 0;
 
 	State() {
 		if(needs_declare()) {
 			DeclareField(z80);
 			DeclareField(video);
 			DeclareField(ram);
+			DeclareField(last_7ffd);
+			DeclareField(last_fffd);
+			DeclareField(last_1ffd);
 		}
 	}
 };

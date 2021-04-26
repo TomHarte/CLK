@@ -28,20 +28,25 @@ std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is
 	while(cursor != size) {
 		const uint8_t next = file.get8();
 
-		if(next != 0xed) {
+		// If the next byte definitely doesn't, or can't,
+		// start an ED ED sequence then just take it.
+		if(next != 0xed || cursor == size - 1) {
 			result[cursor] = next;
 			++cursor;
 			continue;
 		}
 
+		// Grab the next byte. If it's not ED then write
+		// both and continue.
 		const uint8_t after = file.get8();
 		if(after != 0xed) {
 			result[cursor] = next;
-			++cursor;
-			file.seek(-1, SEEK_CUR);
+			result[cursor+1] = after;
+			cursor += 2;
 			continue;
 		}
 
+		// An ED ED has begun, so grab the RLE sequence.
 		const uint8_t count = file.get8();
 		const uint8_t value = file.get8();
 
@@ -112,7 +117,8 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	}
 
 	state->z80.registers.program_counter = file.get16le();
-	switch(file.get8()) {
+	const uint8_t model = file.get8();
+	switch(model) {
 		default: return nullptr;
 		case 0:		result->model = Target::Model::FortyEightK;		break;
 		case 3:		result->model = Target::Model::OneTwoEightK;	break;
@@ -122,7 +128,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 		case 13:	result->model = Target::Model::Plus2a;			break;
 	}
 
-	const uint8_t last7ffd = file.get8();	(void)last7ffd;	// TODO
+	state->last_7ffd = file.get8();
 
 	file.seek(1, SEEK_CUR);
 	if(file.get8() & 0x80) {
@@ -135,7 +141,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 		}
 	}
 
-	const uint8_t lastfffd = file.get8();	(void)lastfffd;	// TODO
+	state->last_fffd = file.get8();
 	file.seek(16, SEEK_CUR);	// Sound chip registers: TODO.
 
 	if(bonus_header_size != 23) {
@@ -165,7 +171,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 		file.seek(3, SEEK_CUR);
 
 		if(bonus_header_size == 55) {
-			const uint8_t last1ffd = file.get8();	(void)last1ffd;	// TODO
+			state->last_1ffd = file.get8();
 		}
 	}
 

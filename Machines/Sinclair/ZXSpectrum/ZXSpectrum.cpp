@@ -138,6 +138,12 @@ template<Model model> class ConcreteMachine:
 					}
 				} else {
 					memcpy(ram_.data(), state->ram.data(), std::min(ram_.size(), state->ram.size()));
+
+					port1ffd_ = state->last_1ffd;
+					port7ffd_ = state->last_7ffd;
+					update_memory_map();
+
+					GI::AY38910::Utility::select_register(ay_, state->last_fffd);
 				}
 			}
 		}
@@ -400,10 +406,6 @@ template<Model model> class ConcreteMachine:
 
 						// Set the proper video base pointer.
 						set_video_address();
-
-						// Potentially lock paging, _after_ the current
-						// port values have taken effect.
-						disable_paging_ |= *cycle.value & 0x20;
 					}
 
 					// Test for +2a/+3 paging (i.e. port 1ffd).
@@ -729,6 +731,10 @@ template<Model model> class ConcreteMachine:
 				set_memory(2, 2);
 				set_memory(3, port7ffd_ & 7);
 			}
+
+			// Potentially lock paging, _after_ the current
+			// port values have taken effect.
+			disable_paging_ = port7ffd_ & 0x20;
 		}
 
 		void set_memory(int bank, uint8_t source) {
