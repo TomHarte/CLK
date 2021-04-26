@@ -19,10 +19,10 @@ State::State(const ProcessorBase &src): State() {
 	registers.bc = src.bc_.full;
 	registers.de = src.de_.full;
 	registers.hl = src.hl_.full;
-	registers.afDash = src.afDash_.full;
-	registers.bcDash = src.bcDash_.full;
-	registers.deDash = src.deDash_.full;
-	registers.hlDash = src.hlDash_.full;
+	registers.af_dash = src.af_dash_.full;
+	registers.bc_dash = src.bc_dash_.full;
+	registers.de_dash = src.de_dash_.full;
+	registers.hl_dash = src.hl_dash_.full;
 	registers.ix = src.ix_.full;
 	registers.iy = src.iy_.full;
 	registers.ir = src.ir_.full;
@@ -108,10 +108,10 @@ void State::apply(ProcessorBase &target) {
 	target.bc_.full = registers.bc;
 	target.de_.full = registers.de;
 	target.hl_.full = registers.hl;
-	target.afDash_.full = registers.afDash;
-	target.bcDash_.full = registers.bcDash;
-	target.deDash_.full = registers.deDash;
-	target.hlDash_.full = registers.hlDash;
+	target.af_dash_.full = registers.af_dash;
+	target.bc_dash_.full = registers.bc_dash;
+	target.de_dash_.full = registers.de_dash;
+	target.hl_dash_.full = registers.hl_dash;
 	target.ix_.full = registers.ix;
 	target.iy_.full = registers.iy;
 	target.ir_.full = registers.ir;
@@ -179,10 +179,10 @@ State::Registers::Registers() {
 		DeclareField(bc);
 		DeclareField(de);
 		DeclareField(hl);
-		DeclareField(afDash);
-		DeclareField(bcDash);
-		DeclareField(deDash);
-		DeclareField(hlDash);
+		DeclareField(af_dash);	// TODO: is there any disadvantage to declaring these for reflective
+		DeclareField(bc_dash);	// purposes as AF', BC', etc?
+		DeclareField(de_dash);
+		DeclareField(hl_dash);
 		DeclareField(ix);
 		DeclareField(iy);
 		DeclareField(ir);

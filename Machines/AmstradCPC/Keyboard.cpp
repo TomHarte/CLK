@@ -151,7 +151,7 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 #undef SHIFT
 #undef X
 
-	return table_lookup_sequence_for_character(key_sequences, sizeof(key_sequences), character);
+	return table_lookup_sequence_for_character(key_sequences, character);
 }
 
 bool CharacterMapper::needs_pause_after_key(uint16_t key) const {

@@ -275,13 +275,13 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 
 	switch(machine_) {
 		case Machine::ZX80:
-		return table_lookup_sequence_for_character(zx80_key_sequences, sizeof(zx80_key_sequences), character);
+		return table_lookup_sequence_for_character(zx80_key_sequences, character);
 
 		case Machine::ZX81:
-		return table_lookup_sequence_for_character(zx81_key_sequences, sizeof(zx81_key_sequences), character);
+		return table_lookup_sequence_for_character(zx81_key_sequences, character);
 
 		case Machine::ZXSpectrum:
-		return table_lookup_sequence_for_character(spectrum_key_sequences, sizeof(zx81_key_sequences), character);
+		return table_lookup_sequence_for_character(spectrum_key_sequences, character);
 	}
 }
 

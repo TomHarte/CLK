@@ -12,6 +12,8 @@
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 
+#include "../../Reflection/Struct.hpp"
+
 namespace GI {
 namespace AY38910 {
 
@@ -162,6 +164,8 @@ template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource
 		uint8_t a_left_ = 255, a_right_ = 255;
 		uint8_t b_left_ = 255, b_right_ = 255;
 		uint8_t c_left_ = 255, c_right_ = 255;
+
+		friend struct State;
 };
 
 /*!
@@ -190,6 +194,26 @@ struct Utility {
 		return result;
 	}
 
+};
+
+struct State: public Reflection::StructImpl<State> {
+	uint8_t registers[16]{};
+
+	// TODO: all audio-production thread state.
+
+	State() {
+		if(needs_declare()) {
+			DeclareField(registers);
+		}
+	}
+
+	template <typename AY> void apply(AY &target) {
+		// Establish emulator-thread state
+		for(uint8_t c = 0; c < 16; c++) {
+			target.select_register(c);
+			target.set_register_value(registers[c]);
+		}
+	}
 };
 
 }

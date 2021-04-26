@@ -8,9 +8,9 @@
 
 #include "ZXSpectrum.hpp"
 
+#include "State.hpp"
 #include "Video.hpp"
-
-#define LOG_PREFIX "[Spectrum] "
+#include "../Keyboard/Keyboard.hpp"
 
 #include "../../../Activity/Source.hpp"
 #include "../../MachineTypes.hpp"
@@ -24,7 +24,9 @@
 // just grab the CPC's version of an FDC.
 #include "../../AmstradCPC/FDC.hpp"
 
+#define LOG_PREFIX "[Spectrum] "
 #include "../../../Outputs/Log.hpp"
+
 #include "../../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
@@ -38,10 +40,6 @@
 #include "../../Utility/Typer.hpp"
 
 #include "../../../ClockReceiver/JustInTime.hpp"
-
-#include "../../../Processors/Z80/State/State.hpp"
-
-#include "../Keyboard/Keyboard.hpp"
 
 #include <array>
 
@@ -124,6 +122,31 @@ template<Model model> class ConcreteMachine:
 				duration_to_press_enter_ = Cycles(5 * clock_rate());
 				keyboard_.set_key_state(ZX::Keyboard::KeyEnter, true);
 			}
+
+			// Install state if supplied.
+			if(target.state) {
+				const auto state = static_cast<State *>(target.state.get());
+				state->z80.apply(z80_);
+				state->video.apply(*video_.last_valid());
+				state->ay.apply(ay_);
+
+				// If this is a 48k or 16k machine, remap source data from its original
+				// linear form to whatever the banks end up being; otherwise copy as is.
+				if(model <= Model::FortyEightK) {
+					const size_t num_banks = std::min(size_t(48*1024), state->ram.size()) >> 14;
+					for(size_t c = 0; c < num_banks; c++) {
+						memcpy(&write_pointers_[c + 1][(c+1) * 0x4000], &state->ram[c * 0x4000], 0x4000);
+					}
+				} else {
+					memcpy(ram_.data(), state->ram.data(), std::min(ram_.size(), state->ram.size()));
+
+					port1ffd_ = state->last_1ffd;
+					port7ffd_ = state->last_7ffd;
+					update_memory_map();
+
+					GI::AY38910::Utility::select_register(ay_, state->last_fffd);
+				}
+			}
 		}
 
 		~ConcreteMachine() {
@@ -200,6 +223,10 @@ template<Model model> class ConcreteMachine:
 
 		void set_display_type(Outputs::Display::DisplayType display_type) override {
 			video_->set_display_type(display_type);
+		}
+
+		Outputs::Display::DisplayType get_display_type() const override {
+			return video_->get_display_type();
 		}
 
 		// MARK: - BusHandler.
@@ -384,10 +411,6 @@ template<Model model> class ConcreteMachine:
 
 						// Set the proper video base pointer.
 						set_video_address();
-
-						// Potentially lock paging, _after_ the current
-						// port values have taken effect.
-						disable_paging_ |= *cycle.value & 0x20;
 					}
 
 					// Test for +2a/+3 paging (i.e. port 1ffd).
@@ -625,6 +648,7 @@ template<Model model> class ConcreteMachine:
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);	// OptionsType is arbitrary, but not optional.
 			options->automatic_tape_motor_control = use_automatic_tape_motor_control_;
 			options->quickload = allow_fast_tape_hack_;
+			options->output = get_video_signal_configurable();
 			return options;
 		}
 
@@ -713,6 +737,10 @@ template<Model model> class ConcreteMachine:
 				set_memory(2, 2);
 				set_memory(3, port7ffd_ & 7);
 			}
+
+			// Potentially lock paging, _after_ the current
+			// port values have taken effect.
+			disable_paging_ = port7ffd_ & 0x20;
 		}
 
 		void set_memory(int bank, uint8_t source) {
@@ -758,10 +786,10 @@ template<Model model> class ConcreteMachine:
 		// MARK: - Video.
 		using VideoType =
 			std::conditional_t<
-				model <= Model::FortyEightK, Video<VideoTiming::FortyEightK>,
+				model <= Model::FortyEightK, Video::Video<Video::Timing::FortyEightK>,
 				std::conditional_t<
-					model <= Model::Plus2, Video<VideoTiming::OneTwoEightK>,
-					Video<VideoTiming::Plus3>
+					model <= Model::Plus2, Video::Video<Video::Timing::OneTwoEightK>,
+					Video::Video<Video::Timing::Plus3>
 				>
 			>;
 		JustInTimeActor<VideoType> video_;

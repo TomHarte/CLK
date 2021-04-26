@@ -44,11 +44,15 @@ class CharacterMapper {
 		typedef uint16_t KeySequence[16];
 
 		/*!
-			Provided in the base class as a convenience: given the lookup table of key sequences @c sequences,
-			with @c length entries, returns the sequence for character @c character if it exists; otherwise
-			returns @c nullptr.
+			Provided in the base class as a convenience: given the C array of key sequences @c sequences,
+			returns the sequence for character @c character if it exists; otherwise returns @c nullptr.
 		*/
-		const uint16_t *table_lookup_sequence_for_character(const KeySequence *sequences, std::size_t length, char character) const;
+		template <typename Collection> const uint16_t *table_lookup_sequence_for_character(const Collection &sequences, char character) const {
+			std::size_t ucharacter = size_t((unsigned char)character);
+			if(ucharacter >= sizeof(sequences) / sizeof(KeySequence)) return nullptr;
+			if(sequences[ucharacter][0] == MachineTypes::MappedKeyboardMachine::KeyNotMapped) return nullptr;
+			return sequences[ucharacter];
+		}
 };
 
 /*!

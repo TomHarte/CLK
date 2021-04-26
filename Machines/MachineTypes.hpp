@@ -20,6 +20,7 @@
 #include "MediaTarget.hpp"
 #include "MouseMachine.hpp"
 #include "ScanProducer.hpp"
+#include "StateProducer.hpp"
 #include "TimedMachine.hpp"
 
 #endif /* MachineTypes_h */

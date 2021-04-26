@@ -129,6 +129,7 @@ SOURCES += \
 	$$SRC/Storage/MassStorage/Encodings/*.cpp \
 	$$SRC/Storage/MassStorage/Formats/*.cpp \
 	$$SRC/Storage/MassStorage/SCSI/*.cpp \
+	$$SRC/Storage/State/*.cpp \
 	$$SRC/Storage/Tape/*.cpp \
 	$$SRC/Storage/Tape/Formats/*.cpp \
 	$$SRC/Storage/Tape/Parsers/*.cpp \
@@ -269,6 +270,7 @@ HEADERS += \
 	$$SRC/Storage/MassStorage/Encodings/*.hpp \
 	$$SRC/Storage/MassStorage/Formats/*.hpp \
 	$$SRC/Storage/MassStorage/SCSI/*.hpp \
+	$$SRC/Storage/State/*.hpp \
 	$$SRC/Storage/Tape/*.hpp \
 	$$SRC/Storage/Tape/Formats/*.hpp \
 	$$SRC/Storage/Tape/Parsers/*.hpp \
