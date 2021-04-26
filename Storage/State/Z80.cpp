@@ -142,7 +142,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 	}
 
 	state->last_fffd = file.get8();
-	file.seek(16, SEEK_CUR);	// Sound chip registers: TODO.
+	file.read(state->ay.registers, 16);
 
 	if(bonus_header_size != 23) {
 		// More Z80, the emulator, lack of encapsulation to deal with here.

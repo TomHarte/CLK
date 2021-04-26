@@ -128,6 +128,7 @@ template<Model model> class ConcreteMachine:
 				const auto state = static_cast<State *>(target.state.get());
 				state->z80.apply(z80_);
 				state->video.apply(*video_.last_valid());
+				state->ay.apply(ay_);
 
 				// If this is a 48k or 16k machine, remap source data from its original
 				// linear form to whatever the banks end up being; otherwise copy as is.
