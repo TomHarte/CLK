@@ -40,8 +40,8 @@ enum Type: IntType {
 	Acorn			=	AcornAtom | AcornElectron | BBCMaster | BBCModelA | BBCModelB,
 	ZX8081			=	ZX80 | ZX81,
 	AllCartridge	=	Atari2600 | AcornElectron | Coleco | MSX,
-	AllDisk			=	Acorn | AmstradCPC | Commodore | Oric | MSX,	// TODO: | AtariST
-	AllTape			=	Acorn | AmstradCPC | Commodore | Oric | ZX80 | ZX81 | MSX | ZXSpectrum,
+	AllDisk			=	Acorn | AmstradCPC | Commodore | Oric | MSX | ZXSpectrum | Macintosh | AtariST | DiskII,
+	AllTape			=	Acorn | AmstradCPC | Commodore | Oric | ZX8081 | MSX | ZXSpectrum,
 };
 
 class TypeDistinguisher {
