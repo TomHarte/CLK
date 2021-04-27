@@ -54,7 +54,7 @@ template <Timing timing> class Video {
 	private:
 		struct Timings {
 			// Number of cycles per line. Will be 224 or 228.
-			int cycles_per_line;
+			int half_cycles_per_line;
 			// Number of lines comprising a whole frame. Will be 311 or 312.
 			int lines_per_frame;
 
@@ -71,7 +71,7 @@ template <Timing timing> class Video {
 			int delays[8];
 
 			constexpr Timings(int cycles_per_line, int lines_per_frame, int contention_leadin, int contention_duration, int interrupt_offset, const int *delays) noexcept :
-				cycles_per_line(cycles_per_line * 2),
+				half_cycles_per_line(cycles_per_line * 2),
 				lines_per_frame(lines_per_frame),
 				contention_leadin(contention_leadin * 2),
 				contention_duration(contention_duration * 2),
@@ -104,7 +104,7 @@ template <Timing timing> class Video {
 		void run_for(HalfCycles duration) {
 			constexpr auto timings = get_timings();
 
-			constexpr int sync_line = (timings.interrupt_time / timings.cycles_per_line) + 1;
+			constexpr int sync_line = (timings.interrupt_time / timings.half_cycles_per_line) + 1;
 
 			constexpr int sync_position = (timing == Timing::FortyEightK) ? 164 * 2 : 166 * 2;
 			constexpr int sync_length = 17 * 2;
@@ -113,9 +113,9 @@ template <Timing timing> class Video {
 
 			int cycles_remaining = duration.as<int>();
 			while(cycles_remaining) {
-				int line = time_into_frame_ / timings.cycles_per_line;
-				int offset = time_into_frame_ % timings.cycles_per_line;
-				const int cycles_this_line = std::min(cycles_remaining, timings.cycles_per_line - offset);
+				int line = time_into_frame_ / timings.half_cycles_per_line;
+				int offset = time_into_frame_ % timings.half_cycles_per_line;
+				const int cycles_this_line = std::min(cycles_remaining, timings.half_cycles_per_line - offset);
 				const int end_offset = offset + cycles_this_line;
 
 				if(!offset) {
@@ -239,7 +239,7 @@ template <Timing timing> class Video {
 				}
 
 				cycles_remaining -= cycles_this_line;
-				time_into_frame_ = (time_into_frame_ + cycles_this_line) % (timings.cycles_per_line * timings.lines_per_frame);
+				time_into_frame_ = (time_into_frame_ + cycles_this_line) % (timings.half_cycles_per_line * timings.lines_per_frame);
 			}
 		}
 
@@ -264,7 +264,7 @@ template <Timing timing> class Video {
 
 		static constexpr HalfCycles frame_duration() {
 			const auto timings = get_timings();
-			return HalfCycles(timings.cycles_per_line * timings.lines_per_frame);
+			return HalfCycles(timings.half_cycles_per_line * timings.lines_per_frame);
 		}
 
 		HalfCycles time_since_interrupt() {
@@ -307,7 +307,7 @@ template <Timing timing> class Video {
 			//
 			// TODO: this is coupled to an assumption about the initial CRT. Fix.
 			const auto timings = get_timings();
-			crt_.output_blank(timings.lines_per_frame*timings.cycles_per_line - timings.interrupt_time);
+			crt_.output_blank(timings.lines_per_frame*timings.half_cycles_per_line - timings.interrupt_time);
 		}
 
 		void set_video_source(const uint8_t *source) {
@@ -331,7 +331,7 @@ template <Timing timing> class Video {
 			}
 
 			// If not, it'll be in the next batch.
-			return timings.interrupt_time + timings.cycles_per_line * timings.lines_per_frame - time_into_frame_;
+			return timings.interrupt_time + timings.half_cycles_per_line * timings.lines_per_frame - time_into_frame_;
 		}
 
 		/*!
@@ -348,15 +348,15 @@ template <Timing timing> class Video {
 		*/
 		HalfCycles access_delay(HalfCycles offset) const {
 			constexpr auto timings = get_timings();
-			const int delay_time = (time_into_frame_ + offset.as<int>() + timings.contention_leadin) % (timings.cycles_per_line * timings.lines_per_frame);
+			const int delay_time = (time_into_frame_ + offset.as<int>() + timings.contention_leadin) % (timings.half_cycles_per_line * timings.lines_per_frame);
 			assert(!(delay_time&1));
 
 			// Check for a time within the no-contention window.
-			if(delay_time >= (191*timings.cycles_per_line + timings.contention_duration)) {
+			if(delay_time >= (191*timings.half_cycles_per_line + timings.contention_duration)) {
 				return 0;
 			}
 
-			const int time_into_line = delay_time % timings.cycles_per_line;
+			const int time_into_line = delay_time % timings.half_cycles_per_line;
 			if(time_into_line >= timings.contention_duration) {
 				return 0;
 			}
@@ -371,12 +371,12 @@ template <Timing timing> class Video {
 			constexpr auto timings = get_timings();
 			const uint8_t out_of_bounds = (timing == Timing::Plus3) ? last_contended_access_ : 0xff;
 
-			const int line = time_into_frame_ / timings.cycles_per_line;
+			const int line = time_into_frame_ / timings.half_cycles_per_line;
 			if(line >= 192) {
 				return out_of_bounds;
 			}
 
-			const int time_into_line = time_into_frame_ % timings.cycles_per_line;
+			const int time_into_line = time_into_frame_ % timings.half_cycles_per_line;
 			if(time_into_line >= 256 || (time_into_line&8)) {
 				return out_of_bounds;
 			}

@@ -148,18 +148,16 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 		// More Z80, the emulator, lack of encapsulation to deal with here.
 		const uint16_t low_t_state = file.get16le();
 		const uint16_t high_t_state = file.get8();
-		int time_since_interrupt;
 		switch(result->model) {
 			case Target::Model::SixteenK:
 			case Target::Model::FortyEightK:
-				time_since_interrupt = (17471 - low_t_state) + (high_t_state * 17472);
+				state->video.half_cycles_since_interrupt = ((17471 - low_t_state) + (high_t_state * 17472)) * 2;
 			break;
 
 			default:
-				time_since_interrupt = (17726 - low_t_state) + (high_t_state * 17727);
+				state->video.half_cycles_since_interrupt = ((17726 - low_t_state) + (high_t_state * 17727)) * 2;
 			break;
 		}
-		// TODO: map time_since_interrupt to time_into_frame, somehow.
 
 		// Skip: Spectator flag, MGT, Multiface and other ROM flags.
 		file.seek(5, SEEK_CUR);
