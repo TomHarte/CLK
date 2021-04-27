@@ -30,7 +30,6 @@ struct State: public Reflection::StructImpl<State> {
 
 	// Meaningful for 128kb machines only.
 	uint8_t last_7ffd = 0;
-	uint8_t last_fffd = 0;
 	GI::AY38910::State ay;
 
 	// Meaningful for the +2a and +3 only.
@@ -42,7 +41,6 @@ struct State: public Reflection::StructImpl<State> {
 			DeclareField(video);
 			DeclareField(ram);
 			DeclareField(last_7ffd);
-			DeclareField(last_fffd);
 			DeclareField(last_1ffd);
 			DeclareField(ay);
 		}

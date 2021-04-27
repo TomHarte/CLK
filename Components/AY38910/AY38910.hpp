@@ -198,12 +198,14 @@ struct Utility {
 
 struct State: public Reflection::StructImpl<State> {
 	uint8_t registers[16]{};
+	uint8_t selected_register = 0;
 
 	// TODO: all audio-production thread state.
 
 	State() {
 		if(needs_declare()) {
 			DeclareField(registers);
+			DeclareField(selected_register);
 		}
 	}
 
@@ -213,6 +215,7 @@ struct State: public Reflection::StructImpl<State> {
 			target.select_register(c);
 			target.set_register_value(registers[c]);
 		}
+		target.select_register(selected_register);
 	}
 };
 

@@ -173,6 +173,8 @@
 		4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A53911D117D36003C6002 /* CSAudioQueue.m */; };
 		4B2B3A4B1F9B8FA70062DABF /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B3A471F9B8FA70062DABF /* Typer.cpp */; };
 		4B2B3A4C1F9B8FA70062DABF /* MemoryFuzzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B3A481F9B8FA70062DABF /* MemoryFuzzer.cpp */; };
+		4B2B946526377C0200E7097C /* SZX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B946326377C0200E7097C /* SZX.cpp */; };
+		4B2B946626377C0200E7097C /* SZX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B946326377C0200E7097C /* SZX.cpp */; };
 		4B2BF19123DCC6A200C3AD60 /* BD500.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03523CEB86000B98D9E /* BD500.cpp */; };
 		4B2BF19223DCC6A800C3AD60 /* STX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03323C58B1E00B98D9E /* STX.cpp */; };
 		4B2BF19623E10F0100C3AD60 /* CSHighPrecisionTimer.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BF19523E10F0000C3AD60 /* CSHighPrecisionTimer.m */; };
@@ -1142,6 +1144,8 @@
 		4B2B3A481F9B8FA70062DABF /* MemoryFuzzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MemoryFuzzer.cpp; sourceTree = "<group>"; };
 		4B2B3A491F9B8FA70062DABF /* MemoryFuzzer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MemoryFuzzer.hpp; sourceTree = "<group>"; };
 		4B2B3A4A1F9B8FA70062DABF /* Typer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Typer.hpp; sourceTree = "<group>"; };
+		4B2B946326377C0200E7097C /* SZX.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SZX.cpp; sourceTree = "<group>"; };
+		4B2B946426377C0200E7097C /* SZX.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SZX.hpp; sourceTree = "<group>"; };
 		4B2BF19423E10F0000C3AD60 /* CSHighPrecisionTimer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSHighPrecisionTimer.h; sourceTree = "<group>"; };
 		4B2BF19523E10F0000C3AD60 /* CSHighPrecisionTimer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSHighPrecisionTimer.m; sourceTree = "<group>"; };
 		4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TapePRG.cpp; sourceTree = "<group>"; };
@@ -3263,6 +3267,8 @@
 		4B8DD3832634D37E00B3C866 /* State */ = {
 			isa = PBXGroup;
 			children = (
+				4B2B946326377C0200E7097C /* SZX.cpp */,
+				4B2B946426377C0200E7097C /* SZX.hpp */,
 				4B8DD3842634D37E00B3C866 /* SNA.cpp */,
 				4B8DD3852634D37E00B3C866 /* SNA.hpp */,
 				4B8DD39526360DDF00B3C866 /* Z80.cpp */,
@@ -5237,6 +5243,7 @@
 				4B1B58F7246CC4E8009C171E /* State.cpp in Sources */,
 				4B0ACC03237756F6008902D0 /* Line.cpp in Sources */,
 				4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */,
+				4B2B946626377C0200E7097C /* SZX.cpp in Sources */,
 				4BEDA43225B3C700000C2DBD /* Executor.cpp in Sources */,
 				4BC1317B2346DF2B00E4FF3D /* MSA.cpp in Sources */,
 				4B894533201967B4007DE474 /* 6502.cpp in Sources */,
@@ -5531,6 +5538,7 @@
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,
 				4BB307BB235001C300457D33 /* 6850.cpp in Sources */,
 				4BF437EE209D0F7E008CBD6B /* SegmentParser.cpp in Sources */,
+				4B2B946526377C0200E7097C /* SZX.cpp in Sources */,
 				4BC131762346DE9100E4FF3D /* StaticAnalyser.cpp in Sources */,
 				4B8334861F5DA3780097E338 /* 6502Storage.cpp in Sources */,
 				4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */,

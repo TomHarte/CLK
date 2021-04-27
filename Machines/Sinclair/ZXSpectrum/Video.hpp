@@ -262,6 +262,39 @@ template <Timing timing> class Video {
 			}
 		}
 
+		static constexpr HalfCycles frame_duration() {
+			const auto timings = get_timings();
+			return HalfCycles(timings.cycles_per_line * timings.lines_per_frame);
+		}
+
+		HalfCycles time_since_interrupt() {
+			const auto timings = get_timings();
+			if(time_into_frame_ >= timings.interrupt_time) {
+				return HalfCycles(time_into_frame_ - timings.interrupt_time);
+			} else {
+				return HalfCycles(time_into_frame_) + frame_duration() - HalfCycles(timings.interrupt_time);
+			}
+		}
+
+		void set_time_since_interrupt(const HalfCycles time) {
+			// Advance using run_for to ensure that all proper CRT interactions occurred.
+			const auto timings = get_timings();
+			const auto target = (time + timings.interrupt_time) % frame_duration();
+			const auto now = HalfCycles(time_into_frame_);
+
+			// Maybe this is easy?
+			if(target == now) return;
+
+			// Is the time within this frame?
+			if(time > now) {
+				run_for(target - time);
+				return;
+			}
+
+			// Then it's necessary to finish this frame and run into the next.
+			run_for(frame_duration() - now + time);
+		}
+
 	public:
 		Video() :
 			crt_(half_cycles_per_line(), 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2)
@@ -427,7 +460,7 @@ template <Timing timing> class Video {
 
 struct State: public Reflection::StructImpl<State> {
 	uint8_t border_colour = 0;
-	int time_into_frame = 0;
+	int half_cycles_since_interrupt = 0;
 	bool flash = 0;
 	int flash_counter = 0;
 	bool is_alternate_line = false;
@@ -435,7 +468,7 @@ struct State: public Reflection::StructImpl<State> {
 	State() {
 		if(needs_declare()) {
 			DeclareField(border_colour);
-			DeclareField(time_into_frame);
+			DeclareField(half_cycles_since_interrupt);
 			DeclareField(flash);
 			DeclareField(flash_counter);
 			DeclareField(is_alternate_line);
@@ -444,18 +477,18 @@ struct State: public Reflection::StructImpl<State> {
 
 	template <typename Video> State(const Video &source) : State() {
 		border_colour = source.border_byte_;
-		time_into_frame = source.time_into_frame_;
 		flash = source.flash_mask_;
 		flash_counter = source.flash_counter_;
 		is_alternate_line = source. is_alternate_line_;
+		half_cycles_since_interrupt = source.time_since_interrupt().template as<int>();
 	}
 
 	template <typename Video> void apply(Video &target) {
 		target.set_border_colour(border_colour);
-		target.time_into_frame_ = time_into_frame;
 		target.flash_mask_ = flash ? 0xff : 0x00;
 		target.flash_counter_ = flash_counter;
 		target.is_alternate_line_ = is_alternate_line;
+		target.set_time_since_interrupt(HalfCycles(half_cycles_since_interrupt));
 	}
 };
 

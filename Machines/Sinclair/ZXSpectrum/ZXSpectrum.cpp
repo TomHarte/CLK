@@ -143,8 +143,6 @@ template<Model model> class ConcreteMachine:
 					port1ffd_ = state->last_1ffd;
 					port7ffd_ = state->last_7ffd;
 					update_memory_map();
-
-					GI::AY38910::Utility::select_register(ay_, state->last_fffd);
 				}
 			}
 		}
