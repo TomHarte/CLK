@@ -59,6 +59,7 @@
 
 // State Snapshots
 #include "../../Storage/State/SNA.hpp"
+#include "../../Storage/State/SZX.hpp"
 #include "../../Storage/State/Z80.hpp"
 
 // Tapes
@@ -226,6 +227,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	}
 
 	Format("sna", SNA);
+	Format("szx", SZX);
 	Format("z80", Z80);
 
 #undef TryInsert

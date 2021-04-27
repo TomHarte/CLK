@@ -141,7 +141,7 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 		}
 	}
 
-	state->last_fffd = file.get8();
+	state->ay.selected_register = file.get8();
 	file.read(state->ay.registers, 16);
 
 	if(bonus_header_size != 23) {
