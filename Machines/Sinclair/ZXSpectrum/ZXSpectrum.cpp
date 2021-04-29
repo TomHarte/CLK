@@ -43,6 +43,74 @@
 
 #include <array>
 
+namespace {
+
+/*!
+	Provides a simultaneous Kempston and Interface 2-style joystick.
+*/
+class Joystick: public Inputs::ConcreteJoystick {
+	public:
+		Joystick() :
+			ConcreteJoystick({
+				Input(Input::Up),
+				Input(Input::Down),
+				Input(Input::Left),
+				Input(Input::Right),
+				Input(Input::Fire)
+			}) {}
+
+		void did_set_input(const Input &digital_input, bool is_active) final {
+#define APPLY_KEMPSTON(b)	if(is_active) kempston_ |= b; else kempston_ &= ~b;
+#define APPLY_SINCLAIR(b)	if(is_active) sinclair_ &= ~b; else sinclair_ |= b;
+
+			switch(digital_input.type) {
+				default: return;
+
+				case Input::Right:
+					APPLY_KEMPSTON(0x01);
+					APPLY_SINCLAIR(0x0208);
+				break;
+				case Input::Left:
+					APPLY_KEMPSTON(0x02);
+					APPLY_SINCLAIR(0x0110);
+				break;
+				case Input::Down:
+					APPLY_KEMPSTON(0x04);
+					APPLY_SINCLAIR(0x0404);
+				break;
+				case Input::Up:
+					APPLY_KEMPSTON(0x08);
+					APPLY_SINCLAIR(0x0802);
+				break;
+				case Input::Fire:
+					APPLY_KEMPSTON(0x10);
+					APPLY_SINCLAIR(0x1001);
+				break;
+			}
+
+#undef APPLY_KEMPSTON
+#undef APPLY_SINCLAIR
+		}
+
+		/// @returns The value that a Kempston joystick interface would report if this joystick
+		/// were plugged into it.
+		uint8_t get_kempston() {
+			return kempston_;
+		}
+
+		/// @returns The value that a Sinclair interface would report if this joystick
+		/// were plugged into it via @c port (which should be either 0 or 1, for ports 1 or 2).
+		uint8_t get_sinclair(int port) {
+			return uint8_t(sinclair_ >> (port * 8));
+		}
+
+	private:
+		uint8_t kempston_ = 0x00;
+		uint16_t sinclair_ = 0xffff;
+};
+
+}
+
 namespace Sinclair {
 namespace ZXSpectrum {
 
@@ -56,6 +124,7 @@ template<Model model> class ConcreteMachine:
 	public CPU::Z80::BusHandler,
 	public Machine,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
@@ -107,6 +176,10 @@ template<Model model> class ConcreteMachine:
 
 			// Register for sleeping notifications.
 			tape_player_.set_clocking_hint_observer(this);
+
+			// Attach a couple of joysticks.
+			joysticks_.emplace_back(new Joystick);
+			joysticks_.emplace_back(new Joystick);
 
 			// Set up initial memory map.
 			update_memory_map();
@@ -456,6 +529,11 @@ template<Model model> class ConcreteMachine:
 					bool did_match = false;
 					*cycle.value = 0xff;
 
+					if(!(address&32)) {
+						did_match = true;
+						*cycle.value &= static_cast<Joystick *>(joysticks_[0].get())->get_kempston();
+					}
+
 					if(!(address&1)) {
 						did_match = true;
 
@@ -467,6 +545,10 @@ template<Model model> class ConcreteMachine:
 
 						*cycle.value &= keyboard_.read(address);
 						*cycle.value &= tape_player_.get_input() ? 0xbf : 0xff;
+
+						// Add Joystick input on top.
+						if(!(address&0x1000)) *cycle.value &= static_cast<Joystick *>(joysticks_[0].get())->get_sinclair(0);
+						if(!(address&0x0800)) *cycle.value &= static_cast<Joystick *>(joysticks_[1].get())->get_sinclair(1);
 
 						// If this read is within 200 cycles of the previous,
 						// count it as an adjacent hit; if 20 of those have
@@ -898,6 +980,12 @@ template<Model model> class ConcreteMachine:
 
 		// MARK: - Automatic startup.
 		Cycles duration_to_press_enter_;
+
+		// MARK: - Joysticks
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+			return joysticks_;
+		}
 };
 
 
