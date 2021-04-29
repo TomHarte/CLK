@@ -368,7 +368,7 @@ API_AVAILABLE(macos(11.0))
 	return self;
 }
 
--(void)update {
+- (void)update {
 	// Update buttons.
 	for(CSGCJoystickButton *button in _buttons) {
 		// This assumes that the values provided by GCDeviceButtonInput are
@@ -379,7 +379,11 @@ API_AVAILABLE(macos(11.0))
 		float val = axis.axis.value;
 		val += 1;
 		val /= 2;
-		axis.position = val;
+		if(axis.type == CSJoystickAxisTypeY) {
+			axis.position = 1 - val;
+		} else {
+			axis.position = val;
+		}
 	}
 	for(CSGCJoystickHat *hat in _hats) {
 		// This assumes that the values provided by GCDeviceDirectionPad are
