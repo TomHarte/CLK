@@ -15,9 +15,19 @@ using namespace Storage::Tape;
 OricTAP::OricTAP(const std::string &file_name) :
 	file_(file_name)
 {
-	// check the file signature
-	if(!file_.check_signature("\x16\x16\x16\x24", 4))
-		throw ErrorNotOricTAP;
+	// Check for a sequence of at least three 0x16s followed by a 0x24.
+	while(true) {
+		const uint8_t next = file_.get8();
+		if(next != 0x16 && next != 0x24) {
+			throw ErrorNotOricTAP;
+		}
+		if(next == 0x24) {
+			if(file_.tell() < 4) {
+				throw ErrorNotOricTAP;
+			}
+			break;
+		}
+	}
 
 	// then rewind and start again
 	virtual_reset();
