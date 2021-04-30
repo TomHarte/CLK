@@ -40,6 +40,45 @@
 #include <memory>
 #include <vector>
 
+namespace {
+
+/*!
+	Provides an Altai-style joystick.
+*/
+class Joystick: public Inputs::ConcreteJoystick {
+	public:
+		Joystick() :
+			ConcreteJoystick({
+				Input(Input::Up),
+				Input(Input::Down),
+				Input(Input::Left),
+				Input(Input::Right),
+				Input(Input::Fire)
+			}) {}
+
+		void did_set_input(const Input &digital_input, bool is_active) final {
+#define APPLY(b)	if(is_active) state_ &= ~b; else state_ |= b;
+			switch(digital_input.type) {
+				default: return;
+				case Input::Right:	APPLY(0x02);	break;
+				case Input::Left:	APPLY(0x01);	break;
+				case Input::Down:	APPLY(0x08);	break;
+				case Input::Up:		APPLY(0x10);	break;
+				case Input::Fire:	APPLY(0x20);	break;
+			}
+#undef APPLY
+		}
+
+		uint8_t get_state() {
+			return state_;
+		}
+
+	private:
+		uint8_t state_ = 0xff;
+};
+
+}
+
 namespace Oric {
 
 using DiskInterface = Analyser::Static::Oric::Target::DiskInterface;
@@ -140,7 +179,12 @@ class TapePlayer: public Storage::Tape::BinaryTapePlayer {
 class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	public:
 		VIAPortHandler(Concurrency::DeferringAsyncTaskQueue &audio_queue, AY &ay8910, Speaker &speaker, TapePlayer &tape_player, Keyboard &keyboard) :
-			audio_queue_(audio_queue), ay8910_(ay8910), speaker_(speaker), tape_player_(tape_player), keyboard_(keyboard) {}
+			audio_queue_(audio_queue), ay8910_(ay8910), speaker_(speaker), tape_player_(tape_player), keyboard_(keyboard)
+		{
+			// Attach a couple of joysticks.
+			joysticks_.emplace_back(new Joystick);
+			joysticks_.emplace_back(new Joystick);
+		}
 
 		/*!
 			Reponds to the 6522's control line output change signal; on an Oric A2 is connected to
@@ -165,6 +209,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			} else {
 				update_ay();
 				ay8910_.set_data_input(value);
+				porta_output_ = value;
 			}
 		}
 
@@ -176,7 +221,10 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 				uint8_t column = ay8910_.get_port_output(false) ^ 0xff;
 				return keyboard_.query_column(column) ? 0x08 : 0x00;
 			} else {
-				return ay8910_.get_data_output();
+				uint8_t result = ay8910_.get_data_output();
+				if(porta_output_ & 0x40) result &= static_cast<Joystick *>(joysticks_[0].get())->get_state();
+				if(porta_output_ & 0x80) result &= static_cast<Joystick *>(joysticks_[1].get())->get_state();
+				return result;
 			}
 		}
 
@@ -193,12 +241,17 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			audio_queue_.perform();
 		}
 
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+			return joysticks_;
+		}
+
 	private:
 		void update_ay() {
 			speaker_.run_for(audio_queue_, cycles_since_ay_update_.flush<Cycles>());
 		}
 		bool ay_bdir_ = false;
 		bool ay_bc1_ = false;
+		uint8_t porta_output_ = 0xff;
 		HalfCycles cycles_since_ay_update_;
 
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
@@ -206,12 +259,15 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		Speaker &speaker_;
 		TapePlayer &tape_player_;
 		Keyboard &keyboard_;
+
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 };
 
 template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS6502Esque::Type processor_type> class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::MappedKeyboardMachine,
 	public Configurable::Device,
@@ -731,8 +787,13 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 			}
 		}
 
-		// MARK - typing
+		// MARK: - typing
 		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
+
+		// MARK: - Joysticks
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+			return via_port_handler_.get_joysticks();
+		}
 };
 
 }
