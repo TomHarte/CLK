@@ -1144,7 +1144,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (void)willChangeOwner {
-	_scanTarget.ScanTarget::will_change_owner();
+	self.scanTarget->will_change_owner();
 }
 
 - (NSBitmapImageRep *)imageRepresentation {
