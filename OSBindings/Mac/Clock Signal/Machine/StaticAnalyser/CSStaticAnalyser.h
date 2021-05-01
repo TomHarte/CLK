@@ -114,6 +114,8 @@ typedef int Kilobytes;
 - (instancetype)initWithFileAtURL:(NSURL *)url;
 - (void)applyToMachine:(CSMachine *)machine;
 
+@property(nonatomic, readonly) BOOL empty;
+
 @end
 
 NS_ASSUME_NONNULL_END

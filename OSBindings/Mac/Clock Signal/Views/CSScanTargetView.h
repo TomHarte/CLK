@@ -162,4 +162,10 @@
 */
 @property(nonatomic, readonly, nonnull) CSScanTarget *scanTarget;
 
+/*!
+	Indicates that the enclosed scan target is about to be handed off to a new owner;
+	exactly identical to calling scanTarget.will_change_owner().
+*/
+- (void)willChangeScanTargetOwner;
+
 @end

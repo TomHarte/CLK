@@ -22,4 +22,6 @@
 
 - (nonnull NSBitmapImageRep *)imageRepresentation;
 
+- (void)willChangeOwner;
+
 @end

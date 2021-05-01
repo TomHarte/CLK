@@ -137,6 +137,9 @@ class MachineDocument:
 	func configureAs(_ analysis: CSStaticAnalyser) {
 		self.machineDescription = analysis
 
+		actionLock.lock()
+		drawLock.lock()
+
 		let missingROMs = NSMutableArray()
 		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
 			self.machine = machine
@@ -147,9 +150,11 @@ class MachineDocument:
 			// Store the selected machine and list of missing ROMs, and
 			// show the missing ROMs dialogue.
 			self.missingROMs = missingROMs.map({$0 as! CSMissingROM})
-
 			requestRoms()
 		}
+
+		actionLock.unlock()
+		drawLock.unlock()
 	}
 
 	enum InteractionMode {
@@ -280,8 +285,7 @@ class MachineDocument:
 
 	/// Delegate message to receive drag and drop files.
 	final func scanTargetView(_ view: CSScanTargetView, didReceiveFileAt URL: URL) {
-		let mediaSet = CSMediaSet(fileAt: URL)
-		mediaSet.apply(to: self.machine)
+		insertFile(URL)
 	}
 
 	/// Action for the insert menu command; displays an NSOpenPanel and then segues into the same process
@@ -292,10 +296,27 @@ class MachineDocument:
 		openPanel.beginSheetModal(for: self.windowControllers[0].window!) { (response) in
 			if response == .OK {
 				for url in openPanel.urls {
-					let mediaSet = CSMediaSet(fileAt: url)
-					mediaSet.apply(to: self.machine)
+					self.insertFile(url)
 				}
 			}
+		}
+	}
+
+	private func insertFile(_ URL: URL) {
+		// Try to insert media.
+		let mediaSet = CSMediaSet(fileAt: URL)
+		if !mediaSet.empty {
+			mediaSet.apply(to: self.machine)
+			return
+		}
+
+		// Failing that see whether a new machine is required.
+		// TODO.
+		if let newMachine = CSStaticAnalyser(fileAt: URL) {
+			machine?.stop()
+			self.interactionMode = .notStarted
+			self.scanTargetView.willChangeScanTargetOwner()
+			configureAs(newMachine)
 		}
 	}
 
