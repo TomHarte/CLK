@@ -987,8 +987,11 @@ int main(int argc, char *argv[]) {
 				break;
 
 				case SDL_DROPFILE: {
-					Analyser::Static::Media media = Analyser::Static::GetMedia(event.drop.file);
-					machine->media_target()->insert_media(media);
+					const Analyser::Static::Media media = Analyser::Static::GetMedia(event.drop.file);
+					if(!media.empty()) {
+						machine->media_target()->insert_media(media);
+						break;
+					}
 				} break;
 
 				case SDL_TEXTINPUT:
