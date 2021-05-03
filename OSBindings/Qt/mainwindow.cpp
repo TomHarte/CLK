@@ -878,84 +878,101 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event) {
 // You can't. Qt is the worst. SDL doesn't have this problem, including in X11, but I'm not sure I want the extra
 // dependency. I may need to reassess.
 
-std::optional<Inputs::Keyboard::Key> MainWindow::keyForEvent(QKeyEvent *event) {
-	// Workaround for X11: assume PC-esque mapping from ::nativeScanCode to symbols.
-	//
-	// Yucky, ugly, harcoded yuck. TODO: work out how `xmodmap -pke` seems to derive these codes at runtime.
+#ifdef Q_OS_LINUX
+#define HAS_X11
+#endif
 
+#ifdef HAS_X11
+#include <QX11Info>
+#include <X11/keysymdef.h>
+#endif
+
+std::optional<Inputs::Keyboard::Key> MainWindow::keyForEvent(QKeyEvent *event) {
+	// Workaround for X11: assume PC-esque mapping.
+
+#ifdef HAS_X11
 	if(QGuiApplication::platformName() == QLatin1String("xcb")) {
+		// Convert from a machine-specific keycode to a more general keysym.
+		int keysyms = 0;
+		const KeySym *const keysyms = XGetKeyboardMapping(QX11Info::display(), event->nativeScanCode(), 1, &keysyms);
+		const KeySym keysym = keysyms[0];
+		XFree(keysyms);
+
 #define BIND(code, key) 	case code:	return Inputs::Keyboard::Key::key;
 
-		switch(event->nativeScanCode()) {
+		switch(keysym) {
 			default: qDebug() << "Unmapped" << event->nativeScanCode(); return {};
 
-			BIND(1, Escape);
-			BIND(67, F1);	BIND(68, F2);	BIND(69, F3);	BIND(70, F4);	BIND(71, F5);
-			BIND(72, F6);	BIND(73, F7);	BIND(74, F8);	BIND(75, F9);	BIND(76, F10);
-			BIND(95, F11);	BIND(96, F12);
-			BIND(107, PrintScreen);
-			BIND(78, ScrollLock);
-			BIND(127, Pause);
+			BIND(XK_Escape, Escape);
+			BIND(XK_F1, F1);	BIND(XK_F2, F2);	BIND(XK_F3, F3);	BIND(XK_F4, F4);	BIND(XK_F5, F5);
+			BIND(XK_F6, F6);	BIND(XK_F7, F7);	BIND(XK_F8, F8);	BIND(XK_F9, F9);	BIND(XK_F10, F10);
+			BIND(XK_F11, F11);	BIND(XK_F12, F12);
+			BIND(XK_Sys_Req, PrintScreen);
+			BIND(XK_Scroll_Lock, ScrollLock);
+			BIND(XK_Pause, Pause);
 
-			BIND(49, BackTick);
-			BIND(10, k1);	BIND(11, k2);	BIND(12, k3);	BIND(13, k4);	BIND(14, k5);
-			BIND(15, k6);	BIND(16, k7);	BIND(17, k8);	BIND(18, k9);	BIND(19, k0);
-			BIND(20, Hyphen);
-			BIND(21, Equals);
-			BIND(22, Backspace);
+			BIND(XK_grave, BackTick);
+			BIND(XK_1, k1);	BIND(XK_2, k2);	BIND(XK_3, k3);	BIND(XK_4, k4);	BIND(XK_5, k5);
+			BIND(XK_6, k6);	BIND(XK_7, k7);	BIND(XK_8, k8);	BIND(XK_9, k9);	BIND(XK_0, k0);
+			BIND(XK_minus, Hyphen);
+			BIND(XK_equal, Equals);
+			BIND(XK_BackSpace, Backspace);
 
-			BIND(23, Tab);
-			BIND(24, Q);	BIND(25, W);	BIND(26, E);	BIND(27, R);	BIND(28, T);
-			BIND(29, Y);	BIND(30, U);	BIND(31, I);	BIND(32, O);	BIND(33, P);
-			BIND(34, OpenSquareBracket);
-			BIND(35, CloseSquareBracket);
-			BIND(51, Backslash);
+			BIND(XK_Tab, Tab);
+			BIND(XK_Q, Q);	BIND(XK_W, W);	BIND(XK_E, E);	BIND(XK_R, R);	BIND(XK_T, T);
+			BIND(XK_Y, Y);	BIND(XK_U, U);	BIND(XK_I, I);	BIND(XK_O, O);	BIND(XK_P, P);
+			BIND(XK_bracketleft, OpenSquareBracket);
+			BIND(XK_bracketright, CloseSquareBracket);
+			BIND(XK_backslash, Backslash);
 
-			BIND(66, CapsLock);
-			BIND(38, A);	BIND(39, S);	BIND(40, D);	BIND(41, F);	BIND(42, G);
-			BIND(43, H);	BIND(44, J);	BIND(45, K);	BIND(46, L);
-			BIND(47, Semicolon);
-			BIND(48, Quote);
-			BIND(36, Enter);
+			BIND(XK_Caps_Lock, CapsLock);
+			BIND(XK_A, A);	BIND(XK_S, S);	BIND(XK_D, D);	BIND(XK_F, F);	BIND(XK_G, G);
+			BIND(XK_H, H);	BIND(XK_J, J);	BIND(XK_K, K);	BIND(XK_L, L);
+			BIND(XK_semicolon, Semicolon);
+			BIND(XK_apostrophe, Quote);
+			BIND(XK_Return, Enter);
 
-			BIND(50, LeftShift);
-			BIND(52, Z);	BIND(53, X);	BIND(54, C);	BIND(55, V);
-			BIND(56, B);	BIND(57, N);	BIND(58, M);
-			BIND(59, Comma);
-			BIND(60, FullStop);
-			BIND(61, ForwardSlash);
-			BIND(62, RightShift);
+			BIND(XK_Shift_L, LeftShift);
+			BIND(XK_Z, Z);	BIND(XK_X, X);	BIND(XK_C, C);	BIND(XK_V, V);
+			BIND(XK_B, B);	BIND(XK_N, N);	BIND(XK_M, M);
+			BIND(XK_comma, Comma);
+			BIND(XK_period, FullStop);
+			BIND(XK_slash, ForwardSlash);
+			BIND(XK_Shift_R, RightShift);
 
-			BIND(105, LeftControl);
-			BIND(204, LeftOption);
-			BIND(205, LeftMeta);
-			BIND(65, Space);
-			BIND(108, RightOption);
+			BIND(XK_Control_L, LeftControl);
+			BIND(XK_Control_R, RightControl);
+			BIND(XK_Alt_L, LeftOption);
+			BIND(XK_Alt_R, RightOption);
+			BIND(XK_Meta_L, LeftMeta);
+			BIND(XK_Meta_R, RightMeta);
+			BIND(XK_space, Space);
 
-			BIND(113, Left);	BIND(114, Right);	BIND(111, Up);	BIND(116, Down);
+			BIND(XK_Left, Left);	BIND(XK_Right, Right);	BIND(XK_Up, Up);	BIND(XK_Down, Down);
 
-			BIND(118, Insert);
-			BIND(119, Delete);
-			BIND(110, Home);
-			BIND(115, End);
+			BIND(XK_Insert, Insert);
+			BIND(XK_Delete, Delete);
+			BIND(XK_Home, Home);
+			BIND(XK_End, End);
 
-			BIND(77, NumLock);
+			BIND(XK_Num_Lock, NumLock);
 
-			BIND(106, KeypadSlash);
-			BIND(63, KeypadAsterisk);
-			BIND(91, KeypadDelete);
-			BIND(79, Keypad7);	BIND(80, Keypad8);	BIND(81, Keypad9);	BIND(86, KeypadPlus);
-			BIND(83, Keypad4);	BIND(84, Keypad5);	BIND(85, Keypad6);	BIND(82, KeypadMinus);
-			BIND(87, Keypad1);	BIND(88, Keypad2);	BIND(89, Keypad3);	BIND(104, KeypadEnter);
-			BIND(90, Keypad0);
-			BIND(129, KeypadDecimalPoint);
-			BIND(125, KeypadEquals);
+			BIND(XK_KP_Divide, KeypadSlash);
+			BIND(XK_KP_Multiply, KeypadAsterisk);
+			BIND(XK_KP_Delete, KeypadDelete);
+			BIND(XP_KP_7, Keypad7);	BIND(XP_KP_8, Keypad8);	BIND(XP_KP_9, Keypad9);	BIND(XK_KP_Add, KeypadPlus);
+			BIND(XP_KP_4, Keypad4);	BIND(XP_KP_5, Keypad5);	BIND(XP_KP_6, Keypad6);	BIND(XK_KP_Subtract, KeypadMinus);
+			BIND(XP_KP_1, Keypad1);	BIND(XP_KP_2, Keypad2);	BIND(XP_KP_3, Keypad3);	BIND(XK_KP_Enter, KeypadEnter);
+			BIND(XP_KP_0, Keypad0);
+			BIND(XK_KP_Decimal, KeypadDecimalPoint);
+			BIND(XK_KP_Equal, KeypadEquals);
 
-			BIND(146, Help);
+			BIND(XK_Help, Help);
 		}
 
 #undef BIND
 	}
+#endif
 
 	// Fall back on a limited, faulty adaptation.
 #define BIND2(qtKey, clkKey) case Qt::qtKey: return Inputs::Keyboard::Key::clkKey;
