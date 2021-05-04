@@ -901,7 +901,7 @@ std::optional<Inputs::Keyboard::Key> MainWindow::keyForEvent(QKeyEvent *event) {
 	if(QGuiApplication::platformName() == QLatin1String("xcb")) {
 		// Convert from a machine-specific keycode to a more general keysym.
 		int keysym_count = 0;
-		KeySym *const keysyms = X11::XGetKeyboardMapping(QX11Info::display(), event->nativeScanCode(), 1, &keysym_count);
+		X11::KeySym *const keysyms = X11::XGetKeyboardMapping(QX11Info::display(), event->nativeScanCode(), 1, &keysym_count);
 		const auto keysym = keysyms[0];
 		X11::XFree(keysyms);
 
@@ -970,7 +970,7 @@ std::optional<Inputs::Keyboard::Key> MainWindow::keyForEvent(QKeyEvent *event) {
 			BIND(XK_KP_7, Keypad7);	BIND(XK_KP_8, Keypad8);	BIND(XK_KP_9, Keypad9);	BIND(XK_KP_Add, KeypadPlus);
 			BIND(XK_KP_4, Keypad4);	BIND(XK_KP_5, Keypad5);	BIND(XK_KP_6, Keypad6);	BIND(XK_KP_Subtract, KeypadMinus);
 			BIND(XK_KP_1, Keypad1);	BIND(XK_KP_2, Keypad2);	BIND(XK_KP_3, Keypad3);	BIND(XK_KP_Enter, KeypadEnter);
-			BIND(XP_KP_0, Keypad0);
+			BIND(XK_KP_0, Keypad0);
 			BIND(XK_KP_Decimal, KeypadDecimalPoint);
 			BIND(XK_KP_Equal, KeypadEquals);
 
