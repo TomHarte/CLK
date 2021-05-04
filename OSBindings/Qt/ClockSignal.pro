@@ -3,7 +3,8 @@ QT += core gui multimedia widgets
 # Add x11extras if on an appropriate platform;
 # this is used in X11 to workaround Qt's terrible
 # keyboard obstructionism.
-Qt += x11extras
+QT += x11extras
+LIBS += -lx11
 
 # Be specific about C++17 but also try the vaguer C++1z for older
 # versions of Qt.
