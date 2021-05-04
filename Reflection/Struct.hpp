@@ -323,7 +323,7 @@ template <typename Owner> class StructImpl: public Struct {
 		}
 
 	private:
-		template <typename Type> bool declare_reflectable(Type *t, const std::string &name) {
+		template <typename Type> bool declare_reflectable([[maybe_unused]] Type *t, const std::string &name) {
 			if constexpr (std::is_base_of<Reflection::Struct, Type>::value) {
 				Reflection::Struct *const str = static_cast<Reflection::Struct *>(t);
 				declare_emplace(str, name);
