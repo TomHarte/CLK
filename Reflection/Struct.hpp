@@ -12,6 +12,7 @@
 #include <cassert>
 #include <cstdarg>
 #include <cstring>
+#include <cstddef>
 #include <string>
 #include <typeindex>
 #include <typeinfo>
