@@ -280,6 +280,7 @@ const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 		case Machine::ZX81:
 		return table_lookup_sequence_for_character(zx81_key_sequences, character);
 
+		default:
 		case Machine::ZXSpectrum:
 		return table_lookup_sequence_for_character(spectrum_key_sequences, character);
 	}
