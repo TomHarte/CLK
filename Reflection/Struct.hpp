@@ -319,7 +319,7 @@ template <typename Owner> class StructImpl: public Struct {
 			if(iterator != contents_.end()) {
 				return iterator->first;
 			} else {
-				return "";
+				return std::string();
 			}
 		}
 
