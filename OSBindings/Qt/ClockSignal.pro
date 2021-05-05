@@ -134,10 +134,11 @@ SOURCES += \
 	$$SRC/Storage/Tape/Formats/*.cpp \
 	$$SRC/Storage/Tape/Parsers/*.cpp \
 \
-    main.cpp \
-    mainwindow.cpp \
-    scantargetwidget.cpp \
-    timer.cpp
+	main.cpp \
+	mainwindow.cpp \
+	scantargetwidget.cpp \
+	timer.cpp \
+	keyboard.cpp
 
 HEADERS += \
 	$$SRC/Activity/*.hpp \
@@ -275,12 +276,13 @@ HEADERS += \
 	$$SRC/Storage/Tape/Formats/*.hpp \
 	$$SRC/Storage/Tape/Parsers/*.hpp \
 \
-    audiobuffer.h \
-    functionthread.h \
-    mainwindow.h \
-    scantargetwidget.h \
-    settings.h \
-    timer.h
+	audiobuffer.h \
+	functionthread.h \
+	mainwindow.h \
+	scantargetwidget.h \
+	settings.h \
+	keyboard.h \
+	timer.h
 
 FORMS += \
 	mainwindow.ui
