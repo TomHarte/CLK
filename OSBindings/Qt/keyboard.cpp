@@ -35,14 +35,19 @@
 #include <X11/keysym.h>
 #endif
 
-std::optional<Inputs::Keyboard::Key> MainWindow::keyForEvent(QKeyEvent *event) {
+KeyboardMapper::KeyboardMapper() {
+#ifdef HAS_X11
+#endif
+}
+
+std::optional<Inputs::Keyboard::Key> KeyboardMapper::keyForEvent(QKeyEvent *event) {
 	// Workaround for X11: assume PC-esque mapping.
 
 #ifdef HAS_X11
 	if(QGuiApplication::platformName() == QLatin1String("xcb")) {
 #define BIND(code, key) 	case code:	return Inputs::Keyboard::Key::key;
 
-		switch(keysym->nativeVirtualKey()) {
+        switch(event->nativeVirtualKey()) {
 			default: qDebug() << "Unmapped" << event->nativeScanCode(); return {};
 
 			BIND(XK_Escape, Escape);
