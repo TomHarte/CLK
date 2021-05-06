@@ -43,7 +43,87 @@
 
 KeyboardMapper::KeyboardMapper() {
 #ifdef HAS_X11
-	qDebug() << "F1 " << XKeysymToKeycode(QX11Info::display(), XK_Escape);
+	struct DesiredMapping {
+		KeySym source;
+		Inputs::Keyboard::Key destination;
+	};
+
+	constexpr DesiredMapping mappings[] = {
+	{XK_Escape, Escape},
+	{XK_F1, F1},	{XK_F2, F2},	{XK_F3, F3},	{XK_F4, F4},	{XK_F5, F5},
+	{XK_F6, F6},	{XK_F7, F7},	{XK_F8, F8},	{XK_F9, F9},	{XK_F10, F10},
+	{XK_F11, F11},	{XK_F12, F12},
+	{XK_Sys_Req, PrintScreen},
+	{XK_Scroll_Lock, ScrollLock},
+	{XK_Pause, Pause},
+
+	{XK_grave, BackTick},
+	{XK_1, k1},	{XK_2, k2},	{XK_3, k3},	{XK_4, k4},	{XK_5, k5},
+	{XK_6, k6},	{XK_7, k7},	{XK_8, k8},	{XK_9, k9},	{XK_0, k0},
+	{XK_minus, Hyphen},
+	{XK_equal, Equals},
+	{XK_BackSpace, Backspace},
+
+	{XK_Tab, Tab},
+	{XK_Q, Q},	{XK_W, W},	{XK_E, E},	{XK_R, R},	{XK_T, T},
+	{XK_Y, Y},	{XK_U, U},	{XK_I, I},	{XK_O, O},	{XK_P, P},
+	{XK_bracketleft, OpenSquareBracket},
+	{XK_bracketright, CloseSquareBracket},
+	{XK_backslash, Backslash},
+
+	{XK_Caps_Lock, CapsLock},
+	{XK_A, A},	{XK_S, S},	{XK_D, D},	{XK_F, F},	{XK_G, G},
+	{XK_H, H},	{XK_J, J},	{XK_K, K},	{XK_L, L},
+	{XK_semicolon, Semicolon},
+	{XK_apostrophe, Quote},
+	{XK_Return, Enter},
+
+	{XK_Shift_L, LeftShift},
+	{XK_Z, Z},	{XK_X, X},	{XK_C, C},	{XK_V, V},
+	{XK_B, B},	{XK_N, N},	{XK_M, M},
+	{XK_comma, Comma},
+	{XK_period, FullStop},
+	{XK_slash, ForwardSlash},
+	{XK_Shift_R, RightShift},
+
+	{XK_Control_L, LeftControl},
+	{XK_Control_R, RightControl},
+	{XK_Alt_L, LeftOption},
+	{XK_Alt_R, RightOption},
+	{XK_Meta_L, LeftMeta},
+	{XK_Meta_R, RightMeta},
+	{XK_space, Space},
+
+	{XK_Left, Left},	{XK_Right, Right},	{XK_Up, Up},	{XK_Down, Down},
+
+	{XK_Insert, Insert},
+	{XK_Delete, Delete},
+	{XK_Home, Home},
+	{XK_End, End},
+
+	{XK_Num_Lock, NumLock},
+
+	{XK_KP_Divide, KeypadSlash},
+	{XK_KP_Multiply, KeypadAsterisk},
+	{XK_KP_Delete, KeypadDelete},
+	{XK_KP_7, Keypad7},	{XK_KP_8, Keypad8},	{XK_KP_9, Keypad9},	{XK_KP_Add, KeypadPlus},
+	{XK_KP_4, Keypad4},	{XK_KP_5, Keypad5},	{XK_KP_6, Keypad6},	{XK_KP_Subtract, KeypadMinus},
+	{XK_KP_1, Keypad1},	{XK_KP_2, Keypad2},	{XK_KP_3, Keypad3},	{XK_KP_Enter, KeypadEnter},
+	{XK_KP_0, Keypad0},
+	{XK_KP_Decimal, KeypadDecimalPoint},
+	{XK_KP_Equal, KeypadEquals},
+
+	{XK_Help, Help},
+
+	{0}
+	};
+
+	const DesiredMapping *mapping = mappings;
+	while(mapping->source != 0) {
+		const auto sym = XKeysymToKeycode(QX11Info::display(), mapping->source);
+		keyByKeySym[sym] = mapping->destination;
+		++mapping;
+	}
 #endif
 }
 
@@ -52,79 +132,9 @@ std::optional<Inputs::Keyboard::Key> KeyboardMapper::keyForEvent(QKeyEvent *even
 
 #ifdef HAS_X11
 	if(QGuiApplication::platformName() == QLatin1String("xcb")) {
-#define BIND(code, key) 	case code:	return Inputs::Keyboard::Key::key;
-
-	switch(event->nativeScanCode()) {	/* TODO */
-			default: qDebug() << "Unmapped" << event->nativeScanCode(); return {};
-
-			BIND(XK_Escape, Escape);
-			BIND(XK_F1, F1);	BIND(XK_F2, F2);	BIND(XK_F3, F3);	BIND(XK_F4, F4);	BIND(XK_F5, F5);
-			BIND(XK_F6, F6);	BIND(XK_F7, F7);	BIND(XK_F8, F8);	BIND(XK_F9, F9);	BIND(XK_F10, F10);
-			BIND(XK_F11, F11);	BIND(XK_F12, F12);
-			BIND(XK_Sys_Req, PrintScreen);
-			BIND(XK_Scroll_Lock, ScrollLock);
-			BIND(XK_Pause, Pause);
-
-			BIND(XK_grave, BackTick);
-			BIND(XK_1, k1);	BIND(XK_2, k2);	BIND(XK_3, k3);	BIND(XK_4, k4);	BIND(XK_5, k5);
-			BIND(XK_6, k6);	BIND(XK_7, k7);	BIND(XK_8, k8);	BIND(XK_9, k9);	BIND(XK_0, k0);
-			BIND(XK_minus, Hyphen);
-			BIND(XK_equal, Equals);
-			BIND(XK_BackSpace, Backspace);
-
-			BIND(XK_Tab, Tab);
-			BIND(XK_Q, Q);	BIND(XK_W, W);	BIND(XK_E, E);	BIND(XK_R, R);	BIND(XK_T, T);
-			BIND(XK_Y, Y);	BIND(XK_U, U);	BIND(XK_I, I);	BIND(XK_O, O);	BIND(XK_P, P);
-			BIND(XK_bracketleft, OpenSquareBracket);
-			BIND(XK_bracketright, CloseSquareBracket);
-			BIND(XK_backslash, Backslash);
-
-			BIND(XK_Caps_Lock, CapsLock);
-			BIND(XK_A, A);	BIND(XK_S, S);	BIND(XK_D, D);	BIND(XK_F, F);	BIND(XK_G, G);
-			BIND(XK_H, H);	BIND(XK_J, J);	BIND(XK_K, K);	BIND(XK_L, L);
-			BIND(XK_semicolon, Semicolon);
-			BIND(XK_apostrophe, Quote);
-			BIND(XK_Return, Enter);
-
-			BIND(XK_Shift_L, LeftShift);
-			BIND(XK_Z, Z);	BIND(XK_X, X);	BIND(XK_C, C);	BIND(XK_V, V);
-			BIND(XK_B, B);	BIND(XK_N, N);	BIND(XK_M, M);
-			BIND(XK_comma, Comma);
-			BIND(XK_period, FullStop);
-			BIND(XK_slash, ForwardSlash);
-			BIND(XK_Shift_R, RightShift);
-
-			BIND(XK_Control_L, LeftControl);
-			BIND(XK_Control_R, RightControl);
-			BIND(XK_Alt_L, LeftOption);
-			BIND(XK_Alt_R, RightOption);
-			BIND(XK_Meta_L, LeftMeta);
-			BIND(XK_Meta_R, RightMeta);
-			BIND(XK_space, Space);
-
-			BIND(XK_Left, Left);	BIND(XK_Right, Right);	BIND(XK_Up, Up);	BIND(XK_Down, Down);
-
-			BIND(XK_Insert, Insert);
-			BIND(XK_Delete, Delete);
-			BIND(XK_Home, Home);
-			BIND(XK_End, End);
-
-			BIND(XK_Num_Lock, NumLock);
-
-			BIND(XK_KP_Divide, KeypadSlash);
-			BIND(XK_KP_Multiply, KeypadAsterisk);
-			BIND(XK_KP_Delete, KeypadDelete);
-			BIND(XK_KP_7, Keypad7);	BIND(XK_KP_8, Keypad8);	BIND(XK_KP_9, Keypad9);	BIND(XK_KP_Add, KeypadPlus);
-			BIND(XK_KP_4, Keypad4);	BIND(XK_KP_5, Keypad5);	BIND(XK_KP_6, Keypad6);	BIND(XK_KP_Subtract, KeypadMinus);
-			BIND(XK_KP_1, Keypad1);	BIND(XK_KP_2, Keypad2);	BIND(XK_KP_3, Keypad3);	BIND(XK_KP_Enter, KeypadEnter);
-			BIND(XK_KP_0, Keypad0);
-			BIND(XK_KP_Decimal, KeypadDecimalPoint);
-			BIND(XK_KP_Equal, KeypadEquals);
-
-			BIND(XK_Help, Help);
-		}
-
-#undef BIND
+		const auto sym = keyByKeySym.find(event->nativeScancode());
+		if(sym == keyByKeySym.end()) return std::nullopt;
+		return sym->destination;
 	}
 #endif
 
