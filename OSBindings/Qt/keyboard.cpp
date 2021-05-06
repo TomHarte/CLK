@@ -43,7 +43,7 @@
 KeyboardMapper::KeyboardMapper() {
 #ifdef HAS_X11
 	struct DesiredMapping {
-		KeySym source;
+		KeySym source = 0;
 		Inputs::Keyboard::Key destination;
 	};
 
@@ -115,7 +115,7 @@ KeyboardMapper::KeyboardMapper() {
 
 		{XK_Help, Key::Help},
 
-		{0}
+		{}
 	};
 
 	// Extra level of nonsense here:
