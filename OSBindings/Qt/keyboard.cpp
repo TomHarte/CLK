@@ -1,4 +1,7 @@
-#include "mainwindow.h"
+#include "keyboard.h"
+
+#include <QDebug>
+#include <QGuiApplication>
 
 // Qt is the worst.
 //
@@ -32,11 +35,15 @@
 #endif
 
 #ifdef HAS_X11
+#include <QX11Info>
+
+#include <X11/Xutil.h>
 #include <X11/keysym.h>
 #endif
 
 KeyboardMapper::KeyboardMapper() {
 #ifdef HAS_X11
+	qDebug() << "F1 " << XKeysymToKeycode(QX11Info::display(), XK_Escape);
 #endif
 }
 
@@ -47,7 +54,7 @@ std::optional<Inputs::Keyboard::Key> KeyboardMapper::keyForEvent(QKeyEvent *even
 	if(QGuiApplication::platformName() == QLatin1String("xcb")) {
 #define BIND(code, key) 	case code:	return Inputs::Keyboard::Key::key;
 
-        switch(event->nativeVirtualKey()) {
+	switch(event->nativeScanCode()) {	/* TODO */
 			default: qDebug() << "Unmapped" << event->nativeScanCode(); return {};
 
 			BIND(XK_Escape, Escape);

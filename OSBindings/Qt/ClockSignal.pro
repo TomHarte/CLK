@@ -12,7 +12,11 @@ CONFIG += object_parallel_to_source
 INCLUDEPATH += $$[QT_INSTALL_PREFIX]/src/3rdparty/zlib
 LIBS += -lz
 
-# Add flags (i) to identify that this is a Qt build; and 
+# If targetting X11, link against that.
+QT += x11extras
+LIBS += -lX11
+
+# Add flags (i) to identify that this is a Qt build; and
 # (ii) to disable asserts in release builds.
 DEFINES += TARGET_QT
 QMAKE_CXXFLAGS_RELEASE += -DNDEBUG
