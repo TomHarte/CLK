@@ -8,16 +8,18 @@
 #include <QIODevice>
 
 /*!
- * \brief Provides an intermediate receipticle for audio data.
+ * \brief An intermediate recepticle for audio data.
  *
  * Provides a QIODevice that will attempt to buffer the minimum amount
  * of data before handing it off to a polling QAudioOutput.
  *
- * Adding an extra buffer increases worst-case latency but resolves a
- * startup race condition in which it is difficult to tell how much data a
- * QAudioOutput that is populated by pushing data currently has buffered;
- * it also works around what empirically seemed to be a minimum 16384-byte
- * latency on push audio generation.
+ * Adding an extra buffer increases worst-case latency but resolves two
+ * issues uncovered with use of a QAudioOutput by push:
+ *
+ * 1. knowing how much data is currently buffered, to avoid being at a
+ *    permanent disadvantage after startup; and
+ * 2. that such QAudioOutputs empirically seem to introduce a minimum
+ *    16384-byte latency.
  */
 struct AudioBuffer: public QIODevice {
 	AudioBuffer() {
