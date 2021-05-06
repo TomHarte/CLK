@@ -13,8 +13,10 @@ INCLUDEPATH += $$[QT_INSTALL_PREFIX]/src/3rdparty/zlib
 LIBS += -lz
 
 # If targetting X11, link against that.
-QT += x11extras
-LIBS += -lX11
+linux {
+	QT += x11extras
+	LIBS += -lX11
+}
 
 # Add flags (i) to identify that this is a Qt build; and
 # (ii) to disable asserts in release builds.
