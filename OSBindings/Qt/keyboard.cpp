@@ -50,7 +50,7 @@ KeyboardMapper::KeyboardMapper() {
 
 	using Key = Inputs::Keyboard::Key;
 	constexpr DesiredMapping mappings[] = {
-	{XK_Escape, Escape},
+    {XK_Escape, Key::Escape},
 	{XK_F1, Key::F1},	{XK_F2, Key::F2},	{XK_F3, Key::F3},	{XK_F4, Key::F4},	{XK_F5, Key::F5},
 	{XK_F6, Key::F6},	{XK_F7, Key::F7},	{XK_F8, Key::F8},	{XK_F9, Key::F9},	{XK_F10, Key::F10},
 	{XK_F11, Key::F11},	{XK_F12, Key::F12},
@@ -133,9 +133,9 @@ std::optional<Inputs::Keyboard::Key> KeyboardMapper::keyForEvent(QKeyEvent *even
 
 #ifdef HAS_X11
 	if(QGuiApplication::platformName() == QLatin1String("xcb")) {
-		const auto sym = keyByKeySym.find(event->nativeScancode());
+        const auto sym = keyByKeySym.find(event->nativeScanCode());
 		if(sym == keyByKeySym.end()) return std::nullopt;
-		return sym->destination;
+        return sym->second;
 	}
 #endif
 
