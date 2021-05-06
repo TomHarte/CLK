@@ -2,8 +2,6 @@
 # Clock Signal
 Clock Signal ('CLK') is an emulator for tourists that seeks to be invisible. Users directly launch classic software, usually avoiding the learning curve associated with emulators and with emulated machines.
 
-macOS and source releases are [hosted on GitHub](https://github.com/TomHarte/CLK/releases). For desktop Linux it is also available as a [Snap](https://snapcraft.io/clock-signal). On the Mac it is a native Cocoa and Metal application; under Linux, BSD and other UNIXes and UNIX-alikes it uses OpenGL and can be built either with Qt or with SDL.
-
 This emulator seeks to offer:
 * single-click load of any piece of source media for any supported platform;
 * with a heavy signal processing tilt for accurate reproduction of original outputs;
@@ -23,6 +21,8 @@ It currently contains emulations of the:
 * Sega Master System;
 * Sinclair ZX80/81; and
 * Sinclair ZX Spectrum.
+
+macOS and source releases are [hosted on GitHub](https://github.com/TomHarte/CLK/releases). For desktop Linux it is also available as a [Snap](https://snapcraft.io/clock-signal). On the Mac it is a native Cocoa and Metal application; under Linux, BSD and other UNIXes and UNIX-alikes it uses OpenGL and can be built either with Qt or with SDL.
 
 ## Single-step Loading
 
