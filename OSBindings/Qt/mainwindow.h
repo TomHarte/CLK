@@ -12,6 +12,7 @@
 #include "timer.h"
 #include "ui_mainwindow.h"
 #include "functionthread.h"
+#include "keyboard.h"
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
@@ -144,7 +145,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		QMenu *inputMenu = nullptr;
 
-		std::optional<Inputs::Keyboard::Key> keyForEvent(QKeyEvent *);
+		KeyboardMapper keyMapper;
 
 		void register_led(const std::string &) override;
 		void set_led_status(const std::string &, bool) override;

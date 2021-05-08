@@ -16,6 +16,7 @@ void Keyboard::perform_command(const Command &command) {
 	switch(command.type) {
 		case Command::Type::Reset:
 			modifiers_ = 0xffff;
+			[[fallthrough]];
 		case Command::Type::Flush: {
 			std::lock_guard lock_guard(keys_mutex_);
 			pending_events_.clear();

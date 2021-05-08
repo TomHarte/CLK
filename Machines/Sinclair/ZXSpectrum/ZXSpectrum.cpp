@@ -420,6 +420,7 @@ template<Model model> class ConcreteMachine:
 							break;
 						}
 					}
+					[[fallthrough]];
 
 				case PartialMachineCycle::Read:
 					if constexpr (model == Model::SixteenK) {

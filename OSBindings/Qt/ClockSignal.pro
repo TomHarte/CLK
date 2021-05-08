@@ -12,7 +12,13 @@ CONFIG += object_parallel_to_source
 INCLUDEPATH += $$[QT_INSTALL_PREFIX]/src/3rdparty/zlib
 LIBS += -lz
 
-# Add flags (i) to identify that this is a Qt build; and 
+# If targetting X11, link against that.
+linux {
+	QT += x11extras
+	LIBS += -lX11
+}
+
+# Add flags (i) to identify that this is a Qt build; and
 # (ii) to disable asserts in release builds.
 DEFINES += TARGET_QT
 QMAKE_CXXFLAGS_RELEASE += -DNDEBUG
@@ -134,10 +140,11 @@ SOURCES += \
 	$$SRC/Storage/Tape/Formats/*.cpp \
 	$$SRC/Storage/Tape/Parsers/*.cpp \
 \
-    main.cpp \
-    mainwindow.cpp \
-    scantargetwidget.cpp \
-    timer.cpp
+	main.cpp \
+	mainwindow.cpp \
+	scantargetwidget.cpp \
+	timer.cpp \
+	keyboard.cpp
 
 HEADERS += \
 	$$SRC/Activity/*.hpp \
@@ -275,12 +282,13 @@ HEADERS += \
 	$$SRC/Storage/Tape/Formats/*.hpp \
 	$$SRC/Storage/Tape/Parsers/*.hpp \
 \
-    audiobuffer.h \
-    functionthread.h \
-    mainwindow.h \
-    scantargetwidget.h \
-    settings.h \
-    timer.h
+	audiobuffer.h \
+	functionthread.h \
+	mainwindow.h \
+	scantargetwidget.h \
+	settings.h \
+	keyboard.h \
+	timer.h
 
 FORMS += \
 	mainwindow.ui
