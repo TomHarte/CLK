@@ -223,10 +223,6 @@ class MachineDocument:
 			setupActivityDisplay()
 
 			machine.delegate = self
-
-			// Callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
-			// hence the full setup of the best-effort updater prior to setting self as a delegate.
-//			scanTargetView.delegate = self
 			scanTargetView.responderDelegate = self
 
 			// If this machine has a mouse, enable mouse capture; also indicate whether usurption
@@ -270,9 +266,9 @@ class MachineDocument:
 				self.machine.audioQueue = nil
 				self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate), isStereo:isStereo)
 				self.audioQueue.delegate = self
-				self.machine.audioQueue = self.audioQueue
-				self.machine.setAudioSamplingRate(Float(selectedSamplingRate), bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
 			}
+			self.machine.audioQueue = self.audioQueue
+			self.machine.setAudioSamplingRate(Float(selectedSamplingRate), bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
 		}
 	}
 
