@@ -87,6 +87,14 @@ class MachineDocument:
 		}
 	}
 
+	private func dismissPanels() {
+		activityPanel?.setIsVisible(false)
+		activityPanel = nil
+
+		optionsPanel?.setIsVisible(false)
+		optionsPanel = nil
+	}
+
 	override func close() {
 		// Close any dangling sheets.
 		//
@@ -105,11 +113,7 @@ class MachineDocument:
 		machine?.stop()
 
 		// Dismiss panels.
-		activityPanel?.setIsVisible(false)
-		activityPanel = nil
-
-		optionsPanel?.setIsVisible(false)
-		optionsPanel = nil
+		dismissPanels()
 
 		// End the update cycle.
 		actionLock.lock()
@@ -143,7 +147,6 @@ class MachineDocument:
 		let missingROMs = NSMutableArray()
 		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
 			self.machine = machine
-			setupActivityDisplay()
 			machine.setVolume(userDefaultsVolume())
 			setupMachineOutput()
 		} else {
@@ -205,6 +208,9 @@ class MachineDocument:
 			let aspectRatio = self.aspectRatio()
 			machine.setView(scanTargetView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
 
+			// Get rid of all existing accessory panels.
+			dismissPanels()
+
 			// Attach an options panel if one is available.
 			if let optionsPanelNibName = self.machineDescription?.optionsPanelNibName {
 				Bundle.main.loadNibNamed(optionsPanelNibName, owner: self, topLevelObjects: nil)
@@ -212,6 +218,9 @@ class MachineDocument:
 				self.optionsPanel?.establishStoredOptions()
 				showOptions(self)
 			}
+
+			// Create and populate an activity display if required.
+			setupActivityDisplay()
 
 			machine.delegate = self
 
