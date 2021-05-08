@@ -470,13 +470,18 @@ class DynamicWindowTitler {
 			update_window_title();
 		}
 
+		void set_file_name(const std::string &name) {
+			file_name_ = name;
+			update_window_title();
+		}
+
 	private:
 		void update_window_title() {
 			SDL_SetWindowTitle(window_, window_title().c_str());
 		}
 		bool mouse_is_captured_ = false;
 		SDL_Window *window_ = nullptr;
-		const std::string file_name_;
+		std::string file_name_;
 };
 
 /*!
@@ -761,7 +766,7 @@ int main(int argc, char *argv[]) {
 					if(!rom.descriptive_name.empty()) {
 						std::cerr << rom.descriptive_name << "; ";
 					}
-					std::cerr << "accepted crc32s: ";
+					std::cerr << "usual crc32s: ";
 					bool is_first = true;
 					for(const auto crc32: rom.crc32s) {
 						if(!is_first) std::cerr << ", ";
@@ -829,10 +834,6 @@ int main(int argc, char *argv[]) {
 		SDL_StartTextInput();
 	}
 
-	// Wire up the best-effort updater, its delegate, and the speaker delegate.
-	machine_runner.machine = machine.get();
-	machine_runner.machine_mutex = &machine_mutex;
-
 	// Ensure all media is inserted, if this machine accepts it.
 	{
 		auto media_target = machine->media_target();
@@ -886,7 +887,11 @@ int main(int argc, char *argv[]) {
 	bool uses_mouse;
 	std::vector<SDLJoystick> joysticks;
 
-	const auto setup_machine_input_output = [&scan_target, &machine, &speaker_delegate, &activity_observer, &joysticks, &uses_mouse] {
+	machine_runner.machine_mutex = &machine_mutex;
+	const auto setup_machine_input_output = [&scan_target, &machine, &speaker_delegate, &activity_observer, &joysticks, &uses_mouse, &machine_runner] {
+		// Wire up the best-effort updater, its delegate, and the speaker delegate.
+		machine_runner.machine = machine.get();
+
 		machine->scan_producer()->set_scan_target(&scan_target);
 
 		// For now, lie about audio output intentions.
@@ -1000,10 +1005,25 @@ int main(int argc, char *argv[]) {
 
 				case SDL_DROPFILE: {
 					const Analyser::Static::Media media = Analyser::Static::GetMedia(event.drop.file);
+
+					// If the new file is only media, insert it; if it is a state snapshot then
+					// tear down the entire machine and replace it.
 					if(!media.empty()) {
 						machine->media_target()->insert_media(media);
 						break;
 					}
+
+					targets = Analyser::Static::GetTargets(event.drop.file);
+					if(targets.empty()) break;
+
+					::Machine::Error error;
+					std::unique_ptr<::Machine::DynamicMachine> new_machine(::Machine::MachineForTargets(targets, rom_fetcher, error));
+					if(error != Machine::Error::None) break;
+
+					machine = std::move(new_machine);
+					static_cast<Outputs::Display::ScanTarget *>(&scan_target)->will_change_owner();
+					setup_machine_input_output();
+					window_titler.set_file_name(final_path_component(event.drop.file));
 				} break;
 
 				case SDL_TEXTINPUT:
