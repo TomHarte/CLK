@@ -262,13 +262,13 @@ class MachineDocument:
 		let isStereo = self.machine.isStereo
 		if selectedSamplingRate > 0 {
 			// [Re]create the audio queue only if necessary.
-			if self.audioQueue == nil || self.audioQueue.samplingRate != selectedSamplingRate {
+			if self.audioQueue == nil || self.audioQueue.samplingRate != selectedSamplingRate || self.audioQueue != self.machine.audioQueue {
 				self.machine.audioQueue = nil
 				self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate), isStereo:isStereo)
 				self.audioQueue.delegate = self
+				self.machine.audioQueue = self.audioQueue
+				self.machine.setAudioSamplingRate(Float(selectedSamplingRate), bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
 			}
-			self.machine.audioQueue = self.audioQueue
-			self.machine.setAudioSamplingRate(Float(selectedSamplingRate), bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
 		}
 	}
 
