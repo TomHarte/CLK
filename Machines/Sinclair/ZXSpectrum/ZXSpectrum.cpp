@@ -551,11 +551,11 @@ template<Model model> class ConcreteMachine:
 						if(!(address&0x1000)) *cycle.value &= static_cast<Joystick *>(joysticks_[0].get())->get_sinclair(0);
 						if(!(address&0x0800)) *cycle.value &= static_cast<Joystick *>(joysticks_[1].get())->get_sinclair(1);
 
-						// If this read is within 200 cycles of the previous,
-						// count it as an adjacent hit; if 20 of those have
-						// occurred then start the tape motor.
+						// If this read is between 50 and 200 cycles since the
+						// previous, count it as an adjacent hit; if 20 of those
+						// have occurred then start the tape motor.
 						if(use_automatic_tape_motor_control_) {
-							if(cycles_since_tape_input_read_ < HalfCycles(400)) {
+							if(cycles_since_tape_input_read_ >= HalfCycles(100) && cycles_since_tape_input_read_ < HalfCycles(200)) {
 								++recent_tape_hits_;
 
 								if(recent_tape_hits_ == 20) {
@@ -627,11 +627,11 @@ template<Model model> class ConcreteMachine:
 			if(!tape_player_is_sleeping_) tape_player_.run_for(duration.as_integral());
 
 			// Update automatic tape motor control, if enabled; if it's been
-			// 3 seconds since software last possibly polled the tape, stop it.
-			if(use_automatic_tape_motor_control_ && cycles_since_tape_input_read_ < HalfCycles(clock_rate() * 6)) {
+			// 0.5 seconds since software last possibly polled the tape, stop it.
+			if(use_automatic_tape_motor_control_ && cycles_since_tape_input_read_ < HalfCycles(clock_rate())) {
 				cycles_since_tape_input_read_ += duration;
 
-				if(cycles_since_tape_input_read_ >= HalfCycles(clock_rate() * 6)) {
+				if(cycles_since_tape_input_read_ >= HalfCycles(clock_rate())) {
 					tape_player_.set_motor_control(false);
 					recent_tape_hits_ = 0;
 				}
