@@ -551,6 +551,8 @@
 		4B92E26B234AE35100CD6D1B /* MFP68901.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B92E268234AE35000CD6D1B /* MFP68901.cpp */; };
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
 		4B9378E422A199C600973513 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9378E222A199C600973513 /* Audio.cpp */; };
+		4B96F7CE263E33B10092AEE1 /* DSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7CC263E33B10092AEE1 /* DSK.cpp */; };
+		4B96F7CF263E33B10092AEE1 /* DSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7CC263E33B10092AEE1 /* DSK.cpp */; };
 		4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
 		4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
 		4B98A0611FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */; };
@@ -1525,6 +1527,8 @@
 		4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZX8081OptionsPanel.swift; sourceTree = "<group>"; };
 		4B961408222760E0001A7BF2 /* Screenshot.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Screenshot.hpp; sourceTree = "<group>"; };
 		4B96F7CB263E30B00092AEE1 /* RawSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RawSectorDump.hpp; sourceTree = "<group>"; };
+		4B96F7CC263E33B10092AEE1 /* DSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DSK.cpp; sourceTree = "<group>"; };
+		4B96F7CD263E33B10092AEE1 /* DSK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DSK.hpp; sourceTree = "<group>"; };
 		4B98A05C1FFAD3F600ADF63B /* CSROMFetcher.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CSROMFetcher.hpp; sourceTree = "<group>"; };
 		4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CSROMFetcher.mm; sourceTree = "<group>"; };
 		4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MSXStaticAnalyserTests.mm; sourceTree = "<group>"; };
@@ -2970,10 +2974,12 @@
 		4B74CF7E2312FA9C00500CE8 /* Formats */ = {
 			isa = PBXGroup;
 			children = (
-				4B74CF7F2312FA9C00500CE8 /* HFV.hpp */,
-				4B74CF802312FA9C00500CE8 /* HFV.cpp */,
 				4BE8EB6425C750B50040BC40 /* DAT.cpp */,
 				4BE8EB6525C750B50040BC40 /* DAT.hpp */,
+				4B96F7CC263E33B10092AEE1 /* DSK.cpp */,
+				4B96F7CD263E33B10092AEE1 /* DSK.hpp */,
+				4B74CF802312FA9C00500CE8 /* HFV.cpp */,
+				4B74CF7F2312FA9C00500CE8 /* HFV.hpp */,
 				4B96F7CB263E30B00092AEE1 /* RawSectorDump.hpp */,
 			);
 			path = Formats;
@@ -5240,6 +5246,7 @@
 				4B1B58F7246CC4E8009C171E /* State.cpp in Sources */,
 				4B0ACC03237756F6008902D0 /* Line.cpp in Sources */,
 				4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */,
+				4B96F7CF263E33B10092AEE1 /* DSK.cpp in Sources */,
 				4B2B946626377C0200E7097C /* SZX.cpp in Sources */,
 				4BEDA43225B3C700000C2DBD /* Executor.cpp in Sources */,
 				4BC1317B2346DF2B00E4FF3D /* MSA.cpp in Sources */,
@@ -5546,6 +5553,7 @@
 				4B89453E201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BF8D4D5251C11DD00BBE21B /* 65816Storage.cpp in Sources */,
 				4B0ACC2823775819008902D0 /* DMAController.cpp in Sources */,
+				4B96F7CE263E33B10092AEE1 /* DSK.cpp in Sources */,
 				4BC131702346DE5000E4FF3D /* StaticAnalyser.cpp in Sources */,
 				4B37EE821D7345A6006A09A4 /* BinaryDump.cpp in Sources */,
 				4BCE0053227CE8CA000CA200 /* AppleII.cpp in Sources */,

@@ -55,6 +55,7 @@
 
 // Mass Storage Devices (i.e. usually, hard disks)
 #include "../../Storage/MassStorage/Formats/DAT.hpp"
+#include "../../Storage/MassStorage/Formats/DSK.hpp"
 #include "../../Storage/MassStorage/Formats/HFV.hpp"
 
 // State Snapshots
@@ -144,7 +145,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			TargetPlatform::AmstradCPC | TargetPlatform::Oric | TargetPlatform::ZXSpectrum)						// DSK (Amstrad CPC, etc)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// DSK (Apple II)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// DSK (Macintosh, floppy disk)
-	Format("dsk", result.mass_storage_devices, MassStorage::HFV, TargetPlatform::Macintosh)						// DSK (Macintosh, hard disk)
+	Format("dsk", result.mass_storage_devices, MassStorage::HFV, TargetPlatform::Macintosh)						// DSK (Macintosh, hard disk, single volume image)
+	Format("dsk", result.mass_storage_devices, MassStorage::DSK, TargetPlatform::Macintosh)						// DSK (Macintosh, hard disk, full device image)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MSXDSK>, TargetPlatform::MSX)				// DSK (MSX)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)			// DSK (Oric)
 	Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)			// G64
