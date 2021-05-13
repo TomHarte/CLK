@@ -12,6 +12,8 @@
 #include "../MassStorageDevice.hpp"
 #include "../../FileHolder.hpp"
 
+#include <cassert>
+
 namespace Storage {
 namespace MassStorage {
 
