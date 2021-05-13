@@ -15,7 +15,10 @@ HFV::HFV(const std::string &file_name) : file_(file_name) {
 	const auto file_size = file_.stats().st_size;
 	if(file_size & 511 || file_size <= 800*1024) throw std::exception();
 
-	// TODO: check filing system for MFS, HFS or HFS+.
+	// Is this an HFS volume?
+	// TODO: check filing system for MFS or HFS+.
+	const auto prefix = file_.read(2);
+	if(prefix[0] != 'L' || prefix[1] != 'K')  throw std::exception();
 }
 
 size_t HFV::get_block_size() {
