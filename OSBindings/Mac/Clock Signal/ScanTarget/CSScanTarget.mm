@@ -1143,6 +1143,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	return &_scanTarget;
 }
 
+- (void)willChangeOwner {
+	self.scanTarget->will_change_owner();
+}
+
 - (NSBitmapImageRep *)imageRepresentation {
 	// Create an NSBitmapRep as somewhere to copy pixel data to.
 	NSBitmapImageRep *const result =

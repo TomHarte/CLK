@@ -129,6 +129,10 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	return _scanTarget;
 }
 
+- (void)willChangeScanTargetOwner {
+	[_scanTarget willChangeOwner];
+}
+
 - (void)updateBacking {
 	[_scanTarget updateFrameBuffer];
 }

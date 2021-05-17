@@ -470,13 +470,56 @@ class DynamicWindowTitler {
 			update_window_title();
 		}
 
+		void set_file_name(const std::string &name) {
+			file_name_ = name;
+			update_window_title();
+		}
+
 	private:
 		void update_window_title() {
 			SDL_SetWindowTitle(window_, window_title().c_str());
 		}
 		bool mouse_is_captured_ = false;
 		SDL_Window *window_ = nullptr;
-		const std::string file_name_;
+		std::string file_name_;
+};
+
+/*!
+	Provides a wrapper for SDL_Joystick pointers that can keep track
+	of historic hat values.
+*/
+class SDLJoystick {
+	public:
+		SDLJoystick(SDL_Joystick *joystick) : joystick_(joystick) {
+			hat_values_.resize(SDL_JoystickNumHats(joystick));
+		}
+
+		~SDLJoystick() {
+			SDL_JoystickClose(joystick_);
+		}
+
+		/// @returns The underlying SDL_Joystick.
+		SDL_Joystick *get() {
+			return joystick_;
+		}
+
+		/// @returns A reference to the storage for the previous state of hat @c c.
+		Uint8 &last_hat_value(int c) {
+			return hat_values_[c];
+		}
+
+		/// @returns The logic OR of all stored hat states.
+		Uint8 hat_values() {
+			Uint8 value = 0;
+			for(const auto hat_value: hat_values_) {
+				value |= hat_value;
+			}
+			return value;
+		}
+
+	private:
+		SDL_Joystick *joystick_;
+		std::vector<Uint8> hat_values_;
 };
 
 }
@@ -723,7 +766,7 @@ int main(int argc, char *argv[]) {
 					if(!rom.descriptive_name.empty()) {
 						std::cerr << rom.descriptive_name << "; ";
 					}
-					std::cerr << "accepted crc32s: ";
+					std::cerr << "usual crc32s: ";
 					bool is_first = true;
 					for(const auto crc32: rom.crc32s) {
 						if(!is_first) std::cerr << ", ";
@@ -791,10 +834,6 @@ int main(int argc, char *argv[]) {
 		SDL_StartTextInput();
 	}
 
-	// Wire up the best-effort updater, its delegate, and the speaker delegate.
-	machine_runner.machine = machine.get();
-	machine_runner.machine_mutex = &machine_mutex;
-
 	// Ensure all media is inserted, if this machine accepts it.
 	{
 		auto media_target = machine->media_target();
@@ -844,90 +883,69 @@ int main(int argc, char *argv[]) {
 
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
 	Outputs::Display::OpenGL::ScanTarget scan_target(target_framebuffer);
-	machine->scan_producer()->set_scan_target(&scan_target);
+	std::unique_ptr<ActivityObserver> activity_observer;
+	bool uses_mouse;
+	std::vector<SDLJoystick> joysticks;
 
-	// For now, lie about audio output intentions.
-	auto speaker = machine->audio_producer()->get_speaker();
-	if(speaker) {
-		// Create an audio pipe.
-		SDL_AudioSpec desired_audio_spec;
-		SDL_AudioSpec obtained_audio_spec;
+	machine_runner.machine_mutex = &machine_mutex;
+	const auto setup_machine_input_output = [&scan_target, &machine, &speaker_delegate, &activity_observer, &joysticks, &uses_mouse, &machine_runner] {
+		// Wire up the best-effort updater, its delegate, and the speaker delegate.
+		machine_runner.machine = machine.get();
 
-		SDL_zero(desired_audio_spec);
-		desired_audio_spec.freq = 48000;	// TODO: how can I get SDL to reveal the output rate of this machine?
-		desired_audio_spec.format = AUDIO_S16;
-		desired_audio_spec.channels = 1 + int(speaker->get_is_stereo());
-		desired_audio_spec.samples = Uint16(SpeakerDelegate::buffered_samples);
-		desired_audio_spec.callback = SpeakerDelegate::SDL_audio_callback;
-		desired_audio_spec.userdata = &speaker_delegate;
+		machine->scan_producer()->set_scan_target(&scan_target);
 
-		speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+		// For now, lie about audio output intentions.
+		auto speaker = machine->audio_producer()->get_speaker();
+		if(speaker) {
+			// Create an audio pipe.
+			SDL_AudioSpec desired_audio_spec;
+			SDL_AudioSpec obtained_audio_spec;
 
-		speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples, obtained_audio_spec.channels == 2);
-		speaker_delegate.is_stereo = obtained_audio_spec.channels == 2;
-		speaker->set_delegate(&speaker_delegate);
-		SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
-	}
+			SDL_zero(desired_audio_spec);
+			desired_audio_spec.freq = 48000;	// TODO: how can I get SDL to reveal the output rate of this machine?
+			desired_audio_spec.format = AUDIO_S16;
+			desired_audio_spec.channels = 1 + int(speaker->get_is_stereo());
+			desired_audio_spec.samples = Uint16(SpeakerDelegate::buffered_samples);
+			desired_audio_spec.callback = SpeakerDelegate::SDL_audio_callback;
+			desired_audio_spec.userdata = &speaker_delegate;
+
+			speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+
+			speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples, obtained_audio_spec.channels == 2);
+			speaker_delegate.is_stereo = obtained_audio_spec.channels == 2;
+			speaker->set_delegate(&speaker_delegate);
+			SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
+		}
+
+		/*
+			If the machine offers anything for activity observation,
+			create and register an activity observer.
+		*/
+		Activity::Source *const activity_source = machine->activity_source();
+		if(activity_source) {
+			activity_observer = std::make_unique<ActivityObserver>(activity_source, 4.0f / 3.0f);
+		} else {
+			activity_observer = nullptr;
+		}
+
+		// If this is a joystick machine, check for and open attached joysticks.
+		const auto joystick_machine = machine->joystick_machine();
+		if(joystick_machine) {
+			SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+			for(int c = 0; c < SDL_NumJoysticks(); ++c) {
+				joysticks.emplace_back(SDL_JoystickOpen(c));
+			}
+		} else {
+			joysticks.clear();
+		}
+
+		// Keep a record of whether mouse events can be forwarded.
+		uses_mouse = !!machine->mouse_machine();
+	};
+	setup_machine_input_output();
 
 	int window_width, window_height;
 	SDL_GetWindowSize(window, &window_width, &window_height);
-
-	// If this is a joystick machine, check for and open attached joysticks.
-	/*!
-		Provides a wrapper for SDL_Joystick pointers that can keep track
-		of historic hat values.
-	*/
-	class SDLJoystick {
-		public:
-			SDLJoystick(SDL_Joystick *joystick) : joystick_(joystick) {
-				hat_values_.resize(SDL_JoystickNumHats(joystick));
-			}
-
-			~SDLJoystick() {
-				SDL_JoystickClose(joystick_);
-			}
-
-			/// @returns The underlying SDL_Joystick.
-			SDL_Joystick *get() {
-				return joystick_;
-			}
-
-			/// @returns A reference to the storage for the previous state of hat @c c.
-			Uint8 &last_hat_value(int c) {
-				return hat_values_[c];
-			}
-
-			/// @returns The logic OR of all stored hat states.
-			Uint8 hat_values() {
-				Uint8 value = 0;
-				for(const auto hat_value: hat_values_) {
-					value |= hat_value;
-				}
-				return value;
-			}
-
-		private:
-			SDL_Joystick *joystick_;
-			std::vector<Uint8> hat_values_;
-	};
-	std::vector<SDLJoystick> joysticks;
-	const auto joystick_machine = machine->joystick_machine();
-	if(joystick_machine) {
-		SDL_InitSubSystem(SDL_INIT_JOYSTICK);
-		for(int c = 0; c < SDL_NumJoysticks(); ++c) {
-			joysticks.emplace_back(SDL_JoystickOpen(c));
-		}
-	}
-
-	/*
-		If the machine offers anything for activity observation,
-		create and register an activity observer.
-	*/
-	std::unique_ptr<ActivityObserver> activity_observer;
-	Activity::Source *const activity_source = machine->activity_source();
-	if(activity_source) {
-		activity_observer = std::make_unique<ActivityObserver>(activity_source, 4.0f / 3.0f);
-	}
 
 	// SDL 2.x delivers key up/down events and text inputs separately even when they're correlated;
 	// this struct and map is used to correlate them by time.
@@ -945,7 +963,6 @@ int main(int argc, char *argv[]) {
 	std::vector<KeyPress> keypresses;
 
 	// Run the main event loop until the OS tells us to quit.
-	const bool uses_mouse = !!machine->mouse_machine();
 	bool should_quit = false;
 	Uint32 fullscreen_mode = 0;
 	machine_runner.start();
@@ -987,8 +1004,26 @@ int main(int argc, char *argv[]) {
 				break;
 
 				case SDL_DROPFILE: {
-					Analyser::Static::Media media = Analyser::Static::GetMedia(event.drop.file);
-					machine->media_target()->insert_media(media);
+					const Analyser::Static::Media media = Analyser::Static::GetMedia(event.drop.file);
+
+					// If the new file is only media, insert it; if it is a state snapshot then
+					// tear down the entire machine and replace it.
+					if(!media.empty()) {
+						machine->media_target()->insert_media(media);
+						break;
+					}
+
+					targets = Analyser::Static::GetTargets(event.drop.file);
+					if(targets.empty()) break;
+
+					::Machine::Error error;
+					std::unique_ptr<::Machine::DynamicMachine> new_machine(::Machine::MachineForTargets(targets, rom_fetcher, error));
+					if(error != Machine::Error::None) break;
+
+					machine = std::move(new_machine);
+					static_cast<Outputs::Display::ScanTarget *>(&scan_target)->will_change_owner();
+					setup_machine_input_output();
+					window_titler.set_file_name(final_path_component(event.drop.file));
 				} break;
 
 				case SDL_TEXTINPUT:

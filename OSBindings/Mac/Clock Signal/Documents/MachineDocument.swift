@@ -87,6 +87,14 @@ class MachineDocument:
 		}
 	}
 
+	private func dismissPanels() {
+		activityPanel?.setIsVisible(false)
+		activityPanel = nil
+
+		optionsPanel?.setIsVisible(false)
+		optionsPanel = nil
+	}
+
 	override func close() {
 		// Close any dangling sheets.
 		//
@@ -105,11 +113,7 @@ class MachineDocument:
 		machine?.stop()
 
 		// Dismiss panels.
-		activityPanel?.setIsVisible(false)
-		activityPanel = nil
-
-		optionsPanel?.setIsVisible(false)
-		optionsPanel = nil
+		dismissPanels()
 
 		// End the update cycle.
 		actionLock.lock()
@@ -137,19 +141,23 @@ class MachineDocument:
 	func configureAs(_ analysis: CSStaticAnalyser) {
 		self.machineDescription = analysis
 
+		actionLock.lock()
+		drawLock.lock()
+
 		let missingROMs = NSMutableArray()
 		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
 			self.machine = machine
-			setupActivityDisplay()
 			machine.setVolume(userDefaultsVolume())
 			setupMachineOutput()
 		} else {
 			// Store the selected machine and list of missing ROMs, and
 			// show the missing ROMs dialogue.
 			self.missingROMs = missingROMs.map({$0 as! CSMissingROM})
-
 			requestRoms()
 		}
+
+		actionLock.unlock()
+		drawLock.unlock()
 	}
 
 	enum InteractionMode {
@@ -200,6 +208,9 @@ class MachineDocument:
 			let aspectRatio = self.aspectRatio()
 			machine.setView(scanTargetView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
 
+			// Get rid of all existing accessory panels.
+			dismissPanels()
+
 			// Attach an options panel if one is available.
 			if let optionsPanelNibName = self.machineDescription?.optionsPanelNibName {
 				Bundle.main.loadNibNamed(optionsPanelNibName, owner: self, topLevelObjects: nil)
@@ -208,11 +219,10 @@ class MachineDocument:
 				showOptions(self)
 			}
 
-			machine.delegate = self
+			// Create and populate an activity display if required.
+			setupActivityDisplay()
 
-			// Callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
-			// hence the full setup of the best-effort updater prior to setting self as a delegate.
-//			scanTargetView.delegate = self
+			machine.delegate = self
 			scanTargetView.responderDelegate = self
 
 			// If this machine has a mouse, enable mouse capture; also indicate whether usurption
@@ -252,7 +262,7 @@ class MachineDocument:
 		let isStereo = self.machine.isStereo
 		if selectedSamplingRate > 0 {
 			// [Re]create the audio queue only if necessary.
-			if self.audioQueue == nil || self.audioQueue.samplingRate != selectedSamplingRate {
+			if self.audioQueue == nil || self.audioQueue.samplingRate != selectedSamplingRate || self.audioQueue != self.machine.audioQueue {
 				self.machine.audioQueue = nil
 				self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate), isStereo:isStereo)
 				self.audioQueue.delegate = self
@@ -280,8 +290,7 @@ class MachineDocument:
 
 	/// Delegate message to receive drag and drop files.
 	final func scanTargetView(_ view: CSScanTargetView, didReceiveFileAt URL: URL) {
-		let mediaSet = CSMediaSet(fileAt: URL)
-		mediaSet.apply(to: self.machine)
+		insertFile(URL)
 	}
 
 	/// Action for the insert menu command; displays an NSOpenPanel and then segues into the same process
@@ -292,10 +301,27 @@ class MachineDocument:
 		openPanel.beginSheetModal(for: self.windowControllers[0].window!) { (response) in
 			if response == .OK {
 				for url in openPanel.urls {
-					let mediaSet = CSMediaSet(fileAt: url)
-					mediaSet.apply(to: self.machine)
+					self.insertFile(url)
 				}
 			}
+		}
+	}
+
+	private func insertFile(_ URL: URL) {
+		// Try to insert media.
+		let mediaSet = CSMediaSet(fileAt: URL)
+		if !mediaSet.empty {
+			mediaSet.apply(to: self.machine)
+			return
+		}
+
+		// Failing that see whether a new machine is required.
+		// TODO.
+		if let newMachine = CSStaticAnalyser(fileAt: URL) {
+			machine?.stop()
+			self.interactionMode = .notStarted
+			self.scanTargetView.willChangeScanTargetOwner()
+			configureAs(newMachine)
 		}
 	}
 

@@ -309,4 +309,8 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	[machine applyMedia:_media];
 }
 
+- (BOOL)empty {
+	return _media.empty();
+}
+
 @end
