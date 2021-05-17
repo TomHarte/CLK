@@ -19,7 +19,7 @@ bool DirectAccessDevice::read(const Target::CommandState &state, Target::Respond
 	if(!device_) return false;
 
 	const auto specs = state.read_write_specs();
-	LOG("Read: " << specs.number_of_blocks << " from " << specs.address);
+	LOG("Read: " << std::dec << specs.number_of_blocks << " from " << specs.address);
 
 	std::vector<uint8_t> output = device_->get_block(specs.address);
 	for(uint32_t offset = 1; offset < specs.number_of_blocks; ++offset) {
