@@ -695,7 +695,8 @@ int main(int argc, char *argv[]) {
 	//	/usr/share/CLK/[system]; or
 	//	[user-supplied path]/[system]
 	std::vector<ROMMachine::ROM> requested_roms;
-	ROMMachine::ROMFetcher rom_fetcher = [&requested_roms, &arguments]
+	std::vector<std::string> checked_paths;
+	ROMMachine::ROMFetcher rom_fetcher = [&requested_roms, &arguments, &checked_paths]
 		(const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
 			requested_roms.insert(requested_roms.end(), roms.begin(), roms.end());
 
@@ -716,13 +717,16 @@ int main(int argc, char *argv[]) {
 			std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
 			for(const auto &rom: roms) {
 				FILE *file = nullptr;
+				std::vector<std::string> rom_checked_paths;
 				for(const auto &path: paths) {
 					std::string local_path = path + rom.machine_name + "/" + rom.file_name;
 					file = std::fopen(local_path.c_str(), "rb");
+					rom_checked_paths.push_back(local_path);
 					if(file) break;
 				}
 
 				if(!file) {
+					std::copy(rom_checked_paths.begin(), rom_checked_paths.end(), std::back_inserter(checked_paths));
 					results.emplace_back(nullptr);
 					continue;
 				}
@@ -737,8 +741,10 @@ int main(int argc, char *argv[]) {
 
 				if(read == data->size())
 					results.emplace_back(std::move(data));
-				else
+				else {
+					std::copy(rom_checked_paths.begin(), rom_checked_paths.end(), std::back_inserter(checked_paths));
 					results.emplace_back(nullptr);
+				}
 			}
 
 			return results;
@@ -766,7 +772,7 @@ int main(int argc, char *argv[]) {
 					if(!rom.descriptive_name.empty()) {
 						std::cerr << rom.descriptive_name << "; ";
 					}
-					std::cerr << "usual crc32s: ";
+					std::cerr << ((rom.crc32s.size() > 1) ? "usual crc32s: " : "usual crc32: ");
 					bool is_first = true;
 					for(const auto crc32: rom.crc32s) {
 						if(!is_first) std::cerr << ", ";
@@ -775,6 +781,14 @@ int main(int argc, char *argv[]) {
 					}
 					std::cerr << ")" << std::endl;
 				}
+				std::cerr << std::endl << "Tried specifically: ";
+				bool is_first = true;
+				for(const auto &path: checked_paths) {
+					if(!is_first) std::cerr << "; ";
+					std::cerr << path;
+					is_first = false;
+				}
+				std::cerr << std::endl;
 			break;
 		}
 
