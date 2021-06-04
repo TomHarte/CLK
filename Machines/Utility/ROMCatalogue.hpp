@@ -9,6 +9,7 @@
 #ifndef ROMCatalogue_hpp
 #define ROMCatalogue_hpp
 
+#include <map>
 #include <vector>
 
 namespace ROM {
