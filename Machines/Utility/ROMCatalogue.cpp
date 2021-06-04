@@ -168,108 +168,45 @@ Description::Description(Name name) {
 
 		case Name::ZX80:	*this = Description(name, "ZX8081", "the ZX80 BASIC ROM", "zx80.rom", 4 * 1024, 0x4c7fc597u);	break;
 		case Name::ZX81:	*this = Description(name, "ZX8081", "the ZX81 BASIC ROM", "zx81.rom", 8 * 1024, 0x4b1dd6ebu);	break;
+
+		case Name::Spectrum48k:		*this = Description(name, "ZXSpectrum", "the 48kb ROM", "48.rom", 16 * 1024, 0xddee531fu);		break;
+		case Name::Spectrum128k:	*this = Description(name, "ZXSpectrum", "the 128kb ROM", "128.rom", 32 * 1024, 0x2cbe8995u);	break;
+		case Name::SpecrumPlus2:	*this = Description(name, "ZXSpectrum", "the +2 ROM", "plus2.rom", 32 * 1024, 0xe7a517dcu); 	break;
+		case Name::SpectrumPlus3: {
+			const std::initializer_list<uint32_t> crc32s = { 0x96e3c17a, 0xbe0d9ec4 };
+			*this = Description(name, "ZXSpectrum", "the +2a/+3 ROM", "plus3.rom", 64 * 1024, crc32s);
+		} break;
+
+		case Name::AcornBASICII:	*this = Description(name, "Electron", "the Acorn BASIC II ROM", "basic.rom", 16*1024, 0x79434781u); 			break;
+		case Name::PRESADFSSlot1:	*this = Description(name, "Electron", "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16*1024, 0x51523993u); 	break;
+		case Name::PRESADFSSlot2:	*this = Description(name, "Electron", "the E00 ADFS ROM, second slot", "ADFS-E00_2.rom", 16*1024, 0x8d17de0eu); break;
+		case Name::AcornADFS:		*this = Description(name, "Electron", "the Acorn ADFS ROM", "adfs.rom", 16*1024, 0x3289bdc6u); 					break;
+		case Name::Acorn1770DFS:	*this = Description(name, "Electron", "the 8kb Advanced Plus 6 ROM", "AP6v133.rom", 8*1024, 0xe0013cfcu); 		break;
+		case Name::PRESAdvancedPlus6:
+			*this = Description(name, "Electron", "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16*1024, 0xf3dc9bc5u);
+		break;
+		case Name::AcornElectronMOS100:
+			*this = Description(name, "Electron", "the Electron MOS ROM v1.00", "os.rom", 16*1024, 0xbf63fb1fu);
+		break;
+
+		case Name::MasterSystemJapaneseBIOS:	*this = Description(name, "MasterSystem", "the Japanese Master System BIOS", "japanese-bios.sms", 8*1024, 0x48d44a13u); break;
+		case Name::MasterSystemWesternBIOS:		*this = Description(name, "MasterSystem", "the European/US Master System BIOS", "bios.sms", 8*1024, 0x0072ed54u); 		break;
+
+		case Name::Commodore1540:	*this = Description(name, "Commodore1540", "the 1540 ROM", "1540.bin", 16*1024, 0x718d42b1u);	break;
+		case Name::Commodore1541:	*this = Description(name, "Commodore1540", "the 1541 ROM", "1541.bin", 16*1024, 0xfb760019);	break;
+
+		case Name::Vic20BASIC:				*this = Description(name, "Vic20", "the VIC-20 BASIC ROM", "basic.bin", 8*1024, 0xdb4c43c1u);									break;
+		case Name::Vic20EnglishCharacters:	*this = Description(name, "Vic20", "the English-language VIC-20 character ROM", "characters-english.bin", 4*1024, 0x83e032a6u);	break;
+		case Name::Vic20EnglishPALKernel:	*this = Description(name, "Vic20", "the English-language PAL VIC-20 kernel ROM", "kernel-pal.bin", 8*1024, 0x4be07cb4u);		break;
+		case Name::Vic20EnglishNTSCKernel:	*this = Description(name, "Vic20", "the English-language NTSC VIC-20 kernel ROM", "kernel-ntsc.bin", 8*1024, 0xe5e7c174u);		break;
+		case Name::Vic20DanishCharacters:	*this = Description(name, "Vic20", "the Danish VIC-20 character ROM", "characters-danish.bin", 4*1024, 0x7fc11454u);			break;
+		case Name::Vic20DanishKernel:		*this = Description(name, "Vic20", "the Danish VIC-20 kernel ROM", "kernel-danish.bin", 8*1024, 0x02adaf16u);					break;
+		case Name::Vic20JapaneseCharacters:	*this = Description(name, "Vic20", "the Japanese VIC-20 character ROM", "characters-japanese.bin", 4*1024, 0xfcfd8a4bu);		break;
+		case Name::Vic20JapaneseKernel:		*this = Description(name, "Vic20", "the Japanese VIC-20 kernel ROM", "kernel-japanese.bin", 8*1024, 0x336900d7u);				break;
+		case Name::Vic20SwedishCharacters:	*this = Description(name, "Vic20", "the Swedish VIC-20 character ROM", "characters-swedish.bin", 4*1024, 0xd808551du);			break;
+		case Name::Vic20SwedishKernel:		*this = Description(name, "Vic20", "the Swedish VIC-20 kernel ROM", "kernel-swedish.bin", 8*1024, 0xb2a60662u);					break;
 	}
 }
-
-
-//			const std::string machine = "ZXSpectrum";
-//			switch(model) {
-//				case Model::SixteenK:
-//				case Model::FortyEightK:
-//					rom_names.emplace_back(machine, "the 48kb ROM", "48.rom", 16 * 1024, 0xddee531fu);
-//				break;
-//
-//				case Model::OneTwoEightK:
-//					rom_names.emplace_back(machine, "the 128kb ROM", "128.rom", 32 * 1024, 0x2cbe8995u);
-//				break;
-//
-//				case Model::Plus2:
-//					rom_names.emplace_back(machine, "the +2 ROM", "plus2.rom", 32 * 1024, 0xe7a517dcu);
-//				break;
-//
-//				case Model::Plus2a:
-//				case Model::Plus3: {
-//					const std::initializer_list<uint32_t> crc32s = { 0x96e3c17a, 0xbe0d9ec4 };
-//					rom_names.emplace_back(machine, "the +2a/+3 ROM", "plus3.rom", 64 * 1024, crc32s);
-//				} break;
-//			}
-
-
-
-//			const std::string machine_name = "Electron";
-//			std::vector<ROMMachine::ROM> required_roms = {
-//				{machine_name, "the Acorn BASIC II ROM", "basic.rom", 16*1024, 0x79434781},
-//				{machine_name, "the Electron MOS ROM", "os.rom", 16*1024, 0xbf63fb1f}
-//			};
-//			const size_t pres_adfs_rom_position = required_roms.size();
-//			if(target.has_pres_adfs) {
-//				required_roms.emplace_back(machine_name, "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16*1024, 0x51523993);
-//				required_roms.emplace_back(machine_name, "the E00 ADFS ROM, second slot", "ADFS-E00_2.rom", 16*1024, 0x8d17de0e);
-//			}
-//			const size_t acorn_adfs_rom_position = required_roms.size();
-//			if(target.has_acorn_adfs) {
-//				required_roms.emplace_back(machine_name, "the Acorn ADFS ROM", "adfs.rom", 16*1024, 0x3289bdc6);
-//			}
-//			const size_t dfs_rom_position = required_roms.size();
-//			if(target.has_dfs) {
-//				required_roms.emplace_back(machine_name, "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16*1024, 0xf3dc9bc5);
-//			}
-//			const size_t ap6_rom_position = required_roms.size();
-//			if(target.has_ap6_rom) {
-//				required_roms.emplace_back(machine_name, "the 8kb Advanced Plus 6 ROM", "AP6v133.rom", 8*1024, 0xe0013cfc);
-//			}
-
-
-//				new ROMMachine::ROM("MasterSystem",
-//					is_japanese ? "the Japanese Master System BIOS" : "the European/US Master System BIOS",
-//					is_japanese ? "japanese-bios.sms" : "bios.sms",
-//					8*1024,
-//					is_japanese ? 0x48d44a13u : 0x0072ed54u,
-//					true
-//				)
-
-
-//	switch(personality) {
-//		case Personality::C1540:
-//			device_name = "1540";
-//			crc = 0x718d42b1;
-//		break;
-//		case Personality::C1541:
-//			device_name = "1541";
-//			crc = 0xfb760019;
-//		break;
-//	}
-//
-//	auto roms = rom_fetcher({ {"Commodore1540", "the " + device_name + " ROM", device_name + ".bin", 16*1024, crc} });
-
-
-//			const std::string machine_name = "Vic20";
-//			std::vector<ROMMachine::ROM> rom_names = {
-//				{machine_name, "the VIC-20 BASIC ROM", "basic.bin", 8*1024, 0xdb4c43c1u}
-//			};
-//			switch(target.region) {
-//				default:
-//					rom_names.emplace_back(machine_name, "the English-language VIC-20 character ROM", "characters-english.bin", 4*1024, 0x83e032a6u);
-//					rom_names.emplace_back(machine_name, "the English-language PAL VIC-20 kernel ROM", "kernel-pal.bin", 8*1024, 0x4be07cb4u);
-//				break;
-//				case Analyser::Static::Commodore::Target::Region::American:
-//					rom_names.emplace_back(machine_name, "the English-language VIC-20 character ROM", "characters-english.bin", 4*1024, 0x83e032a6u);
-//					rom_names.emplace_back(machine_name, "the English-language NTSC VIC-20 kernel ROM", "kernel-ntsc.bin", 8*1024, 0xe5e7c174u);
-//				break;
-//				case Analyser::Static::Commodore::Target::Region::Danish:
-//					rom_names.emplace_back(machine_name, "the Danish VIC-20 character ROM", "characters-danish.bin", 4*1024, 0x7fc11454u);
-//					rom_names.emplace_back(machine_name, "the Danish VIC-20 kernel ROM", "kernel-danish.bin", 8*1024, 0x02adaf16u);
-//				break;
-//				case Analyser::Static::Commodore::Target::Region::Japanese:
-//					rom_names.emplace_back(machine_name, "the Japanese VIC-20 character ROM", "characters-japanese.bin", 4*1024, 0xfcfd8a4bu);
-//					rom_names.emplace_back(machine_name, "the Japanese VIC-20 kernel ROM", "kernel-japanese.bin", 8*1024, 0x336900d7u);
-//				break;
-//				case Analyser::Static::Commodore::Target::Region::Swedish:
-//					rom_names.emplace_back(machine_name, "the Swedish VIC-20 character ROM", "characters-swedish.bin", 4*1024, 0xd808551du);
-//					rom_names.emplace_back(machine_name, "the Swedish VIC-20 kernel ROM", "kernel-swedish.bin", 8*1024, 0xb2a60662u);
-//				break;
-//			}
-
 
 //			const std::string machine_name = "Oric";
 //			std::vector<ROMMachine::ROM> rom_names = { {machine_name, "the Oric colour ROM", "colour.rom", 128, 0xd50fca65u, true} };
