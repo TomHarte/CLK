@@ -418,8 +418,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				install_card(6, new Apple::II::DiskIICard(roms, is_sixteen_sector));
 			}
 
-			rom_ = std::move(*roms.find(system));
-			video_.set_character_rom(*roms.find(character));
+			rom_ = std::move(roms.find(system)->second);
+			video_.set_character_rom(roms.find(character)->second);
 
 			// Set up the default memory blocks. On a II or II+ these values will never change.
 			// On a IIe they'll be affected by selection of auxiliary RAM.

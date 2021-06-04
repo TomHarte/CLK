@@ -817,10 +817,10 @@ template <bool has_fdc> class ConcreteMachine:
 			}
 
 			if(has_amsdos) {
-				roms_[ROMType::AMSDOS] = *roms.find(ROM::Name::AMSDOS);
+				roms_[ROMType::AMSDOS] = roms.find(ROM::Name::AMSDOS)->second;
 			}
-			roms_[ROMType::OS] = *roms.find(firmware);
-			roms_[ROMType::BASIC] = *roms.find(basic);
+			roms_[ROMType::OS] = roms.find(firmware)->second;
+			roms_[ROMType::BASIC] = roms.find(basic)->second;
 
 			// Establish default memory map
 			upper_rom_is_paged_ = true;
