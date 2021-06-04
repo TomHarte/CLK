@@ -205,91 +205,20 @@ Description::Description(Name name) {
 		case Name::Vic20JapaneseKernel:		*this = Description(name, "Vic20", "the Japanese VIC-20 kernel ROM", "kernel-japanese.bin", 8*1024, 0x336900d7u);				break;
 		case Name::Vic20SwedishCharacters:	*this = Description(name, "Vic20", "the Swedish VIC-20 character ROM", "characters-swedish.bin", 4*1024, 0xd808551du);			break;
 		case Name::Vic20SwedishKernel:		*this = Description(name, "Vic20", "the Swedish VIC-20 kernel ROM", "kernel-swedish.bin", 8*1024, 0xb2a60662u);					break;
+
+		case Name::OricColourROM:		*this = Description(name, "Oric", "the Oric colour ROM", "colour.rom", 128, 0xd50fca65u);			break;
+		case Name::OricBASIC10:			*this = Description(name, "Oric", "Oric BASIC 1.0", "basic10.rom", 16*1024, 0xf18710b4u);			break;
+		case Name::OricBASIC11:			*this = Description(name, "Oric", "Oric BASIC 1.1", "basic11.rom", 16*1024, 0xc3a92befu);			break;
+		case Name::OricPravetzBASIC:	*this = Description(name, "Oric", "Pravetz BASIC", "pravetz.rom", 16*1024, 0x58079502u);			break;
+		case Name::OricByteDrive500:	*this = Description(name, "Oric", "the Oric Byte Drive 500 ROM", "bd500.rom", 8*1024, 0x61952e34u);	break;
+		case Name::OricJasmin:			*this = Description(name, "Oric", "the Oric Jasmin ROM", "jasmin.rom", 2*1024, 0x37220e89u);		break;
+		case Name::OricMicrodisc:		*this = Description(name, "Oric", "the Oric Microdisc ROM", "microdisc.rom", 8*1024, 0xa9664a9cu);	break;
+		case Name::Oric8DOSBoot:		*this = Description(name, "Oric", "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06u);				break;
+
+		case Name::MSXGenericBIOS:	*this = Description(name, "MSX", "any MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u);					break;
+		case Name::MSXJapaneseBIOS:	*this = Description(name, "MSX", "a Japanese MSX BIOS", "msx-japanese.rom", 32*1024, 0xee229390u);	break;
+		case Name::MSXAmericanBIOS:	*this = Description(name, "MSX", "an American MSX BIOS", "msx-american.rom", 32*1024, 0u);			break;
+		case Name::MSXEuropeanBIOS:	*this = Description(name, "MSX", "a European MSX BIOS", "msx-european.rom", 32*1024, 0u);			break;
+		case Name::MSXDOS:			*this = Description(name, "MSX", "the MSX-DOS ROM", "disk.rom", 16*1024, 0x721f61dfu);				break;
 	}
 }
-
-//			const std::string machine_name = "Oric";
-//			std::vector<ROMMachine::ROM> rom_names = { {machine_name, "the Oric colour ROM", "colour.rom", 128, 0xd50fca65u, true} };
-//			switch(target.rom) {
-//				case Analyser::Static::Oric::Target::ROM::BASIC10:
-//					rom_names.emplace_back(machine_name, "Oric BASIC 1.0", "basic10.rom", 16*1024, 0xf18710b4u);
-//				break;
-//				case Analyser::Static::Oric::Target::ROM::BASIC11:
-//					rom_names.emplace_back(machine_name, "Oric BASIC 1.1", "basic11.rom", 16*1024, 0xc3a92befu);
-//				break;
-//				case Analyser::Static::Oric::Target::ROM::Pravetz:
-//					rom_names.emplace_back(machine_name, "Pravetz BASIC", "pravetz.rom", 16*1024, 0x58079502u);
-//				break;
-//			}
-//			size_t diskii_state_machine_index = 0;
-//			switch(disk_interface) {
-//				default: break;
-//				case DiskInterface::BD500:
-//					rom_names.emplace_back(machine_name, "the Oric Byte Drive 500 ROM", "bd500.rom", 8*1024, 0x61952e34u);
-//				break;
-//				case DiskInterface::Jasmin:
-//					rom_names.emplace_back(machine_name, "the Oric Jasmin ROM", "jasmin.rom", 2*1024, 0x37220e89u);
-//				break;
-//				case DiskInterface::Microdisc:
-//					rom_names.emplace_back(machine_name, "the Oric Microdisc ROM", "microdisc.rom", 8*1024, 0xa9664a9cu);
-//				break;
-//				case DiskInterface::Pravetz:
-//					rom_names.emplace_back(machine_name, "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06u);
-//					// These ROM details are coupled with those in the DiskIICard.
-//					diskii_state_machine_index = rom_names.size();
-//					rom_names.emplace_back("DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, std::initializer_list<uint32_t>{ 0x9796a238u, 0xb72a2c70u });
-//				break;
-//			}
-//
-//			const auto collection = ROMMachine::ROMCollection(rom_names);
-
-
-//			const std::string machine_name = "MSX";
-//			std::vector<ROMMachine::ROM> required_roms = {
-//				{machine_name, "any MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u}
-//			};
-//
-//			bool is_ntsc = true;
-//			uint8_t character_generator = 1;	/* 0 = Japan, 1 = USA, etc, 2 = USSR */
-//			uint8_t date_format = 1;			/* 0 = Y/M/D, 1 = M/D/Y, 2 = D/M/Y */
-//			uint8_t keyboard = 1;				/* 0 = Japan, 1 = USA, 2 = France, 3 = UK, 4 = Germany, 5 = USSR, 6 = Spain */
-//
-//			// TODO: CRCs below are incomplete, at best.
-//			switch(target.region) {
-//				case Target::Region::Japan:
-//					required_roms.emplace_back(machine_name, "a Japanese MSX BIOS", "msx-japanese.rom", 32*1024, 0xee229390u);
-//					vdp_->set_tv_standard(TI::TMS::TVStandard::NTSC);
-//
-//					is_ntsc = true;
-//					character_generator = 0;
-//					date_format = 0;
-//				break;
-//				case Target::Region::USA:
-//					required_roms.emplace_back(machine_name, "an American MSX BIOS", "msx-american.rom", 32*1024, 0u);
-//					vdp_->set_tv_standard(TI::TMS::TVStandard::NTSC);
-//
-//					is_ntsc = true;
-//					character_generator = 1;
-//					date_format = 1;
-//				break;
-//				case Target::Region::Europe:
-//					required_roms.emplace_back(machine_name, "a European MSX BIOS", "msx-european.rom", 32*1024, 0u);
-//					vdp_->set_tv_standard(TI::TMS::TVStandard::PAL);
-//
-//					is_ntsc = false;
-//					character_generator = 1;
-//					date_format = 2;
-//				break;
-//			}
-//
-//			ROMMachine::ROMVector rom_list;
-//			ROMMachine::ROMCollection *bios = new ROMMachine::ROMCollection(required_roms, ROMMachine::ROMCollection::Type::Any);
-//			rom_list.emplace_back(bios);
-//
-//			// Fetch the necessary ROMs; try the region-specific ROM first,
-//			// but failing that fall back on patching the main one.
-//			size_t disk_index = 0;
-//			if(target.has_disk_drive) {
-//				disk_index = required_roms.size();
-//				rom_list.emplace_back(new ROMMachine::ROM(machine_name, "the MSX-DOS ROM", "disk.rom", 16*1024, 0x721f61dfu));
-//			}
