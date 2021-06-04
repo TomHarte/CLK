@@ -18,6 +18,7 @@ using namespace Commodore::C1540;
 
 ROM::Request Machine::rom_request(Personality personality) {
 	switch(personality) {
+		default:
 		case Personality::C1540:	return ROM::Request(ROM::Name::Commodore1540);
 		case Personality::C1541:	return ROM::Request(ROM::Name::Commodore1541);
 	}
@@ -48,6 +49,7 @@ MachineBase::MachineBase(Personality personality, const ROM::Map &roms) :
 
 	ROM::Name rom_name;
 	switch(personality) {
+		default:
 		case Personality::C1540:	rom_name = ROM::Name::Commodore1540;	break;
 		case Personality::C1541:	rom_name = ROM::Name::Commodore1541;	break;
 	}

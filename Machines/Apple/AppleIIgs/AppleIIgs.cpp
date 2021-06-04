@@ -193,7 +193,7 @@ class ConcreteMachine:
 			switch(target.model) {
 				case Target::Model::ROM00:	system = ROM::Name::AppleIIgsROM00;	break;
 				case Target::Model::ROM01:	system = ROM::Name::AppleIIgsROM01;	break;
-				case Target::Model::ROM03:	system = ROM::Name::AppleIIgsROM03;	break;
+				default:					system = ROM::Name::AppleIIgsROM03;	break;
 			}
 			constexpr ROM::Name characters = ROM::Name::AppleIIEnhancedECharacter;
 			constexpr ROM::Name microcontroller = ROM::Name::AppleIIgsMicrocontrollerROM03;

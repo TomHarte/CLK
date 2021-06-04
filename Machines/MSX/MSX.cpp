@@ -182,6 +182,7 @@ class ConcreteMachine:
 
 			// TODO: CRCs below are incomplete, at best.
 			switch(target.region) {
+				default:
 				case Target::Region::Japan:
 					regional_bios_name = ROM::Name::MSXJapaneseBIOS;
 					vdp_->set_tv_standard(TI::TMS::TVStandard::NTSC);

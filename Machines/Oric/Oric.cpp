@@ -307,8 +307,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 			::ROM::Request request = ::ROM::Request(::ROM::Name::OricColourROM, true);
 			::ROM::Name basic;
 			switch(target.rom) {
-				case Analyser::Static::Oric::Target::ROM::BASIC10:	basic = ::ROM::Name::OricBASIC10;			break;
-				case Analyser::Static::Oric::Target::ROM::BASIC11:	basic = ::ROM::Name::OricBASIC11;			break;
+				case Analyser::Static::Oric::Target::ROM::BASIC10:	basic = ::ROM::Name::OricBASIC10;		break;
+				default:
+				case Analyser::Static::Oric::Target::ROM::BASIC11:	basic = ::ROM::Name::OricBASIC11;		break;
 				case Analyser::Static::Oric::Target::ROM::Pravetz:	basic = ::ROM::Name::OricPravetzBASIC;	break;
 			}
 			request = request && ::ROM::Request(basic);
