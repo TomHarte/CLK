@@ -10,6 +10,8 @@
 #define ROMCatalogue_hpp
 
 #include <map>
+#include <optional>
+#include <string>
 #include <vector>
 
 namespace ROM {
@@ -135,11 +137,19 @@ struct Description {
 
 	/// Constructs the @c Description that correlates to @c name.
 	Description(Name name);
+
+	/// Constructs the @c Description that correlates to @c crc32.
+	static std::optional<Description> from_crc(uint32_t crc32);
+
+	private:
+		template <typename FileNameT, typename CRC32T> Description(
+			Name name, std::string machine_name, std::string descriptive_name, FileNameT file_names, size_t size, CRC32T crc32s
+		) : name{name}, machine_name{machine_name}, descriptive_name{descriptive_name}, file_names{file_names}, size{size}, crc32s{crc32s} {}
 };
 
 struct Request {
 	Request(Name name, bool optional = false);
-	Request();
+	Request() {}
 
 	Request operator &&(const Request &);
 	Request operator ||(const Request &);
@@ -163,7 +173,7 @@ struct Request {
 			bool is_optional = false;
 			std::vector<Node> children;
 
-			void add_descriptions(std::vector<Description> &);
+			void add_descriptions(std::vector<Description> &) const;
 		};
 		Node node;
 };

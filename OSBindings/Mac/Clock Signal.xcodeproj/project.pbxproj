@@ -12,6 +12,8 @@
 		4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
 		4B0333B02094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
 		4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B049CDC1DA3C82F00322067 /* BCDTest.swift */; };
+		4B051C912669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
+		4B051C922669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
 		4B05401E219D1618001BF69C /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
 		4B05401F219D1618001BF69C /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
 		4B055A7A1FAE78A00060FFFF /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055A771FAE78210060FFFF /* SDL2.framework */; };
@@ -5325,6 +5327,7 @@
 				4BB0A65C2044FD3000FB3688 /* SN76489.cpp in Sources */,
 				4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */,
 				4B0F1C242605996900B85C66 /* ZXSpectrumTAP.cpp in Sources */,
+				4B051C912669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */,
 				4B055AB91FAE86170060FFFF /* Acorn.cpp in Sources */,
 				4B302185208A550100773308 /* DiskII.cpp in Sources */,
 				4B0F1BB32602645900B85C66 /* StaticAnalyser.cpp in Sources */,
@@ -5541,6 +5544,7 @@
 				4B15A9FC208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,
 				4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */,
 				4B0F1BDA2602FF9800B85C66 /* Video.cpp in Sources */,
+				4B051C922669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */,
 				4B54C0C81F8D91E50050900F /* Keyboard.cpp in Sources */,
 				4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */,
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,

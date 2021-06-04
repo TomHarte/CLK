@@ -8,20 +8,23 @@
 
 #include "ROMCatalogue.hpp"
 
+#include <algorithm>
 #include <cassert>
 
 using namespace ROM;
 
-Request::Request(Name name, bool optional) :
-	node.name(name), node.is_optional(optional) {}
-
-Request::Request() {}
+Request::Request(Name name, bool optional) {
+	node.name = name;
+	node.is_optional = optional;
+}
 
 Request Request::operator &&(const Request &rhs) {
+	(void)rhs;
 	return *this;
 }
 
 Request Request::operator ||(const Request &rhs) {
+	(void)rhs;
 	return *this;
 }
 
@@ -31,12 +34,12 @@ bool Request::validate(const Map &) const {
 }
 
 std::vector<ROM::Description> Request::all_descriptions() const {
-	std::vector<Description>() result;
+	std::vector<Description> result;
 	node.add_descriptions(result);
 	return result;
 }
 
-void Request::Node::add_descriptions(std::vector<Description> &result) {
+void Request::Node::add_descriptions(std::vector<Description> &result) const {
 	if(type == Type::One) {
 		result.push_back(name);
 		return;
@@ -47,40 +50,53 @@ void Request::Node::add_descriptions(std::vector<Description> &result) {
 	}
 }
 
+std::optional<Description> Description::from_crc(uint32_t crc32) {
+	for(int name = 1; name <= SpectrumPlus3; name++) {
+		const Description candidate = Description(ROM::Name(name));
+
+		const auto found_crc = std::find(candidate.crc32s.begin(), candidate.crc32s.end(), crc32);
+		if(found_crc != candidate.crc32s.end()) {
+			return candidate;
+		}
+	}
+
+	return std::nullopt;
+}
+
 Description::Description(Name name) {
 	switch(name) {
 		default: assert(false);	break;
 
 		case Name::AMSDOS:
-			*this = Request("AmstradCPC", "the Amstrad Disk Operating System", "amsdos.rom", 16*1024, 0x1fe22ecdu);
+			*this = Description(name, "AmstradCPC", "the Amstrad Disk Operating System", "amsdos.rom", 16*1024, 0x1fe22ecdu);
 		break;
 		case Name::CPC464Firmware:
-			*this = Request("AmstradCPC", "the CPC 464 firmware", "os464.rom", 16*1024, 0x815752dfu);
+			*this = Description(name, "AmstradCPC", "the CPC 464 firmware", "os464.rom", 16*1024, 0x815752dfu);
 		break;
 		case Name::CPC464BASIC:
-			*this = Request("AmstradCPC", "the CPC 464 BASIC ROM", "basic464.rom", 16*1024, 0x7d9a3bacu);
+			*this = Description(name, "AmstradCPC", "the CPC 464 BASIC ROM", "basic464.rom", 16*1024, 0x7d9a3bacu);
 		break;
 		case Name::CPC664Firmware:
-			*this = Request("AmstradCPC", "the CPC 664 firmware", "os664.rom", 16*1024, 0x3f5a6dc4u);
+			*this = Description(name, "AmstradCPC", "the CPC 664 firmware", "os664.rom", 16*1024, 0x3f5a6dc4u);
 		break;
 		case Name::CPC664BASIC:
-			*this = Request("AmstradCPC", "the CPC 664 BASIC ROM", "basic664.rom", 16*1024, 0x32fee492u);
+			*this = Description(name, "AmstradCPC", "the CPC 664 BASIC ROM", "basic664.rom", 16*1024, 0x32fee492u);
 		break;
 		case Name::CPC6128Firmware:
-			*this = Request("AmstradCPC", "the CPC 6128 firmware", "os664.rom", 16*1024, 0x0219bb74u);
+			*this = Description(name, "AmstradCPC", "the CPC 6128 firmware", "os664.rom", 16*1024, 0x0219bb74u);
 		break;
 		case Name::CPC6128BASIC:
-			*this = Request("AmstradCPC", "the CPC 6128 BASIC ROM", "basic664.rom", 16*1024, 0xca6af63du);
+			*this = Description(name, "AmstradCPC", "the CPC 6128 BASIC ROM", "basic664.rom", 16*1024, 0xca6af63du);
 		break;
 
 //"AppleII"
-	AppleIIOriginal,
-	AppleIIPlus,
-	AppleIICharacter,
-	AppleIIe,
-	AppleIIeCharacter,
-	AppleIIEnhancedE,
-	AppleIIEnhancedECharacter,
+//	AppleIIOriginal,
+//	AppleIIPlus,
+//	AppleIICharacter,
+//	AppleIIe,
+//	AppleIIeCharacter,
+//	AppleIIEnhancedE,
+//	AppleIIEnhancedECharacter,
 	}
 
 //					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::EnhancedIIe));
