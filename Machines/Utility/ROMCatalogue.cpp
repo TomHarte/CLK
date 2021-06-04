@@ -151,48 +151,25 @@ Description::Description(Name name) {
 		case Name::DiskIIStateMachine13Sector:
 			*this = Description(name, "DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620u);
 		break;
+
+		case Name::Macintosh128k:	*this = Description(name, "Macintosh", "the Macintosh 128k ROM", "mac128k.rom", 64*1024, 0x6d0c8a28u);	break;
+		case Name::Macintosh512k:	*this = Description(name, "Macintosh", "the Macintosh 512k ROM", "mac512k.rom", 64*1024, 0xcf759e0d);	break;
+		case Name::MacintoshPlus: {
+			const std::initializer_list<uint32_t> crc32s = { 0x4fa5b399, 0x7cacd18f, 0xb2102e8e };
+			*this = Description(name, "Macintosh", "the Macintosh Plus ROM", "macplus.rom", 128*1024, crc32s);
+		} break;
+
+		case Name::AtariSTTOS100:	*this = Description(name, "AtariST", "the UK TOS 1.00 ROM", "tos100.img", 192*1024, 0x1a586c64u);	break;
+		case Name::AtariSTTOS104:	*this = Description(name, "AtariST", "the UK TOS 1.04 ROM", "tos104.img", 192*1024, 0xa50d1d43u);	break;
+
+		case Name::ColecoVisionBIOS:
+			*this = Description(name, "ColecoVision", "the ColecoVision BIOS", "coleco.rom", 8*1024, 0x3aa93ef3u);
+		break;
+
+		case Name::ZX80:	*this = Description(name, "ZX8081", "the ZX80 BASIC ROM", "zx80.rom", 4 * 1024, 0x4c7fc597u);	break;
+		case Name::ZX81:	*this = Description(name, "ZX8081", "the ZX81 BASIC ROM", "zx81.rom", 8 * 1024, 0x4b1dd6ebu);	break;
 	}
 }
-
-
-//			switch(model) {
-//				default:
-//				case Model::Mac128k:
-//					ram_size = 128*1024;
-//					rom_size = 64*1024;
-//					rom_descriptions.emplace_back(machine_name, "the Macintosh 128k ROM", "mac128k.rom", 64*1024, 0x6d0c8a28);
-//				break;
-//				case Model::Mac512k:
-//					ram_size = 512*1024;
-//					rom_size = 64*1024;
-//					rom_descriptions.emplace_back(machine_name, "the Macintosh 512k ROM", "mac512k.rom", 64*1024, 0xcf759e0d);
-//				break;
-//				case Model::Mac512ke:
-//				case Model::MacPlus: {
-//					ram_size = ((model == Model::MacPlus) ? 4096 : 512)*1024;
-//					rom_size = 128*1024;
-//					const std::initializer_list<uint32_t> crc32s = { 0x4fa5b399, 0x7cacd18f, 0xb2102e8e };
-//					rom_descriptions.emplace_back(machine_name, "the Macintosh Plus ROM", "macplus.rom", 128*1024, crc32s);
-//				} break;
-//			}
-
-
-
-//			std::vector<ROMMachine::ROM> rom_descriptions = {
-//				{"AtariST", "the UK TOS 1.00 ROM", "tos100.img", 192*1024, 0x1a586c64}
-////				{"AtariST", "the UK TOS 1.04 ROM", "tos104.img", 192*1024, 0xa50d1d43}
-//			};
-
-
-// 			rom_list.emplace_back(new ROMMachine::ROM("ColecoVision", "the ColecoVision BIOS", std::vector<std::string>{ "coleco.rom" }, 8*1024, 0x3aa93ef3u));
-
-
-//			if(use_zx81_rom) {
-//				rom_list.emplace_back(new ROMMachine::ROM("ZX8081", "the ZX81 BASIC ROM", std::vector<std::string>{ "zx81.rom" }, 8 * 1024, 0x4b1dd6ebu));
-//			} else {
-//				rom_list.emplace_back(new ROMMachine::ROM("ZX8081", "the ZX80 BASIC ROM", std::vector<std::string>{ "zx80.rom" }, 4 * 1024, 0x4c7fc597u));
-//			}
-
 
 
 //			const std::string machine = "ZXSpectrum";
