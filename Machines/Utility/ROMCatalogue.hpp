@@ -156,7 +156,9 @@ struct Request {
 
 	/// Inspects the ROMMap to ensure that it satisfies this @c Request.
 	/// @c returns @c true if the request is satisfied; @c false otherwise.
-	bool validate(const Map &) const;
+	///
+	/// All ROMs in the map will be resized to their idiomatic sizes.
+	bool validate(Map &) const;
 
 	std::vector<Description> all_descriptions() const;
 
@@ -174,6 +176,7 @@ struct Request {
 			std::vector<Node> children;
 
 			void add_descriptions(std::vector<Description> &) const;
+			bool validate(Map &) const;
 		};
 		Node node;
 };

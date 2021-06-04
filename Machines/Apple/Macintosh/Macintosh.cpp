@@ -123,7 +123,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			// Grab a copy of the ROM and convert it into big-endian data.
 			ROM::Request request(rom_name);
-			const auto roms = rom_fetcher(request);
+			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}

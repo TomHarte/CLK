@@ -82,7 +82,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 			if(target.has_ap6_rom) {
 				request = request && ::ROM::Request(::ROM::Name::PRESAdvancedPlus6);
 			}
-			const auto roms = rom_fetcher(request);
+			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}

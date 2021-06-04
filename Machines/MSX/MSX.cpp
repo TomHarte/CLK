@@ -219,7 +219,7 @@ class ConcreteMachine:
 				request = bios_request;
 			}
 
-			const auto roms = rom_fetcher(request);
+			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}

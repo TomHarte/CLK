@@ -811,7 +811,7 @@ template <bool has_fdc> class ConcreteMachine:
 			}
 
 			// Fetch and verify the ROMs.
-			const auto roms = rom_fetcher(request);
+			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}

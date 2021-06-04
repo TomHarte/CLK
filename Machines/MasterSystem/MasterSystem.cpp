@@ -143,7 +143,8 @@ class ConcreteMachine:
 			const bool is_japanese = target.region == Target::Region::Japan;
 			const ROM::Name bios_name = is_japanese ? ROM::Name::MasterSystemJapaneseBIOS : ROM::Name::MasterSystemWesternBIOS;
 			ROM::Request request(bios_name, true);
-			const auto roms = rom_fetcher(request);
+			auto roms = rom_fetcher(request);
+			request.validate(roms);
 
 			const auto rom = roms.find(bios_name);
 			if(rom == roms.end()) {

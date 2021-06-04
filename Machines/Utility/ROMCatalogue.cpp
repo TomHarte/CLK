@@ -28,9 +28,8 @@ Request Request::operator ||(const Request &rhs) {
 	return *this;
 }
 
-bool Request::validate(const Map &) const {
-	/* TODO. */
-	return true;
+bool Request::validate(Map &map) const {
+	return node.validate(map);
 }
 
 std::vector<ROM::Description> Request::all_descriptions() const {
@@ -48,6 +47,38 @@ void Request::Node::add_descriptions(std::vector<Description> &result) const {
 	for(const auto &node: children) {
 		node.add_descriptions(result);
 	}
+}
+
+bool Request::Node::validate(Map &map) const {
+	// Leaf nodes are easy: check that the named ROM is present,
+	// unless it's optional, in which case it is always valid.
+	//
+	// If it is present, make sure it's the proper size.
+	if(type == Type::One) {
+		auto rom = map.find(name);
+		if(rom == map.end()) {
+			return is_optional;
+		}
+
+		const Description description(name);
+		rom->second.resize(description.size);
+
+		return true;
+	}
+
+	// This is a collection node then. Check for both any or all
+	// simultaneously, since all nodes will need to be visited
+	// regardless of any/all in order to ensure proper sizing.
+	bool has_all = true;
+	bool has_any = false;
+
+	for(const auto &child: children) {
+		const bool is_valid = child.validate(map);
+		has_all &= is_valid;
+		has_any |= is_valid;
+	}
+
+	return (type == Type::Any && has_any) || (type == Type::All && has_all);
 }
 
 std::optional<Description> Description::from_crc(uint32_t crc32) {

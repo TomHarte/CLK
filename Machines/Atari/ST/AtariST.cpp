@@ -76,7 +76,7 @@ class ConcreteMachine:
 
 			constexpr ROM::Name rom_name = ROM::Name::AtariSTTOS100;
 			ROM::Request request(rom_name);
-			const auto roms = rom_fetcher(request);
+			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}

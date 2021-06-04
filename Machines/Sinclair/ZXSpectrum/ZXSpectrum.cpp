@@ -157,7 +157,7 @@ template<Model model> class ConcreteMachine:
 				// TODO: possibly accept the +3 ROM in multiple parts?
 			}
 			const auto request = ROM::Request(rom_name);
-			const auto roms = rom_fetcher(request);
+			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}

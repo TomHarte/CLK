@@ -330,7 +330,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 				break;
 			}
 
-			const auto roms = rom_fetcher(request);
+			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
