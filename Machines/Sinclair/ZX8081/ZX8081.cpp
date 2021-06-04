@@ -74,15 +74,13 @@ template<bool is_zx81> class ConcreteMachine:
 			speaker_.set_input_rate(float(ZX8081ClockRate) / 2.0f);
 
 			const bool use_zx81_rom = target.is_ZX81 || target.ZX80_uses_ZX81_ROM;
-			const auto roms =
-				use_zx81_rom ?
-					rom_fetcher({ {"ZX8081", "the ZX81 BASIC ROM", "zx81.rom", 8 * 1024, 0x4b1dd6eb} }) :
-					rom_fetcher({ {"ZX8081", "the ZX80 BASIC ROM", "zx80.rom", 4 * 1024, 0x4c7fc597} });
-
-			if(!roms[0]) throw ROMMachine::Error::MissingROMs;
-
-			rom_ = std::move(*roms[0]);
-			rom_.resize(use_zx81_rom ? 8192 : 4096);
+			const ROM::Name rom_name = use_zx81_rom ? ROM::Name::ZX81 : ROM::Name::ZX80;
+			const ROM::Request request(rom_name);
+			auto roms = rom_fetcher(request);
+			if(!request.validate(roms)) {
+				throw ROMMachine::Error::MissingROMs;
+			}
+			rom_ = std::move(roms.find(rom_name)->second);
 
 			rom_mask_ = uint16_t(rom_.size() - 1);
 

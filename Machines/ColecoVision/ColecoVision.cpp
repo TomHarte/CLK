@@ -127,15 +127,13 @@ class ConcreteMachine:
 			joysticks_.emplace_back(new Joystick);
 			joysticks_.emplace_back(new Joystick);
 
-			const auto roms = rom_fetcher(
-				{ {"ColecoVision", "the ColecoVision BIOS", "coleco.rom", 8*1024, 0x3aa93ef3} });
-
-			if(!roms[0]) {
+			constexpr ROM::Name rom_name = ROM::Name::ColecoVisionBIOS;
+			const ROM::Request request(rom_name);
+			const auto roms = rom_fetcher(request);
+			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
-
-			bios_ = *roms[0];
-			bios_.resize(8192);
+			bios_ = roms.find(rom_name)->second;
 
 			if(!target.media.cartridges.empty()) {
 				const auto &segment = target.media.cartridges.front()->get_segments().front();

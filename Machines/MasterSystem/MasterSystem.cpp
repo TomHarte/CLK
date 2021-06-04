@@ -141,23 +141,19 @@ class ConcreteMachine:
 			//	0072ed54 = US/European BIOS 1.3
 			//	48d44a13 = Japanese BIOS 2.1
 			const bool is_japanese = target.region == Target::Region::Japan;
-			const auto roms = rom_fetcher(
-				{ {"MasterSystem",
-					is_japanese ? "the Japanese Master System BIOS" : "the European/US Master System BIOS",
-					is_japanese ? "japanese-bios.sms" : "bios.sms",
-					8*1024,
-					{ is_japanese ? 0x48d44a13u : 0x0072ed54u }
-				} }
-			);
-			if(!roms[0]) {
+			const ROM::Name bios_name = is_japanese ? ROM::Name::MasterSystemJapaneseBIOS : ROM::Name::MasterSystemWesternBIOS;
+			ROM::Request request(bios_name, true);
+			const auto roms = rom_fetcher(request);
+
+			const auto rom = roms.find(bios_name);
+			if(rom == roms.end()) {
 				// No BIOS found; attempt to boot as though it has already disabled itself.
 				has_bios_ = false;
 				memory_control_ |= 0x08;
 				std::cerr << "No BIOS found; attempting to start cartridge directly" << std::endl;
 			} else {
 				has_bios_ = true;
-				roms[0]->resize(8*1024);
-				memcpy(&bios_, roms[0]->data(), roms[0]->size());
+				memcpy(&bios_, rom->second.data(), std::min(sizeof(bios_), rom->second.size()));
 			}
 			page_cartridge();
 

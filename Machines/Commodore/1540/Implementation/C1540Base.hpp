@@ -127,7 +127,7 @@ class MachineBase:
 	public Storage::Disk::Controller {
 
 	public:
-		MachineBase(Personality personality, const ROMMachine::ROMFetcher &rom_fetcher);
+		MachineBase(Personality personality, const ROM::Map &roms);
 
 		// to satisfy CPU::MOS6502::Processor
 		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);

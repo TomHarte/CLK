@@ -377,49 +377,49 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			// Pick the required ROMs.
 			using Target = Analyser::Static::AppleII::Target;
-			const std::string machine_name = "AppleII";
-			std::vector<ROMMachine::ROM> rom_descriptions;
-			size_t rom_size = 12*1024;
+			ROM::Name character, system;
+
 			switch(target.model) {
 				default:
-					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::II));
-					rom_descriptions.emplace_back(machine_name, "the original Apple II ROM", "apple2o.rom", 12*1024, 0xba210588);
+					character = ROM::Name::AppleIICharacter;
+					system = ROM::Name::AppleIIOriginal;
 				break;
 				case Target::Model::IIplus:
-					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::II));
-					rom_descriptions.emplace_back(machine_name, "the Apple II+ ROM", "apple2.rom", 12*1024, 0xf66f9c26);
+					character = ROM::Name::AppleIICharacter;
+					system = ROM::Name::AppleIIPlus;
 				break;
 				case Target::Model::IIe:
-					rom_size += 3840;
-					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::IIe));
-					rom_descriptions.emplace_back(machine_name, "the Apple IIe ROM", "apple2eu.rom", 32*1024, 0xe12be18d);
+					character = ROM::Name::AppleIIeCharacter;
+					system = ROM::Name::AppleIIe;
 				break;
 				case Target::Model::EnhancedIIe:
-					rom_size += 3840;
-					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::EnhancedIIe));
-					rom_descriptions.emplace_back(machine_name, "the Enhanced Apple IIe ROM", "apple2e.rom", 32*1024, 0x65989942);
+					character = ROM::Name::AppleIIEnhancedECharacter;
+					system = ROM::Name::AppleIIEnhancedE;
 				break;
 			}
-			const auto roms = rom_fetcher(rom_descriptions);
 
-			// Try to install a Disk II card now, before checking the ROM list,
-			// to make sure that Disk II dependencies have been communicated.
-			if(target.disk_controller != Target::DiskController::None) {
+			ROM::Request request = ROM::Request(character) && ROM::Request(system);
+
+			// Add the necessary Disk II requests if appropriate.
+			const bool has_disk_controller = target.disk_controller != Target::DiskController::None;
+			const bool is_sixteen_sector = target.disk_controller == Target::DiskController::SixteenSector;
+			if(has_disk_controller) {
 				// Apple recommended slot 6 for the (first) Disk II.
-				install_card(6, new Apple::II::DiskIICard(rom_fetcher, target.disk_controller == Target::DiskController::SixteenSector));
+				request = request && DiskIICard::rom_request(is_sixteen_sector);
 			}
 
-			// Now, check and move the ROMs.
-			if(!roms[0] || !roms[1]) {
+			// Request, validate and install ROMs.
+			auto roms = rom_fetcher(request);
+			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
 
-			rom_ = std::move(*roms[1]);
-			if(rom_.size() > rom_size) {
-				rom_.erase(rom_.begin(), rom_.end() - off_t(rom_size));
+			if(has_disk_controller) {
+				install_card(6, new Apple::II::DiskIICard(roms, is_sixteen_sector));
 			}
 
-			video_.set_character_rom(*roms[0]);
+			rom_ = std::move(*roms.find(system));
+			video_.set_character_rom(*roms.find(character));
 
 			// Set up the default memory blocks. On a II or II+ these values will never change.
 			// On a IIe they'll be affected by selection of auxiliary RAM.

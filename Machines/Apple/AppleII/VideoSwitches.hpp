@@ -228,36 +228,6 @@ template <typename TimeUnit> class VideoSwitches {
 			return external_.annunciator_3;
 		}
 
-		enum class CharacterROM {
-			/// The ROM that shipped with both the Apple II and the II+.
-			II,
-			/// The ROM that shipped with the original IIe.
-			IIe,
-			/// The ROM that shipped with the Enhanced IIe.
-			EnhancedIIe,
-			/// The ROM that shipped with the IIgs.
-			IIgs
-		};
-
-		/// @returns A file-level description of @c rom.
-		static ROMMachine::ROM rom_description(CharacterROM rom) {
-			const std::string machine_name = "AppleII";
-			switch(rom) {
-				case CharacterROM::II:
-					return ROMMachine::ROM(machine_name, "the basic Apple II character ROM", "apple2-character.rom", 2*1024, 0x64f415c6);
-
-				case CharacterROM::IIe:
-					return ROMMachine::ROM(machine_name, "the Apple IIe character ROM", "apple2eu-character.rom", 4*1024, 0x816a86f1);
-
-				default:	// To appease GCC.
-				case CharacterROM::EnhancedIIe:
-					return ROMMachine::ROM(machine_name, "the Enhanced Apple IIe character ROM", "apple2e-character.rom", 4*1024, 0x2651014d);
-
-				case CharacterROM::IIgs:
-					return ROMMachine::ROM(machine_name, "the Apple IIgs character ROM", "apple2gs.chr", 4*1024, 0x91e53cd8);
-			}
-		}
-
 		/// Set the character ROM for this video output.
 		void set_character_rom(const std::vector<uint8_t> &rom) {
 			character_rom_ = rom;

@@ -16,7 +16,14 @@
 
 using namespace Commodore::C1540;
 
-MachineBase::MachineBase(Personality personality, const ROMMachine::ROMFetcher &rom_fetcher) :
+ROM::Request MachineBase::rom_request(Personality personality) {
+	switch(personality) {
+		case Personality::C1540:	return ROM::Request(ROM::Name::Commodore1540);
+		case Personality::C1541:	return ROM::Request(ROM::Name::Commodore1541);
+	}
+}
+
+MachineBase::MachineBase(Personality personality, const ROM::Map &roms) :
 		Storage::Disk::Controller(1000000),
 		m6502_(*this),
 		serial_port_VIA_port_handler_(new SerialPortVIA(serial_port_VIA_)),
@@ -39,28 +46,21 @@ MachineBase::MachineBase(Personality personality, const ROMMachine::ROMFetcher &
 	emplace_drive(1000000, 300, 2);
 	set_drive(1);
 
-	std::string device_name;
-	uint32_t crc = 0;
+	ROM::Name rom_name;
 	switch(personality) {
-		case Personality::C1540:
-			device_name = "1540";
-			crc = 0x718d42b1;
-		break;
-		case Personality::C1541:
-			device_name = "1541";
-			crc = 0xfb760019;
-		break;
+		case Personality::C1540:	rom_name = ROM::Name::Commodore1540;	break;
+		case Personality::C1541:	rom_name = ROM::Name::Commodore1541;	break;
 	}
 
-	auto roms = rom_fetcher({ {"Commodore1540", "the " + device_name + " ROM", device_name + ".bin", 16*1024, crc} });
-	if(!roms[0]) {
+	auto rom = roms.find(rom_name);
+	if(rom == roms.end()) {
 		throw ROMMachine::Error::MissingROMs;
 	}
-	std::memcpy(rom_, roms[0]->data(), std::min(sizeof(rom_), roms[0]->size()));
+	std::memcpy(rom_, roms.find(rom_name)->second.data(), std::min(sizeof(rom_), roms.find(rom_name)->second.size()));
 }
 
-Machine::Machine(Personality personality, const ROMMachine::ROMFetcher &rom_fetcher) :
-	MachineBase(personality, rom_fetcher) {}
+Machine::Machine(Personality personality, const ROM::Map &roms) :
+	MachineBase(personality, roms) {}
 
 void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus) {
 	Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus);

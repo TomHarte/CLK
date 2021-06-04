@@ -96,25 +96,24 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			using Model = Analyser::Static::Macintosh::Target::Model;
 			const std::string machine_name = "Macintosh";
 			uint32_t ram_size, rom_size;
-			std::vector<ROMMachine::ROM> rom_descriptions;
+			ROM::Name rom_name;
 			switch(model) {
 				default:
 				case Model::Mac128k:
 					ram_size = 128*1024;
 					rom_size = 64*1024;
-					rom_descriptions.emplace_back(machine_name, "the Macintosh 128k ROM", "mac128k.rom", 64*1024, 0x6d0c8a28);
+					rom_name = ROM::Name::Macintosh128k;
 				break;
 				case Model::Mac512k:
 					ram_size = 512*1024;
 					rom_size = 64*1024;
-					rom_descriptions.emplace_back(machine_name, "the Macintosh 512k ROM", "mac512k.rom", 64*1024, 0xcf759e0d);
+					rom_name = ROM::Name::Macintosh512k;
 				break;
 				case Model::Mac512ke:
 				case Model::MacPlus: {
 					ram_size = ((model == Model::MacPlus) ? 4096 : 512)*1024;
 					rom_size = 128*1024;
-					const std::initializer_list<uint32_t> crc32s = { 0x4fa5b399, 0x7cacd18f, 0xb2102e8e };
-					rom_descriptions.emplace_back(machine_name, "the Macintosh Plus ROM", "macplus.rom", 128*1024, crc32s);
+					rom_name = ROM::Name::MacintoshPlus;
 				} break;
 			}
 			ram_mask_ = ram_size - 1;
@@ -123,12 +122,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			video_.set_ram(reinterpret_cast<uint16_t *>(ram_.data()), ram_mask_ >> 1);
 
 			// Grab a copy of the ROM and convert it into big-endian data.
-			const auto roms = rom_fetcher(rom_descriptions);
-			if(!roms[0]) {
+			ROM::Request request(rom_name);
+			const auto roms = rom_fetcher(request);
+			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
-			roms[0]->resize(rom_size);
-			Memory::PackBigEndian16(*roms[0], rom_);
+			Memory::PackBigEndian16(roms.find(rom_name)->second, rom_);
 
 			// Randomise memory contents.
 			Memory::Fuzz(ram_);

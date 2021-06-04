@@ -25,7 +25,8 @@ namespace II {
 
 class DiskIICard: public Card, public ClockingHint::Observer {
 	public:
-		DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sector);
+		static ROM::Request rom_request(bool is_16_sector);
+		DiskIICard(ROM::Map &, bool is_16_sector);
 
 		void perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) final;
 		void run_for(Cycles cycles, int stretches) final;
