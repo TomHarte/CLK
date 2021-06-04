@@ -113,106 +113,46 @@ Description::Description(Name name) {
 	switch(name) {
 		default: assert(false);	break;
 
-		case Name::AMSDOS:
-			*this = Description(name, "AmstradCPC", "the Amstrad Disk Operating System", "amsdos.rom", 16*1024, 0x1fe22ecdu);
-		break;
-		case Name::CPC464Firmware:
-			*this = Description(name, "AmstradCPC", "the CPC 464 firmware", "os464.rom", 16*1024, 0x815752dfu);
-		break;
-		case Name::CPC464BASIC:
-			*this = Description(name, "AmstradCPC", "the CPC 464 BASIC ROM", "basic464.rom", 16*1024, 0x7d9a3bacu);
-		break;
-		case Name::CPC664Firmware:
-			*this = Description(name, "AmstradCPC", "the CPC 664 firmware", "os664.rom", 16*1024, 0x3f5a6dc4u);
-		break;
-		case Name::CPC664BASIC:
-			*this = Description(name, "AmstradCPC", "the CPC 664 BASIC ROM", "basic664.rom", 16*1024, 0x32fee492u);
-		break;
-		case Name::CPC6128Firmware:
-			*this = Description(name, "AmstradCPC", "the CPC 6128 firmware", "os664.rom", 16*1024, 0x0219bb74u);
-		break;
-		case Name::CPC6128BASIC:
-			*this = Description(name, "AmstradCPC", "the CPC 6128 BASIC ROM", "basic664.rom", 16*1024, 0xca6af63du);
+		case Name::AMSDOS:				*this = Description(name, "AmstradCPC", "the Amstrad Disk Operating System", "amsdos.rom", 16*1024, 0x1fe22ecdu);	break;
+		case Name::CPC464Firmware:		*this = Description(name, "AmstradCPC", "the CPC 464 firmware", "os464.rom", 16*1024, 0x815752dfu);					break;
+		case Name::CPC464BASIC:			*this = Description(name, "AmstradCPC", "the CPC 464 BASIC ROM", "basic464.rom", 16*1024, 0x7d9a3bacu);				break;
+		case Name::CPC664Firmware:		*this = Description(name, "AmstradCPC", "the CPC 664 firmware", "os664.rom", 16*1024, 0x3f5a6dc4u);					break;
+		case Name::CPC664BASIC:			*this = Description(name, "AmstradCPC", "the CPC 664 BASIC ROM", "basic664.rom", 16*1024, 0x32fee492u);				break;
+		case Name::CPC6128Firmware:		*this = Description(name, "AmstradCPC", "the CPC 6128 firmware", "os664.rom", 16*1024, 0x0219bb74u);				break;
+		case Name::CPC6128BASIC:		*this = Description(name, "AmstradCPC", "the CPC 6128 BASIC ROM", "basic664.rom", 16*1024, 0xca6af63du);			break;
+
+		case Name::AppleIIEnhancedE:	*this = Description(name, "AppleII", "the Enhanced Apple IIe ROM", "apple2e.rom", 32*1024, 0x65989942u);				break;
+		case Name::AppleIIe:			*this = Description(name, "AppleII", "the Apple IIe ROM", "apple2eu.rom", 32*1024, 0xe12be18du);						break;
+		case Name::AppleIIPlus:			*this = Description(name, "AppleII", "the Apple II+ ROM", "apple2.rom", 12*1024, 0xf66f9c26u);							break;
+		case Name::AppleIIOriginal:		*this = Description(name, "AppleII", "the original Apple II ROM", "apple2o.rom", 12*1024, 0xba210588u);					break;
+		case Name::AppleIICharacter:	*this = Description(name, "AppleII", "the basic Apple II character ROM", "apple2-character.rom", 2*1024, 0x64f415c6u);	break;
+		case Name::AppleIIeCharacter:	*this = Description(name, "AppleII", "the Apple IIe character ROM", "apple2eu-character.rom", 4*1024, 0x816a86f1u);		break;
+		case Name::AppleIIEnhancedECharacter:
+			*this = Description(name, "AppleII", "the Enhanced Apple IIe character ROM", "apple2e-character.rom", 4*1024, 0x2651014du);
 		break;
 
-//"AppleII"
-//	AppleIIOriginal,
-//	AppleIIPlus,
-//	AppleIICharacter,
-//	AppleIIe,
-//	AppleIIeCharacter,
-//	AppleIIEnhancedE,
-//	AppleIIEnhancedECharacter,
+		case Name::AppleIIgsROM00:	/* TODO */
+		case Name::AppleIIgsROM01:		*this = Description(name, "AppleIIgs", "the Apple IIgs ROM01", "apple2gs.rom", 128*1024, 0x42f124b0u);			break;
+		case Name::AppleIIgsROM03:		*this = Description(name, "AppleIIgs", "the Apple IIgs ROM03", "apple2gs.rom2", 256*1024, 0xde7ddf29u);			break;
+		case Name::AppleIIgsCharacter:	*this = Description(name, "AppleIIgs", "the Apple IIgs character ROM", "apple2gs.chr", 4*1024, 0x91e53cd8u);	break;
+		case AppleIIgsMicrocontrollerROM03:
+			*this = Description(name, "AppleIIgs", "the Apple IIgs ROM03 ADB microcontroller ROM", "341s0632-2", 4*1024, 0xe1c11fb0u);
+		break;
+
+		case Name::DiskIIBoot16Sector:
+			*this = Description(name, "DiskII", "the Disk II 16-sector boot ROM", "boot-16.rom", 256, 0xce7144f6u);
+		break;
+		case Name::DiskIIStateMachine16Sector:
+			*this = Description(name, "DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, std::initializer_list<uint32_t>{ 0x9796a238, 0xb72a2c70 } );
+		break;
+		case Name::DiskIIBoot13Sector:
+			*this = Description(name, "DiskII", "the Disk II 13-sector boot ROM", "boot-13.rom", 256, 0xd34eb2ffu);
+		break;
+		case Name::DiskIIStateMachine13Sector:
+			*this = Description(name, "DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620u);
+		break;
 	}
-
-//					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::EnhancedIIe));
-//					rom_descriptions.emplace_back(machine_name, "the Enhanced Apple IIe ROM", "apple2e.rom", 32*1024, 0x65989942u);
-//					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::IIe));
-//					rom_descriptions.emplace_back(machine_name, "the Apple IIe ROM", "apple2eu.rom", 32*1024, 0xe12be18du);
-//					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::II));
-//					rom_descriptions.emplace_back(machine_name, "the Apple II+ ROM", "apple2.rom", 12*1024, 0xf66f9c26u);
-//					rom_descriptions.push_back(video_.rom_description(Video::VideoBase::CharacterROM::II));
-//					rom_descriptions.emplace_back(machine_name, "the original Apple II ROM", "apple2o.rom", 12*1024, 0xba210588u);
-
-//		roms = rom_fetcher({
-//			{"DiskII", "the Disk II 16-sector boot ROM", "boot-16.rom", 256, 0xce7144f6},
-//			{"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0x9796a238, 0xb72a2c70 } }
-//		});
-//		roms = rom_fetcher({
-//			{"DiskII", "the Disk II 13-sector boot ROM", "boot-13.rom", 256, 0xd34eb2ff},
-//			{"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0x9796a238, 0xb72a2c70 } }
-////			{"DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620 }
-//		});
-
-
-//		enum class CharacterROM {
-//			/// The ROM that shipped with both the Apple II and the II+.
-//			II,
-//			/// The ROM that shipped with the original IIe.
-//			IIe,
-//			/// The ROM that shipped with the Enhanced IIe.
-//			EnhancedIIe,
-//			/// The ROM that shipped with the IIgs.
-//			IIgs
-//		};
-//
-//		/// @returns A file-level description of @c rom.
-//		static ROM::Name rom_name(CharacterROM rom) {
-//			const std::string machine_name = "AppleII";
-//			switch(rom) {
-//				case CharacterROM::II:
-//					return ROMMachine::ROM(machine_name, "the basic Apple II character ROM", "apple2-character.rom", 2*1024, 0x64f415c6);
-//
-//				case CharacterROM::IIe:
-//					return ROMMachine::ROM(machine_name, "the Apple IIe character ROM", "apple2eu-character.rom", 4*1024, 0x816a86f1);
-//
-//				default:	// To appease GCC.
-//				case CharacterROM::EnhancedIIe:
-//					return ROMMachine::ROM(machine_name, "the Enhanced Apple IIe character ROM", "apple2e-character.rom", 4*1024, 0x2651014d);
-//
-//				case CharacterROM::IIgs:
-//					return ROMMachine::ROM(machine_name, "the Apple IIgs character ROM", "apple2gs.chr", 4*1024, 0x91e53cd8);
-//			}
-//		}
 }
-
-
-//			const std::string machine_name = "AppleIIgs";
-//			switch(target.model) {
-//				case Target::Model::ROM00:
-//					/* TODO */
-//				case Target::Model::ROM01:
-//					rom_descriptions.emplace_back(machine_name, "the Apple IIgs ROM01", "apple2gs.rom", 128*1024, 0x42f124b0u);
-//				break;
-//
-//				case Target::Model::ROM03:
-//					rom_descriptions.emplace_back(machine_name, "the Apple IIgs ROM03", "apple2gs.rom2", 256*1024, 0xde7ddf29u);
-//				break;
-//			}
-//			rom_descriptions.push_back(video_->rom_description(Video::Video::CharacterROM::EnhancedIIe));
-//
-//			// TODO: pick a different ADB ROM for earlier machine revisions?
-//			rom_descriptions.emplace_back(machine_name, "the Apple IIgs ADB microcontroller ROM", "341s0632-2", 4*1024, 0xe1c11fb0u);
 
 
 //			switch(model) {

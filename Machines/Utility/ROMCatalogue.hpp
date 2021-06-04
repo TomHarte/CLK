@@ -48,6 +48,7 @@ enum Name {
 	AppleIIgsROM01,
 	AppleIIgsROM03,
 	AppleIIgsMicrocontrollerROM03,
+	AppleIIgsCharacter,
 
 	// Atari ST.
 	AtariSTTOS100,
