@@ -179,6 +179,8 @@ struct Request {
 			bool validate(Map &) const;
 		};
 		Node node;
+
+		Request append(Node::Type type, const Request &rhs);
 };
 
 }

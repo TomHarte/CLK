@@ -18,14 +18,29 @@ Request::Request(Name name, bool optional) {
 	node.is_optional = optional;
 }
 
+Request Request::append(Node::Type type, const Request &rhs) {
+	// Start with the easiest case: this is already an ::All request, and
+	// so is the new thing.
+	if(node.type == type && rhs.node.type == type) {
+		Request new_request = *this;
+		new_request.node.children.insert(new_request.node.children.end(), rhs.node.children.begin(), rhs.node.children.end());
+		return new_request;
+	}
+
+	// Otherwise create a new parent node.
+	Request parent;
+	parent.node.type = type;
+	parent.node.children.push_back(this->node);
+	parent.node.children.push_back(rhs.node);
+	return parent;
+}
+
 Request Request::operator &&(const Request &rhs) {
-	(void)rhs;
-	return *this;
+	return append(Node::Type::All, rhs);
 }
 
 Request Request::operator ||(const Request &rhs) {
-	(void)rhs;
-	return *this;
+	return append(Node::Type::Any, rhs);
 }
 
 bool Request::validate(Map &map) const {
