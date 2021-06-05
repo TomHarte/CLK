@@ -707,11 +707,20 @@ int main(int argc, char *argv[]) {
 
 			const auto rompath = arguments.selections.find("rompath");
 			if(rompath != arguments.selections.end()) {
-				if(rompath->second.back() != '/') {
-					paths.push_back(rompath->second + "/");
-				} else {
-					paths.push_back(rompath->second);
+				std::string path = rompath->second;
+
+				// Ensure the path ends in a slash.
+				if(path.back() != '/') {
+					path += '/';
 				}
+
+				// If ~ is present, expand it to %HOME%.
+				const size_t tilde_position = path.find("~");
+				if(tilde_position != std::string::npos) {
+					path.replace(tilde_position, 1, getenv("HOME"));
+				}
+
+				paths.push_back(path);
 			}
 
 			ROM::Map results;
@@ -764,11 +773,33 @@ int main(int argc, char *argv[]) {
 	if(!machine) {
 		switch(error) {
 			default: break;
-			case ::Machine::Error::MissingROM:
-/*				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath." << std::endl;
-				std::cerr << "One or more of the following was needed but not found:" << std::endl;
-				for(const auto &rom: requested_roms) {
-					std::cerr << rom.machine_name << '/' << rom.file_name << " (";
+			case ::Machine::Error::MissingROM: {
+				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath, e.g. --rompath=~/ROMs." << std::endl;
+				std::cerr << "Needed ";
+
+				int indentation_level = 0;
+				const auto indent = [&indentation_level] {
+					if(indentation_level) {
+						std::cerr << std::endl;
+						for(int c = 0; c < indentation_level; c++) std::cerr << '\t';
+						std::cerr << "* ";
+					}
+				};
+
+				requested_roms.visit([&indentation_level, indent] (ROM::Request::ListType type) {
+					indent();
+					switch(type) {
+						default:
+						case ROM::Request::ListType::All:	std::cerr << "all of:";		break;
+						case ROM::Request::ListType::Any:	std::cerr << "any of:";		break;
+					}
+					++indentation_level;
+				}, [&indentation_level] {
+					--indentation_level;
+				}, [&indentation_level, indent] (ROM::Request::ListType type, const ROM::Description &rom, bool is_optional, size_t remaining) {
+					indent();
+					if(is_optional) std::cerr << "optionally, ";
+					std::cerr << rom.machine_name << '/' << rom.file_names[0] << " (";
 					if(!rom.descriptive_name.empty()) {
 						std::cerr << rom.descriptive_name << "; ";
 					}
@@ -779,17 +810,27 @@ int main(int argc, char *argv[]) {
 						is_first = false;
 						std::cerr << std::hex << std::setfill('0') << std::setw(8) << crc32;
 					}
-					std::cerr << ")" << std::endl;
-				}
-				std::cerr << std::endl << "Tried specifically: ";
+					std::cerr << ")";
+
+					if(remaining) {
+						std::cerr << ";";
+						if(remaining == 1) {
+							std::cerr << ((type == ROM::Request::ListType::All) ? " and" : " or");
+						}
+					} else {
+						std::cerr << ".";
+					}
+				});
+
+				std::cerr << std::endl << std::endl << "Searched unsuccessfully: ";
 				bool is_first = true;
 				for(const auto &path: checked_paths) {
 					if(!is_first) std::cerr << "; ";
 					std::cerr << path;
 					is_first = false;
 				}
-				std::cerr << std::endl;*/
-			break;
+				std::cerr << std::endl;
+			} break;
 		}
 
 		return EXIT_FAILURE;

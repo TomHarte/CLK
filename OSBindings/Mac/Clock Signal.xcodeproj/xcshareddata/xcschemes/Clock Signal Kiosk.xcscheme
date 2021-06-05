@@ -57,6 +57,14 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--rompath=~/ROMs"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--has-disk-drive"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/Macintosh/MusicWorks 0.42.image&quot;"
             isEnabled = "NO">
          </CommandLineArgument>
@@ -106,7 +114,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--rompath=/Users/thomasharte/Projects/CLK/ROMImages"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--help"
@@ -117,7 +125,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=oric"
+            argument = "--new=msx"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

@@ -96,6 +96,44 @@ bool Request::Node::validate(Map &map) const {
 	return (type == Type::Any && has_any) || (type == Type::All && has_all);
 }
 
+void Request::visit(
+	const std::function<void(ListType)> &enter_list,
+	const std::function<void(void)> &exit_list,
+	const std::function<void(ROM::Request::ListType, const ROM::Description &, bool, size_t)> &add_item
+) const {
+	node.visit(enter_list, exit_list, add_item);
+}
+
+void Request::Node::visit(
+	const std::function<void(ListType)> &enter_list,
+	const std::function<void(void)> &exit_list,
+	const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
+) const {
+	switch(type) {
+		case Type::One:
+			enter_list(ListType::Single);
+			add_item(ROM::Request::ListType::Any, Description(name), is_optional, 0);
+			exit_list();
+		break;
+
+		case Type::Any:
+		case Type::All: {
+			const ListType list_type = type == Type::Any ? ListType::Any : ListType::All;
+			enter_list(list_type);
+			for(size_t index = 0; index < children.size(); index++) {
+				auto &child = children[index];
+
+				if(child.type == Type::One) {
+					add_item(list_type, Description(child.name), child.is_optional, children.size() - 1 - index);
+				} else {
+					child.visit(enter_list, exit_list, add_item);
+				}
+			}
+			exit_list();
+		} break;
+	}
+}
+
 std::optional<Description> Description::from_crc(uint32_t crc32) {
 	for(int name = 1; name <= SpectrumPlus3; name++) {
 		const Description candidate = Description(ROM::Name(name));

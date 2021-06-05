@@ -163,6 +163,15 @@ struct Request {
 
 	std::vector<Description> all_descriptions() const;
 
+	enum class ListType {
+		Any, All, Single
+	};
+	void visit(
+		const std::function<void(ListType)> &enter_list,
+		const std::function<void(void)> &exit_list,
+		const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
+	) const;
+
 	private:
 		struct Node {
 			enum class Type {
@@ -178,6 +187,11 @@ struct Request {
 
 			void add_descriptions(std::vector<Description> &) const;
 			bool validate(Map &) const;
+			void visit(
+				const std::function<void(ListType)> &enter_list,
+				const std::function<void(void)> &exit_list,
+				const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
+			) const;
 		};
 		Node node;
 
