@@ -58,7 +58,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--rompath=~/ROMs"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--has-disk-drive"

@@ -799,18 +799,25 @@ int main(int argc, char *argv[]) {
 				}, [&indentation_level, indent] (ROM::Request::ListType type, const ROM::Description &rom, bool is_optional, size_t remaining) {
 					indent();
 					if(is_optional) std::cerr << "optionally, ";
-					std::cerr << rom.machine_name << '/' << rom.file_names[0] << " (";
-					if(!rom.descriptive_name.empty()) {
-						std::cerr << rom.descriptive_name << "; ";
+					std::cerr << rom.machine_name << '/' << rom.file_names[0];
+
+					if(!rom.descriptive_name.empty() || !rom.crc32s.empty()) {
+						std::cerr << " (";
+						if(!rom.descriptive_name.empty()) {
+							std::cerr << rom.descriptive_name;
+							if(!rom.crc32s.empty()) std::cerr << "; ";
+						}
+						if(!rom.crc32s.empty()) {
+							std::cerr << ((rom.crc32s.size() > 1) ? "usual crc32s: " : "usual crc32: ");
+							bool is_first = true;
+							for(const auto crc32: rom.crc32s) {
+								if(!is_first) std::cerr << ", ";
+								is_first = false;
+								std::cerr << std::hex << std::setfill('0') << std::setw(8) << crc32;
+							}
+						}
+						std::cerr << ")";
 					}
-					std::cerr << ((rom.crc32s.size() > 1) ? "usual crc32s: " : "usual crc32: ");
-					bool is_first = true;
-					for(const auto crc32: rom.crc32s) {
-						if(!is_first) std::cerr << ", ";
-						is_first = false;
-						std::cerr << std::hex << std::setfill('0') << std::setw(8) << crc32;
-					}
-					std::cerr << ")";
 
 					if(remaining) {
 						std::cerr << ";";
