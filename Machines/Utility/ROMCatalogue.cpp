@@ -156,8 +156,8 @@ Description::Description(Name name) {
 		case Name::CPC464BASIC:			*this = Description(name, "AmstradCPC", "the CPC 464 BASIC ROM", "basic464.rom", 16*1024, 0x7d9a3bacu);				break;
 		case Name::CPC664Firmware:		*this = Description(name, "AmstradCPC", "the CPC 664 firmware", "os664.rom", 16*1024, 0x3f5a6dc4u);					break;
 		case Name::CPC664BASIC:			*this = Description(name, "AmstradCPC", "the CPC 664 BASIC ROM", "basic664.rom", 16*1024, 0x32fee492u);				break;
-		case Name::CPC6128Firmware:		*this = Description(name, "AmstradCPC", "the CPC 6128 firmware", "os664.rom", 16*1024, 0x0219bb74u);				break;
-		case Name::CPC6128BASIC:		*this = Description(name, "AmstradCPC", "the CPC 6128 BASIC ROM", "basic664.rom", 16*1024, 0xca6af63du);			break;
+		case Name::CPC6128Firmware:		*this = Description(name, "AmstradCPC", "the CPC 6128 firmware", "os6128.rom", 16*1024, 0x0219bb74u);				break;
+		case Name::CPC6128BASIC:		*this = Description(name, "AmstradCPC", "the CPC 6128 BASIC ROM", "basic6128.rom", 16*1024, 0xca6af63du);			break;
 
 		case Name::AppleIIEnhancedE:	*this = Description(name, "AppleII", "the Enhanced Apple IIe ROM", "apple2e.rom", 32*1024, 0x65989942u);				break;
 		case Name::AppleIIe:			*this = Description(name, "AppleII", "the Apple IIe ROM", "apple2eu.rom", 32*1024, 0xe12be18du);						break;

@@ -798,10 +798,12 @@ template <bool has_fdc> class ConcreteMachine:
 				case Analyser::Static::AmstradCPC::Target::Model::CPC664:
 					firmware = ROM::Name::CPC664Firmware;
 					basic = ROM::Name::CPC664BASIC;
+					has_amsdos = true;
 				break;
 				default:
 					firmware = ROM::Name::CPC6128Firmware;
 					basic = ROM::Name::CPC6128BASIC;
+					has_amsdos = true;
 				break;
 			}
 
