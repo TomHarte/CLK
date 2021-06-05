@@ -132,10 +132,10 @@ struct ActivityObserver: public Activity::Observer {
 		_analyser = result;
 
 		Machine::Error error;
-		std::vector<ROMMachine::ROM> missing_roms;
+		ROM::Request missing_roms;
 		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error));
 		if(!_machine) {
-			for(const auto &missing_rom : missing_roms) {
+/*			for(const auto &missing_rom : missing_roms) {
 				CSMissingROM *rom = [[CSMissingROM alloc] init];
 
 				// Copy/convert the primitive fields.
@@ -153,7 +153,7 @@ struct ActivityObserver: public Activity::Observer {
 
 				// Add to the missing list.
 				[missingROMs addObject:rom];
-			}
+			}*/
 
 			return nil;
 		}

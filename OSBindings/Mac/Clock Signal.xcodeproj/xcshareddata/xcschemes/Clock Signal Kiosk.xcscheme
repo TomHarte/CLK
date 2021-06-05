@@ -125,7 +125,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=msx"
+            argument = "--new=electron"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

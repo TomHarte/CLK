@@ -14,45 +14,40 @@
 
 #include <string>
 
-ROMMachine::ROMFetcher CSROMFetcher(std::vector<ROMMachine::ROM> *missing_roms) {
-	return [missing_roms] (const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
+ROMMachine::ROMFetcher CSROMFetcher(ROM::Request *missing) {
+	return [missing] (const ROM::Request &roms) -> ROM::Map {
 		NSArray<NSURL *> *const supportURLs = [[NSFileManager defaultManager] URLsForDirectory:NSApplicationSupportDirectory inDomains:NSUserDomainMask];
 
-		std::vector<std::unique_ptr<std::vector<std::uint8_t>>> results;
-		for(const auto &rom: roms) {
-			NSData *fileData;
-			NSString *const subdirectory = [@"ROMImages/" stringByAppendingString:[NSString stringWithUTF8String:rom.machine_name.c_str()]];
+		ROM::Map results;
+		for(const auto &description: roms.all_descriptions()) {
+			for(const auto &file_name: description.file_names) {
+				NSData *fileData;
+				NSString *const subdirectory = [@"ROMImages/" stringByAppendingString:[NSString stringWithUTF8String:description.machine_name.c_str()]];
 
-			// Check for this file first within the application support directories.
-			for(NSURL *supportURL in supportURLs) {
-				NSURL *const fullURL = [[supportURL URLByAppendingPathComponent:subdirectory]
-							URLByAppendingPathComponent:[NSString stringWithUTF8String:rom.file_name.c_str()]];
-				fileData = [NSData dataWithContentsOfURL:fullURL];
-				if(fileData) break;
-			}
+				// Check for this file first within the application support directories.
+				for(NSURL *supportURL in supportURLs) {
+					NSURL *const fullURL = [[supportURL URLByAppendingPathComponent:subdirectory]
+								URLByAppendingPathComponent:[NSString stringWithUTF8String:file_name.c_str()]];
+					fileData = [NSData dataWithContentsOfURL:fullURL];
+					if(fileData) break;
+				}
 
-			// Failing that, check inside the application bundle.
-			if(!fileData) {
-				fileData = [[NSBundle mainBundle]
-					dataForResource:[NSString stringWithUTF8String:rom.file_name.c_str()]
-					withExtension:nil
-					subdirectory:subdirectory];
-			}
+				// Failing that, check inside the application bundle.
+				if(!fileData) {
+					fileData = [[NSBundle mainBundle]
+						dataForResource:[NSString stringWithUTF8String:file_name.c_str()]
+						withExtension:nil
+						subdirectory:subdirectory];
+				}
 
-			// Store an appropriate result, accumulating a list of the missing if requested.
-			if(!fileData) {
-				results.emplace_back(nullptr);
-
-				if(missing_roms) {
-					missing_roms->push_back(rom);
+				// Store an appropriate result.
+				if(fileData) {
+					results[description.name] = fileData.stdVector8;
 				}
 			}
-			else {
-				auto data = std::make_unique<std::vector<std::uint8_t>>();
-				*data = fileData.stdVector8;
-				results.emplace_back(std::move(data));
-			}
 		}
+
+		// TODO: sever all found ROMs from roms and store to missing, if provided.
 
 		return results;
 	};
