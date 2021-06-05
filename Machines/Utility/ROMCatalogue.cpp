@@ -219,9 +219,9 @@ Description::Description(Name name) {
 		case Name::PRESADFSSlot1:	*this = Description(name, "Electron", "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16*1024, 0x51523993u); 	break;
 		case Name::PRESADFSSlot2:	*this = Description(name, "Electron", "the E00 ADFS ROM, second slot", "ADFS-E00_2.rom", 16*1024, 0x8d17de0eu); break;
 		case Name::AcornADFS:		*this = Description(name, "Electron", "the Acorn ADFS ROM", "adfs.rom", 16*1024, 0x3289bdc6u); 					break;
-		case Name::Acorn1770DFS:	*this = Description(name, "Electron", "the 8kb Advanced Plus 6 ROM", "AP6v133.rom", 8*1024, 0xe0013cfcu); 		break;
+		case Name::Acorn1770DFS:	*this = Description(name, "Electron", "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16*1024, 0xf3dc9bc5u);			break;
 		case Name::PRESAdvancedPlus6:
-			*this = Description(name, "Electron", "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16*1024, 0xf3dc9bc5u);
+			*this = Description(name, "Electron", "the 8kb Advanced Plus 6 ROM", "AP6v133.rom", 8*1024, 0xe0013cfcu);
 		break;
 		case Name::AcornElectronMOS100:
 			*this = Description(name, "Electron", "the Electron MOS ROM v1.00", "os.rom", 16*1024, 0xbf63fb1fu);
