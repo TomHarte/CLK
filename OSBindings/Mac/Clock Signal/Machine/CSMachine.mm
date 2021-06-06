@@ -104,7 +104,7 @@ struct ActivityObserver: public Activity::Observer {
 	NSMutableArray<dispatch_block_t> *_inputEvents;
 }
 
-- (instancetype)initWithAnalyser:(CSStaticAnalyser *)result missingROMs:(inout NSString *)missingROMs {
+- (instancetype)initWithAnalyser:(CSStaticAnalyser *)result missingROMs:(inout NSMutableString *)missingROMs {
 	self = [super init];
 	if(self) {
 		_analyser = result;
@@ -113,6 +113,7 @@ struct ActivityObserver: public Activity::Observer {
 		ROM::Request missing_roms;
 		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error));
 		if(!_machine) {
+			[missingROMs appendFormat:@"Who told you?"];
 /*			for(const auto &missing_rom : missing_roms) {
 				CSMissingROM *rom = [[CSMissingROM alloc] init];
 

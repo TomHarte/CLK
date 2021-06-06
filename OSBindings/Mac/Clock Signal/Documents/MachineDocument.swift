@@ -144,11 +144,15 @@ class MachineDocument:
 		actionLock.lock()
 		drawLock.lock()
 
+		let missingROMs = NSMutableString()
 		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
+			setRomRequesterIsVisible(false)
+
 			self.machine = machine
 			machine.setVolume(userDefaultsVolume())
 			setupMachineOutput()
 		} else {
+			self.missingROMs = missingROMs as String
 			requestRoms()
 		}
 
@@ -409,23 +413,38 @@ class MachineDocument:
 	@IBOutlet var romReceiverErrorField: NSTextField?
 	@IBOutlet var romReceiverView: CSROMReceiverView?
 	private var romRequestBaseText = ""
+
+	private func setRomRequesterIsVisible(_ visible : Bool) {
+		if self.romRequesterPanel!.isVisible == visible {
+			return
+		}
+
+		if visible {
+			self.windowControllers[0].window?.beginSheet(self.romRequesterPanel!, completionHandler: nil)
+		} else {
+			self.windowControllers[0].window?.endSheet(self.romRequesterPanel!)
+		}
+	}
+
 	func requestRoms() {
 		// Don't act yet if there's no window controller yet.
 		if self.windowControllers.count == 0 {
 			return
 		}
 
-		// Load the ROM requester dialogue.
-		Bundle.main.loadNibNamed("ROMRequester", owner: self, topLevelObjects: nil)
-		self.romReceiverView!.delegate = self
-		self.romRequestBaseText = romRequesterText!.stringValue
-		romReceiverErrorField?.alphaValue = 0.0
+		// Load the ROM requester dialogue if it's not already loaded.
+		if self.romRequesterPanel == nil {
+			Bundle.main.loadNibNamed("ROMRequester", owner: self, topLevelObjects: nil)
+			self.romReceiverView!.delegate = self
+			self.romRequestBaseText = romRequesterText!.stringValue
+			romReceiverErrorField?.alphaValue = 0.0
+		}
 
 		// Populate the current absentee list.
 		populateMissingRomList()
 
 		// Show the thing.
-		self.windowControllers[0].window?.beginSheet(self.romRequesterPanel!, completionHandler: nil)
+		setRomRequesterIsVisible(true)
 	}
 
 	@IBAction func cancelRequestROMs(_ sender: NSButton?) {
@@ -440,59 +459,10 @@ class MachineDocument:
 		// Test whether the file identified matches any of the currently missing ROMs.
 		// If so then remove that ROM from the missing list and update the request screen.
 		// If no ROMs are still missing, start the machine.
-		do {
-			let fileData = try Data(contentsOf: URL)
-			var didInstallRom = false
-
-			// Try to match by size first, CRC second. Accept that some ROMs may have
-			// some additional appended data. Arbitrarily allow them to be up to 10kb
-			// too large.
-/*			var index = 0
-			for missingROM in self.missingROMs {
-				if fileData.count >= missingROM.size && fileData.count < missingROM.size + 10*1024 {
-					// Trim to size.
-					let trimmedData = fileData[0 ..< missingROM.size]
-
-					// Get CRC.
-					if missingROM.crc32s.contains( (trimmedData as NSData).crc32 ) {
-						// This ROM matches; copy it into the application library,
-						// strike it from the missing ROM list and decide how to
-						// proceed.
-						let fileManager = FileManager.default
-						let targetPath = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-							.appendingPathComponent("ROMImages")
-							.appendingPathComponent(missingROM.machineName)
-						let targetFile = targetPath
-							.appendingPathComponent(missingROM.fileName)
-
-						do {
-							try fileManager.createDirectory(atPath: targetPath.path, withIntermediateDirectories: true, attributes: nil)
-							try trimmedData.write(to: targetFile)
-						} catch let error {
-							showRomReceiverError(error: "Couldn't write to application support directory: \(error)")
-						}
-
-						self.missingROMs.remove(at: index)
-						didInstallRom = true
-						break
-					}
-				}
-
-				index = index + 1
-			}*/
-
-			if didInstallRom {
-				if self.missingROMs.count == 0 {
-					self.windowControllers[0].window?.endSheet(self.romRequesterPanel!)
-					configureAs(self.machineDescription!)
-				} else {
-					populateMissingRomList()
-				}
-			} else {
-				showRomReceiverError(error: "Didn't recognise contents of \(URL.lastPathComponent)")
-			}
-		} catch let error {
-			showRomReceiverError(error: "Couldn't read file at \(URL.absoluteString): \(error)")
+		if CSMachine.attemptInstallROM(URL) {
+			configureAs(self.machineDescription!)
+		} else {
+			showRomReceiverError(error: "Didn't recognise contents of \(URL.lastPathComponent)")
 		}
 	}
 

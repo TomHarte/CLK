@@ -65,7 +65,8 @@ BOOL CSInstallROM(NSURL *url) {
 
 	// Copy the data to its destination and report success.
 	NSURL *const targetURL = [urlsFor(*target_description, target_description->file_names[0]) firstObject];
-	[data writeToURL:targetURL atomically:YES];
+	[[NSFileManager defaultManager] createDirectoryAtPath:targetURL.URLByDeletingLastPathComponent.path withIntermediateDirectories:YES attributes:nil error:nil];
+	[data writeToURL:targetURL atomically:NO];
 
 	return YES;
 }
