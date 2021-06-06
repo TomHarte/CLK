@@ -74,28 +74,6 @@ struct ActivityObserver: public Activity::Observer {
 	__unsafe_unretained CSMachine *machine;
 };
 
-@interface CSMissingROM (/*Mutability*/)
-@property (nonatomic, nonnull, copy) NSString *machineName;
-@property (nonatomic, nonnull, copy) NSString *fileName;
-@property (nonatomic, nullable, copy) NSString *descriptiveName;
-@property (nonatomic, readwrite) NSUInteger size;
-@property (nonatomic, copy) NSArray<NSNumber *> *crc32s;
-@end
-
-@implementation CSMissingROM
-
-@synthesize machineName=_machineName;
-@synthesize fileName=_fileName;
-@synthesize descriptiveName=_descriptiveName;
-@synthesize size=_size;
-@synthesize crc32s=_crc32s;
-
-- (NSString *)description {
-	return [NSString stringWithFormat:@"%@/%@, %lu bytes, CRCs: %@", _fileName, _descriptiveName, (unsigned long)_size, _crc32s];
-}
-
-@end
-
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
 	ActivityObserver _activityObserver;
@@ -126,7 +104,7 @@ struct ActivityObserver: public Activity::Observer {
 	NSMutableArray<dispatch_block_t> *_inputEvents;
 }
 
-- (instancetype)initWithAnalyser:(CSStaticAnalyser *)result missingROMs:(inout NSMutableArray<CSMissingROM *> *)missingROMs {
+- (instancetype)initWithAnalyser:(CSStaticAnalyser *)result missingROMs:(inout NSString *)missingROMs {
 	self = [super init];
 	if(self) {
 		_analyser = result;
@@ -781,6 +759,10 @@ struct ActivityObserver: public Activity::Observer {
 - (void)stop {
 	[_timer invalidate];
 	_timer = nil;
+}
+
++ (BOOL)attemptInstallROM:(NSURL *)url {
+	return CSInstallROM(url);
 }
 
 @end

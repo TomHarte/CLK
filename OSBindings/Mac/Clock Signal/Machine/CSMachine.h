@@ -33,19 +33,13 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 	CSMachineKeyboardInputModeJoystick,
 };
 
-@interface CSMissingROM: NSObject
-@property (nonatomic, readonly, nonnull) NSString *machineName;
-@property (nonatomic, readonly, nonnull) NSString *fileName;
-@property (nonatomic, readonly, nullable) NSString *descriptiveName;
-@property (nonatomic, readonly) NSUInteger size;
-@property (nonatomic, readonly, nonnull) NSArray<NSNumber *> *crc32s;
-@end
-
 // Deliberately low; to ensure CSMachine has been declared as an @class already.
 #import "CSAtari2600.h"
 #import "CSZX8081.h"
 
 @interface CSMachine : NSObject
+
++ (BOOL)attemptInstallROM:(NSURL *)url;
 
 - (nonnull instancetype)init NS_UNAVAILABLE;
 
@@ -56,7 +50,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 	@param missingROMs An array that is filled with a list of ROMs that the machine requested but which
 		were not found; populated only if this `init` has failed.
 */
-- (nullable instancetype)initWithAnalyser:(nonnull CSStaticAnalyser *)result missingROMs:(nullable inout NSMutableArray<CSMissingROM *> *)missingROMs NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithAnalyser:(nonnull CSStaticAnalyser *)result missingROMs:(nullable inout NSString *)missingROMs NS_DESIGNATED_INITIALIZER;
 
 - (float)idealSamplingRateFromRange:(NSRange)range;
 @property (readonly, getter=isStereo) BOOL stereo;

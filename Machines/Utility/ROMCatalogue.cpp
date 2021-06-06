@@ -13,6 +13,10 @@
 
 using namespace ROM;
 
+namespace {
+constexpr Name MaxName = Name::SpectrumPlus3;
+}
+
 Request::Request(Name name, bool optional) {
 	node.name = name;
 	node.is_optional = optional;
@@ -173,8 +177,16 @@ void Request::Node::visit(
 	}
 }
 
+std::vector<Description> ROM::all_descriptions() {
+	std::vector<Description> result;
+	for(int name = 1; name <= MaxName; name++) {
+		result.push_back(Description(ROM::Name(name)));
+	}
+	return result;
+}
+
 std::optional<Description> Description::from_crc(uint32_t crc32) {
-	for(int name = 1; name <= SpectrumPlus3; name++) {
+	for(int name = 1; name <= MaxName; name++) {
 		const Description candidate = Description(ROM::Name(name));
 
 		const auto found_crc = std::find(candidate.crc32s.begin(), candidate.crc32s.end(), crc32);
@@ -232,8 +244,8 @@ Description::Description(Name name) {
 		case Name::Macintosh128k:	*this = Description(name, "Macintosh", "the Macintosh 128k ROM", "mac128k.rom", 64*1024, 0x6d0c8a28u);	break;
 		case Name::Macintosh512k:	*this = Description(name, "Macintosh", "the Macintosh 512k ROM", "mac512k.rom", 64*1024, 0xcf759e0d);	break;
 		case Name::MacintoshPlus: {
-			const std::initializer_list<uint32_t> crc32s = { 0x4fa5b399, 0x7cacd18f, 0xb2102e8e };
-			*this = Description(name, "Macintosh", "the Macintosh Plus ROM", "macplus.rom", 128*1024, crc32s);
+			const std::initializer_list<uint32_t> crcs = { 0x4fa5b399, 0x7cacd18f, 0xb2102e8e };
+			*this = Description(name, "Macintosh", "the Macintosh Plus ROM", "macplus.rom", 128*1024, crcs);
 		} break;
 
 		case Name::AtariSTTOS100:	*this = Description(name, "AtariST", "the UK TOS 1.00 ROM", "tos100.img", 192*1024, 0x1a586c64u);	break;
@@ -250,8 +262,8 @@ Description::Description(Name name) {
 		case Name::Spectrum128k:	*this = Description(name, "ZXSpectrum", "the 128kb ROM", "128.rom", 32 * 1024, 0x2cbe8995u);	break;
 		case Name::SpecrumPlus2:	*this = Description(name, "ZXSpectrum", "the +2 ROM", "plus2.rom", 32 * 1024, 0xe7a517dcu); 	break;
 		case Name::SpectrumPlus3: {
-			const std::initializer_list<uint32_t> crc32s = { 0x96e3c17a, 0xbe0d9ec4 };
-			*this = Description(name, "ZXSpectrum", "the +2a/+3 ROM", "plus3.rom", 64 * 1024, crc32s);
+			const std::initializer_list<uint32_t> crcs = { 0x96e3c17a, 0xbe0d9ec4 };
+			*this = Description(name, "ZXSpectrum", "the +2a/+3 ROM", "plus3.rom", 64 * 1024, crcs);
 		} break;
 
 		case Name::AcornBASICII:	*this = Description(name, "Electron", "the Acorn BASIC II ROM", "basic.rom", 16*1024, 0x79434781u); 			break;

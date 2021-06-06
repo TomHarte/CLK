@@ -12,6 +12,7 @@
 #include <functional>
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -135,7 +136,7 @@ struct Description {
 	/// CRC32s for all known acceptable copies of this ROM; intended to allow a host platform
 	/// to test user-provided ROMs of unknown provenance. **Not** intended to be used
 	/// to exclude ROMs where the user's intent is otherwise clear.
-	std::vector<uint32_t> crc32s;
+	std::set<uint32_t> crc32s;
 
 	/// Constructs the @c Description that correlates to @c name.
 	Description(Name name);
@@ -145,13 +146,18 @@ struct Description {
 
 	private:
 		template <typename FileNameT, typename CRC32T> Description(
-			Name name, std::string machine_name, std::string descriptive_name, FileNameT file_names, size_t size, CRC32T crc32s = CRC32T(0)
+			Name name, std::string machine_name, std::string descriptive_name, FileNameT file_names, size_t size, CRC32T crc32s = uint32_t(0)
 		) : name{name}, machine_name{machine_name}, descriptive_name{descriptive_name}, file_names{file_names}, size{size}, crc32s{crc32s} {
-			if(this->crc32s.size() == 1 && !this->crc32s[0]) {
+			// Slightly lazy: deal with the case where the constructor wasn't provided with any
+			// CRCs by spotting that the set has exactly one member, which has value 0. The alternative
+			// would be to provide a partial specialisation that never put anything into the set.
+			if(this->crc32s.size() == 1 && !*this->crc32s.begin()) {
 				this->crc32s.clear();
 			}
 		}
 };
+
+std::vector<Description> all_descriptions();
 
 struct Request {
 	Request(Name name, bool optional = false);

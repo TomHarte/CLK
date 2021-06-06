@@ -137,22 +137,18 @@ class MachineDocument:
 		volumeSlider.floatValue = userDefaultsVolume()
 	}
 
-	private var missingROMs: [CSMissingROM] = []
+	private var missingROMs: String = ""
 	func configureAs(_ analysis: CSStaticAnalyser) {
 		self.machineDescription = analysis
 
 		actionLock.lock()
 		drawLock.lock()
 
-		let missingROMs = NSMutableArray()
 		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
 			self.machine = machine
 			machine.setVolume(userDefaultsVolume())
 			setupMachineOutput()
 		} else {
-			// Store the selected machine and list of missing ROMs, and
-			// show the missing ROMs dialogue.
-			self.missingROMs = missingROMs.map({$0 as! CSMissingROM})
 			requestRoms()
 		}
 
@@ -437,30 +433,7 @@ class MachineDocument:
 	}
 
 	func populateMissingRomList() {
-		// Fill in the missing details; first build a list of all the individual
-		// line items.
-		var requestLines: [String] = []
-		for missingROM in self.missingROMs {
-			if let descriptiveName = missingROM.descriptiveName {
-				requestLines.append("• " + descriptiveName)
-			} else {
-				requestLines.append("• " + missingROM.fileName)
-			}
-		}
-
-		// Suffix everything up to the penultimate line with a semicolon;
-		// the penultimate line with a semicolon and a conjunctive; the final
-		// line with a full stop.
-		for x in 0 ..< requestLines.count {
-			if x < requestLines.count - 2 {
-				requestLines[x].append(";")
-			} else if x < requestLines.count - 1 {
-				requestLines[x].append("; and")
-			} else {
-				requestLines[x].append(".")
-			}
-		}
-		romRequesterText!.stringValue = self.romRequestBaseText + requestLines.joined(separator: "\n")
+		romRequesterText!.stringValue = self.romRequestBaseText + self.missingROMs
 	}
 
 	func romReceiverView(_ view: CSROMReceiverView, didReceiveFileAt URL: URL) {
@@ -474,7 +447,7 @@ class MachineDocument:
 			// Try to match by size first, CRC second. Accept that some ROMs may have
 			// some additional appended data. Arbitrarily allow them to be up to 10kb
 			// too large.
-			var index = 0
+/*			var index = 0
 			for missingROM in self.missingROMs {
 				if fileData.count >= missingROM.size && fileData.count < missingROM.size + 10*1024 {
 					// Trim to size.
@@ -506,7 +479,7 @@ class MachineDocument:
 				}
 
 				index = index + 1
-			}
+			}*/
 
 			if didInstallRom {
 				if self.missingROMs.count == 0 {

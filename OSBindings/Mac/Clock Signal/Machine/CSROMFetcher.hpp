@@ -9,3 +9,4 @@
 #include "ROMMachine.hpp"
 
 ROMMachine::ROMFetcher CSROMFetcher(ROM::Request *missing = nullptr);
+BOOL CSInstallROM(NSURL *);
