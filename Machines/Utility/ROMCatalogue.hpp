@@ -206,6 +206,13 @@ struct Request {
 		const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
 	) const;
 
+	enum class LineItem {
+		NewList, Description
+	};
+	void visit(
+		const std::function<void(LineItem, ListType, int level, const ROM::Description *, bool is_optional, size_t remaining)> &add_item
+	) const;
+
 	private:
 		struct Node {
 			enum class Type {

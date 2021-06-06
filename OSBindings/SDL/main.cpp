@@ -776,41 +776,41 @@ int main(int argc, char *argv[]) {
 				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath, e.g. --rompath=~/ROMs." << std::endl;
 				std::cerr << "Needed — but didn't find — ";
 
-				int indentation_level = 0;
-				const auto indent = [&indentation_level] {
-					if(indentation_level) {
-						std::cerr << std::endl;
-						for(int c = 0; c < indentation_level; c++) std::cerr << '\t';
-						std::cerr << "* ";
-					}
-				};
-
-				missing_roms.visit([&indentation_level, indent] (ROM::Request::ListType type) {
-					indent();
-					switch(type) {
-						default:
-						case ROM::Request::ListType::All:	std::cerr << "all of:";		break;
-						case ROM::Request::ListType::Any:	std::cerr << "any of:";		break;
-					}
-					++indentation_level;
-				}, [&indentation_level] {
-					--indentation_level;
-				}, [&indentation_level, indent] (ROM::Request::ListType type, const ROM::Description &rom, bool is_optional, size_t remaining) {
-					indent();
-					if(is_optional) std::cerr << "optionally, ";
-
-					using DescriptionFlag = ROM::Description::DescriptionFlag;
-					std::cerr << rom.description(DescriptionFlag::Filename | DescriptionFlag::CRC);
-
-					if(remaining) {
-						std::cerr << ";";
-						if(remaining == 1) {
-							std::cerr << ((type == ROM::Request::ListType::All) ? " and" : " or");
+				missing_roms.visit(
+					[] (ROM::Request::LineItem item, ROM::Request::ListType type, int indentation_level, const ROM::Description *description, bool is_optional, size_t remaining) {
+						if(indentation_level) {
+							std::cerr << std::endl;
+							for(int c = 0; c < indentation_level; c++) std::cerr << '\t';
+							std::cerr << "* ";
 						}
-					} else {
-						std::cerr << ".";
+
+						switch(item) {
+							case ROM::Request::LineItem::NewList:
+								switch(type) {
+									default:
+									case ROM::Request::ListType::All:	std::cerr << "all of:";		break;
+									case ROM::Request::ListType::Any:	std::cerr << "any of:";		break;
+								}
+							break;
+
+							case ROM::Request::LineItem::Description:
+								if(is_optional) std::cerr << "optionally, ";
+
+								using DescriptionFlag = ROM::Description::DescriptionFlag;
+								std::cerr << description->description(DescriptionFlag::Filename | DescriptionFlag::CRC);
+
+								if(remaining) {
+									std::cerr << ";";
+									if(remaining == 1) {
+										std::cerr << ((type == ROM::Request::ListType::All) ? " and" : " or");
+									}
+								} else {
+									std::cerr << ".";
+								}
+							break;
+						}
 					}
-				});
+				);
 
 				std::cerr << std::endl << std::endl << "Searched unsuccessfully: ";
 				bool is_first = true;

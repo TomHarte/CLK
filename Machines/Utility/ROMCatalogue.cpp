@@ -149,6 +149,24 @@ void Request::visit(
 	node.visit(enter_list, exit_list, add_item);
 }
 
+void Request::visit(
+	const std::function<void(LineItem, ListType, int, const ROM::Description *, bool, size_t)> &add_item
+) const {
+	int indentation_level = 0;
+	node.visit(
+		[&indentation_level, &add_item] (ROM::Request::ListType type) {
+			add_item(LineItem::NewList, type, indentation_level, nullptr, false, -1);
+			++indentation_level;
+		},
+		[&indentation_level] {
+			--indentation_level;
+		},
+		[&indentation_level, &add_item] (ROM::Request::ListType type, const ROM::Description &rom, bool is_optional, size_t remaining) {
+			add_item(LineItem::Description, type, indentation_level, &rom, is_optional, remaining);
+		}
+	);
+}
+
 void Request::Node::visit(
 	const std::function<void(ListType)> &enter_list,
 	const std::function<void(void)> &exit_list,
@@ -202,6 +220,9 @@ std::optional<Description> Description::from_crc(uint32_t crc32) {
 
 std::string Description::description(int flags) const {
 	std::stringstream output;
+
+	// If there are no CRCs, don't output them.
+	if(crc32s.empty()) flags &= ~ DescriptionFlag::CRC;
 
 	// Print the file name(s) and the descriptive name.
 	if(flags & DescriptionFlag::Filename) {
