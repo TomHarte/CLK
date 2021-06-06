@@ -113,6 +113,7 @@ struct ActivityObserver: public Activity::Observer {
 		ROM::Request missing_roms;
 		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error));
 		if(!_machine) {
+			// TODO.
 			[missingROMs appendFormat:@"Who told you?"];
 /*			for(const auto &missing_rom : missing_roms) {
 				CSMissingROM *rom = [[CSMissingROM alloc] init];

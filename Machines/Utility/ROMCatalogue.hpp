@@ -141,8 +141,18 @@ struct Description {
 	/// Constructs the @c Description that correlates to @c name.
 	Description(Name name);
 
-	/// Constructs the @c Description that correlates to @c crc32.
+	/// Constructs the @c Description that correlates to @c crc32, if any.
 	static std::optional<Description> from_crc(uint32_t crc32);
+
+	enum DescriptionFlag {
+		Size = 1 << 0,
+		CRC = 1 << 1,
+		Filename = 1 << 2,
+	};
+
+	/// Provides a single-line of text describing this ROM, including the usual base text
+	/// plus all the fields provided as @c flags .
+	std::string description(int flags) const;
 
 	private:
 		template <typename FileNameT, typename CRC32T> Description(
@@ -157,13 +167,18 @@ struct Description {
 		}
 };
 
+/// @returns a vector of all possible instances of ROM::Description — i.e. descriptions of every ROM
+/// currently known to the ROM catalogue.
 std::vector<Description> all_descriptions();
 
 struct Request {
 	Request(Name name, bool optional = false);
 	Request() {}
 
+	/// Forms the request that would be satisfied by @c this plus the right-hand side.
 	Request operator &&(const Request &);
+
+	/// Forms the request that would be satisfied by either @c this or the right-hand side.
 	Request operator ||(const Request &);
 
 	/// Inspects the ROMMap to ensure that it satisfies this @c Request.
@@ -172,7 +187,15 @@ struct Request {
 	/// All ROMs in the map will be resized to their idiomatic sizes.
 	bool validate(Map &) const;
 
+	/// Returns a flattened array of all @c ROM::Descriptions that relate to anything
+	/// anywhere in this ROM request.
 	std::vector<Description> all_descriptions() const;
+
+	/// @returns @c true if this request is empty, i.e. would be satisfied with no ROMs; @c false otherwise.
+	bool empty();
+
+	/// @returns what remains of this ROM request given that everything in @c map has been found.
+	Request subtract(const ROM::Map &map) const;
 
 	enum class ListType {
 		Any, All, Single
@@ -182,9 +205,6 @@ struct Request {
 		const std::function<void(void)> &exit_list,
 		const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
 	) const;
-
-	Request subtract(const ROM::Map &map) const;
-	bool empty();
 
 	private:
 		struct Node {

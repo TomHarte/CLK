@@ -10,6 +10,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <iomanip>
+#include <sstream>
 
 using namespace ROM;
 
@@ -196,6 +198,73 @@ std::optional<Description> Description::from_crc(uint32_t crc32) {
 	}
 
 	return std::nullopt;
+}
+
+std::string Description::description(int flags) const {
+	std::stringstream output;
+
+	// Print the file name(s) and the descriptive name.
+	if(flags & DescriptionFlag::Filename) {
+		flags &= ~DescriptionFlag::Filename;
+
+		output << machine_name <<  '/';
+		if(file_names.size() == 1) {
+			output << file_names[0];
+		} else {
+			output << "{";
+			bool is_first = true;
+			for(const auto &file_name: file_names) {
+				if(!is_first) output << " or ";
+				output << file_name;
+				is_first = false;
+			}
+			output << "}";
+		}
+		output << " (" << descriptive_name;
+		if(!flags) {
+			output << ")";
+			return output.str();
+		}
+		output << "; ";
+	} else {
+		output << descriptive_name;
+		if(!flags) {
+			return output.str();
+		}
+		output << " (";
+	}
+
+	// Print the size.
+	if(flags & DescriptionFlag::Size) {
+		flags &= ~DescriptionFlag::Size;
+		output << size << " bytes";
+
+		if(!flags) {
+			output << ")";
+			return output.str();
+		}
+		output << "; ";
+	}
+
+	// Print the CRC(s).
+	if(flags & DescriptionFlag::CRC) {
+		flags &= ~DescriptionFlag::CRC;
+
+		output << ((crc32s.size() > 1) ? "usual crc32s: " : "usual crc32: ");
+		bool is_first = true;
+		for(const auto crc32: crc32s) {
+			if(!is_first) output << ", ";
+			is_first = false;
+			output << std::hex << std::setfill('0') << std::setw(8) << crc32;
+		}
+
+		if(!flags) {
+			output << ")";
+			return output.str();
+		}
+	}
+
+	return output.str();
 }
 
 Description::Description(Name name) {
