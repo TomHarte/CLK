@@ -694,12 +694,10 @@ int main(int argc, char *argv[]) {
 	//	/usr/local/share/CLK/[system];
 	//	/usr/share/CLK/[system]; or
 	//	[user-supplied path]/[system]
-	ROM::Request requested_roms;
+	ROM::Request missing_roms;
 	std::vector<std::string> checked_paths;
-	ROMMachine::ROMFetcher rom_fetcher = [&requested_roms, &arguments, &checked_paths]
+	ROMMachine::ROMFetcher rom_fetcher = [&missing_roms, &arguments, &checked_paths]
 		(const ROM::Request &roms) -> ROM::Map {
-			requested_roms = roms;
-
 			std::vector<std::string> paths = {
 				"/usr/local/share/CLK/",
 				"/usr/share/CLK/"
@@ -756,6 +754,7 @@ int main(int argc, char *argv[]) {
 				}
 			}
 
+			missing_roms = roms.subtract(results);
 			return results;
 		};
 
@@ -775,7 +774,7 @@ int main(int argc, char *argv[]) {
 			default: break;
 			case ::Machine::Error::MissingROM: {
 				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath, e.g. --rompath=~/ROMs." << std::endl;
-				std::cerr << "Needed ";
+				std::cerr << "Needed — but didn't find — ";
 
 				int indentation_level = 0;
 				const auto indent = [&indentation_level] {
@@ -786,7 +785,7 @@ int main(int argc, char *argv[]) {
 					}
 				};
 
-				requested_roms.visit([&indentation_level, indent] (ROM::Request::ListType type) {
+				missing_roms.visit([&indentation_level, indent] (ROM::Request::ListType type) {
 					indent();
 					switch(type) {
 						default:

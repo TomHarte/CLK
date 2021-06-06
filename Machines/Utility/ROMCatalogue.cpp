@@ -59,9 +59,48 @@ void Request::Node::add_descriptions(std::vector<Description> &result) const {
 		return;
 	}
 
-	for(const auto &node: children) {
-		node.add_descriptions(result);
+	for(const auto &child: children) {
+		child.add_descriptions(result);
 	}
+}
+
+Request Request::subtract(const ROM::Map &map) const {
+	Request copy(*this);
+	if(copy.node.subtract(map)) {
+		copy.node.name = Name::None;
+		copy.node.type = Node::Type::One;
+	}
+	return copy;
+}
+
+bool Request::Node::subtract(const ROM::Map &map) {
+	switch(type) {
+		case Type::One:
+		return map.find(name) != map.end();
+
+		default: {
+			bool has_all = true;
+			bool has_any = false;
+
+			auto iterator = children.begin();
+			while(iterator != children.end()) {
+				const bool did_subtract = iterator->subtract(map);
+				has_all &= did_subtract;
+				has_any |= did_subtract;
+				if(did_subtract) {
+					iterator = children.erase(iterator);
+				} else {
+					++iterator;
+				}
+			}
+
+			return (type == Type::All && has_all) || (type == Type::Any && has_any);
+		}
+	}
+}
+
+bool Request::empty() {
+	return node.type == Node::Type::One && node.name == Name::None;
 }
 
 bool Request::Node::validate(Map &map) const {

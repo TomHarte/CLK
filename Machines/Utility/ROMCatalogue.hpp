@@ -18,7 +18,7 @@
 namespace ROM {
 
 enum Name {
-	Invalid,
+	None,
 
 	// Acorn.
 	AcornBASICII,
@@ -121,7 +121,7 @@ using Map = std::map<ROM::Name, std::vector<uint8_t>>;
 
 struct Description {
 	/// The ROM's enum name.
-	Name name = Name::Invalid;
+	Name name = Name::None;
 	/// The machine with which this ROM is associated, in a form that is safe for using as
 	/// part of a file name.
 	std::string machine_name;
@@ -177,13 +177,16 @@ struct Request {
 		const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
 	) const;
 
+	Request subtract(const ROM::Map &map) const;
+	bool empty();
+
 	private:
 		struct Node {
 			enum class Type {
 				Any, All, One
 			};
 			Type type = Type::One;
-			Name name = Name::Invalid;
+			Name name = Name::None;
 			/// @c true if this ROM is optional for machine startup. Generally indicates something
 			/// that would make emulation more accurate, but not sufficiently so to make it
 			/// a necessity.
@@ -197,6 +200,7 @@ struct Request {
 				const std::function<void(void)> &exit_list,
 				const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
 			) const;
+			bool subtract(const ROM::Map &map);
 		};
 		Node node;
 
