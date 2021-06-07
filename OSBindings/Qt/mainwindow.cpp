@@ -721,16 +721,16 @@ void MainWindow::dropEvent(QDropEvent* event) {
 				CRC::CRC32 generator;
 				const uint32_t crc = generator.compute_crc(*contents);
 
-				std::optional<ROM::Description> target = ROM::Description::from_crc(crc);
-				if(target) {
+				std::optional<ROM::Description> target_rom = ROM::Description::from_crc(crc);
+				if(target_rom) {
 					// Ensure the destination folder exists.
-					const std::string path = appDataLocation + "/ROMImages/" + rom.machine_name;
+					const std::string path = appDataLocation + "/ROMImages/" + target_rom->machine_name;
 					const QDir dir(QString::fromStdString(path));
 					if (!dir.exists())
 						dir.mkpath(".");
 
 					// Write into place.
-					const std::string destination =  QDir::toNativeSeparators(QString::fromStdString(path+ "/" + rom.file_name)).toStdString();
+					const std::string destination =  QDir::toNativeSeparators(QString::fromStdString(path+ "/" + target_rom->file_names[0])).toStdString();
 					FILE *const target = fopen(destination.c_str(), "wb");
 					fwrite(contents->data(), 1, contents->size(), target);
 					fclose(target);
