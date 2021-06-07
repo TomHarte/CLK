@@ -57,6 +57,14 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--rompath=~/ROMs"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--has-disk-drive"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/Macintosh/MusicWorks 0.42.image&quot;"
             isEnabled = "NO">
          </CommandLineArgument>
@@ -74,7 +82,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--new=amstradcpc"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/ColecoVision/Galaxian (1983)(Atari).col&quot;"
@@ -115,6 +123,10 @@
          <CommandLineArgument
             argument = "--model=cpc6128"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--new=vic20"
+            isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

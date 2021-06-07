@@ -10,27 +10,34 @@
 
 using namespace Apple::II;
 
-DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sector) : diskii_(2045454) {
-	std::vector<std::unique_ptr<std::vector<uint8_t>>> roms;
+ROM::Request DiskIICard::rom_request(bool is_16_sector) {
 	if(is_16_sector) {
-		roms = rom_fetcher({
-			{"DiskII", "the Disk II 16-sector boot ROM", "boot-16.rom", 256, 0xce7144f6},
-			{"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0x9796a238, 0xb72a2c70 } }
-		});
+		return ROM::Request(ROM::Name::DiskIIBoot16Sector) && ROM::Request(ROM::Name::DiskIIStateMachine16Sector);
 	} else {
-		roms = rom_fetcher({
-			{"DiskII", "the Disk II 13-sector boot ROM", "boot-13.rom", 256, 0xd34eb2ff},
-			{"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0x9796a238, 0xb72a2c70 } }
-//			{"DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620 }
-			/* TODO: once the DiskII knows how to decode common images of the 13-sector state machine, use that instead of the 16-sector. */
-		});
+		/* TODO: once the DiskII knows how to decode common images of the 13-sector state machine, use that instead of the 16-sector. */
+		return ROM::Request(ROM::Name::DiskIIBoot13Sector) && ROM::Request(ROM::Name::DiskIIStateMachine16Sector);
 	}
-	if(!roms[0] || !roms[1]) {
+}
+
+
+DiskIICard::DiskIICard(ROM::Map &map, bool is_16_sector) : diskii_(2045454) {
+	std::vector<std::unique_ptr<std::vector<uint8_t>>> roms;
+	ROM::Map::iterator state_machine, boot;
+	if(is_16_sector) {
+		state_machine = map.find(ROM::Name::DiskIIStateMachine16Sector);
+		boot = map.find(ROM::Name::DiskIIBoot16Sector);
+	} else {
+		// TODO: see above re: 13-sector state machine.
+		state_machine = map.find(ROM::Name::DiskIIStateMachine16Sector);
+		boot = map.find(ROM::Name::DiskIIBoot13Sector);
+	}
+
+	if(state_machine == map.end() || boot == map.end()) {
 		throw ROMMachine::Error::MissingROMs;
 	}
 
-	boot_ = std::move(*roms[0]);
-	diskii_.set_state_machine(*roms[1]);
+	boot_ = std::move(boot->second);
+	diskii_.set_state_machine(state_machine->second);
 	set_select_constraints(None);
 	diskii_.set_clocking_hint_observer(this);
 }

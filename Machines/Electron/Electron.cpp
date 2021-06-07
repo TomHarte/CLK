@@ -69,37 +69,25 @@ template <bool has_scsi_bus> class ConcreteMachine:
 			speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
 			speaker_.set_high_frequency_cutoff(6000);
 
-			const std::string machine_name = "Electron";
-			std::vector<ROMMachine::ROM> required_roms = {
-				{machine_name, "the Acorn BASIC II ROM", "basic.rom", 16*1024, 0x79434781},
-				{machine_name, "the Electron MOS ROM", "os.rom", 16*1024, 0xbf63fb1f}
-			};
-			const size_t pres_adfs_rom_position = required_roms.size();
+			::ROM::Request request = ::ROM::Request(::ROM::Name::AcornBASICII) && ::ROM::Request(::ROM::Name::AcornElectronMOS100);
 			if(target.has_pres_adfs) {
-				required_roms.emplace_back(machine_name, "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16*1024, 0x51523993);
-				required_roms.emplace_back(machine_name, "the E00 ADFS ROM, second slot", "ADFS-E00_2.rom", 16*1024, 0x8d17de0e);
+				request = request && ::ROM::Request(::ROM::Name::PRESADFSSlot1) && ::ROM::Request(::ROM::Name::PRESADFSSlot2);
 			}
-			const size_t acorn_adfs_rom_position = required_roms.size();
 			if(target.has_acorn_adfs) {
-				required_roms.emplace_back(machine_name, "the Acorn ADFS ROM", "adfs.rom", 16*1024, 0x3289bdc6);
+				request = request && ::ROM::Request(::ROM::Name::AcornADFS);
 			}
-			const size_t dfs_rom_position = required_roms.size();
 			if(target.has_dfs) {
-				required_roms.emplace_back(machine_name, "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16*1024, 0xf3dc9bc5);
+				request = request && ::ROM::Request(::ROM::Name::Acorn1770DFS);
 			}
-			const size_t ap6_rom_position = required_roms.size();
 			if(target.has_ap6_rom) {
-				required_roms.emplace_back(machine_name, "the 8kb Advanced Plus 6 ROM", "AP6v133.rom", 8*1024, 0xe0013cfc);
+				request = request && ::ROM::Request(::ROM::Name::PRESAdvancedPlus6);
 			}
-			const auto roms = rom_fetcher(required_roms);
-
-			for(const auto &rom: roms) {
-				if(!rom) {
-					throw ROMMachine::Error::MissingROMs;
-				}
+			auto roms = rom_fetcher(request);
+			if(!request.validate(roms)) {
+				throw ROMMachine::Error::MissingROMs;
 			}
-			set_rom(ROM::BASIC, *roms[0], false);
-			set_rom(ROM::OS, *roms[1], false);
+			set_rom(ROM::BASIC, roms.find(::ROM::Name::AcornBASICII)->second, false);
+			set_rom(ROM::OS, roms.find(::ROM::Name::AcornElectronMOS100)->second, false);
 
 			/*
 				ROM slot mapping applied:
@@ -115,19 +103,18 @@ template <bool has_scsi_bus> class ConcreteMachine:
 				plus3_ = std::make_unique<Plus3>();
 
 				if(target.has_dfs) {
-					set_rom(ROM::Slot0, *roms[dfs_rom_position], true);
+					set_rom(ROM::Slot0, roms.find(::ROM::Name::Acorn1770DFS)->second, true);
 				}
 				if(target.has_pres_adfs) {
-					set_rom(ROM::Slot4, *roms[pres_adfs_rom_position], true);
-					set_rom(ROM::Slot5, *roms[pres_adfs_rom_position+1], true);
+					set_rom(ROM::Slot4, roms.find(::ROM::Name::PRESADFSSlot1)->second, true);
+					set_rom(ROM::Slot5, roms.find(::ROM::Name::PRESADFSSlot2)->second, true);
 				}
 				if(target.has_acorn_adfs) {
-					set_rom(ROM::Slot6, *roms[acorn_adfs_rom_position], true);
+					set_rom(ROM::Slot6, roms.find(::ROM::Name::AcornADFS)->second, true);
 				}
 			}
-
 			if(target.has_ap6_rom) {
-				set_rom(ROM::Slot15, *roms[ap6_rom_position], true);
+				set_rom(ROM::Slot15, roms.find(::ROM::Name::PRESAdvancedPlus6)->second, true);
 			}
 
 			if(target.has_sideways_ram) {

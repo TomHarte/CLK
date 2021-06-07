@@ -31,6 +31,8 @@
 
 #include <atomic>
 #include <bitset>
+#include <codecvt>
+#include <locale>
 
 @interface CSMachine() <CSScanTargetViewDisplayLinkDelegate>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
@@ -74,28 +76,6 @@ struct ActivityObserver: public Activity::Observer {
 	__unsafe_unretained CSMachine *machine;
 };
 
-@interface CSMissingROM (/*Mutability*/)
-@property (nonatomic, nonnull, copy) NSString *machineName;
-@property (nonatomic, nonnull, copy) NSString *fileName;
-@property (nonatomic, nullable, copy) NSString *descriptiveName;
-@property (nonatomic, readwrite) NSUInteger size;
-@property (nonatomic, copy) NSArray<NSNumber *> *crc32s;
-@end
-
-@implementation CSMissingROM
-
-@synthesize machineName=_machineName;
-@synthesize fileName=_fileName;
-@synthesize descriptiveName=_descriptiveName;
-@synthesize size=_size;
-@synthesize crc32s=_crc32s;
-
-- (NSString *)description {
-	return [NSString stringWithFormat:@"%@/%@, %lu bytes, CRCs: %@", _fileName, _descriptiveName, (unsigned long)_size, _crc32s];
-}
-
-@end
-
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
 	ActivityObserver _activityObserver;
@@ -126,35 +106,18 @@ struct ActivityObserver: public Activity::Observer {
 	NSMutableArray<dispatch_block_t> *_inputEvents;
 }
 
-- (instancetype)initWithAnalyser:(CSStaticAnalyser *)result missingROMs:(inout NSMutableArray<CSMissingROM *> *)missingROMs {
+- (instancetype)initWithAnalyser:(CSStaticAnalyser *)result missingROMs:(inout NSMutableString *)missingROMs {
 	self = [super init];
 	if(self) {
 		_analyser = result;
 
 		Machine::Error error;
-		std::vector<ROMMachine::ROM> missing_roms;
+		ROM::Request missing_roms;
 		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error));
 		if(!_machine) {
-			for(const auto &missing_rom : missing_roms) {
-				CSMissingROM *rom = [[CSMissingROM alloc] init];
-
-				// Copy/convert the primitive fields.
-				rom.machineName = @(missing_rom.machine_name.c_str());
-				rom.fileName = @(missing_rom.file_name.c_str());
-				rom.descriptiveName = missing_rom.descriptive_name.empty() ? nil : @(missing_rom.descriptive_name.c_str());
-				rom.size = missing_rom.size;
-
-				// Convert the CRC list.
-				NSMutableArray<NSNumber *> *crc32s = [[NSMutableArray alloc] initWithCapacity:missing_rom.crc32s.size()];
-				for(const auto &crc : missing_rom.crc32s) {
-					[crc32s addObject:@(crc)];
-				}
-				rom.crc32s = crc32s;
-
-				// Add to the missing list.
-				[missingROMs addObject:rom];
-			}
-
+			std::wstring_convert<std::codecvt_utf8<wchar_t>> wstring_converter;
+			const std::wstring description = missing_roms.description(0, L'•');
+			[missingROMs appendString:[NSString stringWithUTF8String:wstring_converter.to_bytes(description).c_str()]];
 			return nil;
 		}
 
@@ -781,6 +744,10 @@ struct ActivityObserver: public Activity::Observer {
 - (void)stop {
 	[_timer invalidate];
 	_timer = nil;
+}
+
++ (BOOL)attemptInstallROM:(NSURL *)url {
+	return CSInstallROM(url);
 }
 
 @end

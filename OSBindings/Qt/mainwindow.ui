@@ -860,9 +860,7 @@
       <property name="plainText">
        <string>Clock Signal requires you to provide images of the system ROMs for this machine. They will be stored permanently; you need do this only once.
 
-Please drag and drop the following over this window:
-
-</string>
+Please drag and drop over this window</string>
       </property>
      </widget>
     </item>

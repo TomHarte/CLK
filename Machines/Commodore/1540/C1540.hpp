@@ -41,7 +41,8 @@ namespace C1540 {
 */
 class Machine final: public MachineBase {
 	public:
-		Machine(Personality personality, const ROMMachine::ROMFetcher &rom_fetcher);
+		static ROM::Request rom_request(Personality personality);
+		Machine(Personality personality, const ROM::Map &roms);
 
 		/*!
 			Sets the serial bus to which this drive should attach itself.

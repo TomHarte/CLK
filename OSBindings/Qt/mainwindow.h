@@ -60,7 +60,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void launchMachine();
 
 		QString romRequestBaseText;
-		std::vector<ROMMachine::ROM> missingRoms;
+		ROM::Request missingRoms;
 
 		// File drag and drop is supported.
 		void dragEnterEvent(QDragEnterEvent* event) override;

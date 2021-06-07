@@ -750,7 +750,7 @@ HalfCycles TMS9918::get_next_sequence_point() {
 	if(next_line_interrupt_row == -1) {
 		return generate_interrupts_ ?
 			half_cycles_before_internal_cycles(time_until_frame_interrupt) :
-			HalfCycles(-1);
+			HalfCycles::max();
 	}
 
 	// Figure out the number of internal cycles until the next line interrupt, which is the amount

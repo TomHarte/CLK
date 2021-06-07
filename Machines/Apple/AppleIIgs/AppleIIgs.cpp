@@ -189,31 +189,23 @@ class ConcreteMachine:
 			speaker_.set_input_rate(float(CLOCK_RATE) / float(audio_divider));
 
 			using Target = Analyser::Static::AppleIIgs::Target;
-			std::vector<ROMMachine::ROM> rom_descriptions;
-			const std::string machine_name = "AppleIIgs";
+			ROM::Name system;
 			switch(target.model) {
-				case Target::Model::ROM00:
-					/* TODO */
-				case Target::Model::ROM01:
-					rom_descriptions.emplace_back(machine_name, "the Apple IIgs ROM01", "apple2gs.rom", 128*1024, 0x42f124b0);
-				break;
-
-				case Target::Model::ROM03:
-					rom_descriptions.emplace_back(machine_name, "the Apple IIgs ROM03", "apple2gs.rom2", 256*1024, 0xde7ddf29);
-				break;
+				case Target::Model::ROM00:	system = ROM::Name::AppleIIgsROM00;	break;
+				case Target::Model::ROM01:	system = ROM::Name::AppleIIgsROM01;	break;
+				default:					system = ROM::Name::AppleIIgsROM03;	break;
 			}
-			rom_descriptions.push_back(video_->rom_description(Video::Video::CharacterROM::EnhancedIIe));
+			constexpr ROM::Name characters = ROM::Name::AppleIIEnhancedECharacter;
+			constexpr ROM::Name microcontroller = ROM::Name::AppleIIgsMicrocontrollerROM03;
 
-			// TODO: pick a different ADB ROM for earlier machine revisions?
-			rom_descriptions.emplace_back(machine_name, "the Apple IIgs ADB microcontroller ROM", "341s0632-2", 4*1024, 0xe1c11fb0);
-
-			const auto roms = rom_fetcher(rom_descriptions);
-			if(!roms[0] || !roms[1] || !roms[2]) {
+			ROM::Request request = ROM::Request(system) && ROM::Request(characters) && ROM::Request(microcontroller);
+			auto roms = rom_fetcher(request);
+			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
-			rom_ = *roms[0];
-			video_->set_character_rom(*roms[1]);
-			adb_glu_->set_microcontroller_rom(*roms[2]);
+			rom_ = roms.find(system)->second;
+			video_->set_character_rom(roms.find(characters)->second);
+			adb_glu_->set_microcontroller_rom(roms.find(microcontroller)->second);
 
 			// Run only the currently-interesting self test.
 //			rom_[0x36402] = 2;

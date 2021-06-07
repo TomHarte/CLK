@@ -316,53 +316,48 @@ class ConcreteMachine:
 			// Install a joystick.
 			joysticks_.emplace_back(new Joystick(*user_port_via_port_handler_, *keyboard_via_port_handler_));
 
-			const std::string machine_name = "Vic20";
-			std::vector<ROMMachine::ROM> rom_names = {
-				{machine_name, "the VIC-20 BASIC ROM", "basic.bin", 8*1024, 0xdb4c43c1}
-			};
+			ROM::Request request(ROM::Name::Vic20BASIC);
+			ROM::Name kernel, character;
 			switch(target.region) {
 				default:
-					rom_names.emplace_back(machine_name, "the English-language VIC-20 character ROM", "characters-english.bin", 4*1024, 0x83e032a6);
-					rom_names.emplace_back(machine_name, "the English-language PAL VIC-20 kernel ROM", "kernel-pal.bin", 8*1024, 0x4be07cb4);
+					character = ROM::Name::Vic20EnglishCharacters;
+					kernel = ROM::Name::Vic20EnglishPALKernel;
 				break;
 				case Analyser::Static::Commodore::Target::Region::American:
-					rom_names.emplace_back(machine_name, "the English-language VIC-20 character ROM", "characters-english.bin", 4*1024, 0x83e032a6);
-					rom_names.emplace_back(machine_name, "the English-language NTSC VIC-20 kernel ROM", "kernel-ntsc.bin", 8*1024, 0xe5e7c174);
+					character = ROM::Name::Vic20EnglishCharacters;
+					kernel = ROM::Name::Vic20EnglishNTSCKernel;
 				break;
 				case Analyser::Static::Commodore::Target::Region::Danish:
-					rom_names.emplace_back(machine_name, "the Danish VIC-20 character ROM", "characters-danish.bin", 4*1024, 0x7fc11454);
-					rom_names.emplace_back(machine_name, "the Danish VIC-20 kernel ROM", "kernel-danish.bin", 8*1024, 0x02adaf16);
+					character = ROM::Name::Vic20DanishCharacters;
+					kernel = ROM::Name::Vic20DanishKernel;
 				break;
 				case Analyser::Static::Commodore::Target::Region::Japanese:
-					rom_names.emplace_back(machine_name, "the Japanese VIC-20 character ROM", "characters-japanese.bin", 4*1024, 0xfcfd8a4b);
-					rom_names.emplace_back(machine_name, "the Japanese VIC-20 kernel ROM", "kernel-japanese.bin", 8*1024, 0x336900d7);
+					character = ROM::Name::Vic20JapaneseCharacters;
+					kernel = ROM::Name::Vic20JapaneseKernel;
 				break;
 				case Analyser::Static::Commodore::Target::Region::Swedish:
-					rom_names.emplace_back(machine_name, "the Swedish VIC-20 character ROM", "characters-swedish.bin", 4*1024, 0xd808551d);
-					rom_names.emplace_back(machine_name, "the Swedish VIC-20 kernel ROM", "kernel-swedish.bin", 8*1024, 0xb2a60662);
+					character = ROM::Name::Vic20SwedishCharacters;
+					kernel = ROM::Name::Vic20SwedishKernel;
 				break;
 			}
 
-			const auto roms = rom_fetcher(rom_names);
+			if(target.has_c1540) {
+				request = request && Commodore::C1540::Machine::rom_request(Commodore::C1540::Personality::C1540);
+			}
+			request = request && ROM::Request(character) && ROM::Request(kernel);
 
-			for(const auto &rom: roms) {
-				if(!rom) {
-					throw ROMMachine::Error::MissingROMs;
-				}
+			auto roms = rom_fetcher(request);
+			if(!request.validate(roms)) {
+				throw ROMMachine::Error::MissingROMs;
 			}
 
-			basic_rom_ = std::move(*roms[0]);
-			character_rom_ = std::move(*roms[1]);
-			kernel_rom_ = std::move(*roms[2]);
-
-			// Characters ROMs should be 4kb.
-			character_rom_.resize(4096);
-			// Kernel ROMs and the BASIC ROM should be 8kb.
-			kernel_rom_.resize(8192);
+			basic_rom_ = std::move(roms.find(ROM::Name::Vic20BASIC)->second);
+			character_rom_ = std::move(roms.find(character)->second);
+			kernel_rom_ = std::move(roms.find(kernel)->second);
 
 			if(target.has_c1540) {
 				// construct the 1540
-				c1540_ = std::make_unique<::Commodore::C1540::Machine>(Commodore::C1540::Personality::C1540, rom_fetcher);
+				c1540_ = std::make_unique<::Commodore::C1540::Machine>(Commodore::C1540::Personality::C1540, roms);
 
 				// attach it to the serial bus
 				c1540_->set_serial_bus(serial_bus_);
