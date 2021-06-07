@@ -31,6 +31,8 @@
 
 #include <atomic>
 #include <bitset>
+#include <codecvt>
+#include <locale>
 
 @interface CSMachine() <CSScanTargetViewDisplayLinkDelegate>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
@@ -113,28 +115,9 @@ struct ActivityObserver: public Activity::Observer {
 		ROM::Request missing_roms;
 		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error));
 		if(!_machine) {
-			// TODO.
-			[missingROMs appendFormat:@"Who told you?"];
-/*			for(const auto &missing_rom : missing_roms) {
-				CSMissingROM *rom = [[CSMissingROM alloc] init];
-
-				// Copy/convert the primitive fields.
-				rom.machineName = @(missing_rom.machine_name.c_str());
-				rom.fileName = @(missing_rom.file_name.c_str());
-				rom.descriptiveName = missing_rom.descriptive_name.empty() ? nil : @(missing_rom.descriptive_name.c_str());
-				rom.size = missing_rom.size;
-
-				// Convert the CRC list.
-				NSMutableArray<NSNumber *> *crc32s = [[NSMutableArray alloc] initWithCapacity:missing_rom.crc32s.size()];
-				for(const auto &crc : missing_rom.crc32s) {
-					[crc32s addObject:@(crc)];
-				}
-				rom.crc32s = crc32s;
-
-				// Add to the missing list.
-				[missingROMs addObject:rom];
-			}*/
-
+			std::wstring_convert<std::codecvt_utf8<wchar_t>> wstring_converter;
+			const std::wstring description = missing_roms.description(0, L'•');
+			[missingROMs appendString:[NSString stringWithUTF8String:wstring_converter.to_bytes(description).c_str()]];
 			return nil;
 		}
 

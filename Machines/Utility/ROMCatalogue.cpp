@@ -10,7 +10,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <codecvt>
 #include <iomanip>
+#include <locale>
 #include <sstream>
 
 using namespace ROM;
@@ -287,6 +289,49 @@ std::string Description::description(int flags) const {
 
 	return output.str();
 }
+
+std::wstring Request::description(int description_flags, wchar_t bullet_point) {
+	std::wstringstream output;
+	std::wstring_convert<std::codecvt_utf8<wchar_t>> wstring_converter;
+
+	visit(
+		[&output, description_flags, bullet_point, &wstring_converter] (ROM::Request::LineItem item, ROM::Request::ListType type, int indentation_level, const ROM::Description *description, bool is_optional, size_t remaining) {
+			if(indentation_level) {
+				output << std::endl;
+				for(int c = 0; c < indentation_level; c++) output << '\t';
+				output << bullet_point << ' ';
+			}
+
+			switch(item) {
+				case ROM::Request::LineItem::NewList:
+					switch(type) {
+						default:
+						case ROM::Request::ListType::All:	output << "all of:";		break;
+						case ROM::Request::ListType::Any:	output << "any of:";		break;
+					}
+				break;
+
+				case ROM::Request::LineItem::Description:
+					if(is_optional) output << "optionally, ";
+
+					output << wstring_converter.from_bytes(description->description(description_flags));
+
+					if(remaining) {
+						output << ";";
+						if(remaining == 1) {
+							output << ((type == ROM::Request::ListType::All) ? " and" : " or");
+						}
+					} else {
+						output << ".";
+					}
+				break;
+			}
+		}
+	);
+
+	return output.str();
+}
+
 
 Description::Description(Name name) {
 	switch(name) {

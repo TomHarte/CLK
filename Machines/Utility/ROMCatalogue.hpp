@@ -213,6 +213,10 @@ struct Request {
 		const std::function<void(LineItem, ListType, int level, const ROM::Description *, bool is_optional, size_t remaining)> &add_item
 	) const;
 
+	/// @returns a full bullet-pointed list of the requirements of this request, including
+	/// appropriate conjuntives.
+	std::wstring description(int description_flags, wchar_t bullet_point);
+
 	private:
 		struct Node {
 			enum class Type {
