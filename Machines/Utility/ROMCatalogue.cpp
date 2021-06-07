@@ -27,11 +27,25 @@ Request::Request(Name name, bool optional) {
 }
 
 Request Request::append(Node::Type type, const Request &rhs) {
-	// Start with the easiest case: this is already an ::All request, and
-	// so is the new thing.
+	// Start with the easiest case: this is already an appropriate
+	// request, and so is the new thing.
 	if(node.type == type && rhs.node.type == type) {
 		Request new_request = *this;
 		new_request.node.children.insert(new_request.node.children.end(), rhs.node.children.begin(), rhs.node.children.end());
+		return new_request;
+	}
+
+	// Possibly: left is appropriate request and rhs is just one more thing?
+	if(node.type == type && rhs.node.type == Node::Type::One) {
+		Request new_request = *this;
+		new_request.node.children.push_back(rhs.node);
+		return new_request;
+	}
+
+	// Or: right is appropriate request and this is just one more thing?
+	if(rhs.node.type == type && node.type == Node::Type::One) {
+		Request new_request = rhs;
+		new_request.node.children.push_back(node);
 		return new_request;
 	}
 
@@ -144,7 +158,7 @@ bool Request::Node::validate(Map &map) const {
 }
 
 void Request::visit(
-	const std::function<void(ListType)> &enter_list,
+	const std::function<void(ListType, size_t)> &enter_list,
 	const std::function<void(void)> &exit_list,
 	const std::function<void(ROM::Request::ListType, const ROM::Description &, bool, size_t)> &add_item
 ) const {
@@ -156,8 +170,8 @@ void Request::visit(
 ) const {
 	int indentation_level = 0;
 	node.visit(
-		[&indentation_level, &add_item] (ROM::Request::ListType type) {
-			add_item(LineItem::NewList, type, indentation_level, nullptr, false, -1);
+		[&indentation_level, &add_item] (ROM::Request::ListType type, size_t size) {
+			add_item(LineItem::NewList, type, indentation_level, nullptr, false, size);
 			++indentation_level;
 		},
 		[&indentation_level] {
@@ -170,13 +184,13 @@ void Request::visit(
 }
 
 void Request::Node::visit(
-	const std::function<void(ListType)> &enter_list,
+	const std::function<void(ListType, size_t)> &enter_list,
 	const std::function<void(void)> &exit_list,
 	const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
 ) const {
 	switch(type) {
 		case Type::One:
-			enter_list(ListType::Single);
+			enter_list(ListType::Single, 1);
 			add_item(ROM::Request::ListType::Any, Description(name), is_optional, 0);
 			exit_list();
 		break;
@@ -184,7 +198,7 @@ void Request::Node::visit(
 		case Type::Any:
 		case Type::All: {
 			const ListType list_type = type == Type::Any ? ListType::Any : ListType::All;
-			enter_list(list_type);
+			enter_list(list_type, children.size());
 			for(size_t index = 0; index < children.size(); index++) {
 				auto &child = children[index];
 
@@ -304,10 +318,21 @@ std::wstring Request::description(int description_flags, wchar_t bullet_point) {
 
 			switch(item) {
 				case ROM::Request::LineItem::NewList:
-					switch(type) {
-						default:
-						case ROM::Request::ListType::All:	output << "all of:";		break;
-						case ROM::Request::ListType::Any:	output << "any of:";		break;
+					if(remaining > 1) {
+						if(!indentation_level) output << " ";
+						switch(type) {
+							default:
+							case ROM::Request::ListType::All:	output << "all of:";		break;
+							case ROM::Request::ListType::Any:
+								if(remaining == 2) {
+									output << "either of:";
+								} else {
+									output << "any of:";
+								}
+							break;
+						}
+					} else {
+						output << ":";
 					}
 				break;
 

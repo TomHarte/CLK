@@ -201,7 +201,7 @@ struct Request {
 		Any, All, Single
 	};
 	void visit(
-		const std::function<void(ListType)> &enter_list,
+		const std::function<void(ListType, size_t size)> &enter_list,
 		const std::function<void(void)> &exit_list,
 		const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
 	) const;
@@ -214,7 +214,8 @@ struct Request {
 	) const;
 
 	/// @returns a full bullet-pointed list of the requirements of this request, including
-	/// appropriate conjuntives.
+	/// appropriate conjuntives. This text is intended to be glued to the end of an opening
+	/// portion of a sentence, e.g. "Please supply" + request.description(0, L'*').
 	std::wstring description(int description_flags, wchar_t bullet_point);
 
 	private:
@@ -233,7 +234,7 @@ struct Request {
 			void add_descriptions(std::vector<Description> &) const;
 			bool validate(Map &) const;
 			void visit(
-				const std::function<void(ListType)> &enter_list,
+				const std::function<void(ListType, size_t)> &enter_list,
 				const std::function<void(void)> &exit_list,
 				const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
 			) const;

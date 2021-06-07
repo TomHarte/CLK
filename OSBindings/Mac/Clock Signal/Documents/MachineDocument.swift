@@ -415,6 +415,10 @@ class MachineDocument:
 	private var romRequestBaseText = ""
 
 	private func setRomRequesterIsVisible(_ visible : Bool) {
+		if !visible && self.romRequesterPanel == nil {
+			return;
+		}
+
 		if self.romRequesterPanel!.isVisible == visible {
 			return
 		}

@@ -774,7 +774,7 @@ int main(int argc, char *argv[]) {
 			default: break;
 			case ::Machine::Error::MissingROM: {
 				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath, e.g. --rompath=~/ROMs." << std::endl;
-				std::cerr << "Needed — but didn't find — ";
+				std::cerr << "Needed — but didn't find —";
 
 				using DescriptionFlag = ROM::Description::DescriptionFlag;
 				std::wcerr << missing_roms.description(DescriptionFlag::Filename | DescriptionFlag::CRC, L'*');
