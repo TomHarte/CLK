@@ -291,7 +291,7 @@ void MainWindow::launchMachine() {
 
 				// Populate request text.
 				QString requestText = romRequestBaseText;
-				requestText += missingRoms.description(0, L'•');
+				requestText += QString::fromWCharArray(missingRoms.description(0, L'•').c_str());
 				ui->missingROMsBox->setPlainText(requestText);
 			} break;
 		}
