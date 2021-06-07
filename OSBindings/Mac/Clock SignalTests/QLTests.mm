@@ -101,10 +101,11 @@ class QL: public ComparativeBusHandler {
 	Tests the progression of Clock Signal's 68000 through the Sinclair QL's ROM against a known-good trace.
 */
 - (void)testStartup {
-	const std::vector<ROMMachine::ROM> rom_names = {{"SinclairQL", "", "js.rom", 0, 0 }};
-	const auto roms = CSROMFetcher()(rom_names);
+	constexpr ROM::Name rom_name = ROM::Name::SinclairQLJS;
+	ROM::Request request(rom_name);
+	const auto roms = CSROMFetcher()(request);
 	NSString *const traceLocation = [[NSBundle bundleForClass:[self class]] pathForResource:@"qltrace" ofType:@".txt.gz"];
-	_machine = std::make_unique<QL>(*roms[0], traceLocation.UTF8String);
+	_machine = std::make_unique<QL>(roms.find(rom_name)->second, traceLocation.UTF8String);
 
 	// This is how many cycles it takes to exhaust the supplied trace file.
 	_machine->run_for(HalfCycles(23923180));

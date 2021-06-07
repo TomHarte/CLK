@@ -55,6 +55,7 @@ enum Name {
 	// Atari ST.
 	AtariSTTOS100,
 	AtariSTTOS104,
+	AtariSTEmuTOS192,
 
 	// ColecoVision.
 	ColecoVisionBIOS,
@@ -95,6 +96,9 @@ enum Name {
 	OricMicrodisc,
 	Oric8DOSBoot,
 
+	// Sinclair QL.
+	SinclairQLJS,
+
 	// Vic-20.
 	Vic20BASIC,
 	Vic20EnglishCharacters,
@@ -116,6 +120,7 @@ enum Name {
 	Spectrum128k,
 	SpecrumPlus2,
 	SpectrumPlus3,
+
 };
 
 using Map = std::map<ROM::Name, std::vector<uint8_t>>;

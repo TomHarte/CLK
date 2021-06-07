@@ -408,8 +408,9 @@ Description::Description(Name name) {
 			*this = Description(name, "Macintosh", "the Macintosh Plus ROM", "macplus.rom", 128*1024, crcs);
 		} break;
 
-		case Name::AtariSTTOS100:	*this = Description(name, "AtariST", "the UK TOS 1.00 ROM", "tos100.img", 192*1024, 0x1a586c64u);	break;
-		case Name::AtariSTTOS104:	*this = Description(name, "AtariST", "the UK TOS 1.04 ROM", "tos104.img", 192*1024, 0xa50d1d43u);	break;
+		case Name::AtariSTTOS100:		*this = Description(name, "AtariST", "the UK TOS 1.00 ROM", "tos100.img", 192*1024, 0x1a586c64u);		break;
+		case Name::AtariSTTOS104:		*this = Description(name, "AtariST", "the UK TOS 1.04 ROM", "tos104.img", 192*1024, 0xa50d1d43u);		break;
+		case Name::AtariSTEmuTOS192:	*this = Description(name, "AtariST", "the UK EmuTOS 1.92 ROM", "etos192uk.img", 192*1024, 0xfc3b9e61u);	break;
 
 		case Name::ColecoVisionBIOS:
 			*this = Description(name, "ColecoVision", "the ColecoVision BIOS", "coleco.rom", 8*1024, 0x3aa93ef3u);
@@ -469,5 +470,10 @@ Description::Description(Name name) {
 		case Name::MSXAmericanBIOS:	*this = Description(name, "MSX", "an American MSX BIOS", "msx-american.rom", 32*1024, 0u);			break;
 		case Name::MSXEuropeanBIOS:	*this = Description(name, "MSX", "a European MSX BIOS", "msx-european.rom", 32*1024, 0u);			break;
 		case Name::MSXDOS:			*this = Description(name, "MSX", "the MSX-DOS ROM", "disk.rom", 16*1024, 0x721f61dfu);				break;
+
+		case Name::SinclairQLJS:
+			*this = Description(name, "SinclairQL", "the Sinclair QL 'JS' ROM", "js.rom", 48*1024, 0x0f95aab5u);
+		break;
+
 	}
 }
