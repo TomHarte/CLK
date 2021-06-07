@@ -253,7 +253,7 @@ void MainWindow::launchMachine() {
 	const QStringList appDataLocations = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
 
 	ROMMachine::ROMFetcher rom_fetcher = [&appDataLocations, this]
-		(const ROM::Request &roms) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
+		(const ROM::Request &roms) -> ROM::Map {
 		ROM::Map results;
 
 		for(const auto &description: roms.all_descriptions()) {
@@ -270,7 +270,7 @@ void MainWindow::launchMachine() {
 				if(file) {
 					auto data = fileContentsAndClose(file);
 					if(data) {
-						results[description.name] = std::move(data);
+						results[description.name] = *data;
 						continue;
 					}
 				}
