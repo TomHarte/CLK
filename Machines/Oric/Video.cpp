@@ -54,7 +54,7 @@ void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
 
 #ifdef SUPPLY_COMPOSITE
 	const auto data_type =
-		(display_type == Outputs::Display::DisplayType::RGB) ?
+		(!has_colour_rom_ || display_type == Outputs::Display::DisplayType::RGB) ?
 			Outputs::Display::InputDataType::Red1Green1Blue1 :
 			Outputs::Display::InputDataType::PhaseLinkedLuminance8;
 #else
@@ -80,6 +80,7 @@ Outputs::Display::ScanStatus VideoOutput::get_scaled_scan_status() const {
 }
 
 void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
+	has_colour_rom_ = true;
 	for(std::size_t c = 0; c < 8; c++) {
 		colour_forms_[c] = 0;
 

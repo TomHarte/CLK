@@ -37,6 +37,7 @@ class VideoOutput {
 		Outputs::CRT::CRT crt_;
 		Outputs::CRT::CRTFrequencyMismatchWarner<VideoOutput> frequency_mismatch_warner_;
 		bool crt_is_60Hz_ = false;
+		bool has_colour_rom_ = false;
 
 		void update_crt_frequency();
 
