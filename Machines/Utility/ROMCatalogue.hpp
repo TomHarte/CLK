@@ -9,6 +9,7 @@
 #ifndef ROMCatalogue_hpp
 #define ROMCatalogue_hpp
 
+#include <algorithm>
 #include <functional>
 #include <map>
 #include <optional>
@@ -244,6 +245,19 @@ struct Request {
 				const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
 			) const;
 			bool subtract(const ROM::Map &map);
+			void sort() {
+				// Don't do a full sort, but move anything optional to the back.
+				// This makes them print more nicely; it's a human-facing tweak only.
+				ssize_t index = ssize_t(children.size() - 1);
+				bool has_seen_non_optional = false;
+				while(index >= 0) {
+					has_seen_non_optional |= !children[size_t(index)].is_optional;
+					if(children[size_t(index)].is_optional && has_seen_non_optional) {
+						std::rotate(children.begin() + index, children.begin() + index + 1, children.end());
+					}
+					--index;
+				}
+			}
 		};
 		Node node;
 

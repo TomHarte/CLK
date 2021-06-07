@@ -32,6 +32,7 @@ Request Request::append(Node::Type type, const Request &rhs) {
 	if(node.type == type && rhs.node.type == type) {
 		Request new_request = *this;
 		new_request.node.children.insert(new_request.node.children.end(), rhs.node.children.begin(), rhs.node.children.end());
+		new_request.node.sort();
 		return new_request;
 	}
 
@@ -39,6 +40,7 @@ Request Request::append(Node::Type type, const Request &rhs) {
 	if(node.type == type && rhs.node.type == Node::Type::One) {
 		Request new_request = *this;
 		new_request.node.children.push_back(rhs.node);
+		new_request.node.sort();
 		return new_request;
 	}
 
@@ -46,6 +48,7 @@ Request Request::append(Node::Type type, const Request &rhs) {
 	if(rhs.node.type == type && node.type == Node::Type::One) {
 		Request new_request = rhs;
 		new_request.node.children.push_back(node);
+		new_request.node.sort();
 		return new_request;
 	}
 
