@@ -15,9 +15,8 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 	crt_(910, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance1),
 	is_iie_(is_iie) {
 
-	// Show only the centre 75% of the TV frame.
 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
-	crt_.set_visible_area(Outputs::Display::Rect(0.118f, 0.122f, 0.77f, 0.77f));
+	set_use_square_pixels(use_square_pixels_);
 
 	// TODO: there seems to be some sort of bug whereby switching modes can cause
 	// a signal discontinuity that knocks phase out of whack. So it isn't safe to
@@ -28,6 +27,17 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 
 void VideoBase::set_use_square_pixels(bool use_square_pixels) {
 	use_square_pixels_ = use_square_pixels;
+
+	// HYPER-UGLY HACK. See correlated hack in the Macintosh.
+#ifdef __APPLE__
+	crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.122f, 0.75f, 0.77f));
+#else
+	if(use_square_pixels) {
+		crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.112f, 0.75f, 0.73f));
+	} else {
+		crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.12f, 0.75f, 0.77f));
+	}
+#endif
 
 	if(use_square_pixels) {
 		// From what I can make out, many contemporary Apple II monitors were

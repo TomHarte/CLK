@@ -34,12 +34,9 @@ class Machine {
 
 				Options(Configurable::OptionsType) : Configurable::DisplayOption<Options>(Configurable::Display::CompositeColour) {
 					if(needs_declare()) {
+						DeclareField(use_square_pixels);
 						declare_display_option();
 						limit_enum(&output, Configurable::Display::CompositeMonochrome, Configurable::Display::CompositeColour, -1);
-
-						if(needs_declare()) {
-							DeclareField(use_square_pixels);
-						}
 					}
 				}
 		};
