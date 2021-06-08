@@ -137,6 +137,9 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void addAtari2600Menu();
 		void toggleAtari2600Switch(Atari2600Switch toggleSwitch);
 
+		void addAppleIIMenu();
+		void setAppleIISquarePixels(bool);
+
 		void setWindowTitle();
 		bool mouseIsCaptured = false;
 
