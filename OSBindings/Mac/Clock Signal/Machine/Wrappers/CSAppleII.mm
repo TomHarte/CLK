@@ -28,10 +28,17 @@
 
 - (void)setUseSquarePixels:(BOOL)useSquarePixels {
 	Configurable::Device *const configurable = dynamic_cast<Configurable::Device *>(_appleII);
+#ifndef NDEBUG
+	assert(configurable);
+#endif
 
 	@synchronized(_machine) {
 		auto options = configurable->get_options();
-		auto appleii_configurable = dynamic_cast<Apple::II::Machine::Options *>(options.get());
+#ifndef NDEBUG
+		assert(dynamic_cast<Apple::II::Machine::Options *>(options.get()));
+#endif
+
+		auto appleii_configurable = static_cast<Apple::II::Machine::Options *>(options.get());
 		appleii_configurable->use_square_pixels = useSquarePixels;
 		configurable->set_options(options);
 	}
