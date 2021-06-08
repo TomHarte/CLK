@@ -787,12 +787,14 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		std::unique_ptr<Reflection::Struct> get_options() final {
 			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 			options->output = get_video_signal_configurable();
+			options->use_square_pixels = video_.get_use_square_pixels();
 			return options;
 		}
 
 		void set_options(const std::unique_ptr<Reflection::Struct> &str) {
 			const auto options = dynamic_cast<Options *>(str.get());
 			set_video_signal_configurable(options->output);
+			video_.set_use_square_pixels(options->use_square_pixels);
 		}
 
 		// MARK: MediaTarget

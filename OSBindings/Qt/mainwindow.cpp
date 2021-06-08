@@ -403,7 +403,7 @@ void MainWindow::launchMachine() {
 		break;
 
 		case Analyser::Machine::AppleII:
-			addDisplayMenu(settingsPrefix, "Colour", "Monochrome", "", "");
+			addAppleIIMenu();
 		break;
 
 		case Analyser::Machine::Atari2600:
@@ -669,6 +669,41 @@ void MainWindow::toggleAtari2600Switch(Atari2600Switch toggleSwitch) {
 	QTimer::singleShot(500, this, [atari2600, toggleSwitch] {
 		atari2600->set_switch_is_enabled(toggleSwitch, false);
 	});
+}
+
+void MainWindow::addAppleIIMenu() {
+	// Add the standard display settings.
+	addDisplayMenu("appleII", "Colour", "Monochrome", "", "");
+
+	// Add an additional tick box, for square pixels.
+	QAction *const squarePixelsAction = new QAction(tr("Square Pixels"));
+	squarePixelsAction->setCheckable(true);
+	connect(squarePixelsAction, &QAction::triggered, this, [=] {
+		std::lock_guard lock_guard(machineMutex);
+
+		// Apply the new setting to the machine.
+		setAppleIISquarePixels(squarePixelsAction->isChecked());
+
+		// Also store it.
+		Settings settings;
+		settings.setValue("appleII.squarePixels", squarePixelsAction->isChecked());
+	});
+	displayMenu->addAction(squarePixelsAction);
+
+	// Establish initial selection.
+	Settings settings;
+	const bool useSquarePixels = settings.value("appleII.squarePixels").toBool();
+	squarePixelsAction->setChecked(useSquarePixels);
+	setAppleIISquarePixels(useSquarePixels);
+}
+
+void MainWindow::setAppleIISquarePixels(bool squarePixels) {
+	Configurable::Device *const configurable = machine->configurable_device();
+	auto options = configurable->get_options();
+	auto appleii_options = static_cast<Apple::II::Machine::Options *>(options.get());
+
+	appleii_options->use_square_pixels = squarePixels;
+	configurable->set_options(options);
 }
 
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {

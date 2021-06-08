@@ -30,8 +30,11 @@ class Machine {
 		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
 			friend Configurable::DisplayOption<Options>;
 			public:
-				Options(Configurable::OptionsType) : Configurable::DisplayOption<Options>(Configurable::Display::CompositeColour)  {
+				bool use_square_pixels = false;
+
+				Options(Configurable::OptionsType) : Configurable::DisplayOption<Options>(Configurable::Display::CompositeColour) {
 					if(needs_declare()) {
+						DeclareField(use_square_pixels);
 						declare_display_option();
 						limit_enum(&output, Configurable::Display::CompositeMonochrome, Configurable::Display::CompositeColour, -1);
 					}

@@ -20,8 +20,9 @@
 #include "../../Activity/Observer.hpp"
 
 // There are machine-specific controls for the following:
-#include "../../Machines/Sinclair/ZX8081/ZX8081.hpp"
+#include "../../Machines/Apple/AppleII/AppleII.hpp"
 #include "../../Machines/Atari/2600/Atari2600.hpp"
+#include "../../Machines/Sinclair/ZX8081/ZX8081.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -136,6 +137,9 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		void addAtari2600Menu();
 		void toggleAtari2600Switch(Atari2600Switch toggleSwitch);
+
+		void addAppleIIMenu();
+		void setAppleIISquarePixels(bool);
 
 		void setWindowTitle();
 		bool mouseIsCaptured = false;
