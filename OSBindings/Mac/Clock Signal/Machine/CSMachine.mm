@@ -577,6 +577,10 @@ struct ActivityObserver: public Activity::Observer {
 	return [[CSZX8081 alloc] initWithZX8081:_machine->raw_pointer() owner:self];
 }
 
+- (CSAppleII *)appleII {
+	return [[CSAppleII alloc] initWithAppleII:_machine->raw_pointer() owner:self];
+}
+
 #pragma mark - Input device queries
 
 - (BOOL)hasJoystick {

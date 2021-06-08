@@ -36,6 +36,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 // Deliberately low; to ensure CSMachine has been declared as an @class already.
 #import "CSAtari2600.h"
 #import "CSZX8081.h"
+#import "CSAppleII.h"
 
 @interface CSMachine : NSObject
 
@@ -103,5 +104,6 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 // Special-case accessors; undefined behaviour if accessed for a machine not of the corresponding type.
 @property (nonatomic, readonly, nullable) CSAtari2600 *atari2600;
 @property (nonatomic, readonly, nullable) CSZX8081 *zx8081;
+@property (nonatomic, readonly, nullable) CSAppleII *appleII;
 
 @end

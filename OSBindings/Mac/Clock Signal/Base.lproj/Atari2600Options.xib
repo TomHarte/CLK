@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14113" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="18122" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14113"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="18122"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -13,17 +13,17 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="gsl-7V-TTU" customClass="Atari2600OptionsPanel" customModule="Clock_Signal" customModuleProvider="target">
+        <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" hidesOnDeactivate="YES" releasedWhenClosed="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="gsl-7V-TTU" customClass="Atari2600OptionsPanel" customModule="Clock_Signal" customModuleProvider="target">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" nonactivatingPanel="YES" HUD="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="80" y="150" width="200" height="121"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
             <view key="contentView" id="aQh-Pm-DEo">
                 <rect key="frame" x="0.0" y="0.0" width="200" height="121"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rQO-uD-fwn">
-                        <rect key="frame" x="14" y="73" width="86" height="32"/>
+                        <rect key="frame" x="13" y="74" width="88" height="32"/>
                         <buttonCell key="cell" type="push" title="Reset" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="l3H-0m-aK0">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -33,7 +33,7 @@
                         </connections>
                     </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="3qw-C1-NYW">
-                        <rect key="frame" x="18" y="58" width="164" height="18"/>
+                        <rect key="frame" x="18" y="58" width="162" height="18"/>
                         <buttonCell key="cell" type="check" title="Black and White" bezelStyle="regularSquare" imagePosition="left" inset="2" id="UP7-mf-IKo">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -43,7 +43,7 @@
                         </connections>
                     </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="Xbc-cw-Sc2">
-                        <rect key="frame" x="18" y="38" width="164" height="18"/>
+                        <rect key="frame" x="18" y="36" width="162" height="18"/>
                         <buttonCell key="cell" type="check" title="Left Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="wlJ-8s-PEh">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -53,7 +53,7 @@
                         </connections>
                     </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="kPV-Tm-TTc">
-                        <rect key="frame" x="18" y="18" width="164" height="18"/>
+                        <rect key="frame" x="18" y="14" width="162" height="18"/>
                         <buttonCell key="cell" type="check" title="Right Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="F05-cA-66S">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -63,7 +63,7 @@
                         </connections>
                     </button>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nt7-8K-xY9">
-                        <rect key="frame" x="100" y="73" width="86" height="32"/>
+                        <rect key="frame" x="99" y="74" width="88" height="32"/>
                         <buttonCell key="cell" type="push" title="Select" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="8Na-Z1-EXS">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
