@@ -20,8 +20,9 @@
 #include "../../Activity/Observer.hpp"
 
 // There are machine-specific controls for the following:
-#include "../../Machines/Sinclair/ZX8081/ZX8081.hpp"
+#include "../../Machines/Apple/AppleII/AppleII.hpp"
 #include "../../Machines/Atari/2600/Atari2600.hpp"
+#include "../../Machines/Sinclair/ZX8081/ZX8081.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
