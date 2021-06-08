@@ -18,8 +18,8 @@
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="80" y="150" width="200" height="159"/>
             <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
-            <view key="contentView" misplaced="YES" id="tpZ-0B-QQu">
-                <rect key="frame" x="0.0" y="0.0" width="200" height="159"/>
+            <view key="contentView" id="tpZ-0B-QQu">
+                <rect key="frame" x="0.0" y="0.0" width="200" height="84"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="kDb-7g-cVx">
