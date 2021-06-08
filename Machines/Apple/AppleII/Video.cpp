@@ -26,6 +26,30 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 //	crt_.set_immediate_default_phase(0.5f);
 }
 
+void VideoBase::set_use_square_pixels(bool use_square_pixels) {
+	use_square_pixels_ = use_square_pixels;
+
+	if(use_square_pixels) {
+		// From what I can make out, many contemporary Apple II monitors were
+		// calibrated slightly to stretch the Apple II's display slightly wider
+		// than it should be per the NTSC standards, for approximately square
+		// pixels. This reproduces that.
+
+		// 243 lines and 52µs are visible.
+		// i.e. to be square, 1 pixel should be: (1/243 * 52) * (3/4) = 156/972 = 39/243 µs
+		// On an Apple II each pixel is actually 1/7µs.
+		// Therefore the adjusted aspect ratio should be (4/3) * (39/243)/(1/7) = (4/3) * 273/243 = 1092/729 = 343/243 ~= 1.412
+		crt_.set_aspect_ratio(343.0f / 243.0f);
+	} else {
+		// Standard NTSC aspect ratio.
+		crt_.set_aspect_ratio(4.0f / 3.0f);
+	}
+}
+bool VideoBase::get_use_square_pixels() {
+	return use_square_pixels_;
+}
+
+
 void VideoBase::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }

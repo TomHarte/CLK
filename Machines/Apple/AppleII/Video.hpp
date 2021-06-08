@@ -51,8 +51,14 @@ class VideoBase: public VideoSwitches<Cycles> {
 		/// Gets the type of output.
 		Outputs::Display::DisplayType get_display_type() const;
 
+		/// Sets whether the current CRT should be recalibrated away from normative NTSC
+		/// to produce square pixels in 40-column text mode.
+		void set_use_square_pixels(bool);
+		bool get_use_square_pixels();
+
 	protected:
 		Outputs::CRT::CRT crt_;
+		bool use_square_pixels_ = false;
 
 		// State affecting output video stream generation.
 		uint8_t *pixel_pointer_ = nullptr;
