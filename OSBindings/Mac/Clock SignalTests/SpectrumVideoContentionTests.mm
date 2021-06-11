@@ -24,8 +24,10 @@ struct ContentionAnalysis {
 	HalfCycles pattern[8];
 };
 
-template <Sinclair::ZXSpectrum::VideoTiming video_timing> ContentionAnalysis analyse() {
-	Sinclair::ZXSpectrum::Video<video_timing> video;
+using Timing = Sinclair::ZXSpectrum::Video::Timing;
+
+template <Timing video_timing> ContentionAnalysis analyse() {
+	Sinclair::ZXSpectrum::Video::Video<video_timing> video;
 	ContentionAnalysis analysis;
 
 	// Advance to the start of the first interrupt.
@@ -82,7 +84,7 @@ template <Sinclair::ZXSpectrum::VideoTiming video_timing> ContentionAnalysis ana
 }
 
 - (void)test48k {
-	const auto analysis = analyse<Sinclair::ZXSpectrum::VideoTiming::FortyEightK>();
+	const auto analysis = analyse<Timing::FortyEightK>();
 
 	// Check time from interrupt.
 	XCTAssertEqual(analysis.time_after_interrupt, 14335*2);
@@ -105,7 +107,7 @@ template <Sinclair::ZXSpectrum::VideoTiming video_timing> ContentionAnalysis ana
 }
 
 - (void)test128k {
-	const auto analysis = analyse<Sinclair::ZXSpectrum::VideoTiming::OneTwoEightK>();
+	const auto analysis = analyse<Timing::OneTwoEightK>();
 
 	// Check time from interrupt.
 	XCTAssertEqual(analysis.time_after_interrupt, 14361*2);
@@ -128,7 +130,7 @@ template <Sinclair::ZXSpectrum::VideoTiming video_timing> ContentionAnalysis ana
 }
 
 - (void)testPlus3 {
-	const auto analysis = analyse<Sinclair::ZXSpectrum::VideoTiming::Plus3>();
+	const auto analysis = analyse<Timing::Plus3>();
 
 	// Check time from interrupt.
 	XCTAssertEqual(analysis.time_after_interrupt, 14361*2);

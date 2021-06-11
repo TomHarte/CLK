@@ -15,9 +15,8 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 	crt_(910, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance1),
 	is_iie_(is_iie) {
 
-	// Show only the centre 75% of the TV frame.
 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
-	crt_.set_visible_area(Outputs::Display::Rect(0.118f, 0.122f, 0.77f, 0.77f));
+	set_use_square_pixels(use_square_pixels_);
 
 	// TODO: there seems to be some sort of bug whereby switching modes can cause
 	// a signal discontinuity that knocks phase out of whack. So it isn't safe to
@@ -25,6 +24,41 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 	// it is, start doing so and return to setting the immediate phase up here.
 //	crt_.set_immediate_default_phase(0.5f);
 }
+
+void VideoBase::set_use_square_pixels(bool use_square_pixels) {
+	use_square_pixels_ = use_square_pixels;
+
+	// HYPER-UGLY HACK. See correlated hack in the Macintosh.
+#ifdef __APPLE__
+	crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.122f, 0.75f, 0.77f));
+#else
+	if(use_square_pixels) {
+		crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.112f, 0.75f, 0.73f));
+	} else {
+		crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.12f, 0.75f, 0.77f));
+	}
+#endif
+
+	if(use_square_pixels) {
+		// From what I can make out, many contemporary Apple II monitors were
+		// calibrated slightly to stretch the Apple II's display slightly wider
+		// than it should be per the NTSC standards, for approximately square
+		// pixels. This reproduces that.
+
+		// 243 lines and 52µs are visible.
+		// i.e. to be square, 1 pixel should be: (1/243 * 52) * (3/4) = 156/972 = 39/243 µs
+		// On an Apple II each pixel is actually 1/7µs.
+		// Therefore the adjusted aspect ratio should be (4/3) * (39/243)/(1/7) = (4/3) * 273/243 = 1092/729 = 343/243 ~= 1.412
+		crt_.set_aspect_ratio(343.0f / 243.0f);
+	} else {
+		// Standard NTSC aspect ratio.
+		crt_.set_aspect_ratio(4.0f / 3.0f);
+	}
+}
+bool VideoBase::get_use_square_pixels() {
+	return use_square_pixels_;
+}
+
 
 void VideoBase::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);

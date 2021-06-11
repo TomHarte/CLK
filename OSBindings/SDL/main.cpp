@@ -694,11 +694,10 @@ int main(int argc, char *argv[]) {
 	//	/usr/local/share/CLK/[system];
 	//	/usr/share/CLK/[system]; or
 	//	[user-supplied path]/[system]
-	std::vector<ROMMachine::ROM> requested_roms;
-	ROMMachine::ROMFetcher rom_fetcher = [&requested_roms, &arguments]
-		(const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
-			requested_roms.insert(requested_roms.end(), roms.begin(), roms.end());
-
+	ROM::Request missing_roms;
+	std::vector<std::string> checked_paths;
+	ROMMachine::ROMFetcher rom_fetcher = [&missing_roms, &arguments, &checked_paths]
+		(const ROM::Request &roms) -> ROM::Map {
 			std::vector<std::string> paths = {
 				"/usr/local/share/CLK/",
 				"/usr/share/CLK/"
@@ -706,41 +705,56 @@ int main(int argc, char *argv[]) {
 
 			const auto rompath = arguments.selections.find("rompath");
 			if(rompath != arguments.selections.end()) {
-				if(rompath->second.back() != '/') {
-					paths.push_back(rompath->second + "/");
-				} else {
-					paths.push_back(rompath->second);
+				std::string path = rompath->second;
+
+				// Ensure the path ends in a slash.
+				if(path.back() != '/') {
+					path += '/';
+				}
+
+				// If ~ is present, expand it to %HOME%.
+				const size_t tilde_position = path.find("~");
+				if(tilde_position != std::string::npos) {
+					path.replace(tilde_position, 1, getenv("HOME"));
+				}
+
+				paths.push_back(path);
+			}
+
+			ROM::Map results;
+			for(const auto &description: roms.all_descriptions()) {
+				for(const auto &file_name: description.file_names) {
+					FILE *file = nullptr;
+					std::vector<std::string> rom_checked_paths;
+					for(const auto &path: paths) {
+						std::string local_path = path + description.machine_name + "/" + file_name;
+						file = std::fopen(local_path.c_str(), "rb");
+						rom_checked_paths.push_back(local_path);
+						if(file) break;
+					}
+
+					if(!file) {
+						std::copy(rom_checked_paths.begin(), rom_checked_paths.end(), std::back_inserter(checked_paths));
+						continue;
+					}
+
+					std::vector<uint8_t> data;
+
+					std::fseek(file, 0, SEEK_END);
+					data.resize(std::ftell(file));
+					std::fseek(file, 0, SEEK_SET);
+					std::size_t read = fread(data.data(), 1, data.size(), file);
+					std::fclose(file);
+
+					if(read == data.size()) {
+						results[description.name] = std::move(data);
+					} else {
+						std::copy(rom_checked_paths.begin(), rom_checked_paths.end(), std::back_inserter(checked_paths));
+					}
 				}
 			}
 
-			std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
-			for(const auto &rom: roms) {
-				FILE *file = nullptr;
-				for(const auto &path: paths) {
-					std::string local_path = path + rom.machine_name + "/" + rom.file_name;
-					file = std::fopen(local_path.c_str(), "rb");
-					if(file) break;
-				}
-
-				if(!file) {
-					results.emplace_back(nullptr);
-					continue;
-				}
-
-				auto data = std::make_unique<std::vector<uint8_t>>();
-
-				std::fseek(file, 0, SEEK_END);
-				data->resize(std::ftell(file));
-				std::fseek(file, 0, SEEK_SET);
-				std::size_t read = fread(data->data(), 1, data->size(), file);
-				std::fclose(file);
-
-				if(read == data->size())
-					results.emplace_back(std::move(data));
-				else
-					results.emplace_back(nullptr);
-			}
-
+			missing_roms = roms.subtract(results);
 			return results;
 		};
 
@@ -758,24 +772,22 @@ int main(int argc, char *argv[]) {
 	if(!machine) {
 		switch(error) {
 			default: break;
-			case ::Machine::Error::MissingROM:
-				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath." << std::endl;
-				std::cerr << "One or more of the following was needed but not found:" << std::endl;
-				for(const auto &rom: requested_roms) {
-					std::cerr << rom.machine_name << '/' << rom.file_name << " (";
-					if(!rom.descriptive_name.empty()) {
-						std::cerr << rom.descriptive_name << "; ";
-					}
-					std::cerr << "usual crc32s: ";
-					bool is_first = true;
-					for(const auto crc32: rom.crc32s) {
-						if(!is_first) std::cerr << ", ";
-						is_first = false;
-						std::cerr << std::hex << std::setfill('0') << std::setw(8) << crc32;
-					}
-					std::cerr << ")" << std::endl;
+			case ::Machine::Error::MissingROM: {
+				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath, e.g. --rompath=~/ROMs." << std::endl;
+				std::cerr << "Needed — but didn't find —";
+
+				using DescriptionFlag = ROM::Description::DescriptionFlag;
+				std::wcerr << missing_roms.description(DescriptionFlag::Filename | DescriptionFlag::CRC, L'*');
+
+				std::cerr << std::endl << std::endl << "Searched unsuccessfully: ";
+				bool is_first = true;
+				for(const auto &path: checked_paths) {
+					if(!is_first) std::cerr << "; ";
+					std::cerr << path;
+					is_first = false;
 				}
-			break;
+				std::cerr << std::endl;
+			} break;
 		}
 
 		return EXIT_FAILURE;

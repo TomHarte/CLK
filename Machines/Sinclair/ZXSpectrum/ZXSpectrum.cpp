@@ -146,33 +146,24 @@ template<Model model> class ConcreteMachine:
 			set_clock_rate(clock_rate());
 			speaker_.set_input_rate(float(clock_rate()) / 2.0f);
 
-			// With only the +2a and +3 currently supported, the +3 ROM is always
-			// the one required.
-			std::vector<ROMMachine::ROM> rom_names;
-			const std::string machine = "ZXSpectrum";
+			ROM::Name rom_name;
 			switch(model) {
 				case Model::SixteenK:
-				case Model::FortyEightK:
-					rom_names.emplace_back(machine, "the 48kb ROM", "48.rom", 16 * 1024, 0xddee531f);
-				break;
-
-				case Model::OneTwoEightK:
-					rom_names.emplace_back(machine, "the 128kb ROM", "128.rom", 32 * 1024, 0x2cbe8995);
-				break;
-
-				case Model::Plus2:
-					rom_names.emplace_back(machine, "the +2 ROM", "plus2.rom", 32 * 1024, 0xe7a517dc);
-				break;
-
+				case Model::FortyEightK:	rom_name = ROM::Name::Spectrum48k;		break;
+				case Model::OneTwoEightK:	rom_name = ROM::Name::Spectrum128k;		break;
+				case Model::Plus2:			rom_name = ROM::Name::SpecrumPlus2;		break;
 				case Model::Plus2a:
-				case Model::Plus3: {
-					const std::initializer_list<uint32_t> crc32s = { 0x96e3c17a, 0xbe0d9ec4 };
-					rom_names.emplace_back(machine, "the +2a/+3 ROM", "plus3.rom", 64 * 1024, crc32s);
-				} break;
+				case Model::Plus3: 			rom_name = ROM::Name::SpectrumPlus3;	break;
+				// TODO: possibly accept the +3 ROM in multiple parts?
 			}
-			const auto roms = rom_fetcher(rom_names);
-			if(!roms[0]) throw ROMMachine::Error::MissingROMs;
-			memcpy(rom_.data(), roms[0]->data(), std::min(rom_.size(), roms[0]->size()));
+			const auto request = ROM::Request(rom_name);
+			auto roms = rom_fetcher(request);
+			if(!request.validate(roms)) {
+				throw ROMMachine::Error::MissingROMs;
+			}
+
+			const auto &rom = roms.find(rom_name)->second;
+			memcpy(rom_.data(), rom.data(), std::min(rom_.size(), rom.size()));
 
 			// Register for sleeping notifications.
 			tape_player_.set_clocking_hint_observer(this);

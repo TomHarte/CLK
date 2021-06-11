@@ -12,6 +12,11 @@
 		4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
 		4B0333B02094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
 		4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B049CDC1DA3C82F00322067 /* BCDTest.swift */; };
+		4B051C912669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
+		4B051C922669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
+		4B051C93266D9D6900CA44E8 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
+		4B051C95266EF50200CA44E8 /* AppleIIOptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C94266EF50200CA44E8 /* AppleIIOptionsPanel.swift */; };
+		4B051C97266EF5F600CA44E8 /* CSAppleII.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C96266EF5F600CA44E8 /* CSAppleII.mm */; };
 		4B05401E219D1618001BF69C /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
 		4B05401F219D1618001BF69C /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
 		4B055A7A1FAE78A00060FFFF /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055A771FAE78210060FFFF /* SDL2.framework */; };
@@ -566,7 +571,6 @@
 		4B9F11CA2272433900701480 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
 		4B9F11CC22729B3600701480 /* OPCLOGR2.BIN in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */; };
 		4BA0F68E1EEA0E8400E9489E /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */; };
-		4BA3189422E7A4CA00D18CFA /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BA91E1D216D85BA00F79557 /* MasterSystemVDPTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */; };
 		4BAD13441FF709C700FD114A /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E61051FF34737002A9DBD /* MSX.cpp */; };
@@ -1019,6 +1023,11 @@
 		4B047075201ABC180047AB0D /* Cartridge.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4B049CDC1DA3C82F00322067 /* BCDTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BCDTest.swift; sourceTree = "<group>"; };
 		4B04B65622A58CB40006AB58 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
+		4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ROMCatalogue.cpp; sourceTree = "<group>"; };
+		4B051C5926670A9300CA44E8 /* ROMCatalogue.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ROMCatalogue.hpp; sourceTree = "<group>"; };
+		4B051C94266EF50200CA44E8 /* AppleIIOptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppleIIOptionsPanel.swift; sourceTree = "<group>"; };
+		4B051C96266EF5F600CA44E8 /* CSAppleII.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CSAppleII.mm; sourceTree = "<group>"; };
+		4B051C98266EF60500CA44E8 /* CSAppleII.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSAppleII.h; sourceTree = "<group>"; };
 		4B05401D219D1618001BF69C /* ScanTarget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScanTarget.cpp; sourceTree = "<group>"; };
 		4B055A6A1FAE763F0060FFFF /* Clock Signal Kiosk */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Clock Signal Kiosk"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B055A771FAE78210060FFFF /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ../../../../Library/Frameworks/SDL2.framework; sourceTree = SOURCE_ROOT; };
@@ -2401,8 +2410,10 @@
 		4B2A53981D117D36003C6002 /* Wrappers */ = {
 			isa = PBXGroup;
 			children = (
+				4B051C98266EF60500CA44E8 /* CSAppleII.h */,
 				4B2A53991D117D36003C6002 /* CSAtari2600.h */,
 				4B14978D1EE4B4D200CE2596 /* CSZX8081.h */,
+				4B051C96266EF5F600CA44E8 /* CSAppleII.mm */,
 				4B2A539A1D117D36003C6002 /* CSAtari2600.mm */,
 				4B14978E1EE4B4D200CE2596 /* CSZX8081.mm */,
 			);
@@ -2415,11 +2426,13 @@
 				4B055ABE1FAE98000060FFFF /* MachineForTarget.cpp */,
 				4B2B3A481F9B8FA70062DABF /* MemoryFuzzer.cpp */,
 				4BCE005B227D30CC000CA200 /* MemoryPacker.cpp */,
+				4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */,
 				4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */,
 				4B2B3A471F9B8FA70062DABF /* Typer.cpp */,
 				4B055ABF1FAE98000060FFFF /* MachineForTarget.hpp */,
 				4B2B3A491F9B8FA70062DABF /* MemoryFuzzer.hpp */,
 				4BCE005C227D30CC000CA200 /* MemoryPacker.hpp */,
+				4B051C5926670A9300CA44E8 /* ROMCatalogue.hpp */,
 				4B17B58A20A8A9D9007CCA8F /* StringSerialiser.hpp */,
 				4B79A4FE1FC9082300EEDAD5 /* TypedDynamicMachine.hpp */,
 				4B2B3A4A1F9B8FA70062DABF /* Typer.hpp */,
@@ -2771,6 +2784,7 @@
 		4B55CE551C3B7D360093A61B /* Documents */ = {
 			isa = PBXGroup;
 			children = (
+				4B051C94266EF50200CA44E8 /* AppleIIOptionsPanel.swift */,
 				4B8FE21F1DA19D7C0090D3CE /* Atari2600OptionsPanel.swift */,
 				4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */,
 				4B8FE2211DA19FB20090D3CE /* MachinePanel.swift */,
@@ -4762,7 +4776,7 @@
 				4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */,
 				4B8FE21D1DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib in Resources */,
 				4B49F0A923346F7A0045E6A6 /* MacintoshOptions.xib in Resources */,
-				4BA3189422E7A4CA00D18CFA /* ROMImages in Resources */,
+				4B051C93266D9D6900CA44E8 /* ROMImages in Resources */,
 				4B79E4461E3AF38600141F11 /* floppy525.png in Resources */,
 				4BEEE6BD20DC72EB003723BF /* CompositeOptions.xib in Resources */,
 				4B1497981EE4B97F00CE2596 /* ZX8081Options.xib in Resources */,
@@ -5321,6 +5335,7 @@
 				4BB0A65C2044FD3000FB3688 /* SN76489.cpp in Sources */,
 				4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */,
 				4B0F1C242605996900B85C66 /* ZXSpectrumTAP.cpp in Sources */,
+				4B051C912669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */,
 				4B055AB91FAE86170060FFFF /* Acorn.cpp in Sources */,
 				4B302185208A550100773308 /* DiskII.cpp in Sources */,
 				4B0F1BB32602645900B85C66 /* StaticAnalyser.cpp in Sources */,
@@ -5395,11 +5410,13 @@
 				4B4518861F75E91A00926311 /* MFMDiskController.cpp in Sources */,
 				4B0ACC2C23775819008902D0 /* IntelligentKeyboard.cpp in Sources */,
 				4B92E26A234AE35100CD6D1B /* MFP68901.cpp in Sources */,
+				4B051C97266EF5F600CA44E8 /* CSAppleII.mm in Sources */,
 				4B0ACC2A23775819008902D0 /* Video.cpp in Sources */,
 				4B54C0BF1F8D8F450050900F /* Keyboard.cpp in Sources */,
 				4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */,
 				4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */,
 				4BEDA3BF25B25563000C2DBD /* Decoder.cpp in Sources */,
+				4B051C95266EF50200CA44E8 /* AppleIIOptionsPanel.swift in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
 				4BE8EB6625C750B50040BC40 /* DAT.cpp in Sources */,
 				4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */,
@@ -5537,6 +5554,7 @@
 				4B15A9FC208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,
 				4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */,
 				4B0F1BDA2602FF9800B85C66 /* Video.cpp in Sources */,
+				4B051C922669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */,
 				4B54C0C81F8D91E50050900F /* Keyboard.cpp in Sources */,
 				4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */,
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,

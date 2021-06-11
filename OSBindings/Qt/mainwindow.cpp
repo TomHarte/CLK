@@ -251,33 +251,33 @@ void MainWindow::tile(const QMainWindow *previous) {
 
 void MainWindow::launchMachine() {
 	const QStringList appDataLocations = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
-	missingRoms.clear();
 
 	ROMMachine::ROMFetcher rom_fetcher = [&appDataLocations, this]
-		(const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
-		std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
+		(const ROM::Request &roms) -> ROM::Map {
+		ROM::Map results;
 
-		for(const auto &rom: roms) {
-			FILE *file = nullptr;
-			for(const auto &path: appDataLocations) {
-				const std::string source = path.toStdString() + "/ROMImages/" + rom.machine_name + "/" + rom.file_name;
-				const std::string nativeSource = QDir::toNativeSeparators(QString::fromStdString(source)).toStdString();
+		for(const auto &description: roms.all_descriptions()) {
+			for(const auto &file_name: description.file_names) {
+				FILE *file = nullptr;
+				for(const auto &path: appDataLocations) {
+					const std::string source = path.toStdString() + "/ROMImages/" + description.machine_name + "/" + file_name;
+					const std::string nativeSource = QDir::toNativeSeparators(QString::fromStdString(source)).toStdString();
 
-				file = fopen(nativeSource.c_str(), "rb");
-				if(file) break;
-			}
+					file = fopen(nativeSource.c_str(), "rb");
+					if(file) break;
+				}
 
-			if(file) {
-				auto data = fileContentsAndClose(file);
-				if(data) {
-					results.push_back(std::move(data));
-					continue;
+				if(file) {
+					auto data = fileContentsAndClose(file);
+					if(data) {
+						results[description.name] = *data;
+						continue;
+					}
 				}
 			}
-
-			results.push_back(nullptr);
-			missingRoms.push_back(rom);
 		}
+
+		missingRoms = roms.subtract(results);
 		return results;
 	};
 	Machine::Error error;
@@ -291,22 +291,7 @@ void MainWindow::launchMachine() {
 
 				// Populate request text.
 				QString requestText = romRequestBaseText;
-				size_t index = 0;
-				for(const auto &rom: missingRoms) {
-					requestText += "• ";
-					requestText += rom.descriptive_name.c_str();
-
-					++index;
-					if(index == missingRoms.size()) {
-						requestText += ".\n";
-						continue;
-					}
-					if(index == missingRoms.size() - 1) {
-						requestText += "; and\n";
-						continue;
-					}
-					requestText += ";\n";
-				}
+				requestText += QString::fromWCharArray(missingRoms.description(0, L'•').c_str());
 				ui->missingROMsBox->setPlainText(requestText);
 			} break;
 		}
@@ -418,7 +403,7 @@ void MainWindow::launchMachine() {
 		break;
 
 		case Analyser::Machine::AppleII:
-			addDisplayMenu(settingsPrefix, "Colour", "Monochrome", "", "");
+			addAppleIIMenu();
 		break;
 
 		case Analyser::Machine::Atari2600:
@@ -686,6 +671,41 @@ void MainWindow::toggleAtari2600Switch(Atari2600Switch toggleSwitch) {
 	});
 }
 
+void MainWindow::addAppleIIMenu() {
+	// Add the standard display settings.
+	addDisplayMenu("appleII", "Colour", "Monochrome", "", "");
+
+	// Add an additional tick box, for square pixels.
+	QAction *const squarePixelsAction = new QAction(tr("Square Pixels"));
+	squarePixelsAction->setCheckable(true);
+	connect(squarePixelsAction, &QAction::triggered, this, [=] {
+		std::lock_guard lock_guard(machineMutex);
+
+		// Apply the new setting to the machine.
+		setAppleIISquarePixels(squarePixelsAction->isChecked());
+
+		// Also store it.
+		Settings settings;
+		settings.setValue("appleII.squarePixels", squarePixelsAction->isChecked());
+	});
+	displayMenu->addAction(squarePixelsAction);
+
+	// Establish initial selection.
+	Settings settings;
+	const bool useSquarePixels = settings.value("appleII.squarePixels").toBool();
+	squarePixelsAction->setChecked(useSquarePixels);
+	setAppleIISquarePixels(useSquarePixels);
+}
+
+void MainWindow::setAppleIISquarePixels(bool squarePixels) {
+	Configurable::Device *const configurable = machine->configurable_device();
+	auto options = configurable->get_options();
+	auto appleii_options = static_cast<Apple::II::Machine::Options *>(options.get());
+
+	appleii_options->use_square_pixels = squarePixels;
+	configurable->set_options(options);
+}
+
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
 	audioBuffer.write(buffer);
 }
@@ -736,28 +756,23 @@ void MainWindow::dropEvent(QDropEvent* event) {
 				CRC::CRC32 generator;
 				const uint32_t crc = generator.compute_crc(*contents);
 
-				bool wasUsed = false;
-				for(const auto &rom: missingRoms) {
-					if(std::find(rom.crc32s.begin(), rom.crc32s.end(), crc) != rom.crc32s.end()) {
-						foundROM = true;
+				std::optional<ROM::Description> target_rom = ROM::Description::from_crc(crc);
+				if(target_rom) {
+					// Ensure the destination folder exists.
+					const std::string path = appDataLocation + "/ROMImages/" + target_rom->machine_name;
+					const QDir dir(QString::fromStdString(path));
+					if (!dir.exists())
+						dir.mkpath(".");
 
-						// Ensure the destination folder exists.
-						const std::string path = appDataLocation + "/ROMImages/" + rom.machine_name;
-						const QDir dir(QString::fromStdString(path));
-						if (!dir.exists())
-							dir.mkpath(".");
+					// Write into place.
+					const std::string destination =  QDir::toNativeSeparators(QString::fromStdString(path+ "/" + target_rom->file_names[0])).toStdString();
+					FILE *const target = fopen(destination.c_str(), "wb");
+					fwrite(contents->data(), 1, contents->size(), target);
+					fclose(target);
 
-						// Write into place.
-						const std::string destination =  QDir::toNativeSeparators(QString::fromStdString(path+ "/" + rom.file_name)).toStdString();
-						FILE *const target = fopen(destination.c_str(), "wb");
-						fwrite(contents->data(), 1, contents->size(), target);
-						fclose(target);
-
-						wasUsed = true;
-					}
-				}
-
-				if(!wasUsed) {
+					// Note that at least one meaningful ROM was supplied.
+					foundROM = true;
+				} else {
 					if(!unusedRoms.isEmpty()) unusedRoms += ", ";
 					unusedRoms += url.fileName();
 				}

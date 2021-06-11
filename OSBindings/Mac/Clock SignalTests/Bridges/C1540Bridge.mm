@@ -35,7 +35,8 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 		_serialPort = std::make_shared<VanillaSerialPort>();
 
 		auto rom_fetcher = CSROMFetcher();
-		_c1540 = std::make_unique<Commodore::C1540::Machine>(Commodore::C1540::Personality::C1540, rom_fetcher);
+		auto roms = rom_fetcher(Commodore::C1540::Machine::rom_request(Commodore::C1540::Personality::C1540));
+		_c1540 = std::make_unique<Commodore::C1540::Machine>(Commodore::C1540::Personality::C1540, roms);
 		_c1540->set_serial_bus(_serialBus);
 		Commodore::Serial::AttachPortAndBus(_serialPort, _serialBus);
 	}

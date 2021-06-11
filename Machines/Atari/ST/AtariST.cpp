@@ -74,15 +74,13 @@ class ConcreteMachine:
 			video_->set_ram(reinterpret_cast<uint16_t *>(ram_.data()), ram_.size());
 			Memory::Fuzz(ram_);
 
-			std::vector<ROMMachine::ROM> rom_descriptions = {
-				{"AtariST", "the UK TOS 1.00 ROM", "tos100.img", 192*1024, 0x1a586c64}
-//				{"AtariST", "the UK TOS 1.04 ROM", "tos104.img", 192*1024, 0xa50d1d43}
-			};
-			const auto roms = rom_fetcher(rom_descriptions);
-			if(!roms[0]) {
+			constexpr ROM::Name rom_name = ROM::Name::AtariSTTOS100;
+			ROM::Request request(rom_name);
+			auto roms = rom_fetcher(request);
+			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
-			Memory::PackBigEndian16(*roms[0], rom_);
+			Memory::PackBigEndian16(roms.find(rom_name)->second, rom_);
 
 			// Set up basic memory map.
 			memory_map_[0] = BusDevice::MostlyRAM;
