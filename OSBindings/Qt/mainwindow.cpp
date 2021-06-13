@@ -112,11 +112,11 @@ void MainWindow::init() {
 	ui->setupUi(this);
 	romRequestBaseText = ui->missingROMsBox->toPlainText();
 
-	createActions();
-	restoreSelections();
-
 	// TEMPORARY: remove the Apple IIgs tab; this machine isn't ready yet.
 	ui->machineSelectionTabs->removeTab(ui->machineSelectionTabs->indexOf(ui->appleIIgsTab));
+
+	createActions();
+	restoreSelections();
 }
 
 void MainWindow::createActions() {
