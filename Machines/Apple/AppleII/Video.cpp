@@ -33,7 +33,7 @@ void VideoBase::set_use_square_pixels(bool use_square_pixels) {
 	crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.122f, 0.75f, 0.77f));
 #else
 	if(use_square_pixels) {
-		crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.112f, 0.75f, 0.73f));
+		crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.09f, 0.75f, 0.77f));
 	} else {
 		crt_.set_visible_area(Outputs::Display::Rect(0.128f, 0.12f, 0.75f, 0.77f));
 	}
