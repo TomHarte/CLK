@@ -399,7 +399,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							// The OpenGL scan target introduces a phase error of 1/8th of a wave. The Metal one does not.
 							// Supply the real phase value if this is an Apple build.
 							// TODO: eliminate UGLY HACK.
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(IGNORE_APPLE)
 							constexpr int phase = 224;
 #else
 							constexpr int phase = 0;

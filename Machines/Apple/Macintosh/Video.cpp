@@ -35,7 +35,7 @@ Video::Video(DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulato
 	// The [newer] Metal scan target has no such issue. So assume that Apple => Metal,
 	// and set a visible area to work around the OpenGL issue if required.
 	// TODO: eliminate UGLY HACK.
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(IGNORE_APPLE)
 	crt_.set_visible_area(Outputs::Display::Rect(0.08f, 10.0f / 368.0f, 0.82f, 344.0f / 368.0f));
 #else
 	crt_.set_visible_area(Outputs::Display::Rect(0.08f, -0.025f, 0.82f, 0.82f));
