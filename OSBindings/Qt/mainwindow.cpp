@@ -112,11 +112,11 @@ void MainWindow::init() {
 	ui->setupUi(this);
 	romRequestBaseText = ui->missingROMsBox->toPlainText();
 
-	createActions();
-	restoreSelections();
-
 	// TEMPORARY: remove the Apple IIgs tab; this machine isn't ready yet.
 	ui->machineSelectionTabs->removeTab(ui->machineSelectionTabs->indexOf(ui->appleIIgsTab));
+
+	createActions();
+	restoreSelections();
 }
 
 void MainWindow::createActions() {
@@ -207,14 +207,15 @@ QString MainWindow::getFilename(const char *title) {
 	return fileName;
 }
 
-void MainWindow::insertFile(const QString &fileName) {
-	if(!machine) return;
+bool MainWindow::insertFile(const QString &fileName) {
+	if(!machine) return false;
 
 	auto mediaTarget = machine->media_target();
-	if(!mediaTarget) return;
+	if(!mediaTarget) return false;
 
-	Analyser::Static::Media media = Analyser::Static::GetMedia(fileName.toStdString());
-	mediaTarget->insert_media(media);
+	const Analyser::Static::Media media = Analyser::Static::GetMedia(fileName.toStdString());
+	if(media.empty()) return false;
+	return mediaTarget->insert_media(media);
 }
 
 bool MainWindow::launchFile(const QString &fileName) {
@@ -732,7 +733,10 @@ void MainWindow::dropEvent(QDropEvent* event) {
 		case UIPhase::RunningMachine: {
 			// Attempt to insert into the running machine.
 			const auto fileName = event->mimeData()->urls()[0].toLocalFile();
-			insertFile(fileName);
+			if(!insertFile(fileName)) {
+				deleteMachine();
+				launchFile(fileName);
+			}
 		} break;
 
 		// TODO: permit multiple files dropped at once in both of the above cases.

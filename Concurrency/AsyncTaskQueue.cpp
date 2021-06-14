@@ -11,11 +11,11 @@
 using namespace Concurrency;
 
 AsyncTaskQueue::AsyncTaskQueue()
-#ifndef __APPLE__
+#ifndef USE_GCD
 	: should_destruct_(false)
 #endif
 {
-#ifdef __APPLE__
+#ifdef USE_GCD
 	serial_dispatch_queue_ = dispatch_queue_create("com.thomasharte.clocksignal.asyntaskqueue", DISPATCH_QUEUE_SERIAL);
 #else
 	thread_ = std::make_unique<std::thread>([this]() {
@@ -44,7 +44,7 @@ AsyncTaskQueue::AsyncTaskQueue()
 }
 
 AsyncTaskQueue::~AsyncTaskQueue() {
-#ifdef __APPLE__
+#ifdef USE_GCD
 	flush();
 	dispatch_release(serial_dispatch_queue_);
 	serial_dispatch_queue_ = nullptr;
@@ -57,7 +57,7 @@ AsyncTaskQueue::~AsyncTaskQueue() {
 }
 
 void AsyncTaskQueue::enqueue(std::function<void(void)> function) {
-#ifdef __APPLE__
+#ifdef USE_GCD
 	dispatch_async(serial_dispatch_queue_, ^{function();});
 #else
 	std::lock_guard lock(queue_mutex_);
@@ -67,7 +67,7 @@ void AsyncTaskQueue::enqueue(std::function<void(void)> function) {
 }
 
 void AsyncTaskQueue::flush() {
-#ifdef __APPLE__
+#ifdef USE_GCD
 	dispatch_sync(serial_dispatch_queue_, ^{});
 #else
 	auto flush_mutex = std::make_shared<std::mutex>();

@@ -16,8 +16,9 @@
 #include <memory>
 #include <thread>
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(IGNORE_APPLE)
 #include <dispatch/dispatch.h>
+#define USE_GCD
 #endif
 
 namespace Concurrency {
@@ -47,7 +48,7 @@ class AsyncTaskQueue {
 		void flush();
 
 	private:
-#ifdef __APPLE__
+#ifdef USE_GCD
 		dispatch_queue_t serial_dispatch_queue_;
 #else
 		std::unique_ptr<std::thread> thread_;

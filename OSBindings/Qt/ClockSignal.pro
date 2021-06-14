@@ -21,6 +21,7 @@ linux {
 # Add flags (i) to identify that this is a Qt build; and
 # (ii) to disable asserts in release builds.
 DEFINES += TARGET_QT
+DEFINES += IGNORE_APPLE
 QMAKE_CXXFLAGS_RELEASE += -DNDEBUG
 
 # Generate warnings for any use of APIs deprecated prior to Qt 6.0.0.
