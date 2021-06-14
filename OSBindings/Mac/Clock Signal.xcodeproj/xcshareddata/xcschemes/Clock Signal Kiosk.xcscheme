@@ -58,7 +58,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Desktop/Soft/Apple II/WOZs/Prince of Persia side A.woz&quot;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--rompath=~/ROMs"
@@ -125,12 +125,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--model=cpc6128"
-            isEnabled = "NO">
+            argument = "--model=mac512k"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=appleii"
-            isEnabled = "NO">
+            argument = "--new=macintosh"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--use-square-pixels"
