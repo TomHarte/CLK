@@ -405,7 +405,7 @@ Description::Description(Name name) {
 		break;
 
 		case Name::EnterpriseEXOS: {
-			const std::initializer_list<std::string> filenames = {"exos.bin", "Exos (198x)(Enterprise).bin"},
+			const std::initializer_list<std::string> filenames = {"exos.bin", "Exos (198x)(Enterprise).bin"};
 			*this = Description(name, "Enterprise", "the Enterprise EXOS ROM", filenames, 32 * 1024, 0x30b26387u);
 		} break;
 
