@@ -832,8 +832,11 @@ int main(int argc, char *argv[]) {
 			} else if(volume < 0.0 || volume > 1.0) {
 				std::cerr << "Cannot run with volume " << volume_string << "; volumes must be between 0.0 and 1.0." << std::endl;
 			} else {
-				const auto speaker = machine->audio_producer()->get_speaker();
-				if(speaker) speaker->set_output_volume(volume);
+				const auto audio_producer = machine->audio_producer();
+				if(audio_producer) {
+					const auto speaker = machine->audio_producer()->get_speaker();
+					if(speaker) speaker->set_output_volume(volume);
+				}
 			}
 		}
 	}
@@ -907,26 +910,29 @@ int main(int argc, char *argv[]) {
 		machine->scan_producer()->set_scan_target(&scan_target);
 
 		// For now, lie about audio output intentions.
-		auto speaker = machine->audio_producer()->get_speaker();
-		if(speaker) {
-			// Create an audio pipe.
-			SDL_AudioSpec desired_audio_spec;
-			SDL_AudioSpec obtained_audio_spec;
+		const auto audio_producer = machine->audio_producer();
+		if(audio_producer) {
+			auto speaker = audio_producer->get_speaker();
+			if(speaker) {
+				// Create an audio pipe.
+				SDL_AudioSpec desired_audio_spec;
+				SDL_AudioSpec obtained_audio_spec;
 
-			SDL_zero(desired_audio_spec);
-			desired_audio_spec.freq = 48000;	// TODO: how can I get SDL to reveal the output rate of this machine?
-			desired_audio_spec.format = AUDIO_S16;
-			desired_audio_spec.channels = 1 + int(speaker->get_is_stereo());
-			desired_audio_spec.samples = Uint16(SpeakerDelegate::buffered_samples);
-			desired_audio_spec.callback = SpeakerDelegate::SDL_audio_callback;
-			desired_audio_spec.userdata = &speaker_delegate;
+				SDL_zero(desired_audio_spec);
+				desired_audio_spec.freq = 48000;	// TODO: how can I get SDL to reveal the output rate of this machine?
+				desired_audio_spec.format = AUDIO_S16;
+				desired_audio_spec.channels = 1 + int(speaker->get_is_stereo());
+				desired_audio_spec.samples = Uint16(SpeakerDelegate::buffered_samples);
+				desired_audio_spec.callback = SpeakerDelegate::SDL_audio_callback;
+				desired_audio_spec.userdata = &speaker_delegate;
 
-			speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+				speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
 
-			speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples, obtained_audio_spec.channels == 2);
-			speaker_delegate.is_stereo = obtained_audio_spec.channels == 2;
-			speaker->set_delegate(&speaker_delegate);
-			SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
+				speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples, obtained_audio_spec.channels == 2);
+				speaker_delegate.is_stereo = obtained_audio_spec.channels == 2;
+				speaker->set_delegate(&speaker_delegate);
+				SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
+			}
 		}
 
 		/*
