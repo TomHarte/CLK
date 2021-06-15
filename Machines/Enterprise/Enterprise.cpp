@@ -20,6 +20,42 @@
 
 namespace Enterprise {
 
+/*
+	Notes to self on timing:
+
+	Nick divides each line into 57 windows; each window lasts 16 cycles and dedicates the
+	first 10 of those to VRAM accesses, leaving the final six for a Z80 video RAM access
+	if one has been requested.
+
+	The Z80 has a separate, asynchronous 4Mhz clock. That's that.
+
+	The documentation is also very forward in emphasising that Nick generates phaselocked
+	(i.e. in-phase) PAL video.
+
+	So: 57*16 = 912 cycles/line.
+
+	A standard PAL line lasts 64µs and during that time outputs 283.7516 colour cycles.
+
+	I shall _guess_ that the Enterprise stretches each line to 284 colour cycles rather than
+	reducing it to 283.
+
+	Therefore 912 cycles occurs in 284/283.7516 * 64 µs, which would appear to give an ideal
+	clock rate of around:
+
+		14,237,536.27 Hz.
+
+	Given that there's always some leeway in a receiver, I'm modelling that as 14,237,536 cycles,
+	which means that Nick runs 444923/125000 times as fast as the Z80. Which is around 3.56 times
+	as fast.
+
+	If that's true then the 6-cycle window is around 1.69 Z80 cycles long. Given that the Z80
+	clock in an Enterprise can be stopped in half-cycle increments only, the Z80 can only be
+	guaranteed to have around a 1.19 cycle minimum for its actual access. I'm therefore further
+	postulating that the clock stoppage takes place so as to align the final cycle of a relevant
+	access over the available window.
+
+*/
+
 class ConcreteMachine:
 	public CPU::Z80::BusHandler,
 	public Machine,
@@ -60,6 +96,7 @@ class ConcreteMachine:
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
 
 			// TODO: possibly apply an access penalty.
+			nick_ += cycle.length;
 
 			switch(cycle.operation) {
 				default: break;
@@ -200,7 +237,8 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Video.
-		JustInTimeActor<Nick> nick_;
+		JustInTimeActor<Nick, HalfCycles, 444923, 125000> nick_;
+		// Cf. timing guesses above.
 };
 
 }
