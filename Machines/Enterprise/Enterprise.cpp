@@ -8,16 +8,38 @@
 
 #include "Enterprise.hpp"
 
+#include "../MachineTypes.hpp"
+
 #include "../../Analyser/Static/Enterprise/Target.hpp"
 
 namespace Enterprise {
 
 class ConcreteMachine:
-	public Machine {
+	public Machine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::TimedMachine {
 	public:
 		ConcreteMachine(const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and Dave elsewhere.
+			set_clock_rate(4'000'000);
+
 			(void)target;
 			(void)rom_fetcher;
+		}
+
+	private:
+		// MARK: - ScanProducer
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+			(void)scan_target;
+		}
+
+		Outputs::Display::ScanStatus get_scaled_scan_status() const override {
+			return Outputs::Display::ScanStatus();
+		}
+
+		// MARK: - TimedMachine
+		void run_for(const Cycles cycles) override {
+			(void)cycles;
 		}
 };
 
