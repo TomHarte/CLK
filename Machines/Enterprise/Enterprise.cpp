@@ -10,16 +10,21 @@
 
 #include "../MachineTypes.hpp"
 
+#include "../../Processors/Z80/Z80.hpp"
+
 #include "../../Analyser/Static/Enterprise/Target.hpp"
+
 
 namespace Enterprise {
 
 class ConcreteMachine:
+	public CPU::Z80::BusHandler,
 	public Machine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine {
 	public:
-		ConcreteMachine(const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+		ConcreteMachine(const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+			z80(*this) {
 			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and Dave elsewhere.
 			set_clock_rate(4'000'000);
 
@@ -28,6 +33,14 @@ class ConcreteMachine:
 		}
 
 	private:
+		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
+
+		// MARK: - Z80::BusHandler.
+		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+			(void)cycle;
+			return HalfCycles(0);
+		}
+
 		// MARK: - ScanProducer
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			(void)scan_target;
