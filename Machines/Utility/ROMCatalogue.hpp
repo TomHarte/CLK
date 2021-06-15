@@ -71,6 +71,9 @@ enum Name {
 	DiskIIStateMachine13Sector,
 	DiskIIBoot13Sector,
 
+	// Enterprise.
+	EnterpriseEXOS,
+
 	// Macintosh.
 	Macintosh128k,
 	Macintosh512k,

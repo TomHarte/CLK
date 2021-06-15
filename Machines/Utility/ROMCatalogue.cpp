@@ -404,6 +404,11 @@ Description::Description(Name name) {
 			*this = Description(name, "DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620u);
 		break;
 
+		case Name::EnterpriseEXOS: {
+			const std::initializer_list<std::string> filenames = {"exos.bin", "Exos (198x)(Enterprise).bin"},
+			*this = Description(name, "Enterprise", "the Enterprise EXOS ROM", filenames, 32 * 1024, 0x30b26387u);
+		} break;
+
 		case Name::Macintosh128k:	*this = Description(name, "Macintosh", "the Macintosh 128k ROM", "mac128k.rom", 64*1024, 0x6d0c8a28u);	break;
 		case Name::Macintosh512k:	*this = Description(name, "Macintosh", "the Macintosh 512k ROM", "mac512k.rom", 64*1024, 0xcf759e0d);	break;
 		case Name::MacintoshPlus: {

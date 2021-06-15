@@ -24,9 +24,15 @@ class ConcreteMachine:
 	public MachineTypes::TimedMachine {
 	public:
 		ConcreteMachine(const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-			z80(*this) {
+			z80_(*this) {
 			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and Dave elsewhere.
 			set_clock_rate(4'000'000);
+
+			const auto request = ROM::Request(ROM::Name::EnterpriseEXOS);
+			auto roms = rom_fetcher(request);
+			if(!request.validate(roms)) {
+				throw ROMMachine::Error::MissingROMs;
+			}
 
 			(void)target;
 			(void)rom_fetcher;
@@ -34,6 +40,9 @@ class ConcreteMachine:
 
 	private:
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
+
+		std::array<uint8_t, 32 * 1024> exos_;
+		std::array<uint8_t, 256 * 1024> ram_;
 
 		// MARK: - Z80::BusHandler.
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
