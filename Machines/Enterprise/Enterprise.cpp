@@ -28,17 +28,21 @@ class ConcreteMachine:
 			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and Dave elsewhere.
 			set_clock_rate(4'000'000);
 
-			const auto request = ROM::Request(ROM::Name::EnterpriseEXOS);
+			constexpr ROM::Name exos_name = ROM::Name::EnterpriseEXOS;
+			const auto request = ROM::Request(exos_name);
 			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
 
+			const auto &exos = roms.find(exos_name)->second;
+			memcpy(exos_.data(), exos.data(), std::min(exos_.size(), exos.size()));
+
 			// Take a reasonable guess at the initial memory configuration.
 			page<0>(0x00);
-			page<1>(0x01);
-			page<2>(0xfe);
-			page<3>(0xff);
+			page<1>(0x00);
+			page<2>(0x00);
+			page<3>(0x00);
 		}
 
 		// MARK: - Z80::BusHandler.
@@ -52,7 +56,12 @@ class ConcreteMachine:
 				default: break;
 
 				case CPU::Z80::PartialMachineCycle::Input:
+					printf("Unhandled input: %04x\n", address);
+					assert(false);
+				break;
+
 				case CPU::Z80::PartialMachineCycle::Output:
+					printf("Unhandled output: %04x\n", address);
 					assert(false);
 				break;
 
