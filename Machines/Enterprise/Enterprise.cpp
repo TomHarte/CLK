@@ -8,12 +8,15 @@
 
 #include "Enterprise.hpp"
 
+#include "Nick.hpp"
+
 #include "../MachineTypes.hpp"
 
 #include "../../Processors/Z80/Z80.hpp"
 
 #include "../../Analyser/Static/Enterprise/Target.hpp"
 
+#include "../../ClockReceiver/JustInTime.hpp"
 
 namespace Enterprise {
 
@@ -38,7 +41,13 @@ class ConcreteMachine:
 			const auto &exos = roms.find(exos_name)->second;
 			memcpy(exos_.data(), exos.data(), std::min(exos_.size(), exos.size()));
 
-			// Take a reasonable guess at the initial memory configuration.
+			// Take a reasonable guess at the initial memory configuration:
+			// put EXOS into the first bank since this is a Z80 and therefore
+			// starts from address 0; the third instruction in EXOS is a jump
+			// to $c02e so it's reasonable to assume EXOS is in the highest bank
+			// too, and it appears to act correctly if it's the first 16kb that's
+			// in the highest bank. From there I guess: all banks are initialised
+			// to 0.
 			page<0>(0x00);
 			page<1>(0x00);
 			page<2>(0x00);
@@ -76,6 +85,13 @@ class ConcreteMachine:
 							assert(false);
 						break;
 
+						case 0x80:	case 0x81:	case 0x82:	case 0x83:
+						case 0x84:	case 0x85:	case 0x86:	case 0x87:
+						case 0x88:	case 0x89:	case 0x8a:	case 0x8b:
+						case 0x8c:	case 0x8d:	case 0x8e:	case 0x8f:
+							nick_->write(address, *cycle.value);
+						break;
+
 						case 0xb0:	page<0>(*cycle.value);	break;
 						case 0xb1:	page<1>(*cycle.value);	break;
 						case 0xb2:	page<2>(*cycle.value);	break;
@@ -106,16 +122,21 @@ class ConcreteMachine:
 			return HalfCycles(0);
 		}
 
+		void flush() {
+			nick_.flush();
+		}
+
 	private:
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 
+		// MARK: - Memory layout
 		std::array<uint8_t, 32 * 1024> exos_;
 		std::array<uint8_t, 256 * 1024> ram_;
 		const uint8_t min_ram_slot_ = 0xff - 3;
 
-		const uint8_t *read_pointers_[4];
-		uint8_t *write_pointers_[4];
-		uint8_t pages_[4];
+		const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
+		uint8_t *write_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
+		uint8_t pages_[4] = {0x80, 0x80, 0x80, 0x80};
 
 		template <size_t slot> void page(uint8_t offset) {
 			pages_[slot] = offset;
@@ -152,6 +173,9 @@ class ConcreteMachine:
 		void run_for(const Cycles cycles) override {
 			z80_.run_for(cycles);
 		}
+
+		// MARK: - Video.
+		JustInTimeActor<Nick> nick_;
 };
 
 }

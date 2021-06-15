@@ -21,6 +21,8 @@
 		4B051CA32676F52200CA44E8 /* Enterprise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CA12676F52200CA44E8 /* Enterprise.cpp */; };
 		4B051CA826781D6500CA44E8 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CA726781D6500CA44E8 /* StaticAnalyser.cpp */; };
 		4B051CA926781D6500CA44E8 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CA726781D6500CA44E8 /* StaticAnalyser.cpp */; };
+		4B051CAC26783E2000CA44E8 /* Nick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CAA26783E2000CA44E8 /* Nick.cpp */; };
+		4B051CAD26783E2000CA44E8 /* Nick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CAA26783E2000CA44E8 /* Nick.cpp */; };
 		4B05401E219D1618001BF69C /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
 		4B05401F219D1618001BF69C /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
 		4B055A7A1FAE78A00060FFFF /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055A771FAE78210060FFFF /* SDL2.framework */; };
@@ -1037,6 +1039,8 @@
 		4B051CA526781D6500CA44E8 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4B051CA626781D6500CA44E8 /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4B051CA726781D6500CA44E8 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
+		4B051CAA26783E2000CA44E8 /* Nick.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Nick.cpp; sourceTree = "<group>"; };
+		4B051CAB26783E2000CA44E8 /* Nick.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Nick.hpp; sourceTree = "<group>"; };
 		4B05401D219D1618001BF69C /* ScanTarget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScanTarget.cpp; sourceTree = "<group>"; };
 		4B055A6A1FAE763F0060FFFF /* Clock Signal Kiosk */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Clock Signal Kiosk"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B055A771FAE78210060FFFF /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ../../../../Library/Frameworks/SDL2.framework; sourceTree = SOURCE_ROOT; };
@@ -2102,8 +2106,10 @@
 		4B051C9F2676F52200CA44E8 /* Enterprise */ = {
 			isa = PBXGroup;
 			children = (
-				4B051CA02676F52200CA44E8 /* Enterprise.hpp */,
 				4B051CA12676F52200CA44E8 /* Enterprise.cpp */,
+				4B051CAA26783E2000CA44E8 /* Nick.cpp */,
+				4B051CA02676F52200CA44E8 /* Enterprise.hpp */,
+				4B051CAB26783E2000CA44E8 /* Nick.hpp */,
 			);
 			path = Enterprise;
 			sourceTree = "<group>";
@@ -5324,6 +5330,7 @@
 				4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */,
 				4BD67DD1209BF27B00AB2146 /* Encoder.cpp in Sources */,
 				4BE2121A253FCE9C00435408 /* AppleIIgs.cpp in Sources */,
+				4B051CAD26783E2000CA44E8 /* Nick.cpp in Sources */,
 				4B89451F201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055AA81FAE85EF0060FFFF /* Shifter.cpp in Sources */,
 				4BEDA3BC25B25563000C2DBD /* Decoder.cpp in Sources */,
@@ -5586,6 +5593,7 @@
 				4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */,
 				4B6ED2F0208E2F8A0047B343 /* WOZ.cpp in Sources */,
 				4B15A9FC208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,
+				4B051CAC26783E2000CA44E8 /* Nick.cpp in Sources */,
 				4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */,
 				4B0F1BDA2602FF9800B85C66 /* Video.cpp in Sources */,
 				4B051C922669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */,
