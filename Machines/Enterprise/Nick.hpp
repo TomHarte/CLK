@@ -17,7 +17,7 @@ namespace Enterprise {
 
 class Nick {
 	public:
-		Nick();
+		Nick(const uint8_t *ram);
 
 		void write(uint16_t address, uint8_t value);
 		uint8_t read(uint16_t address);
@@ -29,6 +29,11 @@ class Nick {
 
 	private:
 		Outputs::CRT::CRT crt_;
+		const uint8_t *const ram_;
+
+		uint8_t line_parameter_control_ = 0xc0;
+		uint16_t line_parameter_base_ = 0x0000;
+		int horizontal_counter_ = 0;
 };
 
 

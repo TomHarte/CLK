@@ -63,7 +63,8 @@ class ConcreteMachine:
 	public MachineTypes::TimedMachine {
 	public:
 		ConcreteMachine([[maybe_unused]] const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-			z80_(*this) {
+			z80_(*this),
+			nick_(ram_.end() - 65536) {
 			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and Dave elsewhere.
 			set_clock_rate(4'000'000);
 
@@ -189,11 +190,9 @@ class ConcreteMachine:
 		}
 
 	private:
-		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-
 		// MARK: - Memory layout
-		std::array<uint8_t, 32 * 1024> exos_;
 		std::array<uint8_t, 256 * 1024> ram_;
+		std::array<uint8_t, 32 * 1024> exos_;
 		const uint8_t min_ram_slot_ = 0xff - 3;
 
 		const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -209,7 +208,8 @@ class ConcreteMachine:
 			}
 
 			if(offset >= min_ram_slot_) {
-				const size_t address = (offset - min_ram_slot_) * 0x4000;
+				const auto ram_floor = 4194304 - ram_.size();
+				const size_t address = offset * 0x4000 - ram_floor;
 				page<slot>(&ram_[address], &ram_[address]);
 				return;
 			}
@@ -236,7 +236,8 @@ class ConcreteMachine:
 			z80_.run_for(cycles);
 		}
 
-		// MARK: - Video.
+		// MARK: - Chips.
+		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		JustInTimeActor<Nick, HalfCycles, 444923, 125000> nick_;
 		// Cf. timing guesses above.
 };
