@@ -207,6 +207,10 @@ class ConcreteMachine:
 				return;
 			}
 
+			// Of whatever size of RAM I've declared above, use only the final portion.
+			// This correlated with Nick always having been handed the final 64kb and,
+			// at least while the RAM is the first thing declared above, does a little
+			// to benefit data locality. Albeit not in a useful sense.
 			if(offset >= min_ram_slot_) {
 				const auto ram_floor = 4194304 - ram_.size();
 				const size_t address = offset * 0x4000 - ram_floor;
