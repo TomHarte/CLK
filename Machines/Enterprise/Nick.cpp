@@ -12,6 +12,13 @@
 
 using namespace Enterprise;
 
+Nick::Nick() :
+	crt_(16 * 57, 16, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
+
+	// Just use RGB for now.
+	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+}
+
 void Nick::write(uint16_t address, uint8_t value) {
 	switch(address & 3) {
 		default:
@@ -25,5 +32,14 @@ uint8_t Nick::read([[maybe_unused]] uint16_t address) {
 }
 
 void Nick::run_for(HalfCycles) {
+}
 
+// MARK: - CRT passthroughs.
+
+void Nick::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	crt_.set_scan_target(scan_target);
+}
+
+Outputs::Display::ScanStatus Nick::get_scaled_scan_status() const {
+	return crt_.get_scaled_scan_status();
 }

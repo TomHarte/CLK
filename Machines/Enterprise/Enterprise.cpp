@@ -224,11 +224,11 @@ class ConcreteMachine:
 
 		// MARK: - ScanProducer
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
-			(void)scan_target;
+			nick_.last_valid()->set_scan_target(scan_target);
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const override {
-			return Outputs::Display::ScanStatus();
+			return nick_.last_valid()->get_scaled_scan_status();
 		}
 
 		// MARK: - TimedMachine
