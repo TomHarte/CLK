@@ -56,13 +56,35 @@ class ConcreteMachine:
 				default: break;
 
 				case CPU::Z80::PartialMachineCycle::Input:
-					printf("Unhandled input: %04x\n", address);
-					assert(false);
+					switch(address & 0xff) {
+						default:
+							printf("Unhandled input: %04x\n", address);
+							assert(false);
+						break;
+
+						case 0xb0:	*cycle.value = pages_[0];	break;
+						case 0xb1:	*cycle.value = pages_[1];	break;
+						case 0xb2:	*cycle.value = pages_[2];	break;
+						case 0xb3:	*cycle.value = pages_[3];	break;
+					}
 				break;
 
 				case CPU::Z80::PartialMachineCycle::Output:
-					printf("Unhandled output: %04x\n", address);
-					assert(false);
+					switch(address & 0xff) {
+						default:
+							printf("Unhandled output: %04x\n", address);
+							assert(false);
+						break;
+
+						case 0xb0:	page<0>(*cycle.value);	break;
+						case 0xb1:	page<1>(*cycle.value);	break;
+						case 0xb2:	page<2>(*cycle.value);	break;
+						case 0xb3:	page<3>(*cycle.value);	break;
+
+						case 0xbf:
+							printf("TODO: Dave sysconfig %02x\n", *cycle.value);
+						break;
+					}
 				break;
 
 				case CPU::Z80::PartialMachineCycle::Read:
