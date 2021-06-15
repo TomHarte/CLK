@@ -75,6 +75,15 @@ class ConcreteMachine:
 						case 0xb1:	*cycle.value = pages_[1];	break;
 						case 0xb2:	*cycle.value = pages_[2];	break;
 						case 0xb3:	*cycle.value = pages_[3];	break;
+
+						case 0xb4:
+							printf("TODO: interrupt enable/reset read\n");
+							*cycle.value = 0xff;
+						break;
+						case 0xb5:
+							printf("TODO: Keyboard/joystick input\n");
+							*cycle.value = 0xff;
+						break;
 					}
 				break;
 
@@ -97,6 +106,22 @@ class ConcreteMachine:
 						case 0xb2:	page<2>(*cycle.value);	break;
 						case 0xb3:	page<3>(*cycle.value);	break;
 
+						case 0xa0:	case 0xa1:	case 0xa2:	case 0xa3:
+						case 0xa4:	case 0xa5:	case 0xa6:	case 0xa7:
+						case 0xa8:	case 0xa9:	case 0xaa:	case 0xab:
+						case 0xac:	case 0xad:	case 0xae:	case 0xaf:
+							printf("TODO: audio adjust %04x <- %02x\n", address, *cycle.value);
+						break;
+
+						case 0xb4:
+							printf("TODO: interrupt enable/reset write %02x\n", *cycle.value);
+						break;
+						case 0xb5:
+							printf("TODO: Keyboard/etc %02x\n", *cycle.value);
+						break;
+						case 0xb6:
+							printf("TODO: printer output %02x\n", *cycle.value);
+						break;
 						case 0xbf:
 							printf("TODO: Dave sysconfig %02x\n", *cycle.value);
 						break;
