@@ -205,12 +205,6 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		storeOptions()
 
 		switch machineSelector.selectedTabViewItem!.identifier as! String {
-			case "electron":
-				return CSStaticAnalyser(
-					electronDFS: electronDFSButton.state == .on,
-					adfs: electronADFSButton.state == .on,
-					ap6: electronAP6Button.state == .on,
-					sidewaysRAM: electronSidewaysRAMButton.state == .on)
 
 			case "appleii":
 				var model: CSMachineAppleIIModel = .appleII
@@ -254,6 +248,16 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 					case 6128:	fallthrough
 					default:	return CSStaticAnalyser(amstradCPCModel: .model6128)
 				}
+
+			case "electron":
+				return CSStaticAnalyser(
+					electronDFS: electronDFSButton.state == .on,
+					adfs: electronADFSButton.state == .on,
+					ap6: electronAP6Button.state == .on,
+					sidewaysRAM: electronSidewaysRAMButton.state == .on)
+
+			case "enterprise":
+				return CSStaticAnalyser(enterpriseModel: .model64)
 
 			case "mac":
 				switch macintoshModelTypeButton.selectedItem!.tag {

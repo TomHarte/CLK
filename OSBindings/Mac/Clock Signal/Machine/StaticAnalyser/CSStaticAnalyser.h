@@ -41,6 +41,12 @@ typedef NS_ENUM(NSInteger, CSMachineCPCModel) {
 	CSMachineCPCModel6128
 };
 
+typedef NS_ENUM(NSInteger, CSMachineEnterpriseModel) {
+	CSMachineEnterpriseModel64,
+	CSMachineEnterpriseModel128,
+	CSMachineEnterpriseModel256,
+};
+
 typedef NS_ENUM(NSInteger, CSMachineMacintoshModel) {
 	CSMachineMacintoshModel128k,
 	CSMachineMacintoshModel512k,
@@ -96,6 +102,7 @@ typedef int Kilobytes;
 - (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize;
 - (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model;
 - (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs ap6:(BOOL)ap6 sidewaysRAM:(BOOL)sidewaysRAM;
+- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model;
 - (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
 - (instancetype)initWithMSXRegion:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive;
 - (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface;

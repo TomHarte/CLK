@@ -20,6 +20,7 @@
 #include "../ColecoVision/ColecoVision.hpp"
 #include "../Commodore/Vic-20/Vic20.hpp"
 #include "../Electron/Electron.hpp"
+#include "../Enterprise/Enterprise.hpp"
 #include "../MasterSystem/MasterSystem.hpp"
 #include "../MSX/MSX.hpp"
 #include "../Oric/Oric.hpp"
@@ -34,6 +35,7 @@
 #include "../../Analyser/Static/Atari2600/Target.hpp"
 #include "../../Analyser/Static/AtariST/Target.hpp"
 #include "../../Analyser/Static/Commodore/Target.hpp"
+#include "../../Analyser/Static/Enterprise/Target.hpp"
 #include "../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../Analyser/Static/MSX/Target.hpp"
 #include "../../Analyser/Static/Oric/Target.hpp"
@@ -49,7 +51,7 @@ Machine::DynamicMachine *Machine::MachineForTarget(const Analyser::Static::Targe
 
 	Machine::DynamicMachine *machine = nullptr;
 	try {
-#define BindD(name, m)	case Analyser::Machine::m: machine = new Machine::TypedDynamicMachine<name::Machine>(name::Machine::m(target, rom_fetcher));	break;
+#define BindD(name, m)	case Analyser::Machine::m: machine = new Machine::TypedDynamicMachine<::name::Machine>(name::Machine::m(target, rom_fetcher));	break;
 #define Bind(m)	BindD(m, m)
 		switch(target->machine) {
 			Bind(AmstradCPC)
@@ -61,6 +63,7 @@ Machine::DynamicMachine *Machine::MachineForTarget(const Analyser::Static::Targe
 			BindD(Coleco::Vision, ColecoVision)
 			BindD(Commodore::Vic20, Vic20)
 			Bind(Electron)
+			Bind(Enterprise)
 			Bind(MSX)
 			Bind(Oric)
 			BindD(Sega::MasterSystem, MasterSystem)
@@ -127,6 +130,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 		case Analyser::Machine::AtariST:		return "AtariST";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Electron";
+		case Analyser::Machine::Enterprise:		return "Enterprise";
 		case Analyser::Machine::Macintosh:		return "Macintosh";
 		case Analyser::Machine::MasterSystem:	return "MasterSystem";
 		case Analyser::Machine::MSX:			return "MSX";
@@ -148,6 +152,7 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 		case Analyser::Machine::AtariST:		return "Atari ST";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Acorn Electron";
+		case Analyser::Machine::Enterprise:		return "Enterprise";
 		case Analyser::Machine::Macintosh:		return "Apple Macintosh";
 		case Analyser::Machine::MasterSystem:	return "Sega Master System";
 		case Analyser::Machine::MSX:			return "MSX";
@@ -177,6 +182,7 @@ std::vector<std::string> Machine::AllMachines(Type type, bool long_names) {
 		AddName(AppleIIgs);
 		AddName(AtariST);
 		AddName(Electron);
+		AddName(Enterprise);
 		AddName(Macintosh);
 		AddName(MSX);
 		AddName(Oric);
@@ -226,6 +232,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	Add(AppleIIgs);
 	Add(AtariST);
 	AddMapped(Electron, Acorn);
+	Add(Enterprise);
 	Add(Macintosh);
 	Add(MSX);
 	Add(Oric);

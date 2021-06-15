@@ -19,6 +19,7 @@
 #include "../../../../../Analyser/Static/AppleIIgs/Target.hpp"
 #include "../../../../../Analyser/Static/AtariST/Target.hpp"
 #include "../../../../../Analyser/Static/Commodore/Target.hpp"
+#include "../../../../../Analyser/Static/Enterprise/Target.hpp"
 #include "../../../../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../../../../Analyser/Static/MSX/Target.hpp"
 #include "../../../../../Analyser/Static/Oric/Target.hpp"
@@ -125,6 +126,17 @@
 		target->has_pres_adfs = adfs;
 		target->has_ap6_rom = ap6;
 		target->has_sideways_ram = sidewaysRAM;
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
+- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::Enterprise::Target;
+		auto target = std::make_unique<Target>();
+		// TODO: apply model.
 		_targets.push_back(std::move(target));
 	}
 	return self;
