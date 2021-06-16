@@ -106,8 +106,13 @@ void Nick::run_for(HalfCycles duration) {
 			}
 
 			// Special: set mode as soon as it's known. It'll be needed at the end of HSYNC.
-			if(!window) {
+			if(window < 2 && fetch_spot >= 2) {
+				// Set the output mode and margin.
+				left_margin_ = line_parameters_[2] & 0x3f;
+				right_margin_ = line_parameters_[3] & 0x3f;
 				mode_ = Mode((line_parameters_[1] >> 1)&7);
+
+				// Act as if proper state transitions had occurred while HSYNC is being output.
 				if(mode_ == Mode::Vsync) {
 					state_ = State::Blank;
 				} else {
@@ -127,10 +132,6 @@ void Nick::run_for(HalfCycles duration) {
 				// Determine the line data pointers.
 				line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
 				line_data_pointer_[1] = uint16_t(line_parameters_[6] | (line_parameters_[7] << 8));
-
-				// Set the output mode and margin.
-				left_margin_ = line_parameters_[2] & 0x3f;
-				right_margin_ = line_parameters_[3] & 0x3f;
 			}
 		}
 
