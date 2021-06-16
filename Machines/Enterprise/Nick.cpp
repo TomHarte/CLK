@@ -105,6 +105,18 @@ void Nick::run_for(HalfCycles duration) {
 				++fetch_spot;
 			}
 
+			// Special: set mode as soon as it's known. It'll be needed at the end of HSYNC.
+			if(!window) {
+				mode_ = Mode((line_parameters_[1] >> 1)&7);
+				if(mode_ == Mode::Vsync) {
+					state_ = State::Blank;
+				} else {
+					// The first ten windows are occupied by the horizontal sync and
+					// colour burst; if left signalled before then, begin in pixels.
+					state_ = left_margin_ > 10 ? State::Border : State::Pixels;
+				}
+			}
+
 			// If all parameters have been loaded, set appropriate fields.
 			if(fetch_spot == 8) {
 				should_reload_line_parameters_ = false;
@@ -117,21 +129,13 @@ void Nick::run_for(HalfCycles duration) {
 				line_data_pointer_[1] = uint16_t(line_parameters_[6] | (line_parameters_[7] << 8));
 
 				// Set the output mode and margin.
-				mode_ = Mode((line_parameters_[1] >> 1)&7);
 				left_margin_ = line_parameters_[2] & 0x3f;
 				right_margin_ = line_parameters_[3] & 0x3f;
-
-				if(mode_ == Mode::Vsync) {
-					state_ = State::Blank;
-				} else {
-					// The first ten windows are occupied by the horizontal sync and
-					// colour burst; if left signalled before then, begin in pixels.
-					state_ = left_margin_ > 10 ? State::Border : State::Pixels;
-				}
 			}
 		}
 
 		// HSYNC is signalled for four windows at the start of the line.
+		// I currently belive this happens regardless of Vsync mode.
 		if(window < 4 && end_window >= 4) {
 			crt_.output_sync(4);
 			window = 4;
@@ -139,20 +143,22 @@ void Nick::run_for(HalfCycles duration) {
 
 		// Deal with vsync mode out here.
 		if(mode_ == Mode::Vsync) {
-			while(window < end_window) {
-				int next_event = end_window;
-				if(window < left_margin_) next_event = std::min(next_event, left_margin_);
-				if(window < right_margin_) next_event = std::min(next_event, right_margin_);
+			if(window >= 4) {
+				while(window < end_window) {
+					int next_event = end_window;
+					if(window < left_margin_) next_event = std::min(next_event, left_margin_);
+					if(window < right_margin_) next_event = std::min(next_event, right_margin_);
 
-				if(state_ == State::Blank) {
-					crt_.output_blank(next_event - window);
-				} else {
-					crt_.output_sync(next_event - window);
+					if(state_ == State::Blank) {
+						crt_.output_blank(next_event - window);
+					} else {
+						crt_.output_sync(next_event - window);
+					}
+
+					window = next_event;
+					if(window == left_margin_) state_ = State::Sync;
+					if(window == right_margin_) state_ = State::Blank;
 				}
-
-				window = next_event;
-				if(window == left_margin_) state_ = State::Sync;
-				if(window == right_margin_) state_ = State::Blank;
 			}
 		} else {
 			// If present then the colour burst is output for the period from
@@ -163,31 +169,33 @@ void Nick::run_for(HalfCycles duration) {
 				window = 10;
 			}
 
-			while(window < end_window) {
-				int next_event = end_window;
-				if(window < left_margin_) next_event = std::min(next_event, left_margin_);
-				if(window < right_margin_) next_event = std::min(next_event, right_margin_);
+			if(window >= 10) {
+				while(window < end_window) {
+					int next_event = end_window;
+					if(window < left_margin_) next_event = std::min(next_event, left_margin_);
+					if(window < right_margin_) next_event = std::min(next_event, right_margin_);
 
-				if(state_ == State::Border) {
-					border_duration_ += next_event - window;
-				} else {
-					// TODO: something proper here.
-					uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-					if(colour_pointer) *colour_pointer = 0xfff;
-					crt_.output_level(next_event - window);
-				}
+					if(state_ == State::Border) {
+						border_duration_ += next_event - window;
+					} else {
+						// TODO: something proper here.
+						uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
+						if(colour_pointer) *colour_pointer = 0xfff;
+						crt_.output_level(next_event - window);
+					}
 
-				window = next_event;
-				if(window == left_margin_) {
-					flush_border();
-					state_ = State::Pixels;
+					window = next_event;
+					if(window == left_margin_) {
+						flush_border();
+						state_ = State::Pixels;
 
-					// TODO: probably allocate some pixels here?
-				}
-				if(window == right_margin_) {
-					state_ = State::Border;
+						// TODO: probably allocate some pixels here?
+					}
+					if(window == right_margin_) {
+						state_ = State::Border;
 
-					// TODO: probably output pixels here?
+						// TODO: probably output pixels here?
+					}
 				}
 			}
 
