@@ -187,8 +187,33 @@ void Nick::run_for(HalfCycles duration) {
 						// TODO: real pixels.
 						if(allocated_pointer_) {
 							for(int c = 0; c < next_event - window; c++) {
-								pixel_pointer_[0] = uint16_t(0xfff ^ (window + c));
-								++pixel_pointer_;
+//								pixel_pointer_[0] = uint16_t(0xfff ^ (window + c));
+
+//								++pixel_pointer_;
+
+								// Hard-coded here: 1bpp, pixel mode.
+								const uint8_t pixels[2] = { ram_[line_data_pointer_[0]], ram_[line_data_pointer_[0]+1] };
+								line_data_pointer_[0] += 2;
+
+								pixel_pointer_[0] = (pixels[0] & 0x80) ? 0xffff : 0x0000;
+								pixel_pointer_[1] = (pixels[0] & 0x40) ? 0xffff : 0x0000;
+								pixel_pointer_[2] = (pixels[0] & 0x20) ? 0xffff : 0x0000;
+								pixel_pointer_[3] = (pixels[0] & 0x10) ? 0xffff : 0x0000;
+								pixel_pointer_[4] = (pixels[0] & 0x08) ? 0xffff : 0x0000;
+								pixel_pointer_[5] = (pixels[0] & 0x04) ? 0xffff : 0x0000;
+								pixel_pointer_[6] = (pixels[0] & 0x02) ? 0xffff : 0x0000;
+								pixel_pointer_[7] = (pixels[0] & 0x01) ? 0xffff : 0x0000;
+								pixel_pointer_[8] = (pixels[1] & 0x80) ? 0xffff : 0x0000;
+								pixel_pointer_[9] = (pixels[1] & 0x40) ? 0xffff : 0x0000;
+								pixel_pointer_[10] = (pixels[1] & 0x20) ? 0xffff : 0x0000;
+								pixel_pointer_[11] = (pixels[1] & 0x10) ? 0xffff : 0x0000;
+								pixel_pointer_[12] = (pixels[1] & 0x08) ? 0xffff : 0x0000;
+								pixel_pointer_[13] = (pixels[1] & 0x04) ? 0xffff : 0x0000;
+								pixel_pointer_[14] = (pixels[1] & 0x02) ? 0xffff : 0x0000;
+								pixel_pointer_[15] = (pixels[1] & 0x01) ? 0xffff : 0x0000;
+								pixel_pointer_ += 16;
+
+								// TODO: possibly flush here?
 							}
 						} else {
 							pixel_pointer_ += next_event - window;

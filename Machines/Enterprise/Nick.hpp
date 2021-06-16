@@ -68,7 +68,7 @@ class Nick {
 		void flush_border();
 
 		// The destination for new pixels.
-		static constexpr int allocation_size = 320;
+		static constexpr int allocation_size = 800; // TODO: pick an appropriate length once the serialiser is working correctly.
 		uint16_t *pixel_pointer_ = nullptr, *allocated_pointer_ = nullptr;
 		int pixel_duration_ = 0;
 		void flush_pixels();
