@@ -179,23 +179,35 @@ void Nick::run_for(HalfCycles duration) {
 					if(state_ == State::Border) {
 						border_duration_ += next_event - window;
 					} else {
-						// TODO: something proper here.
-						uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-						if(colour_pointer) *colour_pointer = 0xfff;
-						crt_.output_level(next_event - window);
+						if(!allocated_pointer_) {
+							flush_pixels();
+							pixel_pointer_ = allocated_pointer_ = reinterpret_cast<uint16_t *>(crt_.begin_data(allocation_size));
+						}
+
+						// TODO: real pixels.
+						if(allocated_pointer_) {
+							for(int c = 0; c < next_event - window; c++) {
+								pixel_pointer_[0] = uint16_t(0xfff ^ (window + c));
+								++pixel_pointer_;
+							}
+						} else {
+							pixel_pointer_ += next_event - window;
+						}
+
+						pixel_duration_ += next_event - window;
+						if(pixel_pointer_ - allocated_pointer_ == allocation_size) {
+							flush_pixels();
+						}
 					}
 
 					window = next_event;
 					if(window == left_margin_) {
 						flush_border();
 						state_ = State::Pixels;
-
-						// TODO: probably allocate some pixels here?
 					}
 					if(window == right_margin_) {
+						flush_pixels();
 						state_ = State::Border;
-
-						// TODO: probably output pixels here?
 					}
 				}
 			}
@@ -205,7 +217,7 @@ void Nick::run_for(HalfCycles duration) {
 				if(state_ == State::Border) {
 					flush_border();
 				} else {
-					// TODO: output pixels.
+					flush_pixels();
 				}
 			}
 		}
@@ -234,6 +246,14 @@ void Nick::flush_border() {
 	if(colour_pointer) *colour_pointer = border_colour_;
 	crt_.output_level(border_duration_);
 	border_duration_ = 0;
+}
+
+void Nick::flush_pixels() {
+	if(!pixel_duration_) return;
+	crt_.output_data(pixel_duration_, size_t(pixel_pointer_ - allocated_pointer_));
+	pixel_duration_ = 0;
+	pixel_pointer_ = nullptr;
+	allocated_pointer_ = nullptr;
 }
 
 // MARK: - CRT passthroughs.

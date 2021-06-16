@@ -66,6 +66,12 @@ class Nick {
 		// An accumulator for border output regions.
 		int border_duration_ = 0;
 		void flush_border();
+
+		// The destination for new pixels.
+		static constexpr int allocation_size = 320;
+		uint16_t *pixel_pointer_ = nullptr, *allocated_pointer_ = nullptr;
+		int pixel_duration_ = 0;
+		void flush_pixels();
 };
 
 
