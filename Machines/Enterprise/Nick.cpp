@@ -10,10 +10,28 @@
 
 #include <cstdio>
 
+namespace  {
+
+uint16_t mapped_colour(uint8_t source) {
+	// On the Enterprise, red and green are 3-bit quantities; blue is a 2-bit quantity.
+	const int red	= ((source&0x01) << 2) | ((source&0x08) >> 2) | ((source&0x40) >> 6);
+	const int green	= ((source&0x02) << 1) | ((source&0x10) >> 3) | ((source&0x80) >> 7);
+	const int blue	= ((source&0x04) >> 1) | ((source&0x20) >> 5);
+
+	// Duplicate bits where necessary to map to a full 4-bit range per channel.
+	return uint16_t(
+		(red << 9) + ((red&0x4) << 6) +
+		(green << 5) + ((green&0x4) << 2) +
+		(blue << 2) + blue
+	);
+}
+
+}
+
 using namespace Enterprise;
 
 Nick::Nick(const uint8_t *ram) :
-	crt_(16 * 57, 16, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+	crt_(57, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
 	ram_(ram) {
 
 	// Just use RGB for now.
@@ -27,6 +45,10 @@ void Nick::write(uint16_t address, uint8_t value) {
 			printf("Unhandled\n");
 		break;
 
+		case 1:
+			flush_border();
+			border_colour_ = mapped_colour(value);
+		break;
 		case 2:
 			line_parameter_base_ = uint16_t((line_parameter_base_ & 0xf000) | (value << 4));
 		break;
@@ -89,6 +111,93 @@ void Nick::run_for(HalfCycles duration) {
 
 				// Set length of mode line.
 				lines_remaining_ = line_parameters_[0];
+
+				// Determine the line data pointers.
+				line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
+				line_data_pointer_[1] = uint16_t(line_parameters_[6] | (line_parameters_[7] << 8));
+
+				// Set the output mode and margin.
+				mode_ = Mode((line_parameters_[1] >> 1)&7);
+				left_margin_ = line_parameters_[2] & 0x3f;
+				right_margin_ = line_parameters_[3] & 0x3f;
+
+				if(mode_ == Mode::Vsync) {
+					state_ = State::Blank;
+				} else {
+					// The first ten windows are occupied by the horizontal sync and
+					// colour burst; if left signalled before then, begin in pixels.
+					state_ = left_margin_ > 10 ? State::Border : State::Pixels;
+				}
+			}
+		}
+
+		// HSYNC is signalled for four windows at the start of the line.
+		if(window < 4 && end_window >= 4) {
+			crt_.output_sync(4);
+			window = 4;
+		}
+
+		// Deal with vsync mode out here.
+		if(mode_ == Mode::Vsync) {
+			while(window < end_window) {
+				int next_event = end_window;
+				if(window < left_margin_) next_event = std::min(next_event, left_margin_);
+				if(window < right_margin_) next_event = std::min(next_event, right_margin_);
+
+				if(state_ == State::Blank) {
+					crt_.output_blank(next_event - window);
+				} else {
+					crt_.output_sync(next_event - window);
+				}
+
+				window = next_event;
+				if(window == left_margin_) state_ = State::Sync;
+				if(window == right_margin_) state_ = State::Blank;
+			}
+		} else {
+			// If present then the colour burst is output for the period from
+			// the start of window 6 to the end of window 10.
+			if(window < 10 && end_window >= 10) {
+				crt_.output_blank(2);
+				crt_.output_colour_burst(4, 0);	// TODO: try to determine actual phase.
+				window = 10;
+			}
+
+			while(window < end_window) {
+				int next_event = end_window;
+				if(window < left_margin_) next_event = std::min(next_event, left_margin_);
+				if(window < right_margin_) next_event = std::min(next_event, right_margin_);
+
+				if(state_ == State::Border) {
+					border_duration_ += next_event - window;
+				} else {
+					// TODO: something proper here.
+					uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
+					if(colour_pointer) *colour_pointer = 0xfff;
+					crt_.output_level(next_event - window);
+				}
+
+				window = next_event;
+				if(window == left_margin_) {
+					flush_border();
+					state_ = State::Pixels;
+
+					// TODO: probably allocate some pixels here?
+				}
+				if(window == right_margin_) {
+					state_ = State::Border;
+
+					// TODO: probably output pixels here?
+				}
+			}
+
+			// Finish up the line.
+			if(!horizontal_counter_) {
+				if(state_ == State::Border) {
+					flush_border();
+				} else {
+					// TODO: output pixels.
+				}
 			}
 		}
 
@@ -103,8 +212,19 @@ void Nick::run_for(HalfCycles duration) {
 					line_parameter_pointer_ = line_parameter_base_;
 				}
 			}
+
+			// TODO: should reload line data pointers?
 		}
 	}
+}
+
+void Nick::flush_border() {
+	if(!border_duration_) return;
+
+	uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
+	if(colour_pointer) *colour_pointer = border_colour_;
+	crt_.output_level(border_duration_);
+	border_duration_ = 0;
 }
 
 // MARK: - CRT passthroughs.
