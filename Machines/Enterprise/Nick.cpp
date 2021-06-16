@@ -31,7 +31,7 @@ uint16_t mapped_colour(uint8_t source) {
 using namespace Enterprise;
 
 Nick::Nick(const uint8_t *ram) :
-	crt_(57, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+	crt_(57*16, 16, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
 	ram_(ram) {
 
 	// Just use RGB for now.
@@ -138,7 +138,7 @@ void Nick::run_for(HalfCycles duration) {
 		// HSYNC is signalled for four windows at the start of the line.
 		// I currently belive this happens regardless of Vsync mode.
 		if(window < 4 && end_window >= 4) {
-			crt_.output_sync(4);
+			crt_.output_sync(4*16);
 			window = 4;
 		}
 
@@ -151,9 +151,9 @@ void Nick::run_for(HalfCycles duration) {
 					if(window < right_margin_) next_event = std::min(next_event, right_margin_);
 
 					if(state_ == State::Blank) {
-						crt_.output_blank(next_event - window);
+						crt_.output_blank((next_event - window)*16);
 					} else {
-						crt_.output_sync(next_event - window);
+						crt_.output_sync((next_event - window)*16);
 					}
 
 					window = next_event;
@@ -165,8 +165,8 @@ void Nick::run_for(HalfCycles duration) {
 			// If present then the colour burst is output for the period from
 			// the start of window 6 to the end of window 10.
 			if(window < 10 && end_window >= 10) {
-				crt_.output_blank(2);
-				crt_.output_colour_burst(4, 0);	// TODO: try to determine actual phase.
+				crt_.output_blank(2*16);
+				crt_.output_colour_burst(4*16, 0);	// TODO: try to determine actual phase.
 				window = 10;
 			}
 
@@ -269,13 +269,13 @@ void Nick::flush_border() {
 
 	uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
 	if(colour_pointer) *colour_pointer = border_colour_;
-	crt_.output_level(border_duration_);
+	crt_.output_level(border_duration_*16);
 	border_duration_ = 0;
 }
 
 void Nick::flush_pixels() {
 	if(!pixel_duration_) return;
-	crt_.output_data(pixel_duration_, size_t(pixel_pointer_ - allocated_pointer_));
+	crt_.output_data(pixel_duration_*16, size_t(pixel_pointer_ - allocated_pointer_));
 	pixel_duration_ = 0;
 	pixel_pointer_ = nullptr;
 	allocated_pointer_ = nullptr;
