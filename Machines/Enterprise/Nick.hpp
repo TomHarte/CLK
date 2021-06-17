@@ -80,7 +80,7 @@ class Nick {
 		uint16_t palette_[16]{};
 
 		// Specific outputters.
-		template <int bpp> void output_pixel(uint16_t *target, int columns);
+		template <int bpp, bool is_lpixel> void output_pixel(uint16_t *target, int columns);
 };
 
 

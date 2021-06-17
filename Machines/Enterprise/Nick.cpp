@@ -127,7 +127,7 @@ void Nick::run_for(HalfCycles duration) {
 //					case Mode::CH64:
 //					case Mode::CH128:
 //					case Mode::CH256:
-//					case Mode::LPixel:	column_size_ = 8 / bpp_;	break;
+					case Mode::LPixel:	column_size_ = 8 / bpp_;	break;
 //					case Mode::Attr:	column_size_ = 8;			break;
 				}
 
@@ -206,11 +206,14 @@ void Nick::run_for(HalfCycles duration) {
 #define DispatchBpp(func) \
 	switch(bpp_) {	\
 		default:	\
-		case 1: func<1>(pixel_pointer_, output_duration);	break;	\
-		case 2: func<2>(pixel_pointer_, output_duration);	break;	\
-		case 4: func<4>(pixel_pointer_, output_duration);	break;	\
-		case 8: func<8>(pixel_pointer_, output_duration);	break;	\
+		case 1: func(1)(pixel_pointer_, output_duration);	break;	\
+		case 2: func(2)(pixel_pointer_, output_duration);	break;	\
+		case 4: func(4)(pixel_pointer_, output_duration);	break;	\
+		case 8: func(8)(pixel_pointer_, output_duration);	break;	\
 	}
+
+#define pixel(x) output_pixel<x, false>
+#define lpixel(x) output_pixel<x, true>
 
 						int columns_remaining = next_event - window;
 						while(columns_remaining) {
@@ -224,9 +227,8 @@ void Nick::run_for(HalfCycles duration) {
 
 								switch(mode_) {
 									default:
-									case Mode::Pixel:
-										DispatchBpp(output_pixel);
-									break;
+									case Mode::Pixel:	DispatchBpp(pixel);		break;
+									case Mode::LPixel:	DispatchBpp(lpixel);	break;
 								}
 
 								pixel_pointer_ += output_duration * column_size_;
@@ -244,6 +246,8 @@ void Nick::run_for(HalfCycles duration) {
 								columns_remaining = 0;
 							}
 						}
+#undef pixel
+#undef lpixel
 #undef DispatchBpp
 					}
 
@@ -315,7 +319,7 @@ Outputs::Display::ScanStatus Nick::get_scaled_scan_status() const {
 
 // MARK: - Specific pixel outputters.
 
-template <int bpp> void Nick::output_pixel(uint16_t *target, int columns) {
+template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int columns) {
 	for(int c = 0; c < columns; c++) {
 		const uint8_t pixels[2] = { ram_[line_data_pointer_[0]], ram_[line_data_pointer_[0]+1] };
 		line_data_pointer_[0] += 2;
@@ -332,16 +336,20 @@ template <int bpp> void Nick::output_pixel(uint16_t *target, int columns) {
 				target[6] = palette_[(pixels[0] & 0x02) >> 1];
 				target[7] = palette_[(pixels[0] & 0x01) >> 0];
 
-				target[8] = palette_[(pixels[1] & 0x80) >> 7];
-				target[9] = palette_[(pixels[1] & 0x40) >> 6];
-				target[10] = palette_[(pixels[1] & 0x20) >> 5];
-				target[11] = palette_[(pixels[1] & 0x10) >> 4];
-				target[12] = palette_[(pixels[1] & 0x08) >> 3];
-				target[13] = palette_[(pixels[1] & 0x04) >> 2];
-				target[14] = palette_[(pixels[1] & 0x02) >> 1];
-				target[15] = palette_[(pixels[1] & 0x01) >> 0];
+				if(!is_lpixel) {
+					target[8] = palette_[(pixels[1] & 0x80) >> 7];
+					target[9] = palette_[(pixels[1] & 0x40) >> 6];
+					target[10] = palette_[(pixels[1] & 0x20) >> 5];
+					target[11] = palette_[(pixels[1] & 0x10) >> 4];
+					target[12] = palette_[(pixels[1] & 0x08) >> 3];
+					target[13] = palette_[(pixels[1] & 0x04) >> 2];
+					target[14] = palette_[(pixels[1] & 0x02) >> 1];
+					target[15] = palette_[(pixels[1] & 0x01) >> 0];
 
-				target += 16;
+					target += 8;
+				}
+
+				target += 8;
 			break;
 
 			case 2:
@@ -350,28 +358,41 @@ template <int bpp> void Nick::output_pixel(uint16_t *target, int columns) {
 				target[2] = palette_[((pixels[0] & 0x20) >> 4) | ((pixels[0] & 0x02) >> 1)];
 				target[3] = palette_[((pixels[0] & 0x10) >> 3) | ((pixels[0] & 0x01) >> 0)];
 
-				target[4] = palette_[((pixels[1] & 0x80) >> 6) | ((pixels[1] & 0x08) >> 3)];
-				target[5] = palette_[((pixels[1] & 0x40) >> 5) | ((pixels[1] & 0x04) >> 2)];
-				target[6] = palette_[((pixels[1] & 0x20) >> 4) | ((pixels[1] & 0x02) >> 1)];
-				target[7] = palette_[((pixels[1] & 0x10) >> 3) | ((pixels[1] & 0x01) >> 0)];
+				if(!is_lpixel) {
+					target[4] = palette_[((pixels[1] & 0x80) >> 6) | ((pixels[1] & 0x08) >> 3)];
+					target[5] = palette_[((pixels[1] & 0x40) >> 5) | ((pixels[1] & 0x04) >> 2)];
+					target[6] = palette_[((pixels[1] & 0x20) >> 4) | ((pixels[1] & 0x02) >> 1)];
+					target[7] = palette_[((pixels[1] & 0x10) >> 3) | ((pixels[1] & 0x01) >> 0)];
 
-				target += 8;
+					target += 4;
+				}
+
+				target += 4;
 			break;
 
 			case 4:
 				target[0] = palette_[((pixels[0] & 0x80) >> 4) | ((pixels[0] & 0x20) >> 3) | ((pixels[0] & 0x08) >> 2) | ((pixels[0] & 0x02) >> 1)];
 				target[1] = palette_[((pixels[0] & 0x40) >> 3) | ((pixels[0] & 0x10) >> 2) | ((pixels[0] & 0x04) >> 1) | ((pixels[0] & 0x01) >> 0)];
 
-				target[2] = palette_[((pixels[1] & 0x80) >> 4) | ((pixels[1] & 0x20) >> 3) | ((pixels[1] & 0x08) >> 2) | ((pixels[1] & 0x02) >> 1)];
-				target[3] = palette_[((pixels[1] & 0x40) >> 3) | ((pixels[1] & 0x10) >> 2) | ((pixels[1] & 0x04) >> 1) | ((pixels[1] & 0x01) >> 0)];
+				if(!is_lpixel) {
+					target[2] = palette_[((pixels[1] & 0x80) >> 4) | ((pixels[1] & 0x20) >> 3) | ((pixels[1] & 0x08) >> 2) | ((pixels[1] & 0x02) >> 1)];
+					target[3] = palette_[((pixels[1] & 0x40) >> 3) | ((pixels[1] & 0x10) >> 2) | ((pixels[1] & 0x04) >> 1) | ((pixels[1] & 0x01) >> 0)];
 
-				target += 4;
+					target += 2;
+				}
+
+				target += 2;
 			break;
 
 			case 8:
 				target[0] = mapped_colour(pixels[0]);
-				target[1] = mapped_colour(pixels[1]);
-				target += 2;
+
+				if(!is_lpixel) {
+					target[1] = mapped_colour(pixels[1]);
+
+					++target;
+				}
+				++target;
 			break;
 		}
 	}
