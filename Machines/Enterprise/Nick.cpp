@@ -124,9 +124,9 @@ void Nick::run_for(HalfCycles duration) {
 				switch(mode_) {
 					default:
 					case Mode::Pixel:	column_size_ = 16 / bpp_;	break;
-//					case Mode::CH64:
-//					case Mode::CH128:
-//					case Mode::CH256:
+					case Mode::CH64:
+					case Mode::CH128:
+					case Mode::CH256:
 					case Mode::LPixel:	column_size_ = 8 / bpp_;	break;
 //					case Mode::Attr:	column_size_ = 8;			break;
 				}
@@ -214,6 +214,9 @@ void Nick::run_for(HalfCycles duration) {
 
 #define pixel(x) output_pixel<x, false>
 #define lpixel(x) output_pixel<x, true>
+#define ch256(x) output_character<x, 8>
+#define ch128(x) output_character<x, 7>
+#define ch64(x) output_character<x, 6>
 
 						int columns_remaining = next_event - window;
 						while(columns_remaining) {
@@ -229,6 +232,9 @@ void Nick::run_for(HalfCycles duration) {
 									default:
 									case Mode::Pixel:	DispatchBpp(pixel);		break;
 									case Mode::LPixel:	DispatchBpp(lpixel);	break;
+									case Mode::CH256:	DispatchBpp(ch256);		break;
+									case Mode::CH128:	DispatchBpp(ch128);		break;
+									case Mode::CH64:	DispatchBpp(ch64);		break;
 								}
 
 								pixel_pointer_ += output_duration * column_size_;
@@ -245,7 +251,11 @@ void Nick::run_for(HalfCycles duration) {
 								pixel_duration_ += columns_remaining;
 								columns_remaining = 0;
 							}
+
 						}
+#undef ch64
+#undef ch128
+#undef ch256
 #undef pixel
 #undef lpixel
 #undef DispatchBpp
@@ -285,7 +295,16 @@ void Nick::run_for(HalfCycles duration) {
 				}
 			}
 
-			// TODO: should reload line data pointers?
+			// TODO: logic below is very incomplete.
+			switch(mode_) {
+				default: break;
+				case Mode::CH64:
+				case Mode::CH128:
+				case Mode::CH256:
+					line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
+					++line_data_pointer_[1];
+				break;
+			}
 		}
 	}
 }
@@ -320,9 +339,11 @@ Outputs::Display::ScanStatus Nick::get_scaled_scan_status() const {
 // MARK: - Specific pixel outputters.
 
 template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int columns) {
+	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
+
 	for(int c = 0; c < columns; c++) {
-		const uint8_t pixels[2] = { ram_[line_data_pointer_[0]], ram_[line_data_pointer_[0]+1] };
-		line_data_pointer_[0] += 2;
+		const uint8_t pixels[2] = { ram_[line_data_pointer_[0]], ram_[(line_data_pointer_[0]+1) & 0xffff] };
+		line_data_pointer_[0] += is_lpixel ? 1 : 2;
 
 		switch(bpp) {
 			default:
@@ -336,7 +357,7 @@ template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int
 				target[6] = palette_[(pixels[0] & 0x02) >> 1];
 				target[7] = palette_[(pixels[0] & 0x01) >> 0];
 
-				if(!is_lpixel) {
+				if constexpr (!is_lpixel) {
 					target[8] = palette_[(pixels[1] & 0x80) >> 7];
 					target[9] = palette_[(pixels[1] & 0x40) >> 6];
 					target[10] = palette_[(pixels[1] & 0x20) >> 5];
@@ -358,7 +379,7 @@ template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int
 				target[2] = palette_[((pixels[0] & 0x20) >> 4) | ((pixels[0] & 0x02) >> 1)];
 				target[3] = palette_[((pixels[0] & 0x10) >> 3) | ((pixels[0] & 0x01) >> 0)];
 
-				if(!is_lpixel) {
+				if constexpr (!is_lpixel) {
 					target[4] = palette_[((pixels[1] & 0x80) >> 6) | ((pixels[1] & 0x08) >> 3)];
 					target[5] = palette_[((pixels[1] & 0x40) >> 5) | ((pixels[1] & 0x04) >> 2)];
 					target[6] = palette_[((pixels[1] & 0x20) >> 4) | ((pixels[1] & 0x02) >> 1)];
@@ -374,7 +395,7 @@ template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int
 				target[0] = palette_[((pixels[0] & 0x80) >> 4) | ((pixels[0] & 0x20) >> 3) | ((pixels[0] & 0x08) >> 2) | ((pixels[0] & 0x02) >> 1)];
 				target[1] = palette_[((pixels[0] & 0x40) >> 3) | ((pixels[0] & 0x10) >> 2) | ((pixels[0] & 0x04) >> 1) | ((pixels[0] & 0x01) >> 0)];
 
-				if(!is_lpixel) {
+				if constexpr (!is_lpixel) {
 					target[2] = palette_[((pixels[1] & 0x80) >> 4) | ((pixels[1] & 0x20) >> 3) | ((pixels[1] & 0x08) >> 2) | ((pixels[1] & 0x02) >> 1)];
 					target[3] = palette_[((pixels[1] & 0x40) >> 3) | ((pixels[1] & 0x10) >> 2) | ((pixels[1] & 0x04) >> 1) | ((pixels[1] & 0x01) >> 0)];
 
@@ -387,7 +408,7 @@ template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int
 			case 8:
 				target[0] = mapped_colour(pixels[0]);
 
-				if(!is_lpixel) {
+				if constexpr (!is_lpixel) {
 					target[1] = mapped_colour(pixels[1]);
 
 					++target;
@@ -398,3 +419,37 @@ template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int
 	}
 }
 
+template <int bpp, int index_bits> void Nick::output_character(uint16_t *target, int columns) {
+	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
+
+	for(int c = 0; c < columns; c++) {
+		const uint8_t character = ram_[line_data_pointer_[0]];
+		++line_data_pointer_[0];
+
+		const uint8_t pixels = ram_[
+			(line_data_pointer_[1] << index_bits) +
+			(character & ((1 << index_bits) - 1))
+		];
+
+		// TODO: below looks repetitious of the above, but I've yet to factor in
+		// ALTINDs and [M/L]SBALTs, so I'll correct for factoring when I've done that.
+
+		switch(bpp) {
+			default:
+				assert(false);
+			break;
+
+			case 1:
+				target[0] = palette_[(pixels & 0x80) >> 7];
+				target[1] = palette_[(pixels & 0x40) >> 6];
+				target[2] = palette_[(pixels & 0x20) >> 5];
+				target[3] = palette_[(pixels & 0x10) >> 4];
+				target[4] = palette_[(pixels & 0x08) >> 3];
+				target[5] = palette_[(pixels & 0x04) >> 2];
+				target[6] = palette_[(pixels & 0x02) >> 1];
+				target[7] = palette_[(pixels & 0x01) >> 0];
+				target += 8;
+			break;
+		}
+	}
+}

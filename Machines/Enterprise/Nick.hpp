@@ -81,6 +81,7 @@ class Nick {
 
 		// Specific outputters.
 		template <int bpp, bool is_lpixel> void output_pixel(uint16_t *target, int columns);
+		template <int bpp, int index_bits> void output_character(uint16_t *target, int columns);
 };
 
 
