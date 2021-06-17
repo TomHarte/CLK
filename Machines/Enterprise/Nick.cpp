@@ -19,11 +19,16 @@ uint16_t mapped_colour(uint8_t source) {
 	const int blue	= ((source&0x04) >> 1) | ((source&0x20) >> 5);
 
 	// Duplicate bits where necessary to map to a full 4-bit range per channel.
-	return uint16_t(
-		(red << 9) + ((red&0x4) << 6) +
-		(green << 5) + ((green&0x4) << 2) +
-		(blue << 2) + blue
-	);
+	const uint8_t parts[2] = {
+		uint8_t(
+			(red << 1) + ((red&0x4) >> 3)
+		),
+		uint8_t(
+			(green << 5) + ((green&0x4) << 2) +
+			(blue << 2) + blue
+		)
+	};
+	return *reinterpret_cast<const uint16_t *>(parts);
 }
 
 }
@@ -41,10 +46,12 @@ Nick::Nick(const uint8_t *ram) :
 void Nick::write(uint16_t address, uint8_t value) {
 	printf("Nick write: %02x -> %d\n", value, address & 3);
 	switch(address & 3) {
-		default:
-			printf("Unhandled\n");
+		case 0:
+			// Ignored: everything to do with external colour.
+			for(int c = 0; c < 8; c++) {
+				palette_[c + 8] = mapped_colour(uint8_t(((value & 0x1f) << 3) + c));
+			}
 		break;
-
 		case 1:
 			flush_border();
 			border_colour_ = mapped_colour(value);
@@ -107,10 +114,22 @@ void Nick::run_for(HalfCycles duration) {
 
 			// Special: set mode as soon as it's known. It'll be needed at the end of HSYNC.
 			if(window < 2 && fetch_spot >= 2) {
-				// Set the output mode and margin.
+				// Determine the margins.
 				left_margin_ = line_parameters_[2] & 0x3f;
 				right_margin_ = line_parameters_[3] & 0x3f;
+
+				// Determine the mode and depth, and hence the column size.
 				mode_ = Mode((line_parameters_[1] >> 1)&7);
+				bpp_ = 1 << ((line_parameters_[1] >> 5)&3);
+				switch(mode_) {
+					default:
+					case Mode::Pixel:	column_size_ = 16 / bpp_;	break;
+//					case Mode::CH64:
+//					case Mode::CH128:
+//					case Mode::CH256:
+//					case Mode::LPixel:	column_size_ = 8 / bpp_;	break;
+//					case Mode::Attr:	column_size_ = 8;			break;
+				}
 
 				// Act as if proper state transitions had occurred while HSYNC is being output.
 				if(mode_ == Mode::Vsync) {
@@ -132,6 +151,11 @@ void Nick::run_for(HalfCycles duration) {
 				// Determine the line data pointers.
 				line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
 				line_data_pointer_[1] = uint16_t(line_parameters_[6] | (line_parameters_[7] << 8));
+
+				// Populate the first eight colours of the palette.
+				for(int c = 0; c < 8; c++) {
+					palette_[c] = mapped_colour(line_parameters_[8 + c]);
+				}
 			}
 		}
 
@@ -179,50 +203,48 @@ void Nick::run_for(HalfCycles duration) {
 					if(state_ == State::Border) {
 						border_duration_ += next_event - window;
 					} else {
-						if(!allocated_pointer_) {
-							flush_pixels();
-							pixel_pointer_ = allocated_pointer_ = reinterpret_cast<uint16_t *>(crt_.begin_data(allocation_size));
-						}
+#define DispatchBpp(func) \
+	switch(bpp_) {	\
+		default:	\
+		case 1: func<1>(pixel_pointer_, output_duration);	break;	\
+		case 2: func<2>(pixel_pointer_, output_duration);	break;	\
+		case 4: func<4>(pixel_pointer_, output_duration);	break;	\
+		case 8: func<8>(pixel_pointer_, output_duration);	break;	\
+	}
 
-						// TODO: real pixels.
-						if(allocated_pointer_) {
-							for(int c = 0; c < next_event - window; c++) {
-//								pixel_pointer_[0] = uint16_t(0xfff ^ (window + c));
-
-//								++pixel_pointer_;
-
-								// Hard-coded here: 1bpp, pixel mode.
-								const uint8_t pixels[2] = { ram_[line_data_pointer_[0]], ram_[line_data_pointer_[0]+1] };
-								line_data_pointer_[0] += 2;
-
-								pixel_pointer_[0] = (pixels[0] & 0x80) ? 0xffff : 0x0000;
-								pixel_pointer_[1] = (pixels[0] & 0x40) ? 0xffff : 0x0000;
-								pixel_pointer_[2] = (pixels[0] & 0x20) ? 0xffff : 0x0000;
-								pixel_pointer_[3] = (pixels[0] & 0x10) ? 0xffff : 0x0000;
-								pixel_pointer_[4] = (pixels[0] & 0x08) ? 0xffff : 0x0000;
-								pixel_pointer_[5] = (pixels[0] & 0x04) ? 0xffff : 0x0000;
-								pixel_pointer_[6] = (pixels[0] & 0x02) ? 0xffff : 0x0000;
-								pixel_pointer_[7] = (pixels[0] & 0x01) ? 0xffff : 0x0000;
-								pixel_pointer_[8] = (pixels[1] & 0x80) ? 0xffff : 0x0000;
-								pixel_pointer_[9] = (pixels[1] & 0x40) ? 0xffff : 0x0000;
-								pixel_pointer_[10] = (pixels[1] & 0x20) ? 0xffff : 0x0000;
-								pixel_pointer_[11] = (pixels[1] & 0x10) ? 0xffff : 0x0000;
-								pixel_pointer_[12] = (pixels[1] & 0x08) ? 0xffff : 0x0000;
-								pixel_pointer_[13] = (pixels[1] & 0x04) ? 0xffff : 0x0000;
-								pixel_pointer_[14] = (pixels[1] & 0x02) ? 0xffff : 0x0000;
-								pixel_pointer_[15] = (pixels[1] & 0x01) ? 0xffff : 0x0000;
-								pixel_pointer_ += 16;
-
-								// TODO: possibly flush here?
+						int columns_remaining = next_event - window;
+						while(columns_remaining) {
+							if(!allocated_pointer_) {
+								flush_pixels();
+								pixel_pointer_ = allocated_pointer_ = reinterpret_cast<uint16_t *>(crt_.begin_data(allocation_size));
 							}
-						} else {
-							pixel_pointer_ += next_event - window;
-						}
 
-						pixel_duration_ += next_event - window;
-						if(pixel_pointer_ - allocated_pointer_ == allocation_size) {
-							flush_pixels();
+							if(allocated_pointer_) {
+								const int output_duration = std::min(columns_remaining, int(allocated_pointer_ + allocation_size - pixel_pointer_) / column_size_);
+
+								switch(mode_) {
+									default:
+									case Mode::Pixel:
+										DispatchBpp(output_pixel);
+									break;
+								}
+
+								pixel_pointer_ += output_duration * column_size_;
+								pixel_duration_ += output_duration;
+								if(pixel_pointer_ - allocated_pointer_ == allocation_size) {
+									flush_pixels();
+								}
+								columns_remaining -= output_duration;
+							} else {
+								// Advance pixel pointer upwards, so as to be able to supply something
+								// convincing to the CRT as to the number of samples that would have
+								// been provided, and skip asking for further allocations for now.
+								pixel_pointer_ += columns_remaining * column_size_;
+								pixel_duration_ += columns_remaining;
+								columns_remaining = 0;
+							}
 						}
+#undef DispatchBpp
 					}
 
 					window = next_event;
@@ -290,3 +312,68 @@ void Nick::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 Outputs::Display::ScanStatus Nick::get_scaled_scan_status() const {
 	return crt_.get_scaled_scan_status();
 }
+
+// MARK: - Specific pixel outputters.
+
+template <int bpp> void Nick::output_pixel(uint16_t *target, int columns) {
+	for(int c = 0; c < columns; c++) {
+		const uint8_t pixels[2] = { ram_[line_data_pointer_[0]], ram_[line_data_pointer_[0]+1] };
+		line_data_pointer_[0] += 2;
+
+		switch(bpp) {
+			default:
+			case 1:
+				target[0] = palette_[(pixels[0] & 0x80) >> 7];
+				target[1] = palette_[(pixels[0] & 0x40) >> 6];
+				target[2] = palette_[(pixels[0] & 0x20) >> 5];
+				target[3] = palette_[(pixels[0] & 0x10) >> 4];
+				target[4] = palette_[(pixels[0] & 0x08) >> 3];
+				target[5] = palette_[(pixels[0] & 0x04) >> 2];
+				target[6] = palette_[(pixels[0] & 0x02) >> 1];
+				target[7] = palette_[(pixels[0] & 0x01) >> 0];
+
+				target[8] = palette_[(pixels[1] & 0x80) >> 7];
+				target[9] = palette_[(pixels[1] & 0x40) >> 6];
+				target[10] = palette_[(pixels[1] & 0x20) >> 5];
+				target[11] = palette_[(pixels[1] & 0x10) >> 4];
+				target[12] = palette_[(pixels[1] & 0x08) >> 3];
+				target[13] = palette_[(pixels[1] & 0x04) >> 2];
+				target[14] = palette_[(pixels[1] & 0x02) >> 1];
+				target[15] = palette_[(pixels[1] & 0x01) >> 0];
+
+				target += 16;
+			break;
+
+			case 2:
+				target[0] = palette_[((pixels[0] & 0x80) >> 6) | ((pixels[0] & 0x08) >> 3)];
+				target[1] = palette_[((pixels[0] & 0x40) >> 5) | ((pixels[0] & 0x04) >> 2)];
+				target[2] = palette_[((pixels[0] & 0x20) >> 4) | ((pixels[0] & 0x02) >> 1)];
+				target[3] = palette_[((pixels[0] & 0x10) >> 3) | ((pixels[0] & 0x01) >> 0)];
+
+				target[4] = palette_[((pixels[1] & 0x80) >> 6) | ((pixels[1] & 0x08) >> 3)];
+				target[5] = palette_[((pixels[1] & 0x40) >> 5) | ((pixels[1] & 0x04) >> 2)];
+				target[6] = palette_[((pixels[1] & 0x20) >> 4) | ((pixels[1] & 0x02) >> 1)];
+				target[7] = palette_[((pixels[1] & 0x10) >> 3) | ((pixels[1] & 0x01) >> 0)];
+
+				target += 8;
+			break;
+
+			case 4:
+				target[0] = palette_[((pixels[0] & 0x80) >> 4) | ((pixels[0] & 0x20) >> 3) | ((pixels[0] & 0x08) >> 2) | ((pixels[0] & 0x02) >> 1)];
+				target[1] = palette_[((pixels[0] & 0x40) >> 3) | ((pixels[0] & 0x10) >> 2) | ((pixels[0] & 0x04) >> 1) | ((pixels[0] & 0x01) >> 0)];
+
+				target[2] = palette_[((pixels[1] & 0x80) >> 4) | ((pixels[1] & 0x20) >> 3) | ((pixels[1] & 0x08) >> 2) | ((pixels[1] & 0x02) >> 1)];
+				target[3] = palette_[((pixels[1] & 0x40) >> 3) | ((pixels[1] & 0x10) >> 2) | ((pixels[1] & 0x04) >> 1) | ((pixels[1] & 0x01) >> 0)];
+
+				target += 4;
+			break;
+
+			case 8:
+				target[0] = mapped_colour(pixels[0]);
+				target[1] = mapped_colour(pixels[1]);
+				target += 2;
+			break;
+		}
+	}
+}
+

@@ -62,16 +62,25 @@ class Nick {
 			Pixels,
 			Blank,
 		} state_ = State::Sync;
+		int bpp_ = 0;
+		int column_size_ = 0;
 
 		// An accumulator for border output regions.
 		int border_duration_ = 0;
 		void flush_border();
 
 		// The destination for new pixels.
-		static constexpr int allocation_size = 800; // TODO: pick an appropriate length once the serialiser is working correctly.
+		static constexpr int allocation_size = 80;
+		static_assert((allocation_size % 16) == 0, "Allocation size must be a multiple of 16");
 		uint16_t *pixel_pointer_ = nullptr, *allocated_pointer_ = nullptr;
 		int pixel_duration_ = 0;
 		void flush_pixels();
+
+		// Current palette.
+		uint16_t palette_[16]{};
+
+		// Specific outputters.
+		template <int bpp> void output_pixel(uint16_t *target, int columns);
 };
 
 
