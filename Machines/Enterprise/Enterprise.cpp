@@ -76,6 +76,7 @@ class ConcreteMachine:
 			}
 
 			const auto &exos = roms.find(exos_name)->second;
+			exos_.fill(0xff);
 			memcpy(exos_.data(), exos.data(), std::min(exos_.size(), exos.size()));
 
 			// Take a reasonable guess at the initial memory configuration:
@@ -192,7 +193,7 @@ class ConcreteMachine:
 	private:
 		// MARK: - Memory layout
 		std::array<uint8_t, 256 * 1024> ram_;
-		std::array<uint8_t, 32 * 1024> exos_;
+		std::array<uint8_t, 64 * 1024> exos_;
 		const uint8_t min_ram_slot_ = 0xff - 3;
 
 		const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -202,7 +203,7 @@ class ConcreteMachine:
 		template <size_t slot> void page(uint8_t offset) {
 			pages_[slot] = offset;
 
-			if(offset < 2) {
+			if(offset < exos_.size() / 0x4000) {
 				page<slot>(&exos_[offset * 0x4000], nullptr);
 				return;
 			}
