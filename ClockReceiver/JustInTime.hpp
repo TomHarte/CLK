@@ -103,9 +103,9 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 			}
 
 			if constexpr (has_sequence_points<T>::value) {
-				time_until_event_ -= rhs;
+				time_until_event_ -= rhs * multiplier;
 				if(time_until_event_ <= LocalTimeScale(0)) {
-					time_overrun_ = time_until_event_;
+					time_overrun_ = time_until_event_ / divider;
 					flush();
 					update_sequence_point();
 					return true;
@@ -185,7 +185,7 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		/// @returns the number of cycles until the next sequence-point-based flush, if the embedded object
 		/// supports sequence points; @c LocalTimeScale() otherwise.
 		[[nodiscard]] LocalTimeScale cycles_until_implicit_flush() const {
-			return time_until_event_;
+			return time_until_event_ / divider;
 		}
 
 		/// Indicates whether a sequence-point-caused flush will occur if the specified period is added.
@@ -199,7 +199,7 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		/// Updates this template's record of the next sequence point.
 		void update_sequence_point() {
 			if constexpr (has_sequence_points<T>::value) {
-				time_until_event_ = object_.get_next_sequence_point();
+				time_until_event_ = object_.get_next_sequence_point() * divider;
 				assert(time_until_event_ > LocalTimeScale(0));
 			}
 		}
