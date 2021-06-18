@@ -108,6 +108,7 @@ class ConcreteMachine:
 			if(nick_ += cycle.length) {
 				const auto nick = nick_.last_valid();
 				const bool nick_interrupt_line = nick->get_interrupt_line();
+				// TEMPORARY. The below should print a bunch of numbers like 15988 on the Enterprise splash screen.
 				if(nick_interrupt_line && !previous_nick_interrupt_line_) {
 					printf("Interrupt after %d\n", halves + nick_.last_sequence_point_overrun().as<int>());
 					halves = - nick_.last_sequence_point_overrun().as<int>();
