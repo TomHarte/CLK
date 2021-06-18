@@ -94,8 +94,6 @@ class ConcreteMachine:
 			page<3>(0x00);
 		}
 
-		int halves = 0;
-
 		// MARK: - Z80::BusHandler.
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
@@ -104,14 +102,11 @@ class ConcreteMachine:
 			// TODO: possibly apply an access penalty.
 
 
-			halves += cycle.length.as<int>();
 			if(nick_ += cycle.length) {
 				const auto nick = nick_.last_valid();
 				const bool nick_interrupt_line = nick->get_interrupt_line();
-				// TEMPORARY. The below should print a bunch of numbers like 15988 on the Enterprise splash screen.
 				if(nick_interrupt_line && !previous_nick_interrupt_line_) {
-					printf("Interrupt after %d\n", halves + nick_.last_sequence_point_overrun().as<int>());
-					halves = - nick_.last_sequence_point_overrun().as<int>();
+					// TODO: apply interrupt.
 				}
 				previous_nick_interrupt_line_ = nick_interrupt_line;
 			}
