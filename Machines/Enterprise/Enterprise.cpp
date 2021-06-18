@@ -8,6 +8,7 @@
 
 #include "Enterprise.hpp"
 
+#include "Keyboard.hpp"
 #include "Nick.hpp"
 
 #include "../MachineTypes.hpp"
@@ -59,6 +60,7 @@ namespace Enterprise {
 class ConcreteMachine:
 	public CPU::Z80::BusHandler,
 	public Machine,
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine {
 	public:
@@ -120,8 +122,11 @@ class ConcreteMachine:
 							*cycle.value = 0xff;
 						break;
 						case 0xb5:
-							printf("TODO: Keyboard/joystick input\n");
-							*cycle.value = 0xff;
+							if(active_key_line_ < key_lines_.size()) {
+								*cycle.value = key_lines_[active_key_line_];
+							} else {
+								*cycle.value = 0xff;
+							}
 						break;
 					}
 				break;
@@ -156,7 +161,8 @@ class ConcreteMachine:
 							printf("TODO: interrupt enable/reset write %02x\n", *cycle.value);
 						break;
 						case 0xb5:
-							printf("TODO: Keyboard/etc %02x\n", *cycle.value);
+							active_key_line_ = *cycle.value & 0xf;
+							// TODO: printer strobe, type sound, REM switches.
 						break;
 						case 0xb6:
 							printf("TODO: printer output %02x\n", *cycle.value);
@@ -194,7 +200,7 @@ class ConcreteMachine:
 		// MARK: - Memory layout
 		std::array<uint8_t, 256 * 1024> ram_;
 		std::array<uint8_t, 64 * 1024> exos_;
-		const uint8_t min_ram_slot_ = 0xff - 3;
+		const uint8_t min_ram_slot_ = 0xff - 16 + 1;
 
 		const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
 		uint8_t *write_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -239,6 +245,26 @@ class ConcreteMachine:
 		// MARK: - TimedMachine
 		void run_for(const Cycles cycles) override {
 			z80_.run_for(cycles);
+		}
+
+		// MARK: - KeyboardMachine
+		Enterprise::KeyboardMapper keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() final {
+			return &keyboard_mapper_;
+		}
+
+		uint8_t active_key_line_ = 0;
+		std::array<uint8_t, 10> key_lines_;
+		void set_key_state(uint16_t key, bool is_pressed) final {
+			if(is_pressed) {
+				key_lines_[key >> 8] &= ~uint8_t(key);
+			} else {
+				key_lines_[key >> 8] |= uint8_t(key);
+			}
+		}
+
+		void clear_all_keys() final {
+			key_lines_.fill(0xff);
 		}
 
 		// MARK: - Chips.
