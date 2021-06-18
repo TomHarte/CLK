@@ -116,6 +116,9 @@ void Nick::run_for(Cycles duration) {
 
 			// Special: set mode as soon as it's known. It'll be needed at the end of HSYNC.
 			if(window < 2 && fetch_spot >= 2) {
+				// Set length of mode line.
+				lines_remaining_ = line_parameters_[0];
+
 				// Set the new interrupt line output.
 				interrupt_line_ = line_parameters_[1] & 0x80;
 
@@ -149,9 +152,6 @@ void Nick::run_for(Cycles duration) {
 			// If all parameters have been loaded, set appropriate fields.
 			if(fetch_spot == 8) {
 				should_reload_line_parameters_ = false;
-
-				// Set length of mode line.
-				lines_remaining_ = line_parameters_[0];
 
 				// Determine the line data pointers.
 				line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
@@ -338,12 +338,14 @@ Cycles Nick::get_next_sequence_point() {
 	// Changing to e.g. Cycles(1) reveals the relevant discrepancy.
 //	return Cycles(1);
 
+	constexpr int load_point = 2*16;
+
 	// Any mode line may cause a change in the interrupt output, so as a first blush
 	// just always report the time until the end of the mode line.
-	if(lines_remaining_ || horizontal_counter_ >= 2) {
-		return Cycles(2 + (912 - horizontal_counter_) + (0xff - lines_remaining_) * 912);
+	if(lines_remaining_ || horizontal_counter_ >= load_point) {
+		return Cycles(load_point + (912 - horizontal_counter_) + (0xff - lines_remaining_) * 912);
 	} else {
-		return Cycles(2 - horizontal_counter_);
+		return Cycles(load_point - horizontal_counter_);
 	}
 }
 

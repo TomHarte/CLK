@@ -50,7 +50,7 @@ class Nick {
 		int horizontal_counter_ = 0;
 		uint16_t line_parameter_pointer_ = 0x0000;
 		uint8_t line_parameters_[16];
-		bool should_reload_line_parameters_ = false;
+		bool should_reload_line_parameters_ = true;
 		uint16_t line_data_pointer_[2];
 
 		// Current mode line parameters.
