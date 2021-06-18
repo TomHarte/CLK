@@ -22,10 +22,20 @@ class Nick {
 		void write(uint16_t address, uint8_t value);
 		uint8_t read(uint16_t address);
 
-		void run_for(HalfCycles);
+		void run_for(Cycles);
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
+
+		Cycles get_next_sequence_point();
+
+		/*!
+			@returns The current state of the interrupt line — @c true for active;
+				@c false for inactive.
+		*/
+		inline bool get_interrupt_line() {
+			return interrupt_line_;
+		}
 
 	private:
 		Outputs::CRT::CRT crt_;
@@ -64,6 +74,7 @@ class Nick {
 		} state_ = State::Sync;
 		int bpp_ = 0;
 		int column_size_ = 0;
+		bool interrupt_line_ = true;
 
 		// An accumulator for border output regions.
 		int border_duration_ = 0;

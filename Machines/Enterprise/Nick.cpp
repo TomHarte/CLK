@@ -82,7 +82,7 @@ uint8_t Nick::read([[maybe_unused]] uint16_t address) {
 	return 0xff;
 }
 
-void Nick::run_for(HalfCycles duration) {
+void Nick::run_for(Cycles duration) {
 	constexpr int line_length = 912;
 
 	int clocks_remaining = duration.as<int>();
@@ -112,8 +112,13 @@ void Nick::run_for(HalfCycles duration) {
 				++fetch_spot;
 			}
 
+			// TODO: when exactly does the interrupt output change? Am I a window too late? Or two too early?
+
 			// Special: set mode as soon as it's known. It'll be needed at the end of HSYNC.
 			if(window < 2 && fetch_spot >= 2) {
+				// Set the new interrupt line output.
+				interrupt_line_ = line_parameters_[1] & 0x80;
+
 				// Determine the margins.
 				left_margin_ = line_parameters_[2] & 0x3f;
 				right_margin_ = line_parameters_[3] & 0x3f;
@@ -324,6 +329,22 @@ void Nick::flush_pixels() {
 	pixel_duration_ = 0;
 	pixel_pointer_ = nullptr;
 	allocated_pointer_ = nullptr;
+}
+
+// MARK: - Sequence points.
+
+Cycles Nick::get_next_sequence_point() {
+	// TODO: the below is incorrect; unit test and correct.
+	// Changing to e.g. Cycles(1) reveals the relevant discrepancy.
+//	return Cycles(1);
+
+	// Any mode line may cause a change in the interrupt output, so as a first blush
+	// just always report the time until the end of the mode line.
+	if(lines_remaining_ || horizontal_counter_ >= 2) {
+		return Cycles(2 + (912 - horizontal_counter_) + (0xff - lines_remaining_) * 912);
+	} else {
+		return Cycles(2 - horizontal_counter_);
+	}
 }
 
 // MARK: - CRT passthroughs.

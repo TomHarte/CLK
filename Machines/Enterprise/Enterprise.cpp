@@ -94,13 +94,26 @@ class ConcreteMachine:
 			page<3>(0x00);
 		}
 
+		int halves = 0;
+
 		// MARK: - Z80::BusHandler.
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
 
 			// TODO: possibly apply an access penalty.
-			nick_ += cycle.length;
+
+
+			halves += cycle.length.as<int>();
+			if(nick_ += cycle.length) {
+				const auto nick = nick_.last_valid();
+				const bool nick_interrupt_line = nick->get_interrupt_line();
+				if(nick_interrupt_line && !previous_nick_interrupt_line_) {
+					printf("Interrupt after %d\n", halves + nick_.last_sequence_point_overrun().as<int>());
+					halves = - nick_.last_sequence_point_overrun().as<int>();
+				}
+				previous_nick_interrupt_line_ = nick_interrupt_line;
+			}
 
 			switch(cycle.operation) {
 				default: break;
@@ -270,6 +283,7 @@ class ConcreteMachine:
 		// MARK: - Chips.
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		JustInTimeActor<Nick, HalfCycles, 444923, 125000> nick_;
+		bool previous_nick_interrupt_line_ = false;
 		// Cf. timing guesses above.
 };
 
