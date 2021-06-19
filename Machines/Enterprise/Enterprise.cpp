@@ -106,7 +106,7 @@ class ConcreteMachine:
 				const auto nick = nick_.last_valid();
 				const bool nick_interrupt_line = nick->get_interrupt_line();
 				if(nick_interrupt_line && !previous_nick_interrupt_line_) {
-					// TODO: apply interrupt.
+					set_interrupt(Interrupt::Nick, nick_.last_sequence_point_overrun());
 				}
 				previous_nick_interrupt_line_ = nick_interrupt_line;
 			}
@@ -127,8 +127,7 @@ class ConcreteMachine:
 						case 0xb3:	*cycle.value = pages_[3];	break;
 
 						case 0xb4:
-							printf("TODO: interrupt enable/reset read\n");
-							*cycle.value = 0xff;
+							*cycle.value = interrupt_mask_ | interrupt_state_;
 						break;
 						case 0xb5:
 							if(active_key_line_ < key_lines_.size()) {
@@ -167,7 +166,9 @@ class ConcreteMachine:
 						break;
 
 						case 0xb4:
-							printf("TODO: interrupt enable/reset write %02x\n", *cycle.value);
+							interrupt_mask_ = *cycle.value & 0x55;
+							interrupt_state_ &= ~*cycle.value;
+							update_interrupts();
 						break;
 						case 0xb5:
 							active_key_line_ = *cycle.value & 0xf;
@@ -274,6 +275,23 @@ class ConcreteMachine:
 
 		void clear_all_keys() final {
 			key_lines_.fill(0xff);
+		}
+
+		// MARK: - Interrupts
+
+		// TODO: include an error.
+
+		enum class Interrupt: uint8_t {
+			Nick = 0x20
+		};
+
+		uint8_t interrupt_mask_ = 0x00, interrupt_state_ = 0x00;
+		void set_interrupt(Interrupt mask, HalfCycles offset = HalfCycles(0)) {
+			interrupt_state_ |= uint8_t(mask);
+			update_interrupts(offset);
+		}
+		void update_interrupts(HalfCycles offset = HalfCycles(0)) {
+			z80_.set_interrupt_line((interrupt_state_ >> 1) & interrupt_mask_, offset);
 		}
 
 		// MARK: - Chips.
