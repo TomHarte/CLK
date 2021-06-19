@@ -208,9 +208,9 @@ class ConcreteMachine:
 
 	private:
 		// MARK: - Memory layout
-		std::array<uint8_t, 256 * 1024> ram_;
+		std::array<uint8_t, 64 * 1024> ram_;
 		std::array<uint8_t, 64 * 1024> exos_;
-		const uint8_t min_ram_slot_ = 0xff - 16 + 1;
+		const uint8_t min_ram_slot_ = uint8_t(0x100 - (ram_.size() / 0x4000));
 
 		const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
 		uint8_t *write_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
