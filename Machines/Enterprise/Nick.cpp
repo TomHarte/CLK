@@ -323,7 +323,7 @@ void Nick::run_for(Cycles duration) {
 				case Mode::Attr:
 					// Reload the attribute address if VRES is set.
 					if(line_parameters_[1] & 0x10) {
-						line_data_pointer_[1] = uint16_t(line_parameters_[6] | (line_parameters_[7] << 8));
+						line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
 					}
 				break;
 			}
@@ -500,8 +500,8 @@ template <int bpp> void Nick::output_attributed(uint16_t *target, int columns) {
 	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
 
 	for(int c = 0; c < columns; c++) {
-		const uint8_t pixels = ram_[line_data_pointer_[0]];
-		const uint8_t attributes = ram_[line_data_pointer_[1]];
+		const uint8_t pixels = ram_[line_data_pointer_[1]];
+		const uint8_t attributes = ram_[line_data_pointer_[0]];
 
 		++line_data_pointer_[0];
 		++line_data_pointer_[1];
