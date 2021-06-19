@@ -81,6 +81,8 @@ class ConcreteMachine:
 			exos_.fill(0xff);
 			memcpy(exos_.data(), exos.data(), std::min(exos_.size(), exos.size()));
 
+			clear_all_keys();
+
 			// Take a reasonable guess at the initial memory configuration:
 			// put EXOS into the first bank since this is a Z80 and therefore
 			// starts from address 0; the third instruction in EXOS is a jump
