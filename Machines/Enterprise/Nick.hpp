@@ -56,6 +56,7 @@ class Nick {
 		// Current mode line parameters.
 		uint8_t lines_remaining_ = 0x00;
 		int left_margin_ = 0, right_margin_ = 0;
+		const uint16_t *alt_ind_palettes[4];
 		enum class Mode {
 			Vsync,
 			Pixel,
@@ -93,6 +94,7 @@ class Nick {
 		// Specific outputters.
 		template <int bpp, bool is_lpixel> void output_pixel(uint16_t *target, int columns);
 		template <int bpp, int index_bits> void output_character(uint16_t *target, int columns);
+		template <int bpp> void output_attributed(uint16_t *target, int columns);
 };
 
 

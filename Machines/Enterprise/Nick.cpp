@@ -133,7 +133,7 @@ void Nick::run_for(Cycles duration) {
 					case Mode::CH128:
 					case Mode::CH256:
 					case Mode::LPixel:	column_size_ = 8 / bpp_;	break;
-//					case Mode::Attr:	column_size_ = 8;			break;
+					case Mode::Attr:	column_size_ = 8;			break;
 				}
 
 				// Act as if proper state transitions had occurred while HSYNC is being output.
@@ -158,6 +158,16 @@ void Nick::run_for(Cycles duration) {
 				for(int c = 0; c < 8; c++) {
 					palette_[c] = mapped_colour(line_parameters_[8 + c]);
 				}
+
+				// Use ALTIND0 and ALTIND1 to pick the alt_ind_palettes.
+				//
+				// ALTIND1 = b6 of params[3], if set => character codes with bit 7 set should use palette indices 2 and 3.
+				// ALTIND0 = b7 of params[3], if set => character codes with bit 6 set should use palette indices 4... instead of 0... .
+				alt_ind_palettes[0] = palette_;
+				alt_ind_palettes[2] = alt_ind_palettes[0] + ((line_parameters_[3] & 0x40) ? 2 : 0);
+
+				alt_ind_palettes[1] = alt_ind_palettes[0] + ((line_parameters_[3] & 0x80) ? 4 : 0);
+				alt_ind_palettes[3] = alt_ind_palettes[2] + ((line_parameters_[3] & 0x80) ? 4 : 0);
 			}
 		}
 
@@ -219,6 +229,7 @@ void Nick::run_for(Cycles duration) {
 #define ch256(x) output_character<x, 8>
 #define ch128(x) output_character<x, 7>
 #define ch64(x) output_character<x, 6>
+#define attr(x) output_attributed<x>
 
 						int columns_remaining = next_event - window;
 						while(columns_remaining) {
@@ -237,6 +248,7 @@ void Nick::run_for(Cycles duration) {
 									case Mode::CH256:	DispatchBpp(ch256);		break;
 									case Mode::CH128:	DispatchBpp(ch128);		break;
 									case Mode::CH64:	DispatchBpp(ch64);		break;
+									case Mode::Attr:	DispatchBpp(attr);		break;
 								}
 
 								pixel_pointer_ += output_duration * column_size_;
@@ -255,6 +267,7 @@ void Nick::run_for(Cycles duration) {
 							}
 
 						}
+#undef attr
 #undef ch64
 #undef ch128
 #undef ch256
@@ -305,6 +318,13 @@ void Nick::run_for(Cycles duration) {
 				case Mode::CH256:
 					line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
 					++line_data_pointer_[1];
+				break;
+
+				case Mode::Attr:
+					// Reload the attribute address if VRES is set.
+					if(line_parameters_[1] & 0x10) {
+						line_data_pointer_[1] = uint16_t(line_parameters_[6] | (line_parameters_[7] << 8));
+					}
 				break;
 			}
 		}
@@ -459,17 +479,45 @@ template <int bpp, int index_bits> void Nick::output_character(uint16_t *target,
 				assert(false);
 			break;
 
-			case 1:
-				target[0] = palette_[(pixels & 0x80) >> 7];
-				target[1] = palette_[(pixels & 0x40) >> 6];
-				target[2] = palette_[(pixels & 0x20) >> 5];
-				target[3] = palette_[(pixels & 0x10) >> 4];
-				target[4] = palette_[(pixels & 0x08) >> 3];
-				target[5] = palette_[(pixels & 0x04) >> 2];
-				target[6] = palette_[(pixels & 0x02) >> 1];
-				target[7] = palette_[(pixels & 0x01) >> 0];
+			case 1: {
+				// This applies ALTIND0 and ALTIND1.
+				const uint16_t *palette = alt_ind_palettes[character >> 6];
+				target[0] = palette[(pixels & 0x80) >> 7];
+				target[1] = palette[(pixels & 0x40) >> 6];
+				target[2] = palette[(pixels & 0x20) >> 5];
+				target[3] = palette[(pixels & 0x10) >> 4];
+				target[4] = palette[(pixels & 0x08) >> 3];
+				target[5] = palette[(pixels & 0x04) >> 2];
+				target[6] = palette[(pixels & 0x02) >> 1];
+				target[7] = palette[(pixels & 0x01) >> 0];
 				target += 8;
-			break;
+			} break;
 		}
+	}
+}
+
+template <int bpp> void Nick::output_attributed(uint16_t *target, int columns) {
+	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
+
+	for(int c = 0; c < columns; c++) {
+		const uint8_t pixels = ram_[line_data_pointer_[0]];
+		const uint8_t attributes = ram_[line_data_pointer_[1]];
+
+		++line_data_pointer_[0];
+		++line_data_pointer_[1];
+
+		const uint16_t palette[2] = {
+			palette_[attributes >> 4], palette_[attributes & 0x0f]
+		};
+
+		target[0] = palette[(pixels & 0x80) >> 7];
+		target[1] = palette[(pixels & 0x40) >> 6];
+		target[2] = palette[(pixels & 0x20) >> 5];
+		target[3] = palette[(pixels & 0x10) >> 4];
+		target[4] = palette[(pixels & 0x08) >> 3];
+		target[5] = palette[(pixels & 0x04) >> 2];
+		target[6] = palette[(pixels & 0x02) >> 1];
+		target[7] = palette[(pixels & 0x01) >> 0];
+		target += 8;
 	}
 }
