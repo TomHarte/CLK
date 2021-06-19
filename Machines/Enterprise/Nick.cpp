@@ -44,7 +44,6 @@ Nick::Nick(const uint8_t *ram) :
 }
 
 void Nick::write(uint16_t address, uint8_t value) {
-	printf("Nick write: %02x -> %d\n", value, address & 3);
 	switch(address & 3) {
 		case 0:
 			// Ignored: everything to do with external colour.
@@ -65,8 +64,6 @@ void Nick::write(uint16_t address, uint8_t value) {
 			// Still a mystery to me: the exact meaning of the top two bits here. For now
 			// just treat a 0 -> 1 transition of the MSB as a forced frame restart.
 			if((value^line_parameter_control_) & value & 0x80) {
-				printf("Should restart frame from %04x\n", line_parameter_base_);
-
 				// For now: just force this to be the final line of this mode block.
 				// I'm unclear whether I should also reset the horizontal counter
 				// (i.e. completely abandon current video phase).
