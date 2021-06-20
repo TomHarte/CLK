@@ -17,7 +17,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c DiskImage descriging an MSX-style disk image:
+	Provides a @c DiskImage describing an MSDOS-style disk image:
 	a sector dump of appropriate proportions.
 */
 class MSXDSK: public MFMSectorDump {
