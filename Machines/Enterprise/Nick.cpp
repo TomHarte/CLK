@@ -336,7 +336,7 @@ void Nick::run_for(Cycles duration) {
 				}
 			}
 
-			// TODO: logic below is very incomplete.
+			// Deal with VRES and other address reloading, dependant upon mode.
 			switch(mode_) {
 				default: break;
 				case Mode::CH64:
@@ -349,6 +349,14 @@ void Nick::run_for(Cycles duration) {
 				case Mode::Attr:
 					// Reload the attribute address if VRES is set.
 					if(line_parameters_[1] & 0x10) {
+						line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
+					}
+				break;
+
+				case Mode::Pixel:
+				case Mode::LPixel:
+					// If VRES is clear, reload the pixel address.
+					if(!(line_parameters_[1] & 0x10)) {
 						line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
 					}
 				break;
