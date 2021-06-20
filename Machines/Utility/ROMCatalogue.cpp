@@ -27,8 +27,15 @@ Request::Request(Name name, bool optional) {
 }
 
 Request Request::append(Node::Type type, const Request &rhs) {
-	// Start with the easiest case: this is already an appropriate
-	// request, and so is the new thing.
+	// If either side is empty, act appropriately.
+	if(node.empty() && !rhs.node.empty()) {
+		return rhs;
+	}
+	if(rhs.node.empty()) {
+		return *this;
+	}
+
+	// Just copy in the RHS child nodes if types match.
 	if(node.type == type && rhs.node.type == type) {
 		Request new_request = *this;
 		new_request.node.children.insert(new_request.node.children.end(), rhs.node.children.begin(), rhs.node.children.end());

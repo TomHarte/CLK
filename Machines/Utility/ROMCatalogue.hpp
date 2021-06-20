@@ -240,6 +240,10 @@ struct Request {
 			bool is_optional = false;
 			std::vector<Node> children;
 
+			bool empty() const {
+				return type == Type::One && name == Name::None;
+			}
+
 			void add_descriptions(std::vector<Description> &) const;
 			bool validate(Map &) const;
 			void visit(
