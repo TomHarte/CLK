@@ -157,6 +157,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
 	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
 	Format("image", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
+	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MSXDSK>, TargetPlatform::Enterprise)		// IMG (Enterprise/MS-DOS style)
 	Format("msa", result.disks, Disk::DiskImageHolder<Storage::Disk::MSA>, TargetPlatform::AtariST)				// MSA
 	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)				// NIB
 	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// O
