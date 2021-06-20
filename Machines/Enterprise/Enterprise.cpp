@@ -46,6 +46,12 @@ namespace Enterprise {
 	=> one cycle = 45440000 / 709379*912 = 45440000 / 646953648 = 2840000 / 40434603 µs
 	=> clock rate of 40434603 / 2840000 Mhz
 
+	And, therefore, the ratio to a 4Mhz Z80 clock is:
+
+		40434603 / (2840000 * 4)
+		= 40434603 / 11360000
+		i.e. roughly 3.55 Nick cycles per Z80 cycle.
+
 	If that's true then the 6-cycle window is around 1.69 Z80 cycles long. Given that the Z80
 	clock in an Enterprise can be stopped in half-cycle increments only, the Z80 can only be
 	guaranteed to have around a 1.19 cycle minimum for its actual access. I'm therefore further
@@ -373,7 +379,7 @@ class ConcreteMachine:
 
 		// MARK: - Chips.
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<Nick, HalfCycles, 40434603, 2840000> nick_; 
+		JustInTimeActor<Nick, HalfCycles, 40434603, 11360000> nick_;
 		bool previous_nick_interrupt_line_ = false;
 		// Cf. timing guesses above.
 };
