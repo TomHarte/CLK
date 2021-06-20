@@ -38,6 +38,9 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 		BIND(F1, F1);	BIND(F2, F2);	BIND(F3, F3);	BIND(F4, F4);
 		BIND(F5, F5);	BIND(F6, F6);	BIND(F7, F7);	BIND(F8, F8);
 
+		BIND(Keypad1, F1);	BIND(Keypad2, F2);	BIND(Keypad3, F3);	BIND(Keypad4, F4);
+		BIND(Keypad5, F5);	BIND(Keypad6, F6);	BIND(Keypad7, F7);	BIND(Keypad8, F8);
+
 		BIND(Q, Q);	BIND(W, W);	BIND(E, E);	BIND(R, R);	BIND(T, T);
 		BIND(Y, Y);	BIND(U, U);	BIND(I, I);	BIND(O, O);	BIND(P, P);
 
