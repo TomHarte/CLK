@@ -70,17 +70,92 @@ class ConcreteMachine:
 			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and Dave elsewhere.
 			set_clock_rate(4'000'000);
 
-			constexpr ROM::Name exos_name = ROM::Name::EnterpriseEXOS;
-			const auto request = ROM::Request(exos_name);
+			ROM::Request request;
+			using Target = Analyser::Static::Enterprise::Target;
+
+			// Pick one or more EXOS ROMs.
+			switch(target.exos_version) {
+				case Target::EXOSVersion::v10:	request = request && ROM::Request(ROM::Name::EnterpriseEXOS10);	break;
+				case Target::EXOSVersion::v20:	request = request && ROM::Request(ROM::Name::EnterpriseEXOS20);	break;
+				case Target::EXOSVersion::v21:	request = request && ROM::Request(ROM::Name::EnterpriseEXOS21);	break;
+				case Target::EXOSVersion::v23:	request = request && ROM::Request(ROM::Name::EnterpriseEXOS23);	break;
+				case Target::EXOSVersion::Any:
+					request =
+						request && (
+							ROM::Request(ROM::Name::EnterpriseEXOS10) || ROM::Request(ROM::Name::EnterpriseEXOS20) ||
+							ROM::Request(ROM::Name::EnterpriseEXOS21) || ROM::Request(ROM::Name::EnterpriseEXOS23)
+						);
+				break;
+
+				default: break;
+			}
+
+			// Similarly pick one or more BASIC ROMs.
+			switch(target.basic_version) {
+				case Target::BASICVersion::v10:
+					request = request && (
+						ROM::Request(ROM::Name::EnterpriseBASIC10) ||
+						(ROM::Request(ROM::Name::EnterpriseBASIC10Part1) && ROM::Request(ROM::Name::EnterpriseBASIC10Part2))
+					);
+				break;
+				case Target::BASICVersion::v11:
+					request = request && (
+						ROM::Request(ROM::Name::EnterpriseBASIC11) ||
+						ROM::Request(ROM::Name::EnterpriseBASIC11Suffixed)
+					);
+				case Target::BASICVersion::v21:
+					request = request && ROM::Request(ROM::Name::EnterpriseBASIC21);
+				break;
+				case Target::BASICVersion::Any:
+					request =
+						request && (
+							ROM::Request(ROM::Name::EnterpriseBASIC10) ||
+							(ROM::Request(ROM::Name::EnterpriseBASIC10Part1) && ROM::Request(ROM::Name::EnterpriseBASIC10Part2)) ||
+							ROM::Request(ROM::Name::EnterpriseBASIC11) ||
+							ROM::Request(ROM::Name::EnterpriseBASIC21)
+						);
+				break;
+
+				default: break;
+			}
+
+			// Get and validate ROMs.
 			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
 
-			const auto &exos = roms.find(exos_name)->second;
+			// Extract the appropriate EXOS ROM.
 			exos_.fill(0xff);
-			memcpy(exos_.data(), exos.data(), std::min(exos_.size(), exos.size()));
+			for(const auto rom_name: { ROM::Name::EnterpriseEXOS10, ROM::Name::EnterpriseEXOS20, ROM::Name::EnterpriseEXOS21, ROM::Name::EnterpriseEXOS23 }) {
+				const auto exos = roms.find(rom_name);
+				if(exos != roms.end()) {
+					memcpy(exos_.data(), exos->second.data(), std::min(exos_.size(), exos->second.size()));
+					break;
+				}
+			}
 
+			// Extract the appropriate BASIC ROM[s] (if any).
+			basic_.fill(0xff);
+			bool has_basic = false;
+			for(const auto rom_name: { ROM::Name::EnterpriseBASIC10, ROM::Name::EnterpriseBASIC11, ROM::Name::EnterpriseBASIC11Suffixed, ROM::Name::EnterpriseBASIC21 }) {
+				const auto basic = roms.find(rom_name);
+				if(basic != roms.end()) {
+					memcpy(basic_.data(), basic->second.data(), std::min(basic_.size(), basic->second.size()));
+					has_basic = true;
+					break;
+				}
+			}
+			if(!has_basic) {
+				const auto basic1 = roms.find(ROM::Name::EnterpriseBASIC10Part1);
+				const auto basic2 = roms.find(ROM::Name::EnterpriseBASIC10Part2);
+				if(basic1 != roms.end() && basic2 != roms.end()) {
+					memcpy(&basic_[0x0000], basic1->second.data(), std::min(size_t(8192), basic1->second.size()));
+					memcpy(&basic_[0x2000], basic2->second.data(), std::min(size_t(8192), basic2->second.size()));
+				}
+			}
+
+			// Seed key state.
 			clear_all_keys();
 
 			// Take a reasonable guess at the initial memory configuration:
@@ -212,6 +287,7 @@ class ConcreteMachine:
 		// MARK: - Memory layout
 		std::array<uint8_t, 64 * 1024> ram_;
 		std::array<uint8_t, 64 * 1024> exos_;
+		std::array<uint8_t, 16 * 1024> basic_;
 		const uint8_t min_ram_slot_ = uint8_t(0x100 - (ram_.size() / 0x4000));
 
 		const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -223,6 +299,11 @@ class ConcreteMachine:
 
 			if(offset < exos_.size() / 0x4000) {
 				page<slot>(&exos_[offset * 0x4000], nullptr);
+				return;
+			}
+
+			if(offset >= 16 && offset < 16 + basic_.size() / 0x4000) {
+				page<slot>(&basic_[(offset - 16) * 0x4000], nullptr);
 				return;
 			}
 
@@ -280,9 +361,6 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Interrupts
-
-		// TODO: include an error.
-
 		enum class Interrupt: uint8_t {
 			Nick = 0x20
 		};

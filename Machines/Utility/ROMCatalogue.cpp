@@ -411,9 +411,51 @@ Description::Description(Name name) {
 			*this = Description(name, "DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620u);
 		break;
 
-		case Name::EnterpriseEXOS: {
-			const std::initializer_list<std::string> filenames = {"exos.bin", "Exos (198x)(Enterprise).bin"};
-			*this = Description(name, "Enterprise", "the Enterprise EXOS ROM", filenames, 32 * 1024, 0x30b26387u);
+		case Name::EnterpriseEXOS10: {
+			const std::initializer_list<std::string> filenames = {"exos10.bin", "Exos (198x)(Enterprise).bin"};
+			*this = Description(name, "Enterprise", "the Enterprise EXOS ROM v1.0", filenames, 32 * 1024, 0x30b26387u);
+		} break;
+		case Name::EnterpriseEXOS20: {
+			const std::initializer_list<std::string> filenames = {"exos20.bin", "Expandible OS v2.0 (1984)(Intelligent Software).bin"};
+			*this = Description(name, "Enterprise", "the Enterprise EXOS ROM v2.0", filenames, 32 * 1024, 0xd421795fu);
+		} break;
+		case Name::EnterpriseEXOS21: {
+			const std::initializer_list<std::string> filenames = {"exos21.bin", "Expandible OS v2.1 (1985)(Intelligent Software).bin"};
+			*this = Description(name, "Enterprise", "the Enterprise EXOS ROM v2.1", filenames, 32 * 1024, 0x982a3b44u);
+		} break;
+		case Name::EnterpriseEXOS23: {
+			const std::initializer_list<std::string> filenames = {"exos23.bin", "Expandible OS v2.3 (1987)(Intelligent Software).bin"};
+			*this = Description(name, "Enterprise", "the Enterprise EXOS ROM v2.1", filenames, 64 * 1024, 0x24838410u);
+		} break;
+
+		case Name::EnterpriseBASIC10: {
+			const std::initializer_list<std::string> filenames = {"basic10.bin"};
+			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v1.0", filenames, 16 * 1024, 0xd62e4fb7u);
+		} break;
+		case Name::EnterpriseBASIC10Part1: {
+			const std::initializer_list<std::string> filenames = {"BASIC 1.0 - EPROM 1-2 (198x)(Enterprise).bin"};
+			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v1.0, Part 1", filenames, 8193, 0x37bf48e1u);
+		} break;
+		case Name::EnterpriseBASIC10Part2: {
+			const std::initializer_list<std::string> filenames = {"BASIC 1.0 - EPROM 2-2 (198x)(Enterprise).bin"};
+			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v1.0, Part 2", filenames, 8193, 0xc5298c79u);
+		} break;
+		case Name::EnterpriseBASIC11: {
+			const std::initializer_list<std::string> filenames = {"basic11.bin"};
+			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v1.1", filenames, 16 * 1024, 0x683cf455u);
+		} break;
+		case Name::EnterpriseBASIC11Suffixed: {
+			const std::initializer_list<std::string> filenames = {"BASIC 1.1 - EPROM 1.1 (198x)(Enterprise).bin"};
+			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v1.1, with trailing byte", filenames, 16385, 0xc96b7602u);
+		} break;
+		case Name::EnterpriseBASIC21: {
+			const std::initializer_list<std::string> filenames = {
+				"basic21.bin",
+				"BASIC Interpreter v2.1 (1985)(Intelligent Software).bin",
+				"BASIC Interpreter v2.1 (1985)(Intelligent Software)[a].bin"
+			};
+			const std::initializer_list<uint32_t> crcs = { 0x55f96251, 0x683cf455 };
+			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v2.1", filenames, 16 * 1024, crcs);
 		} break;
 
 		case Name::Macintosh128k:	*this = Description(name, "Macintosh", "the Macintosh 128k ROM", "mac128k.rom", 64*1024, 0x6d0c8a28u);	break;

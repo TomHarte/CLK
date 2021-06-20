@@ -18,9 +18,21 @@ namespace Static {
 namespace Enterprise {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
-	Target() : Analyser::Static::Target(Machine::Enterprise) {}
+	ReflectableEnum(EXOSVersion, v10, v20, v21, v23, Any);
+	ReflectableEnum(BASICVersion, v10, v11, v21, Any, None);
 
-	// TODO: I assume there'll be relevant fields to add here.
+	EXOSVersion exos_version = EXOSVersion::Any;
+	BASICVersion basic_version = BASICVersion::None;
+
+	Target() : Analyser::Static::Target(Machine::Enterprise) {
+		if(needs_declare()) {
+			AnnounceEnum(EXOSVersion);
+			AnnounceEnum(BASICVersion);
+
+			DeclareField(exos_version);
+			DeclareField(basic_version);
+		}
+	}
 };
 
 }

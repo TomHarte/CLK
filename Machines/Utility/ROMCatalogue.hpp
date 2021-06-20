@@ -72,7 +72,17 @@ enum Name {
 	DiskIIBoot13Sector,
 
 	// Enterprise.
-	EnterpriseEXOS,
+	EnterpriseEXOS10,
+	EnterpriseEXOS20,
+	EnterpriseEXOS21,
+	EnterpriseEXOS23,
+
+	EnterpriseBASIC10,
+	EnterpriseBASIC10Part1,
+	EnterpriseBASIC10Part2,
+	EnterpriseBASIC11,
+	EnterpriseBASIC11Suffixed,
+	EnterpriseBASIC21,
 
 	// Macintosh.
 	Macintosh128k,
