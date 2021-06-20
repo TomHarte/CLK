@@ -284,14 +284,15 @@ void Nick::run_for(Cycles duration) {
 								}
 								columns_remaining -= output_duration;
 							} else {
-								// Advance pixel pointer upwards, so as to be able to supply something
+								// TODO: advance line pointers.
+
+								// Advance pixel pointer, so as to be able to supply something
 								// convincing to the CRT as to the number of samples that would have
 								// been provided, and skip asking for further allocations for now.
 								pixel_pointer_ += columns_remaining * column_size_;
 								pixel_duration_ += columns_remaining;
 								columns_remaining = 0;
 							}
-
 						}
 #undef attr
 #undef ch64

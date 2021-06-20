@@ -89,6 +89,10 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--basic-version=any"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/ColecoVision/Galaxian (1983)(Atari).col&quot;"
             isEnabled = "NO">
          </CommandLineArgument>
