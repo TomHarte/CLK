@@ -159,15 +159,41 @@ void Nick::run_for(Cycles duration) {
 					palette_[c] = mapped_colour(line_parameters_[8 + c]);
 				}
 
-				// Use ALTIND0 and ALTIND1 to pick the alt_ind_palettes.
-				//
-				// ALTIND1 = b6 of params[3], if set => character codes with bit 7 set should use palette indices 2 and 3.
-				// ALTIND0 = b7 of params[3], if set => character codes with bit 6 set should use palette indices 4... instead of 0... .
-				alt_ind_palettes[0] = palette_;
-				alt_ind_palettes[2] = alt_ind_palettes[0] + ((line_parameters_[3] & 0x40) ? 2 : 0);
+				switch(mode_) {
+					default:
+					break;
 
-				alt_ind_palettes[1] = alt_ind_palettes[0] + ((line_parameters_[3] & 0x80) ? 4 : 0);
-				alt_ind_palettes[3] = alt_ind_palettes[2] + ((line_parameters_[3] & 0x80) ? 4 : 0);
+					// NB: LSBALT/MSBALT and ALTIND0/ALTIND1 appear to have opposite effects on palette selection.
+
+					case Mode::Pixel:
+					case Mode::LPixel:
+						// Use MSBALT and LSBALT to pick the alt_ind_palettes.
+						//
+						// LSBALT = b6 of params[2], if set => character codes with bit 6 set should use palette indices 4... instead of 0... .
+						// MSBALT = b7 of params[2], if set => character codes with bit 7 set should use palette indices 2 and 3.
+						two_colour_mask_ = 0xff &~ (((line_parameters_[2]&0x80) >> 7) | ((line_parameters_[2]&0x40) << 1));
+
+						alt_ind_palettes[0] = palette_;
+						alt_ind_palettes[2] = alt_ind_palettes[0] + ((line_parameters_[2] & 0x80) ? 2 : 0);
+
+						alt_ind_palettes[1] = alt_ind_palettes[0] + ((line_parameters_[2] & 0x40) ? 4 : 0);
+						alt_ind_palettes[3] = alt_ind_palettes[2] + ((line_parameters_[2] & 0x40) ? 4 : 0);
+					break;
+
+					case Mode::CH64:
+					case Mode::CH128:
+					case Mode::CH256:
+						// Use ALTIND0 and ALTIND1 to pick the alt_ind_palettes.
+						//
+						// ALTIND1 = b6 of params[3], if set => character codes with bit 7 set should use palette indices 2 and 3.
+						// ALTIND0 = b7 of params[3], if set => character codes with bit 6 set should use palette indices 4... instead of 0... .
+						alt_ind_palettes[0] = palette_;
+						alt_ind_palettes[2] = alt_ind_palettes[0] + ((line_parameters_[3] & 0x40) ? 2 : 0);
+
+						alt_ind_palettes[1] = alt_ind_palettes[0] + ((line_parameters_[3] & 0x80) ? 4 : 0);
+						alt_ind_palettes[3] = alt_ind_palettes[2] + ((line_parameters_[3] & 0x80) ? 4 : 0);
+					break;
+				}
 			}
 		}
 
@@ -382,36 +408,42 @@ template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int
 	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
 
 	for(int c = 0; c < columns; c++) {
-		const uint8_t pixels[2] = { ram_[line_data_pointer_[0]], ram_[(line_data_pointer_[0]+1) & 0xffff] };
+		uint8_t pixels[2] = { ram_[line_data_pointer_[0]], ram_[(line_data_pointer_[0]+1) & 0xffff] };
 		line_data_pointer_[0] += is_lpixel ? 1 : 2;
 
 		switch(bpp) {
 			default:
-			case 1:
-				target[0] = palette_[(pixels[0] & 0x80) >> 7];
-				target[1] = palette_[(pixels[0] & 0x40) >> 6];
-				target[2] = palette_[(pixels[0] & 0x20) >> 5];
-				target[3] = palette_[(pixels[0] & 0x10) >> 4];
-				target[4] = palette_[(pixels[0] & 0x08) >> 3];
-				target[5] = palette_[(pixels[0] & 0x04) >> 2];
-				target[6] = palette_[(pixels[0] & 0x02) >> 1];
-				target[7] = palette_[(pixels[0] & 0x01) >> 0];
+			case 1: {
+				const uint16_t *palette = alt_ind_palettes[((pixels[0] >> 6) & 0x02) | (pixels[0]&1)];
+				pixels[0] &= two_colour_mask_;
+
+				target[0] = palette[(pixels[0] & 0x80) >> 7];
+				target[1] = palette[(pixels[0] & 0x40) >> 6];
+				target[2] = palette[(pixels[0] & 0x20) >> 5];
+				target[3] = palette[(pixels[0] & 0x10) >> 4];
+				target[4] = palette[(pixels[0] & 0x08) >> 3];
+				target[5] = palette[(pixels[0] & 0x04) >> 2];
+				target[6] = palette[(pixels[0] & 0x02) >> 1];
+				target[7] = palette[(pixels[0] & 0x01) >> 0];
 
 				if constexpr (!is_lpixel) {
-					target[8] = palette_[(pixels[1] & 0x80) >> 7];
-					target[9] = palette_[(pixels[1] & 0x40) >> 6];
-					target[10] = palette_[(pixels[1] & 0x20) >> 5];
-					target[11] = palette_[(pixels[1] & 0x10) >> 4];
-					target[12] = palette_[(pixels[1] & 0x08) >> 3];
-					target[13] = palette_[(pixels[1] & 0x04) >> 2];
-					target[14] = palette_[(pixels[1] & 0x02) >> 1];
-					target[15] = palette_[(pixels[1] & 0x01) >> 0];
+					palette = alt_ind_palettes[((pixels[1] >> 6) & 0x02) | (pixels[1]&1)];
+					pixels[1] &= two_colour_mask_;
+
+					target[8] = palette[(pixels[1] & 0x80) >> 7];
+					target[9] = palette[(pixels[1] & 0x40) >> 6];
+					target[10] = palette[(pixels[1] & 0x20) >> 5];
+					target[11] = palette[(pixels[1] & 0x10) >> 4];
+					target[12] = palette[(pixels[1] & 0x08) >> 3];
+					target[13] = palette[(pixels[1] & 0x04) >> 2];
+					target[14] = palette[(pixels[1] & 0x02) >> 1];
+					target[15] = palette[(pixels[1] & 0x01) >> 0];
 
 					target += 8;
 				}
 
 				target += 8;
-			break;
+			} break;
 
 			case 2:
 				target[0] = palette_[((pixels[0] & 0x80) >> 6) | ((pixels[0] & 0x08) >> 3)];
