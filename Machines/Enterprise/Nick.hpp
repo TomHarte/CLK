@@ -77,6 +77,7 @@ class Nick {
 		int bpp_ = 0;
 		int column_size_ = 0;
 		bool interrupt_line_ = true;
+		int line_data_per_column_increments_[2] = {0, 0};
 
 		// An accumulator for border output regions.
 		int border_duration_ = 0;

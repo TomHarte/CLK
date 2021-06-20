@@ -161,6 +161,8 @@ void Nick::run_for(Cycles duration) {
 
 				switch(mode_) {
 					default:
+						assert(false);
+					case Mode::Vsync:
 					break;
 
 					// NB: LSBALT/MSBALT and ALTIND0/ALTIND1 appear to have opposite effects on palette selection.
@@ -178,6 +180,9 @@ void Nick::run_for(Cycles duration) {
 
 						alt_ind_palettes[1] = alt_ind_palettes[0] + ((line_parameters_[2] & 0x40) ? 4 : 0);
 						alt_ind_palettes[3] = alt_ind_palettes[2] + ((line_parameters_[2] & 0x40) ? 4 : 0);
+
+						line_data_per_column_increments_[0] = 1 + (mode_ == Mode::Pixel);
+						line_data_per_column_increments_[1] = 0;
 					break;
 
 					case Mode::CH64:
@@ -192,6 +197,14 @@ void Nick::run_for(Cycles duration) {
 
 						alt_ind_palettes[1] = alt_ind_palettes[0] + ((line_parameters_[3] & 0x80) ? 4 : 0);
 						alt_ind_palettes[3] = alt_ind_palettes[2] + ((line_parameters_[3] & 0x80) ? 4 : 0);
+
+						line_data_per_column_increments_[0] = 1;
+						line_data_per_column_increments_[1] = 0;
+					break;
+
+					case Mode::Attr:
+						line_data_per_column_increments_[0] = 1;
+						line_data_per_column_increments_[1] = 1;
 					break;
 				}
 			}
@@ -284,7 +297,10 @@ void Nick::run_for(Cycles duration) {
 								}
 								columns_remaining -= output_duration;
 							} else {
-								// TODO: advance line pointers.
+								// Ensure line data pointers are advanced as if there hadn't been back pressure on
+								// pixel rendering.
+								line_data_pointer_[0] += columns_remaining * line_data_per_column_increments_[0];
+								line_data_pointer_[1] += columns_remaining * line_data_per_column_increments_[1];
 
 								// Advance pixel pointer, so as to be able to supply something
 								// convincing to the CRT as to the number of samples that would have
@@ -518,6 +534,7 @@ template <int bpp, int index_bits> void Nick::output_character(uint16_t *target,
 		switch(bpp) {
 			default:
 				assert(false);
+				// TODO: other BPPs are supported for character modes, I think.
 			break;
 
 			case 1: {
