@@ -40,14 +40,11 @@ namespace Enterprise {
 	I shall _guess_ that the Enterprise stretches each line to 284 colour cycles rather than
 	reducing it to 283.
 
-	Therefore 912 cycles occurs in 284/283.7516 * 64 µs, which would appear to give an ideal
-	clock rate of around:
+	Therefore 912 cycles occurs in 284/283.7516 * 64 µs.
 
-		14,237,536.27 Hz.
-
-	Given that there's always some leeway in a receiver, I'm modelling that as 14,237,536 cycles,
-	which means that Nick runs 444923/125000 times as fast as the Z80. Which is around 3.56 times
-	as fast.
+	So one line = 181760000 / 2837516 µs = 45440000 / 709379 µs
+	=> one cycle = 45440000 / 709379*912 = 45440000 / 646953648 = 2840000 / 40434603 µs
+	=> clock rate of 40434603 / 2840000 Mhz
 
 	If that's true then the 6-cycle window is around 1.69 Z80 cycles long. Given that the Z80
 	clock in an Enterprise can be stopped in half-cycle increments only, the Z80 can only be
@@ -376,7 +373,7 @@ class ConcreteMachine:
 
 		// MARK: - Chips.
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<Nick, HalfCycles, 444923, 125000> nick_;
+		JustInTimeActor<Nick, HalfCycles, 40434603, 2840000> nick_; 
 		bool previous_nick_interrupt_line_ = false;
 		// Cf. timing guesses above.
 };
