@@ -20,17 +20,21 @@ namespace Enterprise {
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(EXOSVersion, v10, v20, v21, v23, Any);
 	ReflectableEnum(BASICVersion, v10, v11, v21, Any, None);
+	ReflectableEnum(DOS, EPDOS, EXDOS, None);
 
 	EXOSVersion exos_version = EXOSVersion::Any;
 	BASICVersion basic_version = BASICVersion::None;
+	DOS dos = DOS::None;
 
 	Target() : Analyser::Static::Target(Machine::Enterprise) {
 		if(needs_declare()) {
 			AnnounceEnum(EXOSVersion);
 			AnnounceEnum(BASICVersion);
+			AnnounceEnum(DOS);
 
 			DeclareField(exos_version);
 			DeclareField(basic_version);
+			DeclareField(dos);
 		}
 	}
 };

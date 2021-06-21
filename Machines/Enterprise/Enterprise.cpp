@@ -60,7 +60,7 @@ namespace Enterprise {
 
 */
 
-class ConcreteMachine:
+template <bool has_disk_controller> class ConcreteMachine:
 	public CPU::Z80::BusHandler,
 	public Machine,
 	public MachineTypes::MappedKeyboardMachine,
@@ -122,6 +122,13 @@ class ConcreteMachine:
 				default: break;
 			}
 
+			// Possibly add in a DOS.
+			switch(target.dos) {
+				case Target::DOS::EPDOS:	request = request && ROM::Request(ROM::Name::EnterpriseEPDOS);	break;
+				case Target::DOS::EXDOS:	request = request && ROM::Request(ROM::Name::EnterpriseEXDOS);	break;
+				default: break;
+			}
+
 			// Get and validate ROMs.
 			auto roms = rom_fetcher(request);
 			if(!request.validate(roms)) {
@@ -155,6 +162,16 @@ class ConcreteMachine:
 				if(basic1 != roms.end() && basic2 != roms.end()) {
 					memcpy(&basic_[0x0000], basic1->second.data(), std::min(size_t(8192), basic1->second.size()));
 					memcpy(&basic_[0x2000], basic2->second.data(), std::min(size_t(8192), basic2->second.size()));
+				}
+			}
+
+			// Extract the appropriate DOS ROM.
+			dos_.fill(0xff);
+			for(const auto rom_name: { ROM::Name::EnterpriseEPDOS, ROM::Name::EnterpriseEXDOS }) {
+				const auto dos = roms.find(rom_name);
+				if(dos != roms.end()) {
+					memcpy(dos_.data(), dos->second.data(), std::min(dos_.size(), dos->second.size()));
+					break;
 				}
 			}
 
@@ -291,6 +308,7 @@ class ConcreteMachine:
 		std::array<uint8_t, 64 * 1024> ram_;
 		std::array<uint8_t, 64 * 1024> exos_;
 		std::array<uint8_t, 16 * 1024> basic_;
+		std::array<uint8_t, 32 * 1024> dos_;
 		const uint8_t min_ram_slot_ = uint8_t(0x100 - (ram_.size() / 0x4000));
 
 		const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -307,6 +325,11 @@ class ConcreteMachine:
 
 			if(offset >= 16 && offset < 16 + basic_.size() / 0x4000) {
 				page<slot>(&basic_[(offset - 16) * 0x4000], nullptr);
+				return;
+			}
+
+			if(offset >= 32 && offset < 32 + dos_.size() / 0x4000) {
+				page<slot>(&dos_[(offset - 32) * 0x4000], nullptr);
 				return;
 			}
 
@@ -392,7 +415,10 @@ Machine *Machine::Enterprise(const Analyser::Static::Target *target, const ROMMa
 	using Target = Analyser::Static::Enterprise::Target;
 	const Target *const enterprise_target = dynamic_cast<const Target *>(target);
 
-	return new Enterprise::ConcreteMachine(*enterprise_target, rom_fetcher);
+	if(enterprise_target->dos != Target::DOS::None)
+		return new Enterprise::ConcreteMachine<false>(*enterprise_target, rom_fetcher);
+	else
+		return new Enterprise::ConcreteMachine<true>(*enterprise_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

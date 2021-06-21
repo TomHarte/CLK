@@ -458,6 +458,15 @@ Description::Description(Name name) {
 			*this = Description(name, "Enterprise", "the Enterprise BASIC ROM v2.1", filenames, 16 * 1024, crcs);
 		} break;
 
+		case Name::EnterpriseEPDOS: {
+			const std::initializer_list<std::string> filenames = {"epdos.bin", "EPDOS v1.7 (19xx)(Haluska, Laszlo).bin"};
+			*this = Description(name, "Enterprise", "the Enterprise EPDOS ROM", filenames, 32 * 1024, 0x201319ebu);
+		} break;
+		case Name::EnterpriseEXDOS: {
+			const std::initializer_list<std::string> filenames = {"exdos.bin", "EX-DOS EPROM (198x)(Enterprise).bin"};
+			*this = Description(name, "Enterprise", "the Enterprise EXOS ROM", filenames, 16 * 1024, 0xe6daa0e9u);
+		} break;
+
 		case Name::Macintosh128k:	*this = Description(name, "Macintosh", "the Macintosh 128k ROM", "mac128k.rom", 64*1024, 0x6d0c8a28u);	break;
 		case Name::Macintosh512k:	*this = Description(name, "Macintosh", "the Macintosh 512k ROM", "mac512k.rom", 64*1024, 0xcf759e0d);	break;
 		case Name::MacintoshPlus: {

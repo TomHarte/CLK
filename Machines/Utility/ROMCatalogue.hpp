@@ -84,6 +84,9 @@ enum Name {
 	EnterpriseBASIC11Suffixed,
 	EnterpriseBASIC21,
 
+	EnterpriseEPDOS,
+	EnterpriseEXDOS,
+
 	// Macintosh.
 	Macintosh128k,
 	Macintosh512k,
