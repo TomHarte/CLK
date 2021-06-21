@@ -24,7 +24,7 @@ class EXDos final : public WD::WD1770 {
 		uint8_t get_control_register();
 
 	private:
-		uint8_t last_control_ = 0;
+		bool disk_did_change_ = false;
 
 		void set_motor_on(bool on) override;
 };

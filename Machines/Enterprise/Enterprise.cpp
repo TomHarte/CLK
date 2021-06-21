@@ -287,7 +287,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 						case 0xa4:	case 0xa5:	case 0xa6:	case 0xa7:
 						case 0xa8:	case 0xa9:	case 0xaa:	case 0xab:
 						case 0xac:	case 0xad:	case 0xae:	case 0xaf:
-							printf("TODO: audio adjust %04x <- %02x\n", address, *cycle.value);
+//							printf("TODO: audio adjust %04x <- %02x\n", address, *cycle.value);
 						break;
 
 						case 0xb4:
