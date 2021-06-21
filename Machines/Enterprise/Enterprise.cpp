@@ -10,6 +10,7 @@
 
 #include "Keyboard.hpp"
 #include "Nick.hpp"
+#include "EXDos.hpp"
 
 #include "../MachineTypes.hpp"
 
@@ -208,6 +209,11 @@ template <bool has_disk_controller> class ConcreteMachine:
 				previous_nick_interrupt_line_ = nick_interrupt_line;
 			}
 
+			// The WD/etc runs at a nominal 8Mhz.
+			if constexpr (has_disk_controller) {
+				exdos_.run_for(Cycles(cycle.length.as_integral()));
+			}
+
 			switch(cycle.operation) {
 				default: break;
 
@@ -216,6 +222,15 @@ template <bool has_disk_controller> class ConcreteMachine:
 						default:
 							printf("Unhandled input: %04x\n", address);
 							assert(false);
+						break;
+
+						case 0x10:	case 0x11:	case 0x12:	case 0x13:
+						case 0x14:	case 0x15:	case 0x16:	case 0x17:
+							*cycle.value = exdos_.read(address);
+						break;
+						case 0x18:	case 0x19:	case 0x1a:	case 0x1b:
+						case 0x1c:	case 0x1d:	case 0x1e:	case 0x1f:
+							*cycle.value = exdos_.get_control_register();
 						break;
 
 						case 0xb0:	*cycle.value = pages_[0];	break;
@@ -241,6 +256,15 @@ template <bool has_disk_controller> class ConcreteMachine:
 						default:
 							printf("Unhandled output: %04x\n", address);
 							assert(false);
+						break;
+
+						case 0x10:	case 0x11:	case 0x12:	case 0x13:
+						case 0x14:	case 0x15:	case 0x16:	case 0x17:
+							exdos_.write(address, *cycle.value);
+						break;
+						case 0x18:	case 0x19:	case 0x1a:	case 0x1b:
+						case 0x1c:	case 0x1d:	case 0x1e:	case 0x1f:
+							 exdos_.set_control_register(*cycle.value);
 						break;
 
 						case 0x80:	case 0x81:	case 0x82:	case 0x83:
@@ -405,6 +429,9 @@ template <bool has_disk_controller> class ConcreteMachine:
 		JustInTimeActor<Nick, HalfCycles, 40434603, 11360000> nick_;
 		bool previous_nick_interrupt_line_ = false;
 		// Cf. timing guesses above.
+
+		// MARK: - EXDos card.
+		EXDos exdos_;
 };
 
 }
