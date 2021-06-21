@@ -26,6 +26,8 @@
 		4B051CB0267C1CA200CA44E8 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CAE267C1CA200CA44E8 /* Keyboard.cpp */; };
 		4B051CB1267C1CA200CA44E8 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CAE267C1CA200CA44E8 /* Keyboard.cpp */; };
 		4B051CB3267D3FF800CA44E8 /* EnterpriseNickTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CB2267D3FF800CA44E8 /* EnterpriseNickTests.mm */; };
+		4B051CB62680158600CA44E8 /* EXDos.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CB42680158600CA44E8 /* EXDos.cpp */; };
+		4B051CB72680158600CA44E8 /* EXDos.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CB42680158600CA44E8 /* EXDos.cpp */; };
 		4B05401E219D1618001BF69C /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
 		4B05401F219D1618001BF69C /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
 		4B055A7A1FAE78A00060FFFF /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055A771FAE78210060FFFF /* SDL2.framework */; };
@@ -1047,6 +1049,8 @@
 		4B051CAE267C1CA200CA44E8 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B051CAF267C1CA200CA44E8 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4B051CB2267D3FF800CA44E8 /* EnterpriseNickTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EnterpriseNickTests.mm; sourceTree = "<group>"; };
+		4B051CB42680158600CA44E8 /* EXDos.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = EXDos.cpp; sourceTree = "<group>"; };
+		4B051CB52680158600CA44E8 /* EXDos.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EXDos.hpp; sourceTree = "<group>"; };
 		4B05401D219D1618001BF69C /* ScanTarget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScanTarget.cpp; sourceTree = "<group>"; };
 		4B055A6A1FAE763F0060FFFF /* Clock Signal Kiosk */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Clock Signal Kiosk"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B055A771FAE78210060FFFF /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ../../../../Library/Frameworks/SDL2.framework; sourceTree = SOURCE_ROOT; };
@@ -2113,9 +2117,11 @@
 			isa = PBXGroup;
 			children = (
 				4B051CA12676F52200CA44E8 /* Enterprise.cpp */,
+				4B051CB42680158600CA44E8 /* EXDos.cpp */,
 				4B051CAE267C1CA200CA44E8 /* Keyboard.cpp */,
 				4B051CAA26783E2000CA44E8 /* Nick.cpp */,
 				4B051CA02676F52200CA44E8 /* Enterprise.hpp */,
+				4B051CB52680158600CA44E8 /* EXDos.hpp */,
 				4B051CAF267C1CA200CA44E8 /* Keyboard.hpp */,
 				4B051CAB26783E2000CA44E8 /* Nick.hpp */,
 			);
@@ -5295,6 +5301,7 @@
 				4BC131712346DE5000E4FF3D /* StaticAnalyser.cpp in Sources */,
 				4B055ACA1FAE9AFB0060FFFF /* Vic20.cpp in Sources */,
 				4BE21200253FC80900435408 /* StaticAnalyser.cpp in Sources */,
+				4B051CB72680158600CA44E8 /* EXDos.cpp in Sources */,
 				4B8318B222D3E53C006DB630 /* Video.cpp in Sources */,
 				4B055ABC1FAE86170060FFFF /* ZX8081.cpp in Sources */,
 				4B055AC91FAE9AFB0060FFFF /* Keyboard.cpp in Sources */,
@@ -5601,6 +5608,7 @@
 				4BFDD78C1F7F2DB4008579B9 /* ImplicitSectors.cpp in Sources */,
 				4B894526201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */,
+				4B051CB62680158600CA44E8 /* EXDos.cpp in Sources */,
 				4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */,
 				4B6ED2F0208E2F8A0047B343 /* WOZ.cpp in Sources */,
 				4B15A9FC208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,

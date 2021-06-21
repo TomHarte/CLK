@@ -65,6 +65,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 	public CPU::Z80::BusHandler,
 	public Machine,
 	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine {
 	public:
@@ -190,6 +191,9 @@ template <bool has_disk_controller> class ConcreteMachine:
 			page<1>(0x00);
 			page<2>(0x00);
 			page<3>(0x00);
+
+			// Pass on any media.
+			insert_media(target.media);
 		}
 
 		// MARK: - Z80::BusHandler.
@@ -410,6 +414,17 @@ template <bool has_disk_controller> class ConcreteMachine:
 			key_lines_.fill(0xff);
 		}
 
+		// MARK: - MediaTarget
+		bool insert_media(const Analyser::Static::Media &media) final {
+			if constexpr (has_disk_controller) {
+				if(!media.disks.empty()) {
+					exdos_.set_disk(media.disks.front(), 0);
+				}
+			}
+
+			return true;
+		}
+
 		// MARK: - Interrupts
 		enum class Interrupt: uint8_t {
 			Nick = 0x20
@@ -442,7 +457,7 @@ Machine *Machine::Enterprise(const Analyser::Static::Target *target, const ROMMa
 	using Target = Analyser::Static::Enterprise::Target;
 	const Target *const enterprise_target = dynamic_cast<const Target *>(target);
 
-	if(enterprise_target->dos != Target::DOS::None)
+	if(enterprise_target->dos == Target::DOS::None)
 		return new Enterprise::ConcreteMachine<false>(*enterprise_target, rom_fetcher);
 	else
 		return new Enterprise::ConcreteMachine<true>(*enterprise_target, rom_fetcher);
