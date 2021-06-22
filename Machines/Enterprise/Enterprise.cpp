@@ -8,9 +8,10 @@
 
 #include "Enterprise.hpp"
 
+#include "Dave.hpp"
+#include "EXDos.hpp"
 #include "Keyboard.hpp"
 #include "Nick.hpp"
-#include "EXDos.hpp"
 
 #include "../MachineTypes.hpp"
 
@@ -253,6 +254,10 @@ template <bool has_disk_controller> class ConcreteMachine:
 								*cycle.value = 0xff;
 							}
 						break;
+						case 0xb6:
+							// TODO: joystick input.
+							*cycle.value = 0xff;
+						break;
 					}
 				break;
 
@@ -288,7 +293,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 						case 0xa4:	case 0xa5:	case 0xa6:	case 0xa7:
 						case 0xa8:	case 0xa9:	case 0xaa:	case 0xab:
 						case 0xac:	case 0xad:	case 0xae:	case 0xaf:
-//							printf("TODO: audio adjust %04x <- %02x\n", address, *cycle.value);
+							dave_.write(address, *cycle.value);
 						break;
 
 						case 0xb4:
@@ -445,6 +450,8 @@ template <bool has_disk_controller> class ConcreteMachine:
 		JustInTimeActor<Nick, HalfCycles, 40434603, 11360000> nick_;
 		bool previous_nick_interrupt_line_ = false;
 		// Cf. timing guesses above.
+
+		Dave dave_;
 
 		// MARK: - EXDos card.
 		EXDos exdos_;
