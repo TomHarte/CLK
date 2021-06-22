@@ -323,7 +323,7 @@
 		4B778F0023A5EB990000D260 /* G64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518931F75FD1B00926311 /* G64.cpp */; };
 		4B778F0123A5EBA00000D260 /* MacintoshIMG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4BFAE22A42F290069048D /* MacintoshIMG.cpp */; };
 		4B778F0223A5EBA40000D260 /* MFMSectorDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */; };
-		4B778F0323A5EBB00000D260 /* MSXDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4B2002C4BF000708CC /* MSXDSK.cpp */; };
+		4B778F0323A5EBB00000D260 /* FAT12.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4B2002C4BF000708CC /* FAT12.cpp */; };
 		4B778F0423A5EBB00000D260 /* OricMFMDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518971F75FD1B00926311 /* OricMFMDSK.cpp */; };
 		4B778F0523A5EBB00000D260 /* ST.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE0A3EC237BB170002AB46F /* ST.cpp */; };
 		4B778F0623A5EC150000D260 /* CAS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04E81FC9E5DA00F43484 /* CAS.cpp */; };
@@ -961,8 +961,8 @@
 		4BE9A6B11EDE293000CBCB47 /* zexdoc.com in Resources */ = {isa = PBXBuildFile; fileRef = 4BE9A6B01EDE293000CBCB47 /* zexdoc.com */; };
 		4BEA525E1DF33323007E74F2 /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEA525D1DF33323007E74F2 /* Tape.cpp */; };
 		4BEA52631DF339D7007E74F2 /* SoundGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEA52611DF339D7007E74F2 /* SoundGenerator.cpp */; };
-		4BEBFB4D2002C4BF000708CC /* MSXDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4B2002C4BF000708CC /* MSXDSK.cpp */; };
-		4BEBFB4E2002C4BF000708CC /* MSXDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4B2002C4BF000708CC /* MSXDSK.cpp */; };
+		4BEBFB4D2002C4BF000708CC /* FAT12.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4B2002C4BF000708CC /* FAT12.cpp */; };
+		4BEBFB4E2002C4BF000708CC /* FAT12.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4B2002C4BF000708CC /* FAT12.cpp */; };
 		4BEBFB512002DB30000708CC /* DiskROM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4F2002DB30000708CC /* DiskROM.cpp */; };
 		4BEBFB522002DB30000708CC /* DiskROM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEBFB4F2002DB30000708CC /* DiskROM.cpp */; };
 		4BEDA3BA25B25563000C2DBD /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDA3B425B25563000C2DBD /* Decoder.cpp */; };
@@ -2021,8 +2021,8 @@
 		4BEA52601DF3343A007E74F2 /* Interrupts.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Interrupts.hpp; sourceTree = "<group>"; };
 		4BEA52611DF339D7007E74F2 /* SoundGenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SoundGenerator.cpp; sourceTree = "<group>"; };
 		4BEA52621DF339D7007E74F2 /* SoundGenerator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SoundGenerator.hpp; sourceTree = "<group>"; };
-		4BEBFB4B2002C4BF000708CC /* MSXDSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MSXDSK.cpp; sourceTree = "<group>"; };
-		4BEBFB4C2002C4BF000708CC /* MSXDSK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MSXDSK.hpp; sourceTree = "<group>"; };
+		4BEBFB4B2002C4BF000708CC /* FAT12.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FAT12.cpp; sourceTree = "<group>"; };
+		4BEBFB4C2002C4BF000708CC /* FAT12.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FAT12.hpp; sourceTree = "<group>"; };
 		4BEBFB4F2002DB30000708CC /* DiskROM.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DiskROM.cpp; sourceTree = "<group>"; };
 		4BEBFB502002DB30000708CC /* DiskROM.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DiskROM.hpp; sourceTree = "<group>"; };
 		4BEDA3B425B25563000C2DBD /* Decoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Decoder.cpp; sourceTree = "<group>"; };
@@ -2713,7 +2713,7 @@
 				4BB4BFAE22A42F290069048D /* MacintoshIMG.cpp */,
 				4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */,
 				4BC131782346DF2B00E4FF3D /* MSA.cpp */,
-				4BEBFB4B2002C4BF000708CC /* MSXDSK.cpp */,
+				4BEBFB4B2002C4BF000708CC /* FAT12.cpp */,
 				4B0F94FC208C1A1600FE41D9 /* NIB.cpp */,
 				4B4518971F75FD1B00926311 /* OricMFMDSK.cpp */,
 				4B4518991F75FD1B00926311 /* SSD.cpp */,
@@ -2730,7 +2730,7 @@
 				4BB4BFAF22A42F290069048D /* MacintoshIMG.hpp */,
 				4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */,
 				4BC131792346DF2B00E4FF3D /* MSA.hpp */,
-				4BEBFB4C2002C4BF000708CC /* MSXDSK.hpp */,
+				4BEBFB4C2002C4BF000708CC /* FAT12.hpp */,
 				4B0F94FD208C1A1600FE41D9 /* NIB.hpp */,
 				4B4518981F75FD1B00926311 /* OricMFMDSK.hpp */,
 				4B45189A1F75FD1B00926311 /* SSD.hpp */,
@@ -5283,7 +5283,7 @@
 				4BB4BFBA22A4372F0069048D /* StaticAnalyser.cpp in Sources */,
 				4B055AA21FAE85DA0060FFFF /* SSD.cpp in Sources */,
 				4B2E86E325DC95150024F1E9 /* Joystick.cpp in Sources */,
-				4BEBFB4E2002C4BF000708CC /* MSXDSK.cpp in Sources */,
+				4BEBFB4E2002C4BF000708CC /* FAT12.cpp in Sources */,
 				4B055ADD1FAE9B460060FFFF /* i8272.cpp in Sources */,
 				4B055A9C1FAE85DA0060FFFF /* CPCDSK.cpp in Sources */,
 				4B2BF19223DCC6A800C3AD60 /* STX.cpp in Sources */,
@@ -5597,7 +5597,7 @@
 				4B894536201967B4007DE474 /* Z80.cpp in Sources */,
 				4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */,
 				4BC1317A2346DF2B00E4FF3D /* MSA.cpp in Sources */,
-				4BEBFB4D2002C4BF000708CC /* MSXDSK.cpp in Sources */,
+				4BEBFB4D2002C4BF000708CC /* FAT12.cpp in Sources */,
 				4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */,
 				4B83348A1F5DB94B0097E338 /* IRQDelegatePortHandler.cpp in Sources */,
 				4B8DD3862634D37E00B3C866 /* SNA.cpp in Sources */,
@@ -5745,7 +5745,7 @@
 				4B3BA0CF1D318B44005DD7A7 /* MOS6522Bridge.mm in Sources */,
 				4B778F6023A5F3460000D260 /* Disk.cpp in Sources */,
 				4B778F5C23A5F3070000D260 /* MSX.cpp in Sources */,
-				4B778F0323A5EBB00000D260 /* MSXDSK.cpp in Sources */,
+				4B778F0323A5EBB00000D260 /* FAT12.cpp in Sources */,
 				4B778F4023A5F1910000D260 /* z8530.cpp in Sources */,
 				4B778EFD23A5EB8E0000D260 /* AppleDSK.cpp in Sources */,
 				4B778EFB23A5EB7E0000D260 /* HFE.cpp in Sources */,

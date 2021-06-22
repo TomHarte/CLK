@@ -1,5 +1,5 @@
 //
-//  MSXDSK.hpp
+//  FAT12.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 07/01/2018.
@@ -17,12 +17,12 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c DiskImage describing an MSDOS-style disk image:
+	Provides a @c DiskImage holding an MSDOS-style FAT12 disk image:
 	a sector dump of appropriate proportions.
 */
-class MSXDSK: public MFMSectorDump {
+class FAT12: public MFMSectorDump {
 	public:
-		MSXDSK(const std::string &file_name);
+		FAT12(const std::string &file_name);
 		HeadPosition get_maximum_head_position() final;
 		int get_head_count() final;
 
@@ -31,6 +31,8 @@ class MSXDSK: public MFMSectorDump {
 
 		int head_count_;
 		int track_count_;
+		int sector_count_;
+		int sector_size_;
 };
 
 }
