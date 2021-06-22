@@ -9,7 +9,7 @@
 #ifndef CachingExecutor_hpp
 #define CachingExecutor_hpp
 
-#include "Sizes.hpp"
+#include "../Numeric/Sizes.hpp"
 
 #include <array>
 #include <cstdint>
