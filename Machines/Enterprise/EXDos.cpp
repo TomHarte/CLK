@@ -37,7 +37,7 @@ void EXDos::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
 //		b0 drive ready
 
 void EXDos::set_control_register(uint8_t control) {
-	printf("Set control: %02x\n", control);
+//	printf("Set control: %02x\n", control);
 
 	if(control & 0x40) disk_did_change_ = false;
 	set_is_double_density(!(control & 0x20));
@@ -61,7 +61,7 @@ uint8_t EXDos::get_control_register() {
 		(get_interrupt_request_line() ? 0x02 : 0x00) |
 		(get_drive().get_is_ready() ? 0x01 : 0x00);
 
-	printf("Get status: %02x\n", status);
+//	printf("Get status: %02x\n", status);
 	return status;
 }
 

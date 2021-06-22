@@ -225,7 +225,8 @@ template <bool has_disk_controller> class ConcreteMachine:
 					switch(address & 0xff) {
 						default:
 							printf("Unhandled input: %04x\n", address);
-							assert(false);
+//							assert(false);
+							*cycle.value = 0xff;
 						break;
 
 						case 0x10:	case 0x11:	case 0x12:	case 0x13:
@@ -259,7 +260,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 					switch(address & 0xff) {
 						default:
 							printf("Unhandled output: %04x\n", address);
-							assert(false);
+//							assert(false);
 						break;
 
 						case 0x10:	case 0x11:	case 0x12:	case 0x13:
@@ -333,7 +334,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 
 	private:
 		// MARK: - Memory layout
-		std::array<uint8_t, 64 * 1024> ram_;
+		std::array<uint8_t, 128 * 1024> ram_;
 		std::array<uint8_t, 64 * 1024> exos_;
 		std::array<uint8_t, 16 * 1024> basic_;
 		std::array<uint8_t, 32 * 1024> dos_;
