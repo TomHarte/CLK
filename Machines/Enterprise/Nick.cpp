@@ -550,6 +550,15 @@ template <int bpp, int index_bits> void Nick::output_character(uint16_t *target,
 				target[7] = palette[(pixels & 0x01) >> 0];
 				target += 8;
 			} break;
+
+			case 2:
+				target[0] = palette_[((pixels & 0x80) >> 6) | ((pixels & 0x08) >> 3)];
+				target[1] = palette_[((pixels & 0x40) >> 5) | ((pixels & 0x04) >> 2)];
+				target[2] = palette_[((pixels & 0x20) >> 4) | ((pixels & 0x02) >> 1)];
+				target[3] = palette_[((pixels & 0x10) >> 3) | ((pixels & 0x01) >> 0)];
+
+				target += 4;
+			break;
 		}
 	}
 }
