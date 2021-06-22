@@ -49,13 +49,7 @@ void EXDos::set_control_register(uint8_t control) {
 	}
 
 	// Select drive.
-	// TODO: should potentially be drives, plural.
-	set_drive(0);
-	for(int c = 1; c < 4; c++) {
-		if(control & (1 << c)) {
-			set_drive(c);
-		}
-	}
+	set_drive(control & 0xf);
 }
 
 uint8_t EXDos::get_control_register() {
