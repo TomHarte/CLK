@@ -69,8 +69,21 @@ template <bool has_disk_controller> class ConcreteMachine:
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine {
+	private:
+		constexpr uint8_t min_ram_slot(const Analyser::Static::Enterprise::Target &target) {
+			size_t ram_size = 128*1024;
+			switch(target.model) {
+				case Analyser::Static::Enterprise::Target::Model::Enterprise64:		ram_size = 64*1024;		break;
+				case Analyser::Static::Enterprise::Target::Model::Enterprise128:	ram_size = 128*1024;	break;
+				case Analyser::Static::Enterprise::Target::Model::Enterprise256:	ram_size = 256*1024;	break;
+			}
+
+			return uint8_t(0x100 - ram_size / 0x4000);
+		}
+
 	public:
 		ConcreteMachine([[maybe_unused]] const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+			min_ram_slot_(min_ram_slot(target)),
 			z80_(*this),
 			nick_(ram_.end() - 65536) {
 			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and Dave elsewhere.
@@ -339,11 +352,11 @@ template <bool has_disk_controller> class ConcreteMachine:
 
 	private:
 		// MARK: - Memory layout
-		std::array<uint8_t, 128 * 1024> ram_;
+		std::array<uint8_t, 256 * 1024> ram_;
 		std::array<uint8_t, 64 * 1024> exos_;
 		std::array<uint8_t, 16 * 1024> basic_;
 		std::array<uint8_t, 32 * 1024> dos_;
-		const uint8_t min_ram_slot_ = uint8_t(0x100 - (ram_.size() / 0x4000));
+		const uint8_t min_ram_slot_;
 
 		const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
 		uint8_t *write_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
