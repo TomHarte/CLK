@@ -78,7 +78,7 @@ template <typename IntType = uint64_t, IntType polynomial = LSFRPolynomial<IntTy
 		IntType value_ = 0;
 };
 
-template <uint64_t polynomial> class LFSRv: public LFSR<MinIntTypeValue<polynomial>, polynomial> {};
+template <uint64_t polynomial> class LFSRv: public LFSR<typename MinIntTypeValue<polynomial>::type, polynomial> {};
 
 }
 
