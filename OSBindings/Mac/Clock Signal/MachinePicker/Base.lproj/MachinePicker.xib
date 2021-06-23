@@ -353,13 +353,12 @@ Gw
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="syE-e7-TjU">
                                             <rect key="frame" x="57" y="89" width="83" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="qoS-KO-iEZ" id="NvO-Zm-2Rq">
+                                            <popUpButtonCell key="cell" type="push" title="EXDOS" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" tag="1" imageScaling="axesIndependently" inset="2" selectedItem="8rP-2w-PdU" id="NvO-Zm-2Rq">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" title="DOS" id="sdr-al-7mi">
                                                     <items>
                                                         <menuItem title="EXDOS" tag="1" id="8rP-2w-PdU"/>
-                                                        <menuItem title="EPDOS" tag="2" id="Ke7-AJ-8Rx"/>
                                                         <menuItem title="None" state="on" id="qoS-KO-iEZ"/>
                                                     </items>
                                                 </menu>

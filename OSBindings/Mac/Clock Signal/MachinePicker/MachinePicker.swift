@@ -303,7 +303,6 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				var dos: CSMachineEnterpriseDOS = .dosNone
 				switch enterpriseDOSButton.selectedTag() {
 					case 1:		dos = .DOSEXDOS
-					case 2:		dos = .DOSEPDOS
 					case 0:		fallthrough
 					default:	dos = .dosNone
 				}

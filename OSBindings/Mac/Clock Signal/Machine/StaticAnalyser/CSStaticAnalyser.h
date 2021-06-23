@@ -62,7 +62,6 @@ typedef NS_ENUM(NSInteger, CSMachineEnterpriseBASIC) {
 
 typedef NS_ENUM(NSInteger, CSMachineEnterpriseDOS) {
 	CSMachineEnterpriseDOSEXDOS,
-	CSMachineEnterpriseDOSEPDOS,
 	CSMachineEnterpriseDOSNone,
 };
 

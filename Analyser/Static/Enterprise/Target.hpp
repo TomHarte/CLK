@@ -21,7 +21,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	ReflectableEnum(Model, Enterprise64, Enterprise128, Enterprise256);
 	ReflectableEnum(EXOSVersion, v10, v20, v21, v23, Any);
 	ReflectableEnum(BASICVersion, v10, v11, v21, Any, None);
-	ReflectableEnum(DOS, EPDOS, EXDOS, None);
+	ReflectableEnum(DOS, EXDOS, None);
 
 	Model model = Model::Enterprise128;
 	EXOSVersion exos_version = EXOSVersion::Any;

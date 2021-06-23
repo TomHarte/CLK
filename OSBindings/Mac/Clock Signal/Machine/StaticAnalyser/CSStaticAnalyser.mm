@@ -161,7 +161,6 @@
 
 		switch(dos) {
 			case CSMachineEnterpriseDOSEXDOS:		target->dos = Target::DOS::EXDOS;					break;
-			case CSMachineEnterpriseDOSEPDOS:		target->dos = Target::DOS::EPDOS;					break;
 			default:
 			case CSMachineEnterpriseDOSNone:		target->dos = Target::DOS::None;					break;
 		}
