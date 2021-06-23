@@ -47,6 +47,25 @@ typedef NS_ENUM(NSInteger, CSMachineEnterpriseModel) {
 	CSMachineEnterpriseModel256,
 };
 
+typedef NS_ENUM(NSInteger, CSMachineEnterpriseEXOS) {
+	CSMachineEnterpriseEXOSVersion21,
+	CSMachineEnterpriseEXOSVersion20,
+	CSMachineEnterpriseEXOSVersion10,
+};
+
+typedef NS_ENUM(NSInteger, CSMachineEnterpriseBASIC) {
+	CSMachineEnterpriseBASICVersion21,
+	CSMachineEnterpriseBASICVersion11,
+	CSMachineEnterpriseBASICVersion10,
+	CSMachineEnterpriseBASICNone,
+};
+
+typedef NS_ENUM(NSInteger, CSMachineEnterpriseDOS) {
+	CSMachineEnterpriseDOSEXDOS,
+	CSMachineEnterpriseDOSEPDOS,
+	CSMachineEnterpriseDOSNone,
+};
+
 typedef NS_ENUM(NSInteger, CSMachineMacintoshModel) {
 	CSMachineMacintoshModel128k,
 	CSMachineMacintoshModel512k,
@@ -102,7 +121,7 @@ typedef int Kilobytes;
 - (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize;
 - (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model;
 - (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs ap6:(BOOL)ap6 sidewaysRAM:(BOOL)sidewaysRAM;
-- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model;
+- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model exosVersion:(CSMachineEnterpriseEXOS)exosVersion basicVersion:(CSMachineEnterpriseBASIC)basicVersion dos:(CSMachineEnterpriseDOS)dos;
 - (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
 - (instancetype)initWithMSXRegion:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive;
 - (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface;

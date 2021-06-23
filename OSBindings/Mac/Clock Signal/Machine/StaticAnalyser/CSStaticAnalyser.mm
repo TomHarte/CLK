@@ -131,12 +131,41 @@
 	return self;
 }
 
-- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model {
+- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model exosVersion:(CSMachineEnterpriseEXOS)exosVersion basicVersion:(CSMachineEnterpriseBASIC)basicVersion dos:(CSMachineEnterpriseDOS)dos {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Enterprise::Target;
 		auto target = std::make_unique<Target>();
-		// TODO: apply model.
+
+		switch(model) {
+			case CSMachineEnterpriseModel64:		target->model = Target::Model::Enterprise64;		break;
+			default:
+			case CSMachineEnterpriseModel128:		target->model = Target::Model::Enterprise128;		break;
+			case CSMachineEnterpriseModel256:		target->model = Target::Model::Enterprise256;		break;
+		}
+
+		switch(exosVersion) {
+			case CSMachineEnterpriseEXOSVersion21:	target->exos_version = Target::EXOSVersion::v21;	break;
+			default:
+			case CSMachineEnterpriseEXOSVersion20:	target->exos_version = Target::EXOSVersion::v20;	break;
+			case CSMachineEnterpriseEXOSVersion10:	target->exos_version = Target::EXOSVersion::v10;	break;
+		}
+
+		switch(basicVersion) {
+			case CSMachineEnterpriseBASICNone:		target->basic_version = Target::BASICVersion::None;	break;
+			default:
+			case CSMachineEnterpriseBASICVersion21:	target->basic_version = Target::BASICVersion::v21;	break;
+			case CSMachineEnterpriseBASICVersion11:	target->basic_version = Target::BASICVersion::v11;	break;
+			case CSMachineEnterpriseBASICVersion10:	target->basic_version = Target::BASICVersion::v10;	break;
+		}
+
+		switch(dos) {
+			case CSMachineEnterpriseDOSEXDOS:		target->dos = Target::DOS::EXDOS;					break;
+			case CSMachineEnterpriseDOSEPDOS:		target->dos = Target::DOS::EPDOS;					break;
+			default:
+			case CSMachineEnterpriseDOSNone:		target->dos = Target::DOS::None;					break;
+		}
+
 		_targets.push_back(std::move(target));
 	}
 	return self;
