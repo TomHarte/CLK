@@ -489,12 +489,12 @@ template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int
 			break;
 
 			case 4:
-				target[0] = palette_[((pixels[0] & 0x80) >> 4) | ((pixels[0] & 0x20) >> 3) | ((pixels[0] & 0x08) >> 2) | ((pixels[0] & 0x02) >> 1)];
-				target[1] = palette_[((pixels[0] & 0x40) >> 3) | ((pixels[0] & 0x10) >> 2) | ((pixels[0] & 0x04) >> 1) | ((pixels[0] & 0x01) >> 0)];
+				target[0] = palette_[((pixels[0] & 0xa0) >> 4) | ((pixels[0] & 0x0a) >> 1)];
+				target[1] = palette_[((pixels[0] & 0x50) >> 3) | ((pixels[0] & 0x05) >> 0)];
 
 				if constexpr (!is_lpixel) {
-					target[2] = palette_[((pixels[1] & 0x80) >> 4) | ((pixels[1] & 0x20) >> 3) | ((pixels[1] & 0x08) >> 2) | ((pixels[1] & 0x02) >> 1)];
-					target[3] = palette_[((pixels[1] & 0x40) >> 3) | ((pixels[1] & 0x10) >> 2) | ((pixels[1] & 0x04) >> 1) | ((pixels[1] & 0x01) >> 0)];
+					target[2] = palette_[((pixels[1] & 0xa0) >> 4) | ((pixels[1] & 0x0a) >> 1)];
+					target[3] = palette_[((pixels[1] & 0x50) >> 3) | ((pixels[1] & 0x05) >> 0)];
 
 					target += 2;
 				}
@@ -534,7 +534,6 @@ template <int bpp, int index_bits> void Nick::output_character(uint16_t *target,
 		switch(bpp) {
 			default:
 				assert(false);
-				// TODO: other BPPs are supported for character modes, I think.
 			break;
 
 			case 1: {
@@ -556,8 +555,18 @@ template <int bpp, int index_bits> void Nick::output_character(uint16_t *target,
 				target[1] = palette_[((pixels & 0x40) >> 5) | ((pixels & 0x04) >> 2)];
 				target[2] = palette_[((pixels & 0x20) >> 4) | ((pixels & 0x02) >> 1)];
 				target[3] = palette_[((pixels & 0x10) >> 3) | ((pixels & 0x01) >> 0)];
-
 				target += 4;
+			break;
+
+			case 4:
+				target[0] = palette_[((pixels & 0xa0) >> 4) | ((pixels & 0x0a) >> 1)];
+				target[1] = palette_[((pixels & 0x50) >> 3) | ((pixels & 0x05) >> 0)];
+				target += 2;
+			break;
+
+			case 8:
+				target[0] = mapped_colour(pixels);
+				++target;
 			break;
 		}
 	}
