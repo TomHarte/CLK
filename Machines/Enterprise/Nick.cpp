@@ -52,7 +52,9 @@ void Nick::write(uint16_t address, uint8_t value) {
 			}
 		break;
 		case 1:
-			flush_border();
+			if(output_type_ == OutputType::Border) {
+				set_output_type(OutputType::Border, true);
+			}
 			border_colour_ = mapped_colour(value);
 		break;
 		case 2:
@@ -68,7 +70,7 @@ void Nick::write(uint16_t address, uint8_t value) {
 				// I'm unclear whether I should also reset the horizontal counter
 				// (i.e. completely abandon current video phase).
 				lines_remaining_ = 0xff;
-				line_parameters_[1] |= 1;
+				should_reload_line_parameters_ = true;
 			}
 			line_parameter_control_ = value & 0xc0;
 		break;
@@ -79,8 +81,14 @@ uint8_t Nick::read([[maybe_unused]] uint16_t address) {
 	return 0xff;
 }
 
+//int c;
+
 void Nick::run_for(Cycles duration) {
 	constexpr int line_length = 912;
+
+#define check_margins()											\
+	if(window == left_margin_) is_sync_or_pixels_ = true;		\
+	if(window == right_margin_) is_sync_or_pixels_ = false;
 
 	int clocks_remaining = duration.as<int>();
 	while(clocks_remaining) {
@@ -98,162 +106,197 @@ void Nick::run_for(Cycles duration) {
 		// Do nothing if a window boundary isn't crossed.
 		if(window == end_window) continue;
 
-		// If this is within the first 8 cycles of the line, [possibly] fetch
-		// the relevant part of the line parameters.
-		if(should_reload_line_parameters_ && window < 8) {
-			int fetch_spot = window;
-			while(fetch_spot < end_window && fetch_spot < 8) {
-				line_parameters_[(fetch_spot << 1)] = ram_[line_parameter_pointer_];
-				line_parameters_[(fetch_spot << 1) + 1] = ram_[line_parameter_pointer_ + 1];
-				line_parameter_pointer_ += 2;
-				++fetch_spot;
-			}
-
-			// TODO: when exactly does the interrupt output change? Am I a window too late? Or two too early?
-
-			// Special: set mode as soon as it's known. It'll be needed at the end of HSYNC.
-			if(window < 2 && fetch_spot >= 2) {
-				// Set length of mode line.
-				lines_remaining_ = line_parameters_[0];
-
-				// Set the new interrupt line output.
-				interrupt_line_ = line_parameters_[1] & 0x80;
-
-				// Determine the margins.
-				left_margin_ = line_parameters_[2] & 0x3f;
-				right_margin_ = line_parameters_[3] & 0x3f;
-
-				// Determine the mode and depth, and hence the column size.
-				mode_ = Mode((line_parameters_[1] >> 1)&7);
-				bpp_ = 1 << ((line_parameters_[1] >> 5)&3);
-				switch(mode_) {
-					default:
-					case Mode::Pixel:	column_size_ = 16 / bpp_;	break;
-					case Mode::CH64:
-					case Mode::CH128:
-					case Mode::CH256:
-					case Mode::LPixel:	column_size_ = 8 / bpp_;	break;
-					case Mode::Attr:	column_size_ = 8;			break;
-				}
-
-				// Act as if proper state transitions had occurred while HSYNC is being output.
-				if(mode_ == Mode::Vsync) {
-					state_ = State::Blank;
-				} else {
-					// The first ten windows are occupied by the horizontal sync and
-					// colour burst; if left signalled before then, begin in pixels.
-					state_ = left_margin_ > 10 ? State::Border : State::Pixels;
-				}
-			}
-
-			// If all parameters have been loaded, set appropriate fields.
-			if(fetch_spot == 8) {
-				should_reload_line_parameters_ = false;
-
-				// Determine the line data pointers.
-				line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
-				line_data_pointer_[1] = uint16_t(line_parameters_[6] | (line_parameters_[7] << 8));
-
-				// Populate the first eight colours of the palette.
-				for(int c = 0; c < 8; c++) {
-					palette_[c] = mapped_colour(line_parameters_[8 + c]);
-				}
-
-				switch(mode_) {
-					default:
-						assert(false);
-					case Mode::Vsync:
-					break;
-
-					// NB: LSBALT/MSBALT and ALTIND0/ALTIND1 appear to have opposite effects on palette selection.
-
-					case Mode::Pixel:
-					case Mode::LPixel:
-						// Use MSBALT and LSBALT to pick the alt_ind_palettes.
-						//
-						// LSBALT = b6 of params[2], if set => character codes with bit 6 set should use palette indices 4... instead of 0... .
-						// MSBALT = b7 of params[2], if set => character codes with bit 7 set should use palette indices 2 and 3.
-						two_colour_mask_ = 0xff &~ (((line_parameters_[2]&0x80) >> 7) | ((line_parameters_[2]&0x40) << 1));
-
-						alt_ind_palettes[0] = palette_;
-						alt_ind_palettes[2] = alt_ind_palettes[0] + ((line_parameters_[2] & 0x80) ? 2 : 0);
-
-						alt_ind_palettes[1] = alt_ind_palettes[0] + ((line_parameters_[2] & 0x40) ? 4 : 0);
-						alt_ind_palettes[3] = alt_ind_palettes[2] + ((line_parameters_[2] & 0x40) ? 4 : 0);
-
-						line_data_per_column_increments_[0] = 1 + (mode_ == Mode::Pixel);
-						line_data_per_column_increments_[1] = 0;
-					break;
-
-					case Mode::CH64:
-					case Mode::CH128:
-					case Mode::CH256:
-						// Use ALTIND0 and ALTIND1 to pick the alt_ind_palettes.
-						//
-						// ALTIND1 = b6 of params[3], if set => character codes with bit 7 set should use palette indices 2 and 3.
-						// ALTIND0 = b7 of params[3], if set => character codes with bit 6 set should use palette indices 4... instead of 0... .
-						alt_ind_palettes[0] = palette_;
-						alt_ind_palettes[2] = alt_ind_palettes[0] + ((line_parameters_[3] & 0x40) ? 2 : 0);
-
-						alt_ind_palettes[1] = alt_ind_palettes[0] + ((line_parameters_[3] & 0x80) ? 4 : 0);
-						alt_ind_palettes[3] = alt_ind_palettes[2] + ((line_parameters_[3] & 0x80) ? 4 : 0);
-
-						line_data_per_column_increments_[0] = 1;
-						line_data_per_column_increments_[1] = 0;
-					break;
-
-					case Mode::Attr:
-						line_data_per_column_increments_[0] = 1;
-						line_data_per_column_increments_[1] = 1;
-					break;
-				}
-			}
-		}
-
 		// HSYNC is signalled for four windows at the start of the line.
-		// I currently belive this happens regardless of Vsync mode.
-		if(window < 4 && end_window >= 4) {
-			crt_.output_sync(4*16);
-			window = 4;
+		// I currently believe this happens regardless of Vsync mode.
+		//
+		// This is also when the non-palette line parameters
+		// are loaded, if appropriate.
+		if(!window) set_output_type(OutputType::Sync);
+		while(window < 4 && window < end_window) {
+			if(should_reload_line_parameters_) {
+				switch(window) {
+					// First slot: line count, mode and interrupt flag.
+					case 0:
+						assert(!(line_parameter_pointer_&0xf));
+						lines_remaining_ = ram_[line_parameter_pointer_];
+						++line_parameter_pointer_;
+
+						// Set the new interrupt line output.
+						interrupt_line_ = ram_[line_parameter_pointer_] & 0x80;
+
+						// Determine the mode and depth, and hence the column size.
+						mode_ = Mode((ram_[line_parameter_pointer_] >> 1)&7);
+						bpp_ = 1 << ((ram_[line_parameter_pointer_] >> 5)&3);
+						switch(mode_) {
+							default:
+							case Mode::Pixel:
+								column_size_ = 16 / bpp_;
+								line_data_per_column_increments_[0] = 2;
+								line_data_per_column_increments_[1] = 0;
+							break;
+
+							case Mode::LPixel:
+								column_size_ = 8 / bpp_;
+								line_data_per_column_increments_[0] = 1;
+								line_data_per_column_increments_[1] = 0;
+							break;
+
+							case Mode::CH64:
+							case Mode::CH128:
+							case Mode::CH256:
+								column_size_ = 8;
+								line_data_per_column_increments_[0] = 1;
+								line_data_per_column_increments_[1] = 0;
+							break;
+
+							case Mode::Attr:
+								column_size_ = 8;
+								line_data_per_column_increments_[0] = 1;
+								line_data_per_column_increments_[1] = 1;
+							break;
+						}
+
+						vres_ = ram_[line_parameter_pointer_] & 0x10;
+						reload_line_parameter_pointer_ = ram_[line_parameter_pointer_] & 0x01;
+						++line_parameter_pointer_;
+					break;
+
+					// Second slot: margins and ALT/IND bits.
+					case 1:
+						// Determine the margins.
+						left_margin_ = ram_[line_parameter_pointer_] & 0x3f;
+						right_margin_ = ram_[(line_parameter_pointer_+1) & 0xffff] & 0x3f;
+
+						// Set up the alternative palettes,
+						switch(mode_) {
+							default:
+							break;
+
+							// NB: LSBALT/MSBALT and ALTIND0/ALTIND1 appear to have opposite effects on palette selection.
+
+							case Mode::Pixel:
+							case Mode::LPixel: {
+								const uint8_t flags = ram_[line_parameter_pointer_];
+
+								// Use MSBALT and LSBALT to pick the alt_ind_palettes.
+								//
+								// LSBALT = b6 of params[2], if set => character codes with bit 6 set should use palette indices 4... instead of 0... .
+								// MSBALT = b7 of params[2], if set => character codes with bit 7 set should use palette indices 2 and 3.
+								two_colour_mask_ = 0xff &~ (((flags&0x80) >> 7) | ((flags&0x40) << 1));
+
+								alt_ind_palettes[0] = palette_;
+								alt_ind_palettes[2] = alt_ind_palettes[0] + ((flags & 0x80) ? 2 : 0);
+
+								alt_ind_palettes[1] = alt_ind_palettes[0] + ((flags & 0x40) ? 4 : 0);
+								alt_ind_palettes[3] = alt_ind_palettes[2] + ((flags & 0x40) ? 4 : 0);
+							} break;
+
+							case Mode::CH64:
+							case Mode::CH128:
+							case Mode::CH256: {
+								const uint8_t flags = ram_[(line_parameter_pointer_+1) & 0xffff];
+
+								// Use ALTIND0 and ALTIND1 to pick the alt_ind_palettes.
+								//
+								// ALTIND1 = b6 of params[3], if set => character codes with bit 7 set should use palette indices 2 and 3.
+								// ALTIND0 = b7 of params[3], if set => character codes with bit 6 set should use palette indices 4... instead of 0... .
+								alt_ind_palettes[0] = palette_;
+								alt_ind_palettes[2] = alt_ind_palettes[0] + ((flags & 0x40) ? 2 : 0);
+
+								alt_ind_palettes[1] = alt_ind_palettes[0] + ((flags & 0x80) ? 4 : 0);
+								alt_ind_palettes[3] = alt_ind_palettes[2] + ((flags & 0x80) ? 4 : 0);
+							} break;
+						}
+
+						line_parameter_pointer_ += 2;
+					break;
+
+					// Third slot: Line data pointer 1.
+					case 2:
+						start_line_data_pointer_[0] = ram_[line_parameter_pointer_];
+						++line_parameter_pointer_;
+						start_line_data_pointer_[0] |= ram_[line_parameter_pointer_] << 8;
+						++line_parameter_pointer_;
+
+						line_data_pointer_[0] = start_line_data_pointer_[0];
+					break;
+
+					// Fourth slot: Line data pointer 2.
+					case 3:
+						start_line_data_pointer_[1] = ram_[line_parameter_pointer_];
+						++line_parameter_pointer_;
+						start_line_data_pointer_[1] |= ram_[line_parameter_pointer_] << 8;
+						++line_parameter_pointer_;
+
+						line_data_pointer_[1] = start_line_data_pointer_[1];
+					break;
+				}
+			}
+
+			++output_duration_;
+			++window;
+			check_margins();
+		}
+		if(window == 4) {
+			if(mode_ == Mode::Vsync) {
+				// Skip the palette.
+				if(should_reload_line_parameters_) line_parameter_pointer_ += 8;
+				should_reload_line_parameters_ = false;
+				set_output_type(is_sync_or_pixels_ ? OutputType::Sync : OutputType::Blank);
+			} else {
+				set_output_type(OutputType::Blank);
+			}
 		}
 
 		// Deal with vsync mode out here.
 		if(mode_ == Mode::Vsync) {
 			if(window >= 4) {
 				while(window < end_window) {
+					// Skip straight to the next event.
 					int next_event = end_window;
 					if(window < left_margin_) next_event = std::min(next_event, left_margin_);
 					if(window < right_margin_) next_event = std::min(next_event, right_margin_);
-
-					if(state_ == State::Blank) {
-						crt_.output_blank((next_event - window)*16);
-					} else {
-						crt_.output_sync((next_event - window)*16);
-					}
-
+					output_duration_ += next_event - window;
 					window = next_event;
-					if(window == left_margin_) state_ = State::Sync;
-					if(window == right_margin_) state_ = State::Blank;
+
+					check_margins();
+					set_output_type(is_sync_or_pixels_ ? OutputType::Sync : OutputType::Blank);
 				}
 			}
 		} else {
 			// If present then the colour burst is output for the period from
 			// the start of window 6 to the end of window 10.
-			if(window < 10 && end_window >= 10) {
-				crt_.output_blank(2*16);
-				crt_.output_colour_burst(4*16, 0);	// TODO: try to determine actual phase.
-				window = 10;
+			//
+			// The first 8 palette entries also need to be fetched here.
+			while(window < 10 && window < end_window) {
+				if(window == 6) {
+					set_output_type(OutputType::ColourBurst);
+				}
+
+				if(should_reload_line_parameters_ && window < 8) {
+					const int base = (window - 4) << 1;
+					palette_[base] = mapped_colour(ram_[line_parameter_pointer_]);
+					++line_parameter_pointer_;
+					palette_[base+1] = mapped_colour(ram_[line_parameter_pointer_]);
+					++line_parameter_pointer_;
+				} else {
+					should_reload_line_parameters_ = false;
+				}
+
+				++output_duration_;
+				++window;
 			}
 
 			if(window >= 10) {
+				if(window == 10) set_output_type(is_sync_or_pixels_ ? OutputType::Pixels : OutputType::Border);
+
 				while(window < end_window) {
 					int next_event = end_window;
 					if(window < left_margin_) next_event = std::min(next_event, left_margin_);
 					if(window < right_margin_) next_event = std::min(next_event, right_margin_);
 
-					if(state_ == State::Border) {
-						border_duration_ += next_event - window;
-					} else {
+					if(is_sync_or_pixels_) {
+
 #define DispatchBpp(func) \
 	switch(bpp_) {	\
 		default:	\
@@ -272,8 +315,10 @@ void Nick::run_for(Cycles duration) {
 
 						int columns_remaining = next_event - window;
 						while(columns_remaining) {
-							if(!allocated_pointer_) {
-								flush_pixels();
+							if(!pixel_pointer_) {
+								if(output_duration_) {
+									set_output_type(OutputType::Pixels, true);
+								}
 								pixel_pointer_ = allocated_pointer_ = reinterpret_cast<uint16_t *>(crt_.begin_data(allocation_size));
 							}
 
@@ -291,9 +336,9 @@ void Nick::run_for(Cycles duration) {
 								}
 
 								pixel_pointer_ += output_duration * column_size_;
-								pixel_duration_ += output_duration;
+								output_duration_ += output_duration;
 								if(pixel_pointer_ - allocated_pointer_ == allocation_size) {
-									flush_pixels();
+									set_output_type(OutputType::Pixels, true);
 								}
 								columns_remaining -= output_duration;
 							} else {
@@ -302,14 +347,11 @@ void Nick::run_for(Cycles duration) {
 								line_data_pointer_[0] += columns_remaining * line_data_per_column_increments_[0];
 								line_data_pointer_[1] += columns_remaining * line_data_per_column_increments_[1];
 
-								// Advance pixel pointer, so as to be able to supply something
-								// convincing to the CRT as to the number of samples that would have
-								// been provided, and skip asking for further allocations for now.
-								pixel_pointer_ += columns_remaining * column_size_;
-								pixel_duration_ += columns_remaining;
+								output_duration_ += columns_remaining;
 								columns_remaining = 0;
 							}
 						}
+
 #undef attr
 #undef ch64
 #undef ch128
@@ -317,38 +359,26 @@ void Nick::run_for(Cycles duration) {
 #undef pixel
 #undef lpixel
 #undef DispatchBpp
+					} else {
+						output_duration_ += next_event - window;
 					}
 
 					window = next_event;
-					if(window == left_margin_) {
-						flush_border();
-						state_ = State::Pixels;
-					}
-					if(window == right_margin_) {
-						flush_pixels();
-						state_ = State::Border;
-					}
-				}
-			}
-
-			// Finish up the line.
-			if(!horizontal_counter_) {
-				if(state_ == State::Border) {
-					flush_border();
-				} else {
-					flush_pixels();
+					check_margins();
+					set_output_type(is_sync_or_pixels_ ? OutputType::Pixels : OutputType::Border);
 				}
 			}
 		}
 
 		// Check for end of line.
 		if(!horizontal_counter_) {
+//			++c;
 			++lines_remaining_;
 			if(!lines_remaining_) {
 				should_reload_line_parameters_ = true;
 
 				// Check for end-of-frame.
-				if(line_parameters_[1] & 1) {
+				if(reload_line_parameter_pointer_) {
 					line_parameter_pointer_ = line_parameter_base_;
 				}
 			}
@@ -359,22 +389,22 @@ void Nick::run_for(Cycles duration) {
 				case Mode::CH64:
 				case Mode::CH128:
 				case Mode::CH256:
-					line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
+					line_data_pointer_[0] = start_line_data_pointer_[0];
 					++line_data_pointer_[1];
 				break;
 
 				case Mode::Attr:
 					// Reload the attribute address if VRES is set.
-					if(line_parameters_[1] & 0x10) {
-						line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
+					if(vres_) {
+						line_data_pointer_[0] = start_line_data_pointer_[0];
 					}
 				break;
 
 				case Mode::Pixel:
 				case Mode::LPixel:
 					// If VRES is clear, reload the pixel address.
-					if(!(line_parameters_[1] & 0x10)) {
-						line_data_pointer_[0] = uint16_t(line_parameters_[4] | (line_parameters_[5] << 8));
+					if(!vres_) {
+						line_data_pointer_[0] = start_line_data_pointer_[0];
 					}
 				break;
 			}
@@ -382,21 +412,32 @@ void Nick::run_for(Cycles duration) {
 	}
 }
 
-void Nick::flush_border() {
-	if(!border_duration_) return;
+void Nick::set_output_type(OutputType type, bool force_flush) {
+	if(type == output_type_ && !force_flush) {
+		return;
+	}
+	if(output_duration_) {
+		switch(output_type_) {
+			case OutputType::Border: {
+				uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
+				if(colour_pointer) *colour_pointer = border_colour_;
+				crt_.output_level(output_duration_*16);
+			} break;
 
-	uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-	if(colour_pointer) *colour_pointer = border_colour_;
-	crt_.output_level(border_duration_*16);
-	border_duration_ = 0;
-}
+			case OutputType::Pixels: {
+				crt_.output_data(output_duration_*16, size_t(output_duration_*column_size_));
+				pixel_pointer_ = nullptr;
+				allocated_pointer_ = nullptr;
+			} break;
 
-void Nick::flush_pixels() {
-	if(!pixel_duration_) return;
-	crt_.output_data(pixel_duration_*16, size_t(pixel_pointer_ - allocated_pointer_));
-	pixel_duration_ = 0;
-	pixel_pointer_ = nullptr;
-	allocated_pointer_ = nullptr;
+			case OutputType::Sync:			crt_.output_sync(output_duration_*16);				break;
+			case OutputType::Blank:			crt_.output_blank(output_duration_*16);				break;
+			case OutputType::ColourBurst:	crt_.output_colour_burst(output_duration_*16, 0);	break;
+		}
+	}
+
+	output_duration_ = 0;
+	output_type_ = type;
 }
 
 // MARK: - Sequence points.

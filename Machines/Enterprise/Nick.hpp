@@ -49,9 +49,9 @@ class Nick {
 		// Ephemerals, related to current video position.
 		int horizontal_counter_ = 0;
 		uint16_t line_parameter_pointer_ = 0x0000;
-		uint8_t line_parameters_[16];
 		bool should_reload_line_parameters_ = true;
 		uint16_t line_data_pointer_[2];
+		uint16_t start_line_data_pointer_[2];
 
 		// Current mode line parameters.
 		uint8_t lines_remaining_ = 0x00;
@@ -68,27 +68,29 @@ class Nick {
 			Unused,
 			LPixel,
 		} mode_ = Mode::Vsync;
-		enum class State {
-			Sync,
-			Border,
-			Pixels,
-			Blank,
-		} state_ = State::Sync;
+		bool is_sync_or_pixels_ = false;
 		int bpp_ = 0;
 		int column_size_ = 0;
 		bool interrupt_line_ = true;
 		int line_data_per_column_increments_[2] = {0, 0};
+		bool vres_ = false;
+		bool reload_line_parameter_pointer_ = false;
 
 		// An accumulator for border output regions.
 		int border_duration_ = 0;
-		void flush_border();
 
 		// The destination for new pixels.
-		static constexpr int allocation_size = 80;
+		static constexpr int allocation_size = 320;
 		static_assert((allocation_size % 16) == 0, "Allocation size must be a multiple of 16");
 		uint16_t *pixel_pointer_ = nullptr, *allocated_pointer_ = nullptr;
-		int pixel_duration_ = 0;
-		void flush_pixels();
+
+		// Output transitions.
+		enum class OutputType {
+			Sync, Blank, Pixels, Border, ColourBurst
+		};
+		void set_output_type(OutputType, bool force_flush = false);
+		int output_duration_ = 0;
+		OutputType output_type_ = OutputType::Sync;
 
 		// Current palette.
 		uint16_t palette_[16]{};
