@@ -86,7 +86,8 @@ uint8_t Nick::read([[maybe_unused]] uint16_t address) {
 void Nick::run_for(Cycles duration) {
 	constexpr int line_length = 912;
 
-#define check_margins()											\
+#define add_window(x)											\
+	window += x;												\
 	if(window == left_margin_) is_sync_or_pixels_ = true;		\
 	if(window == right_margin_) is_sync_or_pixels_ = false;
 
@@ -117,16 +118,15 @@ void Nick::run_for(Cycles duration) {
 				switch(window) {
 					// First slot: line count, mode and interrupt flag.
 					case 0:
-						assert(!(line_parameter_pointer_&0xf));
+						// Byte 0: lines remaining.
 						lines_remaining_ = ram_[line_parameter_pointer_];
-						++line_parameter_pointer_;
 
 						// Set the new interrupt line output.
-						interrupt_line_ = ram_[line_parameter_pointer_] & 0x80;
+						interrupt_line_ = ram_[line_parameter_pointer_ + 1] & 0x80;
 
 						// Determine the mode and depth, and hence the column size.
-						mode_ = Mode((ram_[line_parameter_pointer_] >> 1)&7);
-						bpp_ = 1 << ((ram_[line_parameter_pointer_] >> 5)&3);
+						mode_ = Mode((ram_[line_parameter_pointer_ + 1] >> 1)&7);
+						bpp_ = 1 << ((ram_[line_parameter_pointer_ + 1] >> 5)&3);
 						switch(mode_) {
 							default:
 							case Mode::Pixel:
@@ -156,16 +156,15 @@ void Nick::run_for(Cycles duration) {
 							break;
 						}
 
-						vres_ = ram_[line_parameter_pointer_] & 0x10;
-						reload_line_parameter_pointer_ = ram_[line_parameter_pointer_] & 0x01;
-						++line_parameter_pointer_;
+						vres_ = ram_[line_parameter_pointer_ + 1] & 0x10;
+						reload_line_parameter_pointer_ = ram_[line_parameter_pointer_ + 1] & 0x01;
 					break;
 
 					// Second slot: margins and ALT/IND bits.
 					case 1:
 						// Determine the margins.
-						left_margin_ = ram_[line_parameter_pointer_] & 0x3f;
-						right_margin_ = ram_[(line_parameter_pointer_+1) & 0xffff] & 0x3f;
+						left_margin_ = ram_[line_parameter_pointer_ + 2] & 0x3f;
+						right_margin_ = ram_[line_parameter_pointer_ + 3] & 0x3f;
 
 						// Set up the alternative palettes,
 						switch(mode_) {
@@ -176,7 +175,7 @@ void Nick::run_for(Cycles duration) {
 
 							case Mode::Pixel:
 							case Mode::LPixel: {
-								const uint8_t flags = ram_[line_parameter_pointer_];
+								const uint8_t flags = ram_[line_parameter_pointer_ + 2];
 
 								// Use MSBALT and LSBALT to pick the alt_ind_palettes.
 								//
@@ -194,7 +193,7 @@ void Nick::run_for(Cycles duration) {
 							case Mode::CH64:
 							case Mode::CH128:
 							case Mode::CH256: {
-								const uint8_t flags = ram_[(line_parameter_pointer_+1) & 0xffff];
+								const uint8_t flags = ram_[line_parameter_pointer_ + 3];
 
 								// Use ALTIND0 and ALTIND1 to pick the alt_ind_palettes.
 								//
@@ -207,26 +206,20 @@ void Nick::run_for(Cycles duration) {
 								alt_ind_palettes[3] = alt_ind_palettes[2] + ((flags & 0x80) ? 4 : 0);
 							} break;
 						}
-
-						line_parameter_pointer_ += 2;
 					break;
 
 					// Third slot: Line data pointer 1.
 					case 2:
-						start_line_data_pointer_[0] = ram_[line_parameter_pointer_];
-						++line_parameter_pointer_;
-						start_line_data_pointer_[0] |= ram_[line_parameter_pointer_] << 8;
-						++line_parameter_pointer_;
+						start_line_data_pointer_[0] = ram_[line_parameter_pointer_ + 4];
+						start_line_data_pointer_[0] |= ram_[line_parameter_pointer_ + 5] << 8;
 
 						line_data_pointer_[0] = start_line_data_pointer_[0];
 					break;
 
 					// Fourth slot: Line data pointer 2.
 					case 3:
-						start_line_data_pointer_[1] = ram_[line_parameter_pointer_];
-						++line_parameter_pointer_;
-						start_line_data_pointer_[1] |= ram_[line_parameter_pointer_] << 8;
-						++line_parameter_pointer_;
+						start_line_data_pointer_[1] = ram_[line_parameter_pointer_ + 6];
+						start_line_data_pointer_[1] |= ram_[line_parameter_pointer_ + 7] << 8;
 
 						line_data_pointer_[1] = start_line_data_pointer_[1];
 					break;
@@ -234,14 +227,10 @@ void Nick::run_for(Cycles duration) {
 			}
 
 			++output_duration_;
-			++window;
-			check_margins();
+			add_window(1);
 		}
 		if(window == 4) {
 			if(mode_ == Mode::Vsync) {
-				// Skip the palette.
-				if(should_reload_line_parameters_) line_parameter_pointer_ += 8;
-				should_reload_line_parameters_ = false;
 				set_output_type(is_sync_or_pixels_ ? OutputType::Sync : OutputType::Blank);
 			} else {
 				set_output_type(OutputType::Blank);
@@ -256,10 +245,9 @@ void Nick::run_for(Cycles duration) {
 					int next_event = end_window;
 					if(window < left_margin_) next_event = std::min(next_event, left_margin_);
 					if(window < right_margin_) next_event = std::min(next_event, right_margin_);
-					output_duration_ += next_event - window;
-					window = next_event;
 
-					check_margins();
+					output_duration_ += next_event - window;
+					add_window(next_event - window);
 					set_output_type(is_sync_or_pixels_ ? OutputType::Sync : OutputType::Blank);
 				}
 			}
@@ -275,20 +263,18 @@ void Nick::run_for(Cycles duration) {
 
 				if(should_reload_line_parameters_ && window < 8) {
 					const int base = (window - 4) << 1;
-					palette_[base] = mapped_colour(ram_[line_parameter_pointer_]);
-					++line_parameter_pointer_;
-					palette_[base+1] = mapped_colour(ram_[line_parameter_pointer_]);
-					++line_parameter_pointer_;
-				} else {
-					should_reload_line_parameters_ = false;
+					palette_[base] = mapped_colour(ram_[line_parameter_pointer_ + base + 8]);
+					palette_[base + 1] = mapped_colour(ram_[line_parameter_pointer_ + base + 9]);
 				}
 
 				++output_duration_;
-				++window;
+				add_window(1);
 			}
 
 			if(window >= 10) {
-				if(window == 10) set_output_type(is_sync_or_pixels_ ? OutputType::Pixels : OutputType::Border);
+				if(window == 10) {
+					set_output_type(is_sync_or_pixels_ ? OutputType::Pixels : OutputType::Border);
+				}
 
 				while(window < end_window) {
 					int next_event = end_window;
@@ -363,8 +349,7 @@ void Nick::run_for(Cycles duration) {
 						output_duration_ += next_event - window;
 					}
 
-					window = next_event;
-					check_margins();
+					add_window(next_event - window);
 					set_output_type(is_sync_or_pixels_ ? OutputType::Pixels : OutputType::Border);
 				}
 			}
@@ -372,7 +357,6 @@ void Nick::run_for(Cycles duration) {
 
 		// Check for end of line.
 		if(!horizontal_counter_) {
-//			++c;
 			++lines_remaining_;
 			if(!lines_remaining_) {
 				should_reload_line_parameters_ = true;
@@ -380,7 +364,11 @@ void Nick::run_for(Cycles duration) {
 				// Check for end-of-frame.
 				if(reload_line_parameter_pointer_) {
 					line_parameter_pointer_ = line_parameter_base_;
+				} else {
+					line_parameter_pointer_ += 16;
 				}
+			} else {
+				should_reload_line_parameters_ = false;
 			}
 
 			// Deal with VRES and other address reloading, dependant upon mode.
@@ -410,6 +398,9 @@ void Nick::run_for(Cycles duration) {
 			}
 		}
 	}
+
+#undef add_window
+
 }
 
 void Nick::set_output_type(OutputType type, bool force_flush) {
