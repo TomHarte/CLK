@@ -43,6 +43,12 @@ void Dave::write(uint16_t address, uint8_t value) {
 	});
 }
 
+void Dave::set_sample_volume_range(int16_t range) {
+	audio_queue_.defer([range, this] {
+		volume_ = range / (63*3);
+	});
+}
+
 void Dave::get_samples(std::size_t number_of_samples, int16_t *target) {
 	// Step 1: divide input clock to 125,000 Hz (?)
 	for(size_t c = 0; c < number_of_samples; c++) {
@@ -61,13 +67,17 @@ void Dave::get_samples(std::size_t number_of_samples, int16_t *target) {
 
 		// Dumbest ever first attempt: sum channels.
 		target[(c << 1) + 0] =
-			channels_[0].amplitude[0] * channels_[0].output +
-			channels_[1].amplitude[0] * channels_[1].output +
-			channels_[2].amplitude[0] * channels_[2].output;
+			volume_ * (
+				channels_[0].amplitude[0] * channels_[0].output +
+				channels_[1].amplitude[0] * channels_[1].output +
+				channels_[2].amplitude[0] * channels_[2].output
+			);
 
 		target[(c << 1) + 1] =
-			channels_[0].amplitude[1] * channels_[0].output +
-			channels_[1].amplitude[1] * channels_[1].output +
-			channels_[2].amplitude[1] * channels_[2].output;
+			volume_ * (
+				channels_[0].amplitude[1] * channels_[0].output +
+				channels_[1].amplitude[1] * channels_[1].output +
+				channels_[2].amplitude[1] * channels_[2].output
+			);
 	}
 }

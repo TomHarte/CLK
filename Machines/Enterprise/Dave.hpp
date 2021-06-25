@@ -28,7 +28,7 @@ class Dave: public Outputs::Speaker::SampleSource {
 		void write(uint16_t address, uint8_t value);
 
 		// MARK: - SampleSource.
-		void set_sample_volume_range([[maybe_unused]] int16_t range) {}
+		void set_sample_volume_range(int16_t range);
 		static constexpr bool get_is_stereo() { return true; }	// Dave produces stereo sound.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 
@@ -52,6 +52,7 @@ class Dave: public Outputs::Speaker::SampleSource {
 			uint16_t count = 0;
 			bool output = true;
 		} channels_[3];
+		int16_t volume_ = 0;
 
 		// Various polynomials that contribute to audio generation.
 		Numeric::LFSRv<0xc> poly4_;
