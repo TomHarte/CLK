@@ -14,18 +14,29 @@ namespace  {
 
 uint16_t mapped_colour(uint8_t source) {
 	// On the Enterprise, red and green are 3-bit quantities; blue is a 2-bit quantity.
-	const int red	= ((source&0x01) << 2) | ((source&0x08) >> 2) | ((source&0x40) >> 6);
-	const int green	= ((source&0x02) << 1) | ((source&0x10) >> 3) | ((source&0x80) >> 7);
-	const int blue	= ((source&0x04) >> 1) | ((source&0x20) >> 5);
+	int red		= ((source&0x01) << 2) | ((source&0x08) >> 2) | ((source&0x40) >> 6);
+	int green	= ((source&0x02) << 1) | ((source&0x10) >> 3) | ((source&0x80) >> 7);
+	int blue	= ((source&0x04) >> 1) | ((source&0x20) >> 5);
+
+	assert(red <= 7);
+	assert(green <= 7);
+	assert(blue <= 3);
+
+	red = (red << 1) + (red >> 3);
+	green = (green << 1) + (green >> 3);
+	blue = (blue << 2) + blue;
+
+	assert(red <= 15);
+	assert(green <= 15);
+	assert(blue <= 15);
 
 	// Duplicate bits where necessary to map to a full 4-bit range per channel.
 	const uint8_t parts[2] = {
 		uint8_t(
-			(red << 1) + ((red&0x4) >> 3)
+			red
 		),
 		uint8_t(
-			(green << 5) + ((green&0x4) << 2) +
-			(blue << 2) + blue
+			(green << 4) + blue
 		)
 	};
 	return *reinterpret_cast<const uint16_t *>(parts);
@@ -112,7 +123,15 @@ void Nick::run_for(Cycles duration) {
 		//
 		// This is also when the non-palette line parameters
 		// are loaded, if appropriate.
-		if(!window) set_output_type(OutputType::Sync);
+		if(!window) {
+			set_output_type(OutputType::Sync);
+
+			// There's no increment to get to 0, it happens when the horizontal_counter_
+			// is reset. So test for active bit effect manually.
+			if(!left_margin_) is_sync_or_pixels_ = true;
+			if(!right_margin_) is_sync_or_pixels_ = false;
+		}
+
 		while(window < 4 && window < end_window) {
 			if(should_reload_line_parameters_) {
 				switch(window) {
