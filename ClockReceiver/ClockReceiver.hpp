@@ -213,7 +213,7 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 
 		/*!
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
-			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
+			the value of @c this modulo @c divisor . @c this divided by @c divisor is returned.
 		*/
 		forceinline Cycles divide_cycles(const Cycles &divisor) {
 			const HalfCycles half_divisor = HalfCycles(divisor);
