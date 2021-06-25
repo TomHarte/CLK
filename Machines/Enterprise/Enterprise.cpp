@@ -15,11 +15,10 @@
 
 #include "../MachineTypes.hpp"
 
-#include "../../Processors/Z80/Z80.hpp"
-
 #include "../../Analyser/Static/Enterprise/Target.hpp"
-
 #include "../../ClockReceiver/JustInTime.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Processors/Z80/Z80.hpp"
 
 namespace Enterprise {
 
@@ -65,6 +64,7 @@ namespace Enterprise {
 template <bool has_disk_controller> class ConcreteMachine:
 	public CPU::Z80::BusHandler,
 	public Machine,
+	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
@@ -85,7 +85,9 @@ template <bool has_disk_controller> class ConcreteMachine:
 		ConcreteMachine([[maybe_unused]] const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			min_ram_slot_(min_ram_slot(target)),
 			z80_(*this),
-			nick_(ram_.end() - 65536) {
+			nick_(ram_.end() - 65536),
+			dave_(audio_queue_),
+			speaker_(dave_) {
 			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and Dave elsewhere.
 			set_clock_rate(4'000'000);
 
@@ -207,8 +209,15 @@ template <bool has_disk_controller> class ConcreteMachine:
 			page<2>(0x00);
 			page<3>(0x00);
 
+			// Set up audio.
+			speaker_.set_input_rate(125000.0f);	// TODO: a bigger number, and respect the programmable divider.
+
 			// Pass on any media.
 			insert_media(target.media);
+		}
+
+		~ConcreteMachine() {
+			audio_queue_.flush();
 		}
 
 		// MARK: - Z80::BusHandler.
@@ -218,7 +227,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 
 			// TODO: possibly apply an access penalty.
 
-
+			time_since_audio_update_ += cycle.length;
 			if(nick_ += cycle.length) {
 				const auto nick = nick_.last_valid();
 				const bool nick_interrupt_line = nick->get_interrupt_line();
@@ -307,6 +316,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 						case 0xa4:	case 0xa5:	case 0xa6:	case 0xa7:
 						case 0xa8:	case 0xa9:	case 0xaa:	case 0xab:
 						case 0xac:	case 0xad:	case 0xae:	case 0xaf:
+							update_audio();
 							dave_.write(address, *cycle.value);
 						break;
 
@@ -314,6 +324,10 @@ template <bool has_disk_controller> class ConcreteMachine:
 							interrupt_mask_ = *cycle.value & 0x55;
 							interrupt_state_ &= ~*cycle.value;
 							update_interrupts();
+
+							if(interrupt_mask_ & 0x45) {
+								printf("Unimplemented interrupts requested: %02x\n", interrupt_mask_ & 0x45);
+							}
 						break;
 						case 0xb5:
 							active_key_line_ = *cycle.value & 0xf;
@@ -349,11 +363,17 @@ template <bool has_disk_controller> class ConcreteMachine:
 
 		void flush() {
 			nick_.flush();
+			update_audio();
+			audio_queue_.perform();
+		}
+
+		inline void update_audio() {
+			speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(32)));
 		}
 
 	private:
 		// MARK: - Memory layout
-		std::array<uint8_t, 256 * 1024> ram_;
+		std::array<uint8_t, 256 * 1024> ram_{};
 		std::array<uint8_t, 64 * 1024> exos_;
 		std::array<uint8_t, 16 * 1024> basic_;
 		std::array<uint8_t, 16 * 1024> exdos_rom_;
@@ -406,6 +426,12 @@ template <bool has_disk_controller> class ConcreteMachine:
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const override {
 			return nick_.last_valid()->get_scaled_scan_status();
+		}
+
+		// MARK: - AudioProducer
+
+		Outputs::Speaker::Speaker *get_speaker() final {
+			return &speaker_;
 		}
 
 		// MARK: - TimedMachine
@@ -464,7 +490,10 @@ template <bool has_disk_controller> class ConcreteMachine:
 		bool previous_nick_interrupt_line_ = false;
 		// Cf. timing guesses above.
 
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		Dave dave_;
+		Outputs::Speaker::LowpassSpeaker<Dave> speaker_;
+		HalfCycles time_since_audio_update_;
 
 		// MARK: - EXDos card.
 		EXDos exdos_;
