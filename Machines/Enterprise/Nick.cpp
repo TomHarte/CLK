@@ -97,6 +97,8 @@ uint8_t Nick::read([[maybe_unused]] uint16_t address) {
 void Nick::run_for(Cycles duration) {
 	constexpr int line_length = 912;
 
+	// TODO: test here for window < 57? Or maybe just nudge up left_/right_margin_ if they
+	// exactly equal 57?
 #define add_window(x)											\
 	window += x;												\
 	if(window == left_margin_) is_sync_or_pixels_ = true;		\
@@ -282,6 +284,7 @@ void Nick::run_for(Cycles duration) {
 
 				if(should_reload_line_parameters_ && window < 8) {
 					const int base = (window - 4) << 1;
+					assert(base < 7);
 					palette_[base] = mapped_colour(ram_[line_parameter_pointer_ + base + 8]);
 					palette_[base + 1] = mapped_colour(ram_[line_parameter_pointer_ + base + 9]);
 				}
@@ -480,6 +483,33 @@ Outputs::Display::ScanStatus Nick::get_scaled_scan_status() const {
 
 // MARK: - Specific pixel outputters.
 
+#define output1bpp(x)	\
+	target[0] = palette[(x & 0x80) >> 7];	\
+	target[1] = palette[(x & 0x40) >> 6];	\
+	target[2] = palette[(x & 0x20) >> 5];	\
+	target[3] = palette[(x & 0x10) >> 4];	\
+	target[4] = palette[(x & 0x08) >> 3];	\
+	target[5] = palette[(x & 0x04) >> 2];	\
+	target[6] = palette[(x & 0x02) >> 1];	\
+	target[7] = palette[(x & 0x01) >> 0];	\
+	target += 8
+
+#define output2bpp(x)	\
+	target[0] = palette_[((x & 0x80) >> 7) | ((x & 0x08) >> 2)];	\
+	target[1] = palette_[((x & 0x40) >> 6) | ((x & 0x04) >> 1)];	\
+	target[2] = palette_[((x & 0x20) >> 5) | ((x & 0x02) >> 0)];	\
+	target[3] = palette_[((x & 0x10) >> 4) | ((x & 0x01) << 1)];	\
+	target += 4
+
+#define output4bpp(x)	\
+	target[0] = palette_[((x & 0x02) << 2) | ((x & 0x20) >> 3) | ((x & 0x08) >> 2) | ((x & 0x80) >> 7)];	\
+	target[1] = palette_[((x & 0x01) << 3) | ((x & 0x10) >> 2) | ((x & 0x04) >> 1) | ((x & 0x40) >> 6)];	\
+	target += 2
+
+#define output8bpp(x)	\
+	target[0] = mapped_colour(x);	\
+	++target
+
 template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int columns) {
 	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
 
@@ -492,76 +522,34 @@ template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int
 			case 1: {
 				const uint16_t *palette = alt_ind_palettes[((pixels[0] >> 6) & 0x02) | (pixels[0]&1)];
 				pixels[0] &= two_colour_mask_;
-
-				target[0] = palette[(pixels[0] & 0x80) >> 7];
-				target[1] = palette[(pixels[0] & 0x40) >> 6];
-				target[2] = palette[(pixels[0] & 0x20) >> 5];
-				target[3] = palette[(pixels[0] & 0x10) >> 4];
-				target[4] = palette[(pixels[0] & 0x08) >> 3];
-				target[5] = palette[(pixels[0] & 0x04) >> 2];
-				target[6] = palette[(pixels[0] & 0x02) >> 1];
-				target[7] = palette[(pixels[0] & 0x01) >> 0];
+				output1bpp(pixels[0]);
 
 				if constexpr (!is_lpixel) {
 					palette = alt_ind_palettes[((pixels[1] >> 6) & 0x02) | (pixels[1]&1)];
 					pixels[1] &= two_colour_mask_;
-
-					target[8] = palette[(pixels[1] & 0x80) >> 7];
-					target[9] = palette[(pixels[1] & 0x40) >> 6];
-					target[10] = palette[(pixels[1] & 0x20) >> 5];
-					target[11] = palette[(pixels[1] & 0x10) >> 4];
-					target[12] = palette[(pixels[1] & 0x08) >> 3];
-					target[13] = palette[(pixels[1] & 0x04) >> 2];
-					target[14] = palette[(pixels[1] & 0x02) >> 1];
-					target[15] = palette[(pixels[1] & 0x01) >> 0];
-
-					target += 8;
+					output1bpp(pixels[1]);
 				}
-
-				target += 8;
 			} break;
 
 			case 2:
-				target[0] = palette_[((pixels[0] & 0x80) >> 6) | ((pixels[0] & 0x08) >> 3)];
-				target[1] = palette_[((pixels[0] & 0x40) >> 5) | ((pixels[0] & 0x04) >> 2)];
-				target[2] = palette_[((pixels[0] & 0x20) >> 4) | ((pixels[0] & 0x02) >> 1)];
-				target[3] = palette_[((pixels[0] & 0x10) >> 3) | ((pixels[0] & 0x01) >> 0)];
-
+				output2bpp(pixels[0]);
 				if constexpr (!is_lpixel) {
-					target[4] = palette_[((pixels[1] & 0x80) >> 6) | ((pixels[1] & 0x08) >> 3)];
-					target[5] = palette_[((pixels[1] & 0x40) >> 5) | ((pixels[1] & 0x04) >> 2)];
-					target[6] = palette_[((pixels[1] & 0x20) >> 4) | ((pixels[1] & 0x02) >> 1)];
-					target[7] = palette_[((pixels[1] & 0x10) >> 3) | ((pixels[1] & 0x01) >> 0)];
-
-					target += 4;
+					output2bpp(pixels[1]);
 				}
-
-				target += 4;
 			break;
 
 			case 4:
-				target[0] = palette_[((pixels[0] & 0xa0) >> 4) | ((pixels[0] & 0x0a) >> 1)];
-				target[1] = palette_[((pixels[0] & 0x50) >> 3) | ((pixels[0] & 0x05) >> 0)];
-
+				output4bpp(pixels[0]);
 				if constexpr (!is_lpixel) {
-					target[2] = palette_[((pixels[1] & 0xa0) >> 4) | ((pixels[1] & 0x0a) >> 1)];
-					target[3] = palette_[((pixels[1] & 0x50) >> 3) | ((pixels[1] & 0x05) >> 0)];
-
-					target += 2;
+					output4bpp(pixels[1]);
 				}
-
-				target += 2;
 			break;
 
 			case 8:
-				target[0] = mapped_colour(pixels[0]);
-
+				output8bpp(pixels[0]);
 				if constexpr (!is_lpixel) {
-					target[1] = mapped_colour(pixels[1]);
-
-					++target;
+					output8bpp(pixels[1]);
 				}
-				++target;
 			break;
 		}
 	}
@@ -590,35 +578,12 @@ template <int bpp, int index_bits> void Nick::output_character(uint16_t *target,
 			case 1: {
 				// This applies ALTIND0 and ALTIND1.
 				const uint16_t *palette = alt_ind_palettes[character >> 6];
-				target[0] = palette[(pixels & 0x80) >> 7];
-				target[1] = palette[(pixels & 0x40) >> 6];
-				target[2] = palette[(pixels & 0x20) >> 5];
-				target[3] = palette[(pixels & 0x10) >> 4];
-				target[4] = palette[(pixels & 0x08) >> 3];
-				target[5] = palette[(pixels & 0x04) >> 2];
-				target[6] = palette[(pixels & 0x02) >> 1];
-				target[7] = palette[(pixels & 0x01) >> 0];
-				target += 8;
+				output1bpp(pixels);
 			} break;
 
-			case 2:
-				target[0] = palette_[((pixels & 0x80) >> 6) | ((pixels & 0x08) >> 3)];
-				target[1] = palette_[((pixels & 0x40) >> 5) | ((pixels & 0x04) >> 2)];
-				target[2] = palette_[((pixels & 0x20) >> 4) | ((pixels & 0x02) >> 1)];
-				target[3] = palette_[((pixels & 0x10) >> 3) | ((pixels & 0x01) >> 0)];
-				target += 4;
-			break;
-
-			case 4:
-				target[0] = palette_[((pixels & 0xa0) >> 4) | ((pixels & 0x0a) >> 1)];
-				target[1] = palette_[((pixels & 0x50) >> 3) | ((pixels & 0x05) >> 0)];
-				target += 2;
-			break;
-
-			case 8:
-				target[0] = mapped_colour(pixels);
-				++target;
-			break;
+			case 2:		output2bpp(pixels);		break;
+			case 4:		output4bpp(pixels);		break;
+			case 8:		output8bpp(pixels);		break;
 		}
 	}
 }
@@ -636,15 +601,11 @@ template <int bpp> void Nick::output_attributed(uint16_t *target, int columns) {
 		const uint16_t palette[2] = {
 			palette_[attributes >> 4], palette_[attributes & 0x0f]
 		};
-
-		target[0] = palette[(pixels & 0x80) >> 7];
-		target[1] = palette[(pixels & 0x40) >> 6];
-		target[2] = palette[(pixels & 0x20) >> 5];
-		target[3] = palette[(pixels & 0x10) >> 4];
-		target[4] = palette[(pixels & 0x08) >> 3];
-		target[5] = palette[(pixels & 0x04) >> 2];
-		target[6] = palette[(pixels & 0x02) >> 1];
-		target[7] = palette[(pixels & 0x01) >> 0];
-		target += 8;
+		output1bpp(pixels);
 	}
 }
+
+#undef output1bpp
+#undef output2bpp
+#undef output4bpp
+#undef output8bpp
