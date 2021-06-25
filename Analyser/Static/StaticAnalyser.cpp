@@ -23,6 +23,7 @@
 #include "Coleco/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
 #include "DiskII/StaticAnalyser.hpp"
+#include "Enterprise/StaticAnalyser.hpp"
 #include "Macintosh/StaticAnalyser.hpp"
 #include "MSX/StaticAnalyser.hpp"
 #include "Oric/StaticAnalyser.hpp"
@@ -257,6 +258,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	Append(Coleco);
 	Append(Commodore);
 	Append(DiskII);
+	Append(Enterprise);
 	Append(Macintosh);
 	Append(MSX);
 	Append(Oric);
