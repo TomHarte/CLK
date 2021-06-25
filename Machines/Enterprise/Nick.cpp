@@ -562,10 +562,10 @@ template <int bpp, int index_bits> void Nick::output_character(uint16_t *target,
 		const uint8_t character = ram_[line_data_pointer_[0]];
 		++line_data_pointer_[0];
 
-		const uint8_t pixels = ram_[
+		const uint8_t pixels = ram_[(
 			(line_data_pointer_[1] << index_bits) +
 			(character & ((1 << index_bits) - 1))
-		];
+		) & 0xffff];
 
 		// TODO: below looks repetitious of the above, but I've yet to factor in
 		// ALTINDs and [M/L]SBALTs, so I'll correct for factoring when I've done that.
