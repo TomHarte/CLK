@@ -145,11 +145,19 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 
 		/// @returns the amount of time since the object was last flushed, in the target time scale.
 		[[nodiscard]] forceinline TargetTimeScale time_since_flush() const {
-			// TODO: does this handle conversions properly where TargetTimeScale != LocalTimeScale?
 			if constexpr (divider == 1) {
 				return time_since_update_;
 			}
 			return TargetTimeScale(time_since_update_.as_integral() / divider);
+		}
+
+		/// @returns the amount of time since the object was last flushed, plus the local time scale @c offset,
+		/// converted to the target time scale.
+		[[nodiscard]] forceinline TargetTimeScale time_since_flush(LocalTimeScale offset) const {
+			if constexpr (divider == 1) {
+				return time_since_update_ + offset;
+			}
+			return TargetTimeScale((time_since_update_ + offset).as_integral() / divider);
 		}
 
 		/// Flushes all accumulated time.
@@ -194,6 +202,13 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 				return false;
 			}
 			return rhs >= time_until_event_;
+		}
+
+		/// Indicates the amount of time, in the local time scale, until the first local slot that falls wholly
+		/// after the amount of time provided in the target time scale.
+		[[nodiscard]] forceinline LocalTimeScale back_map(TargetTimeScale time) const {
+			// TODO.
+			return LocalTimeScale(0);
 		}
 
 		/// Updates this template's record of the next sequence point.

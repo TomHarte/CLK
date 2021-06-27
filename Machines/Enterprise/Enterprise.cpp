@@ -221,6 +221,17 @@ template <bool has_disk_controller> class ConcreteMachine:
 		}
 
 		// MARK: - Z80::BusHandler.
+		forceinline void advance_nick(HalfCycles duration) {
+			if(nick_ += duration) {
+				const auto nick = nick_.last_valid();
+				const bool nick_interrupt_line = nick->get_interrupt_line();
+				if(nick_interrupt_line && !previous_nick_interrupt_line_) {
+					set_interrupt(Interrupt::Nick, nick_.last_sequence_point_overrun());
+				}
+				previous_nick_interrupt_line_ = nick_interrupt_line;
+			}
+		}
+
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
@@ -240,36 +251,46 @@ template <bool has_disk_controller> class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
 					if(!is_video_[address >> 14] && wait_mode_ != WaitMode::None) {
 						penalty = HalfCycles(2);
+					} else {
+						// Query Nick for the amount of delay that would occur with one cycle left
+						// in this read opcode.
+						const auto delay = nick_.last_valid()->get_time_until_z80_slot(nick_.time_since_flush(HalfCycles(2)));
+						penalty = nick_.back_map(delay);
 					}
 				break;
 
 				// Video pauses: insert right at the end of the bus cycle.
-				case CPU::Z80::PartialMachineCycle::ReadOpcode:
-				case CPU::Z80::PartialMachineCycle::Read:
 				case CPU::Z80::PartialMachineCycle::Write:
+					// Ensure all video that should have been collected prior to
+					// this write has been.
 					if(is_video_[address >> 14]) {
-						// TODO.
+						nick_.flush();
+					}
+					[[fallthrough]];
+
+				case CPU::Z80::PartialMachineCycle::Read:
+					if(is_video_[address >> 14]) {
+						// Get delay, in Nick cycles, for a Z80 access that occurs in 0.5
+						// cycles from now (i.e. with one cycle left to run).
+						const auto delay = nick_.last_valid()->get_time_until_z80_slot(nick_.time_since_flush(HalfCycles(1)));
+						penalty = nick_.back_map(delay);
 					}
 				break;
 
 				case CPU::Z80::PartialMachineCycle::Input:
 				case CPU::Z80::PartialMachineCycle::Output: {
 					if((address & 0xf0) == 0x80) {
-						// TODO.
+						// Get delay, in Nick cycles, for a Z80 access that occurs in 0.5
+						// cycles from now (i.e. with one cycle left to run).
+						const auto delay = nick_.last_valid()->get_time_until_z80_slot(nick_.time_since_flush(HalfCycles(1)));
+						penalty = nick_.back_map(delay);
 					}
 				}
 			}
 
 			const HalfCycles full_length = cycle.length + penalty;
 			time_since_audio_update_ += full_length;
-			if(nick_ += full_length) {
-				const auto nick = nick_.last_valid();
-				const bool nick_interrupt_line = nick->get_interrupt_line();
-				if(nick_interrupt_line && !previous_nick_interrupt_line_) {
-					set_interrupt(Interrupt::Nick, nick_.last_sequence_point_overrun());
-				}
-				previous_nick_interrupt_line_ = nick_interrupt_line;
-			}
+			advance_nick(full_length);
 
 			// The WD/etc runs at a nominal 8Mhz.
 			if constexpr (has_disk_controller) {
