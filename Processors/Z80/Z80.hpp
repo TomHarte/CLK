@@ -145,6 +145,12 @@ struct PartialMachineCycle {
 	forceinline bool is_wait() const {
 		return operation >= Operation::ReadOpcodeWait && operation <= Operation::InterruptWait;
 	}
+	/*!
+		@returns @c true if this partial machine cycle is a memory access; @c false otherwise.
+	*/
+	forceinline bool is_memory_access() const {
+		return operation <= Operation::Write;
+	}
 
 	enum Line {
 		CLK = 1 << 0,
