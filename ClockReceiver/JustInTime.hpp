@@ -205,8 +205,8 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		}
 
 		/// Indicates the amount of time, in the local time scale, until the first local slot that falls wholly
-		/// after the amount of time provided in the target time scale.
-		[[nodiscard]] forceinline LocalTimeScale back_map(TargetTimeScale time) const {
+		/// after @c duration, if that delay were to occur in @c offset units of time from now.
+		[[nodiscard]] forceinline LocalTimeScale back_map(TargetTimeScale duration, TargetTimeScale offset) const {
 			// TODO.
 			return LocalTimeScale(0);
 		}

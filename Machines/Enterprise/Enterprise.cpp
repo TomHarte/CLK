@@ -237,6 +237,18 @@ template <bool has_disk_controller> class ConcreteMachine:
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
 
 			// Calculate an access penalty, if applicable.
+			//
+			// Rule applied here, which is slightly inferred:
+			//
+			//	Non-video reads and writes are delayed by exactly a cycle or not delayed at all,
+			//	depending on the programmer's configuration of Dave.
+			//
+			//	Video reads and writes, and Nick port accesses, are delayed so that the last
+			//	clock cycle of the machine cycle falls wholly inside the designated Z80 access
+			//	window, per Nick.
+			//
+			// The switch statement below just attempts to implement that logic.
+			//
 			HalfCycles penalty;
 			switch(cycle.operation) {
 				default: break;
@@ -254,8 +266,9 @@ template <bool has_disk_controller> class ConcreteMachine:
 					} else {
 						// Query Nick for the amount of delay that would occur with one cycle left
 						// in this read opcode.
-						const auto delay = nick_.last_valid()->get_time_until_z80_slot(nick_.time_since_flush(HalfCycles(2)));
-						penalty = nick_.back_map(delay);
+						const auto delay_time = nick_.time_since_flush(HalfCycles(2));
+						const auto delay = nick_.last_valid()->get_time_until_z80_slot(delay_time);
+						penalty = nick_.back_map(delay, delay_time);
 					}
 				break;
 
@@ -272,8 +285,9 @@ template <bool has_disk_controller> class ConcreteMachine:
 					if(is_video_[address >> 14]) {
 						// Get delay, in Nick cycles, for a Z80 access that occurs in 0.5
 						// cycles from now (i.e. with one cycle left to run).
-						const auto delay = nick_.last_valid()->get_time_until_z80_slot(nick_.time_since_flush(HalfCycles(1)));
-						penalty = nick_.back_map(delay);
+						const auto delay_time = nick_.time_since_flush(HalfCycles(1));
+						const auto delay = nick_.last_valid()->get_time_until_z80_slot(delay_time);
+						penalty = nick_.back_map(delay, delay_time);
 					}
 				break;
 
@@ -282,8 +296,9 @@ template <bool has_disk_controller> class ConcreteMachine:
 					if((address & 0xf0) == 0x80) {
 						// Get delay, in Nick cycles, for a Z80 access that occurs in 0.5
 						// cycles from now (i.e. with one cycle left to run).
-						const auto delay = nick_.last_valid()->get_time_until_z80_slot(nick_.time_since_flush(HalfCycles(1)));
-						penalty = nick_.back_map(delay);
+						const auto delay_time = nick_.time_since_flush(HalfCycles(1));
+						const auto delay = nick_.last_valid()->get_time_until_z80_slot(delay_time);
+						penalty = nick_.back_map(delay, delay_time);
 					}
 				}
 			}
