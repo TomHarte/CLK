@@ -41,27 +41,32 @@ class Dave: public Outputs::Speaker::SampleSource {
 			bool high_pass = false;
 			bool ring_modulate = false;
 			enum class Distortion {
-				None,
-				FourBit,
-				FiveBit,
-				SevenBit,
+				None = 0,
+				FourBit = 1,
+				FiveBit = 2,
+				SevenBit = 3,
 			} distortion = Distortion::None;
 			uint8_t amplitude[2]{};
 
 			// Current state.
 			uint16_t count = 0;
-			bool output = true;
+			int output = 0;
 		} channels_[3];
 		int16_t volume_ = 0;
 
-		// Various polynomials that contribute to audio generation.
+		// Polynomials that are always running.
 		Numeric::LFSRv<0xc> poly4_;
 		Numeric::LFSRv<0x14> poly5_;
 		Numeric::LFSRv<0x60> poly7_;
+
+		// The selectable, noise-related polynomial.
 		Numeric::LFSRv<0x110> poly9_;
 		Numeric::LFSRv<0x500> poly11_;
 		Numeric::LFSRv<0x6000> poly15_;
 		Numeric::LFSRv<0x12000> poly17_;
+
+		// Current state of the active polynomials.
+		uint8_t poly_state_[4];
 };
 
 }

@@ -50,15 +50,35 @@ void Dave::set_sample_volume_range(int16_t range) {
 }
 
 void Dave::get_samples(std::size_t number_of_samples, int16_t *target) {
-	// Step 1: divide input clock to 125,000 Hz (?)
 	for(size_t c = 0; c < number_of_samples; c++) {
-#define update_channel(x)								\
-		if(!channels_[x].count) {						\
-			channels_[x].output ^= true;				\
-			channels_[x].count = channels_[x].reload;	\
-		} else {										\
-			--channels_[x].count;						\
-		}
+		poly_state_[int(Channel::Distortion::FourBit)] = poly4_.next();
+		poly_state_[int(Channel::Distortion::FiveBit)] = poly5_.next();
+		poly_state_[int(Channel::Distortion::SevenBit)] = poly7_.next();
+
+		// TODO: substitute poly_state_[2] if polynomial substitution is in play.
+
+#define update_channel(x) {									\
+		auto output = channels_[x].output & 1;				\
+		channels_[x].output <<= 1;							\
+		if(!channels_[x].count) {							\
+			channels_[x].count = channels_[x].reload;		\
+															\
+			if(channels_[x].distortion == Channel::Distortion::None)	\
+				output ^= 1;								\
+			else											\
+				output = poly_state_[int(channels_[x].distortion)];	\
+															\
+			if(channels_[x].high_pass && (channels_[(x+1)%3].output&3) == 2) {	\
+				output = 0;									\
+			}												\
+			if(channels_[x].ring_modulate) {				\
+				output = ~(output ^ channels_[(x+2)%3].output) & 1;	\
+			}												\
+		} else {											\
+			--channels_[x].count;							\
+		}													\
+		channels_[x].output |= output;						\
+	}
 
 		update_channel(0);
 		update_channel(1);
@@ -69,16 +89,16 @@ void Dave::get_samples(std::size_t number_of_samples, int16_t *target) {
 		// Dumbest ever first attempt: sum channels.
 		target[(c << 1) + 0] =
 			volume_ * (
-				channels_[0].amplitude[0] * channels_[0].output +
-				channels_[1].amplitude[0] * channels_[1].output +
-				channels_[2].amplitude[0] * channels_[2].output
+				channels_[0].amplitude[0] * (channels_[0].output & 1) +
+				channels_[1].amplitude[0] * (channels_[1].output & 1) +
+				channels_[2].amplitude[0] * (channels_[2].output & 1)
 			);
 
 		target[(c << 1) + 1] =
 			volume_ * (
-				channels_[0].amplitude[1] * channels_[0].output +
-				channels_[1].amplitude[1] * channels_[1].output +
-				channels_[2].amplitude[1] * channels_[2].output
+				channels_[0].amplitude[1] * (channels_[0].output & 1) +
+				channels_[1].amplitude[1] * (channels_[1].output & 1) +
+				channels_[2].amplitude[1] * (channels_[2].output & 1)
 			);
 	}
 }

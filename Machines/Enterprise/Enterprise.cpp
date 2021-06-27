@@ -210,7 +210,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 			page<3>(0x00);
 
 			// Set up audio.
-			speaker_.set_input_rate(125000.0f);	// TODO: a bigger number, and respect the programmable divider.
+			speaker_.set_input_rate(250000.0f);	// TODO: a bigger number, and respect the programmable divider.
 
 			// Pass on any media.
 			insert_media(target.media);
@@ -368,7 +368,9 @@ template <bool has_disk_controller> class ConcreteMachine:
 		}
 
 		inline void update_audio() {
-			speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(32)));
+			// TODO: divide by only 8, letting Dave divide itself by a further 2 or 3
+			// as per its own register.
+			speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(16)));
 		}
 
 	private:
