@@ -53,10 +53,11 @@ void Dave::get_samples(std::size_t number_of_samples, int16_t *target) {
 	// Step 1: divide input clock to 125,000 Hz (?)
 	for(size_t c = 0; c < number_of_samples; c++) {
 #define update_channel(x)								\
-		--channels_[x].count;							\
 		if(!channels_[x].count) {						\
 			channels_[x].output ^= true;				\
 			channels_[x].count = channels_[x].reload;	\
+		} else {										\
+			--channels_[x].count;						\
 		}
 
 		update_channel(0);

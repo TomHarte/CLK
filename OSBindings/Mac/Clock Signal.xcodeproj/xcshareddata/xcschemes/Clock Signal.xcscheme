@@ -73,6 +73,7 @@
       debugDocumentVersioning = "YES"
       migratedStopOnEveryIssue = "YES"
       debugServiceExtension = "internal"
+      enableGPUShaderValidationMode = "2"
       allowLocationSimulation = "NO">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
