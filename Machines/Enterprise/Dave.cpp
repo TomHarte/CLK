@@ -21,7 +21,7 @@ void Dave::write(uint16_t address, uint8_t value) {
 				channels_[address >> 1].reload = (channels_[address >> 1].reload & 0xff00) | value;
 			break;
 			case 1:	case 3:	case 5:
-				channels_[address >> 1].reload = uint16_t((channels_[address >> 1].reload & 0x00ff) | ((value & 0xf) << 4));
+				channels_[address >> 1].reload = uint16_t((channels_[address >> 1].reload & 0x00ff) | ((value & 0xf) << 8));
 				channels_[address >> 1].distortion = Channel::Distortion((value >> 4)&3);
 				channels_[address >> 1].high_pass = value & 0x40;
 				channels_[address >> 1].ring_modulate = value & 0x80;
