@@ -52,6 +52,9 @@ Nick::Nick(const uint8_t *ram) :
 
 	// Just use RGB for now.
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+
+	// Crop to the centre 90% of the display.
+	crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 }
 
 void Nick::write(uint16_t address, uint8_t value) {
@@ -92,7 +95,7 @@ uint8_t Nick::read([[maybe_unused]] uint16_t address) {
 	return 0xff;
 }
 
-Cycles Nick::get_time_until_z80_slot() const {
+Cycles Nick::get_time_until_z80_slot(Cycles after_period) const {
 	// Place Z80 accesses as the first six cycles in each sixteen-cycle window.
 	// That models video accesses as being the final ten. Which has the net effect
 	// of responding to the line parameter table interrupt flag as soon as it's
@@ -100,7 +103,7 @@ Cycles Nick::get_time_until_z80_slot() const {
 
 	// i.e. 0 -> 0, 1 -> 15 ... 15 -> 1.
 	return Cycles(
-		15 ^ ((horizontal_counter_ + 15) & 15)
+		15 ^ ((horizontal_counter_ + 15 + after_period.as<int>()) & 15)
 	);
 }
 
