@@ -219,8 +219,8 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 			// Figure out the number of whole input steps that is required to get
 			// past target, and subtract the number of whole input steps necessary
 			// to get to base.
-			const auto steps_to_base = base.as_integral() / divider;
-			const auto steps_to_target = (target.as_integral() + divider - 1) / divider;
+			const auto steps_to_base = base.as_integral() / multiplier;
+			const auto steps_to_target = (target.as_integral() + divider - 1) / multiplier;
 
 			return LocalTimeScale(steps_to_target - steps_to_base);
 		}
