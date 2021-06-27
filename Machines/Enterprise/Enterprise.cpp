@@ -226,9 +226,31 @@ template <bool has_disk_controller> class ConcreteMachine:
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
 
 			// TODO: possibly apply an access penalty.
+			HalfCycles penalty;
+			if(is_video_[address >> 14]) {
+				// TODO.
+			} else {
+				switch(cycle.operation) {
+					default: break;
 
-			time_since_audio_update_ += cycle.length;
-			if(nick_ += cycle.length) {
+					case CPU::Z80::PartialMachineCycle::ReadStart:
+					case CPU::Z80::PartialMachineCycle::WriteStart:
+						if(wait_mode_ == WaitMode::OnAllAccesses) {
+							penalty = HalfCycles(2);
+						}
+					break;
+
+					case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
+						if(wait_mode_ != WaitMode::None) {
+							penalty = HalfCycles(2);
+						}
+					break;
+				}
+			}
+
+			const HalfCycles full_length = cycle.length + penalty;
+			time_since_audio_update_ += full_length;
+			if(nick_ += full_length) {
 				const auto nick = nick_.last_valid();
 				const bool nick_interrupt_line = nick->get_interrupt_line();
 				if(nick_interrupt_line && !previous_nick_interrupt_line_) {
@@ -239,7 +261,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 
 			// The WD/etc runs at a nominal 8Mhz.
 			if constexpr (has_disk_controller) {
-				exdos_.run_for(Cycles(cycle.length.as_integral()));
+				exdos_.run_for(Cycles(full_length.as_integral()));
 			}
 
 			switch(cycle.operation) {
@@ -338,6 +360,11 @@ template <bool has_disk_controller> class ConcreteMachine:
 						break;
 						case 0xbf:
 							printf("TODO: Dave sysconfig %02x\n", *cycle.value);
+							switch((*cycle.value >> 2)&3) {
+								default:	wait_mode_ = WaitMode::None;			break;
+								case 0:		wait_mode_ = WaitMode::OnAllAccesses;	break;
+								case 1:		wait_mode_ = WaitMode::OnM1;			break;
+							}
 						break;
 					}
 				break;
@@ -358,7 +385,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 				break;
 			}
 
-			return HalfCycles(0);
+			return penalty;
 		}
 
 		void flush() {
@@ -392,6 +419,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 #define Map(location, source)												\
 	if(offset >= location && offset < location + source.size() / 0x4000) {	\
 		page<slot>(&source[(offset - location) * 0x4000], nullptr);			\
+		is_video_[slot] = false;											\
 		return;																\
 	}
 
@@ -409,6 +437,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 			if(offset >= min_ram_slot_) {
 				const auto ram_floor = 4194304 - ram_.size();
 				const size_t address = offset * 0x4000 - ram_floor;
+				is_video_[slot] = offset >= 0xfc;	// TODO: this hard-codes a 64kb video assumption.
 				page<slot>(&ram_[address], &ram_[address]);
 				return;
 			}
@@ -420,6 +449,16 @@ template <bool has_disk_controller> class ConcreteMachine:
 			read_pointers_[slot] = read ? read - (slot * 0x4000) : nullptr;
 			write_pointers_[slot] = write ? write - (slot * 0x4000) : nullptr;
 		}
+
+		// MARK: - Memory Timing
+
+		// The wait mode affects all memory accesses _outside of the video area_.
+		enum class WaitMode {
+			None,
+			OnM1,
+			OnAllAccesses
+		} wait_mode_ = WaitMode::None;
+		bool is_video_[4]{};
 
 		// MARK: - ScanProducer
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
