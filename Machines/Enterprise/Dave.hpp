@@ -35,6 +35,7 @@ class Dave: public Outputs::Speaker::SampleSource {
 	private:
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
 
+		// Tone channels.
 		struct Channel {
 			// User-set values.
 			uint16_t reload = 0;
@@ -52,6 +53,34 @@ class Dave: public Outputs::Speaker::SampleSource {
 			uint16_t count = 0;
 			int output = 0;
 		} channels_[3];
+
+		// Noise channel.
+		struct Noise {
+			// User-set values.
+			uint8_t amplitude[2]{};
+			enum class Frequency {
+				DivideByFour,
+				ToneChannel0,
+				ToneChannel1,
+				ToneChannel2,
+			} frequency = Frequency::DivideByFour;
+			enum class Polynomial {
+				SeventeenBit,
+				FifteenBit,
+				ElevenBit,
+				NineBit
+			} polynomial = Polynomial::SeventeenBit;
+			bool swap_polynomial = false;
+			bool low_pass = false;
+			bool high_pass = false;
+			bool ring_modulate = false;
+
+			// Current state.
+			bool output = false;
+			uint16_t count = 0;
+		} noise_;
+
+		// Global volume, per SampleSource obligations.
 		int16_t volume_ = 0;
 
 		// Polynomials that are always running.
