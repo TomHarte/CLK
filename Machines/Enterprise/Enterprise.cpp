@@ -493,8 +493,8 @@ template <bool has_disk_controller> class ConcreteMachine:
 		// Cf. timing guesses above.
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
-		Dave dave_;
-		Outputs::Speaker::LowpassSpeaker<Dave> speaker_;
+		Dave::Audio dave_;
+		Outputs::Speaker::LowpassSpeaker<Dave::Audio> speaker_;
 		HalfCycles time_since_audio_update_;
 
 		// MARK: - EXDos card.

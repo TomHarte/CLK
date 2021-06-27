@@ -16,14 +16,15 @@
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
 namespace Enterprise {
+namespace Dave {
 
 /*!
 	Models a subset of Dave's behaviour; memory mapping and interrupt status
 	is integrated into the main Enterprise machine.
 */
-class Dave: public Outputs::Speaker::SampleSource {
+class Audio: public Outputs::Speaker::SampleSource {
 	public:
-		Dave(Concurrency::DeferringAsyncTaskQueue &audio_queue);
+		Audio(Concurrency::DeferringAsyncTaskQueue &audio_queue);
 
 		void write(uint16_t address, uint8_t value);
 
@@ -48,11 +49,13 @@ class Dave: public Outputs::Speaker::SampleSource {
 				SevenBit = 3,
 			} distortion = Distortion::None;
 			uint8_t amplitude[2]{};
+			bool sync = false;
 
 			// Current state.
 			uint16_t count = 0;
 			int output = 0;
 		} channels_[3];
+		void update_channel(int);
 
 		// Noise channel.
 		struct Noise {
@@ -76,9 +79,13 @@ class Dave: public Outputs::Speaker::SampleSource {
 			bool ring_modulate = false;
 
 			// Current state.
-			bool output = false;
-			uint16_t count = 0;
+			int count = 0;
+			int output = false;
+			bool final_output = false;
 		} noise_;
+		void update_noise();
+
+		bool use_direct_output_[2]{};
 
 		// Global volume, per SampleSource obligations.
 		int16_t volume_ = 0;
@@ -98,6 +105,7 @@ class Dave: public Outputs::Speaker::SampleSource {
 		uint8_t poly_state_[4];
 };
 
+}
 }
 
 #endif /* Dave_hpp */
