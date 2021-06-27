@@ -207,8 +207,22 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		/// Indicates the amount of time, in the local time scale, until the first local slot that falls wholly
 		/// after @c duration, if that delay were to occur in @c offset units of time from now.
 		[[nodiscard]] forceinline LocalTimeScale back_map(TargetTimeScale duration, TargetTimeScale offset) const {
-			// TODO.
-			return LocalTimeScale(0);
+			// A 1:1 mapping is easy.
+			if constexpr (multiplier == 1 && divider == 1) {
+				return duration;
+			}
+
+			// Work out when this query is placed, and the time to which it relates
+			const auto base = time_since_update_ + offset * divider;
+			const auto target = base + duration * divider;
+
+			// Figure out the number of whole input steps that is required to get
+			// past target, and subtract the number of whole input steps necessary
+			// to get to base.
+			const auto steps_to_base = base.as_integral() / divider;
+			const auto steps_to_target = (target.as_integral() + divider - 1) / divider;
+
+			return LocalTimeScale(steps_to_target - steps_to_base);
 		}
 
 		/// Updates this template's record of the next sequence point.
