@@ -23,11 +23,12 @@ class Nick {
 		uint8_t read(uint16_t address);
 
 		void run_for(Cycles);
+		Cycles get_time_until_z80_slot() const;
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
-		Cycles get_next_sequence_point();
+		Cycles get_next_sequence_point() const;
 
 		/*!
 			@returns The current state of the interrupt line — @c true for active;

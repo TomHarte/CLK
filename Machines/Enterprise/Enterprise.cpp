@@ -225,26 +225,38 @@ template <bool has_disk_controller> class ConcreteMachine:
 			using PartialMachineCycle = CPU::Z80::PartialMachineCycle;
 			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
 
-			// TODO: possibly apply an access penalty.
+			// Calculate an access penalty, if applicable.
 			HalfCycles penalty;
-			if(is_video_[address >> 14]) {
-				// TODO.
-			} else {
-				switch(cycle.operation) {
-					default: break;
+			switch(cycle.operation) {
+				default: break;
 
-					case CPU::Z80::PartialMachineCycle::ReadStart:
-					case CPU::Z80::PartialMachineCycle::WriteStart:
-						if(wait_mode_ == WaitMode::OnAllAccesses) {
-							penalty = HalfCycles(2);
-						}
-					break;
+				// For non-video pauses, insert during the initial part of the bus cycle.
+				case CPU::Z80::PartialMachineCycle::ReadStart:
+				case CPU::Z80::PartialMachineCycle::WriteStart:
+					if(!is_video_[address >> 14] && wait_mode_ == WaitMode::OnAllAccesses) {
+						penalty = HalfCycles(2);
+					}
+				break;
+				case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
+					if(!is_video_[address >> 14] && wait_mode_ != WaitMode::None) {
+						penalty = HalfCycles(2);
+					}
+				break;
 
-					case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
-						if(wait_mode_ != WaitMode::None) {
-							penalty = HalfCycles(2);
-						}
-					break;
+				// Video pauses: insert right at the end of the bus cycle.
+				case CPU::Z80::PartialMachineCycle::ReadOpcode:
+				case CPU::Z80::PartialMachineCycle::Read:
+				case CPU::Z80::PartialMachineCycle::Write:
+					if(is_video_[address >> 14]) {
+						// TODO.
+					}
+				break;
+
+				case CPU::Z80::PartialMachineCycle::Input:
+				case CPU::Z80::PartialMachineCycle::Output: {
+					if((address & 0xf0) == 0x80) {
+						// TODO.
+					}
 				}
 			}
 

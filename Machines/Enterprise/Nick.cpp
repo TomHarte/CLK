@@ -92,7 +92,17 @@ uint8_t Nick::read([[maybe_unused]] uint16_t address) {
 	return 0xff;
 }
 
-//int c;
+Cycles Nick::get_time_until_z80_slot() const {
+	// Place Z80 accesses as the first six cycles in each sixteen-cycle window.
+	// That models video accesses as being the final ten. Which has the net effect
+	// of responding to the line parameter table interrupt flag as soon as it's
+	// loaded.
+
+	// i.e. 0 -> 0, 1 -> 15 ... 15 -> 1.
+	return Cycles(
+		15 ^ ((horizontal_counter_ + 15) & 15)
+	);
+}
 
 void Nick::run_for(Cycles duration) {
 	constexpr int line_length = 912;
@@ -455,7 +465,7 @@ void Nick::set_output_type(OutputType type, bool force_flush) {
 
 // MARK: - Sequence points.
 
-Cycles Nick::get_next_sequence_point() {
+Cycles Nick::get_next_sequence_point() const {
 	// TODO: the below is incorrect; unit test and correct.
 	// Changing to e.g. Cycles(1) reveals the relevant discrepancy.
 //	return Cycles(1);
