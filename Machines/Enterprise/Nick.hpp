@@ -34,7 +34,7 @@ class Nick {
 			@returns The current state of the interrupt line — @c true for active;
 				@c false for inactive.
 		*/
-		inline bool get_interrupt_line() {
+		inline bool get_interrupt_line() const {
 			return interrupt_line_;
 		}
 
