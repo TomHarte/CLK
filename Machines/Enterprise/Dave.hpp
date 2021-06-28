@@ -136,7 +136,7 @@ class TimedInterruptSource {
 
 		Cycles one_hz_offset_ = clock_rate;
 
-		int programmable_offset_ = 0;
+		int programmable_offset_ = std::numeric_limits<int>::max();
 		bool programmable_level_ = false;
 
 		enum class InterruptRate {
@@ -149,7 +149,9 @@ class TimedInterruptSource {
 		struct Channel {
 			uint16_t value = 100, reload = 100;
 			bool sync = false;
+			bool level = false;
 		} channels_[2];
+		void update_channel(int c, bool is_linked, int decrement);
 };
 
 }

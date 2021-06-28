@@ -211,14 +211,47 @@ void TimedInterruptSource::write(uint16_t address, uint8_t value) {
 			channels_[address >> 1].reload = uint16_t((channels_[address >> 1].reload & 0x00ff) | ((value & 0xf) << 8));
 		break;
 
-		case 7:
+		case 7: {
 			channels_[0].sync = value & 0x01;
 			channels_[1].sync = value & 0x02;
 
-			// TODO: a hard cut-over here if switching to tracking a tone generator.
-			rate_ = InterruptRate((value >> 5) & 3);
-		break;
+			const InterruptRate rate = InterruptRate((value >> 5) & 3);
+			if(rate != rate_) {
+				rate_ = InterruptRate((value >> 5) & 3);
+
+				if(rate_ >= InterruptRate::ToneGenerator0) {
+					programmable_level_ = channels_[int(rate_) - int(InterruptRate::ToneGenerator0)].level;
+				} else {
+					// TODO: eliminate copy and paste from below.
+					switch(rate_) {
+						case InterruptRate::OnekHz:			programmable_offset_ = 125;					break;
+						case InterruptRate::FiftyHz:		programmable_offset_ = 2500;				break;
+						default: break;
+					}
+				}
+			}
+		} break;
 	}
+}
+
+void TimedInterruptSource::update_channel(int c, bool is_linked, int decrement) {
+	if(channels_[c].sync) {
+		channels_[c].value = channels_[c].reload;
+	} else {
+		channels_[c].value -= decrement;
+		if(channels_[c].value < 0) {
+			channels_[c].value += channels_[c].reload + 1;
+
+			if(is_linked) {
+				if(channels_[c].level) {
+					interrupts_ |= uint8_t(Interrupt::VariableFrequency);
+				}
+				programmable_level_ = channels_[c].level;
+			}
+			channels_[c].value ^= true;
+		}
+	}
+
 }
 
 void TimedInterruptSource::run_for(Cycles cycles) {
@@ -229,29 +262,41 @@ void TimedInterruptSource::run_for(Cycles cycles) {
 		one_hz_offset_ += clock_rate;
 	}
 
-	// TODO: shadow update the two tone channels.
+	// Update the two tone channels.
+	update_channel(0, rate_ == InterruptRate::ToneGenerator0, cycles.as<int>());
+	update_channel(1, rate_ == InterruptRate::ToneGenerator1, cycles.as<int>());
 
 	// Update the programmable-frequency interrupt.
-	programmable_offset_ -= cycles.as<int>();
-	if(programmable_offset_ < 0) {
-		if(programmable_level_) {
-			interrupts_ |= uint8_t(Interrupt::VariableFrequency);
-		}
-		programmable_level_ ^= true;
+	if(rate_ < InterruptRate::ToneGenerator0) {
+		programmable_offset_ -= cycles.as<int>();
+		if(programmable_offset_ <= 0) {
+			if(programmable_level_) {
+				interrupts_ |= uint8_t(Interrupt::VariableFrequency);
+			}
+			programmable_level_ ^= true;
 
-		switch(rate_) {
-			case InterruptRate::OnekHz:			programmable_offset_ = 124;					break;
-			case InterruptRate::FiftyHz:		programmable_offset_ = 2499;				break;
-			case InterruptRate::ToneGenerator0: programmable_offset_ = channels_[0].value;	break;
-			case InterruptRate::ToneGenerator1: programmable_offset_ = channels_[1].value;	break;
+			switch(rate_) {
+				case InterruptRate::OnekHz:			programmable_offset_ = 125;					break;
+				case InterruptRate::FiftyHz:		programmable_offset_ = 2500;				break;
+				default: break;
+			}
 		}
 	}
 }
 
 Cycles TimedInterruptSource::get_next_sequence_point() const {
-	// To match normal tone generator logic: the programmable timer will
-	// generate activity when it underflows, not when it hits zero.
-	return (programmable_offset_+1) < one_hz_offset_.as<int>() ? Cycles(programmable_offset_+1) : one_hz_offset_;
+	int result = one_hz_offset_.as<int>();
+
+	if(rate_ < InterruptRate::ToneGenerator0) {
+		result = std::min(result, programmable_offset_);
+	}
+
+	// To match normal tone generator logic: the tone generators will
+	// generate activity when they underflow, not when they hits zero.
+	result = std::min(result, channels_[0].value + 1);
+	result = std::min(result, channels_[1].value + 1);
+
+	return Cycles(result);
 }
 
 uint8_t TimedInterruptSource::get_divider_state() {
