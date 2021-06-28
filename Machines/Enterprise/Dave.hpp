@@ -122,6 +122,7 @@ class TimedInterruptSource {
 		void write(uint16_t address, uint8_t value);
 
 		uint8_t get_new_interrupts();
+		uint8_t get_divider_state();
 
 		void run_for(Cycles);
 
@@ -131,9 +132,12 @@ class TimedInterruptSource {
 		uint8_t interrupts_ = 0;
 
 		static constexpr Cycles clock_rate{250000};
+		static constexpr Cycles half_clock_rate{125000};
 
 		Cycles one_hz_offset_ = clock_rate;
-		uint16_t programmable_offset_ = 0;
+
+		int programmable_offset_ = 0;
+		bool programmable_level_ = false;
 
 		enum class InterruptRate {
 			OnekHz,
