@@ -399,10 +399,6 @@ template <bool has_disk_controller> class ConcreteMachine:
 							interrupt_mask_ = *cycle.value & 0x55;
 							interrupt_state_ &= ~*cycle.value;
 							update_interrupts();
-
-							if(interrupt_mask_ & 0x41) {
-								printf("Unimplemented interrupts requested: %02x\n", interrupt_mask_ & 0x45);
-							}
 						break;
 						case 0xb5:
 							active_key_line_ = *cycle.value & 0xf;

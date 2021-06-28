@@ -234,12 +234,14 @@ void TimedInterruptSource::write(uint16_t address, uint8_t value) {
 	}
 }
 
+// TODO: don't muck about with update_channel if channels have a reload value of 0.
+
 void TimedInterruptSource::update_channel(int c, bool is_linked, int decrement) {
 	if(channels_[c].sync) {
 		channels_[c].value = channels_[c].reload;
 	} else {
 		channels_[c].value -= decrement;
-		if(channels_[c].value < 0) {
+		while(channels_[c].value < 0) {
 			channels_[c].value += channels_[c].reload + 1;
 
 			if(is_linked) {
@@ -248,7 +250,7 @@ void TimedInterruptSource::update_channel(int c, bool is_linked, int decrement) 
 				}
 				programmable_level_ = channels_[c].level;
 			}
-			channels_[c].value ^= true;
+			channels_[c].level ^= true;
 		}
 	}
 

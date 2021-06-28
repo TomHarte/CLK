@@ -147,7 +147,7 @@ class TimedInterruptSource {
 		} rate_ = InterruptRate::OnekHz;
 
 		struct Channel {
-			uint16_t value = 100, reload = 100;
+			int value = 100, reload = 100;
 			bool sync = false;
 			bool level = false;
 		} channels_[2];
