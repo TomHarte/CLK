@@ -228,7 +228,19 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		/// Updates this template's record of the next sequence point.
 		void update_sequence_point() {
 			if constexpr (has_sequence_points<T>::value) {
-				time_until_event_ = object_.get_next_sequence_point() * divider;
+				// Keep a fast path where no conversions will be applied; if conversions are
+				// going to be applied then do a direct max -> max translation rather than
+				// allowing the arithmetic to overflow.
+				if constexpr (divider == 1 && std::is_same_v<LocalTimeScale, TargetTimeScale>) {
+					time_until_event_ = object_.get_next_sequence_point();
+				} else {
+					const auto time = object_.get_next_sequence_point();
+					if(time == TargetTimeScale::max()) {
+						time_until_event_ = LocalTimeScale::max();
+					} else {
+						time_until_event_ = time * divider;
+					}
+				}
 				assert(time_until_event_ > LocalTimeScale(0));
 			}
 		}
