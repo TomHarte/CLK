@@ -113,6 +113,8 @@ void Nick::run_for(Cycles duration) {
 	// TODO: test here for window < 57? Or maybe just nudge up left_/right_margin_ if they
 	// exactly equal 57?
 #define add_window(x)											\
+	line_data_pointer_[0] += is_sync_or_pixels_ * line_data_per_column_increments_[0] * (x);	\
+	line_data_pointer_[1] += is_sync_or_pixels_ * line_data_per_column_increments_[1] * (x);	\
 	window += x;												\
 	if(window == left_margin_) is_sync_or_pixels_ = true;		\
 	if(window == right_margin_) is_sync_or_pixels_ = false;
@@ -170,15 +172,10 @@ void Nick::run_for(Cycles duration) {
 							break;
 
 							case Mode::LPixel:
-								column_size_ = 8 / bpp_;
-								line_data_per_column_increments_[0] = 1;
-								line_data_per_column_increments_[1] = 0;
-							break;
-
 							case Mode::CH64:
 							case Mode::CH128:
 							case Mode::CH256:
-								column_size_ = 8;
+								column_size_ = 8 / bpp_;
 								line_data_per_column_increments_[0] = 1;
 								line_data_per_column_increments_[1] = 0;
 							break;
@@ -362,13 +359,10 @@ void Nick::run_for(Cycles duration) {
 									set_output_type(OutputType::Pixels, true);
 								}
 								columns_remaining -= output_duration;
+								add_window(output_duration);
 							} else {
-								// Ensure line data pointers are advanced as if there hadn't been back pressure on
-								// pixel rendering.
-								line_data_pointer_[0] += columns_remaining * line_data_per_column_increments_[0];
-								line_data_pointer_[1] += columns_remaining * line_data_per_column_increments_[1];
-
 								output_duration_ += columns_remaining;
+								add_window(columns_remaining);
 								columns_remaining = 0;
 							}
 						}
@@ -382,9 +376,9 @@ void Nick::run_for(Cycles duration) {
 #undef DispatchBpp
 					} else {
 						output_duration_ += next_event - window;
+						add_window(next_event - window);
 					}
 
-					add_window(next_event - window);
 					set_output_type(is_sync_or_pixels_ ? OutputType::Pixels : OutputType::Border);
 				}
 			}
@@ -392,6 +386,8 @@ void Nick::run_for(Cycles duration) {
 
 		// Check for end of line.
 		if(!horizontal_counter_) {
+			assert(window == 57);
+
 			++lines_remaining_;
 			if(!lines_remaining_) {
 				should_reload_line_parameters_ = true;
@@ -523,12 +519,16 @@ Outputs::Display::ScanStatus Nick::get_scaled_scan_status() const {
 	target[0] = mapped_colour(x);	\
 	++target
 
-template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int columns) {
+template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int columns) const {
 	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
 
+	int index = 0;
 	for(int c = 0; c < columns; c++) {
-		uint8_t pixels[2] = { ram_[line_data_pointer_[0]], ram_[(line_data_pointer_[0]+1) & 0xffff] };
-		line_data_pointer_[0] += is_lpixel ? 1 : 2;
+		uint8_t pixels[2] = {
+			ram_[(line_data_pointer_[0] + index) & 0xffff],
+			ram_[(line_data_pointer_[0] + index + 1) & 0xffff]
+		};
+		index += is_lpixel ? 1 : 2;
 
 		switch(bpp) {
 			default:
@@ -568,20 +568,15 @@ template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int
 	}
 }
 
-template <int bpp, int index_bits> void Nick::output_character(uint16_t *target, int columns) {
+template <int bpp, int index_bits> void Nick::output_character(uint16_t *target, int columns) const {
 	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
 
 	for(int c = 0; c < columns; c++) {
-		const uint8_t character = ram_[line_data_pointer_[0]];
-		++line_data_pointer_[0];
-
+		const uint8_t character = ram_[(line_data_pointer_[0] + c) & 0xffff];
 		const uint8_t pixels = ram_[(
 			(line_data_pointer_[1] << index_bits) +
 			(character & ((1 << index_bits) - 1))
 		) & 0xffff];
-
-		// TODO: below looks repetitious of the above, but I've yet to factor in
-		// ALTINDs and [M/L]SBALTs, so I'll correct for factoring when I've done that.
 
 		switch(bpp) {
 			default:
@@ -601,15 +596,12 @@ template <int bpp, int index_bits> void Nick::output_character(uint16_t *target,
 	}
 }
 
-template <int bpp> void Nick::output_attributed(uint16_t *target, int columns) {
+template <int bpp> void Nick::output_attributed(uint16_t *target, int columns) const {
 	static_assert(bpp == 1 || bpp == 2 || bpp == 4 || bpp == 8);
 
 	for(int c = 0; c < columns; c++) {
-		const uint8_t pixels = ram_[line_data_pointer_[1]];
-		const uint8_t attributes = ram_[line_data_pointer_[0]];
-
-		++line_data_pointer_[0];
-		++line_data_pointer_[1];
+		const uint8_t pixels = ram_[(line_data_pointer_[1] + c) & 0xffff];
+		const uint8_t attributes = ram_[(line_data_pointer_[0] + c) & 0xffff];
 
 		const uint16_t palette[2] = {
 			palette_[attributes >> 4], palette_[attributes & 0x0f]

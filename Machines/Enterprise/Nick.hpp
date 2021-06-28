@@ -81,7 +81,7 @@ class Nick {
 		int border_duration_ = 0;
 
 		// The destination for new pixels.
-		static constexpr int allocation_size = 320;
+		static constexpr int allocation_size = 336;
 		static_assert((allocation_size % 16) == 0, "Allocation size must be a multiple of 16");
 		uint16_t *pixel_pointer_ = nullptr, *allocated_pointer_ = nullptr;
 
@@ -97,9 +97,9 @@ class Nick {
 		uint16_t palette_[16]{};
 
 		// Specific outputters.
-		template <int bpp, bool is_lpixel> void output_pixel(uint16_t *target, int columns);
-		template <int bpp, int index_bits> void output_character(uint16_t *target, int columns);
-		template <int bpp> void output_attributed(uint16_t *target, int columns);
+		template <int bpp, bool is_lpixel> void output_pixel(uint16_t *target, int columns) const;
+		template <int bpp, int index_bits> void output_character(uint16_t *target, int columns) const;
+		template <int bpp> void output_attributed(uint16_t *target, int columns) const;
 };
 
 
