@@ -62,6 +62,7 @@ namespace Enterprise {
 */
 
 template <bool has_disk_controller> class ConcreteMachine:
+	public Activity::Source,
 	public CPU::Z80::BusHandler,
 	public Machine,
 	public MachineTypes::AudioProducer,
@@ -86,8 +87,8 @@ template <bool has_disk_controller> class ConcreteMachine:
 			min_ram_slot_(min_ram_slot(target)),
 			z80_(*this),
 			nick_(ram_.end() - 65536),
-			dave_(audio_queue_),
-			speaker_(dave_) {
+			dave_audio_(audio_queue_),
+			speaker_(dave_audio_) {
 			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and Dave elsewhere.
 			set_clock_rate(4'000'000);
 
@@ -226,7 +227,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 				const auto nick = nick_.last_valid();
 				const bool nick_interrupt_line = nick->get_interrupt_line();
 				if(nick_interrupt_line && !previous_nick_interrupt_line_) {
-					set_interrupt(Interrupt::Nick, nick_.last_sequence_point_overrun());
+					set_interrupts(uint8_t(Dave::Interrupt::Nick), nick_.last_sequence_point_overrun());
 				}
 				previous_nick_interrupt_line_ = nick_interrupt_line;
 			}
@@ -306,6 +307,9 @@ template <bool has_disk_controller> class ConcreteMachine:
 			const HalfCycles full_length = cycle.length + penalty;
 			time_since_audio_update_ += full_length;
 			advance_nick(full_length);
+			if(dave_timer_ += full_length) {
+				set_interrupts(dave_timer_.last_valid()->get_new_interrupts(), dave_timer_.last_sequence_point_overrun());
+			}
 
 			// The WD/etc runs at a nominal 8Mhz.
 			if constexpr (has_disk_controller) {
@@ -387,7 +391,8 @@ template <bool has_disk_controller> class ConcreteMachine:
 						case 0xa8:	case 0xa9:	case 0xaa:	case 0xab:
 						case 0xac:	case 0xad:	case 0xae:	case 0xaf:
 							update_audio();
-							dave_.write(address, *cycle.value);
+							dave_audio_.write(address, *cycle.value);
+							dave_timer_->write(address, *cycle.value);
 						break;
 
 						case 0xb4:
@@ -440,12 +445,6 @@ template <bool has_disk_controller> class ConcreteMachine:
 			nick_.flush();
 			update_audio();
 			audio_queue_.perform();
-		}
-
-		inline void update_audio() {
-			// TODO: divide by only 8, letting Dave divide itself by a further 2 or 3
-			// as per its own register.
-			speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(16)));
 		}
 
 	private:
@@ -560,12 +559,9 @@ template <bool has_disk_controller> class ConcreteMachine:
 		}
 
 		// MARK: - Interrupts
-		enum class Interrupt: uint8_t {
-			Nick = 0x20
-		};
 
 		uint8_t interrupt_mask_ = 0x00, interrupt_state_ = 0x00;
-		void set_interrupt(Interrupt mask, HalfCycles offset = HalfCycles(0)) {
+		void set_interrupts(uint8_t mask, HalfCycles offset = HalfCycles(0)) {
 			interrupt_state_ |= uint8_t(mask);
 			update_interrupts(offset);
 		}
@@ -580,12 +576,27 @@ template <bool has_disk_controller> class ConcreteMachine:
 		// Cf. timing guesses above.
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
-		Dave::Audio dave_;
+		Dave::Audio dave_audio_;
 		Outputs::Speaker::LowpassSpeaker<Dave::Audio> speaker_;
 		HalfCycles time_since_audio_update_;
 
+		// The following two should both use the same divider.
+		JustInTimeActor<Dave::TimedInterruptSource, HalfCycles, 1, 16> dave_timer_;
+		inline void update_audio() {
+			// TODO: divide by only 8, letting Dave divide itself by a further 2 or 3
+			// as per its own register.
+			speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(16)));
+		}
+
 		// MARK: - EXDos card.
 		EXDos exdos_;
+
+		// MARK: - Activity Source
+		void set_activity_observer(Activity::Observer *observer) final {
+			if constexpr (has_disk_controller) {
+				exdos_.set_activity_observer(observer);
+			}
+		}
 };
 
 }

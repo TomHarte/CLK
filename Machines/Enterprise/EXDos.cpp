@@ -70,3 +70,9 @@ void EXDos::set_motor_on(bool on) {
 	// writing state, so plenty of work to do in general here.
 	get_drive().set_motor_on(on);
 }
+
+void EXDos::set_activity_observer(Activity::Observer *observer) {
+	for_all_drives([observer] (Storage::Disk::Drive &drive, size_t index) {
+		drive.set_activity_observer(observer, "Drive " + std::to_string(index+1), true);
+	});
+}

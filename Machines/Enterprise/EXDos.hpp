@@ -23,6 +23,8 @@ class EXDos final : public WD::WD1770 {
 		void set_control_register(uint8_t control);
 		uint8_t get_control_register();
 
+		void set_activity_observer(Activity::Observer *observer);
+
 	private:
 		bool disk_did_change_ = false;
 

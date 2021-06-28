@@ -10,6 +10,8 @@
 
 using namespace Enterprise::Dave;
 
+// MARK: - Audio generator
+
 Audio::Audio(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
 	audio_queue_(audio_queue) {}
 
@@ -187,4 +189,21 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 						noise_.amplitude[1] * noise_.final_output
 				));
 	}
+}
+
+// MARK: - Interrupt source
+
+uint8_t TimedInterruptSource::get_new_interrupts() {
+	const uint8_t result = interrupts_;
+	interrupts_ = 0;
+	return result;
+}
+
+void TimedInterruptSource::write(uint16_t address, uint8_t value) {
+	(void)address;
+	(void)value;
+}
+
+void TimedInterruptSource::run_for(Cycles cycles) {
+	(void)cycles;
 }

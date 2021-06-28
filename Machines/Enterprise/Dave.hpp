@@ -11,6 +11,7 @@
 
 #include <cstdint>
 
+#include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../Numeric/LFSR.hpp"
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
@@ -18,9 +19,14 @@
 namespace Enterprise {
 namespace Dave {
 
+enum class Interrupt: uint8_t {
+	VariableFrequency = 0x02,
+	OneHz = 0x08,
+	Nick = 0x20,
+};
+
 /*!
-	Models a subset of Dave's behaviour; memory mapping and interrupt status
-	is integrated into the main Enterprise machine.
+	Models the audio-production subset of Dave's behaviour.
 */
 class Audio: public Outputs::Speaker::SampleSource {
 	public:
@@ -103,6 +109,24 @@ class Audio: public Outputs::Speaker::SampleSource {
 
 		// Current state of the active polynomials.
 		uint8_t poly_state_[4];
+};
+
+/*!
+	Provides Dave's timed interrupts — those that are provided at 1 kHz,
+	50 Hz or according to the rate of tone generators 0 or 1, plus the fixed
+	1 Hz interrupt.
+
+*/
+class TimedInterruptSource {
+	public:
+		void write(uint16_t address, uint8_t value);
+
+		uint8_t get_new_interrupts();
+
+		void run_for(Cycles);
+
+	private:
+		uint8_t interrupts_ = 0;
 };
 
 }
