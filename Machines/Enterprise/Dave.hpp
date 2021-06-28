@@ -152,6 +152,13 @@ class TimedInterruptSource {
 			bool level = false;
 		} channels_[2];
 		void update_channel(int c, bool is_linked, int decrement);
+		static constexpr int programmble_reload(InterruptRate rate) {
+			switch(rate) {
+				default: return 0;
+				case InterruptRate::OnekHz:		return 125;
+				case InterruptRate::FiftyHz:	return 2500;
+			}
+		}
 };
 
 }

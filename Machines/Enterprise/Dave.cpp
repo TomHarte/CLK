@@ -222,12 +222,7 @@ void TimedInterruptSource::write(uint16_t address, uint8_t value) {
 				if(rate_ >= InterruptRate::ToneGenerator0) {
 					programmable_level_ = channels_[int(rate_) - int(InterruptRate::ToneGenerator0)].level;
 				} else {
-					// TODO: eliminate copy and paste from below.
-					switch(rate_) {
-						case InterruptRate::OnekHz:			programmable_offset_ = 125;					break;
-						case InterruptRate::FiftyHz:		programmable_offset_ = 2500;				break;
-						default: break;
-					}
+					programmable_offset_ = programmble_reload(rate_);
 				}
 			}
 		} break;
@@ -240,6 +235,8 @@ void TimedInterruptSource::update_channel(int c, bool is_linked, int decrement) 
 	if(channels_[c].sync) {
 		channels_[c].value = channels_[c].reload;
 	} else {
+		// TODO: the while loop below is far from efficient.
+
 		channels_[c].value -= decrement;
 		while(channels_[c].value < 0) {
 			channels_[c].value += channels_[c].reload + 1;
@@ -276,12 +273,7 @@ void TimedInterruptSource::run_for(Cycles cycles) {
 				interrupts_ |= uint8_t(Interrupt::VariableFrequency);
 			}
 			programmable_level_ ^= true;
-
-			switch(rate_) {
-				case InterruptRate::OnekHz:			programmable_offset_ = 125;					break;
-				case InterruptRate::FiftyHz:		programmable_offset_ = 2500;				break;
-				default: break;
-			}
+			programmable_offset_ = programmble_reload(rate_);
 		}
 	}
 }
@@ -289,14 +281,18 @@ void TimedInterruptSource::run_for(Cycles cycles) {
 Cycles TimedInterruptSource::get_next_sequence_point() const {
 	int result = one_hz_offset_.as<int>();
 
-	if(rate_ < InterruptRate::ToneGenerator0) {
-		result = std::min(result, programmable_offset_);
+	switch(rate_) {
+		case InterruptRate::OnekHz:
+		case InterruptRate::FiftyHz:
+			result = std::min(result, programmable_offset_);
+		break;
+		case InterruptRate::ToneGenerator0:
+		case InterruptRate::ToneGenerator1: {
+			const auto& channel = channels_[int(rate_) - int(InterruptRate::ToneGenerator0)];
+			const int cycles_until_interrupt = (channel.value + 1) + (channel.level ? 0 : channel.reload + 1);
+			result = std::min(result, cycles_until_interrupt);
+		} break;
 	}
-
-	// To match normal tone generator logic: the tone generators will
-	// generate activity when they underflow, not when they hits zero.
-	result = std::min(result, channels_[0].value + 1);
-	result = std::min(result, channels_[1].value + 1);
 
 	return Cycles(result);
 }
