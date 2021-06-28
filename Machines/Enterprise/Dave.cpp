@@ -220,9 +220,17 @@ void TimedInterruptSource::write(uint16_t address, uint8_t value) {
 }
 
 void TimedInterruptSource::run_for(Cycles cycles) {
-	(void)cycles;
+	// Update the 1Hz interrupt.
+	one_hz_offset_ -= cycles;
+	if(one_hz_offset_ <= Cycles(0)) {
+		interrupts_ |= uint8_t(Interrupt::OneHz);
+		one_hz_offset_ += clock_rate;
+	}
+
+	// TODO: update the programmable-frequency interrupt.
 }
 
 Cycles TimedInterruptSource::get_next_sequence_point() const {
-	return Cycles::max();
+	// TODO: support the programmable-frequency interrupt.
+	return one_hz_offset_;
 }

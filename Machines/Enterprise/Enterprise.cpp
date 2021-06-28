@@ -400,7 +400,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 							interrupt_state_ &= ~*cycle.value;
 							update_interrupts();
 
-							if(interrupt_mask_ & 0x45) {
+							if(interrupt_mask_ & 0x41) {
 								printf("Unimplemented interrupts requested: %02x\n", interrupt_mask_ & 0x45);
 							}
 						break;
@@ -412,7 +412,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 							printf("TODO: printer output %02x\n", *cycle.value);
 						break;
 						case 0xbf:
-							printf("TODO: Dave sysconfig %02x\n", *cycle.value);
+							// TODO: onboard RAM, Dave 8/12Mhz select.
 							switch((*cycle.value >> 2)&3) {
 								default:	wait_mode_ = WaitMode::None;			break;
 								case 0:		wait_mode_ = WaitMode::OnAllAccesses;	break;

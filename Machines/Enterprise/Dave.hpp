@@ -130,6 +130,10 @@ class TimedInterruptSource {
 	private:
 		uint8_t interrupts_ = 0;
 
+		static constexpr Cycles clock_rate{250000};
+
+		Cycles one_hz_offset_ = clock_rate;
+
 		enum class InterruptRate {
 			OnekHz,
 			FiftyHz,
