@@ -125,8 +125,22 @@ class TimedInterruptSource {
 
 		void run_for(Cycles);
 
+		Cycles get_next_sequence_point() const;
+
 	private:
 		uint8_t interrupts_ = 0;
+
+		enum class InterruptRate {
+			OnekHz,
+			FiftyHz,
+			ToneGenerator0,
+			ToneGenerator1,
+		} rate_ = InterruptRate::OnekHz;
+
+		struct Channel {
+			uint16_t value, reload;
+			bool sync;
+		} channels_[2];
 };
 
 }
