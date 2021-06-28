@@ -214,6 +214,8 @@ void TimedInterruptSource::write(uint16_t address, uint8_t value) {
 		case 7:
 			channels_[0].sync = value & 0x01;
 			channels_[1].sync = value & 0x02;
+
+			// TODO: a hard cut-over here if switching to tracking a tone generator.
 			rate_ = InterruptRate((value >> 5) & 3);
 		break;
 	}
@@ -227,10 +229,24 @@ void TimedInterruptSource::run_for(Cycles cycles) {
 		one_hz_offset_ += clock_rate;
 	}
 
-	// TODO: update the programmable-frequency interrupt.
+	// TODO: shadow update the two tone channels.
+
+	// Update the programmable-frequency interrupt.
+	programmable_offset_ -= cycles.as<int>();
+	if(programmable_offset_ < 0) {
+		interrupts_ |= uint8_t(Interrupt::VariableFrequency);
+
+		switch(rate_) {
+			case InterruptRate::OnekHz:			programmable_offset_ = 249;					break;
+			case InterruptRate::FiftyHz:		programmable_offset_ = 4999;				break;
+			case InterruptRate::ToneGenerator0: programmable_offset_ = channels_[0].value;	break;
+			case InterruptRate::ToneGenerator1: programmable_offset_ = channels_[1].value;	break;
+		}
+	}
 }
 
 Cycles TimedInterruptSource::get_next_sequence_point() const {
-	// TODO: support the programmable-frequency interrupt.
-	return one_hz_offset_;
+	// To match normal tone generator logic: the programmable timer will
+	// generate activity when it underflows, not when it hits zero.
+	return (programmable_offset_+1) < one_hz_offset_.as<int>() ? Cycles(programmable_offset_+1) : one_hz_offset_;
 }

@@ -133,6 +133,7 @@ class TimedInterruptSource {
 		static constexpr Cycles clock_rate{250000};
 
 		Cycles one_hz_offset_ = clock_rate;
+		uint16_t programmable_offset_ = 0;
 
 		enum class InterruptRate {
 			OnekHz,
@@ -142,8 +143,8 @@ class TimedInterruptSource {
 		} rate_ = InterruptRate::OnekHz;
 
 		struct Channel {
-			uint16_t value, reload;
-			bool sync;
+			uint16_t value = 100, reload = 100;
+			bool sync = false;
 		} channels_[2];
 };
 
