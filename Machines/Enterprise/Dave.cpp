@@ -293,9 +293,23 @@ Cycles TimedInterruptSource::get_next_sequence_point() const {
 }
 
 uint8_t TimedInterruptSource::get_divider_state() {
+	bool programmable_flag = false;
+	switch(rate_) {
+		case InterruptRate::OnekHz:
+		case InterruptRate::FiftyHz:
+			programmable_flag = programmable_level_;
+		break;
+		case InterruptRate::ToneGenerator0:
+			programmable_flag = channels_[0].level;
+		break;
+		case InterruptRate::ToneGenerator1:
+			programmable_flag = channels_[1].level;
+		break;
+	}
+
 	// one_hz_offset_ counts downwards, so when it crosses the halfway mark
 	// it enters the high part of its wave.
 	return
 		(one_hz_offset_ < half_clock_rate ? 0x4 : 0x0) |
-		(programmable_level_ ? 0x1 : 0x0);
+		(programmable_flag ? 0x1 : 0x0);
 }
