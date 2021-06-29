@@ -48,8 +48,13 @@ void EXDos::set_control_register(uint8_t control) {
 		get_drive(c).set_head(head);
 	}
 
-	// Select drive.
+	// Select drive, ensuring handover of the motor-on state.
+	const bool motor_state = get_drive().get_motor_on();
+	for_all_drives([] (Storage::Disk::Drive &drive, size_t) {
+		drive.set_motor_on(false);
+	});
 	set_drive(control & 0xf);
+	get_drive().set_motor_on(motor_state);
 }
 
 uint8_t EXDos::get_control_register() {
