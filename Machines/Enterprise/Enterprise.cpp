@@ -359,10 +359,19 @@ template <bool has_disk_controller> class ConcreteMachine:
 								*cycle.value = 0xff;
 							}
 						break;
-						case 0xb6:
-							// TODO: joystick input.
+						case 0xb6: {
+							// TODO: selected keyboard row, 0 to 9, should return one bit of joystick
+							// input. That being the case:
+							//
+							//	b0:		joystick input
+							//	b1, b2:	unused (in theory read from control port, but not used by any hardware)
+							//	b3:		0 = printer ready; 1 = not ready
+							//	b4:		serial, data in
+							//	b5:		serial, status in
+							//	b6:		tape input volume level, 0 = high, 1 = low
+							//	b7:		tape data input
 							*cycle.value = 0xff;
-						break;
+						} break;
 					}
 				break;
 
@@ -414,10 +423,21 @@ template <bool has_disk_controller> class ConcreteMachine:
 						break;
 						case 0xb5:
 							active_key_line_ = *cycle.value & 0xf;
-							// TODO: printer strobe, type sound, REM switches.
+							// TODO:
+							//
+							//	b4:	strobe output for printer
+							//	b5:	tape sound control (?)
+							//	b6:	tape motor control 1, 1 = on
+							//	b7: tape motor control 2, 1 = on
 						break;
 						case 0xb6:
+							// Just 8 bits of printer data.
 							printf("TODO: printer output %02x\n", *cycle.value);
+						break;
+						case 0xb7:
+							// b0 = serial data out
+							// b1 = serial status out
+							printf("TODO: serial output %02x\n", *cycle.value);
 						break;
 						case 0xbf:
 							// TODO: onboard RAM, Dave 8/12Mhz select.
