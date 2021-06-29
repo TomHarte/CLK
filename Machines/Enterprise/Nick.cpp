@@ -412,16 +412,10 @@ void Nick::run_for(Cycles duration) {
 					++line_data_pointer_[1];
 				break;
 
-				case Mode::Attr:
-					// Reload the attribute address if VRES is set.
-					if(vres_) {
-						line_data_pointer_[0] = start_line_data_pointer_[0];
-					}
-				break;
-
 				case Mode::Pixel:
 				case Mode::LPixel:
-					// If VRES is clear, reload the pixel address.
+				case Mode::Attr:
+					// Reload the pixel or attribute address if VRES is clear.
 					if(!vres_) {
 						line_data_pointer_[0] = start_line_data_pointer_[0];
 					}
