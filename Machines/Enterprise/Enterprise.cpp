@@ -350,7 +350,10 @@ template <bool has_disk_controller> class ConcreteMachine:
 						case 0xb3:	*cycle.value = pages_[3];	break;
 
 						case 0xb4:
-							*cycle.value = (interrupt_mask_ & 0xf0) | dave_timer_->get_divider_state() | interrupt_state_;
+							*cycle.value =
+								(nick_->get_interrupt_line() ? 0x00 : 0x10) |
+								dave_timer_->get_divider_state() |
+								interrupt_state_;
 						break;
 						case 0xb5:
 							if(active_key_line_ < key_lines_.size()) {
