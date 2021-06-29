@@ -293,6 +293,8 @@ Cycles TimedInterruptSource::get_next_sequence_point() const {
 }
 
 uint8_t TimedInterruptSource::get_divider_state() {
+	// one_hz_offset_ counts downwards, so when it crosses the halfway mark
+	// it enters the high part of its wave.
 	return
 		(one_hz_offset_ < half_clock_rate ? 0x4 : 0x0) |
 		(programmable_level_ ? 0x1 : 0x0);
