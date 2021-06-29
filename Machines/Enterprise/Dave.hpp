@@ -136,15 +136,14 @@ class TimedInterruptSource {
 
 		Cycles one_hz_offset_ = clock_rate;
 
-		int programmable_offset_ = std::numeric_limits<int>::max();
-		bool programmable_level_ = false;
-
 		enum class InterruptRate {
 			OnekHz,
 			FiftyHz,
 			ToneGenerator0,
 			ToneGenerator1,
 		} rate_ = InterruptRate::OnekHz;
+		int programmable_offset_ = programmble_reload(InterruptRate::OnekHz);
+		bool programmable_level_ = false;
 
 		struct Channel {
 			int value = 100, reload = 100;

@@ -235,22 +235,17 @@ void TimedInterruptSource::update_channel(int c, bool is_linked, int decrement) 
 	if(channels_[c].sync) {
 		channels_[c].value = channels_[c].reload;
 	} else {
-		// TODO: the while loop below is far from efficient.
-
-		channels_[c].value -= decrement;
-		while(channels_[c].value < 0) {
-			channels_[c].value += channels_[c].reload + 1;
-
-			if(is_linked) {
-				if(channels_[c].level) {
-					interrupts_ |= uint8_t(Interrupt::VariableFrequency);
-				}
-				programmable_level_ = channels_[c].level;
+		if(decrement <= channels_[c].value) {
+			channels_[c].value -= decrement;
+		} else {
+			const int num_flips = (decrement - (channels_[c].value + 1)) / (channels_[c].reload + 1);
+			if(is_linked && num_flips + channels_[c].level >= 2) {
+				interrupts_ |= uint8_t(Interrupt::VariableFrequency);
 			}
-			channels_[c].level ^= true;
+			channels_[c].level ^= (num_flips & 1);
+			channels_[c].value = (decrement - (channels_[c].value + 1)) % (channels_[c].reload + 1);
 		}
 	}
-
 }
 
 void TimedInterruptSource::run_for(Cycles cycles) {
