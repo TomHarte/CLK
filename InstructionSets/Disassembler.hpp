@@ -9,7 +9,7 @@
 #ifndef Disassembler_hpp
 #define Disassembler_hpp
 
-#include "Sizes.hpp"
+#include "../Numeric/Sizes.hpp"
 
 #include <list>
 #include <map>

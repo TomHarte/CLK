@@ -12,6 +12,8 @@
 #include <cstdint>
 #include <cstdlib>
 
+#include "Sizes.hpp"
+
 namespace Numeric {
 
 template <typename IntType> struct LSFRPolynomial {};
@@ -67,14 +69,16 @@ template <typename IntType = uint64_t, IntType polynomial = LSFRPolynomial<IntTy
 			determining the bit that was just shifted out.
 		*/
 		IntType next() {
-			const auto result = value_ & 1;
-			value_ = (value_ >> 1) ^ (result * polynomial);
+			const auto result = IntType(value_ & 1);
+			value_ = IntType((value_ >> 1) ^ (result * polynomial));
 			return result;
 		}
 
 	private:
 		IntType value_ = 0;
 };
+
+template <uint64_t polynomial> class LFSRv: public LFSR<typename MinIntTypeValue<polynomial>::type, polynomial> {};
 
 }
 

@@ -19,6 +19,7 @@ enum class Machine {
 	AtariST,
 	ColecoVision,
 	Electron,
+	Enterprise,
 	Macintosh,
 	MasterSystem,
 	MSX,

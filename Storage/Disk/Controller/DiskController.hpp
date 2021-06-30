@@ -49,8 +49,10 @@ class Controller:
 		void run_for(const Cycles cycles);
 
 		/*!
-			Sets the current drive(s). Normally this will be exactly one, but some machines allow
-			zero or multiple drives to be attached, with useless results.
+			Sets the current drive(s), by bit mask. Normally this will be exactly one, but some
+			machines allow zero or multiple drives to be attached, with useless results.
+
+			E.g. supply 1 to select drive 0, 2 to select drive 1, 4 to select drive 2, etc.
 		*/
 		void set_drive(int index_mask);
 

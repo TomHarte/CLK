@@ -271,7 +271,7 @@ class Keyboard {
 		/// so this may not be valid prior to Mode::PerformingCommand.
 		int command_ = 0;
 		/// Populated during PerformingCommand as the response to the most-recently-received command, this
-		/// is then shifted out to teh host computer. So it is guaranteed valid at the beginning of Mode::SendingResponse,
+		/// is then shifted out to the host computer. So it is guaranteed valid at the beginning of Mode::SendingResponse,
 		/// but not afterwards.
 		int response_ = 0;
 

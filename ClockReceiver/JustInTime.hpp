@@ -103,9 +103,9 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 			}
 
 			if constexpr (has_sequence_points<T>::value) {
-				time_until_event_ -= rhs;
+				time_until_event_ -= rhs * multiplier;
 				if(time_until_event_ <= LocalTimeScale(0)) {
-					time_overrun_ = time_until_event_;
+					time_overrun_ = time_until_event_ / divider;
 					flush();
 					update_sequence_point();
 					return true;
@@ -145,11 +145,19 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 
 		/// @returns the amount of time since the object was last flushed, in the target time scale.
 		[[nodiscard]] forceinline TargetTimeScale time_since_flush() const {
-			// TODO: does this handle conversions properly where TargetTimeScale != LocalTimeScale?
 			if constexpr (divider == 1) {
 				return time_since_update_;
 			}
 			return TargetTimeScale(time_since_update_.as_integral() / divider);
+		}
+
+		/// @returns the amount of time since the object was last flushed, plus the local time scale @c offset,
+		/// converted to the target time scale.
+		[[nodiscard]] forceinline TargetTimeScale time_since_flush(LocalTimeScale offset) const {
+			if constexpr (divider == 1) {
+				return time_since_update_ + offset;
+			}
+			return TargetTimeScale((time_since_update_ + offset).as_integral() / divider);
 		}
 
 		/// Flushes all accumulated time.
@@ -185,7 +193,7 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 		/// @returns the number of cycles until the next sequence-point-based flush, if the embedded object
 		/// supports sequence points; @c LocalTimeScale() otherwise.
 		[[nodiscard]] LocalTimeScale cycles_until_implicit_flush() const {
-			return time_until_event_;
+			return time_until_event_ / divider;
 		}
 
 		/// Indicates whether a sequence-point-caused flush will occur if the specified period is added.
@@ -196,10 +204,43 @@ template <class T, class LocalTimeScale = HalfCycles, int multiplier = 1, int di
 			return rhs >= time_until_event_;
 		}
 
+		/// Indicates the amount of time, in the local time scale, until the first local slot that falls wholly
+		/// after @c duration, if that delay were to occur in @c offset units of time from now.
+		[[nodiscard]] forceinline LocalTimeScale back_map(TargetTimeScale duration, TargetTimeScale offset) const {
+			// A 1:1 mapping is easy.
+			if constexpr (multiplier == 1 && divider == 1) {
+				return duration;
+			}
+
+			// Work out when this query is placed, and the time to which it relates
+			const auto base = time_since_update_ + offset * divider;
+			const auto target = base + duration * divider;
+
+			// Figure out the number of whole input steps that is required to get
+			// past target, and subtract the number of whole input steps necessary
+			// to get to base.
+			const auto steps_to_base = base.as_integral() / multiplier;
+			const auto steps_to_target = (target.as_integral() + divider - 1) / multiplier;
+
+			return LocalTimeScale(steps_to_target - steps_to_base);
+		}
+
 		/// Updates this template's record of the next sequence point.
 		void update_sequence_point() {
 			if constexpr (has_sequence_points<T>::value) {
-				time_until_event_ = object_.get_next_sequence_point();
+				// Keep a fast path where no conversions will be applied; if conversions are
+				// going to be applied then do a direct max -> max translation rather than
+				// allowing the arithmetic to overflow.
+				if constexpr (divider == 1 && std::is_same_v<LocalTimeScale, TargetTimeScale>) {
+					time_until_event_ = object_.get_next_sequence_point();
+				} else {
+					const auto time = object_.get_next_sequence_point();
+					if(time == TargetTimeScale::max()) {
+						time_until_event_ = LocalTimeScale::max();
+					} else {
+						time_until_event_ = time * divider;
+					}
+				}
 				assert(time_until_event_ > LocalTimeScale(0));
 			}
 		}

@@ -10,6 +10,7 @@
 #define Sizes_h
 
 #include <limits>
+#include <type_traits>
 
 /*!
 	Maps to the smallest integral type that can contain max_value, from the following options:

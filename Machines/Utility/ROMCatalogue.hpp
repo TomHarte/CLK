@@ -71,6 +71,22 @@ enum Name {
 	DiskIIStateMachine13Sector,
 	DiskIIBoot13Sector,
 
+	// Enterprise.
+	EnterpriseEXOS10,
+	EnterpriseEXOS20,
+	EnterpriseEXOS21,
+	EnterpriseEXOS23,
+
+	EnterpriseBASIC10,
+	EnterpriseBASIC10Part1,
+	EnterpriseBASIC10Part2,
+	EnterpriseBASIC11,
+	EnterpriseBASIC11Suffixed,
+	EnterpriseBASIC21,
+
+	EnterpriseEPDOS,
+	EnterpriseEXDOS,
+
 	// Macintosh.
 	Macintosh128k,
 	Macintosh512k,
@@ -236,6 +252,10 @@ struct Request {
 			/// a necessity.
 			bool is_optional = false;
 			std::vector<Node> children;
+
+			bool empty() const {
+				return type == Type::One && name == Name::None;
+			}
 
 			void add_descriptions(std::vector<Description> &) const;
 			bool validate(Map &) const;

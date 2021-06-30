@@ -276,7 +276,10 @@ void WD1770::posit_event(int new_event_type) {
 		goto test_type1_type;
 
 	begin_type1_spin_up:
-		if((command_&0x08) || get_drive().get_motor_on()) goto test_type1_type;
+		if((command_&0x08) || get_drive().get_motor_on()) {
+			set_motor_on(true);
+			goto test_type1_type;
+		}
 		SPIN_UP();
 
 	test_type1_type:
@@ -387,7 +390,10 @@ void WD1770::posit_event(int new_event_type) {
 		distance_into_section_ = 0;
 
 		if((command_&0x08) && has_motor_on_line()) goto test_type2_delay;
-		if(!has_motor_on_line() && !has_head_load_line()) goto test_type2_delay;
+		if(!has_motor_on_line() && !has_head_load_line()) {
+			if(has_motor_on_line()) set_motor_on(true);
+			goto test_type2_delay;
+		}
 
 		if(has_motor_on_line()) goto begin_type2_spin_up;
 		goto begin_type2_load_head;
