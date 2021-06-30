@@ -15,6 +15,7 @@ It currently contains emulations of the:
 * Atari ST;
 * ColecoVision;
 * Commodore Vic-20 (and Commodore 1540/1);
+* Enterprise 64/128;
 * Macintosh 512ke and Plus;
 * MSX 1;
 * Oric 1/Atmos;
