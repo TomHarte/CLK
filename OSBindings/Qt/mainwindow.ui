@@ -310,6 +310,138 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="enterpriseTab">
+       <attribute name="title">
+        <string>Enterprise</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="enterpriseLayout">
+        <item>
+         <layout class="QHBoxLayout" name="enterpriseHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="enterpriseFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="enterpriseModelLabel">
+              <property name="text">
+               <string>Model:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="enterpriseModelComboBox">
+              <item>
+               <property name="text">
+                <string>Enterprise 64</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Enterprise 128</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Enterprise 256</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="enterpriseEXOSLabel">
+              <property name="text">
+               <string>EXOS:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="enterpriseEXOSComboBox">
+              <item>
+               <property name="text">
+                <string>Version 1.0</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Version 2.0</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Version 2.1</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="enterpriseBASICLabel">
+              <property name="text">
+               <string>BASIC:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QComboBox" name="enterpriseBASICComboBox">
+              <item>
+               <property name="text">
+                <string>None</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Version 1.0</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Version 1.1</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Version 2.1</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="enterpriseDOSLabel">
+              <property name="text">
+               <string>DOS:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QComboBox" name="enterpriseDOSComboBox">
+              <item>
+               <property name="text">
+                <string>None</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>EXDOS</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="enterpriseHSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="macintoshTab">
        <attribute name="title">
         <string>Macintosh</string>
@@ -518,75 +650,6 @@
           </item>
           <item>
            <spacer name="oricHSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="spectrumTab">
-       <attribute name="title">
-        <string>Spectrum</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="spectrumLayout">
-        <item>
-         <layout class="QHBoxLayout" name="spectrumHorizontalLayout">
-          <item>
-           <layout class="QFormLayout" name="spectrumFormLayout">
-            <item row="0" column="0">
-             <widget class="QLabel" name="spectrumModelLabel">
-              <property name="text">
-               <string>Model:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QComboBox" name="spectrumModelComboBox">
-              <item>
-               <property name="text">
-                <string>16kb</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>48kb</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>128kb</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>+2</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>+2a</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>+3</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <spacer name="spectrumHSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -815,6 +878,75 @@
           </item>
           <item>
            <spacer name="zx81Spacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="spectrumTab">
+       <attribute name="title">
+        <string>ZX Spectrum</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="spectrumLayout">
+        <item>
+         <layout class="QHBoxLayout" name="spectrumHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="spectrumFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="spectrumModelLabel">
+              <property name="text">
+               <string>Model:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="spectrumModelComboBox">
+              <item>
+               <property name="text">
+                <string>16kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>48kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>128kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>+2</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>+2a</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>+3</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="spectrumHSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>

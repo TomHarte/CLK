@@ -953,6 +953,7 @@ void MainWindow::setButtonPressed(int index, bool isPressed) {
 #include "../../Analyser/Static/AppleIIgs/Target.hpp"
 #include "../../Analyser/Static/AtariST/Target.hpp"
 #include "../../Analyser/Static/Commodore/Target.hpp"
+#include "../../Analyser/Static/Enterprise/Target.hpp"
 #include "../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../Analyser/Static/MSX/Target.hpp"
 #include "../../Analyser/Static/Oric/Target.hpp"
@@ -973,6 +974,7 @@ void MainWindow::startMachine() {
 	TEST(amstradCPC);
 	TEST(atariST);
 	TEST(electron);
+	TEST(enterprise);
 	TEST(macintosh);
 	TEST(msx);
 	TEST(oric);
@@ -1053,6 +1055,38 @@ void MainWindow::start_electron() {
 	target->has_pres_adfs = ui->electronADFSCheckBox->isChecked();
 	target->has_ap6_rom = ui->electronAP6CheckBox->isChecked();
 	target->has_sideways_ram = ui->electronSidewaysRAMCheckBox->isChecked();
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_enterprise() {
+	using Target = Analyser::Static::Enterprise::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->enterpriseModelComboBox->currentIndex()) {
+		default:	target->model = Target::Model::Enterprise64;	break;
+		case 1:		target->model = Target::Model::Enterprise128;	break;
+		case 2:		target->model = Target::Model::Enterprise256;	break;
+	}
+
+	switch(ui->enterpriseEXOSComboBox->currentIndex()) {
+		default:	target->exos_version = Target::EXOSVersion::v10;	break;
+		case 1:		target->exos_version = Target::EXOSVersion::v20;	break;
+		case 2:		target->exos_version = Target::EXOSVersion::v21;	break;
+		case 3:		target->exos_version = Target::EXOSVersion::v23;	break;
+	}
+
+	switch(ui->enterpriseBASICComboBox->currentIndex()) {
+		default:	target->basic_version = Target::BASICVersion::None;	break;
+		case 1:		target->basic_version = Target::BASICVersion::v10;	break;
+		case 2:		target->basic_version = Target::BASICVersion::v11;	break;
+		case 3:		target->basic_version = Target::BASICVersion::v21;	break;
+	}
+
+	switch(ui->enterpriseDOSComboBox->currentIndex()) {
+		default:	target->dos = Target::DOS::None;	break;
+		case 1:		target->dos = Target::DOS::EXDOS;	break;
+	}
 
 	launchTarget(std::move(target));
 }
@@ -1211,6 +1245,12 @@ void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target
 	CheckBox(electronADFSCheckBox, "electron.hasADFS");					\
 	CheckBox(electronAP6CheckBox, "electron.hasAP6");					\
 	CheckBox(electronSidewaysRAMCheckBox, "electron.fillSidewaysRAM");	\
+																		\
+	/* Enterprise. */													\
+	ComboBox(enterpriseModelComboBox, "enterprise.model");				\
+	ComboBox(enterpriseEXOSComboBox, "enterprise.exos");				\
+	ComboBox(enterpriseBASICComboBox, "enterprise.basic");				\
+	ComboBox(enterpriseDOSComboBox, "enterprise.dos");					\
 																		\
 	/* Macintosh. */													\
 	ComboBox(macintoshModelComboBox, "macintosh.model");				\
