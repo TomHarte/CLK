@@ -47,6 +47,7 @@ SOURCES += \
 	$$SRC/Analyser/Static/Commodore/*.cpp \
 	$$SRC/Analyser/Static/Disassembler/*.cpp \
 	$$SRC/Analyser/Static/DiskII/*.cpp \
+	$$SRC/Analyser/Static/Enterprise/*.cpp \
 	$$SRC/Analyser/Static/Macintosh/*.cpp \
 	$$SRC/Analyser/Static/MSX/*.cpp \
 	$$SRC/Analyser/Static/Oric/*.cpp \
@@ -92,6 +93,7 @@ SOURCES += \
 	$$SRC/Machines/Commodore/1540/Implementation/*.cpp \
 	$$SRC/Machines/Commodore/Vic-20/*.cpp \
 	$$SRC/Machines/Electron/*.cpp \
+	$$SRC/Machines/Enterprise/*.cpp \
 	$$SRC/Machines/MasterSystem/*.cpp \
 	$$SRC/Machines/MSX/*.cpp \
 	$$SRC/Machines/Oric/*.cpp \
@@ -166,6 +168,7 @@ HEADERS += \
 	$$SRC/Analyser/Static/Commodore/*.hpp \
 	$$SRC/Analyser/Static/Disassembler/*.hpp \
 	$$SRC/Analyser/Static/DiskII/*.hpp \
+	$$SRC/Analyser/Static/Enterprise/*.hpp \
 	$$SRC/Analyser/Static/Macintosh/*.hpp \
 	$$SRC/Analyser/Static/MSX/*.hpp \
 	$$SRC/Analyser/Static/Oric/*.hpp \
@@ -221,6 +224,7 @@ HEADERS += \
 	$$SRC/Machines/Commodore/1540/Implementation/*.hpp \
 	$$SRC/Machines/Commodore/Vic-20/*.hpp \
 	$$SRC/Machines/Electron/*.hpp \
+	$$SRC/Machines/Enterprise/*.hpp \
 	$$SRC/Machines/MasterSystem/*.hpp \
 	$$SRC/Machines/MSX/*.hpp \
 	$$SRC/Machines/Oric/*.hpp \
