@@ -20,7 +20,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 		BIND(Tab, Tab);
 		BIND(Escape, Escape);
 		BIND(Hyphen, Hyphen);
-		BIND(Equals, Tilde);
+		BIND(Equals, Caret);
 		BIND(Backspace, Erase);
 		BIND(Delete, Delete);
 		BIND(Semicolon, Semicolon);
@@ -71,4 +71,81 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 #undef BIND
 
 	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
+}
+
+const uint16_t *CharacterMapper::sequence_for_character(char character) const {
+#define KEYS(x)		{uint16_t(x), MachineTypes::MappedKeyboardMachine::KeyEndSequence}
+#define SHIFT(x)	{uint16_t(Key::LeftShift), uint16_t(x), MachineTypes::MappedKeyboardMachine::KeyEndSequence}
+#define X			{MachineTypes::MappedKeyboardMachine::KeyNotMapped}
+	static KeySequence key_sequences[] = {
+		/* NUL */	X,							/* SOH */	X,
+		/* STX */	X,							/* ETX */	X,
+		/* EOT */	X,							/* ENQ */	X,
+		/* ACK */	X,							/* BEL */	X,
+		/* BS */	KEYS(Key::Erase),			/* HT */	X,
+		/* LF */	KEYS(Key::Enter),			/* VT */	X,
+		/* FF */	X,							/* CR */	KEYS(Key::Enter),
+		/* SO */	X,							/* SI */	X,
+		/* DLE */	X,							/* DC1 */	X,
+		/* DC2 */	X,							/* DC3 */	X,
+		/* DC4 */	X,							/* NAK */	X,
+		/* SYN */	X,							/* ETB */	X,
+		/* CAN */	X,							/* EM */	X,
+		/* SUB */	X,							/* ESC */	X,
+		/* FS */	X,							/* GS */	X,
+		/* RS */	X,							/* US */	X,
+		/* space */	KEYS(Key::Space),			/* ! */		SHIFT(Key::k1),
+		/* " */		SHIFT(Key::k2),				/* # */		X,
+		/* $ */		SHIFT(Key::k4),				/* % */		SHIFT(Key::k5),
+		/* & */		SHIFT(Key::k6),				/* ' */		SHIFT(Key::k7),
+		/* ( */		SHIFT(Key::k8),				/* ) */		SHIFT(Key::k9),
+		/* * */		SHIFT(Key::Colon),			/* + */		SHIFT(Key::Semicolon),
+		/* , */		KEYS(Key::Comma),			/* - */		KEYS(Key::Hyphen),
+		/* . */		KEYS(Key::FullStop),		/* / */		KEYS(Key::ForwardSlash),
+		/* 0 */		KEYS(Key::k0),				/* 1 */		KEYS(Key::k1),
+		/* 2 */		KEYS(Key::k2),				/* 3 */		KEYS(Key::k3),
+		/* 4 */		KEYS(Key::k4),				/* 5 */		KEYS(Key::k5),
+		/* 6 */		KEYS(Key::k6),				/* 7 */		KEYS(Key::k7),
+		/* 8 */		KEYS(Key::k8),				/* 9 */		KEYS(Key::k9),
+		/* : */		KEYS(Key::Colon),			/* ; */		KEYS(Key::Semicolon),
+		/* < */		SHIFT(Key::Comma),			/* = */		SHIFT(Key::Hyphen),
+		/* > */		SHIFT(Key::FullStop),		/* ? */		SHIFT(Key::ForwardSlash),
+		/* @ */		KEYS(Key::At),				/* A */		KEYS(Key::A),
+		/* B */		KEYS(Key::B),				/* C */		KEYS(Key::C),
+		/* D */		KEYS(Key::D),				/* E */		KEYS(Key::E),
+		/* F */		KEYS(Key::F),				/* G */		KEYS(Key::G),
+		/* H */		KEYS(Key::H),				/* I */		KEYS(Key::I),
+		/* J */		KEYS(Key::J),				/* K */		KEYS(Key::K),
+		/* L */		KEYS(Key::L),				/* M */		KEYS(Key::M),
+		/* N */		KEYS(Key::N),				/* O */		KEYS(Key::O),
+		/* P */		KEYS(Key::P),				/* Q */		KEYS(Key::Q),
+		/* R */		KEYS(Key::R),				/* S */		KEYS(Key::S),
+		/* T */		KEYS(Key::T),				/* U */		KEYS(Key::U),
+		/* V */		KEYS(Key::V),				/* W */		KEYS(Key::W),
+		/* X */		KEYS(Key::X),				/* Y */		KEYS(Key::Y),
+		/* Z */		KEYS(Key::Z),				/* [ */		KEYS(Key::OpenSquareBracket),
+		/* \ */		KEYS(Key::Backslash),		/* ] */		KEYS(Key::CloseSquareBracket),
+		/* ^ */		SHIFT(Key::Caret),			/* _ */		SHIFT(Key::k0),
+		/* ` */		SHIFT(Key::At),				/* a */		SHIFT(Key::A),
+		/* b */		SHIFT(Key::B),				/* c */		SHIFT(Key::C),
+		/* d */		SHIFT(Key::D),				/* e */		SHIFT(Key::E),
+		/* f */		SHIFT(Key::F),				/* g */		SHIFT(Key::G),
+		/* h */		SHIFT(Key::H),				/* i */		SHIFT(Key::I),
+		/* j */		SHIFT(Key::J),				/* k */		SHIFT(Key::K),
+		/* l */		SHIFT(Key::L),				/* m */		SHIFT(Key::M),
+		/* n */		SHIFT(Key::N),				/* o */		SHIFT(Key::O),
+		/* p */		SHIFT(Key::P),				/* q */		SHIFT(Key::Q),
+		/* r */		SHIFT(Key::R),				/* s */		SHIFT(Key::S),
+		/* t */		SHIFT(Key::T),				/* u */		SHIFT(Key::U),
+		/* v */		SHIFT(Key::V),				/* w */		SHIFT(Key::W),
+		/* x */		SHIFT(Key::X),				/* y */		SHIFT(Key::Y),
+		/* z */		SHIFT(Key::Z),				/* { */		SHIFT(Key::OpenSquareBracket),
+		/* | */		SHIFT(Key::Backslash),		/* } */		SHIFT(Key::CloseSquareBracket),
+		/* ~ */		SHIFT(Key::Caret)
+	};
+#undef KEYS
+#undef SHIFT
+#undef X
+
+	return table_lookup_sequence_for_character(key_sequences, character);
 }

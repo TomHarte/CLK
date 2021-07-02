@@ -14,6 +14,7 @@
 #include "Nick.hpp"
 
 #include "../MachineTypes.hpp"
+#include "../Utility/Typer.hpp"
 
 #include "../../Analyser/Static/Enterprise/Target.hpp"
 #include "../../ClockReceiver/JustInTime.hpp"
@@ -69,7 +70,8 @@ template <bool has_disk_controller> class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
-	public MachineTypes::TimedMachine {
+	public MachineTypes::TimedMachine,
+	public Utility::TypeRecipient<CharacterMapper> {
 	private:
 		constexpr uint8_t min_ram_slot(const Analyser::Static::Enterprise::Target &target) {
 			size_t ram_size = 128*1024;
@@ -310,6 +312,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 			if(dave_timer_ += full_length) {
 				set_interrupts(dave_timer_.last_valid()->get_new_interrupts(), dave_timer_.last_sequence_point_overrun());
 			}
+			if(typer_) typer_->run_for(cycle.length);
 
 			// The WD/etc runs at a nominal 8Mhz.
 			if constexpr (has_disk_controller) {
@@ -576,6 +579,26 @@ template <bool has_disk_controller> class ConcreteMachine:
 
 		void clear_all_keys() final {
 			key_lines_.fill(0xff);
+		}
+
+		// MARK: - Utility::TypeRecipient
+		HalfCycles get_typer_delay(const std::string &) const final {
+			if(!z80_.get_is_resetting()) {
+				return Cycles(0);
+			}
+			return HalfCycles(1'000'000);
+		}
+
+		HalfCycles get_typer_frequency() const final {
+			return HalfCycles(60'000);
+		}
+
+		void type_string(const std::string &string) final {
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+		}
+
+		bool can_type(char c) const final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 
 		// MARK: - MediaTarget
