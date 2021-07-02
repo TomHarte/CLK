@@ -8,6 +8,8 @@
 
 #include "Keyboard.hpp"
 
+#include <cstddef>
+
 using namespace Inputs;
 
 Keyboard::Keyboard(const std::set<Key> &essential_modifiers) : essential_modifiers_(essential_modifiers) {

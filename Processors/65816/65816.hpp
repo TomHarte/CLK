@@ -10,6 +10,7 @@
 #define WDC65816_hpp
 
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
