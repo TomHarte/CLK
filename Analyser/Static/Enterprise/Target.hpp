@@ -13,6 +13,8 @@
 #include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 
+#include <string>
+
 namespace Analyser {
 namespace Static {
 namespace Enterprise {
@@ -27,6 +29,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	EXOSVersion exos_version = EXOSVersion::Any;
 	BASICVersion basic_version = BASICVersion::None;
 	DOS dos = DOS::None;
+	std::string loading_command;
 
 	Target() : Analyser::Static::Target(Machine::Enterprise) {
 		if(needs_declare()) {

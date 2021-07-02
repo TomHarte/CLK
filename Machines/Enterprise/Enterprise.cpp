@@ -14,6 +14,7 @@
 #include "Nick.hpp"
 
 #include "../MachineTypes.hpp"
+#include "../Utility/Typer.hpp"
 
 #include "../../Analyser/Static/Enterprise/Target.hpp"
 #include "../../ClockReceiver/JustInTime.hpp"
@@ -69,7 +70,8 @@ template <bool has_disk_controller> class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
-	public MachineTypes::TimedMachine {
+	public MachineTypes::TimedMachine,
+	public Utility::TypeRecipient<CharacterMapper> {
 	private:
 		constexpr uint8_t min_ram_slot(const Analyser::Static::Enterprise::Target &target) {
 			size_t ram_size = 128*1024;
@@ -215,6 +217,9 @@ template <bool has_disk_controller> class ConcreteMachine:
 
 			// Pass on any media.
 			insert_media(target.media);
+			if(!target.loading_command.empty()) {
+				type_string(target.loading_command);
+			}
 		}
 
 		~ConcreteMachine() {
@@ -425,6 +430,39 @@ template <bool has_disk_controller> class ConcreteMachine:
 							update_interrupts();
 						break;
 						case 0xb5:
+							// Logic here: the ROM scans the keyboard by checking ascending
+							// lines. It also seems to provide a line of 0 when using port B5
+							// for non-keyboard uses.
+							//
+							// So: use the rollover from line 9 back to line 0 as a trigger to
+							// spot that a scan of the keyboard just finished. Which makes it
+							// time to enqueue the next keypress.
+							//
+							// Re: is_past_splash_screen_ and typer_delay_, assume that a
+							// single keypress is necessary to get past the Enterprise splash
+							// screen, then a pause in keypressing while BASIC or whatever
+							// starts up, then presses can resume.
+							if(typer_ && active_key_line_ == 9 && !(*cycle.value & 0xf)) {
+								if(!is_past_splash_screen_) {
+									set_key_state(uint16_t(Key::Space), typer_delay_);
+									if(typer_delay_) {
+										--typer_delay_;
+									} else {
+										typer_delay_ = 60;
+										is_past_splash_screen_ = true;
+									}
+								} else {
+									if(!typer_delay_) {
+										if(!typer_->type_next_character()) {
+											clear_all_keys();
+											typer_ = nullptr;
+										}
+									} else {
+										--typer_delay_;
+									}
+								}
+							}
+
 							active_key_line_ = *cycle.value & 0xf;
 							// TODO:
 							//
@@ -577,6 +615,21 @@ template <bool has_disk_controller> class ConcreteMachine:
 		void clear_all_keys() final {
 			key_lines_.fill(0xff);
 		}
+
+		// MARK: - Utility::TypeRecipient
+		void type_string(const std::string &string) final {
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+
+			is_past_splash_screen_ = !z80_.get_is_resetting();
+			typer_delay_ = !is_past_splash_screen_;
+		}
+
+		bool can_type(char c) const final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
+		}
+
+		bool is_past_splash_screen_ = false;
+		int typer_delay_ = 30;
 
 		// MARK: - MediaTarget
 		bool insert_media(const Analyser::Static::Media &media) final {

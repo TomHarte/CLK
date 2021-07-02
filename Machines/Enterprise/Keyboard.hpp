@@ -10,6 +10,7 @@
 #define Machines_Enterprise_Keyboard_hpp
 
 #include "../KeyboardMachine.hpp"
+#include "../Utility/Typer.hpp"
 
 namespace Enterprise {
 
@@ -32,7 +33,7 @@ enum class Key: uint16_t {
 	F5		= 0x0400 | 0x10,	F7			= 0x0400 | 0x20,	F2		= 0x0400 | 0x40,	F1			= 0x0400 | 0x80,
 
 	k8		= 0x0500 | 0x01,									k9		= 0x0500 | 0x04,	Hyphen		= 0x0500 | 0x08,
-	k0		= 0x0500 | 0x10,	Tilde		= 0x0500 | 0x20,	Erase	= 0x0500 | 0x40,
+	k0		= 0x0500 | 0x10,	Caret		= 0x0500 | 0x20,	Erase	= 0x0500 | 0x40,
 
 	J		= 0x0600 | 0x01,									K		= 0x0600 | 0x04,	Semicolon	= 0x0600 | 0x08,
 	L		= 0x0600 | 0x10,	Colon		= 0x0600 | 0x20,	CloseSquareBracket		= 0x0600 | 0x40,
@@ -54,6 +55,10 @@ enum class Key: uint16_t {
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
+};
+
+struct CharacterMapper: public ::Utility::CharacterMapper {
+	const uint16_t *sequence_for_character(char character) const override;
 };
 
 }
