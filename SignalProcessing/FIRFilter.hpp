@@ -17,6 +17,7 @@
 #define USE_ACCELERATE
 #endif
 
+#include <cstddef>
 #include <vector>
 
 namespace SignalProcessing {
