@@ -9,6 +9,7 @@
 #ifndef Joystick_hpp
 #define Joystick_hpp
 
+#include <cstddef>
 #include <vector>
 
 namespace Inputs {
