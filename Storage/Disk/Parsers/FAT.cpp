@@ -15,18 +15,19 @@
 using namespace Storage::Disk;
 
 FAT::Volume::CHS FAT::Volume::chs_for_sector(int sector) const {
-	const auto sectors_per_head = total_sectors / head_count;
+	const auto track = sector / sectors_per_track;
 
-		// Guess here: there's no head interleaving. Let's see.
+	// Sides are interleaved.
 	return CHS{
-		sector / sectors_per_head,
-		(sector % sectors_per_head) / sectors_per_track,
+		track / head_count,
+		track % head_count,
 		1 + (sector % sectors_per_track)
 	 };
 }
 
-int FAT::Volume::sector_for_cluster(int cluster) const {
-	return (cluster * sectors_per_cluster) + first_data_sector;
+int FAT::Volume::sector_for_cluster(uint16_t cluster) const {
+	// The first cluster in the data area is numbered as 2.
+	return ((cluster - 2) * sectors_per_cluster) + first_data_sector;
 }
 
 namespace {
@@ -34,6 +35,7 @@ namespace {
 FAT::Directory directory_from(const std::vector<uint8_t> &contents) {
 	FAT::Directory result;
 
+	// Worst case: parse until the amount of data supplied is fully consumed.
 	for(size_t base = 0; base < contents.size(); base += 32) {
 		// An entry starting with byte 0 indicates end-of-directory.
 		if(!contents[base]) {
@@ -80,6 +82,7 @@ std::optional<FAT::Volume> FAT::GetVolume(const std::shared_ptr<Storage::Disk::D
 	FAT::Volume volume;
 	volume.bytes_per_sector = uint16_t(data[11] | (data[12] << 8));
 	volume.sectors_per_cluster = data[13];
+	volume.reserved_sectors = uint16_t(data[14] | (data[15] << 8));
 	volume.fat_copies = data[16];
 	const uint16_t root_directory_entries = uint16_t(data[17] | (data[18] << 8));
 	volume.total_sectors = uint16_t(data[19] | (data[20] << 8));
@@ -109,14 +112,14 @@ std::optional<FAT::Volume> FAT::GetVolume(const std::shared_ptr<Storage::Disk::D
 	// TODO: stop assuming FAT12 here.
 	for(size_t c = 0; c < source_fat.size(); c += 3) {
 		const uint32_t double_cluster = uint32_t(source_fat[c] + (source_fat[c + 1] << 8) + (source_fat[c + 2] << 16));
-		volume.fat.push_back(double_cluster & 0xfff);
-		volume.fat.push_back(double_cluster >> 12);
+		volume.fat.push_back(uint16_t(double_cluster & 0xfff));
+		volume.fat.push_back(uint16_t(double_cluster >> 12));
 	}
 
 	// Grab the root directory.
 	std::vector<uint8_t> root_directory;
 	for(size_t c = 0; c < root_directory_sectors; c++) {
-		const auto sector_number = int(1 + c + volume.sectors_per_fat*volume.fat_copies);
+		const auto sector_number = int(volume.reserved_sectors + c + volume.sectors_per_fat*volume.fat_copies);
 		const auto address = volume.chs_for_sector(sector_number);
 
 		Storage::Encodings::MFM::Sector *const sector =
@@ -128,19 +131,6 @@ std::optional<FAT::Volume> FAT::GetVolume(const std::shared_ptr<Storage::Disk::D
 	}
 	volume.root_directory = directory_from(root_directory);
 
-	// TEST!
-	// TODO: REMOVE.
-	for(const auto &file: volume.root_directory) {
-		if(!(file.attributes & File::Attribute::Directory)) {
-			continue;
-		}
-		const auto sub = GetDirectory(disk, volume, file);
-		if(!sub) {
-			continue;
-		}
-		std::cout << (*sub).size();
-	}
-
 	return volume;
 }
 
@@ -148,14 +138,15 @@ std::optional<std::vector<uint8_t>> FAT::GetFile(const std::shared_ptr<Storage::
 	Storage::Encodings::MFM::Parser parser(true, disk);
 
 	std::vector<uint8_t> contents;
+
+	// In FAT cluster numbers describe a linked list via the FAT table, with values above $FF0 being reserved
+	// (relevantly: FF7 means bad cluster; FF8–FFF mean end-of-file).
 	uint16_t cluster = file.starting_cluster;
-	while(contents.size() < file.size) {
-		int sector = volume.sector_for_cluster(cluster);
-		++cluster;
+	do {
+		const int sector = volume.sector_for_cluster(cluster);
 
 		for(int c = 0; c < volume.sectors_per_cluster; c++) {
-			const auto address = volume.chs_for_sector(sector);
-			++sector;
+			const auto address = volume.chs_for_sector(sector + c);
 
 			Storage::Encodings::MFM::Sector *const sector_contents =
 				parser.get_sector(address.head, address.cylinder, uint8_t(address.sector));
@@ -164,7 +155,9 @@ std::optional<std::vector<uint8_t>> FAT::GetFile(const std::shared_ptr<Storage::
 			}
 			std::copy(sector_contents->samples[0].begin(), sector_contents->samples[0].end(), std::back_inserter(contents));
 		}
-	}
+
+		cluster = volume.fat[cluster];
+	} while(cluster < 0xff0);
 
 	return contents;
 }

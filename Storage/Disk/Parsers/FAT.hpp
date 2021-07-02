@@ -44,7 +44,7 @@ using Directory = std::vector<File>;
 struct Volume {
 	uint16_t bytes_per_sector = 0;
 	uint8_t sectors_per_cluster = 0;
-	uint8_t reserved_sectors = 0;
+	uint16_t reserved_sectors = 0;
 	uint8_t fat_copies = 0;
 	uint16_t total_sectors = 0;
 	uint16_t sectors_per_fat = 0;
@@ -54,7 +54,7 @@ struct Volume {
 	bool correct_signature = false;
 	int first_data_sector = 0;
 
-	std::vector<uint32_t> fat;
+	std::vector<uint16_t> fat;
 	Directory root_directory;
 
 	struct CHS {
@@ -65,7 +65,7 @@ struct Volume {
 	/// @returns a direct sector -> CHS address translation.
 	CHS chs_for_sector(int sector) const;
 	/// @returns the CHS address for the numbered cluster within the data area.
-	int sector_for_cluster(int cluster) const;
+	int sector_for_cluster(uint16_t cluster) const;
 };
 
 std::optional<Volume> GetVolume(const std::shared_ptr<Storage::Disk::Disk> &disk);
