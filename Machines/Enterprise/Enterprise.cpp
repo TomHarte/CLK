@@ -590,7 +590,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 		}
 
 		HalfCycles get_typer_frequency() const final {
-			return HalfCycles(60'000);
+			return HalfCycles(80'000);
 		}
 
 		void type_string(const std::string &string) final {
