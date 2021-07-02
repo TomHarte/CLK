@@ -32,6 +32,14 @@ int FAT::Volume::sector_for_cluster(uint16_t cluster) const {
 
 namespace {
 
+template <typename CharT> std::string trim(CharT start, CharT end) {
+	std::string result(start, end);
+	result.erase(std::find_if(result.rbegin(), result.rend(), [](unsigned char ch) {
+		return !std::isspace(ch);
+	}).base(), result.end());
+	return result;
+}
+
 FAT::Directory directory_from(const std::vector<uint8_t> &contents) {
 	FAT::Directory result;
 
@@ -49,8 +57,8 @@ FAT::Directory directory_from(const std::vector<uint8_t> &contents) {
 
 		// Otherwise create and populate a new entry.
 		result.emplace_back();
-		result.back().name = std::string(&contents[base], &contents[base+8]);
-		result.back().extension = std::string(&contents[base+8], &contents[base+11]);
+		result.back().name = trim(&contents[base], &contents[base+8]);
+		result.back().extension = trim(&contents[base+8], &contents[base+11]);
 		result.back().attributes = contents[base + 11];
 		result.back().time = uint16_t(contents[base+22] | (contents[base+23] << 8));
 		result.back().date = uint16_t(contents[base+24] | (contents[base+25] << 8));

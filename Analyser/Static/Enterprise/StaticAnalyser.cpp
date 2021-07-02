@@ -54,7 +54,7 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(const Medi
 			bool has_exdos_ini = false;
 			bool did_pick_file = false;
 			for(const auto &file: (*volume).root_directory) {
-				if(insensitive_equal(file.name, "EXDOS   ") && insensitive_equal(file.extension, "INI")) {
+				if(insensitive_equal(file.name, "exdos") && insensitive_equal(file.extension, "ini")) {
 					has_exdos_ini = true;
 					break;
 				}
