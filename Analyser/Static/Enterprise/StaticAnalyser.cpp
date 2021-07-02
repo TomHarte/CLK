@@ -9,13 +9,14 @@
 #include "StaticAnalyser.hpp"
 #include "Target.hpp"
 
+#include "../../../Storage/Disk/Parsers/FAT.hpp"
+
 Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	// This analyser can comprehend disks only.
 	if(media.disks.empty()) return {};
 
-	// Otherwise, for now: wave it through.
+	// Otherwise, assume a return will happen.
 	Analyser::Static::TargetList targets;
-
 	using Target = Analyser::Static::Enterprise::Target;
 	auto *const target = new Target;
 	target->media = media;
@@ -23,8 +24,9 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(const Medi
 	// Always require a BASIC.
 	target->basic_version = Target::BASICVersion::Any;
 
-	// If this is a single-sided floppy disk, guess the Macintosh 512kb.
+	// Inspect any supplied disks.
 	if(!media.disks.empty()) {
+		auto volume = Storage::Disk::FAT::GetVolume(media.disks.front());
 		target->dos = Target::DOS::EXDOS;
 	}
 
