@@ -21,6 +21,9 @@
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Processors/Z80/Z80.hpp"
 
+#define LOG_PREFIX "[Enterprise] "
+#include "../../Outputs/Log.hpp"
+
 namespace Enterprise {
 
 /*
@@ -334,8 +337,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::Input:
 					switch(address & 0xff) {
 						default:
-							printf("Unhandled input: %04x\n", address);
-//							assert(false);
+							LOG("Unhandled input from " << PADHEX(2) << (address & 0xff));
 							*cycle.value = 0xff;
 						break;
 
@@ -393,8 +395,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::Output:
 					switch(address & 0xff) {
 						default:
-							printf("Unhandled output: %04x\n", address);
-//							assert(false);
+							LOG("Unhandled output: " << PADHEX(2) << *cycle.value << " to " << PADHEX(2) << (address & 0xff));
 						break;
 
 						case 0x10:	case 0x11:	case 0x12:	case 0x13:
@@ -480,12 +481,12 @@ template <bool has_disk_controller> class ConcreteMachine:
 						break;
 						case 0xb6:
 							// Just 8 bits of printer data.
-							printf("TODO: printer output %02x\n", *cycle.value);
+							LOG("TODO: printer output " << PADHEX(2) << *cycle.value);
 						break;
 						case 0xb7:
 							// b0 = serial data out
 							// b1 = serial status out
-							printf("TODO: serial output %02x\n", *cycle.value);
+							LOG("TODO: serial output " << PADHEX(2) << *cycle.value);
 						break;
 						case 0xbf:
 							// TODO: onboard RAM, Dave 8/12Mhz select.
