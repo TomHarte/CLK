@@ -96,15 +96,19 @@ uint8_t Nick::read([[maybe_unused]] uint16_t address) {
 }
 
 Cycles Nick::get_time_until_z80_slot(Cycles after_period) const {
-	// Place Z80 accesses as the first six cycles in each sixteen-cycle window.
+	// Place Z80 accesses in the first six cycles in each sixteen-cycle window.
 	// That models video accesses as being the final ten. Which has the net effect
 	// of responding to the line parameter table interrupt flag as soon as it's
 	// loaded.
 
-	// i.e. 0 -> 0, 1 -> 15 ... 15 -> 1.
-	return Cycles(
-		15 ^ ((horizontal_counter_ + 15 + after_period.as<int>()) & 15)
-	);
+	// Assumed below: the Z80 can start its final cycle anywhere in the first three
+	// of the permitted six.
+	const int offset = (horizontal_counter_ + after_period.as<int>()) & 15;
+	if(offset < 3) {
+		return 0;
+	} else {
+		return 16 - offset;
+	}
 }
 
 void Nick::run_for(Cycles duration) {
@@ -459,11 +463,9 @@ void Nick::set_output_type(OutputType type, bool force_flush) {
 // MARK: - Sequence points.
 
 Cycles Nick::get_next_sequence_point() const {
-	// TODO: the below is incorrect; unit test and correct.
-	// Changing to e.g. Cycles(1) reveals the relevant discrepancy.
-//	return Cycles(1);
-
-	constexpr int load_point = 2*16;
+	constexpr int load_point = 16;	// i.e. 16 cycles after the start of the line, the
+									// interrupt line may change. That is, after the
+									// second byte of the mode line has been read.
 
 	// Any mode line may cause a change in the interrupt output, so as a first blush
 	// just always report the time until the end of the mode line.
