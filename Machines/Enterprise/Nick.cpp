@@ -91,8 +91,8 @@ void Nick::write(uint16_t address, uint8_t value) {
 	}
 }
 
-uint8_t Nick::read([[maybe_unused]] uint16_t address) {
-	return 0xff;
+uint8_t Nick::read() {
+	return last_read_;
 }
 
 Cycles Nick::get_time_until_z80_slot(Cycles after_period) const {
@@ -141,9 +141,6 @@ void Nick::run_for(Cycles duration) {
 
 		// HSYNC is signalled for four windows at the start of the line.
 		// I currently believe this happens regardless of Vsync mode.
-		//
-		// This is also when the non-palette line parameters
-		// are loaded, if appropriate.
 		if(!window) {
 			set_output_type(OutputType::Sync);
 
@@ -153,6 +150,9 @@ void Nick::run_for(Cycles duration) {
 			if(!right_margin_) is_sync_or_pixels_ = false;
 		}
 
+		// Default to noting read.
+		last_read_ = 0xff;
+
 		while(window < 4 && window < end_window) {
 			if(should_reload_line_parameters_) {
 				switch(window) {
@@ -160,6 +160,9 @@ void Nick::run_for(Cycles duration) {
 					case 0:
 						// Byte 0: lines remaining.
 						lines_remaining_ = ram_[line_parameter_pointer_];
+
+						// Byte 1: current interrupt output plus graphics modes...
+						last_read_ = ram_[line_parameter_pointer_ + 1];
 
 						// Set the new interrupt line output.
 						interrupt_line_ = ram_[line_parameter_pointer_ + 1] & 0x80;
@@ -200,6 +203,7 @@ void Nick::run_for(Cycles duration) {
 						// Determine the margins.
 						left_margin_ = ram_[line_parameter_pointer_ + 2] & 0x3f;
 						right_margin_ = ram_[line_parameter_pointer_ + 3] & 0x3f;
+						last_read_ = ram_[line_parameter_pointer_ + 3];
 
 						// Set up the alternative palettes,
 						switch(mode_) {
@@ -249,6 +253,7 @@ void Nick::run_for(Cycles duration) {
 						start_line_data_pointer_[0] |= ram_[line_parameter_pointer_ + 5] << 8;
 
 						line_data_pointer_[0] = start_line_data_pointer_[0];
+						last_read_ = ram_[line_parameter_pointer_ + 5];
 					break;
 
 					// Fourth slot: Line data pointer 2.
@@ -257,6 +262,7 @@ void Nick::run_for(Cycles duration) {
 						start_line_data_pointer_[1] |= ram_[line_parameter_pointer_ + 7] << 8;
 
 						line_data_pointer_[1] = start_line_data_pointer_[1];
+						last_read_ = ram_[line_parameter_pointer_ + 7];
 					break;
 				}
 			}
@@ -301,6 +307,7 @@ void Nick::run_for(Cycles duration) {
 					assert(base < 7);
 					palette_[base] = mapped_colour(ram_[line_parameter_pointer_ + base + 8]);
 					palette_[base + 1] = mapped_colour(ram_[line_parameter_pointer_ + base + 9]);
+					last_read_ = ram_[line_parameter_pointer_ + base + 9];
 				}
 
 				++output_duration_;
@@ -534,6 +541,7 @@ template <int bpp, bool is_lpixel> void Nick::output_pixel(uint16_t *target, int
 			ram_[(line_data_pointer_[0] + index + 1) & 0xffff]
 		};
 		index += is_lpixel ? 1 : 2;
+		last_read_ = pixels[1];
 
 		switch(bpp) {
 			default:
@@ -582,6 +590,7 @@ template <int bpp, int index_bits> void Nick::output_character(uint16_t *target,
 			(line_data_pointer_[1] << index_bits) +
 			(character & ((1 << index_bits) - 1))
 		) & 0xffff];
+		last_read_ = pixels;
 
 		switch(bpp) {
 			default:
@@ -607,6 +616,7 @@ template <int bpp> void Nick::output_attributed(uint16_t *target, int columns) c
 	for(int c = 0; c < columns; c++) {
 		const uint8_t pixels = ram_[(line_data_pointer_[1] + c) & 0xffff];
 		const uint8_t attributes = ram_[(line_data_pointer_[0] + c) & 0xffff];
+		last_read_ = pixels;
 
 		const uint16_t palette[2] = {
 			palette_[attributes >> 4], palette_[attributes & 0x0f]

@@ -19,8 +19,17 @@ class Nick {
 	public:
 		Nick(const uint8_t *ram);
 
+		/// Writes to a Nick register; only the low two bits are decoded.
 		void write(uint16_t address, uint8_t value);
-		uint8_t read(uint16_t address);
+
+		/// Reads from the Nick range. Nobody seems to be completely clear what
+		/// this should return; I've set it up to return the last fetched video or mode
+		/// line byte during periods when those things are being fetched, 0xff at all
+		/// other times. Including during refresh, since I don't know what addresses
+		/// are generated then.
+		///
+		/// This likely isn't accurate, but is the most accurate guess I could make.
+		uint8_t read();
 
 		void run_for(Cycles);
 		Cycles get_time_until_z80_slot(Cycles after_period) const;
@@ -60,6 +69,7 @@ class Nick {
 		bool should_reload_line_parameters_ = true;
 		uint16_t line_data_pointer_[2];
 		uint16_t start_line_data_pointer_[2];
+		mutable uint8_t last_read_ = 0xff;
 
 		// Current mode line parameters.
 		uint8_t lines_remaining_ = 0x00;

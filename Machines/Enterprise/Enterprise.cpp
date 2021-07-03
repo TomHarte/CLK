@@ -358,6 +358,13 @@ template <bool has_disk_controller> class ConcreteMachine:
 							}
 						break;
 
+						case 0x80:	case 0x81:	case 0x82:	case 0x83:
+						case 0x84:	case 0x85:	case 0x86:	case 0x87:
+						case 0x88:	case 0x89:	case 0x8a:	case 0x8b:
+						case 0x8c:	case 0x8d:	case 0x8e:	case 0x8f:
+							*cycle.value = nick_->read();
+						break;
+
 						case 0xb0:	*cycle.value = pages_[0];	break;
 						case 0xb1:	*cycle.value = pages_[1];	break;
 						case 0xb2:	*cycle.value = pages_[2];	break;
