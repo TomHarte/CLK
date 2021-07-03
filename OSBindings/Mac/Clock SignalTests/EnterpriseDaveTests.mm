@@ -82,9 +82,19 @@
 	// apply sync momentarily.
 	_interruptSource->write(7, 2 << 5);
 	_interruptSource->write(0, 137);
-	_interruptSource->write(2, 0);
+	_interruptSource->write(1, 0);
 
 	[self performTestExpectedToggles:250000/138 expectedInterrupts:250000/(138*2)];
+}
+
+- (void)testTone1Timer {
+	// Set tone generator 1 as the interrupt source, with a divider of 961;
+	// apply sync momentarily.
+	_interruptSource->write(7, 3 << 5);
+	_interruptSource->write(2, 961 & 0xff);
+	_interruptSource->write(3, (961 >> 8) & 0xff);
+
+	[self performTestExpectedToggles:250000/961 expectedInterrupts:250000/(961*2)];
 }
 
 @end
