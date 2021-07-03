@@ -124,6 +124,8 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 		}
 
 		// Step 2: tick if necessary.
+		int noise_output = noise_.output & 1;
+		noise_.output <<= 1;
 		if(noise_tick) {
 			switch(noise_.polynomial) {
 				case Noise::Polynomial::SeventeenBit:
@@ -140,20 +142,16 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 				break;
 			}
 
-			noise_.output <<= 1;
-			noise_.output |= poly_state_[int(Channel::Distortion::None)];
+			noise_output = poly_state_[int(Channel::Distortion::None)];
+		}
+		noise_.output |= noise_output;
 
-			// Low pass: sample channel 2 on downward transitions of the prima facie output.
-			if(noise_.low_pass) {
-				if((noise_.output & 3) == 2) {
-					noise_.output = (noise_.output & ~1) | (channels_[2].output & 1);
-				} else {
-					noise_.output = (noise_.output & ~1) | (noise_.output & 1);
-				}
-			}
+		// Low pass: sample channel 2 on downward transitions of the prima facie output.
+		if(noise_.low_pass && (noise_.output & 3) == 2) {
+			noise_.output = (noise_.output & ~1) | (channels_[2].output & 1);
 		}
 
-		// Apply noise high-pass at the rate of the tone channels.
+		// Apply noise high-pass.
 		if(noise_.high_pass && (channels_[0].output & 3) == 2) {
 			noise_.output &= ~1;
 		}

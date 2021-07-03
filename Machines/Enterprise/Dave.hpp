@@ -86,7 +86,7 @@ class Audio: public Outputs::Speaker::SampleSource {
 
 			// Current state.
 			int count = 0;
-			int output = false;
+			int output = 0;
 			bool final_output = false;
 		} noise_;
 		void update_noise();
