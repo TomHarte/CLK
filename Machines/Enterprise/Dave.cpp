@@ -215,7 +215,7 @@ void TimedInterruptSource::write(uint16_t address, uint8_t value) {
 
 			const InterruptRate rate = InterruptRate((value >> 5) & 3);
 			if(rate != rate_) {
-				rate_ = InterruptRate((value >> 5) & 3);
+				rate_ = rate;
 
 				if(rate_ >= InterruptRate::ToneGenerator0) {
 					programmable_level_ = channels_[int(rate_) - int(InterruptRate::ToneGenerator0)].level;
@@ -234,12 +234,27 @@ void TimedInterruptSource::update_channel(int c, bool is_linked, int decrement) 
 		if(decrement <= channels_[c].value) {
 			channels_[c].value -= decrement;
 		} else {
-			const int num_flips = (decrement - channels_[c].value) / (channels_[c].reload + 1);
+			// The decrement is greater than the current value, therefore
+			// there'll be at least one flip.
+			//
+			// After decreasing the decrement by the current value + 1,
+			// it'll be clear how many decrements are left after reload.
+			//
+			// Dividing that by the number of decrements necessary for a
+			// flip will provide the total number of flips.
+			const int decrements_after_flip = decrement - (channels_[c].value + 1);
+			const int num_flips = 1 + decrements_after_flip / (channels_[c].reload + 1);
+
+			// If this is a linked channel, set the interrupt mask if a transition
+			// from high to low is amongst the included flips.
 			if(is_linked && num_flips + channels_[c].level >= 2) {
 				interrupts_ |= uint8_t(Interrupt::VariableFrequency);
 			}
 			channels_[c].level ^= (num_flips & 1);
-			channels_[c].value = (decrement - channels_[c].value) % (channels_[c].reload + 1);
+
+			// Apply the modulo number of decrements to the reload value to
+			// figure out where things stand now.
+			channels_[c].value = channels_[c].reload - decrements_after_flip % (channels_[c].reload + 1);
 		}
 	}
 }
@@ -275,12 +290,12 @@ Cycles TimedInterruptSource::get_next_sequence_point() const {
 	switch(rate_) {
 		case InterruptRate::OnekHz:
 		case InterruptRate::FiftyHz:
-			result = std::min(result, programmable_offset_);
+			result = std::min(result, programmable_offset_ + (!programmable_level_)*programmble_reload(rate_));
 		break;
 		case InterruptRate::ToneGenerator0:
 		case InterruptRate::ToneGenerator1: {
-			const auto& channel = channels_[int(rate_) - int(InterruptRate::ToneGenerator0)];
-			const int cycles_until_interrupt = (channel.value + 1) + (channel.level ? 0 : channel.reload + 1);
+			const auto &channel = channels_[int(rate_) - int(InterruptRate::ToneGenerator0)];
+			const int cycles_until_interrupt = channel.value + 1 + (channel.level ? 0 : channel.reload + 1);
 			result = std::min(result, cycles_until_interrupt);
 		} break;
 	}

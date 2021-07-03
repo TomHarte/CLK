@@ -242,6 +242,7 @@
 		4B4518A41F75FD1C00926311 /* OricMFMDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518971F75FD1B00926311 /* OricMFMDSK.cpp */; };
 		4B4518A51F75FD1C00926311 /* SSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518991F75FD1B00926311 /* SSD.cpp */; };
 		4B47770B268FBE4D005C2340 /* FAT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B477709268FBE4D005C2340 /* FAT.cpp */; };
+		4B47770D26900685005C2340 /* EnterpriseDaveTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B47770C26900685005C2340 /* EnterpriseDaveTests.mm */; };
 		4B47F6C5241C87A100ED06F7 /* Struct.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B47F6C4241C87A100ED06F7 /* Struct.cpp */; };
 		4B47F6C6241C87A100ED06F7 /* Struct.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B47F6C4241C87A100ED06F7 /* Struct.cpp */; };
 		4B49F0A923346F7A0045E6A6 /* MacintoshOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B49F0A723346F7A0045E6A6 /* MacintoshOptions.xib */; };
@@ -1279,6 +1280,7 @@
 		4B4518A81F76022000926311 /* DiskImageImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DiskImageImplementation.hpp; sourceTree = "<group>"; };
 		4B477709268FBE4D005C2340 /* FAT.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FAT.cpp; path = Parsers/FAT.cpp; sourceTree = "<group>"; };
 		4B47770A268FBE4D005C2340 /* FAT.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = FAT.hpp; path = Parsers/FAT.hpp; sourceTree = "<group>"; };
+		4B47770C26900685005C2340 /* EnterpriseDaveTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EnterpriseDaveTests.mm; sourceTree = "<group>"; };
 		4B47F6C4241C87A100ED06F7 /* Struct.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Struct.cpp; sourceTree = "<group>"; };
 		4B49F0A823346F7A0045E6A6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MacintoshOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AY38910.cpp; sourceTree = "<group>"; };
@@ -4066,6 +4068,7 @@
 				4BE34437238389E10058E78F /* AtariSTVideoTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
 				4BFF1D3C2235C3C100838EA1 /* EmuTOSTests.mm */,
+				4B47770C26900685005C2340 /* EnterpriseDaveTests.mm */,
 				4B051CB2267D3FF800CA44E8 /* EnterpriseNickTests.mm */,
 				4B8DF4D725465B7500F3433C /* IIgsMemoryMapTests.mm */,
 				4BEE1EBF22B5E236000A26A6 /* MacGCRTests.mm */,
@@ -5774,6 +5777,7 @@
 				4BB2A9AF1E13367E001A5C23 /* CRCTests.mm in Sources */,
 				4B778F5623A5F2AF0000D260 /* CPM.cpp in Sources */,
 				4B778F1C23A5ED3F0000D260 /* TimedEventLoop.cpp in Sources */,
+				4B47770D26900685005C2340 /* EnterpriseDaveTests.mm in Sources */,
 				4B3BA0D01D318B44005DD7A7 /* MOS6532Bridge.mm in Sources */,
 				4B778F3823A5F11C0000D260 /* SegmentParser.cpp in Sources */,
 				4B778F0723A5EC150000D260 /* CommodoreTAP.cpp in Sources */,
