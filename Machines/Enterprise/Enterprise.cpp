@@ -64,6 +64,7 @@ namespace Enterprise {
 
 template <bool has_disk_controller> class ConcreteMachine:
 	public Activity::Source,
+	public Configurable::Device,
 	public CPU::Z80::BusHandler,
 	public Machine,
 	public MachineTypes::AudioProducer,
@@ -591,6 +592,14 @@ template <bool has_disk_controller> class ConcreteMachine:
 			return nick_.last_valid()->get_scaled_scan_status();
 		}
 
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
+			nick_.last_valid()->set_display_type(display_type);
+		}
+
+		Outputs::Display::DisplayType get_display_type() const final {
+			return nick_.last_valid()->get_display_type();
+		}
+
 		// MARK: - AudioProducer
 
 		Outputs::Speaker::Speaker *get_speaker() final {
@@ -691,6 +700,18 @@ template <bool has_disk_controller> class ConcreteMachine:
 			if constexpr (has_disk_controller) {
 				exdos_.set_activity_observer(observer);
 			}
+		}
+
+		// MARK: - Configuration options.
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			return options;
+		}
+
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
 		}
 };
 
