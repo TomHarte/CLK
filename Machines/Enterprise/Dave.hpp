@@ -32,6 +32,9 @@ class Audio: public Outputs::Speaker::SampleSource {
 	public:
 		Audio(Concurrency::DeferringAsyncTaskQueue &audio_queue);
 
+		/// Modifies an register in the audio range; only the low 4 bits are
+		/// used for register decoding so it's assumed that the caller has
+		/// already identified this write as being to an audio register.
 		void write(uint16_t address, uint8_t value);
 
 		// MARK: - SampleSource.
@@ -115,27 +118,43 @@ class Audio: public Outputs::Speaker::SampleSource {
 	Provides Dave's timed interrupts — those that are provided at 1 kHz,
 	50 Hz or according to the rate of tone generators 0 or 1, plus the fixed
 	1 Hz interrupt.
-
 */
 class TimedInterruptSource {
 	public:
+		/// Modifies an register in the audio range; only the low 4 bits are
+		/// used for register decoding so it's assumed that the caller has
+		/// already identified this write as being to an audio register.
 		void write(uint16_t address, uint8_t value);
 
+		/// Returns a bitmask of interrupts that have become active since
+		/// the last time this method was called; flags are as defined in
+		/// @c Enterprise::Dave::Interrupt
 		uint8_t get_new_interrupts();
+
+		/// Returns the current high or low states of the inputs that trigger
+		/// the interrupts modelled here, as a bit mask compatible with that
+		/// exposed by Dave as the register at 0xb4.
 		uint8_t get_divider_state();
 
+		/// Advances the interrupt source.
 		void run_for(Cycles);
 
+		/// @returns The amount of time from now until the earliest that
+		/// @c get_new_interrupts() _might_ have new interrupts to report.
 		Cycles get_next_sequence_point() const;
 
 	private:
-		uint8_t interrupts_ = 0;
-
 		static constexpr Cycles clock_rate{250000};
 		static constexpr Cycles half_clock_rate{125000};
 
+		// Interrupts that have fired since get_new_interrupts()
+		// was last called.
+		uint8_t interrupts_ = 0;
+
+		// A counter for the 1Hz interrupt.
 		Cycles one_hz_offset_ = clock_rate;
 
+		// A counter specific to the 1kHz and 50Hz timers, if in use.
 		enum class InterruptRate {
 			OnekHz,
 			FiftyHz,
@@ -145,6 +164,9 @@ class TimedInterruptSource {
 		int programmable_offset_ = programmble_reload(InterruptRate::OnekHz);
 		bool programmable_level_ = false;
 
+		// A local duplicate of the counting state of the first two audio
+		// channels, maintained in case either of those is used as an
+		// interrupt source.
 		struct Channel {
 			int value = 100, reload = 100;
 			bool sync = false;
