@@ -8,6 +8,8 @@
 
 #include "EXDos.hpp"
 
+// TODO: disk_did_change_ should be on the drive. Some drives report it.
+
 using namespace Enterprise;
 
 EXDos::EXDos() : WD1770(P1770) {
@@ -37,8 +39,6 @@ void EXDos::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
 //		b0 drive ready
 
 void EXDos::set_control_register(uint8_t control) {
-//	printf("Set control: %02x\n", control);
-
 	if(control & 0x40) disk_did_change_ = false;
 	set_is_double_density(!(control & 0x20));
 
@@ -58,21 +58,16 @@ void EXDos::set_control_register(uint8_t control) {
 }
 
 uint8_t EXDos::get_control_register() {
-	// TODO: how does disk_did_change_ really work? Presumably
-	// it latches RDY?
 	const uint8_t status =
 		(get_data_request_line() ? 0x80 : 0x00) |
 		(disk_did_change_ ? 0x40 : 0x00) |
 		(get_interrupt_request_line() ? 0x02 : 0x00) |
 		(get_drive().get_is_ready() ? 0x01 : 0x00);
 
-//	printf("Get status: %02x\n", status);
 	return status;
 }
 
 void EXDos::set_motor_on(bool on) {
-	// TODO: this status should transfer if the selected drive changes. But the same goes for
-	// writing state, so plenty of work to do in general here.
 	get_drive().set_motor_on(on);
 }
 
