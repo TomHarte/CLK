@@ -424,6 +424,10 @@ void MainWindow::launchMachine() {
 			addEnhancementsMenu(settingsPrefix, true, false);
 		break;
 
+		case Analyser::Machine::Enterprise:
+			addDisplayMenu(settingsPrefix, "Composite", "", "", "RGB");
+		break;
+
 		case Analyser::Machine::Macintosh:
 			addEnhancementsMenu(settingsPrefix, false, true);
 		break;
