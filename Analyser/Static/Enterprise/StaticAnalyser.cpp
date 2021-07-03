@@ -9,13 +9,29 @@
 #include "StaticAnalyser.hpp"
 #include "Target.hpp"
 
+#include "../../../Storage/Disk/Parsers/FAT.hpp"
+
+#include <algorithm>
+
+namespace {
+
+bool insensitive_equal(const std::string &lhs, const std::string &rhs) {
+	return std::equal(
+		lhs.begin(), lhs.end(),
+		rhs.begin(), rhs.end(),
+		[] (char l, char r) {
+			return tolower(l) == tolower(r);
+	});
+}
+
+}
+
 Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	// This analyser can comprehend disks only.
 	if(media.disks.empty()) return {};
 
-	// Otherwise, for now: wave it through.
+	// Otherwise, assume a return will happen.
 	Analyser::Static::TargetList targets;
-
 	using Target = Analyser::Static::Enterprise::Target;
 	auto *const target = new Target;
 	target->media = media;
@@ -23,9 +39,40 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(const Medi
 	// Always require a BASIC.
 	target->basic_version = Target::BASICVersion::Any;
 
-	// If this is a single-sided floppy disk, guess the Macintosh 512kb.
+	// Inspect any supplied disks.
 	if(!media.disks.empty()) {
+		// DOS will be needed.
 		target->dos = Target::DOS::EXDOS;
+
+		// Grab the volume information, which includes the root directory.
+		auto volume = Storage::Disk::FAT::GetVolume(media.disks.front());
+		if(volume) {
+			// If there's an EXDOS.INI then this disk should be able to boot itself.
+			// If not but if there's only one .COM or .BAS, automatically load that.
+			// Failing that, issue a :DIR and give the user a clue as to how to load.
+			const Storage::Disk::FAT::File *selected_file = nullptr;
+			bool has_exdos_ini = false;
+			bool did_pick_file = false;
+			for(const auto &file: (*volume).root_directory) {
+				if(insensitive_equal(file.name, "exdos") && insensitive_equal(file.extension, "ini")) {
+					has_exdos_ini = true;
+					break;
+				}
+
+				if(insensitive_equal(file.extension, "com") || insensitive_equal(file.extension, "bas")) {
+					did_pick_file = !selected_file;
+					selected_file = &file;
+				}
+			}
+
+			if(!has_exdos_ini) {
+				if(did_pick_file) {
+					target->loading_command = std::string("run \"") + selected_file->name + "." + selected_file->extension + "\"";
+				} else {
+					target->loading_command = ":dir\n";
+				}
+			}
+		}
 	}
 
 	targets.push_back(std::unique_ptr<Analyser::Static::Target>(target));
