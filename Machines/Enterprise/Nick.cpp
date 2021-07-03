@@ -96,15 +96,19 @@ uint8_t Nick::read([[maybe_unused]] uint16_t address) {
 }
 
 Cycles Nick::get_time_until_z80_slot(Cycles after_period) const {
-	// Place Z80 accesses as the first six cycles in each sixteen-cycle window.
+	// Place Z80 accesses in the first six cycles in each sixteen-cycle window.
 	// That models video accesses as being the final ten. Which has the net effect
 	// of responding to the line parameter table interrupt flag as soon as it's
 	// loaded.
 
-	// i.e. 0 -> 0, 1 -> 15 ... 15 -> 1.
-	return Cycles(
-		15 ^ ((horizontal_counter_ + 15 + after_period.as<int>()) & 15)
-	);
+	// Assumed below: the Z80 can start its final cycle anywhere in the first three
+	// of the permitted six.
+	const int offset = (horizontal_counter_ + after_period.as<int>()) & 15;
+	if(offset < 3) {
+		return 0;
+	} else {
+		return 16 - offset;
+	}
 }
 
 void Nick::run_for(Cycles duration) {
