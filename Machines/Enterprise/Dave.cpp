@@ -290,12 +290,12 @@ Cycles TimedInterruptSource::get_next_sequence_point() const {
 	switch(rate_) {
 		case InterruptRate::OnekHz:
 		case InterruptRate::FiftyHz:
-			result = std::min(result, programmable_offset_ + (!programmable_level_)*programmble_reload(rate_));
+			result = std::min(result, programmable_offset_ + (!programmable_level_) * programmble_reload(rate_));
 		break;
 		case InterruptRate::ToneGenerator0:
 		case InterruptRate::ToneGenerator1: {
 			const auto &channel = channels_[int(rate_) - int(InterruptRate::ToneGenerator0)];
-			const int cycles_until_interrupt = channel.value + 1 + (channel.level ? 0 : channel.reload + 1);
+			const int cycles_until_interrupt = channel.value + 1 + (!channel.level) * (channel.reload + 1);
 			result = std::min(result, cycles_until_interrupt);
 		} break;
 	}
