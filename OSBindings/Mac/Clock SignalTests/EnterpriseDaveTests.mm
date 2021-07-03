@@ -23,7 +23,7 @@
 	_interruptSource = std::make_unique<Enterprise::Dave::TimedInterruptSource>();
 }
 
-- (void)testExpectedToggles:(int)expectedToggles expectedInterrupts:(int)expectedInterrupts {
+- (void)performTestExpectedToggles:(int)expectedToggles expectedInterrupts:(int)expectedInterrupts {
 	// Check that the programmable timer flag toggles at a rate
 	// of 2kHz, causing 1000 interrupts, and that sequence points
 	// are properly predicted.
@@ -48,6 +48,7 @@
 		if(newInterrupts & 0x02) {
 			++interrupts;
 			XCTAssertEqual(nextSequencePoint, 0);
+			XCTAssertEqual(dividerState&0x1, 0);
 			nextSequencePoint = _interruptSource->get_next_sequence_point().as<int>();
 		}
 
@@ -67,13 +68,13 @@
 - (void)test1kHzTimer {
 	// Set 1kHz timer.
 	_interruptSource->write(7, 0 << 5);
-	[self testExpectedToggles:2000 expectedInterrupts:1000];
+	[self performTestExpectedToggles:2000 expectedInterrupts:1000];
 }
 
 - (void)test50HzTimer {
 	// Set 50Hz timer.
 	_interruptSource->write(7, 1 << 5);
-	[self testExpectedToggles:100 expectedInterrupts:50];
+	[self performTestExpectedToggles:100 expectedInterrupts:50];
 }
 
 - (void)testTone0Timer {
@@ -83,7 +84,7 @@
 	_interruptSource->write(0, 137);
 	_interruptSource->write(2, 0);
 
-	[self testExpectedToggles:250000/138 expectedInterrupts:250000/(138*2)];
+	[self performTestExpectedToggles:250000/138 expectedInterrupts:250000/(138*2)];
 }
 
 @end
