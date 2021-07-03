@@ -114,14 +114,12 @@ Cycles Nick::get_time_until_z80_slot(Cycles after_period) const {
 void Nick::run_for(Cycles duration) {
 	constexpr int line_length = 912;
 
-	// TODO: test here for window < 57? Or maybe just nudge up left_/right_margin_ if they
-	// exactly equal 57?
-#define add_window(x)											\
+#define add_window(x)															\
 	line_data_pointer_[0] += is_sync_or_pixels_ * line_data_per_column_increments_[0] * (x);	\
 	line_data_pointer_[1] += is_sync_or_pixels_ * line_data_per_column_increments_[1] * (x);	\
-	window += x;												\
-	if(window == left_margin_) is_sync_or_pixels_ = true;		\
-	if(window == right_margin_) is_sync_or_pixels_ = false;
+	window += x;																\
+	if(window != 57 && window == left_margin_) is_sync_or_pixels_ = true;		\
+	if(window != 57 && window == right_margin_) is_sync_or_pixels_ = false;
 
 	int clocks_remaining = duration.as<int>();
 	while(clocks_remaining) {
