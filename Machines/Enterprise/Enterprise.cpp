@@ -220,6 +220,12 @@ template <bool has_disk_controller> class ConcreteMachine:
 			if(!target.loading_command.empty()) {
 				type_string(target.loading_command);
 			}
+
+			// Ensure the splash screen is automatically skipped if any media has been provided.
+			if(!target.media.empty()) {
+				should_skip_splash_screen_ = !target.media.empty();
+				typer_delay_ = 2;
+			}
 		}
 
 		~ConcreteMachine() {
@@ -438,18 +444,18 @@ template <bool has_disk_controller> class ConcreteMachine:
 							// spot that a scan of the keyboard just finished. Which makes it
 							// time to enqueue the next keypress.
 							//
-							// Re: is_past_splash_screen_ and typer_delay_, assume that a
+							// Re: should_skip_splash_screen_ and typer_delay_, assume that a
 							// single keypress is necessary to get past the Enterprise splash
 							// screen, then a pause in keypressing while BASIC or whatever
 							// starts up, then presses can resume.
-							if(typer_ && active_key_line_ == 9 && !(*cycle.value & 0xf)) {
-								if(!is_past_splash_screen_) {
+							if(active_key_line_ == 9 && !(*cycle.value & 0xf) && (should_skip_splash_screen_ || typer_)) {
+								if(should_skip_splash_screen_) {
 									set_key_state(uint16_t(Key::Space), typer_delay_);
 									if(typer_delay_) {
 										--typer_delay_;
 									} else {
 										typer_delay_ = 60;
-										is_past_splash_screen_ = true;
+										should_skip_splash_screen_ = false;
 									}
 								} else {
 									if(!typer_delay_) {
@@ -620,15 +626,20 @@ template <bool has_disk_controller> class ConcreteMachine:
 		void type_string(const std::string &string) final {
 			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 
-			is_past_splash_screen_ = !z80_.get_is_resetting();
-			typer_delay_ = !is_past_splash_screen_;
+			if(z80_.get_is_resetting()) {
+				should_skip_splash_screen_ = true;
+				typer_delay_ = 1;
+			} else {
+				should_skip_splash_screen_ = false;
+				typer_delay_ = 0;
+			}
 		}
 
 		bool can_type(char c) const final {
 			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 
-		bool is_past_splash_screen_ = false;
+		bool should_skip_splash_screen_ = false;
 		int typer_delay_ = 30;
 
 		// MARK: - MediaTarget
