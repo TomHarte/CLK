@@ -28,6 +28,7 @@ class Nick {
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
+		/// @returns The amount of time until the next potential change in interrupt output.
 		Cycles get_next_sequence_point() const;
 
 		/*!
@@ -37,6 +38,12 @@ class Nick {
 		inline bool get_interrupt_line() const {
 			return interrupt_line_;
 		}
+
+		/// Sets the type of output.
+		void set_display_type(Outputs::Display::DisplayType);
+
+		/// Gets the type of output.
+		Outputs::Display::DisplayType get_display_type() const;
 
 	private:
 		Outputs::CRT::CRT crt_;
@@ -95,6 +102,10 @@ class Nick {
 
 		// Current palette.
 		uint16_t palette_[16]{};
+
+		// The first column with pixels on it; will be either 8 or 10 depending
+		// on whether the colour burst is meaningful to the current display type.
+		int first_pixel_window_ = 10;
 
 		// Specific outputters.
 		template <int bpp, bool is_lpixel> void output_pixel(uint16_t *target, int columns) const;

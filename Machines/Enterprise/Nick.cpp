@@ -51,7 +51,7 @@ Nick::Nick(const uint8_t *ram) :
 	ram_(ram) {
 
 	// Just use RGB for now.
-	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+	set_display_type(Outputs::Display::DisplayType::RGB);
 
 	// Crop to the centre 90% of the display.
 	crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.05f, 0.9f, 0.9f));
@@ -287,7 +287,7 @@ void Nick::run_for(Cycles duration) {
 			// the start of window 6 to the end of window 10.
 			//
 			// The first 8 palette entries also need to be fetched here.
-			while(window < 10 && window < end_window) {
+			while(window < first_pixel_window_ && window < end_window) {
 				if(window == 6) {
 					set_output_type(OutputType::ColourBurst);
 				}
@@ -303,8 +303,8 @@ void Nick::run_for(Cycles duration) {
 				add_window(1);
 			}
 
-			if(window >= 10) {
-				if(window == 10) {
+			if(window >= first_pixel_window_) {
+				if(window == first_pixel_window_) {
 					set_output_type(is_sync_or_pixels_ ? OutputType::Pixels : OutputType::Border);
 				}
 
@@ -482,6 +482,15 @@ void Nick::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 
 Outputs::Display::ScanStatus Nick::get_scaled_scan_status() const {
 	return crt_.get_scaled_scan_status();
+}
+
+void Nick::set_display_type(Outputs::Display::DisplayType display_type) {
+	first_pixel_window_ = display_type == Outputs::Display::DisplayType::RGB ? 8 : 10;
+	crt_.set_display_type(display_type);
+}
+
+Outputs::Display::DisplayType Nick::get_display_type() const {
+	return crt_.get_display_type();
 }
 
 // MARK: - Specific pixel outputters.

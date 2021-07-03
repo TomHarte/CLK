@@ -207,6 +207,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	Emplace(AtariST, Atari::ST::Machine);
 	Emplace(ColecoVision, Coleco::Vision::Machine);
 	Emplace(Electron, Electron::Machine);
+	Emplace(Enterprise, Enterprise::Machine);
 	Emplace(Macintosh, Apple::Macintosh::Machine);
 	Emplace(MasterSystem, Sega::MasterSystem::Machine);
 	Emplace(MSX, MSX::Machine);

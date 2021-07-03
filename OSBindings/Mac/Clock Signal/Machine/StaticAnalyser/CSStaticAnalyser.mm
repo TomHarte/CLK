@@ -316,6 +316,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 		case Analyser::Machine::AtariST:		return @"CompositeOptions";
 		case Analyser::Machine::ColecoVision:	return @"CompositeOptions";
 		case Analyser::Machine::Electron:		return @"QuickLoadCompositeOptions";
+		case Analyser::Machine::Enterprise:		return @"CompositeOptions";
 		case Analyser::Machine::Macintosh:		return @"MacintoshOptions";
 		case Analyser::Machine::MasterSystem:	return @"CompositeOptions";
 		case Analyser::Machine::MSX:			return @"QuickLoadCompositeOptions";
