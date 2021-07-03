@@ -69,7 +69,7 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(const Medi
 				if(did_pick_file) {
 					target->loading_command = std::string("run \"") + selected_file->name + "." + selected_file->extension + "\"";
 				} else {
-					target->loading_command = ":dir";
+					target->loading_command = ":dir\n";
 				}
 			}
 		}
