@@ -270,13 +270,13 @@ template <bool has_disk_controller> class ConcreteMachine:
 				default: break;
 
 				// For non-video pauses, insert during the initial part of the bus cycle.
-				case CPU::Z80::PartialMachineCycle::ReadStart:
-				case CPU::Z80::PartialMachineCycle::WriteStart:
+				case PartialMachineCycle::ReadStart:
+				case PartialMachineCycle::WriteStart:
 					if(!is_video_[address >> 14] && wait_mode_ == WaitMode::OnAllAccesses) {
 						penalty = HalfCycles(2);
 					}
 				break;
-				case CPU::Z80::PartialMachineCycle::ReadOpcodeStart:
+				case PartialMachineCycle::ReadOpcodeStart:
 					if(!is_video_[address >> 14] && wait_mode_ != WaitMode::None) {
 						penalty = HalfCycles(2);
 					} else {
@@ -289,7 +289,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 				break;
 
 				// Video pauses: insert right at the end of the bus cycle.
-				case CPU::Z80::PartialMachineCycle::Write:
+				case PartialMachineCycle::Write:
 					// Ensure all video that should have been collected prior to
 					// this write has been.
 					if(is_video_[address >> 14]) {
@@ -297,7 +297,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 					}
 					[[fallthrough]];
 
-				case CPU::Z80::PartialMachineCycle::Read:
+				case PartialMachineCycle::Read:
 					if(is_video_[address >> 14]) {
 						// Get delay, in Nick cycles, for a Z80 access that occurs in 0.5
 						// cycles from now (i.e. with one cycle left to run).
@@ -307,8 +307,8 @@ template <bool has_disk_controller> class ConcreteMachine:
 					}
 				break;
 
-				case CPU::Z80::PartialMachineCycle::Input:
-				case CPU::Z80::PartialMachineCycle::Output: {
+				case PartialMachineCycle::Input:
+				case PartialMachineCycle::Output: {
 					if((address & 0xf0) == 0x80) {
 						// Get delay, in Nick cycles, for a Z80 access that occurs in 0.5
 						// cycles from now (i.e. with one cycle left to run).
@@ -334,7 +334,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 			switch(cycle.operation) {
 				default: break;
 
-				case CPU::Z80::PartialMachineCycle::Input:
+				case PartialMachineCycle::Input:
 					switch(address & 0xff) {
 						default:
 							LOG("Unhandled input from " << PADHEX(2) << (address & 0xff));
@@ -399,7 +399,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 					}
 				break;
 
-				case CPU::Z80::PartialMachineCycle::Output:
+				case PartialMachineCycle::Output:
 					switch(address & 0xff) {
 						default:
 							LOG("Unhandled output: " << PADHEX(2) << *cycle.value << " to " << PADHEX(2) << (address & 0xff));
@@ -506,8 +506,8 @@ template <bool has_disk_controller> class ConcreteMachine:
 					}
 				break;
 
-				case CPU::Z80::PartialMachineCycle::Read:
-				case CPU::Z80::PartialMachineCycle::ReadOpcode:
+				case PartialMachineCycle::Read:
+				case PartialMachineCycle::ReadOpcode:
 					if(read_pointers_[address >> 14]) {
 						*cycle.value = read_pointers_[address >> 14][address];
 					} else {
@@ -515,7 +515,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 					}
 				break;
 
-				case CPU::Z80::PartialMachineCycle::Write:
+				case PartialMachineCycle::Write:
 					if(write_pointers_[address >> 14]) {
 						write_pointers_[address >> 14][address] = *cycle.value;
 					}
