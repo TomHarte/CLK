@@ -94,9 +94,6 @@ class Nick {
 		bool vres_ = false;
 		bool reload_line_parameter_pointer_ = false;
 
-		// An accumulator for border output regions.
-		int border_duration_ = 0;
-
 		// The destination for new pixels.
 		static constexpr int allocation_size = 336;
 		static_assert((allocation_size % 16) == 0, "Allocation size must be a multiple of 16");

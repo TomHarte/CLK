@@ -1309,6 +1309,7 @@ void MainWindow::restoreSelections() {
 // MARK: - Activity observation
 
 void MainWindow::addActivityObserver() {
+	ledStatuses.clear();
 	auto activitySource = machine->activity_source();
 	if(!activitySource) return;
 
