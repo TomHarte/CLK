@@ -89,7 +89,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 		}
 
 	public:
-		ConcreteMachine([[maybe_unused]] const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+		ConcreteMachine(const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			min_ram_slot_(min_ram_slot(target)),
 			z80_(*this),
 			nick_(ram_.end() - 65536),
