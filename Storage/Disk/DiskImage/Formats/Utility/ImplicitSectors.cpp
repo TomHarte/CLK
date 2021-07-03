@@ -57,6 +57,6 @@ void Storage::Disk::decode_sectors(Track &track, uint8_t *const destination, uin
 		if(pair.second.address.sector < first_sector) continue;
 		if(pair.second.size != sector_size) continue;
 		if(pair.second.samples.empty()) continue;
-		std::memcpy(&destination[pair.second.address.sector * byte_size], pair.second.samples[0].data(), std::min(pair.second.samples[0].size(), byte_size));
+		std::memcpy(&destination[(pair.second.address.sector - first_sector) * byte_size], pair.second.samples[0].data(), std::min(pair.second.samples[0].size(), byte_size));
 	}
 }
