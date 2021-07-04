@@ -272,12 +272,12 @@ template <bool has_disk_controller> class ConcreteMachine:
 				case PartialMachineCycle::ReadStart:
 				case PartialMachineCycle::WriteStart:
 					if(!is_video_[address >> 14] && wait_mode_ == WaitMode::OnAllAccesses) {
-						penalty = HalfCycles(2);
+						penalty = dave_delay_;
 					}
 				break;
 				case PartialMachineCycle::ReadOpcodeStart:
 					if(!is_video_[address >> 14] && wait_mode_ != WaitMode::None) {
-						penalty = HalfCycles(2);
+						penalty = dave_delay_;
 					} else {
 						// Query Nick for the amount of delay that would occur with one cycle left
 						// in this read opcode.
@@ -435,6 +435,11 @@ template <bool has_disk_controller> class ConcreteMachine:
 								case 0:		wait_mode_ = WaitMode::OnAllAccesses;	break;
 								case 1:		wait_mode_ = WaitMode::OnM1;			break;
 							}
+
+							// Dave delays (i.e. those affecting memory areas not associated with Nick)
+							// are one cycle in 8Mhz mode, two cycles in 12Mhz mode.
+							dave_delay_ = HalfCycles(2 + (*cycle.value)&2);
+
 							[[fallthrough]];
 
 						case 0xa0:	case 0xa1:	case 0xa2:	case 0xa3:
@@ -690,6 +695,8 @@ template <bool has_disk_controller> class ConcreteMachine:
 		Dave::Audio dave_audio_;
 		Outputs::Speaker::LowpassSpeaker<Dave::Audio> speaker_;
 		HalfCycles time_since_audio_update_;
+
+		HalfCycles dave_delay_ = HalfCycles(2);
 
 		// The divider supplied to the JustInTimeActor and the manual divider used in
 		// update_audio() should match.
