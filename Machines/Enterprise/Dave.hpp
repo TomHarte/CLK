@@ -45,6 +45,10 @@ class Audio: public Outputs::Speaker::SampleSource {
 	private:
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
 
+		// Global divider (i.e. 8MHz/12Mhz switch).
+		uint8_t global_divider_;
+		uint8_t global_divider_reload_ = 2;
+
 		// Tone channels.
 		struct Channel {
 			// User-set values.
@@ -146,6 +150,10 @@ class TimedInterruptSource {
 	private:
 		static constexpr Cycles clock_rate{250000};
 		static constexpr Cycles half_clock_rate{125000};
+
+		// Global divider (i.e. 8MHz/12Mhz switch).
+		Cycles global_divider_;
+		Cycles run_length_;
 
 		// Interrupts that have fired since get_new_interrupts()
 		// was last called.
