@@ -95,8 +95,10 @@ template <bool has_disk_controller> class ConcreteMachine:
 			nick_(ram_.end() - 65536),
 			dave_audio_(audio_queue_),
 			speaker_(dave_audio_) {
-			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and Dave elsewhere.
-			set_clock_rate(4'000'000);
+
+			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and downwards for Dave elsewhere.
+			set_clock_rate(4'000'000.0);
+			speaker_.set_input_rate(float(get_clock_rate()) / float(dave_divider));
 
 			ROM::Request request;
 			using Target = Analyser::Static::Enterprise::Target;
@@ -215,9 +217,6 @@ template <bool has_disk_controller> class ConcreteMachine:
 			page<1>(0x00);
 			page<2>(0x00);
 			page<3>(0x00);
-
-			// Set up audio.
-			speaker_.set_input_rate(250000.0f);	// TODO: a bigger number, and respect the programmable divider.
 
 			// Pass on any media.
 			insert_media(target.media);
@@ -430,6 +429,14 @@ template <bool has_disk_controller> class ConcreteMachine:
 						case 0xb2:	page<2>(*cycle.value);	break;
 						case 0xb3:	page<3>(*cycle.value);	break;
 
+						case 0xbf:
+							switch((*cycle.value >> 2)&3) {
+								default:	wait_mode_ = WaitMode::None;			break;
+								case 0:		wait_mode_ = WaitMode::OnAllAccesses;	break;
+								case 1:		wait_mode_ = WaitMode::OnM1;			break;
+							}
+							[[fallthrough]];
+
 						case 0xa0:	case 0xa1:	case 0xa2:	case 0xa3:
 						case 0xa4:	case 0xa5:	case 0xa6:	case 0xa7:
 						case 0xa8:	case 0xa9:	case 0xaa:	case 0xab:
@@ -494,14 +501,6 @@ template <bool has_disk_controller> class ConcreteMachine:
 							// b0 = serial data out
 							// b1 = serial status out
 							LOG("TODO: serial output " << PADHEX(2) << *cycle.value);
-						break;
-						case 0xbf:
-							// TODO: onboard RAM, Dave 8/12Mhz select.
-							switch((*cycle.value >> 2)&3) {
-								default:	wait_mode_ = WaitMode::None;			break;
-								case 0:		wait_mode_ = WaitMode::OnAllAccesses;	break;
-								case 1:		wait_mode_ = WaitMode::OnM1;			break;
-							}
 						break;
 					}
 				break;
@@ -692,12 +691,12 @@ template <bool has_disk_controller> class ConcreteMachine:
 		Outputs::Speaker::LowpassSpeaker<Dave::Audio> speaker_;
 		HalfCycles time_since_audio_update_;
 
-		// The following two should both use the same divider.
-		JustInTimeActor<Dave::TimedInterruptSource, HalfCycles, 1, 16> dave_timer_;
+		// The divider supplied to the JustInTimeActor and the manual divider used in
+		// update_audio() should match.
+		static constexpr int dave_divider = 8;
+		JustInTimeActor<Dave::TimedInterruptSource, HalfCycles, 1, dave_divider> dave_timer_;
 		inline void update_audio() {
-			// TODO: divide by only 8, letting Dave divide itself by a further 2 or 3
-			// as per its own register.
-			speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(16)));
+			speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(dave_divider)));
 		}
 
 		// MARK: - EXDos card.

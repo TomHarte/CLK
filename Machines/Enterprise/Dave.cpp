@@ -16,7 +16,7 @@ Audio::Audio(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
 	audio_queue_(audio_queue) {}
 
 void Audio::write(uint16_t address, uint8_t value) {
-	address &= 0xf;
+	address &= 0x1f;
 	audio_queue_.defer([address, value, this] {
 		switch(address) {
 			case 0:	case 2:	case 4:
@@ -54,6 +54,10 @@ void Audio::write(uint16_t address, uint8_t value) {
 			break;
 			case 11:	noise_.amplitude[0] = value & 0x3f;		break;
 			case 15:	noise_.amplitude[1] = value & 0x3f;		break;
+
+			case 31:
+				global_divider_reload_ = 2 + ((value >> 1)&1);
+			break;
 		}
 	});
 }
@@ -95,7 +99,43 @@ void Audio::update_channel(int c) {
 }
 
 void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
-	for(size_t c = 0; c < number_of_samples; c++) {
+	int16_t output_level[2];
+	size_t c = 0;
+	while(c < number_of_samples) {
+		// I'm unclear on the details of the time division multiplexing so,
+		// for now, just sum the outputs.
+		output_level[0] =
+			volume_ *
+				(use_direct_output_[0] ?
+					channels_[0].amplitude[0]
+					: (
+						channels_[0].amplitude[0] * (channels_[0].output & 1) +
+						channels_[1].amplitude[0] * (channels_[1].output & 1) +
+						channels_[2].amplitude[0] * (channels_[2].output & 1) +
+						noise_.amplitude[0] * noise_.final_output
+				));
+
+		output_level[1] =
+			volume_ *
+				(use_direct_output_[1] ?
+					channels_[0].amplitude[1]
+					: (
+						channels_[0].amplitude[1] * (channels_[0].output & 1) +
+						channels_[1].amplitude[1] * (channels_[1].output & 1) +
+						channels_[2].amplitude[1] * (channels_[2].output & 1) +
+						noise_.amplitude[1] * noise_.final_output
+				));
+
+		while(global_divider_ && c < number_of_samples) {
+			--global_divider_;
+			*reinterpret_cast<uint32_t *>(&target[c << 1]) = *reinterpret_cast<uint32_t *>(output_level);
+			++c;
+		}
+
+		global_divider_ = global_divider_reload_;
+		if(!global_divider_) {
+			global_divider_ = global_divider_reload_;
+		}
 		poly_state_[int(Channel::Distortion::FourBit)] = poly4_.next();
 		poly_state_[int(Channel::Distortion::FiveBit)] = poly5_.next();
 		poly_state_[int(Channel::Distortion::SevenBit)] = poly7_.next();
@@ -162,30 +202,6 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 		} else {
 			noise_.final_output = noise_.output & 1;
 		}
-
-		// I'm unclear on the details of the time division multiplexing so,
-		// for now, just sum the outputs.
-		target[(c << 1) + 0] =
-			volume_ *
-				(use_direct_output_[0] ?
-					channels_[0].amplitude[0]
-					: (
-						channels_[0].amplitude[0] * (channels_[0].output & 1) +
-						channels_[1].amplitude[0] * (channels_[1].output & 1) +
-						channels_[2].amplitude[0] * (channels_[2].output & 1) +
-						noise_.amplitude[0] * noise_.final_output
-				));
-
-		target[(c << 1) + 1] =
-			volume_ *
-				(use_direct_output_[1] ?
-					channels_[0].amplitude[1]
-					: (
-						channels_[0].amplitude[1] * (channels_[0].output & 1) +
-						channels_[1].amplitude[1] * (channels_[1].output & 1) +
-						channels_[2].amplitude[1] * (channels_[2].output & 1) +
-						noise_.amplitude[1] * noise_.final_output
-				));
 	}
 }
 
@@ -198,7 +214,7 @@ uint8_t TimedInterruptSource::get_new_interrupts() {
 }
 
 void TimedInterruptSource::write(uint16_t address, uint8_t value) {
-	address &= 15;
+	address &= 0x1f;
 	switch(address) {
 		default: break;
 
@@ -224,6 +240,10 @@ void TimedInterruptSource::write(uint16_t address, uint8_t value) {
 				}
 			}
 		} break;
+
+		case 31:
+			global_divider_ = Cycles(2 + ((value >> 1)&1));
+		break;
 	}
 }
 
@@ -259,7 +279,14 @@ void TimedInterruptSource::update_channel(int c, bool is_linked, int decrement) 
 	}
 }
 
-void TimedInterruptSource::run_for(Cycles cycles) {
+void TimedInterruptSource::run_for(Cycles duration) {
+	// Determine total number of ticks.
+	run_length_ += duration;
+	const Cycles cycles = run_length_.divide(global_divider_);
+	if(cycles == Cycles(0)) {
+		return;
+	}
+
 	// Update the 1Hz interrupt.
 	one_hz_offset_ -= cycles;
 	if(one_hz_offset_ <= Cycles(0)) {
