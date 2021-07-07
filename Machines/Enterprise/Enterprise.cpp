@@ -276,8 +276,10 @@ template <bool has_disk_controller> class ConcreteMachine:
 					}
 				break;
 				case PartialMachineCycle::ReadOpcodeStart:
-					if(!is_video_[address >> 14] && wait_mode_ != WaitMode::None) {
-						penalty = dave_delay_;
+					if(!is_video_[address >> 14]) {
+						if(wait_mode_ != WaitMode::None) {
+							penalty = dave_delay_;
+						}
 					} else {
 						// Query Nick for the amount of delay that would occur with one cycle left
 						// in this read opcode.
