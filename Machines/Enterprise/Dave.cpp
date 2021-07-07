@@ -311,6 +311,8 @@ void TimedInterruptSource::run_for(Cycles duration) {
 }
 
 Cycles TimedInterruptSource::get_next_sequence_point() const {
+	// Since both the 1kHz and 50Hz timers are integer dividers of the 1Hz timer, there's no need
+	// to factor that one in when determining the next sequence point for either of those.
 	switch(rate_) {
 		default:
 		case InterruptRate::OnekHz:		return Cycles(250 - (two_second_counter_ % 250));
@@ -328,9 +330,5 @@ Cycles TimedInterruptSource::get_next_sequence_point() const {
 }
 
 uint8_t TimedInterruptSource::get_divider_state() {
-	// one_hz_offset_ counts downwards, so when it crosses the halfway mark
-	// it enters the high part of its wave.
-	return
-		(two_second_counter_ < 250'000 ? 0x4 : 0x0) |
-		(programmable_level_ ? 0x1 : 0x0);
+	return uint8_t((two_second_counter_ / 250'000) * 4 | programmable_level_);
 }
