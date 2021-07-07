@@ -333,6 +333,10 @@ template <bool has_disk_controller> class ConcreteMachine:
 			switch(cycle.operation) {
 				default: break;
 
+				case PartialMachineCycle::Interrupt:
+					*cycle.value = 0xff;
+				break;
+
 				case PartialMachineCycle::Input:
 					switch(address & 0xff) {
 						default:
