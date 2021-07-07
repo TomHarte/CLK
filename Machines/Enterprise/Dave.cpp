@@ -323,8 +323,10 @@ Cycles TimedInterruptSource::get_next_sequence_point() const {
 			const auto &channel = channels_[int(rate_) - int(InterruptRate::ToneGenerator0)];
 			const int cycles_until_interrupt = channel.value + 1 + (!channel.level) * (channel.reload + 1);
 
-			int result = 250'000 - (two_second_counter_ % 250'000);
-			return Cycles(std::min(result, cycles_until_interrupt));
+			return Cycles(std::min(
+				250'000 - (two_second_counter_ % 250'000),
+				cycles_until_interrupt
+			));
 		}
 	}
 }
