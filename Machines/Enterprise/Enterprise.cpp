@@ -276,16 +276,14 @@ template <bool has_disk_controller> class ConcreteMachine:
 					}
 				break;
 				case PartialMachineCycle::ReadOpcodeStart:
-					if(!is_video_[address >> 14]) {
-						if(wait_mode_ != WaitMode::None) {
-							penalty = dave_delay_;
-						}
-					} else {
+					if(is_video_[address >> 14]) {
 						// Query Nick for the amount of delay that would occur with one cycle left
 						// in this read opcode.
 						const auto delay_time = nick_.time_since_flush(HalfCycles(2));
 						const auto delay = nick_.last_valid()->get_time_until_z80_slot(delay_time);
 						penalty = nick_.back_map(delay, delay_time);
+					} else if(wait_mode_ != WaitMode::None) {
+						penalty = dave_delay_;
 					}
 				break;
 
@@ -520,6 +518,10 @@ template <bool has_disk_controller> class ConcreteMachine:
 				case PartialMachineCycle::ReadOpcode:
 					if(read_pointers_[address >> 14]) {
 						*cycle.value = read_pointers_[address >> 14][address];
+
+//						if(cycle.operation == PartialMachineCycle::ReadOpcode && address == 0xc728) {
+//							printf("");
+//						}
 					} else {
 						*cycle.value = 0xff;
 					}
