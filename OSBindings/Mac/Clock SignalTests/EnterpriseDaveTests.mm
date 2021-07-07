@@ -25,9 +25,9 @@
 
 /// Tests that the programmable timer flag toggles and produces interrupts
 /// at the rate specified, and that the flag toggles when interrupts are signalled.
-- (void)performTestExpectedInterrupts:(double)expectedInterruptsPerSecond applySync:(BOOL)applySync mode:(int)mode {
-	// If sync is requested, synchronise both channels.
-	if(applySync) {
+- (void)performTestExpectedInterrupts:(double)expectedInterruptsPerSecond mode:(int)mode {
+	// If a programmable timer mode is requested, synchronise both channels.
+	if(mode >= 2) {
 		_interruptSource->write(0xa7, 3);
 		_interruptSource->run_for(Cycles(2));
 	}
@@ -74,11 +74,11 @@
 }
 
 - (void)test1kHzTimer {
-	[self performTestExpectedInterrupts:1000.0 applySync:NO mode:0];
+	[self performTestExpectedInterrupts:1000.0 mode:0];
 }
 
 - (void)test50HzTimer {
-	[self performTestExpectedInterrupts:50.0 applySync:NO mode:1];
+	[self performTestExpectedInterrupts:50.0 mode:1];
 }
 
 - (void)testTone0Timer {
@@ -87,7 +87,7 @@
 	_interruptSource->write(0, 137);
 	_interruptSource->write(1, 0);
 
-	[self performTestExpectedInterrupts:250000.0/(138.0 * 2.0) applySync:YES mode:2];
+	[self performTestExpectedInterrupts:250000.0/(138.0 * 2.0) mode:2];
 }
 
 - (void)testTone1Timer {
@@ -96,7 +96,7 @@
 	_interruptSource->write(2, 961 & 0xff);
 	_interruptSource->write(3, (961 >> 8) & 0xff);
 
-	[self performTestExpectedInterrupts:250000.0/(962.0 * 2.0) applySync:YES mode:3];
+	[self performTestExpectedInterrupts:250000.0/(962.0 * 2.0) mode:3];
 }
 
 @end
