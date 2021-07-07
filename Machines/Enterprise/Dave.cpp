@@ -69,30 +69,31 @@ void Audio::set_sample_volume_range(int16_t range) {
 }
 
 void Audio::update_channel(int c) {
-	if(channels_[c].sync) {
-		channels_[c].count = channels_[c].reload;
-		channels_[c].output <<= 1;
-		return;
-	}
-
 	auto output = channels_[c].output & 1;
 	channels_[c].output <<= 1;
-	if(!channels_[c].count) {
+	if(channels_[c].sync) {
 		channels_[c].count = channels_[c].reload;
+		output = 0;
+	} else {
+		if(!channels_[c].count) {
+			channels_[c].count = channels_[c].reload;
 
-		if(channels_[c].distortion == Channel::Distortion::None)
-			output ^= 1;
-		else
-			output = poly_state_[int(channels_[c].distortion)];
+			if(channels_[c].distortion == Channel::Distortion::None)
+				output ^= 1;
+			else
+				output = poly_state_[int(channels_[c].distortion)];
+		} else {
+			--channels_[c].count;
+		}
 
 		if(channels_[c].high_pass && (channels_[(c+1)%3].output&3) == 2) {
 			output = 0;
 		}
-		if(channels_[c].ring_modulate) {
-			output = ~(output ^ channels_[(c+2)%3].output) & 1;
-		}
-	} else {
-		--channels_[c].count;
+	}
+
+	// Ring modulation applies even when sync is enabled, per SIDBasic.
+	if(channels_[c].ring_modulate) {
+		output = ~(output ^ channels_[(c+2)%3].output) & 1;
 	}
 
 	channels_[c].output |= output;
