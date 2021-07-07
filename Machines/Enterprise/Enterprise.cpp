@@ -518,10 +518,6 @@ template <bool has_disk_controller> class ConcreteMachine:
 				case PartialMachineCycle::ReadOpcode:
 					if(read_pointers_[address >> 14]) {
 						*cycle.value = read_pointers_[address >> 14][address];
-
-//						if(cycle.operation == PartialMachineCycle::ReadOpcode && address == 0xc728) {
-//							printf("");
-//						}
 					} else {
 						*cycle.value = 0xff;
 					}
