@@ -23,17 +23,18 @@
 	_interruptSource = std::make_unique<Enterprise::Dave::TimedInterruptSource>();
 }
 
-- (void)performTestExpectedToggles:(int)expectedToggles expectedInterrupts:(int)expectedInterrupts {
+- (void)performTestExpectedToggles:(int)expectedToggles {
 	// Check that the programmable timer flag toggles at a rate
 	// of 2kHz, causing 1000 interrupts, and that sequence points
 	// are properly predicted.
 	int toggles = 0;
 	int interrupts = 0;
-	uint8_t dividerState = _interruptSource->get_divider_state();
+	uint8_t dividerState = _interruptSource->get_divider_state() & 1;
 	int nextSequencePoint = _interruptSource->get_next_sequence_point().as<int>();
+
 	for(int c = 0; c < 250000; c++) {
-		// Advance one cycle. Clock is 250,000 Hz.
-		_interruptSource->run_for(Cycles(1));
+		// Advance one cycle. Clock is 500,000 Hz.
+		_interruptSource->run_for(Cycles(2));
 
 		const uint8_t newDividerState = _interruptSource->get_divider_state();
 		if((dividerState^newDividerState)&0x1) {
@@ -48,7 +49,6 @@
 		if(newInterrupts & 0x02) {
 			++interrupts;
 			XCTAssertEqual(nextSequencePoint, 0);
-			XCTAssertEqual(dividerState&0x1, 0);
 			nextSequencePoint = _interruptSource->get_next_sequence_point().as<int>();
 		}
 
@@ -62,19 +62,19 @@
 	}
 
 	XCTAssertEqual(toggles, expectedToggles);
-	XCTAssertEqual(interrupts, expectedInterrupts);
+	XCTAssertEqual(interrupts, expectedToggles);
 }
 
 - (void)test1kHzTimer {
 	// Set 1kHz timer.
 	_interruptSource->write(7, 0 << 5);
-	[self performTestExpectedToggles:2000 expectedInterrupts:1000];
+	[self performTestExpectedToggles:1000];
 }
 
 - (void)test50HzTimer {
 	// Set 50Hz timer.
 	_interruptSource->write(7, 1 << 5);
-	[self performTestExpectedToggles:100 expectedInterrupts:50];
+	[self performTestExpectedToggles:50];
 }
 
 - (void)testTone0Timer {
@@ -84,7 +84,7 @@
 	_interruptSource->write(0, 137);
 	_interruptSource->write(1, 0);
 
-	[self performTestExpectedToggles:250000/138 expectedInterrupts:250000/(138*2)];
+	[self performTestExpectedToggles:250000/(138 * 2)];
 }
 
 - (void)testTone1Timer {
@@ -94,7 +94,7 @@
 	_interruptSource->write(2, 961 & 0xff);
 	_interruptSource->write(3, (961 >> 8) & 0xff);
 
-	[self performTestExpectedToggles:250000/961 expectedInterrupts:250000/(961*2)];
+	[self performTestExpectedToggles:250000/(961 * 2)];
 }
 
 @end
