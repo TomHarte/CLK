@@ -67,7 +67,7 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(const Medi
 
 			if(!has_exdos_ini) {
 				if(did_pick_file) {
-					target->loading_command = std::string("run \"") + selected_file->name + "." + selected_file->extension + "\"";
+					target->loading_command = std::string("run \"") + selected_file->name + "." + selected_file->extension + "\"\n";
 				} else {
 					target->loading_command = ":dir\n";
 				}
