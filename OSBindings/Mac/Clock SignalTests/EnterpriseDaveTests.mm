@@ -23,16 +23,24 @@
 	_interruptSource = std::make_unique<Enterprise::Dave::TimedInterruptSource>();
 }
 
-- (void)performTestExpectedInterrupts:(int)expectedInterrupts {
-	// Check that the programmable timer flag toggles at a rate
-	// of 2kHz, causing 1000 interrupts, and that sequence points
-	// are properly predicted.
+/// Tests that the programmable timer flag toggles and produces interrupts
+/// at the rate specified, and that the flag toggles when interrupts are signalled.
+- (void)performTestExpectedInterrupts:(double)expectedInterruptsPerSecond applySync:(BOOL)applySync mode:(int)mode {
+	// If sync is requested, synchronise both channels.
+	if(applySync) {
+		_interruptSource->write(0xa7, 3);
+		_interruptSource->run_for(Cycles(2));
+	}
+
+	// Set mode (and disable sync, if it was applied).
+	_interruptSource->write(0xa7, mode << 5);
+
 	int toggles = 0;
 	int interrupts = 0;
 	uint8_t dividerState = _interruptSource->get_divider_state() & 1;
 	int nextSequencePoint = _interruptSource->get_next_sequence_point().as<int>();
 
-	for(int c = 0; c < 250000; c++) {
+	for(int c = 0; c < 250000 * 5; c++) {
 		// Advance one cycle. Clock is 500,000 Hz.
 		_interruptSource->run_for(Cycles(2));
 		--nextSequencePoint;
@@ -61,40 +69,34 @@
 		XCTAssertEqual(nextSequencePoint, _interruptSource->get_next_sequence_point().as<int>(), @"At cycle %d", c);
 	}
 
-	XCTAssertEqual(toggles, expectedInterrupts);
-	XCTAssertEqual(interrupts, expectedInterrupts);
+	XCTAssertEqual(toggles, int(expectedInterruptsPerSecond * 5.0));
+	XCTAssertEqual(interrupts, int(expectedInterruptsPerSecond * 5.0));
 }
 
 - (void)test1kHzTimer {
-	// Set 1kHz timer.
-	_interruptSource->write(7, 0 << 5);
-	[self performTestExpectedInterrupts:1000];
+	[self performTestExpectedInterrupts:1000.0 applySync:NO mode:0];
 }
 
 - (void)test50HzTimer {
-	// Set 50Hz timer.
-	_interruptSource->write(7, 1 << 5);
-	[self performTestExpectedInterrupts:50];
+	[self performTestExpectedInterrupts:50.0 applySync:NO mode:1];
 }
 
 - (void)testTone0Timer {
 	// Set tone generator 0 as the interrupt source, with a divider of 137;
 	// apply sync momentarily.
-	_interruptSource->write(7, 2 << 5);
 	_interruptSource->write(0, 137);
 	_interruptSource->write(1, 0);
 
-	[self performTestExpectedInterrupts:250000/(138 * 2)];
+	[self performTestExpectedInterrupts:250000.0/(138.0 * 2.0) applySync:YES mode:2];
 }
 
 - (void)testTone1Timer {
 	// Set tone generator 1 as the interrupt source, with a divider of 961;
 	// apply sync momentarily.
-	_interruptSource->write(7, 3 << 5);
 	_interruptSource->write(2, 961 & 0xff);
 	_interruptSource->write(3, (961 >> 8) & 0xff);
 
-	[self performTestExpectedInterrupts:250000/(961 * 2)];
+	[self performTestExpectedInterrupts:250000.0/(962.0 * 2.0) applySync:YES mode:3];
 }
 
 @end
