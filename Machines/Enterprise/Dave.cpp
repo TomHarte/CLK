@@ -21,14 +21,12 @@ void Audio::write(uint16_t address, uint8_t value) {
 		switch(address) {
 			case 0:	case 2:	case 4:
 				channels_[address >> 1].reload = (channels_[address >> 1].reload & 0xff00) | value;
-				printf("Low Channel %d -> %04x\n", address >> 1, channels_[address >> 1].reload);
 			break;
 			case 1:	case 3:	case 5:
 				channels_[address >> 1].reload = uint16_t((channels_[address >> 1].reload & 0x00ff) | ((value & 0xf) << 8));
 				channels_[address >> 1].distortion = Channel::Distortion((value >> 4)&3);
 				channels_[address >> 1].high_pass = value & 0x40;
 				channels_[address >> 1].ring_modulate = value & 0x80;
-				printf("High Channel %d -> %04x\n", address >> 1, channels_[address >> 1].reload);
 			break;
 			case 6:
 				noise_.frequency = Noise::Frequency(value&3);
@@ -46,8 +44,6 @@ void Audio::write(uint16_t address, uint8_t value) {
 				use_direct_output_[0] = value & 0x08;
 				use_direct_output_[1] = value & 0x10;
 				// Interrupt bits are handled separately.
-
-				printf("A7: %02x\n", value);
 			break;
 
 			case 8: case 9: case 10:
