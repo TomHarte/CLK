@@ -35,29 +35,27 @@
 	for(int c = 0; c < 250000; c++) {
 		// Advance one cycle. Clock is 500,000 Hz.
 		_interruptSource->run_for(Cycles(2));
+		--nextSequencePoint;
 
+		// Check for a status bit change.
 		const uint8_t newDividerState = _interruptSource->get_divider_state();
 		const bool didToggle = (dividerState^newDividerState)&0x1;
-		if(didToggle) {
-			++toggles;
-		}
 		dividerState = newDividerState;
-
-		--nextSequencePoint;
+		toggles += didToggle;
 
 		// Check for the relevant interrupt.
 		const uint8_t newInterrupts = _interruptSource->get_new_interrupts();
-		if(newInterrupts & 0x02) {
-			++interrupts;
+		if(newInterrupts) {
 			XCTAssertEqual(nextSequencePoint, 0);
-			XCTAssertTrue(didToggle);
 			nextSequencePoint = _interruptSource->get_next_sequence_point().as<int>();
-		}
 
-		// Failing that, confirm that the other interrupt happend.
-		if(!nextSequencePoint) {
-			XCTAssertTrue(newInterrupts & 0x08);
-			nextSequencePoint = _interruptSource->get_next_sequence_point().as<int>();
+			if(newInterrupts & 0x02) {
+				++interrupts;
+				XCTAssertTrue(didToggle);
+			} else {
+				// Failing that, confirm that the other interrupt happend.
+				XCTAssertTrue(newInterrupts & 0x08);
+			}
 		}
 
 		XCTAssertEqual(nextSequencePoint, _interruptSource->get_next_sequence_point().as<int>(), @"At cycle %d", c);
