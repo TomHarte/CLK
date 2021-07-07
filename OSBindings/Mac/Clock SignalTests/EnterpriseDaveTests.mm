@@ -23,7 +23,7 @@
 	_interruptSource = std::make_unique<Enterprise::Dave::TimedInterruptSource>();
 }
 
-- (void)performTestExpectedToggles:(int)expectedToggles {
+- (void)performTestExpectedInterrupts:(int)expectedInterrupts {
 	// Check that the programmable timer flag toggles at a rate
 	// of 2kHz, causing 1000 interrupts, and that sequence points
 	// are properly predicted.
@@ -37,7 +37,8 @@
 		_interruptSource->run_for(Cycles(2));
 
 		const uint8_t newDividerState = _interruptSource->get_divider_state();
-		if((dividerState^newDividerState)&0x1) {
+		const bool didToggle = (dividerState^newDividerState)&0x1;
+		if(didToggle) {
 			++toggles;
 		}
 		dividerState = newDividerState;
@@ -49,6 +50,7 @@
 		if(newInterrupts & 0x02) {
 			++interrupts;
 			XCTAssertEqual(nextSequencePoint, 0);
+			XCTAssertTrue(didToggle);
 			nextSequencePoint = _interruptSource->get_next_sequence_point().as<int>();
 		}
 
@@ -61,20 +63,20 @@
 		XCTAssertEqual(nextSequencePoint, _interruptSource->get_next_sequence_point().as<int>(), @"At cycle %d", c);
 	}
 
-	XCTAssertEqual(toggles, expectedToggles);
-	XCTAssertEqual(interrupts, expectedToggles);
+	XCTAssertEqual(toggles, expectedInterrupts);
+	XCTAssertEqual(interrupts, expectedInterrupts);
 }
 
 - (void)test1kHzTimer {
 	// Set 1kHz timer.
 	_interruptSource->write(7, 0 << 5);
-	[self performTestExpectedToggles:1000];
+	[self performTestExpectedInterrupts:1000];
 }
 
 - (void)test50HzTimer {
 	// Set 50Hz timer.
 	_interruptSource->write(7, 1 << 5);
-	[self performTestExpectedToggles:50];
+	[self performTestExpectedInterrupts:50];
 }
 
 - (void)testTone0Timer {
@@ -84,7 +86,7 @@
 	_interruptSource->write(0, 137);
 	_interruptSource->write(1, 0);
 
-	[self performTestExpectedToggles:250000/(138 * 2)];
+	[self performTestExpectedInterrupts:250000/(138 * 2)];
 }
 
 - (void)testTone1Timer {
@@ -94,7 +96,7 @@
 	_interruptSource->write(2, 961 & 0xff);
 	_interruptSource->write(3, (961 >> 8) & 0xff);
 
-	[self performTestExpectedToggles:250000/(961 * 2)];
+	[self performTestExpectedInterrupts:250000/(961 * 2)];
 }
 
 @end
