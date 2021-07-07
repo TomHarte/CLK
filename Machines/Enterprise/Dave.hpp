@@ -152,7 +152,7 @@ class TimedInterruptSource {
 		static constexpr Cycles half_clock_rate{125000};
 
 		// Global divider (i.e. 8MHz/12Mhz switch).
-		Cycles global_divider_;
+		Cycles global_divider_ = Cycles(2);
 		Cycles run_length_;
 
 		// Interrupts that have fired since get_new_interrupts()
@@ -160,7 +160,7 @@ class TimedInterruptSource {
 		uint8_t interrupts_ = 0;
 
 		// A counter for the 1Hz interrupt.
-		Cycles one_hz_offset_ = clock_rate;
+		int two_second_counter_ = 0;
 
 		// A counter specific to the 1kHz and 50Hz timers, if in use.
 		enum class InterruptRate {
@@ -169,7 +169,6 @@ class TimedInterruptSource {
 			ToneGenerator0,
 			ToneGenerator1,
 		} rate_ = InterruptRate::OnekHz;
-		int programmable_offset_ = programmble_reload(InterruptRate::OnekHz);
 		bool programmable_level_ = false;
 
 		// A local duplicate of the counting state of the first two audio
@@ -181,13 +180,6 @@ class TimedInterruptSource {
 			bool level = false;
 		} channels_[2];
 		void update_channel(int c, bool is_linked, int decrement);
-		static constexpr int programmble_reload(InterruptRate rate) {
-			switch(rate) {
-				default: return 0;
-				case InterruptRate::OnekHz:		return 125;
-				case InterruptRate::FiftyHz:	return 2500;
-			}
-		}
 };
 
 }

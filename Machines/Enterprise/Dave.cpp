@@ -225,21 +225,11 @@ void TimedInterruptSource::write(uint16_t address, uint8_t value) {
 			channels_[address >> 1].reload = uint16_t((channels_[address >> 1].reload & 0x00ff) | ((value & 0xf) << 8));
 		break;
 
-		case 7: {
+		case 7:
 			channels_[0].sync = value & 0x01;
 			channels_[1].sync = value & 0x02;
-
-			const InterruptRate rate = InterruptRate((value >> 5) & 3);
-			if(rate != rate_) {
-				rate_ = rate;
-
-				if(rate_ >= InterruptRate::ToneGenerator0) {
-					programmable_level_ = channels_[int(rate_) - int(InterruptRate::ToneGenerator0)].level;
-				} else {
-					programmable_offset_ = programmble_reload(rate_);
-				}
-			}
-		} break;
+			rate_ = InterruptRate((value >> 5) & 3);
+		break;
 
 		case 31:
 			global_divider_ = Cycles(2 + ((value >> 1)&1));
@@ -269,6 +259,7 @@ void TimedInterruptSource::update_channel(int c, bool is_linked, int decrement) 
 			// from high to low is amongst the included flips.
 			if(is_linked && num_flips + channels_[c].level >= 2) {
 				interrupts_ |= uint8_t(Interrupt::VariableFrequency);
+				programmable_level_ ^= true;
 			}
 			channels_[c].level ^= (num_flips & 1);
 
@@ -287,67 +278,59 @@ void TimedInterruptSource::run_for(Cycles duration) {
 		return;
 	}
 
-	// Update the 1Hz interrupt.
-	one_hz_offset_ -= cycles;
-	if(one_hz_offset_ <= Cycles(0)) {
+	// Update the two-second counter, from which the 1Hz, 50Hz and 1000Hz signals
+	// are derived.
+	const int previous_counter = two_second_counter_;
+	two_second_counter_ = (two_second_counter_ + cycles.as<int>()) % 500'000;
+
+	// Check for a 1Hz rollover.
+	if(previous_counter / 250'000 != two_second_counter_ / 250'000) {
 		interrupts_ |= uint8_t(Interrupt::OneHz);
-		one_hz_offset_ += clock_rate;
+	}
+
+	// Check for 1kHz or 50Hz rollover;
+	switch(rate_) {
+		default: break;
+		case InterruptRate::OnekHz:
+			if(previous_counter / 250 != two_second_counter_ / 250) {
+				interrupts_ |= uint8_t(Interrupt::VariableFrequency);
+				programmable_level_ ^= true;
+			}
+		break;
+		case InterruptRate::FiftyHz:
+			if(previous_counter / 5'000 != two_second_counter_ / 5'000) {
+				interrupts_ |= uint8_t(Interrupt::VariableFrequency);
+				programmable_level_ ^= true;
+			}
+		break;
 	}
 
 	// Update the two tone channels.
 	update_channel(0, rate_ == InterruptRate::ToneGenerator0, cycles.as<int>());
 	update_channel(1, rate_ == InterruptRate::ToneGenerator1, cycles.as<int>());
-
-	// Update the programmable-frequency interrupt.
-	if(rate_ < InterruptRate::ToneGenerator0) {
-		programmable_offset_ -= cycles.as<int>();
-		if(programmable_offset_ <= 0) {
-			if(programmable_level_) {
-				interrupts_ |= uint8_t(Interrupt::VariableFrequency);
-			}
-			programmable_level_ ^= true;
-			programmable_offset_ = programmble_reload(rate_);
-		}
-	}
 }
 
 Cycles TimedInterruptSource::get_next_sequence_point() const {
-	int result = one_hz_offset_.as<int>();
-
+	// Since both the 1kHz and 50Hz timers are integer dividers of the 1Hz timer, there's no need
+	// to factor that one in when determining the next sequence point for either of those.
 	switch(rate_) {
-		case InterruptRate::OnekHz:
-		case InterruptRate::FiftyHz:
-			result = std::min(result, programmable_offset_ + (!programmable_level_) * programmble_reload(rate_));
-		break;
+		default:
+		case InterruptRate::OnekHz:		return Cycles(250 - (two_second_counter_ % 250));
+		case InterruptRate::FiftyHz:	return Cycles(5000 - (two_second_counter_ % 5000));
+
 		case InterruptRate::ToneGenerator0:
 		case InterruptRate::ToneGenerator1: {
 			const auto &channel = channels_[int(rate_) - int(InterruptRate::ToneGenerator0)];
 			const int cycles_until_interrupt = channel.value + 1 + (!channel.level) * (channel.reload + 1);
-			result = std::min(result, cycles_until_interrupt);
-		} break;
-	}
 
-	return Cycles(result);
+			return Cycles(std::min(
+				250'000 - (two_second_counter_ % 250'000),
+				cycles_until_interrupt
+			));
+		}
+	}
 }
 
 uint8_t TimedInterruptSource::get_divider_state() {
-	bool programmable_flag = false;
-	switch(rate_) {
-		case InterruptRate::OnekHz:
-		case InterruptRate::FiftyHz:
-			programmable_flag = programmable_level_;
-		break;
-		case InterruptRate::ToneGenerator0:
-			programmable_flag = channels_[0].level;
-		break;
-		case InterruptRate::ToneGenerator1:
-			programmable_flag = channels_[1].level;
-		break;
-	}
-
-	// one_hz_offset_ counts downwards, so when it crosses the halfway mark
-	// it enters the high part of its wave.
-	return
-		(one_hz_offset_ < half_clock_rate ? 0x4 : 0x0) |
-		(programmable_flag ? 0x1 : 0x0);
+	return uint8_t((two_second_counter_ / 250'000) * 4 | programmable_level_);
 }
