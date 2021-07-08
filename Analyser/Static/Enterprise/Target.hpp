@@ -24,11 +24,13 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	ReflectableEnum(EXOSVersion, v10, v20, v21, v23, Any);
 	ReflectableEnum(BASICVersion, v10, v11, v21, Any, None);
 	ReflectableEnum(DOS, EXDOS, None);
+	ReflectableEnum(Speed, FourMHz, SixMHz);
 
 	Model model = Model::Enterprise128;
 	EXOSVersion exos_version = EXOSVersion::Any;
 	BASICVersion basic_version = BASICVersion::None;
 	DOS dos = DOS::None;
+	Speed speed = Speed::FourMHz;
 	std::string loading_command;
 
 	Target() : Analyser::Static::Target(Machine::Enterprise) {
@@ -37,11 +39,13 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 			AnnounceEnum(EXOSVersion);
 			AnnounceEnum(BASICVersion);
 			AnnounceEnum(DOS);
+			AnnounceEnum(Speed);
 
 			DeclareField(model);
 			DeclareField(exos_version);
 			DeclareField(basic_version);
 			DeclareField(dos);
+			DeclareField(speed);
 		}
 	}
 };

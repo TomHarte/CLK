@@ -65,7 +65,7 @@ namespace Enterprise {
 
 */
 
-template <bool has_disk_controller> class ConcreteMachine:
+template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
 	public CPU::Z80::BusHandler,
@@ -88,6 +88,12 @@ template <bool has_disk_controller> class ConcreteMachine:
 			return uint8_t(0x100 - ram_size / 0x4000);
 		}
 
+		static constexpr double clock_rate = is_6mhz ? 6'000'000.0 : 4'000'000.0;
+		using NickType =
+			std::conditional_t<is_6mhz,
+				JustInTimeActor<Nick, HalfCycles, 13478201, 5680000>,
+				JustInTimeActor<Nick, HalfCycles, 40434603, 11360000>>;
+
 	public:
 		ConcreteMachine(const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			min_ram_slot_(min_ram_slot(target)),
@@ -97,8 +103,8 @@ template <bool has_disk_controller> class ConcreteMachine:
 			speaker_(dave_audio_) {
 
 			// Request a clock of 4Mhz; this'll be mapped upwards for Nick and downwards for Dave elsewhere.
-			set_clock_rate(4'000'000.0);
-			speaker_.set_input_rate(float(get_clock_rate()) / float(dave_divider));
+			set_clock_rate(clock_rate);
+			speaker_.set_input_rate(float(clock_rate) / float(dave_divider));
 
 			ROM::Request request;
 			using Target = Analyser::Static::Enterprise::Target;
@@ -275,7 +281,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 						penalty = dave_delay_;
 					}
 				break;
-				case PartialMachineCycle::ReadOpcodeStart:
+				case PartialMachineCycle::ReadOpcodeStart: {
 					if(is_video_[address >> 14]) {
 						// Query Nick for the amount of delay that would occur with one cycle left
 						// in this read opcode.
@@ -285,7 +291,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 					} else if(wait_mode_ != WaitMode::None) {
 						penalty = dave_delay_;
 					}
-				break;
+				} break;
 
 				// Video pauses: insert right at the end of the bus cycle.
 				case PartialMachineCycle::Write:
@@ -596,7 +602,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 			None,
 			OnM1,
 			OnAllAccesses
-		} wait_mode_ = WaitMode::None;
+		} wait_mode_ = WaitMode::OnAllAccesses;
 		bool is_video_[4]{};
 
 		// MARK: - ScanProducer
@@ -691,7 +697,7 @@ template <bool has_disk_controller> class ConcreteMachine:
 
 		// MARK: - Chips.
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<Nick, HalfCycles, 40434603, 11360000> nick_;
+		NickType nick_;
 		bool previous_nick_interrupt_line_ = false;
 		// Cf. timing guesses above.
 
@@ -741,10 +747,19 @@ Machine *Machine::Enterprise(const Analyser::Static::Target *target, const ROMMa
 	using Target = Analyser::Static::Enterprise::Target;
 	const Target *const enterprise_target = dynamic_cast<const Target *>(target);
 
-	if(enterprise_target->dos == Target::DOS::None)
-		return new Enterprise::ConcreteMachine<false>(*enterprise_target, rom_fetcher);
-	else
-		return new Enterprise::ConcreteMachine<true>(*enterprise_target, rom_fetcher);
+#define BuildMachine(exdos, sixmhz)																									\
+	if((enterprise_target->dos == Target::DOS::None) != exdos && (enterprise_target->speed == Target::Speed::SixMHz) == sixmhz) {	\
+		return new Enterprise::ConcreteMachine<exdos, sixmhz>(*enterprise_target, rom_fetcher);										\
+	}
+
+	BuildMachine(false, false);
+	BuildMachine(false, true);
+	BuildMachine(true, false);
+	BuildMachine(true, true);
+
+#undef BuildMachine
+
+	return nullptr;
 }
 
 Machine::~Machine() {}
