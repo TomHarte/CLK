@@ -47,6 +47,11 @@ typedef NS_ENUM(NSInteger, CSMachineEnterpriseModel) {
 	CSMachineEnterpriseModel256,
 };
 
+typedef NS_ENUM(NSInteger, CSMachineEnterpriseSpeed) {
+	CSMachineEnterpriseSpeed4MHz,
+	CSMachineEnterpriseSpeed6MHz
+};
+
 typedef NS_ENUM(NSInteger, CSMachineEnterpriseEXOS) {
 	CSMachineEnterpriseEXOSVersion21,
 	CSMachineEnterpriseEXOSVersion20,
@@ -120,7 +125,7 @@ typedef int Kilobytes;
 - (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize;
 - (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model;
 - (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs ap6:(BOOL)ap6 sidewaysRAM:(BOOL)sidewaysRAM;
-- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model exosVersion:(CSMachineEnterpriseEXOS)exosVersion basicVersion:(CSMachineEnterpriseBASIC)basicVersion dos:(CSMachineEnterpriseDOS)dos;
+- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model speed:(CSMachineEnterpriseSpeed)speed exosVersion:(CSMachineEnterpriseEXOS)exosVersion basicVersion:(CSMachineEnterpriseBASIC)basicVersion dos:(CSMachineEnterpriseDOS)dos;
 - (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
 - (instancetype)initWithMSXRegion:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive;
 - (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface;

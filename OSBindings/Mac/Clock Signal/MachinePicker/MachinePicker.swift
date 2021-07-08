@@ -38,6 +38,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 	// MARK: - Enterprise properties
 	@IBOutlet var enterpriseModelButton: NSPopUpButton!
+	@IBOutlet var enterpriseSpeedButton: NSPopUpButton!
 	@IBOutlet var enterpriseEXOSButton: NSPopUpButton!
 	@IBOutlet var enterpriseBASICButton: NSPopUpButton!
 	@IBOutlet var enterpriseDOSButton: NSPopUpButton!
@@ -110,6 +111,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 		// Enterprise settings
 		enterpriseModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseModel"))
+		enterpriseSpeedButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseSpeed"))
 		enterpriseEXOSButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseEXOSVersion"))
 		enterpriseBASICButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseBASICVersion"))
 		enterpriseDOSButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseDOS"))
@@ -166,6 +168,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 		// Enterprise settings
 		standardUserDefaults.set(enterpriseModelButton.selectedTag(), forKey: "new.enterpriseModel")
+		standardUserDefaults.set(enterpriseSpeedButton.selectedTag(), forKey: "new.enterpriseSpeed")
 		standardUserDefaults.set(enterpriseEXOSButton.selectedTag(), forKey: "new.enterpriseEXOSVersion")
 		standardUserDefaults.set(enterpriseBASICButton.selectedTag(), forKey: "new.enterpriseBASICVersion")
 		standardUserDefaults.set(enterpriseDOSButton.selectedTag(), forKey: "new.enterpriseDOS")
@@ -283,6 +286,13 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 					default:	model = .model128
 				}
 
+				var speed: CSMachineEnterpriseSpeed = .speed4MHz
+				switch enterpriseModelButton.selectedItem!.tag {
+					case 6:		speed = .speed6MHz
+					case 4:		fallthrough
+					default:	speed = .speed4MHz
+				}
+
 				var exos: CSMachineEnterpriseEXOS = .version21
 				switch enterpriseEXOSButton.selectedItem!.tag {
 					case 10:	exos = .version10
@@ -307,7 +317,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 					default:	dos = .dosNone
 				}
 
-				return CSStaticAnalyser(enterpriseModel: model, exosVersion: exos, basicVersion: basic, dos: dos)
+				return CSStaticAnalyser(enterpriseModel: model, speed: speed, exosVersion: exos, basicVersion: basic, dos: dos)
 
 			case "mac":
 				switch macintoshModelTypeButton.selectedItem!.tag {

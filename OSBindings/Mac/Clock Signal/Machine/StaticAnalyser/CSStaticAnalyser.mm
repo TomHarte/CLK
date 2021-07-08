@@ -131,7 +131,7 @@
 	return self;
 }
 
-- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model exosVersion:(CSMachineEnterpriseEXOS)exosVersion basicVersion:(CSMachineEnterpriseBASIC)basicVersion dos:(CSMachineEnterpriseDOS)dos {
+- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model speed:(CSMachineEnterpriseSpeed)speed exosVersion:(CSMachineEnterpriseEXOS)exosVersion basicVersion:(CSMachineEnterpriseBASIC)basicVersion dos:(CSMachineEnterpriseDOS)dos {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Enterprise::Target;
@@ -142,6 +142,12 @@
 			default:
 			case CSMachineEnterpriseModel128:		target->model = Target::Model::Enterprise128;		break;
 			case CSMachineEnterpriseModel256:		target->model = Target::Model::Enterprise256;		break;
+		}
+
+		switch(speed) {
+			case CSMachineEnterpriseSpeed6MHz:		target->speed = Target::Speed::SixMHz;				break;
+			default:
+			case CSMachineEnterpriseSpeed4MHz:		target->speed = Target::Speed::FourMHz;				break;
 		}
 
 		switch(exosVersion) {
