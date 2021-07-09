@@ -256,14 +256,14 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 					default:	model = .ROM00
 				}
 
-				let memorySize = Kilobytes(appleIIgsMemorySizeButton.selectedItem!.tag)
+				let memorySize = Kilobytes(appleIIgsMemorySizeButton.selectedTag())
 				return CSStaticAnalyser(appleIIgsModel: model, memorySize: memorySize)
 
 			case "atarist":
 				return CSStaticAnalyser(atariSTModel: .model512k)
 
 			case "cpc":
-				switch cpcModelTypeButton.selectedItem!.tag {
+				switch cpcModelTypeButton.selectedTag() {
 					case 464:	return CSStaticAnalyser(amstradCPCModel: .model464)
 					case 664:	return CSStaticAnalyser(amstradCPCModel: .model664)
 					case 6128:	fallthrough
@@ -279,7 +279,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 			case "enterprise":
 				var model: CSMachineEnterpriseModel = .model128
-				switch enterpriseModelButton.selectedItem!.tag {
+				switch enterpriseModelButton.selectedTag() {
 					case 64:	model = .model64
 					case 256:	model = .model256
 					case 128:	fallthrough
@@ -287,14 +287,14 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				}
 
 				var speed: CSMachineEnterpriseSpeed = .speed4MHz
-				switch enterpriseSpeedButton.selectedItem!.tag {
+				switch enterpriseSpeedButton.selectedTag() {
 					case 6:		speed = .speed6MHz
 					case 4:		fallthrough
 					default:	speed = .speed4MHz
 				}
 
 				var exos: CSMachineEnterpriseEXOS = .version21
-				switch enterpriseEXOSButton.selectedItem!.tag {
+				switch enterpriseEXOSButton.selectedTag() {
 					case 10:	exos = .version10
 					case 20:	exos = .version20
 					case 21:	fallthrough
@@ -320,7 +320,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				return CSStaticAnalyser(enterpriseModel: model, speed: speed, exosVersion: exos, basicVersion: basic, dos: dos)
 
 			case "mac":
-				switch macintoshModelTypeButton.selectedItem!.tag {
+				switch macintoshModelTypeButton.selectedTag() {
 					case 0:		return CSStaticAnalyser(macintoshModel: .model128k)
 					case 1:		return CSStaticAnalyser(macintoshModel: .model512k)
 					case 2:		return CSStaticAnalyser(macintoshModel: .model512ke)
@@ -330,7 +330,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 			case "msx":
 				let hasDiskDrive = msxHasDiskDriveButton.state == .on
-				switch msxRegionButton.selectedItem!.tag {
+				switch msxRegionButton.selectedTag() {
 					case 2:
 						return CSStaticAnalyser(msxRegion: .japanese, hasDiskDrive: hasDiskDrive)
 					case 1:
@@ -351,7 +351,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 				}
 				var model: CSMachineOricModel = .oric1
-				switch oricModelTypeButton.selectedItem!.tag {
+				switch oricModelTypeButton.selectedTag() {
 					case 1:		model = .oricAtmos
 					case 2:		model = .pravetz
 					default:	break
@@ -361,7 +361,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 			case "spectrum":
 				var model: CSMachineSpectrumModel = .plus2a
-				switch spectrumModelTypeButton.selectedItem!.tag {
+				switch spectrumModelTypeButton.selectedTag() {
 					case 16:	model = .sixteenK
 					case 48:	model = .fortyEightK
 					case 128:	model = .oneTwoEightK
@@ -374,9 +374,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				return CSStaticAnalyser(spectrumModel: model)
 
 			case "vic20":
-				let memorySize = Kilobytes(vic20MemorySizeButton.selectedItem!.tag)
+				let memorySize = Kilobytes(vic20MemorySizeButton.selectedTag())
 				let hasC1540 = vic20HasC1540Button.state == .on
-				switch vic20RegionButton.selectedItem!.tag {
+				switch vic20RegionButton.selectedTag() {
 					case 1:
 						return CSStaticAnalyser(vic20Region: .american, memorySize: memorySize, hasC1540: hasC1540)
 					case 2:
@@ -391,10 +391,10 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				}
 
 			case "zx80":
-				return CSStaticAnalyser(zx80MemorySize: Kilobytes(zx80MemorySizeButton.selectedItem!.tag), useZX81ROM: zx80UsesZX81ROMButton.state == .on)
+				return CSStaticAnalyser(zx80MemorySize: Kilobytes(zx80MemorySizeButton.selectedTag()), useZX81ROM: zx80UsesZX81ROMButton.state == .on)
 
 			case "zx81":
-				return CSStaticAnalyser(zx81MemorySize: Kilobytes(zx81MemorySizeButton.selectedItem!.tag))
+				return CSStaticAnalyser(zx81MemorySize: Kilobytes(zx81MemorySizeButton.selectedTag()))
 
 			default: return CSStaticAnalyser()
 		}
