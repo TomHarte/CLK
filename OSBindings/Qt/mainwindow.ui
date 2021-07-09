@@ -27,7 +27,7 @@
     <item>
      <widget class="QTabWidget" name="machineSelectionTabs">
       <property name="currentIndex">
-       <number>1</number>
+       <number>5</number>
       </property>
       <widget class="QWidget" name="appleIITab">
        <attribute name="title">
@@ -346,13 +346,34 @@
              </widget>
             </item>
             <item row="1" column="0">
+             <widget class="QLabel" name="enterpriseSpeedLabel">
+              <property name="text">
+               <string>Speed:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="enterpriseSpeedComboBox">
+              <item>
+               <property name="text">
+                <string>4 MHz</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>6 MHz</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="2" column="0">
              <widget class="QLabel" name="enterpriseEXOSLabel">
               <property name="text">
                <string>EXOS:</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
+            <item row="2" column="1">
              <widget class="QComboBox" name="enterpriseEXOSComboBox">
               <item>
                <property name="text">
@@ -371,14 +392,14 @@
               </item>
              </widget>
             </item>
-            <item row="2" column="0">
+            <item row="3" column="0">
              <widget class="QLabel" name="enterpriseBASICLabel">
               <property name="text">
                <string>BASIC:</string>
               </property>
              </widget>
             </item>
-            <item row="2" column="1">
+            <item row="3" column="1">
              <widget class="QComboBox" name="enterpriseBASICComboBox">
               <item>
                <property name="text">
@@ -402,14 +423,14 @@
               </item>
              </widget>
             </item>
-            <item row="3" column="0">
+            <item row="4" column="0">
              <widget class="QLabel" name="enterpriseDOSLabel">
               <property name="text">
                <string>DOS:</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="1">
+            <item row="4" column="1">
              <widget class="QComboBox" name="enterpriseDOSComboBox">
               <item>
                <property name="text">

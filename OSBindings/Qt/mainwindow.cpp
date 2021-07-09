@@ -1073,6 +1073,11 @@ void MainWindow::start_enterprise() {
 		case 2:		target->model = Target::Model::Enterprise256;	break;
 	}
 
+	switch(ui->enterpriseSpeedComboBox->currentIndex()) {
+		default:	target->speed = Target::Speed::FourMHz;	break;
+		case 1:		target->speed = Target::Speed::SixMHz;	break;
+	}
+
 	switch(ui->enterpriseEXOSComboBox->currentIndex()) {
 		default:	target->exos_version = Target::EXOSVersion::v10;	break;
 		case 1:		target->exos_version = Target::EXOSVersion::v20;	break;
@@ -1252,6 +1257,7 @@ void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target
 																		\
 	/* Enterprise. */													\
 	ComboBox(enterpriseModelComboBox, "enterprise.model");				\
+	ComboBox(enterpriseSpeedComboBox, "enterprise.speed");				\
 	ComboBox(enterpriseEXOSComboBox, "enterprise.exos");				\
 	ComboBox(enterpriseBASICComboBox, "enterprise.basic");				\
 	ComboBox(enterpriseDOSComboBox, "enterprise.dos");					\

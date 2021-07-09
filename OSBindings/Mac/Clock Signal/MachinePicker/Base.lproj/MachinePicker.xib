@@ -322,8 +322,21 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
+                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Lfl-5c-b8j">
+                                            <rect key="frame" x="67" y="149" width="77" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="4 Mhz" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="4" imageScaling="axesIndependently" inset="2" selectedItem="5N6-tD-uN7" id="BU2-NJ-Kii">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="ANK-p0-M77">
+                                                    <items>
+                                                        <menuItem title="4 Mhz" state="on" tag="4" id="5N6-tD-uN7"/>
+                                                        <menuItem title="6 Mhz" tag="6" id="bVT-qO-U7n"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                        </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nen-Za-7zH">
-                                            <rect key="frame" x="64" y="149" width="107" height="25"/>
+                                            <rect key="frame" x="64" y="119" width="107" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Version 2.1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="Qja-xZ-wVM" id="xGG-ri-8Sb">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -337,7 +350,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hIr-GH-7xi">
-                                            <rect key="frame" x="67" y="119" width="105" height="25"/>
+                                            <rect key="frame" x="67" y="89" width="105" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Version 2.1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="TME-cv-Jh1" id="9mQ-GW-lq9">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -352,20 +365,20 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="syE-e7-TjU">
-                                            <rect key="frame" x="57" y="89" width="83" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="EXDOS" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" tag="1" imageScaling="axesIndependently" inset="2" selectedItem="8rP-2w-PdU" id="NvO-Zm-2Rq">
+                                            <rect key="frame" x="57" y="59" width="83" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="EXDOS" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="axesIndependently" inset="2" selectedItem="8rP-2w-PdU" id="NvO-Zm-2Rq">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" title="DOS" id="sdr-al-7mi">
                                                     <items>
-                                                        <menuItem title="EXDOS" tag="1" id="8rP-2w-PdU"/>
-                                                        <menuItem title="None" state="on" id="qoS-KO-iEZ"/>
+                                                        <menuItem title="EXDOS" state="on" tag="1" id="8rP-2w-PdU"/>
+                                                        <menuItem title="None" id="qoS-KO-iEZ"/>
                                                     </items>
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ykc-W1-YaS">
-                                            <rect key="frame" x="18" y="155" width="43" height="16"/>
+                                            <rect key="frame" x="18" y="125" width="43" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="EXOS:" id="gUC-PN-zVL">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -381,7 +394,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="dzd-tH-BjX">
-                                            <rect key="frame" x="18" y="125" width="46" height="16"/>
+                                            <rect key="frame" x="18" y="95" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="BASIC:" id="ai1-oR-X6Y">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -389,8 +402,16 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="pxr-Bq-yh0">
-                                            <rect key="frame" x="18" y="95" width="36" height="16"/>
+                                            <rect key="frame" x="18" y="65" width="36" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="DOS:" id="NFk-cp-DfS">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rHr-bh-QMV">
+                                            <rect key="frame" x="17" y="155" width="47" height="16"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Speed:" id="sAw-C9-Sf7">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -403,11 +424,13 @@ Gw
                                         <constraint firstItem="frx-nk-c3P" firstAttribute="centerY" secondItem="PhH-bu-pb5" secondAttribute="centerY" id="6Wc-aR-wuL"/>
                                         <constraint firstItem="dzd-tH-BjX" firstAttribute="leading" secondItem="1cs-PX-RAH" secondAttribute="leading" constant="20" symbolic="YES" id="7RZ-Om-TAa"/>
                                         <constraint firstItem="ykc-W1-YaS" firstAttribute="centerY" secondItem="nen-Za-7zH" secondAttribute="centerY" id="CLa-6E-8BB"/>
+                                        <constraint firstItem="nen-Za-7zH" firstAttribute="top" secondItem="Lfl-5c-b8j" secondAttribute="bottom" constant="10" symbolic="YES" id="Df8-qv-3dY"/>
                                         <constraint firstItem="PhH-bu-pb5" firstAttribute="leading" secondItem="frx-nk-c3P" secondAttribute="trailing" constant="8" symbolic="YES" id="ENF-TY-TQ7"/>
                                         <constraint firstItem="nen-Za-7zH" firstAttribute="leading" secondItem="ykc-W1-YaS" secondAttribute="trailing" constant="8" symbolic="YES" id="GWR-VI-9PG"/>
                                         <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="syE-e7-TjU" secondAttribute="bottom" constant="20" symbolic="YES" id="K3s-FA-zMB"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="PhH-bu-pb5" secondAttribute="trailing" constant="20" symbolic="YES" id="LwB-ef-uF4"/>
                                         <constraint firstItem="PhH-bu-pb5" firstAttribute="top" secondItem="1cs-PX-RAH" secondAttribute="top" constant="20" symbolic="YES" id="Myt-i4-jVq"/>
+                                        <constraint firstItem="Lfl-5c-b8j" firstAttribute="top" secondItem="PhH-bu-pb5" secondAttribute="bottom" constant="10" symbolic="YES" id="Nl3-hL-jwg"/>
                                         <constraint firstItem="pxr-Bq-yh0" firstAttribute="leading" secondItem="1cs-PX-RAH" secondAttribute="leading" constant="20" symbolic="YES" id="Qzp-IY-Pa0"/>
                                         <constraint firstItem="PhH-bu-pb5" firstAttribute="leading" secondItem="frx-nk-c3P" secondAttribute="trailing" constant="8" symbolic="YES" id="T3e-u7-fiQ"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="syE-e7-TjU" secondAttribute="trailing" constant="20" symbolic="YES" id="TEX-Nw-y2K"/>
@@ -415,11 +438,13 @@ Gw
                                         <constraint firstItem="pxr-Bq-yh0" firstAttribute="centerY" secondItem="syE-e7-TjU" secondAttribute="centerY" id="UYw-uz-Am0"/>
                                         <constraint firstItem="hIr-GH-7xi" firstAttribute="top" secondItem="nen-Za-7zH" secondAttribute="bottom" constant="10" symbolic="YES" id="VOc-2v-s3u"/>
                                         <constraint firstItem="syE-e7-TjU" firstAttribute="top" secondItem="hIr-GH-7xi" secondAttribute="bottom" constant="10" symbolic="YES" id="W9S-on-Heq"/>
-                                        <constraint firstItem="nen-Za-7zH" firstAttribute="top" secondItem="PhH-bu-pb5" secondAttribute="bottom" constant="10" symbolic="YES" id="Yes-o3-V0m"/>
+                                        <constraint firstItem="rHr-bh-QMV" firstAttribute="leading" secondItem="1cs-PX-RAH" secondAttribute="leading" constant="19" id="XZf-lB-NnA"/>
                                         <constraint firstItem="ykc-W1-YaS" firstAttribute="leading" secondItem="1cs-PX-RAH" secondAttribute="leading" constant="20" symbolic="YES" id="bAP-lx-pdi"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="nen-Za-7zH" secondAttribute="trailing" constant="20" symbolic="YES" id="eEI-5Q-TnO"/>
                                         <constraint firstItem="syE-e7-TjU" firstAttribute="leading" secondItem="pxr-Bq-yh0" secondAttribute="trailing" constant="8" symbolic="YES" id="fmM-Ma-Jyu"/>
                                         <constraint firstItem="hIr-GH-7xi" firstAttribute="leading" secondItem="dzd-tH-BjX" secondAttribute="trailing" constant="8" symbolic="YES" id="jDQ-TF-Ogf"/>
+                                        <constraint firstItem="rHr-bh-QMV" firstAttribute="centerY" secondItem="Lfl-5c-b8j" secondAttribute="centerY" id="mnp-JF-dVQ"/>
+                                        <constraint firstItem="Lfl-5c-b8j" firstAttribute="leading" secondItem="rHr-bh-QMV" secondAttribute="trailing" constant="8" symbolic="YES" id="yfb-SL-v1H"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
@@ -874,6 +899,7 @@ Gw
                 <outlet property="enterpriseDOSButton" destination="syE-e7-TjU" id="sCW-Bj-ZTW"/>
                 <outlet property="enterpriseEXOSButton" destination="nen-Za-7zH" id="NwS-ua-FdA"/>
                 <outlet property="enterpriseModelButton" destination="PhH-bu-pb5" id="8wD-sW-aBw"/>
+                <outlet property="enterpriseSpeedButton" destination="Lfl-5c-b8j" id="ClN-yN-Nbx"/>
                 <outlet property="machineNameTable" destination="3go-Eb-GOy" id="Ppf-S0-IP1"/>
                 <outlet property="machineSelector" destination="VUb-QG-x7c" id="crR-hB-jGd"/>
                 <outlet property="macintoshModelTypeButton" destination="xa6-NA-JY5" id="2jX-PY-v2z"/>
