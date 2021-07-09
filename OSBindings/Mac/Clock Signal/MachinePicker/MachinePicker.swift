@@ -287,7 +287,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				}
 
 				var speed: CSMachineEnterpriseSpeed = .speed4MHz
-				switch enterpriseModelButton.selectedItem!.tag {
+				switch enterpriseSpeedButton.selectedItem!.tag {
 					case 6:		speed = .speed6MHz
 					case 4:		fallthrough
 					default:	speed = .speed4MHz
