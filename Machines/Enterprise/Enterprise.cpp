@@ -381,7 +381,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 
 						case 0xb4:
 							*cycle.value =
-								(nick_->get_interrupt_line() ? 0x00 : 0x10) |
+								(nick_->get_interrupt_line() ? 0x10 : 0x00) |
 								dave_timer_->get_divider_state() |
 								interrupt_state_;
 						break;
