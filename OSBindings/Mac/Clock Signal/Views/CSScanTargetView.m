@@ -14,6 +14,9 @@
 
 #include <stdatomic.h>
 
+static const NSTimeInterval standardMouseHideInterval = 3.0;
+static const NSTimeInterval quickMouseHideInterval = 0.1;
+
 @interface CSScanTargetView () <NSDraggingDestination, CSApplicationEventDelegate>
 @end
 
@@ -237,11 +240,11 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	[self addTrackingArea:_mouseTrackingArea];
 }
 
-- (void)scheduleMouseHide {
+- (void)scheduleMouseHideAfter:(NSTimeInterval)interval {
 	if(!self.shouldCaptureMouse) {
 		[_mouseHideTimer invalidate];
 
-		_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 repeats:NO block:^(__unused NSTimer * _Nonnull timer) {
+		_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:interval repeats:NO block:^(__unused NSTimer * _Nonnull timer) {
 			[NSCursor setHiddenUntilMouseMoves:YES];
 			[self.responderDelegate scanTargetViewWillHideOSMouseCursor:self];
 		}];
@@ -249,16 +252,17 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 }
 
 - (void)mouseEntered:(NSEvent *)event {
-	[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
 	[super mouseEntered:event];
-	[self scheduleMouseHide];
+
+	[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
+	[self scheduleMouseHideAfter:standardMouseHideInterval];
 }
 
 - (void)mouseExited:(NSEvent *)event {
 	[super mouseExited:event];
-	[_mouseHideTimer invalidate];
-	_mouseHideTimer = nil;
-	[self.responderDelegate scanTargetViewWillHideOSMouseCursor:self];
+
+	// Schedule a really short mouse-hiding interval.
+	[self scheduleMouseHideAfter:quickMouseHideInterval];
 }
 
 - (void)releaseMouse {
@@ -278,7 +282,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	if(!self.shouldCaptureMouse) {
 		// Mouse capture is off, so don't play games with the cursor, just schedule it to
 		// hide in the near future.
-		[self scheduleMouseHide];
+		[self scheduleMouseHideAfter:standardMouseHideInterval];
 		[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
 	} else {
 		if(_mouseIsCaptured) {
