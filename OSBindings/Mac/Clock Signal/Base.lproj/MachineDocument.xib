@@ -9,8 +9,8 @@
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
                 <outlet property="scanTargetView" destination="DEG-fq-cjd" id="5aX-3R-eXQ"/>
-                <outlet property="volumeSlider" destination="zaz-lB-Iyt" id="flY-Th-oG4"/>
-                <outlet property="volumeView" destination="4ap-Gi-2AO" id="v4e-k6-Fqf"/>
+                <outlet property="volumeSlider" destination="bmN-Nb-BBh" id="1aU-pu-mfB"/>
+                <outlet property="volumeView" destination="l9e-qt-jMo" id="4cE-4e-RhG"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
             </connections>
         </customObject>
@@ -30,58 +30,50 @@
                     <view hidden="YES" wantsLayer="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSScanTargetView">
                         <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
                     </view>
-                    <box hidden="YES" boxType="custom" cornerRadius="4" title="Box" titlePosition="noTitle" translatesAutoresizingMaskIntoConstraints="NO" id="4ap-Gi-2AO">
-                        <rect key="frame" x="150" y="20" width="300" height="38"/>
-                        <view key="contentView" id="gwO-Ty-LCX">
-                            <rect key="frame" x="1" y="1" width="298" height="36"/>
-                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                            <subviews>
-                                <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="Hzw-P6-1dH">
-                                    <rect key="frame" x="258" y="11.5" width="32.5" height="15"/>
-                                    <constraints>
-                                        <constraint firstAttribute="width" constant="32" id="WrK-W9-mPP"/>
-                                    </constraints>
-                                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSTouchBarAudioOutputVolumeHighTemplate" id="5dB-4Y-iEl"/>
-                                    <color key="contentTintColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                </imageView>
-                                <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="p0w-Ti-Tu9">
-                                    <rect key="frame" x="8" y="12" width="32.5" height="14"/>
-                                    <constraints>
-                                        <constraint firstAttribute="width" constant="32" id="dZn-Fc-fRU"/>
-                                    </constraints>
-                                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSTouchBarAudioOutputVolumeOffTemplate" id="mUH-aA-T9N"/>
-                                    <color key="contentTintColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                </imageView>
-                                <slider verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="zaz-lB-Iyt">
-                                    <rect key="frame" x="46" y="2" width="206" height="28"/>
-                                    <sliderCell key="cell" continuous="YES" state="on" alignment="left" maxValue="1" doubleValue="1" tickMarkPosition="above" sliderType="linear" id="Zvz-Og-dGA"/>
-                                    <connections>
-                                        <action selector="setVolume:" target="-2" id="eEc-5v-I2c"/>
-                                    </connections>
-                                </slider>
-                            </subviews>
-                            <constraints>
-                                <constraint firstItem="p0w-Ti-Tu9" firstAttribute="leading" secondItem="gwO-Ty-LCX" secondAttribute="leading" constant="8" id="1t0-CW-zp9"/>
-                                <constraint firstItem="zaz-lB-Iyt" firstAttribute="top" secondItem="gwO-Ty-LCX" secondAttribute="top" constant="8" id="HhE-2b-9be"/>
-                                <constraint firstAttribute="trailing" secondItem="Hzw-P6-1dH" secondAttribute="trailing" constant="8" id="W24-Wx-bdQ"/>
-                                <constraint firstItem="Hzw-P6-1dH" firstAttribute="centerY" secondItem="zaz-lB-Iyt" secondAttribute="centerY" id="eHf-Jb-8Cq"/>
-                                <constraint firstItem="zaz-lB-Iyt" firstAttribute="centerY" secondItem="p0w-Ti-Tu9" secondAttribute="centerY" id="f3C-My-T0S"/>
-                                <constraint firstItem="zaz-lB-Iyt" firstAttribute="leading" secondItem="p0w-Ti-Tu9" secondAttribute="trailing" constant="8" id="n0g-y6-wHP"/>
-                                <constraint firstAttribute="bottom" secondItem="zaz-lB-Iyt" secondAttribute="bottom" constant="8" id="rXo-S7-Vuc"/>
-                                <constraint firstItem="p0w-Ti-Tu9" firstAttribute="centerY" secondItem="gwO-Ty-LCX" secondAttribute="centerY" id="uTt-VY-o8c"/>
-                                <constraint firstItem="Hzw-P6-1dH" firstAttribute="leading" secondItem="zaz-lB-Iyt" secondAttribute="trailing" constant="8" id="xCS-qF-Gz8"/>
-                            </constraints>
-                        </view>
+                    <visualEffectView appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="l9e-qt-jMo">
+                        <rect key="frame" x="130" y="20" width="340" height="36"/>
+                        <subviews>
+                            <imageView wantsLayer="YES" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="3hK-SA-aKj">
+                                <rect key="frame" x="8" y="12" width="32.5" height="14"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="32" id="tY0-07-0UK"/>
+                                </constraints>
+                                <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSTouchBarAudioOutputVolumeOffTemplate" id="HbG-Ey-djw"/>
+                                <color key="contentTintColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </imageView>
+                            <slider verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bmN-Nb-BBh">
+                                <rect key="frame" x="46" y="2" width="248" height="28"/>
+                                <sliderCell key="cell" continuous="YES" state="on" alignment="left" maxValue="1" doubleValue="1" tickMarkPosition="above" sliderType="linear" id="wtR-Vo-Q9e"/>
+                                <connections>
+                                    <action selector="setVolume:" target="-2" id="Ptv-pk-zbl"/>
+                                </connections>
+                            </slider>
+                            <imageView wantsLayer="YES" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="pG5-Iv-llF">
+                                <rect key="frame" x="300" y="11.5" width="32.5" height="15"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="32" id="Nq1-7v-zbT"/>
+                                </constraints>
+                                <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSTouchBarAudioOutputVolumeHighTemplate" id="iJG-ib-H5S"/>
+                                <color key="contentTintColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </imageView>
+                        </subviews>
                         <constraints>
-                            <constraint firstAttribute="width" constant="300" id="HKL-vy-Mov"/>
+                            <constraint firstItem="bmN-Nb-BBh" firstAttribute="top" secondItem="l9e-qt-jMo" secondAttribute="top" constant="8" id="Bdo-LI-B9k"/>
+                            <constraint firstAttribute="bottom" secondItem="bmN-Nb-BBh" secondAttribute="bottom" constant="8" id="Lu6-q8-0Ie"/>
+                            <constraint firstItem="bmN-Nb-BBh" firstAttribute="leading" secondItem="3hK-SA-aKj" secondAttribute="trailing" constant="8" symbolic="YES" id="Lvd-Pp-IyL"/>
+                            <constraint firstAttribute="width" constant="340" id="S3o-RO-Jjm"/>
+                            <constraint firstAttribute="trailing" secondItem="pG5-Iv-llF" secondAttribute="trailing" constant="8" id="fMW-9R-UvR"/>
+                            <constraint firstItem="pG5-Iv-llF" firstAttribute="leading" secondItem="bmN-Nb-BBh" secondAttribute="trailing" constant="8" symbolic="YES" id="tMb-ac-ZX2"/>
+                            <constraint firstItem="3hK-SA-aKj" firstAttribute="centerY" secondItem="bmN-Nb-BBh" secondAttribute="centerY" id="wuj-yd-xkH"/>
+                            <constraint firstItem="3hK-SA-aKj" firstAttribute="leading" secondItem="l9e-qt-jMo" secondAttribute="leading" constant="8" id="y3G-8K-adU"/>
+                            <constraint firstItem="pG5-Iv-llF" firstAttribute="centerY" secondItem="bmN-Nb-BBh" secondAttribute="centerY" id="yjF-sC-XSG"/>
                         </constraints>
-                        <color key="fillColor" red="0.0" green="0.0" blue="0.0" alpha="0.5" colorSpace="custom" customColorSpace="sRGB"/>
-                    </box>
+                    </visualEffectView>
                 </subviews>
                 <constraints>
+                    <constraint firstItem="l9e-qt-jMo" firstAttribute="centerX" secondItem="gIp-Ho-8D9" secondAttribute="centerX" id="63A-k7-XRW"/>
                     <constraint firstItem="DEG-fq-cjd" firstAttribute="centerX" secondItem="gIp-Ho-8D9" secondAttribute="centerX" id="ES5-nL-N3h"/>
-                    <constraint firstItem="4ap-Gi-2AO" firstAttribute="centerX" secondItem="DEG-fq-cjd" secondAttribute="centerX" id="T41-z9-BsM"/>
-                    <constraint firstItem="4ap-Gi-2AO" firstAttribute="bottom" secondItem="DEG-fq-cjd" secondAttribute="bottom" constant="-20" id="Tly-Uu-96H"/>
+                    <constraint firstAttribute="bottom" secondItem="l9e-qt-jMo" secondAttribute="bottom" constant="20" symbolic="YES" id="QG7-P0-OBj"/>
                     <constraint firstItem="DEG-fq-cjd" firstAttribute="height" secondItem="gIp-Ho-8D9" secondAttribute="height" id="YoB-qI-LFX"/>
                     <constraint firstItem="DEG-fq-cjd" firstAttribute="centerY" secondItem="gIp-Ho-8D9" secondAttribute="centerY" id="d5Y-3a-CEI"/>
                     <constraint firstItem="DEG-fq-cjd" firstAttribute="width" secondItem="gIp-Ho-8D9" secondAttribute="width" id="mYS-bH-DST"/>

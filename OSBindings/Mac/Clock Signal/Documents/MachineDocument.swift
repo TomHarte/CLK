@@ -63,7 +63,7 @@ class MachineDocument:
 	}
 
 	/// The volume view.
-	@IBOutlet var volumeView: NSBox!
+	@IBOutlet var volumeView: NSView!
 	@IBOutlet var volumeSlider: NSSlider!
 
 	// MARK: - NSDocument Overrides and NSWindowDelegate methods.
@@ -135,6 +135,9 @@ class MachineDocument:
 		super.windowControllerDidLoadNib(aController)
 		aController.window?.contentAspectRatio = self.aspectRatio()
 		volumeSlider.floatValue = userDefaultsVolume()
+
+		volumeView.wantsLayer = true
+		volumeView.layer?.cornerRadius = 5.0
 	}
 
 	private var missingROMs: String = ""
