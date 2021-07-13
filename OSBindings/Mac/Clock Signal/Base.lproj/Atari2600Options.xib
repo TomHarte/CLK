@@ -13,64 +13,65 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <visualEffectView hidden="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="fX1-EX-wGf">
-            <rect key="frame" x="0.0" y="0.0" width="200" height="140"/>
+        <visualEffectView hidden="YES" appearanceType="vibrantDark" misplaced="YES" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="fX1-EX-wGf">
+            <rect key="frame" x="0.0" y="0.0" width="202" height="112"/>
             <subviews>
                 <button wantsLayer="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="pzn-mL-BPh">
-                    <rect key="frame" x="13" y="93" width="88" height="32"/>
+                    <rect key="frame" x="5" y="73" width="97" height="32"/>
                     <buttonCell key="cell" type="push" title="Reset" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="W9s-t2-TJ5">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
                 </button>
-                <button translatesAutoresizingMaskIntoConstraints="NO" id="YZK-m7-ihU">
-                    <rect key="frame" x="18" y="63" width="162" height="18"/>
-                    <buttonCell key="cell" type="check" title="Black and White" bezelStyle="regularSquare" imagePosition="left" inset="2" id="IxG-1J-fdG">
-                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                        <font key="font" metaFont="system"/>
-                    </buttonCell>
-                </button>
-                <button translatesAutoresizingMaskIntoConstraints="NO" id="nEt-YK-aWs">
-                    <rect key="frame" x="18" y="41" width="162" height="18"/>
+                <button verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="nEt-YK-aWs">
+                    <rect key="frame" x="10" y="33" width="180" height="18"/>
                     <buttonCell key="cell" type="check" title="Left Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="YOY-n5-F4C">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
                 </button>
                 <button translatesAutoresizingMaskIntoConstraints="NO" id="pDu-eg-6n6">
-                    <rect key="frame" x="18" y="19" width="162" height="18"/>
+                    <rect key="frame" x="10" y="11" width="180" height="18"/>
                     <buttonCell key="cell" type="check" title="Right Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="Q2e-Fa-VyK">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
                 </button>
                 <button wantsLayer="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="YqD-w8-fXK">
-                    <rect key="frame" x="99" y="93" width="88" height="32"/>
+                    <rect key="frame" x="100" y="73" width="97" height="32"/>
                     <buttonCell key="cell" type="push" title="Select" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="0DC-Xk-VFt">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
                 </button>
+                <button verticalHuggingPriority="251" verticalCompressionResistancePriority="751" translatesAutoresizingMaskIntoConstraints="NO" id="YZK-m7-ihU">
+                    <rect key="frame" x="10" y="55" width="180" height="18"/>
+                    <buttonCell key="cell" type="check" title="Black and White" bezelStyle="regularSquare" imagePosition="left" inset="2" id="IxG-1J-fdG">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                </button>
             </subviews>
             <constraints>
-                <constraint firstAttribute="trailing" secondItem="pDu-eg-6n6" secondAttribute="trailing" constant="20" symbolic="YES" id="5ye-bu-m6o"/>
-                <constraint firstItem="pzn-mL-BPh" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="20" symbolic="YES" id="6QS-0r-f3d"/>
-                <constraint firstAttribute="trailing" secondItem="YqD-w8-fXK" secondAttribute="trailing" constant="20" symbolic="YES" id="7cJ-oo-obl"/>
-                <constraint firstItem="YqD-w8-fXK" firstAttribute="leading" secondItem="pzn-mL-BPh" secondAttribute="trailing" constant="12" symbolic="YES" id="BcE-ir-sSp"/>
-                <constraint firstItem="pzn-mL-BPh" firstAttribute="top" secondItem="fX1-EX-wGf" secondAttribute="top" constant="20" symbolic="YES" id="Dbu-nw-TCe"/>
-                <constraint firstAttribute="bottom" secondItem="pDu-eg-6n6" secondAttribute="bottom" constant="20" symbolic="YES" id="Dn7-jh-quS"/>
-                <constraint firstItem="pDu-eg-6n6" firstAttribute="top" secondItem="nEt-YK-aWs" secondAttribute="bottom" constant="6" symbolic="YES" id="EpU-Dx-JTJ"/>
-                <constraint firstItem="nEt-YK-aWs" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="20" symbolic="YES" id="Hju-rR-j7R"/>
-                <constraint firstItem="pDu-eg-6n6" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="20" symbolic="YES" id="PGK-pi-Ffh"/>
-                <constraint firstItem="nEt-YK-aWs" firstAttribute="top" secondItem="YZK-m7-ihU" secondAttribute="bottom" constant="6" symbolic="YES" id="R3E-mQ-u1P"/>
-                <constraint firstItem="YZK-m7-ihU" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="20" symbolic="YES" id="ZZ6-MO-XuN"/>
-                <constraint firstItem="YZK-m7-ihU" firstAttribute="top" secondItem="YqD-w8-fXK" secondAttribute="bottom" constant="20" symbolic="YES" id="cMM-Rh-C4P"/>
-                <constraint firstAttribute="trailing" secondItem="nEt-YK-aWs" secondAttribute="trailing" constant="20" symbolic="YES" id="eqF-G9-V65"/>
-                <constraint firstAttribute="trailing" secondItem="YZK-m7-ihU" secondAttribute="trailing" constant="20" symbolic="YES" id="hR2-qd-sfM"/>
-                <constraint firstItem="YqD-w8-fXK" firstAttribute="width" secondItem="pzn-mL-BPh" secondAttribute="width" id="uTY-TW-OMR"/>
-                <constraint firstItem="YqD-w8-fXK" firstAttribute="top" secondItem="fX1-EX-wGf" secondAttribute="top" constant="20" symbolic="YES" id="xPH-7Q-jTz"/>
+                <constraint firstItem="nEt-YK-aWs" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="12" id="20c-09-a5v"/>
+                <constraint firstAttribute="bottom" secondItem="pDu-eg-6n6" secondAttribute="bottom" constant="12" id="8QS-y2-cgI"/>
+                <constraint firstItem="pDu-eg-6n6" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="12" id="Dee-tQ-00F"/>
+                <constraint firstAttribute="trailing" secondItem="pDu-eg-6n6" secondAttribute="trailing" constant="12" id="IWs-rY-q36"/>
+                <constraint firstItem="pDu-eg-6n6" firstAttribute="top" secondItem="nEt-YK-aWs" secondAttribute="bottom" constant="6" symbolic="YES" id="JSd-1z-mM4"/>
+                <constraint firstAttribute="trailing" secondItem="nEt-YK-aWs" secondAttribute="trailing" constant="12" id="N00-Kz-j5a"/>
+                <constraint firstAttribute="trailing" secondItem="YqD-w8-fXK" secondAttribute="trailing" constant="12" id="RgG-Tb-nuK"/>
+                <constraint firstItem="pzn-mL-BPh" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="12" id="Yxt-HC-m81"/>
+                <constraint firstItem="YZK-m7-ihU" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="12" id="ZTU-hR-Diu"/>
+                <constraint firstItem="YqD-w8-fXK" firstAttribute="top" secondItem="pzn-mL-BPh" secondAttribute="top" id="bXS-W9-gSe"/>
+                <constraint firstItem="YqD-w8-fXK" firstAttribute="leading" secondItem="pzn-mL-BPh" secondAttribute="trailing" constant="12" symbolic="YES" id="bnf-6C-Sld"/>
+                <constraint firstItem="nEt-YK-aWs" firstAttribute="top" secondItem="YZK-m7-ihU" secondAttribute="bottom" constant="6" symbolic="YES" id="nFp-NE-u5J"/>
+                <constraint firstItem="YqD-w8-fXK" firstAttribute="width" secondItem="pzn-mL-BPh" secondAttribute="width" id="sqT-6s-tFr"/>
+                <constraint firstAttribute="trailing" secondItem="YZK-m7-ihU" secondAttribute="trailing" constant="12" id="x5C-Rx-M6l"/>
+                <constraint firstItem="YqD-w8-fXK" firstAttribute="bottom" secondItem="pzn-mL-BPh" secondAttribute="bottom" id="xcM-in-P3E"/>
+                <constraint firstItem="YZK-m7-ihU" firstAttribute="top" secondItem="pzn-mL-BPh" secondAttribute="bottom" constant="8" id="yJE-zt-BYM"/>
+                <constraint firstItem="pzn-mL-BPh" firstAttribute="top" secondItem="fX1-EX-wGf" secondAttribute="top" constant="12" id="zJ3-Ii-K5M"/>
             </constraints>
-            <point key="canvasLocation" x="139" y="214"/>
+            <point key="canvasLocation" x="139" y="230"/>
         </visualEffectView>
     </objects>
 </document>
