@@ -49,6 +49,9 @@ class MachineDocument:
 	/// The options panel, if any.
 	@IBOutlet var optionsPanel: MachinePanel!
 
+	/// The options view, if any.
+	@IBOutlet var optionsView: NSView!
+
 	/// An action to display the options panel, if there is one.
 	@IBAction func showOptions(_ sender: AnyObject!) {
 		optionsPanel?.setIsVisible(true)
@@ -217,9 +220,44 @@ class MachineDocument:
 			// Attach an options panel if one is available.
 			if let optionsPanelNibName = self.machineDescription?.optionsPanelNibName {
 				Bundle.main.loadNibNamed(optionsPanelNibName, owner: self, topLevelObjects: nil)
-				self.optionsPanel.machine = machine
-				self.optionsPanel?.establishStoredOptions()
-				showOptions(self)
+				if let optionsPanel = self.optionsPanel {
+					optionsPanel.machine = machine
+					optionsPanel.establishStoredOptions()
+					showOptions(self)
+				}
+				if let optionsView = self.optionsView, let superview = self.volumeView.superview {
+					// Apply rounded edges.
+					optionsView.wantsLayer = true
+					optionsView.layer?.cornerRadius = 5.0
+//					optionsView.translatesAutoresizingMaskIntoConstraints = false
+
+					// Add to the superview.
+					superview.addSubview(optionsView)
+
+					// Apply constraints to appear centred and above the volume view.
+					let centreConstraint = NSLayoutConstraint(
+						item: optionsView,
+						attribute: .centerX,
+						relatedBy: .equal,
+						toItem: self.volumeView,
+						attribute: .centerX,
+						multiplier: 1.0,
+						constant: 0.0
+					)
+					superview.addConstraint(centreConstraint)
+
+					let verticalConstraint = NSLayoutConstraint(
+						item: optionsView,
+						attribute: .bottom,
+						relatedBy: .equal,
+						toItem: self.volumeView,
+						attribute: .top,
+						multiplier: 1.0,
+						constant: -8.0		// TODO: find a way to use an OS-supplied standard value here.
+					)
+					superview.addConstraint(verticalConstraint)
+
+				}
 			}
 
 			// Create and populate an activity display if required.
@@ -713,37 +751,58 @@ class MachineDocument:
 	// So, the workaround: make my CAAnimationDelegate something that doesn't
 	// appear in the bridging header.
 	fileprivate class ViewFader: NSObject, CAAnimationDelegate {
-		var volumeView: NSView
+		var views: [NSView]
 
-		init(view: NSView) {
-			volumeView = view
+		init(views: [NSView]) {
+			self.views = views
 		}
 
 		func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
-			volumeView.isHidden = true
+			for view in views {
+				view.isHidden = true
+			}
 		}
 	}
 	fileprivate var animationFader: ViewFader? = nil
 
+	var fadingViews: [NSView] {
+		get {
+			var views: [NSView] = []
+			if let optionsView = self.optionsView {
+				views.append(optionsView)
+			}
+			if let volumeView = self.volumeView {
+				views.append(volumeView)
+			}
+			return views
+		}
+	}
+
 	internal func scanTargetViewDidShowOSMouseCursor(_ view: CSScanTargetView) {
 		// The OS mouse cursor became visible, so show the volume controls.
 		animationFader = nil
-		volumeView.layer?.removeAllAnimations()
-		volumeView.isHidden = false
-		volumeView.layer?.opacity = 1.0
+		for view in self.fadingViews {
+			view.layer?.removeAllAnimations()
+			view.isHidden = false
+			view.layer?.opacity = 1.0
+		}
 	}
 
 	internal func scanTargetViewWillHideOSMouseCursor(_ view: CSScanTargetView) {
 		// The OS mouse cursor will be hidden, so hide the volume controls.
-		if !volumeView.isHidden && volumeView.layer?.animation(forKey: "opacity") == nil {
-			let fadeAnimation = CABasicAnimation(keyPath: "opacity")
-			fadeAnimation.fromValue = 1.0
-			fadeAnimation.toValue = 0.0
-			fadeAnimation.duration = 0.2
-			animationFader = ViewFader(view: volumeView)
-			fadeAnimation.delegate = animationFader
-			volumeView.layer?.add(fadeAnimation, forKey: "opacity")
-			volumeView.layer?.opacity = 0.0
+		let fadingViews = self.fadingViews
+
+		if !fadingViews[0].isHidden && fadingViews[0].layer?.animation(forKey: "opacity") == nil {
+			for view in self.fadingViews {
+				let fadeAnimation = CABasicAnimation(keyPath: "opacity")
+				fadeAnimation.fromValue = 1.0
+				fadeAnimation.toValue = 0.0
+				fadeAnimation.duration = 0.2
+				fadeAnimation.delegate = animationFader
+				view.layer?.add(fadeAnimation, forKey: "opacity")
+				view.layer?.opacity = 0.0
+			}
+			animationFader = ViewFader(views: fadingViews)
 		}
 	}
 
