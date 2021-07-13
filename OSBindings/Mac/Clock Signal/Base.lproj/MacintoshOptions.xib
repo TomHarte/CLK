@@ -8,42 +8,37 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
-                <outlet property="optionsPanel" destination="ZW7-Bw-4RP" id="JpE-wG-zRR"/>
+                <outlet property="optionsView" destination="tpZ-0B-QQu" id="Sat-aY-EKi"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" hidesOnDeactivate="YES" releasedWhenClosed="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="ZW7-Bw-4RP" customClass="MachineController" customModule="Clock_Signal" customModuleProvider="target">
-            <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" nonactivatingPanel="YES" HUD="YES"/>
-            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="80" y="150" width="200" height="54"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
-            <view key="contentView" misplaced="YES" id="tpZ-0B-QQu">
-                <rect key="frame" x="0.0" y="0.0" width="200" height="56"/>
-                <autoresizingMask key="autoresizingMask"/>
-                <subviews>
-                    <button translatesAutoresizingMaskIntoConstraints="NO" id="zPG-yW-4Gy">
-                        <rect key="frame" x="18" y="19" width="162" height="18"/>
-                        <buttonCell key="cell" type="check" title="Start Quickly" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="alI-Mw-35c">
-                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                            <font key="font" metaFont="system"/>
-                        </buttonCell>
-                        <connections>
-                            <action selector="setFastBooting:" target="ZW7-Bw-4RP" id="AgA-2q-qUU"/>
-                        </connections>
-                    </button>
-                </subviews>
-                <constraints>
-                    <constraint firstAttribute="bottom" secondItem="zPG-yW-4Gy" secondAttribute="bottom" constant="20" id="7u0-BP-FXG"/>
-                    <constraint firstAttribute="trailing" secondItem="zPG-yW-4Gy" secondAttribute="trailing" constant="20" id="Mtb-hf-4ap"/>
-                    <constraint firstItem="zPG-yW-4Gy" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="20" id="imk-5k-8nm"/>
-                    <constraint firstItem="zPG-yW-4Gy" firstAttribute="top" secondItem="tpZ-0B-QQu" secondAttribute="top" constant="20" id="jAt-iF-uaT"/>
-                </constraints>
-            </view>
+        <visualEffectView hidden="YES" wantsLayer="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="tpZ-0B-QQu">
+            <rect key="frame" x="0.0" y="0.0" width="200" height="56"/>
+            <subviews>
+                <button translatesAutoresizingMaskIntoConstraints="NO" id="zPG-yW-4Gy">
+                    <rect key="frame" x="10" y="11" width="178" height="34"/>
+                    <buttonCell key="cell" type="check" title="Start Quickly" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="alI-Mw-35c">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="setFastBooting:" target="Lt7-Vu-Vry" id="8X7-my-U0u"/>
+                    </connections>
+                </button>
+            </subviews>
+            <constraints>
+                <constraint firstAttribute="bottom" secondItem="zPG-yW-4Gy" secondAttribute="bottom" constant="12" id="7u0-BP-FXG"/>
+                <constraint firstAttribute="trailing" secondItem="zPG-yW-4Gy" secondAttribute="trailing" constant="12" id="Mtb-hf-4ap"/>
+                <constraint firstItem="zPG-yW-4Gy" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="12" id="imk-5k-8nm"/>
+                <constraint firstItem="zPG-yW-4Gy" firstAttribute="top" secondItem="tpZ-0B-QQu" secondAttribute="top" constant="12" id="jAt-iF-uaT"/>
+            </constraints>
+            <point key="canvasLocation" x="6" y="154"/>
+        </visualEffectView>
+        <customObject id="Lt7-Vu-Vry" customClass="MachineController" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
-                <outlet property="fastBootingButton" destination="zPG-yW-4Gy" id="3Mq-l2-NEp"/>
+                <outlet property="fastBootingButton" destination="zPG-yW-4Gy" id="JcX-R1-SMn"/>
             </connections>
-            <point key="canvasLocation" x="-50" y="2"/>
-        </window>
+        </customObject>
     </objects>
 </document>
