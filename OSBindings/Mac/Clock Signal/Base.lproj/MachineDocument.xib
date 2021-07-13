@@ -30,7 +30,7 @@
                     <view hidden="YES" wantsLayer="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSScanTargetView">
                         <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
                     </view>
-                    <visualEffectView appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="l9e-qt-jMo">
+                    <visualEffectView hidden="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="l9e-qt-jMo" userLabel="Volume View">
                         <rect key="frame" x="130" y="20" width="340" height="36"/>
                         <subviews>
                             <imageView wantsLayer="YES" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="3hK-SA-aKj">
@@ -39,7 +39,7 @@
                                     <constraint firstAttribute="width" constant="32" id="tY0-07-0UK"/>
                                 </constraints>
                                 <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSTouchBarAudioOutputVolumeOffTemplate" id="HbG-Ey-djw"/>
-                                <color key="contentTintColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                <color key="contentTintColor" name="textColor" catalog="System" colorSpace="catalog"/>
                             </imageView>
                             <slider verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bmN-Nb-BBh">
                                 <rect key="frame" x="46" y="2" width="248" height="28"/>
@@ -54,7 +54,7 @@
                                     <constraint firstAttribute="width" constant="32" id="Nq1-7v-zbT"/>
                                 </constraints>
                                 <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSTouchBarAudioOutputVolumeHighTemplate" id="iJG-ib-H5S"/>
-                                <color key="contentTintColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                <color key="contentTintColor" name="textColor" catalog="System" colorSpace="catalog"/>
                             </imageView>
                         </subviews>
                         <constraints>
