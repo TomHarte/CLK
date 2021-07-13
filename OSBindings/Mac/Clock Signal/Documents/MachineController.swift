@@ -1,5 +1,5 @@
 //
-//  MachinePanel.swift
+//  MachineController.swift
 //  Clock Signal
 //
 //  Created by Thomas Harte on 02/10/2016.
@@ -8,7 +8,7 @@
 
 import Cocoa
 
-class MachinePanel: NSPanel {
+class MachineController: NSObject {
 	var machine: CSMachine!
 
 	// MARK: IBActions

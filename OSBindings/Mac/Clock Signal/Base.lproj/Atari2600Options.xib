@@ -8,6 +8,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
+                <outlet property="optionsController" destination="rEM-g1-brS" id="xZh-zY-yuv"/>
                 <outlet property="optionsView" destination="fX1-EX-wGf" id="dPS-F9-xmL"/>
             </connections>
         </customObject>
@@ -22,6 +23,9 @@
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
+                    <connections>
+                        <action selector="optionWasPressed:" target="rEM-g1-brS" id="ZHe-AL-yL6"/>
+                    </connections>
                 </button>
                 <button verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="nEt-YK-aWs">
                     <rect key="frame" x="10" y="33" width="180" height="18"/>
@@ -29,6 +33,9 @@
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
+                    <connections>
+                        <action selector="optionDidChange:" target="rEM-g1-brS" id="BNC-7F-wGh"/>
+                    </connections>
                 </button>
                 <button translatesAutoresizingMaskIntoConstraints="NO" id="pDu-eg-6n6">
                     <rect key="frame" x="10" y="11" width="180" height="18"/>
@@ -36,6 +43,9 @@
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
+                    <connections>
+                        <action selector="optionDidChange:" target="rEM-g1-brS" id="R7C-ej-dZT"/>
+                    </connections>
                 </button>
                 <button wantsLayer="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="YqD-w8-fXK">
                     <rect key="frame" x="100" y="73" width="97" height="32"/>
@@ -43,6 +53,9 @@
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
+                    <connections>
+                        <action selector="optionWasPressed:" target="rEM-g1-brS" id="Bhc-5F-4Vj"/>
+                    </connections>
                 </button>
                 <button verticalHuggingPriority="251" verticalCompressionResistancePriority="751" translatesAutoresizingMaskIntoConstraints="NO" id="YZK-m7-ihU">
                     <rect key="frame" x="10" y="55" width="180" height="18"/>
@@ -50,6 +63,9 @@
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
+                    <connections>
+                        <action selector="optionDidChange:" target="rEM-g1-brS" id="4cx-8C-XGe"/>
+                    </connections>
                 </button>
             </subviews>
             <constraints>
@@ -73,5 +89,14 @@
             </constraints>
             <point key="canvasLocation" x="139" y="230"/>
         </visualEffectView>
+        <customObject id="rEM-g1-brS" customClass="Atari2600OptionsController" customModule="Clock_Signal" customModuleProvider="target">
+            <connections>
+                <outlet property="colourButton" destination="YZK-m7-ihU" id="9AM-ZO-ck4"/>
+                <outlet property="leftPlayerDifficultyButton" destination="nEt-YK-aWs" id="wm4-PF-Yni"/>
+                <outlet property="resetButton" destination="pzn-mL-BPh" id="6TY-c7-uRd"/>
+                <outlet property="rightPlayerDifficultyButton" destination="pDu-eg-6n6" id="TTh-ls-InF"/>
+                <outlet property="selectButton" destination="YqD-w8-fXK" id="NUa-y2-gCe"/>
+            </connections>
+        </customObject>
     </objects>
 </document>

@@ -46,16 +46,9 @@ class MachineDocument:
 	/// The OpenGL view to receive this machine's display.
 	@IBOutlet weak var scanTargetView: CSScanTargetView!
 
-	/// The options panel, if any.
-	@IBOutlet var optionsPanel: MachinePanel!
-
 	/// The options view, if any.
 	@IBOutlet var optionsView: NSView!
-
-	/// An action to display the options panel, if there is one.
-	@IBAction func showOptions(_ sender: AnyObject!) {
-		optionsPanel?.setIsVisible(true)
-	}
+	@IBOutlet var optionsController: MachineController!
 
 	/// The activity panel, if one is deemed appropriate.
 	@IBOutlet var activityPanel: NSPanel!
@@ -93,9 +86,6 @@ class MachineDocument:
 	private func dismissPanels() {
 		activityPanel?.setIsVisible(false)
 		activityPanel = nil
-
-		optionsPanel?.setIsVisible(false)
-		optionsPanel = nil
 	}
 
 	override func close() {
@@ -217,12 +207,11 @@ class MachineDocument:
 			dismissPanels()
 
 			// Attach an options panel if one is available.
-			if let optionsPanelNibName = self.machineDescription?.optionsPanelNibName {
-				Bundle.main.loadNibNamed(optionsPanelNibName, owner: self, topLevelObjects: nil)
-				if let optionsPanel = self.optionsPanel {
-					optionsPanel.machine = machine
-					optionsPanel.establishStoredOptions()
-					showOptions(self)
+			if let optionsNibName = self.machineDescription?.optionsNibName {
+				Bundle.main.loadNibNamed(optionsNibName, owner: self, topLevelObjects: nil)
+				if let optionsController = self.optionsController {
+					optionsController.machine = machine
+					optionsController.establishStoredOptions()
 				}
 				if let optionsView = self.optionsView, let superview = self.volumeView.superview {
 					// Apply rounded edges.

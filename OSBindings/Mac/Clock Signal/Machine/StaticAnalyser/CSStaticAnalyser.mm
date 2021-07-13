@@ -313,7 +313,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 
 // MARK: - NIB mapping
 
-- (NSString *)optionsPanelNibName {
+- (NSString *)optionsNibName {
 	switch(_targets.front()->machine) {
 //		case Analyser::Machine::AmstradCPC:		return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::AmstradCPC:		return @"CompositeOptions";

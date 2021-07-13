@@ -6,7 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-class ZX8081OptionsPanel: MachinePanel {
+class ZX8081OptionsPanel: MachineController {
 	var zx8081: CSZX8081! {
 		get {
 			return self.machine.zx8081
