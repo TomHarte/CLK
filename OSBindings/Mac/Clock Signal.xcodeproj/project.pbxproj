@@ -15,7 +15,7 @@
 		4B051C912669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
 		4B051C922669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
 		4B051C93266D9D6900CA44E8 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
-		4B051C95266EF50200CA44E8 /* AppleIIOptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C94266EF50200CA44E8 /* AppleIIOptionsPanel.swift */; };
+		4B051C95266EF50200CA44E8 /* AppleIIController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C94266EF50200CA44E8 /* AppleIIController.swift */; };
 		4B051C97266EF5F600CA44E8 /* CSAppleII.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C96266EF5F600CA44E8 /* CSAppleII.mm */; };
 		4B051CA22676F52200CA44E8 /* Enterprise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CA12676F52200CA44E8 /* Enterprise.cpp */; };
 		4B051CA32676F52200CA44E8 /* Enterprise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CA12676F52200CA44E8 /* Enterprise.cpp */; };
@@ -1040,7 +1040,7 @@
 		4B04B65622A58CB40006AB58 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ROMCatalogue.cpp; sourceTree = "<group>"; };
 		4B051C5926670A9300CA44E8 /* ROMCatalogue.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ROMCatalogue.hpp; sourceTree = "<group>"; };
-		4B051C94266EF50200CA44E8 /* AppleIIOptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppleIIOptionsPanel.swift; sourceTree = "<group>"; };
+		4B051C94266EF50200CA44E8 /* AppleIIController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppleIIController.swift; sourceTree = "<group>"; };
 		4B051C96266EF5F600CA44E8 /* CSAppleII.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CSAppleII.mm; sourceTree = "<group>"; };
 		4B051C98266EF60500CA44E8 /* CSAppleII.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSAppleII.h; sourceTree = "<group>"; };
 		4B051CA02676F52200CA44E8 /* Enterprise.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Enterprise.hpp; sourceTree = "<group>"; };
@@ -2846,7 +2846,7 @@
 		4B55CE551C3B7D360093A61B /* Documents */ = {
 			isa = PBXGroup;
 			children = (
-				4B051C94266EF50200CA44E8 /* AppleIIOptionsPanel.swift */,
+				4B051C94266EF50200CA44E8 /* AppleIIController.swift */,
 				4B8FE21F1DA19D7C0090D3CE /* Atari2600OptionsController.swift */,
 				4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */,
 				4B8FE2211DA19FB20090D3CE /* MachineController.swift */,
@@ -5489,7 +5489,7 @@
 				4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */,
 				4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */,
 				4BEDA3BF25B25563000C2DBD /* Decoder.cpp in Sources */,
-				4B051C95266EF50200CA44E8 /* AppleIIOptionsPanel.swift in Sources */,
+				4B051C95266EF50200CA44E8 /* AppleIIController.swift in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
 				4BE8EB6625C750B50040BC40 /* DAT.cpp in Sources */,
 				4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */,
