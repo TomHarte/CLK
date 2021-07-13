@@ -139,8 +139,7 @@ class MachineDocument:
 		aController.window?.contentAspectRatio = self.aspectRatio()
 		volumeSlider.floatValue = userDefaultsVolume()
 
-		volumeView.wantsLayer = true
-		volumeView.layer?.cornerRadius = 5.0
+		volumeView.layer!.cornerRadius = 5.0
 	}
 
 	private var missingROMs: String = ""
@@ -227,36 +226,17 @@ class MachineDocument:
 				}
 				if let optionsView = self.optionsView, let superview = self.volumeView.superview {
 					// Apply rounded edges.
-					optionsView.wantsLayer = true
-					optionsView.layer?.cornerRadius = 5.0
-//					optionsView.translatesAutoresizingMaskIntoConstraints = false
+					optionsView.layer!.cornerRadius = 5.0
 
 					// Add to the superview.
 					superview.addSubview(optionsView)
 
 					// Apply constraints to appear centred and above the volume view.
-					let centreConstraint = NSLayoutConstraint(
-						item: optionsView,
-						attribute: .centerX,
-						relatedBy: .equal,
-						toItem: self.volumeView,
-						attribute: .centerX,
-						multiplier: 1.0,
-						constant: 0.0
-					)
-					superview.addConstraint(centreConstraint)
-
-					let verticalConstraint = NSLayoutConstraint(
-						item: optionsView,
-						attribute: .bottom,
-						relatedBy: .equal,
-						toItem: self.volumeView,
-						attribute: .top,
-						multiplier: 1.0,
-						constant: -8.0		// TODO: find a way to use an OS-supplied standard value here.
-					)
-					superview.addConstraint(verticalConstraint)
-
+					let constraints = [
+						optionsView.centerXAnchor.constraint(equalTo: volumeView.centerXAnchor),
+						optionsView.bottomAnchor.constraint(equalTo: volumeView.topAnchor, constant: -8.0),
+					]
+					superview.addConstraints(constraints)
 				}
 			}
 
