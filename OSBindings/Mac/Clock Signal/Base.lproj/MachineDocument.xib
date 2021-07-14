@@ -30,7 +30,7 @@
                     <view hidden="YES" wantsLayer="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSScanTargetView">
                         <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
                     </view>
-                    <visualEffectView hidden="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="l9e-qt-jMo" userLabel="Volume View">
+                    <visualEffectView hidden="YES" wantsLayer="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="l9e-qt-jMo" userLabel="Volume View">
                         <rect key="frame" x="130" y="20" width="340" height="36"/>
                         <subviews>
                             <imageView wantsLayer="YES" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="3hK-SA-aKj">
@@ -43,7 +43,7 @@
                             </imageView>
                             <slider verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bmN-Nb-BBh">
                                 <rect key="frame" x="46" y="2" width="248" height="28"/>
-                                <sliderCell key="cell" continuous="YES" state="on" alignment="left" maxValue="1" doubleValue="1" tickMarkPosition="above" sliderType="linear" id="wtR-Vo-Q9e"/>
+                                <sliderCell key="cell" continuous="YES" state="on" alignment="left" minValue="1" maxValue="2" doubleValue="2" tickMarkPosition="above" sliderType="linear" id="wtR-Vo-Q9e"/>
                                 <connections>
                                     <action selector="setVolume:" target="-2" id="Ptv-pk-zbl"/>
                                 </connections>

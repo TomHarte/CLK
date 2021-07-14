@@ -8,97 +8,95 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
-                <outlet property="optionsPanel" destination="gsl-7V-TTU" id="BEE-05-h0B"/>
+                <outlet property="optionsController" destination="rEM-g1-brS" id="xZh-zY-yuv"/>
+                <outlet property="optionsView" destination="fX1-EX-wGf" id="dPS-F9-xmL"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" hidesOnDeactivate="YES" releasedWhenClosed="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="gsl-7V-TTU" customClass="Atari2600OptionsPanel" customModule="Clock_Signal" customModuleProvider="target">
-            <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" nonactivatingPanel="YES" HUD="YES"/>
-            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="80" y="150" width="200" height="121"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
-            <view key="contentView" id="aQh-Pm-DEo">
-                <rect key="frame" x="0.0" y="0.0" width="200" height="121"/>
-                <autoresizingMask key="autoresizingMask"/>
-                <subviews>
-                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rQO-uD-fwn">
-                        <rect key="frame" x="13" y="74" width="88" height="32"/>
-                        <buttonCell key="cell" type="push" title="Reset" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="l3H-0m-aK0">
-                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                            <font key="font" metaFont="system"/>
-                        </buttonCell>
-                        <connections>
-                            <action selector="optionWasPressed:" target="gsl-7V-TTU" id="wbx-SP-OZc"/>
-                        </connections>
-                    </button>
-                    <button translatesAutoresizingMaskIntoConstraints="NO" id="3qw-C1-NYW">
-                        <rect key="frame" x="18" y="58" width="162" height="18"/>
-                        <buttonCell key="cell" type="check" title="Black and White" bezelStyle="regularSquare" imagePosition="left" inset="2" id="UP7-mf-IKo">
-                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                            <font key="font" metaFont="system"/>
-                        </buttonCell>
-                        <connections>
-                            <action selector="optionDidChange:" target="gsl-7V-TTU" id="s5e-66-aY1"/>
-                        </connections>
-                    </button>
-                    <button translatesAutoresizingMaskIntoConstraints="NO" id="Xbc-cw-Sc2">
-                        <rect key="frame" x="18" y="36" width="162" height="18"/>
-                        <buttonCell key="cell" type="check" title="Left Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="wlJ-8s-PEh">
-                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                            <font key="font" metaFont="system"/>
-                        </buttonCell>
-                        <connections>
-                            <action selector="optionDidChange:" target="gsl-7V-TTU" id="PbG-zF-y0W"/>
-                        </connections>
-                    </button>
-                    <button translatesAutoresizingMaskIntoConstraints="NO" id="kPV-Tm-TTc">
-                        <rect key="frame" x="18" y="14" width="162" height="18"/>
-                        <buttonCell key="cell" type="check" title="Right Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="F05-cA-66S">
-                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                            <font key="font" metaFont="system"/>
-                        </buttonCell>
-                        <connections>
-                            <action selector="optionDidChange:" target="gsl-7V-TTU" id="XMR-tK-HN5"/>
-                        </connections>
-                    </button>
-                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nt7-8K-xY9">
-                        <rect key="frame" x="99" y="74" width="88" height="32"/>
-                        <buttonCell key="cell" type="push" title="Select" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="8Na-Z1-EXS">
-                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                            <font key="font" metaFont="system"/>
-                        </buttonCell>
-                        <connections>
-                            <action selector="optionWasPressed:" target="gsl-7V-TTU" id="db2-Bu-6h9"/>
-                        </connections>
-                    </button>
-                </subviews>
-                <constraints>
-                    <constraint firstItem="3qw-C1-NYW" firstAttribute="leading" secondItem="aQh-Pm-DEo" secondAttribute="leading" constant="20" id="1Ri-ZO-GJy"/>
-                    <constraint firstItem="nt7-8K-xY9" firstAttribute="leading" secondItem="rQO-uD-fwn" secondAttribute="trailing" constant="12" id="46p-Z3-kgW"/>
-                    <constraint firstItem="nt7-8K-xY9" firstAttribute="top" secondItem="aQh-Pm-DEo" secondAttribute="top" constant="20" id="6Uc-12-11y"/>
-                    <constraint firstItem="Xbc-cw-Sc2" firstAttribute="leading" secondItem="aQh-Pm-DEo" secondAttribute="leading" constant="20" id="7es-iv-JOh"/>
-                    <constraint firstItem="kPV-Tm-TTc" firstAttribute="top" secondItem="Xbc-cw-Sc2" secondAttribute="bottom" constant="6" id="Env-nl-M2e"/>
-                    <constraint firstAttribute="trailing" secondItem="kPV-Tm-TTc" secondAttribute="trailing" constant="20" id="Fim-Ej-8Ux"/>
-                    <constraint firstAttribute="trailing" secondItem="Xbc-cw-Sc2" secondAttribute="trailing" constant="20" id="HkS-6c-WZm"/>
-                    <constraint firstItem="3qw-C1-NYW" firstAttribute="top" secondItem="nt7-8K-xY9" secondAttribute="bottom" constant="6" id="Hxq-Pm-o4G"/>
-                    <constraint firstAttribute="trailing" secondItem="nt7-8K-xY9" secondAttribute="trailing" constant="20" id="JRO-de-WQp"/>
-                    <constraint firstItem="rQO-uD-fwn" firstAttribute="top" secondItem="aQh-Pm-DEo" secondAttribute="top" constant="20" id="N3p-aY-2Nx"/>
-                    <constraint firstItem="nt7-8K-xY9" firstAttribute="width" secondItem="rQO-uD-fwn" secondAttribute="width" id="NOc-hJ-8Mm"/>
-                    <constraint firstItem="Xbc-cw-Sc2" firstAttribute="top" secondItem="3qw-C1-NYW" secondAttribute="bottom" constant="6" id="ORX-bF-2WS"/>
-                    <constraint firstItem="kPV-Tm-TTc" firstAttribute="leading" secondItem="aQh-Pm-DEo" secondAttribute="leading" constant="20" id="x8p-Hm-xeu"/>
-                    <constraint firstItem="rQO-uD-fwn" firstAttribute="leading" secondItem="aQh-Pm-DEo" secondAttribute="leading" constant="20" id="xhD-iY-vt2"/>
-                    <constraint firstAttribute="trailing" secondItem="3qw-C1-NYW" secondAttribute="trailing" constant="20" id="yff-e9-OBY"/>
-                </constraints>
-            </view>
+        <visualEffectView hidden="YES" wantsLayer="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="fX1-EX-wGf">
+            <rect key="frame" x="0.0" y="0.0" width="202" height="112"/>
+            <subviews>
+                <button wantsLayer="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="pzn-mL-BPh">
+                    <rect key="frame" x="5" y="73" width="97" height="32"/>
+                    <buttonCell key="cell" type="push" title="Reset" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="W9s-t2-TJ5">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="optionWasPressed:" target="rEM-g1-brS" id="ZHe-AL-yL6"/>
+                    </connections>
+                </button>
+                <button verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="nEt-YK-aWs">
+                    <rect key="frame" x="10" y="33" width="180" height="18"/>
+                    <buttonCell key="cell" type="check" title="Left Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="YOY-n5-F4C">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="optionDidChange:" target="rEM-g1-brS" id="BNC-7F-wGh"/>
+                    </connections>
+                </button>
+                <button translatesAutoresizingMaskIntoConstraints="NO" id="pDu-eg-6n6">
+                    <rect key="frame" x="10" y="11" width="180" height="18"/>
+                    <buttonCell key="cell" type="check" title="Right Player Difficulty" bezelStyle="regularSquare" imagePosition="left" inset="2" id="Q2e-Fa-VyK">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="optionDidChange:" target="rEM-g1-brS" id="R7C-ej-dZT"/>
+                    </connections>
+                </button>
+                <button wantsLayer="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="YqD-w8-fXK">
+                    <rect key="frame" x="100" y="73" width="97" height="32"/>
+                    <buttonCell key="cell" type="push" title="Select" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="0DC-Xk-VFt">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="optionWasPressed:" target="rEM-g1-brS" id="Bhc-5F-4Vj"/>
+                    </connections>
+                </button>
+                <button verticalHuggingPriority="251" verticalCompressionResistancePriority="751" translatesAutoresizingMaskIntoConstraints="NO" id="YZK-m7-ihU">
+                    <rect key="frame" x="10" y="55" width="180" height="18"/>
+                    <buttonCell key="cell" type="check" title="Black and White" bezelStyle="regularSquare" imagePosition="left" inset="2" id="IxG-1J-fdG">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="optionDidChange:" target="rEM-g1-brS" id="4cx-8C-XGe"/>
+                    </connections>
+                </button>
+            </subviews>
+            <constraints>
+                <constraint firstItem="nEt-YK-aWs" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="12" id="20c-09-a5v"/>
+                <constraint firstAttribute="bottom" secondItem="pDu-eg-6n6" secondAttribute="bottom" constant="12" id="8QS-y2-cgI"/>
+                <constraint firstItem="pDu-eg-6n6" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="12" id="Dee-tQ-00F"/>
+                <constraint firstAttribute="trailing" secondItem="pDu-eg-6n6" secondAttribute="trailing" constant="12" id="IWs-rY-q36"/>
+                <constraint firstItem="pDu-eg-6n6" firstAttribute="top" secondItem="nEt-YK-aWs" secondAttribute="bottom" constant="6" symbolic="YES" id="JSd-1z-mM4"/>
+                <constraint firstAttribute="trailing" secondItem="nEt-YK-aWs" secondAttribute="trailing" constant="12" id="N00-Kz-j5a"/>
+                <constraint firstAttribute="trailing" secondItem="YqD-w8-fXK" secondAttribute="trailing" constant="12" id="RgG-Tb-nuK"/>
+                <constraint firstItem="pzn-mL-BPh" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="12" id="Yxt-HC-m81"/>
+                <constraint firstItem="YZK-m7-ihU" firstAttribute="leading" secondItem="fX1-EX-wGf" secondAttribute="leading" constant="12" id="ZTU-hR-Diu"/>
+                <constraint firstItem="YqD-w8-fXK" firstAttribute="top" secondItem="pzn-mL-BPh" secondAttribute="top" id="bXS-W9-gSe"/>
+                <constraint firstItem="YqD-w8-fXK" firstAttribute="leading" secondItem="pzn-mL-BPh" secondAttribute="trailing" constant="12" symbolic="YES" id="bnf-6C-Sld"/>
+                <constraint firstItem="nEt-YK-aWs" firstAttribute="top" secondItem="YZK-m7-ihU" secondAttribute="bottom" constant="6" symbolic="YES" id="nFp-NE-u5J"/>
+                <constraint firstItem="YqD-w8-fXK" firstAttribute="width" secondItem="pzn-mL-BPh" secondAttribute="width" id="sqT-6s-tFr"/>
+                <constraint firstAttribute="trailing" secondItem="YZK-m7-ihU" secondAttribute="trailing" constant="12" id="x5C-Rx-M6l"/>
+                <constraint firstItem="YqD-w8-fXK" firstAttribute="bottom" secondItem="pzn-mL-BPh" secondAttribute="bottom" id="xcM-in-P3E"/>
+                <constraint firstItem="YZK-m7-ihU" firstAttribute="top" secondItem="pzn-mL-BPh" secondAttribute="bottom" constant="8" id="yJE-zt-BYM"/>
+                <constraint firstItem="pzn-mL-BPh" firstAttribute="top" secondItem="fX1-EX-wGf" secondAttribute="top" constant="12" id="zJ3-Ii-K5M"/>
+            </constraints>
+            <point key="canvasLocation" x="139" y="230"/>
+        </visualEffectView>
+        <customObject id="rEM-g1-brS" customClass="Atari2600OptionsController" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
-                <outlet property="colourButton" destination="3qw-C1-NYW" id="5HZ-fq-XtP"/>
-                <outlet property="leftPlayerDifficultyButton" destination="Xbc-cw-Sc2" id="OfB-Hr-fDC"/>
-                <outlet property="resetButton" destination="rQO-uD-fwn" id="XsE-tH-9oS"/>
-                <outlet property="rightPlayerDifficultyButton" destination="kPV-Tm-TTc" id="BGU-Hi-AZl"/>
-                <outlet property="selectButton" destination="nt7-8K-xY9" id="AF6-Qk-HZN"/>
+                <outlet property="colourButton" destination="YZK-m7-ihU" id="9AM-ZO-ck4"/>
+                <outlet property="leftPlayerDifficultyButton" destination="nEt-YK-aWs" id="wm4-PF-Yni"/>
+                <outlet property="resetButton" destination="pzn-mL-BPh" id="6TY-c7-uRd"/>
+                <outlet property="rightPlayerDifficultyButton" destination="pDu-eg-6n6" id="TTh-ls-InF"/>
+                <outlet property="selectButton" destination="YqD-w8-fXK" id="NUa-y2-gCe"/>
             </connections>
-            <point key="canvasLocation" x="157" y="12.5"/>
-        </window>
+        </customObject>
     </objects>
 </document>

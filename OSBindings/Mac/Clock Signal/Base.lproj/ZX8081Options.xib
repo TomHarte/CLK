@@ -1,77 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14113" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="18122" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14113"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="18122"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
-                <outlet property="optionsPanel" destination="ota-g7-hOL" id="zeO-di-9i3"/>
+                <outlet property="optionsController" destination="ehh-jE-OeP" id="e6i-od-09b"/>
+                <outlet property="optionsView" destination="7Pv-WL-2Rq" id="2Qq-nM-Xap"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <window title="Options" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="ota-g7-hOL" customClass="ZX8081OptionsPanel" customModule="Clock_Signal" customModuleProvider="target">
-            <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" nonactivatingPanel="YES" HUD="YES"/>
-            <windowPositionMask key="initialPositionMask" leftStrut="YES" topStrut="YES"/>
-            <rect key="contentRect" x="80" y="150" width="261" height="100"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
-            <view key="contentView" id="7Pv-WL-2Rq">
-                <rect key="frame" x="0.0" y="0.0" width="261" height="100"/>
-                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                <subviews>
-                    <button translatesAutoresizingMaskIntoConstraints="NO" id="sBT-cU-h7s">
-                        <rect key="frame" x="18" y="64" width="225" height="18"/>
-                        <buttonCell key="cell" type="check" title="Load Tapes Quickly" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="w0l-ha-esm">
-                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                            <font key="font" metaFont="system"/>
-                        </buttonCell>
-                        <connections>
-                            <action selector="setFastLoading:" target="ota-g7-hOL" id="me0-h2-Ga5"/>
-                        </connections>
-                    </button>
-                    <button translatesAutoresizingMaskIntoConstraints="NO" id="qSb-72-6Os">
-                        <rect key="frame" x="18" y="44" width="225" height="18"/>
-                        <buttonCell key="cell" type="check" title="Control Tape Motor Automatically" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="CzC-YT-lgA">
-                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                            <font key="font" metaFont="system"/>
-                        </buttonCell>
-                        <connections>
-                            <action selector="setAutomaticTapeMotorConrol:" target="ota-g7-hOL" id="bpF-1P-tga"/>
-                        </connections>
-                    </button>
-                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="tkN-gI-RmT">
-                        <rect key="frame" x="20" y="19" width="221" height="19"/>
-                        <buttonCell key="cell" type="roundRect" title="Play Tape" bezelStyle="roundedRect" alignment="center" enabled="NO" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cTq-f9-Gzx">
-                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                            <font key="font" metaFont="cellTitle"/>
-                        </buttonCell>
-                        <connections>
-                            <action selector="playOrPauseTape:" target="ota-g7-hOL" id="O0K-pL-nOr"/>
-                        </connections>
-                    </button>
-                </subviews>
-                <constraints>
-                    <constraint firstItem="qSb-72-6Os" firstAttribute="leading" secondItem="7Pv-WL-2Rq" secondAttribute="leading" constant="20" id="05p-Jn-ueX"/>
-                    <constraint firstAttribute="trailing" secondItem="sBT-cU-h7s" secondAttribute="trailing" constant="20" id="79b-2A-2c7"/>
-                    <constraint firstItem="sBT-cU-h7s" firstAttribute="top" secondItem="7Pv-WL-2Rq" secondAttribute="top" constant="20" id="E5m-wo-X92"/>
-                    <constraint firstItem="qSb-72-6Os" firstAttribute="top" secondItem="sBT-cU-h7s" secondAttribute="bottom" constant="6" id="WxD-kP-vwf"/>
-                    <constraint firstAttribute="bottom" secondItem="tkN-gI-RmT" secondAttribute="bottom" constant="20" id="Xnu-On-nOA"/>
-                    <constraint firstItem="tkN-gI-RmT" firstAttribute="leading" secondItem="7Pv-WL-2Rq" secondAttribute="leading" constant="20" id="fHf-K0-PsU"/>
-                    <constraint firstItem="tkN-gI-RmT" firstAttribute="top" secondItem="qSb-72-6Os" secondAttribute="bottom" constant="8" id="gLh-vE-Cqk"/>
-                    <constraint firstAttribute="trailing" secondItem="qSb-72-6Os" secondAttribute="trailing" constant="20" id="mQz-p8-aYf"/>
-                    <constraint firstItem="sBT-cU-h7s" firstAttribute="leading" secondItem="7Pv-WL-2Rq" secondAttribute="leading" constant="20" id="nDy-Xc-Ug9"/>
-                    <constraint firstAttribute="trailing" secondItem="tkN-gI-RmT" secondAttribute="trailing" constant="20" id="vgD-A3-m6T"/>
-                </constraints>
-            </view>
+        <visualEffectView hidden="YES" wantsLayer="YES" appearanceType="vibrantDark" blendingMode="behindWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="7Pv-WL-2Rq">
+            <rect key="frame" x="0.0" y="0.0" width="267" height="100"/>
+            <subviews>
+                <button ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sBT-cU-h7s">
+                    <rect key="frame" x="10" y="63" width="245" height="18"/>
+                    <buttonCell key="cell" type="check" title="Load Tapes Quickly" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="w0l-ha-esm">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="setFastLoading:" target="ehh-jE-OeP" id="QEr-7F-9Ms"/>
+                    </connections>
+                </button>
+                <button ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qSb-72-6Os">
+                    <rect key="frame" x="10" y="41" width="245" height="18"/>
+                    <buttonCell key="cell" type="check" title="Control Tape Motor Automatically" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="CzC-YT-lgA">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="setAutomaticTapeMotorConrol:" target="ehh-jE-OeP" id="CgR-12-6cc"/>
+                    </connections>
+                </button>
+                <button wantsLayer="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="tkN-gI-RmT">
+                    <rect key="frame" x="12" y="11" width="243" height="19"/>
+                    <buttonCell key="cell" type="roundRect" title="Play Tape" bezelStyle="roundedRect" alignment="center" enabled="NO" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cTq-f9-Gzx">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="cellTitle"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="playOrPauseTape:" target="ehh-jE-OeP" id="lxp-zi-DWI"/>
+                    </connections>
+                </button>
+            </subviews>
+            <constraints>
+                <constraint firstItem="qSb-72-6Os" firstAttribute="leading" secondItem="7Pv-WL-2Rq" secondAttribute="leading" constant="12" id="05p-Jn-ueX"/>
+                <constraint firstAttribute="trailing" secondItem="sBT-cU-h7s" secondAttribute="trailing" constant="12" id="79b-2A-2c7"/>
+                <constraint firstItem="sBT-cU-h7s" firstAttribute="top" secondItem="7Pv-WL-2Rq" secondAttribute="top" constant="12" id="E5m-wo-X92"/>
+                <constraint firstItem="qSb-72-6Os" firstAttribute="top" secondItem="sBT-cU-h7s" secondAttribute="bottom" constant="6" symbolic="YES" id="WxD-kP-vwf"/>
+                <constraint firstAttribute="bottom" secondItem="tkN-gI-RmT" secondAttribute="bottom" constant="12" id="Xnu-On-nOA"/>
+                <constraint firstItem="tkN-gI-RmT" firstAttribute="leading" secondItem="7Pv-WL-2Rq" secondAttribute="leading" constant="12" id="fHf-K0-PsU"/>
+                <constraint firstItem="tkN-gI-RmT" firstAttribute="top" secondItem="qSb-72-6Os" secondAttribute="bottom" constant="8" id="gLh-vE-Cqk"/>
+                <constraint firstAttribute="trailing" secondItem="qSb-72-6Os" secondAttribute="trailing" constant="12" id="mQz-p8-aYf"/>
+                <constraint firstItem="sBT-cU-h7s" firstAttribute="leading" secondItem="7Pv-WL-2Rq" secondAttribute="leading" constant="12" id="nDy-Xc-Ug9"/>
+                <constraint firstAttribute="trailing" secondItem="tkN-gI-RmT" secondAttribute="trailing" constant="12" id="vgD-A3-m6T"/>
+            </constraints>
+            <point key="canvasLocation" x="38.5" y="118"/>
+        </visualEffectView>
+        <customObject id="ehh-jE-OeP" customClass="ZX8081Controller" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
-                <outlet property="automaticTapeMotorControlButton" destination="qSb-72-6Os" id="bB6-FP-TKM"/>
-                <outlet property="fastLoadingButton" destination="sBT-cU-h7s" id="uWa-EB-mbd"/>
-                <outlet property="playOrPauseTapeButton" destination="tkN-gI-RmT" id="UnJ-nb-3mv"/>
+                <outlet property="automaticTapeMotorControlButton" destination="qSb-72-6Os" id="SBE-HT-AUj"/>
+                <outlet property="fastLoadingButton" destination="sBT-cU-h7s" id="3oI-QE-BRI"/>
+                <outlet property="playOrPauseTapeButton" destination="tkN-gI-RmT" id="cX3-Tp-ZFT"/>
             </connections>
-            <point key="canvasLocation" x="28.5" y="15"/>
-        </window>
+        </customObject>
     </objects>
 </document>

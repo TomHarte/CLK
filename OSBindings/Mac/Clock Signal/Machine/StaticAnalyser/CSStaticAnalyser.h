@@ -134,7 +134,7 @@ typedef int Kilobytes;
 - (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize useZX81ROM:(BOOL)useZX81ROM;
 - (instancetype)initWithZX81MemorySize:(Kilobytes)memorySize;
 
-@property(nonatomic, readonly, nullable) NSString *optionsPanelNibName;
+@property(nonatomic, readonly, nullable) NSString *optionsNibName;
 @property(nonatomic, readonly) NSString *displayName;
 
 @end

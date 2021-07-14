@@ -6,7 +6,7 @@
 //  Copyright 2021 Thomas Harte. All rights reserved.
 //
 
-class AppleIIOptionsPanel: MachinePanel {
+class AppleIIController: MachineController {
 	var appleII: CSAppleII! {
 		get {
 			return self.machine.appleII

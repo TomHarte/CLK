@@ -6,7 +6,7 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-class Atari2600OptionsPanel: MachinePanel {
+class Atari2600OptionsController: MachineController {
 	var atari2600: CSAtari2600! {
 		get {
 			return self.machine.atari2600
