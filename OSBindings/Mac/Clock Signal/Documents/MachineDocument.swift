@@ -213,6 +213,16 @@ class MachineDocument:
 				}
 			}
 
+			// Set up a fader for the volume and options.
+			var fadingViews: [NSView] = []
+			if let optionsView = self.optionsView {
+				fadingViews.append(optionsView)
+			}
+			if let volumeView = self.volumeView {
+				fadingViews.append(volumeView)
+			}
+			optionsFader = ViewFader(views: fadingViews)
+
 			// Create and populate an activity display if required.
 			setupActivityDisplay()
 
@@ -608,7 +618,7 @@ class MachineDocument:
 		var isBlinking = false
 	}
 	private var leds: [String: LED] = [:]
-	private var activityFader: ViewFader? = nil
+	private var activityFader: ViewFader! = nil
 
 	func setupActivityDisplay() {
 		var leds = machine.leds
@@ -709,92 +719,85 @@ class MachineDocument:
 		// Otherwise, hide it.
 		let litLEDs = self.leds.filter { $0.value.isLit }
 		if litLEDs.isEmpty {
-			self.animateOutView(self.activityView, withDelay: 1.0, fader: activityFader!)
+			activityFader.animateOut(delay: 1.0)
 		} else {
-			self.animateInView(self.activityView)
+			activityFader.animateIn()
 		}
 	}
 
 	// MARK: - In-window panels (i.e. options, volume).
 
-	private var animationFader: ViewFader? = nil
-
-	var fadingViews: [NSView] {
-		get {
-			var views: [NSView] = []
-			if let optionsView = self.optionsView {
-				views.append(optionsView)
-			}
-			if let volumeView = self.volumeView {
-				views.append(volumeView)
-			}
-			return views
-		}
-	}
+	private var optionsFader: ViewFader! = nil
 
 	internal func scanTargetViewDidShowOSMouseCursor(_ view: CSScanTargetView) {
 		// The OS mouse cursor became visible, so show the volume controls.
-		animationFader = nil
-		for view in self.fadingViews {
-			animateInView(view)
-		}
+		optionsFader.animateIn()
 	}
 
 	internal func scanTargetViewWillHideOSMouseCursor(_ view: CSScanTargetView) {
 		// The OS mouse cursor will be hidden, so hide the volume controls.
-		let fadingViews = self.fadingViews
-
-		if !fadingViews[0].isHidden && fadingViews[0].layer?.animation(forKey: "opacity") == nil {
-			animationFader = ViewFader(views: fadingViews)
-			for view in self.fadingViews {
-				animateOutView(view, withDelay: 0.0, fader: animationFader!)
-			}
-		}
+		optionsFader.animateOut(delay: 0.0)
 	}
 
 	// MARK: - Helpers for fading things in and out.
 
-	// This class exists to provide a delegate to the generated CAAnimations
-	// that knows which views they refer to.
+	/// Maintains a list of views and offers in-and-out animations on those,
+	/// testing current state as necessary and otherwise coordinating with
+	/// CoreAnimation.
 	private class ViewFader: NSObject, CAAnimationDelegate {
-		var views: [NSView]
+		private var views: [NSView]
+		private var opacity: Float = 0.0
 
 		init(views: [NSView]) {
 			self.views = views
-		}
-
-		func animationDidStart(_ anim: CAAnimation) {
-			for view in views {
-				view.layer!.opacity = 0.0
-			}
-		}
-
-		func animationDidStop(_ animation: CAAnimation, finished: Bool) {
 			for view in views {
 				view.isHidden = true
 			}
 		}
-	}
 
-	private func animateInView(_ view: NSView) {
-		// Show immediately.
-		view.layer?.removeAllAnimations()
-		view.isHidden = false
-		view.layer?.opacity = 1.0
-	}
+		func animationDidStart(_ anim: CAAnimation) {
+			for view in views {
+				view.layer!.opacity = opacity
+			}
+		}
 
-	private func animateOutView(_ view: NSView, withDelay delay: TimeInterval, fader: ViewFader) {
-		let fadeAnimation = CABasicAnimation(keyPath: "opacity")
-		fadeAnimation.beginTime = CACurrentMediaTime() + delay
-		fadeAnimation.fromValue = 1.0
-		fadeAnimation.toValue = 0.0
-		fadeAnimation.duration = 0.2
-		fadeAnimation.delegate = fader
+		func animationDidStop(_ animation: CAAnimation, finished: Bool) {
+			if finished {
+				for view in views {
+					view.isHidden = true
+				}
+			}
+		}
 
-		// The delegate will ensure the views stay hidden once animation is complete.
+		func animateIn() {
+			opacity = 1.0
 
-		view.layer?.removeAllAnimations()
-		view.layer!.add(fadeAnimation, forKey: "opacity")
+			for view in views {
+				view.layer?.removeAllAnimations()
+				view.isHidden = false
+				view.layer?.opacity = 1.0
+			}
+		}
+
+		func animateOut(delay : TimeInterval) {
+			// Do nothing if already animating out.
+			if views[0].isHidden || views[0].layer?.animation(forKey: "opacity") != nil {
+				return
+			}
+
+			opacity = 0.0
+			for view in views {
+				let fadeAnimation = CABasicAnimation(keyPath: "opacity")
+				fadeAnimation.beginTime = CACurrentMediaTime() + delay
+				fadeAnimation.fromValue = 1.0
+				fadeAnimation.toValue = 0.0
+				fadeAnimation.duration = 0.2
+				fadeAnimation.delegate = self
+
+				view.layer?.removeAllAnimations()
+				view.layer!.add(fadeAnimation, forKey: "opacity")
+			}
+		}
 	}
 
 	// MARK: - Volume Control.
