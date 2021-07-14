@@ -588,7 +588,7 @@
 		4BA91E1D216D85BA00F79557 /* MasterSystemVDPTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */; };
 		4BAD13441FF709C700FD114A /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E61051FF34737002A9DBD /* MSX.cpp */; };
 		4BAE49582032881E004BE78E /* CSZX8081.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B14978E1EE4B4D200CE2596 /* CSZX8081.mm */; };
-		4BAE495920328897004BE78E /* ZX8081OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */; };
+		4BAE495920328897004BE78E /* ZX8081Controller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B95FA9C1F11893B0008E395 /* ZX8081Controller.swift */; };
 		4BAF2B4E2004580C00480230 /* DMK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAF2B4C2004580C00480230 /* DMK.cpp */; };
 		4BAF2B4F2004580C00480230 /* DMK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAF2B4C2004580C00480230 /* DMK.cpp */; };
 		4BB0A65B2044FD3000FB3688 /* SN76489.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB0A6592044FD3000FB3688 /* SN76489.cpp */; };
@@ -1563,7 +1563,7 @@
 		4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6502TimingTests.swift; sourceTree = "<group>"; };
 		4B9378E222A199C600973513 /* Audio.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Audio.cpp; sourceTree = "<group>"; };
 		4B9378E322A199C600973513 /* Audio.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Audio.hpp; sourceTree = "<group>"; };
-		4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZX8081OptionsPanel.swift; sourceTree = "<group>"; };
+		4B95FA9C1F11893B0008E395 /* ZX8081Controller.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZX8081Controller.swift; sourceTree = "<group>"; };
 		4B961408222760E0001A7BF2 /* Screenshot.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Screenshot.hpp; sourceTree = "<group>"; };
 		4B96F7CB263E30B00092AEE1 /* RawSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RawSectorDump.hpp; sourceTree = "<group>"; };
 		4B96F7CC263E33B10092AEE1 /* DSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DSK.cpp; sourceTree = "<group>"; };
@@ -2850,7 +2850,7 @@
 				4B8FE21F1DA19D7C0090D3CE /* Atari2600OptionsController.swift */,
 				4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */,
 				4B8FE2211DA19FB20090D3CE /* MachineController.swift */,
-				4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */,
+				4B95FA9C1F11893B0008E395 /* ZX8081Controller.swift */,
 				4B08A56720D72BEF0016CE5A /* Activity.xib */,
 				4BC5FC2E20CDDDEE00410AA0 /* AppleIIOptions.xib */,
 				4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */,
@@ -5544,7 +5544,7 @@
 				4B302184208A550100773308 /* DiskII.cpp in Sources */,
 				4BEA52631DF339D7007E74F2 /* SoundGenerator.cpp in Sources */,
 				4BD67DD0209BF27B00AB2146 /* Encoder.cpp in Sources */,
-				4BAE495920328897004BE78E /* ZX8081OptionsPanel.swift in Sources */,
+				4BAE495920328897004BE78E /* ZX8081Controller.swift in Sources */,
 				4B89451A201967B4007DE474 /* ConfidenceSummary.cpp in Sources */,
 				4BE0A3EE237BB170002AB46F /* ST.cpp in Sources */,
 				4B54C0C51F8D91D90050900F /* Keyboard.cpp in Sources */,
