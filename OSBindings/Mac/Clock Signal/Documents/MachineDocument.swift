@@ -709,7 +709,7 @@ class MachineDocument:
 		// Otherwise, hide it.
 		let litLEDs = self.leds.filter { $0.value.isLit }
 		if litLEDs.isEmpty {
-			self.animateOutView(self.activityView, withDelay: 10.0, fader: activityFader!)
+			self.animateOutView(self.activityView, withDelay: 1.0, fader: activityFader!)
 		} else {
 			self.animateInView(self.activityView)
 		}
@@ -763,11 +763,15 @@ class MachineDocument:
 			self.views = views
 		}
 
+		func animationDidStart(_ anim: CAAnimation) {
+			for view in views {
+				view.layer!.opacity = 0.0
+			}
+		}
+
 		func animationDidStop(_ animation: CAAnimation, finished: Bool) {
-			if finished {
-				for view in views {
-					view.isHidden = true
-				}
+			for view in views {
+				view.isHidden = true
 			}
 		}
 	}
@@ -784,12 +788,13 @@ class MachineDocument:
 		fadeAnimation.beginTime = CACurrentMediaTime() + delay
 		fadeAnimation.fromValue = 1.0
 		fadeAnimation.toValue = 0.0
-		fadeAnimation.duration = 0.2 + delay
-		fadeAnimation.delegate = fader	// The delegate will toggle the views back to hidden once animation is complete.
+		fadeAnimation.duration = 0.2
+		fadeAnimation.delegate = fader
 
-		// Add the animation and set its final value as persistent.
+		// The delegate will ensure the views stay hidden once animation is complete.
+
+		view.layer?.removeAllAnimations()
 		view.layer!.add(fadeAnimation, forKey: "opacity")
-		view.layer!.opacity = 0.0
 	}
 
 	// MARK: - Volume Control.
