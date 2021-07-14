@@ -51,12 +51,7 @@ class MachineDocument:
 	@IBOutlet var optionsController: MachineController!
 
 	/// The activity panel, if one is deemed appropriate.
-	@IBOutlet var activityPanel: NSPanel!
-
-	/// An action to display the activity panel, if there is one.
-	@IBAction func showActivity(_ sender: AnyObject!) {
-		activityPanel.setIsVisible(true)
-	}
+	@IBOutlet var activityView: NSView!
 
 	/// The volume view.
 	@IBOutlet var volumeView: NSView!
@@ -83,11 +78,6 @@ class MachineDocument:
 		}
 	}
 
-	private func dismissPanels() {
-		activityPanel?.setIsVisible(false)
-		activityPanel = nil
-	}
-
 	override func close() {
 		// Close any dangling sheets.
 		//
@@ -104,9 +94,6 @@ class MachineDocument:
 
 		// Stop the machine, if any.
 		machine?.stop()
-
-		// Dismiss panels.
-		dismissPanels()
 
 		// End the update cycle.
 		actionLock.lock()
@@ -202,9 +189,6 @@ class MachineDocument:
 			// Establish the output aspect ratio and audio.
 			let aspectRatio = self.aspectRatio()
 			machine.setView(scanTargetView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
-
-			// Get rid of all existing accessory panels.
-			dismissPanels()
 
 			// Attach an options panel if one is available.
 			if let optionsNibName = self.machineDescription?.optionsNibName {
@@ -571,9 +555,6 @@ class MachineDocument:
 					menuItem.state = machine.inputMode == .joystick ? .on : .off
 					return true
 
-				case #selector(self.showActivity(_:)):
-					return self.activityPanel != nil
-
 				case #selector(self.insertMedia(_:)):
 					return self.machine != nil && self.machine.canInsertMedia
 
@@ -627,18 +608,18 @@ class MachineDocument:
 		var isBlinking = false
 	}
 	private var leds: [String: LED] = [:]
+	private var activityFader: ViewFader? = nil
 
 	func setupActivityDisplay() {
 		var leds = machine.leds
 		if leds.count > 0 {
 			Bundle.main.loadNibNamed("Activity", owner: self, topLevelObjects: nil)
-			showActivity(nil)
 
 			// Inspect the activity panel for indicators.
 			var activityIndicators: [NSLevelIndicator] = []
 			var textFields: [NSTextField] = []
-			if let contentView = self.activityPanel.contentView {
-				for view in contentView.subviews {
+			if let activityView = self.activityView {
+				for view in activityView.subviews {
 					if let levelIndicator = view as? NSLevelIndicator {
 						activityIndicators.append(levelIndicator)
 					}
@@ -666,16 +647,30 @@ class MachineDocument:
 				self.leds[leds[c]] = LED(levelIndicator: activityIndicators[c])
 			}
 
-			// Add a constraints to minimise window height.
-			let heightConstraint = NSLayoutConstraint(
-				item: self.activityPanel.contentView!,
-				attribute: .bottom,
-				relatedBy: .equal,
-				toItem: activityIndicators[leds.count-1],
-				attribute: .bottom,
-				multiplier: 1.0,
-				constant: 20.0)
-			self.activityPanel.contentView?.addConstraint(heightConstraint)
+			// Create a fader.
+			activityFader = ViewFader(views: [self.activityView!])
+
+			// Add view to window, and constrain.
+			if let superview = activityIndicators[leds.count-1].superview {
+				superview.addConstraint(
+					activityIndicators[leds.count-1].bottomAnchor.constraint(equalTo: activityIndicators[leds.count-1].superview!.bottomAnchor, constant: -8.0)
+				)
+			}
+			if let windowView = self.volumeView.superview {
+				windowView.addSubview(self.activityView)
+
+				let constraints = [
+					self.activityView.rightAnchor.constraint(equalTo: windowView.rightAnchor),
+					self.activityView.topAnchor.constraint(equalTo: windowView.topAnchor),
+				]
+				windowView.addConstraints(constraints)
+
+				activityView.layer!.cornerRadius = 5.0
+				activityView.layer!.maskedCorners = [.layerMinXMinYCorner]
+			}
+
+			// Show or hide activity view as per current state.
+			updateActivityViewVisibility()
 		}
 	}
 
@@ -701,38 +696,28 @@ class MachineDocument:
 	func machine(_ machine: CSMachine, led ledName: String, didChangeToLit isLit: Bool) {
 		// If there is such an LED, switch it appropriately.
 		if let led = leds[ledName] {
-			DispatchQueue.main.async {
+			DispatchQueue.main.async { [self] in
 				led.levelIndicator.floatValue = isLit ? 1.0 : 0.0
 				led.isLit = isLit
+				self.updateActivityViewVisibility()
 			}
+		}
+	}
+
+	private func updateActivityViewVisibility() {
+		// If any LEDs are now visible, make sure the activity view is showing.
+		// Otherwise, hide it.
+		let litLEDs = self.leds.filter { $0.value.isLit }
+		if litLEDs.isEmpty {
+			self.animateOutView(self.activityView, withDelay: 10.0, fader: activityFader!)
+		} else {
+			self.animateInView(self.activityView)
 		}
 	}
 
 	// MARK: - In-window panels (i.e. options, volume).
 
-	// This class is pure nonsense to work around Xcode's opaque behaviour.
-	// If I make the main class a sub of CAAnimationDelegate then the compiler
-	// generates a bridging header that doesn't include QuartzCore and therefore
-	// can't find a declaration of the CAAnimationDelegate protocol. Doesn't
-	// seem to matter what I add explicitly to the link stage, which version of
-	// macOS I set as the target, etc.
-	//
-	// So, the workaround: make my CAAnimationDelegate something that doesn't
-	// appear in the bridging header.
-	fileprivate class ViewFader: NSObject, CAAnimationDelegate {
-		var views: [NSView]
-
-		init(views: [NSView]) {
-			self.views = views
-		}
-
-		func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
-			for view in views {
-				view.isHidden = true
-			}
-		}
-	}
-	fileprivate var animationFader: ViewFader? = nil
+	private var animationFader: ViewFader? = nil
 
 	var fadingViews: [NSView] {
 		get {
@@ -751,9 +736,7 @@ class MachineDocument:
 		// The OS mouse cursor became visible, so show the volume controls.
 		animationFader = nil
 		for view in self.fadingViews {
-			view.layer?.removeAllAnimations()
-			view.isHidden = false
-			view.layer?.opacity = 1.0
+			animateInView(view)
 		}
 	}
 
@@ -762,17 +745,51 @@ class MachineDocument:
 		let fadingViews = self.fadingViews
 
 		if !fadingViews[0].isHidden && fadingViews[0].layer?.animation(forKey: "opacity") == nil {
-			for view in self.fadingViews {
-				let fadeAnimation = CABasicAnimation(keyPath: "opacity")
-				fadeAnimation.fromValue = 1.0
-				fadeAnimation.toValue = 0.0
-				fadeAnimation.duration = 0.2
-				fadeAnimation.delegate = animationFader
-				view.layer?.add(fadeAnimation, forKey: "opacity")
-				view.layer?.opacity = 0.0
-			}
 			animationFader = ViewFader(views: fadingViews)
+			for view in self.fadingViews {
+				animateOutView(view, withDelay: 0.0, fader: animationFader!)
+			}
 		}
+	}
+
+	// MARK: - Helpers for fading things in and out.
+
+	// This class exists to provide a delegate to the generated CAAnimations
+	// that knows which views they refer to.
+	private class ViewFader: NSObject, CAAnimationDelegate {
+		var views: [NSView]
+
+		init(views: [NSView]) {
+			self.views = views
+		}
+
+		func animationDidStop(_ animation: CAAnimation, finished: Bool) {
+			if finished {
+				for view in views {
+					view.isHidden = true
+				}
+			}
+		}
+	}
+
+	private func animateInView(_ view: NSView) {
+		// Show immediately.
+		view.layer?.removeAllAnimations()
+		view.isHidden = false
+		view.layer?.opacity = 1.0
+	}
+
+	private func animateOutView(_ view: NSView, withDelay delay: TimeInterval, fader: ViewFader) {
+		let fadeAnimation = CABasicAnimation(keyPath: "opacity")
+		fadeAnimation.beginTime = CACurrentMediaTime() + delay
+		fadeAnimation.fromValue = 1.0
+		fadeAnimation.toValue = 0.0
+		fadeAnimation.duration = 0.2 + delay
+		fadeAnimation.delegate = fader	// The delegate will toggle the views back to hidden once animation is complete.
+
+		// Add the animation and set its final value as persistent.
+		view.layer!.add(fadeAnimation, forKey: "opacity")
+		view.layer!.opacity = 0.0
 	}
 
 	// MARK: - Volume Control.
