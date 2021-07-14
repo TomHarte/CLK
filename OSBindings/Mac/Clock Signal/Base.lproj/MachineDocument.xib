@@ -43,7 +43,7 @@
                             </imageView>
                             <slider verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bmN-Nb-BBh">
                                 <rect key="frame" x="46" y="2" width="248" height="28"/>
-                                <sliderCell key="cell" continuous="YES" state="on" alignment="left" maxValue="1" doubleValue="1" tickMarkPosition="above" sliderType="linear" id="wtR-Vo-Q9e"/>
+                                <sliderCell key="cell" continuous="YES" state="on" alignment="left" minValue="1" maxValue="2" doubleValue="2" tickMarkPosition="above" sliderType="linear" id="wtR-Vo-Q9e"/>
                                 <connections>
                                     <action selector="setVolume:" target="-2" id="Ptv-pk-zbl"/>
                                 </connections>

@@ -127,7 +127,7 @@ class MachineDocument:
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 		aController.window?.contentAspectRatio = self.aspectRatio()
-		volumeSlider.floatValue = userDefaultsVolume()
+		volumeSlider.floatValue = pow(2.0, userDefaultsVolume())
 
 		volumeView.layer!.cornerRadius = 5.0
 	}
@@ -705,8 +705,9 @@ class MachineDocument:
 	// MARK: - Volume Control.
 	@IBAction func setVolume(_ sender: NSSlider!) {
 		if let machine = self.machine {
-			machine.setVolume(sender.floatValue)
-			setUserDefaultsVolume(sender.floatValue)
+			let linearValue = log2(sender.floatValue)
+			machine.setVolume(linearValue)
+			setUserDefaultsVolume(linearValue)
 		}
 	}
 
