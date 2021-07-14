@@ -195,7 +195,7 @@ class MachineDocument:
 		}
 	}
 
-	// MARK: - Connections Between Machine and the Outside World
+	// MARK: - Connections Between Machine and the Outside World.
 
 	private func setupMachineOutput() {
 		if let machine = self.machine, let scanTargetView = self.scanTargetView, machine.view != scanTargetView {
@@ -400,6 +400,7 @@ class MachineDocument:
 	}
 
 	// MARK: - MachinePicker Outlets and Actions
+
 	@IBOutlet var machinePicker: MachinePicker?
 	@IBOutlet var machinePickerPanel: NSWindow?
 	@IBAction func createMachine(_ sender: NSButton?) {
@@ -418,6 +419,7 @@ class MachineDocument:
 	}
 
 	// MARK: - ROMRequester Outlets and Actions
+
 	@IBOutlet var romRequesterPanel: NSWindow?
 	@IBOutlet var romRequesterText: NSTextField?
 	@IBOutlet var romReceiverErrorField: NSTextField?
@@ -522,7 +524,8 @@ class MachineDocument:
 		}
 	}
 
-	// MARK: Joystick-via-the-keyboard selection
+	// MARK: - Joystick-via-the-keyboard selection.
+
 	@IBAction func useKeyboardAsPhysicalKeyboard(_ sender: NSMenuItem?) {
 		machine.inputMode = .keyboardPhysical
 	}
@@ -580,6 +583,8 @@ class MachineDocument:
 		return super.validateUserInterfaceItem(item)
 	}
 
+	// MARK: - Screenshots.
+
 	/// Saves a screenshot of the machine's current display.
 	@IBAction func saveScreenshot(_ sender: AnyObject!) {
 		// Grab a date formatter and form a file name.
@@ -601,6 +606,7 @@ class MachineDocument:
 	}
 
 	// MARK: - Window Title Updates.
+
 	private var unadornedWindowTitle = ""
 	internal func scanTargetViewDidCaptureMouse(_ view: CSScanTargetView) {
 		self.windowControllers[0].window?.title = self.unadornedWindowTitle + " (press ⌘+control to release mouse)"
@@ -702,14 +708,7 @@ class MachineDocument:
 		}
 	}
 
-	// MARK: - Volume Control.
-	@IBAction func setVolume(_ sender: NSSlider!) {
-		if let machine = self.machine {
-			let linearValue = log2(sender.floatValue)
-			machine.setVolume(linearValue)
-			setUserDefaultsVolume(linearValue)
-		}
-	}
+	// MARK: - In-window panels (i.e. options, volume).
 
 	// This class is pure nonsense to work around Xcode's opaque behaviour.
 	// If I make the main class a sub of CAAnimationDelegate then the compiler
@@ -773,6 +772,16 @@ class MachineDocument:
 				view.layer?.opacity = 0.0
 			}
 			animationFader = ViewFader(views: fadingViews)
+		}
+	}
+
+	// MARK: - Volume Control.
+
+	@IBAction func setVolume(_ sender: NSSlider!) {
+		if let machine = self.machine {
+			let linearValue = log2(sender.floatValue)
+			machine.setVolume(linearValue)
+			setUserDefaultsVolume(linearValue)
 		}
 	}
 
