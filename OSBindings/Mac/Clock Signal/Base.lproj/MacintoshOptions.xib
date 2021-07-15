@@ -8,6 +8,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
+                <outlet property="optionsController" destination="Lt7-Vu-Vry" id="Tvy-Sa-5oy"/>
                 <outlet property="optionsView" destination="tpZ-0B-QQu" id="Sat-aY-EKi"/>
             </connections>
         </customObject>
