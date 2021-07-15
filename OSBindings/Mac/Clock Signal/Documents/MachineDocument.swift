@@ -187,10 +187,6 @@ class MachineDocument:
 		updateActivityViewVisibility()
 	}
 
-    func windowDidExitFullScreen(_ notification: Notification) {
-		updateActivityViewVisibility()
-	}
-
 	// MARK: - Connections Between Machine and the Outside World.
 
 	private func setupMachineOutput() {
@@ -715,7 +711,7 @@ class MachineDocument:
 		// pile up — allow there to be only one in flight at a time.
 		if let led = leds[ledName] {
 			DispatchQueue.main.async {
-				if !led.isBlinking {
+				if !led.isBlinking && led.isLit {
 					led.levelIndicator.floatValue = 0.0
 					led.isBlinking = true
 
@@ -723,6 +719,10 @@ class MachineDocument:
 						led.levelIndicator.floatValue = led.isLit ? 1.0 : 0.0
 						led.isBlinking = false
 					}
+
+					// Treat a new blink as potentially re-showing the activity
+					// indicators, given windowed-mode behaviour.
+					self.updateActivityViewVisibility()
 				}
 			}
 		}
@@ -747,7 +747,7 @@ class MachineDocument:
 	}
 
 	private func updateActivityViewVisibility() {
-		if let window = self.windowControllers.first?.window {
+		if let window = self.windowControllers.first?.window, let activityFader = self.activityFader {
 			// If in a window, show the activity view transiently to
 			// acknowledge changes of state. In full screen show it
 			// permanently as long as at least one LED is lit.
