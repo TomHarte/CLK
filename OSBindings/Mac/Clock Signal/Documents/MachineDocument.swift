@@ -153,9 +153,10 @@ class MachineDocument:
 	func windowDidUpdate(_ notification: Notification) {
 		if self.windowControllers.count > 0, let window = self.windowControllers[0].window, window.isVisible {
 			// Grab the regular window title, if it's not already stored.
-			if self.unadornedWindowTitle.count == 0 {
+			if self.unadornedWindowTitle == "" {
 				self.unadornedWindowTitle = window.title
 			}
+			updateWindowTitle()
 
 			// If an interaction mode is not yet in effect, pick the proper one and display the relevant thing.
 			if self.interactionMode == .notStarted {
@@ -743,20 +744,21 @@ class MachineDocument:
 	private func updateActivityViewVisibility() {
 		// If any LEDs are now visible, make sure the activity view is showing.
 		// Otherwise, hide it.
-		let litLEDs = self.leds.filter { $0.value.isLit }
-		let window = self.windowControllers.first!.window!
-		if litLEDs.isEmpty || !window.styleMask.contains(.fullScreen) {
-			activityFader.animateOut(delay: window.styleMask.contains(.fullScreen) ? 0.2 : 0.0)
-		} else {
-			activityFader.animateIn()
-		}
+		if let window = self.windowControllers.first?.window {
+			let litLEDs = self.leds.filter { $0.value.isLit }
+			if litLEDs.isEmpty || !window.styleMask.contains(.fullScreen) {
+				activityFader.animateOut(delay: window.styleMask.contains(.fullScreen) ? 0.2 : 0.0)
+			} else {
+				activityFader.animateIn()
+			}
 
-		// Manipulate the window title.
-		windowLEDSuffix = ""
-		for led in self.leds {
-			windowLEDSuffix += " " + (led.value.isLit ? "■" : "□")
+			// Manipulate the window title.
+			windowLEDSuffix = ""
+			for ledName in machine.leds {
+				windowLEDSuffix += " " + (leds[ledName]!.isLit ? "■" : "□")
+			}
+			updateWindowTitle()
 		}
-		updateWindowTitle()
 	}
 
 	// MARK: - In-window panels (i.e. options, volume).
