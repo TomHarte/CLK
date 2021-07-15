@@ -27,6 +27,8 @@ class Observer {
 		virtual void register_led([[maybe_unused]] const std::string &name) {}
 
 		/// Announces to the receiver that there is a drive of name @c name.
+		///
+		/// If a drive has the same name as an LED, that LED goes with this drive.
 		virtual void register_drive([[maybe_unused]] const std::string &name) {}
 
 		/// Informs the receiver of the new state of the LED with name @c name.
