@@ -746,18 +746,11 @@ class MachineDocument:
 	/// CoreAnimation.
 	private class ViewFader: NSObject, CAAnimationDelegate {
 		private var views: [NSView]
-		private var opacity: Float = 0.0
 
 		init(views: [NSView]) {
 			self.views = views
 			for view in views {
 				view.isHidden = true
-			}
-		}
-
-		func animationDidStart(_ anim: CAAnimation) {
-			for view in views {
-				view.layer!.opacity = opacity
 			}
 		}
 
@@ -770,22 +763,18 @@ class MachineDocument:
 		}
 
 		func animateIn() {
-			opacity = 1.0
-
 			for view in views {
 				view.layer?.removeAllAnimations()
 				view.isHidden = false
-				view.layer?.opacity = 1.0
 			}
 		}
 
 		func animateOut(delay : TimeInterval) {
-			// Do nothing if already animating out.
+			// Do nothing if already animating out or invisible.
 			if views[0].isHidden || views[0].layer?.animation(forKey: "opacity") != nil {
 				return
 			}
 
-			opacity = 0.0
 			for view in views {
 				let fadeAnimation = CABasicAnimation(keyPath: "opacity")
 				fadeAnimation.beginTime = CACurrentMediaTime() + delay
@@ -793,6 +782,9 @@ class MachineDocument:
 				fadeAnimation.toValue = 0.0
 				fadeAnimation.duration = 0.2
 				fadeAnimation.delegate = self
+
+				fadeAnimation.fillMode = .forwards
+				fadeAnimation.isRemovedOnCompletion = false
 
 				view.layer?.removeAllAnimations()
 				view.layer!.add(fadeAnimation, forKey: "opacity")
