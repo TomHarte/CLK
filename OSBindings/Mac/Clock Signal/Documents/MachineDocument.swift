@@ -701,7 +701,7 @@ class MachineDocument:
 			}
 
 			// Show or hide activity view as per current state.
-			updateActivityViewVisibility()
+			updateActivityViewVisibility(true)
 		}
 	}
 
@@ -746,7 +746,7 @@ class MachineDocument:
 		}
 	}
 
-	private func updateActivityViewVisibility() {
+	private func updateActivityViewVisibility(_ isAppLaunch : Bool = false) {
 		if let window = self.windowControllers.first?.window, let activityFader = self.activityFader {
 			// If in a window, show the activity view transiently to
 			// acknowledge changes of state. In full screen show it
@@ -758,10 +758,9 @@ class MachineDocument:
 				} else {
 					activityFader.animateIn()
 				}
-			} else {
+			} else if !isAppLaunch {
 				activityFader.showTransiently(for: 1.0)
 			}
-
 
 			let litLEDs = self.leds.filter { $0.value.isLit }
 			if litLEDs.isEmpty || !window.styleMask.contains(.fullScreen) {
