@@ -182,6 +182,14 @@ class MachineDocument:
 		}
 	}
 
+	func windowDidEnterFullScreen(_ notification: Notification) {
+		updateActivityViewVisibility()
+	}
+
+    func windowDidExitFullScreen(_ notification: Notification) {
+		updateActivityViewVisibility()
+	}
+
 	// MARK: - Connections Between Machine and the Outside World.
 
 	private func setupMachineOutput() {
@@ -599,12 +607,28 @@ class MachineDocument:
 	// MARK: - Window Title Updates.
 
 	private var unadornedWindowTitle = ""
+	private var mouseIsCaptured = false
+	private var windowLEDSuffix = ""
+
+	private func updateWindowTitle() {
+		var title = self.unadornedWindowTitle
+		if windowLEDSuffix != "" {
+			title += windowLEDSuffix
+		}
+		if mouseIsCaptured {
+			title += " (press ⌘+control to release mouse)"
+		}
+		self.windowControllers[0].window?.title = title
+	}
+
 	internal func scanTargetViewDidCaptureMouse(_ view: CSScanTargetView) {
-		self.windowControllers[0].window?.title = self.unadornedWindowTitle + " (press ⌘+control to release mouse)"
+		mouseIsCaptured = true
+		updateWindowTitle()
 	}
 
 	internal func scanTargetViewDidReleaseMouse(_ view: CSScanTargetView) {
-		self.windowControllers[0].window?.title = self.unadornedWindowTitle
+		mouseIsCaptured = false
+		updateWindowTitle()
 	}
 
 	// MARK: - Activity Display.
@@ -709,6 +733,8 @@ class MachineDocument:
 			DispatchQueue.main.async { [self] in
 				led.levelIndicator.floatValue = isLit ? 1.0 : 0.0
 				led.isLit = isLit
+
+				// Possibly show or hide the activity subview.
 				self.updateActivityViewVisibility()
 			}
 		}
@@ -718,11 +744,19 @@ class MachineDocument:
 		// If any LEDs are now visible, make sure the activity view is showing.
 		// Otherwise, hide it.
 		let litLEDs = self.leds.filter { $0.value.isLit }
-		if litLEDs.isEmpty {
-			activityFader.animateOut(delay: 1.0)
+		let window = self.windowControllers.first!.window!
+		if litLEDs.isEmpty || !window.styleMask.contains(.fullScreen) {
+			activityFader.animateOut(delay: window.styleMask.contains(.fullScreen) ? 0.2 : 0.0)
 		} else {
 			activityFader.animateIn()
 		}
+
+		// Manipulate the window title.
+		windowLEDSuffix = ""
+		for led in self.leds {
+			windowLEDSuffix += " " + (led.value.isLit ? "■" : "□")
+		}
+		updateWindowTitle()
 	}
 
 	// MARK: - In-window panels (i.e. options, volume).
