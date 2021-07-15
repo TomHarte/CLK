@@ -609,12 +609,12 @@ class MachineDocument:
 
 	private var unadornedWindowTitle = ""
 	private var mouseIsCaptured = false
-	private var windowLEDSuffix = ""
+	private var windowTitleSuffix = ""
 
 	private func updateWindowTitle() {
 		var title = self.unadornedWindowTitle
-		if windowLEDSuffix != "" {
-			title += windowLEDSuffix
+		if windowTitleSuffix != "" {
+			title += windowTitleSuffix
 		}
 		if mouseIsCaptured {
 			title += " (press ⌘+control to release mouse)"
@@ -732,6 +732,11 @@ class MachineDocument:
 		// If there is such an LED, switch it appropriately.
 		if let led = leds[ledName] {
 			DispatchQueue.main.async { [self] in
+				// Do nothing for no change of state.
+				if led.isLit == isLit {
+					return
+				}
+
 				led.levelIndicator.floatValue = isLit ? 1.0 : 0.0
 				led.isLit = isLit
 
@@ -742,22 +747,28 @@ class MachineDocument:
 	}
 
 	private func updateActivityViewVisibility() {
-		// If any LEDs are now visible, make sure the activity view is showing.
-		// Otherwise, hide it.
 		if let window = self.windowControllers.first?.window {
+			// If in a window, show the activity view transiently to
+			// acknowledge changes of state. In full screen show it
+			// permanently as long as at least one LED is lit.
+			if window.styleMask.contains(.fullScreen) {
+				let litLEDs = self.leds.filter { $0.value.isLit }
+				if litLEDs.isEmpty{
+					activityFader.animateOut(delay: 0.2)
+				} else {
+					activityFader.animateIn()
+				}
+			} else {
+				activityFader.showTransiently(for: 1.0)
+			}
+
+
 			let litLEDs = self.leds.filter { $0.value.isLit }
 			if litLEDs.isEmpty || !window.styleMask.contains(.fullScreen) {
 				activityFader.animateOut(delay: window.styleMask.contains(.fullScreen) ? 0.2 : 0.0)
 			} else {
 				activityFader.animateIn()
 			}
-
-			// Manipulate the window title.
-			windowLEDSuffix = ""
-			for ledName in machine.leds {
-				windowLEDSuffix += " " + (leds[ledName]!.isLit ? "■" : "□")
-			}
-			updateWindowTitle()
 		}
 	}
 
@@ -825,6 +836,11 @@ class MachineDocument:
 				view.layer?.removeAllAnimations()
 				view.layer!.add(fadeAnimation, forKey: "opacity")
 			}
+		}
+
+		func showTransiently(for period: TimeInterval) {
+			animateIn()
+			animateOut(delay: period)
 		}
 	}
 
