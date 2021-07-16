@@ -632,11 +632,13 @@ class MachineDocument:
 
 	private class LED {
 		let levelIndicator: NSLevelIndicator
-		init(levelIndicator: NSLevelIndicator) {
+		init(levelIndicator: NSLevelIndicator, isPersistent: Bool) {
 			self.levelIndicator = levelIndicator
+			self.isPersistent = isPersistent
 		}
 		var isLit = false
 		var isBlinking = false
+		var isPersistent = false
 	}
 	private var leds: [String: LED] = [:]
 	private var activityFader: ViewFader! = nil
@@ -675,7 +677,7 @@ class MachineDocument:
 			// Apply labels and create leds entries.
 			for c in 0 ..< leds.count {
 				textFields[c].stringValue = leds[c].name
-				self.leds[leds[c].name] = LED(levelIndicator: activityIndicators[c])
+				self.leds[leds[c].name] = LED(levelIndicator: activityIndicators[c], isPersistent: leds[c].isPersisent)
 			}
 
 			// Create a fader.
@@ -719,10 +721,6 @@ class MachineDocument:
 						led.levelIndicator.floatValue = led.isLit ? 1.0 : 0.0
 						led.isBlinking = false
 					}
-
-					// Treat a new blink as potentially re-showing the activity
-					// indicators, given windowed-mode behaviour.
-					self.updateActivityViewVisibility()
 				}
 			}
 		}
@@ -741,32 +739,35 @@ class MachineDocument:
 				led.isLit = isLit
 
 				// Possibly show or hide the activity subview.
-				self.updateActivityViewVisibility()
+				self.updateActivityViewVisibility(false, changed: ledName)
 			}
 		}
 	}
 
-	private func updateActivityViewVisibility(_ isAppLaunch : Bool = false) {
+	private func updateActivityViewVisibility(_ isAppLaunch : Bool = false, changed: String? = nil) {
 		if let window = self.windowControllers.first?.window, let activityFader = self.activityFader {
-			// If in a window, show the activity view transiently to
-			// acknowledge changes of state. In full screen show it
-			// permanently as long as at least one LED is lit.
-			if window.styleMask.contains(.fullScreen) {
-				let litLEDs = self.leds.filter { $0.value.isLit }
-				if litLEDs.isEmpty{
-					activityFader.animateOut(delay: 0.2)
-				} else {
-					activityFader.animateIn()
-				}
-			} else if !isAppLaunch {
-				activityFader.showTransiently(for: 1.0)
-			}
+			// Rules applied below:
+			//
+			// Fullscreen:
+			//	(i) always show activity view if any persistent LEDs are present;
+			//	(ii) otherwise, show activity view only while at least one LED is lit.
+			//
+			// Windowed:
+			//	(i) show while any non-persistent LED is lit;
+			//	(ii) show transiently to indicate a change of state in any persistent LED.
+			//
+			let hasLitLEDs = !self.leds.filter {
+				$0.value.isLit && (!$0.value.isPersistent || window.styleMask.contains(.fullScreen)) ||
+				($0.value.isPersistent && window.styleMask.contains(.fullScreen))
+			}.isEmpty
+			let shouldShowTransient = !window.styleMask.contains(.fullScreen) && changed != nil && self.leds[changed!]!.isPersistent
 
-			let litLEDs = self.leds.filter { $0.value.isLit }
-			if litLEDs.isEmpty || !window.styleMask.contains(.fullScreen) {
-				activityFader.animateOut(delay: window.styleMask.contains(.fullScreen) ? 0.2 : 0.0)
-			} else {
+			if hasLitLEDs {
 				activityFader.animateIn()
+			} else if shouldShowTransient {
+				activityFader.showTransiently(for: 1.0)
+			} else {
+				activityFader.animateOut(delay: 0.2)
 			}
 		}
 	}
