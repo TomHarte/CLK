@@ -80,10 +80,12 @@
 - (void)scanTargetViewDidShowOSMouseCursor:(nonnull CSScanTargetView *)view;
 
 /*!
-	Announces that the OS mouse cursor will now be hidden.
+	Announces that the OS mouse cursor would now be hidden; 'would' means that if this is not
+	a mouse capture-enabled view then it will be hidden, but otherwise it might or might not be
+	as per whatever is user-friendly.
 	@param view The view making the announcement.
 */
-- (void)scanTargetViewWillHideOSMouseCursor:(nonnull CSScanTargetView *)view;
+- (void)scanTargetViewWouldHideOSMouseCursor:(nonnull CSScanTargetView *)view;
 
 /*!
 	Announces receipt of a file by drag and drop to the delegate.

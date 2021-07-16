@@ -241,14 +241,16 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 }
 
 - (void)scheduleMouseHideAfter:(NSTimeInterval)interval {
-	if(!self.shouldCaptureMouse) {
-		[_mouseHideTimer invalidate];
+	[_mouseHideTimer invalidate];
 
-		_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:interval repeats:NO block:^(__unused NSTimer * _Nonnull timer) {
+	_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:interval repeats:NO block:^(__unused NSTimer * _Nonnull timer) {
+		// Don't actually hide the mouse if this is a mouse-capture machine; that makes
+		// it fairly confusing as to current application state.
+		if(!self.shouldCaptureMouse) {
 			[NSCursor setHiddenUntilMouseMoves:YES];
-			[self.responderDelegate scanTargetViewWillHideOSMouseCursor:self];
-		}];
-	}
+		}
+		[self.responderDelegate scanTargetViewWouldHideOSMouseCursor:self];
+	}];
 }
 
 - (void)mouseEntered:(NSEvent *)event {
@@ -279,30 +281,26 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 #pragma mark - Mouse motion
 
 - (void)applyMouseMotion:(NSEvent *)event {
-	if(!self.shouldCaptureMouse) {
+	if(!_mouseIsCaptured) {
 		// Mouse capture is off, so don't play games with the cursor, just schedule it to
 		// hide in the near future.
 		[self scheduleMouseHideAfter:standardMouseHideInterval];
 		[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
 	} else {
-		if(_mouseIsCaptured) {
-			// Mouse capture is on, so move the cursor back to the middle of the window, and
-			// forward the deltas to the listener.
-			//
-			// TODO: should I really need to invert the y coordinate myself? It suggests I
-			// might have an error in mapping here.
-			const NSPoint windowCentre = [self convertPoint:CGPointMake(self.bounds.size.width * 0.5, self.bounds.size.height * 0.5) toView:nil];
-			const NSPoint screenCentre = [self.window convertPointToScreen:windowCentre];
-			const CGRect screenFrame = self.window.screen.frame;
-			CGWarpMouseCursorPosition(NSMakePoint(
-				screenFrame.origin.x + screenCentre.x,
-				screenFrame.origin.y + screenFrame.size.height - screenCentre.y
-			));
+		// Mouse capture is on, so move the cursor back to the middle of the window, and
+		// forward the deltas to the listener.
+		//
+		// TODO: should I really need to invert the y coordinate myself? It suggests I
+		// might have an error in mapping here.
+		const NSPoint windowCentre = [self convertPoint:CGPointMake(self.bounds.size.width * 0.5, self.bounds.size.height * 0.5) toView:nil];
+		const NSPoint screenCentre = [self.window convertPointToScreen:windowCentre];
+		const CGRect screenFrame = self.window.screen.frame;
+		CGWarpMouseCursorPosition(NSMakePoint(
+			screenFrame.origin.x + screenCentre.x,
+			screenFrame.origin.y + screenFrame.size.height - screenCentre.y
+		));
 
-			[self.responderDelegate mouseMoved:event];
-		} else {
-			[self.responderDelegate scanTargetViewDidShowOSMouseCursor:self];
-		}
+		[self.responderDelegate mouseMoved:event];
 	}
 }
 
@@ -334,7 +332,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 			_mouseIsCaptured = YES;
 			[NSCursor hide];
 			CGAssociateMouseAndMouseCursorPosition(false);
-			[self.responderDelegate scanTargetViewWillHideOSMouseCursor:self];
+			[self.responderDelegate scanTargetViewWouldHideOSMouseCursor:self];
 			[self.responderDelegate scanTargetViewDidCaptureMouse:self];
 			if(self.shouldUsurpCommand) {
 				((CSApplication *)[NSApplication sharedApplication]).eventDelegate = self;

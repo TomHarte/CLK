@@ -781,7 +781,7 @@ class MachineDocument:
 		optionsFader.animateIn()
 	}
 
-	internal func scanTargetViewWillHideOSMouseCursor(_ view: CSScanTargetView) {
+	internal func scanTargetViewWouldHideOSMouseCursor(_ view: CSScanTargetView) {
 		// The OS mouse cursor will be hidden, so hide the volume controls.
 		optionsFader.animateOut(delay: 0.0)
 	}
