@@ -303,7 +303,7 @@ class ConcreteMachine:
 							case 0x00:		// i.e. even ports less than 0x40.
 								if(is_master_system(model_)) {
 									// TODO: Obey the RAM enable.
-									printf("Memory control: %02x\n", memory_control_);
+									LOG("Memory control: " << PADHEX(2) << memory_control_);
 									memory_control_ = *cycle.value;
 									page_cartridge();
 								}
