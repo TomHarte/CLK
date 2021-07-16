@@ -37,7 +37,7 @@
 @interface CSMachine() <CSScanTargetViewDisplayLinkDelegate>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
-- (void)addLED:(NSString *)led;
+- (void)addLED:(NSString *)led isPersistent:(BOOL)isPersistent;
 @end
 
 struct LockProtectedDelegate {
@@ -61,8 +61,8 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 };
 
 struct ActivityObserver: public Activity::Observer {
-	void register_led(const std::string &name) final {
-		[machine addLED:[NSString stringWithUTF8String:name.c_str()]];
+	void register_led(const std::string &name, uint8_t flags) final {
+		[machine addLED:[NSString stringWithUTF8String:name.c_str()] isPersistent:flags & Activity::Observer::LEDPresentation::Persistent];
 	}
 
 	void set_led_status(const std::string &name, bool lit) final {
@@ -76,6 +76,19 @@ struct ActivityObserver: public Activity::Observer {
 	__unsafe_unretained CSMachine *machine;
 };
 
+@implementation CSMachineLED
+
+- (instancetype)initWithName:(NSString *)name isPersistent:(BOOL)isPersistent {
+	self = [super init];
+	if(self) {
+		_name = name;
+		_isPersisent = isPersistent;
+	}
+	return self;
+}
+
+@end
+
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
 	ActivityObserver _activityObserver;
@@ -86,7 +99,7 @@ struct ActivityObserver: public Activity::Observer {
 	MachineTypes::JoystickMachine *_joystickMachine;
 
 	CSJoystickManager *_joystickManager;
-	NSMutableArray<NSString *> *_leds;
+	NSMutableArray<CSMachineLED *> *_leds;
 
 	CSHighPrecisionTimer *_timer;
 	std::atomic_flag _isUpdating;
@@ -623,11 +636,11 @@ struct ActivityObserver: public Activity::Observer {
 
 #pragma mark - Activity observation
 
-- (void)addLED:(NSString *)led {
-	[_leds addObject:led];
+- (void)addLED:(NSString *)led isPersistent:(BOOL)isPersistent {
+	[_leds addObject:[[CSMachineLED alloc] initWithName:led isPersistent:isPersistent]];
 }
 
-- (NSArray<NSString *> *)leds {
+- (NSArray<CSMachineLED *> *)leds {
 	return _leds;
 }
 

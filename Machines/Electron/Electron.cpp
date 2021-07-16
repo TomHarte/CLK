@@ -607,7 +607,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 		void set_activity_observer(Activity::Observer *observer) final {
 			activity_observer_ = observer;
 			if(activity_observer_) {
-				activity_observer_->register_led(caps_led);
+				activity_observer_->register_led(caps_led, Activity::Observer::LEDPresentation::Persistent);
 				activity_observer_->set_led_status(caps_led, caps_led_state_);
 			}
 

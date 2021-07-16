@@ -23,8 +23,15 @@ namespace Activity {
 */
 class Observer {
 	public:
+		/// Provides hints as to the sort of information presented on an LED.
+		enum LEDPresentation: uint8_t {
+			/// This LED informs the user of some sort of persistent state, e.g. scroll lock.
+			/// If this flag is absent then the LED describes an ephemeral state, such as media access.
+			Persistent = (1 << 0),
+		};
+
 		/// Announces to the receiver that there is an LED of name @c name.
-		virtual void register_led([[maybe_unused]] const std::string &name) {}
+		virtual void register_led([[maybe_unused]] const std::string &name, [[maybe_unused]] uint8_t presentation = 0) {}
 
 		/// Announces to the receiver that there is a drive of name @c name.
 		///

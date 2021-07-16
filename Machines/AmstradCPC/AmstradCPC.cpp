@@ -1119,7 +1119,7 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		HalfCycles get_typer_frequency() const final {
-			return Cycles(80'000);	// Perform one key transition per frame.
+			return Cycles(160'000);	// Perform one key transition per frame and a half.
 		}
 
 		// See header; sets a key as either pressed or released.

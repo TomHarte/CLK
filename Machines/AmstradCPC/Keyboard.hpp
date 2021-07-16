@@ -40,7 +40,7 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 struct CharacterMapper: public ::Utility::CharacterMapper {
 	const uint16_t *sequence_for_character(char character) const override;
 
-	bool needs_pause_after_reset_all_keys() const override	{ return false; }
+	bool needs_pause_after_reset_all_keys() const override	{ return true; }
 	bool needs_pause_after_key(uint16_t key) const override;
 };
 

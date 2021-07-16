@@ -271,7 +271,7 @@ class ActivityObserver: public Activity::Observer {
 
 	private:
 		std::vector<std::string> leds_;
-		void register_led(const std::string &name) final {
+		void register_led(const std::string &name, uint8_t) final {
 			std::lock_guard lock_guard(mutex);
 			leds_.push_back(name);
 		}
