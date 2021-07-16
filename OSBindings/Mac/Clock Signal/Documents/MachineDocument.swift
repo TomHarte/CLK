@@ -51,12 +51,7 @@ class MachineDocument:
 	@IBOutlet var optionsController: MachineController!
 
 	/// The activity panel, if one is deemed appropriate.
-	@IBOutlet var activityPanel: NSPanel!
-
-	/// An action to display the activity panel, if there is one.
-	@IBAction func showActivity(_ sender: AnyObject!) {
-		activityPanel.setIsVisible(true)
-	}
+	@IBOutlet var activityView: NSView!
 
 	/// The volume view.
 	@IBOutlet var volumeView: NSView!
@@ -83,11 +78,6 @@ class MachineDocument:
 		}
 	}
 
-	private func dismissPanels() {
-		activityPanel?.setIsVisible(false)
-		activityPanel = nil
-	}
-
 	override func close() {
 		// Close any dangling sheets.
 		//
@@ -104,9 +94,6 @@ class MachineDocument:
 
 		// Stop the machine, if any.
 		machine?.stop()
-
-		// Dismiss panels.
-		dismissPanels()
 
 		// End the update cycle.
 		actionLock.lock()
@@ -166,9 +153,10 @@ class MachineDocument:
 	func windowDidUpdate(_ notification: Notification) {
 		if self.windowControllers.count > 0, let window = self.windowControllers[0].window, window.isVisible {
 			// Grab the regular window title, if it's not already stored.
-			if self.unadornedWindowTitle.count == 0 {
+			if self.unadornedWindowTitle == "" {
 				self.unadornedWindowTitle = window.title
 			}
+			updateWindowTitle()
 
 			// If an interaction mode is not yet in effect, pick the proper one and display the relevant thing.
 			if self.interactionMode == .notStarted {
@@ -195,16 +183,17 @@ class MachineDocument:
 		}
 	}
 
-	// MARK: - Connections Between Machine and the Outside World
+	func windowDidEnterFullScreen(_ notification: Notification) {
+		updateActivityViewVisibility()
+	}
+
+	// MARK: - Connections Between Machine and the Outside World.
 
 	private func setupMachineOutput() {
 		if let machine = self.machine, let scanTargetView = self.scanTargetView, machine.view != scanTargetView {
 			// Establish the output aspect ratio and audio.
 			let aspectRatio = self.aspectRatio()
 			machine.setView(scanTargetView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
-
-			// Get rid of all existing accessory panels.
-			dismissPanels()
 
 			// Attach an options panel if one is available.
 			if let optionsNibName = self.machineDescription?.optionsNibName {
@@ -228,6 +217,16 @@ class MachineDocument:
 					superview.addConstraints(constraints)
 				}
 			}
+
+			// Set up a fader for the volume and options.
+			var fadingViews: [NSView] = []
+			if let optionsView = self.optionsView {
+				fadingViews.append(optionsView)
+			}
+			if let volumeView = self.volumeView {
+				fadingViews.append(volumeView)
+			}
+			optionsFader = ViewFader(views: fadingViews)
 
 			// Create and populate an activity display if required.
 			setupActivityDisplay()
@@ -400,6 +399,7 @@ class MachineDocument:
 	}
 
 	// MARK: - MachinePicker Outlets and Actions
+
 	@IBOutlet var machinePicker: MachinePicker?
 	@IBOutlet var machinePickerPanel: NSWindow?
 	@IBAction func createMachine(_ sender: NSButton?) {
@@ -418,6 +418,7 @@ class MachineDocument:
 	}
 
 	// MARK: - ROMRequester Outlets and Actions
+
 	@IBOutlet var romRequesterPanel: NSWindow?
 	@IBOutlet var romRequesterText: NSTextField?
 	@IBOutlet var romReceiverErrorField: NSTextField?
@@ -522,7 +523,8 @@ class MachineDocument:
 		}
 	}
 
-	// MARK: Joystick-via-the-keyboard selection
+	// MARK: - Joystick-via-the-keyboard selection.
+
 	@IBAction func useKeyboardAsPhysicalKeyboard(_ sender: NSMenuItem?) {
 		machine.inputMode = .keyboardPhysical
 	}
@@ -568,9 +570,6 @@ class MachineDocument:
 					menuItem.state = machine.inputMode == .joystick ? .on : .off
 					return true
 
-				case #selector(self.showActivity(_:)):
-					return self.activityPanel != nil
-
 				case #selector(self.insertMedia(_:)):
 					return self.machine != nil && self.machine.canInsertMedia
 
@@ -579,6 +578,8 @@ class MachineDocument:
 		}
 		return super.validateUserInterfaceItem(item)
 	}
+
+	// MARK: - Screenshots.
 
 	/// Saves a screenshot of the machine's current display.
 	@IBAction func saveScreenshot(_ sender: AnyObject!) {
@@ -601,13 +602,30 @@ class MachineDocument:
 	}
 
 	// MARK: - Window Title Updates.
+
 	private var unadornedWindowTitle = ""
+	private var mouseIsCaptured = false
+	private var windowTitleSuffix = ""
+
+	private func updateWindowTitle() {
+		var title = self.unadornedWindowTitle
+		if windowTitleSuffix != "" {
+			title += windowTitleSuffix
+		}
+		if mouseIsCaptured {
+			title += " (press ⌘+control to release mouse)"
+		}
+		self.windowControllers[0].window?.title = title
+	}
+
 	internal func scanTargetViewDidCaptureMouse(_ view: CSScanTargetView) {
-		self.windowControllers[0].window?.title = self.unadornedWindowTitle + " (press ⌘+control to release mouse)"
+		mouseIsCaptured = true
+		updateWindowTitle()
 	}
 
 	internal func scanTargetViewDidReleaseMouse(_ view: CSScanTargetView) {
-		self.windowControllers[0].window?.title = self.unadornedWindowTitle
+		mouseIsCaptured = false
+		updateWindowTitle()
 	}
 
 	// MARK: - Activity Display.
@@ -621,18 +639,18 @@ class MachineDocument:
 		var isBlinking = false
 	}
 	private var leds: [String: LED] = [:]
+	private var activityFader: ViewFader! = nil
 
 	func setupActivityDisplay() {
 		var leds = machine.leds
 		if leds.count > 0 {
 			Bundle.main.loadNibNamed("Activity", owner: self, topLevelObjects: nil)
-			showActivity(nil)
 
 			// Inspect the activity panel for indicators.
 			var activityIndicators: [NSLevelIndicator] = []
 			var textFields: [NSTextField] = []
-			if let contentView = self.activityPanel.contentView {
-				for view in contentView.subviews {
+			if let activityView = self.activityView {
+				for view in activityView.subviews {
 					if let levelIndicator = view as? NSLevelIndicator {
 						activityIndicators.append(levelIndicator)
 					}
@@ -660,16 +678,30 @@ class MachineDocument:
 				self.leds[leds[c]] = LED(levelIndicator: activityIndicators[c])
 			}
 
-			// Add a constraints to minimise window height.
-			let heightConstraint = NSLayoutConstraint(
-				item: self.activityPanel.contentView!,
-				attribute: .bottom,
-				relatedBy: .equal,
-				toItem: activityIndicators[leds.count-1],
-				attribute: .bottom,
-				multiplier: 1.0,
-				constant: 20.0)
-			self.activityPanel.contentView?.addConstraint(heightConstraint)
+			// Create a fader.
+			activityFader = ViewFader(views: [self.activityView!])
+
+			// Add view to window, and constrain.
+			if let superview = activityIndicators[leds.count-1].superview {
+				superview.addConstraint(
+					activityIndicators[leds.count-1].bottomAnchor.constraint(equalTo: activityIndicators[leds.count-1].superview!.bottomAnchor, constant: -8.0)
+				)
+			}
+			if let windowView = self.volumeView.superview {
+				windowView.addSubview(self.activityView)
+
+				let constraints = [
+					self.activityView.rightAnchor.constraint(equalTo: windowView.rightAnchor),
+					self.activityView.topAnchor.constraint(equalTo: windowView.topAnchor),
+				]
+				windowView.addConstraints(constraints)
+
+				activityView.layer!.cornerRadius = 5.0
+				activityView.layer!.maskedCorners = [.layerMinXMinYCorner]
+			}
+
+			// Show or hide activity view as per current state.
+			updateActivityViewVisibility(true)
 		}
 	}
 
@@ -679,7 +711,7 @@ class MachineDocument:
 		// pile up — allow there to be only one in flight at a time.
 		if let led = leds[ledName] {
 			DispatchQueue.main.async {
-				if !led.isBlinking {
+				if !led.isBlinking && led.isLit {
 					led.levelIndicator.floatValue = 0.0
 					led.isBlinking = true
 
@@ -687,6 +719,10 @@ class MachineDocument:
 						led.levelIndicator.floatValue = led.isLit ? 1.0 : 0.0
 						led.isBlinking = false
 					}
+
+					// Treat a new blink as potentially re-showing the activity
+					// indicators, given windowed-mode behaviour.
+					self.updateActivityViewVisibility()
 				}
 			}
 		}
@@ -695,84 +731,125 @@ class MachineDocument:
 	func machine(_ machine: CSMachine, led ledName: String, didChangeToLit isLit: Bool) {
 		// If there is such an LED, switch it appropriately.
 		if let led = leds[ledName] {
-			DispatchQueue.main.async {
+			DispatchQueue.main.async { [self] in
+				// Do nothing for no change of state.
+				if led.isLit == isLit {
+					return
+				}
+
 				led.levelIndicator.floatValue = isLit ? 1.0 : 0.0
 				led.isLit = isLit
+
+				// Possibly show or hide the activity subview.
+				self.updateActivityViewVisibility()
 			}
 		}
 	}
 
+	private func updateActivityViewVisibility(_ isAppLaunch : Bool = false) {
+		if let window = self.windowControllers.first?.window, let activityFader = self.activityFader {
+			// If in a window, show the activity view transiently to
+			// acknowledge changes of state. In full screen show it
+			// permanently as long as at least one LED is lit.
+			if window.styleMask.contains(.fullScreen) {
+				let litLEDs = self.leds.filter { $0.value.isLit }
+				if litLEDs.isEmpty{
+					activityFader.animateOut(delay: 0.2)
+				} else {
+					activityFader.animateIn()
+				}
+			} else if !isAppLaunch {
+				activityFader.showTransiently(for: 1.0)
+			}
+
+			let litLEDs = self.leds.filter { $0.value.isLit }
+			if litLEDs.isEmpty || !window.styleMask.contains(.fullScreen) {
+				activityFader.animateOut(delay: window.styleMask.contains(.fullScreen) ? 0.2 : 0.0)
+			} else {
+				activityFader.animateIn()
+			}
+		}
+	}
+
+	// MARK: - In-window panels (i.e. options, volume).
+
+	private var optionsFader: ViewFader! = nil
+
+	internal func scanTargetViewDidShowOSMouseCursor(_ view: CSScanTargetView) {
+		// The OS mouse cursor became visible, so show the volume controls.
+		optionsFader.animateIn()
+	}
+
+	internal func scanTargetViewWillHideOSMouseCursor(_ view: CSScanTargetView) {
+		// The OS mouse cursor will be hidden, so hide the volume controls.
+		optionsFader.animateOut(delay: 0.0)
+	}
+
+	// MARK: - Helpers for fading things in and out.
+
+	/// Maintains a list of views and offers in-and-out animations on those,
+	/// testing current state as necessary and otherwise coordinating with
+	/// CoreAnimation.
+	private class ViewFader: NSObject, CAAnimationDelegate {
+		private var views: [NSView]
+
+		init(views: [NSView]) {
+			self.views = views
+			for view in views {
+				view.isHidden = true
+			}
+		}
+
+		func animationDidStop(_ animation: CAAnimation, finished: Bool) {
+			if finished {
+				for view in views {
+					view.isHidden = true
+				}
+			}
+		}
+
+		func animateIn() {
+			for view in views {
+				view.layer?.removeAllAnimations()
+				view.isHidden = false
+			}
+		}
+
+		func animateOut(delay : TimeInterval) {
+			// Do nothing if already animating out or invisible.
+			if views[0].isHidden || views[0].layer?.animation(forKey: "opacity") != nil {
+				return
+			}
+
+			for view in views {
+				let fadeAnimation = CABasicAnimation(keyPath: "opacity")
+				fadeAnimation.beginTime = CACurrentMediaTime() + delay
+				fadeAnimation.fromValue = 1.0
+				fadeAnimation.toValue = 0.0
+				fadeAnimation.duration = 0.2
+				fadeAnimation.delegate = self
+
+				fadeAnimation.fillMode = .forwards
+				fadeAnimation.isRemovedOnCompletion = false
+
+				view.layer?.removeAllAnimations()
+				view.layer!.add(fadeAnimation, forKey: "opacity")
+			}
+		}
+
+		func showTransiently(for period: TimeInterval) {
+			animateIn()
+			animateOut(delay: period)
+		}
+	}
+
 	// MARK: - Volume Control.
+
 	@IBAction func setVolume(_ sender: NSSlider!) {
 		if let machine = self.machine {
 			let linearValue = log2(sender.floatValue)
 			machine.setVolume(linearValue)
 			setUserDefaultsVolume(linearValue)
-		}
-	}
-
-	// This class is pure nonsense to work around Xcode's opaque behaviour.
-	// If I make the main class a sub of CAAnimationDelegate then the compiler
-	// generates a bridging header that doesn't include QuartzCore and therefore
-	// can't find a declaration of the CAAnimationDelegate protocol. Doesn't
-	// seem to matter what I add explicitly to the link stage, which version of
-	// macOS I set as the target, etc.
-	//
-	// So, the workaround: make my CAAnimationDelegate something that doesn't
-	// appear in the bridging header.
-	fileprivate class ViewFader: NSObject, CAAnimationDelegate {
-		var views: [NSView]
-
-		init(views: [NSView]) {
-			self.views = views
-		}
-
-		func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
-			for view in views {
-				view.isHidden = true
-			}
-		}
-	}
-	fileprivate var animationFader: ViewFader? = nil
-
-	var fadingViews: [NSView] {
-		get {
-			var views: [NSView] = []
-			if let optionsView = self.optionsView {
-				views.append(optionsView)
-			}
-			if let volumeView = self.volumeView {
-				views.append(volumeView)
-			}
-			return views
-		}
-	}
-
-	internal func scanTargetViewDidShowOSMouseCursor(_ view: CSScanTargetView) {
-		// The OS mouse cursor became visible, so show the volume controls.
-		animationFader = nil
-		for view in self.fadingViews {
-			view.layer?.removeAllAnimations()
-			view.isHidden = false
-			view.layer?.opacity = 1.0
-		}
-	}
-
-	internal func scanTargetViewWillHideOSMouseCursor(_ view: CSScanTargetView) {
-		// The OS mouse cursor will be hidden, so hide the volume controls.
-		let fadingViews = self.fadingViews
-
-		if !fadingViews[0].isHidden && fadingViews[0].layer?.animation(forKey: "opacity") == nil {
-			for view in self.fadingViews {
-				let fadeAnimation = CABasicAnimation(keyPath: "opacity")
-				fadeAnimation.fromValue = 1.0
-				fadeAnimation.toValue = 0.0
-				fadeAnimation.duration = 0.2
-				fadeAnimation.delegate = animationFader
-				view.layer?.add(fadeAnimation, forKey: "opacity")
-				view.layer?.opacity = 0.0
-			}
-			animationFader = ViewFader(views: fadingViews)
 		}
 	}
 

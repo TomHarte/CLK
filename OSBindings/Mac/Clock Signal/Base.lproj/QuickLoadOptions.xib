@@ -8,6 +8,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
+                <outlet property="optionsController" destination="cWS-AS-crO" id="KeQ-V1-s46"/>
                 <outlet property="optionsView" destination="e1J-pw-zGw" id="ALr-SV-afm"/>
             </connections>
         </customObject>

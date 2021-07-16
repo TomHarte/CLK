@@ -1,113 +1,105 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14113" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="18122" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14113"/>
-        <capability name="Aspect ratio constraints" minToolsVersion="5.1"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="18122"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
-                <outlet property="activityPanel" destination="ZW7-Bw-4RP" id="GRG-Q6-RQU"/>
+                <outlet property="activityView" destination="tpZ-0B-QQu" id="afo-Oq-Nyl"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <window title="Activity" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="ZW7-Bw-4RP" customClass="NSPanel">
-            <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" nonactivatingPanel="YES" HUD="YES"/>
-            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="300" y="76" width="200" height="131"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
-            <view key="contentView" id="tpZ-0B-QQu">
-                <rect key="frame" x="0.0" y="0.0" width="200" height="131"/>
-                <autoresizingMask key="autoresizingMask"/>
-                <subviews>
-                    <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ySY-ir-hzb" userLabel="First indicator">
-                        <rect key="frame" x="20" y="95" width="17" height="16"/>
-                        <constraints>
-                            <constraint firstAttribute="width" secondItem="ySY-ir-hzb" secondAttribute="height" multiplier="1:1" id="UX0-hT-7Td"/>
-                        </constraints>
-                        <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="DhQ-Di-tRT"/>
-                    </levelIndicator>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Tah-UQ-vdf">
-                        <rect key="frame" x="44" y="94" width="59" height="17"/>
-                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 1" id="a5P-Ci-RzC">
-                            <font key="font" metaFont="system"/>
-                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                        </textFieldCell>
-                    </textField>
-                    <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ncQ-wN-C61" userLabel="Second indicator">
-                        <rect key="frame" x="20" y="70" width="17" height="16"/>
-                        <constraints>
-                            <constraint firstAttribute="width" secondItem="ncQ-wN-C61" secondAttribute="height" multiplier="1:1" id="176-v3-mVW"/>
-                        </constraints>
-                        <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="jlb-bk-FPd"/>
-                    </levelIndicator>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="14O-Lq-Npx">
-                        <rect key="frame" x="44" y="69" width="61" height="17"/>
-                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 2" id="NE1-CO-pGI">
-                            <font key="font" metaFont="system"/>
-                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                        </textFieldCell>
-                    </textField>
-                    <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0rV-Th-Zwt" userLabel="Third indicator">
-                        <rect key="frame" x="20" y="45" width="17" height="16"/>
-                        <constraints>
-                            <constraint firstAttribute="width" secondItem="0rV-Th-Zwt" secondAttribute="height" multiplier="1:1" id="Ai8-b3-Nn5"/>
-                        </constraints>
-                        <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="CJy-Jn-eCL"/>
-                    </levelIndicator>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Acy-tT-OFH">
-                        <rect key="frame" x="44" y="44" width="61" height="17"/>
-                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 3" id="FSR-y6-7WE">
-                            <font key="font" metaFont="system"/>
-                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                        </textFieldCell>
-                    </textField>
-                    <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bvH-EJ-TYb" userLabel="Fourth indicator">
-                        <rect key="frame" x="20" y="20" width="17" height="16"/>
-                        <constraints>
-                            <constraint firstAttribute="width" secondItem="bvH-EJ-TYb" secondAttribute="height" multiplier="1:1" id="cKc-q1-2Q4"/>
-                        </constraints>
-                        <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="eoN-hl-30l"/>
-                    </levelIndicator>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="R0g-Oa-VB5">
-                        <rect key="frame" x="44" y="19" width="62" height="17"/>
-                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 4" id="aGr-cd-jC0">
-                            <font key="font" metaFont="system"/>
-                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                        </textFieldCell>
-                    </textField>
-                </subviews>
-                <constraints>
-                    <constraint firstItem="14O-Lq-Npx" firstAttribute="centerY" secondItem="ncQ-wN-C61" secondAttribute="centerY" id="0Ht-U2-sPg"/>
-                    <constraint firstItem="bvH-EJ-TYb" firstAttribute="top" secondItem="0rV-Th-Zwt" secondAttribute="bottom" constant="9" id="0xw-qA-6vP"/>
-                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="14O-Lq-Npx" secondAttribute="trailing" constant="20" id="5eo-XI-a3W"/>
-                    <constraint firstItem="Tah-UQ-vdf" firstAttribute="centerY" secondItem="ySY-ir-hzb" secondAttribute="centerY" id="6Hn-ts-mTi"/>
-                    <constraint firstItem="R0g-Oa-VB5" firstAttribute="leading" secondItem="bvH-EJ-TYb" secondAttribute="trailing" constant="10" id="Dgy-JI-nA1"/>
-                    <constraint firstItem="R0g-Oa-VB5" firstAttribute="centerY" secondItem="bvH-EJ-TYb" secondAttribute="centerY" id="Gfq-mB-Y1z"/>
-                    <constraint firstItem="Acy-tT-OFH" firstAttribute="centerY" secondItem="0rV-Th-Zwt" secondAttribute="centerY" id="ImF-rK-oOr"/>
-                    <constraint firstItem="Acy-tT-OFH" firstAttribute="leading" secondItem="0rV-Th-Zwt" secondAttribute="trailing" constant="10" id="JSU-pZ-l9Q"/>
-                    <constraint firstItem="ySY-ir-hzb" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="20" id="KMh-EO-rxE"/>
-                    <constraint firstItem="0rV-Th-Zwt" firstAttribute="top" secondItem="ncQ-wN-C61" secondAttribute="bottom" constant="9" id="Q2g-yM-nlJ"/>
-                    <constraint firstItem="ncQ-wN-C61" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="20" id="QUI-Hc-Bcl"/>
-                    <constraint firstItem="0rV-Th-Zwt" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="20" id="bKh-4L-mqj"/>
-                    <constraint firstItem="bvH-EJ-TYb" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="20" id="cPA-Ls-fLj"/>
-                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Tah-UQ-vdf" secondAttribute="trailing" constant="20" id="igX-7U-TeE"/>
-                    <constraint firstItem="14O-Lq-Npx" firstAttribute="leading" secondItem="ncQ-wN-C61" secondAttribute="trailing" constant="10" id="jjP-qH-Pqg"/>
-                    <constraint firstItem="Tah-UQ-vdf" firstAttribute="leading" secondItem="ySY-ir-hzb" secondAttribute="trailing" constant="10" id="lux-Nz-K7E"/>
-                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Acy-tT-OFH" secondAttribute="trailing" constant="20" id="mEe-VT-dNr"/>
-                    <constraint firstItem="ncQ-wN-C61" firstAttribute="top" secondItem="ySY-ir-hzb" secondAttribute="bottom" constant="9" id="mSc-jj-amw"/>
-                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="R0g-Oa-VB5" secondAttribute="trailing" constant="20" id="sR8-Ph-suC"/>
-                    <constraint firstItem="ySY-ir-hzb" firstAttribute="top" secondItem="tpZ-0B-QQu" secondAttribute="top" constant="20" id="wbj-48-DYq"/>
-                </constraints>
-            </view>
-            <point key="canvasLocation" x="84" y="115"/>
-        </window>
+        <visualEffectView hidden="YES" wantsLayer="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="tpZ-0B-QQu">
+            <rect key="frame" x="0.0" y="0.0" width="200" height="131"/>
+            <subviews>
+                <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ySY-ir-hzb" userLabel="First indicator">
+                    <rect key="frame" x="8" y="105" width="16" height="18"/>
+                    <constraints>
+                        <constraint firstAttribute="width" secondItem="ySY-ir-hzb" secondAttribute="height" multiplier="1:1" id="UX0-hT-7Td"/>
+                    </constraints>
+                    <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="DhQ-Di-tRT"/>
+                </levelIndicator>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Tah-UQ-vdf">
+                    <rect key="frame" x="30" y="107" width="59" height="16"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 1" id="a5P-Ci-RzC">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ncQ-wN-C61" userLabel="Second indicator">
+                    <rect key="frame" x="8" y="81" width="16" height="18"/>
+                    <constraints>
+                        <constraint firstAttribute="width" secondItem="ncQ-wN-C61" secondAttribute="height" multiplier="1:1" id="176-v3-mVW"/>
+                    </constraints>
+                    <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="jlb-bk-FPd"/>
+                </levelIndicator>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="14O-Lq-Npx">
+                    <rect key="frame" x="30" y="83" width="61" height="16"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 2" id="NE1-CO-pGI">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0rV-Th-Zwt" userLabel="Third indicator">
+                    <rect key="frame" x="8" y="57" width="16" height="18"/>
+                    <constraints>
+                        <constraint firstAttribute="width" secondItem="0rV-Th-Zwt" secondAttribute="height" multiplier="1:1" id="Ai8-b3-Nn5"/>
+                    </constraints>
+                    <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="CJy-Jn-eCL"/>
+                </levelIndicator>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Acy-tT-OFH">
+                    <rect key="frame" x="30" y="59" width="61" height="16"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 3" id="FSR-y6-7WE">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bvH-EJ-TYb" userLabel="Fourth indicator">
+                    <rect key="frame" x="8" y="33" width="16" height="18"/>
+                    <constraints>
+                        <constraint firstAttribute="width" secondItem="bvH-EJ-TYb" secondAttribute="height" multiplier="1:1" id="cKc-q1-2Q4"/>
+                    </constraints>
+                    <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="eoN-hl-30l"/>
+                </levelIndicator>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="R0g-Oa-VB5">
+                    <rect key="frame" x="30" y="35" width="62" height="16"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 4" id="aGr-cd-jC0">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+            </subviews>
+            <constraints>
+                <constraint firstItem="14O-Lq-Npx" firstAttribute="centerY" secondItem="ncQ-wN-C61" secondAttribute="centerY" id="0Ht-U2-sPg"/>
+                <constraint firstItem="bvH-EJ-TYb" firstAttribute="top" secondItem="0rV-Th-Zwt" secondAttribute="bottom" constant="8" symbolic="YES" id="0xw-qA-6vP"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="14O-Lq-Npx" secondAttribute="trailing" constant="8" id="5eo-XI-a3W"/>
+                <constraint firstItem="Tah-UQ-vdf" firstAttribute="centerY" secondItem="ySY-ir-hzb" secondAttribute="centerY" id="6Hn-ts-mTi"/>
+                <constraint firstItem="R0g-Oa-VB5" firstAttribute="leading" secondItem="bvH-EJ-TYb" secondAttribute="trailing" constant="8" symbolic="YES" id="Dgy-JI-nA1"/>
+                <constraint firstItem="R0g-Oa-VB5" firstAttribute="centerY" secondItem="bvH-EJ-TYb" secondAttribute="centerY" id="Gfq-mB-Y1z"/>
+                <constraint firstItem="Acy-tT-OFH" firstAttribute="centerY" secondItem="0rV-Th-Zwt" secondAttribute="centerY" id="ImF-rK-oOr"/>
+                <constraint firstItem="Acy-tT-OFH" firstAttribute="leading" secondItem="0rV-Th-Zwt" secondAttribute="trailing" constant="8" symbolic="YES" id="JSU-pZ-l9Q"/>
+                <constraint firstItem="ySY-ir-hzb" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="KMh-EO-rxE"/>
+                <constraint firstItem="0rV-Th-Zwt" firstAttribute="top" secondItem="ncQ-wN-C61" secondAttribute="bottom" constant="8" symbolic="YES" id="Q2g-yM-nlJ"/>
+                <constraint firstItem="ncQ-wN-C61" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="QUI-Hc-Bcl"/>
+                <constraint firstItem="0rV-Th-Zwt" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="bKh-4L-mqj"/>
+                <constraint firstItem="bvH-EJ-TYb" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="cPA-Ls-fLj"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Tah-UQ-vdf" secondAttribute="trailing" constant="8" id="igX-7U-TeE"/>
+                <constraint firstItem="14O-Lq-Npx" firstAttribute="leading" secondItem="ncQ-wN-C61" secondAttribute="trailing" constant="8" symbolic="YES" id="jjP-qH-Pqg"/>
+                <constraint firstItem="Tah-UQ-vdf" firstAttribute="leading" secondItem="ySY-ir-hzb" secondAttribute="trailing" constant="8" symbolic="YES" id="lux-Nz-K7E"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Acy-tT-OFH" secondAttribute="trailing" constant="8" id="mEe-VT-dNr"/>
+                <constraint firstItem="ncQ-wN-C61" firstAttribute="top" secondItem="ySY-ir-hzb" secondAttribute="bottom" constant="8" symbolic="YES" id="mSc-jj-amw"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="R0g-Oa-VB5" secondAttribute="trailing" constant="8" id="sR8-Ph-suC"/>
+                <constraint firstItem="ySY-ir-hzb" firstAttribute="top" secondItem="tpZ-0B-QQu" secondAttribute="top" constant="8" id="wbj-48-DYq"/>
+            </constraints>
+            <point key="canvasLocation" x="57" y="80"/>
+        </visualEffectView>
     </objects>
 </document>
