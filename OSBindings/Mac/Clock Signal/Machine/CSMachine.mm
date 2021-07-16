@@ -62,7 +62,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 
 struct ActivityObserver: public Activity::Observer {
 	void register_led(const std::string &name, uint8_t flags) final {
-		[machine addLED:[NSString stringWithUTF8String:name.c_str()] isPersistent:flags & Activity::Observer::LEDPresentation::Persistent];
+		[machine addLED:[NSString stringWithUTF8String:name.c_str()] isPersistent:(flags & Activity::Observer::LEDPresentation::Persistent) ? YES : NO];
 	}
 
 	void set_led_status(const std::string &name, bool lit) final {
