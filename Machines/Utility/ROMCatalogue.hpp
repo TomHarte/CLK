@@ -31,6 +31,17 @@ enum Name {
 	PRESAdvancedPlus6,
 	Acorn1770DFS,
 
+	// Amiga.
+	AmigaKickstart10,
+	AmigaKickstart11,
+	AmigaKickstart12,
+	AmigaA500Kickstart13,
+	AmigaA3000Kickstart13,
+	AmigaKickstart20,
+	AmigaA500PlusKickstart204,
+	AmigaA600Kickstart205,
+	AmigaA500Kickstart31,
+
 	// Amstrad CPC.
 	AMSDOS,
 	CPC464Firmware,		CPC464BASIC,

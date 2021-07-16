@@ -380,6 +380,34 @@ Description::Description(Name name) {
 		case Name::CPC6128Firmware:		*this = Description(name, "AmstradCPC", "the CPC 6128 firmware", "os6128.rom", 16*1024, 0x0219bb74u);				break;
 		case Name::CPC6128BASIC:		*this = Description(name, "AmstradCPC", "the CPC 6128 BASIC ROM", "basic6128.rom", 16*1024, 0xca6af63du);			break;
 
+		case Name::AmigaKickstart10:
+			*this = Description(name, "Amiga", "the Kickstart 1.0 ROM", "Kickstart-v1.0-1985-Commodore-A1000-NTSC.rom", 256*1024, 0x299790ffu);
+		break;
+		case Name::AmigaKickstart11:
+			*this = Description(name, "Amiga", "the Kickstart 1.1 ROM", "Kickstart-v1.1-rev31.34-1985-Commodore-A1000.NTSC.rom", 256*1024, 0xd060572au);
+		break;
+		case Name::AmigaKickstart12:
+			*this = Description(name, "Amiga", "the Kickstart 1.2 ROM", "Kickstart-v1.2-rev33.166-1986-Commodore-A1000.rom", 256*1024, 0x9ed783d0u);
+		break;
+		case Name::AmigaA500Kickstart13:
+			*this = Description(name, "Amiga", "the A500/A1000/A2000/CDTV Kickstart 1.3 ROM", "Kickstart-v1.3-rev34.5-1987-Commodore-A500-A1000-A2000-CDTV.rom", 256*1024, 0xc4f0f55fu);
+		break;
+		case Name::AmigaA3000Kickstart13:
+			*this = Description(name, "Amiga", "the A3000 Kickstart 1.3 ROM", "Kickstart-v1.3-rev34.5-1987-Commodore-A3000.rom", 256*1024, 0xe0f37258u);
+		break;
+		case Name::AmigaKickstart20:
+			*this = Description(name, "Amiga", "the Kickstart 2.0 ROM", "Kickstart-v2.0-rev36.143-1990-Commodore-A3000.rom", 512*1024, 0xb333d3c6u);
+		break;
+		case Name::AmigaA500PlusKickstart204:
+			*this = Description(name, "Amiga", "the A500+ Kickstart 2.04 ROM", "Kickstart-v2.04-rev37.175-1991-Commodore-A500plus.rom", 512*1024, 0xc3bdb240u);
+		break;
+		case Name::AmigaA600Kickstart205:
+			*this = Description(name, "Amiga", "the Kickstart 2.05 ROM", "Kickstart-v2.05-rev37.299-1991-Commodore-A600.rom", 512*1024, 0x83028fb5u);
+		break;
+		case Name::AmigaA500Kickstart31:
+			*this = Description(name, "Amiga", "the A500/A600/A2000 Kickstart 3.1 ROM", "Kickstart-v3.1-rev40.63-1993-Commodore-A500-A600-A2000.rom", 512*1024, 0xfc24ae0du);
+		break;
+
 		case Name::AppleIIEnhancedE:	*this = Description(name, "AppleII", "the Enhanced Apple IIe ROM", "apple2e.rom", 32*1024, 0x65989942u);				break;
 		case Name::AppleIIe:			*this = Description(name, "AppleII", "the Apple IIe ROM", "apple2eu.rom", 32*1024, 0xe12be18du);						break;
 		case Name::AppleIIPlus:			*this = Description(name, "AppleII", "the Apple II+ ROM", "apple2.rom", 12*1024, 0xf66f9c26u);							break;
