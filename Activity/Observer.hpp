@@ -23,8 +23,12 @@ namespace Activity {
 */
 class Observer {
 	public:
+		enum LEDPresentation: uint8_t {
+			Persistent = (1 << 0),
+		};
+
 		/// Announces to the receiver that there is an LED of name @c name.
-		virtual void register_led([[maybe_unused]] const std::string &name) {}
+		virtual void register_led([[maybe_unused]] const std::string &name, [[maybe_unused]] uint8_t presentation = 0) {}
 
 		/// Announces to the receiver that there is a drive of name @c name.
 		///

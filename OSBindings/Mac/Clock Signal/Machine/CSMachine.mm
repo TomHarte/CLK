@@ -61,7 +61,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 };
 
 struct ActivityObserver: public Activity::Observer {
-	void register_led(const std::string &name) final {
+	void register_led(const std::string &name, uint8_t) final {
 		[machine addLED:[NSString stringWithUTF8String:name.c_str()]];
 	}
 
