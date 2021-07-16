@@ -48,9 +48,10 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(const Medi
 		auto volume = Storage::Disk::FAT::GetVolume(media.disks.front());
 		if(volume) {
 			// If there's an EXDOS.INI then this disk should be able to boot itself.
-			// If not but if there's only one .COM or .BAS, automatically load that.
-			// Failing that, issue a :DIR and give the user a clue as to how to load.
-			const Storage::Disk::FAT::File *selected_file = nullptr;
+			// If not but if there's only one visible .COM or .BAS, automatically load
+			// that. Otherwise, issue a :DIR.
+			using File = Storage::Disk::FAT::File;
+			const File *selected_file = nullptr;
 			bool has_exdos_ini = false;
 			bool did_pick_file = false;
 			for(const auto &file: (*volume).root_directory) {
@@ -59,7 +60,9 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(const Medi
 					break;
 				}
 
-				if(insensitive_equal(file.extension, "com") || insensitive_equal(file.extension, "bas")) {
+				if(!(file.attributes & File::Attribute::Hidden) &&
+					(insensitive_equal(file.extension, "com") || insensitive_equal(file.extension, "bas"))
+				) {
 					did_pick_file = !selected_file;
 					selected_file = &file;
 				}
