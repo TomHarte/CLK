@@ -17,6 +17,7 @@ enum class Machine {
 	AppleIIgs,
 	Atari2600,
 	AtariST,
+	Amiga,
 	ColecoVision,
 	Electron,
 	Enterprise,
