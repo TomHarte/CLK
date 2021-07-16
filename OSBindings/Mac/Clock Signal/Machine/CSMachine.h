@@ -33,6 +33,11 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 	CSMachineKeyboardInputModeJoystick,
 };
 
+@interface CSMachineLED: NSObject
+@property(nonatomic, nonnull, readonly) NSString *name;
+@property(nonatomic, readonly) BOOL isPersisent;
+@end
+
 // Deliberately low; to ensure CSMachine has been declared as an @class already.
 #import "CSAtari2600.h"
 #import "CSZX8081.h"
@@ -99,7 +104,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 @property (nonatomic, nullable) CSJoystickManager *joystickManager;
 
 // LED list.
-@property (nonatomic, readonly, nonnull) NSArray<NSString *> *leds;
+@property (nonatomic, readonly, nonnull) NSArray<CSMachineLED *> *leds;
 
 // Special-case accessors; undefined behaviour if accessed for a machine not of the corresponding type.
 @property (nonatomic, readonly, nullable) CSAtari2600 *atari2600;

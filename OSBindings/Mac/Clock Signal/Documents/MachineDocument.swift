@@ -674,8 +674,8 @@ class MachineDocument:
 
 			// Apply labels and create leds entries.
 			for c in 0 ..< leds.count {
-				textFields[c].stringValue = leds[c]
-				self.leds[leds[c]] = LED(levelIndicator: activityIndicators[c])
+				textFields[c].stringValue = leds[c].name
+				self.leds[leds[c].name] = LED(levelIndicator: activityIndicators[c])
 			}
 
 			// Create a fader.
