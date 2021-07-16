@@ -137,10 +137,15 @@ void DiskII::decide_clocking_preference() {
 
 	// If in read mode, clocking is either:
 	//
-	//	just-in-time, if drives are running or the shift register has any 1s in it or a flux event hasn't yet passed; or
-	//	none, given that drives are not running, the shift register has already emptied and there's no flux about to be received.
+	//	just-in-time, if drives are running or the shift register has any 1s in it and shifting may occur, or a flux event hasn't yet passed; or
+	//	none, given that drives are not running, the shift register has already emptied or stopped and there's no flux about to be received.
 	if(!(inputs_ & ~input_flux)) {
-		clocking_preference_ = (!motor_is_enabled_ && !shift_register_ && (inputs_&input_flux)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
+		const bool is_stuck_at_nop =
+			!flux_duration_ && state_machine_[(state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6)] == state_  && (state_ &0xf) == 0x8;
+
+		clocking_preference_ =
+			(drive_is_sleeping_[0] && drive_is_sleeping_[1] && (!shift_register_ || is_stuck_at_nop) && (inputs_&input_flux))
+				? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 	}
 
 	// If in writing mode, clocking is real time.
