@@ -15,6 +15,7 @@
 
 // Analysers
 #include "Acorn/StaticAnalyser.hpp"
+#include "Amiga/StaticAnalyser.hpp"
 #include "AmstradCPC/StaticAnalyser.hpp"
 #include "AppleII/StaticAnalyser.hpp"
 #include "AppleIIgs/StaticAnalyser.hpp"
@@ -255,6 +256,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	Append(AmstradCPC);
 	Append(AppleII);
 	Append(AppleIIgs);
+	Append(Amiga);
 	Append(Atari2600);
 	Append(AtariST);
 	Append(Coleco);
