@@ -894,6 +894,8 @@
 		4BC080CB26A238CC00D03FD8 /* AmigaADF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC080C826A238CC00D03FD8 /* AmigaADF.cpp */; };
 		4BC080D026A257A200D03FD8 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC080CF26A257A200D03FD8 /* StaticAnalyser.cpp */; };
 		4BC080D126A257A200D03FD8 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC080CF26A257A200D03FD8 /* StaticAnalyser.cpp */; };
+		4BC080D926A25ADA00D03FD8 /* Amiga.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC080D826A25ADA00D03FD8 /* Amiga.cpp */; };
+		4BC080DA26A25ADA00D03FD8 /* Amiga.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC080D826A25ADA00D03FD8 /* Amiga.cpp */; };
 		4BC0CB282446BC7B00A79DBB /* OPLTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BC0CB272446BC7B00A79DBB /* OPLTests.mm */; };
 		4BC131702346DE5000E4FF3D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC1316F2346DE5000E4FF3D /* StaticAnalyser.cpp */; };
 		4BC131712346DE5000E4FF3D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC1316F2346DE5000E4FF3D /* StaticAnalyser.cpp */; };
@@ -1916,6 +1918,8 @@
 		4BC080CD26A257A200D03FD8 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BC080CE26A257A200D03FD8 /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4BC080CF26A257A200D03FD8 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
+		4BC080D726A25ADA00D03FD8 /* Amiga.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Amiga.hpp; sourceTree = "<group>"; };
+		4BC080D826A25ADA00D03FD8 /* Amiga.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Amiga.cpp; sourceTree = "<group>"; };
 		4BC0CB272446BC7B00A79DBB /* OPLTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = OPLTests.mm; sourceTree = "<group>"; };
 		4BC1316D2346DE5000E4FF3D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BC1316E2346DE5000E4FF3D /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
@@ -3247,6 +3251,8 @@
 		4B8944E9201967B4007DE474 /* Static */ = {
 			isa = PBXGroup;
 			children = (
+				4B894517201967B4007DE474 /* StaticAnalyser.cpp */,
+				4B8944EA201967B4007DE474 /* StaticAnalyser.hpp */,
 				4B8944EB201967B4007DE474 /* Acorn */,
 				4BC080CC26A257A200D03FD8 /* Amiga */,
 				4B894514201967B4007DE474 /* AmstradCPC */,
@@ -3263,8 +3269,6 @@
 				4B89450F201967B4007DE474 /* MSX */,
 				4B8944F6201967B4007DE474 /* Oric */,
 				4B7F1894215486A100388727 /* Sega */,
-				4B894517201967B4007DE474 /* StaticAnalyser.cpp */,
-				4B8944EA201967B4007DE474 /* StaticAnalyser.hpp */,
 				4B894504201967B4007DE474 /* ZX8081 */,
 				4B0F1BAF2602645900B85C66 /* ZXSpectrum */,
 			);
@@ -4147,6 +4151,7 @@
 				4B046DC31CFE651500E9E45E /* ScanProducer.hpp */,
 				4B8DD375263481BB00B3C866 /* StateProducer.hpp */,
 				4BC57CD32434282000FBC404 /* TimedMachine.hpp */,
+				4BC080D626A25ADA00D03FD8 /* Amiga */,
 				4B38F3491F2EC12000D9235D /* AmstradCPC */,
 				4BCE0048227CE8CA000CA200 /* Apple */,
 				4B0ACC0423775819008902D0 /* Atari */,
@@ -4249,6 +4254,15 @@
 				4BC080CD26A257A200D03FD8 /* StaticAnalyser.hpp */,
 				4BC080CE26A257A200D03FD8 /* Target.hpp */,
 				4BC080CF26A257A200D03FD8 /* StaticAnalyser.cpp */,
+			);
+			path = Amiga;
+			sourceTree = "<group>";
+		};
+		4BC080D626A25ADA00D03FD8 /* Amiga */ = {
+			isa = PBXGroup;
+			children = (
+				4BC080D726A25ADA00D03FD8 /* Amiga.hpp */,
+				4BC080D826A25ADA00D03FD8 /* Amiga.cpp */,
 			);
 			path = Amiga;
 			sourceTree = "<group>";
@@ -5227,6 +5241,7 @@
 				4B0E04FB1FC9FA3100F43484 /* 9918.cpp in Sources */,
 				4B1B88C9202E469400B67DFF /* MultiJoystickMachine.cpp in Sources */,
 				4BCE1DF225D4C3FA00AE7A2B /* Bus.cpp in Sources */,
+				4BC080DA26A25ADA00D03FD8 /* Amiga.cpp in Sources */,
 				4B055AAA1FAE85F50060FFFF /* CPM.cpp in Sources */,
 				4B055A9A1FAE85CB0060FFFF /* MFMDiskController.cpp in Sources */,
 				4B0ACC3123775819008902D0 /* TIASound.cpp in Sources */,
@@ -5602,6 +5617,7 @@
 				4B1497881EE4A1DA00CE2596 /* ZX80O81P.cpp in Sources */,
 				4B894520201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BB4BFAD22A33DE50069048D /* DriveSpeedAccumulator.cpp in Sources */,
+				4BC080D926A25ADA00D03FD8 /* Amiga.cpp in Sources */,
 				4B2B3A4B1F9B8FA70062DABF /* Typer.cpp in Sources */,
 				4B4518821F75E91A00926311 /* PCMSegment.cpp in Sources */,
 				4B74CF812312FA9C00500CE8 /* HFV.cpp in Sources */,

@@ -11,6 +11,7 @@
 #include <algorithm>
 
 // Sources for runtime options and machines.
+#include "../Amiga/Amiga.hpp"
 #include "../AmstradCPC/AmstradCPC.hpp"
 #include "../Apple/AppleII/AppleII.hpp"
 #include "../Apple/AppleIIgs/AppleIIgs.hpp"
@@ -29,6 +30,7 @@
 
 // Sources for construction options.
 #include "../../Analyser/Static/Acorn/Target.hpp"
+#include "../../Analyser/Static/Amiga/Target.hpp"
 #include "../../Analyser/Static/AmstradCPC/Target.hpp"
 #include "../../Analyser/Static/AppleII/Target.hpp"
 #include "../../Analyser/Static/AppleIIgs/Target.hpp"
@@ -54,6 +56,7 @@ Machine::DynamicMachine *Machine::MachineForTarget(const Analyser::Static::Targe
 #define BindD(name, m)	case Analyser::Machine::m: machine = new Machine::TypedDynamicMachine<::name::Machine>(name::Machine::m(target, rom_fetcher));	break;
 #define Bind(m)	BindD(m, m)
 		switch(target->machine) {
+			Bind(Amiga)
 			Bind(AmstradCPC)
 			BindD(Apple::II, AppleII)
 			BindD(Apple::IIgs, AppleIIgs)
@@ -123,6 +126,7 @@ Machine::DynamicMachine *Machine::MachineForTargets(const Analyser::Static::Targ
 
 std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) {
 	switch(machine) {
+		case Analyser::Machine::Amiga:			return "Amiga";
 		case Analyser::Machine::AmstradCPC:		return "AmstradCPC";
 		case Analyser::Machine::AppleII:		return "AppleII";
 		case Analyser::Machine::AppleIIgs:		return "AppleIIgs";
@@ -145,6 +149,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 
 std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 	switch(machine) {
+		case Analyser::Machine::Amiga:			return "Amiga";
 		case Analyser::Machine::AmstradCPC:		return "Amstrad CPC";
 		case Analyser::Machine::AppleII:		return "Apple II";
 		case Analyser::Machine::AppleIIgs:		return "Apple IIgs";
@@ -177,6 +182,7 @@ std::vector<std::string> Machine::AllMachines(Type type, bool long_names) {
 	}
 
 	if(type == Type::Any || type == Type::DoesntRequireMedia) {
+		AddName(Amiga);
 		AddName(AmstradCPC);
 		AddName(AppleII);
 		AddName(AppleIIgs);
@@ -228,6 +234,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Name), new Analyser::Static::TargetNamespace::Target));
 #define Add(Name)	AddMapped(Name, Name)
 
+	Add(Amiga);
 	Add(AmstradCPC);
 	Add(AppleII);
 	Add(AppleIIgs);
