@@ -39,23 +39,6 @@ class ConcreteMachine:
 			}
 			Memory::PackBigEndian16(roms.find(rom_name)->second, kickstart_.data());
 
-			// NTSC clock rate: 2*3.579545 = 7.15909Mhz.
-			// PAL clock rate: 7.09379Mhz.
-			set_clock_rate(7'093'790.0);
-		}
-
-		// MARK: - MC68000::BusHandler.
-		using Microcycle = CPU::MC68000::Microcycle;
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
-			// Do nothing if no address is exposed.
-			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
-
-			// TODO: interrupt acknowledgement though?
-
-			// Grab the target address to pick a memory source.
-			const uint32_t address = cycle.host_endian_byte_address();
-			(void)address;
-
 			// Address spaces that matter:
 			//
 			//	00'0000 – 08'0000:	chip RAM.	[or overlayed KickStart]
@@ -71,6 +54,36 @@ class ConcreteMachine:
 			//	f0'0000 — : 512kb Kickstart (or possibly just an extra 512kb reserved for hypothetical 1mb Kickstart?).
 			//	f8'0000 — : 256kb Kickstart if 2.04 or higher.
 			//	fc'0000 – : 256kb Kickstart otherwise.
+			set_region(0x00'0000, 0x08'00000, kickstart_.data(), CPU::MC68000::Microcycle::PermitRead);
+			set_region(0xfc'0000, 0x1'00'0000, kickstart_.data(), CPU::MC68000::Microcycle::PermitRead);
+
+			// NTSC clock rate: 2*3.579545 = 7.15909Mhz.
+			// PAL clock rate: 7.09379Mhz.
+			set_clock_rate(7'093'790.0);
+		}
+
+		// MARK: - MC68000::BusHandler.
+		using Microcycle = CPU::MC68000::Microcycle;
+		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
+			// Do nothing if no address is exposed.
+			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
+
+			// Otherwise, intended 1-2 step here is:
+			//
+			//	(1) determine when this CPU access will be scheduled;
+			//	(2)	do all the other actions prior to this CPU access being scheduled.
+			//
+			// (or at least enqueue them, JIT-wise).
+
+			// TODO: interrupt acknowledgement.
+
+			// Grab the target address to pick a memory source.
+			const uint32_t address = cycle.host_endian_byte_address();
+			if(!regions_[address >> 18].read_write_mask) {
+				// TODO: registers, etc, here.
+				assert(false);
+			}
+			cycle.apply(&regions_[address >> 18].contents[address], regions_[address >> 18].read_write_mask);
 
 			return HalfCycles(0);
 		}
@@ -83,8 +96,19 @@ class ConcreteMachine:
 		std::array<uint8_t, 512*1024> kickstart_;
 
 		struct MemoryRegion {
-
+			uint8_t *contents = nullptr;
+			int read_write_mask = 0;
 		} regions_[64];	// i.e. top six bits are used as an index.
+
+		void set_region(int start, int end, uint8_t *base, int read_write_mask) {
+			assert(!(start & ~0xfc'0000));
+			assert(!((end - (1 << 18)) & ~0xfc'0000));
+
+			for(int c = start >> 18; c < end >> 18; c++) {
+				regions_[c].contents = base - (c << 18);
+				regions_[c].read_write_mask = read_write_mask;
+			}
+		}
 
 		// MARK: - MachineTypes::ScanProducer.
 
