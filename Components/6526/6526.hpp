@@ -11,6 +11,8 @@
 
 #include <cstdint>
 
+#include "Implementation/6526Storage.hpp"
+
 namespace MOS {
 namespace MOS6526 {
 
@@ -25,7 +27,9 @@ enum class Personality {
 	P8250,
 };
 
-template <typename PortHandlerT, Personality personality> class MOS6526 {
+template <typename PortHandlerT, Personality personality> class MOS6526:
+	private MOS6526Storage
+{
 	public:
 		MOS6526(PortHandlerT &port_handler) noexcept : port_handler_(port_handler) {}
 		MOS6526(const MOS6526 &) = delete;

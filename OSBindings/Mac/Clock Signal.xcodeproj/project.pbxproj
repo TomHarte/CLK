@@ -1922,6 +1922,7 @@
 		4BC080D826A25ADA00D03FD8 /* Amiga.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Amiga.cpp; sourceTree = "<group>"; };
 		4BC080DE26A481C100D03FD8 /* 6526.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6526.hpp; sourceTree = "<group>"; };
 		4BC080E026A481C100D03FD8 /* 6526Implementation.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6526Implementation.hpp; sourceTree = "<group>"; };
+		4BC080E126A48BCC00D03FD8 /* 6526Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6526Storage.hpp; sourceTree = "<group>"; };
 		4BC0CB272446BC7B00A79DBB /* OPLTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = OPLTests.mm; sourceTree = "<group>"; };
 		4BC1316D2346DE5000E4FF3D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BC1316E2346DE5000E4FF3D /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
@@ -4282,6 +4283,7 @@
 			isa = PBXGroup;
 			children = (
 				4BC080E026A481C100D03FD8 /* 6526Implementation.hpp */,
+				4BC080E126A48BCC00D03FD8 /* 6526Storage.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";
