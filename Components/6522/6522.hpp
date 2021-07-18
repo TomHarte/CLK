@@ -37,22 +37,24 @@ enum Line {
 class PortHandler {
 	public:
 		/// Requests the current input value of @c port from the port handler.
-	uint8_t get_port_input([[maybe_unused]] Port port)										{	return 0xff;	}
+		uint8_t get_port_input([[maybe_unused]] Port port) {
+			return 0xff;
+		}
 
 		/// Sets the current output value of @c port and provides @c direction_mask, indicating which pins are marked as output.
-		void set_port_output([[maybe_unused]] Port port, [[maybe_unused]] uint8_t value, [[maybe_unused]] uint8_t direction_mask)	{}
+		void set_port_output([[maybe_unused]] Port port, [[maybe_unused]] uint8_t value, [[maybe_unused]] uint8_t direction_mask) {}
 
 		/// Sets the current logical output level for line @c line on port @c port.
-		void set_control_line_output([[maybe_unused]] Port port, [[maybe_unused]] Line line, [[maybe_unused]] bool value)			{}
+		void set_control_line_output([[maybe_unused]] Port port, [[maybe_unused]] Line line, [[maybe_unused]] bool value) {}
 
 		/// Sets the current logical value of the interrupt line.
-		void set_interrupt_status([[maybe_unused]] bool status)									{}
+		void set_interrupt_status([[maybe_unused]] bool status) {}
 
 		/// Provides a measure of time elapsed between other calls.
-		void run_for([[maybe_unused]] HalfCycles duration)										{}
+		void run_for([[maybe_unused]] HalfCycles duration) {}
 
 		/// Receives passed-on flush() calls from the 6522.
-		void flush()																			{}
+		void flush() {}
 };
 
 /*!
