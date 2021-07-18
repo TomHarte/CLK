@@ -16,11 +16,33 @@ namespace MOS {
 namespace MOS6526 {
 
 template <typename BusHandlerT, Personality personality>
+template <int port> void MOS6526<BusHandlerT, personality>::set_port_output() {
+	const uint8_t output = registers_.output[port] | (~registers_.data_direction[port]);
+	port_handler_.set_port_output(Port(port), output);
+}
+
+template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 	address &= 0xf;
 	switch(address) {
-		case 2: case 3:
-			registers_.data_direction[address - 2] = value;
+		// Port output.
+		case 0:
+			registers_.output[0] = value;
+			set_port_output<0>();
+		break;
+		case 1:
+			registers_.output[1] = value;
+			set_port_output<1>();
+		break;
+
+		// Port direction.
+		case 2:
+			registers_.data_direction[0] = value;
+			set_port_output<0>();
+		break;
+		case 3:
+			registers_.data_direction[1] = value;
+			set_port_output<1>();
 		break;
 
 		default:
@@ -34,6 +56,7 @@ template <typename BusHandlerT, Personality personality>
 uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 	address &= 0xf;
 	switch(address) {
+
 		case 2: case 3:
 			return registers_.data_direction[address - 2];
 		break;

@@ -16,8 +16,14 @@
 namespace MOS {
 namespace MOS6526 {
 
-class PortHandler {
+enum Port {
+	A = 0,
+	B = 1
+};
 
+struct PortHandler {
+	/// Sets the current output value of @c port and provides @c direction_mask, indicating which pins are marked as output.
+	void set_port_output([[maybe_unused]] Port port, [[maybe_unused]] uint8_t value) {}
 };
 
 enum class Personality {
@@ -45,6 +51,8 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 
 	private:
 		PortHandlerT &port_handler_;
+
+		template <int port> void set_port_output();
 };
 
 }

@@ -29,6 +29,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Amiga::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
+			cia_a_handler_(memory_),
 			cia_a_(cia_a_handler_),
 			cia_b_(cia_b_handler_)
 		{
@@ -41,25 +42,7 @@ class ConcreteMachine:
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
-			Memory::PackBigEndian16(roms.find(rom_name)->second, kickstart_.data());
-
-			// Address spaces that matter:
-			//
-			//	00'0000 – 08'0000:	chip RAM.	[or overlayed KickStart]
-			//	– 10'0000: extended chip ram for ECS.
-			//	– 20'0000: auto-config space (/fast RAM).
-			//	...
-			//	bf'd000 – c0'0000: 8250s.
-			//	c0'0000 – d8'0000: pseudo-fast RAM.
-			//	...
-			//	dc'0000 – dd'0000: optional real-time clock.
-			//	df'f000 - e0'0000: custom chip registers.
-			//	...
-			//	f0'0000 — : 512kb Kickstart (or possibly just an extra 512kb reserved for hypothetical 1mb Kickstart?).
-			//	f8'0000 — : 256kb Kickstart if 2.04 or higher.
-			//	fc'0000 – : 256kb Kickstart otherwise.
-			set_region(0x00'0000, 0x08'00000, kickstart_.data(), CPU::MC68000::Microcycle::PermitRead);
-			set_region(0xfc'0000, 0x1'00'0000, kickstart_.data(), CPU::MC68000::Microcycle::PermitRead);
+			Memory::PackBigEndian16(roms.find(rom_name)->second, memory_.kickstart_.data());
 
 			// NTSC clock rate: 2*3.579545 = 7.15909Mhz.
 			// PAL clock rate: 7.09379Mhz.
@@ -91,23 +74,31 @@ class ConcreteMachine:
 				printf("%06x\n", *cycle.address);
 			}
 
-			if(!regions_[address >> 18].read_write_mask) {
+			if(!memory_.regions_[address >> 18].read_write_mask) {
 				if((cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord))) {
 					// Check for various potential chip accesses.
 
+					// Per the manual:
+					//
 					// CIA A is: 101x xxxx xx01 rrrr xxxx xxx0 (i.e. loaded into high byte)
 					// CIA B is: 101x xxxx xx10 rrrr xxxx xxx1 (i.e. loaded into low byte)
+					//
+					// but in order to map 0xbfexxx to CIA A and 0xbfdxxx to CIA B, I think
+					// these might be listed the wrong way around.
+					//
+					// Additional assumption: the relevant CIA select lines are connected
+					// directly to the chip enables.
 					if((address & 0xe0'0000) == 0xa0'0000) {
 						const int reg = address >> 8;
 
 						if(cycle.operation & Microcycle::Read) {
 							uint16_t result = 0xffff;
-							if(address & 0x1000) result &= 0x00ff | (cia_a_.read(reg) << 8);
-							if(address & 0x2000) result &= 0xff00 | (cia_b_.read(reg) << 0);
+							if(!(address & 0x1000)) result &= 0x00ff | (cia_a_.read(reg) << 8);
+							if(!(address & 0x2000)) result &= 0xff00 | (cia_b_.read(reg) << 0);
 							cycle.set_value16(result);
 						} else {
-							if(address & 0x1000) cia_a_.write(reg, cycle.value8_high());
-							if(address & 0x2000) cia_b_.write(reg, cycle.value8_low());
+							if(!(address & 0x1000)) cia_a_.write(reg, cycle.value8_high());
+							if(!(address & 0x2000)) cia_b_.write(reg, cycle.value8_low());
 						}
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
 						printf("Unimplemented chipset access %06x\n", address);
@@ -120,8 +111,8 @@ class ConcreteMachine:
 			} else {
 				// A regular memory access.
 				cycle.apply(
-					&regions_[address >> 18].contents[address],
-					regions_[address >> 18].read_write_mask
+					&memory_.regions_[address >> 18].contents[address],
+					memory_.regions_[address >> 18].read_write_mask
 				);
 			}
 
@@ -132,27 +123,89 @@ class ConcreteMachine:
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 
 		// MARK: - Memory map.
-		std::array<uint8_t, 512*1024> ram_;
-		std::array<uint8_t, 512*1024> kickstart_;
+		struct MemoryMap {
+			public:
+				std::array<uint8_t, 512*1024> ram_;
+				std::array<uint8_t, 512*1024> kickstart_;
 
-		struct MemoryRegion {
-			uint8_t *contents = nullptr;
-			int read_write_mask = 0;
-		} regions_[64];	// i.e. top six bits are used as an index.
+				struct MemoryRegion {
+					uint8_t *contents = nullptr;
+					int read_write_mask = 0;
+				} regions_[64];	// i.e. top six bits are used as an index.
 
-		void set_region(int start, int end, uint8_t *base, int read_write_mask) {
-			assert(!(start & ~0xfc'0000));
-			assert(!((end - (1 << 18)) & ~0xfc'0000));
+				MemoryMap() {
+					// Address spaces that matter:
+					//
+					//	00'0000 – 08'0000:	chip RAM.	[or overlayed KickStart]
+					//	– 10'0000: extended chip ram for ECS.
+					//	– 20'0000: auto-config space (/fast RAM).
+					//	...
+					//	bf'd000 – c0'0000: 8250s.
+					//	c0'0000 – d8'0000: pseudo-fast RAM.
+					//	...
+					//	dc'0000 – dd'0000: optional real-time clock.
+					//	df'f000 - e0'0000: custom chip registers.
+					//	...
+					//	f0'0000 — : 512kb Kickstart (or possibly just an extra 512kb reserved for hypothetical 1mb Kickstart?).
+					//	f8'0000 — : 256kb Kickstart if 2.04 or higher.
+					//	fc'0000 – : 256kb Kickstart otherwise.
+					set_region(0xfc'0000, 0x1'00'0000, kickstart_.data(), CPU::MC68000::Microcycle::PermitRead);
+					set_overlay(true);
+				}
 
-			for(int c = start >> 18; c < end >> 18; c++) {
-				regions_[c].contents = base - (c << 18);
-				regions_[c].read_write_mask = read_write_mask;
-			}
-		}
+				void set_overlay(bool enabled) {
+					if(overlay_ == enabled) {
+						return;
+					}
+					overlay_ = enabled;
+
+					if(enabled) {
+						set_region(0x00'0000, 0x08'00000, kickstart_.data(), CPU::MC68000::Microcycle::PermitRead);
+					} else {
+						set_region(0x00'0000, 0x08'00000, ram_.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
+					}
+				}
+
+			private:
+				bool overlay_ = false;
+
+				void set_region(int start, int end, uint8_t *base, int read_write_mask) {
+					assert(!(start & ~0xfc'0000));
+					assert(!((end - (1 << 18)) & ~0xfc'0000));
+
+					for(int c = start >> 18; c < end >> 18; c++) {
+						regions_[c].contents = base - (c << 18);
+						regions_[c].read_write_mask = read_write_mask;
+					}
+				}
+		} memory_;
 
 		// MARK: - CIAs.
 
-		struct CIAAHandler: public MOS::MOS6526::PortHandler {
+		class CIAAHandler: public MOS::MOS6526::PortHandler {
+			public:
+				CIAAHandler(MemoryMap &map) : map_(map) {}
+
+				void set_port_output(MOS::MOS6526::Port port, uint8_t value) {
+					if(port) {
+						// Parallel port output.
+					} else {
+						//	b7:	/FIR1
+						//	b6:	/FIR0
+						//	b5:	/RDY
+						//	b4:	/TRK0
+						//	b3:	/WPRO
+						//	b2:	/CHNG
+						//	b1:	/LED		[output]
+						//	b0:	OVL			[output]
+
+						// TODO: provide an output for LED.
+						map_.set_overlay(value & 1);
+					}
+				}
+
+			private:
+				MemoryMap &map_;
 		} cia_a_handler_;
 
 		struct CIABHandler: public MOS::MOS6526::PortHandler {
