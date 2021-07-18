@@ -79,11 +79,31 @@ class ConcreteMachine:
 
 			// Grab the target address to pick a memory source.
 			const uint32_t address = cycle.host_endian_byte_address();
-			if(!regions_[address >> 18].read_write_mask) {
-				// TODO: registers, etc, here.
-				assert(false);
+			if(cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord)) {
+				printf("%06x\n", address);
 			}
-			cycle.apply(&regions_[address >> 18].contents[address], regions_[address >> 18].read_write_mask);
+
+			if(!regions_[address >> 18].read_write_mask) {
+				if((cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord))) {
+					// Check for various potential chip accesses.
+					if(address >= 0xbf'd000 && address <= 0xbf'ef01) {
+						printf("Unimplemented CIA %06x\n", address);
+						assert(false);
+					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
+						printf("Unimplemented chipset access %06x\n", address);
+						assert(false);
+					} else {
+						// This'll do for open bus, for now.
+						cycle.set_value16(0xffff);
+					}
+				}
+			} else {
+				// A regular memory access.
+				cycle.apply(
+					&regions_[address >> 18].contents[address],
+					regions_[address >> 18].read_write_mask
+				);
+			}
 
 			return HalfCycles(0);
 		}
