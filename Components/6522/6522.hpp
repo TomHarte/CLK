@@ -88,9 +88,9 @@ class IRQDelegatePortHandler: public PortHandler {
 	Consumers should derive their own curiously-recurring-template-pattern subclass,
 	implementing bus communications as required.
 */
-template <class T> class MOS6522: public MOS6522Storage {
+template <class BusHandlerT> class MOS6522: public MOS6522Storage {
 	public:
-		MOS6522(T &bus_handler) noexcept : bus_handler_(bus_handler) {}
+		MOS6522(BusHandlerT &bus_handler) noexcept : bus_handler_(bus_handler) {}
 		MOS6522(const MOS6522 &) = delete;
 
 		/*! Sets a register value. */
@@ -100,7 +100,7 @@ template <class T> class MOS6522: public MOS6522Storage {
 		uint8_t read(int address);
 
 		/*! @returns the bus handler. */
-		T &bus_handler();
+		BusHandlerT &bus_handler();
 
 		/// Sets the input value of line @c line on port @c port.
 		void set_control_line_input(Port port, Line line, bool value);
@@ -123,7 +123,7 @@ template <class T> class MOS6522: public MOS6522Storage {
 		void shift_in();
 		void shift_out();
 
-		T &bus_handler_;
+		BusHandlerT &bus_handler_;
 		HalfCycles time_since_bus_handler_call_;
 
 		void access(int address);
