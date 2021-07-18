@@ -29,8 +29,8 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Amiga::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
-			cia1_(cia1_handler_),
-			cia2_(cia2_handler_)
+			cia_a_(cia_a_handler_),
+			cia_b_(cia_b_handler_)
 		{
 			(void)target;
 
@@ -77,8 +77,8 @@ class ConcreteMachine:
 			// (or at least enqueue them, JIT-wise).
 
 			// Advance time.
-			cia1_.run_for(cycle.length);
-			cia2_.run_for(cycle.length);
+			cia_a_.run_for(cycle.length);
+			cia_b_.run_for(cycle.length);
 
 			// Do nothing if no address is exposed.
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
@@ -88,15 +88,27 @@ class ConcreteMachine:
 			// Grab the target address to pick a memory source.
 			const uint32_t address = cycle.host_endian_byte_address();
 			if(cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord)) {
-				printf("%06x\n", address);
+				printf("%06x\n", *cycle.address);
 			}
 
 			if(!regions_[address >> 18].read_write_mask) {
 				if((cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord))) {
 					// Check for various potential chip accesses.
-					if(address >= 0xbf'd000 && address <= 0xbf'ef01) {
-						printf("Unimplemented CIA %06x\n", address);
-						assert(false);
+
+					// CIA A is: 101x xxxx xx01 rrrr xxxx xxx0 (i.e. loaded into high byte)
+					// CIA B is: 101x xxxx xx10 rrrr xxxx xxx1 (i.e. loaded into low byte)
+					if((address & 0xe0'0000) == 0xa0'0000) {
+						const int reg = address >> 8;
+
+						if(cycle.operation & Microcycle::Read) {
+							uint16_t result = 0xffff;
+							if(address & 0x1000) result &= 0x00ff | (cia_a_.read(reg) << 8);
+							if(address & 0x2000) result &= 0xff00 | (cia_b_.read(reg) << 0);
+							cycle.set_value16(result);
+						} else {
+							if(address & 0x1000) cia_a_.write(reg, cycle.value8_high());
+							if(address & 0x2000) cia_b_.write(reg, cycle.value8_low());
+						}
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
 						printf("Unimplemented chipset access %06x\n", address);
 						assert(false);
@@ -140,14 +152,14 @@ class ConcreteMachine:
 
 		// MARK: - CIAs.
 
-		struct CIA1Handler: public MOS::MOS6526::PortHandler {
-		} cia1_handler_;
+		struct CIAAHandler: public MOS::MOS6526::PortHandler {
+		} cia_a_handler_;
 
-		struct CIA2Handler: public MOS::MOS6526::PortHandler {
-		} cia2_handler_;
+		struct CIABHandler: public MOS::MOS6526::PortHandler {
+		} cia_b_handler_;
 
-		MOS::MOS6526::MOS6526<CIA1Handler, MOS::MOS6526::Personality::P8250> cia1_;
-		MOS::MOS6526::MOS6526<CIA2Handler, MOS::MOS6526::Personality::P8250> cia2_;
+		MOS::MOS6526::MOS6526<CIAAHandler, MOS::MOS6526::Personality::P8250> cia_a_;
+		MOS::MOS6526::MOS6526<CIABHandler, MOS::MOS6526::Personality::P8250> cia_b_;
 
 		// MARK: - MachineTypes::ScanProducer.
 

@@ -9,18 +9,24 @@
 #ifndef _526Implementation_h
 #define _526Implementation_h
 
+#include <cassert>
+#include <cstdio>
+
 namespace MOS {
 namespace MOS6526 {
 
 template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
-	(void)address;
-	(void)value;
+	address &= 0xf;
+	printf("Unhandled 6526 write: %02x to %d\n", value, address);
+	assert(false);
 }
 
 template <typename BusHandlerT, Personality personality>
 uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
-	(void)address;
+	address &= 0xf;
+	printf("Unhandled 6526 read from %d\n", address);
+	assert(false);
 	return 0xff;
 }
 
