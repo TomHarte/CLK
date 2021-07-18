@@ -1920,6 +1920,8 @@
 		4BC080CF26A257A200D03FD8 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4BC080D726A25ADA00D03FD8 /* Amiga.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Amiga.hpp; sourceTree = "<group>"; };
 		4BC080D826A25ADA00D03FD8 /* Amiga.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Amiga.cpp; sourceTree = "<group>"; };
+		4BC080DE26A481C100D03FD8 /* 6526.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6526.hpp; sourceTree = "<group>"; };
+		4BC080E026A481C100D03FD8 /* 6526Implementation.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6526Implementation.hpp; sourceTree = "<group>"; };
 		4BC0CB272446BC7B00A79DBB /* OPLTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = OPLTests.mm; sourceTree = "<group>"; };
 		4BC1316D2346DE5000E4FF3D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BC1316E2346DE5000E4FF3D /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
@@ -4267,6 +4269,23 @@
 			path = Amiga;
 			sourceTree = "<group>";
 		};
+		4BC080DD26A481C100D03FD8 /* 6526 */ = {
+			isa = PBXGroup;
+			children = (
+				4BC080DE26A481C100D03FD8 /* 6526.hpp */,
+				4BC080DF26A481C100D03FD8 /* Implementation */,
+			);
+			path = 6526;
+			sourceTree = "<group>";
+		};
+		4BC080DF26A481C100D03FD8 /* Implementation */ = {
+			isa = PBXGroup;
+			children = (
+				4BC080E026A481C100D03FD8 /* 6526Implementation.hpp */,
+			);
+			path = Implementation;
+			sourceTree = "<group>";
+		};
 		4BC1316C2346DE5000E4FF3D /* Atari2600 */ = {
 			isa = PBXGroup;
 			children = (
@@ -4326,6 +4345,7 @@
 				4BD468F81D8DF4290084958B /* 1770 */,
 				4BDACBE922FFA5B50045EF7E /* 5380 */,
 				4BC9DF4B1D04691600F44158 /* 6522 */,
+				4BC080DD26A481C100D03FD8 /* 6526 */,
 				4B1E85791D174DEC001EF87D /* 6532 */,
 				4BC9DF4C1D04691600F44158 /* 6560 */,
 				4BE845221F2FF7F400A5EA22 /* 6845 */,
