@@ -12,6 +12,8 @@
 
 #include "../../Processors/68000/68000.hpp"
 
+#include "../../Components/6526/6526.hpp"
+
 #include "../../Analyser/Static/Amiga/Target.hpp"
 
 #include "../Utility/MemoryPacker.hpp"
@@ -26,7 +28,9 @@ class ConcreteMachine:
 	public Machine {
 	public:
 		ConcreteMachine(const Analyser::Static::Amiga::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-			mc68000_(*this)
+			mc68000_(*this),
+			cia1_(cia1_handler_),
+			cia2_(cia2_handler_)
 		{
 			(void)target;
 
@@ -65,15 +69,19 @@ class ConcreteMachine:
 		// MARK: - MC68000::BusHandler.
 		using Microcycle = CPU::MC68000::Microcycle;
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
-			// Do nothing if no address is exposed.
-			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
-
-			// Otherwise, intended 1-2 step here is:
+			// Intended 1-2 step here is:
 			//
 			//	(1) determine when this CPU access will be scheduled;
 			//	(2)	do all the other actions prior to this CPU access being scheduled.
 			//
 			// (or at least enqueue them, JIT-wise).
+
+			// Advance time.
+			cia1_.run_for(cycle.length);
+			cia2_.run_for(cycle.length);
+
+			// Do nothing if no address is exposed.
+			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
 
 			// TODO: interrupt acknowledgement.
 
@@ -129,6 +137,17 @@ class ConcreteMachine:
 				regions_[c].read_write_mask = read_write_mask;
 			}
 		}
+
+		// MARK: - CIAs.
+
+		struct CIA1Handler: public MOS::MOS6526::PortHandler {
+		} cia1_handler_;
+
+		struct CIA2Handler: public MOS::MOS6526::PortHandler {
+		} cia2_handler_;
+
+		MOS::MOS6526::MOS6526<CIA1Handler, MOS::MOS6526::Personality::P8250> cia1_;
+		MOS::MOS6526::MOS6526<CIA2Handler, MOS::MOS6526::Personality::P8250> cia2_;
 
 		// MARK: - MachineTypes::ScanProducer.
 
