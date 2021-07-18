@@ -289,29 +289,32 @@ struct Microcycle {
 		return ((*address) & 0x00fffffe) >> 1;
 	}
 
+	static constexpr int PermitRead = (1 << 11);
+	static constexpr int PermitWrite = (1 << 12);
+
 	/*!
-		Assuming this to be a cycle with a data select active, applies it to @c target,
-		where 'applies' means:
+		Assuming this to be a cycle with a data select active, applies it to @c target
+		subject to the read_write_mask, where 'applies' means:
 
 			* if this is a byte read, reads a single byte from @c target;
 			* if this is a word read, reads a word (in the host platform's endianness) from @c target; and
 			* if this is a write, does the converse of a read.
 	*/
-	forceinline void apply(uint8_t *target) const {
-		switch(operation & (SelectWord | SelectByte | Read)) {
+	forceinline void apply(uint8_t *target, int read_write_mask = PermitRead | PermitWrite) const {
+		switch((operation | read_write_mask) & (SelectWord | SelectByte | Read | PermitRead | PermitWrite)) {
 			default:
 			break;
 
-			case SelectWord | Read:
+			case SelectWord | Read | PermitRead:
 				value->full = *reinterpret_cast<uint16_t *>(target);
 			break;
-			case SelectByte | Read:
+			case SelectByte | Read | PermitRead:
 				value->halves.low = *target;
 			break;
-			case Microcycle::SelectWord:
+			case SelectWord | PermitWrite:
 				*reinterpret_cast<uint16_t *>(target) = value->full;
 			break;
-			case Microcycle::SelectByte:
+			case SelectByte | PermitWrite:
 				*target = value->halves.low;
 			break;
 		}
