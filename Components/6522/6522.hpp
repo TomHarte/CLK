@@ -10,8 +10,6 @@
 #define _522_hpp
 
 #include <cstdint>
-#include <typeinfo>
-#include <cstdio>
 
 #include "Implementation/6522Storage.hpp"
 
