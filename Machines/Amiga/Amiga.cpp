@@ -123,7 +123,24 @@ class ConcreteMachine:
 								assert(false);
 							break;
 
-							// DMA.
+							// Disk DMA.
+							case Write(0x020):	case Write(0x022):	case Write(0x024):
+							case Write(0x026):
+								LOG("TODO: disk DMA; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+							break;
+
+							// Refresh.
+							case Write(0x028):
+								LOG("TODO (maybe): refresh; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+							break;
+
+							// Serial port.
+							case Write(0x030):
+							case Write(0x032):
+								LOG("TODO: serial; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+							break;
+
+							// DMA management.
 							case Write(0x096):
 								ApplySetClear(dma_control_);
 							break;
@@ -145,7 +162,6 @@ class ConcreteMachine:
 							case Write(0x106):
 								LOG("TODO: Bitplane control; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
 							break;
-
 
 							case Write(0x108):
 							case Write(0x10a):
@@ -206,7 +222,7 @@ class ConcreteMachine:
 
 				struct MemoryRegion {
 					uint8_t *contents = nullptr;
-					int read_write_mask = 0;
+					unsigned int read_write_mask = 0;
 				} regions_[64];	// i.e. top six bits are used as an index.
 
 				MemoryMap() {
@@ -245,7 +261,7 @@ class ConcreteMachine:
 			private:
 				bool overlay_ = false;
 
-				void set_region(int start, int end, uint8_t *base, int read_write_mask) {
+				void set_region(int start, int end, uint8_t *base, unsigned int read_write_mask) {
 					assert(!(start & ~0xfc'0000));
 					assert(!((end - (1 << 18)) & ~0xfc'0000));
 
@@ -288,7 +304,7 @@ class ConcreteMachine:
 						//	b1:	/LED		[output]
 						//	b0:	OVL			[output]
 
-						// TODO: provide an output for LED.
+						LOG("TODO: LED -> " << (value & 2));
 						map_.set_overlay(value & 1);
 					}
 				}
