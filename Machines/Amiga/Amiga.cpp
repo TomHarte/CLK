@@ -63,6 +63,8 @@ class ConcreteMachine:
 			// (or at least enqueue them, JIT-wise).
 
 			// Advance time.
+
+			// TODO: I think there's a divide-by-ten here. Probably these are driven off the 68000 E clock?
 			cia_a_.run_for(cycle.length);
 			cia_b_.run_for(cycle.length);
 
@@ -143,16 +145,19 @@ class ConcreteMachine:
 							// DMA management.
 							case Write(0x096):
 								ApplySetClear(dma_control_);
+								LOG("DMA control is now " << std::bitset<16>{interrupt_enable_});
 							break;
 
 							// Interrupts.
 							case Write(0x09a):
-								interrupt_enable_ = cycle.value16();
+								ApplySetClear(interrupt_enable_);
 								update_interrupts();
+								LOG("Interrupt enable mask is now " << std::bitset<16>{interrupt_enable_});
 							break;
 							case Write(0x09c):
 								ApplySetClear(interrupt_requests_);
 								update_interrupts();
+								LOG("Interrupt requests are now " << std::bitset<16>{interrupt_enable_});
 							break;
 
 							// Bitplanes.
@@ -294,6 +299,7 @@ class ConcreteMachine:
 				void set_port_output(MOS::MOS6526::Port port, uint8_t value) {
 					if(port) {
 						// Parallel port output.
+						LOG("TODO: parallel output " << PADHEX(2) << value);
 					} else {
 						//	b7:	/FIR1
 						//	b6:	/FIR0
@@ -319,6 +325,34 @@ class ConcreteMachine:
 		} cia_a_handler_;
 
 		struct CIABHandler: public MOS::MOS6526::PortHandler {
+			void set_port_output(MOS::MOS6526::Port port, uint8_t value) {
+				if(port) {
+					// Serial port control.
+					//
+					// b7: /DTR
+					// b6: /RTS
+					// b5: /CD
+					// b4: /CTS
+					// b3: /DSR
+					// b2: SEL
+					// b1: POUT
+					// b0: BUSY
+					LOG("TODO: Serial control: " << PADHEX(2) << value);
+				} else {
+					// Disk motor control, drive and head selection,
+					// and stepper control:
+					//
+					// b7: /MTR
+					// b6: /SEL3
+					// b5: /SEL2
+					// b4: /SEL1
+					// b3: /SEL0
+					// b2: /SIDE
+					// b1: DIR
+					// b0: /STEP
+					LOG("TODO: Stepping, etc; " << PADHEX(2) << value);
+				}
+			}
 		} cia_b_handler_;
 
 		MOS::MOS6526::MOS6526<CIAAHandler, MOS::MOS6526::Personality::P8250> cia_a_;
