@@ -448,7 +448,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 
 							// Dave delays (i.e. those affecting memory areas not associated with Nick)
 							// are one cycle in 8Mhz mode, two cycles in 12Mhz mode.
-							dave_delay_ = HalfCycles(2 + (*cycle.value)&2);
+							dave_delay_ = HalfCycles(2 + ((*cycle.value)&2));
 
 							[[fallthrough]];
 
