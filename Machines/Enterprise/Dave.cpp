@@ -100,12 +100,16 @@ void Audio::update_channel(int c) {
 }
 
 void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
-	int16_t output_level[2];
+	struct Frame {
+		int16_t left, right;
+	} output_level;
+	Frame *target_frames = reinterpret_cast<Frame *>(target);
+
 	size_t c = 0;
 	while(c < number_of_samples) {
 		// I'm unclear on the details of the time division multiplexing so,
 		// for now, just sum the outputs.
-		output_level[0] =
+		output_level.left =
 			volume_ *
 				(use_direct_output_[0] ?
 					channels_[0].amplitude[0]
@@ -116,7 +120,7 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 						noise_.amplitude[0] * noise_.final_output
 				));
 
-		output_level[1] =
+		output_level.right =
 			volume_ *
 				(use_direct_output_[1] ?
 					channels_[0].amplitude[1]
@@ -129,7 +133,7 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 
 		while(global_divider_ && c < number_of_samples) {
 			--global_divider_;
-			*reinterpret_cast<uint32_t *>(&target[c << 1]) = *reinterpret_cast<uint32_t *>(output_level);
+			target_frames[c] = output_level;
 			++c;
 		}
 
