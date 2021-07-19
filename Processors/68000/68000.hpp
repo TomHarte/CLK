@@ -93,7 +93,7 @@ struct Microcycle {
 
 	/// Contains a valid combination of the various static constexpr int flags, describing the operation
 	/// performed by this Microcycle.
-	int operation = 0;
+	unsigned int operation = 0;
 
 	/// Describes the duration of this Microcycle.
 	HalfCycles length = HalfCycles(4);
