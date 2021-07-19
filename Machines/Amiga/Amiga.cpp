@@ -19,6 +19,9 @@
 #include "../Utility/MemoryPacker.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
 
+#define LOG_PREFIX "[Amiga] "
+#include "../../Outputs/Log.hpp"
+
 namespace Amiga {
 
 class ConcreteMachine:
@@ -70,9 +73,9 @@ class ConcreteMachine:
 
 			// Grab the target address to pick a memory source.
 			const uint32_t address = cycle.host_endian_byte_address();
-			if(cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord)) {
-				printf("%06x\n", *cycle.address);
-			}
+//			if(cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord)) {
+//				printf("%06x\n", *cycle.address);
+//			}
 
 			if(!memory_.regions_[address >> 18].read_write_mask) {
 				if((cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord))) {
@@ -101,8 +104,81 @@ class ConcreteMachine:
 							if(!(address & 0x2000)) cia_b_.write(reg, cycle.value8_low());
 						}
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
-						printf("Unimplemented chipset access %06x\n", address);
-						assert(false);
+#define RW(address)		(address & 0xffe) | ((cycle.operation & Microcycle::Read) << 7)
+#define Read(address)	address | 0x1000
+#define Write(address)	address
+
+#define ApplySetClear(target)	{			\
+	const uint16_t value = cycle.value16();	\
+	if(value & 0x8000) {					\
+		target |= (value & 0x7fff);			\
+	} else {								\
+		target &= ~(value & 0x7fff);		\
+	}										\
+}
+
+						switch(RW(address)) {
+							default:
+								printf("Unimplemented chipset access %06x\n", *cycle.address);
+								assert(false);
+							break;
+
+							// DMA.
+							case Write(0x096):
+								ApplySetClear(dma_control_);
+							break;
+
+							// Interrupts.
+							case Write(0x09a):
+								interrupt_enable_ = cycle.value16();
+								update_interrupts();
+							break;
+							case Write(0x09c):
+								ApplySetClear(interrupt_requests_);
+								update_interrupts();
+							break;
+
+							// Bitplanes.
+							case Write(0x100):
+							case Write(0x102):
+							case Write(0x104):
+							case Write(0x106):
+								LOG("TODO: Bitplane control; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+							break;
+
+
+							case Write(0x108):
+							case Write(0x10a):
+								LOG("TODO: Bitplane modulo; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+							break;
+
+							case Write(0x110):
+							case Write(0x112):
+							case Write(0x114):
+							case Write(0x116):
+							case Write(0x118):
+							case Write(0x11a):
+								LOG("TODO: Bitplane data; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+							break;
+
+							// Colour palette.
+							case Write(0x180):	case Write(0x182):	case Write(0x184):	case Write(0x186):
+							case Write(0x188):	case Write(0x18a):	case Write(0x18c):	case Write(0x18e):
+							case Write(0x190):	case Write(0x192):	case Write(0x194):	case Write(0x196):
+							case Write(0x198):	case Write(0x19a):	case Write(0x19c):	case Write(0x19e):
+							case Write(0x1a0):	case Write(0x1a2):	case Write(0x1a4):	case Write(0x1a6):
+							case Write(0x1a8):	case Write(0x1aa):	case Write(0x1ac):	case Write(0x1ae):
+							case Write(0x1b0):	case Write(0x1b2):	case Write(0x1b4):	case Write(0x1b6):
+							case Write(0x1b8):	case Write(0x1ba):	case Write(0x1bc):	case Write(0x1be):
+								LOG("TODO: colour palette; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+							break;
+						}
+
+#undef ApplySetClear
+
+#undef Write
+#undef Read
+#undef RW
 					} else {
 						// This'll do for open bus, for now.
 						cycle.set_value16(0xffff);
@@ -180,6 +256,19 @@ class ConcreteMachine:
 				}
 		} memory_;
 
+		// MARK: - Interrupts.
+
+		uint16_t interrupt_enable_ = 0;
+		uint16_t interrupt_requests_ = 0;
+
+		void update_interrupts() {
+			// TODO.
+		}
+
+		// MARK: - DMA control.
+
+		uint16_t dma_control_ = 0;
+
 		// MARK: - CIAs.
 
 		class CIAAHandler: public MOS::MOS6526::PortHandler {
@@ -202,6 +291,11 @@ class ConcreteMachine:
 						// TODO: provide an output for LED.
 						map_.set_overlay(value & 1);
 					}
+				}
+
+				uint8_t get_port_input(MOS::MOS6526::Port port) {
+					(void)port;
+					return 0xff;
 				}
 
 			private:
