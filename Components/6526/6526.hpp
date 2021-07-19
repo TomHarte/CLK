@@ -22,7 +22,12 @@ enum Port {
 };
 
 struct PortHandler {
-	/// Sets the current output value of @c port and provides @c direction_mask, indicating which pins are marked as output.
+	/// Requests the current input value of @c port from the port handler.
+	uint8_t get_port_input([[maybe_unused]] Port port) {
+		return 0xff;
+	}
+
+	/// Sets the current output value of @c port; any bits marked as input will be supplied as 1s.
 	void set_port_output([[maybe_unused]] Port port, [[maybe_unused]] uint8_t value) {}
 };
 
@@ -53,6 +58,7 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 		PortHandlerT &port_handler_;
 
 		template <int port> void set_port_output();
+		template <int port> uint8_t get_port_input();
 };
 
 }
