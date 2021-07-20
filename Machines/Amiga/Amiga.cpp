@@ -95,6 +95,7 @@ class ConcreteMachine:
 					// directly to the chip enables.
 					if((address & 0xe0'0000) == 0xa0'0000) {
 						const int reg = address >> 8;
+						LOG("CIA access: " << PADHEX(4) << *cycle.address);
 
 						if(cycle.operation & Microcycle::Read) {
 							uint16_t result = 0xffff;
@@ -203,6 +204,7 @@ class ConcreteMachine:
 					} else {
 						// This'll do for open bus, for now.
 						cycle.set_value16(0xffff);
+						LOG("Unmapped access to " << PADHEX(4) << *cycle.address);
 					}
 				}
 			} else {
