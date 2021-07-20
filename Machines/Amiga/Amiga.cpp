@@ -68,6 +68,11 @@ class ConcreteMachine:
 			cia_a_.run_for(cycle.length);
 			cia_b_.run_for(cycle.length);
 
+			// Check for assertion of reset.
+			if(cycle.operation & Microcycle::Reset) {
+				LOG("Unhandled Reset; PC is around " << PADHEX(8) << mc68000_.get_state().program_counter);
+			}
+
 			// Do nothing if no address is exposed.
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
 
@@ -139,26 +144,28 @@ class ConcreteMachine:
 
 							// Serial port.
 							case Write(0x030):
+								LOG("TODO: serial data: " << PADHEX(4) << cycle.value16());
+							break;
 							case Write(0x032):
-								LOG("TODO: serial; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+								LOG("TODO: serial control: " << PADHEX(4) << cycle.value16());
 							break;
 
 							// DMA management.
 							case Write(0x096):
 								ApplySetClear(dma_control_);
-								LOG("DMA control is now " << std::bitset<16>{interrupt_enable_});
+								LOG("DMA control modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{dma_control_});
 							break;
 
 							// Interrupts.
 							case Write(0x09a):
 								ApplySetClear(interrupt_enable_);
 								update_interrupts();
-								LOG("Interrupt enable mask is now " << std::bitset<16>{interrupt_enable_});
+								LOG("Interrupt enable mask modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_enable_});
 							break;
 							case Write(0x09c):
 								ApplySetClear(interrupt_requests_);
 								update_interrupts();
-								LOG("Interrupt requests are now " << std::bitset<16>{interrupt_enable_});
+								LOG("Interrupt request modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_requests_});
 							break;
 
 							// Bitplanes.
