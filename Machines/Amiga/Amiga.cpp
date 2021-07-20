@@ -8,6 +8,7 @@
 
 #include "Amiga.hpp"
 
+#include "../../Activity/Source.hpp"
 #include "../MachineTypes.hpp"
 
 #include "../../Processors/68000/68000.hpp"
@@ -25,6 +26,7 @@
 namespace Amiga {
 
 class ConcreteMachine:
+	public Activity::Source,
 	public CPU::MC68000::BusHandler,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
@@ -324,7 +326,9 @@ class ConcreteMachine:
 						//	b1:	/LED		[output]
 						//	b0:	OVL			[output]
 
-						LOG("TODO: LED -> " << (value & 2));
+						if(observer_) {
+							observer_->set_led_status(led_name, !(value & 2));
+						}
 						map_.set_overlay(value & 1);
 					}
 				}
@@ -338,8 +342,17 @@ class ConcreteMachine:
 					return 0xff;
 				}
 
+				void set_activity_observer(Activity::Observer *observer) {
+					observer_ = observer;
+					if(observer) {
+						observer->register_led(led_name, Activity::Observer::LEDPresentation::Persistent);
+					}
+				}
+
 			private:
 				MemoryMap &map_;
+				Activity::Observer *observer_ = nullptr;
+				inline static const std::string led_name = "Power";
 		} cia_a_handler_;
 
 		struct CIABHandler: public MOS::MOS6526::PortHandler {
@@ -375,6 +388,11 @@ class ConcreteMachine:
 
 		MOS::MOS6526::MOS6526<CIAAHandler, MOS::MOS6526::Personality::P8250> cia_a_;
 		MOS::MOS6526::MOS6526<CIABHandler, MOS::MOS6526::Personality::P8250> cia_b_;
+
+		// MARK: - Activity Source
+		void set_activity_observer(Activity::Observer *observer) final {
+			cia_a_handler_.set_activity_observer(observer);
+		}
 
 		// MARK: - MachineTypes::ScanProducer.
 
