@@ -70,6 +70,7 @@ class ConcreteMachine:
 
 			// Check for assertion of reset.
 			if(cycle.operation & Microcycle::Reset) {
+				memory_.reset();
 				LOG("Unhandled Reset; PC is around " << PADHEX(8) << mc68000_.get_state().program_counter);
 			}
 
@@ -104,12 +105,12 @@ class ConcreteMachine:
 
 						if(cycle.operation & Microcycle::Read) {
 							uint16_t result = 0xffff;
-							if(!(address & 0x1000)) result &= 0x00ff | (cia_a_.read(reg) << 8);
-							if(!(address & 0x2000)) result &= 0xff00 | (cia_b_.read(reg) << 0);
+							if(!(address & 0x1000)) result &= 0xff00 | (cia_a_.read(reg) << 0);
+							if(!(address & 0x2000)) result &= 0x00ff | (cia_b_.read(reg) << 8);
 							cycle.set_value16(result);
 						} else {
-							if(!(address & 0x1000)) cia_a_.write(reg, cycle.value8_high());
-							if(!(address & 0x2000)) cia_b_.write(reg, cycle.value8_low());
+							if(!(address & 0x1000)) cia_a_.write(reg, cycle.value8_low());
+							if(!(address & 0x2000)) cia_b_.write(reg, cycle.value8_high());
 						}
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
 #define RW(address)		(address & 0xffe) | ((cycle.operation & Microcycle::Read) << 7)
@@ -256,6 +257,10 @@ class ConcreteMachine:
 					//	f8'0000 — : 256kb Kickstart if 2.04 or higher.
 					//	fc'0000 – : 256kb Kickstart otherwise.
 					set_region(0xfc'0000, 0x1'00'0000, kickstart_.data(), CPU::MC68000::Microcycle::PermitRead);
+					reset();
+				}
+
+				void reset() {
 					set_overlay(true);
 				}
 
@@ -325,7 +330,11 @@ class ConcreteMachine:
 				}
 
 				uint8_t get_port_input(MOS::MOS6526::Port port) {
-					(void)port;
+					if(port) {
+						LOG("TODO: parallel input?");
+					} else {
+						LOG("TODO: CIA A, port A input — FIR, RDY, TRK0, etc");
+					}
 					return 0xff;
 				}
 
