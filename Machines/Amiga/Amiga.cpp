@@ -20,6 +20,7 @@
 #include "../Utility/MemoryPacker.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
 
+//#define NDEBUG
 #define LOG_PREFIX "[Amiga] "
 #include "../../Outputs/Log.hpp"
 
@@ -73,7 +74,7 @@ class ConcreteMachine:
 			// Check for assertion of reset.
 			if(cycle.operation & Microcycle::Reset) {
 				memory_.reset();
-				LOG("Unhandled Reset; PC is around " << PADHEX(8) << mc68000_.get_state().program_counter);
+				LOG("Reset; PC is around " << PADHEX(8) << mc68000_.get_state().program_counter);
 			}
 
 			// Do nothing if no address is exposed.
@@ -83,7 +84,7 @@ class ConcreteMachine:
 
 			// Grab the target address to pick a memory source.
 			const uint32_t address = cycle.host_endian_byte_address();
-//			if(cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord)) {
+//			if((cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord)) && !(cycle.operation & Microcycle::IsProgram)) {
 //				printf("%06x\n", *cycle.address);
 //			}
 
@@ -213,7 +214,9 @@ class ConcreteMachine:
 #undef RW
 					} else {
 						// This'll do for open bus, for now.
-						cycle.set_value16(0xffff);
+						if(cycle.operation & Microcycle::Read) {
+							cycle.set_value16(0xffff);
+						}
 						LOG("Unmapped access to " << PADHEX(4) << *cycle.address);
 					}
 				}
@@ -234,8 +237,8 @@ class ConcreteMachine:
 		// MARK: - Memory map.
 		struct MemoryMap {
 			public:
-				std::array<uint8_t, 512*1024> ram_;
-				std::array<uint8_t, 512*1024> kickstart_;
+				std::array<uint8_t, 512*1024> ram_{};
+				std::array<uint8_t, 512*1024> kickstart_{0xff};
 
 				struct MemoryRegion {
 					uint8_t *contents = nullptr;
@@ -273,9 +276,13 @@ class ConcreteMachine:
 					overlay_ = enabled;
 
 					if(enabled) {
-						set_region(0x00'0000, 0x08'00000, kickstart_.data(), CPU::MC68000::Microcycle::PermitRead);
+						set_region(0x00'0000, 0x08'0000, kickstart_.data(), CPU::MC68000::Microcycle::PermitRead);
 					} else {
-						set_region(0x00'0000, 0x08'00000, ram_.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
+						// Mirror RAM to fill out the address range up to $20'0000 (?)
+						set_region(0x00'0000, 0x08'0000, ram_.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
+						set_region(0x08'0000, 0x10'0000, ram_.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
+						set_region(0x10'0000, 0x18'0000, ram_.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
+						set_region(0x18'0000, 0x20'0000, ram_.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
 					}
 				}
 
@@ -286,8 +293,9 @@ class ConcreteMachine:
 					assert(!(start & ~0xfc'0000));
 					assert(!((end - (1 << 18)) & ~0xfc'0000));
 
+					base -= start;
 					for(int c = start >> 18; c < end >> 18; c++) {
-						regions_[c].contents = base - (c << 18);
+						regions_[c].contents = base;
 						regions_[c].read_write_mask = read_write_mask;
 					}
 				}
@@ -315,7 +323,7 @@ class ConcreteMachine:
 				void set_port_output(MOS::MOS6526::Port port, uint8_t value) {
 					if(port) {
 						// Parallel port output.
-						LOG("TODO: parallel output " << PADHEX(2) << value);
+						LOG("TODO: parallel output " << PADHEX(2) << +value);
 					} else {
 						//	b7:	/FIR1
 						//	b6:	/FIR0
@@ -326,6 +334,7 @@ class ConcreteMachine:
 						//	b1:	/LED		[output]
 						//	b0:	OVL			[output]
 
+						LOG("LED & memory map: " << PADHEX(2) << +value);
 						if(observer_) {
 							observer_->set_led_status(led_name, !(value & 2));
 						}
