@@ -580,6 +580,8 @@
 		4B9D0C4B22C7D70A00DE1AD3 /* 68000BCDTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B9D0C4A22C7D70900DE1AD3 /* 68000BCDTests.mm */; };
 		4B9D0C4D22C7DA1A00DE1AD3 /* 68000ControlFlowTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B9D0C4C22C7DA1A00DE1AD3 /* 68000ControlFlowTests.mm */; };
 		4B9D0C4F22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B9D0C4E22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm */; };
+		4B9EC0E226AA27BA0060A31F /* Blitter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E126AA27BA0060A31F /* Blitter.cpp */; };
+		4B9EC0E326AA27BA0060A31F /* Blitter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E126AA27BA0060A31F /* Blitter.cpp */; };
 		4B9F11C92272375400701480 /* qltrace.txt.gz in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11C82272375400701480 /* qltrace.txt.gz */; };
 		4B9F11CA2272433900701480 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
 		4B9F11CC22729B3600701480 /* OPCLOGR2.BIN in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */; };
@@ -1584,6 +1586,8 @@
 		4B9D0C4A22C7D70900DE1AD3 /* 68000BCDTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000BCDTests.mm; sourceTree = "<group>"; };
 		4B9D0C4C22C7DA1A00DE1AD3 /* 68000ControlFlowTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000ControlFlowTests.mm; sourceTree = "<group>"; };
 		4B9D0C4E22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000RollShiftTests.mm; sourceTree = "<group>"; };
+		4B9EC0E026AA260C0060A31F /* Blitter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Blitter.hpp; sourceTree = "<group>"; };
+		4B9EC0E126AA27BA0060A31F /* Blitter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Blitter.cpp; sourceTree = "<group>"; };
 		4B9F11C82272375400701480 /* qltrace.txt.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = qltrace.txt.gz; sourceTree = "<group>"; };
 		4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = OPCLOGR2.BIN; path = "68000 Coverage/OPCLOGR2.BIN"; sourceTree = "<group>"; };
 		4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZX8081.cpp; sourceTree = "<group>"; };
@@ -4266,6 +4270,8 @@
 			children = (
 				4BC080D726A25ADA00D03FD8 /* Amiga.hpp */,
 				4BC080D826A25ADA00D03FD8 /* Amiga.cpp */,
+				4B9EC0E026AA260C0060A31F /* Blitter.hpp */,
+				4B9EC0E126AA27BA0060A31F /* Blitter.cpp */,
 			);
 			path = Amiga;
 			sourceTree = "<group>";
@@ -5358,6 +5364,7 @@
 				4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */,
 				4B055AD11FAE9B030060FFFF /* Video.cpp in Sources */,
 				4BB4BFBA22A4372F0069048D /* StaticAnalyser.cpp in Sources */,
+				4B9EC0E326AA27BA0060A31F /* Blitter.cpp in Sources */,
 				4B055AA21FAE85DA0060FFFF /* SSD.cpp in Sources */,
 				4B2E86E325DC95150024F1E9 /* Joystick.cpp in Sources */,
 				4BEBFB4E2002C4BF000708CC /* FAT12.cpp in Sources */,
@@ -5681,6 +5688,7 @@
 				4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */,
 				4BC1317A2346DF2B00E4FF3D /* MSA.cpp in Sources */,
 				4BEBFB4D2002C4BF000708CC /* FAT12.cpp in Sources */,
+				4B9EC0E226AA27BA0060A31F /* Blitter.cpp in Sources */,
 				4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */,
 				4B83348A1F5DB94B0097E338 /* IRQDelegatePortHandler.cpp in Sources */,
 				4B8DD3862634D37E00B3C866 /* SNA.cpp in Sources */,

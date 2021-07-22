@@ -24,6 +24,8 @@
 #define LOG_PREFIX "[Amiga] "
 #include "../../Outputs/Log.hpp"
 
+#include "Blitter.hpp"
+
 namespace Amiga {
 
 class ConcreteMachine:
@@ -35,6 +37,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Amiga::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
+			blitter_(reinterpret_cast<uint16_t *>(memory_.chip_ram.data()), memory_.chip_ram.size()),
 			cia_a_handler_(memory_),
 			cia_a_(cia_a_handler_),
 			cia_b_(cia_b_handler_)
@@ -48,7 +51,7 @@ class ConcreteMachine:
 			if(!request.validate(roms)) {
 				throw ROMMachine::Error::MissingROMs;
 			}
-			Memory::PackBigEndian16(roms.find(rom_name)->second, memory_.kickstart_.data());
+			Memory::PackBigEndian16(roms.find(rom_name)->second, memory_.kickstart.data());
 
 			// NTSC clock rate: 2*3.579545 = 7.15909Mhz.
 			// PAL clock rate: 7.09379Mhz.
@@ -88,7 +91,7 @@ class ConcreteMachine:
 //				printf("%06x\n", *cycle.address);
 //			}
 
-			if(!memory_.regions_[address >> 18].read_write_mask) {
+			if(!memory_.regions[address >> 18].read_write_mask) {
 				if((cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord))) {
 					// Check for various potential chip accesses.
 
@@ -155,6 +158,10 @@ class ConcreteMachine:
 							break;
 
 							// DMA management.
+							case Read(0x002):
+								LOG("DMA control and status read");
+								cycle.set_value16(dma_control_ | blitter_.get_status());
+							break;
 							case Write(0x096):
 								ApplySetClear(dma_control_);
 								LOG("DMA control modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{dma_control_});
@@ -199,6 +206,34 @@ class ConcreteMachine:
 								cycle.set_value16(0xffff);
 							break;
 
+							// Blitter.
+							case Write(0x040):	blitter_.set_control(0, cycle.value16());		break;
+							case Write(0x042):	blitter_.set_control(1, cycle.value16());		break;
+							case Write(0x044):	blitter_.set_first_word_mask(cycle.value16());	break;
+							case Write(0x046):	blitter_.set_last_word_mask(cycle.value16());	break;
+
+							case Write(0x048):	blitter_.set_pointer(2, 16, cycle.value16());	break;
+							case Write(0x04a):	blitter_.set_pointer(2, 0, cycle.value16());	break;
+							case Write(0x04c):	blitter_.set_pointer(1, 16, cycle.value16());	break;
+							case Write(0x04e):	blitter_.set_pointer(1, 0, cycle.value16());	break;
+							case Write(0x050):	blitter_.set_pointer(0, 16, cycle.value16());	break;
+							case Write(0x052):	blitter_.set_pointer(0, 0, cycle.value16());	break;
+							case Write(0x054):	blitter_.set_pointer(3, 16, cycle.value16());	break;
+							case Write(0x056):	blitter_.set_pointer(3, 0, cycle.value16());	break;
+
+							case Write(0x058):	blitter_.set_size(cycle.value16());				break;
+							case Write(0x05a):	blitter_.set_minterms(cycle.value16());			break;
+							case Write(0x05c):	blitter_.set_vertical_size(cycle.value16());	break;
+							case Write(0x05e):	blitter_.set_horizontal_size(cycle.value16());	break;
+
+							case Write(0x060):	blitter_.set_modulo(2, cycle.value16());		break;
+							case Write(0x062):	blitter_.set_modulo(1, cycle.value16());		break;
+							case Write(0x064):	blitter_.set_modulo(0, cycle.value16());		break;
+							case Write(0x066):	blitter_.set_modulo(3, cycle.value16());		break;
+
+							case Write(0x070):	blitter_.set_data(2, cycle.value16());			break;
+							case Write(0x072):	blitter_.set_data(1, cycle.value16());			break;
+							case Write(0x074):	blitter_.set_data(0, cycle.value16());			break;
 
 							// Colour palette.
 							case Write(0x180):	case Write(0x182):	case Write(0x184):	case Write(0x186):
@@ -229,8 +264,8 @@ class ConcreteMachine:
 			} else {
 				// A regular memory access.
 				cycle.apply(
-					&memory_.regions_[address >> 18].contents[address],
-					memory_.regions_[address >> 18].read_write_mask
+					&memory_.regions[address >> 18].contents[address],
+					memory_.regions[address >> 18].read_write_mask
 				);
 			}
 
@@ -243,13 +278,13 @@ class ConcreteMachine:
 		// MARK: - Memory map.
 		struct MemoryMap {
 			public:
-				std::array<uint8_t, 512*1024> ram_{};
-				std::array<uint8_t, 512*1024> kickstart_{0xff};
+				std::array<uint8_t, 512*1024> chip_ram{};
+				std::array<uint8_t, 512*1024> kickstart{0xff};
 
 				struct MemoryRegion {
 					uint8_t *contents = nullptr;
 					unsigned int read_write_mask = 0;
-				} regions_[64];	// i.e. top six bits are used as an index.
+				} regions[64];	// i.e. top six bits are used as an index.
 
 				MemoryMap() {
 					// Address spaces that matter:
@@ -267,7 +302,7 @@ class ConcreteMachine:
 					//	f0'0000 — : 512kb Kickstart (or possibly just an extra 512kb reserved for hypothetical 1mb Kickstart?).
 					//	f8'0000 — : 256kb Kickstart if 2.04 or higher.
 					//	fc'0000 – : 256kb Kickstart otherwise.
-					set_region(0xfc'0000, 0x1'00'0000, kickstart_.data(), CPU::MC68000::Microcycle::PermitRead);
+					set_region(0xfc'0000, 0x1'00'0000, kickstart.data(), CPU::MC68000::Microcycle::PermitRead);
 					reset();
 				}
 
@@ -282,13 +317,10 @@ class ConcreteMachine:
 					overlay_ = enabled;
 
 					if(enabled) {
-						set_region(0x00'0000, 0x08'0000, kickstart_.data(), CPU::MC68000::Microcycle::PermitRead);
+						set_region(0x00'0000, 0x08'0000, kickstart.data(), CPU::MC68000::Microcycle::PermitRead);
 					} else {
 						// Mirror RAM to fill out the address range up to $20'0000 (?)
-						set_region(0x00'0000, 0x08'0000, ram_.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
-						set_region(0x08'0000, 0x10'0000, ram_.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
-						set_region(0x10'0000, 0x18'0000, ram_.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
-						set_region(0x18'0000, 0x20'0000, ram_.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
+						set_region(0x00'0000, 0x08'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
 					}
 				}
 
@@ -301,8 +333,8 @@ class ConcreteMachine:
 
 					base -= start;
 					for(int c = start >> 18; c < end >> 18; c++) {
-						regions_[c].contents = base;
-						regions_[c].read_write_mask = read_write_mask;
+						regions[c].contents = base;
+						regions[c].read_write_mask = read_write_mask;
 					}
 				}
 		} memory_;
@@ -316,9 +348,10 @@ class ConcreteMachine:
 			// TODO.
 		}
 
-		// MARK: - DMA control.
+		// MARK: - DMA control, blitter and Paula.
 
 		uint16_t dma_control_ = 0;
+		Blitter blitter_;
 
 		// MARK: - CIAs.
 
