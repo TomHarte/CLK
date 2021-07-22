@@ -235,6 +235,32 @@ class ConcreteMachine:
 							case Write(0x072):	blitter_.set_data(1, cycle.value16());			break;
 							case Write(0x074):	blitter_.set_data(0, cycle.value16());			break;
 
+							// Copper.
+							case Write(0x02e):
+								LOG("TODO: coprocessor control " << PADHEX(4) << cycle.value16());
+							break;
+							case Write(0x080):
+								LOG("TODO: coprocessor first location register high " << PADHEX(4) << cycle.value16());
+							break;
+							case Write(0x082):
+								LOG("TODO: coprocessor first location register low " << PADHEX(4) << cycle.value16());
+							break;
+							case Write(0x084):
+								LOG("TODO: coprocessor second location register high " << PADHEX(4) << cycle.value16());
+							break;
+							case Write(0x086):
+								LOG("TODO: coprocessor second location register low " << PADHEX(4) << cycle.value16());
+							break;
+							case Write(0x088):	case Read(0x088):
+								LOG("TODO: coprocessor restart at first location");
+							break;
+							case Write(0x08a):	case Read(0x08a):
+								LOG("TODO: coprocessor restart at second location");
+							break;
+							case Write(0x08c):
+								LOG("TODO: coprocessor instruction fetch identity " << PADHEX(4) << cycle.value16());
+							break;
+
 							// Colour palette.
 							case Write(0x180):	case Write(0x182):	case Write(0x184):	case Write(0x186):
 							case Write(0x188):	case Write(0x18a):	case Write(0x18c):	case Write(0x18e):
