@@ -332,6 +332,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									active_program_ = nullptr;
 									active_micro_op_ = short_exception_micro_ops_;
 									populate_trap_steps(8, status());
+
+									// The location of the failed instruction is what should end up on the stack.
+									program_counter_.full -= 4;
 								} else {
 									// Standard instruction dispatch.
 									active_program_ = &instructions[decoded_instruction_.full];
