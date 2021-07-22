@@ -261,6 +261,26 @@ class ConcreteMachine:
 								LOG("TODO: coprocessor instruction fetch identity " << PADHEX(4) << cycle.value16());
 							break;
 
+							// Sprites.
+#define Sprite(index, pointer, position)	\
+							case Write(pointer + 0):	sprites_[index].set_pointer(16, cycle.value16());		break;	\
+							case Write(pointer + 2):	sprites_[index].set_pointer(0, cycle.value16());		break;	\
+							case Write(position + 0):	sprites_[index].set_start_position(cycle.value16());	break;	\
+							case Write(position + 2):	sprites_[index].set_stop_and_control(cycle.value16());	break;	\
+							case Write(position + 4):	sprites_[index].set_image_data(0, cycle.value16());		break;	\
+							case Write(position + 6):	sprites_[index].set_image_data(1, cycle.value16());		break;
+
+							Sprite(0, 0x120, 0x140);
+							Sprite(1, 0x124, 0x148);
+							Sprite(2, 0x128, 0x150);
+							Sprite(3, 0x12c, 0x158);
+							Sprite(4, 0x130, 0x160);
+							Sprite(5, 0x134, 0x168);
+							Sprite(6, 0x138, 0x170);
+							Sprite(7, 0x13c, 0x178);
+
+#undef Sprite
+
 							// Colour palette.
 							case Write(0x180):	case Write(0x182):	case Write(0x184):	case Write(0x186):
 							case Write(0x188):	case Write(0x18a):	case Write(0x18c):	case Write(0x18e):
@@ -373,6 +393,23 @@ class ConcreteMachine:
 		void update_interrupts() {
 			// TODO.
 		}
+
+		// MARK: - Sprites.
+
+		struct Sprite {
+			void set_pointer(int shift, uint16_t value) {
+				LOG("Sprite pointer with shift " << shift << " to " << PADHEX(4) << value);
+			}
+			void set_start_position(uint16_t value) {
+				LOG("Sprite start position " << PADHEX(4) << value);
+			}
+			void set_stop_and_control(uint16_t value) {
+				LOG("Sprite stop and control " << PADHEX(4) << value);
+			}
+			void set_image_data(int slot, uint16_t value) {
+				LOG("Sprite image data " << slot << " to " << PADHEX(4) << value);
+			}
+		} sprites_[8];
 
 		// MARK: - DMA control, blitter and Paula.
 
