@@ -17,6 +17,7 @@ struct MOS6526Storage {
 	struct Registers {
 		uint8_t output[2] = {0, 0};
 		uint8_t data_direction[2] = {0, 0};
+		uint8_t interrupt_control_ = 0;
 	} registers_;
 
 };
