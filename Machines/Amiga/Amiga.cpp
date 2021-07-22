@@ -131,7 +131,7 @@ class ConcreteMachine:
 
 						switch(RW(address)) {
 							default:
-								printf("Unimplemented chipset access %06x\n", *cycle.address);
+								LOG("Unimplemented chipset " << (cycle.operation & Microcycle::Read ? "read" : "write") <<  " " << PADHEX(6) << *cycle.address);
 								assert(false);
 							break;
 
@@ -193,6 +193,12 @@ class ConcreteMachine:
 							case Write(0x11a):
 								LOG("TODO: Bitplane data; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
 							break;
+
+							case Read(0x110):	case Read(0x112):	case Read(0x114):	case Read(0x116):
+							case Read(0x118):	case Read(0x11a):
+								cycle.set_value16(0xffff);
+							break;
+
 
 							// Colour palette.
 							case Write(0x180):	case Write(0x182):	case Write(0x184):	case Write(0x186):
@@ -377,7 +383,7 @@ class ConcreteMachine:
 					// b2: SEL
 					// b1: POUT
 					// b0: BUSY
-					LOG("TODO: Serial control: " << PADHEX(2) << value);
+					LOG("TODO: Serial control: " << PADHEX(2) << +value);
 				} else {
 					// Disk motor control, drive and head selection,
 					// and stepper control:
@@ -390,7 +396,7 @@ class ConcreteMachine:
 					// b2: /SIDE
 					// b1: DIR
 					// b0: /STEP
-					LOG("TODO: Stepping, etc; " << PADHEX(2) << value);
+					LOG("TODO: Stepping, etc; " << PADHEX(2) << +value);
 				}
 			}
 		} cia_b_handler_;
