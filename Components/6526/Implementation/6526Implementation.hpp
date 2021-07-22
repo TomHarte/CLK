@@ -61,9 +61,16 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 			update_interrupts();
 		break;
 
+		// Control.
+		case 14:
+		case 15:
+			registers_.control[address - 14] = value;
+			printf("Ignoring control write: %02x to %d\n", value, address);
+		break;
+
 		default:
 			printf("Unhandled 6526 write: %02x to %d\n", value, address);
-			assert(false);
+//			assert(false);
 		break;
 	}
 }
@@ -79,10 +86,12 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 		case 2: case 3:
 		return registers_.data_direction[address - 2];
 
+		case 14: case 15:
+		return registers_.control[address - 14];
 
 		default:
 			printf("Unhandled 6526 read from %d\n", address);
-			assert(false);
+//			assert(false);
 		break;
 	}
 	return 0xff;
