@@ -254,6 +254,7 @@ struct Microcycle {
 		currently being read. Assumes this is a read cycle.
 	*/
 	forceinline void set_value16(uint16_t v) const {
+		assert(operation & Microcycle::Read);
 		if(operation & Microcycle::SelectWord) {
 			value->full = v;
 		} else {
@@ -265,6 +266,7 @@ struct Microcycle {
 		Equivalent to set_value16((v << 8) | 0x00ff).
 	*/
 	forceinline void set_value8_high(uint8_t v) const {
+		assert(operation & Microcycle::Read);
 		if(operation & Microcycle::SelectWord) {
 			value->full = uint16_t(0x00ff | (v << 8));
 		} else {
@@ -276,6 +278,7 @@ struct Microcycle {
 		Equivalent to set_value16((v) | 0xff00).
 	*/
 	forceinline void set_value8_low(uint8_t v) const {
+		assert(operation & Microcycle::Read);
 		if(operation & Microcycle::SelectWord) {
 			value->full = 0xff00 | v;
 		} else {
