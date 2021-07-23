@@ -176,7 +176,7 @@ class ConcreteMachine:
 
 			// An interrupt acknowledge, perhaps?
 			if(cycle.operation & Microcycle::InterruptAcknowledge) {
-				// Current implementation: everything other than 6 (i.e. the MFP is autovectored.
+				// Current implementation: everything other than 6 (i.e. the MFP) is autovectored.
 				const int interrupt_level = cycle.word_address()&7;
 				if(interrupt_level != 6) {
 					video_interrupts_pending_ &= ~interrupt_level;

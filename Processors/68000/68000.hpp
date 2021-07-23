@@ -454,6 +454,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform = false> cla
 		/// @returns The current phase of the E clock; this will be a number of
 		/// half-cycles between 0 and 19 inclusive, indicating how far the 68000
 		/// is into the current E cycle.
+		///
+		/// This is guaranteed to be 0 at initial 68000 construction.
 		HalfCycles get_e_clock_phase() {
 			return e_clock_phase_;
 		}
