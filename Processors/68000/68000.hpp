@@ -451,6 +451,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform = false> cla
 			halt_ = halt;
 		}
 
+		/// @returns The current phase of the E clock; this will be a number of
+		/// half-cycles between 0 and 19 inclusive, indicating how far the 68000
+		/// is into the current E cycle.
+		HalfCycles get_e_clock_phase() {
+			return e_clock_phase_;
+		}
+
 	private:
 		T &bus_handler_;
 };

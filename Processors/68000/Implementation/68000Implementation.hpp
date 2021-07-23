@@ -139,7 +139,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							// Extend length by: (i) distance to next E low, plus (ii) difference between
 							// current length and a whole E cycle.
 							cycle_copy.length = HalfCycles(20);	// i.e. one E cycle in length.
-							cycle_copy.length += (e_clock_phase_ + cycles_run_for) % 10;
+							cycle_copy.length += (e_clock_phase_ + cycles_run_for) % 20;
+
+							// TODO: verify logic above; I'm not persuaded.
 
 							cycles_run_for +=
 								cycle_copy.length +
@@ -2191,7 +2193,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef destination_address
 
 	bus_handler_.flush();
-	e_clock_phase_ = (e_clock_phase_ + cycles_run_for) % 10;
+	e_clock_phase_ = (e_clock_phase_ + cycles_run_for) % 20;
 	half_cycles_left_to_run_ = remaining_duration - cycles_run_for;
 }
 
