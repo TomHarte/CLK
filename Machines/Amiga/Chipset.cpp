@@ -63,6 +63,13 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			cycle.set_value16(position);
 		} break;
 
+		case Write(0x02a):
+			LOG("TODO: write vertical position high " << PADHEX(4) << cycle.value16());
+		break;
+		case Write(0x02c):
+			LOG("TODO: write vertical position low " << PADHEX(4) << cycle.value16());
+		break;
+
 		// Disk DMA.
 		case Write(0x020):	case Write(0x022):	case Write(0x024):
 		case Write(0x026):
@@ -102,6 +109,29 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			ApplySetClear(interrupt_requests_);
 			update_interrupts();
 			LOG("Interrupt request modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_requests_});
+		break;
+
+		// Display management.
+		case Write(0x08e): {
+			const uint16_t value = cycle.value16();
+			display_window_start_[0] = value & 0xff;
+			display_window_start_[1] = value >> 8;
+			LOG("Display window start set to " << std::dec << display_window_start_[0] << ", " << display_window_start_[1]);
+		} break;
+		case Write(0x090): {
+			const uint16_t value = cycle.value16();
+			display_window_stop_[0] = 0x100 | (value & 0xff);
+			display_window_stop_[1] = value >> 8;
+			display_window_stop_[1] |= ((value >> 7) & 0x100) ^ 0x100;
+			LOG("Display window stop set to " << std::dec << display_window_stop_[0] << ", " << display_window_stop_[1]);
+		} break;
+		case Write(0x092):
+			fetch_window_[0] = uint16_t((cycle.value16() & 0xfc) << 1);
+			LOG("Fetch window start set to " << std::dec << fetch_window_[0]);
+		break;
+		case Write(0x094):
+			fetch_window_[1] = uint16_t((cycle.value16() & 0xfc) << 1);
+			LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
 		break;
 
 		// Bitplanes.
