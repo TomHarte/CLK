@@ -70,9 +70,14 @@ class ConcreteMachine:
 
 			// Advance time.
 
-			// TODO: I think there's a divide-by-ten here. Probably these are driven off the 68000 E clock?
-			cia_a_.run_for(cycle.length);
-			cia_b_.run_for(cycle.length);
+			// The CIAs are on the E clock.
+			// TODO: so they probably should be behind VPA?
+			cia_divider_ += cycle.length;
+			const HalfCycles e_clocks = cia_divider_.divide(HalfCycles(20));
+			if(e_clocks > HalfCycles(0)) {
+				cia_a_.run_for(e_clocks);
+				cia_b_.run_for(e_clocks);
+			}
 
 			chipset_.run_for(cycle.length);
 
@@ -293,6 +298,7 @@ class ConcreteMachine:
 			}
 		} cia_b_handler_;
 
+		HalfCycles cia_divider_;
 		MOS::MOS6526::MOS6526<CIAAHandler, MOS::MOS6526::Personality::P8250> cia_a_;
 		MOS::MOS6526::MOS6526<CIABHandler, MOS::MOS6526::Personality::P8250> cia_b_;
 
