@@ -24,7 +24,7 @@
 #define LOG_PREFIX "[Amiga] "
 #include "../../Outputs/Log.hpp"
 
-#include "Blitter.hpp"
+#include "Chipset.hpp"
 
 namespace Amiga {
 
@@ -37,7 +37,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Amiga::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
-			blitter_(reinterpret_cast<uint16_t *>(memory_.chip_ram.data()), memory_.chip_ram.size()),
+			chipset_(reinterpret_cast<uint16_t *>(memory_.chip_ram.data()), memory_.chip_ram.size()),
 			cia_a_handler_(memory_),
 			cia_a_(cia_a_handler_),
 			cia_b_(cia_b_handler_)
@@ -54,7 +54,7 @@ class ConcreteMachine:
 			Memory::PackBigEndian16(roms.find(rom_name)->second, memory_.kickstart.data());
 
 			// NTSC clock rate: 2*3.579545 = 7.15909Mhz.
-			// PAL clock rate: 7.09379Mhz.
+			// PAL clock rate: 7.09379Mhz; 227 cycles/line.
 			set_clock_rate(7'093'790.0);
 		}
 
@@ -119,186 +119,7 @@ class ConcreteMachine:
 							if(!(address & 0x2000)) cia_b_.write(reg, cycle.value8_high());
 						}
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
-#define RW(address)		(address & 0xffe) | ((cycle.operation & Microcycle::Read) << 7)
-#define Read(address)	address | 0x1000
-#define Write(address)	address
-
-#define ApplySetClear(target)	{			\
-	const uint16_t value = cycle.value16();	\
-	if(value & 0x8000) {					\
-		target |= (value & 0x7fff);			\
-	} else {								\
-		target &= ~(value & 0x7fff);		\
-	}										\
-}
-
-						switch(RW(address)) {
-							default:
-								LOG("Unimplemented chipset " << (cycle.operation & Microcycle::Read ? "read" : "write") <<  " " << PADHEX(6) << *cycle.address);
-								assert(false);
-							break;
-
-							// Disk DMA.
-							case Write(0x020):	case Write(0x022):	case Write(0x024):
-							case Write(0x026):
-								LOG("TODO: disk DMA; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
-							break;
-
-							// Refresh.
-							case Write(0x028):
-								LOG("TODO (maybe): refresh; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
-							break;
-
-							// Serial port.
-							case Write(0x030):
-								LOG("TODO: serial data: " << PADHEX(4) << cycle.value16());
-							break;
-							case Write(0x032):
-								LOG("TODO: serial control: " << PADHEX(4) << cycle.value16());
-							break;
-
-							// DMA management.
-							case Read(0x002):
-								LOG("DMA control and status read");
-								cycle.set_value16(dma_control_ | blitter_.get_status());
-							break;
-							case Write(0x096):
-								ApplySetClear(dma_control_);
-								LOG("DMA control modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{dma_control_});
-							break;
-
-							// Interrupts.
-							case Write(0x09a):
-								ApplySetClear(interrupt_enable_);
-								update_interrupts();
-								LOG("Interrupt enable mask modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_enable_});
-							break;
-							case Write(0x09c):
-								ApplySetClear(interrupt_requests_);
-								update_interrupts();
-								LOG("Interrupt request modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_requests_});
-							break;
-
-							// Bitplanes.
-							case Write(0x100):
-							case Write(0x102):
-							case Write(0x104):
-							case Write(0x106):
-								LOG("TODO: Bitplane control; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
-							break;
-
-							case Write(0x108):
-							case Write(0x10a):
-								LOG("TODO: Bitplane modulo; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
-							break;
-
-							case Write(0x110):
-							case Write(0x112):
-							case Write(0x114):
-							case Write(0x116):
-							case Write(0x118):
-							case Write(0x11a):
-								LOG("TODO: Bitplane data; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
-							break;
-
-							case Read(0x110):	case Read(0x112):	case Read(0x114):	case Read(0x116):
-							case Read(0x118):	case Read(0x11a):
-								cycle.set_value16(0xffff);
-							break;
-
-							// Blitter.
-							case Write(0x040):	blitter_.set_control(0, cycle.value16());		break;
-							case Write(0x042):	blitter_.set_control(1, cycle.value16());		break;
-							case Write(0x044):	blitter_.set_first_word_mask(cycle.value16());	break;
-							case Write(0x046):	blitter_.set_last_word_mask(cycle.value16());	break;
-
-							case Write(0x048):	blitter_.set_pointer(2, 16, cycle.value16());	break;
-							case Write(0x04a):	blitter_.set_pointer(2, 0, cycle.value16());	break;
-							case Write(0x04c):	blitter_.set_pointer(1, 16, cycle.value16());	break;
-							case Write(0x04e):	blitter_.set_pointer(1, 0, cycle.value16());	break;
-							case Write(0x050):	blitter_.set_pointer(0, 16, cycle.value16());	break;
-							case Write(0x052):	blitter_.set_pointer(0, 0, cycle.value16());	break;
-							case Write(0x054):	blitter_.set_pointer(3, 16, cycle.value16());	break;
-							case Write(0x056):	blitter_.set_pointer(3, 0, cycle.value16());	break;
-
-							case Write(0x058):	blitter_.set_size(cycle.value16());				break;
-							case Write(0x05a):	blitter_.set_minterms(cycle.value16());			break;
-							case Write(0x05c):	blitter_.set_vertical_size(cycle.value16());	break;
-							case Write(0x05e):	blitter_.set_horizontal_size(cycle.value16());	break;
-
-							case Write(0x060):	blitter_.set_modulo(2, cycle.value16());		break;
-							case Write(0x062):	blitter_.set_modulo(1, cycle.value16());		break;
-							case Write(0x064):	blitter_.set_modulo(0, cycle.value16());		break;
-							case Write(0x066):	blitter_.set_modulo(3, cycle.value16());		break;
-
-							case Write(0x070):	blitter_.set_data(2, cycle.value16());			break;
-							case Write(0x072):	blitter_.set_data(1, cycle.value16());			break;
-							case Write(0x074):	blitter_.set_data(0, cycle.value16());			break;
-
-							// Copper.
-							case Write(0x02e):
-								LOG("TODO: coprocessor control " << PADHEX(4) << cycle.value16());
-							break;
-							case Write(0x080):
-								LOG("TODO: coprocessor first location register high " << PADHEX(4) << cycle.value16());
-							break;
-							case Write(0x082):
-								LOG("TODO: coprocessor first location register low " << PADHEX(4) << cycle.value16());
-							break;
-							case Write(0x084):
-								LOG("TODO: coprocessor second location register high " << PADHEX(4) << cycle.value16());
-							break;
-							case Write(0x086):
-								LOG("TODO: coprocessor second location register low " << PADHEX(4) << cycle.value16());
-							break;
-							case Write(0x088):	case Read(0x088):
-								LOG("TODO: coprocessor restart at first location");
-							break;
-							case Write(0x08a):	case Read(0x08a):
-								LOG("TODO: coprocessor restart at second location");
-							break;
-							case Write(0x08c):
-								LOG("TODO: coprocessor instruction fetch identity " << PADHEX(4) << cycle.value16());
-							break;
-
-							// Sprites.
-#define Sprite(index, pointer, position)	\
-							case Write(pointer + 0):	sprites_[index].set_pointer(16, cycle.value16());		break;	\
-							case Write(pointer + 2):	sprites_[index].set_pointer(0, cycle.value16());		break;	\
-							case Write(position + 0):	sprites_[index].set_start_position(cycle.value16());	break;	\
-							case Write(position + 2):	sprites_[index].set_stop_and_control(cycle.value16());	break;	\
-							case Write(position + 4):	sprites_[index].set_image_data(0, cycle.value16());		break;	\
-							case Write(position + 6):	sprites_[index].set_image_data(1, cycle.value16());		break;
-
-							Sprite(0, 0x120, 0x140);
-							Sprite(1, 0x124, 0x148);
-							Sprite(2, 0x128, 0x150);
-							Sprite(3, 0x12c, 0x158);
-							Sprite(4, 0x130, 0x160);
-							Sprite(5, 0x134, 0x168);
-							Sprite(6, 0x138, 0x170);
-							Sprite(7, 0x13c, 0x178);
-
-#undef Sprite
-
-							// Colour palette.
-							case Write(0x180):	case Write(0x182):	case Write(0x184):	case Write(0x186):
-							case Write(0x188):	case Write(0x18a):	case Write(0x18c):	case Write(0x18e):
-							case Write(0x190):	case Write(0x192):	case Write(0x194):	case Write(0x196):
-							case Write(0x198):	case Write(0x19a):	case Write(0x19c):	case Write(0x19e):
-							case Write(0x1a0):	case Write(0x1a2):	case Write(0x1a4):	case Write(0x1a6):
-							case Write(0x1a8):	case Write(0x1aa):	case Write(0x1ac):	case Write(0x1ae):
-							case Write(0x1b0):	case Write(0x1b2):	case Write(0x1b4):	case Write(0x1b6):
-							case Write(0x1b8):	case Write(0x1ba):	case Write(0x1bc):	case Write(0x1be):
-								LOG("TODO: colour palette; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
-							break;
-						}
-
-#undef ApplySetClear
-
-#undef Write
-#undef Read
-#undef RW
+						chipset_.perform(cycle);
 					} else {
 						// This'll do for open bus, for now.
 						if(cycle.operation & Microcycle::Read) {
@@ -385,36 +206,9 @@ class ConcreteMachine:
 				}
 		} memory_;
 
-		// MARK: - Interrupts.
+		// MARK: - Chipset.
 
-		uint16_t interrupt_enable_ = 0;
-		uint16_t interrupt_requests_ = 0;
-
-		void update_interrupts() {
-			// TODO.
-		}
-
-		// MARK: - Sprites.
-
-		struct Sprite {
-			void set_pointer(int shift, uint16_t value) {
-				LOG("Sprite pointer with shift " << shift << " to " << PADHEX(4) << value);
-			}
-			void set_start_position(uint16_t value) {
-				LOG("Sprite start position " << PADHEX(4) << value);
-			}
-			void set_stop_and_control(uint16_t value) {
-				LOG("Sprite stop and control " << PADHEX(4) << value);
-			}
-			void set_image_data(int slot, uint16_t value) {
-				LOG("Sprite image data " << slot << " to " << PADHEX(4) << value);
-			}
-		} sprites_[8];
-
-		// MARK: - DMA control, blitter and Paula.
-
-		uint16_t dma_control_ = 0;
-		Blitter blitter_;
+		Chipset chipset_;
 
 		// MARK: - CIAs.
 

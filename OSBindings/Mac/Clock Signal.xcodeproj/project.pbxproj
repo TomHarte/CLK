@@ -582,6 +582,8 @@
 		4B9D0C4F22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B9D0C4E22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm */; };
 		4B9EC0E226AA27BA0060A31F /* Blitter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E126AA27BA0060A31F /* Blitter.cpp */; };
 		4B9EC0E326AA27BA0060A31F /* Blitter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E126AA27BA0060A31F /* Blitter.cpp */; };
+		4B9EC0E626AA4A660060A31F /* Chipset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E426AA4A660060A31F /* Chipset.cpp */; };
+		4B9EC0E726AA4A660060A31F /* Chipset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E426AA4A660060A31F /* Chipset.cpp */; };
 		4B9F11C92272375400701480 /* qltrace.txt.gz in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11C82272375400701480 /* qltrace.txt.gz */; };
 		4B9F11CA2272433900701480 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
 		4B9F11CC22729B3600701480 /* OPCLOGR2.BIN in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */; };
@@ -1588,6 +1590,8 @@
 		4B9D0C4E22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000RollShiftTests.mm; sourceTree = "<group>"; };
 		4B9EC0E026AA260C0060A31F /* Blitter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Blitter.hpp; sourceTree = "<group>"; };
 		4B9EC0E126AA27BA0060A31F /* Blitter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Blitter.cpp; sourceTree = "<group>"; };
+		4B9EC0E426AA4A660060A31F /* Chipset.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Chipset.cpp; sourceTree = "<group>"; };
+		4B9EC0E526AA4A660060A31F /* Chipset.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Chipset.hpp; sourceTree = "<group>"; };
 		4B9F11C82272375400701480 /* qltrace.txt.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = qltrace.txt.gz; sourceTree = "<group>"; };
 		4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = OPCLOGR2.BIN; path = "68000 Coverage/OPCLOGR2.BIN"; sourceTree = "<group>"; };
 		4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZX8081.cpp; sourceTree = "<group>"; };
@@ -4268,10 +4272,12 @@
 		4BC080D626A25ADA00D03FD8 /* Amiga */ = {
 			isa = PBXGroup;
 			children = (
-				4BC080D726A25ADA00D03FD8 /* Amiga.hpp */,
 				4BC080D826A25ADA00D03FD8 /* Amiga.cpp */,
-				4B9EC0E026AA260C0060A31F /* Blitter.hpp */,
 				4B9EC0E126AA27BA0060A31F /* Blitter.cpp */,
+				4B9EC0E426AA4A660060A31F /* Chipset.cpp */,
+				4BC080D726A25ADA00D03FD8 /* Amiga.hpp */,
+				4B9EC0E026AA260C0060A31F /* Blitter.hpp */,
+				4B9EC0E526AA4A660060A31F /* Chipset.hpp */,
 			);
 			path = Amiga;
 			sourceTree = "<group>";
@@ -5363,6 +5369,7 @@
 				4B6AAEAE230E40250078E864 /* Target.cpp in Sources */,
 				4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */,
 				4B055AD11FAE9B030060FFFF /* Video.cpp in Sources */,
+				4B9EC0E726AA4A660060A31F /* Chipset.cpp in Sources */,
 				4BB4BFBA22A4372F0069048D /* StaticAnalyser.cpp in Sources */,
 				4B9EC0E326AA27BA0060A31F /* Blitter.cpp in Sources */,
 				4B055AA21FAE85DA0060FFFF /* SSD.cpp in Sources */,
@@ -5545,6 +5552,7 @@
 				4B2E86BE25D74F160024F1E9 /* Mouse.cpp in Sources */,
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
 				4BDA00E422E663B900AC3CD0 /* NSData+CRC32.m in Sources */,
+				4B9EC0E626AA4A660060A31F /* Chipset.cpp in Sources */,
 				4BB8616E24E22DC500A00E03 /* BufferingScanTarget.cpp in Sources */,
 				4BB4BFB022A42F290069048D /* MacintoshIMG.cpp in Sources */,
 				4B05401E219D1618001BF69C /* ScanTarget.cpp in Sources */,

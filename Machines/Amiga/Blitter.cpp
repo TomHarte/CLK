@@ -61,9 +61,9 @@ uint16_t Blitter::get_status() {
 	return 0;
 }
 
-Cycles Blitter::get_remaining_cycles() {
-	return Cycles(0);
+int Blitter::get_remaining_accesses() {
+	return 0;
 }
 
-void Blitter::run_for(Cycles) {
+void Blitter::run_for(int) {
 }

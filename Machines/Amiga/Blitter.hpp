@@ -37,12 +37,12 @@ class Blitter {
 
 		uint16_t get_status();
 
-		/// @returns The number of 'cycles' required to complete the current
-		/// operation, if any, or Cycles(0) if no operation is pending.
-		Cycles get_remaining_cycles();
+		/// @returns The number of accesses required to complete the current
+		/// operation, if any, or 0 if no operation is pending.
+		int get_remaining_accesses();
 
-		/// Advances the stated number of cycles.
-		void run_for(Cycles);
+		/// Performs the next n accesses.
+		void run_for(int accesses);
 
 	private:
 		uint16_t *const ram_;
