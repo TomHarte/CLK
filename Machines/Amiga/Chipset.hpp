@@ -55,6 +55,11 @@ class Chipset {
 			void set_stop_and_control(uint16_t value);
 			void set_image_data(int slot, uint16_t value);
 		} sprites_[8];
+
+		// MARK: - Raster.
+
+		int x_ = 0, y_ = 0;
+		int line_length_ = 227;
 };
 
 }

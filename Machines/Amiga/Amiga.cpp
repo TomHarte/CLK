@@ -74,6 +74,8 @@ class ConcreteMachine:
 			cia_a_.run_for(cycle.length);
 			cia_b_.run_for(cycle.length);
 
+			chipset_.run_for(cycle.length);
+
 			// Check for assertion of reset.
 			if(cycle.operation & Microcycle::Reset) {
 				memory_.reset();

@@ -20,11 +20,20 @@ Chipset::Chipset(uint16_t *ram, size_t size) :
 	blitter_(ram, size) {
 }
 
+void Chipset::run_for(HalfCycles length) {
+	// Update raster position.
+	// TODO: actual graphics, why not?
+
+	x_ += length.as<int>();
+	y_ = (y_ + x_ / (227 + (y_&1))) % 262;
+	x_ %= 227;
+}
+
 void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 	using Microcycle = CPU::MC68000::Microcycle;
 
-#define RW(address)		(address & 0xffe) | ((cycle.operation & Microcycle::Read) << 7)
-#define Read(address)	address | 0x1000
+#define RW(address)		(address & 0xffe) | ((cycle.operation & Microcycle::Read) << 12)
+#define Read(address)	address | (Microcycle::Read << 12)
 #define Write(address)	address
 
 #define ApplySetClear(target)	{			\
@@ -41,6 +50,18 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			LOG("Unimplemented chipset " << (cycle.operation & Microcycle::Read ? "read" : "write") <<  " " << PADHEX(6) << *cycle.address);
 			assert(false);
 		break;
+
+		// Position polling.
+		case Read(0x004): {
+			const uint16_t position = uint16_t(y_ >> 8);
+			LOG("Read vertical position high " << PADHEX(4) << position);
+			cycle.set_value16(position);
+		} break;
+		case Read(0x006): {
+			const uint16_t position = uint16_t((x_ << 8) | (y_ & 0xff));
+			LOG("Read vertical position low " << PADHEX(4) << position);
+			cycle.set_value16(position);
+		} break;
 
 		// Disk DMA.
 		case Write(0x020):	case Write(0x022):	case Write(0x024):
