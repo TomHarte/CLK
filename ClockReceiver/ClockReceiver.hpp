@@ -222,6 +222,15 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			return result;
 		}
 
+		/*!
+			Equivalent to @c divide_cycles(Cycles(1)) but faster.
+		*/
+		forceinline Cycles divide_cycles() {
+			const Cycles result(length_ >> 1);
+			length_ &= 1;
+			return result;
+		}
+
 	private:
 		friend WrappedInt;
 		void fill(Cycles &result) {
