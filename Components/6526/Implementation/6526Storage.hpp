@@ -32,6 +32,25 @@ struct MOS6526Storage {
 		uint8_t control = 0;
 		bool is_counting = false;
 
+		template <int shift> void set_reload(uint8_t v) {
+			reload = (reload & (0xff00 >> shift)) | uint16_t(v << shift);
+
+			if constexpr (shift == 8) {
+				if(!is_counting) {
+					is_counting = true;
+					value = reload;
+				}
+			}
+		}
+
+		template <bool is_counter_2> void set_control(uint8_t v) {
+			control = v & 0xef;
+			if(v & 0x10) {
+				value = reload;
+			}
+			is_counting |= (v & 0x18) == 0x10;
+		}
+
 		int subtract(int count) {
 			if(control & 8) {
 				// One-shot.

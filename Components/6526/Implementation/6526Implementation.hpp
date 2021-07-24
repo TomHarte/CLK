@@ -68,16 +68,10 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		break;
 
 		// Counters; writes set the reload values.
-		case 4:	counter_[0].reload = (counter_[0].reload & 0xff00) | uint16_t(value << 0);	break;
-		case 5:
-			counter_[0].reload = (counter_[0].reload & 0x00ff) | uint16_t(value << 8);
-			counter_[0].is_counting = true;
-		break;
-		case 6:	counter_[1].reload = (counter_[1].reload & 0xff00) | uint16_t(value << 0);	break;
-		case 7:
-			counter_[1].reload = (counter_[1].reload & 0x00ff) | uint16_t(value << 8);
-			counter_[1].is_counting = true;
-		break;
+		case 4:	counter_[0].template set_reload<0>(value);	break;
+		case 5:	counter_[0].template set_reload<8>(value);	break;
+		case 6:	counter_[1].template set_reload<0>(value);	break;
+		case 7:	counter_[1].template set_reload<8>(value);	break;
 
 		// Time-of-day clock.
 		//
@@ -141,23 +135,8 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		} break;
 
 		// Control.
-		case 14:
-			if(value & 0x10) {
-				counter_[0].value = counter_[0].reload;
-				counter_[0].is_counting = true;
-			}
-			counter_[0].control = value & 0xef;
-			printf("Ignoring control A write: %02x\n", value);
-		break;
-
-		case 15:
-			if(value & 0x10) {
-				counter_[1].value = counter_[1].reload;
-				counter_[1].is_counting = true;
-			}
-			counter_[1].control = value;
-			printf("Ignoring control B write: %02x\n", value);
-		break;
+		case 14:	counter_[0].template set_control<false>(value);	break;
+		case 15:	counter_[1].template set_control<true>(value);	break;
 
 		default:
 			printf("Unhandled 6526 write: %02x to %d\n", value, address);
