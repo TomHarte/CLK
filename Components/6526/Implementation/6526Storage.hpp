@@ -30,18 +30,20 @@ struct MOS6526Storage {
 		uint16_t reload = 0;
 		uint16_t value = 0;
 		uint8_t control = 0;
-//		int one_shot_mask = 0;
+		bool is_counting = false;
 
 		int subtract(int count) {
 			if(control & 8) {
 				// One-shot.
-//				value -= count;
-//				if(value < 0) {
-//					const int underflows = one_shot_mask;
-//					value = 0;
-//					one_shot_mask = 0;
-//					return underflows;
-//				}
+				if(is_counting) {
+					if(value < count) {
+						value = reload;
+						is_counting = false;
+						return 1;
+					} else {
+						value -= count;
+					}
+				}
 				return 0;
 			} else {
 				// Continuous.
