@@ -166,6 +166,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Read(0x110):	case Read(0x112):	case Read(0x114):	case Read(0x116):
 		case Read(0x118):	case Read(0x11a):
 			cycle.set_value16(0xffff);
+			LOG("Invalid read at " << PADHEX(6) << *cycle.address);
 		break;
 
 		// Blitter.

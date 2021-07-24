@@ -134,7 +134,7 @@ class ConcreteMachine:
 						if(cycle.operation & Microcycle::Read) {
 							cycle.set_value16(0xffff);
 						}
-						LOG("Unmapped access to " << PADHEX(4) << *cycle.address);
+						LOG("Unmapped " << (cycle.operation & Microcycle::Read ? "read from " : "write to ") << PADHEX(4) << *cycle.address << " of " << cycle.value16());
 					}
 				}
 			} else {
