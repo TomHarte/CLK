@@ -28,7 +28,19 @@ template <int port> uint8_t MOS6526<BusHandlerT, personality>::get_port_input() 
 }
 
 template <typename BusHandlerT, Personality personality>
+void MOS6526<BusHandlerT, personality>::posit_interrupt(uint8_t mask) {
+	interrupt_state_ |= mask;
+	update_interrupts();
+}
+
+template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::update_interrupts() {
+	if(interrupt_state_ & interrupt_control_) {
+		interrupt_state_ |= 0x80;
+
+		printf("6526 should signal interrupt\n");
+		assert(false);
+	}
 }
 
 template <typename BusHandlerT, Personality personality>
@@ -67,8 +79,12 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		// upon a write to the LSB.
 		case 8:
 			if constexpr (personality == Personality::P8250) {
-				tod_ = (tod_ & 0xffff00) | uint32_t(value);
-				tod_increment_mask_ = uint32_t(~0);
+				if(control_[1] & 0x80) {
+					tod_alarm_ = (tod_alarm_ & 0xffff00) | uint32_t(value);
+				} else {
+					tod_ = (tod_ & 0xffff00) | uint32_t(value);
+					tod_increment_mask_ = uint32_t(~0);
+				}
 			} else {
 				printf("6526 TOD clock not implemented\n");
 				assert(false);
@@ -76,8 +92,12 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		break;
 		case 9:
 			if constexpr (personality == Personality::P8250) {
-				tod_ = (tod_ & 0xff00ff) | uint32_t(value << 8);
-				tod_increment_mask_ = 0;
+				if(control_[1] & 0x80) {
+					tod_alarm_ = (tod_alarm_ & 0xff00ff) | uint32_t(value << 8);
+				} else {
+					tod_ = (tod_ & 0xff00ff) | uint32_t(value << 8);
+					tod_increment_mask_ = 0;
+				}
 			} else {
 				printf("6526 TOD clock not implemented\n");
 				assert(false);
@@ -85,8 +105,12 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		break;
 		case 10:
 			if constexpr (personality == Personality::P8250) {
-				tod_ = (tod_ & 0x00ffff) | uint32_t(value << 16);
-				tod_increment_mask_ = 0;
+				if(control_[1] & 0x80) {
+					tod_alarm_ = (tod_alarm_ & 0x00ffff) | uint32_t(value << 16);
+				} else {
+					tod_ = (tod_ & 0x00ffff) | uint32_t(value << 16);
+					tod_increment_mask_ = 0;
+				}
 			} else {
 				printf("6526 TOD clock not implemented\n");
 				assert(false);
@@ -101,10 +125,14 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		break;
 
 		// Interrupt control.
-		case 13:
-			interrupt_control_ = value;
+		case 13: {
+			if(interrupt_control_ & 0x80) {
+				interrupt_control_ |= value & 0x7f;
+			} else {
+				interrupt_control_ &= ~(value & 0x7f);
+			}
 			update_interrupts();
-		break;
+		} break;
 
 		// Control.
 		case 14:
@@ -126,7 +154,6 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 	switch(address) {
 		case 0:		return get_port_input<0>();
 		case 1:		return get_port_input<1>();
-		case 13:	return interrupt_control_;
 
 		case 2: case 3:
 		return data_direction_[address - 2];
@@ -136,6 +163,14 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 		case 5:	return uint8_t(counters_[0].value >> 8);
 		case 6:	return uint8_t(counters_[1].value >> 0);
 		case 7:	return uint8_t(counters_[1].value >> 0);
+
+		// Interrupt state.
+		case 13: {
+			const uint8_t result = interrupt_state_;
+			interrupt_state_ = 0;
+			update_interrupts();
+			return result;
+		} break;
 
 		case 14: case 15:
 		return control_[address - 14];
@@ -211,13 +246,16 @@ void MOS6526<BusHandlerT, personality>::advance_tod(int count) {
 	if constexpr(personality == Personality::P8250) {
 		// The 8250 uses a simple binary counter to replace the
 		// 6526's time-of-day clock. So this is easy.
+		const uint32_t distance_to_alarm_ = (tod_alarm_ - tod_) & 0xffffff;
 		tod_ += uint32_t(count) & tod_increment_mask_;
+		if(distance_to_alarm_ <= uint32_t(count)) {
+			posit_interrupt(0x04);
+		}
 	} else {
 		// The 6526 uses a time-of-day clock. This may or may not
 		// be accurate.
 	}
 }
-
 
 }
 }

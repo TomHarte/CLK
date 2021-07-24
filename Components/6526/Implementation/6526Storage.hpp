@@ -17,14 +17,15 @@ struct MOS6526Storage {
 
 	uint8_t output_[2] = {0, 0};
 	uint8_t data_direction_[2] = {0, 0};
+
 	uint8_t interrupt_control_ = 0;
+	uint8_t interrupt_state_ = 0;
+
 	uint8_t control_[2] = {0, 0};
 
 	uint32_t tod_increment_mask_ = uint32_t(~0);
 	uint32_t tod_latch_ = 0;
 	uint32_t tod_ = 0;
-
-	bool write_tod_alarm_ = false;
 	uint32_t tod_alarm_ = 0;
 
 	struct Counter {
