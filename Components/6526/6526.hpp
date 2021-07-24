@@ -51,8 +51,11 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 		/// Fetches the value of the register @c address. Only the low two bits of the address are decoded.
 		uint8_t read(int address);
 
-		/// Runs for a specified number of half cycles.
+		/// Pulses Phi2 to advance by the specified number of half cycles.
 		void run_for(const HalfCycles half_cycles);
+
+		/// Pulses the TOD input the specified number of times.
+		void advance_tod(int count);
 
 	private:
 		PortHandlerT &port_handler_;

@@ -26,8 +26,14 @@ class Chipset {
 		/// available CPU slot for accessing chip memory.
 		HalfCycles time_until_cpu_slot();
 
+		struct Changes {
+			int hsyncs = 0;
+			int vsyncs = 0;
+			// TODO: interrupt change?
+		};
+
 		/// Advances the stated amount of time.
-		void run_for(HalfCycles);
+		Changes run_for(HalfCycles);
 
 		/// Performs the provided microcycle, which the caller guarantees to be a memory access.
 		void perform(const CPU::MC68000::Microcycle &);

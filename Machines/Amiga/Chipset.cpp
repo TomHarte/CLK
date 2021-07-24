@@ -20,13 +20,20 @@ Chipset::Chipset(uint16_t *ram, size_t size) :
 	blitter_(ram, size) {
 }
 
-void Chipset::run_for(HalfCycles length) {
+Chipset::Changes Chipset::run_for(HalfCycles length) {
+	Changes changes;
 	// Update raster position.
 	// TODO: actual graphics, why not?
 
 	x_ += length.as<int>();
-	y_ = (y_ + x_ / (227 + (y_&1))) % 262;
+	changes.hsyncs = x_ / (227 + (y_&1));
 	x_ %= 227;
+
+	y_ += changes.hsyncs;
+	changes.vsyncs = y_ / 262;
+	y_ %= 262;
+
+	return changes;
 }
 
 void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {

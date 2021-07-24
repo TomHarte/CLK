@@ -79,7 +79,9 @@ class ConcreteMachine:
 				cia_b_.run_for(e_clocks);
 			}
 
-			chipset_.run_for(cycle.length);
+			const auto changes = chipset_.run_for(cycle.length);
+			cia_a_.advance_tod(changes.vsyncs);
+			cia_b_.advance_tod(changes.hsyncs);
 
 			// Check for assertion of reset.
 			if(cycle.operation & Microcycle::Reset) {
