@@ -21,8 +21,6 @@ struct MOS6526Storage {
 	uint8_t interrupt_control_ = 0;
 	uint8_t interrupt_state_ = 0;
 
-	uint8_t control_[2] = {0, 0};
-
 	uint32_t tod_increment_mask_ = uint32_t(~0);
 	uint32_t tod_latch_ = 0;
 	uint32_t tod_ = 0;
@@ -31,7 +29,33 @@ struct MOS6526Storage {
 	struct Counter {
 		uint16_t reload = 0;
 		uint16_t value = 0;
-	} counters_[2];
+		uint8_t control = 0;
+//		int one_shot_mask = 0;
+
+		int subtract(int count) {
+			if(control & 8) {
+				// One-shot.
+//				value -= count;
+//				if(value < 0) {
+//					const int underflows = one_shot_mask;
+//					value = 0;
+//					one_shot_mask = 0;
+//					return underflows;
+//				}
+				return 0;
+			} else {
+				// Continuous.
+				value -= count;
+
+				value -= (reload + 1);
+				const int underflows = -value / (reload + 1);
+				value %= (reload + 1);
+				value += (reload + 1);
+
+				return underflows;
+			}
+		}
+	} counter_[2];
 };
 
 }

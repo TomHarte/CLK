@@ -68,10 +68,10 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		break;
 
 		// Counters; writes set the reload values.
-		case 4:	counters_[0].reload = (counters_[0].reload & 0xff00) | uint16_t(value << 0);	break;
-		case 5:	counters_[0].reload = (counters_[0].reload & 0x00ff) | uint16_t(value << 8);	break;
-		case 6:	counters_[1].reload = (counters_[1].reload & 0xff00) | uint16_t(value << 0);	break;
-		case 7:	counters_[1].reload = (counters_[1].reload & 0x00ff) | uint16_t(value << 8);	break;
+		case 4:	counter_[0].reload = (counter_[0].reload & 0xff00) | uint16_t(value << 0);	break;
+		case 5:	counter_[0].reload = (counter_[0].reload & 0x00ff) | uint16_t(value << 8);	break;
+		case 6:	counter_[1].reload = (counter_[1].reload & 0xff00) | uint16_t(value << 0);	break;
+		case 7:	counter_[1].reload = (counter_[1].reload & 0x00ff) | uint16_t(value << 8);	break;
 
 		// Time-of-day clock.
 		//
@@ -79,7 +79,7 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		// upon a write to the LSB.
 		case 8:
 			if constexpr (personality == Personality::P8250) {
-				if(control_[1] & 0x80) {
+				if(counter_[1].control & 0x80) {
 					tod_alarm_ = (tod_alarm_ & 0xffff00) | uint32_t(value);
 				} else {
 					tod_ = (tod_ & 0xffff00) | uint32_t(value);
@@ -92,7 +92,7 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		break;
 		case 9:
 			if constexpr (personality == Personality::P8250) {
-				if(control_[1] & 0x80) {
+				if(counter_[1].control & 0x80) {
 					tod_alarm_ = (tod_alarm_ & 0xff00ff) | uint32_t(value << 8);
 				} else {
 					tod_ = (tod_ & 0xff00ff) | uint32_t(value << 8);
@@ -105,7 +105,7 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		break;
 		case 10:
 			if constexpr (personality == Personality::P8250) {
-				if(control_[1] & 0x80) {
+				if(counter_[1].control & 0x80) {
 					tod_alarm_ = (tod_alarm_ & 0x00ffff) | uint32_t(value << 16);
 				} else {
 					tod_ = (tod_ & 0x00ffff) | uint32_t(value << 16);
@@ -136,9 +136,19 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 
 		// Control.
 		case 14:
+			if(value & 0x10) {
+				counter_[0].value = counter_[0].reload;
+			}
+			counter_[0].control = value & 0xef;
+			printf("Ignoring control A write: %02x\n", value);
+		break;
+
 		case 15:
-			control_[address - 14] = value;
-			printf("Ignoring control write: %02x to %d\n", value, address);
+			if(value & 0x10) {
+				counter_[1].value = counter_[1].reload;
+			}
+			counter_[1].control = value;
+			printf("Ignoring control B write: %02x\n", value);
 		break;
 
 		default:
@@ -159,10 +169,10 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 		return data_direction_[address - 2];
 
 		// Counters; reads obtain the current values.
-		case 4:	return uint8_t(counters_[0].value >> 0);
-		case 5:	return uint8_t(counters_[0].value >> 8);
-		case 6:	return uint8_t(counters_[1].value >> 0);
-		case 7:	return uint8_t(counters_[1].value >> 0);
+		case 4:	return uint8_t(counter_[0].value >> 0);
+		case 5:	return uint8_t(counter_[0].value >> 8);
+		case 6:	return uint8_t(counter_[1].value >> 0);
+		case 7:	return uint8_t(counter_[1].value >> 0);
 
 		// Interrupt state.
 		case 13: {
@@ -173,7 +183,7 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 		} break;
 
 		case 14: case 15:
-		return control_[address - 14];
+		return counter_[address - 14].control;
 
 		// Time-of-day clock.
 		//
@@ -237,8 +247,31 @@ void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 	half_divider_ += half_cycles;
 	const int sub = half_divider_.divide_cycles().template as<int>();
 
-	// TODO: apply to timers, depending on mode.
-	(void)sub;
+	// Is counter A running and linked to the clock input?
+	int counter_a_underflows = 0;
+	if((counter_[0].control & 0x21) == 0x01) {
+		counter_a_underflows = counter_[0].subtract(sub);
+	}
+
+	// Update counter B.
+	int counter_b_underflows = 0;
+	switch(counter_[1].control & 0x61) {
+		case 0x01:
+			counter_b_underflows = counter_[1].subtract(sub);
+		break;
+		case 0x41:
+			counter_b_underflows = counter_[1].subtract(counter_a_underflows);
+		break;
+		default:
+			if(counter_[1].control & 1) {
+				printf("Unimplemented 6526 CNT input\n");
+				assert(false);
+			}
+		break;
+	}
+
+	// Apply interrupts.
+	posit_interrupt((counter_a_underflows ? 0x01 : 0x00) | (counter_b_underflows ? 0x02 : 0x00));
 }
 
 template <typename BusHandlerT, Personality personality>
