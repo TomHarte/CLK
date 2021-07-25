@@ -304,14 +304,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 #endif
 
-							static uint32_t last_a7 = address_[7].full;
-							log |= (program_counter_.full - 4 == 0x00fcafba);
-//							if(log) {
-							if(log && last_a7 != address_[7].full) {
-								last_a7 = address_[7].full;
-								printf("%08x a7:%08x\n", program_counter_.full - 4, address_[7].full);
-							}
-
 							decoded_instruction_.full = prefetch_queue_.halves.high.full;
 
 #ifndef NDEBUG

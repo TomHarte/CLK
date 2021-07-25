@@ -553,8 +553,6 @@ class ProcessorStorage {
 		inline uint16_t get_status() const;
 		inline void set_status(uint16_t);
 
-		bool log = false;
-
 	private:
 		friend struct ProcessorStorageConstructor;
 		friend class ProcessorStorageTests;
