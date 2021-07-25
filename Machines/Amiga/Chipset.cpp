@@ -66,7 +66,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		} break;
 		case Read(0x006): {
 			const uint16_t position = uint16_t((x_ << 8) | (y_ & 0xff));
-			LOG("Read vertical position low " << PADHEX(4) << position);
+			LOG("Read position low " << PADHEX(4) << position);
 			cycle.set_value16(position);
 		} break;
 
