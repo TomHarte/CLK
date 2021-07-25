@@ -191,6 +191,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							case BusStep::Action::DecrementEffectiveAddress1:	effective_address_[1].full -= 2;	break;
 							case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;			break;
 
+							case BusStep::Action::IncrementEffectiveAddress0AlignStackPointer:
+								effective_address_[0].full += 2;
+								address_[7].full &= 0xffff'fffe;
+							break;
+
 							case BusStep::Action::AdvancePrefetch:
 								prefetch_queue_.halves.high = prefetch_queue_.halves.low;
 
@@ -298,6 +303,14 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								std::cout << '\n';
 							}
 #endif
+
+							static uint32_t last_a7 = address_[7].full;
+							log |= (program_counter_.full - 4 == 0x00fcafba);
+//							if(log) {
+							if(log && last_a7 != address_[7].full) {
+								last_a7 = address_[7].full;
+								printf("%08x a7:%08x\n", program_counter_.full - 4, address_[7].full);
+							}
 
 							decoded_instruction_.full = prefetch_queue_.halves.high.full;
 

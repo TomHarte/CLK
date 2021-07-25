@@ -261,7 +261,7 @@ struct ProcessorStorageConstructor {
 					steps.push_back(step);
 
 					step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
-					step.action = Action::IncrementEffectiveAddress0;
+					step.action = isupper(access_pattern[1]) ? Action::IncrementEffectiveAddress0 : Action::IncrementEffectiveAddress0AlignStackPointer;
 					steps.push_back(step);
 
 					continue;
