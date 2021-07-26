@@ -264,6 +264,9 @@ class ConcreteMachine:
 						LOG("TODO: parallel input?");
 					} else {
 						LOG("TODO: CIA A, port A input — FIR, RDY, TRK0, etc");
+
+						// Announce that TRK0 is upon us.
+						return 0xef;
 					}
 					return 0xff;
 				}
@@ -324,11 +327,11 @@ class ConcreteMachine:
 		// MARK: - MachineTypes::ScanProducer.
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
-			(void)scan_target;
+			chipset_.set_scan_target(scan_target);
 		}
 
 		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return Outputs::Display::ScanStatus();
+			return chipset_.get_scaled_scan_status();
 		}
 
 		// MARK: - MachineTypes::TimedMachine.
