@@ -58,7 +58,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			assert(false);
 		break;
 
-		// Position polling.
+		// Raster position.
 		case Read(0x004): {
 			const uint16_t position = uint16_t(y_ >> 8);
 			LOG("Read vertical position high " << PADHEX(4) << position);
@@ -75,6 +75,13 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 		case Write(0x02c):
 			LOG("TODO: write vertical position low " << PADHEX(4) << cycle.value16());
+		break;
+
+		// Joystick/mouse input.
+		case Read(0x00a):
+		case Read(0x00c):
+			LOG("TODO: Joystick/mouse position " << PADHEX(4) << *cycle.address);
+			cycle.set_value16(0x8080);
 		break;
 
 		// Disk DMA.
