@@ -13,6 +13,7 @@
 #include <cstdint>
 
 #include "../../Processors/68000/68000.hpp"
+#include "../../Outputs/CRT/CRT.hpp"
 
 #include "Blitter.hpp"
 
@@ -43,6 +44,13 @@ class Chipset {
 			return interrupt_level_;
 		}
 
+
+		// The standard CRT set.
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
+		void set_display_type(Outputs::Display::DisplayType);
+		Outputs::Display::DisplayType get_display_type() const;
+
 	private:
 		// MARK: - Interrupts.
 
@@ -70,10 +78,19 @@ class Chipset {
 
 		int x_ = 0, y_ = 0;
 		int line_length_ = 227;
+		int frame_height_ = 312;
 
 		uint16_t display_window_start_[2] = {0, 0};
 		uint16_t display_window_stop_[2] = {0, 0};
 		uint16_t fetch_window_[2] = {0, 0};
+
+		// MARK: - Copper.
+
+		uint16_t copper_address_ = 0;
+
+		// MARK: - Pixel output.
+
+		Outputs::CRT::CRT crt_;
 };
 
 }

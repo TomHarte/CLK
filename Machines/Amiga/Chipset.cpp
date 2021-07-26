@@ -38,27 +38,92 @@ enum InterruptFlag: uint16_t {
 }
 
 Chipset::Chipset(uint16_t *ram, size_t size) :
-	blitter_(ram, size) {
+	blitter_(ram, size),
+	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 }
 
 Chipset::Changes Chipset::run_for(HalfCycles length) {
 	Changes changes;
-	// Update raster position.
-	// TODO: actual graphics, why not?
 
-	x_ += length.as<int>();
-	changes.hsyncs = x_ / (227 + (y_&1));
-	x_ %= 227;
+	// Update raster position, spooling out something that isn't yet actual graphics.
+	auto pixels_remaining = length.as<int>();
+	while(pixels_remaining) {
+		// Determine number of pixels left on this line.
+		int line_pixels = std::min(pixels_remaining, line_length_ - x_);
+		pixels_remaining -= line_pixels;
 
-	y_ += changes.hsyncs;
-	changes.vsyncs = y_ / 312;
-	y_ %= 312;
+		// TODO: what is correct output between current position and x_ + line_pixels?
 
-	// y = 0 => start of vertical blank.
-	if(changes.vsyncs) {
-		interrupt_requests_ |= InterruptFlag::VerticalBlank;
-		update_interrupts();
+		// Hardware stop is at 0x18;
+		// 12/64 * 227 = 42.5625
+		//
+		// "However, horizontal blanking actually limits the displayable
+		// video to 368 low resolution pixel"
+		//
+		// => 184 windows out of 227 are visible, which concurs.
+		//
+		// A complete from-thin-air guess:
+		//
+		//	7 cycles blank;
+		//	17 cycles sync;
+		//	3 cycles blank;
+		//	9 cycles colour burst;
+		//	7 cycles blank.
+
+		constexpr int blank1	= 7;
+		constexpr int sync		= 17 + blank1;
+		constexpr int blank2 	= 3 + sync;
+		constexpr int burst 	= 9 + blank2;
+		constexpr int blank3 	= 7 + burst;
+		static_assert(blank3 == 43);
+
+		const int final_x = x_ + line_pixels;
+
+		// Output the correct sequence of blanks, syncs and burst atomically.
+
+#define LINK(location, action, length) \
+	if(x_ < (location) && final_x >= (location))	{	\
+		crt_.action((length) * 4);	\
 	}
+
+		LINK(blank1, output_blank, blank1);
+		LINK(sync, output_sync, sync - blank1);
+		LINK(blank2, output_sync, blank2 - sync);
+		LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
+		LINK(blank3, output_sync, blank3 - burst);
+
+#undef LINK
+
+		// Output generic white to fill the rest of the line.
+		if(final_x > blank3) {
+			const int start_x = std::max(blank3, x_);
+
+			uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(2));
+			if(pixels) {
+				*pixels = 0xffff;
+			}
+			crt_.output_data((final_x - start_x) * 4, 1);
+		}
+
+		// Advance intraline counter and possibly ripple upwards into
+		// lines and fields.
+		x_ += line_pixels;
+		if(x_ == line_length_) {
+			++changes.hsyncs;
+
+			x_ = 0;
+			++y_;
+
+			if(y_ == frame_height_) {
+				++changes.vsyncs;
+				interrupt_requests_ |= InterruptFlag::VerticalBlank;
+				update_interrupts();
+
+				y_ = 0;
+			}
+		}
+	}
+
 
 	changes.interrupt_level = interrupt_level_;
 	return changes;
@@ -348,6 +413,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 #undef RW
 }
 
+// MARK: - Sprites.
+
 void Chipset::Sprite::set_pointer(int shift, uint16_t value) {
 	LOG("Sprite pointer with shift " << shift << " to " << PADHEX(4) << value);
 }
@@ -362,4 +429,22 @@ void Chipset::Sprite::set_stop_and_control(uint16_t value) {
 
 void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 	LOG("Sprite image data " << slot << " to " << PADHEX(4) << value);
+}
+
+// MARK: - CRT connection.
+
+void Chipset::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	crt_.set_scan_target(scan_target);
+}
+
+Outputs::Display::ScanStatus Chipset::get_scaled_scan_status() const {
+	return crt_.get_scaled_scan_status();
+}
+
+void Chipset::set_display_type(Outputs::Display::DisplayType type) {
+	crt_.set_display_type(type);
+}
+
+Outputs::Display::DisplayType Chipset::get_display_type() const {
+	return crt_.get_display_type();
 }
