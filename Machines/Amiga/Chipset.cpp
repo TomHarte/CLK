@@ -52,8 +52,6 @@ Chipset::Changes Chipset::run_for(HalfCycles length) {
 		int line_pixels = std::min(pixels_remaining, line_length_ - x_);
 		pixels_remaining -= line_pixels;
 
-		// TODO: what is correct output between current position and x_ + line_pixels?
-
 		// Hardware stop is at 0x18;
 		// 12/64 * 227 = 42.5625
 		//
@@ -69,7 +67,6 @@ Chipset::Changes Chipset::run_for(HalfCycles length) {
 		//	3 cycles blank;
 		//	9 cycles colour burst;
 		//	7 cycles blank.
-
 		constexpr int blank1	= 7;
 		constexpr int sync		= 17 + blank1;
 		constexpr int blank2 	= 3 + sync;
@@ -77,32 +74,44 @@ Chipset::Changes Chipset::run_for(HalfCycles length) {
 		constexpr int blank3 	= 7 + burst;
 		static_assert(blank3 == 43);
 
-		const int final_x = x_ + line_pixels;
-
-		// Output the correct sequence of blanks, syncs and burst atomically.
-
 #define LINK(location, action, length) \
 	if(x_ < (location) && final_x >= (location))	{	\
 		crt_.action((length) * 4);	\
 	}
 
-		LINK(blank1, output_blank, blank1);
-		LINK(sync, output_sync, sync - blank1);
-		LINK(blank2, output_sync, blank2 - sync);
-		LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
-		LINK(blank3, output_sync, blank3 - burst);
+		const int final_x = x_ + line_pixels;
+		if(y_ < vertical_blank_height_) {
+			// Put three lines of sync at the centre of the vertical blank period.
+			// TODO: offset by half a line if interlaced.
 
-#undef LINK
-
-		// Output generic white to fill the rest of the line.
-		if(final_x > blank3) {
-			const int start_x = std::max(blank3, x_);
-
-			uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(2));
-			if(pixels) {
-				*pixels = 0xffff;
+			const int midline = vertical_blank_height_ >> 1;
+			if(y_ < midline - 1 || y_ > midline + 1) {
+				LINK(blank1, output_blank, blank1);
+				LINK(sync, output_sync, sync - blank1);
+				LINK(line_length_, output_blank, line_length_ - sync);
+			} else {
+				LINK(blank1, output_sync, blank1);
+				LINK(sync, output_blank, sync - blank1);
+				LINK(line_length_, output_sync, line_length_ - sync);
 			}
-			crt_.output_data((final_x - start_x) * 4, 1);
+		} else {
+			// Output the correct sequence of blanks, syncs and burst atomically.
+			LINK(blank1, output_blank, blank1);
+			LINK(sync, output_sync, sync - blank1);
+			LINK(blank2, output_blank, blank2 - sync);
+			LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
+			LINK(blank3, output_blank, blank3 - burst);
+
+			// Output generic white to fill the rest of the line.
+			if(final_x > blank3) {
+				const int start_x = std::max(blank3, x_);
+
+				uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(2));
+				if(pixels) {
+					*pixels = 0xffff;
+				}
+				crt_.output_data((final_x - start_x) * 4, 1);
+			}
 		}
 
 		// Advance intraline counter and possibly ripple upwards into
@@ -123,7 +132,7 @@ Chipset::Changes Chipset::run_for(HalfCycles length) {
 			}
 		}
 	}
-
+#undef LINK
 
 	changes.interrupt_level = interrupt_level_;
 	return changes;

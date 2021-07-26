@@ -79,6 +79,7 @@ class Chipset {
 		int x_ = 0, y_ = 0;
 		int line_length_ = 227;
 		int frame_height_ = 312;
+		int vertical_blank_height_ = 29;
 
 		uint16_t display_window_start_[2] = {0, 0};
 		uint16_t display_window_stop_[2] = {0, 0};
