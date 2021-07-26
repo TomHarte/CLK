@@ -30,8 +30,8 @@ Chipset::Changes Chipset::run_for(HalfCycles length) {
 	x_ %= 227;
 
 	y_ += changes.hsyncs;
-	changes.vsyncs = y_ / 262;
-	y_ %= 262;
+	changes.vsyncs = y_ / 312;
+	y_ %= 312;
 
 	return changes;
 }
