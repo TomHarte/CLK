@@ -30,15 +30,17 @@ struct MOS6526Storage {
 		uint16_t reload = 0;
 		uint16_t value = 0;
 		uint8_t control = 0;
-		bool is_counting = false;
 
 		template <int shift> void set_reload(uint8_t v) {
 			reload = (reload & (0xff00 >> shift)) | uint16_t(v << shift);
 
 			if constexpr (shift == 8) {
-				if(!is_counting) {
-					is_counting = true;
+				if(!(control&1)) {
 					value = reload;
+
+					if(control&8) {
+						control |= 1;	// At a guess: start one-shot automatically (?)
+					}
 				}
 			}
 		}
@@ -48,20 +50,22 @@ struct MOS6526Storage {
 			if(v & 0x10) {
 				value = reload;
 			}
-			is_counting |= (v & 0x18) == 0x10;
+
+			// Force reload + one-shot => start counting (?)
+			if((v & 0x18) == 0x18) {
+				control |= 1;
+			}
 		}
 
 		int subtract(int count) {
 			if(control & 8) {
 				// One-shot.
-				if(is_counting) {
-					if(value < count) {
-						value = reload;
-						is_counting = false;
-						return 1;
-					} else {
-						value -= count;
-					}
+				if(value < count) {
+					value = reload;
+					control &= 0xfe;
+					return 1;
+				} else {
+					value -= count;
 				}
 				return 0;
 			} else {

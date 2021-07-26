@@ -133,6 +133,14 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			cycle.set_value16(0x8080);
 		break;
 
+		case Write(0x034):
+			LOG("TODO: pot port start");
+		break;
+		case Read(0x016):
+			LOG("TODO: pot port read");
+			cycle.set_value16(0xff00);
+		break;
+
 		// Disk DMA.
 		case Write(0x020):	case Write(0x022):	case Write(0x024):
 		case Write(0x026):

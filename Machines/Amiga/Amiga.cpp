@@ -124,7 +124,7 @@ class ConcreteMachine:
 					// directly to the chip enables.
 					if((address & 0xe0'0000) == 0xa0'0000) {
 						const int reg = address >> 8;
-						LOG("CIA access: " << PADHEX(4) << *cycle.address);
+						LOG("CIA " << (cycle.operation & Microcycle::Read ? "read " : "write ") << PADHEX(4) << *cycle.address);
 
 						if(cycle.operation & Microcycle::Read) {
 							uint16_t result = 0xffff;
@@ -142,7 +142,11 @@ class ConcreteMachine:
 						if(cycle.operation & Microcycle::Read) {
 							cycle.set_value16(0xffff);
 						}
-						LOG("Unmapped " << (cycle.operation & Microcycle::Read ? "read from " : "write to ") << PADHEX(4) << *cycle.address << " of " << cycle.value16());
+
+						// Don't log for the region that is definitely just ROM this machine doesn't have.
+						if(address < 0xf0'0000) {
+							LOG("Unmapped " << (cycle.operation & Microcycle::Read ? "read from " : "write to ") << PADHEX(4) << *cycle.address << " of " << cycle.value16());
+						}
 					}
 				}
 			} else {

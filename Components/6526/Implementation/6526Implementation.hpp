@@ -263,6 +263,8 @@ void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 
 template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::advance_tod(int count) {
+	if(!count) return;
+
 	if constexpr(personality == Personality::P8250) {
 		// The 8250 uses a simple binary counter to replace the
 		// 6526's time-of-day clock. So this is easy.
