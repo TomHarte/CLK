@@ -208,7 +208,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x0c8):	case Write(0x0ca):
 		case Write(0x0d0):	case Write(0x0d2):	case Write(0x0d4):	case Write(0x0d6):
 		case Write(0x0d8):	case Write(0x0da):
-			LOG("TODO: Paula write " << PADHEX(4) << (*cycle.address & 0xfff) << PADHEX(4) << cycle.value16());
+			LOG("TODO: Paula write " << PADHEX(2) << (*cycle.address & 0xff) << " " << PADHEX(4) << cycle.value16());
 		break;
 
 		// Copper.
