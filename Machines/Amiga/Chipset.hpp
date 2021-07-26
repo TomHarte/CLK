@@ -92,6 +92,7 @@ class Chipset {
 		// MARK: - Pixel output.
 
 		Outputs::CRT::CRT crt_;
+		uint16_t palette_[32]{};
 };
 
 }

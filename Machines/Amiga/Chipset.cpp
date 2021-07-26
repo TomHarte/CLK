@@ -108,7 +108,7 @@ Chipset::Changes Chipset::run_for(HalfCycles length) {
 
 				uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(2));
 				if(pixels) {
-					*pixels = 0xffff;
+					*pixels = palette_[0];
 				}
 				crt_.output_data((final_x - start_x) * 4, 1);
 			}
@@ -162,7 +162,7 @@ void Chipset::update_interrupts() {
 void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 	using Microcycle = CPU::MC68000::Microcycle;
 
-#define RW(address)		(address & 0xffe) | ((cycle.operation & Microcycle::Read) << 12)
+#define RW(address)		address | ((cycle.operation & Microcycle::Read) << 12)
 #define Read(address)	address | (Microcycle::Read << 12)
 #define Write(address)	address
 
@@ -175,7 +175,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 	}										\
 }
 
-	switch(RW(*cycle.address)) {
+	const uint32_t register_address = *cycle.address & 0xffe;
+	switch(RW(register_address)) {
 		default:
 			LOG("Unimplemented chipset " << (cycle.operation & Microcycle::Read ? "read" : "write") <<  " " << PADHEX(6) << *cycle.address);
 			assert(false);
@@ -410,9 +411,13 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x1a0):	case Write(0x1a2):	case Write(0x1a4):	case Write(0x1a6):
 		case Write(0x1a8):	case Write(0x1aa):	case Write(0x1ac):	case Write(0x1ae):
 		case Write(0x1b0):	case Write(0x1b2):	case Write(0x1b4):	case Write(0x1b6):
-		case Write(0x1b8):	case Write(0x1ba):	case Write(0x1bc):	case Write(0x1be):
-			LOG("TODO: colour palette; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
-		break;
+		case Write(0x1b8):	case Write(0x1ba):	case Write(0x1bc):	case Write(0x1be): {
+			LOG("Colour palette; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+
+			uint8_t *const entry = reinterpret_cast<uint8_t *>(&palette_[(register_address - 0x180) >> 1]);
+			entry[0] = cycle.value8_high();
+			entry[1] = cycle.value8_low();
+		} break;
 	}
 
 #undef ApplySetClear
