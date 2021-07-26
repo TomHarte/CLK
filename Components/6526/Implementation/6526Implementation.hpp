@@ -159,7 +159,7 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 		case 4:	return uint8_t(counter_[0].value >> 0);
 		case 5:	return uint8_t(counter_[0].value >> 8);
 		case 6:	return uint8_t(counter_[1].value >> 0);
-		case 7:	return uint8_t(counter_[1].value >> 0);
+		case 7:	return uint8_t(counter_[1].value >> 8);
 
 		// Interrupt state.
 		case 13: {
