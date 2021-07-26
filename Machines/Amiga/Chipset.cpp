@@ -198,6 +198,19 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x072):	blitter_.set_data(1, cycle.value16());			break;
 		case Write(0x074):	blitter_.set_data(0, cycle.value16());			break;
 
+		// Paula.
+		case Write(0x09e):
+		case Write(0x0a0):	case Write(0x0a2):	case Write(0x0a4):	case Write(0x0a6):
+		case Write(0x0a8):	case Write(0x0aa):
+		case Write(0x0b0):	case Write(0x0b2):	case Write(0x0b4):	case Write(0x0b6):
+		case Write(0x0b8):	case Write(0x0ba):
+		case Write(0x0c0):	case Write(0x0c2):	case Write(0x0c4):	case Write(0x0c6):
+		case Write(0x0c8):	case Write(0x0ca):
+		case Write(0x0d0):	case Write(0x0d2):	case Write(0x0d4):	case Write(0x0d6):
+		case Write(0x0d8):	case Write(0x0da):
+			LOG("TODO: Paula write " << PADHEX(4) << (*cycle.address & 0xfff) << PADHEX(4) << cycle.value16());
+		break;
+
 		// Copper.
 		case Write(0x02e):
 			LOG("TODO: coprocessor control " << PADHEX(4) << cycle.value16());
