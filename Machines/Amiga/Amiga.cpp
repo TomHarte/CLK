@@ -82,11 +82,19 @@ class ConcreteMachine:
 			const auto changes = chipset_.run_for(cycle.length);
 			cia_a_.advance_tod(changes.vsyncs);
 			cia_b_.advance_tod(changes.hsyncs);
+			mc68000_.set_interrupt_level(changes.interrupt_level);
 
 			// Check for assertion of reset.
 			if(cycle.operation & Microcycle::Reset) {
 				memory_.reset();
 				LOG("Reset; PC is around " << PADHEX(8) << mc68000_.get_state().program_counter);
+			}
+
+			// Autovector interrupts.
+			if(cycle.operation & Microcycle::InterruptAcknowledge) {
+				mc68000_.set_is_peripheral_address(true);
+			} else {
+				mc68000_.set_is_peripheral_address(false);
 			}
 
 			// Do nothing if no address is exposed.

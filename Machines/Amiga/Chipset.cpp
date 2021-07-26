@@ -16,6 +16,27 @@
 
 using namespace Amiga;
 
+namespace {
+
+enum InterruptFlag: uint16_t {
+	SerialPortTransmit		= 1 << 0,
+	DiskBlock				= 1 << 1,
+	Software				= 1 << 2,
+	IOPortsAndTimers		= 1 << 3,
+	Copper					= 1 << 4,
+	VerticalBlank			= 1 << 5,
+	Blitter					= 1 << 6,
+	AudioChannel0			= 1 << 7,
+	AudioChannel1			= 1 << 8,
+	AudioChannel2			= 1 << 9,
+	AudioChannel3			= 1 << 10,
+	SerialPortReceive		= 1 << 11,
+	DiskSyncMatch			= 1 << 12,
+	External				= 1 << 13,
+};
+
+}
+
 Chipset::Chipset(uint16_t *ram, size_t size) :
 	blitter_(ram, size) {
 }
@@ -33,7 +54,35 @@ Chipset::Changes Chipset::run_for(HalfCycles length) {
 	changes.vsyncs = y_ / 312;
 	y_ %= 312;
 
+	// y = 0 => start of vertical blank.
+	if(changes.vsyncs) {
+		interrupt_requests_ |= InterruptFlag::VerticalBlank;
+		update_interrupts();
+	}
+
+	changes.interrupt_level = interrupt_level_;
 	return changes;
+}
+
+void Chipset::update_interrupts() {
+	interrupt_level_ = 0;
+
+	const uint16_t enabled_requests = interrupt_enable_ & interrupt_requests_ & 0x3fff;
+	if(enabled_requests && (interrupt_enable_ & 0x4000)) {
+		if(enabled_requests & (InterruptFlag::External)) {
+			interrupt_level_ = 6;
+		} else if(enabled_requests & (InterruptFlag::SerialPortReceive | InterruptFlag::DiskSyncMatch)) {
+			interrupt_level_ = 5;
+		} else if(enabled_requests & (InterruptFlag::AudioChannel0 | InterruptFlag::AudioChannel1 | InterruptFlag::AudioChannel2 | InterruptFlag::AudioChannel3)) {
+			interrupt_level_ = 4;
+		} else if(enabled_requests & (InterruptFlag::Copper | InterruptFlag::VerticalBlank | InterruptFlag::Blitter)) {
+			interrupt_level_ = 3;
+		} else if(enabled_requests & (InterruptFlag::External)) {
+			interrupt_level_ = 2;
+		} else if(enabled_requests & (InterruptFlag::SerialPortTransmit | InterruptFlag::DiskBlock | InterruptFlag::Software)) {
+			interrupt_level_ = 1;
+		}
+	}
 }
 
 void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
@@ -119,10 +168,17 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			update_interrupts();
 			LOG("Interrupt enable mask modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_enable_});
 		break;
+		case Read(0x01c):
+			cycle.set_value16(interrupt_enable_);
+		break;
+
 		case Write(0x09c):
 			ApplySetClear(interrupt_requests_);
 			update_interrupts();
 			LOG("Interrupt request modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_requests_});
+		break;
+		case Read(0x01e):
+			cycle.set_value16(interrupt_requests_);
 		break;
 
 		// Display management.

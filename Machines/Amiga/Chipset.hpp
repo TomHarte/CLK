@@ -29,7 +29,7 @@ class Chipset {
 		struct Changes {
 			int hsyncs = 0;
 			int vsyncs = 0;
-			// TODO: interrupt change?
+			int interrupt_level = 0;
 		};
 
 		/// Advances the stated amount of time.
@@ -38,15 +38,19 @@ class Chipset {
 		/// Performs the provided microcycle, which the caller guarantees to be a memory access.
 		void perform(const CPU::MC68000::Microcycle &);
 
+		/// Provides the chipset's current interrupt level.
+		int get_interrupt_level() {
+			return interrupt_level_;
+		}
+
 	private:
 		// MARK: - Interrupts.
 
 		uint16_t interrupt_enable_ = 0;
 		uint16_t interrupt_requests_ = 0;
+		int interrupt_level_ = 0;
 
-		void update_interrupts() {
-			// TODO.
-		}
+		void update_interrupts();
 
 		// MARK: - DMA Control and Blitter.
 
