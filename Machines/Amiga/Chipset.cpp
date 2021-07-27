@@ -45,8 +45,12 @@ Chipset::Chipset(uint16_t *ram, size_t size) :
 Chipset::Changes Chipset::run_for(HalfCycles length, bool) {
 	Changes changes;
 
-	// Update raster position, spooling out something that isn't yet actual graphics.
 	auto pixels_remaining = length.as<int>();
+
+	// TODO: all DMA scheduling and actions, possibly stopping upon discovery of a CPU slot.
+	// Video memory collected here is spirited away for unspooling in the next loop.
+
+	// Update raster position, spooling out graphics.
 	while(pixels_remaining) {
 		// Determine number of pixels left on this line.
 		int line_pixels = std::min(pixels_remaining, line_length_ - x_);
@@ -120,15 +124,24 @@ Chipset::Changes Chipset::run_for(HalfCycles length, bool) {
 			LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
 			LINK(blank3, output_blank, blank3 - burst);
 
-			// Output generic white to fill the rest of the line.
-			if(final_x > blank3) {
-				const int start_x = std::max(blank3, x_);
+//			if(final_x > blank3) {
+//				const int start_x = std::max(blank3, x_);
+//
+//				uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(2));
+//				if(pixels) {
+//					*pixels = palette_[0];
+//				}
+//				crt_.output_data((final_x - start_x) * 4, 1);
+//			}
 
-				uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(2));
+			// Output colour 0 to fill the rest of the line; Kickstart uses this
+			// colour to post the error code. TODO: actual pixels, etc.
+			if(final_x == line_length_) {
+				uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
 				if(pixels) {
 					*pixels = palette_[0];
 				}
-				crt_.output_data((final_x - start_x) * 4, 1);
+				crt_.output_data((final_x - blank3) * 4, 1);
 			}
 		}
 
