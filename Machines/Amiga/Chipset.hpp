@@ -48,7 +48,6 @@ class Chipset {
 			return interrupt_level_;
 		}
 
-
 		// The standard CRT set.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
@@ -96,8 +95,49 @@ class Chipset {
 
 		// MARK: - Copper.
 
-		uint32_t copper_address_ = 0;
-		uint32_t copper_addresses_[2]{};
+		class Copper {
+			public:
+				Copper(Chipset &chipset, uint16_t *ram, size_t size) : chipset_(chipset), ram_(ram), ram_mask_(uint32_t(size - 1)) {}
+
+				/// Offers a DMA slot to the Copper, specifying the current beam position.
+				///
+				/// @returns @c true if the slot was used; @c false otherwise.
+				bool advance(uint16_t position);
+
+				void reload(int id) {
+					address = addresses[id] >> 1;
+					state_ = State::FetchFirstWord;
+				}
+
+				template <int id, int shift> void set_address(uint16_t value) {
+					addresses[id] = (addresses[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
+				}
+
+				void set_control(uint16_t c) {
+					control_ = c;
+				}
+
+				void stop() {
+					state_ = State::Stopped;
+				}
+
+			private:
+				Chipset &chipset_;
+
+				uint32_t address = 0;
+				uint32_t addresses[2]{};
+				uint16_t control_ = 0;
+
+				enum class State {
+					FetchFirstWord, FetchSecondWord, Waiting, Stopped,
+				} state_ = State::Stopped;
+				bool skip_next_ = false;
+				uint16_t instruction[2]{};
+
+				uint16_t *ram_ = nullptr;
+				uint32_t ram_mask_ = 0;
+		} copper_;
+		friend Copper;
 
 		// MARK: - Pixel output.
 

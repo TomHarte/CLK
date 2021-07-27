@@ -39,6 +39,7 @@ enum InterruptFlag: uint16_t {
 
 Chipset::Chipset(uint16_t *ram, size_t size) :
 	blitter_(ram, size),
+	copper_(*this, ram, size),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 }
 
@@ -50,10 +51,71 @@ Chipset::Changes Chipset::run_until_cpu_slot() {
 	return run<true>();
 }
 
+bool Chipset::Copper::advance(uint16_t position) {
+	(void)position;
+
+	switch(state_) {
+		default: return false;
+
+		case State::FetchFirstWord:
+			instruction[0] = ram_[address & ram_mask_];
+			++address;
+			state_ = State::FetchSecondWord;
+		break;
+
+		case State::FetchSecondWord:
+			instruction[1] = ram_[address & ram_mask_];
+			++address;
+
+			if(!(instruction[0] & 1)) {
+				// This is a move.
+				// At least for now, construct a 68000-esque Microcycle.
+				CPU::MC68000::Microcycle cycle;
+				cycle.operation = CPU::MC68000::Microcycle::SelectWord;
+				uint32_t full_address = instruction[0];
+				CPU::RegisterPair16 data = instruction[1];
+				cycle.address = &full_address;
+				cycle.value = &data;
+				chipset_.perform(cycle);
+				state_ = State::FetchFirstWord;
+			} else {
+				// TODO: ... decode and handle WAITs and SKIPs.
+				state_ = State::Stopped;
+			}
+		break;
+	}
+
+	return true;
+}
+
 template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	// TODO: actual CPU scheduling.
 	if constexpr (stop_if_cpu) {
 		return true;
+	}
+
+	if constexpr (cycle & 1) {
+		// Odd slot priority is:
+		//
+		//	1. Copper, if interested.
+		//	2. Bitplane.
+		//	3. Blitter.
+		//	4. CPU.
+		if((dma_control_ & 0x280) == 0x280) {
+			if(copper_.advance(uint16_t(((y_ & 0xff) << 8) | cycle))) {
+				return false;
+			}
+		} else {
+			copper_.stop();
+		}
+
+	} else {
+		// Even slot use/priority:
+		//
+		//	1. Bitplane fetches.
+		//	2. Disk, then audio, then sprites depending on region.
+		//	3. Blitter.
+		//	4. CPU.
 	}
 
 	return false;
@@ -80,8 +142,13 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 		if((line_cycle_ >> 2) == final_slot) {
 			// Not enough pixels left to fill any whole slots, just stop.
+			line_cycle_ += line_pixels;
 			break;
 		}
+
+		// TODO: advance to the next window boundary.
+//		line_pixels -= (line_pixels & 3);
+//		line_cycle_ += (4 - ((line_cycle_ & 3) + 1)) & 3;
 
 #define C(x) \
 	case x: \
@@ -205,7 +272,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				y_ = 0;
 
 				// TODO: the manual is vague on when this happens. Try to find out.
-				copper_address_ = copper_addresses_[0];
+				copper_.reload(0);
 			}
 		}
 	}
@@ -437,31 +504,32 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		// Copper.
 		case Write(0x02e):
-			LOG("TODO: coprocessor control " << PADHEX(4) << cycle.value16());
+			LOG("Coprocessor control " << PADHEX(4) << cycle.value16());
+			copper_.set_control(cycle.value16());
 		break;
 		case Write(0x080):
-			LOG("TODO: coprocessor first location register high " << PADHEX(4) << cycle.value16());
-			copper_addresses_[0] = (copper_addresses_[0] & 0x0000'ffff) | uint32_t(cycle.value16() << 16);
+			LOG("Coprocessor first location register high " << PADHEX(4) << cycle.value16());
+			copper_.set_address<0, 16>(cycle.value16());
 		break;
 		case Write(0x082):
-			LOG("TODO: coprocessor first location register low " << PADHEX(4) << cycle.value16());
-			copper_addresses_[0] = (copper_addresses_[0] & 0xffff'0000) | uint32_t(cycle.value16() << 0);
+			LOG("Coprocessor first location register low " << PADHEX(4) << cycle.value16());
+			copper_.set_address<0, 0>(cycle.value16());
 		break;
 		case Write(0x084):
-			LOG("TODO: coprocessor second location register high " << PADHEX(4) << cycle.value16());
-			copper_addresses_[1] = (copper_addresses_[1] & 0x0000'ffff) | uint32_t(cycle.value16() << 16);
+			LOG("Coprocessor second location register high " << PADHEX(4) << cycle.value16());
+			copper_.set_address<1, 16>(cycle.value16());
 		break;
 		case Write(0x086):
-			LOG("TODO: coprocessor second location register low " << PADHEX(4) << cycle.value16());
-			copper_addresses_[1] = (copper_addresses_[1] & 0xffff'0000) | uint32_t(cycle.value16() << 0);
+			LOG("Coprocessor second location register low " << PADHEX(4) << cycle.value16());
+			copper_.set_address<1, 0>(cycle.value16());
 		break;
 		case Write(0x088):	case Read(0x088):
-			LOG("TODO: coprocessor restart at first location");
-			copper_address_ = copper_addresses_[0];
+			LOG("Coprocessor restart at first location");
+			copper_.reload(0);
 		break;
 		case Write(0x08a):	case Read(0x08a):
-			LOG("TODO: coprocessor restart at second location");
-			copper_address_ = copper_addresses_[1];
+			LOG("Coprocessor restart at second location");
+			copper_.reload(1);
 		break;
 		case Write(0x08c):
 			LOG("TODO: coprocessor instruction fetch identity " << PADHEX(4) << cycle.value16());
