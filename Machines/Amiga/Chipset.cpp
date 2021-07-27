@@ -57,6 +57,12 @@ bool Chipset::Copper::advance(uint16_t position) {
 	switch(state_) {
 		default: return false;
 
+		case State::Waiting:
+			if(position >= instruction[1]) {
+				state_ = State::FetchFirstWord;
+			}
+		return false;
+
 		case State::FetchFirstWord:
 			instruction[0] = ram_[address & ram_mask_];
 			++address;
@@ -69,6 +75,7 @@ bool Chipset::Copper::advance(uint16_t position) {
 
 			if(!(instruction[0] & 1)) {
 				// This is a move.
+				// TODO: permissions.
 				// At least for now, construct a 68000-esque Microcycle.
 				CPU::MC68000::Microcycle cycle;
 				cycle.operation = CPU::MC68000::Microcycle::SelectWord;
@@ -77,11 +84,20 @@ bool Chipset::Copper::advance(uint16_t position) {
 				cycle.address = &full_address;
 				cycle.value = &data;
 				chipset_.perform(cycle);
+
 				state_ = State::FetchFirstWord;
-			} else {
-				// TODO: ... decode and handle WAITs and SKIPs.
-				state_ = State::Stopped;
+				break;
 			}
+
+			if(!(instruction[1] & 1)) {
+				// A WAIT. Just note that this is now waiting.
+				state_ = State::Waiting;
+				break;
+			}
+
+			// TODO: SKIPs.
+			LOG("Unhandled Copper instruction " << PADHEX(4) << instruction[0] << " <- " << instruction[1]);
+			state_ = State::Stopped;
 		break;
 	}
 
@@ -433,6 +449,15 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Bitplanes.
+		case Write(0x0e0):	case Write(0x0e2):
+		case Write(0x0e4):	case Write(0x0e6):
+		case Write(0x0e8):	case Write(0x0ea):
+		case Write(0x0ec):	case Write(0x0ee):
+		case Write(0x0f0):	case Write(0x0f2):
+		case Write(0x0f4):	case Write(0x0f6):
+			LOG("TODO: Bitplane pointer; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+		break;
+
 		case Write(0x100):
 		case Write(0x102):
 		case Write(0x104):
