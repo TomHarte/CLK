@@ -34,8 +34,11 @@ class Chipset {
 			HalfCycles duration;
 		};
 
-		/// Advances the stated amount of time, possibly stopping if a CPU slot is found.
-		Changes run_for(HalfCycles, bool stop_on_cpu_slot);
+		/// Advances the stated amount of time.
+		Changes run_for(HalfCycles);
+
+		/// Advances to the next available CPU slot.
+		Changes run_until_cpu_slot();
 
 		/// Performs the provided microcycle, which the caller guarantees to be a memory access.
 		void perform(const CPU::MC68000::Microcycle &);
@@ -61,7 +64,12 @@ class Chipset {
 
 		void update_interrupts();
 
-		// MARK: - DMA Control and Blitter.
+		// MARK: - Scheduler.
+
+		template <bool stop_on_cpu> Changes run(HalfCycles duration = HalfCycles());
+		template <int cycle, bool stop_if_cpu> bool perform_cycle();
+
+		// MARK: - DMA Control, Scheduler and Blitter.
 
 		uint16_t dma_control_ = 0;
 		Blitter blitter_;
@@ -77,8 +85,8 @@ class Chipset {
 
 		// MARK: - Raster.
 
-		int x_ = 0, y_ = 0;
-		int line_length_ = 227;
+		int line_cycle_ = 0, y_ = 0;
+		int line_length_ = 227 * 4;
 		int frame_height_ = 312;
 		int vertical_blank_height_ = 29;
 
@@ -88,7 +96,8 @@ class Chipset {
 
 		// MARK: - Copper.
 
-		uint16_t copper_address_ = 0;
+		uint32_t copper_address_ = 0;
+		uint32_t copper_addresses_[2]{};
 
 		// MARK: - Pixel output.
 

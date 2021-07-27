@@ -42,19 +42,74 @@ Chipset::Chipset(uint16_t *ram, size_t size) :
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 }
 
-Chipset::Changes Chipset::run_for(HalfCycles length, bool) {
+Chipset::Changes Chipset::run_for(HalfCycles length) {
+	return run<false>(length);
+}
+
+Chipset::Changes Chipset::run_until_cpu_slot() {
+	return run<true>();
+}
+
+template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
+	// TODO: actual CPU scheduling.
+	if constexpr (stop_if_cpu) {
+		return true;
+	}
+
+	return false;
+}
+
+template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 	Changes changes;
 
+	// This code uses 'pixels' as a measure, which is equivalent to one pixel clock time,
+	// or half a cycle.
 	auto pixels_remaining = length.as<int>();
-
-	// TODO: all DMA scheduling and actions, possibly stopping upon discovery of a CPU slot.
-	// Video memory collected here is spirited away for unspooling in the next loop.
 
 	// Update raster position, spooling out graphics.
 	while(pixels_remaining) {
 		// Determine number of pixels left on this line.
-		int line_pixels = std::min(pixels_remaining, line_length_ - x_);
+		int line_pixels = std::min(pixels_remaining, line_length_ - line_cycle_);
 		pixels_remaining -= line_pixels;
+
+		//
+		// Run DMA scheduler.
+		//
+
+		int final_slot = (line_cycle_ + line_pixels) >> 2;
+
+		if((line_cycle_ >> 2) == final_slot) {
+			// Not enough pixels left to fill any whole slots, just stop.
+			break;
+		}
+
+#define C(x) \
+	case x: \
+		if constexpr(stop_on_cpu) { if(perform_cycle<x, stop_on_cpu>()) break; } else { perform_cycle<x, stop_on_cpu>(); } \
+		line_cycle_ += 4;	\
+		if((line_cycle_ >> 2) == final_slot) break;
+
+#define C10(x)	C(x); C(x+1); C(x+2); C(x+3); C(x+4); C(x+5); C(x+6); C(x+7); C(x+8); C(x+9);
+		switch(line_cycle_ >> 2) {
+			C10(0);		C10(10);	C10(20);	C10(30);	C10(40);
+			C10(50);	C10(60);	C10(70);	C10(80);	C10(90);
+			C10(100);	C10(110);	C10(120);	C10(130);	C10(140);
+			C10(150);	C10(160);	C10(170);	C10(180);	C10(190);
+			C10(200);	C10(210);
+			C(220);		C(221);		C(222);		C(223);		C(224);
+			C(225);		C(226);		C(227);		C(228);
+
+			default: assert(false);
+		}
+#undef C
+
+		// Update per the possibility that the above ended early.
+		final_slot = line_cycle_ >> 2;
+		int slot = line_cycle_ >> 2;
+
+		//
+		// Output video signal as implied by whatever happened above.
+		//
 
 		// Hardware stop is at 0x18;
 		// 12/64 * 227 = 42.5625
@@ -79,11 +134,10 @@ Chipset::Changes Chipset::run_for(HalfCycles length, bool) {
 		static_assert(blank3 == 43);
 
 #define LINK(location, action, length) \
-	if(x_ < (location) && final_x >= (location))	{	\
+	if(slot < (location) && final_slot >= (location))	{	\
 		crt_.action((length) * 4);	\
 	}
 
-		const int final_x = x_ + line_pixels;
 		if(y_ < vertical_blank_height_) {
 			// Put three lines of sync at the centre of the vertical blank period.
 			// TODO: offset by half a line if interlaced and on an odd frame.
@@ -124,34 +178,23 @@ Chipset::Changes Chipset::run_for(HalfCycles length, bool) {
 			LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
 			LINK(blank3, output_blank, blank3 - burst);
 
-//			if(final_x > blank3) {
-//				const int start_x = std::max(blank3, x_);
-//
-//				uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(2));
-//				if(pixels) {
-//					*pixels = palette_[0];
-//				}
-//				crt_.output_data((final_x - start_x) * 4, 1);
-//			}
-
 			// Output colour 0 to fill the rest of the line; Kickstart uses this
 			// colour to post the error code. TODO: actual pixels, etc.
-			if(final_x == line_length_) {
+			if(line_cycle_ >= line_length_) {
 				uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
 				if(pixels) {
 					*pixels = palette_[0];
 				}
-				crt_.output_data((final_x - blank3) * 4, 1);
+				crt_.output_data(line_length_ - blank3 * 4, 1);
 			}
 		}
 
 		// Advance intraline counter and possibly ripple upwards into
 		// lines and fields.
-		x_ += line_pixels;
-		if(x_ == line_length_) {
+		if(line_cycle_ >= line_length_) {
 			++changes.hsyncs;
 
-			x_ = 0;
+			line_cycle_ = 0;
 			++y_;
 
 			if(y_ == frame_height_) {
@@ -160,6 +203,9 @@ Chipset::Changes Chipset::run_for(HalfCycles length, bool) {
 				update_interrupts();
 
 				y_ = 0;
+
+				// TODO: the manual is vague on when this happens. Try to find out.
+				copper_address_ = copper_addresses_[0];
 			}
 		}
 	}
@@ -221,7 +267,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			cycle.set_value16(position);
 		} break;
 		case Read(0x006): {
-			const uint16_t position = uint16_t((x_ << 8) | (y_ & 0xff));
+			const uint16_t position = uint16_t(((line_cycle_ << 6) & 0xff00) | (y_ & 0x00ff));
 			LOG("Read position low " << PADHEX(4) << position);
 			cycle.set_value16(position);
 		} break;
@@ -395,21 +441,27 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 		case Write(0x080):
 			LOG("TODO: coprocessor first location register high " << PADHEX(4) << cycle.value16());
+			copper_addresses_[0] = (copper_addresses_[0] & 0x0000'ffff) | uint32_t(cycle.value16() << 16);
 		break;
 		case Write(0x082):
 			LOG("TODO: coprocessor first location register low " << PADHEX(4) << cycle.value16());
+			copper_addresses_[0] = (copper_addresses_[0] & 0xffff'0000) | uint32_t(cycle.value16() << 0);
 		break;
 		case Write(0x084):
 			LOG("TODO: coprocessor second location register high " << PADHEX(4) << cycle.value16());
+			copper_addresses_[1] = (copper_addresses_[1] & 0x0000'ffff) | uint32_t(cycle.value16() << 16);
 		break;
 		case Write(0x086):
 			LOG("TODO: coprocessor second location register low " << PADHEX(4) << cycle.value16());
+			copper_addresses_[1] = (copper_addresses_[1] & 0xffff'0000) | uint32_t(cycle.value16() << 0);
 		break;
 		case Write(0x088):	case Read(0x088):
 			LOG("TODO: coprocessor restart at first location");
+			copper_address_ = copper_addresses_[0];
 		break;
 		case Write(0x08a):	case Read(0x08a):
 			LOG("TODO: coprocessor restart at second location");
+			copper_address_ = copper_addresses_[1];
 		break;
 		case Write(0x08c):
 			LOG("TODO: coprocessor instruction fetch identity " << PADHEX(4) << cycle.value16());
