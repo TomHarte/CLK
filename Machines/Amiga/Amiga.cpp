@@ -79,7 +79,7 @@ class ConcreteMachine:
 				cia_b_.run_for(e_clocks);
 			}
 
-			const auto changes = chipset_.run_for(cycle.length);
+			const auto changes = chipset_.run_for(cycle.length, false);
 			cia_a_.advance_tod(changes.vsyncs);
 			cia_b_.advance_tod(changes.hsyncs);
 			mc68000_.set_interrupt_level(changes.interrupt_level);

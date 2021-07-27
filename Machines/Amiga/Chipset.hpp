@@ -31,10 +31,11 @@ class Chipset {
 			int hsyncs = 0;
 			int vsyncs = 0;
 			int interrupt_level = 0;
+			HalfCycles duration;
 		};
 
-		/// Advances the stated amount of time.
-		Changes run_for(HalfCycles);
+		/// Advances the stated amount of time, possibly stopping if a CPU slot is found.
+		Changes run_for(HalfCycles, bool stop_on_cpu_slot);
 
 		/// Performs the provided microcycle, which the caller guarantees to be a memory access.
 		void perform(const CPU::MC68000::Microcycle &);

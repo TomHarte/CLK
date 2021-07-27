@@ -42,7 +42,7 @@ Chipset::Chipset(uint16_t *ram, size_t size) :
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 }
 
-Chipset::Changes Chipset::run_for(HalfCycles length) {
+Chipset::Changes Chipset::run_for(HalfCycles length, bool) {
 	Changes changes;
 
 	// Update raster position, spooling out something that isn't yet actual graphics.
@@ -82,17 +82,35 @@ Chipset::Changes Chipset::run_for(HalfCycles length) {
 		const int final_x = x_ + line_pixels;
 		if(y_ < vertical_blank_height_) {
 			// Put three lines of sync at the centre of the vertical blank period.
-			// TODO: offset by half a line if interlaced.
+			// TODO: offset by half a line if interlaced and on an odd frame.
 
 			const int midline = vertical_blank_height_ >> 1;
-			if(y_ < midline - 1 || y_ > midline + 1) {
-				LINK(blank1, output_blank, blank1);
-				LINK(sync, output_sync, sync - blank1);
-				LINK(line_length_, output_blank, line_length_ - sync);
+			if(frame_height_ & 1) {
+				if(y_ < midline - 1 || y_ > midline + 2) {
+					LINK(blank1, output_blank, blank1);
+					LINK(sync, output_sync, sync - blank1);
+					LINK(line_length_, output_blank, line_length_ - sync);
+				} else if(y_ == midline - 1) {
+					LINK(113, output_blank, 113);
+					LINK(line_length_, output_sync, line_length_ - 113);
+				} else if(y_ == midline + 2) {
+					LINK(113, output_sync, 113);
+					LINK(line_length_, output_blank, line_length_ - 113);
+				} else {
+					LINK(blank1, output_sync, blank1);
+					LINK(sync, output_blank, sync - blank1);
+					LINK(line_length_, output_sync, line_length_ - sync);
+				}
 			} else {
-				LINK(blank1, output_sync, blank1);
-				LINK(sync, output_blank, sync - blank1);
-				LINK(line_length_, output_sync, line_length_ - sync);
+				if(y_ < midline - 1 || y_ > midline + 1) {
+					LINK(blank1, output_blank, blank1);
+					LINK(sync, output_sync, sync - blank1);
+					LINK(line_length_, output_blank, line_length_ - sync);
+				} else {
+					LINK(blank1, output_sync, blank1);
+					LINK(sync, output_blank, sync - blank1);
+					LINK(line_length_, output_sync, line_length_ - sync);
+				}
 			}
 		} else {
 			// Output the correct sequence of blanks, syncs and burst atomically.
@@ -135,6 +153,7 @@ Chipset::Changes Chipset::run_for(HalfCycles length) {
 #undef LINK
 
 	changes.interrupt_level = interrupt_level_;
+	changes.duration = length;
 	return changes;
 }
 
