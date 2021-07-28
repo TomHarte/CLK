@@ -52,8 +52,6 @@ Chipset::Changes Chipset::run_until_cpu_slot() {
 }
 
 bool Chipset::Copper::advance(uint16_t position) {
-	(void)position;
-
 	switch(state_) {
 		default: return false;
 
