@@ -126,7 +126,7 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 
 		// Interrupt control.
 		case 13: {
-			if(interrupt_control_ & 0x80) {
+			if(value & 0x80) {
 				interrupt_control_ |= value & 0x7f;
 			} else {
 				interrupt_control_ &= ~(value & 0x7f);
@@ -233,6 +233,7 @@ template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 	half_divider_ += half_cycles;
 	const int sub = half_divider_.divide_cycles().template as<int>();
+	if(!sub) return;
 
 	// Is counter A running and linked to the clock input?
 	int counter_a_underflows = 0;
