@@ -37,7 +37,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Amiga::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
-			chipset_(reinterpret_cast<uint16_t *>(memory_.chip_ram.data()), memory_.chip_ram.size()),
+			chipset_(reinterpret_cast<uint16_t *>(memory_.chip_ram.data()), memory_.chip_ram.size() >> 1),
 			cia_a_handler_(memory_),
 			cia_a_(cia_a_handler_),
 			cia_b_(cia_b_handler_)
