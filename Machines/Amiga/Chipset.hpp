@@ -66,6 +66,7 @@ class Chipset {
 		// MARK: - Scheduler.
 
 		template <bool stop_on_cpu> Changes run(HalfCycles duration = HalfCycles());
+		template <bool stop_on_cpu> int advance_slots(int, int);
 		template <int cycle, bool stop_if_cpu> bool perform_cycle();
 		template <int cycle> void output();
 

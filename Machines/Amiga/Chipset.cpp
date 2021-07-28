@@ -127,6 +127,8 @@ bool Chipset::Copper::advance(uint16_t position) {
 }
 
 template <int cycle> void Chipset::output() {
+	// Notes to self on guesses below:
+	//
 	// Hardware stop is at 0x18;
 	// 12/64 * 227 = 42.5625
 	//
@@ -242,6 +244,41 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	return false;
 }
 
+template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_slot) {
+	if(first_slot == last_slot) {
+		return -1;
+	}
+
+#define C(x) \
+	case x: \
+		if constexpr(stop_on_cpu) {\
+			if(perform_cycle<x, stop_on_cpu>()) {\
+				return x - first_slot;\
+			}\
+		} else {\
+			perform_cycle<x, stop_on_cpu>(); \
+		} \
+		output<x>();	\
+		if((x + 1) == last_slot) break;	\
+		[[fallthrough]]
+
+#define C10(x)	C(x); C(x+1); C(x+2); C(x+3); C(x+4); C(x+5); C(x+6); C(x+7); C(x+8); C(x+9);
+	switch(first_slot) {
+		C10(0);		C10(10);	C10(20);	C10(30);	C10(40);
+		C10(50);	C10(60);	C10(70);	C10(80);	C10(90);
+		C10(100);	C10(110);	C10(120);	C10(130);	C10(140);
+		C10(150);	C10(160);	C10(170);	C10(180);	C10(190);
+		C10(200);	C10(210);
+		C(220);		C(221);		C(222);		C(223);		C(224);
+		C(225);		C(226);		C(227);		C(228);
+
+		default: assert(false);
+	}
+#undef C
+
+	return -1;
+}
+
 template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 	Changes changes;
 
@@ -252,54 +289,19 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 	// Update raster position, spooling out graphics.
 	while(pixels_remaining) {
 		// Determine number of pixels left on this line.
-		int line_pixels = std::min(pixels_remaining, (line_length_ * 4) - line_cycle_);
+		const int line_pixels = std::min(pixels_remaining, (line_length_ * 4) - line_cycle_);
 
-		//
-		// Run DMA scheduler.
-		//
+		const int start_slot = line_cycle_ >> 2;
+		const int end_slot = (line_cycle_ + line_pixels) >> 2;
+		const int actual_slots = advance_slots<stop_on_cpu>(start_slot, end_slot);
 
-		int final_slot = (line_cycle_ + line_pixels) >> 2;
-
-		if((line_cycle_ >> 2) == final_slot) {
-			// Not enough pixels left to fill any whole slots, just stop.
-			line_cycle_ += line_pixels;
-			break;
+		if(actual_slots >= 0) {
+			// TODO: abbreviate run, prior to adding to totals below.
+			assert(false);
 		}
 
-		// Advance to window boundary.
-		const int distance_to_boundary = ((line_cycle_ - 1) & 3) ^ 3;
-		line_pixels -= distance_to_boundary;
-		pixels_remaining -= distance_to_boundary;
-		line_cycle_ += distance_to_boundary;
-
-#define C(x) \
-	case x: \
-		assert(!(line_cycle_&3));	\
-		if constexpr(stop_on_cpu) {\
-			if(perform_cycle<x, stop_on_cpu>()) {\
-				break;\
-			}\
-		} else {\
-			perform_cycle<x, stop_on_cpu>(); \
-		} \
-		output<x>();	\
-		if((line_cycle_ >> 2) == final_slot) break;	\
-		line_cycle_ += 4;	\
-		pixels_remaining -= 4;
-
-#define C10(x)	C(x); C(x+1); C(x+2); C(x+3); C(x+4); C(x+5); C(x+6); C(x+7); C(x+8); C(x+9);
-		switch(line_cycle_ >> 2) {
-			C10(0);		C10(10);	C10(20);	C10(30);	C10(40);
-			C10(50);	C10(60);	C10(70);	C10(80);	C10(90);
-			C10(100);	C10(110);	C10(120);	C10(130);	C10(140);
-			C10(150);	C10(160);	C10(170);	C10(180);	C10(190);
-			C10(200);	C10(210);
-			C(220);		C(221);		C(222);		C(223);		C(224);
-			C(225);		C(226);		C(227);		C(228);
-
-			default: assert(false);
-		}
-#undef C
+		line_cycle_ += line_pixels;
+		pixels_remaining -= line_pixels;
 
 		// Advance intraline counter and possibly ripple upwards into
 		// lines and fields.
@@ -320,6 +322,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				copper_.reload(0);
 			}
 		}
+		assert(line_cycle_ < line_length_ * 4);
 	}
 
 	changes.interrupt_level = interrupt_level_;
