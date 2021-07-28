@@ -67,6 +67,7 @@ class Chipset {
 
 		template <bool stop_on_cpu> Changes run(HalfCycles duration = HalfCycles());
 		template <int cycle, bool stop_if_cpu> bool perform_cycle();
+		template <int cycle> void output();
 
 		// MARK: - DMA Control, Scheduler and Blitter.
 
@@ -85,7 +86,7 @@ class Chipset {
 		// MARK: - Raster.
 
 		int line_cycle_ = 0, y_ = 0;
-		int line_length_ = 227 * 4;
+		int line_length_ = 227;
 		int frame_height_ = 312;
 		int vertical_blank_height_ = 29;
 

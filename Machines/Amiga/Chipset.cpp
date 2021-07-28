@@ -126,6 +126,89 @@ bool Chipset::Copper::advance(uint16_t position) {
 	return true;
 }
 
+template <int cycle> void Chipset::output() {
+	// Hardware stop is at 0x18;
+	// 12/64 * 227 = 42.5625
+	//
+	// "However, horizontal blanking actually limits the displayable
+	// video to 368 low resolution pixel"
+	//
+	// => 184 windows out of 227 are visible, which concurs.
+	//
+
+	// A complete from-thin-air guess:
+	//
+	//	7 cycles blank;
+	//	17 cycles sync;
+	//	3 cycles blank;
+	//	9 cycles colour burst;
+	//	7 cycles blank.
+	constexpr int blank1	= 7;
+	constexpr int sync		= 17 + blank1;
+	constexpr int blank2 	= 3 + sync;
+	constexpr int burst 	= 9 + blank2;
+	constexpr int blank3 	= 7 + burst;
+	static_assert(blank3 == 43);
+
+#define LINK(location, action, length)	\
+	if(cycle == (location))	{			\
+		crt_.action((length) * 4);		\
+	}
+
+	if(y_ < vertical_blank_height_) {
+		// Put three lines of sync at the centre of the vertical blank period.
+		// Offset by half a line if interlaced and on an odd frame.
+
+		const int midline = vertical_blank_height_ >> 1;
+		if(frame_height_ & 1) {
+			if(y_ < midline - 1 || y_ > midline + 2) {
+				LINK(blank1, output_blank, blank1);
+				LINK(sync, output_sync, sync - blank1);
+				LINK(line_length_ - 1, output_blank, line_length_ - 1 - sync);
+			} else if(y_ == midline - 1) {
+				LINK(113, output_blank, 113);
+				LINK(line_length_ - 1, output_sync, line_length_ - 1 - 113);
+			} else if(y_ == midline + 2) {
+				LINK(113, output_sync, 113);
+				LINK(line_length_ - 1, output_blank, line_length_ - 1 - 113);
+			} else {
+				LINK(blank1, output_sync, blank1);
+				LINK(sync, output_blank, sync - blank1);
+				LINK(line_length_ - 1, output_sync, line_length_ - 1 - sync);
+			}
+		} else {
+			if(y_ < midline - 1 || y_ > midline + 1) {
+				LINK(blank1, output_blank, blank1);
+				LINK(sync, output_sync, sync - blank1);
+				LINK(line_length_ - 1, output_blank, line_length_ - 1 - sync);
+			} else {
+				LINK(blank1, output_sync, blank1);
+				LINK(sync, output_blank, sync - blank1);
+				LINK(line_length_ - 1, output_sync, line_length_ - 1 - sync);
+			}
+		}
+	} else {
+		// Output the correct sequence of blanks, syncs and burst atomically.
+		LINK(blank1, output_blank, blank1);
+		LINK(sync, output_sync, sync - blank1);
+		LINK(blank2, output_blank, blank2 - sync);
+		LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
+		LINK(blank3, output_blank, blank3 - burst);
+
+		// Output colour 0 to fill the rest of the line; Kickstart uses this
+		// colour to post the error code. TODO: actual pixels, etc.
+		if(cycle == line_length_ - 1) {
+			uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
+			if(pixels) {
+				*pixels = palette_[0];
+			}
+			crt_.output_data((cycle - blank3) * 4, 1);
+		}
+	}
+
+#undef LINK
+}
+
 template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	// TODO: actual CPU scheduling.
 	if constexpr (stop_if_cpu) {
@@ -169,8 +252,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 	// Update raster position, spooling out graphics.
 	while(pixels_remaining) {
 		// Determine number of pixels left on this line.
-		int line_pixels = std::min(pixels_remaining, line_length_ - line_cycle_);
-		pixels_remaining -= line_pixels;
+		int line_pixels = std::min(pixels_remaining, (line_length_ * 4) - line_cycle_);
 
 		//
 		// Run DMA scheduler.
@@ -187,10 +269,12 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 		// Advance to window boundary.
 		const int distance_to_boundary = ((line_cycle_ - 1) & 3) ^ 3;
 		line_pixels -= distance_to_boundary;
+		pixels_remaining -= distance_to_boundary;
 		line_cycle_ += distance_to_boundary;
 
 #define C(x) \
 	case x: \
+		assert(!(line_cycle_&3));	\
 		if constexpr(stop_on_cpu) {\
 			if(perform_cycle<x, stop_on_cpu>()) {\
 				break;\
@@ -198,8 +282,10 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 		} else {\
 			perform_cycle<x, stop_on_cpu>(); \
 		} \
+		output<x>();	\
 		if((line_cycle_ >> 2) == final_slot) break;	\
-		line_cycle_ += 4;
+		line_cycle_ += 4;	\
+		pixels_remaining -= 4;
 
 #define C10(x)	C(x); C(x+1); C(x+2); C(x+3); C(x+4); C(x+5); C(x+6); C(x+7); C(x+8); C(x+9);
 		switch(line_cycle_ >> 2) {
@@ -215,95 +301,9 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 		}
 #undef C
 
-		// Update per the possibility that the above ended early.
-		final_slot = line_cycle_ >> 2;
-		int slot = line_cycle_ >> 2;
-
-		//
-		// Output video signal as implied by whatever happened above.
-		//
-
-		// Hardware stop is at 0x18;
-		// 12/64 * 227 = 42.5625
-		//
-		// "However, horizontal blanking actually limits the displayable
-		// video to 368 low resolution pixel"
-		//
-		// => 184 windows out of 227 are visible, which concurs.
-		//
-		// A complete from-thin-air guess:
-		//
-		//	7 cycles blank;
-		//	17 cycles sync;
-		//	3 cycles blank;
-		//	9 cycles colour burst;
-		//	7 cycles blank.
-		constexpr int blank1	= 7;
-		constexpr int sync		= 17 + blank1;
-		constexpr int blank2 	= 3 + sync;
-		constexpr int burst 	= 9 + blank2;
-		constexpr int blank3 	= 7 + burst;
-		static_assert(blank3 == 43);
-
-#define LINK(location, action, length) \
-	if(slot < (location) && final_slot >= (location))	{	\
-		crt_.action((length) * 4);	\
-	}
-
-		if(y_ < vertical_blank_height_) {
-			// Put three lines of sync at the centre of the vertical blank period.
-			// TODO: offset by half a line if interlaced and on an odd frame.
-
-			const int midline = vertical_blank_height_ >> 1;
-			if(frame_height_ & 1) {
-				if(y_ < midline - 1 || y_ > midline + 2) {
-					LINK(blank1, output_blank, blank1);
-					LINK(sync, output_sync, sync - blank1);
-					LINK(line_length_, output_blank, line_length_ - sync);
-				} else if(y_ == midline - 1) {
-					LINK(113, output_blank, 113);
-					LINK(line_length_, output_sync, line_length_ - 113);
-				} else if(y_ == midline + 2) {
-					LINK(113, output_sync, 113);
-					LINK(line_length_, output_blank, line_length_ - 113);
-				} else {
-					LINK(blank1, output_sync, blank1);
-					LINK(sync, output_blank, sync - blank1);
-					LINK(line_length_, output_sync, line_length_ - sync);
-				}
-			} else {
-				if(y_ < midline - 1 || y_ > midline + 1) {
-					LINK(blank1, output_blank, blank1);
-					LINK(sync, output_sync, sync - blank1);
-					LINK(line_length_, output_blank, line_length_ - sync);
-				} else {
-					LINK(blank1, output_sync, blank1);
-					LINK(sync, output_blank, sync - blank1);
-					LINK(line_length_, output_sync, line_length_ - sync);
-				}
-			}
-		} else {
-			// Output the correct sequence of blanks, syncs and burst atomically.
-			LINK(blank1, output_blank, blank1);
-			LINK(sync, output_sync, sync - blank1);
-			LINK(blank2, output_blank, blank2 - sync);
-			LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
-			LINK(blank3, output_blank, blank3 - burst);
-
-			// Output colour 0 to fill the rest of the line; Kickstart uses this
-			// colour to post the error code. TODO: actual pixels, etc.
-			if(line_cycle_ == line_length_) {
-				uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-				if(pixels) {
-					*pixels = palette_[0];
-				}
-				crt_.output_data(line_length_ - blank3 * 4, 1);
-			}
-		}
-
 		// Advance intraline counter and possibly ripple upwards into
 		// lines and fields.
-		if(line_cycle_ == line_length_) {
+		if(line_cycle_ == (line_length_ * 4)) {
 			++changes.hsyncs;
 
 			line_cycle_ = 0;
@@ -321,7 +321,6 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 			}
 		}
 	}
-#undef LINK
 
 	changes.interrupt_level = interrupt_level_;
 	changes.duration = length;
