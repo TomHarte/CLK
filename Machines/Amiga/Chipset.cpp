@@ -352,7 +352,7 @@ void Chipset::update_interrupts() {
 			interrupt_level_ = 4;
 		} else if(enabled_requests & (InterruptFlag::Copper | InterruptFlag::VerticalBlank | InterruptFlag::Blitter)) {
 			interrupt_level_ = 3;
-		} else if(enabled_requests & (InterruptFlag::External)) {
+		} else if(enabled_requests & (InterruptFlag::IOPortsAndTimers)) {
 			interrupt_level_ = 2;
 		} else if(enabled_requests & (InterruptFlag::SerialPortTransmit | InterruptFlag::DiskBlock | InterruptFlag::Software)) {
 			interrupt_level_ = 1;
