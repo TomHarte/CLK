@@ -82,7 +82,9 @@ class ConcreteMachine:
 			const auto changes = chipset_.run_for(cycle.length);
 			cia_a_.advance_tod(changes.vsyncs);
 			cia_b_.advance_tod(changes.hsyncs);
-			mc68000_.set_interrupt_level(changes.interrupt_level);
+
+			chipset_.set_cia_interrupts(cia_a_.get_interrupt_line(), cia_b_.get_interrupt_line());
+			mc68000_.set_interrupt_level(chipset_.get_interrupt_level());
 
 			// Check for assertion of reset.
 			if(cycle.operation & Microcycle::Reset) {

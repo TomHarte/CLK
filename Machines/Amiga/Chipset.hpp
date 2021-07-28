@@ -43,6 +43,9 @@ class Chipset {
 		/// Performs the provided microcycle, which the caller guarantees to be a memory access.
 		void perform(const CPU::MC68000::Microcycle &);
 
+		/// Sets the current state of the CIA interrupt lines.
+		void set_cia_interrupts(bool cia_a, bool cia_b);
+
 		/// Provides the chipset's current interrupt level.
 		int get_interrupt_level() {
 			return interrupt_level_;

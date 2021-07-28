@@ -22,7 +22,7 @@ enum InterruptFlag: uint16_t {
 	SerialPortTransmit		= 1 << 0,
 	DiskBlock				= 1 << 1,
 	Software				= 1 << 2,
-	IOPortsAndTimers		= 1 << 3,
+	IOPortsAndTimers		= 1 << 3,	// i.e. CIA A.
 	Copper					= 1 << 4,
 	VerticalBlank			= 1 << 5,
 	Blitter					= 1 << 6,
@@ -32,7 +32,7 @@ enum InterruptFlag: uint16_t {
 	AudioChannel3			= 1 << 10,
 	SerialPortReceive		= 1 << 11,
 	DiskSyncMatch			= 1 << 12,
-	External				= 1 << 13,
+	External				= 1 << 13,	// i.e. CIA B.
 };
 
 }
@@ -50,6 +50,17 @@ Chipset::Changes Chipset::run_for(HalfCycles length) {
 Chipset::Changes Chipset::run_until_cpu_slot() {
 	return run<true>();
 }
+
+void Chipset::set_cia_interrupts(bool cia_a, bool cia_b) {
+	// TODO: are these really latched, or are they active live?
+	if(cia_a || cia_b) {
+		interrupt_requests_ |=
+			(cia_a ? InterruptFlag::IOPortsAndTimers : 0) |
+			(cia_b ? InterruptFlag::External : 0);
+		update_interrupts();
+	}
+}
+
 
 bool Chipset::Copper::advance(uint16_t position) {
 	switch(state_) {

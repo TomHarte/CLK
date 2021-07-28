@@ -57,6 +57,9 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 		/// Pulses the TOD input the specified number of times.
 		void advance_tod(int count);
 
+		/// @returns @c true if the interrupt output is active, @c false otherwise.
+		bool get_interrupt_line();
+
 	private:
 		PortHandlerT &port_handler_;
 

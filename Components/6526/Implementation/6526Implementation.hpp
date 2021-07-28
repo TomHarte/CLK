@@ -37,10 +37,12 @@ template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::update_interrupts() {
 	if(interrupt_state_ & interrupt_control_) {
 		interrupt_state_ |= 0x80;
-
-		printf("6526 should signal interrupt\n");
-		assert(false);
 	}
+}
+
+template <typename BusHandlerT, Personality personality>
+bool MOS6526<BusHandlerT, personality>::get_interrupt_line() {
+	return interrupt_state_ & 0x80;
 }
 
 template <typename BusHandlerT, Personality personality>
