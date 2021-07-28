@@ -104,19 +104,23 @@ class Chipset {
 				/// @returns @c true if the slot was used; @c false otherwise.
 				bool advance(uint16_t position);
 
+				/// Forces a reload of address @c id (i.e. 0 or 1) and restarts the Copper.
 				void reload(int id) {
-					address = addresses[id] >> 1;
+					address_ = addresses_[id] >> 1;
 					state_ = State::FetchFirstWord;
 				}
 
+				/// Writes the word @c value to the address register @c id, shifting it by @c shift (0 or 16) first.
 				template <int id, int shift> void set_address(uint16_t value) {
-					addresses[id] = (addresses[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
+					addresses_[id] = (addresses_[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
 				}
 
+				/// Sets the Copper control word.
 				void set_control(uint16_t c) {
 					control_ = c;
 				}
 
+				/// Forces the Copper into the stopped state.
 				void stop() {
 					state_ = State::Stopped;
 				}
@@ -124,15 +128,16 @@ class Chipset {
 			private:
 				Chipset &chipset_;
 
-				uint32_t address = 0;
-				uint32_t addresses[2]{};
+				uint32_t address_ = 0;
+				uint32_t addresses_[2]{};
 				uint16_t control_ = 0;
 
 				enum class State {
 					FetchFirstWord, FetchSecondWord, Waiting, Stopped,
 				} state_ = State::Stopped;
 				bool skip_next_ = false;
-				uint16_t instruction[2]{};
+				uint16_t instruction_[2]{};
+				uint16_t position_mask_ = 0xffff;
 
 				uint16_t *ram_ = nullptr;
 				uint32_t ram_mask_ = 0;

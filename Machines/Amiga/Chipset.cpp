@@ -58,47 +58,69 @@ bool Chipset::Copper::advance(uint16_t position) {
 		default: return false;
 
 		case State::Waiting:
-			if(position >= instruction[1]) {
+			// TODO: blitter-finished bit.
+			if((position & position_mask_) >= instruction_[0]) {
 				state_ = State::FetchFirstWord;
 			}
 		return false;
 
 		case State::FetchFirstWord:
-			instruction[0] = ram_[address & ram_mask_];
-			++address;
+			instruction_[0] = ram_[address_ & ram_mask_];
+			++address_;
 			state_ = State::FetchSecondWord;
 		break;
 
-		case State::FetchSecondWord:
-			instruction[1] = ram_[address & ram_mask_];
-			++address;
+		case State::FetchSecondWord: {
+			const bool should_skip_move = skip_next_;
+			skip_next_ = false;
 
-			if(!(instruction[0] & 1)) {
-				// This is a move.
-				// TODO: permissions.
-				// At least for now, construct a 68000-esque Microcycle.
-				CPU::MC68000::Microcycle cycle;
-				cycle.operation = CPU::MC68000::Microcycle::SelectWord;
-				uint32_t full_address = instruction[0];
-				CPU::RegisterPair16 data = instruction[1];
-				cycle.address = &full_address;
-				cycle.value = &data;
-				chipset_.perform(cycle);
+			instruction_[1] = ram_[address_ & ram_mask_];
+			++address_;
 
+			if(!(instruction_[0] & 1)) {
+				// A MOVE.
+
+				if(!should_skip_move) {
+					// Stop if this move would be a privilege violation.
+					instruction_[0] &= 0x1fe;
+					if((instruction_[0] < 0x10) || (instruction_[0] < 0x20 && !(control_&1))) {
+						LOG("Invalid Copper MOVE to " << PADHEX(4) << instruction_[0] << "; stopping");
+						state_ = State::Stopped;
+						break;
+					}
+
+					// Construct a 68000-esque Microcycle in order to be able to perform the access.
+					CPU::MC68000::Microcycle cycle;
+					cycle.operation = CPU::MC68000::Microcycle::SelectWord;
+					uint32_t full_address = instruction_[0];
+					CPU::RegisterPair16 data = instruction_[1];
+					cycle.address = &full_address;
+					cycle.value = &data;
+					chipset_.perform(cycle);
+				}
+
+				// Roll onto the next command.
 				state_ = State::FetchFirstWord;
 				break;
 			}
 
-			if(!(instruction[1] & 1)) {
-				// A WAIT. Just note that this is now waiting.
+			// Prepare for a position comparison.
+			position_mask_ = 0x8001 | (instruction_[1] & 0x7ffe);
+			instruction_[0] &= position_mask_;
+
+			if(!(instruction_[1] & 1)) {
+				// A WAIT. Just note that this is now waiting; the proper test
+				// will be applied from the next potential `advance` onwards.
 				state_ = State::Waiting;
 				break;
 			}
 
-			// TODO: SKIPs.
-			LOG("Unhandled Copper instruction " << PADHEX(4) << instruction[0] << " <- " << instruction[1]);
-			state_ = State::Stopped;
-		break;
+			// Neither a WAIT nor a MOVE => a SKIP.
+
+			// TODO: blitter-finished bit.
+			skip_next_ = (position & position_mask_) >= instruction_[0];
+			state_ = State::FetchFirstWord;
+		} break;
 	}
 
 	return true;
@@ -118,7 +140,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		//	3. Blitter.
 		//	4. CPU.
 		if((dma_control_ & 0x280) == 0x280) {
-			if(copper_.advance(uint16_t(((y_ & 0xff) << 8) | cycle))) {
+			if(copper_.advance(uint16_t(((y_ & 0xff) << 8) | (cycle & 0xfe)))) {
 				return false;
 			}
 		} else {
@@ -162,15 +184,22 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 			break;
 		}
 
-		// TODO: advance to the next window boundary.
-//		line_pixels -= (line_pixels & 3);
-//		line_cycle_ += (4 - ((line_cycle_ & 3) + 1)) & 3;
+		// Advance to window boundary.
+		const int distance_to_boundary = ((line_cycle_ - 1) & 3) ^ 3;
+		line_pixels -= distance_to_boundary;
+		line_cycle_ += distance_to_boundary;
 
 #define C(x) \
 	case x: \
-		if constexpr(stop_on_cpu) { if(perform_cycle<x, stop_on_cpu>()) break; } else { perform_cycle<x, stop_on_cpu>(); } \
-		line_cycle_ += 4;	\
-		if((line_cycle_ >> 2) == final_slot) break;
+		if constexpr(stop_on_cpu) {\
+			if(perform_cycle<x, stop_on_cpu>()) {\
+				break;\
+			}\
+		} else {\
+			perform_cycle<x, stop_on_cpu>(); \
+		} \
+		if((line_cycle_ >> 2) == final_slot) break;	\
+		line_cycle_ += 4;
 
 #define C10(x)	C(x); C(x+1); C(x+2); C(x+3); C(x+4); C(x+5); C(x+6); C(x+7); C(x+8); C(x+9);
 		switch(line_cycle_ >> 2) {
@@ -263,7 +292,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 			// Output colour 0 to fill the rest of the line; Kickstart uses this
 			// colour to post the error code. TODO: actual pixels, etc.
-			if(line_cycle_ >= line_length_) {
+			if(line_cycle_ == line_length_) {
 				uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
 				if(pixels) {
 					*pixels = palette_[0];
@@ -274,7 +303,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 		// Advance intraline counter and possibly ripple upwards into
 		// lines and fields.
-		if(line_cycle_ >= line_length_) {
+		if(line_cycle_ == line_length_) {
 			++changes.hsyncs;
 
 			line_cycle_ = 0;
@@ -336,7 +365,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 	}										\
 }
 
-	const uint32_t register_address = *cycle.address & 0xffe;
+	const uint32_t register_address = *cycle.address & 0x1fe;
 	switch(RW(register_address)) {
 		default:
 			LOG("Unimplemented chipset " << (cycle.operation & Microcycle::Read ? "read" : "write") <<  " " << PADHEX(6) << *cycle.address);
