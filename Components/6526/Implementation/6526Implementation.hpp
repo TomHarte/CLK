@@ -241,6 +241,11 @@ void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 	int counter_a_underflows = 0;
 	if((counter_[0].control & 0x21) == 0x01) {
 		counter_a_underflows = counter_[0].subtract(sub);
+
+		// This might be clocking the serial output too.
+		if(counter_[0].control & 0x40) {
+			printf("Unimplemented shift register clocking\n");
+		}
 	}
 
 	// Update counter B.
