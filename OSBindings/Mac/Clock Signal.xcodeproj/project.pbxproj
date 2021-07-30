@@ -584,6 +584,8 @@
 		4B9EC0E326AA27BA0060A31F /* Blitter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E126AA27BA0060A31F /* Blitter.cpp */; };
 		4B9EC0E626AA4A660060A31F /* Chipset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E426AA4A660060A31F /* Chipset.cpp */; };
 		4B9EC0E726AA4A660060A31F /* Chipset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E426AA4A660060A31F /* Chipset.cpp */; };
+		4B9EC0EA26B384080060A31F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E826B384080060A31F /* Keyboard.cpp */; };
+		4B9EC0EB26B384080060A31F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E826B384080060A31F /* Keyboard.cpp */; };
 		4B9F11C92272375400701480 /* qltrace.txt.gz in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11C82272375400701480 /* qltrace.txt.gz */; };
 		4B9F11CA2272433900701480 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
 		4B9F11CC22729B3600701480 /* OPCLOGR2.BIN in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */; };
@@ -1592,6 +1594,8 @@
 		4B9EC0E126AA27BA0060A31F /* Blitter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Blitter.cpp; sourceTree = "<group>"; };
 		4B9EC0E426AA4A660060A31F /* Chipset.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Chipset.cpp; sourceTree = "<group>"; };
 		4B9EC0E526AA4A660060A31F /* Chipset.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Chipset.hpp; sourceTree = "<group>"; };
+		4B9EC0E826B384080060A31F /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
+		4B9EC0E926B384080060A31F /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4B9F11C82272375400701480 /* qltrace.txt.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = qltrace.txt.gz; sourceTree = "<group>"; };
 		4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = OPCLOGR2.BIN; path = "68000 Coverage/OPCLOGR2.BIN"; sourceTree = "<group>"; };
 		4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZX8081.cpp; sourceTree = "<group>"; };
@@ -4275,9 +4279,11 @@
 				4BC080D826A25ADA00D03FD8 /* Amiga.cpp */,
 				4B9EC0E126AA27BA0060A31F /* Blitter.cpp */,
 				4B9EC0E426AA4A660060A31F /* Chipset.cpp */,
+				4B9EC0E826B384080060A31F /* Keyboard.cpp */,
 				4BC080D726A25ADA00D03FD8 /* Amiga.hpp */,
 				4B9EC0E026AA260C0060A31F /* Blitter.hpp */,
 				4B9EC0E526AA4A660060A31F /* Chipset.hpp */,
+				4B9EC0E926B384080060A31F /* Keyboard.hpp */,
 			);
 			path = Amiga;
 			sourceTree = "<group>";
@@ -5286,6 +5292,7 @@
 				4B055A9B1FAE85DA0060FFFF /* AcornADF.cpp in Sources */,
 				4B0E04F11FC9EA9500F43484 /* MSX.cpp in Sources */,
 				4B055AD51FAE9B0B0060FFFF /* Video.cpp in Sources */,
+				4B9EC0EB26B384080060A31F /* Keyboard.cpp in Sources */,
 				4B894521201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B8318B522D3E548006DB630 /* Macintosh.cpp in Sources */,
 				4B8DF4FA254E36AE00F3433C /* Video.cpp in Sources */,
@@ -5601,6 +5608,7 @@
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
 				4B1B58FF246E19FD009C171E /* State.cpp in Sources */,
 				4B2B3A4C1F9B8FA70062DABF /* MemoryFuzzer.cpp in Sources */,
+				4B9EC0EA26B384080060A31F /* Keyboard.cpp in Sources */,
 				4B7913CC1DFCD80E00175A82 /* Video.cpp in Sources */,
 				4BC57CD92436A62900FBC404 /* State.cpp in Sources */,
 				4BDA00E622E699B000AC3CD0 /* CSMachine.mm in Sources */,
