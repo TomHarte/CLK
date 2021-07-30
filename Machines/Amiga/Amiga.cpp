@@ -126,7 +126,6 @@ class ConcreteMachine:
 					// directly to the chip enables.
 					if((address & 0xe0'0000) == 0xa0'0000) {
 						const int reg = address >> 8;
-						LOG("CIA " << (cycle.operation & Microcycle::Read ? "read " : "write ") << PADHEX(4) << *cycle.address);
 
 						if(cycle.operation & Microcycle::Read) {
 							uint16_t result = 0xffff;
@@ -137,6 +136,9 @@ class ConcreteMachine:
 							if(!(address & 0x1000)) cia_a_.write(reg, cycle.value8_low());
 							if(!(address & 0x2000)) cia_b_.write(reg, cycle.value8_high());
 						}
+
+						// << (((address >> 12) & 3)^3) << " "
+						LOG("CIA " << (cycle.operation & Microcycle::Read ? "read " : "write ") << std::dec << (reg & 0xf) << " of " << PADHEX(2) << +cycle.value8_low());
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
 						chipset_.perform(cycle);
 					} else {
@@ -147,7 +149,7 @@ class ConcreteMachine:
 
 						// Don't log for the region that is definitely just ROM this machine doesn't have.
 						if(address < 0xf0'0000) {
-							LOG("Unmapped " << (cycle.operation & Microcycle::Read ? "read from " : "write to ") << PADHEX(4) << *cycle.address << " of " << cycle.value16());
+							LOG("Unmapped " << (cycle.operation & Microcycle::Read ? "read from " : "write to ") << PADHEX(6) << ((*cycle.address)&0xffffff) << " of " << cycle.value16());
 						}
 					}
 				}
@@ -157,6 +159,34 @@ class ConcreteMachine:
 					&memory_.regions[address >> 18].contents[address],
 					memory_.regions[address >> 18].read_write_mask
 				);
+
+
+//				if(address < 0x4'0000) {
+//					switch((cycle.operation | memory_.regions[address >> 18].read_write_mask) & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::PermitRead | Microcycle::PermitWrite)) {
+//						default:
+//							if(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte)) {
+//								printf("Ignored!\n");
+//							}
+//						break;
+//
+//						case Microcycle::SelectWord | Microcycle::Read | Microcycle::PermitRead:
+//						case Microcycle::SelectWord | Microcycle::Read | Microcycle::PermitRead | Microcycle::PermitWrite:
+//							printf("%04x -> %04x\n", *cycle.address, cycle.value->full);
+//						break;
+//						case Microcycle::SelectByte | Microcycle::Read | Microcycle::PermitRead:
+//						case Microcycle::SelectByte | Microcycle::Read | Microcycle::PermitRead | Microcycle::PermitWrite:
+//							printf("%04x -> %02x\n", *cycle.address, cycle.value->halves.low);
+//						break;
+//						case Microcycle::SelectWord | Microcycle::PermitWrite:
+//						case Microcycle::SelectWord | Microcycle::PermitWrite | Microcycle::PermitRead:
+//							printf("%04x <- %04x\n", *cycle.address, cycle.value->full);
+//						break;
+//						case Microcycle::SelectByte | Microcycle::PermitWrite:
+//						case Microcycle::SelectByte | Microcycle::PermitWrite | Microcycle::PermitRead:
+//							printf("%04x <- %02x\n", *cycle.address, cycle.value->halves.low);
+//						break;
+//					}
+//				}
 			}
 
 			return HalfCycles(0);
