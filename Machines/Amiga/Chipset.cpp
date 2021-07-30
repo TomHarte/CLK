@@ -61,7 +61,6 @@ void Chipset::set_cia_interrupts(bool cia_a, bool cia_b) {
 	}
 }
 
-
 bool Chipset::Copper::advance(uint16_t position) {
 	switch(state_) {
 		default: return false;
@@ -434,6 +433,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 		case Write(0x032):
 			LOG("TODO: serial control: " << PADHEX(4) << cycle.value16());
+			serial_.set_control(cycle.value16());
 		break;
 
 		// DMA management.

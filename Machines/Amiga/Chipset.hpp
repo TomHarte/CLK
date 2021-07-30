@@ -147,7 +147,18 @@ class Chipset {
 				uint16_t *ram_ = nullptr;
 				uint32_t ram_mask_ = 0;
 		} copper_;
-		friend Copper;
+
+		// MARK: - Serial port.
+
+		class SerialPort {
+			public:
+				void set_control(uint16_t) {}
+
+			private:
+				uint16_t value = 0, reload = 0;
+				uint16_t shift = 0, receive_shift = 0;
+				uint16_t status;
+		} serial_;
 
 		// MARK: - Pixel output.
 
