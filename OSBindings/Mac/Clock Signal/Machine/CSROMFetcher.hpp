@@ -8,6 +8,11 @@
 
 #include "ROMMachine.hpp"
 
+/// @returns a ROM fetcher that will check: (i) this application's support directory; and
+/// (ii) this application's bundle for any requested ROMs, in that order.
+///
+/// All ROMs are found to be missing when the ROM fetcher is used will be added
+/// to @c missing.
 ROMMachine::ROMFetcher CSROMFetcher(ROM::Request *missing = nullptr);
 
 /// Loads the binary file located at @c url and then tests for whether it matches anything
