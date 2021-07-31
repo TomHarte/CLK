@@ -226,6 +226,13 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	/* The NOP tests also don't apply; the 65816 has only one, well-defined NOP. */
 
 
+	// MARK: - CIA Tests
+
+	func testCIA1TA() {
+		runTest("cia1ta", suffixes: [""], processor: .processor6502)
+	}
+
+
 	// MARK: - Collections
 
 	func testTransfers(processor: CSTestMachine6502Processor)	{
@@ -284,10 +291,13 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	fileprivate func runTest(_ name: String, processor: CSTestMachine6502Processor) {
 		var machine: CSTestMachine6502!
 
-		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: nil) {
-			if let testData = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
+		let bundle = Bundle(for: type(of: self))
+		let mainBundle = Bundle.main
+		if 	let testFilename = bundle.url(forResource: name, withExtension: nil),
+			let kernelFilename = mainBundle.url(forResource: "kernal.901227-02", withExtension: "bin", subdirectory: "ROMImages/Commodore64") {
+			if let testData = try? Data(contentsOf: testFilename), let kernelData = try? Data(contentsOf: kernelFilename) {
 
-				machine = CSTestMachine6502(processor: processor)
+				machine = CSTestMachine6502(processor: processor, hasCIAs: true)
 				machine.trapHandler = self
 				output = ""
 
@@ -296,8 +306,17 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 				let contents = testData.subdata(in: 2 ..< testData.count)
 
 				machine.setData(contents, atAddress: loadAddress)
+				machine.setData(kernelData, atAddress: 0xe000)
 
 				// Cf. http://www.softwolves.com/arkiv/cbm-hackers/7/7114.html for the steps being taken here.
+
+				// Signal in-border, set up NMI and IRQ vectors as defaults.
+				machine.setValue(0xff, forAddress: 0xd011)
+
+				machine.setValue(0x66, forAddress: 0x0316)
+				machine.setValue(0xfe, forAddress: 0x0317)
+				machine.setValue(0x31, forAddress: 0x0314)
+				machine.setValue(0xea, forAddress: 0x0315)
 
 				// Initialise memory locations as instructed.
 				machine.setValue(0x00, forAddress: 0x0002)
@@ -345,7 +364,7 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 		}
 
 		if machine == nil {
-			NSException(name: NSExceptionName(rawValue: "Failed Test"), reason: "Couldn't load file \(name)", userInfo: nil).raise()
+			NSException(name: NSExceptionName(rawValue: "Failed Test"), reason: "Couldn't load kernel, or file \(name)", userInfo: nil).raise()
 		}
 
 		while machine.value(for: .lastOperationAddress) != 0xe16f && !machine.isJammed {

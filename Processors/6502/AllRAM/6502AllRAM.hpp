@@ -18,7 +18,7 @@ namespace MOS6502 {
 class AllRAMProcessor:
 	public ::CPU::AllRAMProcessor {
 	public:
-		static AllRAMProcessor *Processor(CPU::MOS6502Esque::Type type);
+		static AllRAMProcessor *Processor(CPU::MOS6502Esque::Type type, bool has_cias = false);
 		virtual ~AllRAMProcessor() {}
 
 		virtual void run_for(const Cycles cycles) = 0;
@@ -28,6 +28,8 @@ class AllRAMProcessor:
 		virtual void set_nmi_line(bool value) = 0;
 		virtual uint16_t get_value_of_register(Register r) = 0;
 		virtual void set_value_of_register(Register r, uint16_t value) = 0;
+
+		
 
 	protected:
 		AllRAMProcessor(size_t memory_size) : ::CPU::AllRAMProcessor(memory_size) {}

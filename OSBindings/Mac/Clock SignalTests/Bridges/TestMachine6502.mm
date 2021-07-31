@@ -39,23 +39,27 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 
 #pragma mark - Lifecycle
 
-- (instancetype)initWithProcessor:(CSTestMachine6502Processor)processor {
+- (instancetype)initWithProcessor:(CSTestMachine6502Processor)processor hasCIAs:(BOOL)hasCIAs {
 	self = [super init];
 
 	if(self) {
 		switch(processor) {
 			case CSTestMachine6502Processor6502:
-				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::T6502);
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::T6502, hasCIAs);
 			break;
 			case CSTestMachine6502Processor65C02:
-				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::TWDC65C02);
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::TWDC65C02, hasCIAs);
 			break;
 			case CSTestMachine6502Processor65816:
-				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::TWDC65816);
+				_processor = CPU::MOS6502::AllRAMProcessor::Processor(CPU::MOS6502Esque::Type::TWDC65816, hasCIAs);
 		}
 	}
 
 	return self;
+}
+
+- (nonnull instancetype)initWithProcessor:(CSTestMachine6502Processor)processor {
+	return [self initWithProcessor:processor hasCIAs:NO];
 }
 
 - (void)dealloc {
