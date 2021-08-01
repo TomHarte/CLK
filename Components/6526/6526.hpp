@@ -67,6 +67,7 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 		template <int port> uint8_t get_port_input();
 		void update_interrupts();
 		void posit_interrupt(uint8_t mask);
+		void advance_counters(int);
 };
 
 }

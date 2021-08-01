@@ -30,56 +30,75 @@ struct MOS6526Storage {
 		uint16_t reload = 0;
 		uint16_t value = 0;
 		uint8_t control = 0;
+		bool hit_zero = false;
 
 		template <int shift> void set_reload(uint8_t v) {
 			reload = (reload & (0xff00 >> shift)) | uint16_t(v << shift);
 
-			if constexpr (shift == 8) {
-				if(!(control&1)) {
-					value = reload;
-
-					if(control&8) {
-						control |= 1;	// At a guess: start one-shot automatically (?)
-					}
-				}
-			}
+//			if constexpr (shift == 8) {
+//				if(!(control&1)) {
+//					value = reload;
+//				}
+//			}
 		}
 
 		template <bool is_counter_2> void set_control(uint8_t v) {
 			control = v & 0xef;
 			if(v & 0x10) {
+				pending |= ReloadInTwo;
+			}
+		}
+
+		void advance(bool chained_input) {
+			// TODO: remove most of the conditionals here.
+
+			pending <<= 1;
+
+			if(hit_zero && pending&(OneShotInOne | OneShotNow)) {
+				control &= ~1;
+			}
+
+			if((control & 0x01) || chained_input) {
+				pending |= ApplyClockInTwo;
+			}
+			if(control & 0x08) {
+				pending |= OneShotInOne;
+			}
+
+			if((pending & ReloadNow) || (hit_zero && (pending & ApplyClockInTwo))) {
 				value = reload;
+				pending &= ~ApplyClockInTwo;
 			}
 
-			// Force reload + one-shot => start counting (?)
-			if((v & 0x18) == 0x18) {
-				control |= 1;
-			}
-		}
+			pending &= PendingClearMask;
 
-		int subtract(int count) {
-			if(control & 8) {
-				// One-shot.
-				if(value < count) {
-					value = reload;
-					control &= 0xfe;
-					return 1;
-				} else {
-					value -= count;
-				}
-				return 0;
+			if(pending & ApplyClockNow) {
+				--value;
+				hit_zero = !value;
 			} else {
-				// Continuous.
-				value -= count;
-
-				value -= (reload + 1);
-				const int underflows = -value / (reload + 1);
-				value %= (reload + 1);
-				value += (reload + 1);
-
-				return underflows;
+				hit_zero = false;
 			}
 		}
+
+		private:
+			int pending = 0;
+
+			static constexpr int ReloadInThree = 1 << 0;
+			static constexpr int ReloadInTwo = 1 << 1;
+			static constexpr int ReloadInOne = 1 << 2;
+			static constexpr int ReloadNow = 1 << 3;
+
+			static constexpr int OneShotInOne = 1 << 4;
+			static constexpr int OneShotNow = 1 << 5;
+
+			static constexpr int ApplyClockInThree = 1 << 6;
+			static constexpr int ApplyClockInTwo = 1 << 7;
+			static constexpr int ApplyClockInOne = 1 << 8;
+			static constexpr int ApplyClockNow = 1 << 9;
+
+			static constexpr int PendingClearMask = ~(ReloadNow | OneShotNow);
+
+			bool active_ = false;
 	} counter_[2];
 };
 

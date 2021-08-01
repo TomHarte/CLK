@@ -234,18 +234,29 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 	half_divider_ += half_cycles;
-	const int sub = half_divider_.divide_cycles().template as<int>();
-	if(!sub) return;
+	int sub = half_divider_.divide_cycles().template as<int>();
 
+	while(sub--) {
+		// TODO: use CNT potentially to clock timer A.
+		counter_[0].advance(false);
+		counter_[1].advance(counter_[0].hit_zero);
+		posit_interrupt((counter_[0].hit_zero ? 0x01 : 0x00) | (counter_[1].hit_zero ? 0x02 : 0x00));
+	}
+}
+
+/*template <typename BusHandlerT, Personality personality>
+void MOS6526<BusHandlerT, personality>::advance_counters(int sub) {
 	// Is counter A running and linked to the clock input?
 	int counter_a_underflows = 0;
-	if((counter_[0].control & 0x21) == 0x01) {
+	if(counter_[0].control & 0x20) {
+		printf("Unimplemented: Timer A CNT \n");
+	} else {
 		counter_a_underflows = counter_[0].subtract(sub);
+	}
 
-		// This might be clocking the serial output too.
-		if(counter_[0].control & 0x40) {
-			printf("Unimplemented shift register clocking\n");
-		}
+	// Counter A might be clocking the shift register.
+	if(counter_a_underflows && counter_[0].control & 0x40) {
+		printf("Unimplemented shift register clocking\n");
 	}
 
 	// Update counter B.
@@ -267,7 +278,7 @@ void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 
 	// Apply interrupts.
 	posit_interrupt((counter_a_underflows ? 0x01 : 0x00) | (counter_b_underflows ? 0x02 : 0x00));
-}
+}*/
 
 template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::advance_tod(int count) {
