@@ -60,12 +60,12 @@ struct MOS6526Storage {
 				pending |= ApplyClockInTwo;
 			}
 			if(control & 0x08) {
-				pending |= OneShotInTwo;
+				pending |= OneShotInOne;
 			}
 
 			if((pending & ReloadNow) || (hit_zero && (pending & ApplyClockInTwo))) {
 				value = reload;
-				pending &= ~ApplyClockInOne;	// Skip one decrement.
+				pending &= ~ApplyClockNow;	// Skip one decrement.
 			}
 
 			if(pending & ApplyClockNow) {
@@ -86,12 +86,12 @@ struct MOS6526Storage {
 		private:
 			int pending = 0;
 
-			static constexpr int ReloadInThree = 1 << 0;
-			static constexpr int ReloadInTwo = 1 << 1;
+//			static constexpr int ReloadInThree = 1 << 0;
+//			static constexpr int ReloadInTwo = 1 << 1;
 			static constexpr int ReloadInOne = 1 << 2;
 			static constexpr int ReloadNow = 1 << 3;
 
-			static constexpr int OneShotInTwo = 1 << 4;
+//			static constexpr int OneShotInTwo = 1 << 4;
 			static constexpr int OneShotInOne = 1 << 5;
 			static constexpr int OneShotNow = 1 << 6;
 

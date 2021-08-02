@@ -170,6 +170,7 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 		case 13: {
 			const uint8_t result = interrupt_state_;
 			interrupt_state_ = 0;
+			pending_ &= ~(InterruptNow | InterruptInOne);
 			update_interrupts();
 			return result;
 		} break;
