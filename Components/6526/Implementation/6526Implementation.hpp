@@ -29,6 +29,9 @@ template <int port> uint8_t MOS6526<BusHandlerT, personality>::get_port_input() 
 
 template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::posit_interrupt(uint8_t mask) {
+	if(!mask) {
+		return;
+	}
 	interrupt_state_ |= mask;
 	update_interrupts();
 }
@@ -36,7 +39,7 @@ void MOS6526<BusHandlerT, personality>::posit_interrupt(uint8_t mask) {
 template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::update_interrupts() {
 	if(interrupt_state_ & interrupt_control_) {
-		interrupt_state_ |= 0x80;
+		pending_ |= InterruptInOne;
 	}
 }
 
@@ -237,7 +240,13 @@ void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 	int sub = half_divider_.divide_cycles().template as<int>();
 
 	while(sub--) {
-		// TODO: use CNT potentially to clock timer A.
+		pending_ <<= 1;
+		if(pending_ & InterruptNow) {
+			interrupt_state_ |= 0x80;
+		}
+		pending_ &= PendingClearMask;
+
+		// TODO: use CNT potentially to clock timer A, elimiante conditional above.
 		counter_[0].advance(false);
 		counter_[1].advance(counter_[0].hit_zero);
 		posit_interrupt((counter_[0].hit_zero ? 0x01 : 0x00) | (counter_[1].hit_zero ? 0x02 : 0x00));

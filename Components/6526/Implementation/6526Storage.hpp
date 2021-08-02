@@ -35,18 +35,15 @@ struct MOS6526Storage {
 		template <int shift> void set_reload(uint8_t v) {
 			reload = (reload & (0xff00 >> shift)) | uint16_t(v << shift);
 
-//			if constexpr (shift == 8) {
-//				if(!(control&1)) {
-//					value = reload;
-//				}
-//			}
+			if constexpr (shift == 8) {
+				if(!(control&1)) {
+					pending |= ReloadInOne;
+				}
+			}
 		}
 
 		template <bool is_counter_2> void set_control(uint8_t v) {
-			control = v & 0xef;
-			if(v & 0x10) {
-				pending |= ReloadInTwo;
-			}
+			control = v;
 		}
 
 		void advance(bool chained_input) {
@@ -54,8 +51,9 @@ struct MOS6526Storage {
 
 			pending <<= 1;
 
-			if(hit_zero && pending&(OneShotInOne | OneShotNow)) {
-				control &= ~1;
+			if(control & 0x10) {
+				pending |= ReloadInTwo;
+				control &= ~0x10;
 			}
 
 			if((control & 0x01) || chained_input) {
@@ -67,7 +65,7 @@ struct MOS6526Storage {
 
 			if((pending & ReloadNow) || (hit_zero && (pending & ApplyClockInTwo))) {
 				value = reload;
-				pending &= ~ApplyClockInTwo;
+				pending &= ~ApplyClockInOne;
 			}
 
 			pending &= PendingClearMask;
@@ -77,6 +75,10 @@ struct MOS6526Storage {
 				hit_zero = !value;
 			} else {
 				hit_zero = false;
+			}
+
+			if(hit_zero && pending&(OneShotInOne | OneShotNow)) {
+				control &= ~1;
 			}
 		}
 
@@ -96,10 +98,15 @@ struct MOS6526Storage {
 			static constexpr int ApplyClockInOne = 1 << 8;
 			static constexpr int ApplyClockNow = 1 << 9;
 
-			static constexpr int PendingClearMask = ~(ReloadNow | OneShotNow);
+			static constexpr int PendingClearMask = ~(ReloadNow | OneShotNow | ApplyClockNow);
 
 			bool active_ = false;
 	} counter_[2];
+
+	static constexpr int InterruptInOne = 1 << 0;
+	static constexpr int InterruptNow = 1 << 1;
+	static constexpr int PendingClearMask = ~(InterruptNow);
+	int pending_ = 0;
 };
 
 }
