@@ -14,10 +14,14 @@
 #include "../../../Components/6526/6526.hpp"
 
 //#define BE_NOISY
-
 using namespace CPU::MOS6502;
 
 namespace {
+
+static constexpr bool LogAllReads = false;
+static constexpr bool LogAllWrites = false;
+static constexpr bool LogCIAAccesses = true;
+static constexpr bool LogProgramCounter = false;
 
 using Type = CPU::MOS6502Esque::Type;
 
@@ -41,14 +45,14 @@ template <Type type, bool has_cias> class ConcreteAllRAMProcessor: public AllRAM
 
 			if(isAccessOperation(operation)) {
 				if(operation == BusOperation::ReadOpcode) {
-#ifdef BE_NOISY
-					printf("[%04x] %02x a:%04x x:%04x y:%04x p:%02x s:%02x\n", address, memory_[address],
-						mos6502_.get_value_of_register(Register::A),
-						mos6502_.get_value_of_register(Register::X),
-						mos6502_.get_value_of_register(Register::Y),
-						mos6502_.get_value_of_register(Register::Flags) & 0xff,
-						mos6502_.get_value_of_register(Register::StackPointer) & 0xff);
-#endif
+					if constexpr (LogProgramCounter) {
+						printf("[%04x] %02x a:%04x x:%04x y:%04x p:%02x s:%02x\n", address, memory_[address],
+							mos6502_.get_value_of_register(Register::A),
+							mos6502_.get_value_of_register(Register::X),
+							mos6502_.get_value_of_register(Register::Y),
+							mos6502_.get_value_of_register(Register::Flags) & 0xff,
+							mos6502_.get_value_of_register(Register::StackPointer) & 0xff);
+					}
 					check_address_for_trap(address);
 					--instructions_;
 				}
@@ -59,32 +63,44 @@ template <Type type, bool has_cias> class ConcreteAllRAMProcessor: public AllRAM
 					if constexpr (has_cias) {
 						if((address & 0xff00) == 0xdc00) {
 							*value = cia1_.read(address);
+							if constexpr (LogCIAAccesses) {
+								printf("[%d] CIA1: %04x -> %02x\n", timestamp_.as<int>(), address, *value);
+							}
 						} else if((address & 0xff00) == 0xdd00) {
 							*value = cia2_.read(address);
+							if constexpr (LogCIAAccesses) {
+								printf("[%d] CIA2: %04x -> %02x\n", timestamp_.as<int>(), address, *value);
+							}
 						}
-
 					}
 
-#ifdef BE_NOISY
-//					if((address&0xff00) == 0x100) {
-						printf("%04x -> %02x\n", address, *value);
-//					}
-#endif
+					if constexpr (LogAllReads) {
+//						if((address&0xff00) == 0x100) {
+							printf("%04x -> %02x\n", address, *value);
+//						}
+					}
 				} else {
 					memory_[address] = *value;
 
 					if constexpr (has_cias) {
 						if((address & 0xff00) == 0xdc00) {
 							cia1_.write(address, *value);
+							if constexpr (LogCIAAccesses) {
+								printf("[%d] CIA1: %04x <- %02x\n", timestamp_.as<int>(), address, *value);
+							}
 						} else if((address & 0xff00) == 0xdd00) {
 							cia2_.write(address, *value);
+							if constexpr (LogCIAAccesses) {
+								printf("[%d] CIA2: %04x <- %02x\n", timestamp_.as<int>(), address, *value);
+							}
 						}
 					}
-#ifdef BE_NOISY
-//					if((address&0xff00) == 0x100) {
-						printf("%04x <- %02x\n", address, *value);
-//					}
-#endif
+
+					if constexpr (LogAllWrites) {
+//						if((address&0xff00) == 0x100) {
+							printf("%04x <- %02x\n", address, *value);
+//						}
+					}
 				}
 			}
 
