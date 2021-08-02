@@ -253,42 +253,6 @@ void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 	}
 }
 
-/*template <typename BusHandlerT, Personality personality>
-void MOS6526<BusHandlerT, personality>::advance_counters(int sub) {
-	// Is counter A running and linked to the clock input?
-	int counter_a_underflows = 0;
-	if(counter_[0].control & 0x20) {
-		printf("Unimplemented: Timer A CNT \n");
-	} else {
-		counter_a_underflows = counter_[0].subtract(sub);
-	}
-
-	// Counter A might be clocking the shift register.
-	if(counter_a_underflows && counter_[0].control & 0x40) {
-		printf("Unimplemented shift register clocking\n");
-	}
-
-	// Update counter B.
-	int counter_b_underflows = 0;
-	switch(counter_[1].control & 0x61) {
-		case 0x01:
-			counter_b_underflows = counter_[1].subtract(sub);
-		break;
-		case 0x41:
-			counter_b_underflows = counter_[1].subtract(counter_a_underflows);
-		break;
-		default:
-			if(counter_[1].control & 1) {
-				printf("Unimplemented 6526 CNT input\n");
-				assert(false);
-			}
-		break;
-	}
-
-	// Apply interrupts.
-	posit_interrupt((counter_a_underflows ? 0x01 : 0x00) | (counter_b_underflows ? 0x02 : 0x00));
-}*/
-
 template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::advance_tod(int count) {
 	if(!count) return;

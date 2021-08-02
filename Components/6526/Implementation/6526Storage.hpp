@@ -52,7 +52,7 @@ struct MOS6526Storage {
 			pending <<= 1;
 
 			if(control & 0x10) {
-				pending |= ReloadInTwo;
+				pending |= ReloadInOne;
 				control &= ~0x10;
 			}
 
@@ -60,15 +60,13 @@ struct MOS6526Storage {
 				pending |= ApplyClockInTwo;
 			}
 			if(control & 0x08) {
-				pending |= OneShotInOne;
+				pending |= OneShotInTwo;
 			}
 
 			if((pending & ReloadNow) || (hit_zero && (pending & ApplyClockInTwo))) {
 				value = reload;
-				pending &= ~ApplyClockInOne;
+				pending &= ~ApplyClockInOne;	// Skip one decrement.
 			}
-
-			pending &= PendingClearMask;
 
 			if(pending & ApplyClockNow) {
 				--value;
@@ -80,6 +78,9 @@ struct MOS6526Storage {
 			if(hit_zero && pending&(OneShotInOne | OneShotNow)) {
 				control &= ~1;
 			}
+
+			// Clear any bits that would flow into the wrong field.
+			pending &= PendingClearMask;
 		}
 
 		private:
@@ -90,13 +91,14 @@ struct MOS6526Storage {
 			static constexpr int ReloadInOne = 1 << 2;
 			static constexpr int ReloadNow = 1 << 3;
 
-			static constexpr int OneShotInOne = 1 << 4;
-			static constexpr int OneShotNow = 1 << 5;
+			static constexpr int OneShotInTwo = 1 << 4;
+			static constexpr int OneShotInOne = 1 << 5;
+			static constexpr int OneShotNow = 1 << 6;
 
-			static constexpr int ApplyClockInThree = 1 << 6;
-			static constexpr int ApplyClockInTwo = 1 << 7;
-			static constexpr int ApplyClockInOne = 1 << 8;
-			static constexpr int ApplyClockNow = 1 << 9;
+			static constexpr int ApplyClockInThree = 1 << 7;
+			static constexpr int ApplyClockInTwo = 1 << 8;
+			static constexpr int ApplyClockInOne = 1 << 9;
+			static constexpr int ApplyClockNow = 1 << 10;
 
 			static constexpr int PendingClearMask = ~(ReloadNow | OneShotNow | ApplyClockNow);
 
