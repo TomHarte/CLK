@@ -30,7 +30,6 @@ struct MOS6526Storage {
 		uint16_t reload = 0;
 		uint16_t value = 0;
 		uint8_t control = 0;
-		bool hit_zero = false;
 
 		template <int shift> void set_reload(uint8_t v) {
 			reload = (reload & (0xff00 >> shift)) | uint16_t(v << shift);
@@ -46,16 +45,19 @@ struct MOS6526Storage {
 			control = v;
 		}
 
-		void advance(bool chained_input) {
+		bool advance(bool chained_input) {
 			// TODO: remove most of the conditionals here.
 
 			pending <<= 1;
 
+			//
+			// Apply feeder states inputs: anything that
+			// will take effect in the future.
+			//
 			if(control & 0x10) {
 				pending |= ReloadInOne;
 				control &= ~0x10;
 			}
-
 			if((control & 0x01) || chained_input) {
 				pending |= ApplyClockInTwo;
 			}
@@ -63,24 +65,40 @@ struct MOS6526Storage {
 				pending |= OneShotInOne;
 			}
 
-			if((pending & ReloadNow) || (hit_zero && (pending & ApplyClockInTwo))) {
-				value = reload;
-				pending &= ~ApplyClockNow;	// Skip one decrement.
-			}
 
+			//
+			// Perform a timer tick and decide whether a reload is prompted.
+			//
 			if(pending & ApplyClockNow) {
 				--value;
-				hit_zero = !value;
-			} else {
-				hit_zero = false;
+			}
+			const bool should_reload = !value && (pending & ApplyClockInOne);
+
+			// Schedule a reload if so ordered.
+			if(should_reload) {
+				pending |= ReloadNow;	// Combine this decision with a deferred
+										// input from the force-reoad test above.
+
+				// If this was one-shot, stop.
+				if(pending&(OneShotInOne | OneShotNow)) {
+					control &= ~1;
+					pending &= ~(ApplyClockInOne|ApplyClockInTwo);
+				}
 			}
 
-			if(hit_zero && pending&(OneShotInOne | OneShotNow)) {
-				control &= ~1;
+			// Reload if scheduled.
+			if(pending & ReloadNow) {
+				value = reload;
+				pending &= ~ApplyClockInOne;	// Skip one decrement.
 			}
 
+
+			//
 			// Clear any bits that would flow into the wrong field.
+			//
 			pending &= PendingClearMask;
+
+			return should_reload;
 		}
 
 		private:
