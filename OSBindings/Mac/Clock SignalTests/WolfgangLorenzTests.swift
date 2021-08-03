@@ -232,14 +232,45 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 		runTest("cia1ta", suffixes: [""], processor: .processor6502)
 	}
 
-	func testCIA1TAB() {
-		runTest("cia1tab", suffixes: [""], processor: .processor6502)
-	}
-
 	func testCIA1TB() {
 		runTest("cia1tb", suffixes: [""], processor: .processor6502)
 	}
 
+	func testCIA1TAB() {
+		runTest("cia1tab", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA1TB123() {
+		runTest("cia1tb123", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA2TA() {
+		runTest("cia2ta", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA2TB() {
+		runTest("cia2tb", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA2TB123() {
+		runTest("cia1tb123", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA1PB6() {
+		runTest("cia1pb6", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA1PB7() {
+		runTest("cia1pb7", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA2PB6() {
+		runTest("cia2pb6", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA2PB7() {
+		runTest("cia2pb7", suffixes: [""], processor: .processor6502)
+	}
 
 	// MARK: - Collections
 
