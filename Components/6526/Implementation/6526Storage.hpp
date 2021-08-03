@@ -39,6 +39,11 @@ struct MOS6526Storage {
 					pending |= ReloadInOne;
 				}
 			}
+
+			// If this write has hit during a reload cycle, reload.
+			if(pending & ReloadNow) {
+				value = reload;
+			}
 		}
 
 		template <bool is_counter_2> void set_control(uint8_t v) {
@@ -46,9 +51,9 @@ struct MOS6526Storage {
 		}
 
 		template <bool is_counter_2> bool advance(bool chained_input) {
-			// TODO: remove most of the conditionals here.
+			// TODO: remove most of the conditionals here in favour of bit shuffling.
 
-			pending <<= 1;
+			pending = (pending & PendingClearMask) << 1;
 
 			//
 			// Apply feeder states inputs: anything that
@@ -116,11 +121,6 @@ struct MOS6526Storage {
 				pending &= ~ApplyClockInOne;	// Skip next decrement.
 			}
 
-
-			//
-			// Clear any bits that would flow into the wrong field.
-			//
-			pending &= PendingClearMask;
 
 			return should_reload;
 		}
