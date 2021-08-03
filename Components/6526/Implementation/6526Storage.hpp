@@ -72,7 +72,7 @@ struct MOS6526Storage {
 					case 0x00:	// Count Phi2 pulses.
 						pending |= TestInputNow;
 					break;
-					case 0x40:	// Count timer A unerflows.
+					case 0x40:	// Count timer A reloads.
 						pending |= chained_input ? TestInputNow : 0;
 					break;
 
