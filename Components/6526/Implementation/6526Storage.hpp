@@ -45,7 +45,7 @@ struct MOS6526Storage {
 			control = v;
 		}
 
-		bool advance(bool chained_input) {
+		template <bool is_counter_2> bool advance(bool chained_input) {
 			// TODO: remove most of the conditionals here.
 
 			pending <<= 1;
@@ -54,15 +54,38 @@ struct MOS6526Storage {
 			// Apply feeder states inputs: anything that
 			// will take effect in the future.
 			//
+
+			// Schedule a force reload if requested.
 			if(control & 0x10) {
 				pending |= ReloadInOne;
 				control &= ~0x10;
 			}
-			if((control & 0x01) || chained_input) {
+
+			// Determine whether an input clock is applicable.
+			if constexpr(is_counter_2) {
+				switch(control&0x60) {
+					case 0x00:
+						pending |= TestInputInOne;
+					break;
+					default:
+						// TODO: all other forms of input.
+						assert(false);
+					break;
+				}
+			} else {
+				if(!(control&0x20)) {
+					pending |= TestInputNow;
+				} else if (chained_input) {	// TODO: check CNT directly, probably?
+					pending |= TestInputInOne;
+				}
+			}
+			if(pending&TestInputNow && control&1) {
 				pending |= ApplyClockInTwo;
 			}
+
+			// Keep a history of the one-shot bit.
 			if(control & 0x08) {
-				pending |= OneShotInOne;
+				pending |= OneShotInOne | OneShotNow;
 			}
 
 
@@ -72,6 +95,7 @@ struct MOS6526Storage {
 			if(pending & ApplyClockNow) {
 				--value;
 			}
+
 			const bool should_reload = !value && (pending & ApplyClockInOne);
 
 			// Schedule a reload if so ordered.
@@ -82,14 +106,14 @@ struct MOS6526Storage {
 				// If this was one-shot, stop.
 				if(pending&(OneShotInOne | OneShotNow)) {
 					control &= ~1;
-					pending &= ~(ApplyClockInOne|ApplyClockInTwo);
+					pending &= ~(ApplyClockInOne|ApplyClockInTwo);	// Cancel scheculed ticks.
 				}
 			}
 
 			// Reload if scheduled.
 			if(pending & ReloadNow) {
 				value = reload;
-				pending &= ~ApplyClockInOne;	// Skip one decrement.
+				pending &= ~ApplyClockInOne;	// Skip next decrement.
 			}
 
 
@@ -104,19 +128,18 @@ struct MOS6526Storage {
 		private:
 			int pending = 0;
 
-//			static constexpr int ReloadInThree = 1 << 0;
-//			static constexpr int ReloadInTwo = 1 << 1;
-			static constexpr int ReloadInOne = 1 << 2;
-			static constexpr int ReloadNow = 1 << 3;
+			static constexpr int ReloadInOne = 1 << 0;
+			static constexpr int ReloadNow = 1 << 1;
 
-//			static constexpr int OneShotInTwo = 1 << 4;
-			static constexpr int OneShotInOne = 1 << 5;
-			static constexpr int OneShotNow = 1 << 6;
+			static constexpr int OneShotInOne = 1 << 2;
+			static constexpr int OneShotNow = 1 << 3;
 
-			static constexpr int ApplyClockInThree = 1 << 7;
-			static constexpr int ApplyClockInTwo = 1 << 8;
-			static constexpr int ApplyClockInOne = 1 << 9;
-			static constexpr int ApplyClockNow = 1 << 10;
+			static constexpr int ApplyClockInTwo = 1 << 4;
+			static constexpr int ApplyClockInOne = 1 << 5;
+			static constexpr int ApplyClockNow = 1 << 6;
+
+			static constexpr int TestInputInOne = 1 << 7;
+			static constexpr int TestInputNow = 1 << 8;
 
 			static constexpr int PendingClearMask = ~(ReloadNow | OneShotNow | ApplyClockNow);
 

@@ -248,10 +248,10 @@ void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 		pending_ &= PendingClearMask;
 
 		// TODO: use CNT potentially to clock timer A, elimiante conditional above.
-		const bool timer1_did_reload = counter_[0].advance(false);
+		const bool timer1_did_reload = counter_[0].template advance<false>(false);
 
 		const bool timer1_carry = timer1_did_reload && (counter_[1].control & 0x60) == 0x40;
-		const bool timer2_did_reload = counter_[1].advance(timer1_carry);
+		const bool timer2_did_reload = counter_[1].template advance<true>(timer1_carry);
 		posit_interrupt((timer1_did_reload ? 0x01 : 0x00) | (timer2_did_reload ? 0x02 : 0x00));
 	}
 }
