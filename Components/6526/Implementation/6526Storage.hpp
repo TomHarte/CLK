@@ -12,6 +12,17 @@
 namespace MOS {
 namespace MOS6526 {
 
+template <bool is_8250> struct TODStorage {};
+template <> struct TODStorage<false> {
+	// TODO.
+};
+template <> struct TODStorage<true> {
+	uint32_t increment_mask = uint32_t(~0);
+	uint32_t latch = 0;
+	uint32_t value = 0;
+	uint32_t alarm = 0;
+};
+
 struct MOS6526Storage {
 	HalfCycles half_divider_;
 
@@ -20,11 +31,6 @@ struct MOS6526Storage {
 
 	uint8_t interrupt_control_ = 0;
 	uint8_t interrupt_state_ = 0;
-
-	uint32_t tod_increment_mask_ = uint32_t(~0);
-	uint32_t tod_latch_ = 0;
-	uint32_t tod_ = 0;
-	uint32_t tod_alarm_ = 0;
 
 	struct Counter {
 		uint16_t reload = 0;
