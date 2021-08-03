@@ -69,9 +69,15 @@ struct MOS6526Storage {
 			// Determine whether an input clock is applicable.
 			if constexpr(is_counter_2) {
 				switch(control&0x60) {
-					case 0x00:
-						pending |= TestInputInOne;
+					case 0x00:	// Count Phi2 pulses.
+						pending |= TestInputNow;
 					break;
+					case 0x40:	// Count timer A unerflows.
+						pending |= chained_input ? TestInputNow : 0;
+					break;
+
+					case 0x20:	// Count negative CNTs.
+					case 0x60:	// Count timer A transitions when CNT is low.
 					default:
 						// TODO: all other forms of input.
 						assert(false);
