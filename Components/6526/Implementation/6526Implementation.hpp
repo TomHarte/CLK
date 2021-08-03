@@ -73,61 +73,16 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		break;
 
 		// Counters; writes set the reload values.
-		case 4:	counter_[0].template set_reload<0>(value);	break;
-		case 5:	counter_[0].template set_reload<8>(value);	break;
-		case 6:	counter_[1].template set_reload<0>(value);	break;
-		case 7:	counter_[1].template set_reload<8>(value);	break;
+		case 4:		counter_[0].template set_reload<0>(value);	break;
+		case 5:		counter_[0].template set_reload<8>(value);	break;
+		case 6:		counter_[1].template set_reload<0>(value);	break;
+		case 7:		counter_[1].template set_reload<8>(value);	break;
 
 		// Time-of-day clock.
-		//
-		// 8520: a binary counter; stopped on any write, restarted
-		// upon a write to the LSB.
-		case 8:
-			if constexpr (personality == Personality::P8250) {
-				if(counter_[1].control & 0x80) {
-					tod_.alarm = (tod_.alarm & 0xffff00) | uint32_t(value);
-				} else {
-					tod_.value = (tod_.value & 0xffff00) | uint32_t(value);
-					tod_.increment_mask = uint32_t(~0);
-				}
-			} else {
-				printf("6526 TOD clock not implemented\n");
-				assert(false);
-			}
-		break;
-		case 9:
-			if constexpr (personality == Personality::P8250) {
-				if(counter_[1].control & 0x80) {
-					tod_.alarm = (tod_.alarm & 0xff00ff) | uint32_t(value << 8);
-				} else {
-					tod_.value = (tod_.value & 0xff00ff) | uint32_t(value << 8);
-					tod_.increment_mask = 0;
-				}
-			} else {
-				printf("6526 TOD clock not implemented\n");
-				assert(false);
-			}
-		break;
-		case 10:
-			if constexpr (personality == Personality::P8250) {
-				if(counter_[1].control & 0x80) {
-					tod_.alarm = (tod_.alarm & 0x00ffff) | uint32_t(value << 16);
-				} else {
-					tod_.value = (tod_.value & 0x00ffff) | uint32_t(value << 16);
-					tod_.increment_mask = 0;
-				}
-			} else {
-				printf("6526 TOD clock not implemented\n");
-				assert(false);
-			}
-		break;
-
-		case 11:
-			if constexpr (personality != Personality::P8250) {
-				printf("6526 TOD clock not implemented\n");
-				assert(false);
-			}
-		break;
+		case 8:		tod_.template write<0>(value);	break;
+		case 9:		tod_.template write<1>(value);	break;
+		case 10:	tod_.template write<2>(value);	break;
+		case 11:	tod_.template write<3>(value);	break;
 
 		// Interrupt control.
 		case 13: {
@@ -139,9 +94,15 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 			update_interrupts();
 		} break;
 
-		// Control.
-		case 14:	counter_[0].template set_control<false>(value);	break;
-		case 15:	counter_[1].template set_control<true>(value);	break;
+		// Control. Posted to both the counters and the clock as it affects both.
+		case 14:
+			counter_[0].template set_control<false>(value);
+			tod_.template set_control<false>(value);
+		break;
+		case 15:
+			counter_[1].template set_control<true>(value);
+			tod_.template set_control<true>(value);
+		break;
 
 		default:
 			printf("Unhandled 6526 write: %02x to %d\n", value, address);
@@ -179,53 +140,10 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 		return counter_[address - 14].control;
 
 		// Time-of-day clock.
-		//
-		// 8250: Latch on MSB. Unlatch on LSB. Read raw if not latched.
-		case 8:
-			if constexpr (personality == Personality::P8250) {
-				if(tod_.latch) {
-					const uint8_t result = tod_.latch & 0xff;
-					tod_.latch = 0;
-					return result;
-				} else {
-					return tod_.value & 0xff;
-				}
-			} else {
-				printf("6526 TOD clock not implemented\n");
-				assert(false);
-			}
-		break;
-		case 9:
-			if constexpr (personality == Personality::P8250) {
-				if(tod_.latch) {
-					return (tod_.latch >> 8) & 0xff;
-				} else {
-					return (tod_.value >> 8) & 0xff;
-				}
-			} else {
-				printf("6526 TOD clock not implemented\n");
-				assert(false);
-			}
-		break;
-		case 10:
-			if constexpr (personality == Personality::P8250) {
-				tod_.latch = tod_.value | 0xff00'0000;
-				return (tod_.value >> 16) & 0xff;
-			} else {
-				printf("6526 TOD clock not implemented\n");
-				assert(false);
-			}
-		break;
-
-		case 11:
-			if constexpr (personality == Personality::P8250) {
-				return 0x00;	// Assumed. Just a guss.
-			} else {
-				printf("6526 TOD clock not implemented\n");
-				assert(false);
-
-			}
-		break;
+		case 8:		return tod_.template read<0>();
+		case 9:		return tod_.template read<1>();
+		case 10:	return tod_.template read<2>();
+		case 11:	return tod_.template read<3>();
 
 		default:
 			printf("Unhandled 6526 read from %d\n", address);
@@ -259,18 +177,8 @@ void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::advance_tod(int count) {
 	if(!count) return;
-
-	if constexpr(personality == Personality::P8250) {
-		// The 8250 uses a simple binary counter to replace the
-		// 6526's time-of-day clock. So this is easy.
-		const uint32_t distance_to_alarm = (tod_.alarm - tod_.value) & 0xffffff;
-		tod_.value += uint32_t(count) & tod_.increment_mask;
-		if(distance_to_alarm <= uint32_t(count)) {
-			posit_interrupt(0x04);
-		}
-	} else {
-		// The 6526 uses a time-of-day clock. This may or may not
-		// be accurate.
+	if(tod_.advance(count)) {
+		posit_interrupt(0x04);
 	}
 }
 

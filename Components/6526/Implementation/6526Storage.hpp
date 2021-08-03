@@ -12,15 +12,95 @@
 namespace MOS {
 namespace MOS6526 {
 
-template <bool is_8250> struct TODStorage {};
-template <> struct TODStorage<false> {
-	// TODO.
+class TODBase {
+	public:
+		template <bool is_timer2> void set_control(uint8_t value) {
+			if constexpr (is_timer2) {
+				write_alarm = value & 0x80;
+			} else {
+				is_50Hz = value & 0x80;
+			}
+		}
+
+	protected:
+		bool write_alarm = false, is_50Hz = false;
 };
-template <> struct TODStorage<true> {
-	uint32_t increment_mask = uint32_t(~0);
-	uint32_t latch = 0;
-	uint32_t value = 0;
-	uint32_t alarm = 0;
+
+template <bool is_8250> class TODStorage {};
+template <> class TODStorage<false>: public TODBase {
+	public:
+		// TODO.
+
+		template <int byte> void write(uint8_t) {
+			printf("6526 TOD clock not implemented\n");
+			assert(false);
+		}
+
+		template <int byte> uint8_t read() {
+			printf("6526 TOD clock not implemented\n");
+			assert(false);
+		}
+
+		bool advance(int) {
+			printf("6526 TOD clock not implemented\n");
+			assert(false);
+		}
+};
+template <> class TODStorage<true>: public TODBase {
+	private:
+		uint32_t increment_mask_ = uint32_t(~0);
+		uint32_t latch_ = 0;
+		uint32_t value_ = 0;
+		uint32_t alarm_ = 0;
+
+	public:
+		template <int byte> void write(uint8_t v) {
+			if constexpr (byte == 3) {
+				return;
+			}
+			constexpr int shift = byte << 3;
+
+			// Write to either the alarm or the current value as directed;
+			// writing to any part of the current value other than the LSB
+			// pauses incrementing until the LSB is written.
+			if(write_alarm) {
+				alarm_ = (alarm_ & (0x00ff'ffff >> (24 - shift))) | uint32_t(v << shift);
+			} else {
+				value_ = (alarm_ & (0x00ff'ffff >> (24 - shift))) | uint32_t(v << shift);
+				increment_mask_ = (shift == 0) ? uint32_t(~0) : 0;
+			}
+		}
+
+		template <int byte> uint8_t read() {
+			if constexpr (byte == 3) {
+				return 0xff;	// Assumed. Just a guss.
+			}
+			constexpr int shift = byte << 3;
+
+			if(latch_) {
+				// Latching: if this is a latched read from the LSB,
+				// empty the latch.
+				const uint8_t result = uint8_t((latch_ >> shift) & 0xff);
+				if constexpr (shift == 0) {
+					latch_ = 0;
+				}
+				return result;
+			} else {
+				// Latching: if this is a read from the MSB, latch now.
+				if constexpr (shift == 16) {
+					latch_ = value_ | 0xff00'0000;
+				}
+				return uint8_t((value_ >> shift) & 0xff);
+			}
+		}
+
+		bool advance(int count) {
+			// The 8250 uses a simple binary counter to replace the
+			// 6526's time-of-day clock. So this is easy.
+			const uint32_t distance_to_alarm = (alarm_ - value_) & 0xffffff;
+			value_ += uint32_t(count) & increment_mask_;
+			return distance_to_alarm <= uint32_t(count);
+		}
 };
 
 struct MOS6526Storage {
