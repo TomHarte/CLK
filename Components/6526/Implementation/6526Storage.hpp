@@ -59,8 +59,6 @@ template <> class TODStorage<false>: public TODBase {
 					increment_ = false;
 				}
 			}
-
-			assert(false);
 		}
 
 		template <int byte> uint8_t read() {
@@ -275,7 +273,7 @@ struct MOS6526Storage {
 				// If this was one-shot, stop.
 				if(pending&(OneShotInOne | OneShotNow)) {
 					control &= ~1;
-					pending &= ~(ApplyClockInOne|ApplyClockInTwo);	// Cancel scheculed ticks.
+					pending &= ~(ApplyClockInOne|ApplyClockInTwo);	// Cancel scheduled ticks.
 				}
 			}
 
