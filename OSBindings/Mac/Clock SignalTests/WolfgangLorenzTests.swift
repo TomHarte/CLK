@@ -288,7 +288,6 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	}
 
 	func testCIALoadTH() {
-		// TODO: Uses one of the CNT input modes of timer B.
 		runTest("loadth", suffixes: [""], processor: .processor6502)
 	}
 
@@ -313,7 +312,6 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	}
 
 	func testCIACNTDefault() {
-		// TODO: Uses one of the CNT input modes of timer B.
 		runTest("cntdef", suffixes: [""], processor: .processor6502)
 	}
 

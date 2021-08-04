@@ -174,6 +174,8 @@ template <> class TODStorage<true>: public TODBase {
 };
 
 struct MOS6526Storage {
+	bool cnt_state_ = false;	// Inactive by default.
+	bool cnt_edge_ = false;
 	HalfCycles half_divider_;
 
 	uint8_t output_[2] = {0, 0};
@@ -206,7 +208,7 @@ struct MOS6526Storage {
 			control = v;
 		}
 
-		template <bool is_counter_2> bool advance(bool chained_input) {
+		template <bool is_counter_2> bool advance(bool chained_input, bool cnt_state, bool cnt_edge) {
 			// TODO: remove most of the conditionals here in favour of bit shuffling.
 
 			pending = (pending & PendingClearMask) << 1;
@@ -222,37 +224,36 @@ struct MOS6526Storage {
 				control &= ~0x10;
 			}
 
+			// Keep a history of the one-shot bit.
+			if(control & 0x08) {
+				pending |= OneShotInOne;
+			}
+
 			// Determine whether an input clock is applicable.
 			if constexpr(is_counter_2) {
 				switch(control&0x60) {
 					case 0x00:	// Count Phi2 pulses.
 						pending |= TestInputNow;
 					break;
+					case 0x20:	// Count negative CNTs, with an extra cycle of delay.
+						pending |= cnt_edge ? TestInputInOne : 0;
+					break;
 					case 0x40:	// Count timer A reloads.
 						pending |= chained_input ? TestInputNow : 0;
 					break;
-
-					case 0x20:	// Count negative CNTs.
 					case 0x60:	// Count timer A transitions when CNT is low.
-					default:
-						// TODO: all other forms of input.
-						assert(false);
+						pending |= chained_input && cnt_edge ? TestInputNow : 0;
 					break;
 				}
 			} else {
 				if(!(control&0x20)) {
 					pending |= TestInputNow;
-				} else if (chained_input) {	// TODO: check CNT directly, probably?
+				} else if (cnt_edge) {
 					pending |= TestInputInOne;
 				}
 			}
 			if(pending&TestInputNow && control&1) {
 				pending |= ApplyClockInTwo;
-			}
-
-			// Keep a history of the one-shot bit.
-			if(control & 0x08) {
-				pending |= OneShotInOne | OneShotNow;
 			}
 
 

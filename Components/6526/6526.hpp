@@ -60,6 +60,9 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 		/// @returns @c true if the interrupt output is active, @c false otherwise.
 		bool get_interrupt_line();
 
+		/// Sets the current state of the CNT input.
+		void set_cnt_input(bool active);
+
 	private:
 		PortHandlerT &port_handler_;
 		TODStorage<personality == Personality::P8250> tod_;
