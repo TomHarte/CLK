@@ -9,6 +9,8 @@
 #ifndef _526Storage_h
 #define _526Storage_h
 
+#include <array>
+
 namespace MOS {
 namespace MOS6526 {
 
@@ -27,25 +29,95 @@ class TODBase {
 };
 
 template <bool is_8250> class TODStorage {};
-template <> class TODStorage<false>: public TODBase {
-	public:
-		// TODO.
 
-		template <int byte> void write(uint8_t) {
-			printf("6526 TOD clock not implemented\n");
+template <> class TODStorage<false>: public TODBase {
+	private:
+		bool increment_ = true, latched_ = false;
+		int divider_ = 0;
+		std::array<uint8_t, 4> value_;
+		std::array<uint8_t, 4> latch_;
+		std::array<uint8_t, 4> alarm_;
+
+		static constexpr uint8_t masks[4] = {0xf, 0x3f, 0x3f, 0x1f};
+
+		void bcd_increment(uint8_t &value) {
+			++value;
+			if((value&0x0f) > 0x09) value += 0x06;
+		}
+
+	public:
+		template <int byte> void write(uint8_t v) {
+			if(write_alarm) {
+				alarm_[byte] = v & masks[byte];
+			} else {
+				value_[byte] = v & masks[byte];
+
+				if constexpr (byte == 0) {
+					increment_ = true;
+				}
+				if constexpr (byte == 3) {
+					increment_ = false;
+				}
+			}
+
 			assert(false);
 		}
 
 		template <int byte> uint8_t read() {
-			printf("6526 TOD clock not implemented\n");
-			assert(false);
+			if(latched_) {
+				const uint8_t result = latch_[byte];
+				if constexpr (byte == 0) {
+					latched_ = false;
+				}
+				return result;
+			}
+
+			if constexpr (byte == 3) {
+				latched_ = true;
+				latch_ = value_;
+			}
+			return value_[byte];
 		}
 
-		bool advance(int) {
-			printf("6526 TOD clock not implemented\n");
-			assert(false);
+		bool advance(int count) {
+			if(!increment_) {
+				return false;
+			}
+
+			while(count--) {
+				// Increment the pre-10ths divider.
+				++divider_;
+				if(divider_ < 5) continue;
+				if(divider_ < 6 && !is_50Hz) continue;
+				divider_ = 0;
+
+				// Increments 10ths of a second. One BCD digit.
+				++value_[0];
+				if(value_[0] < 10) {
+					continue;
+				}
+
+				// Increment seconds. Actual BCD needed from here onwards.
+				bcd_increment(value_[1]);
+				if(value_[1] != 60) {
+					continue;
+				}
+				value_[1] = 0;
+
+				// Increment minutes.
+				bcd_increment(value_[2]);
+				if(value_[2] != 60) {
+					continue;
+				}
+				value_[2] = 0;
+
+				// TODO: increment hours, keeping AM/PM separate?
+			}
+
+			return false;	// TODO: test against alarm.
 		}
 };
+
 template <> class TODStorage<true>: public TODBase {
 	private:
 		uint32_t increment_mask_ = uint32_t(~0);
