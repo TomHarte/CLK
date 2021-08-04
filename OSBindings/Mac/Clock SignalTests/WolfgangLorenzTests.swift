@@ -9,6 +9,14 @@
 import XCTest
 import Foundation
 
+// Unused Lorenz tests:
+//
+//	cpuport (tests the 6510 IO ports, I assume);
+//	cputiming (unclear what this times against, probably requires VIC-II delays?);
+//	mmu (presumably requires C64 paging?)
+//	mmufetch (as above)
+//	nmi
+
 class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 
 	// MARK: - 6502 Tests
@@ -228,6 +236,11 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 
 	// MARK: - CIA Tests
 
+	func testNMI() {
+		// TODO: Requires serial register.
+		runTest("nmi", suffixes: [""], processor: .processor6502)
+	}
+
 	func testCIA1TA() {
 		runTest("cia1ta", suffixes: [""], processor: .processor6502)
 	}
@@ -237,10 +250,12 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	}
 
 	func testCIA1TAB() {
+		// Tests Port B timer output. TODO.
 		runTest("cia1tab", suffixes: [""], processor: .processor6502)
 	}
 
 	func testCIA1TB123() {
+		// Tests 6526 TOD clock. TODO.
 		runTest("cia1tb123", suffixes: [""], processor: .processor6502)
 	}
 
@@ -270,6 +285,36 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 
 	func testCIA2PB7() {
 		runTest("cia2pb7", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIALoadTH() {
+		// TODO: Uses one of the CNT input modes of timer B.
+		runTest("loadth", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIACntPhi2() {
+		runTest("cnto2", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIAICR() {
+		runTest("icr01", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIAIMR() {
+		runTest("imr", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIAFLIPOS() {
+		runTest("flipos", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIAOneShot() {
+		runTest("oneshot", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIACNTDefault() {
+		// TODO: Uses one of the CNT input modes of timer B.
+		runTest("cntdef", suffixes: [""], processor: .processor6502)
 	}
 
 	// MARK: - Collections
