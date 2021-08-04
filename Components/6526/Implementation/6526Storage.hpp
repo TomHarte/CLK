@@ -242,7 +242,7 @@ struct MOS6526Storage {
 						pending |= chained_input ? TestInputNow : 0;
 					break;
 					case 0x60:	// Count timer A transitions when CNT is low.
-						pending |= chained_input && cnt_edge ? TestInputNow : 0;
+						pending |= chained_input && cnt_state ? TestInputNow : 0;
 					break;
 				}
 			} else {
