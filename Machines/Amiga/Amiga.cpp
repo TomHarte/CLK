@@ -95,8 +95,7 @@ class ConcreteMachine:
 			// Autovector interrupts.
 			if(cycle.operation & Microcycle::InterruptAcknowledge) {
 				mc68000_.set_is_peripheral_address(true);
-			} else {
-				mc68000_.set_is_peripheral_address(false);
+				return HalfCycles(0);
 			}
 
 			// Do nothing if no address is exposed.
@@ -106,9 +105,9 @@ class ConcreteMachine:
 
 			// Grab the target address to pick a memory source.
 			const uint32_t address = cycle.host_endian_byte_address();
-//			if((cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord)) && !(cycle.operation & Microcycle::IsProgram)) {
-//				printf("%06x\n", *cycle.address);
-//			}
+
+			// Set VPA if this is [going to be] a CIA access.
+			mc68000_.set_is_peripheral_address((address & 0xe0'0000) == 0xa0'0000);
 
 			if(!memory_.regions[address >> 18].read_write_mask) {
 				if((cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord))) {
@@ -344,6 +343,11 @@ class ConcreteMachine:
 					// b0: /STEP
 					LOG("TODO: Stepping, etc; " << PADHEX(2) << +value);
 				}
+			}
+
+			uint8_t get_port_input(MOS::MOS6526::Port) {
+				LOG("Unexpected input for CIA B ");
+				return 0xff;
 			}
 		} cia_b_handler_;
 
