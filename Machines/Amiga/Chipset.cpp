@@ -454,6 +454,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 		case Read(0x01c):
 			cycle.set_value16(interrupt_enable_);
+			LOG("Interrupt enable mask read: " << PADHEX(4) << interrupt_enable_);
 		break;
 
 		case Write(0x09c):
@@ -463,6 +464,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 		case Read(0x01e):
 			cycle.set_value16(interrupt_requests_);
+			LOG("Interrupt requests read: " << PADHEX(4) << interrupt_requests_);
 		break;
 
 		// Display management.
@@ -647,7 +649,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 // MARK: - Sprites.
 
 void Chipset::Sprite::set_pointer(int shift, uint16_t value) {
-	LOG("Sprite pointer with shift " << shift << " to " << PADHEX(4) << value);
+	LOG("Sprite pointer with shift " << std::dec << shift << " to " << PADHEX(4) << value);
 }
 
 void Chipset::Sprite::set_start_position(uint16_t value) {
