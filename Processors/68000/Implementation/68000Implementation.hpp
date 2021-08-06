@@ -136,12 +136,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							auto cycle_copy = active_step_->microcycle;
 							cycle_copy.operation |= Microcycle::IsPeripheral;
 
-							// Extend length by: (i) distance to next E low, plus (ii) difference between
+							// Length will be: (i) distance to next E cycle, plus (ii) difference between
 							// current length and a whole E cycle.
-							cycle_copy.length = HalfCycles(20);	// i.e. one E cycle in length.
-							cycle_copy.length += (e_clock_phase_ + cycles_run_for) % 20;
-
-							// TODO: verify logic above; I'm not persuaded.
+							const auto phase_now = (e_clock_phase_ + cycles_run_for) % 20;
+							const auto time_to_boundary = (HalfCycles(20) - phase_now) % HalfCycles(20);
+							cycle_copy.length = HalfCycles(20) + time_to_boundary;
 
 							cycles_run_for +=
 								cycle_copy.length +
@@ -1897,10 +1896,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									negative_flag_ = zero_result_ & 0x80000000;
 								break;
 
-								case Operation::STOP:
+								case Operation::STOP: {
+									static int stops = 0;
+									++stops;
+									if(stops == 559) {
+										printf("");
+									}
+
 									apply_status(prefetch_queue_.halves.low.full);
 									execution_state_ = ExecutionState::Stopped;
-								break;
+								} break;
 
 								/*
 									Development period debugging.
