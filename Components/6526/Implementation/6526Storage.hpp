@@ -206,6 +206,10 @@ struct MOS6526Storage {
 
 		template <bool is_counter_2> void set_control(uint8_t v) {
 			control = v;
+
+			if(v&2) {
+				printf("UNIMPLEMENTED: PB strobe\n");
+			}
 		}
 
 		template <bool is_counter_2> bool advance(bool chained_input, bool cnt_state, bool cnt_edge) {
