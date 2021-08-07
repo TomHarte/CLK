@@ -880,14 +880,27 @@
 
 - (void)testDIVSException {
 	// DIVS.W #0, D1
-	self.machine->set_initial_stack_pointer(0);
+	const uint32_t initial_sp = 0x5000;
+	self.machine->set_initial_stack_pointer(initial_sp);
 	[self performDIVS:0x0 d1:0x1fffffff];
 
+	// Check register state.
 	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x1fffffff);
-	XCTAssertEqual(state.supervisor_stack_pointer, 0xfffffffa);
+	XCTAssertEqual(state.supervisor_stack_pointer, initial_sp - 6);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
 	XCTAssertEqual(42, self.machine->get_cycle_count());
+
+	// Check stack contents; should be PC.l, PC.h and status register.
+	// Assumed: the program counter on the stack is that of the
+	// failing instrustion.
+	const uint16_t pc_h = *self.machine->ram_at(initial_sp-4);
+	const uint16_t pc_l = *self.machine->ram_at(initial_sp-2);
+//	const uint16_t status = *self.machine->ram_at(initial_sp);
+	const uint32_t initial_pc = self.machine->initial_pc();
+	XCTAssertEqual(pc_l, initial_pc & 0xffff);
+	XCTAssertEqual(pc_h, initial_pc >> 16);
+//	XCTAssertEqual(status, 9);
 }
 
 @end

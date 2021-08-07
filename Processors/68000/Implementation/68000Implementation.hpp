@@ -1000,7 +1000,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	populate_trap_steps(5, status());								\
 	bus_program->microcycle.length = HalfCycles(20);				\
 																	\
-	program_counter_.full -= 2;
+	program_counter_.full -= 6;
 
 								case Operation::DIVU: {
 									carry_flag_ = 0;

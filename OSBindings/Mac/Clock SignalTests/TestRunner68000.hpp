@@ -35,6 +35,10 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			set_processor_state(state);
 		}
 
+		uint32_t initial_pc() const {
+			return 0x1000;
+		}
+
 		void set_program(const std::vector<uint16_t> &program) {
 			memcpy(&ram_[0x1000 >> 1], program.data(), program.size() * sizeof(uint16_t));
 
