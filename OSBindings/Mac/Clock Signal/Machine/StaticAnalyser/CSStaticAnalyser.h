@@ -12,6 +12,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class CSMachine;
 
+typedef NS_ENUM(NSInteger, CSMachineAmigaModel) {
+	CSMachineAmigaModelA500,
+};
+
 typedef NS_ENUM(NSInteger, CSMachineAppleIIModel) {
 	CSMachineAppleIIModelAppleII,
 	CSMachineAppleIIModelAppleIIPlus,
@@ -120,6 +124,7 @@ typedef int Kilobytes;
 
 - (nullable instancetype)initWithFileAtURL:(NSURL *)url;
 
+- (instancetype)initWithAmigaModel:(CSMachineAmigaModel)model;
 - (instancetype)initWithAmstradCPCModel:(CSMachineCPCModel)model;
 - (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController;
 - (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize;

@@ -14,6 +14,7 @@
 #include "StaticAnalyser.hpp"
 
 #include "../../../../../Analyser/Static/Acorn/Target.hpp"
+#include "../../../../../Analyser/Static/Amiga/Target.hpp"
 #include "../../../../../Analyser/Static/AmstradCPC/Target.hpp"
 #include "../../../../../Analyser/Static/AppleII/Target.hpp"
 #include "../../../../../Analyser/Static/AppleIIgs/Target.hpp"
@@ -48,6 +49,16 @@
 }
 
 // MARK: - Machine-based Initialisers
+
+- (instancetype)initWithAmigaModel:(CSMachineAmigaModel)model {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::Amiga::Target;
+		auto target = std::make_unique<Target>();
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
 
 - (instancetype)initWithAmstradCPCModel:(CSMachineCPCModel)model {
 	self = [super init];

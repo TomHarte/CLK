@@ -227,6 +227,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 		switch machineSelector.selectedTabViewItem!.identifier as! String {
 
+			case "amiga":
+				return CSStaticAnalyser(amigaModel: .A500)
+
 			case "appleii":
 				var model: CSMachineAppleIIModel = .appleII
 				switch appleIIModelButton.selectedTag() {
