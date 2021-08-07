@@ -42,6 +42,8 @@ enum Name {
 	AmigaA600Kickstart205,
 	AmigaA500Kickstart31,
 
+	AmigaDiagROM121,
+
 	// Amstrad CPC.
 	AMSDOS,
 	CPC464Firmware,		CPC464BASIC,
