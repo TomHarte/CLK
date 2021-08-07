@@ -328,7 +328,7 @@ class ConcreteMachine:
 					// b2: SEL
 					// b1: POUT
 					// b0: BUSY
-					LOG("TODO: Serial control: " << PADHEX(2) << +value);
+					LOG("TODO: DTR/RTS/etc: " << PADHEX(2) << +value);
 				} else {
 					// Disk motor control, drive and head selection,
 					// and stepper control:
