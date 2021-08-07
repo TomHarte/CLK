@@ -144,14 +144,14 @@ Gw
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="jli-ac-Sij">
                                             <rect key="frame" x="67" y="179" width="117" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="Apple II" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="VBQ-JG-AeM" id="U6V-us-O2F">
+                                            <popUpButtonCell key="cell" type="push" title="Apple II" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="VBQ-JG-AeM" id="U6V-us-O2F">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="esp-ir-7iH">
                                                     <items>
-                                                        <menuItem title="Apple II" id="VBQ-JG-AeM"/>
+                                                        <menuItem title="Apple II" state="on" id="VBQ-JG-AeM"/>
                                                         <menuItem title="Apple II+" tag="1" id="Yme-Wn-Obh"/>
-                                                        <menuItem title="Apple IIe" state="on" tag="2" id="AMt-WU-a0H"/>
+                                                        <menuItem title="Apple IIe" tag="2" id="AMt-WU-a0H"/>
                                                         <menuItem title="Enhanced IIe" tag="3" id="kUz-FG-lqW"/>
                                                     </items>
                                                 </menu>
@@ -258,7 +258,7 @@ Gw
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nLf-LI-nWO">
-                                            <rect key="frame" x="18" y="204" width="364" height="16"/>
+                                            <rect key="frame" x="18" y="187" width="364" height="16"/>
                                             <textFieldCell key="cell" lineBreakMode="clipping" title="At present only a 512k Atari ST is supported." id="gBA-ke-mur">
                                                 <font key="font" usesAppearanceFont="YES"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -268,7 +268,7 @@ Gw
                                     </subviews>
                                     <constraints>
                                         <constraint firstItem="nLf-LI-nWO" firstAttribute="leading" secondItem="nnv-Wi-7hc" secondAttribute="leading" constant="20" symbolic="YES" id="EIm-9Q-Rcj"/>
-                                        <constraint firstItem="nLf-LI-nWO" firstAttribute="top" secondItem="nnv-Wi-7hc" secondAttribute="top" constant="3" id="f9w-Lj-5dn"/>
+                                        <constraint firstItem="nLf-LI-nWO" firstAttribute="top" secondItem="nnv-Wi-7hc" secondAttribute="top" constant="20" symbolic="YES" id="f9w-Lj-5dn"/>
                                         <constraint firstAttribute="trailing" secondItem="nLf-LI-nWO" secondAttribute="trailing" constant="20" symbolic="YES" id="m3L-Nx-Aqz"/>
                                     </constraints>
                                 </view>
@@ -572,13 +572,13 @@ Gw
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ENP-hI-BVZ">
                                             <rect key="frame" x="67" y="179" width="107" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="Oric-1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="jGN-1a-biF" id="Jll-EJ-cMr">
+                                            <popUpButtonCell key="cell" type="push" title="Oric-1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="jGN-1a-biF" id="Jll-EJ-cMr">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="E9d-fH-Eak">
                                                     <items>
-                                                        <menuItem title="Oric-1" id="jGN-1a-biF"/>
-                                                        <menuItem title="Oric Atmos" state="on" tag="1" id="p5O-Jq-Tft"/>
+                                                        <menuItem title="Oric-1" state="on" id="jGN-1a-biF"/>
+                                                        <menuItem title="Oric Atmos" tag="1" id="p5O-Jq-Tft"/>
                                                         <menuItem title="Pravetz 8D" tag="2" id="u6z-2t-ly9"/>
                                                     </items>
                                                 </menu>
@@ -756,13 +756,13 @@ Gw
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="5aO-UX-HnX">
                                             <rect key="frame" x="108" y="179" width="116" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="7QC-Ij-hES" id="d3W-Gl-3Mf">
+                                            <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="7QC-Ij-hES" id="d3W-Gl-3Mf">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="mua-Lp-9wl">
                                                     <items>
-                                                        <menuItem title="Unexpanded" id="7QC-Ij-hES"/>
-                                                        <menuItem title="16 kb" state="on" tag="16" id="1HK-zJ-udx"/>
+                                                        <menuItem title="Unexpanded" state="on" id="7QC-Ij-hES"/>
+                                                        <menuItem title="16 kb" tag="16" id="1HK-zJ-udx"/>
                                                         <menuItem title="64 kb" tag="64" hidden="YES" enabled="NO" id="PEx-W6-eGK"/>
                                                     </items>
                                                 </menu>
@@ -794,14 +794,14 @@ Gw
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gFZ-d4-WFv">
                                             <rect key="frame" x="67" y="179" width="76" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="16kb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" tag="16" imageScaling="axesIndependently" inset="2" selectedItem="Fo7-NL-Kv5" id="tYs-sA-oek">
+                                            <popUpButtonCell key="cell" type="push" title="16kb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="16" imageScaling="axesIndependently" inset="2" selectedItem="Fo7-NL-Kv5" id="tYs-sA-oek">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="8lt-dk-zPr">
                                                     <items>
-                                                        <menuItem title="16kb" tag="16" id="Fo7-NL-Kv5"/>
+                                                        <menuItem title="16kb" state="on" tag="16" id="Fo7-NL-Kv5"/>
                                                         <menuItem title="48kb" tag="48" id="xks-Rv-Umd"/>
-                                                        <menuItem title="128kb" state="on" tag="128" id="w8h-lY-JLX"/>
+                                                        <menuItem title="128kb" tag="128" id="w8h-lY-JLX"/>
                                                         <menuItem title="+2" tag="2" id="Vvu-ua-pjg"/>
                                                         <menuItem title="+2a" tag="21" id="bFk-nC-Txe"/>
                                                         <menuItem title="+3" tag="3" id="jwx-fZ-vXp"/>
