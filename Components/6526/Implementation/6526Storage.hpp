@@ -121,7 +121,7 @@ template <> class TODStorage<true>: public TODBase {
 		uint32_t increment_mask_ = uint32_t(~0);
 		uint32_t latch_ = 0;
 		uint32_t value_ = 0;
-		uint32_t alarm_ = 0;
+		uint32_t alarm_ = 0xffffff;
 
 	public:
 		template <int byte> void write(uint8_t v) {
