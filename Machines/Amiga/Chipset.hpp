@@ -61,6 +61,18 @@ class Chipset {
 		Outputs::Display::DisplayType get_display_type() const;
 
 	private:
+		// MARK: - Common base for DMA components.
+
+		class DMADevice {
+			public:
+				DMADevice(Chipset &chipset, uint16_t *ram, size_t size) : chipset_(chipset), ram_(ram), ram_mask_(uint32_t(size - 1)) {}
+
+			protected:
+				Chipset &chipset_;
+				uint16_t *ram_ = nullptr;
+				uint32_t ram_mask_ = 0;
+		};
+
 		// MARK: - Interrupts.
 
 		uint16_t interrupt_enable_ = 0;
@@ -103,9 +115,9 @@ class Chipset {
 
 		// MARK: - Copper.
 
-		class Copper {
+		class Copper: public DMADevice {
 			public:
-				Copper(Chipset &chipset, uint16_t *ram, size_t size) : chipset_(chipset), ram_(ram), ram_mask_(uint32_t(size - 1)) {}
+				using DMADevice::DMADevice;
 
 				/// Offers a DMA slot to the Copper, specifying the current beam position.
 				///
@@ -134,8 +146,6 @@ class Chipset {
 				}
 
 			private:
-				Chipset &chipset_;
-
 				uint32_t address_ = 0;
 				uint32_t addresses_[2]{};
 				uint16_t control_ = 0;
@@ -146,9 +156,6 @@ class Chipset {
 				bool skip_next_ = false;
 				uint16_t instruction_[2]{};
 				uint16_t position_mask_ = 0xffff;
-
-				uint16_t *ram_ = nullptr;
-				uint32_t ram_mask_ = 0;
 		} copper_;
 
 		// MARK: - Serial port.
@@ -162,6 +169,33 @@ class Chipset {
 				uint16_t shift = 0, receive_shift = 0;
 				uint16_t status;
 		} serial_;
+
+		// MARK: - Disk drives.
+
+		class DiskDMA: public DMADevice {
+			public:
+				using DMADevice::DMADevice;
+
+				template <int shift> void set_address(uint16_t value) {
+					address_ = (address_ & (0xffff'0000 >> shift)) | uint32_t(value << shift);
+				}
+
+				void set_length(uint16_t value) {
+					dma_enable_ = value & 0x8000;
+					write_ = value & 0x4000;
+					length_ = value & 0x3fff;
+
+					if(dma_enable_) {
+						printf("Not yet implemented: disk DMA [%s of %d to %06x]\n", write_ ? "write" : "read", length_, address_);
+					}
+				}
+
+			private:
+				uint32_t address_;
+				uint16_t length_;
+				bool dma_enable_ = false;
+				bool write_ = false;
+		} disk_;
 
 		// MARK: - Pixel output.
 

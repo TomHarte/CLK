@@ -40,6 +40,7 @@ enum InterruptFlag: uint16_t {
 Chipset::Chipset(uint16_t *ram, size_t size) :
 	blitter_(ram, size),
 	copper_(*this, ram, size),
+	disk_(*this, ram, size),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 }
 
@@ -420,7 +421,10 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Disk DMA.
-		case Write(0x020):	case Write(0x022):	case Write(0x024):
+		case Write(0x020):	disk_.set_address<16>(cycle.value16());	break;
+		case Write(0x022):	disk_.set_address<0>(cycle.value16());	break;
+		case Write(0x024):	disk_.set_length(cycle.value16());		break;
+
 		case Write(0x026):
 			LOG("TODO: disk DMA; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
 		break;
