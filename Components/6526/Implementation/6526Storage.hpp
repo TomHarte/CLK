@@ -189,12 +189,19 @@ struct MOS6526Storage {
 		uint16_t value = 0;
 		uint8_t control = 0;
 
-		template <int shift> void set_reload(uint8_t v) {
+		template <int shift, bool is_8250> void set_reload(uint8_t v) {
 			reload = (reload & (0xff00 >> shift)) | uint16_t(v << shift);
 
 			if constexpr (shift == 8) {
-				if(!(control&1)) {
+				// This seems to be a special 8250 feature per the Amiga
+				// Hardware Reference Manual; cf. Appendix F.
+				if(is_8250) {
+					control |= 1;
 					pending |= ReloadInOne;
+				} else {
+					if(!(control&1)) {
+						pending |= ReloadInOne;
+					}
 				}
 			}
 

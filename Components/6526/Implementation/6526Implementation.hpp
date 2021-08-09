@@ -79,10 +79,10 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		break;
 
 		// Counters; writes set the reload values.
-		case 4:		counter_[0].template set_reload<0>(value);	break;
-		case 5:		counter_[0].template set_reload<8>(value);	break;
-		case 6:		counter_[1].template set_reload<0>(value);	break;
-		case 7:		counter_[1].template set_reload<8>(value);	break;
+		case 4:		counter_[0].template set_reload<0, personality == Personality::P8250>(value);	break;
+		case 5:		counter_[0].template set_reload<8, personality == Personality::P8250>(value);	break;
+		case 6:		counter_[1].template set_reload<0, personality == Personality::P8250>(value);	break;
+		case 7:		counter_[1].template set_reload<8, personality == Personality::P8250>(value);	break;
 
 		// Time-of-day clock.
 		case 8:		tod_.template write<0>(value);	break;
