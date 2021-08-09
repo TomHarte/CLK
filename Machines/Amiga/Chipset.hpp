@@ -23,15 +23,18 @@ class Chipset {
 	public:
 		Chipset(uint16_t *ram, size_t size);
 
-		/// @returns The duration from now until the beginning of the next
-		/// available CPU slot for accessing chip memory.
-		HalfCycles time_until_cpu_slot();
-
 		struct Changes {
 			int hsyncs = 0;
 			int vsyncs = 0;
 			int interrupt_level = 0;
 			HalfCycles duration;
+
+			Changes &operator += (const Changes &rhs) {
+				hsyncs += rhs.hsyncs;
+				vsyncs += rhs.vsyncs;
+				duration += rhs.duration;
+				return *this;
+			}
 		};
 
 		/// Advances the stated amount of time.
@@ -68,7 +71,7 @@ class Chipset {
 
 		// MARK: - Scheduler.
 
-		template <bool stop_on_cpu> Changes run(HalfCycles duration = HalfCycles());
+		template <bool stop_on_cpu> Changes run(HalfCycles duration = HalfCycles::max());
 		template <bool stop_on_cpu> int advance_slots(int, int);
 		template <int cycle, bool stop_if_cpu> bool perform_cycle();
 		template <int cycle> void output();

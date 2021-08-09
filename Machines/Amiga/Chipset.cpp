@@ -53,12 +53,11 @@ Chipset::Changes Chipset::run_until_cpu_slot() {
 
 void Chipset::set_cia_interrupts(bool cia_a, bool cia_b) {
 	// TODO: are these really latched, or are they active live?
-	if(cia_a || cia_b) {
-		interrupt_requests_ |=
-			(cia_a ? InterruptFlag::IOPortsAndTimers : 0) |
-			(cia_b ? InterruptFlag::External : 0);
-		update_interrupts();
-	}
+	interrupt_requests_ &= ~(InterruptFlag::IOPortsAndTimers | InterruptFlag::External);
+	interrupt_requests_ |=
+		(cia_a ? InterruptFlag::IOPortsAndTimers : 0) |
+		(cia_b ? InterruptFlag::External : 0);
+	update_interrupts();
 }
 
 bool Chipset::Copper::advance(uint16_t position) {
@@ -220,11 +219,6 @@ template <int cycle> void Chipset::output() {
 }
 
 template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
-	// TODO: actual CPU scheduling.
-	if constexpr (stop_if_cpu) {
-		return true;
-	}
-
 	if constexpr (cycle & 1) {
 		// Odd slot priority is:
 		//
@@ -249,7 +243,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		//	4. CPU.
 	}
 
-	return false;
+	return true;
 }
 
 template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_slot) {
@@ -303,15 +297,24 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 		const int end_slot = (line_cycle_ + line_pixels) >> 2;
 		const int actual_slots = advance_slots<stop_on_cpu>(start_slot, end_slot);
 
-		if(actual_slots >= 0) {
-			// TODO: abbreviate run, prior to adding to totals below.
-			assert(false);
+		if(stop_on_cpu && actual_slots >= 0) {
+			// Run until the end of the named slot.
+			if(actual_slots) {
+				const int actual_line_pixels =
+					(4 - (line_cycle_ & 3)) + ((actual_slots - 1) << 2);
+				line_cycle_ += actual_line_pixels;
+				changes.duration += HalfCycles(actual_line_pixels);
+			}
+
+			// Just ensure an exit.
+			pixels_remaining = 0;
+		} else {
+			line_cycle_ += line_pixels;
+			changes.duration += HalfCycles(line_pixels);
+			pixels_remaining -= line_pixels;
 		}
 
-		line_cycle_ += line_pixels;
-		pixels_remaining -= line_pixels;
-
-		// Advance intraline counter and possibly ripple upwards into
+		// Advance intraline counter and pcoossibly ripple upwards into
 		// lines and fields.
 		if(line_cycle_ == (line_length_ * 4)) {
 			++changes.hsyncs;
@@ -334,7 +337,6 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 	}
 
 	changes.interrupt_level = interrupt_level_;
-	changes.duration = length;
 	return changes;
 }
 
@@ -389,7 +391,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			cycle.set_value16(position);
 		} break;
 		case Read(0x006): {
-			const uint16_t position = uint16_t(((line_cycle_ << 6) & 0xff00) | (y_ & 0x00ff));
+//			const uint16_t position = uint16_t(((line_cycle_ << 6) & 0xff00) | (y_ & 0x00ff));
+			const uint16_t position = 0xd1ef;	// TODO: !!!
 			LOG("Read position low " << PADHEX(4) << position);
 			cycle.set_value16(position);
 		} break;

@@ -61,27 +61,38 @@ class ConcreteMachine:
 		// MARK: - MC68000::BusHandler.
 		using Microcycle = CPU::MC68000::Microcycle;
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
-			// Intended 1-2 step here is:
 			//
-			//	(1) determine when this CPU access will be scheduled;
-			//	(2)	do all the other actions prior to this CPU access being scheduled.
+			// TODO: clean up below.
 			//
-			// (or at least enqueue them, JIT-wise).
+			// Probably: let the Chipset own the CIAs, killing the need to pass hsyncs/vsyncs
+			// and CIA interrupt lines back and forth. Then the two run_fors can return, at most,
+			// an interrupt level and a duration. Possibly give the chipset a reference to the
+			// 68k so it can set IPL directly?
 
-			// Advance time.
+
+			// Do a quick advance check for Chip RAM access; add a suitable delay if required.
+			Chipset::Changes net_changes;
+			HalfCycles access_delay;
+			if(cycle.operation & Microcycle::NewAddress && *cycle.address < 0x20'0000) {
+				// TODO: shouldn't delay if the overlay bit is set?
+				net_changes = chipset_.run_until_cpu_slot();
+				access_delay = net_changes.duration;
+			}
+
+			// Compute total length.
+			const HalfCycles total_length = cycle.length + access_delay;
 
 			// The CIAs are on the E clock.
-			// TODO: so they probably should be behind VPA?
-			cia_divider_ += cycle.length;
+			cia_divider_ += total_length;
 			const HalfCycles e_clocks = cia_divider_.divide(HalfCycles(20));
 			if(e_clocks > HalfCycles(0)) {
 				cia_a_.run_for(e_clocks);
 				cia_b_.run_for(e_clocks);
 			}
 
-			const auto changes = chipset_.run_for(cycle.length);
-			cia_a_.advance_tod(changes.vsyncs);
-			cia_b_.advance_tod(changes.hsyncs);
+			net_changes += chipset_.run_for(total_length);
+			cia_a_.advance_tod(net_changes.vsyncs);
+			cia_b_.advance_tod(net_changes.hsyncs);
 
 			chipset_.set_cia_interrupts(cia_a_.get_interrupt_line(), cia_b_.get_interrupt_line());
 			mc68000_.set_interrupt_level(chipset_.get_interrupt_level());
@@ -95,11 +106,11 @@ class ConcreteMachine:
 			// Autovector interrupts.
 			if(cycle.operation & Microcycle::InterruptAcknowledge) {
 				mc68000_.set_is_peripheral_address(true);
-				return HalfCycles(0);
+				return access_delay;
 			}
 
 			// Do nothing if no address is exposed.
-			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
+			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return access_delay;
 
 			// TODO: interrupt acknowledgement.
 
@@ -186,7 +197,7 @@ class ConcreteMachine:
 //				}
 			}
 
-			return HalfCycles(0);
+			return access_delay;
 		}
 
 	private:
