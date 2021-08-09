@@ -257,7 +257,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			Keyboard(Processor *m6502) : m6502_(m6502) {}
 
 			void reset_all_keys() final {
-				open_apple_is_pressed = closed_apple_is_pressed = key_is_down = false;
+				open_apple_is_pressed = closed_apple_is_pressed = control_is_pressed = shift_is_pressed = key_is_down = false;
 			}
 
 			bool set_key_pressed(Key key, char value, bool is_pressed) final {
@@ -267,19 +267,49 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case Key::Right:		value = 0x15;	break;
 					case Key::Down:			value = 0x0a;	break;
 					case Key::Up:			value = 0x0b;	break;
-					case Key::Backspace:	value = 0x7f;	break;
+					case Key::Backspace:
+						if(is_iie()) {
+							value = 0x7f;
+							break;
+						} else {
+							return false;
+						}
 					case Key::Enter:		value = 0x0d;	break;
-					case Key::Tab:			value = '\t';	break;
+					case Key::Tab:
+						if (is_iie()) {
+							value = '\t';
+							break;
+						} else {
+							return false;
+						}
 					case Key::Escape:		value = 0x1b;	break;
+					case Key::Space:		value = 0x20;	break;
 
 					case Key::LeftOption:
 					case Key::RightMeta:
-						open_apple_is_pressed = is_pressed;
-					return true;
+						if (is_iie()) {
+							open_apple_is_pressed = is_pressed;
+							return true;
+						} else {
+							return false;
+						}
 
 					case Key::RightOption:
 					case Key::LeftMeta:
-						closed_apple_is_pressed = is_pressed;
+						if (is_iie()) {
+							closed_apple_is_pressed = is_pressed;
+							return true;
+						} else {
+							return false;
+						}
+
+					case Key::LeftControl:
+						control_is_pressed = is_pressed;
+					return true;
+
+					case Key::LeftShift:
+					case Key::RightShift:
+						shift_is_pressed = is_pressed;
 					return true;
 
 					case Key::F1:	case Key::F2:	case Key::F3:	case Key::F4:
@@ -306,6 +336,30 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 						// Prior to the IIe, the keyboard could produce uppercase only.
 						if(!is_iie()) value = char(toupper(value));
+
+						if(control_is_pressed && isalpha(value)) value &= 0xbf;
+
+						// TODO: properly map IIe keys
+						if(!is_iie() && shift_is_pressed) {
+							switch(value) {
+							case 0x27: value = 0x22; break; // ' -> "
+							case 0x2c: value = 0x3c; break; // , -> <
+							case 0x2e: value = 0x3e; break; // . -> >
+							case 0x2f: value = 0x3f; break; // / -> ?
+							case 0x30: value = 0x29; break; // 0 -> )
+							case 0x31: value = 0x21; break; // 1 -> !
+							case 0x32: value = 0x40; break; // 2 -> @
+							case 0x33: value = 0x23; break; // 3 -> #
+							case 0x34: value = 0x24; break; // 4 -> $
+							case 0x35: value = 0x25; break; // 5 -> %
+							case 0x36: value = 0x5e; break; // 6 -> ^
+							case 0x37: value = 0x26; break; // 7 -> &
+							case 0x38: value = 0x2a; break; // 8 -> *
+							case 0x39: value = 0x28; break; // 9 -> (
+							case 0x3b: value = 0x3a; break; // ; -> :
+							case 0x3d: value = 0x2b; break; // = -> +
+						}
+					}
 					break;
 				}
 
@@ -313,7 +367,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					keyboard_input = uint8_t(value | 0x80);
 					key_is_down = true;
 				} else {
-					if((keyboard_input & 0x7f) == value) {
+					if((keyboard_input & 0x3f) == value) {
 						key_is_down = false;
 					}
 				}
@@ -329,6 +383,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				}
 			}
 
+			bool shift_is_pressed = false;
+			bool control_is_pressed = false;
 			// The IIe has three keys that are wired directly to the same input as the joystick buttons.
 			bool open_apple_is_pressed = false;
 			bool closed_apple_is_pressed = false;
@@ -767,7 +823,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		bool prefers_logical_input() final {
-			return true;
+			return is_iie();
 		}
 
 		Inputs::Keyboard &get_keyboard() final {
