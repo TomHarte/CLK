@@ -460,6 +460,7 @@ Gw
                                         <constraint firstItem="pxr-Bq-yh0" firstAttribute="centerY" secondItem="syE-e7-TjU" secondAttribute="centerY" id="UYw-uz-Am0"/>
                                         <constraint firstItem="hIr-GH-7xi" firstAttribute="top" secondItem="nen-Za-7zH" secondAttribute="bottom" constant="10" symbolic="YES" id="VOc-2v-s3u"/>
                                         <constraint firstItem="syE-e7-TjU" firstAttribute="top" secondItem="hIr-GH-7xi" secondAttribute="bottom" constant="10" symbolic="YES" id="W9S-on-Heq"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Lfl-5c-b8j" secondAttribute="trailing" constant="20" symbolic="YES" id="WQi-pe-tXt"/>
                                         <constraint firstItem="rHr-bh-QMV" firstAttribute="leading" secondItem="1cs-PX-RAH" secondAttribute="leading" constant="19" id="XZf-lB-NnA"/>
                                         <constraint firstItem="ykc-W1-YaS" firstAttribute="leading" secondItem="1cs-PX-RAH" secondAttribute="leading" constant="20" symbolic="YES" id="bAP-lx-pdi"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="nen-Za-7zH" secondAttribute="trailing" constant="20" symbolic="YES" id="eEI-5Q-TnO"/>
