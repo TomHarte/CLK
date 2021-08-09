@@ -136,8 +136,7 @@ class ConcreteMachine:
 							if(!(address & 0x2000)) cia_b_.write(reg, cycle.value8_high());
 						}
 
-						// << (((address >> 12) & 3)^3) << " "
-						LOG("CIA " << (cycle.operation & Microcycle::Read ? "read " : "write ") << std::dec << (reg & 0xf) << " of " << PADHEX(2) << +cycle.value8_low());
+						LOG("CIA " << (((address >> 12) & 3)^3) << " " << (cycle.operation & Microcycle::Read ? "read " : "write ") << std::dec << (reg & 0xf) << " of " << PADHEX(2) << +cycle.value8_low());
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
 						chipset_.perform(cycle);
 					} else {
@@ -158,7 +157,6 @@ class ConcreteMachine:
 					&memory_.regions[address >> 18].contents[address],
 					memory_.regions[address >> 18].read_write_mask
 				);
-
 
 //				if(address < 0x4'0000) {
 //					switch((cycle.operation | memory_.regions[address >> 18].read_write_mask) & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::PermitRead | Microcycle::PermitWrite)) {
@@ -238,8 +236,11 @@ class ConcreteMachine:
 					if(enabled) {
 						set_region(0x00'0000, 0x08'0000, kickstart.data(), CPU::MC68000::Microcycle::PermitRead);
 					} else {
-						// Mirror RAM to fill out the address range up to $20'0000 (?)
+						// Mirror RAM to fill out the address range up to $20'0000.
 						set_region(0x00'0000, 0x08'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
+						set_region(0x08'0000, 0x10'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
+						set_region(0x10'0000, 0x18'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
+						set_region(0x18'0000, 0x20'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
 					}
 				}
 
