@@ -237,7 +237,7 @@ Gw
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nLf-LI-nWO">
-                                            <rect key="frame" x="18" y="204" width="364" height="16"/>
+                                            <rect key="frame" x="18" y="187" width="364" height="16"/>
                                             <textFieldCell key="cell" lineBreakMode="clipping" title="At present only a 512k Atari ST is supported." id="gBA-ke-mur">
                                                 <font key="font" usesAppearanceFont="YES"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -247,7 +247,7 @@ Gw
                                     </subviews>
                                     <constraints>
                                         <constraint firstItem="nLf-LI-nWO" firstAttribute="leading" secondItem="nnv-Wi-7hc" secondAttribute="leading" constant="20" symbolic="YES" id="EIm-9Q-Rcj"/>
-                                        <constraint firstItem="nLf-LI-nWO" firstAttribute="top" secondItem="nnv-Wi-7hc" secondAttribute="top" constant="3" id="f9w-Lj-5dn"/>
+                                        <constraint firstItem="nLf-LI-nWO" firstAttribute="top" secondItem="nnv-Wi-7hc" secondAttribute="top" constant="20" symbolic="YES" id="f9w-Lj-5dn"/>
                                         <constraint firstAttribute="trailing" secondItem="nLf-LI-nWO" secondAttribute="trailing" constant="20" symbolic="YES" id="m3L-Nx-Aqz"/>
                                     </constraints>
                                 </view>
@@ -438,6 +438,7 @@ Gw
                                         <constraint firstItem="pxr-Bq-yh0" firstAttribute="centerY" secondItem="syE-e7-TjU" secondAttribute="centerY" id="UYw-uz-Am0"/>
                                         <constraint firstItem="hIr-GH-7xi" firstAttribute="top" secondItem="nen-Za-7zH" secondAttribute="bottom" constant="10" symbolic="YES" id="VOc-2v-s3u"/>
                                         <constraint firstItem="syE-e7-TjU" firstAttribute="top" secondItem="hIr-GH-7xi" secondAttribute="bottom" constant="10" symbolic="YES" id="W9S-on-Heq"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Lfl-5c-b8j" secondAttribute="trailing" constant="20" symbolic="YES" id="WQi-pe-tXt"/>
                                         <constraint firstItem="rHr-bh-QMV" firstAttribute="leading" secondItem="1cs-PX-RAH" secondAttribute="leading" constant="19" id="XZf-lB-NnA"/>
                                         <constraint firstItem="ykc-W1-YaS" firstAttribute="leading" secondItem="1cs-PX-RAH" secondAttribute="leading" constant="20" symbolic="YES" id="bAP-lx-pdi"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="nen-Za-7zH" secondAttribute="trailing" constant="20" symbolic="YES" id="eEI-5Q-TnO"/>
