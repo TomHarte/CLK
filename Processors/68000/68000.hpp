@@ -311,6 +311,8 @@ struct Microcycle {
 			* if this is a write, does the converse of a read.
 	*/
 	forceinline void apply(uint8_t *target, OperationT read_write_mask = PermitRead | PermitWrite) const {
+		assert( (operation & (SelectWord | SelectByte)) != (SelectWord | SelectByte));
+
 		switch((operation | read_write_mask) & (SelectWord | SelectByte | Read | PermitRead | PermitWrite)) {
 			default:
 			break;
