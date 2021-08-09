@@ -91,8 +91,8 @@ struct Line {
 struct SourceInterpolator {
 	float4 position [[position]];
 	float2 textureCoordinates;
-	half unitColourPhase;		// i.e. one unit per circle.
-	half colourPhase;			// i.e. 2*pi units per circle, just regular radians.
+	float unitColourPhase;		// i.e. one unit per circle.
+	float colourPhase;			// i.e. 2*pi units per circle, just regular radians.
 	half colourAmplitude [[flat]];
 };
 
