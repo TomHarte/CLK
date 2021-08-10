@@ -256,10 +256,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 
 	// Down here: give first refusal to the Blitter, otherwise
 	// pass on to the CPU.
-	if((dma_control_ & BlitterFlag) == BlitterFlag) {
-		return !blitter_.advance();
-	}
-	return true;
+	return (dma_control_ & BlitterFlag) != BlitterFlag || !blitter_.advance();
 }
 
 template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_slot) {
