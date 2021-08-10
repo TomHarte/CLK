@@ -18,22 +18,16 @@ using namespace Amiga;
 
 namespace {
 
-enum InterruptFlag: uint16_t {
-	SerialPortTransmit		= 1 << 0,
-	DiskBlock				= 1 << 1,
-	Software				= 1 << 2,
-	IOPortsAndTimers		= 1 << 3,	// i.e. CIA A.
-	Copper					= 1 << 4,
-	VerticalBlank			= 1 << 5,
-	Blitter					= 1 << 6,
-	AudioChannel0			= 1 << 7,
-	AudioChannel1			= 1 << 8,
-	AudioChannel2			= 1 << 9,
-	AudioChannel3			= 1 << 10,
-	SerialPortReceive		= 1 << 11,
-	DiskSyncMatch			= 1 << 12,
-	External				= 1 << 13,	// i.e. CIA B.
+template <typename EnumT, EnumT... T> struct Mask {
+	static constexpr uint16_t value = 0;
 };
+
+template <typename EnumT, EnumT F, EnumT... T> struct Mask<EnumT, F, T...> {
+	static constexpr uint16_t value = uint16_t(F) | Mask<EnumT, T...>::value;
+};
+
+template <InterruptFlag... Flags> struct InterruptMask: Mask<InterruptFlag, Flags...> {};
+template <DMAFlag... Flags> struct DMAMask: Mask<DMAFlag, Flags...> {};
 
 }
 
@@ -54,10 +48,15 @@ Chipset::Changes Chipset::run_until_cpu_slot() {
 
 void Chipset::set_cia_interrupts(bool cia_a, bool cia_b) {
 	// TODO: are these really latched, or are they active live?
-	interrupt_requests_ &= ~(InterruptFlag::IOPortsAndTimers | InterruptFlag::External);
+	interrupt_requests_ &= ~InterruptMask<InterruptFlag::IOPortsAndTimers, InterruptFlag::External>::value;
 	interrupt_requests_ |=
-		(cia_a ? InterruptFlag::IOPortsAndTimers : 0) |
-		(cia_b ? InterruptFlag::External : 0);
+		(cia_a ? InterruptMask<InterruptFlag::IOPortsAndTimers>::value : 0) |
+		(cia_b ? InterruptMask<InterruptFlag::External>::value : 0);
+	update_interrupts();
+}
+
+void Chipset::posit_interrupt(InterruptFlag flag) {
+	interrupt_requests_ |= uint16_t(flag);
 	update_interrupts();
 }
 
@@ -220,6 +219,9 @@ template <int cycle> void Chipset::output() {
 }
 
 template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
+	constexpr auto CopperFlag	= DMAMask<DMAFlag::Copper, DMAFlag::AllBelow>::value;
+	constexpr auto DiskFlag		= DMAMask<DMAFlag::Disk, DMAFlag::AllBelow>::value;
+
 	if constexpr (cycle & 1) {
 		// Odd slot priority is:
 		//
@@ -227,7 +229,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		//	2. Bitplane.
 		//	3. Blitter.
 		//	4. CPU.
-		if((dma_control_ & 0x280) == 0x280) {
+		if((dma_control_ & CopperFlag) == CopperFlag) {
 			if(copper_.advance(uint16_t(((y_ & 0xff) << 8) | (cycle & 0xfe)))) {
 				return false;
 			}
@@ -242,6 +244,11 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		//	2. Disk, then audio, then sprites depending on region.
 		//	3. Blitter.
 		//	4. CPU.
+		if constexpr (cycle >= 4 && cycle <= 6) {
+			if((dma_control_ & DiskFlag) == DiskFlag) {
+				disk_.advance();
+			}
+		}
 	}
 
 	return true;
@@ -325,7 +332,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 			if(y_ == frame_height_) {
 				++changes.vsyncs;
-				interrupt_requests_ |= InterruptFlag::VerticalBlank;
+				interrupt_requests_ |= InterruptMask<InterruptFlag::VerticalBlank>::value;
 				update_interrupts();
 
 				y_ = 0;
@@ -346,17 +353,17 @@ void Chipset::update_interrupts() {
 
 	const uint16_t enabled_requests = interrupt_enable_ & interrupt_requests_ & 0x3fff;
 	if(enabled_requests && (interrupt_enable_ & 0x4000)) {
-		if(enabled_requests & (InterruptFlag::External)) {
+		if(enabled_requests & InterruptMask<InterruptFlag::External>::value) {
 			interrupt_level_ = 6;
-		} else if(enabled_requests & (InterruptFlag::SerialPortReceive | InterruptFlag::DiskSyncMatch)) {
+		} else if(enabled_requests & InterruptMask<InterruptFlag::SerialPortReceive, InterruptFlag::DiskSyncMatch>::value) {
 			interrupt_level_ = 5;
-		} else if(enabled_requests & (InterruptFlag::AudioChannel0 | InterruptFlag::AudioChannel1 | InterruptFlag::AudioChannel2 | InterruptFlag::AudioChannel3)) {
+		} else if(enabled_requests & InterruptMask<InterruptFlag::AudioChannel0, InterruptFlag::AudioChannel1, InterruptFlag::AudioChannel2, InterruptFlag::AudioChannel3>::value) {
 			interrupt_level_ = 4;
-		} else if(enabled_requests & (InterruptFlag::Copper | InterruptFlag::VerticalBlank | InterruptFlag::Blitter)) {
+		} else if(enabled_requests & InterruptMask<InterruptFlag::Copper, InterruptFlag::VerticalBlank, InterruptFlag::Blitter>::value) {
 			interrupt_level_ = 3;
-		} else if(enabled_requests & (InterruptFlag::IOPortsAndTimers)) {
+		} else if(enabled_requests & InterruptMask<InterruptFlag::IOPortsAndTimers>::value) {
 			interrupt_level_ = 2;
-		} else if(enabled_requests & (InterruptFlag::SerialPortTransmit | InterruptFlag::DiskBlock | InterruptFlag::Software)) {
+		} else if(enabled_requests & InterruptMask<InterruptFlag::SerialPortTransmit, InterruptFlag::DiskBlock, InterruptFlag::Software>::value) {
 			interrupt_level_ = 1;
 		}
 	}
@@ -671,6 +678,25 @@ void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 	LOG("Sprite image data " << slot << " to " << PADHEX(4) << value);
 }
 
+// MARK: - Disk.
+
+void Chipset::DiskDMA::advance() {
+	if(!dma_enable_) return;
+
+	if(!write_) {
+		// TODO: run an actual PLL, collect actual disk data.
+		if(length_) {
+			ram_[address_ & ram_mask_] = 0xffff;
+			++address_;
+			--length_;
+
+			if(!length_) {
+				chipset_.posit_interrupt(InterruptFlag::DiskBlock);
+			}
+		}
+	}
+}
+
 // MARK: - CRT connection.
 
 void Chipset::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
@@ -688,3 +714,4 @@ void Chipset::set_display_type(Outputs::Display::DisplayType type) {
 Outputs::Display::DisplayType Chipset::get_display_type() const {
 	return crt_.get_display_type();
 }
+

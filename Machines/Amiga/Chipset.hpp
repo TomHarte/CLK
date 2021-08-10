@@ -19,6 +19,39 @@
 
 namespace Amiga {
 
+enum class InterruptFlag: uint16_t {
+	SerialPortTransmit		= 1 << 0,
+	DiskBlock				= 1 << 1,
+	Software				= 1 << 2,
+	IOPortsAndTimers		= 1 << 3,	// i.e. CIA A.
+	Copper					= 1 << 4,
+	VerticalBlank			= 1 << 5,
+	Blitter					= 1 << 6,
+	AudioChannel0			= 1 << 7,
+	AudioChannel1			= 1 << 8,
+	AudioChannel2			= 1 << 9,
+	AudioChannel3			= 1 << 10,
+	SerialPortReceive		= 1 << 11,
+	DiskSyncMatch			= 1 << 12,
+	External				= 1 << 13,	// i.e. CIA B.
+};
+
+enum class DMAFlag: uint16_t {
+	AudioChannel0			= 1 << 0,
+	AudioChannel1			= 1 << 1,
+	AudioChannel2			= 1 << 2,
+	AudioChannel3			= 1 << 3,
+	Disk					= 1 << 4,
+	Sprites					= 1 << 5,
+	Blitter					= 1 << 6,
+	Copper					= 1 << 7,
+	Bitplane				= 1 << 8,
+	AllBelow				= 1 << 9,
+	BlitterPriority			= 1 << 10,
+	BlitterZero				= 1 << 13,
+	BlitterBusy				= 1 << 14,
+};
+
 class Chipset {
 	public:
 		Chipset(uint16_t *ram, size_t size);
@@ -72,6 +105,7 @@ class Chipset {
 				uint16_t *ram_ = nullptr;
 				uint32_t ram_mask_ = 0;
 		};
+		friend DMADevice;
 
 		// MARK: - Interrupts.
 
@@ -80,6 +114,7 @@ class Chipset {
 		int interrupt_level_ = 0;
 
 		void update_interrupts();
+		void posit_interrupt(InterruptFlag);
 
 		// MARK: - Scheduler.
 
@@ -189,6 +224,8 @@ class Chipset {
 						printf("Not yet implemented: disk DMA [%s of %d to %06x]\n", write_ ? "write" : "read", length_, address_);
 					}
 				}
+
+				void advance();
 
 			private:
 				uint32_t address_;
