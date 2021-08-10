@@ -219,6 +219,7 @@ template <int cycle> void Chipset::output() {
 }
 
 template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
+	constexpr auto BlitterFlag	= DMAMask<DMAFlag::Blitter, DMAFlag::AllBelow>::value;
 	constexpr auto CopperFlag	= DMAMask<DMAFlag::Copper, DMAFlag::AllBelow>::value;
 	constexpr auto DiskFlag		= DMAMask<DMAFlag::Disk, DMAFlag::AllBelow>::value;
 
@@ -255,7 +256,10 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 
 	// Down here: give first refusal to the Blitter, otherwise
 	// pass on to the CPU.
-	return !blitter_.advance();
+	if((dma_control_ & BlitterFlag) == BlitterFlag) {
+		return !blitter_.advance();
+	}
+	return true;
 }
 
 template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_slot) {
