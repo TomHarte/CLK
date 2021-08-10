@@ -225,7 +225,7 @@ class Chipset {
 					}
 				}
 
-				void advance();
+				bool advance();
 
 			private:
 				uint32_t address_;

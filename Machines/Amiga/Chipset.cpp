@@ -225,8 +225,8 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	if constexpr (cycle & 1) {
 		// Odd slot priority is:
 		//
-		//	1. Copper, if interested.
-		//	2. Bitplane.
+		//	1. Bitplanes.
+		//	2. Copper, if interested.
 		//	3. Blitter.
 		//	4. CPU.
 		if((dma_control_ & CopperFlag) == CopperFlag) {
@@ -246,12 +246,16 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		//	4. CPU.
 		if constexpr (cycle >= 4 && cycle <= 6) {
 			if((dma_control_ & DiskFlag) == DiskFlag) {
-				disk_.advance();
+				if(disk_.advance()) {
+					return false;
+				}
 			}
 		}
 	}
 
-	return true;
+	// Down here: give first refusal to the Blitter, otherwise
+	// pass on to the CPU.
+	return !blitter_.advance();
 }
 
 template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_slot) {
@@ -547,14 +551,14 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x044):	blitter_.set_first_word_mask(cycle.value16());	break;
 		case Write(0x046):	blitter_.set_last_word_mask(cycle.value16());	break;
 
-		case Write(0x048):	blitter_.set_pointer(2, 16, cycle.value16());	break;
-		case Write(0x04a):	blitter_.set_pointer(2, 0, cycle.value16());	break;
-		case Write(0x04c):	blitter_.set_pointer(1, 16, cycle.value16());	break;
-		case Write(0x04e):	blitter_.set_pointer(1, 0, cycle.value16());	break;
-		case Write(0x050):	blitter_.set_pointer(0, 16, cycle.value16());	break;
-		case Write(0x052):	blitter_.set_pointer(0, 0, cycle.value16());	break;
-		case Write(0x054):	blitter_.set_pointer(3, 16, cycle.value16());	break;
-		case Write(0x056):	blitter_.set_pointer(3, 0, cycle.value16());	break;
+		case Write(0x048):	blitter_.set_pointer<2, 16>(cycle.value16());	break;
+		case Write(0x04a):	blitter_.set_pointer<2, 0>(cycle.value16());	break;
+		case Write(0x04c):	blitter_.set_pointer<1, 16>(cycle.value16());	break;
+		case Write(0x04e):	blitter_.set_pointer<1, 0>(cycle.value16());	break;
+		case Write(0x050):	blitter_.set_pointer<0, 16>(cycle.value16());	break;
+		case Write(0x052):	blitter_.set_pointer<0, 0>(cycle.value16());	break;
+		case Write(0x054):	blitter_.set_pointer<3, 16>(cycle.value16());	break;
+		case Write(0x056):	blitter_.set_pointer<3, 0>(cycle.value16());	break;
 
 		case Write(0x058):	blitter_.set_size(cycle.value16());				break;
 		case Write(0x05a):	blitter_.set_minterms(cycle.value16());			break;
@@ -680,8 +684,8 @@ void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 
 // MARK: - Disk.
 
-void Chipset::DiskDMA::advance() {
-	if(!dma_enable_) return;
+bool Chipset::DiskDMA::advance() {
+	if(!dma_enable_) return false;
 
 	if(!write_) {
 		// TODO: run an actual PLL, collect actual disk data.
@@ -693,8 +697,12 @@ void Chipset::DiskDMA::advance() {
 			if(!length_) {
 				chipset_.posit_interrupt(InterruptFlag::DiskBlock);
 			}
+
+			return true;
 		}
 	}
+
+	return false;
 }
 
 // MARK: - CRT connection.

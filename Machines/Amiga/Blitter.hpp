@@ -27,7 +27,11 @@ class Blitter {
 		void set_control(int index, uint16_t value);
 		void set_first_word_mask(uint16_t value);
 		void set_last_word_mask(uint16_t value);
-		void set_pointer(int channel, int shift, uint16_t value);
+
+		template <int id, int shift> void set_pointer(uint16_t value) {
+			addresses_[id] = (addresses_[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
+		}
+
 		void set_size(uint16_t value);
 		void set_minterms(uint16_t value);
 		void set_vertical_size(uint16_t value);
@@ -37,16 +41,15 @@ class Blitter {
 
 		uint16_t get_status();
 
-		/// @returns The number of accesses required to complete the current
-		/// operation, if any, or 0 if no operation is pending.
-		int get_remaining_accesses();
-
-		/// Performs the next n accesses.
-		void run_for(int accesses);
+		bool advance();
 
 	private:
 		uint16_t *const ram_;
 		const size_t ram_size_;
+
+		uint32_t addresses_[4];
+		uint8_t minterms_;
+		int width_ = 0, height_ = 0;
 };
 
 }

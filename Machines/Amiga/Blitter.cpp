@@ -28,16 +28,15 @@ void Blitter::set_last_word_mask(uint16_t value) {
 	LOG("Set last word mask: " << PADHEX(4) << value);
 }
 
-void Blitter::set_pointer(int channel, int shift, uint16_t value) {
-	LOG("Set pointer " << channel << " shift " << shift << " to " << PADHEX(4) << value);
-}
-
 void Blitter::set_size(uint16_t value) {
-	LOG("Set size " << PADHEX(4) << value);
+	width_ = (width_ & ~0x3f) | (value & 0x3f);
+	height_ = (height_ & ~0x3ff) | (value >> 6);
+	LOG("Set size to " << std::dec << width_ << ", " << height_);
 }
 
 void Blitter::set_minterms(uint16_t value) {
 	LOG("Set minterms " << PADHEX(4) << value);
+	minterms_ = value & 0xff;
 }
 
 void Blitter::set_vertical_size(uint16_t value) {
@@ -61,9 +60,6 @@ uint16_t Blitter::get_status() {
 	return 0;
 }
 
-int Blitter::get_remaining_accesses() {
-	return 0;
-}
-
-void Blitter::run_for(int) {
+bool Blitter::advance() {
+	return false;
 }
