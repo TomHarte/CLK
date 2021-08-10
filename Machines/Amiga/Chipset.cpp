@@ -220,37 +220,47 @@ template <int cycle> void Chipset::output() {
 
 template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	constexpr auto BlitterFlag	= DMAMask<DMAFlag::Blitter, DMAFlag::AllBelow>::value;
+	constexpr auto BitplaneFlag	= DMAMask<DMAFlag::Bitplane, DMAFlag::AllBelow>::value;
 	constexpr auto CopperFlag	= DMAMask<DMAFlag::Copper, DMAFlag::AllBelow>::value;
 	constexpr auto DiskFlag		= DMAMask<DMAFlag::Disk, DMAFlag::AllBelow>::value;
 
-	if constexpr (cycle & 1) {
-		// Odd slot priority is:
-		//
-		//	1. Bitplanes.
-		//	2. Copper, if interested.
-		//	3. Blitter.
-		//	4. CPU.
-		if((dma_control_ & CopperFlag) == CopperFlag) {
-			if(copper_.advance(uint16_t(((y_ & 0xff) << 8) | (cycle & 0xfe)))) {
-				return false;
-			}
-		} else {
-			copper_.stop();
-		}
+	// Update state as to whether bitplane fetching should happen now.
+	//
+	// TODO: figure out how the hard stops factor into this.
+	fetch_horizontal_ |= cycle == display_window_start_[0];
+	fetch_horizontal_ &= cycle != display_window_stop_[0];
 
-	} else {
-		// Even slot use/priority:
+	// Top priority: bitplane collection.
+	if(fetch_horizontal_ && fetch_vertical_ && (dma_control_ & BitplaneFlag) == BitplaneFlag) {
+		// TODO: offer a cycle for bitplane collection.
+		// Probably need to indicate odd or even?
+	}
+
+	if constexpr (cycle & 1) {
+		// Odd slot use/priority:
 		//
-		//	1. Bitplane fetches.
-		//	2. Disk, then audio, then sprites depending on region.
-		//	3. Blitter.
-		//	4. CPU.
+		//	1. Bitplane fetches [dealt with above].
+		//	2. Refresh, disk, audio, or sprites. Depending on region.
+		//
+		// Blitter and CPU priority is dealt with below.
 		if constexpr (cycle >= 4 && cycle <= 6) {
 			if((dma_control_ & DiskFlag) == DiskFlag) {
 				if(disk_.advance()) {
 					return false;
 				}
 			}
+		}
+	} else {
+		// Bitplanes being dealt with, specific odd-cycle responsibility
+		// is just possibly to pass to the Copper.
+		//
+		// The Blitter and CPU are dealt with outside of the odd/even test.
+		if((dma_control_ & CopperFlag) == CopperFlag) {
+			if(copper_.advance(uint16_t(((y_ & 0xff) << 8) | (cycle & 0xfe)))) {
+				return false;
+			}
+		} else {
+			copper_.stop();
 		}
 	}
 
@@ -334,6 +344,9 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 			line_cycle_ = 0;
 			++y_;
+
+			fetch_vertical_ |= y_ == display_window_start_[1];
+			fetch_vertical_ &= y_ != display_window_stop_[1];
 
 			if(y_ == frame_height_) {
 				++changes.vsyncs;

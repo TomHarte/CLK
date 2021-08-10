@@ -137,16 +137,29 @@ class Chipset {
 			void set_image_data(int slot, uint16_t value);
 		} sprites_[8];
 
-		// MARK: - Raster.
+		// MARK: - Raster position and state.
 
-		int line_cycle_ = 0, y_ = 0;
+		// Definitions related to PAL/NTSC.
 		int line_length_ = 227;
 		int frame_height_ = 312;
 		int vertical_blank_height_ = 29;
 
+		// Current raster position.
+		int line_cycle_ = 0, y_ = 0;
+
+//		class Bitplanes: public DMADevice {
+//
+//		};
+		// Parameters affecting bitplane collection and output.
 		uint16_t display_window_start_[2] = {0, 0};
 		uint16_t display_window_stop_[2] = {0, 0};
 		uint16_t fetch_window_[2] = {0, 0};
+
+		// Ephemeral bitplane collection state.
+		bool fetch_vertical_ = false, fetch_horizontal_ = false;
+
+		using BitplaneData = std::array<uint16_t, 6>;
+		BitplaneData next;
 
 		// MARK: - Copper.
 
