@@ -24,7 +24,7 @@
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hKn-1l-OSN">
-                        <rect key="frame" x="496" y="7" width="81" height="32"/>
+                        <rect key="frame" x="496" y="13" width="81" height="32"/>
                         <buttonCell key="cell" type="push" title="Choose" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="MnM-xo-4Qa">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -50,16 +50,16 @@ Gw
                         </connections>
                     </button>
                     <textField horizontalHuggingPriority="1" verticalHuggingPriority="1" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9YM-5x-pc0">
-                        <rect key="frame" x="18" y="8" width="405" height="32"/>
+                        <rect key="frame" x="18" y="14" width="405" height="32"/>
                         <textFieldCell key="cell" allowsUndo="NO" sendsActionOnEndEditing="YES" id="xTm-Oy-oz5">
                             <font key="font" metaFont="system"/>
-                            <string key="title">If you use File -&gt; Open... to select a disk, tape or cartridge directly, the emulator will select and configure a machine for you.</string>
+                            <string key="title">If you use File -&gt; Open... to select a disk, tape or cartridge directly, the emulator will select and configure a machine for you.</string>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
                     <tabView type="noTabsBezelBorder" translatesAutoresizingMaskIntoConstraints="NO" id="VUb-QG-x7c">
-                        <rect key="frame" x="154" y="51" width="420" height="242"/>
+                        <rect key="frame" x="154" y="57" width="420" height="242"/>
                         <font key="font" metaFont="system"/>
                         <tabViewItems>
                             <tabViewItem label="Apple II" identifier="appleii" id="P59-QG-LOa">
@@ -854,7 +854,7 @@ Gw
                         </scroller>
                     </scrollView>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="VAc-6N-O7q">
-                        <rect key="frame" x="18" y="300" width="554" height="27"/>
+                        <rect key="frame" x="18" y="306" width="554" height="27"/>
                         <textFieldCell key="cell" lineBreakMode="clipping" title="Choose a machine" id="32m-Vs-dPO">
                             <font key="font" textStyle="title2" name=".SFNS-Regular"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
