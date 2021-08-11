@@ -24,7 +24,7 @@
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hKn-1l-OSN">
-                        <rect key="frame" x="496" y="13" width="81" height="32"/>
+                        <rect key="frame" x="496" y="7" width="81" height="32"/>
                         <buttonCell key="cell" type="push" title="Choose" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="MnM-xo-4Qa">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -37,7 +37,7 @@ DQ
                         </connections>
                     </button>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JQy-Cj-AOK">
-                        <rect key="frame" x="423" y="13" width="76" height="32"/>
+                        <rect key="frame" x="422" y="13" width="76" height="32"/>
                         <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="sub-rB-Req">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -50,7 +50,7 @@ Gw
                         </connections>
                     </button>
                     <textField horizontalHuggingPriority="1" verticalHuggingPriority="1" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9YM-5x-pc0">
-                        <rect key="frame" x="20" y="14" width="404" height="32"/>
+                        <rect key="frame" x="18" y="8" width="405" height="32"/>
                         <textFieldCell key="cell" allowsUndo="NO" sendsActionOnEndEditing="YES" id="xTm-Oy-oz5">
                             <font key="font" metaFont="system"/>
                             <string key="title">If you use File -&gt; Open... to select a disk, tape or cartridge directly, the emulator will select and configure a machine for you.</string>
@@ -59,16 +59,16 @@ Gw
                         </textFieldCell>
                     </textField>
                     <tabView type="noTabsBezelBorder" translatesAutoresizingMaskIntoConstraints="NO" id="VUb-QG-x7c">
-                        <rect key="frame" x="154" y="56" width="420" height="243"/>
+                        <rect key="frame" x="154" y="51" width="420" height="242"/>
                         <font key="font" metaFont="system"/>
                         <tabViewItems>
                             <tabViewItem label="Apple II" identifier="appleii" id="P59-QG-LOa">
                                 <view key="view" id="dHz-Yv-GNq">
-                                    <rect key="frame" x="10" y="7" width="400" height="223"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="222"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="V5Z-dX-Ns4">
-                                            <rect key="frame" x="18" y="185" width="46" height="16"/>
+                                            <rect key="frame" x="18" y="184" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="qV3-2P-3JW">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -76,7 +76,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WnO-ef-IC6">
-                                            <rect key="frame" x="18" y="155" width="96" height="16"/>
+                                            <rect key="frame" x="18" y="154" width="96" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Disk controller:" id="kbf-rc-Y4M">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -84,7 +84,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="jli-ac-Sij">
-                                            <rect key="frame" x="67" y="179" width="117" height="25"/>
+                                            <rect key="frame" x="67" y="178" width="117" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Apple II" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="axesIndependently" inset="2" selectedItem="VBQ-JG-AeM" id="U6V-us-O2F">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -99,7 +99,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LSB-WP-FMi">
-                                            <rect key="frame" x="117" y="149" width="134" height="25"/>
+                                            <rect key="frame" x="117" y="148" width="134" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Sixteen Sector" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="16" imageScaling="axesIndependently" inset="2" selectedItem="QaV-Yr-k9o" id="8BT-RV-2Nm">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -854,7 +854,7 @@ Gw
                         </scroller>
                     </scrollView>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="VAc-6N-O7q">
-                        <rect key="frame" x="18" y="306" width="554" height="27"/>
+                        <rect key="frame" x="18" y="300" width="554" height="27"/>
                         <textFieldCell key="cell" lineBreakMode="clipping" title="Choose a machine" id="32m-Vs-dPO">
                             <font key="font" textStyle="title2" name=".SFNS-Regular"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -864,23 +864,21 @@ Gw
                 </subviews>
                 <constraints>
                     <constraint firstAttribute="trailing" secondItem="VAc-6N-O7q" secondAttribute="trailing" constant="20" symbolic="YES" id="3Kw-kW-eiL"/>
-                    <constraint firstAttribute="trailing" secondItem="VUb-QG-x7c" secondAttribute="trailing" constant="20" id="Bem-7v-AY6"/>
-                    <constraint firstItem="JQy-Cj-AOK" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="FMm-eV-4eu"/>
-                    <constraint firstAttribute="bottom" secondItem="JQy-Cj-AOK" secondAttribute="bottom" constant="20" id="Kvh-1K-iI8"/>
-                    <constraint firstItem="9YM-5x-pc0" firstAttribute="centerY" secondItem="JQy-Cj-AOK" secondAttribute="centerY" id="LM5-2z-qQj"/>
+                    <constraint firstItem="9YM-5x-pc0" firstAttribute="centerY" secondItem="JQy-Cj-AOK" secondAttribute="centerY" id="5hN-Ed-w9y"/>
+                    <constraint firstAttribute="trailing" secondItem="VUb-QG-x7c" secondAttribute="trailing" constant="20" symbolic="YES" id="Bem-7v-AY6"/>
+                    <constraint firstAttribute="bottom" secondItem="JQy-Cj-AOK" secondAttribute="bottom" constant="20" symbolic="YES" id="Kvh-1K-iI8"/>
                     <constraint firstItem="VAc-6N-O7q" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" symbolic="YES" id="MUn-yE-cae"/>
-                    <constraint firstItem="hKn-1l-OSN" firstAttribute="top" secondItem="VUb-QG-x7c" secondAttribute="bottom" constant="20" id="TqB-gT-0bf"/>
                     <constraint firstItem="VUb-QG-x7c" firstAttribute="top" secondItem="3go-Eb-GOy" secondAttribute="top" id="dTe-ji-4be"/>
                     <constraint firstItem="z5Q-Bs-hJj" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" symbolic="YES" id="dqq-yW-rJM"/>
-                    <constraint firstItem="hKn-1l-OSN" firstAttribute="leading" secondItem="JQy-Cj-AOK" secondAttribute="trailing" constant="11" id="f3Q-Om-rI0"/>
-                    <constraint firstItem="9YM-5x-pc0" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="22" id="g8a-if-Ogh"/>
+                    <constraint firstItem="hKn-1l-OSN" firstAttribute="leading" secondItem="JQy-Cj-AOK" secondAttribute="trailing" constant="12" symbolic="YES" id="f3Q-Om-rI0"/>
+                    <constraint firstItem="9YM-5x-pc0" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" symbolic="YES" id="g8a-if-Ogh"/>
                     <constraint firstItem="VAc-6N-O7q" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" symbolic="YES" id="hgA-S3-Cfr"/>
-                    <constraint firstAttribute="trailing" secondItem="hKn-1l-OSN" secondAttribute="trailing" constant="20" id="mJg-vd-ddP"/>
+                    <constraint firstAttribute="trailing" secondItem="hKn-1l-OSN" secondAttribute="trailing" constant="20" symbolic="YES" id="mJg-vd-ddP"/>
+                    <constraint firstItem="VUb-QG-x7c" firstAttribute="bottom" secondItem="3go-Eb-GOy" secondAttribute="bottom" id="me6-Ky-BNl"/>
                     <constraint firstItem="JQy-Cj-AOK" firstAttribute="leading" secondItem="9YM-5x-pc0" secondAttribute="trailing" constant="8" symbolic="YES" id="nlb-iJ-JUF"/>
                     <constraint firstItem="VUb-QG-x7c" firstAttribute="leading" secondItem="z5Q-Bs-hJj" secondAttribute="trailing" constant="8" symbolic="YES" id="pMs-AZ-t0T"/>
                     <constraint firstItem="z5Q-Bs-hJj" firstAttribute="top" secondItem="VAc-6N-O7q" secondAttribute="bottom" constant="8" symbolic="YES" id="pRW-Ol-ekG"/>
-                    <constraint firstAttribute="bottom" secondItem="hKn-1l-OSN" secondAttribute="bottom" constant="20" id="rG2-Ea-klR"/>
-                    <constraint firstItem="9YM-5x-pc0" firstAttribute="top" secondItem="z5Q-Bs-hJj" secondAttribute="bottom" constant="14" id="suf-rn-Bmy"/>
+                    <constraint firstAttribute="bottom" secondItem="hKn-1l-OSN" secondAttribute="bottom" constant="20" symbolic="YES" id="rG2-Ea-klR"/>
                 </constraints>
             </view>
             <point key="canvasLocation" x="-1" y="106.5"/>
