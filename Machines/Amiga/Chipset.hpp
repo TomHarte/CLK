@@ -112,14 +112,14 @@ class Chipset {
 				using DMADeviceBase::DMADeviceBase;
 
 				/// Writes the word @c value to the address register @c id, shifting it by @c shift (0 or 16) first.
-				template <int id, int shift> void set_address(uint16_t value) {
+				template <int id, int shift> void set_pointer(uint16_t value) {
 					static_assert(id < num_addresses);
 					static_assert(shift == 0 || shift == 16);
-					addresses_[id] = (addresses_[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
+					pointer_[id] = (pointer_[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
 				}
 
 			protected:
-				std::array<uint32_t, num_addresses> addresses_{};
+				std::array<uint32_t, num_addresses> pointer_{};
 		};
 
 		// MARK: - Interrupts.
@@ -179,6 +179,7 @@ class Chipset {
 
 				template <bool is_odd> bool advance();
 				void do_end_of_line();
+				void set_control(uint16_t);
 
 			private:
 				bool is_high_res_ = false;
@@ -189,6 +190,10 @@ class Chipset {
 		} bitplanes_;
 
 		void post_bitplanes(const BitplaneData &data);
+
+		uint8_t even_playfield_[912];
+		uint8_t odd_playfield_[912];
+		int odd_delay_ = 0, even_delay_ = 0;
 
 		// MARK: - Copper.
 
@@ -202,8 +207,8 @@ class Chipset {
 				bool advance(uint16_t position);
 
 				/// Forces a reload of address @c id (i.e. 0 or 1) and restarts the Copper.
-				void reload(int id) {
-					address_ = addresses_[id] >> 1;
+				template <int id> void reload() {
+					address_ = pointer_[id] >> 1;
 					state_ = State::FetchFirstWord;
 				}
 
@@ -253,7 +258,7 @@ class Chipset {
 					length_ = value & 0x3fff;
 
 					if(dma_enable_) {
-						printf("Not yet implemented: disk DMA [%s of %d to %06x]\n", write_ ? "write" : "read", length_, addresses_[0]);
+						printf("Not yet implemented: disk DMA [%s of %d to %06x]\n", write_ ? "write" : "read", length_, pointer_[0]);
 					}
 				}
 
@@ -269,6 +274,7 @@ class Chipset {
 
 		Outputs::CRT::CRT crt_;
 		uint16_t palette_[32]{};
+		uint16_t swizzled_palette_[32]{};
 };
 
 }

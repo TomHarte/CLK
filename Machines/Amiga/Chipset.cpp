@@ -12,6 +12,7 @@
 #define LOG_PREFIX "[Amiga chipset] "
 #include "../../Outputs/Log.hpp"
 
+#include <algorithm>
 #include <cassert>
 
 using namespace Amiga;
@@ -368,7 +369,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				y_ = 0;
 
 				// TODO: the manual is vague on when this happens. Try to find out.
-				copper_.reload(0);
+				copper_.reload<0>();
 			}
 		}
 		assert(line_cycle_ < line_length_ * 4);
@@ -379,8 +380,18 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 }
 
 void Chipset::post_bitplanes(const BitplaneData &data) {
-	// TODO.
-	(void)data;
+	// Convert to future pixels.
+	const int odd_offset = line_cycle_ + odd_delay_;
+	const int even_offset = line_cycle_ + odd_delay_;
+	for(int x = 0; x < 16; x++) {
+		const uint16_t mask = uint16_t(1 << x);
+		even_playfield_[x + even_offset] = uint8_t(
+			((data[0] & mask) | ((data[2] & mask) << 1) | ((data[4] & mask) << 2)) >> x
+		);
+		odd_playfield_[x + odd_offset] = uint8_t(
+			((data[1] & mask) | ((data[3] & mask) << 1) | ((data[5] & mask) << 2)) >> x
+		);
+	}
 }
 
 void Chipset::update_interrupts() {
@@ -463,8 +474,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Disk DMA.
-		case Write(0x020):	disk_.set_address<0, 16>(cycle.value16());	break;
-		case Write(0x022):	disk_.set_address<0, 0>(cycle.value16());	break;
+		case Write(0x020):	disk_.set_pointer<0, 16>(cycle.value16());	break;
+		case Write(0x022):	disk_.set_pointer<0, 0>(cycle.value16());	break;
 		case Write(0x024):	disk_.set_length(cycle.value16());			break;
 
 		case Write(0x026):
@@ -540,21 +551,29 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Bitplanes.
-		case Write(0x0e0):	bitplanes_.set_address<0, 16>(cycle.value16());	break;
-		case Write(0x0e2):	bitplanes_.set_address<0, 0>(cycle.value16());	break;
-		case Write(0x0e4):	bitplanes_.set_address<1, 16>(cycle.value16());	break;
-		case Write(0x0e6):	bitplanes_.set_address<1, 0>(cycle.value16());	break;
-		case Write(0x0e8):	bitplanes_.set_address<2, 16>(cycle.value16());	break;
-		case Write(0x0ea):	bitplanes_.set_address<2, 0>(cycle.value16());	break;
-		case Write(0x0ec):	bitplanes_.set_address<3, 16>(cycle.value16());	break;
-		case Write(0x0ee):	bitplanes_.set_address<3, 0>(cycle.value16());	break;
-		case Write(0x0f0):	bitplanes_.set_address<4, 16>(cycle.value16());	break;
-		case Write(0x0f2):	bitplanes_.set_address<4, 0>(cycle.value16());	break;
-		case Write(0x0f4):	bitplanes_.set_address<5, 16>(cycle.value16());	break;
-		case Write(0x0f6):	bitplanes_.set_address<5, 0>(cycle.value16());	break;
+		case Write(0x0e0):	bitplanes_.set_pointer<0, 16>(cycle.value16());	break;
+		case Write(0x0e2):	bitplanes_.set_pointer<0, 0>(cycle.value16());	break;
+		case Write(0x0e4):	bitplanes_.set_pointer<1, 16>(cycle.value16());	break;
+		case Write(0x0e6):	bitplanes_.set_pointer<1, 0>(cycle.value16());	break;
+		case Write(0x0e8):	bitplanes_.set_pointer<2, 16>(cycle.value16());	break;
+		case Write(0x0ea):	bitplanes_.set_pointer<2, 0>(cycle.value16());	break;
+		case Write(0x0ec):	bitplanes_.set_pointer<3, 16>(cycle.value16());	break;
+		case Write(0x0ee):	bitplanes_.set_pointer<3, 0>(cycle.value16());	break;
+		case Write(0x0f0):	bitplanes_.set_pointer<4, 16>(cycle.value16());	break;
+		case Write(0x0f2):	bitplanes_.set_pointer<4, 0>(cycle.value16());	break;
+		case Write(0x0f4):	bitplanes_.set_pointer<5, 16>(cycle.value16());	break;
+		case Write(0x0f6):	bitplanes_.set_pointer<5, 0>(cycle.value16());	break;
+
+		case Write(0x102): {
+			const uint8_t delay = cycle.value8_low();
+			odd_delay_ = delay & 0x0f;
+			even_delay_ = delay >> 4;
+		} break;
 
 		case Write(0x100):
-		case Write(0x102):
+			bitplanes_.set_control(cycle.value16());
+		break;
+
 		case Write(0x104):
 		case Write(0x106):
 			LOG("TODO: Bitplane control; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
@@ -629,27 +648,27 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 		case Write(0x080):
 			LOG("Coprocessor first location register high " << PADHEX(4) << cycle.value16());
-			copper_.set_address<0, 16>(cycle.value16());
+			copper_.set_pointer<0, 16>(cycle.value16());
 		break;
 		case Write(0x082):
 			LOG("Coprocessor first location register low " << PADHEX(4) << cycle.value16());
-			copper_.set_address<0, 0>(cycle.value16());
+			copper_.set_pointer<0, 0>(cycle.value16());
 		break;
 		case Write(0x084):
 			LOG("Coprocessor second location register high " << PADHEX(4) << cycle.value16());
-			copper_.set_address<1, 16>(cycle.value16());
+			copper_.set_pointer<1, 16>(cycle.value16());
 		break;
 		case Write(0x086):
 			LOG("Coprocessor second location register low " << PADHEX(4) << cycle.value16());
-			copper_.set_address<1, 0>(cycle.value16());
+			copper_.set_pointer<1, 0>(cycle.value16());
 		break;
 		case Write(0x088):	case Read(0x088):
 			LOG("Coprocessor restart at first location");
-			copper_.reload(0);
+			copper_.reload<0>();
 		break;
 		case Write(0x08a):	case Read(0x08a):
 			LOG("Coprocessor restart at second location");
-			copper_.reload(1);
+			copper_.reload<1>();
 		break;
 		case Write(0x08c):
 			LOG("TODO: coprocessor instruction fetch identity " << PADHEX(4) << cycle.value16());
@@ -686,9 +705,26 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x1b8):	case Write(0x1ba):	case Write(0x1bc):	case Write(0x1be): {
 			LOG("Colour palette; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
 
-			uint8_t *const entry = reinterpret_cast<uint8_t *>(&palette_[(register_address - 0x180) >> 1]);
+			// Store once in regular, linear order.
+			const auto entry_address = (register_address - 0x180) >> 1;
+			uint8_t *const entry = reinterpret_cast<uint8_t *>(&palette_[entry_address]);
 			entry[0] = cycle.value8_high();
 			entry[1] = cycle.value8_low();
+
+			// Also store in bit-swizzled order. In this array,
+			// instead of being indexed as [b4 b3 b2 b1 b0], index
+			// as [b3 b1 b4 b2 b0]. This is related to the dual/single-playfield
+			// decision being made relatively late in the planar -> chunky
+			// conversion performed by this implementation.
+			const auto swizzled_address =
+				(entry_address&0x01) |
+				((entry_address&0x02) << 2) |
+				((entry_address&0x04) >> 1) |
+				((entry_address&0x08) << 1) |
+				((entry_address&0x10) >> 2);
+			uint8_t *const swizzled_entry = reinterpret_cast<uint8_t *>(&swizzled_palette_[swizzled_address]);
+			swizzled_entry[0] = cycle.value8_high();
+			swizzled_entry[1] = cycle.value8_low();
 		} break;
 	}
 
@@ -714,8 +750,8 @@ template <bool is_odd> bool Chipset::Bitplanes::advance() {
 #define BIND_CYCLE(offset, plane)	\
 	case (offset + 1)&7:			\
 		if(plane_count_ > plane) {	\
-			next[plane] = ram_[addresses_[plane] & ram_mask_];	\
-			++addresses_[plane];	\
+			next[plane] = ram_[pointer_[plane] & ram_mask_];	\
+			++pointer_[plane];	\
 			if constexpr (!plane) {			\
 				chipset_.post_bitplanes(next);	\
 			}						\
@@ -762,6 +798,19 @@ void Chipset::Bitplanes::do_end_of_line() {
 	collection_offset_ = 0;
 }
 
+void Chipset::Bitplanes::set_control(uint16_t control) {
+	is_high_res_ = control & 0x8000;
+	plane_count_ = (control >> 12) & 7;
+
+	// TODO: who really has responsibility for clearing the other
+	// bit plane fields?
+	std::fill(next.begin() + plane_count_, next.end(), 0);
+	if(plane_count_ == 7) {
+		plane_count_ = 4;
+	}
+}
+
+
 // MARK: - Sprites.
 
 void Chipset::Sprite::set_pointer(int shift, uint16_t value) {
@@ -788,8 +837,8 @@ bool Chipset::DiskDMA::advance() {
 	if(!write_) {
 		// TODO: run an actual PLL, collect actual disk data.
 		if(length_) {
-			ram_[addresses_[0] & ram_mask_] = 0xffff;
-			++addresses_[0];
+			ram_[pointer_[0] & ram_mask_] = 0xffff;
+			++pointer_[0];
 			--length_;
 
 			if(!length_) {
