@@ -96,16 +96,31 @@ class Chipset {
 	private:
 		// MARK: - Common base for DMA components.
 
-		class DMADevice {
+		class DMADeviceBase {
 			public:
-				DMADevice(Chipset &chipset, uint16_t *ram, size_t size) : chipset_(chipset), ram_(ram), ram_mask_(uint32_t(size - 1)) {}
+				DMADeviceBase(Chipset &chipset, uint16_t *ram, size_t size) : chipset_(chipset), ram_(ram), ram_mask_(uint32_t(size - 1)) {}
 
 			protected:
 				Chipset &chipset_;
 				uint16_t *ram_ = nullptr;
 				uint32_t ram_mask_ = 0;
 		};
-		friend DMADevice;
+		friend DMADeviceBase;
+
+		template <size_t num_addresses> class DMADevice: public DMADeviceBase {
+			public:
+				using DMADeviceBase::DMADeviceBase;
+
+				/// Writes the word @c value to the address register @c id, shifting it by @c shift (0 or 16) first.
+				template <int id, int shift> void set_address(uint16_t value) {
+					static_assert(id < num_addresses);
+					static_assert(shift == 0 || shift == 16);
+					addresses_[id] = (addresses_[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
+				}
+
+			protected:
+				std::array<uint32_t, num_addresses> addresses_{};
+		};
 
 		// MARK: - Interrupts.
 
@@ -147,9 +162,6 @@ class Chipset {
 		// Current raster position.
 		int line_cycle_ = 0, y_ = 0;
 
-//		class Bitplanes: public DMADevice {
-//
-//		};
 		// Parameters affecting bitplane collection and output.
 		uint16_t display_window_start_[2] = {0, 0};
 		uint16_t display_window_stop_[2] = {0, 0};
@@ -157,15 +169,32 @@ class Chipset {
 
 		// Ephemeral bitplane collection state.
 		bool fetch_vertical_ = false, fetch_horizontal_ = false;
+		bool did_fetch_ = false;
 
 		using BitplaneData = std::array<uint16_t, 6>;
-		BitplaneData next;
+
+		class Bitplanes: public DMADevice<6> {
+			public:
+				using DMADevice::DMADevice;
+
+				template <bool is_odd> bool advance();
+				void do_end_of_line();
+
+			private:
+				bool is_high_res_ = false;
+				int collection_offset_ = 0;
+				int plane_count_ = 1;
+
+				BitplaneData next;
+		} bitplanes_;
+
+		void post_bitplanes(const BitplaneData &data);
 
 		// MARK: - Copper.
 
-		class Copper: public DMADevice {
+		class Copper: public DMADevice<2> {
 			public:
-				using DMADevice::DMADevice;
+				using DMADevice<2>::DMADevice;
 
 				/// Offers a DMA slot to the Copper, specifying the current beam position.
 				///
@@ -176,11 +205,6 @@ class Chipset {
 				void reload(int id) {
 					address_ = addresses_[id] >> 1;
 					state_ = State::FetchFirstWord;
-				}
-
-				/// Writes the word @c value to the address register @c id, shifting it by @c shift (0 or 16) first.
-				template <int id, int shift> void set_address(uint16_t value) {
-					addresses_[id] = (addresses_[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
 				}
 
 				/// Sets the Copper control word.
@@ -195,7 +219,6 @@ class Chipset {
 
 			private:
 				uint32_t address_ = 0;
-				uint32_t addresses_[2]{};
 				uint16_t control_ = 0;
 
 				enum class State {
@@ -220,13 +243,9 @@ class Chipset {
 
 		// MARK: - Disk drives.
 
-		class DiskDMA: public DMADevice {
+		class DiskDMA: public DMADevice<1> {
 			public:
 				using DMADevice::DMADevice;
-
-				template <int shift> void set_address(uint16_t value) {
-					address_ = (address_ & (0xffff'0000 >> shift)) | uint32_t(value << shift);
-				}
 
 				void set_length(uint16_t value) {
 					dma_enable_ = value & 0x8000;
@@ -234,14 +253,13 @@ class Chipset {
 					length_ = value & 0x3fff;
 
 					if(dma_enable_) {
-						printf("Not yet implemented: disk DMA [%s of %d to %06x]\n", write_ ? "write" : "read", length_, address_);
+						printf("Not yet implemented: disk DMA [%s of %d to %06x]\n", write_ ? "write" : "read", length_, addresses_[0]);
 					}
 				}
 
 				bool advance();
 
 			private:
-				uint32_t address_;
 				uint16_t length_;
 				bool dma_enable_ = false;
 				bool write_ = false;

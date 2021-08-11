@@ -33,6 +33,7 @@ template <DMAFlag... Flags> struct DMAMask: Mask<DMAFlag, Flags...> {};
 
 Chipset::Chipset(uint16_t *ram, size_t size) :
 	blitter_(ram, size),
+	bitplanes_(*this, ram, size),
 	copper_(*this, ram, size),
 	disk_(*this, ram, size),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
@@ -231,9 +232,13 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	fetch_horizontal_ &= cycle != display_window_stop_[0];
 
 	// Top priority: bitplane collection.
-	if(fetch_horizontal_ && fetch_vertical_ && (dma_control_ & BitplaneFlag) == BitplaneFlag) {
+	if((dma_control_ & BitplaneFlag) == BitplaneFlag) {
 		// TODO: offer a cycle for bitplane collection.
 		// Probably need to indicate odd or even?
+		if(fetch_horizontal_ && fetch_vertical_ && bitplanes_.template advance<cycle&1>()) {
+			did_fetch_ = true;
+			return false;
+		}
 	}
 
 	if constexpr (cycle & 1) {
@@ -348,6 +353,13 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 			fetch_vertical_ |= y_ == display_window_start_[1];
 			fetch_vertical_ &= y_ != display_window_stop_[1];
 
+			if(did_fetch_) {
+				// TODO: find out when modulos are actually applied, since
+				// they're dynamically programmable.
+				bitplanes_.do_end_of_line();
+				did_fetch_ = false;
+			}
+
 			if(y_ == frame_height_) {
 				++changes.vsyncs;
 				interrupt_requests_ |= InterruptMask<InterruptFlag::VerticalBlank>::value;
@@ -364,6 +376,11 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 	changes.interrupt_level = interrupt_level_;
 	return changes;
+}
+
+void Chipset::post_bitplanes(const BitplaneData &data) {
+	// TODO.
+	(void)data;
 }
 
 void Chipset::update_interrupts() {
@@ -446,9 +463,9 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Disk DMA.
-		case Write(0x020):	disk_.set_address<16>(cycle.value16());	break;
-		case Write(0x022):	disk_.set_address<0>(cycle.value16());	break;
-		case Write(0x024):	disk_.set_length(cycle.value16());		break;
+		case Write(0x020):	disk_.set_address<0, 16>(cycle.value16());	break;
+		case Write(0x022):	disk_.set_address<0, 0>(cycle.value16());	break;
+		case Write(0x024):	disk_.set_length(cycle.value16());			break;
 
 		case Write(0x026):
 			LOG("TODO: disk DMA; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
@@ -523,14 +540,18 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Bitplanes.
-		case Write(0x0e0):	case Write(0x0e2):
-		case Write(0x0e4):	case Write(0x0e6):
-		case Write(0x0e8):	case Write(0x0ea):
-		case Write(0x0ec):	case Write(0x0ee):
-		case Write(0x0f0):	case Write(0x0f2):
-		case Write(0x0f4):	case Write(0x0f6):
-			LOG("TODO: Bitplane pointer; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
-		break;
+		case Write(0x0e0):	bitplanes_.set_address<0, 16>(cycle.value16());	break;
+		case Write(0x0e2):	bitplanes_.set_address<0, 0>(cycle.value16());	break;
+		case Write(0x0e4):	bitplanes_.set_address<1, 16>(cycle.value16());	break;
+		case Write(0x0e6):	bitplanes_.set_address<1, 0>(cycle.value16());	break;
+		case Write(0x0e8):	bitplanes_.set_address<2, 16>(cycle.value16());	break;
+		case Write(0x0ea):	bitplanes_.set_address<2, 0>(cycle.value16());	break;
+		case Write(0x0ec):	bitplanes_.set_address<3, 16>(cycle.value16());	break;
+		case Write(0x0ee):	bitplanes_.set_address<3, 0>(cycle.value16());	break;
+		case Write(0x0f0):	bitplanes_.set_address<4, 16>(cycle.value16());	break;
+		case Write(0x0f2):	bitplanes_.set_address<4, 0>(cycle.value16());	break;
+		case Write(0x0f4):	bitplanes_.set_address<5, 16>(cycle.value16());	break;
+		case Write(0x0f6):	bitplanes_.set_address<5, 0>(cycle.value16());	break;
 
 		case Write(0x100):
 		case Write(0x102):
@@ -678,6 +699,69 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 #undef RW
 }
 
+// MARK: - Bitplanes.
+
+template <bool is_odd> bool Chipset::Bitplanes::advance() {
+	// Offset is preincremented in order to simplify the exit
+	// pathways below. As a result all in-switch offsets are
+	// off by 1. This is dealt with in the macro.
+	++collection_offset_;
+
+	// TODO: possibly dispatch a BitplaneData.
+	// The chipset has responsibility for applying a delay,
+	// and the pixel-level start/stop boundaries.
+
+#define BIND_CYCLE(offset, plane)	\
+	case (offset + 1)&7:			\
+		if(plane_count_ > plane) {	\
+			next[plane] = ram_[addresses_[plane] & ram_mask_];	\
+			++addresses_[plane];	\
+			if constexpr (!plane) {			\
+				chipset_.post_bitplanes(next);	\
+			}						\
+			return true;		\
+		}	\
+	return false;
+
+	if(is_high_res_) {
+		// TODO: I'm unclear whether this is correct, or merely
+		// an artefact of the way the Hardware Reference Manual
+		// depicts per-line DMA responsibilities.
+		if(collection_offset_ < 4) {
+			return false;
+		}
+
+		switch(collection_offset_&7) {
+			default: return false;
+			BIND_CYCLE(0, 3);
+			BIND_CYCLE(1, 1);
+			BIND_CYCLE(2, 2);
+			BIND_CYCLE(3, 0);
+			BIND_CYCLE(4, 3);
+			BIND_CYCLE(5, 1);
+			BIND_CYCLE(6, 2);
+			BIND_CYCLE(7, 0);
+		}
+	} else {
+		switch(collection_offset_&7) {
+			default: return false;
+			BIND_CYCLE(1, 3);
+			BIND_CYCLE(2, 5);
+			BIND_CYCLE(3, 1);
+			BIND_CYCLE(5, 2);
+			BIND_CYCLE(6, 4);
+			BIND_CYCLE(7, 0);
+		}
+	}
+
+	return false;
+}
+
+void Chipset::Bitplanes::do_end_of_line() {
+	// TODO: apply modulos.
+	collection_offset_ = 0;
+}
+
 // MARK: - Sprites.
 
 void Chipset::Sprite::set_pointer(int shift, uint16_t value) {
@@ -704,8 +788,8 @@ bool Chipset::DiskDMA::advance() {
 	if(!write_) {
 		// TODO: run an actual PLL, collect actual disk data.
 		if(length_) {
-			ram_[address_ & ram_mask_] = 0xffff;
-			++address_;
+			ram_[addresses_[0] & ram_mask_] = 0xffff;
+			++addresses_[0];
 			--length_;
 
 			if(!length_) {
