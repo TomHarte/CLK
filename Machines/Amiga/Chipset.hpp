@@ -169,7 +169,15 @@ class Chipset {
 
 		// Ephemeral bitplane collection state.
 		bool fetch_vertical_ = false, fetch_horizontal_ = false;
+		bool display_horizontal_ = false;
 		bool did_fetch_ = false;
+
+		// Output state.
+		uint16_t border_colour_ = 0;
+		bool is_border_ = true;
+		int zone_duration_ = 0;
+		uint16_t *pixels_ = nullptr;
+		void flush_output();
 
 		using BitplaneData = std::array<uint16_t, 6>;
 
@@ -184,15 +192,15 @@ class Chipset {
 			private:
 				bool is_high_res_ = false;
 				int collection_offset_ = 0;
-				int plane_count_ = 1;
+				int plane_count_ = 0;
 
 				BitplaneData next;
 		} bitplanes_;
 
 		void post_bitplanes(const BitplaneData &data);
 
-		uint8_t even_playfield_[912];
-		uint8_t odd_playfield_[912];
+		std::array<uint8_t, 912> even_playfield_;
+		std::array<uint8_t, 912> odd_playfield_;
 		int odd_delay_ = 0, even_delay_ = 0;
 
 		// MARK: - Copper.

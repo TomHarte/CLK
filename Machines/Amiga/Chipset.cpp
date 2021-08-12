@@ -206,19 +206,66 @@ template <int cycle> void Chipset::output() {
 		LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
 		LINK(blank3, output_blank, blank3 - burst);
 
-		// Output colour 0 to fill the rest of the line; Kickstart uses this
-		// colour to post the error code. TODO: actual pixels, etc.
-		if(cycle == line_length_ - 1) {
-			uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-			if(pixels) {
-				*pixels = palette_[0];
+		display_horizontal_ |= (cycle*2) == fetch_window_[0];
+		display_horizontal_ &= (cycle*2) != fetch_window_[1];
+
+		if constexpr (cycle > blank3) {
+			const bool is_pixel_display = display_horizontal_ && fetch_vertical_;
+
+			if(
+				(is_pixel_display == is_border_) ||
+				(is_border_ && border_colour_ != palette_[0])) {
+				flush_output();
+
+				is_border_ = !is_pixel_display;
+				border_colour_ = palette_[0];
 			}
-			crt_.output_data((cycle - blank3) * 4, 1);
+
+			if(is_pixel_display) {
+				if(!pixels_) {
+					uint16_t *const new_pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(4 * size_t(line_length_ - cycle)));
+					if(new_pixels) {
+						flush_output();
+					}
+					pixels_ = new_pixels;
+				}
+
+				if(pixels_) {
+					pixels_[0] = 0xffff;
+					pixels_[1] = 0x0000;
+					pixels_[2] = 0xffff;
+					pixels_[3] = 0x0000;
+					pixels_ += 4;
+				}
+			}
+			++zone_duration_;
+
+			// Output the rest of the line. TODO: optimise border area.
+			if(cycle == line_length_ - 1) {
+				flush_output();
+			}
 		}
 	}
 
 #undef LINK
 }
+
+void Chipset::flush_output() {
+	if(!zone_duration_) return;
+
+	if(is_border_) {
+		uint16_t *const pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
+		if(pixels) {
+			*pixels = border_colour_;
+		}
+		crt_.output_data(zone_duration_ * 4, 1);
+	} else {
+		crt_.output_data(zone_duration_ * 4);
+	}
+	zone_duration_ = 0;
+	pixels_ = nullptr;
+}
+
 
 template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	constexpr auto BlitterFlag	= DMAMask<DMAFlag::Blitter, DMAFlag::AllBelow>::value;
@@ -229,8 +276,8 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	// Update state as to whether bitplane fetching should happen now.
 	//
 	// TODO: figure out how the hard stops factor into this.
-	fetch_horizontal_ |= cycle == display_window_start_[0];
-	fetch_horizontal_ &= cycle != display_window_stop_[0];
+	fetch_horizontal_ |= cycle == fetch_window_[0];
+	fetch_horizontal_ &= cycle != fetch_window_[1];
 
 	// Top priority: bitplane collection.
 	if((dma_control_ & BitplaneFlag) == BitplaneFlag) {
@@ -360,6 +407,9 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				bitplanes_.do_end_of_line();
 				did_fetch_ = false;
 			}
+
+			std::fill(even_playfield_.begin(), even_playfield_.end(), 0);
+			std::fill(odd_playfield_.begin(), odd_playfield_.end(), 0);
 
 			if(y_ == frame_height_) {
 				++changes.vsyncs;
