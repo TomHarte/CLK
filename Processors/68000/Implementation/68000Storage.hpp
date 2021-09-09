@@ -196,6 +196,9 @@ class ProcessorStorage {
 				/// Copies prefetch_queue_[1] to prefetch_queue_[0].
 				AdvancePrefetch,
 
+				/// Performs effective_address_[0] += 2 and zeroes the final bit of the stack pointer.
+				IncrementEffectiveAddress0AlignStackPointer,
+
 				/*!
 					Terminates an atomic program; if nothing else is pending, schedules the next instruction.
 					This action is special in that it usurps any included microcycle. So any Step with this
