@@ -136,10 +136,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							auto cycle_copy = active_step_->microcycle;
 							cycle_copy.operation |= Microcycle::IsPeripheral;
 
-							// Extend length by: (i) distance to next E low, plus (ii) difference between
+							// Length will be: (i) distance to next E cycle, plus (ii) difference between
 							// current length and a whole E cycle.
-							cycle_copy.length = HalfCycles(20);	// i.e. one E cycle in length.
-							cycle_copy.length += (e_clock_phase_ + cycles_run_for) % 10;
+							const auto phase_now = (e_clock_phase_ + cycles_run_for) % 20;
+							const auto time_to_boundary = (HalfCycles(20) - phase_now) % HalfCycles(20);
+							cycle_copy.length = HalfCycles(20) + time_to_boundary;
 
 							cycles_run_for +=
 								cycle_copy.length +
@@ -188,6 +189,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							case BusStep::Action::DecrementEffectiveAddress0:	effective_address_[0].full -= 2;	break;
 							case BusStep::Action::DecrementEffectiveAddress1:	effective_address_[1].full -= 2;	break;
 							case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;			break;
+
+							case BusStep::Action::IncrementEffectiveAddress0AlignStackPointer:
+								effective_address_[0].full += 2;
+								address_[7].full &= 0xffff'fffe;
+							break;
 
 							case BusStep::Action::AdvancePrefetch:
 								prefetch_queue_.halves.high = prefetch_queue_.halves.low;
@@ -332,6 +338,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									active_program_ = nullptr;
 									active_micro_op_ = short_exception_micro_ops_;
 									populate_trap_steps(8, status());
+
+									// The location of the failed instruction is what should end up on the stack.
+									program_counter_.full -= 4;
 								} else {
 									// Standard instruction dispatch.
 									active_program_ = &instructions[decoded_instruction_.full];
@@ -991,7 +1000,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	populate_trap_steps(5, status());								\
 	bus_program->microcycle.length = HalfCycles(20);				\
 																	\
-	program_counter_.full -= 2;
+	program_counter_.full -= 6;
 
 								case Operation::DIVU: {
 									carry_flag_ = 0;
@@ -2188,7 +2197,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef destination_address
 
 	bus_handler_.flush();
-	e_clock_phase_ = (e_clock_phase_ + cycles_run_for) % 10;
+	e_clock_phase_ = (e_clock_phase_ + cycles_run_for) % 20;
 	half_cycles_left_to_run_ = remaining_duration - cycles_run_for;
 }
 
