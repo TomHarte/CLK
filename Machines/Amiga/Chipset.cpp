@@ -231,10 +231,37 @@ template <int cycle> void Chipset::output() {
 				}
 
 				if(pixels_) {
-					pixels_[0] = 0xffff;
-					pixels_[1] = 0x0000;
-					pixels_[2] = 0xffff;
-					pixels_[3] = 0x0000;
+					// TODO: this is obviously nonsense.
+					pixels_[0] = palette_[
+						((current_bitplanes_[0]&1) << 0) |
+						((current_bitplanes_[1]&1) << 1) |
+						((current_bitplanes_[2]&1) << 2) |
+						((current_bitplanes_[3]&1) << 3) |
+						((current_bitplanes_[4]&1) << 4)
+					];
+					pixels_[1] = palette_[
+						((current_bitplanes_[0]&2) >> 1) |
+						((current_bitplanes_[1]&2) << 0) |
+						((current_bitplanes_[2]&2) << 1) |
+						((current_bitplanes_[3]&2) << 2) |
+						((current_bitplanes_[4]&2) << 3)
+					];
+					pixels_[2] = palette_[
+						((current_bitplanes_[0]&4) >> 2) |
+						((current_bitplanes_[1]&4) >> 1) |
+						((current_bitplanes_[2]&4) << 0) |
+						((current_bitplanes_[3]&4) << 1) |
+						((current_bitplanes_[4]&4) << 2)
+					];
+					pixels_[3] = palette_[
+						((current_bitplanes_[0]&8) >> 3) |
+						((current_bitplanes_[1]&8) >> 2) |
+						((current_bitplanes_[2]&8) >> 1) |
+						((current_bitplanes_[3]&8) << 0) |
+						((current_bitplanes_[4]&8) << 1)
+					];
+
+					current_bitplanes_ >>= 4;
 					pixels_ += 4;
 				}
 			}
@@ -408,9 +435,6 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				did_fetch_ = false;
 			}
 
-			std::fill(even_playfield_.begin(), even_playfield_.end(), 0);
-			std::fill(odd_playfield_.begin(), odd_playfield_.end(), 0);
-
 			if(y_ == frame_height_) {
 				++changes.vsyncs;
 				interrupt_requests_ |= InterruptMask<InterruptFlag::VerticalBlank>::value;
@@ -430,18 +454,29 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 }
 
 void Chipset::post_bitplanes(const BitplaneData &data) {
-	// Convert to future pixels.
-	const int odd_offset = line_cycle_ + odd_delay_;
-	const int even_offset = line_cycle_ + odd_delay_;
-	for(int x = 0; x < 16; x++) {
-		const uint16_t mask = uint16_t(1 << x);
-		even_playfield_[x + even_offset] = uint8_t(
-			((data[0] & mask) | ((data[2] & mask) << 1) | ((data[4] & mask) << 2)) >> x
-		);
-		odd_playfield_[x + odd_offset] = uint8_t(
-			((data[1] & mask) | ((data[3] & mask) << 1) | ((data[5] & mask) << 2)) >> x
-		);
+	// TODO: should probably store for potential delay?
+	current_bitplanes_ = data;
+
+	if(data[0] || data[1]) {
+		printf("");
 	}
+//	current_bitplanes_[0] = 0xaaaa;
+//	current_bitplanes_[1] = 0x3333;
+//	current_bitplanes_[2] = 0x4444;
+//	current_bitplanes_[3] = 0x1111;
+
+	// Convert to future pixels.
+//	const int odd_offset = line_cycle_ + odd_delay_;
+//	const int even_offset = line_cycle_ + odd_delay_;
+//	for(int x = 0; x < 16; x++) {
+//		const uint16_t mask = uint16_t(1 << x);
+//		even_playfield_[x + even_offset] = uint8_t(
+//			((data[0] & mask) | ((data[2] & mask) << 1) | ((data[4] & mask) << 2)) >> x
+//		);
+//		odd_playfield_[x + odd_offset] = uint8_t(
+//			((data[1] & mask) | ((data[3] & mask) << 1) | ((data[5] & mask) << 2)) >> x
+//		);
+//	}
 }
 
 void Chipset::update_interrupts() {

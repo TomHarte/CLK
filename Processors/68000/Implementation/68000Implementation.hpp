@@ -1896,16 +1896,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									negative_flag_ = zero_result_ & 0x80000000;
 								break;
 
-								case Operation::STOP: {
-									static int stops = 0;
-									++stops;
-									if(stops == 559) {
-										printf("");
-									}
-
+								case Operation::STOP:
 									apply_status(prefetch_queue_.halves.low.full);
 									execution_state_ = ExecutionState::Stopped;
-								} break;
+								break;
 
 								/*
 									Development period debugging.

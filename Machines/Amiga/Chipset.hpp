@@ -179,7 +179,17 @@ class Chipset {
 		uint16_t *pixels_ = nullptr;
 		void flush_output();
 
-		using BitplaneData = std::array<uint16_t, 6>;
+		struct BitplaneData: public std::array<uint16_t, 6> {
+			BitplaneData &operator >>= (int c) {
+				(*this)[0] >>= c;
+				(*this)[1] >>= c;
+				(*this)[2] >>= c;
+				(*this)[3] >>= c;
+				(*this)[4] >>= c;
+				(*this)[5] >>= c;
+				return *this;
+			}
+		};
 
 		class Bitplanes: public DMADevice<6> {
 			public:
@@ -199,8 +209,9 @@ class Chipset {
 
 		void post_bitplanes(const BitplaneData &data);
 
-		std::array<uint8_t, 912> even_playfield_;
-		std::array<uint8_t, 912> odd_playfield_;
+		BitplaneData current_bitplanes_, next_bitplanes_;
+//		std::array<uint8_t, 912> even_playfield_;
+//		std::array<uint8_t, 912> odd_playfield_;
 		int odd_delay_ = 0, even_delay_ = 0;
 
 		// MARK: - Copper.

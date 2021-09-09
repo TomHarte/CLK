@@ -45,7 +45,7 @@ class Blitter {
 
 	private:
 		uint16_t *const ram_;
-		const size_t ram_size_;
+		const uint32_t ram_mask_;
 
 		uint32_t addresses_[4];
 		uint8_t minterms_;
