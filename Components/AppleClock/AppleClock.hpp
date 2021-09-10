@@ -257,7 +257,10 @@ class ParallelClock: public ClockStorage {
 				// A no-op for now.
 			} else {
 				// Write to the RTC. Which in this implementation also sets up a future read.
-				data_ = uint8_t(perform(data_));
+				const auto result = perform(data_);
+				if(result != NoResult) {
+					data_ = uint8_t(result);
+				}
 			}
 
 			// MAGIC! The transaction took 0 seconds.
