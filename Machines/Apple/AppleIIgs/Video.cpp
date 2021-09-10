@@ -182,7 +182,7 @@ void Video::advance(Cycles cycles) {
 		if(column_start != FinalColumn) {
 			output_row(row_start, column_start, FinalColumn);
 		}
-		for(int row = row_start+1; row < row_end; row++) {
+		for(int row = row_start+1; row != row_end; row = (row + 1)%Lines) {
 			output_row(row, 0, FinalColumn);
 		}
 		if(column_end) {
