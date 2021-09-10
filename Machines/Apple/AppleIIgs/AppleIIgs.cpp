@@ -277,6 +277,11 @@ class ConcreteMachine:
 //			std::srand(23);
 			Memory::Fuzz(ram_);
 
+			// Prior to ROM03 there's no power-on bit.
+			if(target.model != Target::Model::ROM03) {
+				speed_register_ &= ~0x40;
+			}
+
 			// Sync up initial values.
 			memory_.set_speed_register(speed_register_ ^ 0x80);
 
