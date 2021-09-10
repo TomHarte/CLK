@@ -24,15 +24,15 @@ class ClockStorage {
 		ClockStorage() {
 			// TODO: this should persist, if possible, rather than
 			// being default initialised.
-			constexpr uint8_t default_data[] = {
-				0xa8, 0x00, 0x00, 0x00,
-				0xcc, 0x0a, 0xcc, 0x0a,
-				0x00, 0x00, 0x00, 0x00,
-				0x00, 0x02, 0x63, 0x00,
-				0x03, 0x88, 0x00, 0x4c
-			};
-			memcpy(data_, default_data, sizeof(default_data));
-			memset(&data_[sizeof(default_data)], 0xff, sizeof(data_) - sizeof(default_data));
+//			constexpr uint8_t default_data[] = {
+//				0xa8, 0x00, 0x00, 0x00,
+//				0xcc, 0x0a, 0xcc, 0x0a,
+//				0x00, 0x00, 0x00, 0x00,
+//				0x00, 0x02, 0x63, 0x00,
+//				0x03, 0x88, 0x00, 0x4c
+//			};
+//			memcpy(data_, default_data, sizeof(default_data));
+//			memset(&data_[sizeof(default_data)], 0xff, sizeof(data_) - sizeof(default_data));
 		}
 
 		/*!
@@ -162,10 +162,10 @@ class ClockStorage {
 
 
 	private:
-		uint8_t data_[256];
-		uint8_t seconds_[4];
-		uint8_t write_protect_;
-		int address_;
+		uint8_t data_[256]{};
+		uint8_t seconds_[4]{};
+		uint8_t write_protect_ = 0;
+		int address_ = 0;
 
 		static constexpr int SecondsBuffer = 0x100;
 		static constexpr int RegisterTest = 0x200;
@@ -258,7 +258,7 @@ class ParallelClock: public ClockStorage {
 			} else {
 				// Write to the RTC. Which in this implementation also sets up a future read.
 				const auto result = perform(data_);
-				if(result != NoResult) {
+				if(result < 0x100) {
 					data_ = uint8_t(result);
 				}
 			}
