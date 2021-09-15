@@ -241,7 +241,7 @@ class MemoryMap {
 		friend AuxiliaryMemorySwitches;
 		friend LanguageCardSwitches;
 
-		uint8_t shadow_register_ = 0x08;
+		uint8_t shadow_register_ = 0x00;
 		uint8_t speed_register_ = 0x00;
 
 		// MARK: - Memory banking.

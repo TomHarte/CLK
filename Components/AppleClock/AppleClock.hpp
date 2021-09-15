@@ -9,6 +9,8 @@
 #ifndef Apple_RealTimeClock_hpp
 #define Apple_RealTimeClock_hpp
 
+#include <array>
+
 namespace Apple {
 namespace Clock {
 
@@ -21,29 +23,33 @@ namespace Clock {
 */
 class ClockStorage {
 	public:
-		ClockStorage() {
-			// TODO: this should persist, if possible, rather than
-			// being default initialised.
-			constexpr uint8_t default_data[] = {
-				0xa8, 0x00, 0x00, 0x00,
-				0xcc, 0x0a, 0xcc, 0x0a,
-				0x00, 0x00, 0x00, 0x00,
-				0x00, 0x02, 0x63, 0x00,
-				0x03, 0x88, 0x00, 0x4c
-			};
-			memcpy(data_, default_data, sizeof(default_data));
-			memset(&data_[sizeof(default_data)], 0xff, sizeof(data_) - sizeof(default_data));
-		}
+		ClockStorage() {}
 
 		/*!
 			Advances the clock by 1 second.
 
-			The caller should also signal an interrupt.
+			The caller should also signal an interrupt if applicable.
 		*/
 		void update() {
-			for(int c = 0; c < 4; ++c) {
+			for(size_t c = 0; c < 4; ++c) {
 				++seconds_[c];
 				if(seconds_[c]) break;
+			}
+		}
+
+		/*!
+			Sets the current [P/B]RAM contents.
+		*/
+		template <typename CollectionT> void set_data(const CollectionT &collection) {
+			set_data(collection.begin(), collection.end());
+		}
+
+		template <typename IteratorT> void set_data(IteratorT begin, const IteratorT end) {
+			size_t c = 0;
+			while(begin != end && c < 256) {
+				data_[c] = *begin;
+				++begin;
+				++c;
 			}
 		}
 
@@ -92,7 +98,7 @@ class ClockStorage {
 						case 0x30:
 							// Either a register access or an extended instruction.
 							if(command & 0x08) {
-								address_ = (command & 0x7) << 5;
+								address_ = unsigned((command & 0x7) << 5);
 								phase_ = (command & 0x80) ? Phase::SecondAddressByteRead : Phase::SecondAddressByteWrite;
 								return NoResult;
 							} else {
@@ -162,10 +168,10 @@ class ClockStorage {
 
 
 	private:
-		uint8_t data_[256];
-		uint8_t seconds_[4];
-		uint8_t write_protect_;
-		int address_;
+		std::array<uint8_t, 256> data_{0xff};
+		std::array<uint8_t, 4> seconds_{};
+		uint8_t write_protect_ = 0;
+		unsigned int address_ = 0;
 
 		static constexpr int SecondsBuffer = 0x100;
 		static constexpr int RegisterTest = 0x200;
@@ -257,7 +263,10 @@ class ParallelClock: public ClockStorage {
 				// A no-op for now.
 			} else {
 				// Write to the RTC. Which in this implementation also sets up a future read.
-				data_ = uint8_t(perform(data_));
+				const auto result = perform(data_);
+				if(result < 0x100) {
+					data_ = uint8_t(result);
+				}
 			}
 
 			// MAGIC! The transaction took 0 seconds.
