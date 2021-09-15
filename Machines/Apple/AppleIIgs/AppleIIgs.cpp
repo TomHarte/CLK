@@ -38,6 +38,14 @@
 #include <cassert>
 #include <array>
 
+//
+// HEAVY WARNING: THIS IS INCOMPLETE AND VERY PROVISIONAL.
+//
+// You'll notice lots of random bits of debugging code sitting around but commented out.
+// Most of this will go when this machine is complete. Please look past the gross ugliness
+// of this code's intermediate state if you are able.
+//
+
 namespace {
 
 constexpr int CLOCK_RATE = 14'318'180;
@@ -63,7 +71,7 @@ constexpr uint8_t default_bram[] = {
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfd, 0x96, 0x57, 0x3c,
 };
 
-class MemManagerChecker {
+/*class MemManagerChecker {
 	int handle_total_ = 0;
 	bool dump_bank(const Apple::IIgs::MemoryMap &memory, const char *name, uint32_t address, bool print, uint32_t must_contain = 0xffffffff) {
 		const auto handles = memory.regions[memory.region_map[0xe117]].read;
@@ -170,7 +178,7 @@ class MemManagerChecker {
 
 			return result;
 		}
-};
+};*/
 
 }
 
@@ -375,25 +383,22 @@ class ConcreteMachine:
 			static bool log = false;
 			bool is_1Mhz = false;
 
-			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-				if(address == 0xffb626 && m65816_.get_value_of_register(CPU::WDC65816::Register::X) == 0x51) {
-					printf("");
-				}
-				if(address == 0xffb54c) {
-					printf("");
-				}
-
-				printf("%06x a:%04x x:%04x y:%04x s:%04x d:%04x b:%04x\n",
-					address,
-					m65816_.get_value_of_register(CPU::WDC65816::Register::A),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::X),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
-//					m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::StackPointer),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::Direct),
-					m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank)
-				);
-			}
+//			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
+//				if(address == 0xfe00d5) {
+//					printf("");
+//				}
+//
+//				printf("%06x a:%04x x:%04x y:%04x s:%04x d:%04x b:%04x\n",
+//					address,
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::A),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::X),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::Y),
+////					m65816_.get_value_of_register(CPU::WDC65816::Register::Flags),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::StackPointer),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::Direct),
+//					m65816_.get_value_of_register(CPU::WDC65816::Register::DataBank)
+//				);
+//			}
 
 			if(operation == CPU::WDC65816::BusOperation::ReadVector && !(memory_.get_shadow_register()&0x40)) {
 				// I think vector pulls always go to ROM?
@@ -983,9 +988,9 @@ class ConcreteMachine:
 //			}
 
 			if(operation == CPU::WDC65816::BusOperation::ReadOpcode) {
-				if(total > 482342960 && total < 482352960 && address == 0xe10000) {
-					printf("entry: %llu\n", static_cast<unsigned long long>(total));
-				}
+//				if(total > 482342960 && total < 482352960 && address == 0xe10000) {
+//					printf("entry: %llu\n", static_cast<unsigned long long>(total));
+//				}
 
 //				log |= address == 0xfc144f;
 //				log &= !((address < 0xfc144f) || (address >= 0xfc1490));
@@ -1194,3 +1199,4 @@ Machine *Machine::AppleIIgs(const Analyser::Static::Target *target, const ROMMac
 }
 
 Machine::~Machine() {}
+
