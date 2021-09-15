@@ -573,6 +573,10 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Serial port.
+		case Read(0x018):
+			LOG("TODO: serial data and status");
+			cycle.set_value16(0x3000);	// i.e. transmit buffer empty.
+		break;
 		case Write(0x030):
 			LOG("TODO: serial data: " << PADHEX(4) << cycle.value16());
 		break;
