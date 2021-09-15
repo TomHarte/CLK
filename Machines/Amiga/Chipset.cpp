@@ -33,7 +33,7 @@ template <DMAFlag... Flags> struct DMAMask: Mask<DMAFlag, Flags...> {};
 }
 
 Chipset::Chipset(uint16_t *ram, size_t size) :
-	blitter_(ram, size),
+	blitter_(*this, ram, size),
 	bitplanes_(*this, ram, size),
 	copper_(*this, ram, size),
 	disk_(*this, ram, size),

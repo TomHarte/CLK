@@ -15,6 +15,7 @@
 #include "../../Processors/68000/68000.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
 
+#include "DMADevice.hpp"
 #include "Blitter.hpp"
 
 namespace Amiga {
@@ -94,33 +95,7 @@ class Chipset {
 		Outputs::Display::DisplayType get_display_type() const;
 
 	private:
-		// MARK: - Common base for DMA components.
-
-		class DMADeviceBase {
-			public:
-				DMADeviceBase(Chipset &chipset, uint16_t *ram, size_t size) : chipset_(chipset), ram_(ram), ram_mask_(uint32_t(size - 1)) {}
-
-			protected:
-				Chipset &chipset_;
-				uint16_t *ram_ = nullptr;
-				uint32_t ram_mask_ = 0;
-		};
-		friend DMADeviceBase;
-
-		template <size_t num_addresses> class DMADevice: public DMADeviceBase {
-			public:
-				using DMADeviceBase::DMADeviceBase;
-
-				/// Writes the word @c value to the address register @c id, shifting it by @c shift (0 or 16) first.
-				template <int id, int shift> void set_pointer(uint16_t value) {
-					static_assert(id < num_addresses);
-					static_assert(shift == 0 || shift == 16);
-					pointer_[id] = (pointer_[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
-				}
-
-			protected:
-				std::array<uint32_t, num_addresses> pointer_{};
-		};
+		friend class DMADeviceBase;
 
 		// MARK: - Interrupts.
 

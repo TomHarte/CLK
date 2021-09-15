@@ -13,12 +13,13 @@
 #include <cstdint>
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "DMADevice.hpp"
 
 namespace Amiga {
 
-class Blitter {
+class Blitter: public DMADevice<4> {
 	public:
-		Blitter(uint16_t *ram, size_t size);
+		using DMADevice::DMADevice;
 
 		// Various setters; it's assumed that address decoding is handled externally.
 		//
@@ -27,10 +28,6 @@ class Blitter {
 		void set_control(int index, uint16_t value);
 		void set_first_word_mask(uint16_t value);
 		void set_last_word_mask(uint16_t value);
-
-		template <int id, int shift> void set_pointer(uint16_t value) {
-			addresses_[id] = (addresses_[id] & (0xffff'0000 >> shift)) | uint32_t(value << shift);
-		}
 
 		void set_size(uint16_t value);
 		void set_minterms(uint16_t value);
@@ -44,10 +41,6 @@ class Blitter {
 		bool advance();
 
 	private:
-		uint16_t *const ram_;
-		const uint32_t ram_mask_;
-
-		uint32_t addresses_[4];
 		uint8_t minterms_;
 		int width_ = 0, height_ = 0;
 };

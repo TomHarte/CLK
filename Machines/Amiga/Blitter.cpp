@@ -14,8 +14,6 @@
 
 using namespace Amiga;
 
-Blitter::Blitter(uint16_t *ram, size_t size) : ram_(ram), ram_mask_(uint32_t(size-1)) {}
-
 void Blitter::set_control(int index, uint16_t value) {
 	LOG("Set control " << index << " to " << PADHEX(4) << value);
 }
@@ -61,6 +59,6 @@ uint16_t Blitter::get_status() {
 }
 
 bool Blitter::advance() {
-	ram_[addresses_[3] & ram_mask_] = 0xffff;
+	ram_[(pointer_[3] >> 1) & ram_mask_] = 0xffff;
 	return false;
 }
