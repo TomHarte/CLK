@@ -32,11 +32,11 @@ template <DMAFlag... Flags> struct DMAMask: Mask<DMAFlag, Flags...> {};
 
 }
 
-Chipset::Chipset(uint16_t *ram, size_t size) :
-	blitter_(*this, ram, size),
-	bitplanes_(*this, ram, size),
-	copper_(*this, ram, size),
-	disk_(*this, ram, size),
+Chipset::Chipset(uint16_t *ram, size_t word_size) :
+	blitter_(*this, ram, word_size),
+	bitplanes_(*this, ram, word_size),
+	copper_(*this, ram, word_size),
+	disk_(*this, ram, word_size),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 }
 
@@ -231,7 +231,9 @@ template <int cycle> void Chipset::output() {
 				}
 
 				if(pixels_) {
-					// TODO: this is obviously nonsense.
+					// TODO: this is obviously nonsense. Probably do a table-based
+					// planar-to-chunky up front into 8-bit pockets, and just shift that.
+
 					pixels_[0] = palette_[
 						((current_bitplanes_[0]&1) << 0) |
 						((current_bitplanes_[1]&1) << 1) |
@@ -253,13 +255,13 @@ template <int cycle> void Chipset::output() {
 						((current_bitplanes_[3]&4) << 1) |
 						((current_bitplanes_[4]&4) << 2)
 					];
-					pixels_[3] = palette_[
+					pixels_[3] = 0;/*palette_[
 						((current_bitplanes_[0]&8) >> 3) |
 						((current_bitplanes_[1]&8) >> 2) |
 						((current_bitplanes_[2]&8) >> 1) |
 						((current_bitplanes_[3]&8) << 0) |
 						((current_bitplanes_[4]&8) << 1)
-					];
+					];*/
 
 					current_bitplanes_ >>= 4;
 					pixels_ += 4;
@@ -457,9 +459,6 @@ void Chipset::post_bitplanes(const BitplaneData &data) {
 	// TODO: should probably store for potential delay?
 	current_bitplanes_ = data;
 
-	if(data[0] || data[1]) {
-		printf("");
-	}
 //	current_bitplanes_[0] = 0xaaaa;
 //	current_bitplanes_[1] = 0x3333;
 //	current_bitplanes_[2] = 0x4444;
@@ -958,4 +957,3 @@ void Chipset::set_display_type(Outputs::Display::DisplayType type) {
 Outputs::Display::DisplayType Chipset::get_display_type() const {
 	return crt_.get_display_type();
 }
-

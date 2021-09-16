@@ -59,6 +59,6 @@ uint16_t Blitter::get_status() {
 }
 
 bool Blitter::advance() {
-	ram_[(pointer_[3] >> 1) & ram_mask_] = 0xffff;
+	ram_[pointer_[3] & ram_mask_] = 0xffff;
 	return false;
 }

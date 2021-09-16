@@ -55,7 +55,7 @@ enum class DMAFlag: uint16_t {
 
 class Chipset {
 	public:
-		Chipset(uint16_t *ram, size_t size);
+		Chipset(uint16_t *ram, size_t word_size);
 
 		struct Changes {
 			int hsyncs = 0;
