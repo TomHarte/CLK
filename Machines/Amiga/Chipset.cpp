@@ -378,6 +378,7 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 		C10(200);	C10(210);
 		C(220);		C(221);		C(222);		C(223);		C(224);
 		C(225);		C(226);		C(227);		C(228);
+		break;
 
 		default: assert(false);
 	}

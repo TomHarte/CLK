@@ -59,6 +59,11 @@ uint16_t Blitter::get_status() {
 }
 
 bool Blitter::advance() {
+	if(!height_) return false;
+
+	printf("!!! %08x\n", pointer_[3]);
 	ram_[pointer_[3] & ram_mask_] = 0xffff;
-	return false;
+	--height_;
+
+	return true;
 }
