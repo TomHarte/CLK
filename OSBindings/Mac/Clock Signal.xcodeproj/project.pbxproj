@@ -917,6 +917,7 @@
 		4BC5FC3020CDDDEF00410AA0 /* AppleIIOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BC5FC2E20CDDDEE00410AA0 /* AppleIIOptions.xib */; };
 		4BC6236D26F4235400F83DFE /* Copper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC6236C26F4235400F83DFE /* Copper.cpp */; };
 		4BC6236E26F4235400F83DFE /* Copper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC6236C26F4235400F83DFE /* Copper.cpp */; };
+		4BC6236F26F426B400F83DFE /* FAT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B477709268FBE4D005C2340 /* FAT.cpp */; };
 		4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B11D157E61006C31D9 /* 6522Tests.swift */; };
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BC890D3230F86020025A55A /* DirectAccessDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC890D1230F86020025A55A /* DirectAccessDevice.cpp */; };
@@ -5467,6 +5468,7 @@
 				4B894525201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055ACD1FAE9B030060FFFF /* Keyboard.cpp in Sources */,
 				4B055AB21FAE860F0060FFFF /* CommodoreTAP.cpp in Sources */,
+				4BC6236F26F426B400F83DFE /* FAT.cpp in Sources */,
 				4B0F1BFD260300D900B85C66 /* ZXSpectrum.cpp in Sources */,
 				4B055ADF1FAE9B4C0060FFFF /* IRQDelegatePortHandler.cpp in Sources */,
 				4B74CF86231370BC00500CE8 /* MacintoshVolume.cpp in Sources */,
