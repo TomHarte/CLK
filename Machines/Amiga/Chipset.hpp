@@ -202,7 +202,7 @@ class Chipset {
 
 				/// Forces a reload of address @c id (i.e. 0 or 1) and restarts the Copper.
 				template <int id> void reload() {
-					address_ = pointer_[id] >> 1;
+					address_ = pointer_[id];
 					state_ = State::FetchFirstWord;
 				}
 

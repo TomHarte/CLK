@@ -63,7 +63,7 @@ bool Blitter::advance() {
 
 	printf("!!! %08x\n", pointer_[3]);
 	ram_[pointer_[3] & ram_mask_] = 0xffff;
-	--height_;
+	height_ = 0;
 
 	return true;
 }

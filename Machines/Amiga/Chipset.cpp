@@ -255,13 +255,13 @@ template <int cycle> void Chipset::output() {
 						((current_bitplanes_[3]&4) << 1) |
 						((current_bitplanes_[4]&4) << 2)
 					];
-					pixels_[3] = 0;/*palette_[
+					pixels_[3] = palette_[
 						((current_bitplanes_[0]&8) >> 3) |
 						((current_bitplanes_[1]&8) >> 2) |
 						((current_bitplanes_[2]&8) >> 1) |
 						((current_bitplanes_[3]&8) << 0) |
 						((current_bitplanes_[4]&8) << 1)
-					];*/
+					];
 
 					current_bitplanes_ >>= 4;
 					pixels_ += 4;
@@ -378,7 +378,7 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 		C10(200);	C10(210);
 		C(220);		C(221);		C(222);		C(223);		C(224);
 		C(225);		C(226);		C(227);		C(228);
-		break;
+//		break;
 
 		default: assert(false);
 	}
