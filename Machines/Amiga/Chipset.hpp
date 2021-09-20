@@ -171,13 +171,12 @@ class Chipset {
 			public:
 				using DMADevice::DMADevice;
 
-				template <bool is_odd> bool advance();
+				bool advance(int cycle);
 				void do_end_of_line();
 				void set_control(uint16_t);
 
 			private:
 				bool is_high_res_ = false;
-				int collection_offset_ = 0;
 				int plane_count_ = 0;
 
 				BitplaneData next;

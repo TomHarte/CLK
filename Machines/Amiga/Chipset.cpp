@@ -222,7 +222,7 @@ void Chipset::flush_output() {
 	pixels_ = nullptr;
 }
 
-
+/// @returns @c true if this was a CPU slot; @c false otherwise.
 template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	constexpr auto BlitterFlag	= DMAMask<DMAFlag::Blitter, DMAFlag::AllBelow>::value;
 	constexpr auto BitplaneFlag	= DMAMask<DMAFlag::Bitplane, DMAFlag::AllBelow>::value;
@@ -239,7 +239,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	if((dma_control_ & BitplaneFlag) == BitplaneFlag) {
 		// TODO: offer a cycle for bitplane collection.
 		// Probably need to indicate odd or even?
-		if(fetch_horizontal_ && fetch_vertical_ && bitplanes_.template advance<cycle&1>()) {
+		if(fetch_horizontal_ && fetch_vertical_ && bitplanes_.advance(cycle)) {	// TODO: cycle should be relative to start of collection.
 			did_fetch_ = true;
 			return false;
 		}
@@ -278,6 +278,11 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	return (dma_control_ & BlitterFlag) != BlitterFlag || !blitter_.advance();
 }
 
+/// Performs all slots starting with @c first_slot and ending just before @c last_slot.
+/// If @c stop_on_cpu is true, stops upon discovery of a CPU slot.
+///
+/// @returns the number of slots completed if @c stop_on_cpu was true and a CPU slot was found.
+///			@c -1 otherwise.
 template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_slot) {
 	if(first_slot == last_slot) {
 		return -1;
@@ -753,37 +758,32 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 // MARK: - Bitplanes.
 
-template <bool is_odd> bool Chipset::Bitplanes::advance() {
-	// Offset is preincremented in order to simplify the exit
-	// pathways below. As a result all in-switch offsets are
-	// off by 1. This is dealt with in the macro.
-	++collection_offset_;
-
+bool Chipset::Bitplanes::advance(int cycle) {
 	// TODO: possibly dispatch a BitplaneData.
 	// The chipset has responsibility for applying a delay,
 	// and the pixel-level start/stop boundaries.
 
-#define BIND_CYCLE(offset, plane)	\
-	case (offset + 1)&7:			\
-		if(plane_count_ > plane) {	\
+#define BIND_CYCLE(offset, plane)								\
+	case offset:												\
+		if(plane_count_ > plane) {								\
 			next[plane] = ram_[pointer_[plane] & ram_mask_];	\
-			++pointer_[plane];	\
-			if constexpr (!plane) {			\
-				chipset_.post_bitplanes(next);	\
-			}						\
-			return true;		\
-		}	\
+			++pointer_[plane];									\
+			if constexpr (!plane) {								\
+				chipset_.post_bitplanes(next);					\
+			}													\
+			return true;										\
+		}														\
 	return false;
 
 	if(is_high_res_) {
 		// TODO: I'm unclear whether this is correct, or merely
 		// an artefact of the way the Hardware Reference Manual
 		// depicts per-line DMA responsibilities.
-		if(collection_offset_ < 4) {
+		if(cycle < 4) {
 			return false;
 		}
 
-		switch(collection_offset_&7) {
+		switch(cycle&7) {
 			default: return false;
 			BIND_CYCLE(0, 3);
 			BIND_CYCLE(1, 1);
@@ -795,7 +795,7 @@ template <bool is_odd> bool Chipset::Bitplanes::advance() {
 			BIND_CYCLE(7, 0);
 		}
 	} else {
-		switch(collection_offset_&7) {
+		switch(cycle&7) {
 			default: return false;
 			BIND_CYCLE(1, 3);
 			BIND_CYCLE(2, 5);
@@ -811,7 +811,6 @@ template <bool is_odd> bool Chipset::Bitplanes::advance() {
 
 void Chipset::Bitplanes::do_end_of_line() {
 	// TODO: apply modulos.
-	collection_offset_ = 0;
 }
 
 void Chipset::Bitplanes::set_control(uint16_t control) {
