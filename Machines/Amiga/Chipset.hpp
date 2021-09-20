@@ -188,6 +188,7 @@ class Chipset {
 //		std::array<uint8_t, 912> even_playfield_;
 //		std::array<uint8_t, 912> odd_playfield_;
 		int odd_delay_ = 0, even_delay_ = 0;
+		bool is_high_res_ = false;
 
 		// MARK: - Copper.
 

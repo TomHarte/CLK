@@ -168,29 +168,35 @@ template <int cycle> void Chipset::output() {
 						((current_bitplanes_[3]&1) << 3) |
 						((current_bitplanes_[4]&1) << 4)
 					];
-					pixels_[1] = palette_[
-						((current_bitplanes_[0]&2) >> 1) |
-						((current_bitplanes_[1]&2) << 0) |
-						((current_bitplanes_[2]&2) << 1) |
-						((current_bitplanes_[3]&2) << 2) |
-						((current_bitplanes_[4]&2) << 3)
-					];
-					pixels_[2] = palette_[
-						((current_bitplanes_[0]&4) >> 2) |
-						((current_bitplanes_[1]&4) >> 1) |
-						((current_bitplanes_[2]&4) << 0) |
-						((current_bitplanes_[3]&4) << 1) |
-						((current_bitplanes_[4]&4) << 2)
-					];
-					pixels_[3] = palette_[
-						((current_bitplanes_[0]&8) >> 3) |
-						((current_bitplanes_[1]&8) >> 2) |
-						((current_bitplanes_[2]&8) >> 1) |
-						((current_bitplanes_[3]&8) << 0) |
-						((current_bitplanes_[4]&8) << 1)
-					];
+					current_bitplanes_ >>= is_high_res_;
 
-					current_bitplanes_ >>= 4;
+					pixels_[1] = palette_[
+						((current_bitplanes_[0]&1) << 0) |
+						((current_bitplanes_[1]&1) << 1) |
+						((current_bitplanes_[2]&1) << 2) |
+						((current_bitplanes_[3]&1) << 3) |
+						((current_bitplanes_[4]&1) << 4)
+					];
+					current_bitplanes_ >>= 1;
+
+					pixels_[2] = palette_[
+						((current_bitplanes_[0]&1) << 0) |
+						((current_bitplanes_[1]&1) << 1) |
+						((current_bitplanes_[2]&1) << 2) |
+						((current_bitplanes_[3]&1) << 3) |
+						((current_bitplanes_[4]&1) << 4)
+					];
+					current_bitplanes_ >>= is_high_res_;
+
+					pixels_[3] = palette_[
+						((current_bitplanes_[0]&1) << 0) |
+						((current_bitplanes_[1]&1) << 1) |
+						((current_bitplanes_[2]&1) << 2) |
+						((current_bitplanes_[3]&1) << 3) |
+						((current_bitplanes_[4]&1) << 4)
+					];
+					current_bitplanes_ >>= 1;
+
 					pixels_ += 4;
 				}
 			}
@@ -593,6 +599,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		case Write(0x100):
 			bitplanes_.set_control(cycle.value16());
+			is_high_res_ = cycle.value16() & 0x8000;
 		break;
 
 		case Write(0x104):
