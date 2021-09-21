@@ -43,6 +43,9 @@ class Blitter: public DMADevice<4> {
 	private:
 		uint8_t minterms_;
 		int width_ = 0, height_ = 0;
+
+		int shifts_[2];
+		bool line_mode_ = false;
 };
 
 }
