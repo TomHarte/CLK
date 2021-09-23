@@ -132,7 +132,6 @@ bool Blitter::advance() {
 	} else {
 		// Copy mode.
 		printf("!!! Copy %08x\n", pointer_[3]);
-		ram_[pointer_[3] & ram_mask_] = 0x8000;
 
 		// Quick hack: do the entire action atomically. Isn't life fabulous?
 		for(int y = 0; y < height_; y++) {
@@ -140,16 +139,16 @@ bool Blitter::advance() {
 				if(channel_enables_[0]) {
 					a_ = (a_ << 16) | ram_[pointer_[0] & ram_mask_];
 					pointer_[0] += direction_;
-				}
+				} else { a_ = 0xffffffff; }
 				if(channel_enables_[1]) {
 					b_ = (b_ << 16) | ram_[pointer_[1] & ram_mask_];
 					pointer_[1] += direction_;
-				}
+				} else { b_ = 0xffffffff; }
 				uint16_t c;
 				if(channel_enables_[2]) {
 					c = ram_[pointer_[2] & ram_mask_];
 				} else {
-					c = 0;
+					c = 0xffff;
 					pointer_[2] += direction_;
 				}
 
