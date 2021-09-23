@@ -25,8 +25,8 @@ template <typename IntT> IntT apply_minterm(IntT a, IntT b, IntT c, int minterm)
 	//
 	switch(minterm) {
 		default:
-		case 0x00:	return 0;
-		case 0xff:	return ~0;
+		case 0x00:	return IntT(0);
+		case 0xff:	return IntT(~0);
 
 
 		case 0xf0:	return a;
