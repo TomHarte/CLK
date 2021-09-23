@@ -20,7 +20,7 @@ void Blitter::set_control(int index, uint16_t value) {
 	if(index) {
 		line_mode_ = !(value & 1);
 	} else {
-
+		minterms_ = value & 0xff;
 	}
 	shifts_[index] = value >> 12;
 	LOG("Set control " << index << " to " << PADHEX(4) << value);
@@ -59,7 +59,9 @@ void Blitter::set_horizontal_size(uint16_t value) {
 
 void Blitter::set_modulo(int channel, uint16_t value) {
 	LOG("Set modulo size " << channel << " to " << PADHEX(4) << value);
-	modulos_[channel] = value;
+
+	// Convert by sign extension.
+	modulos_[channel] = uint32_t(int16_t(value) >> 1);
 }
 
 void Blitter::set_data(int channel, uint16_t value) {
