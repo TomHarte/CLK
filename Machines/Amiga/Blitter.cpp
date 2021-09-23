@@ -19,8 +19,13 @@ using namespace Amiga;
 void Blitter::set_control(int index, uint16_t value) {
 	if(index) {
 		line_mode_ = !(value & 1);
+		direction_ = (value & 2) ? uint32_t(-1) : uint32_t(1);
 	} else {
 		minterms_ = value & 0xff;
+		channel_enables_[3] = value & 0x100;
+		channel_enables_[2] = value & 0x20;
+		channel_enables_[1] = value & 0x400;
+		channel_enables_[0] = value & 0x800;
 	}
 	shifts_[index] = value >> 12;
 	LOG("Set control " << index << " to " << PADHEX(4) << value);
@@ -132,27 +137,38 @@ bool Blitter::advance() {
 		// Quick hack: do the entire action atomically. Isn't life fabulous?
 		for(int y = 0; y < height_; y++) {
 			for(int x = 0; x < width_; x++) {
-				a_ = (a_ << 16) | ram_[pointer_[0] & ram_mask_];
-				b_ = (b_ << 16) | ram_[pointer_[1] & ram_mask_];
-				const uint16_t c = ram_[pointer_[2] & ram_mask_];
+				if(channel_enables_[0]) {
+					a_ = (a_ << 16) | ram_[pointer_[0] & ram_mask_];
+					pointer_[0] += direction_;
+				}
+				if(channel_enables_[1]) {
+					b_ = (b_ << 16) | ram_[pointer_[1] & ram_mask_];
+					pointer_[1] += direction_;
+				}
+				uint16_t c;
+				if(channel_enables_[2]) {
+					c = ram_[pointer_[2] & ram_mask_];
+				} else {
+					c = 0;
+					pointer_[2] += direction_;
+				}
 
-				ram_[pointer_[3] & ram_mask_] =
-					apply_minterm(
-					uint16_t(a_ >> shifts_[0]),
-					uint16_t(b_ >> shifts_[1]),
-					c,
-					minterms_);
+				if(channel_enables_[3]) {
+					ram_[pointer_[3] & ram_mask_] =
+						apply_minterm(
+						uint16_t(a_ >> shifts_[0]),
+						uint16_t(b_ >> shifts_[1]),
+						c,
+						minterms_);
 
-				++pointer_[0];
-				++pointer_[1];
-				++pointer_[2];
-				++pointer_[3];
+					pointer_[3] += direction_;
+				}
 			}
 
-			pointer_[0] += modulos_[0];
-			pointer_[1] += modulos_[1];
-			pointer_[2] += modulos_[2];
-			pointer_[3] += modulos_[3];
+			pointer_[0] += modulos_[0] * channel_enables_[0];
+			pointer_[1] += modulos_[1] * channel_enables_[1];
+			pointer_[2] += modulos_[2] * channel_enables_[2];
+			pointer_[3] += modulos_[3] * channel_enables_[3];
 		}
 	}
 
