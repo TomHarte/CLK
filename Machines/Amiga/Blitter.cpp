@@ -8,6 +8,8 @@
 
 #include "Blitter.hpp"
 
+#include "Minterms.h"
+
 //#define NDEBUG
 #define LOG_PREFIX "[Blitter] "
 #include "../../Outputs/Log.hpp"
@@ -36,6 +38,10 @@ void Blitter::set_size(uint16_t value) {
 	width_ = (width_ & ~0x3f) | (value & 0x3f);
 	height_ = (height_ & ~0x3ff) | (value >> 6);
 	LOG("Set size to " << std::dec << width_ << ", " << height_);
+
+	// Current assumption: writing this register informs the
+	// blitter that it should treat itself as about to start a new line.
+	a_ = b_ = 0;
 }
 
 void Blitter::set_minterms(uint16_t value) {
@@ -53,6 +59,7 @@ void Blitter::set_horizontal_size(uint16_t value) {
 
 void Blitter::set_modulo(int channel, uint16_t value) {
 	LOG("Set modulo size " << channel << " to " << PADHEX(4) << value);
+	modulos_[channel] = value;
 }
 
 void Blitter::set_data(int channel, uint16_t value) {
@@ -114,12 +121,39 @@ bool Blitter::advance() {
 
 		printf("!!! Line %08x\n", pointer_[3]);
 //		ram_[pointer_[3] & ram_mask_] = 0x0001 << shifts_[0];
+		ram_[pointer_[3] & ram_mask_] = 0xffff;
 	} else {
 		// Copy mode.
 		printf("!!! Copy %08x\n", pointer_[3]);
+		ram_[pointer_[3] & ram_mask_] = 0x8000;
+
+		// Quick hack: do the entire action atomically. Isn't life fabulous?
+		for(int y = 0; y < height_; y++) {
+			for(int x = 0; x < width_; x++) {
+				a_ = (a_ << 16) | ram_[pointer_[0] & ram_mask_];
+				b_ = (b_ << 16) | ram_[pointer_[1] & ram_mask_];
+				const uint16_t c = ram_[pointer_[2] & ram_mask_];
+
+				ram_[pointer_[3] & ram_mask_] =
+					apply_minterm(
+					uint16_t(a_ >> shifts_[0]),
+					uint16_t(b_ >> shifts_[1]),
+					c,
+					minterms_);
+
+				++pointer_[0];
+				++pointer_[1];
+				++pointer_[2];
+				++pointer_[3];
+			}
+
+			pointer_[0] += modulos_[0];
+			pointer_[1] += modulos_[1];
+			pointer_[2] += modulos_[2];
+			pointer_[3] += modulos_[3];
+		}
 	}
 
-	ram_[pointer_[3] & ram_mask_] = 0xffff;
 	height_ = 0;
 
 	return true;

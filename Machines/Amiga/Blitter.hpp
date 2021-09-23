@@ -41,10 +41,12 @@ class Blitter: public DMADevice<4> {
 		bool advance();
 
 	private:
-		uint8_t minterms_;
+		uint8_t minterms_ = 0;
 		int width_ = 0, height_ = 0;
+		uint32_t a_ = 0, b_ = 0;
+		uint16_t modulos_[4]{};
 
-		int shifts_[2];
+		int shifts_[2]{};
 		bool line_mode_ = false;
 };
 
