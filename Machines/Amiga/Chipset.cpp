@@ -133,8 +133,8 @@ template <int cycle> void Chipset::output() {
 		LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
 		LINK(blank3, output_blank, blank3 - burst);
 
-		display_horizontal_ |= (cycle*2) == fetch_window_[0];
-		display_horizontal_ &= (cycle*2) != fetch_window_[1];
+		display_horizontal_ |= (cycle << 1) == fetch_window_[0];
+		display_horizontal_ &= (cycle << 1) != fetch_window_[1];
 
 		if constexpr (cycle > blank3) {
 			const bool is_pixel_display = display_horizontal_ && fetch_vertical_;
@@ -238,8 +238,8 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	// Update state as to whether bitplane fetching should happen now.
 	//
 	// TODO: figure out how the hard stops factor into this.
-	fetch_horizontal_ |= cycle == fetch_window_[0];
-	fetch_horizontal_ &= cycle != fetch_window_[1];
+	fetch_horizontal_ |= (cycle << 1) == fetch_window_[0];
+	fetch_horizontal_ &= (cycle << 1) != fetch_window_[1];
 
 	// Top priority: bitplane collection.
 	if((dma_control_ & BitplaneFlag) == BitplaneFlag) {
