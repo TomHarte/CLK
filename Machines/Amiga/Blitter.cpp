@@ -23,7 +23,7 @@ void Blitter::set_control(int index, uint16_t value) {
 	} else {
 		minterms_ = value & 0xff;
 		channel_enables_[3] = value & 0x100;
-		channel_enables_[2] = value & 0x20;
+		channel_enables_[2] = value & 0x200;
 		channel_enables_[1] = value & 0x400;
 		channel_enables_[0] = value & 0x800;
 	}
