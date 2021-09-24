@@ -104,7 +104,6 @@
 		4B055ADF1FAE9B4C0060FFFF /* IRQDelegatePortHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334891F5DB94B0097E338 /* IRQDelegatePortHandler.cpp */; };
 		4B055AE01FAE9B660060FFFF /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B055AE81FAE9B7B0060FFFF /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
-		4B055AE91FAE9B990060FFFF /* 6502Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */; };
 		4B055AEA1FAE9B990060FFFF /* 6502Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334851F5DA3780097E338 /* 6502Storage.cpp */; };
 		4B055AEB1FAE9BA20060FFFF /* PartialMachineCycle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334811F5D9FF70097E338 /* PartialMachineCycle.cpp */; };
 		4B055AEC1FAE9BA20060FFFF /* Z80Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B322E031F5A2E3C004EB04C /* Z80Base.cpp */; };
@@ -290,7 +289,6 @@
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
 		4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
 		4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
-		4B6A4C991F58F09E00E3F787 /* 6502Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */; };
 		4B6AAEA4230E3E1D0078E864 /* MassStorageDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6AAEA2230E3E1D0078E864 /* MassStorageDevice.cpp */; };
 		4B6AAEAB230E40250078E864 /* SCSI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6AAEA7230E40250078E864 /* SCSI.cpp */; };
 		4B6AAEAC230E40250078E864 /* SCSI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6AAEA7230E40250078E864 /* SCSI.cpp */; };
@@ -345,7 +343,6 @@
 		4B778F1423A5EC960000D260 /* Z80Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334831F5DA0360097E338 /* Z80Storage.cpp */; };
 		4B778F1523A5EC980000D260 /* PartialMachineCycle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334811F5D9FF70097E338 /* PartialMachineCycle.cpp */; };
 		4B778F1623A5ECA00000D260 /* Z80AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B322DFD1F5A2981004EB04C /* Z80AllRAM.cpp */; };
-		4B778F1823A5ED1B0000D260 /* 6502Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */; };
 		4B778F1923A5ED1B0000D260 /* 6502Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334851F5DA3780097E338 /* 6502Storage.cpp */; };
 		4B778F1A23A5ED320000D260 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE005E227D39AB000CA200 /* Video.cpp */; };
 		4B778F1B23A5ED380000D260 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0ACC0823775819008902D0 /* Video.cpp */; };
@@ -1353,7 +1350,6 @@
 		4B6A4C8E1F58F09E00E3F787 /* 6502.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6502.hpp; sourceTree = "<group>"; };
 		4B6A4C911F58F09E00E3F787 /* 6502AllRAM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6502AllRAM.cpp; sourceTree = "<group>"; };
 		4B6A4C921F58F09E00E3F787 /* 6502AllRAM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6502AllRAM.hpp; sourceTree = "<group>"; };
-		4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6502Base.cpp; sourceTree = "<group>"; };
 		4B6AAEA2230E3E1D0078E864 /* MassStorageDevice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MassStorageDevice.cpp; sourceTree = "<group>"; };
 		4B6AAEA3230E3E1D0078E864 /* MassStorageDevice.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MassStorageDevice.hpp; sourceTree = "<group>"; };
 		4B6AAEA6230E40250078E864 /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
@@ -2994,7 +2990,6 @@
 		4B6A4C931F58F09E00E3F787 /* Implementation */ = {
 			isa = PBXGroup;
 			children = (
-				4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */,
 				4B8334851F5DA3780097E338 /* 6502Storage.cpp */,
 				4B322DF31F5A26BF004EB04C /* 6502Implementation.hpp */,
 				4B322DF41F5A2714004EB04C /* 6502Storage.hpp */,
@@ -5310,7 +5305,6 @@
 				4B0ACC2F23775819008902D0 /* TIA.cpp in Sources */,
 				4B9BE401203A0C0600FFAE60 /* MultiSpeaker.cpp in Sources */,
 				4B055AA61FAE85EF0060FFFF /* Parser.cpp in Sources */,
-				4B055AE91FAE9B990060FFFF /* 6502Base.cpp in Sources */,
 				4BF8D4D6251C11DD00BBE21B /* 65816Storage.cpp in Sources */,
 				4B055AEF1FAE9BF00060FFFF /* Typer.cpp in Sources */,
 				4B89453F201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
@@ -5601,7 +5595,6 @@
 				4B89449520194CB3007DE474 /* MachineForTarget.cpp in Sources */,
 				4B4A76301DB1A3FA007AAE2E /* AY38910.cpp in Sources */,
 				4B7BA03423C58B1F00B98D9E /* STX.cpp in Sources */,
-				4B6A4C991F58F09E00E3F787 /* 6502Base.cpp in Sources */,
 				4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */,
 				4B7F188E2154825E00388727 /* MasterSystem.cpp in Sources */,
 				4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */,
@@ -5807,7 +5800,6 @@
 				4B778EFE23A5EB910000D260 /* CPCDSK.cpp in Sources */,
 				4B778F5823A5F2C60000D260 /* Tape.cpp in Sources */,
 				4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */,
-				4B778F1823A5ED1B0000D260 /* 6502Base.cpp in Sources */,
 				4BD4A8D01E077FD20020D856 /* PCMTrackTests.mm in Sources */,
 				4B778F2123A5EDD50000D260 /* TrackSerialiser.cpp in Sources */,
 				4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */,

@@ -44,9 +44,9 @@ enum Personality {
 #define has_stpwai(p)		((p) >= Personality::PWDC65C02)
 
 /*!
-	An opcode that is guaranteed to cause the CPU to jam.
+	An opcode that is guaranteed to cause a 6502 to jam.
 */
-extern const uint8_t JamOpcode;
+constexpr uint8_t JamOpcode = 0xf2;
 
 #include "Implementation/6502Storage.hpp"
 
@@ -65,7 +65,18 @@ class ProcessorBase: public ProcessorStorage {
 			@param r The register to set.
 			@returns The value of the register. 8-bit registers will be returned as unsigned.
 		*/
-		uint16_t get_value_of_register(Register r) const;
+		uint16_t get_value_of_register(Register r) const {
+			switch (r) {
+				case Register::ProgramCounter:			return pc_.full;
+				case Register::LastOperationAddress:	return last_operation_pc_.full;
+				case Register::StackPointer:			return s_;
+				case Register::Flags:					return get_flags();
+				case Register::A:						return a_;
+				case Register::X:						return x_;
+				case Register::Y:						return y_;
+				default: return 0;
+			}
+		}
 
 		/*!
 			Sets the value of a register.
@@ -75,7 +86,17 @@ class ProcessorBase: public ProcessorStorage {
 			@param r The register to set.
 			@param value The value to set. If the register is only 8 bit, the value will be truncated.
 		*/
-		void set_value_of_register(Register r, uint16_t value);
+		void set_value_of_register(Register r, uint16_t value) {
+			switch (r) {
+				case Register::ProgramCounter:	pc_.full = value;			break;
+				case Register::StackPointer:	s_ = uint8_t(value);		break;
+				case Register::Flags:			set_flags(uint8_t(value));	break;
+				case Register::A:				a_ = uint8_t(value);		break;
+				case Register::X:				x_ = uint8_t(value);		break;
+				case Register::Y:				y_ = uint8_t(value);		break;
+				default: break;
+			}
+		}
 
 		/*!
 			Sets the current level of the RST line.
@@ -124,7 +145,9 @@ class ProcessorBase: public ProcessorStorage {
 
 			@returns @c true if the 6502 is jammed; @c false otherwise.
 		*/
-		bool is_jammed() const;
+		bool is_jammed() const {
+			return is_jammed_;
+		}
 };
 
 /*!
