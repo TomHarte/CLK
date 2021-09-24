@@ -90,7 +90,7 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 
 	// Apply inter-track skew; skew is about 40ms between each track; assuming 300RPM that's
 	// 1/5th of a revolution.
-	const size_t offset_in_fifths = address.position.as_int() % 5;
+	const size_t offset_in_fifths = size_t(address.position.as_int() % 5);
 	segment.rotate_right(offset_in_fifths * segment.data.size() / 5);
 
 	return std::make_shared<PCMTrack>(segment);

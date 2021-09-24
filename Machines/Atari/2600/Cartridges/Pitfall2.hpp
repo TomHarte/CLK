@@ -105,7 +105,7 @@ class Pitfall2: public BusExtender {
 
 			int table_position = 0;
 			for(int c = 0; c < 3; c++) {
-				audio_channel_[c] = (audio_channel_[c] + cycles_to_run_for) % (1 + top_[5 + c]);
+				audio_channel_[c] = uint8_t((audio_channel_[c] + cycles_to_run_for) % (1 + top_[5 + c]));
 				if((featcher_address_[5 + c] & 0x1000) && ((top_[5 + c] - audio_channel_[c]) > bottom_[5 + c])) {
 					table_position |= 0x4 >> c;
 				}
