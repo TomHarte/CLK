@@ -240,8 +240,14 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	// Update state as to whether bitplane fetching should happen now.
 	//
 	// TODO: figure out how the hard stops factor into this.
+	//
+	// TODO: eliminate hard-coded 300 below. There's clearly something
+	// (well, probably many things) I don't yet understand about the
+	// fetch window.
 	fetch_horizontal_ |= (cycle << 1) == fetch_window_[0];
-	fetch_horizontal_ &= (cycle << 1) != fetch_window_[1];
+	fetch_horizontal_ &= (cycle << 1) != (fetch_window_[0] + 300);
+//	fetch_horizontal_ &= (cycle << 1) != fetch_window_[1];
+	//fetch_window_[1];
 
 	// Top priority: bitplane collection.
 	if((dma_control_ & BitplaneFlag) == BitplaneFlag) {
