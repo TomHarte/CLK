@@ -133,6 +133,8 @@ template <int cycle> void Chipset::output() {
 		LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
 		LINK(blank3, output_blank, blank3 - burst);
 
+		// TODO: these shouldn't be functions of the fetch window,
+		// but of the display window.
 		display_horizontal_ |= (cycle << 1) == fetch_window_[0];
 		display_horizontal_ &= (cycle << 1) != fetch_window_[1];
 
