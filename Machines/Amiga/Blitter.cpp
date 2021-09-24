@@ -46,7 +46,6 @@ void Blitter::set_size(uint16_t value) {
 
 	// Current assumption: writing this register informs the
 	// blitter that it should treat itself as about to start a new line.
-	a_ = b_ = 0;
 }
 
 void Blitter::set_minterms(uint16_t value) {
@@ -71,6 +70,14 @@ void Blitter::set_modulo(int channel, uint16_t value) {
 
 void Blitter::set_data(int channel, uint16_t value) {
 	LOG("Set data " << channel << " to " << PADHEX(4) << value);
+
+	// Ugh, backed myself into a corner. TODO: clean.
+	switch(channel) {
+		case 0: a_ = value; break;
+		case 1: b_ = value; break;
+		case 2: c_ = value; break;
+		default: break;
+	}
 }
 
 uint16_t Blitter::get_status() {
@@ -128,7 +135,7 @@ bool Blitter::advance() {
 
 		printf("!!! Line %08x\n", pointer_[3]);
 //		ram_[pointer_[3] & ram_mask_] = 0x0001 << shifts_[0];
-		ram_[pointer_[3] & ram_mask_] = 0xffff;
+//		ram_[pointer_[3] & ram_mask_] = 0xffff;
 	} else {
 		// Copy mode.
 		printf("!!! Copy %08x\n", pointer_[3]);
@@ -137,28 +144,31 @@ bool Blitter::advance() {
 		for(int y = 0; y < height_; y++) {
 			for(int x = 0; x < width_; x++) {
 				if(channel_enables_[0]) {
-					a_ = (a_ << 16) | ram_[pointer_[0] & ram_mask_];
+					a32_ = (a32_ << 16) | ram_[pointer_[0] & ram_mask_];
+					a_ = uint16_t(a32_ >> shifts_[0]);
 					pointer_[0] += direction_;
-				} else { a_ = 0xffffffff; }
+				}
+
 				if(channel_enables_[1]) {
-					b_ = (b_ << 16) | ram_[pointer_[1] & ram_mask_];
+					b32_ = (b32_ << 16) | ram_[pointer_[1] & ram_mask_];
+					b_ = uint16_t(b32_ >> shifts_[1]);
 					pointer_[1] += direction_;
-				} else { b_ = 0xffffffff; }
-				uint16_t c;
+				}
+
 				if(channel_enables_[2]) {
-					c = ram_[pointer_[2] & ram_mask_];
-				} else {
-					c = 0xffff;
+					c_ = ram_[pointer_[2] & ram_mask_];
 					pointer_[2] += direction_;
 				}
 
 				if(channel_enables_[3]) {
 					ram_[pointer_[3] & ram_mask_] =
 						apply_minterm(
-						uint16_t(a_ >> shifts_[0]),
-						uint16_t(b_ >> shifts_[1]),
-						c,
+						a_,
+						b_,
+						c_,
 						minterms_);
+
+					printf("%04x [@ %08x] %04x %04x [%02x] -> %04x [@ %08x]\n", a_, pointer_[0] << 1, b_, c_, minterms_, ram_[pointer_[3] & ram_mask_], pointer_[3] << 1);
 
 					pointer_[3] += direction_;
 				}

@@ -48,7 +48,8 @@ class Blitter: public DMADevice<4> {
 		uint32_t direction_ = 1;
 
 		uint8_t minterms_ = 0;
-		uint32_t a_ = 0, b_ = 0;
+		uint32_t a32_ = 0, b32_ = 0;
+		uint16_t a_ = 0, b_ = 0, c_ = 0;
 		uint32_t modulos_[4]{};
 
 };
