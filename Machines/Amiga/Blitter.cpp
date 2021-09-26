@@ -19,7 +19,11 @@ using namespace Amiga;
 void Blitter::set_control(int index, uint16_t value) {
 	if(index) {
 		line_mode_ = (value & 0x0001);
-		direction_ = (value & 0x0002) ? uint32_t(-1) : uint32_t(1);
+		one_dot_ = value & 0x0002;
+		line_direction_ = (value >> 2) & 7;
+		line_sign_ = (value & 0x0040) ? -1 : 1;
+
+		direction_ = one_dot_ ? uint32_t(-1) : uint32_t(1);
 	} else {
 		minterms_ = value & 0xff;
 		channel_enables_[3] = value & 0x100;
@@ -131,12 +135,19 @@ bool Blitter::advance() {
 		//
 		//	So that's:
 		//
-		//		* bit 4 = x or y major;
+		//		* bit 4 = x [=1] or y [=0] major;
 		//		* bit 3 = 1 => major variable negative; otherwise positive;
 		//		* bit 2 = 1 => minor variable negative; otherwise positive.
 
 		printf("!!! Line %08x\n", pointer_[3]);
-//		ram_[pointer_[3] & ram_mask_] = 0x0001 << shifts_[0];
+
+		int error = int(pointer_[0]) * line_sign_;
+		while(height_--) {
+			ram_[pointer_[3] & ram_mask_] = 0x8000 >> shifts_[0];
+
+			// Assumed for now: quadrant 0.
+
+		}
 //		ram_[pointer_[3] & ram_mask_] = 0xffff;
 	} else {
 		// Copy mode.
