@@ -33,10 +33,12 @@ void Blitter::set_control(int index, uint16_t value) {
 
 void Blitter::set_first_word_mask(uint16_t value) {
 	LOG("Set first word mask: " << PADHEX(4) << value);
+	a_mask_[0] = value;
 }
 
 void Blitter::set_last_word_mask(uint16_t value) {
 	LOG("Set last word mask: " << PADHEX(4) << value);
+	a_mask_[1] = value;
 }
 
 void Blitter::set_size(uint16_t value) {
@@ -161,9 +163,11 @@ bool Blitter::advance() {
 				}
 
 				if(channel_enables_[3]) {
+					const uint16_t a_mask = (x == 0) ? a_mask_[0] : ((x == width_ - 1) ? a_mask_[1] : 0xffff);
+
 					ram_[pointer_[3] & ram_mask_] =
 						apply_minterm(
-						a_,
+						uint16_t(a_ & a_mask),
 						b_,
 						c_,
 						minterms_);

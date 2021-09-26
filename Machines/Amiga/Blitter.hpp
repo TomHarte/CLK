@@ -46,6 +46,7 @@ class Blitter: public DMADevice<4> {
 		bool line_mode_ = false;
 		bool channel_enables_[4]{};
 		uint32_t direction_ = 1;
+		uint16_t a_mask_[2] = {0xffff, 0xffff};
 
 		uint8_t minterms_ = 0;
 		uint32_t a32_ = 0, b32_ = 0;
