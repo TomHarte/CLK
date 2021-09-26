@@ -18,8 +18,8 @@ using namespace Amiga;
 
 void Blitter::set_control(int index, uint16_t value) {
 	if(index) {
-		line_mode_ = !(value & 1);
-		direction_ = (value & 2) ? uint32_t(-1) : uint32_t(1);
+		line_mode_ = (value & 0x0001);
+		direction_ = (value & 0x0002) ? uint32_t(-1) : uint32_t(1);
 	} else {
 		minterms_ = value & 0xff;
 		channel_enables_[3] = value & 0x100;
@@ -81,8 +81,8 @@ void Blitter::set_data(int channel, uint16_t value) {
 }
 
 uint16_t Blitter::get_status() {
-	LOG("Returned dummy status");
-	return 0;
+	LOG("Returned status of " << (height_ ? 0x8000 : 0x0000));
+	return height_ ? 0x8000 : 0x0000;
 }
 
 bool Blitter::advance() {
