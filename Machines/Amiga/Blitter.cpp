@@ -143,10 +143,35 @@ bool Blitter::advance() {
 
 		int error = int(pointer_[0]) * line_sign_;
 		while(height_--) {
-			ram_[pointer_[3] & ram_mask_] = 0x8000 >> shifts_[0];
 
-			// Assumed for now: quadrant 0.
+			// plot(x, y)
+			c_ = ram_[pointer_[3] & ram_mask_];
+			ram_[pointer_[3] & ram_mask_] =
+				apply_minterm<uint16_t>(
+					a_ >> shifts_[0],
+					0xffff,	// TODO: b_ & (0x8000 >> shifts_[1]) but not that.
+					c_, minterms_);
+			shifts_[1] = (shifts_[1] + 1) & 15;
 
+			// Assumed for now: direction 0.
+			pointer_[3] += modulos_[2];
+			if(error > 0) {
+				++shifts_[0];
+				if(shifts_[0] == 16) {
+					shifts_[0] = 0;
+					++pointer_[3];
+				}
+
+				error -= modulos_[0] - modulos_[1];
+			}
+			error += modulos_[1];
+
+			// plot(x, y)
+			// if error > 0 {
+			//		++y
+			//		error -= 2*dx
+			// }
+			// d += 2*dy
 		}
 //		ram_[pointer_[3] & ram_mask_] = 0xffff;
 	} else {
