@@ -59,7 +59,13 @@ struct Chipset {};
 			continue;
 		}
 		if([type isEqualToString:@"write"]) {
-			writes.push_back(std::make_pair(uint32_t(param1), uint16_t([event[2] integerValue])));
+			const uint16_t value = uint16_t([event[2] integerValue]);
+
+			if(writes.empty() || writes.back().first != param1) {
+				writes.push_back(std::make_pair(uint32_t(param1), value));
+			} else {
+				writes.back().second = value;
+			}
 			state = State::LoggingWrites;
 			continue;
 		}
