@@ -156,13 +156,13 @@ class Chipset {
 		void flush_output();
 
 		struct BitplaneData: public std::array<uint16_t, 6> {
-			BitplaneData &operator >>= (int c) {
-				(*this)[0] >>= c;
-				(*this)[1] >>= c;
-				(*this)[2] >>= c;
-				(*this)[3] >>= c;
-				(*this)[4] >>= c;
-				(*this)[5] >>= c;
+			BitplaneData &operator <<= (int c) {
+				(*this)[0] <<= c;
+				(*this)[1] <<= c;
+				(*this)[2] <<= c;
+				(*this)[3] <<= c;
+				(*this)[4] <<= c;
+				(*this)[5] <<= c;
 				return *this;
 			}
 		};

@@ -164,40 +164,40 @@ template <int cycle> void Chipset::output() {
 					// planar-to-chunky up front into 8-bit pockets, and just shift that.
 
 					pixels_[0] = palette_[
-						((current_bitplanes_[0]&1) << 0) |
-						((current_bitplanes_[1]&1) << 1) |
-						((current_bitplanes_[2]&1) << 2) |
-						((current_bitplanes_[3]&1) << 3) |
-						((current_bitplanes_[4]&1) << 4)
+						((current_bitplanes_[0]&0x8000) >> 15) |
+						((current_bitplanes_[1]&0x8000) >> 14) |
+						((current_bitplanes_[2]&0x8000) >> 13) |
+						((current_bitplanes_[3]&0x8000) >> 12) |
+						((current_bitplanes_[4]&0x8000) >> 11)
 					];
-					current_bitplanes_ >>= is_high_res_;
+					current_bitplanes_ <<= is_high_res_;
 
 					pixels_[1] = palette_[
-						((current_bitplanes_[0]&1) << 0) |
-						((current_bitplanes_[1]&1) << 1) |
-						((current_bitplanes_[2]&1) << 2) |
-						((current_bitplanes_[3]&1) << 3) |
-						((current_bitplanes_[4]&1) << 4)
+						((current_bitplanes_[0]&0x8000) >> 15) |
+						((current_bitplanes_[1]&0x8000) >> 14) |
+						((current_bitplanes_[2]&0x8000) >> 13) |
+						((current_bitplanes_[3]&0x8000) >> 12) |
+						((current_bitplanes_[4]&0x8000) >> 11)
 					];
-					current_bitplanes_ >>= 1;
+					current_bitplanes_ <<= 1;
 
 					pixels_[2] = palette_[
-						((current_bitplanes_[0]&1) << 0) |
-						((current_bitplanes_[1]&1) << 1) |
-						((current_bitplanes_[2]&1) << 2) |
-						((current_bitplanes_[3]&1) << 3) |
-						((current_bitplanes_[4]&1) << 4)
+						((current_bitplanes_[0]&0x8000) >> 15) |
+						((current_bitplanes_[1]&0x8000) >> 14) |
+						((current_bitplanes_[2]&0x8000) >> 13) |
+						((current_bitplanes_[3]&0x8000) >> 12) |
+						((current_bitplanes_[4]&0x8000) >> 11)
 					];
-					current_bitplanes_ >>= is_high_res_;
+					current_bitplanes_ <<= is_high_res_;
 
 					pixels_[3] = palette_[
-						((current_bitplanes_[0]&1) << 0) |
-						((current_bitplanes_[1]&1) << 1) |
-						((current_bitplanes_[2]&1) << 2) |
-						((current_bitplanes_[3]&1) << 3) |
-						((current_bitplanes_[4]&1) << 4)
+						((current_bitplanes_[0]&0x8000) >> 15) |
+						((current_bitplanes_[1]&0x8000) >> 14) |
+						((current_bitplanes_[2]&0x8000) >> 13) |
+						((current_bitplanes_[3]&0x8000) >> 12) |
+						((current_bitplanes_[4]&0x8000) >> 11)
 					];
-					current_bitplanes_ >>= 1;
+					current_bitplanes_ <<= 1;
 
 					pixels_ += 4;
 				}
