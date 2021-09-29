@@ -241,11 +241,11 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	//
 	// TODO: figure out how the hard stops factor into this.
 	//
-	// TODO: eliminate hard-coded 300 below. There's clearly something
+	// TODO: eliminate hard-coded 320 below. There's clearly something
 	// (well, probably many things) I don't yet understand about the
 	// fetch window.
 	fetch_horizontal_ |= (cycle << 1) == fetch_window_[0];
-	fetch_horizontal_ &= (cycle << 1) != (fetch_window_[0] + 300);
+	fetch_horizontal_ &= (cycle << 1) != (fetch_window_[0] + 320);
 //	fetch_horizontal_ &= (cycle << 1) != fetch_window_[1];
 	//fetch_window_[1];
 
@@ -253,7 +253,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	if((dma_control_ & BitplaneFlag) == BitplaneFlag) {
 		// TODO: offer a cycle for bitplane collection.
 		// Probably need to indicate odd or even?
-		if(fetch_horizontal_ && fetch_vertical_ && bitplanes_.advance(cycle)) {	// TODO: cycle should be relative to start of collection.
+		if(fetch_horizontal_ && fetch_vertical_ && bitplanes_.advance(cycle - (fetch_window_[0] >> 1))) {	// TODO: cycle should be relative to start of collection.
 			did_fetch_ = true;
 			return false;
 		}
@@ -774,10 +774,6 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 // MARK: - Bitplanes.
 
 bool Chipset::Bitplanes::advance(int cycle) {
-	// TODO: possibly dispatch a BitplaneData.
-	// The chipset has responsibility for applying a delay,
-	// and the pixel-level start/stop boundaries.
-
 #define BIND_CYCLE(offset, plane)								\
 	case offset:												\
 		if(plane_count_ > plane) {								\
@@ -822,6 +818,8 @@ bool Chipset::Bitplanes::advance(int cycle) {
 	}
 
 	return false;
+
+#undef BIND_CYCLE
 }
 
 void Chipset::Bitplanes::do_end_of_line() {

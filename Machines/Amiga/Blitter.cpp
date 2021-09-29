@@ -139,41 +139,64 @@ bool Blitter::advance() {
 		//		* bit 3 = 1 => major variable negative; otherwise positive;
 		//		* bit 2 = 1 => minor variable negative; otherwise positive.
 
+		//
+		// Implementation below is heavily based on the documentation found
+		// at https://github.com/niklasekstrom/blitter-subpixel-line/blob/master/Drawing%20lines%20using%20the%20Amiga%20blitter.pdf
+
 		printf("!!! Line %08x\n", pointer_[3]);
 
 		int error = int(pointer_[0]) * line_sign_;
+		bool draw_ = true;
 		while(height_--) {
 
-			// plot(x, y)
-			c_ = ram_[pointer_[3] & ram_mask_];
-			ram_[pointer_[3] & ram_mask_] =
-				apply_minterm<uint16_t>(
-					a_ >> shifts_[0],
-					0xffff,	// TODO: b_ & (0x8000 >> shifts_[1]) but not that.
-					c_, minterms_);
-			shifts_[1] = (shifts_[1] + 1) & 15;
+			if(draw_) {
+				c_ = ram_[pointer_[3] & ram_mask_];
+//				c_ |= a_ >> shifts_[0];					// TODO: there's an XOR mode, I think?
+				ram_[pointer_[3] & ram_mask_] =
+					apply_minterm<uint16_t>(a_ >> shifts_[0], b_, c_, minterms_);
+				draw_ &= !one_dot_;
+			}
 
-			// Assumed for now: direction 0.
-			pointer_[3] += modulos_[2];
-			if(error > 0) {
+			constexpr int LEFT	= 1 << 0;
+			constexpr int RIGHT	= 1 << 1;
+			constexpr int UP	= 1 << 2;
+			constexpr int DOWN	= 1 << 3;
+			int step = (line_direction_ & 4) ?
+				((line_direction_ & 1) ? LEFT : RIGHT) :
+				((line_direction_ & 1) ? UP : DOWN);
+
+			if(error < 0) {
+				error += modulos_[1];
+			} else {
+				step |=
+					(line_direction_ & 4) ?
+						((line_direction_ & 2) ? UP : DOWN) :
+						((line_direction_ & 2) ? LEFT : RIGHT);
+
+				error += modulos_[0];
+			}
+
+			if(step & LEFT) {
+				--shifts_[0];
+				if(shifts_[0] == -1) {
+					--pointer_[3];
+				}
+			} else if(step & RIGHT) {
 				++shifts_[0];
 				if(shifts_[0] == 16) {
-					shifts_[0] = 0;
 					++pointer_[3];
 				}
-
-				error -= modulos_[0] - modulos_[1];
 			}
-			error += modulos_[1];
+			shifts_[0] &= 15;
 
-			// plot(x, y)
-			// if error > 0 {
-			//		++y
-			//		error -= 2*dx
-			// }
-			// d += 2*dy
+			if(step & UP) {
+				pointer_[3] -= modulos_[2];
+				draw_ = true;
+			} else if(step & DOWN) {
+				pointer_[3] += modulos_[2];
+				draw_ = true;
+			}
 		}
-//		ram_[pointer_[3] & ram_mask_] = 0xffff;
 	} else {
 		// Copy mode.
 		printf("!!! Copy %08x\n", pointer_[3]);
