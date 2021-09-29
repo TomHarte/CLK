@@ -24,6 +24,9 @@ void Blitter::set_control(int index, uint16_t value) {
 		line_sign_ = (value & 0x0040) ? -1 : 1;
 
 		direction_ = one_dot_ ? uint32_t(-1) : uint32_t(1);
+		inclusive_fill_ = (value & 0x0008);
+		exclusive_fill_ = (value & 0x0010);
+		fill_carry_ = (value & 0x0004);
 	} else {
 		minterms_ = value & 0xff;
 		channel_enables_[3] = value & 0x100;
@@ -199,7 +202,11 @@ bool Blitter::advance() {
 		}
 	} else {
 		// Copy mode.
-		printf("!!! Copy %08x\n", pointer_[3]);
+		printf("!!! Copy [%d %d%d%d] %08x\n", int32_t(direction_), inclusive_fill_, exclusive_fill_, fill_carry_, pointer_[3]);
+
+		if(pointer_[3] == 0x0008ad2) {
+			printf("");
+		}
 
 		// Quick hack: do the entire action atomically. Isn't life fabulous?
 		for(int y = 0; y < height_; y++) {
@@ -225,13 +232,11 @@ bool Blitter::advance() {
 					const uint16_t a_mask = (x == 0) ? a_mask_[0] : ((x == width_ - 1) ? a_mask_[1] : 0xffff);
 
 					ram_[pointer_[3] & ram_mask_] =
-						apply_minterm(
-						uint16_t(a_ & a_mask),
-						b_,
-						c_,
-						minterms_);
-
-					printf("%04x [@ %08x] %04x %04x [%02x] -> %04x [@ %08x]\n", a_, pointer_[0] << 1, b_, c_, minterms_, ram_[pointer_[3] & ram_mask_], pointer_[3] << 1);
+						apply_minterm<uint16_t>(
+							a_ & a_mask,	// TODO: is this properly-placed?
+							b_,
+							c_,
+							minterms_);
 
 					pointer_[3] += direction_;
 				}

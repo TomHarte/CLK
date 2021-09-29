@@ -51,6 +51,9 @@ class Blitter: public DMADevice<4> {
 		int line_sign_ = 1;
 
 		uint32_t direction_ = 1;
+		bool inclusive_fill_ = false;
+		bool exclusive_fill_ = false;
+		bool fill_carry_ = false;
 
 		bool channel_enables_[4]{};
 
