@@ -82,7 +82,8 @@ struct Chipset {};
 
 				// For now, indicate only the first failure.
 				if(ram[write.first >> 1] != write.second) {
-					hasFailed = YES;
+					break;
+//					hasFailed = YES;
 				}
 			}
 			writes.clear();
