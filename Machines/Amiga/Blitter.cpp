@@ -152,6 +152,8 @@ bool Blitter::advance() {
 		while(height_--) {
 
 			if(draw_) {
+				// TODO: patterned lines. Unclear what to do with the bit that comes out of b.
+				// Probably extend it to a full word?
 				c_ = ram_[pointer_[3] & ram_mask_];
 				ram_[pointer_[3] & ram_mask_] =
 					apply_minterm<uint16_t>(a_ >> shifts_[0], b_, c_, minterms_);
@@ -202,10 +204,6 @@ bool Blitter::advance() {
 		// Copy mode.
 		printf("!!! Copy [%d %d%d%d] %08x\n", int32_t(direction_), inclusive_fill_, exclusive_fill_, fill_carry_, pointer_[3]);
 
-		if(pointer_[3] == 0x0008ad2) {
-			printf("");
-		}
-
 		// Quick hack: do the entire action atomically. Isn't life fabulous?
 		for(int y = 0; y < height_; y++) {
 			for(int x = 0; x < width_; x++) {
@@ -227,7 +225,9 @@ bool Blitter::advance() {
 				}
 
 				if(channel_enables_[3]) {
-					const uint16_t a_mask = (x == 0) ? a_mask_[0] : ((x == width_ - 1) ? a_mask_[1] : 0xffff);
+					uint16_t a_mask = 0xffff;
+					if(x == 0) a_mask &= a_mask_[0];
+					if(x == width_ - 1) a_mask &= a_mask_[1];
 
 					ram_[pointer_[3] & ram_mask_] =
 						apply_minterm<uint16_t>(
