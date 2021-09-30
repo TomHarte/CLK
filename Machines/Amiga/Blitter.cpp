@@ -145,16 +145,14 @@ bool Blitter::advance() {
 		//
 		// Implementation below is heavily based on the documentation found
 		// at https://github.com/niklasekstrom/blitter-subpixel-line/blob/master/Drawing%20lines%20using%20the%20Amiga%20blitter.pdf
+		//
 
-		printf("!!! Line %08x\n", pointer_[3]);
-
-		int error = int(pointer_[0]) * line_sign_;
+		int error = int16_t(pointer_[0] << 1) >> 1;	// TODO: what happens if line_sign_ doesn't agree with this?
 		bool draw_ = true;
 		while(height_--) {
 
 			if(draw_) {
 				c_ = ram_[pointer_[3] & ram_mask_];
-//				c_ |= a_ >> shifts_[0];					// TODO: there's an XOR mode, I think?
 				ram_[pointer_[3] & ram_mask_] =
 					apply_minterm<uint16_t>(a_ >> shifts_[0], b_, c_, minterms_);
 				draw_ &= !one_dot_;
