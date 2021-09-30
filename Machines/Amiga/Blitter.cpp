@@ -202,9 +202,8 @@ bool Blitter::advance() {
 		}
 	} else {
 		// Copy mode.
-		printf("!!! Copy [%d %d%d%d] %08x\n", int32_t(direction_), inclusive_fill_, exclusive_fill_, fill_carry_, pointer_[3]);
 
-		// Quick hack: do the entire action atomically. Isn't life fabulous?
+		// Quick hack: do the entire action atomically.
 		for(int y = 0; y < height_; y++) {
 			for(int x = 0; x < width_; x++) {
 				if(channel_enables_[0]) {
