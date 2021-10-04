@@ -33,20 +33,16 @@ template <DMAFlag... Flags> struct DMAMask: Mask<DMAFlag, Flags...> {};
 }
 
 Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
-	cia_a_handler_(map),
-	cia_a(cia_a_handler_),
-	cia_b(cia_b_handler_),
 	blitter_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
 	bitplanes_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
 	copper_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
-	drives_{
-		{input_clock_rate, 300, 2, Storage::Disk::Drive::ReadyType::ShugartRDY},
-		{input_clock_rate, 300, 2, Storage::Disk::Drive::ReadyType::ShugartRDY},
-		{input_clock_rate, 300, 2, Storage::Disk::Drive::ReadyType::ShugartRDY},
-		{input_clock_rate, 300, 2, Storage::Disk::Drive::ReadyType::ShugartRDY}
-	},
+	disk_controller_(Cycles(input_clock_rate)),
 	disk_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
-	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
+	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+	cia_a_handler_(map, disk_controller_),
+	cia_b_handler_(disk_controller_),
+	cia_a(cia_a_handler_),
+	cia_b(cia_b_handler_) {
 }
 
 Chipset::Changes Chipset::run_for(HalfCycles length) {
@@ -920,14 +916,14 @@ Outputs::Display::DisplayType Chipset::get_display_type() const {
 	return crt_.get_display_type();
 }
 
-// MARK: - CIA Handlers.
+// MARK: - CIA A.
 
-Chipset::CIAAHandler::CIAAHandler(MemoryMap &map) : map_(map) {}
+Chipset::CIAAHandler::CIAAHandler(MemoryMap &map, DiskController &controller) : map_(map), controller_(controller) {}
 
 void Chipset::CIAAHandler::set_port_output(MOS::MOS6526::Port port, uint8_t value) {
 	if(port) {
 		// Parallel port output.
-			LOG("TODO: parallel output " << PADHEX(2) << +value);
+		LOG("TODO: parallel output " << PADHEX(2) << +value);
 	} else {
 		//	b7:	/FIR1
 		//	b6:	/FIR0
@@ -965,6 +961,10 @@ void Chipset::CIAAHandler::set_activity_observer(Activity::Observer *observer) {
 	}
 }
 
+// MARK: - CIA B.
+
+Chipset::CIABHandler::CIABHandler(DiskController &controller) : controller_(controller) {}
+
 void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t value) {
 	if(port) {
 		// Serial port control.
@@ -990,11 +990,43 @@ void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 		// b2: /SIDE
 		// b1: DIR
 		// b0: /STEP
-			LOG("TODO: Stepping, etc; " << PADHEX(2) << +value);
+		LOG("TODO: Stepping, etc; " << PADHEX(2) << +value);
+
+		controller_.set_drive((value >> 3) & 0xf);
+
+		// "[The MTR] signal is nonstandard on the Amiga system.
+		// Each drive will latch the motor signal at the time its
+		// select signal turns on." — The Hardware Reference Manual.
+
+		previous_select_ = value;
 	}
 }
 
-uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port) {
-		LOG("Unexpected input for CIA B ");
-	return 0xff;
+uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port port) {
+	LOG("Unexpected input for CIA B ");
+	if(port) {
+		return 0xff;
+	} else {
+		return previous_select_;
+	}
+}
+
+// MARK: - Disk Controller.
+
+Chipset::DiskController::DiskController(Cycles clock_rate) :
+	Storage::Disk::Controller(clock_rate) {
+
+	// Add four drives.
+	for(int c = 0; c < 4; c++) {
+		emplace_drive(clock_rate.as<int>(), 300, 2, Storage::Disk::Drive::ReadyType::ShugartRDY);
+	}
+}
+
+void Chipset::DiskController::process_input_bit(int value) {
+	// TODO:
+	(void)value;
+}
+
+void Chipset::DiskController::process_index_hole() {
+	// TODO: does the Amiga care?
 }

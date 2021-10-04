@@ -16,6 +16,7 @@
 #include "../../Components/6526/6526.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Processors/68000/68000.hpp"
+#include "../../Storage/Disk/Controller/DiskController.hpp"
 #include "../../Storage/Disk/Drive.hpp"
 
 #include "Blitter.hpp"
@@ -99,31 +100,6 @@ class Chipset {
 		void set_activity_observer(Activity::Observer *observer) {
 			cia_a_handler_.set_activity_observer(observer);
 		}
-
-	private:
-		class CIAAHandler: public MOS::MOS6526::PortHandler {
-			public:
-				CIAAHandler(MemoryMap &map);
-				void set_port_output(MOS::MOS6526::Port port, uint8_t value);
-				uint8_t get_port_input(MOS::MOS6526::Port port);
-				void set_activity_observer(Activity::Observer *observer);
-
-			private:
-				MemoryMap &map_;
-				Activity::Observer *observer_ = nullptr;
-				inline static const std::string led_name = "Power";
-		} cia_a_handler_;
-
-		struct CIABHandler: public MOS::MOS6526::PortHandler {
-			void set_port_output(MOS::MOS6526::Port port, uint8_t value);
-			uint8_t get_port_input(MOS::MOS6526::Port);
-		} cia_b_handler_;
-
-	public:
-		// CIAs are provided for direct access; it's up to the caller properly
-		// to distinguish relevant accesses.
-		MOS::MOS6526::MOS6526<CIAAHandler, MOS::MOS6526::Personality::P8250> cia_a;
-		MOS::MOS6526::MOS6526<CIABHandler, MOS::MOS6526::Personality::P8250> cia_b;
 
 	private:
 		friend class DMADeviceBase;
@@ -242,7 +218,19 @@ class Chipset {
 
 		// MARK: - Disk drives.
 
-		Storage::Disk::Drive drives_[4];
+		class DiskController: private Storage::Disk::Controller {
+			public:
+				DiskController(Cycles clock_rate);
+
+				void set_drive(int index_mask) {
+					Storage::Disk::Controller::set_drive(index_mask);
+				}
+
+			private:
+				void process_input_bit(int value) final;
+				void process_index_hole() final;
+
+		} disk_controller_;
 
 		class DiskDMA: public DMADevice<1> {
 			public:
@@ -271,6 +259,39 @@ class Chipset {
 		Outputs::CRT::CRT crt_;
 		uint16_t palette_[32]{};
 		uint16_t swizzled_palette_[32]{};
+
+		// MARK: - CIAs
+	private:
+		class CIAAHandler: public MOS::MOS6526::PortHandler {
+			public:
+				CIAAHandler(MemoryMap &map, DiskController &controller);
+				void set_port_output(MOS::MOS6526::Port port, uint8_t value);
+				uint8_t get_port_input(MOS::MOS6526::Port port);
+				void set_activity_observer(Activity::Observer *observer);
+
+			private:
+				MemoryMap &map_;
+				DiskController &controller_;
+				Activity::Observer *observer_ = nullptr;
+				inline static const std::string led_name = "Power";
+		} cia_a_handler_;
+
+		class CIABHandler: public MOS::MOS6526::PortHandler {
+			public:
+				CIABHandler(DiskController &controller);
+				void set_port_output(MOS::MOS6526::Port port, uint8_t value);
+				uint8_t get_port_input(MOS::MOS6526::Port);
+
+			private:
+				DiskController &controller_;
+				uint8_t previous_select_ = 0;
+		} cia_b_handler_;
+
+	public:
+		// CIAs are provided for direct access; it's up to the caller properly
+		// to distinguish relevant accesses.
+		MOS::MOS6526::MOS6526<CIAAHandler, MOS::MOS6526::Personality::P8250> cia_a;
+		MOS::MOS6526::MOS6526<CIABHandler, MOS::MOS6526::Personality::P8250> cia_b;
 };
 
 }
