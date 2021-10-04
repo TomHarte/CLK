@@ -13,18 +13,19 @@
 
 #include "../../Processors/68000/68000.hpp"
 
-#include "../../Components/6526/6526.hpp"
-
 #include "../../Analyser/Static/Amiga/Target.hpp"
 
 #include "../Utility/MemoryPacker.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
+
+#include "../../Storage/Disk/Drive.hpp"
 
 //#define NDEBUG
 #define LOG_PREFIX "[Amiga] "
 #include "../../Outputs/Log.hpp"
 
 #include "Chipset.hpp"
+#include "MemoryMap.hpp"
 
 namespace Amiga {
 
@@ -37,10 +38,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Amiga::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
-			chipset_(reinterpret_cast<uint16_t *>(memory_.chip_ram.data()), memory_.chip_ram.size() >> 1),
-			cia_a_handler_(memory_),
-			cia_a_(cia_a_handler_),
-			cia_b_(cia_b_handler_)
+			chipset_(memory_)
 		{
 			(void)target;
 
@@ -61,40 +59,17 @@ class ConcreteMachine:
 		// MARK: - MC68000::BusHandler.
 		using Microcycle = CPU::MC68000::Microcycle;
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
-			//
-			// TODO: clean up below.
-			//
-			// Probably: let the Chipset own the CIAs, killing the need to pass hsyncs/vsyncs
-			// and CIA interrupt lines back and forth. Then the two run_fors can return, at most,
-			// an interrupt level and a duration. Possibly give the chipset a reference to the
-			// 68k so it can set IPL directly?
-
 
 			// Do a quick advance check for Chip RAM access; add a suitable delay if required.
-			Chipset::Changes net_changes;
 			HalfCycles access_delay;
 			if(cycle.operation & Microcycle::NewAddress && *cycle.address < 0x20'0000) {
-				// TODO: shouldn't delay if the overlay bit is set?
-				net_changes = chipset_.run_until_cpu_slot();
-				access_delay = net_changes.duration;
+				access_delay = chipset_.run_until_cpu_slot().duration;
 			}
 
 			// Compute total length.
 			const HalfCycles total_length = cycle.length + access_delay;
 
-			// The CIAs are on the E clock.
-			cia_divider_ += total_length;
-			const HalfCycles e_clocks = cia_divider_.divide(HalfCycles(20));
-			if(e_clocks > HalfCycles(0)) {
-				cia_a_.run_for(e_clocks);
-				cia_b_.run_for(e_clocks);
-			}
-
-			net_changes += chipset_.run_for(total_length);
-			cia_a_.advance_tod(net_changes.vsyncs);
-			cia_b_.advance_tod(net_changes.hsyncs);
-
-			chipset_.set_cia_interrupts(cia_a_.get_interrupt_line(), cia_b_.get_interrupt_line());
+			chipset_.run_for(total_length);
 			mc68000_.set_interrupt_level(chipset_.get_interrupt_level());
 
 			// Check for assertion of reset.
@@ -139,12 +114,12 @@ class ConcreteMachine:
 
 						if(cycle.operation & Microcycle::Read) {
 							uint16_t result = 0xffff;
-							if(!(address & 0x1000)) result &= 0xff00 | (cia_a_.read(reg) << 0);
-							if(!(address & 0x2000)) result &= 0x00ff | (cia_b_.read(reg) << 8);
+							if(!(address & 0x1000)) result &= 0xff00 | (chipset_.cia_a.read(reg) << 0);
+							if(!(address & 0x2000)) result &= 0x00ff | (chipset_.cia_b.read(reg) << 8);
 							cycle.set_value16(result);
 						} else {
-							if(!(address & 0x1000)) cia_a_.write(reg, cycle.value8_low());
-							if(!(address & 0x2000)) cia_b_.write(reg, cycle.value8_high());
+							if(!(address & 0x1000)) chipset_.cia_a.write(reg, cycle.value8_low());
+							if(!(address & 0x2000)) chipset_.cia_b.write(reg, cycle.value8_high());
 						}
 
 						LOG("CIA " << (((address >> 12) & 3)^3) << " " << (cycle.operation & Microcycle::Read ? "read " : "write ") << std::dec << (reg & 0xf) << " of " << PADHEX(2) << +cycle.value8_low());
@@ -168,33 +143,6 @@ class ConcreteMachine:
 					&memory_.regions[address >> 18].contents[address],
 					memory_.regions[address >> 18].read_write_mask
 				);
-
-//				if(address < 0x4'0000) {
-//					switch((cycle.operation | memory_.regions[address >> 18].read_write_mask) & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::PermitRead | Microcycle::PermitWrite)) {
-//						default:
-//							if(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte)) {
-//								printf("Ignored!\n");
-//							}
-//						break;
-//
-//						case Microcycle::SelectWord | Microcycle::Read | Microcycle::PermitRead:
-//						case Microcycle::SelectWord | Microcycle::Read | Microcycle::PermitRead | Microcycle::PermitWrite:
-//							printf("%04x -> %04x\n", *cycle.address, cycle.value->full);
-//						break;
-//						case Microcycle::SelectByte | Microcycle::Read | Microcycle::PermitRead:
-//						case Microcycle::SelectByte | Microcycle::Read | Microcycle::PermitRead | Microcycle::PermitWrite:
-//							printf("%04x -> %02x\n", *cycle.address, cycle.value->halves.low);
-//						break;
-//						case Microcycle::SelectWord | Microcycle::PermitWrite:
-//						case Microcycle::SelectWord | Microcycle::PermitWrite | Microcycle::PermitRead:
-//							printf("%04x <- %04x\n", *cycle.address, cycle.value->full);
-//						break;
-//						case Microcycle::SelectByte | Microcycle::PermitWrite:
-//						case Microcycle::SelectByte | Microcycle::PermitWrite | Microcycle::PermitRead:
-//							printf("%04x <- %02x\n", *cycle.address, cycle.value->halves.low);
-//						break;
-//					}
-//				}
 			}
 
 			return access_delay;
@@ -204,172 +152,16 @@ class ConcreteMachine:
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 
 		// MARK: - Memory map.
-		struct MemoryMap {
-			public:
-				std::array<uint8_t, 512*1024> chip_ram{};
-				std::array<uint8_t, 512*1024> kickstart{0xff};
 
-				struct MemoryRegion {
-					uint8_t *contents = nullptr;
-					unsigned int read_write_mask = 0;
-				} regions[64];	// i.e. top six bits are used as an index.
-
-				MemoryMap() {
-					// Address spaces that matter:
-					//
-					//	00'0000 – 08'0000:	chip RAM.	[or overlayed KickStart]
-					//	– 10'0000: extended chip ram for ECS.
-					//	– 20'0000: auto-config space (/fast RAM).
-					//	...
-					//	bf'd000 – c0'0000: 8250s.
-					//	c0'0000 – d8'0000: pseudo-fast RAM.
-					//	...
-					//	dc'0000 – dd'0000: optional real-time clock.
-					//	df'f000 - e0'0000: custom chip registers.
-					//	...
-					//	f0'0000 — : 512kb Kickstart (or possibly just an extra 512kb reserved for hypothetical 1mb Kickstart?).
-					//	f8'0000 — : 256kb Kickstart if 2.04 or higher.
-					//	fc'0000 – : 256kb Kickstart otherwise.
-					set_region(0xfc'0000, 0x1'00'0000, kickstart.data(), CPU::MC68000::Microcycle::PermitRead);
-					reset();
-				}
-
-				void reset() {
-					set_overlay(true);
-				}
-
-				void set_overlay(bool enabled) {
-					if(overlay_ == enabled) {
-						return;
-					}
-					overlay_ = enabled;
-
-					if(enabled) {
-						set_region(0x00'0000, 0x08'0000, kickstart.data(), CPU::MC68000::Microcycle::PermitRead);
-					} else {
-						// Mirror RAM to fill out the address range up to $20'0000.
-						set_region(0x00'0000, 0x08'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
-						set_region(0x08'0000, 0x10'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
-						set_region(0x10'0000, 0x18'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
-						set_region(0x18'0000, 0x20'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
-					}
-				}
-
-			private:
-				bool overlay_ = false;
-
-				void set_region(int start, int end, uint8_t *base, unsigned int read_write_mask) {
-					assert(!(start & ~0xfc'0000));
-					assert(!((end - (1 << 18)) & ~0xfc'0000));
-
-					base -= start;
-					for(int c = start >> 18; c < end >> 18; c++) {
-						regions[c].contents = base;
-						regions[c].read_write_mask = read_write_mask;
-					}
-				}
-		} memory_;
+		MemoryMap memory_;
 
 		// MARK: - Chipset.
 
 		Chipset chipset_;
-
-		// MARK: - CIAs.
-
-		class CIAAHandler: public MOS::MOS6526::PortHandler {
-			public:
-				CIAAHandler(MemoryMap &map) : map_(map) {}
-
-				void set_port_output(MOS::MOS6526::Port port, uint8_t value) {
-					if(port) {
-						// Parallel port output.
-						LOG("TODO: parallel output " << PADHEX(2) << +value);
-					} else {
-						//	b7:	/FIR1
-						//	b6:	/FIR0
-						//	b5:	/RDY
-						//	b4:	/TRK0
-						//	b3:	/WPRO
-						//	b2:	/CHNG
-						//	b1:	/LED		[output]
-						//	b0:	OVL			[output]
-
-						LOG("LED & memory map: " << PADHEX(2) << +value);
-						if(observer_) {
-							observer_->set_led_status(led_name, !(value & 2));
-						}
-						map_.set_overlay(value & 1);
-					}
-				}
-
-				uint8_t get_port_input(MOS::MOS6526::Port port) {
-					if(port) {
-						LOG("TODO: parallel input?");
-					} else {
-						LOG("TODO: CIA A, port A input — FIR, RDY, TRK0, etc");
-
-						// Announce that TRK0 is upon us.
-						return 0xef;
-					}
-					return 0xff;
-				}
-
-				void set_activity_observer(Activity::Observer *observer) {
-					observer_ = observer;
-					if(observer) {
-						observer->register_led(led_name, Activity::Observer::LEDPresentation::Persistent);
-					}
-				}
-
-			private:
-				MemoryMap &map_;
-				Activity::Observer *observer_ = nullptr;
-				inline static const std::string led_name = "Power";
-		} cia_a_handler_;
-
-		struct CIABHandler: public MOS::MOS6526::PortHandler {
-			void set_port_output(MOS::MOS6526::Port port, uint8_t value) {
-				if(port) {
-					// Serial port control.
-					//
-					// b7: /DTR
-					// b6: /RTS
-					// b5: /CD
-					// b4: /CTS
-					// b3: /DSR
-					// b2: SEL
-					// b1: POUT
-					// b0: BUSY
-					LOG("TODO: DTR/RTS/etc: " << PADHEX(2) << +value);
-				} else {
-					// Disk motor control, drive and head selection,
-					// and stepper control:
-					//
-					// b7: /MTR
-					// b6: /SEL3
-					// b5: /SEL2
-					// b4: /SEL1
-					// b3: /SEL0
-					// b2: /SIDE
-					// b1: DIR
-					// b0: /STEP
-					LOG("TODO: Stepping, etc; " << PADHEX(2) << +value);
-				}
-			}
-
-			uint8_t get_port_input(MOS::MOS6526::Port) {
-				LOG("Unexpected input for CIA B ");
-				return 0xff;
-			}
-		} cia_b_handler_;
-
-		HalfCycles cia_divider_;
-		MOS::MOS6526::MOS6526<CIAAHandler, MOS::MOS6526::Personality::P8250> cia_a_;
-		MOS::MOS6526::MOS6526<CIABHandler, MOS::MOS6526::Personality::P8250> cia_b_;
-
+		
 		// MARK: - Activity Source
 		void set_activity_observer(Activity::Observer *observer) final {
-			cia_a_handler_.set_activity_observer(observer);
+			chipset_.set_activity_observer(observer);
 		}
 
 		// MARK: - MachineTypes::ScanProducer.

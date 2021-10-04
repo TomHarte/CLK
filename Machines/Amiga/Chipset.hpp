@@ -12,12 +12,15 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "../../Processors/68000/68000.hpp"
+#include "../../Activity/Source.hpp"
+#include "../../Components/6526/6526.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
+#include "../../Processors/68000/68000.hpp"
 
 #include "Blitter.hpp"
 #include "Copper.hpp"
 #include "DMADevice.hpp"
+#include "MemoryMap.hpp"
 
 namespace Amiga {
 
@@ -56,17 +59,13 @@ enum class DMAFlag: uint16_t {
 
 class Chipset {
 	public:
-		Chipset(uint16_t *ram, size_t word_size);
+		Chipset(MemoryMap &memory_map);
 
 		struct Changes {
-			int hsyncs = 0;
-			int vsyncs = 0;
 			int interrupt_level = 0;
 			HalfCycles duration;
 
 			Changes &operator += (const Changes &rhs) {
-				hsyncs += rhs.hsyncs;
-				vsyncs += rhs.vsyncs;
 				duration += rhs.duration;
 				return *this;
 			}
@@ -95,8 +94,42 @@ class Chipset {
 		void set_display_type(Outputs::Display::DisplayType);
 		Outputs::Display::DisplayType get_display_type() const;
 
+		// Activity observation.
+		void set_activity_observer(Activity::Observer *observer) {
+			cia_a_handler_.set_activity_observer(observer);
+		}
+
+	private:
+		class CIAAHandler: public MOS::MOS6526::PortHandler {
+			public:
+				CIAAHandler(MemoryMap &map);
+				void set_port_output(MOS::MOS6526::Port port, uint8_t value);
+				uint8_t get_port_input(MOS::MOS6526::Port port);
+				void set_activity_observer(Activity::Observer *observer);
+
+			private:
+				MemoryMap &map_;
+				Activity::Observer *observer_ = nullptr;
+				inline static const std::string led_name = "Power";
+		} cia_a_handler_;
+
+		struct CIABHandler: public MOS::MOS6526::PortHandler {
+			void set_port_output(MOS::MOS6526::Port port, uint8_t value);
+			uint8_t get_port_input(MOS::MOS6526::Port);
+		} cia_b_handler_;
+
+	public:
+		// CIAs are provided for direct access; it's up to the caller properly
+		// to distinguish relevant accesses.
+		MOS::MOS6526::MOS6526<CIAAHandler, MOS::MOS6526::Personality::P8250> cia_a;
+		MOS::MOS6526::MOS6526<CIABHandler, MOS::MOS6526::Personality::P8250> cia_b;
+
 	private:
 		friend class DMADeviceBase;
+
+		// MARK: - E Clock follow along.
+
+		HalfCycles cia_divider_;
 
 		// MARK: - Interrupts.
 

@@ -32,11 +32,14 @@ template <DMAFlag... Flags> struct DMAMask: Mask<DMAFlag, Flags...> {};
 
 }
 
-Chipset::Chipset(uint16_t *ram, size_t word_size) :
-	blitter_(*this, ram, word_size),
-	bitplanes_(*this, ram, word_size),
-	copper_(*this, ram, word_size),
-	disk_(*this, ram, word_size),
+Chipset::Chipset(MemoryMap &map) :
+	cia_a_handler_(map),
+	cia_a(cia_a_handler_),
+	cia_b(cia_b_handler_),
+	blitter_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
+	bitplanes_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
+	copper_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
+	disk_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 }
 
@@ -48,12 +51,12 @@ Chipset::Changes Chipset::run_until_cpu_slot() {
 	return run<true>();
 }
 
-void Chipset::set_cia_interrupts(bool cia_a, bool cia_b) {
+void Chipset::set_cia_interrupts(bool cia_a_interrupt, bool cia_b_interrupt) {
 	// TODO: are these really latched, or are they active live?
 	interrupt_requests_ &= ~InterruptMask<InterruptFlag::IOPortsAndTimers, InterruptFlag::External>::value;
 	interrupt_requests_ |=
-		(cia_a ? InterruptMask<InterruptFlag::IOPortsAndTimers>::value : 0) |
-		(cia_b ? InterruptMask<InterruptFlag::External>::value : 0);
+		(cia_a_interrupt ? InterruptMask<InterruptFlag::IOPortsAndTimers>::value : 0) |
+		(cia_b_interrupt ? InterruptMask<InterruptFlag::External>::value : 0);
 	update_interrupts();
 }
 
@@ -339,6 +342,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 	// This code uses 'pixels' as a measure, which is equivalent to one pixel clock time,
 	// or half a cycle.
 	auto pixels_remaining = length.as<int>();
+	int hsyncs = 0, vsyncs = 0;
 
 	// Update raster position, spooling out graphics.
 	while(pixels_remaining) {
@@ -369,7 +373,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 		// Advance intraline counter and pcoossibly ripple upwards into
 		// lines and fields.
 		if(line_cycle_ == (line_length_ * 4)) {
-			++changes.hsyncs;
+			++hsyncs;
 
 			line_cycle_ = 0;
 			++y_;
@@ -385,7 +389,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 			}
 
 			if(y_ == frame_height_) {
-				++changes.vsyncs;
+				++vsyncs;
 				interrupt_requests_ |= InterruptMask<InterruptFlag::VerticalBlank>::value;
 				update_interrupts();
 
@@ -397,6 +401,18 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 		}
 		assert(line_cycle_ < line_length_ * 4);
 	}
+
+	// The CIAs are on the E clock.
+	cia_divider_ += changes.duration;
+	const HalfCycles e_clocks = cia_divider_.divide(HalfCycles(20));
+	if(e_clocks > HalfCycles(0)) {
+		cia_a.run_for(e_clocks);
+		cia_b.run_for(e_clocks);
+	}
+
+	cia_a.advance_tod(vsyncs);
+	cia_b.advance_tod(hsyncs);
+	set_cia_interrupts(cia_a.get_interrupt_line(), cia_b.get_interrupt_line());
 
 	changes.interrupt_level = interrupt_level_;
 	return changes;
@@ -896,4 +912,83 @@ void Chipset::set_display_type(Outputs::Display::DisplayType type) {
 
 Outputs::Display::DisplayType Chipset::get_display_type() const {
 	return crt_.get_display_type();
+}
+
+// MARK: - CIA Handlers.
+
+Chipset::CIAAHandler::CIAAHandler(MemoryMap &map) : map_(map) {}
+
+void Chipset::CIAAHandler::set_port_output(MOS::MOS6526::Port port, uint8_t value) {
+	if(port) {
+		// Parallel port output.
+			LOG("TODO: parallel output " << PADHEX(2) << +value);
+	} else {
+		//	b7:	/FIR1
+		//	b6:	/FIR0
+		//	b5:	/RDY
+		//	b4:	/TRK0
+		//	b3:	/WPRO
+		//	b2:	/CHNG
+		//	b1:	/LED		[output]
+		//	b0:	OVL			[output]
+
+		LOG("LED & memory map: " << PADHEX(2) << +value);
+		if(observer_) {
+			observer_->set_led_status(led_name, !(value & 2));
+		}
+		map_.set_overlay(value & 1);
+	}
+}
+
+uint8_t Chipset::CIAAHandler::get_port_input(MOS::MOS6526::Port port) {
+	if(port) {
+		LOG("TODO: parallel input?");
+	} else {
+		LOG("TODO: CIA A, port A input — FIR, RDY, TRK0, etc");
+
+		// Announce that TRK0 is upon us.
+		return 0xef;
+	}
+	return 0xff;
+}
+
+void Chipset::CIAAHandler::set_activity_observer(Activity::Observer *observer) {
+	observer_ = observer;
+	if(observer) {
+		observer->register_led(led_name, Activity::Observer::LEDPresentation::Persistent);
+	}
+}
+
+void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t value) {
+	if(port) {
+		// Serial port control.
+		//
+		// b7: /DTR
+		// b6: /RTS
+		// b5: /CD
+		// b4: /CTS
+		// b3: /DSR
+		// b2: SEL
+		// b1: POUT
+		// b0: BUSY
+		LOG("TODO: DTR/RTS/etc: " << PADHEX(2) << +value);
+	} else {
+		// Disk motor control, drive and head selection,
+		// and stepper control:
+		//
+		// b7: /MTR
+		// b6: /SEL3
+		// b5: /SEL2
+		// b4: /SEL1
+		// b3: /SEL0
+		// b2: /SIDE
+		// b1: DIR
+		// b0: /STEP
+			LOG("TODO: Stepping, etc; " << PADHEX(2) << +value);
+	}
+}
+
+uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port) {
+		LOG("Unexpected input for CIA B ");
+	return 0xff;
 }
