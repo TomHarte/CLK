@@ -29,9 +29,9 @@ namespace Disk {
 	TODO: communication of head size and permissible stepping extents, appropriate simulation of gain.
 */
 class Controller:
-	public Drive::EventDelegate,
 	public ClockingHint::Source,
-	public ClockingHint::Observer {
+	private Drive::EventDelegate,
+	private ClockingHint::Observer {
 	protected:
 		/*!
 			Constructs a @c Controller that will be run at @c clock_rate.
