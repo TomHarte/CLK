@@ -21,19 +21,19 @@ namespace {
 	pulse widths from the values stored into the PWM buffer.
 */
 template<uint8_t value> constexpr uint8_t lfsr() {
-        if constexpr (value == 0x20 || !value) return 0;
-        return 1+lfsr<(((value ^ (value >> 1))&1) << 5) | (value >> 1)>();
+	if constexpr (value == 0x20 || !value) return 0;
+	return 1+lfsr<(((value ^ (value >> 1))&1) << 5) | (value >> 1)>();
 }
 
 constexpr uint8_t pwm_lookup[] = {
-        lfsr<0>(),        lfsr<1>(),        lfsr<2>(),        lfsr<3>(),        lfsr<4>(),        lfsr<5>(),        lfsr<6>(),        lfsr<7>(),
-        lfsr<8>(),        lfsr<9>(),        lfsr<10>(),       lfsr<11>(),       lfsr<12>(),       lfsr<13>(),       lfsr<14>(),       lfsr<15>(),
-        lfsr<16>(),       lfsr<17>(),       lfsr<18>(),       lfsr<19>(),       lfsr<20>(),       lfsr<21>(),       lfsr<22>(),       lfsr<23>(),
-        lfsr<24>(),       lfsr<25>(),       lfsr<26>(),       lfsr<27>(),       lfsr<28>(),       lfsr<29>(),       lfsr<30>(),       lfsr<31>(),
-        lfsr<32>(),       lfsr<33>(),       lfsr<34>(),       lfsr<35>(),       lfsr<36>(),       lfsr<37>(),       lfsr<38>(),       lfsr<39>(),
-        lfsr<40>(),       lfsr<41>(),       lfsr<42>(),       lfsr<43>(),       lfsr<44>(),       lfsr<45>(),       lfsr<46>(),       lfsr<47>(),
-        lfsr<48>(),       lfsr<49>(),       lfsr<50>(),       lfsr<51>(),       lfsr<52>(),       lfsr<53>(),       lfsr<54>(),       lfsr<55>(),
-        lfsr<56>(),       lfsr<57>(),       lfsr<58>(),       lfsr<59>(),       lfsr<60>(),       lfsr<61>(),       lfsr<62>(),       lfsr<63>(),
+	lfsr<0>(),		lfsr<1>(),		lfsr<2>(),		lfsr<3>(),		lfsr<4>(),		lfsr<5>(),		lfsr<6>(),		lfsr<7>(),
+	lfsr<8>(),		lfsr<9>(),		lfsr<10>(),		lfsr<11>(),		lfsr<12>(),		lfsr<13>(),		lfsr<14>(),		lfsr<15>(),
+	lfsr<16>(),		lfsr<17>(),		lfsr<18>(),		lfsr<19>(),		lfsr<20>(),		lfsr<21>(),		lfsr<22>(),		lfsr<23>(),
+	lfsr<24>(),		lfsr<25>(),		lfsr<26>(),		lfsr<27>(),		lfsr<28>(),		lfsr<29>(),		lfsr<30>(),		lfsr<31>(),
+	lfsr<32>(),		lfsr<33>(),		lfsr<34>(),		lfsr<35>(),		lfsr<36>(),		lfsr<37>(),		lfsr<38>(),		lfsr<39>(),
+	lfsr<40>(),		lfsr<41>(),		lfsr<42>(),		lfsr<43>(),		lfsr<44>(),		lfsr<45>(),		lfsr<46>(),		lfsr<47>(),
+	lfsr<48>(),		lfsr<49>(),		lfsr<50>(),		lfsr<51>(),		lfsr<52>(),		lfsr<53>(),		lfsr<54>(),		lfsr<55>(),
+	lfsr<56>(),		lfsr<57>(),		lfsr<58>(),		lfsr<59>(),		lfsr<60>(),		lfsr<61>(),		lfsr<62>(),		lfsr<63>(),
 };
 
 }
