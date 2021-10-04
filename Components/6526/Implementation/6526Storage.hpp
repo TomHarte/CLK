@@ -11,6 +11,8 @@
 
 #include <array>
 
+#include "../../../ClockReceiver/ClockReceiver.hpp"
+
 namespace MOS {
 namespace MOS6526 {
 
