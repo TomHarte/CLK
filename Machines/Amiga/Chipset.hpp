@@ -16,6 +16,7 @@
 #include "../../Components/6526/6526.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Processors/68000/68000.hpp"
+#include "../../Storage/Disk/Drive.hpp"
 
 #include "Blitter.hpp"
 #include "Copper.hpp"
@@ -59,7 +60,7 @@ enum class DMAFlag: uint16_t {
 
 class Chipset {
 	public:
-		Chipset(MemoryMap &memory_map);
+		Chipset(MemoryMap &memory_map, int input_clock_rate);
 
 		struct Changes {
 			int interrupt_level = 0;
@@ -240,6 +241,8 @@ class Chipset {
 		} serial_;
 
 		// MARK: - Disk drives.
+
+		Storage::Disk::Drive drives_[4];
 
 		class DiskDMA: public DMADevice<1> {
 			public:

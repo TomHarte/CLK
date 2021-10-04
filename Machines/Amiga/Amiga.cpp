@@ -18,14 +18,21 @@
 #include "../Utility/MemoryPacker.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
 
-#include "../../Storage/Disk/Drive.hpp"
-
 //#define NDEBUG
 #define LOG_PREFIX "[Amiga] "
 #include "../../Outputs/Log.hpp"
 
 #include "Chipset.hpp"
 #include "MemoryMap.hpp"
+
+namespace {
+
+// NTSC clock rate: 2*3.579545 = 7.15909Mhz.
+// PAL clock rate: 7.09379Mhz; 227 cycles/line.
+constexpr int PALClockRate = 7'093'790;
+constexpr int NTSCClockRate = 7'159'090;
+
+}
 
 namespace Amiga {
 
@@ -38,7 +45,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Amiga::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
-			chipset_(memory_)
+			chipset_(memory_, PALClockRate)
 		{
 			(void)target;
 
@@ -51,9 +58,7 @@ class ConcreteMachine:
 			}
 			Memory::PackBigEndian16(roms.find(rom_name)->second, memory_.kickstart.data());
 
-			// NTSC clock rate: 2*3.579545 = 7.15909Mhz.
-			// PAL clock rate: 7.09379Mhz; 227 cycles/line.
-			set_clock_rate(7'093'790.0);
+			set_clock_rate(PALClockRate);
 		}
 
 		// MARK: - MC68000::BusHandler.

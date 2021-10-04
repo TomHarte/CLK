@@ -32,13 +32,19 @@ template <DMAFlag... Flags> struct DMAMask: Mask<DMAFlag, Flags...> {};
 
 }
 
-Chipset::Chipset(MemoryMap &map) :
+Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	cia_a_handler_(map),
 	cia_a(cia_a_handler_),
 	cia_b(cia_b_handler_),
 	blitter_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
 	bitplanes_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
 	copper_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
+	drives_{
+		{input_clock_rate, 300, 2, Storage::Disk::Drive::ReadyType::ShugartRDY},
+		{input_clock_rate, 300, 2, Storage::Disk::Drive::ReadyType::ShugartRDY},
+		{input_clock_rate, 300, 2, Storage::Disk::Drive::ReadyType::ShugartRDY},
+		{input_clock_rate, 300, 2, Storage::Disk::Drive::ReadyType::ShugartRDY}
+	},
 	disk_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 }
