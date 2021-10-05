@@ -222,13 +222,17 @@ class Chipset {
 			public:
 				DiskController(Cycles clock_rate);
 
-				void set_drive(int index_mask) {
-					Storage::Disk::Controller::set_drive(index_mask);
-				}
+				void set_mtr_sel_side_dir_step(uint8_t);
+				uint8_t get_rdy_trk0_wpro_chng();
 
 			private:
 				void process_input_bit(int value) final;
 				void process_index_hole() final;
+
+				// Implement the Amiga's drive ID shift registers
+				// directly in the controller for now.
+				uint32_t drive_ids_[4]{};
+				uint32_t previous_select_ = 0;
 
 		} disk_controller_;
 
@@ -284,7 +288,6 @@ class Chipset {
 
 			private:
 				DiskController &controller_;
-				uint8_t previous_select_ = 0;
 		} cia_b_handler_;
 
 	public:

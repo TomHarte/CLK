@@ -950,8 +950,8 @@ uint8_t Chipset::CIAAHandler::get_port_input(MOS::MOS6526::Port port) {
 	} else {
 		LOG("TODO: CIA A, port A input — FIR, RDY, TRK0, etc");
 
-		// Announce that TRK0 is upon us.
-		return 0xef;
+		// TODO: add in FIR1, FIR0.
+		return controller_.get_rdy_trk0_wpro_chng();
 	}
 	return 0xff;
 }
@@ -973,24 +973,7 @@ void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 		//
 		// Disk motor control, drive and head selection,
 		// and stepper control:
-		//
-		// b7: /MTR
-		// b6: /SEL3
-		// b5: /SEL2
-		// b4: /SEL1
-		// b3: /SEL0
-		// b2: /SIDE
-		// b1: DIR
-		// b0: /STEP
-		LOG("TODO: Stepping, etc; " << PADHEX(2) << +value);
-
-		controller_.set_drive((value >> 3) & 0xf);
-
-		// "[The MTR] signal is nonstandard on the Amiga system.
-		// Each drive will latch the motor signal at the time its
-		// select signal turns on." — The Hardware Reference Manual.
-
-		previous_select_ = value;
+		controller_.set_mtr_sel_side_dir_step(value);
 	} else {
 		// CIA B, Port A: Serial port control.
 		//
@@ -1006,7 +989,7 @@ void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 	}
 }
 
-uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port port) {
+uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port) {
 	LOG("Unexpected input for CIA B");
 	return 0xff;
 }
@@ -1029,4 +1012,79 @@ void Chipset::DiskController::process_input_bit(int value) {
 
 void Chipset::DiskController::process_index_hole() {
 	// TODO: does the Amiga care?
+}
+
+void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
+	// b7: /MTR
+	// b6: /SEL3
+	// b5: /SEL2
+	// b4: /SEL1
+	// b3: /SEL0
+	// b2: /SIDE
+	// b1: DIR
+	// b0: /STEP
+
+	// Select active drive.
+	set_drive((value >> 3) & 0xf);
+
+	// "[The MTR] signal is nonstandard on the Amiga system.
+	// Each drive will latch the motor signal at the time its
+	// select signal turns on." — The Hardware Reference Manual.
+	const auto difference = int(previous_select_ ^ value);
+	previous_select_ = value;
+
+	// Check for changes in the SEL line per drive.
+	const bool motor_on = !(value & 0x80);
+	for(int c = 0; c < 4; c++) {
+		// If drive went from unselected to selected, latch
+		// the new motor value; if the motor goes active,
+		// reset the drive ID shift register.
+		const int select_mask = 0x08 << c;
+		if(difference & value & select_mask) {
+			auto drive = get_drive(size_t(c));
+
+			// Shift the drive ID value.
+			drive_ids_[c] <<= 1;
+			LOG("Shifted drive ID shift register for drive " << +c);
+
+			// Motor transition off -> on => reload register.
+			if(motor_on && !drive.get_motor_on()) {
+				// NB:
+				//	0xffff'ffff	= 3.5" drive;
+				//	0x5555'5555 = 5.25" drive;
+				//	0x0000'0000 = no drive.
+				drive_ids_[c] = 0xffff'ffff;
+				LOG("Reloaded drive ID shift register for drive " << +c);
+			}
+
+			// Also latch the new motor state.
+			drive.set_motor_on(motor_on);
+		}
+	}
+}
+
+uint8_t Chipset::DiskController::get_rdy_trk0_wpro_chng() {
+	//	b5:	/RDY
+	//	b4:	/TRK0
+	//	b3:	/WPRO
+	//	b2:	/CHNG
+
+	// My interpretation:
+	//
+	//	RDY isn't RDY, it's a shift value as described above.
+	//	CHNG is what is normally RDY.
+
+	const uint32_t combined_id =
+		((previous_select_ & 0x40) ? drive_ids_[3] : 0) |
+		((previous_select_ & 0x20) ? drive_ids_[2] : 0) |
+		((previous_select_ & 0x10) ? drive_ids_[1] : 0) |
+		((previous_select_ & 0x08) ? drive_ids_[0] : 0);
+	auto drive = get_drive();
+
+	const uint8_t active_high =
+		((combined_id & 0x8000) >> 11) |
+		(drive.get_is_ready() ? 0x02 : 0x00) |
+		(drive.get_is_track_zero() ? 0x10 : 0x00) |
+		(drive.get_is_read_only() ? 0x08 : 0x00);
+	return 0xff & ~active_high;
 }
