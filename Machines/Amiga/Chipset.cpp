@@ -922,9 +922,11 @@ Chipset::CIAAHandler::CIAAHandler(MemoryMap &map, DiskController &controller) : 
 
 void Chipset::CIAAHandler::set_port_output(MOS::MOS6526::Port port, uint8_t value) {
 	if(port) {
-		// Parallel port output.
+		// CIA A, Port B: Parallel port output.
 		LOG("TODO: parallel output " << PADHEX(2) << +value);
 	} else {
+		// CIA A, Port A:
+		//
 		//	b7:	/FIR1
 		//	b6:	/FIR0
 		//	b5:	/RDY
@@ -967,18 +969,8 @@ Chipset::CIABHandler::CIABHandler(DiskController &controller) : controller_(cont
 
 void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t value) {
 	if(port) {
-		// Serial port control.
+		// CIA B, Port B:
 		//
-		// b7: /DTR
-		// b6: /RTS
-		// b5: /CD
-		// b4: /CTS
-		// b3: /DSR
-		// b2: SEL
-		// b1: POUT
-		// b0: BUSY
-		LOG("TODO: DTR/RTS/etc: " << PADHEX(2) << +value);
-	} else {
 		// Disk motor control, drive and head selection,
 		// and stepper control:
 		//
@@ -999,16 +991,24 @@ void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 		// select signal turns on." — The Hardware Reference Manual.
 
 		previous_select_ = value;
+	} else {
+		// CIA B, Port A: Serial port control.
+		//
+		// b7: /DTR
+		// b6: /RTS
+		// b5: /CD
+		// b4: /CTS
+		// b3: /DSR
+		// b2: SEL
+		// b1: POUT
+		// b0: BUSY
+		LOG("TODO: DTR/RTS/etc: " << PADHEX(2) << +value);
 	}
 }
 
 uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port port) {
-	LOG("Unexpected input for CIA B ");
-	if(port) {
-		return 0xff;
-	} else {
-		return previous_select_;
-	}
+	LOG("Unexpected input for CIA B");
+	return 0xff;
 }
 
 // MARK: - Disk Controller.
