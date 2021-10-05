@@ -1025,7 +1025,7 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 	// b0: /STEP
 
 	// Select active drive.
-	set_drive((value >> 3) & 0xf);
+	set_drive(((value >> 3) & 0xf) ^ 0xf);
 
 	// "[The MTR] signal is nonstandard on the Amiga system.
 	// Each drive will latch the motor signal at the time its
@@ -1035,30 +1035,49 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 
 	// Check for changes in the SEL line per drive.
 	const bool motor_on = !(value & 0x80);
+	const int side = (value & 0x04) ? 0 : 1;
+	const auto step = Storage::Disk::HeadPosition(
+		((difference & 0x1) && !(value & 0x1)) ?
+			((value & 0x02) ? -1 : 1) : 0
+	);
+
 	for(int c = 0; c < 4; c++) {
+		auto drive = get_drive(size_t(c));
+
 		// If drive went from unselected to selected, latch
 		// the new motor value; if the motor goes active,
 		// reset the drive ID shift register.
 		const int select_mask = 0x08 << c;
-		if(difference & value & select_mask) {
-			auto drive = get_drive(size_t(c));
+		if(difference & select_mask) {
+			// If transitioning to inactive, shift the drive ID value;
+			// if transitioning to active, possibly reset the drive
+			// ID and definitely latch the new motor state.
+			if(value & select_mask) {
+				drive_ids_[c] <<= 1;
+				LOG("Shifted drive ID shift register for drive " << +c);
+			} else {
+				// Motor transition on -> off => reload register.
+				if(!motor_on && drive.get_motor_on()) {
+					// NB:
+					//	0xffff'ffff	= 3.5" drive;
+					//	0x5555'5555 = 5.25" drive;
+					//	0x0000'0000 = no drive.
+					drive_ids_[c] = 0xffff'ffff;
+					LOG("Reloaded drive ID shift register for drive " << +c);
+				}
 
-			// Shift the drive ID value.
-			drive_ids_[c] <<= 1;
-			LOG("Shifted drive ID shift register for drive " << +c);
-
-			// Motor transition off -> on => reload register.
-			if(motor_on && !drive.get_motor_on()) {
-				// NB:
-				//	0xffff'ffff	= 3.5" drive;
-				//	0x5555'5555 = 5.25" drive;
-				//	0x0000'0000 = no drive.
-				drive_ids_[c] = 0xffff'ffff;
-				LOG("Reloaded drive ID shift register for drive " << +c);
+				// Also latch the new motor state.
+				drive.set_motor_on(motor_on);
 			}
+		}
 
-			// Also latch the new motor state.
-			drive.set_motor_on(motor_on);
+		// Set the new side.
+		drive.set_head(side);
+
+		// Possibly step.
+		if(step.as_int() && !(value & select_mask)) {
+			LOG("Stepped drive " << +c << " by " << step.as_int());
+			drive.step(step);
 		}
 	}
 }
