@@ -563,7 +563,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x09a):
 			ApplySetClear(interrupt_enable_);
 			update_interrupts();
-			LOG("Interrupt enable mask modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_enable_});
+//			LOG("Interrupt enable mask modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_enable_});
 		break;
 		case Read(0x01c):
 			cycle.set_value16(interrupt_enable_);
@@ -757,7 +757,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x1a8):	case Write(0x1aa):	case Write(0x1ac):	case Write(0x1ae):
 		case Write(0x1b0):	case Write(0x1b2):	case Write(0x1b4):	case Write(0x1b6):
 		case Write(0x1b8):	case Write(0x1ba):	case Write(0x1bc):	case Write(0x1be): {
-			LOG("Colour palette; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+//			LOG("Colour palette; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
 
 			// Store once in regular, linear order.
 			const auto entry_address = (register_address - 0x180) >> 1;

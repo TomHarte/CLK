@@ -127,7 +127,7 @@ class ConcreteMachine:
 							if(!(address & 0x2000)) chipset_.cia_b.write(reg, cycle.value8_high());
 						}
 
-						LOG("CIA " << (((address >> 12) & 3)^3) << " " << (cycle.operation & Microcycle::Read ? "read " : "write ") << std::dec << (reg & 0xf) << " of " << PADHEX(2) << +cycle.value8_low());
+//						LOG("CIA " << (((address >> 12) & 3)^3) << " " << (cycle.operation & Microcycle::Read ? "read " : "write ") << std::dec << (reg & 0xf) << " of " << PADHEX(2) << +cycle.value8_low());
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
 						chipset_.perform(cycle);
 					} else {
