@@ -1038,7 +1038,7 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 	const int side = (value & 0x04) ? 0 : 1;
 	const bool did_step = (difference & 0x1) && !(value & 0x1);
 	const auto direction = Storage::Disk::HeadPosition(
-		(value & 0x02) ? -1 : 1
+		(value & 0x02) ? 1 : -1
 	);
 
 	for(int c = 0; c < 4; c++) {
