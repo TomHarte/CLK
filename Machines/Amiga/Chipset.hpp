@@ -13,6 +13,7 @@
 #include <cstdint>
 
 #include "../../Activity/Source.hpp"
+#include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../../Components/6526/6526.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Processors/68000/68000.hpp"
@@ -59,7 +60,7 @@ enum class DMAFlag: uint16_t {
 	BlitterBusy				= 1 << 14,
 };
 
-class Chipset {
+class Chipset: private ClockingHint::Observer {
 	public:
 		Chipset(MemoryMap &memory_map, int input_clock_rate);
 
@@ -218,12 +219,16 @@ class Chipset {
 
 		// MARK: - Disk drives.
 
-		class DiskController: private Storage::Disk::Controller {
+		class DiskController: public Storage::Disk::Controller {
 			public:
 				DiskController(Cycles clock_rate);
 
 				void set_mtr_sel_side_dir_step(uint8_t);
 				uint8_t get_rdy_trk0_wpro_chng();
+
+				void run_for(Cycles duration) {
+					Storage::Disk::Controller::run_for(duration);
+				}
 
 			private:
 				void process_input_bit(int value) final;
@@ -235,6 +240,8 @@ class Chipset {
 				uint32_t previous_select_ = 0;
 
 		} disk_controller_;
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
+		bool disk_controller_is_sleeping_ = false;
 
 		class DiskDMA: public DMADevice<1> {
 			public:

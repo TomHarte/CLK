@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cassert>
 
+
 using namespace Amiga;
 
 namespace {
@@ -43,6 +44,7 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	cia_b_handler_(disk_controller_),
 	cia_a(cia_a_handler_),
 	cia_b(cia_b_handler_) {
+	disk_controller_.set_clocking_hint_observer(this);
 }
 
 Chipset::Changes Chipset::run_for(HalfCycles length) {
@@ -412,10 +414,19 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 		cia_b.run_for(e_clocks);
 	}
 
+	// Propagate TOD updates to the CIAs, and feed their new interrupt
+	// outputs back to here.
 	cia_a.advance_tod(vsyncs);
 	cia_b.advance_tod(hsyncs);
 	set_cia_interrupts(cia_a.get_interrupt_line(), cia_b.get_interrupt_line());
 
+	// Update the disk controller, if any drives are active.
+	if(!disk_controller_is_sleeping_) {
+		disk_controller_.run_for(changes.duration.cycles());
+	}
+
+	// Record the interrupt level.
+	// TODO: is this useful?
 	changes.interrupt_level = interrupt_level_;
 	return changes;
 }
@@ -992,6 +1003,13 @@ void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port) {
 	LOG("Unexpected input for CIA B");
 	return 0xff;
+}
+
+// MARK: - ClockingHintObserver.
+
+void Chipset::set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference preference) {
+	disk_controller_is_sleeping_ = preference == ClockingHint::Preference::None;
+	LOG("Disk controller is " << (disk_controller_is_sleeping_ ? "sleeping" : "awake"));
 }
 
 // MARK: - Disk Controller.
