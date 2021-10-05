@@ -1125,3 +1125,21 @@ uint8_t Chipset::DiskController::get_rdy_trk0_wpro_chng() {
 		(drive.get_is_read_only() ? 0x08 : 0x00);
 	return 0xff & ~active_high;
 }
+
+bool Chipset::DiskController::insert(const std::shared_ptr<Storage::Disk::Disk> &disk, size_t drive) {
+	if(drive >= 4) return false;
+	get_drive(drive).set_disk(disk);
+	return true;
+}
+
+bool Chipset::insert(const std::vector<std::shared_ptr<Storage::Disk::Disk>> &disks) {
+	bool inserted = false;
+
+	size_t target = 0;
+	for(const auto &disk: disks) {
+		inserted |= disk_controller_.insert(disk, target);
+		++target;
+	}
+
+	return inserted;
+}

@@ -39,6 +39,7 @@ namespace Amiga {
 class ConcreteMachine:
 	public Activity::Source,
 	public CPU::MC68000::BusHandler,
+	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
 	public Machine {
@@ -47,8 +48,6 @@ class ConcreteMachine:
 			mc68000_(*this),
 			chipset_(memory_, PALClockRate)
 		{
-			(void)target;
-
 			// Temporary: use a hard-coded Kickstart selection.
 			constexpr ROM::Name rom_name = ROM::Name::AmigaA500Kickstart13;
 			ROM::Request request(rom_name);
@@ -58,7 +57,18 @@ class ConcreteMachine:
 			}
 			Memory::PackBigEndian16(roms.find(rom_name)->second, memory_.kickstart.data());
 
+			// For now, also hard-code assumption of PAL.
+			// (Assumption is both here and in the video timing of the Chipset).
 			set_clock_rate(PALClockRate);
+
+			// Insert supplied media.
+			insert_media(target.media);
+		}
+
+		// MARK: - MediaTarget.
+
+		bool insert_media(const Analyser::Static::Media &media) final {
+			return chipset_.insert(media.disks);
 		}
 
 		// MARK: - MC68000::BusHandler.

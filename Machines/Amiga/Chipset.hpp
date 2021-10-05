@@ -91,6 +91,10 @@ class Chipset: private ClockingHint::Observer {
 			return interrupt_level_;
 		}
 
+		/// Inserts the disks provided.
+		/// @returns @c true if anything was inserted; @c false otherwise.
+		bool insert(const std::vector<std::shared_ptr<Storage::Disk::Disk>> &disks);
+
 		// The standard CRT set.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
@@ -229,6 +233,8 @@ class Chipset: private ClockingHint::Observer {
 				void run_for(Cycles duration) {
 					Storage::Disk::Controller::run_for(duration);
 				}
+
+				bool insert(const std::shared_ptr<Storage::Disk::Disk> &disk, size_t drive);
 
 			private:
 				void process_input_bit(int value) final;
