@@ -1036,23 +1036,23 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 	// Check for changes in the SEL line per drive.
 	const bool motor_on = !(value & 0x80);
 	const int side = (value & 0x04) ? 0 : 1;
-	const auto step = Storage::Disk::HeadPosition(
-		((difference & 0x1) && !(value & 0x1)) ?
-			((value & 0x02) ? -1 : 1) : 0
+	const bool did_step = (difference & 0x1) && !(value & 0x1);
+	const auto direction = Storage::Disk::HeadPosition(
+		(value & 0x02) ? -1 : 1
 	);
 
 	for(int c = 0; c < 4; c++) {
 		auto drive = get_drive(size_t(c));
-
-		// If drive went from unselected to selected, latch
-		// the new motor value; if the motor goes active,
-		// reset the drive ID shift register.
 		const int select_mask = 0x08 << c;
+		const bool is_selected = !(value & select_mask);
+
+		// Both the motor state and the ID shifter are affected upon
+		// changes in drive selection only.
 		if(difference & select_mask) {
 			// If transitioning to inactive, shift the drive ID value;
 			// if transitioning to active, possibly reset the drive
 			// ID and definitely latch the new motor state.
-			if(value & select_mask) {
+			if(!is_selected) {
 				drive_ids_[c] <<= 1;
 				LOG("Shifted drive ID shift register for drive " << +c);
 			} else {
@@ -1075,9 +1075,9 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 		drive.set_head(side);
 
 		// Possibly step.
-		if(step.as_int() && !(value & select_mask)) {
-			LOG("Stepped drive " << +c << " by " << step.as_int());
-			drive.step(step);
+		if(did_step && is_selected) {
+			LOG("Stepped drive " << +c << " by " << direction.as_int());
+			drive.step(direction);
 		}
 	}
 }
