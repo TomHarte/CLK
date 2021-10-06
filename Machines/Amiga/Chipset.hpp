@@ -104,6 +104,7 @@ class Chipset: private ClockingHint::Observer {
 		// Activity observation.
 		void set_activity_observer(Activity::Observer *observer) {
 			cia_a_handler_.set_activity_observer(observer);
+			disk_controller_.set_activity_observer(observer);
 		}
 
 	private:
@@ -235,6 +236,7 @@ class Chipset: private ClockingHint::Observer {
 				}
 
 				bool insert(const std::shared_ptr<Storage::Disk::Disk> &disk, size_t drive);
+				void set_activity_observer(Activity::Observer *);
 
 			private:
 				void process_input_bit(int value) final;

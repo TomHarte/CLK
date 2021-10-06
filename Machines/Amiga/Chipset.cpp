@@ -1126,6 +1126,12 @@ uint8_t Chipset::DiskController::get_rdy_trk0_wpro_chng() {
 	return 0xff & ~active_high;
 }
 
+void Chipset::DiskController::set_activity_observer(Activity::Observer *observer) {
+	for_all_drives([observer] (Storage::Disk::Drive &drive, size_t index) {
+		drive.set_activity_observer(observer, "Drive " + std::to_string(index+1), true);
+	});
+}
+
 bool Chipset::DiskController::insert(const std::shared_ptr<Storage::Disk::Disk> &disk, size_t drive) {
 	if(drive >= 4) return false;
 	get_drive(drive).set_disk(disk);
