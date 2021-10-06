@@ -1019,7 +1019,7 @@ Chipset::DiskController::DiskController(Cycles clock_rate) :
 
 	// Add four drives.
 	for(int c = 0; c < 4; c++) {
-		emplace_drive(clock_rate.as<int>(), 300, 2, Storage::Disk::Drive::ReadyType::ShugartRDY);
+		emplace_drive(clock_rate.as<int>(), 300, 2, Storage::Disk::Drive::ReadyType::IBMRDY);
 	}
 }
 
