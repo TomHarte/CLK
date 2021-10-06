@@ -1060,7 +1060,7 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 	);
 
 	for(int c = 0; c < 4; c++) {
-		auto drive = get_drive(size_t(c));
+		auto &drive = get_drive(size_t(c));
 		const int select_mask = 0x08 << c;
 		const bool is_selected = !(value & select_mask);
 
@@ -1116,7 +1116,7 @@ uint8_t Chipset::DiskController::get_rdy_trk0_wpro_chng() {
 		((previous_select_ & 0x20) ? drive_ids_[2] : 0) |
 		((previous_select_ & 0x10) ? drive_ids_[1] : 0) |
 		((previous_select_ & 0x08) ? drive_ids_[0] : 0);
-	auto drive = get_drive();
+	auto &drive = get_drive();
 
 	const uint8_t active_high =
 		((combined_id & 0x8000) >> 11) |
