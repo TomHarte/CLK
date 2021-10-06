@@ -1120,7 +1120,7 @@ uint8_t Chipset::DiskController::get_rdy_trk0_wpro_chng() {
 
 	const uint8_t active_high =
 		((combined_id & 0x8000) >> 11) |
-		(drive.get_is_ready() ? 0x02 : 0x00) |
+		(drive.get_is_ready() ? 0x00 : 0x02) |
 		(drive.get_is_track_zero() ? 0x10 : 0x00) |
 		(drive.get_is_read_only() ? 0x08 : 0x00);
 	return 0xff & ~active_high;
