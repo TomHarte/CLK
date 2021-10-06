@@ -29,7 +29,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 			ShugartRDY,
 			/// Indicates that RDY will go active when the motor is on and two index holes have passed; it will go inactive when the disk is ejected.
 			ShugartModifiedRDY,
-			/// Indicates that RDY will go active when the head steps; it will go inactive when the disk is ejected.
+			/// Indicates that RDY will go active when the head steps if a disk is present; it will go inactive when the disk is ejected.
 			IBMRDY,
 		};
 
