@@ -28,7 +28,8 @@ ClockingHint::Preference Controller::preferred_clocking() const {
 	// Nominate RealTime clocking if any drive currently wants any clocking whatsoever.
 	// Otherwise, ::None will do.
 	for(auto &drive: drives_) {
-		if(drive.preferred_clocking() != ClockingHint::Preference::None) {
+		const auto preferred_clocking = drive.preferred_clocking();
+		if(preferred_clocking != ClockingHint::Preference::None) {
 			return ClockingHint::Preference::RealTime;
 		}
 	}
