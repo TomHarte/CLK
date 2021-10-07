@@ -238,6 +238,9 @@ class Chipset: private ClockingHint::Observer {
 				bool insert(const std::shared_ptr<Storage::Disk::Disk> &disk, size_t drive);
 				void set_activity_observer(Activity::Observer *);
 
+				void set_sync_word(uint16_t);
+				void set_control(uint16_t);
+
 			private:
 				void process_input_bit(int value) final;
 				void process_index_hole() final;
@@ -247,9 +250,16 @@ class Chipset: private ClockingHint::Observer {
 				uint32_t drive_ids_[4]{};
 				uint32_t previous_select_ = 0;
 
+				uint16_t data_ = 0;
+				int bit_count_ = 0;
+				uint16_t sync_word_ = 0;
+				bool sync_with_word_ = false;
+
 		} disk_controller_;
+
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
 		bool disk_controller_is_sleeping_ = false;
+		uint16_t paula_disk_control_ = 0;
 
 		class DiskDMA: public DMADevice<1> {
 			public:

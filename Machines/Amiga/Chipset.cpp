@@ -533,13 +533,30 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			cycle.set_value16(0xff00);
 		break;
 
-		// Disk DMA.
+		// Disk DMA and control.
 		case Write(0x020):	disk_.set_pointer<0, 16>(cycle.value16());	break;
 		case Write(0x022):	disk_.set_pointer<0, 0>(cycle.value16());	break;
 		case Write(0x024):	disk_.set_length(cycle.value16());			break;
 
 		case Write(0x026):
 			LOG("TODO: disk DMA; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+		break;
+
+		case Write(0x09e):
+			ApplySetClear(paula_disk_control_);
+
+			disk_controller_.set_control(paula_disk_control_);
+			// TODO: should also post to Paula.
+		break;
+		case Read(0x010):
+			cycle.set_value16(paula_disk_control_);
+		break;
+
+		case Write(0x07e):
+			disk_controller_.set_sync_word(cycle.value16());
+		break;
+		case Read(0x01a):
+			LOG("TODO: disk status");
 		break;
 
 		// Refresh.
@@ -694,7 +711,6 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x074):	blitter_.set_data(0, cycle.value16());			break;
 
 		// Paula.
-		case Write(0x09e):
 		case Write(0x0a0):	case Write(0x0a2):	case Write(0x0a4):	case Write(0x0a6):
 		case Write(0x0a8):	case Write(0x0aa):
 		case Write(0x0b0):	case Write(0x0b2):	case Write(0x0b4):	case Write(0x0b6):
@@ -1024,8 +1040,33 @@ Chipset::DiskController::DiskController(Cycles clock_rate) :
 }
 
 void Chipset::DiskController::process_input_bit(int value) {
-	// TODO:
-	(void)value;
+	data_ = uint16_t((data_ << 1) | value);
+	++bit_count_;
+
+//	if(!(bit_count_&15)) {
+//		LOG("Word: " << PADHEX(4) << data_);
+//	}
+}
+
+void Chipset::DiskController::set_sync_word(uint16_t value) {
+	sync_word_ = value;
+}
+
+void Chipset::DiskController::set_control(uint16_t control) {
+	// b13 and b14: precompensation length specifier
+	// b12: 0 => GCR precompensation; 1 => MFM.
+	// b10: 1 => enable use of word sync; 0 => disable.
+	// b9: 1 => sync on MSB (Disk II style, presumably?); 0 => don't.
+	// b8: 1 => 2µs per bit; 0 => 4µs.
+
+	sync_with_word_ = control & 0x400;
+
+	Storage::Time bit_length;
+	bit_length.length = 1;
+	bit_length.clock_rate = (control & 0x100) ? 500000 : 250000;
+	set_expected_bit_length(bit_length);
+
+	LOG((sync_with_word_ ? "Will" : "Won't") << " sync with word; bit length is " << ((control & 0x100) ? "short" : "long"));
 }
 
 void Chipset::DiskController::process_index_hole() {
