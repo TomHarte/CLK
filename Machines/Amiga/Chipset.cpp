@@ -1049,6 +1049,7 @@ void Chipset::DiskController::process_input_bit(int value) {
 }
 
 void Chipset::DiskController::set_sync_word(uint16_t value) {
+	LOG("Set disk sync word to " << PADHEX(4) << value);
 	sync_word_ = value;
 }
 
@@ -1160,11 +1161,12 @@ uint8_t Chipset::DiskController::get_rdy_trk0_wpro_chng() {
 	auto &drive = get_drive();
 
 	const uint8_t active_high =
-		((combined_id & 0x8000) >> 11) |
+		((combined_id & 0x8000) >> 10) |
+		(drive.get_motor_on() ? 0x20 : 0x00) |
 		(drive.get_is_ready() ? 0x00 : 0x02) |
 		(drive.get_is_track_zero() ? 0x10 : 0x00) |
 		(drive.get_is_read_only() ? 0x08 : 0x00);
-	return 0xff & ~active_high;
+	return ~active_high;
 }
 
 void Chipset::DiskController::set_activity_observer(Activity::Observer *observer) {
