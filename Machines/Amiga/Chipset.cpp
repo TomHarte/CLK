@@ -975,10 +975,11 @@ uint8_t Chipset::CIAAHandler::get_port_input(MOS::MOS6526::Port port) {
 	if(port) {
 		LOG("TODO: parallel input?");
 	} else {
-		LOG("TODO: CIA A, port A input — FIR, RDY, TRK0, etc");
-
+		uint8_t result = controller_.get_rdy_trk0_wpro_chng();
 		// TODO: add in FIR1, FIR0.
-		return controller_.get_rdy_trk0_wpro_chng();
+
+		LOG("CIA A, port A input — FIR, RDY, TRK0, etc: " << PADHEX(2) << +result);
+		return result;
 	}
 	return 0xff;
 }
@@ -1163,7 +1164,7 @@ uint8_t Chipset::DiskController::get_rdy_trk0_wpro_chng() {
 	const uint8_t active_high =
 		((combined_id & 0x8000) >> 10) |
 		(drive.get_motor_on() ? 0x20 : 0x00) |
-		(drive.get_is_ready() ? 0x00 : 0x02) |
+		(drive.get_is_ready() ? 0x00 : 0x04) |
 		(drive.get_is_track_zero() ? 0x10 : 0x00) |
 		(drive.get_is_read_only() ? 0x08 : 0x00);
 	return ~active_high;
