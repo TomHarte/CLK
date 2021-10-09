@@ -20,17 +20,18 @@ template <typename IteratorT> void write_block(IteratorT begin, IteratorT end, s
 	// Parse 1: write odd bits.
 	auto cursor = begin;
 	while(cursor != end) {
-		uint8_t source =
-			((*cursor & 0x01) >> 0) |
-			((*cursor & 0x04) >> 1) |
-			((*cursor & 0x10) >> 2) |
-			((*cursor & 0x40) >> 3);
+		auto source = uint8_t(
+			((*cursor & 0x02) << 3) |
+			((*cursor & 0x08) << 2) |
+			((*cursor & 0x20) << 1) |
+			((*cursor & 0x80) << 0)
+		);
 		++cursor;
 		source |=
-			((*cursor & 0x01) << 4) |
-			((*cursor & 0x04) << 3) |
-			((*cursor & 0x10) << 2) |
-			((*cursor & 0x40) << 1);
+			((*cursor & 0x02) >> 1) |
+			((*cursor & 0x08) >> 2) |
+			((*cursor & 0x20) >> 3) |
+			((*cursor & 0x80) >> 4);
 		++cursor;
 
 		encoder->add_byte(source);
@@ -39,17 +40,18 @@ template <typename IteratorT> void write_block(IteratorT begin, IteratorT end, s
 	// Parse 2: write even bits.
 	cursor = begin;
 	while(cursor != end) {
-		uint8_t source =
-			((*cursor & 0x02) >> 1) |
-			((*cursor & 0x08) >> 2) |
-			((*cursor & 0x20) >> 3) |
-			((*cursor & 0x80) >> 4);
+		auto source = uint8_t(
+			((*cursor & 0x01) << 4) |
+			((*cursor & 0x04) << 3) |
+			((*cursor & 0x10) << 2) |
+			((*cursor & 0x40) << 1)
+		);
 		++cursor;
 		source |=
-			((*cursor & 0x02) << 3) |
-			((*cursor & 0x08) << 2) |
-			((*cursor & 0x20) << 1) |
-			((*cursor & 0x80) << 0);
+			((*cursor & 0x01) >> 0) |
+			((*cursor & 0x04) >> 1) |
+			((*cursor & 0x10) >> 2) |
+			((*cursor & 0x40) >> 3);
 		++cursor;
 
 		encoder->add_byte(source);
