@@ -37,8 +37,8 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	blitter_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
 	bitplanes_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
 	copper_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
-	disk_controller_(Cycles(input_clock_rate)),
 	disk_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
+	disk_controller_(Cycles(input_clock_rate), disk_),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
 	cia_a_handler_(map, disk_controller_),
 	cia_b_handler_(disk_controller_),
@@ -904,6 +904,11 @@ void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 
 // MARK: - Disk.
 
+void Chipset::DiskDMA::enqueue(uint16_t value, bool matches_sync) {
+	(void)value;
+	(void)matches_sync;
+}
+
 bool Chipset::DiskDMA::advance() {
 	if(!dma_enable_) return false;
 
@@ -1031,8 +1036,9 @@ void Chipset::set_component_prefers_clocking(ClockingHint::Source *, ClockingHin
 
 // MARK: - Disk Controller.
 
-Chipset::DiskController::DiskController(Cycles clock_rate) :
-	Storage::Disk::Controller(clock_rate) {
+Chipset::DiskController::DiskController(Cycles clock_rate, DiskDMA &disk_dma) :
+	Storage::Disk::Controller(clock_rate),
+	disk_dma_(disk_dma) {
 
 	// Add four drives.
 	for(int c = 0; c < 4; c++) {
@@ -1044,9 +1050,12 @@ void Chipset::DiskController::process_input_bit(int value) {
 	data_ = uint16_t((data_ << 1) | value);
 	++bit_count_;
 
-//	if(!(bit_count_&15)) {
-//		LOG("Word: " << PADHEX(4) << data_);
-//	}
+	if(sync_with_word_ && data_ == sync_word_) {
+		disk_dma_.enqueue(data_, true);
+		bit_count_ = 0;
+	} else if(!(bit_count_&15)) {
+		disk_dma_.enqueue(data_, false);
+	}
 }
 
 void Chipset::DiskController::set_sync_word(uint16_t value) {

@@ -224,9 +224,33 @@ class Chipset: private ClockingHint::Observer {
 
 		// MARK: - Disk drives.
 
+		class DiskDMA: public DMADevice<1> {
+			public:
+				using DMADevice::DMADevice;
+
+				void set_length(uint16_t value) {
+					dma_enable_ = value & 0x8000;
+					write_ = value & 0x4000;
+					length_ = value & 0x3fff;
+
+					if(dma_enable_) {
+						printf("Not yet implemented: disk DMA [%s of %d to %06x]\n", write_ ? "write" : "read", length_, pointer_[0]);
+					}
+				}
+
+				bool advance();
+
+				void enqueue(uint16_t value, bool matches_sync);
+
+			private:
+				uint16_t length_;
+				bool dma_enable_ = false;
+				bool write_ = false;
+		} disk_;
+
 		class DiskController: public Storage::Disk::Controller {
 			public:
-				DiskController(Cycles clock_rate);
+				DiskController(Cycles clock_rate, DiskDMA &disk_dma);
 
 				void set_mtr_sel_side_dir_step(uint8_t);
 				uint8_t get_rdy_trk0_wpro_chng();
@@ -255,33 +279,13 @@ class Chipset: private ClockingHint::Observer {
 				uint16_t sync_word_ = 0;
 				bool sync_with_word_ = false;
 
+				DiskDMA &disk_dma_;
+
 		} disk_controller_;
 
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
 		bool disk_controller_is_sleeping_ = false;
 		uint16_t paula_disk_control_ = 0;
-
-		class DiskDMA: public DMADevice<1> {
-			public:
-				using DMADevice::DMADevice;
-
-				void set_length(uint16_t value) {
-					dma_enable_ = value & 0x8000;
-					write_ = value & 0x4000;
-					length_ = value & 0x3fff;
-
-					if(dma_enable_) {
-						printf("Not yet implemented: disk DMA [%s of %d to %06x]\n", write_ ? "write" : "read", length_, pointer_[0]);
-					}
-				}
-
-				bool advance();
-
-			private:
-				uint16_t length_;
-				bool dma_enable_ = false;
-				bool write_ = false;
-		} disk_;
 
 		// MARK: - Pixel output.
 
