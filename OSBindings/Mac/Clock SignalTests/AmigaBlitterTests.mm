@@ -22,12 +22,12 @@ struct Chipset {};
 
 @implementation AmigaBlitterTests
 
-- (void)testWorkbench13BootLogo {
+- (void)testKickstart13BootLogo {
 	uint16_t ram[256 * 1024]{};
 	Amiga::Chipset nonChipset;
 	Amiga::Blitter blitter(nonChipset, ram, 256 * 1024);
 
-	NSURL *const traceURL = [[NSBundle bundleForClass:[self class]] URLForResource:@"workbench13 boot logo" withExtension:@"json"];
+	NSURL *const traceURL = [[NSBundle bundleForClass:[self class]] URLForResource:@"kickstart13 boot logo" withExtension:@"json"];
 	NSData *const traceData = [NSData dataWithContentsOfURL:traceURL];
 	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
 

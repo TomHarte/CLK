@@ -939,6 +939,7 @@
 		4BCE1DF225D4C3FA00AE7A2B /* Bus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE1DEF25D4C3FA00AE7A2B /* Bus.cpp */; };
 		4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */; };
 		4BD0FBC3233706A200148981 /* CSApplication.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD0FBC2233706A200148981 /* CSApplication.m */; };
+		4BD155302711E5FE00410C6E /* kickstart13 boot logo.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BD1552F2711E5FD00410C6E /* kickstart13 boot logo.json */; };
 		4BD191F52191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
 		4BD388882239E198002D14B5 /* 68000Tests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD388872239E198002D14B5 /* 68000Tests.mm */; };
 		4BD424E02193B5340097291A /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD424DD2193B5340097291A /* TextureTarget.cpp */; };
@@ -1009,7 +1010,6 @@
 		4BF437EE209D0F7E008CBD6B /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */; };
 		4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */; };
 		4BF701A026FFD32300996424 /* AmigaBlitterTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BF7019F26FFD32300996424 /* AmigaBlitterTests.mm */; };
-		4BF701A226FFD55A00996424 /* workbench13 boot logo.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BF701A126FFD55900996424 /* workbench13 boot logo.json */; };
 		4BF8D4C82516E27A00BBE21B /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BB8617024E22F4900A00E03 /* Accelerate.framework */; };
 		4BF8D4D5251C11DD00BBE21B /* 65816Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF8D4D4251C11DD00BBE21B /* 65816Storage.cpp */; };
 		4BF8D4D6251C11DD00BBE21B /* 65816Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF8D4D4251C11DD00BBE21B /* 65816Storage.cpp */; };
@@ -2008,6 +2008,7 @@
 		4BD060A51FE49D3C006E14BE /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Speaker.hpp; sourceTree = "<group>"; };
 		4BD0FBC2233706A200148981 /* CSApplication.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CSApplication.m; sourceTree = "<group>"; };
 		4BD1552E270B14AC00410C6E /* MemoryMap.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemoryMap.hpp; sourceTree = "<group>"; };
+		4BD1552F2711E5FD00410C6E /* kickstart13 boot logo.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = "kickstart13 boot logo.json"; path = "Kickstart 1.3 boot logo/kickstart13 boot logo.json"; sourceTree = "<group>"; };
 		4BD191D9219113B80042E144 /* OpenGL.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OpenGL.hpp; sourceTree = "<group>"; };
 		4BD191F22191180E0042E144 /* ScanTarget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScanTarget.cpp; sourceTree = "<group>"; };
 		4BD191F32191180E0042E144 /* ScanTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScanTarget.hpp; sourceTree = "<group>"; };
@@ -2109,7 +2110,6 @@
 		4BF52672218E752E00313227 /* ScanTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScanTarget.hpp; sourceTree = "<group>"; };
 		4BF6606A1F281573002CB053 /* ClockReceiver.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ClockReceiver.hpp; sourceTree = "<group>"; };
 		4BF7019F26FFD32300996424 /* AmigaBlitterTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AmigaBlitterTests.mm; sourceTree = "<group>"; };
-		4BF701A126FFD55900996424 /* workbench13 boot logo.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = "workbench13 boot logo.json"; path = "Workbench 1.3 boot logo/workbench13 boot logo.json"; sourceTree = "<group>"; };
 		4BF8D4CD251C0C9C00BBE21B /* 65816.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 65816.hpp; sourceTree = "<group>"; };
 		4BF8D4D3251C0D9F00BBE21B /* 65816Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 65816Storage.hpp; sourceTree = "<group>"; };
 		4BF8D4D4251C11DD00BBE21B /* 65816Storage.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 65816Storage.cpp; sourceTree = "<group>"; };
@@ -2368,6 +2368,7 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
+				4BD1552F2711E5FD00410C6E /* kickstart13 boot logo.json */,
 				4B680CE323A555CA00451D43 /* 68000 Comparative Tests */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
 				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
@@ -2377,7 +2378,6 @@
 				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
 				4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */,
 				4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */,
-				4BF701A126FFD55900996424 /* workbench13 boot logo.json */,
 				4B8DF5212550D91400F3433C /* emudev.de krom traces */,
 				4B2530F2244E6773007980BF /* FM Synthesis */,
 				4BBF49B41ED2881600AB3669 /* FUSE */,
@@ -5050,6 +5050,7 @@
 				4BB299641B587D8400A49093 /* insiy in Resources */,
 				4BB299E61B587D8400A49093 /* trap10 in Resources */,
 				4BB299651B587D8400A49093 /* insz in Resources */,
+				4BD155302711E5FE00410C6E /* kickstart13 boot logo.json in Resources */,
 				4B44EBF91DC9898E00A7820C /* BCDTEST_beeb in Resources */,
 				4B8DF6272550D91600F3433C /* CPUORA-trace_compare.log in Resources */,
 				4BB299161B587D8400A49093 /* bccr in Resources */,
@@ -5062,7 +5063,6 @@
 				4BB299A11B587D8400A49093 /* orab in Resources */,
 				4BB298F81B587D8400A49093 /* adcz in Resources */,
 				4B8DF6D02550D91700F3433C /* CPUPSR.sfc in Resources */,
-				4BF701A226FFD55A00996424 /* workbench13 boot logo.json in Resources */,
 				4BB299EC1B587D8400A49093 /* trap16 in Resources */,
 				4BB299741B587D8400A49093 /* ldaa in Resources */,
 				4BB299871B587D8400A49093 /* lsea in Resources */,
