@@ -55,6 +55,14 @@ void MOS6526<BusHandlerT, personality>::set_cnt_input(bool active) {
 }
 
 template <typename BusHandlerT, Personality personality>
+void MOS6526<BusHandlerT, personality>::set_flag_input(bool low) {
+	if(low && !flag_state_) {
+		posit_interrupt(0x10);
+	}
+	flag_state_ = low;
+}
+
+template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 	address &= 0xf;
 	switch(address) {

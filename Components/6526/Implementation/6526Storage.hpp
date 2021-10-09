@@ -178,6 +178,7 @@ template <> class TODStorage<true>: public TODBase {
 struct MOS6526Storage {
 	bool cnt_state_ = false;	// Inactive by default.
 	bool cnt_edge_ = false;
+	bool flag_state_ = false;
 	HalfCycles half_divider_;
 
 	uint8_t output_[2] = {0, 0};

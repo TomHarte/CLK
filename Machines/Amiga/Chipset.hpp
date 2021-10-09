@@ -223,6 +223,50 @@ class Chipset: private ClockingHint::Observer {
 				uint16_t status;
 		} serial_;
 
+		// MARK: - Pixel output.
+
+		Outputs::CRT::CRT crt_;
+		uint16_t palette_[32]{};
+		uint16_t swizzled_palette_[32]{};
+
+		// MARK: - CIAs
+	private:
+		class DiskController;
+
+		class CIAAHandler: public MOS::MOS6526::PortHandler {
+			public:
+				CIAAHandler(MemoryMap &map, DiskController &controller);
+				void set_port_output(MOS::MOS6526::Port port, uint8_t value);
+				uint8_t get_port_input(MOS::MOS6526::Port port);
+				void set_activity_observer(Activity::Observer *observer);
+
+			private:
+				MemoryMap &map_;
+				DiskController &controller_;
+				Activity::Observer *observer_ = nullptr;
+				inline static const std::string led_name = "Power";
+		} cia_a_handler_;
+
+		class CIABHandler: public MOS::MOS6526::PortHandler {
+			public:
+				CIABHandler(DiskController &controller);
+				void set_port_output(MOS::MOS6526::Port port, uint8_t value);
+				uint8_t get_port_input(MOS::MOS6526::Port);
+
+			private:
+				DiskController &controller_;
+		} cia_b_handler_;
+
+	public:
+		using CIAA = MOS::MOS6526::MOS6526<CIAAHandler, MOS::MOS6526::Personality::P8250>;
+		using CIAB = MOS::MOS6526::MOS6526<CIABHandler, MOS::MOS6526::Personality::P8250>;
+
+		// CIAs are provided for direct access; it's up to the caller properly
+		// to distinguish relevant accesses.
+		CIAA cia_a;
+		CIAB cia_b;
+
+	private:
 		// MARK: - Disk drives.
 
 		class DiskDMA: public DMADevice<1> {
@@ -245,7 +289,7 @@ class Chipset: private ClockingHint::Observer {
 
 		class DiskController: public Storage::Disk::Controller {
 			public:
-				DiskController(Cycles clock_rate, DiskDMA &disk_dma);
+				DiskController(Cycles clock_rate, DiskDMA &disk_dma, CIAB &cia);
 
 				void set_mtr_sel_side_dir_step(uint8_t);
 				uint8_t get_rdy_trk0_wpro_chng();
@@ -275,50 +319,13 @@ class Chipset: private ClockingHint::Observer {
 				bool sync_with_word_ = false;
 
 				DiskDMA &disk_dma_;
+				CIAB &cia_;
 
 		} disk_controller_;
 
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
 		bool disk_controller_is_sleeping_ = false;
 		uint16_t paula_disk_control_ = 0;
-
-		// MARK: - Pixel output.
-
-		Outputs::CRT::CRT crt_;
-		uint16_t palette_[32]{};
-		uint16_t swizzled_palette_[32]{};
-
-		// MARK: - CIAs
-	private:
-		class CIAAHandler: public MOS::MOS6526::PortHandler {
-			public:
-				CIAAHandler(MemoryMap &map, DiskController &controller);
-				void set_port_output(MOS::MOS6526::Port port, uint8_t value);
-				uint8_t get_port_input(MOS::MOS6526::Port port);
-				void set_activity_observer(Activity::Observer *observer);
-
-			private:
-				MemoryMap &map_;
-				DiskController &controller_;
-				Activity::Observer *observer_ = nullptr;
-				inline static const std::string led_name = "Power";
-		} cia_a_handler_;
-
-		class CIABHandler: public MOS::MOS6526::PortHandler {
-			public:
-				CIABHandler(DiskController &controller);
-				void set_port_output(MOS::MOS6526::Port port, uint8_t value);
-				uint8_t get_port_input(MOS::MOS6526::Port);
-
-			private:
-				DiskController &controller_;
-		} cia_b_handler_;
-
-	public:
-		// CIAs are provided for direct access; it's up to the caller properly
-		// to distinguish relevant accesses.
-		MOS::MOS6526::MOS6526<CIAAHandler, MOS::MOS6526::Personality::P8250> cia_a;
-		MOS::MOS6526::MOS6526<CIABHandler, MOS::MOS6526::Personality::P8250> cia_b;
 };
 
 }

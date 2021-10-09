@@ -63,6 +63,9 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 		/// Sets the current state of the CNT input.
 		void set_cnt_input(bool active);
 
+		/// Sets the current state of the FLG input.
+		void set_flag_input(bool low);
+
 	private:
 		PortHandlerT &port_handler_;
 		TODStorage<personality == Personality::P8250> tod_;

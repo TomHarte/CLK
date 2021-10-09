@@ -37,13 +37,13 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	blitter_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
 	bitplanes_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
 	copper_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
-	disk_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
-	disk_controller_(Cycles(input_clock_rate), disk_),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
 	cia_a_handler_(map, disk_controller_),
 	cia_b_handler_(disk_controller_),
 	cia_a(cia_a_handler_),
-	cia_b(cia_b_handler_) {
+	cia_b(cia_b_handler_),
+	disk_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
+	disk_controller_(Cycles(input_clock_rate), disk_, cia_b) {
 	disk_controller_.set_clocking_hint_observer(this);
 }
 
@@ -1052,9 +1052,10 @@ void Chipset::set_component_prefers_clocking(ClockingHint::Source *, ClockingHin
 
 // MARK: - Disk Controller.
 
-Chipset::DiskController::DiskController(Cycles clock_rate, DiskDMA &disk_dma) :
+Chipset::DiskController::DiskController(Cycles clock_rate, DiskDMA &disk_dma, CIAB &cia) :
 	Storage::Disk::Controller(clock_rate),
-	disk_dma_(disk_dma) {
+	disk_dma_(disk_dma),
+	cia_(cia) {
 
 	// Add four drives.
 	for(int c = 0; c < 4; c++) {
@@ -1097,7 +1098,11 @@ void Chipset::DiskController::set_control(uint16_t control) {
 }
 
 void Chipset::DiskController::process_index_hole() {
-	// TODO: should connect to CIA B's flag input.
+	// Pulse the CIA flag input.
+	//
+	// TODO: rectify once drives do an actual index pulse, with length.
+	cia_.set_flag_input(true);
+	cia_.set_flag_input(false);
 }
 
 void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
