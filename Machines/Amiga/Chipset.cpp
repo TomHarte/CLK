@@ -930,6 +930,7 @@ bool Chipset::DiskDMA::advance() {
 	if(!write_) {
 		// TODO: run an actual PLL, collect actual disk data.
 		if(length_ && buffer_read_ != buffer_write_) {
+			printf("Deposited %04x\n", buffer_[buffer_read_ & 3]);
 			ram_[pointer_[0] & ram_mask_] = buffer_[buffer_read_ & 3];
 			++pointer_[0];
 			--length_;
@@ -1103,6 +1104,9 @@ void Chipset::DiskController::process_index_hole() {
 	// TODO: rectify once drives do an actual index pulse, with length.
 	cia_.set_flag_input(true);
 	cia_.set_flag_input(false);
+
+	// Resync word output. Experimental!!
+	bit_count_ = 0;
 }
 
 void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
