@@ -905,8 +905,23 @@ void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 // MARK: - Disk.
 
 void Chipset::DiskDMA::enqueue(uint16_t value, bool matches_sync) {
-	(void)value;
+	// TODO: handle matches_sync.
 	(void)matches_sync;
+
+	buffer_[buffer_write_ & 3] = value;
+	if(buffer_write_ == buffer_read_ + 4) ++buffer_read_;
+	++buffer_write_;
+}
+
+void Chipset::DiskDMA::set_length(uint16_t value) {
+	dma_enable_ = value & 0x8000;
+	write_ = value & 0x4000;
+	length_ = value & 0x3fff;
+	buffer_read_ = buffer_write_ = 0;
+
+	if(dma_enable_) {
+		printf("Disk DMA [%s of %d to %06x]\n", write_ ? "write" : "read", length_, pointer_[0]);
+	}
 }
 
 bool Chipset::DiskDMA::advance() {
@@ -914,10 +929,11 @@ bool Chipset::DiskDMA::advance() {
 
 	if(!write_) {
 		// TODO: run an actual PLL, collect actual disk data.
-		if(length_) {
-			ram_[pointer_[0] & ram_mask_] = 0xffff;
+		if(length_ && buffer_read_ != buffer_write_) {
+			ram_[pointer_[0] & ram_mask_] = buffer_[buffer_read_ & 3];
 			++pointer_[0];
 			--length_;
+			++buffer_read_;
 
 			if(!length_) {
 				chipset_.posit_interrupt(InterruptFlag::DiskBlock);

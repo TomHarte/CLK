@@ -9,6 +9,7 @@
 #ifndef Chipset_hpp
 #define Chipset_hpp
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -228,16 +229,7 @@ class Chipset: private ClockingHint::Observer {
 			public:
 				using DMADevice::DMADevice;
 
-				void set_length(uint16_t value) {
-					dma_enable_ = value & 0x8000;
-					write_ = value & 0x4000;
-					length_ = value & 0x3fff;
-
-					if(dma_enable_) {
-						printf("Not yet implemented: disk DMA [%s of %d to %06x]\n", write_ ? "write" : "read", length_, pointer_[0]);
-					}
-				}
-
+				void set_length(uint16_t value);
 				bool advance();
 
 				void enqueue(uint16_t value, bool matches_sync);
@@ -246,6 +238,9 @@ class Chipset: private ClockingHint::Observer {
 				uint16_t length_;
 				bool dma_enable_ = false;
 				bool write_ = false;
+
+				std::array<uint16_t, 4> buffer_;
+				size_t buffer_read_ = 0, buffer_write_ = 0;
 		} disk_;
 
 		class DiskController: public Storage::Disk::Controller {
