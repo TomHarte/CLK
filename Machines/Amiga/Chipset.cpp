@@ -978,7 +978,7 @@ uint8_t Chipset::CIAAHandler::get_port_input(MOS::MOS6526::Port port) {
 		uint8_t result = controller_.get_rdy_trk0_wpro_chng();
 		// TODO: add in FIR1, FIR0.
 
-		LOG("CIA A, port A input — FIR, RDY, TRK0, etc: " << PADHEX(2) << +result);
+		LOG("CIA A, port A input — FIR, RDY, TRK0, etc: " << PADHEX(2) << std::bitset<8>{result});
 		return result;
 	}
 	return 0xff;
@@ -1072,7 +1072,7 @@ void Chipset::DiskController::set_control(uint16_t control) {
 }
 
 void Chipset::DiskController::process_index_hole() {
-	// TODO: does the Amiga care?
+	// TODO: should connect to CIA B's flag input.
 }
 
 void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
@@ -1115,7 +1115,7 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 			// ID and definitely latch the new motor state.
 			if(!is_selected) {
 				drive_ids_[c] <<= 1;
-				LOG("Shifted drive ID shift register for drive " << +c);
+				LOG("Shifted drive ID shift register for drive " << +c << " to " << PADHEX(4) << std::bitset<16>{drive_ids_[c]});
 			} else {
 				// Motor transition on -> off => reload register.
 				if(!motor_on && drive.get_motor_on()) {
@@ -1155,18 +1155,19 @@ uint8_t Chipset::DiskController::get_rdy_trk0_wpro_chng() {
 	//	CHNG is what is normally RDY.
 
 	const uint32_t combined_id =
-		((previous_select_ & 0x40) ? drive_ids_[3] : 0) |
-		((previous_select_ & 0x20) ? drive_ids_[2] : 0) |
-		((previous_select_ & 0x10) ? drive_ids_[1] : 0) |
-		((previous_select_ & 0x08) ? drive_ids_[0] : 0);
-	auto &drive = get_drive();
+		((previous_select_ & 0x40) ? 0 : drive_ids_[3]) |
+		((previous_select_ & 0x20) ? 0 : drive_ids_[2]) |
+		((previous_select_ & 0x10) ? 0 : drive_ids_[1]) |
+		((previous_select_ & 0x08) ? 0 : drive_ids_[0]);
 
+	auto &drive = get_drive();
 	const uint8_t active_high =
 		((combined_id & 0x8000) >> 10) |
 		(drive.get_motor_on() ? 0x20 : 0x00) |
 		(drive.get_is_ready() ? 0x00 : 0x04) |
 		(drive.get_is_track_zero() ? 0x10 : 0x00) |
 		(drive.get_is_read_only() ? 0x08 : 0x00);
+
 	return ~active_high;
 }
 
