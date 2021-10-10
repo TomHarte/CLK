@@ -273,7 +273,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		//	2. Refresh, disk, audio, or sprites. Depending on region.
 		//
 		// Blitter and CPU priority is dealt with below.
-		if constexpr (cycle >= 4 && cycle <= 6) {
+		if constexpr (cycle >= 7 && cycle < 13) {
 			if((dma_control_ & DiskFlag) == DiskFlag) {
 				if(disk_.advance()) {
 					return false;
@@ -908,8 +908,12 @@ void Chipset::DiskDMA::enqueue(uint16_t value, bool matches_sync) {
 	// TODO: handle matches_sync.
 	(void)matches_sync;
 
+//	LOG("In: " << buffer_write_);
+
 	buffer_[buffer_write_ & 3] = value;
-	if(buffer_write_ == buffer_read_ + 4) ++buffer_read_;
+	if(buffer_write_ == buffer_read_ + 4) {
+		++buffer_read_;
+	}
 	++buffer_write_;
 }
 
@@ -930,7 +934,9 @@ bool Chipset::DiskDMA::advance() {
 	if(!write_) {
 		// TODO: run an actual PLL, collect actual disk data.
 		if(length_ && buffer_read_ != buffer_write_) {
-			printf("Deposited %04x\n", buffer_[buffer_read_ & 3]);
+//			LOG("Out: " << buffer_read_);
+
+			printf("%04x\n", buffer_[buffer_read_ & 3]);
 			ram_[pointer_[0] & ram_mask_] = buffer_[buffer_read_ & 3];
 			++pointer_[0];
 			--length_;
@@ -1107,6 +1113,7 @@ void Chipset::DiskController::process_index_hole() {
 
 	// Resync word output. Experimental!!
 	bit_count_ = 0;
+	printf("IH\n");
 }
 
 void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
