@@ -16,8 +16,8 @@ using namespace Storage::Disk;
 
 namespace {
 
-template <typename IteratorT> void write_block(IteratorT begin, IteratorT end, std::unique_ptr<Storage::Encodings::MFM::Encoder> &encoder) {
-	// Parse 1: write odd bits.
+template <typename IteratorT, class OutputIt> void encode_block(IteratorT begin, IteratorT end, OutputIt first) {
+	// Parse 1: combine odd bits.
 	auto cursor = begin;
 	while(cursor != end) {
 		auto source = uint8_t(
@@ -34,10 +34,11 @@ template <typename IteratorT> void write_block(IteratorT begin, IteratorT end, s
 			((*cursor & 0x80) >> 4);
 		++cursor;
 
-		encoder->add_byte(source);
+		*first = source;
+		++first;
 	}
 
-	// Parse 2: write even bits.
+	// Parse 2: combine even bits.
 	cursor = begin;
 	while(cursor != end) {
 		auto source = uint8_t(
@@ -54,37 +55,51 @@ template <typename IteratorT> void write_block(IteratorT begin, IteratorT end, s
 			((*cursor & 0x40) >> 3);
 		++cursor;
 
-		encoder->add_byte(source);
+		*first = source;
+		++first;
 	}
 }
 
-template <typename IteratorT> std::array<uint8_t, 4> checksum(IteratorT begin, IteratorT end) {
-	uint64_t sum = 0;
-
+template <typename IteratorT> void write(IteratorT begin, IteratorT end, std::unique_ptr<Storage::Encodings::MFM::Encoder> &encoder) {
 	while(begin != end) {
-		// Pull a big-endian 32-bit number.
-		uint32_t next = 0;
-		next |= uint64_t(*begin) << 24;	++begin;
-		next |= uint64_t(*begin) << 16;	++begin;
-		next |= uint64_t(*begin) << 8;	++begin;
-		next |= uint64_t(*begin) << 0;	++begin;
+		encoder->add_byte(*begin);
+		++begin;
+	}
+}
 
-		// Add, and then add carry too.
-		sum += uint64_t(next);
-		sum += (sum >> 32);
-		sum &= 0xffff'ffff;
+template <typename IteratorT> std::array<uint8_t, 2> checksum(IteratorT begin, IteratorT end) {
+	uint16_t checksum = 0;
+	while(begin != end) {
+		const uint8_t value = *begin;
+		++begin;
+
+		// Do a clockless MFM encode.
+		const auto spread = uint16_t(
+			((value&0x80) << 7) |
+			((value&0x40) << 6) |
+			((value&0x20) << 5) |
+			((value&0x10) << 4) |
+			((value&0x08) << 3) |
+			((value&0x04) << 2) |
+			((value&0x02) << 1) |
+			((value&0x01) << 0)
+		);
+		checksum ^= spread;
 	}
 
-	// Invert.
-	sum = ~sum;
-
-	// Pack big-endian.
-	return std::array<uint8_t, 4>{
-		uint8_t((sum >> 24) & 0xff),
-		uint8_t((sum >> 16) & 0xff),
-		uint8_t((sum >> 8) & 0xff),
-		uint8_t((sum >> 0) & 0xff)
+	return std::array<uint8_t, 2>{
+		uint8_t(checksum >> 8),
+		uint8_t(checksum)
 	};
+}
+
+template <typename IteratorT> void write_checksum(IteratorT begin, IteratorT end, std::unique_ptr<Storage::Encodings::MFM::Encoder> &encoder) {
+	const auto raw_checksum = checksum(begin, end);
+
+	std::array<uint8_t, 2> encoded_checksum;
+	encode_block(raw_checksum.begin(), raw_checksum.end(), encoded_checksum.begin());
+
+	write(encoded_checksum.begin(), encoded_checksum.end(), encoder);
 }
 
 }
@@ -129,28 +144,31 @@ std::shared_ptr<Track> AmigaADF::get_track_at_position(Track::Address address) {
 		encoder->output_short(MFM::MFMSync);
 		encoder->output_short(MFM::MFMSync);
 
-		// Write the header.
+		// Encode and write the header.
 		const uint8_t header[4] = {
 			0xff,									// Amiga v1.0 format.
 			uint8_t(address.position.as_int()),		// Track.
 			uint8_t(s),								// Sector.
 			uint8_t(11 - s),						// Sectors remaining.
 		};
-		write_block(header, &header[4], encoder);
+		std::array<uint8_t, 4> encoded_header;
+		encode_block(std::begin(header), std::end(header), std::begin(encoded_header));
+		write(std::begin(encoded_header), std::end(encoded_header), encoder);
+
+		// Encode the data.
+		std::array<uint8_t, 512> encoded_data;
+		encode_block(&track_data[s * 512], &track_data[(s + 1) * 512], std::begin(encoded_data));
 
 		// Write the sector label.
 		const std::array<uint8_t, 16> os_recovery{};
-		write_block(os_recovery.begin(), os_recovery.end(), encoder);
+		write(os_recovery.begin(), os_recovery.end(), encoder);
 
 		// Write checksums.
-		const auto header_checksum = checksum(&header[0], &header[4]);
-		write_block(header_checksum.begin(), header_checksum.end(), encoder);
-
-		const auto data_checksum = checksum(&track_data[s * 512], &track_data[(s + 1) * 512]);
-		write_block(data_checksum.begin(), data_checksum.end(), encoder);
+		write_checksum(std::begin(encoded_header), std::end(encoded_header), encoder);
+		write_checksum(std::begin(encoded_data), std::end(encoded_data), encoder);
 
 		// Write data.
-		write_block(&track_data[s * 512], &track_data[(s + 1) * 512], encoder);
+		write(std::begin(encoded_data), std::end(encoded_data), encoder);
 	}
 
 	return std::make_shared<Storage::Disk::PCMTrack>(std::move(encoded_segment));
