@@ -12,6 +12,8 @@
 #include "../../Encodings/MFM/Encoder.hpp"
 #include "../../Track/PCMTrack.hpp"
 
+#include <type_traits>
+
 using namespace Storage::Disk;
 
 namespace {
@@ -67,8 +69,9 @@ template <typename IteratorT> void write(IteratorT begin, IteratorT end, std::un
 	}
 }
 
-template <typename IteratorT> std::array<uint8_t, 2> checksum(IteratorT begin, IteratorT end) {
-	uint16_t checksum = 0;
+template <typename IteratorT> auto checksum(IteratorT begin, IteratorT end) {
+	uint16_t checksum[2]{};
+	int offset = 0;
 	while(begin != end) {
 		const uint8_t value = *begin;
 		++begin;
@@ -84,19 +87,27 @@ template <typename IteratorT> std::array<uint8_t, 2> checksum(IteratorT begin, I
 			((value&0x02) << 1) |
 			((value&0x01) << 0)
 		);
-		checksum ^= spread;
+		checksum[offset] ^= spread;
+		offset ^= 1;
 	}
 
-	return std::array<uint8_t, 2>{
-		uint8_t(checksum >> 8),
-		uint8_t(checksum)
+	return std::array<uint8_t, 4>{
+		uint8_t(checksum[0] >> 8),
+		uint8_t(checksum[0]),
+		uint8_t(checksum[1] >> 8),
+		uint8_t(checksum[1]),
 	};
 }
 
 template <typename IteratorT> void write_checksum(IteratorT begin, IteratorT end, std::unique_ptr<Storage::Encodings::MFM::Encoder> &encoder) {
+	// Believe it or not, this appears to be the actual checksum algorithm on the Amiga:
+	//
+	//	(1) calculate the XOR checksum of the MFM-encoded data, read as 32-bit words;
+	//	(2) throw away the clock bits;
+	//	(3) Take the resulting 32-bit value and perform an odd-even MFM encoding on those.
 	const auto raw_checksum = checksum(begin, end);
 
-	std::array<uint8_t, 2> encoded_checksum;
+	std::decay_t<decltype(raw_checksum)> encoded_checksum{};
 	encode_block(raw_checksum.begin(), raw_checksum.end(), encoded_checksum.begin());
 
 	write(encoded_checksum.begin(), encoded_checksum.end(), encoder);
@@ -146,22 +157,22 @@ std::shared_ptr<Track> AmigaADF::get_track_at_position(Track::Address address) {
 
 		// Encode and write the header.
 		const uint8_t header[4] = {
-			0xff,									// Amiga v1.0 format.
-			uint8_t(address.position.as_int()),		// Track.
-			uint8_t(s),								// Sector.
-			uint8_t(11 - s),						// Sectors remaining.
+			0xff,														// Amiga v1.0 format.
+			uint8_t(address.position.as_int() * 2 + address.head),		// Track.
+			uint8_t(s),													// Sector.
+			uint8_t(11 - s),											// Sectors remaining.
 		};
 		std::array<uint8_t, 4> encoded_header;
 		encode_block(std::begin(header), std::end(header), std::begin(encoded_header));
 		write(std::begin(encoded_header), std::end(encoded_header), encoder);
 
-		// Encode the data.
-		std::array<uint8_t, 512> encoded_data;
-		encode_block(&track_data[s * 512], &track_data[(s + 1) * 512], std::begin(encoded_data));
-
 		// Write the sector label.
 		const std::array<uint8_t, 16> os_recovery{};
 		write(os_recovery.begin(), os_recovery.end(), encoder);
+
+		// Encode the data.
+		std::array<uint8_t, 512> encoded_data;
+		encode_block(&track_data[s * 512], &track_data[(s + 1) * 512], std::begin(encoded_data));
 
 		// Write checksums.
 		write_checksum(std::begin(encoded_header), std::end(encoded_header), encoder);
