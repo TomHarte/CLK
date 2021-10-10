@@ -18,6 +18,11 @@ using namespace Storage::Disk;
 
 namespace {
 
+/// Builds a buffer containing the bytes between @c begin and @c end split up so that the nibbles in the first half of the buffer
+/// consist of the odd bits of the source bytes — b1, b3, b5 and b7 — ordered so that most-significant nibbles come before
+/// least-significant ones, and the second half of the buffer contains the even bits.
+///
+/// Nibbles are written to @c first; it is assumed that an even number of source bytes have been supplied.
 template <typename IteratorT, class OutputIt> void encode_block(IteratorT begin, IteratorT end, OutputIt first) {
 	// Parse 1: combine odd bits.
 	auto cursor = begin;
@@ -62,13 +67,9 @@ template <typename IteratorT, class OutputIt> void encode_block(IteratorT begin,
 	}
 }
 
-template <typename IteratorT> void write(IteratorT begin, IteratorT end, std::unique_ptr<Storage::Encodings::MFM::Encoder> &encoder) {
-	while(begin != end) {
-		encoder->add_byte(*begin);
-		++begin;
-	}
-}
-
+/// Construsts the Amiga-style checksum of the bytes between @c begin and @c end, which is a 32-bit exclusive OR of the source data
+/// with each byte converted into a 16-bit word by inserting a 0 bit between every data bit, and then combined into 32-bit words in
+/// big endian order.
 template <typename IteratorT> auto checksum(IteratorT begin, IteratorT end) {
 	uint16_t checksum[2]{};
 	int offset = 0;
@@ -99,6 +100,8 @@ template <typename IteratorT> auto checksum(IteratorT begin, IteratorT end) {
 	};
 }
 
+/// Obtains the Amiga-style checksum of the data between @c begin and @c end, then odd-even encodes it and writes
+/// it out to @c encoder.
 template <typename IteratorT> void write_checksum(IteratorT begin, IteratorT end, std::unique_ptr<Storage::Encodings::MFM::Encoder> &encoder) {
 	// Believe it or not, this appears to be the actual checksum algorithm on the Amiga:
 	//
@@ -110,7 +113,7 @@ template <typename IteratorT> void write_checksum(IteratorT begin, IteratorT end
 	std::decay_t<decltype(raw_checksum)> encoded_checksum{};
 	encode_block(raw_checksum.begin(), raw_checksum.end(), encoded_checksum.begin());
 
-	write(encoded_checksum.begin(), encoded_checksum.end(), encoder);
+	encoder->add_bytes(encoded_checksum.begin(), encoded_checksum.end());
 }
 
 }
@@ -164,11 +167,11 @@ std::shared_ptr<Track> AmigaADF::get_track_at_position(Track::Address address) {
 		};
 		std::array<uint8_t, 4> encoded_header;
 		encode_block(std::begin(header), std::end(header), std::begin(encoded_header));
-		write(std::begin(encoded_header), std::end(encoded_header), encoder);
+		encoder->add_bytes(std::begin(encoded_header), std::end(encoded_header));
 
 		// Write the sector label.
 		const std::array<uint8_t, 16> os_recovery{};
-		write(os_recovery.begin(), os_recovery.end(), encoder);
+		encoder->add_bytes(os_recovery.begin(), os_recovery.end());
 
 		// Encode the data.
 		std::array<uint8_t, 512> encoded_data;
@@ -179,7 +182,7 @@ std::shared_ptr<Track> AmigaADF::get_track_at_position(Track::Address address) {
 		write_checksum(std::begin(encoded_data), std::end(encoded_data), encoder);
 
 		// Write data.
-		write(std::begin(encoded_data), std::end(encoded_data), encoder);
+		encoder->add_bytes(std::begin(encoded_data), std::end(encoded_data));
 	}
 
 	return std::make_shared<Storage::Disk::PCMTrack>(std::move(encoded_segment));

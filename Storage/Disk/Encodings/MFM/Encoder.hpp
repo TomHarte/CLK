@@ -55,6 +55,17 @@ class Encoder {
 		virtual void add_deleted_data_address_mark() = 0;
 		virtual void output_short(uint16_t value, uint16_t fuzzy_mask = 0);
 
+		template <typename IteratorT> void add_bytes(IteratorT begin, IteratorT end) {
+			while(begin != end) {
+				add_byte(*begin);
+				++begin;
+			}
+		}
+
+		template <typename ContainerT> void add_bytes(const ContainerT &container) {
+			write(std::begin(container), std::end(container));
+		}
+
 		/// Outputs the CRC for all data since the last address mask; if @c incorrectly is @c true then outputs an incorrect CRC.
 		void add_crc(bool incorrectly);
 
