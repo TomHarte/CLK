@@ -932,11 +932,7 @@ bool Chipset::DiskDMA::advance() {
 	if(!dma_enable_) return false;
 
 	if(!write_) {
-		// TODO: run an actual PLL, collect actual disk data.
 		if(length_ && buffer_read_ != buffer_write_) {
-//			LOG("Out: " << buffer_read_);
-
-			printf("%04x\n", buffer_[buffer_read_ & 3]);
 			ram_[pointer_[0] & ram_mask_] = buffer_[buffer_read_ & 3];
 			++pointer_[0];
 			--length_;
