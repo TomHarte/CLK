@@ -282,6 +282,7 @@ class Chipset: private ClockingHint::Observer {
 				uint16_t length_;
 				bool dma_enable_ = false;
 				bool write_ = false;
+				uint16_t last_set_length_ = 0;
 
 				std::array<uint16_t, 4> buffer_;
 				size_t buffer_read_ = 0, buffer_write_ = 0;

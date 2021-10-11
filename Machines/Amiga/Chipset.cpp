@@ -922,14 +922,18 @@ void Chipset::DiskDMA::enqueue(uint16_t value, bool matches_sync) {
 }
 
 void Chipset::DiskDMA::set_length(uint16_t value) {
-	dma_enable_ = value & 0x8000;
-	write_ = value & 0x4000;
-	length_ = value & 0x3fff;
-	buffer_read_ = buffer_write_ = 0;
+	if(value == last_set_length_) {
+		dma_enable_ = value & 0x8000;
+		write_ = value & 0x4000;
+		length_ = value & 0x3fff;
+		buffer_read_ = buffer_write_ = 0;
 
-	if(dma_enable_) {
-		LOG("Disk DMA [" << (write_ ? "write" : "read") << " of " << length_ << " to " << PADHEX(8) << pointer_[0]);
+		if(dma_enable_) {
+			LOG("Disk DMA " << (write_ ? "write" : "read") << " of " << length_ << " to " << PADHEX(8) << pointer_[0]);
+		}
 	}
+
+	last_set_length_ = value;
 }
 
 bool Chipset::DiskDMA::advance() {
