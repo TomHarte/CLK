@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="18122" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="19162" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="18122"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="19162"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -14,17 +14,17 @@
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <visualEffectView hidden="YES" wantsLayer="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="tpZ-0B-QQu">
-            <rect key="frame" x="0.0" y="0.0" width="200" height="131"/>
+            <rect key="frame" x="0.0" y="0.0" width="200" height="261"/>
             <subviews>
                 <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ySY-ir-hzb" userLabel="First indicator">
-                    <rect key="frame" x="8" y="105" width="16" height="18"/>
+                    <rect key="frame" x="8" y="235" width="16" height="18"/>
                     <constraints>
                         <constraint firstAttribute="width" secondItem="ySY-ir-hzb" secondAttribute="height" multiplier="1:1" id="UX0-hT-7Td"/>
                     </constraints>
                     <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="DhQ-Di-tRT"/>
                 </levelIndicator>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Tah-UQ-vdf">
-                    <rect key="frame" x="30" y="107" width="59" height="16"/>
+                    <rect key="frame" x="30" y="237" width="59" height="16"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 1" id="a5P-Ci-RzC">
                         <font key="font" metaFont="system"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -32,14 +32,14 @@
                     </textFieldCell>
                 </textField>
                 <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ncQ-wN-C61" userLabel="Second indicator">
-                    <rect key="frame" x="8" y="81" width="16" height="18"/>
+                    <rect key="frame" x="8" y="211" width="16" height="18"/>
                     <constraints>
                         <constraint firstAttribute="width" secondItem="ncQ-wN-C61" secondAttribute="height" multiplier="1:1" id="176-v3-mVW"/>
                     </constraints>
                     <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="jlb-bk-FPd"/>
                 </levelIndicator>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="14O-Lq-Npx">
-                    <rect key="frame" x="30" y="83" width="61" height="16"/>
+                    <rect key="frame" x="30" y="213" width="61" height="16"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 2" id="NE1-CO-pGI">
                         <font key="font" metaFont="system"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -47,14 +47,14 @@
                     </textFieldCell>
                 </textField>
                 <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0rV-Th-Zwt" userLabel="Third indicator">
-                    <rect key="frame" x="8" y="57" width="16" height="18"/>
+                    <rect key="frame" x="8" y="187" width="16" height="18"/>
                     <constraints>
                         <constraint firstAttribute="width" secondItem="0rV-Th-Zwt" secondAttribute="height" multiplier="1:1" id="Ai8-b3-Nn5"/>
                     </constraints>
                     <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="CJy-Jn-eCL"/>
                 </levelIndicator>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Acy-tT-OFH">
-                    <rect key="frame" x="30" y="59" width="61" height="16"/>
+                    <rect key="frame" x="30" y="189" width="61" height="16"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 3" id="FSR-y6-7WE">
                         <font key="font" metaFont="system"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -62,44 +62,131 @@
                     </textFieldCell>
                 </textField>
                 <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bvH-EJ-TYb" userLabel="Fourth indicator">
-                    <rect key="frame" x="8" y="33" width="16" height="18"/>
+                    <rect key="frame" x="8" y="163" width="16" height="18"/>
                     <constraints>
                         <constraint firstAttribute="width" secondItem="bvH-EJ-TYb" secondAttribute="height" multiplier="1:1" id="cKc-q1-2Q4"/>
                     </constraints>
                     <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="eoN-hl-30l"/>
                 </levelIndicator>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="R0g-Oa-VB5">
-                    <rect key="frame" x="30" y="35" width="62" height="16"/>
+                    <rect key="frame" x="30" y="165" width="62" height="16"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 4" id="aGr-cd-jC0">
                         <font key="font" metaFont="system"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
+                <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="pn9-7S-9kS" userLabel="Fourth indicator">
+                    <rect key="frame" x="8" y="139" width="16" height="18"/>
+                    <constraints>
+                        <constraint firstAttribute="width" secondItem="pn9-7S-9kS" secondAttribute="height" multiplier="1:1" id="yUR-uX-jII"/>
+                    </constraints>
+                    <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="iCv-RT-Jg8"/>
+                </levelIndicator>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nDC-Fi-3fv">
+                    <rect key="frame" x="30" y="141" width="61" height="16"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 5" id="b74-7q-OOK">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Bf9-wO-fc9" userLabel="Fourth indicator">
+                    <rect key="frame" x="8" y="115" width="16" height="18"/>
+                    <constraints>
+                        <constraint firstAttribute="width" secondItem="Bf9-wO-fc9" secondAttribute="height" multiplier="1:1" id="K3C-ua-qwN"/>
+                    </constraints>
+                    <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="NyB-3g-1td"/>
+                </levelIndicator>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="DMC-js-ACH">
+                    <rect key="frame" x="30" y="117" width="61" height="16"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 6" id="X6z-Td-IZP">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="BEi-xM-JeY" userLabel="Fourth indicator">
+                    <rect key="frame" x="8" y="91" width="16" height="18"/>
+                    <constraints>
+                        <constraint firstAttribute="width" secondItem="BEi-xM-JeY" secondAttribute="height" multiplier="1:1" id="OrY-a0-81h"/>
+                    </constraints>
+                    <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="ZWa-VF-jLa"/>
+                </levelIndicator>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Q3c-5Q-sZh">
+                    <rect key="frame" x="30" y="93" width="61" height="16"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 7" id="3MD-ZQ-jTk">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="6ff-xA-HJ2">
+                    <rect key="frame" x="30" y="69" width="61" height="16"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Activity 8" id="5EX-Qj-ovC">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <levelIndicator verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Nnc-64-Nyi" userLabel="Fourth indicator">
+                    <rect key="frame" x="8" y="67" width="16" height="18"/>
+                    <constraints>
+                        <constraint firstAttribute="width" secondItem="Nnc-64-Nyi" secondAttribute="height" multiplier="1:1" id="UIo-c7-UFR"/>
+                    </constraints>
+                    <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="FcS-7N-VDW"/>
+                </levelIndicator>
             </subviews>
             <constraints>
                 <constraint firstItem="14O-Lq-Npx" firstAttribute="centerY" secondItem="ncQ-wN-C61" secondAttribute="centerY" id="0Ht-U2-sPg"/>
                 <constraint firstItem="bvH-EJ-TYb" firstAttribute="top" secondItem="0rV-Th-Zwt" secondAttribute="bottom" constant="8" symbolic="YES" id="0xw-qA-6vP"/>
+                <constraint firstItem="Nnc-64-Nyi" firstAttribute="width" secondItem="Nnc-64-Nyi" secondAttribute="height" multiplier="1:1" id="5Oi-JS-jcm"/>
                 <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="14O-Lq-Npx" secondAttribute="trailing" constant="8" id="5eo-XI-a3W"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="6ff-xA-HJ2" secondAttribute="trailing" constant="8" id="5vx-2i-7ZX"/>
                 <constraint firstItem="Tah-UQ-vdf" firstAttribute="centerY" secondItem="ySY-ir-hzb" secondAttribute="centerY" id="6Hn-ts-mTi"/>
+                <constraint firstItem="pn9-7S-9kS" firstAttribute="width" secondItem="pn9-7S-9kS" secondAttribute="height" multiplier="1:1" id="7f0-Op-CDm"/>
+                <constraint firstItem="Nnc-64-Nyi" firstAttribute="width" secondItem="Nnc-64-Nyi" secondAttribute="height" multiplier="1:1" id="ALZ-2x-OdL"/>
+                <constraint firstItem="pn9-7S-9kS" firstAttribute="top" secondItem="bvH-EJ-TYb" secondAttribute="bottom" constant="8" symbolic="YES" id="ALk-8e-nCA"/>
+                <constraint firstItem="Bf9-wO-fc9" firstAttribute="width" secondItem="Bf9-wO-fc9" secondAttribute="height" multiplier="1:1" id="DT1-FT-Ilb"/>
                 <constraint firstItem="R0g-Oa-VB5" firstAttribute="leading" secondItem="bvH-EJ-TYb" secondAttribute="trailing" constant="8" symbolic="YES" id="Dgy-JI-nA1"/>
+                <constraint firstItem="Nnc-64-Nyi" firstAttribute="top" secondItem="BEi-xM-JeY" secondAttribute="bottom" constant="8" symbolic="YES" id="GAa-X8-Mys"/>
                 <constraint firstItem="R0g-Oa-VB5" firstAttribute="centerY" secondItem="bvH-EJ-TYb" secondAttribute="centerY" id="Gfq-mB-Y1z"/>
                 <constraint firstItem="Acy-tT-OFH" firstAttribute="centerY" secondItem="0rV-Th-Zwt" secondAttribute="centerY" id="ImF-rK-oOr"/>
                 <constraint firstItem="Acy-tT-OFH" firstAttribute="leading" secondItem="0rV-Th-Zwt" secondAttribute="trailing" constant="8" symbolic="YES" id="JSU-pZ-l9Q"/>
                 <constraint firstItem="ySY-ir-hzb" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="KMh-EO-rxE"/>
+                <constraint firstItem="nDC-Fi-3fv" firstAttribute="centerY" secondItem="pn9-7S-9kS" secondAttribute="centerY" id="Mea-LA-Xx8"/>
+                <constraint firstItem="Nnc-64-Nyi" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="NA2-Ni-jh8"/>
                 <constraint firstItem="0rV-Th-Zwt" firstAttribute="top" secondItem="ncQ-wN-C61" secondAttribute="bottom" constant="8" symbolic="YES" id="Q2g-yM-nlJ"/>
                 <constraint firstItem="ncQ-wN-C61" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="QUI-Hc-Bcl"/>
+                <constraint firstItem="BEi-xM-JeY" firstAttribute="width" secondItem="BEi-xM-JeY" secondAttribute="height" multiplier="1:1" id="RNt-qR-jIr"/>
+                <constraint firstItem="nDC-Fi-3fv" firstAttribute="leading" secondItem="pn9-7S-9kS" secondAttribute="trailing" constant="8" symbolic="YES" id="RWP-AR-rBQ"/>
+                <constraint firstItem="BEi-xM-JeY" firstAttribute="top" secondItem="Bf9-wO-fc9" secondAttribute="bottom" constant="8" symbolic="YES" id="SfL-e8-tGf"/>
+                <constraint firstItem="6ff-xA-HJ2" firstAttribute="leading" secondItem="Nnc-64-Nyi" secondAttribute="trailing" constant="8" symbolic="YES" id="Td2-d9-JUG"/>
+                <constraint firstItem="Bf9-wO-fc9" firstAttribute="width" secondItem="Bf9-wO-fc9" secondAttribute="height" multiplier="1:1" id="WOL-cc-xiX"/>
+                <constraint firstItem="BEi-xM-JeY" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="WpG-KW-b5w"/>
+                <constraint firstItem="pn9-7S-9kS" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="YgV-sN-mDf"/>
+                <constraint firstItem="6ff-xA-HJ2" firstAttribute="centerY" secondItem="Nnc-64-Nyi" secondAttribute="centerY" id="atz-8g-UGI"/>
                 <constraint firstItem="0rV-Th-Zwt" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="bKh-4L-mqj"/>
+                <constraint firstItem="DMC-js-ACH" firstAttribute="leading" secondItem="Bf9-wO-fc9" secondAttribute="trailing" constant="8" symbolic="YES" id="c1E-R8-Qqu"/>
                 <constraint firstItem="bvH-EJ-TYb" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="cPA-Ls-fLj"/>
+                <constraint firstItem="BEi-xM-JeY" firstAttribute="width" secondItem="BEi-xM-JeY" secondAttribute="height" multiplier="1:1" id="f23-rG-rct"/>
+                <constraint firstItem="Bf9-wO-fc9" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="8" id="fBh-Va-Ijc"/>
                 <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Tah-UQ-vdf" secondAttribute="trailing" constant="8" id="igX-7U-TeE"/>
+                <constraint firstItem="Q3c-5Q-sZh" firstAttribute="centerY" secondItem="BEi-xM-JeY" secondAttribute="centerY" id="jY4-r7-doR"/>
                 <constraint firstItem="14O-Lq-Npx" firstAttribute="leading" secondItem="ncQ-wN-C61" secondAttribute="trailing" constant="8" symbolic="YES" id="jjP-qH-Pqg"/>
                 <constraint firstItem="Tah-UQ-vdf" firstAttribute="leading" secondItem="ySY-ir-hzb" secondAttribute="trailing" constant="8" symbolic="YES" id="lux-Nz-K7E"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Q3c-5Q-sZh" secondAttribute="trailing" constant="8" id="lvS-LP-64Q"/>
+                <constraint firstItem="Q3c-5Q-sZh" firstAttribute="leading" secondItem="BEi-xM-JeY" secondAttribute="trailing" constant="8" symbolic="YES" id="lzK-6c-BDP"/>
                 <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Acy-tT-OFH" secondAttribute="trailing" constant="8" id="mEe-VT-dNr"/>
                 <constraint firstItem="ncQ-wN-C61" firstAttribute="top" secondItem="ySY-ir-hzb" secondAttribute="bottom" constant="8" symbolic="YES" id="mSc-jj-amw"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="nDC-Fi-3fv" secondAttribute="trailing" constant="8" id="oyS-8r-4bB"/>
+                <constraint firstItem="DMC-js-ACH" firstAttribute="centerY" secondItem="Bf9-wO-fc9" secondAttribute="centerY" id="rIJ-Cy-hBa"/>
                 <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="R0g-Oa-VB5" secondAttribute="trailing" constant="8" id="sR8-Ph-suC"/>
+                <constraint firstItem="Bf9-wO-fc9" firstAttribute="top" secondItem="pn9-7S-9kS" secondAttribute="bottom" constant="8" symbolic="YES" id="wRg-AH-BSH"/>
                 <constraint firstItem="ySY-ir-hzb" firstAttribute="top" secondItem="tpZ-0B-QQu" secondAttribute="top" constant="8" id="wbj-48-DYq"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="DMC-js-ACH" secondAttribute="trailing" constant="8" id="wgz-n0-sN7"/>
             </constraints>
-            <point key="canvasLocation" x="57" y="80"/>
+            <point key="canvasLocation" x="57" y="144.5"/>
         </visualEffectView>
     </objects>
 </document>
