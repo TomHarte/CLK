@@ -1130,7 +1130,7 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 	// b0: /STEP
 
 	// Select active drive.
-	set_drive(((value >> 3) & 0xf) ^ 0xf);
+	set_drive(((value >> 3) & 0x0f) ^ 0x0f);
 
 	// "[The MTR] signal is nonstandard on the Amiga system.
 	// Each drive will latch the motor signal at the time its
@@ -1141,9 +1141,9 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 	// Check for changes in the SEL line per drive.
 	const bool motor_on = !(value & 0x80);
 	const int side = (value & 0x04) ? 0 : 1;
-	const bool did_step = (difference & 0x1) && !(value & 0x1);
+	const bool did_step = difference & value & 0x01;
 	const auto direction = Storage::Disk::HeadPosition(
-		(value & 0x02) ? 1 : -1
+		(value & 0x02) ? -1 : 1
 	);
 
 	for(int c = 0; c < 4; c++) {
@@ -1181,7 +1181,7 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 
 		// Possibly step.
 		if(did_step && is_selected) {
-			LOG("Stepped drive " << +c << " by " << direction.as_int());
+			LOG("Stepped drive " << +c << " by " << +direction.as_int());
 			drive.step(direction);
 		}
 	}
