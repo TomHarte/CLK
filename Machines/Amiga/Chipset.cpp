@@ -924,7 +924,7 @@ void Chipset::DiskDMA::set_length(uint16_t value) {
 	buffer_read_ = buffer_write_ = 0;
 
 	if(dma_enable_) {
-		printf("Disk DMA [%s of %d to %06x]\n", write_ ? "write" : "read", length_, pointer_[0]);
+		LOG("Disk DMA [" << (write_ ? "write" : "read") << " of " << length_ << " to " << PADHEX(8) << pointer_[0]);
 	}
 }
 
@@ -1109,7 +1109,6 @@ void Chipset::DiskController::process_index_hole() {
 
 	// Resync word output. Experimental!!
 	bit_count_ = 0;
-	printf("IH\n");
 }
 
 void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
