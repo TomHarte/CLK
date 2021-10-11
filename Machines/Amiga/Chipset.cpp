@@ -905,8 +905,12 @@ void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 // MARK: - Disk.
 
 void Chipset::DiskDMA::enqueue(uint16_t value, bool matches_sync) {
-	// TODO: handle matches_sync.
-	(void)matches_sync;
+	if(matches_sync) {
+		chipset_.posit_interrupt(InterruptFlag::DiskSyncMatch);
+
+		// TODO: start buffering from the next word onwards if
+		// syncing is enabled.
+	}
 
 //	LOG("In: " << buffer_write_);
 
@@ -935,8 +939,8 @@ bool Chipset::DiskDMA::advance() {
 		if(length_ && buffer_read_ != buffer_write_) {
 			ram_[pointer_[0] & ram_mask_] = buffer_[buffer_read_ & 3];
 			++pointer_[0];
-			--length_;
 			++buffer_read_;
+			--length_;
 
 			if(!length_) {
 				chipset_.posit_interrupt(InterruptFlag::DiskBlock);
