@@ -140,10 +140,6 @@ std::shared_ptr<Track> AmigaADF::get_track_at_position(Track::Address address) {
 	encoded_segment.data.reserve(102'400);	// i.e. 0x1900 bytes.
 	auto encoder = MFM::GetMFMEncoder(encoded_segment.data);
 
-	// Each track begins with two sync words.
-	encoder->output_short(MFM::MFMSync);
-	encoder->output_short(MFM::MFMSync);
-
 	// Grab the unencoded track.
 	file_.seek(get_file_offset_for_position(address), SEEK_SET);
 	const std::vector<uint8_t> track_data = file_.read(512 * 11);
