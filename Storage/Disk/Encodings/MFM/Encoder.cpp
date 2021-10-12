@@ -11,6 +11,7 @@
 #include "Constants.hpp"
 #include "../../Track/PCMTrack.hpp"
 #include "../../../../Numeric/CRC.hpp"
+#include "../../../../Numeric/BitSpread.hpp"
 
 #include <cassert>
 #include <set>
@@ -29,31 +30,10 @@ class MFMEncoder: public Encoder {
 
 		void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
 			crc_generator_.add(input);
-			const uint16_t spread_value =
-				uint16_t(
-					((input & 0x01) << 0) |
-					((input & 0x02) << 1) |
-					((input & 0x04) << 2) |
-					((input & 0x08) << 3) |
-					((input & 0x10) << 4) |
-					((input & 0x20) << 5) |
-					((input & 0x40) << 6) |
-					((input & 0x80) << 7)
-				);
+			const uint16_t spread_value = Numeric::spread_bits(input);
+			const uint16_t spread_mask = Numeric::spread_bits(fuzzy_mask);
 			const uint16_t or_bits = uint16_t((spread_value << 1) | (spread_value >> 1) | (last_output_ << 15));
 			const uint16_t output = spread_value | ((~or_bits) & 0xaaaa);
-
-			const uint16_t spread_mask =
-				uint16_t(
-					((fuzzy_mask & 0x01) << 0) |
-					((fuzzy_mask & 0x02) << 1) |
-					((fuzzy_mask & 0x04) << 2) |
-					((fuzzy_mask & 0x08) << 3) |
-					((fuzzy_mask & 0x10) << 4) |
-					((fuzzy_mask & 0x20) << 5) |
-					((fuzzy_mask & 0x40) << 6) |
-					((fuzzy_mask & 0x80) << 7)
-				);
 
 			output_short(output, spread_mask);
 		}
@@ -108,27 +88,8 @@ class FMEncoder: public Encoder {
 		void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
 			crc_generator_.add(input);
 			output_short(
-				uint16_t(
-					((input & 0x01) << 0) |
-					((input & 0x02) << 1) |
-					((input & 0x04) << 2) |
-					((input & 0x08) << 3) |
-					((input & 0x10) << 4) |
-					((input & 0x20) << 5) |
-					((input & 0x40) << 6) |
-					((input & 0x80) << 7) |
-					0xaaaa
-				),
-				uint16_t(
-					((fuzzy_mask & 0x01) << 0) |
-					((fuzzy_mask & 0x02) << 1) |
-					((fuzzy_mask & 0x04) << 2) |
-					((fuzzy_mask & 0x08) << 3) |
-					((fuzzy_mask & 0x10) << 4) |
-					((fuzzy_mask & 0x20) << 5) |
-					((fuzzy_mask & 0x40) << 6) |
-					((fuzzy_mask & 0x80) << 7)
-				)
+				Numeric::spread_bits(input) | 0xaaaa,
+				Numeric::spread_bits(fuzzy_mask)
 			);
 		}
 

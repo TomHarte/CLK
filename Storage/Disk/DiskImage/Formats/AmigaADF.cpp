@@ -10,6 +10,7 @@
 
 #include "../../Encodings/MFM/Constants.hpp"
 #include "../../Encodings/MFM/Encoder.hpp"
+#include "../../../../Numeric/BitSpread.hpp"
 #include "../../Track/PCMTrack.hpp"
 
 #include <type_traits>
@@ -78,16 +79,7 @@ template <typename IteratorT> auto checksum(IteratorT begin, IteratorT end) {
 		++begin;
 
 		// Do a clockless MFM encode.
-		const auto spread = uint16_t(
-			((value&0x80) << 7) |
-			((value&0x40) << 6) |
-			((value&0x20) << 5) |
-			((value&0x10) << 4) |
-			((value&0x08) << 3) |
-			((value&0x04) << 2) |
-			((value&0x02) << 1) |
-			((value&0x01) << 0)
-		);
+		const auto spread = Numeric::spread_bits(value);
 		checksum[offset] ^= spread;
 		offset ^= 1;
 	}
