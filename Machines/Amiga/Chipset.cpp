@@ -1181,7 +1181,7 @@ void Chipset::DiskController::set_mtr_sel_side_dir_step(uint8_t value) {
 
 		// Possibly step.
 		if(did_step && is_selected) {
-			LOG("Stepped drive " << +c << " by " << +direction.as_int());
+			LOG("Stepped drive " << +c << " by " << std::dec << +direction.as_int());
 			drive.step(direction);
 		}
 	}
@@ -1195,7 +1195,7 @@ uint8_t Chipset::DiskController::get_rdy_trk0_wpro_chng() {
 
 	// My interpretation:
 	//
-	//	RDY isn't RDY, it's a shift value as described above.
+	//	RDY isn't RDY, it's a shift value as described above, combined with the motor state.
 	//	CHNG is what is normally RDY.
 
 	const uint32_t combined_id =
