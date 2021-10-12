@@ -9,6 +9,8 @@
 #include "Shifter.hpp"
 #include "Constants.hpp"
 
+#include "../../../../Numeric/BitSpread.hpp"
+
 using namespace Storage::Encodings::MFM;
 
 Shifter::Shifter() : owned_crc_generator_(new CRC::CCITT()), crc_generator_(owned_crc_generator_.get()) {}
@@ -122,13 +124,5 @@ void Shifter::add_input_bit(int value) {
 }
 
 uint8_t Shifter::get_byte() const {
-	return uint8_t(
-		((shift_register_ & 0x0001) >> 0) |
-		((shift_register_ & 0x0004) >> 1) |
-		((shift_register_ & 0x0010) >> 2) |
-		((shift_register_ & 0x0040) >> 3) |
-		((shift_register_ & 0x0100) >> 4) |
-		((shift_register_ & 0x0400) >> 5) |
-		((shift_register_ & 0x1000) >> 6) |
-		((shift_register_ & 0x4000) >> 7));
+	return Numeric::unspread_bits(uint16_t(shift_register_));
 }
