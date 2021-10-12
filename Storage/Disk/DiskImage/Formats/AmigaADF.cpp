@@ -185,6 +185,12 @@ std::shared_ptr<Track> AmigaADF::get_track_at_position(Track::Address address) {
 		encoder->add_bytes(std::begin(encoded_data), std::end(encoded_data));
 	}
 
+	// Throw in an '830-byte' gap (that's in MFM, I think — 830 bytes prior to decoding).
+	// Cf. https://www.techtravels.org/2007/01/syncing-to-the-0x4489-0x4489/#comment-295
+	for(int c = 0; c < 415; c++) {
+		encoder->add_byte(0xff);
+	}
+
 	return std::make_shared<Storage::Disk::PCMTrack>(std::move(encoded_segment));
 }
 
