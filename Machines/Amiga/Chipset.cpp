@@ -69,6 +69,10 @@ void Chipset::posit_interrupt(InterruptFlag flag) {
 	update_interrupts();
 }
 
+void DMADeviceBase::posit_interrupt(InterruptFlag flag) {
+	chipset_.posit_interrupt(flag);
+}
+
 template <int cycle> void Chipset::output() {
 	// Notes to self on guesses below:
 	//
@@ -501,13 +505,12 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		// Raster position.
 		case Read(0x004): {
 			const uint16_t position = uint16_t(y_ >> 8);
-			LOG("Read vertical position high " << PADHEX(4) << position);
+//			LOG("Read vertical position high " << PADHEX(4) << position);
 			cycle.set_value16(position);
 		} break;
 		case Read(0x006): {
-//			const uint16_t position = uint16_t(((line_cycle_ << 6) & 0xff00) | (y_ & 0x00ff));
-			const uint16_t position = 0xd1ef;	// TODO: !!!
-			LOG("Read position low " << PADHEX(4) << position);
+			const uint16_t position = uint16_t(((line_cycle_ << 6) & 0xff00) | (y_ & 0x00ff));
+//			LOG("Read position low " << PADHEX(4) << position);
 			cycle.set_value16(position);
 		} break;
 
@@ -521,15 +524,15 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		// Joystick/mouse input.
 		case Read(0x00a):
 		case Read(0x00c):
-			LOG("TODO: Joystick/mouse position " << PADHEX(4) << *cycle.address);
+//			LOG("TODO: Joystick/mouse position " << PADHEX(4) << *cycle.address);
 			cycle.set_value16(0x8080);
 		break;
 
 		case Write(0x034):
-			LOG("TODO: pot port start");
+//			LOG("TODO: pot port start");
 		break;
 		case Read(0x016):
-			LOG("TODO: pot port read");
+//			LOG("TODO: pot port read");
 			cycle.set_value16(0xff00);
 		break;
 
@@ -543,20 +546,24 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		case Write(0x09e):
+			LOG("Write disk control");
 			ApplySetClear(paula_disk_control_);
 
 			disk_controller_.set_control(paula_disk_control_);
 			// TODO: should also post to Paula.
 		break;
 		case Read(0x010):
+			LOG("Read disk control");
 			cycle.set_value16(paula_disk_control_);
 		break;
 
 		case Write(0x07e):
 			disk_controller_.set_sync_word(cycle.value16());
+			assert(false);	// Not fully implemented.
 		break;
 		case Read(0x01a):
 			LOG("TODO: disk status");
+			assert(false);	// Not yet implemented.
 		break;
 
 		// Refresh.
@@ -591,17 +598,17 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x09a):
 			ApplySetClear(interrupt_enable_);
 			update_interrupts();
-//			LOG("Interrupt enable mask modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_enable_});
+			LOG("Interrupt enable mask modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_enable_});
 		break;
 		case Read(0x01c):
 			cycle.set_value16(interrupt_enable_);
-			LOG("Interrupt enable mask read: " << PADHEX(4) << interrupt_enable_);
+//			LOG("Interrupt enable mask read: " << PADHEX(4) << interrupt_enable_);
 		break;
 
 		case Write(0x09c):
 			ApplySetClear(interrupt_requests_);
 			update_interrupts();
-			LOG("Interrupt request modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_requests_});
+//			LOG("Interrupt request modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_requests_});
 		break;
 		case Read(0x01e):
 			cycle.set_value16(interrupt_requests_);

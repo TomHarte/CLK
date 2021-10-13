@@ -203,6 +203,9 @@ bool Blitter::advance() {
 	} else {
 		// Copy mode.
 
+//		int lc = 0;
+//		printf("*** [%d x %d]\n", width_, height_);
+
 		// Quick hack: do the entire action atomically.
 		for(int y = 0; y < height_; y++) {
 			for(int x = 0; x < width_; x++) {
@@ -224,6 +227,9 @@ bool Blitter::advance() {
 				}
 
 				if(channel_enables_[3]) {
+//					if(!(lc&15)) printf("\n%06x: ", pointer_[3]);
+//					++lc;
+
 					uint16_t a_mask = 0xffff;
 					if(x == 0) a_mask &= a_mask_[0];
 					if(x == width_ - 1) a_mask &= a_mask_[1];
@@ -235,6 +241,8 @@ bool Blitter::advance() {
 							c_,
 							minterms_);
 
+//					printf("%04x ", ram_[pointer_[3] & ram_mask_]);
+
 					pointer_[3] += direction_;
 				}
 			}
@@ -244,8 +252,10 @@ bool Blitter::advance() {
 			pointer_[2] += modulos_[2] * channel_enables_[2];
 			pointer_[3] += modulos_[3] * channel_enables_[3];
 		}
+//		printf("\n");
 	}
 
+	posit_interrupt(InterruptFlag::Blitter);
 	height_ = 0;
 
 	return true;
