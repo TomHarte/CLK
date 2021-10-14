@@ -1082,15 +1082,17 @@ void Chipset::DiskController::process_input_bit(int value) {
 	data_ = uint16_t((data_ << 1) | value);
 	++bit_count_;
 
-	if(data_ == sync_word_) {
+	const bool sync_matches = data_ == sync_word_;
+	if(sync_matches) {
 		chipset_.posit_interrupt(InterruptFlag::DiskSyncMatch);
+
+		if(sync_with_word_) {
+			bit_count_ = 0;
+		}
 	}
 
-	if(sync_with_word_ && data_ == sync_word_) {
-		disk_dma_.enqueue(data_, true);
-		bit_count_ = 0;
-	} else if(!(bit_count_&15)) {
-		disk_dma_.enqueue(data_, false);
+	if(!(bit_count_ & 15)) {
+		disk_dma_.enqueue(data_, sync_matches);
 	}
 }
 
