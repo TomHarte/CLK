@@ -28,7 +28,7 @@ ClockingHint::Preference Controller::preferred_clocking() const {
 	// Nominate RealTime clocking if any drive currently wants any clocking whatsoever.
 	// Otherwise, ::None will do.
 	for(auto &drive: drives_) {
-		const auto preferred_clocking = drive.preferred_clocking();
+		const auto preferred_clocking = drive->preferred_clocking();
 		if(preferred_clocking != ClockingHint::Preference::None) {
 			return ClockingHint::Preference::RealTime;
 		}
@@ -41,7 +41,7 @@ ClockingHint::Preference Controller::preferred_clocking() const {
 
 void Controller::run_for(const Cycles cycles) {
 	for(auto &drive: drives_) {
-		drive.run_for(cycles);
+		drive->run_for(cycles);
 	}
 	empty_drive_.run_for(cycles);
 }
@@ -110,7 +110,7 @@ void Controller::set_drive(int index_mask) {
 			index_mask >>= 1;
 			++index;
 		}
-		drive_ = &drives_[index];
+		drive_ = drives_[index].get();
 	}
 
 	get_drive().set_event_delegate(this);

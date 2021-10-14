@@ -37,6 +37,10 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
 		virtual ~Drive();
 
+		// Disallow copying.
+		Drive(const Drive &) = delete;
+		void operator=(const Drive &) = delete;
+
 		/*!
 			Replaces whatever is in the drive with @c disk. Supply @c nullptr to eject any current disk and leave none inserted.
 		*/

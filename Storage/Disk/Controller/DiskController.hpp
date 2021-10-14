@@ -60,8 +60,8 @@ class Controller:
 			Adds a new drive to the drive list, returning its index.
 		*/
 		template<typename... Args> size_t emplace_drive(Args&&... args) {
-			drives_.emplace_back(std::forward<Args>(args)...);
-			drives_.back().set_clocking_hint_observer(this);
+			drives_.emplace_back(new Drive(std::forward<Args>(args)...));
+			drives_.back()->set_clocking_hint_observer(this);
 			return drives_.size() - 1;
 		}
 
@@ -70,8 +70,7 @@ class Controller:
 		*/
 		template<typename... Args> size_t emplace_drives(size_t count, Args&&... args) {
 			while(count--) {
-				drives_.emplace_back(std::forward<Args>(args)...);
-				drives_.back().set_clocking_hint_observer(this);
+				emplace_drive(std::forward<Args>(args)...);
 			}
 			return drives_.size() - 1;
 		}
@@ -122,13 +121,13 @@ class Controller:
 		Drive &get_drive();
 
 		Drive &get_drive(size_t index) {
-			return drives_[index];
+			return *drives_[index];
 		}
 
 		void for_all_drives(const std::function<void(Drive &, size_t)> &func) {
 			size_t index = 0;
 			for(auto &drive: drives_) {
-				func(drive, index);
+				func(*drive, index);
 				++index;
 			}
 		}
@@ -149,7 +148,7 @@ class Controller:
 		friend DigitalPhaseLockedLoop<Controller>;
 
 		Drive empty_drive_;
-		std::vector<Drive> drives_;
+		std::vector<std::unique_ptr<Drive>> drives_;
 		Drive *drive_;
 		int drive_selection_mask_ = 0xff;
 

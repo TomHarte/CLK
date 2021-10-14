@@ -890,7 +890,6 @@ void Chipset::Bitplanes::set_control(uint16_t control) {
 	}
 }
 
-
 // MARK: - Sprites.
 
 void Chipset::Sprite::set_pointer(int shift, uint16_t value) {
@@ -1057,7 +1056,7 @@ void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 }
 
 uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port) {
-	LOG("Unexpected input for CIA B");
+	LOG("Unexpected: input for CIA B");
 	return 0xff;
 }
 
@@ -1065,7 +1064,6 @@ uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port) {
 
 void Chipset::set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference preference) {
 	disk_controller_is_sleeping_ = preference == ClockingHint::Preference::None;
-	LOG("Disk controller is " << (disk_controller_is_sleeping_ ? "sleeping" : "awake"));
 }
 
 // MARK: - Disk Controller.
