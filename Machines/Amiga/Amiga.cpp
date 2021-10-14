@@ -102,8 +102,6 @@ class ConcreteMachine:
 			// Do nothing if no address is exposed.
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return access_delay;
 
-			// TODO: interrupt acknowledgement.
-
 			// Grab the target address to pick a memory source.
 			const uint32_t address = cycle.host_endian_byte_address();
 
