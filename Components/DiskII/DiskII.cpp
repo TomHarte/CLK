@@ -22,7 +22,7 @@ namespace  {
 DiskII::DiskII(int clock_rate) :
 	clock_rate_(clock_rate),
 	inputs_(input_command),
-	drives_{{clock_rate, 300, 1}, {clock_rate, 300, 1}}
+	drives_{Storage::Disk::Drive{clock_rate, 300, 1}, Storage::Disk::Drive{clock_rate, 300, 1}}
 {
 	drives_[0].set_clocking_hint_observer(this);
 	drives_[1].set_clocking_hint_observer(this);
