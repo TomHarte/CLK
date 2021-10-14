@@ -43,7 +43,7 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	cia_a(cia_a_handler_),
 	cia_b(cia_b_handler_),
 	disk_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
-	disk_controller_(Cycles(input_clock_rate), disk_, cia_b) {
+	disk_controller_(Cycles(input_clock_rate), *this, disk_, cia_b) {
 	disk_controller_.set_clocking_hint_observer(this);
 }
 
@@ -912,8 +912,6 @@ void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 
 void Chipset::DiskDMA::enqueue(uint16_t value, bool matches_sync) {
 	if(matches_sync) {
-		chipset_.posit_interrupt(InterruptFlag::DiskSyncMatch);
-
 		// TODO: start buffering from the next word onwards if
 		// syncing is enabled.
 	}
@@ -1068,8 +1066,9 @@ void Chipset::set_component_prefers_clocking(ClockingHint::Source *, ClockingHin
 
 // MARK: - Disk Controller.
 
-Chipset::DiskController::DiskController(Cycles clock_rate, DiskDMA &disk_dma, CIAB &cia) :
+Chipset::DiskController::DiskController(Cycles clock_rate, Chipset &chipset, DiskDMA &disk_dma, CIAB &cia) :
 	Storage::Disk::Controller(clock_rate),
+	chipset_(chipset),
 	disk_dma_(disk_dma),
 	cia_(cia) {
 
@@ -1082,6 +1081,10 @@ Chipset::DiskController::DiskController(Cycles clock_rate, DiskDMA &disk_dma, CI
 void Chipset::DiskController::process_input_bit(int value) {
 	data_ = uint16_t((data_ << 1) | value);
 	++bit_count_;
+
+	if(data_ == sync_word_) {
+		chipset_.posit_interrupt(InterruptFlag::DiskSyncMatch);
+	}
 
 	if(sync_with_word_ && data_ == sync_word_) {
 		disk_dma_.enqueue(data_, true);

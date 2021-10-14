@@ -274,7 +274,7 @@ class Chipset: private ClockingHint::Observer {
 
 		class DiskController: public Storage::Disk::Controller {
 			public:
-				DiskController(Cycles clock_rate, DiskDMA &disk_dma, CIAB &cia);
+				DiskController(Cycles clock_rate, Chipset &chipset, DiskDMA &disk_dma, CIAB &cia);
 
 				void set_mtr_sel_side_dir_step(uint8_t);
 				uint8_t get_rdy_trk0_wpro_chng();
@@ -300,13 +300,15 @@ class Chipset: private ClockingHint::Observer {
 
 				uint16_t data_ = 0;
 				int bit_count_ = 0;
-				uint16_t sync_word_ = 0;
+				uint16_t sync_word_ = 0x4489;	// TODO: confirm or deny guess.
 				bool sync_with_word_ = false;
 
+				Chipset &chipset_;
 				DiskDMA &disk_dma_;
 				CIAB &cia_;
 
 		} disk_controller_;
+		friend DiskController;
 
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
 		bool disk_controller_is_sleeping_ = false;
