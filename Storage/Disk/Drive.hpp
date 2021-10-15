@@ -37,8 +37,14 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
 		virtual ~Drive();
 
-		// Disallow copying.
-		Drive(const Drive &) = delete;
+		// TODO: Disallow copying.
+		//
+		// GCC has an issue with the way the DiskII constructs its drive array if these are both
+		// deleted, despite not using the copy constructor. Unless I'm deficient in my interpretation.
+		// Clang has no such issue though, so possibly I'm not.
+		//
+		// Change withdrawn until I can figure out what's afoot.
+//		Drive(const Drive &) = delete;
 		void operator=(const Drive &) = delete;
 
 		/*!
