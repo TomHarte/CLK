@@ -8,7 +8,7 @@
 
 #include "Blitter.hpp"
 
-#include "Minterms.h"
+#include "Minterms.hpp"
 
 //#define NDEBUG
 #define LOG_PREFIX "[Blitter] "

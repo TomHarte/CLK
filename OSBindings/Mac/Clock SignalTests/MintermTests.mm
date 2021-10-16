@@ -9,7 +9,7 @@
 #import <XCTest/XCTest.h>
 
 #include <cstdint>
-#include "Minterms.h"
+#include "Minterms.hpp"
 
 namespace {
 

@@ -1,13 +1,13 @@
 //
-//  Minterms.h
+//  Minterms.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 20/09/2021.
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Minterms_h
-#define Minterms_h
+#ifndef Minterms_hpp
+#define Minterms_hpp
 
 namespace Amiga {
 
@@ -384,4 +384,4 @@ template <typename IntT> IntT apply_minterm(IntT a, IntT b, IntT c, int minterm)
 
 }
 
-#endif /* Minterms_h */
+#endif /* Minterms_hpp */
