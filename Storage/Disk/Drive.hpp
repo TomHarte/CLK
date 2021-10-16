@@ -39,11 +39,10 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		// TODO: Disallow copying.
 		//
-		// GCC has an issue with the way the DiskII constructs its drive array if these are both
-		// deleted, despite not using the copy constructor. Unless I'm deficient in my interpretation.
-		// Clang has no such issue though, so possibly I'm not.
+		// GCC 10 has an issue with the way the DiskII constructs its drive array if these are both
+		// deleted, despite not using the copy constructor.
 		//
-		// Change withdrawn until I can figure out what's afoot.
+		// This seems to be fixed in GCC 11, so reenable this delete when possible.
 //		Drive(const Drive &) = delete;
 		void operator=(const Drive &) = delete;
 
