@@ -212,6 +212,7 @@
 		4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
 		4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512E1D98ACC600B4FED8 /* Plus3.cpp */; };
 		4B322E041F5A2E3C004EB04C /* Z80Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B322E031F5A2E3C004EB04C /* Z80Base.cpp */; };
+		4B32F72D271B3E1A00BFC623 /* sector decode.json in Resources */ = {isa = PBXBuildFile; fileRef = 4B32F72C271B3E1A00BFC623 /* sector decode.json */; };
 		4B37EE821D7345A6006A09A4 /* BinaryDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */; };
 		4B38F3481F2EC11D00D9235D /* AmstradCPC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */; };
 		4B3940E71DA83C8300427841 /* AsyncTaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */; };
@@ -1234,6 +1235,7 @@
 		4B322E021F5A29D5004EB04C /* Z80Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Z80Storage.hpp; sourceTree = "<group>"; };
 		4B322E031F5A2E3C004EB04C /* Z80Base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Z80Base.cpp; sourceTree = "<group>"; };
 		4B322E051F5A30F5004EB04C /* Z80Implementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Z80Implementation.hpp; sourceTree = "<group>"; };
+		4B32F72C271B3E1A00BFC623 /* sector decode.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = "sector decode.json"; path = "Kickstart 1.3 boot logo/sector decode.json"; sourceTree = "<group>"; };
 		4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BinaryDump.cpp; sourceTree = "<group>"; };
 		4B37EE811D7345A6006A09A4 /* BinaryDump.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = BinaryDump.hpp; sourceTree = "<group>"; };
 		4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AmstradCPC.cpp; sourceTree = "<group>"; };
@@ -2370,6 +2372,7 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
+				4B32F72C271B3E1A00BFC623 /* sector decode.json */,
 				4BD1552F2711E5FD00410C6E /* kickstart13 boot logo.json */,
 				4B680CE323A555CA00451D43 /* 68000 Comparative Tests */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
@@ -4992,6 +4995,7 @@
 				4BB299671B587D8400A49093 /* inxn in Resources */,
 				4BB2998C1B587D8400A49093 /* lsez in Resources */,
 				4BB299AF1B587D8400A49093 /* rlaz in Resources */,
+				4B32F72D271B3E1A00BFC623 /* sector decode.json in Resources */,
 				4BB2999C1B587D8400A49093 /* nopzx in Resources */,
 				4BB299A01B587D8400A49093 /* oraay in Resources */,
 				4B8DF6E32550D91700F3433C /* CPUEOR.sfc in Resources */,

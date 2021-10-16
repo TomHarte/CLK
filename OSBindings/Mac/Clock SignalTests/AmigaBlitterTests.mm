@@ -17,17 +17,41 @@ namespace Amiga {
 struct Chipset {};
 };
 
+namespace {
+
+using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
+
+}
+
 @interface AmigaBlitterTests: XCTestCase
 @end
 
 @implementation AmigaBlitterTests
 
-- (void)testKickstart13BootLogo {
+- (BOOL)verifyWrites:(WriteVector &)writes blitter:(Amiga::Blitter &)blitter ram:(uint16_t *)ram {
+	// Run for however much time the Blitter wants.
+	while(blitter.get_status()) {
+		blitter.advance();
+	}
+
+	for(const auto &write: writes) {
+		XCTAssertEqual(ram[write.first >> 1], write.second, @"Didn't find %04x at address %08x; found %04x instead", write.second, write.first, ram[write.first >> 1]);
+
+		// For now, indicate only the first failure.
+		if(ram[write.first >> 1] != write.second) {
+			return NO;
+		}
+	}
+	writes.clear();
+	return YES;
+}
+
+- (void)testCase:(NSString *)name {
 	uint16_t ram[256 * 1024]{};
 	Amiga::Chipset nonChipset;
 	Amiga::Blitter blitter(nonChipset, ram, 256 * 1024);
 
-	NSURL *const traceURL = [[NSBundle bundleForClass:[self class]] URLForResource:@"kickstart13 boot logo" withExtension:@"json"];
+	NSURL *const traceURL = [[NSBundle bundleForClass:[self class]] URLForResource:name withExtension:@"json"];
 	NSData *const traceData = [NSData dataWithContentsOfURL:traceURL];
 	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
 
@@ -44,7 +68,7 @@ struct Chipset {};
 		LoggingWrites
 	} state = State::AwaitingWrites;
 
-	std::vector<std::pair<uint32_t, uint16_t>> writes;
+	WriteVector writes;
 	BOOL hasFailed = NO;
 
 	for(NSArray *const event in trace) {
@@ -72,21 +96,10 @@ struct Chipset {};
 
 		// Hackaround for testing my magical all-at-once Blitter is here.
 		if(state == State::LoggingWrites) {
-			// Run for however much time the Blitter wants.
-			while(blitter.get_status()) {
-				blitter.advance();
+			if(![self verifyWrites:writes blitter:blitter ram:ram]) {
+				hasFailed = YES;
+				break;
 			}
-
-			for(const auto &write: writes) {
-				XCTAssertEqual(ram[write.first >> 1], write.second, @"Didn't find %04x at address %08x; found %04x instead", write.second, write.first, ram[write.first >> 1]);
-
-				// For now, indicate only the first failure.
-				if(ram[write.first >> 1] != write.second) {
-					break;
-//					hasFailed = YES;
-				}
-			}
-			writes.clear();
 			state = State::AwaitingWrites;
 		}
 		// Hack ends here.
@@ -183,6 +196,19 @@ struct Chipset {};
 		XCTAssert(false);
 		break;
 	}
+
+	// Check the final set of writes.
+	if(!hasFailed) {
+		[self verifyWrites:writes blitter:blitter ram:ram];
+	}
+}
+
+- (void)testKickstart13BootLogo {
+	[self testCase:@"kickstart13 boot logo"];
+}
+
+- (void)testDOSSector {
+	[self testCase:@"sector decode"];
 }
 
 @end
