@@ -207,18 +207,41 @@ bool Blitter::advance() {
 //		printf("*** [%d x %d]\n", width_, height_);
 
 		// Quick hack: do the entire action atomically.
+		if(channel_enables_[0]) a_ = 0;
+		if(channel_enables_[1]) b_ = 0;
+		if(channel_enables_[2]) c_ = 0;
+
 		for(int y = 0; y < height_; y++) {
 			for(int x = 0; x < width_; x++) {
 				if(channel_enables_[0]) {
 					a32_ = (a32_ << 16) | ram_[pointer_[0] & ram_mask_];
-					a_ = uint16_t(a32_ >> shifts_[0]);
 					pointer_[0] += direction_;
+
+					// The barrel shifter shifts to the right in ascending address mode,
+					// but to the left othrwise
+					if(!one_dot_) {
+						a_ = uint16_t(a32_ >> shifts_[0]);
+					} else {
+						// TODO: there must be a neater solution than this.
+						a_ = uint16_t(
+							(a32_ << shifts_[0]) |
+							(a32_ >> (32 - shifts_[0]))
+						);
+					}
 				}
 
 				if(channel_enables_[1]) {
 					b32_ = (b32_ << 16) | ram_[pointer_[1] & ram_mask_];
-					b_ = uint16_t(b32_ >> shifts_[1]);
 					pointer_[1] += direction_;
+
+					if(!one_dot_) {
+						b_ = uint16_t(b32_ >> shifts_[1]);
+					} else {
+						b_ = uint16_t(
+							(b32_ << shifts_[1]) |
+							(b32_ >> (32 - shifts_[1]))
+						);
+					}
 				}
 
 				if(channel_enables_[2]) {
