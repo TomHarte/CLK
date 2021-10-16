@@ -689,6 +689,9 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Blitter.
+		case Read(0x040):	blitter_.set_control(0, 0xffff);				break;	// UGH. Have fallen into quite a hole here with my
+		case Read(0x042):	blitter_.set_control(1, 0xffff);				break;	// Read/Write macros. TODO: some sort of canonical decode?
+																					// Templatey to hit the usual Read/Write cases first?
 		case Write(0x040):	blitter_.set_control(0, cycle.value16());		break;
 		case Write(0x042):	blitter_.set_control(1, cycle.value16());		break;
 		case Write(0x044):	blitter_.set_first_word_mask(cycle.value16());	break;
