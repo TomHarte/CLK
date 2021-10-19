@@ -146,8 +146,8 @@ template <int cycle> void Chipset::output() {
 
 		// TODO: these shouldn't be functions of the fetch window,
 		// but of the display window.
-		display_horizontal_ |= (cycle << 1) == fetch_window_[0];
-		display_horizontal_ &= (cycle << 1) != fetch_window_[1];
+		display_horizontal_ |= cycle == fetch_window_[0];
+		display_horizontal_ &= cycle != fetch_window_[1];
 
 		if constexpr (cycle > blank3) {
 			const bool is_pixel_display = display_horizontal_ && fetch_vertical_;
@@ -252,19 +252,15 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	//
 	// TODO: figure out how the hard stops factor into this.
 	//
-	// TODO: eliminate hard-coded 320 below. There's clearly something
-	// (well, probably many things) I don't yet understand about the
-	// fetch window.
-	fetch_horizontal_ |= (cycle << 1) == fetch_window_[0];
-	fetch_horizontal_ &= (cycle << 1) != (fetch_window_[0] + 320);
-//	fetch_horizontal_ &= (cycle << 1) != fetch_window_[1];
-	//fetch_window_[1];
 
 	// Top priority: bitplane collection.
+	// TODO: mask off fetch_window_'s lower bits. (Dependant on high/low-res?)
+	fetch_horizontal_ |= cycle == fetch_window_[0];
+	horizontal_is_last_ |= cycle == fetch_window_[1];
 	if((dma_control_ & BitplaneFlag) == BitplaneFlag) {
 		// TODO: offer a cycle for bitplane collection.
 		// Probably need to indicate odd or even?
-		if(fetch_horizontal_ && fetch_vertical_ && bitplanes_.advance(cycle - (fetch_window_[0] >> 1))) {	// TODO: cycle should be relative to start of collection.
+		if(fetch_vertical_ && fetch_horizontal_ && bitplanes_.advance(cycle)) {
 			did_fetch_ = true;
 			return false;
 		}
@@ -335,7 +331,6 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 		C10(200);	C10(210);
 		C(220);		C(221);		C(222);		C(223);		C(224);
 		C(225);		C(226);		C(227);		C(228);
-//		break;
 
 		default: assert(false);
 	}
@@ -378,7 +373,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 			pixels_remaining -= line_pixels;
 		}
 
-		// Advance intraline counter and pcoossibly ripple upwards into
+		// Advance intraline counter and possibly ripple upwards into
 		// lines and fields.
 		if(line_cycle_ == (line_length_ * 4)) {
 			++hsyncs;
@@ -388,13 +383,22 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 			fetch_vertical_ |= y_ == display_window_start_[1];
 			fetch_vertical_ &= y_ != display_window_stop_[1];
+//			if(y_ == display_window_start_[1]) {
+//				fetch_vertical_ = true;
+////				LOG("Enabling vertical fetch at line " << std::dec << +y_);
+//			}
+//			if(y_ == display_window_stop_[1]) {
+//				fetch_vertical_ = false;
+////				LOG("Disabling vertical fetch at line " << std::dec << +y_);
+//			}
 
 			if(did_fetch_) {
 				// TODO: find out when modulos are actually applied, since
 				// they're dynamically programmable.
 				bitplanes_.do_end_of_line();
-				did_fetch_ = false;
 			}
+			did_fetch_ = false;
+			fetch_horizontal_ = horizontal_is_last_ = false;
 
 			if(y_ == frame_height_) {
 				++vsyncs;
@@ -439,10 +443,7 @@ void Chipset::post_bitplanes(const BitplaneData &data) {
 	// TODO: should probably store for potential delay?
 	current_bitplanes_ = data;
 
-//	current_bitplanes_[0] = 0xaaaa;
-//	current_bitplanes_[1] = 0x3333;
-//	current_bitplanes_[2] = 0x4444;
-//	current_bitplanes_[3] = 0x1111;
+	fetch_horizontal_ &= !horizontal_is_last_;
 
 	// Convert to future pixels.
 //	const int odd_offset = line_cycle_ + odd_delay_;
@@ -630,11 +631,11 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			LOG("Display window stop set to " << std::dec << display_window_stop_[0] << ", " << display_window_stop_[1]);
 		} break;
 		case Write(0x092):
-			fetch_window_[0] = uint16_t((cycle.value16() & 0xfc) << 1);
+			fetch_window_[0] = cycle.value16();
 			LOG("Fetch window start set to " << std::dec << fetch_window_[0]);
 		break;
 		case Write(0x094):
-			fetch_window_[1] = uint16_t((cycle.value16() & 0xfc) << 1);
+			fetch_window_[1] = cycle.value16();
 			LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
 		break;
 
@@ -842,30 +843,21 @@ bool Chipset::Bitplanes::advance(int cycle) {
 	return false;
 
 	if(is_high_res_) {
-		// TODO: I'm unclear whether this is correct, or merely
-		// an artefact of the way the Hardware Reference Manual
-		// depicts per-line DMA responsibilities.
-		if(cycle < 4) {
-			return false;
-		}
-
-		switch(cycle&7) {
+		switch(cycle&3) {
 			default: return false;
 			BIND_CYCLE(0, 3);
 			BIND_CYCLE(1, 1);
 			BIND_CYCLE(2, 2);
 			BIND_CYCLE(3, 0);
-			BIND_CYCLE(4, 3);
-			BIND_CYCLE(5, 1);
-			BIND_CYCLE(6, 2);
-			BIND_CYCLE(7, 0);
 		}
 	} else {
 		switch(cycle&7) {
 			default: return false;
+			/* Omitted: 0. */
 			BIND_CYCLE(1, 3);
 			BIND_CYCLE(2, 5);
 			BIND_CYCLE(3, 1);
+			/* Omitted: 4. */
 			BIND_CYCLE(5, 2);
 			BIND_CYCLE(6, 4);
 			BIND_CYCLE(7, 0);
