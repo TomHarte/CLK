@@ -171,44 +171,20 @@ template <int cycle> void Chipset::output() {
 				}
 
 				if(pixels_) {
-					// TODO: this is obviously nonsense. Probably do a table-based
-					// planar-to-chunky up front into 8-bit pockets, and just shift that.
+					// TODO: this doesn't support dual playfields; use an alternative
+					// palette table for that.
 
-					pixels_[0] = palette_[
-						((current_bitplanes_[0]&0x8000) >> 15) |
-						((current_bitplanes_[1]&0x8000) >> 14) |
-						((current_bitplanes_[2]&0x8000) >> 13) |
-						((current_bitplanes_[3]&0x8000) >> 12) |
-						((current_bitplanes_[4]&0x8000) >> 11)
-					];
-					current_bitplanes_ <<= is_high_res_;
+					pixels_[0] = palette_[bitplane_pixels_ >> 120];
+					bitplane_pixels_ <<= is_high_res_ * 8;
 
-					pixels_[1] = palette_[
-						((current_bitplanes_[0]&0x8000) >> 15) |
-						((current_bitplanes_[1]&0x8000) >> 14) |
-						((current_bitplanes_[2]&0x8000) >> 13) |
-						((current_bitplanes_[3]&0x8000) >> 12) |
-						((current_bitplanes_[4]&0x8000) >> 11)
-					];
-					current_bitplanes_ <<= 1;
+					pixels_[1] = palette_[bitplane_pixels_ >> 120];
+					bitplane_pixels_ <<= 8;
 
-					pixels_[2] = palette_[
-						((current_bitplanes_[0]&0x8000) >> 15) |
-						((current_bitplanes_[1]&0x8000) >> 14) |
-						((current_bitplanes_[2]&0x8000) >> 13) |
-						((current_bitplanes_[3]&0x8000) >> 12) |
-						((current_bitplanes_[4]&0x8000) >> 11)
-					];
-					current_bitplanes_ <<= is_high_res_;
+					pixels_[2] = palette_[bitplane_pixels_ >> 120];
+					bitplane_pixels_ <<= is_high_res_ * 8;
 
-					pixels_[3] = palette_[
-						((current_bitplanes_[0]&0x8000) >> 15) |
-						((current_bitplanes_[1]&0x8000) >> 14) |
-						((current_bitplanes_[2]&0x8000) >> 13) |
-						((current_bitplanes_[3]&0x8000) >> 12) |
-						((current_bitplanes_[4]&0x8000) >> 11)
-					];
-					current_bitplanes_ <<= 1;
+					pixels_[3] = palette_[bitplane_pixels_ >> 120];
+					bitplane_pixels_ <<= 8;
 
 					pixels_ += 4;
 				}
@@ -396,6 +372,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				// TODO: find out when modulos are actually applied, since
 				// they're dynamically programmable.
 				bitplanes_.do_end_of_line();
+				previous_bitplanes_.clear();
 			}
 			did_fetch_ = false;
 			fetch_horizontal_ = horizontal_is_last_ = false;
@@ -440,23 +417,57 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 }
 
 void Chipset::post_bitplanes(const BitplaneData &data) {
-	// TODO: should probably store for potential delay?
-	current_bitplanes_ = data;
+	// Expand this
+	bitplane_pixels_.set(
+		previous_bitplanes_,
+		data,
+		odd_delay_,
+		even_delay_
+	);
+	previous_bitplanes_ = data;
 
 	fetch_horizontal_ &= !horizontal_is_last_;
+}
 
-	// Convert to future pixels.
-//	const int odd_offset = line_cycle_ + odd_delay_;
-//	const int even_offset = line_cycle_ + odd_delay_;
-//	for(int x = 0; x < 16; x++) {
-//		const uint16_t mask = uint16_t(1 << x);
-//		even_playfield_[x + even_offset] = uint8_t(
-//			((data[0] & mask) | ((data[2] & mask) << 1) | ((data[4] & mask) << 2)) >> x
-//		);
-//		odd_playfield_[x + odd_offset] = uint8_t(
-//			((data[1] & mask) | ((data[3] & mask) << 1) | ((data[5] & mask) << 2)) >> x
-//		);
-//	}
+namespace {
+
+/// Expands @c source so that b7 is the least-significant bit of the most-significant byte of the result,
+/// b6 is the least-significant bit of the next most significant byte, etc. b0 stays in place.
+constexpr uint64_t expand_byte(uint8_t source) {
+	uint64_t result = source;									// 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 abcd efgh
+	result = (result | (result << 28)) & 0x0000'000f'0000'000f;	// 0000 0000 0000 0000 0000 0000 0000 abcd 0000 0000 0000 0000 0000 0000 0000 efgh
+	result = (result | (result << 14)) & 0x0003'0003'0003'0003;	// 0000 0000 0000 00ab 0000 0000 0000 00cd 0000 0000 0000 00ef 0000 0000 0000 00gh
+	result = (result | (result << 7)) & 0x0101'0101'0101'0101;	// 0000 000a 0000 000b 0000 000c 0000 000d 0000 000e 0000 000f 0000 000g 0000 000h
+	return result;
+}
+
+}
+
+void Chipset::SixteenPixels::set(const BitplaneData &previous, const BitplaneData &next, int odd_delay, int even_delay) {
+	const uint16_t planes[6] = {
+		uint16_t(((previous[0] << 16) | next[0]) >> even_delay),
+		uint16_t(((previous[1] << 16) | next[1]) >> odd_delay),
+		uint16_t(((previous[2] << 16) | next[2]) >> even_delay),
+		uint16_t(((previous[3] << 16) | next[3]) >> odd_delay),
+		uint16_t(((previous[4] << 16) | next[4]) >> even_delay),
+		uint16_t(((previous[5] << 16) | next[5]) >> odd_delay),
+	};
+
+	(*this)[0] =
+		(expand_byte(uint8_t(planes[0])) << 0) |
+		(expand_byte(uint8_t(planes[1])) << 1) |
+		(expand_byte(uint8_t(planes[2])) << 2) |
+		(expand_byte(uint8_t(planes[3])) << 3) |
+		(expand_byte(uint8_t(planes[4])) << 4) |
+		(expand_byte(uint8_t(planes[5])) << 5);
+
+	(*this)[1] =
+		(expand_byte(uint8_t(planes[0] >> 8)) << 0) |
+		(expand_byte(uint8_t(planes[1] >> 8)) << 1) |
+		(expand_byte(uint8_t(planes[2] >> 8)) << 2) |
+		(expand_byte(uint8_t(planes[3] >> 8)) << 3) |
+		(expand_byte(uint8_t(planes[4] >> 8)) << 4) |
+		(expand_byte(uint8_t(planes[5] >> 8)) << 5);
 }
 
 void Chipset::update_interrupts() {
@@ -635,6 +646,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			LOG("Fetch window start set to " << std::dec << fetch_window_[0]);
 		break;
 		case Write(0x094):
+			// TODO: something in my interpretation of ddfstart and ddfend
+			// means a + 8 is needed below for high-res displays. Investigate.
 			fetch_window_[1] = cycle.value16();
 			LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
 		break;

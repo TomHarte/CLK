@@ -9,7 +9,9 @@
 #ifndef Chipset_hpp
 #define Chipset_hpp
 
+#include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 
@@ -167,6 +169,10 @@ class Chipset: private ClockingHint::Observer {
 				(*this)[5] <<= c;
 				return *this;
 			}
+
+			void clear() {
+				std::fill(begin(), end(), 0);
+			}
 		};
 
 		class Bitplanes: public DMADevice<6> {
@@ -185,10 +191,27 @@ class Chipset: private ClockingHint::Observer {
 		} bitplanes_;
 
 		void post_bitplanes(const BitplaneData &data);
+		BitplaneData previous_bitplanes_;
 
-		BitplaneData current_bitplanes_, next_bitplanes_;
-//		std::array<uint8_t, 912> even_playfield_;
-//		std::array<uint8_t, 912> odd_playfield_;
+		struct SixteenPixels: public std::array<uint64_t, 2> {
+			void set(
+				const BitplaneData &previous,
+				const BitplaneData &next,
+				int odd_delay,
+				int even_delay);
+
+			SixteenPixels &operator <<= (int c) {
+				(*this)[1] = ((*this)[1] << c) | ((*this)[0] >> (64 - c));
+				(*this)[0] <<= c;
+				return *this;
+			}
+
+			int operator >> (int c) {
+				assert(c >= 96);
+				return int((*this)[1] >> (c - 64));
+			}
+		} bitplane_pixels_;
+
 		int odd_delay_ = 0, even_delay_ = 0;
 		bool is_high_res_ = false;
 
