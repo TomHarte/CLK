@@ -132,7 +132,7 @@ class Chipset: private ClockingHint::Observer {
 				void set_stop_and_control(uint16_t value);
 				void set_image_data(int slot, uint16_t value);
 
-				bool advance(int slot);
+				bool advance(int sprite_id);
 
 			private:
 				uint16_t v_start_ = 0, h_start_ = 0, v_stop_ = 0;

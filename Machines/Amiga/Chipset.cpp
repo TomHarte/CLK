@@ -231,6 +231,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	constexpr auto BitplaneFlag	= DMAMask<DMAFlag::Bitplane, DMAFlag::AllBelow>::value;
 	constexpr auto CopperFlag	= DMAMask<DMAFlag::Copper, DMAFlag::AllBelow>::value;
 	constexpr auto DiskFlag		= DMAMask<DMAFlag::Disk, DMAFlag::AllBelow>::value;
+	constexpr auto SpritesFlag	= DMAMask<DMAFlag::Sprites, DMAFlag::AllBelow>::value;
 
 	// Update state as to whether bitplane fetching should happen now.
 	//
@@ -257,9 +258,18 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		//	2. Refresh, disk, audio, or sprites. Depending on region.
 		//
 		// Blitter and CPU priority is dealt with below.
-		if constexpr (cycle >= 7 && cycle < 13) {
+		if constexpr (cycle >= 0x07 && cycle < 0x0d) {
 			if((dma_control_ & DiskFlag) == DiskFlag) {
 				if(disk_.advance()) {
+					return false;
+				}
+			}
+		}
+
+		if constexpr(cycle >= 0x15 && cycle < 0x35) {
+			if((dma_control_ & SpritesFlag) == SpritesFlag) {
+				constexpr auto sprite_id = (cycle - 0x15) >> 2;
+				if(sprites_[sprite_id].advance(sprite_id)) {
 					return false;
 				}
 			}
@@ -924,6 +934,10 @@ void Chipset::Sprite::set_stop_and_control(uint16_t value) {
 void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 	data_[slot] = value;
 	active_ |= slot == 0;
+}
+
+bool Chipset::Sprite::advance([[maybe_unused]] int sprite_id) {
+	return false;
 }
 
 // MARK: - Disk.
