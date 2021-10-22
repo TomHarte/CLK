@@ -33,19 +33,27 @@ template <DMAFlag... Flags> struct DMAMask: Mask<DMAFlag, Flags...> {};
 
 }
 
+#define DMA_CONSTRUCT *this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1
+
 Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
-	blitter_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
-	bitplanes_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
-	copper_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
+	blitter_(DMA_CONSTRUCT),
+	sprites_{
+		{DMA_CONSTRUCT},	{DMA_CONSTRUCT},	{DMA_CONSTRUCT},	{DMA_CONSTRUCT},
+		{DMA_CONSTRUCT},	{DMA_CONSTRUCT},	{DMA_CONSTRUCT},	{DMA_CONSTRUCT}
+	},
+	bitplanes_(DMA_CONSTRUCT),
+	copper_(DMA_CONSTRUCT),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
 	cia_a_handler_(map, disk_controller_),
 	cia_b_handler_(disk_controller_),
 	cia_a(cia_a_handler_),
 	cia_b(cia_b_handler_),
-	disk_(*this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1),
+	disk_(DMA_CONSTRUCT),
 	disk_controller_(Cycles(input_clock_rate), *this, disk_, cia_b) {
 	disk_controller_.set_clocking_hint_observer(this);
 }
+
+#undef DMA_CONSTRUCT
 
 Chipset::Changes Chipset::run_for(HalfCycles length) {
 	return run<false>(length);
@@ -781,8 +789,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		// Sprites.
 #define Sprite(index, pointer, position)	\
-		case Write(pointer + 0):	sprites_[index].set_pointer(16, cycle.value16());		break;	\
-		case Write(pointer + 2):	sprites_[index].set_pointer(0, cycle.value16());		break;	\
+		case Write(pointer + 0):	sprites_[index].set_pointer<0, 16>(cycle.value16());	break;	\
+		case Write(pointer + 2):	sprites_[index].set_pointer<0, 0>(cycle.value16());		break;	\
 		case Write(position + 0):	sprites_[index].set_start_position(cycle.value16());	break;	\
 		case Write(position + 2):	sprites_[index].set_stop_and_control(cycle.value16());	break;	\
 		case Write(position + 4):	sprites_[index].set_image_data(0, cycle.value16());		break;	\
@@ -900,20 +908,19 @@ void Chipset::Bitplanes::set_control(uint16_t control) {
 
 // MARK: - Sprites.
 
-void Chipset::Sprite::set_pointer(int shift, uint16_t value) {
-	LOG("Sprite pointer with shift " << std::dec << shift << " to " << PADHEX(4) << value);
-}
-
 void Chipset::Sprite::set_start_position(uint16_t value) {
-	LOG("Sprite start position " << PADHEX(4) << value);
+	v_start_ = (v_start_ & 0xff00) | (value >> 8);
+	h_start_ = (h_start_ & 0xff00) | ((value & 0xff));
 }
 
 void Chipset::Sprite::set_stop_and_control(uint16_t value) {
-	LOG("Sprite stop and control " << PADHEX(4) << value);
+	h_start_ = uint16_t((h_start_ & 0x00ff) | ((value & 0x01) << 8));
+	v_stop_ = uint16_t((value >> 8) | ((value & 0x02) << 7));
+	v_start_ = uint16_t((v_start_ & 0x00ff) | ((value & 0x04) << 6));
 }
 
 void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
-	LOG("Sprite image data " << slot << " to " << PADHEX(4) << value);
+	data_[slot] = value;
 }
 
 // MARK: - Disk.

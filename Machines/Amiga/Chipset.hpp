@@ -124,11 +124,19 @@ class Chipset: private ClockingHint::Observer {
 
 		// MARK: - Sprites.
 
-		struct Sprite {
-			void set_pointer(int shift, uint16_t value);
-			void set_start_position(uint16_t value);
-			void set_stop_and_control(uint16_t value);
-			void set_image_data(int slot, uint16_t value);
+		class Sprite: public DMADevice<1> {
+			public:
+				using DMADevice::DMADevice;
+
+				void set_start_position(uint16_t value);
+				void set_stop_and_control(uint16_t value);
+				void set_image_data(int slot, uint16_t value);
+
+				bool advance(int slot);
+
+			private:
+				uint16_t v_start_ = 0, h_start_ = 0, v_stop_ = 0;
+				uint16_t data_[2]{};
 		} sprites_[8];
 
 		// MARK: - Raster position and state.
