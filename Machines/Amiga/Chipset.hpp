@@ -137,6 +137,7 @@ class Chipset: private ClockingHint::Observer {
 			private:
 				uint16_t v_start_ = 0, h_start_ = 0, v_stop_ = 0;
 				uint16_t data_[2]{};
+				bool active_ = false, attached_ = false;
 		} sprites_[8];
 
 		// MARK: - Raster position and state.

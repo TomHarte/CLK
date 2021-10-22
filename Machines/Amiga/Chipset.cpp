@@ -911,16 +911,19 @@ void Chipset::Bitplanes::set_control(uint16_t control) {
 void Chipset::Sprite::set_start_position(uint16_t value) {
 	v_start_ = (v_start_ & 0xff00) | (value >> 8);
 	h_start_ = (h_start_ & 0xff00) | ((value & 0xff));
+	active_ = false;
 }
 
 void Chipset::Sprite::set_stop_and_control(uint16_t value) {
 	h_start_ = uint16_t((h_start_ & 0x00ff) | ((value & 0x01) << 8));
 	v_stop_ = uint16_t((value >> 8) | ((value & 0x02) << 7));
 	v_start_ = uint16_t((v_start_ & 0x00ff) | ((value & 0x04) << 6));
+	attached_ = value & 0x80;
 }
 
 void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 	data_[slot] = value;
+	active_ |= slot == 0;
 }
 
 // MARK: - Disk.
