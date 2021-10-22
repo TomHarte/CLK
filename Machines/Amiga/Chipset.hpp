@@ -132,12 +132,23 @@ class Chipset: private ClockingHint::Observer {
 				void set_stop_and_control(uint16_t value);
 				void set_image_data(int slot, uint16_t value);
 
-				bool advance(int sprite_id);
+				bool advance(int y);
+				void reset_dma();
 
 			private:
 				uint16_t v_start_ = 0, h_start_ = 0, v_stop_ = 0;
 				uint16_t data_[2]{};
-				bool active_ = false, attached_ = false;
+				bool attached_ = false;
+				bool active_ = false;
+
+				enum class DMAState {
+					FetchStart,
+					FetchStopAndControl,
+					WaitingForStart,
+					FetchData1,
+					FetchData0,
+					Stopped
+				} dma_state_ = DMAState::FetchStart;
 		} sprites_[8];
 
 		// MARK: - Raster position and state.

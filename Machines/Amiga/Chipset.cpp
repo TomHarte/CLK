@@ -269,7 +269,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		if constexpr(cycle >= 0x15 && cycle < 0x35) {
 			if((dma_control_ & SpritesFlag) == SpritesFlag) {
 				constexpr auto sprite_id = (cycle - 0x15) >> 2;
-				if(sprites_[sprite_id].advance(sprite_id)) {
+				if(sprites_[sprite_id].advance(y_)) {
 					return false;
 				}
 			}
@@ -404,6 +404,11 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 				// TODO: the manual is vague on when this happens. Try to find out.
 				copper_.reload<0>();
+
+				// TODO: is this really how sprite DMA proceeds?
+				for(int c = 0; c < 8; c++) {
+					sprites_[c].reset_dma();
+				}
 			}
 		}
 		assert(line_cycle_ < line_length_ * 4);
@@ -936,8 +941,56 @@ void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 	active_ |= slot == 0;
 }
 
-bool Chipset::Sprite::advance([[maybe_unused]] int sprite_id) {
+bool Chipset::Sprite::advance(int y) {
+	switch(dma_state_) {
+		// i.e. stopped.
+		default: return false;
+
+		// FetchStart: fetch the first control word and proceed to the second.
+		case DMAState::FetchStart:
+			set_start_position(ram_[pointer_[0]]);
+			++pointer_[0];
+			dma_state_ = DMAState::FetchStopAndControl;
+		return true;
+
+		// FetchStopAndControl: fetch second control word and wait for V start.
+		case DMAState::FetchStopAndControl:
+			set_stop_and_control(ram_[pointer_[0]]);
+			++pointer_[0];
+			dma_state_ = DMAState::WaitingForStart;
+		return true;
+
+		// WaitingForStart: repeat until V start is found.
+		case DMAState::WaitingForStart:
+			if(y != v_start_) {
+				return false;
+			}
+			[[fallthrough]];
+
+		// FetchData1: if v end is reached, stop DMA. Otherwise fetch a word
+		// and proceed to FetchData0.
+		case DMAState::FetchData1:
+			if(y == v_stop_) {
+				dma_state_ = DMAState::Stopped;
+				return false;
+			}
+			set_image_data(1, ram_[pointer_[0]]);
+			++pointer_[0];
+			dma_state_ = DMAState::FetchData0;
+		return true;
+
+		// FetchData0: fetch a word and proceed back to FetchData1.
+		case DMAState::FetchData0:
+			set_image_data(0, ram_[pointer_[0]]);
+			++pointer_[0];
+			dma_state_ = DMAState::FetchData1;
+		return true;
+	}
 	return false;
+}
+
+void Chipset::Sprite::reset_dma() {
+	dma_state_ = DMAState::FetchStart;
 }
 
 // MARK: - Disk.
