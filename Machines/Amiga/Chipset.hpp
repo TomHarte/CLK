@@ -220,15 +220,13 @@ class Chipset: private ClockingHint::Observer {
 				int odd_delay,
 				int even_delay);
 
-			SixteenPixels &operator <<= (int c) {
-				(*this)[1] = ((*this)[1] << c) | ((*this)[0] >> (64 - c));
-				(*this)[0] <<= c;
-				return *this;
+			void shift() {
+				(*this)[1] = ((*this)[1] << 8) | ((*this)[0] >> 56);
+				(*this)[0] <<= 8;
 			}
 
-			int operator >> (int c) {
-				assert(c >= 96);
-				return int((*this)[1] >> (c - 64));
+			uint8_t get() {
+				return uint8_t((*this)[1] >> 56);
 			}
 		} bitplane_pixels_;
 

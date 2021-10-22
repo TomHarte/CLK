@@ -182,17 +182,25 @@ template <int cycle> void Chipset::output() {
 					// TODO: this doesn't support dual playfields; use an alternative
 					// palette table for that.
 
-					pixels_[0] = palette_[bitplane_pixels_ >> 120];
-					bitplane_pixels_ <<= is_high_res_ * 8;
+					if(is_high_res_) {
+						pixels_[0] = palette_[bitplane_pixels_.get()];
+						bitplane_pixels_.shift();
 
-					pixels_[1] = palette_[bitplane_pixels_ >> 120];
-					bitplane_pixels_ <<= 8;
+						pixels_[1] = palette_[bitplane_pixels_.get()];
+						bitplane_pixels_.shift();
 
-					pixels_[2] = palette_[bitplane_pixels_ >> 120];
-					bitplane_pixels_ <<= is_high_res_ * 8;
+						pixels_[2] = palette_[bitplane_pixels_.get()];
+						bitplane_pixels_.shift();
 
-					pixels_[3] = palette_[bitplane_pixels_ >> 120];
-					bitplane_pixels_ <<= 8;
+						pixels_[3] = palette_[bitplane_pixels_.get()];
+						bitplane_pixels_.shift();
+					} else {
+						pixels_[0] = pixels_[1] = palette_[bitplane_pixels_.get()];
+						bitplane_pixels_.shift();
+
+						pixels_[2] = pixels_[3] = palette_[bitplane_pixels_.get()];
+						bitplane_pixels_.shift();
+					}
 
 					pixels_ += 4;
 				}
@@ -463,6 +471,12 @@ constexpr uint64_t expand_byte(uint8_t source) {
 	result = (result | (result << 7)) & 0x0101'0101'0101'0101;	// 0000 000a 0000 000b 0000 000c 0000 000d 0000 000e 0000 000f 0000 000g 0000 000h
 	return result;
 }
+
+// A very small selection of test cases.
+static_assert(expand_byte(0xff) == 0x01'01'01'01'01'01'01'01);
+static_assert(expand_byte(0x55) == 0x00'01'00'01'00'01'00'01);
+static_assert(expand_byte(0xaa) == 0x01'00'01'00'01'00'01'00);
+static_assert(expand_byte(0x00) == 0x00'00'00'00'00'00'00'00);
 
 }
 
