@@ -135,11 +135,16 @@ class Chipset: private ClockingHint::Observer {
 				bool advance(int y);
 				void reset_dma();
 
+				uint16_t data[2]{};
+				bool attached = false;
+				bool active = false;
+
+				// TODO: unexpose this. It's public temporarily to allow
+				// an initial quick hack of sprite display.
+				uint16_t h_start_ = 0;
+
 			private:
-				uint16_t v_start_ = 0, h_start_ = 0, v_stop_ = 0;
-				uint16_t data_[2]{};
-				bool attached_ = false;
-				bool active_ = false;
+				uint16_t v_start_ = 0, v_stop_ = 0;
 
 				enum class DMAState {
 					FetchStart,

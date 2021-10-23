@@ -202,6 +202,38 @@ template <int cycle> void Chipset::output() {
 						bitplane_pixels_.shift();
 					}
 
+					// QUICK HACK: dump sprite pixels:
+					//
+					//	(i) always on top, regardless of current priority;
+					//	(ii) assuming two-colour sprites; and
+					//	(iii) not using the proper triggering mechanism.
+					//
+					// (and assuming visible area is a subset of the fetch area, but elsewhere
+					// the two are currently equated, so...)
+					constexpr auto dcycle = cycle << 1;
+					for(int c = 7; c >= 0; --c) {
+						if(sprites_[c].active && sprites_[c].h_start_ <= (dcycle+1) && sprites_[c].h_start_+16 >= dcycle) {
+							const int shift = 16 + dcycle - sprites_[c].h_start_;
+							uint32_t pixels[] = {
+								uint32_t(sprites_[c].data[0] << shift),
+								uint32_t(sprites_[c].data[1] << shift),
+							};
+
+							const int colours[] = {
+								int((pixels[0] >> 31) | ((pixels[1] >> 30) & 2)),
+								int(((pixels[0] >> 30)&1) | ((pixels[1] >> 29) & 2))
+							};
+
+							const int base = ((c&~1) << 1) + 16;
+							if(colours[0]) {
+								pixels_[0] = pixels_[1] = palette_[base + colours[0]];
+							}
+							if(colours[1]) {
+								pixels_[2] = pixels_[3] = palette_[base + colours[1]];
+							}
+						}
+					}
+
 					pixels_ += 4;
 				}
 			}
@@ -647,21 +679,17 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x09a):
 			ApplySetClear(interrupt_enable_);
 			update_interrupts();
-			LOG("Interrupt enable mask modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_enable_});
 		break;
 		case Read(0x01c):
 			cycle.set_value16(interrupt_enable_);
-//			LOG("Interrupt enable mask read: " << PADHEX(4) << interrupt_enable_);
 		break;
 
 		case Write(0x09c):
 			ApplySetClear(interrupt_requests_);
 			update_interrupts();
-//			LOG("Interrupt request modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{interrupt_requests_});
 		break;
 		case Read(0x01e):
 			cycle.set_value16(interrupt_requests_);
-			LOG("Interrupt requests read: " << PADHEX(4) << interrupt_requests_);
 		break;
 
 		// Display management.
@@ -785,31 +813,24 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		// Copper.
 		case Write(0x02e):
-			LOG("Coprocessor control " << PADHEX(4) << cycle.value16());
 			copper_.set_control(cycle.value16());
 		break;
 		case Write(0x080):
-			LOG("Coprocessor first location register high " << PADHEX(4) << cycle.value16());
 			copper_.set_pointer<0, 16>(cycle.value16());
 		break;
 		case Write(0x082):
-			LOG("Coprocessor first location register low " << PADHEX(4) << cycle.value16());
 			copper_.set_pointer<0, 0>(cycle.value16());
 		break;
 		case Write(0x084):
-			LOG("Coprocessor second location register high " << PADHEX(4) << cycle.value16());
 			copper_.set_pointer<1, 16>(cycle.value16());
 		break;
 		case Write(0x086):
-			LOG("Coprocessor second location register low " << PADHEX(4) << cycle.value16());
 			copper_.set_pointer<1, 0>(cycle.value16());
 		break;
 		case Write(0x088):	case Read(0x088):
-			LOG("Coprocessor restart at first location");
 			copper_.reload<0>();
 		break;
 		case Write(0x08a):	case Read(0x08a):
-			LOG("Coprocessor restart at second location");
 			copper_.reload<1>();
 		break;
 		case Write(0x08c):
@@ -940,19 +961,19 @@ void Chipset::Bitplanes::set_control(uint16_t control) {
 void Chipset::Sprite::set_start_position(uint16_t value) {
 	v_start_ = (v_start_ & 0xff00) | (value >> 8);
 	h_start_ = (h_start_ & 0xff00) | ((value & 0xff));
-	active_ = false;
+	active = false;
 }
 
 void Chipset::Sprite::set_stop_and_control(uint16_t value) {
 	h_start_ = uint16_t((h_start_ & 0x00ff) | ((value & 0x01) << 8));
 	v_stop_ = uint16_t((value >> 8) | ((value & 0x02) << 7));
 	v_start_ = uint16_t((v_start_ & 0x00ff) | ((value & 0x04) << 6));
-	attached_ = value & 0x80;
+	attached = value & 0x80;
 }
 
 void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
-	data_[slot] = value;
-	active_ |= slot == 0;
+	data[slot] = value;
+	active |= slot == 0;
 }
 
 bool Chipset::Sprite::advance(int y) {
