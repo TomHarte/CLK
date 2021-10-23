@@ -205,7 +205,7 @@ template <int cycle> void Chipset::output() {
 					// QUICK HACK: dump sprite pixels:
 					//
 					//	(i) always on top, regardless of current priority;
-					//	(ii) assuming two-colour sprites; and
+					//	(ii) assuming four-colour sprites; and
 					//	(iii) not using the proper triggering mechanism.
 					//
 					// (and assuming visible area is a subset of the fetch area, but elsewhere
@@ -220,8 +220,8 @@ template <int cycle> void Chipset::output() {
 							};
 
 							const int colours[] = {
-								int((pixels[0] >> 31) | ((pixels[1] >> 30) & 2)),
-								int(((pixels[0] >> 30)&1) | ((pixels[1] >> 29) & 2))
+								int((pixels[1] >> 31) | ((pixels[0] >> 30) & 2)),
+								int(((pixels[1] >> 30)&1) | ((pixels[0] >> 29) & 2))
 							};
 
 							const int base = ((c&~1) << 1) + 16;
@@ -606,7 +606,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Read(0x00a):
 		case Read(0x00c):
 //			LOG("TODO: Joystick/mouse position " << PADHEX(4) << *cycle.address);
-			cycle.set_value16(0x8080);
+			cycle.set_value16(0x0000);
 		break;
 
 		case Write(0x034):
@@ -711,9 +711,9 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			LOG("Fetch window start set to " << std::dec << fetch_window_[0]);
 		break;
 		case Write(0x094):
-			// TODO: something in my interpretation of ddfstart and ddfend
+			// TODO: something in my interpretation of ddfstart and ddfstop
 			// means a + 8 is needed below for high-res displays. Investigate.
-			fetch_window_[1] = cycle.value16();
+			fetch_window_[1] = cycle.value16() + 8;
 			LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
 		break;
 
