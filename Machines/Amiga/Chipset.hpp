@@ -18,6 +18,7 @@
 #include "../../Activity/Source.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../../Components/6526/6526.hpp"
+#include "../../Inputs/Mouse.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Processors/68000/68000.hpp"
 #include "../../Storage/Disk/Controller/DiskController.hpp"
@@ -260,13 +261,28 @@ class Chipset: private ClockingHint::Observer {
 		uint16_t palette_[32]{};
 		uint16_t swizzled_palette_[32]{};
 
-		// MARK: - CIAs
+		// MARK: - Mouse.
+	private:
+		struct Mouse: public Inputs::Mouse {
+			int get_number_of_buttons() final;
+			void set_button_pressed(int, bool) final;
+			void reset_all_buttons() final;
+			void move(int, int) final;
+
+			uint8_t position[2]{};
+			uint8_t button_state = 0xff;
+		} mouse_;
+
+	public:
+		Inputs::Mouse &get_mouse();
+
+		// MARK: - CIAs.
 	private:
 		class DiskController;
 
 		class CIAAHandler: public MOS::MOS6526::PortHandler {
 			public:
-				CIAAHandler(MemoryMap &map, DiskController &controller);
+				CIAAHandler(MemoryMap &map, DiskController &controller, Mouse &mouse);
 				void set_port_output(MOS::MOS6526::Port port, uint8_t value);
 				uint8_t get_port_input(MOS::MOS6526::Port port);
 				void set_activity_observer(Activity::Observer *observer);
@@ -274,6 +290,7 @@ class Chipset: private ClockingHint::Observer {
 			private:
 				MemoryMap &map_;
 				DiskController &controller_;
+				Mouse &mouse_;
 				Activity::Observer *observer_ = nullptr;
 				inline static const std::string led_name = "Power";
 		} cia_a_handler_;

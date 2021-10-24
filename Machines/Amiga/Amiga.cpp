@@ -30,7 +30,7 @@ namespace {
 // NTSC clock rate: 2*3.579545 = 7.15909Mhz.
 // PAL clock rate: 7.09379Mhz; 227 cycles/line.
 constexpr int PALClockRate = 7'093'790;
-constexpr int NTSCClockRate = 7'159'090;
+//constexpr int NTSCClockRate = 7'159'090;
 
 }
 
@@ -40,6 +40,7 @@ class ConcreteMachine:
 	public Activity::Source,
 	public CPU::MC68000::BusHandler,
 	public MachineTypes::MediaTarget,
+	public MachineTypes::MouseMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
 	public Machine {
@@ -191,6 +192,12 @@ class ConcreteMachine:
 
 		void run_for(const Cycles cycles) {
 			mc68000_.run_for(cycles);
+		}
+
+		// MARK: - MachineTypes::MouseMachine.
+
+		Inputs::Mouse &get_mouse() final {
+			return chipset_.get_mouse();;
 		}
 };
 

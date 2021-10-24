@@ -44,7 +44,7 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	bitplanes_(DMA_CONSTRUCT),
 	copper_(DMA_CONSTRUCT),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
-	cia_a_handler_(map, disk_controller_),
+	cia_a_handler_(map, disk_controller_, mouse_),
 	cia_b_handler_(disk_controller_),
 	cia_a(cia_a_handler_),
 	cia_b(cia_b_handler_),
@@ -604,9 +604,15 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		// Joystick/mouse input.
 		case Read(0x00a):
+			cycle.set_value16(
+				uint16_t(
+					(mouse_.position[1] << 8) |
+					mouse_.position[0]
+				)
+			);
+		break;
 		case Read(0x00c):
-//			LOG("TODO: Joystick/mouse position " << PADHEX(4) << *cycle.address);
-			cycle.set_value16(0x0000);
+			cycle.set_value16(0x0202);
 		break;
 
 		case Write(0x034):
@@ -1101,7 +1107,8 @@ Outputs::Display::DisplayType Chipset::get_display_type() const {
 
 // MARK: - CIA A.
 
-Chipset::CIAAHandler::CIAAHandler(MemoryMap &map, DiskController &controller) : map_(map), controller_(controller) {}
+Chipset::CIAAHandler::CIAAHandler(MemoryMap &map, DiskController &controller, Mouse &mouse) :
+	map_(map), controller_(controller), mouse_(mouse) {}
 
 void Chipset::CIAAHandler::set_port_output(MOS::MOS6526::Port port, uint8_t value) {
 	if(port) {
@@ -1131,11 +1138,9 @@ uint8_t Chipset::CIAAHandler::get_port_input(MOS::MOS6526::Port port) {
 	if(port) {
 		LOG("TODO: parallel input?");
 	} else {
-		uint8_t result = controller_.get_rdy_trk0_wpro_chng();
-		// TODO: add in FIR1, FIR0.
-
-		LOG("CIA A, port A input — FIR, RDY, TRK0, etc: " << PADHEX(2) << std::bitset<8>{result});
-		return result;
+		return
+			controller_.get_rdy_trk0_wpro_chng() &
+			mouse_.button_state;
 	}
 	return 0xff;
 }
@@ -1367,4 +1372,30 @@ bool Chipset::insert(const std::vector<std::shared_ptr<Storage::Disk::Disk>> &di
 	}
 
 	return inserted;
+}
+
+// MARK: - Mouse.
+
+int Chipset::Mouse::get_number_of_buttons() {
+	return 2;
+}
+
+void Chipset::Mouse::set_button_pressed(int button, bool is_set) {
+	const uint8_t mask = 0x80 >> button;
+	button_state =
+		(button_state & ~mask) |
+		(is_set ? 0 : mask);
+}
+
+void Chipset::Mouse::reset_all_buttons() {
+	button_state = 0xff;
+}
+
+void Chipset::Mouse::move(int x, int y) {
+	position[0] += x;
+	position[1] += y;
+}
+
+Inputs::Mouse &Chipset::get_mouse() {
+	return mouse_;
 }
