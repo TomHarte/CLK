@@ -673,12 +673,10 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		// DMA management.
 		case Read(0x002):
-			LOG("DMA control and status read");
 			cycle.set_value16(dma_control_ | blitter_.get_status());
 		break;
 		case Write(0x096):
 			ApplySetClear(dma_control_);
-			LOG("DMA control modified by " << PADHEX(4) << cycle.value16() << "; is now " << std::bitset<16>{dma_control_});
 		break;
 
 		// Interrupts.
@@ -1126,7 +1124,6 @@ void Chipset::CIAAHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 		//	b1:	/LED		[output]
 		//	b0:	OVL			[output]
 
-		LOG("LED & memory map: " << PADHEX(2) << +value);
 		if(observer_) {
 			observer_->set_led_status(led_name, !(value & 2));
 		}

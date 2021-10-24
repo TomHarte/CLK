@@ -10,7 +10,10 @@
 
 #include "Minterms.hpp"
 
-//#define NDEBUG
+#ifndef NDEBUG
+#define NDEBUG
+#endif
+
 #define LOG_PREFIX "[Blitter] "
 #include "../../Outputs/Log.hpp"
 
