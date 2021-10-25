@@ -31,6 +31,26 @@ template <typename EnumT, EnumT F, EnumT... T> struct Mask<EnumT, F, T...> {
 template <InterruptFlag... Flags> struct InterruptMask: Mask<InterruptFlag, Flags...> {};
 template <DMAFlag... Flags> struct DMAMask: Mask<DMAFlag, Flags...> {};
 
+/// Expands @c source so that b7 is the least-significant bit of the most-significant byte of the result,
+/// b6 is the least-significant bit of the next most significant byte, etc. b0 stays in place.
+constexpr uint64_t expand_bitplane_byte(uint8_t source) {
+	uint64_t result = source;									// 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 abcd efgh
+	result = (result | (result << 28)) & 0x0000'000f'0000'000f;	// 0000 0000 0000 0000 0000 0000 0000 abcd 0000 0000 0000 0000 0000 0000 0000 efgh
+	result = (result | (result << 14)) & 0x0003'0003'0003'0003;	// 0000 0000 0000 00ab 0000 0000 0000 00cd 0000 0000 0000 00ef 0000 0000 0000 00gh
+	result = (result | (result << 7)) & 0x0101'0101'0101'0101;	// 0000 000a 0000 000b 0000 000c 0000 000d 0000 000e 0000 000f 0000 000g 0000 000h
+	return result;
+}
+
+// A very small selection of test cases.
+static_assert(expand_bitplane_byte(0xff) == 0x01'01'01'01'01'01'01'01);
+static_assert(expand_bitplane_byte(0x55) == 0x00'01'00'01'00'01'00'01);
+static_assert(expand_bitplane_byte(0xaa) == 0x01'00'01'00'01'00'01'00);
+static_assert(expand_bitplane_byte(0x00) == 0x00'00'00'00'00'00'00'00);
+
+constexpr uint64_t expand_sprite_word(uint16_t source) {
+	return 0;	// TODO.
+}
+
 }
 
 #define DMA_CONSTRUCT *this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1
@@ -179,7 +199,7 @@ template <int cycle> void Chipset::output() {
 
 				if(pixels_) {
 					// TODO: this doesn't support dual playfields; use an alternative
-					// palette table for that.
+					// palette table for that?
 					const uint32_t source = bitplane_pixels_.get(is_high_res_);
 
 					pixels_[0] = palette_[source >> 24];
@@ -230,8 +250,11 @@ template <int cycle> void Chipset::output() {
 			}
 
 			// Update all active pixel shifters.
-			// TODO: including sprites.
 			bitplane_pixels_.shift(is_high_res_);
+			sprite_shifters_[0].shift();
+			sprite_shifters_[1].shift();
+			sprite_shifters_[2].shift();
+			sprite_shifters_[3].shift();
 		}
 	}
 
@@ -481,27 +504,7 @@ void Chipset::post_bitplanes(const BitplaneData &data) {
 	fetch_horizontal_ &= !horizontal_is_last_;
 }
 
-namespace {
-
-/// Expands @c source so that b7 is the least-significant bit of the most-significant byte of the result,
-/// b6 is the least-significant bit of the next most significant byte, etc. b0 stays in place.
-constexpr uint64_t expand_byte(uint8_t source) {
-	uint64_t result = source;									// 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 abcd efgh
-	result = (result | (result << 28)) & 0x0000'000f'0000'000f;	// 0000 0000 0000 0000 0000 0000 0000 abcd 0000 0000 0000 0000 0000 0000 0000 efgh
-	result = (result | (result << 14)) & 0x0003'0003'0003'0003;	// 0000 0000 0000 00ab 0000 0000 0000 00cd 0000 0000 0000 00ef 0000 0000 0000 00gh
-	result = (result | (result << 7)) & 0x0101'0101'0101'0101;	// 0000 000a 0000 000b 0000 000c 0000 000d 0000 000e 0000 000f 0000 000g 0000 000h
-	return result;
-}
-
-// A very small selection of test cases.
-static_assert(expand_byte(0xff) == 0x01'01'01'01'01'01'01'01);
-static_assert(expand_byte(0x55) == 0x00'01'00'01'00'01'00'01);
-static_assert(expand_byte(0xaa) == 0x01'00'01'00'01'00'01'00);
-static_assert(expand_byte(0x00) == 0x00'00'00'00'00'00'00'00);
-
-}
-
-void Chipset::SixteenPixels::set(const BitplaneData &previous, const BitplaneData &next, int odd_delay, int even_delay) {
+void Chipset::BitplaneShifter::set(const BitplaneData &previous, const BitplaneData &next, int odd_delay, int even_delay) {
 	const uint16_t planes[6] = {
 		uint16_t(((previous[0] << 16) | next[0]) >> even_delay),
 		uint16_t(((previous[1] << 16) | next[1]) >> odd_delay),
@@ -511,21 +514,21 @@ void Chipset::SixteenPixels::set(const BitplaneData &previous, const BitplaneDat
 		uint16_t(((previous[5] << 16) | next[5]) >> odd_delay),
 	};
 
-	(*this)[0] =
-		(expand_byte(uint8_t(planes[0])) << 0) |
-		(expand_byte(uint8_t(planes[1])) << 1) |
-		(expand_byte(uint8_t(planes[2])) << 2) |
-		(expand_byte(uint8_t(planes[3])) << 3) |
-		(expand_byte(uint8_t(planes[4])) << 4) |
-		(expand_byte(uint8_t(planes[5])) << 5);
+	data_[0] =
+		(expand_bitplane_byte(uint8_t(planes[0])) << 0) |
+		(expand_bitplane_byte(uint8_t(planes[1])) << 1) |
+		(expand_bitplane_byte(uint8_t(planes[2])) << 2) |
+		(expand_bitplane_byte(uint8_t(planes[3])) << 3) |
+		(expand_bitplane_byte(uint8_t(planes[4])) << 4) |
+		(expand_bitplane_byte(uint8_t(planes[5])) << 5);
 
-	(*this)[1] =
-		(expand_byte(uint8_t(planes[0] >> 8)) << 0) |
-		(expand_byte(uint8_t(planes[1] >> 8)) << 1) |
-		(expand_byte(uint8_t(planes[2] >> 8)) << 2) |
-		(expand_byte(uint8_t(planes[3] >> 8)) << 3) |
-		(expand_byte(uint8_t(planes[4] >> 8)) << 4) |
-		(expand_byte(uint8_t(planes[5] >> 8)) << 5);
+	data_[1] =
+		(expand_bitplane_byte(uint8_t(planes[0] >> 8)) << 0) |
+		(expand_bitplane_byte(uint8_t(planes[1] >> 8)) << 1) |
+		(expand_bitplane_byte(uint8_t(planes[2] >> 8)) << 2) |
+		(expand_bitplane_byte(uint8_t(planes[3] >> 8)) << 3) |
+		(expand_bitplane_byte(uint8_t(planes[4] >> 8)) << 4) |
+		(expand_bitplane_byte(uint8_t(planes[5] >> 8)) << 5);
 }
 
 void Chipset::update_interrupts() {
@@ -1021,6 +1024,24 @@ bool Chipset::Sprite::advance(int y) {
 
 void Chipset::Sprite::reset_dma() {
 	dma_state_ = DMAState::FetchStart;
+}
+
+template <int sprite> void Chipset::TwoSpriteShifter::load(
+	uint16_t lsb,
+	uint16_t msb,
+	int delay) {
+	constexpr int sprite_shift = sprite << 1;
+	const int delay_shift = delay << 2;
+
+	// Clear out any current sprite pixels.
+	data_ &= (0x3333'3333'3333'3333 << sprite_shift) >> delay_shift;
+
+	// Map LSB and MSB up to 64-bits and load into the shifter.
+	const uint64_t new_data =
+		(expand_sprite_word(lsb) | (expand_sprite_word(msb) << 1)) << sprite_shift;
+	data_ |= new_data >> delay_shift;
+
+	overflow_ |= new_data >> (64 - delay_shift);
 }
 
 // MARK: - Disk.

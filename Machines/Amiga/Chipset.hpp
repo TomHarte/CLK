@@ -157,6 +157,36 @@ class Chipset: private ClockingHint::Observer {
 				} dma_state_ = DMAState::FetchStart;
 		} sprites_[8];
 
+		class TwoSpriteShifter {
+			public:
+				/// Installs new pixel data for @c sprite (either 0 or 1),
+				/// with @c delay being either 0 or 1 to indicate whether
+				/// output should begin now or in one pixel's time.
+				template <int sprite> void load(
+					uint16_t lsb,
+					uint16_t msb,
+					int delay);
+
+				/// Shifts two pixels.
+				void shift() {
+					data_ <<= 8;
+					data_ |= overflow_;
+					overflow_ = 0;
+				}
+
+				/// @returns The next two pixels to output, formulated as:
+				/// abcd efgh where ab and ef are two pixels of the first sprite
+				/// and cd and gh are two pixels of the second. In each case the
+				/// more significant two are output first.
+				uint8_t get() {
+					return uint8_t(data_ >> 24);
+				}
+
+			private:
+				uint64_t data_;
+				uint8_t overflow_;
+		} sprite_shifters_[4];
+
 		// MARK: - Raster position and state.
 
 		// Definitions related to PAL/NTSC.
@@ -219,30 +249,40 @@ class Chipset: private ClockingHint::Observer {
 		void post_bitplanes(const BitplaneData &data);
 		BitplaneData previous_bitplanes_;
 
-		struct SixteenPixels: public std::array<uint64_t, 2> {
-			void set(
-				const BitplaneData &previous,
-				const BitplaneData &next,
-				int odd_delay,
-				int even_delay);
+		class BitplaneShifter {
+			public:
+				/// Installs a new set of output pixels.
+				void set(
+					const BitplaneData &previous,
+					const BitplaneData &next,
+					int odd_delay,
+					int even_delay);
 
-			void shift(bool high_res) {
-				constexpr int shifts[] = {16, 32};
+				/// Shifts either two pixels (in low-res mode) and four pixels (in high-res).
+				void shift(bool high_res) {
+					constexpr int shifts[] = {16, 32};
 
-				(*this)[1] = ((*this)[1] << shifts[high_res]) | ((*this)[0] >> (64 - shifts[high_res]));
-				(*this)[0] <<= shifts[high_res];
-			}
-
-			uint32_t get(bool high_res) {
-				if(high_res) {
-					return uint32_t((*this)[1] >> 32);
-				} else {
-					uint32_t result = uint16_t((*this)[1] >> 48);
-					result = ((result & 0xff00) << 8) | (result & 0x00ff);
-					result |= result << 8;
-					return result;
+					data_[1] = (data_[1] << shifts[high_res]) | (data_[0] >> (64 - shifts[high_res]));
+					data_[0] <<= shifts[high_res];
 				}
-			}
+
+				/// @returns The next four pixels to output; in low-resolution mode only two
+				/// of them will be unique. The value is arranges so that MSB = first pixel to output,
+				/// LSB = last. Each byte is formed as 00[bitplane 5][bitplane 4]...[bitplane 0].
+				uint32_t get(bool high_res) {
+					if(high_res) {
+						return uint32_t(data_[1] >> 32);
+					} else {
+						uint32_t result = uint16_t(data_[1] >> 48);
+						result = ((result & 0xff00) << 8) | (result & 0x00ff);
+						result |= result << 8;
+						return result;
+					}
+				}
+
+			private:
+				std::array<uint64_t, 2> data_{};
+
 		} bitplane_pixels_;
 
 		int odd_delay_ = 0, even_delay_ = 0;
