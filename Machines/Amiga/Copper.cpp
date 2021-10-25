@@ -6,9 +6,10 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#include <stdio.h>
-
+#ifndef NDEBUG
 #define NDEBUG
+#endif
+
 #define LOG_PREFIX "[Copper] "
 #include "../../Outputs/Log.hpp"
 

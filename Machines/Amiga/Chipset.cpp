@@ -181,26 +181,13 @@ template <int cycle> void Chipset::output() {
 				if(pixels_) {
 					// TODO: this doesn't support dual playfields; use an alternative
 					// palette table for that.
+					const uint32_t source = bitplane_pixels_.get(is_high_res_);
+					bitplane_pixels_.shift(is_high_res_);
 
-					if(is_high_res_) {
-						pixels_[0] = palette_[bitplane_pixels_.get()];
-						bitplane_pixels_.shift();
-
-						pixels_[1] = palette_[bitplane_pixels_.get()];
-						bitplane_pixels_.shift();
-
-						pixels_[2] = palette_[bitplane_pixels_.get()];
-						bitplane_pixels_.shift();
-
-						pixels_[3] = palette_[bitplane_pixels_.get()];
-						bitplane_pixels_.shift();
-					} else {
-						pixels_[0] = pixels_[1] = palette_[bitplane_pixels_.get()];
-						bitplane_pixels_.shift();
-
-						pixels_[2] = pixels_[3] = palette_[bitplane_pixels_.get()];
-						bitplane_pixels_.shift();
-					}
+					pixels_[0] = palette_[source >> 24];
+					pixels_[1] = palette_[(source >> 16) & 0xff];
+					pixels_[2] = palette_[(source >> 8) & 0xff];
+					pixels_[3] = palette_[source & 0xff];
 
 					// QUICK HACK: dump sprite pixels:
 					//
@@ -1378,7 +1365,13 @@ int Chipset::Mouse::get_number_of_buttons() {
 }
 
 void Chipset::Mouse::set_button_pressed(int button, bool is_set) {
-	const uint8_t mask = 0x80 >> button;
+	// TODO: this is nothing like correct; the second and optional
+	// third buttons aren't exposed via CIA A like the first is,
+	// so there's not really a single location of buttons.
+	//
+	// Leaving as is for now, as this gives me a working left
+	// button in port 0 and that'll do.
+	const auto mask = uint8_t(0x40 << button);
 	button_state =
 		(button_state & ~mask) |
 		(is_set ? 0 : mask);

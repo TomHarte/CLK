@@ -226,13 +226,22 @@ class Chipset: private ClockingHint::Observer {
 				int odd_delay,
 				int even_delay);
 
-			void shift() {
-				(*this)[1] = ((*this)[1] << 8) | ((*this)[0] >> 56);
-				(*this)[0] <<= 8;
+			void shift(bool high_res) {
+				constexpr int shifts[] = {16, 32};
+
+				(*this)[1] = ((*this)[1] << shifts[high_res]) | ((*this)[0] >> (64 - shifts[high_res]));
+				(*this)[0] <<= shifts[high_res];
 			}
 
-			uint8_t get() {
-				return uint8_t((*this)[1] >> 56);
+			uint32_t get(bool high_res) {
+				if(high_res) {
+					return uint32_t((*this)[1] >> 32);
+				} else {
+					uint32_t result = uint16_t((*this)[1] >> 48);
+					result = ((result & 0xff00) << 8) | (result & 0x00ff);
+					result |= result << 8;
+					return result;
+				}
 			}
 		} bitplane_pixels_;
 
