@@ -152,10 +152,9 @@ template <int cycle> void Chipset::output() {
 		LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
 		LINK(blank3, output_blank, blank3 - burst);
 
-		// TODO: these shouldn't be functions of the fetch window,
-		// but of the display window.
-		display_horizontal_ |= cycle == fetch_window_[0];
-		display_horizontal_ &= cycle != fetch_window_[1];
+		// TODO: incorporate the lowest display window bits elsewhere.
+		display_horizontal_ |= cycle == (display_window_start_[0] >> 1);
+		display_horizontal_ &= cycle != (display_window_stop_[0] >> 1);
 
 		if constexpr (cycle > blank3) {
 			const bool is_pixel_display = display_horizontal_ && fetch_vertical_;
@@ -691,24 +690,26 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			const uint16_t value = cycle.value16();
 			display_window_start_[0] = value & 0xff;
 			display_window_start_[1] = value >> 8;
-			LOG("Display window start set to " << std::dec << display_window_start_[0] << ", " << display_window_start_[1]);
 		} break;
 		case Write(0x090): {
 			const uint16_t value = cycle.value16();
 			display_window_stop_[0] = 0x100 | (value & 0xff);
 			display_window_stop_[1] = value >> 8;
 			display_window_stop_[1] |= ((value >> 7) & 0x100) ^ 0x100;
-			LOG("Display window stop set to " << std::dec << display_window_stop_[0] << ", " << display_window_stop_[1]);
 		} break;
 		case Write(0x092):
+			if(fetch_window_[0] != cycle.value16()) {
+				LOG("Fetch window start set to " << std::dec << cycle.value16());
+			}
 			fetch_window_[0] = cycle.value16();
-			LOG("Fetch window start set to " << std::dec << fetch_window_[0]);
 		break;
 		case Write(0x094):
 			// TODO: something in my interpretation of ddfstart and ddfstop
 			// means a + 8 is needed below for high-res displays. Investigate.
+			if(fetch_window_[1] != cycle.value16() + 8) {
+				LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
+			}
 			fetch_window_[1] = cycle.value16() + 8;
-			LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
 		break;
 
 		// Bitplanes.
