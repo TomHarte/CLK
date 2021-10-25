@@ -182,7 +182,6 @@ template <int cycle> void Chipset::output() {
 					// TODO: this doesn't support dual playfields; use an alternative
 					// palette table for that.
 					const uint32_t source = bitplane_pixels_.get(is_high_res_);
-					bitplane_pixels_.shift(is_high_res_);
 
 					pixels_[0] = palette_[source >> 24];
 					pixels_[1] = palette_[(source >> 16) & 0xff];
@@ -230,6 +229,10 @@ template <int cycle> void Chipset::output() {
 			if(cycle == line_length_ - 1) {
 				flush_output();
 			}
+
+			// Update all active pixel shifters.
+			// TODO: including sprites.
+			bitplane_pixels_.shift(is_high_res_);
 		}
 	}
 
