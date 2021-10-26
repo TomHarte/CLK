@@ -10,9 +10,11 @@
 
 #include "Minterms.hpp"
 
-#ifndef NDEBUG
-#define NDEBUG
-#endif
+#include <cassert>
+
+//#ifndef NDEBUG
+//#define NDEBUG
+//#endif
 
 #define LOG_PREFIX "[Blitter] "
 #include "../../Outputs/Log.hpp"
@@ -101,6 +103,9 @@ bool Blitter::advance() {
 	if(!height_) return false;
 
 	if(line_mode_) {
+		// As-yet unimplemented:
+		assert(b_ == 0xffff);
+
 		//
 		// Line mode.
 		//
@@ -204,6 +209,10 @@ bool Blitter::advance() {
 			}
 		}
 	} else {
+		// As-yet unimplemented:
+		assert(!inclusive_fill_);
+		assert(!exclusive_fill_);
+
 		// Copy mode.
 
 //		int lc = 0;
@@ -273,10 +282,10 @@ bool Blitter::advance() {
 				}
 			}
 
-			pointer_[0] += modulos_[0] * channel_enables_[0];
-			pointer_[1] += modulos_[1] * channel_enables_[1];
-			pointer_[2] += modulos_[2] * channel_enables_[2];
-			pointer_[3] += modulos_[3] * channel_enables_[3];
+			pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
+			pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
+			pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
+			pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
 		}
 //		printf("\n");
 	}
