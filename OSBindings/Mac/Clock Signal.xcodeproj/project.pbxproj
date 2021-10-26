@@ -212,7 +212,6 @@
 		4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
 		4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512E1D98ACC600B4FED8 /* Plus3.cpp */; };
 		4B322E041F5A2E3C004EB04C /* Z80Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B322E031F5A2E3C004EB04C /* Z80Base.cpp */; };
-		4B32F72D271B3E1A00BFC623 /* sector decode.json in Resources */ = {isa = PBXBuildFile; fileRef = 4B32F72C271B3E1A00BFC623 /* sector decode.json */; };
 		4B37EE821D7345A6006A09A4 /* BinaryDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */; };
 		4B38F3481F2EC11D00D9235D /* AmstradCPC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */; };
 		4B3940E71DA83C8300427841 /* AsyncTaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */; };
@@ -288,7 +287,7 @@
 		4B670AB12401CB8400D4E002 /* z80docflags.tap in Resources */ = {isa = PBXBuildFile; fileRef = 4B670A9A2401CB8400D4E002 /* z80docflags.tap */; };
 		4B680CE223A5553100451D43 /* 68000ComparativeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B680CE123A5553100451D43 /* 68000ComparativeTests.mm */; };
 		4B680CE423A555CA00451D43 /* 68000 Comparative Tests in Resources */ = {isa = PBXBuildFile; fileRef = 4B680CE323A555CA00451D43 /* 68000 Comparative Tests */; };
-		4B683AFF2727BC660043E541 /* gadget toggle.json in Resources */ = {isa = PBXBuildFile; fileRef = 4B683AFE2727BC640043E541 /* gadget toggle.json */; };
+		4B683B012727BE700043E541 /* Amiga Blitter Tests in Resources */ = {isa = PBXBuildFile; fileRef = 4B683B002727BE6F0043E541 /* Amiga Blitter Tests */; };
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
 		4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
 		4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
@@ -941,7 +940,6 @@
 		4BCE1DF225D4C3FA00AE7A2B /* Bus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE1DEF25D4C3FA00AE7A2B /* Bus.cpp */; };
 		4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */; };
 		4BD0FBC3233706A200148981 /* CSApplication.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD0FBC2233706A200148981 /* CSApplication.m */; };
-		4BD155302711E5FE00410C6E /* kickstart13 boot logo.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BD1552F2711E5FD00410C6E /* kickstart13 boot logo.json */; };
 		4BD191F52191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
 		4BD388882239E198002D14B5 /* 68000Tests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD388872239E198002D14B5 /* 68000Tests.mm */; };
 		4BD424E02193B5340097291A /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD424DD2193B5340097291A /* TextureTarget.cpp */; };
@@ -1236,7 +1234,6 @@
 		4B322E021F5A29D5004EB04C /* Z80Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Z80Storage.hpp; sourceTree = "<group>"; };
 		4B322E031F5A2E3C004EB04C /* Z80Base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Z80Base.cpp; sourceTree = "<group>"; };
 		4B322E051F5A30F5004EB04C /* Z80Implementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Z80Implementation.hpp; sourceTree = "<group>"; };
-		4B32F72C271B3E1A00BFC623 /* sector decode.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = "sector decode.json"; path = "Kickstart 1.3 boot logo/sector decode.json"; sourceTree = "<group>"; };
 		4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BinaryDump.cpp; sourceTree = "<group>"; };
 		4B37EE811D7345A6006A09A4 /* BinaryDump.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = BinaryDump.hpp; sourceTree = "<group>"; };
 		4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AmstradCPC.cpp; sourceTree = "<group>"; };
@@ -1365,7 +1362,7 @@
 		4B670A9A2401CB8400D4E002 /* z80docflags.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80docflags.tap; sourceTree = "<group>"; };
 		4B680CE123A5553100451D43 /* 68000ComparativeTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000ComparativeTests.mm; sourceTree = "<group>"; };
 		4B680CE323A555CA00451D43 /* 68000 Comparative Tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "68000 Comparative Tests"; sourceTree = "<group>"; };
-		4B683AFE2727BC640043E541 /* gadget toggle.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = "gadget toggle.json"; path = "Kickstart 1.3 boot logo/gadget toggle.json"; sourceTree = "<group>"; };
+		4B683B002727BE6F0043E541 /* Amiga Blitter Tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Amiga Blitter Tests"; sourceTree = "<group>"; };
 		4B698D1A1FE768A100696C91 /* SampleSource.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SampleSource.hpp; sourceTree = "<group>"; };
 		4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Tape.cpp; sourceTree = "<group>"; };
 		4B69FB3C1C4D908A00B5F0AA /* Tape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Tape.hpp; sourceTree = "<group>"; };
@@ -2012,7 +2009,6 @@
 		4BD060A51FE49D3C006E14BE /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Speaker.hpp; sourceTree = "<group>"; };
 		4BD0FBC2233706A200148981 /* CSApplication.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CSApplication.m; sourceTree = "<group>"; };
 		4BD1552E270B14AC00410C6E /* MemoryMap.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemoryMap.hpp; sourceTree = "<group>"; };
-		4BD1552F2711E5FD00410C6E /* kickstart13 boot logo.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = "kickstart13 boot logo.json"; path = "Kickstart 1.3 boot logo/kickstart13 boot logo.json"; sourceTree = "<group>"; };
 		4BD155312716362A00410C6E /* BitSpread.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BitSpread.hpp; sourceTree = "<group>"; };
 		4BD1553227178E8000410C6E /* Flags.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Flags.hpp; sourceTree = "<group>"; };
 		4BD191D9219113B80042E144 /* OpenGL.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OpenGL.hpp; sourceTree = "<group>"; };
@@ -2374,9 +2370,7 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
-				4B683AFE2727BC640043E541 /* gadget toggle.json */,
-				4B32F72C271B3E1A00BFC623 /* sector decode.json */,
-				4BD1552F2711E5FD00410C6E /* kickstart13 boot logo.json */,
+				4B683B002727BE6F0043E541 /* Amiga Blitter Tests */,
 				4B680CE323A555CA00451D43 /* 68000 Comparative Tests */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
 				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
@@ -4998,7 +4992,6 @@
 				4BB299671B587D8400A49093 /* inxn in Resources */,
 				4BB2998C1B587D8400A49093 /* lsez in Resources */,
 				4BB299AF1B587D8400A49093 /* rlaz in Resources */,
-				4B32F72D271B3E1A00BFC623 /* sector decode.json in Resources */,
 				4BB2999C1B587D8400A49093 /* nopzx in Resources */,
 				4BB299A01B587D8400A49093 /* oraay in Resources */,
 				4B8DF6E32550D91700F3433C /* CPUEOR.sfc in Resources */,
@@ -5061,7 +5054,6 @@
 				4BB299641B587D8400A49093 /* insiy in Resources */,
 				4BB299E61B587D8400A49093 /* trap10 in Resources */,
 				4BB299651B587D8400A49093 /* insz in Resources */,
-				4BD155302711E5FE00410C6E /* kickstart13 boot logo.json in Resources */,
 				4B44EBF91DC9898E00A7820C /* BCDTEST_beeb in Resources */,
 				4B8DF6272550D91600F3433C /* CPUORA-trace_compare.log in Resources */,
 				4BB299161B587D8400A49093 /* bccr in Resources */,
@@ -5084,7 +5076,6 @@
 				4BB2998F1B587D8400A49093 /* lsrax in Resources */,
 				4BB299001B587D8400A49093 /* andix in Resources */,
 				4B8DF6242550D91600F3433C /* CPUBIT-trace_compare.log in Resources */,
-				4B683AFF2727BC660043E541 /* gadget toggle.json in Resources */,
 				4BB2993A1B587D8400A49093 /* cnto2 in Resources */,
 				4BB298FA1B587D8400A49093 /* alrb in Resources */,
 				4BB299C71B587D8400A49093 /* sbcb in Resources */,
@@ -5230,6 +5221,7 @@
 				4BB299BC1B587D8400A49093 /* rraax in Resources */,
 				4BB299B21B587D8400A49093 /* rolax in Resources */,
 				4B8DF6342550D91600F3433C /* CPURET-trace_compare.log in Resources */,
+				4B683B012727BE700043E541 /* Amiga Blitter Tests in Resources */,
 				4BB299481B587D8400A49093 /* dcmz in Resources */,
 				4B8DF6492550D91600F3433C /* CPUCMP.sfc in Resources */,
 				4BB2996A1B587D8400A49093 /* jmpi in Resources */,

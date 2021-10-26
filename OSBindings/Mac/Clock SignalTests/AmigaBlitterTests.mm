@@ -51,7 +51,7 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 	Amiga::Chipset nonChipset;
 	Amiga::Blitter blitter(nonChipset, ram, 256 * 1024);
 
-	NSURL *const traceURL = [[NSBundle bundleForClass:[self class]] URLForResource:name withExtension:@"json"];
+	NSURL *const traceURL = [[NSBundle bundleForClass:[self class]] URLForResource:name withExtension:@"json" subdirectory:@"Amiga Blitter Tests"];
 	NSData *const traceData = [NSData dataWithContentsOfURL:traceURL];
 	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
 
@@ -203,16 +203,24 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 	}
 }
 
+- (void)testGadgetToggle {
+	[self testCase:@"gadget toggle"];
+}
+
+- (void)testIconHighlight {
+	[self testCase:@"icon highlight"];
+}
+
 - (void)testKickstart13BootLogo {
 	[self testCase:@"kickstart13 boot logo"];
 }
 
-- (void)testDOSSector {
+- (void)testSectorDecode {
 	[self testCase:@"sector decode"];
 }
 
-- (void)testGadgetToggle {
-	[self testCase:@"gadget toggle"];
+- (void)testWindowDrag {
+	[self testCase:@"window drag"];
 }
 
 @end
