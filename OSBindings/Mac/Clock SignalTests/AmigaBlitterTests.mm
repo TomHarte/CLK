@@ -211,4 +211,8 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 	[self testCase:@"sector decode"];
 }
 
+- (void)testGadgetToggle {
+	[self testCase:@"gadget toggle"];
+}
+
 @end
