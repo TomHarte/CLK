@@ -349,8 +349,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									active_micro_op_ = &all_micro_ops_[active_program_->micro_operations];
 								}
 							} else {
-								printf("Opcode violation for %04x at %08x\n", decoded_instruction_.full, program_counter_.full - 4);
-
 								// The opcode fetched isn't valid.
 								active_program_ = nullptr;
 								active_micro_op_ = short_exception_micro_ops_;
