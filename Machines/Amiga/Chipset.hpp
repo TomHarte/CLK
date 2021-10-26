@@ -139,10 +139,7 @@ class Chipset: private ClockingHint::Observer {
 				uint16_t data[2]{};
 				bool attached = false;
 				bool active = false;
-
-				// TODO: unexpose this. It's public temporarily to allow
-				// an initial quick hack of sprite display.
-				uint16_t h_start_ = 0;
+				uint16_t h_start = 0;
 
 			private:
 				uint16_t v_start_ = 0, v_stop_ = 0;
@@ -174,12 +171,12 @@ class Chipset: private ClockingHint::Observer {
 					overflow_ = 0;
 				}
 
-				/// @returns The next two pixels to output, formulated as:
+				/// @returns The next two pixels to output, formulated as
 				/// abcd efgh where ab and ef are two pixels of the first sprite
 				/// and cd and gh are two pixels of the second. In each case the
 				/// more significant two are output first.
 				uint8_t get() {
-					return uint8_t(data_ >> 24);
+					return uint8_t(data_ >> 56);
 				}
 
 			private:

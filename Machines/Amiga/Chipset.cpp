@@ -41,15 +41,26 @@ constexpr uint64_t expand_bitplane_byte(uint8_t source) {
 	return result;
 }
 
+/// Expands @c source from b15 ... b0 to 000b15 ... 000b0.
+constexpr uint64_t expand_sprite_word(uint16_t source) {
+	uint64_t result = source;
+	result = (result | (result << 24)) & 0x0000'00ff'0000'00ff;
+	result = (result | (result << 12)) & 0x000f'000f'000f'000f;
+	result = (result | (result << 6)) & 0x0303'0303'0303'0303;
+	result = (result | (result << 3)) & 0x1111'1111'1111'1111;
+	return result;
+}
+
 // A very small selection of test cases.
 static_assert(expand_bitplane_byte(0xff) == 0x01'01'01'01'01'01'01'01);
 static_assert(expand_bitplane_byte(0x55) == 0x00'01'00'01'00'01'00'01);
 static_assert(expand_bitplane_byte(0xaa) == 0x01'00'01'00'01'00'01'00);
 static_assert(expand_bitplane_byte(0x00) == 0x00'00'00'00'00'00'00'00);
 
-constexpr uint64_t expand_sprite_word(uint16_t source) {
-	return 0;	// TODO.
-}
+static_assert(expand_sprite_word(0xffff) == 0x11'11'11'11'11'11'11'11);
+static_assert(expand_sprite_word(0x5555) == 0x01'01'01'01'01'01'01'01);
+static_assert(expand_sprite_word(0xaaaa) == 0x10'10'10'10'10'10'10'10);
+static_assert(expand_sprite_word(0x0000) == 0x00'00'00'00'00'00'00'00);
 
 }
 
@@ -126,6 +137,28 @@ template <int cycle> void Chipset::output() {
 	constexpr int burst 	= 9 + blank2;
 	constexpr int blank3 	= 7 + burst;
 	static_assert(blank3 == 43);
+
+	// Trigger any sprite loads encountered.
+	constexpr auto dcycle = cycle << 1;
+	for(int c = 0; c < 8; c += 2) {
+		if( sprites_[c].active &&
+			dcycle <= sprites_[c].h_start &&
+			dcycle+2 > sprites_[c].h_start) {
+			sprite_shifters_[c >> 1].load<0>(
+				sprites_[c].data[1],
+				sprites_[c].data[0],
+				sprites_[c].h_start & 1);
+		}
+
+		if(	sprites_[c+1].active &&
+			dcycle <= sprites_[c + 1].h_start &&
+			dcycle+2 > sprites_[c + 1].h_start) {
+			sprite_shifters_[c >> 1].load<1>(
+				sprites_[c + 1].data[1],
+				sprites_[c + 1].data[0],
+				sprites_[c + 1].h_start & 1);
+		}
+	}
 
 #define LINK(location, action, length)	\
 	if(cycle == (location))	{			\
@@ -207,35 +240,25 @@ template <int cycle> void Chipset::output() {
 					pixels_[2] = palette_[(source >> 8) & 0xff];
 					pixels_[3] = palette_[source & 0xff];
 
-					// QUICK HACK: dump sprite pixels:
-					//
-					//	(i) always on top, regardless of current priority;
-					//	(ii) assuming four-colour sprites; and
-					//	(iii) not using the proper triggering mechanism.
-					//
-					// (and assuming visible area is a subset of the fetch area, but elsewhere
-					// the two are currently equated, so...)
-					constexpr auto dcycle = cycle << 1;
-					for(int c = 7; c >= 0; --c) {
-						if(sprites_[c].active && sprites_[c].h_start_ <= (dcycle+1) && sprites_[c].h_start_+16 >= dcycle) {
-							const int shift = 16 + dcycle - sprites_[c].h_start_;
-							uint32_t pixels[] = {
-								uint32_t(sprites_[c].data[0] << shift),
-								uint32_t(sprites_[c].data[1] << shift),
-							};
+					for(int c = 3; c >= 0; --c) {
+						const auto data = sprite_shifters_[c].get();
+						if(!data) continue;
+						const int base = (c << 2) + 16;
 
-							const int colours[] = {
-								int((pixels[1] >> 31) | ((pixels[0] >> 30) & 2)),
-								int(((pixels[1] >> 30)&1) | ((pixels[0] >> 29) & 2))
-							};
-
-							const int base = ((c&~1) << 1) + 16;
-							if(colours[0]) {
-								pixels_[0] = pixels_[1] = palette_[base + colours[0]];
-							}
-							if(colours[1]) {
-								pixels_[2] = pixels_[3] = palette_[base + colours[1]];
-							}
+						// TODO: can do a better job of selection here —
+						// treat each 4-bit quantity as a single colour
+						// selection, much like dual playfield mode.
+						if(data >> 6) {
+							pixels_[0] = pixels_[1] = palette_[base + (data >> 6)];
+						}
+						if((data >> 4) & 3) {
+							pixels_[0] = pixels_[1] = palette_[base + ((data >> 4)&3)];
+						}
+						if((data >> 2) & 3) {
+							pixels_[2] = pixels_[3] = palette_[base + ((data >> 2)&3)];
+						}
+						if(data & 3) {
+							pixels_[2] = pixels_[3] = palette_[base + (data & 3)];
 						}
 					}
 
@@ -958,12 +981,12 @@ void Chipset::Bitplanes::set_control(uint16_t control) {
 
 void Chipset::Sprite::set_start_position(uint16_t value) {
 	v_start_ = (v_start_ & 0xff00) | (value >> 8);
-	h_start_ = uint16_t((h_start_ & 0x0001) | ((value & 0xff) << 1));
+	h_start = uint16_t((h_start & 0x0001) | ((value & 0xff) << 1));
 	active = false;
 }
 
 void Chipset::Sprite::set_stop_and_control(uint16_t value) {
-	h_start_ = uint16_t((h_start_ & 0x01fe) | (value & 0x01));
+	h_start = uint16_t((h_start & 0x01fe) | (value & 0x01));
 	v_stop_ = uint16_t((value >> 8) | ((value & 0x02) << 7));
 	v_start_ = uint16_t((v_start_ & 0x00ff) | ((value & 0x04) << 6));
 	attached = value & 0x80;
@@ -1033,15 +1056,18 @@ template <int sprite> void Chipset::TwoSpriteShifter::load(
 	constexpr int sprite_shift = sprite << 1;
 	const int delay_shift = delay << 2;
 
-	// Clear out any current sprite pixels.
-	data_ &= (0x3333'3333'3333'3333 << sprite_shift) >> delay_shift;
+	// Clear out any current sprite pixels; this is a reload.
+	data_ &= 0xcccc'cccc'cccc'ccccull >> (sprite_shift + delay_shift);
 
 	// Map LSB and MSB up to 64-bits and load into the shifter.
 	const uint64_t new_data =
-		(expand_sprite_word(lsb) | (expand_sprite_word(msb) << 1)) << sprite_shift;
-	data_ |= new_data >> delay_shift;
+		(
+			expand_sprite_word(lsb) |
+			(expand_sprite_word(msb) << 1)
+		) << sprite_shift;
 
-	overflow_ |= new_data >> (64 - delay_shift);
+	data_ |= new_data >> delay_shift;
+	overflow_ |= uint8_t((new_data << 8) >> delay_shift);
 }
 
 // MARK: - Disk.
