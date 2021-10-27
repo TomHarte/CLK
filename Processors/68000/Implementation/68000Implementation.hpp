@@ -334,8 +334,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 							if(instructions[decoded_instruction_.full].micro_operations != std::numeric_limits<uint32_t>::max()) {
 								if((instructions[decoded_instruction_.full].source_dest & 0x80) && !is_supervisor_) {
-									printf("Privilege violation on %04x at %08x\n", decoded_instruction_.full, program_counter_.full - 4);
-
 									// A privilege violation has been detected.
 									active_program_ = nullptr;
 									active_micro_op_ = short_exception_micro_ops_;
