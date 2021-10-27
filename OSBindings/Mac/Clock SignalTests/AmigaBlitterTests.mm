@@ -223,4 +223,12 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 	[self testCase:@"window drag"];
 }
 
+- (void)testWindowResize {
+	[self testCase:@"window resize"];
+}
+
+- (void)testRAMDiskOpen {
+	[self testCase:@"RAM disk open"];
+}
+
 @end
