@@ -96,7 +96,7 @@ Chipset::Changes Chipset::run_until_cpu_slot() {
 
 void Chipset::set_cia_interrupts(bool cia_a_interrupt, bool cia_b_interrupt) {
 	// TODO: are these really latched, or are they active live?
-	interrupt_requests_ &= ~InterruptMask<InterruptFlag::IOPortsAndTimers, InterruptFlag::External>::value;
+//	interrupt_requests_ &= ~InterruptMask<InterruptFlag::IOPortsAndTimers, InterruptFlag::External>::value;
 	interrupt_requests_ |=
 		(cia_a_interrupt ? InterruptMask<InterruptFlag::IOPortsAndTimers>::value : 0) |
 		(cia_b_interrupt ? InterruptMask<InterruptFlag::External>::value : 0);
@@ -601,12 +601,10 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		// Raster position.
 		case Read(0x004): {
 			const uint16_t position = uint16_t(y_ >> 8);
-//			LOG("Read vertical position high " << PADHEX(4) << position);
 			cycle.set_value16(position);
 		} break;
 		case Read(0x006): {
 			const uint16_t position = uint16_t(((line_cycle_ << 6) & 0xff00) | (y_ & 0x00ff));
-//			LOG("Read position low " << PADHEX(4) << position);
 			cycle.set_value16(position);
 		} break;
 
@@ -619,12 +617,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		// Joystick/mouse input.
 		case Read(0x00a):
-			cycle.set_value16(
-				uint16_t(
-					(mouse_.position[1] << 8) |
-					mouse_.position[0]
-				)
-			);
+			cycle.set_value16(mouse_.get_position());
 		break;
 		case Read(0x00c):
 			cycle.set_value16(0x0202);
@@ -1175,7 +1168,7 @@ uint8_t Chipset::CIAAHandler::get_port_input(MOS::MOS6526::Port port) {
 	} else {
 		return
 			controller_.get_rdy_trk0_wpro_chng() &
-			mouse_.button_state;
+			mouse_.get_cia_button();
 	}
 	return 0xff;
 }
@@ -1416,27 +1409,60 @@ int Chipset::Mouse::get_number_of_buttons() {
 }
 
 void Chipset::Mouse::set_button_pressed(int button, bool is_set) {
-	// TODO: this is nothing like correct; the second and optional
-	// third buttons aren't exposed via CIA A like the first is,
-	// so there's not really a single location of buttons.
-	//
-	// Leaving as is for now, as this gives me a working left
-	// button in port 0 and that'll do.
-	const auto mask = uint8_t(0x40 << button);
-	button_state =
-		(button_state & ~mask) |
-		(is_set ? 0 : mask);
+	switch(button) {
+		case 0:
+			cia_state_ = (cia_state_ &~ 0x40) | (is_set ? 0 : 0x40);
+		break;
+		default:
+		break;
+	}
+}
+
+uint8_t Chipset::Mouse::get_cia_button() {
+	return cia_state_;
 }
 
 void Chipset::Mouse::reset_all_buttons() {
-	button_state = 0xff;
+	cia_state_ = 0xff;
 }
 
 void Chipset::Mouse::move(int x, int y) {
-	position[0] += x;
-	position[1] += y;
+	position_[0] += x;
+	position_[1] += y;
 }
 
 Inputs::Mouse &Chipset::get_mouse() {
 	return mouse_;
+}
+
+uint16_t Chipset::Mouse::get_position() {
+	// The Amiga hardware retains only eight bits of position
+	// for the mouse; its software polls frequently and maps
+	// changes into a larger space.
+	//
+	// On modern computers with 5k+ displays and trackpads, it
+	// proved empirically possible to overflow the hardware
+	// counters more quickly than software would poll.
+	//
+	// Therefore the approach taken for mapping mouse motion
+	// into the Amiga is to do it in steps of no greater than
+	// [-128, +127], as per the below.
+	const int pending[] = {
+		position_[0], position_[1]
+	};
+
+	const int8_t change[] = {
+		int8_t(std::clamp(pending[0], -128, 127)),
+		int8_t(std::clamp(pending[1], -128, 127))
+	};
+
+	position_[0] -= change[0];
+	position_[1] -= change[1];
+	declared_position_[0] += change[0];
+	declared_position_[1] += change[1];
+
+	return uint16_t(
+		(declared_position_[1] << 8) |
+		declared_position_[0]
+	);
 }

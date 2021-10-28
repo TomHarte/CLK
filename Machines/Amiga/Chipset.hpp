@@ -309,14 +309,20 @@ class Chipset: private ClockingHint::Observer {
 
 		// MARK: - Mouse.
 	private:
-		struct Mouse: public Inputs::Mouse {
-			int get_number_of_buttons() final;
-			void set_button_pressed(int, bool) final;
-			void reset_all_buttons() final;
-			void move(int, int) final;
+		class Mouse: public Inputs::Mouse {
+			public:
+				uint16_t get_position();
+				uint8_t get_cia_button();
 
-			uint8_t position[2]{};
-			uint8_t button_state = 0xff;
+			private:
+				int get_number_of_buttons() final;
+				void set_button_pressed(int, bool) final;
+				void reset_all_buttons() final;
+				void move(int, int) final;
+
+				uint8_t declared_position_[2]{};
+				uint8_t cia_state_ = 0xff;
+				std::array<std::atomic<int>, 2> position_{};
 		} mouse_;
 
 	public:
