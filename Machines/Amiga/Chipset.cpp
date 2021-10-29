@@ -582,12 +582,12 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 #define Read(address)	address | (Microcycle::Read << 12)
 #define Write(address)	address
 
-#define ApplySetClear(target)	{			\
+#define ApplySetClear(target, mask)	{		\
 	const uint16_t value = cycle.value16();	\
 	if(value & 0x8000) {					\
-		target |= (value & 0x7fff);			\
+		target |= (value & mask);			\
 	} else {								\
-		target &= ~(value & 0x7fff);		\
+		target &= ~(value & mask);			\
 	}										\
 }
 
@@ -642,7 +642,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		case Write(0x09e):
 			LOG("Write disk control");
-			ApplySetClear(paula_disk_control_);
+			ApplySetClear(paula_disk_control_, 0x7fff);
 
 			disk_controller_.set_control(paula_disk_control_);
 			// TODO: should also post to Paula.
@@ -684,12 +684,12 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			cycle.set_value16(dma_control_ | blitter_.get_status());
 		break;
 		case Write(0x096):
-			ApplySetClear(dma_control_);
+			ApplySetClear(dma_control_, 0x1fff);
 		break;
 
 		// Interrupts.
 		case Write(0x09a):
-			ApplySetClear(interrupt_enable_);
+			ApplySetClear(interrupt_enable_, 0x7fff);
 			update_interrupts();
 		break;
 		case Read(0x01c):
@@ -697,7 +697,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		case Write(0x09c):
-			ApplySetClear(interrupt_requests_);
+			ApplySetClear(interrupt_requests_, 0x7fff);
 			update_interrupts();
 		break;
 		case Read(0x01e):
