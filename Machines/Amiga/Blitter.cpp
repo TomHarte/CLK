@@ -67,11 +67,12 @@ void Blitter::set_minterms(uint16_t value) {
 	minterms_ = value & 0xff;
 }
 
-void Blitter::set_vertical_size(uint16_t value) {
+void Blitter::set_vertical_size([[maybe_unused]] uint16_t value) {
 	LOG("Set vertical size " << PADHEX(4) << value);
+	// TODO. This is ECS only, I think. Ditto set_horizontal_size.
 }
 
-void Blitter::set_horizontal_size(uint16_t value) {
+void Blitter::set_horizontal_size([[maybe_unused]] uint16_t value) {
 	LOG("Set horizontal size " << PADHEX(4) << value);
 }
 
