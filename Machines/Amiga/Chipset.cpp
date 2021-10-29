@@ -453,14 +453,6 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 			fetch_vertical_ |= y_ == display_window_start_[1];
 			fetch_vertical_ &= y_ != display_window_stop_[1];
-//			if(y_ == display_window_start_[1]) {
-//				fetch_vertical_ = true;
-////				LOG("Enabling vertical fetch at line " << std::dec << +y_);
-//			}
-//			if(y_ == display_window_stop_[1]) {
-//				fetch_vertical_ = false;
-////				LOG("Disabling vertical fetch at line " << std::dec << +y_);
-//			}
 
 			if(did_fetch_) {
 				bitplanes_.do_end_of_line();
@@ -598,11 +590,11 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Raster position.
-		case Read(0x004): {
+		case Read(0x004): {		// VPOSR; b15 = LOF, b0 = b8 of y position.
 			const uint16_t position = uint16_t(y_ >> 8);
 			cycle.set_value16(position);
 		} break;
-		case Read(0x006): {
+		case Read(0x006): {		// VHPOSR; b0–b7 = b0–b7 of y position; b8–b15 = horizontal position.
 			const uint16_t position = uint16_t(((line_cycle_ << 6) & 0xff00) | (y_ & 0x00ff));
 			cycle.set_value16(position);
 		} break;
@@ -615,113 +607,113 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Joystick/mouse input.
-		case Read(0x00a):
+		case Read(0x00a):		// JOY0DAT
 			cycle.set_value16(mouse_.get_position());
 		break;
-		case Read(0x00c):
+		case Read(0x00c):		// JOY1DAT
 			cycle.set_value16(0x0202);
 		break;
 
-		case Write(0x034):
+		case Write(0x034):		// POTGO
 //			LOG("TODO: pot port start");
 		break;
-		case Read(0x016):
+		case Read(0x016):		// POTGOR / POTINP
 //			LOG("TODO: pot port read");
 			cycle.set_value16(0xff00);
 		break;
 
 		// Disk DMA and control.
-		case Write(0x020):	disk_.set_pointer<0, 16>(cycle.value16());	break;
-		case Write(0x022):	disk_.set_pointer<0, 0>(cycle.value16());	break;
-		case Write(0x024):	disk_.set_length(cycle.value16());			break;
+		case Write(0x020):	disk_.set_pointer<0, 16>(cycle.value16());	break;		// DSKPTH
+		case Write(0x022):	disk_.set_pointer<0, 0>(cycle.value16());	break;		// DSKPTL
+		case Write(0x024):	disk_.set_length(cycle.value16());			break;		// DSKLEN
 
-		case Write(0x026):
+		case Write(0x026):		// DSKDAT
 			LOG("TODO: disk DMA; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
 		break;
 
-		case Write(0x09e):
+		case Write(0x09e):		// ADKCON
 			LOG("Write disk control");
 			ApplySetClear(paula_disk_control_, 0x7fff);
 
 			disk_controller_.set_control(paula_disk_control_);
 			// TODO: should also post to Paula.
 		break;
-		case Read(0x010):
+		case Read(0x010):		// ADKCONR
 			LOG("Read disk control");
 			cycle.set_value16(paula_disk_control_);
 		break;
 
-		case Write(0x07e):
+		case Write(0x07e):		// DSKSYNC
 			disk_controller_.set_sync_word(cycle.value16());
 			assert(false);	// Not fully implemented.
 		break;
-		case Read(0x01a):
+		case Read(0x01a):		// DSKBYTR
 			LOG("TODO: disk status");
 			assert(false);	// Not yet implemented.
 		break;
 
 		// Refresh.
-		case Write(0x028):
+		case Write(0x028):		// REFPTR
 			LOG("TODO (maybe): refresh; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
 		break;
 
 		// Serial port.
-		case Read(0x018):
+		case Read(0x018):		// SERDATR
 			LOG("TODO: serial data and status");
 			cycle.set_value16(0x3000);	// i.e. transmit buffer empty.
 		break;
-		case Write(0x030):
+		case Write(0x030):		// SERDAT
 			LOG("TODO: serial data: " << PADHEX(4) << cycle.value16());
 		break;
-		case Write(0x032):
+		case Write(0x032):		// SERPER
 			LOG("TODO: serial control: " << PADHEX(4) << cycle.value16());
 			serial_.set_control(cycle.value16());
 		break;
 
 		// DMA management.
-		case Read(0x002):
+		case Read(0x002):		// DMACONR
 			cycle.set_value16(dma_control_ | blitter_.get_status());
 		break;
-		case Write(0x096):
+		case Write(0x096):		// DMACON
 			ApplySetClear(dma_control_, 0x1fff);
 		break;
 
 		// Interrupts.
-		case Write(0x09a):
+		case Write(0x09a):		// INTENA
 			ApplySetClear(interrupt_enable_, 0x7fff);
 			update_interrupts();
 		break;
-		case Read(0x01c):
+		case Read(0x01c):		// INTENAR
 			cycle.set_value16(interrupt_enable_);
 		break;
 
-		case Write(0x09c):
+		case Write(0x09c):		// INTREQ
 			ApplySetClear(interrupt_requests_, 0x7fff);
 			update_interrupts();
 		break;
-		case Read(0x01e):
+		case Read(0x01e):		// INTREQR
 			cycle.set_value16(interrupt_requests_);
 		break;
 
 		// Display management.
-		case Write(0x08e): {
+		case Write(0x08e): {	// DIWSTRT
 			const uint16_t value = cycle.value16();
 			display_window_start_[0] = value & 0xff;
 			display_window_start_[1] = value >> 8;
 		} break;
-		case Write(0x090): {
+		case Write(0x090): {	// DIWSTOP
 			const uint16_t value = cycle.value16();
 			display_window_stop_[0] = 0x100 | (value & 0xff);
 			display_window_stop_[1] = value >> 8;
 			display_window_stop_[1] |= ((value >> 7) & 0x100) ^ 0x100;
 		} break;
-		case Write(0x092):
+		case Write(0x092):		// DDFSTRT
 			if(fetch_window_[0] != cycle.value16()) {
 				LOG("Fetch window start set to " << std::dec << cycle.value16());
 			}
 			fetch_window_[0] = cycle.value16();
 		break;
-		case Write(0x094):
+		case Write(0x094):		// DDFSTOP
 			// TODO: something in my interpretation of ddfstart and ddfstop
 			// means a + 8 is needed below for high-res displays. Investigate.
 			if(fetch_window_[1] != cycle.value16() + 8) {
@@ -731,41 +723,37 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Bitplanes.
-		case Write(0x0e0):	bitplanes_.set_pointer<0, 16>(cycle.value16());	break;
-		case Write(0x0e2):	bitplanes_.set_pointer<0, 0>(cycle.value16());	break;
-		case Write(0x0e4):	bitplanes_.set_pointer<1, 16>(cycle.value16());	break;
-		case Write(0x0e6):	bitplanes_.set_pointer<1, 0>(cycle.value16());	break;
-		case Write(0x0e8):	bitplanes_.set_pointer<2, 16>(cycle.value16());	break;
-		case Write(0x0ea):	bitplanes_.set_pointer<2, 0>(cycle.value16());	break;
-		case Write(0x0ec):	bitplanes_.set_pointer<3, 16>(cycle.value16());	break;
-		case Write(0x0ee):	bitplanes_.set_pointer<3, 0>(cycle.value16());	break;
-		case Write(0x0f0):	bitplanes_.set_pointer<4, 16>(cycle.value16());	break;
-		case Write(0x0f2):	bitplanes_.set_pointer<4, 0>(cycle.value16());	break;
-		case Write(0x0f4):	bitplanes_.set_pointer<5, 16>(cycle.value16());	break;
-		case Write(0x0f6):	bitplanes_.set_pointer<5, 0>(cycle.value16());	break;
+		case Write(0x0e0):	bitplanes_.set_pointer<0, 16>(cycle.value16());	break;	// BPL1PTH
+		case Write(0x0e2):	bitplanes_.set_pointer<0, 0>(cycle.value16());	break;	// BPL1PTL
+		case Write(0x0e4):	bitplanes_.set_pointer<1, 16>(cycle.value16());	break;	// BPL2PTH
+		case Write(0x0e6):	bitplanes_.set_pointer<1, 0>(cycle.value16());	break;	// BPL2PTL
+		case Write(0x0e8):	bitplanes_.set_pointer<2, 16>(cycle.value16());	break;	// BPL3PTH
+		case Write(0x0ea):	bitplanes_.set_pointer<2, 0>(cycle.value16());	break;	// BPL3PTL
+		case Write(0x0ec):	bitplanes_.set_pointer<3, 16>(cycle.value16());	break;	// BPL4PTH
+		case Write(0x0ee):	bitplanes_.set_pointer<3, 0>(cycle.value16());	break;	// BPL4PTL
+		case Write(0x0f0):	bitplanes_.set_pointer<4, 16>(cycle.value16());	break;	// BPL5PTH
+		case Write(0x0f2):	bitplanes_.set_pointer<4, 0>(cycle.value16());	break;	// BPL5PTL
+		case Write(0x0f4):	bitplanes_.set_pointer<5, 16>(cycle.value16());	break;	// BPL6PTH
+		case Write(0x0f6):	bitplanes_.set_pointer<5, 0>(cycle.value16());	break;	// BPL6PTL
 
-		case Write(0x102): {
+		case Write(0x100):		// BPLCON0
+			bitplanes_.set_control(cycle.value16());
+			is_high_res_ = cycle.value16() & 0x8000;
+		break;
+		case Write(0x102): {	// BPLCON1
 			const uint8_t delay = cycle.value8_low();
 			odd_delay_ = delay & 0x0f;
 			even_delay_ = delay >> 4;
 		} break;
 
-		case Write(0x100):
-			bitplanes_.set_control(cycle.value16());
-			is_high_res_ = cycle.value16() & 0x8000;
-		break;
 
-		case Write(0x104):
-		case Write(0x106):
+		case Write(0x104):		// BPLCON2
+		case Write(0x106):		// BPLCON3 (ECS)
 			LOG("TODO: Bitplane control; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
 		break;
 
-		case Write(0x108):
-			bitplanes_.set_modulo<0>(cycle.value16());
-		break;
-		case Write(0x10a):
-			bitplanes_.set_modulo<1>(cycle.value16());
-		break;
+		case Write(0x108):	bitplanes_.set_modulo<0>(cycle.value16());	break;	// BPL1MOD
+		case Write(0x10a):	bitplanes_.set_modulo<1>(cycle.value16());	break;	// BPL2MOD
 
 		case Write(0x110):
 		case Write(0x112):
@@ -827,21 +815,11 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		// Copper.
-		case Write(0x02e):
-			copper_.set_control(cycle.value16());
-		break;
-		case Write(0x080):
-			copper_.set_pointer<0, 16>(cycle.value16());
-		break;
-		case Write(0x082):
-			copper_.set_pointer<0, 0>(cycle.value16());
-		break;
-		case Write(0x084):
-			copper_.set_pointer<1, 16>(cycle.value16());
-		break;
-		case Write(0x086):
-			copper_.set_pointer<1, 0>(cycle.value16());
-		break;
+		case Write(0x02e):	copper_.set_control(cycle.value16());			break;	// COPCON
+		case Write(0x080):	copper_.set_pointer<0, 16>(cycle.value16());	break;	// COP1LCH
+		case Write(0x082):	copper_.set_pointer<0, 0>(cycle.value16());		break;	// COP1LCL
+		case Write(0x084):	copper_.set_pointer<1, 16>(cycle.value16());	break;	// COP2LCH
+		case Write(0x086):	copper_.set_pointer<1, 0>(cycle.value16());		break;	// COP2LCL
 		case Write(0x088):	case Read(0x088):
 			copper_.reload<0>();
 		break;
@@ -881,8 +859,6 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x1a8):	case Write(0x1aa):	case Write(0x1ac):	case Write(0x1ae):
 		case Write(0x1b0):	case Write(0x1b2):	case Write(0x1b4):	case Write(0x1b6):
 		case Write(0x1b8):	case Write(0x1ba):	case Write(0x1bc):	case Write(0x1be): {
-//			LOG("Colour palette; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
-
 			// Store once in regular, linear order.
 			const auto entry_address = (register_address - 0x180) >> 1;
 			uint8_t *const entry = reinterpret_cast<uint8_t *>(&palette_[entry_address]);
