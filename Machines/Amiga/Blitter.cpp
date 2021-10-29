@@ -95,16 +95,19 @@ void Blitter::set_data(int channel, uint16_t value) {
 }
 
 uint16_t Blitter::get_status() {
-	LOG("Returned status of " << (height_ ? 0x8000 : 0x0000));
-	return height_ ? 0x8000 : 0x0000;
+	const uint16_t result =
+		(not_zero_flag_ ? 0x0000 : 0x2000) | (height_ ? 0x4000 : 0x0000);
+	LOG("Returned status of " << result);
+	return result;
 }
 
 bool Blitter::advance() {
 	if(!height_) return false;
 
+	not_zero_flag_ = false;
 	if(line_mode_) {
 		// As-yet unimplemented:
-		assert(b_ == 0xffff);
+		assert(b_data_ == 0xffff);
 
 		//
 		// Line mode.
@@ -163,8 +166,10 @@ bool Blitter::advance() {
 				// TODO: patterned lines. Unclear what to do with the bit that comes out of b.
 				// Probably extend it to a full word?
 				c_data_ = ram_[pointer_[3] & ram_mask_];
-				ram_[pointer_[3] & ram_mask_] =
+				const uint16_t output =
 					apply_minterm<uint16_t>(a_data_ >> shifts_[0], b_data_, c_data_, minterms_);
+				ram_[pointer_[3] & ram_mask_] = output;
+				not_zero_flag_ |= output;
 				draw_ &= !one_dot_;
 			}
 
@@ -215,9 +220,6 @@ bool Blitter::advance() {
 
 		// Copy mode.
 
-//		int lc = 0;
-//		printf("*** [%d x %d]\n", width_, height_);
-
 		// Quick hack: do the entire action atomically.
 		a32_ = 0;
 		b32_ = 0;
@@ -234,51 +236,47 @@ bool Blitter::advance() {
 				}
 				a32_ = (a32_ << 16) | (a_data_ & a_mask);
 
-				// The barrel shifter shifts to the right in ascending address mode,
-				// but to the left othrwise
-				if(!one_dot_) {
-					a_ = uint16_t(a32_ >> shifts_[0]);
-				} else {
-					// TODO: there must be a neater solution than this.
-					a_ = uint16_t(
-						(a32_ << shifts_[0]) |
-						(a32_ >> (32 - shifts_[0]))
-					);
-				}
-
 				if(channel_enables_[1]) {
 					b_data_ = ram_[pointer_[1] & ram_mask_];
 					pointer_[1] += direction_;
 				}
 				b32_ = (b32_ << 16) | b_data_;
 
-				if(!one_dot_) {
-					b_ = uint16_t(b32_ >> shifts_[1]);
-				} else {
-					b_ = uint16_t(
-						(b32_ << shifts_[1]) |
-						(b32_ >> (32 - shifts_[1]))
-					);
-				}
-
 				if(channel_enables_[2]) {
 					c_data_ = ram_[pointer_[2] & ram_mask_];
 					pointer_[2] += direction_;
 				}
 
+				uint16_t a, b;
+
+				// The barrel shifter shifts to the right in ascending address mode,
+				// but to the left othrwise
+				if(!one_dot_) {
+					a = uint16_t(a32_ >> shifts_[0]);
+					b = uint16_t(b32_ >> shifts_[1]);
+				} else {
+					// TODO: there must be a neater solution than this.
+					a = uint16_t(
+						(a32_ << shifts_[0]) |
+						(a32_ >> (32 - shifts_[0]))
+					);
+
+					b = uint16_t(
+						(b32_ << shifts_[1]) |
+						(b32_ >> (32 - shifts_[1]))
+					);
+				}
+
+				const uint16_t output =
+					apply_minterm<uint16_t>(
+						a,
+						b,
+						c_data_,
+						minterms_);
+				not_zero_flag_ |= output;
+
 				if(channel_enables_[3]) {
-//					if(!(lc&15)) printf("\n%06x: ", pointer_[3]);
-//					++lc;
-
-					ram_[pointer_[3] & ram_mask_] =
-						apply_minterm<uint16_t>(
-							a_,
-							b_,
-							c_data_,
-							minterms_);
-
-//					printf("%04x ", ram_[pointer_[3] & ram_mask_]);
-
+					ram_[pointer_[3] & ram_mask_] = output;
 					pointer_[3] += direction_;
 				}
 			}
@@ -288,7 +286,6 @@ bool Blitter::advance() {
 			pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
 			pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
 		}
-//		printf("\n");
 	}
 
 	posit_interrupt(InterruptFlag::Blitter);
