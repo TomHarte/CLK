@@ -76,13 +76,6 @@ void Blitter::set_horizontal_size([[maybe_unused]] uint16_t value) {
 	LOG("Set horizontal size " << PADHEX(4) << value);
 }
 
-void Blitter::set_modulo(int channel, uint16_t value) {
-	LOG("Set modulo size " << channel << " to " << PADHEX(4) << value);
-
-	// Convert by sign extension.
-	modulos_[channel] = uint32_t(int16_t(value) >> 1);
-}
-
 void Blitter::set_data(int channel, uint16_t value) {
 	LOG("Set data " << channel << " to " << PADHEX(4) << value);
 

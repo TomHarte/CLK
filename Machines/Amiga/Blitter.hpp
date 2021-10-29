@@ -17,7 +17,7 @@
 
 namespace Amiga {
 
-class Blitter: public DMADevice<4> {
+class Blitter: public DMADevice<4, 4> {
 	public:
 		using DMADevice::DMADevice;
 
@@ -33,7 +33,6 @@ class Blitter: public DMADevice<4> {
 		void set_minterms(uint16_t value);
 		void set_vertical_size(uint16_t value);
 		void set_horizontal_size(uint16_t value);
-		void set_modulo(int channel, uint16_t value);
 		void set_data(int channel, uint16_t value);
 
 		uint16_t get_status();
@@ -60,7 +59,6 @@ class Blitter: public DMADevice<4> {
 		uint8_t minterms_ = 0;
 		uint32_t a32_ = 0, b32_ = 0;
 		uint16_t a_data_ = 0, b_data_ = 0, c_data_ = 0;
-		uint32_t modulos_[4]{};
 
 		bool not_zero_flag_ = false;
 };

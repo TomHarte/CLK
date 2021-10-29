@@ -96,6 +96,7 @@ Chipset::Changes Chipset::run_until_cpu_slot() {
 
 void Chipset::set_cia_interrupts(bool cia_a_interrupt, bool cia_b_interrupt) {
 	// TODO: are these really latched, or are they active live?
+	// If latched, is it only on a leading edge?
 //	interrupt_requests_ &= ~InterruptMask<InterruptFlag::IOPortsAndTimers, InterruptFlag::External>::value;
 	interrupt_requests_ |=
 		(cia_a_interrupt ? InterruptMask<InterruptFlag::IOPortsAndTimers>::value : 0) |
@@ -462,8 +463,6 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 //			}
 
 			if(did_fetch_) {
-				// TODO: find out when modulos are actually applied, since
-				// they're dynamically programmable.
 				bitplanes_.do_end_of_line();
 				previous_bitplanes_.clear();
 			}
@@ -762,8 +761,10 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 
 		case Write(0x108):
+			bitplanes_.set_modulo<0>(cycle.value16());
+		break;
 		case Write(0x10a):
-			LOG("TODO: Bitplane modulo; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+			bitplanes_.set_modulo<1>(cycle.value16());
 		break;
 
 		case Write(0x110):
@@ -804,10 +805,10 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x05c):	blitter_.set_vertical_size(cycle.value16());	break;
 		case Write(0x05e):	blitter_.set_horizontal_size(cycle.value16());	break;
 
-		case Write(0x060):	blitter_.set_modulo(2, cycle.value16());		break;
-		case Write(0x062):	blitter_.set_modulo(1, cycle.value16());		break;
-		case Write(0x064):	blitter_.set_modulo(0, cycle.value16());		break;
-		case Write(0x066):	blitter_.set_modulo(3, cycle.value16());		break;
+		case Write(0x060):	blitter_.set_modulo<2>(cycle.value16());		break;
+		case Write(0x062):	blitter_.set_modulo<1>(cycle.value16());		break;
+		case Write(0x064):	blitter_.set_modulo<0>(cycle.value16());		break;
+		case Write(0x066):	blitter_.set_modulo<3>(cycle.value16());		break;
 
 		case Write(0x070):	blitter_.set_data(2, cycle.value16());			break;
 		case Write(0x072):	blitter_.set_data(1, cycle.value16());			break;
@@ -955,7 +956,14 @@ bool Chipset::Bitplanes::advance(int cycle) {
 }
 
 void Chipset::Bitplanes::do_end_of_line() {
-	// TODO: apply modulos.
+	// Apply modulos here. Posssibly correct?
+	pointer_[0] += modulos_[1];
+	pointer_[2] += modulos_[1];
+	pointer_[4] += modulos_[1];
+
+	pointer_[1] += modulos_[0];
+	pointer_[3] += modulos_[0];
+	pointer_[5] += modulos_[0];
 }
 
 void Chipset::Bitplanes::set_control(uint16_t control) {

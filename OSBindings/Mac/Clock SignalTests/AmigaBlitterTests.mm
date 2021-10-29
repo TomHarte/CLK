@@ -142,19 +142,19 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 		}
 
 		if([type isEqualToString:@"bltamod"]) {
-			blitter.set_modulo(0, param1);
+			blitter.set_modulo<0>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltbmod"]) {
-			blitter.set_modulo(1, param1);
+			blitter.set_modulo<1>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltcmod"]) {
-			blitter.set_modulo(2, param1);
+			blitter.set_modulo<2>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltdmod"]) {
-			blitter.set_modulo(3, param1);
+			blitter.set_modulo<3>(param1);
 			continue;
 		}
 

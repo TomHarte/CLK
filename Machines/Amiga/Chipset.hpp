@@ -228,7 +228,7 @@ class Chipset: private ClockingHint::Observer {
 			}
 		};
 
-		class Bitplanes: public DMADevice<6> {
+		class Bitplanes: public DMADevice<6, 2> {
 			public:
 				using DMADevice::DMADevice;
 
