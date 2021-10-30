@@ -125,18 +125,20 @@ class ConcreteMachine:
 					// directly to the chip enables.
 					if((address & 0xe0'0000) == 0xa0'0000) {
 						const int reg = address >> 8;
+						const bool select_a = !(address & 0x1000);
+						const bool select_b = !(address & 0x2000);
 
 						if(cycle.operation & Microcycle::Read) {
 							uint16_t result = 0xffff;
-							if(!(address & 0x1000)) result &= 0xff00 | (chipset_.cia_a.read(reg) << 0);
-							if(!(address & 0x2000)) result &= 0x00ff | (chipset_.cia_b.read(reg) << 8);
+							if(select_a) result &= 0xff00 | (chipset_.cia_a.read(reg) << 0);
+							if(select_b) result &= 0x00ff | (chipset_.cia_b.read(reg) << 8);
 							cycle.set_value16(result);
 						} else {
-							if(!(address & 0x1000)) chipset_.cia_a.write(reg, cycle.value8_low());
-							if(!(address & 0x2000)) chipset_.cia_b.write(reg, cycle.value8_high());
+							if(select_a) chipset_.cia_a.write(reg, cycle.value8_low());
+							if(select_b) chipset_.cia_b.write(reg, cycle.value8_high());
 						}
 
-//						LOG("CIA " << (((address >> 12) & 3)^3) << " " << (cycle.operation & Microcycle::Read ? "read " : "write ") << std::dec << (reg & 0xf) << " of " << PADHEX(2) << +cycle.value8_low());
+//						LOG("CIA " << (((address >> 12) & 3)^3) << " " << (cycle.operation & Microcycle::Read ? "read " : "write ") << std::dec << (reg & 0xf) << " of " << PADHEX(4) << +cycle.value16());
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
 						chipset_.perform(cycle);
 					} else {
