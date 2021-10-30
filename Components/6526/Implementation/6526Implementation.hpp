@@ -15,6 +15,14 @@
 namespace MOS {
 namespace MOS6526 {
 
+enum Interrupts: uint8_t {
+	TimerA = 1 << 0,
+	TimerB = 1 << 1,
+	Alarm = 1 << 2,
+	SerialPort = 1 << 3,
+	Flag = 1 << 4,
+};
+
 template <typename BusHandlerT, Personality personality>
 template <int port> void MOS6526<BusHandlerT, personality>::set_port_output() {
 	const uint8_t output = output_[port] | (~data_direction_[port]);
@@ -57,7 +65,7 @@ void MOS6526<BusHandlerT, personality>::set_cnt_input(bool active) {
 template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::set_flag_input(bool low) {
 	if(low && !flag_state_) {
-		posit_interrupt(0x10);
+		posit_interrupt(Interrupts::Flag);
 	}
 	flag_state_ = low;
 }
@@ -184,7 +192,7 @@ void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 
 		const bool timer1_carry = timer1_did_reload && (counter_[1].control & 0x60) == 0x40;
 		const bool timer2_did_reload = counter_[1].template advance<true>(timer1_carry, cnt_state_, cnt_edge_);
-		posit_interrupt((timer1_did_reload ? 0x01 : 0x00) | (timer2_did_reload ? 0x02 : 0x00));
+		posit_interrupt((timer1_did_reload ? Interrupts::TimerA : 0x00) | (timer2_did_reload ? Interrupts::TimerB : 0x00));
 
 		cnt_edge_ = false;
 	}
@@ -194,7 +202,7 @@ template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::advance_tod(int count) {
 	if(!count) return;
 	if(tod_.advance(count)) {
-		posit_interrupt(0x04);
+		posit_interrupt(Interrupts::Alarm);
 	}
 }
 
