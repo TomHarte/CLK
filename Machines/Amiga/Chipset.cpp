@@ -586,7 +586,9 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 	switch(RW(register_address)) {
 		default:
 			LOG("Unimplemented chipset " << (cycle.operation & Microcycle::Read ? "read" : "write") <<  " " << PADHEX(6) << *cycle.address);
-			assert(false);
+			if(cycle.operation & Microcycle::Read) {
+				cycle.set_value16(0xffff);
+			}
 		break;
 
 		// Raster position.
@@ -594,8 +596,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			const uint16_t position = uint16_t(y_ >> 8);
 			cycle.set_value16(position);
 		} break;
-		case Read(0x006): {		// VHPOSR; b0–b7 = b0–b7 of y position; b8–b15 = horizontal position.
-			const uint16_t position = uint16_t(((line_cycle_ << 6) & 0xff00) | (y_ & 0x00ff));
+		case Read(0x006): {		// VHPOSR; b0–b7 = horizontal; b8–b15 = low bits of vertical position.
+			const uint16_t position = uint16_t(((line_cycle_ >> 1) & 0x00ff) | (y_ << 8));
 			cycle.set_value16(position);
 		} break;
 
