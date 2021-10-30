@@ -123,7 +123,7 @@ template <> class TODStorage<true>: public TODBase {
 		uint32_t increment_mask_ = uint32_t(~0);
 		uint32_t latch_ = 0;
 		uint32_t value_ = 0;
-		uint32_t alarm_ = 0xffffff;
+		uint32_t alarm_ = 0xff'ffff;
 
 	public:
 		template <int byte> void write(uint8_t v) {
@@ -135,43 +135,42 @@ template <> class TODStorage<true>: public TODBase {
 			// Write to either the alarm or the current value as directed;
 			// writing to any part of the current value other than the LSB
 			// pauses incrementing until the LSB is written.
+			const uint32_t mask = uint32_t(~(0xff << shift));
 			if(write_alarm) {
-				alarm_ = (alarm_ & (0x00ff'ffff >> (24 - shift))) | uint32_t(v << shift);
+				alarm_ = (alarm_ & mask) | uint32_t(v << shift);
 			} else {
-				value_ = (alarm_ & (0x00ff'ffff >> (24 - shift))) | uint32_t(v << shift);
-				increment_mask_ = (shift == 0) ? uint32_t(~0) : 0;
+				value_ = (value_ & mask) | uint32_t(v << shift);
+				increment_mask_ = (byte == 0) ? uint32_t(~0) : 0;
 			}
 		}
 
 		template <int byte> uint8_t read() {
 			if constexpr (byte == 3) {
-				return 0xff;	// Assumed. Just a guss.
+				return 0xff;	// Assumed. Just a guess.
 			}
 			constexpr int shift = byte << 3;
 
-			if(latch_) {
-				// Latching: if this is a latched read from the LSB,
-				// empty the latch.
-				const uint8_t result = uint8_t((latch_ >> shift) & 0xff);
-				if constexpr (shift == 0) {
-					latch_ = 0;
-				}
-				return result;
-			} else {
-				// Latching: if this is a read from the MSB, latch now.
-				if constexpr (shift == 16) {
-					latch_ = value_ | 0xff00'0000;
-				}
-				return uint8_t((value_ >> shift) & 0xff);
+			if constexpr (byte == 2) {
+				latch_ = value_ | 0xff00'0000;
 			}
+
+			const uint32_t source = latch_ ? latch_ : value_;
+			const uint8_t result = uint8_t((source >> shift) & 0xff);
+
+			if constexpr (byte == 0) {
+				latch_ = 0;
+			}
+
+			return result;
 		}
 
 		bool advance(int count) {
 			// The 8250 uses a simple binary counter to replace the
 			// 6526's time-of-day clock. So this is easy.
-			const uint32_t distance_to_alarm = (alarm_ - value_) & 0xffffff;
-			value_ += uint32_t(count) & increment_mask_;
-			return distance_to_alarm <= uint32_t(count);
+			const uint32_t distance_to_alarm = (alarm_ - value_) & 0xff'ffff;
+			const auto increment = uint32_t(count) & increment_mask_;
+			value_ = (value_ + increment) & 0xff'ffff;
+			return distance_to_alarm <= increment;
 		}
 };
 
