@@ -29,8 +29,8 @@ void Blitter::set_control(int index, uint16_t value) {
 		line_sign_ = (value & 0x0040) ? -1 : 1;
 
 		direction_ = one_dot_ ? uint32_t(-1) : uint32_t(1);
-		inclusive_fill_ = (value & 0x0008);
 		exclusive_fill_ = (value & 0x0010);
+		inclusive_fill_ = (value & 0x0008);
 		fill_carry_ = (value & 0x0004);
 	} else {
 		minterms_ = value & 0xff;
@@ -208,10 +208,6 @@ bool Blitter::advance() {
 			}
 		}
 	} else {
-		// As-yet unimplemented:
-		assert(!inclusive_fill_);
-		assert(!exclusive_fill_);
-
 		// Copy mode.
 
 		// Quick hack: do the entire action atomically.
@@ -219,6 +215,8 @@ bool Blitter::advance() {
 		b32_ = 0;
 
 		for(int y = 0; y < height_; y++) {
+			bool fill_carry = fill_carry_;
+
 			for(int x = 0; x < width_; x++) {
 				uint16_t a_mask = 0xffff;
 				if(x == 0) a_mask &= a_mask_[0];
@@ -261,12 +259,38 @@ bool Blitter::advance() {
 					);
 				}
 
-				const uint16_t output =
+				uint16_t output =
 					apply_minterm<uint16_t>(
 						a,
 						b,
 						c_data_,
 						minterms_);
+
+				// TODO: don't be so dense as below. This is the initial
+				// does-it-pass-the-tests? version.
+				if(exclusive_fill_ || inclusive_fill_) {
+					uint16_t fill_output = 0;
+					uint16_t bit = one_dot_ ? 0x0001 : 0x8000;
+					uint16_t flag = fill_carry ? bit : 0x0000;
+					while(bit) {
+						if(exclusive_fill_) flag ^= (output & bit);
+						if(inclusive_fill_) flag ^= (output & bit & ~flag);	// Accept bits that would transition to set immediately.
+						fill_output |= flag;
+						if(inclusive_fill_) flag ^= (output & bit & flag);	// Accept bits that would transition to clear after the fact.
+
+						fill_carry = flag;
+						if(one_dot_) {
+							bit <<= 1;
+							flag <<= 1;
+						} else {
+							bit >>= 1;
+							flag >>= 1;
+						}
+					}
+
+					output = fill_output;
+				}
+
 				not_zero_flag_ |= output;
 
 				if(channel_enables_[3]) {
