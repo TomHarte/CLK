@@ -201,9 +201,9 @@ class Chipset: private ClockingHint::Observer {
 
 		// Ephemeral bitplane collection state.
 		bool fetch_vertical_ = false, fetch_horizontal_ = false;
-		bool horizontal_is_last_ = false;
 		bool display_horizontal_ = false;
 		bool did_fetch_ = false;
+		uint16_t fetch_stop_ = 0xffff;
 
 		// Output state.
 		uint16_t border_colour_ = 0;

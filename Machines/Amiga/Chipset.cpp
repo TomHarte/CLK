@@ -316,8 +316,11 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 
 	// Top priority: bitplane collection.
 	// TODO: mask off fetch_window_'s lower bits. (Dependant on high/low-res?)
+	// Also: fetch_stop_ and that + 12/8 is the best I can discern from the Hardware Reference,
+	// but very obviously isn't how the actual hardware works. Explore on that.
 	fetch_horizontal_ |= cycle == fetch_window_[0];
-	horizontal_is_last_ |= cycle == fetch_window_[1];
+	if(cycle == fetch_window_[1]) fetch_stop_ = cycle + (is_high_res_ ? 12 : 8);
+	fetch_horizontal_ &= cycle != fetch_stop_;
 	if((dma_control_ & BitplaneFlag) == BitplaneFlag) {
 		// TODO: offer a cycle for bitplane collection.
 		// Probably need to indicate odd or even?
@@ -459,7 +462,8 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				previous_bitplanes_.clear();
 			}
 			did_fetch_ = false;
-			fetch_horizontal_ = horizontal_is_last_ = false;
+			fetch_horizontal_ = false;
+			fetch_stop_ = 0xffff;
 
 			if(y_ == frame_height_) {
 				++vsyncs;
@@ -514,8 +518,6 @@ void Chipset::post_bitplanes(const BitplaneData &data) {
 		even_delay_
 	);
 	previous_bitplanes_ = data;
-
-	fetch_horizontal_ &= !horizontal_is_last_;
 }
 
 void Chipset::BitplaneShifter::set(const BitplaneData &previous, const BitplaneData &next, int odd_delay, int even_delay) {
@@ -718,10 +720,10 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x094):		// DDFSTOP
 			// TODO: something in my interpretation of ddfstart and ddfstop
 			// means a + 8 is needed below for high-res displays. Investigate.
-			if(fetch_window_[1] != cycle.value16() + 8) {
+			if(fetch_window_[1] != cycle.value16()) {
 				LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
 			}
-			fetch_window_[1] = cycle.value16() + 8;
+			fetch_window_[1] = cycle.value16();
 		break;
 
 		// Bitplanes.
