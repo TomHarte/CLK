@@ -231,4 +231,8 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 	[self testCase:@"RAM disk open"];
 }
 
+- (void)testSpots {
+	[self testCase:@"spots"];
+}
+
 @end
