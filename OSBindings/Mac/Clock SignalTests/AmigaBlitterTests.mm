@@ -30,7 +30,7 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 
 - (BOOL)verifyWrites:(WriteVector &)writes blitter:(Amiga::Blitter &)blitter ram:(uint16_t *)ram {
 	// Run for however much time the Blitter wants.
-	while(blitter.get_status()) {
+	while(blitter.get_status() & 0x4000) {
 		blitter.advance();
 	}
 
@@ -229,6 +229,10 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 
 - (void)testRAMDiskOpen {
 	[self testCase:@"RAM disk open"];
+}
+
+- (void)testSpots {
+	[self testCase:@"spots"];
 }
 
 @end
