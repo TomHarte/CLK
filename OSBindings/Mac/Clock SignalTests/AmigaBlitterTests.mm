@@ -235,4 +235,8 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 	[self testCase:@"spots"];
 }
 
+- (void)testClock {
+	[self testCase:@"clock"];
+}
+
 @end
