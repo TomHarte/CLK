@@ -1008,7 +1008,8 @@ bool Chipset::Sprite::advance(int y) {
 		// and proceed to FetchData0.
 		case DMAState::FetchData1:
 			if(y == v_stop_) {
-				dma_state_ = DMAState::Stopped;
+				dma_state_ = DMAState::FetchStart;
+				active = false;
 				return false;
 			}
 			set_image_data(1, ram_[pointer_[0]]);

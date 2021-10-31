@@ -145,12 +145,13 @@ class Chipset: private ClockingHint::Observer {
 				uint16_t v_start_ = 0, v_stop_ = 0;
 
 				enum class DMAState {
+					Stopped,
 					FetchStart,
 					FetchStopAndControl,
 					WaitingForStart,
+
 					FetchData1,
 					FetchData0,
-					Stopped
 				} dma_state_ = DMAState::FetchStart;
 		} sprites_[8];
 
