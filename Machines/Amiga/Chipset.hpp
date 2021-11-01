@@ -307,7 +307,7 @@ class Chipset: private ClockingHint::Observer {
 
 		Outputs::CRT::CRT crt_;
 		uint16_t palette_[32]{};
-		uint16_t swizzled_palette_[32]{};
+		uint16_t swizzled_palette_[64]{};
 
 		// MARK: - Mouse.
 	private:

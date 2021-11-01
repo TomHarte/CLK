@@ -236,10 +236,11 @@ template <int cycle> void Chipset::output() {
 					// palette table for that?
 					const uint32_t source = bitplane_pixels_.get(is_high_res_);
 
-					pixels_[0] = palette_[source >> 24];
-					pixels_[1] = palette_[(source >> 16) & 0xff];
-					pixels_[2] = palette_[(source >> 8) & 0xff];
-					pixels_[3] = palette_[source & 0xff];
+					// TODO: dump bit 5 if this Chipset doesn't support extra half-bright.
+					pixels_[0] = swizzled_palette_[source >> 24];
+					pixels_[1] = swizzled_palette_[(source >> 16) & 0xff];
+					pixels_[2] = swizzled_palette_[(source >> 8) & 0xff];
+					pixels_[3] = swizzled_palette_[source & 0xff];
 
 					for(int c = 3; c >= 0; --c) {
 						const auto data = sprite_shifters_[c].get();
@@ -539,20 +540,26 @@ void Chipset::BitplaneShifter::set(const BitplaneData &previous, const BitplaneD
 		uint16_t(((previous[5] << 16) | next[5]) >> odd_delay),
 	};
 
+	// Swizzle bits into the form:
+	//
+	//	[b5 b3 b1 b4 b2 b0]
+	//
+	// ... and assume a suitably adjusted palette is in use elsewhere.
+	// This makes dual playfields very easy to separate.
 	data_[0] =
 		(expand_bitplane_byte(uint8_t(planes[0])) << 0) |
-		(expand_bitplane_byte(uint8_t(planes[1])) << 1) |
-		(expand_bitplane_byte(uint8_t(planes[2])) << 2) |
-		(expand_bitplane_byte(uint8_t(planes[3])) << 3) |
-		(expand_bitplane_byte(uint8_t(planes[4])) << 4) |
+		(expand_bitplane_byte(uint8_t(planes[2])) << 1) |
+		(expand_bitplane_byte(uint8_t(planes[4])) << 2) |
+		(expand_bitplane_byte(uint8_t(planes[1])) << 3) |
+		(expand_bitplane_byte(uint8_t(planes[3])) << 4) |
 		(expand_bitplane_byte(uint8_t(planes[5])) << 5);
 
 	data_[1] =
 		(expand_bitplane_byte(uint8_t(planes[0] >> 8)) << 0) |
-		(expand_bitplane_byte(uint8_t(planes[1] >> 8)) << 1) |
-		(expand_bitplane_byte(uint8_t(planes[2] >> 8)) << 2) |
-		(expand_bitplane_byte(uint8_t(planes[3] >> 8)) << 3) |
-		(expand_bitplane_byte(uint8_t(planes[4] >> 8)) << 4) |
+		(expand_bitplane_byte(uint8_t(planes[2] >> 8)) << 1) |
+		(expand_bitplane_byte(uint8_t(planes[4] >> 8)) << 2) |
+		(expand_bitplane_byte(uint8_t(planes[1] >> 8)) << 3) |
+		(expand_bitplane_byte(uint8_t(planes[3] >> 8)) << 4) |
 		(expand_bitplane_byte(uint8_t(planes[5] >> 8)) << 5);
 }
 
@@ -880,9 +887,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 			// Also store in bit-swizzled order. In this array,
 			// instead of being indexed as [b4 b3 b2 b1 b0], index
-			// as [b3 b1 b4 b2 b0]. This is related to the dual/single-playfield
-			// decision being made relatively late in the planar -> chunky
-			// conversion performed by this implementation.
+			// as [b3 b1 b4 b2 b0], and include a second set of the
+			// 32 colours, stored as half-bright.
 			const auto swizzled_address =
 				(entry_address&0x01) |
 				((entry_address&0x02) << 2) |
@@ -892,6 +898,9 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			uint8_t *const swizzled_entry = reinterpret_cast<uint8_t *>(&swizzled_palette_[swizzled_address]);
 			swizzled_entry[0] = cycle.value8_high();
 			swizzled_entry[1] = cycle.value8_low();
+
+			swizzled_entry[64] = (swizzled_entry[0] >> 1) & 0x77;
+			swizzled_entry[65] = (swizzled_entry[1] >> 1) & 0x77;
 		} break;
 	}
 
