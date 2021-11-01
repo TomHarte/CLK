@@ -272,14 +272,26 @@ template <int cycle> void Chipset::output() {
 			if(cycle == line_length_ - 1) {
 				flush_output();
 			}
-
-			// Update all active pixel shifters.
-			bitplane_pixels_.shift(is_high_res_);
-			sprite_shifters_[0].shift();
-			sprite_shifters_[1].shift();
-			sprite_shifters_[2].shift();
-			sprite_shifters_[3].shift();
 		}
+	}
+
+	// Update all active pixel shifters.
+	bitplane_pixels_.shift(is_high_res_);
+	sprite_shifters_[0].shift();
+	sprite_shifters_[1].shift();
+	sprite_shifters_[2].shift();
+	sprite_shifters_[3].shift();
+
+	// Reload if anything is pending.
+	if(has_next_bitplanes_) {
+		has_next_bitplanes_ = false;
+		bitplane_pixels_.set(
+			previous_bitplanes_,
+			next_bitplanes_,
+			odd_delay_,
+			even_delay_
+		);
+		previous_bitplanes_ = next_bitplanes_;
 	}
 
 #undef LINK
@@ -510,14 +522,11 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 }
 
 void Chipset::post_bitplanes(const BitplaneData &data) {
-	// Expand this
-	bitplane_pixels_.set(
-		previous_bitplanes_,
-		data,
-		odd_delay_,
-		even_delay_
-	);
-	previous_bitplanes_ = data;
+	// Posted bitplanes should be received at the end of the
+	// current memory slot. So put them aside for now, and
+	// deal with them momentarily.
+	has_next_bitplanes_ = true;
+	next_bitplanes_ = data;
 }
 
 void Chipset::BitplaneShifter::set(const BitplaneData &previous, const BitplaneData &next, int odd_delay, int even_delay) {

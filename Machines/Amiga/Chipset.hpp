@@ -245,7 +245,8 @@ class Chipset: private ClockingHint::Observer {
 		} bitplanes_;
 
 		void post_bitplanes(const BitplaneData &data);
-		BitplaneData previous_bitplanes_;
+		BitplaneData next_bitplanes_, previous_bitplanes_;
+		bool has_next_bitplanes_ = false;
 
 		class BitplaneShifter {
 			public:
