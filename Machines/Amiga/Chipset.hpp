@@ -253,6 +253,7 @@ class Chipset: private ClockingHint::Observer {
 		bool hold_and_modify_ = false;
 		bool dual_playfields_ = false;
 		bool interlace_ = false;
+		bool is_long_field_ = false;
 
 		class BitplaneShifter {
 			public:

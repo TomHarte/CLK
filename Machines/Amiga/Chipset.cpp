@@ -612,7 +612,16 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		// Raster position.
 		case Read(0x004): {		// VPOSR; b15 = LOF, b0 = b8 of y position.
 			const uint16_t position = uint16_t(y_ >> 8);
-			cycle.set_value16(position);
+			cycle.set_value16(
+				position |
+				(is_long_field_ ? 0x8000 : 0x0000)
+			);
+
+			// b8–b14 should be:
+			//	00 for PAL Agnus or fat Agnus
+			//	10 for NTSC Agnus or fat Agnus
+			//	20 for PAL high-res
+			//	30 for NTSC high-res
 		} break;
 		case Read(0x006): {		// VHPOSR; b0–b7 = horizontal; b8–b15 = low bits of vertical position.
 			const uint16_t position = uint16_t(((line_cycle_ >> 1) & 0x00ff) | (y_ << 8));
