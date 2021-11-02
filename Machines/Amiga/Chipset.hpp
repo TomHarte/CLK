@@ -188,8 +188,9 @@ class Chipset: private ClockingHint::Observer {
 		// MARK: - Raster position and state.
 
 		// Definitions related to PAL/NTSC.
+		// (Default values are PAL).
 		int line_length_ = 227;
-		int frame_height_ = 312;
+		int short_field_height_ = 312;
 		int vertical_blank_height_ = 29;
 
 		// Current raster position.

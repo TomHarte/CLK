@@ -171,7 +171,7 @@ template <int cycle> void Chipset::output() {
 		// Offset by half a line if interlaced and on an odd frame.
 
 		const int midline = vertical_blank_height_ >> 1;
-		if(frame_height_ & 1) {
+		if(is_long_field_) {
 			if(y_ < midline - 1 || y_ > midline + 2) {
 				LINK(blank1, output_blank, blank1);
 				LINK(sync, output_sync, sync - blank1);
@@ -478,7 +478,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 			fetch_horizontal_ = false;
 			fetch_stop_ = 0xffff;
 
-			if(y_ == frame_height_) {
+			if(y_ == short_field_height_ + is_long_field_) {
 				++vsyncs;
 				interrupt_requests_ |= InterruptMask<InterruptFlag::VerticalBlank>::value;
 				update_interrupts();
@@ -492,6 +492,9 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				for(int c = 0; c < 8; c++) {
 					sprites_[c].reset_dma();
 				}
+
+				// Toggle next field length if interlaced.
+				is_long_field_ ^= interlace_;
 			}
 		}
 		assert(line_cycle_ < line_length_ * 4);
@@ -628,12 +631,15 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			cycle.set_value16(position);
 		} break;
 
-		case Write(0x02a):
+		case Write(0x02a):		// VPOSW
 			LOG("TODO: write vertical position high " << PADHEX(4) << cycle.value16());
 		break;
-		case Write(0x02c):
+		case Write(0x02c): {	// VHPOSW
 			LOG("TODO: write vertical position low " << PADHEX(4) << cycle.value16());
-		break;
+
+			const uint16_t value = cycle.value16();
+			is_long_field_ = value & 0x8000;
+		} break;
 
 		// Joystick/mouse input.
 		case Read(0x00a):		// JOY0DAT
