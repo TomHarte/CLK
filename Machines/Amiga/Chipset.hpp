@@ -248,6 +248,12 @@ class Chipset: private ClockingHint::Observer {
 		BitplaneData next_bitplanes_, previous_bitplanes_;
 		bool has_next_bitplanes_ = false;
 
+		int odd_priority_ = 0, even_priority_ = 0;
+		bool even_over_odd_ = false;
+		bool hold_and_modify_ = false;
+		bool dual_playfields_ = false;
+		bool interlace_ = false;
+
 		class BitplaneShifter {
 			public:
 				/// Installs a new set of output pixels.

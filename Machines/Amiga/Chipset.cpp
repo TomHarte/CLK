@@ -756,18 +756,26 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x0f4):	bitplanes_.set_pointer<5, 16>(cycle.value16());	break;	// BPL6PTH
 		case Write(0x0f6):	bitplanes_.set_pointer<5, 0>(cycle.value16());	break;	// BPL6PTL
 
-		case Write(0x100):		// BPLCON0
-			bitplanes_.set_control(cycle.value16());
-			is_high_res_ = cycle.value16() & 0x8000;
-		break;
+		case Write(0x100): {	// BPLCON0
+			const auto value = cycle.value16();
+			bitplanes_.set_control(value);
+			is_high_res_ = value & 0x8000;
+			hold_and_modify_ = value & 0x0800;
+			dual_playfields_ = value & 0x0400;
+			interlace_ = value & 0x0004;
+		} break;
 		case Write(0x102): {	// BPLCON1
 			const uint8_t delay = cycle.value8_low();
 			odd_delay_ = delay & 0x0f;
 			even_delay_ = delay >> 4;
 		} break;
+		case Write(0x104): {	// BPLCON2
+			const auto value = cycle.value16();
+			odd_priority_ = value & 7;
+			even_priority_ = (value >> 3) & 7;
+			even_over_odd_ = value & 0x40;
+		} break;
 
-
-		case Write(0x104):		// BPLCON2
 		case Write(0x106):		// BPLCON3 (ECS)
 			LOG("TODO: Bitplane control; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
 		break;
