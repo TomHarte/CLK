@@ -16,18 +16,22 @@ using namespace Amiga;
 // MARK: - Disk DMA.
 
 void Chipset::DiskDMA::enqueue(uint16_t value, bool matches_sync) {
-	if(matches_sync) {
-		// TODO: start buffering from the next word onwards if
-		// syncing is enabled.
+	if(matches_sync && state_ == State::WaitingForSync) {
+		state_ = State::Reading;
+		return;
 	}
 
-//	LOG("In: " << buffer_write_);
-
-	buffer_[buffer_write_ & 3] = value;
-	if(buffer_write_ == buffer_read_ + 4) {
-		++buffer_read_;
+	if(state_ == State::Reading) {
+		buffer_[buffer_write_ & 3] = value;
+		if(buffer_write_ == buffer_read_ + 4) {
+			++buffer_read_;
+		}
+		++buffer_write_;
 	}
-	++buffer_write_;
+}
+
+void Chipset::DiskDMA::set_control(uint16_t control) {
+	sync_with_word_ = control & 0x400;
 }
 
 void Chipset::DiskDMA::set_length(uint16_t value) {
@@ -40,6 +44,8 @@ void Chipset::DiskDMA::set_length(uint16_t value) {
 		if(dma_enable_) {
 			LOG("Disk DMA " << (write_ ? "write" : "read") << " of " << length_ << " to " << PADHEX(8) << pointer_[0]);
 		}
+
+		state_ = sync_with_word_ ? State::WaitingForSync : State::Reading;
 	}
 
 	last_set_length_ = value;
@@ -57,6 +63,7 @@ bool Chipset::DiskDMA::advance() {
 
 			if(!length_) {
 				chipset_.posit_interrupt(InterruptFlag::DiskBlock);
+				state_ = State::Inactive;
 			}
 
 			return true;

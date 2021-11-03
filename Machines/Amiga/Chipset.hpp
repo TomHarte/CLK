@@ -383,7 +383,8 @@ class Chipset: private ClockingHint::Observer {
 			public:
 				using DMADevice::DMADevice;
 
-				void set_length(uint16_t value);
+				void set_length(uint16_t);
+				void set_control(uint16_t);
 				bool advance();
 
 				void enqueue(uint16_t value, bool matches_sync);
@@ -393,9 +394,16 @@ class Chipset: private ClockingHint::Observer {
 				bool dma_enable_ = false;
 				bool write_ = false;
 				uint16_t last_set_length_ = 0;
+				bool sync_with_word_ = false;
 
 				std::array<uint16_t, 4> buffer_;
 				size_t buffer_read_ = 0, buffer_write_ = 0;
+
+				enum class State {
+					Inactive,
+					WaitingForSync,
+					Reading,
+				} state_ = State::Inactive;
 		} disk_;
 
 		class DiskController: public Storage::Disk::Controller {

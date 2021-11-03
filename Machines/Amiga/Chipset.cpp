@@ -670,6 +670,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			ApplySetClear(paula_disk_control_, 0x7fff);
 
 			disk_controller_.set_control(paula_disk_control_);
+			disk_.set_control(paula_disk_control_);
 			// TODO: should also post to Paula.
 		break;
 		case Read(0x010):		// ADKCONR
@@ -679,7 +680,6 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		case Write(0x07e):		// DSKSYNC
 			disk_controller_.set_sync_word(cycle.value16());
-			assert(false);	// Not fully implemented.
 		break;
 		case Read(0x01a):		// DSKBYTR
 			LOG("TODO: disk status");
