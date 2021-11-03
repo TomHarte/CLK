@@ -126,6 +126,11 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 			tod_.template set_control<true>(value);
 		break;
 
+		// Shift control.
+		case 12:
+			printf("TODO: write to shift register\n");
+		break;
+
 		default:
 			printf("Unhandled 6526 write: %02x to %d\n", value, address);
 			assert(false);
@@ -166,6 +171,11 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 		case 9:		return tod_.template read<1>();
 		case 10:	return tod_.template read<2>();
 		case 11:	return tod_.template read<3>();
+
+		// Shift register.
+		case 12:
+			printf("TODO: read from shift register\n");
+		break;
 
 		default:
 			printf("Unhandled 6526 read from %d\n", address);
