@@ -164,6 +164,8 @@
 		4B15A9FD208249BB005E6C8D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B15A9FA208249BB005E6C8D /* StaticAnalyser.cpp */; };
 		4B17B58B20A8A9D9007CCA8F /* StringSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */; };
 		4B17B58C20A8A9D9007CCA8F /* StringSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */; };
+		4B1A1B1E27320FBC00119335 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1A1B1C27320FBB00119335 /* Disk.cpp */; };
+		4B1A1B1F27320FBC00119335 /* Disk.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1A1B1C27320FBB00119335 /* Disk.cpp */; };
 		4B1B58F6246CC4E8009C171E /* State.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B58F4246CC4E8009C171E /* State.cpp */; };
 		4B1B58F7246CC4E8009C171E /* State.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B58F4246CC4E8009C171E /* State.cpp */; };
 		4B1B58FF246E19FD009C171E /* State.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B58FD246E19FD009C171E /* State.cpp */; };
@@ -1164,6 +1166,7 @@
 		4B1667FB1FFF215F00A16032 /* KonamiWithSCC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = KonamiWithSCC.hpp; sourceTree = "<group>"; };
 		4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StringSerialiser.cpp; sourceTree = "<group>"; };
 		4B17B58A20A8A9D9007CCA8F /* StringSerialiser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = StringSerialiser.hpp; sourceTree = "<group>"; };
+		4B1A1B1C27320FBB00119335 /* Disk.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Disk.cpp; sourceTree = "<group>"; };
 		4B1B58F4246CC4E8009C171E /* State.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = State.cpp; sourceTree = "<group>"; };
 		4B1B58F5246CC4E8009C171E /* State.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = State.hpp; sourceTree = "<group>"; };
 		4B1B58FD246E19FD009C171E /* State.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = State.cpp; sourceTree = "<group>"; };
@@ -4301,16 +4304,17 @@
 				4B9EC0E126AA27BA0060A31F /* Blitter.cpp */,
 				4B9EC0E426AA4A660060A31F /* Chipset.cpp */,
 				4BC6236C26F4235400F83DFE /* Copper.cpp */,
+				4B1A1B1C27320FBB00119335 /* Disk.cpp */,
 				4B9EC0E826B384080060A31F /* Keyboard.cpp */,
 				4BC080D726A25ADA00D03FD8 /* Amiga.hpp */,
 				4B9EC0E026AA260C0060A31F /* Blitter.hpp */,
 				4B9EC0E526AA4A660060A31F /* Chipset.hpp */,
 				4BC6236B26F4224300F83DFE /* Copper.hpp */,
 				4BC6236A26F178DA00F83DFE /* DMADevice.hpp */,
-				4B9EC0E926B384080060A31F /* Keyboard.hpp */,
-				4BC6237026F94A5B00F83DFE /* Minterms.hpp */,
-				4BD1552E270B14AC00410C6E /* MemoryMap.hpp */,
 				4BD1553227178E8000410C6E /* Flags.hpp */,
+				4B9EC0E926B384080060A31F /* Keyboard.hpp */,
+				4BD1552E270B14AC00410C6E /* MemoryMap.hpp */,
+				4BC6237026F94A5B00F83DFE /* Minterms.hpp */,
 			);
 			path = Amiga;
 			sourceTree = "<group>";
@@ -5451,6 +5455,7 @@
 				4B055ADB1FAE9B460060FFFF /* 6560.cpp in Sources */,
 				4B17B58C20A8A9D9007CCA8F /* StringSerialiser.cpp in Sources */,
 				4B055AA01FAE85DA0060FFFF /* MFMSectorDump.cpp in Sources */,
+				4B1A1B1F27320FBC00119335 /* Disk.cpp in Sources */,
 				4BEBFB522002DB30000708CC /* DiskROM.cpp in Sources */,
 				4BC23A2D2467600F001A6030 /* OPLL.cpp in Sources */,
 				4BC6236E26F4235400F83DFE /* Copper.cpp in Sources */,
@@ -5597,6 +5602,7 @@
 				4B4518861F75E91A00926311 /* MFMDiskController.cpp in Sources */,
 				4B0ACC2C23775819008902D0 /* IntelligentKeyboard.cpp in Sources */,
 				4BC080CA26A238CC00D03FD8 /* AmigaADF.cpp in Sources */,
+				4B1A1B1E27320FBC00119335 /* Disk.cpp in Sources */,
 				4B92E26A234AE35100CD6D1B /* MFP68901.cpp in Sources */,
 				4B051C97266EF5F600CA44E8 /* CSAppleII.mm in Sources */,
 				4B0ACC2A23775819008902D0 /* Video.cpp in Sources */,
