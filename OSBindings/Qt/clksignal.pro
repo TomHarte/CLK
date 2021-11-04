@@ -303,7 +303,7 @@ FORMS += \
 	mainwindow.ui
 
 TRANSLATIONS += \
-	ClockSignal_en_GB.ts
+	clksignal_en_GB.ts
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
