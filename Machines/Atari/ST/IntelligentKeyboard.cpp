@@ -15,7 +15,7 @@
 
 using namespace Atari::ST;
 
-IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &output) : output_line_(output) {
+IntelligentKeyboard::IntelligentKeyboard(Serial::Line<false> &input, Serial::Line<false> &output) : output_line_(output) {
 	input.set_read_delegate(this, Storage::Time(2, 15625));
 	output_line_.set_writer_clock_rate(15625);
 
@@ -24,7 +24,7 @@ IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &outp
 	joysticks_.emplace_back(new Joystick);
 }
 
-bool IntelligentKeyboard::serial_line_did_produce_bit(Serial::Line *, int bit) {
+bool IntelligentKeyboard::serial_line_did_produce_bit(Serial::Line<false> *, int bit) {
 	// Shift.
 	command_ = (command_ >> 1) | (bit << 9);
 

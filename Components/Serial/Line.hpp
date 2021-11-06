@@ -25,7 +25,7 @@ namespace Serial {
 	get ahead of the writer. If the writer posts events behind the reader they will simply be
 	given instanteous effect.
 */
-class Line {
+template <bool include_clock> class Line {
 	public:
 		void set_writer_clock_rate(HalfCycles clock_rate);
 

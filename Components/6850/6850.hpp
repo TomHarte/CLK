@@ -18,7 +18,7 @@
 namespace Motorola {
 namespace ACIA {
 
-class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
+class ACIA: public ClockingHint::Source, private Serial::Line<false>::ReadDelegate {
 	public:
 		static constexpr const HalfCycles SameAsTransmit = HalfCycles(0);
 
@@ -77,13 +77,13 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 		void reset();
 
 		// Input lines.
-		Serial::Line receive;
-		Serial::Line clear_to_send;
-		Serial::Line data_carrier_detect;
+		Serial::Line<false> receive;
+		Serial::Line<false> clear_to_send;
+		Serial::Line<false> data_carrier_detect;
 
 		// Output lines.
-		Serial::Line transmit;
-		Serial::Line request_to_send;
+		Serial::Line<false> transmit;
+		Serial::Line<false> request_to_send;
 
 		// ClockingHint::Source.
 		ClockingHint::Preference preferred_clocking() const final;
@@ -118,7 +118,7 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 		HalfCycles transmit_clock_rate_;
 		HalfCycles receive_clock_rate_;
 
-		bool serial_line_did_produce_bit(Serial::Line *line, int bit) final;
+		bool serial_line_did_produce_bit(Serial::Line<false> *line, int bit) final;
 
 		bool interrupt_line_ = false;
 		void update_interrupt_line();

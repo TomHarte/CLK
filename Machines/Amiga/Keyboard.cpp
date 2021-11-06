@@ -42,7 +42,7 @@
 
 using namespace Amiga;
 
-Keyboard::Keyboard(Serial::Line &output) : output_(output) {
+Keyboard::Keyboard(Serial::Line<true> &output) : output_(output) {
 	output_.set_writer_clock_rate(HalfCycles(1'000'000));	// Use µs.
 }
 

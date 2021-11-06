@@ -77,7 +77,7 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 
 class Keyboard {
 	public:
-		Keyboard(Serial::Line &output);
+		Keyboard(Serial::Line<true> &output);
 
 //		enum Lines: uint8_t {
 //			Data = (1 << 0),
@@ -106,7 +106,7 @@ class Keyboard {
 
 		uint8_t lines_ = 0;
 
-		Serial::Line &output_;
+		Serial::Line<true> &output_;
 };
 
 }

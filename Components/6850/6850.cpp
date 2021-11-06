@@ -148,7 +148,7 @@ uint8_t ACIA::parity(uint8_t value) {
 	return value ^ (parity_ == Parity::Even);
 }
 
-bool ACIA::serial_line_did_produce_bit(Serial::Line *, int bit) {
+bool ACIA::serial_line_did_produce_bit(Serial::Line<false> *, int bit) {
 	// Shift this bit into the 11-bit input register; this is big enough to hold
 	// the largest transmission symbol.
 	++bits_received_;
