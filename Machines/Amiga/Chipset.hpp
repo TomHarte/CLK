@@ -28,6 +28,7 @@
 #include "Copper.hpp"
 #include "DMADevice.hpp"
 #include "Flags.hpp"
+#include "Keyboard.hpp"
 #include "MemoryMap.hpp"
 
 namespace Amiga {
@@ -93,6 +94,10 @@ class Chipset: private ClockingHint::Observer {
 		void set_activity_observer(Activity::Observer *observer) {
 			cia_a_handler_.set_activity_observer(observer);
 			disk_controller_.set_activity_observer(observer);
+		}
+
+		Keyboard &get_keyboard() {
+			return keyboard_;
 		}
 
 	private:
@@ -447,6 +452,10 @@ class Chipset: private ClockingHint::Observer {
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
 		bool disk_controller_is_sleeping_ = false;
 		uint16_t paula_disk_control_ = 0;
+
+		// MARK: - Keyboard.
+
+		Keyboard keyboard_;
 };
 
 }

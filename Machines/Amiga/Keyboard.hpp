@@ -6,10 +6,12 @@
 //  Copyright © 2021 Thomas Harte. All rights reserved.
 //
 
-#ifndef Keyboard_hpp
-#define Keyboard_hpp
+#ifndef Machines_Amiga_Keyboard_hpp
+#define Machines_Amiga_Keyboard_hpp
 
 #include <cstdint>
+#include "../KeyboardMachine.hpp"
+#include "../../Components/Serial/Line.hpp"
 
 namespace Amiga {
 
@@ -41,8 +43,8 @@ enum class Key: uint16_t {
 	X	= 0x32, C	= 0x33,	V	= 0x34,	B	= 0x35,	N	= 0x36,
 	M	= 0x37,
 
-	OpenSquareBrackets = 0x1a,
-	CloseSquareBrackets = 0x1b,
+	OpenSquareBracket = 0x1a,
+	CloseSquareBracket = 0x1b,
 	Help = 0x5f,
 	Return = 0x44,
 	Semicolon = 0x29,
@@ -57,21 +59,35 @@ enum class Key: uint16_t {
 
 	Up	= 0x4c,	Left = 0x4f, Right = 0x4e, Down = 0x4d,
 
-	KeyPad7 = 0x3d, KeyPad8 = 0x3e, KeyPad9 = 0x3f,
-	KeyPad4 = 0x2d, KeyPad5 = 0x2e, KeyPad6 = 0x2f,
-	KeyPad1 = 0x1d, KeyPad2 = 0x1e, KeyPad3 = 0x1f,
-	KeyPad0 = 0x0f, KeyPadDecimalPoint = 0x3c,
-	KeyPadMinus = 0x4a, KeyPadEnter = 0x43,
+	Keypad7 = 0x3d, Keypad8 = 0x3e, Keypad9 = 0x3f,
+	Keypad4 = 0x2d, Keypad5 = 0x2e, Keypad6 = 0x2f,
+	Keypad1 = 0x1d, Keypad2 = 0x1e, Keypad3 = 0x1f,
+	Keypad0 = 0x0f, KeypadDecimalPoint = 0x3c,
+	KeypadMinus = 0x4a, KeypadEnter = 0x43,
+	KeypadOpenBracket = 0x5a,
+	KeypadCloseBracket = 0x5b,
+	KeypadDivide = 0x5c,
+	KeypadMultiply = 0x5d,
+	KeypadPlus = 0x5e,
+};
+
+struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 };
 
 class Keyboard {
 	public:
-		enum Lines: uint8_t {
-			Data = (1 << 0),
-			Clock = (1 << 1),
-		};
+		Keyboard(Serial::Line &output);
 
-		uint8_t update(uint8_t);
+//		enum Lines: uint8_t {
+//			Data = (1 << 0),
+//			Clock = (1 << 1),
+//		};
+//
+//		uint8_t update(uint8_t);
+
+		void set_key_state(uint16_t, bool);
+		void clear_all_keys();
 
 	private:
 		enum class ShiftState {
@@ -89,8 +105,10 @@ class Keyboard {
 		int bits_remaining_ = 0;
 
 		uint8_t lines_ = 0;
+
+		Serial::Line &output_;
 };
 
 }
 
-#endif /* Keyboard_hpp */
+#endif /* Machines_Amiga_Keyboard_hpp */

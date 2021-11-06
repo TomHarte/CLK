@@ -23,6 +23,7 @@
 #include "../../Outputs/Log.hpp"
 
 #include "Chipset.hpp"
+#include "Keyboard.hpp"
 #include "MemoryMap.hpp"
 
 namespace {
@@ -39,6 +40,7 @@ namespace Amiga {
 class ConcreteMachine:
 	public Activity::Source,
 	public CPU::MC68000::BusHandler,
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::MouseMachine,
 	public MachineTypes::ScanProducer,
@@ -201,7 +203,22 @@ class ConcreteMachine:
 		Inputs::Mouse &get_mouse() final {
 			return chipset_.get_mouse();;
 		}
-};
+
+		// MARK: - Keyboard.
+
+		Amiga::KeyboardMapper keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() {
+			return &keyboard_mapper_;
+		}
+
+		void set_key_state(uint16_t key, bool is_pressed) {
+			chipset_.get_keyboard().set_key_state(key, is_pressed);
+		}
+
+		void clear_all_keys() {
+			chipset_.get_keyboard().clear_all_keys();
+		}
+	};
 
 }
 

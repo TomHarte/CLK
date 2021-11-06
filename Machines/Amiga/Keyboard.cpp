@@ -42,7 +42,11 @@
 
 using namespace Amiga;
 
-uint8_t Keyboard::update(uint8_t input) {
+Keyboard::Keyboard(Serial::Line &output) : output_(output) {
+	output_.set_writer_clock_rate(HalfCycles(1'000'000));	// Use µs.
+}
+
+/*uint8_t Keyboard::update(uint8_t input) {
 	// If a bit transmission is ongoing, continue that, up to and including
 	// the handshake. If no handshake comes, set a macro state of synchronising.
 	switch(shift_state_) {
@@ -89,4 +93,89 @@ uint8_t Keyboard::update(uint8_t input) {
 	}
 
 	return lines_;
+}*/
+
+void Keyboard::set_key_state(uint16_t key, bool is_pressed) {
+	output_.write<false>(
+		HalfCycles(60),
+		uint8_t(((key << 1) | (is_pressed ? 0 : 1)) ^ 0xff)
+	);
+}
+
+void Keyboard::clear_all_keys() {
+}
+
+// MARK: - KeyboardMapper.
+
+uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
+#define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return uint16_t(Key::dest)
+#define DIRECTBIND(source)	BIND(source, source)
+	switch(key) {
+		default: break;
+
+		DIRECTBIND(Escape);
+		DIRECTBIND(Delete);
+
+		DIRECTBIND(F1);	DIRECTBIND(F2);	DIRECTBIND(F3);	DIRECTBIND(F4);	DIRECTBIND(F5);
+		DIRECTBIND(F6);	DIRECTBIND(F7);	DIRECTBIND(F8);	DIRECTBIND(F9);	DIRECTBIND(F10);
+
+		BIND(BackTick, Tilde);
+		DIRECTBIND(k1);	DIRECTBIND(k2);	DIRECTBIND(k3);	DIRECTBIND(k4);	DIRECTBIND(k5);
+		DIRECTBIND(k6);	DIRECTBIND(k7);	DIRECTBIND(k8);	DIRECTBIND(k9);	DIRECTBIND(k0);
+
+		DIRECTBIND(Hyphen);
+		DIRECTBIND(Equals);
+		DIRECTBIND(Backslash);
+		DIRECTBIND(Backspace);
+		DIRECTBIND(Tab);
+		DIRECTBIND(CapsLock);
+
+		BIND(LeftControl, Control);
+		BIND(RightControl, Control);
+		DIRECTBIND(LeftShift);
+		DIRECTBIND(RightShift);
+		BIND(LeftOption, Alt);
+		BIND(RightOption, Alt);
+		BIND(LeftMeta, LeftAmiga);
+		BIND(RightMeta, RightAmiga);
+
+		DIRECTBIND(Q);	DIRECTBIND(W);	DIRECTBIND(E);	DIRECTBIND(R);	DIRECTBIND(T);
+		DIRECTBIND(Y);	DIRECTBIND(U);	DIRECTBIND(I);	DIRECTBIND(O);	DIRECTBIND(P);
+		DIRECTBIND(A);	DIRECTBIND(S);	DIRECTBIND(D);	DIRECTBIND(F);	DIRECTBIND(G);
+		DIRECTBIND(H);	DIRECTBIND(J);	DIRECTBIND(K);	DIRECTBIND(L);	DIRECTBIND(Z);
+		DIRECTBIND(X);	DIRECTBIND(C);	DIRECTBIND(V);	DIRECTBIND(B);	DIRECTBIND(N);
+		DIRECTBIND(M);
+
+		DIRECTBIND(OpenSquareBracket);
+		DIRECTBIND(CloseSquareBracket);
+
+		DIRECTBIND(Help);
+		BIND(Insert, Help);
+		BIND(Home, Help);
+		BIND(End, Help);
+		BIND(Enter, Return);
+		DIRECTBIND(Semicolon);
+		DIRECTBIND(Quote);
+		DIRECTBIND(Comma);
+		DIRECTBIND(FullStop);
+		DIRECTBIND(ForwardSlash);
+
+		DIRECTBIND(Space);
+		DIRECTBIND(Up);
+		DIRECTBIND(Down);
+		DIRECTBIND(Left);
+		DIRECTBIND(Right);
+
+		DIRECTBIND(Keypad0);	DIRECTBIND(Keypad1);	DIRECTBIND(Keypad2);
+		DIRECTBIND(Keypad3);	DIRECTBIND(Keypad4);	DIRECTBIND(Keypad5);
+		DIRECTBIND(Keypad6);	DIRECTBIND(Keypad7);	DIRECTBIND(Keypad8);
+		DIRECTBIND(Keypad9);
+
+		DIRECTBIND(KeypadDecimalPoint);
+		DIRECTBIND(KeypadMinus);
+		DIRECTBIND(KeypadEnter);
+	}
+#undef DIRECTBIND
+#undef BIND
+	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }

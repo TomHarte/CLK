@@ -79,7 +79,8 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	cia_a(cia_a_handler_),
 	cia_b(cia_b_handler_),
 	disk_(DMA_CONSTRUCT),
-	disk_controller_(Cycles(input_clock_rate), *this, disk_, cia_b) {
+	disk_controller_(Cycles(input_clock_rate), *this, disk_, cia_b),
+	keyboard_(cia_a.serial_input) {
 	disk_controller_.set_clocking_hint_observer(this);
 }
 
