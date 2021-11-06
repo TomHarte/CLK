@@ -44,6 +44,10 @@ class Line {
 		/// relative to the writer's clock rate.
 		void write(HalfCycles cycles, int count, int levels);
 
+		/// Enqueus every bit from @c value as per the rules of write(HalfCycles, int, int),
+		/// either in LSB or MSB order as per the @c lsb_first template flag.
+		template <bool lsb_first, typename IntT> void write(HalfCycles cycles, IntT value);
+
 		/// @returns the number of cycles until currently enqueued write data is exhausted.
 		forceinline HalfCycles write_data_time_remaining() const {
 			return HalfCycles(remaining_delays_);
@@ -98,6 +102,9 @@ class Line {
 
 		void update_delegate(bool level);
 		HalfCycles::IntType minimum_write_cycles_for_read_delegate_bit();
+
+		template <bool lsb_first, typename IntT> void
+			write_internal(HalfCycles, int, IntT);
 };
 
 /*!

@@ -8,6 +8,8 @@
 
 #include "Line.hpp"
 
+#include <limits>
+
 using namespace Serial;
 
 void Line::set_writer_clock_rate(HalfCycles clock_rate) {
@@ -70,7 +72,7 @@ void Line::write(bool level) {
 	}
 }
 
-void Line::write(HalfCycles cycles, int count, int levels) {
+template <bool lsb_first, typename IntT> void Line::write_internal(HalfCycles cycles, int count, IntT levels) {
 	remaining_delays_ += count * cycles.as_integral();
 
 	auto event = events_.size();
@@ -78,11 +80,37 @@ void Line::write(HalfCycles cycles, int count, int levels) {
 	while(count--) {
 		events_[event].type = Event::Delay;
 		events_[event].delay = int(cycles.as_integral());
-		events_[event+1].type = (levels&1) ? Event::SetHigh : Event::SetLow;
-		levels >>= 1;
+		IntT bit;
+		if constexpr (lsb_first) {
+			bit = levels & 1;
+			levels >>= 1;
+		} else {
+			constexpr auto top_bit = std::numeric_limits<IntT>::max() - (std::numeric_limits<IntT>::max() >> 1);
+			bit = levels & top_bit;
+			levels <<= 1;
+		}
+
+		events_[event+1].type = bit ? Event::SetHigh : Event::SetLow;
 		event += 2;
 	}
 }
+
+void Line::write(HalfCycles cycles, int count, int levels) {
+	write_internal<true, int>(cycles, count, levels);
+}
+
+template <bool lsb_first, typename IntT> void Line::write(HalfCycles cycles, IntT value) {
+	write_internal<lsb_first, IntT>(cycles, 8 * sizeof(IntT), value);
+}
+
+template void Line::write<true, uint8_t>(HalfCycles, uint8_t);
+template void Line::write<false, uint8_t>(HalfCycles, uint8_t);
+template void Line::write<true, uint16_t>(HalfCycles, uint16_t);
+template void Line::write<false, uint16_t>(HalfCycles, uint16_t);
+template void Line::write<true, uint32_t>(HalfCycles, uint32_t);
+template void Line::write<false, uint32_t>(HalfCycles, uint32_t);
+template void Line::write<true, uint64_t>(HalfCycles, uint64_t);
+template void Line::write<false, uint64_t>(HalfCycles, uint64_t);
 
 void Line::reset_writing() {
 	remaining_delays_ = 0;
