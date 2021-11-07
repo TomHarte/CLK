@@ -189,6 +189,7 @@ struct MOS6526Storage {
 	uint8_t shift_data_ = 0;
 	uint8_t shift_register_ = 0;
 	int shift_bits_ = 0;
+	bool shifter_is_output_ = false;
 
 	struct Counter {
 		uint16_t reload = 0;

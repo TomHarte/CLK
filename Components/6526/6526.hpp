@@ -40,10 +40,13 @@ enum class Personality {
 };
 
 template <typename PortHandlerT, Personality personality> class MOS6526:
-	private MOS6526Storage
+	private MOS6526Storage,
+	private Serial::Line<true>::ReadDelegate
 {
 	public:
-		MOS6526(PortHandlerT &port_handler) noexcept : port_handler_(port_handler) {}
+		MOS6526(PortHandlerT &port_handler) noexcept : port_handler_(port_handler) {
+			serial_input.set_read_delegate(this);
+		}
 		MOS6526(const MOS6526 &) = delete;
 
 		/// Writes @c value to the register at @c address. Only the low two bits of the address are decoded.
@@ -79,6 +82,8 @@ template <typename PortHandlerT, Personality personality> class MOS6526:
 		void update_interrupts();
 		void posit_interrupt(uint8_t mask);
 		void advance_counters(int);
+
+		bool serial_line_did_produce_bit(Serial::Line<true> *line, int bit) final;
 };
 
 }

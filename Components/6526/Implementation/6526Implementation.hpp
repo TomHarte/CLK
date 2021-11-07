@@ -120,6 +120,10 @@ void MOS6526<BusHandlerT, personality>::write(int address, uint8_t value) {
 		case 14:
 			counter_[0].template set_control<false>(value);
 			tod_.template set_control<false>(value);
+			if(shifter_is_output_ != bool(value & 0x40)) {
+				shifter_is_output_ = value & 0x40;
+				shift_bits_ = 0;
+			}
 		break;
 		case 15:
 			counter_[1].template set_control<true>(value);
@@ -173,9 +177,7 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 		case 11:	return tod_.template read<3>();
 
 		// Shift register.
-		case 12:
-			printf("TODO: read from shift register\n");
-		break;
+		case 12:	return shift_data_;
 
 		default:
 			printf("Unhandled 6526 read from %d\n", address);
@@ -214,6 +216,24 @@ void MOS6526<BusHandlerT, personality>::advance_tod(int count) {
 	if(tod_.advance(count)) {
 		posit_interrupt(Interrupts::Alarm);
 	}
+}
+
+template <typename BusHandlerT, Personality personality>
+bool MOS6526<BusHandlerT, personality>::serial_line_did_produce_bit(Serial::Line<true> *, int bit) {
+	// TODO: post CNT change; might affect timer.
+
+	if(!shifter_is_output_) {
+		shift_register_ = uint8_t((shift_register_ << 1) | bit);
+		++shift_bits_;
+
+		if(shift_bits_ == 8) {
+			shift_bits_ = 0;
+			shift_data_ = shift_register_;
+			posit_interrupt(Interrupts::SerialPort);
+		}
+	}
+
+	return true;
 }
 
 }
