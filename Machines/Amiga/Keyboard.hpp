@@ -12,6 +12,7 @@
 #include <cstdint>
 #include "../KeyboardMachine.hpp"
 #include "../../Components/Serial/Line.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Amiga {
 
@@ -88,6 +89,10 @@ class Keyboard {
 
 		void set_key_state(uint16_t, bool);
 		void clear_all_keys();
+
+		void run_for(HalfCycles duration) {
+			output_.advance_writer(duration);
+		}
 
 	private:
 		enum class ShiftState {

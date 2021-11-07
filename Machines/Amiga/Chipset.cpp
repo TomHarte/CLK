@@ -500,6 +500,11 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 		assert(line_cycle_ < line_length_ * 4);
 	}
 
+	// Advance the keyboard's serial output, at
+	// close enough to 1,000,000 ticks/second.
+	keyboard_divider_ += changes.duration;
+	keyboard_.run_for(keyboard_divider_.divide(HalfCycles(14)));
+
 	// The CIAs are on the E clock.
 	cia_divider_ += changes.duration;
 	const HalfCycles e_clocks = cia_divider_.divide(HalfCycles(20));

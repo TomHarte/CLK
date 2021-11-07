@@ -103,9 +103,10 @@ class Chipset: private ClockingHint::Observer {
 	private:
 		friend class DMADeviceBase;
 
-		// MARK: - E Clock follow along.
+		// MARK: - E Clock and keyboard dividers.
 
 		HalfCycles cia_divider_;
+		HalfCycles keyboard_divider_;
 
 		// MARK: - Interrupts.
 
