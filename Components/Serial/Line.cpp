@@ -29,7 +29,9 @@ void Line<include_clock>::advance_writer(HalfCycles cycles) {
 			transmission_extra_ -= integral_cycles;
 			if(transmission_extra_ <= 0) {
 				transmission_extra_ = 0;
-				update_delegate(level_);
+				if constexpr (!include_clock) {
+					update_delegate(level_);
+				}
 			}
 		}
 	} else {
@@ -42,12 +44,17 @@ void Line<include_clock>::advance_writer(HalfCycles cycles) {
 				auto iterator = events_.begin() + 1;
 				while(iterator != events_.end() && iterator->type != Event::Delay) {
 					level_ = iterator->type == Event::SetHigh;
+					if constexpr(include_clock) {
+						update_delegate(level_);
+					}
 					++iterator;
 				}
 				events_.erase(events_.begin(), iterator);
 
-				if(old_level != level_) {
-					update_delegate(old_level);
+				if constexpr (!include_clock) {
+					if(old_level != level_) {
+						update_delegate(old_level);
+					}
 				}
 
 				// Book enough extra time for the read delegate to be posted
@@ -89,7 +96,7 @@ template <bool lsb_first, typename IntT> void Line<include_clock>::write_interna
 			bit = levels & 1;
 			levels >>= 1;
 		} else {
-			constexpr auto top_bit = std::numeric_limits<IntT>::max() - (std::numeric_limits<IntT>::max() >> 1);
+			constexpr auto top_bit = IntT(0x80) << ((sizeof(IntT) - 1) * 8);
 			bit = levels & top_bit;
 			levels <<= 1;
 		}
@@ -123,9 +130,11 @@ bool Line<include_clock>::read() const {
 template <bool include_clock>
 void Line<include_clock>::set_read_delegate(ReadDelegate *delegate, Storage::Time bit_length) {
 	read_delegate_ = delegate;
-	read_delegate_bit_length_ = bit_length;
-	read_delegate_bit_length_.simplify();
-	write_cycles_since_delegate_call_ = 0;
+	if constexpr (include_clock) {
+		read_delegate_bit_length_ = bit_length;
+		read_delegate_bit_length_.simplify();
+		write_cycles_since_delegate_call_ = 0;
+	}
 }
 
 template <bool include_clock>
@@ -134,33 +143,37 @@ void Line<include_clock>::update_delegate(bool level) {
 	// zero and this isn't zero.
 	if(!read_delegate_) return;
 
-	const int cycles_to_forward = write_cycles_since_delegate_call_;
-	write_cycles_since_delegate_call_ = 0;
-	if(level && read_delegate_phase_ == ReadDelegatePhase::WaitingForZero) return;
+	if constexpr (!include_clock) {
+		const int cycles_to_forward = write_cycles_since_delegate_call_;
+		write_cycles_since_delegate_call_ = 0;
+		if(level && read_delegate_phase_ == ReadDelegatePhase::WaitingForZero) return;
 
-	// Deal with a transition out of waiting-for-zero mode by seeding time left
-	// in bit at half a bit.
-	if(read_delegate_phase_ == ReadDelegatePhase::WaitingForZero) {
-		time_left_in_bit_ = read_delegate_bit_length_;
-		time_left_in_bit_.clock_rate <<= 1;
-		read_delegate_phase_ = ReadDelegatePhase::Serialising;
-	}
-
-	// Forward as many bits as occur.
-	Storage::Time time_left(cycles_to_forward, int(clock_rate_.as_integral()));
-	const int bit = level ? 1 : 0;
-	int bits = 0;
-	while(time_left >= time_left_in_bit_) {
-		++bits;
-		if(!read_delegate_->serial_line_did_produce_bit(this, bit)) {
-			read_delegate_phase_ = ReadDelegatePhase::WaitingForZero;
-			if(bit) return;
+		// Deal with a transition out of waiting-for-zero mode by seeding time left
+		// in bit at half a bit.
+		if(read_delegate_phase_ == ReadDelegatePhase::WaitingForZero) {
+			time_left_in_bit_ = read_delegate_bit_length_;
+			time_left_in_bit_.clock_rate <<= 1;
+			read_delegate_phase_ = ReadDelegatePhase::Serialising;
 		}
 
-		time_left -= time_left_in_bit_;
-		time_left_in_bit_ = read_delegate_bit_length_;
+		// Forward as many bits as occur.
+		Storage::Time time_left(cycles_to_forward, int(clock_rate_.as_integral()));
+		const int bit = level ? 1 : 0;
+		int bits = 0;
+		while(time_left >= time_left_in_bit_) {
+			++bits;
+			if(!read_delegate_->serial_line_did_produce_bit(this, bit)) {
+				read_delegate_phase_ = ReadDelegatePhase::WaitingForZero;
+				if(bit) return;
+			}
+
+			time_left -= time_left_in_bit_;
+			time_left_in_bit_ = read_delegate_bit_length_;
+		}
+		time_left_in_bit_ -= time_left;
+	} else {
+		read_delegate_->serial_line_did_produce_bit(this, level);
 	}
-	time_left_in_bit_ -= time_left;
 }
 
 template <bool include_clock>
