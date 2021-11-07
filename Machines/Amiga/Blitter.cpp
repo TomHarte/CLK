@@ -30,7 +30,7 @@ void Blitter::set_control(int index, uint16_t value) {
 
 		direction_ = one_dot_ ? uint32_t(-1) : uint32_t(1);
 		exclusive_fill_ = (value & 0x0010);
-		inclusive_fill_ = (value & 0x0008);
+		inclusive_fill_ = !exclusive_fill_ && (value & 0x0008);	// Exclusive fill takes precedence. Probably? TODO: verify.
 		fill_carry_ = (value & 0x0004);
 	} else {
 		minterms_ = value & 0xff;
@@ -273,10 +273,15 @@ bool Blitter::advance() {
 					uint16_t bit = one_dot_ ? 0x0001 : 0x8000;
 					uint16_t flag = fill_carry ? bit : 0x0000;
 					while(bit) {
-						if(exclusive_fill_) flag ^= (output & bit);
-						if(inclusive_fill_) flag ^= (output & bit & ~flag);	// Accept bits that would transition to set immediately.
+						uint16_t pre_toggle = output & bit, post_toggle = pre_toggle;
+						if(inclusive_fill_) {
+							pre_toggle &= ~flag;	// Accept bits that would transition to set immediately.
+							post_toggle &= flag;	// Accept bits that would transition to clear after the fact.
+						}
+
+						flag ^= pre_toggle;
 						fill_output |= flag;
-						if(inclusive_fill_) flag ^= (output & bit & flag);	// Accept bits that would transition to clear after the fact.
+						flag ^= post_toggle;
 
 						fill_carry = flag;
 						if(one_dot_) {

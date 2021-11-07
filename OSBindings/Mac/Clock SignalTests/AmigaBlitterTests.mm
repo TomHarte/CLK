@@ -14,7 +14,16 @@
 
 namespace Amiga {
 /// An empty stub to satisfy Amiga::Blitter's inheritance from Amiga::DMADevice;
-struct Chipset {};
+struct Chipset {
+	// Hyper ugliness: make a gross assumption about the effect of
+	// the only call the Blitter will make into the Chipset, i.e.
+	// that it will write something but do nothing more.
+	//
+	// Bonus ugliness: assume the real Chipset struct is 1kb in
+	// size, at most.
+	uint8_t _[1024];
+};
+
 };
 
 namespace {
@@ -78,6 +87,7 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 		const NSInteger param1 = [event[1] integerValue];
 
 		if([type isEqualToString:@"cread"] || [type isEqualToString:@"bread"] || [type isEqualToString:@"aread"]) {
+			XCTAssert(param1 < sizeof(ram) - 1);
 			ram[param1 >> 1] = [event[2] integerValue];
 			state = State::LoggingWrites;
 			continue;
@@ -237,6 +247,10 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 
 - (void)testClock {
 	[self testCase:@"clock"];
+}
+
+- (void)testInclusiveFills {
+	[self testCase:@"inclusive fills"];
 }
 
 @end
