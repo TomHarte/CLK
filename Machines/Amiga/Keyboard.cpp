@@ -96,6 +96,7 @@ Keyboard::Keyboard(Serial::Line<true> &output) : output_(output) {
 }*/
 
 void Keyboard::set_key_state(uint16_t key, bool is_pressed) {
+	pressed_[key] = is_pressed;
 	output_.write<false>(
 		HalfCycles(60),
 		uint8_t(((key << 1) | (is_pressed ? 0 : 1)) ^ 0xff)
@@ -103,6 +104,9 @@ void Keyboard::set_key_state(uint16_t key, bool is_pressed) {
 }
 
 void Keyboard::clear_all_keys() {
+	for(uint16_t c = 0; c < uint16_t(pressed_.size()); c++) {
+		if(pressed_[c]) set_key_state(c, false);
+	}
 }
 
 // MARK: - KeyboardMapper.

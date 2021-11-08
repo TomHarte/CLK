@@ -9,6 +9,7 @@
 #ifndef Machines_Amiga_Keyboard_hpp
 #define Machines_Amiga_Keyboard_hpp
 
+#include <array>
 #include <cstdint>
 #include "../KeyboardMachine.hpp"
 #include "../../Components/Serial/Line.hpp"
@@ -112,6 +113,7 @@ class Keyboard {
 		uint8_t lines_ = 0;
 
 		Serial::Line<true> &output_;
+		std::array<bool, 128> pressed_{};
 };
 
 }
