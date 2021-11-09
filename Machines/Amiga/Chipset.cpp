@@ -73,6 +73,7 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	},
 	bitplanes_(DMA_CONSTRUCT),
 	copper_(DMA_CONSTRUCT),
+	audio_(DMA_CONSTRUCT),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
 	cia_a_handler_(map, disk_controller_, mouse_),
 	cia_b_handler_(disk_controller_),
@@ -316,6 +317,12 @@ void Chipset::flush_output() {
 
 /// @returns @c true if this was a CPU slot; @c false otherwise.
 template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
+	constexpr uint16_t AudioFlags[]	= {
+		DMAMask<DMAFlag::AudioChannel0, DMAFlag::AllBelow>::value,
+		DMAMask<DMAFlag::AudioChannel1, DMAFlag::AllBelow>::value,
+		DMAMask<DMAFlag::AudioChannel2, DMAFlag::AllBelow>::value,
+		DMAMask<DMAFlag::AudioChannel3, DMAFlag::AllBelow>::value,
+	};
 	constexpr auto BlitterFlag	= DMAMask<DMAFlag::Blitter, DMAFlag::AllBelow>::value;
 	constexpr auto BitplaneFlag	= DMAMask<DMAFlag::Bitplane, DMAFlag::AllBelow>::value;
 	constexpr auto CopperFlag	= DMAMask<DMAFlag::Copper, DMAFlag::AllBelow>::value;
@@ -358,7 +365,16 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 			}
 		}
 
-		if constexpr(cycle >= 0x15 && cycle < 0x35) {
+		if constexpr (cycle >= 0xd && cycle < 0x14) {
+			constexpr auto channel = (cycle - 0xd) >> 1;
+			if((dma_control_ & AudioFlags[channel]) == AudioFlags[channel]) {
+				if(audio_.advance(channel)) {
+					return false;
+				}
+			}
+		}
+
+		if constexpr (cycle >= 0x15 && cycle < 0x35) {
 			if((dma_control_ & SpritesFlag) == SpritesFlag) {
 				constexpr auto sprite_id = (cycle - 0x15) >> 2;
 				if(sprites_[sprite_id].advance(y_)) {
@@ -850,17 +866,21 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x072):	blitter_.set_data(1, cycle.value16());			break;
 		case Write(0x074):	blitter_.set_data(0, cycle.value16());			break;
 
-		// Paula.
-		case Write(0x0a0):	case Write(0x0a2):	case Write(0x0a4):	case Write(0x0a6):
-		case Write(0x0a8):	case Write(0x0aa):
-		case Write(0x0b0):	case Write(0x0b2):	case Write(0x0b4):	case Write(0x0b6):
-		case Write(0x0b8):	case Write(0x0ba):
-		case Write(0x0c0):	case Write(0x0c2):	case Write(0x0c4):	case Write(0x0c6):
-		case Write(0x0c8):	case Write(0x0ca):
-		case Write(0x0d0):	case Write(0x0d2):	case Write(0x0d4):	case Write(0x0d6):
-		case Write(0x0d8):	case Write(0x0da):
-			LOG("TODO: Paula write " << PADHEX(2) << (*cycle.address & 0xff) << " " << PADHEX(4) << cycle.value16());
-		break;
+		// Audio.
+#define Audio(index, pointer)	\
+		case Write(pointer + 0):	audio_.set_pointer<index, 16>(cycle.value16());	break;	\
+		case Write(pointer + 2):	audio_.set_pointer<index, 0>(cycle.value16());	break;	\
+		case Write(pointer + 4):	audio_.set_length(index, cycle.value16());		break;	\
+		case Write(pointer + 6):	audio_.set_period(index, cycle.value16());		break;	\
+		case Write(pointer + 8):	audio_.set_volume(index, cycle.value16());		break;	\
+		case Write(pointer + 10):	audio_.set_data(index, cycle.value16());		break;	\
+
+		Audio(0, 0x0a0);
+		Audio(1, 0x0b0);
+		Audio(2, 0x0c0);
+		Audio(3, 0x0d0);
+
+#undef Audio
 
 		// Copper.
 		case Write(0x02e):	copper_.set_control(cycle.value16());			break;	// COPCON

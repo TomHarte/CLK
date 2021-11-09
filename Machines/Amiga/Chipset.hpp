@@ -24,6 +24,7 @@
 #include "../../Storage/Disk/Controller/DiskController.hpp"
 #include "../../Storage/Disk/Drive.hpp"
 
+#include "Audio.hpp"
 #include "Blitter.hpp"
 #include "Copper.hpp"
 #include "DMADevice.hpp"
@@ -304,6 +305,10 @@ class Chipset: private ClockingHint::Observer {
 		// MARK: - Copper.
 
 		Copper copper_;
+
+		// MARK: - Audio.
+
+		Audio audio_;
 
 		// MARK: - Serial port.
 

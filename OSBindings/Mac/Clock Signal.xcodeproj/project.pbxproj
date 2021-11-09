@@ -182,6 +182,8 @@
 		4B1EC716255398B000A1F44B /* Sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1EC714255398B000A1F44B /* Sound.cpp */; };
 		4B1EC717255398B000A1F44B /* Sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1EC714255398B000A1F44B /* Sound.cpp */; };
 		4B1EDB451E39A0AC009D6819 /* chip.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B1EDB431E39A0AC009D6819 /* chip.png */; };
+		4B2130E2273A7A0A008A77B4 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2130E0273A7A0A008A77B4 /* Audio.cpp */; };
+		4B2130E3273A7A0A008A77B4 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2130E0273A7A0A008A77B4 /* Audio.cpp */; };
 		4B228CD524D773B40077EF25 /* CSScanTarget.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B228CD424D773B30077EF25 /* CSScanTarget.mm */; };
 		4B228CD924DA12C60077EF25 /* CSScanTargetView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B228CD824DA12C60077EF25 /* CSScanTargetView.m */; };
 		4B228CDB24DA41890077EF25 /* ScanTarget.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4B228CDA24DA41880077EF25 /* ScanTarget.metal */; };
@@ -1183,6 +1185,8 @@
 		4B1EC714255398B000A1F44B /* Sound.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Sound.cpp; sourceTree = "<group>"; };
 		4B1EC715255398B000A1F44B /* Sound.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sound.hpp; sourceTree = "<group>"; };
 		4B1EDB431E39A0AC009D6819 /* chip.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = chip.png; sourceTree = "<group>"; };
+		4B2130E0273A7A0A008A77B4 /* Audio.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Audio.cpp; sourceTree = "<group>"; };
+		4B2130E1273A7A0A008A77B4 /* Audio.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Audio.hpp; sourceTree = "<group>"; };
 		4B228CD424D773B30077EF25 /* CSScanTarget.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CSScanTarget.mm; sourceTree = "<group>"; };
 		4B228CD624D773CA0077EF25 /* CSScanTarget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSScanTarget.h; sourceTree = "<group>"; };
 		4B228CD724DA12C50077EF25 /* CSScanTargetView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSScanTargetView.h; sourceTree = "<group>"; };
@@ -4301,12 +4305,14 @@
 			isa = PBXGroup;
 			children = (
 				4BC080D826A25ADA00D03FD8 /* Amiga.cpp */,
+				4B2130E0273A7A0A008A77B4 /* Audio.cpp */,
 				4B9EC0E126AA27BA0060A31F /* Blitter.cpp */,
 				4B9EC0E426AA4A660060A31F /* Chipset.cpp */,
 				4BC6236C26F4235400F83DFE /* Copper.cpp */,
 				4B1A1B1C27320FBB00119335 /* Disk.cpp */,
 				4B9EC0E826B384080060A31F /* Keyboard.cpp */,
 				4BC080D726A25ADA00D03FD8 /* Amiga.hpp */,
+				4B2130E1273A7A0A008A77B4 /* Audio.hpp */,
 				4B9EC0E026AA260C0060A31F /* Blitter.hpp */,
 				4B9EC0E526AA4A660060A31F /* Chipset.hpp */,
 				4BC6236B26F4224300F83DFE /* Copper.hpp */,
@@ -5477,6 +5483,7 @@
 				4BE0A3EF237BB170002AB46F /* ST.cpp in Sources */,
 				4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */,
 				4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */,
+				4B2130E3273A7A0A008A77B4 /* Audio.cpp in Sources */,
 				4BD67DD1209BF27B00AB2146 /* Encoder.cpp in Sources */,
 				4BE2121A253FCE9C00435408 /* AppleIIgs.cpp in Sources */,
 				4B051CAD26783E2000CA44E8 /* Nick.cpp in Sources */,
@@ -5593,6 +5600,7 @@
 				4B89453C201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */,
 				4B2E86BE25D74F160024F1E9 /* Mouse.cpp in Sources */,
+				4B2130E2273A7A0A008A77B4 /* Audio.cpp in Sources */,
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
 				4BDA00E422E663B900AC3CD0 /* NSData+CRC32.m in Sources */,
 				4B9EC0E626AA4A660060A31F /* Chipset.cpp in Sources */,
