@@ -9,6 +9,7 @@
 #ifndef JustInTime_h
 #define JustInTime_h
 
+#include "ClockReceiver.hpp"
 #include "../Concurrency/AsyncTaskQueue.hpp"
 #include "ClockingHintSource.hpp"
 #include "ForceInline.hpp"
