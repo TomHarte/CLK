@@ -73,7 +73,7 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	},
 	bitplanes_(DMA_CONSTRUCT),
 	copper_(DMA_CONSTRUCT),
-	audio_(DMA_CONSTRUCT),
+	audio_(DMA_CONSTRUCT, input_clock_rate),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
 	cia_a_handler_(map, disk_controller_, mouse_),
 	cia_b_handler_(disk_controller_),
@@ -368,7 +368,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		if constexpr (cycle >= 0xd && cycle < 0x14) {
 			constexpr auto channel = (cycle - 0xd) >> 1;
 			if((dma_control_ & AudioFlags[channel]) == AudioFlags[channel]) {
-				if(audio_.advance(channel)) {
+				if(audio_->advance(channel)) {
 					return false;
 				}
 			}
@@ -443,6 +443,8 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 
 template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 	Changes changes;
+
+	// TODO: incorporate audio timing here or deeper.
 
 	// This code uses 'pixels' as a measure, which is equivalent to one pixel clock time,
 	// or half a cycle.
@@ -693,7 +695,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 			disk_controller_.set_control(paula_disk_control_);
 			disk_.set_control(paula_disk_control_);
-			// TODO: should also post to Paula.
+			audio_->set_modulation_flags(paula_disk_control_);
 		break;
 		case Read(0x010):		// ADKCONR
 			LOG("Read disk control");
@@ -732,6 +734,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 		case Write(0x096):		// DMACON
 			ApplySetClear(dma_control_, 0x1fff);
+			audio_->set_channel_enables(dma_control_);
 		break;
 
 		// Interrupts.
@@ -868,12 +871,12 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		// Audio.
 #define Audio(index, pointer)	\
-		case Write(pointer + 0):	audio_.set_pointer<index, 16>(cycle.value16());	break;	\
-		case Write(pointer + 2):	audio_.set_pointer<index, 0>(cycle.value16());	break;	\
-		case Write(pointer + 4):	audio_.set_length(index, cycle.value16());		break;	\
-		case Write(pointer + 6):	audio_.set_period(index, cycle.value16());		break;	\
-		case Write(pointer + 8):	audio_.set_volume(index, cycle.value16());		break;	\
-		case Write(pointer + 10):	audio_.set_data(index, cycle.value16());		break;	\
+		case Write(pointer + 0):	audio_->set_pointer<index, 16>(cycle.value16());	break;	\
+		case Write(pointer + 2):	audio_->set_pointer<index, 0>(cycle.value16());	break;	\
+		case Write(pointer + 4):	audio_->set_length(index, cycle.value16());		break;	\
+		case Write(pointer + 6):	audio_->set_period(index, cycle.value16());		break;	\
+		case Write(pointer + 8):	audio_->set_volume(index, cycle.value16());		break;	\
+		case Write(pointer + 10):	audio_->set_data(index, cycle.value16());		break;	\
 
 		Audio(0, 0x0a0);
 		Audio(1, 0x0b0);

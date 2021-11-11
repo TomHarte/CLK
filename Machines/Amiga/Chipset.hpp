@@ -17,6 +17,7 @@
 
 #include "../../Activity/Source.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
+#include "../../ClockReceiver/JustInTime.hpp"
 #include "../../Components/6526/6526.hpp"
 #include "../../Inputs/Mouse.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
@@ -308,7 +309,7 @@ class Chipset: private ClockingHint::Observer {
 
 		// MARK: - Audio.
 
-		Audio audio_;
+		JustInTimeActor<Audio> audio_;
 
 		// MARK: - Serial port.
 
