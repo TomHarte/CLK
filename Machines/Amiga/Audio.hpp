@@ -28,7 +28,7 @@ class Audio: public DMADevice<4> {
 
 		/// Standard JustInTimeActor item; allows this class to track the
 		/// amount of time between other events.
-		void run_for(HalfCycles);
+		void run_for(Cycles);
 
 		/// Sets the total number of words to fetch for the given channel.
 		void set_length(int channel, uint16_t);
@@ -58,7 +58,7 @@ class Audio: public DMADevice<4> {
 			// The data latch plus a count of unused samples
 			// in the latch, which will always be 0, 1 or 2.
 			uint16_t data = 0x0000;
-			int samples_remaining = 0;
+			bool has_data = false;
 
 			// Number of words remaining in DMA data.
 			uint16_t length = 0;
@@ -73,6 +73,17 @@ class Audio: public DMADevice<4> {
 
 			// Indicates whether DMA is enabled for this channel.
 			bool dma_enabled = false;
+
+			// Replicates the Hardware Reference Manual state machine;
+			// comments indicate which of the documented states each
+			// label refers to.
+			enum class State {
+				Disabled,			// 000
+				WaitingForDummyDMA,	// 001
+				WaitingForDMA,		// 101
+				PlayingHigh,		// 010
+				PlayingLow,			// 011
+			} state_;
 		} channels_[4];
 };
 

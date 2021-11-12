@@ -102,6 +102,8 @@ class Chipset: private ClockingHint::Observer {
 			return keyboard_;
 		}
 
+		void flush();
+
 	private:
 		friend class DMADeviceBase;
 
@@ -309,7 +311,7 @@ class Chipset: private ClockingHint::Observer {
 
 		// MARK: - Audio.
 
-		JustInTimeActor<Audio> audio_;
+		JustInTimeActor<Audio, Cycles> audio_;
 
 		// MARK: - Serial port.
 

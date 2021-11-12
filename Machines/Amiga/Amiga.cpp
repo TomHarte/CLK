@@ -166,6 +166,10 @@ class ConcreteMachine:
 			return access_delay;
 		}
 
+		void flush() {
+			chipset_.flush();
+		}
+
 	private:
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 

@@ -7,12 +7,16 @@
 //
 
 #include "Audio.hpp"
+
+#define LOG_PREFIX "[Audio] "
+#include "../../Outputs/Log.hpp"
+
 #include <cassert>
 
 using namespace Amiga;
 
 bool Audio::advance(int channel) {
-	if(channels_[channel].samples_remaining || !channels_[channel].length) {
+	if(channels_[channel].has_data || !channels_[channel].length) {
 		return false;
 	}
 
@@ -40,10 +44,10 @@ void Audio::set_volume(int channel, uint16_t volume) {
 
 void Audio::set_data(int channel, uint16_t data) {
 	assert(channel >= 0 && channel < 4);
-	if(!channels_[channel].samples_remaining) {
+	if(!channels_[channel].has_data) {
 		channels_[channel].period_counter = channels_[channel].period;
 	}
-	channels_[channel].samples_remaining = 2;
+	channels_[channel].has_data = true;
 	channels_[channel].data = data;
 }
 
@@ -57,7 +61,7 @@ void Audio::set_channel_enables(uint16_t enables) {
 void Audio::set_modulation_flags(uint16_t) {
 }
 
-void Audio::run_for(HalfCycles) {
+void Audio::run_for([[maybe_unused]] Cycles duration) {
 	// TODO:
 	//
 	// Check whether any channel's period counter is exhausted and, if

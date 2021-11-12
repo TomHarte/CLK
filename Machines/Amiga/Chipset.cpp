@@ -140,6 +140,9 @@ template <int cycle> void Chipset::output() {
 	constexpr int blank3 	= 7 + burst;
 	static_assert(blank3 == 43);
 
+	// Advance audio.
+	audio_ += Cycles(1);
+
 	// Trigger any sprite loads encountered.
 	constexpr auto dcycle = cycle << 1;
 	for(int c = 0; c < 8; c += 2) {
@@ -443,8 +446,6 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 
 template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 	Changes changes;
-
-	// TODO: incorporate audio timing here or deeper.
 
 	// This code uses 'pixels' as a measure, which is equivalent to one pixel clock time,
 	// or half a cycle.
@@ -1285,4 +1286,8 @@ uint16_t Chipset::Mouse::get_position() {
 		(declared_position_[1] << 8) |
 		declared_position_[0]
 	);
+}
+
+void Chipset::flush() {
+	audio_.flush();
 }
