@@ -141,7 +141,7 @@ template <int cycle> void Chipset::output() {
 	static_assert(blank3 == 43);
 
 	// Advance audio.
-	audio_ += Cycles(1);
+	audio_.output();
 
 	// Trigger any sprite loads encountered.
 	constexpr auto dcycle = cycle << 1;
@@ -347,7 +347,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	if((dma_control_ & BitplaneFlag) == BitplaneFlag) {
 		// TODO: offer a cycle for bitplane collection.
 		// Probably need to indicate odd or even?
-		if(fetch_vertical_ && fetch_horizontal_ && bitplanes_.advance(cycle)) {
+		if(fetch_vertical_ && fetch_horizontal_ && bitplanes_.advance_dma(cycle)) {
 			did_fetch_ = true;
 			return false;
 		}
@@ -362,7 +362,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		// Blitter and CPU priority is dealt with below.
 		if constexpr (cycle >= 0x07 && cycle < 0x0d) {
 			if((dma_control_ & DiskFlag) == DiskFlag) {
-				if(disk_.advance()) {
+				if(disk_.advance_dma()) {
 					return false;
 				}
 			}
@@ -371,7 +371,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		if constexpr (cycle >= 0xd && cycle < 0x14) {
 			constexpr auto channel = (cycle - 0xd) >> 1;
 			if((dma_control_ & AudioFlags[channel]) == AudioFlags[channel]) {
-				if(audio_->advance(channel)) {
+				if(audio_.advance_dma(channel)) {
 					return false;
 				}
 			}
@@ -380,7 +380,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		if constexpr (cycle >= 0x15 && cycle < 0x35) {
 			if((dma_control_ & SpritesFlag) == SpritesFlag) {
 				constexpr auto sprite_id = (cycle - 0x15) >> 2;
-				if(sprites_[sprite_id].advance(y_)) {
+				if(sprites_[sprite_id].advance_dma(y_)) {
 					return false;
 				}
 			}
@@ -391,7 +391,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		//
 		// The Blitter and CPU are dealt with outside of the odd/even test.
 		if((dma_control_ & CopperFlag) == CopperFlag) {
-			if(copper_.advance(uint16_t(((y_ & 0xff) << 8) | (cycle & 0xfe)))) {
+			if(copper_.advance_dma(uint16_t(((y_ & 0xff) << 8) | (cycle & 0xfe)))) {
 				return false;
 			}
 		} else {
@@ -401,7 +401,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 
 	// Down here: give first refusal to the Blitter, otherwise
 	// pass on to the CPU.
-	return (dma_control_ & BlitterFlag) != BlitterFlag || !blitter_.advance();
+	return (dma_control_ & BlitterFlag) != BlitterFlag || !blitter_.advance_dma();
 }
 
 /// Performs all slots starting with @c first_slot and ending just before @c last_slot.
@@ -696,7 +696,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 			disk_controller_.set_control(paula_disk_control_);
 			disk_.set_control(paula_disk_control_);
-			audio_->set_modulation_flags(paula_disk_control_);
+			audio_.set_modulation_flags(paula_disk_control_);
 		break;
 		case Read(0x010):		// ADKCONR
 			LOG("Read disk control");
@@ -735,7 +735,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		break;
 		case Write(0x096):		// DMACON
 			ApplySetClear(dma_control_, 0x1fff);
-			audio_->set_channel_enables(dma_control_);
+			audio_.set_channel_enables(dma_control_);
 		break;
 
 		// Interrupts.
@@ -750,7 +750,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x09c):		// INTREQ
 			ApplySetClear(interrupt_requests_, 0x7fff);
 			update_interrupts();
-			audio_->set_interrupt_requests(interrupt_requests_);
+			audio_.set_interrupt_requests(interrupt_requests_);
 		break;
 		case Read(0x01e):		// INTREQR
 			cycle.set_value16(interrupt_requests_);
@@ -873,12 +873,12 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		// Audio.
 #define Audio(index, pointer)	\
-		case Write(pointer + 0):	audio_->set_pointer<index, 16>(cycle.value16());	break;	\
-		case Write(pointer + 2):	audio_->set_pointer<index, 0>(cycle.value16());	break;	\
-		case Write(pointer + 4):	audio_->set_length(index, cycle.value16());		break;	\
-		case Write(pointer + 6):	audio_->set_period(index, cycle.value16());		break;	\
-		case Write(pointer + 8):	audio_->set_volume(index, cycle.value16());		break;	\
-		case Write(pointer + 10):	audio_->set_data(index, cycle.value16());		break;	\
+		case Write(pointer + 0):	audio_.set_pointer<index, 16>(cycle.value16());	break;	\
+		case Write(pointer + 2):	audio_.set_pointer<index, 0>(cycle.value16());	break;	\
+		case Write(pointer + 4):	audio_.set_length(index, cycle.value16());		break;	\
+		case Write(pointer + 6):	audio_.set_period(index, cycle.value16());		break;	\
+		case Write(pointer + 8):	audio_.set_volume(index, cycle.value16());		break;	\
+		case Write(pointer + 10):	audio_.set_data(index, cycle.value16());		break;	\
 
 		Audio(0, 0x0a0);
 		Audio(1, 0x0b0);
@@ -966,7 +966,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 // MARK: - Bitplanes.
 
-bool Chipset::Bitplanes::advance(int cycle) {
+bool Chipset::Bitplanes::advance_dma(int cycle) {
 #define BIND_CYCLE(offset, plane)								\
 	case offset:												\
 		if(plane_count_ > plane) {								\
@@ -1049,7 +1049,7 @@ void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 	active |= slot == 0;
 }
 
-bool Chipset::Sprite::advance(int y) {
+bool Chipset::Sprite::advance_dma(int y) {
 	switch(dma_state_) {
 		// i.e. stopped.
 		default: return false;
@@ -1290,5 +1290,4 @@ uint16_t Chipset::Mouse::get_position() {
 }
 
 void Chipset::flush() {
-	audio_.flush();
 }

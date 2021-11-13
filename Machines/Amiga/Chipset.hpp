@@ -143,7 +143,7 @@ class Chipset: private ClockingHint::Observer {
 				void set_stop_and_control(uint16_t value);
 				void set_image_data(int slot, uint16_t value);
 
-				bool advance(int y);
+				bool advance_dma(int y);
 				void reset_dma();
 
 				uint16_t data[2]{};
@@ -244,7 +244,7 @@ class Chipset: private ClockingHint::Observer {
 			public:
 				using DMADevice::DMADevice;
 
-				bool advance(int cycle);
+				bool advance_dma(int cycle);
 				void do_end_of_line();
 				void set_control(uint16_t);
 
@@ -311,7 +311,7 @@ class Chipset: private ClockingHint::Observer {
 
 		// MARK: - Audio.
 
-		JustInTimeActor<Audio, Cycles> audio_;
+		Audio audio_;
 
 		// MARK: - Serial port.
 
@@ -399,7 +399,7 @@ class Chipset: private ClockingHint::Observer {
 
 				void set_length(uint16_t);
 				void set_control(uint16_t);
-				bool advance();
+				bool advance_dma();
 
 				void enqueue(uint16_t value, bool matches_sync);
 

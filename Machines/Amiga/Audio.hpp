@@ -24,11 +24,11 @@ class Audio: public DMADevice<4> {
 
 		/// Idiomatic call-in for DMA scheduling; indicates that this class may
 		/// perform a DMA access for the stated channel now.
-		bool advance(int channel);
+		bool advance_dma(int channel);
 
-		/// Standard JustInTimeActor item; allows this class to track the
-		/// amount of time between other events.
-		void run_for(Cycles);
+		/// Advances output by one DMA window, which is implicitly two cycles
+		/// at the output rate that was specified to the constructor.
+		void output();
 
 		/// Sets the total number of words to fetch for the given channel.
 		void set_length(int channel, uint16_t);

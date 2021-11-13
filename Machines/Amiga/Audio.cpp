@@ -17,7 +17,7 @@
 
 using namespace Amiga;
 
-bool Audio::advance(int channel) {
+bool Audio::advance_dma(int channel) {
 	if(channels_[channel].has_data || !channels_[channel].length) {
 		return false;
 	}
@@ -70,7 +70,7 @@ void Audio::set_interrupt_requests(uint16_t requests) {
 	channels_[3].interrupt_pending = requests & uint16_t(InterruptFlag::AudioChannel3);
 }
 
-void Audio::run_for([[maybe_unused]] Cycles duration) {
+void Audio::output() {
 	// TODO:
 	//
 	// Check whether any channel's period counter is exhausted and, if

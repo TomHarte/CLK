@@ -95,7 +95,7 @@ uint16_t Blitter::get_status() {
 	return result;
 }
 
-bool Blitter::advance() {
+bool Blitter::advance_dma() {
 	if(!height_) return false;
 
 	not_zero_flag_ = false;

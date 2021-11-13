@@ -18,7 +18,7 @@
 
 using namespace Amiga;
 
-bool Copper::advance(uint16_t position) {
+bool Copper::advance_dma(uint16_t position) {
 	switch(state_) {
 		default: return false;
 

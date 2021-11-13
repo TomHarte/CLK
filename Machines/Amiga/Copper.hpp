@@ -20,7 +20,7 @@ class Copper: public DMADevice<2> {
 		/// Offers a DMA slot to the Copper, specifying the current beam position.
 		///
 		/// @returns @c true if the slot was used; @c false otherwise.
-		bool advance(uint16_t position);
+		bool advance_dma(uint16_t position);
 
 		/// Forces a reload of address @c id (i.e. 0 or 1) and restarts the Copper.
 		template <int id> void reload() {

@@ -51,7 +51,7 @@ void Chipset::DiskDMA::set_length(uint16_t value) {
 	last_set_length_ = value;
 }
 
-bool Chipset::DiskDMA::advance() {
+bool Chipset::DiskDMA::advance_dma() {
 	if(!dma_enable_) return false;
 
 	if(!write_) {

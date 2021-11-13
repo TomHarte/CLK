@@ -37,7 +37,7 @@ class Blitter: public DMADevice<4, 4> {
 
 		uint16_t get_status();
 
-		bool advance();
+		bool advance_dma();
 
 	private:
 		int width_ = 0, height_ = 0;
