@@ -8,6 +8,8 @@
 
 #include "Audio.hpp"
 
+#include "Flags.hpp"
+
 #define LOG_PREFIX "[Audio] "
 #include "../../Outputs/Log.hpp"
 
@@ -61,10 +63,31 @@ void Audio::set_channel_enables(uint16_t enables) {
 void Audio::set_modulation_flags(uint16_t) {
 }
 
+void Audio::set_interrupt_requests(uint16_t requests) {
+	channels_[0].interrupt_pending = requests & uint16_t(InterruptFlag::AudioChannel0);
+	channels_[1].interrupt_pending = requests & uint16_t(InterruptFlag::AudioChannel1);
+	channels_[2].interrupt_pending = requests & uint16_t(InterruptFlag::AudioChannel2);
+	channels_[3].interrupt_pending = requests & uint16_t(InterruptFlag::AudioChannel3);
+}
+
 void Audio::run_for([[maybe_unused]] Cycles duration) {
 	// TODO:
 	//
 	// Check whether any channel's period counter is exhausted and, if
 	// so, attempt to consume another sample. If there are no more samples
 	// and length is 0, trigger an interrupt.
+
+	using State = Channel::State;
+	for(int c = 0; c < 4; c++) {
+		switch(channels_[c].state) {
+			case State::Disabled:
+				if(channels_[c].has_data && !channels_[c].dma_enabled && !channels_[c].interrupt_pending) {
+					channels_[c].state = Channel::State::PlayingHigh;
+					// TODO: [volcntrld, percntrld, pbufldl, AUDxID]
+				}
+			break;
+
+			default: break;
+		}
+	}
 }

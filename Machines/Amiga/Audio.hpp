@@ -53,6 +53,9 @@ class Audio: public DMADevice<4> {
 		/// their neighbours.
 		void set_modulation_flags(uint16_t);
 
+		/// Sets which interrupt requests are currently active.
+		void set_interrupt_requests(uint16_t);
+
 	private:
 		struct Channel {
 			// The data latch plus a count of unused samples
@@ -74,6 +77,9 @@ class Audio: public DMADevice<4> {
 			// Indicates whether DMA is enabled for this channel.
 			bool dma_enabled = false;
 
+			// Records whether this audio interrupt is pending.
+			bool interrupt_pending = false;
+
 			// Replicates the Hardware Reference Manual state machine;
 			// comments indicate which of the documented states each
 			// label refers to.
@@ -83,7 +89,7 @@ class Audio: public DMADevice<4> {
 				WaitingForDMA,		// 101
 				PlayingHigh,		// 010
 				PlayingLow,			// 011
-			} state_;
+			} state = State::Disabled;
 		} channels_[4];
 };
 

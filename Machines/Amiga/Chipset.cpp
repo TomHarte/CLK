@@ -750,6 +750,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x09c):		// INTREQ
 			ApplySetClear(interrupt_requests_, 0x7fff);
 			update_interrupts();
+			audio_->set_interrupt_requests(interrupt_requests_);
 		break;
 		case Read(0x01e):		// INTREQR
 			cycle.set_value16(interrupt_requests_);
