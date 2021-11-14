@@ -69,12 +69,6 @@ void Audio::set_interrupt_requests(uint16_t requests) {
 }
 
 void Audio::output() {
-	// TODO:
-	//
-	// Check whether any channel's period counter is exhausted and, if
-	// so, attempt to consume another sample. If there are no more samples
-	// and length is 0, trigger an interrupt.
-
 	constexpr InterruptFlag interrupts[] = {
 		InterruptFlag::AudioChannel0,
 		InterruptFlag::AudioChannel1,
@@ -90,6 +84,11 @@ void Audio::output() {
 }
 
 bool Audio::Channel::output() {
+	// The following attempts to reproduce the audio state diagram provided in
+	// Commodore's Hardware Reference Manual.
+	//
+	// See big comment at the foot of this file.
+
 	switch(state) {
 		case State::Disabled:
 			// Test for top loop of Commodore's state diagram,
@@ -153,8 +152,13 @@ bool Audio::Channel::output() {
 		case State::PlayingHigh:
 			// TODO: penhi (i.e. output high byte).
 			-- period_counter;
-			if(!period_counter) {
 
+			// This is a reasonable guess as to the exit condition for this node;
+			// Commodore doesn't document.
+			if(period_counter == 1) {
+				state = State::PlayingLow;
+
+				// TODO: if attach period, reload output buffer.
 			}
 		break;
 
@@ -163,3 +167,162 @@ bool Audio::Channel::output() {
 
 	return false;
 }
+
+/*
+	Big spiel on the state machine implemented above:
+
+	Commodore's Hardware Rerefence Manual provides the audio subsystem's state
+	machine, so I've just tried to reimplement it verbatim. It's depicted
+	diagrammatically in the original source as a finite state automata, the
+	below is my attempt to translate that into text.
+
+
+	000 State::Disabled:
+
+		-> State::Disabled
+			if: N/A
+			action: percentrld
+
+		-> State::PlayingHigh
+			if: AUDDAT, and not AUDxON, and not AUDxIP
+			action: volcntrld, percentrld, pbudld1, AUDxIR
+
+		-> State::WaitingForDummyDMA
+			if: AUDxON
+			action: lenctrld, AUDxDR, dmasen, percntrld
+
+
+
+	001 State::WaitingForDummyDMA:
+
+		-> State::WaitingForDummyDMA
+			if: N/A
+			action: None
+
+		-> State::Disabled
+			if: not AUDxON
+			action: None
+
+		-> State::WaitingForDMA
+			if: AUDxON, and AUDxDAT
+			action:
+				1. AUDxIR
+				2. if not lenfin, then lencount
+
+
+
+	101 State::WaitingForDMA:
+
+		-> State::WaitingForDMA:
+			if: N/A
+			action: None
+
+		-> State:Disabled
+			if: not AUDxON
+			action: None
+
+		-> State::PlayingHigh
+			if: AUDxON, and AUDxDAT
+			action:
+				1. volcntrld, percentrld, pbufid1
+				2. if napnav, AUDxDR
+
+
+
+	010 State::PlayingHigh
+
+		-> State::PlayingHigh
+			if: N/A
+			action: percount, and penhi
+
+		-> State::PlayingLow
+			if: [unspecified, presumably 'not percount']
+			action:
+				1. if AUDxAP then pubfid2
+				2. if AUDxAP and AUDxON. then AUDxDR
+				3. percentrld
+				4. if intreq2 and AUDxON and AUDxAP, then AUDxIR
+				5. if AUDxAP and AUDxON, then AUDxIR
+				6. if lenfin and AUDxON and AUDxDAT, then lenctrld
+				7. if (not lenfin) and AUDxON and AUDxDAT, then lencount
+				8. if lenfin and AUDxON and AUDxDAT, then intreq2
+
+				[note that 6–8 are shared with the Low -> High transition]
+
+
+
+	011 State::PlayingLow
+
+		-> State::PlayingLow
+			if: N/A
+			action: percount, and not penhi
+
+		-> State::Disabled
+			if: perfin and not (AUDxON and not AUDxIP)
+			action: None
+
+		-> State::PlayingHigh
+			if: perfin and AUDxON and not AUDxIP
+			action:
+				1. pbufld
+				2. percntrld
+				3. if AUDxON and napnav, then AUDxDR
+				4. if lenfin and AUDxON and AUDxDAT, then lenctrld
+				5. if (not lenfin) and AUDxON and AUDxDAT, then lencount
+				6. if lenfin and AUDxON and AUDxDAT, then intreq2
+
+				[note that 4–6 are shared with the High -> Low transition]
+
+
+
+	Definitions:
+
+		AUDxON		DMA on "x" indicates channel number (signal from  DMACON).
+
+		AUDxIP		Audio interrupt  pending (input to channel from interrupt circuitry).
+
+		AUDxIR		Audio interrupt  request (output from channel to interrupt circuitry)
+
+		intreq1		Interrupt request that combines with intreq2 to form AUDxIR.
+
+		intreq2		Prepare for interrupt request. Request comes out after the
+					next 011->010 transition in normal operation.
+
+		AUDxDAT		Audio data load signal. Loads 16 bits of data to audio channel.
+
+		AUDxDR		Audio DMA request to Agnus for one word of data.
+
+		AUDxDSR		Audio DMA request to Agnus to reset pointer to start of block.
+
+		dmasen		Restart request enable.
+
+		percntrld	Reload period counter from back-up latch typically written
+					by processor with  AUDxPER  (can also be written by attach mode).
+
+		percount    Count period counter down one latch.
+
+		perfin      Period counter finished (value = 1).
+
+		lencntrld   Reload length counter from back-up latch.
+
+		lencount    Count length counter down one notch.
+
+		lenfin      Length counter finished (value = 1).
+
+		volcntrld   Reload volume counter from back-up latch.
+
+		pbufld1     Load output buffer from holding latch written to by AUDxDAT.
+
+		pbufld2     Like pbufld1, but only during 010->011 with attach period.
+
+		AUDxAV      Attach volume. Send data to volume latch of next channel
+					instead of to D->A converter.
+
+		AUDxAP      Attach period. Send data to period latch of next channel
+					instead of to the D->A converter.
+
+		penhi       Enable the high 8 bits of data to go to the D->A converter.
+
+		napnav      /AUDxAV * /AUDxAP + AUDxAV -- no attach stuff or else attach
+					volume. Condition for normal DMA and interrupt requests.
+*/
