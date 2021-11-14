@@ -62,9 +62,11 @@ class Audio: public DMADevice<4> {
 			// in the latch, which will always be 0, 1 or 2.
 			uint16_t data = 0x0000;
 			bool has_data = false;
+			uint16_t data_latch = 0x0000;
 
 			// Number of words remaining in DMA data.
 			uint16_t length = 0;
+			uint16_t length_counter = 0;
 
 			// Number of ticks between each sample, plus the
 			// current counter, which counts downward.
@@ -90,6 +92,8 @@ class Audio: public DMADevice<4> {
 				PlayingHigh,		// 010
 				PlayingLow,			// 011
 			} state = State::Disabled;
+
+			bool output();
 		} channels_[4];
 };
 

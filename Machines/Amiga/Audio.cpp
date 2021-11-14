@@ -18,15 +18,16 @@
 using namespace Amiga;
 
 bool Audio::advance_dma(int channel) {
-	if(channels_[channel].has_data || !channels_[channel].length) {
+	switch(channels_[channel].state) {
+		case Channel::State::WaitingForDMA:
+			set_data(channel, ram_[pointer_[size_t(channel)]]);
+		return true;
+		case Channel::State::WaitingForDummyDMA:
+			channels_[channel].has_data = true;
+		return true;
+		default:
 		return false;
 	}
-
-	set_data(channel, ram_[pointer_[size_t(channel)]]);
-	++pointer_[size_t(channel)];
-	--channels_[channel].length;
-
-	return false;
 }
 
 void Audio::set_length(int channel, uint16_t length) {
@@ -46,9 +47,6 @@ void Audio::set_volume(int channel, uint16_t volume) {
 
 void Audio::set_data(int channel, uint16_t data) {
 	assert(channel >= 0 && channel < 4);
-	if(!channels_[channel].has_data) {
-		channels_[channel].period_counter = channels_[channel].period;
-	}
 	channels_[channel].has_data = true;
 	channels_[channel].data = data;
 }
@@ -77,17 +75,91 @@ void Audio::output() {
 	// so, attempt to consume another sample. If there are no more samples
 	// and length is 0, trigger an interrupt.
 
-	using State = Channel::State;
-	for(int c = 0; c < 4; c++) {
-		switch(channels_[c].state) {
-			case State::Disabled:
-				if(channels_[c].has_data && !channels_[c].dma_enabled && !channels_[c].interrupt_pending) {
-					channels_[c].state = Channel::State::PlayingHigh;
-					// TODO: [volcntrld, percntrld, pbufldl, AUDxID]
-				}
-			break;
+	constexpr InterruptFlag interrupts[] = {
+		InterruptFlag::AudioChannel0,
+		InterruptFlag::AudioChannel1,
+		InterruptFlag::AudioChannel2,
+		InterruptFlag::AudioChannel3,
+	};
 
-			default: break;
+	for(int c = 0; c < 4; c++) {
+		if(channels_[c].output()) {
+			posit_interrupt(interrupts[c]);
 		}
 	}
+}
+
+bool Audio::Channel::output() {
+	switch(state) {
+		case State::Disabled:
+			// Test for top loop of Commodore's state diagram,
+			// which permits CPU-driven audio output.
+			if(has_data && !dma_enabled && !interrupt_pending) {
+				state = State::PlayingHigh;
+
+				data_latch = data;			// i.e. pbufld1
+				has_data = false;
+				period_counter = period;	// i.e. percntrld
+				// TODO: volcntrld (see above).
+
+				// Request an interrupt.
+				return true;
+			}
+
+			// Test for DMA-style transition.
+			if(dma_enabled) {
+				state = State::WaitingForDummyDMA;
+
+				period_counter = period;	// i.e. percntrld
+				length_counter = length;	// i.e. lenctrld
+
+				break;
+			}
+		break;
+
+		case State::WaitingForDummyDMA:
+			if(!dma_enabled) {
+				state = State::Disabled;
+				break;
+			}
+
+			if(dma_enabled && has_data) {
+				has_data = false;
+				state = State::WaitingForDMA;
+				if(length == 1) {
+					length_counter = length;
+					return true;
+				}
+				break;
+			}
+		break;
+
+		case State::WaitingForDMA:
+			if(!dma_enabled) {
+				state = State::Disabled;
+				break;
+			}
+
+			if(dma_enabled && has_data) {
+				data_latch = data;
+				has_data = false;
+				period_counter = period;	// i.e. percntrld
+
+				state = State::PlayingHigh;
+				break;
+			}
+		break;
+
+		case State::PlayingHigh:
+			// TODO: penhi (i.e. output high byte).
+			-- period_counter;
+			if(!period_counter) {
+
+			}
+		break;
+
+		default: break;
+	}
+
+	return false;
 }
