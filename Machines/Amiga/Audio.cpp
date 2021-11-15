@@ -20,14 +20,23 @@ using namespace Amiga;
 bool Audio::advance_dma(int channel) {
 	switch(channels_[channel].state) {
 		case Channel::State::WaitingForDMA:
-			set_data(channel, ram_[pointer_[size_t(channel)]]);
-		return true;
+			if(!channels_[channel].has_data) {
+				set_data(channel, ram_[pointer_[size_t(channel)]]);
+				return true;
+			}
+		break;
+
 		case Channel::State::WaitingForDummyDMA:
-			channels_[channel].has_data = true;
-		return true;
-		default:
-		return false;
+			if(!channels_[channel].has_data) {
+				channels_[channel].has_data = true;
+				return true;
+			}
+		break;
+
+		default: break;
 	}
+
+	return false;
 }
 
 void Audio::set_length(int channel, uint16_t length) {
