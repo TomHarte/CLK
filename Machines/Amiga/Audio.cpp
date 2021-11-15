@@ -96,15 +96,15 @@ void Audio::output() {
 
 		-> State::Disabled
 			if: N/A
-			action: percentrld
+			action: percntrld
 
 		-> State::PlayingHigh
 			if: AUDDAT, and not AUDxON, and not AUDxIP
-			action: volcntrld, percentrld, pbudld1, AUDxIR
+			action: volcntrld, percntrld, pbudld1, AUDxIR
 
 		-> State::WaitingForDummyDMA
 			if: AUDxON
-			action: lenctrld, AUDxDR, dmasen, percntrld
+			action: lencntrld, AUDxDR, dmasen, percntrld
 
 
 
@@ -139,7 +139,7 @@ void Audio::output() {
 		-> State::PlayingHigh
 			if: AUDxON, and AUDxDAT
 			action:
-				1. volcntrld, percentrld, pbufid1
+				1. volcntrld, percntrld, pbufid1
 				2. if napnav, then AUDxDR
 
 
@@ -153,12 +153,12 @@ void Audio::output() {
 		-> State::PlayingLow
 			if: [unspecified, presumably 'not percount']
 			action:
-				1. if AUDxAP then pubfid2
-				2. if AUDxAP and AUDxON. then AUDxDR
-				3. percentrld
+				1. if AUDxAP, then pubfid2
+				2. if AUDxAP and AUDxON, then AUDxDR
+				3. percntrld
 				4. if intreq2 and AUDxON and AUDxAP, then AUDxIR
 				5. if AUDxAP and AUDxON, then AUDxIR
-				6. if lenfin and AUDxON and AUDxDAT, then lenctrld
+				6. if lenfin and AUDxON and AUDxDAT, then lencntrld
 				7. if (not lenfin) and AUDxON and AUDxDAT, then lencount
 				8. if lenfin and AUDxON and AUDxDAT, then intreq2
 
@@ -182,11 +182,13 @@ void Audio::output() {
 				1. pbufld
 				2. percntrld
 				3. if AUDxON and napnav, then AUDxDR
-				4. if lenfin and AUDxON and AUDxDAT, then lenctrld
-				5. if (not lenfin) and AUDxON and AUDxDAT, then lencount
-				6. if lenfin and AUDxON and AUDxDAT, then intreq2
+				4. if intreq2 and napnav and AUDxON, AUDxIR
+				5. if napnav and not AUDxON, AUDxIR
+				6. if lenfin and AUDxON and AUDxDAT, then lencntrld
+				7. if (not lenfin) and AUDxON and AUDxDAT, then lencount
+				8. if lenfin and AUDxON and AUDxDAT, then intreq2
 
-				[note that 4–6 are shared with the High -> Low transition]
+				[note that 6-8 are shared with the High -> Low transition]
 
 
 
@@ -264,7 +266,7 @@ template <> bool Audio::Channel::transit<
 	state = State::WaitingForDummyDMA;
 
 	period_counter = period;	// i.e. percntrld
-	length_counter = length;	// i.e. lenctrld
+	length_counter = length;	// i.e. lencntrld
 
 	return false;
 }
@@ -358,6 +360,33 @@ template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDMA>() 
 //	Audio::Channel::State::PlayingHigh
 //
 
+template <> bool Audio::Channel::transit<
+	Audio::Channel::State::PlayingHigh,
+	Audio::Channel::State::PlayingLow>() {
+	state = State::PlayingLow;
+
+	// TODO: if AUDxAP, then pubfid2
+	// TODO: if AUDxAP and AUDxON, then AUDxDR
+
+	period_counter = period;	// i.e. percntrld
+
+	// TODO: if intreq2 and AUDxON and AUDxAP, then AUDxIR
+	// TODO: if AUDxAP and AUDxON, then AUDxIR
+
+	// if lenfin and AUDxON and AUDxDAT, then lencntrld
+	// if (not lenfin) and AUDxON and AUDxDAT, then lencount
+	// if lenfin and AUDxON and AUDxDAT, then intreq2
+	if(dma_enabled && has_data) {
+		--length_counter;
+		if(!length_counter) {
+			length_counter = length;
+			will_request_interrupt = true;
+		}
+	}
+
+	return false;
+}
+
 template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>() {
 	-- period_counter;
 
@@ -375,6 +404,24 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>() {
 //
 //	Audio::Channel::State::PlayingLow
 //
+
+template <> bool Audio::Channel::transit<
+	Audio::Channel::State::PlayingLow,
+	Audio::Channel::State::PlayingHigh>() {
+	state = State::PlayingHigh;
+
+	// TODO: include napnav in tests
+
+	if(!dma_enabled) {
+		return true;
+	}
+
+	if(dma_enabled && will_request_interrupt) {
+		return true;
+	}
+
+	return false;
+}
 
 template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>() {
 	-- period_counter;

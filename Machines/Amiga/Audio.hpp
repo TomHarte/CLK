@@ -81,6 +81,7 @@ class Audio: public DMADevice<4> {
 
 			// Records whether this audio interrupt is pending.
 			bool interrupt_pending = false;
+			bool will_request_interrupt = false;
 
 			// Replicates the Hardware Reference Manual state machine;
 			// comments indicate which of the documented states each
