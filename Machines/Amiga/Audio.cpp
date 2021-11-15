@@ -426,6 +426,7 @@ template <> bool Audio::Channel::transit<
 	}
 
 	if(dma_enabled && will_request_interrupt) {
+		will_request_interrupt = false;
 		return true;
 	}
 
