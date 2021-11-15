@@ -94,6 +94,8 @@ class Audio: public DMADevice<4> {
 			} state = State::Disabled;
 
 			bool output();
+			template <State state> bool output();
+			template <State begin, State end> bool transit();
 		} channels_[4];
 };
 
