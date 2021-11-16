@@ -8,7 +8,10 @@
 
 #include "Chipset.hpp"
 
+//#ifndef NDEBUG
 //#define NDEBUG
+//#endif
+
 #define LOG_PREFIX "[Amiga chipset] "
 #include "../../Outputs/Log.hpp"
 
@@ -241,10 +244,35 @@ template <int cycle> void Chipset::output() {
 					const uint32_t source = bitplane_pixels_.get(is_high_res_);
 
 					// TODO: dump bit 5 if this Chipset doesn't support extra half-bright.
-					pixels_[0] = swizzled_palette_[source >> 24];
-					pixels_[1] = swizzled_palette_[(source >> 16) & 0xff];
-					pixels_[2] = swizzled_palette_[(source >> 8) & 0xff];
-					pixels_[3] = swizzled_palette_[source & 0xff];
+					if(dual_playfields_) {
+						// Dense: just write both.
+						if(even_over_odd_) {
+							pixels_[0] = palette_[8 + (source >> 27) & 7];
+							pixels_[1] = palette_[8 + (source >> 19) & 7];
+							pixels_[2] = palette_[8 + (source >> 11) & 7];
+							pixels_[3] = palette_[8 + (source >> 3) & 7];
+
+							if(palette_[(source >> 24) & 7]) pixels_[0] = palette_[(source >> 24) & 7];
+							if(palette_[(source >> 16) & 7]) pixels_[1] = palette_[(source >> 16) & 7];
+							if(palette_[(source >> 8) & 7]) pixels_[2] = palette_[(source >> 8) & 7];
+							if(palette_[source & 7]) pixels_[3] = palette_[source & 7];
+						} else {
+							pixels_[0] = palette_[(source >> 24) & 7];
+							pixels_[1] = palette_[(source >> 16) & 7];
+							pixels_[2] = palette_[(source >> 8) & 7];
+							pixels_[3] = palette_[source & 7];
+
+							if(palette_[8 + (source >> 27) & 7]) pixels_[0] = palette_[8 + (source >> 27) & 7];
+							if(palette_[8 + (source >> 19) & 7]) pixels_[1] = palette_[8 + (source >> 19) & 7];
+							if(palette_[8 + (source >> 11) & 7]) pixels_[2] = palette_[8 + (source >> 11) & 7];
+							if(palette_[8 + (source >> 3) & 7]) pixels_[3] = palette_[8 + (source >> 3) & 7];
+						}
+					} else {
+						pixels_[0] = swizzled_palette_[source >> 24];
+						pixels_[1] = swizzled_palette_[(source >> 16) & 0xff];
+						pixels_[2] = swizzled_palette_[(source >> 8) & 0xff];
+						pixels_[3] = swizzled_palette_[source & 0xff];
+					}
 
 					for(int c = 3; c >= 0; --c) {
 						const auto data = sprite_shifters_[c].get();
@@ -804,6 +832,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			hold_and_modify_ = value & 0x0800;
 			dual_playfields_ = value & 0x0400;
 			interlace_ = value & 0x0004;
+
+//			LOG("New video control at " << std::dec << y_ << "; high res: " << is_high_res_ << " HAM: " << hold_and_modify_ << " dual: " << dual_playfields_ << " interlace: " << interlace_);
 		} break;
 		case Write(0x102): {	// BPLCON1
 			const uint8_t delay = cycle.value8_low();
