@@ -1270,7 +1270,7 @@ void Chipset::Mouse::set_button_pressed(int button, bool is_set) {
 	}
 }
 
-uint8_t Chipset::Mouse::get_cia_button() {
+uint8_t Chipset::Mouse::get_cia_button() const {
 	return cia_state_;
 }
 
@@ -1318,6 +1318,47 @@ uint16_t Chipset::Mouse::get_position() {
 		declared_position_[0]
 	);
 }
+
+// MARK: - Joystick.
+
+void Chipset::Joystick::did_set_input(const Input &input, bool is_active) {
+	// Accumulate state.
+	inputs_[input.type] = is_active;
+
+	// Determine what that does to the two position bits.
+	const auto low =
+		(inputs_[Input::Type::Down] ^ inputs_[Input::Type::Right]) |
+		(inputs_[Input::Type::Right] << 1);
+	const auto high =
+		(inputs_[Input::Type::Up] ^ inputs_[Input::Type::Left]) |
+		(inputs_[Input::Type::Left] << 1);
+
+	// Ripple upwards if that affects the mouse position counters.
+	const uint8_t previous_low = position_ & 3;
+	uint8_t low_upper = (position_ >> 2) & 0x3f;
+	const uint8_t previous_high = (position_ >> 8) & 3;
+	uint8_t high_upper = (position_ >> 10) & 0x3f;
+
+	if(!low && previous_low == 3) ++low_upper;
+	if(!previous_low && low == 3) --low_upper;
+	if(!high && previous_high == 3) ++high_upper;
+	if(!previous_high && high == 3) --high_upper;
+
+	position_ = uint16_t(
+		low | ((low_upper & 0x3f) << 2) |
+		(high << 8) | ((high_upper & 0x3f) << 10)
+	);
+}
+
+uint16_t Chipset::Joystick::get_position() const {
+	return position_;
+}
+
+uint8_t Chipset::Joystick::get_cia_button() const {
+	return inputs_[Input::Type::Fire] ? 0xbf : 0xff;
+}
+
+// MARK: - Synchronisation.
 
 void Chipset::flush() {
 }

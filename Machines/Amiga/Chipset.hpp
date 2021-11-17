@@ -19,6 +19,7 @@
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../../ClockReceiver/JustInTime.hpp"
 #include "../../Components/6526/6526.hpp"
+#include "../../Inputs/Joystick.hpp"
 #include "../../Inputs/Mouse.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Processors/68000/68000.hpp"
@@ -336,7 +337,7 @@ class Chipset: private ClockingHint::Observer {
 		class Mouse: public Inputs::Mouse {
 			public:
 				uint16_t get_position();
-				uint8_t get_cia_button();
+				uint8_t get_cia_button() const;
 
 			private:
 				int get_number_of_buttons() final;
@@ -351,6 +352,22 @@ class Chipset: private ClockingHint::Observer {
 
 	public:
 		Inputs::Mouse &get_mouse();
+
+		// MARK: - Joystick.
+	private:
+		class Joystick: public Inputs::ConcreteJoystick {
+			public:
+				Joystick();
+
+				uint16_t get_position() const;
+				uint8_t get_cia_button() const;
+
+			private:
+				void did_set_input(const Input &input, bool is_active) final;
+
+				bool inputs_[Joystick::Input::Type::Max]{};
+				uint16_t position_ = 0;
+		};
 
 		// MARK: - CIAs.
 	private:
