@@ -1089,14 +1089,14 @@ bool Chipset::Sprite::advance_dma(int y) {
 
 		// FetchStart: fetch the first control word and proceed to the second.
 		case DMAState::FetchStart:
-			set_start_position(ram_[pointer_[0]]);
+			set_start_position(ram_[pointer_[0] & ram_mask_]);
 			++pointer_[0];
 			dma_state_ = DMAState::FetchStopAndControl;
 		return true;
 
 		// FetchStopAndControl: fetch second control word and wait for V start.
 		case DMAState::FetchStopAndControl:
-			set_stop_and_control(ram_[pointer_[0]]);
+			set_stop_and_control(ram_[pointer_[0] & ram_mask_]);
 			++pointer_[0];
 			dma_state_ = DMAState::WaitingForStart;
 		return true;
@@ -1116,14 +1116,14 @@ bool Chipset::Sprite::advance_dma(int y) {
 				active = false;
 				return false;
 			}
-			set_image_data(1, ram_[pointer_[0]]);
+			set_image_data(1, ram_[pointer_[0] & ram_mask_]);
 			++pointer_[0];
 			dma_state_ = DMAState::FetchData0;
 		return true;
 
 		// FetchData0: fetch a word and proceed back to FetchData1.
 		case DMAState::FetchData0:
-			set_image_data(0, ram_[pointer_[0]]);
+			set_image_data(0, ram_[pointer_[0] & ram_mask_]);
 			++pointer_[0];
 			dma_state_ = DMAState::FetchData1;
 		return true;
