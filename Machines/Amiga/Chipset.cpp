@@ -86,6 +86,9 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	disk_controller_(Cycles(input_clock_rate), *this, disk_, cia_b),
 	keyboard_(cia_a.serial_input) {
 	disk_controller_.set_clocking_hint_observer(this);
+
+	joysticks_.emplace_back(new Joystick());
+	cia_a_handler_.set_joystick(&joystick(0));
 }
 
 #undef DMA_CONSTRUCT
@@ -698,7 +701,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			cycle.set_value16(mouse_.get_position());
 		break;
 		case Read(0x00c):		// JOY1DAT
-			cycle.set_value16(0x0202);
+			cycle.set_value16(joystick(0).get_position());
 		break;
 
 		case Write(0x034):		// POTGO
@@ -1203,9 +1206,11 @@ uint8_t Chipset::CIAAHandler::get_port_input(MOS::MOS6526::Port port) {
 	if(port) {
 		LOG("TODO: parallel input?");
 	} else {
+		// Use the mouse as FIR0, the joystick as FIR1.
 		return
 			controller_.get_rdy_trk0_wpro_chng() &
-			mouse_.get_cia_button();
+			mouse_.get_cia_button() &
+			(1 | (joystick_->get_cia_button() << 1));
 	}
 	return 0xff;
 }
@@ -1320,6 +1325,17 @@ uint16_t Chipset::Mouse::get_position() {
 }
 
 // MARK: - Joystick.
+
+// TODO: add second fire button.
+
+Chipset::Joystick::Joystick() :
+	ConcreteJoystick({
+						Input(Input::Up),
+						Input(Input::Down),
+						Input(Input::Left),
+						Input(Input::Right),
+						Input(Input::Fire, 0),
+					}) {}
 
 void Chipset::Joystick::did_set_input(const Input &input, bool is_active) {
 	// Accumulate state.

@@ -40,6 +40,7 @@ namespace Amiga {
 class ConcreteMachine:
 	public Activity::Source,
 	public CPU::MC68000::BusHandler,
+	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::MouseMachine,
@@ -206,6 +207,12 @@ class ConcreteMachine:
 
 		Inputs::Mouse &get_mouse() final {
 			return chipset_.get_mouse();;
+		}
+
+		// MARK: - MachineTypes::JoystickMachine.
+
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+			return chipset_.get_joysticks();
 		}
 
 		// MARK: - Keyboard.

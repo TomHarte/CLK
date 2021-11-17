@@ -99,10 +99,16 @@ class Chipset: private ClockingHint::Observer {
 			disk_controller_.set_activity_observer(observer);
 		}
 
+		// Keyboard and mouse exposure.
 		Keyboard &get_keyboard() {
 			return keyboard_;
 		}
 
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+			return joysticks_;
+		}
+
+		// Synchronisation.
 		void flush();
 
 	private:
@@ -369,6 +375,11 @@ class Chipset: private ClockingHint::Observer {
 				uint16_t position_ = 0;
 		};
 
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+		Joystick &joystick(size_t index) const {
+			return *static_cast<Joystick *>(joysticks_[index].get());
+		}
+
 		// MARK: - CIAs.
 	private:
 		class DiskController;
@@ -380,10 +391,18 @@ class Chipset: private ClockingHint::Observer {
 				uint8_t get_port_input(MOS::MOS6526::Port port);
 				void set_activity_observer(Activity::Observer *observer);
 
+				// TEMPORARY.
+				// TODO: generalise mice and joysticks.
+				// This is a hack. A TEMPORARY HACK.
+				void set_joystick(Joystick *joystick) {
+					joystick_ = joystick;
+				}
+
 			private:
 				MemoryMap &map_;
 				DiskController &controller_;
 				Mouse &mouse_;
+				Joystick *joystick_ = nullptr;
 				Activity::Observer *observer_ = nullptr;
 				inline static const std::string led_name = "Power";
 		} cia_a_handler_;
