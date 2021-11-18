@@ -255,20 +255,20 @@ template <int cycle> void Chipset::output() {
 							pixels_[2] = palette_[8 + (source >> 11) & 7];
 							pixels_[3] = palette_[8 + (source >> 3) & 7];
 
-							if(palette_[(source >> 24) & 7]) pixels_[0] = palette_[(source >> 24) & 7];
-							if(palette_[(source >> 16) & 7]) pixels_[1] = palette_[(source >> 16) & 7];
-							if(palette_[(source >> 8) & 7]) pixels_[2] = palette_[(source >> 8) & 7];
-							if(palette_[source & 7]) pixels_[3] = palette_[source & 7];
+							if((source >> 24) & 7) pixels_[0] = palette_[(source >> 24) & 7];
+							if((source >> 16) & 7) pixels_[1] = palette_[(source >> 16) & 7];
+							if((source >> 8) & 7) pixels_[2] = palette_[(source >> 8) & 7];
+							if(source & 7) pixels_[3] = palette_[source & 7];
 						} else {
 							pixels_[0] = palette_[(source >> 24) & 7];
 							pixels_[1] = palette_[(source >> 16) & 7];
 							pixels_[2] = palette_[(source >> 8) & 7];
 							pixels_[3] = palette_[source & 7];
 
-							if(palette_[8 + (source >> 27) & 7]) pixels_[0] = palette_[8 + (source >> 27) & 7];
-							if(palette_[8 + (source >> 19) & 7]) pixels_[1] = palette_[8 + (source >> 19) & 7];
-							if(palette_[8 + (source >> 11) & 7]) pixels_[2] = palette_[8 + (source >> 11) & 7];
-							if(palette_[8 + (source >> 3) & 7]) pixels_[3] = palette_[8 + (source >> 3) & 7];
+							if((source >> 27) & 7) pixels_[0] = palette_[8 + (source >> 27) & 7];
+							if((source >> 19) & 7) pixels_[1] = palette_[8 + (source >> 19) & 7];
+							if((source >> 11) & 7) pixels_[2] = palette_[8 + (source >> 11) & 7];
+							if((source >> 3) & 7) pixels_[3] = palette_[8 + (source >> 3) & 7];
 						}
 					} else {
 						pixels_[0] = swizzled_palette_[source >> 24];
