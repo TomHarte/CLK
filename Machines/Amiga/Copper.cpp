@@ -25,6 +25,7 @@ bool Copper::advance_dma(uint16_t position) {
 		case State::Waiting:
 			// TODO: blitter-finished bit.
 			if((position & position_mask_) >= instruction_[0]) {
+				LOG("Unblocked waiting for " << PADHEX(4) << instruction_[0] << " at " << position);
 				state_ = State::FetchFirstWord;
 			}
 		return false;
