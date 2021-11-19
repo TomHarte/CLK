@@ -282,20 +282,32 @@ template <int cycle> void Chipset::output() {
 						if(!data) continue;
 						const int base = (c << 2) + 16;
 
-						// TODO: can do a better job of selection here —
-						// treat each 4-bit quantity as a single colour
-						// selection, much like dual playfield mode.
-						if(data >> 6) {
-							pixels_[0] = pixels_[1] = palette_[base + (data >> 6)];
-						}
-						if((data >> 4) & 3) {
-							pixels_[0] = pixels_[1] = palette_[base + ((data >> 4)&3)];
-						}
-						if((data >> 2) & 3) {
-							pixels_[2] = pixels_[3] = palette_[base + ((data >> 2)&3)];
-						}
-						if(data & 3) {
-							pixels_[2] = pixels_[3] = palette_[base + (data & 3)];
+						if(sprites_[(c << 1) + 1].attached) {
+							// Left pixel.
+							if(data >> 4) {
+								pixels_[0] = pixels_[1] = palette_[16 + (data >> 4)];
+							}
+
+							// Right pixel.
+							if(data & 15) {
+								pixels_[2] = pixels_[3] = palette_[16 + (data & 15)];
+							}
+						} else {
+							// Left pixel.
+							if(data >> 6) {
+								pixels_[0] = pixels_[1] = palette_[base + (data >> 6)];
+							}
+							if((data >> 4) & 3) {
+								pixels_[0] = pixels_[1] = palette_[base + ((data >> 4)&3)];
+							}
+
+							// Right pixel.
+							if((data >> 2) & 3) {
+								pixels_[2] = pixels_[3] = palette_[base + ((data >> 2)&3)];
+							}
+							if(data & 3) {
+								pixels_[2] = pixels_[3] = palette_[base + (data & 3)];
+							}
 						}
 					}
 
