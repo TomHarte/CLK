@@ -152,7 +152,7 @@ template <int cycle> void Chipset::output() {
 	// Trigger any sprite loads encountered.
 	constexpr auto dcycle = cycle << 1;
 	for(int c = 0; c < 8; c += 2) {
-		if( sprites_[c].active &&
+		if( sprites_[c].visible &&
 			dcycle <= sprites_[c].h_start &&
 			dcycle+2 > sprites_[c].h_start) {
 			sprite_shifters_[c >> 1].load<0>(
@@ -161,7 +161,7 @@ template <int cycle> void Chipset::output() {
 				sprites_[c].h_start & 1);
 		}
 
-		if(	sprites_[c+1].active &&
+		if(	sprites_[c+1].visible &&
 			dcycle <= sprites_[c + 1].h_start &&
 			dcycle+2 > sprites_[c + 1].h_start) {
 			sprite_shifters_[c >> 1].load<1>(
@@ -444,6 +444,7 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 	if(first_slot == last_slot) {
 		return -1;
 	}
+	assert(last_slot > first_slot);
 
 #define C(x) \
 	case x: \
@@ -1067,7 +1068,6 @@ void Chipset::Bitplanes::set_control(uint16_t control) {
 void Chipset::Sprite::set_start_position(uint16_t value) {
 	v_start_ = (v_start_ & 0xff00) | (value >> 8);
 	h_start = uint16_t((h_start & 0x0001) | ((value & 0xff) << 1));
-	active = false;
 }
 
 void Chipset::Sprite::set_stop_and_control(uint16_t value) {
@@ -1075,11 +1075,13 @@ void Chipset::Sprite::set_stop_and_control(uint16_t value) {
 	v_stop_ = uint16_t((value >> 8) | ((value & 0x02) << 7));
 	v_start_ = uint16_t((v_start_ & 0x00ff) | ((value & 0x04) << 6));
 	attached = value & 0x80;
+	visible = active_ = false;	// 'Disarm' the sprite.
 }
 
 void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 	data[slot] = value;
-	active |= slot == 0;
+	active_ |= slot == 0;
+	visible = active_ && vertical_in_range_;
 }
 
 bool Chipset::Sprite::advance_dma(int y) {
@@ -1106,6 +1108,8 @@ bool Chipset::Sprite::advance_dma(int y) {
 			if(y != v_start_) {
 				return false;
 			}
+			vertical_in_range_ = true;
+			visible = active_;
 			[[fallthrough]];
 
 		// FetchData1: if v end is reached, stop DMA. Otherwise fetch a word
@@ -1113,7 +1117,7 @@ bool Chipset::Sprite::advance_dma(int y) {
 		case DMAState::FetchData1:
 			if(y == v_stop_) {
 				dma_state_ = DMAState::FetchStart;
-				active = false;
+				visible = vertical_in_range_ = false;
 				return false;
 			}
 			set_image_data(1, ram_[pointer_[0] & ram_mask_]);

@@ -155,11 +155,13 @@ class Chipset: private ClockingHint::Observer {
 
 				uint16_t data[2]{};
 				bool attached = false;
-				bool active = false;
+				bool visible = false;
 				uint16_t h_start = 0;
 
 			private:
 				uint16_t v_start_ = 0, v_stop_ = 0;
+				bool active_ = false;
+				bool vertical_in_range_ = false;
 
 				enum class DMAState {
 					Stopped,
