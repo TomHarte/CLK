@@ -89,6 +89,9 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 
 	joysticks_.emplace_back(new Joystick());
 	cia_a_handler_.set_joystick(&joystick(0));
+
+	// Very conservatively crop, to roughly the centre 90% of a frame.
+	crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.045f, 0.9f, 0.9f));
 }
 
 #undef DMA_CONSTRUCT
@@ -132,20 +135,6 @@ template <int cycle> void Chipset::output() {
 	// => 184 windows out of 227 are visible, which concurs.
 	//
 
-	// A complete from-thin-air guess:
-	//
-	//	7 cycles blank;
-	//	17 cycles sync;
-	//	3 cycles blank;
-	//	9 cycles colour burst;
-	//	7 cycles blank.
-	constexpr int blank1	= 7;
-	constexpr int sync		= 17 + blank1;
-	constexpr int blank2 	= 3 + sync;
-	constexpr int burst 	= 9 + blank2;
-	constexpr int blank3 	= 7 + burst;
-	static_assert(blank3 == 43);
-
 	// Advance audio.
 	audio_.output();
 
@@ -171,15 +160,44 @@ template <int cycle> void Chipset::output() {
 		}
 	}
 
+	//
+	// Horizontal sync: HC18–HC35;
+	// Horizontal blank: HC15–HC53.
+	//
+	// Beyond that: guesswork.
+	//
+	// So, from cycle 0:
+	//
+	//	15 cycles border/pixels;
+	//	3 cycles blank;
+	//	17 cycles sync;
+	//	3 cycles blank;
+	//	9 cycles colour burst;
+	//	6 cycles blank;
+	//	then more border/pixels to end of line.
+	//
+	// (???)
+
+	constexpr int end_of_pixels	= 15;
+	constexpr int blank1		= 3 + end_of_pixels;
+	constexpr int sync			= 17 + blank1;
+	constexpr int blank2 		= 3 + sync;
+	constexpr int burst 		= 9 + blank2;
+	constexpr int blank3 		= 6 + burst;
+	static_assert(blank3 == 53);
+
 #define LINK(location, action, length)	\
 	if(cycle == (location))	{			\
 		crt_.action((length) * 4);		\
 	}
 
 	if(y_ < vertical_blank_height_) {
+		if(!cycle) {
+			flush_output();
+		}
+
 		// Put three lines of sync at the centre of the vertical blank period.
 		// Offset by half a line if interlaced and on an odd frame.
-
 		const int midline = vertical_blank_height_ >> 1;
 		if(is_long_field_) {
 			if(y_ < midline - 1 || y_ > midline + 2) {
@@ -209,18 +227,22 @@ template <int cycle> void Chipset::output() {
 			}
 		}
 	} else {
+		// TODO: incorporate the lowest display window bits elsewhere.
+		display_horizontal_ |= cycle == (display_window_start_[0] >> 1);
+		display_horizontal_ &= cycle != (display_window_stop_[0] >> 1);
+
+		if(cycle == end_of_pixels) {
+			flush_output();
+		}
+
 		// Output the correct sequence of blanks, syncs and burst atomically.
-		LINK(blank1, output_blank, blank1);
+		LINK(blank1, output_blank, blank1 - end_of_pixels);
 		LINK(sync, output_sync, sync - blank1);
 		LINK(blank2, output_blank, blank2 - sync);
 		LINK(burst, output_default_colour_burst, burst - blank2);	// TODO: only if colour enabled.
 		LINK(blank3, output_blank, blank3 - burst);
 
-		// TODO: incorporate the lowest display window bits elsewhere.
-		display_horizontal_ |= cycle == (display_window_start_[0] >> 1);
-		display_horizontal_ &= cycle != (display_window_stop_[0] >> 1);
-
-		if constexpr (cycle > blank3) {
+		if constexpr (cycle < end_of_pixels || cycle > blank3) {
 			const bool is_pixel_display = display_horizontal_ && fetch_vertical_;
 
 			if(
@@ -234,7 +256,7 @@ template <int cycle> void Chipset::output() {
 
 			if(is_pixel_display) {
 				if(!pixels_) {
-					uint16_t *const new_pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(4 * size_t(line_length_ - cycle)));
+					uint16_t *const new_pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(4 * size_t(line_length_ + end_of_pixels - cycle)));
 					if(new_pixels) {
 						flush_output();
 					}
@@ -242,11 +264,18 @@ template <int cycle> void Chipset::output() {
 				}
 
 				if(pixels_) {
-					// TODO: this doesn't support dual playfields; use an alternative
-					// palette table for that?
+					// TODO:
+					//
+					//	(1) dump bit 5 of a six-bitplane playfield if this Chipset doesn't support extra half-bright.
+					//	(2) priorities, in general;
+					//	(3) collisions;
+					//	(4) a much less dense implementation. In particular: map from [1–6]-bit input to present or
+					//		absent flags, use those to update collisions and then to index a mask table for compositing.
+					//		Which would mean getting through the whole ordeal without branching... as soon as I come up
+					//		with a branchless method for priorities. Hmmmm.
 					const uint32_t source = bitplane_pixels_.get(is_high_res_);
 
-					// TODO: dump bit 5 if this Chipset doesn't support extra half-bright.
+					// TODO:
 					if(dual_playfields_) {
 						// Dense: just write both.
 						if(even_over_odd_) {
@@ -315,13 +344,9 @@ template <int cycle> void Chipset::output() {
 				}
 			}
 			++zone_duration_;
-
-			// Output the rest of the line. TODO: optimise border area.
-			if(cycle == line_length_ - 1) {
-				flush_output();
-			}
 		}
 	}
+#undef LINK
 
 	// Update all active pixel shifters.
 	bitplane_pixels_.shift(is_high_res_);
@@ -341,8 +366,6 @@ template <int cycle> void Chipset::output() {
 		);
 		previous_bitplanes_ = next_bitplanes_;
 	}
-
-#undef LINK
 }
 
 void Chipset::flush_output() {
