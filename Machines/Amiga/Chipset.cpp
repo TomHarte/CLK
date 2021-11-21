@@ -90,8 +90,9 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	joysticks_.emplace_back(new Joystick());
 	cia_a_handler_.set_joystick(&joystick(0));
 
-	// Very conservatively crop, to roughly the centre 90% of a frame.
-	crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.045f, 0.9f, 0.9f));
+	// Very conservatively crop, to roughly the centre 88% of a frame.
+	// This rectange was specifically calibrated around the default Workbench display.
+	crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.047f, 0.88f, 0.88f));
 }
 
 #undef DMA_CONSTRUCT
