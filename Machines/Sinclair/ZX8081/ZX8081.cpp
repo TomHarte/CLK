@@ -466,7 +466,7 @@ template<bool is_zx81> class ConcreteMachine:
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		using AY = GI::AY38910::AY38910<false>;
 		AY ay_;
-		Outputs::Speaker::LowpassSpeaker<AY> speaker_;
+		Outputs::Speaker::PullLowpass<AY> speaker_;
 		HalfCycles time_since_ay_update_;
 		inline void ay_set_register(uint8_t value) {
 			update_audio();
