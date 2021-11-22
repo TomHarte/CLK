@@ -298,7 +298,7 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 			return scale_;
 		}
 
-		int16_t *const buffer_ = nullptr;
+		const int16_t *buffer_ = nullptr;
 
 		void skip_samples(size_t count) {
 			buffer_ += count;
@@ -321,7 +321,7 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 		/*!
 			Filters and posts onward the provided buffer, on the calling thread.
 		*/
-		void push(int16_t *const buffer, size_t length) {
+		void push(const int16_t *buffer, size_t length) {
 			buffer_ = buffer;
 			process(length);
 		}
