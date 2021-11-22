@@ -311,7 +311,7 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 
 	public:
 		void set_output_volume(float volume) final {
-			scale_.load(uint16_t(std::clamp(volume * 65535.0f, 0.0f, 65535.0f)));
+			scale_.store(uint16_t(std::clamp(volume * 65535.0f, 0.0f, 65535.0f)));
 		}
 
 		bool get_is_stereo() final {
