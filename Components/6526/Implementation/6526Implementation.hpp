@@ -31,8 +31,10 @@ template <int port> void MOS6526<BusHandlerT, personality>::set_port_output() {
 
 template <typename BusHandlerT, Personality personality>
 template <int port> uint8_t MOS6526<BusHandlerT, personality>::get_port_input() {
-	const uint8_t input = port_handler_.get_port_input(Port(port));
-	return (input & ~data_direction_[port]) | (output_[port] & data_direction_[port]);
+	// Avoid bothering the port handler if there's no input active.
+	const uint8_t input_mask = ~data_direction_[port];
+	const uint8_t input = input_mask ? port_handler_.get_port_input(Port(port)) : 0x00;
+	return (input & input_mask) | (output_[port] & data_direction_[port]);
 }
 
 template <typename BusHandlerT, Personality personality>
