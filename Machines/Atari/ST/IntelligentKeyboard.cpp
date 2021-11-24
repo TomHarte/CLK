@@ -157,7 +157,7 @@ void IntelligentKeyboard::dispatch_command(uint8_t command) {
 	// If not, exit. If so, perform and drop out of the switch.
 	switch(command_sequence_.front()) {
 		default:
-			printf("Unrecognised IKBD command %02x\n", command);
+			LOG("Unrecognised IKBD command " << PADHEX(2) << +command);
 		break;
 
 		case 0x80:
