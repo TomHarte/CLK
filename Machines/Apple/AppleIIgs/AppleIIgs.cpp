@@ -1151,7 +1151,7 @@ class ConcreteMachine:
 		Audio::Toggle audio_toggle_;
 		using AudioSource = Outputs::Speaker::CompoundSource<Apple::IIgs::Sound::GLU, Audio::Toggle>;
 		AudioSource mixer_;
-		Outputs::Speaker::LowpassSpeaker<AudioSource> speaker_;
+		Outputs::Speaker::PullLowpass<AudioSource> speaker_;
 		Cycles cycles_since_audio_update_;
 		Cycles cycles_until_audio_event_;
 		static constexpr int audio_divider = 16;

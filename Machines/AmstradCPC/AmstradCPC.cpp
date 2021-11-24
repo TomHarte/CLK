@@ -158,7 +158,7 @@ class AYDeferrer {
 	private:
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910<true> ay_;
-		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910<true>> speaker_;
+		Outputs::Speaker::PullLowpass<GI::AY38910::AY38910<true>> speaker_;
 		HalfCycles cycles_since_update_;
 };
 

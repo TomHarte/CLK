@@ -848,7 +848,7 @@ template<Model model> class ConcreteMachine:
 		GI::AY38910::AY38910<false> ay_;
 		Audio::Toggle audio_toggle_;
 		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle> mixer_;
-		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle>> speaker_;
+		Outputs::Speaker::PullLowpass<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle>> speaker_;
 
 		HalfCycles time_since_audio_update_;
 		void update_audio() {
