@@ -487,7 +487,7 @@ class ConcreteMachine:
 		TI::SN76489 sn76489_;
 		Yamaha::OPL::OPLL opll_;
 		Outputs::Speaker::CompoundSource<decltype(sn76489_), decltype(opll_)> mixer_;
-		Outputs::Speaker::LowpassSpeaker<decltype(mixer_)> speaker_;
+		Outputs::Speaker::PullLowpass<decltype(mixer_)> speaker_;
 		uint8_t opll_detection_word_ = 0xff;
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;

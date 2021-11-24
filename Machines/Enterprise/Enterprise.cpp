@@ -703,7 +703,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		Dave::Audio dave_audio_;
-		Outputs::Speaker::LowpassSpeaker<Dave::Audio> speaker_;
+		Outputs::Speaker::PullLowpass<Dave::Audio> speaker_;
 		HalfCycles time_since_audio_update_;
 
 		HalfCycles dave_delay_ = HalfCycles(2);
