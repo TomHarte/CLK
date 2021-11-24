@@ -44,9 +44,9 @@ enum Personality {
 #define has_stpwai(p)		((p) >= Personality::PWDC65C02)
 
 /*!
-	An opcode that is guaranteed to cause the CPU to jam.
+	An opcode that is guaranteed to cause a 6502 to jam.
 */
-extern const uint8_t JamOpcode;
+constexpr uint8_t JamOpcode = 0xf2;
 
 #include "Implementation/6502Storage.hpp"
 
@@ -65,7 +65,7 @@ class ProcessorBase: public ProcessorStorage {
 			@param r The register to set.
 			@returns The value of the register. 8-bit registers will be returned as unsigned.
 		*/
-		uint16_t get_value_of_register(Register r) const;
+		inline uint16_t get_value_of_register(Register r) const;
 
 		/*!
 			Sets the value of a register.
@@ -75,7 +75,7 @@ class ProcessorBase: public ProcessorStorage {
 			@param r The register to set.
 			@param value The value to set. If the register is only 8 bit, the value will be truncated.
 		*/
-		void set_value_of_register(Register r, uint16_t value);
+		inline void set_value_of_register(Register r, uint16_t value);
 
 		/*!
 			Sets the current level of the RST line.
@@ -124,7 +124,7 @@ class ProcessorBase: public ProcessorStorage {
 
 			@returns @c true if the 6502 is jammed; @c false otherwise.
 		*/
-		bool is_jammed() const;
+		inline bool is_jammed() const;
 };
 
 /*!
