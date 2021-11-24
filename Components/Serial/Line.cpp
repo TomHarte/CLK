@@ -130,7 +130,8 @@ bool Line<include_clock>::read() const {
 template <bool include_clock>
 void Line<include_clock>::set_read_delegate(ReadDelegate *delegate, Storage::Time bit_length) {
 	read_delegate_ = delegate;
-	if constexpr (include_clock) {
+	if constexpr (!include_clock) {
+		assert(bit_length > Storage::Time(0));
 		read_delegate_bit_length_ = bit_length;
 		read_delegate_bit_length_.simplify();
 		write_cycles_since_delegate_call_ = 0;
