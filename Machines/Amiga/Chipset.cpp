@@ -929,8 +929,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 		case Write(0x058):	blitter_.set_size(cycle.value16());				break;
 		case Write(0x05a):	blitter_.set_minterms(cycle.value16());			break;
-		case Write(0x05c):	blitter_.set_vertical_size(cycle.value16());	break;
-		case Write(0x05e):	blitter_.set_horizontal_size(cycle.value16());	break;
+//		case Write(0x05c):	blitter_.set_vertical_size(cycle.value16());	break;
+//		case Write(0x05e):	blitter_.set_horizontal_size(cycle.value16());	break;
 
 		case Write(0x060):	blitter_.set_modulo<2>(cycle.value16());		break;
 		case Write(0x062):	blitter_.set_modulo<1>(cycle.value16());		break;

@@ -54,8 +54,12 @@ void Blitter::set_last_word_mask(uint16_t value) {
 }
 
 void Blitter::set_size(uint16_t value) {
-	width_ = (width_ & ~0x3f) | (value & 0x3f);
-	height_ = (height_ & ~0x3ff) | (value >> 6);
+//	width_ = (width_ & ~0x3f) | (value & 0x3f);
+//	height_ = (height_ & ~0x3ff) | (value >> 6);
+	width_ = value & 0x3f;
+	if(!width_) width_ = 0x40;
+	height_ = value >> 6;
+	if(!height_) height_ = 1024;
 	LOG("Set size to " << std::dec << width_ << ", " << height_);
 
 	// Current assumption: writing this register informs the
@@ -67,14 +71,14 @@ void Blitter::set_minterms(uint16_t value) {
 	minterms_ = value & 0xff;
 }
 
-void Blitter::set_vertical_size([[maybe_unused]] uint16_t value) {
-	LOG("Set vertical size " << PADHEX(4) << value);
-	// TODO. This is ECS only, I think. Ditto set_horizontal_size.
-}
-
-void Blitter::set_horizontal_size([[maybe_unused]] uint16_t value) {
-	LOG("Set horizontal size " << PADHEX(4) << value);
-}
+//void Blitter::set_vertical_size([[maybe_unused]] uint16_t value) {
+//	LOG("Set vertical size " << PADHEX(4) << value);
+//	// TODO. This is ECS only, I think. Ditto set_horizontal_size.
+//}
+//
+//void Blitter::set_horizontal_size([[maybe_unused]] uint16_t value) {
+//	LOG("Set horizontal size " << PADHEX(4) << value);
+//}
 
 void Blitter::set_data(int channel, uint16_t value) {
 	LOG("Set data " << channel << " to " << PADHEX(4) << value);
@@ -242,7 +246,7 @@ bool Blitter::advance_dma() {
 				uint16_t a, b;
 
 				// The barrel shifter shifts to the right in ascending address mode,
-				// but to the left othrwise
+				// but to the left otherwise
 				if(!one_dot_) {
 					a = uint16_t(a32_ >> shifts_[0]);
 					b = uint16_t(b32_ >> shifts_[1]);
@@ -277,6 +281,8 @@ bool Blitter::advance_dma() {
 						if(inclusive_fill_) {
 							pre_toggle &= ~flag;	// Accept bits that would transition to set immediately.
 							post_toggle &= flag;	// Accept bits that would transition to clear after the fact.
+						} else {
+							post_toggle = 0;		// Just do the pre toggle.
 						}
 
 						flag ^= pre_toggle;
