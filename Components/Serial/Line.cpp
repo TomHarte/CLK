@@ -8,6 +8,7 @@
 
 #include "Line.hpp"
 
+#include <cassert>
 #include <limits>
 
 using namespace Serial;
