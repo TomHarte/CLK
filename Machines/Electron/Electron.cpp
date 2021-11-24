@@ -768,7 +768,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		SoundGenerator sound_generator_;
-		Outputs::Speaker::LowpassSpeaker<SoundGenerator> speaker_;
+		Outputs::Speaker::PullLowpass<SoundGenerator> speaker_;
 
 		bool speaker_is_enabled_ = false;
 

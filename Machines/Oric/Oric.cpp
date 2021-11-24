@@ -84,7 +84,7 @@ namespace Oric {
 using DiskInterface = Analyser::Static::Oric::Target::DiskInterface;
 using Processor = Analyser::Static::Oric::Target::Processor;
 using AY = GI::AY38910::AY38910<false>;
-using Speaker = Outputs::Speaker::LowpassSpeaker<AY>;
+using Speaker = Outputs::Speaker::PullLowpass<AY>;
 
 enum ROM {
 	BASIC10 = 0, BASIC11, Microdisc, Colour
