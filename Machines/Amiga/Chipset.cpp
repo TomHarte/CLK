@@ -1111,60 +1111,51 @@ void Chipset::Sprite::set_stop_and_control(uint16_t value) {
 	v_stop_ = uint16_t((value >> 8) | ((value & 0x02) << 7));
 	v_start_ = uint16_t((v_start_ & 0x00ff) | ((value & 0x04) << 6));
 	attached = value & 0x80;
-	visible = active_ = false;	// 'Disarm' the sprite.
+	visible = false;	// 'Disarm' the sprite.
 }
 
 void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 	data[slot] = value;
-	active_ |= slot == 0;
-	visible = active_ && vertical_in_range_;
+	visible |= slot == 0;
 }
 
 bool Chipset::Sprite::advance_dma(int y) {
+	visible |= (y == v_start_);
+	if(y == v_stop_) {
+		dma_state_ = DMAState::FetchStart;
+	}
+	if(!visible) return false;
+
+	// Fetch another word.
+	const uint16_t next_word = ram_[pointer_[0] & ram_mask_];
+	++pointer_[0];
+
+	// Put the fetched word somewhere appropriate and update the DMA state.
 	switch(dma_state_) {
 		// i.e. stopped.
 		default: return false;
 
 		// FetchStart: fetch the first control word and proceed to the second.
 		case DMAState::FetchStart:
-			set_start_position(ram_[pointer_[0] & ram_mask_]);
-			++pointer_[0];
+			set_start_position(next_word);
 			dma_state_ = DMAState::FetchStopAndControl;
 		return true;
 
-		// FetchStopAndControl: fetch second control word and wait for V start.
+		// FetchStopAndControl: fetch second control word, which will automatically disable visibility.
 		case DMAState::FetchStopAndControl:
-			set_stop_and_control(ram_[pointer_[0] & ram_mask_]);
-			++pointer_[0];
-			dma_state_ = DMAState::WaitingForStart;
+			set_stop_and_control(next_word);
+			dma_state_ = DMAState::FetchData1;
 		return true;
 
-		// WaitingForStart: repeat until V start is found.
-		case DMAState::WaitingForStart:
-			if(y != v_start_) {
-				return false;
-			}
-			vertical_in_range_ = true;
-			visible = active_;
-			[[fallthrough]];
-
-		// FetchData1: if v end is reached, stop DMA. Otherwise fetch a word
-		// and proceed to FetchData0.
+		// FetchData1: Just fetch a word and proceed to FetchData0.
 		case DMAState::FetchData1:
-			if(y == v_stop_) {
-				dma_state_ = DMAState::FetchStart;
-				visible = vertical_in_range_ = false;
-				return false;
-			}
-			set_image_data(1, ram_[pointer_[0] & ram_mask_]);
-			++pointer_[0];
+			set_image_data(1, next_word);
 			dma_state_ = DMAState::FetchData0;
 		return true;
 
-		// FetchData0: fetch a word and proceed back to FetchData1.
+		// FetchData0: fetch a word and return to FetchData1.
 		case DMAState::FetchData0:
-			set_image_data(0, ram_[pointer_[0] & ram_mask_]);
-			++pointer_[0];
+			set_image_data(0, next_word);
 			dma_state_ = DMAState::FetchData1;
 		return true;
 	}

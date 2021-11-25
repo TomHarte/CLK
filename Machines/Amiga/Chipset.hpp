@@ -160,14 +160,10 @@ class Chipset: private ClockingHint::Observer {
 
 			private:
 				uint16_t v_start_ = 0, v_stop_ = 0;
-				bool active_ = false;
-				bool vertical_in_range_ = false;
 
 				enum class DMAState {
-					Stopped,
 					FetchStart,
 					FetchStopAndControl,
-					WaitingForStart,
 
 					FetchData1,
 					FetchData0,
