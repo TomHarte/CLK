@@ -10,6 +10,7 @@
 
 #include "Blitter.hpp"
 
+#include <unordered_map>
 #include <vector>
 
 namespace Amiga {
@@ -37,14 +38,29 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 
 @implementation AmigaBlitterTests
 
-- (BOOL)verifyWrites:(WriteVector &)writes blitter:(Amiga::Blitter &)blitter ram:(uint16_t *)ram {
+- (BOOL)verifyWrites:(WriteVector &)writes blitter:(Amiga::Blitter &)blitter ram:(uint16_t *)ram approximateLocation:(NSInteger)approximateLocation {
 	// Run for however much time the Blitter wants.
 	while(blitter.get_status() & 0x4000) {
 		blitter.advance_dma();
 	}
 
+	// Some blits will write the same address twice
+	// (e.g. by virtue of an appropriate modulo), but
+	// this unit test is currently able to verify the
+	// final result only. So count number of accesses per
+	// address up front in order only to count the
+	// final ones below.
+	std::unordered_map<int, int> access_counts;
 	for(const auto &write: writes) {
-		XCTAssertEqual(ram[write.first >> 1], write.second, @"Didn't find %04x at address %08x; found %04x instead", write.second, write.first, ram[write.first >> 1]);
+		++access_counts[write.first];
+	}
+
+	for(const auto &write: writes) {
+		auto &count = access_counts[write.first];
+		--count;
+		if(count) continue;
+
+		XCTAssertEqual(ram[write.first >> 1], write.second, @"Didn't find %04x at address %08x; found %04x instead, somewhere before line %ld", write.second, write.first, ram[write.first >> 1], (long)approximateLocation);
 
 		// For now, indicate only the first failure.
 		if(ram[write.first >> 1] != write.second) {
@@ -80,7 +96,9 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 	WriteVector writes;
 	BOOL hasFailed = NO;
 
+	NSInteger arrayEntry = -1;
 	for(NSArray *const event in trace) {
+		++arrayEntry;
 		if(hasFailed) break;
 
 		NSString *const type = event[0];
@@ -106,7 +124,7 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 
 		// Hackaround for testing my magical all-at-once Blitter is here.
 		if(state == State::LoggingWrites) {
-			if(![self verifyWrites:writes blitter:blitter ram:ram]) {
+			if(![self verifyWrites:writes blitter:blitter ram:ram approximateLocation:arrayEntry]) {
 				hasFailed = YES;
 				break;
 			}
@@ -209,7 +227,7 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 
 	// Check the final set of writes.
 	if(!hasFailed) {
-		[self verifyWrites:writes blitter:blitter ram:ram];
+		[self verifyWrites:writes blitter:blitter ram:ram approximateLocation:-1];
 	}
 }
 
