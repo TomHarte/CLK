@@ -1121,7 +1121,7 @@ void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 
 bool Chipset::Sprite::advance_dma(int y) {
 	visible |= (y == v_start_);
-	if(y == v_stop_) {
+	if(y == v_stop_ && dma_state_ > DMAState::FetchStopAndControl) {
 		dma_state_ = DMAState::FetchStart;
 	}
 	if(!visible) return false;
