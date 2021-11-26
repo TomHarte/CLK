@@ -31,6 +31,41 @@ static_assert(expand_bitplane_byte(0x00) == 0x00'00'00'00'00'00'00'00);
 
 }
 
+// MARK: - BitplaneShifter.
+
+void BitplaneShifter::set(const BitplaneData &previous, const BitplaneData &next, int odd_delay, int even_delay) {
+	const uint16_t planes[6] = {
+		uint16_t(((previous[0] << 16) | next[0]) >> even_delay),
+		uint16_t(((previous[1] << 16) | next[1]) >> odd_delay),
+		uint16_t(((previous[2] << 16) | next[2]) >> even_delay),
+		uint16_t(((previous[3] << 16) | next[3]) >> odd_delay),
+		uint16_t(((previous[4] << 16) | next[4]) >> even_delay),
+		uint16_t(((previous[5] << 16) | next[5]) >> odd_delay),
+	};
+
+	// Swizzle bits into the form:
+	//
+	//	[b5 b3 b1 b4 b2 b0]
+	//
+	// ... and assume a suitably adjusted palette is in use elsewhere.
+	// This makes dual playfields very easy to separate.
+	data_[0] =
+		(expand_bitplane_byte(uint8_t(planes[0])) << 0) |
+		(expand_bitplane_byte(uint8_t(planes[2])) << 1) |
+		(expand_bitplane_byte(uint8_t(planes[4])) << 2) |
+		(expand_bitplane_byte(uint8_t(planes[1])) << 3) |
+		(expand_bitplane_byte(uint8_t(planes[3])) << 4) |
+		(expand_bitplane_byte(uint8_t(planes[5])) << 5);
+
+	data_[1] =
+		(expand_bitplane_byte(uint8_t(planes[0] >> 8)) << 0) |
+		(expand_bitplane_byte(uint8_t(planes[2] >> 8)) << 1) |
+		(expand_bitplane_byte(uint8_t(planes[4] >> 8)) << 2) |
+		(expand_bitplane_byte(uint8_t(planes[1] >> 8)) << 3) |
+		(expand_bitplane_byte(uint8_t(planes[3] >> 8)) << 4) |
+		(expand_bitplane_byte(uint8_t(planes[5] >> 8)) << 5);
+}
+
 // MARK: - Bitplanes.
 
 bool Bitplanes::advance_dma(int cycle) {
@@ -94,39 +129,4 @@ void Bitplanes::set_control(uint16_t control) {
 	if(plane_count_ == 7) {
 		plane_count_ = 4;
 	}
-}
-
-// MARK: - BitplaneShifter
-
-void BitplaneShifter::set(const BitplaneData &previous, const BitplaneData &next, int odd_delay, int even_delay) {
-	const uint16_t planes[6] = {
-		uint16_t(((previous[0] << 16) | next[0]) >> even_delay),
-		uint16_t(((previous[1] << 16) | next[1]) >> odd_delay),
-		uint16_t(((previous[2] << 16) | next[2]) >> even_delay),
-		uint16_t(((previous[3] << 16) | next[3]) >> odd_delay),
-		uint16_t(((previous[4] << 16) | next[4]) >> even_delay),
-		uint16_t(((previous[5] << 16) | next[5]) >> odd_delay),
-	};
-
-	// Swizzle bits into the form:
-	//
-	//	[b5 b3 b1 b4 b2 b0]
-	//
-	// ... and assume a suitably adjusted palette is in use elsewhere.
-	// This makes dual playfields very easy to separate.
-	data_[0] =
-		(expand_bitplane_byte(uint8_t(planes[0])) << 0) |
-		(expand_bitplane_byte(uint8_t(planes[2])) << 1) |
-		(expand_bitplane_byte(uint8_t(planes[4])) << 2) |
-		(expand_bitplane_byte(uint8_t(planes[1])) << 3) |
-		(expand_bitplane_byte(uint8_t(planes[3])) << 4) |
-		(expand_bitplane_byte(uint8_t(planes[5])) << 5);
-
-	data_[1] =
-		(expand_bitplane_byte(uint8_t(planes[0] >> 8)) << 0) |
-		(expand_bitplane_byte(uint8_t(planes[2] >> 8)) << 1) |
-		(expand_bitplane_byte(uint8_t(planes[4] >> 8)) << 2) |
-		(expand_bitplane_byte(uint8_t(planes[1] >> 8)) << 3) |
-		(expand_bitplane_byte(uint8_t(planes[3] >> 8)) << 4) |
-		(expand_bitplane_byte(uint8_t(planes[5] >> 8)) << 5);
 }
