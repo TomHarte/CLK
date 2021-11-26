@@ -433,6 +433,8 @@
 		4B7BA03423C58B1F00B98D9E /* STX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03323C58B1E00B98D9E /* STX.cpp */; };
 		4B7BA03723CEB86000B98D9E /* BD500.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03523CEB86000B98D9E /* BD500.cpp */; };
 		4B7BC7F51F58F27800D1B1B4 /* 6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C911F58F09E00E3F787 /* 6502AllRAM.cpp */; };
+		4B7C681627517A59001671EC /* Sprites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C681427517A59001671EC /* Sprites.cpp */; };
+		4B7C681727517A59001671EC /* Sprites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C681427517A59001671EC /* Sprites.cpp */; };
 		4B7F188E2154825E00388727 /* MasterSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F188C2154825D00388727 /* MasterSystem.cpp */; };
 		4B7F188F2154825E00388727 /* MasterSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F188C2154825D00388727 /* MasterSystem.cpp */; };
 		4B7F1897215486A200388727 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F1896215486A100388727 /* StaticAnalyser.cpp */; };
@@ -1425,6 +1427,8 @@
 		4B7BA03823CEB8D200B98D9E /* DiskController.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DiskController.hpp; sourceTree = "<group>"; };
 		4B7BA03E23D55E7900B98D9E /* CRC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRC.hpp; sourceTree = "<group>"; };
 		4B7BA03F23D55E7900B98D9E /* LFSR.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = LFSR.hpp; sourceTree = "<group>"; };
+		4B7C681427517A59001671EC /* Sprites.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Sprites.cpp; sourceTree = "<group>"; };
+		4B7C681527517A59001671EC /* Sprites.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sprites.hpp; sourceTree = "<group>"; };
 		4B7F188C2154825D00388727 /* MasterSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MasterSystem.cpp; sourceTree = "<group>"; };
 		4B7F188D2154825D00388727 /* MasterSystem.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MasterSystem.hpp; sourceTree = "<group>"; };
 		4B7F1895215486A100388727 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
@@ -4306,6 +4310,7 @@
 				4BC6236C26F4235400F83DFE /* Copper.cpp */,
 				4B1A1B1C27320FBB00119335 /* Disk.cpp */,
 				4B9EC0E826B384080060A31F /* Keyboard.cpp */,
+				4B7C681427517A59001671EC /* Sprites.cpp */,
 				4BC080D726A25ADA00D03FD8 /* Amiga.hpp */,
 				4B2130E1273A7A0A008A77B4 /* Audio.hpp */,
 				4B9EC0E026AA260C0060A31F /* Blitter.hpp */,
@@ -4316,6 +4321,7 @@
 				4B9EC0E926B384080060A31F /* Keyboard.hpp */,
 				4BD1552E270B14AC00410C6E /* MemoryMap.hpp */,
 				4BC6237026F94A5B00F83DFE /* Minterms.hpp */,
+				4B7C681527517A59001671EC /* Sprites.hpp */,
 			);
 			path = Amiga;
 			sourceTree = "<group>";
@@ -5344,6 +5350,7 @@
 				4B2E86BF25D74F160024F1E9 /* Mouse.cpp in Sources */,
 				4B6ED2F1208E2F8A0047B343 /* WOZ.cpp in Sources */,
 				4B5D5C9825F56FC7001B4623 /* Spectrum.cpp in Sources */,
+				4B7C681727517A59001671EC /* Sprites.cpp in Sources */,
 				4B2E86D025D8D8C70024F1E9 /* Keyboard.cpp in Sources */,
 				4B89452F201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B894531201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
@@ -5718,6 +5725,7 @@
 				4B894528201967B4007DE474 /* Disk.cpp in Sources */,
 				4B2E86CF25D8D8C70024F1E9 /* Keyboard.cpp in Sources */,
 				4BBB70A4202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
+				4B7C681627517A59001671EC /* Sprites.cpp in Sources */,
 				4B0ACC02237756ED008902D0 /* Line.cpp in Sources */,
 				4B89453A201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
