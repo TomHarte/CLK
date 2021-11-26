@@ -437,6 +437,8 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 
 		if constexpr (cycle >= 0xd && cycle < 0x14) {
 			constexpr auto channel = (cycle - 0xd) >> 1;
+			static_assert(channel >= 0 && channel < 4);
+
 			if((dma_control_ & AudioFlags[channel]) == AudioFlags[channel]) {
 				if(audio_.advance_dma(channel)) {
 					return false;
@@ -447,6 +449,8 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		if constexpr (cycle >= 0x15 && cycle < 0x35) {
 			if((dma_control_ & SpritesFlag) == SpritesFlag && y_ >= vertical_blank_height_) {
 				constexpr auto sprite_id = (cycle - 0x15) >> 2;
+				static_assert(sprite_id >= 0 && sprite_id < 8);
+
 				if(sprites_[sprite_id].advance_dma(cycle&2)) {
 					return false;
 				}
