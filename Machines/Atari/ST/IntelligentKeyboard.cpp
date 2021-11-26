@@ -68,8 +68,8 @@ void IntelligentKeyboard::run_for(HalfCycles duration) {
 			mouse_position_[1] += mouse_y_multiplier_ * scaled_movement[1];
 
 			// Clamp to range.
-			mouse_position_[0] = std::min(std::max(mouse_position_[0], 0), mouse_range_[0]);
-			mouse_position_[1] = std::min(std::max(mouse_position_[1], 0), mouse_range_[1]);
+			mouse_position_[0] = std::clamp(mouse_position_[0], 0, mouse_range_[0]);
+			mouse_position_[1] = std::clamp(mouse_position_[1], 0, mouse_range_[1]);
 
 			mouse_movement_[0] -= scaled_movement[0] * mouse_scale_[0];
 			mouse_movement_[1] -= scaled_movement[1] * mouse_scale_[1];
