@@ -324,19 +324,19 @@ template <int cycle> void Chipset::output() {
 							}
 						} else {
 							// Left pixel.
-							if(data >> 6) {
-								pixels_[0] = pixels_[1] = palette_[base + (data >> 6)];
-							}
 							if((data >> 4) & 3) {
 								pixels_[0] = pixels_[1] = palette_[base + ((data >> 4)&3)];
 							}
+							if(data >> 6) {
+								pixels_[0] = pixels_[1] = palette_[base + (data >> 6)];
+							}
 
 							// Right pixel.
-							if((data >> 2) & 3) {
-								pixels_[2] = pixels_[3] = palette_[base + ((data >> 2)&3)];
-							}
 							if(data & 3) {
 								pixels_[2] = pixels_[3] = palette_[base + (data & 3)];
+							}
+							if((data >> 2) & 3) {
+								pixels_[2] = pixels_[3] = palette_[base + ((data >> 2)&3)];
 							}
 						}
 					}
