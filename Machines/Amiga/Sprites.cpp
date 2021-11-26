@@ -59,6 +59,7 @@ void Sprite::advance_line(int y, bool is_end_of_blank) {
 	}
 	if(is_end_of_blank || y == v_stop_) {
 		dma_state_ = DMAState::FetchControl;
+		visible = true;
 	}
 }
 

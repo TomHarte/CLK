@@ -56,8 +56,8 @@ static_assert(expand_bitplane_byte(0x00) == 0x00'00'00'00'00'00'00'00);
 Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	blitter_(DMA_CONSTRUCT),
 	sprites_{
-		{DMA_CONSTRUCT},	{DMA_CONSTRUCT},	{DMA_CONSTRUCT},	{DMA_CONSTRUCT},
-		{DMA_CONSTRUCT},	{DMA_CONSTRUCT},	{DMA_CONSTRUCT},	{DMA_CONSTRUCT}
+		Sprite{DMA_CONSTRUCT},	Sprite{DMA_CONSTRUCT},	Sprite{DMA_CONSTRUCT},	Sprite{DMA_CONSTRUCT},
+		Sprite{DMA_CONSTRUCT},	Sprite{DMA_CONSTRUCT},	Sprite{DMA_CONSTRUCT},	Sprite{DMA_CONSTRUCT}
 	},
 	bitplanes_(DMA_CONSTRUCT),
 	copper_(DMA_CONSTRUCT),
@@ -126,7 +126,8 @@ template <int cycle> void Chipset::output() {
 
 	// Trigger any sprite loads encountered.
 	constexpr auto dcycle = cycle << 1;
-	for(int c = 0; c < 8; c += 2) {
+	static_assert(std::tuple_size<decltype(sprites_)>::value % 2 == 0);
+	for(size_t c = 0; c < sprites_.size(); c += 2) {
 		if( sprites_[c].visible &&
 			dcycle <= sprites_[c].h_start &&
 			dcycle+2 > sprites_[c].h_start) {
@@ -292,12 +293,14 @@ template <int cycle> void Chipset::output() {
 						pixels_[3] = swizzled_palette_[source & 0xff];
 					}
 
-					for(int c = 3; c >= 0; --c) {
-						const auto data = sprite_shifters_[c].get();
+					size_t index = sprite_shifters_.size();
+					for(auto shifter = sprite_shifters_.rbegin(); shifter != sprite_shifters_.rend(); ++shifter) {
+						--index;
+						const auto data = shifter->get();
 						if(!data) continue;
-						const int base = (c << 2) + 16;
+						const auto base = (index << 2) + 16;
 
-						if(sprites_[(c << 1) + 1].attached) {
+						if(sprites_[(index << 1) + 1].attached) {
 							// Left pixel.
 							if(data >> 4) {
 								pixels_[0] = pixels_[1] = palette_[16 + (data >> 4)];
@@ -434,7 +437,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		if constexpr (cycle >= 0x15 && cycle < 0x35) {
 			if((dma_control_ & SpritesFlag) == SpritesFlag && y_ >= vertical_blank_height_) {
 				constexpr auto sprite_id = (cycle - 0x15) >> 2;
-				static_assert(sprite_id >= 0 && sprite_id < 8);
+				static_assert(sprite_id >= 0 && sprite_id < std::tuple_size<decltype(sprites_)>::value);
 
 				if(sprites_[sprite_id].advance_dma(cycle&2)) {
 					return false;
@@ -568,8 +571,8 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				is_long_field_ ^= interlace_;
 			}
 
-			for(int c = 0; c < 8; c++) {
-				sprites_[c].advance_line(y_, y_ == vertical_blank_height_);
+			for(auto &sprite: sprites_) {
+				sprite.advance_line(y_, y_ == vertical_blank_height_);
 			}
 		}
 		assert(line_cycle_ < line_length_ * 4);

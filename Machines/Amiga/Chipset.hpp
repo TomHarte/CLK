@@ -143,8 +143,8 @@ class Chipset: private ClockingHint::Observer {
 
 		// MARK: - Sprites.
 
-		Sprite sprites_[8];
-		TwoSpriteShifter sprite_shifters_[4];
+		std::array<Sprite, 8> sprites_;
+		std::array<TwoSpriteShifter, 4> sprite_shifters_;
 
 		// MARK: - Raster position and state.
 
