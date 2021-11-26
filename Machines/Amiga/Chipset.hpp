@@ -19,8 +19,6 @@
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../../ClockReceiver/JustInTime.hpp"
 #include "../../Components/6526/6526.hpp"
-#include "../../Inputs/Joystick.hpp"
-#include "../../Inputs/Mouse.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../Processors/68000/68000.hpp"
 #include "../../Storage/Disk/Controller/DiskController.hpp"
@@ -32,6 +30,7 @@
 #include "DMADevice.hpp"
 #include "Flags.hpp"
 #include "Keyboard.hpp"
+#include "MouseJoystick.hpp"
 #include "MemoryMap.hpp"
 #include "Sprites.hpp"
 
@@ -284,41 +283,15 @@ class Chipset: private ClockingHint::Observer {
 
 		// MARK: - Mouse.
 	private:
-		class Mouse: public Inputs::Mouse {
-			public:
-				uint16_t get_position();
-				uint8_t get_cia_button() const;
-
-			private:
-				int get_number_of_buttons() final;
-				void set_button_pressed(int, bool) final;
-				void reset_all_buttons() final;
-				void move(int, int) final;
-
-				uint8_t declared_position_[2]{};
-				uint8_t cia_state_ = 0xff;
-				std::array<std::atomic<int>, 2> position_{};
-		} mouse_;
+		Mouse mouse_;
 
 	public:
-		Inputs::Mouse &get_mouse();
+		Inputs::Mouse &get_mouse() {
+			return mouse_;
+		}
 
 		// MARK: - Joystick.
 	private:
-		class Joystick: public Inputs::ConcreteJoystick {
-			public:
-				Joystick();
-
-				uint16_t get_position() const;
-				uint8_t get_cia_button() const;
-
-			private:
-				void did_set_input(const Input &input, bool is_active) final;
-
-				bool inputs_[Joystick::Input::Type::Max]{};
-				uint16_t position_ = 0;
-		};
-
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 		Joystick &joystick(size_t index) const {
 			return *static_cast<Joystick *>(joysticks_[index].get());

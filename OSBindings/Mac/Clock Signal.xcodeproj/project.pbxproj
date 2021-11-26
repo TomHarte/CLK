@@ -435,6 +435,8 @@
 		4B7BC7F51F58F27800D1B1B4 /* 6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C911F58F09E00E3F787 /* 6502AllRAM.cpp */; };
 		4B7C681627517A59001671EC /* Sprites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C681427517A59001671EC /* Sprites.cpp */; };
 		4B7C681727517A59001671EC /* Sprites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C681427517A59001671EC /* Sprites.cpp */; };
+		4B7C681A275196E8001671EC /* MouseJoystick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C6818275196E8001671EC /* MouseJoystick.cpp */; };
+		4B7C681B275196E8001671EC /* MouseJoystick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C6818275196E8001671EC /* MouseJoystick.cpp */; };
 		4B7F188E2154825E00388727 /* MasterSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F188C2154825D00388727 /* MasterSystem.cpp */; };
 		4B7F188F2154825E00388727 /* MasterSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F188C2154825D00388727 /* MasterSystem.cpp */; };
 		4B7F1897215486A200388727 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F1896215486A100388727 /* StaticAnalyser.cpp */; };
@@ -1429,6 +1431,8 @@
 		4B7BA03F23D55E7900B98D9E /* LFSR.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = LFSR.hpp; sourceTree = "<group>"; };
 		4B7C681427517A59001671EC /* Sprites.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Sprites.cpp; sourceTree = "<group>"; };
 		4B7C681527517A59001671EC /* Sprites.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sprites.hpp; sourceTree = "<group>"; };
+		4B7C6818275196E8001671EC /* MouseJoystick.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MouseJoystick.cpp; sourceTree = "<group>"; };
+		4B7C6819275196E8001671EC /* MouseJoystick.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MouseJoystick.hpp; sourceTree = "<group>"; };
 		4B7F188C2154825D00388727 /* MasterSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MasterSystem.cpp; sourceTree = "<group>"; };
 		4B7F188D2154825D00388727 /* MasterSystem.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MasterSystem.hpp; sourceTree = "<group>"; };
 		4B7F1895215486A100388727 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
@@ -4310,6 +4314,7 @@
 				4BC6236C26F4235400F83DFE /* Copper.cpp */,
 				4B1A1B1C27320FBB00119335 /* Disk.cpp */,
 				4B9EC0E826B384080060A31F /* Keyboard.cpp */,
+				4B7C6818275196E8001671EC /* MouseJoystick.cpp */,
 				4B7C681427517A59001671EC /* Sprites.cpp */,
 				4BC080D726A25ADA00D03FD8 /* Amiga.hpp */,
 				4B2130E1273A7A0A008A77B4 /* Audio.hpp */,
@@ -4321,6 +4326,7 @@
 				4B9EC0E926B384080060A31F /* Keyboard.hpp */,
 				4BD1552E270B14AC00410C6E /* MemoryMap.hpp */,
 				4BC6237026F94A5B00F83DFE /* Minterms.hpp */,
+				4B7C6819275196E8001671EC /* MouseJoystick.hpp */,
 				4B7C681527517A59001671EC /* Sprites.hpp */,
 			);
 			path = Amiga;
@@ -5445,6 +5451,7 @@
 				4B055AC91FAE9AFB0060FFFF /* Keyboard.cpp in Sources */,
 				4B055A991FAE85CB0060FFFF /* DiskController.cpp in Sources */,
 				4B25B5F925BD083C00362C84 /* DiskIIDrive.cpp in Sources */,
+				4B7C681B275196E8001671EC /* MouseJoystick.cpp in Sources */,
 				4B055ACC1FAE9B030060FFFF /* Electron.cpp in Sources */,
 				4B2E86B825D7490E0024F1E9 /* ReactiveDevice.cpp in Sources */,
 				4B74CF822312FA9C00500CE8 /* HFV.cpp in Sources */,
@@ -5652,6 +5659,7 @@
 				4B74CF85231370BC00500CE8 /* MacintoshVolume.cpp in Sources */,
 				4B0F1C232605996900B85C66 /* ZXSpectrumTAP.cpp in Sources */,
 				4B4518A51F75FD1C00926311 /* SSD.cpp in Sources */,
+				4B7C681A275196E8001671EC /* MouseJoystick.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
 				4B1B58FF246E19FD009C171E /* State.cpp in Sources */,
 				4B2B3A4C1F9B8FA70062DABF /* MemoryFuzzer.cpp in Sources */,
