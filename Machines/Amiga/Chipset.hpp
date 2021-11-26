@@ -150,8 +150,8 @@ class Chipset: private ClockingHint::Observer {
 				void set_stop_and_control(uint16_t value);
 				void set_image_data(int slot, uint16_t value);
 
-				bool advance_dma(int y);
-				void reset_dma();
+				void advance_line(int y, bool is_end_of_blank);
+				bool advance_dma(int offset);
 
 				uint16_t data[2]{};
 				bool attached = false;
@@ -162,12 +162,9 @@ class Chipset: private ClockingHint::Observer {
 				uint16_t v_start_ = 0, v_stop_ = 0;
 
 				enum class DMAState {
-					FetchStart,
-					FetchStopAndControl,
-
-					FetchData1,
-					FetchData0,
-				} dma_state_ = DMAState::FetchStart;
+					FetchControl,
+					FetchImage
+				} dma_state_ = DMAState::FetchControl;
 		} sprites_[8];
 
 		class TwoSpriteShifter {
@@ -206,7 +203,7 @@ class Chipset: private ClockingHint::Observer {
 		// (Default values are PAL).
 		int line_length_ = 227;
 		int short_field_height_ = 312;
-		int vertical_blank_height_ = 29;
+		int vertical_blank_height_ = 25;	// PAL = 25, NTSC = 20
 
 		// Current raster position.
 		int line_cycle_ = 0, y_ = 0;

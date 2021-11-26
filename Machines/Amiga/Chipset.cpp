@@ -92,7 +92,7 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 
 	// Very conservatively crop, to roughly the centre 88% of a frame.
 	// This rectange was specifically calibrated around the default Workbench display.
-	crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.047f, 0.88f, 0.88f));
+	crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.055f, 0.88f, 0.88f));
 }
 
 #undef DMA_CONSTRUCT
@@ -445,9 +445,9 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		}
 
 		if constexpr (cycle >= 0x15 && cycle < 0x35) {
-			if((dma_control_ & SpritesFlag) == SpritesFlag) {
+			if((dma_control_ & SpritesFlag) == SpritesFlag && y_ >= vertical_blank_height_) {
 				constexpr auto sprite_id = (cycle - 0x15) >> 2;
-				if(sprites_[sprite_id].advance_dma(y_)) {
+				if(sprites_[sprite_id].advance_dma(cycle&2)) {
 					return false;
 				}
 			}
@@ -575,13 +575,12 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				// TODO: the manual is vague on when this happens. Try to find out.
 				copper_.reload<0>();
 
-				// TODO: is this really how sprite DMA proceeds?
-				for(int c = 0; c < 8; c++) {
-					sprites_[c].reset_dma();
-				}
-
 				// Toggle next field length if interlaced.
 				is_long_field_ ^= interlace_;
+			}
+
+			for(int c = 0; c < 8; c++) {
+				sprites_[c].advance_line(y_, y_ == vertical_blank_height_);
 			}
 		}
 		assert(line_cycle_ < line_length_ * 4);
@@ -1111,7 +1110,10 @@ void Chipset::Sprite::set_stop_and_control(uint16_t value) {
 	v_stop_ = uint16_t((value >> 8) | ((value & 0x02) << 7));
 	v_start_ = uint16_t((v_start_ & 0x00ff) | ((value & 0x04) << 6));
 	attached = value & 0x80;
-	visible = false;	// 'Disarm' the sprite.
+
+	// Disarm the sprite, but expect graphics next from DMA.
+	visible = false;
+	dma_state_ = DMAState::FetchImage;
 }
 
 void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
@@ -1119,11 +1121,16 @@ void Chipset::Sprite::set_image_data(int slot, uint16_t value) {
 	visible |= slot == 0;
 }
 
-bool Chipset::Sprite::advance_dma(int y) {
-	visible |= (y == v_start_);
-	if(y == v_stop_ && dma_state_ > DMAState::FetchStopAndControl) {
-		dma_state_ = DMAState::FetchStart;
+void Chipset::Sprite::advance_line(int y, bool is_end_of_blank) {
+	if(dma_state_ == DMAState::FetchImage && y == v_start_) {
+		visible = true;
 	}
+	if(is_end_of_blank || y == v_stop_) {
+		dma_state_ = DMAState::FetchControl;
+	}
+}
+
+bool Chipset::Sprite::advance_dma(int offset) {
 	if(!visible) return false;
 
 	// Fetch another word.
@@ -1135,35 +1142,19 @@ bool Chipset::Sprite::advance_dma(int y) {
 		// i.e. stopped.
 		default: return false;
 
-		// FetchStart: fetch the first control word and proceed to the second.
-		case DMAState::FetchStart:
-			set_start_position(next_word);
-			dma_state_ = DMAState::FetchStopAndControl;
+		case DMAState::FetchControl:
+			if(offset) {
+				set_stop_and_control(next_word);
+			} else {
+				set_start_position(next_word);
+			}
 		return true;
 
-		// FetchStopAndControl: fetch second control word, which will automatically disable visibility.
-		case DMAState::FetchStopAndControl:
-			set_stop_and_control(next_word);
-			dma_state_ = DMAState::FetchData1;
-		return true;
-
-		// FetchData1: Just fetch a word and proceed to FetchData0.
-		case DMAState::FetchData1:
-			set_image_data(1, next_word);
-			dma_state_ = DMAState::FetchData0;
-		return true;
-
-		// FetchData0: fetch a word and return to FetchData1.
-		case DMAState::FetchData0:
-			set_image_data(0, next_word);
-			dma_state_ = DMAState::FetchData1;
+		case DMAState::FetchImage:
+			set_image_data(1 - bool(offset), next_word);
 		return true;
 	}
 	return false;
-}
-
-void Chipset::Sprite::reset_dma() {
-	dma_state_ = DMAState::FetchStart;
 }
 
 template <int sprite> void Chipset::TwoSpriteShifter::load(
