@@ -8,6 +8,8 @@
 
 #include "MouseJoystick.hpp"
 
+#include <algorithm>
+
 using namespace Amiga;
 
 // MARK: - Mouse.
