@@ -25,6 +25,7 @@
 #include "../../Storage/Disk/Drive.hpp"
 
 #include "Audio.hpp"
+#include "Bitplanes.hpp"
 #include "Blitter.hpp"
 #include "Copper.hpp"
 #include "DMADevice.hpp"
@@ -111,6 +112,9 @@ class Chipset: private ClockingHint::Observer {
 		// Synchronisation.
 		void flush();
 
+		// Input for receiving collected bitplanes.
+		void post_bitplanes(const BitplaneData &data);
+
 	private:
 		friend class DMADeviceBase;
 
@@ -174,38 +178,8 @@ class Chipset: private ClockingHint::Observer {
 		uint16_t *pixels_ = nullptr;
 		void flush_output();
 
-		struct BitplaneData: public std::array<uint16_t, 6> {
-			BitplaneData &operator <<= (int c) {
-				(*this)[0] <<= c;
-				(*this)[1] <<= c;
-				(*this)[2] <<= c;
-				(*this)[3] <<= c;
-				(*this)[4] <<= c;
-				(*this)[5] <<= c;
-				return *this;
-			}
+		Bitplanes bitplanes_;
 
-			void clear() {
-				std::fill(begin(), end(), 0);
-			}
-		};
-
-		class Bitplanes: public DMADevice<6, 2> {
-			public:
-				using DMADevice::DMADevice;
-
-				bool advance_dma(int cycle);
-				void do_end_of_line();
-				void set_control(uint16_t);
-
-			private:
-				bool is_high_res_ = false;
-				int plane_count_ = 0;
-
-				BitplaneData next;
-		} bitplanes_;
-
-		void post_bitplanes(const BitplaneData &data);
 		BitplaneData next_bitplanes_, previous_bitplanes_;
 		bool has_next_bitplanes_ = false;
 
@@ -216,41 +190,7 @@ class Chipset: private ClockingHint::Observer {
 		bool interlace_ = false;
 		bool is_long_field_ = false;
 
-		class BitplaneShifter {
-			public:
-				/// Installs a new set of output pixels.
-				void set(
-					const BitplaneData &previous,
-					const BitplaneData &next,
-					int odd_delay,
-					int even_delay);
-
-				/// Shifts either two pixels (in low-res mode) and four pixels (in high-res).
-				void shift(bool high_res) {
-					constexpr int shifts[] = {16, 32};
-
-					data_[1] = (data_[1] << shifts[high_res]) | (data_[0] >> (64 - shifts[high_res]));
-					data_[0] <<= shifts[high_res];
-				}
-
-				/// @returns The next four pixels to output; in low-resolution mode only two
-				/// of them will be unique. The value is arranges so that MSB = first pixel to output,
-				/// LSB = last. Each byte is formed as 00[bitplane 5][bitplane 4]...[bitplane 0].
-				uint32_t get(bool high_res) {
-					if(high_res) {
-						return uint32_t(data_[1] >> 32);
-					} else {
-						uint32_t result = uint16_t(data_[1] >> 48);
-						result = ((result & 0xff00) << 8) | (result & 0x00ff);
-						result |= result << 8;
-						return result;
-					}
-				}
-
-			private:
-				std::array<uint64_t, 2> data_{};
-
-		} bitplane_pixels_;
+		BitplaneShifter bitplane_pixels_;
 
 		int odd_delay_ = 0, even_delay_ = 0;
 		bool is_high_res_ = false;

@@ -437,6 +437,8 @@
 		4B7C681727517A59001671EC /* Sprites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C681427517A59001671EC /* Sprites.cpp */; };
 		4B7C681A275196E8001671EC /* MouseJoystick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C6818275196E8001671EC /* MouseJoystick.cpp */; };
 		4B7C681B275196E8001671EC /* MouseJoystick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C6818275196E8001671EC /* MouseJoystick.cpp */; };
+		4B7C681E2751A104001671EC /* Bitplanes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C681C2751A104001671EC /* Bitplanes.cpp */; };
+		4B7C681F2751A104001671EC /* Bitplanes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C681C2751A104001671EC /* Bitplanes.cpp */; };
 		4B7F188E2154825E00388727 /* MasterSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F188C2154825D00388727 /* MasterSystem.cpp */; };
 		4B7F188F2154825E00388727 /* MasterSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F188C2154825D00388727 /* MasterSystem.cpp */; };
 		4B7F1897215486A200388727 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F1896215486A100388727 /* StaticAnalyser.cpp */; };
@@ -1433,6 +1435,8 @@
 		4B7C681527517A59001671EC /* Sprites.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sprites.hpp; sourceTree = "<group>"; };
 		4B7C6818275196E8001671EC /* MouseJoystick.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MouseJoystick.cpp; sourceTree = "<group>"; };
 		4B7C6819275196E8001671EC /* MouseJoystick.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MouseJoystick.hpp; sourceTree = "<group>"; };
+		4B7C681C2751A104001671EC /* Bitplanes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Bitplanes.cpp; sourceTree = "<group>"; };
+		4B7C681D2751A104001671EC /* Bitplanes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Bitplanes.hpp; sourceTree = "<group>"; };
 		4B7F188C2154825D00388727 /* MasterSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MasterSystem.cpp; sourceTree = "<group>"; };
 		4B7F188D2154825D00388727 /* MasterSystem.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MasterSystem.hpp; sourceTree = "<group>"; };
 		4B7F1895215486A100388727 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
@@ -4309,6 +4313,7 @@
 			children = (
 				4BC080D826A25ADA00D03FD8 /* Amiga.cpp */,
 				4B2130E0273A7A0A008A77B4 /* Audio.cpp */,
+				4B7C681C2751A104001671EC /* Bitplanes.cpp */,
 				4B9EC0E126AA27BA0060A31F /* Blitter.cpp */,
 				4B9EC0E426AA4A660060A31F /* Chipset.cpp */,
 				4BC6236C26F4235400F83DFE /* Copper.cpp */,
@@ -4318,6 +4323,7 @@
 				4B7C681427517A59001671EC /* Sprites.cpp */,
 				4BC080D726A25ADA00D03FD8 /* Amiga.hpp */,
 				4B2130E1273A7A0A008A77B4 /* Audio.hpp */,
+				4B7C681D2751A104001671EC /* Bitplanes.hpp */,
 				4B9EC0E026AA260C0060A31F /* Blitter.hpp */,
 				4B9EC0E526AA4A660060A31F /* Chipset.hpp */,
 				4BC6236B26F4224300F83DFE /* Copper.hpp */,
@@ -5388,6 +5394,7 @@
 				4B055A901FAE85A90060FFFF /* TimedEventLoop.cpp in Sources */,
 				4BFF1D3A22337B0300838EA1 /* 68000Storage.cpp in Sources */,
 				4B8318B722D3E54D006DB630 /* Video.cpp in Sources */,
+				4B7C681F2751A104001671EC /* Bitplanes.cpp in Sources */,
 				4B055AD21FAE9B0B0060FFFF /* Keyboard.cpp in Sources */,
 				4B89451B201967B4007DE474 /* ConfidenceSummary.cpp in Sources */,
 				4B1B88C1202E3DB200B67DFF /* MultiConfigurable.cpp in Sources */,
@@ -5670,6 +5677,7 @@
 				4B4518831F75E91A00926311 /* PCMTrack.cpp in Sources */,
 				4B8DF4F9254E36AE00F3433C /* Video.cpp in Sources */,
 				4B0ACC3223775819008902D0 /* Atari2600.cpp in Sources */,
+				4B7C681E2751A104001671EC /* Bitplanes.cpp in Sources */,
 				4B45189F1F75FD1C00926311 /* AcornADF.cpp in Sources */,
 				4B7BA03023C2B19C00B98D9E /* Jasmin.cpp in Sources */,
 				4B7136911F789C93008B8ED9 /* SegmentParser.cpp in Sources */,
