@@ -32,7 +32,7 @@ bool satisfies_raster(uint16_t position, uint16_t blitter_status, uint16_t *inst
 //
 // Quick notes on the Copper:
 //
-// There are three instructions: move, wait and skip.
+// There are three instructions: move, wait and skip. All are two words in length.
 //
 // Move writes a value to one of the Chipset registers; it is encoded as:
 //
@@ -73,7 +73,7 @@ bool satisfies_raster(uint16_t position, uint16_t blitter_status, uint16_t *inst
 //			b0:		1
 //			b1–b7:	horizontal beam comparison mask
 //			b8–b14:	vertical beam comparison mask
-//			b15:	1 => don't also wait for the Blitter to be finished; 0 => wait.
+//			b15:	1 => don't also test whether the Blitter is finished; 0 => test.
 //
 bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 	switch(state_) {
