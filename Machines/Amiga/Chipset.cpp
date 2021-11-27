@@ -234,85 +234,136 @@ template <int cycle> void Chipset::output() {
 					pixels_ = new_pixels;
 				}
 
-				if(pixels_) {
-					// TODO:
-					//
-					//	(1) dump bit 5 of a six-bitplane playfield if this Chipset doesn't support extra half-bright.
-					//	(2) priorities, in general;
-					//	(3) collisions;
-					//	(4) a much less dense implementation. In particular: map from [1–6]-bit input to present or
-					//		absent flags, use those to update collisions and then to index a mask table for compositing.
-					//		Which would mean getting through the whole ordeal without branching... as soon as I come up
-					//		with a branchless method for priorities. Hmmmm.
-					const uint32_t source = bitplane_pixels_.get(is_high_res_);
+				// Get the next four playfield pixels (which, in low resolution mode, will
+				// be repetitious — the playfield has been expanded as if in high res).
+				const uint32_t playfield = bitplane_pixels_.get(is_high_res_);
 
-					// TODO:
+				// Output playfield pixels, if a buffer was allocated.
+				// TODO: HAM.
+				if(pixels_) {
 					if(dual_playfields_) {
 						// Dense: just write both.
+						// TODO: this could easily be just a table lookup, exactly as per swizzled_palette_.
 						if(even_over_odd_) {
-							pixels_[0] = palette_[8 + ((source >> 27) & 7)];
-							pixels_[1] = palette_[8 + ((source >> 19) & 7)];
-							pixels_[2] = palette_[8 + ((source >> 11) & 7)];
-							pixels_[3] = palette_[8 + ((source >> 3) & 7)];
+							pixels_[0] = palette_[8 + ((playfield >> 27) & 7)];
+							pixels_[1] = palette_[8 + ((playfield >> 19) & 7)];
+							pixels_[2] = palette_[8 + ((playfield >> 11) & 7)];
+							pixels_[3] = palette_[8 + ((playfield >> 3) & 7)];
 
-							if((source >> 24) & 7) pixels_[0] = palette_[(source >> 24) & 7];
-							if((source >> 16) & 7) pixels_[1] = palette_[(source >> 16) & 7];
-							if((source >> 8) & 7) pixels_[2] = palette_[(source >> 8) & 7];
-							if(source & 7) pixels_[3] = palette_[source & 7];
+							if((playfield >> 24) & 7) pixels_[0] = palette_[(playfield >> 24) & 7];
+							if((playfield >> 16) & 7) pixels_[1] = palette_[(playfield >> 16) & 7];
+							if((playfield >> 8) & 7) pixels_[2] = palette_[(playfield >> 8) & 7];
+							if(playfield & 7) pixels_[3] = palette_[playfield & 7];
 						} else {
-							pixels_[0] = palette_[(source >> 24) & 7];
-							pixels_[1] = palette_[(source >> 16) & 7];
-							pixels_[2] = palette_[(source >> 8) & 7];
-							pixels_[3] = palette_[source & 7];
+							pixels_[0] = palette_[(playfield >> 24) & 7];
+							pixels_[1] = palette_[(playfield >> 16) & 7];
+							pixels_[2] = palette_[(playfield >> 8) & 7];
+							pixels_[3] = palette_[playfield & 7];
 
-							if((source >> 27) & 7) pixels_[0] = palette_[8 + ((source >> 27) & 7)];
-							if((source >> 19) & 7) pixels_[1] = palette_[8 + ((source >> 19) & 7)];
-							if((source >> 11) & 7) pixels_[2] = palette_[8 + ((source >> 11) & 7)];
-							if((source >> 3) & 7) pixels_[3] = palette_[8 + ((source >> 3) & 7)];
+							if((playfield >> 27) & 7) pixels_[0] = palette_[8 + ((playfield >> 27) & 7)];
+							if((playfield >> 19) & 7) pixels_[1] = palette_[8 + ((playfield >> 19) & 7)];
+							if((playfield >> 11) & 7) pixels_[2] = palette_[8 + ((playfield >> 11) & 7)];
+							if((playfield >> 3) & 7) pixels_[3] = palette_[8 + ((playfield >> 3) & 7)];
 						}
 					} else {
-						pixels_[0] = swizzled_palette_[source >> 24];
-						pixels_[1] = swizzled_palette_[(source >> 16) & 0xff];
-						pixels_[2] = swizzled_palette_[(source >> 8) & 0xff];
-						pixels_[3] = swizzled_palette_[source & 0xff];
+						pixels_[0] = swizzled_palette_[playfield >> 24];
+						pixels_[1] = swizzled_palette_[(playfield >> 16) & 0xff];
+						pixels_[2] = swizzled_palette_[(playfield >> 8) & 0xff];
+						pixels_[3] = swizzled_palette_[playfield & 0xff];
 					}
+				}
 
-					size_t index = sprite_shifters_.size();
-					for(auto shifter = sprite_shifters_.rbegin(); shifter != sprite_shifters_.rend(); ++shifter) {
-						--index;
-						const auto data = shifter->get();
-						if(!data) continue;
-						const auto base = (index << 2) + 16;
+				// Compute masks to test against sprites for collisions.
+				// TODO: there must be a better way than this?
+//				const uint32_t playfield_collisions = (playfield & playfield_collision_mask_) ^ playfield_collision_complement_;
+//				const int playfield_collisions_mask =
+//					(((playfield_collisions >> 22) | (playfield_collisions >> 24) | (playfield_collisions >> 26)) & 8) |
+//					(((playfield_collisions >> 15) | (playfield_collisions >> 17) | (playfield_collisions >> 19)) & 4) |
+//					(((playfield_collisions >> 14) | (playfield_collisions >> 16) | (playfield_collisions >> 18)) & 4) |
+//					(((playfield_collisions >> 21) | (playfield_collisions >> 23) | (playfield_collisions >> 25)) & 8) |
+//					(((playfield_collisions >> 8) | (playfield_collisions >> 10) | (playfield_collisions >> 12)) & 2) |
+//					(((playfield_collisions >> 7) | (playfield_collisions >> 9) | (playfield_collisions >> 11)) & 2) |
+//					(((playfield_collisions >> 1) | (playfield_collisions >> 3) | (playfield_collisions >> 5)) & 1) |
+//					(((playfield_collisions >> 0) | (playfield_collisions >> 2) | (playfield_collisions >> 4)) & 1);
 
-						if(sprites_[(index << 1) + 1].attached) {
+				// Compute masks potentially to obscure sprites.
+				int playfield_odd_pixel_mask =
+					(((playfield >> 22) | (playfield >> 24) | (playfield >> 26)) & 8) |
+					(((playfield >> 15) | (playfield >> 17) | (playfield >> 19)) & 4) |
+					(((playfield >> 8) | (playfield >> 10) | (playfield >> 12)) & 2) |
+					(((playfield >> 1) | (playfield >> 3) | (playfield >> 5)) & 1);
+				int playfield_even_pixel_mask =
+					(((playfield >> 21) | (playfield >> 23) | (playfield >> 25)) & 8) |
+					(((playfield >> 14) | (playfield >> 16) | (playfield >> 18)) & 4) |
+					(((playfield >> 7) | (playfield >> 9) | (playfield >> 11)) & 2) |
+					(((playfield >> 0) | (playfield >> 2) | (playfield >> 4)) & 1);
+
+				// If only a single playfield is in use, treat the mask as playing
+				// into the priority selected for the even bitfields.
+				if(!dual_playfields_) {
+					playfield_even_pixel_mask |= playfield_odd_pixel_mask;
+					playfield_odd_pixel_mask = 0;
+				}
+
+				// Process sprites.
+				int index = int(sprite_shifters_.size());
+				for(auto shifter = sprite_shifters_.rbegin(); shifter != sprite_shifters_.rend(); ++shifter) {
+					// Update the index, and skip this shifter entirely if it's empty.
+					--index;
+					const uint8_t data = shifter->get();
+					if(!data) continue;
+
+					// Determine the collision mask, and mask out anything that's behind the playfield.
+//					const int
+
+					// Get the specific pixel mask.
+					const int pixel_mask =
+						(
+							((odd_priority_ <= index) ? playfield_odd_pixel_mask : 0) |
+							((even_priority_ <= index) ? playfield_even_pixel_mask : 0)
+						);
+
+					// Output pixels, if a buffer exists.
+					const auto base = (index << 2) + 16;
+					if(pixels_) {
+						if(sprites_[size_t((index << 1) + 1)].attached) {
 							// Left pixel.
 							if(data >> 4) {
-								pixels_[0] = pixels_[1] = palette_[16 + (data >> 4)];
+								if(!(pixel_mask & 0x8)) pixels_[0] = palette_[16 + (data >> 4)];
+								if(!(pixel_mask & 0x4)) pixels_[1] = palette_[16 + (data >> 4)];
 							}
 
 							// Right pixel.
 							if(data & 15) {
-								pixels_[2] = pixels_[3] = palette_[16 + (data & 15)];
+								if(!(pixel_mask & 0x2)) pixels_[2] = palette_[16 + (data & 15)];
+								if(!(pixel_mask & 0x1)) pixels_[3] = palette_[16 + (data & 15)];
 							}
 						} else {
 							// Left pixel.
 							if((data >> 4) & 3) {
-								pixels_[0] = pixels_[1] = palette_[base + ((data >> 4)&3)];
+								if(!(pixel_mask & 0x8)) pixels_[0] = palette_[base + ((data >> 4)&3)];
+								if(!(pixel_mask & 0x4)) pixels_[1] = palette_[base + ((data >> 4)&3)];
 							}
 							if(data >> 6) {
-								pixels_[0] = pixels_[1] = palette_[base + (data >> 6)];
+								if(!(pixel_mask & 0x8)) pixels_[0] = palette_[base + (data >> 6)];
+								if(!(pixel_mask & 0x4)) pixels_[1] = palette_[base + (data >> 6)];
 							}
 
 							// Right pixel.
 							if(data & 3) {
-								pixels_[2] = pixels_[3] = palette_[base + (data & 3)];
+								if(!(pixel_mask & 0x2)) pixels_[2] = palette_[base + (data & 3)];
+								if(!(pixel_mask & 0x1)) pixels_[3] = palette_[base + (data & 3)];
 							}
 							if((data >> 2) & 3) {
-								pixels_[2] = pixels_[3] = palette_[base + ((data >> 2)&3)];
+								if(!(pixel_mask & 0x2)) pixels_[2] = palette_[base + ((data >> 2)&3)];
+								if(!(pixel_mask & 0x1)) pixels_[3] = palette_[base + ((data >> 2)&3)];
 							}
 						}
 					}
+				}
 
+				// Advance pixel pointer (if applicable).
+				if(pixels_) {
 					pixels_ += 4;
 				}
 			}
@@ -665,6 +716,21 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			cycle.set_value16(position);
 		} break;
 
+		case Read(0x00e): {		// CLXDAT
+			cycle.set_value16(collisions_);
+			collisions_ = 0;
+		} break;
+		case Write(0x098):		// CLXCON
+			collisions_flags_ = cycle.value16();
+
+			// Produce appropriate bitfield manipulation values.
+			playfield_collision_mask_ = (collisions_flags_ & 0xfc0) >> 6;
+			playfield_collision_complement_ = (collisions_flags_ & 0x3f) ^ 0x3f;
+
+			playfield_collision_mask_ |= (playfield_collision_mask_ << 8) | (playfield_collision_mask_ << 16) | (playfield_collision_mask_ << 24);
+			playfield_collision_complement_ |= (playfield_collision_complement_ << 8) | (playfield_collision_complement_ << 16) | (playfield_collision_complement_ << 24);
+		break;
+
 		case Write(0x02a):		// VPOSW
 			LOG("TODO: write vertical position high " << PADHEX(4) << cycle.value16());
 		break;
@@ -824,8 +890,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		} break;
 		case Write(0x104): {	// BPLCON2
 			const auto value = cycle.value16();
-			odd_priority_ = value & 7;
-			even_priority_ = (value >> 3) & 7;
+			odd_priority_ = value & 7;				// i.e. "Playfield 1"; planes 1, 3 and 5.
+			even_priority_ = (value >> 3) & 7;		// i.e. "Playfield 2"; planes 2, 4 and 6.
 			even_over_odd_ = value & 0x40;
 		} break;
 

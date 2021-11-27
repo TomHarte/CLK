@@ -144,10 +144,13 @@ class Chipset: private ClockingHint::Observer {
 		uint16_t dma_control_ = 0;
 		Blitter blitter_;
 
-		// MARK: - Sprites.
+		// MARK: - Sprites and collision flags.
 
 		std::array<Sprite, 8> sprites_;
 		std::array<TwoSpriteShifter, 4> sprite_shifters_;
+		uint16_t collisions_ = 0, collisions_flags_= 0;
+
+		uint32_t playfield_collision_mask_ = 0, playfield_collision_complement_ = 0;
 
 		// MARK: - Raster position and state.
 
