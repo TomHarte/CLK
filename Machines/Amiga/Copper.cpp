@@ -18,13 +18,69 @@
 
 using namespace Amiga;
 
-bool Copper::advance_dma(uint16_t position) {
+namespace {
+
+bool satisfies_raster(uint16_t position, uint16_t blitter_status, uint16_t *instruction) {
+	const uint16_t mask = 0x8000 | (instruction[1] & 0x7ffe);
+	return
+		(position & mask) >= (instruction[0] & mask)
+		&& (!(blitter_status & 0x4000) || (instruction[1] & 0x8000));
+}
+
+}
+
+//
+// Quick notes on the Copper:
+//
+// There are three instructions: move, wait and skip.
+//
+// Move writes a value to one of the Chipset registers; it is encoded as:
+//
+//		First word:
+//			b0:		0
+//			b1–b8:	register address
+//			b9+:	unused ("should be set to 0")
+//
+//		Second word:
+//			b0–b15:	value to move.
+//
+//
+// Wait waits until the raster gets to at least a certain position, and
+// optionally until the Blitter has finished. It is encoded as:
+//
+//		First word:
+//			b0:		1
+//			b1–b7:	horizontal beam position
+//			b8+:	vertical beam position
+//
+//		Second word:
+//			b0:		0
+//			b1–b7:	horizontal beam comparison mask
+//			b8–b14:	vertical beam comparison mask
+//			b15:	1 => don't also wait for the Blitter to be finished; 0 => wait.
+//
+//
+// Skip skips the next instruction if the raster has already reached a certain
+// position, and optionally only if the Blitter has finished, and only if the
+// next instruction is a move.
+//
+//		First word:
+//			b0:		1
+//			b1–b7:	horizontal beam position
+//			b8+:	vertical beam position
+//
+//		Second word:
+//			b0:		1
+//			b1–b7:	horizontal beam comparison mask
+//			b8–b14:	vertical beam comparison mask
+//			b15:	1 => don't also wait for the Blitter to be finished; 0 => wait.
+//
+bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 	switch(state_) {
 		default: return false;
 
 		case State::Waiting:
-			// TODO: blitter-finished bit.
-			if((position & position_mask_) >= instruction_[0]) {
+			if(satisfies_raster(position, blitter_status, instruction_)) {
 				LOG("Unblocked waiting for " << PADHEX(4) << instruction_[0] << " at " << position);
 				state_ = State::FetchFirstWord;
 			}
@@ -37,15 +93,16 @@ bool Copper::advance_dma(uint16_t position) {
 		break;
 
 		case State::FetchSecondWord: {
+			// Get and reset the should-skip-next flag.
 			const bool should_skip_move = skip_next_;
 			skip_next_ = false;
 
+			// Read in the second instruction word.
 			instruction_[1] = ram_[address_ & ram_mask_];
 			++address_;
 
+			// Check for a MOVE.
 			if(!(instruction_[0] & 1)) {
-				// A MOVE.
-
 				if(!should_skip_move) {
 					// Stop if this move would be a privilege violation.
 					instruction_[0] &= 0x1fe;
@@ -70,21 +127,18 @@ bool Copper::advance_dma(uint16_t position) {
 				break;
 			}
 
-			// Prepare for a position comparison.
-			position_mask_ = 0x8001 | (instruction_[1] & 0x7ffe);
-			instruction_[0] &= position_mask_;
+			// Got to here => this is a WAIT or a SKIP.
 
 			if(!(instruction_[1] & 1)) {
 				// A WAIT. Just note that this is now waiting; the proper test
-				// will be applied from the next potential `advance` onwards.
+				// will be applied from the next potential `advance_dma` onwards.
 				state_ = State::Waiting;
 				break;
 			}
 
 			// Neither a WAIT nor a MOVE => a SKIP.
 
-			// TODO: blitter-finished bit.
-			skip_next_ = (position & position_mask_) >= instruction_[0];
+			skip_next_ = satisfies_raster(position, blitter_status, instruction_);
 			state_ = State::FetchFirstWord;
 		} break;
 	}

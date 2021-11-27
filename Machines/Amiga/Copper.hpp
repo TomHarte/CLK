@@ -17,10 +17,10 @@ class Copper: public DMADevice<2> {
 	public:
 		using DMADevice<2>::DMADevice;
 
-		/// Offers a DMA slot to the Copper, specifying the current beam position.
+		/// Offers a DMA slot to the Copper, specifying the current beam position and Blitter status.
 		///
 		/// @returns @c true if the slot was used; @c false otherwise.
-		bool advance_dma(uint16_t position);
+		bool advance_dma(uint16_t position, uint16_t blitter_status);
 
 		/// Forces a reload of address @c id (i.e. 0 or 1) and restarts the Copper.
 		template <int id> void reload() {
@@ -47,7 +47,6 @@ class Copper: public DMADevice<2> {
 		} state_ = State::Stopped;
 		bool skip_next_ = false;
 		uint16_t instruction_[2]{};
-		uint16_t position_mask_ = 0xffff;
 };
 
 }

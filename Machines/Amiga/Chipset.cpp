@@ -434,7 +434,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		//
 		// The Blitter and CPU are dealt with outside of the odd/even test.
 		if((dma_control_ & CopperFlag) == CopperFlag) {
-			if(copper_.advance_dma(uint16_t(((y_ & 0xff) << 8) | (cycle & 0xfe)))) {
+			if(copper_.advance_dma(uint16_t(((y_ & 0xff) << 8) | (cycle & 0xfe)), blitter_.get_status())) {
 				return false;
 			}
 		} else {
