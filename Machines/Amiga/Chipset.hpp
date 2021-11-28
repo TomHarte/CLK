@@ -138,6 +138,8 @@ class Chipset: private ClockingHint::Observer {
 		template <bool stop_on_cpu> int advance_slots(int, int);
 		template <int cycle, bool stop_if_cpu> bool perform_cycle();
 		template <int cycle> void output();
+		void output_pixels(int cycles_until_sync);
+		void apply_ham(uint8_t);
 
 		// MARK: - DMA Control, Scheduler and Blitter.
 
@@ -179,6 +181,7 @@ class Chipset: private ClockingHint::Observer {
 		bool is_border_ = true;
 		int zone_duration_ = 0;
 		uint16_t *pixels_ = nullptr;
+		uint16_t last_colour_ = 0;	// Retained for HAM mode.
 		void flush_output();
 
 		Bitplanes bitplanes_;

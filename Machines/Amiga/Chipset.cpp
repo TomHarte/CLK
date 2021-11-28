@@ -93,6 +93,193 @@ void DMADeviceBase::posit_interrupt(InterruptFlag flag) {
 	chipset_.posit_interrupt(flag);
 }
 
+void Chipset::apply_ham(uint8_t modification) {
+	uint8_t *const colour = reinterpret_cast<uint8_t *>(&last_colour_);
+
+	// Allow for swizzled storage.
+	switch(modification & 0x24) {
+		case 0x00:	// Direct palette lookup.
+			last_colour_ = swizzled_palette_[modification & 0x1b];
+		break;
+		case 0x04:	// Replace red.
+			colour[0] = uint8_t(
+				((modification & 0x10) >> 1) |	// bit 3.
+				((modification & 0x02) << 1) |	// bit 2.
+				((modification & 0x08) >> 2) |	// bit 1.
+				(modification & 0x01)			// bit 0.
+			);
+		break;
+		case 0x20:	// Replace blue.
+			colour[1] = uint8_t(
+				(colour[1] & 0xf0) |
+				((modification & 0x10) >> 1) |	// bit 3.
+				((modification & 0x02) << 1) |	// bit 2.
+				((modification & 0x08) >> 2) |	// bit 1.
+				(modification & 0x01)			// bit 0.
+			);
+		break;
+		case 0x24:	// Replace green.
+			colour[1] = uint8_t(
+				(colour[1] & 0x0f) |
+				((modification & 0x10) << 3) |	// bit 3.
+				((modification & 0x02) << 5) |	// bit 2.
+				((modification & 0x08) << 2) |	// bit 1.
+				((modification & 0x01) << 4)	// bit 0.
+			);
+		break;
+	}
+}
+
+void Chipset::output_pixels(int cycles_until_sync) {
+	// Try to get a new buffer if none is currently allocated.
+	if(!pixels_) {
+		uint16_t *const new_pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(size_t(4 * cycles_until_sync)));
+		if(new_pixels) {
+			flush_output();
+		}
+		pixels_ = new_pixels;
+	}
+
+	// Get the next four playfield pixels (which, in low resolution mode, will
+	// be repetitious — the playfield has been expanded as if in high res).
+	const uint32_t playfield = bitplane_pixels_.get(is_high_res_);
+
+	// Output playfield pixels, if a buffer was allocated.
+	// TODO: HAM.
+	if(pixels_) {
+		if(hold_and_modify_) {
+			apply_ham(uint8_t(playfield >> 16));
+			pixels_[0] = pixels_[1] = last_colour_;
+
+			apply_ham(uint8_t(playfield));
+			pixels_[2] = pixels_[3] = last_colour_;
+		} else if(dual_playfields_) {
+			// Dense: just write both.
+			// TODO: this could easily be just a table lookup, exactly as per swizzled_palette_.
+			if(even_over_odd_) {
+				pixels_[0] = palette_[8 + ((playfield >> 27) & 7)];
+				pixels_[1] = palette_[8 + ((playfield >> 19) & 7)];
+				pixels_[2] = palette_[8 + ((playfield >> 11) & 7)];
+				pixels_[3] = palette_[8 + ((playfield >> 3) & 7)];
+
+				if((playfield >> 24) & 7) pixels_[0] = palette_[(playfield >> 24) & 7];
+				if((playfield >> 16) & 7) pixels_[1] = palette_[(playfield >> 16) & 7];
+				if((playfield >> 8) & 7) pixels_[2] = palette_[(playfield >> 8) & 7];
+				if(playfield & 7) pixels_[3] = palette_[playfield & 7];
+			} else {
+				pixels_[0] = palette_[(playfield >> 24) & 7];
+				pixels_[1] = palette_[(playfield >> 16) & 7];
+				pixels_[2] = palette_[(playfield >> 8) & 7];
+				pixels_[3] = palette_[playfield & 7];
+
+				if((playfield >> 27) & 7) pixels_[0] = palette_[8 + ((playfield >> 27) & 7)];
+				if((playfield >> 19) & 7) pixels_[1] = palette_[8 + ((playfield >> 19) & 7)];
+				if((playfield >> 11) & 7) pixels_[2] = palette_[8 + ((playfield >> 11) & 7)];
+				if((playfield >> 3) & 7) pixels_[3] = palette_[8 + ((playfield >> 3) & 7)];
+			}
+		} else {
+			pixels_[0] = swizzled_palette_[playfield >> 24];
+			pixels_[1] = swizzled_palette_[(playfield >> 16) & 0xff];
+			pixels_[2] = swizzled_palette_[(playfield >> 8) & 0xff];
+			pixels_[3] = swizzled_palette_[playfield & 0xff];
+		}
+	}
+
+	// Compute masks to test against sprites for collisions.
+	// TODO: there must be a better way than this?
+//	const uint32_t playfield_collisions = (playfield & playfield_collision_mask_) ^ playfield_collision_complement_;
+//	const int playfield_collisions_mask =
+//		(((playfield_collisions >> 22) | (playfield_collisions >> 24) | (playfield_collisions >> 26)) & 8) |
+//		(((playfield_collisions >> 15) | (playfield_collisions >> 17) | (playfield_collisions >> 19)) & 4) |
+//		(((playfield_collisions >> 14) | (playfield_collisions >> 16) | (playfield_collisions >> 18)) & 4) |
+//		(((playfield_collisions >> 21) | (playfield_collisions >> 23) | (playfield_collisions >> 25)) & 8) |
+//		(((playfield_collisions >> 8) | (playfield_collisions >> 10) | (playfield_collisions >> 12)) & 2) |
+//		(((playfield_collisions >> 7) | (playfield_collisions >> 9) | (playfield_collisions >> 11)) & 2) |
+//		(((playfield_collisions >> 1) | (playfield_collisions >> 3) | (playfield_collisions >> 5)) & 1) |
+//		(((playfield_collisions >> 0) | (playfield_collisions >> 2) | (playfield_collisions >> 4)) & 1);
+
+	// Compute masks potentially to obscure sprites.
+	int playfield_odd_pixel_mask =
+		(((playfield >> 22) | (playfield >> 24) | (playfield >> 26)) & 8) |
+		(((playfield >> 15) | (playfield >> 17) | (playfield >> 19)) & 4) |
+		(((playfield >> 8) | (playfield >> 10) | (playfield >> 12)) & 2) |
+		(((playfield >> 1) | (playfield >> 3) | (playfield >> 5)) & 1);
+	int playfield_even_pixel_mask =
+		(((playfield >> 21) | (playfield >> 23) | (playfield >> 25)) & 8) |
+		(((playfield >> 14) | (playfield >> 16) | (playfield >> 18)) & 4) |
+		(((playfield >> 7) | (playfield >> 9) | (playfield >> 11)) & 2) |
+		(((playfield >> 0) | (playfield >> 2) | (playfield >> 4)) & 1);
+
+	// If only a single playfield is in use, treat the mask as playing
+	// into the priority selected for the even bitfields.
+	if(!dual_playfields_) {
+		playfield_even_pixel_mask |= playfield_odd_pixel_mask;
+		playfield_odd_pixel_mask = 0;
+	}
+
+	// Process sprites.
+	int index = int(sprite_shifters_.size());
+	for(auto shifter = sprite_shifters_.rbegin(); shifter != sprite_shifters_.rend(); ++shifter) {
+		// Update the index, and skip this shifter entirely if it's empty.
+		--index;
+		const uint8_t data = shifter->get();
+		if(!data) continue;
+
+		// Determine the collision mask, and mask out anything that's behind the playfield.
+//		const int
+
+		// Get the specific pixel mask.
+		const int pixel_mask =
+			(
+				((odd_priority_ <= index) ? playfield_odd_pixel_mask : 0) |
+				((even_priority_ <= index) ? playfield_even_pixel_mask : 0)
+			);
+
+		// Output pixels, if a buffer exists.
+		const auto base = (index << 2) + 16;
+		if(pixels_) {
+			if(sprites_[size_t((index << 1) + 1)].attached) {
+				// Left pixel.
+				if(data >> 4) {
+					if(!(pixel_mask & 0x8)) pixels_[0] = palette_[16 + (data >> 4)];
+					if(!(pixel_mask & 0x4)) pixels_[1] = palette_[16 + (data >> 4)];
+				}
+
+				// Right pixel.
+				if(data & 15) {
+					if(!(pixel_mask & 0x2)) pixels_[2] = palette_[16 + (data & 15)];
+					if(!(pixel_mask & 0x1)) pixels_[3] = palette_[16 + (data & 15)];
+				}
+			} else {
+				// Left pixel.
+				if((data >> 4) & 3) {
+					if(!(pixel_mask & 0x8)) pixels_[0] = palette_[base + ((data >> 4)&3)];
+					if(!(pixel_mask & 0x4)) pixels_[1] = palette_[base + ((data >> 4)&3)];
+				}
+				if(data >> 6) {
+					if(!(pixel_mask & 0x8)) pixels_[0] = palette_[base + (data >> 6)];
+					if(!(pixel_mask & 0x4)) pixels_[1] = palette_[base + (data >> 6)];
+				}
+
+				// Right pixel.
+				if(data & 3) {
+					if(!(pixel_mask & 0x2)) pixels_[2] = palette_[base + (data & 3)];
+					if(!(pixel_mask & 0x1)) pixels_[3] = palette_[base + (data & 3)];
+				}
+				if((data >> 2) & 3) {
+					if(!(pixel_mask & 0x2)) pixels_[2] = palette_[base + ((data >> 2)&3)];
+					if(!(pixel_mask & 0x1)) pixels_[3] = palette_[base + ((data >> 2)&3)];
+				}
+			}
+		}
+	}
+
+	// Advance pixel pointer (if applicable).
+	if(pixels_) {
+		pixels_ += 4;
+	}
+}
+
 template <int cycle> void Chipset::output() {
 	// Notes to self on guesses below:
 	//
@@ -226,146 +413,11 @@ template <int cycle> void Chipset::output() {
 			}
 
 			if(is_pixel_display) {
-				if(!pixels_) {
-					uint16_t *const new_pixels = reinterpret_cast<uint16_t *>(crt_.begin_data(4 * size_t(line_length_ + end_of_pixels - cycle)));
-					if(new_pixels) {
-						flush_output();
-					}
-					pixels_ = new_pixels;
-				}
-
-				// Get the next four playfield pixels (which, in low resolution mode, will
-				// be repetitious — the playfield has been expanded as if in high res).
-				const uint32_t playfield = bitplane_pixels_.get(is_high_res_);
-
-				// Output playfield pixels, if a buffer was allocated.
-				// TODO: HAM.
-				if(pixels_) {
-					if(dual_playfields_) {
-						// Dense: just write both.
-						// TODO: this could easily be just a table lookup, exactly as per swizzled_palette_.
-						if(even_over_odd_) {
-							pixels_[0] = palette_[8 + ((playfield >> 27) & 7)];
-							pixels_[1] = palette_[8 + ((playfield >> 19) & 7)];
-							pixels_[2] = palette_[8 + ((playfield >> 11) & 7)];
-							pixels_[3] = palette_[8 + ((playfield >> 3) & 7)];
-
-							if((playfield >> 24) & 7) pixels_[0] = palette_[(playfield >> 24) & 7];
-							if((playfield >> 16) & 7) pixels_[1] = palette_[(playfield >> 16) & 7];
-							if((playfield >> 8) & 7) pixels_[2] = palette_[(playfield >> 8) & 7];
-							if(playfield & 7) pixels_[3] = palette_[playfield & 7];
-						} else {
-							pixels_[0] = palette_[(playfield >> 24) & 7];
-							pixels_[1] = palette_[(playfield >> 16) & 7];
-							pixels_[2] = palette_[(playfield >> 8) & 7];
-							pixels_[3] = palette_[playfield & 7];
-
-							if((playfield >> 27) & 7) pixels_[0] = palette_[8 + ((playfield >> 27) & 7)];
-							if((playfield >> 19) & 7) pixels_[1] = palette_[8 + ((playfield >> 19) & 7)];
-							if((playfield >> 11) & 7) pixels_[2] = palette_[8 + ((playfield >> 11) & 7)];
-							if((playfield >> 3) & 7) pixels_[3] = palette_[8 + ((playfield >> 3) & 7)];
-						}
-					} else {
-						pixels_[0] = swizzled_palette_[playfield >> 24];
-						pixels_[1] = swizzled_palette_[(playfield >> 16) & 0xff];
-						pixels_[2] = swizzled_palette_[(playfield >> 8) & 0xff];
-						pixels_[3] = swizzled_palette_[playfield & 0xff];
-					}
-				}
-
-				// Compute masks to test against sprites for collisions.
-				// TODO: there must be a better way than this?
-//				const uint32_t playfield_collisions = (playfield & playfield_collision_mask_) ^ playfield_collision_complement_;
-//				const int playfield_collisions_mask =
-//					(((playfield_collisions >> 22) | (playfield_collisions >> 24) | (playfield_collisions >> 26)) & 8) |
-//					(((playfield_collisions >> 15) | (playfield_collisions >> 17) | (playfield_collisions >> 19)) & 4) |
-//					(((playfield_collisions >> 14) | (playfield_collisions >> 16) | (playfield_collisions >> 18)) & 4) |
-//					(((playfield_collisions >> 21) | (playfield_collisions >> 23) | (playfield_collisions >> 25)) & 8) |
-//					(((playfield_collisions >> 8) | (playfield_collisions >> 10) | (playfield_collisions >> 12)) & 2) |
-//					(((playfield_collisions >> 7) | (playfield_collisions >> 9) | (playfield_collisions >> 11)) & 2) |
-//					(((playfield_collisions >> 1) | (playfield_collisions >> 3) | (playfield_collisions >> 5)) & 1) |
-//					(((playfield_collisions >> 0) | (playfield_collisions >> 2) | (playfield_collisions >> 4)) & 1);
-
-				// Compute masks potentially to obscure sprites.
-				int playfield_odd_pixel_mask =
-					(((playfield >> 22) | (playfield >> 24) | (playfield >> 26)) & 8) |
-					(((playfield >> 15) | (playfield >> 17) | (playfield >> 19)) & 4) |
-					(((playfield >> 8) | (playfield >> 10) | (playfield >> 12)) & 2) |
-					(((playfield >> 1) | (playfield >> 3) | (playfield >> 5)) & 1);
-				int playfield_even_pixel_mask =
-					(((playfield >> 21) | (playfield >> 23) | (playfield >> 25)) & 8) |
-					(((playfield >> 14) | (playfield >> 16) | (playfield >> 18)) & 4) |
-					(((playfield >> 7) | (playfield >> 9) | (playfield >> 11)) & 2) |
-					(((playfield >> 0) | (playfield >> 2) | (playfield >> 4)) & 1);
-
-				// If only a single playfield is in use, treat the mask as playing
-				// into the priority selected for the even bitfields.
-				if(!dual_playfields_) {
-					playfield_even_pixel_mask |= playfield_odd_pixel_mask;
-					playfield_odd_pixel_mask = 0;
-				}
-
-				// Process sprites.
-				int index = int(sprite_shifters_.size());
-				for(auto shifter = sprite_shifters_.rbegin(); shifter != sprite_shifters_.rend(); ++shifter) {
-					// Update the index, and skip this shifter entirely if it's empty.
-					--index;
-					const uint8_t data = shifter->get();
-					if(!data) continue;
-
-					// Determine the collision mask, and mask out anything that's behind the playfield.
-//					const int
-
-					// Get the specific pixel mask.
-					const int pixel_mask =
-						(
-							((odd_priority_ <= index) ? playfield_odd_pixel_mask : 0) |
-							((even_priority_ <= index) ? playfield_even_pixel_mask : 0)
-						);
-
-					// Output pixels, if a buffer exists.
-					const auto base = (index << 2) + 16;
-					if(pixels_) {
-						if(sprites_[size_t((index << 1) + 1)].attached) {
-							// Left pixel.
-							if(data >> 4) {
-								if(!(pixel_mask & 0x8)) pixels_[0] = palette_[16 + (data >> 4)];
-								if(!(pixel_mask & 0x4)) pixels_[1] = palette_[16 + (data >> 4)];
-							}
-
-							// Right pixel.
-							if(data & 15) {
-								if(!(pixel_mask & 0x2)) pixels_[2] = palette_[16 + (data & 15)];
-								if(!(pixel_mask & 0x1)) pixels_[3] = palette_[16 + (data & 15)];
-							}
-						} else {
-							// Left pixel.
-							if((data >> 4) & 3) {
-								if(!(pixel_mask & 0x8)) pixels_[0] = palette_[base + ((data >> 4)&3)];
-								if(!(pixel_mask & 0x4)) pixels_[1] = palette_[base + ((data >> 4)&3)];
-							}
-							if(data >> 6) {
-								if(!(pixel_mask & 0x8)) pixels_[0] = palette_[base + (data >> 6)];
-								if(!(pixel_mask & 0x4)) pixels_[1] = palette_[base + (data >> 6)];
-							}
-
-							// Right pixel.
-							if(data & 3) {
-								if(!(pixel_mask & 0x2)) pixels_[2] = palette_[base + (data & 3)];
-								if(!(pixel_mask & 0x1)) pixels_[3] = palette_[base + (data & 3)];
-							}
-							if((data >> 2) & 3) {
-								if(!(pixel_mask & 0x2)) pixels_[2] = palette_[base + ((data >> 2)&3)];
-								if(!(pixel_mask & 0x1)) pixels_[3] = palette_[base + ((data >> 2)&3)];
-							}
-						}
-					}
-				}
-
-				// Advance pixel pointer (if applicable).
-				if(pixels_) {
-					pixels_ += 4;
-				}
+				// This is factored out because it is fairly convoluted and is not a function of
+				// the template parameter; I doubt I'm somehow being smarter than the optimising
+				// compiler, but this makes my debugging life a lot easier and I don't imagine
+				// the compiler will do a worse job.
+				output_pixels(line_length_ + end_of_pixels - cycle);
 			}
 			++zone_duration_;
 		}
@@ -401,6 +453,7 @@ void Chipset::flush_output() {
 			*pixels = border_colour_;
 		}
 		crt_.output_data(zone_duration_ * 4, 1);
+		last_colour_ = border_colour_;
 	} else {
 		crt_.output_data(zone_duration_ * 4);
 	}
