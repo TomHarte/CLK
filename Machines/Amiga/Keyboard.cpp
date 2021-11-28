@@ -96,6 +96,9 @@ Keyboard::Keyboard(Serial::Line<true> &output) : output_(output) {
 }*/
 
 void Keyboard::set_key_state(uint16_t key, bool is_pressed) {
+	if(pressed_[key] == is_pressed) {
+		return;
+	}
 	pressed_[key] = is_pressed;
 	output_.write<false>(
 		HalfCycles(60),
