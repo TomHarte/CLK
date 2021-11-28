@@ -634,9 +634,6 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 			line_cycle_ = 0;
 			++y_;
 
-			fetch_vertical_ |= y_ == display_window_start_[1];
-			fetch_vertical_ &= y_ != display_window_stop_[1];
-
 			if(did_fetch_) {
 				bitplanes_.do_end_of_line();
 				previous_bitplanes_.clear();
@@ -662,6 +659,9 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 			for(auto &sprite: sprites_) {
 				sprite.advance_line(y_, y_ == vertical_blank_height_);
 			}
+
+			fetch_vertical_ |= y_ == display_window_start_[1];
+			fetch_vertical_ &= y_ != display_window_stop_[1];
 		}
 		assert(line_cycle_ < line_length_ * 4);
 	}
