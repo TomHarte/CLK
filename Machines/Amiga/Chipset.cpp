@@ -185,19 +185,6 @@ void Chipset::output_pixels(int cycles_until_sync) {
 		}
 	}
 
-	// Compute masks to test against sprites for collisions.
-	// TODO: there must be a better way than this?
-//	const uint32_t playfield_collisions = (playfield & playfield_collision_mask_) ^ playfield_collision_complement_;
-//	const int playfield_collisions_mask =
-//		(((playfield_collisions >> 22) | (playfield_collisions >> 24) | (playfield_collisions >> 26)) & 8) |
-//		(((playfield_collisions >> 15) | (playfield_collisions >> 17) | (playfield_collisions >> 19)) & 4) |
-//		(((playfield_collisions >> 14) | (playfield_collisions >> 16) | (playfield_collisions >> 18)) & 4) |
-//		(((playfield_collisions >> 21) | (playfield_collisions >> 23) | (playfield_collisions >> 25)) & 8) |
-//		(((playfield_collisions >> 8) | (playfield_collisions >> 10) | (playfield_collisions >> 12)) & 2) |
-//		(((playfield_collisions >> 7) | (playfield_collisions >> 9) | (playfield_collisions >> 11)) & 2) |
-//		(((playfield_collisions >> 1) | (playfield_collisions >> 3) | (playfield_collisions >> 5)) & 1) |
-//		(((playfield_collisions >> 0) | (playfield_collisions >> 2) | (playfield_collisions >> 4)) & 1);
-
 	// Compute masks potentially to obscure sprites.
 	int playfield_odd_pixel_mask =
 		(((playfield >> 22) | (playfield >> 24) | (playfield >> 26)) & 8) |
@@ -218,6 +205,7 @@ void Chipset::output_pixels(int cycles_until_sync) {
 	}
 
 	// Process sprites.
+	int collision_masks[4] = {0, 0, 0, 0};
 	int index = int(sprite_shifters_.size());
 	for(auto shifter = sprite_shifters_.rbegin(); shifter != sprite_shifters_.rend(); ++shifter) {
 		// Update the index, and skip this shifter entirely if it's empty.
@@ -225,8 +213,12 @@ void Chipset::output_pixels(int cycles_until_sync) {
 		const uint8_t data = shifter->get();
 		if(!data) continue;
 
-		// Determine the collision mask, and mask out anything that's behind the playfield.
-//		const int
+		// Determine the collision mask.
+		collision_masks[index] = data | (data >> 1);
+		if(collisions_flags_ & (0x1000 << index)) {
+			collision_masks[index] |= (data >> 2) | (data >> 3);
+		}
+		collision_masks[index] = (collision_masks[index] & 0x01) | ((collision_masks[index] & 0x10) >> 3);
 
 		// Get the specific pixel mask.
 		const int pixel_mask =
@@ -273,6 +265,40 @@ void Chipset::output_pixels(int cycles_until_sync) {
 			}
 		}
 	}
+
+	// Compute playfield collision mask and populate collisions register.
+	const uint32_t playfield_collisions = (playfield & playfield_collision_mask_) ^ playfield_collision_complement_;
+	int playfield_collisions_mask =
+		(playfield_collisions | (playfield_collisions >> 1) | (playfield_collisions >> 2)) & 0x09090909;
+	playfield_collisions_mask =
+		playfield_collisions_mask | (playfield_collisions_mask >> 8) | (playfield_collisions_mask >> 15) | (playfield_collisions_mask >> 22);
+	const int playfield_collision_masks[2] = {
+		playfield_collisions_mask,
+		playfield_collisions_mask >> 3
+	};
+
+	// TODO: as below, but without conditionals...
+	collisions_ |=
+		((collision_masks[2] & collision_masks[3]) ? 0x4000 : 0x0000) |
+
+		((collision_masks[1] & collision_masks[3]) ? 0x2000 : 0x0000) |
+		((collision_masks[1] & collision_masks[2]) ? 0x1000 : 0x0000) |
+
+		((collision_masks[0] & collision_masks[3]) ? 0x0800 : 0x0000) |
+		((collision_masks[0] & collision_masks[2]) ? 0x0400 : 0x0000) |
+		((collision_masks[0] & collision_masks[1]) ? 0x0200 : 0x0000) |
+
+		((playfield_collision_masks[1] & collision_masks[3]) ? 0x0100 : 0x0000) |
+		((playfield_collision_masks[1] & collision_masks[2]) ? 0x0080 : 0x0000) |
+		((playfield_collision_masks[1] & collision_masks[1]) ? 0x0040 : 0x0000) |
+		((playfield_collision_masks[1] & collision_masks[0]) ? 0x0020 : 0x0000) |
+
+		((playfield_collision_masks[0] & collision_masks[3]) ? 0x0010 : 0x0000) |
+		((playfield_collision_masks[0] & collision_masks[2]) ? 0x0008 : 0x0000) |
+		((playfield_collision_masks[0] & collision_masks[1]) ? 0x0004 : 0x0000) |
+		((playfield_collision_masks[0] & collision_masks[0]) ? 0x0002 : 0x0000) |
+
+		((playfield_collision_masks[0] & playfield_collision_masks[1]) ? 0x0001 : 0x0000);
 
 	// Advance pixel pointer (if applicable).
 	if(pixels_) {
@@ -776,9 +802,9 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x098):		// CLXCON
 			collisions_flags_ = cycle.value16();
 
-			// Produce appropriate bitfield manipulation values.
-			playfield_collision_mask_ = (collisions_flags_ & 0xfc0) >> 6;
-			playfield_collision_complement_ = (collisions_flags_ & 0x3f) ^ 0x3f;
+			// Produce appropriate bitfield manipulation values, including shuffling the bits.
+			playfield_collision_mask_ = bitplane_swizzle(uint32_t((collisions_flags_ & 0xfc0) >> 6));
+			playfield_collision_complement_ = bitplane_swizzle(uint32_t((collisions_flags_ & 0x3f) ^ 0x3f));
 
 			playfield_collision_mask_ |= (playfield_collision_mask_ << 8) | (playfield_collision_mask_ << 16) | (playfield_collision_mask_ << 24);
 			playfield_collision_complement_ |= (playfield_collision_complement_ << 8) | (playfield_collision_complement_ << 16) | (playfield_collision_complement_ << 24);
@@ -1073,12 +1099,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			// instead of being indexed as [b4 b3 b2 b1 b0], index
 			// as [b3 b1 b4 b2 b0], and include a second set of the
 			// 32 colours, stored as half-bright.
-			const auto swizzled_address =
-				(entry_address&0x01) |
-				((entry_address&0x02) << 2) |
-				((entry_address&0x04) >> 1) |
-				((entry_address&0x08) << 1) |
-				((entry_address&0x10) >> 2);
+			const auto swizzled_address = bitplane_swizzle(entry_address & 0x1f);
 			uint8_t *const swizzled_entry = reinterpret_cast<uint8_t *>(&swizzled_palette_[swizzled_address]);
 			swizzled_entry[0] = cycle.value8_high();
 			swizzled_entry[1] = cycle.value8_low();
