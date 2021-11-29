@@ -11,9 +11,15 @@
 
 namespace Amiga {
 
-struct MemoryMap {
+class MemoryMap {
+	private:
+		static constexpr auto PermitRead = CPU::MC68000::Microcycle::PermitRead;
+		static constexpr auto PermitWrite = CPU::MC68000::Microcycle::PermitWrite;
+		static constexpr auto PermitReadWrite = PermitRead | PermitWrite;
+
 	public:
-		std::array<uint8_t, 512*1024> chip_ram{};
+		// TODO: decide what of the below I want to be dynamic.
+		std::array<uint8_t, 1024*1024> chip_ram{};
 		std::array<uint8_t, 512*1024> kickstart{0xff};
 
 		struct MemoryRegion {
@@ -26,7 +32,8 @@ struct MemoryMap {
 			//
 			//	00'0000 – 08'0000:	chip RAM.	[or overlayed KickStart]
 			//	– 10'0000: extended chip ram for ECS.
-			//	– 20'0000: auto-config space (/fast RAM).
+			//	– 20'0000: slow RAM and further chip RAM.
+			//	– a0'0000: auto-config space (/fast RAM).
 			//	...
 			//	bf'd000 – c0'0000: 8250s.
 			//	c0'0000 – d8'0000: pseudo-fast RAM.
@@ -37,7 +44,7 @@ struct MemoryMap {
 			//	f0'0000 — : 512kb Kickstart (or possibly just an extra 512kb reserved for hypothetical 1mb Kickstart?).
 			//	f8'0000 — : 256kb Kickstart if 2.04 or higher.
 			//	fc'0000 – : 256kb Kickstart otherwise.
-			set_region(0xfc'0000, 0x1'00'0000, kickstart.data(), CPU::MC68000::Microcycle::PermitRead);
+			set_region(0xfc'0000, 0x1'00'0000, kickstart.data(), PermitRead);
 			reset();
 		}
 
@@ -51,26 +58,23 @@ struct MemoryMap {
 			}
 			overlay_ = enabled;
 
+			set_region(0x00'0000, uint32_t(chip_ram.size()), chip_ram.data(), PermitReadWrite);
 			if(enabled) {
-				set_region(0x00'0000, 0x08'0000, kickstart.data(), CPU::MC68000::Microcycle::PermitRead);
-			} else {
-				// Mirror RAM to fill out the address range up to $20'0000.
-				set_region(0x00'0000, 0x08'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
-				set_region(0x08'0000, 0x10'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
-				set_region(0x10'0000, 0x18'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
-				set_region(0x18'0000, 0x20'0000, chip_ram.data(), CPU::MC68000::Microcycle::PermitRead | CPU::MC68000::Microcycle::PermitWrite);
+				set_region(0x00'0000, 0x08'0000, kickstart.data(), PermitRead);
 			}
 		}
 
 	private:
 		bool overlay_ = false;
 
-		void set_region(int start, int end, uint8_t *base, unsigned int read_write_mask) {
-			assert(!(start & ~0xfc'0000));
-			assert(!((end - (1 << 18)) & ~0xfc'0000));
+		void set_region(uint32_t start, uint32_t end, uint8_t *base, unsigned int read_write_mask) {
+			[[maybe_unused]] constexpr uint32_t precision_loss_mask = uint32_t(~0xfc'0000);
+			assert(!(start & precision_loss_mask));
+			assert(!((end - (1 << 18)) & precision_loss_mask));
+			assert(end > start);
 
-			base -= start;
-			for(int c = start >> 18; c < end >> 18; c++) {
+			if(base) base -= start;
+			for(decltype(start) c = start >> 18; c < end >> 18; c++) {
 				regions[c].contents = base;
 				regions[c].read_write_mask = read_write_mask;
 			}
