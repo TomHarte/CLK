@@ -107,8 +107,15 @@ void Audio::output() {
 		while(!buffer_available_[buffer_pointer_].load(std::memory_order::memory_order_relaxed));
 	}
 
-	buffer_[buffer_pointer_][sample_pointer_] = 0;
-	++sample_pointer_;
+	buffer_[buffer_pointer_][sample_pointer_] = int16_t(
+		(channels_[0].output_level * channels_[0].output_enabled +
+		channels_[2].output_level * channels_[2].output_enabled) << 7
+	);
+	buffer_[buffer_pointer_][sample_pointer_+1] = int16_t(
+		(channels_[1].output_level * channels_[1].output_enabled +
+		channels_[3].output_level * channels_[3].output_enabled) << 7
+	);
+	sample_pointer_ += 2;
 
 	if(sample_pointer_ == buffer_[buffer_pointer_].size()) {
 		const auto &buffer = buffer_[buffer_pointer_];
@@ -116,7 +123,7 @@ void Audio::output() {
 
 		flag.store(false, std::memory_order::memory_order_release);
 		queue_.enqueue([this, &buffer, &flag] {
-			speaker_.push(buffer.data(), buffer.size());
+			speaker_.push(buffer.data(), buffer.size() >> 1);
 			flag.store(true, std::memory_order::memory_order_relaxed);
 		});
 
@@ -438,7 +445,8 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>() {
 		return transit<State::PlayingHigh, State::PlayingLow>();
 	}
 
-	// TODO: penhi (i.e. output high byte).
+	// Output high byte.
+	output_level = data_latch >> 8;
 
 	return false;
 }
@@ -479,7 +487,8 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>() {
 		return transit<State::PlayingLow, State::PlayingHigh>();
 	}
 
-	// TODO: not penhi (i.e. output low byte).
+	// Output low byte.
+	output_level = data_latch & 0xff;
 
 	return false;
 }
@@ -489,6 +498,11 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>() {
 //
 
 bool Audio::Channel::output() {
+	// Update pulse-width modulation.
+	output_phase = (output_phase + 1) & 63;
+	output_enabled |= !output_phase;
+	output_enabled &= output_phase != volume;
+
 	switch(state) {
 		case State::Disabled:			return output<State::Disabled>();
 		case State::WaitingForDummyDMA:	return output<State::WaitingForDummyDMA>();

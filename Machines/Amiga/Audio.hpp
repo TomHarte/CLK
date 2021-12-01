@@ -103,6 +103,11 @@ class Audio: public DMADevice<4> {
 			bool output();
 			template <State state> bool output();
 			template <State begin, State end> bool transit();
+
+			// Output state.
+			uint8_t output_level = 0;
+			uint8_t output_phase = 0;
+			bool output_enabled = false;
 		} channels_[4];
 
 		// Transient output state, and its destination.
