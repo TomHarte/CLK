@@ -17,6 +17,17 @@
 
 using namespace Amiga;
 
+Audio::Audio(Chipset &chipset, uint16_t *ram, size_t word_size, float output_rate) :
+	DMADevice<4>(chipset, ram, word_size) {
+
+	// Mark all buffers as available.
+	for(auto &flag: buffer_available_) {
+		flag.store(true, std::memory_order::memory_order_relaxed);
+	}
+
+	speaker_.set_input_rate(output_rate);
+}
+
 bool Audio::advance_dma(int channel) {
 	switch(channels_[channel].state) {
 		case Channel::State::WaitingForDMA:
@@ -89,6 +100,28 @@ void Audio::output() {
 		if(channels_[c].output()) {
 			posit_interrupt(interrupts[c]);
 		}
+	}
+
+	// TEMPORARY: just fill the audio buffer with silence.
+	if(!sample_pointer_) {
+		while(!buffer_available_[buffer_pointer_].load(std::memory_order::memory_order_relaxed));
+	}
+
+	buffer_[buffer_pointer_][sample_pointer_] = 0;
+	++sample_pointer_;
+
+	if(sample_pointer_ == buffer_[buffer_pointer_].size()) {
+		const auto &buffer = buffer_[buffer_pointer_];
+		auto &flag = buffer_available_[buffer_pointer_];
+
+		flag.store(false, std::memory_order::memory_order_release);
+		queue_.enqueue([this, &buffer, &flag] {
+			speaker_.push(buffer.data(), buffer.size());
+			flag.store(true, std::memory_order::memory_order_relaxed);
+		});
+
+		buffer_pointer_ = (buffer_pointer_ + 1) % BufferCount;
+		sample_pointer_ = 0;
 	}
 }
 

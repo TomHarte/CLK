@@ -115,6 +115,11 @@ class Chipset: private ClockingHint::Observer {
 		// Input for receiving collected bitplanes.
 		void post_bitplanes(const BitplaneData &data);
 
+		// Obtains the source of audio output.
+		Outputs::Speaker::Speaker *get_speaker() {
+			return audio_.get_speaker();
+		}
+
 	private:
 		friend class DMADeviceBase;
 

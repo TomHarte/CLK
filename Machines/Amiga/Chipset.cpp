@@ -45,7 +45,7 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 	},
 	bitplanes_(DMA_CONSTRUCT),
 	copper_(DMA_CONSTRUCT),
-	audio_(DMA_CONSTRUCT, input_clock_rate),
+	audio_(DMA_CONSTRUCT, float(input_clock_rate / 2.0)),
 	crt_(908, 4, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
 	cia_a_handler_(map, disk_controller_, mouse_),
 	cia_b_handler_(disk_controller_),

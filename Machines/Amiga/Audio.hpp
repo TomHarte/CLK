@@ -9,18 +9,19 @@
 #ifndef Audio_hpp
 #define Audio_hpp
 
+#include <atomic>
+#include <cstdint>
+
 #include "DMADevice.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 namespace Amiga {
 
 class Audio: public DMADevice<4> {
 	public:
-		Audio(
-			Chipset &chipset, uint16_t *ram, size_t word_size,
-			[[maybe_unused]] double output_rate) :
-			DMADevice<4>(chipset, ram, word_size) {}
+		Audio(Chipset &chipset, uint16_t *ram, size_t word_size, float output_rate);
 
 		/// Idiomatic call-in for DMA scheduling; indicates that this class may
 		/// perform a DMA access for the stated channel now.
@@ -55,6 +56,11 @@ class Audio: public DMADevice<4> {
 
 		/// Sets which interrupt requests are currently active.
 		void set_interrupt_requests(uint16_t);
+
+		/// Obtains the output source.
+		Outputs::Speaker::Speaker *get_speaker() {
+			return &speaker_;
+		}
 
 	private:
 		struct Channel {
@@ -98,6 +104,16 @@ class Audio: public DMADevice<4> {
 			template <State state> bool output();
 			template <State begin, State end> bool transit();
 		} channels_[4];
+
+		// Transient output state, and its destination.
+		Outputs::Speaker::PushLowpass<true> speaker_;
+		Concurrency::AsyncTaskQueue queue_;
+
+		using AudioBuffer = std::array<int16_t, 4096>;
+		static constexpr int BufferCount = 3;
+		AudioBuffer buffer_[BufferCount];
+		std::atomic<bool> buffer_available_[BufferCount];
+		size_t buffer_pointer_ = 0, sample_pointer_ = 0;
 };
 
 }

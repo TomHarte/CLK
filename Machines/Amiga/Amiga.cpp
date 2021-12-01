@@ -40,6 +40,7 @@ namespace Amiga {
 class ConcreteMachine:
 	public Activity::Source,
 	public CPU::MC68000::BusHandler,
+	public MachineTypes::AudioProducer,
 	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
@@ -183,8 +184,15 @@ class ConcreteMachine:
 		Chipset chipset_;
 		
 		// MARK: - Activity Source
+
 		void set_activity_observer(Activity::Observer *observer) final {
 			chipset_.set_activity_observer(observer);
+		}
+
+		// MARK: - MachineTypes::AudioProducer.
+
+		Outputs::Speaker::Speaker *get_speaker() final {
+			return chipset_.get_speaker();
 		}
 
 		// MARK: - MachineTypes::ScanProducer.
