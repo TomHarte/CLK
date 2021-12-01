@@ -30,9 +30,10 @@ Audio::Audio(Chipset &chipset, uint16_t *ram, size_t word_size, float output_rat
 
 bool Audio::advance_dma(int channel) {
 	switch(channels_[channel].state) {
-		case Channel::State::WaitingForDMA:
+		default:
 			if(!channels_[channel].has_data) {
 				set_data(channel, ram_[pointer_[size_t(channel)]]);
+				++pointer_[size_t(channel)];
 				return true;
 			}
 		break;
@@ -43,8 +44,6 @@ bool Audio::advance_dma(int channel) {
 				return true;
 			}
 		break;
-
-		default: break;
 	}
 
 	return false;
@@ -108,12 +107,16 @@ void Audio::output() {
 	}
 
 	buffer_[buffer_pointer_][sample_pointer_] = int16_t(
-		(channels_[0].output_level * channels_[0].output_enabled +
-		channels_[2].output_level * channels_[2].output_enabled) << 7
+		(
+			int8_t(channels_[0].output_level) * channels_[0].output_enabled +
+			int8_t(channels_[2].output_level) * channels_[2].output_enabled
+		) << 7
 	);
 	buffer_[buffer_pointer_][sample_pointer_+1] = int16_t(
-		(channels_[1].output_level * channels_[1].output_enabled +
-		channels_[3].output_level * channels_[3].output_enabled) << 7
+		(
+			int8_t(channels_[1].output_level) * channels_[1].output_enabled +
+			int8_t(channels_[3].output_level) * channels_[3].output_enabled
+		) << 7
 	);
 	sample_pointer_ += 2;
 
@@ -464,6 +467,9 @@ template <> bool Audio::Channel::transit<
 
 	if(!dma_enabled) {
 		return true;
+	} else {
+		data_latch = data;			// i.e. pbufld2
+		has_data = false;			// AUDxDR
 	}
 
 	if(dma_enabled && will_request_interrupt) {
