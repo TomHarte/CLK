@@ -146,31 +146,35 @@ void Audio::output() {
 
 	000 State::Disabled:
 
-		-> State::Disabled
+		-> State::Disabled				(000)
 			if: N/A
 			action: percntrld
 
-		-> State::PlayingHigh
+		-> State::PlayingHigh			(010)
 			if: AUDDAT, and not AUDxON, and not AUDxIP
 			action: volcntrld, percntrld, pbudld1, AUDxIR
 
-		-> State::WaitingForDummyDMA
+		-> State::WaitingForDummyDMA	(001)
 			if: AUDxON
-			action: lencntrld, AUDxDR, dmasen, percntrld
+			action: lencntrld, AUDxDR, dmasen*, percntrld
+
+
+		*	NOTE: except for this case, dmasen is true only when
+			LENFIN = 1. Also, AUDxDSR = (AUDxDR and dmasen).
 
 
 
 	001 State::WaitingForDummyDMA:
 
-		-> State::WaitingForDummyDMA
+		-> State::WaitingForDummyDMA	(001)
 			if: N/A
 			action: None
 
-		-> State::Disabled
+		-> State::Disabled				(000)
 			if: not AUDxON
 			action: None
 
-		-> State::WaitingForDMA
+		-> State::WaitingForDMA			(101)
 			if: AUDxON, and AUDxDAT
 			action:
 				1. AUDxIR
@@ -180,15 +184,15 @@ void Audio::output() {
 
 	101 State::WaitingForDMA:
 
-		-> State::WaitingForDMA:
+		-> State::WaitingForDMA			(101)
 			if: N/A
 			action: None
 
-		-> State:Disabled
+		-> State:Disabled				(000)
 			if: not AUDxON
 			action: None
 
-		-> State::PlayingHigh
+		-> State::PlayingHigh			(010)
 			if: AUDxON, and AUDxDAT
 			action:
 				1. volcntrld, percntrld, pbufid1
@@ -198,12 +202,12 @@ void Audio::output() {
 
 	010 State::PlayingHigh
 
-		-> State::PlayingHigh
+		-> State::PlayingHigh			(010)
 			if: N/A
 			action: percount, and penhi
 
-		-> State::PlayingLow
-			if: [unspecified, presumably 'not percount']
+		-> State::PlayingLow			(011)
+			if: perfin
 			action:
 				1. if AUDxAP, then pubfid2
 				2. if AUDxAP and AUDxON, then AUDxDR
@@ -220,15 +224,15 @@ void Audio::output() {
 
 	011 State::PlayingLow
 
-		-> State::PlayingLow
+		-> State::PlayingLow			(011)
 			if: N/A
 			action: percount, and not penhi
 
-		-> State::Disabled
+		-> State::Disabled				(000)
 			if: perfin and not (AUDxON and not AUDxIP)
 			action: None
 
-		-> State::PlayingHigh
+		-> State::PlayingHigh			(010)
 			if: perfin and AUDxON and not AUDxIP
 			action:
 				1. pbufld
