@@ -105,7 +105,7 @@ class Audio: public DMADevice<4> {
 			template <State begin, State end> bool transit();
 
 			// Output state.
-			uint8_t output_level = 0;
+			int8_t output_level = 0;
 			uint8_t output_phase = 0;
 			bool output_enabled = false;
 		} channels_[4];

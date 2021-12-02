@@ -93,21 +93,25 @@ void Audio::output() {
 		}
 	}
 
-	// TEMPORARY: just fill the audio buffer with silence.
+	// Spin until the next buffer is available if just entering it for the first time.
+	// Contention here should be essentially non-existent.
 	if(!sample_pointer_) {
 		while(!buffer_available_[buffer_pointer_].load(std::memory_order::memory_order_relaxed));
 	}
 
+	// Left.
 	buffer_[buffer_pointer_][sample_pointer_] = int16_t(
 		(
-			int8_t(channels_[0].output_level) * channels_[0].output_enabled +
-			int8_t(channels_[2].output_level) * channels_[2].output_enabled
+			channels_[1].output_level * channels_[1].output_enabled +
+			channels_[2].output_level * channels_[2].output_enabled
 		) << 7
 	);
+
+	// Right.
 	buffer_[buffer_pointer_][sample_pointer_+1] = int16_t(
 		(
-			int8_t(channels_[1].output_level) * channels_[1].output_enabled +
-			int8_t(channels_[3].output_level) * channels_[3].output_enabled
+			channels_[0].output_level * channels_[0].output_enabled +
+			channels_[3].output_level * channels_[3].output_enabled
 		) << 7
 	);
 	sample_pointer_ += 2;
@@ -445,7 +449,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>() {
 	}
 
 	// Output high byte.
-	output_level = data_latch >> 8;
+	output_level = int8_t(data_latch >> 8);
 
 	return false;
 }
@@ -490,7 +494,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>() {
 	}
 
 	// Output low byte.
-	output_level = data_latch & 0xff;
+	output_level = int8_t(data_latch & 0xff);
 
 	return false;
 }
