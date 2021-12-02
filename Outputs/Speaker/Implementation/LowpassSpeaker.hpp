@@ -15,9 +15,10 @@
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 
 #include <algorithm>
-#include <mutex>
-#include <cstring>
+#include <cassert>
 #include <cmath>
+#include <cstring>
+#include <mutex>
 
 namespace Outputs {
 namespace Speaker {
