@@ -106,7 +106,7 @@ class Audio: public DMADevice<4> {
 
 			// Output state.
 			int8_t output_level = 0;
-			uint8_t output_phase = 0;
+			uint8_t output_phase = 0;	// TODO: this should count down, not up.
 			bool output_enabled = false;
 		} channels_[4];
 

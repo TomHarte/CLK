@@ -467,6 +467,8 @@ template <> bool Audio::Channel::transit<
 
 	// TODO: include napnav in tests
 
+	period_counter = period;	// i.e. percntrld
+
 	if(!dma_enabled) {
 		return true;
 	} else {
