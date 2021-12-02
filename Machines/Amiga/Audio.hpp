@@ -67,7 +67,7 @@ class Audio: public DMADevice<4> {
 			// The data latch plus a count of unused samples
 			// in the latch, which will always be 0, 1 or 2.
 			uint16_t data = 0x0000;
-			bool has_data = false;
+			bool wants_data = false;
 			uint16_t data_latch = 0x0000;
 
 			// Number of words remaining in DMA data.

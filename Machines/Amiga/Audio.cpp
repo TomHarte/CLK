@@ -29,7 +29,7 @@ Audio::Audio(Chipset &chipset, uint16_t *ram, size_t word_size, float output_rat
 }
 
 bool Audio::advance_dma(int channel) {
-	if(channels_[channel].has_data) {
+	if(!channels_[channel].wants_data) {
 		return false;
 	}
 
@@ -58,7 +58,7 @@ void Audio::set_volume(int channel, uint16_t volume) {
 
 void Audio::set_data(int channel, uint16_t data) {
 	assert(channel >= 0 && channel < 4);
-	channels_[channel].has_data = true;
+	channels_[channel].wants_data = false;
 	channels_[channel].data = data;
 }
 
@@ -325,7 +325,7 @@ template <> bool Audio::Channel::transit<
 	state = State::PlayingHigh;
 
 	data_latch = data;			// i.e. pbufld1
-	has_data = false;
+	wants_data = true;
 	period_counter = period;	// i.e. percntrld
 	// TODO: volcntrld (see above).
 
@@ -334,7 +334,7 @@ template <> bool Audio::Channel::transit<
 }
 
 template <> bool Audio::Channel::output<Audio::Channel::State::Disabled>() {
-	if(has_data && !dma_enabled && !interrupt_pending) {
+	if(!wants_data && !dma_enabled && !interrupt_pending) {
 		return transit<State::Disabled, State::PlayingHigh>();
 	}
 
@@ -355,7 +355,7 @@ template <> bool Audio::Channel::transit<
 	Audio::Channel::State::WaitingForDMA>() {
 	state = State::WaitingForDMA;
 
-	has_data = false;
+	wants_data = true;
 	if(length == 1) {
 		length_counter = length;
 		return true;
@@ -369,7 +369,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDummyDM
 		return transit<State::WaitingForDummyDMA, State::Disabled>();
 	}
 
-	if(dma_enabled && has_data) {
+	if(dma_enabled && !wants_data) {
 		return transit<State::WaitingForDummyDMA, State::WaitingForDMA>();
 	}
 
@@ -386,7 +386,7 @@ template <> bool Audio::Channel::transit<
 	state = State::PlayingHigh;
 
 	data_latch = data;
-	has_data = false;
+	wants_data = true;
 	period_counter = period;	// i.e. percntrld
 
 	return false;
@@ -397,7 +397,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDMA>() 
 		return transit<State::WaitingForDummyDMA, State::Disabled>();
 	}
 
-	if(dma_enabled && has_data) {
+	if(dma_enabled && !wants_data) {
 		return transit<State::WaitingForDummyDMA, State::PlayingHigh>();
 	}
 
@@ -424,7 +424,7 @@ template <> bool Audio::Channel::transit<
 	// if lenfin and AUDxON and AUDxDAT, then lencntrld
 	// if (not lenfin) and AUDxON and AUDxDAT, then lencount
 	// if lenfin and AUDxON and AUDxDAT, then intreq2
-	if(dma_enabled && has_data) {
+	if(dma_enabled && !wants_data) {
 		--length_counter;
 		if(!length_counter) {
 			length_counter = length;
@@ -465,7 +465,7 @@ template <> bool Audio::Channel::transit<
 		return true;
 	} else {
 		data_latch = data;			// i.e. pbufld2
-		has_data = false;			// AUDxDR
+		wants_data = true;			// AUDxDR
 	}
 
 	if(dma_enabled && will_request_interrupt) {
