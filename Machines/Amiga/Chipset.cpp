@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <tuple>
 
 using namespace Amiga;
 

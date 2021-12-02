@@ -14,6 +14,7 @@
 #include "../../Outputs/Log.hpp"
 
 #include <cassert>
+#include <tuple>
 
 using namespace Amiga;
 
@@ -100,6 +101,7 @@ void Audio::output() {
 	}
 
 	// Left.
+	static_assert(std::tuple_size<AudioBuffer>::value % 2 == 0);
 	buffer_[buffer_pointer_][sample_pointer_] = int16_t(
 		(
 			channels_[1].output_level * channels_[1].output_enabled +
@@ -108,7 +110,7 @@ void Audio::output() {
 	);
 
 	// Right.
-	buffer_[buffer_pointer_][sample_pointer_+1] = int16_t(
+	buffer_[buffer_pointer_][sample_pointer_ + 1] = int16_t(
 		(
 			channels_[0].output_level * channels_[0].output_enabled +
 			channels_[3].output_level * channels_[3].output_enabled
