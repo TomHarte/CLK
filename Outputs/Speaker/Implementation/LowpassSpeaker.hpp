@@ -293,7 +293,7 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 		friend BaseT;
 		using BaseT::process;
 
-		std::atomic<uint16_t> scale_ = 32767;
+		std::atomic<int> scale_ = 65536;
 		int get_scale() {
 			return scale_;
 		}
@@ -312,7 +312,7 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 
 	public:
 		void set_output_volume(float volume) final {
-			scale_.store(uint16_t(std::clamp(volume * 65535.0f, 0.0f, 65535.0f)));
+			scale_.store(int(std::clamp(volume * 65536.0f, 0.0f, 65536.0f)));
 		}
 
 		bool get_is_stereo() final {
