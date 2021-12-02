@@ -305,8 +305,9 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 		}
 
 		void get_samples(size_t length, int16_t *target) {
-			memcpy(target, buffer_, length);
-			buffer_ += length;
+			const auto word_length = length * (1 + is_stereo);
+			memcpy(target, buffer_, word_length * sizeof(int16_t));
+			buffer_ += word_length;
 		}
 
 	public:
@@ -320,10 +321,16 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 
 		/*!
 			Filters and posts onward the provided buffer, on the calling thread.
+
+			@param buffer The source for samples.
+			@param length The number of samples provided; in mono this will be the number of int16_ts
+				it is safe to read from @c buffer, and in stereo it will be half the number — it is a count
+				of the number of time points at which audio was sampled.
 		*/
 		void push(const int16_t *buffer, size_t length) {
 			buffer_ = buffer;
 			process(length);
+			assert(buffer_ == buffer + (length * (1 + is_stereo)));
 		}
 };
 
