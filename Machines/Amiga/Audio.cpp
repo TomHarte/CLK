@@ -29,24 +29,16 @@ Audio::Audio(Chipset &chipset, uint16_t *ram, size_t word_size, float output_rat
 }
 
 bool Audio::advance_dma(int channel) {
-	switch(channels_[channel].state) {
-		default:
-			if(!channels_[channel].has_data) {
-				set_data(channel, ram_[pointer_[size_t(channel)]]);
-				++pointer_[size_t(channel)];
-				return true;
-			}
-		break;
-
-		case Channel::State::WaitingForDummyDMA:
-			if(!channels_[channel].has_data) {
-				channels_[channel].has_data = true;
-				return true;
-			}
-		break;
+	if(channels_[channel].has_data) {
+		return false;
 	}
 
-	return false;
+	set_data(channel, ram_[pointer_[size_t(channel)]]);
+	if(channels_[channel].state != Channel::State::WaitingForDummyDMA) {
+		++pointer_[size_t(channel)];
+	}
+
+	return true;
 }
 
 void Audio::set_length(int channel, uint16_t length) {
