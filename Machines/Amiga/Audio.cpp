@@ -34,7 +34,7 @@ bool Audio::advance_dma(int channel) {
 		return false;
 	}
 
-	set_data(channel, ram_[pointer_[size_t(channel)]]);
+	set_data(channel, ram_[pointer_[size_t(channel) & ram_mask_]]);
 	if(channels_[channel].state != Channel::State::WaitingForDummyDMA) {
 		++pointer_[size_t(channel)];
 	}
