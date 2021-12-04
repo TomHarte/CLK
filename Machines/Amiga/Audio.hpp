@@ -85,6 +85,10 @@ class Audio: public DMADevice<4> {
 			uint16_t period = 0;
 			uint16_t period_counter = 0;
 
+			// Modulation / attach flags.
+			bool attach_period = false;
+			bool attach_volume = false;
+
 			// Output volume, [0, 64].
 			uint8_t volume;
 

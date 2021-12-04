@@ -60,7 +60,16 @@ void Audio::set_channel_enables(uint16_t enables) {
 	channels_[3].dma_enabled = enables & 8;
 }
 
-void Audio::set_modulation_flags(uint16_t) {
+void Audio::set_modulation_flags(uint16_t flags) {
+	channels_[3].attach_period = flags & 0x80;
+	channels_[2].attach_period = flags & 0x40;
+	channels_[1].attach_period = flags & 0x20;
+	channels_[0].attach_period = flags & 0x10;
+
+	channels_[3].attach_volume = flags & 0x08;
+	channels_[2].attach_volume = flags & 0x04;
+	channels_[1].attach_volume = flags & 0x02;
+	channels_[0].attach_volume = flags & 0x01;
 }
 
 void Audio::set_interrupt_requests(uint16_t requests) {
