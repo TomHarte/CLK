@@ -233,11 +233,11 @@ void Audio::output() {
 			action: percount, and not penhi
 
 		-> State::Disabled				(000)
-			if: perfin and not (AUDxON and not AUDxIP)
+			if: perfin and not (AUDxON or not AUDxIP)
 			action: None
 
 		-> State::PlayingHigh			(010)
-			if: perfin and AUDxON and not AUDxIP
+			if: perfin and (AUDxON or not AUDxIP)
 			action:
 				1. pbufld
 				2. percntrld
@@ -258,7 +258,7 @@ void Audio::output() {
 
 		AUDxIP		Audio interrupt pending (input to channel from interrupt circuitry).
 
-		AUDxIR		Audio interrupt request (output from channel to interrupt circuitry)
+		AUDxIR		Audio interrupt request (output from channel to interrupt circuitry).
 
 		intreq1		Interrupt request that combines with intreq2 to form AUDxIR.
 
@@ -510,16 +510,14 @@ template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingLow>(
 template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>() {
 	-- period_counter;
 
-	const bool dma_and_not_done = dma_enabled && !interrupt_pending;
-
-	if(!period_counter && !dma_and_not_done) {
-		return transit<State::PlayingLow, State::Disabled>();
+	if(!period_counter) {
+		const bool dma_or_no_interrupt = dma_enabled || !interrupt_pending;
+		if(dma_or_no_interrupt) {
+			return transit<State::PlayingLow, State::PlayingHigh>();
+		} else {
+			return transit<State::PlayingLow, State::Disabled>();
+		}
 	}
-
-	if(!period_counter && dma_and_not_done) {
-		return transit<State::PlayingLow, State::PlayingHigh>();
-	}
-
 
 	return false;
 }
