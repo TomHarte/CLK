@@ -70,6 +70,12 @@ class Audio: public DMADevice<4> {
 			bool wants_data = false;
 			uint16_t data_latch = 0x0000;
 
+			// The DMA address; unlike most of the Amiga Chipset,
+			// the user posts a value to feed a pointer, rather
+			// than having access to the pointer itself.
+			bool should_reload_address = false;
+			uint32_t data_address = 0x0000'0000;
+
 			// Number of words remaining in DMA data.
 			uint16_t length = 0;
 			uint16_t length_counter = 0;

@@ -27,6 +27,7 @@ Audio::Audio(Chipset &chipset, uint16_t *ram, size_t word_size, float output_rat
 	}
 
 	speaker_.set_input_rate(output_rate);
+	speaker_.set_high_frequency_cutoff(7000.0f);
 }
 
 // MARK: - Exposed setters.
@@ -76,9 +77,12 @@ bool Audio::advance_dma(int channel) {
 		return false;
 	}
 
-	set_data(channel, ram_[pointer_[size_t(channel) & ram_mask_]]);
-	if(channels_[channel].state != Channel::State::WaitingForDummyDMA) {
-		++pointer_[size_t(channel)];
+	set_data(channel, ram_[channels_[channel].data_address & ram_mask_]);
+	++channels_[channel].data_address;
+
+	if(channels_[channel].should_reload_address) {
+		channels_[channel].data_address = pointer_[size_t(channel)];
+		channels_[channel].should_reload_address = false;
 	}
 
 	return true;
@@ -342,9 +346,10 @@ template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingHigh>() {
 	begin_state<State::PlayingHigh>();
 
-	data_latch = data;			// i.e. pbufld1
+	data_latch = data;				// i.e. pbufld1
 	wants_data = true;
-	period_counter = period;	// i.e. percntrld
+	period_counter = period;		// i.e. percntrld
+	should_reload_address = true;	// i.e. dmasen
 	// TODO: volcntrld (see above).
 
 	// Request an interrupt.
@@ -447,6 +452,7 @@ template <> bool Audio::Channel::transit<
 		if(!length_counter) {
 			length_counter = length;
 			will_request_interrupt = true;
+			should_reload_address = true;	// ???
 		}
 	}
 
