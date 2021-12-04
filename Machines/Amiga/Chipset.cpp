@@ -732,6 +732,7 @@ void Chipset::post_bitplanes(const BitplaneData &data) {
 }
 
 void Chipset::update_interrupts() {
+	audio_.set_interrupt_requests(interrupt_requests_);
 	interrupt_level_ = 0;
 
 	const uint16_t enabled_requests = interrupt_enable_ & interrupt_requests_ & 0x3fff;
@@ -906,7 +907,6 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 		case Write(0x09c):		// INTREQ
 			ApplySetClear(interrupt_requests_, 0x7fff);
 			update_interrupts();
-			audio_.set_interrupt_requests(interrupt_requests_);
 		break;
 		case Read(0x01e):		// INTREQR
 			cycle.set_value16(interrupt_requests_);
