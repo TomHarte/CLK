@@ -29,18 +29,7 @@ Audio::Audio(Chipset &chipset, uint16_t *ram, size_t word_size, float output_rat
 	speaker_.set_input_rate(output_rate);
 }
 
-bool Audio::advance_dma(int channel) {
-	if(!channels_[channel].wants_data) {
-		return false;
-	}
-
-	set_data(channel, ram_[pointer_[size_t(channel) & ram_mask_]]);
-	if(channels_[channel].state != Channel::State::WaitingForDummyDMA) {
-		++pointer_[size_t(channel)];
-	}
-
-	return true;
-}
+// MARK: - Exposed setters.
 
 void Audio::set_length(int channel, uint16_t length) {
 	assert(channel >= 0 && channel < 4);
@@ -78,6 +67,21 @@ void Audio::set_interrupt_requests(uint16_t requests) {
 	channels_[1].interrupt_pending = requests & uint16_t(InterruptFlag::AudioChannel1);
 	channels_[2].interrupt_pending = requests & uint16_t(InterruptFlag::AudioChannel2);
 	channels_[3].interrupt_pending = requests & uint16_t(InterruptFlag::AudioChannel3);
+}
+
+// MARK: - DMA and mixing.
+
+bool Audio::advance_dma(int channel) {
+	if(!channels_[channel].wants_data) {
+		return false;
+	}
+
+	set_data(channel, ram_[pointer_[size_t(channel) & ram_mask_]]);
+	if(channels_[channel].state != Channel::State::WaitingForDummyDMA) {
+		++pointer_[size_t(channel)];
+	}
+
+	return true;
 }
 
 void Audio::output() {
@@ -132,6 +136,8 @@ void Audio::output() {
 		sample_pointer_ = 0;
 	}
 }
+
+// MARK: - Per-channel logic.
 
 /*
 	Big spiel on the state machine:
@@ -300,13 +306,19 @@ void Audio::output() {
 
 
 //
-// Non-action fallback transition.
+// Non-action fallback transition and setter, plus specialised begin_state declarations.
 //
+
+template <Audio::Channel::State end> void Audio::Channel::begin_state() {
+	state = end;
+}
+template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingHigh>();
+template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingLow>();
 
 template <
 	Audio::Channel::State begin,
 	Audio::Channel::State end> bool Audio::Channel::transit() {
-	state = end;
+	begin_state<end>();
 	return false;
 }
 
@@ -317,7 +329,7 @@ template <
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::Disabled,
 	Audio::Channel::State::WaitingForDummyDMA>() {
-	state = State::WaitingForDummyDMA;
+	begin_state<State::WaitingForDummyDMA>();
 
 	period_counter = period;	// i.e. percntrld
 	length_counter = length;	// i.e. lencntrld
@@ -328,7 +340,7 @@ template <> bool Audio::Channel::transit<
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::Disabled,
 	Audio::Channel::State::PlayingHigh>() {
-	state = State::PlayingHigh;
+	begin_state<State::PlayingHigh>();
 
 	data_latch = data;			// i.e. pbufld1
 	wants_data = true;
@@ -359,7 +371,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::Disabled>() {
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::WaitingForDummyDMA,
 	Audio::Channel::State::WaitingForDMA>() {
-	state = State::WaitingForDMA;
+	begin_state<State::WaitingForDMA>();
 
 	wants_data = true;
 	if(length == 1) {
@@ -389,7 +401,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDummyDM
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::WaitingForDMA,
 	Audio::Channel::State::PlayingHigh>() {
-	state = State::PlayingHigh;
+	begin_state<State::PlayingHigh>();
 
 	data_latch = data;
 	wants_data = true;
@@ -417,7 +429,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDMA>() 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingHigh,
 	Audio::Channel::State::PlayingLow>() {
-	state = State::PlayingLow;
+	begin_state<State::PlayingLow>();
 
 	// TODO: if AUDxAP, then pubfid2
 	// TODO: if AUDxAP and AUDxON, then AUDxDR
@@ -441,6 +453,13 @@ template <> bool Audio::Channel::transit<
 	return false;
 }
 
+template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingHigh>() {
+	state = Audio::Channel::State::PlayingHigh;
+
+	// Output high byte.
+	output_level = int8_t(data_latch >> 8);
+}
+
 template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>() {
 	-- period_counter;
 
@@ -449,9 +468,6 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>() {
 	if(!period_counter) {
 		return transit<State::PlayingHigh, State::PlayingLow>();
 	}
-
-	// Output high byte.
-	output_level = int8_t(data_latch >> 8);
 
 	return false;
 }
@@ -463,7 +479,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>() {
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingLow,
 	Audio::Channel::State::PlayingHigh>() {
-	state = State::PlayingHigh;
+	begin_state<State::PlayingHigh>();
 
 	// TODO: include napnav in tests
 
@@ -484,6 +500,13 @@ template <> bool Audio::Channel::transit<
 	return false;
 }
 
+template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingLow>() {
+	state = Audio::Channel::State::PlayingLow;
+
+	// Output low byte.
+	output_level = int8_t(data_latch & 0xff);
+}
+
 template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>() {
 	-- period_counter;
 
@@ -497,8 +520,6 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>() {
 		return transit<State::PlayingLow, State::PlayingHigh>();
 	}
 
-	// Output low byte.
-	output_level = int8_t(data_latch & 0xff);
 
 	return false;
 }

@@ -100,9 +100,22 @@ class Audio: public DMADevice<4> {
 				PlayingLow,			// 011
 			} state = State::Disabled;
 
+			/// Dispatches to the appropriate templatised output for the current state.
+			/// @returns @c true if an interrupt should be posted; @c false otherwise.
 			bool output();
+
+			/// Applies dynamic logic for @c state, mostly testing for potential state transitions.
+			/// @returns @c true if an interrupt should be posted; @c false otherwise.
 			template <State state> bool output();
+
+			/// Transitions from @c begin to @c end, calling the appropriate @c begin_state
+			/// and taking any steps specific to that particular transition.
+			/// @returns @c true if an interrupt should be posted; @c false otherwise.
 			template <State begin, State end> bool transit();
+
+			/// Begins @c state, performing all fixed logic that would otherwise have to be
+			/// repeated endlessly in the relevant @c output.
+			template <State state> void begin_state();
 
 			// Output state.
 			int8_t output_level = 0;
