@@ -346,6 +346,8 @@ template <> bool Audio::Channel::transit<
 
 	period_counter = period;	// i.e. percntrld
 	length_counter = length;	// i.e. lencntrld
+	wants_data = true;
+	should_reload_address = true;	// i.e. dmasen
 
 	return false;
 }
@@ -356,8 +358,8 @@ template <> bool Audio::Channel::transit<
 	begin_state<State::PlayingHigh>();
 
 	data_latch = data;				// i.e. pbufld1
-	wants_data = true;
 	period_counter = period;		// i.e. percntrld
+	wants_data = true;
 	should_reload_address = true;	// i.e. dmasen
 	// TODO: volcntrld (see above).
 
@@ -461,7 +463,6 @@ template <> bool Audio::Channel::transit<
 		if(!length_counter) {
 			length_counter = length;
 			will_request_interrupt = true;
-			should_reload_address = true;	// ???
 		}
 	}
 
@@ -505,6 +506,10 @@ template <> bool Audio::Channel::transit<
 	} else {
 		data_latch = data;			// i.e. pbufld2
 		wants_data = true;			// AUDxDR
+
+		if(length_counter == 1) {
+			should_reload_address = true;   // Not sure about this one; based on asterisked comment in ::Disabled documentation.
+		}
 	}
 
 	if(dma_enabled && will_request_interrupt) {
