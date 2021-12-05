@@ -131,6 +131,10 @@ class Audio: public DMADevice<4> {
 			/// @param moduland The channel to modulate, if modulation is enabled.
 			template <State state> void begin_state(Channel *moduland);
 
+			/// Provides the common length-decrementing logic used when transitioning
+			/// between PlayingHigh and PlayingLow in either direction.
+			void decrement_length();
+
 			// Output state.
 			int8_t output_level = 0;
 			uint8_t output_phase = 0;	// TODO: this should count down, not up.

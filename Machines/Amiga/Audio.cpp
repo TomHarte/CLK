@@ -175,11 +175,11 @@ void Audio::output() {
 
 		-> State::PlayingHigh			(010)
 			if: AUDDAT, and not AUDxON, and not AUDxIP
-			action: volcntrld, percntrld, pbudld1, AUDxIR
+			action: percntrld, AUDxIR, volcntrld, pbudld1
 
 		-> State::WaitingForDummyDMA	(001)
 			if: AUDxON
-			action: lencntrld, AUDxDR, dmasen*, percntrld
+			action: percntrld, AUDxDR, lencntrld, dmasen*
 
 
 		*	NOTE: except for this case, dmasen is true only when
@@ -218,7 +218,7 @@ void Audio::output() {
 		-> State::PlayingHigh			(010)
 			if: AUDxON, and AUDxDAT
 			action:
-				1. volcntrld, percntrld, pbufid1
+				1. volcntrld, percntrld, pbufld1
 				2. if napnav, then AUDxDR
 
 
@@ -232,7 +232,7 @@ void Audio::output() {
 		-> State::PlayingLow			(011)
 			if: perfin
 			action:
-				1. if AUDxAP, then pubfid2
+				1. if AUDxAP, then pbufld2
 				2. if AUDxAP and AUDxON, then AUDxDR
 				3. percntrld
 				4. if intreq2 and AUDxON and AUDxAP, then AUDxIR
@@ -260,8 +260,8 @@ void Audio::output() {
 			action:
 				1. pbufld
 				2. percntrld
-				3. if AUDxON and napnav, then AUDxDR
-				4. if intreq2 and napnav and AUDxON, AUDxIR
+				3. if napnav and AUDxON, then AUDxDR
+				4. if napnav and AUDxON and intreq2, AUDxIR
 				5. if napnav and not AUDxON, AUDxIR
 				6. if lenfin and AUDxON and AUDxDAT, then lencntrld
 				7. if (not lenfin) and AUDxON and AUDxDAT, then lencount
@@ -323,7 +323,6 @@ void Audio::output() {
 					volume. Condition for normal DMA and interrupt requests.
 */
 
-
 //
 // Non-action fallback transition and setter, plus specialised begin_state declarations.
 //
@@ -347,38 +346,51 @@ template <
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::Disabled,
-	Audio::Channel::State::WaitingForDummyDMA>(Channel *moduland) {
-	begin_state<State::WaitingForDummyDMA>(moduland);
+	Audio::Channel::State::PlayingHigh>(Channel *moduland) {
+	begin_state<State::PlayingHigh>(moduland);
 
-	period_counter = period;	// i.e. percntrld
-	length_counter = length;	// i.e. lencntrld
+	// percntrld
+	period_counter = period;
+
+	// [AUDxIR]: see return result.
+
+	// TODO: volcntrld (?)
+
+	// pbufld1
+	data_latch = data;
 	wants_data = true;
-	should_reload_address = true;	// i.e. dmasen
 
-	return false;
+	// AUDxIR.
+	return true;
 }
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::Disabled,
-	Audio::Channel::State::PlayingHigh>(Channel *moduland) {
-	begin_state<State::PlayingHigh>(moduland);
+	Audio::Channel::State::WaitingForDummyDMA>(Channel *moduland) {
+	begin_state<State::WaitingForDummyDMA>(moduland);
 
-	data_latch = data;				// i.e. pbufld1
-	period_counter = period;		// i.e. percntrld
+	// percntrld
+	period_counter = period;
+
+	// AUDxDR
 	wants_data = true;
-	should_reload_address = true;	// i.e. dmasen
-	// TODO: volcntrld (see above).
 
-	// Request an interrupt.
-	return true;
+	// lencntrld
+	length_counter = length;
+
+	// dmasen / AUDxDSR
+	should_reload_address = true;
+
+	return false;
 }
 
 template <> bool Audio::Channel::output<Audio::Channel::State::Disabled>(Channel *moduland) {
+	// if AUDDAT, and not AUDxON, and not AUDxIP.
 	if(!wants_data && !dma_enabled && !interrupt_pending) {
 		return transit<State::Disabled, State::PlayingHigh>(moduland);
 	}
 
-	// Test for DMA-style transition.
+	// if AUDxON.
 	if(dma_enabled) {
 		return transit<State::Disabled, State::WaitingForDummyDMA>(moduland);
 	}
@@ -395,20 +407,25 @@ template <> bool Audio::Channel::transit<
 	Audio::Channel::State::WaitingForDMA>(Channel *moduland) {
 	begin_state<State::WaitingForDMA>(moduland);
 
+	// AUDxDR
 	wants_data = true;
-	if(length == 1) {
-		length_counter = length;
-		return true;
+
+	// if not lenfin, then lencount
+	if(length != 1) {
+		-- length_counter;
 	}
 
-	return false;
+	// AUDxIR
+	return true;
 }
 
 template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDummyDMA>(Channel *moduland) {
+	// if not AUDxON
 	if(!dma_enabled) {
 		return transit<State::WaitingForDummyDMA, State::Disabled>(moduland);
 	}
 
+	// if AUDxON and AUDxDAT
 	if(dma_enabled && !wants_data) {
 		return transit<State::WaitingForDummyDMA, State::WaitingForDMA>(moduland);
 	}
@@ -425,18 +442,30 @@ template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingHigh>(Channel *moduland) {
 	begin_state<State::PlayingHigh>(moduland);
 
+	// TODO: volcntrld (?)
+
+	// percntrld
+	period_counter = period;
+
+	// pbufld1
 	data_latch = data;
-	wants_data = true;
-	period_counter = period;	// i.e. percntrld
+
+	// if napnav
+	if(attach_volume || !(attach_volume || attach_period)) {
+		// AUDxDR
+		wants_data = true;
+	}
 
 	return false;
 }
 
 template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDMA>(Channel *moduland) {
+	// if: not AUDxON
 	if(!dma_enabled) {
 		return transit<State::WaitingForDummyDMA, State::Disabled>(moduland);
 	}
 
+	// if: AUDxON, and AUDxDAT
 	if(dma_enabled && !wants_data) {
 		return transit<State::WaitingForDummyDMA, State::PlayingHigh>(moduland);
 	}
@@ -448,48 +477,74 @@ template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDMA>(Ch
 //	Audio::Channel::State::PlayingHigh
 //
 
+void Audio::Channel::decrement_length() {
+	// if lenfin and AUDxON and AUDxDAT, then lencntrld
+	// if (not lenfin) and AUDxON and AUDxDAT, then lencount
+	// if lenfin and AUDxON and AUDxDAT, then intreq2
+	if(dma_enabled && !wants_data) {
+		if(length_counter == 1) {
+			length_counter = length;
+			will_request_interrupt = true;
+		}
+
+		--length_counter;
+	}
+}
+
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingHigh,
 	Audio::Channel::State::PlayingLow>(Channel *moduland) {
 	begin_state<State::PlayingLow>(moduland);
 
-	// TODO: if AUDxAP, then pubfid2
-	// TODO: if AUDxAP and AUDxON, then AUDxDR
+	bool wants_interrupt = false;
 
-	period_counter = period;	// i.e. percntrld
+	// if AUDxAP
+	if(attach_period) {
+		// pbufld2
+		data_latch = data;
 
-	// TODO: if intreq2 and AUDxON and AUDxAP, then AUDxIR
-	// TODO: if AUDxAP and AUDxON, then AUDxIR
+		// [if AUDxAP] and AUDxON
+		if(dma_enabled) {
+			// AUDxDR
+			wants_data = true;
 
-	// if lenfin and AUDxON and AUDxDAT, then lencntrld
-	// if (not lenfin) and AUDxON and AUDxDAT, then lencount
-	// if lenfin and AUDxON and AUDxDAT, then intreq2
-	if(dma_enabled && !wants_data) {
-		--length_counter;
-		if(!length_counter) {
-			length_counter = length;
-			will_request_interrupt = true;
+			// [if AUDxAP and AUDxON] and intreq2
+			if(will_request_interrupt) {
+				will_request_interrupt = false;
+
+				// AUDxIR
+				wants_interrupt = true;
+			}
+		} else {
+			// i.e. if AUDxAP and AUDxON, then AUDxIR
+			wants_interrupt = true;
 		}
 	}
 
-	return false;
+	// percntrld
+	period_counter = period;
+
+	decrement_length();
+
+	return wants_interrupt;
 }
 
 template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingHigh>(Channel *) {
 	state = Audio::Channel::State::PlayingHigh;
 
-	// Output high byte.
+	// penhi.
 	output_level = int8_t(data_latch >> 8);
 }
 
 template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>(Channel *moduland) {
-	-- period_counter;
-
 	// This is a reasonable guess as to the exit condition for this node;
 	// Commodore doesn't document.
-	if(!period_counter) {
+	if(period_counter == 1) {
 		return transit<State::PlayingHigh, State::PlayingLow>(moduland);
 	}
+
+	// percount.
+	-- period_counter;
 
 	return false;
 }
@@ -500,30 +555,50 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>(Chan
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingLow,
+	Audio::Channel::State::Disabled>(Channel *moduland) {
+	begin_state<State::Disabled>(moduland);
+
+	// Clear the slightly nebulous 'if intreq2 occurred' state.
+	will_request_interrupt = false;
+
+	return false;
+}
+
+template <> bool Audio::Channel::transit<
+	Audio::Channel::State::PlayingLow,
 	Audio::Channel::State::PlayingHigh>(Channel *moduland) {
 	begin_state<State::PlayingHigh>(moduland);
 
-	// TODO: include napnav in tests
+	bool wants_interrupt = false;
+	// TODO: volcntrld?
 
-	period_counter = period;	// i.e. percntrld
+	// percntrld
+	period_counter = period;
 
-	if(!dma_enabled) {
-		return true;
-	} else {
-		data_latch = data;			// i.e. pbufld2
-		wants_data = true;			// AUDxDR
+	// pbufld1
+	data_latch = data;
 
-		if(length_counter == 1) {
-			should_reload_address = true;   // Not sure about this one; based on asterisked comment in ::Disabled documentation.
+	// if napnav
+	if(attach_volume || !(attach_volume || attach_period)) {
+		// [if napnav] and AUDxON
+		if(dma_enabled) {
+			// AUDxDR
+			wants_data = true;
+
+			// [if napnav and AUDxON] and intreq2
+			if(will_request_interrupt) {
+				will_request_interrupt = false;
+				wants_interrupt = true;
+			}
+		} else {
+			// AUDxIR
+			wants_interrupt = true;
 		}
 	}
 
-	if(dma_enabled && will_request_interrupt) {
-		will_request_interrupt = false;
-		return true;
-	}
+	decrement_length();
 
-	return false;
+	return wants_interrupt;
 }
 
 template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingLow>(Channel *) {
