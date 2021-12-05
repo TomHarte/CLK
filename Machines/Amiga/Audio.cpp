@@ -482,12 +482,14 @@ void Audio::Channel::decrement_length() {
 	// if (not lenfin) and AUDxON and AUDxDAT, then lencount
 	// if lenfin and AUDxON and AUDxDAT, then intreq2
 	if(dma_enabled && !wants_data) {
-		if(length_counter == 1) {
+		-- length_counter;
+
+		if(!length_counter) {
 			length_counter = length;
 			will_request_interrupt = true;
+			should_reload_address = true;	// This feels logical to me; it's a bit
+											// of a stab in the dark though.
 		}
-
-		--length_counter;
 	}
 }
 
