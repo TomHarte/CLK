@@ -111,21 +111,25 @@ class Audio: public DMADevice<4> {
 			} state = State::Disabled;
 
 			/// Dispatches to the appropriate templatised output for the current state.
+			/// @param moduland The channel to modulate, if modulation is enabled.
 			/// @returns @c true if an interrupt should be posted; @c false otherwise.
-			bool output();
+			bool output(Channel *moduland);
 
 			/// Applies dynamic logic for @c state, mostly testing for potential state transitions.
+			/// @param moduland The channel to modulate, if modulation is enabled.
 			/// @returns @c true if an interrupt should be posted; @c false otherwise.
-			template <State state> bool output();
+			template <State state> bool output(Channel *moduland);
 
 			/// Transitions from @c begin to @c end, calling the appropriate @c begin_state
 			/// and taking any steps specific to that particular transition.
+			/// @param moduland The channel to modulate, if modulation is enabled.
 			/// @returns @c true if an interrupt should be posted; @c false otherwise.
-			template <State begin, State end> bool transit();
+			template <State begin, State end> bool transit(Channel *moduland);
 
 			/// Begins @c state, performing all fixed logic that would otherwise have to be
 			/// repeated endlessly in the relevant @c output.
-			template <State state> void begin_state();
+			/// @param moduland The channel to modulate, if modulation is enabled.
+			template <State state> void begin_state(Channel *moduland);
 
 			// Output state.
 			int8_t output_level = 0;

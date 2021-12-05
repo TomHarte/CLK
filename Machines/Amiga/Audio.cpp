@@ -104,9 +104,15 @@ void Audio::output() {
 		InterruptFlag::AudioChannel2,
 		InterruptFlag::AudioChannel3,
 	};
+	Channel *const modulands[] = {
+		&channels_[1],
+		&channels_[2],
+		&channels_[3],
+		nullptr,
+	};
 
 	for(int c = 0; c < 4; c++) {
-		if(channels_[c].output()) {
+		if(channels_[c].output(modulands[c])) {
 			posit_interrupt(interrupts[c]);
 		}
 	}
@@ -322,16 +328,16 @@ void Audio::output() {
 // Non-action fallback transition and setter, plus specialised begin_state declarations.
 //
 
-template <Audio::Channel::State end> void Audio::Channel::begin_state() {
+template <Audio::Channel::State end> void Audio::Channel::begin_state(Channel *) {
 	state = end;
 }
-template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingHigh>();
-template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingLow>();
+template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingHigh>(Channel *);
+template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingLow>(Channel *);
 
 template <
 	Audio::Channel::State begin,
-	Audio::Channel::State end> bool Audio::Channel::transit() {
-	begin_state<end>();
+	Audio::Channel::State end> bool Audio::Channel::transit(Channel *moduland) {
+	begin_state<end>(moduland);
 	return false;
 }
 
@@ -341,8 +347,8 @@ template <
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::Disabled,
-	Audio::Channel::State::WaitingForDummyDMA>() {
-	begin_state<State::WaitingForDummyDMA>();
+	Audio::Channel::State::WaitingForDummyDMA>(Channel *moduland) {
+	begin_state<State::WaitingForDummyDMA>(moduland);
 
 	period_counter = period;	// i.e. percntrld
 	length_counter = length;	// i.e. lencntrld
@@ -354,8 +360,8 @@ template <> bool Audio::Channel::transit<
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::Disabled,
-	Audio::Channel::State::PlayingHigh>() {
-	begin_state<State::PlayingHigh>();
+	Audio::Channel::State::PlayingHigh>(Channel *moduland) {
+	begin_state<State::PlayingHigh>(moduland);
 
 	data_latch = data;				// i.e. pbufld1
 	period_counter = period;		// i.e. percntrld
@@ -367,14 +373,14 @@ template <> bool Audio::Channel::transit<
 	return true;
 }
 
-template <> bool Audio::Channel::output<Audio::Channel::State::Disabled>() {
+template <> bool Audio::Channel::output<Audio::Channel::State::Disabled>(Channel *moduland) {
 	if(!wants_data && !dma_enabled && !interrupt_pending) {
-		return transit<State::Disabled, State::PlayingHigh>();
+		return transit<State::Disabled, State::PlayingHigh>(moduland);
 	}
 
 	// Test for DMA-style transition.
 	if(dma_enabled) {
-		return transit<State::Disabled, State::WaitingForDummyDMA>();
+		return transit<State::Disabled, State::WaitingForDummyDMA>(moduland);
 	}
 
 	return false;
@@ -386,8 +392,8 @@ template <> bool Audio::Channel::output<Audio::Channel::State::Disabled>() {
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::WaitingForDummyDMA,
-	Audio::Channel::State::WaitingForDMA>() {
-	begin_state<State::WaitingForDMA>();
+	Audio::Channel::State::WaitingForDMA>(Channel *moduland) {
+	begin_state<State::WaitingForDMA>(moduland);
 
 	wants_data = true;
 	if(length == 1) {
@@ -398,13 +404,13 @@ template <> bool Audio::Channel::transit<
 	return false;
 }
 
-template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDummyDMA>() {
+template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDummyDMA>(Channel *moduland) {
 	if(!dma_enabled) {
-		return transit<State::WaitingForDummyDMA, State::Disabled>();
+		return transit<State::WaitingForDummyDMA, State::Disabled>(moduland);
 	}
 
 	if(dma_enabled && !wants_data) {
-		return transit<State::WaitingForDummyDMA, State::WaitingForDMA>();
+		return transit<State::WaitingForDummyDMA, State::WaitingForDMA>(moduland);
 	}
 
 	return false;
@@ -416,8 +422,8 @@ template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDummyDM
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::WaitingForDMA,
-	Audio::Channel::State::PlayingHigh>() {
-	begin_state<State::PlayingHigh>();
+	Audio::Channel::State::PlayingHigh>(Channel *moduland) {
+	begin_state<State::PlayingHigh>(moduland);
 
 	data_latch = data;
 	wants_data = true;
@@ -426,13 +432,13 @@ template <> bool Audio::Channel::transit<
 	return false;
 }
 
-template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDMA>() {
+template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDMA>(Channel *moduland) {
 	if(!dma_enabled) {
-		return transit<State::WaitingForDummyDMA, State::Disabled>();
+		return transit<State::WaitingForDummyDMA, State::Disabled>(moduland);
 	}
 
 	if(dma_enabled && !wants_data) {
-		return transit<State::WaitingForDummyDMA, State::PlayingHigh>();
+		return transit<State::WaitingForDummyDMA, State::PlayingHigh>(moduland);
 	}
 
 	return false;
@@ -444,8 +450,8 @@ template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDMA>() 
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingHigh,
-	Audio::Channel::State::PlayingLow>() {
-	begin_state<State::PlayingLow>();
+	Audio::Channel::State::PlayingLow>(Channel *moduland) {
+	begin_state<State::PlayingLow>(moduland);
 
 	// TODO: if AUDxAP, then pubfid2
 	// TODO: if AUDxAP and AUDxON, then AUDxDR
@@ -469,20 +475,20 @@ template <> bool Audio::Channel::transit<
 	return false;
 }
 
-template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingHigh>() {
+template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingHigh>(Channel *) {
 	state = Audio::Channel::State::PlayingHigh;
 
 	// Output high byte.
 	output_level = int8_t(data_latch >> 8);
 }
 
-template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>() {
+template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>(Channel *moduland) {
 	-- period_counter;
 
 	// This is a reasonable guess as to the exit condition for this node;
 	// Commodore doesn't document.
 	if(!period_counter) {
-		return transit<State::PlayingHigh, State::PlayingLow>();
+		return transit<State::PlayingHigh, State::PlayingLow>(moduland);
 	}
 
 	return false;
@@ -494,8 +500,8 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>() {
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingLow,
-	Audio::Channel::State::PlayingHigh>() {
-	begin_state<State::PlayingHigh>();
+	Audio::Channel::State::PlayingHigh>(Channel *moduland) {
+	begin_state<State::PlayingHigh>(moduland);
 
 	// TODO: include napnav in tests
 
@@ -520,22 +526,22 @@ template <> bool Audio::Channel::transit<
 	return false;
 }
 
-template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingLow>() {
+template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingLow>(Channel *) {
 	state = Audio::Channel::State::PlayingLow;
 
 	// Output low byte.
 	output_level = int8_t(data_latch & 0xff);
 }
 
-template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>() {
+template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>(Channel *moduland) {
 	-- period_counter;
 
 	if(!period_counter) {
 		const bool dma_or_no_interrupt = dma_enabled || !interrupt_pending;
 		if(dma_or_no_interrupt) {
-			return transit<State::PlayingLow, State::PlayingHigh>();
+			return transit<State::PlayingLow, State::PlayingHigh>(moduland);
 		} else {
-			return transit<State::PlayingLow, State::Disabled>();
+			return transit<State::PlayingLow, State::Disabled>(moduland);
 		}
 	}
 
@@ -546,18 +552,18 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>() {
 // Dispatcher
 //
 
-bool Audio::Channel::output() {
+bool Audio::Channel::output(Channel *moduland) {
 	// Update pulse-width modulation.
 	output_phase = (output_phase + 1) & 63;
 	output_enabled |= !output_phase;
 	output_enabled &= output_phase != volume;
 
 	switch(state) {
-		case State::Disabled:			return output<State::Disabled>();
-		case State::WaitingForDummyDMA:	return output<State::WaitingForDummyDMA>();
-		case State::WaitingForDMA:		return output<State::WaitingForDMA>();
-		case State::PlayingHigh:		return output<State::PlayingHigh>();
-		case State::PlayingLow:			return output<State::PlayingLow>();
+		case State::Disabled:			return output<State::Disabled>(moduland);
+		case State::WaitingForDummyDMA:	return output<State::WaitingForDummyDMA>(moduland);
+		case State::WaitingForDMA:		return output<State::WaitingForDMA>(moduland);
+		case State::PlayingHigh:		return output<State::PlayingHigh>(moduland);
+		case State::PlayingLow:			return output<State::PlayingLow>(moduland);
 
 		default:
 			assert(false);
