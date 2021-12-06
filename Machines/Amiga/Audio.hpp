@@ -44,7 +44,7 @@ class Audio: public DMADevice<4> {
 		void set_volume(int channel, uint16_t);
 
 		/// Sets the next two samples of audio to output.
-		void set_data(int channel, uint16_t);
+		template <bool is_external = true> void set_data(int channel, uint16_t);
 
 		/// Provides a copy of the DMA enable flags, for the purpose of
 		/// determining which channels are enabled for DMA.
@@ -90,7 +90,8 @@ class Audio: public DMADevice<4> {
 			bool attach_volume = false;
 
 			// Output volume, [0, 64].
-			uint8_t volume;
+			uint8_t volume = 0;
+			uint8_t volume_latch = 0;
 
 			// Indicates whether DMA is enabled for this channel.
 			bool dma_enabled = false;
@@ -137,8 +138,13 @@ class Audio: public DMADevice<4> {
 
 			// Output state.
 			int8_t output_level = 0;
-			uint8_t output_phase = 0;	// TODO: this should count down, not up.
+			uint8_t output_phase = 0;
 			bool output_enabled = false;
+
+			void reset_output_phase() {
+				output_phase = 0;
+				output_enabled = (volume_latch > 0) && !attach_period && !attach_volume;
+			}
 		} channels_[4];
 
 		// Transient output state, and its destination.

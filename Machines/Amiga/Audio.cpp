@@ -47,11 +47,21 @@ void Audio::set_volume(int channel, uint16_t volume) {
 	channels_[channel].volume = (volume & 0x40) ? 64 : (volume & 0x3f);
 }
 
-void Audio::set_data(int channel, uint16_t data) {
+template <bool is_external> void Audio::set_data(int channel, uint16_t data) {
 	assert(channel >= 0 && channel < 4);
 	channels_[channel].wants_data = false;
 	channels_[channel].data = data;
+
+	// TODO: "the [PWM] counter is reset when ... AUDxDAT is written", but
+	// does that just mean written by the CPU, or does it include DMA?
+	// My guess is the former. But TODO.
+	if constexpr (is_external) {
+		channels_[channel].reset_output_phase();
+	}
 }
+
+template void Audio::set_data<false>(int, uint16_t);
+template void Audio::set_data<true>(int, uint16_t);
 
 void Audio::set_channel_enables(uint16_t enables) {
 	channels_[0].dma_enabled = enables & 1;
@@ -86,7 +96,7 @@ bool Audio::advance_dma(int channel) {
 		return false;
 	}
 
-	set_data(channel, ram_[channels_[channel].data_address & ram_mask_]);
+	set_data<false>(channel, ram_[channels_[channel].data_address & ram_mask_]);
 	++channels_[channel].data_address;
 
 	if(channels_[channel].should_reload_address) {
@@ -354,7 +364,9 @@ template <> bool Audio::Channel::transit<
 
 	// [AUDxIR]: see return result.
 
-	// TODO: volcntrld (?)
+	// volcntrld
+	volume_latch = volume;
+	reset_output_phase();
 
 	// pbufld1
 	data_latch = data;
@@ -442,7 +454,9 @@ template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingHigh>(Channel *moduland) {
 	begin_state<State::PlayingHigh>(moduland);
 
-	// TODO: volcntrld (?)
+	// volcntrld
+	volume_latch = volume;
+	reset_output_phase();
 
 	// percntrld
 	period_counter = period;
@@ -572,7 +586,10 @@ template <> bool Audio::Channel::transit<
 	begin_state<State::PlayingHigh>(moduland);
 
 	bool wants_interrupt = false;
-	// TODO: volcntrld?
+
+	// volcntrld
+	volume_latch = volume;
+	reset_output_phase();	// Is this correct?
 
 	// percntrld
 	period_counter = period;
@@ -631,9 +648,12 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>(Chann
 
 bool Audio::Channel::output(Channel *moduland) {
 	// Update pulse-width modulation.
-	output_phase = (output_phase + 1) & 63;
-	output_enabled |= !output_phase;
-	output_enabled &= output_phase != volume;
+	output_phase = output_phase + 1;
+	if(output_phase == 64) {
+		reset_output_phase();
+	} else {
+		output_enabled &= output_phase != volume_latch;
+	}
 
 	switch(state) {
 		case State::Disabled:			return output<State::Disabled>(moduland);
