@@ -96,12 +96,15 @@ bool Audio::advance_dma(int channel) {
 		return false;
 	}
 
-	set_data<false>(channel, ram_[channels_[channel].data_address & ram_mask_]);
-	++channels_[channel].data_address;
-
 	if(channels_[channel].should_reload_address) {
 		channels_[channel].data_address = pointer_[size_t(channel)];
 		channels_[channel].should_reload_address = false;
+	}
+
+	set_data<false>(channel, ram_[channels_[channel].data_address & ram_mask_]);
+
+	if(channels_[channel].state != Channel::State::WaitingForDummyDMA) {
+		++channels_[channel].data_address;
 	}
 
 	return true;
@@ -268,7 +271,7 @@ void Audio::output() {
 		-> State::PlayingHigh			(010)
 			if: perfin and (AUDxON or not AUDxIP)
 			action:
-				1. pbufld
+				1. pbufld1
 				2. percntrld
 				3. if napnav and AUDxON, then AUDxDR
 				4. if napnav and AUDxON and intreq2, AUDxIR
@@ -371,6 +374,7 @@ template <> bool Audio::Channel::transit<
 	// pbufld1
 	data_latch = data;
 	wants_data = true;
+	if(moduland && attach_volume) moduland->volume = uint8_t(data_latch);
 
 	// AUDxIR.
 	return true;
@@ -463,6 +467,7 @@ template <> bool Audio::Channel::transit<
 
 	// pbufld1
 	data_latch = data;
+	if(moduland && attach_volume) moduland->volume = uint8_t(data_latch);
 
 	// if napnav
 	if(attach_volume || !(attach_volume || attach_period)) {
@@ -518,6 +523,7 @@ template <> bool Audio::Channel::transit<
 	if(attach_period) {
 		// pbufld2
 		data_latch = data;
+		if(moduland) moduland->period = data_latch;
 
 		// [if AUDxAP] and AUDxON
 		if(dma_enabled) {
@@ -596,6 +602,7 @@ template <> bool Audio::Channel::transit<
 
 	// pbufld1
 	data_latch = data;
+	if(moduland && attach_volume) moduland->volume = uint8_t(data_latch);
 
 	// if napnav
 	if(attach_volume || !(attach_volume || attach_period)) {
