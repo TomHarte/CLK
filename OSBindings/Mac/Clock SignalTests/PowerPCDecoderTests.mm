@@ -140,10 +140,10 @@ namespace {
 	};
 	[self decode:sequence];
 
-	// addic   r23,r14,-4187
-	// lfs     f23,1926(r14)
-	// lwz     r6,21804(r14)
-	// lbz     r6,-4054(r21)
+	// addic	r23,r14,-4187
+	// lfs		f23,1926(r14)
+	// lwz		r6,21804(r14)
+	// lbz		r6,-4054(r21)
 	[self assert:instructions[0] operation:Operation::addic rD:23 rA:14 simm:-4187];
 	[self assert:instructions[1] operation:Operation::lfs frD:23 rA:14 d:1926];
 	[self assert:instructions[2] operation:Operation::lwz rD:6 rA:14 d:21804];
@@ -152,7 +152,7 @@ namespace {
 	// .long 0xf8c2e801
 	// .long 0xe83d5cdf
 	// .long 0x7fa51fbb
-	// lha     r22,-22352(r14)
+	// lha		r22,-22352(r14)
 	[self assertUndefined:instructions[4]];
 	[self assertUndefined:instructions[5]];
 	[self assertUndefined:instructions[6]];
@@ -167,47 +167,47 @@ namespace {
 	// I used checks the reserved bits. For now: don't test.
 //	XCTAssertEqual(instructions[10].operation, Operation::Undefined);
 
-	// stfdu   f27,22125(r7)
+	// stfdu	f27,22125(r7)
 	// .long 0xfb29a33e
-	// addic   r9,r12,-16557
-	// andi.   r15,r3,6677
+	// addic	r9,r12,-16557
+	// andi.	r15,r3,6677
 	[self assert:instructions[11] operation:Operation::stfdu frS:27 rA:7 d:22125];
 	[self assertUndefined:instructions[12]];
 	[self assert:instructions[13] operation:Operation::addic rD:9 rA:12 simm:-16557];
 	[self assert:instructions[14] operation:Operation::andi_ rA:15 rS:3 uimm:6677];
 
-	// lha     r3,28689(r27)
-	// subfic  r8,r7,2316
-	// lfdu    f16,-27810(r4)
-	// oris    r14,r1,17994
+	// lha		r3,28689(r27)
+	// subfic	r8,r7,2316
+	// lfdu		f16,-27810(r4)
+	// oris		r14,r1,17994
 	[self assert:instructions[15] operation:Operation::lha rD:3 rA:27 d:28689];
 	[self assert:instructions[16] operation:Operation::subfic rD:8 rA:7 simm:2316];
 	[self assert:instructions[17] operation:Operation::lfdu frD:16 rA:4 d:-27810];
 	[self assert:instructions[18] operation:Operation::oris rA:14 rS:1 uimm:17994];
 
-	// stw     r24,-28998(r30)
+	// stw		r24,-28998(r30)
 	// .long 0xee396d5b
-	// bl      0x01011890		[disassmebled at address 0x54]
-	// addic   r14,r12,-21862
+	// bl		0x01011890		[disassmebled at address 0x54]
+	// addic	r14,r12,-21862
 	[self assert:instructions[19] operation:Operation::stw rS:24 rA:30 d:-28998];
 	[self assertUndefined:instructions[20]];
 	[self assert:instructions[21] operation:Operation::bx li:0x01011890 - 0x54 lk:TRUE aa:FALSE];
 	[self assert:instructions[22] operation:Operation::addic rD:14 rA:12 simm:-21862];
 
 	// .long 0x42b61a86	[10101]
-	// mulli   r22,r20,29981
-	// lwzu    r21,30436(r15)
+	// mulli	r22,r20,29981
+	// lwzu		r21,30436(r15)
 	// .long 0x151405a9
 	[self assertUndefined:instructions[23]];
 	[self assert:instructions[24] operation:Operation::mulli rD:22 rA:20 simm:29981];
 	[self assert:instructions[25] operation:Operation::lwzu rD:21 rA:15 d:30436];
 	[self assertUndefined:instructions[26]];
 
-	// lfd     f16,-16363(r10)
-	// ori     r29,r6,8093
+	// lfd		f16,-16363(r10)
+	// ori		r29,r6,8093
 	// .long 0xecff44f6
 	// .long 0xf2c1110e
-	// stb     r21,25915(r6)
+	// stb		r21,25915(r6)
 	[self assert:instructions[27] operation:Operation::lfd frD:16 rA:10 d:-16363];
 	[self assert:instructions[28] operation:Operation::ori rA:29 rS:6 uimm:8093];
 	[self assertUndefined:instructions[29]];
@@ -228,35 +228,35 @@ namespace {
 	};
 	[self decode:sequence];
 
-	// stw     r1,11694(r5)
-	// andis.  r9,r1,60948
-	// ori     r9,r12,13756
-	// stfsu   f22,19184(r9)
+	// stw		r1,11694(r5)
+	// andis.	r9,r1,60948
+	// ori		r9,r12,13756
+	// stfsu	f22,19184(r9)
 	[self assert:instructions[0] operation:Operation::stw rS:1 rA:5 d:11694];
 	[self assert:instructions[1] operation:Operation::andis_ rA:9 rS:1 uimm:60948];
 	[self assert:instructions[2] operation:Operation::ori rA:9 rS:12 uimm:13756];
 	[self assert:instructions[3] operation:Operation::stfsu frS:22 rA:9 d:19184];
 
-	// lmw     r16,10591(r29)
-	// oris    r30,r4,14441
-	// xoris   r15,r15,29740
-	// rlwnm   r4,r3,r25,23,7
+	// lmw		r16,10591(r29)
+	// oris		r30,r4,14441
+	// xoris	r15,r15,29740
+	// rlwnm	r4,r3,r25,23,7
 	[self assert:instructions[4] operation:Operation::lmw rD:16 rA:29 d:10591];
 	[self assert:instructions[5] operation:Operation::oris rA:30 rS:4 uimm:14441];
 	[self assert:instructions[6] operation:Operation::xoris rA:15 rS:15 uimm:29740];
 	[self assert:instructions[7] operation:Operation::rlwnmx rA:4 rS:3 rB:25 mb:23 me:7 rc:FALSE];
 
-	// andis.  r13,r17,23022
-	// rlwinm. r28,r18,16,6,4
-	// lfsu    f30,-24703(r5)
-	// lfdu    f16,22525(r17)
+	// andis.	r13,r17,23022
+	// rlwinm.	r28,r18,16,6,4
+	// lfsu		f30,-24703(r5)
+	// lfdu		f16,22525(r17)
 	[self assert:instructions[8] operation:Operation::andis_ rA:13 rS:17 uimm:23022];
 	[self assert:instructions[9] operation:Operation::rlwinmx rA:28 rS:18 rB:16 mb:6 me:4 rc:TRUE];
 	[self assert:instructions[10] operation:Operation::lfsu frD:30 rA:5 d:-24703];
 	[self assert:instructions[11] operation:Operation::lfdu frD:16 rA:17 d:22525];
 
-	// lfd     f3,-4263(r10)
-	// lwz     r9,22658(r18)
+	// lfd		f3,-4263(r10)
+	// lwz		r9,22658(r18)
 	// .long 0x1336fad6
 	// .long 0xe1ddfa2b
 	[self assert:instructions[12] operation:Operation::lfd frD:3 rA:10 d:-4263];
@@ -266,34 +266,34 @@ namespace {
 
 	// .long 0x18c60357
 	// .long 0x4c122cb5
-	// lfdu    f5,-2231(r17)
-	// stfd    f30,-5181(r28)
+	// lfdu		f5,-2231(r17)
+	// stfd		f30,-5181(r28)
 	[self assertUndefined:instructions[16]];
 	[self assertUndefined:instructions[17]];
 	[self assert:instructions[18] operation:Operation::lfdu frD:5 rA:17 d:-2231];
 	[self assert:instructions[19] operation:Operation::stfd frD:30 rA:28 d:-5181];
 
-	// twi     30,r6,391
+	// twi		30,r6,391
 	// .long 0x117eb911
-	// lwz     r1,19523(r19)
+	// lwz		r1,19523(r19)
 	// .long 0xe65371e8
 	[self assert:instructions[20] operation:Operation::twi to:30 rA:6 simm:391];
 	[self assertUndefined:instructions[21]];
 	[self assert:instructions[22] operation:Operation::lwz rD:1 rA:19 d:19523];
 	[self assertUndefined:instructions[23]];
 
-	// lhz     r2,-14003(r7)
+	// lhz		r2,-14003(r7)
 	// .long 0xe671dd0b
 	// .long 0xe07992bb
-	// xori    r19,r17,12264
+	// xori		r19,r17,12264
 	[self assert:instructions[24] operation:Operation::lhz rD:2 rA:7 d:-14003];
 	[self assertUndefined:instructions[25]];
 	[self assertUndefined:instructions[26]];
 	[self assert:instructions[27] operation:Operation::xori rA:19 rS:17 uimm:12264];
 
 	// .long 0xfc361c6b
-	// rlwnm   r11,r20,r11,8,20
-	// sth     r21,18978(r22)
+	// rlwnm	r11,r20,r11,8,20
+	// sth		r21,18978(r22)
 	// .long 0x45dd156
 //	[self assertUndefined:instructions[28]];	// Disabled due to reserved field; I'm decoding this as faddx.
 	[self assert:instructions[29] operation:Operation::rlwnmx rA:11 rS:20 rB:11 mb:8 me:20 rc:FALSE];
@@ -314,26 +314,26 @@ namespace {
 	};
 	[self decode:sequence];
 
-	// stmw    r5,13600(r15)
+	// stmw		r5,13600(r15)
 	// .long 0xfa9df12d
-	// lfsu    f17,-4150(r17)
-	// lhz     r31,-3063(r7)
+	// lfsu		f17,-4150(r17)
+	// lhz		r31,-3063(r7)
 	[self assert:instructions[0] operation:Operation::stmw rS:5 rA:15 d:13600];
 	[self assertUndefined:instructions[1]];
 	[self assert:instructions[2] operation:Operation::lfsu frD:17 rA:17 d:-4150];
 	[self assert:instructions[3] operation:Operation::lhz rD:31 rA:7 d:-3063];
 
-	// addis   r14,r28,-23949
-	// addis   r7,r27,9037
-	// rlwinm. r29,r8,24,12,18
-	// lbzu    r0,3895(r26)
+	// addis	r14,r28,-23949
+	// addis	r7,r27,9037
+	// rlwinm.	r29,r8,24,12,18
+	// lbzu		r0,3895(r26)
 	[self assert:instructions[4] operation:Operation::addis rD:14 rA:28 simm:-23949];
 	[self assert:instructions[5] operation:Operation::addis rD:7 rA:27 simm:9037];
 	[self assert:instructions[6] operation:Operation::rlwinmx rA:29 rS:8 rB:24 mb:12 me:18 rc:TRUE];
 	[self assert:instructions[7] operation:Operation::lbzu rD:0 rA:26 d:3895];
 
-	// rlmi.   r28,r25,r21,6,13
-	// lfdu    f16,-13282(r8)
+	// rlmi.	r28,r25,r21,6,13
+	// lfdu		f16,-13282(r8)
 	// .long 0x7b1dfd3a
 	// .long 0xf19aee7c
 	[self assert:instructions[8] operation:Operation::rlmix rA:28 rS:25 rB:21 mb:6 me:13 rc:TRUE];
@@ -341,9 +341,9 @@ namespace {
 	[self assertUndefined:instructions[10]];
 	[self assertUndefined:instructions[11]];
 
-	// rlwimi. r8,r22,10,11,20
-	// lfsu    f20,-16191(r1)
-	// stfs    f29,-603(r17)
+	// rlwimi.	r8,r22,10,11,20
+	// lfsu		f20,-16191(r1)
+	// stfs		f29,-603(r17)
 	// .long 0xe2b401cb
 	[self assert:instructions[12] operation:Operation::rlwimix rA:8 rS:22 rB:10 mb:11 me:20 rc:TRUE];
 	[self assert:instructions[13] operation:Operation::lfsu frD:20 rA:1 d:-16191];
@@ -351,36 +351,36 @@ namespace {
 	[self assertUndefined:instructions[15]];
 
 	// .long 0x433cb83d
-	// rlwinm. r1,r2,5,29,0
-	// rlwimi  r13,r25,12,9,5
+	// rlwinm.	r1,r2,5,29,0
+	// rlwimi	r13,r25,12,9,5
 	// .long 0xb3117c5
 	[self assertUndefined:instructions[16]];
 	[self assert:instructions[17] operation:Operation::rlwinmx rA:1 rS:2 rB:5 mb:29 me:0 rc:TRUE];
 	[self assert:instructions[18] operation:Operation::rlwimix rA:13 rS:25 rB:12 mb:9 me:5 rc:FALSE];
 	[self assertUndefined:instructions[19]];
 
-	// stb     r4,17594(r1)
-	// lfsu    f29,27344(r9)
-	// cmpli   cr0,1,r19,5236
-	// rlwinm. r0,r17,24,13,19
+	// stb		r4,17594(r1)
+	// lfsu		f29,27344(r9)
+	// cmpli	cr0,1,r19,5236
+	// rlwinm.	r0,r17,24,13,19
 	[self assert:instructions[20] operation:Operation::stb rS:4 rA:1 d:17594];
 	[self assert:instructions[21] operation:Operation::lfsu frD:29 rA:9 d:27344];
 	[self assert:instructions[22] operation:Operation::cmpli crfD:0 l:TRUE rA:19 uimm:5236];
 	[self assert:instructions[23] operation:Operation::rlwinmx rA:0 rS:17 rB:24 mb:13 me:19 rc:TRUE];
 
-	// lha     r24,9735(r10)
+	// lha		r24,9735(r10)
 	// .long 0xe826acf4
-	// beq+    cr5,0xffffffffffff91bc		[at address 0x68]
-	// oris    r17,r3,53407
+	// beq+		cr5,0xffffffffffff91bc		[at address 0x68]
+	// oris		r17,r3,53407
 	[self assert:instructions[24] operation:Operation::lha rD:24 rA:10 d:9735];
 	[self assertUndefined:instructions[25]];
 	[self assert:instructions[26] operation:Operation::bcx bo:12 bi:22 bd:0xffff91bc - 0x68 lk:FALSE aa:FALSE];
 	[self assert:instructions[27] operation:Operation::oris rA:17 rS:3 uimm:53407];
 
-	// xori    r5,r17,61519
-	// bl      0xfffffffffe1599e0			[at address 0x74]
-	// dozi    r25,r12,-26897
-	// lha     r25,29097(r17)
+	// xori		r5,r17,61519
+	// bl		0xfffffffffe1599e0			[at address 0x74]
+	// dozi		r25,r12,-26897
+	// lha		r25,29097(r17)
 	[self assert:instructions[28] operation:Operation::xori rA:5 rS:17 uimm:61519];
 	[self assert:instructions[29] operation:Operation::bx li:0xfe1599e0 - 0x74 lk:TRUE aa:FALSE];
 	[self assert:instructions[30] operation:Operation::dozi rD:25 rA:12 simm:-26897];

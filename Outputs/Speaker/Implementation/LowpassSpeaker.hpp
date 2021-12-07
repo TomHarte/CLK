@@ -15,9 +15,10 @@
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 
 #include <algorithm>
-#include <mutex>
-#include <cstring>
+#include <cassert>
 #include <cmath>
+#include <cstring>
+#include <mutex>
 
 namespace Outputs {
 namespace Speaker {
@@ -293,7 +294,7 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 		friend BaseT;
 		using BaseT::process;
 
-		std::atomic<uint16_t> scale_ = 32767;
+		std::atomic<int> scale_ = 65536;
 		int get_scale() {
 			return scale_;
 		}
@@ -305,13 +306,14 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 		}
 
 		void get_samples(size_t length, int16_t *target) {
-			memcpy(target, buffer_, length);
-			buffer_ += length;
+			const auto word_length = length * (1 + is_stereo);
+			memcpy(target, buffer_, word_length * sizeof(int16_t));
+			buffer_ += word_length;
 		}
 
 	public:
 		void set_output_volume(float volume) final {
-			scale_.store(uint16_t(std::clamp(volume * 65535.0f, 0.0f, 65535.0f)));
+			scale_.store(int(std::clamp(volume * 65536.0f, 0.0f, 65536.0f)));
 		}
 
 		bool get_is_stereo() final {
@@ -320,10 +322,16 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 
 		/*!
 			Filters and posts onward the provided buffer, on the calling thread.
+
+			@param buffer The source for samples.
+			@param length The number of samples provided; in mono this will be the number of int16_ts
+				it is safe to read from @c buffer, and in stereo it will be half the number — it is a count
+				of the number of time points at which audio was sampled.
 		*/
 		void push(const int16_t *buffer, size_t length) {
 			buffer_ = buffer;
 			process(length);
+			assert(buffer_ == buffer + (length * (1 + is_stereo)));
 		}
 };
 

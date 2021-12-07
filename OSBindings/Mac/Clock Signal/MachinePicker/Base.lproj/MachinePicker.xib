@@ -18,7 +18,7 @@
             <windowStyleMask key="styleMask" titled="YES" documentModal="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="590" height="353"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1440"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="590" height="353"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -62,6 +62,65 @@ Gw
                         <rect key="frame" x="154" y="57" width="420" height="242"/>
                         <font key="font" metaFont="system"/>
                         <tabViewItems>
+                            <tabViewItem label="Amiga" identifier="amiga" id="JmB-OF-xcM">
+                                <view key="view" id="5zS-Nj-Ynx">
+                                    <rect key="frame" x="10" y="7" width="400" height="223"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="g7g-ZA-Uge">
+                                            <rect key="frame" x="18" y="187" width="364" height="16"/>
+                                            <textFieldCell key="cell" lineBreakMode="clipping" title="At present only a 512k Amiga 500 is supported." id="Isk-qc-yKa">
+                                                <font key="font" usesAppearanceFont="YES"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                    </subviews>
+                                    <constraints>
+                                        <constraint firstAttribute="trailing" secondItem="g7g-ZA-Uge" secondAttribute="trailing" constant="20" symbolic="YES" id="aGA-6p-c9w"/>
+                                        <constraint firstItem="g7g-ZA-Uge" firstAttribute="top" secondItem="5zS-Nj-Ynx" secondAttribute="top" constant="20" symbolic="YES" id="xzI-rP-iIw"/>
+                                        <constraint firstItem="g7g-ZA-Uge" firstAttribute="leading" secondItem="5zS-Nj-Ynx" secondAttribute="leading" constant="20" symbolic="YES" id="ya2-No-rfZ"/>
+                                    </constraints>
+                                </view>
+                            </tabViewItem>
+                            <tabViewItem label="Amstrad CPC" identifier="cpc" id="ZGX-Fz-lFd">
+                                <view key="view" id="afR-Xr-omP">
+                                    <rect key="frame" x="10" y="7" width="400" height="223"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2zv-Zo-rmO">
+                                            <rect key="frame" x="67" y="179" width="96" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="CPC6128" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="6128" imageScaling="axesIndependently" inset="2" selectedItem="LgZ-9j-YQl" id="yH2-Vm-hiD">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="FdB-a4-Cox">
+                                                    <items>
+                                                        <menuItem title="CPC464" tag="464" id="VSM-l2-mWa"/>
+                                                        <menuItem title="CPC664" tag="664" id="h83-cG-bYO"/>
+                                                        <menuItem title="CPC6128" state="on" tag="6128" id="LgZ-9j-YQl"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                        </popUpButton>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="c3g-96-b3x">
+                                            <rect key="frame" x="18" y="185" width="46" height="16"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="53v-92-jmf">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                    </subviews>
+                                    <constraints>
+                                        <constraint firstItem="2zv-Zo-rmO" firstAttribute="leading" secondItem="c3g-96-b3x" secondAttribute="trailing" constant="8" symbolic="YES" id="KDE-Qm-2op"/>
+                                        <constraint firstItem="c3g-96-b3x" firstAttribute="centerY" secondItem="2zv-Zo-rmO" secondAttribute="centerY" id="Pzy-Q7-Sod"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="2zv-Zo-rmO" secondAttribute="trailing" constant="20" symbolic="YES" id="YZZ-ed-aQe"/>
+                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="2zv-Zo-rmO" secondAttribute="bottom" constant="20" symbolic="YES" id="iwS-Cw-5lf"/>
+                                        <constraint firstItem="c3g-96-b3x" firstAttribute="leading" secondItem="afR-Xr-omP" secondAttribute="leading" constant="20" symbolic="YES" id="o2l-EW-YUv"/>
+                                        <constraint firstItem="2zv-Zo-rmO" firstAttribute="top" secondItem="afR-Xr-omP" secondAttribute="top" constant="20" symbolic="YES" id="tZb-Zu-Eb0"/>
+                                    </constraints>
+                                </view>
+                            </tabViewItem>
                             <tabViewItem label="Apple II" identifier="appleii" id="P59-QG-LOa">
                                 <view key="view" id="dHz-Yv-GNq">
                                     <rect key="frame" x="10" y="7" width="400" height="222"/>
@@ -190,44 +249,6 @@ Gw
                                         <constraint firstItem="nQa-YS-utT" firstAttribute="top" secondItem="gcS-uy-mzl" secondAttribute="bottom" constant="10" symbolic="YES" id="aM9-m8-s7z"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="nQa-YS-utT" secondAttribute="trailing" constant="20" symbolic="YES" id="cqx-Jc-rUb"/>
                                         <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="nQa-YS-utT" secondAttribute="bottom" constant="20" symbolic="YES" id="sbT-If-NTU"/>
-                                    </constraints>
-                                </view>
-                            </tabViewItem>
-                            <tabViewItem label="Amstrad CPC" identifier="cpc" id="JmB-OF-xcM">
-                                <view key="view" id="5zS-Nj-Ynx">
-                                    <rect key="frame" x="10" y="7" width="400" height="223"/>
-                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                    <subviews>
-                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="00d-sg-Krh">
-                                            <rect key="frame" x="67" y="179" width="96" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="CPC6128" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="6128" imageScaling="axesIndependently" inset="2" selectedItem="klh-ZE-Agp" id="hVJ-h6-iea">
-                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
-                                                <menu key="menu" id="r3D-C2-Ruq">
-                                                    <items>
-                                                        <menuItem title="CPC464" tag="464" id="5kZ-XF-RFl"/>
-                                                        <menuItem title="CPC664" tag="664" id="Sct-ZX-Qp1"/>
-                                                        <menuItem title="CPC6128" state="on" tag="6128" id="klh-ZE-Agp"/>
-                                                    </items>
-                                                </menu>
-                                            </popUpButtonCell>
-                                        </popUpButton>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="q9q-sl-J0q">
-                                            <rect key="frame" x="18" y="185" width="46" height="16"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="Cw3-q5-1bC">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
-                                    </subviews>
-                                    <constraints>
-                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="00d-sg-Krh" secondAttribute="trailing" constant="20" symbolic="YES" id="4AF-5C-2IF"/>
-                                        <constraint firstItem="q9q-sl-J0q" firstAttribute="leading" secondItem="5zS-Nj-Ynx" secondAttribute="leading" constant="20" symbolic="YES" id="Wof-5h-gfD"/>
-                                        <constraint firstItem="00d-sg-Krh" firstAttribute="top" secondItem="5zS-Nj-Ynx" secondAttribute="top" constant="20" symbolic="YES" id="c92-uU-NRr"/>
-                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="00d-sg-Krh" secondAttribute="bottom" constant="20" symbolic="YES" id="enU-LN-Nep"/>
-                                        <constraint firstItem="00d-sg-Krh" firstAttribute="leading" secondItem="q9q-sl-J0q" secondAttribute="trailing" constant="8" symbolic="YES" id="mA8-US-ndo"/>
-                                        <constraint firstItem="q9q-sl-J0q" firstAttribute="centerY" secondItem="00d-sg-Krh" secondAttribute="centerY" id="vA8-IA-Uwf"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
@@ -421,6 +442,7 @@ Gw
                                     <constraints>
                                         <constraint firstItem="dzd-tH-BjX" firstAttribute="centerY" secondItem="hIr-GH-7xi" secondAttribute="centerY" id="3TV-RU-Kgh"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="hIr-GH-7xi" secondAttribute="trailing" constant="20" symbolic="YES" id="44v-9O-y7L"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Lfl-5c-b8j" secondAttribute="trailing" constant="20" symbolic="YES" id="5tb-fZ-HpY"/>
                                         <constraint firstItem="frx-nk-c3P" firstAttribute="centerY" secondItem="PhH-bu-pb5" secondAttribute="centerY" id="6Wc-aR-wuL"/>
                                         <constraint firstItem="dzd-tH-BjX" firstAttribute="leading" secondItem="1cs-PX-RAH" secondAttribute="leading" constant="20" symbolic="YES" id="7RZ-Om-TAa"/>
                                         <constraint firstItem="ykc-W1-YaS" firstAttribute="centerY" secondItem="nen-Za-7zH" secondAttribute="centerY" id="CLa-6E-8BB"/>
@@ -889,7 +911,7 @@ Gw
                 <outlet property="appleIIModelButton" destination="jli-ac-Sij" id="Jm3-f7-C17"/>
                 <outlet property="appleIIgsMemorySizeButton" destination="nQa-YS-utT" id="pTV-XL-zX3"/>
                 <outlet property="appleIIgsModelButton" destination="gcS-uy-mzl" id="Jcc-jC-cV1"/>
-                <outlet property="cpcModelTypeButton" destination="00d-sg-Krh" id="VyV-b1-A6x"/>
+                <outlet property="cpcModelTypeButton" destination="2zv-Zo-rmO" id="F4C-b2-eS0"/>
                 <outlet property="electronADFSButton" destination="945-wU-JOH" id="Fjm-W8-kvh"/>
                 <outlet property="electronAP6Button" destination="cG2-Ph-S3Z" id="vkq-1J-KBG"/>
                 <outlet property="electronDFSButton" destination="JqM-IK-FMP" id="C80-1k-TdQ"/>

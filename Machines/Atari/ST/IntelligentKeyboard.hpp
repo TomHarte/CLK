@@ -53,11 +53,11 @@ static_assert(uint16_t(Key::KeypadEnter) == 0x72, "KeypadEnter should have key c
 	keyboard input and output and mouse handling.
 */
 class IntelligentKeyboard:
-	public Serial::Line::ReadDelegate,
+	public Serial::Line<false>::ReadDelegate,
 	public ClockingHint::Source,
 	public Inputs::Mouse {
 	public:
-		IntelligentKeyboard(Serial::Line &input, Serial::Line &output);
+		IntelligentKeyboard(Serial::Line<false> &input, Serial::Line<false> &output);
 		ClockingHint::Preference preferred_clocking() const final;
 		void run_for(HalfCycles duration);
 
@@ -78,10 +78,10 @@ class IntelligentKeyboard:
 		// MARK: - Serial line state.
 		int bit_count_ = 0;
 		int command_ = 0;
-		Serial::Line &output_line_;
+		Serial::Line<false> &output_line_;
 
 		void output_bytes(std::initializer_list<uint8_t> value);
-		bool serial_line_did_produce_bit(Serial::Line *, int bit) final;
+		bool serial_line_did_produce_bit(Serial::Line<false> *, int bit) final;
 
 		// MARK: - Command dispatch.
 		std::vector<uint8_t> command_sequence_;

@@ -15,7 +15,7 @@
 
 using namespace Atari::ST;
 
-IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &output) : output_line_(output) {
+IntelligentKeyboard::IntelligentKeyboard(Serial::Line<false> &input, Serial::Line<false> &output) : output_line_(output) {
 	input.set_read_delegate(this, Storage::Time(2, 15625));
 	output_line_.set_writer_clock_rate(15625);
 
@@ -24,7 +24,7 @@ IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &outp
 	joysticks_.emplace_back(new Joystick);
 }
 
-bool IntelligentKeyboard::serial_line_did_produce_bit(Serial::Line *, int bit) {
+bool IntelligentKeyboard::serial_line_did_produce_bit(Serial::Line<false> *, int bit) {
 	// Shift.
 	command_ = (command_ >> 1) | (bit << 9);
 
@@ -68,8 +68,8 @@ void IntelligentKeyboard::run_for(HalfCycles duration) {
 			mouse_position_[1] += mouse_y_multiplier_ * scaled_movement[1];
 
 			// Clamp to range.
-			mouse_position_[0] = std::min(std::max(mouse_position_[0], 0), mouse_range_[0]);
-			mouse_position_[1] = std::min(std::max(mouse_position_[1], 0), mouse_range_[1]);
+			mouse_position_[0] = std::clamp(mouse_position_[0], 0, mouse_range_[0]);
+			mouse_position_[1] = std::clamp(mouse_position_[1], 0, mouse_range_[1]);
 
 			mouse_movement_[0] -= scaled_movement[0] * mouse_scale_[0];
 			mouse_movement_[1] -= scaled_movement[1] * mouse_scale_[1];
@@ -157,7 +157,7 @@ void IntelligentKeyboard::dispatch_command(uint8_t command) {
 	// If not, exit. If so, perform and drop out of the switch.
 	switch(command_sequence_.front()) {
 		default:
-			printf("Unrecognised IKBD command %02x\n", command);
+			LOG("Unrecognised IKBD command " << PADHEX(2) << +command);
 		break;
 
 		case 0x80:

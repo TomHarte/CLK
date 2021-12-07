@@ -15,6 +15,7 @@
 
 // Analysers
 #include "Acorn/StaticAnalyser.hpp"
+#include "Amiga/StaticAnalyser.hpp"
 #include "AmstradCPC/StaticAnalyser.hpp"
 #include "AppleII/StaticAnalyser.hpp"
 #include "AppleIIgs/StaticAnalyser.hpp"
@@ -38,6 +39,7 @@
 // Disks
 #include "../../Storage/Disk/DiskImage/Formats/2MG.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/AcornADF.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/AmigaADF.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/AppleDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/CPCDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/D64.hpp"
@@ -128,7 +130,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("80", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// 80
 	Format("81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// 81
 	Format("a26", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)							// A26
-	Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)			// ADF
+	Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)			// ADF (Acorn)
+	Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AmigaADF>, TargetPlatform::Amiga)			// ADF (Amiga)
 	Format("adl", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)			// ADL
 	Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::AllCartridge)						// BIN (cartridge dump)
 	Format("cas", result.tapes, Tape::CAS, TargetPlatform::MSX)													// CAS
@@ -253,6 +256,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	Append(AmstradCPC);
 	Append(AppleII);
 	Append(AppleIIgs);
+	Append(Amiga);
 	Append(Atari2600);
 	Append(AtariST);
 	Append(Coleco);

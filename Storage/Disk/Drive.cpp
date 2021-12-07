@@ -85,7 +85,7 @@ void Drive::step(HeadPosition offset) {
 		return;
 	}
 
-	if(ready_type_ == ReadyType::IBMRDY) {
+	if(disk_ && ready_type_ == ReadyType::IBMRDY) {
 		is_ready_ = true;
 	}
 

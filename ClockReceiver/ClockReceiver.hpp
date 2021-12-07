@@ -11,6 +11,7 @@
 
 #include "ForceInline.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <limits>
 
@@ -138,8 +139,11 @@ template <class T> class WrappedInt {
 		forceinline constexpr bool operator !() const					{	return !length_;					}
 		// bool operator () is not supported because it offers an implicit cast to int, which is prone silently to permit misuse
 
-		/// @returns The underlying int, cast to an integral type of your choosing.
-		template<typename Type = IntType> forceinline constexpr Type as() const { return Type(length_); }
+		/// @returns The underlying int, converted to an integral type of your choosing, clamped to that int's range.
+		template<typename Type = IntType> forceinline constexpr Type as() const {
+			const auto clamped = std::clamp(length_, IntType(std::numeric_limits<Type>::min()), IntType(std::numeric_limits<Type>::max()));
+			return Type(clamped);
+		}
 
 		/// @returns The underlying int, in its native form.
 		forceinline constexpr IntType as_integral() const { return length_; }
@@ -219,6 +223,15 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			const HalfCycles half_divisor = HalfCycles(divisor);
 			const Cycles result(length_ / half_divisor.length_);
 			length_ %= half_divisor.length_;
+			return result;
+		}
+
+		/*!
+			Equivalent to @c divide_cycles(Cycles(1)) but faster.
+		*/
+		forceinline Cycles divide_cycles() {
+			const Cycles result(length_ >> 1);
+			length_ &= 1;
 			return result;
 		}
 

@@ -9,6 +9,14 @@
 import XCTest
 import Foundation
 
+// Unused Lorenz tests:
+//
+//	cpuport (tests the 6510 IO ports, I assume);
+//	cputiming (unclear what this times against, probably requires VIC-II delays?);
+//	mmu (presumably requires C64 paging?)
+//	mmufetch (as above)
+//	nmi
+
 class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 
 	// MARK: - 6502 Tests
@@ -226,6 +234,87 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	/* The NOP tests also don't apply; the 65816 has only one, well-defined NOP. */
 
 
+	// MARK: - CIA Tests
+
+	func testNMI() {
+		// TODO: Requires serial register.
+		runTest("nmi", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA1TA() {
+		runTest("cia1ta", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA1TB() {
+		runTest("cia1tb", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA1TAB() {
+		// Tests Port B timer output. TODO.
+		runTest("cia1tab", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA1TB123() {
+		// Tests 6526 TOD clock. TODO.
+		runTest("cia1tb123", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA2TA() {
+		runTest("cia2ta", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA2TB() {
+		runTest("cia2tb", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA2TB123() {
+		runTest("cia1tb123", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA1PB6() {
+		runTest("cia1pb6", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA1PB7() {
+		runTest("cia1pb7", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA2PB6() {
+		runTest("cia2pb6", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIA2PB7() {
+		runTest("cia2pb7", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIALoadTH() {
+		runTest("loadth", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIACntPhi2() {
+		runTest("cnto2", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIAICR() {
+		runTest("icr01", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIAIMR() {
+		runTest("imr", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIAFLIPOS() {
+		runTest("flipos", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIAOneShot() {
+		runTest("oneshot", suffixes: [""], processor: .processor6502)
+	}
+
+	func testCIACNTDefault() {
+		runTest("cntdef", suffixes: [""], processor: .processor6502)
+	}
+
 	// MARK: - Collections
 
 	func testTransfers(processor: CSTestMachine6502Processor)	{
@@ -284,10 +373,13 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 	fileprivate func runTest(_ name: String, processor: CSTestMachine6502Processor) {
 		var machine: CSTestMachine6502!
 
-		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: nil) {
-			if let testData = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
+		let bundle = Bundle(for: type(of: self))
+		let mainBundle = Bundle.main
+		if 	let testFilename = bundle.url(forResource: name, withExtension: nil),
+			let kernelFilename = mainBundle.url(forResource: "kernal.901227-02", withExtension: "bin", subdirectory: "ROMImages/Commodore64") {
+			if let testData = try? Data(contentsOf: testFilename), let kernelData = try? Data(contentsOf: kernelFilename) {
 
-				machine = CSTestMachine6502(processor: processor)
+				machine = CSTestMachine6502(processor: processor, hasCIAs: true)
 				machine.trapHandler = self
 				output = ""
 
@@ -296,8 +388,17 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 				let contents = testData.subdata(in: 2 ..< testData.count)
 
 				machine.setData(contents, atAddress: loadAddress)
+				machine.setData(kernelData, atAddress: 0xe000)
 
 				// Cf. http://www.softwolves.com/arkiv/cbm-hackers/7/7114.html for the steps being taken here.
+
+				// Signal in-border, set up NMI and IRQ vectors as defaults.
+				machine.setValue(0xff, forAddress: 0xd011)
+
+				machine.setValue(0x66, forAddress: 0x0316)
+				machine.setValue(0xfe, forAddress: 0x0317)
+				machine.setValue(0x31, forAddress: 0x0314)
+				machine.setValue(0xea, forAddress: 0x0315)
 
 				// Initialise memory locations as instructed.
 				machine.setValue(0x00, forAddress: 0x0002)
@@ -345,7 +446,7 @@ class WolfgangLorenzTests: XCTestCase, CSTestMachineTrapHandler {
 		}
 
 		if machine == nil {
-			NSException(name: NSExceptionName(rawValue: "Failed Test"), reason: "Couldn't load file \(name)", userInfo: nil).raise()
+			NSException(name: NSExceptionName(rawValue: "Failed Test"), reason: "Couldn't load kernel, or file \(name)", userInfo: nil).raise()
 		}
 
 		while machine.value(for: .lastOperationAddress) != 0xe16f && !machine.isJammed {

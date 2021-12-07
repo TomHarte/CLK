@@ -10,8 +10,6 @@
 #define _522_hpp
 
 #include <cstdint>
-#include <typeinfo>
-#include <cstdio>
 
 #include "Implementation/6522Storage.hpp"
 
@@ -37,22 +35,24 @@ enum Line {
 class PortHandler {
 	public:
 		/// Requests the current input value of @c port from the port handler.
-	uint8_t get_port_input([[maybe_unused]] Port port)										{	return 0xff;	}
+		uint8_t get_port_input([[maybe_unused]] Port port) {
+			return 0xff;
+		}
 
 		/// Sets the current output value of @c port and provides @c direction_mask, indicating which pins are marked as output.
-		void set_port_output([[maybe_unused]] Port port, [[maybe_unused]] uint8_t value, [[maybe_unused]] uint8_t direction_mask)	{}
+		void set_port_output([[maybe_unused]] Port port, [[maybe_unused]] uint8_t value, [[maybe_unused]] uint8_t direction_mask) {}
 
 		/// Sets the current logical output level for line @c line on port @c port.
-		void set_control_line_output([[maybe_unused]] Port port, [[maybe_unused]] Line line, [[maybe_unused]] bool value)			{}
+		void set_control_line_output([[maybe_unused]] Port port, [[maybe_unused]] Line line, [[maybe_unused]] bool value) {}
 
 		/// Sets the current logical value of the interrupt line.
-		void set_interrupt_status([[maybe_unused]] bool status)									{}
+		void set_interrupt_status([[maybe_unused]] bool status) {}
 
 		/// Provides a measure of time elapsed between other calls.
-		void run_for([[maybe_unused]] HalfCycles duration)										{}
+		void run_for([[maybe_unused]] HalfCycles duration) {}
 
 		/// Receives passed-on flush() calls from the 6522.
-		void flush()																			{}
+		void flush() {}
 };
 
 /*!
@@ -88,9 +88,9 @@ class IRQDelegatePortHandler: public PortHandler {
 	Consumers should derive their own curiously-recurring-template-pattern subclass,
 	implementing bus communications as required.
 */
-template <class T> class MOS6522: public MOS6522Storage {
+template <class BusHandlerT> class MOS6522: public MOS6522Storage {
 	public:
-		MOS6522(T &bus_handler) noexcept : bus_handler_(bus_handler) {}
+		MOS6522(BusHandlerT &bus_handler) noexcept : bus_handler_(bus_handler) {}
 		MOS6522(const MOS6522 &) = delete;
 
 		/*! Sets a register value. */
@@ -100,7 +100,7 @@ template <class T> class MOS6522: public MOS6522Storage {
 		uint8_t read(int address);
 
 		/*! @returns the bus handler. */
-		T &bus_handler();
+		BusHandlerT &bus_handler();
 
 		/// Sets the input value of line @c line on port @c port.
 		void set_control_line_input(Port port, Line line, bool value);
@@ -123,7 +123,7 @@ template <class T> class MOS6522: public MOS6522Storage {
 		void shift_in();
 		void shift_out();
 
-		T &bus_handler_;
+		BusHandlerT &bus_handler_;
 		HalfCycles time_since_bus_handler_call_;
 
 		void access(int address);

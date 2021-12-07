@@ -38,6 +38,7 @@ SOURCES += \
 \
 	$$SRC/Analyser/Static/*.cpp \
 	$$SRC/Analyser/Static/Acorn/*.cpp \
+	$$SRC/Analyser/Static/Amiga/*.cpp \
 	$$SRC/Analyser/Static/AmstradCPC/*.cpp \
 	$$SRC/Analyser/Static/AppleII/*.cpp \
 	$$SRC/Analyser/Static/AppleIIgs/*.cpp \
@@ -81,6 +82,7 @@ SOURCES += \
 	$$SRC/InstructionSets/x86/*.cpp \
 \
 	$$SRC/Machines/*.cpp \
+	$$SRC/Machines/Amiga/*.cpp \
 	$$SRC/Machines/AmstradCPC/*.cpp \
 	$$SRC/Machines/Apple/ADB/*.cpp \
 	$$SRC/Machines/Apple/AppleII/*.cpp \
@@ -159,6 +161,7 @@ HEADERS += \
 \
 	$$SRC/Analyser/Static/*.hpp \
 	$$SRC/Analyser/Static/Acorn/*.hpp \
+	$$SRC/Analyser/Static/Amiga/*.hpp \
 	$$SRC/Analyser/Static/AmstradCPC/*.hpp \
 	$$SRC/Analyser/Static/AppleII/*.hpp \
 	$$SRC/Analyser/Static/AppleIIgs/*.hpp \
@@ -212,6 +215,7 @@ HEADERS += \
 	$$SRC/InstructionSets/x86/*.hpp \
 \
 	$$SRC/Machines/*.hpp \
+	$$SRC/Machines/Amiga/*.hpp \
 	$$SRC/Machines/AmstradCPC/*.hpp \
 	$$SRC/Machines/Apple/ADB/*.hpp \
 	$$SRC/Machines/Apple/AppleII/*.hpp \

@@ -29,13 +29,22 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 			ShugartRDY,
 			/// Indicates that RDY will go active when the motor is on and two index holes have passed; it will go inactive when the disk is ejected.
 			ShugartModifiedRDY,
-			/// Indicates that RDY will go active when the head steps; it will go inactive when the disk is ejected.
+			/// Indicates that RDY will go active when the head steps if a disk is present; it will go inactive when the disk is ejected.
 			IBMRDY,
 		};
 
 		Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
 		Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
 		virtual ~Drive();
+
+		// TODO: Disallow copying.
+		//
+		// GCC 10 has an issue with the way the DiskII constructs its drive array if these are both
+		// deleted, despite not using the copy constructor.
+		//
+		// This seems to be fixed in GCC 11, so reenable this delete when possible.
+//		Drive(const Drive &) = delete;
+		void operator=(const Drive &) = delete;
 
 		/*!
 			Replaces whatever is in the drive with @c disk. Supply @c nullptr to eject any current disk and leave none inserted.

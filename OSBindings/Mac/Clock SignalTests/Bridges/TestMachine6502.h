@@ -35,6 +35,7 @@ extern const uint8_t CSTestMachine6502JamOpcode;
 
 - (nonnull instancetype)init NS_UNAVAILABLE;
 
+- (nonnull instancetype)initWithProcessor:(CSTestMachine6502Processor)processor hasCIAs:(BOOL)hasCIAs;
 - (nonnull instancetype)initWithProcessor:(CSTestMachine6502Processor)processor;
 
 - (void)setData:(nonnull NSData *)data atAddress:(uint32_t)startAddress;

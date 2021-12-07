@@ -36,7 +36,10 @@ class Joystick {
 				// Fire buttons.
 				Fire,
 				// Other labelled keys.
-				Key
+				Key,
+
+				// The maximum value this enum can contain.
+				Max = Key
 			};
 			const Type type;
 

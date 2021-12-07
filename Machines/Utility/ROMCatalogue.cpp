@@ -407,6 +407,9 @@ Description::Description(Name name) {
 		case Name::AmigaA500Kickstart31:
 			*this = Description(name, "Amiga", "the A500/A600/A2000 Kickstart 3.1 ROM", "Kickstart-v3.1-rev40.63-1993-Commodore-A500-A600-A2000.rom", 512*1024, 0xfc24ae0du);
 		break;
+		case Name::AmigaDiagROM121:
+			*this = Description(name, "Amiga", "DiagROM 1.2.1", "16bit.bin", 512*1024, 0xf2ac0a3b);
+		break;
 
 		case Name::AppleIIEnhancedE:	*this = Description(name, "AppleII", "the Enhanced Apple IIe ROM", "apple2e.rom", 32*1024, 0x65989942u);				break;
 		case Name::AppleIIe:			*this = Description(name, "AppleII", "the Apple IIe ROM", "apple2eu.rom", 32*1024, 0xe12be18du);						break;

@@ -8,6 +8,8 @@
 
 #include "Mouse.hpp"
 
+#include <algorithm>
+
 using namespace Apple::ADB;
 
 Mouse::Mouse(Bus &bus) : ReactiveDevice(bus, 3) {}
@@ -20,8 +22,8 @@ void Mouse::perform_command(const Command &command) {
 		const int buttons = button_flags_;
 
 		// Clamp deltas.
-		delta_x = std::max(std::min(delta_x, int16_t(127)), int16_t(-128));
-		delta_y = std::max(std::min(delta_y, int16_t(127)), int16_t(-128));
+		delta_x = std::clamp(delta_x, int16_t(-128), int16_t(127));
+		delta_y = std::clamp(delta_y, int16_t(-128), int16_t(127));
 
 		// Figure out what that would look like, and don't respond if there's
 		// no change to report.
