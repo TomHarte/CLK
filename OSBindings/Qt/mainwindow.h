@@ -86,6 +86,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void updateStatusBarText();
 
 	private:
+		void start_amiga();
 		void start_appleII();
 		void start_appleIIgs();
 		void start_amstradCPC();
