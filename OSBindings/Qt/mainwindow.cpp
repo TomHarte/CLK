@@ -952,6 +952,7 @@ void MainWindow::setButtonPressed(int index, bool isPressed) {
 // MARK: - New Machine Creation
 
 #include "../../Analyser/Static/Acorn/Target.hpp"
+#include "../../Analyser/Static/Amiga/Target.hpp"
 #include "../../Analyser/Static/AmstradCPC/Target.hpp"
 #include "../../Analyser/Static/AppleII/Target.hpp"
 #include "../../Analyser/Static/AppleIIgs/Target.hpp"
@@ -973,6 +974,7 @@ void MainWindow::startMachine() {
 		return;							\
 	}
 
+	TEST(amiga);
 	TEST(appleII);
 	TEST(appleIIgs);
 	TEST(amstradCPC);
@@ -1006,6 +1008,15 @@ void MainWindow::start_appleII() {
 		case 1:		target->disk_controller = Target::DiskController::ThirteenSector;	break;
 		case 2:		target->disk_controller = Target::DiskController::None;				break;
 	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_amiga() {
+	using Target = Analyser::Static::Amiga::Target;
+	auto target = std::make_unique<Target>();
+
+	/* There are no options yet for an Amiga. */
 
 	launchTarget(std::move(target));
 }

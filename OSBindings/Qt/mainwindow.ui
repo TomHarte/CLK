@@ -27,8 +27,22 @@
     <item>
      <widget class="QTabWidget" name="machineSelectionTabs">
       <property name="currentIndex">
-       <number>5</number>
+       <number>0</number>
       </property>
+      <widget class="QWidget" name="amigaTab">
+       <attribute name="title">
+        <string>Amiga</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="amigaLayout">
+        <item alignment="Qt::AlignTop">
+         <widget class="QLabel" name="amigaLabel">
+          <property name="text">
+           <string>At present only a 1mb Amiga 500 is supported.</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="appleIITab">
        <attribute name="title">
         <string>Apple II</string>
@@ -1011,7 +1025,7 @@
        <bool>true</bool>
       </property>
       <property name="plainText">
-       <string>Clock Signal requires you to provide images of the system ROMs for this machine. They will be stored permanently; you need do this only once.
+       <string>Clock Signal requires you to provide images of the system ROMs for this machine.  They will be stored permanently; you need do this only once.
 
 Please drag and drop over this window</string>
       </property>
