@@ -54,8 +54,8 @@ class Chipset: private ClockingHint::Observer {
 		/// Advances the stated amount of time.
 		Changes run_for(HalfCycles);
 
-		/// Advances to the next available CPU slot.
-		Changes run_until_cpu_slot();
+		/// Advances to the end of the next available CPU slot.
+		Changes run_until_after_cpu_slot();
 
 		/// Performs the provided microcycle, which the caller guarantees to be a memory access.
 		void perform(const CPU::MC68000::Microcycle &);

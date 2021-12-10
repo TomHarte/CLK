@@ -71,7 +71,7 @@ Chipset::Changes Chipset::run_for(HalfCycles length) {
 	return run<false>(length);
 }
 
-Chipset::Changes Chipset::run_until_cpu_slot() {
+Chipset::Changes Chipset::run_until_after_cpu_slot() {
 	return run<true>();
 }
 
@@ -589,17 +589,19 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 	}
 	assert(last_slot > first_slot);
 
-#define C(x) \
-	case x: \
-		if constexpr(stop_on_cpu) {\
-			if(perform_cycle<x, stop_on_cpu>()) {\
-				return x - first_slot;\
-			}\
-		} else {\
-			perform_cycle<x, stop_on_cpu>(); \
-		} \
-		output<x>();	\
-		if((x + 1) == last_slot) break;	\
+#define C(x) 										\
+	case x: 										\
+		output<x>();								\
+													\
+		if constexpr (stop_on_cpu) {				\
+			if(perform_cycle<x, stop_on_cpu>()) {	\
+				return 1 + x - first_slot;			\
+			}										\
+		} else {									\
+			perform_cycle<x, stop_on_cpu>(); 		\
+		} 											\
+													\
+		if((x + 1) == last_slot) break;				\
 		[[fallthrough]]
 
 #define C10(x)	C(x); C(x+1); C(x+2); C(x+3); C(x+4); C(x+5); C(x+6); C(x+7); C(x+8); C(x+9);

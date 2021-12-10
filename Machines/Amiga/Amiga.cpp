@@ -26,6 +26,8 @@
 #include "Keyboard.hpp"
 #include "MemoryMap.hpp"
 
+#include <cassert>
+
 namespace {
 
 // NTSC clock rate: 2*3.579545 = 7.15909Mhz.
@@ -81,15 +83,14 @@ class ConcreteMachine:
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
 
 			// Do a quick advance check for Chip RAM access; add a suitable delay if required.
-			HalfCycles access_delay;
+			HalfCycles total_length;
 			if(cycle.operation & Microcycle::NewAddress && *cycle.address < 0x20'0000) {
-				access_delay = chipset_.run_until_cpu_slot().duration;
+				total_length = chipset_.run_until_after_cpu_slot().duration;
+				assert(total_length >= cycle.length);
+			} else {
+				total_length = cycle.length;
+				chipset_.run_for(total_length);
 			}
-
-			// Compute total length.
-			const HalfCycles total_length = cycle.length + access_delay;
-
-			chipset_.run_for(total_length);
 			mc68000_.set_interrupt_level(chipset_.get_interrupt_level());
 
 			// Check for assertion of reset.
@@ -101,11 +102,11 @@ class ConcreteMachine:
 			// Autovector interrupts.
 			if(cycle.operation & Microcycle::InterruptAcknowledge) {
 				mc68000_.set_is_peripheral_address(true);
-				return access_delay;
+				return total_length - cycle.length;
 			}
 
 			// Do nothing if no address is exposed.
-			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return access_delay;
+			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return total_length - cycle.length;
 
 			// Grab the target address to pick a memory source.
 			const uint32_t address = cycle.host_endian_byte_address();
@@ -165,7 +166,7 @@ class ConcreteMachine:
 				);
 			}
 
-			return access_delay;
+			return total_length - cycle.length;
 		}
 
 		void flush() {
