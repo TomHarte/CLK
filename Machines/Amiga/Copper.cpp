@@ -23,8 +23,9 @@ namespace {
 bool satisfies_raster(uint16_t position, uint16_t blitter_status, uint16_t *instruction) {
 	const uint16_t mask = 0x8000 | (instruction[1] & 0x7ffe);
 	return
-		(position & mask) >= (instruction[0] & mask)
-		&& (!(blitter_status & 0x4000) || (instruction[1] & 0x8000));
+		(position & mask & 0xff00) >= (instruction[0] & mask & 0xff00) &&
+		(position & mask & 0x00ff) >= (instruction[0] & mask & 0x00ff) &&
+		(!(blitter_status & 0x4000) || (instruction[1] & 0x8000));
 }
 
 }
@@ -80,16 +81,18 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 		default: return false;
 
 		case State::Waiting:
-			if(satisfies_raster(position, blitter_status, instruction_)) {
-				LOG("Unblocked waiting for " << PADHEX(4) << instruction_[0] << " at " << position);
-				state_ = State::FetchFirstWord;
+			if(!satisfies_raster(position, blitter_status, instruction_)) {
+				return false;
 			}
-		return false;
+			LOG("Unblocked waiting for " << PADHEX(4) << instruction_[0] << " at " << PADHEX(4) << position << " with mask " << PADHEX(4) << (instruction_[1] & 0x7ffe));
+			state_ = State::FetchFirstWord;
+			[[fallthrough]];
 
 		case State::FetchFirstWord:
 			instruction_[0] = ram_[address_ & ram_mask_];
 			++address_;
 			state_ = State::FetchSecondWord;
+			LOG("First word fetch at " << PADHEX(4) << position);
 		break;
 
 		case State::FetchSecondWord: {
@@ -100,6 +103,7 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 			// Read in the second instruction word.
 			instruction_[1] = ram_[address_ & ram_mask_];
 			++address_;
+			LOG("Second word fetch at " << PADHEX(4) << position);
 
 			// Check for a MOVE.
 			if(!(instruction_[0] & 1)) {
@@ -130,9 +134,10 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 			// Got to here => this is a WAIT or a SKIP.
 
 			if(!(instruction_[1] & 1)) {
-				// A WAIT. Just note that this is now waiting; the proper test
-				// will be applied from the next potential `advance_dma` onwards.
+				// A WAIT. Empirically, I don't think this waits at all if the test is
+				// already satisfied.
 				state_ = State::Waiting;
+				LOG("Will wait from " << PADHEX(4) << position);
 				break;
 			}
 
