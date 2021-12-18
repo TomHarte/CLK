@@ -23,8 +23,8 @@ namespace {
 bool satisfies_raster(uint16_t position, uint16_t blitter_status, uint16_t *instruction) {
 	const uint16_t mask = 0x8000 | (instruction[1] & 0x7ffe);
 	return
-		(position & mask) >= (instruction[0] & mask)
-		&& (!(blitter_status & 0x4000) || (instruction[1] & 0x8000));
+		(position & mask) >= (instruction[0] & mask) &&
+		(!(blitter_status & 0x4000) || (instruction[1] & 0x8000));
 }
 
 }
@@ -81,7 +81,7 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 
 		case State::Waiting:
 			if(satisfies_raster(position, blitter_status, instruction_)) {
-				LOG("Unblocked waiting for " << PADHEX(4) << instruction_[0] << " at " << position);
+				LOG("Unblocked waiting for " << PADHEX(4) << instruction_[0] << " at " << PADHEX(4) << position << " with mask " << PADHEX(4) << (instruction_[1] & 0x7ffe));
 				state_ = State::FetchFirstWord;
 			}
 		return false;
@@ -90,6 +90,7 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 			instruction_[0] = ram_[address_ & ram_mask_];
 			++address_;
 			state_ = State::FetchSecondWord;
+			LOG("First word fetch at " << PADHEX(4) << position);
 		break;
 
 		case State::FetchSecondWord: {
@@ -100,6 +101,7 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 			// Read in the second instruction word.
 			instruction_[1] = ram_[address_ & ram_mask_];
 			++address_;
+			LOG("Second word fetch at " << PADHEX(4) << position);
 
 			// Check for a MOVE.
 			if(!(instruction_[0] & 1)) {
@@ -129,10 +131,13 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 
 			// Got to here => this is a WAIT or a SKIP.
 
+			const bool raster_is_satisfied = satisfies_raster(position, blitter_status, instruction_);
+
 			if(!(instruction_[1] & 1)) {
-				// A WAIT. Just note that this is now waiting; the proper test
-				// will be applied from the next potential `advance_dma` onwards.
-				state_ = State::Waiting;
+				// A WAIT. Empirically, I don't think this waits at all if the test is
+				// already satisfied.
+				state_ = raster_is_satisfied ? State::FetchFirstWord : State::Waiting;
+				if(raster_is_satisfied) LOG("Will wait from " << PADHEX(4) << position);
 				break;
 			}
 
