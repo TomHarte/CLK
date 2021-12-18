@@ -114,14 +114,7 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 						break;
 					}
 
-					// Construct a 68000-esque Microcycle in order to be able to perform the access.
-					CPU::MC68000::Microcycle cycle;
-					cycle.operation = CPU::MC68000::Microcycle::SelectWord;
-					uint32_t full_address = instruction_[0];
-					CPU::RegisterPair16 data = instruction_[1];
-					cycle.address = &full_address;
-					cycle.value = &data;
-					chipset_.perform(cycle);
+					chipset_.write<true>(instruction_[0] & Chipset::ChipsetAddressMask, instruction_[1]);
 				}
 
 				// Roll onto the next command.

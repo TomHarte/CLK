@@ -808,7 +808,7 @@ void Chipset::update_interrupts() {
 void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 	using Microcycle = CPU::MC68000::Microcycle;
 
-	const uint32_t register_address = *cycle.address & 0x1fe;
+	const uint32_t register_address = *cycle.address & ChipsetAddressMask;
 	if(cycle.operation & Microcycle::Read) {
 		cycle.set_value16(read<true>(register_address));
 	} else {

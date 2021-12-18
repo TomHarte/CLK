@@ -110,6 +110,8 @@ class Chipset: private ClockingHint::Observer {
 		// MARK: - Register read/write functions.
 		template <bool allow_conversion> uint16_t read(uint32_t address);
 		template <bool allow_conversion> void write(uint32_t address, uint16_t value);
+		static constexpr uint32_t ChipsetAddressMask = 0x1fe;
+		friend class Copper;
 
 		// MARK: - E Clock and keyboard dividers.
 
