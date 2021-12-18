@@ -8,9 +8,9 @@
 
 #include "Chipset.hpp"
 
-//#ifndef NDEBUG
-//#define NDEBUG
-//#endif
+#ifndef NDEBUG
+#define NDEBUG
+#endif
 
 #define LOG_PREFIX "[Amiga chipset] "
 #include "../../Outputs/Log.hpp"
@@ -317,7 +317,18 @@ template <int cycle> void Chipset::output() {
 	// video to 368 low resolution pixel"
 	//
 	// => 184 windows out of 227 are visible, which concurs.
-	//
+
+	// TODO: Reload bitplanes if anything is pending.
+//	if(has_next_bitplanes_) {
+//		has_next_bitplanes_ = false;
+//		bitplane_pixels_.set(
+//			previous_bitplanes_,
+//			next_bitplanes_,
+//			odd_delay_,
+//			even_delay_
+//		);
+//		previous_bitplanes_ = next_bitplanes_;
+//	}
 
 	// Advance audio.
 	audio_.output();
@@ -457,18 +468,6 @@ template <int cycle> void Chipset::output() {
 	sprite_shifters_[1].shift();
 	sprite_shifters_[2].shift();
 	sprite_shifters_[3].shift();
-
-	// Reload if anything is pending.
-	if(has_next_bitplanes_) {
-		has_next_bitplanes_ = false;
-		bitplane_pixels_.set(
-			previous_bitplanes_,
-			next_bitplanes_,
-			odd_delay_,
-			even_delay_
-		);
-		previous_bitplanes_ = next_bitplanes_;
-	}
 }
 
 void Chipset::flush_output() {
@@ -515,22 +514,66 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	if(cycle == fetch_window_[1]) fetch_stop_ = cycle + (is_high_res_ ? 12 : 8);
 	fetch_horizontal_ &= cycle != fetch_stop_;
 	if((dma_control_ & BitplaneFlag) == BitplaneFlag) {
-		// TODO: offer a cycle for bitplane collection.
-		// Probably need to indicate odd or even?
 		if(fetch_vertical_ && fetch_horizontal_ && bitplanes_.advance_dma(cycle)) {
 			did_fetch_ = true;
 			return false;
 		}
 	}
 
+	// Contradictory snippets from the Hardware Reference manual:
+	//
+	// 1)
+	// The Copper is a two-cycle processor that requests the bus only during
+	// odd-numbered memory cycles. This prevents collision with audio, disk,
+	// refresh, sprites, and most low resolution display DMA access, all of which
+	// use only the even-numbered memory cycles.
+	//
+	// 2)
+	//  |<- - - - - - - - average 68000 cycle - - - - - - - - ->|
+	//  |                                                       |
+	//  |<- - - - internal  - - - ->|<- - - - - memory  - - - ->|
+	//  |         operation         |           access          |
+	//  |         portion           |           portion         |
+	//  |                           |                           |
+	//  |        odd cycle,         |         even cycle,       |
+	//  |        assigned to        |         available to      |
+	//  |        other devices      |         the 68000         |
+	//
+	//				Figure 6-10: Normal 68000 Cycle
+
+	// There's also Figure 6-9, which in theory nails down slot usage, but
+	// numbers the boundaries between slots rather than the slots themselves...
+	// and has nine slots depicted between positions $20 and $21. So
+	// whether the boundary numbers assign to the slots on their left or on
+	// their right is entirely opaque.
+
+	// I therefore take the word of Toni Wilen via https://eab.abime.net/showpost.php?p=938307&postcount=2
+	// as definitive: "CPU ... generally ... uses even [cycles] only".
+	//
+	// So probably the Copper requests the bus only on _even_ cycles?
+
+
+	// General rule:
+	//
+	//	Chipset work on odd cycles, 68000 access on even.
+	//
+	// Exceptions:
+	//
+	//	Bitplanes, the Blitter if a flag is set.
+
 	if constexpr (cycle & 1) {
 		// Odd slot use/priority:
 		//
 		//	1. Bitplane fetches [dealt with above].
-		//	2. Refresh, disk, audio, or sprites. Depending on region.
+		//	2. Refresh, disk, audio, sprites or Copper. Depending on region.
 		//
 		// Blitter and CPU priority is dealt with below.
-		if constexpr (cycle >= 0x07 && cycle < 0x0d) {
+		if constexpr (cycle >= 0x00 && cycle < 0x08) {
+			// Memory refresh, four slots per line.
+			return true;
+		}
+
+		if constexpr (cycle >= 0x08 && cycle < 0x0e) {
 			if((dma_control_ & DiskFlag) == DiskFlag) {
 				if(disk_.advance_dma()) {
 					return false;
@@ -538,9 +581,10 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 			}
 		}
 
-		if constexpr (cycle >= 0xd && cycle < 0x14) {
-			constexpr auto channel = (cycle - 0xd) >> 1;
+		if constexpr (cycle >= 0xe && cycle < 0x16) {
+			constexpr auto channel = (cycle - 0xe) >> 1;
 			static_assert(channel >= 0 && channel < 4);
+			static_assert(cycle != 0x15 || channel == 3);
 
 			if((dma_control_ & AudioFlags[channel]) == AudioFlags[channel]) {
 				if(audio_.advance_dma(channel)) {
@@ -549,23 +593,23 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 			}
 		}
 
-		if constexpr (cycle >= 0x15 && cycle < 0x35) {
+		if constexpr (cycle >= 0x16 && cycle < 0x36) {
 			if((dma_control_ & SpritesFlag) == SpritesFlag && y_ >= vertical_blank_height_) {
-				constexpr auto sprite_id = (cycle - 0x15) >> 2;
+				constexpr auto sprite_id = (cycle - 0x16) >> 2;
 				static_assert(sprite_id >= 0 && sprite_id < std::tuple_size<decltype(sprites_)>::value);
 
-				if(sprites_[sprite_id].advance_dma(cycle&2)) {
+				if(sprites_[sprite_id].advance_dma(!(cycle&2))) {
 					return false;
 				}
 			}
 		}
 	} else {
-		// Bitplanes being dealt with, specific odd-cycle responsibility
+		// Bitplanes having been dealt with, specific even-cycle responsibility
 		// is just possibly to pass to the Copper.
 		//
 		// The Blitter and CPU are dealt with outside of the odd/even test.
 		if((dma_control_ & CopperFlag) == CopperFlag) {
-			if(copper_.advance_dma(uint16_t(((y_ & 0xff) << 8) | (cycle & 0xfe)), blitter_.get_status())) {
+			if(copper_.advance_dma(uint16_t(((y_ & 0xff) << 8) | cycle), blitter_.get_status())) {
 				return false;
 			}
 		} else {
@@ -726,11 +770,17 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 }
 
 void Chipset::post_bitplanes(const BitplaneData &data) {
-	// Posted bitplanes should be received at the end of the
-	// current memory slot. So put them aside for now, and
-	// deal with them momentarily.
-	has_next_bitplanes_ = true;
+	// For now this retains the storage that'll be used when I switch to
+	// deferred loading, but continues to act as if the Amiga were barrel
+	// shifting bitplane data.
 	next_bitplanes_ = data;
+	bitplane_pixels_.set(
+		previous_bitplanes_,
+		next_bitplanes_,
+		odd_delay_,
+		even_delay_
+	);
+	previous_bitplanes_ = next_bitplanes_;
 }
 
 void Chipset::update_interrupts() {
