@@ -108,8 +108,8 @@ class Chipset: private ClockingHint::Observer {
 		friend class DMADeviceBase;
 
 		// MARK: - Register read/write functions.
-		uint16_t read(uint32_t address);
-		void write(uint32_t address, uint16_t value);
+		template <bool allow_conversion> uint16_t read(uint32_t address);
+		template <bool allow_conversion> void write(uint32_t address, uint16_t value);
 
 		// MARK: - E Clock and keyboard dividers.
 
