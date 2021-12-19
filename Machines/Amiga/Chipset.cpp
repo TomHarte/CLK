@@ -808,12 +808,16 @@ void Chipset::update_interrupts() {
 void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 	using Microcycle = CPU::MC68000::Microcycle;
 
-#define RW(address)		address | ((cycle.operation & Microcycle::Read) << 12)
-#define Read(address)	address | (Microcycle::Read << 12)
-#define Write(address)	address
+	const uint32_t register_address = *cycle.address & ChipsetAddressMask;
+	if(cycle.operation & Microcycle::Read) {
+		cycle.set_value16(read(register_address));
+	} else {
+		write(register_address, cycle.value16());
+	}
+}
 
+void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 #define ApplySetClear(target, mask)	{		\
-	const uint16_t value = cycle.value16();	\
 	if(value & 0x8000) {					\
 		target |= (value & mask);			\
 	} else {								\
@@ -821,40 +825,15 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 	}										\
 }
 
-	const uint32_t register_address = *cycle.address & 0x1fe;
-	switch(RW(register_address)) {
+	switch(address & ChipsetAddressMask) {
 		default:
-			LOG("Unimplemented chipset " << (cycle.operation & Microcycle::Read ? "read" : "write") <<  " " << PADHEX(6) << *cycle.address);
-			if(cycle.operation & Microcycle::Read) {
-				cycle.set_value16(0xffff);
-			}
+			// If there was nothing to write, perform a throwaway read.
+			if(allow_conversion) read(address, false);
 		break;
 
 		// Raster position.
-		case Read(0x004): {		// VPOSR; b15 = LOF, b0 = b8 of y position.
-			const uint16_t position = uint16_t(y_ >> 8);
-			cycle.set_value16(
-				position |
-				(is_long_field_ ? 0x8000 : 0x0000)
-			);
-
-			// b8–b14 should be:
-			//	00 for PAL Agnus or fat Agnus
-			//	10 for NTSC Agnus or fat Agnus
-			//	20 for PAL high-res
-			//	30 for NTSC high-res
-		} break;
-		case Read(0x006): {		// VHPOSR; b0–b7 = horizontal; b8–b15 = low bits of vertical position.
-			const uint16_t position = uint16_t(((line_cycle_ >> 1) & 0x00ff) | (y_ << 8));
-			cycle.set_value16(position);
-		} break;
-
-		case Read(0x00e): {		// CLXDAT
-			cycle.set_value16(collisions_);
-			collisions_ = 0;
-		} break;
-		case Write(0x098):		// CLXCON
-			collisions_flags_ = cycle.value16();
+		case 0x098:		// CLXCON
+			collisions_flags_ = value;
 
 			// Produce appropriate bitfield manipulation values, including shuffling the bits.
 			playfield_collision_mask_ = bitplane_swizzle(uint32_t((collisions_flags_ & 0xfc0) >> 6));
@@ -864,42 +843,29 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			playfield_collision_complement_ |= (playfield_collision_complement_ << 8) | (playfield_collision_complement_ << 16) | (playfield_collision_complement_ << 24);
 		break;
 
-		case Write(0x02a):		// VPOSW
-			LOG("TODO: write vertical position high " << PADHEX(4) << cycle.value16());
+		case 0x02a:		// VPOSW
+			LOG("TODO: write vertical position high " << PADHEX(4) << value);
 		break;
-		case Write(0x02c): {	// VHPOSW
-			LOG("TODO: write vertical position low " << PADHEX(4) << cycle.value16());
-
-			const uint16_t value = cycle.value16();
+		case 0x02c:		// VHPOSW
+			LOG("TODO: write vertical position low " << PADHEX(4) << value);
 			is_long_field_ = value & 0x8000;
-		} break;
+		break;
 
 		// Joystick/mouse input.
-		case Read(0x00a):		// JOY0DAT
-			cycle.set_value16(mouse_.get_position());
-		break;
-		case Read(0x00c):		// JOY1DAT
-			cycle.set_value16(joystick(0).get_position());
-		break;
-
-		case Write(0x034):		// POTGO
+		case 0x034:		// POTGO
 //			LOG("TODO: pot port start");
-		break;
-		case Read(0x016):		// POTGOR / POTINP
-//			LOG("TODO: pot port read");
-			cycle.set_value16(0xff00);
 		break;
 
 		// Disk DMA and control.
-		case Write(0x020):	disk_.set_pointer<0, 16>(cycle.value16());	break;		// DSKPTH
-		case Write(0x022):	disk_.set_pointer<0, 0>(cycle.value16());	break;		// DSKPTL
-		case Write(0x024):	disk_.set_length(cycle.value16());			break;		// DSKLEN
+		case 0x020:	disk_.set_pointer<0, 16>(value);	break;		// DSKPTH
+		case 0x022:	disk_.set_pointer<0, 0>(value);		break;		// DSKPTL
+		case 0x024:	disk_.set_length(value);			break;		// DSKLEN
 
-		case Write(0x026):		// DSKDAT
-			LOG("TODO: disk DMA; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+		case 0x026:		// DSKDAT
+			LOG("TODO: disk DMA; " << PADHEX(4) << value << " to " << address);
 		break;
 
-		case Write(0x09e):		// ADKCON
+		case 0x09e:		// ADKCON
 			LOG("Write disk control");
 			ApplySetClear(paula_disk_control_, 0x7fff);
 
@@ -907,188 +873,148 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			disk_.set_control(paula_disk_control_);
 			audio_.set_modulation_flags(paula_disk_control_);
 		break;
-		case Read(0x010):		// ADKCONR
-			LOG("Read disk control");
-			cycle.set_value16(paula_disk_control_);
-		break;
 
-		case Write(0x07e):		// DSKSYNC
-			disk_controller_.set_sync_word(cycle.value16());
-		break;
-		case Read(0x01a):		// DSKBYTR
-			LOG("TODO: disk status");
-			assert(false);	// Not yet implemented.
+		case 0x07e:		// DSKSYNC
+			disk_controller_.set_sync_word(value);
 		break;
 
 		// Refresh.
-		case Write(0x028):		// REFPTR
-			LOG("TODO (maybe): refresh; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+		case 0x028:		// REFPTR
+			LOG("TODO (maybe): refresh; " << PADHEX(4) << value << " to " << PADHEX(8) << address);
 		break;
 
 		// Serial port.
-		case Read(0x018):		// SERDATR
-			LOG("TODO: serial data and status");
-			cycle.set_value16(0x3000);	// i.e. transmit buffer empty.
+		case 0x030:		// SERDAT
+			LOG("TODO: serial data: " << PADHEX(4) << value);
 		break;
-		case Write(0x030):		// SERDAT
-			LOG("TODO: serial data: " << PADHEX(4) << cycle.value16());
-		break;
-		case Write(0x032):		// SERPER
-			LOG("TODO: serial control: " << PADHEX(4) << cycle.value16());
-			serial_.set_control(cycle.value16());
+		case 0x032:		// SERPER
+			LOG("TODO: serial control: " << PADHEX(4) << value);
+			serial_.set_control(value);
 		break;
 
 		// DMA management.
-		case Read(0x002):		// DMACONR
-			cycle.set_value16(dma_control_ | blitter_.get_status());
-		break;
-		case Write(0x096):		// DMACON
+		case 0x096:		// DMACON
 			ApplySetClear(dma_control_, 0x1fff);
 			audio_.set_channel_enables(dma_control_);
 		break;
 
 		// Interrupts.
-		case Write(0x09a):		// INTENA
+		case 0x09a:		// INTENA
 			ApplySetClear(interrupt_enable_, 0x7fff);
 			update_interrupts();
 		break;
-		case Read(0x01c):		// INTENAR
-			cycle.set_value16(interrupt_enable_);
-		break;
-
-		case Write(0x09c):		// INTREQ
+		case 0x09c:		// INTREQ
 			ApplySetClear(interrupt_requests_, 0x7fff);
 			update_interrupts();
 		break;
-		case Read(0x01e):		// INTREQR
-			cycle.set_value16(interrupt_requests_);
-		break;
 
 		// Display management.
-		case Write(0x08e): {	// DIWSTRT
-			const uint16_t value = cycle.value16();
+		case 0x08e:		// DIWSTRT
 			display_window_start_[0] = value & 0xff;
 			display_window_start_[1] = value >> 8;
-		} break;
-		case Write(0x090): {	// DIWSTOP
-			const uint16_t value = cycle.value16();
+		break;
+		case 0x090:	// DIWSTOP
 			display_window_stop_[0] = 0x100 | (value & 0xff);
 			display_window_stop_[1] = value >> 8;
 			display_window_stop_[1] |= ((value >> 7) & 0x100) ^ 0x100;
-		} break;
-		case Write(0x092):		// DDFSTRT
-			if(fetch_window_[0] != cycle.value16()) {
-				LOG("Fetch window start set to " << std::dec << cycle.value16());
-			}
-			fetch_window_[0] = cycle.value16();
 		break;
-		case Write(0x094):		// DDFSTOP
+		case 0x092:		// DDFSTRT
+			if(fetch_window_[0] != value) {
+				LOG("Fetch window start set to " << std::dec << value);
+			}
+			fetch_window_[0] = value;
+		break;
+		case 0x094:		// DDFSTOP
 			// TODO: something in my interpretation of ddfstart and ddfstop
 			// means a + 8 is needed below for high-res displays. Investigate.
-			if(fetch_window_[1] != cycle.value16()) {
+			if(fetch_window_[1] != value) {
 				LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
 			}
-			fetch_window_[1] = cycle.value16();
+			fetch_window_[1] = value;
 		break;
 
 		// Bitplanes.
-		case Write(0x0e0):	bitplanes_.set_pointer<0, 16>(cycle.value16());	break;	// BPL1PTH
-		case Write(0x0e2):	bitplanes_.set_pointer<0, 0>(cycle.value16());	break;	// BPL1PTL
-		case Write(0x0e4):	bitplanes_.set_pointer<1, 16>(cycle.value16());	break;	// BPL2PTH
-		case Write(0x0e6):	bitplanes_.set_pointer<1, 0>(cycle.value16());	break;	// BPL2PTL
-		case Write(0x0e8):	bitplanes_.set_pointer<2, 16>(cycle.value16());	break;	// BPL3PTH
-		case Write(0x0ea):	bitplanes_.set_pointer<2, 0>(cycle.value16());	break;	// BPL3PTL
-		case Write(0x0ec):	bitplanes_.set_pointer<3, 16>(cycle.value16());	break;	// BPL4PTH
-		case Write(0x0ee):	bitplanes_.set_pointer<3, 0>(cycle.value16());	break;	// BPL4PTL
-		case Write(0x0f0):	bitplanes_.set_pointer<4, 16>(cycle.value16());	break;	// BPL5PTH
-		case Write(0x0f2):	bitplanes_.set_pointer<4, 0>(cycle.value16());	break;	// BPL5PTL
-		case Write(0x0f4):	bitplanes_.set_pointer<5, 16>(cycle.value16());	break;	// BPL6PTH
-		case Write(0x0f6):	bitplanes_.set_pointer<5, 0>(cycle.value16());	break;	// BPL6PTL
+		case 0x0e0:	bitplanes_.set_pointer<0, 16>(value);	break;	// BPL1PTH
+		case 0x0e2:	bitplanes_.set_pointer<0, 0>(value);	break;	// BPL1PTL
+		case 0x0e4:	bitplanes_.set_pointer<1, 16>(value);	break;	// BPL2PTH
+		case 0x0e6:	bitplanes_.set_pointer<1, 0>(value);	break;	// BPL2PTL
+		case 0x0e8:	bitplanes_.set_pointer<2, 16>(value);	break;	// BPL3PTH
+		case 0x0ea:	bitplanes_.set_pointer<2, 0>(value);	break;	// BPL3PTL
+		case 0x0ec:	bitplanes_.set_pointer<3, 16>(value);	break;	// BPL4PTH
+		case 0x0ee:	bitplanes_.set_pointer<3, 0>(value);	break;	// BPL4PTL
+		case 0x0f0:	bitplanes_.set_pointer<4, 16>(value);	break;	// BPL5PTH
+		case 0x0f2:	bitplanes_.set_pointer<4, 0>(value);	break;	// BPL5PTL
+		case 0x0f4:	bitplanes_.set_pointer<5, 16>(value);	break;	// BPL6PTH
+		case 0x0f6:	bitplanes_.set_pointer<5, 0>(value);	break;	// BPL6PTL
 
-		case Write(0x100): {	// BPLCON0
-			const auto value = cycle.value16();
+		case 0x100:	// BPLCON0
 			bitplanes_.set_control(value);
 			is_high_res_ = value & 0x8000;
 			hold_and_modify_ = value & 0x0800;
 			dual_playfields_ = value & 0x0400;
 			interlace_ = value & 0x0004;
-
-//			LOG("New video control at " << std::dec << y_ << "; high res: " << is_high_res_ << " HAM: " << hold_and_modify_ << " dual: " << dual_playfields_ << " interlace: " << interlace_);
-		} break;
-		case Write(0x102): {	// BPLCON1
-			const uint8_t delay = cycle.value8_low();
-			odd_delay_ = delay & 0x0f;
-			even_delay_ = delay >> 4;
-		} break;
-		case Write(0x104): {	// BPLCON2
-			const auto value = cycle.value16();
+		break;
+		case 0x102:	// BPLCON1
+			odd_delay_ = value & 0x0f;
+			even_delay_ = (value >> 4) & 0x0f;
+		break;
+		case 0x104:	// BPLCON2
 			odd_priority_ = value & 7;				// i.e. "Playfield 1"; planes 1, 3 and 5.
 			even_priority_ = (value >> 3) & 7;		// i.e. "Playfield 2"; planes 2, 4 and 6.
 			even_over_odd_ = value & 0x40;
-		} break;
-
-		case Write(0x106):		// BPLCON3 (ECS)
-			LOG("TODO: Bitplane control; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
 		break;
 
-		case Write(0x108):	bitplanes_.set_modulo<0>(cycle.value16());	break;	// BPL1MOD
-		case Write(0x10a):	bitplanes_.set_modulo<1>(cycle.value16());	break;	// BPL2MOD
-
-		case Write(0x110):
-		case Write(0x112):
-		case Write(0x114):
-		case Write(0x116):
-		case Write(0x118):
-		case Write(0x11a):
-			LOG("TODO: Bitplane data; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+		case 0x106:		// BPLCON3 (ECS)
+			LOG("TODO: Bitplane control; " << PADHEX(4) << value << " to " << PADHEX(8) << address);
 		break;
 
-		case Read(0x110):	case Read(0x112):	case Read(0x114):	case Read(0x116):
-		case Read(0x118):	case Read(0x11a):
-			cycle.set_value16(0xffff);
-			LOG("Invalid read at " << PADHEX(6) << *cycle.address);
+		case 0x108:	bitplanes_.set_modulo<0>(value);	break;	// BPL1MOD
+		case 0x10a:	bitplanes_.set_modulo<1>(value);	break;	// BPL2MOD
+
+		case 0x110:
+		case 0x112:
+		case 0x114:
+		case 0x116:
+		case 0x118:
+		case 0x11a:
+			LOG("TODO: Bitplane data; " << PADHEX(4) << value << " to " << PADHEX(8) << address);
 		break;
 
 		// Blitter.
-		case Read(0x040):	blitter_.set_control(0, 0xffff);				break;	// UGH. Have fallen into quite a hole here with my
-		case Read(0x042):	blitter_.set_control(1, 0xffff);				break;	// Read/Write macros. TODO: some sort of canonical decode?
-																					// Templatey to hit the usual Read/Write cases first?
-		case Write(0x040):	blitter_.set_control(0, cycle.value16());		break;
-		case Write(0x042):	blitter_.set_control(1, cycle.value16());		break;
-		case Write(0x044):	blitter_.set_first_word_mask(cycle.value16());	break;
-		case Write(0x046):	blitter_.set_last_word_mask(cycle.value16());	break;
+		case 0x040:	blitter_.set_control(0, value);			break;
+		case 0x042:	blitter_.set_control(1, value);			break;
+		case 0x044:	blitter_.set_first_word_mask(value);	break;
+		case 0x046:	blitter_.set_last_word_mask(value);		break;
 
-		case Write(0x048):	blitter_.set_pointer<2, 16>(cycle.value16());	break;
-		case Write(0x04a):	blitter_.set_pointer<2, 0>(cycle.value16());	break;
-		case Write(0x04c):	blitter_.set_pointer<1, 16>(cycle.value16());	break;
-		case Write(0x04e):	blitter_.set_pointer<1, 0>(cycle.value16());	break;
-		case Write(0x050):	blitter_.set_pointer<0, 16>(cycle.value16());	break;
-		case Write(0x052):	blitter_.set_pointer<0, 0>(cycle.value16());	break;
-		case Write(0x054):	blitter_.set_pointer<3, 16>(cycle.value16());	break;
-		case Write(0x056):	blitter_.set_pointer<3, 0>(cycle.value16());	break;
+		case 0x048:	blitter_.set_pointer<2, 16>(value);	break;
+		case 0x04a:	blitter_.set_pointer<2, 0>(value);	break;
+		case 0x04c:	blitter_.set_pointer<1, 16>(value);	break;
+		case 0x04e:	blitter_.set_pointer<1, 0>(value);	break;
+		case 0x050:	blitter_.set_pointer<0, 16>(value);	break;
+		case 0x052:	blitter_.set_pointer<0, 0>(value);	break;
+		case 0x054:	blitter_.set_pointer<3, 16>(value);	break;
+		case 0x056:	blitter_.set_pointer<3, 0>(value);	break;
 
-		case Write(0x058):	blitter_.set_size(cycle.value16());				break;
-		case Write(0x05a):	blitter_.set_minterms(cycle.value16());			break;
-//		case Write(0x05c):	blitter_.set_vertical_size(cycle.value16());	break;
-//		case Write(0x05e):	blitter_.set_horizontal_size(cycle.value16());	break;
+		case 0x058:	blitter_.set_size(value);			break;
+		case 0x05a:	blitter_.set_minterms(value);		break;
 
-		case Write(0x060):	blitter_.set_modulo<2>(cycle.value16());		break;
-		case Write(0x062):	blitter_.set_modulo<1>(cycle.value16());		break;
-		case Write(0x064):	blitter_.set_modulo<0>(cycle.value16());		break;
-		case Write(0x066):	blitter_.set_modulo<3>(cycle.value16());		break;
+		case 0x060:	blitter_.set_modulo<2>(value);		break;
+		case 0x062:	blitter_.set_modulo<1>(value);		break;
+		case 0x064:	blitter_.set_modulo<0>(value);		break;
+		case 0x066:	blitter_.set_modulo<3>(value);		break;
 
-		case Write(0x070):	blitter_.set_data(2, cycle.value16());			break;
-		case Write(0x072):	blitter_.set_data(1, cycle.value16());			break;
-		case Write(0x074):	blitter_.set_data(0, cycle.value16());			break;
+		case 0x070:	blitter_.set_data(2, value);		break;
+		case 0x072:	blitter_.set_data(1, value);		break;
+		case 0x074:	blitter_.set_data(0, value);		break;
 
 		// Audio.
 #define Audio(index, pointer)	\
-		case Write(pointer + 0):	audio_.set_pointer<index, 16>(cycle.value16());	break;	\
-		case Write(pointer + 2):	audio_.set_pointer<index, 0>(cycle.value16());	break;	\
-		case Write(pointer + 4):	audio_.set_length(index, cycle.value16());		break;	\
-		case Write(pointer + 6):	audio_.set_period(index, cycle.value16());		break;	\
-		case Write(pointer + 8):	audio_.set_volume(index, cycle.value16());		break;	\
-		case Write(pointer + 10):	audio_.set_data(index, cycle.value16());		break;	\
+		case pointer + 0:	audio_.set_pointer<index, 16>(value);	break;	\
+		case pointer + 2:	audio_.set_pointer<index, 0>(value);	break;	\
+		case pointer + 4:	audio_.set_length(index, value);		break;	\
+		case pointer + 6:	audio_.set_period(index, value);		break;	\
+		case pointer + 8:	audio_.set_volume(index, value);		break;	\
+		case pointer + 10:	audio_.set_data(index, value);			break;	\
 
 		Audio(0, 0x0a0);
 		Audio(1, 0x0b0);
@@ -1098,29 +1024,25 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 #undef Audio
 
 		// Copper.
-		case Write(0x02e):	copper_.set_control(cycle.value16());			break;	// COPCON
-		case Write(0x080):	copper_.set_pointer<0, 16>(cycle.value16());	break;	// COP1LCH
-		case Write(0x082):	copper_.set_pointer<0, 0>(cycle.value16());		break;	// COP1LCL
-		case Write(0x084):	copper_.set_pointer<1, 16>(cycle.value16());	break;	// COP2LCH
-		case Write(0x086):	copper_.set_pointer<1, 0>(cycle.value16());		break;	// COP2LCL
-		case Write(0x088):	case Read(0x088):
-			copper_.reload<0>();
-		break;
-		case Write(0x08a):	case Read(0x08a):
-			copper_.reload<1>();
-		break;
-		case Write(0x08c):
-			LOG("TODO: coprocessor instruction fetch identity " << PADHEX(4) << cycle.value16());
+		case 0x02e:	copper_.set_control(value);			break;	// COPCON
+		case 0x080:	copper_.set_pointer<0, 16>(value);	break;	// COP1LCH
+		case 0x082:	copper_.set_pointer<0, 0>(value);	break;	// COP1LCL
+		case 0x084:	copper_.set_pointer<1, 16>(value);	break;	// COP2LCH
+		case 0x086:	copper_.set_pointer<1, 0>(value);	break;	// COP2LCL
+		case 0x088:	copper_.reload<0>();				break;
+		case 0x08a:	copper_.reload<1>();				break;
+		case 0x08c:
+			LOG("TODO: coprocessor instruction fetch identity " << PADHEX(4) << value);
 		break;
 
 		// Sprites.
 #define Sprite(index, pointer, position)	\
-		case Write(pointer + 0):	sprites_[index].set_pointer<0, 16>(cycle.value16());	break;	\
-		case Write(pointer + 2):	sprites_[index].set_pointer<0, 0>(cycle.value16());		break;	\
-		case Write(position + 0):	sprites_[index].set_start_position(cycle.value16());	break;	\
-		case Write(position + 2):	sprites_[index].set_stop_and_control(cycle.value16());	break;	\
-		case Write(position + 4):	sprites_[index].set_image_data(0, cycle.value16());		break;	\
-		case Write(position + 6):	sprites_[index].set_image_data(1, cycle.value16());		break;
+		case pointer + 0:	sprites_[index].set_pointer<0, 16>(value);		break;	\
+		case pointer + 2:	sprites_[index].set_pointer<0, 0>(value);		break;	\
+		case position + 0:	sprites_[index].set_start_position(value);		break;	\
+		case position + 2:	sprites_[index].set_stop_and_control(value);	break;	\
+		case position + 4:	sprites_[index].set_image_data(0, value);		break;	\
+		case position + 6:	sprites_[index].set_image_data(1, value);		break;
 
 		Sprite(0, 0x120, 0x140);
 		Sprite(1, 0x124, 0x148);
@@ -1134,19 +1056,15 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 #undef Sprite
 
 		// Colour palette.
-		case Write(0x180):	case Write(0x182):	case Write(0x184):	case Write(0x186):
-		case Write(0x188):	case Write(0x18a):	case Write(0x18c):	case Write(0x18e):
-		case Write(0x190):	case Write(0x192):	case Write(0x194):	case Write(0x196):
-		case Write(0x198):	case Write(0x19a):	case Write(0x19c):	case Write(0x19e):
-		case Write(0x1a0):	case Write(0x1a2):	case Write(0x1a4):	case Write(0x1a6):
-		case Write(0x1a8):	case Write(0x1aa):	case Write(0x1ac):	case Write(0x1ae):
-		case Write(0x1b0):	case Write(0x1b2):	case Write(0x1b4):	case Write(0x1b6):
-		case Write(0x1b8):	case Write(0x1ba):	case Write(0x1bc):	case Write(0x1be): {
+		case 0x180:	case 0x182:	case 0x184:	case 0x186:	case 0x188:	case 0x18a:	case 0x18c:	case 0x18e:
+		case 0x190:	case 0x192:	case 0x194:	case 0x196:	case 0x198:	case 0x19a:	case 0x19c:	case 0x19e:
+		case 0x1a0:	case 0x1a2:	case 0x1a4:	case 0x1a6:	case 0x1a8:	case 0x1aa:	case 0x1ac:	case 0x1ae:
+		case 0x1b0:	case 0x1b2:	case 0x1b4:	case 0x1b6:	case 0x1b8:	case 0x1ba:	case 0x1bc:	case 0x1be: {
 			// Store once in regular, linear order.
-			const auto entry_address = (register_address - 0x180) >> 1;
+			const auto entry_address = (address - 0x180) >> 1;
 			uint8_t *const entry = reinterpret_cast<uint8_t *>(&palette_[entry_address]);
-			entry[0] = cycle.value8_high();
-			entry[1] = cycle.value8_low();
+			entry[0] = value >> 8;
+			entry[1] = value & 0xff;
 
 			// Also store in bit-swizzled order. In this array,
 			// instead of being indexed as [b4 b3 b2 b1 b0], index
@@ -1154,8 +1072,8 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 			// 32 colours, stored as half-bright.
 			const auto swizzled_address = bitplane_swizzle(entry_address & 0x1f);
 			uint8_t *const swizzled_entry = reinterpret_cast<uint8_t *>(&swizzled_palette_[swizzled_address]);
-			swizzled_entry[0] = cycle.value8_high();
-			swizzled_entry[1] = cycle.value8_low();
+			swizzled_entry[0] = value >> 8;
+			swizzled_entry[1] = value & 0xff;
 
 			swizzled_entry[64] = (swizzled_entry[0] >> 1) & 0x77;
 			swizzled_entry[65] = (swizzled_entry[1] >> 1) & 0x77;
@@ -1163,12 +1081,70 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 	}
 
 #undef ApplySetClear
-
-#undef Write
-#undef Read
-#undef RW
 }
 
+uint16_t Chipset::read(uint32_t address, bool allow_conversion) {
+	switch(address & ChipsetAddressMask) {
+		default:
+			// If there was nothing to read, perform a write.
+			// TODO: Rather than 0xffff, should be whatever is left on the bus, vapour-lock style.
+			if(allow_conversion) write(address, 0xffff, false);
+		return 0xffff;
+
+		// Raster position.
+		case 0x004: {		// VPOSR; b15 = LOF, b0 = b8 of y position.
+			const uint16_t position = uint16_t(y_ >> 8);
+			return
+				position |
+				(is_long_field_ ? 0x8000 : 0x0000);
+
+			// b8–b14 should be:
+			//	00 for PAL Agnus or fat Agnus
+			//	10 for NTSC Agnus or fat Agnus
+			//	20 for PAL high-res
+			//	30 for NTSC high-res
+		}
+		case 0x006: {		// VHPOSR; b0–b7 = horizontal; b8–b15 = low bits of vertical position.
+			const uint16_t position = uint16_t(((line_cycle_ >> 1) & 0x00ff) | (y_ << 8));
+			return position;
+		}
+
+		case 0x00e: {		// CLXDAT
+			const uint16_t result = collisions_;
+			collisions_ = 0;
+			return result;
+		};
+
+		// Joystick/mouse input.
+		case 0x00a:	return mouse_.get_position();			// JOY0DAT
+		case 0x00c:	return joystick(0).get_position();		// JOY1DAT
+
+		case 0x016:		// POTGOR / POTINP
+//			LOG("TODO: pot port read");
+		return 0xff00;
+
+		// Disk DMA and control.
+		case 0x010:		// ADKCONR
+			LOG("Read disk control");
+		return paula_disk_control_;
+		case 0x01a:		// DSKBYTR
+			LOG("TODO: disk status");
+			assert(false);	// Not yet implemented.
+		return 0xffff;
+
+		// Serial port.
+		case 0x018:		// SERDATR
+			LOG("TODO: serial data and status");
+		return 0x3000;	// i.e. transmit buffer empty.
+
+		// DMA management.
+		case 0x002:	return dma_control_ | blitter_.get_status();		// DMACONR
+
+		// Interrupts.
+		case 0x01c:	return interrupt_enable_;							// INTENAR
+		case 0x01e:	return interrupt_requests_;							// INTREQR
+	}
+}
 
 // MARK: - CRT connection.
 
