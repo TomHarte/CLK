@@ -21,6 +21,98 @@
 
 using namespace Amiga;
 
+namespace {
+
+/// @returns Either the final carry flag or the output nibble when using fill mode given that it either @c is_exclusive fill mode, or isn't;
+/// and the specified initial @c carry and input @c nibble.
+template <bool wants_carry> constexpr uint32_t fill_nibble(bool is_exclusive, uint8_t carry, uint8_t nibble) {
+	uint8_t fill_output = 0;
+	uint8_t bit = 0x01;
+	while(bit < 0x10) {
+		auto pre_toggle = nibble & bit, post_toggle = pre_toggle;
+		if(!is_exclusive) {
+			pre_toggle &= ~carry;	// Accept bits that would transition to set immediately.
+			post_toggle &= carry;	// Accept bits that would transition to clear after the fact.
+		} else {
+			post_toggle = 0;		// Just do the pre-toggle.
+		}
+
+		carry ^= pre_toggle;
+		fill_output |= carry;
+		carry ^= post_toggle;
+
+		bit <<= 1;
+		carry <<= 1;
+	}
+
+	if constexpr (wants_carry) {
+		return carry >> 4;
+	} else {
+		return fill_output;
+	}
+}
+
+// Lookup key for these tables is:
+//
+//		b0–b3: input nibble
+//		b4: carry
+//		b5: is_exclusive
+//
+// i.e. it's in the range [0, 63].
+//
+// Tables below are indexed such that the higher-order bits select a table entry, lower-order bits select
+// a bit or nibble from within the indexed item.
+
+constexpr uint32_t fill_carries[] = {
+	(fill_nibble<true>(false, 0, 0x0) << 0x0) | (fill_nibble<true>(false, 0, 0x1) << 0x1) | (fill_nibble<true>(false, 0, 0x2) << 0x2) | (fill_nibble<true>(false, 0, 0x3) << 0x3) |
+	(fill_nibble<true>(false, 0, 0x4) << 0x4) | (fill_nibble<true>(false, 0, 0x5) << 0x5) | (fill_nibble<true>(false, 0, 0x6) << 0x6) | (fill_nibble<true>(false, 0, 0x7) << 0x7) |
+	(fill_nibble<true>(false, 0, 0x8) << 0x8) | (fill_nibble<true>(false, 0, 0x9) << 0x9) | (fill_nibble<true>(false, 0, 0xa) << 0xa) | (fill_nibble<true>(false, 0, 0xb) << 0xb) |
+	(fill_nibble<true>(false, 0, 0xc) << 0xc) | (fill_nibble<true>(false, 0, 0xd) << 0xd) | (fill_nibble<true>(false, 0, 0xe) << 0xe) | (fill_nibble<true>(false, 0, 0xf) << 0xf) |
+
+	(fill_nibble<true>(false, 1, 0x0) << 0x10) | (fill_nibble<true>(false, 1, 0x1) << 0x11) | (fill_nibble<true>(false, 1, 0x2) << 0x12) | (fill_nibble<true>(false, 1, 0x3) << 0x13) |
+	(fill_nibble<true>(false, 1, 0x4) << 0x14) | (fill_nibble<true>(false, 1, 0x5) << 0x15) | (fill_nibble<true>(false, 1, 0x6) << 0x16) | (fill_nibble<true>(false, 1, 0x7) << 0x17) |
+	(fill_nibble<true>(false, 1, 0x8) << 0x18) | (fill_nibble<true>(false, 1, 0x9) << 0x19) | (fill_nibble<true>(false, 1, 0xa) << 0x1a) | (fill_nibble<true>(false, 1, 0xb) << 0x1b) |
+	(fill_nibble<true>(false, 1, 0xc) << 0x1c) | (fill_nibble<true>(false, 1, 0xd) << 0x1d) | (fill_nibble<true>(false, 1, 0xe) << 0x1e) | (fill_nibble<true>(false, 1, 0xf) << 0x1f),
+
+	(fill_nibble<true>(true, 0, 0x0) << 0x0) | (fill_nibble<true>(true, 0, 0x1) << 0x1) | (fill_nibble<true>(true, 0, 0x2) << 0x2) | (fill_nibble<true>(true, 0, 0x3) << 0x3) |
+	(fill_nibble<true>(true, 0, 0x4) << 0x4) | (fill_nibble<true>(true, 0, 0x5) << 0x5) | (fill_nibble<true>(true, 0, 0x6) << 0x6) | (fill_nibble<true>(true, 0, 0x7) << 0x7) |
+	(fill_nibble<true>(true, 0, 0x8) << 0x8) | (fill_nibble<true>(true, 0, 0x9) << 0x9) | (fill_nibble<true>(true, 0, 0xa) << 0xa) | (fill_nibble<true>(true, 0, 0xb) << 0xb) |
+	(fill_nibble<true>(true, 0, 0xc) << 0xc) | (fill_nibble<true>(true, 0, 0xd) << 0xd) | (fill_nibble<true>(true, 0, 0xe) << 0xe) | (fill_nibble<true>(true, 0, 0xf) << 0xf) |
+
+	(fill_nibble<true>(true, 1, 0x0) << 0x10) | (fill_nibble<true>(true, 1, 0x1) << 0x11) | (fill_nibble<true>(true, 1, 0x2) << 0x12) | (fill_nibble<true>(true, 1, 0x3) << 0x13) |
+	(fill_nibble<true>(true, 1, 0x4) << 0x14) | (fill_nibble<true>(true, 1, 0x5) << 0x15) | (fill_nibble<true>(true, 1, 0x6) << 0x16) | (fill_nibble<true>(true, 1, 0x7) << 0x17) |
+	(fill_nibble<true>(true, 1, 0x8) << 0x18) | (fill_nibble<true>(true, 1, 0x9) << 0x19) | (fill_nibble<true>(true, 1, 0xa) << 0x1a) | (fill_nibble<true>(true, 1, 0xb) << 0x1b) |
+	(fill_nibble<true>(true, 1, 0xc) << 0x1c) | (fill_nibble<true>(true, 1, 0xd) << 0x1d) | (fill_nibble<true>(true, 1, 0xe) << 0x1e) | (fill_nibble<true>(true, 1, 0xf) << 0x1f),
+};
+
+constexpr uint32_t fill_values[] = {
+	(fill_nibble<false>(false, 0, 0x0) << 0) | (fill_nibble<false>(false, 0, 0x1) << 4) | (fill_nibble<false>(false, 0, 0x2) << 8) | (fill_nibble<false>(false, 0, 0x3) << 12) |
+	(fill_nibble<false>(false, 0, 0x4) << 16) | (fill_nibble<false>(false, 0, 0x5) << 20) | (fill_nibble<false>(false, 0, 0x6) << 24) | (fill_nibble<false>(false, 0, 0x7) << 28),
+
+	(fill_nibble<false>(false, 0, 0x8) << 0) | (fill_nibble<false>(false, 0, 0x9) << 4) | (fill_nibble<false>(false, 0, 0xa) << 8) | (fill_nibble<false>(false, 0, 0xb) << 12) |
+	(fill_nibble<false>(false, 0, 0xc) << 16) | (fill_nibble<false>(false, 0, 0xd) << 20) | (fill_nibble<false>(false, 0, 0xe) << 24) | (fill_nibble<false>(false, 0, 0xf) << 28),
+
+	(fill_nibble<false>(false, 1, 0x0) << 0) | (fill_nibble<false>(false, 1, 0x1) << 4) | (fill_nibble<false>(false, 1, 0x2) << 8) | (fill_nibble<false>(false, 1, 0x3) << 12) |
+	(fill_nibble<false>(false, 1, 0x4) << 16) | (fill_nibble<false>(false, 1, 0x5) << 20) | (fill_nibble<false>(false, 1, 0x6) << 24) | (fill_nibble<false>(false, 1, 0x7) << 28),
+
+	(fill_nibble<false>(false, 1, 0x8) << 0) | (fill_nibble<false>(false, 1, 0x9) << 4) | (fill_nibble<false>(false, 1, 0xa) << 8) | (fill_nibble<false>(false, 1, 0xb) << 12) |
+	(fill_nibble<false>(false, 1, 0xc) << 16) | (fill_nibble<false>(false, 1, 0xd) << 20) | (fill_nibble<false>(false, 1, 0xe) << 24) | (fill_nibble<false>(false, 1, 0xf) << 28),
+
+	(fill_nibble<false>(true, 0, 0x0) << 0) | (fill_nibble<false>(true, 0, 0x1) << 4) | (fill_nibble<false>(true, 0, 0x2) << 8) | (fill_nibble<false>(true, 0, 0x3) << 12) |
+	(fill_nibble<false>(true, 0, 0x4) << 16) | (fill_nibble<false>(true, 0, 0x5) << 20) | (fill_nibble<false>(true, 0, 0x6) << 24) | (fill_nibble<false>(true, 0, 0x7) << 28),
+
+	(fill_nibble<false>(true, 0, 0x8) << 0) | (fill_nibble<false>(true, 0, 0x9) << 4) | (fill_nibble<false>(true, 0, 0xa) << 8) | (fill_nibble<false>(true, 0, 0xb) << 12) |
+	(fill_nibble<false>(true, 0, 0xc) << 16) | (fill_nibble<false>(true, 0, 0xd) << 20) | (fill_nibble<false>(true, 0, 0xe) << 24) | (fill_nibble<false>(true, 0, 0xf) << 28),
+
+	(fill_nibble<false>(true, 1, 0x0) << 0) | (fill_nibble<false>(true, 1, 0x1) << 4) | (fill_nibble<false>(true, 1, 0x2) << 8) | (fill_nibble<false>(true, 1, 0x3) << 12) |
+	(fill_nibble<false>(true, 1, 0x4) << 16) | (fill_nibble<false>(true, 1, 0x5) << 20) | (fill_nibble<false>(true, 1, 0x6) << 24) | (fill_nibble<false>(true, 1, 0x7) << 28),
+
+	(fill_nibble<false>(true, 1, 0x8) << 0) | (fill_nibble<false>(true, 1, 0x9) << 4) | (fill_nibble<false>(true, 1, 0xa) << 8) | (fill_nibble<false>(true, 1, 0xb) << 12) |
+	(fill_nibble<false>(true, 1, 0xc) << 16) | (fill_nibble<false>(true, 1, 0xd) << 20) | (fill_nibble<false>(true, 1, 0xe) << 24) | (fill_nibble<false>(true, 1, 0xf) << 28),
+};
+
+}
+
 void Blitter::set_control(int index, uint16_t value) {
 	if(index) {
 		line_mode_ = (value & 0x0001);
@@ -270,36 +362,20 @@ bool Blitter::advance_dma() {
 						c_data_,
 						minterms_);
 
-				// TODO: don't be so dense as below. This is the initial
-				// does-it-pass-the-tests? version.
 				if(exclusive_fill_ || inclusive_fill_) {
+					// Use the fill tables nibble-by-nibble to figure out the filled word.
 					uint16_t fill_output = 0;
-					uint16_t bit = one_dot_ ? 0x0001 : 0x8000;
-					uint16_t flag = fill_carry ? bit : 0x0000;
-					while(bit) {
-						uint16_t pre_toggle = output & bit, post_toggle = pre_toggle;
-						if(inclusive_fill_) {
-							pre_toggle &= ~flag;	// Accept bits that would transition to set immediately.
-							post_toggle &= flag;	// Accept bits that would transition to clear after the fact.
-						} else {
-							post_toggle = 0;		// Just do the pre toggle.
-						}
-
-						flag ^= pre_toggle;
-						fill_output |= flag;
-						flag ^= post_toggle;
-
-						fill_carry = flag;
-						if(one_dot_) {
-							bit <<= 1;
-							flag <<= 1;
-						} else {
-							bit >>= 1;
-							flag >>= 1;
-						}
+					int ongoing_carry = fill_carry;
+					const int type_mask = exclusive_fill_ ? (1 << 5) : 0;
+					for(int c = 0; c < 16; c += 4) {
+						const int total_index = (output & 0xf) | (ongoing_carry << 4) | type_mask;
+						fill_output |= ((fill_values[total_index >> 3] >> ((total_index & 7) * 4)) & 0xf) << c;
+						ongoing_carry = (fill_carries[total_index >> 5] >> (total_index & 31)) & 1;
+						output >>= 4;
 					}
 
 					output = fill_output;
+					fill_carry = ongoing_carry;
 				}
 
 				not_zero_flag_ |= output;
