@@ -114,7 +114,7 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 						break;
 					}
 
-					chipset_.write<true>(instruction_[0] & Chipset::ChipsetAddressMask, instruction_[1]);
+					chipset_.write(instruction_[0], instruction_[1]);
 				}
 
 				// Roll onto the next command.

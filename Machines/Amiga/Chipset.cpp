@@ -810,9 +810,9 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 
 	const uint32_t register_address = *cycle.address & ChipsetAddressMask;
 	if(cycle.operation & Microcycle::Read) {
-		cycle.set_value16(read<true>(register_address));
+		cycle.set_value16(read(register_address));
 	} else {
-		write<true>(register_address, cycle.value16());
+		write(register_address, cycle.value16());
 	}
 }
 
@@ -825,7 +825,7 @@ template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t 
 	}										\
 }
 
-	switch(address) {
+	switch(address & ChipsetAddressMask) {
 		default:
 			// If there was nothing to write, perform a throwaway read.
 			if constexpr (allow_conversion) read<false>(address);
@@ -844,10 +844,10 @@ template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t 
 		break;
 
 		case 0x02a:		// VPOSW
-			LOG("TODO: write vertical position high " << PADHEX(4) << cycle.value16());
+			LOG("TODO: write vertical position high " << PADHEX(4) << value);
 		break;
 		case 0x02c:		// VHPOSW
-			LOG("TODO: write vertical position low " << PADHEX(4) << cycle.value16());
+			LOG("TODO: write vertical position low " << PADHEX(4) << value);
 			is_long_field_ = value & 0x8000;
 		break;
 
@@ -862,7 +862,7 @@ template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t 
 		case 0x024:	disk_.set_length(value);			break;		// DSKLEN
 
 		case 0x026:		// DSKDAT
-			LOG("TODO: disk DMA; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+			LOG("TODO: disk DMA; " << PADHEX(4) << value << " to " << address);
 		break;
 
 		case 0x09e:		// ADKCON
@@ -880,15 +880,15 @@ template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t 
 
 		// Refresh.
 		case 0x028:		// REFPTR
-			LOG("TODO (maybe): refresh; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+			LOG("TODO (maybe): refresh; " << PADHEX(4) << value << " to " << PADHEX(8) << address);
 		break;
 
 		// Serial port.
 		case 0x030:		// SERDAT
-			LOG("TODO: serial data: " << PADHEX(4) << cycle.value16());
+			LOG("TODO: serial data: " << PADHEX(4) << value);
 		break;
 		case 0x032:		// SERPER
-			LOG("TODO: serial control: " << PADHEX(4) << cycle.value16());
+			LOG("TODO: serial control: " << PADHEX(4) << value);
 			serial_.set_control(value);
 		break;
 
@@ -920,7 +920,7 @@ template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t 
 		break;
 		case 0x092:		// DDFSTRT
 			if(fetch_window_[0] != value) {
-				LOG("Fetch window start set to " << std::dec << cycle.value16());
+				LOG("Fetch window start set to " << std::dec << value);
 			}
 			fetch_window_[0] = value;
 		break;
@@ -965,7 +965,7 @@ template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t 
 		break;
 
 		case 0x106:		// BPLCON3 (ECS)
-			LOG("TODO: Bitplane control; " << PADHEX(4) << cycle.value16() << " to " << *cycle.address);
+			LOG("TODO: Bitplane control; " << PADHEX(4) << value << " to " << PADHEX(8) << address);
 		break;
 
 		case 0x108:	bitplanes_.set_modulo<0>(value);	break;	// BPL1MOD
@@ -977,7 +977,7 @@ template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t 
 		case 0x116:
 		case 0x118:
 		case 0x11a:
-			LOG("TODO: Bitplane data; " << PADHEX(4) << value << " to " << *cycle.address);
+			LOG("TODO: Bitplane data; " << PADHEX(4) << value << " to " << PADHEX(8) << address);
 		break;
 
 		// Blitter.
@@ -1014,7 +1014,7 @@ template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t 
 		case pointer + 4:	audio_.set_length(index, value);		break;	\
 		case pointer + 6:	audio_.set_period(index, value);		break;	\
 		case pointer + 8:	audio_.set_volume(index, value);		break;	\
-		case pointer + 10:	audio_.set_data(index, value);		break;	\
+		case pointer + 10:	audio_.set_data(index, value);			break;	\
 
 		Audio(0, 0x0a0);
 		Audio(1, 0x0b0);
@@ -1084,7 +1084,7 @@ template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t 
 }
 
 template <bool allow_conversion> uint16_t Chipset::read(uint32_t address) {
-	switch(address) {
+	switch(address & ChipsetAddressMask) {
 		default:
 			// If there was nothing to read, perform a write.
 			// TODO: Rather than 0xffff, should be whatever is left on the bus, vapour-lock style.
