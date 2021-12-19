@@ -816,7 +816,7 @@ void Chipset::perform(const CPU::MC68000::Microcycle &cycle) {
 	}
 }
 
-template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t value) {
+void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 #define ApplySetClear(target, mask)	{		\
 	if(value & 0x8000) {					\
 		target |= (value & mask);			\
@@ -828,7 +828,7 @@ template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t 
 	switch(address & ChipsetAddressMask) {
 		default:
 			// If there was nothing to write, perform a throwaway read.
-			if constexpr (allow_conversion) read<false>(address);
+			if(allow_conversion) read(address, false);
 		break;
 
 		// Raster position.
@@ -1083,12 +1083,12 @@ template <bool allow_conversion> void Chipset::write(uint32_t address, uint16_t 
 #undef ApplySetClear
 }
 
-template <bool allow_conversion> uint16_t Chipset::read(uint32_t address) {
+uint16_t Chipset::read(uint32_t address, bool allow_conversion) {
 	switch(address & ChipsetAddressMask) {
 		default:
 			// If there was nothing to read, perform a write.
 			// TODO: Rather than 0xffff, should be whatever is left on the bus, vapour-lock style.
-			if constexpr (allow_conversion) write<false>(address, 0xffff);
+			if(allow_conversion) write(address, 0xffff, false);
 		return 0xffff;
 
 		// Raster position.

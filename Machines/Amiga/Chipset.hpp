@@ -108,8 +108,8 @@ class Chipset: private ClockingHint::Observer {
 		friend class DMADeviceBase;
 
 		// MARK: - Register read/write functions.
-		template <bool allow_conversion = true> uint16_t read(uint32_t address);
-		template <bool allow_conversion = true> void write(uint32_t address, uint16_t value);
+		uint16_t read(uint32_t address, bool allow_conversion = true);
+		void write(uint32_t address, uint16_t value, bool allow_conversion = true);
 		static constexpr uint32_t ChipsetAddressMask = 0x1fe;
 		friend class Copper;
 
