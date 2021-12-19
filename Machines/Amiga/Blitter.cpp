@@ -274,7 +274,7 @@ bool Blitter::advance_dma() {
 				// does-it-pass-the-tests? version.
 				if(exclusive_fill_ || inclusive_fill_) {
 					uint16_t fill_output = 0;
-					uint16_t bit = one_dot_ ? 0x0001 : 0x8000;
+					uint16_t bit = 0x0001;
 					uint16_t flag = fill_carry ? bit : 0x0000;
 					while(bit) {
 						uint16_t pre_toggle = output & bit, post_toggle = pre_toggle;
@@ -290,13 +290,8 @@ bool Blitter::advance_dma() {
 						flag ^= post_toggle;
 
 						fill_carry = flag;
-						if(one_dot_) {
-							bit <<= 1;
-							flag <<= 1;
-						} else {
-							bit >>= 1;
-							flag >>= 1;
-						}
+						bit <<= 1;
+						flag <<= 1;
 					}
 
 					output = fill_output;
