@@ -53,7 +53,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Amiga::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
-			memory_(target.fast_ram),
+			memory_(target.chip_ram, target.fast_ram),
 			chipset_(memory_, PALClockRate)
 		{
 			// Temporary: use a hard-coded Kickstart selection.

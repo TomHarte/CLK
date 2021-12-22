@@ -17,6 +17,10 @@ namespace Static {
 namespace Amiga {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
+	ReflectableEnum(ChipRAM,
+		FiveHundredAndTwelveKilobytes,
+		OneMegabyte,
+		TwoMegabytes);
 	ReflectableEnum(FastRAM,
 		None,
 		OneMegabyte,
@@ -24,12 +28,15 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 		FourMegabytes,
 		EightMegabytes);
 
-	FastRAM fast_ram = FastRAM::TwoMegabytes;
+	ChipRAM chip_ram = ChipRAM::FiveHundredAndTwelveKilobytes;
+	FastRAM fast_ram = FastRAM::EightMegabytes;
 
 	Target() : Analyser::Static::Target(Machine::Amiga) {
 		if(needs_declare()) {
 			DeclareField(fast_ram);
+			DeclareField(chip_ram);
 			AnnounceEnum(FastRAM);
+			AnnounceEnum(ChipRAM);
 		}
 	}
 };

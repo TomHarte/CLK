@@ -11,6 +11,10 @@
 
 #include "../../Analyser/Static/Amiga/Target.hpp"
 
+#include <array>
+#include <cassert>
+#include <vector>
+
 namespace Amiga {
 
 class MemoryMap {
@@ -20,9 +24,8 @@ class MemoryMap {
 		static constexpr auto PermitReadWrite = PermitRead | PermitWrite;
 
 	public:
-		// TODO: decide what of the below I want to be dynamic.
 		std::array<uint8_t, 512*1024> kickstart{0xff};
-		std::array<uint8_t, 1024*1024> chip_ram{};
+		std::vector<uint8_t> chip_ram{};
 
 		struct MemoryRegion {
 			uint8_t *contents = nullptr;
@@ -30,7 +33,8 @@ class MemoryMap {
 		} regions[64];	// i.e. top six bits are used as an index.
 
 		using FastRAM = Analyser::Static::Amiga::Target::FastRAM;
-		MemoryMap(FastRAM fast_ram_size) {
+		using ChipRAM = Analyser::Static::Amiga::Target::ChipRAM;
+		MemoryMap(ChipRAM chip_ram_size, FastRAM fast_ram_size) {
 			// Address spaces that matter:
 			//
 			//	00'0000 – 08'0000:	chip RAM.	[or overlayed KickStart]
@@ -48,6 +52,19 @@ class MemoryMap {
 			//	f8'0000 — : 256kb Kickstart if 2.04 or higher.
 			//	fc'0000 – : 256kb Kickstart otherwise.
 			set_region(0xfc'0000, 0x1'00'0000, kickstart.data(), PermitRead);
+
+			switch(chip_ram_size) {
+				default:
+				case ChipRAM::FiveHundredAndTwelveKilobytes:
+					chip_ram.resize(512 * 1024);
+				break;
+				case ChipRAM::OneMegabyte:
+					chip_ram.resize(1 * 1024 * 1024);
+				break;
+				case ChipRAM::TwoMegabytes:
+					chip_ram.resize(2 * 1024 * 1024);
+				break;
+			}
 
 			switch(fast_ram_size) {
 				default:
