@@ -145,7 +145,6 @@ class MemoryMap {
 
 					case 0x48: {	// ec_BaseAddress (A23–A16)
 						const auto address = uint32_t(cycle.value8_high()) << 16;
-						printf("Mapping fast RAM to %08x", address);
 						set_region(address, uint32_t(address + fast_ram_.size()), fast_ram_.data(), PermitRead | PermitWrite);
 						fast_autoconf_visible_ = false;
 					} break;
