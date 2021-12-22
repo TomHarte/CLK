@@ -124,7 +124,7 @@ typedef int Kilobytes;
 
 - (nullable instancetype)initWithFileAtURL:(NSURL *)url;
 
-- (instancetype)initWithAmigaModel:(CSMachineAmigaModel)model;
+- (instancetype)initWithAmigaModel:(CSMachineAmigaModel)model chipMemorySize:(Kilobytes)chipMemorySize fastMemorySize:(Kilobytes)fastMemorySize;
 - (instancetype)initWithAmstradCPCModel:(CSMachineCPCModel)model;
 - (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController;
 - (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize;
