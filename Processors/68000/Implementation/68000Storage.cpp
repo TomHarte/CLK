@@ -3151,9 +3151,11 @@ struct ProcessorStorageConstructor {
 //		};
 
 		// Finalise micro-op and program pointers.
+		int total_instructions = 0;
 		for(size_t instruction = 0; instruction < 65536; ++instruction) {
 			if(micro_op_pointers[instruction] != std::numeric_limits<size_t>::max()) {
 				storage_.instructions[instruction].micro_operations = uint32_t(micro_op_pointers[instruction]);
+				++total_instructions;
 //				link_operations(&storage_.all_micro_ops_[micro_op_pointers[instruction]], &arbitrary_base);
 			}
 		}
@@ -3162,8 +3164,10 @@ struct ProcessorStorageConstructor {
 		storage_.interrupt_micro_ops_ = &storage_.all_micro_ops_[interrupt_pointer];
 //		link_operations(storage_.interrupt_micro_ops_, &arbitrary_base);
 
-		std::cout << storage_.all_bus_steps_.size() << " total bus steps" << std::endl;
-		std::cout << storage_.all_micro_ops_.size() << " total micro ops" << std::endl;
+		std::cout << total_instructions << " total opcodes" << std::endl;
+		std::cout << storage_.all_bus_steps_.size() << " total bus steps; at " << sizeof(BusStep) << " bytes per bus step implies " << storage_.all_bus_steps_.size() * sizeof(BusStep) << " bytes" << std::endl;
+		std::cout << storage_.all_micro_ops_.size() << " total micro ops; at " << sizeof(MicroOp) << " bytes per micro-op implies " << storage_.all_micro_ops_.size() * sizeof(MicroOp) << " bytes" << std::endl;
+		std::cout << "(Microcycles being " << sizeof(Microcycle) << " bytes; ProcessorStorage being " << sizeof(ProcessorStorage) << " bytes, or " << sizeof(ProcessorStorage) - sizeof(ProcessorStorage::instructions) << " bytes without the instructions table)" << std::endl;
 	}
 
 	private:
