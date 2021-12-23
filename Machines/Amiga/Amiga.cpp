@@ -53,6 +53,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Amiga::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
+			memory_(target.chip_ram, target.fast_ram),
 			chipset_(memory_, PALClockRate)
 		{
 			// Temporary: use a hard-coded Kickstart selection.
@@ -146,6 +147,13 @@ class ConcreteMachine:
 //						LOG("CIA " << (((address >> 12) & 3)^3) << " " << (cycle.operation & Microcycle::Read ? "read " : "write ") << std::dec << (reg & 0xf) << " of " << PADHEX(4) << +cycle.value16());
 					} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
 						chipset_.perform(cycle);
+					} else if(address >= 0xe8'0000 && address < 0xe9'0000) {
+						// This is the Autoconf space; right now the only
+						// Autoconf device this emulator implements is fast RAM,
+						// which if present is provided as part of the memory map.
+						//
+						// Relevant quote: "The Zorro II configuration space is the 64K memory block $00E8xxxx"
+						memory_.perform(cycle);
 					} else {
 						// This'll do for open bus, for now.
 						if(cycle.operation & Microcycle::Read) {

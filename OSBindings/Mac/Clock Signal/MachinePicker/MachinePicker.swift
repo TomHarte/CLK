@@ -19,6 +19,10 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	@IBOutlet var machineSelector: NSTabView!
 	@IBOutlet var machineNameTable: NSTableView!
 
+	// MARK: - Amiga properties
+	@IBOutlet var amigaChipRAMButton: NSPopUpButton!
+	@IBOutlet var amigaFastRAMButton: NSPopUpButton!
+
 	// MARK: - Apple II properties
 	@IBOutlet var appleIIModelButton: NSPopUpButton!
 	@IBOutlet var appleIIDiskControllerButton: NSPopUpButton!
@@ -92,6 +96,10 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 			}
 		}
 
+		// Amiga settings
+		amigaChipRAMButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.amigaChipRAM"))
+		amigaFastRAMButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.amigaFastRAM"))
+
 		// Apple II settings
 		appleIIModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIModel"))
 		appleIIDiskControllerButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIDiskController"))
@@ -148,6 +156,10 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 		// Machine type
 		standardUserDefaults.set(machineSelector.selectedTabViewItem!.identifier as! String, forKey: "new.machine")
+
+		// Amiga settings
+		standardUserDefaults.set(amigaChipRAMButton.selectedTag(), forKey: "new.amigaChipRAM")
+		standardUserDefaults.set(amigaFastRAMButton.selectedTag(), forKey: "new.amigaFastRAM")
 
 		// Apple II settings
 		standardUserDefaults.set(appleIIModelButton.selectedTag(), forKey: "new.appleIIModel")
@@ -228,7 +240,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		switch machineSelector.selectedTabViewItem!.identifier as! String {
 
 			case "amiga":
-				return CSStaticAnalyser(amigaModel: .A500)
+				return CSStaticAnalyser(amigaModel: .A500, chipMemorySize: Kilobytes(amigaChipRAMButton.selectedTag()), fastMemorySize: Kilobytes(amigaFastRAMButton.selectedTag()))
 
 			case "appleii":
 				var model: CSMachineAppleIIModel = .appleII

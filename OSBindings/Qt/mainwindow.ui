@@ -33,13 +33,89 @@
        <attribute name="title">
         <string>Amiga</string>
        </attribute>
-       <layout class="QVBoxLayout" name="amigaLayout">
-        <item alignment="Qt::AlignTop">
-         <widget class="QLabel" name="amigaLabel">
-          <property name="text">
-           <string>At present only a 1mb Amiga 500 is supported.</string>
-          </property>
-         </widget>
+       <layout class="QVBoxLayout">
+        <item>
+         <layout class="QHBoxLayout">
+          <item>
+           <layout class="QFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel">
+              <property name="text">
+               <string>Chip RAM:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="amigaChipRAMComboBox">
+              <item>
+               <property name="text">
+                <string>512 kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>1 mb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>2 mb</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel">
+              <property name="text">
+               <string>Fast RAM:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="amigaFastRAMComboBox">
+              <item>
+               <property name="text">
+                <string>None</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>1 mb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>2 mb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>4 mb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>8 mb</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -47,13 +123,13 @@
        <attribute name="title">
         <string>Apple II</string>
        </attribute>
-       <layout class="QVBoxLayout" name="appleIILayout">
+       <layout class="QVBoxLayout">
         <item>
-         <layout class="QHBoxLayout" name="appleIIHorizontalLayout">
+         <layout class="QHBoxLayout">
           <item>
-           <layout class="QFormLayout" name="appleIIFormLayout">
+           <layout class="QFormLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="appleIIModelLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Model:</string>
               </property>
@@ -84,7 +160,7 @@
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QLabel" name="appleIIDiskControllerLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Disk Controller:</string>
               </property>
@@ -112,7 +188,7 @@
            </layout>
           </item>
           <item>
-           <spacer name="appleIIHSpacer">
+           <spacer>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -132,13 +208,13 @@
        <attribute name="title">
         <string>Apple IIgs</string>
        </attribute>
-       <layout class="QVBoxLayout" name="appleIIgsLayout">
+       <layout class="QVBoxLayout">
         <item>
-         <layout class="QHBoxLayout" name="appleIIgsHorizontalLayout">
+         <layout class="QHBoxLayout">
           <item>
-           <layout class="QFormLayout" name="appleIIgsFormLayout">
+           <layout class="QFormLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="appleIIgsModelLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Model:</string>
               </property>
@@ -164,7 +240,7 @@
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QLabel" name="appleIIgsMemorySizeLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Memory Size:</string>
               </property>
@@ -192,7 +268,7 @@
            </layout>
           </item>
           <item>
-           <spacer name="appleIIgsHSpacer">
+           <spacer>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -212,13 +288,13 @@
        <attribute name="title">
         <string>Amstrad CPC</string>
        </attribute>
-       <layout class="QVBoxLayout" name="amstradCPCLayout">
+       <layout class="QVBoxLayout">
         <item>
-         <layout class="QHBoxLayout" name="amstradCPCHorizontalLayout">
+         <layout class="QHBoxLayout">
           <item>
-           <layout class="QFormLayout" name="amstradCPCFormLayout">
+           <layout class="QFormLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="amstradCPCModelLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Model:</string>
               </property>
@@ -246,7 +322,7 @@
            </layout>
           </item>
           <item>
-           <spacer name="amstradCPCHSpacer">
+           <spacer>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -266,9 +342,9 @@
        <attribute name="title">
         <string>Atari ST</string>
        </attribute>
-       <layout class="QVBoxLayout" name="atariSTLayout">
+       <layout class="QVBoxLayout">
         <item alignment="Qt::AlignTop">
-         <widget class="QLabel" name="atariSTLabel">
+         <widget class="QLabel">
           <property name="text">
            <string>At present only a 512k Atari ST is supported.</string>
           </property>
@@ -280,7 +356,7 @@
        <attribute name="title">
         <string>Electron</string>
        </attribute>
-       <layout class="QVBoxLayout" name="electronLayout">
+       <layout class="QVBoxLayout">
         <item>
          <widget class="QCheckBox" name="electronDFSCheckBox">
           <property name="text">
@@ -310,7 +386,7 @@
          </widget>
         </item>
         <item>
-         <spacer name="verticalSpacer">
+         <spacer>
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
@@ -328,13 +404,13 @@
        <attribute name="title">
         <string>Enterprise</string>
        </attribute>
-       <layout class="QVBoxLayout" name="enterpriseLayout">
+       <layout class="QVBoxLayout">
         <item>
-         <layout class="QHBoxLayout" name="enterpriseHorizontalLayout">
+         <layout class="QHBoxLayout">
           <item>
-           <layout class="QFormLayout" name="enterpriseFormLayout">
+           <layout class="QFormLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="enterpriseModelLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Model:</string>
               </property>
@@ -360,7 +436,7 @@
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QLabel" name="enterpriseSpeedLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Speed:</string>
               </property>
@@ -381,7 +457,7 @@
              </widget>
             </item>
             <item row="2" column="0">
-             <widget class="QLabel" name="enterpriseEXOSLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>EXOS:</string>
               </property>
@@ -407,7 +483,7 @@
              </widget>
             </item>
             <item row="3" column="0">
-             <widget class="QLabel" name="enterpriseBASICLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>BASIC:</string>
               </property>
@@ -438,7 +514,7 @@
              </widget>
             </item>
             <item row="4" column="0">
-             <widget class="QLabel" name="enterpriseDOSLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>DOS:</string>
               </property>
@@ -461,7 +537,7 @@
            </layout>
           </item>
           <item>
-           <spacer name="enterpriseHSpacer">
+           <spacer>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -481,13 +557,13 @@
        <attribute name="title">
         <string>Macintosh</string>
        </attribute>
-       <layout class="QVBoxLayout" name="macintoshLayout">
+       <layout class="QVBoxLayout">
         <item>
-         <layout class="QHBoxLayout" name="macintoshHorizontalLayout">
+         <layout class="QHBoxLayout">
           <item>
-           <layout class="QFormLayout" name="macintoshFormLayout">
+           <layout class="QFormLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="macintoshModelLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Model:</string>
               </property>
@@ -520,7 +596,7 @@
            </layout>
           </item>
           <item>
-           <spacer name="macintoshSpacer">
+           <spacer>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -540,13 +616,13 @@
        <attribute name="title">
         <string>MSX</string>
        </attribute>
-       <layout class="QVBoxLayout" name="msxLayout">
+       <layout class="QVBoxLayout">
         <item>
-         <layout class="QHBoxLayout" name="msxHorizontalLayout">
+         <layout class="QHBoxLayout">
           <item>
-           <layout class="QFormLayout" name="msxFormLayout">
+           <layout class="QFormLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="msxRegionLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Region</string>
               </property>
@@ -574,7 +650,7 @@
            </layout>
           </item>
           <item>
-           <spacer name="msxSpacer">
+           <spacer>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -596,7 +672,7 @@
          </widget>
         </item>
         <item>
-         <spacer name="verticalSpacer_2">
+         <spacer>
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
@@ -614,13 +690,13 @@
        <attribute name="title">
         <string>Oric</string>
        </attribute>
-       <layout class="QVBoxLayout" name="oricLayout">
+       <layout class="QVBoxLayout">
         <item>
-         <layout class="QHBoxLayout" name="oricHorizontalLayout">
+         <layout class="QHBoxLayout">
           <item>
-           <layout class="QFormLayout" name="oricFormLayout">
+           <layout class="QFormLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="oricModelLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Model:</string>
               </property>
@@ -646,7 +722,7 @@
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QLabel" name="oricDiskInterfaceLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Disk Interface:</string>
               </property>
@@ -684,7 +760,7 @@
            </layout>
           </item>
           <item>
-           <spacer name="oricHSpacer">
+           <spacer>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -704,13 +780,13 @@
        <attribute name="title">
         <string>Vic-20</string>
        </attribute>
-       <layout class="QVBoxLayout" name="vic20Layout">
+       <layout class="QVBoxLayout">
         <item>
-         <layout class="QHBoxLayout" name="vic20HorizontalLayout">
+         <layout class="QHBoxLayout">
           <item>
-           <layout class="QFormLayout" name="vic20FormLayout">
+           <layout class="QFormLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="vic20RegionLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Region:</string>
               </property>
@@ -746,7 +822,7 @@
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QLabel" name="vic20MemorySizeLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Memory Size:</string>
               </property>
@@ -774,7 +850,7 @@
            </layout>
           </item>
           <item>
-           <spacer name="vic20HSpacer">
+           <spacer>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -796,7 +872,7 @@
          </widget>
         </item>
         <item>
-         <spacer name="vic20VSpacer">
+         <spacer>
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
@@ -814,13 +890,13 @@
        <attribute name="title">
         <string>ZX80</string>
        </attribute>
-       <layout class="QVBoxLayout" name="zx80Layout">
+       <layout class="QVBoxLayout">
         <item>
-         <layout class="QHBoxLayout" name="zx80HorizontalLayout">
+         <layout class="QHBoxLayout">
           <item>
-           <layout class="QFormLayout" name="zx80FormLayout">
+           <layout class="QFormLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="zx80MemorySizeLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Memory Size:</string>
               </property>
@@ -843,7 +919,7 @@
            </layout>
           </item>
           <item>
-           <spacer name="zx80HSpacer">
+           <spacer>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -865,7 +941,7 @@
          </widget>
         </item>
         <item>
-         <spacer name="zx81VSpacer">
+         <spacer>
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
@@ -883,13 +959,13 @@
        <attribute name="title">
         <string>ZX81</string>
        </attribute>
-       <layout class="QVBoxLayout" name="zx81Layout">
+       <layout class="QVBoxLayout">
         <item>
-         <layout class="QHBoxLayout" name="zx81HorizontalLayout">
+         <layout class="QHBoxLayout">
           <item>
-           <layout class="QFormLayout" name="zx81FormLayout">
+           <layout class="QFormLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="zx81MemorySizeLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Memory Size:</string>
               </property>
@@ -912,7 +988,7 @@
            </layout>
           </item>
           <item>
-           <spacer name="zx81Spacer">
+           <spacer>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -932,13 +1008,13 @@
        <attribute name="title">
         <string>ZX Spectrum</string>
        </attribute>
-       <layout class="QVBoxLayout" name="spectrumLayout">
+       <layout class="QVBoxLayout">
         <item>
-         <layout class="QHBoxLayout" name="spectrumHorizontalLayout">
+         <layout class="QHBoxLayout">
           <item>
-           <layout class="QFormLayout" name="spectrumFormLayout">
+           <layout class="QFormLayout">
             <item row="0" column="0">
-             <widget class="QLabel" name="spectrumModelLabel">
+             <widget class="QLabel">
               <property name="text">
                <string>Model:</string>
               </property>
@@ -981,7 +1057,7 @@
            </layout>
           </item>
           <item>
-           <spacer name="spectrumHSpacer">
+           <spacer>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -1025,7 +1101,7 @@
        <bool>true</bool>
       </property>
       <property name="plainText">
-       <string>Clock Signal requires you to provide images of the system ROMs for this machine.  They will be stored permanently; you need do this only once.
+       <string>Clock Signal requires you to provide images of the system ROMs for this machine. They will be stored permanently; you need do this only once.
 
 Please drag and drop over this window</string>
       </property>

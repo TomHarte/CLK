@@ -9,6 +9,12 @@
 #ifndef MemoryMap_hpp
 #define MemoryMap_hpp
 
+#include "../../Analyser/Static/Amiga/Target.hpp"
+
+#include <array>
+#include <cassert>
+#include <vector>
+
 namespace Amiga {
 
 class MemoryMap {
@@ -18,16 +24,17 @@ class MemoryMap {
 		static constexpr auto PermitReadWrite = PermitRead | PermitWrite;
 
 	public:
-		// TODO: decide what of the below I want to be dynamic.
-		std::array<uint8_t, 1024*1024> chip_ram{};
 		std::array<uint8_t, 512*1024> kickstart{0xff};
+		std::vector<uint8_t> chip_ram{};
 
 		struct MemoryRegion {
 			uint8_t *contents = nullptr;
 			unsigned int read_write_mask = 0;
 		} regions[64];	// i.e. top six bits are used as an index.
 
-		MemoryMap() {
+		using FastRAM = Analyser::Static::Amiga::Target::FastRAM;
+		using ChipRAM = Analyser::Static::Amiga::Target::ChipRAM;
+		MemoryMap(ChipRAM chip_ram_size, FastRAM fast_ram_size) {
 			// Address spaces that matter:
 			//
 			//	00'0000 – 08'0000:	chip RAM.	[or overlayed KickStart]
@@ -45,6 +52,42 @@ class MemoryMap {
 			//	f8'0000 — : 256kb Kickstart if 2.04 or higher.
 			//	fc'0000 – : 256kb Kickstart otherwise.
 			set_region(0xfc'0000, 0x1'00'0000, kickstart.data(), PermitRead);
+
+			switch(chip_ram_size) {
+				default:
+				case ChipRAM::FiveHundredAndTwelveKilobytes:
+					chip_ram.resize(512 * 1024);
+				break;
+				case ChipRAM::OneMegabyte:
+					chip_ram.resize(1 * 1024 * 1024);
+				break;
+				case ChipRAM::TwoMegabytes:
+					chip_ram.resize(2 * 1024 * 1024);
+				break;
+			}
+
+			switch(fast_ram_size) {
+				default:
+					fast_autoconf_visible_ = false;
+				break;
+				case FastRAM::OneMegabyte:
+					fast_ram_.resize(1 * 1024 * 1024);
+					fast_ram_size_ = 5;
+				break;
+				case FastRAM::TwoMegabytes:
+					fast_ram_.resize(2 * 1024 * 1024);
+					fast_ram_size_ = 6;
+				break;
+				case FastRAM::FourMegabytes:
+					fast_ram_.resize(4 * 1024 * 1024);
+					fast_ram_size_ = 7;
+				break;
+				case FastRAM::EightMegabytes:
+					fast_ram_.resize(8 * 1024 * 1024);
+					fast_ram_size_ = 0;
+				break;
+			}
+
 			reset();
 		}
 
@@ -64,7 +107,75 @@ class MemoryMap {
 			}
 		}
 
+		/// Performs the provided microcycle, which the caller guarantees to be a memory access,
+		/// and in the Zorro register range.
+		bool perform(const CPU::MC68000::Microcycle &cycle) {
+			if(!fast_autoconf_visible_) return false;
+
+			const uint32_t register_address = *cycle.address & 0xfe;
+
+			using Microcycle = CPU::MC68000::Microcycle;
+			if(cycle.operation & Microcycle::Read) {
+				// Re: Autoconf:
+				//
+				// "All read registers physically return only the top 4 bits of data, on D31-D28";
+				// (this is from Zorro III documentation; I'm assuming it to be D15–D11 for the
+				// 68000's 16-bit bus);
+				//
+				// "Every AUTOCONFIG register is logically considered to be 8 bits wide; the
+				// 8 bits actually being nybbles from two paired addresses."
+
+				uint8_t value = 0xf;
+				switch(register_address) {
+					default: break;
+
+					case 0x00:	// er_Type (high)
+						value =
+							0xc |	// Zoro II-style PIC.
+							0x2;	// Memory will be linked into the free pool
+					break;
+					case 0x02:	// er_Type (low)
+						value = fast_ram_size_;
+					break;
+
+					// er_Manufacturer
+					//
+					// On the manufacturer number: this is supposed to be assigned
+					// by Commodore. TODO: find and crib a real fast RAM number, if it matters.
+					//
+					// (0xffff seems to be invalid, so _something_ needs to be supplied)
+					case 0x10:	case 0x12:
+						value = 0xa; // Manufacturer's number, high byte.
+					break;
+					case 0x14:	case 0x16:
+						value = 0xb;		// Manufacturer's number, low byte.
+					break;
+				}
+
+				// Shove the value into the top of the data bus.
+				cycle.set_value16(uint16_t(0x0fff | (value << 12)));
+			} else {
+				fast_autoconf_visible_ &= !(register_address >= 0x4c && register_address < 0x50);
+
+				switch(register_address) {
+					default: break;
+
+					case 0x48: {	// ec_BaseAddress (A23–A16)
+						const auto address = uint32_t(cycle.value8_high()) << 16;
+						set_region(address, uint32_t(address + fast_ram_.size()), fast_ram_.data(), PermitRead | PermitWrite);
+						fast_autoconf_visible_ = false;
+					} break;
+				}
+			}
+
+			return true;
+		}
+
 	private:
+		std::vector<uint8_t> fast_ram_{};
+		uint8_t fast_ram_size_ = 0;
+
+		bool fast_autoconf_visible_ = true;
 		bool overlay_ = false;
 
 		void set_region(uint32_t start, uint32_t end, uint8_t *base, unsigned int read_write_mask) {

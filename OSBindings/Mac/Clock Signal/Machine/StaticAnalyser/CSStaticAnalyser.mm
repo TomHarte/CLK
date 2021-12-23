@@ -50,11 +50,28 @@
 
 // MARK: - Machine-based Initialisers
 
-- (instancetype)initWithAmigaModel:(CSMachineAmigaModel)model {
+- (instancetype)initWithAmigaModel:(CSMachineAmigaModel)model chipMemorySize:(Kilobytes)chipMemorySize fastMemorySize:(Kilobytes)fastMemorySize {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Amiga::Target;
 		auto target = std::make_unique<Target>();
+
+		switch(chipMemorySize) {
+			default: return nil;
+			case 512:	target->chip_ram = Target::ChipRAM::FiveHundredAndTwelveKilobytes;	break;
+			case 1024:	target->chip_ram = Target::ChipRAM::OneMegabyte;					break;
+			case 2048:	target->chip_ram = Target::ChipRAM::TwoMegabytes;					break;
+		}
+
+		switch(fastMemorySize) {
+			default: return nil;
+			case 0:		target->fast_ram = Target::FastRAM::None;			break;
+			case 1024:	target->fast_ram = Target::FastRAM::OneMegabyte;	break;
+			case 2048:	target->fast_ram = Target::FastRAM::TwoMegabytes;	break;
+			case 4096:	target->fast_ram = Target::FastRAM::FourMegabytes;	break;
+			case 8192:	target->fast_ram = Target::FastRAM::EightMegabytes;	break;
+		}
+
 		_targets.push_back(std::move(target));
 	}
 	return self;
