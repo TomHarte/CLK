@@ -34,12 +34,88 @@
         <string>Amiga</string>
        </attribute>
        <layout class="QVBoxLayout" name="amigaLayout">
-        <item alignment="Qt::AlignTop">
-         <widget class="QLabel" name="amigaLabel">
-          <property name="text">
-           <string>At present only a 1mb Amiga 500 is supported.</string>
-          </property>
-         </widget>
+        <item>
+         <layout class="QHBoxLayout" name="amigaHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="amigaFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="amigaChipRAMLabel">
+              <property name="text">
+               <string>Chip RAM:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="amigaChipRAMComboBox">
+              <item>
+               <property name="text">
+                <string>512 kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>1 mb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>2 mb</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="amigaFastRAMLabel">
+              <property name="text">
+               <string>Fast RAM:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="amigaFastRAMComboBox">
+              <item>
+               <property name="text">
+                <string>None</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>1 mb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>2 mb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>4 mb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>8 mb</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="amigaHSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
