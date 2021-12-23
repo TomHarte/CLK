@@ -368,9 +368,11 @@ class ProcessorStorage {
 				source_offset = 0;
 			}
 
+			static constexpr uint32_t NoSuchProgram = std::numeric_limits<uint32_t>::max();
+
 			/// The offset into the all_micro_ops_ at which micro-ops for this instruction begin,
 			/// or std::numeric_limits<uint32_t>::max() if this is an invalid Program.
-			uint32_t micro_operations = std::numeric_limits<uint32_t>::max();
+			uint32_t micro_operations = NoSuchProgram;
 			/// The overarching operation applied by this program when the moment comes.
 			Operation operation;
 			/// The number of bytes after the beginning of an instance of ProcessorStorage that the RegisterPair32 containing

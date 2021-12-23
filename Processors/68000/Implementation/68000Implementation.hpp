@@ -332,7 +332,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 //							should_log = (fetched_pc >= 0x408D66) && (fetched_pc <= 0x408D84);
 #endif
 
-							if(instructions[decoded_instruction_.full].micro_operations != std::numeric_limits<uint32_t>::max()) {
+							if(instructions[decoded_instruction_.full].micro_operations != Program::NoSuchProgram) {
 								if((instructions[decoded_instruction_.full].requires_supervisor) && !is_supervisor_) {
 									// A privilege violation has been detected.
 									active_program_ = nullptr;
