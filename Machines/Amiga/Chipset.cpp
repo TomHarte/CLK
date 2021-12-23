@@ -885,10 +885,9 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 
 		// Serial port.
 		case 0x030:		// SERDAT
-			LOG("TODO: serial data: " << PADHEX(4) << value);
+			serial_.set_data(value);
 		break;
 		case 0x032:		// SERPER
-			LOG("TODO: serial control: " << PADHEX(4) << value);
 			serial_.set_control(value);
 		break;
 
@@ -1133,9 +1132,7 @@ uint16_t Chipset::read(uint32_t address, bool allow_conversion) {
 		return 0xffff;
 
 		// Serial port.
-		case 0x018:		// SERDATR
-			LOG("TODO: serial data and status");
-		return 0x3000;	// i.e. transmit buffer empty.
+		case 0x018:	return serial_.get_status();
 
 		// DMA management.
 		case 0x002:	return dma_control_ | blitter_.get_status();		// DMACONR
@@ -1252,4 +1249,16 @@ void Chipset::set_component_prefers_clocking(ClockingHint::Source *, ClockingHin
 // MARK: - Synchronisation.
 
 void Chipset::flush() {
+}
+
+// MARK: - Serial port.
+
+void Chipset::SerialPort::set_control(uint16_t) {
+}
+
+void Chipset::SerialPort::set_data(uint16_t) {
+}
+
+uint16_t Chipset::SerialPort::get_status() {
+	return 0x3000;
 }

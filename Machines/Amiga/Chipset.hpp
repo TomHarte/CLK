@@ -208,7 +208,9 @@ class Chipset: private ClockingHint::Observer {
 
 		class SerialPort {
 			public:
-				void set_control(uint16_t) {}
+				void set_control(uint16_t);
+				void set_data(uint16_t);
+				uint16_t get_status();
 
 			private:
 				uint16_t value = 0, reload = 0;
