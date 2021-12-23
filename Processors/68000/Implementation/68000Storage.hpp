@@ -359,6 +359,15 @@ class ProcessorStorage {
 			remaining fields, with no additional padding being inserted by the compiler.
 		*/
 		struct Program {
+			Program() {
+				// Initialisers for bitfields aren't available until C++20. So, yuck, do it manually.
+				requires_supervisor = 0;
+				source = 0;
+				dest = 0;
+				destination_offset = 0;
+				source_offset = 0;
+			}
+
 			/// The offset into the all_micro_ops_ at which micro-ops for this instruction begin,
 			/// or std::numeric_limits<uint32_t>::max() if this is an invalid Program.
 			uint32_t micro_operations = std::numeric_limits<uint32_t>::max();
@@ -366,26 +375,30 @@ class ProcessorStorage {
 			Operation operation;
 			/// The number of bytes after the beginning of an instance of ProcessorStorage that the RegisterPair32 containing
 			/// a source value for this operation lies at.
-			uint8_t source_offset = 0;
+			uint8_t source_offset: 7;
 			/// The number of bytes after the beginning of an instance of ProcessorStorage that the RegisterPair32 containing
 			/// a destination value for this operation lies at.
-			uint8_t destination_offset = 0;
-			/// A bitfield comprised of:
-			///	b7 = set if this program requires supervisor mode;
-			/// b0–b2 = the source address register (for pre-decrement and post-increment actions); and
-			/// b4-b6 = destination address register.
-			uint8_t source_dest = 0;
+			uint8_t destination_offset: 7;
+			///	Set if this program requires supervisor mode.
+			bool requires_supervisor: 1;
+			/// The source address register (for pre-decrement and post-increment actions).
+			uint8_t source: 3;
+			/// Destination address register.
+			uint8_t dest: 3;
 
 			void set_source_address([[maybe_unused]] ProcessorStorage &storage, int index) {
-				source_dest = uint8_t((source_dest & 0x0f) | (index << 4));
+				source = uint8_t(index);
+				assert(int(source) == index);
 			}
 
 			void set_destination_address([[maybe_unused]] ProcessorStorage &storage, int index) {
-				source_dest = uint8_t((source_dest & 0xf0) | index);
+				dest = uint8_t(index);
+				assert(int(dest) == index);
 			}
 
-			void set_requires_supervisor(bool requires_supervisor) {
-				source_dest = (source_dest & 0x7f) | (requires_supervisor ? 0x80 : 0x00);
+			void set_requires_supervisor(bool req) {
+				requires_supervisor = req;
+				assert(requires_supervisor == req);
 			}
 
 			void set_source(ProcessorStorage &storage, RegisterPair32 *target) {
