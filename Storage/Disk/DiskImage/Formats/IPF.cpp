@@ -19,10 +19,24 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 		[[maybe_unused]] const uint32_t crc = file_.get32be();
 		if(file_.eof()) break;
 
-#define BLOCK(a, b, c, d) (a << 24) | (b << 16) | (c << 8) | d
+#define BLOCK(a, b, c, d) ((a << 24) | (b << 16) | (c << 8) | d)
+
+		// Sanity check: the first thing in a file should be the CAPS record.
+		if(!start_of_block && type != BLOCK('C', 'A', 'P', 'S')) {
+			throw Error::InvalidFormat;
+		}
+
 		switch(type) {
 			default:
 				printf("Ignoring %c%c%c%c, starting at %ld of length %d\n", (type >> 24), (type >> 16) & 0xff, (type >> 8) & 0xff, type & 0xff, start_of_block, length);
+			break;
+
+			case BLOCK('C', 'A', 'P', 'S'):
+				// Analogously to the sanity check above, if a CAPS block is anywhere other
+				// than first then something is amiss.
+				if(start_of_block) {
+					throw Error::InvalidFormat;
+				}
 			break;
 
 			case BLOCK('D', 'A', 'T', 'A'): {
