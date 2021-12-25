@@ -326,22 +326,24 @@ class ProcessorStorage {
 				// steps detail appropriately.
 				PrepareINTVector,
 			};
-			static constexpr int SourceMask = 1 << 7;
+			static_assert(uint8_t(Action::PrepareINTVector) < 32);	// i.e. will fit into five bits.
+
+			static constexpr int SourceMask = 1 << 5;
 			static constexpr int DestinationMask = 1 << 6;
-			uint8_t action = uint8_t(Action::None);
+			uint8_t action = uint8_t(Action::None);	// Requires 7 bits at present; sizeof(Action) + the two flags above.
 
 			static constexpr uint16_t NoBusProgram = std::numeric_limits<uint16_t>::max();
-			uint16_t bus_program = NoBusProgram;
+			uint16_t bus_program = NoBusProgram;	// Empirically requires 11 bits at present.
 
-			MicroOp() {}
-			MicroOp(uint8_t action) : action(action) {}
+			MicroOp(): action(uint8_t(Action::None)), bus_program(NoBusProgram) {}
+			MicroOp(uint8_t action) : action(action), bus_program(NoBusProgram) {}
 			MicroOp(uint8_t action, uint16_t bus_program) : action(action), bus_program(bus_program) {}
 
 			MicroOp(Action action) : MicroOp(uint8_t(action)) {}
 			MicroOp(Action action, uint16_t bus_program) : MicroOp(uint8_t(action), bus_program) {}
 
 			forceinline bool is_terminal() const {
-				return bus_program == std::numeric_limits<uint16_t>::max();
+				return bus_program == NoBusProgram;
 			}
 		};
 
