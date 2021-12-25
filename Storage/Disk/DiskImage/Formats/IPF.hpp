@@ -45,9 +45,9 @@ class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
 		int track_count_;
 
 		TargetPlatform::Type target_platform_type() final {
-			return platform_type_;
+			return TargetPlatform::Type(platform_type_);
 		}
-		TargetPlatform::Type platform_type_ = TargetPlatform::Amiga;
+		TargetPlatform::IntType platform_type_ = TargetPlatform::Amiga;
 };
 
 }
