@@ -332,8 +332,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 //							should_log = (fetched_pc >= 0x408D66) && (fetched_pc <= 0x408D84);
 #endif
 
-							if(instructions[decoded_instruction_.full].micro_operations != std::numeric_limits<uint32_t>::max()) {
-								if((instructions[decoded_instruction_.full].source_dest & 0x80) && !is_supervisor_) {
+							if(instructions[decoded_instruction_.full].micro_operations != Program::NoSuchProgram) {
+								if((instructions[decoded_instruction_.full].requires_supervisor) && !is_supervisor_) {
 									// A privilege violation has been detected.
 									active_program_ = nullptr;
 									active_micro_op_ = short_exception_micro_ops_;
@@ -387,9 +387,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 #define offset_pointer(x)		reinterpret_cast<RegisterPair32 *>(&reinterpret_cast<uint8_t *>(static_cast<ProcessorStorage *>(this))[x])
 #define source()				offset_pointer(active_program_->source_offset)
-#define source_address()		address_[(active_program_->source_dest >> 4) & 7]
+#define source_address()		address_[active_program_->source]
 #define destination()			offset_pointer(active_program_->destination_offset)
-#define destination_address()	address_[active_program_->source_dest & 7]
+#define destination_address()	address_[active_program_->dest]
 
 						case int_type(MicroOp::Action::PerformOperation):
 #define sub_overflow() ((result ^ destination) & (destination ^ source))
