@@ -12,9 +12,13 @@ using namespace Storage::Disk;
 
 namespace {
 
-constexpr uint32_t block(const char *src) {
-	static_assert(sizeof(int) >= sizeof(uint32_t));
-	return uint32_t((src[0] << 24) | (src[1] << 16) | (src[2] << 8) | src[3]);
+constexpr uint32_t block(const char (& src)[5]) {
+	return uint32_t(
+		(uint32_t(src[0]) << 24) |
+		(uint32_t(src[1]) << 16) |
+		(uint32_t(src[2]) << 8) |
+		uint32_t(src[3])
+	);
 }
 
 }
@@ -91,6 +95,9 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 
 				// Ignore: disk number, creator ID, reserved area.
 			} break;
+
+			case block("IMGE"):
+			break;
 
 			case block("DATA"): {
 				length += file_.get32be();
