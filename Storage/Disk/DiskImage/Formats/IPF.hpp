@@ -14,6 +14,7 @@
 #include "../../../TargetPlatforms.hpp"
 
 #include <string>
+#include <map>
 
 namespace Storage {
 namespace Disk {
@@ -41,8 +42,32 @@ class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
 		Storage::FileHolder file_;
 		uint16_t seek_track(Track::Address address);
 
+		struct TrackDescription {
+			long file_offset = 0;
+			enum class Density {
+				Unknown,
+				Noise,
+				Auto,
+				CopylockAmiga,
+				CopylockAmigaNew,
+				CopylockST,
+				SpeedlockAmiga,
+				OldSpeedlockAmiga,
+				AdamBrierleyAmiga,
+				AdamBrierleyDensityKeyAmiga,
+
+				Max = AdamBrierleyDensityKeyAmiga
+			} density = Density::Unknown;
+			uint32_t start_bit_pos = 0;
+			uint32_t data_bits = 0;
+			uint32_t gap_bits = 0;
+			uint32_t block_count;
+			bool has_fuzzy_bits = false;
+		};
+
 		int head_count_;
 		int track_count_;
+		std::map<Track::Address, TrackDescription> tracks_;
 
 		TargetPlatform::Type target_platform_type() final {
 			return TargetPlatform::Type(platform_type_);

@@ -25,6 +25,10 @@ constexpr uint32_t block(const char (& src)[5]) {
 
 
 IPF::IPF(const std::string &file_name) : file_(file_name) {
+	std::map<uint32_t, Track::Address> tracks_by_data_key;
+
+	// For now, just build up a list of tracks that exist, noting the file position at which their data begins
+	// plus the other fields that'll be necessary to convert them into flux on demand later.
 	while(true) {
 		const auto start_of_block = file_.tell();
 		const uint32_t type = file_.get32be();
@@ -96,12 +100,63 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 				// Ignore: disk number, creator ID, reserved area.
 			} break;
 
-			case block("IMGE"):
-			break;
+			case block("IMGE"): {
+				// Get track location.
+				const uint32_t track = file_.get32be();
+				const uint32_t side = file_.get32be();
+				const Track::Address address{int(side), HeadPosition(int(track))};
+
+				// Hence generate a TrackDescription.
+				auto pair = tracks_.emplace(address, TrackDescription());
+				TrackDescription &description = pair.first->second;
+
+				// Read those fields of interest...
+
+				// Bit density. I've no idea why the density can't just be given as a measurement.
+				description.density = TrackDescription::Density(file_.get32be());
+				if(description.density > TrackDescription::Density::Max) {
+					description.density = TrackDescription::Density::Unknown;
+				}
+
+
+				file_.seek(12, SEEK_CUR);	// Skipped: signal type, track bytes, start byte position.
+				description.start_bit_pos = file_.get32be();
+				description.data_bits = file_.get32be();
+				description.gap_bits = file_.get32be();
+
+				file_.seek(4, SEEK_CUR);	// Skipped: track bits, which is entirely redundant.
+				description.block_count = file_.get32be();
+
+				file_.seek(4, SEEK_CUR);	// Skipped: encoder process.
+				description.has_fuzzy_bits = file_.get32be() & 1;
+
+				// For some reason the authors decided to introduce another primary key,
+				// in addition to that which naturally exists of (track, side). So set up
+				// a mapping from the one to the other.
+				const uint32_t data_key = file_.get32be();
+				tracks_by_data_key.emplace(data_key, address);
+			} break;
 
 			case block("DATA"): {
 				length += file_.get32be();
-				printf("Handling DATA block at %ld of length %d\n", start_of_block, length);
+
+				file_.seek(8, SEEK_CUR);	// Skipped: bit size, CRC.
+
+				// Grab the data key and use that to establish the file starting
+				// position for this track.
+				//
+				// Assumed here: DATA records will come after corresponding IMGE records.
+				const uint32_t data_key = file_.get32be();
+				const auto pair = tracks_by_data_key.find(data_key);
+				if(pair == tracks_by_data_key.end()) {
+					break;
+				}
+
+				auto description = tracks_.find(pair->second);
+				if(description == tracks_.end()) {
+					break;
+				}
+				description->second.file_offset = file_.tell();
 			} break;
 		}
 
