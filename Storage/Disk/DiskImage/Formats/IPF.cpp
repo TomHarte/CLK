@@ -10,6 +10,15 @@
 
 using namespace Storage::Disk;
 
+namespace {
+
+constexpr uint32_t block(const char *src) {
+	static_assert(sizeof(int) >= sizeof(uint32_t));
+	return uint32_t((src[0] << 24) | (src[1] << 16) | (src[2] << 8) | src[3]);
+}
+
+}
+
 
 IPF::IPF(const std::string &file_name) : file_(file_name) {
 	while(true) {
@@ -19,10 +28,8 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 		[[maybe_unused]] const uint32_t crc = file_.get32be();
 		if(file_.eof()) break;
 
-#define BLOCK(a, b, c, d) ((a << 24) | (b << 16) | (c << 8) | d)
-
 		// Sanity check: the first thing in a file should be the CAPS record.
-		if(!start_of_block && type != BLOCK('C', 'A', 'P', 'S')) {
+		if(!start_of_block && type != block("CAPS")) {
 			throw Error::InvalidFormat;
 		}
 
@@ -31,7 +38,7 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 				printf("Ignoring %c%c%c%c, starting at %ld of length %d\n", (type >> 24), (type >> 16) & 0xff, (type >> 8) & 0xff, type & 0xff, start_of_block, length);
 			break;
 
-			case BLOCK('C', 'A', 'P', 'S'):
+			case block("CAPS"):
 				// Analogously to the sanity check above, if a CAPS block is anywhere other
 				// than first then something is amiss.
 				if(start_of_block) {
@@ -39,7 +46,7 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 				}
 			break;
 
-			case BLOCK('I', 'N', 'F', 'O'): {
+			case block("INFO"): {
 				// There are a lot of useful archival fields in the info chunk, which for emulation
 				// aren't that interesting.
 
@@ -85,12 +92,11 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 				// Ignore: disk number, creator ID, reserved area.
 			} break;
 
-			case BLOCK('D', 'A', 'T', 'A'): {
+			case block("DATA"): {
 				length += file_.get32be();
 				printf("Handling DATA block at %ld of length %d\n", start_of_block, length);
 			} break;
 		}
-#undef BLOCK
 
 		file_.seek(start_of_block + length, SEEK_SET);
 	}
