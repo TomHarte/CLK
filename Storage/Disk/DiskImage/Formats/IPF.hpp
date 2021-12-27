@@ -68,6 +68,7 @@ class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
 		int head_count_;
 		int track_count_;
 		std::map<Track::Address, TrackDescription> tracks_;
+		bool is_sps_format_ = false;
 
 		TargetPlatform::Type target_platform_type() final {
 			return TargetPlatform::Type(platform_type_);

@@ -21,6 +21,15 @@ constexpr uint32_t block(const char (& src)[5]) {
 	);
 }
 
+constexpr size_t block_size(Storage::FileHolder &file, uint8_t header) {
+	uint8_t size_width = header >> 5;
+	size_t length = 0;
+	while(size_width--) {
+		length = (length << 8) | file.get8();
+	}
+	return length;
+}
+
 }
 
 
@@ -64,8 +73,11 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 					throw Error::InvalidFormat;
 				}
 
-				// Skip: encoder type, revision, file key and revision, CRC of the original .ctr, and minimum track.
-				file_.seek(24, SEEK_CUR);
+				// Determine whether this is a newer SPS-style file.
+				is_sps_format_ = file_.get32be() > 1;
+
+				// Skip: revision, file key and revision, CRC of the original .ctr, and minimum track.
+				file_.seek(20, SEEK_CUR);
 				track_count_ = int(1 + file_.get32be());
 
 				// Skip: min side.
@@ -173,5 +185,111 @@ int IPF::get_head_count() {
 }
 
 std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Address address) {
+	// Get the track description, if it exists, and check either that the file has contents for the track.
+	auto pair = tracks_.find(address);
+	if(pair == tracks_.end()) {
+		return nullptr;
+	}
+	const TrackDescription &description = pair->second;
+	if(!description.file_offset) {
+		return nullptr;
+	}
+
+	// Seek to track content.
+	file_.seek(description.file_offset, SEEK_SET);
+
+	// Read the block descriptions up front.
+	//
+	// This is less efficient than just seeking for each block in turn,
+	// but is a useful crutch to comprehension of the file format on a
+	// first run through.
+	struct BlockDescriptor {
+		uint32_t data_bits = 0;
+		uint32_t gap_bits = 0;
+		uint32_t gap_offset = 0;
+		bool is_mfm = false;
+		bool has_forward_gap = false;
+		bool has_backwards_gap = false;
+		bool data_unit_is_bits = false;
+		uint32_t default_gap_value = 0;
+		uint32_t data_offset = 0;
+	};
+	std::vector<BlockDescriptor> blocks;
+	blocks.reserve(description.block_count);
+	for(uint32_t c = 0; c < description.block_count; c++) {
+		auto &block = blocks.emplace_back();
+		block.data_bits = file_.get32be();
+		block.gap_bits = file_.get32be();
+		if(is_sps_format_) {
+			block.gap_offset = file_.get32be();
+			file_.seek(4, SEEK_CUR);	// Skip 'cell type' which appears to provide no content.
+		} else {
+			// Skip potlower-resolution copies of data_bits and gap_bits.
+			file_.seek(8, SEEK_CUR);
+		}
+		block.is_mfm = file_.get32be() == 1;
+
+		const uint32_t flags = file_.get32be();
+		block.has_forward_gap = flags & 1;
+		block.has_backwards_gap = flags & 2;
+		block.data_unit_is_bits = flags & 4;
+
+		block.default_gap_value = file_.get32be();
+		block.data_offset = file_.get32be();
+	}
+
+	// TODO: Append as necessary for each gap and data stream as per above.
+	for(auto &block: blocks) {
+		if(block.gap_offset) {
+			file_.seek(description.file_offset + block.gap_offset, SEEK_SET);
+			while(true) {
+				const uint8_t gap_header = file_.get8();
+				if(!gap_header) break;
+
+				// Decompose the header and read the length.
+				enum class Type {
+					None, GapLength, SampleLength
+				} type = Type(gap_header & 0x1f);
+				const size_t length = block_size(file_, gap_header);
+
+				// TODO: write the gap.
+				switch(type) {
+					case Type::GapLength:
+						printf("Unhandled gap length %zu\n", length);
+					break;
+
+					default:
+					case Type::SampleLength:
+						printf("Unhandled sampled gap length %zu\n", length);
+						file_.seek(long(length >> 3), SEEK_CUR);
+					break;
+				}
+			}
+		}
+
+		if(block.data_offset) {
+			file_.seek(description.file_offset + block.data_offset, SEEK_SET);
+			while(true) {
+				const uint8_t data_header = file_.get8();
+				if(!data_header) break;
+
+				// Decompose the header and read the length.
+				enum class Type {
+					None, Sync, Data, Gap, Raw, Fuzzy
+				} type = Type(data_header & 0x1f);
+				const size_t length = block_size(file_, data_header) * (block.data_unit_is_bits ? 1 : 8);
+
+				// TODO: write the data.
+				switch(type) {
+					default:
+					printf("Unhandled data type %d, length %zu\n", int(type), length);
+						file_.seek(long(length >> 3), SEEK_CUR);
+					break;
+				}
+			}
+		}
+		printf("\n");
+	}
+
 	return nullptr;
 }
