@@ -255,12 +255,12 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 				// TODO: write the gap.
 				switch(type) {
 					case Type::GapLength:
-						printf("Unhandled gap length %zu\n", length);
+						printf("Unhandled gap length %zu bytes\n", length);
 					break;
 
 					default:
 					case Type::SampleLength:
-						printf("Unhandled sampled gap length %zu\n", length);
+						printf("Unhandled sampled gap length %zu bytes\n", length);
 						file_.seek(long(length >> 3), SEEK_CUR);
 					break;
 				}
@@ -282,7 +282,7 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 				// TODO: write the data.
 				switch(type) {
 					default:
-					printf("Unhandled data type %d, length %zu\n", int(type), length);
+						printf("Unhandled data type %d, length %zu bits\n", int(type), length);
 						file_.seek(long(length >> 3), SEEK_CUR);
 					break;
 				}
