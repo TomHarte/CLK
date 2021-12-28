@@ -20,7 +20,10 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c DiskImage containing an IPF.
+	Provides a @c DiskImage containing an IPF, which is a mixed stream of raw flux windows and
+	unencoded MFM sections along with gap records that can be used to record write splices, all
+	of which is variably clocked (albeit not at flux transition resolution; as a result IPF files tend to be
+	close in size to more primitive formats).
 */
 class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
 	public:
