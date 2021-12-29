@@ -32,7 +32,6 @@ constexpr size_t block_size(Storage::FileHolder &file, uint8_t header) {
 
 }
 
-
 IPF::IPF(const std::string &file_name) : file_(file_name) {
 	std::map<uint32_t, Track::Address> tracks_by_data_key;
 
@@ -129,7 +128,6 @@ IPF::IPF(const std::string &file_name) : file_(file_name) {
 				if(description.density > TrackDescription::Density::Max) {
 					description.density = TrackDescription::Density::Unknown;
 				}
-
 
 				file_.seek(12, SEEK_CUR);	// Skipped: signal type, track bytes, start byte position.
 				description.start_bit_pos = file_.get32be();
@@ -292,4 +290,63 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 	}
 
 	return nullptr;
+}
+
+/// @returns A vector of the length of a bit in each block for a count of @c blocks in an area of data density @c density.
+///
+/// @discussion At least to me, this is the least well-designed part] of the IPF specification; rather than just dictating cell
+/// densities (or, equivalently, lengths) in the file, densities are named according to their protection scheme and the decoder
+/// is required to know all named protection schemes. Which makes IPF unable to handle arbitrary disks (or, indeed, disks
+/// with multiple protection schemes on a single track).
+std::vector<Storage::Time> IPF::bit_lengths(TrackDescription::Density density, size_t blocks) {
+	std::vector<Storage::Time> result;
+	result.reserve(size_t(blocks));
+
+	// Establish the default density of 2 µs.
+	for(size_t c = 0; c < blocks; c++) {
+		result.push_back(Storage::Time(1, 500'000));	// i.e. default to 2µs.
+	}
+
+	switch(density) {
+		default:
+		break;
+
+		case TrackDescription::Density::CopylockAmiga:
+			if(blocks > 4) result[4] = Storage::Time(189, 100'000'000);		// 1.89µs
+			if(blocks > 5) result[5] = Storage::Time(199, 100'000'000);		// 1.99µs
+			if(blocks > 6) result[6] = Storage::Time(209, 100'000'000);		// 2.09µs
+		break;
+
+		case TrackDescription::Density::CopylockAmigaNew:
+			if(blocks > 0) result[0] = Storage::Time(189, 100'000'000);		// 1.89µs
+			if(blocks > 1) result[1] = Storage::Time(199, 100'000'000);		// 1.99µs
+			if(blocks > 2) result[2] = Storage::Time(209, 100'000'000);		// 2.09µs
+		break;
+
+		case TrackDescription::Density::CopylockST:
+			if(blocks > 5) result[5] = Storage::Time(21, 10'000'000);		// 2.1µs
+		break;
+
+		case TrackDescription::Density::SpeedlockAmiga:
+			if(blocks > 1) result[1] = Storage::Time(11, 5'000'000);		// 2.2µs
+			if(blocks > 2) result[2] = Storage::Time(9, 5'000'000);			// 1.8µs
+		break;
+
+		case TrackDescription::Density::OldSpeedlockAmiga:
+			if(blocks > 1) result[1] = Storage::Time(21, 10'000'000);		// 2.1µs
+		break;
+
+		case TrackDescription::Density::AdamBrierleyAmiga:
+			if(blocks > 1) result[1] = Storage::Time(11, 5'000'000);		// 2.2µs
+			if(blocks > 2) result[2] = Storage::Time(21, 10'000'000);		// 2.1µs
+
+			if(blocks > 4) result[3] = Storage::Time(19, 10'000'000);		// 1.9µs
+			if(blocks > 5) result[5] = Storage::Time(9, 5'000'000);			// 1.8µs
+			if(blocks > 6) result[6] = Storage::Time(17, 10'000'000);		// 1.7µs
+		break;
+
+		// TODO: AdamBrierleyDensityKeyAmiga.
+	}
+
+	return result;
 }
