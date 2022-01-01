@@ -68,7 +68,7 @@ class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
 			bool has_fuzzy_bits = false;
 		};
 
-		std::vector<Time> bit_lengths(TrackDescription::Density, size_t blocks);
+		Time bit_length(TrackDescription::Density, int block);
 
 		int head_count_;
 		int track_count_;

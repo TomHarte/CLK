@@ -292,61 +292,64 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 	return nullptr;
 }
 
-/// @returns A vector of the length of a bit in each block for a count of @c blocks in an area of data density @c density.
+/// @returns The correct bit length for @c block on a track of @c density.
 ///
 /// @discussion At least to me, this is the least well-designed part] of the IPF specification; rather than just dictating cell
 /// densities (or, equivalently, lengths) in the file, densities are named according to their protection scheme and the decoder
 /// is required to know all named protection schemes. Which makes IPF unable to handle arbitrary disks (or, indeed, disks
 /// with multiple protection schemes on a single track).
-std::vector<Storage::Time> IPF::bit_lengths(TrackDescription::Density density, size_t blocks) {
-	std::vector<Storage::Time> result;
-	result.reserve(size_t(blocks));
-
-	// Establish the default density of 2 µs.
-	for(size_t c = 0; c < blocks; c++) {
-		result.push_back(Storage::Time(1, 500'000));	// i.e. default to 2µs.
-	}
+Storage::Time IPF::bit_length(TrackDescription::Density density, int block) {
+	constexpr unsigned int us = 100'000'000;
+	static constexpr auto us170 = Storage::Time::simplified(170, us);
+	static constexpr auto us180 = Storage::Time::simplified(180, us);
+	static constexpr auto us189 = Storage::Time::simplified(189, us);
+	static constexpr auto us190 = Storage::Time::simplified(190, us);
+	static constexpr auto us199 = Storage::Time::simplified(199, us);
+	static constexpr auto us200 = Storage::Time::simplified(200, us);
+	static constexpr auto us209 = Storage::Time::simplified(209, us);
+	static constexpr auto us210 = Storage::Time::simplified(210, us);
+	static constexpr auto us220 = Storage::Time::simplified(220, us);
 
 	switch(density) {
 		default:
 		break;
 
 		case TrackDescription::Density::CopylockAmiga:
-			if(blocks > 4) result[4] = Storage::Time(189, 100'000'000);		// 1.89µs
-			if(blocks > 5) result[5] = Storage::Time(199, 100'000'000);		// 1.99µs
-			if(blocks > 6) result[6] = Storage::Time(209, 100'000'000);		// 2.09µs
+			if(block == 4) return us189;
+			if(block == 5) return us199;
+			if(block == 6) return us209;
 		break;
 
 		case TrackDescription::Density::CopylockAmigaNew:
-			if(blocks > 0) result[0] = Storage::Time(189, 100'000'000);		// 1.89µs
-			if(blocks > 1) result[1] = Storage::Time(199, 100'000'000);		// 1.99µs
-			if(blocks > 2) result[2] = Storage::Time(209, 100'000'000);		// 2.09µs
+			if(block == 0) return us189;
+			if(block == 1) return us199;
+			if(block == 2) return us209;
 		break;
 
 		case TrackDescription::Density::CopylockST:
-			if(blocks > 5) result[5] = Storage::Time(21, 10'000'000);		// 2.1µs
+			if(block == 5) return us210;
 		break;
 
 		case TrackDescription::Density::SpeedlockAmiga:
-			if(blocks > 1) result[1] = Storage::Time(11, 5'000'000);		// 2.2µs
-			if(blocks > 2) result[2] = Storage::Time(9, 5'000'000);			// 1.8µs
+			if(block == 1) return us220;
+			if(block == 2) return us180;
 		break;
 
 		case TrackDescription::Density::OldSpeedlockAmiga:
-			if(blocks > 1) result[1] = Storage::Time(21, 10'000'000);		// 2.1µs
+			if(block == 1) return us210;
 		break;
 
 		case TrackDescription::Density::AdamBrierleyAmiga:
-			if(blocks > 1) result[1] = Storage::Time(11, 5'000'000);		// 2.2µs
-			if(blocks > 2) result[2] = Storage::Time(21, 10'000'000);		// 2.1µs
-
-			if(blocks > 4) result[3] = Storage::Time(19, 10'000'000);		// 1.9µs
-			if(blocks > 5) result[5] = Storage::Time(9, 5'000'000);			// 1.8µs
-			if(blocks > 6) result[6] = Storage::Time(17, 10'000'000);		// 1.7µs
+			if(block == 1) return us220;
+			if(block == 2) return us210;
+			if(block == 3) return us200;
+			if(block == 4) return us190;
+			if(block == 5) return us180;
+			if(block == 6) return us170;
 		break;
 
 		// TODO: AdamBrierleyDensityKeyAmiga.
 	}
 
-	return result;
+	return us200;	// i.e. default to 2µs.
 }
