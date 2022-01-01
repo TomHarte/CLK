@@ -282,10 +282,13 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 					None, Sync, Data, Gap, Raw, Fuzzy
 				} type = Type(data_header & 0x1f);
 				const size_t length = block_size(file_, data_header) * (block.data_unit_is_bits ? 1 : 8);
+#ifndef NDEBUG
+				const auto next_chunk = file_.tell() + long(length >> 3);
+#endif
 
 				// TODO: write the data.
 				switch(type) {
-					case Type::Gap: {
+					/*case Type::Gap: {
 						auto &segment = segments.emplace_back();
 						segment.length_of_a_bit = length_of_a_bit;
 						segment.data.reserve(size_t(length + 31) & size_t(~31));
@@ -297,24 +300,32 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 							encoder->add_byte(uint8_t(block.default_gap_value >> 0));
 						}
 						segment.data.resize(length);
-					} break;
+					} break;*/
 
 					case Type::Data: {
+						printf("Handling data type %d, length %zu bits\n", int(type), length);
+						auto &segment = segments.emplace_back();
+						segment.length_of_a_bit = length_of_a_bit;
+
+						// Length appears to be in pre-encoded bits; double that to get encoded bits.
+						const auto byte_length = (length + 7) >> 3;
+						segment.data.reserve(byte_length * 2);
+
+						auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
+						for(size_t c = 0; c < (length >> 3); c++) {
+							encoder->add_byte(file_.get8());
+						}
+
+						segment.data.resize(length * 2);
+					} break;
+
+					case Type::Gap:
+					case Type::Sync:
+					case Type::Raw: {
+						printf("Handling data type %d, length %zu bits\n", int(type), length);
 						auto &segment = segments.emplace_back();
 						segment.length_of_a_bit = length_of_a_bit;
 						segment.data.reserve(size_t(length + 7) & size_t(~7));
-						auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
-						while(segment.data.size() < length) {
-							encoder->add_byte(file_.get8());
-						}
-						segment.data.resize(length);
-					} break;
-
-					case Type::Sync:
-					case Type::Raw: {
-						auto &segment = segments.emplace_back();
-						segment.length_of_a_bit = length_of_a_bit;
-						segment.data.reserve(length);
 
 						for(size_t bit = 0; bit < length; bit += 8) {
 							const uint8_t next = file_.get8();
@@ -333,9 +344,10 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 
 					default:
 						printf("Unhandled data type %d, length %zu bits\n", int(type), length);
-						file_.seek(long(length >> 3), SEEK_CUR);
 					break;
 				}
+
+				assert(file_.tell() == next_chunk);
 			}
 		}
 
