@@ -8,6 +8,9 @@
 
 #include "IPF.hpp"
 
+#include "../../Track/PCMTrack.hpp"
+#include "../../Encodings/MFM/Encoder.hpp"
+
 using namespace Storage::Disk;
 
 namespace {
@@ -236,8 +239,11 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 		block.data_offset = file_.get32be();
 	}
 
-	// TODO: Append as necessary for each gap and data stream as per above.
+	std::vector<Storage::Disk::PCMSegment> segments;
+	int block_count = 0;
 	for(auto &block: blocks) {
+		const auto length_of_a_bit = bit_length(description.density, block_count);
+
 		if(block.gap_offset) {
 			file_.seek(description.file_offset + block.gap_offset, SEEK_SET);
 			while(true) {
@@ -279,6 +285,52 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 
 				// TODO: write the data.
 				switch(type) {
+					case Type::Gap: {
+						auto &segment = segments.emplace_back();
+						segment.length_of_a_bit = length_of_a_bit;
+						segment.data.reserve(size_t(length + 31) & size_t(~31));
+						auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
+						while(segment.data.size() < length) {
+							encoder->add_byte(uint8_t(block.default_gap_value >> 24));
+							encoder->add_byte(uint8_t(block.default_gap_value >> 16));
+							encoder->add_byte(uint8_t(block.default_gap_value >> 8));
+							encoder->add_byte(uint8_t(block.default_gap_value >> 0));
+						}
+						segment.data.resize(length);
+					} break;
+
+					case Type::Data: {
+						auto &segment = segments.emplace_back();
+						segment.length_of_a_bit = length_of_a_bit;
+						segment.data.reserve(size_t(length + 7) & size_t(~7));
+						auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
+						while(segment.data.size() < length) {
+							encoder->add_byte(file_.get8());
+						}
+						segment.data.resize(length);
+					} break;
+
+					case Type::Sync:
+					case Type::Raw: {
+						auto &segment = segments.emplace_back();
+						segment.length_of_a_bit = length_of_a_bit;
+						segment.data.reserve(length);
+
+						for(size_t bit = 0; bit < length; bit += 8) {
+							const uint8_t next = file_.get8();
+							segment.data.push_back(next & 0x80);
+							segment.data.push_back(next & 0x40);
+							segment.data.push_back(next & 0x20);
+							segment.data.push_back(next & 0x10);
+							segment.data.push_back(next & 0x08);
+							segment.data.push_back(next & 0x04);
+							segment.data.push_back(next & 0x02);
+							segment.data.push_back(next & 0x01);
+						}
+
+						segment.data.resize(length);
+					} break;
+
 					default:
 						printf("Unhandled data type %d, length %zu bits\n", int(type), length);
 						file_.seek(long(length >> 3), SEEK_CUR);
@@ -286,10 +338,11 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 				}
 			}
 		}
-		printf("\n");
+
+		++block_count;
 	}
 
-	return nullptr;
+	return std::make_shared<Storage::Disk::PCMTrack>(segments);
 }
 
 /// @returns The correct bit length for @c block on a track of @c density.
