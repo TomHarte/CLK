@@ -314,7 +314,7 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 						segment.data.reserve(byte_length * 16);
 
 						auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
-						for(size_t c = 0; c < (length >> 3); c++) {
+						for(size_t c = 0; c < length; c += 8) {
 							encoder->add_byte(file_.get8());
 						}
 
