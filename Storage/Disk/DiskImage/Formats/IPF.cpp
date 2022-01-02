@@ -11,6 +11,8 @@
 #include "../../Track/PCMTrack.hpp"
 #include "../../Encodings/MFM/Encoder.hpp"
 
+#include <cassert>
+
 using namespace Storage::Disk;
 
 namespace {
