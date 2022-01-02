@@ -311,13 +311,14 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 
 						// Length appears to be in pre-encoded bits; double that to get encoded bits.
 						const auto byte_length = (length + 7) >> 3;
-						segment.data.reserve(byte_length * 2);
+						segment.data.reserve(byte_length * 16);
 
 						auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
 						for(size_t c = 0; c < (length >> 3); c++) {
 							encoder->add_byte(file_.get8());
 						}
 
+						assert(segment.data.size() <= (byte_length * 16));
 						segment.data.resize(length * 2);
 					} break;
 
@@ -327,7 +328,9 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 						printf("Handling data type %d, length %zu bits\n", int(type), length);
 						auto &segment = segments.emplace_back();
 						segment.length_of_a_bit = length_of_a_bit;
-						segment.data.reserve(size_t(length + 7) & size_t(~7));
+
+						const auto bit_length = size_t(length + 7) & size_t(~7);
+						segment.data.reserve(bit_length);
 
 						for(size_t bit = 0; bit < length; bit += 8) {
 							const uint8_t next = file_.get8();
@@ -341,6 +344,7 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 							segment.data.push_back(next & 0x01);
 						}
 
+						assert(segment.data.size() <= bit_length);
 						segment.data.resize(length);
 					} break;
 
