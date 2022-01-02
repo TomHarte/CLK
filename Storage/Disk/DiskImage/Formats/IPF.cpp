@@ -304,6 +304,7 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 						segment.data.resize(length);
 					} break;*/
 
+					case Type::Gap:
 					case Type::Data: {
 						printf("Handling data type %d, length %zu bits\n", int(type), length);
 						auto &segment = segments.emplace_back();
@@ -322,7 +323,6 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 						segment.data.resize(length * 2);
 					} break;
 
-					case Type::Gap:
 					case Type::Sync:
 					case Type::Raw: {
 						printf("Handling data type %d, length %zu bits\n", int(type), length);
