@@ -10,6 +10,7 @@
 #define IPF_hpp
 
 #include "../DiskImage.hpp"
+#include "../../Track/PCMTrack.hpp"
 #include "../../../FileHolder.hpp"
 #include "../../../TargetPlatforms.hpp"
 
@@ -68,8 +69,6 @@ class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
 			bool has_fuzzy_bits = false;
 		};
 
-		Time bit_length(TrackDescription::Density, int block);
-
 		int head_count_;
 		int track_count_;
 		std::map<Track::Address, TrackDescription> tracks_;
@@ -79,6 +78,11 @@ class IPF: public DiskImage, public TargetPlatform::TypeDistinguisher {
 			return TargetPlatform::Type(platform_type_);
 		}
 		TargetPlatform::IntType platform_type_ = TargetPlatform::Amiga;
+
+		Time bit_length(TrackDescription::Density, int block);
+		void add_gap(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits, uint32_t value);
+		void add_unencoded_data(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits);
+		void add_raw_data(std::vector<Storage::Disk::PCMSegment> &, Time bit_length, size_t num_bits);
 };
 
 }

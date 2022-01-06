@@ -8,7 +8,6 @@
 
 #include "IPF.hpp"
 
-#include "../../Track/PCMTrack.hpp"
 #include "../../Encodings/MFM/Encoder.hpp"
 
 #include <cassert>
@@ -258,19 +257,22 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 				} type = Type(gap_header & 0x1f);
 				const size_t length = block_size(file_, gap_header);
 
-				// TODO: write the gap.
 				switch(type) {
 					case Type::GapLength:
-						printf("Unhandled gap length %zu bytes\n", length);
+						printf("Adding gap length %zu bits\n", length);
+						add_gap(segments, length_of_a_bit, length, block.default_gap_value);
 					break;
 
 					default:
 					case Type::SampleLength:
-						printf("Unhandled sampled gap length %zu bytes\n", length);
-						file_.seek(long(length >> 3), SEEK_CUR);
+						printf("Adding sampled gap length %zu bits\n", length);
+						add_raw_data(segments, length_of_a_bit, length);
+//						file_.seek(long(length >> 3), SEEK_CUR);
 					break;
 				}
 			}
+		} else if(block.gap_bits) {
+			add_gap(segments, length_of_a_bit, block.gap_bits, block.default_gap_value);
 		}
 
 		if(block.data_offset) {
@@ -288,65 +290,16 @@ std::shared_ptr<Track> IPF::get_track_at_position([[maybe_unused]] Track::Addres
 				const auto next_chunk = file_.tell() + long(length >> 3);
 #endif
 
-				// TODO: write the data.
 				switch(type) {
-					/*case Type::Gap: {
-						auto &segment = segments.emplace_back();
-						segment.length_of_a_bit = length_of_a_bit;
-						segment.data.reserve(size_t(length + 31) & size_t(~31));
-						auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
-						while(segment.data.size() < length) {
-							encoder->add_byte(uint8_t(block.default_gap_value >> 24));
-							encoder->add_byte(uint8_t(block.default_gap_value >> 16));
-							encoder->add_byte(uint8_t(block.default_gap_value >> 8));
-							encoder->add_byte(uint8_t(block.default_gap_value >> 0));
-						}
-						segment.data.resize(length);
-					} break;*/
-
 					case Type::Gap:
-					case Type::Data: {
-						printf("Handling data type %d, length %zu bits\n", int(type), length);
-						auto &segment = segments.emplace_back();
-						segment.length_of_a_bit = length_of_a_bit;
-
-						// Length appears to be in pre-encoded bits; double that to get encoded bits.
-						const auto byte_length = (length + 7) >> 3;
-						segment.data.reserve(byte_length * 16);
-
-						auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
-						for(size_t c = 0; c < length; c += 8) {
-							encoder->add_byte(file_.get8());
-						}
-
-						assert(segment.data.size() <= (byte_length * 16));
-						segment.data.resize(length * 2);
-					} break;
+					case Type::Data:
+						add_unencoded_data(segments, length_of_a_bit, length);
+					break;
 
 					case Type::Sync:
-					case Type::Raw: {
-						printf("Handling data type %d, length %zu bits\n", int(type), length);
-						auto &segment = segments.emplace_back();
-						segment.length_of_a_bit = length_of_a_bit;
-
-						const auto bit_length = size_t(length + 7) & size_t(~7);
-						segment.data.reserve(bit_length);
-
-						for(size_t bit = 0; bit < length; bit += 8) {
-							const uint8_t next = file_.get8();
-							segment.data.push_back(next & 0x80);
-							segment.data.push_back(next & 0x40);
-							segment.data.push_back(next & 0x20);
-							segment.data.push_back(next & 0x10);
-							segment.data.push_back(next & 0x08);
-							segment.data.push_back(next & 0x04);
-							segment.data.push_back(next & 0x02);
-							segment.data.push_back(next & 0x01);
-						}
-
-						assert(segment.data.size() <= bit_length);
-						segment.data.resize(length);
-					} break;
+					case Type::Raw:
+						add_raw_data(segments, length_of_a_bit, length);
+					break;
 
 					default:
 						printf("Unhandled data type %d, length %zu bits\n", int(type), length);
@@ -423,4 +376,62 @@ Storage::Time IPF::bit_length(TrackDescription::Density density, int block) {
 	}
 
 	return us200;	// i.e. default to 2µs.
+}
+
+void IPF::add_gap(std::vector<Storage::Disk::PCMSegment> &track, Time bit_length, size_t num_bits, uint32_t value) {
+	auto &segment = track.emplace_back();
+	segment.length_of_a_bit = bit_length;
+
+	// Empirically, I think gaps require MFM encoding.
+	const auto byte_length = (num_bits + 7) >> 3;
+	segment.data.reserve(byte_length * 16);
+
+	auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
+	while(segment.data.size() < num_bits) {
+		encoder->add_byte(uint8_t(value >> 24));
+		value = (value << 8) | (value >> 24);
+	}
+
+	assert(segment.data.size() <= (byte_length * 16));
+	segment.data.resize(num_bits);
+}
+
+void IPF::add_unencoded_data(std::vector<Storage::Disk::PCMSegment> &track, Time bit_length, size_t num_bits) {
+	auto &segment = track.emplace_back();
+	segment.length_of_a_bit = bit_length;
+
+	// Length appears to be in pre-encoded bits; double that to get encoded bits.
+	const auto byte_length = (num_bits + 7) >> 3;
+	segment.data.reserve(num_bits * 16);
+
+	auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
+	for(size_t c = 0; c < num_bits; c += 8) {
+		encoder->add_byte(file_.get8());
+	}
+
+	assert(segment.data.size() <= (byte_length * 16));
+	segment.data.resize(num_bits * 2);
+}
+
+void IPF::add_raw_data(std::vector<Storage::Disk::PCMSegment> &track, Time bit_length, size_t num_bits) {
+	auto &segment = track.emplace_back();
+	segment.length_of_a_bit = bit_length;
+
+	const auto num_bits_ceiling = size_t(num_bits + 7) & size_t(~7);
+	segment.data.reserve(num_bits_ceiling);
+
+	for(size_t bit = 0; bit < num_bits; bit += 8) {
+		const uint8_t next = file_.get8();
+		segment.data.push_back(next & 0x80);
+		segment.data.push_back(next & 0x40);
+		segment.data.push_back(next & 0x20);
+		segment.data.push_back(next & 0x10);
+		segment.data.push_back(next & 0x08);
+		segment.data.push_back(next & 0x04);
+		segment.data.push_back(next & 0x02);
+		segment.data.push_back(next & 0x01);
+	}
+
+	assert(segment.data.size() <= num_bits_ceiling);
+	segment.data.resize(num_bits);
 }
