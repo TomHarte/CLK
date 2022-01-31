@@ -39,20 +39,20 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 	SetOpSrcDestSize(op, DirectAddress, dest, size);	\
 	source_ = Source::Immediate;						\
 	operand_size_ = size;								\
-	phase_ = Phase::AwaitingDisplacementOrOperand
+	phase_ = Phase::DisplacementOrOperand
 
 /// Handles instructions of the form Ax, jjkk where the latter is implicitly an address.
 #define RegAddr(op, dest, op_size, addr_size)			\
 	SetOpSrcDestSize(op, DirectAddress, dest, op_size);	\
 	operand_size_ = addr_size;							\
-	phase_ = Phase::AwaitingDisplacementOrOperand
+	phase_ = Phase::DisplacementOrOperand
 
 /// Handles instructions of the form jjkk, Ax where the former is implicitly an address.
 #define AddrReg(op, source, op_size, addr_size)				\
 	SetOpSrcDestSize(op, source, DirectAddress, op_size);	\
 	operand_size_ = addr_size;								\
 	destination_ = Source::DirectAddress;					\
-	phase_ = Phase::AwaitingDisplacementOrOperand
+	phase_ = Phase::DisplacementOrOperand
 
 /// Covers both `mem/reg, reg` and `reg, mem/reg`.
 #define MemRegReg(op, format, size)				\
@@ -65,13 +65,13 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 /// Handles JO, JNO, JB, etc — jumps with a single byte displacement.
 #define Jump(op)									\
 	operation_ = Operation::op;						\
-	phase_ = Phase::AwaitingDisplacementOrOperand;	\
+	phase_ = Phase::DisplacementOrOperand;			\
 	displacement_size_ = 1
 
 /// Handles far CALL and far JMP — fixed four byte operand operations.
 #define Far(op)										\
 	operation_ = Operation::op;						\
-	phase_ = Phase::AwaitingDisplacementOrOperand;	\
+	phase_ = Phase::DisplacementOrOperand;			\
 	operand_size_ = 4;								\
 
 	while(phase_ == Phase::Instruction && source != end) {
