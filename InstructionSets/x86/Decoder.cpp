@@ -552,12 +552,12 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			default: assert(false);
 		}
 
-		phase_ = (displacement_size_ + operand_size_) ? Phase::AwaitingDisplacementOrOperand : Phase::ReadyToPost;
+		phase_ = (displacement_size_ + operand_size_) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
 	}
 
 	// MARK: - Displacement and operand.
 
-	if(phase_ == Phase::AwaitingDisplacementOrOperand && source != end) {
+	if(phase_ == Phase::DisplacementOrOperand && source != end) {
 		const int required_bytes = displacement_size_ + operand_size_;
 
 		const int outstanding_bytes = required_bytes - operand_bytes_;

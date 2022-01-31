@@ -48,7 +48,7 @@ class Decoder {
 			ModRegRM,
 			/// Waits for sufficiently many bytes to pass for the required displacement and operand to be captured.
 			/// Cf. displacement_size_ and operand_size_.
-			AwaitingDisplacementOrOperand,
+			DisplacementOrOperand,
 			/// Forms and returns an Instruction, and resets parsing state.
 			ReadyToPost
 		} phase_ = Phase::Instruction;
