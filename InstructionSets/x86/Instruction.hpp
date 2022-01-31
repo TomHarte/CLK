@@ -23,6 +23,10 @@ namespace x86 {
 enum class Operation: uint8_t {
 	Invalid,
 
+	//
+	// 8086 instructions.
+	//
+
 	/// ASCII adjust after addition; source will be AL and destination will be AX.
 	AAA,
 	/// ASCII adjust before division; destination will be AX and source will be a multiplier.
@@ -192,6 +196,92 @@ enum class Operation: uint8_t {
 
 	/// Load AL with DS:[AL+BX].
 	XLAT,
+
+	// TODO: expand detail on all operations below.
+
+	//
+	// 80286 additions.
+	//
+
+	// TODO: INS, OUTS, PUSHA, POPA,
+
+	/// Checks an array index against bounds.
+	BOUND,
+
+	/// Create stack frame.
+	ENTER,
+	/// Procedure exit.
+	LEAVE,
+
+	/// Adjusts requested privilege level.
+	ARPL,
+	/// Clears the task-switched flag.
+	CLTS,
+	/// Loads access rights.
+	LAR,
+
+	/// Loads the global descriptor table.
+	LGDT,
+	/// Loads the interrupt descriptor table.
+	LIDT,
+	/// Loads the local descriptor table.
+	LLDT,
+	/// Stores the global descriptor table.
+	SGDT,
+	/// Stores the interrupt descriptor table.
+	SIDT,
+	/// Stores the local descriptor table.
+	SLDT,
+
+	/// Verifies a segment for reading.
+	VERR,
+	/// Verifies a segment for writing.
+	VERW,
+
+	/// Loads the machine status word.
+	LMSW,
+	/// Stores the machine status word.
+	SMSW,
+	/// Loads a segment limit
+	LSL,
+	/// Loads the task register.
+	LTR,
+	/// Stores the task register.
+	STR,
+
+	//
+	// 80386 additions.
+	//
+
+	// TODO: CWDE (as distinct from CWD?), MOVSX, MOVZX, SETcc.
+
+	/// Loads a pointer to FS.
+	LFS,
+	/// Loads a pointer to GS.
+	LGS,
+	/// Loads a pointer to SS.
+	LSS,
+
+	/// Shift left double.
+	SHLD,
+	/// Shift right double.
+	SHRD,
+
+	/// Bit scan forwards.
+	BSF,
+	/// Bit scan reverse.
+	BSR,
+	/// Bit test.
+	BT,
+	/// Bit test and complement.
+	BTC,
+	/// Bit test and reset.
+	BTR,
+	/// Bit test and set.
+	BTS,
+
+	/// Convert dword to qword.
+	CDQ,
 };
 
 enum class Size: uint8_t {
