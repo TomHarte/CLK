@@ -200,10 +200,8 @@ enum class Operation: uint8_t {
 	// TODO: expand detail on all operations below.
 
 	//
-	// 80286 additions.
+	// 80186 additions.
 	//
-
-	// TODO: INS, OUTS, PUSHA, POPA,
 
 	/// Checks an array index against bounds.
 	BOUND,
@@ -212,6 +210,24 @@ enum class Operation: uint8_t {
 	ENTER,
 	/// Procedure exit.
 	LEAVE,
+
+	/// Inputs a byte from a port, incrementing or decrementing the destination.
+	INSB,
+	/// Inputs a word from a port, incrementing or decrementingthe destination.
+	INSW,
+	/// Outputs a byte to a port, incrementing or decrementing the destination.
+	OUTSB,
+	/// Outputs a word to a port, incrementing or decrementing the destination.
+	OUTSW,
+
+	/// Pushes all general purpose registers to the stack.
+	PUSHA,
+	/// Pops all general purpose registers from the stack.
+	POPA,
+
+	//
+	// 80286 additions.
+	//
 
 	/// Adjusts requested privilege level.
 	ARPL,
@@ -249,11 +265,12 @@ enum class Operation: uint8_t {
 	/// Stores the task register.
 	STR,
 
+	/// Undocumented (but used); loads all registers, including internal ones.
+	LOADALL,
+
 	//
 	// 80386 additions.
 	//
-
-	// TODO: CWDE (as distinct from CWD?), MOVSX, MOVZX, SETcc.
 
 	/// Loads a pointer to FS.
 	LFS,
@@ -280,8 +297,19 @@ enum class Operation: uint8_t {
 	/// Bit test and set.
 	BTS,
 
+	/// Compare string double word.
+	CMPSD,
+	/// [Early 80386s only] Insert bit string.
+	IBITS,
+
+	/// Inputs a double word from a port, incrementing or decrementing the destination.
+	INSD,
+
 	/// Convert dword to qword.
 	CDQ,
+	/// Convert word to dword; AX will be expanded to fill EAX.
+	/// Compare and contrast to CWD which would expand AX to DX:AX.
+	CWDE,
 };
 
 enum class Size: uint8_t {
