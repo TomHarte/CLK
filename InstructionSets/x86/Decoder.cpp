@@ -15,7 +15,7 @@
 using namespace InstructionSet::x86;
 
 // Only 8086 is suppoted for now.
-Decoder::Decoder(Model) {}
+Decoder::Decoder(Model model) : model_(model) {}
 
 std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *source, size_t length) {
 	const uint8_t *const end = source + length;
@@ -74,6 +74,13 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 	phase_ = Phase::DisplacementOrOperand;			\
 	operand_size_ = 4;								\
 
+/// Handles ENTER — a fixed three-byte operation.
+#define Displacement16Operand8(op)					\
+	operation_ = Operation::op;						\
+	phase_ = Phase::DisplacementOrOperand;			\
+	displacement_size_ = 2;							\
+	operand_size_ = 1;								\
+
 	while(phase_ == Phase::Instruction && source != end) {
 		// Retain the instruction byte, in case additional decoding is deferred
 		// to the ModRegRM byte.
@@ -81,12 +88,14 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 		++source;
 		++consumed_;
 
+#define undefined()	{	\
+	const auto result = std::make_pair(consumed_, Instruction());	\
+	reset_parsing();	\
+	return result;	\
+}
+
 		switch(instr_) {
-			default: {
-				const auto result = std::make_pair(consumed_, Instruction());
-				reset_parsing();
-				return result;
-			}
+			default: undefined();
 
 #define PartialBlock(start, operation)								\
 	case start + 0x00: MemRegReg(operation, MemReg_Reg, 1);	break;	\
@@ -146,7 +155,34 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 
 #undef RegisterBlock
 
-			// 0x60–0x6f: not used.
+			case 0x60:
+				if(model_ < Model::i80186) undefined();
+				Complete(PUSHA, None, None, 2);
+			break;
+			case 0x61:
+				if(model_ < Model::i80186) undefined();
+				Complete(POPA, None, None, 2);
+			break;
+			case 0x62:
+				if(model_ < Model::i80186) undefined();
+				MemRegReg(BOUND, Reg_MemReg, 2);
+			break;
+			case 0x6c:	// INSB
+				if(model_ < Model::i80186) undefined();
+				Complete(INS, None, None, 1);
+			break;
+			case 0x6d:	// INSW
+				if(model_ < Model::i80186) undefined();
+				Complete(INS, None, None, 2);
+			break;
+			case 0x6e:	// OUTSB
+				if(model_ < Model::i80186) undefined();
+				Complete(OUTS, None, None, 1);
+			break;
+			case 0x6f:	// OUTSW
+				if(model_ < Model::i80186) undefined();
+				Complete(OUTS, None, None, 2);
+			break;
 
 			case 0x70: Jump(JO);	break;
 			case 0x71: Jump(JNO);	break;
@@ -242,6 +278,15 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0xc5: MemRegReg(LDS, Reg_MemReg, 2);	break;
 			case 0xc6: MemRegReg(MOV, MemRegMOV, 1);	break;
 			case 0xc7: MemRegReg(MOV, MemRegMOV, 2);	break;
+
+			case 0xc8:
+				if(model_ < Model::i80186) undefined();
+				Displacement16Operand8(ENTER);
+			break;
+			case 0xc9:
+				if(model_ < Model::i80186) undefined();
+				Complete(LEAVE, None, None, 0);
+			break;
 
 			case 0xca: RegData(RETF, None, 2);			break;
 			case 0xcb: Complete(RETF, None, None, 4);	break;

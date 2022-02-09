@@ -19,6 +19,9 @@ namespace x86 {
 
 enum class Model {
 	i8086,
+	i80186,
+	i80286,
+	i80386,
 };
 
 /*!
@@ -40,6 +43,8 @@ class Decoder {
 		std::pair<int, Instruction> decode(const uint8_t *source, size_t length);
 
 	private:
+		const Model model_;
+
 		enum class Phase {
 			/// Captures all prefixes and continues until an instruction byte is encountered.
 			Instruction,

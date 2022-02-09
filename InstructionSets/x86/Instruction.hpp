@@ -208,21 +208,19 @@ enum class Operation: uint8_t {
 
 	/// Create stack frame.
 	ENTER,
-	/// Procedure exit.
+	/// Procedure exit; copies BP to SP, then pops a new BP from the stack.
 	LEAVE,
 
-	/// Inputs a byte from a port, incrementing or decrementing the destination.
-	INSB,
-	/// Inputs a word from a port, incrementing or decrementingthe destination.
-	INSW,
-	/// Outputs a byte to a port, incrementing or decrementing the destination.
-	OUTSB,
-	/// Outputs a word to a port, incrementing or decrementing the destination.
-	OUTSW,
+	/// Inputs from a port, incrementing or decrementing the destination.
+	INS,
+	/// Outputs to a port, incrementing or decrementing the destination.
+	OUTS,
 
-	/// Pushes all general purpose registers to the stack.
+	/// Pushes all general purpose registers to the stack, in the order:
+	/// AX, CX, DX, BX, [original] SP, BP, SI, DI.
 	PUSHA,
-	/// Pops all general purpose registers from the stack.
+	/// Pops all general purpose registers from the stack, in the reverse of
+	/// the PUSHA order, i.e. DI, SI, BP, [final] SP, BX, DX, CX, AX.
 	POPA,
 
 	//
