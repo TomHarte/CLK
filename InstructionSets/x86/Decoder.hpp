@@ -117,6 +117,16 @@ class Decoder {
 			// 'register' field to pick from ADD/ADC/SBB/SUB/CMP, altering
 			// the source to ::Immediate and setting an appropriate operand size.
 			MemRegADC_to_CMP,
+
+			// Parse for mode and register/memory field, populating both source_
+			// and destination_ fields with the result. Uses the 'register' field
+			// to pick from SLDT/STR/LLDT/LTR/VERR/VERW.
+			MemRegSLDT_to_VERW,
+
+			// Parse for mode and register/memory field, populating both source_
+			// and destination_ fields with the result. Uses the 'register' field
+			// to pick from SGDT/LGDT/SMSW/LMSW.
+			MemRegSGDT_to_LMSW,
 		} modregrm_format_ = ModRegRMFormat::MemReg_Reg;
 
 		// Ephemeral decoding state.

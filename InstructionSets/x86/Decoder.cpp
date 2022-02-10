@@ -388,14 +388,16 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 		switch(instr_) {
 			default: undefined();
 
-			case 0x02:	MemRegReg(LAR, Reg_MemReg, 2);	break;
-			case 0x03:	MemRegReg(LSL, Reg_MemReg, 2);	break;
-			case 0x06:	Complete(CLTS, None, None, 1);	break;
+			case 0x00:	MemRegReg(Invalid, MemRegSLDT_to_VERW, 2);	break;
+			case 0x01:	MemRegReg(Invalid, MemRegSGDT_to_LMSW, 2);	break;
+			case 0x02:	MemRegReg(LAR, Reg_MemReg, 2);				break;
+			case 0x03:	MemRegReg(LSL, Reg_MemReg, 2);				break;
+			case 0x05:
+				if(model_ != Model::i80286) undefined();
+				Complete(LOADALL, None, None, 0);
+			break;
+			case 0x06:	Complete(CLTS, None, None, 1);				break;
 		}
-			// TODO: 0x0f 0x00 -> LLDT/SLDT/VERR/VERW/LTR/STR
-			// TODO: 0x0f 0x01 -> LGDT/LIDT/SGDT/SIDT/LMSW/SMSW
-			// TODO: 0x0f 0x05 -> LOADALL
-
 	}
 
 #undef Far
@@ -456,9 +458,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 
 				// LES and LDS accept a memory argument only, not a register.
 				if(operation_ == Operation::LES || operation_ == Operation::LDS) {
-					const auto result = std::make_pair(consumed_, Instruction());
-					reset_parsing();
-					return result;
+					undefined();
 				}
 			break;
 		}
@@ -479,11 +479,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 				source_ = destination_ = memreg;
 
 				switch(reg) {
-					default: {
-						const auto result = std::make_pair(consumed_, Instruction());
-						reset_parsing();
-						return result;
-					}
+					default: undefined();
 
 					case 0: 	operation_ = Operation::TEST;	break;
 					case 2: 	operation_ = Operation::NOT;	break;
@@ -504,9 +500,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 				};
 
 				if(reg & 4) {
-					const auto result = std::make_pair(consumed_, Instruction());
-					reset_parsing();
-					return result;
+					undefined();
 				}
 
 				destination_ = seg_table[reg];
@@ -516,11 +510,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 				destination_ = memreg;
 
 				switch(reg) {
-					default: {
-						const auto result = std::make_pair(consumed_, Instruction());
-						reset_parsing();
-						return result;
-					}
+					default: 	undefined();
 
 					case 0: 	operation_ = Operation::ROL;	break;
 					case 2: 	operation_ = Operation::ROR;	break;
@@ -536,11 +526,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 				source_ = destination_ = memreg;
 
 				switch(reg) {
-					default: {
-						const auto result = std::make_pair(consumed_, Instruction());
-						reset_parsing();
-						return result;
-					}
+					default: 	undefined();
 
 					case 0:		operation_ = Operation::INC;	break;
 					case 1:		operation_ = Operation::DEC;	break;
@@ -551,11 +537,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 				source_ = destination_ = memreg;
 
 				switch(reg) {
-					default: {
-						const auto result = std::make_pair(consumed_, Instruction());
-						reset_parsing();
-						return result;
-					}
+					default: 	undefined();
 
 					case 0:		operation_ = Operation::INC;	break;
 					case 1:		operation_ = Operation::DEC;	break;
@@ -579,8 +561,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 				source_ = destination_ = memreg;
 
 				if(reg != 0) {
-					reset_parsing();
-					return std::make_pair(consumed_, Instruction());
+					undefined();
 				}
 			break;
 
@@ -613,17 +594,41 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 									// the operation requires it.
 
 				switch(reg) {
-					default: {
-						const auto result = std::make_pair(consumed_, Instruction());
-						reset_parsing();
-						return result;
-					}
+					default: undefined();
 
 					case 0: 	operation_ = Operation::ADD;	break;
 					case 2: 	operation_ = Operation::ADC;	break;
 					case 3: 	operation_ = Operation::SBB;	break;
 					case 5: 	operation_ = Operation::SUB;	break;
 					case 7: 	operation_ = Operation::CMP;	break;
+				}
+			break;
+
+			case ModRegRMFormat::MemRegSLDT_to_VERW:
+				destination_ = source_ = memreg;
+
+				switch(reg) {
+					default: undefined();
+
+					case 0: 	operation_ = Operation::SLDT;	break;
+					case 1: 	operation_ = Operation::STR;	break;
+					case 2: 	operation_ = Operation::LLDT;	break;
+					case 3: 	operation_ = Operation::LTR;	break;
+					case 4: 	operation_ = Operation::VERR;	break;
+					case 5: 	operation_ = Operation::VERW;	break;
+				}
+			break;
+
+			case ModRegRMFormat::MemRegSGDT_to_LMSW:
+				destination_ = source_ = memreg;
+
+				switch(reg) {
+					default: undefined();
+
+					case 0: 	operation_ = Operation::SGDT;	break;
+					case 2: 	operation_ = Operation::LGDT;	break;
+					case 4: 	operation_ = Operation::SMSW;	break;
+					case 6: 	operation_ = Operation::LMSW;	break;
 				}
 			break;
 
