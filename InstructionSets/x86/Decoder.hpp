@@ -48,6 +48,8 @@ class Decoder {
 		enum class Phase {
 			/// Captures all prefixes and continues until an instruction byte is encountered.
 			Instruction,
+			/// Having encountered a 0x0f first instruction byte, waits for the next byte fully to determine the instruction.
+			InstructionPageF,
 			/// Receives a ModRegRM byte and either populates the source_ and dest_ fields appropriately
 			/// or completes decoding of the instruction, as per the instruction format.
 			ModRegRM,
@@ -119,7 +121,7 @@ class Decoder {
 
 		// Ephemeral decoding state.
 		Operation operation_ = Operation::Invalid;
-		uint8_t instr_ = 0x00;	// TODO: is this desired, versus loading more context into ModRegRMFormat?
+		uint16_t instr_ = 0x0000;	// TODO: is this desired, versus loading more context into ModRegRMFormat?
 		int consumed_ = 0, operand_bytes_ = 0;
 
 		// Source and destination locations.

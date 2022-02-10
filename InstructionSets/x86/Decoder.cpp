@@ -81,18 +81,18 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 	displacement_size_ = 2;							\
 	operand_size_ = 1;								\
 
+#define undefined()	{												\
+	const auto result = std::make_pair(consumed_, Instruction());	\
+	reset_parsing();												\
+	return result;													\
+}
+
 	while(phase_ == Phase::Instruction && source != end) {
 		// Retain the instruction byte, in case additional decoding is deferred
 		// to the ModRegRM byte.
 		instr_ = *source;
 		++source;
 		++consumed_;
-
-#define undefined()	{	\
-	const auto result = std::make_pair(consumed_, Instruction());	\
-	reset_parsing();	\
-	return result;	\
-}
 
 		switch(instr_) {
 			default: undefined();
@@ -111,6 +111,13 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 
 			PartialBlock(0x08, OR);						break;
 			case 0x0e: Complete(PUSH, CS, None, 2);		break;
+
+			// The 286 onwards have a further set of instructions
+			// prefixed with $0f.
+			case 0x0f:
+				if(model_ < Model::i80286) undefined();
+				phase_ = Phase::InstructionPageF;
+			break;
 
 			PartialBlock(0x10, ADC);					break;
 			case 0x16: Complete(PUSH, SS, None, 2);		break;
@@ -166,6 +173,10 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0x62:
 				if(model_ < Model::i80186) undefined();
 				MemRegReg(BOUND, Reg_MemReg, 2);
+			break;
+			case 0x63:
+				if(model_ < Model::i80286) undefined();
+				MemRegReg(ARPL, MemReg_Reg, 2);
 			break;
 			case 0x6c:	// INSB
 				if(model_ < Model::i80186) undefined();
@@ -363,6 +374,28 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0xf2:	repetition_ = Repetition::RepNE;	break;
 			case 0xf3:	repetition_ = Repetition::RepE;		break;
 		}
+	}
+
+	// MARK: - Additional F page of instructions.
+	if(phase_ == Phase::InstructionPageF && source != end) {
+		// Update the instruction acquired.
+		instr_ = 0x0f00 | *source;
+		++source;
+		++consumed_;
+
+		// NB: to reach here, the instruction set must be at least
+		// that of an 80286.
+		switch(instr_) {
+			default: undefined();
+
+			case 0x02:	MemRegReg(LAR, Reg_MemReg, 2);	break;
+			case 0x03:	MemRegReg(LSL, Reg_MemReg, 2);	break;
+			case 0x06:	Complete(CLTS, None, None, 1);	break;
+		}
+			// TODO: 0x0f 0x00 -> LLDT/SLDT/VERR/VERW/LTR/STR
+			// TODO: 0x0f 0x01 -> LGDT/LIDT/SGDT/SIDT/LMSW/SMSW
+			// TODO: 0x0f 0x05 -> LOADALL
+
 	}
 
 #undef Far
