@@ -102,8 +102,8 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 	case start + 0x01: MemRegReg(operation, MemReg_Reg, 2);	break;	\
 	case start + 0x02: MemRegReg(operation, Reg_MemReg, 1);	break;	\
 	case start + 0x03: MemRegReg(operation, Reg_MemReg, 2);	break;	\
-	case start + 0x04: RegData(operation, AL, 1);			break;	\
-	case start + 0x05: RegData(operation, AX, 2)
+	case start + 0x04: RegData(operation, eAX, 1);			break;	\
+	case start + 0x05: RegData(operation, eAX, 2)
 
 			PartialBlock(0x00, ADD);					break;
 			case 0x06: Complete(PUSH, ES, None, 2);		break;
@@ -137,23 +137,23 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 
 			PartialBlock(0x30, XOR);					break;
 			case 0x36: segment_override_ = Source::SS;	break;
-			case 0x37: Complete(AAA, AL, AX, 1);		break;
+			case 0x37: Complete(AAA, AL, eAX, 2);		break;
 
 			PartialBlock(0x38, CMP);					break;
 			case 0x3e: segment_override_ = Source::DS;	break;
-			case 0x3f: Complete(AAS, AL, AX, 1);		break;
+			case 0x3f: Complete(AAS, AL, eAX, 2);		break;
 
 #undef PartialBlock
 
-#define RegisterBlock(start, operation)							\
-	case start + 0x00: Complete(operation, AX, AX, 2);	break;	\
-	case start + 0x01: Complete(operation, CX, CX, 2);	break;	\
-	case start + 0x02: Complete(operation, DX, DX, 2);	break;	\
-	case start + 0x03: Complete(operation, BX, BX, 2);	break;	\
-	case start + 0x04: Complete(operation, SP, SP, 2);	break;	\
-	case start + 0x05: Complete(operation, BP, BP, 2);	break;	\
-	case start + 0x06: Complete(operation, SI, SI, 2);	break;	\
-	case start + 0x07: Complete(operation, DI, DI, 2)
+#define RegisterBlock(start, operation)								\
+	case start + 0x00: Complete(operation, eAX, eAX, 2);	break;	\
+	case start + 0x01: Complete(operation, eCX, eCX, 2);	break;	\
+	case start + 0x02: Complete(operation, eDX, eDX, 2);	break;	\
+	case start + 0x03: Complete(operation, eBX, eBX, 2);	break;	\
+	case start + 0x04: Complete(operation, eSP, eSP, 2);	break;	\
+	case start + 0x05: Complete(operation, eBP, eBP, 2);	break;	\
+	case start + 0x06: Complete(operation, eSI, eSI, 2);	break;	\
+	case start + 0x07: Complete(operation, eDI, eDI, 2)
 
 			RegisterBlock(0x40, INC);	break;
 			RegisterBlock(0x48, DEC);	break;
@@ -231,16 +231,16 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0x8f: MemRegReg(POP, MemRegPOP, 2);	break;
 
 			case 0x90: Complete(NOP, None, None, 0);	break;	// Or XCHG AX, AX?
-			case 0x91: Complete(XCHG, AX, CX, 2);		break;
-			case 0x92: Complete(XCHG, AX, DX, 2);		break;
-			case 0x93: Complete(XCHG, AX, BX, 2);		break;
-			case 0x94: Complete(XCHG, AX, SP, 2);		break;
-			case 0x95: Complete(XCHG, AX, BP, 2);		break;
-			case 0x96: Complete(XCHG, AX, SI, 2);		break;
-			case 0x97: Complete(XCHG, AX, DI, 2);		break;
+			case 0x91: Complete(XCHG, eAX, eCX, 2);		break;
+			case 0x92: Complete(XCHG, eAX, eDX, 2);		break;
+			case 0x93: Complete(XCHG, eAX, eBX, 2);		break;
+			case 0x94: Complete(XCHG, eAX, eSP, 2);		break;
+			case 0x95: Complete(XCHG, eAX, eBP, 2);		break;
+			case 0x96: Complete(XCHG, eAX, eSI, 2);		break;
+			case 0x97: Complete(XCHG, eAX, eDI, 2);		break;
 
 			case 0x98: Complete(CBW, AL, AH, 1);		break;
-			case 0x99: Complete(CWD, AX, DX, 2);		break;
+			case 0x99: Complete(CWD, eAX, eDX, 2);		break;
 			case 0x9a: Far(CALLF);						break;
 			case 0x9b: Complete(WAIT, None, None, 0);	break;
 			case 0x9c: Complete(PUSHF, None, None, 2);	break;
@@ -249,16 +249,16 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0x9f: Complete(LAHF, None, None, 1);	break;
 
 			case 0xa0: RegAddr(MOV, AL, 1, 1);	break;
-			case 0xa1: RegAddr(MOV, AX, 2, 2);	break;
+			case 0xa1: RegAddr(MOV, eAX, 2, 2);	break;
 			case 0xa2: AddrReg(MOV, AL, 1, 1);	break;
-			case 0xa3: AddrReg(MOV, AX, 2, 2);	break;
+			case 0xa3: AddrReg(MOV, eAX, 2, 2);	break;
 
 			case 0xa4: Complete(MOVS, None, None, 1);	break;
 			case 0xa5: Complete(MOVS, None, None, 2);	break;
 			case 0xa6: Complete(CMPS, None, None, 1);	break;
 			case 0xa7: Complete(CMPS, None, None, 2);	break;
 			case 0xa8: RegData(TEST, AL, 1);			break;
-			case 0xa9: RegData(TEST, AX, 2);			break;
+			case 0xa9: RegData(TEST, eAX, 2);			break;
 			case 0xaa: Complete(STOS, None, None, 1);	break;
 			case 0xab: Complete(STOS, None, None, 2);	break;
 			case 0xac: Complete(LODS, None, None, 1);	break;
@@ -266,22 +266,22 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0xae: Complete(SCAS, None, None, 1);	break;
 			case 0xaf: Complete(SCAS, None, None, 2);	break;
 
-			case 0xb0: RegData(MOV, AL, 1);	break;
-			case 0xb1: RegData(MOV, CL, 1);	break;
-			case 0xb2: RegData(MOV, DL, 1);	break;
-			case 0xb3: RegData(MOV, BL, 1);	break;
-			case 0xb4: RegData(MOV, AH, 1);	break;
-			case 0xb5: RegData(MOV, CH, 1);	break;
-			case 0xb6: RegData(MOV, DH, 1);	break;
-			case 0xb7: RegData(MOV, BH, 1);	break;
-			case 0xb8: RegData(MOV, AX, 2);	break;
-			case 0xb9: RegData(MOV, CX, 2);	break;
-			case 0xba: RegData(MOV, DX, 2);	break;
-			case 0xbb: RegData(MOV, BX, 2);	break;
-			case 0xbc: RegData(MOV, SP, 2);	break;
-			case 0xbd: RegData(MOV, BP, 2);	break;
-			case 0xbe: RegData(MOV, SI, 2);	break;
-			case 0xbf: RegData(MOV, DI, 2);	break;
+			case 0xb0: RegData(MOV, eAX, 1);	break;
+			case 0xb1: RegData(MOV, eCX, 1);	break;
+			case 0xb2: RegData(MOV, eDX, 1);	break;
+			case 0xb3: RegData(MOV, eBX, 1);	break;
+			case 0xb4: RegData(MOV, AH, 1);		break;
+			case 0xb5: RegData(MOV, CH, 1);		break;
+			case 0xb6: RegData(MOV, DH, 1);		break;
+			case 0xb7: RegData(MOV, BH, 1);		break;
+			case 0xb8: RegData(MOV, eAX, 2);	break;
+			case 0xb9: RegData(MOV, eCX, 2);	break;
+			case 0xba: RegData(MOV, eDX, 2);	break;
+			case 0xbb: RegData(MOV, eBX, 2);	break;
+			case 0xbc: RegData(MOV, eSP, 2);	break;
+			case 0xbd: RegData(MOV, eBP, 2);	break;
+			case 0xbe: RegData(MOV, eSI, 2);	break;
+			case 0xbf: RegData(MOV, eDI, 2);	break;
 
 			case 0xc2: RegData(RETN, None, 2);			break;
 			case 0xc3: Complete(RETN, None, None, 2);	break;
@@ -320,8 +320,8 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 				operation_size_ = 1 + (instr_ & 1);
 				source_ = Source::CL;
 			break;
-			case 0xd4: RegData(AAM, AX, 1);				break;
-			case 0xd5: RegData(AAD, AX, 1);				break;
+			case 0xd4: RegData(AAM, eAX, 1);				break;
+			case 0xd5: RegData(AAD, eAX, 1);				break;
 
 			case 0xd7: Complete(XLAT, None, None, 1);	break;
 
@@ -354,6 +354,10 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0xee: Complete(OUT, AL, DX, 1);	break;
 			case 0xef: Complete(OUT, AX, DX, 2);	break;
 
+			case 0xf0: lock_ = true;					break;
+			case 0xf2: repetition_ = Repetition::RepNE;	break;
+			case 0xf3: repetition_ = Repetition::RepE;	break;
+
 			case 0xf4: Complete(HLT, None, None, 1);				break;
 			case 0xf5: Complete(CMC, None, None, 1);				break;
 			case 0xf6: MemRegReg(Invalid, MemRegTEST_to_IDIV, 1);	break;
@@ -368,11 +372,6 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 
 			case 0xfe: MemRegReg(Invalid, MemRegINC_DEC, 1);		break;
 			case 0xff: MemRegReg(Invalid, MemRegINC_to_PUSH, 1);	break;
-
-			// Other prefix bytes.
-			case 0xf0:	lock_ = true;						break;
-			case 0xf2:	repetition_ = Repetition::RepNE;	break;
-			case 0xf3:	repetition_ = Repetition::RepE;		break;
 		}
 	}
 
@@ -422,11 +421,11 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 		constexpr Source reg_table[3][8] = {
 			{},
 			{
-				Source::AL,	Source::CL,	Source::DL,	Source::BL,
-				Source::AH,	Source::CH,	Source::DH,	Source::BH,
+				Source::AL,		Source::eCX,	Source::eDX,	Source::eBX,
+				Source::AH,		Source::CH,		Source::DH,		Source::BH,
 			}, {
-				Source::AX,	Source::CX,	Source::DX,	Source::BX,
-				Source::SP,	Source::BP,	Source::SI,	Source::DI,
+				Source::eAX,	Source::eCX,	Source::eDX,	Source::eBX,
+				Source::eSP,	Source::eBP,	Source::eSI,	Source::eDI,
 			}
 		};
 		switch(mod) {

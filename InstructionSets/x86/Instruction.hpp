@@ -318,33 +318,81 @@ enum class Size: uint8_t {
 };
 
 enum class Source: uint8_t {
-	None,
-	CS, DS, ES, SS,
+	// These are in SIB order; this matters for packing later on.
+	// Whether each refers to e.g. EAX or AX depends on the
+	// instruction's data size.
+	eAX, eCX, eDX, eBX, eSP, eBP, eSI, eDI,
 
-	AL, AH, AX,
-	BL, BH, BX,
-	CL, CH, CX,
-	DL, DH, DX,
+	// Selectors are provided as a group.
+	CS, DS, ES, SS, FS, GS,
 
-	SI, DI,
-	BP, SP,
+	DirectAddress,
+	Immediate,
+	Indirect,
 
+	// Legacy 8-bit registers that can't be described as e.g. 8-bit eAX,
+	// or where the source is 8-bit but the destination is 16-bit.
+	AL, BL, CL, DL,
+	AH, BH, CH, DH,
+
+	// TODO: can these all be eliminated in favour of eAX,2, etc?
+	AX, BX, CX, DX,
+
+	// TODO: compact and replace with a reference to a SIB.
 	IndBXPlusSI,
 	IndBXPlusDI,
 	IndBPPlusSI,
 	IndBPPlusDI,
 	IndSI,
 	IndDI,
-	DirectAddress,
 	IndBP,
 	IndBX,
 
-	Immediate
+	/// @c None can be treated as a source that produces 0 when encountered;
+	/// it is semantically valid to receive it with that meaning in some contexts —
+	/// e.g. to indicate no index in indirect addressing.
+	None,
 };
 
 enum class Repetition: uint8_t {
 	None, RepE, RepNE
 };
+
+/// Provides a 32-bit-style scale, index and base; to produce the address this represents,
+/// calcluate base() + (index() << scale()).
+///
+/// This form of indirect addressing is used to describe both 16- and 32-bit indirect addresses,
+/// even though it is a superset of that supported prior to the 80386.
+class ScaleIndexBase {
+	public:
+		ScaleIndexBase(uint8_t sib) : sib_(sib) {}
+		ScaleIndexBase(int scale, Source index, Source base) : sib_(uint8_t(scale << 6 | (int(index != Source::None ? index : Source::eSI) << 3) | int(base))) {}
+
+		/// @returns the power of two by which to multiply @c index() before adding it to @c base().
+		int scale() const {
+			return sib_ >> 6;
+		}
+
+		/// @returns the @c index for this address; this is guaranteed to be one of eAX, eBX, eCX, eDX, None, eBP, eSI or eDI.
+		Source index() const {
+			constexpr Source sources[] = {
+				Source::eAX, Source::eCX, Source::eDX, Source::eBX, Source::None, Source::eBP, Source::eSI, Source::eDI,
+			};
+			static_assert(sizeof(sources) == 8);
+			return sources[(sib_ >> 3) & 0x7];
+		}
+
+		/// @returns the @c base for this address; this is guaranteed to be one of eAX, eBX, eCX, eDX, eSP, eBP, eSI or eDI.
+		Source base() const {
+			return Source(sib_ & 0x7);
+		}
+
+	private:
+		// Data is stored directly as an 80386 SIB byte.
+		const uint8_t sib_ = 0;
+};
+static_assert(sizeof(ScaleIndexBase) == 1);
+static_assert(alignof(ScaleIndexBase) == 1);
 
 class Instruction {
 	public:
