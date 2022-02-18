@@ -157,9 +157,9 @@ namespace {
 	// jb		0x00000001
 	// dec		%bx
 	// mov		$0x28,%ch
-	[self assert:instructions[0] operation:Operation::SUB size:2 operand:0xea77 destination:Source::AX];
+	[self assert:instructions[0] operation:Operation::SUB size:2 operand:0xea77 destination:Source::eAX];
 	[self assert:instructions[1] operation:Operation::JB displacement:0xfffc];
-	[self assert:instructions[2] operation:Operation::DEC size:2 source:Source::BX destination:Source::BX];
+	[self assert:instructions[2] operation:Operation::DEC size:2 source:Source::eBX destination:Source::eBX];
 	[self assert:instructions[3] operation:Operation::MOV size:1 operand:0x28 destination:Source::CH];
 
 	// ret
@@ -176,10 +176,10 @@ namespace {
 	// out		%ax,(%dx)
 	// jo		0x00000037
 	// xchg		%ax,%sp
-	[self assert:instructions[8] operation:Operation::DEC size:2 source:Source::SI destination:Source::SI];
+	[self assert:instructions[8] operation:Operation::DEC size:2 source:Source::eSI destination:Source::eSI];
 	[self assert:instructions[9] operation:Operation::OUT size:2 source:Source::AX destination:Source::DX];
 	[self assert:instructions[10] operation:Operation::JO displacement:0x20];
-	[self assert:instructions[11] operation:Operation::XCHG size:2 source:Source::AX destination:Source::SP];
+	[self assert:instructions[11] operation:Operation::XCHG size:2 source:Source::eAX destination:Source::eSP];
 
 	// ODA has:
 	// 	c4		(bad)
@@ -191,15 +191,15 @@ namespace {
 	//	c4 d4	(bad)
 	//	93		XCHG AX, BX
 	[self assert:instructions[12] operation:Operation::Invalid];
-	[self assert:instructions[13] operation:Operation::XCHG size:2 source:Source::AX destination:Source::BX];
+	[self assert:instructions[13] operation:Operation::XCHG size:2 source:Source::eAX destination:Source::eBX];
 
 	// inc		%bx
 	// cmp		$0x8e,%al
 	// [[ omitted: push		$0x65 ]]
 	// sbb		0x45(%bx,%si),%bh
 	// adc		%bh,0x3c(%bx)
-	[self assert:instructions[14] operation:Operation::INC size:2 source:Source::BX destination:Source::BX];
-	[self assert:instructions[15] operation:Operation::CMP size:1 operand:0x8e destination:Source::AL];
+	[self assert:instructions[14] operation:Operation::INC size:2 source:Source::eBX destination:Source::eBX];
+	[self assert:instructions[15] operation:Operation::CMP size:1 operand:0x8e destination:Source::eAX];
 	[self assert:instructions[16] operation:Operation::SBB size:1 source:Source::IndBXPlusSI destination:Source::BH displacement:0x45];
 	[self assert:instructions[17] operation:Operation::ADC size:1 source:Source::BH destination:Source::IndBX displacement:0x3c];
 
@@ -207,8 +207,8 @@ namespace {
 	// xor		%sp,0x2c(%si)
 	// out		%ax,$0xc6
 	// jge		0xffffffe0
-	[self assert:instructions[18] operation:Operation::SBB size:2 source:Source::BX destination:Source::IndBPPlusSI displacement:0x16];
-	[self assert:instructions[19] operation:Operation::XOR size:2 source:Source::SP destination:Source::IndSI displacement:0x2c];
+	[self assert:instructions[18] operation:Operation::SBB size:2 source:Source::eBX destination:Source::IndBPPlusSI displacement:0x16];
+	[self assert:instructions[19] operation:Operation::XOR size:2 source:Source::eSP destination:Source::IndSI displacement:0x2c];
 	[self assert:instructions[20] operation:Operation::OUT size:2 source:Source::AX destination:Source::DirectAddress operand:0xc6];
 	[self assert:instructions[21] operation:Operation::JNL displacement:0xffb0];
 
@@ -218,24 +218,24 @@ namespace {
 	// adc		$0x7e,%al
 	// jno		0x0000000b
 	[self assert:instructions[22] operation:Operation::MOV size:1 operand:0x49 destination:Source::CH];
-	[self assert:instructions[23] operation:Operation::MOV size:2 operand:0xcbc0 destination:Source::DX];
-	[self assert:instructions[24] operation:Operation::ADC size:1 operand:0x7e destination:Source::AL];
+	[self assert:instructions[23] operation:Operation::MOV size:2 operand:0xcbc0 destination:Source::eDX];
+	[self assert:instructions[24] operation:Operation::ADC size:1 operand:0x7e destination:Source::eAX];
 	[self assert:instructions[25] operation:Operation::JNO displacement:0xffd0];
 
 	// push		%ax
 	// js		0x0000007b
 	// add		(%di),%bx
 	// in		$0xc9,%ax
-	[self assert:instructions[26] operation:Operation::PUSH size:2 source:Source::AX];
+	[self assert:instructions[26] operation:Operation::PUSH size:2 source:Source::eAX];
 	[self assert:instructions[27] operation:Operation::JS displacement:0x3d];
-	[self assert:instructions[28] operation:Operation::ADD size:2 source:Source::IndDI destination:Source::BX];
+	[self assert:instructions[28] operation:Operation::ADD size:2 source:Source::IndDI destination:Source::eBX];
 	[self assert:instructions[29] operation:Operation::IN size:2 source:Source::DirectAddress destination:Source::AX operand:0xc9];
 
 	// xchg		%ax,%di
 	// ret
 	// fwait
 	// out		%al,$0xd3
-	[self assert:instructions[30] operation:Operation::XCHG size:2 source:Source::AX destination:Source::DI];
+	[self assert:instructions[30] operation:Operation::XCHG size:2 source:Source::eAX destination:Source::eDI];
 	[self assert:instructions[31] operation:Operation::RETN];
 	[self assert:instructions[32] operation:Operation::WAIT];
 	[self assert:instructions[33] operation:Operation::OUT size:1 source:Source::AL destination:Source::DirectAddress operand:0xd3];
@@ -245,10 +245,10 @@ namespace {
 	// dec		%bp
 	// jbe		0xffffffcc
 	// inc		%sp
-	[self assert:instructions[34] operation:Operation::POP size:2 destination:Source::AX];
-	[self assert:instructions[35] operation:Operation::DEC size:2 source:Source::BP destination:Source::BP];
+	[self assert:instructions[34] operation:Operation::POP size:2 destination:Source::eAX];
+	[self assert:instructions[35] operation:Operation::DEC size:2 source:Source::eBP destination:Source::eBP];
 	[self assert:instructions[36] operation:Operation::JBE displacement:0xff80];
-	[self assert:instructions[37] operation:Operation::INC size:2 source:Source::SP destination:Source::SP];
+	[self assert:instructions[37] operation:Operation::INC size:2 source:Source::eSP destination:Source::eSP];
 
 	// (bad)
 	// lahf
@@ -257,7 +257,7 @@ namespace {
 	[self assert:instructions[38] operation:Operation::Invalid];
 	[self assert:instructions[39] operation:Operation::LAHF];
 	[self assert:instructions[40] operation:Operation::MOVS size:2];
-	[self assert:instructions[41] operation:Operation::MOV size:2 operand:0x12a1 destination:Source::BP];
+	[self assert:instructions[41] operation:Operation::MOV size:2 operand:0x12a1 destination:Source::eBP];
 
 	// lds		(%bx,%di),%bp
 	// [[ omitted: leave ]]
@@ -273,9 +273,9 @@ namespace {
 	// cmp		%bx,-0x70(%di)
 	// adc		$0xb8c3,%ax
 	// lods		%ds:(%si),%ax
-	[self assert:instructions[46] operation:Operation::XCHG size:2 source:Source::AX destination:Source::DX];
-	[self assert:instructions[47] operation:Operation::CMP size:2 source:Source::BX destination:Source::IndDI displacement:0xff90];
-	[self assert:instructions[48] operation:Operation::ADC size:2 operand:0xb8c3 destination:Source::AX];
+	[self assert:instructions[46] operation:Operation::XCHG size:2 source:Source::eAX destination:Source::eDX];
+	[self assert:instructions[47] operation:Operation::CMP size:2 source:Source::eBX destination:Source::IndDI displacement:0xff90];
+	[self assert:instructions[48] operation:Operation::ADC size:2 operand:0xb8c3 destination:Source::eAX];
 	[self assert:instructions[49] operation:Operation::LODS size:2];
 
 	// call		0x0000172d
@@ -283,16 +283,16 @@ namespace {
 	// mov		$0x9e,%al
 	// stc
 	[self assert:instructions[50] operation:Operation::CALLD operand:0x16c8];
-	[self assert:instructions[51] operation:Operation::DEC size:2 source:Source::DX destination:Source::DX];
-	[self assert:instructions[52] operation:Operation::MOV size:1 operand:0x9e destination:Source::AL];
+	[self assert:instructions[51] operation:Operation::DEC size:2 source:Source::eDX destination:Source::eDX];
+	[self assert:instructions[52] operation:Operation::MOV size:1 operand:0x9e destination:Source::eAX];
 	[self assert:instructions[53] operation:Operation::STC];
 
 	// mov		$0xea56,%di
 	// dec		%si
 	// std
 	// in		$0x5a,%al
-	[self assert:instructions[54] operation:Operation::MOV size:2 operand:0xea56 destination:Source::DI];
-	[self assert:instructions[55] operation:Operation::DEC size:2 source:Source::SI destination:Source::SI];
+	[self assert:instructions[54] operation:Operation::MOV size:2 operand:0xea56 destination:Source::eDI];
+	[self assert:instructions[55] operation:Operation::DEC size:2 source:Source::eSI destination:Source::eSI];
 	[self assert:instructions[56] operation:Operation::STD];
 	[self assert:instructions[57] operation:Operation::IN size:1 source:Source::DirectAddress destination:Source::AL operand:0x5a];
 
@@ -300,10 +300,10 @@ namespace {
 	// sub		%dl,%dl
 	// negw		0x18(%bx)
 	// xchg		%dl,0x6425(%bx,%si)
-	[self assert:instructions[58] operation:Operation::AND size:2 source:Source::IndBPPlusSI destination:Source::BP displacement:0x5b2c];
-	[self assert:instructions[59] operation:Operation::SUB size:1 source:Source::DL destination:Source::DL];
+	[self assert:instructions[58] operation:Operation::AND size:2 source:Source::IndBPPlusSI destination:Source::eBP displacement:0x5b2c];
+	[self assert:instructions[59] operation:Operation::SUB size:1 source:Source::eDX destination:Source::eDX];
 	[self assert:instructions[60] operation:Operation::NEG size:2 source:Source::IndBX destination:Source::IndBX displacement:0x18];
-	[self assert:instructions[61] operation:Operation::XCHG size:1 source:Source::IndBXPlusSI destination:Source::DL displacement:0x6425];
+	[self assert:instructions[61] operation:Operation::XCHG size:1 source:Source::IndBXPlusSI destination:Source::eDX displacement:0x6425];
 
 	// mov		$0xc3,%bh
 	[self assert:instructions[62] operation:Operation::MOV size:1 operand:0xc3 destination:Source::BH];
