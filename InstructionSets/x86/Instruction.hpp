@@ -332,11 +332,12 @@ enum class Source: uint8_t {
 
 	// Legacy 8-bit registers that can't be described as e.g. 8-bit eAX,
 	// or where the source is 8-bit but the destination is 16-bit.
-	AL, BL, CL, DL,
+	CL,
 	AH, BH, CH, DH,
 
 	// TODO: can these all be eliminated in favour of eAX,2, etc?
-	AX, BX, CX, DX,
+	AX,
+	DX,
 
 	// TODO: compact and replace with a reference to a SIB.
 	IndBXPlusSI,

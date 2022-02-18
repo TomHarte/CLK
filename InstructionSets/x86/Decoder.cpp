@@ -129,19 +129,19 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 
 			PartialBlock(0x20, AND);					break;
 			case 0x26: segment_override_ = Source::ES;	break;
-			case 0x27: Complete(DAA, AL, AL, 1);		break;
+			case 0x27: Complete(DAA, eAX, eAX, 1);		break;
 
 			PartialBlock(0x28, SUB);					break;
 			case 0x2e: segment_override_ = Source::CS;	break;
-			case 0x2f: Complete(DAS, AL, AL, 1);		break;
+			case 0x2f: Complete(DAS, eAX, eAX, 1);		break;
 
 			PartialBlock(0x30, XOR);					break;
 			case 0x36: segment_override_ = Source::SS;	break;
-			case 0x37: Complete(AAA, AL, eAX, 2);		break;
+			case 0x37: Complete(AAA, eAX, eAX, 2);		break;
 
 			PartialBlock(0x38, CMP);					break;
 			case 0x3e: segment_override_ = Source::DS;	break;
-			case 0x3f: Complete(AAS, AL, eAX, 2);		break;
+			case 0x3f: Complete(AAS, eAX, eAX, 2);		break;
 
 #undef PartialBlock
 
@@ -239,7 +239,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0x96: Complete(XCHG, eAX, eSI, 2);		break;
 			case 0x97: Complete(XCHG, eAX, eDI, 2);		break;
 
-			case 0x98: Complete(CBW, AL, AH, 1);		break;
+			case 0x98: Complete(CBW, eAX, AH, 1);		break;
 			case 0x99: Complete(CWD, eAX, eDX, 2);		break;
 			case 0x9a: Far(CALLF);						break;
 			case 0x9b: Complete(WAIT, None, None, 0);	break;
@@ -248,16 +248,16 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0x9e: Complete(SAHF, None, None, 1);	break;
 			case 0x9f: Complete(LAHF, None, None, 1);	break;
 
-			case 0xa0: RegAddr(MOV, AL, 1, 1);	break;
+			case 0xa0: RegAddr(MOV, eAX, 1, 1);	break;
 			case 0xa1: RegAddr(MOV, eAX, 2, 2);	break;
-			case 0xa2: AddrReg(MOV, AL, 1, 1);	break;
+			case 0xa2: AddrReg(MOV, eAX, 1, 1);	break;
 			case 0xa3: AddrReg(MOV, eAX, 2, 2);	break;
 
 			case 0xa4: Complete(MOVS, None, None, 1);	break;
 			case 0xa5: Complete(MOVS, None, None, 2);	break;
 			case 0xa6: Complete(CMPS, None, None, 1);	break;
 			case 0xa7: Complete(CMPS, None, None, 2);	break;
-			case 0xa8: RegData(TEST, AL, 1);			break;
+			case 0xa8: RegData(TEST, eAX, 1);			break;
 			case 0xa9: RegData(TEST, eAX, 2);			break;
 			case 0xaa: Complete(STOS, None, None, 1);	break;
 			case 0xab: Complete(STOS, None, None, 2);	break;
@@ -339,19 +339,19 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0xe2: Jump(LOOP);		break;
 			case 0xe3: Jump(JPCX);		break;
 
-			case 0xe4: RegAddr(IN, AL, 1, 1);	break;
-			case 0xe5: RegAddr(IN, AX, 2, 1);	break;
-			case 0xe6: AddrReg(OUT, AL, 1, 1);	break;
-			case 0xe7: AddrReg(OUT, AX, 2, 1);	break;
+			case 0xe4: RegAddr(IN, eAX, 1, 1);	break;
+			case 0xe5: RegAddr(IN, eAX, 2, 1);	break;
+			case 0xe6: AddrReg(OUT, eAX, 1, 1);	break;
+			case 0xe7: AddrReg(OUT, eAX, 2, 1);	break;
 
 			case 0xe8: RegData(CALLD, None, 2);	break;
 			case 0xe9: RegData(JMPN, None, 2);	break;
 			case 0xea: Far(JMPF);				break;
 			case 0xeb: Jump(JMPN);				break;
 
-			case 0xec: Complete(IN, DX, AL, 1);		break;
+			case 0xec: Complete(IN, DX, eAX, 1);	break;
 			case 0xed: Complete(IN, DX, AX, 1);		break;
-			case 0xee: Complete(OUT, AL, DX, 1);	break;
+			case 0xee: Complete(OUT, eAX, DX, 1);	break;
 			case 0xef: Complete(OUT, AX, DX, 2);	break;
 
 			case 0xf0: lock_ = true;					break;
@@ -421,7 +421,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 		constexpr Source reg_table[3][8] = {
 			{},
 			{
-				Source::AL,		Source::eCX,	Source::eDX,	Source::eBX,
+				Source::eAX,	Source::eCX,	Source::eDX,	Source::eBX,
 				Source::AH,		Source::CH,		Source::DH,		Source::BH,
 			}, {
 				Source::eAX,	Source::eCX,	Source::eDX,	Source::eBX,
