@@ -637,6 +637,14 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 		phase_ = (displacement_size_ + operand_size_) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
 	}
 
+	// MARK: - ScaleIndexBase
+
+	if(phase_ == Phase::ScaleIndexBase && source != end) {
+		sib_ = *source;
+		++source;
+		++consumed_;
+	}
+
 	// MARK: - Displacement and operand.
 
 	if(phase_ == Phase::DisplacementOrOperand && source != end) {

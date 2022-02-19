@@ -53,6 +53,8 @@ class Decoder {
 			/// Receives a ModRegRM byte and either populates the source_ and dest_ fields appropriately
 			/// or completes decoding of the instruction, as per the instruction format.
 			ModRegRM,
+			/// Awaits n 80386+-style scale-index-base byte ('SIB'), indicating the form of indirect addressing.
+			ScaleIndexBase,
 			/// Waits for sufficiently many bytes to pass for the required displacement and operand to be captured.
 			/// Cf. displacement_size_ and operand_size_.
 			DisplacementOrOperand,
@@ -142,6 +144,9 @@ class Decoder {
 		int16_t displacement_ = 0;
 		uint16_t operand_ = 0;
 		uint64_t inward_data_ = 0;
+
+		// Indirection style.
+		uint8_t sib_;
 
 		// Facts about the instruction.
 		int displacement_size_ = 0;		// i.e. size of in-stream displacement, if any.

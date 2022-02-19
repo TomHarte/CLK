@@ -319,7 +319,7 @@ enum class Size: uint8_t {
 
 enum class Source: uint8_t {
 	// These are in SIB order; this matters for packing later on.
-	// Whether each refers to e.g. EAX or AX depends on the
+	// Whether each refers to e.g. EAX, AX or AL depends on the
 	// instruction's data size.
 	eAX, eCX, eDX, eBX, eSP, eBP, eSI, eDI,
 
