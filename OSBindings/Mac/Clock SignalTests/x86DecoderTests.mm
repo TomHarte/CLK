@@ -177,7 +177,7 @@ namespace {
 	// jo		0x00000037
 	// xchg		%ax,%sp
 	[self assert:instructions[8] operation:Operation::DEC size:2 source:Source::eSI destination:Source::eSI];
-	[self assert:instructions[9] operation:Operation::OUT size:2 source:Source::AX destination:Source::DX];
+	[self assert:instructions[9] operation:Operation::OUT size:2 source:Source::eAX destination:Source::eDX];
 	[self assert:instructions[10] operation:Operation::JO displacement:0x20];
 	[self assert:instructions[11] operation:Operation::XCHG size:2 source:Source::eAX destination:Source::eSP];
 
@@ -209,7 +209,7 @@ namespace {
 	// jge		0xffffffe0
 	[self assert:instructions[18] operation:Operation::SBB size:2 source:Source::eBX destination:Source::IndBPPlusSI displacement:0x16];
 	[self assert:instructions[19] operation:Operation::XOR size:2 source:Source::eSP destination:Source::IndSI displacement:0x2c];
-	[self assert:instructions[20] operation:Operation::OUT size:2 source:Source::AX destination:Source::DirectAddress operand:0xc6];
+	[self assert:instructions[20] operation:Operation::OUT size:2 source:Source::eAX destination:Source::DirectAddress operand:0xc6];
 	[self assert:instructions[21] operation:Operation::JNL displacement:0xffb0];
 
 	// mov		$0x49,%ch
@@ -229,7 +229,7 @@ namespace {
 	[self assert:instructions[26] operation:Operation::PUSH size:2 source:Source::eAX];
 	[self assert:instructions[27] operation:Operation::JS displacement:0x3d];
 	[self assert:instructions[28] operation:Operation::ADD size:2 source:Source::IndDI destination:Source::eBX];
-	[self assert:instructions[29] operation:Operation::IN size:2 source:Source::DirectAddress destination:Source::AX operand:0xc9];
+	[self assert:instructions[29] operation:Operation::IN size:2 source:Source::DirectAddress destination:Source::eAX operand:0xc9];
 
 	// xchg		%ax,%di
 	// ret
@@ -238,7 +238,7 @@ namespace {
 	[self assert:instructions[30] operation:Operation::XCHG size:2 source:Source::eAX destination:Source::eDI];
 	[self assert:instructions[31] operation:Operation::RETN];
 	[self assert:instructions[32] operation:Operation::WAIT];
-	[self assert:instructions[33] operation:Operation::OUT size:1 source:Source::AL destination:Source::DirectAddress operand:0xd3];
+	[self assert:instructions[33] operation:Operation::OUT size:1 source:Source::eAX destination:Source::DirectAddress operand:0xd3];
 
 	// [[ omitted: insb		(%dx),%es:(%di) ]]
 	// pop		%ax
@@ -294,7 +294,7 @@ namespace {
 	[self assert:instructions[54] operation:Operation::MOV size:2 operand:0xea56 destination:Source::eDI];
 	[self assert:instructions[55] operation:Operation::DEC size:2 source:Source::eSI destination:Source::eSI];
 	[self assert:instructions[56] operation:Operation::STD];
-	[self assert:instructions[57] operation:Operation::IN size:1 source:Source::DirectAddress destination:Source::AL operand:0x5a];
+	[self assert:instructions[57] operation:Operation::IN size:1 source:Source::DirectAddress destination:Source::eAX operand:0x5a];
 
 	// and		0x5b2c(%bp,%si),%bp
 	// sub		%dl,%dl

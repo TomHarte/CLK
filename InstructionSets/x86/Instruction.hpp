@@ -335,10 +335,6 @@ enum class Source: uint8_t {
 	CL,
 	AH, BH, CH, DH,
 
-	// TODO: can these all be eliminated in favour of eAX,2, etc?
-	AX,
-	DX,
-
 	// TODO: compact and replace with a reference to a SIB.
 	IndBXPlusSI,
 	IndBXPlusDI,

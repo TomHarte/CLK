@@ -349,10 +349,10 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0xea: Far(JMPF);				break;
 			case 0xeb: Jump(JMPN);				break;
 
-			case 0xec: Complete(IN, DX, eAX, 1);	break;
-			case 0xed: Complete(IN, DX, AX, 1);		break;
-			case 0xee: Complete(OUT, eAX, DX, 1);	break;
-			case 0xef: Complete(OUT, AX, DX, 2);	break;
+			case 0xec: Complete(IN, eDX, eAX, 1);	break;
+			case 0xed: Complete(IN, eDX, eAX, 1);		break;
+			case 0xee: Complete(OUT, eAX, eDX, 1);	break;
+			case 0xef: Complete(OUT, eAX, eDX, 2);	break;
 
 			case 0xf0: lock_ = true;					break;
 			case 0xf2: repetition_ = Repetition::RepNE;	break;
