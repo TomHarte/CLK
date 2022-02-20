@@ -364,6 +364,7 @@ enum class Repetition: uint8_t {
 /// even though it is a superset of that supported prior to the 80386.
 class ScaleIndexBase {
 	public:
+		ScaleIndexBase() {}
 		ScaleIndexBase(uint8_t sib) : sib_(sib) {}
 		ScaleIndexBase(int scale, Source index, Source base) : sib_(uint8_t(scale << 6 | (int(index != Source::None ? index : Source::eSI) << 3) | int(base))) {}
 
@@ -388,7 +389,7 @@ class ScaleIndexBase {
 
 	private:
 		// Data is stored directly as an 80386 SIB byte.
-		const uint8_t sib_ = 0;
+		uint8_t sib_ = 0;
 };
 static_assert(sizeof(ScaleIndexBase) == 1);
 static_assert(alignof(ScaleIndexBase) == 1);

@@ -146,7 +146,7 @@ class Decoder {
 		uint64_t inward_data_ = 0;
 
 		// Indirection style.
-		uint8_t sib_;
+		ScaleIndexBase sib_;
 
 		// Facts about the instruction.
 		int displacement_size_ = 0;		// i.e. size of in-stream displacement, if any.
