@@ -156,19 +156,19 @@ enum class Operation: uint8_t {
 	PUSH,
 	/// PUSH the flags register to the stack.
 	PUSHF,
-	/// Rotate the destination left through carry the number of bits indicated by source.
+	/// Rotate the destination left through carry the number of bits indicated by source; if the source is a register then implicitly its size is 1.
 	RCL,
-	/// Rotate the destination right through carry the number of bits indicated by source.
+	/// Rotate the destination right through carry the number of bits indicated by source; if the source is a register then implicitly its size is 1.
 	RCR,
-	/// Rotate the destination left the number of bits indicated by source.
+	/// Rotate the destination left the number of bits indicated by source; if the source is a register then implicitly its size is 1.
 	ROL,
-	/// Rotate the destination right the number of bits indicated by source.
+	/// Rotate the destination right the number of bits indicated by source; if the source is a register then implicitly its size is 1.
 	ROR,
-	/// Arithmetic shift left the destination by the number of bits indicated by source.
+	/// Arithmetic shift left the destination by the number of bits indicated by source; if the source is a register then implicitly its size is 1.
 	SAL,
-	/// Arithmetic shift right the destination by the number of bits indicated by source.
+	/// Arithmetic shift right the destination by the number of bits indicated by source; if the source is a register then implicitly its size is 1.
 	SAR,
-	/// Logical shift right the destination by the number of bits indicated by source.
+	/// Logical shift right the destination by the number of bits indicated by source; if the source is a register then implicitly its size is 1.
 	SHR,
 
 	/// Clear carry flag; no source or destination provided.
@@ -323,17 +323,19 @@ enum class Source: uint8_t {
 	// instruction's data size.
 	eAX, eCX, eDX, eBX, eSP, eBP, eSI, eDI,
 
-	// Selectors are provided as a group.
+	// Selectors.
 	CS, DS, ES, SS, FS, GS,
 
-	DirectAddress,
-	Immediate,
-	Indirect,
-
-	// Legacy 8-bit registers that can't be described as e.g. 8-bit eAX,
-	// or where the source is 8-bit but the destination is 16-bit.
-	CL,
+	// Legacy 8-bit registers that can't be described as e.g. 8-bit eAX.
 	AH, BH, CH, DH,
+
+	// Sources that are not a register.
+	/// The address included within this instruction should be used as the source.
+	DirectAddress,
+	/// The immediate value included within this instruction should be used as the source.
+	Immediate,
+	/// The ScaleIndexBase associated with this source should be used.
+	Indirect,
 
 	// TODO: compact and replace with a reference to a SIB.
 	IndBXPlusSI,

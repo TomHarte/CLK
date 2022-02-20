@@ -318,7 +318,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 				phase_ = Phase::ModRegRM;
 				modregrm_format_ = ModRegRMFormat::MemRegROL_to_SAR;
 				operation_size_ = 1 + (instr_ & 1);
-				source_ = Source::CL;
+				source_ = Source::eCX;
 			break;
 			case 0xd4: RegData(AAM, eAX, 1);				break;
 			case 0xd5: RegData(AAD, eAX, 1);				break;
