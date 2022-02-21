@@ -9,6 +9,7 @@
 #ifndef InstructionSets_x86_Instruction_h
 #define InstructionSets_x86_Instruction_h
 
+#include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
