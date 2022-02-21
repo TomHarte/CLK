@@ -10,6 +10,7 @@
 #define InstructionSets_x86_Instruction_h
 
 #include <cstdint>
+#include <type_traits>
 
 namespace InstructionSet {
 namespace x86 {
@@ -428,6 +429,9 @@ template<bool is_32bit> class Instruction {
 				sib_ == rhs.sib_;
 		}
 
+		using DisplacementT = typename std::conditional<is_32bit, int32_t, int16_t>::type;
+		using ImmediateT = typename std::conditional<is_32bit, uint32_t, uint16_t>::type;
+
 	private:
 		// b0, b1: a Repetition;
 		// b2+: operation size.
@@ -440,13 +444,18 @@ template<bool is_32bit> class Instruction {
 		uint16_t sources_ = 0;
 
 		// Unpackable fields.
-		int16_t displacement_ = 0;
-		uint16_t operand_ = 0;		// ... or used to store a segment for far operations.
+		DisplacementT displacement_ = 0;
+		ImmediateT operand_ = 0;		// ... or used to store a segment for far operations.
 
 		// Fields yet to be properly incorporated...
 		ScaleIndexBase sib_;
 
 	public:
+		/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
+		/// to store an @c Instruction but is permitted to reuse the trailing sizeof(Instruction) - packing_size() for any purpose it likes. Teleologically,
+		/// this allows a denser packing of instructions into containers.
+		size_t packing_size() const		{	return sizeof(*this);	/* TODO */	}
+
 		SourceSIB  source() const		{	return SourceSIB(Source(sources_ & 0x3f), sib_);			}
 		SourceSIB destination() const	{	return SourceSIB(Source((sources_ >> 6) & 0x3f), sib_);		}
 		bool lock() const				{	return sources_ & 0x8000;					}
@@ -455,11 +464,12 @@ template<bool is_32bit> class Instruction {
 		Repetition repetition() const	{	return Repetition(repetition_size_ & 3);	}
 		Size operation_size() const 	{	return Size(repetition_size_ >> 2);			}
 
+		// TODO: confirm whether far call for some reason makes thse 32-bit in protected mode.
 		uint16_t segment() const		{	return uint16_t(operand_);					}
 		uint16_t offset() const			{	return uint16_t(displacement_);				}
 
-		int16_t displacement() const	{	return displacement_;						}
-		uint16_t operand() const		{	return operand_;							}
+		DisplacementT displacement() const	{	return displacement_;						}
+		ImmediateT operand() const			{	return operand_;							}
 
 		Instruction() noexcept {}
 		Instruction(
@@ -471,8 +481,8 @@ template<bool is_32bit> class Instruction {
 			Source segment_override,
 			Repetition repetition,
 			Size operation_size,
-			int16_t displacement,
-			uint16_t operand) noexcept :
+			DisplacementT displacement,
+			ImmediateT operand) noexcept :
 				operation(operation),
 				repetition_size_(uint8_t((int(operation_size) << 2) | int(repetition))),
 				sources_(uint16_t(
