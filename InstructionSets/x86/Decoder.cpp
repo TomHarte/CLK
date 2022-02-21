@@ -440,6 +440,17 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			} break;
 
 			default: {
+				// TODO: switch to this table.
+//				constexpr ScaleIndexBase rm_table[8] = {
+//					ScaleIndexBase(0, Source::eBX, Source::eSI),
+//					ScaleIndexBase(0, Source::eBX, Source::eDI),
+//					ScaleIndexBase(0, Source::eBP, Source::eSI),
+//					ScaleIndexBase(0, Source::eBP, Source::eDI),
+//					ScaleIndexBase(0, Source::None, Source::eSI),
+//					ScaleIndexBase(0, Source::None, Source::eDI),
+//					ScaleIndexBase(0, Source::None, Source::eBP),
+//					ScaleIndexBase(0, Source::None, Source::eBX),
+//				};
 				constexpr Source rm_table[8] = {
 					Source::IndBXPlusSI,	Source::IndBXPlusDI,
 					Source::IndBPPlusSI,	Source::IndBPPlusDI,

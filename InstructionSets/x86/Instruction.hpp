@@ -364,17 +364,17 @@ enum class Repetition: uint8_t {
 /// even though it is a superset of that supported prior to the 80386.
 class ScaleIndexBase {
 	public:
-		ScaleIndexBase() {}
-		ScaleIndexBase(uint8_t sib) : sib_(sib) {}
-		ScaleIndexBase(int scale, Source index, Source base) : sib_(uint8_t(scale << 6 | (int(index != Source::None ? index : Source::eSI) << 3) | int(base))) {}
+		constexpr ScaleIndexBase() noexcept {}
+		constexpr ScaleIndexBase(uint8_t sib) noexcept : sib_(sib) {}
+		constexpr ScaleIndexBase(int scale, Source index, Source base) noexcept : sib_(uint8_t(scale << 6 | (int(index != Source::None ? index : Source::eSI) << 3) | int(base))) {}
 
 		/// @returns the power of two by which to multiply @c index() before adding it to @c base().
-		int scale() const {
+		constexpr int scale() const {
 			return sib_ >> 6;
 		}
 
 		/// @returns the @c index for this address; this is guaranteed to be one of eAX, eBX, eCX, eDX, None, eBP, eSI or eDI.
-		Source index() const {
+		constexpr Source index() const {
 			constexpr Source sources[] = {
 				Source::eAX, Source::eCX, Source::eDX, Source::eBX, Source::None, Source::eBP, Source::eSI, Source::eDI,
 			};
@@ -383,7 +383,7 @@ class ScaleIndexBase {
 		}
 
 		/// @returns the @c base for this address; this is guaranteed to be one of eAX, eBX, eCX, eDX, eSP, eBP, eSI or eDI.
-		Source base() const {
+		constexpr Source base() const {
 			return Source(sib_ & 0x7);
 		}
 
