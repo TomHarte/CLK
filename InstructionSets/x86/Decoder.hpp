@@ -29,10 +29,8 @@ enum class Model {
 
 	This is an experimental implementation; it has not yet undergone significant testing.
 */
-class Decoder {
+template <Model> class Decoder {
 	public:
-		Decoder(Model model);
-
 		/*!
 			@returns an @c Instruction plus a size; a positive size to indicate successful decoding; a
 				negative size specifies the [negatived] number of further bytes the caller should ideally
@@ -43,8 +41,6 @@ class Decoder {
 		std::pair<int, Instruction> decode(const uint8_t *source, size_t length);
 
 	private:
-		const Model model_;
-
 		enum class Phase {
 			/// Captures all prefixes and continues until an instruction byte is encountered.
 			Instruction,

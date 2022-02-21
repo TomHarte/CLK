@@ -14,10 +14,8 @@
 
 using namespace InstructionSet::x86;
 
-// Only 8086 is suppoted for now.
-Decoder::Decoder(Model model) : model_(model) {}
-
-std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *source, size_t length) {
+template <Model model>
+std::pair<int, InstructionSet::x86::Instruction> Decoder<model>::decode(const uint8_t *source, size_t length) {
 	const uint8_t *const end = source + length;
 
 	// MARK: - Prefixes (if present) and the opcode.
@@ -115,7 +113,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			// The 286 onwards have a further set of instructions
 			// prefixed with $0f.
 			case 0x0f:
-				if(model_ < Model::i80286) undefined();
+				if constexpr (model < Model::i80286) undefined();
 				phase_ = Phase::InstructionPageF;
 			break;
 
@@ -163,35 +161,35 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 #undef RegisterBlock
 
 			case 0x60:
-				if(model_ < Model::i80186) undefined();
+				if constexpr (model < Model::i80186) undefined();
 				Complete(PUSHA, None, None, 2);
 			break;
 			case 0x61:
-				if(model_ < Model::i80186) undefined();
+				if constexpr (model < Model::i80186) undefined();
 				Complete(POPA, None, None, 2);
 			break;
 			case 0x62:
-				if(model_ < Model::i80186) undefined();
+				if constexpr (model < Model::i80186) undefined();
 				MemRegReg(BOUND, Reg_MemReg, 2);
 			break;
 			case 0x63:
-				if(model_ < Model::i80286) undefined();
+				if constexpr (model < Model::i80286) undefined();
 				MemRegReg(ARPL, MemReg_Reg, 2);
 			break;
 			case 0x6c:	// INSB
-				if(model_ < Model::i80186) undefined();
+				if constexpr (model < Model::i80186) undefined();
 				Complete(INS, None, None, 1);
 			break;
 			case 0x6d:	// INSW
-				if(model_ < Model::i80186) undefined();
+				if constexpr (model < Model::i80186) undefined();
 				Complete(INS, None, None, 2);
 			break;
 			case 0x6e:	// OUTSB
-				if(model_ < Model::i80186) undefined();
+				if constexpr (model < Model::i80186) undefined();
 				Complete(OUTS, None, None, 1);
 			break;
 			case 0x6f:	// OUTSW
-				if(model_ < Model::i80186) undefined();
+				if constexpr (model < Model::i80186) undefined();
 				Complete(OUTS, None, None, 2);
 			break;
 
@@ -291,11 +289,11 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0xc7: MemRegReg(MOV, MemRegMOV, 2);	break;
 
 			case 0xc8:
-				if(model_ < Model::i80186) undefined();
+				if constexpr (model < Model::i80186) undefined();
 				Displacement16Operand8(ENTER);
 			break;
 			case 0xc9:
-				if(model_ < Model::i80186) undefined();
+				if constexpr (model < Model::i80186) undefined();
 				Complete(LEAVE, None, None, 0);
 			break;
 
@@ -392,7 +390,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			case 0x02:	MemRegReg(LAR, Reg_MemReg, 2);				break;
 			case 0x03:	MemRegReg(LSL, Reg_MemReg, 2);				break;
 			case 0x05:
-				if(model_ != Model::i80286) undefined();
+				if constexpr (model != Model::i80286) undefined();
 				Complete(LOADALL, None, None, 0);
 			break;
 			case 0x06:	Complete(CLTS, None, None, 1);				break;
@@ -711,3 +709,9 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 	// i.e. not done yet.
 	return std::make_pair(0, Instruction());
 }
+
+// Ensure all possible decoders are built.
+template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086>;
+template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80186>;
+template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80286>;
+template class InstructionSet::x86::Decoder<InstructionSet::x86::Model::i80386>;

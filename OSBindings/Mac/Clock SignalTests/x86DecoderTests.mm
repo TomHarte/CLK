@@ -105,7 +105,7 @@ namespace {
 
 - (void)decode:(const std::initializer_list<uint8_t> &)stream {
 	// Decode by offering up all data at once.
-	InstructionSet::x86::Decoder decoder(InstructionSet::x86::Model::i8086);
+	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
 	instructions.clear();
 	const uint8_t *byte = stream.begin();
 	while(byte != stream.end()) {
@@ -117,7 +117,7 @@ namespace {
 
 	// Grab a byte-at-a-time decoding and check that it matches the previous.
 	{
-		InstructionSet::x86::Decoder decoder(InstructionSet::x86::Model::i8086);
+		InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
 
 		auto previous_instruction = instructions.begin();
 		for(auto item: stream) {
