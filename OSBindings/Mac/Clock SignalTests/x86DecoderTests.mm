@@ -17,6 +17,8 @@ namespace {
 	using Instruction = InstructionSet::x86::Instruction;
 	using Source = InstructionSet::x86::Source;
 	using Size = InstructionSet::x86::Size;
+	using ScaleIndexBase = InstructionSet::x86::ScaleIndexBase;
+	using SourceSIB = InstructionSet::x86::SourceSIB;
 }
 
 @interface x86DecoderTests : XCTestCase
@@ -42,42 +44,42 @@ namespace {
 	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
 }
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(Source)source destination:(Source)destination displacement:(int16_t)displacement {
+- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(SourceSIB)source destination:(SourceSIB)destination displacement:(int16_t)displacement {
 	XCTAssertEqual(instruction.operation, operation);
 	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
-	XCTAssertEqual(instruction.source(), source);
-	XCTAssertEqual(instruction.destination(), destination);
+	XCTAssert(instruction.source() == source);
+	XCTAssert(instruction.destination() == destination);
 	XCTAssertEqual(instruction.displacement(), displacement);
 }
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(Source)source destination:(Source)destination displacement:(int16_t)displacement operand:(uint16_t)operand {
+- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(SourceSIB)source destination:(SourceSIB)destination displacement:(int16_t)displacement operand:(uint16_t)operand {
 	[self assert:instruction operation:operation size:size source:source destination:destination displacement:displacement];
 	XCTAssertEqual(instruction.operand(), operand);
 }
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(Source)source destination:(Source)destination operand:(uint16_t)operand {
+- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(SourceSIB)source destination:(SourceSIB)destination operand:(uint16_t)operand {
 	[self assert:instruction operation:operation size:size source:source destination:destination displacement:0 operand:operand];
 }
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(Source)source destination:(Source)destination {
+- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(SourceSIB)source destination:(SourceSIB)destination {
 	[self assert:instruction operation:operation size:size source:source destination:destination displacement:0];
 }
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(Source)source {
+- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(SourceSIB)source {
 	XCTAssertEqual(instruction.operation, operation);
 	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
-	XCTAssertEqual(instruction.source(), source);
+	XCTAssert(instruction.source() == source);
 }
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size destination:(Source)destination {
+- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size destination:(SourceSIB)destination {
 	[self assert:instruction operation:operation size:size];
-	XCTAssertEqual(instruction.destination(), destination);
+	XCTAssert(instruction.destination() == destination);
 }
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size operand:(uint16_t)operand destination:(Source)destination {
+- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size operand:(uint16_t)operand destination:(SourceSIB)destination {
 	[self assert:instruction operation:operation size:size];
-	XCTAssertEqual(instruction.destination(), destination);
-	XCTAssertEqual(instruction.source(), Source::Immediate);
+	XCTAssert(instruction.destination() == destination);
+	XCTAssert(instruction.source() == SourceSIB(Source::Immediate));
 	XCTAssertEqual(instruction.operand(), operand);
 	XCTAssertEqual(instruction.displacement(), 0);
 }
@@ -200,15 +202,15 @@ namespace {
 	// adc		%bh,0x3c(%bx)
 	[self assert:instructions[14] operation:Operation::INC size:2 source:Source::eBX destination:Source::eBX];
 	[self assert:instructions[15] operation:Operation::CMP size:1 operand:0x8e destination:Source::eAX];
-	[self assert:instructions[16] operation:Operation::SBB size:1 source:Source::IndBXPlusSI destination:Source::BH displacement:0x45];
-	[self assert:instructions[17] operation:Operation::ADC size:1 source:Source::BH destination:Source::IndBX displacement:0x3c];
+	[self assert:instructions[16] operation:Operation::SBB size:1 source:ScaleIndexBase(Source::eBX, Source::eSI) destination:Source::BH displacement:0x45];
+	[self assert:instructions[17] operation:Operation::ADC size:1 source:Source::BH destination:ScaleIndexBase(Source::eBX) displacement:0x3c];
 
 	// sbb		%bx,0x16(%bp,%si)
 	// xor		%sp,0x2c(%si)
 	// out		%ax,$0xc6
 	// jge		0xffffffe0
-	[self assert:instructions[18] operation:Operation::SBB size:2 source:Source::eBX destination:Source::IndBPPlusSI displacement:0x16];
-	[self assert:instructions[19] operation:Operation::XOR size:2 source:Source::eSP destination:Source::IndSI displacement:0x2c];
+	[self assert:instructions[18] operation:Operation::SBB size:2 source:Source::eBX destination:ScaleIndexBase(Source::eBP, Source::eSI) displacement:0x16];
+	[self assert:instructions[19] operation:Operation::XOR size:2 source:Source::eSP destination:ScaleIndexBase(Source::eSI) displacement:0x2c];
 	[self assert:instructions[20] operation:Operation::OUT size:2 source:Source::eAX destination:Source::DirectAddress operand:0xc6];
 	[self assert:instructions[21] operation:Operation::JNL displacement:0xffb0];
 
@@ -228,7 +230,7 @@ namespace {
 	// in		$0xc9,%ax
 	[self assert:instructions[26] operation:Operation::PUSH size:2 source:Source::eAX];
 	[self assert:instructions[27] operation:Operation::JS displacement:0x3d];
-	[self assert:instructions[28] operation:Operation::ADD size:2 source:Source::IndDI destination:Source::eBX];
+	[self assert:instructions[28] operation:Operation::ADD size:2 source:ScaleIndexBase(Source::eDI) destination:Source::eBX];
 	[self assert:instructions[29] operation:Operation::IN size:2 source:Source::DirectAddress destination:Source::eAX operand:0xc9];
 
 	// xchg		%ax,%di
@@ -274,7 +276,7 @@ namespace {
 	// adc		$0xb8c3,%ax
 	// lods		%ds:(%si),%ax
 	[self assert:instructions[46] operation:Operation::XCHG size:2 source:Source::eAX destination:Source::eDX];
-	[self assert:instructions[47] operation:Operation::CMP size:2 source:Source::eBX destination:Source::IndDI displacement:0xff90];
+	[self assert:instructions[47] operation:Operation::CMP size:2 source:Source::eBX destination:ScaleIndexBase(Source::eDI) displacement:0xff90];
 	[self assert:instructions[48] operation:Operation::ADC size:2 operand:0xb8c3 destination:Source::eAX];
 	[self assert:instructions[49] operation:Operation::LODS size:2];
 
@@ -300,10 +302,10 @@ namespace {
 	// sub		%dl,%dl
 	// negw		0x18(%bx)
 	// xchg		%dl,0x6425(%bx,%si)
-	[self assert:instructions[58] operation:Operation::AND size:2 source:Source::IndBPPlusSI destination:Source::eBP displacement:0x5b2c];
+	[self assert:instructions[58] operation:Operation::AND size:2 source:ScaleIndexBase(Source::eBP, Source::eSI) destination:Source::eBP displacement:0x5b2c];
 	[self assert:instructions[59] operation:Operation::SUB size:1 source:Source::eDX destination:Source::eDX];
-	[self assert:instructions[60] operation:Operation::NEG size:2 source:Source::IndBX destination:Source::IndBX displacement:0x18];
-	[self assert:instructions[61] operation:Operation::XCHG size:1 source:Source::IndBXPlusSI destination:Source::eDX displacement:0x6425];
+	[self assert:instructions[60] operation:Operation::NEG size:2 source:ScaleIndexBase(Source::eBX) destination:ScaleIndexBase(Source::eBX) displacement:0x18];
+	[self assert:instructions[61] operation:Operation::XCHG size:1 source:ScaleIndexBase(Source::eBX, Source::eSI) destination:Source::eDX displacement:0x6425];
 
 	// mov		$0xc3,%bh
 	[self assert:instructions[62] operation:Operation::MOV size:1 operand:0xc3 destination:Source::BH];
@@ -317,9 +319,9 @@ namespace {
 	}];
 
 	XCTAssertEqual(instructions.size(), 3);
-	[self assert:instructions[0] operation:Operation::ADC size:2 source:Source::Immediate destination:Source::IndBXPlusSI operand:0xff80];
-	[self assert:instructions[1] operation:Operation::CMP size:2 source:Source::Immediate destination:Source::IndBPPlusDI operand:0x4];
-	[self assert:instructions[2] operation:Operation::SUB size:2 source:Source::Immediate destination:Source::IndBX operand:0x9];
+	[self assert:instructions[0] operation:Operation::ADC size:2 source:Source::Immediate destination:ScaleIndexBase(Source::eBX, Source::eSI) operand:0xff80];
+	[self assert:instructions[1] operation:Operation::CMP size:2 source:Source::Immediate destination:ScaleIndexBase(Source::eBP, Source::eDI) operand:0x4];
+	[self assert:instructions[2] operation:Operation::SUB size:2 source:Source::Immediate destination:ScaleIndexBase(Source::eBX) operand:0x9];
 }
 
 - (void)testFar {

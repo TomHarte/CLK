@@ -429,37 +429,23 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 			}
 		};
 		switch(mod) {
-			case 0: {
-				constexpr Source rm_table[8] = {
-					Source::IndBXPlusSI,	Source::IndBXPlusDI,
-					Source::IndBPPlusSI,	Source::IndBPPlusDI,
-					Source::IndSI,			Source::IndDI,
-					Source::DirectAddress,	Source::IndBX,
-				};
-				memreg = rm_table[rm];
-			} break;
-
-			default: {
-				// TODO: switch to this table.
-//				constexpr ScaleIndexBase rm_table[8] = {
-//					ScaleIndexBase(0, Source::eBX, Source::eSI),
-//					ScaleIndexBase(0, Source::eBX, Source::eDI),
-//					ScaleIndexBase(0, Source::eBP, Source::eSI),
-//					ScaleIndexBase(0, Source::eBP, Source::eDI),
-//					ScaleIndexBase(0, Source::None, Source::eSI),
-//					ScaleIndexBase(0, Source::None, Source::eDI),
-//					ScaleIndexBase(0, Source::None, Source::eBP),
-//					ScaleIndexBase(0, Source::None, Source::eBX),
-//				};
-				constexpr Source rm_table[8] = {
-					Source::IndBXPlusSI,	Source::IndBXPlusDI,
-					Source::IndBPPlusSI,	Source::IndBPPlusDI,
-					Source::IndSI,			Source::IndDI,
-					Source::IndBP,			Source::IndBX,
-				};
-				memreg = rm_table[rm];
-
+			default:
 				displacement_size_ = 1 + (mod == 2);
+				[[fallthrough]];
+			case 0: {
+				constexpr ScaleIndexBase rm_table[8] = {
+					ScaleIndexBase(0, Source::eBX, Source::eSI),
+					ScaleIndexBase(0, Source::eBX, Source::eDI),
+					ScaleIndexBase(0, Source::eBP, Source::eSI),
+					ScaleIndexBase(0, Source::eBP, Source::eDI),
+					ScaleIndexBase(0, Source::None, Source::eSI),
+					ScaleIndexBase(0, Source::None, Source::eDI),
+					ScaleIndexBase(0, Source::None, Source::eBP),
+					ScaleIndexBase(0, Source::None, Source::eBX),
+				};
+
+				memreg = Source::Indirect;
+				sib_ = rm_table[rm];
 			} break;
 
 			// Other operand is just a register.
@@ -710,6 +696,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder::decode(const uint8_t *
 				operation_,
 				source_,
 				destination_,
+				sib_,
 				lock_,
 				segment_override_,
 				repetition_,

@@ -168,6 +168,7 @@ class Decoder {
 			repetition_ = Repetition::None;
 			phase_ = Phase::Instruction;
 			source_ = destination_ = Source::None;
+			sib_ = 0;
 		}
 };
 

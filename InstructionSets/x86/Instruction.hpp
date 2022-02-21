@@ -329,28 +329,21 @@ enum class Source: uint8_t {
 	// Legacy 8-bit registers that can't be described as e.g. 8-bit eAX.
 	AH, BH, CH, DH,
 
-	// Sources that are not a register.
 	/// The address included within this instruction should be used as the source.
 	DirectAddress,
+
 	/// The immediate value included within this instruction should be used as the source.
 	Immediate,
-	/// The ScaleIndexBase associated with this source should be used.
-	Indirect,
-
-	// TODO: compact and replace with a reference to a SIB.
-	IndBXPlusSI,
-	IndBXPlusDI,
-	IndBPPlusSI,
-	IndBPPlusDI,
-	IndSI,
-	IndDI,
-	IndBP,
-	IndBX,
 
 	/// @c None can be treated as a source that produces 0 when encountered;
 	/// it is semantically valid to receive it with that meaning in some contexts —
 	/// e.g. to indicate no index in indirect addressing.
 	None,
+
+	/// The ScaleIndexBase associated with this source should be used.
+	Indirect = 0b11000,
+	// Elsewhere, as an implementation detail, the low three bits of an indirect source
+	// are reused.
 };
 
 enum class Repetition: uint8_t {
@@ -367,6 +360,8 @@ class ScaleIndexBase {
 		constexpr ScaleIndexBase() noexcept {}
 		constexpr ScaleIndexBase(uint8_t sib) noexcept : sib_(sib) {}
 		constexpr ScaleIndexBase(int scale, Source index, Source base) noexcept : sib_(uint8_t(scale << 6 | (int(index != Source::None ? index : Source::eSI) << 3) | int(base))) {}
+		constexpr ScaleIndexBase(Source index, Source base) noexcept : ScaleIndexBase(0, index, base) {}
+		constexpr explicit ScaleIndexBase(Source base) noexcept : ScaleIndexBase(0, Source::None, base) {}
 
 		/// @returns the power of two by which to multiply @c index() before adding it to @c base().
 		constexpr int scale() const {
@@ -387,12 +382,38 @@ class ScaleIndexBase {
 			return Source(sib_ & 0x7);
 		}
 
+		bool operator ==(const ScaleIndexBase &rhs) const {
+			// Permit either exact equality or index and base being equal
+			// but transposed with a scale of 1.
+			return
+				(sib_ == rhs.sib_) ||
+				(
+					!scale() &&	!rhs.scale() &&
+					rhs.index() == base() &&
+					rhs.base() == index()
+				);
+		}
+
 	private:
 		// Data is stored directly as an 80386 SIB byte.
 		uint8_t sib_ = 0;
 };
 static_assert(sizeof(ScaleIndexBase) == 1);
 static_assert(alignof(ScaleIndexBase) == 1);
+
+// TODO: improve the naming of SourceSIB.
+struct SourceSIB {
+	SourceSIB(Source source) : source(source) {}
+	SourceSIB(ScaleIndexBase sib) : sib(sib) {}
+	SourceSIB(Source source, ScaleIndexBase sib) : source(source), sib(sib) {}
+
+	bool operator ==(const SourceSIB &rhs) const {
+		return source == rhs.source && (source != Source::Indirect || sib == rhs.sib);
+	}
+
+	Source source = Source::Indirect;
+	ScaleIndexBase sib;
+};
 
 class Instruction {
 	public:
@@ -403,7 +424,8 @@ class Instruction {
 				repetition_size_ == rhs.repetition_size_ &&
 				sources_ == rhs.sources_ &&
 				displacement_ == rhs.displacement_ &&
-				operand_ == rhs.operand_;
+				operand_ == rhs.operand_ &&
+				sib_ == rhs.sib_;
 		}
 
 	private:
@@ -421,9 +443,12 @@ class Instruction {
 		int16_t displacement_ = 0;
 		uint16_t operand_ = 0;		// ... or used to store a segment for far operations.
 
+		// Fields yet to be properly incorporated...
+		ScaleIndexBase sib_;
+
 	public:
-		Source source() const			{	return Source(sources_ & 0x3f);				}
-		Source destination() const		{	return Source((sources_ >> 6) & 0x3f);		}
+		SourceSIB  source() const		{	return SourceSIB(Source(sources_ & 0x3f), sib_);			}
+		SourceSIB destination() const	{	return SourceSIB(Source((sources_ >> 6) & 0x3f), sib_);		}
 		bool lock() const				{	return sources_ & 0x8000;					}
 		Source segment_override() const	{	return Source((sources_ >> 12) & 7);		}
 
@@ -441,6 +466,7 @@ class Instruction {
 			Operation operation,
 			Source source,
 			Source destination,
+			ScaleIndexBase sib,
 			bool lock,
 			Source segment_override,
 			Repetition repetition,
@@ -456,10 +482,12 @@ class Instruction {
 					(int(lock) << 15)
 				)),
 				displacement_(displacement),
-				operand_(operand) {}
+				operand_(operand),
+				sib_(sib) {}
 };
 
-static_assert(sizeof(Instruction) <= 8);
+// TODO: repack.
+//static_assert(sizeof(Instruction) <= 8);
 
 }
 }
