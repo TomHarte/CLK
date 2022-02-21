@@ -478,7 +478,7 @@ template<bool is_32bit> class Instruction {
 
 		// Fields yet to be properly incorporated...
 		ScaleIndexBase sib_;
-		bool memory_size_ = false;
+		bool address_size_ = false;
 
 	public:
 		/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
@@ -489,7 +489,7 @@ template<bool is_32bit> class Instruction {
 		SourceSIB  source() const		{	return SourceSIB(Source(sources_ & 0x3f), sib_);			}
 		SourceSIB destination() const	{	return SourceSIB(Source((sources_ >> 6) & 0x3f), sib_);		}
 		bool lock() const				{	return sources_ & 0x8000;					}
-		bool memory_size() const 		{	return memory_size_;						}
+		bool address_size() const 		{	return address_size_;						}
 		Source segment_override() const	{	return Source((sources_ >> 12) & 7);		}
 
 		Repetition repetition() const	{	return Repetition(repetition_size_ & 3);	}
@@ -509,7 +509,7 @@ template<bool is_32bit> class Instruction {
 			Source destination,
 			ScaleIndexBase sib,
 			bool lock,
-			bool memory_size,
+			bool address_size,
 			Source segment_override,
 			Repetition repetition,
 			Size operation_size,
@@ -526,7 +526,7 @@ template<bool is_32bit> class Instruction {
 				displacement_(displacement),
 				operand_(operand),
 				sib_(sib),
-				memory_size_(memory_size) {}
+				address_size_(address_size) {}
 };
 
 // TODO: repack.

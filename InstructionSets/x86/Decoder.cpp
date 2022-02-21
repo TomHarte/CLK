@@ -696,7 +696,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				destination_,
 				sib_,
 				lock_,
-				memory_size_,
+				address_size_,
 				segment_override_,
 				repetition_,
 				Size(operation_size_),

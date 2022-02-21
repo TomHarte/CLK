@@ -154,7 +154,7 @@ template <Model model> class Decoder {
 		// Prefix capture fields.
 		Repetition repetition_ = Repetition::None;
 		bool lock_ = false;
-		bool memory_size_ = false;
+		bool address_size_ = false;
 		Source segment_override_ = Source::None;
 
 		/// Resets size capture and all fields with default values.
@@ -163,7 +163,7 @@ template <Model model> class Decoder {
 			displacement_size_ = operand_size_ = 0;
 			displacement_ = operand_ = 0;
 			lock_ = false;
-			memory_size_ = false;
+			address_size_ = false;
 			segment_override_ = Source::None;
 			repetition_ = Repetition::None;
 			phase_ = Phase::Instruction;
