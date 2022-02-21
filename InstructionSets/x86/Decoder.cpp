@@ -15,7 +15,7 @@
 using namespace InstructionSet::x86;
 
 template <Model model>
-std::pair<int, InstructionSet::x86::Instruction> Decoder<model>::decode(const uint8_t *source, size_t length) {
+std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(const uint8_t *source, size_t length) {
 	const uint8_t *const end = source + length;
 
 	// MARK: - Prefixes (if present) and the opcode.
@@ -80,7 +80,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder<model>::decode(const ui
 	operand_size_ = 1;								\
 
 #define undefined()	{												\
-	const auto result = std::make_pair(consumed_, Instruction());	\
+	const auto result = std::make_pair(consumed_, InstructionT());	\
 	reset_parsing();												\
 	return result;													\
 }
@@ -681,7 +681,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder<model>::decode(const ui
 			}
 		} else {
 			// Provide a genuine measure of further bytes required.
-			return std::make_pair(-(outstanding_bytes - bytes_to_consume), Instruction());
+			return std::make_pair(-(outstanding_bytes - bytes_to_consume), InstructionT());
 		}
 	}
 
@@ -690,7 +690,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder<model>::decode(const ui
 	if(phase_ == Phase::ReadyToPost) {
 		const auto result = std::make_pair(
 			consumed_,
-			Instruction(
+			InstructionT(
 				operation_,
 				source_,
 				destination_,
@@ -707,7 +707,7 @@ std::pair<int, InstructionSet::x86::Instruction> Decoder<model>::decode(const ui
 	}
 
 	// i.e. not done yet.
-	return std::make_pair(0, Instruction());
+	return std::make_pair(0, InstructionT());
 }
 
 // Ensure all possible decoders are built.

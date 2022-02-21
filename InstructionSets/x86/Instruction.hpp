@@ -415,7 +415,7 @@ struct SourceSIB {
 	ScaleIndexBase sib;
 };
 
-class Instruction {
+template<bool is_32bit> class Instruction {
 	public:
 		Operation operation = Operation::Invalid;
 

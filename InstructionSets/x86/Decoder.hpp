@@ -29,8 +29,10 @@ enum class Model {
 
 	This is an experimental implementation; it has not yet undergone significant testing.
 */
-template <Model> class Decoder {
+template <Model model> class Decoder {
 	public:
+		using InstructionT = Instruction<model >= Model::i80386>;
+
 		/*!
 			@returns an @c Instruction plus a size; a positive size to indicate successful decoding; a
 				negative size specifies the [negatived] number of further bytes the caller should ideally
@@ -38,7 +40,7 @@ template <Model> class Decoder {
 				instruction in response, and the decoder may still not be able to complete decoding
 				even if given that number of bytes.
 		*/
-		std::pair<int, Instruction> decode(const uint8_t *source, size_t length);
+		std::pair<int, InstructionT> decode(const uint8_t *source, size_t length);
 
 	private:
 		enum class Phase {

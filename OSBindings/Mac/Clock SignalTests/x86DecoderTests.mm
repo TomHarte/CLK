@@ -14,7 +14,7 @@
 
 namespace {
 	using Operation = InstructionSet::x86::Operation;
-	using Instruction = InstructionSet::x86::Instruction;
+	using Instruction = InstructionSet::x86::Instruction<false>;
 	using Source = InstructionSet::x86::Source;
 	using Size = InstructionSet::x86::Size;
 	using ScaleIndexBase = InstructionSet::x86::ScaleIndexBase;
