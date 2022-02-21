@@ -325,8 +325,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				operation_size_ = 1 + (instr_ & 1);
 				source_ = Source::eCX;
 			break;
-			case 0xd4: RegData(AAM, eAX, 1);				break;
-			case 0xd5: RegData(AAD, eAX, 1);				break;
+			case 0xd4: RegData(AAM, eAX, 1);			break;
+			case 0xd5: RegData(AAD, eAX, 1);			break;
 
 			case 0xd7: Complete(XLAT, None, None, 1);	break;
 
@@ -355,7 +355,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xeb: Jump(JMPN);				break;
 
 			case 0xec: Complete(IN, eDX, eAX, 1);	break;
-			case 0xed: Complete(IN, eDX, eAX, 1);		break;
+			case 0xed: Complete(IN, eDX, eAX, 1);	break;
 			case 0xee: Complete(OUT, eAX, eDX, 1);	break;
 			case 0xef: Complete(OUT, eAX, eDX, 2);	break;
 
