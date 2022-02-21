@@ -85,6 +85,9 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	return result;													\
 }
 
+#define Requires(x)		if constexpr (model != Model::x) undefined();
+#define RequiresMin(x)	if constexpr (model < Model::x) undefined();
+
 	while(phase_ == Phase::Instruction && source != end) {
 		// Retain the instruction byte, in case additional decoding is deferred
 		// to the ModRegRM byte.
@@ -113,7 +116,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			// The 286 onwards have a further set of instructions
 			// prefixed with $0f.
 			case 0x0f:
-				if constexpr (model < Model::i80286) undefined();
+				RequiresMin(i80286);
 				phase_ = Phase::InstructionPageF;
 			break;
 
@@ -161,35 +164,39 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 #undef RegisterBlock
 
 			case 0x60:
-				if constexpr (model < Model::i80186) undefined();
+				RequiresMin(i80186);
 				Complete(PUSHA, None, None, 2);
 			break;
 			case 0x61:
-				if constexpr (model < Model::i80186) undefined();
+				RequiresMin(i80186);
 				Complete(POPA, None, None, 2);
 			break;
 			case 0x62:
-				if constexpr (model < Model::i80186) undefined();
+				RequiresMin(i80186);
 				MemRegReg(BOUND, Reg_MemReg, 2);
 			break;
 			case 0x63:
-				if constexpr (model < Model::i80286) undefined();
+				RequiresMin(i80286);
 				MemRegReg(ARPL, MemReg_Reg, 2);
 			break;
+			case 0x67:
+				RequiresMin(i80386);
+				address_size_ = true;
+			break;
 			case 0x6c:	// INSB
-				if constexpr (model < Model::i80186) undefined();
+				RequiresMin(i80186);
 				Complete(INS, None, None, 1);
 			break;
 			case 0x6d:	// INSW
-				if constexpr (model < Model::i80186) undefined();
+				RequiresMin(i80186);
 				Complete(INS, None, None, 2);
 			break;
 			case 0x6e:	// OUTSB
-				if constexpr (model < Model::i80186) undefined();
+				RequiresMin(i80186);
 				Complete(OUTS, None, None, 1);
 			break;
 			case 0x6f:	// OUTSW
-				if constexpr (model < Model::i80186) undefined();
+				RequiresMin(i80186);
 				Complete(OUTS, None, None, 2);
 			break;
 
@@ -289,11 +296,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xc7: MemRegReg(MOV, MemRegMOV, 2);	break;
 
 			case 0xc8:
-				if constexpr (model < Model::i80186) undefined();
+				RequiresMin(i80186);
 				Displacement16Operand8(ENTER);
 			break;
 			case 0xc9:
-				if constexpr (model < Model::i80186) undefined();
+				RequiresMin(i80186);
 				Complete(LEAVE, None, None, 0);
 			break;
 
@@ -390,13 +397,15 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x02:	MemRegReg(LAR, Reg_MemReg, 2);				break;
 			case 0x03:	MemRegReg(LSL, Reg_MemReg, 2);				break;
 			case 0x05:
-				if constexpr (model != Model::i80286) undefined();
+				Requires(i80286);
 				Complete(LOADALL, None, None, 0);
 			break;
 			case 0x06:	Complete(CLTS, None, None, 1);				break;
 		}
 	}
 
+#undef Requires
+#undef RequiresMin
 #undef Far
 #undef Jump
 #undef MemRegReg
@@ -631,6 +640,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 		phase_ = (displacement_size_ + operand_size_) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
 	}
+
+#undef undefined
 
 	// MARK: - ScaleIndexBase
 
