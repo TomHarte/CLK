@@ -432,6 +432,35 @@ template<bool is_32bit> class Instruction {
 		using DisplacementT = typename std::conditional<is_32bit, int32_t, int16_t>::type;
 		using ImmediateT = typename std::conditional<is_32bit, uint32_t, uint16_t>::type;
 
+		/* Note to self — current thinking is:
+
+			First 32bits:
+				5 bits source;
+				5 bits dest;
+				5 bits partial SIB, combined with three low bits of source or dest if indirect;
+				8 bits operation;
+				4 bits original instruction size;
+				2 bits data size;
+				3 bits extension flags.
+
+			Extensions (16 or 32 bit, depending on templated size):
+				1) reptition + segment override + lock + memory size toggle (= 7 bits);
+				2) displacement;
+				3) immediate operand.
+
+			Presence or absence of extensions is dictated by the extention flags.
+			Therefore an instruction's footprint is:
+				* 4–8 bytes (16-bit processors);
+				* 4–12 bytes (32-bit processors).
+
+			I'll then implement a collection suited to packing these things based on their
+			packing_size(), and later iterating them.
+
+			To verify: do the 8086 and 80286 limit instructions to 15 bytes as later members
+			of the family do? If not then consider original instruction size = 0 to imply an
+			extension of one word prior to the other extensions.
+		*/
+
 	private:
 		// b0, b1: a Repetition;
 		// b2+: operation size.
@@ -449,6 +478,7 @@ template<bool is_32bit> class Instruction {
 
 		// Fields yet to be properly incorporated...
 		ScaleIndexBase sib_;
+		bool memory_size_ = false;
 
 	public:
 		/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
@@ -459,6 +489,7 @@ template<bool is_32bit> class Instruction {
 		SourceSIB  source() const		{	return SourceSIB(Source(sources_ & 0x3f), sib_);			}
 		SourceSIB destination() const	{	return SourceSIB(Source((sources_ >> 6) & 0x3f), sib_);		}
 		bool lock() const				{	return sources_ & 0x8000;					}
+		bool memory_size() const 		{	return memory_size_;						}
 		Source segment_override() const	{	return Source((sources_ >> 12) & 7);		}
 
 		Repetition repetition() const	{	return Repetition(repetition_size_ & 3);	}
@@ -478,6 +509,7 @@ template<bool is_32bit> class Instruction {
 			Source destination,
 			ScaleIndexBase sib,
 			bool lock,
+			bool memory_size,
 			Source segment_override,
 			Repetition repetition,
 			Size operation_size,
@@ -493,7 +525,8 @@ template<bool is_32bit> class Instruction {
 				)),
 				displacement_(displacement),
 				operand_(operand),
-				sib_(sib) {}
+				sib_(sib),
+				memory_size_(memory_size) {}
 };
 
 // TODO: repack.
