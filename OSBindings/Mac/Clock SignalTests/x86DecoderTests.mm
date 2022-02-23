@@ -9,93 +9,55 @@
 #import <XCTest/XCTest.h>
 
 #include <initializer_list>
+#include <optional>
 #include <vector>
 #include "../../../InstructionSets/x86/Decoder.hpp"
 
 namespace {
-	using Operation = InstructionSet::x86::Operation;
-	using Instruction = InstructionSet::x86::Instruction<false>;
-	using Source = InstructionSet::x86::Source;
-	using Size = InstructionSet::x86::Size;
-	using ScaleIndexBase = InstructionSet::x86::ScaleIndexBase;
-	using SourceSIB = InstructionSet::x86::SourceSIB;
-}
 
-@interface x86DecoderTests : XCTestCase
-@end
-
-/*!
-	Tests 8086 decoding by throwing a bunch of randomly-generated
-	word streams and checking that the result matches what I got from a
-	disassembler elsewhere.
-*/
-@implementation x86DecoderTests {
-	std::vector<Instruction> instructions;
-}
+using Operation = InstructionSet::x86::Operation;
+using Instruction = InstructionSet::x86::Instruction<false>;
+using Model = InstructionSet::x86::Model;
+using Source = InstructionSet::x86::Source;
+using Size = InstructionSet::x86::Size;
+using ScaleIndexBase = InstructionSet::x86::ScaleIndexBase;
+using SourceSIB = InstructionSet::x86::SourceSIB;
 
 // MARK: - Specific instruction asserts.
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation {
+template <typename InstructionT> void test(const InstructionT &instruction, int size, Operation operation) {
+	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
 	XCTAssertEqual(instruction.operation, operation);
 }
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size {
-	XCTAssertEqual(instruction.operation, operation);
-	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
-}
+template <typename InstructionT> void test(
+	const InstructionT &instruction,
+	int size,
+	Operation operation,
+	SourceSIB source,
+	std::optional<SourceSIB> destination = std::nullopt,
+	std::optional<typename InstructionT::ImmediateT> operand = std::nullopt,
+	std::optional<typename InstructionT::DisplacementT> displacement = std::nullopt) {
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(SourceSIB)source destination:(SourceSIB)destination displacement:(int16_t)displacement {
-	XCTAssertEqual(instruction.operation, operation);
 	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
+	XCTAssertEqual(instruction.operation, operation);
 	XCTAssert(instruction.source() == source);
-	XCTAssert(instruction.destination() == destination);
-	XCTAssertEqual(instruction.displacement(), displacement);
+	if(destination) XCTAssert(instruction.destination() == *destination);
+	if(operand)	XCTAssertEqual(instruction.operand(), *operand);
+	if(displacement) XCTAssertEqual(instruction.displacement(), *displacement);
 }
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(SourceSIB)source destination:(SourceSIB)destination displacement:(int16_t)displacement operand:(uint16_t)operand {
-	[self assert:instruction operation:operation size:size source:source destination:destination displacement:displacement];
-	XCTAssertEqual(instruction.operand(), operand);
-}
-
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(SourceSIB)source destination:(SourceSIB)destination operand:(uint16_t)operand {
-	[self assert:instruction operation:operation size:size source:source destination:destination displacement:0 operand:operand];
-}
-
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(SourceSIB)source destination:(SourceSIB)destination {
-	[self assert:instruction operation:operation size:size source:source destination:destination displacement:0];
-}
-
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size source:(SourceSIB)source {
+template <typename InstructionT> void test(
+	const InstructionT &instruction,
+	Operation operation,
+	std::optional<typename InstructionT::ImmediateT> operand = std::nullopt,
+	std::optional<typename InstructionT::DisplacementT> displacement = std::nullopt) {
 	XCTAssertEqual(instruction.operation, operation);
-	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
-	XCTAssert(instruction.source() == source);
+	if(operand)	XCTAssertEqual(instruction.operand(), *operand);
+	if(displacement) XCTAssertEqual(instruction.displacement(), *displacement);
 }
 
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size destination:(SourceSIB)destination {
-	[self assert:instruction operation:operation size:size];
-	XCTAssert(instruction.destination() == destination);
-}
-
-- (void)assert:(Instruction &)instruction operation:(Operation)operation size:(int)size operand:(uint16_t)operand destination:(SourceSIB)destination {
-	[self assert:instruction operation:operation size:size];
-	XCTAssert(instruction.destination() == destination);
-	XCTAssert(instruction.source() == SourceSIB(Source::Immediate));
-	XCTAssertEqual(instruction.operand(), operand);
-	XCTAssertEqual(instruction.displacement(), 0);
-}
-
-- (void)assert:(Instruction &)instruction operation:(Operation)operation displacement:(int16_t)displacement {
-	XCTAssertEqual(instruction.operation, operation);
-	XCTAssertEqual(instruction.displacement(), displacement);
-}
-
-- (void)assert:(Instruction &)instruction operation:(Operation)operation operand:(uint16_t)operand {
-	XCTAssertEqual(instruction.operation, operation);
-	XCTAssertEqual(instruction.operand(), operand);
-	XCTAssertEqual(instruction.displacement(), 0);
-}
-
-- (void)assert:(Instruction &)instruction operation:(Operation)operation segment:(uint16_t)segment offset:(uint16_t)offset {
+template <typename InstructionT> void test_far(const InstructionT &instruction, Operation operation, uint16_t segment, uint16_t offset) {
 	XCTAssertEqual(instruction.operation, operation);
 	XCTAssertEqual(instruction.segment(), segment);
 	XCTAssertEqual(instruction.offset(), offset);
@@ -103,9 +65,10 @@ namespace {
 
 // MARK: - Decoder
 
-- (void)decode:(const std::initializer_list<uint8_t> &)stream {
+template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(const std::initializer_list<uint8_t> &stream) {
 	// Decode by offering up all data at once.
-	InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
+	std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> instructions;
+	InstructionSet::x86::Decoder<model> decoder;
 	instructions.clear();
 	const uint8_t *byte = stream.begin();
 	while(byte != stream.end()) {
@@ -117,7 +80,7 @@ namespace {
 
 	// Grab a byte-at-a-time decoding and check that it matches the previous.
 	{
-		InstructionSet::x86::Decoder<InstructionSet::x86::Model::i8086> decoder;
+		InstructionSet::x86::Decoder<model> decoder;
 
 		auto previous_instruction = instructions.begin();
 		for(auto item: stream) {
@@ -128,9 +91,21 @@ namespace {
 			}
 		}
 	}
+
+	return instructions;
 }
 
-// MARK: - Tests
+}
+
+@interface x86DecoderTests : XCTestCase
+@end
+
+/*!
+	Tests 8086 decoding by throwing a bunch of randomly-generated
+	word streams and checking that the result matches what I got from a
+	disassembler elsewhere.
+*/
+@implementation x86DecoderTests
 
 - (void)testSequence1 {
 	// Sequences the Online Disassembler believes to exist but The 8086 Book does not:
@@ -141,7 +116,7 @@ namespace {
 	// 0x6c			insb (%dx), %es:(%di)
 	// 0xc9			leave
 	//
-	[self decode:{
+	const auto instructions = decode<Model::i8086>({
 		0x2d, 0x77, 0xea, 0x72, 0xfc, 0x4b, 0xb5, 0x28, 0xc3, 0xca, 0x26, 0x48, /* 0x65, 0x6d, */ 0x7b, 0x9f,
 		0xc2, 0x65, 0x42, 0x4e, 0xef, 0x70, 0x20, 0x94, 0xc4, 0xd4, 0x93, 0x43, 0x3c, 0x8e, /* 0x6a, 0x65, */
 		0x1a, 0x78, 0x45, 0x10, 0x7f, 0x3c, 0x19, 0x5a, 0x16, 0x31, 0x64, 0x2c, 0xe7, 0xc6, 0x7d, 0xb0,
@@ -150,7 +125,7 @@ namespace {
 		0xbd, 0xa1, 0x12, 0xc5, 0x29, /* 0xc9, */ 0x9e, 0xd8, 0xf3, 0xcf, 0x92, 0x39, 0x5d, 0x90, 0x15, 0xc3,
 		0xb8, 0xad, 0xe8, 0xc8, 0x16, 0x4a, 0xb0, 0x9e, 0xf9, 0xbf, 0x56, 0xea, 0x4e, 0xfd, 0xe4, 0x5a,
 		0x23, 0xaa, 0x2c, 0x5b, 0x2a, 0xd2, 0xf7, 0x5f, 0x18, 0x86, 0x90, 0x25, 0x64, 0xb7, 0xc3
-	}];
+	});
 
 	// 63 instructions are expected.
 	XCTAssertEqual(instructions.size(), 63);
@@ -159,29 +134,29 @@ namespace {
 	// jb		0x00000001
 	// dec		%bx
 	// mov		$0x28,%ch
-	[self assert:instructions[0] operation:Operation::SUB size:2 operand:0xea77 destination:Source::eAX];
-	[self assert:instructions[1] operation:Operation::JB displacement:0xfffc];
-	[self assert:instructions[2] operation:Operation::DEC size:2 source:Source::eBX destination:Source::eBX];
-	[self assert:instructions[3] operation:Operation::MOV size:1 operand:0x28 destination:Source::CH];
+	test(instructions[0], 2, Operation::SUB, Source::Immediate, Source::eAX, 0xea77);
+	test(instructions[1], Operation::JB, std::nullopt, 0xfffc);
+	test(instructions[2], 2, Operation::DEC, Source::eBX, Source::eBX);
+	test(instructions[3], 1, Operation::MOV, Source::Immediate, Source::CH, 0x28);
 
 	// ret
 	// lret		$0x4826
 	// [[ omitted: gs insw (%dx),%es:(%di) ]]
 	// jnp		0xffffffaf
 	// ret		$0x4265
-	[self assert:instructions[4] operation:Operation::RETN];
-	[self assert:instructions[5] operation:Operation::RETF operand:0x4826];
-	[self assert:instructions[6] operation:Operation::JNP displacement:0xff9f];
-	[self assert:instructions[7] operation:Operation::RETN operand:0x4265];
+	test(instructions[4], Operation::RETN);
+	test(instructions[5], Operation::RETF, 0x4826);
+	test(instructions[6], Operation::JNP, std::nullopt, 0xff9f);
+	test(instructions[7], Operation::RETN, 0x4265);
 
 	// dec		%si
 	// out		%ax,(%dx)
 	// jo		0x00000037
 	// xchg		%ax,%sp
-	[self assert:instructions[8] operation:Operation::DEC size:2 source:Source::eSI destination:Source::eSI];
-	[self assert:instructions[9] operation:Operation::OUT size:2 source:Source::eAX destination:Source::eDX];
-	[self assert:instructions[10] operation:Operation::JO displacement:0x20];
-	[self assert:instructions[11] operation:Operation::XCHG size:2 source:Source::eAX destination:Source::eSP];
+	test(instructions[8], 2, Operation::DEC, Source::eSI, Source::eSI);
+	test(instructions[9], 2, Operation::OUT, Source::eAX, Source::eDX);
+	test(instructions[10], Operation::JO, std::nullopt, 0x20);
+	test(instructions[11], 2, Operation::XCHG, Source::eAX, Source::eSP);
 
 	// ODA has:
 	// 	c4		(bad)
@@ -192,145 +167,148 @@ namespace {
 	//
 	//	c4 d4	(bad)
 	//	93		XCHG AX, BX
-	[self assert:instructions[12] operation:Operation::Invalid];
-	[self assert:instructions[13] operation:Operation::XCHG size:2 source:Source::eAX destination:Source::eBX];
+	test(instructions[12], Operation::Invalid);
+	test(instructions[13], 2, Operation::XCHG, Source::eAX, Source::eBX);
 
 	// inc		%bx
 	// cmp		$0x8e,%al
 	// [[ omitted: push		$0x65 ]]
 	// sbb		0x45(%bx,%si),%bh
 	// adc		%bh,0x3c(%bx)
-	[self assert:instructions[14] operation:Operation::INC size:2 source:Source::eBX destination:Source::eBX];
-	[self assert:instructions[15] operation:Operation::CMP size:1 operand:0x8e destination:Source::eAX];
-	[self assert:instructions[16] operation:Operation::SBB size:1 source:ScaleIndexBase(Source::eBX, Source::eSI) destination:Source::BH displacement:0x45];
-	[self assert:instructions[17] operation:Operation::ADC size:1 source:Source::BH destination:ScaleIndexBase(Source::eBX) displacement:0x3c];
+	test(instructions[14], 2, Operation::INC, Source::eBX, Source::eBX);
+	test(instructions[15], 1, Operation::CMP, Source::Immediate, Source::eAX, 0x8e);
+	test(instructions[16], 1, Operation::SBB, ScaleIndexBase(Source::eBX, Source::eSI), Source::BH, std::nullopt, 0x45);
+	test(instructions[17], 1, Operation::ADC, Source::BH, ScaleIndexBase(Source::eBX), std::nullopt, 0x3c);
 
 	// sbb		%bx,0x16(%bp,%si)
 	// xor		%sp,0x2c(%si)
 	// out		%ax,$0xc6
 	// jge		0xffffffe0
-	[self assert:instructions[18] operation:Operation::SBB size:2 source:Source::eBX destination:ScaleIndexBase(Source::eBP, Source::eSI) displacement:0x16];
-	[self assert:instructions[19] operation:Operation::XOR size:2 source:Source::eSP destination:ScaleIndexBase(Source::eSI) displacement:0x2c];
-	[self assert:instructions[20] operation:Operation::OUT size:2 source:Source::eAX destination:Source::DirectAddress operand:0xc6];
-	[self assert:instructions[21] operation:Operation::JNL displacement:0xffb0];
+	test(instructions[18], 2, Operation::SBB, Source::eBX, ScaleIndexBase(Source::eBP, Source::eSI), std::nullopt, 0x16);
+	test(instructions[19], 2, Operation::XOR, Source::eSP, ScaleIndexBase(Source::eSI), std::nullopt, 0x2c);
+	test(instructions[20], 2, Operation::OUT, Source::eAX, Source::DirectAddress, 0xc6);
+	test(instructions[21], Operation::JNL, std::nullopt, 0xffb0);
 
 	// mov		$0x49,%ch
 	// [[ omitted: addr32	popa ]]
 	// mov		$0xcbc0,%dx
 	// adc		$0x7e,%al
 	// jno		0x0000000b
-	[self assert:instructions[22] operation:Operation::MOV size:1 operand:0x49 destination:Source::CH];
-	[self assert:instructions[23] operation:Operation::MOV size:2 operand:0xcbc0 destination:Source::eDX];
-	[self assert:instructions[24] operation:Operation::ADC size:1 operand:0x7e destination:Source::eAX];
-	[self assert:instructions[25] operation:Operation::JNO displacement:0xffd0];
+	test(instructions[22], 1, Operation::MOV, Source::Immediate, Source::CH, 0x49);
+	test(instructions[23], 2, Operation::MOV, Source::Immediate, Source::eDX, 0xcbc0);
+	test(instructions[24], 1, Operation::ADC, Source::Immediate, Source::eAX, 0x7e);
+	test(instructions[25], Operation::JNO, std::nullopt, 0xffd0);
 
 	// push		%ax
 	// js		0x0000007b
 	// add		(%di),%bx
 	// in		$0xc9,%ax
-	[self assert:instructions[26] operation:Operation::PUSH size:2 source:Source::eAX];
-	[self assert:instructions[27] operation:Operation::JS displacement:0x3d];
-	[self assert:instructions[28] operation:Operation::ADD size:2 source:ScaleIndexBase(Source::eDI) destination:Source::eBX];
-	[self assert:instructions[29] operation:Operation::IN size:2 source:Source::DirectAddress destination:Source::eAX operand:0xc9];
+	test(instructions[26], 2, Operation::PUSH, Source::eAX);
+	test(instructions[27], Operation::JS, std::nullopt, 0x3d);
+	test(instructions[28], 2, Operation::ADD, ScaleIndexBase(Source::eDI), Source::eBX);
+	test(instructions[29], 2, Operation::IN, Source::DirectAddress, Source::eAX, 0xc9);
 
 	// xchg		%ax,%di
 	// ret
 	// fwait
 	// out		%al,$0xd3
-	[self assert:instructions[30] operation:Operation::XCHG size:2 source:Source::eAX destination:Source::eDI];
-	[self assert:instructions[31] operation:Operation::RETN];
-	[self assert:instructions[32] operation:Operation::WAIT];
-	[self assert:instructions[33] operation:Operation::OUT size:1 source:Source::eAX destination:Source::DirectAddress operand:0xd3];
+	test(instructions[30], 2, Operation::XCHG, Source::eAX, Source::eDI);
+	test(instructions[31], Operation::RETN);
+	test(instructions[32], Operation::WAIT);
+	test(instructions[33], 1, Operation::OUT, Source::eAX, Source::DirectAddress, 0xd3);
 
 	// [[ omitted: insb		(%dx),%es:(%di) ]]
 	// pop		%ax
 	// dec		%bp
 	// jbe		0xffffffcc
 	// inc		%sp
-	[self assert:instructions[34] operation:Operation::POP size:2 destination:Source::eAX];
-	[self assert:instructions[35] operation:Operation::DEC size:2 source:Source::eBP destination:Source::eBP];
-	[self assert:instructions[36] operation:Operation::JBE displacement:0xff80];
-	[self assert:instructions[37] operation:Operation::INC size:2 source:Source::eSP destination:Source::eSP];
+	test(instructions[34], 2, Operation::POP, Source::eAX);
+	test(instructions[35], 2, Operation::DEC, Source::eBP, Source::eBP);
+	test(instructions[36], Operation::JBE, std::nullopt, 0xff80);
+	test(instructions[37], 2, Operation::INC, Source::eSP, Source::eSP);
 
 	// (bad)
 	// lahf
 	// movsw	%ds:(%si),%es:(%di)
 	// mov		$0x12a1,%bp
-	[self assert:instructions[38] operation:Operation::Invalid];
-	[self assert:instructions[39] operation:Operation::LAHF];
-	[self assert:instructions[40] operation:Operation::MOVS size:2];
-	[self assert:instructions[41] operation:Operation::MOV size:2 operand:0x12a1 destination:Source::eBP];
+	test(instructions[38], Operation::Invalid);
+	test(instructions[39], Operation::LAHF);
+	test(instructions[40], 2, Operation::MOVS); /* Arguments are implicit. */
+	test(instructions[41], 2, Operation::MOV, Source::Immediate, Source::eBP, 0x12a1);
 
 	// lds		(%bx,%di),%bp
 	// [[ omitted: leave ]]
 	// sahf
 	// fdiv		%st(3),%st
 	// iret
-	[self assert:instructions[42] operation:Operation::LDS size:2];
-	[self assert:instructions[43] operation:Operation::SAHF];
-	[self assert:instructions[44] operation:Operation::ESC];
-	[self assert:instructions[45] operation:Operation::IRET];
+	test(instructions[42], 2, Operation::LDS);
+	test(instructions[43], Operation::SAHF);
+	test(instructions[44], Operation::ESC);
+	test(instructions[45], Operation::IRET);
 
 	// xchg		%ax,%dx
 	// cmp		%bx,-0x70(%di)
 	// adc		$0xb8c3,%ax
 	// lods		%ds:(%si),%ax
-	[self assert:instructions[46] operation:Operation::XCHG size:2 source:Source::eAX destination:Source::eDX];
-	[self assert:instructions[47] operation:Operation::CMP size:2 source:Source::eBX destination:ScaleIndexBase(Source::eDI) displacement:0xff90];
-	[self assert:instructions[48] operation:Operation::ADC size:2 operand:0xb8c3 destination:Source::eAX];
-	[self assert:instructions[49] operation:Operation::LODS size:2];
+	test(instructions[46], 2, Operation::XCHG, Source::eAX, Source::eDX);
+	test(instructions[47], 2, Operation::CMP, Source::eBX, ScaleIndexBase(Source::eDI), std::nullopt, 0xff90);
+	test(instructions[48], 2, Operation::ADC, Source::Immediate, Source::eAX, 0xb8c3);
+	test(instructions[49], 2, Operation::LODS);
 
 	// call		0x0000172d
 	// dec		%dx
 	// mov		$0x9e,%al
 	// stc
-	[self assert:instructions[50] operation:Operation::CALLD operand:0x16c8];
-	[self assert:instructions[51] operation:Operation::DEC size:2 source:Source::eDX destination:Source::eDX];
-	[self assert:instructions[52] operation:Operation::MOV size:1 operand:0x9e destination:Source::eAX];
-	[self assert:instructions[53] operation:Operation::STC];
+	test(instructions[50], Operation::CALLD, uint16_t(0x16c8));
+	test(instructions[51], 2, Operation::DEC, Source::eDX, Source::eDX);
+	test(instructions[52], 1, Operation::MOV, Source::Immediate, Source::eAX, 0x9e);
+	test(instructions[53], Operation::STC);
 
 	// mov		$0xea56,%di
 	// dec		%si
 	// std
 	// in		$0x5a,%al
-	[self assert:instructions[54] operation:Operation::MOV size:2 operand:0xea56 destination:Source::eDI];
-	[self assert:instructions[55] operation:Operation::DEC size:2 source:Source::eSI destination:Source::eSI];
-	[self assert:instructions[56] operation:Operation::STD];
-	[self assert:instructions[57] operation:Operation::IN size:1 source:Source::DirectAddress destination:Source::eAX operand:0x5a];
+	test(instructions[54], 2, Operation::MOV, Source::Immediate, Source::eDI, 0xea56);
+	test(instructions[55], 2, Operation::DEC, Source::eSI, Source::eSI);
+	test(instructions[56], Operation::STD);
+	test(instructions[57], 1, Operation::IN, Source::DirectAddress, Source::eAX, 0x5a);
 
 	// and		0x5b2c(%bp,%si),%bp
 	// sub		%dl,%dl
 	// negw		0x18(%bx)
 	// xchg		%dl,0x6425(%bx,%si)
-	[self assert:instructions[58] operation:Operation::AND size:2 source:ScaleIndexBase(Source::eBP, Source::eSI) destination:Source::eBP displacement:0x5b2c];
-	[self assert:instructions[59] operation:Operation::SUB size:1 source:Source::eDX destination:Source::eDX];
-	[self assert:instructions[60] operation:Operation::NEG size:2 source:ScaleIndexBase(Source::eBX) destination:ScaleIndexBase(Source::eBX) displacement:0x18];
-	[self assert:instructions[61] operation:Operation::XCHG size:1 source:ScaleIndexBase(Source::eBX, Source::eSI) destination:Source::eDX displacement:0x6425];
+	test(instructions[58], 2, Operation::AND, ScaleIndexBase(Source::eBP, Source::eSI), Source::eBP, std::nullopt, 0x5b2c);
+	test(instructions[59], 1, Operation::SUB, Source::eDX, Source::eDX);
+	test(instructions[60], 2, Operation::NEG, ScaleIndexBase(Source::eBX), ScaleIndexBase(Source::eBX), std::nullopt, 0x18);
+	test(instructions[61], 1, Operation::XCHG, ScaleIndexBase(Source::eBX, Source::eSI), Source::eDX, std::nullopt, 0x6425);
 
 	// mov		$0xc3,%bh
-	[self assert:instructions[62] operation:Operation::MOV size:1 operand:0xc3 destination:Source::BH];
+	test(instructions[62], 1, Operation::MOV, Source::Immediate, Source::BH, 0xc3);
 }
 
 - (void)test83 {
-	[self decode:{
+	const auto instructions = decode<Model::i8086>({
 		0x83, 0x10, 0x80,	// adcw		$0xff80,(%bx,%si)
 		0x83, 0x3b, 0x04,	// cmpw		$0x4,(%bp,%di)
 		0x83, 0x2f, 0x09,	// subw		$0x9,(%bx)
-	}];
+	});
 
 	XCTAssertEqual(instructions.size(), 3);
-	[self assert:instructions[0] operation:Operation::ADC size:2 source:Source::Immediate destination:ScaleIndexBase(Source::eBX, Source::eSI) operand:0xff80];
-	[self assert:instructions[1] operation:Operation::CMP size:2 source:Source::Immediate destination:ScaleIndexBase(Source::eBP, Source::eDI) operand:0x4];
-	[self assert:instructions[2] operation:Operation::SUB size:2 source:Source::Immediate destination:ScaleIndexBase(Source::eBX) operand:0x9];
+	test(instructions[0], 2, Operation::ADC, Source::Immediate, ScaleIndexBase(Source::eBX, Source::eSI), 0xff80);
+	test(instructions[1], 2, Operation::CMP, Source::Immediate, ScaleIndexBase(Source::eBP, Source::eDI), 0x4);
+	test(instructions[2], 2, Operation::SUB, Source::Immediate, ScaleIndexBase(Source::eBX), 0x9);
 }
 
 - (void)testFar {
-	[self decode:{
+	const auto instructions = decode<Model::i8086>({
 		0x9a, 0x12, 0x34, 0x56, 0x78,	// lcall 0x7856, 0x3412
-	}];
+	});
 
 	XCTAssertEqual(instructions.size(), 1);
-	[self assert:instructions[0] operation:Operation::CALLF segment:0x7856 offset:0x3412];
+	test_far(instructions[0], Operation::CALLF, 0x7856, 0x3412);
+}
+
+- (void)testSequence2 {
 }
 
 @end
