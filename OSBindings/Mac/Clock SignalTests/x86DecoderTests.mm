@@ -21,7 +21,6 @@ using Model = InstructionSet::x86::Model;
 using Source = InstructionSet::x86::Source;
 using Size = InstructionSet::x86::Size;
 using ScaleIndexBase = InstructionSet::x86::ScaleIndexBase;
-using SourceSIB = InstructionSet::x86::SourceSIB;
 
 // MARK: - Specific instruction asserts.
 
@@ -34,8 +33,8 @@ template <typename InstructionT> void test(
 	const InstructionT &instruction,
 	int size,
 	Operation operation,
-	SourceSIB source,
-	std::optional<SourceSIB> destination = std::nullopt,
+	InstructionSet::x86::DataPointer source,
+	std::optional<InstructionSet::x86::DataPointer> destination = std::nullopt,
 	std::optional<typename InstructionT::ImmediateT> operand = std::nullopt,
 	std::optional<typename InstructionT::DisplacementT> displacement = std::nullopt) {
 

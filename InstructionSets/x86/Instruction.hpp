@@ -345,8 +345,10 @@ enum class Source: uint8_t {
 	/// The ScaleIndexBase associated with this source should be used.
 	Indirect = 0b11000,
 	// Elsewhere, as an implementation detail, the low three bits of an indirect source
-	// are reused.
+	// are reused; (Indirect-1) is also used as a sentinel value but is not a valid member
+	// of the enum and isn't exposed externally.
 };
+constexpr Source SourceIndirectNoBase = Source(uint8_t(Source::Indirect) - 1);
 
 enum class Repetition: uint8_t {
 	None, RepE, RepNE
@@ -357,6 +359,12 @@ enum class Repetition: uint8_t {
 ///
 /// This form of indirect addressing is used to describe both 16- and 32-bit indirect addresses,
 /// even though it is a superset of that supported prior to the 80386.
+///
+/// This class can represent only exactly what a SIB byte can — a scale of 0 to 3, a base
+/// that is any one of the eight general purpose registers, and an index that is one of the seven
+/// general purpose registers excluding eSP or is ::None.
+///
+/// It cannot natively describe a base of ::None.
 class ScaleIndexBase {
 	public:
 		constexpr ScaleIndexBase() noexcept {}
@@ -403,18 +411,49 @@ class ScaleIndexBase {
 static_assert(sizeof(ScaleIndexBase) == 1);
 static_assert(alignof(ScaleIndexBase) == 1);
 
-// TODO: improve the naming of SourceSIB.
-struct SourceSIB {
-	SourceSIB(Source source) : source(source) {}
-	SourceSIB(ScaleIndexBase sib) : sib(sib) {}
-	SourceSIB(Source source, ScaleIndexBase sib) : source(source), sib(sib) {}
+/// Provides the location of an operand's source or destination.
+///
+/// Callers should use .source() as a first point of entry. If it directly nominates a register
+/// then use the register contents directly. If it indicates ::DirectAddress or ::Immediate
+/// then ask the instruction for the address or immediate value that was provided in
+/// the instruction.
+///
+/// If .source() indicates ::Indirect then use base(), index() and scale() to construct an address.
+///
+/// In all cases, the applicable segment is indicated by the instruction.
+class DataPointer {
+	public:
+		constexpr DataPointer(Source source) noexcept : source_(source) {}
+		constexpr DataPointer(ScaleIndexBase sib) noexcept : sib_(sib) {}
+		constexpr DataPointer(Source source, ScaleIndexBase sib) noexcept : source_(source), sib_(sib) {}
 
-	bool operator ==(const SourceSIB &rhs) const {
-		return source == rhs.source && (source != Source::Indirect || sib == rhs.sib);
-	}
+		constexpr bool operator ==(const DataPointer &rhs) const {
+			// Require a SIB match only if source_ is ::Indirect or ::IndirectNoBase.
+			return source_ == rhs.source_ && (source_ < SourceIndirectNoBase || sib_ == rhs.sib_);
+		}
 
-	Source source = Source::Indirect;
-	ScaleIndexBase sib;
+		// TODO: determine whether conditionals below
+		// have introduced branching.
+
+		constexpr Source source() const {
+			return (source_ >= SourceIndirectNoBase) ? Source::Indirect : source_;
+		}
+
+		constexpr int scale() const {
+			return sib_.scale();
+		}
+
+		constexpr Source index() const {
+			return sib_.index();
+		}
+
+		constexpr Source base() const {
+			return (source_ <= SourceIndirectNoBase) ? Source::None : sib_.base();
+		}
+
+	private:
+		Source source_ = Source::Indirect;
+		ScaleIndexBase sib_;
 };
 
 template<bool is_32bit> class Instruction {
@@ -487,8 +526,8 @@ template<bool is_32bit> class Instruction {
 		/// this allows a denser packing of instructions into containers.
 		size_t packing_size() const		{	return sizeof(*this);	/* TODO */	}
 
-		SourceSIB  source() const		{	return SourceSIB(Source(sources_ & 0x3f), sib_);			}
-		SourceSIB destination() const	{	return SourceSIB(Source((sources_ >> 6) & 0x3f), sib_);		}
+		DataPointer  source() const		{	return DataPointer(Source(sources_ & 0x3f), sib_);			}
+		DataPointer destination() const	{	return DataPointer(Source((sources_ >> 6) & 0x3f), sib_);		}
 		bool lock() const				{	return sources_ & 0x8000;					}
 		bool address_size() const 		{	return address_size_;						}
 		Source segment_override() const	{	return Source((sources_ >> 12) & 7);		}
