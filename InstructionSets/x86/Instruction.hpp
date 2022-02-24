@@ -300,7 +300,7 @@ enum class Operation: uint8_t {
 	/// Compare string double word.
 	CMPSD,
 	/// [Early 80386s only] Insert bit string.
-	IBITS,
+	IBTS,
 
 	/// Inputs a double word from a port, incrementing or decrementing the destination.
 	INSD,
@@ -310,6 +310,15 @@ enum class Operation: uint8_t {
 	/// Convert word to dword; AX will be expanded to fill EAX.
 	/// Compare and contrast to CWD which would expand AX to DX:AX.
 	CWDE,
+
+	/// Move with zero extension.
+	MOVZX,
+	/// Move with sign extension.
+	MOVSX,
+
+	IRETD,
+	JECXZ,
+	LODSD,
 };
 
 enum class Size: uint8_t {
@@ -321,18 +330,37 @@ enum class Size: uint8_t {
 
 enum class Source: uint8_t {
 	// These are in SIB order; this matters for packing later on.
-	// Whether each refers to e.g. EAX, AX or AL depends on the
-	// instruction's data size.
-	eAX, eCX, eDX, eBX, eSP, eBP, eSI, eDI,
+
+	/// AL, AX or EAX depending on size.
+	eAX,
+	/// CL, CX or ECX depending on size.
+	eCX,
+	/// DL, DX or EDX depending on size.
+	eDX,
+	/// BL, BX or BDX depending on size.
+	eBX,
+	/// AH if size is 1; SP or ESP otherwise.
+	eSPorAH,
+	/// CH if size is 1; BP or EBP otherwise.
+	eBPorCH,
+	/// DH if size is 1; SI or ESI otherwise.
+	eSIorDH,
+	/// BH if size is 1; DI or EDI otherwise.
+	eDIorBH,
+
+	// Aliases for the dual-purpose enums.
+	eSP = eSPorAH,	AH = eSPorAH,
+	eBP = eBPorCH,	CH = eBPorCH,
+	eSI = eSIorDH,	DH = eSIorDH,
+	eDI = eDIorBH,	BH = eDIorBH,
 
 	// Selectors.
-	CS, DS, ES, SS, FS, GS,
-
-	// Legacy 8-bit registers that can't be described as e.g. 8-bit eAX.
-	AH, BH, CH, DH,
+	ES, CS, SS, DS, FS, GS,
 
 	/// The address included within this instruction should be used as the source.
 	DirectAddress,
+	// TODO: is this better eliminated in favour of an indirect
+	// source with a base() and index() of 0?
 
 	/// The immediate value included within this instruction should be used as the source.
 	Immediate,
