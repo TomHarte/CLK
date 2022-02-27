@@ -452,9 +452,20 @@ static_assert(alignof(ScaleIndexBase) == 1);
 /// In all cases, the applicable segment is indicated by the instruction.
 class DataPointer {
 	public:
+		/// Constricts a DataPointer referring to the given source; it shouldn't be ::Indirect.
 		constexpr DataPointer(Source source) noexcept : source_(source) {}
+
+		/// Constricts a DataPointer with a source of ::Indirect and the specified sib.
 		constexpr DataPointer(ScaleIndexBase sib) noexcept : sib_(sib) {}
+
+		/// Constructs a DataPointer with a source and SIB; use the source to indicate
+		/// whether the base field of the SIB is effective.
 		constexpr DataPointer(Source source, ScaleIndexBase sib) noexcept : source_(source), sib_(sib) {}
+
+		/// Constructs an indirect DataPointer referencing the given base, index and scale.
+		constexpr DataPointer(Source base, Source index, int scale) noexcept :
+			source_(base != Source::None ? Source::Indirect : SourceIndirectNoBase),
+			sib_(scale, index, base) {}
 
 		constexpr bool operator ==(const DataPointer &rhs) const {
 			// Require a SIB match only if source_ is ::Indirect or ::IndirectNoBase.

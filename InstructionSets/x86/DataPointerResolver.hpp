@@ -49,34 +49,34 @@ enum class Register: uint8_t {
 /// `template<typename DataT> void write(Source segment, uint32_t address, DataT value)`.
 template <Model model, typename RegistersT, typename MemoryT> class DataPointerResolver {
 	public:
-		template <typename DataT> DataT read(
+		template <typename DataT> static DataT read(
 			RegistersT &registers,
 			MemoryT &memory,
 			const Instruction<is_32bit(model)> &instruction,
 			DataPointer pointer,
-			decltype(RegistersT::eSP) memory_mask = ~0) {
+			typename Instruction<is_32bit(model)>::ImmediateT memory_mask = ~0) {
 				DataT result;
 				access<true>(registers, memory, instruction, pointer, memory_mask, result);
 				return result;
 			}
 
-		template <typename DataT> void write(
+		template <typename DataT> static void write(
 			RegistersT &registers,
 			MemoryT &memory,
 			const Instruction<is_32bit(model)> &instruction,
 			DataPointer pointer,
 			DataT value,
-			decltype(RegistersT::eSP) memory_mask = ~0) {
+			typename Instruction<is_32bit(model)>::ImmediateT memory_mask = ~0) {
 				access<false>(registers, memory, instruction, pointer, memory_mask, value);
 			}
 
 	private:
-		template <bool is_write, typename DataT> DataT access(
+		template <bool is_write, typename DataT> static void access(
 			RegistersT &registers,
 			MemoryT &memory,
 			const Instruction<is_32bit(model)> &instruction,
 			DataPointer pointer,
-			decltype(RegistersT::eSP) memory_mask,
+			typename Instruction<is_32bit(model)>::ImmediateT memory_mask,
 			DataT &value) {
 				const Source source = pointer.source();
 
@@ -86,14 +86,20 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 			registers.template write<DataT, register_for_source<DataT>(Source::x)>(v);	\
 		} else {	\
 			value = registers.template read<DataT, register_for_source<DataT>(Source::x)>(); \
-		}
+		}	\
+	break;
 
 #define ALLREGS(v)	f(v, eAX); f(v, eCX); f(v, eDX); f(v, eBX); \
 					f(v, eSPorAH); f(v, eBPorCH); f(v, eSIorDH); f(v, eDIorBH); \
 					f(v, ES); f(v, CS); f(v, SS); f(v, DS); f(v, FS); f(v, GS);
 
 			switch(source) {
-				default:	return DataT(0);
+				default:
+					if constexpr (!is_write) {
+						value = 0;
+					}
+				return;
+
 #define f(x, y) read_or_write(x, y, true)
 				ALLREGS(value);
 #undef f
@@ -129,7 +135,7 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 					}
 
 					// TODO: verify application of memory_mask here.
-					value = memory.template get<DataT>(
+					value = memory.template read<DataT>(
 						instruction.data_segment(),
 						(base & memory_mask) + (index & memory_mask)
 					);

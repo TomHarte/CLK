@@ -981,6 +981,7 @@
 		4BE21219253FCE9C00435408 /* AppleIIgs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE21214253FCE9C00435408 /* AppleIIgs.cpp */; };
 		4BE2121A253FCE9C00435408 /* AppleIIgs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE21214253FCE9C00435408 /* AppleIIgs.cpp */; };
 		4BE34438238389E10058E78F /* AtariSTVideoTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BE34437238389E10058E78F /* AtariSTVideoTests.mm */; };
+		4BE3C69727CC32DC000EAD28 /* x86DataPointerTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BE3C69627CC32DC000EAD28 /* x86DataPointerTests.mm */; };
 		4BE76CF922641ED400ACD6FA /* QLTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BE76CF822641ED300ACD6FA /* QLTests.mm */; };
 		4BE8EB6625C750B50040BC40 /* DAT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BE8EB6425C750B50040BC40 /* DAT.cpp */; };
 		4BE90FFD22D5864800FB464D /* MacintoshVideoTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BE90FFC22D5864800FB464D /* MacintoshVideoTests.mm */; };
@@ -2076,6 +2077,7 @@
 		4BE34437238389E10058E78F /* AtariSTVideoTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AtariSTVideoTests.mm; sourceTree = "<group>"; };
 		4BE3C69327C793EF000EAD28 /* DataPointerResolver.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DataPointerResolver.hpp; sourceTree = "<group>"; };
 		4BE3C69527CBC540000EAD28 /* Model.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Model.hpp; sourceTree = "<group>"; };
+		4BE3C69627CC32DC000EAD28 /* x86DataPointerTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = x86DataPointerTests.mm; sourceTree = "<group>"; };
 		4BE76CF822641ED300ACD6FA /* QLTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = QLTests.mm; sourceTree = "<group>"; };
 		4BE845201F2FF7F100A5EA22 /* CRTC6845.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRTC6845.hpp; sourceTree = "<group>"; };
 		4BE8EB5425C0E9D40040BC40 /* Disassembler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Disassembler.hpp; sourceTree = "<group>"; };
@@ -4121,7 +4123,6 @@
 			children = (
 				4B85322922778E4200F26553 /* Comparative68000.hpp */,
 				4B90467222C6FA31000E2074 /* TestRunner68000.hpp */,
-				4BF7019F26FFD32300996424 /* AmigaBlitterTests.mm */,
 				4B90467522C6FD6E000E2074 /* 68000ArithmeticTests.mm */,
 				4B9D0C4A22C7D70900DE1AD3 /* 68000BCDTests.mm */,
 				4B90467322C6FADD000E2074 /* 68000BitwiseTests.mm */,
@@ -4130,6 +4131,7 @@
 				4BC5C3DF22C994CC00795658 /* 68000MoveTests.mm */,
 				4B9D0C4E22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm */,
 				4BD388872239E198002D14B5 /* 68000Tests.mm */,
+				4BF7019F26FFD32300996424 /* AmigaBlitterTests.mm */,
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
 				4BE34437238389E10058E78F /* AtariSTVideoTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
@@ -4150,6 +4152,7 @@
 				4B8DD3672633B2D400B3C866 /* SpectrumVideoContentionTests.mm */,
 				4B2AF8681E513FC20027EE29 /* TIATests.mm */,
 				4B1D08051E0F7A1100763741 /* TimeTests.mm */,
+				4BE3C69627CC32DC000EAD28 /* x86DataPointerTests.mm */,
 				4BEE4BD325A26E2B00011BD2 /* x86DecoderTests.mm */,
 				4BDA8234261E8E000021AA19 /* Z80ContentionTests.mm */,
 				4BB73EB81B587A5100552FC2 /* Info.plist */,
@@ -5919,6 +5922,7 @@
 				4B778F5C23A5F3070000D260 /* MSX.cpp in Sources */,
 				4B778F0323A5EBB00000D260 /* FAT12.cpp in Sources */,
 				4B778F4023A5F1910000D260 /* z8530.cpp in Sources */,
+				4BE3C69727CC32DC000EAD28 /* x86DataPointerTests.mm in Sources */,
 				4B778EFD23A5EB8E0000D260 /* AppleDSK.cpp in Sources */,
 				4B778EFB23A5EB7E0000D260 /* HFE.cpp in Sources */,
 				4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */,
