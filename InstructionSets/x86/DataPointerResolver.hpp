@@ -12,6 +12,8 @@
 #include "Instruction.hpp"
 #include "Model.hpp"
 
+#include <cassert>
+
 namespace InstructionSet {
 namespace x86 {
 
@@ -132,13 +134,25 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 
 					if constexpr (model >= Model::i80386) {
 						index <<= pointer.scale();
+					} else {
+						assert(!pointer.scale());
 					}
 
 					// TODO: verify application of memory_mask here.
-					value = memory.template read<DataT>(
-						instruction.data_segment(),
-						(base & memory_mask) + (index & memory_mask)
-					);
+					const uint32_t address = (base & memory_mask) + (index & memory_mask);
+
+					if constexpr (is_write) {
+						value = memory.template read<DataT>(
+							instruction.data_segment(),
+							address
+						);
+					} else {
+						memory.template write<DataT>(
+							instruction.data_segment(),
+							address,
+							value
+						);
+					}
 				}
 			}
 #undef ALLREGS

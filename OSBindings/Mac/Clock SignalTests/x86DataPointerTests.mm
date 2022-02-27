@@ -27,7 +27,7 @@ using namespace InstructionSet::x86;
 
 - (void)testX {
 	const DataPointer pointer(
-		Source::eAX, Source::eDI, 2
+		Source::eAX, Source::eDI, 0
 	);
 
 	struct Registers {
@@ -49,6 +49,7 @@ using namespace InstructionSet::x86;
 		template<typename DataT> DataT read(Source segment, uint32_t address) {
 			(void)segment;
 			(void)address;
+			printf("Access at %d\n", address);
 			return 0;
 		}
 		template<typename DataT> void write(Source, uint32_t, DataT) {
@@ -65,7 +66,7 @@ using namespace InstructionSet::x86;
 			registers,
 			memory,
 			instruction,
-			instruction.source()
+			pointer
 		);
 
 	printf("%d\n", value);
