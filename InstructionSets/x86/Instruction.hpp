@@ -357,6 +357,12 @@ enum class Source: uint8_t {
 	// Selectors.
 	ES, CS, SS, DS, FS, GS,
 
+	/// @c None can be treated as a source that produces 0 when encountered;
+	/// it is semantically valid to receive it with that meaning in some contexts —
+	/// e.g. to indicate no index in indirect addressing.
+	/// It's listed here in order to allow an [optional] segment override to fit into three bits.
+	None,
+
 	/// The address included within this instruction should be used as the source.
 	DirectAddress,
 	// TODO: is this better eliminated in favour of an indirect
@@ -364,11 +370,6 @@ enum class Source: uint8_t {
 
 	/// The immediate value included within this instruction should be used as the source.
 	Immediate,
-
-	/// @c None can be treated as a source that produces 0 when encountered;
-	/// it is semantically valid to receive it with that meaning in some contexts —
-	/// e.g. to indicate no index in indirect addressing.
-	None,
 
 	/// The ScaleIndexBase associated with this source should be used.
 	Indirect = 0b11000,
@@ -554,16 +555,22 @@ template<bool is_32bit> class Instruction {
 		/// this allows a denser packing of instructions into containers.
 		size_t packing_size() const		{	return sizeof(*this);	/* TODO */	}
 
-		DataPointer  source() const		{	return DataPointer(Source(sources_ & 0x3f), sib_);			}
+		DataPointer source() const		{	return DataPointer(Source(sources_ & 0x3f), sib_);			}
 		DataPointer destination() const	{	return DataPointer(Source((sources_ >> 6) & 0x3f), sib_);		}
 		bool lock() const				{	return sources_ & 0x8000;					}
 		bool address_size() const 		{	return address_size_;						}
-		Source segment_override() const	{	return Source((sources_ >> 12) & 7);		}
+		Source data_segment() const		{
+			const auto segment_override = Source((sources_ >> 12) & 7);
+			if(segment_override != Source::None) return segment_override;
+
+			// TODO: default source should be SS for anything touching the stack.
+			return Source::DS;
+		}
 
 		Repetition repetition() const	{	return Repetition(repetition_size_ & 3);	}
 		Size operation_size() const 	{	return Size(repetition_size_ >> 2);			}
 
-		// TODO: confirm whether far call for some reason makes thse 32-bit in protected mode.
+		// TODO: confirm whether far call for some reason makes these 32-bit in protected mode.
 		uint16_t segment() const		{	return uint16_t(operand_);					}
 		uint16_t offset() const			{	return uint16_t(displacement_);				}
 

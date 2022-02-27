@@ -10,19 +10,13 @@
 #define InstructionSets_x86_Decoder_hpp
 
 #include "Instruction.hpp"
+#include "Model.hpp"
 
 #include <cstddef>
 #include <utility>
 
 namespace InstructionSet {
 namespace x86 {
-
-enum class Model {
-	i8086,
-	i80186,
-	i80286,
-	i80386,
-};
 
 /*!
 	Implements Intel x86 instruction decoding.
