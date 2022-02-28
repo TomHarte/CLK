@@ -82,13 +82,13 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 			DataT &value) {
 				const Source source = pointer.source();
 
-#define read_or_write(v, x, allow_write)	\
-	case Source::x:	\
-		if constexpr(allow_write && is_write) {\
-			registers.template write<DataT, register_for_source<DataT>(Source::x)>(v);	\
-		} else {	\
-			value = registers.template read<DataT, register_for_source<DataT>(Source::x)>(); \
-		}	\
+#define read_or_write(v, x, allow_write)																\
+	case Source::x:																						\
+		if constexpr(allow_write && is_write) {															\
+			registers.template write<decltype(v), register_for_source<decltype(v)>(Source::x)>(v);		\
+		} else {																						\
+			v = registers.template read<decltype(v), register_for_source<decltype(v)>(Source::x)>();	\
+		}																								\
 	break;
 
 #define ALLREGS(v)	f(v, eAX); f(v, eCX); f(v, eDX); f(v, eBX); \
@@ -118,7 +118,8 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 				break;
 
 				case Source::Indirect: {
-					uint32_t base = 0, index = 0;
+					using AddressT = typename Instruction<is_32bit(model)>::AddressComponentT;
+					AddressT base = 0, index = 0;
 
 #define f(x, y) read_or_write(x, y, false)
 					switch(pointer.base()) {
@@ -132,14 +133,17 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 					}
 #undef f
 
+					// Compute address as 32-bit; its always at least 20 bits
+					// and at most 32.
+					uint32_t address = index;
 					if constexpr (model >= Model::i80386) {
-						index <<= pointer.scale();
+						address <<= pointer.scale();
 					} else {
 						assert(!pointer.scale());
 					}
 
 					// TODO: verify application of memory_mask here.
-					const uint32_t address = (base & memory_mask) + (index & memory_mask);
+					address = (address & memory_mask) + (base & memory_mask);
 
 					if constexpr (is_write) {
 						value = memory.template read<DataT>(

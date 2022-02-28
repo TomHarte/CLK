@@ -49,7 +49,7 @@ using namespace InstructionSet::x86;
 		template<typename DataT> DataT read(Source segment, uint32_t address) {
 			(void)segment;
 			(void)address;
-			printf("Access at %d\n", address);
+			printf("Access at %08x\n", address);
 			return 0;
 		}
 		template<typename DataT> void write(Source, uint32_t, DataT) {
