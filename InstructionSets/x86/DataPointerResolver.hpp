@@ -82,9 +82,9 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 			DataT &value) {
 				const Source source = pointer.source();
 
-#define read_or_write(v, x, allow_write)																\
+#define read_or_write(v, x, is_for_indirection)															\
 	case Source::x:																						\
-		if constexpr(allow_write && is_write) {															\
+		if constexpr(!is_for_indirection && is_write) {													\
 			registers.template write<decltype(v), register_for_source<decltype(v)>(Source::x)>(v);		\
 		} else {																						\
 			v = registers.template read<decltype(v), register_for_source<decltype(v)>(Source::x)>();	\
@@ -102,7 +102,7 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 					}
 				return;
 
-#define f(x, y) read_or_write(x, y, true)
+#define f(x, y) read_or_write(x, y, false)
 				ALLREGS(value);
 #undef f
 
@@ -121,7 +121,7 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 					using AddressT = typename Instruction<is_32bit(model)>::AddressComponentT;
 					AddressT base = 0, index = 0;
 
-#define f(x, y) read_or_write(x, y, false)
+#define f(x, y) read_or_write(x, y, true)
 					switch(pointer.base()) {
 						default: break;
 						ALLREGS(base);
@@ -133,8 +133,12 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 					}
 #undef f
 
-					// Compute address as 32-bit; its always at least 20 bits
-					// and at most 32.
+					// Always compute address as 32-bit.
+					// TODO: verify application of memory_mask here.
+					// The point of memory_mask is that 32-bit x86 offers the memory size modifier,
+					// permitting 16-bit addresses to be generated in 32-bit mode and vice versa.
+					// To figure out is at what point in the calculation the 16-bit constraint is
+					// applied when active.
 					uint32_t address = index;
 					if constexpr (model >= Model::i80386) {
 						address <<= pointer.scale();
@@ -142,8 +146,7 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 						assert(!pointer.scale());
 					}
 
-					// TODO: verify application of memory_mask here.
-					address = (address & memory_mask) + (base & memory_mask);
+					address = (address & memory_mask) + (base & memory_mask) + instruction.displacement();
 
 					if constexpr (is_write) {
 						value = memory.template read<DataT>(

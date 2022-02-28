@@ -46,10 +46,8 @@ using namespace InstructionSet::x86;
 	} registers;
 
 	struct Memory {
-		template<typename DataT> DataT read(Source segment, uint32_t address) {
-			(void)segment;
-			(void)address;
-			printf("Access at %08x\n", address);
+		template<typename DataT> DataT read(Source, uint32_t address) {
+			if(address == 01234 + 0x00ee) return 0xff;
 			return 0;
 		}
 		template<typename DataT> void write(Source, uint32_t, DataT) {
@@ -58,9 +56,7 @@ using namespace InstructionSet::x86;
 
 	} memory;
 
-	const auto instruction = Instruction<false>();/*[self
-		instruction16WithSourceDataPointer:pointer];*/
-
+	const auto instruction = Instruction<false>();
 	const uint8_t value = DataPointerResolver<
 		Model::i8086, Registers, Memory>::read<uint8_t>(
 			registers,
@@ -69,7 +65,7 @@ using namespace InstructionSet::x86;
 			pointer
 		);
 
-	printf("%d\n", value);
+	XCTAssertEqual(value, 0xff);
 }
 
 @end
