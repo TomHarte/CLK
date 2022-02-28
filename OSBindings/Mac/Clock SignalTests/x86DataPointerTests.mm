@@ -33,9 +33,6 @@ using namespace InstructionSet::x86;
 	struct Registers {
 		uint16_t ax = 0x1234, di = 0x00ee;
 
-		template <typename DataT, Register r> void write(DataT) {
-			assert(false);
-		}
 		template <typename DataT, Register r> DataT read() {
 			switch(r) {
 				case Register::AX:	return ax;
@@ -43,17 +40,19 @@ using namespace InstructionSet::x86;
 				default: return 0;
 			}
 		}
+		template <typename DataT, Register r> void write(DataT) {
+			assert(false);
+		}
 	} registers;
 
 	struct Memory {
 		template<typename DataT> DataT read(Source, uint32_t address) {
-			if(address == 01234 + 0x00ee) return 0xff;
+			if(address == 0x1234 + 0x00ee) return 0xff;
 			return 0;
 		}
 		template<typename DataT> void write(Source, uint32_t, DataT) {
 			assert(false);
 		}
-
 	} memory;
 
 	const auto instruction = Instruction<false>();
