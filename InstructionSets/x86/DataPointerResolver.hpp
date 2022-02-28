@@ -56,7 +56,7 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 			MemoryT &memory,
 			const Instruction<is_32bit(model)> &instruction,
 			DataPointer pointer,
-			typename Instruction<is_32bit(model)>::ImmediateT memory_mask = ~0) {
+			typename Instruction<is_32bit(model)>::AddressT memory_mask = ~0) {
 				DataT result;
 				access<true>(registers, memory, instruction, pointer, memory_mask, result);
 				return result;
@@ -68,7 +68,7 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 			const Instruction<is_32bit(model)> &instruction,
 			DataPointer pointer,
 			DataT value,
-			typename Instruction<is_32bit(model)>::ImmediateT memory_mask = ~0) {
+			typename Instruction<is_32bit(model)>::AddressT memory_mask = ~0) {
 				access<false>(registers, memory, instruction, pointer, memory_mask, value);
 			}
 
@@ -78,13 +78,14 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 			MemoryT &memory,
 			const Instruction<is_32bit(model)> &instruction,
 			DataPointer pointer,
-			typename Instruction<is_32bit(model)>::ImmediateT memory_mask,
+			typename Instruction<is_32bit(model)>::AddressT memory_mask,
 			DataT &value) {
+				assert(memory_mask == 0xffff'ffff || memory_mask == 0xffff);
 				const Source source = pointer.source();
 
 #define read_or_write(v, x, is_for_indirection)															\
 	case Source::x:																						\
-		if constexpr(!is_for_indirection && is_write) {													\
+		if constexpr (!is_for_indirection && is_write) {												\
 			registers.template write<decltype(v), register_for_source<decltype(v)>(Source::x)>(v);		\
 		} else {																						\
 			v = registers.template read<decltype(v), register_for_source<decltype(v)>(Source::x)>();	\
@@ -118,7 +119,7 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 				break;
 
 				case Source::Indirect: {
-					using AddressT = typename Instruction<is_32bit(model)>::AddressComponentT;
+					using AddressT = typename Instruction<is_32bit(model)>::AddressT;
 					AddressT base = 0, index = 0;
 
 #define f(x, y) read_or_write(x, y, true)

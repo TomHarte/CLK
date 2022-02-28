@@ -511,7 +511,7 @@ template<bool is_32bit> class Instruction {
 
 		using DisplacementT = typename std::conditional<is_32bit, int32_t, int16_t>::type;
 		using ImmediateT = typename std::conditional<is_32bit, uint32_t, uint16_t>::type;
-		using AddressComponentT = ImmediateT;
+		using AddressT = ImmediateT;
 
 		/* Note to self — current thinking is:
 
