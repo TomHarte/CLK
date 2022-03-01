@@ -321,11 +321,16 @@ enum class Operation: uint8_t {
 	LODSD,
 };
 
-enum class Size: uint8_t {
+enum class DataSize: uint8_t {
 	Implied = 0,
 	Byte = 1,
 	Word = 2,
-	DWord = 4,
+	DWord = 3,
+};
+
+enum class AddressSize: uint8_t {
+	b16 = 0,
+	b32 = 1,
 };
 
 enum class Source: uint8_t {
@@ -563,7 +568,7 @@ template<bool is_32bit> class Instruction {
 
 		// Fields yet to be properly incorporated...
 		ScaleIndexBase sib_;
-		bool address_size_ = false;
+		AddressSize address_size_ = AddressSize::b16;
 
 	public:
 		/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
@@ -572,10 +577,13 @@ template<bool is_32bit> class Instruction {
 		size_t packing_size() const		{	return sizeof(*this);	/* TODO */	}
 
 		DataPointer source() const		{	return DataPointer(Source(sources_ & 0x3f), sib_);			}
-		DataPointer destination() const	{	return DataPointer(Source((sources_ >> 6) & 0x3f), sib_);		}
-		bool lock() const				{	return sources_ & 0x8000;					}
-		bool address_size_is_32() const {	return address_size_;						}
-		Source data_segment() const		{
+		DataPointer destination() const	{	return DataPointer(Source((sources_ >> 6) & 0x3f), sib_);	}
+		bool lock() const				{	return sources_ & 0x8000;									}
+
+		AddressSize address_size() const {
+			return AddressSize(address_size_);
+		}
+		Source data_segment() const {
 			const auto segment_override = Source((sources_ >> 12) & 7);
 			if(segment_override != Source::None) return segment_override;
 
@@ -584,7 +592,7 @@ template<bool is_32bit> class Instruction {
 		}
 
 		Repetition repetition() const	{	return Repetition(repetition_size_ & 3);	}
-		Size operation_size() const 	{	return Size(repetition_size_ >> 2);			}
+		DataSize operation_size() const {	return DataSize(repetition_size_ >> 2);		}
 
 		// TODO: confirm whether far call for some reason makes these 32-bit in protected mode.
 		uint16_t segment() const		{	return uint16_t(operand_);					}
@@ -600,10 +608,10 @@ template<bool is_32bit> class Instruction {
 			Source destination,
 			ScaleIndexBase sib,
 			bool lock,
-			bool address_size,
+			AddressSize address_size,
 			Source segment_override,
 			Repetition repetition,
-			Size operation_size,
+			DataSize operation_size,
 			DisplacementT displacement,
 			ImmediateT operand) noexcept :
 				operation(operation),

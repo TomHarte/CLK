@@ -245,7 +245,7 @@ uint32_t DataPointerResolver<model, RegistersT, MemoryT>::effective_address(
 		// fields and to help to explore the best breakdown of storage
 		// within Instruction.
 		constexpr uint32_t memory_masks[] = {0x0000'ffff, 0xffff'ffff};
-		const uint32_t memory_mask = memory_masks[instruction.address_size_is_32()];
+		const uint32_t memory_mask = memory_masks[int(instruction.address_size())];
 		address = (address & memory_mask) + (base & memory_mask) + instruction.displacement();
 		return address;
 	}

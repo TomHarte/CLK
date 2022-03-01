@@ -20,13 +20,13 @@ using Operation = InstructionSet::x86::Operation;
 using Instruction = InstructionSet::x86::Instruction<false>;
 using Model = InstructionSet::x86::Model;
 using Source = InstructionSet::x86::Source;
-using Size = InstructionSet::x86::Size;
+using Size = InstructionSet::x86::DataSize;
 using ScaleIndexBase = InstructionSet::x86::ScaleIndexBase;
 
 // MARK: - Specific instruction asserts.
 
 template <typename InstructionT> void test(const InstructionT &instruction, int size, Operation operation) {
-	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
+	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::DataSize(size));
 	XCTAssertEqual(instruction.operation, operation);
 }
 
@@ -39,7 +39,7 @@ template <typename InstructionT> void test(
 	std::optional<typename InstructionT::ImmediateT> operand = std::nullopt,
 	std::optional<typename InstructionT::DisplacementT> displacement = std::nullopt) {
 
-	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::Size(size));
+	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::DataSize(size));
 	XCTAssertEqual(instruction.operation, operation);
 	XCTAssert(instruction.source() == source);
 	if(destination) XCTAssert(instruction.destination() == *destination);

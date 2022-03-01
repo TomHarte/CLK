@@ -179,10 +179,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80286);
 				MemRegReg(ARPL, MemReg_Reg, 2);
 			break;
-			case 0x67:
-				RequiresMin(i80386);
-				address_size_ = true;
-			break;
+//			case 0x67:
+//				RequiresMin(i80386);
+//				address_size_ = true;
+//			break;
 			case 0x6c:	// INSB
 				RequiresMin(i80186);
 				Complete(INS, None, None, 1);
@@ -710,7 +710,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				address_size_,
 				segment_override_,
 				repetition_,
-				Size(operation_size_),
+				DataSize(operation_size_),
 				displacement_,
 				operand_)
 		);
