@@ -298,7 +298,7 @@ template <bool is_write, typename DataT> void DataPointerResolver<model, Registe
 		}
 	}
 #undef ALLREGS
-#undef read_or_write
+#undef rw
 
 }
 }
