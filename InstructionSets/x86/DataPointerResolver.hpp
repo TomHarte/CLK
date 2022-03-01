@@ -22,23 +22,49 @@ namespace x86 {
 /// listed separately and uniquely, rather than being eAX+size or
 /// eSPorAH with a size of 1.
 enum class Register: uint8_t {
-	AL, AH, AX, EAX,
-	CL, CH, CX, ECX,
-	DL, DH, DX, EDX,
-	BL, BH, BX, EBX,
-	SP, ESP,
-	BP, EBP,
-	SI, ESI,
-	DI, EDI,
-	ES,
-	CS,
-	SS,
-	DS,
-	FS,
-	GS,
+	// 8-bit registers.
+	AL, AH,
+	CL, CH,
+	DL, DH,
+	BL, BH,
+
+	// 16-bit registers.
+	AX, CX, DX, BX,
+	SP, BP, SI, DI,
+	ES, CS, SS, DS,
+	FS, GS,
+
+	// 32-bit registers.
+	EAX, ECX, EDX, EBX,
+	ESP, EBP, ESI, EDI,
+
+	//
 	None
 };
 
+/// @returns @c true if @c r is the same size as @c DataT; @c false otherwise.
+/// @discussion Provided primarily to aid in asserts; if the decoder and resolver are both
+/// working then it shouldn't be necessary to test this in register files.
+template <typename DataT> constexpr bool is_sized(Register r) {
+	static_assert(sizeof(DataT) == 4 || sizeof(DataT) == 2 || sizeof(DataT) == 1);
+
+	if constexpr (sizeof(DataT) == 4) {
+		return r >= Register::EAX && r < Register::None;
+	}
+
+	if constexpr (sizeof(DataT) == 2) {
+		return r >= Register::AX && r < Register::EAX;
+	}
+
+	if constexpr (sizeof(DataT) == 1) {
+		return r >= Register::AL && r < Register::AX;
+	}
+
+	return false;
+}
+
+/// @returns the proper @c Register given @c source and data of size @c sizeof(DataT),
+/// or Register::None if no such register exists (e.g. asking for a 32-bit version of CS).
 template <typename DataT> constexpr Register register_for_source(Source source) {
 	static_assert(sizeof(DataT) == 4 || sizeof(DataT) == 2 || sizeof(DataT) == 1);
 
@@ -152,7 +178,7 @@ template <typename DataT> DataT DataPointerResolver<model, RegistersT, MemoryT>:
 	const Instruction<is_32bit(model)> &instruction,
 	DataPointer pointer) {
 		DataT result;
-		access<true>(registers, memory, instruction, pointer, result);
+		access<false>(registers, memory, instruction, pointer, result);
 		return result;
 	}
 
@@ -163,17 +189,18 @@ template <typename DataT> void DataPointerResolver<model, RegistersT, MemoryT>::
 	const Instruction<is_32bit(model)> &instruction,
 	DataPointer pointer,
 	DataT value) {
-		access<false>(registers, memory, instruction, pointer, value);
+		access<true>(registers, memory, instruction, pointer, value);
 	}
 
 #define rw(v, r, is_write)														\
-	case Source::r: {															\
+	case Source::r:																\
+		using VType = typename std::remove_reference<decltype(v)>::type;		\
 		if constexpr (is_write) {												\
-			registers.template write<decltype(v), register_for_source<decltype(v)>(Source::r)>(v);						\
+			registers.template write<VType, register_for_source<VType>(Source::r)>(v);		\
 		} else {																\
-			v = registers.template read<decltype(v), register_for_source<decltype(v)>(Source::r)>();					\
+			 v = registers.template read<VType, register_for_source<VType>(Source::r)>();	\
 		}																		\
-	} break;
+	break;
 
 #define ALLREGS(v, i)	rw(v, eAX, i); 		rw(v, eCX, i); 		\
 						rw(v, eDX, i);		rw(v, eBX, i); 		\
@@ -201,12 +228,6 @@ uint32_t DataPointerResolver<model, RegistersT, MemoryT>::effective_address(
 			ALLREGS(index, false);
 		}
 
-		// Always compute address as 32-bit.
-		// TODO: verify application of memory_mask around here.
-		// The point of memory_mask is that 32-bit x86 offers the memory size modifier,
-		// permitting 16-bit addresses to be generated in 32-bit mode and vice versa.
-		// To figure out is at what point in the calculation the 16-bit constraint is
-		// applied when active.
 		uint32_t address = index;
 		if constexpr (model >= Model::i80386) {
 			address <<= pointer.scale();
@@ -214,6 +235,15 @@ uint32_t DataPointerResolver<model, RegistersT, MemoryT>::effective_address(
 			assert(!pointer.scale());
 		}
 
+		// Always compute address as 32-bit.
+		// TODO: verify use of memory_mask around here.
+		// Also I think possibly an exception is supposed to be generated
+		// if the programmer is in 32-bit mode and has asked for 16-bit
+		// address computation but generated e.g. a 17-bit result. Look into
+		// that when working on execution. For now the goal is merely decoding
+		// and this code exists both to verify the presence of all necessary
+		// fields and to help to explore the best breakdown of storage
+		// within Instruction.
 		constexpr uint32_t memory_masks[] = {0x0000'ffff, 0xffff'ffff};
 		const uint32_t memory_mask = memory_masks[instruction.address_size_is_32()];
 		address = (address & memory_mask) + (base & memory_mask) + instruction.displacement();
@@ -240,7 +270,7 @@ template <bool is_write, typename DataT> void DataPointerResolver<model, Registe
 
 			case Source::DirectAddress:
 				if constexpr(is_write) {
-					memory.template write<DataT>(instruction.data_segment(), instruction.displacement(), value);
+					memory.template write(instruction.data_segment(), instruction.displacement(), value);
 				} else {
 					value = memory.template read<DataT>(instruction.data_segment(), instruction.displacement());
 				}
@@ -253,15 +283,15 @@ template <bool is_write, typename DataT> void DataPointerResolver<model, Registe
 				const auto address = effective_address(registers, instruction, pointer);
 
 				if constexpr (is_write) {
-					value = memory.template read<DataT>(
-						instruction.data_segment(),
-						address
-					);
-				} else {
-					memory.template write<DataT>(
+					memory.template write(
 						instruction.data_segment(),
 						address,
 						value
+					);
+				} else {
+					value = memory.template read<DataT>(
+						instruction.data_segment(),
+						address
 					);
 				}
 			}

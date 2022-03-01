@@ -34,6 +34,7 @@ using namespace InstructionSet::x86;
 		uint16_t ax = 0x1234, di = 0x00ee;
 
 		template <typename DataT, Register r> DataT read() {
+			assert(is_sized<DataT>(r));
 			switch(r) {
 				case Register::AX:	return ax;
 				case Register::DI:	return di;
