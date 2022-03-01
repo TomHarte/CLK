@@ -19,7 +19,7 @@ enum class Model {
 	i80386,
 };
 
-#define is_32bit(model) (model >= Model::i80386)
+static constexpr bool is_32bit(Model model) { return model >= Model::i80386; }
 
 }
 }
