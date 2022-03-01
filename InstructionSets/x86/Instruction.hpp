@@ -522,14 +522,18 @@ template<bool is_32bit> class Instruction {
 				8 bits operation;
 				4 bits original instruction size;
 				2 bits data size;
-				3 bits extension flags.
+				1 bit memory size;
+				2 bits extension flags.
 
 			Extensions (16 or 32 bit, depending on templated size):
-				1) reptition + segment override + lock + memory size toggle (= 7 bits);
+				1) reptition + segment override + lock + original instruction size (= 10 bits);
 				2) displacement;
 				3) immediate operand.
 
-			Presence or absence of extensions is dictated by the extention flags.
+			Presence or absence of extensions is dictated by:
+				* instruction size = 0 => the repetition, etc extension (including the real extension size); and
+				* the extension flags for displacement and/or immediate.
+
 			Therefore an instruction's footprint is:
 				* 4–8 bytes (16-bit processors);
 				* 4–12 bytes (32-bit processors).
@@ -537,9 +541,9 @@ template<bool is_32bit> class Instruction {
 			I'll then implement a collection suited to packing these things based on their
 			packing_size(), and later iterating them.
 
-			To verify: do the 8086 and 80286 limit instructions to 15 bytes as later members
-			of the family do? If not then consider original instruction size = 0 to imply an
-			extension of one word prior to the other extensions.
+			To verify: the 8086 allows unlimited-length instructions (which I'll probably handle by
+			generating length-15 NOPs and not resetting parser state), the 80386 limits them to
+			15 bytes, but what do the processors in between do?
 		*/
 
 	private:
@@ -570,7 +574,7 @@ template<bool is_32bit> class Instruction {
 		DataPointer source() const		{	return DataPointer(Source(sources_ & 0x3f), sib_);			}
 		DataPointer destination() const	{	return DataPointer(Source((sources_ >> 6) & 0x3f), sib_);		}
 		bool lock() const				{	return sources_ & 0x8000;					}
-		bool address_size() const 		{	return address_size_;						}
+		bool address_size_is_32() const {	return address_size_;						}
 		Source data_segment() const		{
 			const auto segment_override = Source((sources_ >> 12) & 7);
 			if(segment_override != Source::None) return segment_override;
@@ -586,8 +590,8 @@ template<bool is_32bit> class Instruction {
 		uint16_t segment() const		{	return uint16_t(operand_);					}
 		uint16_t offset() const			{	return uint16_t(displacement_);				}
 
-		DisplacementT displacement() const	{	return displacement_;						}
-		ImmediateT operand() const			{	return operand_;							}
+		DisplacementT displacement() const	{	return displacement_;					}
+		ImmediateT operand() const			{	return operand_;						}
 
 		Instruction() noexcept {}
 		Instruction(
