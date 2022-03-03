@@ -36,6 +36,11 @@ template <Model model> class Decoder {
 		*/
 		std::pair<int, InstructionT> decode(const uint8_t *source, size_t length);
 
+		/*!
+			Enables or disables 32-bit protected mode. Meaningful only if the @c Model supports it.
+		*/
+		void set_32bit_protected_mode(bool);
+
 	private:
 		enum class Phase {
 			/// Captures all prefixes and continues until an instruction byte is encountered.
@@ -148,8 +153,13 @@ template <Model model> class Decoder {
 		// Prefix capture fields.
 		Repetition repetition_ = Repetition::None;
 		bool lock_ = false;
-		AddressSize address_size_ = AddressSize::b16;
 		Source segment_override_ = Source::None;
+
+		// 32-bit/16-bit selection.
+		AddressSize default_address_size_ = AddressSize::b16;
+		DataSize default_data_size_ = DataSize::Word;
+		AddressSize address_size_ = AddressSize::b16;
+		DataSize data_size_ = DataSize::Word;
 
 		/// Resets size capture and all fields with default values.
 		void reset_parsing() {
@@ -157,7 +167,8 @@ template <Model model> class Decoder {
 			displacement_size_ = operand_size_ = 0;
 			displacement_ = operand_ = 0;
 			lock_ = false;
-			address_size_ = AddressSize::b16;
+			address_size_ = default_address_size_;
+			data_size_ = default_data_size_;
 			segment_override_ = Source::None;
 			repetition_ = Repetition::None;
 			phase_ = Phase::Instruction;

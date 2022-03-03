@@ -179,10 +179,14 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80286);
 				MemRegReg(ARPL, MemReg_Reg, 2);
 			break;
-//			case 0x67:
-//				RequiresMin(i80386);
-//				address_size_ = true;
-//			break;
+			case 0x66:
+				RequiresMin(i80386);
+				data_size_ = DataSize(int(default_data_size_) ^ int(DataSize::Word) ^ int(DataSize::DWord));
+			break;
+			case 0x67:
+				RequiresMin(i80386);
+				address_size_ = AddressSize(int(default_address_size_) ^ int(AddressSize::b16) ^ int(AddressSize::b32));
+			break;
 			case 0x6c:	// INSB
 				RequiresMin(i80186);
 				Complete(INS, None, None, 1);
@@ -720,6 +724,21 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 	// i.e. not done yet.
 	return std::make_pair(0, InstructionT());
+}
+
+template <Model model> void Decoder<model>::set_32bit_protected_mode(bool enabled) {
+	if constexpr (!is_32bit(model)) {
+		assert(!enabled);
+		return;
+	}
+
+	if(enabled) {
+		default_address_size_ = address_size_ = AddressSize::b32;
+		default_data_size_ = data_size_ = DataSize::DWord;
+	} else {
+		default_address_size_ = address_size_ = AddressSize::b16;
+		default_data_size_ = data_size_ = DataSize::Word;
+	}
 }
 
 // Ensure all possible decoders are built.
