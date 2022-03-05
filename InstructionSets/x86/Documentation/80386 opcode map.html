@@ -148,25 +148,25 @@
 		<table class="optable">
 			<tr>
 				<th></th>
-				<th>0</th>
-				<th>1</th>
-				<th>2</th>
-				<th>3</th>
-				<th>4</th>
-				<th>5</th>
-				<th>6</th>
-				<th>7</th>
-				<th>8</th>
-				<th>9</th>
-				<th>A</th>
-				<th>B</th>
-				<th>C</th>
-				<th>D</th>
-				<th>E</th>
-				<th>F</th>
+				<th>x0</th>
+				<th>x1</th>
+				<th>x2</th>
+				<th>x3</th>
+				<th>x4</th>
+				<th>x5</th>
+				<th>x6</th>
+				<th>x7</th>
+				<th>x8</th>
+				<th>x9</th>
+				<th>xA</th>
+				<th>xB</th>
+				<th>xC</th>
+				<th>xD</th>
+				<th>xE</th>
+				<th>xF</th>
 			</tr>
 			<tr>
-				<th rowspan=2>0</th>
+				<th rowspan=2>0x</th>
 
 				<td colspan=6>ADD</td>
 				<td rowspan=2>PUSH ES</td>
@@ -193,7 +193,7 @@
 				<td>eAX, Iv</td>
 			</tr>
 			<tr>
-				<th rowspan=2>1</th>
+				<th rowspan=2>1x</th>
 
 				<td colspan=6>ADC</td>
 				<td rowspan=2>PUSH SS</td>
@@ -220,7 +220,7 @@
 				<td>eAX, Iv</td>
 			</tr>
 			<tr>
-				<th rowspan=2>2</th>
+				<th rowspan=2>2x</th>
 
 				<td colspan=6>AND</td>
 				<td rowspan=2>SEG =ES</td>
@@ -247,7 +247,7 @@
 				<td>eAX, Iv</td>
 			</tr>
 			<tr>
-				<th rowspan=2>3</th>
+				<th rowspan=2>3x</th>
 
 				<td colspan=6>XOR</td>
 				<td rowspan=2>SEG =SS</td>
@@ -274,7 +274,7 @@
 				<td>eAX, Iv</td>
 			</tr>
 			<tr>
-				<th rowspan=2>4</th>
+				<th rowspan=2>4x</th>
 
 				<td colspan=8>INC general register</td>
 				<td colspan=8>DEC general register</td>
@@ -301,7 +301,7 @@
 				<td>eDI</td>
 			</tr>
 			<tr>
-				<th rowspan=2>5</th>
+				<th rowspan=2>5x</th>
 
 				<td colspan=8>PUSH general register</td>
 				<td colspan=8>POP general register</td>
@@ -328,7 +328,7 @@
 				<td>eDI</td>
 			</tr>
 			<tr>
-				<th rowspan=2>6</th>
+				<th rowspan=2>6x</th>
 
 				<td rowspan=2>PUSHA</td>
 				<td rowspan=2>POPA</td>
@@ -349,7 +349,7 @@
 			</tr>
 			<tr></tr>
 			<tr>
-				<th rowspan=2>7</th>
+				<th rowspan=2>7x</th>
 
 				<td colspan=16>Short-displacement jump on condition (Jb)</td>
 			</tr>
@@ -373,7 +373,7 @@
 				<td>JNLE</td>
 			</tr>
 			<tr>
-				<th rowspan=2>8</th>
+				<th rowspan=2>8x</th>
 
 				<td colspan=2>Immediate Grp1</td>
 				<td rowspan=2></td>
@@ -406,7 +406,7 @@
 				<td>Gv, Ev</td>
 			</tr>
 			<tr>
-				<th rowspan=2>9</th>
+				<th rowspan=2>9x</th>
 
 				<td rowspan=2>NOP</td>
 				<td colspan=7>XCHG word or double-word register with eAX</td>
@@ -430,7 +430,7 @@
 				<td>eDI</td>
 			</tr>
 			<tr>
-				<th rowspan=2>A</th>
+				<th rowspan=2>Ax</th>
 
 				<td colspan=4>MOV</td>
 				<td rowspan=2>MOVSB Xb, Yv</td>
@@ -457,7 +457,7 @@
 				<td>eAX, Iv</td>
 			</tr>
 			<tr>
-				<th rowspan=2>B</th>
+				<th rowspan=2>Bx</th>
 
 				<td colspan=8>MOV immediate byte into byte register</td>
 				<td colspan=8>MOV immediate word or double into word or double register</td>
@@ -482,7 +482,7 @@
 				<td>eDI</td>
 			</tr>
 			<tr>
-				<th rowspan=2>C</th>
+				<th rowspan=2>Cx</th>
 
 				<td colspan=2>Shift Grp2</td>
 				<td colspan=2>RET near</td>
@@ -508,7 +508,7 @@
 				<td></td>
 			</tr>
 			<tr>
-				<th rowspan=2>D</th>
+				<th rowspan=2>Dx</th>
 
 				<td colspan=4>Shift Grp2</td>
 				<td rowspan=2>AAM</td>
@@ -524,7 +524,7 @@
 				<td>Ev, CL</td>
 			</tr>
 			<tr>
-				<th rowspan=2>E</th>
+				<th rowspan=2>Ex</th>
 
 				<td rowspan=2>LOOPNE Jb</td>
 				<td rowspan=2>LOOPE Jb</td>
@@ -560,7 +560,7 @@
 				<td>DX, eAX</td>
 			</tr>
 			<tr>
-				<th rowspan=2>F</th>
+				<th rowspan=2>Fx</th>
 				
 				<td rowspan=2>LOCK</td>
 				<td rowspan=2></td>
@@ -589,25 +589,25 @@
 		<table class="optable">
 			<tr>
 				<th></th>
-				<th>0</th>
-				<th>1</th>
-				<th>2</th>
-				<th>3</th>
-				<th>4</th>
-				<th>5</th>
-				<th>6</th>
-				<th>7</th>
-				<th>8</th>
-				<th>9</th>
-				<th>A</th>
-				<th>B</th>
-				<th>C</th>
-				<th>D</th>
-				<th>E</th>
-				<th>F</th>
+				<th>x0</th>
+				<th>x1</th>
+				<th>x2</th>
+				<th>x3</th>
+				<th>x4</th>
+				<th>x5</th>
+				<th>x6</th>
+				<th>x7</th>
+				<th>x8</th>
+				<th>x9</th>
+				<th>xA</th>
+				<th>xB</th>
+				<th>xC</th>
+				<th>xD</th>
+				<th>xE</th>
+				<th>xF</th>
 			</tr>
 			<tr>
-				<th rowspan=2>0</th>
+				<th rowspan=2>0x</th>
 				
 				<td rowspan=2>Grp6</td>
 				<td rowspan=2>Grp7</td>
@@ -628,7 +628,7 @@
 			</tr>
 			<tr></tr>
 			<tr>
-				<th rowspan=2>1</th>
+				<th rowspan=2>1x</th>
 				
 				<td rowspan=2></td>
 				<td rowspan=2></td>
@@ -649,7 +649,7 @@
 			</tr>
 			<tr></tr>
 			<tr>
-				<th rowspan=2>2</th>
+				<th rowspan=2>2x</th>
 				
 				<td rowspan=2>MOV Cr, Rd</td>
 				<td rowspan=2>MOV Dd, Rd</td>
@@ -670,28 +670,11 @@
 			</tr>
 			<tr></tr>
 			<tr class="skiprow">
-				<th rowspan=2>≈</th>
-				
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
+				<th rowspan=2 colspan=17>≈</th>
 			</tr>
 			<tr></tr>
 			<tr>
-				<th rowspan=2>8</th>
+				<th rowspan=2>8x</th>
 				
 				<td colspan=16>Long-displacement jump on condition (Jv)</td>
 			</tr>
@@ -715,7 +698,7 @@
 				<td>JNLE</td>
 			</tr>
 			<tr>
-				<th rowspan=2>9</th>
+				<th rowspan=2>9x</th>
 				
 				<td colspan=8>Byte set on condition (Eb)</td>
 				<td rowspan=2>SETS</td>
@@ -739,7 +722,7 @@
 				<td>SETNBE</td>
 			</tr>
 			<tr>
-				<th rowspan=2>A</th>
+				<th rowspan=2>Ax</th>
 				
 				<td rowspan=2>PUSH FS</td>
 				<td rowspan=2>POP FS</td>
@@ -760,7 +743,7 @@
 			</tr>
 			<tr></tr>
 			<tr>
-				<th rowspan=2>B</th>
+				<th rowspan=2>Bx</th>
 				
 				<td rowspan=2></td>
 				<td rowspan=2></td>
@@ -787,28 +770,11 @@
 				<td>Gv, Ew</td>
 			</tr>
 			<tr class="skiprow">
-				<th rowspan=2>≈</th>
-				
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
-				<td rowspan=2>≈</td>
+				<th rowspan=2 colspan=17>≈</th>
 			</tr>
 			<tr></tr>
 			<tr>
-				<th rowspan=2>F</th>
+				<th rowspan=2>Fx</th>
 				
 				<td rowspan=2></td>
 				<td rowspan=2></td>
