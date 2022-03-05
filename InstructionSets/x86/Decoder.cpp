@@ -194,6 +194,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80386);
 				address_size_ = AddressSize(int(default_address_size_) ^ int(AddressSize::b16) ^ int(AddressSize::b32));
 			break;
+			// 0x68: PUSH Iv
+			// 0x69: PUSH GvEvIv
+			// 0x6a: PUSH Ib
+			// 0x6b: IMUL GvEvIv
 			case 0x6c:	// INSB
 				RequiresMin(i80186);
 				Complete(INS, None, None, DataSize::Byte);
@@ -302,6 +306,9 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xbe: RegData(MOV, eSI, data_size_);		break;
 			case 0xbf: RegData(MOV, eDI, data_size_);		break;
 
+			// 0xc0: shift group 2, Eb, Ib
+			// 0xc1: shift group 2, Ev, Iv
+
 			case 0xc2: RegData(RETN, None, data_size_);				break;
 			case 0xc3: Complete(RETN, None, None, DataSize::None);	break;
 			case 0xc4: MemRegReg(LES, Reg_MemReg, data_size_);		break;
@@ -343,7 +350,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			} break;
 			case 0xd4: RegData(AAM, eAX, DataSize::Byte);			break;
 			case 0xd5: RegData(AAD, eAX, DataSize::Byte);			break;
-
+			// Unused: 0xd6.
 			case 0xd7: Complete(XLAT, None, None, DataSize::Byte);	break;
 
 			case 0xd8: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
@@ -376,6 +383,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xef: Complete(OUT, eAX, eDX, data_size_);		break;
 
 			case 0xf0: lock_ = true;					break;
+			// Unused: 0xf1
 			case 0xf2: repetition_ = Repetition::RepNE;	break;
 			case 0xf3: repetition_ = Repetition::RepE;	break;
 
@@ -417,6 +425,43 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				Complete(LOADALL, None, None, DataSize::None);
 			break;
 			case 0x06:	Complete(CLTS, None, None, DataSize::Byte);			break;
+
+			// 0x20: MOV Cr, Rd
+			// 0x21: MOV Dd, Rd
+			// 0x22: MOV Rd, Cd
+			// 0x23: MOV Rd, Dd
+			// 0x24: MOV Td, Rd
+			// 0x26: MOV Rd, Td
+
+			// 0x8x: long-displacement jumps: JO, JNO, JB, JNB, JZ, JNZ, JBE, JNBE, JS, JNS, JP, JNP, JL, JNL, JLE, JNLE
+
+			// [0x90, 0x97]: byte set on condition Eb: SETO, SETNO, SETB, SETNB, SETZ, SETNZ, SETBE, SETNBE
+			// [0x98, 0x9f]: SETS, SETNS, SETP, SETNP, SETL, SETNL, SETLE, SETNLE
+
+			// 0xa0: PUSH FS
+			// 0xa1: POP FS
+			// 0xa3: BT Ev, Gv
+			// 0xa4: SHLD EvGvIb
+			// 0xa5: SHLD EvGcCL
+			// 0xa8: PUSH GS
+			// 0xa9: POP GS
+			// 0xab: BTS Ev, Gv
+			// 0xac: SHRD EvGvIb
+			// 0xad: SHRD EvGvCL
+			// 0xaf: IMUL Gv, Ev
+
+			// 0xb2: LSS Mp
+			// 0xb3: BTR Ev, Gv
+			// 0xb4: LFS Mp
+			// 0xb5: LGS Mp
+			// 0xb6: MOVZX Gv, Eb
+			// 0xb7: MOVZX Gv, Ew
+			// 0xba: Grp8 Ev, Ib
+			// 0xbb: BTC Ev, Gv
+			// 0xbc: BSF Gv, Ev
+			// 0xbd: BSR Gv, Ev
+			// 0xbe: MOVSX Gv, Eb
+			// 0xbf: MOVSX Gv, Ew
 		}
 	}
 
