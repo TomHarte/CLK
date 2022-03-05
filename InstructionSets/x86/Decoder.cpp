@@ -57,27 +57,28 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	operation_ = Operation::op;					\
 	phase_ = Phase::ModRegRM;					\
 	modregrm_format_ = ModRegRMFormat::format;	\
-	operand_size_ = 0;							\
+	operand_size_ = DataSize::None;				\
 	operation_size_ = size
 
 /// Handles JO, JNO, JB, etc — jumps with a single byte displacement.
-#define Jump(op)									\
+#define Jump(op, size)								\
 	operation_ = Operation::op;						\
 	phase_ = Phase::DisplacementOrOperand;			\
-	displacement_size_ = 1
+	displacement_size_ = size
 
 /// Handles far CALL and far JMP — fixed four byte operand operations.
 #define Far(op)										\
 	operation_ = Operation::op;						\
 	phase_ = Phase::DisplacementOrOperand;			\
-	operand_size_ = 4;								\
+	operand_size_ = data_size_;						\
+	displacement_size_ = DataSize::Word
 
 /// Handles ENTER — a fixed three-byte operation.
 #define Displacement16Operand8(op)					\
 	operation_ = Operation::op;						\
 	phase_ = Phase::DisplacementOrOperand;			\
-	displacement_size_ = 2;							\
-	operand_size_ = 1;								\
+	displacement_size_ = DataSize::Word;			\
+	operand_size_ = DataSize::Byte
 
 #define undefined()	{												\
 	const auto result = std::make_pair(consumed_, InstructionT());	\
@@ -89,29 +90,27 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 #define RequiresMin(x)	if constexpr (model < Model::x) undefined();
 
 	while(phase_ == Phase::Instruction && source != end) {
-		// Retain the instruction byte, in case additional decoding is deferred
-		// to the ModRegRM byte.
-		instr_ = *source;
+		const uint8_t instr = *source;
 		++source;
 		++consumed_;
 
-		switch(instr_) {
+		switch(instr) {
 			default: undefined();
 
-#define PartialBlock(start, operation)								\
-	case start + 0x00: MemRegReg(operation, MemReg_Reg, 1);	break;	\
-	case start + 0x01: MemRegReg(operation, MemReg_Reg, 2);	break;	\
-	case start + 0x02: MemRegReg(operation, Reg_MemReg, 1);	break;	\
-	case start + 0x03: MemRegReg(operation, Reg_MemReg, 2);	break;	\
-	case start + 0x04: RegData(operation, eAX, 1);			break;	\
-	case start + 0x05: RegData(operation, eAX, 2)
+#define PartialBlock(start, operation)												\
+	case start + 0x00: MemRegReg(operation, MemReg_Reg, DataSize::Byte);	break;	\
+	case start + 0x01: MemRegReg(operation, MemReg_Reg, data_size_);		break;	\
+	case start + 0x02: MemRegReg(operation, Reg_MemReg, DataSize::Byte);	break;	\
+	case start + 0x03: MemRegReg(operation, Reg_MemReg, data_size_);		break;	\
+	case start + 0x04: RegData(operation, eAX, DataSize::Byte);				break;	\
+	case start + 0x05: RegData(operation, eAX, data_size_)
 
-			PartialBlock(0x00, ADD);					break;
-			case 0x06: Complete(PUSH, ES, None, 2);		break;
-			case 0x07: Complete(POP, None, ES, 2);		break;
+			PartialBlock(0x00, ADD);							break;
+			case 0x06: Complete(PUSH, ES, None, data_size_);	break;
+			case 0x07: Complete(POP, None, ES, data_size_);		break;
 
-			PartialBlock(0x08, OR);						break;
-			case 0x0e: Complete(PUSH, CS, None, 2);		break;
+			PartialBlock(0x08, OR);								break;
+			case 0x0e: Complete(PUSH, CS, None, data_size_);	break;
 
 			// The 286 onwards have a further set of instructions
 			// prefixed with $0f.
@@ -120,41 +119,41 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				phase_ = Phase::InstructionPageF;
 			break;
 
-			PartialBlock(0x10, ADC);					break;
-			case 0x16: Complete(PUSH, SS, None, 2);		break;
-			case 0x17: Complete(POP, None, SS, 2);		break;
+			PartialBlock(0x10, ADC);								break;
+			case 0x16: Complete(PUSH, SS, None, DataSize::Word);	break;
+			case 0x17: Complete(POP, None, SS, DataSize::Word);		break;
 
-			PartialBlock(0x18, SBB);					break;
-			case 0x1e: Complete(PUSH, DS, None, 2);		break;
-			case 0x1f: Complete(POP, None, DS, 2);		break;
+			PartialBlock(0x18, SBB);								break;
+			case 0x1e: Complete(PUSH, DS, None, DataSize::Word);	break;
+			case 0x1f: Complete(POP, None, DS, DataSize::Word);		break;
 
-			PartialBlock(0x20, AND);					break;
-			case 0x26: segment_override_ = Source::ES;	break;
-			case 0x27: Complete(DAA, eAX, eAX, 1);		break;
+			PartialBlock(0x20, AND);								break;
+			case 0x26: segment_override_ = Source::ES;				break;
+			case 0x27: Complete(DAA, eAX, eAX, DataSize::Byte);		break;
 
-			PartialBlock(0x28, SUB);					break;
-			case 0x2e: segment_override_ = Source::CS;	break;
-			case 0x2f: Complete(DAS, eAX, eAX, 1);		break;
+			PartialBlock(0x28, SUB);								break;
+			case 0x2e: segment_override_ = Source::CS;				break;
+			case 0x2f: Complete(DAS, eAX, eAX, DataSize::Byte);		break;
 
-			PartialBlock(0x30, XOR);					break;
-			case 0x36: segment_override_ = Source::SS;	break;
-			case 0x37: Complete(AAA, eAX, eAX, 2);		break;
+			PartialBlock(0x30, XOR);								break;
+			case 0x36: segment_override_ = Source::SS;				break;
+			case 0x37: Complete(AAA, eAX, eAX, DataSize::Word);		break;
 
-			PartialBlock(0x38, CMP);					break;
-			case 0x3e: segment_override_ = Source::DS;	break;
-			case 0x3f: Complete(AAS, eAX, eAX, 2);		break;
+			PartialBlock(0x38, CMP);								break;
+			case 0x3e: segment_override_ = Source::DS;				break;
+			case 0x3f: Complete(AAS, eAX, eAX, DataSize::Word);		break;
 
 #undef PartialBlock
 
-#define RegisterBlock(start, operation)								\
-	case start + 0x00: Complete(operation, eAX, eAX, 2);	break;	\
-	case start + 0x01: Complete(operation, eCX, eCX, 2);	break;	\
-	case start + 0x02: Complete(operation, eDX, eDX, 2);	break;	\
-	case start + 0x03: Complete(operation, eBX, eBX, 2);	break;	\
-	case start + 0x04: Complete(operation, eSP, eSP, 2);	break;	\
-	case start + 0x05: Complete(operation, eBP, eBP, 2);	break;	\
-	case start + 0x06: Complete(operation, eSI, eSI, 2);	break;	\
-	case start + 0x07: Complete(operation, eDI, eDI, 2)
+#define RegisterBlock(start, operation)										\
+	case start + 0x00: Complete(operation, eAX, eAX, data_size_);	break;	\
+	case start + 0x01: Complete(operation, eCX, eCX, data_size_);	break;	\
+	case start + 0x02: Complete(operation, eDX, eDX, data_size_);	break;	\
+	case start + 0x03: Complete(operation, eBX, eBX, data_size_);	break;	\
+	case start + 0x04: Complete(operation, eSP, eSP, data_size_);	break;	\
+	case start + 0x05: Complete(operation, eBP, eBP, data_size_);	break;	\
+	case start + 0x06: Complete(operation, eSI, eSI, data_size_);	break;	\
+	case start + 0x07: Complete(operation, eDI, eDI, data_size_)
 
 			RegisterBlock(0x40, INC);	break;
 			RegisterBlock(0x48, DEC);	break;
@@ -165,19 +164,19 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			case 0x60:
 				RequiresMin(i80186);
-				Complete(PUSHA, None, None, 2);
+				Complete(PUSHA, None, None, data_size_);
 			break;
 			case 0x61:
 				RequiresMin(i80186);
-				Complete(POPA, None, None, 2);
+				Complete(POPA, None, None, data_size_);
 			break;
 			case 0x62:
 				RequiresMin(i80186);
-				MemRegReg(BOUND, Reg_MemReg, 2);
+				MemRegReg(BOUND, Reg_MemReg, data_size_);
 			break;
 			case 0x63:
 				RequiresMin(i80286);
-				MemRegReg(ARPL, MemReg_Reg, 2);
+				MemRegReg(ARPL, MemReg_Reg, DataSize::Word);
 			break;
 			case 0x66:
 				RequiresMin(i80386);
@@ -189,115 +188,121 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			break;
 			case 0x6c:	// INSB
 				RequiresMin(i80186);
-				Complete(INS, None, None, 1);
+				Complete(INS, None, None, DataSize::Byte);
 			break;
 			case 0x6d:	// INSW
 				RequiresMin(i80186);
-				Complete(INS, None, None, 2);
+				Complete(INS, None, None, data_size_);
 			break;
 			case 0x6e:	// OUTSB
 				RequiresMin(i80186);
-				Complete(OUTS, None, None, 1);
+				Complete(OUTS, None, None, DataSize::Byte);
 			break;
 			case 0x6f:	// OUTSW
 				RequiresMin(i80186);
-				Complete(OUTS, None, None, 2);
+				Complete(OUTS, None, None, data_size_);
 			break;
 
-			case 0x70: Jump(JO);	break;
-			case 0x71: Jump(JNO);	break;
-			case 0x72: Jump(JB);	break;
-			case 0x73: Jump(JNB);	break;
-			case 0x74: Jump(JE);	break;
-			case 0x75: Jump(JNE);	break;
-			case 0x76: Jump(JBE);	break;
-			case 0x77: Jump(JNBE);	break;
-			case 0x78: Jump(JS);	break;
-			case 0x79: Jump(JNS);	break;
-			case 0x7a: Jump(JP);	break;
-			case 0x7b: Jump(JNP);	break;
-			case 0x7c: Jump(JL);	break;
-			case 0x7d: Jump(JNL);	break;
-			case 0x7e: Jump(JLE);	break;
-			case 0x7f: Jump(JNLE);	break;
+			case 0x70: Jump(JO, DataSize::Byte);	break;
+			case 0x71: Jump(JNO, DataSize::Byte);	break;
+			case 0x72: Jump(JB, DataSize::Byte);	break;
+			case 0x73: Jump(JNB, DataSize::Byte);	break;
+			case 0x74: Jump(JE, DataSize::Byte);	break;
+			case 0x75: Jump(JNE, DataSize::Byte);	break;
+			case 0x76: Jump(JBE, DataSize::Byte);	break;
+			case 0x77: Jump(JNBE, DataSize::Byte);	break;
+			case 0x78: Jump(JS, DataSize::Byte);	break;
+			case 0x79: Jump(JNS, DataSize::Byte);	break;
+			case 0x7a: Jump(JP, DataSize::Byte);	break;
+			case 0x7b: Jump(JNP, DataSize::Byte);	break;
+			case 0x7c: Jump(JL, DataSize::Byte);	break;
+			case 0x7d: Jump(JNL, DataSize::Byte);	break;
+			case 0x7e: Jump(JLE, DataSize::Byte);	break;
+			case 0x7f: Jump(JNLE, DataSize::Byte);	break;
 
-			case 0x80: MemRegReg(Invalid, MemRegADD_to_CMP, 1);	break;
-			case 0x81: MemRegReg(Invalid, MemRegADD_to_CMP, 2);	break;
-			case 0x82: MemRegReg(Invalid, MemRegADC_to_CMP, 1);	break;
-			case 0x83: MemRegReg(Invalid, MemRegADC_to_CMP, 2);	break;
+			case 0x80: MemRegReg(Invalid, MemRegADD_to_CMP, DataSize::Byte);	break;
+			case 0x81: MemRegReg(Invalid, MemRegADD_to_CMP, data_size_);		break;
+			case 0x82:
+				MemRegReg(Invalid, MemRegADC_to_CMP, DataSize::Byte);
+				sign_extend_ = true;
+			break;
+			case 0x83:
+				MemRegReg(Invalid, MemRegADC_to_CMP, data_size_);
+				sign_extend_ = true;
+			break;
 
-			case 0x84: MemRegReg(TEST, MemReg_Reg, 1);	break;
-			case 0x85: MemRegReg(TEST, MemReg_Reg, 2);	break;
-			case 0x86: MemRegReg(XCHG, Reg_MemReg, 1);	break;
-			case 0x87: MemRegReg(XCHG, Reg_MemReg, 2);	break;
-			case 0x88: MemRegReg(MOV, MemReg_Reg, 1);	break;
-			case 0x89: MemRegReg(MOV, MemReg_Reg, 2);	break;
-			case 0x8a: MemRegReg(MOV, Reg_MemReg, 1);	break;
-			case 0x8b: MemRegReg(MOV, Reg_MemReg, 2);	break;
+			case 0x84: MemRegReg(TEST, MemReg_Reg, DataSize::Byte);	break;
+			case 0x85: MemRegReg(TEST, MemReg_Reg, data_size_);		break;
+			case 0x86: MemRegReg(XCHG, Reg_MemReg, DataSize::Byte);	break;
+			case 0x87: MemRegReg(XCHG, Reg_MemReg, data_size_);		break;
+			case 0x88: MemRegReg(MOV, MemReg_Reg, DataSize::Byte);	break;
+			case 0x89: MemRegReg(MOV, MemReg_Reg, data_size_);		break;
+			case 0x8a: MemRegReg(MOV, Reg_MemReg, DataSize::Byte);	break;
+			case 0x8b: MemRegReg(MOV, Reg_MemReg, data_size_);		break;
 			// 0x8c: not used.
-			case 0x8d: MemRegReg(LEA, Reg_MemReg, 2);	break;
-			case 0x8e: MemRegReg(MOV, SegReg, 2);		break;
-			case 0x8f: MemRegReg(POP, MemRegPOP, 2);	break;
+			case 0x8d: MemRegReg(LEA, Reg_MemReg, data_size_);		break;
+			case 0x8e: MemRegReg(MOV, SegReg, data_size_);			break;
+			case 0x8f: MemRegReg(POP, MemRegPOP, data_size_);		break;
 
-			case 0x90: Complete(NOP, None, None, 0);	break;	// Or XCHG AX, AX?
-			case 0x91: Complete(XCHG, eAX, eCX, 2);		break;
-			case 0x92: Complete(XCHG, eAX, eDX, 2);		break;
-			case 0x93: Complete(XCHG, eAX, eBX, 2);		break;
-			case 0x94: Complete(XCHG, eAX, eSP, 2);		break;
-			case 0x95: Complete(XCHG, eAX, eBP, 2);		break;
-			case 0x96: Complete(XCHG, eAX, eSI, 2);		break;
-			case 0x97: Complete(XCHG, eAX, eDI, 2);		break;
+			case 0x90: Complete(NOP, None, None, DataSize::None);	break;	// Or XCHG AX, AX?
+			case 0x91: Complete(XCHG, eAX, eCX, data_size_);		break;
+			case 0x92: Complete(XCHG, eAX, eDX, data_size_);		break;
+			case 0x93: Complete(XCHG, eAX, eBX, data_size_);		break;
+			case 0x94: Complete(XCHG, eAX, eSP, data_size_);		break;
+			case 0x95: Complete(XCHG, eAX, eBP, data_size_);		break;
+			case 0x96: Complete(XCHG, eAX, eSI, data_size_);		break;
+			case 0x97: Complete(XCHG, eAX, eDI, data_size_);		break;
 
-			case 0x98: Complete(CBW, eAX, AH, 1);		break;
-			case 0x99: Complete(CWD, eAX, eDX, 2);		break;
-			case 0x9a: Far(CALLF);						break;
-			case 0x9b: Complete(WAIT, None, None, 0);	break;
-			case 0x9c: Complete(PUSHF, None, None, 2);	break;
-			case 0x9d: Complete(POPF, None, None, 2);	break;
-			case 0x9e: Complete(SAHF, None, None, 1);	break;
-			case 0x9f: Complete(LAHF, None, None, 1);	break;
+			case 0x98: Complete(CBW, eAX, AH, DataSize::Byte);		break;
+			case 0x99: Complete(CWD, eAX, eDX, data_size_);			break;
+			case 0x9a: Far(CALLF);									break;
+			case 0x9b: Complete(WAIT, None, None, DataSize::None);	break;
+			case 0x9c: Complete(PUSHF, None, None, data_size_);		break;
+			case 0x9d: Complete(POPF, None, None, data_size_);		break;
+			case 0x9e: Complete(SAHF, None, None, DataSize::Byte);	break;
+			case 0x9f: Complete(LAHF, None, None, DataSize::Byte);	break;
 
-			case 0xa0: RegAddr(MOV, eAX, 1, 1);	break;
-			case 0xa1: RegAddr(MOV, eAX, 2, 2);	break;
-			case 0xa2: AddrReg(MOV, eAX, 1, 1);	break;
-			case 0xa3: AddrReg(MOV, eAX, 2, 2);	break;
+			case 0xa0: RegAddr(MOV, eAX, DataSize::Byte, DataSize::Byte);	break;
+			case 0xa1: RegAddr(MOV, eAX, data_size_, data_size_);			break;
+			case 0xa2: AddrReg(MOV, eAX, DataSize::Byte, DataSize::Byte);	break;
+			case 0xa3: AddrReg(MOV, eAX, data_size_, data_size_);			break;
 
-			case 0xa4: Complete(MOVS, None, None, 1);	break;
-			case 0xa5: Complete(MOVS, None, None, 2);	break;
-			case 0xa6: Complete(CMPS, None, None, 1);	break;
-			case 0xa7: Complete(CMPS, None, None, 2);	break;
-			case 0xa8: RegData(TEST, eAX, 1);			break;
-			case 0xa9: RegData(TEST, eAX, 2);			break;
-			case 0xaa: Complete(STOS, None, None, 1);	break;
-			case 0xab: Complete(STOS, None, None, 2);	break;
-			case 0xac: Complete(LODS, None, None, 1);	break;
-			case 0xad: Complete(LODS, None, None, 2);	break;
-			case 0xae: Complete(SCAS, None, None, 1);	break;
-			case 0xaf: Complete(SCAS, None, None, 2);	break;
+			case 0xa4: Complete(MOVS, None, None, DataSize::Byte);	break;
+			case 0xa5: Complete(MOVS, None, None, data_size_);		break;
+			case 0xa6: Complete(CMPS, None, None, DataSize::Byte);	break;
+			case 0xa7: Complete(CMPS, None, None, data_size_);		break;
+			case 0xa8: RegData(TEST, eAX, DataSize::Byte);			break;
+			case 0xa9: RegData(TEST, eAX, data_size_);				break;
+			case 0xaa: Complete(STOS, None, None, DataSize::Byte);	break;
+			case 0xab: Complete(STOS, None, None, data_size_);		break;
+			case 0xac: Complete(LODS, None, None, DataSize::Byte);	break;
+			case 0xad: Complete(LODS, None, None, data_size_);		break;
+			case 0xae: Complete(SCAS, None, None, DataSize::Byte);	break;
+			case 0xaf: Complete(SCAS, None, None, data_size_);		break;
 
-			case 0xb0: RegData(MOV, eAX, 1);	break;
-			case 0xb1: RegData(MOV, eCX, 1);	break;
-			case 0xb2: RegData(MOV, eDX, 1);	break;
-			case 0xb3: RegData(MOV, eBX, 1);	break;
-			case 0xb4: RegData(MOV, AH, 1);		break;
-			case 0xb5: RegData(MOV, CH, 1);		break;
-			case 0xb6: RegData(MOV, DH, 1);		break;
-			case 0xb7: RegData(MOV, BH, 1);		break;
-			case 0xb8: RegData(MOV, eAX, 2);	break;
-			case 0xb9: RegData(MOV, eCX, 2);	break;
-			case 0xba: RegData(MOV, eDX, 2);	break;
-			case 0xbb: RegData(MOV, eBX, 2);	break;
-			case 0xbc: RegData(MOV, eSP, 2);	break;
-			case 0xbd: RegData(MOV, eBP, 2);	break;
-			case 0xbe: RegData(MOV, eSI, 2);	break;
-			case 0xbf: RegData(MOV, eDI, 2);	break;
+			case 0xb0: RegData(MOV, eAX, DataSize::Byte);	break;
+			case 0xb1: RegData(MOV, eCX, DataSize::Byte);	break;
+			case 0xb2: RegData(MOV, eDX, DataSize::Byte);	break;
+			case 0xb3: RegData(MOV, eBX, DataSize::Byte);	break;
+			case 0xb4: RegData(MOV, AH, DataSize::Byte);	break;
+			case 0xb5: RegData(MOV, CH, DataSize::Byte);	break;
+			case 0xb6: RegData(MOV, DH, DataSize::Byte);	break;
+			case 0xb7: RegData(MOV, BH, DataSize::Byte);	break;
+			case 0xb8: RegData(MOV, eAX, data_size_);		break;
+			case 0xb9: RegData(MOV, eCX, data_size_);		break;
+			case 0xba: RegData(MOV, eDX, data_size_);		break;
+			case 0xbb: RegData(MOV, eBX, data_size_);		break;
+			case 0xbc: RegData(MOV, eSP, data_size_);		break;
+			case 0xbd: RegData(MOV, eBP, data_size_);		break;
+			case 0xbe: RegData(MOV, eSI, data_size_);		break;
+			case 0xbf: RegData(MOV, eDI, data_size_);		break;
 
-			case 0xc2: RegData(RETN, None, 2);			break;
-			case 0xc3: Complete(RETN, None, None, 2);	break;
-			case 0xc4: MemRegReg(LES, Reg_MemReg, 2);	break;
-			case 0xc5: MemRegReg(LDS, Reg_MemReg, 2);	break;
-			case 0xc6: MemRegReg(MOV, MemRegMOV, 1);	break;
-			case 0xc7: MemRegReg(MOV, MemRegMOV, 2);	break;
+			case 0xc2: RegData(RETN, None, data_size_);				break;
+			case 0xc3: Complete(RETN, None, None, DataSize::None);	break;
+			case 0xc4: MemRegReg(LES, Reg_MemReg, data_size_);		break;
+			case 0xc5: MemRegReg(LDS, Reg_MemReg, data_size_);		break;
+			case 0xc6: MemRegReg(MOV, MemRegMOV, DataSize::Byte);	break;
+			case 0xc7: MemRegReg(MOV, MemRegMOV, data_size_);		break;
 
 			case 0xc8:
 				RequiresMin(i80186);
@@ -305,106 +310,108 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			break;
 			case 0xc9:
 				RequiresMin(i80186);
-				Complete(LEAVE, None, None, 0);
+				Complete(LEAVE, None, None, DataSize::None);
 			break;
 
-			case 0xca: RegData(RETF, None, 2);			break;
-			case 0xcb: Complete(RETF, None, None, 4);	break;
+			case 0xca: RegData(RETF, None, data_size_);				break;
+			case 0xcb: Complete(RETF, None, None, DataSize::DWord);	break;
 
-			case 0xcc: Complete(INT3, None, None, 0);	break;
-			case 0xcd: RegData(INT, None, 1);			break;
-			case 0xce: Complete(INTO, None, None, 0);	break;
-			case 0xcf: Complete(IRET, None, None, 0);	break;
+			case 0xcc: Complete(INT3, None, None, DataSize::None);	break;
+			case 0xcd: RegData(INT, None, DataSize::Byte);			break;
+			case 0xce: Complete(INTO, None, None, DataSize::None);	break;
+			case 0xcf: Complete(IRET, None, None, DataSize::None);	break;
 
-			case 0xd0: case 0xd1:
+			case 0xd0: case 0xd1: {
+				const DataSize sizes[] = {DataSize::Byte, data_size_};
 				phase_ = Phase::ModRegRM;
 				modregrm_format_ = ModRegRMFormat::MemRegROL_to_SAR;
-				operation_size_ = 1 + (instr_ & 1);
+				operation_size_ = sizes[instr & 1];
 				source_ = Source::Immediate;
 				operand_ = 1;
-			break;
-			case 0xd2: case 0xd3:
+			} break;
+			case 0xd2: case 0xd3: {
+				const DataSize sizes[] = {DataSize::Byte, data_size_};
 				phase_ = Phase::ModRegRM;
 				modregrm_format_ = ModRegRMFormat::MemRegROL_to_SAR;
-				operation_size_ = 1 + (instr_ & 1);
+				operation_size_ = sizes[instr & 1];
 				source_ = Source::eCX;
-			break;
-			case 0xd4: RegData(AAM, eAX, 1);			break;
-			case 0xd5: RegData(AAD, eAX, 1);			break;
+			} break;
+			case 0xd4: RegData(AAM, eAX, DataSize::Byte);			break;
+			case 0xd5: RegData(AAD, eAX, DataSize::Byte);			break;
 
-			case 0xd7: Complete(XLAT, None, None, 1);	break;
+			case 0xd7: Complete(XLAT, None, None, DataSize::Byte);	break;
 
-			case 0xd8: MemRegReg(ESC, MemReg_Reg, 0);	break;
-			case 0xd9: MemRegReg(ESC, MemReg_Reg, 0);	break;
-			case 0xda: MemRegReg(ESC, MemReg_Reg, 0);	break;
-			case 0xdb: MemRegReg(ESC, MemReg_Reg, 0);	break;
-			case 0xdc: MemRegReg(ESC, MemReg_Reg, 0);	break;
-			case 0xdd: MemRegReg(ESC, MemReg_Reg, 0);	break;
-			case 0xde: MemRegReg(ESC, MemReg_Reg, 0);	break;
-			case 0xdf: MemRegReg(ESC, MemReg_Reg, 0);	break;
+			case 0xd8: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
+			case 0xd9: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
+			case 0xda: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
+			case 0xdb: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
+			case 0xdc: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
+			case 0xdd: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
+			case 0xde: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
+			case 0xdf: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
 
-			case 0xe0: Jump(LOOPNE);	break;
-			case 0xe1: Jump(LOOPE);		break;
-			case 0xe2: Jump(LOOP);		break;
-			case 0xe3: Jump(JPCX);		break;
+			case 0xe0: Jump(LOOPNE, DataSize::Byte);	break;
+			case 0xe1: Jump(LOOPE, DataSize::Byte);		break;
+			case 0xe2: Jump(LOOP, DataSize::Byte);		break;
+			case 0xe3: Jump(JPCX, DataSize::Byte);		break;
 
-			case 0xe4: RegAddr(IN, eAX, 1, 1);	break;
-			case 0xe5: RegAddr(IN, eAX, 2, 1);	break;
-			case 0xe6: AddrReg(OUT, eAX, 1, 1);	break;
-			case 0xe7: AddrReg(OUT, eAX, 2, 1);	break;
+			case 0xe4: RegAddr(IN, eAX, DataSize::Byte, DataSize::Byte);	break;
+			case 0xe5: RegAddr(IN, eAX, data_size_, DataSize::Byte);		break;
+			case 0xe6: AddrReg(OUT, eAX, DataSize::Byte, DataSize::Byte);	break;
+			case 0xe7: AddrReg(OUT, eAX, data_size_, DataSize::Byte);		break;
 
-			case 0xe8: RegData(CALLD, None, 2);	break;
-			case 0xe9: RegData(JMPN, None, 2);	break;
-			case 0xea: Far(JMPF);				break;
-			case 0xeb: Jump(JMPN);				break;
+			case 0xe8: RegData(CALLD, None, data_size_);	break;
+			case 0xe9: RegData(JMPN, None, data_size_);		break;
+			case 0xea: Far(JMPF);							break;
+			case 0xeb: Jump(JMPN, DataSize::Byte);			break;
 
-			case 0xec: Complete(IN, eDX, eAX, 1);	break;
-			case 0xed: Complete(IN, eDX, eAX, 1);	break;
-			case 0xee: Complete(OUT, eAX, eDX, 1);	break;
-			case 0xef: Complete(OUT, eAX, eDX, 2);	break;
+			case 0xec: Complete(IN, eDX, eAX, DataSize::Byte);	break;
+			case 0xed: Complete(IN, eDX, eAX, data_size_);		break;
+			case 0xee: Complete(OUT, eAX, eDX, DataSize::Byte);	break;
+			case 0xef: Complete(OUT, eAX, eDX, data_size_);		break;
 
 			case 0xf0: lock_ = true;					break;
 			case 0xf2: repetition_ = Repetition::RepNE;	break;
 			case 0xf3: repetition_ = Repetition::RepE;	break;
 
-			case 0xf4: Complete(HLT, None, None, 1);				break;
-			case 0xf5: Complete(CMC, None, None, 1);				break;
-			case 0xf6: MemRegReg(Invalid, MemRegTEST_to_IDIV, 1);	break;
-			case 0xf7: MemRegReg(Invalid, MemRegTEST_to_IDIV, 2);	break;
+			case 0xf4: Complete(HLT, None, None, DataSize::None);				break;
+			case 0xf5: Complete(CMC, None, None, DataSize::None);				break;
+			case 0xf6: MemRegReg(Invalid, MemRegTEST_to_IDIV, DataSize::Byte);	break;
+			case 0xf7: MemRegReg(Invalid, MemRegTEST_to_IDIV, data_size_);		break;
 
-			case 0xf8: Complete(CLC, None, None, 1);	break;
-			case 0xf9: Complete(STC, None, None, 1);	break;
-			case 0xfa: Complete(CLI, None, None, 1);	break;
-			case 0xfb: Complete(STI, None, None, 1);	break;
-			case 0xfc: Complete(CLD, None, None, 1);	break;
-			case 0xfd: Complete(STD, None, None, 1);	break;
+			case 0xf8: Complete(CLC, None, None, DataSize::None);	break;
+			case 0xf9: Complete(STC, None, None, DataSize::None);	break;
+			case 0xfa: Complete(CLI, None, None, DataSize::None);	break;
+			case 0xfb: Complete(STI, None, None, DataSize::None);	break;
+			case 0xfc: Complete(CLD, None, None, DataSize::None);	break;
+			case 0xfd: Complete(STD, None, None, DataSize::None);	break;
 
-			case 0xfe: MemRegReg(Invalid, MemRegINC_DEC, 1);		break;
-			case 0xff: MemRegReg(Invalid, MemRegINC_to_PUSH, 1);	break;
+			case 0xfe: MemRegReg(Invalid, MemRegINC_DEC, DataSize::Byte);	break;
+			case 0xff: MemRegReg(Invalid, MemRegINC_to_PUSH, data_size_);	break;
 		}
 	}
 
 	// MARK: - Additional F page of instructions.
 	if(phase_ == Phase::InstructionPageF && source != end) {
 		// Update the instruction acquired.
-		instr_ = 0x0f00 | *source;
+		const uint8_t instr = *source;
 		++source;
 		++consumed_;
 
 		// NB: to reach here, the instruction set must be at least
 		// that of an 80286.
-		switch(instr_) {
+		switch(instr) {
 			default: undefined();
 
-			case 0x00:	MemRegReg(Invalid, MemRegSLDT_to_VERW, 2);	break;
-			case 0x01:	MemRegReg(Invalid, MemRegSGDT_to_LMSW, 2);	break;
-			case 0x02:	MemRegReg(LAR, Reg_MemReg, 2);				break;
-			case 0x03:	MemRegReg(LSL, Reg_MemReg, 2);				break;
+			case 0x00:	MemRegReg(Invalid, MemRegSLDT_to_VERW, data_size_);	break;
+			case 0x01:	MemRegReg(Invalid, MemRegSGDT_to_LMSW, data_size_);	break;
+			case 0x02:	MemRegReg(LAR, Reg_MemReg, data_size_);				break;
+			case 0x03:	MemRegReg(LSL, Reg_MemReg, data_size_);				break;
 			case 0x05:
 				Requires(i80286);
-				Complete(LOADALL, None, None, 0);
+				Complete(LOADALL, None, None, DataSize::None);
 			break;
-			case 0x06:	Complete(CLTS, None, None, 1);				break;
+			case 0x06:	Complete(CLTS, None, None, DataSize::Byte);			break;
 		}
 	}
 
@@ -429,19 +436,15 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		++consumed_;
 
 		Source memreg;
-		constexpr Source reg_table[3][8] = {
-			{},
-			{
-				Source::eAX,	Source::eCX,	Source::eDX,	Source::eBX,
-				Source::AH,		Source::CH,		Source::DH,		Source::BH,
-			}, {
-				Source::eAX,	Source::eCX,	Source::eDX,	Source::eBX,
-				Source::eSP,	Source::eBP,	Source::eSI,	Source::eDI,
-			}
+		constexpr Source reg_table[8] = {
+			Source::eAX,		Source::eCX,		Source::eDX,		Source::eBX,
+			Source::eSPorAH,	Source::eBPorCH,	Source::eSIorDH,	Source::eDIorBH,
 		};
 		switch(mod) {
-			default:
-				displacement_size_ = 1 + (mod == 2);
+			default: {
+				const DataSize sizes[] = {DataSize::Byte, data_size_};
+				displacement_size_ = sizes[mod == 2];
+			}
 				[[fallthrough]];
 			case 0: {
 				constexpr ScaleIndexBase rm_table[8] = {
@@ -461,7 +464,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			// Other operand is just a register.
 			case 3:
-				memreg = reg_table[operation_size_][rm];
+				memreg = reg_table[rm];
 
 				// LES and LDS accept a memory argument only, not a register.
 				if(operation_ == Operation::LES || operation_ == Operation::LDS) {
@@ -475,9 +478,9 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case ModRegRMFormat::MemReg_Reg: {
 				if(modregrm_format_ == ModRegRMFormat::Reg_MemReg) {
 					source_ = memreg;
-					destination_ = reg_table[operation_size_][reg];
+					destination_ = reg_table[reg];
 				} else {
-					source_ = reg_table[operation_size_][reg];
+					source_ = reg_table[reg];
 					destination_ = memreg;
 				}
 			} break;
@@ -551,13 +554,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					case 2:		operation_ = Operation::CALLN;	break;
 					case 3:
 						operation_ = Operation::CALLF;
-						operand_size_ = 4;
+						operand_size_ = DataSize::DWord;
 						source_ = Source::Immediate;
 					break;
 					case 4:		operation_ = Operation::JMPN;	break;
 					case 5:
 						operation_ = Operation::JMPF;
-						operand_size_ = 4;
+						operand_size_ = DataSize::DWord;
 						source_ = Source::Immediate;
 					break;
 					case 6:	operation_ = Operation::PUSH;		break;
@@ -597,8 +600,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case ModRegRMFormat::MemRegADC_to_CMP:
 				destination_ = memreg;
 				source_ = Source::Immediate;
-				operand_size_ = 1;	// ... and always 1; it'll be sign extended if
-									// the operation requires it.
+				operand_size_ = DataSize::Byte;	// ... and always a byte; it'll be sign extended if
+												// the operation requires it.
 
 				switch(reg) {
 					default: undefined();
@@ -642,7 +645,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			default: assert(false);
 		}
 
-		phase_ = (displacement_size_ + operand_size_) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
+		phase_ = (displacement_size_ != DataSize::None || operand_size_ != DataSize::None) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
 	}
 
 #undef undefined
@@ -658,15 +661,15 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	// MARK: - Displacement and operand.
 
 	if(phase_ == Phase::DisplacementOrOperand && source != end) {
-		const int required_bytes = displacement_size_ + operand_size_;
+		const auto required_bytes = int(byte_size(displacement_size_) + byte_size(operand_size_));
 
 		const int outstanding_bytes = required_bytes - operand_bytes_;
 		const int bytes_to_consume = std::min(int(end - source), outstanding_bytes);
 
-		// TODO: I can surely do better than this?
 		for(int c = 0; c < bytes_to_consume; c++) {
-			inward_data_ = (inward_data_ >> 8) | (uint64_t(source[0]) << 56);
+			inward_data_ |= decltype(inward_data_)(source[0]) << next_inward_data_shift_;
 			++source;
+			next_inward_data_shift_ += 8;
 		}
 
 		consumed_ += bytes_to_consume;
@@ -675,25 +678,28 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		if(bytes_to_consume == outstanding_bytes) {
 			phase_ = Phase::ReadyToPost;
 
-			switch(operand_size_) {
-				default:	operand_ = 0;										break;
-				case 1:
-					operand_ = inward_data_ >> 56; inward_data_ <<= 8;
-
-					// Sign extend if a single byte operand is feeding a two-byte instruction.
-					if(operation_size_ == 2 && operation_ != Operation::IN && operation_ != Operation::OUT) {
-						operand_ |= (operand_ & 0x80) ? 0xff00 : 0x0000;
-					}
-				break;
-				case 4:		displacement_size_ = 2;								[[fallthrough]];
-				case 2:		operand_ = inward_data_ >> 48; inward_data_ <<= 16;	break;
-				break;
-			}
 			switch(displacement_size_) {
-				default:	displacement_ = 0;									break;
-				case 1:		displacement_ = int8_t(inward_data_ >> 56);			break;
-				case 2:		displacement_ = int16_t(inward_data_ >> 48);		break;
+				case DataSize::None:	displacement_ = 0;						break;
+				case DataSize::Byte:	displacement_ = int8_t(inward_data_);	break;
+				case DataSize::Word:	displacement_ = int16_t(inward_data_);	break;
+				case DataSize::DWord:	displacement_ = int32_t(inward_data_);	break;
 			}
+			inward_data_ >>= bit_size(displacement_size_);
+
+			// Use inequality of sizes as a test for necessary sign extension.
+			if(operand_size_ == data_size_ || !sign_extend_) {
+				operand_ = decltype(operand_)(inward_data_);
+			} else {
+				switch(operand_size_) {
+					case DataSize::None:	operand_ = 0;											break;
+					case DataSize::Byte:	operand_ = decltype(operand_)(int8_t(inward_data_));	break;
+					case DataSize::Word:	operand_ = decltype(operand_)(int16_t(inward_data_));	break;
+					case DataSize::DWord:	operand_ = decltype(operand_)(int32_t(inward_data_));	break;
+				}
+			}
+
+			// TODO: split differently for far jumps/etc. But that information is
+			// no longer retained now that it's not implied by a DWord-sized operand.
 		} else {
 			// Provide a genuine measure of further bytes required.
 			return std::make_pair(-(outstanding_bytes - bytes_to_consume), InstructionT());
@@ -715,8 +721,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				segment_override_,
 				repetition_,
 				DataSize(operation_size_),
-				displacement_,
-				operand_)
+				static_cast<typename InstructionT::DisplacementT>(displacement_),
+				static_cast<typename InstructionT::ImmediateT>(operand_))
 		);
 		reset_parsing();
 		return result;

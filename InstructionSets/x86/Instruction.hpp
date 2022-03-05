@@ -322,16 +322,32 @@ enum class Operation: uint8_t {
 };
 
 enum class DataSize: uint8_t {
-	Implied = 0,
-	Byte = 1,
-	Word = 2,
-	DWord = 3,
+	Byte = 0,
+	Word = 1,
+	DWord = 2,
+	None = 3,
 };
+
+constexpr int byte_size(DataSize size) {
+	return (1 << int(size)) & 7;
+}
+
+constexpr int bit_size(DataSize size) {
+	return (8 << int(size)) & 0x3f;
+}
 
 enum class AddressSize: uint8_t {
 	b16 = 0,
 	b32 = 1,
 };
+
+constexpr int byte_size(AddressSize size) {
+	return 2 << int(size);
+}
+
+constexpr int bit_size(AddressSize size) {
+	return 16 << int(size);
+}
 
 enum class Source: uint8_t {
 	// These are in SIB order; this matters for packing later on.

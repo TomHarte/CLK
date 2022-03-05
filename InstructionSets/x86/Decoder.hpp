@@ -130,7 +130,6 @@ template <Model model> class Decoder {
 
 		// Ephemeral decoding state.
 		Operation operation_ = Operation::Invalid;
-		uint16_t instr_ = 0x0000;	// TODO: is this desired, versus loading more context into ModRegRMFormat?
 		int consumed_ = 0, operand_bytes_ = 0;
 
 		// Source and destination locations.
@@ -138,17 +137,21 @@ template <Model model> class Decoder {
 		Source destination_ = Source::None;
 
 		// Immediate fields.
-		int16_t displacement_ = 0;
-		uint16_t operand_ = 0;
+		int32_t displacement_ = 0;
+		uint32_t operand_ = 0;
 		uint64_t inward_data_ = 0;
+		int next_inward_data_shift_ = 0;
 
 		// Indirection style.
 		ScaleIndexBase sib_;
 
 		// Facts about the instruction.
-		int displacement_size_ = 0;		// i.e. size of in-stream displacement, if any.
-		int operand_size_ = 0;			// i.e. size of in-stream operand, if any.
-		int operation_size_ = 0;		// i.e. size of data manipulated by the operation.
+		DataSize displacement_size_ = DataSize::None;	// i.e. size of in-stream displacement, if any.
+		DataSize operand_size_ = DataSize::None;		// i.e. size of in-stream operand, if any.
+		DataSize operation_size_ = DataSize::None;		// i.e. size of data manipulated by the operation.
+
+		bool sign_extend_ = false;						// If set then sign extend the operand up to the operation size;
+														// otherwise it'll be zero-padded.
 
 		// Prefix capture fields.
 		Repetition repetition_ = Repetition::None;
@@ -164,7 +167,7 @@ template <Model model> class Decoder {
 		/// Resets size capture and all fields with default values.
 		void reset_parsing() {
 			consumed_ = operand_bytes_ = 0;
-			displacement_size_ = operand_size_ = 0;
+			displacement_size_ = operand_size_ = operation_size_ = DataSize::None;
 			displacement_ = operand_ = 0;
 			lock_ = false;
 			address_size_ = default_address_size_;
@@ -173,7 +176,10 @@ template <Model model> class Decoder {
 			repetition_ = Repetition::None;
 			phase_ = Phase::Instruction;
 			source_ = destination_ = Source::None;
-			sib_ = 0;
+			sib_ = ScaleIndexBase();
+			next_inward_data_shift_ = 0;
+			inward_data_ = 0;
+			sign_extend_ = false;
 		}
 };
 

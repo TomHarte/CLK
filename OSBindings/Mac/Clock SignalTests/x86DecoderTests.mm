@@ -14,25 +14,20 @@
 #include "../../../InstructionSets/x86/Decoder.hpp"
 #include "../../../InstructionSets/x86/DataPointerResolver.hpp"
 
-namespace {
+using namespace InstructionSet::x86;
 
-using Operation = InstructionSet::x86::Operation;
-using Instruction = InstructionSet::x86::Instruction<false>;
-using Model = InstructionSet::x86::Model;
-using Source = InstructionSet::x86::Source;
-using Size = InstructionSet::x86::DataSize;
-using ScaleIndexBase = InstructionSet::x86::ScaleIndexBase;
+namespace {
 
 // MARK: - Specific instruction asserts.
 
-template <typename InstructionT> void test(const InstructionT &instruction, int size, Operation operation) {
+template <typename InstructionT> void test(const InstructionT &instruction, DataSize size, Operation operation) {
 	XCTAssertEqual(instruction.operation_size(), InstructionSet::x86::DataSize(size));
 	XCTAssertEqual(instruction.operation, operation);
 }
 
 template <typename InstructionT> void test(
 	const InstructionT &instruction,
-	int size,
+	DataSize size,
 	Operation operation,
 	InstructionSet::x86::DataPointer source,
 	std::optional<InstructionSet::x86::DataPointer> destination = std::nullopt,
@@ -134,10 +129,10 @@ template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>:
 	// jb		0x00000001
 	// dec		%bx
 	// mov		$0x28,%ch
-	test(instructions[0], 2, Operation::SUB, Source::Immediate, Source::eAX, 0xea77);
+	test(instructions[0], DataSize::Word, Operation::SUB, Source::Immediate, Source::eAX, 0xea77);
 	test(instructions[1], Operation::JB, std::nullopt, 0xfffc);
-	test(instructions[2], 2, Operation::DEC, Source::eBX, Source::eBX);
-	test(instructions[3], 1, Operation::MOV, Source::Immediate, Source::CH, 0x28);
+	test(instructions[2], DataSize::Word, Operation::DEC, Source::eBX, Source::eBX);
+	test(instructions[3], DataSize::Byte, Operation::MOV, Source::Immediate, Source::CH, 0x28);
 
 	// ret
 	// lret		$0x4826
@@ -153,10 +148,10 @@ template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>:
 	// out		%ax,(%dx)
 	// jo		0x00000037
 	// xchg		%ax,%sp
-	test(instructions[8], 2, Operation::DEC, Source::eSI, Source::eSI);
-	test(instructions[9], 2, Operation::OUT, Source::eAX, Source::eDX);
+	test(instructions[8], DataSize::Word, Operation::DEC, Source::eSI, Source::eSI);
+	test(instructions[9], DataSize::Word, Operation::OUT, Source::eAX, Source::eDX);
 	test(instructions[10], Operation::JO, std::nullopt, 0x20);
-	test(instructions[11], 2, Operation::XCHG, Source::eAX, Source::eSP);
+	test(instructions[11], DataSize::Word, Operation::XCHG, Source::eAX, Source::eSP);
 
 	// ODA has:
 	// 	c4		(bad)
@@ -168,25 +163,25 @@ template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>:
 	//	c4 d4	(bad)
 	//	93		XCHG AX, BX
 	test(instructions[12], Operation::Invalid);
-	test(instructions[13], 2, Operation::XCHG, Source::eAX, Source::eBX);
+	test(instructions[13], DataSize::Word, Operation::XCHG, Source::eAX, Source::eBX);
 
 	// inc		%bx
 	// cmp		$0x8e,%al
 	// [[ omitted: push		$0x65 ]]
 	// sbb		0x45(%bx,%si),%bh
 	// adc		%bh,0x3c(%bx)
-	test(instructions[14], 2, Operation::INC, Source::eBX, Source::eBX);
-	test(instructions[15], 1, Operation::CMP, Source::Immediate, Source::eAX, 0x8e);
-	test(instructions[16], 1, Operation::SBB, ScaleIndexBase(Source::eBX, Source::eSI), Source::BH, std::nullopt, 0x45);
-	test(instructions[17], 1, Operation::ADC, Source::BH, ScaleIndexBase(Source::eBX), std::nullopt, 0x3c);
+	test(instructions[14], DataSize::Word, Operation::INC, Source::eBX, Source::eBX);
+	test(instructions[15], DataSize::Byte, Operation::CMP, Source::Immediate, Source::eAX, 0x8e);
+	test(instructions[16], DataSize::Byte, Operation::SBB, ScaleIndexBase(Source::eBX, Source::eSI), Source::BH, std::nullopt, 0x45);
+	test(instructions[17], DataSize::Byte, Operation::ADC, Source::BH, ScaleIndexBase(Source::eBX), std::nullopt, 0x3c);
 
 	// sbb		%bx,0x16(%bp,%si)
 	// xor		%sp,0x2c(%si)
 	// out		%ax,$0xc6
 	// jge		0xffffffe0
-	test(instructions[18], 2, Operation::SBB, Source::eBX, ScaleIndexBase(Source::eBP, Source::eSI), std::nullopt, 0x16);
-	test(instructions[19], 2, Operation::XOR, Source::eSP, ScaleIndexBase(Source::eSI), std::nullopt, 0x2c);
-	test(instructions[20], 2, Operation::OUT, Source::eAX, Source::DirectAddress, 0xc6);
+	test(instructions[18], DataSize::Word, Operation::SBB, Source::eBX, ScaleIndexBase(Source::eBP, Source::eSI), std::nullopt, 0x16);
+	test(instructions[19], DataSize::Word, Operation::XOR, Source::eSP, ScaleIndexBase(Source::eSI), std::nullopt, 0x2c);
+	test(instructions[20], DataSize::Word, Operation::OUT, Source::eAX, Source::DirectAddress, 0xc6);
 	test(instructions[21], Operation::JNL, std::nullopt, 0xffb0);
 
 	// mov		$0x49,%ch
@@ -194,38 +189,38 @@ template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>:
 	// mov		$0xcbc0,%dx
 	// adc		$0x7e,%al
 	// jno		0x0000000b
-	test(instructions[22], 1, Operation::MOV, Source::Immediate, Source::CH, 0x49);
-	test(instructions[23], 2, Operation::MOV, Source::Immediate, Source::eDX, 0xcbc0);
-	test(instructions[24], 1, Operation::ADC, Source::Immediate, Source::eAX, 0x7e);
+	test(instructions[22], DataSize::Byte, Operation::MOV, Source::Immediate, Source::CH, 0x49);
+	test(instructions[23], DataSize::Word, Operation::MOV, Source::Immediate, Source::eDX, 0xcbc0);
+	test(instructions[24], DataSize::Byte, Operation::ADC, Source::Immediate, Source::eAX, 0x7e);
 	test(instructions[25], Operation::JNO, std::nullopt, 0xffd0);
 
 	// push		%ax
 	// js		0x0000007b
 	// add		(%di),%bx
 	// in		$0xc9,%ax
-	test(instructions[26], 2, Operation::PUSH, Source::eAX);
+	test(instructions[26], DataSize::Word, Operation::PUSH, Source::eAX);
 	test(instructions[27], Operation::JS, std::nullopt, 0x3d);
-	test(instructions[28], 2, Operation::ADD, ScaleIndexBase(Source::eDI), Source::eBX);
-	test(instructions[29], 2, Operation::IN, Source::DirectAddress, Source::eAX, 0xc9);
+	test(instructions[28], DataSize::Word, Operation::ADD, ScaleIndexBase(Source::eDI), Source::eBX);
+	test(instructions[29], DataSize::Word, Operation::IN, Source::DirectAddress, Source::eAX, 0xc9);
 
 	// xchg		%ax,%di
 	// ret
 	// fwait
 	// out		%al,$0xd3
-	test(instructions[30], 2, Operation::XCHG, Source::eAX, Source::eDI);
+	test(instructions[30], DataSize::Word, Operation::XCHG, Source::eAX, Source::eDI);
 	test(instructions[31], Operation::RETN);
 	test(instructions[32], Operation::WAIT);
-	test(instructions[33], 1, Operation::OUT, Source::eAX, Source::DirectAddress, 0xd3);
+	test(instructions[33], DataSize::Byte, Operation::OUT, Source::eAX, Source::DirectAddress, 0xd3);
 
 	// [[ omitted: insb		(%dx),%es:(%di) ]]
 	// pop		%ax
 	// dec		%bp
 	// jbe		0xffffffcc
 	// inc		%sp
-	test(instructions[34], 2, Operation::POP, Source::eAX);
-	test(instructions[35], 2, Operation::DEC, Source::eBP, Source::eBP);
+	test(instructions[34], DataSize::Word, Operation::POP, Source::eAX);
+	test(instructions[35], DataSize::Word, Operation::DEC, Source::eBP, Source::eBP);
 	test(instructions[36], Operation::JBE, std::nullopt, 0xff80);
-	test(instructions[37], 2, Operation::INC, Source::eSP, Source::eSP);
+	test(instructions[37], DataSize::Word, Operation::INC, Source::eSP, Source::eSP);
 
 	// (bad)
 	// lahf
@@ -233,15 +228,15 @@ template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>:
 	// mov		$0x12a1,%bp
 	test(instructions[38], Operation::Invalid);
 	test(instructions[39], Operation::LAHF);
-	test(instructions[40], 2, Operation::MOVS); /* Arguments are implicit. */
-	test(instructions[41], 2, Operation::MOV, Source::Immediate, Source::eBP, 0x12a1);
+	test(instructions[40], DataSize::Word, Operation::MOVS); // Arguments are implicit.
+	test(instructions[41], DataSize::Word, Operation::MOV, Source::Immediate, Source::eBP, 0x12a1);
 
 	// lds		(%bx,%di),%bp
 	// [[ omitted: leave ]]
 	// sahf
 	// fdiv		%st(3),%st
 	// iret
-	test(instructions[42], 2, Operation::LDS);
+	test(instructions[42], DataSize::Word, Operation::LDS);
 	test(instructions[43], Operation::SAHF);
 	test(instructions[44], Operation::ESC);
 	test(instructions[45], Operation::IRET);
@@ -250,40 +245,40 @@ template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>:
 	// cmp		%bx,-0x70(%di)
 	// adc		$0xb8c3,%ax
 	// lods		%ds:(%si),%ax
-	test(instructions[46], 2, Operation::XCHG, Source::eAX, Source::eDX);
-	test(instructions[47], 2, Operation::CMP, Source::eBX, ScaleIndexBase(Source::eDI), std::nullopt, 0xff90);
-	test(instructions[48], 2, Operation::ADC, Source::Immediate, Source::eAX, 0xb8c3);
-	test(instructions[49], 2, Operation::LODS);
+	test(instructions[46], DataSize::Word, Operation::XCHG, Source::eAX, Source::eDX);
+	test(instructions[47], DataSize::Word, Operation::CMP, Source::eBX, ScaleIndexBase(Source::eDI), std::nullopt, 0xff90);
+	test(instructions[48], DataSize::Word, Operation::ADC, Source::Immediate, Source::eAX, 0xb8c3);
+	test(instructions[49], DataSize::Word, Operation::LODS);
 
 	// call		0x0000172d
 	// dec		%dx
 	// mov		$0x9e,%al
 	// stc
 	test(instructions[50], Operation::CALLD, uint16_t(0x16c8));
-	test(instructions[51], 2, Operation::DEC, Source::eDX, Source::eDX);
-	test(instructions[52], 1, Operation::MOV, Source::Immediate, Source::eAX, 0x9e);
+	test(instructions[51], DataSize::Word, Operation::DEC, Source::eDX, Source::eDX);
+	test(instructions[52], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eAX, 0x9e);
 	test(instructions[53], Operation::STC);
 
 	// mov		$0xea56,%di
 	// dec		%si
 	// std
 	// in		$0x5a,%al
-	test(instructions[54], 2, Operation::MOV, Source::Immediate, Source::eDI, 0xea56);
-	test(instructions[55], 2, Operation::DEC, Source::eSI, Source::eSI);
+	test(instructions[54], DataSize::Word, Operation::MOV, Source::Immediate, Source::eDI, 0xea56);
+	test(instructions[55], DataSize::Word, Operation::DEC, Source::eSI, Source::eSI);
 	test(instructions[56], Operation::STD);
-	test(instructions[57], 1, Operation::IN, Source::DirectAddress, Source::eAX, 0x5a);
+	test(instructions[57], DataSize::Byte, Operation::IN, Source::DirectAddress, Source::eAX, 0x5a);
 
 	// and		0x5b2c(%bp,%si),%bp
 	// sub		%dl,%dl
 	// negw		0x18(%bx)
 	// xchg		%dl,0x6425(%bx,%si)
-	test(instructions[58], 2, Operation::AND, ScaleIndexBase(Source::eBP, Source::eSI), Source::eBP, std::nullopt, 0x5b2c);
-	test(instructions[59], 1, Operation::SUB, Source::eDX, Source::eDX);
-	test(instructions[60], 2, Operation::NEG, ScaleIndexBase(Source::eBX), ScaleIndexBase(Source::eBX), std::nullopt, 0x18);
-	test(instructions[61], 1, Operation::XCHG, ScaleIndexBase(Source::eBX, Source::eSI), Source::eDX, std::nullopt, 0x6425);
+	test(instructions[58], DataSize::Word, Operation::AND, ScaleIndexBase(Source::eBP, Source::eSI), Source::eBP, std::nullopt, 0x5b2c);
+	test(instructions[59], DataSize::Byte, Operation::SUB, Source::eDX, Source::eDX);
+	test(instructions[60], DataSize::Word, Operation::NEG, ScaleIndexBase(Source::eBX), ScaleIndexBase(Source::eBX), std::nullopt, 0x18);
+	test(instructions[61], DataSize::Byte, Operation::XCHG, ScaleIndexBase(Source::eBX, Source::eSI), Source::eDX, std::nullopt, 0x6425);
 
 	// mov		$0xc3,%bh
-	test(instructions[62], 1, Operation::MOV, Source::Immediate, Source::BH, 0xc3);
+	test(instructions[62], DataSize::Byte, Operation::MOV, Source::Immediate, Source::BH, 0xc3);
 }
 
 - (void)test83 {
@@ -294,9 +289,9 @@ template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>:
 	});
 
 	XCTAssertEqual(instructions.size(), 3);
-	test(instructions[0], 2, Operation::ADC, Source::Immediate, ScaleIndexBase(Source::eBX, Source::eSI), 0xff80);
-	test(instructions[1], 2, Operation::CMP, Source::Immediate, ScaleIndexBase(Source::eBP, Source::eDI), 0x4);
-	test(instructions[2], 2, Operation::SUB, Source::Immediate, ScaleIndexBase(Source::eBX), 0x9);
+	test(instructions[0], DataSize::Word, Operation::ADC, Source::Immediate, ScaleIndexBase(Source::eBX, Source::eSI), 0xff80);
+	test(instructions[1], DataSize::Word, Operation::CMP, Source::Immediate, ScaleIndexBase(Source::eBP, Source::eDI), 0x4);
+	test(instructions[2], DataSize::Word, Operation::SUB, Source::Immediate, ScaleIndexBase(Source::eBX), 0x9);
 }
 
 - (void)testFar {
@@ -306,9 +301,6 @@ template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>:
 
 	XCTAssertEqual(instructions.size(), 1);
 	test_far(instructions[0], Operation::CALLF, 0x7856, 0x3412);
-}
-
-- (void)testSequence2 {
 }
 
 @end
