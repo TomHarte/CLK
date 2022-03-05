@@ -194,10 +194,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80386);
 				address_size_ = AddressSize(int(default_address_size_) ^ int(AddressSize::b16) ^ int(AddressSize::b32));
 			break;
-			// 0x68: PUSH Iv
-			// 0x69: PUSH GvEvIv
-			// 0x6a: PUSH Ib
-			// 0x6b: IMUL GvEvIv
+			// TODO: 0x68: PUSH Iv
+			// TODO: 0x69: PUSH GvEvIv
+			// TODO: 0x6a: PUSH Ib
+			// TODO: 0x6b: IMUL GvEvIv
 			case 0x6c:	// INSB
 				RequiresMin(i80186);
 				Complete(INS, None, None, DataSize::Byte);
@@ -306,8 +306,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xbe: RegData(MOV, eSI, data_size_);		break;
 			case 0xbf: RegData(MOV, eDI, data_size_);		break;
 
-			// 0xc0: shift group 2, Eb, Ib
-			// 0xc1: shift group 2, Ev, Iv
+			// TODO: 0xc0: shift group 2, Eb, Ib
+			// TODO: 0xc1: shift group 2, Ev, Iv
 
 			case 0xc2: RegData(RETN, None, data_size_);				break;
 			case 0xc3: Complete(RETN, None, None, DataSize::None);	break;
@@ -426,12 +426,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			break;
 			case 0x06:	Complete(CLTS, None, None, DataSize::Byte);			break;
 
-			// 0x20: MOV Cr, Rd
-			// 0x21: MOV Dd, Rd
-			// 0x22: MOV Rd, Cd
-			// 0x23: MOV Rd, Dd
-			// 0x24: MOV Td, Rd
-			// 0x26: MOV Rd, Td
+			// TODO: 0x20: MOV Cr, Rd
+			// TODO: 0x21: MOV Dd, Rd
+			// TODO: 0x22: MOV Rd, Cd
+			// TODO: 0x23: MOV Rd, Dd
+			// TODO: 0x24: MOV Td, Rd
+			// TODO: 0x26: MOV Rd, Td
 
 			case 0x70: RequiresMin(i80386);	Jump(JO, data_size_);	break;
 			case 0x71: RequiresMin(i80386);	Jump(JNO, data_size_);	break;
@@ -450,33 +450,33 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x7e: RequiresMin(i80386);	Jump(JLE, data_size_);	break;
 			case 0x7f: RequiresMin(i80386);	Jump(JNLE, data_size_);	break;
 
-			// [0x90, 0x97]: byte set on condition Eb: SETO, SETNO, SETB, SETNB, SETZ, SETNZ, SETBE, SETNBE
-			// [0x98, 0x9f]: SETS, SETNS, SETP, SETNP, SETL, SETNL, SETLE, SETNLE
+			// TODO: [0x90, 0x97]: byte set on condition Eb: SETO, SETNO, SETB, SETNB, SETZ, SETNZ, SETBE, SETNBE
+			// TODO: [0x98, 0x9f]: SETS, SETNS, SETP, SETNP, SETL, SETNL, SETLE, SETNLE
 
 			case 0xa0:	RequiresMin(i80386);	Complete(PUSH, FS, None, data_size_);	break;
 			case 0xa1:	RequiresMin(i80386);	Complete(POP, FS, None, data_size_);	break;
-			// 0xa3: BT Ev, Gv
-			// 0xa4: SHLD EvGvIb
-			// 0xa5: SHLD EvGcCL
+			// TODO: 0xa3: BT Ev, Gv
+			// TODO: 0xa4: SHLD EvGvIb
+			// TODO: 0xa5: SHLD EvGcCL
 			case 0xa8:	RequiresMin(i80386);	Complete(PUSH, GS, None, data_size_);	break;
 			case 0xa9:	RequiresMin(i80386);	Complete(POP, GS, None, data_size_);	break;
-			// 0xab: BTS Ev, Gv
-			// 0xac: SHRD EvGvIb
-			// 0xad: SHRD EvGvCL
-			// 0xaf: IMUL Gv, Ev
+			// TODO: 0xab: BTS Ev, Gv
+			// TODO: 0xac: SHRD EvGvIb
+			// TODO: 0xad: SHRD EvGvCL
+			// TODO: 0xaf: IMUL Gv, Ev
 
-			// 0xb2: LSS Mp
-			// 0xb3: BTR Ev, Gv
-			// 0xb4: LFS Mp
-			// 0xb5: LGS Mp
-			// 0xb6: MOVZX Gv, Eb
-			// 0xb7: MOVZX Gv, Ew
-			// 0xba: Grp8 Ev, Ib
-			// 0xbb: BTC Ev, Gv
-			// 0xbc: BSF Gv, Ev
-			// 0xbd: BSR Gv, Ev
-			// 0xbe: MOVSX Gv, Eb
-			// 0xbf: MOVSX Gv, Ew
+			// TODO: 0xb2: LSS Mp
+			// TODO: 0xb3: BTR Ev, Gv
+			// TODO: 0xb4: LFS Mp
+			// TODO: 0xb5: LGS Mp
+			// TODO: 0xb6: MOVZX Gv, Eb
+			// TODO: 0xb7: MOVZX Gv, Ew
+			// TODO: 0xba: Grp8 Ev, Ib
+			// TODO: 0xbb: BTC Ev, Gv
+			// TODO: 0xbc: BSF Gv, Ev
+			// TODO: 0xbd: BSR Gv, Ev
+			// TODO: 0xbe: MOVSX Gv, Eb
+			// TODO: 0xbf: MOVSX Gv, Ew
 		}
 	}
 
@@ -501,6 +501,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		++consumed_;
 
 		Source memreg;
+
+		// TODO: the below currently has no way to segue into fetching a SIB.
 
 		// TODO: can I just eliminate these lookup tables given the deliberate ordering within Source?
 		constexpr Source reg_table[8] = {
