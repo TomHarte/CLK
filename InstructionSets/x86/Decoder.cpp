@@ -233,9 +233,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x89: MemRegReg(MOV, MemReg_Reg, data_size_);		break;
 			case 0x8a: MemRegReg(MOV, Reg_MemReg, DataSize::Byte);	break;
 			case 0x8b: MemRegReg(MOV, Reg_MemReg, data_size_);		break;
-			// 0x8c: not used.
+			case 0x8c:
+				RequiresMin(i80286);	// TODO: or is this 80386?
+				MemRegReg(MOV, MemReg_Seg, DataSize::Word);
+			break;
 			case 0x8d: MemRegReg(LEA, Reg_MemReg, data_size_);		break;
-			case 0x8e: MemRegReg(MOV, SegReg, data_size_);			break;
+			case 0x8e: MemRegReg(MOV, Seg_MemReg, DataSize::Word);	break;
 			case 0x8f: MemRegReg(POP, MemRegPOP, data_size_);		break;
 
 			case 0x90: Complete(NOP, None, None, DataSize::None);	break;	// Or XCHG AX, AX?
@@ -430,9 +433,14 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		++consumed_;
 
 		Source memreg;
+
+		// TODO: can I just eliminate these lookup tables given the deliberate ordering within Source?
 		constexpr Source reg_table[8] = {
 			Source::eAX,		Source::eCX,		Source::eDX,		Source::eBX,
 			Source::eSPorAH,	Source::eBPorCH,	Source::eSIorDH,	Source::eDIorBH,
+		};
+		constexpr Source seg_table[6] = {
+			Source::ES,	Source::CS,	Source::SS,	Source::DS,	Source::FS,	Source::GS
 		};
 		switch(mod) {
 			default: {
@@ -495,20 +503,29 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				}
 			break;
 
-			case ModRegRMFormat::SegReg: {
-				source_ = memreg;
-
-				constexpr Source seg_table[4] = {
-					Source::ES,	Source::CS,
-					Source::SS,	Source::DS,
-				};
-
-				if(reg & 4) {
+			case ModRegRMFormat::Seg_MemReg:
+			case ModRegRMFormat::MemReg_Seg:
+				// The 16-bit chips have four segment registers;
+				// the 80386 onwards has six.
+				if(!is_32bit(model) && reg > 3) {
+					undefined();
+				} else if(reg > 5) {
 					undefined();
 				}
 
-				destination_ = seg_table[reg];
-			} break;
+				if(modregrm_format_ == ModRegRMFormat::Seg_MemReg) {
+					source_ = memreg;
+					destination_ = seg_table[reg];
+
+					// 80286 and later disallow MOV to CS.
+					if(model >= Model::i80286 && destination_ == Source::CS) {
+						undefined();
+					}
+				} else {
+					source_ = seg_table[reg];
+					destination_ = memreg;
+				}
+			break;
 
 			case ModRegRMFormat::MemRegROL_to_SAR:
 				destination_ = memreg;

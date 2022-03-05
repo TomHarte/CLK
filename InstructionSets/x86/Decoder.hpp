@@ -65,7 +65,7 @@ template <Model model> class Decoder {
 		/// are packaged into an Instruction.
 		enum class ModRegRMFormat: uint8_t {
 			// Parse the ModRegRM for mode, register and register/memory fields
-			// and populate the source_ and destination_ fields appropriate.
+			// and populate the source_ and destination_ fields appropriately.
 			MemReg_Reg,
 			Reg_MemReg,
 
@@ -82,7 +82,8 @@ template <Model model> class Decoder {
 			// Parse for mode and register/memory fields, populating the
 			// source_ field with the result. Fills destination_ with a segment
 			// register based on the reg field.
-			SegReg,
+			Seg_MemReg,
+			MemReg_Seg,
 
 			//
 			//	'Group 1'
