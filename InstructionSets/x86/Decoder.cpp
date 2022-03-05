@@ -433,18 +433,33 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			// 0x24: MOV Td, Rd
 			// 0x26: MOV Rd, Td
 
-			// 0x8x: long-displacement jumps: JO, JNO, JB, JNB, JZ, JNZ, JBE, JNBE, JS, JNS, JP, JNP, JL, JNL, JLE, JNLE
+			case 0x70: RequiresMin(i80386);	Jump(JO, data_size_);	break;
+			case 0x71: RequiresMin(i80386);	Jump(JNO, data_size_);	break;
+			case 0x72: RequiresMin(i80386);	Jump(JB, data_size_);	break;
+			case 0x73: RequiresMin(i80386);	Jump(JNB, data_size_);	break;
+			case 0x74: RequiresMin(i80386);	Jump(JE, data_size_);	break;
+			case 0x75: RequiresMin(i80386);	Jump(JNE, data_size_);	break;
+			case 0x76: RequiresMin(i80386);	Jump(JBE, data_size_);	break;
+			case 0x77: RequiresMin(i80386);	Jump(JNBE, data_size_);	break;
+			case 0x78: RequiresMin(i80386);	Jump(JS, data_size_);	break;
+			case 0x79: RequiresMin(i80386);	Jump(JNS, data_size_);	break;
+			case 0x7a: RequiresMin(i80386);	Jump(JP, data_size_);	break;
+			case 0x7b: RequiresMin(i80386);	Jump(JNP, data_size_);	break;
+			case 0x7c: RequiresMin(i80386);	Jump(JL, data_size_);	break;
+			case 0x7d: RequiresMin(i80386);	Jump(JNL, data_size_);	break;
+			case 0x7e: RequiresMin(i80386);	Jump(JLE, data_size_);	break;
+			case 0x7f: RequiresMin(i80386);	Jump(JNLE, data_size_);	break;
 
 			// [0x90, 0x97]: byte set on condition Eb: SETO, SETNO, SETB, SETNB, SETZ, SETNZ, SETBE, SETNBE
 			// [0x98, 0x9f]: SETS, SETNS, SETP, SETNP, SETL, SETNL, SETLE, SETNLE
 
-			// 0xa0: PUSH FS
-			// 0xa1: POP FS
+			case 0xa0:	RequiresMin(i80386);	Complete(PUSH, FS, None, data_size_);	break;
+			case 0xa1:	RequiresMin(i80386);	Complete(POP, FS, None, data_size_);	break;
 			// 0xa3: BT Ev, Gv
 			// 0xa4: SHLD EvGvIb
 			// 0xa5: SHLD EvGcCL
-			// 0xa8: PUSH GS
-			// 0xa9: POP GS
+			case 0xa8:	RequiresMin(i80386);	Complete(PUSH, GS, None, data_size_);	break;
+			case 0xa9:	RequiresMin(i80386);	Complete(POP, GS, None, data_size_);	break;
 			// 0xab: BTS Ev, Gv
 			// 0xac: SHRD EvGvIb
 			// 0xad: SHRD EvGvCL
