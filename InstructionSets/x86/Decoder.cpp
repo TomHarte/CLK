@@ -178,6 +178,14 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80286);
 				MemRegReg(ARPL, MemReg_Reg, DataSize::Word);
 			break;
+			case 0x64:
+				RequiresMin(i80386);
+				segment_override_ = Source::FS;
+			break;
+			case 0x65:
+				RequiresMin(i80386);
+				segment_override_ = Source::GS;
+			break;
 			case 0x66:
 				RequiresMin(i80386);
 				data_size_ = DataSize(int(default_data_size_) ^ int(DataSize::Word) ^ int(DataSize::DWord));
