@@ -220,16 +220,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x7e: Jump(JLE, DataSize::Byte);	break;
 			case 0x7f: Jump(JNLE, DataSize::Byte);	break;
 
-			case 0x80: MemRegReg(Invalid, MemRegADD_to_CMP, DataSize::Byte);	break;
-			case 0x81: MemRegReg(Invalid, MemRegADD_to_CMP, data_size_);		break;
-			case 0x82:
-				MemRegReg(Invalid, MemRegADC_to_CMP, DataSize::Byte);
-				sign_extend_ = true;
-			break;
-			case 0x83:
-				MemRegReg(Invalid, MemRegADC_to_CMP, data_size_);
-				sign_extend_ = true;
-			break;
+			case 0x80: MemRegReg(Invalid, MemRegADD_to_CMP, DataSize::Byte);			break;
+			case 0x81: MemRegReg(Invalid, MemRegADD_to_CMP, data_size_);				break;
+			case 0x82: MemRegReg(Invalid, MemRegADD_to_CMP_SignExtend, DataSize::Byte);	break;
+			case 0x83: MemRegReg(Invalid, MemRegADD_to_CMP_SignExtend, data_size_);		break;
 
 			case 0x84: MemRegReg(TEST, MemReg_Reg, DataSize::Byte);	break;
 			case 0x85: MemRegReg(TEST, MemReg_Reg, data_size_);		break;
@@ -582,8 +576,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			break;
 
 			case ModRegRMFormat::MemRegADD_to_CMP:
+			case ModRegRMFormat::MemRegADD_to_CMP_SignExtend:
+				source_ = Source::Immediate;
 				destination_ = memreg;
-				operand_size_ = operation_size_;
+				operand_size_ = (modregrm_format_ == ModRegRMFormat::MemRegADD_to_CMP_SignExtend) ? DataSize::Byte : operation_size_;
+				sign_extend_ = true;	// Will be effective only if modregrm_format_ == ModRegRMFormat::MemRegADD_to_CMP_SignExtend.
 
 				switch(reg) {
 					default:	operation_ = Operation::ADD;	break;
@@ -594,23 +591,6 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					case 5:		operation_ = Operation::SUB;	break;
 					case 6:		operation_ = Operation::XOR;	break;
 					case 7:		operation_ = Operation::CMP;	break;
-				}
-			break;
-
-			case ModRegRMFormat::MemRegADC_to_CMP:
-				destination_ = memreg;
-				source_ = Source::Immediate;
-				operand_size_ = DataSize::Byte;	// ... and always a byte; it'll be sign extended if
-												// the operation requires it.
-
-				switch(reg) {
-					default: undefined();
-
-					case 0: 	operation_ = Operation::ADD;	break;
-					case 2: 	operation_ = Operation::ADC;	break;
-					case 3: 	operation_ = Operation::SBB;	break;
-					case 5: 	operation_ = Operation::SUB;	break;
-					case 7: 	operation_ = Operation::CMP;	break;
 				}
 			break;
 

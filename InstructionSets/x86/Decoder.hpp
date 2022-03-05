@@ -71,11 +71,6 @@ template <Model model> class Decoder {
 
 			// Parse for mode and register/memory fields, populating both
 			// source_ and destination_ fields with the result. Use the 'register'
-			// field to pick an operation from the TEST/NOT/NEG/MUL/IMUL/DIV/IDIV group.
-			MemRegTEST_to_IDIV,
-
-			// Parse for mode and register/memory fields, populating both
-			// source_ and destination_ fields with the result. Use the 'register'
 			// field to check for the POP operation.
 			MemRegPOP,
 
@@ -85,9 +80,13 @@ template <Model model> class Decoder {
 			MemRegMOV,
 
 			// Parse for mode and register/memory fields, populating the
-			// destination_ field with the result. Use the 'register' field
-			// to pick an operation from the ROL/ROR/RCL/RCR/SAL/SHR/SAR group.
-			MemRegROL_to_SAR,
+			// source_ field with the result. Fills destination_ with a segment
+			// register based on the reg field.
+			SegReg,
+
+			//
+			//	'Group 1'
+			//
 
 			// Parse for mode and register/memory fields, populating the
 			// destination_ field with the result. Use the 'register' field
@@ -95,15 +94,40 @@ template <Model model> class Decoder {
 			// waits for an operand equal to the operation size.
 			MemRegADD_to_CMP,
 
+			// Acts exactly as MemRegADD_to_CMP but the operand is fixed in size
+			// at a single byte, which is sign extended to the operation size.
+			MemRegADD_to_CMP_SignExtend,
+
+			//
+			//	'Group 2'
+			//
+
 			// Parse for mode and register/memory fields, populating the
-			// source_ field with the result. Fills destination_ with a segment
-			// register based on the reg field.
-			SegReg,
+			// destination_ field with the result. Use the 'register' field
+			// to pick an operation from the ROL/ROR/RCL/RCR/SAL/SHR/SAR group.
+			MemRegROL_to_SAR,
+
+			//
+			//	'Group 3'
+			//
+
+			// Parse for mode and register/memory fields, populating both
+			// source_ and destination_ fields with the result. Use the 'register'
+			// field to pick an operation from the TEST/NOT/NEG/MUL/IMUL/DIV/IDIV group.
+			MemRegTEST_to_IDIV,
+
+			//
+			//	'Group 4'
+			//
 
 			// Parse for mode and register/memory fields, populating the
 			// source_ and destination_ fields with the result. Uses the
 			// 'register' field to pick INC or DEC.
 			MemRegINC_DEC,
+
+			//
+			//	'Group 5'
+			//
 
 			// Parse for mode and register/memory fields, populating the
 			// source_ and destination_ fields with the result. Uses the
@@ -111,21 +135,30 @@ template <Model model> class Decoder {
 			// the source to ::Immediate and setting an operand size if necessary.
 			MemRegINC_to_PUSH,
 
-			// Parse for mode and register/memory fields, populating the
-			// source_ and destination_ fields with the result. Uses the
-			// 'register' field to pick from ADD/ADC/SBB/SUB/CMP, altering
-			// the source to ::Immediate and setting an appropriate operand size.
-			MemRegADC_to_CMP,
+			//
+			//	'Group 6'
+			//
 
 			// Parse for mode and register/memory field, populating both source_
 			// and destination_ fields with the result. Uses the 'register' field
 			// to pick from SLDT/STR/LLDT/LTR/VERR/VERW.
 			MemRegSLDT_to_VERW,
 
+			//
+			//	'Group 7'
+			//
+
 			// Parse for mode and register/memory field, populating both source_
 			// and destination_ fields with the result. Uses the 'register' field
 			// to pick from SGDT/LGDT/SMSW/LMSW.
 			MemRegSGDT_to_LMSW,
+
+			//
+			//	'Group 8'
+			//
+
+			// TODO.
+			MemRegBT_to_BTC,
 		} modregrm_format_ = ModRegRMFormat::MemReg_Reg;
 
 		// Ephemeral decoding state.
