@@ -245,10 +245,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x89: MemRegReg(MOV, MemReg_Reg, data_size_);		break;
 			case 0x8a: MemRegReg(MOV, Reg_MemReg, DataSize::Byte);	break;
 			case 0x8b: MemRegReg(MOV, Reg_MemReg, data_size_);		break;
-			case 0x8c:
-				RequiresMin(i80286);	// TODO: or is this 80386?
-				MemRegReg(MOV, MemReg_Seg, DataSize::Word);
-			break;
+			case 0x8c: MemRegReg(MOV, MemReg_Seg, DataSize::Word);	break;
 			case 0x8d: MemRegReg(LEA, Reg_MemReg, data_size_);		break;
 			case 0x8e: MemRegReg(MOV, Seg_MemReg, DataSize::Word);	break;
 			case 0x8f: MemRegReg(POP, MemRegPOP, data_size_);		break;
