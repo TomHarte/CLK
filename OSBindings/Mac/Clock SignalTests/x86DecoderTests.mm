@@ -60,10 +60,12 @@ template <typename InstructionT> void test_far(const InstructionT &instruction, 
 
 // MARK: - Decoder
 
-template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(const std::initializer_list<uint8_t> &stream) {
+template <Model model>
+std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(const std::initializer_list<uint8_t> &stream, bool set_32_bit = false) {
 	// Decode by offering up all data at once.
 	std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> instructions;
 	InstructionSet::x86::Decoder<model> decoder;
+	decoder.set_32bit_protected_mode(set_32_bit);
 	instructions.clear();
 	const uint8_t *byte = stream.begin();
 	while(byte != stream.end()) {
@@ -76,6 +78,7 @@ template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>:
 	// Grab a byte-at-a-time decoding and check that it matches the previous.
 	{
 		InstructionSet::x86::Decoder<model> decoder;
+		decoder.set_32bit_protected_mode(set_32_bit);
 
 		auto previous_instruction = instructions.begin();
 		for(auto item: stream) {
@@ -301,6 +304,24 @@ template <Model model> std::vector<typename InstructionSet::x86::Decoder<model>:
 
 	XCTAssertEqual(instructions.size(), 1);
 	test_far(instructions[0], Operation::CALLF, 0x7856, 0x3412);
+}
+
+- (void)testLDSLESEtc {
+	auto run_test = [](bool is_32, DataSize size) {
+		const auto instructions = decode<Model::i80386>({
+			0xc5, 0x33,			// lds (%bp, %di), %si
+			0xc4, 0x17,			// les (%bx), %dx
+			0x0f, 0xb2, 0x17,	// lss edx, (edi)
+		}, is_32);
+
+		XCTAssertEqual(instructions.size(), 3);
+		test(instructions[0], size, Operation::LDS, ScaleIndexBase(Source::eBP, Source::eDI), Source::eSI);
+		test(instructions[1], size, Operation::LES, ScaleIndexBase(Source::eBX), Source::eDX);
+		test(instructions[2], size, Operation::LSS, ScaleIndexBase(Source::eBX), Source::eDX);
+	};
+
+	run_test(false, DataSize::Word);
+	run_test(true, DataSize::DWord);
 }
 
 @end
