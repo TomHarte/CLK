@@ -60,11 +60,18 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	operand_size_ = DataSize::None;				\
 	operation_size_ = size
 
-/// Handles JO, JNO, JB, etc — jumps with a single byte displacement.
-#define Jump(op, size)								\
+/// Handles JO, JNO, JB, etc — anything with only a displacement.
+#define Displacement(op, size)						\
 	operation_ = Operation::op;						\
 	phase_ = Phase::DisplacementOrOperand;			\
 	displacement_size_ = size
+
+/// Handles PUSH [immediate], etc — anything with only an immediate operand.
+#define Immediate(op, size)							\
+	operation_ = Operation::op;						\
+	source_ = Source::Immediate;					\
+	phase_ = Phase::DisplacementOrOperand;			\
+	operand_size_ = size
 
 /// Handles far CALL and far JMP — fixed four byte operand operations.
 #define Far(op)										\
@@ -194,9 +201,15 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80386);
 				address_size_ = AddressSize(int(default_address_size_) ^ int(AddressSize::b16) ^ int(AddressSize::b32));
 			break;
-			// TODO: 0x68: PUSH Iv
-			// TODO: 0x69: PUSH GvEvIv
-			// TODO: 0x6a: PUSH Ib
+			case 0x68:
+				RequiresMin(i80286);
+				Immediate(PUSH, data_size_);
+			break;
+			// TODO: 0x69: IMUL GvEvIv
+			case 0x6a:
+				RequiresMin(i80286);
+				Immediate(PUSH, DataSize::Byte);
+			break;
 			// TODO: 0x6b: IMUL GvEvIv
 			case 0x6c:	// INSB
 				RequiresMin(i80186);
@@ -215,22 +228,22 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				Complete(OUTS, None, None, data_size_);
 			break;
 
-			case 0x70: Jump(JO, DataSize::Byte);	break;
-			case 0x71: Jump(JNO, DataSize::Byte);	break;
-			case 0x72: Jump(JB, DataSize::Byte);	break;
-			case 0x73: Jump(JNB, DataSize::Byte);	break;
-			case 0x74: Jump(JE, DataSize::Byte);	break;
-			case 0x75: Jump(JNE, DataSize::Byte);	break;
-			case 0x76: Jump(JBE, DataSize::Byte);	break;
-			case 0x77: Jump(JNBE, DataSize::Byte);	break;
-			case 0x78: Jump(JS, DataSize::Byte);	break;
-			case 0x79: Jump(JNS, DataSize::Byte);	break;
-			case 0x7a: Jump(JP, DataSize::Byte);	break;
-			case 0x7b: Jump(JNP, DataSize::Byte);	break;
-			case 0x7c: Jump(JL, DataSize::Byte);	break;
-			case 0x7d: Jump(JNL, DataSize::Byte);	break;
-			case 0x7e: Jump(JLE, DataSize::Byte);	break;
-			case 0x7f: Jump(JNLE, DataSize::Byte);	break;
+			case 0x70: Displacement(JO, DataSize::Byte);	break;
+			case 0x71: Displacement(JNO, DataSize::Byte);	break;
+			case 0x72: Displacement(JB, DataSize::Byte);	break;
+			case 0x73: Displacement(JNB, DataSize::Byte);	break;
+			case 0x74: Displacement(JE, DataSize::Byte);	break;
+			case 0x75: Displacement(JNE, DataSize::Byte);	break;
+			case 0x76: Displacement(JBE, DataSize::Byte);	break;
+			case 0x77: Displacement(JNBE, DataSize::Byte);	break;
+			case 0x78: Displacement(JS, DataSize::Byte);	break;
+			case 0x79: Displacement(JNS, DataSize::Byte);	break;
+			case 0x7a: Displacement(JP, DataSize::Byte);	break;
+			case 0x7b: Displacement(JNP, DataSize::Byte);	break;
+			case 0x7c: Displacement(JL, DataSize::Byte);	break;
+			case 0x7d: Displacement(JNL, DataSize::Byte);	break;
+			case 0x7e: Displacement(JLE, DataSize::Byte);	break;
+			case 0x7f: Displacement(JNLE, DataSize::Byte);	break;
 
 			case 0x80: MemRegReg(Invalid, MemRegADD_to_CMP, DataSize::Byte);			break;
 			case 0x81: MemRegReg(Invalid, MemRegADD_to_CMP, data_size_);				break;
@@ -359,10 +372,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xde: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
 			case 0xdf: MemRegReg(ESC, MemReg_Reg, DataSize::None);	break;
 
-			case 0xe0: Jump(LOOPNE, DataSize::Byte);	break;
-			case 0xe1: Jump(LOOPE, DataSize::Byte);		break;
-			case 0xe2: Jump(LOOP, DataSize::Byte);		break;
-			case 0xe3: Jump(JPCX, DataSize::Byte);		break;
+			case 0xe0: Displacement(LOOPNE, DataSize::Byte);	break;
+			case 0xe1: Displacement(LOOPE, DataSize::Byte);		break;
+			case 0xe2: Displacement(LOOP, DataSize::Byte);		break;
+			case 0xe3: Displacement(JPCX, DataSize::Byte);		break;
 
 			case 0xe4: RegAddr(IN, eAX, DataSize::Byte, DataSize::Byte);	break;
 			case 0xe5: RegAddr(IN, eAX, data_size_, DataSize::Byte);		break;
@@ -372,7 +385,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xe8: RegData(CALLD, None, data_size_);	break;
 			case 0xe9: RegData(JMPN, None, data_size_);		break;
 			case 0xea: Far(JMPF);							break;
-			case 0xeb: Jump(JMPN, DataSize::Byte);			break;
+			case 0xeb: Displacement(JMPN, DataSize::Byte);	break;
 
 			case 0xec: Complete(IN, eDX, eAX, DataSize::Byte);	break;
 			case 0xed: Complete(IN, eDX, eAX, data_size_);		break;
@@ -430,22 +443,22 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			// TODO: 0x24: MOV Td, Rd
 			// TODO: 0x26: MOV Rd, Td
 
-			case 0x70: RequiresMin(i80386);	Jump(JO, data_size_);	break;
-			case 0x71: RequiresMin(i80386);	Jump(JNO, data_size_);	break;
-			case 0x72: RequiresMin(i80386);	Jump(JB, data_size_);	break;
-			case 0x73: RequiresMin(i80386);	Jump(JNB, data_size_);	break;
-			case 0x74: RequiresMin(i80386);	Jump(JE, data_size_);	break;
-			case 0x75: RequiresMin(i80386);	Jump(JNE, data_size_);	break;
-			case 0x76: RequiresMin(i80386);	Jump(JBE, data_size_);	break;
-			case 0x77: RequiresMin(i80386);	Jump(JNBE, data_size_);	break;
-			case 0x78: RequiresMin(i80386);	Jump(JS, data_size_);	break;
-			case 0x79: RequiresMin(i80386);	Jump(JNS, data_size_);	break;
-			case 0x7a: RequiresMin(i80386);	Jump(JP, data_size_);	break;
-			case 0x7b: RequiresMin(i80386);	Jump(JNP, data_size_);	break;
-			case 0x7c: RequiresMin(i80386);	Jump(JL, data_size_);	break;
-			case 0x7d: RequiresMin(i80386);	Jump(JNL, data_size_);	break;
-			case 0x7e: RequiresMin(i80386);	Jump(JLE, data_size_);	break;
-			case 0x7f: RequiresMin(i80386);	Jump(JNLE, data_size_);	break;
+			case 0x70: RequiresMin(i80386);	Displacement(JO, data_size_);	break;
+			case 0x71: RequiresMin(i80386);	Displacement(JNO, data_size_);	break;
+			case 0x72: RequiresMin(i80386);	Displacement(JB, data_size_);	break;
+			case 0x73: RequiresMin(i80386);	Displacement(JNB, data_size_);	break;
+			case 0x74: RequiresMin(i80386);	Displacement(JE, data_size_);	break;
+			case 0x75: RequiresMin(i80386);	Displacement(JNE, data_size_);	break;
+			case 0x76: RequiresMin(i80386);	Displacement(JBE, data_size_);	break;
+			case 0x77: RequiresMin(i80386);	Displacement(JNBE, data_size_);	break;
+			case 0x78: RequiresMin(i80386);	Displacement(JS, data_size_);	break;
+			case 0x79: RequiresMin(i80386);	Displacement(JNS, data_size_);	break;
+			case 0x7a: RequiresMin(i80386);	Displacement(JP, data_size_);	break;
+			case 0x7b: RequiresMin(i80386);	Displacement(JNP, data_size_);	break;
+			case 0x7c: RequiresMin(i80386);	Displacement(JL, data_size_);	break;
+			case 0x7d: RequiresMin(i80386);	Displacement(JNL, data_size_);	break;
+			case 0x7e: RequiresMin(i80386);	Displacement(JLE, data_size_);	break;
+			case 0x7f: RequiresMin(i80386);	Displacement(JNLE, data_size_);	break;
 
 			// TODO: [0x90, 0x97]: byte set on condition Eb: SETO, SETNO, SETB, SETNB, SETZ, SETNZ, SETBE, SETNBE
 			// TODO: [0x98, 0x9f]: SETS, SETNS, SETP, SETNP, SETL, SETNL, SETLE, SETNLE
@@ -480,7 +493,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 #undef Requires
 #undef RequiresMin
 #undef Far
-#undef Jump
+#undef Immediate
+#undef Displacement
 #undef MemRegReg
 #undef AddrReg
 #undef RegAddr
