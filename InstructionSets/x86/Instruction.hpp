@@ -65,8 +65,8 @@ enum class Operation: uint8_t {
 	SUB,
 	/// Unsigned multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
 	MUL,
-	/// Signed multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
-	IMUL,
+	/// Single operand signed multiply; multiplies the source value by AX or AL, storing the result in DX:AX or AX.
+	IMUL_1,
 	/// Unsigned divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
 	DIV,
 	/// Signed divide; divide the source value by AX or AL, storing the quotient in AL and the remainder in AH.
@@ -265,6 +265,9 @@ enum class Operation: uint8_t {
 	/// Stores the task register.
 	STR,
 
+	/// Three-operand form of IMUL; multiply the immediate by the source and write to the destination.
+	IMUL_3,
+
 	/// Undocumented (but used); loads all registers, including internal ones.
 	LOADALL,
 
@@ -315,6 +318,9 @@ enum class Operation: uint8_t {
 	MOVZX,
 	/// Move with sign extension.
 	MOVSX,
+
+	/// Two-operand form of IMUL; multiply the source by the destination and write to the destination.
+	IMUL_2,
 
 	IRETD,
 	JECXZ,

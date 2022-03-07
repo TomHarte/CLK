@@ -205,12 +205,21 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80286);
 				Immediate(PUSH, data_size_);
 			break;
-			// TODO: 0x69: IMUL GvEvIv
+			case 0x69:
+				RequiresMin(i80286);
+				MemRegReg(IMUL_3, Reg_MemReg, data_size_);
+				operand_size_ = data_size_;
+			break;
 			case 0x6a:
 				RequiresMin(i80286);
 				Immediate(PUSH, DataSize::Byte);
 			break;
-			// TODO: 0x6b: IMUL GvEvIv
+			case 0x6b:
+				RequiresMin(i80286);
+				MemRegReg(IMUL_3, Reg_MemReg, data_size_);
+				operand_size_ = DataSize::Byte;
+				sign_extend_ = true;
+			break;
 			case 0x6c:	// INSB
 				RequiresMin(i80186);
 				Complete(INS, None, None, DataSize::Byte);
@@ -473,7 +482,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			// TODO: 0xab: BTS Ev, Gv
 			// TODO: 0xac: SHRD EvGvIb
 			// TODO: 0xad: SHRD EvGvCL
-			// TODO: 0xaf: IMUL Gv, Ev
+			case 0xaf:
+				RequiresMin(i80386);
+				MemRegReg(IMUL_2, Reg_MemReg, data_size_);
+			break;
 
 			case 0xb2: RequiresMin(i80386);	MemRegReg(LSS, Reg_MemReg, data_size_);	break;
 			// TODO: 0xb3: BTR Ev, Gv
@@ -578,7 +590,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					case 2: 	operation_ = Operation::NOT;	break;
 					case 3: 	operation_ = Operation::NEG;	break;
 					case 4: 	operation_ = Operation::MUL;	break;
-					case 5: 	operation_ = Operation::IMUL;	break;
+					case 5: 	operation_ = Operation::IMUL_1;	break;
 					case 6: 	operation_ = Operation::DIV;	break;
 					case 7: 	operation_ = Operation::IDIV;	break;
 				}
