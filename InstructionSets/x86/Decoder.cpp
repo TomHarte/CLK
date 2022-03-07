@@ -87,6 +87,14 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	displacement_size_ = DataSize::Word;			\
 	operand_size_ = DataSize::Byte
 
+/// Sets up the operation size, oncoming phase and modregrm format for a member of the shift group (i.e. 'group 2').
+#define ShiftGroup() {										\
+	const DataSize sizes[] = {DataSize::Byte, data_size_};	\
+	phase_ = Phase::ModRegRM;								\
+	modregrm_format_ = ModRegRMFormat::MemRegROL_to_SAR;	\
+	operation_size_ = sizes[instr & 1];						\
+}
+
 #define undefined()	{												\
 	const auto result = std::make_pair(consumed_, InstructionT());	\
 	reset_parsing();												\
@@ -325,9 +333,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xbe: RegData(MOV, eSI, data_size_);		break;
 			case 0xbf: RegData(MOV, eDI, data_size_);		break;
 
-			// TODO: 0xc0: shift group 2, Eb, Ib
-			// TODO: 0xc1: shift group 2, Ev, Iv
-
+			case 0xc0: case 0xc1:
+				RequiresMin(i80186);
+				ShiftGroup();
+				source_ = Source::Immediate;
+				operand_size_ = operation_size_;
+			break;
 			case 0xc2: RegData(RETN, None, data_size_);				break;
 			case 0xc3: Complete(RETN, None, None, DataSize::None);	break;
 			case 0xc4: MemRegReg(LES, Reg_MemReg, data_size_);		break;
@@ -352,21 +363,15 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xce: Complete(INTO, None, None, DataSize::None);	break;
 			case 0xcf: Complete(IRET, None, None, DataSize::None);	break;
 
-			case 0xd0: case 0xd1: {
-				const DataSize sizes[] = {DataSize::Byte, data_size_};
-				phase_ = Phase::ModRegRM;
-				modregrm_format_ = ModRegRMFormat::MemRegROL_to_SAR;
-				operation_size_ = sizes[instr & 1];
+			case 0xd0: case 0xd1:
+				ShiftGroup();
 				source_ = Source::Immediate;
 				operand_ = 1;
-			} break;
-			case 0xd2: case 0xd3: {
-				const DataSize sizes[] = {DataSize::Byte, data_size_};
-				phase_ = Phase::ModRegRM;
-				modregrm_format_ = ModRegRMFormat::MemRegROL_to_SAR;
-				operation_size_ = sizes[instr & 1];
+			break;
+			case 0xd2: case 0xd3:
+				ShiftGroup();
 				source_ = Source::eCX;
-			} break;
+			break;
 			case 0xd4: RegData(AAM, eAX, DataSize::Byte);			break;
 			case 0xd5: RegData(AAD, eAX, DataSize::Byte);			break;
 			// Unused: 0xd6.
@@ -504,6 +509,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 #undef Requires
 #undef RequiresMin
+#undef ShiftGroup
+#undef Displacement16Operand8
 #undef Far
 #undef Immediate
 #undef Displacement
