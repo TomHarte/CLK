@@ -283,9 +283,11 @@ enum class Operation: uint8_t {
 	LSS,
 
 	/// Shift left double.
-	SHLD,
+	SHLDimm,
+	SHLDCL,
 	/// Shift right double.
-	SHRD,
+	SHRDimm,
+	SHRDCL,
 
 	/// Bit scan forwards.
 	BSF,
@@ -322,12 +324,12 @@ enum class Operation: uint8_t {
 	/// Two-operand form of IMUL; multiply the source by the destination and write to the destination.
 	IMUL_2,
 
-	IRETD,
-	JECXZ,
-	LODSD,
-
 	SETO, SETNO,	SETB, SETNB,	SETZ, SETNZ,	SETBE, SETNBE,
 	SETS, SETNS,	SETP, SETNP,	SETL, SETNL,	SETLE, SETNLE,
+
+	MOVtoCr, MOVfromCr,
+	MOVtoDr, MOVfromDr,
+	MOVtoTr, MOVfromTr,
 };
 
 enum class DataSize: uint8_t {

@@ -450,12 +450,30 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			break;
 			case 0x06:	Complete(CLTS, None, None, DataSize::Byte);			break;
 
-			// TODO: 0x20: MOV Cr, Rd
-			// TODO: 0x21: MOV Dd, Rd
-			// TODO: 0x22: MOV Rd, Cd
-			// TODO: 0x23: MOV Rd, Dd
-			// TODO: 0x24: MOV Td, Rd
-			// TODO: 0x26: MOV Rd, Td
+			case 0x20:
+				RequiresMin(i80386);
+				MemRegReg(MOVfromCr, Reg_MemReg, DataSize::DWord);
+			break;
+			case 0x21:
+				RequiresMin(i80386);
+				MemRegReg(MOVfromDr, Reg_MemReg, DataSize::DWord);
+			break;
+			case 0x22:
+				RequiresMin(i80386);
+				MemRegReg(MOVtoCr, Reg_MemReg, DataSize::DWord);
+			break;
+			case 0x23:
+				RequiresMin(i80386);
+				MemRegReg(MOVtoDr, Reg_MemReg, DataSize::DWord);
+			break;
+			case 0x24:
+				RequiresMin(i80386);
+				MemRegReg(MOVfromTr, Reg_MemReg, DataSize::DWord);
+			break;
+			case 0x26:
+				RequiresMin(i80386);
+				MemRegReg(MOVtoTr, Reg_MemReg, DataSize::DWord);
+			break;
 
 			case 0x70: RequiresMin(i80386);	Displacement(JO, data_size_);	break;
 			case 0x71: RequiresMin(i80386);	Displacement(JNO, data_size_);	break;
@@ -500,13 +518,27 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xa0: RequiresMin(i80386);	Complete(PUSH, FS, None, data_size_);	break;
 			case 0xa1: RequiresMin(i80386);	Complete(POP, FS, None, data_size_);	break;
 			case 0xa3: RequiresMin(i80386);	MemRegReg(BT, MemReg_Reg, data_size_);	break;
-			// TODO: 0xa4: SHLD EvGvIb
-			// TODO: 0xa5: SHLD EvGcCL
+			case 0xa4:
+				RequiresMin(i80386);
+				MemRegReg(SHLDimm, Reg_MemReg, data_size_);
+				operand_size_ = DataSize::Byte;
+			break;
+			case 0xa5:
+				RequiresMin(i80386);
+				MemRegReg(SHLDCL, MemReg_Reg, data_size_);
+			break;
 			case 0xa8: RequiresMin(i80386);	Complete(PUSH, GS, None, data_size_);	break;
 			case 0xa9: RequiresMin(i80386);	Complete(POP, GS, None, data_size_);	break;
 			case 0xab: RequiresMin(i80386);	MemRegReg(BTS, MemReg_Reg, data_size_);	break;
-			// TODO: 0xac: SHRD EvGvIb
-			// TODO: 0xad: SHRD EvGvCL
+			case 0xac:
+				RequiresMin(i80386);
+				MemRegReg(SHRDimm, Reg_MemReg, data_size_);
+				operand_size_ = DataSize::Byte;
+			break;
+			case 0xad:
+				RequiresMin(i80386);
+				MemRegReg(SHRDCL, MemReg_Reg, data_size_);
+			break;
 			case 0xaf:
 				RequiresMin(i80386);
 				MemRegReg(IMUL_2, Reg_MemReg, data_size_);
@@ -846,9 +878,6 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					case DataSize::DWord:	operand_ = decltype(operand_)(int32_t(inward_data_));	break;
 				}
 			}
-
-			// TODO: split differently for far jumps/etc. But that information is
-			// no longer retained now that it's not implied by a DWord-sized operand.
 		} else {
 			// Provide a genuine measure of further bytes required.
 			return std::make_pair(-(outstanding_bytes - bytes_to_consume), InstructionT());
