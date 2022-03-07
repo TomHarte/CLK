@@ -267,18 +267,18 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x82: MemRegReg(Invalid, MemRegADD_to_CMP_SignExtend, DataSize::Byte);	break;
 			case 0x83: MemRegReg(Invalid, MemRegADD_to_CMP_SignExtend, data_size_);		break;
 
-			case 0x84: MemRegReg(TEST, MemReg_Reg, DataSize::Byte);	break;
-			case 0x85: MemRegReg(TEST, MemReg_Reg, data_size_);		break;
-			case 0x86: MemRegReg(XCHG, Reg_MemReg, DataSize::Byte);	break;
-			case 0x87: MemRegReg(XCHG, Reg_MemReg, data_size_);		break;
-			case 0x88: MemRegReg(MOV, MemReg_Reg, DataSize::Byte);	break;
-			case 0x89: MemRegReg(MOV, MemReg_Reg, data_size_);		break;
-			case 0x8a: MemRegReg(MOV, Reg_MemReg, DataSize::Byte);	break;
-			case 0x8b: MemRegReg(MOV, Reg_MemReg, data_size_);		break;
-			case 0x8c: MemRegReg(MOV, MemReg_Seg, DataSize::Word);	break;
-			case 0x8d: MemRegReg(LEA, Reg_MemReg, data_size_);		break;
-			case 0x8e: MemRegReg(MOV, Seg_MemReg, DataSize::Word);	break;
-			case 0x8f: MemRegReg(POP, MemRegPOP, data_size_);		break;
+			case 0x84: MemRegReg(TEST, MemReg_Reg, DataSize::Byte);		break;
+			case 0x85: MemRegReg(TEST, MemReg_Reg, data_size_);			break;
+			case 0x86: MemRegReg(XCHG, Reg_MemReg, DataSize::Byte);		break;
+			case 0x87: MemRegReg(XCHG, Reg_MemReg, data_size_);			break;
+			case 0x88: MemRegReg(MOV, MemReg_Reg, DataSize::Byte);		break;
+			case 0x89: MemRegReg(MOV, MemReg_Reg, data_size_);			break;
+			case 0x8a: MemRegReg(MOV, Reg_MemReg, DataSize::Byte);		break;
+			case 0x8b: MemRegReg(MOV, Reg_MemReg, data_size_);			break;
+			case 0x8c: MemRegReg(MOV, MemReg_Seg, DataSize::Word);		break;
+			case 0x8d: MemRegReg(LEA, Reg_MemReg, data_size_);			break;
+			case 0x8e: MemRegReg(MOV, Seg_MemReg, DataSize::Word);		break;
+			case 0x8f: MemRegReg(POP, MemRegSingleOperand, data_size_);	break;
 
 			case 0x90: Complete(NOP, None, None, DataSize::None);	break;	// Or XCHG AX, AX?
 			case 0x91: Complete(XCHG, eAX, eCX, data_size_);		break;
@@ -474,8 +474,28 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x7e: RequiresMin(i80386);	Displacement(JLE, data_size_);	break;
 			case 0x7f: RequiresMin(i80386);	Displacement(JNLE, data_size_);	break;
 
-			// TODO: [0x90, 0x97]: byte set on condition Eb: SETO, SETNO, SETB, SETNB, SETZ, SETNZ, SETBE, SETNBE
-			// TODO: [0x98, 0x9f]: SETS, SETNS, SETP, SETNP, SETL, SETNL, SETLE, SETNLE
+#define Set(x)												\
+	RequiresMin(i80386);									\
+	MemRegReg(SET##x, MemRegSingleOperand, DataSize::Byte);
+
+			case 0x90: Set(O);		break;
+			case 0x91: Set(NO);		break;
+			case 0x92: Set(B);		break;
+			case 0x93: Set(NB);		break;
+			case 0x94: Set(Z);		break;
+			case 0x95: Set(NZ);		break;
+			case 0x96: Set(BE);		break;
+			case 0x97: Set(NBE);	break;
+			case 0x98: Set(S);		break;
+			case 0x99: Set(NS);		break;
+			case 0x9a: Set(P);		break;
+			case 0x9b: Set(NP);		break;
+			case 0x9c: Set(L);		break;
+			case 0x9d: Set(NL);		break;
+			case 0x9e: Set(LE);		break;
+			case 0x9f: Set(NLE);	break;
+
+#undef Set
 
 			case 0xa0: RequiresMin(i80386);	Complete(PUSH, FS, None, data_size_);	break;
 			case 0xa1: RequiresMin(i80386);	Complete(POP, FS, None, data_size_);	break;
@@ -568,8 +588,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 3:
 				memreg = reg_table[rm];
 
-				// LES and LDS accept a memory argument only, not a register.
-				if(operation_ == Operation::LES || operation_ == Operation::LDS) {
+				// LES, LDS, etc accept a memory argument only, not a register.
+				if(
+					operation_ == Operation::LES ||
+					operation_ == Operation::LDS ||
+					operation_ == Operation::LGS ||
+					operation_ == Operation::LSS ||
+					operation_ == Operation::LFS) {
 					undefined();
 				}
 			break;
@@ -678,7 +703,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				}
 			break;
 
-			case ModRegRMFormat::MemRegPOP:
+			case ModRegRMFormat::MemRegSingleOperand:
 				source_ = destination_ = memreg;
 
 				if(reg != 0) {

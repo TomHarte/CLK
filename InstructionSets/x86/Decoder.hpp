@@ -70,13 +70,11 @@ template <Model model> class Decoder {
 			Reg_MemReg,
 
 			// Parse for mode and register/memory fields, populating both
-			// source_ and destination_ fields with the result. Use the 'register'
-			// field to check for the POP operation.
-			MemRegPOP,
+			// source_ and destination_ fields with the single register/memory result.
+			MemRegSingleOperand,
 
 			// Parse for mode and register/memory fields, populating both
 			// the destination_ field with the result and setting source_ to Immediate.
-			// Use the 'register' field to check for the MOV operation.
 			MemRegMOV,
 
 			// Parse for mode and register/memory fields, populating the

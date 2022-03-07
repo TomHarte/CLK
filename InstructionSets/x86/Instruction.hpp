@@ -325,6 +325,9 @@ enum class Operation: uint8_t {
 	IRETD,
 	JECXZ,
 	LODSD,
+
+	SETO, SETNO,	SETB, SETNB,	SETZ, SETNZ,	SETBE, SETNBE,
+	SETS, SETNS,	SETP, SETNP,	SETL, SETNL,	SETLE, SETNLE,
 };
 
 enum class DataSize: uint8_t {
