@@ -499,12 +499,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			case 0xa0: RequiresMin(i80386);	Complete(PUSH, FS, None, data_size_);	break;
 			case 0xa1: RequiresMin(i80386);	Complete(POP, FS, None, data_size_);	break;
-			// TODO: 0xa3: BT Ev, Gv
+			case 0xa3: RequiresMin(i80386);	MemRegReg(BT, MemReg_Reg, data_size_);	break;
 			// TODO: 0xa4: SHLD EvGvIb
 			// TODO: 0xa5: SHLD EvGcCL
 			case 0xa8: RequiresMin(i80386);	Complete(PUSH, GS, None, data_size_);	break;
 			case 0xa9: RequiresMin(i80386);	Complete(POP, GS, None, data_size_);	break;
-			// TODO: 0xab: BTS Ev, Gv
+			case 0xab: RequiresMin(i80386);	MemRegReg(BTS, MemReg_Reg, data_size_);	break;
 			// TODO: 0xac: SHRD EvGvIb
 			// TODO: 0xad: SHRD EvGvCL
 			case 0xaf:
@@ -513,15 +513,15 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			break;
 
 			case 0xb2: RequiresMin(i80386);	MemRegReg(LSS, Reg_MemReg, data_size_);	break;
-			// TODO: 0xb3: BTR Ev, Gv
+			case 0xb3: RequiresMin(i80386);	MemRegReg(BTR, MemReg_Reg, data_size_);	break;
 			case 0xb4: RequiresMin(i80386);	MemRegReg(LFS, Reg_MemReg, data_size_);	break;
 			case 0xb5: RequiresMin(i80386);	MemRegReg(LGS, Reg_MemReg, data_size_);	break;
 			// TODO: 0xb6: MOVZX Gv, Eb
 			// TODO: 0xb7: MOVZX Gv, Ew
 			// TODO: 0xba: Grp8 Ev, Ib
-			// TODO: 0xbb: BTC Ev, Gv
-			// TODO: 0xbc: BSF Gv, Ev
-			// TODO: 0xbd: BSR Gv, Ev
+			case 0xbb: RequiresMin(i80386);	MemRegReg(BTC, MemReg_Reg, data_size_);	break;
+			case 0xbc: RequiresMin(i80386);	MemRegReg(BSF, MemReg_Reg, data_size_);	break;
+			case 0xbd: RequiresMin(i80386);	MemRegReg(BSR, MemReg_Reg, data_size_);	break;
 			// TODO: 0xbe: MOVSX Gv, Eb
 			// TODO: 0xbf: MOVSX Gv, Ew
 		}
