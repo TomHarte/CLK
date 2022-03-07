@@ -516,14 +516,26 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xb3: RequiresMin(i80386);	MemRegReg(BTR, MemReg_Reg, data_size_);	break;
 			case 0xb4: RequiresMin(i80386);	MemRegReg(LFS, Reg_MemReg, data_size_);	break;
 			case 0xb5: RequiresMin(i80386);	MemRegReg(LGS, Reg_MemReg, data_size_);	break;
-			// TODO: 0xb6: MOVZX Gv, Eb
-			// TODO: 0xb7: MOVZX Gv, Ew
+			case 0xb6:
+				RequiresMin(i80386);
+				MemRegReg(MOVZX, Reg_MemReg, DataSize::Byte);
+			break;
+			case 0xb7:
+				RequiresMin(i80386);
+				MemRegReg(MOVZX, Reg_MemReg, DataSize::Word);
+			break;
 			// TODO: 0xba: Grp8 Ev, Ib
 			case 0xbb: RequiresMin(i80386);	MemRegReg(BTC, MemReg_Reg, data_size_);	break;
 			case 0xbc: RequiresMin(i80386);	MemRegReg(BSF, MemReg_Reg, data_size_);	break;
 			case 0xbd: RequiresMin(i80386);	MemRegReg(BSR, MemReg_Reg, data_size_);	break;
-			// TODO: 0xbe: MOVSX Gv, Eb
-			// TODO: 0xbf: MOVSX Gv, Ew
+			case 0xbe:
+				RequiresMin(i80386);
+				MemRegReg(MOVSX, Reg_MemReg, DataSize::Byte);
+			break;
+			case 0xbf:
+				RequiresMin(i80386);
+				MemRegReg(MOVSX, Reg_MemReg, DataSize::Word);
+			break;
 		}
 	}
 
