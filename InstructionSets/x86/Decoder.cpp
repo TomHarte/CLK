@@ -524,10 +524,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80386);
 				MemRegReg(MOVZX, Reg_MemReg, DataSize::Word);
 			break;
-			// TODO: 0xba: Grp8 Ev, Ib
-			case 0xbb: RequiresMin(i80386);	MemRegReg(BTC, MemReg_Reg, data_size_);	break;
-			case 0xbc: RequiresMin(i80386);	MemRegReg(BSF, MemReg_Reg, data_size_);	break;
-			case 0xbd: RequiresMin(i80386);	MemRegReg(BSR, MemReg_Reg, data_size_);	break;
+			case 0xba: RequiresMin(i80386);	MemRegReg(Invalid, MemRegBT_to_BTC, data_size_);	break;
+			case 0xbb: RequiresMin(i80386);	MemRegReg(BTC, MemReg_Reg, data_size_);				break;
+			case 0xbc: RequiresMin(i80386);	MemRegReg(BSF, MemReg_Reg, data_size_);				break;
+			case 0xbd: RequiresMin(i80386);	MemRegReg(BSR, MemReg_Reg, data_size_);				break;
 			case 0xbe:
 				RequiresMin(i80386);
 				MemRegReg(MOVSX, Reg_MemReg, DataSize::Byte);
@@ -773,6 +773,21 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					case 2: 	operation_ = Operation::LGDT;	break;
 					case 4: 	operation_ = Operation::SMSW;	break;
 					case 6: 	operation_ = Operation::LMSW;	break;
+				}
+			break;
+
+			case ModRegRMFormat::MemRegBT_to_BTC:
+				destination_ = memreg;
+				source_ = Source::Immediate;
+				operand_size_ = DataSize::Byte;
+
+				switch(reg) {
+					default:	undefined();
+
+					case 4:		operation_ = Operation::BT;		break;
+					case 5:		operation_ = Operation::BTS;	break;
+					case 6:		operation_ = Operation::BTR;	break;
+					case 7:		operation_ = Operation::BTC;	break;
 				}
 			break;
 

@@ -156,7 +156,8 @@ template <Model model> class Decoder {
 			//	'Group 8'
 			//
 
-			// TODO.
+			// Parse for mode and register/memory field, populating destination,
+			// and prepare to read a single byte as source.
 			MemRegBT_to_BTC,
 		} modregrm_format_ = ModRegRMFormat::MemReg_Reg;
 
