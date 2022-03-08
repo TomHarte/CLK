@@ -611,7 +611,10 @@ template<bool is_32bit> class Instruction {
 			return AddressSize(address_size_);
 		}
 		Source data_segment() const {
-			const auto segment_override = Source((sources_ >> 12) & 7);
+			const auto segment_override = Source(
+				int(Source::ES) +
+				((sources_ >> 12) & 7)
+			);
 			if(segment_override != Source::None) return segment_override;
 
 			// TODO: default source should be SS for anything touching the stack.
@@ -646,7 +649,7 @@ template<bool is_32bit> class Instruction {
 				sources_(uint16_t(
 					int(source) |
 					(int(destination) << 6) |
-					(int(segment_override) << 12) |
+					((int(segment_override) & 7) << 12) |
 					(int(lock) << 15)
 				)),
 				displacement_(displacement),
