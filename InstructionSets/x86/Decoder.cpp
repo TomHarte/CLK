@@ -629,7 +629,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			displacement_size_ = sizes[mod];
 			memreg = Source::Indirect;
 
-			if(allow_sib_) {
+			if(address_size_ == AddressSize::b32) {
 				// 32-bit decoding: the range of potential indirections is expanded,
 				// and may segue into obtaining a SIB.
 				sib_ = ScaleIndexBase(0, Source::None, reg_table[rm]);
@@ -931,7 +931,6 @@ template <Model model> void Decoder<model>::set_32bit_protected_mode(bool enable
 		return;
 	}
 
-	allow_sib_ = enabled;
 	if(enabled) {
 		default_address_size_ = address_size_ = AddressSize::b32;
 		default_data_size_ = data_size_ = DataSize::DWord;

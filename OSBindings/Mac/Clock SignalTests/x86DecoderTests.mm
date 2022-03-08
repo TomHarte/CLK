@@ -333,13 +333,16 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 - (void)testSIB {
 	const auto instructions = decode<Model::i80386>({
 		// add edx, -0x7d(ebp + eax*2)
-		0x01, 0x54, 0x45, 0x83
+		0x01, 0x54, 0x45, 0x83,
+
+		// add edx, -0x80(si)
+		0x67, 0x01, 0x54, 0x80,
 	}, true);
 
-	XCTAssertEqual(instructions.size(), 1);
+	XCTAssertEqual(instructions.size(), 2);
 	test(instructions[0], DataSize::DWord, Operation::ADD, Source::eDX, ScaleIndexBase(1, Source::eAX, Source::eBP), 0x00, -125);
-	// Noting that a multiplier of 2 is a scale of 1,
-	// since the scale is in log2.
+	test(instructions[1], DataSize::DWord, Operation::ADD, Source::eDX, ScaleIndexBase(Source::eSI), 0x00, -128);
+	XCTAssertEqual(instructions[1].address_size(), AddressSize::b16);
 }
 
 @end
