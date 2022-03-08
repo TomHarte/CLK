@@ -196,6 +196,7 @@ template <Model model> class Decoder {
 		DataSize default_data_size_ = DataSize::Word;
 		AddressSize address_size_ = AddressSize::b16;
 		DataSize data_size_ = DataSize::Word;
+		bool allow_sib_ = false;
 
 		/// Resets size capture and all fields with default values.
 		void reset_parsing() {

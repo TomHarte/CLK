@@ -309,15 +309,21 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 - (void)testLDSLESEtc {
 	auto run_test = [](bool is_32, DataSize size) {
 		const auto instructions = decode<Model::i80386>({
-			0xc5, 0x33,			// lds (%bp, %di), %si
-			0xc4, 0x17,			// les (%bx), %dx
-			0x0f, 0xb2, 0x17,	// lss edx, (edi)
+			0xc5, 0x33,			// 16-bit: lds si, (bp, di);	32-bit: lds esi, (ebx)
+			0xc4, 0x17,			// 16-bit: les dx, (bx);		32-bit: les edx, (edi)
+			0x0f, 0xb2, 0x17,	// 16-bit: lss dx, (bx);		32-bit: lss edx, (edi)
 		}, is_32);
 
 		XCTAssertEqual(instructions.size(), 3);
-		test(instructions[0], size, Operation::LDS, ScaleIndexBase(Source::eBP, Source::eDI), Source::eSI);
-		test(instructions[1], size, Operation::LES, ScaleIndexBase(Source::eBX), Source::eDX);
-		test(instructions[2], size, Operation::LSS, ScaleIndexBase(Source::eBX), Source::eDX);
+		if(is_32) {
+			test(instructions[0], size, Operation::LDS, ScaleIndexBase(Source::eBX), Source::eSI);
+			test(instructions[1], size, Operation::LES, ScaleIndexBase(Source::eDI), Source::eDX);
+			test(instructions[2], size, Operation::LSS, ScaleIndexBase(Source::eDI), Source::eDX);
+		} else {
+			test(instructions[0], size, Operation::LDS, ScaleIndexBase(Source::eBP, Source::eDI), Source::eSI);
+			test(instructions[1], size, Operation::LES, ScaleIndexBase(Source::eBX), Source::eDX);
+			test(instructions[2], size, Operation::LSS, ScaleIndexBase(Source::eBX), Source::eDX);
+		}
 	};
 
 	run_test(false, DataSize::Word);

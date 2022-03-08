@@ -591,12 +591,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		const uint8_t mod = *source >> 6;		// i.e. mode.
 		const uint8_t reg = (*source >> 3) & 7;	// i.e. register.
 		const uint8_t rm = *source & 7;			// i.e. register/memory.
+		bool expects_sib = false;
 		++source;
 		++consumed_;
 
 		Source memreg;
-
-		// TODO: the below currently has no way to segue into fetching a SIB.
 
 		// TODO: can I just eliminate these lookup tables given the deliberate ordering within Source?
 		constexpr Source reg_table[8] = {
@@ -606,13 +605,39 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		constexpr Source seg_table[6] = {
 			Source::ES,	Source::CS,	Source::SS,	Source::DS,	Source::FS,	Source::GS
 		};
-		switch(mod) {
-			default: {
-				const DataSize sizes[] = {DataSize::Byte, data_size_};
-				displacement_size_ = sizes[mod == 2];
+
+		// Mode 3 is the same regardless of 16/32-bit mode. So deal with that up front.
+		if(mod == 3) {
+			// Other operand is just a register.
+			memreg = reg_table[rm];
+
+			// LES, LDS, etc accept a memory argument only, not a register.
+			if(
+				operation_ == Operation::LES ||
+				operation_ == Operation::LDS ||
+				operation_ == Operation::LGS ||
+				operation_ == Operation::LSS ||
+				operation_ == Operation::LFS) {
+				undefined();
 			}
-				[[fallthrough]];
-			case 0: {
+		} else {
+			const DataSize sizes[] = {
+				DataSize::None,
+				DataSize::Byte,
+				address_size_ == AddressSize::b16 ? DataSize::Word : DataSize::DWord
+			};
+			displacement_size_ = sizes[mod];
+			memreg = Source::Indirect;
+
+			if(allow_sib_) {
+				// 32-bit decoding: the range of potential indirections is expanded,
+				// and may segue into obtaining a SIB.
+				sib_ = ScaleIndexBase(0, Source::None, reg_table[rm]);
+				expects_sib = rm == 4;	// Indirect via eSP isn't directly supported; it's the
+										// escape indicator for reading a SIB.
+			} else {
+				// Classic 16-bit decoding: mode picks a displacement size,
+				// and a few fixed index+base pairs are defined.
 				constexpr ScaleIndexBase rm_table[8] = {
 					ScaleIndexBase(0, Source::eBX, Source::eSI),
 					ScaleIndexBase(0, Source::eBX, Source::eDI),
@@ -624,24 +649,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					ScaleIndexBase(0, Source::None, Source::eBX),
 				};
 
-				memreg = Source::Indirect;
 				sib_ = rm_table[rm];
-			} break;
-
-			// Other operand is just a register.
-			case 3:
-				memreg = reg_table[rm];
-
-				// LES, LDS, etc accept a memory argument only, not a register.
-				if(
-					operation_ == Operation::LES ||
-					operation_ == Operation::LDS ||
-					operation_ == Operation::LGS ||
-					operation_ == Operation::LSS ||
-					operation_ == Operation::LFS) {
-					undefined();
-				}
-			break;
+			}
 		}
 
 		switch(modregrm_format_) {
@@ -826,7 +835,11 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			default: assert(false);
 		}
 
-		phase_ = (displacement_size_ != DataSize::None || operand_size_ != DataSize::None) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
+		if(expects_sib && (source_ == Source::Indirect | destination_ == Source::Indirect)) {
+			phase_ = Phase::ScaleIndexBase;
+		} else {
+			phase_ = (displacement_size_ != DataSize::None || operand_size_ != DataSize::None) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
+		}
 	}
 
 #undef undefined
@@ -837,6 +850,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		sib_ = *source;
 		++source;
 		++consumed_;
+
+		phase_ = (displacement_size_ != DataSize::None || operand_size_ != DataSize::None) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
 	}
 
 	// MARK: - Displacement and operand.
@@ -916,6 +931,7 @@ template <Model model> void Decoder<model>::set_32bit_protected_mode(bool enable
 		return;
 	}
 
+	allow_sib_ = enabled;
 	if(enabled) {
 		default_address_size_ = address_size_ = AddressSize::b32;
 		default_data_size_ = data_size_ = DataSize::DWord;
