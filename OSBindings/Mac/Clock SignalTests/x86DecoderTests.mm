@@ -376,18 +376,41 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	//pop    ds
 	//stos   BYTE PTR es:[edi],al
 	//pusha
+	test(instructions[4], DataSize::Byte, Operation::MOV, Source::Immediate, Source::AH, 0xc1);
+	XCTAssertEqual(instructions[4].data_segment(), Source::DS);
+	test(instructions[5], DataSize::Word, Operation::POP, Source::None, Source::DS);
+	test(instructions[6], DataSize::Byte, Operation::STOS);
+	test(instructions[7], Operation::PUSHA);
+
 	//mov    ah,0xe1
 	//xchg   ecx,eax
 	//fdivr  st(6),st
 	//bound  edx,QWORD PTR [eax-0x6322070]
+	test(instructions[8], DataSize::Byte, Operation::MOV, Source::Immediate, Source::AH, 0xe1);
+	test(instructions[9], DataSize::DWord, Operation::XCHG, Source::eAX, Source::eCX);
+	test(instructions[10], DataSize::None, Operation::ESC);
+	test(instructions[11], DataSize::DWord, Operation::BOUND, ScaleIndexBase(Source::eAX), Source::eDX, 0, -0x6322070);
+
 	//btc    DWORD PTR [ecx+0x4b],esi
 	//pop    eax
 	//push   ebp
 	//cmp    BYTE PTR [ecx+edi*8],ch
+	test(instructions[12], DataSize::DWord, Operation::BTC, Source::eSI, ScaleIndexBase(Source::eCX), 0, 0x4b);
+	test(instructions[13], DataSize::DWord, Operation::POP, Source::eAX, Source::eAX);
+	test(instructions[14], DataSize::DWord, Operation::PUSH, Source::eBP);
+	test(instructions[15], DataSize::Byte, Operation::CMP, Source::CH, ScaleIndexBase(3, Source::eDI, Source::eCX));
+
+	// Possibly TODO: pick a lane on whether PUSH/POP duplicate source and destination.
+	// It doesn't really matter outside of these tests though.
+
 	//push   eax
 	//dec    dh
-	//loopne 0xffffffee
+	//loopne 0xffffffee (from 0x2d)
 	//fiadd  DWORD PTR [ebx-0x64f3e674]
+	test(instructions[16], DataSize::DWord, Operation::PUSH, Source::eAX);
+	test(instructions[17], DataSize::Byte, Operation::DEC, Source::DH);
+	test(instructions[18], Operation::LOOPNE, 0, -18);
+
 	//mov    DWORD PTR [ebx],edx
 	//xor    al,0x45
 	//lds    edx,FWORD PTR [ecx]
