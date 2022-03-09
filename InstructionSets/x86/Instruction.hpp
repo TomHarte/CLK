@@ -87,21 +87,23 @@ enum class Operation: uint8_t {
 	JS, JNS,	JP, JNP,	JL, JNL,	JLE, JNLE,
 
 	/// Far call; see the segment() and offset() fields.
-	CALLF,
+	CALLfar,
 	/// Displacement call; followed by a 16-bit operand providing a call offset.
-	CALLD,
+	CALLrel,
 	/// Near call.
-	CALLN,
+	CALLabs,
 	/// Return from interrupt.
 	IRET,
 	/// Near return; if source is not ::None then it will be an ::Immediate indicating how many additional bytes to remove from the stack.
-	RETF,
+	RETfar,
 	/// Far return; if source is not ::None then it will be an ::Immediate indicating how many additional bytes to remove from the stack.
-	RETN,
-	/// Near jump; if an operand is not ::None then it gives an absolute destination; otherwise see the displacement.
-	JMPN,
+	RETnear,
+	/// Near jump with an absolute destination.
+	JMPabs,
+	/// Near jump with a relative destination.
+	JMPrel,
 	/// Far jump to the indicated segment and offset.
-	JMPF,
+	JMPfar,
 	/// Relative jump performed only if CX = 0; see the displacement.
 	JPCX,
 	/// Generates a software interrupt of the level stated in the operand.

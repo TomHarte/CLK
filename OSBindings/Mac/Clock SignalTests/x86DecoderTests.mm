@@ -146,10 +146,10 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	// [[ omitted: gs insw (%dx),%es:(%di) ]]
 	// jnp		0xffffffaf
 	// ret		$0x4265
-	test(instructions[4], Operation::RETN);
-	test(instructions[5], Operation::RETF, 0x4826);
+	test(instructions[4], Operation::RETnear);
+	test(instructions[5], Operation::RETfar, 0x4826);
 	test(instructions[6], Operation::JNP, std::nullopt, 0xff9f);
-	test(instructions[7], Operation::RETN, 0x4265);
+	test(instructions[7], Operation::RETnear, 0x4265);
 
 	// dec		%si
 	// out		%ax,(%dx)
@@ -215,7 +215,7 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	// fwait
 	// out		%al,$0xd3
 	test(instructions[30], DataSize::Word, Operation::XCHG, Source::eAX, Source::eDI);
-	test(instructions[31], Operation::RETN);
+	test(instructions[31], Operation::RETnear);
 	test(instructions[32], Operation::WAIT);
 	test(instructions[33], DataSize::Byte, Operation::OUT, Source::eAX, Source::DirectAddress, 0xd3);
 
@@ -261,7 +261,7 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	// dec		%dx
 	// mov		$0x9e,%al
 	// stc
-	test(instructions[50], Operation::CALLD, uint16_t(0x16c8));
+	test(instructions[50], Operation::CALLrel, 0, 0x16c8);
 	test(instructions[51], DataSize::Word, Operation::DEC, Source::eDX, Source::eDX);
 	test(instructions[52], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eAX, 0x9e);
 	test(instructions[53], Operation::STC);
@@ -307,7 +307,7 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	});
 
 	XCTAssertEqual(instructions.size(), 1);
-	test_far(instructions[0], Operation::CALLF, 0x7856, 0x3412);
+	test_far(instructions[0], Operation::CALLfar, 0x7856, 0x3412);
 }
 
 - (void)testLDSLESEtc {
@@ -347,6 +347,30 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	test(instructions[0], DataSize::DWord, Operation::ADD, Source::eDX, ScaleIndexBase(1, Source::eAX, Source::eBP), 0x00, -125);
 	test(instructions[1], DataSize::DWord, Operation::ADD, Source::eDX, ScaleIndexBase(Source::eSI), 0x00, -128);
 	XCTAssertEqual(instructions[1].address_size(), AddressSize::b16);
+}
+
+- (void)testJMP {
+	decltype(decode<Model::i80386>({0x00})) instructions;
+
+	instructions = decode<Model::i80386>({
+		// JMP +0x00efcdab
+		0xe9, 0xab, 0xcd, 0xef, 0x00,
+		// JMP 0xc389:0x67452301
+		0xea, 0x01, 0x23, 0x45, 0x67, 0x89, 0xc3,
+		// JMP -79
+		0xeb, 0xb1,
+		// JMP DWORD (edx)
+		0xff, 0x22,
+		// JMP FWORD (eax)
+		0xff, 0x28,
+	}, true);
+
+	XCTAssertEqual(instructions.size(), 5);
+	test(instructions[0], Operation::JMPrel, 0, 0xefcdab);
+	test_far(instructions[1], Operation::JMPfar, 0xc389, 0x67452301);
+	test(instructions[2], Operation::JMPrel, 0, -79);
+	test(instructions[3], DataSize::DWord, Operation::JMPabs, ScaleIndexBase(Source::eDX));
+	test(instructions[4], DataSize::DWord, Operation::JMPfar, ScaleIndexBase(Source::eAX));
 }
 
 - (void)test32bitSequence {
@@ -448,8 +472,7 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	// or     DWORD PTR [esi+0x1a],eax
 	// rcr    BYTE PTR [ebp-0x78],0x34
 	// movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
-	test(instructions[32], Operation::JMPN, 0x29cf120d - 0x53);
-//	XCTAssertEqual(instructions[32].source(), Source::None);
+	test(instructions[32], Operation::JMPrel, 0, 0x29cf120d - 0x53);
 	test(instructions[33], DataSize::DWord, Operation::OR, Source::eAX, ScaleIndexBase(Source::eSI), 0, 0x1a);
 	test(instructions[34], DataSize::Byte, Operation::RCR, Source::Immediate, ScaleIndexBase(Source::eBP), 0x34, -0x78);
 	test(instructions[35], DataSize::DWord, Operation::MOVS);
@@ -512,7 +535,7 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	// fs pusha
 	// mov    al,0xcf
 	// jecxz  0x000000d4	(from 0x9d)
-	test_far(instructions[60], Operation::CALLF, 0xe21b, 0x97d0f58a);
+	test_far(instructions[60], Operation::CALLfar, 0xe21b, 0x97d0f58a);
 	test(instructions[61], Operation::PUSHA);
 	test(instructions[62], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eAX, 0xcf);
 	test(instructions[63], Operation::JPCX, 0, 0xd4 - 0x9d);

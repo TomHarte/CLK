@@ -292,7 +292,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 			case 0x98: Complete(CBW, eAX, AH, DataSize::Byte);		break;
 			case 0x99: Complete(CWD, eAX, eDX, data_size_);			break;
-			case 0x9a: Far(CALLF);									break;
+			case 0x9a: Far(CALLfar);								break;
 			case 0x9b: Complete(WAIT, None, None, DataSize::None);	break;
 			case 0x9c: Complete(PUSHF, None, None, data_size_);		break;
 			case 0x9d: Complete(POPF, None, None, data_size_);		break;
@@ -340,12 +340,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				source_ = Source::Immediate;
 				operand_size_ = DataSize::Byte;
 			break;
-			case 0xc2: RegData(RETN, None, data_size_);				break;
-			case 0xc3: Complete(RETN, None, None, DataSize::None);	break;
-			case 0xc4: MemRegReg(LES, Reg_MemReg, data_size_);		break;
-			case 0xc5: MemRegReg(LDS, Reg_MemReg, data_size_);		break;
-			case 0xc6: MemRegReg(MOV, MemRegMOV, DataSize::Byte);	break;
-			case 0xc7: MemRegReg(MOV, MemRegMOV, data_size_);		break;
+			case 0xc2: RegData(RETnear, None, data_size_);				break;
+			case 0xc3: Complete(RETnear, None, None, DataSize::None);	break;
+			case 0xc4: MemRegReg(LES, Reg_MemReg, data_size_);			break;
+			case 0xc5: MemRegReg(LDS, Reg_MemReg, data_size_);			break;
+			case 0xc6: MemRegReg(MOV, MemRegMOV, DataSize::Byte);		break;
+			case 0xc7: MemRegReg(MOV, MemRegMOV, data_size_);			break;
 
 			case 0xc8:
 				RequiresMin(i80186);
@@ -356,8 +356,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				Complete(LEAVE, None, None, DataSize::None);
 			break;
 
-			case 0xca: RegData(RETF, None, data_size_);				break;
-			case 0xcb: Complete(RETF, None, None, DataSize::DWord);	break;
+			case 0xca: RegData(RETfar, None, data_size_);				break;
+			case 0xcb: Complete(RETfar, None, None, DataSize::DWord);	break;
 
 			case 0xcc: Complete(INT3, None, None, DataSize::None);	break;
 			case 0xcd: RegData(INT, None, DataSize::Byte);			break;
@@ -397,10 +397,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xe6: AddrReg(OUT, eAX, DataSize::Byte, DataSize::Byte);	break;
 			case 0xe7: AddrReg(OUT, eAX, data_size_, DataSize::Byte);		break;
 
-			case 0xe8: RegData(CALLD, None, data_size_);	break;
-			case 0xe9: RegData(JMPN, None, data_size_);		break;
-			case 0xea: Far(JMPF);							break;
-			case 0xeb: Displacement(JMPN, DataSize::Byte);	break;
+			case 0xe8: Displacement(CALLrel, data_size_);		break;
+			case 0xe9: Displacement(JMPrel, data_size_);		break;
+			case 0xea: Far(JMPfar);								break;
+			case 0xeb: Displacement(JMPrel, DataSize::Byte);	break;
 
 			case 0xec: Complete(IN, eDX, eAX, DataSize::Byte);	break;
 			case 0xed: Complete(IN, eDX, eAX, data_size_);		break;
@@ -739,20 +739,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				switch(reg) {
 					default: 	undefined();
 
-					case 0:		operation_ = Operation::INC;	break;
-					case 1:		operation_ = Operation::DEC;	break;
-					case 2:		operation_ = Operation::CALLN;	break;
-					case 3:
-						operation_ = Operation::CALLF;
-						operand_size_ = DataSize::DWord;
-						source_ = Source::Immediate;
-					break;
-					case 4:		operation_ = Operation::JMPN;	break;
-					case 5:
-						operation_ = Operation::JMPF;
-						operand_size_ = DataSize::DWord;
-						source_ = Source::Immediate;
-					break;
+					case 0:	operation_ = Operation::INC;		break;
+					case 1:	operation_ = Operation::DEC;		break;
+					case 2:	operation_ = Operation::CALLabs;	break;
+					case 3:	operation_ = Operation::CALLfar;	break;
+					case 4:	operation_ = Operation::JMPabs;		break;
+					case 5:	operation_ = Operation::JMPfar;		break;
 					case 6:	operation_ = Operation::PUSH;		break;
 				}
 			break;
