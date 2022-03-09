@@ -350,9 +350,7 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 }
 
 - (void)testJMP {
-	decltype(decode<Model::i80386>({0x00})) instructions;
-
-	instructions = decode<Model::i80386>({
+	const auto instructions = decode<Model::i80386>({
 		// JMP +0x00efcdab
 		0xe9, 0xab, 0xcd, 0xef, 0x00,
 		// JMP 0xc389:0x67452301
