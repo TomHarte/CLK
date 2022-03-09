@@ -465,11 +465,17 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	//aam    0xed
 	test(instructions[40], DataSize::DWord, Operation::MOVS);
 	test(instructions[41], DataSize::DWord, Operation::RCR, Source::Immediate, ScaleIndexBase(Source::eSI), 0x07, 0x4f);
+	test(instructions[42], DataSize::DWord, Operation::PUSH, Source::eCX);
+	test(instructions[43], Operation::AAM, 0xed);
 
 	//mov    al,0x69
 	//xlat   BYTE PTR ds:[ebx]
 	//add    ch,al
 	//push   ecx
+	test(instructions[44], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eAX, 0x69);
+
+	test(instructions[47], DataSize::DWord, Operation::PUSH, Source::eCX);
+
 	//sti
 	//push   0x698b3a85
 	//sub    BYTE PTR [esp+ebp*8],cl

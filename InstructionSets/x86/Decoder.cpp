@@ -42,13 +42,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 /// Handles instructions of the form Ax, jjkk where the latter is implicitly an address.
 #define RegAddr(op, dest, op_size, addr_size)			\
 	SetOpSrcDestSize(op, DirectAddress, dest, op_size);	\
-	operand_size_ = data_size(addr_size);				\
+	operand_size_ = addr_size;							\
 	phase_ = Phase::DisplacementOrOperand
 
 /// Handles instructions of the form jjkk, Ax where the former is implicitly an address.
 #define AddrReg(op, source, op_size, addr_size)				\
 	SetOpSrcDestSize(op, source, DirectAddress, op_size);	\
-	operand_size_ = data_size(addr_size);					\
+	operand_size_ = addr_size;								\
 	destination_ = Source::DirectAddress;					\
 	phase_ = Phase::DisplacementOrOperand
 
@@ -298,10 +298,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x9e: Complete(SAHF, None, None, DataSize::Byte);	break;
 			case 0x9f: Complete(LAHF, None, None, DataSize::Byte);	break;
 
-			case 0xa0: RegAddr(MOV, eAX, DataSize::Byte, address_size_);	break;
-			case 0xa1: RegAddr(MOV, eAX, data_size_, address_size_);		break;
-			case 0xa2: AddrReg(MOV, eAX, DataSize::Byte, address_size_);	break;
-			case 0xa3: AddrReg(MOV, eAX, data_size_, address_size_);		break;
+			case 0xa0: RegAddr(MOV, eAX, DataSize::Byte, data_size(address_size_));	break;
+			case 0xa1: RegAddr(MOV, eAX, data_size_, data_size(address_size_));		break;
+			case 0xa2: AddrReg(MOV, eAX, DataSize::Byte, data_size(address_size_));	break;
+			case 0xa3: AddrReg(MOV, eAX, data_size_, data_size(address_size_));		break;
 
 			case 0xa4: Complete(MOVS, None, None, DataSize::Byte);	break;
 			case 0xa5: Complete(MOVS, None, None, data_size_);		break;
@@ -391,10 +391,10 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xe2: Displacement(LOOP, DataSize::Byte);		break;
 			case 0xe3: Displacement(JPCX, DataSize::Byte);		break;
 
-			case 0xe4: RegAddr(IN, eAX, DataSize::Byte, address_size_);		break;
-			case 0xe5: RegAddr(IN, eAX, data_size_, address_size_);			break;
-			case 0xe6: AddrReg(OUT, eAX, DataSize::Byte, address_size_);	break;
-			case 0xe7: AddrReg(OUT, eAX, data_size_, address_size_);		break;
+			case 0xe4: RegAddr(IN, eAX, DataSize::Byte, DataSize::Byte);	break;
+			case 0xe5: RegAddr(IN, eAX, data_size_, DataSize::Byte);		break;
+			case 0xe6: AddrReg(OUT, eAX, DataSize::Byte, DataSize::Byte);	break;
+			case 0xe7: AddrReg(OUT, eAX, data_size_, DataSize::Byte);		break;
 
 			case 0xe8: RegData(CALLD, None, data_size_);	break;
 			case 0xe9: RegData(JMPN, None, data_size_);		break;
