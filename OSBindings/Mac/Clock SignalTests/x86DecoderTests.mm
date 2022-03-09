@@ -365,10 +365,10 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 
 	XCTAssertEqual(instructions.size(), 64);
 
-	//cs inc edx
-	//or     al,0x9
-	//add    DWORD PTR [edi-0x42],0x9f683aa9
-	//lock jp 0xfffffff0	(from 0000000e)
+	// cs inc edx
+	// or     al,0x9
+	// add    DWORD PTR [edi-0x42],0x9f683aa9
+	// lock jp 0xfffffff0	(from 0000000e)
 	test(instructions[0], DataSize::DWord, Operation::INC, Source::eDX);
 	XCTAssertEqual(instructions[0].data_segment(), Source::CS);
 	test(instructions[1], DataSize::Byte, Operation::OR, Source::Immediate, Source::eAX, 0x9);
@@ -376,29 +376,29 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	test(instructions[3], Operation::JP, 0, -30);
 	XCTAssert(instructions[3].lock());
 
-	//ds mov ah,0xc1
-	//pop    ds
-	//stos   BYTE PTR es:[edi],al
-	//pusha
+	// ds mov ah,0xc1
+	// pop    ds
+	// stos   BYTE PTR es:[edi],al
+	// pusha
 	test(instructions[4], DataSize::Byte, Operation::MOV, Source::Immediate, Source::AH, 0xc1);
 	XCTAssertEqual(instructions[4].data_segment(), Source::DS);
 	test(instructions[5], DataSize::Word, Operation::POP, Source::None, Source::DS);
 	test(instructions[6], DataSize::Byte, Operation::STOS);
 	test(instructions[7], Operation::PUSHA);
 
-	//mov    ah,0xe1
-	//xchg   ecx,eax
-	//fdivr  st(6),st
-	//bound  edx,QWORD PTR [eax-0x6322070]
+	// mov    ah,0xe1
+	// xchg   ecx,eax
+	// fdivr  st(6),st
+	// bound  edx,QWORD PTR [eax-0x6322070]
 	test(instructions[8], DataSize::Byte, Operation::MOV, Source::Immediate, Source::AH, 0xe1);
 	test(instructions[9], DataSize::DWord, Operation::XCHG, Source::eAX, Source::eCX);
 	test(instructions[10], DataSize::None, Operation::ESC);
 	test(instructions[11], DataSize::DWord, Operation::BOUND, ScaleIndexBase(Source::eAX), Source::eDX, 0, -0x6322070);
 
-	//btc    DWORD PTR [ecx+0x4b],esi
-	//pop    eax
-	//push   ebp
-	//cmp    BYTE PTR [ecx+edi*8],ch
+	// btc    DWORD PTR [ecx+0x4b],esi
+	// pop    eax
+	// push   ebp
+	// cmp    BYTE PTR [ecx+edi*8],ch
 	test(instructions[12], DataSize::DWord, Operation::BTC, Source::eSI, ScaleIndexBase(Source::eCX), 0, 0x4b);
 	test(instructions[13], DataSize::DWord, Operation::POP, Source::eAX, Source::eAX);
 	test(instructions[14], DataSize::DWord, Operation::PUSH, Source::eBP);
@@ -407,111 +407,111 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	// Possibly TODO: pick a lane on whether PUSH/POP duplicate source and destination.
 	// It doesn't really matter outside of these tests though.
 
-	//push   eax
-	//dec    dh
-	//loopne 0xffffffee (from 0x2d)
-	//fiadd  DWORD PTR [ebx-0x64f3e674]
+	// push   eax
+	// dec    dh
+	// loopne 0xffffffee (from 0x2d)
+	// fiadd  DWORD PTR [ebx-0x64f3e674]
 	test(instructions[16], DataSize::DWord, Operation::PUSH, Source::eAX);
 	test(instructions[17], DataSize::Byte, Operation::DEC, Source::DH);
 	test(instructions[18], Operation::LOOPNE, 0, -63);
 	test(instructions[19], Operation::ESC);
 
-	//mov    DWORD PTR [ebx],edx
-	//xor    al,0x45
-	//lds    edx,FWORD PTR [ecx]
-	//mov    ds:0xe4dba6d3,al
+	// mov    DWORD PTR [ebx],edx
+	// xor    al,0x45
+	// lds    edx,FWORD PTR [ecx]
+	// mov    ds:0xe4dba6d3,al
 	test(instructions[20], DataSize::DWord, Operation::MOV, Source::eDX, ScaleIndexBase(Source::eBX));
 	test(instructions[21], DataSize::Byte, Operation::XOR, Source::Immediate, Source::eAX, 0x45);
 	test(instructions[22], DataSize::DWord, Operation::LDS, ScaleIndexBase(Source::eCX), Source::eDX);
 	test(instructions[23], DataSize::Byte, Operation::MOV, Source::eAX, Source::DirectAddress, 0xe4dba6d3);
 	XCTAssertEqual(instructions[23].data_segment(), Source::DS);
 
-	//pop    ds
-	//movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
-	//jns    0x00000035 (from 0x42)
-	//jge    0x00000060 (from 0x44)
+	// pop    ds
+	// movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
+	// jns    0x00000035	(from 0x42)
+	// jge    0x00000060	(from 0x44)
 	test(instructions[24], DataSize::Word, Operation::POP, Source::None, Source::DS);
 	test(instructions[25], DataSize::DWord, Operation::MOVS);
 	test(instructions[26], Operation::JNS, 0, -0xd);
 	test(instructions[27], Operation::JNL, 0, 0x1c);
 
-	//mov    eax,0x8a766bda
-	//jns    0x00000073 (from 0x4b)
-	//push   edx
-	//int    0xc4
+	// mov    eax,0x8a766bda
+	// jns    0x00000073	(from 0x4b)
+	// push   edx
+	// int    0xc4
 	test(instructions[28], DataSize::DWord, Operation::MOV, Source::Immediate, Source::eAX, 0x8a766bda);
 	test(instructions[29], Operation::JNS, 0, 0x28);
 	test(instructions[30], DataSize::DWord, Operation::PUSH, Source::eDX);
 	test(instructions[31], Operation::INT, 0xc4);
 
-	//jmp    0x29cf120d (from 0x53)
-	//or     DWORD PTR [esi+0x1a],eax
-	//rcr    BYTE PTR [ebp-0x78],0x34
-	//movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
+	// jmp    0x29cf120d	(from 0x53)
+	// or     DWORD PTR [esi+0x1a],eax
+	// rcr    BYTE PTR [ebp-0x78],0x34
+	// movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
 	test(instructions[32], Operation::JMPN, 0x29cf120d - 0x53);
 //	XCTAssertEqual(instructions[32].source(), Source::None);
 	test(instructions[33], DataSize::DWord, Operation::OR, Source::eAX, ScaleIndexBase(Source::eSI), 0, 0x1a);
 	test(instructions[34], DataSize::Byte, Operation::RCR, Source::Immediate, ScaleIndexBase(Source::eBP), 0x34, -0x78);
 	test(instructions[35], DataSize::DWord, Operation::MOVS);
 
-	//and    edx,0xffffffd0
-	//cmc
-	//inc    esp
-	//popf
+	// and    edx,0xffffffd0
+	// cmc
+	// inc    esp
+	// popf
 	test(instructions[36], DataSize::DWord, Operation::AND, Source::Immediate, Source::eDX);
 	test(instructions[37], DataSize::None, Operation::CMC);
 	test(instructions[38], DataSize::DWord, Operation::INC, Source::eSP);
 	test(instructions[39], DataSize::DWord, Operation::POPF);
 
-	//movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
-	//rcr    DWORD PTR [esi+0x4f],0x7
-	//push   ecx
-	//aam    0xed
+	// movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
+	// rcr    DWORD PTR [esi+0x4f],0x7
+	// push   ecx
+	// aam    0xed
 	test(instructions[40], DataSize::DWord, Operation::MOVS);
 	test(instructions[41], DataSize::DWord, Operation::RCR, Source::Immediate, ScaleIndexBase(Source::eSI), 0x07, 0x4f);
 	test(instructions[42], DataSize::DWord, Operation::PUSH, Source::eCX);
 	test(instructions[43], Operation::AAM, 0xed);
 
-	//mov    al,0x69
-	//xlat   BYTE PTR ds:[ebx]
-	//add    ch,al
-	//push   ecx
+	// mov    al,0x69
+	// xlat   BYTE PTR ds:[ebx]
+	// add    ch,al
+	// push   ecx
 	test(instructions[44], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eAX, 0x69);
 	test(instructions[45], Operation::XLAT);
 	test(instructions[46], DataSize::Byte, Operation::ADD, Source::eAX, Source::CH);
 	test(instructions[47], DataSize::DWord, Operation::PUSH, Source::eCX);
 
-	//sti
-	//push   0x698b3a85
-	//sub    BYTE PTR [esp+ebp*8],cl
-	//mov    cl,0xb7
+	// sti
+	// push   0x698b3a85
+	// sub    BYTE PTR [esp+ebp*8],cl
+	// mov    cl,0xb7
 	test(instructions[48], Operation::STI);
 	test(instructions[49], DataSize::DWord, Operation::PUSH, Source::Immediate, Source::None, 0x698b3a85);
 	test(instructions[50], DataSize::Byte, Operation::SUB, Source::eCX, ScaleIndexBase(3, Source::eBP, Source::eSP));
 	test(instructions[51], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eCX, 0xb7);
 
-	//cmp    ecx,DWORD PTR [ebp+0x2c87445f]
-	//jecxz  0x00000084	(from 0x82)
-	//sahf
-	//je     0x000000f3	(from 0x85)
+	// cmp    ecx,DWORD PTR [ebp+0x2c87445f]
+	// jecxz  0x00000084	(from 0x82)
+	// sahf
+	// je     0x000000f3	(from 0x85)
 	test(instructions[52], DataSize::DWord, Operation::CMP, ScaleIndexBase(Source::eBP), Source::eCX, 0, 0x2c87445f);
 	test(instructions[53], Operation::JPCX, 0, 0x02);
 	test(instructions[54], Operation::SAHF);
 	test(instructions[55], Operation::JE, 0, 0x6e);
 
-	//sbb    ecx,DWORD PTR [edi+0x433c54d]
-	//lahf
-	//lods   al,BYTE PTR ds:[esi]
-	//ror    cl,0x60
+	// sbb    ecx,DWORD PTR [edi+0x433c54d]
+	// lahf
+	// lods   al,BYTE PTR ds:[esi]
+	// ror    cl,0x60
 	test(instructions[56], DataSize::DWord, Operation::SBB, ScaleIndexBase(Source::eDI), Source::eCX, 0, 0x433c54d);
 	test(instructions[57], Operation::LAHF);
 	test(instructions[58], Operation::LODS);
 	test(instructions[59], DataSize::Byte, Operation::ROR, Source::Immediate, Source::eCX, 0x60);
 
-	//call   0xe21b:0x97d0f58a
-	//fs pusha
-	//mov    al,0xcf
-	//jecxz  0x000000d4	(from 0x9d)
+	// call   0xe21b:0x97d0f58a
+	// fs pusha
+	// mov    al,0xcf
+	// jecxz  0x000000d4	(from 0x9d)
 	test_far(instructions[60], Operation::CALLF, 0xe21b, 0x97d0f58a);
 	test(instructions[61], Operation::PUSHA);
 	test(instructions[62], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eAX, 0xcf);
