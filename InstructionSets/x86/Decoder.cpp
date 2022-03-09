@@ -337,7 +337,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80186);
 				ShiftGroup();
 				source_ = Source::Immediate;
-				operand_size_ = operation_size_;
+				operand_size_ = DataSize::Byte;
 			break;
 			case 0xc2: RegData(RETN, None, data_size_);				break;
 			case 0xc3: Complete(RETN, None, None, DataSize::None);	break;

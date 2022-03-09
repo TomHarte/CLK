@@ -426,7 +426,7 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	//movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
 	//jns    0x00000035 (from 0x42)
 	//jge    0x00000060 (from 0x44)
-	test(instructions[24], DataSize::Word, Operation::POP, Source::DS, Source::DS);
+	test(instructions[24], DataSize::Word, Operation::POP, Source::None, Source::DS);
 	test(instructions[25], DataSize::DWord, Operation::MOVS);
 	test(instructions[26], Operation::JNS, 0, -0xd);
 	test(instructions[27], Operation::JNL, 0, 0x1c);
@@ -440,22 +440,32 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	test(instructions[30], DataSize::DWord, Operation::PUSH, Source::eDX);
 	test(instructions[31], Operation::INT, 0xc4);
 
-	//jmp    0x29cf120d
+	//jmp    0x29cf120d (from 0x53)
 	//or     DWORD PTR [esi+0x1a],eax
 	//rcr    BYTE PTR [ebp-0x78],0x34
 	//movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
-	test(instructions[32], Operation::JMPN, 0x29cf120d);
-	test(instructions[33], Operation::OR, DataSize::DWord, Source::eAX, ScaleIndexBase(Source::eSI), 0, 0x1a);
+	test(instructions[32], Operation::JMPN, 0x29cf120d - 0x53);
+//	XCTAssertEqual(instructions[32].source(), Source::None);
+	test(instructions[33], DataSize::DWord, Operation::OR, Source::eAX, ScaleIndexBase(Source::eSI), 0, 0x1a);
+	test(instructions[34], DataSize::Byte, Operation::RCR, Source::Immediate, ScaleIndexBase(Source::eBP), 0x34, -0x78);
+	test(instructions[35], DataSize::DWord, Operation::MOVS);
 
 	//and    edx,0xffffffd0
 	//cmc
 	//inc    esp
 	//popf
+	test(instructions[36], DataSize::DWord, Operation::AND, Source::Immediate, Source::eDX);
+	test(instructions[37], DataSize::None, Operation::CMC);
+	test(instructions[38], DataSize::DWord, Operation::INC, Source::eSP);
+	test(instructions[39], DataSize::DWord, Operation::POPF);
+
 	//movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
-	// Note to self: divergance at or just after here.
 	//rcr    DWORD PTR [esi+0x4f],0x7
 	//push   ecx
 	//aam    0xed
+	test(instructions[40], DataSize::DWord, Operation::MOVS);
+	test(instructions[41], DataSize::DWord, Operation::RCR, Source::Immediate, ScaleIndexBase(Source::eSI), 0x07, 0x4f);
+
 	//mov    al,0x69
 	//xlat   BYTE PTR ds:[ebx]
 	//add    ch,al
