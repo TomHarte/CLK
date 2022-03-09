@@ -352,6 +352,10 @@ enum class AddressSize: uint8_t {
 	b32 = 1,
 };
 
+constexpr DataSize data_size(AddressSize size) {
+	return DataSize(int(size) + 1);
+}
+
 constexpr int byte_size(AddressSize size) {
 	return 2 << int(size);
 }

@@ -105,7 +105,7 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 */
 @implementation x86DecoderTests
 
-- (void)testSequence1 {
+- (void)test16BitSequence {
 	// Sequences the Online Disassembler believes to exist but The 8086 Book does not:
 	//
 	// 0x6a 0x65	push $65
@@ -220,7 +220,7 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	// dec		%bp
 	// jbe		0xffffffcc
 	// inc		%sp
-	test(instructions[34], DataSize::Word, Operation::POP, Source::eAX);
+	test(instructions[34], DataSize::Word, Operation::POP, Source::eAX, Source::eAX);
 	test(instructions[35], DataSize::Word, Operation::DEC, Source::eBP, Source::eBP);
 	test(instructions[36], Operation::JBE, std::nullopt, 0xff80);
 	test(instructions[37], DataSize::Word, Operation::INC, Source::eSP, Source::eSP);
@@ -409,31 +409,50 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	//fiadd  DWORD PTR [ebx-0x64f3e674]
 	test(instructions[16], DataSize::DWord, Operation::PUSH, Source::eAX);
 	test(instructions[17], DataSize::Byte, Operation::DEC, Source::DH);
-	test(instructions[18], Operation::LOOPNE, 0, -18);
+	test(instructions[18], Operation::LOOPNE, 0, -63);
+	test(instructions[19], Operation::ESC);
 
 	//mov    DWORD PTR [ebx],edx
 	//xor    al,0x45
 	//lds    edx,FWORD PTR [ecx]
-
-	// Note to self: disassembly currently diverges at or immediately after this MOV:
 	//mov    ds:0xe4dba6d3,al
+	test(instructions[20], DataSize::DWord, Operation::MOV, Source::eDX, ScaleIndexBase(Source::eBX));
+	test(instructions[21], DataSize::Byte, Operation::XOR, Source::Immediate, Source::eAX, 0x45);
+	test(instructions[22], DataSize::DWord, Operation::LDS, ScaleIndexBase(Source::eCX), Source::eDX);
+	test(instructions[23], DataSize::Byte, Operation::MOV, Source::eAX, Source::DirectAddress, 0xe4dba6d3);
+	XCTAssertEqual(instructions[23].data_segment(), Source::DS);
+
 	//pop    ds
 	//movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
-	//jns    0x00000035
-	//jge    0x00000060
+	//jns    0x00000035 (from 0x42)
+	//jge    0x00000060 (from 0x44)
+	test(instructions[24], DataSize::Word, Operation::POP, Source::DS, Source::DS);
+	test(instructions[25], DataSize::DWord, Operation::MOVS);
+	test(instructions[26], Operation::JNS, 0, -0xd);
+	test(instructions[27], Operation::JNL, 0, 0x1c);
+
 	//mov    eax,0x8a766bda
-	//jns    0x00000073
+	//jns    0x00000073 (from 0x4b)
 	//push   edx
 	//int    0xc4
+	test(instructions[28], DataSize::DWord, Operation::MOV, Source::Immediate, Source::eAX, 0x8a766bda);
+	test(instructions[29], Operation::JNS, 0, 0x28);
+	test(instructions[30], DataSize::DWord, Operation::PUSH, Source::eDX);
+	test(instructions[31], Operation::INT, 0xc4);
+
 	//jmp    0x29cf120d
 	//or     DWORD PTR [esi+0x1a],eax
 	//rcr    BYTE PTR [ebp-0x78],0x34
 	//movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
+	test(instructions[32], Operation::JMPN, 0x29cf120d);
+	test(instructions[33], Operation::OR, DataSize::DWord, Source::eAX, ScaleIndexBase(Source::eSI), 0, 0x1a);
+
 	//and    edx,0xffffffd0
 	//cmc
 	//inc    esp
 	//popf
 	//movs   DWORD PTR es:[edi],DWORD PTR ds:[esi]
+	// Note to self: divergance at or just after here.
 	//rcr    DWORD PTR [esi+0x4f],0x7
 	//push   ecx
 	//aam    0xed
