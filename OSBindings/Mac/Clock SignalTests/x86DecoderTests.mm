@@ -473,13 +473,19 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	//add    ch,al
 	//push   ecx
 	test(instructions[44], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eAX, 0x69);
-
+	test(instructions[45], Operation::XLAT);
+	test(instructions[46], DataSize::Byte, Operation::ADD, Source::eAX, Source::CH);
 	test(instructions[47], DataSize::DWord, Operation::PUSH, Source::eCX);
 
 	//sti
 	//push   0x698b3a85
 	//sub    BYTE PTR [esp+ebp*8],cl
 	//mov    cl,0xb7
+	test(instructions[48], Operation::STI);
+	test(instructions[49], DataSize::DWord, Operation::PUSH, Source::Immediate, Source::None, 0x698b3a85);
+	test(instructions[50], DataSize::Byte, Operation::SUB, Source::eCX, ScaleIndexBase(3, Source::eBP, Source::eSP));
+	test(instructions[51], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eCX, 0xb7);
+
 	//cmp    ecx,DWORD PTR [ebp+0x2c87445f]
 	//jecxz  0x00000084
 	//sahf

@@ -212,6 +212,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x68:
 				RequiresMin(i80286);
 				Immediate(PUSH, data_size_);
+				operation_size_ = data_size_;
 			break;
 			case 0x69:
 				RequiresMin(i80286);
