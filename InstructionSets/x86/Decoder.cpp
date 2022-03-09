@@ -77,8 +77,8 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 #define Far(op)										\
 	operation_ = Operation::op;						\
 	phase_ = Phase::DisplacementOrOperand;			\
-	operand_size_ = data_size_;						\
-	displacement_size_ = DataSize::Word
+	operand_size_ = DataSize::Word;					\
+	displacement_size_ = data_size(address_size_)
 
 /// Handles ENTER — a fixed three-byte operation.
 #define Displacement16Operand8(op)					\

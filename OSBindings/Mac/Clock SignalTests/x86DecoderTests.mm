@@ -52,7 +52,11 @@ template <typename InstructionT> void test(
 	if(displacement) XCTAssertEqual(instruction.displacement(), *displacement);
 }
 
-template <typename InstructionT> void test_far(const InstructionT &instruction, Operation operation, uint16_t segment, uint16_t offset) {
+template <typename InstructionT> void test_far(
+	const InstructionT &instruction,
+	Operation operation,
+	uint16_t segment,
+	typename InstructionT::DisplacementT offset) {
 	XCTAssertEqual(instruction.operation, operation);
 	XCTAssertEqual(instruction.segment(), segment);
 	XCTAssertEqual(instruction.offset(), offset);
@@ -487,17 +491,31 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	test(instructions[51], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eCX, 0xb7);
 
 	//cmp    ecx,DWORD PTR [ebp+0x2c87445f]
-	//jecxz  0x00000084
+	//jecxz  0x00000084	(from 0x82)
 	//sahf
-	//je     0x000000f3
+	//je     0x000000f3	(from 0x85)
+	test(instructions[52], DataSize::DWord, Operation::CMP, ScaleIndexBase(Source::eBP), Source::eCX, 0, 0x2c87445f);
+	test(instructions[53], Operation::JPCX, 0, 0x02);
+	test(instructions[54], Operation::SAHF);
+	test(instructions[55], Operation::JE, 0, 0x6e);
+
 	//sbb    ecx,DWORD PTR [edi+0x433c54d]
 	//lahf
 	//lods   al,BYTE PTR ds:[esi]
 	//ror    cl,0x60
+	test(instructions[56], DataSize::DWord, Operation::SBB, ScaleIndexBase(Source::eDI), Source::eCX, 0, 0x433c54d);
+	test(instructions[57], Operation::LAHF);
+	test(instructions[58], Operation::LODS);
+	test(instructions[59], DataSize::Byte, Operation::ROR, Source::Immediate, Source::eCX, 0x60);
+
 	//call   0xe21b:0x97d0f58a
 	//fs pusha
 	//mov    al,0xcf
-	//jecxz  0x000000d4
+	//jecxz  0x000000d4	(from 0x9d)
+	test_far(instructions[60], Operation::CALLF, 0xe21b, 0x97d0f58a);
+	test(instructions[61], Operation::PUSHA);
+	test(instructions[62], DataSize::Byte, Operation::MOV, Source::Immediate, Source::eAX, 0xcf);
+	test(instructions[63], Operation::JPCX, 0, 0xd4 - 0x9d);
 }
 
 @end

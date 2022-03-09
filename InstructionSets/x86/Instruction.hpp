@@ -630,7 +630,7 @@ template<bool is_32bit> class Instruction {
 
 		// TODO: confirm whether far call for some reason makes these 32-bit in protected mode.
 		uint16_t segment() const		{	return uint16_t(operand_);					}
-		uint16_t offset() const			{	return uint16_t(displacement_);				}
+		DisplacementT offset() const	{	return displacement_;						}
 
 		DisplacementT displacement() const	{	return displacement_;					}
 		ImmediateT operand() const			{	return operand_;						}
