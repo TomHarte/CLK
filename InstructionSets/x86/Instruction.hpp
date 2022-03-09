@@ -628,7 +628,6 @@ template<bool is_32bit> class Instruction {
 		Repetition repetition() const	{	return Repetition(repetition_size_ & 3);	}
 		DataSize operation_size() const {	return DataSize(repetition_size_ >> 2);		}
 
-		// TODO: confirm whether far call for some reason makes these 32-bit in protected mode.
 		uint16_t segment() const		{	return uint16_t(operand_);					}
 		DisplacementT offset() const	{	return displacement_;						}
 
