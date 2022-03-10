@@ -18,14 +18,6 @@ using namespace InstructionSet::x86;
 
 @implementation x86DataPointerTests
 
-//- (InstructionSet::x86::Instruction<false>)instruction16WithSourceDataPointer:(DataPointer)pointer {
-//	return x86::Instruction<false>{
-//		InstructionSet::x86::Operation::AAA,
-//		S
-//	};
-//}
-
-
 - (void)test16bitSize1 {
 	const DataPointer indirectPointer(
 		Source::eAX, Source::eDI, 0

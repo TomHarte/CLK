@@ -539,4 +539,22 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	test(instructions[63], Operation::JPCX, 0, 0xd4 - 0x9d);
 }
 
+- (void)testSourceSIB1 {
+	const auto instructions = decode<Model::i80386>({
+		0x62, 0x90, 0x90, 0xdf, 0xcd, 0xf9
+	}, true);
+
+	XCTAssertEqual(instructions.size(), 1);
+	test(instructions[0], DataSize::DWord, Operation::BOUND, ScaleIndexBase(Source::eAX), Source::eDX, 0, -0x6322070);
+}
+
+- (void)testSourceSIB2 {
+	const auto instructions = decode<Model::i80386>({
+		0x81, 0x47, 0xbe, 0xa9, 0x3a, 0x68, 0x9f
+	}, true);
+
+	XCTAssertEqual(instructions.size(), 1);
+	test(instructions[0], DataSize::DWord, Operation::ADD, Source::Immediate, ScaleIndexBase(Source::eDI), 0x9f683aa9, -0x42);
+}
+
 @end

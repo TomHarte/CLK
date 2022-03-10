@@ -434,6 +434,23 @@ enum class Source: uint8_t {
 	IndirectNoBase = Indirect - 1,
 };
 
+constexpr Source default_data_segment([[maybe_unused]] Operation operation) {
+	// TODO: is this really necessary, or can ::DS always be default?
+	// i.e. can the stack operations actually take a segment override?
+	// If not then the actual implementations just won't ask about a segment.
+//	constexpr std::set<Operation> stack_ops = {
+//
+//	};
+//
+//	if(
+//		operation == Operation::PUSH ||
+//		operation == Operation::PUSHF ||
+//		operation == Operation::POP) {
+//		return Source::SS;
+//	}
+	return Source::DS;
+}
+
 enum class Repetition: uint8_t {
 	None, RepE, RepNE
 };
@@ -495,6 +512,10 @@ class ScaleIndexBase {
 					rhs.index() == base() &&
 					rhs.base() == index()
 				);
+		}
+
+		operator uint8_t() const {
+			return sib_;
 		}
 
 	private:
@@ -571,109 +592,147 @@ class DataPointer {
 
 template<bool is_32bit> class Instruction {
 	public:
-		Operation operation = Operation::Invalid;
+		const Operation operation = Operation::Invalid;
 
-		bool operator ==(const Instruction &rhs) const {
-			return
-				repetition_size_ == rhs.repetition_size_ &&
-				sources_ == rhs.sources_ &&
-				displacement_ == rhs.displacement_ &&
-				operand_ == rhs.operand_ &&
-				sib_ == rhs.sib_ &&
-				length_ == rhs.length_;
+		bool operator ==(const Instruction<is_32bit> &rhs) const {
+			if(	operation != rhs.operation ||
+				mem_exts_source_ != rhs.mem_exts_source_ ||
+				source_data_dest_sib_ != rhs.source_data_dest_sib_) {
+				return false;
+			}
+
+			// Have already established above that this and RHS have the
+			// same extensions, if any.
+			const int extension_count = has_length_extension() + has_displacement() + has_operand();
+			for(int c = 0; c < extension_count; c++) {
+				if(extensions_[c] != rhs.extensions_[c]) return false;
+			}
+
+			return true;
 		}
 
 		using DisplacementT = typename std::conditional<is_32bit, int32_t, int16_t>::type;
 		using ImmediateT = typename std::conditional<is_32bit, uint32_t, uint16_t>::type;
 		using AddressT = ImmediateT;
 
-		/* Note to self — current thinking is:
-
-			First 32bits:
-				5 bits source;
-				5 bits dest;
-				5 bits partial SIB, combined with three low bits of source or dest if indirect;
-				8 bits operation;
-				4 bits original instruction size;
-				2 bits data size;
-				1 bit memory size;
-				2 bits extension flags.
-
-			Extensions (16 or 32 bit, depending on templated size):
-				1) reptition + segment override + lock + original instruction size (= 10 bits);
-				2) displacement;
-				3) immediate operand.
-
-			Presence or absence of extensions is dictated by:
-				* instruction size = 0 => the repetition, etc extension (including the real extension size); and
-				* the extension flags for displacement and/or immediate.
-
-			Therefore an instruction's footprint is:
-				* 4–8 bytes (16-bit processors);
-				* 4–12 bytes (32-bit processors).
-
-			I'll then implement a collection suited to packing these things based on their
-			packing_size(), and later iterating them.
-
-			To verify: the 8086 allows unlimited-length instructions (which I'll probably handle by
-			generating length-15 NOPs and not resetting parser state), the 80386 limits them to
-			15 bytes, but what do the processors in between do?
-		*/
-
 	private:
-		// b0, b1: a Repetition;
-		// b2+: operation size.
-		uint8_t repetition_size_ = 0;
+		// Packing and encoding of fields is admittedly somewhat convoluted; what this
+		// achieves is that instructions will be sized:
+		//
+		//	four bytes + up to three extension words
+		//	(two bytes for 16-bit instructions, four for 32)
+		//
+		// Two of the extension words are used to retain an operand and displacement
+		// if the instruction has those. The other can store sizes greater than 15
+		// bytes (for earlier processors), plus any repetition, segment override or
+		// repetition prefixes.
 
-		// b0–b5: source;
-		// b6–b11: destination;
-		// b12–b14: segment override;
-		// b15: lock.
-		uint16_t sources_ = 0;
+		// b7: address size;
+		// b6: has displacement;
+		// b5: has operand;
+		// [b4, b0]: source.
+		const uint8_t mem_exts_source_ = 0xff;
 
-		// Unpackable fields.
-		DisplacementT displacement_ = 0;
-		ImmediateT operand_ = 0;		// ... or used to store a segment for far operations.
+		bool has_displacement() const {
+			return mem_exts_source_ & (1 << 6);
+		}
+		bool has_operand() const {
+			return mem_exts_source_ & (1 << 5);
+		}
 
-		// Fields yet to be properly incorporated...
-		ScaleIndexBase sib_;
-		AddressSize address_size_ = AddressSize::b16;
-		int length_ = 0;
+		// [b15, b14]: data size;
+		// [b13, b10]: source length (0 => has length extension);
+		// [b9, b5]: top five of SIB;
+		// [b4, b0]: dest.
+		const uint16_t source_data_dest_sib_ = 0xffff;
+
+		bool has_length_extension() const {
+			return !((source_data_dest_sib_ >> 10) & 15);
+		}
+
+		// {length extension}, {operand}, {displacement}.
+		// If length extension is present then:
+		//
+		//	[b15, b6]: source length;
+		//	[b5, b4]: repetition;
+		//	[b3, b1]: segment override;
+		//	b0: lock.
+		ImmediateT extensions_[3];
 
 	public:
 		/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
 		/// to store an @c Instruction but is permitted to reuse the trailing sizeof(Instruction) - packing_size() for any purpose it likes. Teleologically,
 		/// this allows a denser packing of instructions into containers.
-		size_t packing_size() const		{	return sizeof(*this);	/* TODO */	}
+		size_t packing_size() const	{
+			return
+				offsetof(Instruction<is_32bit>, extensions) +
+				(has_displacement() + has_operand() + has_length_extension()) * sizeof(ImmediateT);
+		}
 
-		DataPointer source() const		{	return DataPointer(Source(sources_ & 0x3f), sib_);			}
-		DataPointer destination() const	{	return DataPointer(Source((sources_ >> 6) & 0x3f), sib_);	}
-		bool lock() const				{	return sources_ & 0x8000;									}
+	private:
+		// A lookup table to help with stripping parts of the SIB that have been
+		// hidden within the source/destination fields.
+		static constexpr uint8_t sib_masks[] = {
+			0x1f, 0x1f, 0x1f, 0x18
+		};
+
+	public:
+		DataPointer source() const {
+			return DataPointer(
+				Source(mem_exts_source_ & sib_masks[(mem_exts_source_ >> 3) & 3]),
+				((source_data_dest_sib_ >> 2) & 0xf8) | (mem_exts_source_ & 0x07)
+			);
+		}
+		DataPointer destination() const	{
+			return DataPointer(
+				Source(source_data_dest_sib_ & sib_masks[(source_data_dest_sib_ >> 3) & 3]),
+				((source_data_dest_sib_ >> 2) & 0xf8) | (source_data_dest_sib_ & 0x07)
+			);
+		}
+		bool lock() const {
+			return has_length_extension() && extensions_[0]&1;
+		}
 
 		AddressSize address_size() const {
-			return AddressSize(address_size_);
+			return AddressSize(mem_exts_source_ >> 7);
 		}
 		Source data_segment() const {
-			const auto segment_override = Source(
+			if(!has_length_extension()) return default_data_segment(operation);
+			return Source(
 				int(Source::ES) +
-				((sources_ >> 12) & 7)
+				((extensions_[0] >> 1) & 7)
 			);
-			if(segment_override != Source::None) return segment_override;
-
-			// TODO: default source should be SS for anything touching the stack.
-			return Source::DS;
 		}
 
-		Repetition repetition() const	{	return Repetition(repetition_size_ & 3);	}
-		DataSize operation_size() const {	return DataSize(repetition_size_ >> 2);		}
+		Repetition repetition() const {
+			if(!has_length_extension()) return Repetition::None;
+			return Repetition((extensions_[0] >> 4) & 3);
+		}
+		DataSize operation_size() const {
+			return DataSize(source_data_dest_sib_ >> 14);
+		}
 
-		uint16_t segment() const		{	return uint16_t(operand_);					}
-		DisplacementT offset() const	{	return displacement_;						}
+		int length() const {
+			const int short_length = (source_data_dest_sib_ >> 10) & 15;
+			if(short_length) return short_length;
+			return extensions_[0] >> 6;
+		}
 
-		DisplacementT displacement() const	{	return displacement_;					}
-		ImmediateT operand() const			{	return operand_;						}
+		ImmediateT operand() const	{
+			const ImmediateT ops[] = {0, extensions_[has_length_extension()]};
+			return ops[has_operand()];
+		}
+		DisplacementT displacement() const {
+			return DisplacementT(offset());
+		}
 
-		int length() const { return length_; }
+		uint16_t segment() const		{
+			return uint16_t(operand());
+		}
+		ImmediateT offset() const	{
+			const ImmediateT offsets[] = {0, extensions_[has_length_extension() + has_operand()]};
+			return offsets[has_displacement()];
+		}
 
 		Instruction() noexcept {}
 		Instruction(
@@ -685,27 +744,46 @@ template<bool is_32bit> class Instruction {
 			AddressSize address_size,
 			Source segment_override,
 			Repetition repetition,
-			DataSize operation_size,
+			DataSize data_size,
 			DisplacementT displacement,
 			ImmediateT operand,
 			int length) noexcept :
 				operation(operation),
-				repetition_size_(uint8_t((int(operation_size) << 2) | int(repetition))),
-				sources_(uint16_t(
+				mem_exts_source_(uint8_t(
+					(int(address_size) << 7) |
+					(displacement ? 0x40 : 0x00) |
+					(operand ? 0x20 : 0x00) |
 					int(source) |
-					(int(destination) << 6) |
-					((int(segment_override) & 7) << 12) |
-					(int(lock) << 15)
+					(source == Source::Indirect ? (uint8_t(sib) & 7) : 0)
 				)),
-				displacement_(displacement),
-				operand_(operand),
-				sib_(sib),
-				address_size_(address_size),
-				length_(length) {}
+				source_data_dest_sib_(uint16_t(
+					(int(data_size) << 14) |
+					((
+						(lock || (segment_override != Source::None) || (length > 15) || (repetition != Repetition::None))
+					) ? 0 : (length << 10)) |
+					((uint8_t(sib) & 0xf8) << 2) |
+					int(destination) |
+					(destination == Source::Indirect ? (uint8_t(sib) & 7) : 0)
+				)) {
+
+				int extension = 0;
+				if(has_length_extension()) {
+					if(segment_override == Source::None) segment_override = default_data_segment(operation);
+					extensions_[extension] = ImmediateT(
+						(length << 6) | (int(repetition) << 4) | ((int(segment_override) & 7) << 1) | int(lock)
+					);
+					++extension;
+				}
+				if(has_operand()) {
+					extensions_[extension] = operand;
+					++extension;
+				}
+				extensions_[extension] = ImmediateT(displacement);
+			}
 };
 
-// TODO: repack.
-//static_assert(sizeof(Instruction) <= 8);
+static_assert(sizeof(Instruction<true>) <= 16);
+static_assert(sizeof(Instruction<false>) <= 10);
 
 }
 }
