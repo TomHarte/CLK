@@ -14,6 +14,12 @@
 
 using namespace InstructionSet::x86;
 
+// TODO: instruction length limits:
+//
+//	8086/80186: none
+//	80286: 10 bytes
+//	80386: 15 bytes
+
 template <Model model>
 std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(const uint8_t *source, size_t length) {
 	const uint8_t *const end = source + length;
