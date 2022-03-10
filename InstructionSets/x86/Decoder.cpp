@@ -908,7 +908,9 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				repetition_,
 				DataSize(operation_size_),
 				static_cast<typename InstructionT::DisplacementT>(displacement_),
-				static_cast<typename InstructionT::ImmediateT>(operand_))
+				static_cast<typename InstructionT::ImmediateT>(operand_),
+				consumed_
+			)
 		);
 		reset_parsing();
 		return result;

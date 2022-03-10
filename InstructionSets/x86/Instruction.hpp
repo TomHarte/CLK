@@ -579,7 +579,8 @@ template<bool is_32bit> class Instruction {
 				sources_ == rhs.sources_ &&
 				displacement_ == rhs.displacement_ &&
 				operand_ == rhs.operand_ &&
-				sib_ == rhs.sib_;
+				sib_ == rhs.sib_ &&
+				length_ == rhs.length_;
 		}
 
 		using DisplacementT = typename std::conditional<is_32bit, int32_t, int16_t>::type;
@@ -637,6 +638,7 @@ template<bool is_32bit> class Instruction {
 		// Fields yet to be properly incorporated...
 		ScaleIndexBase sib_;
 		AddressSize address_size_ = AddressSize::b16;
+		int length_ = 0;
 
 	public:
 		/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
@@ -671,6 +673,8 @@ template<bool is_32bit> class Instruction {
 		DisplacementT displacement() const	{	return displacement_;					}
 		ImmediateT operand() const			{	return operand_;						}
 
+		int length() const { return length_; }
+
 		Instruction() noexcept {}
 		Instruction(
 			Operation operation,
@@ -683,7 +687,8 @@ template<bool is_32bit> class Instruction {
 			Repetition repetition,
 			DataSize operation_size,
 			DisplacementT displacement,
-			ImmediateT operand) noexcept :
+			ImmediateT operand,
+			int length) noexcept :
 				operation(operation),
 				repetition_size_(uint8_t((int(operation_size) << 2) | int(repetition))),
 				sources_(uint16_t(
@@ -695,7 +700,8 @@ template<bool is_32bit> class Instruction {
 				displacement_(displacement),
 				operand_(operand),
 				sib_(sib),
-				address_size_(address_size) {}
+				address_size_(address_size),
+				length_(length) {}
 };
 
 // TODO: repack.
