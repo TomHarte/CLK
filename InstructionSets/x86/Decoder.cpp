@@ -830,7 +830,6 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 		if(expects_sib && (source_ == Source::Indirect | destination_ == Source::Indirect)) {
 			phase_ = Phase::ScaleIndexBase;
-			// TODO: test for IndirectNoBase.
 		} else {
 			phase_ = (displacement_size_ != DataSize::None || operand_size_ != DataSize::None) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
 		}
@@ -844,6 +843,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 		sib_ = *source;
 		++source;
 		++consumed_;
+
+		// Potentially record the lack of a base.
+		if(displacement_size_ == DataSize::None && (uint8_t(sib_)&7) == 5) {
+			source_ = (source_ == Source::Indirect) ? Source::IndirectNoBase : source_;
+			destination_ = (destination_ == Source::Indirect) ? Source::IndirectNoBase : destination_;
+		}
 
 		phase_ = (displacement_size_ != DataSize::None || operand_size_ != DataSize::None) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;
 	}
