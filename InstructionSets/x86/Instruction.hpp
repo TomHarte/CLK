@@ -201,14 +201,18 @@ enum class Operation: uint8_t {
 	/// Load AL with DS:[AL+BX].
 	XLAT,
 
-	// TODO: expand detail on all operations below.
-
 	//
 	// 80186 additions.
 	//
 
-	/// Checks an array index against bounds.
+	/// Checks whether the signed value in the destination register is within the bounds
+	/// stored at the location indicated by the source register, which will point to two
+	/// 16- or 32-bit words, the first being a signed lower bound and the signed upper.
+	/// Raises a bounds exception if not.
 	BOUND,
+
+
+	// TODO: expand detail on all operations below.
 
 	/// Create stack frame.
 	ENTER,
@@ -326,9 +330,15 @@ enum class Operation: uint8_t {
 	/// Two-operand form of IMUL; multiply the source by the destination and write to the destination.
 	IMUL_2,
 
+	// Various conditional sets; each sets the byte at the location given by the operand
+	// to $ff if the condition is met; $00 otherwise.
 	SETO, SETNO,	SETB, SETNB,	SETZ, SETNZ,	SETBE, SETNBE,
 	SETS, SETNS,	SETP, SETNP,	SETL, SETNL,	SETLE, SETNLE,
 
+	// Various special-case moves (i.e. those where it is impractical to extend the
+	// Source enum, so the requirement for special handling is loaded into the operation).
+	// In all cases the Cx, Dx and Tx Source aliases can be used to reinterpret the relevant
+	// source or destination.
 	MOVtoCr, MOVfromCr,
 	MOVtoDr, MOVfromDr,
 	MOVtoTr, MOVfromTr,
@@ -392,6 +402,11 @@ enum class Source: uint8_t {
 	eSI = eSIorDH,	DH = eSIorDH,
 	eDI = eDIorBH,	BH = eDIorBH,
 
+	// Aliases for control, test and debug registers.
+	C0 = 0, C1 = 1, C2 = 2, C3 = 3, C4 = 4, C5 = 5, C6 = 6, C7 = 7,
+	T0 = 0, T1 = 1, T2 = 2, T3 = 3, T4 = 4, T5 = 5, T6 = 6, T7 = 7,
+	D0 = 0, D1 = 1, D2 = 2, D3 = 3, D4 = 4, D5 = 5, D6 = 6, D7 = 7,
+
 	// Selectors.
 	ES, CS, SS, DS, FS, GS,
 
@@ -403,8 +418,6 @@ enum class Source: uint8_t {
 
 	/// The address included within this instruction should be used as the source.
 	DirectAddress,
-	// TODO: is this better eliminated in favour of an indirect
-	// source with a base() and index() of 0?
 
 	/// The immediate value included within this instruction should be used as the source.
 	Immediate,
@@ -414,8 +427,12 @@ enum class Source: uint8_t {
 	// Elsewhere, as an implementation detail, the low three bits of an indirect source
 	// are reused; (Indirect-1) is also used as a sentinel value but is not a valid member
 	// of the enum and isn't exposed externally.
+
+	/// The ScaleIndexBase associated with this source should be used, but
+	/// its base should be ignored (and is guaranteed to be zero if the default
+	/// getter is used).
+	IndirectNoBase = Indirect - 1,
 };
-constexpr Source SourceIndirectNoBase = Source(uint8_t(Source::Indirect) - 1);
 
 enum class Repetition: uint8_t {
 	None, RepE, RepNE
@@ -436,7 +453,12 @@ class ScaleIndexBase {
 	public:
 		constexpr ScaleIndexBase() noexcept {}
 		constexpr ScaleIndexBase(uint8_t sib) noexcept : sib_(sib) {}
-		constexpr ScaleIndexBase(int scale, Source index, Source base) noexcept : sib_(uint8_t(scale << 6 | (int(index != Source::None ? index : Source::eSI) << 3) | int(base))) {}
+		constexpr ScaleIndexBase(int scale, Source index, Source base) noexcept :
+			sib_(uint8_t(
+				scale << 6 |
+				(int(index != Source::None ? index : Source::eSI) << 3) |
+				int(base)
+			)) {}
 		constexpr ScaleIndexBase(Source index, Source base) noexcept : ScaleIndexBase(0, index, base) {}
 		constexpr explicit ScaleIndexBase(Source base) noexcept : ScaleIndexBase(0, Source::None, base) {}
 
@@ -457,6 +479,10 @@ class ScaleIndexBase {
 		/// @returns the @c base for this address; this is guaranteed to be one of eAX, eBX, eCX, eDX, eSP, eBP, eSI or eDI.
 		constexpr Source base() const {
 			return Source(sib_ & 0x7);
+		}
+
+		constexpr uint8_t without_base() const {
+			return sib_ & ~0x3;
 		}
 
 		bool operator ==(const ScaleIndexBase &rhs) const {
@@ -501,20 +527,26 @@ class DataPointer {
 		constexpr DataPointer(Source source, ScaleIndexBase sib) noexcept : source_(source), sib_(sib) {}
 
 		/// Constructs an indirect DataPointer referencing the given base, index and scale.
+		/// Automatically maps Source::Indirect to Source::IndirectNoBase if base is Source::None.
 		constexpr DataPointer(Source base, Source index, int scale) noexcept :
-			source_(base != Source::None ? Source::Indirect : SourceIndirectNoBase),
+			source_(base != Source::None ? Source::Indirect : Source::IndirectNoBase),
 			sib_(scale, index, base) {}
 
 		constexpr bool operator ==(const DataPointer &rhs) const {
 			// Require a SIB match only if source_ is ::Indirect or ::IndirectNoBase.
-			return source_ == rhs.source_ && (source_ < SourceIndirectNoBase || sib_ == rhs.sib_);
+			return
+				source_ == rhs.source_ && (
+					source_ < Source::IndirectNoBase ||
+					(source_ == Source::Indirect && sib_ == rhs.sib_) ||
+					(source_ == Source::IndirectNoBase && sib_.without_base() == rhs.sib_.without_base())
+				);
 		}
 
-		// TODO: determine whether conditionals below
-		// have introduced branching.
-
-		constexpr Source source() const {
-			return (source_ >= SourceIndirectNoBase) ? Source::Indirect : source_;
+		template <bool obscure_indirectNoBase = false> constexpr Source source() const {
+			if constexpr (obscure_indirectNoBase) {
+				return (source_ >= Source::IndirectNoBase) ? Source::Indirect : source_;
+			}
+			return source_;
 		}
 
 		constexpr int scale() const {
@@ -525,8 +557,11 @@ class DataPointer {
 			return sib_.index();
 		}
 
-		constexpr Source base() const {
-			return (source_ <= SourceIndirectNoBase) ? Source::None : sib_.base();
+		template <bool obscure_indirectNoBase = false> constexpr Source base() const {
+			if constexpr (obscure_indirectNoBase) {
+				return (source_ <= Source::IndirectNoBase) ? Source::None : sib_.base();
+			}
+			return sib_.base();
 		}
 
 	private:
