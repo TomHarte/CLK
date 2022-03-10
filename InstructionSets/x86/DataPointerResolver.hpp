@@ -152,6 +152,7 @@ template <Model model, typename RegistersT, typename MemoryT> class DataPointerR
 
 		/// Computes the effective address of @c pointer including any displacement applied by @c instruction.
 		/// @c pointer must be of type Source::Indirect.
+		template <bool obscured_indirectNoBase = true, bool has_base = true>
 		static uint32_t effective_address(
 			RegistersT &registers,
 			const Instruction<is_32bit(model)> &instruction,
@@ -211,6 +212,7 @@ template <typename DataT> void DataPointerResolver<model, RegistersT, MemoryT>::
 						rw(v, FS, i);		rw(v, GS, i);
 
 template <Model model, typename RegistersT, typename MemoryT>
+template <bool obscured_indirectNoBase, bool has_base>
 uint32_t DataPointerResolver<model, RegistersT, MemoryT>::effective_address(
 	RegistersT &registers,
 	const Instruction<is_32bit(model)> &instruction,
@@ -218,9 +220,11 @@ uint32_t DataPointerResolver<model, RegistersT, MemoryT>::effective_address(
 		using AddressT = typename Instruction<is_32bit(model)>::AddressT;
 		AddressT base = 0, index = 0;
 
-		switch(pointer.base()) {
-			default: break;
-			ALLREGS(base, false);
+		if constexpr (has_base) {
+			switch(pointer.base<obscured_indirectNoBase>()) {
+				default: break;
+				ALLREGS(base, false);
+			}
 		}
 
 		switch(pointer.index()) {
@@ -257,7 +261,7 @@ template <bool is_write, typename DataT> void DataPointerResolver<model, Registe
 	const Instruction<is_32bit(model)> &instruction,
 	DataPointer pointer,
 	DataT &value) {
-		const Source source = pointer.source();
+		const Source source = pointer.source<false>();
 
 		switch(source) {
 			default:
@@ -279,22 +283,32 @@ template <bool is_write, typename DataT> void DataPointerResolver<model, Registe
 				value = DataT(instruction.operand());
 			break;
 
-			case Source::Indirect: {
-				const auto address = effective_address(registers, instruction, pointer);
+#define indirect(has_base)	{								\
+	const auto address = effective_address<false, has_base>	\
+		(registers, instruction, pointer);					\
+															\
+	if constexpr (is_write) {								\
+		memory.template write(								\
+			instruction.data_segment(),						\
+			address,										\
+			value											\
+		);													\
+	} else {												\
+		value = memory.template read<DataT>(				\
+			instruction.data_segment(),						\
+			address											\
+		);													\
+	}														\
+}
+			case Source::IndirectNoBase:
+				indirect(false);
+			break;
 
-				if constexpr (is_write) {
-					memory.template write(
-						instruction.data_segment(),
-						address,
-						value
-					);
-				} else {
-					value = memory.template read<DataT>(
-						instruction.data_segment(),
-						address
-					);
-				}
-			}
+			case Source::Indirect:
+				indirect(true);
+			break;
+#undef indirect
+
 		}
 	}
 #undef ALLREGS
