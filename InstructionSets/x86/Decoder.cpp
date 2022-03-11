@@ -610,7 +610,9 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 		Source memreg;
 
-		// TODO: can I just eliminate these lookup tables given the deliberate ordering within Source?
+		// These tables are fairly redundant due to the register ordering within
+		// Source, but act to improve readability and permit further Source
+		// reordering in the future.
 		constexpr Source reg_table[8] = {
 			Source::eAX,		Source::eCX,		Source::eDX,		Source::eBX,
 			Source::eSPorAH,	Source::eBPorCH,	Source::eSIorDH,	Source::eDIorBH,
