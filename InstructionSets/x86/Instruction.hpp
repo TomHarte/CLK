@@ -614,7 +614,7 @@ template<bool is_32bit> class Instruction {
 		// b6: has displacement;
 		// b5: has operand;
 		// [b4, b0]: source.
-		uint8_t mem_exts_source_ = 0xff;
+		uint8_t mem_exts_source_ = 0;
 
 		bool has_displacement() const {
 			return mem_exts_source_ & (1 << 6);
@@ -627,7 +627,7 @@ template<bool is_32bit> class Instruction {
 		// [b13, b10]: source length (0 => has length extension);
 		// [b9, b5]: top five of SIB;
 		// [b4, b0]: dest.
-		uint16_t source_data_dest_sib_ = 0xffff;
+		uint16_t source_data_dest_sib_ = 1 << 10;	// So that ::Invalid doesn't seem to have a length extension.
 
 		bool has_length_extension() const {
 			return !((source_data_dest_sib_ >> 10) & 15);
@@ -640,7 +640,7 @@ template<bool is_32bit> class Instruction {
 		//	[b5, b4]: repetition;
 		//	[b3, b1]: segment override;
 		//	b0: lock.
-		ImmediateT extensions_[3];
+		ImmediateT extensions_[3]{};
 
 	public:
 		/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
