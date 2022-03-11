@@ -434,23 +434,6 @@ enum class Source: uint8_t {
 	IndirectNoBase = Indirect - 1,
 };
 
-constexpr Source default_data_segment([[maybe_unused]] Operation operation) {
-	// TODO: is this really necessary, or can ::DS always be default?
-	// i.e. can the stack operations actually take a segment override?
-	// If not then the actual implementations just won't ask about a segment.
-//	constexpr std::set<Operation> stack_ops = {
-//
-//	};
-//
-//	if(
-//		operation == Operation::PUSH ||
-//		operation == Operation::PUSHF ||
-//		operation == Operation::POP) {
-//		return Source::SS;
-//	}
-	return Source::DS;
-}
-
 enum class Repetition: uint8_t {
 	None, RepE, RepNE
 };
@@ -696,8 +679,13 @@ template<bool is_32bit> class Instruction {
 		AddressSize address_size() const {
 			return AddressSize(mem_exts_source_ >> 7);
 		}
+
+		/// @returns @c Source::DS if no segment override was found; the overridden segment otherwise.
+		/// On x86 a segment override cannot modify the segment used as a destination in string instructions,
+		/// or that used by stack instructions, but this function does not spend the time necessary to provide
+		/// the correct default for those.
 		Source data_segment() const {
-			if(!has_length_extension()) return default_data_segment(operation);
+			if(!has_length_extension()) return Source::DS;
 			return Source(
 				int(Source::ES) +
 				((extensions_[0] >> 1) & 7)
@@ -768,7 +756,9 @@ template<bool is_32bit> class Instruction {
 
 				int extension = 0;
 				if(has_length_extension()) {
-					if(segment_override == Source::None) segment_override = default_data_segment(operation);
+					// As per the rule stated for segment(), this class provides ::DS for any instruction
+					// that doesn't have a segment override.
+					if(segment_override == Source::None) segment_override = Source::DS;
 					extensions_[extension] = ImmediateT(
 						(length << 6) | (int(repetition) << 4) | ((int(segment_override) & 7) << 1) | int(lock)
 					);
