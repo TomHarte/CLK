@@ -25,7 +25,7 @@ namespace x86 {
 */
 template <Model model> class Decoder {
 	public:
-		using InstructionT = Instruction<model >= Model::i80386>;
+		using InstructionT = Instruction<is_32bit(model)>;
 
 		/*!
 			@returns an @c Instruction plus a size; a positive size indicates successful decoding of
