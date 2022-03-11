@@ -14,15 +14,17 @@
 
 using namespace InstructionSet::x86;
 
-// TODO: instruction length limits:
-//
-//	8086/80186: none
-//	80286: 10 bytes
-//	80386: 15 bytes
-
 template <Model model>
 std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(const uint8_t *source, size_t length) {
-	const uint8_t *const end = source + length;
+	// Instruction length limits:
+	//
+	//	8086/80186: none
+	//	80286: 10 bytes
+	//	80386: 15 bytes
+	constexpr int max_instruction_length = model >= Model::i80386 ? 15 : (model == Model::i80286 ? 10 : 0);
+
+	const uint8_t *const buffer_end = source + length;
+	const uint8_t *const end = max_instruction_length ? std::min(buffer_end, source + max_instruction_length - consumed_) : buffer_end;
 
 	// MARK: - Prefixes (if present) and the opcode.
 
@@ -436,6 +438,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	}
 
 	// MARK: - Additional F page of instructions.
+
 	if(phase_ == Phase::InstructionPageF && source != end) {
 		// Update the instruction acquired.
 		const uint8_t instr = *source;
@@ -861,7 +864,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 
 	// MARK: - Displacement and operand.
 
-	if(phase_ == Phase::DisplacementOrOperand && source != end) {
+	if(phase_ == Phase::DisplacementOrOperand) {
 		const auto required_bytes = int(byte_size(displacement_size_) + byte_size(operand_size_));
 
 		const int outstanding_bytes = required_bytes - operand_bytes_;
@@ -924,6 +927,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				consumed_
 			)
 		);
+		reset_parsing();
+		return result;
+	}
+
+	// Check for a too-long instruction.
+	if(max_instruction_length && consumed_ == max_instruction_length) {
+		const auto result = std::make_pair(consumed_, InstructionT());
 		reset_parsing();
 		return result;
 	}

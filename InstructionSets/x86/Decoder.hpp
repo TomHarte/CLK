@@ -28,11 +28,22 @@ template <Model model> class Decoder {
 		using InstructionT = Instruction<model >= Model::i80386>;
 
 		/*!
-			@returns an @c Instruction plus a size; a positive size to indicate successful decoding; a
-				negative size specifies the [negatived] number of further bytes the caller should ideally
-				collect before calling again. The caller is free to call with fewer, but may not get a decoded
-				instruction in response, and the decoder may still not be able to complete decoding
-				even if given that number of bytes.
+			@returns an @c Instruction plus a size; a positive size indicates successful decoding of
+				an instruction that was that many bytes long in total; a negative size specifies the [negatived]
+				minimum number of further bytes the caller should ideally collect before calling again. The
+				caller is free to call with fewer, but may not get a decoded instruction in response, and the
+				decoder may still not be able to complete decoding even if given that number of bytes.
+
+				Successful decoding is defined to mean that all decoding steps are complete. The output
+				may still be an illegal instruction (indicated by Operation::Invalid), if the byte sequence
+				supplied cannot form a valid instruction.
+
+			@discussion although instructions also contain an indicator of their length, on chips prior
+				to the 80286 there is no limit to instruction length and that could in theory overflow the available
+				storage, which can describe instructions only up to 1kb in size.
+
+				The 80286 and 80386 have instruction length limits of 10 and 15 bytes respectively, so
+				cannot overflow the field.
 		*/
 		std::pair<int, InstructionT> decode(const uint8_t *source, size_t length);
 
