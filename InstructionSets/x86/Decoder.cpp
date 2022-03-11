@@ -18,13 +18,16 @@ template <Model model>
 std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(const uint8_t *source, size_t length) {
 	// Instruction length limits:
 	//
-	//	8086/80186: none
+	//	8086/80186: none*
 	//	80286: 10 bytes
 	//	80386: 15 bytes
-	constexpr int max_instruction_length = model >= Model::i80386 ? 15 : (model == Model::i80286 ? 10 : 0);
-
-	const uint8_t *const buffer_end = source + length;
-	const uint8_t *const end = max_instruction_length ? std::min(buffer_end, source + max_instruction_length - consumed_) : buffer_end;
+	//
+	// * but, can treat internally as a limit of 65536 bytes — after that distance the IP will
+	// be back to wherever it started, so it's safe to spit out a NOP and reset parsing
+	// without any loss of context. This reduces the risk of the decoder tricking a caller into
+	// an infinite loop.
+	constexpr int max_instruction_length = model >= Model::i80386 ? 15 : (model == Model::i80286 ? 10 : 65536);
+	const uint8_t *const end = source + std::min(length, size_t(max_instruction_length - consumed_));
 
 	// MARK: - Prefixes (if present) and the opcode.
 
@@ -932,8 +935,13 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	}
 
 	// Check for a too-long instruction.
-	if(max_instruction_length && consumed_ == max_instruction_length) {
-		const auto result = std::make_pair(consumed_, InstructionT());
+	if(consumed_ == max_instruction_length) {
+		std::pair<int, InstructionT> result;
+		if(max_instruction_length == 65536) {
+			result = std::make_pair(consumed_, InstructionT(Operation::NOP, consumed_));
+		} else {
+			result = std::make_pair(consumed_, InstructionT());
+		}
 		reset_parsing();
 		return result;
 	}
