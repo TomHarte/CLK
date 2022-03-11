@@ -84,12 +84,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 	phase_ = Phase::DisplacementOrOperand;			\
 	operand_size_ = size
 
-/// Handles far CALL and far JMP — fixed four byte operand operations.
+/// Handles far CALL and far JMP — fixed four or six byte operand operations.
 #define Far(op)										\
 	operation_ = Operation::op;						\
 	phase_ = Phase::DisplacementOrOperand;			\
 	operand_size_ = DataSize::Word;					\
-	displacement_size_ = data_size(address_size_)
+	displacement_size_ = data_size(default_address_size_)
 
 /// Handles ENTER — a fixed three-byte operation.
 #define Displacement16Operand8(op)					\
