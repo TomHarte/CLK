@@ -64,8 +64,28 @@ template <typename InstructionT> void test_far(
 
 // MARK: - Decoder
 
+template <Model model, typename CollectionT>
+std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT>
+decode(const CollectionT &stream, bool set_32_bit = false) {
+	// Build instructions list with a byte-by-byte decoding.
+	std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> instructions;
+
+	InstructionSet::x86::Decoder<model> decoder;
+	decoder.set_32bit_protected_mode(set_32_bit);
+
+	for(uint8_t item: stream) {
+		const auto [size, next] = decoder.decode(&item, 1);
+		if(size > 0) {
+			instructions.push_back(next);
+		}
+	}
+
+	return instructions;
+}
+
 template <Model model>
-std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(const std::initializer_list<uint8_t> &stream, bool set_32_bit = false) {
+std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT>
+decode(const std::initializer_list<uint8_t> &stream, bool set_32_bit = false) {
 	// Decode by offering up all data at once.
 	std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> instructions;
 	InstructionSet::x86::Decoder<model> decoder;
@@ -80,18 +100,17 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 	}
 
 	// Grab a byte-at-a-time decoding and check that it matches the previous.
-	{
-		InstructionSet::x86::Decoder<model> decoder;
-		decoder.set_32bit_protected_mode(set_32_bit);
+	const auto byte_instructions = decode<model>(std::vector<uint8_t>{stream}, set_32_bit);
 
-		auto previous_instruction = instructions.begin();
-		for(auto item: stream) {
-			const auto [size, next] = decoder.decode(&item, 1);
-			if(size > 0) {
-				XCTAssert(next == *previous_instruction);
-				++previous_instruction;
-			}
-		}
+	XCTAssertEqual(byte_instructions.size(), instructions.size());
+
+	auto previous_instruction = instructions.begin();
+	auto byte_instruction = byte_instructions.begin();
+	while(previous_instruction != instructions.end()) {
+		XCTAssert(*previous_instruction == *byte_instruction);
+
+		++previous_instruction;
+		++byte_instruction;
 	}
 
 	return instructions;
@@ -555,6 +574,13 @@ std::vector<typename InstructionSet::x86::Decoder<model>::InstructionT> decode(c
 
 	XCTAssertEqual(instructions.size(), 1);
 	test(instructions[0], DataSize::DWord, Operation::ADD, Source::Immediate, ScaleIndexBase(Source::eDI), 0x9f683aa9, -0x42);
+}
+
+- (void)test8086LengthLimit {
+	const std::vector<uint8_t> all_prefix(65536, 0x26);
+	const auto instructions = decode<Model::i8086>(all_prefix);
+	XCTAssertEqual(instructions.size(), 1);
+	test(instructions[0], Operation::NOP);
 }
 
 - (void)test286LengthLimit {
