@@ -633,7 +633,8 @@ template<bool is_32bit> class Instruction {
 			return !((source_data_dest_sib_ >> 10) & 15);
 		}
 
-		// {length extension}, {operand}, {displacement}.
+		// {operand}, {displacement}, {length extension}.
+		//
 		// If length extension is present then:
 		//
 		//	[b15, b6]: source length;
@@ -641,6 +642,16 @@ template<bool is_32bit> class Instruction {
 		//	[b3, b1]: segment override;
 		//	b0: lock.
 		ImmediateT extensions_[3]{};
+
+		ImmediateT operand_extension() const {
+			return extensions_[0];
+		}
+		ImmediateT displacement_extension() const {
+			return extensions_[(mem_exts_source_ >> 5) & 1];
+		}
+		ImmediateT length_extension() const {
+			return extensions_[((mem_exts_source_ >> 5) & 1) + ((mem_exts_source_ >> 6) & 1)];
+		}
 
 	public:
 		/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
@@ -650,6 +661,13 @@ template<bool is_32bit> class Instruction {
 			return
 				offsetof(Instruction<is_32bit>, extensions) +
 				(has_displacement() + has_operand() + has_length_extension()) * sizeof(ImmediateT);
+
+			// To consider in the future: the length extension is always the last one,
+			// and uses only 8 bits of content within 32-bit instructions, so it'd be
+			// possible further to trim the packing size on little endian machines.
+			//
+			// ... but is that a speed improvement? How much space does it save, and
+			// is it enough to undo the costs of unaligned data?
 		}
 
 	private:
@@ -673,7 +691,7 @@ template<bool is_32bit> class Instruction {
 			);
 		}
 		bool lock() const {
-			return has_length_extension() && extensions_[0]&1;
+			return has_length_extension() && length_extension()&1;
 		}
 
 		AddressSize address_size() const {
@@ -688,13 +706,13 @@ template<bool is_32bit> class Instruction {
 			if(!has_length_extension()) return Source::DS;
 			return Source(
 				int(Source::ES) +
-				((extensions_[0] >> 1) & 7)
+				((length_extension() >> 1) & 7)
 			);
 		}
 
 		Repetition repetition() const {
 			if(!has_length_extension()) return Repetition::None;
-			return Repetition((extensions_[0] >> 4) & 3);
+			return Repetition((length_extension() >> 4) & 3);
 		}
 		DataSize operation_size() const {
 			return DataSize(source_data_dest_sib_ >> 14);
@@ -703,11 +721,11 @@ template<bool is_32bit> class Instruction {
 		int length() const {
 			const int short_length = (source_data_dest_sib_ >> 10) & 15;
 			if(short_length) return short_length;
-			return extensions_[0] >> 6;
+			return length_extension() >> 6;
 		}
 
 		ImmediateT operand() const	{
-			const ImmediateT ops[] = {0, extensions_[has_length_extension()]};
+			const ImmediateT ops[] = {0, operand_extension()};
 			return ops[has_operand()];
 		}
 		DisplacementT displacement() const {
@@ -718,7 +736,7 @@ template<bool is_32bit> class Instruction {
 			return uint16_t(operand());
 		}
 		ImmediateT offset() const	{
-			const ImmediateT offsets[] = {0, extensions_[has_length_extension() + has_operand()]};
+			const ImmediateT offsets[] = {0, displacement_extension()};
 			return offsets[has_displacement()];
 		}
 
@@ -756,7 +774,17 @@ template<bool is_32bit> class Instruction {
 					(destination == Source::Indirect ? (uint8_t(sib) & 7) : 0)
 				)) {
 
+				// Decisions on whether to include operand, displacement and/or size extension words
+				// have implicitly been made in the int packing above; honour them here.
 				int extension = 0;
+				if(has_operand()) {
+					extensions_[extension] = operand;
+					++extension;
+				}
+				if(has_displacement()) {
+					extensions_[extension] = ImmediateT(displacement);
+					++extension;
+				}
 				if(has_length_extension()) {
 					// As per the rule stated for segment(), this class provides ::DS for any instruction
 					// that doesn't have a segment override.
@@ -766,11 +794,6 @@ template<bool is_32bit> class Instruction {
 					);
 					++extension;
 				}
-				if(has_operand()) {
-					extensions_[extension] = operand;
-					++extension;
-				}
-				extensions_[extension] = ImmediateT(displacement);
 			}
 };
 
