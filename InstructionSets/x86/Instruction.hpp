@@ -575,7 +575,7 @@ class DataPointer {
 
 template<bool is_32bit> class Instruction {
 	public:
-		const Operation operation = Operation::Invalid;
+		Operation operation = Operation::Invalid;
 
 		bool operator ==(const Instruction<is_32bit> &rhs) const {
 			if(	operation != rhs.operation ||
@@ -614,7 +614,7 @@ template<bool is_32bit> class Instruction {
 		// b6: has displacement;
 		// b5: has operand;
 		// [b4, b0]: source.
-		const uint8_t mem_exts_source_ = 0xff;
+		uint8_t mem_exts_source_ = 0xff;
 
 		bool has_displacement() const {
 			return mem_exts_source_ & (1 << 6);
@@ -627,7 +627,7 @@ template<bool is_32bit> class Instruction {
 		// [b13, b10]: source length (0 => has length extension);
 		// [b9, b5]: top five of SIB;
 		// [b4, b0]: dest.
-		const uint16_t source_data_dest_sib_ = 0xffff;
+		uint16_t source_data_dest_sib_ = 0xffff;
 
 		bool has_length_extension() const {
 			return !((source_data_dest_sib_ >> 10) & 15);
@@ -722,8 +722,10 @@ template<bool is_32bit> class Instruction {
 			return offsets[has_displacement()];
 		}
 
-		Instruction() noexcept {}
-		Instruction(
+		constexpr Instruction() noexcept {}
+		constexpr Instruction(Operation operation, int length) noexcept :
+			Instruction(operation, Source::None, Source::None, ScaleIndexBase(), false, AddressSize::b16, Source::None, Repetition::None, DataSize::None, 0, 0, length) {}
+		constexpr Instruction(
 			Operation operation,
 			Source source,
 			Source destination,
