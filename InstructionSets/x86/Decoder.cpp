@@ -370,7 +370,12 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0xca: RegData(RETfar, None, data_size_);				break;
 			case 0xcb: Complete(RETfar, None, None, DataSize::DWord);	break;
 
-			case 0xcc: Complete(INT3, None, None, DataSize::None);	break;
+			case 0xcc:
+				// Encode INT3 as though it were INT with an
+				// immediate operand of 3.
+				Complete(INT, Immediate, None, DataSize::Byte);
+				operand_ = 3;
+			break;
 			case 0xcd: RegData(INT, None, DataSize::Byte);			break;
 			case 0xce: Complete(INTO, None, None, DataSize::None);	break;
 			case 0xcf: Complete(IRET, None, None, DataSize::None);	break;

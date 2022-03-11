@@ -108,8 +108,6 @@ enum class Operation: uint8_t {
 	JPCX,
 	/// Generates a software interrupt of the level stated in the operand.
 	INT,
-	/// Generates a software interrupt of level 3.
-	INT3,
 	/// Generates a software interrupt of level 4 if overflow is set.
 	INTO,
 
