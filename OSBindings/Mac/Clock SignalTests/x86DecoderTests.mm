@@ -662,36 +662,22 @@ decode(const std::initializer_list<uint8_t> &stream, bool set_32_bit = false) {
 		0x84, 0x43, 0x7f, 0x67, 0x15, 0xf6, 0x06, 0x2b, 0x6d
 	}, true);
 
+	// Lazy: just check that the right number of operations came out.
+	// Since the potential issue is reading the wrong size of address, that'll do.
 	XCTAssertEqual(instructions.size(), 22);
+}
 
-	// addr16 repz pop ebp
-	// addr16 aas
-	// addr16 pop edx
-	// addr16 jmp 0xbceb:0xb38a217
+- (void)testAddressSizeModifierSIB {
+	const auto instructions = decode<Model::i80386>({
+		// add dword ptr [bx + si + 256], eax
+		0x67, 0x01, 0x80, 0x00, 0x01,
+		// add [eax + 256], eax
+		0x01, 0x80, 0x00, 0x01, 0x00, 0x00
+	}, true);
 
-	// addr16 dec esp
-	// cmp    bl,BYTE PTR [bx]
-	// add    BYTE PTR
-	// addr16 mov cl,0x7c
-
-	// addr16 mov cl,dl
-	// addr16 xor ebp,ebp
-	// and    al,BYTE PTR [bx+si]
-	// addr16 jns 0xffffffcf
-
-	// xchg   DWORD PTR [si],edi
-	// addr16 aam 0xa2
-	// addr16 push edi
-	// add    ah,BYTE PTR [bx+di]
-
-	// addr16 dec eax
-	// xor    ebx,DWORD PTR
-	// addr16 cmp al,0xe1
-	// addr16 xchg ecx,eax
-
-	// sbb    eax,DWORD PTR
-	// addr16 adc eax,0x6d2b06f6
-
+	XCTAssertEqual(instructions.size(), 2);
+	test(instructions[0], DataSize::DWord, Operation::ADD, Source::eAX, ScaleIndexBase(Source::eBX, Source::eSI), 0, 0x100);
+	test(instructions[1], DataSize::DWord, Operation::ADD, Source::eAX, ScaleIndexBase(Source::eAX), 0, 0x100);
 }
 
 @end
