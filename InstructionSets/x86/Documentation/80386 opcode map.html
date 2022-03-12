@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>80386 Opcode Map</title>
+		<style>
+			table, table th, table td {
+				border: 1px solid;
+				border-collapse: collapse;
+				text-align: center;
+			}
+
+			.codetable, .codetable th, .codetable td {
+				border: 0px;
+				border-collapse: collapse;
+				padding-right: 1em;
+				text-align: left;
+				vertical-align: top;
+			}
+			
+			.optable th, .optable td {
+				width: 5em;
+			}
+			.optable tr:nth-child(even) {
+				border-top: 3px solid;
+			}
+
+			.grouptable, .grouptable th, .grouptable td {
+				border-bottom: 3px solid;
+			}
+			.grouptable th, .grouptable td {
+				width: 4em;
+			}
+			
+			.skiprow {
+				background-color: darkgray;				
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Codes for Addressing Method</h1>
+		
+		<table class="codetable">
+			<tr>
+				<td>A</td>
+				<td>Direct address; the instruction has no MODRM field; the address of the operand is encoded in the instruction; no base register, index register, or scaling factor can be applied; e.g., far JMP (EA).</td>
+			</tr>
+			<tr>
+				<td>C</td>
+				<td>The reg field of the MODRM field selects a control register; e.g., MOV (0F20, 0F22).</td>
+			</tr>
+			<tr>
+				<td>D</td>
+				<td>The reg field of the MODRM field selects a debug register; e.g., MOV (0F21, 0F23).</td>
+			</tr>
+			<tr>
+				<td>E</td>
+				<td>A MODRM field follows the opcode and specifies the operand. The operand is either a general register or a memory address. If it is a memory address, the address is computed from a segment register and any of the following values: a base register, an index register, a scaling factor, a displacement.</td>
+			</tr>
+			<tr>
+				<td>F</td>
+				<td>Flags register</td>
+			</tr>
+			<tr>
+				<td>G</td>
+				<td>The reg field of the MODRM field selects a general register; e.g,. ADD (00).</td>
+			</tr>
+			<tr>
+				<td>I</td>
+				<td>Immediate data. The value of the operand is encoded in subsequent bytes of the instruction.</td>
+			</tr>
+			<tr>
+				<td>J</td>
+				<td>The instruction contains a relative offset to be added to the instruction-pointer register; e.g., JMP short, LOOP.</td>
+			</tr>
+			<tr>
+				<td>M</td>
+				<td>The MODRM field may refer only to memory; e.g., BOUND, LES, LDS, LSS, LFS, LGS.</td>
+			</tr>
+			<tr>
+				<td>O</td>
+				<td>The instruction has no MODRM field; the offset of the operand is coded as a word or dword (depending on address sie attribute) in the instruction. No base register, index register, or scaling factor can be applied; e.g., MOV (A0–A3).</td>
+			</tr>
+			<tr>
+				<td>R</td>
+				<td>The mod field of the MODRM field may refer only to a general register; e.g., MOV(0F20–0F24, 0F26).</td>
+			</tr>
+			<tr>
+				<td>S</td>
+				<td>The reg field of the MODRM field selects a segment register; e.g., MOV (8C, 8E).</td>
+			</tr>
+			<tr>
+				<td>T</td>
+				<td>The reg field of the MODRM field selects a test register; e.g., MOV (0F24, 0F26).</td>
+			</tr>
+			<tr>
+				<td>X</td>
+				<td>Memory addressed by DS:SI; e.g., MOVS, COMPS, OUTS, LODS, SCAS.</td>
+			</tr>
+			<tr>
+				<td>Y</td>
+				<td>Memory addressed by ES:DI; e.g., MOVS, CMPS, INS, STOS.</td>
+			</tr>
+		</table>
+		
+		<h1>Codes for Operand Type</h1>
+		
+		<table class="codetable">
+			<tr>
+				<td>a</td>
+				<td>Two one-word operands in memory or two dword operands in memory, depending on operand size attribute (used only by BOUND).</td>
+			</tr>
+			<tr>
+				<td>b</td>
+				<td>Byte (regardless of operand size attribute).</td>
+			</tr>
+			<tr>
+				<td>c</td>
+				<td>Byte or word, depending on operand size attribute.</td>
+			</tr>
+			<tr>
+				<td>d</td>
+				<td>Dword (regardless of operand size attribute).</td>
+			</tr>
+			<tr>
+				<td>p</td>
+				<td>32-bit or 48-bit pointer, depending on operand size attribute.</td>
+			</tr>
+			<tr>
+				<td>s</td>
+				<td>Six-byte pesudo-descriptor.</td>
+			</tr>
+			<tr>
+				<td>v</td>
+				<td>Word or dword, depending on operand size attribute.</td>
+			</tr>
+			<tr>
+				<td>w</td>
+				<td>Word (regardless of operand size attribute).</td>
+			</tr>
+		</table>
+		
+		<h1>Register Codes</h1>
+		
+		When an operand is a specific register encoded in the opcode, the register is identifed by its name; e.g., AX, CL, or ESI. The name of the register indicates whether the register is 32, 16, or 8 bits wide. A register identifier of the form eXX is used when the width of the register depends on the operand size attribute. For example, eAX indicates that the AX register is used when the operand size attribute is 16, and the EAX register is used when the operand size attribute is 32.
+
+		<h1>One-byte 80386 Opcode Map</h1>
+		<table class="optable">
+			<tr>
+				<th></th>
+				<th>x0</th>
+				<th>x1</th>
+				<th>x2</th>
+				<th>x3</th>
+				<th>x4</th>
+				<th>x5</th>
+				<th>x6</th>
+				<th>x7</th>
+				<th>x8</th>
+				<th>x9</th>
+				<th>xA</th>
+				<th>xB</th>
+				<th>xC</th>
+				<th>xD</th>
+				<th>xE</th>
+				<th>xF</th>
+			</tr>
+			<tr>
+				<th rowspan=2>0x</th>
+
+				<td colspan=6>ADD</td>
+				<td rowspan=2>PUSH ES</td>
+				<td rowspan=2>POP ES</td>
+				<td colspan=6>OR</td>
+				<td rowspan=2>PUSH CS</td>
+				<td rowspan=2>2-byte escape codes</td>
+			</tr>
+			<tr>
+				<!-- ADD -->
+				<td>Eb, Gb</td>
+				<td>Ev, Gv</td>
+				<td>Gb, Eb</td>
+				<td>Gv, Ev</td>
+				<td>AL, Ib</td>
+				<td>eAX, Iv</td>
+
+				<!-- OR -->
+				<td>Eb, Gb</td>
+				<td>Ev, Gv</td>
+				<td>Gb, Eb</td>
+				<td>Gv, Ev</td>
+				<td>AL, Ib</td>
+				<td>eAX, Iv</td>
+			</tr>
+			<tr>
+				<th rowspan=2>1x</th>
+
+				<td colspan=6>ADC</td>
+				<td rowspan=2>PUSH SS</td>
+				<td rowspan=2>POP SS</td>
+				<td colspan=6>SBB</td>
+				<td rowspan=2>PUSH DS</td>
+				<td rowspan=2>POP DS</td>
+			</tr>
+			<tr>
+				<!-- ADC -->
+				<td>Eb, Gb</td>
+				<td>Ev, Gv</td>
+				<td>Gb, Eb</td>
+				<td>Gv, Ev</td>
+				<td>AL, Ib</td>
+				<td>eAX, Iv</td>
+
+				<!-- SBB -->
+				<td>Eb, Gb</td>
+				<td>Ev, Gv</td>
+				<td>Gb, Eb</td>
+				<td>Gv, Ev</td>
+				<td>AL, Ib</td>
+				<td>eAX, Iv</td>
+			</tr>
+			<tr>
+				<th rowspan=2>2x</th>
+
+				<td colspan=6>AND</td>
+				<td rowspan=2>SEG =ES</td>
+				<td rowspan=2>POP ES</td>
+				<td colspan=6>SUB</td>
+				<td rowspan=2>SEG =CS</td>
+				<td rowspan=2>DAS</td>
+			</tr>
+			<tr>
+				<!-- AND -->
+				<td>Eb, Gb</td>
+				<td>Ev, Gv</td>
+				<td>Gb, Eb</td>
+				<td>Gv, Ev</td>
+				<td>AL, Ib</td>
+				<td>eAX, Iv</td>
+
+				<!-- SUB -->
+				<td>Eb, Gb</td>
+				<td>Ev, Gv</td>
+				<td>Gb, Eb</td>
+				<td>Gv, Ev</td>
+				<td>AL, Ib</td>
+				<td>eAX, Iv</td>
+			</tr>
+			<tr>
+				<th rowspan=2>3x</th>
+
+				<td colspan=6>XOR</td>
+				<td rowspan=2>SEG =SS</td>
+				<td rowspan=2>AAA</td>
+				<td colspan=6>CMP</td>
+				<td rowspan=2>SEG =DS</td>
+				<td rowspan=2>AAS</td>
+			</tr>
+			<tr>
+				<!-- XOR -->
+				<td>Eb, Gb</td>
+				<td>Ev, Gv</td>
+				<td>Gb, Eb</td>
+				<td>Gv, Ev</td>
+				<td>AL, Ib</td>
+				<td>eAX, Iv</td>
+
+				<!-- CMP -->
+				<td>Eb, Gb</td>
+				<td>Ev, Gv</td>
+				<td>Gb, Eb</td>
+				<td>Gv, Ev</td>
+				<td>AL, Ib</td>
+				<td>eAX, Iv</td>
+			</tr>
+			<tr>
+				<th rowspan=2>4x</th>
+
+				<td colspan=8>INC general register</td>
+				<td colspan=8>DEC general register</td>
+			</tr>
+			<tr>
+				<!-- INC general register -->
+				<td>eAX</td>
+				<td>eCX</td>
+				<td>eDX</td>
+				<td>eBX</td>
+				<td>eSP</td>
+				<td>eBP</td>
+				<td>eSI</td>
+				<td>eDI</td>
+
+				<!-- DEC general register -->
+				<td>eAX</td>
+				<td>eCX</td>
+				<td>eDX</td>
+				<td>eBX</td>
+				<td>eSP</td>
+				<td>eBP</td>
+				<td>eSI</td>
+				<td>eDI</td>
+			</tr>
+			<tr>
+				<th rowspan=2>5x</th>
+
+				<td colspan=8>PUSH general register</td>
+				<td colspan=8>POP general register</td>
+			</tr>
+			<tr>
+				<!-- PUSH general register -->
+				<td>eAX</td>
+				<td>eCX</td>
+				<td>eDX</td>
+				<td>eBX</td>
+				<td>eSP</td>
+				<td>eBP</td>
+				<td>eSI</td>
+				<td>eDI</td>
+
+				<!-- POP general register -->
+				<td>eAX</td>
+				<td>eCX</td>
+				<td>eDX</td>
+				<td>eBX</td>
+				<td>eSP</td>
+				<td>eBP</td>
+				<td>eSI</td>
+				<td>eDI</td>
+			</tr>
+			<tr>
+				<th rowspan=2>6x</th>
+
+				<td rowspan=2>PUSHA</td>
+				<td rowspan=2>POPA</td>
+				<td rowspan=2>BOUND Gv, Ma</td>
+				<td rowspan=2>ARPL Gv, Ma</td>
+				<td rowspan=2>SEG =FS</td>
+				<td rowspan=2>SEG =GS</td>
+				<td rowspan=2>Operand Size</td>
+				<td rowspan=2>Address Size</td>
+				<td rowspan=2>PUSH Iv</td>
+				<td rowspan=2>IMUL GvEvIv</td>
+				<td rowspan=2>PUSH Ib</td>
+				<td rowspan=2>IMUL GvEvIb</td>
+				<td rowspan=2>INSB Yb, Dx</td>
+				<td rowspan=2>INSW/D Yv, Dx</td>
+				<td rowspan=2>OUTSB Dx, Xb</td>
+				<td rowspan=2>OUTSW/D Dx, Xb</td>
+			</tr>
+			<tr></tr>
+			<tr>
+				<th rowspan=2>7x</th>
+
+				<td colspan=16>Short-displacement jump on condition (Jb)</td>
+			</tr>
+			<tr>
+				<!-- Short-displacement jump on condition (Jb) -->
+				<td>JO</td>
+				<td>JNO</td>
+				<td>JB</td>
+				<td>JNB</td>
+				<td>JZ</td>
+				<td>JNZ</td>
+				<td>JBE</td>
+				<td>JNBE</td>
+				<td>JS</td>
+				<td>JNS</td>
+				<td>JP</td>
+				<td>JNP</td>
+				<td>JL</td>
+				<td>JNL</td>
+				<td>JLE</td>
+				<td>JNLE</td>
+			</tr>
+			<tr>
+				<th rowspan=2>8x</th>
+
+				<td colspan=2>Immediate Grp1</td>
+				<td rowspan=2></td>
+				<td rowspan=2>Grp1 Ev, Ib</td>
+				<td colspan=2>TEST</td>
+				<td colspan=2>XCHG</td>
+				<td colspan=4>MOV</td>
+				<td rowspan=2>MOV Ew, Sw</td>
+				<td rowspan=2>LEA Gv, M</td>
+				<td rowspan=2>MOV Sw, Ew</td>
+				<td rowspan=2>POP Ev</td>
+			</tr>
+			<tr>
+				<!-- Immediate Grp1 -->
+				<td>Eb, Ib</td>
+				<td>Ev, Iv</td>
+
+				<!-- TEST -->
+				<td>Eb, Gb</td>
+				<td>Ev, Gv</td>
+				
+				<!-- XCHG -->
+				<td>Eb, Gb</td>
+				<td>Ev, Gv</td>
+				
+				<!-- MOV -->
+				<td>Eb, Gb</td>
+				<td>Ev, Gv</td>
+				<td>Gb, Eb</td>
+				<td>Gv, Ev</td>
+			</tr>
+			<tr>
+				<th rowspan=2>9x</th>
+
+				<td rowspan=2>NOP</td>
+				<td colspan=7>XCHG word or double-word register with eAX</td>
+				<td rowspan=2>CBW</td>
+				<td rowspan=2>CWD</td>
+				<td rowspan=2>CALL Ap</td>
+				<td rowspan=2>WAIT</td>
+				<td rowspan=2>PUSHF Fv</td>
+				<td rowspan=2>POPF Fv</td>
+				<td rowspan=2>SAHF</td>
+				<td rowspan=2>LAHF</td>
+			</tr>
+			<tr>
+				<!-- XCHG -->
+				<td>eCX</td>
+				<td>eDX</td>
+				<td>eBX</td>
+				<td>eSP</td>
+				<td>eBP</td>
+				<td>eSI</td>
+				<td>eDI</td>
+			</tr>
+			<tr>
+				<th rowspan=2>Ax</th>
+
+				<td colspan=4>MOV</td>
+				<td rowspan=2>MOVSB Xb, Yv</td>
+				<td rowspan=2>MOVSW/D Xv, Yv</td>
+				<td rowspan=2>CMPSB Xb, Yb</td>
+				<td rowspan=2>CMPSW/D Xv, Yv</td>
+				<td colspan=2>TEST</td>
+				<td rowspan=2>STOSB Yb, AL</td>
+				<td rowspan=2>STOSW/D Yv, eAX</td>
+				<td rowspan=2>LDSB AL, Xb</td>
+				<td rowspan=2>LDSW/D eAX, Yv</td>
+				<td rowspan=2>SCASB AL, Xb</td>
+				<td rowspan=2>SCASW/D eAX, Xv</td>
+			</tr>
+			<tr>
+				<!-- MOV -->
+				<td>AL, Ob</td>
+				<td>eAX, Ov</td>
+				<td>Ob, AL</td>
+				<td>Ov, eAX</td>
+
+				<!-- TEST -->
+				<td>AL, Ib</td>
+				<td>eAX, Iv</td>
+			</tr>
+			<tr>
+				<th rowspan=2>Bx</th>
+
+				<td colspan=8>MOV immediate byte into byte register</td>
+				<td colspan=8>MOV immediate word or double into word or double register</td>
+			</tr>
+			<tr>
+				<td>AL</td>
+				<td>CL</td>
+				<td>DL</td>
+				<td>BL</td>
+				<td>AH</td>
+				<td>CH</td>
+				<td>DH</td>
+				<td>BH</td>
+				
+				<td>eAX</td>
+				<td>eCX</td>
+				<td>eDX</td>
+				<td>eBX</td>
+				<td>eSP</td>
+				<td>eBP</td>
+				<td>eSI</td>
+				<td>eDI</td>
+			</tr>
+			<tr>
+				<th rowspan=2>Cx</th>
+
+				<td colspan=2>Shift Grp2</td>
+				<td colspan=2>RET near</td>
+				<td rowspan=2>LES Gv, Mp</td>
+				<td rowspan=2>LDS Gv, Mp</td>
+				<td colspan=2>MOV</td>
+				<td rowspan=2>ENTER</td>
+				<td rowspan=2>LEAVE</td>
+				<td colspan=2>RET far</td>
+				<td rowspan=2>INT 3</td>
+				<td rowspan=2>INT Ib</td>
+				<td rowspan=2>INTO</td>
+				<td rowspan=2>IRET</td>
+			</tr>
+			<tr>
+				<td>Eb, Ib</td>
+				<td>Ev, Iv</td>
+				<td>Iw</td>
+				<td></td>
+				<td>Eb, Ib</td>
+				<td>Ev, Iv</td>
+				<td>Iw</td>
+				<td></td>
+			</tr>
+			<tr>
+				<th rowspan=2>Dx</th>
+
+				<td colspan=4>Shift Grp2</td>
+				<td rowspan=2>AAM</td>
+				<td rowspan=2>AAD</td>
+				<td rowspan=2></td>
+				<td rowspan=2>XLAT</td>
+				<td colspan=8 rowspan=2>ESC (Escape to coprocessor instruction set)</td>
+			</tr>
+			<tr>
+				<td>Eb, 1</td>
+				<td>Ev, 1</td>
+				<td>Eb, CL</td>
+				<td>Ev, CL</td>
+			</tr>
+			<tr>
+				<th rowspan=2>Ex</th>
+
+				<td rowspan=2>LOOPNE Jb</td>
+				<td rowspan=2>LOOPE Jb</td>
+				<td rowspan=2>LOOP Jb</td>
+				<td rowspan=2>JCXZ Jb</td>
+				<td colspan=2>IN</td>
+				<td colspan=2>OUT</td>
+				<td rowspan=2>CALL Jv</td>
+				<td colspan=3>JMP</td>
+				<td colspan=2>IN</td>
+				<td colspan=2>OUT</td>
+			</tr>
+			<tr>
+				<!-- IN -->
+				<td>AL, Ib</td>
+				<td>eAX, Ib</td>
+
+				<!-- OUT -->
+				<td>Ib, AL</td>
+				<td>Ib, eAX</td>
+
+				<!-- JMP -->
+				<td>Jv</td>
+				<td>Ap</td>
+				<td>Jb</td>
+
+				<!-- IN -->
+				<td>AL, DX</td>
+				<td>eAX, DX</td>
+
+				<!-- OUT -->
+				<td>DX, AL</td>
+				<td>DX, eAX</td>
+			</tr>
+			<tr>
+				<th rowspan=2>Fx</th>
+				
+				<td rowspan=2>LOCK</td>
+				<td rowspan=2></td>
+				<td rowspan=2>REPNE</td>
+				<td rowspan=2>REP / REPE</td>
+				<td rowspan=2>HLT</td>
+				<td rowspan=2>CMC</td>
+				<td colspan=2>Unary Grp3</td>
+				<td rowspan=2>CLC</td>
+				<td rowspan=2>STC</td>
+				<td rowspan=2>CLI</td>
+				<td rowspan=2>STI</td>
+				<td rowspan=2>CLD</td>
+				<td rowspan=2>STD</td>
+				<td rowspan=2>INC/DEC Grp4</td>
+				<td rowspan=2>Indirect Grp5</td>
+			</tr>
+			<tr>
+				<!-- Unary Grp3 -->
+				<td>Eb</td>
+				<td>Ev</td>
+			</tr>
+		</table>
+
+		<h1>Two-Byte 80386 Opcode Map (First byte is 0FH)</h1>
+		<table class="optable">
+			<tr>
+				<th></th>
+				<th>x0</th>
+				<th>x1</th>
+				<th>x2</th>
+				<th>x3</th>
+				<th>x4</th>
+				<th>x5</th>
+				<th>x6</th>
+				<th>x7</th>
+				<th>x8</th>
+				<th>x9</th>
+				<th>xA</th>
+				<th>xB</th>
+				<th>xC</th>
+				<th>xD</th>
+				<th>xE</th>
+				<th>xF</th>
+			</tr>
+			<tr>
+				<th rowspan=2>0x</th>
+				
+				<td rowspan=2>Grp6</td>
+				<td rowspan=2>Grp7</td>
+				<td rowspan=2>LAR Gv, Ew</td>
+				<td rowspan=2>LSL Gv, Ew</td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2>CLTS</td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+			</tr>
+			<tr></tr>
+			<tr>
+				<th rowspan=2>1x</th>
+				
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+			</tr>
+			<tr></tr>
+			<tr>
+				<th rowspan=2>2x</th>
+				
+				<td rowspan=2>MOV Cd, Rd</td>
+				<td rowspan=2>MOV Dd, Rd</td>
+				<td rowspan=2>MOV Rd, Cd</td>
+				<td rowspan=2>MOV Rd, Dd</td>
+				<td rowspan=2>MOV Td, Rd</td>
+				<td rowspan=2></td>
+				<td rowspan=2>MOV Rd, Td</td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+			</tr>
+			<tr></tr>
+			<tr class="skiprow">
+				<th rowspan=2 colspan=17>≈</th>
+			</tr>
+			<tr></tr>
+			<tr>
+				<th rowspan=2>8x</th>
+				
+				<td colspan=16>Long-displacement jump on condition (Jv)</td>
+			</tr>
+			<tr>
+				<!-- Long-displacement jump on condition (Jv) -->
+				<td>JO</td>
+				<td>JNO</td>
+				<td>JB</td>
+				<td>JNB</td>
+				<td>JZ</td>
+				<td>JNZ</td>
+				<td>JBE</td>
+				<td>JNBE</td>
+				<td>JS</td>
+				<td>JNS</td>
+				<td>JP</td>
+				<td>JNP</td>
+				<td>JL</td>
+				<td>JNL</td>
+				<td>JLE</td>
+				<td>JNLE</td>
+			</tr>
+			<tr>
+				<th rowspan=2>9x</th>
+				
+				<td colspan=16>Byte set on condition (Eb)</td>
+			</tr>
+			<tr>
+				<!-- Byte set on condition (Eb) -->
+				<td>SETO</td>
+				<td>SETNO</td>
+				<td>SETB</td>
+				<td>SETNB</td>
+				<td>SETZ</td>
+				<td>SETNZ</td>
+				<td>SETBE</td>
+				<td>SETNBE</td>
+				<td>SETS</td>
+				<td>SETNS</td>
+				<td>SETP</td>
+				<td>SETNP</td>
+				<td>SETL</td>
+				<td>SETNL</td>
+				<td>SETLE</td>
+				<td>SETNLE</td>
+			</tr>
+			<tr>
+				<th rowspan=2>Ax</th>
+				
+				<td rowspan=2>PUSH FS</td>
+				<td rowspan=2>POP FS</td>
+				<td rowspan=2></td>
+				<td rowspan=2>BT Ev, Gv</td>
+				<td rowspan=2>SHLD EvGvIb</td>
+				<td rowspan=2>SHLD EvGvCL</td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2>PUSH GS</td>
+				<td rowspan=2>POP GS</td>
+				<td rowspan=2></td>
+				<td rowspan=2>BTS Ev, Gv</td>
+				<td rowspan=2>SHRD EvGvIb</td>
+				<td rowspan=2>SHRD EvGvCL</td>
+				<td rowspan=2></td>
+				<td rowspan=2>IMUL Gv, Ev</td>
+			</tr>
+			<tr></tr>
+			<tr>
+				<th rowspan=2>Bx</th>
+				
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2>LSS Mp</td>
+				<td rowspan=2>BTR Ev, Gv</td>
+				<td rowspan=2>LFS Mp</td>
+				<td rowspan=2>LGS Mp</td>
+				<td colspan=2>MOVZX</td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2>Grp8 Ev, Ib</td>
+				<td rowspan=2>BTC Ev, Gv</td>
+				<td rowspan=2>BSF Gv, Ev</td>
+				<td rowspan=2>BSR Gv, Ev</td>
+				<td colspan=2>MOVSX</td>
+			</tr>
+			<tr>
+				<!-- MOVZX -->
+				<td>Gv, Eb</td>
+				<td>Gv, Ew</td>
+
+				<!-- MOVSX -->
+				<td>Gv, Eb</td>
+				<td>Gv, Ew</td>
+			</tr>
+			<tr class="skiprow">
+				<th rowspan=2 colspan=17>≈</th>
+			</tr>
+			<tr></tr>
+			<tr>
+				<th rowspan=2>Fx</th>
+				
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+				<td rowspan=2></td>
+			</tr>
+			<tr></tr>
+		</table>
+		<h1>Opcodes Determined by Bits 5, 4, 3 of MODRM Field</h1>
+		<table>
+			<tr>
+				<td>mod</td>
+				<td>nnn</td>
+				<td>R/M</td>
+			</tr>
+		</table>
+		<br />
+		<table class="grouptable">
+			<tr>
+				<th></th>
+				<th>000</th>
+				<th>001</th>
+				<th>010</th>
+				<th>011</th>
+				<th>100</th>
+				<th>101</th>
+				<th>110</th>
+				<th>111</th>
+			</tr>
+			<tr>
+				<th>Group 1</th>
+				
+				<td>ADD</td>
+				<td>OR</td>
+				<td>ADC</td>
+				<td>SBB</td>
+				<td>AND</td>
+				<td>SUB</td>
+				<td>XOR</td>
+				<td>CMP</td>
+			</tr>
+			<tr>
+				<th>Group 2</th>
+				
+				<td>ROL</td>
+				<td>ROR</td>
+				<td>RCL</td>
+				<td>RCR</td>
+				<td>SHL</td>
+				<td>SHR</td>
+				<td></td>
+				<td>SAR</td>
+			</tr>
+			<tr>
+				<th>Group 3</th>
+				
+				<td>TEST Ib/Iv</td>
+				<td></td>
+				<td>NOT</td>
+				<td>NEG</td>
+				<td>MUL AL/eAX</td>
+				<td>IMUL AL/EAX</td>
+				<td>DIV AL/eAX</td>
+				<td>IDIV AL/eAX</td>
+			</tr>
+			<tr>
+				<th>Group 4</th>
+				
+				<td>INC Eb</td>
+				<td>DEC Eb</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+			</tr>
+			<tr>
+				<th>Group 5</th>
+				
+				<td>INC Ev</td>
+				<td>DEC Ev</td>
+				<td>CALL Ev</td>
+				<td>CALL Ep</td>
+				<td>JMP Ev</td>
+				<td>JMP Ep</td>
+				<td>PUSH Ev</td>
+				<td></td>
+			</tr>
+			<tr>
+				<th>Group 6</th>
+				
+				<td>SLDT Ew</td>
+				<td>STR Ew</td>
+				<td>LLDT Ew</td>
+				<td>LTR Ew</td>
+				<td>VERR Ew</td>
+				<td>VERW Ew</td>
+				<td></td>
+				<td></td>
+			</tr>
+			<tr>
+				<th>Group 7</th>
+
+				<td>SGDT Ms</td>
+				<td>SIDT Ms</td>
+				<td>LGDT Ms</td>
+				<td>LIDT Ms</td>
+				<td>SMSW Ew</td>
+				<td></td>
+				<td>LMSW Ew</td>
+				<td></td>
+			</tr>
+			<tr>
+				<th>Group 8</th>
+				
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>BT</td>
+				<td>BTS</td>
+				<td>BTR</td>
+				<td>BTC</td>
+			</tr>
+		</table>
+	</body>
+</html>
