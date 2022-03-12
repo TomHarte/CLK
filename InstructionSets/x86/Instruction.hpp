@@ -42,9 +42,13 @@ enum class Operation: uint8_t {
 	/// Decimal adjust after subtraction; source and destination will be AL.
 	DAS,
 
-	/// Convert byte into word; source will be AL, destination will be AH.
+	/// If data size is word, convert byte into word; source will be AL, destination will be AH.
+	/// If data size is DWord, convert word to dword; AX will be expanded to fill EAX.
+	/// In both cases, conversion will be by sign extension.
 	CBW,
-	/// Convert word to double word; source will be AX and destination will be DX.
+	/// If data size is Word, converts word to double word; source will be AX and destination will be DX.
+	/// If data size is DWord, converts double word to quad word (i.e. CDW); source will be EAX and destination will be EDX:EAX.
+	/// In both cases, conversion will be by sign extension.
 	CWD,
 
 	/// Escape, for a coprocessor; perform the bus cycles necessary to read the source and destination and perform a NOP.
@@ -309,17 +313,6 @@ enum class Operation: uint8_t {
 	BTR,
 	/// Bit test and set.
 	BTS,
-
-	/// Compare string double word.
-	CMPSD,
-	/// [Early 80386s only] Insert bit string.
-	IBTS,
-
-	/// Convert dword to qword; fills EDX with the sign bit of EAX.
-	CDQ,
-	/// Convert word to dword; AX will be expanded to fill EAX.
-	/// Compare and contrast to CWD which would expand AX to DX:AX.
-	CWDE,
 
 	/// Move from the source to the destination, extending the source with zeros.
 	/// The instruction data size dictates the size of the source; the destination will

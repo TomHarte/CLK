@@ -301,7 +301,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			case 0x96: Complete(XCHG, eAX, eSI, data_size_);		break;
 			case 0x97: Complete(XCHG, eAX, eDI, data_size_);		break;
 
-			case 0x98: Complete(CBW, eAX, AH, DataSize::Byte);		break;
+			case 0x98: Complete(CBW, eAX, AH, data_size_);			break;
 			case 0x99: Complete(CWD, eAX, eDX, data_size_);			break;
 			case 0x9a: Far(CALLfar);								break;
 			case 0x9b: Complete(WAIT, None, None, DataSize::None);	break;
@@ -823,7 +823,9 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 					default: undefined();
 
 					case 0: 	operation_ = Operation::SGDT;	break;
+					case 1: 	operation_ = Operation::SIDT;	break;
 					case 2: 	operation_ = Operation::LGDT;	break;
+					case 3: 	operation_ = Operation::LIDT;	break;
 					case 4: 	operation_ = Operation::SMSW;	break;
 					case 6: 	operation_ = Operation::LMSW;	break;
 				}
