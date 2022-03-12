@@ -88,7 +88,7 @@ enum class Operation: uint8_t {
 
 	/// Far call; see the segment() and offset() fields.
 	CALLfar,
-	/// Displacement call; followed by a 16-bit operand providing a call offset.
+	/// Relative call; see displacement().
 	CALLrel,
 	/// Near call.
 	CALLabs,
@@ -216,11 +216,12 @@ enum class Operation: uint8_t {
 	/// Procedure exit; copies BP to SP, then pops a new BP from the stack.
 	LEAVE,
 
-	// TODO: expand detail on all operations below.
-
-	/// Inputs from a port, incrementing or decrementing the destination.
+	/// Inputs a byte, word or double word from the port specified by DX, writing it to
+	/// ES:[e]DI and incrementing or decrementing [e]DI as per the
+	/// current EFLAGS DF flag.
 	INS,
-	/// Outputs to a port, incrementing or decrementing the destination.
+	/// Outputs a byte, word or double word from ES:[e]DI  to the port specified by DX,
+	/// incrementing or decrementing [e]DI as per the current EFLAGS DF flag.]
 	OUTS,
 
 	/// Pushes all general purpose registers to the stack, in the order:
@@ -233,6 +234,8 @@ enum class Operation: uint8_t {
 	//
 	// 80286 additions.
 	//
+
+	// TODO: expand detail on all operations below.
 
 	/// Adjusts requested privilege level.
 	ARPL,
@@ -311,11 +314,6 @@ enum class Operation: uint8_t {
 	CMPSD,
 	/// [Early 80386s only] Insert bit string.
 	IBTS,
-
-	/// Inputs a double word the port specified by DX, writing it to
-	/// ES:[e]DI and incrementing or decrementing [e]DI as per the
-	/// current EFLAGS DF flag.
-	INSD,
 
 	/// Convert dword to qword; fills EDX with the sign bit of EAX.
 	CDQ,

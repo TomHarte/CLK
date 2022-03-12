@@ -244,7 +244,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80186);
 				Complete(INS, None, None, DataSize::Byte);
 			break;
-			case 0x6d:	// INSW
+			case 0x6d:	// INSW/INSD
 				RequiresMin(i80186);
 				Complete(INS, None, None, data_size_);
 			break;
@@ -252,7 +252,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 				RequiresMin(i80186);
 				Complete(OUTS, None, None, DataSize::Byte);
 			break;
-			case 0x6f:	// OUTSW
+			case 0x6f:	// OUTSW/OUSD
 				RequiresMin(i80186);
 				Complete(OUTS, None, None, data_size_);
 			break;
