@@ -311,18 +311,24 @@ enum class Operation: uint8_t {
 	/// [Early 80386s only] Insert bit string.
 	IBTS,
 
-	/// Inputs a double word from a port, incrementing or decrementing the destination.
+	/// Inputs a double word the port specified by DX, writing it to
+	/// ES:[e]DI and incrementing or decrementing [e]DI as per the
+	/// current EFLAGS DF flag.
 	INSD,
 
-	/// Convert dword to qword.
+	/// Convert dword to qword; fills EDX with the sign bit of EAX.
 	CDQ,
 	/// Convert word to dword; AX will be expanded to fill EAX.
 	/// Compare and contrast to CWD which would expand AX to DX:AX.
 	CWDE,
 
-	/// Move with zero extension.
+	/// Move from the source to the destination, extending the source with zeros.
+	/// The instruction data size dictates the size of the source; the destination will
+	/// be either 16- or 32-bit depending on the current processor operating mode.
 	MOVZX,
-	/// Move with sign extension.
+	/// Move from the source to the destination, applying a sign extension.
+	/// The instruction data size dictates the size of the source; the destination will
+	/// be either 16- or 32-bit depending on the current processor operating mode.
 	MOVSX,
 
 	/// Two-operand form of IMUL; multiply the source by the destination and write to the destination.
