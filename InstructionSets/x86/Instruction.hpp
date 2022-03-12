@@ -210,12 +210,13 @@ enum class Operation: uint8_t {
 	BOUND,
 
 
-	// TODO: expand detail on all operations below.
-
-	/// Create stack frame.
+	/// Create stack frame. See operand() for the nesting level and offset()
+	/// for the dynamic storage size.
 	ENTER,
 	/// Procedure exit; copies BP to SP, then pops a new BP from the stack.
 	LEAVE,
+
+	// TODO: expand detail on all operations below.
 
 	/// Inputs from a port, incrementing or decrementing the destination.
 	INS,
