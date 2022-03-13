@@ -124,13 +124,11 @@ bool Copper::advance_dma(uint16_t position, uint16_t blitter_status) {
 
 			// Got to here => this is a WAIT or a SKIP.
 
-			const bool raster_is_satisfied = satisfies_raster(position, blitter_status, instruction_);
-
 			if(!(instruction_[1] & 1)) {
-				// A WAIT. Empirically, I don't think this waits at all if the test is
-				// already satisfied.
-				state_ = raster_is_satisfied ? State::FetchFirstWord : State::Waiting;
-				if(raster_is_satisfied) LOG("Will wait from " << PADHEX(4) << position);
+				// A WAIT. The wait-for-start-of-next PAL wait of
+				// $FFDF,$FFFE seems to suggest evaluation will happen
+				// in the next cycle rather than this one.
+				state_ = State::Waiting;
 				break;
 			}
 
