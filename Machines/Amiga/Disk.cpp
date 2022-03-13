@@ -8,6 +8,10 @@
 
 #include "Chipset.hpp"
 
+#ifndef NDEBUG
+#define NDEBUG
+#endif
+
 #define LOG_PREFIX "[Disk] "
 #include "../../Outputs/Log.hpp"
 
