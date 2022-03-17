@@ -166,10 +166,14 @@ class Chipset: private ClockingHint::Observer {
 		uint16_t fetch_window_[2] = {0, 0};
 
 		// Ephemeral bitplane collection state.
-		bool fetch_vertical_ = false, fetch_horizontal_ = false;
+		bool fetch_vertical_ = false;
 		bool display_horizontal_ = false;
 		bool did_fetch_ = false;
-		uint16_t fetch_stop_ = 0xffff;
+
+		int horizontal_offset_ = 0;
+		enum HorizontalFetch {
+			Disabled, Enabled, StopRequested
+		} horizontal_fetch_ = HorizontalFetch::Disabled;
 
 		// Output state.
 		uint16_t border_colour_ = 0;
