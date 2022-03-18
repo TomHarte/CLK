@@ -53,12 +53,23 @@ namespace {
 
 		switch(instruction.operation) {
 			default:
-//				NSAssert(FALSE, @"Didn't handle %@", line);
+				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
 
-			case Operation::bx: {
-				const uint32_t destination = uint32_t(std::strtol([columns[3] UTF8String], 0, 16));
+			case Operation::bcx: {
+				switch(instruction.bo()) {
+					case 0x14: case 0x15:	XCTAssertEqualObjects(operation, @"b");		break;
+					default:
+						NSLog(@"No opcode tested for bcx with bo %02x", instruction.bo());
+					break;
+				}
 
+				const uint32_t destination = uint32_t(std::strtol([columns[3] UTF8String], 0, 16));
+				const uint32_t decoded_destination = instruction.bd() + address;
+				XCTAssertEqual(decoded_destination, destination);
+			} break;
+
+			case Operation::bx: {
 				switch((instruction.aa() ? 2 : 0) | (instruction.lk() ? 1 : 0)) {
 					case 0:	XCTAssertEqualObjects(operation, @"b");		break;
 					case 1:	XCTAssertEqualObjects(operation, @"bl");	break;
@@ -66,6 +77,7 @@ namespace {
 					case 3:	XCTAssertEqualObjects(operation, @"bla");	break;
 				}
 
+				const uint32_t destination = uint32_t(std::strtol([columns[3] UTF8String], 0, 16));
 				const uint32_t decoded_destination =
 					instruction.li() + (instruction.aa() ? 0 : address);
 				XCTAssertEqual(decoded_destination, destination);

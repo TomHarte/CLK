@@ -25,7 +25,52 @@ enum class Operation: uint8_t {
 
 	// 32- and 64-bit PowerPC instructions.
 	addx, addcx, addex, addi, addic, addic_, addis, addmex, addzex, andx,
-	andcx, andi_, andis_, bx, bcx, bcctrx, bclrx, cmp, cmpi, cmpl, cmpli,
+	andcx, andi_, andis_,
+
+	/// Branch unconditional.
+	///
+	/// Use li() to get the included immediate value.
+	///
+	/// Use aa() to determine whether it's a relative (aa() = 0) or absolute (aa() != 0) address.
+	/// Also check lk() to determine whether to update the link register.
+	///
+	/// Synonyms include:
+	/// 	* b (relative, no link) [though assemblers might encode as a bcx];
+	/// 	* bl (relative, link);
+	/// 	* ba (absolute, no link);
+	/// 	* bla (absolute, link).
+	bx,
+
+	/// Branch conditional.
+	///
+	/// lk() determines whether to update the link register.
+	/// bd() supplies a relative displacment.
+	/// bi() specifies which CR bit to use as a condition.
+	/// bo() provides other branch options:
+	///		0000y => decrement count register, branch if new value != 0 && !condition.
+	///		0001y => decrement count register, branch if new value == 0 && !condition.
+	///		001zy => branch if !condition
+	///		0100y => decrement count register, branch if new value != 0 && condition.
+	///		0101y => decrement count register, branch if new value == 0 && condition.
+	///		011zy => branch if condition.
+	///		1z00y => decrement count register, branch if new value != 0.
+	///		1z01y => decrement count register, branch if new value == 0.
+	///		1z1zz => branch always.
+	///	(z should be 0 to create a valid field; y can be any value)
+	///
+	/// Synonyms incude:
+	/// 	* b (relative, no link) [though assemblers might encode as a bx].
+	bcx,
+
+	/// Branch conditional to count register.
+	///
+	/// bi(), bo() and lk() are as per bcx.
+	///
+	/// On the MPC601, anything that decrements the count register will use the non-decremented
+	/// version as the branch target. Other processors will use the decremented version.
+	bcctrx,
+
+	bclrx, cmp, cmpi, cmpl, cmpli,
 	cntlzwx, crand, crandc, creqv, crnand, crnor, cror, crorc, crxor, dcbf,
 	dcbst, dcbt, dcbtst, dcbz, divwx, divwux, eciwx, ecowx, eieio, eqvx,
 	extsbx, extshx, fabsx, faddx, faddsx, fcmpo, fcmpu, fctiwx, fctiwzx,
