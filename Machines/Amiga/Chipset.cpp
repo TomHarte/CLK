@@ -146,7 +146,6 @@ void Chipset::output_pixels(int cycles_until_sync) {
 	const uint32_t playfield = bitplane_pixels_.get(is_high_res_);
 
 	// Output playfield pixels, if a buffer was allocated.
-	// TODO: HAM.
 	if(pixels_) {
 		if(hold_and_modify_) {
 			apply_ham(uint8_t(playfield >> 16));
@@ -507,14 +506,28 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	//
 
 	// Top priority: bitplane collection.
-	// TODO: mask off fetch_window_'s lower bits. (Dependant on high/low-res?)
-	// Also: fetch_stop_ and that + 12/8 is the best I can discern from the Hardware Reference,
-	// but very obviously isn't how the actual hardware works. Explore on that.
-	fetch_horizontal_ |= cycle == fetch_window_[0];
-	if(cycle == fetch_window_[1]) fetch_stop_ = cycle + (is_high_res_ ? 12 : 8);
-	fetch_horizontal_ &= cycle != fetch_stop_;
-	if((dma_control_ & BitplaneFlag) == BitplaneFlag) {
-		if(fetch_vertical_ && fetch_horizontal_ && bitplanes_.advance_dma(cycle)) {
+	if(cycle == fetch_window_[0]) {
+		horizontal_fetch_ = HorizontalFetch::Started;
+		horizontal_offset_ = cycle;
+	}
+	if(cycle == fetch_window_[1]) {
+		horizontal_fetch_ = HorizontalFetch::WillRequestStop;
+	}
+	if(horizontal_fetch_ != HorizontalFetch::Stopped) {
+		if(!((cycle - horizontal_offset_) & 7)) {
+			switch(horizontal_fetch_) {
+				case HorizontalFetch::WillRequestStop: horizontal_fetch_ = HorizontalFetch::StopRequested; break;
+				case HorizontalFetch::StopRequested: horizontal_fetch_ = HorizontalFetch::Stopped; break;
+				default: break;
+			}
+		}
+
+		if(
+			horizontal_fetch_ != HorizontalFetch::Stopped &&
+			(dma_control_ & BitplaneFlag) == BitplaneFlag &&
+			fetch_vertical_ &&
+			bitplanes_.advance_dma(cycle - horizontal_offset_)
+		) {
 			did_fetch_ = true;
 			return false;
 		}
@@ -712,8 +725,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				previous_bitplanes_.clear();
 			}
 			did_fetch_ = false;
-			fetch_horizontal_ = false;
-			fetch_stop_ = 0xffff;
+			horizontal_fetch_ = HorizontalFetch::Stopped;
 
 			if(y_ == short_field_height_ + is_long_field_) {
 				++vsyncs;
@@ -921,7 +933,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 			if(fetch_window_[0] != value) {
 				LOG("Fetch window start set to " << std::dec << value);
 			}
-			fetch_window_[0] = value;
+			fetch_window_[0] = value & 0xfe;
 		break;
 		case 0x094:		// DDFSTOP
 			// TODO: something in my interpretation of ddfstart and ddfstop
@@ -929,7 +941,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 			if(fetch_window_[1] != value) {
 				LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
 			}
-			fetch_window_[1] = value;
+			fetch_window_[1] = value & 0xfe;
 		break;
 
 		// Bitplanes.
