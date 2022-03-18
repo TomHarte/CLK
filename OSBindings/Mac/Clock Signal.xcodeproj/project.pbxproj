@@ -609,6 +609,8 @@
 		4BB0A65C2044FD3000FB3688 /* SN76489.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB0A6592044FD3000FB3688 /* SN76489.cpp */; };
 		4BB0A65D2045009000FB3688 /* ColecoVision.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7A90E42041097C008514A2 /* ColecoVision.cpp */; };
 		4BB0A65E204500A900FB3688 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7A90EC20410A85008514A2 /* StaticAnalyser.cpp */; };
+		4BB0CAA727E51B6300672A88 /* DingusdevPowerPCTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BB0CAA627E51B6300672A88 /* DingusdevPowerPCTests.mm */; };
+		4BB0CAB227E51D2A00672A88 /* dingusdev PowerPC tests in Resources */ = {isa = PBXBuildFile; fileRef = 4BB0CAB127E51D2A00672A88 /* dingusdev PowerPC tests */; };
 		4BB17D4E1ED7909F00ABD1E1 /* tests.expected.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */; };
 		4BB17D4F1ED7909F00ABD1E1 /* tests.in.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4D1ED7909F00ABD1E1 /* tests.in.json */; };
 		4BB244D522AABAF600BE20E5 /* z8530.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB244D322AABAF500BE20E5 /* z8530.cpp */; };
@@ -1637,6 +1639,8 @@
 		4BB06B211F316A3F00600C7A /* ForceInline.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ForceInline.hpp; sourceTree = "<group>"; };
 		4BB0A6592044FD3000FB3688 /* SN76489.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SN76489.cpp; sourceTree = "<group>"; };
 		4BB0A65A2044FD3000FB3688 /* SN76489.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SN76489.hpp; sourceTree = "<group>"; };
+		4BB0CAA627E51B6300672A88 /* DingusdevPowerPCTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DingusdevPowerPCTests.mm; sourceTree = "<group>"; };
+		4BB0CAB127E51D2A00672A88 /* dingusdev PowerPC tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "dingusdev PowerPC tests"; sourceTree = "<group>"; };
 		4BB146C61F49D7D700253439 /* ClockingHintSource.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockingHintSource.hpp; sourceTree = "<group>"; };
 		4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = tests.expected.json; path = FUSE/tests.expected.json; sourceTree = "<group>"; };
 		4BB17D4D1ED7909F00ABD1E1 /* tests.in.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = tests.in.json; path = FUSE/tests.in.json; sourceTree = "<group>"; };
@@ -2388,21 +2392,22 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
-				4B683B002727BE6F0043E541 /* Amiga Blitter Tests */,
-				4B680CE323A555CA00451D43 /* 68000 Comparative Tests */,
-				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
-				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
-				4B98A1CD1FFADEC400ADF63B /* MSX ROMs */,
 				4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */,
 				4BE211DD253E4E4800435408 /* 65C02_no_Rockwell_test.bin */,
 				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
+				4B680CE323A555CA00451D43 /* 68000 Comparative Tests */,
 				4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */,
-				4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */,
+				4B683B002727BE6F0043E541 /* Amiga Blitter Tests */,
+				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
+				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
+				4BB0CAB127E51D2A00672A88 /* dingusdev PowerPC tests */,
 				4B8DF5212550D91400F3433C /* emudev.de krom traces */,
 				4B2530F2244E6773007980BF /* FM Synthesis */,
 				4BBF49B41ED2881600AB3669 /* FUSE */,
 				4B4F475B2533EA64004245B8 /* jeek816 */,
 				4B8DF5392550D91400F3433C /* krom 65816 */,
+				4B98A1CD1FFADEC400ADF63B /* MSX ROMs */,
+				4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */,
 				4B670A822401CB8400D4E002 /* Patrik Rak Z80 Tests */,
 				4B9F11C72272375400701480 /* QL Startup */,
 				4B85322B227793CA00F26553 /* TOS Startup */,
@@ -4135,6 +4140,7 @@
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
 				4BE34437238389E10058E78F /* AtariSTVideoTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
+				4BB0CAA627E51B6300672A88 /* DingusdevPowerPCTests.mm */,
 				4BFF1D3C2235C3C100838EA1 /* EmuTOSTests.mm */,
 				4B47770C26900685005C2340 /* EnterpriseDaveTests.mm */,
 				4B051CB2267D3FF800CA44E8 /* EnterpriseNickTests.mm */,
@@ -5237,6 +5243,7 @@
 				4BB299F11B587D8400A49093 /* trap5 in Resources */,
 				4BB2998E1B587D8400A49093 /* lsra in Resources */,
 				4BB2995E1B587D8400A49093 /* incz in Resources */,
+				4BB0CAB227E51D2A00672A88 /* dingusdev PowerPC tests in Resources */,
 				4BB299791B587D8400A49093 /* ldaiy in Resources */,
 				4BB299A31B587D8400A49093 /* oraiy in Resources */,
 				4B8DF68E2550D91700F3433C /* CPUORA.sfc in Resources */,
@@ -5932,6 +5939,7 @@
 				4B051CB3267D3FF800CA44E8 /* EnterpriseNickTests.mm in Sources */,
 				4B9D0C4D22C7DA1A00DE1AD3 /* 68000ControlFlowTests.mm in Sources */,
 				4BB2A9AF1E13367E001A5C23 /* CRCTests.mm in Sources */,
+				4BB0CAA727E51B6300672A88 /* DingusdevPowerPCTests.mm in Sources */,
 				4B778F5623A5F2AF0000D260 /* CPM.cpp in Sources */,
 				4B778F1C23A5ED3F0000D260 /* TimedEventLoop.cpp in Sources */,
 				4B47770D26900685005C2340 /* EnterpriseDaveTests.mm in Sources */,
