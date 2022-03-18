@@ -507,26 +507,30 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 
 	// Top priority: bitplane collection.
 	if(cycle == fetch_window_[0]) {
-//		printf("Enabled: %d; ", cycle);
-		horizontal_fetch_ = HorizontalFetch::Enabled;
+		horizontal_fetch_ = HorizontalFetch::Started;
 		horizontal_offset_ = cycle;
 	}
-	if(horizontal_fetch_ != HorizontalFetch::Disabled) {
-		if(!((cycle - horizontal_offset_)&7)) {
-			if(horizontal_fetch_ == HorizontalFetch::StopRequested) {
-//				printf("Disabled: %d\n", cycle);
-				horizontal_fetch_ = HorizontalFetch::Disabled;
+	if(cycle == fetch_window_[1]) {
+		horizontal_fetch_ = HorizontalFetch::WillRequestStop;
+	}
+	if(horizontal_fetch_ != HorizontalFetch::Stopped) {
+		if(!((cycle - horizontal_offset_) & 7)) {
+			switch(horizontal_fetch_) {
+				case HorizontalFetch::WillRequestStop: horizontal_fetch_ = HorizontalFetch::StopRequested; break;
+				case HorizontalFetch::StopRequested: horizontal_fetch_ = HorizontalFetch::Stopped; break;
+				default: break;
 			}
 		}
 
-		if(horizontal_fetch_ != HorizontalFetch::Disabled && (dma_control_ & BitplaneFlag) == BitplaneFlag && fetch_vertical_ && bitplanes_.advance_dma(cycle - horizontal_offset_)) {
+		if(
+			horizontal_fetch_ != HorizontalFetch::Stopped &&
+			(dma_control_ & BitplaneFlag) == BitplaneFlag &&
+			fetch_vertical_ &&
+			bitplanes_.advance_dma(cycle - horizontal_offset_)
+		) {
 			did_fetch_ = true;
 			return false;
 		}
-	}
-	if(cycle == fetch_window_[1]) {
-//		printf("Disabling: %d; ", cycle);
-		horizontal_fetch_ = HorizontalFetch::StopRequested;
 	}
 
 	// Contradictory snippets from the Hardware Reference manual:
@@ -721,7 +725,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 				previous_bitplanes_.clear();
 			}
 			did_fetch_ = false;
-			horizontal_fetch_ = HorizontalFetch::Disabled;
+			horizontal_fetch_ = HorizontalFetch::Stopped;
 
 			if(y_ == short_field_height_ + is_long_field_) {
 				++vsyncs;
@@ -928,6 +932,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		case 0x092:		// DDFSTRT
 			if(fetch_window_[0] != value) {
 				LOG("Fetch window start set to " << std::dec << value);
+				std::cout << "Fetch window start set to " << std::dec << value << std::endl;
 			}
 			fetch_window_[0] = value & 0xfe;
 		break;
@@ -936,6 +941,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 			// means a + 8 is needed below for high-res displays. Investigate.
 			if(fetch_window_[1] != value) {
 				LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
+				std::cout << "Fetch window stop set to " << std::dec << fetch_window_[1] << std::endl;
 			}
 			fetch_window_[1] = value & 0xfe;
 		break;

@@ -172,8 +172,8 @@ class Chipset: private ClockingHint::Observer {
 
 		int horizontal_offset_ = 0;
 		enum HorizontalFetch {
-			Disabled, Enabled, StopRequested
-		} horizontal_fetch_ = HorizontalFetch::Disabled;
+			Started, WillRequestStop, StopRequested, Stopped
+		} horizontal_fetch_ = HorizontalFetch::Stopped;
 
 		// Output state.
 		uint16_t border_colour_ = 0;
