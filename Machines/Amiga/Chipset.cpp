@@ -932,7 +932,6 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		case 0x092:		// DDFSTRT
 			if(fetch_window_[0] != value) {
 				LOG("Fetch window start set to " << std::dec << value);
-				std::cout << "Fetch window start set to " << std::dec << value << std::endl;
 			}
 			fetch_window_[0] = value & 0xfe;
 		break;
@@ -941,7 +940,6 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 			// means a + 8 is needed below for high-res displays. Investigate.
 			if(fetch_window_[1] != value) {
 				LOG("Fetch window stop set to " << std::dec << fetch_window_[1]);
-				std::cout << "Fetch window stop set to " << std::dec << fetch_window_[1] << std::endl;
 			}
 			fetch_window_[1] = value & 0xfe;
 		break;
