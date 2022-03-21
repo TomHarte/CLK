@@ -21,6 +21,29 @@ enum class CacheLine: uint32_t {
 	Maximum = 0b01111,
 };
 
+enum class BranchOptions: uint32_t {
+	// Naming convention:
+	//
+	//	Dec_ prefix => decrement the CTR;
+	//	condition starting NotZero or Zero => test CTR;
+	//	condition ending Set or Clear => test for condition bit.
+	//
+	// Numerical suffixes are present because there's some redundancy
+	// in encodings.
+	//
+	// Note that the encodings themselves may suggest alternative means
+	// of interpretation than mapping via this enum.
+	Dec_NotZeroAndClear1	= 0b00000,	Dec_NotZeroAndClear2	= 0b00001,
+	Dec_ZeroAndClear1		= 0b00010,	Dec_ZeroAndClear2 		= 0b00011,
+	Clear1 					= 0b00100,	Clear2 					= 0b00101,
+	Dec_NotZeroAndSet1		= 0b01000,	Dec_NotZeroAndSet2 		= 0b01001,
+	Dec_ZeroAndSet1 		= 0b01010,	Dec_ZeroAndSet2 		= 0b01011,
+	Set1 					= 0b01100,	Set2 					= 0b01101,
+	Dec_NotZero1 			= 0b10000,	Dec_NotZero2 			= 0b10001,
+	Dec_Zero1				= 0b10010,	Dec_Zero2 				= 0b10011,
+	Always 					= 0b10100,
+};
+
 enum class Operation: uint8_t {
 	Undefined,
 
@@ -193,29 +216,6 @@ struct Instruction {
 	uint32_t frS() const 	{	return (opcode >> 21) & 0x1f;		}
 	/// Floating point register destination.
 	uint32_t frD() const 	{	return (opcode >> 21) & 0x1f;		}
-
-	enum BranchOptions: uint32_t {
-		// Naming convention:
-		//
-		//	Dec_ prefix => decrement the CTR;
-		//	condition starting NotZero or Zero => test CTR;
-		//	condition ending Set or Clear => test for condition bit.
-		//
-		// Numerical suffixes are present because there's some redundancy
-		// in encodings.
-		//
-		// Note that the encodings themselves may suggest alternative means
-		// of interpretation than mapping via this enum.
-		Dec_NotZeroAndClear1	= 0b00000,	Dec_NotZeroAndClear2	= 0b00001,
-		Dec_ZeroAndClear1		= 0b00010,	Dec_ZeroAndClear2 		= 0b00011,
-		Clear1 					= 0b00100,	Clear2 					= 0b00101,
-		Dec_NotZeroAndSet1		= 0b01000,	Dec_NotZeroAndSet2 		= 0b01001,
-		Dec_ZeroAndSet1 		= 0b01010,	Dec_ZeroAndSet2 		= 0b01011,
-		Set1 					= 0b01100,	Set2 					= 0b01101,
-		Dec_NotZero1 			= 0b10000,	Dec_NotZero2 			= 0b10001,
-		Dec_Zero1				= 0b10010,	Dec_Zero2 				= 0b10011,
-		Always 					= 0b10100,
-	};
 
 	/// Branch conditional options. Cf. the BranchOptions enum.
 	uint32_t bo() const 	{	return (opcode >> 21) & 0x1f;		}
