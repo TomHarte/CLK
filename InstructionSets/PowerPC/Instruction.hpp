@@ -14,12 +14,42 @@
 namespace InstructionSet {
 namespace PowerPC {
 
+enum class CacheLine: uint32_t {
+	Instruction = 0b01100,
+	Data = 0b1101,
+	Minimum = 0b01110,
+	Maximum = 0b01111,
+};
+
 enum class Operation: uint8_t {
 	Undefined,
 
 	// These 601-exclusive instructions; a lot of them are carry-overs
-	// from POWER.
-	absx, clcs, divx, divsx, dozx, dozi, lscbxx, maskgx, maskirx, mulx,
+	// from POWER. These are not part of the PowerPC architecture.
+
+	/// |rA| is placed into rD. If rA = 0x8000'0000 then 0x8000'0000 is placed into rD
+	/// and XER[OV] is set if oe() indicates that overflow is enabled.
+	absx,
+
+	/// The size of the cache line specified by rA is placed into rD. Cf. the CacheLine enum.
+	/// As an aside: all cache lines are 64 bytes on the MPC601.
+	clcs,
+
+	/// div, div., divo, div.; unsigned 64-bit divide. rA|MQ / rB is placed into rD and the
+	/// remainder is placed into MQ. The ermainder has the same sign as the dividend
+	/// such that remainder + divisor * quotient = dividend.
+	///
+	/// rc() != 0 => the LT, GT and EQ bits in CR are set as per the remainder.
+	/// oe() != 0 => SO and OV are set if the quotient exceeds 32 bits.
+	divx,
+
+	/// divs, divs., divso, divso.; signed 32-bit divide. rD = rA/rB; remainder is
+	/// placed into MQ. The ermainder has the same sign as the dividend
+	/// such that remainder + divisor * quotient = dividend.
+	///
+	/// rc() != 0 => the LT, GT and EQ bits in CR are set as per the remainder.
+	/// oe() != 0 => SO and OV are set if the quotient exceeds 32 bits.
+	divsx, dozx, dozi, lscbxx, maskgx, maskirx, mulx,
 	nabsx, rlmix, rribx, slex, sleqx, sliqx, slliqx, sllqx, slqx,
 	sraiqx, sraqx, srex, sreax, sreqx, sriqx, srliqx, srlqx, srqx,
 
