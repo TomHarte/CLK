@@ -36,11 +36,11 @@ Instruction Decoder::decode(uint32_t opcode) {
 #define BindSupervisor(mask, operation)		case mask: return Instruction(Operation::operation, opcode, true);
 #define BindConditional(condition, mask, operation)	\
 	case mask: \
-		if(condition()) return Instruction(Operation::operation, opcode);	\
+		if(condition(model_)) return Instruction(Operation::operation, opcode);	\
 	return Instruction(opcode);
 #define BindSupervisorConditional(condition, mask, operation)	\
 	case mask: \
-		if(condition()) return Instruction(Operation::operation, opcode, true);	\
+		if(condition(model_)) return Instruction(Operation::operation, opcode, true);	\
 	return Instruction(opcode);
 
 #define Six(x)			(unsigned(x) << 26)
@@ -320,7 +320,7 @@ Instruction Decoder::decode(uint32_t opcode) {
 	switch(opcode & 0b111111'00'00000000'000'111111111'1){
 		case 0b011111'00'00000000'00000'0010010110'1:	return Instruction(Operation::stwcx_, opcode);
 		case 0b011111'00'00000000'00000'0011010110'1:
-			if(is64bit()) return Instruction(Operation::stdcx_, opcode);
+			if(is64bit(model_)) return Instruction(Operation::stdcx_, opcode);
 		return Instruction(opcode);
 	}
 
@@ -328,7 +328,7 @@ Instruction Decoder::decode(uint32_t opcode) {
 	switch(opcode & 0b111111'00'00000000'00000000'000000'11){
 		case 0b111110'00'00000000'00000000'000000'00:	return Instruction(Operation::std, opcode);
 		case 0b111110'00'00000000'00000000'000000'01:
-			if(is64bit()) return Instruction(Operation::stdu, opcode);
+			if(is64bit(model_)) return Instruction(Operation::stdu, opcode);
 		return Instruction(opcode);
 	}
 

@@ -23,6 +23,18 @@ enum class Model {
 	MPC620,
 };
 
+constexpr bool is64bit(Model model) {
+	return model == Model::MPC620;
+}
+
+constexpr bool is32bit(Model model) {
+	return !is64bit(model);
+}
+
+constexpr bool is601(Model model) {
+	return model == Model::MPC601;
+}
+
 /*!
 	Implements PowerPC instruction decoding.
 
@@ -36,18 +48,6 @@ struct Decoder {
 
 	private:
 		Model model_;
-
-		bool is64bit() const {
-			return model_ == Model::MPC620;
-		}
-
-		bool is32bit() const {
-			return !is64bit();
-		}
-
-		bool is601() const {
-			return model_ == Model::MPC601;
-		}
 };
 
 }
