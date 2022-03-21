@@ -72,7 +72,15 @@ enum class Operation: uint8_t {
 	///
 	/// rc() != 0 => the LT, GT and EQ bits in CR are set as per the remainder.
 	/// oe() != 0 => SO and OV are set if the quotient exceeds 32 bits.
-	divsx, dozx, dozi, lscbxx, maskgx, maskirx, mulx,
+	divsx,
+
+	/// if rA > rB then rD = 0; else rD = NOT(rA) + rB + 1.
+	dozx,
+
+	/// if rA > simm() then rD = 0; else rD = NOT(rA) + simm() + 1.
+	dozi,
+
+	lscbxx, maskgx, maskirx, mulx,
 	nabsx, rlmix, rribx, slex, sleqx, sliqx, slliqx, sllqx, slqx,
 	sraiqx, sraqx, srex, sreax, sreqx, sriqx, srliqx, srlqx, srqx,
 
