@@ -53,13 +53,18 @@ using namespace InstructionSet::PowerPC;
 				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
 
+			case Operation::bcx:
 			case Operation::bclrx:
 			case Operation::bcctrx: {
 				NSString *baseOperation = nil;
+				BOOL addConditionToOperand = NO;
 
 				switch(instruction.branch_options()) {
-					case BranchOptions::Always:			baseOperation = @"b";	break;
-					case BranchOptions::Clear:
+					case BranchOption::Always:			baseOperation = @"b";		break;
+					case BranchOption::Dec_Zero:		baseOperation = @"bdz";		break;
+					case BranchOption::Dec_NotZero:	baseOperation = @"bdnz";	break;
+
+					case BranchOption::Clear:
 						switch(Condition(instruction.bi() & 3)) {
 							default: break;
 							case Condition::Negative:	baseOperation = @"bge";	break;
@@ -70,7 +75,16 @@ using namespace InstructionSet::PowerPC;
 							break;
 						}
 					break;
-					case BranchOptions::Set:
+					case BranchOption::Dec_ZeroAndClear:
+						baseOperation = @"bdzf";
+						addConditionToOperand = YES;
+					break;
+					case BranchOption::Dec_NotZeroAndClear:
+						baseOperation = @"bdnzf";
+						addConditionToOperand = YES;
+					break;
+
+					case BranchOption::Set:
 						switch(Condition(instruction.bi() & 3)) {
 							default: break;
 							case Condition::Negative:	baseOperation = @"blt";	break;
@@ -81,13 +95,39 @@ using namespace InstructionSet::PowerPC;
 							break;
 						}
 					break;
+					case BranchOption::Dec_ZeroAndSet:
+						baseOperation = @"bdzt";
+						addConditionToOperand = YES;
+					break;
+					case BranchOption::Dec_NotZeroAndSet:
+						baseOperation = @"bdnzt";
+						addConditionToOperand = YES;
+					break;
+
 					default: break;
 				}
 
-				if(instruction.operation == Operation::bcctrx) {
-					baseOperation = [baseOperation stringByAppendingString:@"ctr"];
-				} else {
-					baseOperation = [baseOperation stringByAppendingString:@"lr"];
+				switch(instruction.operation) {
+					case Operation::bcctrx:
+						baseOperation = [baseOperation stringByAppendingString:@"ctr"];
+					break;
+					case Operation::bclrx:
+						baseOperation = [baseOperation stringByAppendingString:@"lr"];
+					break;
+
+					case Operation::bcx: {
+//						if(instruction.aa()) {
+//							baseOperation = [baseOperation stringByAppendingString:@"a"];
+//						} else {
+//
+//						}
+
+						const uint32_t destination = uint32_t(std::strtol([[columns lastObject] UTF8String], 0, 16));
+						const uint32_t decoded_destination = instruction.bd() + address;
+						XCTAssertEqual(decoded_destination, destination);
+					} break;
+
+					default: break;
 				}
 
 				if(!baseOperation) {
@@ -103,25 +143,65 @@ using namespace InstructionSet::PowerPC;
 				}
 
 				if(instruction.bi() & ~3) {
-					NSString *const expectedCR = [NSString stringWithFormat:@"cr%d", instruction.bi() >> 2];
+					NSString *expectedCR;
+
+					if(addConditionToOperand) {
+						NSString *suffix;
+						switch(Condition(instruction.bi() & 3)) {
+							default: break;
+							case Condition::Negative:			suffix = @"lt";	break;
+							case Condition::Positive:			suffix = @"gt";	break;
+							case Condition::Zero:				suffix = @"eq";	break;
+							case Condition::SummaryOverflow:	suffix = @"so"; break;
+						}
+
+						expectedCR = [NSString stringWithFormat:@"4*cr%d+%@", instruction.bi() >> 2, suffix];
+					} else {
+						expectedCR = [NSString stringWithFormat:@"cr%d", instruction.bi() >> 2];
+					}
 					XCTAssertEqualObjects(columns[3], expectedCR);
 				}
 			} break;
 
-			case Operation::bcx: {
+/*			case Operation::bcx: {
+				NSString *expectedOperation;
 				switch(instruction.branch_options()) {
-					case BranchOptions::Always:
-						XCTAssertEqualObjects(operation, @"b");
+					case BranchOption::Always:	expectedOperation = @"b";	break;
+					case BranchOption::Set:
+						switch(Condition(instruction.bi() & 3)) {
+							default: break;
+							case Condition::Negative:			expectedOperation = @"blt";	break;
+							case Condition::Positive:			expectedOperation = @"bgt";	break;
+							case Condition::Zero:				expectedOperation = @"beq";	break;
+							case Condition::SummaryOverflow:	expectedOperation = @"bso"; break;
+						}
+					break;
+					case BranchOption::Clear:
+						switch(Condition(instruction.bi() & 3)) {
+							default: break;
+							case Condition::Negative:			expectedOperation = @"bge";	break;
+							case Condition::Positive:			expectedOperation = @"ble";	break;
+							case Condition::Zero:				expectedOperation = @"bne";	break;
+							case Condition::SummaryOverflow:	expectedOperation = @"bns";	break;
+						}
 					break;
 					default:
-						NSLog(@"No opcode tested for bcx with bo %02x", instruction.bo());
+						NSLog(@"No opcode tested for bcx with bo %02x [%@]", instruction.bo(), line);
 					break;
 				}
+
+				if(instruction.lk()) {
+					expectedOperation = [expectedOperation stringByAppendingString:@"l"];
+				}
+				if(instruction.branch_prediction_hint()) {
+					expectedOperation = [expectedOperation stringByAppendingString:@"+"];
+				}
+				XCTAssertEqualObjects(operation, expectedOperation);
 
 				const uint32_t destination = uint32_t(std::strtol([columns[3] UTF8String], 0, 16));
 				const uint32_t decoded_destination = instruction.bd() + address;
 				XCTAssertEqual(decoded_destination, destination);
-			} break;
+			} break;*/
 
 			case Operation::bx: {
 				switch((instruction.aa() ? 2 : 0) | (instruction.lk() ? 1 : 0)) {

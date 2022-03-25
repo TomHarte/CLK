@@ -37,7 +37,7 @@ enum class Condition: uint32_t {
 	// CRs2–7 fill out the condition register.
 };
 
-enum class BranchOptions: uint32_t {
+enum class BranchOption: uint32_t {
 	// Naming convention:
 	//
 	//	Dec_ prefix => decrement the CTR;
@@ -239,8 +239,8 @@ struct Instruction {
 	/// Branch conditional options as per PowerPC spec, i.e. options + branch-prediction flag.
 	uint32_t bo() const 	{	return (opcode >> 21) & 0x1f;		}
 	/// Just the branch options, with the branch prediction flag severed.
-	BranchOptions branch_options() const {
-		return BranchOptions((opcode >> 22) & 0xf);
+	BranchOption branch_options() const {
+		return BranchOption((opcode >> 22) & 0xf);
 	}
 	/// Just the branch-prediction hint; @c 0 => expect untaken; @c non-0 => expect take.
 	uint32_t branch_prediction_hint() const {
