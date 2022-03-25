@@ -53,33 +53,41 @@ using namespace InstructionSet::PowerPC;
 				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
 
+			case Operation::bclrx:
 			case Operation::bcctrx: {
 				NSString *baseOperation = nil;
+
 				switch(instruction.branch_options()) {
-					case BranchOptions::Always:			baseOperation = @"bctr";	break;
+					case BranchOptions::Always:			baseOperation = @"b";	break;
 					case BranchOptions::Clear:
 						switch(Condition(instruction.bi() & 3)) {
 							default: break;
-							case Condition::Negative:	baseOperation = @"bgectr";	break;
-							case Condition::Positive:	baseOperation = @"blectr";	break;
-							case Condition::Zero:		baseOperation = @"bnectr";	break;
+							case Condition::Negative:	baseOperation = @"bge";	break;
+							case Condition::Positive:	baseOperation = @"ble";	break;
+							case Condition::Zero:		baseOperation = @"bne";	break;
 							case Condition::SummaryOverflow:
-								baseOperation = @"bsoctr";
+								baseOperation = @"bns";
 							break;
 						}
 					break;
 					case BranchOptions::Set:
 						switch(Condition(instruction.bi() & 3)) {
 							default: break;
-							case Condition::Negative:	baseOperation = @"bltctr";	break;
-							case Condition::Positive:	baseOperation = @"bgtctr";	break;
-							case Condition::Zero:		baseOperation = @"beqctr";	break;
+							case Condition::Negative:	baseOperation = @"blt";	break;
+							case Condition::Positive:	baseOperation = @"bgt";	break;
+							case Condition::Zero:		baseOperation = @"beq";	break;
 							case Condition::SummaryOverflow:
-								baseOperation = @"bnsctr";
+								baseOperation = @"bso";
 							break;
 						}
 					break;
 					default: break;
+				}
+
+				if(instruction.operation == Operation::bcctrx) {
+					baseOperation = [baseOperation stringByAppendingString:@"ctr"];
+				} else {
+					baseOperation = [baseOperation stringByAppendingString:@"lr"];
 				}
 
 				if(!baseOperation) {

@@ -137,7 +137,12 @@ enum class Operation: uint8_t {
 	/// version as the branch target. Other processors will use the decremented version.
 	bcctrx,
 
-	bclrx, cmp, cmpi, cmpl, cmpli,
+	/// Branch conditional to link register.
+	///
+	/// bi(), bo() and lk() are as per bcx.
+	bclrx,
+
+	cmp, cmpi, cmpl, cmpli,
 	cntlzwx, crand, crandc, creqv, crnand, crnor, cror, crorc, crxor, dcbf,
 	dcbst, dcbt, dcbtst, dcbz, divwx, divwux, eciwx, ecowx, eieio, eqvx,
 	extsbx, extshx, fabsx, faddx, faddsx, fcmpo, fcmpu, fctiwx, fctiwzx,
