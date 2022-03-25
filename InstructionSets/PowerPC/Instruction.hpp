@@ -21,6 +21,22 @@ enum class CacheLine: uint32_t {
 	Maximum = 0b01111,
 };
 
+enum class Condition: uint32_t {
+	// CR0
+	Negative = 0,				// LT
+	Positive = 1,				// GT
+	Zero = 2,					// EQ
+	SummaryOverflow = 3,		// SO
+
+	// CR1
+	FPException = 4,			// FX
+	FPEnabledException = 5,		// FEX
+	FPInvalidException = 6,		// VX
+	FPOverflowException = 7,	// OX
+
+	// CRs2–7 fill out the condition register.
+};
+
 enum class BranchOptions: uint32_t {
 	// Naming convention:
 	//
@@ -33,15 +49,15 @@ enum class BranchOptions: uint32_t {
 	//
 	// Note that the encodings themselves may suggest alternative means
 	// of interpretation than mapping via this enum.
-	Dec_NotZeroAndClear1	= 0b00000,	Dec_NotZeroAndClear2	= 0b00001,
-	Dec_ZeroAndClear1		= 0b00010,	Dec_ZeroAndClear2 		= 0b00011,
-	Clear1 					= 0b00100,	Clear2 					= 0b00101,
-	Dec_NotZeroAndSet1		= 0b01000,	Dec_NotZeroAndSet2 		= 0b01001,
-	Dec_ZeroAndSet1 		= 0b01010,	Dec_ZeroAndSet2 		= 0b01011,
-	Set1 					= 0b01100,	Set2 					= 0b01101,
-	Dec_NotZero1 			= 0b10000,	Dec_NotZero2 			= 0b10001,
-	Dec_Zero1				= 0b10010,	Dec_Zero2 				= 0b10011,
-	Always 					= 0b10100,
+	Dec_NotZeroAndClear	= 0b0000,
+	Dec_ZeroAndClear	= 0b0001,
+	Clear 				= 0b0010,
+	Dec_NotZeroAndSet	= 0b0100,
+	Dec_ZeroAndSet 		= 0b0101,
+	Set 				= 0b0110,
+	Dec_NotZero 		= 0b1000,
+	Dec_Zero			= 0b1001,
+	Always 				= 0b1010,
 };
 
 enum class Operation: uint8_t {
@@ -106,18 +122,8 @@ enum class Operation: uint8_t {
 	///
 	/// lk() determines whether to update the link register.
 	/// bd() supplies a relative displacment.
-	/// bi() specifies which CR bit to use as a condition.
-	/// bo() provides other branch options:
-	///		0000y => decrement count register, branch if new value != 0 && !condition.
-	///		0001y => decrement count register, branch if new value == 0 && !condition.
-	///		001zy => branch if !condition
-	///		0100y => decrement count register, branch if new value != 0 && condition.
-	///		0101y => decrement count register, branch if new value == 0 && condition.
-	///		011zy => branch if condition.
-	///		1z00y => decrement count register, branch if new value != 0.
-	///		1z01y => decrement count register, branch if new value == 0.
-	///		1z1zz => branch always.
-	///	(z should be 0 to create a valid field; y can be any value)
+	/// bi() specifies which CR bit to use as a condition; cf. the Condition enum.
+	/// bo() provides other branch options and a branch prediction hint as per (BranchOptions enum << 1) | hint.
 	///
 	/// Synonyms incude:
 	/// 	* b (relative, no link) [though assemblers might encode as a bx].
@@ -225,8 +231,16 @@ struct Instruction {
 	/// Floating point register destination.
 	uint32_t frD() const 	{	return (opcode >> 21) & 0x1f;		}
 
-	/// Branch conditional options. Cf. the BranchOptions enum.
+	/// Branch conditional options as per PowerPC spec, i.e. options + branch-prediction flag.
 	uint32_t bo() const 	{	return (opcode >> 21) & 0x1f;		}
+	/// Just the branch options, with the branch prediction flag severed.
+	BranchOptions branch_options() const {
+		return BranchOptions((opcode >> 22) & 0xf);
+	}
+	/// Just the branch-prediction hint; @c 0 => expect untaken; @c non-0 => expect take.
+	uint32_t branch_prediction_hint() const {
+		return opcode & 0x200000;
+	}
 	/// Source condition register bit for branch conditionals.
 	uint32_t bi() const 	{	return (opcode >> 16) & 0x1f;		}
 	/// Branch displacement; provided as already sign extended.

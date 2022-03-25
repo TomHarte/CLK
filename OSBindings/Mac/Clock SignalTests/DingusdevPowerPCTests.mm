@@ -12,10 +12,7 @@
 
 #include "../../../InstructionSets/PowerPC/Decoder.hpp"
 
-namespace {
-	using Operation = InstructionSet::PowerPC::Operation;
-	using Instruction = InstructionSet::PowerPC::Instruction;
-}
+using namespace InstructionSet::PowerPC;
 
 @interface DingusdevPowerPCTests : XCTestCase
 @end
@@ -45,7 +42,7 @@ namespace {
 
 		NSArray<NSString *> *const columns = [line componentsSeparatedByString:@","];
 
-		// Column 1: address.
+		// Columns are 1: address; 2: opcode; 3–: specific to the instruction.
 		const uint32_t address = uint32_t(std::strtol([columns[0] UTF8String], 0, 16));
 		const uint32_t opcode = uint32_t(std::strtol([columns[1] UTF8String], 0, 16));
 		NSString *const operation = columns[2];
@@ -56,9 +53,58 @@ namespace {
 				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
 
+			case Operation::bcctrx: {
+				NSString *baseOperation = nil;
+				switch(instruction.branch_options()) {
+					case BranchOptions::Always:			baseOperation = @"bctr";	break;
+					case BranchOptions::Clear:
+						switch(Condition(instruction.bi() & 3)) {
+							default: break;
+							case Condition::Negative:	baseOperation = @"bgectr";	break;
+							case Condition::Positive:	baseOperation = @"blectr";	break;
+							case Condition::Zero:		baseOperation = @"bnectr";	break;
+							case Condition::SummaryOverflow:
+								baseOperation = @"bsoctr";
+							break;
+						}
+					break;
+					case BranchOptions::Set:
+						switch(Condition(instruction.bi() & 3)) {
+							default: break;
+							case Condition::Negative:	baseOperation = @"bltctr";	break;
+							case Condition::Positive:	baseOperation = @"bgtctr";	break;
+							case Condition::Zero:		baseOperation = @"beqctr";	break;
+							case Condition::SummaryOverflow:
+								baseOperation = @"bnsctr";
+							break;
+						}
+					break;
+					default: break;
+				}
+
+				if(!baseOperation) {
+					NSAssert(FALSE, @"Didn't handle bi %d for bo %d, %@", instruction.bi() & 3, instruction.bo(), line);
+				} else {
+					if(instruction.lk()) {
+						baseOperation = [baseOperation stringByAppendingString:@"l"];
+					}
+					if(instruction.branch_prediction_hint()) {
+						baseOperation = [baseOperation stringByAppendingString:@"+"];
+					}
+					XCTAssertEqualObjects(operation, baseOperation);
+				}
+
+				if(instruction.bi() & ~3) {
+					NSString *const expectedCR = [NSString stringWithFormat:@"cr%d", instruction.bi() >> 2];
+					XCTAssertEqualObjects(columns[3], expectedCR);
+				}
+			} break;
+
 			case Operation::bcx: {
-				switch(instruction.bo()) {
-					case 0x14: case 0x15:	XCTAssertEqualObjects(operation, @"b");		break;
+				switch(instruction.branch_options()) {
+					case BranchOptions::Always:
+						XCTAssertEqualObjects(operation, @"b");
+					break;
 					default:
 						NSLog(@"No opcode tested for bcx with bo %02x", instruction.bo());
 					break;
