@@ -120,8 +120,9 @@ enum class Operation: uint8_t {
 
 	/// Branch conditional.
 	///
+	/// aa() determines whether the branch has a relative or absolute target.
 	/// lk() determines whether to update the link register.
-	/// bd() supplies a relative displacment.
+	/// bd() supplies a relative displacment or absolute address.
 	/// bi() specifies which CR bit to use as a condition; cf. the Condition enum.
 	/// bo() provides other branch options and a branch prediction hint as per (BranchOptions enum << 1) | hint.
 	///
@@ -131,7 +132,7 @@ enum class Operation: uint8_t {
 
 	/// Branch conditional to count register.
 	///
-	/// bi(), bo() and lk() are as per bcx.
+	/// aa(), bi(), bo() and lk() are as per bcx.
 	///
 	/// On the MPC601, anything that decrements the count register will use the non-decremented
 	/// version as the branch target. Other processors will use the decremented version.
@@ -139,7 +140,7 @@ enum class Operation: uint8_t {
 
 	/// Branch conditional to link register.
 	///
-	/// bi(), bo() and lk() are as per bcx.
+	/// aa(), bi(), bo() and lk() are as per bcx.
 	bclrx,
 
 	cmp, cmpi, cmpl, cmpli,

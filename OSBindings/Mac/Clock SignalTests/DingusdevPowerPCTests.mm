@@ -116,14 +116,14 @@ using namespace InstructionSet::PowerPC;
 					break;
 
 					case Operation::bcx: {
-//						if(instruction.aa()) {
-//							baseOperation = [baseOperation stringByAppendingString:@"a"];
-//						} else {
-//
-//						}
+						uint32_t decoded_destination;
+						if(instruction.aa()) {
+							decoded_destination = instruction.bd();
+						} else {
+							decoded_destination = instruction.bd() + address;
+						}
 
 						const uint32_t destination = uint32_t(std::strtol([[columns lastObject] UTF8String], 0, 16));
-						const uint32_t decoded_destination = instruction.bd() + address;
 						XCTAssertEqual(decoded_destination, destination);
 					} break;
 
@@ -135,6 +135,9 @@ using namespace InstructionSet::PowerPC;
 				} else {
 					if(instruction.lk()) {
 						baseOperation = [baseOperation stringByAppendingString:@"l"];
+					}
+					if(instruction.aa()) {
+						baseOperation = [baseOperation stringByAppendingString:@"a"];
 					}
 					if(instruction.branch_prediction_hint()) {
 						baseOperation = [baseOperation stringByAppendingString:@"+"];
