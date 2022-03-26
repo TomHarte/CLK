@@ -53,6 +53,16 @@ using namespace InstructionSet::PowerPC;
 				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
 
+			case Operation::lwzx: {
+				XCTAssertEqualObjects(operation, @"lwzx");
+				NSString *const rA = instruction.rA() ? [NSString stringWithFormat:@"r%d", instruction.rA()] : @"0";
+				NSString *const rB = [NSString stringWithFormat:@"r%d", instruction.rB()];
+				NSString *const rD = [NSString stringWithFormat:@"r%d", instruction.rD()];
+				XCTAssertEqualObjects(rD, columns[3]);
+				XCTAssertEqualObjects(rA, columns[4]);
+				XCTAssertEqualObjects(rB, columns[5]);
+			} break;
+
 			case Operation::bcx:
 			case Operation::bclrx:
 			case Operation::bcctrx: {
@@ -62,7 +72,7 @@ using namespace InstructionSet::PowerPC;
 				switch(instruction.branch_options()) {
 					case BranchOption::Always:			baseOperation = @"b";		break;
 					case BranchOption::Dec_Zero:		baseOperation = @"bdz";		break;
-					case BranchOption::Dec_NotZero:	baseOperation = @"bdnz";	break;
+					case BranchOption::Dec_NotZero:		baseOperation = @"bdnz";	break;
 
 					case BranchOption::Clear:
 						switch(Condition(instruction.bi() & 3)) {
@@ -165,46 +175,6 @@ using namespace InstructionSet::PowerPC;
 					XCTAssertEqualObjects(columns[3], expectedCR);
 				}
 			} break;
-
-/*			case Operation::bcx: {
-				NSString *expectedOperation;
-				switch(instruction.branch_options()) {
-					case BranchOption::Always:	expectedOperation = @"b";	break;
-					case BranchOption::Set:
-						switch(Condition(instruction.bi() & 3)) {
-							default: break;
-							case Condition::Negative:			expectedOperation = @"blt";	break;
-							case Condition::Positive:			expectedOperation = @"bgt";	break;
-							case Condition::Zero:				expectedOperation = @"beq";	break;
-							case Condition::SummaryOverflow:	expectedOperation = @"bso"; break;
-						}
-					break;
-					case BranchOption::Clear:
-						switch(Condition(instruction.bi() & 3)) {
-							default: break;
-							case Condition::Negative:			expectedOperation = @"bge";	break;
-							case Condition::Positive:			expectedOperation = @"ble";	break;
-							case Condition::Zero:				expectedOperation = @"bne";	break;
-							case Condition::SummaryOverflow:	expectedOperation = @"bns";	break;
-						}
-					break;
-					default:
-						NSLog(@"No opcode tested for bcx with bo %02x [%@]", instruction.bo(), line);
-					break;
-				}
-
-				if(instruction.lk()) {
-					expectedOperation = [expectedOperation stringByAppendingString:@"l"];
-				}
-				if(instruction.branch_prediction_hint()) {
-					expectedOperation = [expectedOperation stringByAppendingString:@"+"];
-				}
-				XCTAssertEqualObjects(operation, expectedOperation);
-
-				const uint32_t destination = uint32_t(std::strtol([columns[3] UTF8String], 0, 16));
-				const uint32_t decoded_destination = instruction.bd() + address;
-				XCTAssertEqual(decoded_destination, destination);
-			} break;*/
 
 			case Operation::bx: {
 				switch((instruction.aa() ? 2 : 0) | (instruction.lk() ? 1 : 0)) {

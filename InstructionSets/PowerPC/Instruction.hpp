@@ -151,7 +151,14 @@ enum class Operation: uint8_t {
 	fnabsx, fnegx, fnmaddx, fnmaddsx, fnmsubx, fnmsubsx, frspx, fsubx, fsubsx,
 	icbi, isync, lbz, lbzu, lbzux, lbzx, lfd, lfdu, lfdux, lfdx, lfs, lfsu,
 	lfsux, lfsx, lha, lhau, lhaux, lhax, lhbrx, lhz, lhzu, lhzux, lhzx, lmw,
-	lswi, lswx, lwarx, lwbrx, lwz, lwzu, lwzux, lwzx, mcrf, mcrfs, mcrxr,
+	lswi, lswx, lwarx, lwbrx, lwz, lwzu, lwzux,
+
+	/// Load word and zero indexed.
+	///
+	/// rD() = [ (rA()|0) + rB() ] i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	lwzx,
+
+	mcrf, mcrfs, mcrxr,
 	mfcr, mffsx, mfmsr, mfspr, mfsr, mfsrin, mtcrf, mtfsb0x, mtfsb1x, mtfsfx,
 	mtfsfix, mtmsr, mtspr, mtsr, mtsrin, mulhwx, mulhwux, mulli, mullwx,
 	nandx, negx, norx, orx, orcx, ori, oris, rfi, rlwimix, rlwinmx, rlwnmx,
