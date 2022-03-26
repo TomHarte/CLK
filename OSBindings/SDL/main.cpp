@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -17,7 +18,6 @@
 #include <map>
 #include <memory>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include <SDL2/SDL.h>
 
