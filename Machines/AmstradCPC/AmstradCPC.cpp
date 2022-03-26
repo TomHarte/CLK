@@ -790,12 +790,13 @@ template <bool has_fdc> class ConcreteMachine:
 			bool has_amsdos = false;
 			ROM::Name firmware, basic;
 
+			using Model = Analyser::Static::AmstradCPC::Target::Model;
 			switch(target.model) {
-				case Analyser::Static::AmstradCPC::Target::Model::CPC464:
+				case Model::CPC464:
 					firmware = ROM::Name::CPC464Firmware;
 					basic = ROM::Name::CPC464BASIC;
 				break;
-				case Analyser::Static::AmstradCPC::Target::Model::CPC664:
+				case Model::CPC664:
 					firmware = ROM::Name::CPC664Firmware;
 					basic = ROM::Name::CPC664BASIC;
 					has_amsdos = true;
@@ -837,6 +838,9 @@ template <bool has_fdc> class ConcreteMachine:
 			read_pointers_[1] = write_pointers_[1];
 			read_pointers_[2] = write_pointers_[2];
 			read_pointers_[3] = roms_[upper_rom_].data();
+
+			// Set total RAM available.
+			has_128k_ = target.model == Model::CPC6128;
 
 			// Type whatever is required.
 			if(!target.loading_command.empty()) {
@@ -1248,20 +1252,20 @@ template <bool has_fdc> class ConcreteMachine:
 		HalfCycles crtc_counter_;
 		HalfCycles half_cycles_since_ay_update_;
 
-		bool fdc_is_sleeping_;
-		bool tape_player_is_sleeping_;
-		bool has_128k_;
+		bool fdc_is_sleeping_ = false;
+		bool tape_player_is_sleeping_ = false;
+		bool has_128k_ = false;
 
 		enum ROMType: int {
 			AMSDOS = 0, OS = 1, BASIC = 2
 		};
 		std::vector<uint8_t> roms_[3];
-		bool upper_rom_is_paged_;
+		bool upper_rom_is_paged_ = false;
 		ROMType upper_rom_;
 
-		uint8_t *ram_pages_[4];
-		const uint8_t *read_pointers_[4];
-		uint8_t *write_pointers_[4];
+		uint8_t *ram_pages_[4]{};
+		const uint8_t *read_pointers_[4]{};
+		uint8_t *write_pointers_[4]{};
 
 		KeyboardState key_state_;
 		AmstradCPC::KeyboardMapper keyboard_mapper_;
