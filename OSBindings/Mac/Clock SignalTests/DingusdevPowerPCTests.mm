@@ -19,6 +19,15 @@ using namespace InstructionSet::PowerPC;
 
 @implementation DingusdevPowerPCTests
 
+- (void)testABDInstruction:(Instruction)instruction columns:(NSArray<NSString *> *)columns testZero:(BOOL)testZero {
+	NSString *const rA = (instruction.rA() || !testZero) ? [NSString stringWithFormat:@"r%d", instruction.rA()] : @"0";
+	NSString *const rB = [NSString stringWithFormat:@"r%d", instruction.rB()];
+	NSString *const rD = [NSString stringWithFormat:@"r%d", instruction.rD()];
+	XCTAssertEqualObjects(rD, columns[3]);
+	XCTAssertEqualObjects(rA, columns[4]);
+	XCTAssertEqualObjects(rB, columns[5]);
+}
+
 - (void)testDecoding {
 	NSData *const testData =
 		[NSData dataWithContentsOfURL:
@@ -53,15 +62,15 @@ using namespace InstructionSet::PowerPC;
 				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
 
-			case Operation::lwzx: {
+			case Operation::lwzux:
+				XCTAssertEqualObjects(operation, @"lwzux");
+				[self testABDInstruction:instruction columns:columns testZero:YES];
+			break;
+
+			case Operation::lwzx:
 				XCTAssertEqualObjects(operation, @"lwzx");
-				NSString *const rA = instruction.rA() ? [NSString stringWithFormat:@"r%d", instruction.rA()] : @"0";
-				NSString *const rB = [NSString stringWithFormat:@"r%d", instruction.rB()];
-				NSString *const rD = [NSString stringWithFormat:@"r%d", instruction.rD()];
-				XCTAssertEqualObjects(rD, columns[3]);
-				XCTAssertEqualObjects(rA, columns[4]);
-				XCTAssertEqualObjects(rB, columns[5]);
-			} break;
+				[self testABDInstruction:instruction columns:columns testZero:YES];
+			break;
 
 			case Operation::bcx:
 			case Operation::bclrx:

@@ -151,7 +151,15 @@ enum class Operation: uint8_t {
 	fnabsx, fnegx, fnmaddx, fnmaddsx, fnmsubx, fnmsubsx, frspx, fsubx, fsubsx,
 	icbi, isync, lbz, lbzu, lbzux, lbzx, lfd, lfdu, lfdux, lfdx, lfs, lfsu,
 	lfsux, lfsx, lha, lhau, lhaux, lhax, lhbrx, lhz, lhzu, lhzux, lhzx, lmw,
-	lswi, lswx, lwarx, lwbrx, lwz, lwzu, lwzux,
+	lswi, lswx, lwarx, lwbrx, lwz, lwzu,
+
+	/// Load word and zero with Update Indexed.
+	///
+	/// rD() = [ rA()|0 + rB() ]; and rA() is set to the calculated address.
+	///
+	/// PowerPC defines rA=0 and rA=rD to be invalid forms; the MPC601
+	/// will suppress the update if rA=0 or rA=rD.
+	lwzux,
 
 	/// Load word and zero indexed.
 	///
