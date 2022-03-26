@@ -149,13 +149,33 @@ enum class Operation: uint8_t {
 	extsbx, extshx, fabsx, faddx, faddsx, fcmpo, fcmpu, fctiwx, fctiwzx,
 	fdivx, fdivsx, fmaddx, fmaddsx, fmrx, fmsubx, fmsubsx, fmulx, fmulsx,
 	fnabsx, fnegx, fnmaddx, fnmaddsx, fnmsubx, fnmsubsx, frspx, fsubx, fsubsx,
-	icbi, isync, lbz, lbzu, lbzux, lbzx, lfd, lfdu, lfdux, lfdx, lfs, lfsu,
+	icbi, isync, lbz, lbzu,
+
+	/// Load byte and zero with update indexed.
+	///
+	/// rD()[24, 31] = [ rA()|0 + rB() ]; and rA() is set to the calculated address
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	/// The rest of rD is set to 0.
+	///
+	/// PowerPC defines rA=0 and rA=rD to be invalid forms; the MPC601
+	/// will suppress the update if rA=0 or rA=rD.
+	lbzux,
+
+	/// Load byte and zero indexed.
+	///
+	/// rD[24, 31] = [ (rA()|0) + rB() ]
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	/// The rest of rD is set to 0.
+	lbzx,
+
+	lfd, lfdu, lfdux, lfdx, lfs, lfsu,
 	lfsux, lfsx, lha, lhau, lhaux, lhax, lhbrx, lhz, lhzu, lhzux, lhzx, lmw,
 	lswi, lswx, lwarx, lwbrx, lwz, lwzu,
 
-	/// Load word and zero with Update Indexed.
+	/// Load word and zero with update indexed.
 	///
-	/// rD() = [ rA()|0 + rB() ]; and rA() is set to the calculated address.
+	/// rD() = [ rA()|0 + rB() ]; and rA() is set to the calculated address
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
 	///
 	/// PowerPC defines rA=0 and rA=rD to be invalid forms; the MPC601
 	/// will suppress the update if rA=0 or rA=rD.
@@ -163,7 +183,8 @@ enum class Operation: uint8_t {
 
 	/// Load word and zero indexed.
 	///
-	/// rD() = [ (rA()|0) + rB() ] i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	/// rD() = [ (rA()|0) + rB() ]
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
 	lwzx,
 
 	mcrf, mcrfs, mcrxr,

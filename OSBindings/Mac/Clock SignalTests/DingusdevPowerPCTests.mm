@@ -62,15 +62,18 @@ using namespace InstructionSet::PowerPC;
 				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
 
-			case Operation::lwzux:
-				XCTAssertEqualObjects(operation, @"lwzux");
-				[self testABDInstruction:instruction columns:columns testZero:YES];
+#define ABCz(x)	\
+			case Operation::x:	\
+				XCTAssertEqualObjects(operation, @#x);	\
+				[self testABDInstruction:instruction columns:columns testZero:YES];	\
 			break;
 
-			case Operation::lwzx:
-				XCTAssertEqualObjects(operation, @"lwzx");
-				[self testABDInstruction:instruction columns:columns testZero:YES];
-			break;
+			ABCz(lwzux);
+			ABCz(lwzx);
+			ABCz(lbzx);
+			ABCz(lbzux);
+
+#undef ABCz
 
 			case Operation::bcx:
 			case Operation::bclrx:
