@@ -63,8 +63,10 @@ enum class BranchOption: uint32_t {
 enum class Operation: uint8_t {
 	Undefined,
 
+	//
 	// These 601-exclusive instructions; a lot of them are carry-overs
 	// from POWER. These are not part of the PowerPC architecture.
+	//
 
 	/// |rA| is placed into rD. If rA = 0x8000'0000 then 0x8000'0000 is placed into rD
 	/// and XER[OV] is set if oe() indicates that overflow is enabled.
@@ -100,8 +102,35 @@ enum class Operation: uint8_t {
 	nabsx, rlmix, rribx, slex, sleqx, sliqx, slliqx, sllqx, slqx,
 	sraiqx, sraqx, srex, sreax, sreqx, sriqx, srliqx, srlqx, srqx,
 
+	//
 	// 32- and 64-bit PowerPC instructions.
-	addx, addcx, addex, addi, addic, addic_, addis, addmex, addzex, andx,
+	//
+
+	addx, addcx, addex,
+
+	/// Add immediate.
+	///
+	/// rD() = (rA() | 0) + simm()
+	addi,
+
+	/// Add immediate carrying.
+	///
+	/// rD() = (rA() | 0) + simm()
+	/// XER[CA] = carry.
+	addic,
+
+	/// Add immediate carrying.
+	///
+	/// rD() = (rA() | 0) + simm()
+	/// XER[CA] = carry, and the condition register is updated.
+	addic_,
+
+	/// Add immediate shifter.
+	///
+	/// rD() = (rA() | 0) + (simm() << 16)
+	addis,
+
+	addmex, addzex, andx,
 	andcx, andi_, andis_,
 
 	/// Branch unconditional.
@@ -169,7 +198,45 @@ enum class Operation: uint8_t {
 	lbzx,
 
 	lfd, lfdu, lfdux, lfdx, lfs, lfsu,
-	lfsux, lfsx, lha, lhau, lhaux, lhax, lhbrx, lhz, lhzu, lhzux, lhzx, lmw,
+	lfsux, lfsx, lha, lhau,
+
+	/// Load half-word algebraic with update indexed.
+	///
+	/// rD()[16, 31] = [ rA()|0 + rB() ]; and rA() is set to the calculated address
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	/// The result in rD is sign extended.
+	///
+	/// PowerPC defines rA=0 and rA=rD to be invalid forms; the MPC601
+	/// will suppress the update if rA=0 or rA=rD.
+	lhaux,
+
+	/// Load half-word algebraic indexed.
+	///
+	/// rD[16, 31] = [ (rA()|0) + rB() ]
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	/// The result in rD is sign extended.
+	lhax,
+
+	lhbrx, lhz, lhzu,
+
+	/// Load half-word and zero with update indexed.
+	///
+	/// rD()[16, 31] = [ rA()|0 + rB() ]; and rA() is set to the calculated address
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	/// The rest of rD is set to 0.
+	///
+	/// PowerPC defines rA=0 and rA=rD to be invalid forms; the MPC601
+	/// will suppress the update if rA=0 or rA=rD.
+	lhzux,
+
+	/// Load half-word and zero indexed.
+	///
+	/// rD[16, 31] = [ (rA()|0) + rB() ]
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	/// The rest of rD is set to 0.
+	lhzx,
+
+	lmw,
 	lswi, lswx, lwarx, lwbrx, lwz, lwzu,
 
 	/// Load word and zero with update indexed.
@@ -189,12 +256,74 @@ enum class Operation: uint8_t {
 
 	mcrf, mcrfs, mcrxr,
 	mfcr, mffsx, mfmsr, mfspr, mfsr, mfsrin, mtcrf, mtfsb0x, mtfsb1x, mtfsfx,
-	mtfsfix, mtmsr, mtspr, mtsr, mtsrin, mulhwx, mulhwux, mulli, mullwx,
+	mtfsfix, mtmsr, mtspr, mtsr, mtsrin, mulhwx, mulhwux,
+
+	/// Multiply low immediate.
+	///
+	/// rD() = [low 32 bits of] rA() * simm()
+	/// XER[OV] is set if, were the operands treated as signed, overflow occurred.
+	mulli,
+
+	mullwx,
 	nandx, negx, norx, orx, orcx, ori, oris, rfi, rlwimix, rlwinmx, rlwnmx,
-	sc, slwx, srawx, srawix, srwx, stb, stbu, stbux, stbx, stfd, stfdu,
-	stfdux, stfdx, stfs, stfsu, stfsux, stfsx, sth, sthbrx, sthu, sthux, sthx,
-	stmw, stswi, stswx, stw, stwbrx, stwcx_, stwu, stwux, stwx, subfx, subfcx,
-	subfex, subfic, subfmex, subfzex, sync, tw, twi, xorx, xori, xoris, mftb,
+	sc, slwx, srawx, srawix, srwx, stb, stbu,
+
+	/// Store byte with update indexed.
+	///
+	/// [ (ra()|0) + rB() ] = rS()[24, 31]; and rA() is updated with the calculated address.
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	///
+	/// PowerPC defines rA=0 to an invalid form; the MPC601 will store to r0.
+	stbux,
+
+	/// Store byte indexed.
+	///
+	/// [ (ra()|0) + rB() ] = rS()[24, 31]
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	stbx,
+
+	stfd, stfdu,
+	stfdux, stfdx, stfs, stfsu, stfsux, stfsx, sth, sthbrx, sthu,
+
+	/// Store half-word with update indexed.
+	///
+	/// [ (ra()|0) + rB() ] = rS()[16, 31]; and rA() is updated with the calculated address.
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	///
+	/// PowerPC defines rA=0 to an invalid form; the MPC601 will store to r0.
+	sthux,
+
+	/// Store half-word indexed.
+	///
+	/// [ (ra()|0) + rB() ] = rS()[16, 31]
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	sthx,
+
+	stmw, stswi, stswx, stw, stwbrx, stwcx_, stwu,
+
+	/// Store word with update indexed.
+	///
+	/// [ (ra()|0) + rB() ] = rS(); and rA() is updated with the calculated address.
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	///
+	/// PowerPC defines rA=0 to an invalid form; the MPC601 will store to r0.
+	stwux,
+
+	/// Store word indexed.
+	///
+	/// [ (ra()|0) + rB() ] = rS()
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	stwx,
+
+	subfx, subfcx,
+	subfex,
+
+	/// Subtract from immediate carrying
+	///
+	/// rD() = ~rA() + simm() + 1
+	subfic,
+
+	subfmex, subfzex, sync, tw, twi, xorx, xori, xoris, mftb,
 
 	// 32-bit, supervisor level.
 	dcbi,
@@ -205,7 +334,9 @@ enum class Operation: uint8_t {
 	// Optional.
 	fresx, frsqrtex, fselx, fsqrtx, slbia, slbie, stfiwx,
 
+	//
 	// 64-bit only PowerPC instructions.
+	//
 	cntlzdx, divdx, divdux, extswx, fcfidx, fctidx, fctidzx, tdi, mulhdux,
 	ldx, sldx, ldux, td, mulhdx, ldarx, stdx, stdux, mulld, lwax, lwaux,
 	sradix, srdx, sradx, extsw, fsqrtsx, std, stdu, stdcx_,

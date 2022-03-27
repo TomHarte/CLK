@@ -17,6 +17,16 @@ using namespace InstructionSet::PowerPC;
 @interface DingusdevPowerPCTests : XCTestCase
 @end
 
+namespace {
+
+void AssertEqualOperationName(NSString *lhs, NSString *rhs) {
+	NSString *const lhsMapped = [lhs stringByReplacingOccurrencesOfString:@"_" withString:@"."];
+	NSString *const rhsMapped = [rhs stringByReplacingOccurrencesOfString:@"_" withString:@"."];
+	XCTAssertEqualObjects(lhsMapped, rhsMapped);
+}
+
+}
+
 @implementation DingusdevPowerPCTests
 
 - (void)testABDInstruction:(Instruction)instruction columns:(NSArray<NSString *> *)columns testZero:(BOOL)testZero {
@@ -57,21 +67,52 @@ using namespace InstructionSet::PowerPC;
 		NSString *const operation = columns[2];
 		const auto instruction = decoder.decode(opcode);
 
+		NSLog(@"%@", line);
 		switch(instruction.operation) {
 			default:
 				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
 
+#define ArithImm(x) \
+			case Operation::x: {	\
+				NSString *const rD = [NSString stringWithFormat:@"r%d", instruction.rD()];	\
+				NSString *const rA = [NSString stringWithFormat:@"r%d", instruction.rA()];	\
+				const auto simm = strtol([columns[5] UTF8String], NULL, 16);	\
+				AssertEqualOperationName(operation, @#x);	\
+				XCTAssertEqualObjects(columns[3], rD);	\
+				XCTAssertEqualObjects(columns[4], rA);	\
+				XCTAssertEqual(simm, instruction.simm());	\
+			} break;
+
+			ArithImm(mulli);
+			ArithImm(subfic);
+			ArithImm(addi);
+			ArithImm(addic);
+			ArithImm(addic_);
+			ArithImm(addis);
+
+#undef ArithImm
+
 #define ABCz(x)	\
 			case Operation::x:	\
-				XCTAssertEqualObjects(operation, @#x);	\
+				AssertEqualOperationName(operation, @#x);	\
 				[self testABDInstruction:instruction columns:columns testZero:YES];	\
 			break;
 
-			ABCz(lwzux);
 			ABCz(lwzx);
+			ABCz(lwzux);
 			ABCz(lbzx);
 			ABCz(lbzux);
+			ABCz(stwx);
+			ABCz(stwux);
+			ABCz(stbx);
+			ABCz(stbux);
+			ABCz(lhzx);
+			ABCz(lhzux);
+			ABCz(lhax);
+			ABCz(lhaux);
+			ABCz(sthx);
+			ABCz(sthux);
 
 #undef ABCz
 
@@ -164,7 +205,7 @@ using namespace InstructionSet::PowerPC;
 					if(instruction.branch_prediction_hint()) {
 						baseOperation = [baseOperation stringByAppendingString:@"+"];
 					}
-					XCTAssertEqualObjects(operation, baseOperation);
+					AssertEqualOperationName(operation, baseOperation);
 				}
 
 				if(instruction.bi() & ~3) {
@@ -190,10 +231,10 @@ using namespace InstructionSet::PowerPC;
 
 			case Operation::bx: {
 				switch((instruction.aa() ? 2 : 0) | (instruction.lk() ? 1 : 0)) {
-					case 0:	XCTAssertEqualObjects(operation, @"b");		break;
-					case 1:	XCTAssertEqualObjects(operation, @"bl");	break;
-					case 2:	XCTAssertEqualObjects(operation, @"ba");	break;
-					case 3:	XCTAssertEqualObjects(operation, @"bla");	break;
+					case 0:	AssertEqualOperationName(operation, @"b");		break;
+					case 1:	AssertEqualOperationName(operation, @"bl");	break;
+					case 2:	AssertEqualOperationName(operation, @"ba");	break;
+					case 3:	AssertEqualOperationName(operation, @"bla");	break;
 				}
 
 				const uint32_t destination = uint32_t(std::strtol([columns[3] UTF8String], 0, 16));
