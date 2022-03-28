@@ -134,7 +134,7 @@ enum class Operation: uint8_t {
 	addx,
 
 	/// Add carrying.
-	/// addc. addc., addco, addco.
+	/// addc, addc., addco, addco.
 	///
 	/// rD() = rA() + rB(). XER[CA] is set if a carry occurs.
 	/// oe() and rc() apply.
