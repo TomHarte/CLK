@@ -39,11 +39,14 @@ void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString
 
 - (void)testABDInstruction:(Instruction)instruction columns:(NSArray<NSString *> *)columns testZero:(BOOL)testZero {
 	NSString *const rA = (instruction.rA() || !testZero) ? [NSString stringWithFormat:@"r%d", instruction.rA()] : @"0";
-	NSString *const rB = [NSString stringWithFormat:@"r%d", instruction.rB()];
 	NSString *const rD = [NSString stringWithFormat:@"r%d", instruction.rD()];
 	XCTAssertEqualObjects(rD, columns[3]);
 	XCTAssertEqualObjects(rA, columns[4]);
-	XCTAssertEqualObjects(rB, columns[5]);
+
+	if([columns count] > 5) {
+		NSString *const rB = [NSString stringWithFormat:@"r%d", instruction.rB()];
+		XCTAssertEqualObjects(rB, columns[5]);
+	}
 }
 
 - (void)testDecoding {
@@ -132,6 +135,13 @@ void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString
 
 			ABD(subfcx);
 			ABD(subfx);
+			ABD(negx);
+			ABD(subfex);
+			ABD(subfzex);
+			ABD(subfmex);
+			ABD(dozx);
+			ABD(absx);
+			ABD(nabsx);
 
 #undef ABD
 
