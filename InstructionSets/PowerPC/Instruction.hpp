@@ -73,6 +73,7 @@ enum class Operation: uint8_t {
 
 	/// Absolute.
 	/// abs, abs., abso, abso.
+	/// rA(), rD(), oe()
 	///
 	/// |rA| is placed into rD. If rA = 0x8000'0000 then 0x8000'0000 is placed into rD
 	/// and XER[OV] is set if oe() indicates that overflow is enabled.
@@ -80,6 +81,7 @@ enum class Operation: uint8_t {
 
 	/// Cache line compute size.
 	/// clcs
+	/// rA(), rD()
 	///
 	/// The size of the cache line specified by rA is placed into rD. Cf. the CacheLine enum.
 	/// As an aside: all cache lines are 64 bytes on the MPC601.
@@ -87,6 +89,7 @@ enum class Operation: uint8_t {
 
 	/// Divide.
 	/// div, div., divo, divo.
+	/// rA(), rB(), rD(), rc(), oe()
 	///
 	/// Unsigned 64-bit divide. rA|MQ / rB is placed into rD and the
 	/// remainder is placed into MQ. The ermainder has the same sign as the dividend
@@ -98,6 +101,7 @@ enum class Operation: uint8_t {
 
 	/// Divide short.
 	/// divs, divs., divso, divso.
+	/// rA(), rB(), rD(), rc(), eo()
 	///
 	/// Signed 32-bit divide. rD = rA/rB; remainder is
 	/// placed into MQ. The ermainder has the same sign as the dividend
@@ -109,12 +113,14 @@ enum class Operation: uint8_t {
 
 	/// Difference or zero.
 	/// dozi
+	/// rA(), rB(), rD()
 	///
 	/// if rA > rB then rD = 0; else rD = NOT(rA) + rB + 1.
 	dozx,
 
 	/// Difference or zero immediate.
 	/// dozi
+	/// rA(), rD(), simm()
 	///
 	/// if rA > simm() then rD = 0; else rD = NOT(rA) + simm() + 1.
 	dozi,
@@ -129,12 +135,14 @@ enum class Operation: uint8_t {
 
 	/// Add.
 	/// add, add., addo, addo.
+	/// rA(), rB(), rD(), rc(), oe()
 	///
 	/// rD() = rA() + rB(). Carry is ignored, rD() may be equal to rA() or rB().
 	addx,
 
 	/// Add carrying.
 	/// addc, addc., addco, addco.
+	/// rA(), rB(), rD(), rc(), oe()
 	///
 	/// rD() = rA() + rB().
 	/// XER[CA] is updated with carry; if oe() is set then so are XER[SO] and XER[OV].
@@ -143,6 +151,7 @@ enum class Operation: uint8_t {
 
 	/// Add extended.
 	/// adde, adde., addeo, addeo.
+	/// rA(), rB(), rD(), rc(), eo()
 	///
 	/// rD() = rA() + rB() + XER[CA]; XER[CA] is set if further carry occurs.
 	/// oe() and rc() apply.
@@ -150,12 +159,14 @@ enum class Operation: uint8_t {
 
 	/// Add immediate.
 	/// addi
+	/// rA(), rD(), simm()
 	///
 	/// rD() = (rA() | 0) + simm()
 	addi,
 
 	/// Add immediate carrying.
 	/// addic
+	/// rA(), rD(), simm()
 	///
 	/// rD() = (rA() | 0) + simm()
 	/// XER[CA] is updated.
@@ -163,6 +174,7 @@ enum class Operation: uint8_t {
 
 	/// Add immediate carrying and record.
 	/// addic.
+	/// rA(), rD(), simm()
 	///
 	/// rD() = (rA() | 0) + simm()
 	/// XER[CA] and the condition register are updated.
@@ -170,42 +182,48 @@ enum class Operation: uint8_t {
 
 	/// Add immediate shifted.
 	/// addis.
+	/// rA(), rD(), simm()
 	///
 	/// rD() = (rA() | 0) + (simm() << 16)
 	addis,
 
 	/// Add to minus one.
 	/// addme, addme., addmeo, addmeo.
+	/// rA(), rD(), rc(), oe()
 	///
 	/// rD() = rA() + XER[CA] + 0xffff'ffff
-	/// oe() and rc() apply.
 	addmex,
 
 	/// Add to zero extended.
 	/// addze, addze., addzeo, addzeo.
+	/// rA(), rD(), rc(), oe()
 	///
 	/// rD() = rA() + XER[CA]
-	/// oe() and rc() apply.
 	addzex,
 
 	/// And.
 	/// and, and.
+	/// rA(), rB(), rD(), rc()
 	andx,
 
 	/// And with complement.
 	/// andc, andc.
+	/// rA(), rB(), rD(), rc()
 	andcx,
 
 	/// And immediate.
 	/// andi.
+	/// rA(), rD(), uimm()
 	andi_,
 
 	/// And immediate shifted.
 	/// andis.
+	/// rA(), rD(), uimm()
 	andis_,
 
 	/// Branch unconditional.
 	/// b, bl, ba, bla
+	/// aa(), li(), lk()
 	///
 	/// Use li() to get the included immediate value.
 	///
@@ -215,6 +233,7 @@ enum class Operation: uint8_t {
 
 	/// Branch conditional.
 	/// bne, bne+, beq, bdnzt+, bdnzf, bdnzt, bdnzfla ...
+	/// aa(), lk(), bd(), bi(), bo()
 	///
 	/// aa() determines whether the branch has a relative or absolute target.
 	/// lk() determines whether to update the link register.
@@ -225,6 +244,7 @@ enum class Operation: uint8_t {
 
 	/// Branch conditional to count register.
 	/// bctr, bctrl, bnectrl, bnectrl, bltctr, blectr ...
+	/// aa(), lk(), bi(), bo()
 	///
 	/// aa(), bi(), bo() and lk() are as per bcx.
 	///
@@ -234,6 +254,7 @@ enum class Operation: uint8_t {
 
 	/// Branch conditional to link register.
 	/// blr, blrl, bltlr, blelrl, bnelrl ...
+	/// aa(), lk(), bi(), bo()
 	///
 	/// aa(), bi(), bo() and lk() are as per bcx.
 	bclrx,
