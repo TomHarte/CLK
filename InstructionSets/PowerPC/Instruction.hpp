@@ -315,7 +315,15 @@ enum class Operation: uint8_t {
 	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
 	stwx,
 
-	subfx, subfcx,
+	subfx,
+
+	/// Subtract from carrying.
+	/// subfc, subfc., subfco, subfco.
+	///
+	/// rD() = -rA() +rB() + 1
+	///
+	/// oe(), rc() apply.
+	subfcx,
 	subfex,
 
 	/// Subtract from immediate carrying

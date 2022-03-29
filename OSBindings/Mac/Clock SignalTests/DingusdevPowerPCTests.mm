@@ -116,6 +116,17 @@ void AssertEqualOperationName(NSString *lhs, NSString *rhs) {
 
 #undef ABCz
 
+#define ABD(x)	\
+			case Operation::x:	\
+				AssertEqualOperationName(operation, @#x);	\
+				[self testABDInstruction:instruction columns:columns testZero:NO];	\
+			break;
+
+//			ABD(subfc);
+//			ABD(subfc_);
+
+#undef ABD
+
 			case Operation::bcx:
 			case Operation::bclrx:
 			case Operation::bcctrx: {
