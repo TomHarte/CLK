@@ -270,7 +270,45 @@ enum class Operation: uint8_t {
 	lbzx,
 
 	lfd, lfdu, lfdux, lfdx, lfs, lfsu,
-	lfsux, lfsx, lha, lhau, lhaux, lhax, lhbrx, lhz, lhzu, lhzux, lhzx, lmw,
+	lfsux, lfsx, lha, lhau,
+
+	/// Load half-word algebraic with update indexed.
+	///
+	/// rD()[16, 31] = [ rA()|0 + rB() ]; and rA() is set to the calculated address
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	/// The result in rD is sign extended.
+	///
+	/// PowerPC defines rA=0 and rA=rD to be invalid forms; the MPC601
+	/// will suppress the update if rA=0 or rA=rD.
+	lhaux,
+
+	/// Load half-word algebraic indexed.
+	///
+	/// rD[16, 31] = [ (rA()|0) + rB() ]
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	/// The result in rD is sign extended.
+	lhax,
+
+	lhbrx, lhz, lhzu,
+
+	/// Load half-word and zero with update indexed.
+	///
+	/// rD()[16, 31] = [ rA()|0 + rB() ]; and rA() is set to the calculated address
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	/// The rest of rD is set to 0.
+	///
+	/// PowerPC defines rA=0 and rA=rD to be invalid forms; the MPC601
+	/// will suppress the update if rA=0 or rA=rD.
+	lhzux,
+
+	/// Load half-word and zero indexed.
+	///
+	/// rD[16, 31] = [ (rA()|0) + rB() ]
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	/// The rest of rD is set to 0.
+	lhzx,
+
+	lmw,
 	lswi, lswx, lwarx, lwbrx, lwz, lwzu,
 
 	/// Load word and zero with update indexed.
@@ -292,24 +330,82 @@ enum class Operation: uint8_t {
 
 	mcrf, mcrfs, mcrxr,
 	mfcr, mffsx, mfmsr, mfspr, mfsr, mfsrin, mtcrf, mtfsb0x, mtfsb1x, mtfsfx,
-	mtfsfix, mtmsr, mtspr, mtsr, mtsrin, mulhwx, mulhwux, mulli, mullwx,
+	mtfsfix, mtmsr, mtspr, mtsr, mtsrin, mulhwx, mulhwux,
+
+	/// Multiply low immediate.
+	///
+	/// rD() = [low 32 bits of] rA() * simm()
+	/// XER[OV] is set if, were the operands treated as signed, overflow occurred.
+	mulli,
+
+	mullwx,
 	nandx, negx, norx, orx, orcx, ori, oris, rfi, rlwimix, rlwinmx, rlwnmx,
-	sc, slwx, srawx, srawix, srwx, stb, stbu, stbux, stbx, stfd, stfdu,
-	stfdux, stfdx, stfs, stfsu, stfsux, stfsx, sth, sthbrx, sthu, sthux, sthx,
+	sc, slwx, srawx, srawix, srwx, stb, stbu,
+
+	/// Store byte with update indexed.
+	///
+	/// [ (ra()|0) + rB() ] = rS()[24, 31]; and rA() is updated with the calculated address.
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	///
+	/// PowerPC defines rA=0 to an invalid form; the MPC601 will store to r0.
+	stbux,
+
+	/// Store byte indexed.
+	///
+	/// [ (ra()|0) + rB() ] = rS()[24, 31]
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	stbx,
+
+	stfd, stfdu,
+	stfdux, stfdx, stfs, stfsu, stfsux, stfsx, sth, sthbrx, sthu,
+
+	/// Store half-word with update indexed.
+	///
+	/// [ (ra()|0) + rB() ] = rS()[16, 31]; and rA() is updated with the calculated address.
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	///
+	/// PowerPC defines rA=0 to an invalid form; the MPC601 will store to r0.
+	sthux,
+
+	/// Store half-word indexed.
+	///
+	/// [ (ra()|0) + rB() ] = rS()[16, 31]
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	sthx,
+
 	stmw, stswi, stswx, stw, stwbrx, stwcx_, stwu,
 
 	/// Store word with update indexed.
-	/// stwux
 	///
-	/// rS(), rA(), rB()
+	/// [ (ra()|0) + rB() ] = rS(); and rA() is updated with the calculated address.
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	///
+	/// PowerPC defines rA=0 to an invalid form; the MPC601 will store to r0.
 	stwux,
 
 	/// Store word indexed.
-	/// stwx
 	///
-	/// rS(), rA(), rB()
-	stwx, subfx, subfcx,
-	subfex, subfic, subfmex, subfzex, sync, tw, twi, xorx, xori, xoris, mftb,
+	/// [ (ra()|0) + rB() ] = rS()
+	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
+	stwx,
+
+	subfx,
+
+	/// Subtract from carrying.
+	/// subfc, subfc., subfco, subfco.
+	///
+	/// rD() = -rA() +rB() + 1
+	///
+	/// oe(), rc() apply.
+	subfcx,
+	subfex,
+
+	/// Subtract from immediate carrying
+	///
+	/// rD() = ~rA() + simm() + 1
+	subfic,
+
+	subfmex, subfzex, sync, tw, twi, xorx, xori, xoris, mftb,
 
 	//
 	// MARK: - 32-bit, supervisor level.
@@ -463,7 +559,7 @@ struct Instruction {
 	/// Whether to compare 32-bit or 64-bit numbers [for 64-bit implementations only]; @c 0 or @c non-0.
 	uint32_t l() const	{	return opcode & 0x200000;	}
 	/// Enables setting of OV and SO in the XER; @c 0 or @c non-0.
-	uint32_t oe() const	{	return opcode & 0x800;		}
+	uint32_t oe() const	{	return opcode & 0x400;		}
 };
 
 // Sanity check on Instruction size.

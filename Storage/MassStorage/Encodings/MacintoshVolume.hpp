@@ -9,10 +9,10 @@
 #ifndef MacintoshVolume_hpp
 #define MacintoshVolume_hpp
 
-#include <vector>
+#include <cstddef>
 #include <cstdint>
 #include <sys/types.h>
-#include <unistd.h>
+#include <vector>
 
 namespace Storage {
 namespace MassStorage {
