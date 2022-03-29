@@ -136,8 +136,9 @@ enum class Operation: uint8_t {
 	/// Add carrying.
 	/// addc, addc., addco, addco.
 	///
-	/// rD() = rA() + rB(). XER[CA] is set if a carry occurs.
-	/// oe() and rc() apply.
+	/// rD() = rA() + rB().
+	/// XER[CA] is updated with carry; if oe() is set then so are XER[SO] and XER[OV].
+	/// if rc() is set, LT, GT, EQ and SO condition bits are updated.
 	addcx,
 
 	/// Add extended.
@@ -185,8 +186,23 @@ enum class Operation: uint8_t {
 	///
 	/// rD() = rA() + XER[CA]
 	/// oe() and rc() apply.
-	addzex, andx,
-	andcx, andi_, andis_,
+	addzex,
+
+	/// And.
+	/// and, and.
+	andx,
+
+	/// And with complement.
+	/// andc, andc.
+	andcx,
+
+	/// And immediate.
+	/// andi.
+	andi_,
+
+	/// And immediate shifted.
+	/// andis.
+	andis_,
 
 	/// Branch unconditional.
 	/// b, bl, ba, bla
@@ -222,7 +238,11 @@ enum class Operation: uint8_t {
 	/// aa(), bi(), bo() and lk() are as per bcx.
 	bclrx,
 
-	cmp, cmpi, cmpl, cmpli,
+	/// Compare.
+	/// cmp
+	cmp,
+
+	cmpi, cmpl, cmpli,
 	cntlzwx, crand, crandc, creqv, crnand, crnor, cror, crorc, crxor, dcbf,
 	dcbst, dcbt, dcbtst, dcbz, divwx, divwux, eciwx, ecowx, eieio, eqvx,
 	extsbx, extshx, fabsx, faddx, faddsx, fcmpo, fcmpu, fctiwx, fctiwzx,
@@ -276,7 +296,19 @@ enum class Operation: uint8_t {
 	nandx, negx, norx, orx, orcx, ori, oris, rfi, rlwimix, rlwinmx, rlwnmx,
 	sc, slwx, srawx, srawix, srwx, stb, stbu, stbux, stbx, stfd, stfdu,
 	stfdux, stfdx, stfs, stfsu, stfsux, stfsx, sth, sthbrx, sthu, sthux, sthx,
-	stmw, stswi, stswx, stw, stwbrx, stwcx_, stwu, stwux, stwx, subfx, subfcx,
+	stmw, stswi, stswx, stw, stwbrx, stwcx_, stwu,
+
+	/// Store word with update indexed.
+	/// stwux
+	///
+	/// rS(), rA(), rB()
+	stwux,
+
+	/// Store word indexed.
+	/// stwx
+	///
+	/// rS(), rA(), rB()
+	stwx, subfx, subfcx,
 	subfex, subfic, subfmex, subfzex, sync, tw, twi, xorx, xori, xoris, mftb,
 
 	//
