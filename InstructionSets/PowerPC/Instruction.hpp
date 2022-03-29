@@ -540,7 +540,7 @@ struct Instruction {
 	/// Whether to compare 32-bit or 64-bit numbers [for 64-bit implementations only]; @c 0 or @c non-0.
 	uint32_t l() const	{	return opcode & 0x200000;	}
 	/// Enables setting of OV and SO in the XER; @c 0 or @c non-0.
-	uint32_t oe() const	{	return opcode & 0x800;		}
+	uint32_t oe() const	{	return opcode & 0x400;		}
 };
 
 // Sanity check on Instruction size.

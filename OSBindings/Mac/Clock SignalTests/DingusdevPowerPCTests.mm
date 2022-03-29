@@ -25,6 +25,14 @@ void AssertEqualOperationName(NSString *lhs, NSString *rhs) {
 	XCTAssertEqualObjects(lhsMapped, rhsMapped);
 }
 
+void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString *rhs) {
+	XCTAssert([lhs characterAtIndex:lhs.length - 1] == 'x');
+	lhs = [lhs substringToIndex:lhs.length - 1];
+	if(instruction.oe()) lhs = [lhs stringByAppendingString:@"o"];
+	if(instruction.rc()) lhs = [lhs stringByAppendingString:@"."];
+	XCTAssertEqualObjects(lhs, rhs);
+}
+
 }
 
 @implementation DingusdevPowerPCTests
@@ -118,12 +126,12 @@ void AssertEqualOperationName(NSString *lhs, NSString *rhs) {
 
 #define ABD(x)	\
 			case Operation::x:	\
-				AssertEqualOperationName(operation, @#x);	\
+				AssertEqualOperationNameOE(@#x, instruction, operation);	\
 				[self testABDInstruction:instruction columns:columns testZero:NO];	\
 			break;
 
-//			ABD(subfc);
-//			ABD(subfc_);
+			ABD(subfcx);
+			ABD(subfx);
 
 #undef ABD
 
