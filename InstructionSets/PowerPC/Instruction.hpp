@@ -64,19 +64,31 @@ enum class Operation: uint8_t {
 	Undefined,
 
 	//
-	// These 601-exclusive instructions; a lot of them are carry-overs
-	// from POWER. These are not part of the PowerPC architecture.
+	// MARK: - 601-exclusive instructions.
 	//
+	// A lot of them are carry-overs from POWER, left in place
+	// due to the tight original development timeline.
+	//
+	// These are not part of the PowerPC architecture.
 
+	/// Absolute.
+	/// abs, abs., abso, abso.
+	///
 	/// |rA| is placed into rD. If rA = 0x8000'0000 then 0x8000'0000 is placed into rD
 	/// and XER[OV] is set if oe() indicates that overflow is enabled.
 	absx,
 
+	/// Cache line compute size.
+	/// clcs
+	///
 	/// The size of the cache line specified by rA is placed into rD. Cf. the CacheLine enum.
 	/// As an aside: all cache lines are 64 bytes on the MPC601.
 	clcs,
 
-	/// div, div., divo, div.; unsigned 64-bit divide. rA|MQ / rB is placed into rD and the
+	/// Divide.
+	/// div, div., divo, divo.
+	///
+	/// Unsigned 64-bit divide. rA|MQ / rB is placed into rD and the
 	/// remainder is placed into MQ. The ermainder has the same sign as the dividend
 	/// such that remainder + divisor * quotient = dividend.
 	///
@@ -84,7 +96,10 @@ enum class Operation: uint8_t {
 	/// oe() != 0 => SO and OV are set if the quotient exceeds 32 bits.
 	divx,
 
-	/// divs, divs., divso, divso.; signed 32-bit divide. rD = rA/rB; remainder is
+	/// Divide short.
+	/// divs, divs., divso, divso.
+	///
+	/// Signed 32-bit divide. rD = rA/rB; remainder is
 	/// placed into MQ. The ermainder has the same sign as the dividend
 	/// such that remainder + divisor * quotient = dividend.
 	///
@@ -92,9 +107,15 @@ enum class Operation: uint8_t {
 	/// oe() != 0 => SO and OV are set if the quotient exceeds 32 bits.
 	divsx,
 
+	/// Difference or zero.
+	/// dozi
+	///
 	/// if rA > rB then rD = 0; else rD = NOT(rA) + rB + 1.
 	dozx,
 
+	/// Difference or zero immediate.
+	/// dozi
+	///
 	/// if rA > simm() then rD = 0; else rD = NOT(rA) + simm() + 1.
 	dozi,
 
@@ -103,63 +124,92 @@ enum class Operation: uint8_t {
 	sraiqx, sraqx, srex, sreax, sreqx, sriqx, srliqx, srlqx, srqx,
 
 	//
-	// 32- and 64-bit PowerPC instructions.
+	// MARK: - 32- and 64-bit PowerPC instructions.
 	//
 
-	addx, addcx, addex,
+	/// Add.
+	/// add, add., addo, addo.
+	///
+	/// rD() = rA() + rB(). Carry is ignored, rD() may be equal to rA() or rB().
+	addx,
+
+	/// Add carrying.
+	/// addc. addc., addco, addco.
+	///
+	/// rD() = rA() + rB(). XER[CA] is set if a carry occurs.
+	/// oe() and rc() apply.
+	addcx,
+
+	/// Add extended.
+	/// adde, adde., addeo, addeo.
+	///
+	/// rD() = rA() + rB() + XER[CA]; XER[CA] is set if further carry occurs.
+	/// oe() and rc() apply.
+	addex,
 
 	/// Add immediate.
+	/// addi
 	///
 	/// rD() = (rA() | 0) + simm()
 	addi,
 
 	/// Add immediate carrying.
+	/// addic
 	///
 	/// rD() = (rA() | 0) + simm()
-	/// XER[CA] = carry.
+	/// XER[CA] is updated.
 	addic,
 
-	/// Add immediate carrying.
+	/// Add immediate carrying and record.
+	/// addic.
 	///
 	/// rD() = (rA() | 0) + simm()
-	/// XER[CA] = carry, and the condition register is updated.
+	/// XER[CA] and the condition register are updated.
 	addic_,
 
-	/// Add immediate shifter.
+	/// Add immediate shifted.
+	/// addis.
 	///
 	/// rD() = (rA() | 0) + (simm() << 16)
 	addis,
 
-	addmex, addzex, andx,
-	andcx, andi_, andis_,
+	/// Add to minus one.
+	/// addme, addme., addmeo, addmeo.
+	///
+	/// rD() = rA() + XER[CA] + 0xffff'ffff
+	/// oe() and rc() apply.
+	addmex,
+
+	/// Add to zero extended.
+	/// addze, addze., addzeo, addzeo.
+	///
+	/// rD() = rA() + XER[CA]
+	/// oe() and rc() apply.
+	addzex,
+
+	andx, andcx, andi_, andis_,
 
 	/// Branch unconditional.
+	/// b, bl, ba, bla
 	///
 	/// Use li() to get the included immediate value.
 	///
 	/// Use aa() to determine whether it's a relative (aa() = 0) or absolute (aa() != 0) address.
 	/// Also check lk() to determine whether to update the link register.
-	///
-	/// Synonyms include:
-	/// 	* b (relative, no link) [though assemblers might encode as a bcx];
-	/// 	* bl (relative, link);
-	/// 	* ba (absolute, no link);
-	/// 	* bla (absolute, link).
 	bx,
 
 	/// Branch conditional.
+	/// bne, bne+, beq, bdnzt+, bdnzf, bdnzt, bdnzfla ...
 	///
 	/// aa() determines whether the branch has a relative or absolute target.
 	/// lk() determines whether to update the link register.
 	/// bd() supplies a relative displacment or absolute address.
 	/// bi() specifies which CR bit to use as a condition; cf. the Condition enum.
 	/// bo() provides other branch options and a branch prediction hint as per (BranchOptions enum << 1) | hint.
-	///
-	/// Synonyms incude:
-	/// 	* b (relative, no link) [though assemblers might encode as a bx].
 	bcx,
 
 	/// Branch conditional to count register.
+	/// bctr, bctrl, bnectrl, bnectrl, bltctr, blectr ...
 	///
 	/// aa(), bi(), bo() and lk() are as per bcx.
 	///
@@ -168,6 +218,7 @@ enum class Operation: uint8_t {
 	bcctrx,
 
 	/// Branch conditional to link register.
+	/// blr, blrl, bltlr, blelrl, bnelrl ...
 	///
 	/// aa(), bi(), bo() and lk() are as per bcx.
 	bclrx,
@@ -181,6 +232,7 @@ enum class Operation: uint8_t {
 	icbi, isync, lbz, lbzu,
 
 	/// Load byte and zero with update indexed.
+	/// lbzux
 	///
 	/// rD()[24, 31] = [ rA()|0 + rB() ]; and rA() is set to the calculated address
 	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
@@ -191,6 +243,7 @@ enum class Operation: uint8_t {
 	lbzux,
 
 	/// Load byte and zero indexed.
+	/// lbzx
 	///
 	/// rD[24, 31] = [ (rA()|0) + rB() ]
 	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
@@ -240,6 +293,7 @@ enum class Operation: uint8_t {
 	lswi, lswx, lwarx, lwbrx, lwz, lwzu,
 
 	/// Load word and zero with update indexed.
+	/// lwzux
 	///
 	/// rD() = [ rA()|0 + rB() ]; and rA() is set to the calculated address
 	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
@@ -249,6 +303,7 @@ enum class Operation: uint8_t {
 	lwzux,
 
 	/// Load word and zero indexed.
+	/// lwzx
 	///
 	/// rD() = [ (rA()|0) + rB() ]
 	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
@@ -333,17 +388,23 @@ enum class Operation: uint8_t {
 
 	subfmex, subfzex, sync, tw, twi, xorx, xori, xoris, mftb,
 
-	// 32-bit, supervisor level.
+	//
+	// MARK: - 32-bit, supervisor level.
+	//
 	dcbi,
 
-	// Supervisor, optional.
+	//
+	// MARK: - Supervisor, optional.
+	//
 	tlbia, tlbie, tlbsync,
 
-	// Optional.
+	//
+	// MARK: - Optional.
+	//
 	fresx, frsqrtex, fselx, fsqrtx, slbia, slbie, stfiwx,
 
 	//
-	// 64-bit only PowerPC instructions.
+	// MARK: - 64-bit only PowerPC instructions.
 	//
 	cntlzdx, divdx, divdux, extswx, fcfidx, fctidx, fctidzx, tdi, mulhdux,
 	ldx, sldx, ldux, td, mulhdx, ldarx, stdx, stdux, mulld, lwax, lwaux,
