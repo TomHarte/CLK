@@ -33,6 +33,23 @@ void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString
 	XCTAssertEqualObjects(lhs, rhs);
 }
 
+NSString *condition(uint32_t code) {
+	NSString *suffix;
+	switch(Condition(code & 3)) {
+		default: break;
+		case Condition::Negative:			suffix = @"lt";	break;
+		case Condition::Positive:			suffix = @"gt";	break;
+		case Condition::Zero:				suffix = @"eq";	break;
+		case Condition::SummaryOverflow:	suffix = @"so"; break;
+	}
+
+	if(code & ~3) {
+		return [NSString stringWithFormat:@"4*cr%d+%@", code >> 2, suffix];
+	} else {
+		return suffix;
+	}
+}
+
 }
 
 @implementation DingusdevPowerPCTests
@@ -83,6 +100,25 @@ void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString
 			default:
 				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
+
+#define CRMod(x) \
+			case Operation::x:	\
+				AssertEqualOperationName(operation, @#x);	\
+				XCTAssertEqualObjects(columns[3], condition(instruction.crbD()));	\
+				XCTAssertEqualObjects(columns[4], condition(instruction.crbA()));	\
+				XCTAssertEqualObjects(columns[5], condition(instruction.crbB()));	\
+			break;
+
+			CRMod(crand);
+			CRMod(crandc);
+			CRMod(creqv);
+			CRMod(crnand);
+			CRMod(crnor);
+			CRMod(cror);
+			CRMod(crorc);
+			CRMod(crxor);
+
+#undef CRMod
 
 			case Operation::mtcrf: {
 				AssertEqualOperationName(operation,
