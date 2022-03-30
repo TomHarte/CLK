@@ -33,6 +33,11 @@ void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString
 	XCTAssertEqualObjects(lhs, rhs);
 }
 
+void AssertEqualR(NSString *name, uint32_t reg) {
+	NSString *const regName = [NSString stringWithFormat:@"r%d", reg];
+	XCTAssertEqualObjects(name, regName);
+}
+
 NSString *condition(uint32_t code) {
 	NSString *suffix;
 	switch(Condition(code & 3)) {
@@ -100,6 +105,104 @@ NSString *condition(uint32_t code) {
 			default:
 				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
+
+			case Operation::rlwinmx: {
+				// This maps the opposite way from most of the other tests
+				// owing to the simplified names being a shade harder to
+				// detect motivationally.
+				XCTAssertEqual((instruction.rc() != 0), ([operation characterAtIndex:operation.length - 1] == '.'));
+				AssertEqualR(columns[3], instruction.rA());
+				AssertEqualR(columns[4], instruction.rS());
+
+				const auto n = [columns[5] intValue];
+				const auto b = columns.count > 6 ? [columns[6] intValue] : 0;
+
+				if([operation isEqualToString:@"extlwi"] || [operation isEqualToString:@"extlwi."]) {
+					XCTAssertEqual(instruction.sh(), b);
+					XCTAssertEqual(instruction.mb(), 0);
+					XCTAssertEqual(instruction.me(), n - 1);
+					break;
+				}
+
+				if([operation isEqualToString:@"extrwi"] || [operation isEqualToString:@"extrwi."]) {
+					XCTAssertEqual(instruction.sh(), b + n);
+					XCTAssertEqual(instruction.mb(), 32 - n);
+					XCTAssertEqual(instruction.me(), 31);
+					break;
+				}
+
+				if([operation isEqualToString:@"inslwi"] || [operation isEqualToString:@"inslwi."]) {
+					XCTAssertEqual(instruction.sh(), 32 - b);
+					XCTAssertEqual(instruction.mb(), b);
+					XCTAssertEqual(instruction.me(), b + n - 1);
+					break;
+				}
+
+				if([operation isEqualToString:@"insrwi"] || [operation isEqualToString:@"insrwi."]) {
+					XCTAssertEqual(instruction.sh(), 32 - (b + n));
+					XCTAssertEqual(instruction.mb(), b);
+					XCTAssertEqual(instruction.me(), b + n - 1);
+					break;
+				}
+
+				if([operation isEqualToString:@"rotlwi"] || [operation isEqualToString:@"rotlwi."]) {
+					XCTAssertEqual(instruction.sh(), n);
+					XCTAssertEqual(instruction.mb(), 0);
+					XCTAssertEqual(instruction.me(), 31);
+					break;
+				}
+
+				if([operation isEqualToString:@"rotrwi"] || [operation isEqualToString:@"rotrwi."]) {
+					XCTAssertEqual(instruction.sh(), 32 - n);
+					XCTAssertEqual(instruction.mb(), 0);
+					XCTAssertEqual(instruction.me(), 31);
+					break;
+				}
+
+				if([operation isEqualToString:@"rotlw"] || [operation isEqualToString:@"rotlw."]) {
+					XCTAssertEqual(instruction.rB(), n);
+					XCTAssertEqual(instruction.mb(), 0);
+					XCTAssertEqual(instruction.me(), 31);
+					break;
+				}
+
+				if([operation isEqualToString:@"slwi"] || [operation isEqualToString:@"slwi."]) {
+					XCTAssertEqual(instruction.sh(), n);
+					XCTAssertEqual(instruction.mb(), 0);
+					XCTAssertEqual(instruction.me(), 31 - n);
+					break;
+				}
+
+				if([operation isEqualToString:@"srwi"] || [operation isEqualToString:@"srwi."]) {
+					XCTAssertEqual(instruction.sh(), 32 - n);
+					XCTAssertEqual(instruction.mb(), n);
+					XCTAssertEqual(instruction.me(), 31);
+					break;
+				}
+
+				if([operation isEqualToString:@"clrlwi"] || [operation isEqualToString:@"clrlwi."]) {
+					XCTAssertEqual(instruction.sh(), 0);
+					XCTAssertEqual(instruction.mb(), n);
+					XCTAssertEqual(instruction.me(), 31);
+					break;
+				}
+
+				if([operation isEqualToString:@"clrrwi"] || [operation isEqualToString:@"clrrwi."]) {
+					XCTAssertEqual(instruction.sh(), 0);
+					XCTAssertEqual(instruction.mb(), 0);
+					XCTAssertEqual(instruction.me(), 31 - n);
+					break;
+				}
+
+				if([operation isEqualToString:@"clrlslwi"] || [operation isEqualToString:@"clrlslwi."]) {
+					XCTAssertEqual(instruction.sh(), n);
+					XCTAssertEqual(instruction.mb(), b - n);
+					XCTAssertEqual(instruction.me(), 31 - n);
+					break;
+				}
+
+				NSAssert(FALSE, @"Didn't handle %@", line);
+			} break;
 
 #define CRMod(x) \
 			case Operation::x:	\

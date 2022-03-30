@@ -425,7 +425,18 @@ enum class Operation: uint8_t {
 	/// rA(), rB(), rD()
 	mullwx,
 
-	nandx, negx, norx, orx, orcx, ori, oris, rfi, rlwimix, rlwinmx, rlwnmx,
+	nandx, negx, norx, orx, orcx, ori, oris, rfi, rlwimix,
+
+	/// Rotate left word immediate then AND with mask.
+	/// rlwinm rlwinm.
+	/// rA(), rS(), sh(), mb(), me(), rc()
+	rlwinmx,
+
+	/// Rotate left word then AND with mask
+	/// rlwimi rlwimi.
+	/// rA(), rB(), rS(), mb(), me(), rc()
+	rlwnmx,
+
 	sc, slwx, srawx, srawix, srwx, stb, stbu,
 
 	/// Store byte with update indexed.
@@ -620,7 +631,6 @@ struct Instruction {
 	uint32_t nb() const		{	return (opcode >> 11) & 0x1f;		}
 
 	/// Specifies a shift amount.
-	/// TODO: possibly bit 30 is also used in 64-bit mode, find out.
 	uint32_t sh() const		{	return (opcode >> 11) & 0x1f;		}
 
 	/// Specifies one of the 16 segment registers [32-bit only].
