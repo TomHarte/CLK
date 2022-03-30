@@ -84,6 +84,20 @@ void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString
 				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
 
+			case Operation::mtcrf: {
+				AssertEqualOperationName(operation,
+					instruction.crm() != 0xff ? @"mtcrf" : @"mtcr");
+
+				NSString *const rS = [NSString stringWithFormat:@"r%d", instruction.rS()];
+				XCTAssertEqualObjects(rS, [columns lastObject]);
+
+				if(columns.count > 4) {
+					const auto crm = strtol([columns[3] UTF8String], NULL, 16);
+					XCTAssertEqual(crm, instruction.crm());
+				}
+			} break;
+
+
 #define ArithImm(x) \
 			case Operation::x: {	\
 				NSString *const rD = [NSString stringWithFormat:@"r%d", instruction.rD()];	\
@@ -142,6 +156,19 @@ void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString
 			ABD(dozx);
 			ABD(absx);
 			ABD(nabsx);
+			ABD(addx);
+			ABD(addcx);
+			ABD(addex);
+			ABD(addmex);
+			ABD(addzex);
+			ABD(mulhwx);
+			ABD(mulhwux);
+			ABD(mulx);
+			ABD(mullwx);
+			ABD(divx);
+			ABD(divsx);
+			ABD(divwux);
+			ABD(divwx);
 
 #undef ABD
 
@@ -261,8 +288,8 @@ void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString
 			case Operation::bx: {
 				switch((instruction.aa() ? 2 : 0) | (instruction.lk() ? 1 : 0)) {
 					case 0:	AssertEqualOperationName(operation, @"b");		break;
-					case 1:	AssertEqualOperationName(operation, @"bl");	break;
-					case 2:	AssertEqualOperationName(operation, @"ba");	break;
+					case 1:	AssertEqualOperationName(operation, @"bl");		break;
+					case 2:	AssertEqualOperationName(operation, @"ba");		break;
 					case 3:	AssertEqualOperationName(operation, @"bla");	break;
 				}
 

@@ -72,7 +72,7 @@ enum class Operation: uint8_t {
 	// These are not part of the PowerPC architecture.
 
 	/// Absolute.
-	/// abs, abs., abso, abso.
+	/// abs abs. abso abso.
 	///
 	/// |rA| is placed into rD. If rA = 0x8000'0000 then 0x8000'0000 is placed into rD
 	/// and XER[OV] is set if oe() indicates that overflow is enabled.
@@ -86,7 +86,7 @@ enum class Operation: uint8_t {
 	clcs,
 
 	/// Divide.
-	/// div, div., divo, divo.
+	/// div div. divo divo.
 	///
 	/// Unsigned 64-bit divide. rA|MQ / rB is placed into rD and the
 	/// remainder is placed into MQ. The ermainder has the same sign as the dividend
@@ -97,7 +97,7 @@ enum class Operation: uint8_t {
 	divx,
 
 	/// Divide short.
-	/// divs, divs., divso, divso.
+	/// divs divs. divso divso.
 	///
 	/// Signed 32-bit divide. rD = rA/rB; remainder is
 	/// placed into MQ. The ermainder has the same sign as the dividend
@@ -108,7 +108,7 @@ enum class Operation: uint8_t {
 	divsx,
 
 	/// Difference or zero.
-	/// dozi
+	/// dozx
 	///
 	/// if rA > rB then rD = 0; else rD = NOT(rA) + rB + 1.
 	dozx,
@@ -119,7 +119,13 @@ enum class Operation: uint8_t {
 	/// if rA > simm() then rD = 0; else rD = NOT(rA) + simm() + 1.
 	dozi,
 
-	lscbxx, maskgx, maskirx, mulx,
+	lscbxx, maskgx, maskirx,
+
+	/// Multiply.
+	/// mul mul. mulo mulo.
+	/// rA(), rB(), rD()
+	mulx,
+
 	nabsx, rlmix, rribx, slex, sleqx, sliqx, slliqx, sllqx, slqx,
 	sraiqx, sraqx, srex, sreax, sreqx, sriqx, srliqx, srlqx, srqx,
 
@@ -128,20 +134,20 @@ enum class Operation: uint8_t {
 	//
 
 	/// Add.
-	/// add, add., addo, addo.
+	/// add add. addo addo.
 	///
 	/// rD() = rA() + rB(). Carry is ignored, rD() may be equal to rA() or rB().
 	addx,
 
 	/// Add carrying.
-	/// addc. addc., addco, addco.
+	/// addc addc. addco addco.
 	///
 	/// rD() = rA() + rB(). XER[CA] is set if a carry occurs.
 	/// oe() and rc() apply.
 	addcx,
 
 	/// Add extended.
-	/// adde, adde., addeo, addeo.
+	/// adde adde. addeo addeo.
 	///
 	/// rD() = rA() + rB() + XER[CA]; XER[CA] is set if further carry occurs.
 	/// oe() and rc() apply.
@@ -174,14 +180,14 @@ enum class Operation: uint8_t {
 	addis,
 
 	/// Add to minus one.
-	/// addme, addme., addmeo, addmeo.
+	/// addme addme. addmeo addmeo.
 	///
 	/// rD() = rA() + XER[CA] + 0xffff'ffff
 	/// oe() and rc() apply.
 	addmex,
 
 	/// Add to zero extended.
-	/// addze, addze., addzeo, addzeo.
+	/// addze addze. addzeo addzeo.
 	///
 	/// rD() = rA() + XER[CA]
 	/// oe() and rc() apply.
@@ -190,7 +196,7 @@ enum class Operation: uint8_t {
 	andx, andcx, andi_, andis_,
 
 	/// Branch unconditional.
-	/// b, bl, ba, bla
+	/// b bl ba bla
 	///
 	/// Use li() to get the included immediate value.
 	///
@@ -199,7 +205,7 @@ enum class Operation: uint8_t {
 	bx,
 
 	/// Branch conditional.
-	/// bne, bne+, beq, bdnzt+, bdnzf, bdnzt, bdnzfla ...
+	/// bne bne+ beq bdnzt+ bdnzf bdnzt bdnzfla ...
 	///
 	/// aa() determines whether the branch has a relative or absolute target.
 	/// lk() determines whether to update the link register.
@@ -209,7 +215,7 @@ enum class Operation: uint8_t {
 	bcx,
 
 	/// Branch conditional to count register.
-	/// bctr, bctrl, bnectrl, bnectrl, bltctr, blectr ...
+	/// bctr bctrl bnectrl bnectrl bltctr blectr ...
 	///
 	/// aa(), bi(), bo() and lk() are as per bcx.
 	///
@@ -218,13 +224,55 @@ enum class Operation: uint8_t {
 	bcctrx,
 
 	/// Branch conditional to link register.
-	/// blr, blrl, bltlr, blelrl, bnelrl ...
+	/// blr blrl bltlr blelrl bnelrl ...
 	///
 	/// aa(), bi(), bo() and lk() are as per bcx.
 	bclrx,
 
 	cmp, cmpi, cmpl, cmpli,
-	cntlzwx, crand, crandc, creqv, crnand, crnor, cror, crorc, crxor, dcbf,
+	cntlzwx,
+
+	/// Condition register and.
+	/// crand
+	/// crbA(), crbB(), crbD()
+	crand,
+
+	/// Condition register and with complement.
+	/// crandc
+	/// crbA(), crbB(), crbD()
+	crandc,
+
+	/// Condition register equivalent.
+	/// creqv
+	/// crbA(), crbB(), crbD()
+	creqv,
+
+	/// Condition register nand.
+	/// crnand
+	/// crbA(), crbB(), crbD()
+	crnand,
+
+	/// Condition register nor.
+	/// crnor
+	/// crbA(), crbB(), crbD()
+	crnor,
+
+	/// Condition register or.
+	/// cror
+	/// crbA(), crbB(), crbD()
+	cror,
+
+	/// Condition register or with complement.
+	/// crorc
+	/// crbA(), crbB(), crbD()
+	crorc,
+
+	/// Condition register xor.
+	/// crxor
+	/// crbA(), crbB(), crbD()
+	crxor,
+
+	dcbf,
 	dcbst, dcbt, dcbtst, dcbz, divwx, divwux, eciwx, ecowx, eieio, eqvx,
 	extsbx, extshx, fabsx, faddx, faddsx, fcmpo, fcmpu, fctiwx, fctiwzx,
 	fdivx, fdivsx, fmaddx, fmaddsx, fmrx, fmsubx, fmsubsx, fmulx, fmulsx,
@@ -310,8 +358,25 @@ enum class Operation: uint8_t {
 	lwzx,
 
 	mcrf, mcrfs, mcrxr,
-	mfcr, mffsx, mfmsr, mfspr, mfsr, mfsrin, mtcrf, mtfsb0x, mtfsb1x, mtfsfx,
-	mtfsfix, mtmsr, mtspr, mtsr, mtsrin, mulhwx, mulhwux,
+	mfcr, mffsx, mfmsr, mfspr, mfsr, mfsrin,
+
+	/// Move to condition register fields.
+	/// mtcrf
+	/// rS(), crm()
+	mtcrf,
+
+	mtfsb0x, mtfsb1x, mtfsfx,
+	mtfsfix, mtmsr, mtspr, mtsr, mtsrin,
+
+	/// Multiply high word.
+	/// mulhw mulgw.
+	/// rD(), rA(), rB(), rc()
+	mulhwx,
+
+	/// Multiply high word unsigned.
+	/// mulhwu mulhwu.
+	/// rD(), rA(), rB(), rc()
+	mulhwux,
 
 	/// Multiply low immediate.
 	///
@@ -319,7 +384,11 @@ enum class Operation: uint8_t {
 	/// XER[OV] is set if, were the operands treated as signed, overflow occurred.
 	mulli,
 
+	/// Multiply low word.
+	/// mullw mullw. mullwo mullwo.
+	/// rA(), rB(), rD()
 	mullwx,
+
 	nandx, negx, norx, orx, orcx, ori, oris, rfi, rlwimix, rlwinmx, rlwnmx,
 	sc, slwx, srawx, srawix, srwx, stb, stbu,
 
@@ -373,7 +442,7 @@ enum class Operation: uint8_t {
 	subfx,
 
 	/// Subtract from carrying.
-	/// subfc, subfc., subfco, subfco.
+	/// subfc subfc. subfco subfco.
 	///
 	/// rD() = -rA() +rB() + 1
 	///
