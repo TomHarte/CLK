@@ -19,12 +19,15 @@ using namespace InstructionSet::PowerPC;
 
 namespace {
 
+/// Acts as XCTAssertEqualObjects but maps underscores to dots, as per this code's enum naming convention.
 void AssertEqualOperationName(NSString *lhs, NSString *rhs) {
 	NSString *const lhsMapped = [lhs stringByReplacingOccurrencesOfString:@"_" withString:@"."];
 	NSString *const rhsMapped = [rhs stringByReplacingOccurrencesOfString:@"_" withString:@"."];
 	XCTAssertEqualObjects(lhsMapped, rhsMapped);
 }
 
+/// Trims the trailing 'x' from the @c lhs and appends one or more of @c o and @c . depending on the @c oe() and @c rc() flags of @c instruction.
+/// Then compares with the @c rhs.
 void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString *rhs) {
 	XCTAssert([lhs characterAtIndex:lhs.length - 1] == 'x');
 	lhs = [lhs substringToIndex:lhs.length - 1];
@@ -33,11 +36,13 @@ void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString
 	XCTAssertEqualObjects(lhs, rhs);
 }
 
+/// Forms the string @c r[reg] and compares it to @c name
 void AssertEqualR(NSString *name, uint32_t reg) {
 	NSString *const regName = [NSString stringWithFormat:@"r%d", reg];
 	XCTAssertEqualObjects(name, regName);
 }
 
+/// @returns the text name of the condition code @c code
 NSString *condition(uint32_t code) {
 	NSString *suffix;
 	switch(Condition(code & 3)) {
@@ -61,13 +66,11 @@ NSString *condition(uint32_t code) {
 
 - (void)testABDInstruction:(Instruction)instruction columns:(NSArray<NSString *> *)columns testZero:(BOOL)testZero {
 	NSString *const rA = (instruction.rA() || !testZero) ? [NSString stringWithFormat:@"r%d", instruction.rA()] : @"0";
-	NSString *const rD = [NSString stringWithFormat:@"r%d", instruction.rD()];
-	XCTAssertEqualObjects(rD, columns[3]);
 	XCTAssertEqualObjects(rA, columns[4]);
+	AssertEqualR(columns[3], instruction.rD());
 
 	if([columns count] > 5) {
-		NSString *const rB = [NSString stringWithFormat:@"r%d", instruction.rB()];
-		XCTAssertEqualObjects(rB, columns[5]);
+		AssertEqualR(columns[5], instruction.rB());
 	}
 }
 
@@ -106,6 +109,49 @@ NSString *condition(uint32_t code) {
 				NSAssert(FALSE, @"Didn't handle %@", line);
 			break;
 
+			case Operation::rlwimix: {
+				// This maps the opposite way from most of the other tests
+				// owing to the simplified names being a shade harder to
+				// detect motivationally.
+				XCTAssertEqual((instruction.rc() != 0), ([operation characterAtIndex:operation.length - 1] == '.'));
+				AssertEqualR(columns[3], instruction.rA());
+				AssertEqualR(columns[4], instruction.rS());
+
+				const auto n = [columns[5] intValue];
+				const auto b = [columns[6] intValue];
+
+				if([operation isEqualToString:@"inslwi"] || [operation isEqualToString:@"inslwi."]) {
+					XCTAssertEqual(instruction.sh(), 32 - b);
+					XCTAssertEqual(instruction.mb(), b);
+					XCTAssertEqual(instruction.me(), b + n - 1);
+					break;
+				}
+
+				if([operation isEqualToString:@"insrwi"] || [operation isEqualToString:@"insrwi."]) {
+					XCTAssertEqual(instruction.sh(), 32 - (b + n));
+					XCTAssertEqual(instruction.mb(), b);
+					XCTAssertEqual(instruction.me(), b + n - 1);
+					break;
+				}
+
+				NSAssert(FALSE, @"Didn't handle rlwimix %@", line);
+			} break;
+
+			case Operation::rlwnmx: {
+				XCTAssertEqual((instruction.rc() != 0), ([operation characterAtIndex:operation.length - 1] == '.'));
+				AssertEqualR(columns[3], instruction.rA());
+				AssertEqualR(columns[4], instruction.rS());
+				AssertEqualR(columns[5], instruction.rB());
+
+				if([operation isEqualToString:@"rotlw"] || [operation isEqualToString:@"rotlw."]) {
+					XCTAssertEqual(instruction.mb(), 0);
+					XCTAssertEqual(instruction.me(), 31);
+					break;
+				}
+
+				NSAssert(FALSE, @"Didn't handle rlwnmx %@", line);
+			} break;
+
 			case Operation::rlwinmx: {
 				// This maps the opposite way from most of the other tests
 				// owing to the simplified names being a shade harder to
@@ -131,20 +177,6 @@ NSString *condition(uint32_t code) {
 					break;
 				}
 
-				if([operation isEqualToString:@"inslwi"] || [operation isEqualToString:@"inslwi."]) {
-					XCTAssertEqual(instruction.sh(), 32 - b);
-					XCTAssertEqual(instruction.mb(), b);
-					XCTAssertEqual(instruction.me(), b + n - 1);
-					break;
-				}
-
-				if([operation isEqualToString:@"insrwi"] || [operation isEqualToString:@"insrwi."]) {
-					XCTAssertEqual(instruction.sh(), 32 - (b + n));
-					XCTAssertEqual(instruction.mb(), b);
-					XCTAssertEqual(instruction.me(), b + n - 1);
-					break;
-				}
-
 				if([operation isEqualToString:@"rotlwi"] || [operation isEqualToString:@"rotlwi."]) {
 					XCTAssertEqual(instruction.sh(), n);
 					XCTAssertEqual(instruction.mb(), 0);
@@ -154,13 +186,6 @@ NSString *condition(uint32_t code) {
 
 				if([operation isEqualToString:@"rotrwi"] || [operation isEqualToString:@"rotrwi."]) {
 					XCTAssertEqual(instruction.sh(), 32 - n);
-					XCTAssertEqual(instruction.mb(), 0);
-					XCTAssertEqual(instruction.me(), 31);
-					break;
-				}
-
-				if([operation isEqualToString:@"rotlw"] || [operation isEqualToString:@"rotlw."]) {
-					XCTAssertEqual(instruction.rB(), n);
 					XCTAssertEqual(instruction.mb(), 0);
 					XCTAssertEqual(instruction.me(), 31);
 					break;
@@ -195,13 +220,15 @@ NSString *condition(uint32_t code) {
 				}
 
 				if([operation isEqualToString:@"clrlslwi"] || [operation isEqualToString:@"clrlslwi."]) {
-					XCTAssertEqual(instruction.sh(), n);
-					XCTAssertEqual(instruction.mb(), b - n);
-					XCTAssertEqual(instruction.me(), 31 - n);
+					// FreeScale switched the order of b and n in the short-form instruction here;
+					// they are therefore transposed in the tests below.
+					XCTAssertEqual(instruction.sh(), b);
+					XCTAssertEqual(instruction.mb(), n - b);
+					XCTAssertEqual(instruction.me(), 31 - b);
 					break;
 				}
 
-				NSAssert(FALSE, @"Didn't handle %@", line);
+				NSAssert(FALSE, @"Didn't handle rlwinmx %@", line);
 			} break;
 
 #define CRMod(x) \
@@ -227,8 +254,7 @@ NSString *condition(uint32_t code) {
 				AssertEqualOperationName(operation,
 					instruction.crm() != 0xff ? @"mtcrf" : @"mtcr");
 
-				NSString *const rS = [NSString stringWithFormat:@"r%d", instruction.rS()];
-				XCTAssertEqualObjects(rS, [columns lastObject]);
+				AssertEqualR([columns lastObject], instruction.rS());
 
 				if(columns.count > 4) {
 					const auto crm = strtol([columns[3] UTF8String], NULL, 16);
@@ -239,12 +265,10 @@ NSString *condition(uint32_t code) {
 
 #define ArithImm(x) \
 			case Operation::x: {	\
-				NSString *const rD = [NSString stringWithFormat:@"r%d", instruction.rD()];	\
-				NSString *const rA = [NSString stringWithFormat:@"r%d", instruction.rA()];	\
 				const auto simm = strtol([columns[5] UTF8String], NULL, 16);	\
 				AssertEqualOperationName(operation, @#x);	\
-				XCTAssertEqualObjects(columns[3], rD);	\
-				XCTAssertEqualObjects(columns[4], rA);	\
+				AssertEqualR(columns[3], instruction.rD());	\
+				AssertEqualR(columns[4], instruction.rA());	\
 				XCTAssertEqual(simm, instruction.simm());	\
 			} break;
 
