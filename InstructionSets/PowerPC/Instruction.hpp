@@ -73,7 +73,7 @@ enum class Operation: uint8_t {
 
 	/// Absolute.
 	/// abs abs. abso abso.
-	/// rA(), rD(), oe()
+	/// rD(), rA()	[oe(), rc()]
 	///
 	/// |rA| is placed into rD. If rA = 0x8000'0000 then 0x8000'0000 is placed into rD
 	/// and XER[OV] is set if oe() indicates that overflow is enabled.
@@ -81,7 +81,7 @@ enum class Operation: uint8_t {
 
 	/// Cache line compute size.
 	/// clcs
-	/// rA(), rD()
+	/// rD(), rA()
 	///
 	/// The size of the cache line specified by rA is placed into rD. Cf. the CacheLine enum.
 	/// As an aside: all cache lines are 64 bytes on the MPC601.
@@ -89,7 +89,7 @@ enum class Operation: uint8_t {
 
 	/// Divide.
 	/// div div. divo divo.
-	/// rA(), rB(), rD(), rc(), oe()
+	/// rD(), rA(), rB()	[rc(), oe()]
 	///
 	/// Unsigned 64-bit divide. rA|MQ / rB is placed into rD and the
 	/// remainder is placed into MQ. The ermainder has the same sign as the dividend
@@ -141,14 +141,14 @@ enum class Operation: uint8_t {
 
 	/// Add.
 	/// add add. addo addo.
-	/// rA(), rB(), rD(), rc(), oe()
+	/// rD(), rA(), rB()	[rc(), oe()]
 	///
 	/// rD() = rA() + rB(). Carry is ignored, rD() may be equal to rA() or rB().
 	addx,
 
 	/// Add carrying.
 	/// addc addc. addco addco.
-	/// rA(), rB(), rD(), rc(), oe()
+	/// rD(), rA(), rB()	[rc(), oe()]
 	///
 	/// rD() = rA() + rB().
 	/// XER[CA] is updated with carry; if oe() is set then so are XER[SO] and XER[OV].
@@ -157,7 +157,7 @@ enum class Operation: uint8_t {
 
 	/// Add extended.
 	/// adde adde. addeo addeo.
-	/// rA(), rB(), rD(), rc(), eo()
+	/// rD(), rA(), rB()	[rc(), eo()]
 	///
 	/// rD() = rA() + rB() + XER[CA]; XER[CA] is set if further carry occurs.
 	/// oe() and rc() apply.
@@ -165,14 +165,14 @@ enum class Operation: uint8_t {
 
 	/// Add immediate.
 	/// addi
-	/// rA(), rD(), simm()
+	/// rD(), rA(), simm()
 	///
 	/// rD() = (rA() | 0) + simm()
 	addi,
 
 	/// Add immediate carrying.
 	/// addic
-	/// rA(), rD(), simm()
+	/// rD(), rA(), simm()
 	///
 	/// rD() = (rA() | 0) + simm()
 	/// XER[CA] is updated.
@@ -180,7 +180,7 @@ enum class Operation: uint8_t {
 
 	/// Add immediate carrying and record.
 	/// addic.
-	/// rA(), rD(), simm()
+	/// rD(), rA(), simm()
 	///
 	/// rD() = (rA() | 0) + simm()
 	/// XER[CA] and the condition register are updated.
@@ -188,48 +188,48 @@ enum class Operation: uint8_t {
 
 	/// Add immediate shifted.
 	/// addis.
-	/// rA(), rD(), simm()
+	/// rD(), rA(), simm()
 	///
 	/// rD() = (rA() | 0) + (simm() << 16)
 	addis,
 
 	/// Add to minus one.
 	/// addme addme. addmeo addmeo.
-	/// rA(), rD(), rc(), oe()
+	/// rD(), rA()	[rc(), oe()]
 	///
 	/// rD() = rA() + XER[CA] + 0xffff'ffff
 	addmex,
 
 	/// Add to zero extended.
 	/// addze addze. addzeo addzeo.
-	/// rA(), rD(), rc(), oe()
+	/// rD(), rA()	[rc(), oe()]
 	///
 	/// rD() = rA() + XER[CA]
 	addzex,
 
 	/// And.
 	/// and, and.
-	/// rA(), rB(), rD(), rc()
+	/// rA(), rS(), rB()	[rc()]
 	andx,
 
 	/// And with complement.
 	/// andc, andc.
-	/// rA(), rB(), rD(), rc()
+	/// rA(), rS(), rB()	[rc()]
 	andcx,
 
 	/// And immediate.
 	/// andi.
-	/// rA(), rD(), uimm()
+	/// rA(), rS(), uimm()
 	andi_,
 
 	/// And immediate shifted.
 	/// andis.
-	/// rA(), rD(), uimm()
+	/// rA(), rS(), uimm()
 	andis_,
 
 	/// Branch unconditional.
 	/// b bl ba bla
-	/// aa(), li(), lk()
+	/// li()	[aa(), lk()]
 	///
 	/// Use li() to get the included immediate value.
 	///
@@ -239,7 +239,7 @@ enum class Operation: uint8_t {
 
 	/// Branch conditional.
 	/// bne bne+ beq bdnzt+ bdnzf bdnzt bdnzfla ...
-	/// aa(), lk(), bd(), bi(), bo()
+	/// bo(), bi(), bd()	[aa(), lk()]
 	///
 	/// aa() determines whether the branch has a relative or absolute target.
 	/// lk() determines whether to update the link register.
@@ -250,7 +250,7 @@ enum class Operation: uint8_t {
 
 	/// Branch conditional to count register.
 	/// bctr bctrl bnectrl bnectrl bltctr blectr ...
-	/// aa(), lk(), bi(), bo()
+	/// bo(), bi()	[aa(), lk()]
 	///
 	/// aa(), bi(), bo() and lk() are as per bcx.
 	///
@@ -260,56 +260,102 @@ enum class Operation: uint8_t {
 
 	/// Branch conditional to link register.
 	/// blr blrl bltlr blelrl bnelrl ...
-	/// aa(), lk(), bi(), bo()
+	/// bo(), bi()	[aa(), lk()]
 	///
 	/// aa(), bi(), bo() and lk() are as per bcx.
 	bclrx,
 
-	cmp, cmpi, cmpl, cmpli,
+	/// Compare
+	/// cmp
+	/// crfD(), l(), rA(), rB()
+	cmp,
+
+	/// Compare immediate.
+	/// cmpi
+	/// crfD(), l(), rA(), simm()
+	cmpi,
+
+	/// Compare logical.
+	/// cmpl
+	/// crfD(), l(), rA(), rB()
+	cmpl,
+
+	/// Compare logical immediate.
+	/// cmpli
+	/// crfD(), l(), rA(), uimm()
+	cmpli,
+
+	/// Count leading zero words.
+	/// cntlzw cntlzw.
+	/// rA(), rS()	[rc()]
 	cntlzwx,
 
 	/// Condition register and.
 	/// crand
-	/// crbA(), crbB(), crbD()
+	/// crbD(), crbA(), crbB()
 	crand,
 
 	/// Condition register and with complement.
 	/// crandc
-	/// crbA(), crbB(), crbD()
+	/// crbD(), crbA(), crbB()
 	crandc,
 
 	/// Condition register equivalent.
 	/// creqv
-	/// crbA(), crbB(), crbD()
+	/// crbD(), crbA(), crbB()
 	creqv,
 
 	/// Condition register nand.
 	/// crnand
-	/// crbA(), crbB(), crbD()
+	/// crbD(), crbA(), crbB()
 	crnand,
 
 	/// Condition register nor.
 	/// crnor
-	/// crbA(), crbB(), crbD()
+	/// crbD(), crbA(), crbB()
 	crnor,
 
 	/// Condition register or.
 	/// cror
-	/// crbA(), crbB(), crbD()
+	/// crbD(), crbA(), crbB()
 	cror,
 
 	/// Condition register or with complement.
 	/// crorc
-	/// crbA(), crbB(), crbD()
+	/// crbD(), crbA(), crbB()
 	crorc,
 
 	/// Condition register xor.
 	/// crxor
-	/// crbA(), crbB(), crbD()
+	/// crbD(), crbA(), crbB()
 	crxor,
 
+	/// Data cache block flush.
+	/// dcbf
+	/// rA(), rB()
 	dcbf,
-	dcbst, dcbt, dcbtst, dcbz, divwx, divwux, eciwx, ecowx, eieio, eqvx,
+
+	/// Data cache block store.
+	/// dcbst
+	/// rA(), rB()
+	dcbst,
+
+	/// Data cache block touch.
+	/// dcbt
+	/// rA(), rB()
+	dcbt,
+
+	/// Data cache block touch for store.
+	/// dcbtst
+	/// rA(), rB()
+	dcbtst,
+
+	/// Data cache block set to zero.
+	/// dcbz
+	/// rA(), rB()
+	dcbz,
+
+	divwx, divwux, eciwx, ecowx, eieio, eqvx,
 	extsbx, extshx, fabsx, faddx, faddsx, fcmpo, fcmpu, fctiwx, fctiwzx,
 	fdivx, fdivsx, fmaddx, fmaddsx, fmrx, fmsubx, fmsubsx, fmulx, fmulsx,
 	fnabsx, fnegx, fnmaddx, fnmaddsx, fnmsubx, fnmsubsx, frspx, fsubx, fsubsx,
@@ -437,7 +483,12 @@ enum class Operation: uint8_t {
 	/// rA(), rB(), rS(), mb(), me(), rc()
 	rlwnmx,
 
-	sc, slwx, srawx, srawix, srwx, stb, stbu,
+	sc,
+
+	/// Shift left word.
+	/// slw slw.
+	/// rA(), rS(), rB()	[rc()]
+	slwx, srawx, srawix, srwx, stb, stbu,
 
 	/// Store byte with update indexed.
 	///
@@ -507,6 +558,10 @@ enum class Operation: uint8_t {
 	//
 	// MARK: - 32-bit, supervisor level.
 	//
+
+	/// Data cache block invalidate.
+	/// dcbi
+	/// rA(), rB()
 	dcbi,
 
 	//
