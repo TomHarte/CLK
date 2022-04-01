@@ -386,6 +386,25 @@ NSString *condition(uint32_t code) {
 
 #undef ABD
 
+#define ASB(x)	\
+			case Operation::x:	\
+				AssertEqualOperationNameE(operation, @#x, instruction);	\
+				AssertEqualR(columns[3], instruction.rA());	\
+				AssertEqualR(columns[4], instruction.rS());	\
+				AssertEqualR(columns[5], instruction.rB());	\
+			break;
+
+			ASB(andx);
+			ASB(andcx);
+			ASB(norx);
+			ASB(eqvx);
+			ASB(xorx);
+			ASB(orcx);
+			ASB(orx);
+			ASB(nandx);
+
+#undef ASB
+
 			case Operation::bcx:
 			case Operation::bclrx:
 			case Operation::bcctrx: {
