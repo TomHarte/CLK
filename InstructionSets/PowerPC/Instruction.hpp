@@ -42,13 +42,7 @@ enum class BranchOption: uint32_t {
 	//
 	//	Dec_ prefix => decrement the CTR;
 	//	condition starting NotZero or Zero => test CTR;
-	//	condition ending Set or Clear => test for condition bit.
-	//
-	// Numerical suffixes are present because there's some redundancy
-	// in encodings.
-	//
-	// Note that the encodings themselves may suggest alternative means
-	// of interpretation than mapping via this enum.
+	//	condition ending Set or Clear => test the condition bit.
 	Dec_NotZeroAndClear	= 0b0000,
 	Dec_ZeroAndClear	= 0b0001,
 	Clear 				= 0b0010,
@@ -346,17 +340,38 @@ enum class Operation: uint8_t {
 	lfsux, lfsx, lha, lhau,
 
 	/// Load half-word algebraic with update indexed.
+	/// lhaux
+	/// rD(), rA(), rB()
 	lhaux,
 
 	/// Load half-word algebraic indexed.
+	/// lhax
+	/// rD(), rA(), rB()
 	lhax,
 
-	lhbrx, lhz, lhzu,
+	/// Load half word byte-reverse indexed.
+	/// lhbrx
+	/// rD(), rA(), rB()
+	lhbrx,
+
+	/// Load half word and zero.
+	/// lhz
+	/// rD(), d()[ rA() ]
+	lhz,
+
+	/// Load half-word and zero with update.
+	/// lhzu
+	/// rD(), d()[ rA() ]
+	lhzu,
 
 	/// Load half-word and zero with update indexed.
+	/// lhzux
+	/// rD(), rA(), rB()
 	lhzux,
 
 	/// Load half-word and zero indexed.
+	/// lhzx
+	/// rD(), rA(), rB()
 	lhzx,
 
 	lmw,
@@ -435,16 +450,47 @@ enum class Operation: uint8_t {
 	/// rA(), rS(), rB()	[rc()]
 	srwx,
 
-	stb, stbu,
+	/// Store byte.
+	/// stb
+	/// rS(), d() [ rA() ]
+	stb,
+
+	/// Store byte with update.
+	/// stbu
+	/// rS(), d() [ rA() ]
+	stbu,
 
 	/// Store byte with update indexed.
+	/// stbux
+	/// rS(), rA(), rB()
 	stbux,
 
 	/// Store byte indexed.
+	/// stbx
+	/// rS(), rA(), rB()
 	stbx,
 
-	stfd, stfdu,
-	stfdux, stfdx, stfs, stfsu, stfsux, stfsx, sth, sthbrx, sthu,
+	/// Store floating point double precision.
+	/// stfd
+	/// frS(), d() [ rA() ]
+	stfd,
+
+	/// Store floating point double precision with update.
+	/// stfdu
+	/// frS(), d() [ rA() ]
+	stfdu,
+
+	/// Store floating point double precision with update indexed.
+	/// stfdux
+	/// frS(), rA(), rB()
+	stfdux,
+
+	/// Store floating point double precision indexed.
+	/// stfdux
+	/// frS(), rA(), rB()
+	stfdx,
+
+	stfs, stfsu, stfsux, stfsx, sth, sthbrx, sthu,
 
 	/// Store half-word with update indexed.
 	sthux,
@@ -512,7 +558,34 @@ enum class Operation: uint8_t {
 	extswx,
 
 	fcfidx, fctidx, fctidzx, tdi, mulhdux,
-	ldx, sldx, ldux, td, mulhdx, ldarx, stdx, stdux, mulld, lwax, lwaux,
+	ldx, sldx, ldux, td, mulhdx, ldarx,
+
+	/// Store double.
+	/// std
+	/// rS(), ds() [ rA() ]
+	std,
+
+	/// Store double word conditional indexed.
+	/// stdcx.
+	/// rS(), rA(), rB()
+	stdcx_,
+
+	/// Store double word with update.
+	/// stdu
+	/// rS(), ds() [ rA() ]
+	stdu,
+
+	/// Store double word with update indexed.
+	/// stdux
+	/// rS(), rA(), rB()
+	stdux,
+
+	/// Store double word indexed.
+	/// stdx
+	/// rS(), rA(), rB()
+	stdx,
+
+	mulld, lwax, lwaux,
 	sradix, srdx,
 
 	/// Shift right algebraic double word.
@@ -520,7 +593,7 @@ enum class Operation: uint8_t {
 	/// rA(), rS(), rB()	[rc()]
 	sradx,
 
-	fsqrtsx, std, stdu, stdcx_,
+	fsqrtsx
 };
 
 /*!

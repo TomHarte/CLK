@@ -369,6 +369,12 @@ NSString *condition(uint32_t code) {
 			ABCz(lhaux);
 			ABCz(sthx);
 			ABCz(sthux);
+			ABCz(lhbrx);
+			ABCz(lwbrx);
+			ABCz(lwarx);
+			ABCz(stwcx_);
+			ABCz(stwbrx);
+			ABCz(sthbrx);
 
 #undef ABCz
 
