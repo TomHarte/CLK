@@ -332,6 +332,23 @@ NSString *condition(uint32_t code) {
 
 #undef ArithImm
 
+#define LogicImm(x) \
+			case Operation::x: {	\
+				AssertEqualOperationName(operation, @#x);	\
+				AssertEqualR(columns[3], instruction.rA());	\
+				AssertEqualR(columns[4], instruction.rS());	\
+				XCTAssertEqual([columns[5] hexInt], instruction.uimm());	\
+			} break;
+
+			LogicImm(andi_);
+			LogicImm(andis_);
+			LogicImm(ori);
+			LogicImm(oris);
+			LogicImm(xori);
+			LogicImm(xoris);
+
+#undef ArithImm
+
 #define ABCz(x)	\
 			case Operation::x:	\
 				AssertEqualOperationName(operation, @#x);	\
