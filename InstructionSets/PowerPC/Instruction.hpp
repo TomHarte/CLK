@@ -74,55 +74,31 @@ enum class Operation: uint8_t {
 	/// Absolute.
 	/// abs abs. abso abso.
 	/// rD(), rA()	[oe(), rc()]
-	///
-	/// |rA| is placed into rD. If rA = 0x8000'0000 then 0x8000'0000 is placed into rD
-	/// and XER[OV] is set if oe() indicates that overflow is enabled.
 	absx,
 
 	/// Cache line compute size.
 	/// clcs
 	/// rD(), rA()
-	///
-	/// The size of the cache line specified by rA is placed into rD. Cf. the CacheLine enum.
-	/// As an aside: all cache lines are 64 bytes on the MPC601.
 	clcs,
 
 	/// Divide.
 	/// div div. divo divo.
 	/// rD(), rA(), rB()	[rc(), oe()]
-	///
-	/// Unsigned 64-bit divide. rA|MQ / rB is placed into rD and the
-	/// remainder is placed into MQ. The ermainder has the same sign as the dividend
-	/// such that remainder + divisor * quotient = dividend.
-	///
-	/// rc() != 0 => the LT, GT and EQ bits in CR are set as per the remainder.
-	/// oe() != 0 => SO and OV are set if the quotient exceeds 32 bits.
 	divx,
 
 	/// Divide short.
 	/// divs divs. divso divso.
 	/// rD(), rA(), rB()	[rc(), eo()]
-	///
-	/// Signed 32-bit divide. rD = rA/rB; remainder is
-	/// placed into MQ. The ermainder has the same sign as the dividend
-	/// such that remainder + divisor * quotient = dividend.
-	///
-	/// rc() != 0 => the LT, GT and EQ bits in CR are set as per the remainder.
-	/// oe() != 0 => SO and OV are set if the quotient exceeds 32 bits.
 	divsx,
 
 	/// Difference or zero.
 	/// doz doz. dozo dozo.
 	/// rD(), rA(), rB()	[rc(), oe()]
-	///
-	/// if rA > rB then rD = 0; else rD = NOT(rA) + rB + 1.
 	dozx,
 
 	/// Difference or zero immediate.
 	/// dozi
 	/// rD(), rA(), simm()
-	///
-	/// if rA > simm() then rD = 0; else rD = NOT(rA) + simm() + 1.
 	dozi,
 
 	lscbxx, maskgx, maskirx,
@@ -142,69 +118,46 @@ enum class Operation: uint8_t {
 	/// Add.
 	/// add add. addo addo.
 	/// rD(), rA(), rB()	[rc(), oe()]
-	///
-	/// rD() = rA() + rB(). Carry is ignored, rD() may be equal to rA() or rB().
 	addx,
 
 	/// Add carrying.
 	/// addc addc. addco addco.
 	/// rD(), rA(), rB()	[rc(), oe()]
-	///
-	/// rD() = rA() + rB().
-	/// XER[CA] is updated with carry; if oe() is set then so are XER[SO] and XER[OV].
-	/// if rc() is set, LT, GT, EQ and SO condition bits are updated.
 	addcx,
 
 	/// Add extended.
 	/// adde adde. addeo addeo.
 	/// rD(), rA(), rB()	[rc(), eo()]
-	///
-	/// rD() = rA() + rB() + XER[CA]; XER[CA] is set if further carry occurs.
-	/// oe() and rc() apply.
 	addex,
 
 	/// Add immediate.
 	/// addi
 	/// rD(), rA(), simm()
-	///
-	/// rD() = (rA() | 0) + simm()
 	addi,
 
 	/// Add immediate carrying.
 	/// addic
 	/// rD(), rA(), simm()
-	///
-	/// rD() = (rA() | 0) + simm()
-	/// XER[CA] is updated.
 	addic,
 
 	/// Add immediate carrying and record.
 	/// addic.
 	/// rD(), rA(), simm()
-	///
-	/// rD() = (rA() | 0) + simm()
-	/// XER[CA] and the condition register are updated.
 	addic_,
 
 	/// Add immediate shifted.
 	/// addis.
 	/// rD(), rA(), simm()
-	///
-	/// rD() = (rA() | 0) + (simm() << 16)
 	addis,
 
 	/// Add to minus one.
 	/// addme addme. addmeo addmeo.
 	/// rD(), rA()	[rc(), oe()]
-	///
-	/// rD() = rA() + XER[CA] + 0xffff'ffff
 	addmex,
 
 	/// Add to zero extended.
 	/// addze addze. addzeo addzeo.
 	/// rD(), rA()	[rc(), oe()]
-	///
-	/// rD() = rA() + XER[CA]
 	addzex,
 
 	/// And.
@@ -230,39 +183,21 @@ enum class Operation: uint8_t {
 	/// Branch unconditional.
 	/// b bl ba bla
 	/// li()	[aa(), lk()]
-	///
-	/// Use li() to get the included immediate value.
-	///
-	/// Use aa() to determine whether it's a relative (aa() = 0) or absolute (aa() != 0) address.
-	/// Also check lk() to determine whether to update the link register.
 	bx,
 
 	/// Branch conditional.
 	/// bne bne+ beq bdnzt+ bdnzf bdnzt bdnzfla ...
 	/// bo(), bi(), bd()	[aa(), lk()]
-	///
-	/// aa() determines whether the branch has a relative or absolute target.
-	/// lk() determines whether to update the link register.
-	/// bd() supplies a relative displacment or absolute address.
-	/// bi() specifies which CR bit to use as a condition; cf. the Condition enum.
-	/// bo() provides other branch options and a branch prediction hint as per (BranchOptions enum << 1) | hint.
 	bcx,
 
 	/// Branch conditional to count register.
 	/// bctr bctrl bnectrl bnectrl bltctr blectr ...
 	/// bo(), bi()	[aa(), lk()]
-	///
-	/// aa(), bi(), bo() and lk() are as per bcx.
-	///
-	/// On the MPC601, anything that decrements the count register will use the non-decremented
-	/// version as the branch target. Other processors will use the decremented version.
 	bcctrx,
 
 	/// Branch conditional to link register.
 	/// blr blrl bltlr blelrl bnelrl ...
 	/// bo(), bi()	[aa(), lk()]
-	///
-	/// aa(), bi(), bo() and lk() are as per bcx.
 	bclrx,
 
 	/// Compare
@@ -401,60 +336,27 @@ enum class Operation: uint8_t {
 
 	/// Load byte and zero with update indexed.
 	/// lbzux
-	///
-	/// rD()[24, 31] = [ rA()|0 + rB() ]; and rA() is set to the calculated address
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
-	/// The rest of rD is set to 0.
-	///
-	/// PowerPC defines rA=0 and rA=rD to be invalid forms; the MPC601
-	/// will suppress the update if rA=0 or rA=rD.
 	lbzux,
 
 	/// Load byte and zero indexed.
 	/// lbzx
-	///
-	/// rD[24, 31] = [ (rA()|0) + rB() ]
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
-	/// The rest of rD is set to 0.
 	lbzx,
 
 	lfd, lfdu, lfdux, lfdx, lfs, lfsu,
 	lfsux, lfsx, lha, lhau,
 
 	/// Load half-word algebraic with update indexed.
-	///
-	/// rD()[16, 31] = [ rA()|0 + rB() ]; and rA() is set to the calculated address
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
-	/// The result in rD is sign extended.
-	///
-	/// PowerPC defines rA=0 and rA=rD to be invalid forms; the MPC601
-	/// will suppress the update if rA=0 or rA=rD.
 	lhaux,
 
 	/// Load half-word algebraic indexed.
-	///
-	/// rD[16, 31] = [ (rA()|0) + rB() ]
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
-	/// The result in rD is sign extended.
 	lhax,
 
 	lhbrx, lhz, lhzu,
 
 	/// Load half-word and zero with update indexed.
-	///
-	/// rD()[16, 31] = [ rA()|0 + rB() ]; and rA() is set to the calculated address
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
-	/// The rest of rD is set to 0.
-	///
-	/// PowerPC defines rA=0 and rA=rD to be invalid forms; the MPC601
-	/// will suppress the update if rA=0 or rA=rD.
 	lhzux,
 
 	/// Load half-word and zero indexed.
-	///
-	/// rD[16, 31] = [ (rA()|0) + rB() ]
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
-	/// The rest of rD is set to 0.
 	lhzx,
 
 	lmw,
@@ -462,19 +364,10 @@ enum class Operation: uint8_t {
 
 	/// Load word and zero with update indexed.
 	/// lwzux
-	///
-	/// rD() = [ rA()|0 + rB() ]; and rA() is set to the calculated address
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
-	///
-	/// PowerPC defines rA=0 and rA=rD to be invalid forms; the MPC601
-	/// will suppress the update if rA=0 or rA=rD.
 	lwzux,
 
 	/// Load word and zero indexed.
 	/// lwzx
-	///
-	/// rD() = [ (rA()|0) + rB() ]
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
 	lwzx,
 
 	mcrf, mcrfs, mcrxr,
@@ -499,9 +392,6 @@ enum class Operation: uint8_t {
 	mulhwux,
 
 	/// Multiply low immediate.
-	///
-	/// rD() = [low 32 bits of] rA() * simm()
-	/// XER[OV] is set if, were the operands treated as signed, overflow occurred.
 	mulli,
 
 	/// Multiply low word.
@@ -548,66 +438,36 @@ enum class Operation: uint8_t {
 	stb, stbu,
 
 	/// Store byte with update indexed.
-	///
-	/// [ (ra()|0) + rB() ] = rS()[24, 31]; and rA() is updated with the calculated address.
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
-	///
-	/// PowerPC defines rA=0 to an invalid form; the MPC601 will store to r0.
 	stbux,
 
 	/// Store byte indexed.
-	///
-	/// [ (ra()|0) + rB() ] = rS()[24, 31]
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
 	stbx,
 
 	stfd, stfdu,
 	stfdux, stfdx, stfs, stfsu, stfsux, stfsx, sth, sthbrx, sthu,
 
 	/// Store half-word with update indexed.
-	///
-	/// [ (ra()|0) + rB() ] = rS()[16, 31]; and rA() is updated with the calculated address.
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
-	///
-	/// PowerPC defines rA=0 to an invalid form; the MPC601 will store to r0.
 	sthux,
 
 	/// Store half-word indexed.
-	///
-	/// [ (ra()|0) + rB() ] = rS()[16, 31]
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
 	sthx,
 
 	stmw, stswi, stswx, stw, stwbrx, stwcx_, stwu,
 
 	/// Store word with update indexed.
-	///
-	/// [ (ra()|0) + rB() ] = rS(); and rA() is updated with the calculated address.
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
-	///
-	/// PowerPC defines rA=0 to an invalid form; the MPC601 will store to r0.
 	stwux,
 
 	/// Store word indexed.
-	///
-	/// [ (ra()|0) + rB() ] = rS()
-	/// i.e. if rA() is 0 then the value 0 is used, not the contents of r0.
 	stwx,
 
 	subfx,
 
 	/// Subtract from carrying.
 	/// subfc subfc. subfco subfco.
-	///
-	/// rD() = -rA() +rB() + 1
-	///
-	/// oe(), rc() apply.
 	subfcx,
 	subfex,
 
 	/// Subtract from immediate carrying
-	///
-	/// rD() = ~rA() + simm() + 1
 	subfic,
 
 	subfmex, subfzex, sync, tw, twi, xorx, xori, xoris, mftb,
