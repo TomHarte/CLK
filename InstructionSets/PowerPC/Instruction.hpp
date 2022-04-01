@@ -101,7 +101,7 @@ enum class Operation: uint8_t {
 
 	/// Divide short.
 	/// divs divs. divso divso.
-	/// rA(), rB(), rD(), rc(), eo()
+	/// rD(), rA(), rB()	[rc(), eo()]
 	///
 	/// Signed 32-bit divide. rD = rA/rB; remainder is
 	/// placed into MQ. The ermainder has the same sign as the dividend
@@ -112,15 +112,15 @@ enum class Operation: uint8_t {
 	divsx,
 
 	/// Difference or zero.
-	/// dozx
-	/// rA(), rB(), rD()
+	/// doz doz. dozo dozo.
+	/// rD(), rA(), rB()	[rc(), oe()]
 	///
 	/// if rA > rB then rD = 0; else rD = NOT(rA) + rB + 1.
 	dozx,
 
 	/// Difference or zero immediate.
 	/// dozi
-	/// rA(), rD(), simm()
+	/// rD(), rA(), simm()
 	///
 	/// if rA > simm() then rD = 0; else rD = NOT(rA) + simm() + 1.
 	dozi,
@@ -355,8 +355,46 @@ enum class Operation: uint8_t {
 	/// rA(), rB()
 	dcbz,
 
-	divwx, divwux, eciwx, ecowx, eieio, eqvx,
-	extsbx, extshx, fabsx, faddx, faddsx, fcmpo, fcmpu, fctiwx, fctiwzx,
+	/// Divide word.
+	/// divw divw. divwo divwo.
+	/// rD(), rA(), rB()	[rc(), oe()]
+	divwx,
+
+	/// Divide word unsigned.
+	/// divwu divwu. divwuo divwuo.
+	/// rD(), rA(), rB()	[rc(), oe()]
+	divwux,
+
+	/// External control in word indexed.
+	/// eciwx
+	/// rD(), rA(), rB()
+	eciwx,
+
+	/// External control out word indexed.
+	/// ecowx
+	/// rS(), rA(), rB()
+	ecowx,
+
+	/// Enforce in-order execition of I/O
+	/// eieio
+	eieio,
+
+	/// Equivalent.
+	/// eqv eqv.
+	/// rA(), rS(), rB()	[rc()]
+	eqvx,
+
+	/// Extend sign byte.
+	/// extsb extsb.
+	/// rA(), rS()	[rc()]
+	extsbx,
+
+	/// Extend sign half-word.
+	/// extsh extsh.
+	/// rA(), rS()	[rc()]
+	extshx,
+
+	fabsx, faddx, faddsx, fcmpo, fcmpu, fctiwx, fctiwzx,
 	fdivx, fdivsx, fmaddx, fmaddsx, fmrx, fmsubx, fmsubsx, fmulx, fmulsx,
 	fnabsx, fnegx, fnmaddx, fnmaddsx, fnmsubx, fnmsubsx, frspx, fsubx, fsubsx,
 	icbi, isync, lbz, lbzu,
@@ -483,12 +521,16 @@ enum class Operation: uint8_t {
 	/// rA(), rB(), rS(), mb(), me(), rc()
 	rlwnmx,
 
+	/// System call.
+	/// sc
 	sc,
 
 	/// Shift left word.
 	/// slw slw.
 	/// rA(), rS(), rB()	[rc()]
-	slwx, srawx, srawix, srwx, stb, stbu,
+	slwx,
+
+	srawx, srawix, srwx, stb, stbu,
 
 	/// Store byte with update indexed.
 	///
@@ -577,9 +619,33 @@ enum class Operation: uint8_t {
 	//
 	// MARK: - 64-bit only PowerPC instructions.
 	//
-	cntlzdx, divdx, divdux, extswx, fcfidx, fctidx, fctidzx, tdi, mulhdux,
+	cntlzdx,
+
+	/// Divide double word.
+	/// divd divd. divdo divdo.
+	/// rD(), rA(), rB()	[rc(), oe()]
+	divdx,
+
+	/// Divide double word unsigned.
+	/// divdu divdu. divduo divduo.
+	/// rD(), rA(), rB()	[rc(), oe()]
+	divdux,
+
+	/// Extend sign word.
+	/// extsw extsw.
+	/// rA(), rS()	[rc()]
+	extswx,
+
+	fcfidx, fctidx, fctidzx, tdi, mulhdux,
 	ldx, sldx, ldux, td, mulhdx, ldarx, stdx, stdux, mulld, lwax, lwaux,
-	sradix, srdx, sradx, extsw, fsqrtsx, std, stdu, stdcx_,
+	sradix, srdx,
+
+	/// Shift right algebraic double word.
+	/// srad srad,
+	/// rA(), rS(), rB()	[rc()]
+	sradx,
+
+	fsqrtsx, std, stdu, stdcx_,
 };
 
 /*!

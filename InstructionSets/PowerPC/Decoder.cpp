@@ -120,7 +120,7 @@ Instruction Decoder::decode(uint32_t opcode) {
 		BindConditional(is64bit, SixTen(0b011111, 0b0111101001), divdx);	BindConditional(is64bit, SixTen(0b011111, 0b1111101001), divdx);
 		BindConditional(is64bit, SixTen(0b011111, 0b1000011011), srdx);
 		BindConditional(is64bit, SixTen(0b011111, 0b1100011010), sradx);
-		BindConditional(is64bit, SixTen(0b111111, 0b1111011010), extsw);
+		BindConditional(is64bit, SixTen(0b111111, 0b1111011010), extswx);
 
 		// Power instructions; these are all taken from the MPC601 manual rather than
 		// the PowerPC Programmer's Reference Guide, hence the decimal encoding of the
