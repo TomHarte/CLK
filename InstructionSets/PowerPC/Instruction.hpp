@@ -530,7 +530,22 @@ enum class Operation: uint8_t {
 	/// rA(), rS(), rB()	[rc()]
 	slwx,
 
-	srawx, srawix, srwx, stb, stbu,
+	/// Shift right algebraic word.
+	/// sraw sraw.
+	/// rA(), rS(), rB()	[rc()]
+	srawx,
+
+	/// Shift right algebraic word immediate.
+	/// srawi srawi.
+	/// rA(), rS(), sh()	[rc()]
+	srawix,
+
+	/// Shift right word.
+	/// srw srw.
+	/// rA(), rS(), rB()	[rc()]
+	srwx,
+
+	stb, stbu,
 
 	/// Store byte with update indexed.
 	///

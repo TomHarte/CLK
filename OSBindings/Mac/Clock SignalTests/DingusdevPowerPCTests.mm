@@ -14,31 +14,63 @@
 
 using namespace InstructionSet::PowerPC;
 
+@interface NSString (HexConversion)
+
+- (long int)hexInt;
+
+@end
+
+@implementation NSString (HexConversion)
+
+- (long int)hexInt {
+	return strtol([self UTF8String], NULL, 16);
+}
+
+@end
+
 @interface DingusdevPowerPCTests : XCTestCase
 @end
 
 namespace {
 
-/// Acts as XCTAssertEqualObjects but maps underscores to dots, as per this code's enum naming convention.
-void AssertEqualOperationName(NSString *lhs, NSString *rhs) {
-	NSString *const lhsMapped = [lhs stringByReplacingOccurrencesOfString:@"_" withString:@"."];
-	NSString *const rhsMapped = [rhs stringByReplacingOccurrencesOfString:@"_" withString:@"."];
-	XCTAssertEqualObjects(lhsMapped, rhsMapped);
-}
+enum class NamingConvention {
+	None = 0,
+	ApplyO = 1,
+	ApplyE = 2,
+	ApplyOE = 3
+};
 
-/// Trims the trailing 'x' from the @c lhs and appends one or more of @c o and @c . depending on the @c oe() and @c rc() flags of @c instruction.
-/// Then compares with the @c rhs.
-void AssertEqualOperationNameOE(NSString *lhs, Instruction instruction, NSString *rhs) {
-	XCTAssert([lhs characterAtIndex:lhs.length - 1] == 'x');
-	lhs = [lhs substringToIndex:lhs.length - 1];
-	if(instruction.oe()) lhs = [lhs stringByAppendingString:@"o"];
-	if(instruction.rc()) lhs = [lhs stringByAppendingString:@"."];
+/// Converts any underscores in @c rhs to dots.
+///
+/// If convention != NamingConvention::None, trims the trailing 'x' from the @c rhs and
+/// appends one or more of @c o and @c . depending on the @c oe() and @c rc() flags of @c instruction.
+///
+/// Then compares with the @c lhs.
+void AssertEqualOperationName(NSString *lhs, NSString *rhs, Instruction instruction = Instruction(), NamingConvention convention = NamingConvention::None) {
+	rhs = [rhs stringByReplacingOccurrencesOfString:@"_" withString:@"."];
+
+	if(convention != NamingConvention::None) {
+		XCTAssert([rhs characterAtIndex:rhs.length - 1] == 'x');
+		rhs = [rhs substringToIndex:rhs.length - 1];
+	}
+	if(int(convention) & int(NamingConvention::ApplyO) && instruction.oe()) rhs = [rhs stringByAppendingString:@"o"];
+	if(int(convention) & int(NamingConvention::ApplyE) && instruction.rc()) rhs = [rhs stringByAppendingString:@"."];
+
 	XCTAssertEqualObjects(lhs, rhs);
+}
+void AssertEqualOperationNameO(NSString *lhs, NSString *rhs, Instruction instruction) {
+	AssertEqualOperationName(lhs, rhs, instruction, NamingConvention::ApplyO);
+}
+void AssertEqualOperationNameE(NSString *lhs, NSString *rhs, Instruction instruction) {
+	AssertEqualOperationName(lhs, rhs, instruction, NamingConvention::ApplyE);
+}
+void AssertEqualOperationNameOE(NSString *lhs, NSString *rhs, Instruction instruction) {
+	AssertEqualOperationName(lhs, rhs, instruction, NamingConvention::ApplyOE);
 }
 
 /// Forms the string @c r[reg] and compares it to @c name
-void AssertEqualR(NSString *name, uint32_t reg) {
-	NSString *const regName = [NSString stringWithFormat:@"r%d", reg];
+void AssertEqualR(NSString *name, uint32_t reg, bool permitR0 = true) {
+	NSString *const regName = (reg || permitR0) ? [NSString stringWithFormat:@"r%d", reg] : @"0";
 	XCTAssertEqualObjects(name, regName);
 }
 
@@ -98,8 +130,8 @@ NSString *condition(uint32_t code) {
 		NSArray<NSString *> *const columns = [line componentsSeparatedByString:@","];
 
 		// Columns are 1: address; 2: opcode; 3–: specific to the instruction.
-		const uint32_t address = uint32_t(std::strtol([columns[0] UTF8String], 0, 16));
-		const uint32_t opcode = uint32_t(std::strtol([columns[1] UTF8String], 0, 16));
+		const auto address = uint32_t([columns[0] hexInt]);
+		const auto opcode = uint32_t([columns[1] hexInt]);
 		NSString *const operation = columns[2];
 		const auto instruction = decoder.decode(opcode);
 
@@ -231,6 +263,27 @@ NSString *condition(uint32_t code) {
 				NSAssert(FALSE, @"Didn't handle rlwinmx %@", line);
 			} break;
 
+#define Shift(x)	\
+			case Operation::x:	\
+				AssertEqualOperationNameE(operation, @#x, instruction);	\
+				AssertEqualR(columns[3], instruction.rA());				\
+				AssertEqualR(columns[4], instruction.rS());				\
+				AssertEqualR(columns[5], instruction.rB());				\
+			break;
+
+				Shift(slwx);
+				Shift(srwx);
+				Shift(srawx);
+
+#undef Shift
+
+			case Operation::srawix:
+				AssertEqualOperationNameE(operation, @"srawix", instruction);
+				AssertEqualR(columns[3], instruction.rA());
+				AssertEqualR(columns[4], instruction.rS());
+				XCTAssertEqual([columns[5] hexInt], instruction.sh());
+			break;
+
 #define CRMod(x) \
 			case Operation::x:	\
 				AssertEqualOperationName(operation, @#x);	\
@@ -257,19 +310,17 @@ NSString *condition(uint32_t code) {
 				AssertEqualR([columns lastObject], instruction.rS());
 
 				if(columns.count > 4) {
-					const auto crm = strtol([columns[3] UTF8String], NULL, 16);
-					XCTAssertEqual(crm, instruction.crm());
+					XCTAssertEqual([columns[3] hexInt], instruction.crm());
 				}
 			} break;
 
 
 #define ArithImm(x) \
 			case Operation::x: {	\
-				const auto simm = strtol([columns[5] UTF8String], NULL, 16);	\
 				AssertEqualOperationName(operation, @#x);	\
 				AssertEqualR(columns[3], instruction.rD());	\
 				AssertEqualR(columns[4], instruction.rA());	\
-				XCTAssertEqual(simm, instruction.simm());	\
+				XCTAssertEqual([columns[5] hexInt], instruction.simm());	\
 			} break;
 
 			ArithImm(mulli);
@@ -306,7 +357,7 @@ NSString *condition(uint32_t code) {
 
 #define ABD(x)	\
 			case Operation::x:	\
-				AssertEqualOperationNameOE(@#x, instruction, operation);	\
+				AssertEqualOperationNameOE(operation, @#x, instruction);	\
 				[self testABDInstruction:instruction columns:columns testZero:NO];	\
 			break;
 
@@ -405,8 +456,7 @@ NSString *condition(uint32_t code) {
 							decoded_destination = instruction.bd() + address;
 						}
 
-						const uint32_t destination = uint32_t(std::strtol([[columns lastObject] UTF8String], 0, 16));
-						XCTAssertEqual(decoded_destination, destination);
+						XCTAssertEqual(decoded_destination, [[columns lastObject] hexInt]);
 					} break;
 
 					default: break;
@@ -431,16 +481,17 @@ NSString *condition(uint32_t code) {
 					NSString *expectedCR;
 
 					if(addConditionToOperand) {
-						NSString *suffix;
-						switch(Condition(instruction.bi() & 3)) {
-							default: break;
-							case Condition::Negative:			suffix = @"lt";	break;
-							case Condition::Positive:			suffix = @"gt";	break;
-							case Condition::Zero:				suffix = @"eq";	break;
-							case Condition::SummaryOverflow:	suffix = @"so"; break;
-						}
-
-						expectedCR = [NSString stringWithFormat:@"4*cr%d+%@", instruction.bi() >> 2, suffix];
+						expectedCR = condition(instruction.bi());
+//						NSString *suffix;
+//						switch(Condition(instruction.bi() & 3)) {
+//							default: break;
+//							case Condition::Negative:			suffix = @"lt";	break;
+//							case Condition::Positive:			suffix = @"gt";	break;
+//							case Condition::Zero:				suffix = @"eq";	break;
+//							case Condition::SummaryOverflow:	suffix = @"so"; break;
+//						}
+//
+//						expectedCR = [NSString stringWithFormat:@"4*cr%d+%@", instruction.bi() >> 2, suffix];
 					} else {
 						expectedCR = [NSString stringWithFormat:@"cr%d", instruction.bi() >> 2];
 					}
@@ -456,10 +507,9 @@ NSString *condition(uint32_t code) {
 					case 3:	AssertEqualOperationName(operation, @"bla");	break;
 				}
 
-				const uint32_t destination = uint32_t(std::strtol([columns[3] UTF8String], 0, 16));
 				const uint32_t decoded_destination =
 					instruction.li() + (instruction.aa() ? 0 : address);
-				XCTAssertEqual(decoded_destination, destination);
+				XCTAssertEqual(decoded_destination, [columns[3] hexInt]);
 			} break;
 		}
 	}
