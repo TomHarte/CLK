@@ -546,7 +546,32 @@ enum class Operation: uint8_t {
 	/// Subtract from immediate carrying
 	subfic,
 
-	subfmex, subfzex, sync, tw, twi, xorx, xori, xoris, mftb,
+	subfmex, subfzex, sync,
+
+	/// Trap word.
+	/// tw tweq tweqi twge twgei ...
+	/// to(), rA(), rB()
+	tw,
+
+	/// Trap word immediate.
+	/// twi
+	/// to(), rA(), simm()
+	twi,
+
+	/// Xor.
+	/// xor xor.
+	/// rA(), rS(), rB()	[rc()]
+	xorx,
+
+	/// Xor immediate.
+	/// xori
+	/// rA(), rs(), uimm()
+	xori,
+
+	/// Xor immediate shifted.
+	/// xoris
+	/// rA(), rS(), uimm()
+	xoris,
 
 	//
 	// MARK: - 32-bit, supervisor level.
@@ -565,7 +590,15 @@ enum class Operation: uint8_t {
 	//
 	// MARK: - Optional.
 	//
-	fresx, frsqrtex, fselx, fsqrtx, slbia, slbie,
+	fresx, frsqrtex, fselx, fsqrtx,
+
+	/// Move from time base.
+	/// mftb
+	/// rD(), tbr()
+	mftb,
+
+
+	slbia, slbie,
 
 	/// Store floating point as integer word indexed.
 	/// stfiwx
