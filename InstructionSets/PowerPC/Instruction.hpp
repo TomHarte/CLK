@@ -21,6 +21,8 @@ enum class CacheLine: uint32_t {
 	Maximum = 0b01111,
 };
 
+/// Provides the meaning of individual bits within the condition register;
+/// bits are counted in IBM/Motorola order, so *bit 0 is the most significant.*
 enum class Condition: uint32_t {
 	// CR0
 	Negative = 0,				// LT
@@ -328,9 +330,107 @@ enum class Operation: uint8_t {
 	/// rA(), rS()	[rc()]
 	extshx,
 
-	fabsx, faddx, faddsx, fcmpo, fcmpu, fctiwx, fctiwzx,
-	fdivx, fdivsx, fmaddx, fmaddsx, fmrx, fmsubx, fmsubsx, fmulx, fmulsx,
-	fnabsx, fnegx, fnmaddx, fnmaddsx, fnmsubx, fnmsubsx, frspx, fsubx, fsubsx,
+	/// Floating point absolute.
+	/// fabs fabs.
+	/// frD(), frA(), frB()	[rc()]
+	fabsx,
+
+	/// Floating point add.
+	/// fadd fadd.
+	/// frD(), frA(), frB()	[rc()]
+	faddx,
+
+	/// Floating point add single precision.
+	/// fadds fadds.
+	/// frD(), frA(), frB()	[rc()]
+	faddsx,
+
+	/// Floating point compare ordered.
+	/// fcmpo
+	/// crfD(), frA(), feB()
+	fcmpo,
+
+	/// Floating point compare unordered.
+	/// fcmpu
+	/// crfD(), frA(), feB()
+	fcmpu,
+
+	/// Floating point convert to integer word.
+	/// fctiw fctiw.
+	/// frD(), frB()	[rc()]
+	fctiwx,
+
+	/// Floating point convert to integer word with round towards zero.
+	/// fctiw fctiw.
+	/// frD(), frB()	[rc()]
+	fctiwzx,
+
+	/// Floating point divide.
+	/// fdiv fdiv.
+	/// frD(), frA(), frB()	[rc()]
+	fdivx,
+
+	/// Floating point divide single precision.
+	/// fdiv fdiv.
+	/// frD(), frA(), frB()	[rc()]
+	fdivsx,
+
+	/// Floating point multiply add.
+	/// fmadd fmadd.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fmaddx,
+
+	/// Floating point multiply add single precision.
+	/// fmadds fmadds.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fmaddsx,
+
+	fmrx,
+
+	/// Floating point multiply subtract.
+	/// fmsub fmsub.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fmsubx,
+
+	/// Floating point multiply subtract single precision.
+	/// fmsubx fmsubx.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fmsubsx,
+
+	/// Floating point multiply.
+	/// fmul fmul.
+	/// frD(), frA(), frC()	[rc()]
+	fmulx,
+
+	/// Floating point multiply single precision.
+	/// fmuls fmuls.
+	/// frD(), frA(), frC()	[rc()]
+	fmulsx,
+
+	fnabsx, fnegx,
+
+	/// Floating point negative multiply add.
+	/// fnmadd fnmadd.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fnmaddx,
+
+	/// Floating point negative multiply add single precision.
+	/// fnmadds fnmadds.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fnmaddsx,
+
+	/// Floating point negative multiply subtract.
+	/// fnmsub fnmsub.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fnmsubx,
+
+	/// Floating point negative multiply add.
+	/// fnmsubs fnmsubs.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fnmsubsx,
+
+	frspx, fsubx, fsubsx,
+
 	icbi, isync,
 
 	/// Load byte and zero.
@@ -731,7 +831,20 @@ enum class Operation: uint8_t {
 	//
 	// MARK: - Optional.
 	//
-	fresx, frsqrtex, fselx, fsqrtx,
+
+	/// Floaring point reciprocal estimate single precision.
+	/// fres fres.
+	/// frD(), frB()	[rc()]
+	fresx,
+
+	frsqrtex,
+
+	/// Floating point select.
+	/// fsel fsel.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fselx,
+
+	fsqrtx,
 
 	/// Move from time base.
 	/// mftb
@@ -766,7 +879,22 @@ enum class Operation: uint8_t {
 	/// rA(), rS()	[rc()]
 	extswx,
 
-	fcfidx, fctidx, fctidzx, tdi, mulhdux,
+	/// Floating point convert from integer double word.
+	/// fcfid fcfid.
+	/// frD(), frB()	[rc()]
+	fcfidx,
+
+	/// Floating point convert to integer double word.
+	/// fctid fctid.
+	/// frD(), frB()	[rc()]
+	fctidx,
+
+	/// Floating point convert to integer double word with round towards zero.
+	/// fctid fctid.
+	/// frD(), frB()	[rc()]
+	fctidzx,
+
+	tdi, mulhdux,
 	ldx, sldx, ldux, td, mulhdx, ldarx,
 
 	/// Store double.

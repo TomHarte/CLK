@@ -511,6 +511,58 @@ NSString *offset(Instruction instruction) {
 
 #undef fDAB
 
+#define fDfAfB(x)	\
+			case Operation::x:	\
+				AssertEqualOperationNameE(operation, @#x, instruction);	\
+				AssertEqualFR(columns[3], instruction.frD());	\
+				AssertEqualFR(columns[4], instruction.frA(), false);	\
+				AssertEqualFR(columns[5], instruction.frB());	\
+			break;
+
+			fDfAfB(fabsx);
+			fDfAfB(faddx);
+			fDfAfB(faddsx);
+			fDfAfB(fsubx);
+			fDfAfB(fsubsx);
+			fDfAfB(fdivx);
+			fDfAfB(fdivsx);
+
+#undef fDfAfB
+
+#define fDfAfC(x)	\
+			case Operation::x:	\
+				AssertEqualOperationNameE(operation, @#x, instruction);	\
+				AssertEqualFR(columns[3], instruction.frD());	\
+				AssertEqualFR(columns[4], instruction.frA(), false);	\
+				AssertEqualFR(columns[5], instruction.frC());	\
+			break;
+
+			fDfAfC(fmulx);
+			fDfAfC(fmulsx);
+
+#undef fDfAfC
+
+#define fDfAfCfB(x)	\
+			case Operation::x:	\
+				AssertEqualOperationNameE(operation, @#x, instruction);	\
+				AssertEqualFR(columns[3], instruction.frD());	\
+				AssertEqualFR(columns[4], instruction.frA());	\
+				AssertEqualFR(columns[5], instruction.frC());	\
+				AssertEqualFR(columns[6], instruction.frB());	\
+			break;
+
+			fDfAfCfB(fnmaddx);
+			fDfAfCfB(fnmaddsx);
+			fDfAfCfB(fnmsubx);
+			fDfAfCfB(fnmsubsx);
+			fDfAfCfB(fmaddx);
+			fDfAfCfB(fmaddsx);
+			fDfAfCfB(fmsubx);
+			fDfAfCfB(fmsubsx);
+			fDfAfCfB(fselx);
+
+#undef fDfAfBfC
+
 #define DDA(x)	\
 			case Operation::x: {	\
 				AssertEqualOperationName(operation, @#x, instruction);	\
