@@ -263,6 +263,31 @@ NSString *condition(uint32_t code) {
 				NSAssert(FALSE, @"Didn't handle rlwinmx %@", line);
 			} break;
 
+			case Operation::tw:
+				AssertEqualOperationName(operation, @"tw");
+				XCTAssertEqual([columns[3] intValue], instruction.to());
+				AssertEqualR(columns[4], instruction.rA());
+				AssertEqualR(columns[5], instruction.rB());
+			break;
+
+			case Operation::twi:
+				AssertEqualOperationName(operation, @"twi");
+				XCTAssertEqual([columns[3] intValue], instruction.to());
+				AssertEqualR(columns[4], instruction.rA());
+				XCTAssertEqual([columns[5] hexInt], instruction.simm());
+			break;
+
+#define NoArg(x)	\
+			case Operation::x:	\
+				AssertEqualOperationName(operation, @#x);	\
+			break;
+
+				NoArg(isync);
+				NoArg(sync);
+				NoArg(eieio);
+
+#undef NoArg
+
 #define Shift(x)	\
 			case Operation::x:	\
 				AssertEqualOperationNameE(operation, @#x, instruction);	\
@@ -535,16 +560,6 @@ NSString *condition(uint32_t code) {
 
 					if(addConditionToOperand) {
 						expectedCR = condition(instruction.bi());
-//						NSString *suffix;
-//						switch(Condition(instruction.bi() & 3)) {
-//							default: break;
-//							case Condition::Negative:			suffix = @"lt";	break;
-//							case Condition::Positive:			suffix = @"gt";	break;
-//							case Condition::Zero:				suffix = @"eq";	break;
-//							case Condition::SummaryOverflow:	suffix = @"so"; break;
-//						}
-//
-//						expectedCR = [NSString stringWithFormat:@"4*cr%d+%@", instruction.bi() >> 2, suffix];
 					} else {
 						expectedCR = [NSString stringWithFormat:@"cr%d", instruction.bi() >> 2];
 					}
