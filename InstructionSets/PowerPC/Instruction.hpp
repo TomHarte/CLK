@@ -331,18 +331,40 @@ enum class Operation: uint8_t {
 	fabsx, faddx, faddsx, fcmpo, fcmpu, fctiwx, fctiwzx,
 	fdivx, fdivsx, fmaddx, fmaddsx, fmrx, fmsubx, fmsubsx, fmulx, fmulsx,
 	fnabsx, fnegx, fnmaddx, fnmaddsx, fnmsubx, fnmsubsx, frspx, fsubx, fsubsx,
-	icbi, isync, lbz, lbzu,
+	icbi, isync,
+
+	/// Load byte and zero.
+	/// lbz
+	/// rD(), d() [ rA() ]
+	lbz,
+
+	/// Load byte and zero with update.
+	/// lbz
+	/// rD(), d() [ rA() ]
+	lbzu,
 
 	/// Load byte and zero with update indexed.
 	/// lbzux
+	/// rD(), rA(), rB()
 	lbzux,
 
 	/// Load byte and zero indexed.
 	/// lbzx
+	/// rD(), rA(), rB()
 	lbzx,
 
 	lfd, lfdu, lfdux, lfdx, lfs, lfsu,
-	lfsux, lfsx, lha, lhau,
+	lfsux, lfsx,
+
+	/// Load half word algebraic.
+	/// lha
+	/// rD(), d() [ rA() ]
+	lha,
+
+	/// Load half word algebraic with update.
+	/// lha
+	/// rD(), d() [ rA() ]
+	lhau,
 
 	/// Load half-word algebraic with update indexed.
 	/// lhaux
@@ -361,12 +383,12 @@ enum class Operation: uint8_t {
 
 	/// Load half word and zero.
 	/// lhz
-	/// rD(), d()[ rA() ]
+	/// rD(), d() [ rA() ]
 	lhz,
 
 	/// Load half-word and zero with update.
 	/// lhzu
-	/// rD(), d()[ rA() ]
+	/// rD(), d() [ rA() ]
 	lhzu,
 
 	/// Load half-word and zero with update indexed.
@@ -533,19 +555,64 @@ enum class Operation: uint8_t {
 	stfs,
 
 	/// Store floating point single precision with update.
-	/// stfs
+	/// stfsu
 	/// frS() d() [ rA() ]
 	stfsu,
 
-	stfsux, stfsx, sth, sthbrx, sthu,
+	/// Store floating point single precision with update indexed.
+	/// stfsux
+	/// frS(), rA(), rB()
+	stfsux,
+
+	/// Store floating point single precisionindexed.
+	/// stfsx
+	/// frS(), rA(), rB()
+	stfsx,
+
+	/// Store half word.
+	/// sth
+	/// rS(), d() [ rA() ]
+	sth,
+
+	/// Store half word byte-reverse indexed.
+	/// sthbrx
+	/// rS(), rA(), rB()
+	sthbrx,
+
+	/// Store half word with update.
+	/// sthu
+	/// rS(), d() [ rA() ]
+	sthu,
 
 	/// Store half-word with update indexed.
+	/// sthux
+	/// rS(), rA(), rB()
 	sthux,
 
 	/// Store half-word indexed.
+	/// sthx
+	/// rS(), rA(), rB()
 	sthx,
 
-	stmw, stswi, stswx, stw,
+	/// Store multiple word.
+	/// stmw
+	/// rS(), d() [ rA() ]
+	stmw,
+
+	/// Store string word immediate.
+	/// stswi
+	/// rS(), rA(), nb()
+	stswi,
+
+	/// Store string word indexed.
+	/// stswx
+	/// rS(), rA(), rB()
+	stswx,
+
+	/// Store word.
+	/// stw
+	/// rS(), d() [ rA() ]
+	stw,
 
 	/// Store word byte-reverse indexed.
 	/// stwbrx

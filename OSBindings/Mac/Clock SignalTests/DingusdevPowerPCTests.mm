@@ -92,6 +92,16 @@ NSString *condition(uint32_t code) {
 	}
 }
 
+NSString *offset(Instruction instruction) {
+	NSString *const hexPart = [NSString stringWithFormat:@"%s%X", (instruction.d() < 0) ? "-0x" : "0x", abs(instruction.d())];
+
+	if(instruction.rA()) {
+		return [hexPart stringByAppendingFormat:@"(r%d)", instruction.rA()];
+	} else {
+		return hexPart;
+	}
+}
+
 }
 
 @implementation DingusdevPowerPCTests
@@ -463,6 +473,42 @@ NSString *condition(uint32_t code) {
 			SAB(stwcx_);
 
 #undef SAB
+
+#define DDA(x)	\
+			case Operation::x: {	\
+				AssertEqualOperationName(operation, @#x, instruction);	\
+				AssertEqualR(columns[3], instruction.rD());	\
+				XCTAssertEqualObjects(columns[4], offset(instruction));	\
+			} break;
+
+			DDA(lbz);
+			DDA(lbzu);
+			DDA(lmw);
+			DDA(lwz);
+			DDA(lwzu);
+			DDA(lhz);
+			DDA(lhzu);
+			DDA(lha);
+			DDA(lhau);
+
+#undef DDA
+
+#define SDA(x)	\
+			case Operation::x: {	\
+				AssertEqualOperationName(operation, @#x, instruction);	\
+				AssertEqualR(columns[3], instruction.rS());	\
+				XCTAssertEqualObjects(columns[4], offset(instruction));	\
+			} break;
+
+			SDA(stb);
+			SDA(stbu);
+			SDA(sth);
+			SDA(sthu);
+			SDA(stmw);
+			SDA(stw);
+			SDA(stwu);
+
+#undef SDA
 
 			case Operation::bcx:
 			case Operation::bclrx:
