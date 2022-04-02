@@ -490,7 +490,17 @@ enum class Operation: uint8_t {
 	/// frS(), rA(), rB()
 	stfdx,
 
-	stfs, stfsu, stfsux, stfsx, sth, sthbrx, sthu,
+	/// Store floating point single precision.
+	/// stfs
+	/// frS() d() [ rA() ]
+	stfs,
+
+	/// Store floating point single precision with update.
+	/// stfs
+	/// frS() d() [ rA() ]
+	stfsu,
+
+	stfsux, stfsx, sth, sthbrx, sthu,
 
 	/// Store half-word with update indexed.
 	sthux,
@@ -498,12 +508,31 @@ enum class Operation: uint8_t {
 	/// Store half-word indexed.
 	sthx,
 
-	stmw, stswi, stswx, stw, stwbrx, stwcx_, stwu,
+	stmw, stswi, stswx, stw,
+
+	/// Store word byte-reverse indexed.
+	/// stwbrx
+	/// rS(), rA(), rB()
+	stwbrx,
+
+	/// Store word conditional.
+	/// stwcx.
+	/// rS(), rA(), rB()
+	stwcx_,
+
+	/// Store word with update.
+	/// stwu
+	/// rS(), d() [ rA() ]
+	stwu,
 
 	/// Store word with update indexed.
+	/// stwux
+	/// rS(), rA(), rB()
 	stwux,
 
 	/// Store word indexed.
+	/// stwx
+	/// rS(), rA(), rB()
 	stwx,
 
 	subfx,
@@ -511,6 +540,7 @@ enum class Operation: uint8_t {
 	/// Subtract from carrying.
 	/// subfc subfc. subfco subfco.
 	subfcx,
+
 	subfex,
 
 	/// Subtract from immediate carrying
@@ -535,7 +565,12 @@ enum class Operation: uint8_t {
 	//
 	// MARK: - Optional.
 	//
-	fresx, frsqrtex, fselx, fsqrtx, slbia, slbie, stfiwx,
+	fresx, frsqrtex, fselx, fsqrtx, slbia, slbie,
+
+	/// Store floating point as integer word indexed.
+	/// stfiwx
+	/// frS(), rA(), rB()
+	stfiwx,
 
 	//
 	// MARK: - 64-bit only PowerPC instructions.

@@ -317,15 +317,15 @@ Instruction Decoder::decode(uint32_t opcode) {
 	}
 
 	// stwcx. and stdcx.
-	switch(opcode & 0b111111'00'00000000'000'111111111'1){
-		case 0b011111'00'00000000'00000'0010010110'1:	return Instruction(Operation::stwcx_, opcode);
-		case 0b011111'00'00000000'00000'0011010110'1:
+	switch(opcode & 0b111111'0000'0000'0000'0000'111111111'1) {
+		case 0b011111'0000'0000'0000'0000'010010110'1:	return Instruction(Operation::stwcx_, opcode);
+		case 0b011111'0000'0000'0000'0000'011010110'1:
 			if(is64bit(model_)) return Instruction(Operation::stdcx_, opcode);
 		return Instruction(opcode);
 	}
 
 	// std and stdu
-	switch(opcode & 0b111111'00'00000000'00000000'000000'11){
+	switch(opcode & 0b111111'00'00000000'00000000'000000'11) {
 		case 0b111110'00'00000000'00000000'000000'00:	return Instruction(Operation::std, opcode);
 		case 0b111110'00'00000000'00000000'000000'01:
 			if(is64bit(model_)) return Instruction(Operation::stdu, opcode);

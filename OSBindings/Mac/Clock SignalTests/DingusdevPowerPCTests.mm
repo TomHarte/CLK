@@ -372,7 +372,6 @@ NSString *condition(uint32_t code) {
 			ABCz(lhbrx);
 			ABCz(lwbrx);
 			ABCz(lwarx);
-			ABCz(stwcx_);
 			ABCz(stwbrx);
 			ABCz(sthbrx);
 
@@ -427,6 +426,18 @@ NSString *condition(uint32_t code) {
 			ASB(nandx);
 
 #undef ASB
+
+#define SAB(x)	\
+			case Operation::x:	\
+				AssertEqualOperationName(operation, @#x, instruction);	\
+				AssertEqualR(columns[3], instruction.rS());	\
+				AssertEqualR(columns[4], instruction.rA(), false);	\
+				AssertEqualR(columns[5], instruction.rB());	\
+			break;
+
+			SAB(stwcx_);
+
+#undef SAB
 
 			case Operation::bcx:
 			case Operation::bclrx:
