@@ -329,7 +329,10 @@ Instruction Decoder::decode(uint32_t opcode) {
 		case 0b111110'00'00000000'00000000'000000'00:	return Instruction(Operation::std, opcode);
 		case 0b111110'00'00000000'00000000'000000'01:
 			if(is64bit(model_)) return Instruction(Operation::stdu, opcode);
-		return Instruction(opcode);
+			return Instruction(opcode);
+		case 0b111010'00'00000000'00000000'000000'10:
+			if(is64bit(model_)) return Instruction(Operation::lwa, opcode);
+			return Instruction(opcode);
 	}
 
 	// sc
