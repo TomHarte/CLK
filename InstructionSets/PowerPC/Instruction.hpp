@@ -95,7 +95,12 @@ enum class Operation: uint8_t {
 	/// rD(), rA(), simm()
 	dozi,
 
-	lscbxx, maskgx, maskirx,
+	/// Load string and compare byte indexed.
+	/// lscbx lsxbx.
+	/// rD(), rA(), rB()
+	lscbxx,
+
+	maskgx, maskirx,
 
 	/// Multiply.
 	/// mul mul. mulo mulo.
@@ -374,8 +379,40 @@ enum class Operation: uint8_t {
 	/// rD(), rA(), rB()
 	lhzx,
 
+	/// Load multiple word.
+	/// lmw
+	/// rD(), d() [ rA() ]
 	lmw,
-	lswi, lswx, lwarx, lwbrx, lwz, lwzu,
+
+	/// Load string word immediate.
+	/// lswi
+	/// rD(), rA(), nb()
+	lswi,
+
+	/// Load string word indexed.
+	/// lswx
+	/// rD(), rA(), rB()
+	lswx,
+
+	/// Load word and reserve indexed.
+	/// lwarx
+	/// rD(), rA(), rB()
+	lwarx,
+
+	/// Load word byte-reverse indexed.
+	/// lwbrx
+	/// rD(), rA(), rB()
+	lwbrx,
+
+	/// Load word and zero.
+	/// lwz
+	/// rD(), d() [ rA() ]
+	lwz,
+
+	/// Load word and zero with update.
+	/// lwzu
+	/// rD(), d() [ rA() ]
+	lwzu,
 
 	/// Load word and zero with update indexed.
 	/// lwzux
@@ -653,7 +690,23 @@ enum class Operation: uint8_t {
 	/// rS(), rA(), rB()
 	stdx,
 
-	mulld, lwax, lwaux,
+	mulld,
+
+	/// Load word algebraic.
+	/// lwa
+	/// rD(), rA(), rB()
+	lwa,
+
+	/// Load word algebraic with update indexed.
+	/// lwaux
+	/// rD(), rA(), rB()
+	lwaux,
+
+	/// Load word algebraic indexed.
+	/// lwax
+	/// rD(), rA(), rB()
+	lwax,
+
 	sradix, srdx,
 
 	/// Shift right algebraic double word.
