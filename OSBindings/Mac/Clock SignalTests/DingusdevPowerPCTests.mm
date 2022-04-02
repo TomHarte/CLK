@@ -74,6 +74,12 @@ void AssertEqualR(NSString *name, uint32_t reg, bool permitR0 = true) {
 	XCTAssertEqualObjects(name, regName);
 }
 
+/// Forms the string @c f[reg] and compares it to @c name
+void AssertEqualFR(NSString *name, uint32_t reg, bool permitR0 = true) {
+	NSString *const regName = (reg || permitR0) ? [NSString stringWithFormat:@"f%d", reg] : @"0";
+	XCTAssertEqualObjects(name, regName);
+}
+
 /// @returns the text name of the condition code @c code
 NSString *condition(uint32_t code) {
 	NSString *suffix;
@@ -474,6 +480,37 @@ NSString *offset(Instruction instruction) {
 
 #undef SAB
 
+#define fSAB(x)	\
+			case Operation::x:	\
+				AssertEqualOperationName(operation, @#x, instruction);	\
+				AssertEqualFR(columns[3], instruction.frS());	\
+				AssertEqualR(columns[4], instruction.rA(), false);	\
+				AssertEqualR(columns[5], instruction.rB());	\
+			break;
+
+			fSAB(stfdx);
+			fSAB(stfdux);
+			fSAB(stfsx);
+			fSAB(stfsux);
+			fSAB(stfiwx);
+
+#undef fSAB
+
+#define fDAB(x)	\
+			case Operation::x:	\
+				AssertEqualOperationName(operation, @#x, instruction);	\
+				AssertEqualFR(columns[3], instruction.frD());	\
+				AssertEqualR(columns[4], instruction.rA(), false);	\
+				AssertEqualR(columns[5], instruction.rB());	\
+			break;
+
+			fDAB(lfdux);
+			fDAB(lfdx);
+			fDAB(lfsux);
+			fDAB(lfsx);
+
+#undef fDAB
+
 #define DDA(x)	\
 			case Operation::x: {	\
 				AssertEqualOperationName(operation, @#x, instruction);	\
@@ -493,6 +530,20 @@ NSString *offset(Instruction instruction) {
 
 #undef DDA
 
+#define fDDA(x)	\
+			case Operation::x: {	\
+				AssertEqualOperationName(operation, @#x, instruction);	\
+				AssertEqualFR(columns[3], instruction.rD());	\
+				XCTAssertEqualObjects(columns[4], offset(instruction));	\
+			} break;
+
+			fDDA(lfd);
+			fDDA(lfdu);
+			fDDA(lfs);
+			fDDA(lfsu);
+
+#undef fDDA
+
 #define SDA(x)	\
 			case Operation::x: {	\
 				AssertEqualOperationName(operation, @#x, instruction);	\
@@ -509,6 +560,20 @@ NSString *offset(Instruction instruction) {
 			SDA(stwu);
 
 #undef SDA
+
+#define fSDA(x)	\
+			case Operation::x: {	\
+				AssertEqualOperationName(operation, @#x, instruction);	\
+				AssertEqualFR(columns[3], instruction.rS());	\
+				XCTAssertEqualObjects(columns[4], offset(instruction));	\
+			} break;
+
+			fSDA(stfd);
+			fSDA(stfdu);
+			fSDA(stfs);
+			fSDA(stfsu);
+
+#undef fSDA
 
 			case Operation::bcx:
 			case Operation::bclrx:

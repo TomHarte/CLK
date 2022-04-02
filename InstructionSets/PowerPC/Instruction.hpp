@@ -353,8 +353,45 @@ enum class Operation: uint8_t {
 	/// rD(), rA(), rB()
 	lbzx,
 
-	lfd, lfdu, lfdux, lfdx, lfs, lfsu,
-	lfsux, lfsx,
+	/// Load floating point double precision.
+	/// lfd
+	/// frD(), d() [ rA() ]
+	lfd,
+
+	/// Load floating point double precision with update.
+	/// lfdu
+	/// frD(), d() [ rA() ]
+	lfdu,
+
+	/// Load floating point double precision with update indexed.
+	/// lfdux
+	/// frD(), rA(), rB()
+	lfdux,
+
+	/// Load floating point double precision indexed.
+	/// lfdx
+	/// frD(), rA(), rB()
+	lfdx,
+
+	/// Load floating point single precision.
+	/// lfs
+	/// frD(), d() [ rA() ]
+	lfs,
+
+	/// Load floating point single precision with update.
+	/// lfsu
+	/// frD(), d() [ rA() ]
+	lfsu,
+
+	/// Load floating point single precision with update indexed.
+	/// lfsux
+	/// frD(), rA(), rB()
+	lfsux,
+
+	/// Load floating point single precision indexed.
+	/// lfsx
+	/// frD(), rA(), rB()
+	lfsx,
 
 	/// Load half word algebraic.
 	/// lha
@@ -551,12 +588,12 @@ enum class Operation: uint8_t {
 
 	/// Store floating point single precision.
 	/// stfs
-	/// frS() d() [ rA() ]
+	/// frS(), d() [ rA() ]
 	stfs,
 
 	/// Store floating point single precision with update.
 	/// stfsu
-	/// frS() d() [ rA() ]
+	/// frS(), d() [ rA() ]
 	stfsu,
 
 	/// Store floating point single precision with update indexed.
