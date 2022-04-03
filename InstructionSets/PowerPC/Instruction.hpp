@@ -102,7 +102,15 @@ enum class Operation: uint8_t {
 	/// rD(), rA(), rB()
 	lscbxx,
 
-	maskgx, maskirx,
+	/// Mask generate.
+	/// maskg maskg.
+	/// rA(), rS(), rB()	[rc()]
+	maskgx,
+
+	/// Mask insert from register.
+	/// maskir maskir.
+	/// rA(), rS(), rB()	[rc()]
+	maskirx,
 
 	/// Multiply.
 	/// mul mul. mulo mulo.
@@ -332,7 +340,7 @@ enum class Operation: uint8_t {
 
 	/// Floating point absolute.
 	/// fabs fabs.
-	/// frD(), frA(), frB()	[rc()]
+	/// frD(), frB()	[rc()]
 	fabsx,
 
 	/// Floating point add.
@@ -385,6 +393,9 @@ enum class Operation: uint8_t {
 	/// frD(), frA(), frC(), frB()	[rc()]
 	fmaddsx,
 
+	/// Floating point register move.
+	/// fmr fmr.
+	/// frD(), frB()	[rc()]
 	fmrx,
 
 	/// Floating point multiply subtract.
@@ -407,7 +418,15 @@ enum class Operation: uint8_t {
 	/// frD(), frA(), frC()	[rc()]
 	fmulsx,
 
-	fnabsx, fnegx,
+	/// Floating negative absolute value.
+	/// fnabs fnabs.
+	/// frD(), frB()	[rc()]
+	fnabsx,
+
+	/// Floating negative.
+	/// fneg fneg.
+	/// frD(), frB()	[rc()]
+	fnegx,
 
 	/// Floating point negative multiply add.
 	/// fnmadd fnmadd.
@@ -429,8 +448,12 @@ enum class Operation: uint8_t {
 	/// frD(), frA(), frC(), frB()	[rc()]
 	fnmsubsx,
 
-	frspx, fsubx, fsubsx,
+	/// Floating point round to single precision.
+	/// frsp frsp.
+	/// frD(), frB()	[rc()]
+	frspx,
 
+	fsubx, fsubsx,
 	icbi, isync,
 
 	/// Load byte and zero.
@@ -581,7 +604,18 @@ enum class Operation: uint8_t {
 	/// lwzx
 	lwzx,
 
-	mcrf, mcrfs, mcrxr,
+	/// Move condition register field.
+	/// mcrf
+	/// crfD(), crfS()
+	mcrf,
+
+	/// Move to condition register from FPSCR.
+	/// mcrfs
+	/// crfD(), crfS()
+	mcrfs,
+
+
+	mcrxr,
 	mfcr, mffsx, mfmsr, mfspr, mfsr, mfsrin,
 
 	/// Move to condition register fields.
@@ -837,6 +871,9 @@ enum class Operation: uint8_t {
 	/// frD(), frB()	[rc()]
 	fresx,
 
+	/// Floating point reciprocal square root estimation.
+	/// frsqrte frsqrte.
+	/// frD(), frB()	[rc()]
 	frsqrtex,
 
 	/// Floating point select.

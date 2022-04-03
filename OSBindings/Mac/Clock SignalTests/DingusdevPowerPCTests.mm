@@ -98,6 +98,11 @@ NSString *condition(uint32_t code) {
 	}
 }
 
+NSString *conditionreg(uint32_t code) {
+	return [NSString stringWithFormat:@"cr%d", code];
+}
+
+
 NSString *offset(Instruction instruction) {
 	NSString *const hexPart = [NSString stringWithFormat:@"%s%X", (instruction.d() < 0) ? "-0x" : "0x", abs(instruction.d())];
 
@@ -519,7 +524,6 @@ NSString *offset(Instruction instruction) {
 				AssertEqualFR(columns[5], instruction.frB());	\
 			break;
 
-			fDfAfB(fabsx);
 			fDfAfB(faddx);
 			fDfAfB(faddsx);
 			fDfAfB(fsubx);
@@ -528,6 +532,28 @@ NSString *offset(Instruction instruction) {
 			fDfAfB(fdivsx);
 
 #undef fDfAfB
+
+#define fDfB(x)	\
+			case Operation::x:	\
+				AssertEqualOperationNameE(operation, @#x, instruction);	\
+				AssertEqualFR(columns[3], instruction.frD());	\
+				AssertEqualFR(columns[4], instruction.frB());	\
+			break;
+
+			fDfB(fabsx);
+			fDfB(fnabsx);
+			fDfB(fnegx);
+			fDfB(frsqrtex);
+			fDfB(frspx);
+			fDfB(fctiwx);
+			fDfB(fctiwzx);
+			fDfB(fctidx);
+			fDfB(fctidzx);
+			fDfB(fcfidx);
+			fDfB(fresx);
+			fDfB(fmrx);
+
+#undef fDfB
 
 #define fDfAfC(x)	\
 			case Operation::x:	\
@@ -626,6 +652,18 @@ NSString *offset(Instruction instruction) {
 			fSDA(stfsu);
 
 #undef fSDA
+
+#define crfDS(x)	\
+			case Operation::x:	\
+				AssertEqualOperationName(operation, @#x, instruction);	\
+				XCTAssertEqualObjects(columns[3], conditionreg(instruction.crfD()));	\
+				XCTAssertEqualObjects(columns[4], conditionreg(instruction.crfS()));	\
+			break;
+
+			crfDS(mcrf);
+			crfDS(mcrfs);
+
+#undef crfDS
 
 			case Operation::bcx:
 			case Operation::bclrx:
