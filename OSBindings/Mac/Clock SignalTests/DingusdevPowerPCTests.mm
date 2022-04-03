@@ -310,6 +310,31 @@ NSString *offset(Instruction instruction) {
 				XCTAssertEqual([columns[4] intValue], instruction.imm());
 			break;
 
+			case Operation::mcrxr:
+				AssertEqualOperationName(operation, @"mcrxr");
+				XCTAssertEqualObjects(columns[3], conditionreg(instruction.crfD()));
+			break;
+
+			case Operation::icbi:
+				AssertEqualOperationName(operation, @"icbi");
+				AssertEqualR(columns[3], instruction.rA(), false);
+				AssertEqualR(columns[4], instruction.rB());
+			break;
+
+			case Operation::lswi:
+				AssertEqualOperationName(operation, @"lswi");
+				AssertEqualR(columns[3], instruction.rD());
+				AssertEqualR(columns[4], instruction.rA());
+				XCTAssertEqual([columns[5] hexInt], instruction.nb());
+			break;
+
+			case Operation::stswi:
+				AssertEqualOperationName(operation, @"stswi");
+				AssertEqualR(columns[3], instruction.rS());
+				AssertEqualR(columns[4], instruction.rA());
+				XCTAssertEqual([columns[5] hexInt], instruction.nb());
+			break;
+
 			case Operation::cmp:
 				if([operation isEqualToString:@"cmpw"]) {
 					XCTAssertFalse(instruction.l());
@@ -357,6 +382,15 @@ NSString *offset(Instruction instruction) {
 				XCTAssertEqualObjects(columns[3], conditionreg(instruction.crfD()));
 				AssertEqualR(columns[4], instruction.rA());
 				XCTAssertEqual([columns[5] hexInt], instruction.simm());
+			break;
+
+			case Operation::mtfsb0x:
+			case Operation::mtfsb1x:
+				AssertEqualOperationNameE(
+					operation,
+					instruction.operation == Operation::mtfsb0x ? @"mtfsb0x" : @"mtfsb1x",
+					instruction);
+				XCTAssertEqual([columns[3] intValue], instruction.crbD());
 			break;
 
 #define NoArg(x)	\
@@ -481,39 +515,45 @@ NSString *offset(Instruction instruction) {
 			ABCz(lwarx);
 			ABCz(stwbrx);
 			ABCz(sthbrx);
+			ABCz(eciwx);
+			ABCz(lswx);
+			ABCz(lwa);
+			ABCz(lwaux);
+			ABCz(lwax);
 
 #undef ABCz
 
-#define ABD(x)	\
+#define DABe(x)	\
 			case Operation::x:	\
 				AssertEqualOperationNameOE(operation, @#x, instruction);	\
 				[self testABDInstruction:instruction columns:columns testZero:NO];	\
 			break;
 
-			ABD(subfcx);
-			ABD(subfx);
-			ABD(negx);
-			ABD(subfex);
-			ABD(subfzex);
-			ABD(subfmex);
-			ABD(dozx);
-			ABD(absx);
-			ABD(nabsx);
-			ABD(addx);
-			ABD(addcx);
-			ABD(addex);
-			ABD(addmex);
-			ABD(addzex);
-			ABD(mulhwx);
-			ABD(mulhwux);
-			ABD(mulx);
-			ABD(mullwx);
-			ABD(divx);
-			ABD(divsx);
-			ABD(divwux);
-			ABD(divwx);
+			DABe(subfcx);
+			DABe(subfx);
+			DABe(negx);
+			DABe(subfex);
+			DABe(subfzex);
+			DABe(subfmex);
+			DABe(dozx);
+			DABe(absx);
+			DABe(nabsx);
+			DABe(addx);
+			DABe(addcx);
+			DABe(addex);
+			DABe(addmex);
+			DABe(addzex);
+			DABe(mulhwx);
+			DABe(mulhwux);
+			DABe(mulx);
+			DABe(mullwx);
+			DABe(divx);
+			DABe(divsx);
+			DABe(divwux);
+			DABe(divwx);
+			DABe(lscbxx);
 
-#undef ABD
+#undef DABe
 
 #define ASB(x)	\
 			case Operation::x:	\
@@ -536,7 +576,7 @@ NSString *offset(Instruction instruction) {
 
 #define SAB(x)	\
 			case Operation::x:	\
-				AssertEqualOperationName(operation, @#x, instruction);	\
+				AssertEqualOperationName(operation, @#x);	\
 				AssertEqualR(columns[3], instruction.rS());	\
 				AssertEqualR(columns[4], instruction.rA(), false);	\
 				AssertEqualR(columns[5], instruction.rB());	\
@@ -545,6 +585,20 @@ NSString *offset(Instruction instruction) {
 			SAB(stwcx_);
 
 #undef SAB
+
+#define AS(x)	\
+			case Operation::x:	\
+				AssertEqualOperationNameE(operation, @#x, instruction);	\
+				AssertEqualR(columns[3], instruction.rA());	\
+				AssertEqualR(columns[4], instruction.rS());	\
+			break;
+
+			AS(cntlzwx);
+			AS(extsbx);
+			AS(extshx);
+			AS(extswx);
+
+#undef AS
 
 #define fSAB(x)	\
 			case Operation::x:	\

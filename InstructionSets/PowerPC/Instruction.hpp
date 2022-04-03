@@ -99,7 +99,7 @@ enum class Operation: uint8_t {
 
 	/// Load string and compare byte indexed.
 	/// lscbx lsxbx.
-	/// rD(), rA(), rB()
+	/// rD(), rA(), rB()	[rc()]
 	lscbxx,
 
 	/// Mask generate.
@@ -454,7 +454,15 @@ enum class Operation: uint8_t {
 	frspx,
 
 	fsubx, fsubsx,
-	icbi, isync,
+
+	/// Instruction cache block invalidate.
+	/// icbi
+	/// rA(), rB()
+	icbi,
+
+	/// Instruction synchronise.
+	/// isync
+	isync,
 
 	/// Load byte and zero.
 	/// lbz
@@ -1114,7 +1122,12 @@ struct Instruction {
 	uint32_t fm() const		{	return (opcode >> 17) & 0xff;		}
 
 	/// Specifies the number of bytes to move in an immediate string load or store.
-	uint32_t nb() const		{	return (opcode >> 11) & 0x1f;		}
+	uint32_t nb() const		{
+		// Map nb == 0 to 32, branchlessly, given that this is
+		// a five-bit field.
+		const uint32_t nb = (opcode >> 11) & 0x1f;
+		return ((nb - 1) & 31) + 1;
+	}
 
 	/// Specifies a shift amount.
 	uint32_t sh() const		{	return (opcode >> 11) & 0x1f;		}
