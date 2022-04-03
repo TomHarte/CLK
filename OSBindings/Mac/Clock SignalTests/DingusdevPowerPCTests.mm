@@ -310,6 +310,55 @@ NSString *offset(Instruction instruction) {
 				XCTAssertEqual([columns[4] intValue], instruction.imm());
 			break;
 
+			case Operation::cmp:
+				if([operation isEqualToString:@"cmpw"]) {
+					XCTAssertFalse(instruction.l());
+					XCTAssertFalse(instruction.crfD());
+					AssertEqualR(columns[3], instruction.rA());
+					AssertEqualR(columns[4], instruction.rB());
+					break;
+				}
+
+				if([operation isEqualToString:@"cmp"]) {
+					XCTAssertEqualObjects(columns[3], conditionreg(instruction.crfD()));
+					AssertEqualR(columns[4], instruction.rA());
+					AssertEqualR(columns[5], instruction.rB());
+					break;
+				}
+
+				NSAssert(FALSE, @"Didn't handle cmp %@", line);
+			break;
+
+			case Operation::cmpl:
+				if([operation isEqualToString:@"cmplw"]) {
+					XCTAssertFalse(instruction.l());
+					if(instruction.crfD()) {
+						XCTAssertEqualObjects(columns[3], conditionreg(instruction.crfD()));
+						AssertEqualR(columns[4], instruction.rA());
+						AssertEqualR(columns[5], instruction.rB());
+					} else {
+						AssertEqualR(columns[3], instruction.rA());
+						AssertEqualR(columns[4], instruction.rB());
+					}
+					break;
+				}
+
+				NSAssert(FALSE, @"Didn't handle cmpl %@", line);
+			break;
+
+			case Operation::cmpli:
+			case Operation::cmpi:
+				if([operation isEqualToString:@"cmpwi"] || [operation isEqualToString:@"cmplwi"]) {
+					XCTAssertFalse(instruction.l());
+				} else {
+					XCTAssertTrue(instruction.l());
+				}
+
+				XCTAssertEqualObjects(columns[3], conditionreg(instruction.crfD()));
+				AssertEqualR(columns[4], instruction.rA());
+				XCTAssertEqual([columns[5] hexInt], instruction.simm());
+			break;
+
 #define NoArg(x)	\
 			case Operation::x:	\
 				AssertEqualOperationName(operation, @#x);	\
@@ -676,6 +725,19 @@ NSString *offset(Instruction instruction) {
 			crfDS(mcrfs);
 
 #undef crfDS
+
+#define crfDfAfB(x)	\
+			case Operation::x:	\
+				AssertEqualOperationName(operation, @#x, instruction);	\
+				XCTAssertEqualObjects(columns[3], conditionreg(instruction.crfD()));	\
+				AssertEqualFR(columns[4], instruction.frA());	\
+				AssertEqualFR(columns[5], instruction.frB());	\
+			break;
+
+			crfDfAfB(fcmpo);
+			crfDfAfB(fcmpu);
+
+#undef crfDfAfB
 
 			case Operation::bcx:
 			case Operation::bclrx:

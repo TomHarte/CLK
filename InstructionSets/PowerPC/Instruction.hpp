@@ -355,12 +355,12 @@ enum class Operation: uint8_t {
 
 	/// Floating point compare ordered.
 	/// fcmpo
-	/// crfD(), frA(), feB()
+	/// crfD(), frA(), frB()
 	fcmpo,
 
 	/// Floating point compare unordered.
 	/// fcmpu
-	/// crfD(), frA(), feB()
+	/// crfD(), frA(), frB()
 	fcmpu,
 
 	/// Floating point convert to integer word.
