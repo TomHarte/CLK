@@ -298,6 +298,18 @@ NSString *offset(Instruction instruction) {
 				XCTAssertEqual([columns[5] hexInt], instruction.simm());
 			break;
 
+			case Operation::mtfsfx:
+				AssertEqualOperationNameE(operation, @"mtfsfx", instruction);
+				XCTAssertEqual([columns[3] intValue], instruction.fm());
+				AssertEqualFR(columns[4], instruction.frB());
+			break;
+
+			case Operation::mtfsfix:
+				AssertEqualOperationNameE(operation, @"mtfsfix", instruction);
+				XCTAssertEqualObjects(columns[3], conditionreg(instruction.crfD()));
+				XCTAssertEqual([columns[4] intValue], instruction.imm());
+			break;
+
 #define NoArg(x)	\
 			case Operation::x:	\
 				AssertEqualOperationName(operation, @#x);	\

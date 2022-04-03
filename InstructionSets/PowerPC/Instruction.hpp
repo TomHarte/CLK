@@ -614,17 +614,44 @@ enum class Operation: uint8_t {
 	/// crfD(), crfS()
 	mcrfs,
 
-
+	/// Move to condition register from XER.
+	/// mcrxr
+	/// crfD()
 	mcrxr,
-	mfcr, mffsx, mfmsr, mfspr, mfsr, mfsrin,
+
+	/// Move from condition register.
+	/// mfcr
+	/// rD()
+	mfcr,
+
+	mffsx, mfmsr, mfspr, mfsr, mfsrin,
 
 	/// Move to condition register fields.
 	/// mtcrf
 	/// rS(), crm()
 	mtcrf,
 
-	mtfsb0x, mtfsb1x, mtfsfx,
-	mtfsfix, mtmsr, mtspr, mtsr, mtsrin,
+	/// Move to FPSCR bit 0.
+	/// mtfsb0 mtfsb0.
+	/// crbD()
+	mtfsb0x,
+
+	/// Move to FPSCR bit 1.
+	/// mtfsb1 mtfsb1.
+	/// crbD()
+	mtfsb1x,
+
+	/// Move to FPSCR fields.
+	/// mtfsf mtfsf.
+	/// fm(), frB()	[rc()]
+	mtfsfx,
+
+	/// Move to FPSCR field immediate.
+	/// mtfsfi mtfsfi.
+	/// crfD(), imm()
+	mtfsfix,
+
+	mtmsr, mtspr, mtsr, mtsrin,
 
 	/// Multiply high word.
 	/// mulhw mulgw.
