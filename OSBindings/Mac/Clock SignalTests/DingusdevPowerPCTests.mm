@@ -157,6 +157,37 @@ NSString *offset(Instruction instruction) {
 		const auto instruction = decoder.decode(opcode);
 
 		NSLog(@"%@", line);
+
+		// Deal with some of the simplified mnemonics as special cases;
+		// underlying observation: distinguishing special cases isn't that
+		// important to a mere decoder.
+		if([operation isEqualToString:@"nop"]) {
+			// These tests use ORI for NOP.
+			XCTAssertEqual(instruction.operation, Operation::ori);
+			XCTAssertEqual(instruction.rD(), instruction.rA());
+			XCTAssertEqual(instruction.simm(), 0);
+			continue;
+		}
+
+		if([operation isEqualToString:@"mr"] || [operation isEqualToString:@"mr."]) {
+			// OR is used to achieve MR (i.e. move register).
+			XCTAssertEqual(instruction.operation, Operation::orx);
+			XCTAssertEqual((instruction.rc() != 0), ([operation characterAtIndex:operation.length - 1] == '.'));
+			AssertEqualR(columns[3], instruction.rA());
+			AssertEqualR(columns[4], instruction.rS());
+			AssertEqualR(columns[4], instruction.rB());
+			continue;
+		}
+
+		if([operation isEqualToString:@"li"]) {
+			// ADDI is used to achieve LI (i.e. load immediate).
+			XCTAssertEqual(instruction.operation, Operation::addi);
+			AssertEqualR(columns[3], instruction.rD());
+			XCTAssertEqual(0, instruction.rA());
+			XCTAssertEqual([columns[4] hexInt], instruction.simm());
+			continue;
+		}
+
 		switch(instruction.operation) {
 			default:
 				NSAssert(FALSE, @"Didn't handle %@", line);
