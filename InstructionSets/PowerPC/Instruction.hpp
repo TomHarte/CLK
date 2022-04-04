@@ -56,6 +56,14 @@ enum class BranchOption: uint32_t {
 	Always 				= 0b1010,
 };
 
+
+/// @returns @c 0 if reg == 0; @c ~0 otherwise.
+/// @discussion Provides a branchless way to substitute the value 0 for the value of r0
+/// in affected instructions.
+template <typename IntT> constexpr IntT is_zero_mask(uint32_t reg) {
+	return ~IntT((reg - 1) >> 5);
+}
+
 enum class Operation: uint8_t {
 	Undefined,
 
@@ -632,7 +640,30 @@ enum class Operation: uint8_t {
 	/// rD()
 	mfcr,
 
-	mffsx, mfmsr, mfspr, mfsr, mfsrin,
+	/// Move from FPSCR.
+	/// mffs mffs.
+	/// frD()	[rc()]
+	mffsx,
+
+	/// Move from machine state register.
+	/// mfmsr
+	/// rD()
+	mfmsr,
+
+	/// Move from special purpose record.
+	/// mfmsr
+	/// rD(), spr()
+	mfspr,
+
+	/// Move from segment register.
+	/// mfsr
+	/// rD(), sr()
+	mfsr,
+
+	/// Move from segment register indirect.
+	/// mfsrin
+	/// rD(), rB()
+	mfsrin,
 
 	/// Move to condition register fields.
 	/// mtcrf
@@ -659,7 +690,25 @@ enum class Operation: uint8_t {
 	/// crfD(), imm()
 	mtfsfix,
 
-	mtmsr, mtspr, mtsr, mtsrin,
+	/// Move to FPSCR.
+	/// mtfs
+	/// frS()
+	mtmsr,
+
+	/// Move to special purpose record.
+	/// mtmsr
+	/// rD(), spr()
+	mtspr,
+
+	/// Move to segment register.
+	/// mfsr
+	/// sr(), rS()
+	mtsr,
+
+	/// Move to segment register indirect.
+	/// mtsrin
+	/// rD(), rB()
+	mtsrin,
 
 	/// Multiply high word.
 	/// mulhw mulgw.
@@ -895,7 +944,19 @@ enum class Operation: uint8_t {
 	//
 	// MARK: - Supervisor, optional.
 	//
-	tlbia, tlbie, tlbsync,
+
+	/// Translation lookaside buffer invalidate all.
+	/// tlbia
+	tlbia,
+
+	/// Translation lookaside buffer invalidate entry.
+	/// tlbie
+	/// rB()
+	tlbie,
+
+	/// Translation lookaside buffer synchronise.
+	/// tlbsync
+	tlbsync,
 
 	//
 	// MARK: - Optional.
@@ -1155,6 +1216,12 @@ struct Instruction {
 	uint32_t l() const	{	return opcode & 0x200000;	}
 	/// Enables setting of OV and SO in the XER; @c 0 or @c non-0.
 	uint32_t oe() const	{	return opcode & 0x400;		}
+
+
+	/// Identifies a special purpose register.
+	uint32_t spr() const 	{	return (opcode >> 11) & 0x3ff;		}
+	/// Identifies a time base register.
+	uint32_t tbr() const 	{	return (opcode >> 11) & 0x3ff;		}
 };
 
 // Sanity check on Instruction size.

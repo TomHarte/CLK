@@ -315,6 +315,33 @@ NSString *offset(Instruction instruction) {
 				XCTAssertEqualObjects(columns[3], conditionreg(instruction.crfD()));
 			break;
 
+			case Operation::mffsx:
+				AssertEqualOperationNameE(operation, @"mffsx", instruction);
+				AssertEqualFR(columns[3], instruction.frD());
+			break;
+
+			case Operation::mtmsr:
+				AssertEqualOperationName(operation, @"mtmsr");
+				AssertEqualR(columns[3], instruction.rS());
+			break;
+
+			case Operation::mtsrin:
+				AssertEqualOperationName(operation, @"mtsrin");
+				AssertEqualR(columns[3], instruction.rD());
+				AssertEqualR(columns[4], instruction.rB());
+			break;
+
+			case Operation::mtsr:
+				AssertEqualOperationName(operation, @"mtsr");
+				XCTAssertEqual([columns[3] intValue], instruction.sr());
+				AssertEqualR(columns[4], instruction.rS());
+			break;
+
+			case Operation::tlbie:
+				AssertEqualOperationName(operation, @"tlbie");
+				AssertEqualR(columns[3], instruction.rB());
+			break;
+
 			case Operation::icbi:
 				AssertEqualOperationName(operation, @"icbi");
 				AssertEqualR(columns[3], instruction.rA(), false);
@@ -398,11 +425,23 @@ NSString *offset(Instruction instruction) {
 				AssertEqualOperationName(operation, @#x);	\
 			break;
 
-				NoArg(isync);
-				NoArg(sync);
-				NoArg(eieio);
+			NoArg(isync);
+			NoArg(sync);
+			NoArg(eieio);
+			NoArg(tlbia);
 
 #undef NoArg
+
+#define D(x)	\
+			case Operation::x:	\
+				AssertEqualOperationName(operation, @#x);	\
+				AssertEqualR(columns[3], instruction.rD());	\
+			break;
+
+			D(mfcr);
+			D(mfmsr);
+
+#undef D
 
 #define Shift(x)	\
 			case Operation::x:	\
@@ -412,9 +451,9 @@ NSString *offset(Instruction instruction) {
 				AssertEqualR(columns[5], instruction.rB());				\
 			break;
 
-				Shift(slwx);
-				Shift(srwx);
-				Shift(srawx);
+			Shift(slwx);
+			Shift(srwx);
+			Shift(srawx);
 
 #undef Shift
 
@@ -500,21 +539,13 @@ NSString *offset(Instruction instruction) {
 			ABCz(lwzux);
 			ABCz(lbzx);
 			ABCz(lbzux);
-			ABCz(stwx);
-			ABCz(stwux);
-			ABCz(stbx);
-			ABCz(stbux);
 			ABCz(lhzx);
 			ABCz(lhzux);
 			ABCz(lhax);
 			ABCz(lhaux);
-			ABCz(sthx);
-			ABCz(sthux);
 			ABCz(lhbrx);
 			ABCz(lwbrx);
 			ABCz(lwarx);
-			ABCz(stwbrx);
-			ABCz(sthbrx);
 			ABCz(eciwx);
 			ABCz(lswx);
 			ABCz(lwa);
@@ -582,7 +613,20 @@ NSString *offset(Instruction instruction) {
 				AssertEqualR(columns[5], instruction.rB());	\
 			break;
 
+			SAB(ecowx);
+			SAB(stbux);
+			SAB(stbx);
+			SAB(sthbrx);
+			SAB(sthux);
+			SAB(sthx);
+			SAB(stswx);
+			SAB(stwbrx);
 			SAB(stwcx_);
+			SAB(stwux);
+			SAB(stwx);
+			SAB(stdcx_);
+			SAB(stdux);
+			SAB(stdx);
 
 #undef SAB
 
