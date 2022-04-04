@@ -59,9 +59,9 @@ enum class BranchOption: uint32_t {
 
 /// @returns @c 0 if reg == 0; @c ~0 otherwise.
 /// @discussion Provides a branchless way to substitute the value 0 for the value of r0
-/// in affected instructions.
+/// in affected instructions. Assumes arithmetic shifts.
 template <typename IntT> constexpr IntT is_zero_mask(uint32_t reg) {
-	return ~IntT((reg - 1) >> 5);
+	return ~IntT((int(reg) - 1) >> 5);
 }
 
 enum class Operation: uint8_t {
