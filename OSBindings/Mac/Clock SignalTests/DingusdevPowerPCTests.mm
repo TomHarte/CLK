@@ -138,7 +138,7 @@ NSString *offset(Instruction instruction) {
 	NSString *const wholeFile = [[NSString alloc] initWithData:testData encoding:NSUTF8StringEncoding];
 	NSArray<NSString *> *const lines = [wholeFile componentsSeparatedByString:@"\n"];
 
-	InstructionSet::PowerPC::Decoder decoder(InstructionSet::PowerPC::Model::MPC601);
+	InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601> decoder;
 	for(NSString *const line in lines) {
 		// Ignore empty lines and comments.
 		if([line length] == 0) {

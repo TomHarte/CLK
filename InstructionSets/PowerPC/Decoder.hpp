@@ -38,16 +38,16 @@ constexpr bool is601(Model model) {
 /*!
 	Implements PowerPC instruction decoding.
 
-	This is an experimental implementation; it has not yet undergone significant testing.
+	@c model Indicates the instruction set to decode.
+
+	@c validate_reserved_bits If set to @c true, check that all
+	reserved bits are 0 and produce an invalid opcode if not. Otherwise does no
+	inspection of reserved bits.
+
+	TODO: determine what specific models of PowerPC do re: reserved bits.
 */
-struct Decoder {
-	public:
-		Decoder(Model model);
-
-		Instruction decode(uint32_t opcode);
-
-	private:
-		Model model_;
+template <Model model, bool validate_reserved_bits = false> struct Decoder {
+	Instruction decode(uint32_t opcode);
 };
 
 }

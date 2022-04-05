@@ -10,9 +10,23 @@
 
 using namespace InstructionSet::PowerPC;
 
-Decoder::Decoder(Model model) : model_(model) {}
+namespace {
 
-Instruction Decoder::decode(uint32_t opcode) {
+template <Model model, bool validate_reserved_bits, Operation operation> Instruction instruction(uint32_t opcode, bool is_supervisor = false) {
+	// If validation isn't required, there's nothing to do here.
+	if constexpr (!validate_reserved_bits) {
+		return Instruction(operation, opcode, is_supervisor);
+	}
+
+	// Otherwise, validation depends on operation
+	// (and, in principle, processor model).
+	return Instruction(operation, opcode, is_supervisor);
+}
+
+}
+
+template <Model model, bool validate_reserved_bits>
+Instruction Decoder<model, validate_reserved_bits>::decode(uint32_t opcode) {
 	// Quick bluffer's guide to PowerPC instruction encoding:
 	//
 	// There is a six-bit field at the very top of the instruction.
@@ -32,16 +46,16 @@ Instruction Decoder::decode(uint32_t opcode) {
 	// currently check the value of reserved bits. That may need to change
 	// if/when I add support for extended instruction sets.
 
-#define Bind(mask, operation)				case mask: return Instruction(Operation::operation, opcode);
-#define BindSupervisor(mask, operation)		case mask: return Instruction(Operation::operation, opcode, true);
+#define Bind(mask, operation)				case mask: return instruction<model, validate_reserved_bits, Operation::operation>(opcode);
+#define BindSupervisor(mask, operation)		case mask: return instruction<model, validate_reserved_bits, Operation::operation>(opcode, true);
 #define BindConditional(condition, mask, operation)	\
 	case mask: \
-		if(condition(model_)) return Instruction(Operation::operation, opcode);	\
-	return Instruction(opcode);
+		if(condition(model)) return instruction<model, validate_reserved_bits, Operation::operation>(opcode);	\
+	return instruction<model, validate_reserved_bits, Operation::operation>(opcode);
 #define BindSupervisorConditional(condition, mask, operation)	\
 	case mask: \
-		if(condition(model_)) return Instruction(Operation::operation, opcode, true);	\
-	return Instruction(opcode);
+		if(condition(model)) return instruction<model, validate_reserved_bits, Operation::operation>(opcode, true);	\
+	return instruction<model, validate_reserved_bits, Operation::operation>(opcode);
 
 #define Six(x)			(unsigned(x) << 26)
 #define SixTen(x, y)	(Six(x) | ((y) << 1))
@@ -64,7 +78,7 @@ Instruction Decoder::decode(uint32_t opcode) {
 				case 0: case 1: case 2: case 3: case 4: case 5:
 				case 8: case 9: case 10: case 11: case 12: case 13:
 				case 16: case 17: case 18: case 19: case 20:
-				return Instruction(Operation::bcx, opcode);
+				return instruction<model, validate_reserved_bits, Operation::bcx>(opcode);
 
 				default: return Instruction(opcode);
 			}
@@ -318,26 +332,26 @@ Instruction Decoder::decode(uint32_t opcode) {
 
 	// stwcx. and stdcx.
 	switch(opcode & 0b111111'0000'0000'0000'0000'111111111'1) {
-		case 0b011111'0000'0000'0000'0000'010010110'1:	return Instruction(Operation::stwcx_, opcode);
+		case 0b011111'0000'0000'0000'0000'010010110'1:	return instruction<model, validate_reserved_bits, Operation::stwcx_>(opcode);
 		case 0b011111'0000'0000'0000'0000'011010110'1:
-			if(is64bit(model_)) return Instruction(Operation::stdcx_, opcode);
+			if(is64bit(model)) return instruction<model, validate_reserved_bits, Operation::stdcx_>(opcode);
 		return Instruction(opcode);
 	}
 
 	// std and stdu
 	switch(opcode & 0b111111'00'00000000'00000000'000000'11) {
-		case 0b111110'00'00000000'00000000'000000'00:	return Instruction(Operation::std, opcode);
+		case 0b111110'00'00000000'00000000'000000'00:	return instruction<model, validate_reserved_bits, Operation::std>(opcode);
 		case 0b111110'00'00000000'00000000'000000'01:
-			if(is64bit(model_)) return Instruction(Operation::stdu, opcode);
+			if(is64bit(model)) return instruction<model, validate_reserved_bits, Operation::stdu>(opcode);
 			return Instruction(opcode);
 		case 0b111010'00'00000000'00000000'000000'10:
-			if(is64bit(model_)) return Instruction(Operation::lwa, opcode);
+			if(is64bit(model)) return instruction<model, validate_reserved_bits, Operation::lwa>(opcode);
 			return Instruction(opcode);
 	}
 
 	// sc
 	if((opcode & 0b111111'00'00000000'00000000'000000'1'0) == 0b010001'00'00000000'00000000'000000'1'0) {
-		return Instruction(Operation::sc, opcode);
+		return instruction<model, validate_reserved_bits, Operation::sc>(opcode);
 	}
 
 #undef Six
@@ -348,3 +362,11 @@ Instruction Decoder::decode(uint32_t opcode) {
 
 	return Instruction(opcode);
 }
+
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601, true>;
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC603, true>;
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC620, true>;
+
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601, false>;
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC603, false>;
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC620, false>;
