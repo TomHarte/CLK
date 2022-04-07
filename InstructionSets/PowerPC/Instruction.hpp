@@ -125,8 +125,95 @@ enum class Operation: uint8_t {
 	/// rA(), rB(), rD()
 	mulx,
 
-	nabsx, rlmix, rribx, slex, sleqx, sliqx, slliqx, sllqx, slqx,
-	sraiqx, sraqx, srex, sreax, sreqx, sriqx, srliqx, srlqx, srqx,
+	/// Negative absolute.
+	/// nabs nabs. nabso nabso.
+	/// rD(), rA()	[rc(), oe()]
+	nabsx,
+
+	/// Rotate left then mask insert.
+	/// rlmi rlmi.
+	/// rA(), rS(), rB(), mb(), me()	[rc()]
+	rlmix,
+
+	/// Rotate right and insert bit.
+	/// rrib rrib.
+	/// rA(), rS(), rB()	[rc()]
+	rribx,
+
+	/// Shift left extended.
+	/// sle sle.
+	/// rA(), rS(), rB()	[rc()]
+	slex,
+
+	/// Shift left extended with MQ.
+	/// sleq sleq.
+	/// rA(), rS(), rB()	[rc()]
+	sleqx,
+
+	/// Shift left immediate with MQ.
+	/// sliq sliq.
+	/// rA(), rS(), sh()	[rc()]
+	sliqx,
+
+	/// Shift left long immediate with MQ.
+	/// slliq slliq.
+	/// rA(), rS(), sh()	[rc()]
+	slliqx,
+
+	/// Shift left long with MQ.
+	/// sllq sllq.
+	/// rA(), rS(), rB()	[rc()]
+	sllqx,
+
+	/// Shift left with MQ.
+	/// slq slq.
+	/// rA(), rS(), rB()	[rc()]
+	slqx,
+
+	/// Shift right algebraic immediate with MQ.
+	/// sraiq sraiq.
+	/// rA(), rS(), sh()	[rc()]
+	sraiqx,
+
+	/// Shift right algebraic with MQ.
+	/// sraq sraq.
+	/// rA(), rS(), rB()	[rc()]
+	sraqx,
+
+	/// Shift right extended.
+	/// sre sre.
+	/// rA(), rS(), rB()	[rc()]
+	srex,
+
+	/// Shift right extended algebraic.
+	/// srea srea.
+	/// rA(), rS(), rB()	[rc()]
+	sreax,
+
+	/// Shift right extended with MQ.
+	/// sreq sreq.
+	/// rA(), rB(), rB()	[rc()]
+	sreqx,
+
+	/// Shift right immediate with MQ.
+	/// sriq sriq.
+	/// rA(), rS(), sh()	[rc()]
+	sriqx,
+
+	/// Shift right long immediate with MQ.
+	/// srliq srliq.
+	/// rA(), rS(), sh()	[rc()]
+	srliqx,
+
+	/// Shift right long with MQ.
+	/// srlq srlq.
+	/// rA(), rS(), rB()	[rc()]
+	srlqx,
+
+	/// Shidt right with MQ.
+	/// srq srq.
+	/// rA(), rS(), rB()	[rc()]
+	srqx,
 
 	//
 	// MARK: - 32- and 64-bit PowerPC instructions.
@@ -461,7 +548,15 @@ enum class Operation: uint8_t {
 	/// frD(), frB()	[rc()]
 	frspx,
 
-	fsubx, fsubsx,
+	/// Floating point subtract.
+	/// fsub fsub.
+	/// frD(), frA(), frB()	[rc()]
+	fsubx,
+
+	/// Floating point subtract single precision.
+	/// fsubs fsubs.
+	/// frD(), frA(), frB()	[rc()]
+	fsubsx,
 
 	/// Instruction cache block invalidate.
 	/// icbi
