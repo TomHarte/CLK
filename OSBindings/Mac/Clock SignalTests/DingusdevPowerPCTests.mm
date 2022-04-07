@@ -138,7 +138,7 @@ NSString *offset(Instruction instruction) {
 	NSString *const wholeFile = [[NSString alloc] initWithData:testData encoding:NSUTF8StringEncoding];
 	NSArray<NSString *> *const lines = [wholeFile componentsSeparatedByString:@"\n"];
 
-	InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601> decoder;
+	InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601, true> decoder;
 	for(NSString *const line in lines) {
 		// Ignore empty lines and comments.
 		if([line length] == 0) {
@@ -155,8 +155,6 @@ NSString *offset(Instruction instruction) {
 		const auto opcode = uint32_t([columns[1] hexInt]);
 		NSString *const operation = columns[2];
 		const auto instruction = decoder.decode(opcode);
-
-		NSLog(@"%@", line);
 
 		// Deal with some of the simplified mnemonics as special cases;
 		// underlying observation: distinguishing special cases isn't that
@@ -191,6 +189,10 @@ NSString *offset(Instruction instruction) {
 		switch(instruction.operation) {
 			default:
 				NSAssert(FALSE, @"Didn't handle %@", line);
+			break;
+
+			case Operation::Undefined:
+				XCTAssertEqualObjects(operation, @"dc.l");
 			break;
 
 			case Operation::rlwimix: {
@@ -362,6 +364,12 @@ NSString *offset(Instruction instruction) {
 				AssertEqualR(columns[4], instruction.rB());
 			break;
 
+			case Operation::clcs:
+				AssertEqualOperationName(operation, @"clcs");
+				AssertEqualR(columns[3], instruction.rD());
+				AssertEqualR(columns[4], instruction.rA());
+			break;
+
 			case Operation::mtsr:
 				AssertEqualOperationName(operation, @"mtsr");
 				XCTAssertEqual([columns[3] intValue], instruction.sr());
@@ -391,6 +399,15 @@ NSString *offset(Instruction instruction) {
 				AssertEqualR(columns[3], instruction.rS());
 				AssertEqualR(columns[4], instruction.rA());
 				XCTAssertEqual([columns[5] hexInt], instruction.nb());
+			break;
+
+			case Operation::rlmix:
+				AssertEqualOperationNameE(operation, @"rlmix", instruction);
+				AssertEqualR(columns[3], instruction.rA());
+				AssertEqualR(columns[4], instruction.rS());
+				AssertEqualR(columns[5], instruction.rB());
+				XCTAssertEqual([columns[6] intValue], instruction.mb());
+				XCTAssertEqual([columns[7] intValue], instruction.me());
 			break;
 
 			case Operation::cmp:
@@ -488,12 +505,23 @@ NSString *offset(Instruction instruction) {
 
 #undef Shift
 
-			case Operation::srawix:
-				AssertEqualOperationNameE(operation, @"srawix", instruction);
-				AssertEqualR(columns[3], instruction.rA());
-				AssertEqualR(columns[4], instruction.rS());
-				XCTAssertEqual([columns[5] hexInt], instruction.sh());
+
+#define ASsh(x)	\
+			case Operation::x:											\
+				AssertEqualOperationNameE(operation, @#x, instruction);	\
+				AssertEqualR(columns[3], instruction.rA());				\
+				AssertEqualR(columns[4], instruction.rS());				\
+				XCTAssertEqual([columns[5] hexInt], instruction.sh());	\
 			break;
+
+			ASsh(sliqx);
+			ASsh(slliqx);
+			ASsh(sraiqx);
+			ASsh(sriqx);
+			ASsh(srliqx);
+			ASsh(srawix);
+
+#undef ASsh
 
 #define CRMod(x) \
 			case Operation::x:	\
@@ -534,12 +562,13 @@ NSString *offset(Instruction instruction) {
 				XCTAssertEqual([columns[5] hexInt], instruction.simm());	\
 			} break;
 
-			ArithImm(mulli);
-			ArithImm(subfic);
+			ArithImm(dozi);
 			ArithImm(addi);
 			ArithImm(addic);
 			ArithImm(addic_);
 			ArithImm(addis);
+			ArithImm(mulli);
+			ArithImm(subfic);
 
 #undef ArithImm
 
@@ -624,6 +653,20 @@ NSString *offset(Instruction instruction) {
 				AssertEqualR(columns[4], instruction.rS());	\
 				AssertEqualR(columns[5], instruction.rB());	\
 			break;
+
+			ASB(maskgx);
+			ASB(maskirx);
+			ASB(rribx);
+			ASB(slex);
+			ASB(sleqx);
+			ASB(sllqx);
+			ASB(slqx);
+			ASB(sraqx);
+			ASB(srex);
+			ASB(sreax);
+			ASB(sreqx);
+			ASB(srlqx);
+			ASB(srqx);
 
 			ASB(andx);
 			ASB(andcx);

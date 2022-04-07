@@ -192,7 +192,7 @@ enum class Operation: uint8_t {
 
 	/// Shift right extended with MQ.
 	/// sreq sreq.
-	/// rA(), rB(), rB()	[rc()]
+	/// rA(), rS(), rB()	[rc()]
 	sreqx,
 
 	/// Shift right immediate with MQ.
