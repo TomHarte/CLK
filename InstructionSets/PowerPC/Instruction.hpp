@@ -823,16 +823,58 @@ enum class Operation: uint8_t {
 	/// rA(), rB(), rD()
 	mullwx,
 
-	nandx, negx, norx, orx, orcx, ori, oris, rfi, rlwimix,
+	/// NAND.
+	/// nand nand.
+	/// rA(), rS(), rB()	[rc()]
+	nandx,
+
+	/// 'Negate' (negative).
+	/// neg neg. nego nego.
+	/// rD(), rA()	[rc(), oe()]
+	negx,
+
+	/// NOR
+	/// nor nor.
+	/// rA(), rS(), rB()	[rc()]
+	norx,
+
+	/// OR.
+	/// or or.
+	/// rA(), rS(), rB()	[rc()]
+	orx,
+
+	/// OR with complement.
+	/// orc orc.
+	/// rA(), rS(), rB()	[rc()]
+	orcx,
+
+	/// OR immediate.
+	/// ori
+	/// rA(), rS(), uimm()
+	ori,
+
+	/// OR immediate shifted.
+	/// oris
+	/// rA(), rS(), uimm()
+	oris,
+
+	/// Return from interrupt.
+	/// rfi
+	rfi,
+
+	/// Rotate left word immediate then mask insert.
+	/// rlwimi rlwimi.
+	/// rA(), rS(), sh(), mb(), me()	[rc()]
+	rlwimix,
 
 	/// Rotate left word immediate then AND with mask.
 	/// rlwinm rlwinm.
-	/// rA(), rS(), sh(), mb(), me(), rc()
+	/// rA(), rS(), sh(), mb(), me()	[rc()]
 	rlwinmx,
 
 	/// Rotate left word then AND with mask
 	/// rlwimi rlwimi.
-	/// rA(), rB(), rS(), mb(), me(), rc()
+	/// rA(), rB(), rS(), mb(), me()	[rc()]
 	rlwnmx,
 
 	/// System call.
@@ -989,18 +1031,39 @@ enum class Operation: uint8_t {
 	/// rS(), rA(), rB()
 	stwx,
 
+	/// Subtract from.
+	/// subf subf. subfo subfo.
+	/// rD(), rA(), rB()	[rc(), oe()]
 	subfx,
 
 	/// Subtract from carrying.
 	/// subfc subfc. subfco subfco.
+	/// rD(), rA(), rB()	[rc(), oe()]
 	subfcx,
 
+	/// Subtract from extended.
+	/// subfe subfe. subfeo subfeo.
+	/// rD(), rA(), rB()	[rc(), oe()]
 	subfex,
 
 	/// Subtract from immediate carrying
+	/// subfic
+	/// rD(), rA(), simm()
 	subfic,
 
-	subfmex, subfzex, sync,
+	/// Subtract from minus one extended.
+	/// subfme subfme. subfmeo subfmeo.
+	/// rD(), rA()	[rc(), oe()]
+	subfmex,
+
+	/// Subtract from zero extended.
+	/// subfze subfze. subfzeo subfzeo.
+	/// rD(), rA()	[rc(), oe()]
+	subfzex,
+
+	/// Synchronise.
+	/// sync
+	sync,
 
 	/// Trap word.
 	/// tw tweq tweqi twge twgei ...
@@ -1072,6 +1135,9 @@ enum class Operation: uint8_t {
 	/// frD(), frA(), frC(), frB()	[rc()]
 	fselx,
 
+	/// Floating Point square root.
+	/// fsqrt fsqrt.
+	/// frD(), frB()	[rc()]
 	fsqrtx,
 
 	/// Move from time base.
