@@ -21,6 +21,8 @@ template <Model model, bool validate_reserved_bits, Operation operation> Instruc
 	// Otherwise, validation depends on operation
 	// (and, in principle, processor model).
 	switch(operation) {
+		case Operation::absx:		case Operation::clcs:
+		case Operation::nabsx:
 		case Operation::addmex:		case Operation::addzex:
 		case Operation::bcctrx:		case Operation::bclrx:
 		case Operation::cntlzdx:	case Operation::cntlzwx:
@@ -143,8 +145,16 @@ template <Model model, bool validate_reserved_bits, Operation operation> Instruc
 			if(opcode & 0b000000'00000'10000'11111'0000000000'1) return Instruction(opcode);
 		break;
 
-		case Operation::mtsrin:
+		case Operation::mtsrin:		case Operation::mfsrin:
 			if(opcode & 0b000000'00000'11111'00000'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::mfsr:
+			if(opcode & 0b000000'00000'10000'11111'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::mtcrf:
+			if(opcode & 0b000000'00000'10000'00001'0000000000'1) return Instruction(opcode);
 		break;
 
 		case Operation::mulhdx:		case Operation::mulhdux:
@@ -165,10 +175,19 @@ template <Model model, bool validate_reserved_bits, Operation operation> Instruc
 			if(!(opcode & 0b000000'00000'00000'00000'0000000000'1)) return Instruction(opcode);
 		break;
 
-		case Operation::clcs:
-			if(opcode & 0b000000'00000'00000'11111'0000000000'1) return Instruction(opcode);
-		break;
-
+		case Operation::divx:		case Operation::divsx:
+		case Operation::dozx:		case Operation::dozi:
+		case Operation::lscbxx:
+		case Operation::maskgx:		case Operation::maskirx:
+		case Operation::mulx:
+		case Operation::rlmix:		case Operation::rribx:
+		case Operation::slex:		case Operation::sleqx:		case Operation::sliqx:
+		case Operation::slliqx:		case Operation::sllqx:		case Operation::slqx:
+		case Operation::sraiqx:		case Operation::sraqx:
+		case Operation::srex:		case Operation::sreqx:
+		case Operation::sriqx:		case Operation::srliqx:
+		case Operation::srlqx:		case Operation::srqx:
+		case Operation::sreax:
 		case Operation::addx:		case Operation::addcx:		case Operation::addex:
 		case Operation::addi:		case Operation::addic:		case Operation::addic_:
 		case Operation::addis:
