@@ -85,25 +85,25 @@ enum class Operation: uint8_t {
 	/// rD(), rA()
 	clcs,
 
-	/// Divide.
-	/// div div. divo divo.
-	/// rD(), rA(), rB()	[rc(), oe()]
-	divx,
-
 	/// Divide short.
 	/// divs divs. divso divso.
 	/// rD(), rA(), rB()	[rc(), eo()]
 	divsx,
 
-	/// Difference or zero.
-	/// doz doz. dozo dozo.
+	/// Divide.
+	/// div div. divo divo.
 	/// rD(), rA(), rB()	[rc(), oe()]
-	dozx,
+	divx,
 
 	/// Difference or zero immediate.
 	/// dozi
 	/// rD(), rA(), simm()
 	dozi,
+
+	/// Difference or zero.
+	/// doz doz. dozo dozo.
+	/// rD(), rA(), rB()	[rc(), oe()]
+	dozx,
 
 	/// Load string and compare byte indexed.
 	/// lscbx lsxbx.
@@ -140,15 +140,15 @@ enum class Operation: uint8_t {
 	/// rA(), rS(), rB()	[rc()]
 	rribx,
 
-	/// Shift left extended.
-	/// sle sle.
-	/// rA(), rS(), rB()	[rc()]
-	slex,
-
 	/// Shift left extended with MQ.
 	/// sleq sleq.
 	/// rA(), rS(), rB()	[rc()]
 	sleqx,
+
+	/// Shift left extended.
+	/// sle sle.
+	/// rA(), rS(), rB()	[rc()]
+	slex,
 
 	/// Shift left immediate with MQ.
 	/// sliq sliq.
@@ -180,11 +180,6 @@ enum class Operation: uint8_t {
 	/// rA(), rS(), rB()	[rc()]
 	sraqx,
 
-	/// Shift right extended.
-	/// sre sre.
-	/// rA(), rS(), rB()	[rc()]
-	srex,
-
 	/// Shift right extended algebraic.
 	/// srea srea.
 	/// rA(), rS(), rB()	[rc()]
@@ -194,6 +189,11 @@ enum class Operation: uint8_t {
 	/// sreq sreq.
 	/// rA(), rS(), rB()	[rc()]
 	sreqx,
+
+	/// Shift right extended.
+	/// sre sre.
+	/// rA(), rS(), rB()	[rc()]
+	srex,
 
 	/// Shift right immediate with MQ.
 	/// sriq sriq.
@@ -218,11 +218,6 @@ enum class Operation: uint8_t {
 	//
 	// MARK: - 32- and 64-bit PowerPC instructions.
 	//
-
-	/// Add.
-	/// add add. addo addo.
-	/// rD(), rA(), rB()	[rc(), oe()]
-	addx,
 
 	/// Add carrying.
 	/// addc addc. addco addco.
@@ -259,15 +254,15 @@ enum class Operation: uint8_t {
 	/// rD(), rA()	[rc(), oe()]
 	addmex,
 
+	/// Add.
+	/// add add. addo addo.
+	/// rD(), rA(), rB()	[rc(), oe()]
+	addx,
+
 	/// Add to zero extended.
 	/// addze addze. addzeo addzeo.
 	/// rD(), rA()	[rc(), oe()]
 	addzex,
-
-	/// And.
-	/// and, and.
-	/// rA(), rS(), rB()	[rc()]
-	andx,
 
 	/// And with complement.
 	/// andc, andc.
@@ -284,10 +279,10 @@ enum class Operation: uint8_t {
 	/// rA(), rS(), uimm()
 	andis_,
 
-	/// Branch unconditional.
-	/// b bl ba bla
-	/// li()	[aa(), lk()]
-	bx,
+	/// And.
+	/// and, and.
+	/// rA(), rS(), rB()	[rc()]
+	andx,
 
 	/// Branch conditional.
 	/// bne bne+ beq bdnzt+ bdnzf bdnzt bdnzfla ...
@@ -303,6 +298,11 @@ enum class Operation: uint8_t {
 	/// blr blrl bltlr blelrl bnelrl ...
 	/// bo(), bi()	[aa(), lk()]
 	bclrx,
+
+	/// Branch unconditional.
+	/// b bl ba bla
+	/// li()	[aa(), lk()]
+	bx,
 
 	/// Compare
 	/// cmp
@@ -394,15 +394,15 @@ enum class Operation: uint8_t {
 	/// rA(), rB()
 	dcbz,
 
-	/// Divide word.
-	/// divw divw. divwo divwo.
-	/// rD(), rA(), rB()	[rc(), oe()]
-	divwx,
-
 	/// Divide word unsigned.
 	/// divwu divwu. divwuo divwuo.
 	/// rD(), rA(), rB()	[rc(), oe()]
 	divwux,
+
+	/// Divide word.
+	/// divw divw. divwo divwo.
+	/// rD(), rA(), rB()	[rc(), oe()]
+	divwx,
 
 	/// External control in word indexed.
 	/// eciwx
@@ -438,15 +438,15 @@ enum class Operation: uint8_t {
 	/// frD(), frB()	[rc()]
 	fabsx,
 
-	/// Floating point add.
-	/// fadd fadd.
-	/// frD(), frA(), frB()	[rc()]
-	faddx,
-
 	/// Floating point add single precision.
 	/// fadds fadds.
 	/// frD(), frA(), frB()	[rc()]
 	faddsx,
+
+	/// Floating point add.
+	/// fadd fadd.
+	/// frD(), frA(), frB()	[rc()]
+	faddx,
 
 	/// Floating point compare ordered.
 	/// fcmpo
@@ -468,50 +468,50 @@ enum class Operation: uint8_t {
 	/// frD(), frB()	[rc()]
 	fctiwzx,
 
-	/// Floating point divide.
-	/// fdiv fdiv.
-	/// frD(), frA(), frB()	[rc()]
-	fdivx,
-
 	/// Floating point divide single precision.
 	/// fdiv fdiv.
 	/// frD(), frA(), frB()	[rc()]
 	fdivsx,
 
-	/// Floating point multiply add.
-	/// fmadd fmadd.
-	/// frD(), frA(), frC(), frB()	[rc()]
-	fmaddx,
+	/// Floating point divide.
+	/// fdiv fdiv.
+	/// frD(), frA(), frB()	[rc()]
+	fdivx,
 
 	/// Floating point multiply add single precision.
 	/// fmadds fmadds.
 	/// frD(), frA(), frC(), frB()	[rc()]
 	fmaddsx,
 
+	/// Floating point multiply add.
+	/// fmadd fmadd.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fmaddx,
+
 	/// Floating point register move.
 	/// fmr fmr.
 	/// frD(), frB()	[rc()]
 	fmrx,
-
-	/// Floating point multiply subtract.
-	/// fmsub fmsub.
-	/// frD(), frA(), frC(), frB()	[rc()]
-	fmsubx,
 
 	/// Floating point multiply subtract single precision.
 	/// fmsubx fmsubx.
 	/// frD(), frA(), frC(), frB()	[rc()]
 	fmsubsx,
 
-	/// Floating point multiply.
-	/// fmul fmul.
-	/// frD(), frA(), frC()	[rc()]
-	fmulx,
+	/// Floating point multiply subtract.
+	/// fmsub fmsub.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fmsubx,
 
 	/// Floating point multiply single precision.
 	/// fmuls fmuls.
 	/// frD(), frA(), frC()	[rc()]
 	fmulsx,
+
+	/// Floating point multiply.
+	/// fmul fmul.
+	/// frD(), frA(), frC()	[rc()]
+	fmulx,
 
 	/// Floating negative absolute value.
 	/// fnabs fnabs.
@@ -523,40 +523,40 @@ enum class Operation: uint8_t {
 	/// frD(), frB()	[rc()]
 	fnegx,
 
-	/// Floating point negative multiply add.
-	/// fnmadd fnmadd.
-	/// frD(), frA(), frC(), frB()	[rc()]
-	fnmaddx,
-
 	/// Floating point negative multiply add single precision.
 	/// fnmadds fnmadds.
 	/// frD(), frA(), frC(), frB()	[rc()]
 	fnmaddsx,
 
-	/// Floating point negative multiply subtract.
-	/// fnmsub fnmsub.
+	/// Floating point negative multiply add.
+	/// fnmadd fnmadd.
 	/// frD(), frA(), frC(), frB()	[rc()]
-	fnmsubx,
+	fnmaddx,
 
 	/// Floating point negative multiply add.
 	/// fnmsubs fnmsubs.
 	/// frD(), frA(), frC(), frB()	[rc()]
 	fnmsubsx,
 
+	/// Floating point negative multiply subtract.
+	/// fnmsub fnmsub.
+	/// frD(), frA(), frC(), frB()	[rc()]
+	fnmsubx,
+
 	/// Floating point round to single precision.
 	/// frsp frsp.
 	/// frD(), frB()	[rc()]
 	frspx,
 
-	/// Floating point subtract.
-	/// fsub fsub.
-	/// frD(), frA(), frB()	[rc()]
-	fsubx,
-
 	/// Floating point subtract single precision.
 	/// fsubs fsubs.
 	/// frD(), frA(), frB()	[rc()]
 	fsubsx,
+
+	/// Floating point subtract.
+	/// fsub fsub.
+	/// frD(), frA(), frB()	[rc()]
+	fsubx,
 
 	/// Instruction cache block invalidate.
 	/// icbi
@@ -816,6 +816,8 @@ enum class Operation: uint8_t {
 	mulhwux,
 
 	/// Multiply low immediate.
+	/// mulli
+	/// rD(), rA(), simm()
 	mulli,
 
 	/// Multiply low word.
@@ -838,11 +840,6 @@ enum class Operation: uint8_t {
 	/// rA(), rS(), rB()	[rc()]
 	norx,
 
-	/// OR.
-	/// or or.
-	/// rA(), rS(), rB()	[rc()]
-	orx,
-
 	/// OR with complement.
 	/// orc orc.
 	/// rA(), rS(), rB()	[rc()]
@@ -857,6 +854,11 @@ enum class Operation: uint8_t {
 	/// oris
 	/// rA(), rS(), uimm()
 	oris,
+
+	/// OR.
+	/// or or.
+	/// rA(), rS(), rB()	[rc()]
+	orx,
 
 	/// Return from interrupt.
 	/// rfi
@@ -886,15 +888,15 @@ enum class Operation: uint8_t {
 	/// rA(), rS(), rB()	[rc()]
 	slwx,
 
-	/// Shift right algebraic word.
-	/// sraw sraw.
-	/// rA(), rS(), rB()	[rc()]
-	srawx,
-
 	/// Shift right algebraic word immediate.
 	/// srawi srawi.
 	/// rA(), rS(), sh()	[rc()]
 	srawix,
+
+	/// Shift right algebraic word.
+	/// sraw sraw.
+	/// rA(), rS(), rB()	[rc()]
+	srawx,
 
 	/// Shift right word.
 	/// srw srw.
@@ -1031,11 +1033,6 @@ enum class Operation: uint8_t {
 	/// rS(), rA(), rB()
 	stwx,
 
-	/// Subtract from.
-	/// subf subf. subfo subfo.
-	/// rD(), rA(), rB()	[rc(), oe()]
-	subfx,
-
 	/// Subtract from carrying.
 	/// subfc subfc. subfco subfco.
 	/// rD(), rA(), rB()	[rc(), oe()]
@@ -1056,6 +1053,11 @@ enum class Operation: uint8_t {
 	/// rD(), rA()	[rc(), oe()]
 	subfmex,
 
+	/// Subtract from.
+	/// subf subf. subfo subfo.
+	/// rD(), rA(), rB()	[rc(), oe()]
+	subfx,
+
 	/// Subtract from zero extended.
 	/// subfze subfze. subfzeo subfzeo.
 	/// rD(), rA()	[rc(), oe()]
@@ -1075,11 +1077,6 @@ enum class Operation: uint8_t {
 	/// to(), rA(), simm()
 	twi,
 
-	/// Xor.
-	/// xor xor.
-	/// rA(), rS(), rB()	[rc()]
-	xorx,
-
 	/// Xor immediate.
 	/// xori
 	/// rA(), rs(), uimm()
@@ -1089,6 +1086,11 @@ enum class Operation: uint8_t {
 	/// xoris
 	/// rA(), rS(), uimm()
 	xoris,
+
+	/// Xor.
+	/// xor xor.
+	/// rA(), rS(), rB()	[rc()]
+	xorx,
 
 	//
 	// MARK: - 32-bit, supervisor level.
@@ -1103,22 +1105,27 @@ enum class Operation: uint8_t {
 	// MARK: - Supervisor, optional.
 	//
 
-	/// Translation lookaside buffer invalidate all.
+	/// Translation lookaside buffer ('TLB') invalidate all.
 	/// tlbia
 	tlbia,
 
-	/// Translation lookaside buffer invalidate entry.
+	/// Translation lookaside buffer ('TLB') invalidate entry.
 	/// tlbie
 	/// rB()
 	tlbie,
 
-	/// Translation lookaside buffer synchronise.
+	/// Translation lookaside buffer ('TLB') synchronise.
 	/// tlbsync
 	tlbsync,
 
 	//
 	// MARK: - Optional.
 	//
+
+	/// Move from time base.
+	/// mftb
+	/// rD(), tbr()
+	mftb,
 
 	/// Floaring point reciprocal estimate single precision.
 	/// fres fres.
@@ -1135,18 +1142,15 @@ enum class Operation: uint8_t {
 	/// frD(), frA(), frC(), frB()	[rc()]
 	fselx,
 
+	/// Floating point square root single precision.
+	/// fsqrts fsqrts.
+	/// frD(), frB()	[rc()]
+	fsqrtsx,
+
 	/// Floating Point square root.
 	/// fsqrt fsqrt.
 	/// frD(), frB()	[rc()]
 	fsqrtx,
-
-	/// Move from time base.
-	/// mftb
-	/// rD(), tbr()
-	mftb,
-
-
-	slbia, slbie,
 
 	/// Store floating point as integer word indexed.
 	/// stfiwx
@@ -1156,17 +1160,21 @@ enum class Operation: uint8_t {
 	//
 	// MARK: - 64-bit only PowerPC instructions.
 	//
-	cntlzdx,
 
-	/// Divide double word.
-	/// divd divd. divdo divdo.
-	/// rD(), rA(), rB()	[rc(), oe()]
-	divdx,
+	/// Count leading zero double word.
+	/// cntlzd cntlzd.
+	/// rA(), rS()	[rc()]
+	cntlzdx,
 
 	/// Divide double word unsigned.
 	/// divdu divdu. divduo divduo.
 	/// rD(), rA(), rB()	[rc(), oe()]
 	divdux,
+
+	/// Divide double word.
+	/// divd divd. divdo divdo.
+	/// rD(), rA(), rB()	[rc(), oe()]
+	divdx,
 
 	/// Extend sign word.
 	/// extsw extsw.
@@ -1188,8 +1196,79 @@ enum class Operation: uint8_t {
 	/// frD(), frB()	[rc()]
 	fctidzx,
 
-	tdi, mulhdux,
-	ldx, sldx, ldux, td, mulhdx, ldarx,
+	/// Load double word and reserve indezed.
+	/// ldarx
+	/// rD(), rA(), rB()
+	ldarx,
+
+	/// Load double word with update indexed.
+	/// ldux
+	/// frD(), rA(), rB()
+	ldux,
+
+	/// Load double word indexed.
+	/// ldx
+	/// frD(), d() [ rA() ]
+	ldx,
+
+	/// Load word algebraic.
+	/// lwa
+	/// rD(), rA(), rB()
+	lwa,
+
+	/// Load word algebraic with update indexed.
+	/// lwaux
+	/// rD(), rA(), rB()
+	lwaux,
+
+	/// Load word algebraic indexed.
+	/// lwax
+	/// rD(), rA(), rB()
+	lwax,
+
+	/// Multiply high double word unsigned.
+	/// mulhdy mulhdu.
+	/// rD(), rA(), rB()	[rc()]
+	mulhdux,
+
+	/// Multiply high double word.
+	/// mulhd mulhd.
+	/// rD(), rA(), rB()	[rc()]
+	mulhdx,
+
+	/// Multiply low double word.
+	/// mulld mulld. mulldo mulldo.
+	/// rD(), rA(), rB()	[rc()]
+	mulld,
+
+	/// Segment lookaside buffer ('SLB') invalidate all.
+	/// slbia
+	slbia,
+
+	/// Segment lookaside buffer ('SLB') invalidate entry.
+	/// slbie
+	/// rB()
+	slbie,
+
+	/// Shift left double word.
+	/// sld sld.
+	/// rA(), rS(), rB()
+	sldx,
+
+	/// Shift right algebraic double word immediate.
+	/// sradi sradi.
+	/// rA(), rS(),sh()	[rc()]
+	sradix,
+
+	/// Shift right algebraic double word.
+	/// srad srad,
+	/// rA(), rS(), rB()	[rc()]
+	sradx,
+
+	/// Shift right double word.
+	/// srd srd.
+	/// rA(), rS(), rB()	[rc()]
+	srdx,
 
 	/// Store double.
 	/// std
@@ -1216,31 +1295,15 @@ enum class Operation: uint8_t {
 	/// rS(), rA(), rB()
 	stdx,
 
-	mulld,
+	/// Trap double word.
+	/// td
+	/// to(), rA(), rB()
+	td,
 
-	/// Load word algebraic.
-	/// lwa
-	/// rD(), rA(), rB()
-	lwa,
-
-	/// Load word algebraic with update indexed.
-	/// lwaux
-	/// rD(), rA(), rB()
-	lwaux,
-
-	/// Load word algebraic indexed.
-	/// lwax
-	/// rD(), rA(), rB()
-	lwax,
-
-	sradix, srdx,
-
-	/// Shift right algebraic double word.
-	/// srad srad,
-	/// rA(), rS(), rB()	[rc()]
-	sradx,
-
-	fsqrtsx
+	/// Trap double word immediate.
+	/// tdi
+	/// to(), rA(), simm()
+	tdi,
 };
 
 /*!
