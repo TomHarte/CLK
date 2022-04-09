@@ -1196,30 +1196,34 @@ enum class Operation: uint8_t {
 	/// frD(), frB()	[rc()]
 	fctidzx,
 
-	/// TODO
+	/// Load double word.
+	/// ld
+	/// rD(), ds() [ rA() ]
 	ld,
 
-	/// Load double word and reserve indezed.
+	/// Load double word and reserve indexed.
 	/// ldarx
 	/// rD(), rA(), rB()
 	ldarx,
 
-	/// TODO
+	/// Load double word with update.
+	/// ldu
+	/// rD(), ds() [ rA() ]
 	ldu,
 
 	/// Load double word with update indexed.
 	/// ldux
-	/// frD(), rA(), rB()
+	/// rD(), rA(), rB()
 	ldux,
 
 	/// Load double word indexed.
 	/// ldx
-	/// frD(), d() [ rA() ]
+	/// rD(), rA(), rB()
 	ldx,
 
 	/// Load word algebraic.
 	/// lwa
-	/// rD(), rA(), rB()
+	/// rD(), ds() [ rA() ]
 	lwa,
 
 	/// Load word algebraic with update indexed.
@@ -1247,22 +1251,34 @@ enum class Operation: uint8_t {
 	/// rD(), rA(), rB()	[rc()]
 	mulldx,
 
-	/// TODO
+	/// Rotate left double word then clear left.
+	/// rldcl rldcl.
+	/// rA(), rS(), rB(), mb()	[rc()]
 	rldclx,
 
-	/// TODO
+	/// Rotate left double word then clear right.
+	/// rldcr rldcr.
+	/// rA(), rS(), rB(), mb()	[rc()]
 	rldcrx,
 
-	/// TODO
+	/// Rotate left double word then clear.
+	/// rldic rldic.
+	/// rA(), rS(), rB(), sh(), mb()	[rc()]
 	rldicx,
 
-	/// TODO
+	/// Rotate left double word then clear left.
+	/// rldicl rldicl.
+	/// rA(), rS(), rB(), sh(), mb()	[rc()]
 	rldiclx,
 
-	/// TODO
+	/// Rotate left double word then clear right.
+	/// rldicr rldicr.
+	/// rA(), rS(), rB(), sh(), me()	[rc()]
 	rldicrx,
 
-	/// TODO
+	/// Rotate left double word immediate then mask insert.
+	/// rldiml rldimi.
+	/// rA(), rS(), rB(), sh(), mb()	[rc()]
 	rldimix,
 
 	/// Segment lookaside buffer ('SLB') invalidate all.
