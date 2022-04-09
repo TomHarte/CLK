@@ -209,7 +209,7 @@ template <Model model, bool validate_reserved_bits, Operation operation> Instruc
 		case Operation::lhz:		case Operation::lhzu:
 		case Operation::lmw:		case Operation::lwa:
 		case Operation::lwz:		case Operation::lwzu:
-		case Operation::mulld:		case Operation::mulli:		case Operation::mullwx:
+		case Operation::mulldx:		case Operation::mulli:		case Operation::mullwx:
 		case Operation::nandx:		case Operation::norx:
 		case Operation::orx:		case Operation::orcx:
 		case Operation::ori:		case Operation::oris:
@@ -229,9 +229,10 @@ template <Model model, bool validate_reserved_bits, Operation operation> Instruc
 		case Operation::subfic:
 		case Operation::tdi:		case Operation::twi:
 		case Operation::xorx:		case Operation::xori:		case Operation::xoris:
-
-		// TODO: ld	ldu
-		// TODO: rldclx	rldcrx	rldicx	rldicrx	rldimix
+		case Operation::ld:			case Operation::ldu:
+		case Operation::rldclx:		case Operation::rldcrx:
+		case Operation::rldicx:		case Operation::rldiclx:
+		case Operation::rldicrx:	case Operation::rldimix:
 
 		break;
 	}
@@ -341,7 +342,7 @@ Instruction Decoder<model, validate_reserved_bits>::decode(uint32_t opcode) {
 		BindConditional(is64bit, SixTen(0b011111, 0b0001010100), ldarx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0010010101), stdx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0010110101), stdux);
-		BindConditional(is64bit, SixTen(0b011111, 0b0011101001), mulld);	BindConditional(is64bit, SixTen(0b011111, 0b1011101001), mulld);
+		BindConditional(is64bit, SixTen(0b011111, 0b0011101001), mulldx);	BindConditional(is64bit, SixTen(0b011111, 0b1011101001), mulldx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0101010101), lwax);
 		BindConditional(is64bit, SixTen(0b011111, 0b0101110101), lwaux);
 		BindConditional(is64bit, SixTen(0b011111, 0b1100111011), sradix);	BindConditional(is64bit, SixTen(0b011111, 0b1100111010), sradix);
@@ -539,6 +540,8 @@ Instruction Decoder<model, validate_reserved_bits>::decode(uint32_t opcode) {
 
 		BindConditional(is64bit, SixTen(0b111011, 0b10110), fsqrtsx);
 		BindConditional(is64bit, SixTen(0b111011, 0b11000), fresx);
+		BindConditional(is64bit, SixTen(0b011110, 0b01000), rldclx);
+		BindConditional(is64bit, SixTen(0b011110, 0b01001), rldcrx);
 
 		// Optional...
 		Bind(SixTen(0b111111, 0b10110), fsqrtx);
@@ -546,23 +549,36 @@ Instruction Decoder<model, validate_reserved_bits>::decode(uint32_t opcode) {
 		Bind(SixTen(0b111111, 0b11010), frsqrtex);
 	}
 
+	// rldicx, rldiclx, rldicrx, rldimix
+	if(is64bit(model)) {
+		switch(opcode & 0b111111'00000'00000'00000'000000'111'00) {
+			default: break;
+			case 0b011110'00000'00000'00000'000000'000'00:	return instruction<model, validate_reserved_bits, Operation::rldiclx>(opcode);
+			case 0b011110'00000'00000'00000'000000'001'00:	return instruction<model, validate_reserved_bits, Operation::rldicrx>(opcode);
+			case 0b011110'00000'00000'00000'000000'010'00:	return instruction<model, validate_reserved_bits, Operation::rldicx>(opcode);
+			case 0b011110'00000'00000'00000'000000'011'00:	return instruction<model, validate_reserved_bits, Operation::rldimix>(opcode);
+		}
+	}
+
 	// stwcx. and stdcx.
 	switch(opcode & 0b111111'0000'0000'0000'0000'111111111'1) {
+		default: break;
 		case 0b011111'0000'0000'0000'0000'010010110'1:	return instruction<model, validate_reserved_bits, Operation::stwcx_>(opcode);
 		case 0b011111'0000'0000'0000'0000'011010110'1:
 			if(is64bit(model)) return instruction<model, validate_reserved_bits, Operation::stdcx_>(opcode);
 		return Instruction(opcode);
 	}
 
-	// std and stdu	[TODO: or ld and ldu?]
-	switch(opcode & 0b111111'00'00000000'00000000'000000'11) {
-		case 0b111110'00'00000000'00000000'000000'00:	return instruction<model, validate_reserved_bits, Operation::std>(opcode);
-		case 0b111110'00'00000000'00000000'000000'01:
-			if(is64bit(model)) return instruction<model, validate_reserved_bits, Operation::stdu>(opcode);
-			return Instruction(opcode);
-		case 0b111010'00'00000000'00000000'000000'10:
-			if(is64bit(model)) return instruction<model, validate_reserved_bits, Operation::lwa>(opcode);
-			return Instruction(opcode);
+	// std, stdu, ld, ldu, lwa
+	if(is64bit(model)) {
+		switch(opcode & 0b111111'00'00000000'00000000'000000'11) {
+			default: break;
+			case 0b111010'00'00000000'00000000'000000'00:	return instruction<model, validate_reserved_bits, Operation::ld>(opcode);
+			case 0b111010'00'00000000'00000000'000000'01:	return instruction<model, validate_reserved_bits, Operation::ldu>(opcode);
+			case 0b111010'00'00000000'00000000'000000'10:	return instruction<model, validate_reserved_bits, Operation::lwa>(opcode);
+			case 0b111110'00'00000000'00000000'000000'00:	return instruction<model, validate_reserved_bits, Operation::std>(opcode);
+			case 0b111110'00'00000000'00000000'000000'01:	return instruction<model, validate_reserved_bits, Operation::stdu>(opcode);
+		}
 	}
 
 	// sc
