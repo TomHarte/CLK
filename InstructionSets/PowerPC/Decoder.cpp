@@ -10,9 +10,240 @@
 
 using namespace InstructionSet::PowerPC;
 
-Decoder::Decoder(Model model) : model_(model) {}
+namespace {
 
-Instruction Decoder::decode(uint32_t opcode) {
+template <Model model, bool validate_reserved_bits, Operation operation> Instruction instruction(uint32_t opcode, bool is_supervisor = false) {
+	// If validation isn't required, there's nothing to do here.
+	if constexpr (!validate_reserved_bits) {
+		return Instruction(operation, opcode, is_supervisor);
+	}
+
+	// Otherwise, validation depends on operation
+	// (and, in principle, processor model).
+	switch(operation) {
+		case Operation::absx:		case Operation::clcs:
+		case Operation::nabsx:
+		case Operation::addmex:		case Operation::addzex:
+		case Operation::bcctrx:		case Operation::bclrx:
+		case Operation::cntlzdx:	case Operation::cntlzwx:
+		case Operation::extsbx:		case Operation::extshx:		case Operation::extswx:
+		case Operation::fmulx:		case Operation::fmulsx:
+		case Operation::negx:
+		case Operation::subfmex:	case Operation::subfzex:
+			if(opcode & 0b000000'00000'00000'11111'0000000000'0) return Instruction(opcode);
+		break;
+
+		case Operation::cmp:		case Operation::cmpl:
+			if(opcode & 0b000000'00010'00000'00000'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::cmpi:		case Operation::cmpli:
+			if(opcode & 0b000000'00010'00000'00000'0000000000'0) return Instruction(opcode);
+		break;
+
+		case Operation::dcbf:		case Operation::dcbi:		case Operation::dcbst:
+		case Operation::dcbt:		case Operation::dcbtst:		case Operation::dcbz:
+			if(opcode & 0b000000'11111'00000'00000'0000000000'0) return Instruction(opcode);
+		break;
+
+		case Operation::crand:		case Operation::crandc:		case Operation::creqv:
+		case Operation::crnand:		case Operation::crnor:		case Operation::cror:
+		case Operation::crorc:		case Operation::crxor:
+		case Operation::eciwx:		case Operation::ecowx:
+		case Operation::lbzux:		case Operation::lbzx:
+		case Operation::ldarx:
+		case Operation::ldux:		case Operation::ldx:
+		case Operation::lfdux:		case Operation::lfdx:
+		case Operation::lfsux:		case Operation::lfsx:
+		case Operation::lhaux:		case Operation::lhax:		case Operation::lhbrx:
+		case Operation::lhzux:		case Operation::lhzx:
+		case Operation::lswi:		case Operation::lswx:
+		case Operation::lwarx:		case Operation::lwaux:		case Operation::lwax:		case Operation::lwbrx:
+		case Operation::lwzux:		case Operation::lwzx:
+		case Operation::mfspr:		case Operation::mftb:
+		case Operation::mtspr:
+		case Operation::stbux:		case Operation::stbx:
+		case Operation::stdux:		case Operation::stdx:
+		case Operation::stfdux:		case Operation::stfdx:
+		case Operation::stfiwx:
+		case Operation::stfsux:		case Operation::stfsx:
+		case Operation::sthbrx:
+		case Operation::sthux:		case Operation::sthx:
+		case Operation::stswi:		case Operation::stswx:
+		case Operation::stwbrx:
+		case Operation::stwux:		case Operation::stwx:
+		case Operation::td:			case Operation::tw:
+			if(opcode & 0b000000'00000'00000'00000'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::fabsx:		case Operation::fcfidx:
+		case Operation::fctidx:		case Operation::fctidzx:
+		case Operation::fctiwx:		case Operation::fctiwzx:
+		case Operation::fmrx:		case Operation::fnabsx:
+		case Operation::fnegx:		case Operation::frspx:
+			if(opcode & 0b000000'00000'11111'00000'0000000000'0) return Instruction(opcode);
+		break;
+
+		case Operation::faddx:		case Operation::faddsx:
+		case Operation::fdivx:		case Operation::fdivsx:
+		case Operation::fsubx:		case Operation::fsubsx:
+			if(opcode & 0b000000'00000'00000'00000'1111100000'0) return Instruction(opcode);
+		break;
+
+		case Operation::fcmpo:		case Operation::fcmpu:
+			if(opcode & 0b000000'00011'00000'00000'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::fresx:		case Operation::frsqrtex:
+		case Operation::fsqrtx:		case Operation::fsqrtsx:
+			if(opcode & 0b000000'00000'11111'00000'1111100000'1) return Instruction(opcode);
+		break;
+
+		case Operation::icbi:
+			if(opcode & 0b000000'11111'00000'00000'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::eieio:
+		case Operation::isync:
+		case Operation::rfi:
+		case Operation::slbia:
+		case Operation::sync:
+		case Operation::tlbia:
+		case Operation::tlbsync:
+			if(opcode & 0b000000'11111'11111'11111'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::mcrf:		case Operation::mcrfs:
+			if(opcode & 0b000000'00011'00011'11111'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::mcrxr:
+			if(opcode & 0b000000'00011'11111'11111'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::mfcr:
+		case Operation::mfmsr:
+		case Operation::mtmsr:
+			if(opcode & 0b000000'00000'11111'11111'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::mffsx:
+		case Operation::mtfsb0x:
+		case Operation::mtfsb1x:
+			if(opcode & 0b000000'00000'11111'11111'0000000000'0) return Instruction(opcode);
+		break;
+
+		case Operation::mtfsfx:
+			if(opcode & 0b000000'10000'00001'00000'0000000000'0) return Instruction(opcode);
+		break;
+
+		case Operation::mtfsfix:
+			if(opcode & 0b000000'00011'11111'00001'0000000000'0) return Instruction(opcode);
+		break;
+
+		case Operation::mtsr:
+			if(opcode & 0b000000'00000'10000'11111'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::mtsrin:		case Operation::mfsrin:
+			if(opcode & 0b000000'00000'11111'00000'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::mfsr:
+			if(opcode & 0b000000'00000'10000'11111'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::mtcrf:
+			if(opcode & 0b000000'00000'10000'00001'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::mulhdx:		case Operation::mulhdux:
+		case Operation::mulhwx:		case Operation::mulhwux:
+			if(opcode & 0b000000'00000'00000'00000'1000000000'0) return Instruction(opcode);
+		break;
+
+		case Operation::sc:
+			if(opcode & 0b000000'11111'11111'11111'1111111110'1) return Instruction(opcode);
+		break;
+
+		case Operation::slbie:
+		case Operation::tlbie:
+			if(opcode & 0b000000'11111'11111'00000'0000000000'1) return Instruction(opcode);
+		break;
+
+		case Operation::stwcx_:
+			if(!(opcode & 0b000000'00000'00000'00000'0000000000'1)) return Instruction(opcode);
+		break;
+
+		case Operation::divx:		case Operation::divsx:
+		case Operation::dozx:		case Operation::dozi:
+		case Operation::lscbxx:
+		case Operation::maskgx:		case Operation::maskirx:
+		case Operation::mulx:
+		case Operation::rlmix:		case Operation::rribx:
+		case Operation::slex:		case Operation::sleqx:		case Operation::sliqx:
+		case Operation::slliqx:		case Operation::sllqx:		case Operation::slqx:
+		case Operation::sraiqx:		case Operation::sraqx:
+		case Operation::srex:		case Operation::sreqx:
+		case Operation::sriqx:		case Operation::srliqx:
+		case Operation::srlqx:		case Operation::srqx:
+		case Operation::sreax:
+		case Operation::addx:		case Operation::addcx:		case Operation::addex:
+		case Operation::addi:		case Operation::addic:		case Operation::addic_:
+		case Operation::addis:
+		case Operation::andx:		case Operation::andcx:
+		case Operation::andi_:		case Operation::andis_:
+		case Operation::bx:			case Operation::bcx:
+		case Operation::divdx:		case Operation::divdux:
+		case Operation::divwx:		case Operation::divwux:
+		case Operation::eqvx:
+		case Operation::fmaddx:		case Operation::fmaddsx:
+		case Operation::fmsubx:		case Operation::fmsubsx:
+		case Operation::fnmaddx:	case Operation::fnmaddsx:
+		case Operation::fnmsubx:	case Operation::fnmsubsx:
+		case Operation::fselx:
+		case Operation::lbz:		case Operation::lbzu:
+		case Operation::lfd:		case Operation::lfdu:
+		case Operation::lfs:		case Operation::lfsu:
+		case Operation::lha:		case Operation::lhau:
+		case Operation::lhz:		case Operation::lhzu:
+		case Operation::lmw:		case Operation::lwa:
+		case Operation::lwz:		case Operation::lwzu:
+		case Operation::mulldx:		case Operation::mulli:		case Operation::mullwx:
+		case Operation::nandx:		case Operation::norx:
+		case Operation::orx:		case Operation::orcx:
+		case Operation::ori:		case Operation::oris:
+		case Operation::rlwimix:	case Operation::rlwinmx:	case Operation::rlwnmx:
+		case Operation::sldx:		case Operation::slwx:
+		case Operation::sradx:		case Operation::sradix:
+		case Operation::srawx:		case Operation::srawix:
+		case Operation::srdx:		case Operation::srwx:
+		case Operation::stb:		case Operation::stbu:
+		case Operation::std:		case Operation::stdcx_:		case Operation::stdu:
+		case Operation::stfd:		case Operation::stfdu:
+		case Operation::stfs:		case Operation::stfsu:
+		case Operation::sth:		case Operation::sthu:
+		case Operation::stmw:
+		case Operation::stw:		case Operation::stwu:
+		case Operation::subfx:		case Operation::subfcx:		case Operation::subfex:
+		case Operation::subfic:
+		case Operation::tdi:		case Operation::twi:
+		case Operation::xorx:		case Operation::xori:		case Operation::xoris:
+		case Operation::ld:			case Operation::ldu:
+		case Operation::rldclx:		case Operation::rldcrx:
+		case Operation::rldicx:		case Operation::rldiclx:
+		case Operation::rldicrx:	case Operation::rldimix:
+
+		break;
+	}
+
+	return Instruction(operation, opcode, is_supervisor);
+}
+
+}
+
+template <Model model, bool validate_reserved_bits>
+Instruction Decoder<model, validate_reserved_bits>::decode(uint32_t opcode) {
 	// Quick bluffer's guide to PowerPC instruction encoding:
 	//
 	// There is a six-bit field at the very top of the instruction.
@@ -32,16 +263,16 @@ Instruction Decoder::decode(uint32_t opcode) {
 	// currently check the value of reserved bits. That may need to change
 	// if/when I add support for extended instruction sets.
 
-#define Bind(mask, operation)				case mask: return Instruction(Operation::operation, opcode);
-#define BindSupervisor(mask, operation)		case mask: return Instruction(Operation::operation, opcode, true);
+#define Bind(mask, operation)				case mask: return instruction<model, validate_reserved_bits, Operation::operation>(opcode);
+#define BindSupervisor(mask, operation)		case mask: return instruction<model, validate_reserved_bits, Operation::operation>(opcode, true);
 #define BindConditional(condition, mask, operation)	\
 	case mask: \
-		if(condition()) return Instruction(Operation::operation, opcode);	\
-	return Instruction(opcode);
+		if(condition(model)) return instruction<model, validate_reserved_bits, Operation::operation>(opcode);	\
+	return instruction<model, validate_reserved_bits, Operation::operation>(opcode);
 #define BindSupervisorConditional(condition, mask, operation)	\
 	case mask: \
-		if(condition()) return Instruction(Operation::operation, opcode, true);	\
-	return Instruction(opcode);
+		if(condition(model)) return instruction<model, validate_reserved_bits, Operation::operation>(opcode, true);	\
+	return instruction<model, validate_reserved_bits, Operation::operation>(opcode);
 
 #define Six(x)			(unsigned(x) << 26)
 #define SixTen(x, y)	(Six(x) | ((y) << 1))
@@ -64,7 +295,7 @@ Instruction Decoder::decode(uint32_t opcode) {
 				case 0: case 1: case 2: case 3: case 4: case 5:
 				case 8: case 9: case 10: case 11: case 12: case 13:
 				case 16: case 17: case 18: case 19: case 20:
-				return Instruction(Operation::bcx, opcode);
+				return instruction<model, validate_reserved_bits, Operation::bcx>(opcode);
 
 				default: return Instruction(opcode);
 			}
@@ -111,7 +342,7 @@ Instruction Decoder::decode(uint32_t opcode) {
 		BindConditional(is64bit, SixTen(0b011111, 0b0001010100), ldarx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0010010101), stdx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0010110101), stdux);
-		BindConditional(is64bit, SixTen(0b011111, 0b0011101001), mulld);	BindConditional(is64bit, SixTen(0b011111, 0b1011101001), mulld);
+		BindConditional(is64bit, SixTen(0b011111, 0b0011101001), mulldx);	BindConditional(is64bit, SixTen(0b011111, 0b1011101001), mulldx);
 		BindConditional(is64bit, SixTen(0b011111, 0b0101010101), lwax);
 		BindConditional(is64bit, SixTen(0b011111, 0b0101110101), lwaux);
 		BindConditional(is64bit, SixTen(0b011111, 0b1100111011), sradix);	BindConditional(is64bit, SixTen(0b011111, 0b1100111010), sradix);
@@ -120,7 +351,7 @@ Instruction Decoder::decode(uint32_t opcode) {
 		BindConditional(is64bit, SixTen(0b011111, 0b0111101001), divdx);	BindConditional(is64bit, SixTen(0b011111, 0b1111101001), divdx);
 		BindConditional(is64bit, SixTen(0b011111, 0b1000011011), srdx);
 		BindConditional(is64bit, SixTen(0b011111, 0b1100011010), sradx);
-		BindConditional(is64bit, SixTen(0b111111, 0b1111011010), extsw);
+		BindConditional(is64bit, SixTen(0b111111, 0b1111011010), extswx);
 
 		// Power instructions; these are all taken from the MPC601 manual rather than
 		// the PowerPC Programmer's Reference Guide, hence the decimal encoding of the
@@ -309,6 +540,8 @@ Instruction Decoder::decode(uint32_t opcode) {
 
 		BindConditional(is64bit, SixTen(0b111011, 0b10110), fsqrtsx);
 		BindConditional(is64bit, SixTen(0b111011, 0b11000), fresx);
+		BindConditional(is64bit, SixTen(0b011110, 0b01000), rldclx);
+		BindConditional(is64bit, SixTen(0b011110, 0b01001), rldcrx);
 
 		// Optional...
 		Bind(SixTen(0b111111, 0b10110), fsqrtx);
@@ -316,25 +549,41 @@ Instruction Decoder::decode(uint32_t opcode) {
 		Bind(SixTen(0b111111, 0b11010), frsqrtex);
 	}
 
+	// rldicx, rldiclx, rldicrx, rldimix
+	if(is64bit(model)) {
+		switch(opcode & 0b111111'00000'00000'00000'000000'111'00) {
+			default: break;
+			case 0b011110'00000'00000'00000'000000'000'00:	return instruction<model, validate_reserved_bits, Operation::rldiclx>(opcode);
+			case 0b011110'00000'00000'00000'000000'001'00:	return instruction<model, validate_reserved_bits, Operation::rldicrx>(opcode);
+			case 0b011110'00000'00000'00000'000000'010'00:	return instruction<model, validate_reserved_bits, Operation::rldicx>(opcode);
+			case 0b011110'00000'00000'00000'000000'011'00:	return instruction<model, validate_reserved_bits, Operation::rldimix>(opcode);
+		}
+	}
+
 	// stwcx. and stdcx.
-	switch(opcode & 0b111111'00'00000000'000'111111111'1){
-		case 0b011111'00'00000000'00000'0010010110'1:	return Instruction(Operation::stwcx_, opcode);
-		case 0b011111'00'00000000'00000'0011010110'1:
-			if(is64bit()) return Instruction(Operation::stdcx_, opcode);
+	switch(opcode & 0b111111'0000'0000'0000'0000'111111111'1) {
+		default: break;
+		case 0b011111'0000'0000'0000'0000'010010110'1:	return instruction<model, validate_reserved_bits, Operation::stwcx_>(opcode);
+		case 0b011111'0000'0000'0000'0000'011010110'1:
+			if(is64bit(model)) return instruction<model, validate_reserved_bits, Operation::stdcx_>(opcode);
 		return Instruction(opcode);
 	}
 
-	// std and stdu
-	switch(opcode & 0b111111'00'00000000'00000000'000000'11){
-		case 0b111110'00'00000000'00000000'000000'00:	return Instruction(Operation::std, opcode);
-		case 0b111110'00'00000000'00000000'000000'01:
-			if(is64bit()) return Instruction(Operation::stdu, opcode);
-		return Instruction(opcode);
+	// std, stdu, ld, ldu, lwa
+	if(is64bit(model)) {
+		switch(opcode & 0b111111'00'00000000'00000000'000000'11) {
+			default: break;
+			case 0b111010'00'00000000'00000000'000000'00:	return instruction<model, validate_reserved_bits, Operation::ld>(opcode);
+			case 0b111010'00'00000000'00000000'000000'01:	return instruction<model, validate_reserved_bits, Operation::ldu>(opcode);
+			case 0b111010'00'00000000'00000000'000000'10:	return instruction<model, validate_reserved_bits, Operation::lwa>(opcode);
+			case 0b111110'00'00000000'00000000'000000'00:	return instruction<model, validate_reserved_bits, Operation::std>(opcode);
+			case 0b111110'00'00000000'00000000'000000'01:	return instruction<model, validate_reserved_bits, Operation::stdu>(opcode);
+		}
 	}
 
 	// sc
 	if((opcode & 0b111111'00'00000000'00000000'000000'1'0) == 0b010001'00'00000000'00000000'000000'1'0) {
-		return Instruction(Operation::sc, opcode);
+		return instruction<model, validate_reserved_bits, Operation::sc>(opcode);
 	}
 
 #undef Six
@@ -345,3 +594,11 @@ Instruction Decoder::decode(uint32_t opcode) {
 
 	return Instruction(opcode);
 }
+
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601, true>;
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC603, true>;
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC620, true>;
+
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601, false>;
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC603, false>;
+template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC620, false>;

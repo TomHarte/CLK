@@ -96,8 +96,8 @@ namespace {
 	XCTAssertEqual(instruction.rA(), rA);
 	XCTAssertEqual(instruction.rS(), rS);
 	XCTAssertEqual(instruction.rB(), rB);
-	XCTAssertEqual(instruction.mb(), mb);
-	XCTAssertEqual(instruction.me(), me);
+	XCTAssertEqual(instruction.mb<uint32_t>(), mb);
+	XCTAssertEqual(instruction.me<uint32_t>(), me);
 	XCTAssertEqual(!!instruction.rc(), rc);
 }
 
@@ -119,7 +119,7 @@ namespace {
 // MARK: - Decoder
 
 - (void)decode:(const uint32_t *)stream {
-	InstructionSet::PowerPC::Decoder decoder(InstructionSet::PowerPC::Model::MPC601);
+	InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601> decoder;
 	for(int c = 0; c < 32; c++) {
 		instructions[c] = decoder.decode(stream[c]);
 	}

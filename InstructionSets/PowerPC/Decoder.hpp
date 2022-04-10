@@ -23,31 +23,31 @@ enum class Model {
 	MPC620,
 };
 
+constexpr bool is64bit(Model model) {
+	return model == Model::MPC620;
+}
+
+constexpr bool is32bit(Model model) {
+	return !is64bit(model);
+}
+
+constexpr bool is601(Model model) {
+	return model == Model::MPC601;
+}
+
 /*!
 	Implements PowerPC instruction decoding.
 
-	This is an experimental implementation; it has not yet undergone significant testing.
+	@c model Indicates the instruction set to decode.
+
+	@c validate_reserved_bits If set to @c true, check that all
+	reserved bits are 0 or 1 as required and produce an invalid opcode if not.
+	Otherwise does no inspection of reserved bits.
+
+	TODO: determine what specific models of PowerPC do re: reserved bits.
 */
-struct Decoder {
-	public:
-		Decoder(Model model);
-
-		Instruction decode(uint32_t opcode);
-
-	private:
-		Model model_;
-
-		bool is64bit() const {
-			return model_ == Model::MPC620;
-		}
-
-		bool is32bit() const {
-			return !is64bit();
-		}
-
-		bool is601() const {
-			return model_ == Model::MPC601;
-		}
+template <Model model, bool validate_reserved_bits = false> struct Decoder {
+	Instruction decode(uint32_t opcode);
 };
 
 }
