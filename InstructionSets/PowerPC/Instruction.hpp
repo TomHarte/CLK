@@ -1423,12 +1423,31 @@ struct Instruction {
 	/// Branch displacement; provided as already sign extended.
 	int16_t bd() const		{	return int16_t(opcode & 0xfffc);	}
 
-	// TODO: both MB/ME and mb/me fields seem to be defined. Investigate.
+	/// Specifies the first 1 bit of a 32-bit mask for 32-bit rotate operations.
+	template <typename IntT> IntT mb() const {
+		if constexpr (sizeof(IntT) == 4) {
+			return (opcode >> 6) & 0x1f;
+		} else {
+			return (opcode >> 5) & 0x3f;
+		}
+	}
+	/// Specifies the first 1 bit of a 32/64-bit mask for rotate operations.
+	/// Specify IntT as uint32_t for the 32-bit rotate instructions, uint64_t for the 64-bit.
+	template <typename IntT> IntT me() const {
+		if constexpr (sizeof(IntT) == 4) {
+			return (opcode >> 1) & 0x1f;
+		} else {
+			return (opcode >> 5) & 0x3f;
+		}
+	}
 
-	/// Specifies the first 1 bit of a 32/64-bit mask for rotate operations.
-	uint32_t mb() const		{	return (opcode >> 6) & 0x1f;		}
-	/// Specifies the first 1 bit of a 32/64-bit mask for rotate operations.
-	uint32_t me() const		{	return (opcode >> 1) & 0x1f;		}
+	/// Provides the mask described by 32-bit rotate operations.
+	/// i.e. all bits from mb() to me() inclusive.
+	uint32_t rotate_mask() const {
+		const uint32_t mb_bit = 0x8000'0000 >> mb<uint32_t>();
+		const uint32_t me_bit = 0x8000'0000 >> mb<uint32_t>();
+		return mb_bit - me_bit + mb_bit;
+	}
 
 	/// Condition register source bit A.
 	uint32_t crbA() const	{	return (opcode >> 16) & 0x1f;		}
@@ -1456,8 +1475,15 @@ struct Instruction {
 		return ((nb - 1) & 31) + 1;
 	}
 
-	/// Specifies a shift amount.
-	uint32_t sh() const		{	return (opcode >> 11) & 0x1f;		}
+	/// Specifies a shift amount. Use IntT = uint32_t to get the shift value embedded in
+	/// 32-bit instructions, uint64_t for 64-bit instructions.
+	template <typename IntT> uint32_t sh() const {
+		uint32_t sh = (opcode >> 11) & 0x1f;
+		if constexpr (sizeof(IntT) == 8) {
+			sh |= (opcode & 2) << 4;
+		}
+		return sh;
+	}
 
 	/// Specifies one of the 16 segment registers [32-bit only].
 	uint32_t sr() const		{	return (opcode >> 16) & 0xf;		}
