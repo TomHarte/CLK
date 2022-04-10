@@ -207,16 +207,16 @@ NSString *offset(Instruction instruction) {
 				const auto b = [columns[6] intValue];
 
 				if([operation isEqualToString:@"inslwi"] || [operation isEqualToString:@"inslwi."]) {
-					XCTAssertEqual(instruction.sh(), 32 - b);
-					XCTAssertEqual(instruction.mb(), b);
-					XCTAssertEqual(instruction.me(), b + n - 1);
+					XCTAssertEqual(instruction.sh<uint32_t>(), 32 - b);
+					XCTAssertEqual(instruction.mb<uint32_t>(), b);
+					XCTAssertEqual(instruction.me<uint32_t>(), b + n - 1);
 					break;
 				}
 
 				if([operation isEqualToString:@"insrwi"] || [operation isEqualToString:@"insrwi."]) {
-					XCTAssertEqual(instruction.sh(), 32 - (b + n));
-					XCTAssertEqual(instruction.mb(), b);
-					XCTAssertEqual(instruction.me(), b + n - 1);
+					XCTAssertEqual(instruction.sh<uint32_t>(), 32 - (b + n));
+					XCTAssertEqual(instruction.mb<uint32_t>(), b);
+					XCTAssertEqual(instruction.me<uint32_t>(), b + n - 1);
 					break;
 				}
 
@@ -230,8 +230,8 @@ NSString *offset(Instruction instruction) {
 				AssertEqualR(columns[5], instruction.rB());
 
 				if([operation isEqualToString:@"rotlw"] || [operation isEqualToString:@"rotlw."]) {
-					XCTAssertEqual(instruction.mb(), 0);
-					XCTAssertEqual(instruction.me(), 31);
+					XCTAssertEqual(instruction.mb<uint32_t>(), 0);
+					XCTAssertEqual(instruction.me<uint32_t>(), 31);
 					break;
 				}
 
@@ -250,67 +250,67 @@ NSString *offset(Instruction instruction) {
 				const auto b = columns.count > 6 ? [columns[6] intValue] : 0;
 
 				if([operation isEqualToString:@"extlwi"] || [operation isEqualToString:@"extlwi."]) {
-					XCTAssertEqual(instruction.sh(), b);
-					XCTAssertEqual(instruction.mb(), 0);
-					XCTAssertEqual(instruction.me(), n - 1);
+					XCTAssertEqual(instruction.sh<uint32_t>(), b);
+					XCTAssertEqual(instruction.mb<uint32_t>(), 0);
+					XCTAssertEqual(instruction.me<uint32_t>(), n - 1);
 					break;
 				}
 
 				if([operation isEqualToString:@"extrwi"] || [operation isEqualToString:@"extrwi."]) {
-					XCTAssertEqual(instruction.sh(), b + n);
-					XCTAssertEqual(instruction.mb(), 32 - n);
-					XCTAssertEqual(instruction.me(), 31);
+					XCTAssertEqual(instruction.sh<uint32_t>(), b + n);
+					XCTAssertEqual(instruction.mb<uint32_t>(), 32 - n);
+					XCTAssertEqual(instruction.me<uint32_t>(), 31);
 					break;
 				}
 
 				if([operation isEqualToString:@"rotlwi"] || [operation isEqualToString:@"rotlwi."]) {
-					XCTAssertEqual(instruction.sh(), n);
-					XCTAssertEqual(instruction.mb(), 0);
-					XCTAssertEqual(instruction.me(), 31);
+					XCTAssertEqual(instruction.sh<uint32_t>(), n);
+					XCTAssertEqual(instruction.mb<uint32_t>(), 0);
+					XCTAssertEqual(instruction.me<uint32_t>(), 31);
 					break;
 				}
 
 				if([operation isEqualToString:@"rotrwi"] || [operation isEqualToString:@"rotrwi."]) {
-					XCTAssertEqual(instruction.sh(), 32 - n);
-					XCTAssertEqual(instruction.mb(), 0);
-					XCTAssertEqual(instruction.me(), 31);
+					XCTAssertEqual(instruction.sh<uint32_t>(), 32 - n);
+					XCTAssertEqual(instruction.mb<uint32_t>(), 0);
+					XCTAssertEqual(instruction.me<uint32_t>(), 31);
 					break;
 				}
 
 				if([operation isEqualToString:@"slwi"] || [operation isEqualToString:@"slwi."]) {
-					XCTAssertEqual(instruction.sh(), n);
-					XCTAssertEqual(instruction.mb(), 0);
-					XCTAssertEqual(instruction.me(), 31 - n);
+					XCTAssertEqual(instruction.sh<uint32_t>(), n);
+					XCTAssertEqual(instruction.mb<uint32_t>(), 0);
+					XCTAssertEqual(instruction.me<uint32_t>(), 31 - n);
 					break;
 				}
 
 				if([operation isEqualToString:@"srwi"] || [operation isEqualToString:@"srwi."]) {
-					XCTAssertEqual(instruction.sh(), 32 - n);
-					XCTAssertEqual(instruction.mb(), n);
-					XCTAssertEqual(instruction.me(), 31);
+					XCTAssertEqual(instruction.sh<uint32_t>(), 32 - n);
+					XCTAssertEqual(instruction.mb<uint32_t>(), n);
+					XCTAssertEqual(instruction.me<uint32_t>(), 31);
 					break;
 				}
 
 				if([operation isEqualToString:@"clrlwi"] || [operation isEqualToString:@"clrlwi."]) {
-					XCTAssertEqual(instruction.sh(), 0);
-					XCTAssertEqual(instruction.mb(), n);
-					XCTAssertEqual(instruction.me(), 31);
+					XCTAssertEqual(instruction.sh<uint32_t>(), 0);
+					XCTAssertEqual(instruction.mb<uint32_t>(), n);
+					XCTAssertEqual(instruction.me<uint32_t>(), 31);
 					break;
 				}
 
 				if([operation isEqualToString:@"clrrwi"] || [operation isEqualToString:@"clrrwi."]) {
-					XCTAssertEqual(instruction.sh(), 0);
-					XCTAssertEqual(instruction.mb(), 0);
-					XCTAssertEqual(instruction.me(), 31 - n);
+					XCTAssertEqual(instruction.sh<uint32_t>(), 0);
+					XCTAssertEqual(instruction.mb<uint32_t>(), 0);
+					XCTAssertEqual(instruction.me<uint32_t>(), 31 - n);
 					break;
 				}
 
 				if([operation isEqualToString:@"clrlslwi"] || [operation isEqualToString:@"clrlslwi."]) {
 					// FreeScale switched the order of b and n in the short-form instruction here;
 					// they are therefore transposed in the tests below.
-					XCTAssertEqual(instruction.sh(), b);
-					XCTAssertEqual(instruction.mb(), n - b);
-					XCTAssertEqual(instruction.me(), 31 - b);
+					XCTAssertEqual(instruction.sh<uint32_t>(), b);
+					XCTAssertEqual(instruction.mb<uint32_t>(), n - b);
+					XCTAssertEqual(instruction.me<uint32_t>(), 31 - b);
 					break;
 				}
 
@@ -406,8 +406,8 @@ NSString *offset(Instruction instruction) {
 				AssertEqualR(columns[3], instruction.rA());
 				AssertEqualR(columns[4], instruction.rS());
 				AssertEqualR(columns[5], instruction.rB());
-				XCTAssertEqual([columns[6] intValue], instruction.mb());
-				XCTAssertEqual([columns[7] intValue], instruction.me());
+				XCTAssertEqual([columns[6] intValue], instruction.mb<uint32_t>());
+				XCTAssertEqual([columns[7] intValue], instruction.me<uint32_t>());
 			break;
 
 			case Operation::cmp:
@@ -511,7 +511,7 @@ NSString *offset(Instruction instruction) {
 				AssertEqualOperationNameE(operation, @#x, instruction);	\
 				AssertEqualR(columns[3], instruction.rA());				\
 				AssertEqualR(columns[4], instruction.rS());				\
-				XCTAssertEqual([columns[5] hexInt], instruction.sh());	\
+				XCTAssertEqual([columns[5] hexInt], instruction.sh<uint32_t>());	\
 			break;
 
 			ASsh(sliqx);

@@ -96,8 +96,8 @@ namespace {
 	XCTAssertEqual(instruction.rA(), rA);
 	XCTAssertEqual(instruction.rS(), rS);
 	XCTAssertEqual(instruction.rB(), rB);
-	XCTAssertEqual(instruction.mb(), mb);
-	XCTAssertEqual(instruction.me(), me);
+	XCTAssertEqual(instruction.mb<uint32_t>(), mb);
+	XCTAssertEqual(instruction.me<uint32_t>(), me);
 	XCTAssertEqual(!!instruction.rc(), rc);
 }
 
