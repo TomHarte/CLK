@@ -132,7 +132,8 @@ enum class Operation: uint8_t {
 
 	/// Rotate left then mask insert.
 	/// rlmi rlmi.
-	/// rA(), rS(), rB(), mb(), me()	[rc()]
+	/// rA(), rS(), rB(), mb<uint32_t>(), me<uint32_t>()	[rc()]
+	/// Cf. rotate_mask()
 	rlmix,
 
 	/// Rotate right and insert bit.
@@ -152,12 +153,12 @@ enum class Operation: uint8_t {
 
 	/// Shift left immediate with MQ.
 	/// sliq sliq.
-	/// rA(), rS(), sh()	[rc()]
+	/// rA(), rS(), sh<uint32_t>()	[rc()]
 	sliqx,
 
 	/// Shift left long immediate with MQ.
 	/// slliq slliq.
-	/// rA(), rS(), sh()	[rc()]
+	/// rA(), rS(), sh<uint32_t>()	[rc()]
 	slliqx,
 
 	/// Shift left long with MQ.
@@ -172,7 +173,7 @@ enum class Operation: uint8_t {
 
 	/// Shift right algebraic immediate with MQ.
 	/// sraiq sraiq.
-	/// rA(), rS(), sh()	[rc()]
+	/// rA(), rS(), sh<uint32_t>()	[rc()]
 	sraiqx,
 
 	/// Shift right algebraic with MQ.
@@ -197,12 +198,12 @@ enum class Operation: uint8_t {
 
 	/// Shift right immediate with MQ.
 	/// sriq sriq.
-	/// rA(), rS(), sh()	[rc()]
+	/// rA(), rS(), sh<uint32_t>()	[rc()]
 	sriqx,
 
 	/// Shift right long immediate with MQ.
 	/// srliq srliq.
-	/// rA(), rS(), sh()	[rc()]
+	/// rA(), rS(), sh<uint32_t>()	[rc()]
 	srliqx,
 
 	/// Shift right long with MQ.
@@ -866,17 +867,20 @@ enum class Operation: uint8_t {
 
 	/// Rotate left word immediate then mask insert.
 	/// rlwimi rlwimi.
-	/// rA(), rS(), sh(), mb(), me()	[rc()]
+	/// rA(), rS(), sh<uint32_t>(), mb<uint32_t>(), me<uint32_t>()	[rc()]
+	/// Cf. rotate_mask()
 	rlwimix,
 
 	/// Rotate left word immediate then AND with mask.
 	/// rlwinm rlwinm.
-	/// rA(), rS(), sh(), mb(), me()	[rc()]
+	/// rA(), rS(), sh<uint32_t>(), mb<uint32_t>(), me<uint32_t>()	[rc()]
+	/// Cf. rotate_mask()
 	rlwinmx,
 
 	/// Rotate left word then AND with mask
 	/// rlwimi rlwimi.
-	/// rA(), rB(), rS(), mb(), me()	[rc()]
+	/// rA(), rB(), rS(), mb<uint32_t>(), me<uint32_t>()	[rc()]
+	/// Cf. rotate_mask()
 	rlwnmx,
 
 	/// System call.
@@ -895,7 +899,7 @@ enum class Operation: uint8_t {
 
 	/// Shift right algebraic word immediate.
 	/// srawi srawi.
-	/// rA(), rS(), sh()	[rc()]
+	/// rA(), rS(), sh<uint32_t>()	[rc()]
 	srawix,
 
 	/// Shift right word.
@@ -1253,32 +1257,32 @@ enum class Operation: uint8_t {
 
 	/// Rotate left double word then clear left.
 	/// rldcl rldcl.
-	/// rA(), rS(), rB(), mb()	[rc()]
+	/// rA(), rS(), rB(), mb<uint64_t>()	[rc()]
 	rldclx,
 
 	/// Rotate left double word then clear right.
 	/// rldcr rldcr.
-	/// rA(), rS(), rB(), mb()	[rc()]
+	/// rA(), rS(), rB(), mb<uint64_t>()	[rc()]
 	rldcrx,
 
 	/// Rotate left double word then clear.
 	/// rldic rldic.
-	/// rA(), rS(), rB(), sh(), mb()	[rc()]
+	/// rA(), rS(), rB(), sh<uint64_t>(), mb<uint64_t>()	[rc()]
 	rldicx,
 
 	/// Rotate left double word then clear left.
 	/// rldicl rldicl.
-	/// rA(), rS(), rB(), sh(), mb()	[rc()]
+	/// rA(), rS(), rB(), sh<uint64_t>(), mb<uint64_t>()	[rc()]
 	rldiclx,
 
 	/// Rotate left double word then clear right.
 	/// rldicr rldicr.
-	/// rA(), rS(), rB(), sh(), me()	[rc()]
+	/// rA(), rS(), rB(), sh<uint64_t>(), me<uint64_t>()	[rc()]
 	rldicrx,
 
 	/// Rotate left double word immediate then mask insert.
 	/// rldiml rldimi.
-	/// rA(), rS(), rB(), sh(), mb()	[rc()]
+	/// rA(), rS(), rB(), sh<uint64_t>(), mb<uint64_t>()	[rc()]
 	rldimix,
 
 	/// Segment lookaside buffer ('SLB') invalidate all.
@@ -1302,7 +1306,7 @@ enum class Operation: uint8_t {
 
 	/// Shift right algebraic double word immediate.
 	/// sradi sradi.
-	/// rA(), rS(),sh()	[rc()]
+	/// rA(), rS(),sh<uint64_t>()	[rc()]
 	sradix,
 
 	/// Shift right double word.
