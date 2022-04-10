@@ -1446,11 +1446,17 @@ struct Instruction {
 	}
 
 	/// Provides the mask described by 32-bit rotate operations.
-	/// i.e. all bits from mb() to me() inclusive.
+	///
+	/// Per IBM's rules:
+	/// 	mb < me+1 	=> set [mb, me]
+	/// 	mb == me+1	=> set all bits
+	/// 	mb > me+1	=> complement of set [me+1, mb-1]
 	uint32_t rotate_mask() const {
-		const uint32_t mb_bit = 0x8000'0000 >> mb<uint32_t>();
-		const uint32_t me_bit = 0x8000'0000 >> mb<uint32_t>();
-		return mb_bit - me_bit + mb_bit;
+		const auto mb_bit = mb<uint32_t>();
+		const auto me_bit = me<uint32_t>();
+
+		uint32_t result = (0xffff'ffff >> mb_bit) ^ (0x7fff'ffff >> me_bit);
+		return result ^ ((mb_bit < me_bit+1) ? 0 : 0xffff'ffff);
 	}
 
 	/// Condition register source bit A.
