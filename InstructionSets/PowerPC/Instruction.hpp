@@ -132,7 +132,7 @@ enum class Operation: uint8_t {
 
 	/// Rotate left then mask insert.
 	/// rlmi rlmi.
-	/// rA(), rS(), rB(), mb<uint32_t>(), me<uint32_t>()	[rc()]
+	/// rA(), rS(), rB(), mb(), me()	[rc()]
 	/// Cf. rotate_mask()
 	rlmix,
 
@@ -153,12 +153,12 @@ enum class Operation: uint8_t {
 
 	/// Shift left immediate with MQ.
 	/// sliq sliq.
-	/// rA(), rS(), sh<uint32_t>()	[rc()]
+	/// rA(), rS(), sh()	[rc()]
 	sliqx,
 
 	/// Shift left long immediate with MQ.
 	/// slliq slliq.
-	/// rA(), rS(), sh<uint32_t>()	[rc()]
+	/// rA(), rS(), sh()	[rc()]
 	slliqx,
 
 	/// Shift left long with MQ.
@@ -173,7 +173,7 @@ enum class Operation: uint8_t {
 
 	/// Shift right algebraic immediate with MQ.
 	/// sraiq sraiq.
-	/// rA(), rS(), sh<uint32_t>()	[rc()]
+	/// rA(), rS(), sh()	[rc()]
 	sraiqx,
 
 	/// Shift right algebraic with MQ.
@@ -198,12 +198,12 @@ enum class Operation: uint8_t {
 
 	/// Shift right immediate with MQ.
 	/// sriq sriq.
-	/// rA(), rS(), sh<uint32_t>()	[rc()]
+	/// rA(), rS(), sh()	[rc()]
 	sriqx,
 
 	/// Shift right long immediate with MQ.
 	/// srliq srliq.
-	/// rA(), rS(), sh<uint32_t>()	[rc()]
+	/// rA(), rS(), sh()	[rc()]
 	srliqx,
 
 	/// Shift right long with MQ.
@@ -867,19 +867,19 @@ enum class Operation: uint8_t {
 
 	/// Rotate left word immediate then mask insert.
 	/// rlwimi rlwimi.
-	/// rA(), rS(), sh<uint32_t>(), mb<uint32_t>(), me<uint32_t>()	[rc()]
+	/// rA(), rS(), sh(), mb(), me()	[rc()]
 	/// Cf. rotate_mask()
 	rlwimix,
 
 	/// Rotate left word immediate then AND with mask.
 	/// rlwinm rlwinm.
-	/// rA(), rS(), sh<uint32_t>(), mb<uint32_t>(), me<uint32_t>()	[rc()]
+	/// rA(), rS(), sh(), mb(), me()	[rc()]
 	/// Cf. rotate_mask()
 	rlwinmx,
 
 	/// Rotate left word then AND with mask
 	/// rlwimi rlwimi.
-	/// rA(), rB(), rS(), mb<uint32_t>(), me<uint32_t>()	[rc()]
+	/// rA(), rB(), rS(), mb(), me()	[rc()]
 	/// Cf. rotate_mask()
 	rlwnmx,
 
@@ -899,7 +899,7 @@ enum class Operation: uint8_t {
 
 	/// Shift right algebraic word immediate.
 	/// srawi srawi.
-	/// rA(), rS(), sh<uint32_t>()	[rc()]
+	/// rA(), rS(), sh()	[rc()]
 	srawix,
 
 	/// Shift right word.
@@ -1428,7 +1428,7 @@ struct Instruction {
 	int16_t bd() const		{	return int16_t(opcode & 0xfffc);	}
 
 	/// Specifies the first 1 bit of a 32-bit mask for 32-bit rotate operations.
-	template <typename IntT> IntT mb() const {
+	template <typename IntT = uint32_t> IntT mb() const {
 		if constexpr (sizeof(IntT) == 4) {
 			return (opcode >> 6) & 0x1f;
 		} else {
@@ -1437,7 +1437,7 @@ struct Instruction {
 	}
 	/// Specifies the first 1 bit of a 32/64-bit mask for rotate operations.
 	/// Specify IntT as uint32_t for the 32-bit rotate instructions, uint64_t for the 64-bit.
-	template <typename IntT> IntT me() const {
+	template <typename IntT = uint32_t> IntT me() const {
 		if constexpr (sizeof(IntT) == 4) {
 			return (opcode >> 1) & 0x1f;
 		} else {
@@ -1452,8 +1452,8 @@ struct Instruction {
 	/// 	mb == me+1	=> set all bits
 	/// 	mb > me+1	=> complement of set [me+1, mb-1]
 	uint32_t rotate_mask() const {
-		const auto mb_bit = mb<uint32_t>();
-		const auto me_bit = me<uint32_t>();
+		const auto mb_bit = mb();
+		const auto me_bit = me();
 
 		uint32_t result = (0xffff'ffff >> mb_bit) ^ (0x7fff'ffff >> me_bit);
 		return result ^ ((mb_bit < me_bit+1) ? 0 : 0xffff'ffff);
@@ -1487,7 +1487,7 @@ struct Instruction {
 
 	/// Specifies a shift amount. Use IntT = uint32_t to get the shift value embedded in
 	/// 32-bit instructions, uint64_t for 64-bit instructions.
-	template <typename IntT> uint32_t sh() const {
+	template <typename IntT = uint32_t> uint32_t sh() const {
 		uint32_t sh = (opcode >> 11) & 0x1f;
 		if constexpr (sizeof(IntT) == 8) {
 			sh |= (opcode & 2) << 4;
