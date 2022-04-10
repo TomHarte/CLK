@@ -1451,12 +1451,13 @@ struct Instruction {
 	/// 	mb < me+1 	=> set [mb, me]
 	/// 	mb == me+1	=> set all bits
 	/// 	mb > me+1	=> complement of set [me+1, mb-1]
-	uint32_t rotate_mask() const {
+	template <typename IntT> IntT rotate_mask() const {
 		const auto mb_bit = mb();
 		const auto me_bit = me();
 
-		uint32_t result = (0xffff'ffff >> mb_bit) ^ (0x7fff'ffff >> me_bit);
-		return result ^ ((mb_bit < me_bit+1) ? 0 : 0xffff'ffff);
+		const IntT result = (0xffff'ffff >> mb_bit) ^ (0x7fff'ffff >> me_bit);
+		const IntT sign = ~IntT((int32_t(mb_bit) - int32_t(me_bit+1)) >> 16);
+		return result ^ sign;
 	}
 
 	/// Condition register source bit A.
