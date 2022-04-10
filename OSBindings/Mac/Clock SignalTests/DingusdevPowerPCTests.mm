@@ -58,9 +58,6 @@ void AssertEqualOperationName(NSString *lhs, NSString *rhs, Instruction instruct
 
 	XCTAssertEqualObjects(lhs, rhs);
 }
-void AssertEqualOperationNameO(NSString *lhs, NSString *rhs, Instruction instruction) {
-	AssertEqualOperationName(lhs, rhs, instruction, NamingConvention::ApplyO);
-}
 void AssertEqualOperationNameE(NSString *lhs, NSString *rhs, Instruction instruction) {
 	AssertEqualOperationName(lhs, rhs, instruction, NamingConvention::ApplyE);
 }
@@ -102,7 +99,6 @@ NSString *conditionreg(uint32_t code) {
 	return [NSString stringWithFormat:@"cr%d", code];
 }
 
-
 NSString *offset(Instruction instruction) {
 	NSString *const hexPart = [NSString stringWithFormat:@"%s%X", (instruction.d() < 0) ? "-0x" : "0x", abs(instruction.d())];
 
@@ -116,16 +112,6 @@ NSString *offset(Instruction instruction) {
 }
 
 @implementation DingusdevPowerPCTests
-
-- (void)testABDInstruction:(Instruction)instruction columns:(NSArray<NSString *> *)columns testZero:(BOOL)testZero {
-	NSString *const rA = (instruction.rA() || !testZero) ? [NSString stringWithFormat:@"r%d", instruction.rA()] : @"0";
-	XCTAssertEqualObjects(rA, columns[4]);
-	AssertEqualR(columns[3], instruction.rD());
-
-	if([columns count] > 5) {
-		AssertEqualR(columns[5], instruction.rB());
-	}
-}
 
 - (void)testDecoding {
 	NSData *const testData =
@@ -589,51 +575,65 @@ NSString *offset(Instruction instruction) {
 
 #undef ArithImm
 
-#define ABCz(x)	\
+#define DAB(x)	\
 			case Operation::x:	\
 				AssertEqualOperationName(operation, @#x);	\
-				[self testABDInstruction:instruction columns:columns testZero:YES];	\
+				AssertEqualR(columns[3], instruction.rD());	\
+				AssertEqualR(columns[4], instruction.rA(), false);	\
+				AssertEqualR(columns[5], instruction.rB());	\
 			break;
 
-			ABCz(lwzx);
-			ABCz(lwzux);
-			ABCz(lbzx);
-			ABCz(lbzux);
-			ABCz(lhzx);
-			ABCz(lhzux);
-			ABCz(lhax);
-			ABCz(lhaux);
-			ABCz(lhbrx);
-			ABCz(lwbrx);
-			ABCz(lwarx);
-			ABCz(eciwx);
-			ABCz(lswx);
-			ABCz(lwa);
-			ABCz(lwaux);
-			ABCz(lwax);
+			DAB(lwzx);
+			DAB(lwzux);
+			DAB(lbzx);
+			DAB(lbzux);
+			DAB(lhzx);
+			DAB(lhzux);
+			DAB(lhax);
+			DAB(lhaux);
+			DAB(lhbrx);
+			DAB(lwbrx);
+			DAB(lwarx);
+			DAB(eciwx);
+			DAB(lswx);
+			DAB(lwa);
+			DAB(lwaux);
+			DAB(lwax);
 
-#undef ABCz
+#undef DAB
+
+#define DAe(x)	\
+			case Operation::x:	\
+				AssertEqualOperationNameOE(operation, @#x, instruction);	\
+				AssertEqualR(columns[3], instruction.rD());	\
+				AssertEqualR(columns[4], instruction.rA());	\
+			break;
+
+			DAe(negx);
+			DAe(subfzex);
+			DAe(subfmex);
+			DAe(absx);
+			DAe(nabsx);
+			DAe(addzex);
+			DAe(addmex);
+
+#undef DAe
 
 #define DABe(x)	\
 			case Operation::x:	\
 				AssertEqualOperationNameOE(operation, @#x, instruction);	\
-				[self testABDInstruction:instruction columns:columns testZero:NO];	\
+				AssertEqualR(columns[3], instruction.rD());	\
+				AssertEqualR(columns[4], instruction.rA());	\
+				AssertEqualR(columns[5], instruction.rB());	\
 			break;
 
 			DABe(subfcx);
 			DABe(subfx);
-			DABe(negx);
 			DABe(subfex);
-			DABe(subfzex);
-			DABe(subfmex);
 			DABe(dozx);
-			DABe(absx);
-			DABe(nabsx);
 			DABe(addx);
 			DABe(addcx);
 			DABe(addex);
-			DABe(addmex);
-			DABe(addzex);
 			DABe(mulhwx);
 			DABe(mulhwux);
 			DABe(mulx);
