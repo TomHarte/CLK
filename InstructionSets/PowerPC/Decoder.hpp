@@ -41,8 +41,8 @@ constexpr bool is601(Model model) {
 	@c model Indicates the instruction set to decode.
 
 	@c validate_reserved_bits If set to @c true, check that all
-	reserved bits are 0 and produce an invalid opcode if not. Otherwise does no
-	inspection of reserved bits.
+	reserved bits are 0 or 1 as required and produce an invalid opcode if not.
+	Otherwise does no inspection of reserved bits.
 
 	TODO: determine what specific models of PowerPC do re: reserved bits.
 */
