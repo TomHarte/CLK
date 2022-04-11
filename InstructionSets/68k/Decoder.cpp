@@ -113,8 +113,9 @@ template <Operation operation> Preinstruction Predecoder::decode(uint16_t instru
 			}
 
 		//
-		// MARK: MULU, MULS.
+		// MARK: MULU, MULS, DIVU, DIVS.
 		//
+		case Operation::DIVU:	case Operation::DIVS:
 		case Operation::MULU:	case Operation::MULS:
 			return Preinstruction(operation,
 				ea_combined_mode, ea_register,
@@ -124,6 +125,27 @@ template <Operation operation> Preinstruction Predecoder::decode(uint16_t instru
 }
 
 // MARK: - Page decoders.
+
+Preinstruction Predecoder::decode8(uint16_t instruction) {
+	// 4-171 (p275)
+	if((instruction & 0x1f0) == 0x100) return decode<Operation::SBCD>(instruction);
+
+	// 4-150 (p254)
+	switch(instruction & 0x0c0) {
+		case 0x00:	return decode<Operation::ORb>(instruction);
+		case 0x40:	return decode<Operation::ORw>(instruction);
+		case 0x80:	return decode<Operation::ORl>(instruction);
+		default: break;
+	}
+
+	switch(instruction & 0x1c0) {
+		case 0x0c0:	return decode<Operation::DIVU>(instruction);	// 4-97 (p201)
+		case 0x1c0:	return decode<Operation::DIVS>(instruction);	// 4-93 (p197)
+		default: break;
+	}
+
+	return Preinstruction();
+}
 
 Preinstruction Predecoder::decodeC(uint16_t instruction) {
 	// 4-3 (p107)
@@ -157,6 +179,7 @@ Preinstruction Predecoder::decodeC(uint16_t instruction) {
 Preinstruction Predecoder::decode(uint16_t instruction) {
 	// Divide first based on line.
 	switch(instruction & 0xf000) {
+		case 0x8000:	return decode8(instruction);
 		case 0xc000:	return decodeC(instruction);
 
 		default: break;

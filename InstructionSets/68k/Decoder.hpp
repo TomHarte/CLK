@@ -26,6 +26,7 @@ class Predecoder {
 	private:
 		// Page by page decoders; each gets a bit ad hoc so
 		// it is neater to separate them.
+		Preinstruction decode8(uint16_t instruction);
 		Preinstruction decodeC(uint16_t instruction);
 
 		// Specific instruction decoders.
