@@ -902,6 +902,8 @@
 		4BBB70A8202014E2002FE009 /* MultiProducer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A6202014E2002FE009 /* MultiProducer.cpp */; };
 		4BBB70A9202014E2002FE009 /* MultiProducer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A6202014E2002FE009 /* MultiProducer.cpp */; };
 		4BBC951E1F368D83008F4C34 /* i8272.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC951C1F368D83008F4C34 /* i8272.cpp */; };
+		4BBD689928037E53004790C1 /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBD689728037E53004790C1 /* Decoder.cpp */; };
+		4BBD689A28037E53004790C1 /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBD689728037E53004790C1 /* Decoder.cpp */; };
 		4BBF49AF1ED2880200AB3669 /* FUSETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF49AE1ED2880200AB3669 /* FUSETests.swift */; };
 		4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */; };
 		4BBFE83D21015D9C00BF1C40 /* CSJoystickManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFE83C21015D9C00BF1C40 /* CSJoystickManager.m */; };
@@ -1946,6 +1948,9 @@
 		4BBB70A7202014E2002FE009 /* MultiProducer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiProducer.hpp; sourceTree = "<group>"; };
 		4BBC951C1F368D83008F4C34 /* i8272.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = i8272.cpp; sourceTree = "<group>"; };
 		4BBC951D1F368D83008F4C34 /* i8272.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = i8272.hpp; sourceTree = "<group>"; };
+		4BBD689328037B0E004790C1 /* Instruction.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Instruction.hpp; sourceTree = "<group>"; };
+		4BBD689728037E53004790C1 /* Decoder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Decoder.cpp; sourceTree = "<group>"; };
+		4BBD689828037E53004790C1 /* Decoder.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Decoder.hpp; sourceTree = "<group>"; };
 		4BBF49AE1ED2880200AB3669 /* FUSETests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FUSETests.swift; sourceTree = "<group>"; };
 		4BBF990E1C8FBA6F0075DAFB /* Flywheel.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Flywheel.hpp; sourceTree = "<group>"; };
 		4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZX8081.cpp; path = Parsers/ZX8081.cpp; sourceTree = "<group>"; };
@@ -4282,6 +4287,16 @@
 			path = 8272;
 			sourceTree = "<group>";
 		};
+		4BBD689228037B0E004790C1 /* 68k */ = {
+			isa = PBXGroup;
+			children = (
+				4BBD689328037B0E004790C1 /* Instruction.hpp */,
+				4BBD689728037E53004790C1 /* Decoder.cpp */,
+				4BBD689828037E53004790C1 /* Decoder.hpp */,
+			);
+			path = 68k;
+			sourceTree = "<group>";
+		};
 		4BBF49B41ED2881600AB3669 /* FUSE */ = {
 			isa = PBXGroup;
 			children = (
@@ -4718,6 +4733,7 @@
 				4BEDA45425B5ECAB000C2DBD /* CachingExecutor.hpp */,
 				4BE8EB5425C0E9D40040BC40 /* Disassembler.hpp */,
 				4BEDA3B625B25563000C2DBD /* README.md */,
+				4BBD689228037B0E004790C1 /* 68k */,
 				4BEDA40925B2844B000C2DBD /* M50740 */,
 				4BEDA3B325B25563000C2DBD /* PowerPC */,
 				4BEDA3B725B25563000C2DBD /* x86 */,
@@ -5431,6 +5447,7 @@
 				4BFEA2F02682A7B900EBF94C /* Dave.cpp in Sources */,
 				4BDACBED22FFA5D20045EF7E /* ncr5380.cpp in Sources */,
 				4BC131772346DE9100E4FF3D /* StaticAnalyser.cpp in Sources */,
+				4BBD689A28037E53004790C1 /* Decoder.cpp in Sources */,
 				4B055ACF1FAE9B030060FFFF /* SoundGenerator.cpp in Sources */,
 				4B4DEC08252BFA56004583AC /* 65816Base.cpp in Sources */,
 				4B894519201967B4007DE474 /* ConfidenceCounter.cpp in Sources */,
@@ -5684,6 +5701,7 @@
 				4B2B3A4C1F9B8FA70062DABF /* MemoryFuzzer.cpp in Sources */,
 				4B9EC0EA26B384080060A31F /* Keyboard.cpp in Sources */,
 				4B7913CC1DFCD80E00175A82 /* Video.cpp in Sources */,
+				4BBD689928037E53004790C1 /* Decoder.cpp in Sources */,
 				4BC57CD92436A62900FBC404 /* State.cpp in Sources */,
 				4BDA00E622E699B000AC3CD0 /* CSMachine.mm in Sources */,
 				4B4518831F75E91A00926311 /* PCMTrack.cpp in Sources */,
