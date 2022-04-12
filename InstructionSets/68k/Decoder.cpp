@@ -499,7 +499,63 @@ Preinstruction Predecoder::decodeD(uint16_t instruction) {
 }
 
 Preinstruction Predecoder::decodeE(uint16_t instruction) {
-	(void)instruction;
+	switch(instruction & 0x1d8) {
+		// 4-22 (p126)
+		case 0x000:	return decode<Operation::ASRb>(instruction);
+		case 0x040:	return decode<Operation::ASRw>(instruction);
+		case 0x080:	return decode<Operation::ASRl>(instruction);
+
+		// 4-113 (p217)
+		case 0x008:	return decode<Operation::LSRb>(instruction);
+		case 0x048:	return decode<Operation::LSRw>(instruction);
+		case 0x088:	return decode<Operation::LSRl>(instruction);
+
+		// 4-163 (p267)
+		case 0x010:	return decode<Operation::ROXRb>(instruction);
+		case 0x050:	return decode<Operation::ROXRw>(instruction);
+		case 0x090:	return decode<Operation::ROXRl>(instruction);
+
+		// 4-160 (p264)
+		case 0x018:	return decode<Operation::RORb>(instruction);
+		case 0x058:	return decode<Operation::RORw>(instruction);
+		case 0x098:	return decode<Operation::RORl>(instruction);
+
+		// 4-22 (p126)
+		case 0x100:	return decode<Operation::ASLb>(instruction);
+		case 0x140:	return decode<Operation::ASLw>(instruction);
+		case 0x180:	return decode<Operation::ASLl>(instruction);
+
+		// 4-113 (p217)
+		case 0x108:	return decode<Operation::LSLb>(instruction);
+		case 0x148:	return decode<Operation::LSLw>(instruction);
+		case 0x188:	return decode<Operation::LSLl>(instruction);
+
+		// 4-163 (p267)
+		case 0x110:	return decode<Operation::ROXLb>(instruction);
+		case 0x150:	return decode<Operation::ROXLw>(instruction);
+		case 0x190:	return decode<Operation::ROXLl>(instruction);
+
+		// 4-160 (p264)
+		case 0x118:	return decode<Operation::ROLb>(instruction);
+		case 0x158:	return decode<Operation::ROLw>(instruction);
+		case 0x198:	return decode<Operation::ROLl>(instruction);
+
+		default: break;
+	}
+
+	switch(instruction & 0xfc0) {
+		case 0x0c0:	return decode<Operation::ASRm>(instruction);	// 4-22 (p126)
+		case 0x1c0:	return decode<Operation::ASLm>(instruction);	// 4-22 (p126)
+		case 0x2c0:	return decode<Operation::LSRm>(instruction);	// 4-113 (p217)
+		case 0x3c0:	return decode<Operation::LSLm>(instruction);	// 4-113 (p217)
+		case 0x4c0:	return decode<Operation::ROXRm>(instruction);	// 4-163 (p267)
+		case 0x5c0:	return decode<Operation::ROXLm>(instruction);	// 4-163 (p267)
+		case 0x6c0:	return decode<Operation::RORm>(instruction);	// 4-160 (p264)
+		case 0x7c0:	return decode<Operation::ROLm>(instruction);	// 4-160 (p264)
+
+		default: break;
+	}
+
 	return Preinstruction();
 }
 
