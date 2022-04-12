@@ -17,6 +17,8 @@ namespace M68k {
 enum class Operation: uint8_t {
 	Undefined,
 
+	NOP,
+
 	ABCD,	SBCD,	NBCD,
 
 	ADDb,	ADDw,	ADDl,
@@ -37,6 +39,7 @@ enum class Operation: uint8_t {
 
 	MOVEtoSR, MOVEfromSR,
 	MOVEtoCCR,
+	MOVEtoUSP, MOVEfromUSP,
 
 	ORItoSR,	ORItoCCR,
 	ANDItoSR,	ANDItoCCR,
@@ -45,10 +48,10 @@ enum class Operation: uint8_t {
 	BTSTb,	BTSTl,
 	BCLRl,	BCLRb,
 	CMPb,	CMPw,	CMPl,
-	CMPAw,
+	CMPAw,	CMPAl,
 	TSTb,	TSTw,	TSTl,
 
-	JMP,	RTS,
+	JMP,	JSR,	RTS,
 	BRA,	Bcc,
 	DBcc,
 	Scc,
@@ -80,7 +83,7 @@ enum class Operation: uint8_t {
 	MULU,	MULS,
 	DIVU,	DIVS,
 
-	RTE_RTR,
+	RTE,	RTR,
 
 	TRAP,	TRAPV,
 	CHK,
@@ -96,7 +99,7 @@ enum class Operation: uint8_t {
 
 	LINK,	UNLINK,
 
-	STOP,
+	STOP,	RESET,
 };
 
 /// Indicates the addressing mode applicable to an operand.
