@@ -44,7 +44,17 @@ class Predecoder {
 		Preinstruction decodeF(uint16_t instruction);
 
 		// Specific instruction decoders.
-		template <Operation operation> Preinstruction decode(uint16_t instruction);
+		template <uint8_t operation> Preinstruction decode(uint16_t instruction);
+
+		enum ExtendedOperation {
+			MOVEMtoRl = uint8_t(Operation::Max), MOVEMtoRw,
+			MOVEMtoMl, MOVEMtoMw,
+
+			MOVEPtoRl, MOVEPtoRw,
+			MOVEPtoMl, MOVEPtoMw,
+
+		};
+		static constexpr Operation operation(uint8_t op);
 };
 
 }

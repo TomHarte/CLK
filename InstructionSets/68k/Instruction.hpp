@@ -69,11 +69,8 @@ enum class Operation: uint8_t {
 	ROXLb, ROXLw, ROXLl, ROXLm,
 	ROXRb, ROXRw, ROXRl, ROXRm,
 
-	MOVEMtoRl, MOVEMtoRw,
-	MOVEMtoMl, MOVEMtoMw,
-
-	MOVEPtoRl, MOVEPtoRw,
-	MOVEPtoMl, MOVEPtoMw,
+	MOVEMl, MOVEMw,
+	MOVEPl, MOVEPw,
 
 	ANDb,	ANDw,	ANDl,
 	EORb,	EORw,	EORl,
@@ -100,6 +97,8 @@ enum class Operation: uint8_t {
 	LINK,	UNLINK,
 
 	STOP,	RESET,
+
+	Max = RESET
 };
 
 /// Indicates the addressing mode applicable to an operand.
