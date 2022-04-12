@@ -132,6 +132,26 @@ template <Operation operation> Preinstruction Predecoder::decode(uint16_t instru
 
 // MARK: - Page decoders.
 
+Preinstruction Predecoder::decode0(uint16_t instruction) {
+	(void)instruction;
+	return Preinstruction();
+}
+
+Preinstruction Predecoder::decode1(uint16_t instruction) {
+	(void)instruction;
+	return Preinstruction();
+}
+
+Preinstruction Predecoder::decode2(uint16_t instruction) {
+	(void)instruction;
+	return Preinstruction();
+}
+
+Preinstruction Predecoder::decode3(uint16_t instruction) {
+	(void)instruction;
+	return Preinstruction();
+}
+
 Preinstruction Predecoder::decode4(uint16_t instruction) {
 	switch(instruction & 0xfff) {
 		case 0xe70:	return decode<Operation::RESET>(instruction);	// 6-83 (p537)
@@ -228,6 +248,21 @@ Preinstruction Predecoder::decode4(uint16_t instruction) {
 	return Preinstruction();
 }
 
+Preinstruction Predecoder::decode5(uint16_t instruction) {
+	(void)instruction;
+	return Preinstruction();
+}
+
+Preinstruction Predecoder::decode6(uint16_t instruction) {
+	(void)instruction;
+	return Preinstruction();
+}
+
+Preinstruction Predecoder::decode7(uint16_t instruction) {
+	(void)instruction;
+	return Preinstruction();
+}
+
 Preinstruction Predecoder::decode8(uint16_t instruction) {
 	// 4-171 (p275)
 	if((instruction & 0x1f0) == 0x100) return decode<Operation::SBCD>(instruction);
@@ -246,6 +281,15 @@ Preinstruction Predecoder::decode8(uint16_t instruction) {
 		default: break;
 	}
 
+	return Preinstruction();
+}
+
+Preinstruction Predecoder::decode9(uint16_t instruction) {
+	(void)instruction;
+	return Preinstruction();
+}
+
+Preinstruction Predecoder::decodeA(uint16_t) {
 	return Preinstruction();
 }
 
@@ -302,15 +346,41 @@ Preinstruction Predecoder::decodeC(uint16_t instruction) {
 	return Preinstruction();
 }
 
+Preinstruction Predecoder::decodeD(uint16_t instruction) {
+	(void)instruction;
+	return Preinstruction();
+}
+
+Preinstruction Predecoder::decodeE(uint16_t instruction) {
+	(void)instruction;
+	return Preinstruction();
+}
+
+Preinstruction Predecoder::decodeF(uint16_t) {
+	return Preinstruction();
+}
+
 // MARK: - Main decoder.
 
 Preinstruction Predecoder::decode(uint16_t instruction) {
 	// Divide first based on line.
 	switch(instruction & 0xf000) {
+		case 0x0000:	return decode0(instruction);
+		case 0x1000:	return decode1(instruction);
+		case 0x2000:	return decode2(instruction);
+		case 0x3000:	return decode3(instruction);
 		case 0x4000:	return decode4(instruction);
+		case 0x5000:	return decode5(instruction);
+		case 0x6000:	return decode6(instruction);
+		case 0x7000:	return decode7(instruction);
 		case 0x8000:	return decode8(instruction);
+		case 0x9000:	return decode9(instruction);
+		case 0xa000:	return decodeA(instruction);
 		case 0xb000:	return decodeB(instruction);
 		case 0xc000:	return decodeC(instruction);
+		case 0xd000:	return decodeD(instruction);
+		case 0xe000:	return decodeE(instruction);
+		case 0xf000:	return decodeF(instruction);
 
 		default: break;
 	}
