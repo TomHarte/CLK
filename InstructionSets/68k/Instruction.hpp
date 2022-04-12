@@ -131,7 +131,7 @@ enum class AddressingMode: uint8_t {
 	DataRegisterDirect									= 0b00'000,
 
 	/// An
-	AddressRegisterDirect								= 0b11'000,
+	AddressRegisterDirect								= 0b00'001,
 	/// (An)
 	AddressRegisterIndirect								= 0b00'010,
 	/// (An)+
@@ -213,11 +213,20 @@ class Preinstruction {
 		Preinstruction(
 			Operation operation,
 			AddressingMode op1_mode,	int op1_reg,
-			AddressingMode op2_mode,	int op2_reg) : operation(operation)
+			AddressingMode op2_mode,	int op2_reg,
+			[[maybe_unused]] bool is_supervisor = false) : operation(operation)
 		{
 			operands_[0] = uint8_t(op1_mode) | uint8_t(op1_reg << 5);
 			operands_[1] = uint8_t(op2_mode) | uint8_t(op2_reg << 5);
 		}
+
+		Preinstruction(Operation operation, [[maybe_unused]] bool is_supervisor = false) : operation(operation) {}
+
+		Preinstruction(Operation operation, AddressingMode op1_mode, int op1_reg, [[maybe_unused]] bool is_supervisor = false) : operation(operation) {
+			operands_[0] = uint8_t(op1_mode) | uint8_t(op1_reg << 5);
+		}
+
+		// TODO: record is_supervisor.
 
 		Preinstruction() {}
 };

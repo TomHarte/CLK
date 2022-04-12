@@ -41,7 +41,7 @@ template <Operation operation> Preinstruction Predecoder::decode(uint16_t instru
 		//
 		// MARK: ABCD, SBCD.
 		//
-		case Operation::ABCD:	case Operation::SBCD: {
+		case Operation::ABCD:	case Operation::SBCD:	{
 			const auto addressing_mode = (instruction & 8) ?
 				AddressingMode::AddressRegisterIndirectWithPredecrement : AddressingMode::DataRegisterDirect;
 
@@ -55,7 +55,7 @@ template <Operation operation> Preinstruction Predecoder::decode(uint16_t instru
 		//
 		case Operation::ANDb:	case Operation::ANDw:	case Operation::ANDl:
 		case Operation::ORb:	case Operation::ORw:	case Operation::ORl:
-		case Operation::EORb:	case Operation::EORw:	case Operation::EORl: {
+		case Operation::EORb:	case Operation::EORw:	case Operation::EORl:	{
 			// Opmode 7 is illegal.
 			if(opmode == 7) {
 				return Preinstruction();
@@ -99,7 +99,7 @@ template <Operation operation> Preinstruction Predecoder::decode(uint16_t instru
 		//
 		case Operation::EXG:
 			switch((instruction >> 3)&31) {
-				default: 	return Preinstruction();
+				default:	return Preinstruction();
 
 				case 0x08:	return Preinstruction(operation,
 					AddressingMode::DataRegisterDirect, ea_register,
@@ -127,7 +127,38 @@ template <Operation operation> Preinstruction Predecoder::decode(uint16_t instru
 				ea_combined_mode, ea_register,
 				AddressingMode::DataRegisterDirect, data_register);
 
+		//
+		// MARK: ORItoCCR, ORItoSR, ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR
+		//
+		case Operation::ORItoSR:	case Operation::ORItoCCR:
+		case Operation::ANDItoSR:	case Operation::ANDItoCCR:
+		case Operation::EORItoSR:	case Operation::EORItoCCR:
+			return Preinstruction(operation,
+				AddressingMode::ImmediateData, 0,
+				operation == Operation::ORItoSR || operation == Operation::ANDItoSR || operation == Operation::EORItoSR);
 
+		//
+		// MARK: MOVEPtoRw, MOVEPtoRl
+		//
+		case Operation::MOVEPtoRw:	case Operation::MOVEPtoRl:
+			return Preinstruction(operation,
+				AddressingMode::AddressRegisterIndirectWithDisplacement, ea_register,
+				AddressingMode::DataRegisterDirect, data_register);
+
+		case Operation::MOVEPtoMw:	case Operation::MOVEPtoMl:
+			return Preinstruction(operation,
+				AddressingMode::DataRegisterDirect, data_register,
+				AddressingMode::AddressRegisterIndirectWithDisplacement, ea_register);
+
+		// TODO: there's no need for separate toR and toM given that source and dest are specified overtly.
+		// Between this and the ANDI/etc case, probably this template needs to take a type other than Operation?
+		// That'll be a slight hassle because it couldn't inherit from Operation and therefore would either need
+		// to duplicate it or in some potentially-fragile way avoid collisions with it. Not to mention all the
+		// casting that'd have to be around. So probably duplicate?
+
+		//
+		// MARK: Impossible error case.
+		//
 		default:
 			// Should be unreachable.
 			assert(false);
@@ -142,71 +173,73 @@ template <Operation operation> Preinstruction Predecoder::decode(uint16_t instru
 // MARK: - Page decoders.
 
 Preinstruction Predecoder::decode0(uint16_t instruction) {
-	switch(instruction) {
-		case 0x003c: return decode<Operation::ORItoCCR>(instruction);
-		case 0x007c: return decode<Operation::ORItoSR>(instruction);
-		case 0x023c: return decode<Operation::ANDItoCCR>(instruction);
-		case 0x027c: return decode<Operation::ANDItoSR>(instruction);
-		case 0x0a3c: return decode<Operation::EORItoCCR>(instruction);
-		case 0x0a7c: return decode<Operation::EORItoSR>(instruction);
+	switch(instruction & 0xfff) {
+		case 0x03c:	return decode<Operation::ORItoCCR>(instruction);	// 4-155 (p259)
+		case 0x07c:	return decode<Operation::ORItoSR>(instruction);		// 6-27 (p646)
+		case 0x23c:	return decode<Operation::ANDItoCCR>(instruction);	// 4-20 (p124)
+		case 0x27c:	return decode<Operation::ANDItoSR>(instruction);	// 6-2 (p456)
+		case 0xa3c:	return decode<Operation::EORItoCCR>(instruction);	// 4-104 (p208)
+		case 0xa7c:	return decode<Operation::EORItoSR>(instruction);	// 6-10 (p464)
 
-		default: break;
+		default:	break;
 	}
 
+	// TODO: determine whether it's useful to be able to flag these as immediate
+	// versions here, rather than having it determined dynamically in decode.
 	switch(instruction & 0xfc0) {
 		// 4-153 (p257)
-		case 0x000: return decode<Operation::ORb>(instruction);
-		case 0x040: return decode<Operation::ORw>(instruction);
-		case 0x080: return decode<Operation::ORl>(instruction);
+		case 0x000:	return decode<Operation::ORb>(instruction);
+		case 0x040:	return decode<Operation::ORw>(instruction);
+		case 0x080:	return decode<Operation::ORl>(instruction);
 
 		// 4-18 (p122)
-		case 0x200: return decode<Operation::ANDb>(instruction);
-		case 0x240: return decode<Operation::ANDw>(instruction);
-		case 0x280: return decode<Operation::ANDl>(instruction);
+		case 0x200:	return decode<Operation::ANDb>(instruction);
+		case 0x240:	return decode<Operation::ANDw>(instruction);
+		case 0x280:	return decode<Operation::ANDl>(instruction);
 
 		// 4-179 (p283)
-		case 0x400: return decode<Operation::SUBb>(instruction);
-		case 0x440: return decode<Operation::SUBw>(instruction);
-		case 0x480: return decode<Operation::SUBl>(instruction);
+		case 0x400:	return decode<Operation::SUBb>(instruction);
+		case 0x440:	return decode<Operation::SUBw>(instruction);
+		case 0x480:	return decode<Operation::SUBl>(instruction);
 
 		// 4-9 (p113)
-		case 0x600: return decode<Operation::ADDb>(instruction);
-		case 0x640: return decode<Operation::ADDw>(instruction);
-		case 0x680: return decode<Operation::ADDl>(instruction);
+		case 0x600:	return decode<Operation::ADDb>(instruction);
+		case 0x640:	return decode<Operation::ADDw>(instruction);
+		case 0x680:	return decode<Operation::ADDl>(instruction);
 
 		// 4-63 (p167)
-		case 0x800: return decode<Operation::BTSTb>(instruction);
+		case 0x800:	return decode<Operation::BTSTb>(instruction);
 
 		// 4-29 (p133)
-		case 0x840: return decode<Operation::BCHGb>(instruction);
+		case 0x840:	return decode<Operation::BCHGb>(instruction);
 
 		// 4-32 (p136)
-		case 0x880: return decode<Operation::BCLRb>(instruction);
+		case 0x880:	return decode<Operation::BCLRb>(instruction);
 
 		// 4-58 (p162)
-		case 0x8c0: return decode<Operation::BSETb>(instruction);
+		case 0x8c0:	return decode<Operation::BSETb>(instruction);
 
 		// 4-102 (p206)
-		case 0xa00: return decode<Operation::EORb>(instruction);
-		case 0xa40: return decode<Operation::EORw>(instruction);
-		case 0xa80: return decode<Operation::EORl>(instruction);
+		case 0xa00:	return decode<Operation::EORb>(instruction);
+		case 0xa40:	return decode<Operation::EORw>(instruction);
+		case 0xa80:	return decode<Operation::EORl>(instruction);
 
 		// 4-79 (p183)
-		case 0xc00: return decode<Operation::CMPb>(instruction);
-		case 0xc40: return decode<Operation::CMPw>(instruction);
-		case 0xc80: return decode<Operation::CMPl>(instruction);
+		case 0xc00:	return decode<Operation::CMPb>(instruction);
+		case 0xc40:	return decode<Operation::CMPw>(instruction);
+		case 0xc80:	return decode<Operation::CMPl>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0x1c0) {
-		case 0x100: return decode<Operation::BTSTb>(instruction);	// 4-62 (p166)
-		case 0x180: return decode<Operation::BCLRb>(instruction);	// 4-31 (p135)
+		case 0x100:	return decode<Operation::BTSTb>(instruction);	// 4-62 (p166)
+		case 0x180:	return decode<Operation::BCLRb>(instruction);	// 4-31 (p135)
 
-		case 0x140: return decode<Operation::BCHGb>(instruction);	// 4-28 (p132)
-		case 0x1c0: return decode<Operation::BSETb>(instruction);	// 4-57 (p161)
+		case 0x140:	return decode<Operation::BCHGb>(instruction);	// 4-28 (p132)
+		case 0x1c0:	return decode<Operation::BSETb>(instruction);	// 4-57 (p161)
 
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0x1f8) {
@@ -216,7 +249,7 @@ Preinstruction Predecoder::decode0(uint16_t instruction) {
 		case 0x188:	return decode<Operation::MOVEPtoMw>(instruction);
 		case 0x1c8:	return decode<Operation::MOVEPtoMl>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	return Preinstruction();
@@ -242,44 +275,44 @@ Preinstruction Predecoder::decode4(uint16_t instruction) {
 		case 0xe75:	return decode<Operation::RTS>(instruction);		// 4-169 (p273)
 		case 0xe76:	return decode<Operation::TRAPV>(instruction);	// 4-191 (p295)
 		case 0xe77:	return decode<Operation::RTR>(instruction);		// 4-168 (p272)
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0xfc0) {
 		// 4-146 (p250)
-		case 0x000: return decode<Operation::NEGXb>(instruction);
-		case 0x040: return decode<Operation::NEGXw>(instruction);
-		case 0x080: return decode<Operation::NEGXl>(instruction);
+		case 0x000:	return decode<Operation::NEGXb>(instruction);
+		case 0x040:	return decode<Operation::NEGXw>(instruction);
+		case 0x080:	return decode<Operation::NEGXl>(instruction);
 
 		// 6-17 (p471)
-		case 0x0c0: return decode<Operation::MOVEfromSR>(instruction);
+		case 0x0c0:	return decode<Operation::MOVEfromSR>(instruction);
 
 		// 4-73 (p177)
-		case 0x200: return decode<Operation::CLRb>(instruction);
-		case 0x240: return decode<Operation::CLRw>(instruction);
-		case 0x280: return decode<Operation::CLRl>(instruction);
+		case 0x200:	return decode<Operation::CLRb>(instruction);
+		case 0x240:	return decode<Operation::CLRw>(instruction);
+		case 0x280:	return decode<Operation::CLRl>(instruction);
 
 		// 4-144 (p248)
-		case 0x400: return decode<Operation::NEGb>(instruction);
-		case 0x440: return decode<Operation::NEGw>(instruction);
-		case 0x480: return decode<Operation::NEGl>(instruction);
+		case 0x400:	return decode<Operation::NEGb>(instruction);
+		case 0x440:	return decode<Operation::NEGw>(instruction);
+		case 0x480:	return decode<Operation::NEGl>(instruction);
 
 		// 4-123 (p227)
-		case 0x4c0: return decode<Operation::MOVEtoCCR>(instruction);
+		case 0x4c0:	return decode<Operation::MOVEtoCCR>(instruction);
 
 		// 4-148 (p250)
-		case 0x600: return decode<Operation::NOTb>(instruction);
-		case 0x640: return decode<Operation::NOTw>(instruction);
-		case 0x680: return decode<Operation::NOTl>(instruction);
+		case 0x600:	return decode<Operation::NOTb>(instruction);
+		case 0x640:	return decode<Operation::NOTw>(instruction);
+		case 0x680:	return decode<Operation::NOTl>(instruction);
 
 		// 4-123 (p227)
-		case 0x6c0: return decode<Operation::MOVEtoSR>(instruction);
+		case 0x6c0:	return decode<Operation::MOVEtoSR>(instruction);
 
 		// 4-142 (p246)
-		case 0x800: return decode<Operation::NBCD>(instruction);
+		case 0x800:	return decode<Operation::NBCD>(instruction);
 
 		// 4-159 (p263)
-		case 0x840: return decode<Operation::PEA>(instruction);
+		case 0x840:	return decode<Operation::PEA>(instruction);
 
 		// 4-128 (p232)
 		case 0x880:	return decode<Operation::MOVEMtoMw>(instruction);
@@ -288,42 +321,42 @@ Preinstruction Predecoder::decode4(uint16_t instruction) {
 		case 0xcc0:	return decode<Operation::MOVEMtoRl>(instruction);
 
 		// 4-192 (p296)
-		case 0xa00: return decode<Operation::TSTb>(instruction);
-		case 0xa40: return decode<Operation::TSTw>(instruction);
-		case 0xa80: return decode<Operation::TSTl>(instruction);
+		case 0xa00:	return decode<Operation::TSTb>(instruction);
+		case 0xa40:	return decode<Operation::TSTw>(instruction);
+		case 0xa80:	return decode<Operation::TSTl>(instruction);
 
 		// 4-186 (p290)
-		case 0xac0: return decode<Operation::TAS>(instruction);
+		case 0xac0:	return decode<Operation::TAS>(instruction);
 
 		// 4-109 (p213)
-		case 0xe80: return decode<Operation::JSR>(instruction);
+		case 0xe80:	return decode<Operation::JSR>(instruction);
 
 		// 4-108 (p212)
-		case 0xec0: return decode<Operation::JMP>(instruction);
+		case 0xec0:	return decode<Operation::JMP>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0x1c0) {
-		case 0x1c0: return decode<Operation::MOVEAl>(instruction);	// 4-110 (p214)
-		case 0x180: return decode<Operation::CHK>(instruction);		// 4-69 (p173)
-		default: break;
+		case 0x1c0:	return decode<Operation::MOVEAl>(instruction);	// 4-110 (p214)
+		case 0x180:	return decode<Operation::CHK>(instruction);		// 4-69 (p173)
+		default:	break;
 	}
 
 	switch(instruction & 0xff0) {
-		case 0xe40: return decode<Operation::TRAP>(instruction);		// 4-188 (p292)
-		default: break;
+		case 0xe40:	return decode<Operation::TRAP>(instruction);		// 4-188 (p292)
+		default:	break;
 	}
 
 	switch(instruction & 0xff8) {
-		case 0x860: return decode<Operation::SWAP>(instruction);		// 4-185 (p289)
-		case 0x880: return decode<Operation::EXTbtow>(instruction);		// 4-106 (p210)
-		case 0x8c0: return decode<Operation::EXTwtol>(instruction);		// 4-106 (p210)
-		case 0xe50: return decode<Operation::LINK>(instruction);		// 4-111 (p215)
-		case 0xe58: return decode<Operation::UNLINK>(instruction);		// 4-194 (p298)
-		case 0xe60: return decode<Operation::MOVEtoUSP>(instruction);	// 6-21 (p475)
-		case 0xe68: return decode<Operation::MOVEfromUSP>(instruction);	// 6-21 (p475)
-		default: break;
+		case 0x860:	return decode<Operation::SWAP>(instruction);		// 4-185 (p289)
+		case 0x880:	return decode<Operation::EXTbtow>(instruction);		// 4-106 (p210)
+		case 0x8c0:	return decode<Operation::EXTwtol>(instruction);		// 4-106 (p210)
+		case 0xe50:	return decode<Operation::LINK>(instruction);		// 4-111 (p215)
+		case 0xe58:	return decode<Operation::UNLINK>(instruction);		// 4-194 (p298)
+		case 0xe60:	return decode<Operation::MOVEtoUSP>(instruction);	// 6-21 (p475)
+		case 0xe68:	return decode<Operation::MOVEfromUSP>(instruction);	// 6-21 (p475)
+		default:	break;
 	}
 
 	return Preinstruction();
@@ -332,23 +365,23 @@ Preinstruction Predecoder::decode4(uint16_t instruction) {
 Preinstruction Predecoder::decode5(uint16_t instruction) {
 	switch(instruction & 0x1c0) {
 		// 4-11 (p115)
-		case 0x000: return decode<Operation::ADDQb>(instruction);
-		case 0x040: return decode<Operation::ADDQw>(instruction);
-		case 0x080: return decode<Operation::ADDQl>(instruction);
+		case 0x000:	return decode<Operation::ADDQb>(instruction);
+		case 0x040:	return decode<Operation::ADDQw>(instruction);
+		case 0x080:	return decode<Operation::ADDQl>(instruction);
 
 		// 4-181 (p285)
-		case 0x100: return decode<Operation::SUBQb>(instruction);
-		case 0x140: return decode<Operation::SUBQw>(instruction);
-		case 0x180: return decode<Operation::SUBQl>(instruction);
+		case 0x100:	return decode<Operation::SUBQb>(instruction);
+		case 0x140:	return decode<Operation::SUBQw>(instruction);
+		case 0x180:	return decode<Operation::SUBQl>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0x0c0) {
 		// 4-173 (p276), though this'll also hit DBcc 4-91 (p195)
-		case 0x0c0: return decode<Operation::Scc>(instruction);
+		case 0x0c0:	return decode<Operation::Scc>(instruction);
 
-		default: break;
+		default:	break;
 	}
 	return Preinstruction();
 }
@@ -372,13 +405,13 @@ Preinstruction Predecoder::decode8(uint16_t instruction) {
 		case 0x00:	return decode<Operation::ORb>(instruction);
 		case 0x40:	return decode<Operation::ORw>(instruction);
 		case 0x80:	return decode<Operation::ORl>(instruction);
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0x1c0) {
 		case 0x0c0:	return decode<Operation::DIVU>(instruction);	// 4-97 (p201)
 		case 0x1c0:	return decode<Operation::DIVS>(instruction);	// 4-93 (p197)
-		default: break;
+		default:	break;
 	}
 
 	return Preinstruction();
@@ -391,7 +424,7 @@ Preinstruction Predecoder::decode9(uint16_t instruction) {
 		case 0x40:	return decode<Operation::SUBw>(instruction);
 		case 0x80:	return decode<Operation::SUBl>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0x1c0) {
@@ -399,7 +432,7 @@ Preinstruction Predecoder::decode9(uint16_t instruction) {
 		case 0x0c0:	return decode<Operation::SUBAw>(instruction);
 		case 0x1c0:	return decode<Operation::SUBAl>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0x1f0) {
@@ -408,7 +441,7 @@ Preinstruction Predecoder::decode9(uint16_t instruction) {
 		case 0x140:	return decode<Operation::SUBXw>(instruction);
 		case 0x180:	return decode<Operation::SUBXl>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	return Preinstruction();
@@ -424,7 +457,7 @@ Preinstruction Predecoder::decodeB(uint16_t instruction) {
 		case 0x000:	return decode<Operation::EORb>(instruction);
 		case 0x040:	return decode<Operation::EORw>(instruction);
 		case 0x080:	return decode<Operation::EORl>(instruction);
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0x1c0) {
@@ -437,7 +470,7 @@ Preinstruction Predecoder::decodeB(uint16_t instruction) {
 		case 0x0c0:	return decode<Operation::CMPAw>(instruction);
 		case 0x1c0:	return decode<Operation::CMPAl>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	return Preinstruction();
@@ -445,8 +478,8 @@ Preinstruction Predecoder::decodeB(uint16_t instruction) {
 
 Preinstruction Predecoder::decodeC(uint16_t instruction) {
 	switch(instruction & 0x1f0) {
-		case 0x100: return decode<Operation::ABCD>(instruction);	// 4-3 (p107)
-		default: break;
+		case 0x100:	return decode<Operation::ABCD>(instruction);	// 4-3 (p107)
+		default:	break;
 	}
 
 	switch(instruction & 0x0c0) {
@@ -454,13 +487,13 @@ Preinstruction Predecoder::decodeC(uint16_t instruction) {
 		case 0x00:	return decode<Operation::ANDb>(instruction);
 		case 0x40:	return decode<Operation::ANDw>(instruction);
 		case 0x80:	return decode<Operation::ANDl>(instruction);
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0x1c0) {
 		case 0x0c0:	return decode<Operation::MULU>(instruction);	// 4-139 (p243)
 		case 0x1c0:	return decode<Operation::MULS>(instruction);	// 4-136 (p240)
-		default: break;
+		default:	break;
 	}
 
 	// 4-105 (p209)
@@ -468,7 +501,7 @@ Preinstruction Predecoder::decodeC(uint16_t instruction) {
 		case 0x140:
 		case 0x148:
 		case 0x188:	return decode<Operation::EXG>(instruction);
-		default: break;
+		default:	break;
 	}
 
 	return Preinstruction();
@@ -481,7 +514,7 @@ Preinstruction Predecoder::decodeD(uint16_t instruction) {
 		case 0x040:	return decode<Operation::ADDw>(instruction);
 		case 0x080:	return decode<Operation::ADDl>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0x1c0) {
@@ -489,7 +522,7 @@ Preinstruction Predecoder::decodeD(uint16_t instruction) {
 		case 0x0c0:	return decode<Operation::ADDAw>(instruction);
 		case 0x1c0:	return decode<Operation::ADDAl>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0x1f0) {
@@ -498,7 +531,7 @@ Preinstruction Predecoder::decodeD(uint16_t instruction) {
 		case 0x140:	return decode<Operation::ADDXw>(instruction);
 		case 0x180:	return decode<Operation::ADDXl>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	return Preinstruction();
@@ -546,7 +579,7 @@ Preinstruction Predecoder::decodeE(uint16_t instruction) {
 		case 0x158:	return decode<Operation::ROLw>(instruction);
 		case 0x198:	return decode<Operation::ROLl>(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	switch(instruction & 0xfc0) {
@@ -559,7 +592,7 @@ Preinstruction Predecoder::decodeE(uint16_t instruction) {
 		case 0x6c0:	return decode<Operation::RORm>(instruction);	// 4-160 (p264)
 		case 0x7c0:	return decode<Operation::ROLm>(instruction);	// 4-160 (p264)
 
-		default: break;
+		default:	break;
 	}
 
 	return Preinstruction();
@@ -591,7 +624,7 @@ Preinstruction Predecoder::decode(uint16_t instruction) {
 		case 0xe000:	return decodeE(instruction);
 		case 0xf000:	return decodeF(instruction);
 
-		default: break;
+		default:	break;
 	}
 
 	return Preinstruction();
