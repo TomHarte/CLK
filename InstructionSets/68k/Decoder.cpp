@@ -128,28 +128,104 @@ template <Operation operation> Preinstruction Predecoder::decode(uint16_t instru
 			// Should be unreachable.
 			assert(false);
 	}
+
+	// TODO: be careful that decoders for ADD, SUB, etc, must check the instruction a little
+	// further to determine whether they're ADDI, SUBI, etc or the regular versions.
 }
 
 // MARK: - Page decoders.
 
 Preinstruction Predecoder::decode0(uint16_t instruction) {
-	(void)instruction;
+	switch(instruction) {
+		case 0x003c: return decode<Operation::ORItoCCR>(instruction);
+		case 0x007c: return decode<Operation::ORItoSR>(instruction);
+		case 0x023c: return decode<Operation::ANDItoCCR>(instruction);
+		case 0x027c: return decode<Operation::ANDItoSR>(instruction);
+		case 0x0a3c: return decode<Operation::EORItoCCR>(instruction);
+		case 0x0a7c: return decode<Operation::EORItoSR>(instruction);
+
+		default: break;
+	}
+
+	switch(instruction & 0xfc0) {
+		// 4-153 (p257)
+		case 0x000: return decode<Operation::ORb>(instruction);
+		case 0x040: return decode<Operation::ORw>(instruction);
+		case 0x080: return decode<Operation::ORl>(instruction);
+
+		// 4-18 (p122)
+		case 0x200: return decode<Operation::ANDb>(instruction);
+		case 0x240: return decode<Operation::ANDw>(instruction);
+		case 0x280: return decode<Operation::ANDl>(instruction);
+
+		// 4-179 (p283)
+		case 0x400: return decode<Operation::SUBb>(instruction);
+		case 0x440: return decode<Operation::SUBw>(instruction);
+		case 0x480: return decode<Operation::SUBl>(instruction);
+
+		// 4-9 (p113)
+		case 0x600: return decode<Operation::ADDb>(instruction);
+		case 0x640: return decode<Operation::ADDw>(instruction);
+		case 0x680: return decode<Operation::ADDl>(instruction);
+
+		// 4-63 (p167)
+		case 0x800: return decode<Operation::BTSTb>(instruction);
+
+		// 4-29 (p133)
+		case 0x840: return decode<Operation::BCHGb>(instruction);
+
+		// 4-32 (p136)
+		case 0x880: return decode<Operation::BCLRb>(instruction);
+
+		// 4-58 (p162)
+		case 0x8c0: return decode<Operation::BSETb>(instruction);
+
+		// 4-102 (p206)
+		case 0xa00: return decode<Operation::EORb>(instruction);
+		case 0xa40: return decode<Operation::EORw>(instruction);
+		case 0xa80: return decode<Operation::EORl>(instruction);
+
+		// 4-79 (p183)
+		case 0xc00: return decode<Operation::CMPb>(instruction);
+		case 0xc40: return decode<Operation::CMPw>(instruction);
+		case 0xc80: return decode<Operation::CMPl>(instruction);
+
+		default: break;
+	}
+
+	switch(instruction & 0x1c0) {
+		case 0x100: return decode<Operation::BTSTb>(instruction);	// 4-62 (p166)
+		case 0x180: return decode<Operation::BCLRb>(instruction);	// 4-31 (p135)
+
+		case 0x140: return decode<Operation::BCHGb>(instruction);	// 4-28 (p132)
+		case 0x1c0: return decode<Operation::BSETb>(instruction);	// 4-57 (p161)
+
+		default: break;
+	}
+
+	switch(instruction & 0x1f8) {
+		// 4-133 (p237)
+		case 0x108:	return decode<Operation::MOVEPtoRw>(instruction);
+		case 0x148:	return decode<Operation::MOVEPtoRl>(instruction);
+		case 0x188:	return decode<Operation::MOVEPtoMw>(instruction);
+		case 0x1c8:	return decode<Operation::MOVEPtoMl>(instruction);
+
+		default: break;
+	}
+
 	return Preinstruction();
 }
 
 Preinstruction Predecoder::decode1(uint16_t instruction) {
-	(void)instruction;
-	return Preinstruction();
+	return decode<Operation::MOVEb>(instruction);
 }
 
 Preinstruction Predecoder::decode2(uint16_t instruction) {
-	(void)instruction;
-	return Preinstruction();
+	return decode<Operation::MOVEl>(instruction);
 }
 
 Preinstruction Predecoder::decode3(uint16_t instruction) {
-	(void)instruction;
-	return Preinstruction();
+	return decode<Operation::MOVEw>(instruction);
 }
 
 Preinstruction Predecoder::decode4(uint16_t instruction) {
