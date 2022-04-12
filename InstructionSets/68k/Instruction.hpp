@@ -182,35 +182,41 @@ class Preinstruction {
 	public:
 		Operation operation = Operation::Undefined;
 
-		// First operand.
-		AddressingMode source_mode() {
-			return AddressingMode(source_ & 0x1f);
-		}
-		int source() {
-			return source_ >> 5;
-		}
+		// Instructions come with 0, 1 or 2 operands;
+		// the getters below act to provide a list of operands
+		// that is terminated by an AddressingMode::None.
+		//
+		// For two-operand instructions, argument 0 is a source
+		// and argument 1 is a destination.
+		//
+		// For one-operand instructions, only argument 0 will
+		// be provided, and will be a source and/or destination as
+		// per the semantics of the operation.
 
-		// Second operand.
-		AddressingMode destination_mode() {
-			return AddressingMode(destination_ & 0x1f);
+		template <int index> AddressingMode mode() {
+			if constexpr (index > 1) {
+				return AddressingMode::None;
+			}
+			return AddressingMode(operands_[index] & 0x1f);
 		}
-		int destination() {
-			return destination_ >> 5;
+		template <int index> int reg() {
+			if constexpr (index > 1) {
+				return 0;
+			}
+			return operands_[index] >> 5;
 		}
 
 	private:
-		uint8_t source_ = 0;
-		uint8_t destination_ = 0;
+		uint8_t operands_[2] = { uint8_t(AddressingMode::None), uint8_t(AddressingMode::None)};
 
 	public:
 		Preinstruction(
 			Operation operation,
-			AddressingMode source_mode,
-			int source,
-			AddressingMode destination_mode,
-			int destination) : operation(operation) {
-			source_ = uint8_t(source_mode) | uint8_t(source << 5);
-			destination_ = uint8_t(destination_mode) | uint8_t(destination << 5);
+			AddressingMode op1_mode,	int op1_reg,
+			AddressingMode op2_mode,	int op2_reg) : operation(operation)
+		{
+			operands_[0] = uint8_t(op1_mode) | uint8_t(op1_reg << 5);
+			operands_[1] = uint8_t(op2_mode) | uint8_t(op2_reg << 5);
 		}
 
 		Preinstruction() {}

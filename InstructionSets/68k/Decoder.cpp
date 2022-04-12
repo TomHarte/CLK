@@ -115,6 +115,10 @@ template <Operation operation> Preinstruction Predecoder::decode(uint16_t instru
 			}
 
 		//
+		// MARK: MOVEfromSR, NBCD.
+		//
+
+		//
 		// MARK: MULU, MULS, DIVU, DIVS.
 		//
 		case Operation::DIVU:	case Operation::DIVS:
