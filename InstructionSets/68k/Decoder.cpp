@@ -131,6 +131,8 @@ template <Operation operation> Preinstruction Predecoder::decode(uint16_t instru
 
 	// TODO: be careful that decoders for ADD, SUB, etc, must check the instruction a little
 	// further to determine whether they're ADDI, SUBI, etc or the regular versions.
+
+	// TODO: be willing to mutate Scc into DBcc.
 }
 
 // MARK: - Page decoders.
@@ -325,18 +327,37 @@ Preinstruction Predecoder::decode4(uint16_t instruction) {
 }
 
 Preinstruction Predecoder::decode5(uint16_t instruction) {
-	(void)instruction;
+	switch(instruction & 0x1c0) {
+		// 4-11 (p115)
+		case 0x000: return decode<Operation::ADDQb>(instruction);
+		case 0x040: return decode<Operation::ADDQw>(instruction);
+		case 0x080: return decode<Operation::ADDQl>(instruction);
+
+		// 4-181 (p285)
+		case 0x100: return decode<Operation::SUBQb>(instruction);
+		case 0x140: return decode<Operation::SUBQw>(instruction);
+		case 0x180: return decode<Operation::SUBQl>(instruction);
+
+		default: break;
+	}
+
+	switch(instruction & 0x0c0) {
+		// 4-173 (p276), though this'll also hit DBcc 4-91 (p195)
+		case 0x0c0: return decode<Operation::Scc>(instruction);
+
+		default: break;
+	}
 	return Preinstruction();
 }
 
 Preinstruction Predecoder::decode6(uint16_t instruction) {
-	(void)instruction;
-	return Preinstruction();
+	// 4-25 (p129), 4-59 (p163) and 4-55 (p159)
+	return decode<Operation::Bcc>(instruction);
 }
 
 Preinstruction Predecoder::decode7(uint16_t instruction) {
-	(void)instruction;
-	return Preinstruction();
+	// 4-134 (p238)
+	return decode<Operation::MOVEq>(instruction);
 }
 
 Preinstruction Predecoder::decode8(uint16_t instruction) {
