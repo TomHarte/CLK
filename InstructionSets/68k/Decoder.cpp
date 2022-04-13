@@ -24,6 +24,12 @@ constexpr AddressingMode combined_mode(int mode, int reg) {
 
 // MARK: - Instruction decoders.
 
+/// Maps from an ExtendedOperation to an Operation; in practice that means that anything
+/// that already is an Operation is passed through, and other things are mapped down into
+/// an operation that doesn't duplicate detail about the operands that can be held by a
+/// Preinstruction in other ways — for example, ANDI and AND are both represented by
+/// a Preinstruction with an operation of AND, the former just happens to specify an
+/// immediate operand.
 constexpr Operation Predecoder::operation(uint8_t op) {
 	if(op < uint8_t(Operation::Max)) {
 		return Operation(op);
@@ -59,6 +65,7 @@ template <uint8_t op> Preinstruction Predecoder::decode(uint16_t instruction) {
 		//
 		// MARK: ABCD, SBCD.
 		//
+		// 4-3 (p107), 4-171 (p275)
 		case uint8_t(Operation::ABCD):	case uint8_t(Operation::SBCD):	{
 			const auto addressing_mode = (instruction & 8) ?
 				AddressingMode::AddressRegisterIndirectWithPredecrement : AddressingMode::DataRegisterDirect;
@@ -383,14 +390,14 @@ Preinstruction Predecoder::decode4(uint16_t instruction) {
 Preinstruction Predecoder::decode5(uint16_t instruction) {
 	switch(instruction & 0x1c0) {
 		// 4-11 (p115)
-		case 0x000:	DecodeOp(ADDQb);
-		case 0x040:	DecodeOp(ADDQw);
-		case 0x080:	DecodeOp(ADDQl);
+		case 0x000:	DecodeEop(ADDQb);
+		case 0x040:	DecodeEop(ADDQw);
+		case 0x080:	DecodeEop(ADDQl);
 
 		// 4-181 (p285)
-		case 0x100:	DecodeOp(SUBQb);
-		case 0x140:	DecodeOp(SUBQw);
-		case 0x180:	DecodeOp(SUBQl);
+		case 0x100:	DecodeEop(SUBQb);
+		case 0x140:	DecodeEop(SUBQw);
+		case 0x180:	DecodeEop(SUBQl);
 
 		default:	break;
 	}
@@ -411,7 +418,7 @@ Preinstruction Predecoder::decode6(uint16_t instruction) {
 
 Preinstruction Predecoder::decode7(uint16_t instruction) {
 	// 4-134 (p238)
-	DecodeOp(MOVEq);
+	DecodeEop(MOVEq);
 }
 
 Preinstruction Predecoder::decode8(uint16_t instruction) {

@@ -53,6 +53,12 @@ class Predecoder {
 			MOVEPtoRl, MOVEPtoRw,
 			MOVEPtoMl, MOVEPtoMw,
 
+			ADDQb,	ADDQw,	ADDQl,
+			ADDQAw,	ADDQAl,
+			SUBQb,	SUBQw,	SUBQl,
+			SUBQAw,	SUBQAl,
+
+			MOVEq,
 		};
 		static constexpr Operation operation(uint8_t op);
 };

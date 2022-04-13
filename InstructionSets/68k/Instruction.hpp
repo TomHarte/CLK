@@ -22,18 +22,14 @@ enum class Operation: uint8_t {
 	ABCD,	SBCD,	NBCD,
 
 	ADDb,	ADDw,	ADDl,
-	ADDQb,	ADDQw,	ADDQl,
 	ADDAw,	ADDAl,
-	ADDQAw,	ADDQAl,
 	ADDXb,	ADDXw,	ADDXl,
 
 	SUBb,	SUBw,	SUBl,
-	SUBQb,	SUBQw,	SUBQl,
 	SUBAw,	SUBAl,
-	SUBQAw,	SUBQAl,
 	SUBXb,	SUBXw,	SUBXl,
 
-	MOVEb,	MOVEw,	MOVEl,	MOVEq,
+	MOVEb,	MOVEw,	MOVEl,
 	MOVEAw,	MOVEAl,
 	PEA,
 
@@ -101,6 +97,18 @@ enum class Operation: uint8_t {
 	Max = RESET
 };
 
+constexpr int size(Operation operation) {
+	// TODO: most of this table, once I've settled on what stays in
+	// the Operation table and what doesn't.
+	switch(operation) {
+		case Operation::ADDb:	case Operation::ADDXb:
+		case Operation::SUBb:	case Operation::SUBXb:
+			return 1;
+
+		default:	return 0;
+	}
+}
+
 /// Indicates the addressing mode applicable to an operand.
 ///
 /// Implementation notes:
@@ -167,6 +175,9 @@ enum class AddressingMode: uint8_t {
 
 	/// #
 	ImmediateData										= 0b01'100,
+
+	/// .q; value is provided as the corresponding 'reg'.
+	Quick												= 0b11'110,
 };
 
 /*!
