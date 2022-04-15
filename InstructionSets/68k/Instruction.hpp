@@ -43,8 +43,9 @@ enum class Operation: uint8_t {
 	ANDItoSR,	ANDItoCCR,
 	EORItoSR,	EORItoCCR,
 
-	BTSTb,	BTSTl,
-	BCLRl,	BCLRb,
+	BTST,	BCLR,
+	BCHG,	BSET,
+
 	CMPb,	CMPw,	CMPl,
 	CMPAw,	CMPAl,
 	TSTb,	TSTw,	TSTl,
@@ -84,9 +85,6 @@ enum class Operation: uint8_t {
 	CHK,
 
 	EXG,	SWAP,
-
-	BCHGl,	BCHGb,
-	BSETl,	BSETb,
 
 	TAS,
 

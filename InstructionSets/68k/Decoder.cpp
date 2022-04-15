@@ -16,8 +16,17 @@ namespace {
 
 /// @returns The @c AddressingMode given the specified mode and reg, subject to potential
 /// 	aliasing on the '020+ as described above the @c AddressingMode enum.
-constexpr AddressingMode combined_mode(int mode, int reg) {
-	return (mode != 7) ? AddressingMode(mode) : AddressingMode(0b01'000 | reg);
+template <bool allow_An = true, bool allow_post_inc = true> constexpr AddressingMode combined_mode(int raw_mode, int reg) {
+	auto mode = AddressingMode(raw_mode);
+
+	if(!allow_An && mode == AddressingMode::AddressRegisterDirect) {
+		mode = AddressingMode::DataRegisterDirect;
+	}
+	if(!allow_post_inc && mode == AddressingMode::AddressRegisterIndirectWithPostincrement) {
+		mode = AddressingMode::AddressRegisterIndirect;
+	}
+
+	return (raw_mode != 7) ? mode : AddressingMode(0b01'000 | reg);
 }
 
 }
@@ -52,10 +61,10 @@ constexpr Operation Predecoder<model>::operation(Op op) {
 		case SUBQAw:	return Operation::SUBAw;
 		case SUBQAl:	return Operation::SUBAl;
 
-		case BTSTIb:	return Operation::BTSTb;
-		case BCHGIb:	return Operation::BCHGb;
-		case BCLRIb:	return Operation::BCLRb;
-		case BSETIb:	return Operation::BSETb;
+		case BTSTI:		return Operation::BTST;
+		case BCHGI:		return Operation::BCHG;
+		case BCLRI:		return Operation::BCLR;
+		case BSETI:		return Operation::BSET;
 
 		default: break;
 	}
@@ -74,6 +83,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 	const auto ea_register = instruction & 7;
 	const auto ea_mode = (instruction >> 3) & 7;
 	const auto ea_combined_mode = combined_mode(ea_mode, ea_register);
+	// TODO: based on operation, limit potential outputs of combined_mode.
 
 	const auto opmode = (instruction >> 6) & 7;
 	const auto data_register = (instruction >> 9) & 7;
@@ -140,6 +150,31 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 
 			return Preinstruction();
 		}
+
+		//
+		// MARK: EORI, ORI, ANDI, SUBI, ADDI, CMPI, B[TST/CHG/CLR/SET]I
+		//
+		case EORIb: 	case EORIl:		case EORIw:
+		case ORIb:		case ORIl:		case ORIw:
+		case ANDIb:		case ANDIl:		case ANDIw:
+		case SUBIb:		case SUBIl:		case SUBIw:
+		case ADDIb:		case ADDIl:		case ADDIw:
+		case CMPIb:		case CMPIl:		case CMPIw:
+		case BTSTI:		case BCHGI:
+		case BCLRI:		case BSETI:
+			return Preinstruction(operation,
+				AddressingMode::ImmediateData, 0,
+				ea_combined_mode, ea_register);
+
+
+		//
+		// MARK: BTST, BCLR, BCHG, BSET
+		//
+		case Op(Operation::BTST):	case Op(Operation::BCLR):
+		case Op(Operation::BCHG):	case Op(Operation::BSET):
+			return Preinstruction(operation,
+				AddressingMode::DataRegisterDirect, data_register,
+				ea_combined_mode, ea_register);
 
 		//
 		// MARK: ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR
@@ -221,7 +256,7 @@ template <Model model>
 Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 	switch(instruction & 0xfff) {
 		case 0x03c:	DecodeOp(ORItoCCR);		// 4-155 (p259)
-		case 0x07c:	DecodeOp(ORItoSR);		// 6-27 (p646)
+		case 0x07c:	DecodeOp(ORItoSR);		// 6-27 (p481)
 		case 0x23c:	DecodeOp(ANDItoCCR);	// 4-20 (p124)
 		case 0x27c:	DecodeOp(ANDItoSR);		// 6-2 (p456)
 		case 0xa3c:	DecodeOp(EORItoCCR);	// 4-104 (p208)
@@ -252,16 +287,16 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 		case 0x680:	DecodeEop(ADDIl);
 
 		// 4-63 (p167)
-		case 0x800:	DecodeEop(BTSTIb);
+		case 0x800:	DecodeEop(BTSTI);
 
 		// 4-29 (p133)
-		case 0x840:	DecodeEop(BCHGIb);
+		case 0x840:	DecodeEop(BCHGI);
 
 		// 4-32 (p136)
-		case 0x880:	DecodeEop(BCLRIb);
+		case 0x880:	DecodeEop(BCLRI);
 
 		// 4-58 (p162)
-		case 0x8c0:	DecodeEop(BSETIb);
+		case 0x8c0:	DecodeEop(BSETI);
 
 		// 4-102 (p206)
 		case 0xa00:	DecodeEop(EORIb);
@@ -277,11 +312,11 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 	}
 
 	switch(instruction & 0x1c0) {
-		case 0x100:	DecodeOp(BTSTb);	// 4-62 (p166)
-		case 0x180:	DecodeOp(BCLRb);	// 4-31 (p135)
+		case 0x100:	DecodeOp(BTST);	// 4-62 (p166)
+		case 0x180:	DecodeOp(BCLR);	// 4-31 (p135)
 
-		case 0x140:	DecodeOp(BCHGb);	// 4-28 (p132)
-		case 0x1c0:	DecodeOp(BSETb);	// 4-57 (p161)
+		case 0x140:	DecodeOp(BCHG);	// 4-28 (p132)
+		case 0x1c0:	DecodeOp(BSET);	// 4-57 (p161)
 
 		default:	break;
 	}

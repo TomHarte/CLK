@@ -72,7 +72,7 @@ template <Model model> class Predecoder {
 			EORIb,	EORIw,	EORIl,
 			CMPIb,	CMPIw,	CMPIl,
 
-			BTSTIb, BCHGIb, BCLRIb, BSETIb,
+			BTSTI, BCHGI, BCLRI, BSETI,
 
 			MOVEq,
 		};
