@@ -229,9 +229,19 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				AddressingMode::AddressRegisterIndirectWithDisplacement, ea_register);
 
 		//
-		// MARK: STOP
+		// MARK: MOVE
 		//
-		case Op(Operation::STOP):
+		case Op(Operation::MOVEb):	case Op(Operation::MOVEl):	case Op(Operation::MOVEw):
+			return Preinstruction(operation,
+				ea_combined_mode, ea_register,
+				combined_mode<false, false>(opmode, data_register), data_register);
+
+		//
+		// MARK: STOP, RESET, NOP RTE, RTS, TRAPV, RTR
+		//
+		case Op(Operation::STOP):	case Op(Operation::RESET):	case Op(Operation::NOP):
+		case Op(Operation::RTE):	case Op(Operation::RTS):	case Op(Operation::TRAPV):
+		case Op(Operation::RTR):
 			return Preinstruction(operation);
 
 		//
@@ -336,17 +346,20 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 
 template <Model model>
 Preinstruction Predecoder<model>::decode1(uint16_t instruction) {
+	// 4-116 (p220)
 	DecodeOp(MOVEb);
 }
 
 
 template <Model model>
 Preinstruction Predecoder<model>::decode2(uint16_t instruction) {
+	// 4-116 (p220)
 	DecodeOp(MOVEl);
 }
 
 template <Model model>
 Preinstruction Predecoder<model>::decode3(uint16_t instruction) {
+	// 4-116 (p220)
 	DecodeOp(MOVEw);
 }
 
@@ -354,7 +367,7 @@ template <Model model>
 Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 	switch(instruction & 0xfff) {
 		case 0xe70:	DecodeOp(RESET);	// 6-83 (p537)
-		case 0xe71:	DecodeOp(NOP);		// 8-13 (p469)
+		case 0xe71:	DecodeOp(NOP);		// 4-147 (p251)
 		case 0xe73:	DecodeOp(RTE);		// 6-84 (p538)
 		case 0xe75:	DecodeOp(RTS);		// 4-169 (p273)
 		case 0xe76:	DecodeOp(TRAPV);	// 4-191 (p295)
