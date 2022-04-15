@@ -16,7 +16,9 @@ namespace {
 
 /// @returns The @c AddressingMode given the specified mode and reg, subject to potential
 /// 	aliasing on the '020+ as described above the @c AddressingMode enum.
-template <bool allow_An = true, bool allow_post_inc = true> constexpr AddressingMode combined_mode(int raw_mode, int reg) {
+template <
+	bool allow_An = true, bool allow_post_inc = true
+> constexpr AddressingMode combined_mode(int raw_mode, int reg) {
 	auto mode = AddressingMode(raw_mode);
 
 	if(!allow_An && mode == AddressingMode::AddressRegisterDirect) {
@@ -82,11 +84,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 	// isn't actually used.
 	const auto ea_register = instruction & 7;
 	const auto ea_mode = (instruction >> 3) & 7;
-	const auto ea_combined_mode = combined_mode(ea_mode, ea_register);
-	// TODO: based on operation, limit potential outputs of combined_mode.
-
 	const auto opmode = (instruction >> 6) & 7;
 	const auto data_register = (instruction >> 9) & 7;
+
 	constexpr auto operation = Predecoder<model>::operation(op);
 
 	switch(op) {
@@ -94,7 +94,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		// MARK: ABCD, SBCD.
 		//
-		// 4-3 (p107), 4-171 (p275)
 		case Op(Operation::ABCD):	case Op(Operation::SBCD):	{
 			const auto addressing_mode = (instruction & 8) ?
 				AddressingMode::AddressRegisterIndirectWithPredecrement : AddressingMode::DataRegisterDirect;
@@ -119,6 +118,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				operation == Operation::EORb ||
 				operation == Operation::EORw ||
 				operation == Operation::EORl;
+
+			const auto ea_combined_mode = combined_mode(ea_mode, ea_register);
 
 			if(opmode & 4) {
 				// Dn Λ < ea > → < ea >
@@ -164,7 +165,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case BCLRI:		case BSETI:
 			return Preinstruction(operation,
 				AddressingMode::ImmediateData, 0,
-				ea_combined_mode, ea_register);
+				combined_mode(ea_mode, ea_register), ea_register);
 
 
 		//
@@ -174,7 +175,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case Op(Operation::BCHG):	case Op(Operation::BSET):
 			return Preinstruction(operation,
 				AddressingMode::DataRegisterDirect, data_register,
-				ea_combined_mode, ea_register);
+				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
 		// MARK: ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR
@@ -212,7 +213,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case Op(Operation::DIVU):	case Op(Operation::DIVS):
 		case Op(Operation::MULU):	case Op(Operation::MULS):
 			return Preinstruction(operation,
-				ea_combined_mode, ea_register,
+				combined_mode(ea_mode, ea_register), ea_register,
 				AddressingMode::DataRegisterDirect, data_register);
 
 		//
@@ -233,7 +234,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case Op(Operation::MOVEb):	case Op(Operation::MOVEl):	case Op(Operation::MOVEw):
 			return Preinstruction(operation,
-				ea_combined_mode, ea_register,
+				combined_mode(ea_mode, ea_register), ea_register,
 				combined_mode<false, false>(opmode, data_register), data_register);
 
 		//
@@ -243,6 +244,37 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case Op(Operation::RTE):	case Op(Operation::RTS):	case Op(Operation::TRAPV):
 		case Op(Operation::RTR):
 			return Preinstruction(operation);
+
+		//
+		// MARK: NEGX, CLR, NEG, MOVEtoCCR, MOVEtoSR, NOT, NBCD, PEA, TST
+		//
+		case Op(Operation::CLRb):		case Op(Operation::CLRw):		case Op(Operation::CLRl):
+		case Op(Operation::JMP):		case Op(Operation::JSR):
+		case Op(Operation::MOVEtoSR):	case Op(Operation::MOVEfromSR):	case Op(Operation::MOVEtoCCR):
+		case Op(Operation::NBCD):
+		case Op(Operation::NEGb):		case Op(Operation::NEGw):		case Op(Operation::NEGl):
+		case Op(Operation::NEGXb):		case Op(Operation::NEGXw):		case Op(Operation::NEGXl):
+		case Op(Operation::NOTb):		case Op(Operation::NOTw):		case Op(Operation::NOTl):
+		case Op(Operation::PEA):
+		case Op(Operation::TAS):
+		case Op(Operation::TSTb):		case Op(Operation::TSTw):		case Op(Operation::TSTl):
+			return Preinstruction(operation,
+				combined_mode<false, false>(ea_mode, ea_register), ea_register);
+
+		//
+		// MARK: MOVEMtoMw, MOVEMtoMl, MOVEMtoRw, MOVEMtoRl
+		//
+		case MOVEMtoMl:	case MOVEMtoMw:
+			return Preinstruction(operation,
+				AddressingMode::ImmediateData, 0,
+				combined_mode(ea_mode, ea_register), ea_register);
+
+		case MOVEMtoRl:	case MOVEMtoRw:
+			return Preinstruction(operation,
+				combined_mode(ea_mode, ea_register), ea_register,
+				AddressingMode::ImmediateData, 0);
+
+		// TODO: more validation on the above.
 
 		//
 		// MARK: Impossible error case.
@@ -389,7 +421,7 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		case 0x240:	DecodeOp(CLRw);
 		case 0x280:	DecodeOp(CLRl);
 
-		// 4-144 (p248)
+		// 4-144 (p247)
 		case 0x400:	DecodeOp(NEGb);
 		case 0x440:	DecodeOp(NEGw);
 		case 0x480:	DecodeOp(NEGl);
@@ -397,7 +429,7 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		// 4-123 (p227)
 		case 0x4c0:	DecodeOp(MOVEtoCCR);
 
-		// 4-148 (p250)
+		// 4-148 (p252)
 		case 0x600:	DecodeOp(NOTb);
 		case 0x640:	DecodeOp(NOTw);
 		case 0x680:	DecodeOp(NOTl);
@@ -435,7 +467,7 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 	}
 
 	switch(instruction & 0x1c0) {
-		case 0x1c0:	DecodeOp(MOVEAl);	// 4-110 (p214)
+		case 0x1c0:	DecodeOp(MOVEAl);	// 4-110 (p214)		TODO: In this I assume that LEA is just a special MOVEAl. Consider.
 		case 0x180:	DecodeOp(CHK);		// 4-69 (p173)
 		default:	break;
 	}
