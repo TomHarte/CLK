@@ -2069,6 +2069,7 @@
 		4BDACBEB22FFA5D20045EF7E /* ncr5380.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ncr5380.hpp; sourceTree = "<group>"; };
 		4BDB3D8522833321002D3CEE /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4BDCC5F81FB27A5E001220C5 /* ROMMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ROMMachine.hpp; sourceTree = "<group>"; };
+		4BDDAC1E2809AB6100A3A93A /* Model.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Model.hpp; sourceTree = "<group>"; };
 		4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MachineCycleTests.swift; sourceTree = "<group>"; };
 		4BE0A3EC237BB170002AB46F /* ST.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ST.cpp; sourceTree = "<group>"; };
 		4BE0A3ED237BB170002AB46F /* ST.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ST.hpp; sourceTree = "<group>"; };
@@ -4293,6 +4294,7 @@
 				4BBD689328037B0E004790C1 /* Instruction.hpp */,
 				4BBD689728037E53004790C1 /* Decoder.cpp */,
 				4BBD689828037E53004790C1 /* Decoder.hpp */,
+				4BDDAC1E2809AB6100A3A93A /* Model.hpp */,
 			);
 			path = 68k;
 			sourceTree = "<group>";

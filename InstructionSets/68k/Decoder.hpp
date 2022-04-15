@@ -6,10 +6,11 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#ifndef Decoder_hpp
-#define Decoder_hpp
+#ifndef InstructionSets_M68k_Decoder_hpp
+#define InstructionSets_M68k_Decoder_hpp
 
 #include "Instruction.hpp"
+#include "Model.hpp"
 
 namespace InstructionSet {
 namespace M68k {
@@ -19,7 +20,7 @@ namespace M68k {
 	(i.e. enough to know the operation and size, and either know the addressing mode
 	and registers or else know how many further extension words are needed).
 */
-class Predecoder {
+template <Model model> class Predecoder {
 	public:
 		Preinstruction decode(uint16_t instruction);
 
@@ -43,10 +44,16 @@ class Predecoder {
 		Preinstruction decodeE(uint16_t instruction);
 		Preinstruction decodeF(uint16_t instruction);
 
-		// Specific instruction decoders.
-		template <uint8_t operation> Preinstruction decode(uint16_t instruction);
+		using Op = uint8_t;
 
-		enum ExtendedOperation {
+		// Specific instruction decoders.
+		template <Op operation, bool validate> Preinstruction decode(uint16_t instruction);
+
+		// Extended operation list; collapses into a single byte enough information to
+		// know both the type of operation and how to decode the operands. Most of the
+		// time that's knowable from the Operation alone, hence the rather awkward
+		// extension of @c Operation.
+		enum ExtendedOperation: Op {
 			MOVEMtoRl = uint8_t(Operation::Max), MOVEMtoRw,
 			MOVEMtoMl, MOVEMtoMw,
 
@@ -58,12 +65,22 @@ class Predecoder {
 			SUBQb,	SUBQw,	SUBQl,
 			SUBQAw,	SUBQAl,
 
+			ADDIb,	ADDIw,	ADDIl,
+			ORIb,	ORIw,	ORIl,
+			SUBIb,	SUBIw,	SUBIl,
+			ANDIb,	ANDIw,	ANDIl,
+			EORIb,	EORIw,	EORIl,
+			CMPIb,	CMPIw,	CMPIl,
+
+			BTSTIb, BCHGIb, BCLRIb, BSETIb,
+
 			MOVEq,
 		};
-		static constexpr Operation operation(uint8_t op);
+
+		static constexpr Operation operation(Op op);
 };
 
 }
 }
 
-#endif /* Decoder_hpp */
+#endif /* InstructionSets_M68k_Decoder_hpp */

@@ -10,6 +10,7 @@
 #define InstructionSets_68k_Instruction_hpp
 
 #include <cstdint>
+#include "Model.hpp"
 
 namespace InstructionSet {
 namespace M68k {
@@ -31,6 +32,7 @@ enum class Operation: uint8_t {
 
 	MOVEb,	MOVEw,	MOVEl,
 	MOVEAw,	MOVEAl,
+	MOVEq,
 	PEA,
 
 	MOVEtoSR, MOVEfromSR,
@@ -90,12 +92,25 @@ enum class Operation: uint8_t {
 
 	EXTbtow,	EXTwtol,
 
-	LINK,	UNLINK,
+	LINKw,	UNLINK,
 
 	STOP,	RESET,
 
 	Max = RESET
 };
+
+template <Model model>
+constexpr bool requires_supervisor(Operation op) {
+	switch(op) {
+		case Operation::ORItoSR: case Operation::ANDItoSR: case Operation::EORItoSR:
+			return true;
+
+		default:
+			return false;
+	}
+
+	// TODO: plenty more.
+}
 
 constexpr int size(Operation operation) {
 	// TODO: most of this table, once I've settled on what stays in
@@ -103,7 +118,18 @@ constexpr int size(Operation operation) {
 	switch(operation) {
 		case Operation::ADDb:	case Operation::ADDXb:
 		case Operation::SUBb:	case Operation::SUBXb:
+		case Operation::ORItoCCR:
+		case Operation::ANDItoCCR:
+		case Operation::EORItoCCR:
 			return 1;
+
+		case Operation::ORItoSR:
+		case Operation::ANDItoSR:
+		case Operation::EORItoSR:
+			return 2;
+
+		case Operation::EXG:
+			return 4;
 
 		default:	return 0;
 	}

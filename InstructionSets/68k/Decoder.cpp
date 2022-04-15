@@ -30,8 +30,9 @@ constexpr AddressingMode combined_mode(int mode, int reg) {
 /// Preinstruction in other ways — for example, ANDI and AND are both represented by
 /// a Preinstruction with an operation of AND, the former just happens to specify an
 /// immediate operand.
-constexpr Operation Predecoder::operation(uint8_t op) {
-	if(op < uint8_t(Operation::Max)) {
+template <Model model>
+constexpr Operation Predecoder<model>::operation(Op op) {
+	if(op < Op(Operation::Max)) {
 		return Operation(op);
 	}
 
@@ -41,13 +42,31 @@ constexpr Operation Predecoder::operation(uint8_t op) {
 		case MOVEPtoRl:	case MOVEPtoMl:	return Operation::MOVEPl;
 		case MOVEPtoRw:	case MOVEPtoMw:	return Operation::MOVEPw;
 
+		case ADDQb:		return Operation::ADDb;
+		case ADDQw:		return Operation::ADDw;
+		case ADDQl:		return Operation::ADDl;
+		case ADDQAw:	return Operation::ADDAw;
+		case ADDQAl:	return Operation::ADDAl;
+		case SUBQb:		return Operation::SUBb;
+		case SUBQw:		return Operation::SUBl;
+		case SUBQAw:	return Operation::SUBAw;
+		case SUBQAl:	return Operation::SUBAl;
+
+		case BTSTIb:	return Operation::BTSTb;
+		case BCHGIb:	return Operation::BCHGb;
+		case BCLRIb:	return Operation::BCLRb;
+		case BSETIb:	return Operation::BSETb;
+
 		default: break;
 	}
 
 	return Operation::Undefined;
 }
 
-template <uint8_t op> Preinstruction Predecoder::decode(uint16_t instruction) {
+/// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been
+/// decoded. Optionally applies validation
+template <Model model>
+template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(uint16_t instruction) {
 	// Fields used pervasively below.
 	//
 	// Underlying assumption: the compiler will discard whatever of these
@@ -58,7 +77,7 @@ template <uint8_t op> Preinstruction Predecoder::decode(uint16_t instruction) {
 
 	const auto opmode = (instruction >> 6) & 7;
 	const auto data_register = (instruction >> 9) & 7;
-	constexpr auto operation = Predecoder::operation(op);
+	constexpr auto operation = Predecoder<model>::operation(op);
 
 	switch(op) {
 
@@ -66,7 +85,7 @@ template <uint8_t op> Preinstruction Predecoder::decode(uint16_t instruction) {
 		// MARK: ABCD, SBCD.
 		//
 		// 4-3 (p107), 4-171 (p275)
-		case uint8_t(Operation::ABCD):	case uint8_t(Operation::SBCD):	{
+		case Op(Operation::ABCD):	case Op(Operation::SBCD):	{
 			const auto addressing_mode = (instruction & 8) ?
 				AddressingMode::AddressRegisterIndirectWithPredecrement : AddressingMode::DataRegisterDirect;
 
@@ -78,9 +97,9 @@ template <uint8_t op> Preinstruction Predecoder::decode(uint16_t instruction) {
 		//
 		// MARK: AND, OR, EOR.
 		//
-		case uint8_t(Operation::ANDb):	case uint8_t(Operation::ANDw):	case uint8_t(Operation::ANDl):
-		case uint8_t(Operation::ORb):	case uint8_t(Operation::ORw):	case uint8_t(Operation::ORl):
-		case uint8_t(Operation::EORb):	case uint8_t(Operation::EORw):	case uint8_t(Operation::EORl):	{
+		case Op(Operation::ANDb):	case Op(Operation::ANDw):	case Op(Operation::ANDl):
+		case Op(Operation::ORb):	case Op(Operation::ORw):	case Op(Operation::ORl):
+		case Op(Operation::EORb):	case Op(Operation::EORw):	case Op(Operation::EORl):	{
 			// Opmode 7 is illegal.
 			if(opmode == 7) {
 				return Preinstruction();
@@ -123,9 +142,19 @@ template <uint8_t op> Preinstruction Predecoder::decode(uint16_t instruction) {
 		}
 
 		//
+		// MARK: ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR
+		//
+		case Op(Operation::ORItoSR):	case Op(Operation::ORItoCCR):
+		case Op(Operation::ANDItoSR):	case Op(Operation::ANDItoCCR):
+		case Op(Operation::EORItoSR):	case Op(Operation::EORItoCCR):
+			return Preinstruction(operation,
+				AddressingMode::ImmediateData, 0,
+				operation == Operation::ORItoSR || operation == Operation::ANDItoSR || operation == Operation::EORItoSR);
+
+		//
 		// MARK: EXG.
 		//
-		case uint8_t(Operation::EXG):
+		case Op(Operation::EXG):
 			switch((instruction >> 3)&31) {
 				default:	return Preinstruction();
 
@@ -143,40 +172,32 @@ template <uint8_t op> Preinstruction Predecoder::decode(uint16_t instruction) {
 			}
 
 		//
-		// MARK: MOVEfromSR, NBCD.
-		//
-
-		//
 		// MARK: MULU, MULS, DIVU, DIVS.
 		//
-		case uint8_t(Operation::DIVU):	case uint8_t(Operation::DIVS):
-		case uint8_t(Operation::MULU):	case uint8_t(Operation::MULS):
+		case Op(Operation::DIVU):	case Op(Operation::DIVS):
+		case Op(Operation::MULU):	case Op(Operation::MULS):
 			return Preinstruction(operation,
 				ea_combined_mode, ea_register,
 				AddressingMode::DataRegisterDirect, data_register);
 
 		//
-		// MARK: ORItoCCR, ORItoSR, ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR
-		//
-		case uint8_t(Operation::ORItoSR):	case uint8_t(Operation::ORItoCCR):
-		case uint8_t(Operation::ANDItoSR):	case uint8_t(Operation::ANDItoCCR):
-		case uint8_t(Operation::EORItoSR):	case uint8_t(Operation::EORItoCCR):
-			return Preinstruction(operation,
-				AddressingMode::ImmediateData, 0,
-				operation == Operation::ORItoSR || operation == Operation::ANDItoSR || operation == Operation::EORItoSR);
-
-		//
 		// MARK: MOVEPtoRw, MOVEPtoRl
 		//
-		case MOVEPtoRw:	case MOVEPtoRl:
+		case Op(MOVEPtoRw):	case Op(MOVEPtoRl):
 			return Preinstruction(operation,
 				AddressingMode::AddressRegisterIndirectWithDisplacement, ea_register,
 				AddressingMode::DataRegisterDirect, data_register);
 
-		case MOVEPtoMw:	case MOVEPtoMl:
+		case Op(MOVEPtoMw):	case Op(MOVEPtoMl):
 			return Preinstruction(operation,
 				AddressingMode::DataRegisterDirect, data_register,
 				AddressingMode::AddressRegisterIndirectWithDisplacement, ea_register);
+
+		//
+		// MARK: STOP
+		//
+		case Op(Operation::STOP):
+			return Preinstruction(operation);
 
 		//
 		// MARK: Impossible error case.
@@ -186,18 +207,18 @@ template <uint8_t op> Preinstruction Predecoder::decode(uint16_t instruction) {
 			assert(false);
 	}
 
-	// TODO: be careful that decoders for ADD, SUB, etc, must check the instruction a little
-	// further to determine whether they're ADDI, SUBI, etc or the regular versions.
-
 	// TODO: be willing to mutate Scc into DBcc.
 }
 
+#undef Op
+
 // MARK: - Page decoders.
 
-#define DecodeOp(y)		return decode<uint8_t(Operation::y)>(instruction)
-#define DecodeEop(y)	return decode<y>(instruction)
+#define DecodeOp(y)		return decode<Op(Operation::y)>(instruction)
+#define DecodeEop(y)	return decode<Op(y)>(instruction)
 
-Preinstruction Predecoder::decode0(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 	switch(instruction & 0xfff) {
 		case 0x03c:	DecodeOp(ORItoCCR);		// 4-155 (p259)
 		case 0x07c:	DecodeOp(ORItoSR);		// 6-27 (p646)
@@ -209,50 +230,48 @@ Preinstruction Predecoder::decode0(uint16_t instruction) {
 		default:	break;
 	}
 
-	// TODO: determine whether it's useful to be able to flag these as immediate
-	// versions here, rather than having it determined dynamically in decode.
 	switch(instruction & 0xfc0) {
 		// 4-153 (p257)
-		case 0x000:	DecodeOp(ORb);
-		case 0x040:	DecodeOp(ORw);
-		case 0x080:	DecodeOp(ORl);
+		case 0x000:	DecodeEop(ORIb);
+		case 0x040:	DecodeEop(ORIw);
+		case 0x080:	DecodeEop(ORIl);
 
 		// 4-18 (p122)
-		case 0x200:	DecodeOp(ANDb);
-		case 0x240:	DecodeOp(ANDw);
-		case 0x280:	DecodeOp(ANDl);
+		case 0x200:	DecodeEop(ANDIb);
+		case 0x240:	DecodeEop(ANDIw);
+		case 0x280:	DecodeEop(ANDIl);
 
 		// 4-179 (p283)
-		case 0x400:	DecodeOp(SUBb);
-		case 0x440:	DecodeOp(SUBw);
-		case 0x480:	DecodeOp(SUBl);
+		case 0x400:	DecodeEop(SUBIb);
+		case 0x440:	DecodeEop(SUBIw);
+		case 0x480:	DecodeEop(SUBIl);
 
 		// 4-9 (p113)
-		case 0x600:	DecodeOp(ADDb);
-		case 0x640:	DecodeOp(ADDw);
-		case 0x680:	DecodeOp(ADDl);
+		case 0x600:	DecodeEop(ADDIb);
+		case 0x640:	DecodeEop(ADDIw);
+		case 0x680:	DecodeEop(ADDIl);
 
 		// 4-63 (p167)
-		case 0x800:	DecodeOp(BTSTb);
+		case 0x800:	DecodeEop(BTSTIb);
 
 		// 4-29 (p133)
-		case 0x840:	DecodeOp(BCHGb);
+		case 0x840:	DecodeEop(BCHGIb);
 
 		// 4-32 (p136)
-		case 0x880:	DecodeOp(BCLRb);
+		case 0x880:	DecodeEop(BCLRIb);
 
 		// 4-58 (p162)
-		case 0x8c0:	DecodeOp(BSETb);
+		case 0x8c0:	DecodeEop(BSETIb);
 
 		// 4-102 (p206)
-		case 0xa00:	DecodeOp(EORb);
-		case 0xa40:	DecodeOp(EORw);
-		case 0xa80:	DecodeOp(EORl);
+		case 0xa00:	DecodeEop(EORIb);
+		case 0xa40:	DecodeEop(EORIw);
+		case 0xa80:	DecodeEop(EORIl);
 
 		// 4-79 (p183)
-		case 0xc00:	DecodeOp(CMPb);
-		case 0xc40:	DecodeOp(CMPw);
-		case 0xc80:	DecodeOp(CMPl);
+		case 0xc00:	DecodeEop(CMPIb);
+		case 0xc40:	DecodeEop(CMPIw);
+		case 0xc80:	DecodeEop(CMPIl);
 
 		default:	break;
 	}
@@ -280,19 +299,24 @@ Preinstruction Predecoder::decode0(uint16_t instruction) {
 	return Preinstruction();
 }
 
-Preinstruction Predecoder::decode1(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decode1(uint16_t instruction) {
 	DecodeOp(MOVEb);
 }
 
-Preinstruction Predecoder::decode2(uint16_t instruction) {
+
+template <Model model>
+Preinstruction Predecoder<model>::decode2(uint16_t instruction) {
 	DecodeOp(MOVEl);
 }
 
-Preinstruction Predecoder::decode3(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decode3(uint16_t instruction) {
 	DecodeOp(MOVEw);
 }
 
-Preinstruction Predecoder::decode4(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 	switch(instruction & 0xfff) {
 		case 0xe70:	DecodeOp(RESET);	// 6-83 (p537)
 		case 0xe71:	DecodeOp(NOP);		// 8-13 (p469)
@@ -377,7 +401,7 @@ Preinstruction Predecoder::decode4(uint16_t instruction) {
 		case 0x860:	DecodeOp(SWAP);			// 4-185 (p289)
 		case 0x880:	DecodeOp(EXTbtow);		// 4-106 (p210)
 		case 0x8c0:	DecodeOp(EXTwtol);		// 4-106 (p210)
-		case 0xe50:	DecodeOp(LINK);			// 4-111 (p215)
+		case 0xe50:	DecodeOp(LINKw);		// 4-111 (p215)
 		case 0xe58:	DecodeOp(UNLINK);		// 4-194 (p298)
 		case 0xe60:	DecodeOp(MOVEtoUSP);	// 6-21 (p475)
 		case 0xe68:	DecodeOp(MOVEfromUSP);	// 6-21 (p475)
@@ -387,7 +411,8 @@ Preinstruction Predecoder::decode4(uint16_t instruction) {
 	return Preinstruction();
 }
 
-Preinstruction Predecoder::decode5(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decode5(uint16_t instruction) {
 	switch(instruction & 0x1c0) {
 		// 4-11 (p115)
 		case 0x000:	DecodeEop(ADDQb);
@@ -411,17 +436,20 @@ Preinstruction Predecoder::decode5(uint16_t instruction) {
 	return Preinstruction();
 }
 
-Preinstruction Predecoder::decode6(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decode6(uint16_t instruction) {
 	// 4-25 (p129), 4-59 (p163) and 4-55 (p159)
 	DecodeOp(Bcc);
 }
 
-Preinstruction Predecoder::decode7(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decode7(uint16_t instruction) {
 	// 4-134 (p238)
-	DecodeEop(MOVEq);
+	DecodeOp(MOVEq);
 }
 
-Preinstruction Predecoder::decode8(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decode8(uint16_t instruction) {
 	// 4-171 (p275)
 	if((instruction & 0x1f0) == 0x100) DecodeOp(SBCD);
 
@@ -442,7 +470,8 @@ Preinstruction Predecoder::decode8(uint16_t instruction) {
 	return Preinstruction();
 }
 
-Preinstruction Predecoder::decode9(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decode9(uint16_t instruction) {
 	switch(instruction & 0x0c0) {
 		// 4-174 (p278)
 		case 0x00:	DecodeOp(SUBb);
@@ -472,11 +501,13 @@ Preinstruction Predecoder::decode9(uint16_t instruction) {
 	return Preinstruction();
 }
 
-Preinstruction Predecoder::decodeA(uint16_t) {
+template <Model model>
+Preinstruction Predecoder<model>::decodeA(uint16_t) {
 	return Preinstruction();
 }
 
-Preinstruction Predecoder::decodeB(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decodeB(uint16_t instruction) {
 	switch(instruction & 0x0c0) {
 		// 4-100 (p204)
 		case 0x000:	DecodeOp(EORb);
@@ -501,7 +532,8 @@ Preinstruction Predecoder::decodeB(uint16_t instruction) {
 	return Preinstruction();
 }
 
-Preinstruction Predecoder::decodeC(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decodeC(uint16_t instruction) {
 	switch(instruction & 0x1f0) {
 		case 0x100:	DecodeOp(ABCD);	// 4-3 (p107)
 		default:	break;
@@ -532,7 +564,8 @@ Preinstruction Predecoder::decodeC(uint16_t instruction) {
 	return Preinstruction();
 }
 
-Preinstruction Predecoder::decodeD(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decodeD(uint16_t instruction) {
 	switch(instruction & 0x0c0) {
 		// 4-4 (p108)
 		case 0x000:	DecodeOp(ADDb);
@@ -562,7 +595,8 @@ Preinstruction Predecoder::decodeD(uint16_t instruction) {
 	return Preinstruction();
 }
 
-Preinstruction Predecoder::decodeE(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decodeE(uint16_t instruction) {
 	switch(instruction & 0x1d8) {
 		// 4-22 (p126)
 		case 0x000:	DecodeOp(ASRb);
@@ -623,15 +657,18 @@ Preinstruction Predecoder::decodeE(uint16_t instruction) {
 	return Preinstruction();
 }
 
-Preinstruction Predecoder::decodeF(uint16_t) {
+template <Model model>
+Preinstruction Predecoder<model>::decodeF(uint16_t) {
 	return Preinstruction();
 }
 
 #undef DecodeOp
+#undef DecodeEop
 
 // MARK: - Main decoder.
 
-Preinstruction Predecoder::decode(uint16_t instruction) {
+template <Model model>
+Preinstruction Predecoder<model>::decode(uint16_t instruction) {
 	// Divide first based on line.
 	switch(instruction & 0xf000) {
 		case 0x0000:	return decode0(instruction);
