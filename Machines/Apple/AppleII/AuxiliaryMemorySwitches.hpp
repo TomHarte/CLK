@@ -82,7 +82,7 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 			bool read_auxiliary_memory = false;
 			bool write_auxiliary_memory = false;
 
-			bool internal_CX_rom = true;
+			bool internal_CX_rom = false;
 			bool slot_C3_rom = false;
 			bool internal_C8_rom = false;
 
