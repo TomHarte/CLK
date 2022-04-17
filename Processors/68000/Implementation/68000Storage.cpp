@@ -31,6 +31,8 @@ namespace MC68000 {
 #define d8PCXn	0x13
 #define Imm		0x14
 
+#define Quick	0x20
+
 struct ProcessorStorageConstructor {
 	ProcessorStorageConstructor(ProcessorStorage &storage) : storage_(storage) {}
 
@@ -479,6 +481,7 @@ struct ProcessorStorageConstructor {
 		assert(value == values.end());
 	}
 
+
 	/*!
 		Disassembles the instruction @c instruction and inserts it into the
 		appropriate lookup tables.
@@ -837,14 +840,272 @@ struct ProcessorStorageConstructor {
 #define bw(x)		(x)
 #define l(x)		(0x10000 | (x))
 
+#define NoOperand ~0
+		struct InstructionDumper {
+			public:
+				InstructionDumper(uint16_t opcode) :
+					opcode_(opcode) {}
+
+				~InstructionDumper() {
+					const char *opname = "???";
+					switch(operation_) {
+						default:
+							printf("%d\n", int(operation_));
+							assert(false);
+						break;
+#define DirectMap(x)	case Operation::x:	opname = #x;	break
+
+						DirectMap(None);
+						DirectMap(ABCD);
+						DirectMap(SBCD);
+						DirectMap(NBCD);
+
+						case Operation::ADDQb:
+						case Operation::ADDb:	opname = "ADD.b";	break;
+						case Operation::ADDQw:
+						case Operation::ADDw:	opname = "ADD.w";	break;
+						case Operation::ADDQl:
+						case Operation::ADDl:	opname = "ADD.l";	break;
+						case Operation::ADDQAw:
+						case Operation::ADDAw:	opname = "ADDA.w";	break;
+						case Operation::ADDQAl:
+						case Operation::ADDAl:	opname = "ADDA.l";	break;
+						case Operation::ADDXb:	opname = "ADDX.b";	break;
+						case Operation::ADDXw:	opname = "ADDX.w";	break;
+						case Operation::ADDXl:	opname = "ADDX.l";	break;
+
+						case Operation::SUBQb:
+						case Operation::SUBb:	opname = "SUB.b";	break;
+						case Operation::SUBQw:
+						case Operation::SUBw:	opname = "SUB.w";	break;
+						case Operation::SUBQl:
+						case Operation::SUBl:	opname = "SUB.l";	break;
+						case Operation::SUBQAw:
+						case Operation::SUBAw:	opname = "SUBA.w";	break;
+						case Operation::SUBQAl:
+						case Operation::SUBAl:	opname = "SUBA.l";	break;
+						case Operation::SUBXb:	opname = "SUBX.b";	break;
+						case Operation::SUBXw:	opname = "SUBX.w";	break;
+						case Operation::SUBXl:	opname = "SUBX.l";	break;
+
+						case Operation::MOVEb:	opname = "MOVE.b";	break;
+						case Operation::MOVEw:	opname = "MOVE.w";	break;
+						case Operation::MOVEl:	opname = "MOVE.l";	break;
+						case Operation::MOVEq:	opname = "MOVE.q";	break;
+
+						case Operation::MOVEAw:	opname = "MOVEA.w";	break;
+						case Operation::MOVEAl:	opname = "MOVEA.l";	break;
+
+						case Operation::PEA:	opname = "PEA";		break;
+
+						DirectMap(MOVEtoSR);
+						DirectMap(MOVEfromSR);
+						DirectMap(MOVEtoCCR);
+
+						DirectMap(ORItoSR);
+						DirectMap(ORItoCCR);
+						DirectMap(ANDItoSR);
+						DirectMap(ANDItoCCR);
+						DirectMap(EORItoSR);
+						DirectMap(EORItoCCR);
+
+						case Operation::BTSTb:	opname = "BTST.b";	break;
+						case Operation::BTSTl:	opname = "BTST.l";	break;
+						case Operation::BCLRb:	opname = "BCLR.b";	break;
+						case Operation::BCLRl:	opname = "BCLR.l";	break;
+
+						case Operation::CMPb:	opname = "CMP.b";	break;
+						case Operation::CMPw:	opname = "CMP.w";	break;
+						case Operation::CMPl:	opname = "CMP.l";	break;
+						case Operation::CMPAw:	opname = "CMPA";	break;
+						case Operation::TSTb:	opname = "TST.b";	break;
+						case Operation::TSTw:	opname = "TST.w";	break;
+						case Operation::TSTl:	opname = "TST.l";	break;
+
+						DirectMap(JMP);
+						DirectMap(RTS);
+						DirectMap(BRA);
+						DirectMap(Bcc);
+						DirectMap(DBcc);
+						DirectMap(Scc);
+
+						case Operation::CLRb:	opname = "CLR.b";	break;
+						case Operation::CLRw:	opname = "CLR.w";	break;
+						case Operation::CLRl:	opname = "CLR.l";	break;
+
+						case Operation::NEGXb:	opname = "NEGX.b";	break;
+						case Operation::NEGXw:	opname = "NEGX.w";	break;
+						case Operation::NEGXl:	opname = "NEGX.l";	break;
+
+						case Operation::NEGb:	opname = "NEG.b";	break;
+						case Operation::NEGw:	opname = "NEG.w";	break;
+						case Operation::NEGl:	opname = "NEG.l";	break;
+
+						case Operation::ASLb:	opname = "ASL.b";	break;
+						case Operation::ASLm:
+						case Operation::ASLw:	opname = "ASL.w";	break;
+						case Operation::ASLl:	opname = "ASL.l";	break;
+
+						case Operation::ASRb:	opname = "ASR.b";	break;
+						case Operation::ASRm:
+						case Operation::ASRw:	opname = "ASR.w";	break;
+						case Operation::ASRl:	opname = "ASR.l";	break;
+
+						case Operation::LSLb:	opname = "LSL.b";	break;
+						case Operation::LSLm:
+						case Operation::LSLw:	opname = "LSL.w";	break;
+						case Operation::LSLl:	opname = "LSL.l";	break;
+
+						case Operation::LSRb:	opname = "LSR.b";	break;
+						case Operation::LSRm:
+						case Operation::LSRw:	opname = "LSR.w";	break;
+						case Operation::LSRl:	opname = "LSR.l";	break;
+
+						case Operation::ROLb:	opname = "ROL.b";	break;
+						case Operation::ROLm:
+						case Operation::ROLw:	opname = "ROL.w";	break;
+						case Operation::ROLl:	opname = "ROL.l";	break;
+
+						case Operation::RORb:	opname = "ROR.b";	break;
+						case Operation::RORm:
+						case Operation::RORw:	opname = "ROR.w";	break;
+						case Operation::RORl:	opname = "ROR.l";	break;
+
+						case Operation::ROXLb:	opname = "ROXL.b";	break;
+						case Operation::ROXLm:
+						case Operation::ROXLw:	opname = "ROXL.w";	break;
+						case Operation::ROXLl:	opname = "ROXL.l";	break;
+
+						case Operation::ROXRb:	opname = "ROXR.b";	break;
+						case Operation::ROXRm:
+						case Operation::ROXRw:	opname = "ROXR.w";	break;
+						case Operation::ROXRl:	opname = "ROXR.l";	break;
+
+						case Operation::MOVEMtoMl:
+						case Operation::MOVEMtoRl:	opname = "MOVEM.l";	break;
+						case Operation::MOVEMtoMw:
+						case Operation::MOVEMtoRw:	opname = "MOVEM.w";	break;
+
+						case Operation::MOVEPtoMl:
+						case Operation::MOVEPtoRl:	opname = "MOVEP.l";	break;
+						case Operation::MOVEPtoMw:
+						case Operation::MOVEPtoRw:	opname = "MOVEP.w";	break;
+
+//						DirectMap(MOVEMtoRl);
+//						DirectMap(MOVEMtoRw);
+//						DirectMap(MOVEMtoMl);
+//						DirectMap(MOVEMtoMw);
+
+						case Operation::ANDb:	opname = "AND.b";	break;
+						case Operation::ANDw:	opname = "AND.w";	break;
+						case Operation::ANDl:	opname = "AND.l";	break;
+
+						case Operation::EORb:	opname = "EOR.b";	break;
+						case Operation::EORw:	opname = "EOR.w";	break;
+						case Operation::EORl:	opname = "EOR.l";	break;
+
+						case Operation::NOTb:	opname = "NOT.b";	break;
+						case Operation::NOTw:	opname = "NOT.w";	break;
+						case Operation::NOTl:	opname = "NOT.l";	break;
+
+						case Operation::ORb:	opname = "OR.b";	break;
+						case Operation::ORw:	opname = "OR.w";	break;
+						case Operation::ORl:	opname = "OR.l";	break;
+
+						DirectMap(MULU);
+						DirectMap(MULS);
+						DirectMap(DIVU);
+						DirectMap(DIVS);
+
+						case Operation::RTE_RTR:	opname = "RTE/RTR";	break;
+
+						DirectMap(TRAP);
+						DirectMap(TRAPV);
+						DirectMap(CHK);
+						DirectMap(EXG);
+						DirectMap(SWAP);
+
+						case Operation::BCHGb:	opname = "BCHG.b";	break;
+						case Operation::BCHGl:	opname = "BCHG.l";	break;
+						case Operation::BSETb:	opname = "BSET.b";	break;
+						case Operation::BSETl:	opname = "BSET.l";	break;
+
+						DirectMap(TAS);
+						DirectMap(EXTbtow);
+						DirectMap(EXTwtol);
+						DirectMap(LINK);
+						DirectMap(UNLINK);
+						DirectMap(STOP);
+					}
+
+					printf("\"%04x\": \"%s", opcode_, opname);
+					if(source_ != NoOperand) {
+						printf(" %s", modename(source_));
+					}
+					if(dest_ != NoOperand) {
+						printf(", %s", modename(dest_));
+					}
+
+					printf("\",\n");
+				}
+
+				void set_operation(Operation op)	{ operation_ = op;	}
+				void set_source(int type)			{ source_ = type;	}
+				void set_dest(int type) 			{ dest_ = type;		}
+				void set_source_dest(int s, int d)	{ set_source(s); set_dest(d);	}
+
+				void reset() {
+					operation_ = Operation::None;
+					source_ = dest_ = NoOperand;
+				}
+
+			private:
+				uint16_t opcode_ = 0;
+				Operation operation_ = Operation::None;
+
+				int source_ = NoOperand;
+				int dest_ = NoOperand;
+
+				const char *modename(int mode) {
+					switch(mode) {
+						default:
+							assert(false);
+							return "?";
+						case Dn:		return "Dn";
+						case An:		return "An";
+						case Ind:		return "(An)";
+						case PostInc:	return "(An)+";
+						case PreDec:	return "-(An)";
+						case d16An:		return "(d16, An)";
+						case d8AnXn:	return "(d8, An, Xn)";
+						case XXXl:		return "(xxx).l";
+						case XXXw:		return "(xxx).w";
+						case d16PC:		return "(d16, PC)";
+						case d8PCXn:	return "(d8, PC, Xn)";
+						case Imm:		return "#";
+						case Quick:		return "Q";
+					}
+				}
+		};
+
+#undef NoOperand
+
 		// Perform a linear search of the mappings above for this instruction.
 		for(ssize_t instruction = 65535; instruction >= 0; --instruction)	{
+			if(instruction == 0xdffc) {
+				printf("");
+			}
+
+			InstructionDumper dumper{uint16_t(instruction)};
 #ifndef NDEBUG
 			int hits = 0;
 #endif
 			for(const auto &mapping: mappings) {
+				dumper.reset();
+
 				if((instruction & mapping.mask) == mapping.value) {
 					auto operation = mapping.operation;
+					dumper.set_operation(operation);
 					const auto micro_op_start = storage_.all_micro_ops_.size();
 
 					// The following fields are used commonly enough to be worth pulling out here.
@@ -874,11 +1135,13 @@ struct ProcessorStorageConstructor {
 
 						case Decoder::LINK: {
 							program.set_source(storage_, An, ea_register);
+							dumper.set_source(An);
 							op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
 						} break;
 
 						case Decoder::UNLINK: {
 							program.set_destination(storage_, An, ea_register);
+							dumper.set_source(An);
 							op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd np", { ea(1), ea(1) }));
 							op(Action::PerformOperation);
 						} break;
@@ -886,6 +1149,8 @@ struct ProcessorStorageConstructor {
 						case Decoder::TAS: {
 							const int mode = combined_mode(ea_mode, ea_register);
 							program.set_destination(storage_, ea_mode, ea_register);
+
+							dumper.set_source(mode);
 							switch(mode) {
 								default: continue;
 
@@ -932,10 +1197,12 @@ struct ProcessorStorageConstructor {
 							if(instruction & 0x100) {
 								// The bit is nominated by a register.
 								program.set_source(storage_, Dn, data_register);
+								dumper.set_source_dest(Dn, mode);
 							} else {
 								// The bit is nominated by a constant, that will be obtained right here.
 								program.set_source(storage_, Imm, 0);
 								op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+								dumper.set_source_dest(Imm, mode);
 							}
 
 							switch(mode) {
@@ -978,11 +1245,13 @@ struct ProcessorStorageConstructor {
 							program.set_requires_supervisor(!!(instruction & 0x40));
 							op(Action::None, seq("np nn nn"));
 							op(Action::PerformOperation, seq("np np"));
+							dumper.set_source(Imm);
 						} break;
 
 						case Decoder::EXT_SWAP: {
 							program.set_destination(storage_, Dn, ea_register);
 							op(Action::PerformOperation, seq("np"));
+							dumper.set_source(Dn);
 						} break;
 
 						case Decoder::EXG: {
@@ -992,16 +1261,19 @@ struct ProcessorStorageConstructor {
 								case 0x08:
 									program.set_source(storage_, Dn, data_register);
 									program.set_destination(storage_, Dn, ea_register);
+									dumper.set_source_dest(Dn, Dn);
 								break;
 
 								case 0x09:
 									program.set_source(storage_, An, data_register);
 									program.set_destination(storage_, An, ea_register);
+									dumper.set_source_dest(An, An);
 								break;
 
 								case 0x11:
 									program.set_source(storage_, Dn, data_register);
 									program.set_destination(storage_, An, ea_register);
+									dumper.set_source_dest(Dn, An);
 								break;
 							}
 
@@ -1037,6 +1309,7 @@ struct ProcessorStorageConstructor {
 							if(to_ea) {
 								program.set_destination(storage_, ea_mode, ea_register);
 								program.set_source(storage_, Dn, data_register);
+								dumper.set_source_dest(Dn, mode);
 
 								// Only EOR takes Dn as a destination effective address.
 								if(!is_eor && mode == Dn) continue;
@@ -1104,6 +1377,7 @@ struct ProcessorStorageConstructor {
 
 								program.set_source(storage_, ea_mode, ea_register);
 								program.set_destination(storage_, Dn, data_register);
+								dumper.set_source_dest(mode, Dn);
 
 								switch(is_long_word_access ? l(mode) : bw(mode)) {
 									default: continue;
@@ -1185,6 +1459,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, Dn, data_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source_dest(mode, Dn);
 							switch(mode) {
 								default: continue;
 
@@ -1232,6 +1507,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, Dn, data_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source_dest(mode, Dn);
 							switch(mode) {
 								default: continue;
 
@@ -1281,6 +1557,7 @@ struct ProcessorStorageConstructor {
 							// destination is going to be in the write address unit.
 							program.set_source(storage_, Imm, 0);
 							program.set_destination(storage_, mode, ea_register);
+							dumper.set_source_dest(Imm, mode);
 
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
@@ -1378,6 +1655,7 @@ struct ProcessorStorageConstructor {
 							if(reverse_source_destination) {
 								program.set_destination(storage_, Dn, data_register);
 								program.set_source(storage_, Imm, ea_register);
+								dumper.set_source_dest(mode, Dn);
 
 								// Perform [ADD/SUB].blw <ea>, Dn
 								switch(is_long_word_access ? l(mode) : bw(mode)) {
@@ -1482,6 +1760,7 @@ struct ProcessorStorageConstructor {
 								const auto destination_register = ea_register;
 								program.set_destination(storage_, Ind, destination_register);
 								program.set_source(storage_, Dn, data_register);
+								dumper.set_source_dest(Dn, mode);
 
 								// Perform [ADD/SUB].blw Dn, <ea>
 								switch(is_long_word_access ? l(mode) : bw(mode)) {
@@ -1550,6 +1829,7 @@ struct ProcessorStorageConstructor {
 
 							const int mode = combined_mode(ea_mode, ea_register);
 							is_long_word_access = op_mode_high_bit;
+							dumper.set_source_dest(mode, An);
 
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
@@ -1634,6 +1914,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source_dest(Quick, mode);
 
 							// If the destination is an address register then byte mode isn't allowed, and
 							// flags shouldn't be affected (so, a different operation is used).
@@ -1715,6 +1996,7 @@ struct ProcessorStorageConstructor {
 								// Use predecrementing address registers.
 								program.set_source(storage_, Ind, ea_register);
 								program.set_destination(storage_, Ind, data_register);
+								dumper.set_source_dest(Ind, Ind);
 
 								if(is_long_word_access) {
 									// Access order is very atypical here: it's lower parts each for both words,
@@ -1740,6 +2022,7 @@ struct ProcessorStorageConstructor {
 								// Use data registers.
 								program.set_source(storage_, Dn, ea_register);
 								program.set_destination(storage_, Dn, data_register);
+								dumper.set_source_dest(Dn, Dn);
 
 								if(is_long_word_access) {
 									op(Action::PerformOperation, seq("np nn"));
@@ -1753,6 +2036,7 @@ struct ProcessorStorageConstructor {
 						// This decoder actually decodes nothing; it just schedules a PerformOperation followed by an empty step.
 						case Decoder::Bcc_BSR: {
 							const int condition = (instruction >> 8) & 0xf;
+							dumper.set_source(Imm);
 							if(condition == 1) {
 								// This is BSR, which is unconditional and means pushing a return address to the stack first.
 
@@ -1768,6 +2052,7 @@ struct ProcessorStorageConstructor {
 						// A little artificial, there's nothing really to decode for BRA.
 						case Decoder::BRA: {
 							op(Action::PerformOperation, seq("n np np"));
+							dumper.set_source(Imm);
 						} break;
 
 						// Decodes a BTST, potential mutating the operation into a BTSTl,
@@ -1780,6 +2065,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source_dest(Dn, mode);
 							switch(mode) {
 								default: continue;
 
@@ -1842,6 +2128,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source_dest(Imm, mode);
 							switch(mode) {
 								default: continue;
 
@@ -1905,17 +2192,20 @@ struct ProcessorStorageConstructor {
 								op(MicroOp::SourceMask | dec(ea_register), seq("n nr", { a(ea_register) }, false ));
 								op(MicroOp::DestinationMask | dec(data_register), seq("nrd np", { a(data_register) }, false ));
 								op(Action::PerformOperation, seq("nw", { a(data_register) }, false));
+								dumper.set_source_dest(PreDec, PreDec);
 							} else {
 								// [A/S]BCD Dn, Dn
 								program.set_source(storage_, Dn, ea_register);
 								program.set_destination(storage_, Dn, data_register);
 
 								op(Action::PerformOperation, seq("np n"));
+								dumper.set_source_dest(Dn, Dn);
 							}
 						} break;
 
 						case Decoder::ASLR_LSLR_ROLR_ROXLRr: {
 							program.set_destination(storage_, 0, ea_register);
+							dumper.set_source(Dn);
 
 							// All further decoding occurs at runtime; that's also when the proper number of
 							// no-op cycles will be scheduled.
@@ -1933,6 +2223,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source(mode);
 							switch(mode) {
 								default: continue;
 
@@ -1967,6 +2258,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source(mode);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
@@ -2043,6 +2335,7 @@ struct ProcessorStorageConstructor {
 							}
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source_dest(mode, Dn);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
@@ -2135,6 +2428,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, An, data_register);
 
 							const int mode = combined_mode(ea_mode, ea_register, true);
+							dumper.set_source_dest(mode, An);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
@@ -2219,6 +2513,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, destination_mode, destination_register);
 
 							const int mode = combined_mode(destination_mode, destination_register);
+							dumper.set_source_dest(Imm, mode);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
@@ -2308,6 +2603,7 @@ struct ProcessorStorageConstructor {
 						case Decoder::CMPM: {
 							program.set_source(storage_, PostInc, ea_register);
 							program.set_destination(storage_, PostInc, data_register);
+							dumper.set_source_dest(PostInc, PostInc);
 
 							const bool is_byte_operation = operation == Operation::CMPb;
 
@@ -2340,6 +2636,7 @@ struct ProcessorStorageConstructor {
 								// This is a DBcc. Decode as such.
 								operation = Operation::DBcc;
 								program.set_source(storage_, Dn, ea_register);
+								dumper.set_source(Dn);
 
 								// Jump straight into deciding what steps to take next,
 								// which will be selected dynamically.
@@ -2357,6 +2654,7 @@ struct ProcessorStorageConstructor {
 								is_long_word_access = false;
 
 								const int mode = combined_mode(ea_mode, ea_register);
+								dumper.set_source_dest(mode, Dn);
 								switch(mode) {
 									default: continue;
 
@@ -2404,6 +2702,7 @@ struct ProcessorStorageConstructor {
 							// calculation that might be a function of A7 needs to be done before PrepareJSR.
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source(mode);
 							switch(mode) {
 								default: continue;
 								case Ind:		// JSR (An)
@@ -2445,6 +2744,7 @@ struct ProcessorStorageConstructor {
 						case Decoder::JMP: {
 							program.set_source(storage_, ea_mode, ea_register);
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source(mode);
 							switch(mode) {
 								default: continue;
 								case Ind:		// JMP (An)
@@ -2478,6 +2778,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, Imm, 7);	// Immediate destination => store to the destination bus latch.
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source(mode);
 							switch(mode) {
 								default: continue;
 
@@ -2518,6 +2819,7 @@ struct ProcessorStorageConstructor {
 									&storage_.address_[ea_register] :
 									&storage_.effective_address_[0]);
 
+							dumper.set_source_dest(mode, An);
 							switch(mode) {
 								default: continue;
 								case Ind:		// LEA (An), An		(i.e. MOVEA)
@@ -2549,6 +2851,7 @@ struct ProcessorStorageConstructor {
 							is_long_word_access = false;
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source(mode);
 							switch(mode) {
 								default: continue;
 
@@ -2593,6 +2896,7 @@ struct ProcessorStorageConstructor {
 							/* DEVIATION FROM YACHT.TXT: it has all of these reading an extra word from the PC;
 							this looks like a mistake so I've padded with nil cycles in the middle. */
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source(mode);
 							switch(mode) {
 								default: continue;
 
@@ -2636,11 +2940,13 @@ struct ProcessorStorageConstructor {
 						case Decoder::MOVEq: {
 							program.set_destination(storage_, Dn, data_register);
 							op(Action::PerformOperation, seq("np"));
+							dumper.set_source_dest(Quick, Dn);
 						} break;
 
 						case Decoder::MOVEP: {
 							program.set_destination(storage_, An, ea_register);
 							program.set_source(storage_, Dn, data_register);
+							dumper.set_source_dest(An, Dn);
 
 							switch(operation) {
 								default: continue;
@@ -2682,6 +2988,7 @@ struct ProcessorStorageConstructor {
 							// Do whatever is necessary to calculate the proper start address.
 							const int mode = combined_mode(ea_mode, ea_register);
 							const bool is_to_m = (operation == Operation::MOVEMtoMl || operation == Operation::MOVEMtoMw);
+							dumper.set_source_dest(mode, Dn);
 							switch(mode) {
 								default: continue;
 
@@ -2717,6 +3024,7 @@ struct ProcessorStorageConstructor {
 
 						case Decoder::MOVEUSP: {
 							program.set_requires_supervisor(true);
+							dumper.set_source(An);
 
 							// Observation here: because this is a privileged instruction, the user stack pointer
 							// definitely isn't currently [copied into] A7.
@@ -2758,6 +3066,7 @@ struct ProcessorStorageConstructor {
 
 							// Perform the MOVE[A]'s fetch..
 							const int combined_source_mode = combined_mode(ea_mode, ea_register, true);
+							dumper.set_source(combined_source_mode);
 							switch(is_long_word_access ? l(combined_source_mode) : bw(combined_source_mode)) {
 								default: continue;
 
@@ -2826,6 +3135,7 @@ struct ProcessorStorageConstructor {
 
 							// Perform the MOVE[A]'s store.
 							const int combined_destination_mode = combined_mode(destination_mode, data_register, true);
+							dumper.set_dest(combined_destination_mode);
 							switch(is_long_word_access ? l(combined_destination_mode) : bw(combined_destination_mode)) {
 								default: continue;
 
@@ -2941,6 +3251,7 @@ struct ProcessorStorageConstructor {
 							program.set_source(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source_dest(mode, Dn);
 							switch(mode) {
 								default: continue;
 
@@ -2985,6 +3296,7 @@ struct ProcessorStorageConstructor {
 							program.set_source(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
+							dumper.set_source(mode);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
@@ -3086,12 +3398,12 @@ struct ProcessorStorageConstructor {
 
 					// Don't search further through the list of possibilities, unless this is a debugging build,
 					// in which case verify there are no double mappings.
-#ifndef NDEBUG
-					++hits;
-					assert(hits == 1);
-#else
+//#ifndef NDEBUG
+//					++hits;
+//					assert(hits == 1);
+//#else
 					break;
-#endif
+//#endif
 				}
 			}
 
