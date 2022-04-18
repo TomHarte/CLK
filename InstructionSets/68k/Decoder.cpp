@@ -131,18 +131,29 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b0–b2 and b3–b5:	an effective address;
 		// b6–b8:			an opmode, i.e. source + direction.
 		//
+		case OpT(Operation::ADDb):	case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
+		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
+		case OpT(Operation::SUBb):	case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
+		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
+		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
 		case OpT(Operation::ANDb):	case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
 		case OpT(Operation::ORb):	case OpT(Operation::ORw):	case OpT(Operation::ORl):
 		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):	{
-			// Opmode 7 is illegal.
-			if(opmode == 7) {
-				return Preinstruction();
-			}
+			// TODO: I strongly suspect that most of the potential exits to Preinstruction()
+			// below are completely unnecessary, being merely relics of the old method I applied
+			// to instruction decoding; I assume that all missing operation modes and addressing
+			// modes are actually caused by the instruction codes being otherwise allocated.
+			// Disabled for now. Will need to verify!
 
-			constexpr bool is_eor =
-				operation == Operation::EORb ||
-				operation == Operation::EORw ||
-				operation == Operation::EORl;
+			// Opmode 7 is illegal.
+//			if(opmode == 7) {
+//				return Preinstruction();
+//			}
+
+//			constexpr bool is_eor =
+//				operation == Operation::EORb ||
+//				operation == Operation::EORw ||
+//				operation == Operation::EORl;
 
 			const auto ea_combined_mode = combined_mode(ea_mode, ea_register);
 
@@ -152,11 +163,11 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				// The operations other than EOR do not permit <ea>
 				// to be a data register; targetting a data register
 				// should be achieved with the alternative opmode.
-				if constexpr (!is_eor) {
-					if(ea_combined_mode == AddressingMode::DataRegisterDirect) {
-						return Preinstruction();
-					}
-				}
+//				if constexpr (!is_eor) {
+//					if(ea_combined_mode == AddressingMode::DataRegisterDirect) {
+//						return Preinstruction();
+//					}
+//				}
 
 				return Preinstruction(operation,
 					AddressingMode::DataRegisterDirect, data_register,
@@ -165,9 +176,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				// < ea > Λ Dn → Dn
 
 				// EOR doesn't permit → Dn.
-				if constexpr (is_eor) {
-					return Preinstruction();
-				}
+//				if constexpr (is_eor) {
+//					return Preinstruction();
+//				}
 
 				return Preinstruction(operation,
 					ea_combined_mode, ea_register,
@@ -423,6 +434,36 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 			return Preinstruction(operation,
 				AddressingMode::Quick, 0,
 				AddressingMode::DataRegisterDirect, data_register);
+
+		//
+		// MARK: ASR, LSR, ROXR, ROR, ASL, LSL, ROXL, ROL
+		//
+		// b0–b2:	a register to shift (the source here, for consistency with the memory operations);
+		// b8:		0 => b9–b11 are a direct count of bits to shift; 1 => b9–b11 identify a register containing the shift count;
+		// b9–b11:	either a quick value or a register.
+		case OpT(Operation::ASRb):	case OpT(Operation::ASRw):	case OpT(Operation::ASRl):
+		case OpT(Operation::LSRb):	case OpT(Operation::LSRw):	case OpT(Operation::LSRl):
+		case OpT(Operation::ROXRb):	case OpT(Operation::ROXRw):	case OpT(Operation::ROXRl):
+		case OpT(Operation::RORb):	case OpT(Operation::RORw):	case OpT(Operation::RORl):
+		case OpT(Operation::ASLb):	case OpT(Operation::ASLw):	case OpT(Operation::ASLl):
+		case OpT(Operation::LSLb):	case OpT(Operation::LSLw):	case OpT(Operation::LSLl):
+		case OpT(Operation::ROXLb):	case OpT(Operation::ROXLw):	case OpT(Operation::ROXLl):
+		case OpT(Operation::ROLb):	case OpT(Operation::ROLw):	case OpT(Operation::ROLl):
+			return Preinstruction(operation,
+				AddressingMode::DataRegisterDirect, ea_register,
+				(instruction & 0x100) ? AddressingMode::DataRegisterDirect : AddressingMode::Quick, data_register);
+
+		//
+		// MARK: ASRm, LSRm, ROXRm, RORm, ASLm, LSLm, ROXLm, ROLm
+		//
+		// b0–b2 and b3–5:	an effective address.
+		//
+		case OpT(Operation::ASRm):	case OpT(Operation::ASLm):
+		case OpT(Operation::LSRm):	case OpT(Operation::LSLm):
+		case OpT(Operation::ROXRm):	case OpT(Operation::ROXLm):
+		case OpT(Operation::RORm):	case OpT(Operation::ROLm):
+			return Preinstruction(operation,
+				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
 		// MARK: Impossible error case.
