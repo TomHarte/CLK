@@ -353,6 +353,15 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// TODO: more validation on the above.
 
 		//
+		// MARK: TRAP
+		//
+		// No further operands decoded, but note that one is somewhere in the opcode.
+		//
+		case OpT(Operation::TRAP):
+			return Preinstruction(operation,
+				AddressingMode::Quick, 0);
+
+		//
 		// MARK: Impossible error case.
 		//
 		default:
