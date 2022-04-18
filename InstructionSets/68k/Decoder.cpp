@@ -652,7 +652,7 @@ Preinstruction Predecoder<model>::decode5(uint16_t instruction) {
 	switch(instruction & 0x0f8) {
 		// 4-173 (p276)
 		case 0x0c0:
-		case 0x0d0:
+		case 0x0d0: case 0x0d8:
 		case 0x0e0:	case 0x0e8:
 		case 0x0f0:	case 0x0f8:	Decode(Op::Scc);
 
