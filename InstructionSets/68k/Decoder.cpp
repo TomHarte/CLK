@@ -110,6 +110,10 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		// MARK: ABCD, SBCD.
 		//
+		// b9–b11:	Rx (destination)
+		// b0–b2:	Ry (source)
+		// b3:		1 => operation is memory-to-memory; 0 => register-to-register.
+		//
 		case OpT(Operation::ABCD):	case OpT(Operation::SBCD):	{
 			const auto addressing_mode = (instruction & 8) ?
 				AddressingMode::AddressRegisterIndirectWithPredecrement : AddressingMode::DataRegisterDirect;
@@ -121,6 +125,10 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 
 		//
 		// MARK: AND, OR, EOR.
+		//
+		// b9–b11:			a register;
+		// b0–b2 and b3–b5:	an effective address;
+		// b6–b8:			an opmode, i.e. source + direction.
 		//
 		case OpT(Operation::ANDb):	case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
 		case OpT(Operation::ORb):	case OpT(Operation::ORw):	case OpT(Operation::ORl):
@@ -171,6 +179,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		// MARK: EORI, ORI, ANDI, SUBI, ADDI, CMPI, B[TST/CHG/CLR/SET]I
 		//
+		// Implicitly:		source is an immediate value;
+		// b0–b2 and b3–b5:	destination effective address.
+		//
 		case EORIb: 	case EORIl:		case EORIw:
 		case ORIb:		case ORIl:		case ORIw:
 		case ANDIb:		case ANDIl:		case ANDIw:
@@ -187,6 +198,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		// MARK: BTST, BCLR, BCHG, BSET
 		//
+		// Implicitly:		source is a register;
+		// b0–b2 and b3–b5:	destination effective address.
+		//
 		case OpT(Operation::BTST):	case OpT(Operation::BCLR):
 		case OpT(Operation::BCHG):	case OpT(Operation::BSET):
 			return Preinstruction(operation,
@@ -196,6 +210,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		// MARK: ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR
 		//
+		// Operand is an immedate; destination/source is implied by the operation.
+		//
 		case OpT(Operation::ORItoSR):	case OpT(Operation::ORItoCCR):
 		case OpT(Operation::ANDItoSR):	case OpT(Operation::ANDItoCCR):
 		case OpT(Operation::EORItoSR):	case OpT(Operation::EORItoCCR):
@@ -204,7 +220,22 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				operation == Operation::ORItoSR || operation == Operation::ANDItoSR || operation == Operation::EORItoSR);
 
 		//
+		// MARK: CHK
+		//
+		// Implicitly:		destination is a register;
+		// b0–b2 and b3–b5:	source effective address.
+		//
+		case OpT(Operation::CHK):
+			return Preinstruction(operation,
+				combined_mode(ea_mode, ea_register), ea_register,
+				AddressingMode::DataRegisterDirect, data_register);
+
+		//
 		// MARK: EXG.
+		//
+		// b0–b2:	register Ry (data or address, address if exchange is address <-> data);
+		// b9–b11:	register Rx (data or address, data if exchange is address <-> data);
+		// b3–b7:	an opmode, indicating address/data registers.
 		//
 		case OpT(Operation::EXG):
 			switch((instruction >> 3)&31) {
@@ -226,6 +257,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		// MARK: MULU, MULS, DIVU, DIVS.
 		//
+		// b9–b11:			destination data register;
+		// b0–b2 and b3–b5:	source effective address.
+		//
 		case OpT(Operation::DIVU):	case OpT(Operation::DIVS):
 		case OpT(Operation::MULU):	case OpT(Operation::MULS):
 			return Preinstruction(operation,
@@ -233,7 +267,22 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				AddressingMode::DataRegisterDirect, data_register);
 
 		//
+		// MARK: LEA
+		//
+		// b9–b11:			destination address register;
+		// b0–b2 and b3–b5:	source effective address.
+		//
+		case LEA:
+			return Preinstruction(operation,
+				combined_mode(ea_mode, ea_register), ea_register,
+				AddressingMode::AddressRegisterDirect, data_register);
+
+		//
 		// MARK: MOVEPtoRw, MOVEPtoRl
+		//
+		// b0–b2:	an address register;
+		// b9–b11:	a data register.
+		// [already decoded: b6–b8:	an opmode, indicating size and direction]
 		//
 		case OpT(MOVEPtoRw):	case OpT(MOVEPtoRl):
 			return Preinstruction(operation,
@@ -248,6 +297,10 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		// MARK: MOVE
 		//
+		// b0–b2 and b3–b5:		source effective address;
+		// b6–b8 and b9–b11:	destination effective address;
+		// [already decoded: b12–b13: size]
+		//
 		case OpT(Operation::MOVEb):	case OpT(Operation::MOVEl):	case OpT(Operation::MOVEw):
 			return Preinstruction(operation,
 				combined_mode(ea_mode, ea_register), ea_register,
@@ -256,6 +309,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		// MARK: STOP, RESET, NOP RTE, RTS, TRAPV, RTR
 		//
+		// No additional fields.
+		//
 		case OpT(Operation::STOP):	case OpT(Operation::RESET):	case OpT(Operation::NOP):
 		case OpT(Operation::RTE):	case OpT(Operation::RTS):	case OpT(Operation::TRAPV):
 		case OpT(Operation::RTR):
@@ -263,6 +318,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 
 		//
 		// MARK: NEGX, CLR, NEG, MOVEtoCCR, MOVEtoSR, NOT, NBCD, PEA, TST
+		//
+		// b0–b2 and b3–b5:		effective address.
 		//
 		case OpT(Operation::CLRb):		case OpT(Operation::CLRw):		case OpT(Operation::CLRl):
 		case OpT(Operation::JMP):		case OpT(Operation::JSR):
@@ -279,6 +336,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 
 		//
 		// MARK: MOVEMtoMw, MOVEMtoMl, MOVEMtoRw, MOVEMtoRl
+		//
+		// b0–b2 and b3–b5:		effective address.
+		// [already decoded: b10: direction]
 		//
 		case MOVEMtoMl:	case MOVEMtoMw:
 			return Preinstruction(operation,
