@@ -413,6 +413,18 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
+		// MARK: MOVEq
+		//
+		// b9–b11:		a destination register;
+		// b0–b7:		a 'quick' value.
+		//
+		// TODO: does this need to be a separate instruction from MOVEl?
+		case OpT(Operation::MOVEq):
+			return Preinstruction(operation,
+				AddressingMode::Quick, 0,
+				AddressingMode::DataRegisterDirect, data_register);
+
+		//
 		// MARK: Impossible error case.
 		//
 		default:
