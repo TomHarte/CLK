@@ -39,7 +39,7 @@ using namespace InstructionSet::M68k;
 		// Hatch off no-instruction as a special case,
 		// at least temporarily.
 		if(found.operation == Operation::Undefined) {
-			XCTAssertEqualObjects(@"None", expected);
+			XCTAssertEqualObjects(@"None", expected, "%@ should decode as %@", instrName, expected);
 			continue;
 		}
 	}
