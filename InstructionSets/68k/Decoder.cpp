@@ -59,7 +59,8 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 		case ADDQAw:	return Operation::ADDAw;
 		case ADDQAl:	return Operation::ADDAl;
 		case SUBQb:		return Operation::SUBb;
-		case SUBQw:		return Operation::SUBl;
+		case SUBQw:		return Operation::SUBw;
+		case SUBQl:		return Operation::SUBl;
 		case SUBQAw:	return Operation::SUBAw;
 		case SUBQAl:	return Operation::SUBAl;
 
