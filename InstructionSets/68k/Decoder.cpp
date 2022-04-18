@@ -208,10 +208,11 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
-		// MARK: ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR
+		// MARK: STOP, ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR
 		//
 		// Operand is an immedate; destination/source is implied by the operation.
 		//
+		case OpT(Operation::STOP):
 		case OpT(Operation::ORItoSR):	case OpT(Operation::ORItoCCR):
 		case OpT(Operation::ANDItoSR):	case OpT(Operation::ANDItoCCR):
 		case OpT(Operation::EORItoSR):	case OpT(Operation::EORItoCCR):
@@ -307,11 +308,11 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				combined_mode<false, false>(opmode, data_register), data_register);
 
 		//
-		// MARK: STOP, RESET, NOP RTE, RTS, TRAPV, RTR
+		// MARK: RESET, NOP RTE, RTS, TRAPV, RTR
 		//
 		// No additional fields.
 		//
-		case OpT(Operation::STOP):	case OpT(Operation::RESET):	case OpT(Operation::NOP):
+		case OpT(Operation::RESET):	case OpT(Operation::NOP):
 		case OpT(Operation::RTE):	case OpT(Operation::RTS):	case OpT(Operation::TRAPV):
 		case OpT(Operation::RTR):
 			return Preinstruction(operation);
@@ -333,6 +334,16 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::TSTb):		case OpT(Operation::TSTw):		case OpT(Operation::TSTl):
 			return Preinstruction(operation,
 				combined_mode<false, false>(ea_mode, ea_register), ea_register);
+
+		//
+		// MARK: UNLINK, MOVEtoUSP, MOVEfromUSP
+		//
+		// b0–b2:		an address register.
+		//
+		case OpT(Operation::UNLINK):
+		case OpT(Operation::MOVEfromUSP):	case OpT(Operation::MOVEtoUSP):
+			return Preinstruction(operation,
+				AddressingMode::AddressRegisterDirect, ea_register);
 
 		//
 		// MARK: MOVEMtoMw, MOVEMtoMl, MOVEMtoRw, MOVEMtoRl
@@ -360,6 +371,17 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::TRAP):
 			return Preinstruction(operation,
 				AddressingMode::Quick, 0);
+
+		//
+		// MARK: LINKw
+		//
+		// b0–b2:		'source' address register.
+		// Implicitly:	'destination' is an immediate.
+		//
+		case OpT(Operation::LINKw):
+			return Preinstruction(operation,
+				AddressingMode::AddressRegisterDirect, ea_register,
+				AddressingMode::ImmediateData, 0);
 
 		//
 		// MARK: Impossible error case.
@@ -491,6 +513,7 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 	switch(instruction & 0xfff) {
 		case 0xe70:	Decode(Op::RESET);	// 6-83 (p537)
 		case 0xe71:	Decode(Op::NOP);	// 4-147 (p251)
+		case 0xe72:	Decode(Op::STOP);	// 6-85 (p539)
 		case 0xe73:	Decode(Op::RTE);	// 6-84 (p538)
 		case 0xe75:	Decode(Op::RTS);	// 4-169 (p273)
 		case 0xe76:	Decode(Op::TRAPV);	// 4-191 (p295)
