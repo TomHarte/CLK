@@ -728,7 +728,7 @@ Preinstruction Predecoder<model>::decode6(uint16_t instruction) {
 			switch(instruction & 0xff) {
 				case 0x00:	Decode(Op::BSRw);
 				case 0xff:
-					if constexpr (model != Model::M68000) {
+					if constexpr (model >= Model::M68020) {
 						Decode(Op::BSRl);
 					}
 					[[fallthrough]];
@@ -741,7 +741,7 @@ Preinstruction Predecoder<model>::decode6(uint16_t instruction) {
 			switch(instruction & 0xff) {
 				case 0x00:	Decode(Op::Bccw);
 				case 0xff:
-					if constexpr (model != Model::M68000) {
+					if constexpr (model >= Model::M68020) {
 						Decode(Op::Bccl);
 					}
 					[[fallthrough]];
@@ -1016,3 +1016,7 @@ Preinstruction Predecoder<model>::decode(uint16_t instruction) {
 }
 
 template class InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000>;
+template class InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68010>;
+template class InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68020>;
+template class InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68030>;
+template class InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68040>;

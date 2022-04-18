@@ -14,6 +14,10 @@ namespace M68k {
 
 enum class Model {
 	M68000,
+	M68010,
+	M68020,
+	M68030,
+	M68040,
 };
 
 }
