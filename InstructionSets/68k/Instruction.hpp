@@ -50,10 +50,13 @@ enum class Operation: uint8_t {
 	CMPAw,	CMPAl,
 	TSTb,	TSTw,	TSTl,
 
-	JMP,	JSR,	RTS,
-	BRA,	Bcc,
+	JMP,
+	JSR,	RTS,
 	DBcc,
 	Scc,
+
+	Bccb,	Bccl,	Bccw,
+	BSRb,	BSRl,	BSRw,
 
 	CLRb, CLRw, CLRl,
 	NEGXb, NEGXw, NEGXl,

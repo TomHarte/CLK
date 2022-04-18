@@ -198,8 +198,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		// MARK: BTST, BCLR, BCHG, BSET
 		//
-		// Implicitly:		source is a register;
-		// b0–b2 and b3–b5:	destination effective address.
+		// b0–b2 and b3–b5:	destination effective address;
+		// b9–b11:			source data register.
 		//
 		case OpT(Operation::BTST):	case OpT(Operation::BCLR):
 		case OpT(Operation::BCHG):	case OpT(Operation::BSET):
@@ -208,11 +208,13 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
-		// MARK: STOP, ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR
+		// MARK: STOP, ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR, Bccl, Bccw, BSRl, BSRw
 		//
-		// Operand is an immedate; destination/source is implied by the operation.
+		// Operand is an immedate; destination/source (if any) is implied by the operation.
 		//
 		case OpT(Operation::STOP):
+		case OpT(Operation::Bccl):		case OpT(Operation::Bccw):
+		case OpT(Operation::BSRl):		case OpT(Operation::BSRw):
 		case OpT(Operation::ORItoSR):	case OpT(Operation::ORItoCCR):
 		case OpT(Operation::ANDItoSR):	case OpT(Operation::ANDItoCCR):
 		case OpT(Operation::EORItoSR):	case OpT(Operation::EORItoCCR):
@@ -332,8 +334,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::PEA):
 		case OpT(Operation::TAS):
 		case OpT(Operation::TSTb):		case OpT(Operation::TSTw):		case OpT(Operation::TSTl):
+		case OpT(Operation::Scc):
 			return Preinstruction(operation,
-				combined_mode<false, false>(ea_mode, ea_register), ea_register);
+				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
 		// MARK: UNLINK, MOVEtoUSP, MOVEfromUSP
@@ -344,6 +347,17 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::MOVEfromUSP):	case OpT(Operation::MOVEtoUSP):
 			return Preinstruction(operation,
 				AddressingMode::AddressRegisterDirect, ea_register);
+
+		//
+		// MARK: DBcc
+		//
+		// b0–b2:		a data register.
+		// Followed by an immediate value.
+		//
+		case OpT(Operation::DBcc):
+			return Preinstruction(operation,
+				AddressingMode::DataRegisterDirect, ea_register,
+				AddressingMode::ImmediateData, 0);
 
 		//
 		// MARK: MOVEMtoMw, MOVEMtoMl, MOVEMtoRw, MOVEMtoRl
@@ -364,18 +378,20 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// TODO: more validation on the above.
 
 		//
-		// MARK: TRAP
+		// MARK: TRAP, BCCb, BSRb
 		//
 		// No further operands decoded, but note that one is somewhere in the opcode.
 		//
 		case OpT(Operation::TRAP):
+		case OpT(Operation::Bccb):
+		case OpT(Operation::BSRb):
 			return Preinstruction(operation,
 				AddressingMode::Quick, 0);
 
 		//
 		// MARK: LINKw
 		//
-		// b0–b2:		'source' address register.
+		// b0–b2:		'source' address register;
 		// Implicitly:	'destination' is an immediate.
 		//
 		case OpT(Operation::LINKw):
@@ -384,14 +400,24 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				AddressingMode::ImmediateData, 0);
 
 		//
+		// MARK: ADDQ, SUBQ
+		//
+		// b0–b2 and b3–5:	a destination effective address;
+		// b9–b11:			an immediate value, embedded in the opcode.
+		//
+		case ADDQb:		case ADDQw:		case ADDQl:
+		case SUBQb:		case SUBQw:		case SUBQl:
+			return Preinstruction(operation,
+				AddressingMode::Quick, 0,
+				combined_mode(ea_mode, ea_register), ea_register);
+
+		//
 		// MARK: Impossible error case.
 		//
 		default:
 			// Should be unreachable.
 			assert(false);
 	}
-
-	// TODO: be willing to mutate Scc into DBcc.
 }
 
 // MARK: - Page decoders.
@@ -623,9 +649,15 @@ Preinstruction Predecoder<model>::decode5(uint16_t instruction) {
 		default:	break;
 	}
 
-	switch(instruction & 0x0c0) {
-		// 4-173 (p276), though this'll also hit DBcc 4-91 (p195)
-		case 0x0c0:	Decode(Op::Scc);
+	switch(instruction & 0x0f8) {
+		// 4-173 (p276)
+		case 0x0c0:
+		case 0x0d0:
+		case 0x0e0:	case 0x0e8:
+		case 0x0f0:	case 0x0f8:	Decode(Op::Scc);
+
+		// 4-91 (p195)
+		case 0x0c8:	Decode(Op::DBcc);
 
 		default:	break;
 	}
@@ -636,8 +668,32 @@ template <Model model>
 Preinstruction Predecoder<model>::decode6(uint16_t instruction) {
 	using Op = Operation;
 
-	// 4-25 (p129), 4-59 (p163) and 4-55 (p159)
-	Decode(Op::Bcc);
+	switch(instruction & 0xf00) {
+		// 4-59 (p163)
+		case 1:
+			switch(instruction & 0xff) {
+				case 0x00:	Decode(Op::BSRw);
+				case 0xff:
+					if constexpr (model != Model::M68000) {
+						Decode(Op::BSRl);
+					}
+					[[fallthrough]];
+				default:	Decode(Op::BSRb);
+			}
+
+		// 4-25 (p129) Bcc
+		// 4-55 (p159) BRA (i.e. Bcc with cc = always)
+		default:
+			switch(instruction & 0xff) {
+				case 0x00:	Decode(Op::Bccw);
+				case 0xff:
+					if constexpr (model != Model::M68000) {
+						Decode(Op::Bccl);
+					}
+					[[fallthrough]];
+				default:	Decode(Op::Bccb);
+			}
+	}
 }
 
 template <Model model>
