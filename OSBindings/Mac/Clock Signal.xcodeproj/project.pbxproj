@@ -309,6 +309,9 @@
 		4B74CF822312FA9C00500CE8 /* HFV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF802312FA9C00500CE8 /* HFV.cpp */; };
 		4B74CF85231370BC00500CE8 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */; };
 		4B74CF86231370BC00500CE8 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */; };
+		4B75F979280D7C5100121055 /* m68kDecoderTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B75F978280D7C5100121055 /* m68kDecoderTests.mm */; };
+		4B75F97B280D7C7700121055 /* 68000 Decoding in Resources */ = {isa = PBXBuildFile; fileRef = 4B75F97A280D7C7700121055 /* 68000 Decoding */; };
+		4B75F97C280D7F6800121055 /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBD689728037E53004790C1 /* Decoder.cpp */; };
 		4B778EEF23A5D6680000D260 /* AsyncTaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */; };
 		4B778EF023A5D68C0000D260 /* 68000Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */; };
 		4B778EF123A5D6B50000D260 /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04F91FC9FA3100F43484 /* 9918.cpp */; };
@@ -1413,6 +1416,8 @@
 		4B74CF802312FA9C00500CE8 /* HFV.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HFV.cpp; sourceTree = "<group>"; };
 		4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MacintoshVolume.cpp; path = Encodings/MacintoshVolume.cpp; sourceTree = "<group>"; };
 		4B74CF84231370BC00500CE8 /* MacintoshVolume.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = MacintoshVolume.hpp; path = Encodings/MacintoshVolume.hpp; sourceTree = "<group>"; };
+		4B75F978280D7C5100121055 /* m68kDecoderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = m68kDecoderTests.mm; sourceTree = "<group>"; };
+		4B75F97A280D7C7700121055 /* 68000 Decoding */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "68000 Decoding"; sourceTree = "<group>"; };
 		4B77069C1EC904570053B588 /* Z80.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Z80.hpp; sourceTree = "<group>"; };
 		4B770A961FE9EE770026DC70 /* CompoundSource.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CompoundSource.hpp; sourceTree = "<group>"; };
 		4B7913CA1DFCD80E00175A82 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Video.cpp; sourceTree = "<group>"; };
@@ -2398,22 +2403,23 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
-				4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */,
-				4BE211DD253E4E4800435408 /* 65C02_no_Rockwell_test.bin */,
-				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
 				4B680CE323A555CA00451D43 /* 68000 Comparative Tests */,
-				4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */,
+				4B75F97A280D7C7700121055 /* 68000 Decoding */,
 				4B683B002727BE6F0043E541 /* Amiga Blitter Tests */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
 				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
 				4BB0CAB127E51D2A00672A88 /* dingusdev PowerPC tests */,
+				4B98A1CD1FFADEC400ADF63B /* MSX ROMs */,
+				4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */,
+				4BE211DD253E4E4800435408 /* 65C02_no_Rockwell_test.bin */,
+				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
+				4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */,
+				4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */,
 				4B8DF5212550D91400F3433C /* emudev.de krom traces */,
 				4B2530F2244E6773007980BF /* FM Synthesis */,
 				4BBF49B41ED2881600AB3669 /* FUSE */,
 				4B4F475B2533EA64004245B8 /* jeek816 */,
 				4B8DF5392550D91400F3433C /* krom 65816 */,
-				4B98A1CD1FFADEC400ADF63B /* MSX ROMs */,
-				4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */,
 				4B670A822401CB8400D4E002 /* Patrik Rak Z80 Tests */,
 				4B9F11C72272375400701480 /* QL Startup */,
 				4B85322B227793CA00F26553 /* TOS Startup */,
@@ -4151,6 +4157,7 @@
 				4B47770C26900685005C2340 /* EnterpriseDaveTests.mm */,
 				4B051CB2267D3FF800CA44E8 /* EnterpriseNickTests.mm */,
 				4B8DF4D725465B7500F3433C /* IIgsMemoryMapTests.mm */,
+				4B75F978280D7C5100121055 /* m68kDecoderTests.mm */,
 				4BEE1EBF22B5E236000A26A6 /* MacGCRTests.mm */,
 				4BE90FFC22D5864800FB464D /* MacintoshVideoTests.mm */,
 				4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */,
@@ -5213,6 +5220,7 @@
 				4BB2996E1B587D8400A49093 /* laxa in Resources */,
 				4BB2990A1B587D8400A49093 /* aslzx in Resources */,
 				4BB299281B587D8400A49093 /* cia2pb6 in Resources */,
+				4B75F97B280D7C7700121055 /* 68000 Decoding in Resources */,
 				4BB2991E1B587D8400A49093 /* branchwrap in Resources */,
 				4BB299121B587D8400A49093 /* axsa in Resources */,
 				4BB299561B587D8400A49093 /* eorz in Resources */,
@@ -5882,6 +5890,7 @@
 				4B778F3723A5F11C0000D260 /* Parser.cpp in Sources */,
 				4B778F4523A5F1CD0000D260 /* SegmentParser.cpp in Sources */,
 				4B90467422C6FADD000E2074 /* 68000BitwiseTests.mm in Sources */,
+				4B75F97C280D7F6800121055 /* Decoder.cpp in Sources */,
 				4B778F2A23A5EF0F0000D260 /* BitReverse.cpp in Sources */,
 				4B778F1D23A5ED470000D260 /* DiskController.cpp in Sources */,
 				4B778F0023A5EB990000D260 /* G64.cpp in Sources */,
@@ -5911,6 +5920,7 @@
 				4B778EFC23A5EB8B0000D260 /* AcornADF.cpp in Sources */,
 				4B778F2023A5EDCE0000D260 /* HFV.cpp in Sources */,
 				4B778F3323A5F0FB0000D260 /* MassStorageDevice.cpp in Sources */,
+				4B75F979280D7C5100121055 /* m68kDecoderTests.mm in Sources */,
 				4B778F2C23A5EF0F0000D260 /* ZX8081.cpp in Sources */,
 				4B778F3023A5F0C50000D260 /* Macintosh.cpp in Sources */,
 				4B3BA0D11D318B44005DD7A7 /* TestMachine6502.mm in Sources */,

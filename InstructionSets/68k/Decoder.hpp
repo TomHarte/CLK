@@ -47,14 +47,14 @@ template <Model model> class Predecoder {
 		using OpT = uint8_t;
 
 		// Specific instruction decoders.
-		template <OpT operation, bool validate> Preinstruction decode(uint16_t instruction);
+		template <OpT operation, bool validate = true> Preinstruction decode(uint16_t instruction);
 
 		// Extended operation list; collapses into a single byte enough information to
 		// know both the type of operation and how to decode the operands. Most of the
 		// time that's knowable from the Operation alone, hence the rather awkward
 		// extension of @c Operation.
 		enum ExtendedOperation: OpT {
-			MOVEMtoRl = uint8_t(Operation::Max), MOVEMtoRw,
+			MOVEMtoRl = uint8_t(Operation::Max) + 1, MOVEMtoRw,
 			MOVEMtoMl, MOVEMtoMw,
 
 			MOVEPtoRl, MOVEPtoRw,

@@ -798,3 +798,5 @@ Preinstruction Predecoder<model>::decode(uint16_t instruction) {
 
 	return Preinstruction();
 }
+
+template class InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000>;
