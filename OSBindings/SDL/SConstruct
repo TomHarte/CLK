@@ -65,6 +65,7 @@ SOURCES += glob.glob('../../Configurable/*.cpp')
 SOURCES += glob.glob('../../Inputs/*.cpp')
 
 SOURCES += glob.glob('../../InstructionSets/M50740/*.cpp')
+SOURCES += glob.glob('../../InstructionSets/68k/*.cpp')
 SOURCES += glob.glob('../../InstructionSets/PowerPC/*.cpp')
 SOURCES += glob.glob('../../InstructionSets/x86/*.cpp')
 
