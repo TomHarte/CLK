@@ -70,6 +70,20 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 
 		case LEA:		return Operation::MOVEAl;
 
+#define ImmediateGroup(x)	\
+		case x##Ib:		return Operation::x##b;	\
+		case x##Iw:		return Operation::x##w;	\
+		case x##Il:		return Operation::x##l;
+
+		ImmediateGroup(ADD)
+		ImmediateGroup(SUB);
+		ImmediateGroup(OR);
+		ImmediateGroup(AND);
+		ImmediateGroup(EOR);
+		ImmediateGroup(CMP);
+
+#undef ImmediateGroup
+
 		default: break;
 	}
 
