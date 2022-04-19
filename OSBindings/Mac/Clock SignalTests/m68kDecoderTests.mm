@@ -32,6 +32,23 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			return [NSString stringWithFormat:@"(A%d)+", instruction.reg<index>()];
 		case AddressingMode::AddressRegisterIndirectWithPredecrement:
 			return [NSString stringWithFormat:@"-(A%d)", instruction.reg<index>()];
+		case AddressingMode::AddressRegisterIndirectWithDisplacement:
+			return [NSString stringWithFormat:@"(d16, A%d)", instruction.reg<index>()];
+		case AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement:
+			return [NSString stringWithFormat:@"(d8, A%d, Xn)", instruction.reg<index>()];
+
+		case AddressingMode::ProgramCounterIndirectWithDisplacement:
+			return @"(d16, PC)";
+		case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+			return @"(d8, PC, Xn)";
+
+		case AddressingMode::AbsoluteShort:
+			return @"(xxx).w";
+		case AddressingMode::AbsoluteLong:
+			return @"(xxx).l";
+
+		case AddressingMode::ImmediateData:
+			return @"#";
 	}
 }
 
