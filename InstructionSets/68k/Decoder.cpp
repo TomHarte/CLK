@@ -141,7 +141,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		// ADD.
+		// ADD, SUB, MOVE, MOVEA
 		case OpT(Operation::ADDb):		case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
 		case OpT(Operation::SUBb):		case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
 		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
@@ -173,7 +173,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		// ADDA.
+		// ADDA, SUBA.
 		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
 		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
 			switch(original.mode<0>()) {
@@ -192,20 +192,17 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		// MOVE.
+		// LEA
+		case OpT(Operation::LEA):
 			switch(original.mode<0>()) {
-				default: break;
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-			switch(original.mode<1>()) {
 				default: return original;
 
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
 				case AddressingMode::None:
+				case AddressingMode::DataRegisterDirect:
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::AddressRegisterIndirectWithPostincrement:
+				case AddressingMode::AddressRegisterIndirectWithPredecrement:
+				case AddressingMode::ImmediateData:
 					return Preinstruction();
 			}
 	}

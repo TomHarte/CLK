@@ -119,6 +119,11 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			case Operation::MOVEAw:		instruction = @"MOVEA.w";	break;
 			case Operation::MOVEAl:		instruction = @"MOVEA.l";	break;
 
+			case Operation::MOVEq:		instruction = @"MOVEq";		break;
+
+			case Operation::LEA:		instruction = @"LEA";		break;
+			case Operation::PEA:		instruction = @"PEA";		break;
+
 			// For now, skip any unmapped operations.
 			default: continue;
 		}
