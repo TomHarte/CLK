@@ -92,8 +92,26 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 }
 
 template <Model model>
-template <uint8_t operation, bool validate> Preinstruction Predecoder<model>::validated(Preinstruction original) {
-	return original;
+template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated(Preinstruction original) {
+	if constexpr (!validate) {
+		return original;
+	}
+
+	switch(op) {
+		default: return original;
+
+		// NBCD: don't permit address registers
+		case OpT(Operation::NBCD):
+			switch(original.mode<0>()) {
+				default: return original;
+
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::ImmediateData:
+					return Preinstruction();
+			}
+	}
 }
 
 /// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been

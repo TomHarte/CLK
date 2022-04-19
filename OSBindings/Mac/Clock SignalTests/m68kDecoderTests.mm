@@ -86,7 +86,7 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			case Operation::ABCD:		instruction = @"ABCD";	break;
 			case Operation::SBCD:		instruction = @"SBCD";	break;
 			case Operation::NBCD:		instruction = @"NBCD";	break;
-			case Operation::ADDb:		instruction = @"ADD.b";	break;
+//			case Operation::ADDb:		instruction = @"ADD.b";	break;
 
 			// For now, skip any unmapped operations.
 			default: continue;
