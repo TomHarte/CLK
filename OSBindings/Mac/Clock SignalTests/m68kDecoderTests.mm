@@ -62,16 +62,13 @@ template <int index> NSString *operand(Preinstruction instruction) {
 
 		const auto found = decoder.decode(uint16_t(instr));
 
-		// Hatch off no-instruction as a special case,
-		// at least temporarily.
-		if(found.operation == Operation::Undefined) {
-			XCTAssertEqualObjects(@"None", expected, "%@ should decode as %@", instrName, expected);
-			continue;
-		}
-
 		NSString *instruction;
 		switch(found.operation) {
-			case Operation::ABCD:	instruction = @"ABCD";	break;
+			case Operation::Undefined:	instruction = @"None";	break;
+			case Operation::NOP:		instruction = @"NOP";	break;
+			case Operation::ABCD:		instruction = @"ABCD";	break;
+			case Operation::SBCD:		instruction = @"SBCD";	break;
+			case Operation::NBCD:		instruction = @"NBCD";	break;
 
 			// For now, skip any unmapped operations.
 			default: continue;
