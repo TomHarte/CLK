@@ -3082,14 +3082,16 @@ struct ProcessorStorageConstructor {
 							// ... there are also no byte moves from address registers.
 							if(ea_mode == An && is_byte_access) continue;
 
-							// Perform the MOVE[A]'s fetch..
-							const int combined_source_mode = combined_mode(ea_mode, ea_register, true);
+							// Perform the MOVE[A]'s fetch...
+							const int combined_source_mode = combined_mode(ea_mode, ea_register);
 							dumper.set_source(combined_source_mode, ea_register);
 							switch(is_long_word_access ? l(combined_source_mode) : bw(combined_source_mode)) {
 								default: continue;
 
 								case l(Dn):			// MOVE[A].l [An/Dn], <ea>
 								case bw(Dn):		// MOVE[A].bw [An/Dn], <ea>
+								case l(An):			// MOVE[A].l [An/Dn], <ea>
+								case bw(An):		// MOVE[A].bw [An/Dn], <ea>
 								break;
 
 								case bw(PreDec):	// MOVE[A].bw -(An), <ea>
@@ -3153,7 +3155,9 @@ struct ProcessorStorageConstructor {
 
 							// Perform the MOVE[A]'s store.
 							const int combined_destination_mode = combined_mode(destination_mode, data_register, true);
-							dumper.set_dest(combined_destination_mode, data_register);
+							dumper.set_dest(
+								(combined_destination_mode == Dn && destination_mode == An) ? An : combined_destination_mode,
+								data_register);
 							switch(is_long_word_access ? l(combined_destination_mode) : bw(combined_destination_mode)) {
 								default: continue;
 
