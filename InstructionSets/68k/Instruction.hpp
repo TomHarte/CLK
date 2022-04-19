@@ -203,7 +203,7 @@ enum class AddressingMode: uint8_t {
 	/// #
 	ImmediateData										= 0b01'100,
 
-	/// .q; value is provided as the corresponding 'reg'.
+	/// .q; value is embedded in the opcode.
 	Quick												= 0b11'110,
 };
 
