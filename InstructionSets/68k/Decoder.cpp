@@ -164,6 +164,24 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::None:
 					return Preinstruction();
 			}
+
+		// ADDA.
+		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
+			switch(original.mode<0>()) {
+				default: break;
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+			switch(original.mode<1>()) {
+				default: return original;
+
+				case AddressingMode::ImmediateData:
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
 	}
 }
 
@@ -210,59 +228,37 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b6–b8:			an opmode, i.e. source + direction.
 		//
 		case OpT(Operation::ADDb):	case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
-		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
 		case OpT(Operation::SUBb):	case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
+		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
 		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
 		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
 		case OpT(Operation::ANDb):	case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
 		case OpT(Operation::ORb):	case OpT(Operation::ORw):	case OpT(Operation::ORl):
 		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):	{
-			// TODO: I strongly suspect that most of the potential exits to Preinstruction()
-			// below are completely unnecessary, being merely relics of the old method I applied
-			// to instruction decoding; I assume that all missing operation modes and addressing
-			// modes are actually caused by the instruction codes being otherwise allocated.
-			// Disabled for now. Will need to verify!
 
-			// Opmode 7 is illegal.
-//			if(opmode == 7) {
-//				return Preinstruction();
-//			}
-
-//			constexpr bool is_eor =
-//				operation == Operation::EORb ||
-//				operation == Operation::EORw ||
-//				operation == Operation::EORl;
+			constexpr bool is_address_operation =
+				op == OpT(Operation::ADDAw) || op == OpT(Operation::ADDAl) ||
+				op == OpT(Operation::SUBAw) || op == OpT(Operation::SUBAl) ||
+				op == OpT(Operation::CMPAw) || op == OpT(Operation::CMPAl);
+			constexpr auto register_addressing_mode = is_address_operation
+					? AddressingMode::AddressRegisterDirect : AddressingMode::DataRegisterDirect;
 
 			const auto ea_combined_mode = combined_mode(ea_mode, ea_register);
 
-			if(opmode & 4) {
+			if(!is_address_operation && (opmode & 4)) {
 				// Dn Λ < ea > → < ea >
-
-				// The operations other than EOR do not permit <ea>
-				// to be a data register; targetting a data register
-				// should be achieved with the alternative opmode.
-//				if constexpr (!is_eor) {
-//					if(ea_combined_mode == AddressingMode::DataRegisterDirect) {
-//						return Preinstruction();
-//					}
-//				}
 
 				return validated<op, validate>(
 					Preinstruction(operation,
-						AddressingMode::DataRegisterDirect, data_register,
+						register_addressing_mode, data_register,
 						ea_combined_mode, ea_register));
 			} else {
 				// < ea > Λ Dn → Dn
 
-				// EOR doesn't permit → Dn.
-//				if constexpr (is_eor) {
-//					return Preinstruction();
-//				}
-
 				return validated<op, validate>(
 					Preinstruction(operation,
 						ea_combined_mode, ea_register,
-						AddressingMode::DataRegisterDirect, data_register));
+						register_addressing_mode, data_register));
 			}
 
 			return Preinstruction();
