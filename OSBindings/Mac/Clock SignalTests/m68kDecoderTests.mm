@@ -101,6 +101,17 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			case Operation::ADDXw:		instruction = @"ADDX.w";	break;
 			case Operation::ADDXl:		instruction = @"ADDX.l";	break;
 
+			case Operation::SUBb:		instruction = @"SUB.b";		break;
+			case Operation::SUBw:		instruction = @"SUB.w";		break;
+			case Operation::SUBl:		instruction = @"SUB.l";		break;
+
+			case Operation::SUBAw:		instruction = @"SUBA.w";	break;
+			case Operation::SUBAl:		instruction = @"SUBA.l";	break;
+
+			case Operation::SUBXb:		instruction = @"SUBX.b";	break;
+			case Operation::SUBXw:		instruction = @"SUBX.w";	break;
+			case Operation::SUBXl:		instruction = @"SUBX.l";	break;
+
 			// For now, skip any unmapped operations.
 			default: continue;
 		}

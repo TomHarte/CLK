@@ -129,7 +129,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 //		case EORIb: 	case EORIl:		case EORIw:
 //		case ORIb:		case ORIl:		case ORIw:
 //		case ANDIb:		case ANDIl:		case ANDIw:
-//		case SUBIb:		case SUBIl:		case SUBIw:
+		case SUBIb:		case SUBIl:		case SUBIw:
 		case ADDIb:		case ADDIl:		case ADDIw:
 //		case CMPIb:		case CMPIl:		case CMPIw:
 			switch(original.mode<1>()) {
@@ -145,10 +145,11 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 
 		// ADD.
 		case OpT(Operation::ADDb):	case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
+		case OpT(Operation::SUBb):	case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
 			switch(original.mode<0>()) {
 				default: break;
 				case AddressingMode::AddressRegisterDirect:
-					if constexpr (op != OpT(Operation::ADDb)) {
+					if constexpr (op != OpT(Operation::ADDb) && op != OpT(Operation::SUBb)) {
 						break;
 					}
 				case AddressingMode::None:
@@ -167,6 +168,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 
 		// ADDA.
 		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
+		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
 			switch(original.mode<0>()) {
 				default: break;
 				case AddressingMode::None:
@@ -210,7 +212,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b3:		1 => operation is memory-to-memory; 0 => register-to-register.
 		//
 		case OpT(Operation::ABCD):	case OpT(Operation::SBCD):
-		case OpT(Operation::ADDXb):	case OpT(Operation::ADDXw):	case OpT(Operation::ADDXl): {
+		case OpT(Operation::ADDXb):	case OpT(Operation::ADDXw):	case OpT(Operation::ADDXl):
+		case OpT(Operation::SUBXb):	case OpT(Operation::SUBXw):	case OpT(Operation::SUBXl): {
 			const auto addressing_mode = (instruction & 8) ?
 				AddressingMode::AddressRegisterIndirectWithPredecrement : AddressingMode::DataRegisterDirect;
 
@@ -894,11 +897,11 @@ template <Model model>
 Preinstruction Predecoder<model>::decode9(uint16_t instruction) {
 	using Op = Operation;
 
-	switch(instruction & 0x0c0) {
-		// 4-174 (p278)
-		case 0x00:	Decode(Op::SUBb);
-		case 0x40:	Decode(Op::SUBw);
-		case 0x80:	Decode(Op::SUBl);
+	switch(instruction & 0x1f0) {
+		// 4-184 (p288)
+		case 0x100:	Decode(Op::SUBXb);
+		case 0x140:	Decode(Op::SUBXw);
+		case 0x180:	Decode(Op::SUBXl);
 
 		default:	break;
 	}
@@ -911,11 +914,11 @@ Preinstruction Predecoder<model>::decode9(uint16_t instruction) {
 		default:	break;
 	}
 
-	switch(instruction & 0x1f0) {
-		// 4-184 (p288)
-		case 0x100:	Decode(Op::SUBXb);
-		case 0x140:	Decode(Op::SUBXw);
-		case 0x180:	Decode(Op::SUBXl);
+	switch(instruction & 0x0c0) {
+		// 4-174 (p278)
+		case 0x00:	Decode(Op::SUBb);
+		case 0x40:	Decode(Op::SUBw);
+		case 0x80:	Decode(Op::SUBl);
 
 		default:	break;
 	}
