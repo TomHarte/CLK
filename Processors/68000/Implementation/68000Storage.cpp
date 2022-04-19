@@ -848,195 +848,200 @@ struct ProcessorStorageConstructor {
 
 				~InstructionDumper() {
 					const char *opname = "???";
-					switch(operation_) {
-						default:
-							printf("%d\n", int(operation_));
-							assert(false);
-						break;
+					if(opcode_ == 0x4e71) {
+						opname = "NOP";
+					} else {
+						switch(operation_) {
+							default:
+								printf("%d\n", int(operation_));
+								assert(false);
+							break;
 #define DirectMap(x)	case Operation::x:	opname = #x;	break
 
-						DirectMap(None);
-						DirectMap(ABCD);
-						DirectMap(SBCD);
-						DirectMap(NBCD);
+							DirectMap(None);
+							DirectMap(ABCD);
+							DirectMap(SBCD);
+							DirectMap(NBCD);
 
-						case Operation::ADDQb:
-						case Operation::ADDb:	opname = "ADD.b";	break;
-						case Operation::ADDQw:
-						case Operation::ADDw:	opname = "ADD.w";	break;
-						case Operation::ADDQl:
-						case Operation::ADDl:	opname = "ADD.l";	break;
-						case Operation::ADDQAw:
-						case Operation::ADDAw:	opname = "ADDA.w";	break;
-						case Operation::ADDQAl:
-						case Operation::ADDAl:	opname = "ADDA.l";	break;
-						case Operation::ADDXb:	opname = "ADDX.b";	break;
-						case Operation::ADDXw:	opname = "ADDX.w";	break;
-						case Operation::ADDXl:	opname = "ADDX.l";	break;
+							case Operation::ADDQb:
+							case Operation::ADDb:	opname = "ADD.b";	break;
+							case Operation::ADDQw:
+							case Operation::ADDw:	opname = "ADD.w";	break;
+							case Operation::ADDQl:
+							case Operation::ADDl:	opname = "ADD.l";	break;
+							case Operation::ADDQAw:
+							case Operation::ADDAw:	opname = "ADDA.w";	break;
+							case Operation::ADDQAl:
+							case Operation::ADDAl:	opname = "ADDA.l";	break;
+							case Operation::ADDXb:	opname = "ADDX.b";	break;
+							case Operation::ADDXw:	opname = "ADDX.w";	break;
+							case Operation::ADDXl:	opname = "ADDX.l";	break;
 
-						case Operation::SUBQb:
-						case Operation::SUBb:	opname = "SUB.b";	break;
-						case Operation::SUBQw:
-						case Operation::SUBw:	opname = "SUB.w";	break;
-						case Operation::SUBQl:
-						case Operation::SUBl:	opname = "SUB.l";	break;
-						case Operation::SUBQAw:
-						case Operation::SUBAw:	opname = "SUBA.w";	break;
-						case Operation::SUBQAl:
-						case Operation::SUBAl:	opname = "SUBA.l";	break;
-						case Operation::SUBXb:	opname = "SUBX.b";	break;
-						case Operation::SUBXw:	opname = "SUBX.w";	break;
-						case Operation::SUBXl:	opname = "SUBX.l";	break;
+							case Operation::SUBQb:
+							case Operation::SUBb:	opname = "SUB.b";	break;
+							case Operation::SUBQw:
+							case Operation::SUBw:	opname = "SUB.w";	break;
+							case Operation::SUBQl:
+							case Operation::SUBl:	opname = "SUB.l";	break;
+							case Operation::SUBQAw:
+							case Operation::SUBAw:	opname = "SUBA.w";	break;
+							case Operation::SUBQAl:
+							case Operation::SUBAl:	opname = "SUBA.l";	break;
+							case Operation::SUBXb:	opname = "SUBX.b";	break;
+							case Operation::SUBXw:	opname = "SUBX.w";	break;
+							case Operation::SUBXl:	opname = "SUBX.l";	break;
 
-						case Operation::MOVEb:	opname = "MOVE.b";	break;
-						case Operation::MOVEw:	opname = "MOVE.w";	break;
-						case Operation::MOVEl:	opname = "MOVE.l";	break;
-						case Operation::MOVEq:	opname = "MOVE.q";	break;
+							case Operation::MOVEb:	opname = "MOVE.b";	break;
+							case Operation::MOVEw:	opname = "MOVE.w";	break;
+							case Operation::MOVEl:	opname = "MOVE.l";	break;
+							case Operation::MOVEq:	opname = "MOVE.q";	break;
 
-						case Operation::MOVEAw:	opname = "MOVEA.w";	break;
-						case Operation::MOVEAl:	opname = "MOVEA.l";	break;
+							case Operation::MOVEAw:	opname = "MOVEA.w";	break;
+							case Operation::MOVEAl:	opname = "MOVEA.l";	break;
 
-						case Operation::PEA:	opname = "PEA";		break;
+							case Operation::PEA:	opname = "PEA";		break;
 
-						DirectMap(MOVEtoSR);
-						DirectMap(MOVEfromSR);
-						DirectMap(MOVEtoCCR);
+							DirectMap(MOVEtoSR);
+							DirectMap(MOVEfromSR);
+							DirectMap(MOVEtoCCR);
 
-						DirectMap(ORItoSR);
-						DirectMap(ORItoCCR);
-						DirectMap(ANDItoSR);
-						DirectMap(ANDItoCCR);
-						DirectMap(EORItoSR);
-						DirectMap(EORItoCCR);
+							DirectMap(ORItoSR);
+							DirectMap(ORItoCCR);
+							DirectMap(ANDItoSR);
+							DirectMap(ANDItoCCR);
+							DirectMap(EORItoSR);
+							DirectMap(EORItoCCR);
 
-						case Operation::BTSTb:	opname = "BTST.b";	break;
-						case Operation::BTSTl:	opname = "BTST.l";	break;
-						case Operation::BCLRb:	opname = "BCLR.b";	break;
-						case Operation::BCLRl:	opname = "BCLR.l";	break;
+							case Operation::BTSTb:	opname = "BTST.b";	break;
+							case Operation::BTSTl:	opname = "BTST.l";	break;
+							case Operation::BCLRb:	opname = "BCLR.b";	break;
+							case Operation::BCLRl:	opname = "BCLR.l";	break;
 
-						case Operation::CMPb:	opname = "CMP.b";	break;
-						case Operation::CMPw:	opname = "CMP.w";	break;
-						case Operation::CMPl:	opname = "CMP.l";	break;
-						case Operation::CMPAw:	opname = "CMPA";	break;
-						case Operation::TSTb:	opname = "TST.b";	break;
-						case Operation::TSTw:	opname = "TST.w";	break;
-						case Operation::TSTl:	opname = "TST.l";	break;
+							case Operation::CMPb:	opname = "CMP.b";	break;
+							case Operation::CMPw:	opname = "CMP.w";	break;
+							case Operation::CMPl:	opname = "CMP.l";	break;
+							case Operation::CMPAw:	opname = "CMPA";	break;
+							case Operation::TSTb:	opname = "TST.b";	break;
+							case Operation::TSTw:	opname = "TST.w";	break;
+							case Operation::TSTl:	opname = "TST.l";	break;
 
-						DirectMap(JMP);
-						DirectMap(RTS);
-						DirectMap(BRA);
-						DirectMap(Bcc);
-						DirectMap(DBcc);
-						DirectMap(Scc);
+							DirectMap(JMP);
+							DirectMap(RTS);
+							DirectMap(BRA);
+							DirectMap(Bcc);
+							DirectMap(DBcc);
+							DirectMap(Scc);
 
-						case Operation::CLRb:	opname = "CLR.b";	break;
-						case Operation::CLRw:	opname = "CLR.w";	break;
-						case Operation::CLRl:	opname = "CLR.l";	break;
+							case Operation::CLRb:	opname = "CLR.b";	break;
+							case Operation::CLRw:	opname = "CLR.w";	break;
+							case Operation::CLRl:	opname = "CLR.l";	break;
 
-						case Operation::NEGXb:	opname = "NEGX.b";	break;
-						case Operation::NEGXw:	opname = "NEGX.w";	break;
-						case Operation::NEGXl:	opname = "NEGX.l";	break;
+							case Operation::NEGXb:	opname = "NEGX.b";	break;
+							case Operation::NEGXw:	opname = "NEGX.w";	break;
+							case Operation::NEGXl:	opname = "NEGX.l";	break;
 
-						case Operation::NEGb:	opname = "NEG.b";	break;
-						case Operation::NEGw:	opname = "NEG.w";	break;
-						case Operation::NEGl:	opname = "NEG.l";	break;
+							case Operation::NEGb:	opname = "NEG.b";	break;
+							case Operation::NEGw:	opname = "NEG.w";	break;
+							case Operation::NEGl:	opname = "NEG.l";	break;
 
-						case Operation::ASLb:	opname = "ASL.b";	break;
-						case Operation::ASLm:
-						case Operation::ASLw:	opname = "ASL.w";	break;
-						case Operation::ASLl:	opname = "ASL.l";	break;
+							case Operation::ASLb:	opname = "ASL.b";	break;
+							case Operation::ASLm:
+							case Operation::ASLw:	opname = "ASL.w";	break;
+							case Operation::ASLl:	opname = "ASL.l";	break;
 
-						case Operation::ASRb:	opname = "ASR.b";	break;
-						case Operation::ASRm:
-						case Operation::ASRw:	opname = "ASR.w";	break;
-						case Operation::ASRl:	opname = "ASR.l";	break;
+							case Operation::ASRb:	opname = "ASR.b";	break;
+							case Operation::ASRm:
+							case Operation::ASRw:	opname = "ASR.w";	break;
+							case Operation::ASRl:	opname = "ASR.l";	break;
 
-						case Operation::LSLb:	opname = "LSL.b";	break;
-						case Operation::LSLm:
-						case Operation::LSLw:	opname = "LSL.w";	break;
-						case Operation::LSLl:	opname = "LSL.l";	break;
+							case Operation::LSLb:	opname = "LSL.b";	break;
+							case Operation::LSLm:
+							case Operation::LSLw:	opname = "LSL.w";	break;
+							case Operation::LSLl:	opname = "LSL.l";	break;
 
-						case Operation::LSRb:	opname = "LSR.b";	break;
-						case Operation::LSRm:
-						case Operation::LSRw:	opname = "LSR.w";	break;
-						case Operation::LSRl:	opname = "LSR.l";	break;
+							case Operation::LSRb:	opname = "LSR.b";	break;
+							case Operation::LSRm:
+							case Operation::LSRw:	opname = "LSR.w";	break;
+							case Operation::LSRl:	opname = "LSR.l";	break;
 
-						case Operation::ROLb:	opname = "ROL.b";	break;
-						case Operation::ROLm:
-						case Operation::ROLw:	opname = "ROL.w";	break;
-						case Operation::ROLl:	opname = "ROL.l";	break;
+							case Operation::ROLb:	opname = "ROL.b";	break;
+							case Operation::ROLm:
+							case Operation::ROLw:	opname = "ROL.w";	break;
+							case Operation::ROLl:	opname = "ROL.l";	break;
 
-						case Operation::RORb:	opname = "ROR.b";	break;
-						case Operation::RORm:
-						case Operation::RORw:	opname = "ROR.w";	break;
-						case Operation::RORl:	opname = "ROR.l";	break;
+							case Operation::RORb:	opname = "ROR.b";	break;
+							case Operation::RORm:
+							case Operation::RORw:	opname = "ROR.w";	break;
+							case Operation::RORl:	opname = "ROR.l";	break;
 
-						case Operation::ROXLb:	opname = "ROXL.b";	break;
-						case Operation::ROXLm:
-						case Operation::ROXLw:	opname = "ROXL.w";	break;
-						case Operation::ROXLl:	opname = "ROXL.l";	break;
+							case Operation::ROXLb:	opname = "ROXL.b";	break;
+							case Operation::ROXLm:
+							case Operation::ROXLw:	opname = "ROXL.w";	break;
+							case Operation::ROXLl:	opname = "ROXL.l";	break;
 
-						case Operation::ROXRb:	opname = "ROXR.b";	break;
-						case Operation::ROXRm:
-						case Operation::ROXRw:	opname = "ROXR.w";	break;
-						case Operation::ROXRl:	opname = "ROXR.l";	break;
+							case Operation::ROXRb:	opname = "ROXR.b";	break;
+							case Operation::ROXRm:
+							case Operation::ROXRw:	opname = "ROXR.w";	break;
+							case Operation::ROXRl:	opname = "ROXR.l";	break;
 
-						case Operation::MOVEMtoMl:
-						case Operation::MOVEMtoRl:	opname = "MOVEM.l";	break;
-						case Operation::MOVEMtoMw:
-						case Operation::MOVEMtoRw:	opname = "MOVEM.w";	break;
+							case Operation::MOVEMtoMl:
+							case Operation::MOVEMtoRl:	opname = "MOVEM.l";	break;
+							case Operation::MOVEMtoMw:
+							case Operation::MOVEMtoRw:	opname = "MOVEM.w";	break;
 
-						case Operation::MOVEPtoMl:
-						case Operation::MOVEPtoRl:	opname = "MOVEP.l";	break;
-						case Operation::MOVEPtoMw:
-						case Operation::MOVEPtoRw:	opname = "MOVEP.w";	break;
+							case Operation::MOVEPtoMl:
+							case Operation::MOVEPtoRl:	opname = "MOVEP.l";	break;
+							case Operation::MOVEPtoMw:
+							case Operation::MOVEPtoRw:	opname = "MOVEP.w";	break;
 
-//						DirectMap(MOVEMtoRl);
-//						DirectMap(MOVEMtoRw);
-//						DirectMap(MOVEMtoMl);
-//						DirectMap(MOVEMtoMw);
+	//						DirectMap(MOVEMtoRl);
+	//						DirectMap(MOVEMtoRw);
+	//						DirectMap(MOVEMtoMl);
+	//						DirectMap(MOVEMtoMw);
 
-						case Operation::ANDb:	opname = "AND.b";	break;
-						case Operation::ANDw:	opname = "AND.w";	break;
-						case Operation::ANDl:	opname = "AND.l";	break;
+							case Operation::ANDb:	opname = "AND.b";	break;
+							case Operation::ANDw:	opname = "AND.w";	break;
+							case Operation::ANDl:	opname = "AND.l";	break;
 
-						case Operation::EORb:	opname = "EOR.b";	break;
-						case Operation::EORw:	opname = "EOR.w";	break;
-						case Operation::EORl:	opname = "EOR.l";	break;
+							case Operation::EORb:	opname = "EOR.b";	break;
+							case Operation::EORw:	opname = "EOR.w";	break;
+							case Operation::EORl:	opname = "EOR.l";	break;
 
-						case Operation::NOTb:	opname = "NOT.b";	break;
-						case Operation::NOTw:	opname = "NOT.w";	break;
-						case Operation::NOTl:	opname = "NOT.l";	break;
+							case Operation::NOTb:	opname = "NOT.b";	break;
+							case Operation::NOTw:	opname = "NOT.w";	break;
+							case Operation::NOTl:	opname = "NOT.l";	break;
 
-						case Operation::ORb:	opname = "OR.b";	break;
-						case Operation::ORw:	opname = "OR.w";	break;
-						case Operation::ORl:	opname = "OR.l";	break;
+							case Operation::ORb:	opname = "OR.b";	break;
+							case Operation::ORw:	opname = "OR.w";	break;
+							case Operation::ORl:	opname = "OR.l";	break;
 
-						DirectMap(MULU);
-						DirectMap(MULS);
-						DirectMap(DIVU);
-						DirectMap(DIVS);
+							DirectMap(MULU);
+							DirectMap(MULS);
+							DirectMap(DIVU);
+							DirectMap(DIVS);
 
-						case Operation::RTE_RTR:	opname = "RTE/RTR";	break;
+							case Operation::RTE_RTR:	opname = "RTE/RTR";	break;
 
-						DirectMap(TRAP);
-						DirectMap(TRAPV);
-						DirectMap(CHK);
-						DirectMap(EXG);
-						DirectMap(SWAP);
+							DirectMap(TRAP);
+							DirectMap(TRAPV);
+							DirectMap(CHK);
+							DirectMap(EXG);
+							DirectMap(SWAP);
 
-						case Operation::BCHGb:	opname = "BCHG.b";	break;
-						case Operation::BCHGl:	opname = "BCHG.l";	break;
-						case Operation::BSETb:	opname = "BSET.b";	break;
-						case Operation::BSETl:	opname = "BSET.l";	break;
+							case Operation::BCHGb:	opname = "BCHG.b";	break;
+							case Operation::BCHGl:	opname = "BCHG.l";	break;
+							case Operation::BSETb:	opname = "BSET.b";	break;
+							case Operation::BSETl:	opname = "BSET.l";	break;
 
-						DirectMap(TAS);
-						DirectMap(EXTbtow);
-						DirectMap(EXTwtol);
-						DirectMap(LINK);
-						DirectMap(UNLINK);
-						DirectMap(STOP);
+							DirectMap(TAS);
+							DirectMap(EXTbtow);
+							DirectMap(EXTwtol);
+							DirectMap(LINK);
+							DirectMap(UNLINK);
+							DirectMap(STOP);
+						}
 					}
+#undef DirectMap
 
 					printf("\"%04x\": \"%s", opcode_, opname);
 					if(source_ != NoOperand) {
@@ -2864,7 +2869,7 @@ struct ProcessorStorageConstructor {
 							is_long_word_access = false;
 
 							const int mode = combined_mode(ea_mode, ea_register);
-							dumper.set_source(mode);
+							dumper.set_source(mode, ea_register);
 							switch(mode) {
 								default: continue;
 
