@@ -372,11 +372,12 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				AddressingMode::ImmediateData, 0);
 
 		//
-		// MARK: SWAP
+		// MARK: SWAP, EXTbtow, EXTwtol
 		//
 		// b0–b2:		a data register.
 		//
 		case OpT(Operation::SWAP):
+		case OpT(Operation::EXTbtow):	case OpT(Operation::EXTwtol):
 			return Preinstruction(operation,
 				AddressingMode::DataRegisterDirect, ea_register);
 
