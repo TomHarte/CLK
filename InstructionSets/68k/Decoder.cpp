@@ -146,10 +146,12 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		// ADD.
 		case OpT(Operation::ADDb):	case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
 		case OpT(Operation::SUBb):	case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
+		case OpT(Operation::MOVEb):	case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
 			switch(original.mode<0>()) {
 				default: break;
 				case AddressingMode::AddressRegisterDirect:
-					if constexpr (op != OpT(Operation::ADDb) && op != OpT(Operation::SUBb)) {
+					// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
+					if constexpr (op != OpT(Operation::ADDb) && op != OpT(Operation::SUBb) && op != OpT(Operation::MOVEb)) {
 						break;
 					}
 				case AddressingMode::None:
@@ -159,6 +161,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			switch(original.mode<1>()) {
 				default: return original;
 
+				case AddressingMode::AddressRegisterDirect:
 				case AddressingMode::ImmediateData:
 				case AddressingMode::ProgramCounterIndirectWithDisplacement:
 				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
@@ -186,7 +189,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 
 		// MOVE.
-		case OpT(Operation::MOVEb):	case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
 			switch(original.mode<0>()) {
 				default: break;
 				case AddressingMode::None:
@@ -428,7 +430,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 			return validated<op, validate>(
 				Preinstruction(operation,
 					combined_mode(ea_mode, ea_register), ea_register,
-					combined_mode<false, false>(opmode, data_register), data_register));
+					combined_mode(opmode, data_register), data_register));
 
 		//
 		// MARK: RESET, NOP RTE, RTS, TRAPV, RTR
