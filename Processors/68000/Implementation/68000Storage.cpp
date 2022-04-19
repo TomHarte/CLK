@@ -3077,6 +3077,7 @@ struct ProcessorStorageConstructor {
 									continue;
 								}
 								operation = is_long_word_access ? Operation::MOVEAl : Operation::MOVEAw;
+								dumper.set_operation(operation);
 							}
 
 							// ... there are also no byte moves from address registers.
