@@ -2012,9 +2012,9 @@ struct ProcessorStorageConstructor {
 						case Decoder::ADDX_SUBX: {
 							if(instruction & 0x8) {
 								// Use predecrementing address registers.
-								program.set_source(storage_, Ind, ea_register);
-								program.set_destination(storage_, Ind, data_register);
-								dumper.set_source_dest(Ind, 0, Ind, 0);
+								program.set_source(storage_, PreDec, ea_register);
+								program.set_destination(storage_, PreDec, data_register);
+								dumper.set_source_dest(PreDec, ea_register, PreDec, data_register);
 
 								if(is_long_word_access) {
 									// Access order is very atypical here: it's lower parts each for both words,
