@@ -15,7 +15,33 @@ using namespace InstructionSet::M68k;
 @interface m68kDecoderTests : XCTestCase
 @end
 
+namespace {
+
+template <int index> NSString *operand(Preinstruction instruction) {
+	switch(instruction.mode<index>()) {
+		default:	return @"";
+
+		case AddressingMode::DataRegisterDirect:
+			return [NSString stringWithFormat:@"D%d", instruction.reg<index>()];
+
+		case AddressingMode::AddressRegisterDirect:
+			return [NSString stringWithFormat:@"A%d", instruction.reg<index>()];
+		case AddressingMode::AddressRegisterIndirect:
+			return [NSString stringWithFormat:@"(A%d)", instruction.reg<index>()];
+		case AddressingMode::AddressRegisterIndirectWithPostincrement:
+			return [NSString stringWithFormat:@"(A%d)+", instruction.reg<index>()];
+		case AddressingMode::AddressRegisterIndirectWithPredecrement:
+			return [NSString stringWithFormat:@"-(A%d)", instruction.reg<index>()];
+	}
+}
+
+}
+
 @implementation m68kDecoderTests
+
+- (NSString *)operand:(int)operand instruction:(Preinstruction)instruction {
+	return @"";
+}
 
 - (void)testInstructionSpecs {
 	NSData *const testData =
@@ -42,6 +68,22 @@ using namespace InstructionSet::M68k;
 			XCTAssertEqualObjects(@"None", expected, "%@ should decode as %@", instrName, expected);
 			continue;
 		}
+
+		NSString *instruction;
+		switch(found.operation) {
+			case Operation::ABCD:	instruction = @"ABCD";	break;
+
+			// For now, skip any unmapped operations.
+			default: continue;
+		}
+
+		NSString *const operand1 = operand<0>(found);
+		NSString *const operand2 = operand<1>(found);
+
+		if(operand1.length) instruction = [instruction stringByAppendingFormat:@" %@", operand1];
+		if(operand2.length) instruction = [instruction stringByAppendingFormat:@", %@", operand2];
+
+		XCTAssertEqualObjects(instruction, expected, "%@ should decode as %@; got %@", instrName, expected, instruction);
 	}
 
 }
