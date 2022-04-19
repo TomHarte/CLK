@@ -28,7 +28,18 @@ template <
 		mode = AddressingMode::AddressRegisterIndirect;
 	}
 
-	return (raw_mode != 7) ? mode : AddressingMode(0b01'000 | reg);
+	constexpr AddressingMode extended_modes[] = {
+		AddressingMode::AbsoluteShort,
+		AddressingMode::AbsoluteLong,
+		AddressingMode::ProgramCounterIndirectWithDisplacement,
+		AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement,
+		AddressingMode::ImmediateData,
+
+		AddressingMode::None,
+		AddressingMode::None,
+		AddressingMode::None,
+	};
+	return (raw_mode != 7) ? mode : extended_modes[reg];
 }
 
 }
@@ -91,6 +102,7 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 	return Operation::Undefined;
 }
 
+/// Provides a post-decoding validation step — primarily ensures that the prima facie addressing modes are supported by the operation.
 template <Model model>
 template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated(Preinstruction original) {
 	if constexpr (!validate) {
@@ -100,7 +112,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 	switch(op) {
 		default: return original;
 
-		// NBCD: don't permit address registers
+		// NBCD.
 		case OpT(Operation::NBCD):
 			switch(original.mode<0>()) {
 				default: return original;
@@ -109,6 +121,47 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::ProgramCounterIndirectWithDisplacement:
 				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
 				case AddressingMode::ImmediateData:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+		// The various immediates.
+//		case EORIb: 	case EORIl:		case EORIw:
+//		case ORIb:		case ORIl:		case ORIw:
+//		case ANDIb:		case ANDIl:		case ANDIw:
+//		case SUBIb:		case SUBIl:		case SUBIw:
+		case ADDIb:		case ADDIl:		case ADDIw:
+//		case CMPIb:		case CMPIl:		case CMPIw:
+			switch(original.mode<1>()) {
+				default: return original;
+
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::ImmediateData:
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+		// ADD.
+		case OpT(Operation::ADDb):	case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
+			switch(original.mode<0>()) {
+				default: break;
+				case AddressingMode::AddressRegisterDirect:
+					if constexpr (op != OpT(Operation::ADDb)) {
+						break;
+					}
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+			switch(original.mode<1>()) {
+				default: return original;
+
+				case AddressingMode::ImmediateData:
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::None:
 					return Preinstruction();
 			}
 	}
@@ -132,13 +185,14 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 	switch(op) {
 
 		//
-		// MARK: ABCD, SBCD.
+		// MARK: ABCD, SBCD, ADDX.
 		//
 		// b9–b11:	Rx (destination)
 		// b0–b2:	Ry (source)
 		// b3:		1 => operation is memory-to-memory; 0 => register-to-register.
 		//
-		case OpT(Operation::ABCD):	case OpT(Operation::SBCD):	{
+		case OpT(Operation::ABCD):	case OpT(Operation::SBCD):
+		case OpT(Operation::ADDXb):	case OpT(Operation::ADDXw):	case OpT(Operation::ADDXl): {
 			const auto addressing_mode = (instruction & 8) ?
 				AddressingMode::AddressRegisterIndirectWithPredecrement : AddressingMode::DataRegisterDirect;
 
@@ -944,11 +998,11 @@ template <Model model>
 Preinstruction Predecoder<model>::decodeD(uint16_t instruction) {
 	using Op = Operation;
 
-	switch(instruction & 0x0c0) {
-		// 4-4 (p108)
-		case 0x000:	Decode(Op::ADDb);
-		case 0x040:	Decode(Op::ADDw);
-		case 0x080:	Decode(Op::ADDl);
+	switch(instruction & 0x1f0) {
+		// 4-14 (p118)
+		case 0x100:	Decode(Op::ADDXb);
+		case 0x140:	Decode(Op::ADDXw);
+		case 0x180:	Decode(Op::ADDXl);
 
 		default:	break;
 	}
@@ -961,11 +1015,11 @@ Preinstruction Predecoder<model>::decodeD(uint16_t instruction) {
 		default:	break;
 	}
 
-	switch(instruction & 0x1f0) {
-		// 4-14 (p118)
-		case 0x100:	Decode(Op::ADDXb);
-		case 0x140:	Decode(Op::ADDXw);
-		case 0x180:	Decode(Op::ADDXl);
+	switch(instruction & 0x0c0) {
+		// 4-4 (p108)
+		case 0x000:	Decode(Op::ADDb);
+		case 0x040:	Decode(Op::ADDw);
+		case 0x080:	Decode(Op::ADDl);
 
 		default:	break;
 	}
