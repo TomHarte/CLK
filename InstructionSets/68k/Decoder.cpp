@@ -184,6 +184,24 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::None:
 					return Preinstruction();
 			}
+
+		// MOVE.
+		case OpT(Operation::MOVEb):	case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
+			switch(original.mode<0>()) {
+				default: break;
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+			switch(original.mode<1>()) {
+				default: return original;
+
+				case AddressingMode::ImmediateData:
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
 	}
 }
 
