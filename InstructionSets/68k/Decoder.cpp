@@ -601,6 +601,22 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		default:	break;
 	}
 
+	switch(instruction & 0xff8) {
+		case 0x860:	Decode(Op::SWAP);			// 4-185 (p289)
+		case 0x880:	Decode(Op::EXTbtow);		// 4-106 (p210)
+		case 0x8c0:	Decode(Op::EXTwtol);		// 4-106 (p210)
+		case 0xe50:	Decode(Op::LINKw);			// 4-111 (p215)
+		case 0xe58:	Decode(Op::UNLINK);			// 4-194 (p298)
+		case 0xe60:	Decode(Op::MOVEtoUSP);		// 6-21 (p475)
+		case 0xe68:	Decode(Op::MOVEfromUSP);	// 6-21 (p475)
+		default:	break;
+	}
+
+	switch(instruction & 0xff0) {
+		case 0xe40:	Decode(Op::TRAP);		// 4-188 (p292)
+		default:	break;
+	}
+
 	switch(instruction & 0xfc0) {
 		// 4-146 (p250)
 		case 0x000:	Decode(Op::NEGXb);
@@ -663,22 +679,6 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 	switch(instruction & 0x1c0) {
 		case 0x1c0:	Decode(LEA);		// 4-110 (p214)
 		case 0x180:	Decode(Op::CHK);	// 4-69 (p173)
-		default:	break;
-	}
-
-	switch(instruction & 0xff0) {
-		case 0xe40:	Decode(Op::TRAP);		// 4-188 (p292)
-		default:	break;
-	}
-
-	switch(instruction & 0xff8) {
-		case 0x860:	Decode(Op::SWAP);			// 4-185 (p289)
-		case 0x880:	Decode(Op::EXTbtow);		// 4-106 (p210)
-		case 0x8c0:	Decode(Op::EXTwtol);		// 4-106 (p210)
-		case 0xe50:	Decode(Op::LINKw);			// 4-111 (p215)
-		case 0xe58:	Decode(Op::UNLINK);			// 4-194 (p298)
-		case 0xe60:	Decode(Op::MOVEtoUSP);		// 6-21 (p475)
-		case 0xe68:	Decode(Op::MOVEfromUSP);	// 6-21 (p475)
 		default:	break;
 	}
 
