@@ -230,13 +230,13 @@ class Preinstruction {
 		// be provided, and will be a source and/or destination as
 		// per the semantics of the operation.
 
-		template <int index> AddressingMode mode() {
+		template <int index> AddressingMode mode() const {
 			if constexpr (index > 1) {
 				return AddressingMode::None;
 			}
 			return AddressingMode(operands_[index] & 0x1f);
 		}
-		template <int index> int reg() {
+		template <int index> int reg() const {
 			if constexpr (index > 1) {
 				return 0;
 			}
