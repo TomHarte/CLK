@@ -372,6 +372,15 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				AddressingMode::ImmediateData, 0);
 
 		//
+		// MARK: SWAP
+		//
+		// b0–b2:		a data register.
+		//
+		case OpT(Operation::SWAP):
+			return Preinstruction(operation,
+				AddressingMode::DataRegisterDirect, ea_register);
+
+		//
 		// MARK: MOVEMtoMw, MOVEMtoMl, MOVEMtoRw, MOVEMtoRl
 		//
 		// b0–b2 and b3–b5:		effective address.
