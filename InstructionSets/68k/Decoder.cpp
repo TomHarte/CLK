@@ -144,9 +144,10 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 
 		// ADD.
-		case OpT(Operation::ADDb):	case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
-		case OpT(Operation::SUBb):	case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
-		case OpT(Operation::MOVEb):	case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
+		case OpT(Operation::ADDb):		case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
+		case OpT(Operation::SUBb):		case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
+		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
+		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
 			switch(original.mode<0>()) {
 				default: break;
 				case AddressingMode::AddressRegisterDirect:
@@ -154,6 +155,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					if constexpr (op != OpT(Operation::ADDb) && op != OpT(Operation::SUBb) && op != OpT(Operation::MOVEb)) {
 						break;
 					}
+					[[fallthrough]];
 				case AddressingMode::None:
 					return Preinstruction();
 			}
@@ -162,6 +164,10 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				default: return original;
 
 				case AddressingMode::AddressRegisterDirect:
+					if constexpr (op == OpT(Operation::MOVEAw) || op == OpT(Operation::MOVEAl)) {
+						return original;
+					}
+					[[fallthrough]];
 				case AddressingMode::ImmediateData:
 				case AddressingMode::ProgramCounterIndirectWithDisplacement:
 				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
@@ -426,7 +432,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b6–b8 and b9–b11:	destination effective address;
 		// [already decoded: b12–b13: size]
 		//
-		case OpT(Operation::MOVEb):	case OpT(Operation::MOVEl):	case OpT(Operation::MOVEw):
+		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEl):		case OpT(Operation::MOVEw):
+		case OpT(Operation::MOVEAl):	case OpT(Operation::MOVEAw):
 			return validated<op, validate>(
 				Preinstruction(operation,
 					combined_mode(ea_mode, ea_register), ea_register,
@@ -706,7 +713,10 @@ Preinstruction Predecoder<model>::decode2(uint16_t instruction) {
 	using Op = Operation;
 
 	// 4-116 (p220)
-	Decode(Op::MOVEl);
+	switch(instruction & 0x1c0) {
+		case 0x040:	Decode(Op::MOVEAl);
+		default:	Decode(Op::MOVEl);
+	}
 }
 
 template <Model model>
@@ -714,7 +724,11 @@ Preinstruction Predecoder<model>::decode3(uint16_t instruction) {
 	using Op = Operation;
 
 	// 4-116 (p220)
-	Decode(Op::MOVEw);
+	switch(instruction & 0x1c0) {
+		case 0x040:	Decode(Op::MOVEAw);
+		default:	Decode(Op::MOVEw);
+	}
+//	Decode(Op::MOVEw);
 }
 
 template <Model model>
