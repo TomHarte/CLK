@@ -33,7 +33,7 @@ enum class Operation: uint8_t {
 	MOVEb,	MOVEw,	MOVEl,
 	MOVEAw,	MOVEAl,
 	MOVEq,
-	PEA,
+	LEA,	PEA,
 
 	MOVEtoSR, MOVEfromSR,
 	MOVEtoCCR,

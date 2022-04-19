@@ -80,8 +80,6 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 		case BCLRI:		return Operation::BCLR;
 		case BSETI:		return Operation::BSET;
 
-		case LEA:		return Operation::MOVEAl;
-
 #define ImmediateGroup(x)	\
 		case x##Ib:		return Operation::x##b;	\
 		case x##Iw:		return Operation::x##w;	\
@@ -400,7 +398,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b9–b11:			destination address register;
 		// b0–b2 and b3–b5:	source effective address.
 		//
-		case LEA:
+		case OpT(Operation::LEA):
 			return validated<op, validate>(
 				Preinstruction(operation,
 					combined_mode(ea_mode, ea_register), ea_register,
@@ -822,7 +820,7 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 	}
 
 	switch(instruction & 0x1c0) {
-		case 0x1c0:	Decode(LEA);		// 4-110 (p214)
+		case 0x1c0:	Decode(Op::LEA);	// 4-110 (p214)
 		case 0x180:	Decode(Op::CHK);	// 4-69 (p173)
 		default:	break;
 	}
