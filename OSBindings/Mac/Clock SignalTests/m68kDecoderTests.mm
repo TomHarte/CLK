@@ -19,7 +19,10 @@ namespace {
 
 template <int index> NSString *operand(Preinstruction instruction) {
 	switch(instruction.mode<index>()) {
-		default:	return @"";
+		default:	return [NSString stringWithFormat:@"[Mode %d?]", int(instruction.mode<index>())];
+
+		case AddressingMode::None:
+			return @"";
 
 		case AddressingMode::DataRegisterDirect:
 			return [NSString stringWithFormat:@"D%d", instruction.reg<index>()];
@@ -81,12 +84,22 @@ template <int index> NSString *operand(Preinstruction instruction) {
 
 		NSString *instruction;
 		switch(found.operation) {
-			case Operation::Undefined:	instruction = @"None";	break;
-			case Operation::NOP:		instruction = @"NOP";	break;
-			case Operation::ABCD:		instruction = @"ABCD";	break;
-			case Operation::SBCD:		instruction = @"SBCD";	break;
-			case Operation::NBCD:		instruction = @"NBCD";	break;
-//			case Operation::ADDb:		instruction = @"ADD.b";	break;
+			case Operation::Undefined:	instruction = @"None";		break;
+			case Operation::NOP:		instruction = @"NOP";		break;
+			case Operation::ABCD:		instruction = @"ABCD";		break;
+			case Operation::SBCD:		instruction = @"SBCD";		break;
+			case Operation::NBCD:		instruction = @"NBCD";		break;
+
+			case Operation::ADDb:		instruction = @"ADD.b";		break;
+			case Operation::ADDw:		instruction = @"ADD.w";		break;
+			case Operation::ADDl:		instruction = @"ADD.l";		break;
+
+			case Operation::ADDAw:		instruction = @"ADDA.w";	break;
+			case Operation::ADDAl:		instruction = @"ADDA.l";	break;
+
+			case Operation::ADDXb:		instruction = @"ADDX.b";	break;
+			case Operation::ADDXw:		instruction = @"ADDX.w";	break;
+			case Operation::ADDXl:		instruction = @"ADDX.l";	break;
 
 			// For now, skip any unmapped operations.
 			default: continue;
@@ -98,6 +111,12 @@ template <int index> NSString *operand(Preinstruction instruction) {
 		if(operand1.length) instruction = [instruction stringByAppendingFormat:@" %@", operand1];
 		if(operand2.length) instruction = [instruction stringByAppendingFormat:@", %@", operand2];
 
+		// Quick decoding not yet supported. TODO.
+		if(found.mode<0>() == AddressingMode::Quick || found.mode<1>() == AddressingMode::Quick) {
+			continue;
+		}
+
+		XCTAssertFalse(found.mode<0>() == AddressingMode::None && found.mode<1>() != AddressingMode::None, @"Decoding of %@ provided a second operand but not a first", instrName);
 		XCTAssertEqualObjects(instruction, expected, "%@ should decode as %@; got %@", instrName, expected, instruction);
 	}
 
