@@ -2462,7 +2462,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, An, data_register);
 
 							const int mode = combined_mode(ea_mode, ea_register, true);
-							dumper.set_source_dest(mode, ea_register, An, data_register);
+							dumper.set_source_dest(combined_mode(ea_mode, ea_register), ea_register, An, data_register);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
