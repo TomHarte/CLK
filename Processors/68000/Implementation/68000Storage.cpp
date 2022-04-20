@@ -930,9 +930,13 @@ struct ProcessorStorageConstructor {
 							case Operation::BCLRl:	opname = "BCLR";	break;
 
 							case Operation::CMPb:	opname = "CMP.b";	break;
-							case Operation::CMPw:	opname = "CMP.w";	break;
-							case Operation::CMPl:	opname = "CMP.l";	break;
-							case Operation::CMPAw:	opname = "CMPA";	break;
+							case Operation::CMPw:
+								opname = "CMP.w";
+							break;
+							case Operation::CMPl:
+								opname = (dest_ == An) ? "CMPA.l" : "CMP.l";
+							break;
+							case Operation::CMPAw:	opname = "CMPA.w";	break;
 							case Operation::TSTb:	opname = "TST.b";	break;
 							case Operation::TSTw:	opname = "TST.w";	break;
 							case Operation::TSTl:	opname = "TST.l";	break;
@@ -2458,7 +2462,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, An, data_register);
 
 							const int mode = combined_mode(ea_mode, ea_register, true);
-							dumper.set_source_dest(mode, ea_register, An, data_register);
+							dumper.set_source_dest(combined_mode(ea_mode, ea_register), ea_register, An, data_register);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
