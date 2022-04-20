@@ -138,6 +138,17 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			case Operation::BCHG:	instruction = @"BCHG";	break;
 			case Operation::BSET:	instruction = @"BSET";	break;
 
+			case Operation::CMPb:	instruction = @"CMP.b";	break;
+			case Operation::CMPw:	instruction = @"CMP.w";	break;
+			case Operation::CMPl:	instruction = @"CMP.l";	break;
+
+			case Operation::CMPAw:	instruction = @"CMPA.w";	break;
+			case Operation::CMPAl:	instruction = @"CMPA.l";	break;
+
+			case Operation::TSTb:	instruction = @"TST.b";	break;
+			case Operation::TSTw:	instruction = @"TST.w";	break;
+			case Operation::TSTl:	instruction = @"TST.l";	break;
+
 			// For now, skip any unmapped operations.
 			default: continue;
 		}

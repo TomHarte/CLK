@@ -142,7 +142,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 //		case ANDIb:		case ANDIl:		case ANDIw:
 		case SUBIb:		case SUBIl:		case SUBIw:
 		case ADDIb:		case ADDIl:		case ADDIw:
-//		case CMPIb:		case CMPIl:		case CMPIw:
 			switch(original.mode<1>()) {
 				default: return original;
 
@@ -150,6 +149,23 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::ImmediateData:
 				case AddressingMode::ProgramCounterIndirectWithDisplacement:
 				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+		case CMPIb:		case CMPIl:		case CMPIw:
+			switch(original.mode<1>()) {
+				default: return original;
+
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+					if constexpr (model >= Model::M68010) {
+						return original;
+					}
+					[[fallthrough]];
+
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::ImmediateData:
 				case AddressingMode::None:
 					return Preinstruction();
 			}
@@ -251,19 +267,41 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::ImmediateData:
 					return Preinstruction();
 			}
-//
-//		case BCHGI:	case BSETI:	case BCLRI:
-//			switch(original.mode<1>()) {
-//				default: return original;
-//
-//				case AddressingMode::None:
-//				case AddressingMode::AddressRegisterDirect:
-//				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-//				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-//				case AddressingMode::ImmediateData:
-//					return Preinstruction();
-//			}
-}
+
+		case OpT(Operation::TSTb):	case OpT(Operation::TSTw):	case OpT(Operation::TSTl):
+			switch(original.mode<0>()) {
+				default: return original;
+
+				case AddressingMode::AddressRegisterDirect:
+					if constexpr (op == OpT(Operation::TSTb)) {
+						return Preinstruction();
+					}
+					[[fallthrough]];
+
+				case AddressingMode::ImmediateData:
+					if constexpr (model < Model::M68020) {
+						return Preinstruction();
+					}
+					return original;
+
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+					if constexpr (model >= Model::M68010) {
+						return original;
+					}
+					[[fallthrough]];
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
+			switch(original.mode<0>()) {
+				default: return original;
+
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+	}
 }
 
 /// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been
