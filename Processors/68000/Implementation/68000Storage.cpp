@@ -941,7 +941,13 @@ struct ProcessorStorageConstructor {
 							case Operation::TSTw:	opname = "TST.w";	break;
 							case Operation::TSTl:	opname = "TST.l";	break;
 
-							DirectMap(JMP);
+							case Operation::JMP:
+								if(opcode_& 0x40) {
+									opname = "JMP";
+								} else {
+									opname = "JSR";
+								}
+							break;
 							DirectMap(RTS);
 							DirectMap(BRA);
 							DirectMap(Bcc);
@@ -1126,7 +1132,7 @@ struct ProcessorStorageConstructor {
 
 		// Perform a linear search of the mappings above for this instruction.
 		for(ssize_t instruction = 65535; instruction >= 0; --instruction)	{
-			if(instruction == 0xdffc) {
+			if(instruction == 0x54c8) {
 				printf("");
 			}
 
@@ -2671,6 +2677,7 @@ struct ProcessorStorageConstructor {
 								operation = Operation::DBcc;
 								program.set_source(storage_, Dn, ea_register);
 								dumper.set_source(Dn, ea_register);
+								dumper.set_operation(operation);
 
 								// Jump straight into deciding what steps to take next,
 								// which will be selected dynamically.
