@@ -742,7 +742,7 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 	}
 
 	switch(instruction & 0xff8) {
-		case 0x860:	Decode(Op::SWAP);			// 4-185 (p289)
+		case 0x840:	Decode(Op::SWAP);			// 4-185 (p289)
 		case 0x880:	Decode(Op::EXTbtow);		// 4-106 (p210)
 		case 0x8c0:	Decode(Op::EXTwtol);		// 4-106 (p210)
 		case 0xe50:	Decode(Op::LINKw);			// 4-111 (p215)
