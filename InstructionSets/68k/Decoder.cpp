@@ -685,22 +685,22 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 		default:	break;
 	}
 
-	switch(instruction & 0x1c0) {
-		case 0x100:	Decode(Op::BTST);	// 4-62 (p166)
-		case 0x180:	Decode(Op::BCLR);	// 4-31 (p135)
-
-		case 0x140:	Decode(Op::BCHG);	// 4-28 (p132)
-		case 0x1c0:	Decode(Op::BSET);	// 4-57 (p161)
-
-		default:	break;
-	}
-
 	switch(instruction & 0x1f8) {
 		// 4-133 (p237)
 		case 0x108:	Decode(MOVEPtoRw);
 		case 0x148:	Decode(MOVEPtoRl);
 		case 0x188:	Decode(MOVEPtoMw);
 		case 0x1c8:	Decode(MOVEPtoMl);
+
+		default:	break;
+	}
+
+	switch(instruction & 0x1c0) {
+		case 0x100:	Decode(Op::BTST);	// 4-62 (p166)
+		case 0x180:	Decode(Op::BCLR);	// 4-31 (p135)
+
+		case 0x140:	Decode(Op::BCHG);	// 4-28 (p132)
+		case 0x1c0:	Decode(Op::BSET);	// 4-57 (p161)
 
 		default:	break;
 	}
