@@ -219,8 +219,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		case OpT(Operation::BTST):	case OpT(Operation::BCHG):
-		case OpT(Operation::BSET):	case OpT(Operation::BCLR):
+		case OpT(Operation::BTST):
 			switch(original.mode<1>()) {
 				default: return original;
 
@@ -228,7 +227,43 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::AddressRegisterDirect:
 					return Preinstruction();
 			}
-	}
+
+		case OpT(Operation::BCHG):
+		case OpT(Operation::BSET):	case OpT(Operation::BCLR):
+		case BCHGI:	case BSETI:	case BCLRI:
+			switch(original.mode<1>()) {
+				default: return original;
+
+				case AddressingMode::None:
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::ImmediateData:
+					return Preinstruction();
+			}
+
+		case BTSTI:
+			switch(original.mode<1>()) {
+				default: return original;
+
+				case AddressingMode::None:
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::ImmediateData:
+					return Preinstruction();
+			}
+//
+//		case BCHGI:	case BSETI:	case BCLRI:
+//			switch(original.mode<1>()) {
+//				default: return original;
+//
+//				case AddressingMode::None:
+//				case AddressingMode::AddressRegisterDirect:
+//				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+//				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+//				case AddressingMode::ImmediateData:
+//					return Preinstruction();
+//			}
+}
 }
 
 /// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been
