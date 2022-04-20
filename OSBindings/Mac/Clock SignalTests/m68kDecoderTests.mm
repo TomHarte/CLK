@@ -149,6 +149,58 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			case Operation::TSTw:	instruction = @"TST.w";	break;
 			case Operation::TSTl:	instruction = @"TST.l";	break;
 
+			case Operation::JMP:	instruction = @"JMP";	break;
+			case Operation::JSR:	instruction = @"JSR";	break;
+			case Operation::RTS:	instruction = @"RTS";	break;
+			case Operation::DBcc:	instruction = @"DBcc";	break;
+			case Operation::Scc:	instruction = @"Scc";	break;
+
+			/*
+				TODO:
+
+				Bccb,	Bccl,	Bccw,
+				BSRb,	BSRl,	BSRw,
+
+				CLRb, CLRw, CLRl,
+				NEGXb, NEGXw, NEGXl,
+				NEGb, NEGw, NEGl,
+
+				ASLb, ASLw, ASLl, ASLm,
+				ASRb, ASRw, ASRl, ASRm,
+				LSLb, LSLw, LSLl, LSLm,
+				LSRb, LSRw, LSRl, LSRm,
+				ROLb, ROLw, ROLl, ROLm,
+				RORb, RORw, RORl, RORm,
+				ROXLb, ROXLw, ROXLl, ROXLm,
+				ROXRb, ROXRw, ROXRl, ROXRm,
+
+				MOVEMl, MOVEMw,
+				MOVEPl, MOVEPw,
+
+				ANDb,	ANDw,	ANDl,
+				EORb,	EORw,	EORl,
+				NOTb, 	NOTw, 	NOTl,
+				ORb,	ORw,	ORl,
+
+				MULU,	MULS,
+				DIVU,	DIVS,
+
+				RTE,	RTR,
+
+				TRAP,	TRAPV,
+				CHK,
+
+				EXG,	SWAP,
+
+				TAS,
+
+				EXTbtow,	EXTwtol,
+
+				LINKw,	UNLINK,
+
+				STOP,	RESET,
+			*/
+
 			// For now, skip any unmapped operations.
 			default: continue;
 		}
