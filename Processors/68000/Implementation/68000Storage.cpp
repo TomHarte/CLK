@@ -897,7 +897,13 @@ struct ProcessorStorageConstructor {
 							case Operation::MOVEq:	opname = "MOVE.q";	break;
 
 							case Operation::MOVEAw:	opname = "MOVEA.w";	break;
-							case Operation::MOVEAl:	opname = "MOVEA.l";	break;
+							case Operation::MOVEAl:
+								if((opcode_ & 0xf1c0) == 0x41c0) {
+									opname = "LEA";
+								} else {
+									opname = "MOVEA.l";
+								}
+							break;
 
 							case Operation::PEA:	opname = "PEA";		break;
 
