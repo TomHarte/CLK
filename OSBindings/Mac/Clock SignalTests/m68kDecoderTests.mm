@@ -120,6 +120,13 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			case Operation::LEA:		instruction = @"LEA";		break;
 			case Operation::PEA:		instruction = @"PEA";		break;
 
+			case Operation::MOVEtoSR:		instruction = @"MOVEtoSR";		break;
+			case Operation::MOVEfromSR:		instruction = @"MOVEfromSR";	break;
+			case Operation::MOVEtoCCR:		instruction = @"MOVEtoCCR";		break;
+			case Operation::MOVEtoUSP:		instruction = @"MOVEtoUSP";		break;
+			case Operation::MOVEfromUSP:	instruction = @"MOVEfromUSP";	break;
+
+
 			// For now, skip any unmapped operations.
 			default: continue;
 		}

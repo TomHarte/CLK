@@ -101,6 +101,8 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 }
 
 /// Provides a post-decoding validation step — primarily ensures that the prima facie addressing modes are supported by the operation.
+// TODO: once complete and working, see how ugly it would be to incorpoate these tests into the main
+// decoding switches.
 template <Model model>
 template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated(Preinstruction original) {
 	if constexpr (!validate) {
@@ -112,6 +114,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 
 		// NBCD.
 		case OpT(Operation::NBCD):
+		case OpT(Operation::MOVEfromSR):
 			switch(original.mode<0>()) {
 				default: return original;
 
@@ -119,6 +122,16 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::ProgramCounterIndirectWithDisplacement:
 				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
 				case AddressingMode::ImmediateData:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+		case OpT(Operation::MOVEtoCCR):
+		case OpT(Operation::MOVEtoSR):
+			switch(original.mode<0>()) {
+				default: return original;
+
+				case AddressingMode::AddressRegisterDirect:
 				case AddressingMode::None:
 					return Preinstruction();
 			}
