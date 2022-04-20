@@ -930,9 +930,13 @@ struct ProcessorStorageConstructor {
 							case Operation::BCLRl:	opname = "BCLR.l";	break;
 
 							case Operation::CMPb:	opname = "CMP.b";	break;
-							case Operation::CMPw:	opname = "CMP.w";	break;
-							case Operation::CMPl:	opname = "CMP.l";	break;
-							case Operation::CMPAw:	opname = "CMPA";	break;
+							case Operation::CMPw:
+								opname = "CMP.w";
+							break;
+							case Operation::CMPl:
+								opname = (dest_ == An) ? "CMPA.l" : "CMP.l";
+							break;
+							case Operation::CMPAw:	opname = "CMPA.w";	break;
 							case Operation::TSTb:	opname = "TST.b";	break;
 							case Operation::TSTw:	opname = "TST.w";	break;
 							case Operation::TSTl:	opname = "TST.l";	break;
