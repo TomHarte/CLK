@@ -192,8 +192,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		// LEA
-		case OpT(Operation::LEA):
+		// LEA, PEA
+		case OpT(Operation::LEA):	case OpT(Operation::PEA):
 			switch(original.mode<0>()) {
 				default: return original;
 
