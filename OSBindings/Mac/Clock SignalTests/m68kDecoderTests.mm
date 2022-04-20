@@ -59,10 +59,6 @@ template <int index> NSString *operand(Preinstruction instruction) {
 
 @implementation m68kDecoderTests
 
-- (NSString *)operand:(int)operand instruction:(Preinstruction)instruction {
-	return @"";
-}
-
 - (void)testInstructionSpecs {
 	NSData *const testData =
 		[NSData dataWithContentsOfURL:
