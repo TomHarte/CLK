@@ -126,6 +126,17 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			case Operation::MOVEtoUSP:		instruction = @"MOVEtoUSP";		break;
 			case Operation::MOVEfromUSP:	instruction = @"MOVEfromUSP";	break;
 
+			case Operation::ORItoSR:	instruction = @"ORItoSR";	break;
+			case Operation::ORItoCCR:	instruction = @"ORItoCCR";	break;
+			case Operation::ANDItoSR:	instruction = @"ANDItoSR";	break;
+			case Operation::ANDItoCCR:	instruction = @"ANDItoCCR";	break;
+			case Operation::EORItoSR:	instruction = @"EORItoSR";	break;
+			case Operation::EORItoCCR:	instruction = @"EORItoCCR";	break;
+
+			case Operation::BTST:	instruction = @"BTST";	break;
+			case Operation::BCLR:	instruction = @"BCLR";	break;
+			case Operation::BCHG:	instruction = @"BCHG";	break;
+			case Operation::BSET:	instruction = @"BSET";	break;
 
 			// For now, skip any unmapped operations.
 			default: continue;
