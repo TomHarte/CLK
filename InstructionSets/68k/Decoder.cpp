@@ -218,6 +218,16 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::ImmediateData:
 					return Preinstruction();
 			}
+
+		case OpT(Operation::BTST):	case OpT(Operation::BCHG):
+		case OpT(Operation::BSET):	case OpT(Operation::BCLR):
+			switch(original.mode<1>()) {
+				default: return original;
+
+				case AddressingMode::None:
+				case AddressingMode::AddressRegisterDirect:
+					return Preinstruction();
+			}
 	}
 }
 
