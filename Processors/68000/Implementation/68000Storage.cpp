@@ -898,8 +898,14 @@ struct ProcessorStorageConstructor {
 
 							case Operation::MOVEAw:	opname = "MOVEA.w";	break;
 							case Operation::MOVEAl:
+								// A bunch of things are multiplexed onto MOVEA.l;
+								// disambiguate here.
 								if((opcode_ & 0xf1c0) == 0x41c0) {
 									opname = "LEA";
+								} else if ((opcode_ & 0xff8) == 0xe68) {
+									opname = "MOVEfromUSP";
+								} else if ((opcode_ & 0xff8) == 0xe60) {
+									opname = "MOVEtoUSP";
 								} else {
 									opname = "MOVEA.l";
 								}
