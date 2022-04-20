@@ -1159,13 +1159,13 @@ struct ProcessorStorageConstructor {
 
 						case Decoder::LINK: {
 							program.set_source(storage_, An, ea_register);
-							dumper.set_source(An);
+							dumper.set_source(An, ea_register);
 							op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
 						} break;
 
 						case Decoder::UNLINK: {
 							program.set_destination(storage_, An, ea_register);
-							dumper.set_source(An);
+							dumper.set_source(An, ea_register);
 							op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd np", { ea(1), ea(1) }));
 							op(Action::PerformOperation);
 						} break;
@@ -1174,7 +1174,7 @@ struct ProcessorStorageConstructor {
 							const int mode = combined_mode(ea_mode, ea_register);
 							program.set_destination(storage_, ea_mode, ea_register);
 
-							dumper.set_source(mode);
+							dumper.set_source(mode, ea_register);
 							switch(mode) {
 								default: continue;
 
@@ -1275,7 +1275,7 @@ struct ProcessorStorageConstructor {
 						case Decoder::EXT_SWAP: {
 							program.set_destination(storage_, Dn, ea_register);
 							op(Action::PerformOperation, seq("np"));
-							dumper.set_source(Dn);
+							dumper.set_source(Dn, ea_register);
 						} break;
 
 						case Decoder::EXG: {
@@ -2229,7 +2229,7 @@ struct ProcessorStorageConstructor {
 
 						case Decoder::ASLR_LSLR_ROLR_ROXLRr: {
 							program.set_destination(storage_, 0, ea_register);
-							dumper.set_source(Dn);
+							dumper.set_source(Dn, ea_register);
 
 							// All further decoding occurs at runtime; that's also when the proper number of
 							// no-op cycles will be scheduled.
@@ -2247,7 +2247,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
-							dumper.set_source(mode);
+							dumper.set_source(mode, ea_register);
 							switch(mode) {
 								default: continue;
 
@@ -2282,7 +2282,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
-							dumper.set_source(mode);
+							dumper.set_source(mode, ea_register);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
@@ -2660,7 +2660,7 @@ struct ProcessorStorageConstructor {
 								// This is a DBcc. Decode as such.
 								operation = Operation::DBcc;
 								program.set_source(storage_, Dn, ea_register);
-								dumper.set_source(Dn);
+								dumper.set_source(Dn, ea_register);
 
 								// Jump straight into deciding what steps to take next,
 								// which will be selected dynamically.
@@ -2726,7 +2726,7 @@ struct ProcessorStorageConstructor {
 							// calculation that might be a function of A7 needs to be done before PrepareJSR.
 
 							const int mode = combined_mode(ea_mode, ea_register);
-							dumper.set_source(mode);
+							dumper.set_source(mode, ea_register);
 							switch(mode) {
 								default: continue;
 								case Ind:		// JSR (An)
@@ -2768,7 +2768,7 @@ struct ProcessorStorageConstructor {
 						case Decoder::JMP: {
 							program.set_source(storage_, ea_mode, ea_register);
 							const int mode = combined_mode(ea_mode, ea_register);
-							dumper.set_source(mode);
+							dumper.set_source(mode, ea_register);
 							switch(mode) {
 								default: continue;
 								case Ind:		// JMP (An)
@@ -2802,7 +2802,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, Imm, 7);	// Immediate destination => store to the destination bus latch.
 
 							const int mode = combined_mode(ea_mode, ea_register);
-							dumper.set_source(mode);
+							dumper.set_source(mode, ea_register);
 							switch(mode) {
 								default: continue;
 
@@ -2920,7 +2920,7 @@ struct ProcessorStorageConstructor {
 							/* DEVIATION FROM YACHT.TXT: it has all of these reading an extra word from the PC;
 							this looks like a mistake so I've padded with nil cycles in the middle. */
 							const int mode = combined_mode(ea_mode, ea_register);
-							dumper.set_source(mode);
+							dumper.set_source(mode, ea_register);
 							switch(mode) {
 								default: continue;
 
@@ -3048,7 +3048,7 @@ struct ProcessorStorageConstructor {
 
 						case Decoder::MOVEUSP: {
 							program.set_requires_supervisor(true);
-							dumper.set_source(An);
+							dumper.set_source(An, ea_register);
 
 							// Observation here: because this is a privileged instruction, the user stack pointer
 							// definitely isn't currently [copied into] A7.
@@ -3325,7 +3325,7 @@ struct ProcessorStorageConstructor {
 							program.set_source(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
-							dumper.set_source(mode);
+							dumper.set_source(mode, ea_register);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
