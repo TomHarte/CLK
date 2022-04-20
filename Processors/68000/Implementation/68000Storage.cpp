@@ -924,10 +924,10 @@ struct ProcessorStorageConstructor {
 							DirectMap(EORItoSR);
 							DirectMap(EORItoCCR);
 
-							case Operation::BTSTb:	opname = "BTST.b";	break;
-							case Operation::BTSTl:	opname = "BTST.l";	break;
-							case Operation::BCLRb:	opname = "BCLR.b";	break;
-							case Operation::BCLRl:	opname = "BCLR.l";	break;
+							case Operation::BTSTb:	opname = "BTST";	break;
+							case Operation::BTSTl:	opname = "BTST";	break;
+							case Operation::BCLRb:	opname = "BCLR";	break;
+							case Operation::BCLRl:	opname = "BCLR";	break;
 
 							case Operation::CMPb:	opname = "CMP.b";	break;
 							case Operation::CMPw:	opname = "CMP.w";	break;
@@ -1040,10 +1040,10 @@ struct ProcessorStorageConstructor {
 							DirectMap(EXG);
 							DirectMap(SWAP);
 
-							case Operation::BCHGb:	opname = "BCHG.b";	break;
-							case Operation::BCHGl:	opname = "BCHG.l";	break;
-							case Operation::BSETb:	opname = "BSET.b";	break;
-							case Operation::BSETl:	opname = "BSET.l";	break;
+							case Operation::BCHGb:	opname = "BCHG";	break;
+							case Operation::BCHGl:	opname = "BCHG";	break;
+							case Operation::BSETb:	opname = "BSET";	break;
+							case Operation::BSETl:	opname = "BSET";	break;
 
 							DirectMap(TAS);
 							DirectMap(EXTbtow);
