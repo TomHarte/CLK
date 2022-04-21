@@ -175,6 +175,11 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			case Operation::NEGw:	instruction = @"NEG.w";	break;
 			case Operation::NEGl:	instruction = @"NEG.l";	break;
 
+			case Operation::ASLb:	instruction = @"ASL.b";	break;
+			case Operation::ASLw:	instruction = @"ASL.w";	break;
+			case Operation::ASLl:	instruction = @"ASL.l";	break;
+			case Operation::ASLm:	instruction = @"ASL.w";	break;
+
 			/*
 				TODO:
 
