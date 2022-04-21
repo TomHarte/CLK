@@ -140,6 +140,7 @@ template <Operation op>
 constexpr int8_t quick(uint16_t instruction) {
 	switch(op) {
 		case Operation::Bccb:
+		case Operation::BSRb:
 		case Operation::MOVEq:	return int8_t(instruction);
 		default: {
 			int8_t value = (instruction >> 9) & 7;
@@ -150,7 +151,7 @@ constexpr int8_t quick(uint16_t instruction) {
 }
 
 constexpr int8_t quick(Operation op, uint16_t instruction) {
-	if(op == Operation::MOVEq || op == Operation::Bccb) {
+	if(op == Operation::MOVEq || op == Operation::Bccb || op == Operation::BSRb) {
 		return quick<Operation::MOVEq>(instruction);
 	} else {
 		// ADDw is arbitrary; anything other than MOVEq will do.
