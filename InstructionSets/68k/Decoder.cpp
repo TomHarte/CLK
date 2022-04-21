@@ -172,14 +172,20 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 
 		// ADD, SUB, MOVE, MOVEA
 		case OpT(Operation::ADDb):		case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
+		case ADDQb:						case ADDQw:					case ADDQl:
 		case OpT(Operation::SUBb):		case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
+		case SUBQb:						case SUBQw:					case SUBQl:
 		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
-		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
+		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl): {
+			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
+			constexpr bool is_byte =
+				op == OpT(Operation::ADDb) || op == OpT(Operation::SUBb) || op == OpT(Operation::MOVEb) ||
+				op == ADDQb	|| op == SUBQb;
+
 			switch(original.mode<0>()) {
 				default: break;
 				case AddressingMode::AddressRegisterDirect:
-					// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
-					if constexpr (op != OpT(Operation::ADDb) && op != OpT(Operation::SUBb) && op != OpT(Operation::MOVEb)) {
+					if constexpr (!is_byte) {
 						break;
 					}
 					[[fallthrough]];
@@ -191,7 +197,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				default: return original;
 
 				case AddressingMode::AddressRegisterDirect:
-					if constexpr (op == OpT(Operation::MOVEAw) || op == OpT(Operation::MOVEAl)) {
+					if constexpr (!is_byte) {
 						return original;
 					}
 					[[fallthrough]];
@@ -201,6 +207,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::None:
 					return Preinstruction();
 			}
+		}
 
 		// ADDA, SUBA.
 		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
@@ -1061,7 +1068,11 @@ Preinstruction Predecoder<model>::decode7(uint16_t instruction) {
 	using Op = Operation;
 
 	// 4-134 (p238)
-	Decode(Op::MOVEq);
+	if(!(instruction & 0x100)) {
+		Decode(Op::MOVEq);
+	} else {
+		return Preinstruction();
+	}
 }
 
 template <Model model>

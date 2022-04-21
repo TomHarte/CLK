@@ -17,7 +17,7 @@ using namespace InstructionSet::M68k;
 
 namespace {
 
-template <int index> NSString *operand(Preinstruction instruction) {
+template <int index> NSString *operand(Preinstruction instruction, uint16_t opcode) {
 	switch(instruction.mode<index>()) {
 		default:	return [NSString stringWithFormat:@"[Mode %d?]", int(instruction.mode<index>())];
 
@@ -52,6 +52,9 @@ template <int index> NSString *operand(Preinstruction instruction) {
 
 		case AddressingMode::ImmediateData:
 			return @"#";
+
+		case AddressingMode::Quick:
+			return [NSString stringWithFormat:@"%d", quick(instruction.operation, opcode)];
 	}
 }
 
@@ -216,10 +219,12 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			case Operation::ROXRl:	instruction = @"ROXR.l";	break;
 			case Operation::ROXRm:	instruction = @"ROXR.w";	break;
 
+//			case Operation::MOVEMl:	instruction = @"MOVEM.l";	break;
+//			case Operation::MOVEMw:	instruction = @"MOVEM.w";	break;
+
 			/*
 				TODO:
 
-				MOVEMl, MOVEMw,
 				MOVEPl, MOVEPw,
 
 				ANDb,	ANDw,	ANDl,
@@ -252,17 +257,17 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			continue;
 		}
 
-		NSString *const operand1 = operand<0>(found);
-		NSString *const operand2 = operand<1>(found);
+		NSString *const operand1 = operand<0>(found, uint16_t(instr));
+		NSString *const operand2 = operand<1>(found, uint16_t(instr));
 
 		if(operand1.length) instruction = [instruction stringByAppendingFormat:@" %@", operand1];
 		if(operand2.length) instruction = [instruction stringByAppendingFormat:@", %@", operand2];
 
 		// Quick decoding not yet supported. TODO.
-		if(found.mode<0>() == AddressingMode::Quick || found.mode<1>() == AddressingMode::Quick) {
-			++skipped;
-			continue;
-		}
+//		if(found.mode<0>() == AddressingMode::Quick || found.mode<1>() == AddressingMode::Quick) {
+//			++skipped;
+//			continue;
+//		}
 
 		XCTAssertFalse(found.mode<0>() == AddressingMode::None && found.mode<1>() != AddressingMode::None, @"Decoding of %@ provided a second operand but not a first", instrName);
 		XCTAssertEqualObjects(instruction, expected, "%@ should decode as %@; got %@", instrName, expected, instruction);

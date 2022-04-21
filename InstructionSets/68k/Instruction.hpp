@@ -136,6 +136,28 @@ constexpr int size(Operation operation) {
 	}
 }
 
+template <Operation op>
+constexpr int8_t quick(uint16_t instruction) {
+	switch(op) {
+		case Operation::Bccb:
+		case Operation::MOVEq:	return int8_t(instruction);
+		default: {
+			int8_t value = (instruction >> 9) & 7;
+			value |= (value - 1)&8;
+			return value;
+		}
+	}
+}
+
+constexpr int8_t quick(Operation op, uint16_t instruction) {
+	if(op == Operation::MOVEq || op == Operation::Bccb) {
+		return quick<Operation::MOVEq>(instruction);
+	} else {
+		// ADDw is arbitrary; anything other than MOVEq will do.
+		return quick<Operation::ADDw>(instruction);
+	}
+}
+
 /// Indicates the addressing mode applicable to an operand.
 ///
 /// Implementation notes:
