@@ -345,6 +345,32 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::None:
 					return Preinstruction();
 			}
+
+		case MOVEMtoMw:	case MOVEMtoMl:
+			switch(original.mode<1>()) {
+				default: return original;
+
+				case AddressingMode::DataRegisterDirect:
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::AddressRegisterIndirectWithPostincrement:
+				case AddressingMode::ImmediateData:
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+		case MOVEMtoRw: case MOVEMtoRl:
+			switch(original.mode<0>()) {
+				default: return original;
+
+				case AddressingMode::DataRegisterDirect:
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::AddressRegisterIndirectWithPredecrement:
+				case AddressingMode::ImmediateData:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
 	}
 }
 
