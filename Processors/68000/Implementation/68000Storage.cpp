@@ -948,9 +948,16 @@ struct ProcessorStorageConstructor {
 									opname = "JSR";
 								}
 							break;
+							case Operation::Bcc:
+								if(opcode_& 0x100) {
+									opname = "BSR";
+								} else {
+									opname = "Bcc";
+								}
+							break;
+
 							DirectMap(RTS);
 							DirectMap(BRA);
-							DirectMap(Bcc);
 							DirectMap(DBcc);
 							DirectMap(Scc);
 
@@ -3043,7 +3050,14 @@ struct ProcessorStorageConstructor {
 							// Do whatever is necessary to calculate the proper start address.
 							const int mode = combined_mode(ea_mode, ea_register);
 							const bool is_to_m = (operation == Operation::MOVEMtoMl || operation == Operation::MOVEMtoMw);
-							dumper.set_source(mode, ea_register);
+
+							if(is_to_m) {
+								dumper.set_source(Imm);
+								dumper.set_dest(mode, ea_register);
+							} else {
+								dumper.set_source(mode, ea_register);
+								dumper.set_dest(Imm);
+							}
 							switch(mode) {
 								default: continue;
 
