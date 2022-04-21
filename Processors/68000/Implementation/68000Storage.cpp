@@ -942,14 +942,14 @@ struct ProcessorStorageConstructor {
 							case Operation::TSTl:	opname = "TST.l";	break;
 
 							case Operation::JMP:
-								if(opcode_& 0x40) {
+								if(opcode_ & 0x40) {
 									opname = "JMP";
 								} else {
 									opname = "JSR";
 								}
 							break;
 							case Operation::Bcc:
-								if(opcode_& 0x100) {
+								if((opcode_ & 0xf00) == 0x100) {
 									opname = "BSR";
 								} else {
 									opname = "Bcc";
