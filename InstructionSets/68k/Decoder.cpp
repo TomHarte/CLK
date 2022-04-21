@@ -329,6 +329,22 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::None:
 					return Preinstruction();
 			}
+
+		case OpT(Operation::ASLm):		case OpT(Operation::ASRm):
+		case OpT(Operation::LSLm):		case OpT(Operation::LSRm):
+		case OpT(Operation::ROLm):		case OpT(Operation::RORm):
+		case OpT(Operation::ROXLm):		case OpT(Operation::ROXRm):
+			switch(original.mode<0>()) {
+				default: return original;
+
+				case AddressingMode::DataRegisterDirect:
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::ImmediateData:
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
 	}
 }
 
@@ -706,8 +722,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::ROLb):	case OpT(Operation::ROLw):	case OpT(Operation::ROLl):
 			return validated<op, validate>(
 				Preinstruction(operation,
-					AddressingMode::DataRegisterDirect, ea_register,
-					(instruction & 0x100) ? AddressingMode::DataRegisterDirect : AddressingMode::Quick, data_register));
+					(instruction & 0x20) ? AddressingMode::DataRegisterDirect : AddressingMode::Quick, data_register,
+					AddressingMode::DataRegisterDirect, ea_register));
 
 		//
 		// MARK: ASRm, LSRm, ROXRm, RORm, ASLm, LSLm, ROXLm, ROLm
@@ -1183,6 +1199,19 @@ template <Model model>
 Preinstruction Predecoder<model>::decodeE(uint16_t instruction) {
 	using Op = Operation;
 
+	switch(instruction & 0xfc0) {
+		case 0x0c0:	Decode(Op::ASRm);	// 4-22 (p126)
+		case 0x1c0:	Decode(Op::ASLm);	// 4-22 (p126)
+		case 0x2c0:	Decode(Op::LSRm);	// 4-113 (p217)
+		case 0x3c0:	Decode(Op::LSLm);	// 4-113 (p217)
+		case 0x4c0:	Decode(Op::ROXRm);	// 4-163 (p267)
+		case 0x5c0:	Decode(Op::ROXLm);	// 4-163 (p267)
+		case 0x6c0:	Decode(Op::RORm);	// 4-160 (p264)
+		case 0x7c0:	Decode(Op::ROLm);	// 4-160 (p264)
+
+		default:	break;
+	}
+
 	switch(instruction & 0x1d8) {
 		// 4-22 (p126)
 		case 0x000:	Decode(Op::ASRb);
@@ -1223,19 +1252,6 @@ Preinstruction Predecoder<model>::decodeE(uint16_t instruction) {
 		case 0x118:	Decode(Op::ROLb);
 		case 0x158:	Decode(Op::ROLw);
 		case 0x198:	Decode(Op::ROLl);
-
-		default:	break;
-	}
-
-	switch(instruction & 0xfc0) {
-		case 0x0c0:	Decode(Op::ASRm);	// 4-22 (p126)
-		case 0x1c0:	Decode(Op::ASLm);	// 4-22 (p126)
-		case 0x2c0:	Decode(Op::LSRm);	// 4-113 (p217)
-		case 0x3c0:	Decode(Op::LSLm);	// 4-113 (p217)
-		case 0x4c0:	Decode(Op::ROXRm);	// 4-163 (p267)
-		case 0x5c0:	Decode(Op::ROXLm);	// 4-163 (p267)
-		case 0x6c0:	Decode(Op::RORm);	// 4-160 (p264)
-		case 0x7c0:	Decode(Op::ROLm);	// 4-160 (p264)
 
 		default:	break;
 	}

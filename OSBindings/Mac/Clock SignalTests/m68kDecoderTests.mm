@@ -71,6 +71,7 @@ template <int index> NSString *operand(Preinstruction instruction) {
 	XCTAssertNotNil(decodings);
 
 	Predecoder<Model::M68000> decoder;
+	int skipped = 0;
 	for(int instr = 0; instr < 65536; instr++) {
 		NSString *const instrName = [NSString stringWithFormat:@"%04x", instr];
 		NSString *const expected = decodings[instrName];
@@ -180,17 +181,43 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			case Operation::ASLl:	instruction = @"ASL.l";	break;
 			case Operation::ASLm:	instruction = @"ASL.w";	break;
 
+			case Operation::ASRb:	instruction = @"ASR.b";	break;
+			case Operation::ASRw:	instruction = @"ASR.w";	break;
+			case Operation::ASRl:	instruction = @"ASR.l";	break;
+			case Operation::ASRm:	instruction = @"ASR.w";	break;
+
+			case Operation::LSLb:	instruction = @"LSL.b";	break;
+			case Operation::LSLw:	instruction = @"LSL.w";	break;
+			case Operation::LSLl:	instruction = @"LSL.l";	break;
+			case Operation::LSLm:	instruction = @"LSL.w";	break;
+
+			case Operation::LSRb:	instruction = @"LSR.b";	break;
+			case Operation::LSRw:	instruction = @"LSR.w";	break;
+			case Operation::LSRl:	instruction = @"LSR.l";	break;
+			case Operation::LSRm:	instruction = @"LSR.w";	break;
+
+			case Operation::ROLb:	instruction = @"ROL.b";	break;
+			case Operation::ROLw:	instruction = @"ROL.w";	break;
+			case Operation::ROLl:	instruction = @"ROL.l";	break;
+			case Operation::ROLm:	instruction = @"ROL.w";	break;
+
+			case Operation::RORb:	instruction = @"ROR.b";	break;
+			case Operation::RORw:	instruction = @"ROR.w";	break;
+			case Operation::RORl:	instruction = @"ROR.l";	break;
+			case Operation::RORm:	instruction = @"ROR.w";	break;
+
+			case Operation::ROXLb:	instruction = @"ROXL.b";	break;
+			case Operation::ROXLw:	instruction = @"ROXL.w";	break;
+			case Operation::ROXLl:	instruction = @"ROXL.l";	break;
+			case Operation::ROXLm:	instruction = @"ROXL.w";	break;
+
+			case Operation::ROXRb:	instruction = @"ROXR.b";	break;
+			case Operation::ROXRw:	instruction = @"ROXR.w";	break;
+			case Operation::ROXRl:	instruction = @"ROXR.l";	break;
+			case Operation::ROXRm:	instruction = @"ROXR.w";	break;
+
 			/*
 				TODO:
-
-				ASLb, ASLw, ASLl, ASLm,
-				ASRb, ASRw, ASRl, ASRm,
-				LSLb, LSLw, LSLl, LSLm,
-				LSRb, LSRw, LSRl, LSRm,
-				ROLb, ROLw, ROLl, ROLm,
-				RORb, RORw, RORl, RORm,
-				ROXLb, ROXLw, ROXLl, ROXLm,
-				ROXRb, ROXRw, ROXRl, ROXRm,
 
 				MOVEMl, MOVEMw,
 				MOVEPl, MOVEPw,
@@ -220,7 +247,9 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			*/
 
 			// For now, skip any unmapped operations.
-			default: continue;
+			default:
+				++skipped;
+			continue;
 		}
 
 		NSString *const operand1 = operand<0>(found);
@@ -231,6 +260,7 @@ template <int index> NSString *operand(Preinstruction instruction) {
 
 		// Quick decoding not yet supported. TODO.
 		if(found.mode<0>() == AddressingMode::Quick || found.mode<1>() == AddressingMode::Quick) {
+			++skipped;
 			continue;
 		}
 
@@ -238,6 +268,7 @@ template <int index> NSString *operand(Preinstruction instruction) {
 		XCTAssertEqualObjects(instruction, expected, "%@ should decode as %@; got %@", instrName, expected, instruction);
 	}
 
+	NSLog(@"Skipped %d opcodes", skipped);
 }
 
 @end
