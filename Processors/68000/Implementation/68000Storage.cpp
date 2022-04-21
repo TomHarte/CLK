@@ -2245,7 +2245,12 @@ struct ProcessorStorageConstructor {
 
 						case Decoder::ASLR_LSLR_ROLR_ROXLRr: {
 							program.set_destination(storage_, 0, ea_register);
-							dumper.set_source(Dn, ea_register);
+							dumper.set_dest(Dn, ea_register);
+							if(instruction & 0x20) {
+								dumper.set_source(Dn, data_register);
+							} else {
+								dumper.set_source(Quick, data_register);
+							}
 
 							// All further decoding occurs at runtime; that's also when the proper number of
 							// no-op cycles will be scheduled.
