@@ -1120,7 +1120,8 @@ struct ProcessorStorageConstructor {
 							if(operation_ == Operation::MOVEq) {
 								sprintf(tbuf, "%d", int8_t(opcode_));
 							} else {
-								sprintf(tbuf, "%d", ((opcode_ >> 9)&7));
+								const auto val = ((opcode_ >> 9)&7);
+								sprintf(tbuf, "%d", val ? val : 8);
 							}
 						break;
 					}
@@ -2249,7 +2250,7 @@ struct ProcessorStorageConstructor {
 							if(instruction & 0x20) {
 								dumper.set_source(Dn, data_register);
 							} else {
-								dumper.set_source(Quick, data_register);
+								dumper.set_source(Quick);
 							}
 
 							// All further decoding occurs at runtime; that's also when the proper number of
