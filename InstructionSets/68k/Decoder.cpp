@@ -316,6 +316,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 
 		case OpT(Operation::Scc):
+		case OpT(Operation::NEGXb):	case OpT(Operation::NEGXw):	case OpT(Operation::NEGXl):
+		case OpT(Operation::CLRb):	case OpT(Operation::CLRw):	case OpT(Operation::CLRl):
+		case OpT(Operation::NEGb):	case OpT(Operation::NEGw):	case OpT(Operation::NEGl):
 			switch(original.mode<0>()) {
 				default: return original;
 

@@ -155,15 +155,28 @@ template <int index> NSString *operand(Preinstruction instruction) {
 			case Operation::DBcc:	instruction = @"DBcc";	break;
 			case Operation::Scc:	instruction = @"Scc";	break;
 
+			case Operation::Bccb:
+			case Operation::Bccl:
+			case Operation::Bccw:	instruction = @"Bcc";	break;
+
+			case Operation::BSRb:
+			case Operation::BSRl:
+			case Operation::BSRw:	instruction = @"BSR";	break;
+
+			case Operation::CLRb:	instruction = @"CLR.b";	break;
+			case Operation::CLRw:	instruction = @"CLR.w";	break;
+			case Operation::CLRl:	instruction = @"CLR.l";	break;
+
+			case Operation::NEGXb:	instruction = @"NEGX.b";	break;
+			case Operation::NEGXw:	instruction = @"NEGX.w";	break;
+			case Operation::NEGXl:	instruction = @"NEGX.l";	break;
+
+			case Operation::NEGb:	instruction = @"NEG.b";	break;
+			case Operation::NEGw:	instruction = @"NEG.w";	break;
+			case Operation::NEGl:	instruction = @"NEG.l";	break;
+
 			/*
 				TODO:
-
-				Bccb,	Bccl,	Bccw,
-				BSRb,	BSRl,	BSRw,
-
-				CLRb, CLRw, CLRl,
-				NEGXb, NEGXw, NEGXl,
-				NEGb, NEGw, NEGl,
 
 				ASLb, ASLw, ASLl, ASLm,
 				ASRb, ASRw, ASRl, ASRm,
