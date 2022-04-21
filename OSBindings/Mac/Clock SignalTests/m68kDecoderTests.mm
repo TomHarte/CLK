@@ -119,7 +119,7 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			case Operation::MOVEAw:		instruction = @"MOVEA.w";	break;
 			case Operation::MOVEAl:		instruction = @"MOVEA.l";	break;
 
-			case Operation::MOVEq:		instruction = @"MOVEq";		break;
+			case Operation::MOVEq:		instruction = @"MOVE.q";	break;
 
 			case Operation::LEA:		instruction = @"LEA";		break;
 			case Operation::PEA:		instruction = @"PEA";		break;
