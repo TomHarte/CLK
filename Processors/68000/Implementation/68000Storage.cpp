@@ -2677,6 +2677,7 @@ struct ProcessorStorageConstructor {
 								operation = Operation::DBcc;
 								program.set_source(storage_, Dn, ea_register);
 								dumper.set_source(Dn, ea_register);
+								dumper.set_dest(Imm);
 								dumper.set_operation(operation);
 
 								// Jump straight into deciding what steps to take next,
