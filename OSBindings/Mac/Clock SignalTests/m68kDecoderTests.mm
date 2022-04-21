@@ -222,10 +222,11 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			case Operation::MOVEMl:	instruction = @"MOVEM.l";	break;
 			case Operation::MOVEMw:	instruction = @"MOVEM.w";	break;
 
+			case Operation::MOVEPl:	instruction = @"MOVEP.l";	break;
+			case Operation::MOVEPw:	instruction = @"MOVEP.w";	break;
+
 			/*
 				TODO:
-
-				MOVEPl, MOVEPw,
 
 				ANDb,	ANDw,	ANDl,
 				EORb,	EORw,	EORl,
