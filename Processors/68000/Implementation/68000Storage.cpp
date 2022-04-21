@@ -1119,6 +1119,13 @@ struct ProcessorStorageConstructor {
 						case Quick:
 							if(operation_ == Operation::MOVEq) {
 								sprintf(tbuf, "%d", int8_t(opcode_));
+							} else if(operation_ == Operation::Bcc || operation_ == Operation::BRA) {
+								const int8_t val = int8_t(opcode_);
+								if(!val) {
+									return "#";
+								} else {
+									sprintf(tbuf, "%d", val);
+								}
 							} else {
 								const auto val = ((opcode_ >> 9)&7);
 								sprintf(tbuf, "%d", val ? val : 8);
@@ -2077,7 +2084,7 @@ struct ProcessorStorageConstructor {
 						// This decoder actually decodes nothing; it just schedules a PerformOperation followed by an empty step.
 						case Decoder::Bcc_BSR: {
 							const int condition = (instruction >> 8) & 0xf;
-							dumper.set_source(Imm);
+							dumper.set_source(Quick);
 							if(condition == 1) {
 								// This is BSR, which is unconditional and means pushing a return address to the stack first.
 
@@ -2093,7 +2100,7 @@ struct ProcessorStorageConstructor {
 						// A little artificial, there's nothing really to decode for BRA.
 						case Decoder::BRA: {
 							op(Action::PerformOperation, seq("n np np"));
-							dumper.set_source(Imm);
+							dumper.set_source(Quick);
 						} break;
 
 						// Decodes a BTST, potential mutating the operation into a BTSTl,
