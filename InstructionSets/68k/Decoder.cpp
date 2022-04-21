@@ -1037,7 +1037,7 @@ Preinstruction Predecoder<model>::decode6(uint16_t instruction) {
 
 	switch(instruction & 0xf00) {
 		// 4-59 (p163)
-		case 1:
+		case 0x100:
 			switch(instruction & 0xff) {
 				case 0x00:	Decode(Op::BSRw);
 				case 0xff:
