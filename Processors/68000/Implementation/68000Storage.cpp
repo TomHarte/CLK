@@ -1065,8 +1065,8 @@ struct ProcessorStorageConstructor {
 							case Operation::BSETl:	opname = "BSET";	break;
 
 							DirectMap(TAS);
-							DirectMap(EXTbtow);
-							DirectMap(EXTwtol);
+							case Operation::EXTbtow:	opname = "EXT.w";	break;
+							case Operation::EXTwtol:	opname = "EXT.l";	break;
 							DirectMap(LINK);
 							DirectMap(UNLINK);
 							DirectMap(STOP);
@@ -1188,6 +1188,7 @@ struct ProcessorStorageConstructor {
 					switch(mapping.decoder) {
 						case Decoder::STOP: {
 							program.set_requires_supervisor(true);
+							dumper.set_source(Imm);
 							op(Action::None, seq("n"));
 							op(Action::PerformOperation);
 						} break;
@@ -1195,6 +1196,7 @@ struct ProcessorStorageConstructor {
 						case Decoder::LINK: {
 							program.set_source(storage_, An, ea_register);
 							dumper.set_source(An, ea_register);
+							dumper.set_dest(Imm);
 							op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
 						} break;
 
