@@ -14,22 +14,27 @@ using namespace InstructionSet::M68k;
 
 namespace {
 
+constexpr AddressingMode extended_modes[] = {
+	AddressingMode::AbsoluteShort,										// 1'000
+	AddressingMode::AbsoluteLong,										// 1'001
+	AddressingMode::ProgramCounterIndirectWithDisplacement,				// 1'010
+	AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement,	// 1'011
+	AddressingMode::ImmediateData,										// 1'100
+	AddressingMode::None,												// [1'101]
+	AddressingMode::None,												// [1'110]
+	AddressingMode::None,												// [1'111]
+};
+
 /// @returns The @c AddressingMode given the specified mode and reg, subject to potential
 /// 	aliasing on the '020+ as described above the @c AddressingMode enum.
-constexpr AddressingMode combined_mode(int raw_mode, int reg) {
-	const auto mode = AddressingMode(raw_mode);
-	constexpr AddressingMode extended_modes[] = {
-		AddressingMode::AbsoluteShort,
-		AddressingMode::AbsoluteLong,
-		AddressingMode::ProgramCounterIndirectWithDisplacement,
-		AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement,
-		AddressingMode::ImmediateData,
+constexpr AddressingMode combined_mode(int mode, int reg) {
+	assert(mode >= 0 && mode < 8);
+	assert(reg >= 0 && reg < 8);
 
-		AddressingMode::None,
-		AddressingMode::None,
-		AddressingMode::None,
-	};
-	return (raw_mode != 7) ? mode : extended_modes[reg];
+	// Look up mode, mapping invalid combinations to ::None, branchlessly.
+	const int use_reg = ((mode + 1) >> 3) & 1;
+	const AddressingMode modes[] = { AddressingMode(mode), extended_modes[reg] };
+	return modes[use_reg];
 }
 
 }
