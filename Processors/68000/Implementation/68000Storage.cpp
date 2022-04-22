@@ -1049,7 +1049,9 @@ struct ProcessorStorageConstructor {
 							DirectMap(DIVU);
 							DirectMap(DIVS);
 
-							case Operation::RTE_RTR:	opname = "RTE/RTR";	break;
+							case Operation::RTE_RTR:
+								opname = (opcode_ == 0x4e77) ? "RTR" : "RTE";
+							break;
 
 							DirectMap(TRAP);
 							DirectMap(TRAPV);
@@ -1133,6 +1135,8 @@ struct ProcessorStorageConstructor {
 								} else {
 									sprintf(tbuf, "%d", val);
 								}
+							} else if(operation_ == Operation::TRAP) {
+								sprintf(tbuf, "%d", opcode_ & 15);
 							} else {
 								const auto val = ((opcode_ >> 9)&7);
 								sprintf(tbuf, "%d", val ? val : 8);
@@ -3307,6 +3311,7 @@ struct ProcessorStorageConstructor {
 						break;
 
 						case Decoder::TRAP: {
+							dumper.set_source(Quick);
 							// TRAP involves some oddly-sequenced stack writes, so is calculated
 							// at runtime; also the same sequence is used for illegal instructions.
 							// So the entirety is scheduled at runtime.
