@@ -16,18 +16,8 @@ namespace {
 
 /// @returns The @c AddressingMode given the specified mode and reg, subject to potential
 /// 	aliasing on the '020+ as described above the @c AddressingMode enum.
-template <
-	bool allow_An = true, bool allow_post_inc = true
-> constexpr AddressingMode combined_mode(int raw_mode, int reg) {
-	auto mode = AddressingMode(raw_mode);
-
-	if(!allow_An && mode == AddressingMode::AddressRegisterDirect) {
-		mode = AddressingMode::DataRegisterDirect;
-	}
-	if(!allow_post_inc && mode == AddressingMode::AddressRegisterIndirectWithPostincrement) {
-		mode = AddressingMode::AddressRegisterIndirect;
-	}
-
+constexpr AddressingMode combined_mode(int raw_mode, int reg) {
+	const auto mode = AddressingMode(raw_mode);
 	constexpr AddressingMode extended_modes[] = {
 		AddressingMode::AbsoluteShort,
 		AddressingMode::AbsoluteLong,
@@ -468,29 +458,18 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case OpT(Operation::ADDb):	case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
 		case OpT(Operation::SUBb):	case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
-		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
-		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
-		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
-		case OpT(Operation::CMPb):	case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
 		case OpT(Operation::ANDb):	case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
-		case OpT(Operation::ORb):	case OpT(Operation::ORw):	case OpT(Operation::ORl):
-		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):	{
-
-			constexpr bool is_address_operation =
-				op == OpT(Operation::ADDAw) || op == OpT(Operation::ADDAl) ||
-				op == OpT(Operation::SUBAw) || op == OpT(Operation::SUBAl) ||
-				op == OpT(Operation::CMPAw) || op == OpT(Operation::CMPAl);
-			constexpr auto register_addressing_mode = is_address_operation
-					? AddressingMode::AddressRegisterDirect : AddressingMode::DataRegisterDirect;
+		case OpT(Operation::ORb):	case OpT(Operation::ORw):	case OpT(Operation::ORl): {
 
 			const auto ea_combined_mode = combined_mode(ea_mode, ea_register);
 
-			if(!is_address_operation && (opmode & 4)) {
+			// TODO: make this decision outside of this function.
+			if(opmode & 4) {
 				// Dn Λ < ea > → < ea >
 
 				return validated<op, validate>(
 					Preinstruction(operation,
-						register_addressing_mode, data_register,
+						AddressingMode::DataRegisterDirect, data_register,
 						ea_combined_mode, ea_register));
 			} else {
 				// < ea > Λ Dn → Dn
@@ -498,11 +477,31 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				return validated<op, validate>(
 					Preinstruction(operation,
 						ea_combined_mode, ea_register,
-						register_addressing_mode, data_register));
+						AddressingMode::DataRegisterDirect, data_register));
 			}
 
 			return Preinstruction();
 		}
+
+		case OpT(Operation::CMPb):	case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
+			return validated<op, validate>(
+				Preinstruction(operation,
+					combined_mode(ea_mode, ea_register), ea_register,
+					AddressingMode::DataRegisterDirect, data_register));
+
+		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):
+			return validated<op, validate>(
+				Preinstruction(operation,
+					AddressingMode::DataRegisterDirect, data_register,
+					combined_mode(ea_mode, ea_register), ea_register));
+
+		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
+		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
+		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
+			return validated<op, validate>(
+				Preinstruction(operation,
+					combined_mode(ea_mode, ea_register), ea_register,
+					AddressingMode::AddressRegisterDirect, data_register));
 
 		//
 		// MARK: EORI, ORI, ANDI, SUBI, ADDI, CMPI, B[TST/CHG/CLR/SET]I
@@ -591,6 +590,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 						AddressingMode::DataRegisterDirect, data_register,
 						AddressingMode::AddressRegisterDirect, ea_register));
 			}
+		// TODO: remove conditional from in here.
 
 		//
 		// MARK: MULU, MULS, DIVU, DIVS.

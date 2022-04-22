@@ -228,10 +228,10 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 //			case Operation::ANDb:	instruction = @"AND.b";	break;
 //			case Operation::ANDw:	instruction = @"AND.w";	break;
 //			case Operation::ANDl:	instruction = @"AND.l";	break;
-//
-//			case Operation::EORb:	instruction = @"EOR.b";	break;
-//			case Operation::EORw:	instruction = @"EOR.w";	break;
-//			case Operation::EORl:	instruction = @"EOR.l";	break;
+
+			case Operation::EORb:	instruction = @"EOR.b";	break;
+			case Operation::EORw:	instruction = @"EOR.w";	break;
+			case Operation::EORl:	instruction = @"EOR.l";	break;
 
 			case Operation::NOTb:	instruction = @"NOT.b";	break;
 			case Operation::NOTw:	instruction = @"NOT.w";	break;
@@ -278,12 +278,6 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 
 		if(operand1.length) instruction = [instruction stringByAppendingFormat:@" %@", operand1];
 		if(operand2.length) instruction = [instruction stringByAppendingFormat:@", %@", operand2];
-
-		// Quick decoding not yet supported. TODO.
-//		if(found.mode<0>() == AddressingMode::Quick || found.mode<1>() == AddressingMode::Quick) {
-//			++skipped;
-//			continue;
-//		}
 
 		XCTAssertFalse(found.mode<0>() == AddressingMode::None && found.mode<1>() != AddressingMode::None, @"Decoding of %@ provided a second operand but not a first", instrName);
 		XCTAssertEqualObjects(instruction, expected, "%@ should decode as %@; got %@", instrName, expected, instruction);
