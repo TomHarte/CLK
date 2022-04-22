@@ -241,11 +241,13 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 //			case Operation::ORw:	instruction = @"OR.w";	break;
 //			case Operation::ORl:	instruction = @"OR.l";	break;
 
+			case Operation::MULU:	instruction = @"MULU";	break;
+			case Operation::MULS:	instruction = @"MULS";	break;
+			case Operation::DIVU:	instruction = @"DIVU";	break;
+			case Operation::DIVS:	instruction = @"DIVS";	break;
+
 			/*
 				TODO:
-
-				MULU,	MULS,
-				DIVU,	DIVS,
 
 				RTE,	RTR,
 

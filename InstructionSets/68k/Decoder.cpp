@@ -408,6 +408,16 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::None:
 					return Preinstruction();
 			}
+
+		case OpT(Operation::DIVU): case OpT(Operation::DIVS):
+		case OpT(Operation::MULU): case OpT(Operation::MULS):
+			switch(original.mode<0>()) {
+				default: return original;
+
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
 	}
 }
 
