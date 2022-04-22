@@ -142,6 +142,7 @@ constexpr int8_t quick(uint16_t instruction) {
 		case Operation::Bccb:
 		case Operation::BSRb:
 		case Operation::MOVEq:	return int8_t(instruction);
+		case Operation::TRAP:	return int8_t(instruction & 15);
 		default: {
 			int8_t value = (instruction >> 9) & 7;
 			value |= (value - 1)&8;
@@ -151,11 +152,15 @@ constexpr int8_t quick(uint16_t instruction) {
 }
 
 constexpr int8_t quick(Operation op, uint16_t instruction) {
-	if(op == Operation::MOVEq || op == Operation::Bccb || op == Operation::BSRb) {
-		return quick<Operation::MOVEq>(instruction);
-	} else {
-		// ADDw is arbitrary; anything other than MOVEq will do.
-		return quick<Operation::ADDw>(instruction);
+	switch(op) {
+		case Operation::MOVEq:	return quick<Operation::MOVEq>(instruction);
+		case Operation::Bccb:	return quick<Operation::Bccb>(instruction);
+		case Operation::BSRb:	return quick<Operation::BSRb>(instruction);
+		case Operation::TRAP:	return quick<Operation::TRAP>(instruction);
+
+		default:
+			// ADDw is arbitrary; anything other than those listed above will do.
+			return quick<Operation::ADDw>(instruction);
 	}
 }
 

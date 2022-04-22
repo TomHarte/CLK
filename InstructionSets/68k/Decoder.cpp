@@ -411,6 +411,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 
 		case OpT(Operation::DIVU): case OpT(Operation::DIVS):
 		case OpT(Operation::MULU): case OpT(Operation::MULS):
+		case OpT(Operation::CHK):
 			switch(original.mode<0>()) {
 				default: return original;
 
