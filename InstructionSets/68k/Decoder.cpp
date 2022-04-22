@@ -137,9 +137,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 
 		// The various immediates.
-//		case EORIb: 	case EORIl:		case EORIw:
-//		case ORIb:		case ORIl:		case ORIw:
-//		case ANDIb:		case ANDIl:		case ANDIw:
+		case EORIb: 	case EORIl:		case EORIw:
+		case ORIb:		case ORIl:		case ORIw:
+		case ANDIb:		case ANDIl:		case ANDIw:
 		case SUBIb:		case SUBIl:		case SUBIw:
 		case ADDIb:		case ADDIl:		case ADDIw:
 			switch(original.mode<1>()) {
@@ -176,11 +176,12 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case OpT(Operation::SUBb):		case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
 		case SUBQb:						case SUBQw:					case SUBQl:
 		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
-		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl): {
+		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
+		case OpT(Operation::ANDb):		case OpT(Operation::ANDw):	case OpT(Operation::ANDl): {
 			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
 			constexpr bool is_byte =
 				op == OpT(Operation::ADDb) || op == OpT(Operation::SUBb) || op == OpT(Operation::MOVEb) ||
-				op == ADDQb	|| op == SUBQb;
+				op == ADDQb	|| op == SUBQb || op == OpT(Operation::ANDb);
 
 			switch(original.mode<0>()) {
 				default: break;
@@ -302,10 +303,20 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 
 		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
+		case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
 			switch(original.mode<0>()) {
 				default: return original;
 
 				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+		case OpT(Operation::CMPb):
+			switch(original.mode<0>()) {
+				default: return original;
+
+				case AddressingMode::None:
+				case AddressingMode::AddressRegisterDirect:
 					return Preinstruction();
 			}
 
@@ -429,6 +440,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
 		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
 		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
+		case OpT(Operation::CMPb):	case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
 		case OpT(Operation::ANDb):	case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
 		case OpT(Operation::ORb):	case OpT(Operation::ORw):	case OpT(Operation::ORl):
 		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):	{
@@ -1141,14 +1153,6 @@ template <Model model>
 Preinstruction Predecoder<model>::decodeB(uint16_t instruction) {
 	using Op = Operation;
 
-	switch(instruction & 0x0c0) {
-		// 4-100 (p204)
-		case 0x000:	Decode(Op::EORb);
-		case 0x040:	Decode(Op::EORw);
-		case 0x080:	Decode(Op::EORl);
-		default:	break;
-	}
-
 	switch(instruction & 0x1c0) {
 		// 4-75 (p179)
 		case 0x000:	Decode(Op::CMPb);
@@ -1162,6 +1166,14 @@ Preinstruction Predecoder<model>::decodeB(uint16_t instruction) {
 		default:	break;
 	}
 
+	switch(instruction & 0x0c0) {
+		// 4-100 (p204)
+		case 0x000:	Decode(Op::EORb);
+		case 0x040:	Decode(Op::EORw);
+		case 0x080:	Decode(Op::EORl);
+		default:	break;
+	}
+
 	return Preinstruction();
 }
 
@@ -1169,8 +1181,22 @@ template <Model model>
 Preinstruction Predecoder<model>::decodeC(uint16_t instruction) {
 	using Op = Operation;
 
+	// 4-105 (p209)
+	switch(instruction & 0x1f8) {
+		case 0x140:
+		case 0x148:
+		case 0x188:	Decode(Op::EXG);
+		default:	break;
+	}
+
 	switch(instruction & 0x1f0) {
 		case 0x100:	Decode(Op::ABCD);	// 4-3 (p107)
+		default:	break;
+	}
+
+	switch(instruction & 0x1c0) {
+		case 0x0c0:	Decode(Op::MULU);	// 4-139 (p243)
+		case 0x1c0:	Decode(Op::MULS);	// 4-136 (p240)
 		default:	break;
 	}
 
@@ -1182,19 +1208,6 @@ Preinstruction Predecoder<model>::decodeC(uint16_t instruction) {
 		default:	break;
 	}
 
-	switch(instruction & 0x1c0) {
-		case 0x0c0:	Decode(Op::MULU);	// 4-139 (p243)
-		case 0x1c0:	Decode(Op::MULS);	// 4-136 (p240)
-		default:	break;
-	}
-
-	// 4-105 (p209)
-	switch(instruction & 0x1f8) {
-		case 0x140:
-		case 0x148:
-		case 0x188:	Decode(Op::EXG);
-		default:	break;
-	}
 
 	return Preinstruction();
 }

@@ -225,13 +225,24 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			case Operation::MOVEPl:	instruction = @"MOVEP.l";	break;
 			case Operation::MOVEPw:	instruction = @"MOVEP.w";	break;
 
+			case Operation::ANDb:	instruction = @"AND.b";	break;
+			case Operation::ANDw:	instruction = @"AND.w";	break;
+			case Operation::ANDl:	instruction = @"AND.l";	break;
+
+//			case Operation::EORb:	instruction = @"EOR.b";	break;
+//			case Operation::EORw:	instruction = @"EOR.w";	break;
+//			case Operation::EORl:	instruction = @"EOR.l";	break;
+//
+//			case Operation::NOTb:	instruction = @"NOT.b";	break;
+//			case Operation::NOTw:	instruction = @"NOT.w";	break;
+//			case Operation::NOTl:	instruction = @"NOT.l";	break;
+//
+//			case Operation::ORb:	instruction = @"OR.b";	break;
+//			case Operation::ORw:	instruction = @"OR.w";	break;
+//			case Operation::ORl:	instruction = @"OR.l";	break;
+
 			/*
 				TODO:
-
-				ANDb,	ANDw,	ANDl,
-				EORb,	EORw,	EORl,
-				NOTb, 	NOTw, 	NOTl,
-				ORb,	ORw,	ORl,
 
 				MULU,	MULS,
 				DIVU,	DIVS,
