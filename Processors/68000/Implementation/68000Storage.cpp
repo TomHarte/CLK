@@ -3012,7 +3012,6 @@ struct ProcessorStorageConstructor {
 						case Decoder::MOVEP: {
 							program.set_destination(storage_, An, ea_register);
 							program.set_source(storage_, Dn, data_register);
-							dumper.set_source_dest(An, ea_register, Dn, data_register);
 
 							switch(operation) {
 								default: continue;
@@ -3022,22 +3021,26 @@ struct ProcessorStorageConstructor {
 								case Operation::MOVEPtoMw:
 									op(Action::PerformOperation);
 									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }, false));
+									dumper.set_source_dest(Dn, data_register, d16An, ea_register);
 								break;
 
 								case Operation::MOVEPtoMl:
 									op(Action::PerformOperation);
 									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np nW+ nWr+ nw+ nwr np", { ea(1), ea(1), ea(1), ea(1) }, false));
+									dumper.set_source_dest(Dn, data_register, d16An, ea_register);
 								break;
 
 								case Operation::MOVEPtoRw:
 									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np nRd+ nrd np", { ea(1), ea(1) }, false));
 									op(Action::PerformOperation);
+									dumper.set_source_dest(d16An, ea_register, Dn, data_register);
 								break;
 
 								case Operation::MOVEPtoRl:
 									// TODO: nR+ increments EA(0), not EA(1). Fix.
 									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np nRd+ nR+ nrd+ nr np", { ea(1), ea(1), ea(1), ea(1) }, false));
 									op(Action::PerformOperation);
+									dumper.set_source_dest(d16An, ea_register, Dn, data_register);
 								break;
 							}
 						} break;
