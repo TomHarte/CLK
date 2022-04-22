@@ -80,6 +80,10 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 		case BCLRI:		return Operation::BCLR;
 		case BSETI:		return Operation::BSET;
 
+		case CMPMb:		return Operation::CMPb;
+		case CMPMw:		return Operation::CMPw;
+		case CMPMl:		return Operation::CMPl;
+
 #define ImmediateGroup(x)	\
 		case x##Ib:		return Operation::x##b;	\
 		case x##Iw:		return Operation::x##w;	\
@@ -179,13 +183,12 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
 		case OpT(Operation::ANDb):		case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
 		case OpT(Operation::EORb):		case OpT(Operation::EORw):	case OpT(Operation::EORl):
-		case OpT(Operation::ORb):		case OpT(Operation::ORw):	case OpT(Operation::ORl):
-		case OpT(Operation::NOTb):		case OpT(Operation::NOTw):	case OpT(Operation::NOTl): {
+		case OpT(Operation::ORb):		case OpT(Operation::ORw):	case OpT(Operation::ORl): {
 			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
 			constexpr bool is_byte =
 				op == OpT(Operation::ADDb) || op == OpT(Operation::SUBb) || op == OpT(Operation::MOVEb) ||
 				op == ADDQb	|| op == SUBQb || op == OpT(Operation::ANDb) || op == OpT(Operation::EORb) ||
-				op == OpT(Operation::ORb) || op == OpT(Operation::NOTb);
+				op == OpT(Operation::ORb);
 
 			switch(original.mode<0>()) {
 				default: break;
@@ -213,6 +216,18 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 		}
+
+		case OpT(Operation::NOTb):		case OpT(Operation::NOTw):	case OpT(Operation::NOTl):
+			switch(original.mode<0>()) {
+				default: return original;
+
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::ImmediateData:
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
 
 		// ADDA, SUBA.
 		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
@@ -787,6 +802,12 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				Preinstruction(operation,
 					combined_mode(ea_mode, ea_register), ea_register));
 
+		case CMPMb:	case CMPMw:	case CMPMl:
+			return validated<op, validate>(
+				Preinstruction(operation,
+					AddressingMode::AddressRegisterIndirectWithPostincrement, ea_register,
+					AddressingMode::AddressRegisterIndirectWithPostincrement, data_register));
+
 		//
 		// MARK: Impossible error case.
 		//
@@ -1156,6 +1177,15 @@ Preinstruction Predecoder<model>::decodeA(uint16_t) {
 template <Model model>
 Preinstruction Predecoder<model>::decodeB(uint16_t instruction) {
 	using Op = Operation;
+
+	switch(instruction & 0x1f8) {
+		// 4-81 (p185)
+		case 0x108:	Decode(CMPMb);
+		case 0x148:	Decode(CMPMw);
+		case 0x188:	Decode(CMPMl);
+
+		default:	break;
+	}
 
 	switch(instruction & 0x1c0) {
 		// 4-75 (p179)

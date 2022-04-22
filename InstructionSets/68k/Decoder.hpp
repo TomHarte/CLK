@@ -75,6 +75,8 @@ template <Model model> class Predecoder {
 
 			BTSTI, BCHGI, BCLRI, BSETI,
 
+			CMPMb,	CMPMw,	CMPMl,
+
 			MOVEq,
 		};
 
