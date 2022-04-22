@@ -177,11 +177,15 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case SUBQb:						case SUBQw:					case SUBQl:
 		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
 		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
-		case OpT(Operation::ANDb):		case OpT(Operation::ANDw):	case OpT(Operation::ANDl): {
+		case OpT(Operation::ANDb):		case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
+		case OpT(Operation::EORb):		case OpT(Operation::EORw):	case OpT(Operation::EORl):
+		case OpT(Operation::ORb):		case OpT(Operation::ORw):	case OpT(Operation::ORl):
+		case OpT(Operation::NOTb):		case OpT(Operation::NOTw):	case OpT(Operation::NOTl): {
 			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
 			constexpr bool is_byte =
 				op == OpT(Operation::ADDb) || op == OpT(Operation::SUBb) || op == OpT(Operation::MOVEb) ||
-				op == ADDQb	|| op == SUBQb || op == OpT(Operation::ANDb);
+				op == ADDQb	|| op == SUBQb || op == OpT(Operation::ANDb) || op == OpT(Operation::EORb) ||
+				op == OpT(Operation::ORb) || op == OpT(Operation::NOTb);
 
 			switch(original.mode<0>()) {
 				default: break;
@@ -1163,14 +1167,11 @@ Preinstruction Predecoder<model>::decodeB(uint16_t instruction) {
 		case 0x0c0:	Decode(Op::CMPAw);
 		case 0x1c0:	Decode(Op::CMPAl);
 
-		default:	break;
-	}
-
-	switch(instruction & 0x0c0) {
 		// 4-100 (p204)
-		case 0x000:	Decode(Op::EORb);
-		case 0x040:	Decode(Op::EORw);
-		case 0x080:	Decode(Op::EORl);
+		case 0x100:	Decode(Op::EORb);
+		case 0x140:	Decode(Op::EORw);
+		case 0x180:	Decode(Op::EORl);
+
 		default:	break;
 	}
 
