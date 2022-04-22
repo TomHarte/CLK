@@ -119,6 +119,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		// NBCD.
 		case OpT(Operation::NBCD):
 		case OpT(Operation::MOVEfromSR):
+		case OpT(Operation::TAS):
 			switch(original.mode<0>()) {
 				default: return original;
 
@@ -577,18 +578,18 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 
 				case 0x08:	return validated<op, validate>(
 					Preinstruction(operation,
-						AddressingMode::DataRegisterDirect, ea_register,
-						AddressingMode::DataRegisterDirect, data_register));
+						AddressingMode::DataRegisterDirect, data_register,
+						AddressingMode::DataRegisterDirect, ea_register));
 
 				case 0x09:	return validated<op, validate>(
 					Preinstruction(operation,
-						AddressingMode::AddressRegisterDirect, ea_register,
-						AddressingMode::AddressRegisterDirect, data_register));
+						AddressingMode::AddressRegisterDirect, data_register,
+						AddressingMode::AddressRegisterDirect, ea_register));
 
 				case 0x11:	return validated<op, validate>(
 					Preinstruction(operation,
-						AddressingMode::AddressRegisterDirect, ea_register,
-						AddressingMode::DataRegisterDirect, data_register));
+						AddressingMode::DataRegisterDirect, data_register,
+						AddressingMode::AddressRegisterDirect, ea_register));
 			}
 
 		//

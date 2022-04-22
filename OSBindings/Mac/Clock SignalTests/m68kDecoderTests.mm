@@ -253,19 +253,19 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			case Operation::TRAPV:	instruction = @"TRAPV";	break;
 			case Operation::CHK:	instruction = @"CHK";	break;
 
-			/*
-				TODO:
+			case Operation::EXG:	instruction = @"EXG";	break;
+			case Operation::SWAP:	instruction = @"SWAP";	break;
 
-				EXG,	SWAP,
+			case Operation::TAS:	instruction = @"TAS";	break;
 
-				TAS,
+			case Operation::EXTbtow:	instruction = @"EXT.w";		break;
+			case Operation::EXTwtol:	instruction = @"EXT.l";		break;
 
-				EXTbtow,	EXTwtol,
+			case Operation::LINKw:	instruction = @"LINK";		break;
+			case Operation::UNLINK:	instruction = @"UNLINK";	break;
 
-				LINKw,	UNLINK,
-
-				STOP,	RESET,
-			*/
+			case Operation::STOP:	instruction = @"STOP";		break;
+			case Operation::RESET:	instruction = @"RESET";		break;
 
 			// For now, skip any unmapped operations.
 			default:
