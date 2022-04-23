@@ -225,8 +225,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 		}
 
-		case ANDtoRb:		case ANDtoRw:	case ANDtoRl:
-		case ORtoRb:		case ORtoRw:	case ORtoRl:
 		case SUBtoRb:		case SUBtoRw:	case SUBtoRl:
 		case ADDtoRb:		case ADDtoRw:	case ADDtoRl: {
 			constexpr bool is_byte = op == ADDtoRb || op == SUBtoRb || op == SUBtoRb || op == ADDtoRb;
@@ -243,12 +241,32 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 		}
 
-		case ADDtoMb:		case ADDtoMw:	case ADDtoMl:
-		case SUBtoMb:		case SUBtoMw:	case SUBtoMl:
 		case ANDtoMb:		case ANDtoMw:	case ANDtoMl:
-		case ORtoMb:		case ORtoMw:	case ORtoMl: {
+		case ORtoMb:		case ORtoMw:	case ORtoMl:
+			switch(original.mode<1>()) {
+				default: return original;
+				case AddressingMode::DataRegisterDirect:
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::ImmediateData:
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+		case ANDtoRb:		case ANDtoRw:	case ANDtoRl:
+		case ORtoRb:		case ORtoRw:	case ORtoRl:
+			switch(original.mode<0>()) {
+				default: return original;
+				case AddressingMode::AddressRegisterDirect:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+		case ADDtoMb:		case ADDtoMw:	case ADDtoMl:
+		case SUBtoMb:		case SUBtoMw:	case SUBtoMl: {
 			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
-			constexpr bool is_byte = op == ADDtoMb || op == SUBtoMb || op == ANDtoMb || op == ORtoMb;
+			constexpr bool is_byte = op == ADDtoMb || op == SUBtoMb;
 
 			switch(original.mode<0>()) {
 				default: break;
