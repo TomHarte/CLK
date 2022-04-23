@@ -74,7 +74,6 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 	XCTAssertNotNil(decodings);
 
 	Predecoder<Model::M68000> decoder;
-	int skipped = 0;
 	for(int instr = 0; instr < 65536; instr++) {
 		NSString *const instrName = [NSString stringWithFormat:@"%04x", instr];
 		NSString *const expected = decodings[instrName];
@@ -269,7 +268,7 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 
 			// For now, skip any unmapped operations.
 			default:
-				++skipped;
+				XCTAssert(false, @"Operation %d unhandled by test case", int(found.operation));
 			continue;
 		}
 
@@ -282,8 +281,6 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 		XCTAssertFalse(found.mode<0>() == AddressingMode::None && found.mode<1>() != AddressingMode::None, @"Decoding of %@ provided a second operand but not a first", instrName);
 		XCTAssertEqualObjects(instruction, expected, "%@ should decode as %@; got %@", instrName, expected, instruction);
 	}
-
-	NSLog(@"Skipped %d opcodes", skipped);
 }
 
 @end
