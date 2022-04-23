@@ -78,6 +78,18 @@ template <Model model> class Predecoder {
 			CMPMb,	CMPMw,	CMPMl,
 
 			MOVEq,
+
+			ADDtoMb, ADDtoMw, ADDtoMl,
+			ADDtoRb, ADDtoRw, ADDtoRl,
+
+			SUBtoMb, SUBtoMw, SUBtoMl,
+			SUBtoRb, SUBtoRw, SUBtoRl,
+
+			ANDtoMb, ANDtoMw, ANDtoMl,
+			ANDtoRb, ANDtoRw, ANDtoRl,
+
+			ORtoMb, ORtoMw, ORtoMl,
+			ORtoRb, ORtoRw, ORtoRl,
 		};
 
 		static constexpr Operation operation(OpT op);

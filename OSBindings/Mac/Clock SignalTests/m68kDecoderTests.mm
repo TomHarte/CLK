@@ -225,9 +225,9 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			case Operation::MOVEPl:	instruction = @"MOVEP.l";	break;
 			case Operation::MOVEPw:	instruction = @"MOVEP.w";	break;
 
-//			case Operation::ANDb:	instruction = @"AND.b";	break;
-//			case Operation::ANDw:	instruction = @"AND.w";	break;
-//			case Operation::ANDl:	instruction = @"AND.l";	break;
+			case Operation::ANDb:	instruction = @"AND.b";	break;
+			case Operation::ANDw:	instruction = @"AND.w";	break;
+			case Operation::ANDl:	instruction = @"AND.l";	break;
 
 			case Operation::EORb:	instruction = @"EOR.b";	break;
 			case Operation::EORw:	instruction = @"EOR.w";	break;
@@ -237,9 +237,9 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			case Operation::NOTw:	instruction = @"NOT.w";	break;
 			case Operation::NOTl:	instruction = @"NOT.l";	break;
 
-//			case Operation::ORb:	instruction = @"OR.b";	break;
-//			case Operation::ORw:	instruction = @"OR.w";	break;
-//			case Operation::ORl:	instruction = @"OR.l";	break;
+			case Operation::ORb:	instruction = @"OR.b";	break;
+			case Operation::ORw:	instruction = @"OR.w";	break;
+			case Operation::ORl:	instruction = @"OR.l";	break;
 
 			case Operation::MULU:	instruction = @"MULU";	break;
 			case Operation::MULS:	instruction = @"MULS";	break;

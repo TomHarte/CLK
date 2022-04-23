@@ -93,6 +93,22 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 
 #undef ImmediateGroup
 
+		case ADDtoRb:	case ADDtoMb:	return Operation::ADDb;
+		case ADDtoRw:	case ADDtoMw:	return Operation::ADDw;
+		case ADDtoRl:	case ADDtoMl:	return Operation::ADDl;
+
+		case SUBtoRb:	case SUBtoMb:	return Operation::SUBb;
+		case SUBtoRw:	case SUBtoMw:	return Operation::SUBw;
+		case SUBtoRl:	case SUBtoMl:	return Operation::SUBl;
+
+		case ANDtoRb:	case ANDtoMb:	return Operation::ANDb;
+		case ANDtoRw:	case ANDtoMw:	return Operation::ANDw;
+		case ANDtoRl:	case ANDtoMl:	return Operation::ANDl;
+
+		case ORtoRb:	case ORtoMb:	return Operation::ORb;
+		case ORtoRw:	case ORtoMw:	return Operation::ORw;
+		case ORtoRl:	case ORtoMl:	return Operation::ORl;
+
 		default: break;
 	}
 
@@ -171,9 +187,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 
 		// ADD, SUB, MOVE, MOVEA
-		case OpT(Operation::ADDb):		case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
 		case ADDQb:						case ADDQw:					case ADDQl:
-		case OpT(Operation::SUBb):		case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
 		case SUBQb:						case SUBQw:					case SUBQl:
 		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
 		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
@@ -182,9 +196,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case OpT(Operation::ORb):		case OpT(Operation::ORw):	case OpT(Operation::ORl): {
 			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
 			constexpr bool is_byte =
-				op == OpT(Operation::ADDb) || op == OpT(Operation::SUBb) || op == OpT(Operation::MOVEb) ||
-				op == ADDQb	|| op == SUBQb || op == OpT(Operation::ANDb) || op == OpT(Operation::EORb) ||
-				op == OpT(Operation::ORb);
+				op == OpT(Operation::MOVEb) || op == ADDQb	|| op == SUBQb || op == OpT(Operation::EORb);
 
 			switch(original.mode<0>()) {
 				default: break;
@@ -200,6 +212,63 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			switch(original.mode<1>()) {
 				default: return original;
 
+				case AddressingMode::AddressRegisterDirect:
+					if constexpr (!is_byte) {
+						return original;
+					}
+					[[fallthrough]];
+				case AddressingMode::ImmediateData:
+				case AddressingMode::ProgramCounterIndirectWithDisplacement:
+				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+		}
+
+		case ANDtoRb:		case ANDtoRw:	case ANDtoRl:
+		case ORtoRb:		case ORtoRw:	case ORtoRl:
+		case SUBtoRb:		case SUBtoRw:	case SUBtoRl:
+		case ADDtoRb:		case ADDtoRw:	case ADDtoRl: {
+			constexpr bool is_byte = op == ADDtoRb || op == SUBtoRb || op == SUBtoRb || op == ADDtoRb;
+
+			switch(original.mode<0>()) {
+				default: return original;
+				case AddressingMode::AddressRegisterDirect:
+					if constexpr (!is_byte) {
+						return original;
+					}
+					[[fallthrough]];
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+		}
+
+		case ADDtoMb:		case ADDtoMw:	case ADDtoMl:
+		case SUBtoMb:		case SUBtoMw:	case SUBtoMl:
+		case ANDtoMb:		case ANDtoMw:	case ANDtoMl:
+		case ORtoMb:		case ORtoMw:	case ORtoMl: {
+			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
+			constexpr bool is_byte = op == ADDtoMb || op == SUBtoMb || op == ANDtoMb || op == ORtoMb;
+
+			switch(original.mode<0>()) {
+				default: break;
+				case AddressingMode::AddressRegisterDirect:
+					if constexpr (!is_byte) {
+						break;
+					}
+					[[fallthrough]];
+				case AddressingMode::None:
+					return Preinstruction();
+			}
+
+			switch(original.mode<1>()) {
+				default: return original;
+
+				case AddressingMode::DataRegisterDirect:
+					// TODO: this is per the documentation, but is it true?
+					if constexpr (op == ANDtoMb || op == ANDtoMw || op == ANDtoMl || op == ORtoMb || op == ORtoMw || op == ORtoMl) {
+						return Preinstruction();
+					}
 				case AddressingMode::AddressRegisterDirect:
 					if constexpr (!is_byte) {
 						return original;
@@ -461,7 +530,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b0–b2 and b3–b5:	an effective address;
 		// b6–b8:			an opmode, i.e. source + direction.
 		//
-		case OpT(Operation::ADDb):	case OpT(Operation::ADDw):	case OpT(Operation::ADDl):
 		case OpT(Operation::SUBb):	case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
 		case OpT(Operation::ANDb):	case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
 		case OpT(Operation::ORb):	case OpT(Operation::ORw):	case OpT(Operation::ORl): {
@@ -470,14 +538,14 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 
 			// TODO: make this decision outside of this function.
 			if(opmode & 4) {
-				// Dn Λ < ea > → < ea >
+				// Dn, <ea>
 
 				return validated<op, validate>(
 					Preinstruction(operation,
 						AddressingMode::DataRegisterDirect, data_register,
 						ea_combined_mode, ea_register));
 			} else {
-				// < ea > Λ Dn → Dn
+				// <ea>, Dn
 
 				return validated<op, validate>(
 					Preinstruction(operation,
@@ -488,12 +556,21 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 			return Preinstruction();
 		}
 
+
+		case ADDtoRb:	case ADDtoRw:	case ADDtoRl:
+		case SUBtoRb:	case SUBtoRw:	case SUBtoRl:
+		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
+		case ORtoRb:	case ORtoRw:	case ORtoRl:
 		case OpT(Operation::CMPb):	case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
 			return validated<op, validate>(
 				Preinstruction(operation,
 					combined_mode(ea_mode, ea_register), ea_register,
 					AddressingMode::DataRegisterDirect, data_register));
 
+		case ADDtoMb:	case ADDtoMw:	case ADDtoMl:
+		case SUBtoMb:	case SUBtoMw:	case SUBtoMl:
+		case ANDtoMb:	case ANDtoMw:	case ANDtoMl:
+		case ORtoMb:	case ORtoMw:	case ORtoMl:
 		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):
 			return validated<op, validate>(
 				Preinstruction(operation,
@@ -1136,17 +1213,18 @@ Preinstruction Predecoder<model>::decode8(uint16_t instruction) {
 	// 4-171 (p275)
 	if((instruction & 0x1f0) == 0x100) Decode(Op::SBCD);
 
-	// 4-150 (p254)
-	switch(instruction & 0x0c0) {
-		case 0x00:	Decode(Op::ORb);
-		case 0x40:	Decode(Op::ORw);
-		case 0x80:	Decode(Op::ORl);
-		default:	break;
-	}
-
 	switch(instruction & 0x1c0) {
 		case 0x0c0:	Decode(Op::DIVU);	// 4-97 (p201)
 		case 0x1c0:	Decode(Op::DIVS);	// 4-93 (p197)
+
+		// 4-150 (p254)
+		case 0x000:	Decode(ORtoRb);
+		case 0x040:	Decode(ORtoRw);
+		case 0x080:	Decode(ORtoRl);
+		case 0x100:	Decode(ORtoMb);
+		case 0x140:	Decode(ORtoMw);
+		case 0x180:	Decode(ORtoMl);
+
 		default:	break;
 	}
 
@@ -1171,14 +1249,13 @@ Preinstruction Predecoder<model>::decode9(uint16_t instruction) {
 		case 0x0c0:	Decode(Op::SUBAw);
 		case 0x1c0:	Decode(Op::SUBAl);
 
-		default:	break;
-	}
-
-	switch(instruction & 0x0c0) {
 		// 4-174 (p278)
-		case 0x00:	Decode(Op::SUBb);
-		case 0x40:	Decode(Op::SUBw);
-		case 0x80:	Decode(Op::SUBl);
+		case 0x000:	Decode(SUBtoRb);
+		case 0x040:	Decode(SUBtoRw);
+		case 0x080:	Decode(SUBtoRl);
+		case 0x100:	Decode(SUBtoMb);
+		case 0x140:	Decode(SUBtoMw);
+		case 0x180:	Decode(SUBtoMl);
 
 		default:	break;
 	}
@@ -1245,17 +1322,17 @@ Preinstruction Predecoder<model>::decodeC(uint16_t instruction) {
 	switch(instruction & 0x1c0) {
 		case 0x0c0:	Decode(Op::MULU);	// 4-139 (p243)
 		case 0x1c0:	Decode(Op::MULS);	// 4-136 (p240)
-		default:	break;
-	}
 
-	switch(instruction & 0x0c0) {
 		// 4-15 (p119)
-		case 0x00:	Decode(Op::ANDb);
-		case 0x40:	Decode(Op::ANDw);
-		case 0x80:	Decode(Op::ANDl);
+		case 0x000:	Decode(ANDtoRb);
+		case 0x040:	Decode(ANDtoRw);
+		case 0x080:	Decode(ANDtoRl);
+		case 0x100:	Decode(ANDtoMb);
+		case 0x140:	Decode(ANDtoMw);
+		case 0x180:	Decode(ANDtoMl);
+
 		default:	break;
 	}
-
 
 	return Preinstruction();
 }
@@ -1278,14 +1355,13 @@ Preinstruction Predecoder<model>::decodeD(uint16_t instruction) {
 		case 0x0c0:	Decode(Op::ADDAw);
 		case 0x1c0:	Decode(Op::ADDAl);
 
-		default:	break;
-	}
-
-	switch(instruction & 0x0c0) {
 		// 4-4 (p108)
-		case 0x000:	Decode(Op::ADDb);
-		case 0x040:	Decode(Op::ADDw);
-		case 0x080:	Decode(Op::ADDl);
+		case 0x000:	Decode(ADDtoRb);
+		case 0x040:	Decode(ADDtoRw);
+		case 0x080:	Decode(ADDtoRl);
+		case 0x100:	Decode(ADDtoMb);
+		case 0x140:	Decode(ADDtoMw);
+		case 0x180:	Decode(ADDtoMl);
 
 		default:	break;
 	}
