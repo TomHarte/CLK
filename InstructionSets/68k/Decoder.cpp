@@ -164,17 +164,14 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 	//
 	// All modes: the complete set (other than Quick).
 	//
-	// (and the complete set without AddressRegisterDirect, for byte operations).
 	static constexpr auto AllModes 		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn | Imm;
-	static constexpr auto AllModes_b 	= AllModes & ~An;
+	static constexpr auto AllModesNoAn 	= AllModes & ~An;
 
 	//
 	// Alterable addressing modes (with and without AddressRegisterDirect).
 	//
-	// Dn, An, (An), (An)+, -(An), (d16, An), (d8, An, Xn), (xxx).W, (xxx).L
-	// (and sans An for _b)
 	static constexpr auto AlterableAddressingModes 		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl;
-	static constexpr auto AlterableAddressingModes_b	= AlterableAddressingModes & ~An;
+	static constexpr auto AlterableAddressingModesNoAn	= AlterableAddressingModes & ~An;
 
 	switch(op) {
 		default: return NoOperandMask::value;
@@ -187,8 +184,9 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			>::value;
 
 		case ADDtoRb:
+		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
 			return ~TwoOperandMask<
-				AllModes_b,
+				AllModesNoAn,
 				Dn
 			>::value;
 
@@ -199,6 +197,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			>::value;
 
 		case ADDtoMb:	case ADDtoMw:	case ADDtoMl:
+		case ANDtoMb:	case ANDtoMw:	case ANDtoMl:
 			return ~TwoOperandMask<
 				Dn,
 				Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
@@ -211,15 +210,16 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			>::value;
 
 		case ADDIb:		case ADDIl:		case ADDIw:
+		case ANDIb:		case ANDIl:		case ANDIw:
 			return ~TwoOperandMask<
 				Imm,
-				AlterableAddressingModes_b
+				AlterableAddressingModesNoAn
 			>::value;
 
 		case ADDQb:
 			return ~TwoOperandMask<
 				Quick,
-				AlterableAddressingModes_b
+				AlterableAddressingModesNoAn
 			>::value;
 
 		case ADDQw:	case ADDQl:
@@ -228,9 +228,14 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				AlterableAddressingModes
 			>::value;
 
+		case OpT(Operation::ANDItoCCR):
+			return ~OneOperandMask<
+				Imm
+			>::value;
+
 		case OpT(Operation::NBCD):
 			return ~OneOperandMask<
-				AlterableAddressingModes_b
+				AlterableAddressingModesNoAn
 			>::value;
 	}
 }
@@ -247,7 +252,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 	switch(op) {
 		default: return original;
 
-		// NBCD.
+		// All operations converted to the AND test.
 		case OpT(Operation::ABCD):
 		case OpT(Operation::ADDXb):		case OpT(Operation::ADDXw):	case OpT(Operation::ADDXl):
 		case ADDtoRb:	case ADDtoRw:	case ADDtoRl:
@@ -255,6 +260,10 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case ADDtoMb:	case ADDtoMw:	case ADDtoMl:
 		case OpT(Operation::ADDAw):		case OpT(Operation::ADDAl):
 		case ADDQb:		case ADDQw:		case ADDQl:
+		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
+		case ANDtoMb:	case ANDtoMw:	case ANDtoMl:
+		case ANDIb:		case ANDIl:		case ANDIw:
+		case OpT(Operation::ANDItoCCR):
 		case OpT(Operation::NBCD): {
 			const auto invalid = invalid_operands<op>();
 			const auto observed = operand_mask(original);
@@ -287,7 +296,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		// The various immediates.
 		case EORIb: 	case EORIl:		case EORIw:
 		case ORIb:		case ORIl:		case ORIw:
-		case ANDIb:		case ANDIl:		case ANDIw:
 		case SUBIb:		case SUBIl:		case SUBIw:
 			switch(original.mode<1>()) {
 				default: return original;
@@ -370,7 +378,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 		}
 
-		case ANDtoMb:		case ANDtoMw:	case ANDtoMl:
 		case ORtoMb:		case ORtoMw:	case ORtoMl:
 			switch(original.mode<1>()) {
 				default: return original;
@@ -383,7 +390,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		case ANDtoRb:		case ANDtoRw:	case ANDtoRl:
 		case ORtoRb:		case ORtoRw:	case ORtoRl:
 			switch(original.mode<0>()) {
 				default: return original;
