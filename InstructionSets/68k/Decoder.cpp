@@ -143,140 +143,95 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 
 template <Model model>
 template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
+	constexpr auto Dn		= Mask< AddressingMode::DataRegisterDirect >::value;
+	constexpr auto An		= Mask< AddressingMode::AddressRegisterDirect >::value;
+	constexpr auto Ind		= Mask< AddressingMode::AddressRegisterIndirect >::value;
+	constexpr auto PostInc	= Mask< AddressingMode::AddressRegisterIndirectWithPostincrement >::value;
+	constexpr auto PreDec	= Mask< AddressingMode::AddressRegisterIndirectWithPredecrement >::value;
+	constexpr auto d16An	= Mask< AddressingMode::AddressRegisterIndirectWithDisplacement >::value;
+	constexpr auto d8AnXn	= Mask< AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement >::value;
+	constexpr auto XXXw		= Mask< AddressingMode::AbsoluteShort >::value;
+	constexpr auto XXXl		= Mask< AddressingMode::AbsoluteLong >::value;
+	constexpr auto d16PC	= Mask< AddressingMode::ProgramCounterIndirectWithDisplacement >::value;
+	constexpr auto d8PCXn	= Mask< AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement >::value;
+	constexpr auto Imm		= Mask< AddressingMode::ImmediateData >::value;
+	constexpr auto Quick	= Mask< AddressingMode::Quick >::value;
+
+
 	// A few recurring combinations; terminology is directly from
 	// the Programmers' Reference Manual.
 
 	//
-	// All modes: the complete set.
+	// All modes: the complete set (other than Quick).
 	//
 	// (and the complete set without AddressRegisterDirect, for byte operations).
-	static constexpr uint32_t AllModes = Mask<
-		AddressingMode::DataRegisterDirect,
-		AddressingMode::AddressRegisterDirect,
-		AddressingMode::AddressRegisterIndirect,
-		AddressingMode::AddressRegisterIndirectWithPostincrement,
-		AddressingMode::AddressRegisterIndirectWithPredecrement,
-		AddressingMode::AddressRegisterIndirectWithDisplacement,
-		AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement,
-		AddressingMode::AbsoluteShort,
-		AddressingMode::AbsoluteLong,
-		AddressingMode::ImmediateData,
-		AddressingMode::ProgramCounterIndirectWithDisplacement,
-		AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement
-	>::value;
-	static constexpr uint32_t AllModes_b = Mask<
-		AddressingMode::DataRegisterDirect,
-		AddressingMode::AddressRegisterIndirect,
-		AddressingMode::AddressRegisterIndirectWithPostincrement,
-		AddressingMode::AddressRegisterIndirectWithPredecrement,
-		AddressingMode::AddressRegisterIndirectWithDisplacement,
-		AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement,
-		AddressingMode::AbsoluteShort,
-		AddressingMode::AbsoluteLong,
-		AddressingMode::ImmediateData,
-		AddressingMode::ProgramCounterIndirectWithDisplacement,
-		AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement
-	>::value;
+	static constexpr auto AllModes 		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn | Imm;
+	static constexpr auto AllModes_b 	= AllModes & ~An;
 
 	//
 	// Alterable addressing modes (with and without AddressRegisterDirect).
 	//
 	// Dn, An, (An), (An)+, -(An), (d16, An), (d8, An, Xn), (xxx).W, (xxx).L
 	// (and sans An for _b)
-	static constexpr uint32_t AlterableAddressingModes = Mask<
-		AddressingMode::DataRegisterDirect,
-		AddressingMode::AddressRegisterDirect,
-		AddressingMode::AddressRegisterIndirect,
-		AddressingMode::AddressRegisterIndirectWithPostincrement,
-		AddressingMode::AddressRegisterIndirectWithPredecrement,
-		AddressingMode::AddressRegisterIndirectWithDisplacement,
-		AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement,
-		AddressingMode::AbsoluteShort,
-		AddressingMode::AbsoluteLong
-	>::value;
-	static constexpr uint32_t AlterableAddressingModes_b = Mask<
-		AddressingMode::DataRegisterDirect,
-		AddressingMode::AddressRegisterIndirect,
-		AddressingMode::AddressRegisterIndirectWithPostincrement,
-		AddressingMode::AddressRegisterIndirectWithPredecrement,
-		AddressingMode::AddressRegisterIndirectWithDisplacement,
-		AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement,
-		AddressingMode::AbsoluteShort,
-		AddressingMode::AbsoluteLong
-	>::value;
+	static constexpr auto AlterableAddressingModes 		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl;
+	static constexpr auto AlterableAddressingModes_b	= AlterableAddressingModes & ~An;
 
 	switch(op) {
 		default: return NoOperandMask::value;
 
 		case OpT(Operation::ABCD):
 		case OpT(Operation::ADDXb):	case OpT(Operation::ADDXw):	case OpT(Operation::ADDXl):
-			return ~TwoOperandMask<Mask<
-				AddressingMode::DataRegisterDirect,
-				AddressingMode::AddressRegisterIndirectWithPredecrement
-			>::value, Mask<
-				AddressingMode::DataRegisterDirect,
-				AddressingMode::AddressRegisterIndirectWithPredecrement
-			>::value>::value;
+			return ~TwoOperandMask<
+				Dn | PreDec,
+				Dn | PreDec
+			>::value;
 
 		case ADDtoRb:
 			return ~TwoOperandMask<
-				AllModes_b
-			, Mask<
-				AddressingMode::DataRegisterDirect
-			>::value>::value;
+				AllModes_b,
+				Dn
+			>::value;
 
 		case ADDtoRw:	case ADDtoRl:
 			return ~TwoOperandMask<
-				AllModes
-			, Mask<
-				AddressingMode::DataRegisterDirect
-			>::value>::value;
+				AllModes,
+				Dn
+			>::value;
 
 		case ADDtoMb:	case ADDtoMw:	case ADDtoMl:
-			return ~TwoOperandMask<Mask<
-				AddressingMode::DataRegisterDirect
-			>::value, Mask<
-				// TODO: I strongly suspect this should be AlterableAddressingModes regardless
-				// of the documentation. Verify.
-				AddressingMode::AddressRegisterIndirect,
-				AddressingMode::AddressRegisterIndirectWithPostincrement,
-				AddressingMode::AddressRegisterIndirectWithPredecrement,
-				AddressingMode::AddressRegisterIndirectWithDisplacement,
-				AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement,
-				AddressingMode::AbsoluteShort,
-				AddressingMode::AbsoluteLong
-			>::value>::value;
+			return ~TwoOperandMask<
+				Dn,
+				Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
+			>::value;
 
 		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
 			return ~TwoOperandMask<
-				AllModes
-			, Mask<
-				AddressingMode::AddressRegisterDirect
-			>::value>::value;
+				AllModes,
+				An
+			>::value;
 
 		case ADDIb:		case ADDIl:		case ADDIw:
-			return ~TwoOperandMask<Mask<
-				AddressingMode::ImmediateData
-			>::value,
+			return ~TwoOperandMask<
+				Imm,
 				AlterableAddressingModes_b
 			>::value;
 
 		case ADDQb:
-			return ~TwoOperandMask<Mask<
-				AddressingMode::Quick
-			>::value,
+			return ~TwoOperandMask<
+				Quick,
 				AlterableAddressingModes_b
 			>::value;
 
 		case ADDQw:	case ADDQl:
-			return ~TwoOperandMask<Mask<
-				AddressingMode::Quick
-			>::value,
+			return ~TwoOperandMask<
+				Quick,
 				AlterableAddressingModes
 			>::value;
 
 		case OpT(Operation::NBCD):
-			return ~OneOperandMask<AlterableAddressingModes_b>::value;
+			return ~OneOperandMask<
+				AlterableAddressingModes_b
+			>::value;
 	}
 }
 
@@ -363,11 +318,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 
 		// ADD, SUB, MOVE, MOVEA
-//		case ADDQb:						case ADDQw:					case ADDQl:
 		case SUBQb:						case SUBQw:					case SUBQl:
 		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
 		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
-		case OpT(Operation::ANDb):		case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
 		case OpT(Operation::EORb):		case OpT(Operation::EORw):	case OpT(Operation::EORl):
 		case OpT(Operation::ORb):		case OpT(Operation::ORw):	case OpT(Operation::ORl): {
 			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
@@ -724,31 +677,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b0–b2 and b3–b5:	an effective address;
 		// b6–b8:			an opmode, i.e. source + direction.
 		//
-		case OpT(Operation::SUBb):	case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
-		case OpT(Operation::ANDb):	case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
-		case OpT(Operation::ORb):	case OpT(Operation::ORw):	case OpT(Operation::ORl): {
 
-			const auto ea_combined_mode = combined_mode(ea_mode, ea_register);
-
-			// TODO: make this decision outside of this function.
-			if(opmode & 4) {
-				// Dn, <ea>
-
-				return validated<op, validate>(
-					Preinstruction(operation,
-						AddressingMode::DataRegisterDirect, data_register,
-						ea_combined_mode, ea_register));
-			} else {
-				// <ea>, Dn
-
-				return validated<op, validate>(
-					Preinstruction(operation,
-						ea_combined_mode, ea_register,
-						AddressingMode::DataRegisterDirect, data_register));
-			}
-
-			return Preinstruction();
-		}
 
 
 		case ADDtoRb:	case ADDtoRw:	case ADDtoRl:
