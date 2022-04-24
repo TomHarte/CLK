@@ -228,9 +228,34 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				AlterableAddressingModes
 			>::value;
 
+		case OpT(Operation::Bccw):	case OpT(Operation::Bccl):
 		case OpT(Operation::ANDItoCCR):
 			return ~OneOperandMask<
 				Imm
+			>::value;
+
+		case OpT(Operation::ASLb):	case OpT(Operation::ASLw):	case OpT(Operation::ASLl):
+		case OpT(Operation::ASRb):	case OpT(Operation::ASRw):	case OpT(Operation::ASRl):
+			return ~TwoOperandMask<
+				Quick | Dn,
+				Dn
+			>::value;
+
+		case OpT(Operation::Bccb):
+			return ~OneOperandMask<
+				Quick
+			>::value;
+
+		case OpT(Operation::BCHG):	case OpT(Operation::BCLR):
+			return ~TwoOperandMask<
+				Dn,
+				AlterableAddressingModesNoAn
+			>::value;
+
+		case BCHGI:	case BCLRI:
+			return ~TwoOperandMask<
+				Imm,
+				AlterableAddressingModesNoAn
 			>::value;
 
 		case OpT(Operation::NBCD):
@@ -264,6 +289,11 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case ANDtoMb:	case ANDtoMw:	case ANDtoMl:
 		case ANDIb:		case ANDIl:		case ANDIw:
 		case OpT(Operation::ANDItoCCR):
+		case OpT(Operation::ASLb):	case OpT(Operation::ASLw):	case OpT(Operation::ASLl):
+		case OpT(Operation::ASRb):	case OpT(Operation::ASRw):	case OpT(Operation::ASRl):
+		case OpT(Operation::Bccb):	case OpT(Operation::Bccw):	case OpT(Operation::Bccl):
+		case OpT(Operation::BCHG):	case BCHGI:
+		case OpT(Operation::BCLR):	case BCLRI:
 		case OpT(Operation::NBCD): {
 			const auto invalid = invalid_operands<op>();
 			const auto observed = operand_mask(original);
@@ -489,9 +519,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		case OpT(Operation::BCHG):
-		case OpT(Operation::BSET):	case OpT(Operation::BCLR):
-		case BCHGI:	case BSETI:	case BCLRI:
+		case OpT(Operation::BSET):	case BSETI:
 			switch(original.mode<1>()) {
 				default: return original;
 
