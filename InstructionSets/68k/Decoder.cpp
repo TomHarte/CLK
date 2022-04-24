@@ -246,13 +246,15 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				Quick
 			>::value;
 
-		case OpT(Operation::BCHG):	case OpT(Operation::BCLR):
+		case OpT(Operation::BCHG):
+		case OpT(Operation::BCLR):
+		case OpT(Operation::BSET):
 			return ~TwoOperandMask<
 				Dn,
 				AlterableAddressingModesNoAn
 			>::value;
 
-		case BCHGI:	case BCLRI:
+		case BCHGI:	case BCLRI:	case BSETI:
 			return ~TwoOperandMask<
 				Imm,
 				AlterableAddressingModesNoAn
@@ -294,6 +296,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case OpT(Operation::Bccb):	case OpT(Operation::Bccw):	case OpT(Operation::Bccl):
 		case OpT(Operation::BCHG):	case BCHGI:
 		case OpT(Operation::BCLR):	case BCLRI:
+		case OpT(Operation::BSET):	case BSETI:
 		case OpT(Operation::NBCD): {
 			const auto invalid = invalid_operands<op>();
 			const auto observed = operand_mask(original);
@@ -477,8 +480,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		// ADDA, SUBA.
-//		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
 		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
 			switch(original.mode<0>()) {
 				default: break;
@@ -516,18 +517,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 
 				case AddressingMode::None:
 				case AddressingMode::AddressRegisterDirect:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::BSET):	case BSETI:
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::None:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::ImmediateData:
 					return Preinstruction();
 			}
 
