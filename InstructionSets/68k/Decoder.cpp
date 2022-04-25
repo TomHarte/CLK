@@ -195,6 +195,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
 		case OpT(Operation::CHK):
 		case OpT(Operation::CMPb):
+		case SUBtoRb:
 			return ~TwoOperandMask<
 				AllModesNoAn,
 				Dn
@@ -202,6 +203,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 		case ADDtoRw:	case ADDtoRl:
 		case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
+		case SUBtoRw:	case SUBtoRl:
 			return ~TwoOperandMask<
 				AllModes,
 				Dn
@@ -209,12 +211,14 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 		case ADDtoMb:	case ADDtoMw:	case ADDtoMl:
 		case ANDtoMb:	case ANDtoMw:	case ANDtoMl:
+		case SUBtoMb:	case SUBtoMw:	case SUBtoMl:
 			return ~TwoOperandMask<
 				Dn,
 				Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
 			>::value;
 
 		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
+		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
 			return ~TwoOperandMask<
 				AllModes,
 				An
@@ -222,26 +226,29 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 		case ADDIb:		case ADDIl:		case ADDIw:
 		case ANDIb:		case ANDIl:		case ANDIw:
+		case SUBIb:		case SUBIl:		case SUBIw:
 			return ~TwoOperandMask<
 				Imm,
 				AlterableAddressingModesNoAn
 			>::value;
 
 		case ADDQb:
+		case SUBQb:
 			return ~TwoOperandMask<
 				Quick,
 				AlterableAddressingModesNoAn
 			>::value;
 
 		case ADDQw:	case ADDQl:
+		case SUBQw:	case SUBQl:
 			return ~TwoOperandMask<
 				Quick,
 				AlterableAddressingModes
 			>::value;
 
 		case OpT(Operation::ANDItoCCR):	case OpT(Operation::ANDItoSR):
-		case OpT(Operation::Bccw):	case OpT(Operation::Bccl):
-		case OpT(Operation::BSRl):	case OpT(Operation::BSRw):
+		case OpT(Operation::Bccw):		case OpT(Operation::Bccl):
+		case OpT(Operation::BSRl):		case OpT(Operation::BSRw):
 		case OpT(Operation::EORItoCCR):	case OpT(Operation::EORItoSR):
 		case OpT(Operation::ORItoCCR):	case OpT(Operation::ORItoSR):
 		case OpT(Operation::STOP):
@@ -343,6 +350,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			>::value;
 
 		case OpT(Operation::DIVU): case OpT(Operation::DIVS):
+		case OpT(Operation::MULU): case OpT(Operation::MULS):
 			return ~TwoOperandMask<
 				AllModesNoAn,
 				Dn
@@ -374,6 +382,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 		case OpT(Operation::JMP):
 		case OpT(Operation::JSR):
+		case OpT(Operation::PEA):
 			return ~OneOperandMask<
 				ControlAddressingModes
 			>::value;
@@ -445,7 +454,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 
 		// The various immediates.
 		case ORIb:		case ORIl:		case ORIw:
-		case SUBIb:		case SUBIl:		case SUBIw:
 			switch(original.mode<1>()) {
 				default: return original;
 
@@ -458,7 +466,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 
 		// ADD, SUB, MOVE, MOVEA
-		case SUBQb:						case SUBQw:					case SUBQl:
 		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
 		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
 		case OpT(Operation::ORb):		case OpT(Operation::ORw):	case OpT(Operation::ORl): {
@@ -493,21 +500,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 		}
 
-		case SUBtoRb:		case SUBtoRw:	case SUBtoRl: {
-			constexpr bool is_byte = op == ADDtoRb || op == SUBtoRb || op == SUBtoRb || op == ADDtoRb;
-
-			switch(original.mode<0>()) {
-				default: return original;
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (!is_byte) {
-						return original;
-					}
-					[[fallthrough]];
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-		}
-
 		case ORtoMb:		case ORtoMw:	case ORtoMl:
 			switch(original.mode<1>()) {
 				default: return original;
@@ -527,42 +519,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::None:
 					return Preinstruction();
 			}
-
-		case SUBtoMb:		case SUBtoMw:	case SUBtoMl: {
-			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
-			constexpr bool is_byte = op == ADDtoMb || op == SUBtoMb;
-
-			switch(original.mode<0>()) {
-				default: break;
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (!is_byte) {
-						break;
-					}
-					[[fallthrough]];
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::DataRegisterDirect:
-					// TODO: this is per the documentation, but is it true?
-					if constexpr (op == ANDtoMb || op == ANDtoMw || op == ANDtoMl || op == ORtoMb || op == ORtoMw || op == ORtoMl) {
-						return Preinstruction();
-					}
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (!is_byte) {
-						return original;
-					}
-					[[fallthrough]];
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-		}
 
 		case OpT(Operation::NOTb):		case OpT(Operation::NOTw):	case OpT(Operation::NOTl):
 			switch(original.mode<0>()) {
@@ -590,20 +546,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::ProgramCounterIndirectWithDisplacement:
 				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
 				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		// LEA, PEA
-		case OpT(Operation::PEA):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::None:
-				case AddressingMode::DataRegisterDirect:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::AddressRegisterIndirectWithPostincrement:
-				case AddressingMode::AddressRegisterIndirectWithPredecrement:
-				case AddressingMode::ImmediateData:
 					return Preinstruction();
 			}
 
@@ -669,15 +611,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::AddressRegisterDirect:
 				case AddressingMode::AddressRegisterIndirectWithPredecrement:
 				case AddressingMode::ImmediateData:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::MULU): case OpT(Operation::MULS):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
 				case AddressingMode::None:
 					return Preinstruction();
 			}
