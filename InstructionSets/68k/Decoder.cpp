@@ -185,12 +185,15 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 		case ADDtoRb:
 		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
+		case OpT(Operation::CHK):
+		case OpT(Operation::CMPb):
 			return ~TwoOperandMask<
 				AllModesNoAn,
 				Dn
 			>::value;
 
 		case ADDtoRw:	case ADDtoRl:
+		case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
 			return ~TwoOperandMask<
 				AllModes,
 				Dn
@@ -274,9 +277,16 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				Dn | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
 			>::value;
 
+		case OpT(Operation::CLRb):	case OpT(Operation::CLRw):	case OpT(Operation::CLRl):
 		case OpT(Operation::NBCD):
 			return ~OneOperandMask<
 				AlterableAddressingModesNoAn
+			>::value;
+
+		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
+			return ~TwoOperandMask<
+				AllModes,
+				An
 			>::value;
 	}
 }
@@ -313,6 +323,10 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case OpT(Operation::BSET):	case BSETI:
 		case OpT(Operation::BSRb):	case OpT(Operation::BSRw):	case OpT(Operation::BSRl):
 		case OpT(Operation::BTST):	case BTSTI:
+		case OpT(Operation::CHK):
+		case OpT(Operation::CLRb):	case OpT(Operation::CLRw):	case OpT(Operation::CLRl):
+		case OpT(Operation::CMPb):	case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
+		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
 		case OpT(Operation::NBCD): {
 			const auto invalid = invalid_operands<op>();
 			const auto observed = operand_mask(original);
@@ -552,24 +566,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
-		case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::CMPb):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::None:
-				case AddressingMode::AddressRegisterDirect:
-					return Preinstruction();
-			}
-
 		case OpT(Operation::JSR):	case OpT(Operation::JMP):
 			switch(original.mode<0>()) {
 				default: return original;
@@ -585,7 +581,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 
 		case OpT(Operation::Scc):
 		case OpT(Operation::NEGXb):	case OpT(Operation::NEGXw):	case OpT(Operation::NEGXl):
-		case OpT(Operation::CLRb):	case OpT(Operation::CLRw):	case OpT(Operation::CLRl):
 		case OpT(Operation::NEGb):	case OpT(Operation::NEGw):	case OpT(Operation::NEGl):
 			switch(original.mode<0>()) {
 				default: return original;
@@ -642,7 +637,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 
 		case OpT(Operation::DIVU): case OpT(Operation::DIVS):
 		case OpT(Operation::MULU): case OpT(Operation::MULS):
-		case OpT(Operation::CHK):
 			switch(original.mode<0>()) {
 				default: return original;
 
