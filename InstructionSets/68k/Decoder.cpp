@@ -37,12 +37,8 @@ constexpr AddressingMode combined_mode(int mode, int reg) {
 	return modes[use_reg];
 }
 
-template <AddressingMode... T> struct Mask {
-	static constexpr uint32_t value = 0;
-};
-
-template <AddressingMode F, AddressingMode... T> struct Mask<F, T...> {
-	static constexpr uint32_t value = uint32_t(1 << int(F)) | Mask<T...>::value;
+template <AddressingMode F> struct Mask {
+	static constexpr uint32_t value = uint32_t(1 << int(F));
 };
 
 static constexpr uint32_t NoOperand = Mask<AddressingMode::None>::value;
@@ -160,7 +156,6 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 	constexpr auto Imm		= Mask< AddressingMode::ImmediateData >::value;
 	constexpr auto Quick	= Mask< AddressingMode::Quick >::value;
 
-
 	// A few recurring combinations; terminology is directly from
 	// the Programmers' Reference Manual.
 
@@ -195,9 +190,9 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
 		case OpT(Operation::CHK):
 		case OpT(Operation::CMPb):
-		case OpT(Operation::DIVU): case OpT(Operation::DIVS):
+		case OpT(Operation::DIVU):		case OpT(Operation::DIVS):
 		case ORtoRb:	case ORtoRw:	case ORtoRl:
-		case OpT(Operation::MULU): case OpT(Operation::MULS):
+		case OpT(Operation::MULU):		case OpT(Operation::MULS):
 		case SUBtoRb:
 			return ~TwoOperandMask<
 				AllModesNoAn,
@@ -222,6 +217,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			>::value;
 
 		case OpT(Operation::ADDAw):		case OpT(Operation::ADDAl):
+		case OpT(Operation::CMPAw):	 	case OpT(Operation::CMPAl):
 		case OpT(Operation::SUBAw):		case OpT(Operation::SUBAl):
 		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
 			return ~TwoOperandMask<
@@ -231,6 +227,9 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 		case ADDIb:		case ADDIl:		case ADDIw:
 		case ANDIb:		case ANDIl:		case ANDIw:
+		case BCHGI:		case BCLRI:		case BSETI:
+		case EORIb:		case EORIw:		case EORIl:
+		case ORIb:		case ORIw:		case ORIl:
 		case SUBIb:		case SUBIl:		case SUBIw:
 			return ~TwoOperandMask<
 				Imm,
@@ -298,7 +297,6 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
 			>::value;
 
-
 		case OpT(Operation::Bccb):
 		case OpT(Operation::BSRb):
 		case OpT(Operation::TRAP):
@@ -312,14 +310,6 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):
 			return ~TwoOperandMask<
 				Dn,
-				AlterableAddressingModesNoAn
-			>::value;
-
-		case BCHGI:	case BCLRI:	case BSETI:
-		case EORIb:	case EORIw:	case EORIl:
-		case ORIb:	case ORIw:	case ORIl:
-			return ~TwoOperandMask<
-				Imm,
 				AlterableAddressingModesNoAn
 			>::value;
 
@@ -346,7 +336,10 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::CLRb):	case OpT(Operation::CLRw):	case OpT(Operation::CLRl):
 		case OpT(Operation::NBCD):
 		case OpT(Operation::MOVEfromSR):
-		case OpT(Operation::NOTb):		case OpT(Operation::NOTw):	case OpT(Operation::NOTl):
+		case OpT(Operation::NEGXb):	case OpT(Operation::NEGXw):	case OpT(Operation::NEGXl):
+		case OpT(Operation::NEGb):	case OpT(Operation::NEGw):	case OpT(Operation::NEGl):
+		case OpT(Operation::NOTb):	case OpT(Operation::NOTw):	case OpT(Operation::NOTl):
+		case OpT(Operation::Scc):
 		case OpT(Operation::TAS):
 			return ~OneOperandMask<
 				AlterableAddressingModesNoAn
@@ -375,12 +368,6 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 					AllModes
 				>::value;
 			}
-
-		case OpT(Operation::CMPAw):	 case OpT(Operation::CMPAl):
-			return ~TwoOperandMask<
-				AllModes,
-				An
-			>::value;
 
 		case CMPMb:	case CMPMw:	case CMPMl:
 			return ~TwoOperandMask<
@@ -450,6 +437,18 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			return ~OneOperandMask<
 				An
 			>::value;
+
+		case MOVEMtoMw:	case MOVEMtoMl:
+			return ~TwoOperandMask<
+				Imm,
+				Ind | PreDec | d16An | d8AnXn | XXXw | XXXl
+			>::value;
+
+		case MOVEMtoRw: case MOVEMtoRl:
+			return ~TwoOperandMask<
+				Ind | PostInc | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn,
+				Imm
+			>::value;
 	}
 }
 
@@ -460,53 +459,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		return original;
 	}
 
-	switch(op) {
-		default: {
-			const auto invalid = invalid_operands<op>();
-			const auto observed = operand_mask(original);
-			return (observed & invalid) ? Preinstruction() : original;
-		}
-
-		case OpT(Operation::Scc):
-		case OpT(Operation::NEGXb):	case OpT(Operation::NEGXw):	case OpT(Operation::NEGXl):
-		case OpT(Operation::NEGb):	case OpT(Operation::NEGw):	case OpT(Operation::NEGl):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case MOVEMtoMw:	case MOVEMtoMl:
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::DataRegisterDirect:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::AddressRegisterIndirectWithPostincrement:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case MOVEMtoRw: case MOVEMtoRl:
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::DataRegisterDirect:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::AddressRegisterIndirectWithPredecrement:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-	}
+	const auto invalid = invalid_operands<op>();
+	const auto observed = operand_mask(original);
+	return (observed & invalid) ? Preinstruction() : original;
 }
 
 /// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been
@@ -552,9 +507,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b0–b2 and b3–b5:	an effective address;
 		// b6–b8:			an opmode, i.e. source + direction.
 		//
-
-
-
 		case ADDtoRb:	case ADDtoRw:	case ADDtoRl:
 		case SUBtoRb:	case SUBtoRw:	case SUBtoRl:
 		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
