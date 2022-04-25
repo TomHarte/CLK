@@ -320,6 +320,29 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				AllModesNoAn,
 				Dn
 			>::value;
+
+		case EXGRtoR:
+			return ~TwoOperandMask<
+				Dn,
+				Dn
+			>::value;
+
+		case EXGAtoA:
+			return ~TwoOperandMask<
+				An,
+				An
+			>::value;
+
+		case EXGRtoA:
+			return ~TwoOperandMask<
+				Dn,
+				An
+			>::value;
+
+		case OpT(Operation::EXTbtow):	case OpT(Operation::EXTwtol):
+			return ~OneOperandMask<
+				Dn
+			>::value;
 	}
 }
 
@@ -366,6 +389,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):
 		case EORIb:	case EORIw:	case EORIl:
 		case OpT(Operation::EORItoCCR):
+		case EXGRtoR:	case EXGAtoA:	case EXGRtoA:
+		case OpT(Operation::EXTbtow):	case OpT(Operation::EXTwtol):
 		case OpT(Operation::NBCD): {
 			const auto invalid = invalid_operands<op>();
 			const auto observed = operand_mask(original);
