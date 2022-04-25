@@ -131,8 +131,9 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 		case ORtoRw:	case ORtoMw:	return Operation::ORw;
 		case ORtoRl:	case ORtoMl:	return Operation::ORl;
 
-		case EXGRtoR:	case EXGAtoA:	case EXGRtoA:
-		return Operation::EXG;
+		case EXGRtoR:	case EXGAtoA:	case EXGRtoA:	return Operation::EXG;
+
+		case MOVEQ:		return Operation::MOVEl;
 
 		default: break;
 	}
@@ -177,10 +178,12 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 	static constexpr auto ControlAddressingModes	=  Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn;
 
 	switch(op) {
-		default: return NoOperandMask::value;
+		default: return ~NoOperandMask::value;
 
 		case OpT(Operation::ABCD):
 		case OpT(Operation::ADDXb):	case OpT(Operation::ADDXw):	case OpT(Operation::ADDXl):
+		case OpT(Operation::SBCD):
+		case OpT(Operation::SUBXb):	case OpT(Operation::SUBXw):	case OpT(Operation::SUBXl):
 			return ~TwoOperandMask<
 				Dn | PreDec,
 				Dn | PreDec
@@ -241,6 +244,12 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			return ~TwoOperandMask<
 				Quick,
 				AlterableAddressingModesNoAn
+			>::value;
+
+		case MOVEQ:
+			return ~TwoOperandMask<
+				Quick,
+				Dn
 			>::value;
 
 		case ADDQw:	case ADDQl:
@@ -448,6 +457,18 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			return ~TwoOperandMask<
 				Ind | PostInc | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn,
 				Imm
+			>::value;
+
+		case MOVEPtoRl: case MOVEPtoRw:
+			return ~TwoOperandMask<
+				d16An,
+				Dn
+			>::value;
+
+		case MOVEPtoMl:	case MOVEPtoMw:
+			return ~TwoOperandMask<
+				Dn,
+				d16An
 			>::value;
 	}
 }
@@ -804,8 +825,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b9–b11:		a destination register;
 		// b0–b7:		a 'quick' value.
 		//
-		// TODO: does this need to be a separate instruction from MOVEl?
-		case OpT(Operation::MOVEq):
+		case MOVEQ:
 			return validated<op, validate>(
 				Preinstruction(operation,
 					AddressingMode::Quick, 0,
@@ -1147,7 +1167,7 @@ Preinstruction Predecoder<model>::decode7(uint16_t instruction) {
 
 	// 4-134 (p238)
 	if(!(instruction & 0x100)) {
-		Decode(Op::MOVEq);
+		Decode(MOVEQ);
 	} else {
 		return Preinstruction();
 	}

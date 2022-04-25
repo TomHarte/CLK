@@ -32,7 +32,6 @@ enum class Operation: uint8_t {
 
 	MOVEb,	MOVEw,	MOVEl,
 	MOVEAw,	MOVEAl,
-	MOVEq,
 	LEA,	PEA,
 
 	MOVEtoSR, MOVEfromSR,
@@ -141,7 +140,7 @@ constexpr int8_t quick(uint16_t instruction) {
 	switch(op) {
 		case Operation::Bccb:
 		case Operation::BSRb:
-		case Operation::MOVEq:	return int8_t(instruction);
+		case Operation::MOVEl:	return int8_t(instruction);
 		case Operation::TRAP:	return int8_t(instruction & 15);
 		default: {
 			int8_t value = (instruction >> 9) & 7;
@@ -153,7 +152,7 @@ constexpr int8_t quick(uint16_t instruction) {
 
 constexpr int8_t quick(Operation op, uint16_t instruction) {
 	switch(op) {
-		case Operation::MOVEq:	return quick<Operation::MOVEq>(instruction);
+		case Operation::MOVEl:	return quick<Operation::MOVEl>(instruction);
 		case Operation::Bccb:	return quick<Operation::Bccb>(instruction);
 		case Operation::BSRb:	return quick<Operation::BSRb>(instruction);
 		case Operation::TRAP:	return quick<Operation::TRAP>(instruction);

@@ -113,12 +113,16 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 
 			case Operation::MOVEb:		instruction = @"MOVE.b";	break;
 			case Operation::MOVEw:		instruction = @"MOVE.w";	break;
-			case Operation::MOVEl:		instruction = @"MOVE.l";	break;
+			case Operation::MOVEl:
+				if(found.mode<0>() == AddressingMode::Quick) {
+					instruction = @"MOVE.q";
+				} else {
+					instruction = @"MOVE.l";
+				}
+			break;
 
 			case Operation::MOVEAw:		instruction = @"MOVEA.w";	break;
 			case Operation::MOVEAl:		instruction = @"MOVEA.l";	break;
-
-			case Operation::MOVEq:		instruction = @"MOVE.q";	break;
 
 			case Operation::LEA:		instruction = @"LEA";		break;
 			case Operation::PEA:		instruction = @"PEA";		break;

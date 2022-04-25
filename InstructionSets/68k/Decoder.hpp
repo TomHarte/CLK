@@ -62,6 +62,8 @@ template <Model model> class Predecoder {
 			MOVEPtoRl, MOVEPtoRw,
 			MOVEPtoMl, MOVEPtoMw,
 
+			MOVEQ,
+
 			ADDQb,	ADDQw,	ADDQl,
 			ADDQAw,	ADDQAl,
 			SUBQb,	SUBQw,	SUBQl,
