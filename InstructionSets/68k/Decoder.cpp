@@ -228,8 +228,9 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				AlterableAddressingModes
 			>::value;
 
-		case OpT(Operation::Bccw):	case OpT(Operation::Bccl):
 		case OpT(Operation::ANDItoCCR):
+		case OpT(Operation::Bccw):	case OpT(Operation::Bccl):
+		case OpT(Operation::BSRl):	case OpT(Operation::BSRw):
 			return ~OneOperandMask<
 				Imm
 			>::value;
@@ -242,6 +243,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			>::value;
 
 		case OpT(Operation::Bccb):
+		case OpT(Operation::BSRb):
 			return ~OneOperandMask<
 				Quick
 			>::value;
@@ -258,6 +260,18 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			return ~TwoOperandMask<
 				Imm,
 				AlterableAddressingModesNoAn
+			>::value;
+
+		case OpT(Operation::BTST):
+			return ~TwoOperandMask<
+				Dn,
+				AllModesNoAn
+			>::value;
+
+		case BTSTI:
+			return ~TwoOperandMask<
+				Imm,
+				Dn | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
 			>::value;
 
 		case OpT(Operation::NBCD):
@@ -297,6 +311,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case OpT(Operation::BCHG):	case BCHGI:
 		case OpT(Operation::BCLR):	case BCLRI:
 		case OpT(Operation::BSET):	case BSETI:
+		case OpT(Operation::BSRb):	case OpT(Operation::BSRw):	case OpT(Operation::BSRl):
+		case OpT(Operation::BTST):	case BTSTI:
 		case OpT(Operation::NBCD): {
 			const auto invalid = invalid_operands<op>();
 			const auto observed = operand_mask(original);
@@ -395,8 +411,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 		}
 
-		case SUBtoRb:		case SUBtoRw:	case SUBtoRl:
-		/*case ADDtoRb:		case ADDtoRw:	case ADDtoRl: */{
+		case SUBtoRb:		case SUBtoRw:	case SUBtoRl: {
 			constexpr bool is_byte = op == ADDtoRb || op == SUBtoRb || op == SUBtoRb || op == ADDtoRb;
 
 			switch(original.mode<0>()) {
@@ -507,25 +522,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::AddressRegisterDirect:
 				case AddressingMode::AddressRegisterIndirectWithPostincrement:
 				case AddressingMode::AddressRegisterIndirectWithPredecrement:
-				case AddressingMode::ImmediateData:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::BTST):
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::None:
-				case AddressingMode::AddressRegisterDirect:
-					return Preinstruction();
-			}
-
-		case BTSTI:
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::None:
-				case AddressingMode::AddressRegisterDirect:
 				case AddressingMode::ImmediateData:
 					return Preinstruction();
 			}
