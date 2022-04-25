@@ -271,6 +271,14 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				AllModesNoAn
 			>::value;
 
+		case CMPIb:		case CMPIl:		case CMPIw:
+			if constexpr (model == Model::M68000) {
+				return ~TwoOperandMask<
+					Imm,
+					Dn | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
+				>::value;
+			}
+			[[fallthrough]];
 		case BTSTI:
 			return ~TwoOperandMask<
 				Imm,
@@ -288,6 +296,13 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				AllModes,
 				An
 			>::value;
+
+		case CMPMb:	case CMPMw:	case CMPMl:
+			return ~TwoOperandMask<
+				PostInc,
+				PostInc
+			>::value;
+
 	}
 }
 
@@ -327,6 +342,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case OpT(Operation::CLRb):	case OpT(Operation::CLRw):	case OpT(Operation::CLRl):
 		case OpT(Operation::CMPb):	case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
 		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
+		case CMPIb:	case CMPIl:	case CMPIw:
+		case CMPMb:	case CMPMw:	case CMPMl:
 		case OpT(Operation::NBCD): {
 			const auto invalid = invalid_operands<op>();
 			const auto observed = operand_mask(original);
@@ -367,23 +384,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 				case AddressingMode::ImmediateData:
 				case AddressingMode::ProgramCounterIndirectWithDisplacement:
 				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case CMPIb:		case CMPIl:		case CMPIw:
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-					if constexpr (model >= Model::M68010) {
-						return original;
-					}
-					[[fallthrough]];
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
 				case AddressingMode::None:
 					return Preinstruction();
 			}
