@@ -195,6 +195,9 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
 		case OpT(Operation::CHK):
 		case OpT(Operation::CMPb):
+		case OpT(Operation::DIVU): case OpT(Operation::DIVS):
+		case ORtoRb:	case ORtoRw:	case ORtoRl:
+		case OpT(Operation::MULU): case OpT(Operation::MULS):
 		case SUBtoRb:
 			return ~TwoOperandMask<
 				AllModesNoAn,
@@ -211,6 +214,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 		case ADDtoMb:	case ADDtoMw:	case ADDtoMl:
 		case ANDtoMb:	case ANDtoMw:	case ANDtoMl:
+		case ORtoMb:	case ORtoMw:	case ORtoMl:
 		case SUBtoMb:	case SUBtoMw:	case SUBtoMl:
 			return ~TwoOperandMask<
 				Dn,
@@ -244,6 +248,18 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			return ~TwoOperandMask<
 				Quick,
 				AlterableAddressingModes
+			>::value;
+
+		case OpT(Operation::MOVEb):
+			return ~TwoOperandMask<
+				AllModesNoAn,
+				AlterableAddressingModesNoAn
+			>::value;
+
+		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
+			return ~TwoOperandMask<
+				AllModes,
+				AlterableAddressingModesNoAn
 			>::value;
 
 		case OpT(Operation::ANDItoCCR):	case OpT(Operation::ANDItoSR):
@@ -300,6 +316,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 		case BCHGI:	case BCLRI:	case BSETI:
 		case EORIb:	case EORIw:	case EORIl:
+		case ORIb:	case ORIw:	case ORIl:
 			return ~TwoOperandMask<
 				Imm,
 				AlterableAddressingModesNoAn
@@ -347,13 +364,6 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			return ~TwoOperandMask<
 				Dn,
 				Imm
-			>::value;
-
-		case OpT(Operation::DIVU): case OpT(Operation::DIVS):
-		case OpT(Operation::MULU): case OpT(Operation::MULS):
-			return ~TwoOperandMask<
-				AllModesNoAn,
-				Dn
 			>::value;
 
 		case EXGRtoR:
@@ -452,23 +462,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		// The various immediates.
-		case ORIb:		case ORIl:		case ORIw:
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		// ADD, SUB, MOVE, MOVEA
-		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
-		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
-		case OpT(Operation::ORb):		case OpT(Operation::ORw):	case OpT(Operation::ORl): {
+		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl): {
 			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
 			constexpr bool is_byte =
 				op == OpT(Operation::MOVEb) || op == ADDQb	|| op == SUBQb || op == OpT(Operation::EORb);
@@ -499,26 +493,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 		}
-
-		case ORtoMb:		case ORtoMw:	case ORtoMl:
-			switch(original.mode<1>()) {
-				default: return original;
-				case AddressingMode::DataRegisterDirect:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case ORtoRb:		case ORtoRw:	case ORtoRl:
-			switch(original.mode<0>()) {
-				default: return original;
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
 
 		case OpT(Operation::NOTb):		case OpT(Operation::NOTw):	case OpT(Operation::NOTl):
 			switch(original.mode<0>()) {
