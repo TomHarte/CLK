@@ -221,8 +221,9 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
 			>::value;
 
-		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
-		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
+		case OpT(Operation::ADDAw):		case OpT(Operation::ADDAl):
+		case OpT(Operation::SUBAw):		case OpT(Operation::SUBAl):
+		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
 			return ~TwoOperandMask<
 				AllModes,
 				An
@@ -344,9 +345,36 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 		case OpT(Operation::CLRb):	case OpT(Operation::CLRw):	case OpT(Operation::CLRl):
 		case OpT(Operation::NBCD):
+		case OpT(Operation::MOVEfromSR):
+		case OpT(Operation::NOTb):		case OpT(Operation::NOTw):	case OpT(Operation::NOTl):
+		case OpT(Operation::TAS):
 			return ~OneOperandMask<
 				AlterableAddressingModesNoAn
 			>::value;
+
+		case OpT(Operation::TSTb):
+			if constexpr (model == Model::M68000) {
+				return ~OneOperandMask<
+					AlterableAddressingModesNoAn
+				>::value;
+			}
+			[[fallthrough]];
+		case OpT(Operation::MOVEtoCCR):
+		case OpT(Operation::MOVEtoSR):
+			return ~OneOperandMask<
+				AllModesNoAn
+			>::value;
+
+		case OpT(Operation::TSTw):	case OpT(Operation::TSTl):
+			if constexpr (model == Model::M68000) {
+				return ~OneOperandMask<
+					AlterableAddressingModesNoAn
+				>::value;
+			} else {
+				return ~OneOperandMask<
+					AllModes
+				>::value;
+			}
 
 		case OpT(Operation::CMPAw):	 case OpT(Operation::CMPAl):
 			return ~TwoOperandMask<
@@ -438,116 +466,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			const auto observed = operand_mask(original);
 			return (observed & invalid) ? Preinstruction() : original;
 		}
-
-		case OpT(Operation::MOVEfromSR):
-		case OpT(Operation::TAS):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::MOVEtoCCR):
-		case OpT(Operation::MOVEtoSR):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl): {
-			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
-			constexpr bool is_byte =
-				op == OpT(Operation::MOVEb) || op == ADDQb	|| op == SUBQb || op == OpT(Operation::EORb);
-
-			switch(original.mode<0>()) {
-				default: break;
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (!is_byte) {
-						break;
-					}
-					[[fallthrough]];
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (!is_byte) {
-						return original;
-					}
-					[[fallthrough]];
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-		}
-
-		case OpT(Operation::NOTb):		case OpT(Operation::NOTw):	case OpT(Operation::NOTl):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
-			switch(original.mode<0>()) {
-				default: break;
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::TSTb):	case OpT(Operation::TSTw):	case OpT(Operation::TSTl):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (op == OpT(Operation::TSTb)) {
-						return Preinstruction();
-					}
-					[[fallthrough]];
-
-				case AddressingMode::ImmediateData:
-					if constexpr (model < Model::M68020) {
-						return Preinstruction();
-					}
-					return original;
-
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-					if constexpr (model >= Model::M68010) {
-						return original;
-					}
-					[[fallthrough]];
-				case AddressingMode::None:
-					return Preinstruction();
-			}
 
 		case OpT(Operation::Scc):
 		case OpT(Operation::NEGXb):	case OpT(Operation::NEGXw):	case OpT(Operation::NEGXl):
