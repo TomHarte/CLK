@@ -343,6 +343,12 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			return ~OneOperandMask<
 				Dn
 			>::value;
+
+		case OpT(Operation::JMP):
+		case OpT(Operation::JSR):
+			return ~OneOperandMask<
+				Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
+			>::value;
 	}
 }
 
@@ -391,6 +397,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case OpT(Operation::EORItoCCR):
 		case EXGRtoR:	case EXGAtoA:	case EXGRtoA:
 		case OpT(Operation::EXTbtow):	case OpT(Operation::EXTwtol):
+		case OpT(Operation::JMP):
+		case OpT(Operation::JSR):
 		case OpT(Operation::NBCD): {
 			const auto invalid = invalid_operands<op>();
 			const auto observed = operand_mask(original);
@@ -505,7 +513,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		/*case ADDtoMb:		case ADDtoMw:	case ADDtoMl:*/
 		case SUBtoMb:		case SUBtoMw:	case SUBtoMl: {
 			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
 			constexpr bool is_byte = op == ADDtoMb || op == SUBtoMb;
@@ -607,19 +614,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 						return original;
 					}
 					[[fallthrough]];
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::JSR):	case OpT(Operation::JMP):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::DataRegisterDirect:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::AddressRegisterIndirectWithPostincrement:
-				case AddressingMode::AddressRegisterIndirectWithPredecrement:
-				case AddressingMode::ImmediateData:
 				case AddressingMode::None:
 					return Preinstruction();
 			}
