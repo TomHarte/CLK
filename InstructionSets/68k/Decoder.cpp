@@ -254,12 +254,14 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::BCHG):
 		case OpT(Operation::BCLR):
 		case OpT(Operation::BSET):
+		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):
 			return ~TwoOperandMask<
 				Dn,
 				AlterableAddressingModesNoAn
 			>::value;
 
 		case BCHGI:	case BCLRI:	case BSETI:
+		case EORIb:	case EORIw:	case EORIl:
 			return ~TwoOperandMask<
 				Imm,
 				AlterableAddressingModesNoAn
@@ -291,7 +293,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				AlterableAddressingModesNoAn
 			>::value;
 
-		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
+		case OpT(Operation::CMPAw):	 case OpT(Operation::CMPAl):
 			return ~TwoOperandMask<
 				AllModes,
 				An
@@ -303,6 +305,17 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				PostInc
 			>::value;
 
+		case OpT(Operation::DBcc):
+			return ~TwoOperandMask<
+				Dn,
+				Imm
+			>::value;
+
+		case OpT(Operation::DIVU): case OpT(Operation::DIVS):
+			return ~TwoOperandMask<
+				AllModesNoAn,
+				Dn
+			>::value;
 	}
 }
 
@@ -344,6 +357,10 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
 		case CMPIb:	case CMPIl:	case CMPIw:
 		case CMPMb:	case CMPMw:	case CMPMl:
+		case OpT(Operation::DBcc):
+		case OpT(Operation::DIVS):	case OpT(Operation::DIVU):
+		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):
+		case EORIb:	case EORIw:	case EORIl:
 		case OpT(Operation::NBCD): {
 			const auto invalid = invalid_operands<op>();
 			const auto observed = operand_mask(original);
@@ -374,7 +391,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 
 		// The various immediates.
-		case EORIb: 	case EORIl:		case EORIw:
 		case ORIb:		case ORIl:		case ORIw:
 		case SUBIb:		case SUBIl:		case SUBIw:
 			switch(original.mode<1>()) {
@@ -392,7 +408,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case SUBQb:						case SUBQw:					case SUBQl:
 		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
 		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
-		case OpT(Operation::EORb):		case OpT(Operation::EORw):	case OpT(Operation::EORl):
 		case OpT(Operation::ORb):		case OpT(Operation::ORw):	case OpT(Operation::ORl): {
 			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
 			constexpr bool is_byte =
@@ -635,7 +650,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 					return Preinstruction();
 			}
 
-		case OpT(Operation::DIVU): case OpT(Operation::DIVS):
 		case OpT(Operation::MULU): case OpT(Operation::MULS):
 			switch(original.mode<0>()) {
 				default: return original;
