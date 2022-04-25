@@ -37,6 +37,28 @@ constexpr AddressingMode combined_mode(int mode, int reg) {
 	return modes[use_reg];
 }
 
+template <AddressingMode F> struct Mask {
+	static constexpr uint32_t value = uint32_t(1 << int(F));
+};
+
+static constexpr uint32_t NoOperand = Mask<AddressingMode::None>::value;
+
+template <uint32_t first, uint32_t second> struct TwoOperandMask {
+	static constexpr uint32_t value = ((first << 16) & 0xffff0000) | (second & 0x0000ffff);
+};
+
+template <uint32_t first> struct OneOperandMask {
+	static constexpr uint32_t value = TwoOperandMask<first, NoOperand>::value;
+};
+
+struct NoOperandMask {
+	static constexpr uint32_t value = OneOperandMask<NoOperand>::value;
+};
+
+uint32_t operand_mask(Preinstruction instr) {
+	return uint32_t((0x1'0000 << int(instr.mode<0>())) | (0x0'0001 << int(instr.mode<1>())));
+}
+
 }
 
 // MARK: - Instruction decoders.
@@ -109,382 +131,337 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 		case ORtoRw:	case ORtoMw:	return Operation::ORw;
 		case ORtoRl:	case ORtoMl:	return Operation::ORl;
 
+		case EXGRtoR:	case EXGAtoA:	case EXGRtoA:
+		return Operation::EXG;
+
 		default: break;
 	}
 
 	return Operation::Undefined;
 }
 
+template <Model model>
+template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
+	constexpr auto Dn		= Mask< AddressingMode::DataRegisterDirect >::value;
+	constexpr auto An		= Mask< AddressingMode::AddressRegisterDirect >::value;
+	constexpr auto Ind		= Mask< AddressingMode::AddressRegisterIndirect >::value;
+	constexpr auto PostInc	= Mask< AddressingMode::AddressRegisterIndirectWithPostincrement >::value;
+	constexpr auto PreDec	= Mask< AddressingMode::AddressRegisterIndirectWithPredecrement >::value;
+	constexpr auto d16An	= Mask< AddressingMode::AddressRegisterIndirectWithDisplacement >::value;
+	constexpr auto d8AnXn	= Mask< AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement >::value;
+	constexpr auto XXXw		= Mask< AddressingMode::AbsoluteShort >::value;
+	constexpr auto XXXl		= Mask< AddressingMode::AbsoluteLong >::value;
+	constexpr auto d16PC	= Mask< AddressingMode::ProgramCounterIndirectWithDisplacement >::value;
+	constexpr auto d8PCXn	= Mask< AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement >::value;
+	constexpr auto Imm		= Mask< AddressingMode::ImmediateData >::value;
+	constexpr auto Quick	= Mask< AddressingMode::Quick >::value;
+
+	// A few recurring combinations; terminology is directly from
+	// the Programmers' Reference Manual.
+
+	//
+	// All modes: the complete set (other than Quick).
+	//
+	static constexpr auto AllModes 		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn | Imm;
+	static constexpr auto AllModesNoAn 	= AllModes & ~An;
+
+	//
+	// Alterable addressing modes (with and without AddressRegisterDirect).
+	//
+	static constexpr auto AlterableAddressingModes 		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl;
+	static constexpr auto AlterableAddressingModesNoAn	= AlterableAddressingModes & ~An;
+
+	//
+	// Control [flow] addressing modes.
+	//
+	static constexpr auto ControlAddressingModes	=  Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn;
+
+	switch(op) {
+		default: return NoOperandMask::value;
+
+		case OpT(Operation::ABCD):
+		case OpT(Operation::ADDXb):	case OpT(Operation::ADDXw):	case OpT(Operation::ADDXl):
+			return ~TwoOperandMask<
+				Dn | PreDec,
+				Dn | PreDec
+			>::value;
+
+		case ADDtoRb:
+		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
+		case OpT(Operation::CHK):
+		case OpT(Operation::CMPb):
+		case OpT(Operation::DIVU):		case OpT(Operation::DIVS):
+		case ORtoRb:	case ORtoRw:	case ORtoRl:
+		case OpT(Operation::MULU):		case OpT(Operation::MULS):
+		case SUBtoRb:
+			return ~TwoOperandMask<
+				AllModesNoAn,
+				Dn
+			>::value;
+
+		case ADDtoRw:	case ADDtoRl:
+		case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
+		case SUBtoRw:	case SUBtoRl:
+			return ~TwoOperandMask<
+				AllModes,
+				Dn
+			>::value;
+
+		case ADDtoMb:	case ADDtoMw:	case ADDtoMl:
+		case ANDtoMb:	case ANDtoMw:	case ANDtoMl:
+		case ORtoMb:	case ORtoMw:	case ORtoMl:
+		case SUBtoMb:	case SUBtoMw:	case SUBtoMl:
+			return ~TwoOperandMask<
+				Dn,
+				Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
+			>::value;
+
+		case OpT(Operation::ADDAw):		case OpT(Operation::ADDAl):
+		case OpT(Operation::CMPAw):	 	case OpT(Operation::CMPAl):
+		case OpT(Operation::SUBAw):		case OpT(Operation::SUBAl):
+		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
+			return ~TwoOperandMask<
+				AllModes,
+				An
+			>::value;
+
+		case ADDIb:		case ADDIl:		case ADDIw:
+		case ANDIb:		case ANDIl:		case ANDIw:
+		case BCHGI:		case BCLRI:		case BSETI:
+		case EORIb:		case EORIw:		case EORIl:
+		case ORIb:		case ORIw:		case ORIl:
+		case SUBIb:		case SUBIl:		case SUBIw:
+			return ~TwoOperandMask<
+				Imm,
+				AlterableAddressingModesNoAn
+			>::value;
+
+		case ADDQb:
+		case SUBQb:
+			return ~TwoOperandMask<
+				Quick,
+				AlterableAddressingModesNoAn
+			>::value;
+
+		case ADDQw:	case ADDQl:
+		case SUBQw:	case SUBQl:
+			return ~TwoOperandMask<
+				Quick,
+				AlterableAddressingModes
+			>::value;
+
+		case OpT(Operation::MOVEb):
+			return ~TwoOperandMask<
+				AllModesNoAn,
+				AlterableAddressingModesNoAn
+			>::value;
+
+		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
+			return ~TwoOperandMask<
+				AllModes,
+				AlterableAddressingModesNoAn
+			>::value;
+
+		case OpT(Operation::ANDItoCCR):	case OpT(Operation::ANDItoSR):
+		case OpT(Operation::Bccw):		case OpT(Operation::Bccl):
+		case OpT(Operation::BSRl):		case OpT(Operation::BSRw):
+		case OpT(Operation::EORItoCCR):	case OpT(Operation::EORItoSR):
+		case OpT(Operation::ORItoCCR):	case OpT(Operation::ORItoSR):
+		case OpT(Operation::STOP):
+			return ~OneOperandMask<
+				Imm
+			>::value;
+
+		case OpT(Operation::ASLb):	case OpT(Operation::ASLw):	case OpT(Operation::ASLl):
+		case OpT(Operation::ASRb):	case OpT(Operation::ASRw):	case OpT(Operation::ASRl):
+		case OpT(Operation::LSLb):	case OpT(Operation::LSLw):	case OpT(Operation::LSLl):
+		case OpT(Operation::LSRb):	case OpT(Operation::LSRw):	case OpT(Operation::LSRl):
+		case OpT(Operation::ROLb):	case OpT(Operation::ROLw):	case OpT(Operation::ROLl):
+		case OpT(Operation::RORb):	case OpT(Operation::RORw):	case OpT(Operation::RORl):
+		case OpT(Operation::ROXLb):	case OpT(Operation::ROXLw):	case OpT(Operation::ROXLl):
+		case OpT(Operation::ROXRb):	case OpT(Operation::ROXRw):	case OpT(Operation::ROXRl):
+			return ~TwoOperandMask<
+				Quick | Dn,
+				Dn
+			>::value;
+
+		case OpT(Operation::ASLm):
+		case OpT(Operation::ASRm):
+		case OpT(Operation::LSLm):
+		case OpT(Operation::LSRm):
+		case OpT(Operation::ROLm):
+		case OpT(Operation::RORm):
+		case OpT(Operation::ROXLm):
+		case OpT(Operation::ROXRm):
+			return ~OneOperandMask<
+				Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
+			>::value;
+
+		case OpT(Operation::Bccb):
+		case OpT(Operation::BSRb):
+		case OpT(Operation::TRAP):
+			return ~OneOperandMask<
+				Quick
+			>::value;
+
+		case OpT(Operation::BCHG):
+		case OpT(Operation::BCLR):
+		case OpT(Operation::BSET):
+		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):
+			return ~TwoOperandMask<
+				Dn,
+				AlterableAddressingModesNoAn
+			>::value;
+
+		case OpT(Operation::BTST):
+			return ~TwoOperandMask<
+				Dn,
+				AllModesNoAn
+			>::value;
+
+		case CMPIb:		case CMPIl:		case CMPIw:
+			if constexpr (model == Model::M68000) {
+				return ~TwoOperandMask<
+					Imm,
+					Dn | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
+				>::value;
+			}
+			[[fallthrough]];
+		case BTSTI:
+			return ~TwoOperandMask<
+				Imm,
+				Dn | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
+			>::value;
+
+		case OpT(Operation::CLRb):	case OpT(Operation::CLRw):	case OpT(Operation::CLRl):
+		case OpT(Operation::NBCD):
+		case OpT(Operation::MOVEfromSR):
+		case OpT(Operation::NEGXb):	case OpT(Operation::NEGXw):	case OpT(Operation::NEGXl):
+		case OpT(Operation::NEGb):	case OpT(Operation::NEGw):	case OpT(Operation::NEGl):
+		case OpT(Operation::NOTb):	case OpT(Operation::NOTw):	case OpT(Operation::NOTl):
+		case OpT(Operation::Scc):
+		case OpT(Operation::TAS):
+			return ~OneOperandMask<
+				AlterableAddressingModesNoAn
+			>::value;
+
+		case OpT(Operation::TSTb):
+			if constexpr (model == Model::M68000) {
+				return ~OneOperandMask<
+					AlterableAddressingModesNoAn
+				>::value;
+			}
+			[[fallthrough]];
+		case OpT(Operation::MOVEtoCCR):
+		case OpT(Operation::MOVEtoSR):
+			return ~OneOperandMask<
+				AllModesNoAn
+			>::value;
+
+		case OpT(Operation::TSTw):	case OpT(Operation::TSTl):
+			if constexpr (model == Model::M68000) {
+				return ~OneOperandMask<
+					AlterableAddressingModesNoAn
+				>::value;
+			} else {
+				return ~OneOperandMask<
+					AllModes
+				>::value;
+			}
+
+		case CMPMb:	case CMPMw:	case CMPMl:
+			return ~TwoOperandMask<
+				PostInc,
+				PostInc
+			>::value;
+
+		case OpT(Operation::DBcc):
+			return ~TwoOperandMask<
+				Dn,
+				Imm
+			>::value;
+
+		case EXGRtoR:
+			return ~TwoOperandMask<
+				Dn,
+				Dn
+			>::value;
+
+		case EXGAtoA:
+			return ~TwoOperandMask<
+				An,
+				An
+			>::value;
+
+		case EXGRtoA:
+			return ~TwoOperandMask<
+				Dn,
+				An
+			>::value;
+
+		case OpT(Operation::EXTbtow):	case OpT(Operation::EXTwtol):
+		case OpT(Operation::SWAP):
+			return ~OneOperandMask<
+				Dn
+			>::value;
+
+		case OpT(Operation::JMP):
+		case OpT(Operation::JSR):
+		case OpT(Operation::PEA):
+			return ~OneOperandMask<
+				ControlAddressingModes
+			>::value;
+
+		case OpT(Operation::LEA):
+			return ~TwoOperandMask<
+				ControlAddressingModes,
+				An
+			>::value;
+
+		case OpT(Operation::LINKw):
+			return ~TwoOperandMask<
+				An,
+				Imm
+			>::value;
+
+		case OpT(Operation::NOP):
+		case OpT(Operation::RTE):
+		case OpT(Operation::RTS):
+		case OpT(Operation::TRAPV):
+		case OpT(Operation::RTR):
+			return ~NoOperandMask::value;
+
+		case OpT(Operation::UNLINK):
+		case OpT(Operation::MOVEtoUSP):
+		case OpT(Operation::MOVEfromUSP):
+			return ~OneOperandMask<
+				An
+			>::value;
+
+		case MOVEMtoMw:	case MOVEMtoMl:
+			return ~TwoOperandMask<
+				Imm,
+				Ind | PreDec | d16An | d8AnXn | XXXw | XXXl
+			>::value;
+
+		case MOVEMtoRw: case MOVEMtoRl:
+			return ~TwoOperandMask<
+				Ind | PostInc | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn,
+				Imm
+			>::value;
+	}
+}
+
 /// Provides a post-decoding validation step — primarily ensures that the prima facie addressing modes are supported by the operation.
-// TODO: once complete and working, see how ugly it would be to incorpoate these tests into the main
-// decoding switches.
 template <Model model>
 template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated(Preinstruction original) {
 	if constexpr (!validate) {
 		return original;
 	}
 
-	switch(op) {
-		default: return original;
-
-		// NBCD.
-		case OpT(Operation::NBCD):
-		case OpT(Operation::MOVEfromSR):
-		case OpT(Operation::TAS):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::MOVEtoCCR):
-		case OpT(Operation::MOVEtoSR):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		// The various immediates.
-		case EORIb: 	case EORIl:		case EORIw:
-		case ORIb:		case ORIl:		case ORIw:
-		case ANDIb:		case ANDIl:		case ANDIw:
-		case SUBIb:		case SUBIl:		case SUBIw:
-		case ADDIb:		case ADDIl:		case ADDIw:
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case CMPIb:		case CMPIl:		case CMPIw:
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-					if constexpr (model >= Model::M68010) {
-						return original;
-					}
-					[[fallthrough]];
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		// ADD, SUB, MOVE, MOVEA
-		case ADDQb:						case ADDQw:					case ADDQl:
-		case SUBQb:						case SUBQw:					case SUBQl:
-		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEw):	case OpT(Operation::MOVEl):
-		case OpT(Operation::MOVEAw):	case OpT(Operation::MOVEAl):
-		case OpT(Operation::ANDb):		case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
-		case OpT(Operation::EORb):		case OpT(Operation::EORw):	case OpT(Operation::EORl):
-		case OpT(Operation::ORb):		case OpT(Operation::ORw):	case OpT(Operation::ORl): {
-			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
-			constexpr bool is_byte =
-				op == OpT(Operation::MOVEb) || op == ADDQb	|| op == SUBQb || op == OpT(Operation::EORb);
-
-			switch(original.mode<0>()) {
-				default: break;
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (!is_byte) {
-						break;
-					}
-					[[fallthrough]];
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (!is_byte) {
-						return original;
-					}
-					[[fallthrough]];
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-		}
-
-		case ANDtoRb:		case ANDtoRw:	case ANDtoRl:
-		case ORtoRb:		case ORtoRw:	case ORtoRl:
-		case SUBtoRb:		case SUBtoRw:	case SUBtoRl:
-		case ADDtoRb:		case ADDtoRw:	case ADDtoRl: {
-			constexpr bool is_byte = op == ADDtoRb || op == SUBtoRb || op == SUBtoRb || op == ADDtoRb;
-
-			switch(original.mode<0>()) {
-				default: return original;
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (!is_byte) {
-						return original;
-					}
-					[[fallthrough]];
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-		}
-
-		case ADDtoMb:		case ADDtoMw:	case ADDtoMl:
-		case SUBtoMb:		case SUBtoMw:	case SUBtoMl:
-		case ANDtoMb:		case ANDtoMw:	case ANDtoMl:
-		case ORtoMb:		case ORtoMw:	case ORtoMl: {
-			// TODO: I'm going to need get-size-by-operation elsewhere; use that here when implemented.
-			constexpr bool is_byte = op == ADDtoMb || op == SUBtoMb || op == ANDtoMb || op == ORtoMb;
-
-			switch(original.mode<0>()) {
-				default: break;
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (!is_byte) {
-						break;
-					}
-					[[fallthrough]];
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::DataRegisterDirect:
-					// TODO: this is per the documentation, but is it true?
-					if constexpr (op == ANDtoMb || op == ANDtoMw || op == ANDtoMl || op == ORtoMb || op == ORtoMw || op == ORtoMl) {
-						return Preinstruction();
-					}
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (!is_byte) {
-						return original;
-					}
-					[[fallthrough]];
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-		}
-
-		case OpT(Operation::NOTb):		case OpT(Operation::NOTw):	case OpT(Operation::NOTl):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		// ADDA, SUBA.
-		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
-		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
-			switch(original.mode<0>()) {
-				default: break;
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		// LEA, PEA
-		case OpT(Operation::LEA):	case OpT(Operation::PEA):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::None:
-				case AddressingMode::DataRegisterDirect:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::AddressRegisterIndirectWithPostincrement:
-				case AddressingMode::AddressRegisterIndirectWithPredecrement:
-				case AddressingMode::ImmediateData:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::BTST):
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::None:
-				case AddressingMode::AddressRegisterDirect:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::BCHG):
-		case OpT(Operation::BSET):	case OpT(Operation::BCLR):
-		case BCHGI:	case BSETI:	case BCLRI:
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::None:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::ImmediateData:
-					return Preinstruction();
-			}
-
-		case BTSTI:
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::None:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::TSTb):	case OpT(Operation::TSTw):	case OpT(Operation::TSTl):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-					if constexpr (op == OpT(Operation::TSTb)) {
-						return Preinstruction();
-					}
-					[[fallthrough]];
-
-				case AddressingMode::ImmediateData:
-					if constexpr (model < Model::M68020) {
-						return Preinstruction();
-					}
-					return original;
-
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-					if constexpr (model >= Model::M68010) {
-						return original;
-					}
-					[[fallthrough]];
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
-		case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::CMPb):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::None:
-				case AddressingMode::AddressRegisterDirect:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::JSR):	case OpT(Operation::JMP):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::DataRegisterDirect:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::AddressRegisterIndirectWithPostincrement:
-				case AddressingMode::AddressRegisterIndirectWithPredecrement:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::Scc):
-		case OpT(Operation::NEGXb):	case OpT(Operation::NEGXw):	case OpT(Operation::NEGXl):
-		case OpT(Operation::CLRb):	case OpT(Operation::CLRw):	case OpT(Operation::CLRl):
-		case OpT(Operation::NEGb):	case OpT(Operation::NEGw):	case OpT(Operation::NEGl):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::ASLm):		case OpT(Operation::ASRm):
-		case OpT(Operation::LSLm):		case OpT(Operation::LSRm):
-		case OpT(Operation::ROLm):		case OpT(Operation::RORm):
-		case OpT(Operation::ROXLm):		case OpT(Operation::ROXRm):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::DataRegisterDirect:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case MOVEMtoMw:	case MOVEMtoMl:
-			switch(original.mode<1>()) {
-				default: return original;
-
-				case AddressingMode::DataRegisterDirect:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::AddressRegisterIndirectWithPostincrement:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case MOVEMtoRw: case MOVEMtoRl:
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::DataRegisterDirect:
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::AddressRegisterIndirectWithPredecrement:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::DIVU): case OpT(Operation::DIVS):
-		case OpT(Operation::MULU): case OpT(Operation::MULS):
-		case OpT(Operation::CHK):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-	}
+	const auto invalid = invalid_operands<op>();
+	const auto observed = operand_mask(original);
+	return (observed & invalid) ? Preinstruction() : original;
 }
 
 /// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been
@@ -530,33 +507,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b0–b2 and b3–b5:	an effective address;
 		// b6–b8:			an opmode, i.e. source + direction.
 		//
-		case OpT(Operation::SUBb):	case OpT(Operation::SUBw):	case OpT(Operation::SUBl):
-		case OpT(Operation::ANDb):	case OpT(Operation::ANDw):	case OpT(Operation::ANDl):
-		case OpT(Operation::ORb):	case OpT(Operation::ORw):	case OpT(Operation::ORl): {
-
-			const auto ea_combined_mode = combined_mode(ea_mode, ea_register);
-
-			// TODO: make this decision outside of this function.
-			if(opmode & 4) {
-				// Dn, <ea>
-
-				return validated<op, validate>(
-					Preinstruction(operation,
-						AddressingMode::DataRegisterDirect, data_register,
-						ea_combined_mode, ea_register));
-			} else {
-				// <ea>, Dn
-
-				return validated<op, validate>(
-					Preinstruction(operation,
-						ea_combined_mode, ea_register,
-						AddressingMode::DataRegisterDirect, data_register));
-			}
-
-			return Preinstruction();
-		}
-
-
 		case ADDtoRb:	case ADDtoRw:	case ADDtoRl:
 		case SUBtoRb:	case SUBtoRw:	case SUBtoRl:
 		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
@@ -653,26 +603,23 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b9–b11:	register Rx (data or address, data if exchange is address <-> data);
 		// b3–b7:	an opmode, indicating address/data registers.
 		//
-		case OpT(Operation::EXG):
-			switch((instruction >> 3)&31) {
-				default:	return Preinstruction();
+		case EXGRtoR:
+			return validated<op, validate>(
+				Preinstruction(operation,
+					AddressingMode::DataRegisterDirect, data_register,
+					AddressingMode::DataRegisterDirect, ea_register));
 
-				case 0x08:	return validated<op, validate>(
-					Preinstruction(operation,
-						AddressingMode::DataRegisterDirect, data_register,
-						AddressingMode::DataRegisterDirect, ea_register));
+		case EXGAtoA:
+			return validated<op, validate>(
+				Preinstruction(operation,
+					AddressingMode::AddressRegisterDirect, data_register,
+					AddressingMode::AddressRegisterDirect, ea_register));
 
-				case 0x09:	return validated<op, validate>(
-					Preinstruction(operation,
-						AddressingMode::AddressRegisterDirect, data_register,
-						AddressingMode::AddressRegisterDirect, ea_register));
-
-				case 0x11:	return validated<op, validate>(
-					Preinstruction(operation,
-						AddressingMode::DataRegisterDirect, data_register,
-						AddressingMode::AddressRegisterDirect, ea_register));
-			}
-		// TODO: remove conditional from in here.
+		case EXGRtoA:
+			return validated<op, validate>(
+				Preinstruction(operation,
+					AddressingMode::DataRegisterDirect, data_register,
+					AddressingMode::AddressRegisterDirect, ea_register));
 
 		//
 		// MARK: MULU, MULS, DIVU, DIVS.
@@ -1308,9 +1255,9 @@ Preinstruction Predecoder<model>::decodeC(uint16_t instruction) {
 
 	// 4-105 (p209)
 	switch(instruction & 0x1f8) {
-		case 0x140:
-		case 0x148:
-		case 0x188:	Decode(Op::EXG);
+		case 0x140:	Decode(EXGRtoR);
+		case 0x148:	Decode(EXGAtoA);
+		case 0x188:	Decode(EXGRtoA);
 		default:	break;
 	}
 

@@ -187,7 +187,7 @@ constexpr int8_t quick(Operation op, uint16_t instruction) {
 ///		as ProgramCounterIndirectWithIndex8bitDisplacement.
 enum class AddressingMode: uint8_t {
 	/// No adddressing mode; this operand doesn't exist.
-	None												= 0b11'111,
+	None												= 0b01'101,
 
 	/// Dn
 	DataRegisterDirect									= 0b00'000,
@@ -232,7 +232,7 @@ enum class AddressingMode: uint8_t {
 	ImmediateData										= 0b01'100,
 
 	/// .q; value is embedded in the opcode.
-	Quick												= 0b11'110,
+	Quick												= 0b01'110,
 };
 
 /*!

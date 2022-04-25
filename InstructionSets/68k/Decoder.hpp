@@ -49,6 +49,7 @@ template <Model model> class Predecoder {
 		// Specific instruction decoders.
 		template <OpT operation, bool validate = true> Preinstruction decode(uint16_t instruction);
 		template <OpT operation, bool validate> Preinstruction validated(Preinstruction original);
+		template <uint8_t op> uint32_t invalid_operands();
 
 		// Extended operation list; collapses into a single byte enough information to
 		// know both the type of operation and how to decode the operands. Most of the
@@ -90,6 +91,8 @@ template <Model model> class Predecoder {
 
 			ORtoMb, ORtoMw, ORtoMl,
 			ORtoRb, ORtoRw, ORtoRl,
+
+			EXGRtoR, EXGAtoA, EXGRtoA,
 		};
 
 		static constexpr Operation operation(OpT op);
