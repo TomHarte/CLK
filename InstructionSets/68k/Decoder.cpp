@@ -176,6 +176,11 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 	static constexpr auto AlterableAddressingModes 		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl;
 	static constexpr auto AlterableAddressingModesNoAn	= AlterableAddressingModes & ~An;
 
+	//
+	// Control [flow] addressing modes.
+	//
+	static constexpr auto ControlAddressingModes	=  Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn;
+
 	switch(op) {
 		default: return NoOperandMask::value;
 
@@ -234,23 +239,45 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				AlterableAddressingModes
 			>::value;
 
-		case OpT(Operation::ANDItoCCR):
+		case OpT(Operation::ANDItoCCR):	case OpT(Operation::ANDItoSR):
 		case OpT(Operation::Bccw):	case OpT(Operation::Bccl):
 		case OpT(Operation::BSRl):	case OpT(Operation::BSRw):
-		case OpT(Operation::EORItoCCR):
+		case OpT(Operation::EORItoCCR):	case OpT(Operation::EORItoSR):
+		case OpT(Operation::ORItoCCR):	case OpT(Operation::ORItoSR):
+		case OpT(Operation::STOP):
 			return ~OneOperandMask<
 				Imm
 			>::value;
 
 		case OpT(Operation::ASLb):	case OpT(Operation::ASLw):	case OpT(Operation::ASLl):
 		case OpT(Operation::ASRb):	case OpT(Operation::ASRw):	case OpT(Operation::ASRl):
+		case OpT(Operation::LSLb):	case OpT(Operation::LSLw):	case OpT(Operation::LSLl):
+		case OpT(Operation::LSRb):	case OpT(Operation::LSRw):	case OpT(Operation::LSRl):
+		case OpT(Operation::ROLb):	case OpT(Operation::ROLw):	case OpT(Operation::ROLl):
+		case OpT(Operation::RORb):	case OpT(Operation::RORw):	case OpT(Operation::RORl):
+		case OpT(Operation::ROXLb):	case OpT(Operation::ROXLw):	case OpT(Operation::ROXLl):
+		case OpT(Operation::ROXRb):	case OpT(Operation::ROXRw):	case OpT(Operation::ROXRl):
 			return ~TwoOperandMask<
 				Quick | Dn,
 				Dn
 			>::value;
 
+		case OpT(Operation::ASLm):
+		case OpT(Operation::ASRm):
+		case OpT(Operation::LSLm):
+		case OpT(Operation::LSRm):
+		case OpT(Operation::ROLm):
+		case OpT(Operation::RORm):
+		case OpT(Operation::ROXLm):
+		case OpT(Operation::ROXRm):
+			return ~OneOperandMask<
+				Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
+			>::value;
+
+
 		case OpT(Operation::Bccb):
 		case OpT(Operation::BSRb):
+		case OpT(Operation::TRAP):
 			return ~OneOperandMask<
 				Quick
 			>::value;
@@ -340,6 +367,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			>::value;
 
 		case OpT(Operation::EXTbtow):	case OpT(Operation::EXTwtol):
+		case OpT(Operation::SWAP):
 			return ~OneOperandMask<
 				Dn
 			>::value;
@@ -347,14 +375,38 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::JMP):
 		case OpT(Operation::JSR):
 			return ~OneOperandMask<
-				Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
+				ControlAddressingModes
+			>::value;
+
+		case OpT(Operation::LEA):
+			return ~TwoOperandMask<
+				ControlAddressingModes,
+				An
+			>::value;
+
+		case OpT(Operation::LINKw):
+			return ~TwoOperandMask<
+				An,
+				Imm
+			>::value;
+
+		case OpT(Operation::NOP):
+		case OpT(Operation::RTE):
+		case OpT(Operation::RTS):
+		case OpT(Operation::TRAPV):
+		case OpT(Operation::RTR):
+			return ~NoOperandMask::value;
+
+		case OpT(Operation::UNLINK):
+		case OpT(Operation::MOVEtoUSP):
+		case OpT(Operation::MOVEfromUSP):
+			return ~OneOperandMask<
+				An
 			>::value;
 	}
 }
 
 /// Provides a post-decoding validation step — primarily ensures that the prima facie addressing modes are supported by the operation.
-// TODO: once complete and working, see how ugly it would be to incorpoate these tests into the main
-// decoding switches.
 template <Model model>
 template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated(Preinstruction original) {
 	if constexpr (!validate) {
@@ -362,44 +414,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 	}
 
 	switch(op) {
-		default: return original;
-
-		// All operations converted to the AND test.
-		case OpT(Operation::ABCD):
-		case OpT(Operation::ADDXb):		case OpT(Operation::ADDXw):	case OpT(Operation::ADDXl):
-		case ADDtoRb:	case ADDtoRw:	case ADDtoRl:
-		case ADDIb:		case ADDIl:		case ADDIw:
-		case ADDtoMb:	case ADDtoMw:	case ADDtoMl:
-		case OpT(Operation::ADDAw):		case OpT(Operation::ADDAl):
-		case ADDQb:		case ADDQw:		case ADDQl:
-		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
-		case ANDtoMb:	case ANDtoMw:	case ANDtoMl:
-		case ANDIb:		case ANDIl:		case ANDIw:
-		case OpT(Operation::ANDItoCCR):
-		case OpT(Operation::ASLb):	case OpT(Operation::ASLw):	case OpT(Operation::ASLl):
-		case OpT(Operation::ASRb):	case OpT(Operation::ASRw):	case OpT(Operation::ASRl):
-		case OpT(Operation::Bccb):	case OpT(Operation::Bccw):	case OpT(Operation::Bccl):
-		case OpT(Operation::BCHG):	case BCHGI:
-		case OpT(Operation::BCLR):	case BCLRI:
-		case OpT(Operation::BSET):	case BSETI:
-		case OpT(Operation::BSRb):	case OpT(Operation::BSRw):	case OpT(Operation::BSRl):
-		case OpT(Operation::BTST):	case BTSTI:
-		case OpT(Operation::CHK):
-		case OpT(Operation::CLRb):	case OpT(Operation::CLRw):	case OpT(Operation::CLRl):
-		case OpT(Operation::CMPb):	case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
-		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
-		case CMPIb:	case CMPIl:	case CMPIw:
-		case CMPMb:	case CMPMw:	case CMPMl:
-		case OpT(Operation::DBcc):
-		case OpT(Operation::DIVS):	case OpT(Operation::DIVU):
-		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):
-		case EORIb:	case EORIw:	case EORIl:
-		case OpT(Operation::EORItoCCR):
-		case EXGRtoR:	case EXGAtoA:	case EXGRtoA:
-		case OpT(Operation::EXTbtow):	case OpT(Operation::EXTwtol):
-		case OpT(Operation::JMP):
-		case OpT(Operation::JSR):
-		case OpT(Operation::NBCD): {
+		default: {
 			const auto invalid = invalid_operands<op>();
 			const auto observed = operand_mask(original);
 			return (observed & invalid) ? Preinstruction() : original;
@@ -579,7 +594,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			}
 
 		// LEA, PEA
-		case OpT(Operation::LEA):	case OpT(Operation::PEA):
+		case OpT(Operation::PEA):
 			switch(original.mode<0>()) {
 				default: return original;
 
@@ -624,22 +639,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			switch(original.mode<0>()) {
 				default: return original;
 
-				case AddressingMode::AddressRegisterDirect:
-				case AddressingMode::ImmediateData:
-				case AddressingMode::ProgramCounterIndirectWithDisplacement:
-				case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-				case AddressingMode::None:
-					return Preinstruction();
-			}
-
-		case OpT(Operation::ASLm):		case OpT(Operation::ASRm):
-		case OpT(Operation::LSLm):		case OpT(Operation::LSRm):
-		case OpT(Operation::ROLm):		case OpT(Operation::RORm):
-		case OpT(Operation::ROXLm):		case OpT(Operation::ROXRm):
-			switch(original.mode<0>()) {
-				default: return original;
-
-				case AddressingMode::DataRegisterDirect:
 				case AddressingMode::AddressRegisterDirect:
 				case AddressingMode::ImmediateData:
 				case AddressingMode::ProgramCounterIndirectWithDisplacement:
