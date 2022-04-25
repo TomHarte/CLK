@@ -91,6 +91,8 @@ template <Model model> class Predecoder {
 
 			ORtoMb, ORtoMw, ORtoMl,
 			ORtoRb, ORtoRw, ORtoRl,
+
+			EXGRtoR, EXGAtoA, EXGRtoA,
 		};
 
 		static constexpr Operation operation(OpT op);

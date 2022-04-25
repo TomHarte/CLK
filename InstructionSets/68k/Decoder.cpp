@@ -135,6 +135,9 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 		case ORtoRw:	case ORtoMw:	return Operation::ORw;
 		case ORtoRl:	case ORtoMl:	return Operation::ORl;
 
+		case EXGRtoR:	case EXGAtoA:	case EXGRtoA:
+		return Operation::EXG;
+
 		default: break;
 	}
 
@@ -234,6 +237,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::ANDItoCCR):
 		case OpT(Operation::Bccw):	case OpT(Operation::Bccl):
 		case OpT(Operation::BSRl):	case OpT(Operation::BSRw):
+		case OpT(Operation::EORItoCCR):
 			return ~OneOperandMask<
 				Imm
 			>::value;
@@ -361,6 +365,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 		case OpT(Operation::DIVS):	case OpT(Operation::DIVU):
 		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):
 		case EORIb:	case EORIw:	case EORIl:
+		case OpT(Operation::EORItoCCR):
 		case OpT(Operation::NBCD): {
 			const auto invalid = invalid_operands<op>();
 			const auto observed = operand_mask(original);
@@ -803,26 +808,23 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b9–b11:	register Rx (data or address, data if exchange is address <-> data);
 		// b3–b7:	an opmode, indicating address/data registers.
 		//
-		case OpT(Operation::EXG):
-			switch((instruction >> 3)&31) {
-				default:	return Preinstruction();
+		case EXGRtoR:
+			return validated<op, validate>(
+				Preinstruction(operation,
+					AddressingMode::DataRegisterDirect, data_register,
+					AddressingMode::DataRegisterDirect, ea_register));
 
-				case 0x08:	return validated<op, validate>(
-					Preinstruction(operation,
-						AddressingMode::DataRegisterDirect, data_register,
-						AddressingMode::DataRegisterDirect, ea_register));
+		case EXGAtoA:
+			return validated<op, validate>(
+				Preinstruction(operation,
+					AddressingMode::AddressRegisterDirect, data_register,
+					AddressingMode::AddressRegisterDirect, ea_register));
 
-				case 0x09:	return validated<op, validate>(
-					Preinstruction(operation,
-						AddressingMode::AddressRegisterDirect, data_register,
-						AddressingMode::AddressRegisterDirect, ea_register));
-
-				case 0x11:	return validated<op, validate>(
-					Preinstruction(operation,
-						AddressingMode::DataRegisterDirect, data_register,
-						AddressingMode::AddressRegisterDirect, ea_register));
-			}
-		// TODO: remove conditional from in here.
+		case EXGRtoA:
+			return validated<op, validate>(
+				Preinstruction(operation,
+					AddressingMode::DataRegisterDirect, data_register,
+					AddressingMode::AddressRegisterDirect, ea_register));
 
 		//
 		// MARK: MULU, MULS, DIVU, DIVS.
@@ -1458,9 +1460,9 @@ Preinstruction Predecoder<model>::decodeC(uint16_t instruction) {
 
 	// 4-105 (p209)
 	switch(instruction & 0x1f8) {
-		case 0x140:
-		case 0x148:
-		case 0x188:	Decode(Op::EXG);
+		case 0x140:	Decode(EXGRtoR);
+		case 0x148:	Decode(EXGAtoA);
+		case 0x188:	Decode(EXGRtoA);
 		default:	break;
 	}
 
