@@ -19,6 +19,12 @@ namespace M68k {
 	A stateless decoder that can map from instruction words to preinstructions
 	(i.e. enough to know the operation and size, and either know the addressing mode
 	and registers or else know how many further extension words are needed).
+
+	WARNING: at present this handles the original 68000 instruction set only. It
+	requires a model only for the sake of not baking in assumptions about MOVE SR, etc,
+	and supporting extended addressing modes in some cases.
+
+	But it does not yet decode any operations which were not present on the 68000.
 */
 template <Model model> class Predecoder {
 	public:
@@ -48,7 +54,10 @@ template <Model model> class Predecoder {
 
 		// Specific instruction decoders.
 		template <OpT operation, bool validate = true> Preinstruction decode(uint16_t instruction);
-		template <OpT operation, bool validate> Preinstruction validated(Preinstruction original);
+		template <OpT operation, bool validate> Preinstruction validated(
+			AddressingMode op1_mode = AddressingMode::None, int op1_reg = 0,
+			AddressingMode op2_mode = AddressingMode::None, int op2_reg = 0
+		);
 		template <uint8_t op> uint32_t invalid_operands();
 
 		// Extended operation list; collapses into a single byte enough information to

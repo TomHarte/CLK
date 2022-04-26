@@ -55,8 +55,8 @@ struct NoOperandMask {
 	static constexpr uint32_t value = OneOperandMask<NoOperand>::value;
 };
 
-uint32_t operand_mask(Preinstruction instr) {
-	return uint32_t((0x1'0000 << int(instr.mode<0>())) | (0x0'0001 << int(instr.mode<1>())));
+uint32_t operand_mask(AddressingMode mode1, AddressingMode mode2) {
+	return uint32_t((0x1'0000 << int(mode1)) | (0x0'0001 << int(mode2)));
 }
 
 }
@@ -178,7 +178,9 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 	static constexpr auto ControlAddressingModes	=  Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn;
 
 	switch(op) {
-		default: return ~NoOperandMask::value;
+		// By default, disallow all operands (including 'None'). This should catch any
+		// opcodes that are unmapped below.
+		default: return uint32_t(~0);
 
 		case OpT(Operation::ABCD):
 		case OpT(Operation::ADDXb):	case OpT(Operation::ADDXw):	case OpT(Operation::ADDXl):
@@ -475,14 +477,29 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 /// Provides a post-decoding validation step — primarily ensures that the prima facie addressing modes are supported by the operation.
 template <Model model>
-template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated(Preinstruction original) {
+template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated(
+	AddressingMode op1_mode, int op1_reg,
+	AddressingMode op2_mode, int op2_reg
+) {
+	constexpr auto operation = Predecoder<model>::operation(op);
+
 	if constexpr (!validate) {
-		return original;
+		return Preinstruction(
+			operation,
+			op1_mode, op1_reg,
+			op2_mode, op2_reg,
+			requires_supervisor<model>(operation));
 	}
 
 	const auto invalid = invalid_operands<op>();
-	const auto observed = operand_mask(original);
-	return (observed & invalid) ? Preinstruction() : original;
+	const auto observed = operand_mask(op1_mode, op2_mode);
+	return (observed & invalid) ?
+		Preinstruction() :
+		Preinstruction(
+			operation,
+			op1_mode, op1_reg,
+			op2_mode, op2_reg,
+			requires_supervisor<model>(operation));
 }
 
 /// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been
@@ -497,8 +514,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 	const auto ea_mode = (instruction >> 3) & 7;
 	const auto opmode = (instruction >> 6) & 7;
 	const auto data_register = (instruction >> 9) & 7;
-
-	constexpr auto operation = Predecoder<model>::operation(op);
 
 	switch(op) {
 
@@ -516,9 +531,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				AddressingMode::AddressRegisterIndirectWithPredecrement : AddressingMode::DataRegisterDirect;
 
 			return validated<op, validate>(
-				Preinstruction(operation,
-					addressing_mode, ea_register,
-					addressing_mode, data_register));
+				addressing_mode, ea_register,
+				addressing_mode, data_register);
 		}
 
 		//
@@ -534,9 +548,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case ORtoRb:	case ORtoRw:	case ORtoRl:
 		case OpT(Operation::CMPb):	case OpT(Operation::CMPw):	case OpT(Operation::CMPl):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					combined_mode(ea_mode, ea_register), ea_register,
-					AddressingMode::DataRegisterDirect, data_register));
+				combined_mode(ea_mode, ea_register), ea_register,
+				AddressingMode::DataRegisterDirect, data_register);
 
 		case ADDtoMb:	case ADDtoMw:	case ADDtoMl:
 		case SUBtoMb:	case SUBtoMw:	case SUBtoMl:
@@ -544,17 +557,15 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case ORtoMb:	case ORtoMw:	case ORtoMl:
 		case OpT(Operation::EORb):	case OpT(Operation::EORw):	case OpT(Operation::EORl):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::DataRegisterDirect, data_register,
-					combined_mode(ea_mode, ea_register), ea_register));
+				AddressingMode::DataRegisterDirect, data_register,
+				combined_mode(ea_mode, ea_register), ea_register);
 
 		case OpT(Operation::ADDAw):	case OpT(Operation::ADDAl):
 		case OpT(Operation::SUBAw):	case OpT(Operation::SUBAl):
 		case OpT(Operation::CMPAw):	case OpT(Operation::CMPAl):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					combined_mode(ea_mode, ea_register), ea_register,
-					AddressingMode::AddressRegisterDirect, data_register));
+				combined_mode(ea_mode, ea_register), ea_register,
+				AddressingMode::AddressRegisterDirect, data_register);
 
 		//
 		// MARK: EORI, ORI, ANDI, SUBI, ADDI, CMPI, B[TST/CHG/CLR/SET]I
@@ -571,9 +582,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case BTSTI:		case BCHGI:
 		case BCLRI:		case BSETI:
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::ImmediateData, 0,
-					combined_mode(ea_mode, ea_register), ea_register));
+				AddressingMode::ImmediateData, 0,
+				combined_mode(ea_mode, ea_register), ea_register);
 
 
 		//
@@ -585,9 +595,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::BTST):	case OpT(Operation::BCLR):
 		case OpT(Operation::BCHG):	case OpT(Operation::BSET):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::DataRegisterDirect, data_register,
-					combined_mode(ea_mode, ea_register), ea_register));
+				AddressingMode::DataRegisterDirect, data_register,
+				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
 		// MARK: STOP, ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR, Bccl, Bccw, BSRl, BSRw
@@ -600,10 +609,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::ORItoSR):	case OpT(Operation::ORItoCCR):
 		case OpT(Operation::ANDItoSR):	case OpT(Operation::ANDItoCCR):
 		case OpT(Operation::EORItoSR):	case OpT(Operation::EORItoCCR):
-			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::ImmediateData, 0,
-					operation == Operation::ORItoSR || operation == Operation::ANDItoSR || operation == Operation::EORItoSR));
+			return validated<op, validate>(AddressingMode::ImmediateData);
 
 		//
 		// MARK: CHK
@@ -613,9 +619,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case OpT(Operation::CHK):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					combined_mode(ea_mode, ea_register), ea_register,
-					AddressingMode::DataRegisterDirect, data_register));
+				combined_mode(ea_mode, ea_register), ea_register,
+				AddressingMode::DataRegisterDirect, data_register);
 
 		//
 		// MARK: EXG.
@@ -626,21 +631,18 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case EXGRtoR:
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::DataRegisterDirect, data_register,
-					AddressingMode::DataRegisterDirect, ea_register));
+				AddressingMode::DataRegisterDirect, data_register,
+				AddressingMode::DataRegisterDirect, ea_register);
 
 		case EXGAtoA:
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::AddressRegisterDirect, data_register,
-					AddressingMode::AddressRegisterDirect, ea_register));
+				AddressingMode::AddressRegisterDirect, data_register,
+				AddressingMode::AddressRegisterDirect, ea_register);
 
 		case EXGRtoA:
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::DataRegisterDirect, data_register,
-					AddressingMode::AddressRegisterDirect, ea_register));
+				AddressingMode::DataRegisterDirect, data_register,
+				AddressingMode::AddressRegisterDirect, ea_register);
 
 		//
 		// MARK: MULU, MULS, DIVU, DIVS.
@@ -651,9 +653,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::DIVU):	case OpT(Operation::DIVS):
 		case OpT(Operation::MULU):	case OpT(Operation::MULS):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					combined_mode(ea_mode, ea_register), ea_register,
-					AddressingMode::DataRegisterDirect, data_register));
+				combined_mode(ea_mode, ea_register), ea_register,
+				AddressingMode::DataRegisterDirect, data_register);
 
 		//
 		// MARK: LEA
@@ -663,9 +664,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case OpT(Operation::LEA):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					combined_mode(ea_mode, ea_register), ea_register,
-					AddressingMode::AddressRegisterDirect, data_register));
+				combined_mode(ea_mode, ea_register), ea_register,
+				AddressingMode::AddressRegisterDirect, data_register);
 
 		//
 		// MARK: MOVEPtoRw, MOVEPtoRl
@@ -676,15 +676,13 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case OpT(MOVEPtoRw):	case OpT(MOVEPtoRl):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::AddressRegisterIndirectWithDisplacement, ea_register,
-					AddressingMode::DataRegisterDirect, data_register));
+				AddressingMode::AddressRegisterIndirectWithDisplacement, ea_register,
+				AddressingMode::DataRegisterDirect, data_register);
 
 		case OpT(MOVEPtoMw):	case OpT(MOVEPtoMl):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::DataRegisterDirect, data_register,
-					AddressingMode::AddressRegisterIndirectWithDisplacement, ea_register));
+				AddressingMode::DataRegisterDirect, data_register,
+				AddressingMode::AddressRegisterIndirectWithDisplacement, ea_register);
 
 		//
 		// MARK: MOVE
@@ -696,9 +694,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::MOVEb):		case OpT(Operation::MOVEl):		case OpT(Operation::MOVEw):
 		case OpT(Operation::MOVEAl):	case OpT(Operation::MOVEAw):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					combined_mode(ea_mode, ea_register), ea_register,
-					combined_mode(opmode, data_register), data_register));
+				combined_mode(ea_mode, ea_register), ea_register,
+				combined_mode(opmode, data_register), data_register);
 
 		//
 		// MARK: RESET, NOP RTE, RTS, TRAPV, RTR
@@ -708,7 +705,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::RESET):	case OpT(Operation::NOP):
 		case OpT(Operation::RTE):	case OpT(Operation::RTS):	case OpT(Operation::TRAPV):
 		case OpT(Operation::RTR):
-			return validated<op, validate>(Preinstruction(operation));
+			return validated<op, validate>();
 
 		//
 		// MARK: NEGX, CLR, NEG, MOVEtoCCR, MOVEtoSR, NOT, NBCD, PEA, TST
@@ -726,9 +723,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::TAS):
 		case OpT(Operation::TSTb):		case OpT(Operation::TSTw):		case OpT(Operation::TSTl):
 		case OpT(Operation::Scc):
-			return validated<op, validate>(
-				Preinstruction(operation,
-					combined_mode(ea_mode, ea_register), ea_register));
+			return validated<op, validate>(combined_mode(ea_mode, ea_register), ea_register);
 
 		//
 		// MARK: UNLINK, MOVEtoUSP, MOVEfromUSP
@@ -737,9 +732,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case OpT(Operation::UNLINK):
 		case OpT(Operation::MOVEfromUSP):	case OpT(Operation::MOVEtoUSP):
-			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::AddressRegisterDirect, ea_register));
+			return validated<op, validate>(AddressingMode::AddressRegisterDirect, ea_register);
 
 		//
 		// MARK: DBcc
@@ -749,9 +742,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case OpT(Operation::DBcc):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::DataRegisterDirect, ea_register,
-					AddressingMode::ImmediateData, 0));
+				AddressingMode::DataRegisterDirect, ea_register,
+				AddressingMode::ImmediateData, 0);
 
 		//
 		// MARK: SWAP, EXTbtow, EXTwtol
@@ -760,9 +752,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case OpT(Operation::SWAP):
 		case OpT(Operation::EXTbtow):	case OpT(Operation::EXTwtol):
-			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::DataRegisterDirect, ea_register));
+			return validated<op, validate>(AddressingMode::DataRegisterDirect, ea_register);
 
 		//
 		// MARK: MOVEMtoMw, MOVEMtoMl, MOVEMtoRw, MOVEMtoRl
@@ -772,15 +762,13 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case MOVEMtoMl:	case MOVEMtoMw:
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::ImmediateData, 0,
-					combined_mode(ea_mode, ea_register), ea_register));
+				AddressingMode::ImmediateData, 0,
+				combined_mode(ea_mode, ea_register), ea_register);
 
 		case MOVEMtoRl:	case MOVEMtoRw:
 			return validated<op, validate>(
-				Preinstruction(operation,
-					combined_mode(ea_mode, ea_register), ea_register,
-					AddressingMode::ImmediateData, 0));
+				combined_mode(ea_mode, ea_register), ea_register,
+				AddressingMode::ImmediateData, 0);
 
 		//
 		// MARK: TRAP, BCCb, BSRb
@@ -790,9 +778,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::TRAP):
 		case OpT(Operation::Bccb):
 		case OpT(Operation::BSRb):
-			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::Quick, 0));
+			return validated<op, validate>(AddressingMode::Quick);
 
 		//
 		// MARK: LINKw
@@ -802,9 +788,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case OpT(Operation::LINKw):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::AddressRegisterDirect, ea_register,
-					AddressingMode::ImmediateData, 0));
+				AddressingMode::AddressRegisterDirect, ea_register,
+				AddressingMode::ImmediateData, 0);
 
 		//
 		// MARK: ADDQ, SUBQ
@@ -815,9 +800,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case ADDQb:		case ADDQw:		case ADDQl:
 		case SUBQb:		case SUBQw:		case SUBQl:
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::Quick, 0,
-					combined_mode(ea_mode, ea_register), ea_register));
+				AddressingMode::Quick, 0,
+				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
 		// MARK: MOVEq
@@ -827,9 +811,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		case MOVEQ:
 			return validated<op, validate>(
-				Preinstruction(operation,
-					AddressingMode::Quick, 0,
-					AddressingMode::DataRegisterDirect, data_register));
+				AddressingMode::Quick, 0,
+				AddressingMode::DataRegisterDirect, data_register);
 
 		//
 		// MARK: ASR, LSR, ROXR, ROR, ASL, LSL, ROXL, ROL
@@ -846,9 +829,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::ROXLb):	case OpT(Operation::ROXLw):	case OpT(Operation::ROXLl):
 		case OpT(Operation::ROLb):	case OpT(Operation::ROLw):	case OpT(Operation::ROLl):
 			return validated<op, validate>(
-				Preinstruction(operation,
-					(instruction & 0x20) ? AddressingMode::DataRegisterDirect : AddressingMode::Quick, data_register,
-					AddressingMode::DataRegisterDirect, ea_register));
+				(instruction & 0x20) ? AddressingMode::DataRegisterDirect : AddressingMode::Quick, data_register,
+				AddressingMode::DataRegisterDirect, ea_register);
 
 		//
 		// MARK: ASRm, LSRm, ROXRm, RORm, ASLm, LSLm, ROXLm, ROLm
@@ -859,15 +841,12 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::LSRm):	case OpT(Operation::LSLm):
 		case OpT(Operation::ROXRm):	case OpT(Operation::ROXLm):
 		case OpT(Operation::RORm):	case OpT(Operation::ROLm):
-			return validated<op, validate>(
-				Preinstruction(operation,
-					combined_mode(ea_mode, ea_register), ea_register));
+			return validated<op, validate>(combined_mode(ea_mode, ea_register), ea_register);
 
 		case CMPMb:	case CMPMw:	case CMPMl:
 			return validated<op, validate>(
-				Preinstruction(operation,
 					AddressingMode::AddressRegisterIndirectWithPostincrement, ea_register,
-					AddressingMode::AddressRegisterIndirectWithPostincrement, data_register));
+					AddressingMode::AddressRegisterIndirectWithPostincrement, data_register);
 
 		//
 		// MARK: Impossible error case.
