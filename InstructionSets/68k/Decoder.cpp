@@ -488,7 +488,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			operation,
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
-			requires_supervisor<model>(operation));
+			requires_supervisor<model>(operation),
+			size(operation));
 	}
 
 	const auto invalid = invalid_operands<op>();
@@ -499,7 +500,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			operation,
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
-			requires_supervisor<model>(operation));
+			requires_supervisor<model>(operation),
+			size(operation));
 }
 
 /// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been
