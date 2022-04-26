@@ -102,14 +102,20 @@ enum class Operation: uint8_t {
 template <Model model>
 constexpr bool requires_supervisor(Operation op) {
 	switch(op) {
-		case Operation::ORItoSR: case Operation::ANDItoSR: case Operation::EORItoSR:
+		case Operation::MOVEfromSR:
+			if constexpr (model == Model::M68000) {
+				return false;
+			}
+			[[fallthrough]];
+		case Operation::ORItoSR:	case Operation::ANDItoSR:
+		case Operation::EORItoSR:	case Operation::RTE:
+		case Operation::RESET:		case Operation::STOP:
+		case Operation::MOVEtoUSP:	case Operation::MOVEfromUSP:
 			return true;
 
 		default:
 			return false;
 	}
-
-	// TODO: plenty more.
 }
 
 constexpr int size(Operation operation) {
