@@ -54,8 +54,8 @@ enum class Operation: uint8_t {
 	DBcc,
 	Scc,
 
-	Bccb,	Bccl,	Bccw,
-	BSRb,	BSRl,	BSRw,
+	Bccb,	Bccw,	Bccl,
+	BSRb,	BSRw,	BSRl,
 
 	CLRb, CLRw, CLRl,
 	NEGXb, NEGXw, NEGXl,
@@ -118,45 +118,128 @@ constexpr bool requires_supervisor(Operation op) {
 	}
 }
 
-constexpr int size(Operation operation) {
-	// TODO: most of this table, once I've settled on what stays in
-	// the Operation table and what doesn't.
+enum class DataSize {
+	Byte = 0,
+	Word = 1,
+	LongWord = 2,
+};
+
+/// Classifies operations by the size of their memory accesses, if any.
+constexpr DataSize size(Operation operation) {
 	switch(operation) {
+		// These are given a value arbitrarily, to
+		// complete the switch statement.
+		case Operation::Undefined:
+		case Operation::NOP:
+		case Operation::STOP:
+		case Operation::RESET:
+		case Operation::RTE:	case Operation::RTR:
+		case Operation::TRAP:
+		case Operation::TRAPV:
+
+		case Operation::ABCD:	case Operation::SBCD:
+		case Operation::NBCD:
 		case Operation::ADDb:	case Operation::ADDXb:
 		case Operation::SUBb:	case Operation::SUBXb:
+		case Operation::MOVEb:
 		case Operation::ORItoCCR:
 		case Operation::ANDItoCCR:
 		case Operation::EORItoCCR:
-			return 1;
+		case Operation::BTST:	case Operation::BCLR:
+		case Operation::BCHG:	case Operation::BSET:
+		case Operation::CMPb:	case Operation::TSTb:
+		case Operation::Bccb:	case Operation::BSRb:
+		case Operation::CLRb:
+		case Operation::NEGXb:	case Operation::NEGb:
+		case Operation::ASLb:	case Operation::ASRb:
+		case Operation::LSLb:	case Operation::LSRb:
+		case Operation::ROLb:	case Operation::RORb:
+		case Operation::ROXLb:	case Operation::ROXRb:
+		case Operation::ANDb:	case Operation::EORb:
+		case Operation::NOTb:	case Operation::ORb:
+		case Operation::CHK:
+		case Operation::TAS:
+			return DataSize::Byte;
 
+		case Operation::ADDw:	case Operation::ADDAw:
+		case Operation::ADDXw:	case Operation::SUBw:
+		case Operation::SUBAw:	case Operation::SUBXw:
+		case Operation::MOVEw:	case Operation::MOVEAw:
 		case Operation::ORItoSR:
 		case Operation::ANDItoSR:
 		case Operation::EORItoSR:
-			return 2;
+		case Operation::MOVEtoSR:
+		case Operation::MOVEfromSR:
+		case Operation::MOVEtoCCR:
+		case Operation::CMPw:	case Operation::CMPAw:
+		case Operation::TSTw:
+		case Operation::DBcc:	case Operation::Scc:
+		case Operation::Bccw:	case Operation::BSRw:
+		case Operation::CLRw:
+		case Operation::NEGXw:	case Operation::NEGw:
+		case Operation::ASLw:	case Operation::ASLm:
+		case Operation::ASRw:	case Operation::ASRm:
+		case Operation::LSLw:	case Operation::LSLm:
+		case Operation::LSRw:	case Operation::LSRm:
+		case Operation::ROLw:	case Operation::ROLm:
+		case Operation::RORw:	case Operation::RORm:
+		case Operation::ROXLw:	case Operation::ROXLm:
+		case Operation::ROXRw:	case Operation::ROXRm:
+		case Operation::MOVEMw:
+		case Operation::MOVEPw:
+		case Operation::ANDw:	case Operation::EORw:
+		case Operation::NOTw:	case Operation::ORw:
+		case Operation::DIVU:	case Operation::DIVS:
+		case Operation::MULU:	case Operation::MULS:
+		case Operation::EXTbtow:
+		case Operation::LINKw:
+			return DataSize::Word;
 
-		case Operation::EXG:
-			return 4;
-
-		default:	return 0;
+		case Operation::ADDl:	case Operation::ADDAl:
+		case Operation::ADDXl:	case Operation::SUBl:
+		case Operation::SUBAl:	case Operation::SUBXl:
+		case Operation::MOVEl:	case Operation::MOVEAl:
+		case Operation::LEA:	case Operation::PEA:
+		case Operation::EXG:	case Operation::SWAP:
+		case Operation::MOVEtoUSP:
+		case Operation::MOVEfromUSP:
+		case Operation::CMPl:	case Operation::CMPAl:
+		case Operation::TSTl:
+		case Operation::JMP:	case Operation::JSR:
+		case Operation::RTS:
+		case Operation::Bccl:	case Operation::BSRl:
+		case Operation::CLRl:
+		case Operation::NEGXl:	case Operation::NEGl:
+		case Operation::ASLl:	case Operation::ASRl:
+		case Operation::LSLl:	case Operation::LSRl:
+		case Operation::ROLl:	case Operation::RORl:
+		case Operation::ROXLl:	case Operation::ROXRl:
+		case Operation::MOVEMl:
+		case Operation::MOVEPl:
+		case Operation::ANDl:	case Operation::EORl:
+		case Operation::NOTl:	case Operation::ORl:
+		case Operation::EXTwtol:
+		case Operation::UNLINK:
+			return DataSize::LongWord;
 	}
 }
 
 template <Operation op>
-constexpr int8_t quick(uint16_t instruction) {
+constexpr uint32_t quick(uint16_t instruction) {
 	switch(op) {
 		case Operation::Bccb:
 		case Operation::BSRb:
-		case Operation::MOVEl:	return int8_t(instruction);
-		case Operation::TRAP:	return int8_t(instruction & 15);
+		case Operation::MOVEl:	return uint32_t(int8_t(instruction));
+		case Operation::TRAP:	return uint32_t(instruction & 15);
 		default: {
-			int8_t value = (instruction >> 9) & 7;
+			uint32_t value = (instruction >> 9) & 7;
 			value |= (value - 1)&8;
 			return value;
 		}
 	}
 }
 
-constexpr int8_t quick(Operation op, uint16_t instruction) {
+constexpr uint32_t quick(Operation op, uint16_t instruction) {
 	switch(op) {
 		case Operation::MOVEl:	return quick<Operation::MOVEl>(instruction);
 		case Operation::Bccb:	return quick<Operation::Bccb>(instruction);
