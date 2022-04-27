@@ -60,12 +60,12 @@ void PCMSegment::rotate_right(size_t length) {
 	// the left, do the opposite.
 	std::vector<uint8_t> data_copy;
 	if(length > 0) {
-		data_copy.insert(data_copy.end(), data.end() - off_t(length), data.end());
-		data.erase(data.end() - off_t(length), data.end());
+		data_copy.insert(data_copy.end(), data.end() - ptrdiff_t(length), data.end());
+		data.erase(data.end() - ptrdiff_t(length), data.end());
 		data.insert(data.begin(), data_copy.begin(), data_copy.end());
 	} else {
-		data_copy.insert(data_copy.end(), data.begin(), data.begin() - off_t(length));
-		data.erase(data.begin(), data.begin() - off_t(length));
+		data_copy.insert(data_copy.end(), data.begin(), data.begin() - ptrdiff_t(length));
+		data.erase(data.begin(), data.begin() - ptrdiff_t(length));
 		data.insert(data.end(), data_copy.begin(), data_copy.end());
 	}
 }

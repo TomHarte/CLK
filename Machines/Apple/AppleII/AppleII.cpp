@@ -478,7 +478,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			// The IIe and Enhanced IIe ROMs often distributed are oversized; trim if necessary.
 			if(system == ROM::Name::AppleIIe || system == ROM::Name::AppleIIEnhancedE) {
 				if(rom_.size() > 16128) {
-					rom_.erase(rom_.begin(), rom_.end() - off_t(16128));
+					rom_.erase(rom_.begin(), rom_.end() - 16128);
 				}
 			}
 			video_.set_character_rom(roms.find(character)->second);

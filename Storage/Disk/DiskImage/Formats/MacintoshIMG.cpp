@@ -23,7 +23,7 @@
 
 using namespace Storage::Disk;
 
-MacintoshIMG::MacintoshIMG(const std::string &file_name, FixedType type, size_t offset, off_t length) :
+MacintoshIMG::MacintoshIMG(const std::string &file_name, FixedType type, size_t offset, size_t length) :
 	file_(file_name) {
 
 	switch(type) {
@@ -51,7 +51,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 		if(!((name_length == 0x4c && magic_word == 0x4b) || (name_length == 0x00 && magic_word == 0x00)))
 			throw Error::InvalidFormat;
 
-		construct_raw_gcr(0, -1);
+		construct_raw_gcr(0);
 	} else {
 		// DiskCopy 4.2 it is then:
 		//
@@ -122,10 +122,10 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	}
 }
 
-void MacintoshIMG::construct_raw_gcr(size_t offset, off_t size) {
+void MacintoshIMG::construct_raw_gcr(size_t offset, size_t size) {
 	is_diskCopy_file_ = false;
-	if(size == -1) {
-		size = file_.stats().st_size;
+	if(size == 0) {
+		size = size_t(file_.stats().st_size);
 	}
 	if(size != 819200 && size != 409600)
 		throw Error::InvalidFormat;

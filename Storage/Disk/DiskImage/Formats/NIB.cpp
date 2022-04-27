@@ -118,8 +118,8 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 			// when the initial sync was detected to carry over the index hole,
 			// in which case there's nothing to copy.
 			std::vector<uint8_t> data_segment(
-				track_data.begin() + off_t(index),
-				track_data.begin() + off_t(location));
+				track_data.begin() + ptrdiff_t(index),
+				track_data.begin() + ptrdiff_t(location));
 			segment += PCMSegment(data_segment);
 		}
 
@@ -138,7 +138,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	// with sync, so no need to deal with that case here.
 	if(index < track_length) {
 		std::vector<uint8_t> data_segment(
-			track_data.begin() + off_t(index),
+			track_data.begin() + ptrdiff_t(index),
 			track_data.end());
 		segment += PCMSegment(data_segment);
 	}
@@ -181,7 +181,7 @@ void NIB::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 		} else {
 			while(track.size() < track_length) {
 				std::vector<uint8_t> extra_data(size_t(track_length) - track.size(), 0xff);
-				track.insert(track.begin() + off_t(sync_location), extra_data.begin(), extra_data.end());
+				track.insert(track.begin() + ptrdiff_t(sync_location), extra_data.begin(), extra_data.end());
 			}
 		}
 

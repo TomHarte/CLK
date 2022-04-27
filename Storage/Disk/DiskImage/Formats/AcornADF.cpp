@@ -19,10 +19,11 @@ using namespace Storage::Disk;
 
 AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
 	// Check that the disk image contains a whole number of sector.
-	if(file_.stats().st_size % off_t(128 << sector_size)) throw Error::InvalidFormat;
+	using sizeT = decltype(file_.stats().st_size);
+	if(file_.stats().st_size % sizeT(128 << sector_size)) throw Error::InvalidFormat;
 
 	// Check that the disk image is at least large enough to hold an ADFS catalogue.
-	if(file_.stats().st_size < 7 * off_t(128 << sector_size)) throw Error::InvalidFormat;
+	if(file_.stats().st_size < 7 * sizeT(128 << sector_size)) throw Error::InvalidFormat;
 
 	// Check that the initial directory's 'Hugo's are present.
 	file_.seek(513, SEEK_SET);
@@ -35,7 +36,7 @@ AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
 	if(bytes[0] != 'H' || bytes[1] != 'u' || bytes[2] != 'g' || bytes[3] != 'o') throw Error::InvalidFormat;
 
 	// Pick a number of heads; treat this image as double sided if it's too large to be single-sided.
-	head_count_ = 1 + (file_.stats().st_size > sectors_per_track * off_t(128 << sector_size) * 80);
+	head_count_ = 1 + (file_.stats().st_size > sectors_per_track * sizeT(128 << sector_size) * 80);
 
 	// Announce disk geometry.
 	set_geometry(sectors_per_track, sector_size, 0, true);
