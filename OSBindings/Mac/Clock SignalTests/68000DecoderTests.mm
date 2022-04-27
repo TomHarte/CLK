@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../InstructionSets/68k/Decoder.hpp"
+#include "../../../InstructionSets/M68k/Decoder.hpp"
 
 using namespace InstructionSet::M68k;
 

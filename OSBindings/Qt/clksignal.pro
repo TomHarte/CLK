@@ -78,6 +78,7 @@ SOURCES += \
 	$$SRC/Inputs/*.cpp \
 \
 	$$SRC/InstructionSets/M50740/*.cpp \
+	$$SRC/InstructionSets/M68k/*.cpp \
 	$$SRC/InstructionSets/PowerPC/*.cpp \
 	$$SRC/InstructionSets/x86/*.cpp \
 \
@@ -211,6 +212,7 @@ HEADERS += \
 	$$SRC/Inputs/QuadratureMouse/*.hpp \
 \
 	$$SRC/InstructionSets/M50740/*.hpp \
+	$$SRC/InstructionSets/M68k/*.hpp \
 	$$SRC/InstructionSets/PowerPC/*.hpp \
 	$$SRC/InstructionSets/x86/*.hpp \
 \
