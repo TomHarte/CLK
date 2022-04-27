@@ -309,7 +309,7 @@
 		4B74CF822312FA9C00500CE8 /* HFV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF802312FA9C00500CE8 /* HFV.cpp */; };
 		4B74CF85231370BC00500CE8 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */; };
 		4B74CF86231370BC00500CE8 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */; };
-		4B75F979280D7C5100121055 /* m68kDecoderTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B75F978280D7C5100121055 /* m68kDecoderTests.mm */; };
+		4B75F979280D7C5100121055 /* 68000DecoderTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B75F978280D7C5100121055 /* 68000DecoderTests.mm */; };
 		4B75F97B280D7C7700121055 /* 68000 Decoding in Resources */ = {isa = PBXBuildFile; fileRef = 4B75F97A280D7C7700121055 /* 68000 Decoding */; };
 		4B75F97C280D7F6800121055 /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBD689728037E53004790C1 /* Decoder.cpp */; };
 		4B778EEF23A5D6680000D260 /* AsyncTaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */; };
@@ -1416,7 +1416,7 @@
 		4B74CF802312FA9C00500CE8 /* HFV.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HFV.cpp; sourceTree = "<group>"; };
 		4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MacintoshVolume.cpp; path = Encodings/MacintoshVolume.cpp; sourceTree = "<group>"; };
 		4B74CF84231370BC00500CE8 /* MacintoshVolume.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = MacintoshVolume.hpp; path = Encodings/MacintoshVolume.hpp; sourceTree = "<group>"; };
-		4B75F978280D7C5100121055 /* m68kDecoderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = m68kDecoderTests.mm; sourceTree = "<group>"; };
+		4B75F978280D7C5100121055 /* 68000DecoderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000DecoderTests.mm; sourceTree = "<group>"; };
 		4B75F97A280D7C7700121055 /* 68000 Decoding */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "68000 Decoding"; sourceTree = "<group>"; };
 		4B77069C1EC904570053B588 /* Z80.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Z80.hpp; sourceTree = "<group>"; };
 		4B770A961FE9EE770026DC70 /* CompoundSource.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CompoundSource.hpp; sourceTree = "<group>"; };
@@ -4145,6 +4145,7 @@
 				4B90467322C6FADD000E2074 /* 68000BitwiseTests.mm */,
 				4B680CE123A5553100451D43 /* 68000ComparativeTests.mm */,
 				4B9D0C4C22C7DA1A00DE1AD3 /* 68000ControlFlowTests.mm */,
+				4B75F978280D7C5100121055 /* 68000DecoderTests.mm */,
 				4BC5C3DF22C994CC00795658 /* 68000MoveTests.mm */,
 				4B9D0C4E22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm */,
 				4BD388872239E198002D14B5 /* 68000Tests.mm */,
@@ -4157,7 +4158,6 @@
 				4B47770C26900685005C2340 /* EnterpriseDaveTests.mm */,
 				4B051CB2267D3FF800CA44E8 /* EnterpriseNickTests.mm */,
 				4B8DF4D725465B7500F3433C /* IIgsMemoryMapTests.mm */,
-				4B75F978280D7C5100121055 /* m68kDecoderTests.mm */,
 				4BEE1EBF22B5E236000A26A6 /* MacGCRTests.mm */,
 				4BE90FFC22D5864800FB464D /* MacintoshVideoTests.mm */,
 				4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */,
@@ -5920,7 +5920,7 @@
 				4B778EFC23A5EB8B0000D260 /* AcornADF.cpp in Sources */,
 				4B778F2023A5EDCE0000D260 /* HFV.cpp in Sources */,
 				4B778F3323A5F0FB0000D260 /* MassStorageDevice.cpp in Sources */,
-				4B75F979280D7C5100121055 /* m68kDecoderTests.mm in Sources */,
+				4B75F979280D7C5100121055 /* 68000DecoderTests.mm in Sources */,
 				4B778F2C23A5EF0F0000D260 /* ZX8081.cpp in Sources */,
 				4B778F3023A5F0C50000D260 /* Macintosh.cpp in Sources */,
 				4B3BA0D11D318B44005DD7A7 /* TestMachine6502.mm in Sources */,

@@ -12,7 +12,7 @@
 
 using namespace InstructionSet::M68k;
 
-@interface m68kDecoderTests : XCTestCase
+@interface M68000DecoderTests : XCTestCase
 @end
 
 namespace {
@@ -60,7 +60,7 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 
 }
 
-@implementation m68kDecoderTests
+@implementation M68000DecoderTests
 
 - (void)testInstructionSpecs {
 	NSData *const testData =
