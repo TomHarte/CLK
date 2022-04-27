@@ -16,7 +16,7 @@ FAT12::FAT12(const std::string &file_name) :
 	MFMSectorDump(file_name) {
 	// The only sanity check here is whether a sensible
 	// geometry is encoded in the first sector, or can be guessed.
-	off_t file_size = file_.stats().st_size;
+	const auto file_size = file_.stats().st_size;
 
 	if(file_size < 512) throw Error::InvalidFormat;
 

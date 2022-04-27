@@ -164,7 +164,7 @@ void PCMTrack::add_segment(const Time &start_time, const PCMSegment &segment, bo
 		const size_t selected_end_bit = std::min(end_bit, destination.data.size());
 
 		// Reset the destination.
-		std::fill(destination.data.begin() + off_t(start_bit), destination.data.begin() + off_t(selected_end_bit), false);
+		std::fill(destination.data.begin() + ptrdiff_t(start_bit), destination.data.begin() + ptrdiff_t(selected_end_bit), false);
 
 		// Step through the source data from start to finish, stopping early if it goes out of bounds.
 		for(size_t bit = 0; bit < segment.data.size(); ++bit) {
@@ -183,12 +183,12 @@ void PCMTrack::add_segment(const Time &start_time, const PCMSegment &segment, bo
 		if(target_width >= destination.data.size()) {
 			std::fill(destination.data.begin(), destination.data.end(), false);
 		} else {
-			std::fill(destination.data.begin(), destination.data.begin() + off_t(end_bit % destination.data.size()), false);
-			std::fill(destination.data.begin() + off_t(start_bit), destination.data.end(), false);
+			std::fill(destination.data.begin(), destination.data.begin() + ptrdiff_t(end_bit % destination.data.size()), false);
+			std::fill(destination.data.begin() + ptrdiff_t(start_bit), destination.data.end(), false);
 		}
 
 		// Run backwards from final bit back to first, stopping early if overlapping the beginning.
-		for(off_t bit = off_t(segment.data.size()-1); bit >= 0; --bit) {
+		for(auto bit = ptrdiff_t(segment.data.size()-1); bit >= 0; --bit) {
 			// Store flux transitions only; non-transitions can be ignored.
 			if(segment.data[size_t(bit)]) {
 				// Map to the proper output destination; stop if now potentially overwriting where we began.
