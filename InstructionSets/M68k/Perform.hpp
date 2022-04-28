@@ -35,4 +35,6 @@ template <
 }
 }
 
+#include "Implementation/PerformImplementation.hpp"
+
 #endif /* InstructionSets_M68k_Perform_h */

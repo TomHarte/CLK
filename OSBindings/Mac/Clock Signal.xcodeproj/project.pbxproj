@@ -1934,6 +1934,7 @@
 		4BB5B995281B1D3E00522DA9 /* RegisterSizes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RegisterSizes.hpp; sourceTree = "<group>"; };
 		4BB5B996281B1E3F00522DA9 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
 		4BB5B997281B1F7B00522DA9 /* Status.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Status.hpp; sourceTree = "<group>"; };
+		4BB5B99A281B244400522DA9 /* PerformImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PerformImplementation.hpp; sourceTree = "<group>"; };
 		4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TimedEventLoop.cpp; sourceTree = "<group>"; };
 		4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TimedEventLoop.hpp; sourceTree = "<group>"; };
 		4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommodoreGCR.cpp; path = Encodings/CommodoreGCR.cpp; sourceTree = "<group>"; };
@@ -3165,6 +3166,7 @@
 				4B79629D2819681F008130F9 /* Model.hpp */,
 				4BB5B996281B1E3F00522DA9 /* Perform.hpp */,
 				4BB5B997281B1F7B00522DA9 /* Status.hpp */,
+				4BB5B999281B244400522DA9 /* Implementation */,
 			);
 			path = M68k;
 			sourceTree = "<group>";
@@ -4072,6 +4074,14 @@
 				4B04B65622A58CB40006AB58 /* Target.hpp */,
 			);
 			path = Macintosh;
+			sourceTree = "<group>";
+		};
+		4BB5B999281B244400522DA9 /* Implementation */ = {
+			isa = PBXGroup;
+			children = (
+				4BB5B99A281B244400522DA9 /* PerformImplementation.hpp */,
+			);
+			path = Implementation;
 			sourceTree = "<group>";
 		};
 		4BB697CF1D4BA44900248BDF /* Encodings */ = {
