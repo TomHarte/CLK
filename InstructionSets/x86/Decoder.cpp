@@ -849,7 +849,7 @@ std::pair<int, typename Decoder<model>::InstructionT> Decoder<model>::decode(con
 			default: assert(false);
 		}
 
-		if(expects_sib && (source_ == Source::Indirect | destination_ == Source::Indirect)) {
+		if(expects_sib && (source_ == Source::Indirect || destination_ == Source::Indirect)) {
 			phase_ = Phase::ScaleIndexBase;
 		} else {
 			phase_ = (displacement_size_ != DataSize::None || operand_size_ != DataSize::None) ? Phase::DisplacementOrOperand : Phase::ReadyToPost;

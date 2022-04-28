@@ -1144,8 +1144,6 @@ Preinstruction Predecoder<model>::decode6(uint16_t instruction) {
 
 template <Model model>
 Preinstruction Predecoder<model>::decode7(uint16_t instruction) {
-	using Op = Operation;
-
 	// 4-134 (p238)
 	if(!(instruction & 0x100)) {
 		Decode(MOVEQ);
