@@ -20,7 +20,7 @@
 
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../RegisterSizes.hpp"
+#include "../../Numeric/RegisterSizes.hpp"
 
 namespace CPU {
 namespace MC68000 {

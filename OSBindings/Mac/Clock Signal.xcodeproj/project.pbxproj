@@ -1227,7 +1227,6 @@
 		4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Video.cpp; sourceTree = "<group>"; };
 		4B2BFDB11DAEF5FF001A68B8 /* Video.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
 		4B2C45411E3C3896002A2389 /* cartridge.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = cartridge.png; sourceTree = "<group>"; };
-		4B2C455C1EC9442600FC74DD /* RegisterSizes.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RegisterSizes.hpp; sourceTree = "<group>"; };
 		4B2E2D9B1C3A070400138695 /* Electron.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Electron.cpp; sourceTree = "<group>"; };
 		4B2E2D9C1C3A070400138695 /* Electron.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Electron.hpp; sourceTree = "<group>"; };
 		4B2E86B525D7490E0024F1E9 /* ReactiveDevice.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ReactiveDevice.cpp; sourceTree = "<group>"; };
@@ -1932,6 +1931,7 @@
 		4BB4BFAF22A42F290069048D /* MacintoshIMG.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MacintoshIMG.hpp; sourceTree = "<group>"; };
 		4BB4BFB722A4372E0069048D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BB4BFB822A4372E0069048D /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
+		4BB5B995281B1D3E00522DA9 /* RegisterSizes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RegisterSizes.hpp; sourceTree = "<group>"; };
 		4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TimedEventLoop.cpp; sourceTree = "<group>"; };
 		4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TimedEventLoop.hpp; sourceTree = "<group>"; };
 		4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommodoreGCR.cpp; path = Encodings/CommodoreGCR.cpp; sourceTree = "<group>"; };
@@ -3204,6 +3204,7 @@
 				4BD155312716362A00410C6E /* BitSpread.hpp */,
 				4B7BA03E23D55E7900B98D9E /* CRC.hpp */,
 				4B7BA03F23D55E7900B98D9E /* LFSR.hpp */,
+				4BB5B995281B1D3E00522DA9 /* RegisterSizes.hpp */,
 				4BFEA2F12682A90200EBF94C /* Sizes.hpp */,
 			);
 			name = Numeric;
@@ -4258,7 +4259,6 @@
 			children = (
 				4BFCA1211ECBDCAF00AC40C1 /* AllRAMProcessor.cpp */,
 				4BFCA1221ECBDCAF00AC40C1 /* AllRAMProcessor.hpp */,
-				4B2C455C1EC9442600FC74DD /* RegisterSizes.hpp */,
 				4B1414561B58879D00E04248 /* 6502 */,
 				4B4DEC15252BFA9C004583AC /* 6502Esque */,
 				4BF8D4CC251C0C9C00BBE21B /* 65816 */,

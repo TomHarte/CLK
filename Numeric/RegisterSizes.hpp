@@ -13,6 +13,9 @@
 
 namespace CPU {
 
+/// Provides a union that — on most compilers for modern consumer architectures,
+/// and therefore this project assumes universally — provides access to the low and
+/// high halves of some larger integer type.
 template <typename Full, typename Half> union RegisterPair {
 	RegisterPair(Full v) : full(v) {}
 	RegisterPair() {}
