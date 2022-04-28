@@ -69,6 +69,33 @@ struct Status {
 
 		return is_supervisor_;
 	}
+
+	/// Evaluates the condition described in the low four bits of @c code
+	template <typename IntT> bool evaluate_condition(IntT code) {
+		switch(code & 0xf) {
+			default:
+			case 0x00:	return true;							// true
+			case 0x01:	return false;							// false
+			case 0x02:	return zero_result_ && !carry_flag_;	// high
+			case 0x03:	return !zero_result_ || carry_flag_;	// low or same
+			case 0x04:	return !carry_flag_;					// carry clear
+			case 0x05:	return carry_flag_;						// carry set
+			case 0x06:	return zero_result_;					// not equal
+			case 0x07:	return !zero_result_;					// equal
+			case 0x08:	return !overflow_flag_;					// overflow clear
+			case 0x09:	return overflow_flag_;					// overflow set
+			case 0x0a:	return !negative_flag_;					// positive
+			case 0x0b:	return negative_flag_;					// negative
+			case 0x0c:	// greater than or equal
+				return (negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_);
+			case 0x0d:	// less than
+				return (negative_flag_ && !overflow_flag_) || (!negative_flag_ && overflow_flag_);
+			case 0x0e:	// greater than
+				return zero_result_ && ((negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_));
+			case 0x0f:	// less than or equal
+				return !zero_result_ || (negative_flag_ && !overflow_flag_) || (!negative_flag_ && overflow_flag_);
+		}
+	}
 };
 
 }
