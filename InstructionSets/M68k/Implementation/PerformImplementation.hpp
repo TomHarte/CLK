@@ -572,7 +572,7 @@ template <
 #define announce_divide_by_zero()									\
 	status.negative_flag_ = status.overflow_flag_ = 0;				\
 	status.zero_result_ = 1;										\
-	exception_handler.raise_exception(5);
+	flow_controller.raise_exception(5);
 
 		case Operation::DIVU: {
 			status.carry_flag_ = 0;
@@ -1182,7 +1182,7 @@ template <
 
 #define decode_shift_count()	\
 	int shift_count = (decoded_instruction_.full & 32) ? data_[(decoded_instruction_.full >> 9) & 7].full&63 : ( ((decoded_instruction_.full >> 9)&7) ? ((decoded_instruction_.full >> 9)&7) : 8) ;	\
-	exception_handler.consume_cycles(2 * shift_count);
+	flow_controller.consume_cycles(2 * shift_count);
 
 #define set_flags_b(t) set_flags(dest.halves.low.halves.low, 0x80, t)
 #define set_flags_w(t) set_flags(dest.halves.low.full, 0x8000, t)
