@@ -894,6 +894,8 @@
 		4BB4BFB022A42F290069048D /* MacintoshIMG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4BFAE22A42F290069048D /* MacintoshIMG.cpp */; };
 		4BB4BFB922A4372F0069048D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4BFB822A4372E0069048D /* StaticAnalyser.cpp */; };
 		4BB4BFBA22A4372F0069048D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4BFB822A4372E0069048D /* StaticAnalyser.cpp */; };
+		4BB5B99D281C814E00522DA9 /* Executor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB5B99B281C805300522DA9 /* Executor.cpp */; };
+		4BB5B99E281C814F00522DA9 /* Executor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB5B99B281C805300522DA9 /* Executor.cpp */; };
 		4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */; };
 		4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */; };
 		4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EA11B587A5100552FC2 /* AppDelegate.swift */; };
@@ -1939,6 +1941,8 @@
 		4BB5B996281B1E3F00522DA9 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
 		4BB5B997281B1F7B00522DA9 /* Status.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Status.hpp; sourceTree = "<group>"; };
 		4BB5B99A281B244400522DA9 /* PerformImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PerformImplementation.hpp; sourceTree = "<group>"; };
+		4BB5B99B281C805300522DA9 /* Executor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Executor.cpp; sourceTree = "<group>"; };
+		4BB5B99C281C805300522DA9 /* Executor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Executor.hpp; sourceTree = "<group>"; };
 		4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TimedEventLoop.cpp; sourceTree = "<group>"; };
 		4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TimedEventLoop.hpp; sourceTree = "<group>"; };
 		4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommodoreGCR.cpp; path = Encodings/CommodoreGCR.cpp; sourceTree = "<group>"; };
@@ -3165,8 +3169,10 @@
 			isa = PBXGroup;
 			children = (
 				4B79629F2819681F008130F9 /* Decoder.cpp */,
+				4BB5B99B281C805300522DA9 /* Executor.cpp */,
 				4B7962A4281C2EE3008130F9 /* Sequence.cpp */,
 				4B79629E2819681F008130F9 /* Decoder.hpp */,
+				4BB5B99C281C805300522DA9 /* Executor.hpp */,
 				4B79629C2819681F008130F9 /* Instruction.hpp */,
 				4B79629D2819681F008130F9 /* Model.hpp */,
 				4BB5B996281B1E3F00522DA9 /* Perform.hpp */,
@@ -5458,6 +5464,7 @@
 				4B1B88C1202E3DB200B67DFF /* MultiConfigurable.cpp in Sources */,
 				4B055AA31FAE85DF0060FFFF /* ImplicitSectors.cpp in Sources */,
 				4B8318B322D3E540006DB630 /* Audio.cpp in Sources */,
+				4BB5B99E281C814F00522DA9 /* Executor.cpp in Sources */,
 				4B055AAE1FAE85FD0060FFFF /* TrackSerialiser.cpp in Sources */,
 				4B89452B201967B4007DE474 /* File.cpp in Sources */,
 				4B6AAEAC230E40250078E864 /* SCSI.cpp in Sources */,
@@ -5708,6 +5715,7 @@
 				4BC890D3230F86020025A55A /* DirectAccessDevice.cpp in Sources */,
 				4B7BA03723CEB86000B98D9E /* BD500.cpp in Sources */,
 				4B38F3481F2EC11D00D9235D /* AmstradCPC.cpp in Sources */,
+				4BB5B99D281C814E00522DA9 /* Executor.cpp in Sources */,
 				4B8FE2221DA19FB20090D3CE /* MachineController.swift in Sources */,
 				4B4518A41F75FD1C00926311 /* OricMFMDSK.cpp in Sources */,
 				4B4B1A3C200198CA00A0F866 /* KonamiSCC.cpp in Sources */,

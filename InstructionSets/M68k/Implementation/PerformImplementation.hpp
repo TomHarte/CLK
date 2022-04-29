@@ -243,21 +243,6 @@ template <
 			dest.l -= src.l;
 		break;
 
-
-		// BRA: alters the program counter, exclusively via the prefetch queue.
-//		case Operation::BRA: {
-//			const int8_t byte_offset = int8_t(prefetch_queue_.halves.high.halves.low);
-//
-//			// A non-zero offset byte branches by just that amount; otherwise use the word
-//			// after as an offset. In both cases, treat as signed.
-//			if(byte_offset) {
-//				program_counter_.l += uint32_t(byte_offset);
-//			} else {
-//				program_counter_.l += u_extend16(prefetch_queue_.w);
-//			}
-//			program_counter_.l -= 2;
-//		} break;
-
 		// Two BTSTs: set the zero flag according to the value of the destination masked by
 		// the bit named in the source modulo the operation size.
 //		case Operation::BTSTb:
@@ -309,62 +294,41 @@ template <
 		//
 		// Special case: the condition code is 1, which is ordinarily false. In that case this
 		// is the trailing step of a BSR.
-//		case Operation::Bcc: {
-//			// Grab the 8-bit offset.
-//			const int8_t byte_offset = int8_t(prefetch_queue_.halves.high.halves.low);
-//
-//			// Check whether this is secretly BSR.
-//			const bool is_bsr = ((decoded_instruction_.l >> 8) & 0xf) == 1;
-//
-//			// Test the conditional, treating 'false' as true.
-//			const bool should_branch = is_bsr || evaluate_condition(decoded_instruction_.l >> 8);
-//
-//			// Schedule something appropriate, by rewriting the program for this instruction temporarily.
-//			if(should_branch) {
-//				if(byte_offset) {
-//					program_counter_.l += decltype(program_counter_.l)(byte_offset);
-//				} else {
-//					program_counter_.l += u_extend16(prefetch_queue_.w);
-//				}
-//				program_counter_.l -= 2;
-//				bus_program = is_bsr ? bsr_bus_steps_ : branch_taken_bus_steps_;
-//			} else {
-//				if(byte_offset) {
-//					bus_program = branch_byte_not_taken_bus_steps_;
-//				} else {
-//					bus_program = branch_word_not_taken_bus_steps_;
-//				}
-//			}
-//		} break;
-//
-//		case Operation::DBcc: {
-//			// Decide what sort of DBcc this is.
-//			if(!evaluate_condition(decoded_instruction_.l >> 8)) {
-//				-- src.w;
-//				const auto target_program_counter = program_counter_.l + u_extend16(prefetch_queue_.w) - 2;
-//
-//				if(src.w == 0xffff) {
-//					// This DBcc will be ignored as the counter has underflowed.
-//					// Schedule n np np np and continue. Assumed: the first np
-//					// is from where the branch would have been if taken?
-//					bus_program = dbcc_condition_false_no_branch_steps_;
-//					dbcc_false_address_ = target_program_counter;
-//				} else {
-//					// Take the branch. Change PC and schedule n np np.
-//					bus_program = dbcc_condition_false_branch_steps_;
-//					program_counter_.l = target_program_counter;
-//				}
-//			} else {
-//				// This DBcc will be ignored as the condition is true;
-//				// perform nn np np and continue.
-//				bus_program = dbcc_condition_true_steps_;
-//			}
-//		} break;
+		case Operation::Bccb:
+		case Operation::Bccw:
+		case Operation::Bccl: {
+			// Test the conditional, treating 'false' as true.
+			const bool should_branch = status.evaluate_condition(flow_controller.decode_conditional());
 
-		case Operation::Scc: {
-			dest.b =
-				status.evaluate_condition(src.l) ? 0xff : 0x00;
+			// Schedule something appropriate, by rewriting the program for this instruction temporarily.
+			if(should_branch) {
+				flow_controller.add_pc(src.l);
+			} else {
+				flow_controller.decline_branch();
+			}
 		} break;
+
+		case Operation::DBcc:
+			// Decide what sort of DBcc this is.
+			if(!status.evaluate_condition(flow_controller.decode_conditional())) {
+				-- src.w;
+
+				if(src.w == 0xffff) {
+					// This DBcc will be ignored as the counter has underflowed.
+					flow_controller.decline_branch();
+				} else {
+					// Take the branch.
+					flow_controller.add_pc(dest.l);
+				}
+			} else {
+				// This DBcc will be ignored as the condition is true.
+				flow_controller.decline_branch();
+			}
+		break;
+
+		case Operation::Scc:
+			dest.b = status.evaluate_condition(src.l) ? 0xff : 0x00;
+		break;
 
 		/*
 			CLRs: store 0 to the destination, set the zero flag, and clear
@@ -434,13 +398,9 @@ template <
 		} break;
 
 		// JMP: copies EA(0) to the program counter.
-//		case Operation::JMP:
-//			flow_controller.set_pc(effective_address_[0]);
-//		break;
-
-//		case Operation::RTS:
-//			program_counter_ = source_bus_data_;
-//		break;
+		case Operation::JMP:
+			flow_controller.set_pc(flow_controller.effective_address(0));
+		break;
 
 		/*
 			MOVE.b, MOVE.l and MOVE.w: move the least significant byte or word, or the entire long word,
@@ -475,6 +435,10 @@ template <
 
 		case Operation::MOVEAl:
 			dest.l = src.l;
+		break;
+
+		case Operation::LEA:
+			dest.l = flow_controller.effective_address(0);
 		break;
 
 //		case Operation::PEA:
@@ -823,8 +787,7 @@ template <
 		/*
 			The no-op.
 		*/
-		case Operation::NOP:
-		break;
+		case Operation::NOP:	break;
 
 		/*
 			LINK and UNLINK help with stack frames, allowing a certain
@@ -1248,6 +1211,12 @@ template <
 //					uint8_t(current_status >> 8);
 //			}
 //			apply_status(source_bus_data_.l);
+//		break;
+
+//		case Operation::RTE:
+//		break;
+//
+//		case Operation::RTR:
 //		break;
 
 		/*

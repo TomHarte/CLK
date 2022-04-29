@@ -8,10 +8,6 @@
 
 #include "Decoder.hpp"
 
-// TODO: remove this include. It's a temporary hack to get the performer into the automated build
-// while I work on this branch.
-#include "Perform.hpp"
-
 #include <cassert>
 
 using namespace InstructionSet::M68k;
