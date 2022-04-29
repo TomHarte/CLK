@@ -26,6 +26,32 @@ namespace M68k {
 	x = ((x & 0xf0f0) >> 4) + (x & 0x0f0f);	\
 	x = ((x & 0xff00) >> 8) + (x & 0x00ff);
 
+// TODO: decisions outstanding:
+//
+//	(1)	for DBcc, etc, should this receive the opcode in order to decode the conditional,
+//		or is it a design error to do any _decoding_ here rather than in the decoder? If
+//		the latter, should the internal cc operations all treat conditional as another
+//		Q-style operand?
+//
+//	(2)	should I reintroduce the BTSTl/BTSTw-type distinctions, given that the only way to
+//		determine them otherwise is by operand types and I'm hoping to treat data into
+//		here as a black box?
+//
+//	(3)	to what extent, if any, should this function have responsibility for a MOVEM, MOVEP,
+//		etc? This factoring is inteded to separate the bus interface from internal logic so
+//		is there much to do here in any case? As currently drafted, something else will
+//		already have had to check the operation and cue up data.
+//
+//	(4)	related to that, should the flow controller actually offer effective address calculation
+//		and load/stores, along with a flag indicating whether to stop after loads? By the
+//		magic of templates that'd avoid having a correlated sequencer — for the non-bus-accurate
+//		68ks the loads and stores could be performed immediately, for the accurate they could
+//		be enqueued, then performed, then a second call to perform that now has the data loaded
+//		could be performed.
+//
+//	(5)	is `RegisterPair` actually providing any value here, indeed is a union actually better than
+//		hand-crafted manipulation (which would be lengthier only when storing a byte or word)?
+
 template <
 	Operation operation,
 	Model model,
@@ -108,8 +134,6 @@ template <
 
 #define no_extend(op, a, b, c)	op(a, b, c, 0, z_set)
 #define extend(op, a, b, c)		op(a, b, c, status.extend_flag_, z_or)
-
-#define q() (((decoded_instruction_.full >> 9)&7) ? ((decoded_instruction_.full >> 9)&7) : 8)
 
 		// ADD and ADDA add two quantities, the latter sign extending and without setting any flags;
 		// ADDQ and SUBQ act as ADD and SUB, but taking the second argument from the instruction code.
@@ -206,14 +230,12 @@ template <
 #undef addsubl
 #undef addsubw
 #undef addsubb
-#undef q
 #undef z_set
 #undef z_or
 #undef no_extend
 #undef extend
 #undef addop
 #undef subop
-
 
 		case Operation::ADDAw:
 			dest.full += u_extend16(src.halves.low.full);
