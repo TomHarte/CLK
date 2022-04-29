@@ -33,8 +33,12 @@ class SampleSource {
 			merely to call get_samples and throw the result away, as per the default
 			implementation below.
 		*/
-		void skip_samples(const std::size_t number_of_samples) {
-			std::int16_t scratch_pad[number_of_samples];
+		void skip_samples(size_t number_of_samples) {
+			int16_t scratch_pad[2048];
+			while (number_of_samples > 2048) {
+				get_samples(2048, scratch_pad);
+				number_of_samples -= 2048;
+			}
 			get_samples(number_of_samples, scratch_pad);
 		}
 
