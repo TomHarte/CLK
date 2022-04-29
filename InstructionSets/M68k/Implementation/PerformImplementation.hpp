@@ -48,6 +48,11 @@ namespace M68k {
 //		68ks the loads and stores could be performed immediately, for the accurate they could
 //		be enqueued, then performed, then a second call to perform that now has the data loaded
 //		could be performed.
+//
+//	(5)	is it really helpful for operation to be a template parameter? I'm trying to avoid forcing
+//		an additional `switch` if it's likely that the caller has already applied one, but does
+//		that objective justify the syntax overhead for callers that don't inherently have their
+//		own `switch`? Do the first sort of callers really exist?
 
 template <
 	Operation operation,
