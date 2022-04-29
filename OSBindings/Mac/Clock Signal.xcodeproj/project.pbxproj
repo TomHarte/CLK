@@ -427,6 +427,8 @@
 		4B7962A02819681F008130F9 /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B79629F2819681F008130F9 /* Decoder.cpp */; };
 		4B7962A12819681F008130F9 /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B79629F2819681F008130F9 /* Decoder.cpp */; };
 		4B7962A22819681F008130F9 /* Decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B79629F2819681F008130F9 /* Decoder.cpp */; };
+		4B7962A5281C32D8008130F9 /* Sequence.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7962A4281C2EE3008130F9 /* Sequence.cpp */; };
+		4B7962A6281C32D8008130F9 /* Sequence.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7962A4281C2EE3008130F9 /* Sequence.cpp */; };
 		4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B79A4FF1FC913C900EEDAD5 /* MSX.cpp */; };
 		4B79E4441E3AF38600141F11 /* cassette.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4411E3AF38600141F11 /* cassette.png */; };
 		4B79E4451E3AF38600141F11 /* floppy35.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4421E3AF38600141F11 /* floppy35.png */; };
@@ -5464,6 +5466,7 @@
 				4BC080CB26A238CC00D03FD8 /* AmigaADF.cpp in Sources */,
 				4B4B1A3D200198CA00A0F866 /* KonamiSCC.cpp in Sources */,
 				4B055AC31FAE9AE80060FFFF /* AmstradCPC.cpp in Sources */,
+				4B7962A5281C32D8008130F9 /* Sequence.cpp in Sources */,
 				4B055A9E1FAE85DA0060FFFF /* G64.cpp in Sources */,
 				4B055AB81FAE860F0060FFFF /* ZX80O81P.cpp in Sources */,
 				4B055AB01FAE86070060FFFF /* PulseQueuedTape.cpp in Sources */,
@@ -5700,6 +5703,7 @@
 				4B894518201967B4007DE474 /* ConfidenceCounter.cpp in Sources */,
 				4BCE005A227CFFCA000CA200 /* Macintosh.cpp in Sources */,
 				4B6AAEA4230E3E1D0078E864 /* MassStorageDevice.cpp in Sources */,
+				4B7962A6281C32D8008130F9 /* Sequence.cpp in Sources */,
 				4B89452E201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BC890D3230F86020025A55A /* DirectAccessDevice.cpp in Sources */,
 				4B7BA03723CEB86000B98D9E /* BD500.cpp in Sources */,
