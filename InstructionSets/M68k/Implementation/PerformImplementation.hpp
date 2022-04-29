@@ -48,15 +48,12 @@ namespace M68k {
 //		68ks the loads and stores could be performed immediately, for the accurate they could
 //		be enqueued, then performed, then a second call to perform that now has the data loaded
 //		could be performed.
-//
-//	(5)	is `RegisterPair` actually providing any value here, indeed is a union actually better than
-//		hand-crafted manipulation (which would be lengthier only when storing a byte or word)?
 
 template <
 	Operation operation,
 	Model model,
 	typename FlowController
-> void perform(CPU::RegisterPair32 &src, CPU::RegisterPair32 &dest, Status &status, FlowController &flow_controller) {
+> void perform(CPU::SlicedInt32 &src, CPU::SlicedInt32 &dest, Status &status, FlowController &flow_controller) {
 
 #define sub_overflow() ((result ^ destination) & (destination ^ source))
 #define add_overflow() ((result ^ destination) & ~(destination ^ source))
@@ -67,8 +64,8 @@ template <
 		*/
 		case Operation::ABCD: {
 			// Pull out the two halves, for simplicity.
-			const uint8_t source = src.halves.low.halves.low;
-			const uint8_t destination = dest.halves.low.halves.low;
+			const uint8_t source = src.b;
+			const uint8_t destination = dest.b;
 
 			// Perform the BCD add by evaluating the two nibbles separately.
 			const int unadjusted_result = destination + source + (status.extend_flag_ ? 1 : 0);
@@ -84,7 +81,7 @@ template <
 			status.overflow_flag_ = ~unadjusted_result & result & 0x80;
 
 			// Store the result.
-			dest.halves.low.halves.low = uint8_t(result);
+			dest.b = uint8_t(result);
 		} break;
 
 #define addop(a, b, x) 	a + b + (x ? 1 : 0)
@@ -92,133 +89,121 @@ template <
 #define z_set(a, b)		a = b
 #define z_or(a, b)		a |= b
 
-#define addsubb(a, b, dest, op, overflow, x, zero_op)	\
+#define addsubb(a, b, op, overflow, x, zero_op)	\
 	const int source = a;	\
 	const int destination = b;	\
 	const auto result = op(destination, source, x);	\
 	\
-	dest = uint8_t(result);	\
-	zero_op(status.zero_result_, dest);	\
+	b = uint8_t(result);	\
+	zero_op(status.zero_result_, b);	\
 	status.extend_flag_ = status.carry_flag_ = uint_fast32_t(result & ~0xff);	\
 	status.negative_flag_ = result & 0x80;	\
 	status.overflow_flag_ = overflow() & 0x80;
 
-#define addsubw(a, b, dest, op, overflow, x, zero_op)	\
+#define addsubw(a, b, op, overflow, x, zero_op)	\
 	const int source = a;	\
 	const int destination = b;	\
 	const auto result = op(destination, source, x);	\
 	\
-	dest = uint16_t(result);	\
-	zero_op(status.zero_result_, dest);	\
+	b = uint16_t(result);	\
+	zero_op(status.zero_result_, b);	\
 	status.extend_flag_ = status.carry_flag_ = uint_fast32_t(result & ~0xffff);	\
 	status.negative_flag_ = result & 0x8000;	\
 	status.overflow_flag_ = overflow() & 0x8000;
 
-#define addsubl(a, b, dest, op, overflow, x, zero_op)	\
+#define addsubl(a, b, op, overflow, x, zero_op)	\
 	const uint64_t source = a;	\
 	const uint64_t destination = b;	\
 	const auto result = op(destination, source, x);	\
 	\
-	dest = uint32_t(result);	\
-	zero_op(status.zero_result_, dest);	\
+	b = uint32_t(result);	\
+	zero_op(status.zero_result_, b);	\
 	status.extend_flag_ = status.carry_flag_ = uint_fast32_t(result >> 32);	\
 	status.negative_flag_ = result & 0x80000000;	\
 	status.overflow_flag_ = overflow() & 0x80000000;
 
-#define addb(a, b, dest, x, z) addsubb(a, b, dest, addop, add_overflow, x, z)
-#define subb(a, b, dest, x, z) addsubb(a, b, dest, subop, sub_overflow, x, z)
-#define addw(a, b, dest, x, z) addsubw(a, b, dest, addop, add_overflow, x, z)
-#define subw(a, b, dest, x, z) addsubw(a, b, dest, subop, sub_overflow, x, z)
-#define addl(a, b, dest, x, z) addsubl(a, b, dest, addop, add_overflow, x, z)
-#define subl(a, b, dest, x, z) addsubl(a, b, dest, subop, sub_overflow, x, z)
+#define addb(a, b, x, z) addsubb(a, b, addop, add_overflow, x, z)
+#define subb(a, b, x, z) addsubb(a, b, subop, sub_overflow, x, z)
+#define addw(a, b, x, z) addsubw(a, b, addop, add_overflow, x, z)
+#define subw(a, b, x, z) addsubw(a, b, subop, sub_overflow, x, z)
+#define addl(a, b, x, z) addsubl(a, b, addop, add_overflow, x, z)
+#define subl(a, b, x, z) addsubl(a, b, subop, sub_overflow, x, z)
 
-#define no_extend(op, a, b, c)	op(a, b, c, 0, z_set)
-#define extend(op, a, b, c)		op(a, b, c, status.extend_flag_, z_or)
+#define no_extend(op, a, b)	op(a, b, 0, z_set)
+#define extend(op, a, b)	op(a, b, status.extend_flag_, z_or)
 
 		// ADD and ADDA add two quantities, the latter sign extending and without setting any flags;
 		// ADDQ and SUBQ act as ADD and SUB, but taking the second argument from the instruction code.
 		case Operation::ADDb: {
 			no_extend(	addb,
-						src.halves.low.halves.low,
-						dest.halves.low.halves.low,
-						dest.halves.low.halves.low);
+						src.b,
+						dest.b);
 		} break;
 
 		case Operation::ADDXb: {
 			extend(		addb,
-						src.halves.low.halves.low,
-						dest.halves.low.halves.low,
-						dest.halves.low.halves.low);
+						src.b,
+						dest.b);
 		} break;
 
 		case Operation::ADDw: {
 			no_extend(	addw,
-						src.halves.low.full,
-						dest.halves.low.full,
-						dest.halves.low.full);
+						src.w,
+						dest.w);
 		} break;
 
 		case Operation::ADDXw: {
 			extend(		addw,
-						src.halves.low.full,
-						dest.halves.low.full,
-						dest.halves.low.full);
+						src.w,
+						dest.w);
 		} break;
 
 		case Operation::ADDl: {
 			no_extend(	addl,
-						src.full,
-						dest.full,
-						dest.full);
+						src.l,
+						dest.l);
 		} break;
 
 		case Operation::ADDXl: {
 			extend(		addl,
-						src.full,
-						dest.full,
-						dest.full);
+						src.l,
+						dest.l);
 		} break;
 
 		case Operation::SUBb: {
 			no_extend(	subb,
-						src.halves.low.halves.low,
-						dest.halves.low.halves.low,
-						dest.halves.low.halves.low);
+						src.b,
+						dest.b);
 		} break;
 
 		case Operation::SUBXb: {
 			extend(		subb,
-						src.halves.low.halves.low,
-						dest.halves.low.halves.low,
-						dest.halves.low.halves.low);
+						src.b,
+						dest.b);
 		} break;
 
 		case Operation::SUBw: {
 			no_extend(	subw,
-						src.halves.low.full,
-						dest.halves.low.full,
-						dest.halves.low.full);
+						src.w,
+						dest.w);
 		} break;
 
 		case Operation::SUBXw: {
 			extend(		subw,
-						src.halves.low.full,
-						dest.halves.low.full,
-						dest.halves.low.full);
+						src.w,
+						dest.w);
 		} break;
 
 		case Operation::SUBl: {
 			no_extend(	subl,
-						src.full,
-						dest.full,
-						dest.full);
+						src.l,
+						dest.l);
 		} break;
 
 		case Operation::SUBXl: {
 			extend(		subl,
-						src.full,
-						dest.full,
-						dest.full);
+						src.l,
+						dest.l);
 		} break;
 
 #undef addl
@@ -238,19 +223,19 @@ template <
 #undef subop
 
 		case Operation::ADDAw:
-			dest.full += u_extend16(src.halves.low.full);
+			dest.l += u_extend16(src.w);
 		break;
 
 		case Operation::ADDAl:
-			dest.full += src.full;
+			dest.l += src.l;
 		break;
 
 		case Operation::SUBAw:
-			dest.full -= u_extend16(src.halves.low.full);
+			dest.l -= u_extend16(src.w);
 		break;
 
 		case Operation::SUBAl:
-			dest.full -= src.full;
+			dest.l -= src.l;
 		break;
 
 
@@ -261,56 +246,56 @@ template <
 //			// A non-zero offset byte branches by just that amount; otherwise use the word
 //			// after as an offset. In both cases, treat as signed.
 //			if(byte_offset) {
-//				program_counter_.full += uint32_t(byte_offset);
+//				program_counter_.l += uint32_t(byte_offset);
 //			} else {
-//				program_counter_.full += u_extend16(prefetch_queue_.halves.low.full);
+//				program_counter_.l += u_extend16(prefetch_queue_.w);
 //			}
-//			program_counter_.full -= 2;
+//			program_counter_.l -= 2;
 //		} break;
 
 		// Two BTSTs: set the zero flag according to the value of the destination masked by
 		// the bit named in the source modulo the operation size.
 //		case Operation::BTSTb:
-//			status.zero_result_ = dest.full & (1 << (src.full & 7));
+//			status.zero_result_ = dest.l & (1 << (src.l & 7));
 //		break;
 //
 //		case Operation::BTSTl:
-//			zero_result_ = dest.full & (1 << (src.full & 31));
+//			zero_result_ = dest.l & (1 << (src.l & 31));
 //		break;
 //
 //		case Operation::BCLRb:
-//			zero_result_ = dest.full & (1 << (src.full & 7));
-//			dest.full &= ~(1 << (src.full & 7));
+//			zero_result_ = dest.l & (1 << (src.l & 7));
+//			dest.l &= ~(1 << (src.l & 7));
 //		break;
 //
 //		case Operation::BCLRl:
-//			zero_result_ = dest.full & (1 << (src.full & 31));
-//			dest.full &= ~(1 << (src.full & 31));
+//			zero_result_ = dest.l & (1 << (src.l & 31));
+//			dest.l &= ~(1 << (src.l & 31));
 //
 //			// Clearing in the top word requires an extra four cycles.
-//			set_next_microcycle_length(HalfCycles(8 + ((src.full & 31) / 16) * 4));
+//			set_next_microcycle_length(HalfCycles(8 + ((src.l & 31) / 16) * 4));
 //		break;
 //
 //		case Operation::BCHGl:
-//			zero_result_ = dest.full & (1 << (src.full & 31));
-//			dest.full ^= 1 << (src.full & 31);
-//			set_next_microcycle_length(HalfCycles(4 + (((src.full & 31) / 16) * 4)));
+//			zero_result_ = dest.l & (1 << (src.l & 31));
+//			dest.l ^= 1 << (src.l & 31);
+//			set_next_microcycle_length(HalfCycles(4 + (((src.l & 31) / 16) * 4)));
 //		break;
 //
 //		case Operation::BCHGb:
-//			zero_result_ = dest.halves.low.halves.low & (1 << (src.full & 7));
-//			dest.halves.low.halves.low ^= 1 << (src.full & 7);
+//			zero_result_ = dest.b & (1 << (src.l & 7));
+//			dest.b ^= 1 << (src.l & 7);
 //		break;
 //
 //		case Operation::BSETl:
-//			zero_result_ = dest.full & (1 << (src.full & 31));
-//			dest.full |= 1 << (src.full & 31);
-//			set_next_microcycle_length(HalfCycles(4 + (((src.full & 31) / 16) * 4)));
+//			zero_result_ = dest.l & (1 << (src.l & 31));
+//			dest.l |= 1 << (src.l & 31);
+//			set_next_microcycle_length(HalfCycles(4 + (((src.l & 31) / 16) * 4)));
 //		break;
 //
 //		case Operation::BSETb:
-//			zero_result_ = dest.halves.low.halves.low & (1 << (src.full & 7));
-//			dest.halves.low.halves.low |= 1 << (src.full & 7);
+//			zero_result_ = dest.b & (1 << (src.l & 7));
+//			dest.b |= 1 << (src.l & 7);
 //		break;
 
 		// Bcc: ordinarily evaluates the relevant condition and displacement size and then:
@@ -324,19 +309,19 @@ template <
 //			const int8_t byte_offset = int8_t(prefetch_queue_.halves.high.halves.low);
 //
 //			// Check whether this is secretly BSR.
-//			const bool is_bsr = ((decoded_instruction_.full >> 8) & 0xf) == 1;
+//			const bool is_bsr = ((decoded_instruction_.l >> 8) & 0xf) == 1;
 //
 //			// Test the conditional, treating 'false' as true.
-//			const bool should_branch = is_bsr || evaluate_condition(decoded_instruction_.full >> 8);
+//			const bool should_branch = is_bsr || evaluate_condition(decoded_instruction_.l >> 8);
 //
 //			// Schedule something appropriate, by rewriting the program for this instruction temporarily.
 //			if(should_branch) {
 //				if(byte_offset) {
-//					program_counter_.full += decltype(program_counter_.full)(byte_offset);
+//					program_counter_.l += decltype(program_counter_.l)(byte_offset);
 //				} else {
-//					program_counter_.full += u_extend16(prefetch_queue_.halves.low.full);
+//					program_counter_.l += u_extend16(prefetch_queue_.w);
 //				}
-//				program_counter_.full -= 2;
+//				program_counter_.l -= 2;
 //				bus_program = is_bsr ? bsr_bus_steps_ : branch_taken_bus_steps_;
 //			} else {
 //				if(byte_offset) {
@@ -349,11 +334,11 @@ template <
 //
 //		case Operation::DBcc: {
 //			// Decide what sort of DBcc this is.
-//			if(!evaluate_condition(decoded_instruction_.full >> 8)) {
-//				-- src.halves.low.full;
-//				const auto target_program_counter = program_counter_.full + u_extend16(prefetch_queue_.halves.low.full) - 2;
+//			if(!evaluate_condition(decoded_instruction_.l >> 8)) {
+//				-- src.w;
+//				const auto target_program_counter = program_counter_.l + u_extend16(prefetch_queue_.w) - 2;
 //
-//				if(src.halves.low.full == 0xffff) {
+//				if(src.w == 0xffff) {
 //					// This DBcc will be ignored as the counter has underflowed.
 //					// Schedule n np np np and continue. Assumed: the first np
 //					// is from where the branch would have been if taken?
@@ -362,7 +347,7 @@ template <
 //				} else {
 //					// Take the branch. Change PC and schedule n np np.
 //					bus_program = dbcc_condition_false_branch_steps_;
-//					program_counter_.full = target_program_counter;
+//					program_counter_.l = target_program_counter;
 //				}
 //			} else {
 //				// This DBcc will be ignored as the condition is true;
@@ -372,8 +357,8 @@ template <
 //		} break;
 
 		case Operation::Scc: {
-			dest.halves.low.halves.low =
-				status.evaluate_condition(src.full) ? 0xff : 0x00;
+			dest.b =
+				status.evaluate_condition(src.l) ? 0xff : 0x00;
 		} break;
 
 		/*
@@ -381,17 +366,17 @@ template <
 			negative, overflow and carry.
 		*/
 		case Operation::CLRb:
-			dest.halves.low.halves.low = 0;
+			dest.b = 0;
 			status.negative_flag_ = status.overflow_flag_ = status.carry_flag_ = status.zero_result_ = 0;
 		break;
 
 		case Operation::CLRw:
-			dest.halves.low.full = 0;
+			dest.w = 0;
 			status.negative_flag_ = status.overflow_flag_ = status.carry_flag_ = status.zero_result_ = 0;
 		break;
 
 		case Operation::CLRl:
-			dest.full = 0;
+			dest.l = 0;
 			status.negative_flag_ = status.overflow_flag_ = status.carry_flag_ = status.zero_result_ = 0;
 		break;
 
@@ -400,8 +385,8 @@ template <
 			of the source from the destination; the result of the subtraction is not stored.
 		*/
 		case Operation::CMPb: {
-			const uint8_t source = src.halves.low.halves.low;
-			const uint8_t destination = dest.halves.low.halves.low;
+			const uint8_t source = src.b;
+			const uint8_t destination = dest.b;
 			const int result = destination - source;
 
 			status.zero_result_ = result & 0xff;
@@ -411,8 +396,8 @@ template <
 		} break;
 
 		case Operation::CMPw: {
-			const uint16_t source = src.halves.low.full;
-			const uint16_t destination = src.halves.low.full;
+			const uint16_t source = src.w;
+			const uint16_t destination = src.w;
 			const int result = destination - source;
 
 			status.zero_result_ = result & 0xffff;
@@ -422,8 +407,8 @@ template <
 		} break;
 
 		case Operation::CMPAw: {
-			const auto source = uint64_t(u_extend16(src.halves.low.full));
-			const uint64_t destination = dest.full;
+			const auto source = uint64_t(u_extend16(src.w));
+			const uint64_t destination = dest.l;
 			const auto result = destination - source;
 
 			status.zero_result_ = uint32_t(result);
@@ -433,8 +418,8 @@ template <
 		} break;
 
 		case Operation::CMPl: {
-			const auto source = uint64_t(src.full);
-			const auto destination = uint64_t(dest.full);
+			const auto source = uint64_t(src.l);
+			const auto destination = uint64_t(dest.l);
 			const auto result = destination - source;
 
 			status.zero_result_ = uint32_t(result);
@@ -458,19 +443,19 @@ template <
 			and set negative, zero, overflow and carry as appropriate.
 		*/
 		case Operation::MOVEb:
-			status.zero_result_ = dest.halves.low.halves.low = src.halves.low.halves.low;
+			status.zero_result_ = dest.b = src.b;
 			status.negative_flag_ = status.zero_result_ & 0x80;
 			status.overflow_flag_ = status.carry_flag_ = 0;
 		break;
 
 		case Operation::MOVEw:
-			status.zero_result_ = dest.halves.low.full = src.halves.low.full;
+			status.zero_result_ = dest.w = src.w;
 			status.negative_flag_ = status.zero_result_ & 0x8000;
 			status.overflow_flag_ = status.carry_flag_ = 0;
 		break;
 
 		case Operation::MOVEl:
-			status.zero_result_ = dest.full = src.full;
+			status.zero_result_ = dest.l = src.l;
 			status.negative_flag_ = status.zero_result_ & 0x80000000;
 			status.overflow_flag_ = status.carry_flag_ = 0;
 		break;
@@ -481,12 +466,11 @@ template <
 			Neither sets any flags.
 		*/
 		case Operation::MOVEAw:
-			dest.halves.low.full = src.halves.low.full;
-			dest.halves.high.full = (dest.halves.low.full & 0x8000) ? 0xffff : 0;
+			dest.l = u_extend16(src.w);
 		break;
 
 		case Operation::MOVEAl:
-			dest.full = src.full;
+			dest.l = src.l;
 		break;
 
 //		case Operation::PEA:
@@ -498,30 +482,28 @@ template <
 		*/
 
 		case Operation::MOVEtoSR:
-			status.set_status(src.halves.low.full);
+			status.set_status(src.w);
 		break;
 
 		case Operation::MOVEfromSR:
-			dest.halves.low.full = status.status();
+			dest.w = status.status();
 		break;
 
 		case Operation::MOVEtoCCR:
-			status.set_ccr(src.halves.low.full);
+			status.set_ccr(src.w);
 		break;
 
 		case Operation::EXTbtow:
-			dest.halves.low.halves.high =
-				(dest.halves.low.halves.low & 0x80) ? 0xff : 0x00;
+			dest.w = uint16_t(int8_t(dest.b));
 			status.overflow_flag_ = status.carry_flag_ = 0;
-			status.zero_result_ = dest.halves.low.full;
+			status.zero_result_ = dest.w;
 			status.negative_flag_ = status.zero_result_ & 0x8000;
 		break;
 
 		case Operation::EXTwtol:
-			dest.halves.high.full =
-				(dest.halves.low.full & 0x8000) ? 0xffff : 0x0000;
+			dest.l = u_extend16(dest.w);
 			status.overflow_flag_ = status.carry_flag_ = 0;
-			status.zero_result_ = dest.full;
+			status.zero_result_ = dest.l;
 			status.negative_flag_ = status.zero_result_ & 0x80000000;
 		break;
 
@@ -531,7 +513,7 @@ template <
 
 #define apply(op, func)	{			\
 	auto sr = status.status();		\
-	op(sr, src.halves.low.full);	\
+	op(sr, src.w);	\
 	status.func(sr);				\
 }
 
@@ -558,12 +540,12 @@ template <
 		*/
 
 		case Operation::MULU: {
-			dest.full = dest.halves.low.full * src.halves.low.full;
+			dest.l = dest.w * src.w;
 			status.carry_flag_ = status.overflow_flag_ = 0;
-			status.zero_result_ = dest.full;
+			status.zero_result_ = dest.l;
 			status.negative_flag_ = status.zero_result_ & 0x80000000;
 
-			int number_of_ones = src.halves.low.full;
+			int number_of_ones = src.w;
 			convert_to_bit_count_16(number_of_ones);
 
 			// Time taken = 38 cycles + 2 cycles for every 1 in the source.
@@ -571,15 +553,15 @@ template <
 		} break;
 
 		case Operation::MULS: {
-			dest.full =
-				u_extend16(dest.halves.low.full) * u_extend16(src.halves.low.full);
+			dest.l =
+				u_extend16(dest.w) * u_extend16(src.w);
 			status.carry_flag_ = status.overflow_flag_ = 0;
-			status.zero_result_ = dest.full;
+			status.zero_result_ = dest.l;
 			status.negative_flag_ = status.zero_result_ & 0x80000000;
 
 			// Find the number of 01 or 10 pairs in the 17-bit number
 			// formed by the source value with a 0 suffix.
-			int number_of_pairs = src.halves.low.full;
+			int number_of_pairs = src.w;
 			number_of_pairs = (number_of_pairs ^ (number_of_pairs << 1)) & 0xffff;
 			convert_to_bit_count_16(number_of_pairs);
 
@@ -600,14 +582,14 @@ template <
 			status.carry_flag_ = 0;
 
 			// An attempt to divide by zero schedules an exception.
-			if(!src.halves.low.full) {
+			if(!src.w) {
 				// Schedule a divide-by-zero exception.
 				announce_divide_by_zero();
 				return;
 			}
 
-			uint32_t dividend = dest.full;
-			uint32_t divisor = src.halves.low.full;
+			uint32_t dividend = dest.l;
+			uint32_t divisor = src.w;
 			const auto quotient = dividend / divisor;
 
 			// If overflow would occur, appropriate flags are set and the result is not written back.
@@ -618,8 +600,7 @@ template <
 			}
 
 			const uint16_t remainder = uint16_t(dividend % divisor);
-			dest.halves.high.full = remainder;
-			dest.halves.low.full = uint16_t(quotient);
+			dest.l = uint32_t((remainder << 16) | uint16_t(quotient));
 
 			status.overflow_flag_ = 0;
 			status.zero_result_ = quotient;
@@ -658,14 +639,14 @@ template <
 			status.carry_flag_ = 0;
 
 			// An attempt to divide by zero schedules an exception.
-			if(!src.halves.low.full) {
+			if(!src.w) {
 				// Schedule a divide-by-zero exception.
 				announce_divide_by_zero()
 				break;
 			}
 
-			const int32_t signed_dividend = int32_t(dest.full);
-			const int32_t signed_divisor = s_extend16(src.halves.low.full);
+			const int32_t signed_dividend = int32_t(dest.l);
+			const int32_t signed_divisor = s_extend16(src.w);
 			const auto result_sign =
 				( (0 <= signed_dividend) - (signed_dividend < 0) ) *
 				( (0 <= signed_divisor) - (signed_divisor < 0) );
@@ -688,8 +669,7 @@ template <
 
 			const uint16_t remainder = uint16_t(signed_dividend % signed_divisor);
 			const int signed_quotient = result_sign*int(quotient);
-			dest.halves.high.full = remainder;
-			dest.halves.low.full = uint16_t(signed_quotient);
+			dest.l = uint32_t((remainder << 16) | uint16_t(signed_quotient));
 
 			status.zero_result_ = decltype(status.zero_result_)(signed_quotient);
 			status.negative_flag_ = status.zero_result_ & 0x8000;
@@ -722,30 +702,30 @@ template <
 
 //		case Operation::MOVEPtoMw:
 //			// Write pattern is nW+ nw, which should write the low word of the source in big-endian form.
-//			destination_bus_data_.halves.high.full = src.halves.low.halves.high;
-//			destination_bus_data_.halves.low.full = src.halves.low.halves.low;
+//			destination_bus_data_.halves.high.l = src.halves.low.halves.high;
+//			destination_bus_data_.w = src.b;
 //		break;
 //
 //		case Operation::MOVEPtoMl:
 //			// Write pattern is nW+ nWr+ nw+ nwr, which should write the source in big-endian form.
-//			destination_bus_data_.halves.high.full = src.halves.high.halves.high;
-//			source_bus_data_.halves.high.full = src.halves.high.halves.low;
-//			destination_bus_data_.halves.low.full = src.halves.low.halves.high;
-//			source_bus_data_.halves.low.full = src.halves.low.halves.low;
+//			destination_bus_data_.halves.high.l = src.halves.high.halves.high;
+//			source_bus_data_.halves.high.l = src.halves.high.halves.low;
+//			destination_bus_data_.w = src.halves.low.halves.high;
+//			source_bus_data_.w = src.b;
 //		break;
 //
 //		case Operation::MOVEPtoRw:
 //			// Read pattern is nRd+ nrd.
 //			src.halves.low.halves.high = destination_bus_data_.halves.high.halves.low;
-//			src.halves.low.halves.low = destination_bus_data_.halves.low.halves.low;
+//			src.b = destination_bus_data_.b;
 //		break;
 //
 //		case Operation::MOVEPtoRl:
 //			// Read pattern is nRd+ nR+ nrd+ nr.
 //			src.halves.high.halves.high = destination_bus_data_.halves.high.halves.low;
 //			src.halves.high.halves.low = source_bus_data_.halves.high.halves.low;
-//			src.halves.low.halves.high = destination_bus_data_.halves.low.halves.low;
-//			src.halves.low.halves.low = source_bus_data_.halves.low.halves.low;
+//			src.halves.low.halves.high = destination_bus_data_.b;
+//			src.b = source_bus_data_.b;
 //		break;
 
 		/*
@@ -765,12 +745,12 @@ template <
 //	bus_program = base + (64 - total_to_move*words_per_reg)*2;			\
 //																		\
 //	/* Fill in the proper addresses and targets. */						\
-//	const auto mode = (decoded_instruction_.full >> 3) & 7;				\
+//	const auto mode = (decoded_instruction_.l >> 3) & 7;				\
 //	uint32_t start_address;												\
 //	if(mode <= 4) {														\
-//		start_address = destination_address().full;						\
+//		start_address = destination_address().l;						\
 //	} else {															\
-//		start_address = effective_address_[1].full;						\
+//		start_address = effective_address_[1].l;						\
 //	}																	\
 //																		\
 //auto step = bus_program;											\
@@ -900,11 +880,11 @@ template <
 //		case Operation::TRAP: {
 			// Select the trap steps as next; the initial microcycle should be 4 cycles long.
 //			bus_program = trap_steps_;
-//			populate_trap_steps((decoded_instruction_.full & 15) + 32, status());
+//			populate_trap_steps((decoded_instruction_.l & 15) + 32, status());
 //			set_next_microcycle_length(HalfCycles(12));
 
 			// The program counter to push is actually one slot ago.
-//			program_counter_.full -= 2;
+//			program_counter_.l -= 2;
 //		} break;
 
 //		case Operation::TRAPV: {
@@ -915,16 +895,16 @@ template <
 //				set_next_microcycle_length(HalfCycles(4));
 //
 //				// Push the address after the TRAPV.
-//				program_counter_.full -= 4;
+//				program_counter_.l -= 4;
 //			}
 //		} break;
 
 		case Operation::CHK: {
-			const bool is_under = s_extend16(dest.halves.low.full) < 0;
-			const bool is_over = s_extend16(dest.halves.low.full) > s_extend16(src.halves.low.full);
+			const bool is_under = s_extend16(dest.w) < 0;
+			const bool is_over = s_extend16(dest.w) > s_extend16(src.w);
 
 			status.overflow_flag_ = status.carry_flag_ = 0;
-			status.zero_result_ = dest.halves.low.full;
+			status.zero_result_ = dest.w;
 
 			// Test applied for N:
 			//
@@ -946,7 +926,7 @@ template <
 
 				// The program counter to push is two slots ago as whatever was the correct prefetch
 				// to continue without an exception has already happened, just in case.
-//				program_counter_.full -= 4;
+//				program_counter_.l -= 4;
 				assert(false);
 				// TODO.
 			}
@@ -962,9 +942,9 @@ template <
 		*/
 		case Operation::NEGb: {
 			const int destination = 0;
-			const int source = dest.halves.low.halves.low;
+			const int source = dest.b;
 			const auto result = destination - source;
-			dest.halves.low.halves.low = uint8_t(result);
+			dest.b = uint8_t(result);
 
 			status.zero_result_ = result & 0xff;
 			status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(result & ~0xff);
@@ -974,9 +954,9 @@ template <
 
 		case Operation::NEGw: {
 			const int destination = 0;
-			const int source = dest.halves.low.full;
+			const int source = dest.w;
 			const auto result = destination - source;
-			dest.halves.low.full = uint16_t(result);
+			dest.w = uint16_t(result);
 
 			status.zero_result_ = result & 0xffff;
 			status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(result & ~0xffff);
@@ -986,9 +966,9 @@ template <
 
 		case Operation::NEGl: {
 			const uint64_t destination = 0;
-			const uint64_t source = dest.full;
+			const uint64_t source = dest.l;
 			const auto result = destination - source;
-			dest.full = uint32_t(result);
+			dest.l = uint32_t(result);
 
 			status.zero_result_ = uint_fast32_t(result);
 			status.extend_flag_ = status.carry_flag_ = result >> 32;
@@ -1000,10 +980,10 @@ template <
 			NEGXs: NEG, with extend.
 		*/
 		case Operation::NEGXb: {
-			const int source = dest.halves.low.halves.low;
+			const int source = dest.b;
 			const int destination = 0;
 			const auto result = destination - source - (status.extend_flag_ ? 1 : 0);
-			dest.halves.low.halves.low = uint8_t(result);
+			dest.b = uint8_t(result);
 
 			status.zero_result_ |= result & 0xff;
 			status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(result & ~0xff);
@@ -1012,10 +992,10 @@ template <
 		} break;
 
 		case Operation::NEGXw: {
-			const int source = dest.halves.low.full;
+			const int source = dest.w;
 			const int destination = 0;
 			const auto result = destination - source - (status.extend_flag_ ? 1 : 0);
-			dest.halves.low.full = uint16_t(result);
+			dest.w = uint16_t(result);
 
 			status.zero_result_ |= result & 0xffff;
 			status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(result & ~0xffff);
@@ -1024,10 +1004,10 @@ template <
 		} break;
 
 		case Operation::NEGXl: {
-			const uint64_t source = dest.full;
+			const uint64_t source = dest.l;
 			const uint64_t destination = 0;
 			const auto result = destination - source - (status.extend_flag_ ? 1 : 0);
-			dest.full = uint32_t(result);
+			dest.l = uint32_t(result);
 
 			status.zero_result_ |= uint_fast32_t(result);
 			status.extend_flag_ = status.carry_flag_ = result >> 32;
@@ -1049,21 +1029,21 @@ template <
 //		case Operation::LINK:
 //			// Make space for the new long-word value, and set up
 //			// the proper target address for the stack operations to follow.
-//			address_[7].full -= 4;
-//			effective_address_[1].full = address_[7].full;
+//			address_[7].l -= 4;
+//			effective_address_[1].l = address_[7].l;
 //
 //			// The current value of the address register will be pushed.
-//			destination_bus_data_.full = src.full;
+//			destination_bus_data_.l = src.l;
 //
 //			// The address register will then contain the bottom of the stack,
 //			// and the stack pointer will be offset.
-//			src.full = address_[7].full;
-//			address_[7].full += u_extend16(prefetch_queue_.halves.low.full);
+//			src.l = address_[7].l;
+//			address_[7].l += u_extend16(prefetch_queue_.w);
 //		break;
 //
 //		case Operation::UNLINK:
-//			address_[7].full = effective_address_[1].full + 2;
-//			dest.full = destination_bus_data_.full;
+//			address_[7].l = effective_address_[1].l + 2;
+//			dest.l = destination_bus_data_.l;
 //		break;
 
 		/*
@@ -1073,9 +1053,9 @@ template <
 
 		case Operation::TAS:
 			status.overflow_flag_ = status.carry_flag_ = 0;
-			status.zero_result_ = dest.halves.low.halves.low;
-			status.negative_flag_ = dest.halves.low.halves.low & 0x80;
-			dest.halves.low.halves.low |= 0x80;
+			status.zero_result_ = dest.b;
+			status.negative_flag_ = dest.b & 0x80;
+			dest.b |= 0x80;
 		break;
 
 		/*
@@ -1096,10 +1076,10 @@ template <
 #define eorx(source, dest, sign_mask)	bitwise(source, dest, sign_mask, op_eor)
 #define orx(source, dest, sign_mask)	bitwise(source, dest, sign_mask, op_or)
 
-#define op_bwl(name, op)																				\
-	case Operation::name##b: op(src.halves.low.halves.low, dest.halves.low.halves.low, 0x80);	break;	\
-	case Operation::name##w: op(src.halves.low.full, dest.halves.low.full, 0x8000);				break;	\
-	case Operation::name##l: op(src.full, dest.full, 0x80000000);								break;
+#define op_bwl(name, op)											\
+	case Operation::name##b: op(src.b, dest.b, 0x80);		break;	\
+	case Operation::name##w: op(src.w, dest.w, 0x8000);		break;	\
+	case Operation::name##l: op(src.l, dest.l, 0x80000000);	break;
 
 		op_bwl(AND, andx);
 		op_bwl(EOR, eorx);
@@ -1116,22 +1096,22 @@ template <
 
 		// NOTs: take the logical inverse, affecting the negative and zero flags.
 		case Operation::NOTb:
-			dest.halves.low.halves.low ^= 0xff;
-			status.zero_result_ = dest.halves.low.halves.low;
+			dest.b ^= 0xff;
+			status.zero_result_ = dest.b;
 			status.negative_flag_ = status.zero_result_ & 0x80;
 			status.overflow_flag_ = status.carry_flag_ = 0;
 		break;
 
 		case Operation::NOTw:
-			dest.halves.low.full ^= 0xffff;
-			status.zero_result_ = dest.halves.low.full;
+			dest.w ^= 0xffff;
+			status.zero_result_ = dest.w;
 			status.negative_flag_ = status.zero_result_ & 0x8000;
 			status.overflow_flag_ = status.carry_flag_ = 0;
 		break;
 
 		case Operation::NOTl:
-			dest.full ^= 0xffffffff;
-			status.zero_result_ = dest.full;
+			dest.l ^= 0xffffffff;
+			status.zero_result_ = dest.l;
 			status.negative_flag_ = status.zero_result_ & 0x80000000;
 			status.overflow_flag_ = status.carry_flag_ = 0;
 		break;
@@ -1151,15 +1131,15 @@ template <
 	status.overflow_flag_ = unadjusted_result & ~result & 0x80;											\
 																										\
 	/* Store the result. */																				\
-	dest.halves.low.halves.low = uint8_t(result);
+	dest.b = uint8_t(result);
 
 		/*
 			SBCD subtracts the lowest byte of the source from that of the destination using
 			BCD arithmetic, obeying the extend flag.
 		*/
 		case Operation::SBCD: {
-			const uint8_t source = src.halves.low.halves.low;
-			const uint8_t destination = dest.halves.low.halves.low;
+			const uint8_t source = src.b;
+			const uint8_t destination = dest.b;
 			sbcd();
 		} break;
 
@@ -1168,7 +1148,7 @@ template <
 			destination - source.
 		*/
 		case Operation::NBCD: {
-			const uint8_t source = dest.halves.low.halves.low;
+			const uint8_t source = dest.b;
 			const uint8_t destination = 0;
 			sbcd();
 		} break;
@@ -1176,17 +1156,18 @@ template <
 		// EXG and SWAP exchange/swap words or long words.
 
 		case Operation::EXG: {
-			const auto temporary = src.full;
-			src.full = dest.full;
-			dest.full = temporary;
+			const auto temporary = src.l;
+			src.l = dest.l;
+			dest.l = temporary;
 		} break;
 
 		case Operation::SWAP: {
-			const auto temporary = dest.halves.low.full;
-			dest.halves.low.full = dest.halves.high.full;
-			dest.halves.high.full = temporary;
+			uint16_t *const words = reinterpret_cast<uint16_t *>(&dest);
+			const auto temporary = words[0];
+			words[0] = words[1];
+			words[1] = temporary;
 
-			status.zero_result_ = dest.full;
+			status.zero_result_ = dest.l;
 			status.negative_flag_ = temporary & 0x8000;
 			status.overflow_flag_ = status.carry_flag_ = 0;
 		} break;
@@ -1203,12 +1184,12 @@ template <
 	status.overflow_flag_ = (decltype(status.zero_result_)(value) ^ status.zero_result_) & decltype(status.overflow_flag_)(m);
 
 #define decode_shift_count()	\
-	int shift_count = (decoded_instruction_.full & 32) ? data_[(decoded_instruction_.full >> 9) & 7].full&63 : ( ((decoded_instruction_.full >> 9)&7) ? ((decoded_instruction_.full >> 9)&7) : 8) ;	\
+	int shift_count = (decoded_instruction_.l & 32) ? data_[(decoded_instruction_.l >> 9) & 7].l&63 : ( ((decoded_instruction_.l >> 9)&7) ? ((decoded_instruction_.l >> 9)&7) : 8) ;	\
 	flow_controller.consume_cycles(2 * shift_count);
 
-#define set_flags_b(t) set_flags(dest.halves.low.halves.low, 0x80, t)
-#define set_flags_w(t) set_flags(dest.halves.low.full, 0x8000, t)
-#define set_flags_l(t) set_flags(dest.full, 0x80000000, t)
+#define set_flags_b(t) set_flags(dest.b, 0x80, t)
+#define set_flags_w(t) set_flags(dest.w, 0x8000, t)
+#define set_flags_l(t) set_flags(dest.l, 0x80000000, t)
 
 #define asl(destination, size)	{\
 	decode_shift_count();	\
@@ -1231,14 +1212,14 @@ template <
 }
 
 		case Operation::ASLm: {
-			const auto value = dest.halves.low.full;
-			dest.halves.low.full = uint16_t(value << 1);
+			const auto value = dest.w;
+			dest.w = uint16_t(value << 1);
 			status.extend_flag_ = status.carry_flag_ = value & 0x8000;
-			set_neg_zero_overflow(dest.halves.low.full, 0x8000);
+			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
-//		case Operation::ASLb: asl(dest.halves.low.halves.low, 8);	break;
-//		case Operation::ASLw: asl(dest.halves.low.full, 16); 		break;
-//		case Operation::ASLl: asl(dest.full, 32); 					break;
+//		case Operation::ASLb: asl(dest.b, 8);	break;
+//		case Operation::ASLw: asl(dest.w, 16); 		break;
+//		case Operation::ASLl: asl(dest.l, 32); 					break;
 
 #define asr(destination, size)	{\
 	decode_shift_count();	\
@@ -1262,14 +1243,14 @@ template <
 }
 
 		case Operation::ASRm: {
-			const auto value = dest.halves.low.full;
-			dest.halves.low.full = (value&0x8000) | (value >> 1);
+			const auto value = dest.w;
+			dest.w = (value&0x8000) | (value >> 1);
 			status.extend_flag_ = status.carry_flag_ = value & 1;
-			set_neg_zero_overflow(dest.halves.low.full, 0x8000);
+			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
-//		case Operation::ASRb: asr(dest.halves.low.halves.low, 8);	break;
-//		case Operation::ASRw: asr(dest.halves.low.full, 16); 		break;
-//		case Operation::ASRl: asr(dest.full, 32); 					break;
+//		case Operation::ASRb: asr(dest.b, 8);	break;
+//		case Operation::ASRw: asr(dest.w, 16); 		break;
+//		case Operation::ASRl: asr(dest.l, 32); 					break;
 
 
 #undef set_neg_zero_overflow
@@ -1299,14 +1280,14 @@ template <
 }
 
 		case Operation::LSLm: {
-			const auto value = dest.halves.low.full;
-			dest.halves.low.full = uint16_t(value << 1);
+			const auto value = dest.w;
+			dest.w = uint16_t(value << 1);
 			status.extend_flag_ = status.carry_flag_ = value & 0x8000;
-			set_neg_zero_overflow(dest.halves.low.full, 0x8000);
+			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
-//		case Operation::LSLb: lsl(dest.halves.low.halves.low, 8);	break;
-//		case Operation::LSLw: lsl(dest.halves.low.full, 16); 		break;
-//		case Operation::LSLl: lsl(dest.full, 32); 					break;
+//		case Operation::LSLb: lsl(dest.b, 8);	break;
+//		case Operation::LSLw: lsl(dest.w, 16); 		break;
+//		case Operation::LSLl: lsl(dest.l, 32); 					break;
 
 #define lsr(destination, size)	{\
 	decode_shift_count();	\
@@ -1323,14 +1304,14 @@ template <
 }
 
 		case Operation::LSRm: {
-			const auto value = dest.halves.low.full;
-			dest.halves.low.full = value >> 1;
+			const auto value = dest.w;
+			dest.w = value >> 1;
 			status.extend_flag_ = status.carry_flag_ = value & 1;
-			set_neg_zero_overflow(dest.halves.low.full, 0x8000);
+			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
-//		case Operation::LSRb: lsr(dest.halves.low.halves.low, 8);	break;
-//		case Operation::LSRw: lsr(dest.halves.low.full, 16); 		break;
-//		case Operation::LSRl: lsr(dest.full, 32); 					break;
+//		case Operation::LSRb: lsr(dest.b, 8);	break;
+//		case Operation::LSRw: lsr(dest.w, 16); 		break;
+//		case Operation::LSRl: lsr(dest.l, 32); 					break;
 
 #define rol(destination, size)	{ \
 	decode_shift_count();	\
@@ -1351,14 +1332,14 @@ template <
 }
 
 		case Operation::ROLm: {
-			const auto value = dest.halves.low.full;
-			dest.halves.low.full = uint16_t((value << 1) | (value >> 15));
-			status.carry_flag_ = dest.halves.low.full & 1;
-			set_neg_zero_overflow(dest.halves.low.full, 0x8000);
+			const auto value = dest.w;
+			dest.w = uint16_t((value << 1) | (value >> 15));
+			status.carry_flag_ = dest.w & 1;
+			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
-//		case Operation::ROLb: rol(dest.halves.low.halves.low, 8);	break;
-//		case Operation::ROLw: rol(dest.halves.low.full, 16); 		break;
-//		case Operation::ROLl: rol(dest.full, 32); 					break;
+//		case Operation::ROLb: rol(dest.b, 8);	break;
+//		case Operation::ROLw: rol(dest.w, 16); 		break;
+//		case Operation::ROLl: rol(dest.l, 32); 					break;
 
 #define ror(destination, size)	{ \
 	decode_shift_count();	\
@@ -1379,14 +1360,14 @@ template <
 }
 
 		case Operation::RORm: {
-			const auto value = dest.halves.low.full;
-			dest.halves.low.full = uint16_t((value >> 1) | (value << 15));
-			status.carry_flag_ = dest.halves.low.full & 0x8000;
-			set_neg_zero_overflow(dest.halves.low.full, 0x8000);
+			const auto value = dest.w;
+			dest.w = uint16_t((value >> 1) | (value << 15));
+			status.carry_flag_ = dest.w & 0x8000;
+			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
-//		case Operation::RORb: ror(dest.halves.low.halves.low, 8);	break;
-//		case Operation::RORw: ror(dest.halves.low.full, 16); 		break;
-//		case Operation::RORl: ror(dest.full, 32); 					break;
+//		case Operation::RORb: ror(dest.b, 8);	break;
+//		case Operation::RORw: ror(dest.w, 16); 		break;
+//		case Operation::RORl: ror(dest.l, 32); 					break;
 
 #define roxl(destination, size)	{ \
 	decode_shift_count();	\
@@ -1403,14 +1384,14 @@ template <
 }
 
 		case Operation::ROXLm: {
-			const auto value = dest.halves.low.full;
-			dest.halves.low.full = uint16_t((value << 1) | (status.extend_flag_ ? 0x0001 : 0x0000));
+			const auto value = dest.w;
+			dest.w = uint16_t((value << 1) | (status.extend_flag_ ? 0x0001 : 0x0000));
 			status.extend_flag_ = value & 0x8000;
 			set_flags_w(0x8000);
 		} break;
-//		case Operation::ROXLb: roxl(dest.halves.low.halves.low, 8);	break;
-//		case Operation::ROXLw: roxl(dest.halves.low.full, 16); 		break;
-//		case Operation::ROXLl: roxl(dest.full, 32); 					break;
+//		case Operation::ROXLb: roxl(dest.b, 8);	break;
+//		case Operation::ROXLw: roxl(dest.w, 16); 		break;
+//		case Operation::ROXLl: roxl(dest.l, 32); 					break;
 
 #define roxr(destination, size)	{ \
 	decode_shift_count();	\
@@ -1427,14 +1408,14 @@ template <
 }
 
 		case Operation::ROXRm: {
-			const auto value = dest.halves.low.full;
-			dest.halves.low.full = (value >> 1) | (status.extend_flag_ ? 0x8000 : 0x0000);
+			const auto value = dest.w;
+			dest.w = (value >> 1) | (status.extend_flag_ ? 0x8000 : 0x0000);
 			status.extend_flag_ = value & 0x0001;
 			set_flags_w(0x0001);
 		} break;
-//		case Operation::ROXRb: roxr(dest.halves.low.halves.low, 8);	break;
-//		case Operation::ROXRw: roxr(dest.halves.low.full, 16); 		break;
-//		case Operation::ROXRl: roxr(dest.full, 32); 					break;
+//		case Operation::ROXRb: roxr(dest.b, 8);	break;
+//		case Operation::ROXRw: roxr(dest.w, 16); 		break;
+//		case Operation::ROXRl: roxr(dest.l, 32); 					break;
 
 #undef roxr
 #undef roxl
@@ -1458,12 +1439,12 @@ template <
 		*/
 //		case Operation::RTE_RTR:
 //			// If this is RTR, patch out the supervisor half of the status register.
-//			if(decoded_instruction_.full == 0x4e77) {
+//			if(decoded_instruction_.l == 0x4e77) {
 //				const auto current_status = status();
 //				source_bus_data_.halves.low.halves.high =
 //					uint8_t(current_status >> 8);
 //			}
-//			apply_status(source_bus_data_.full);
+//			apply_status(source_bus_data_.l);
 //		break;
 
 		/*
@@ -1472,24 +1453,24 @@ template <
 
 		case Operation::TSTb:
 			status.carry_flag_ = status.overflow_flag_ = 0;
-			status.zero_result_ = src.halves.low.halves.low;
+			status.zero_result_ = src.b;
 			status.negative_flag_ = status.zero_result_ & 0x80;
 		break;
 
 		case Operation::TSTw:
 			status.carry_flag_ = status.overflow_flag_ = 0;
-			status.zero_result_ = src.halves.low.full;
+			status.zero_result_ = src.w;
 			status.negative_flag_ = status.zero_result_ & 0x8000;
 		break;
 
 		case Operation::TSTl:
 			status.carry_flag_ = status.overflow_flag_ = 0;
-			status.zero_result_ = src.full;
+			status.zero_result_ = src.l;
 			status.negative_flag_ = status.zero_result_ & 0x80000000;
 		break;
 
 //		case Operation::STOP:
-//			apply_status(prefetch_queue_.halves.low.full);
+//			apply_status(prefetch_queue_.w);
 //			execution_state_ = ExecutionState::Stopped;
 //		break;
 

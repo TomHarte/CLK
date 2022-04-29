@@ -11,17 +11,19 @@
 
 #include <cstdint>
 
+#pragma pack(push, 1)
+
+// Unions below assume a modern consumer architecture,
+// and that this compiler offers C-style anonymous structs.
+
 namespace CPU {
 
-/// Provides a union that — on most compilers for modern consumer architectures,
-/// and therefore this project assumes universally — provides access to the low and
-/// high halves of some larger integer type.
+/// Provides access to all intermediate parts of a larger int.
 template <typename Full, typename Half> union RegisterPair {
 	RegisterPair(Full v) : full(v) {}
 	RegisterPair() {}
 
 	Full full;
-#pragma pack(push, 1)
 #if TARGET_RT_BIG_ENDIAN
 	struct {
 		Half high, low;
@@ -31,12 +33,52 @@ template <typename Full, typename Half> union RegisterPair {
 		Half low, high;
 	} halves;
 #endif
-#pragma pack(pop)
 };
 
-typedef RegisterPair<uint16_t, uint8_t> RegisterPair16;
-typedef RegisterPair<uint32_t, RegisterPair16> RegisterPair32;
+using RegisterPair16 = RegisterPair<uint16_t, uint8_t>;
+using RegisterPair32 = RegisterPair<uint32_t, RegisterPair16>;
+
+/// Provides access to lower portions of a larger int.
+template <typename IntT> union SlicedInt {};
+
+template <> union SlicedInt<uint16_t> {
+	struct {
+		uint16_t w;
+	};
+
+	struct {
+#if TARGET_RT_BIG_ENDIAN
+		uint8_t __padding[1];
+#endif
+		uint8_t b;
+	};
+};
+
+template <> union SlicedInt<uint32_t> {
+	struct {
+		uint32_t l;
+	};
+
+	struct {
+#if TARGET_RT_BIG_ENDIAN
+		uint16_t __padding[1];
+#endif
+		uint16_t w;
+	};
+
+	struct {
+#if TARGET_RT_BIG_ENDIAN
+		uint8_t __padding[3];
+#endif
+		uint8_t b;
+	};
+};
+
+using SlicedInt16 = SlicedInt<uint16_t>;
+using SlicedInt32 = SlicedInt<uint32_t>;
 
 }
+
+#pragma pack(pop)
 
 #endif /* RegisterSizes_hpp */
