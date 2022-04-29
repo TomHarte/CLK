@@ -21,6 +21,6 @@ struct StateProducer {
 //	}
 };
 
-};
+}
 
 #endif /* State_h */

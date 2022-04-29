@@ -44,6 +44,6 @@ enum class DMAFlag: uint16_t {
 	BlitterBusy				= 1 << 14,
 };
 
-};
+}
 
 #endif /* Flags_hpp */
