@@ -1425,6 +1425,8 @@
 		4B79629D2819681F008130F9 /* Model.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Model.hpp; sourceTree = "<group>"; };
 		4B79629E2819681F008130F9 /* Decoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Decoder.hpp; sourceTree = "<group>"; };
 		4B79629F2819681F008130F9 /* Decoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Decoder.cpp; sourceTree = "<group>"; };
+		4B7962A3281C1B76008130F9 /* Sequence.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sequence.hpp; sourceTree = "<group>"; };
+		4B7962A4281C2EE3008130F9 /* Sequence.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Sequence.cpp; sourceTree = "<group>"; };
 		4B79A4FE1FC9082300EEDAD5 /* TypedDynamicMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TypedDynamicMachine.hpp; sourceTree = "<group>"; };
 		4B79A4FF1FC913C900EEDAD5 /* MSX.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MSX.cpp; sourceTree = "<group>"; };
 		4B79A5001FC913C900EEDAD5 /* MSX.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MSX.hpp; sourceTree = "<group>"; };
@@ -3161,10 +3163,12 @@
 			isa = PBXGroup;
 			children = (
 				4B79629F2819681F008130F9 /* Decoder.cpp */,
+				4B7962A4281C2EE3008130F9 /* Sequence.cpp */,
 				4B79629E2819681F008130F9 /* Decoder.hpp */,
 				4B79629C2819681F008130F9 /* Instruction.hpp */,
 				4B79629D2819681F008130F9 /* Model.hpp */,
 				4BB5B996281B1E3F00522DA9 /* Perform.hpp */,
+				4B7962A3281C1B76008130F9 /* Sequence.hpp */,
 				4BB5B997281B1F7B00522DA9 /* Status.hpp */,
 				4BB5B999281B244400522DA9 /* Implementation */,
 			);
