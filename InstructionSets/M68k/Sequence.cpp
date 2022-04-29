@@ -24,6 +24,43 @@ template<Model model> uint16_t Sequence<model>::steps_for(Operation operation) {
 		default: return 0;
 
 		//
+		// No operands that require fetching.
+		//
+		case Operation::LEA:
+		return Steps<
+			Step::Perform
+		>::value;
+
+		//
+		// No logic, custom bus activity required.
+		//
+		case Operation::PEA:
+		return Steps<
+			Step::SpecificBusActivity
+		>::value;
+
+		//
+		// Single operand, read.
+		//
+		case Operation::MOVEtoSR:	case Operation::MOVEtoCCR:	case Operation::MOVEtoUSP:
+		case Operation::ORItoSR:	case Operation::ORItoCCR:
+		case Operation::ANDItoSR:	case Operation::ANDItoCCR:
+		case Operation::EORItoSR:	case Operation::EORItoCCR:
+		return Steps<
+			Step::FetchOp1,
+			Step::Perform
+		>::value;
+
+		//
+		// Single operand, write.
+		//
+		case Operation::MOVEfromSR:	case Operation::MOVEfromUSP:
+		return Steps<
+			Step::Perform,
+			Step::StoreOp1
+		>::value;
+
+		//
 		// Single operand, read-modify-write.
 		//
 		case Operation::NBCD:	return Steps<
