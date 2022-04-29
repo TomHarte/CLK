@@ -136,7 +136,7 @@ SOURCES += glob.glob('../../Storage/Tape/Formats/*.cpp')
 SOURCES += glob.glob('../../Storage/Tape/Parsers/*.cpp')
 
 # Add additional compiler flags; c++1z is insurance in case c++17 isn't fully implemented.
-env.Append(CCFLAGS = ['--std=c++17', '--std=c++1z', '-Wall', '-O2', '-DNDEBUG'])
+env.Append(CCFLAGS = ['--std=c++17', '--std=c++1z', '-Wall', '-Wextra', '-pedantic', '-O2', '-DNDEBUG'])
 
 # Add additional libraries to link against.
 env.Append(LIBS = ['libz', 'pthread', 'GL'])
