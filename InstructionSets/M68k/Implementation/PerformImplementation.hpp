@@ -435,10 +435,9 @@ template <
 
 		// JMP: copies EA(0) to the program counter.
 //		case Operation::JMP:
-//			program_counter_ = effective_address_[0];
+//			flow_controller.set_pc(effective_address_[0]);
 //		break;
 
-		// JMP: copies the source bus data to the program counter.
 //		case Operation::RTS:
 //			program_counter_ = source_bus_data_;
 //		break;
@@ -701,208 +700,16 @@ template <
 
 #undef announce_divide_by_zero
 
-		/*
-			MOVEP: move words and long-words a byte at a time.
-		*/
-
-//		case Operation::MOVEPtoMw:
-//			// Write pattern is nW+ nw, which should write the low word of the source in big-endian form.
-//			destination_bus_data_.halves.high.l = src.halves.low.halves.high;
-//			destination_bus_data_.w = src.b;
-//		break;
-//
-//		case Operation::MOVEPtoMl:
-//			// Write pattern is nW+ nWr+ nw+ nwr, which should write the source in big-endian form.
-//			destination_bus_data_.halves.high.l = src.halves.high.halves.high;
-//			source_bus_data_.halves.high.l = src.halves.high.halves.low;
-//			destination_bus_data_.w = src.halves.low.halves.high;
-//			source_bus_data_.w = src.b;
-//		break;
-//
-//		case Operation::MOVEPtoRw:
-//			// Read pattern is nRd+ nrd.
-//			src.halves.low.halves.high = destination_bus_data_.halves.high.halves.low;
-//			src.b = destination_bus_data_.b;
-//		break;
-//
-//		case Operation::MOVEPtoRl:
-//			// Read pattern is nRd+ nR+ nrd+ nr.
-//			src.halves.high.halves.high = destination_bus_data_.halves.high.halves.low;
-//			src.halves.high.halves.low = source_bus_data_.halves.high.halves.low;
-//			src.halves.low.halves.high = destination_bus_data_.b;
-//			src.b = source_bus_data_.b;
-//		break;
-
-		/*
-			MOVEM: multi-word moves.
-		*/
-
-//#define setup_movem(words_per_reg, base)								\
-//	/* Count the number of long words to move.	 */						\
-//	size_t total_to_move = 0;											\
-//	auto mask = next_word_;												\
-//	while(mask) {														\
-//		total_to_move += mask&1;										\
-//		mask >>= 1;														\
-//	}																	\
-//																		\
-//	/* Twice that many words plus one will need to be moved */			\
-//	bus_program = base + (64 - total_to_move*words_per_reg)*2;			\
-//																		\
-//	/* Fill in the proper addresses and targets. */						\
-//	const auto mode = (decoded_instruction_.l >> 3) & 7;				\
-//	uint32_t start_address;												\
-//	if(mode <= 4) {														\
-//		start_address = destination_address().l;						\
-//	} else {															\
-//		start_address = effective_address_[1].l;						\
-//	}																	\
-//																		\
-//auto step = bus_program;											\
-//uint32_t *address_storage = precomputed_addresses_;					\
-//mask = next_word_;													\
-//int offset = 0;
-//
-//#define inc_action(x, v) x += v
-//#define dec_action(x, v) x -= v
-//
-//#define write_address_sequence_long(action, l)														\
-//while(mask) {																					\
-//if(mask&1) {																				\
-//address_storage[0] = start_address;														\
-//action(start_address, 2);																\
-//address_storage[1] = start_address;														\
-//action(start_address, 2);																\
-//																			\
-//step[0].microcycle.address = step[1].microcycle.address = address_storage;				\
-//step[2].microcycle.address = step[3].microcycle.address = address_storage + 1;			\
-//																			\
-//const auto target = (offset > 7) ? &address_[offset&7] : &data_[offset];				\
-//step[l].microcycle.value = step[l+1].microcycle.value = &target->halves.high;			\
-//step[(l^2)].microcycle.value = step[(l^2)+1].microcycle.value = &target->halves.low;	\
-//																			\
-//address_storage += 2;																	\
-//step += 4;																				\
-//}																							\
-//mask >>= 1;																					\
-//action(offset, 1);																			\
-//}
-//
-//#define write_address_sequence_word(action)												\
-//while(mask) {																		\
-//if(mask&1) {																	\
-//address_storage[0] = start_address;											\
-//action(start_address, 2);													\
-//																\
-//step[0].microcycle.address = step[1].microcycle.address = address_storage;	\
-//																\
-//const auto target = (offset > 7) ? &address_[offset&7] : &data_[offset];	\
-//step[0].microcycle.value = step[1].microcycle.value = &target->halves.low;	\
-//																\
-//++ address_storage;															\
-//step += 2;																	\
-//}																				\
-//mask >>= 1;																		\
-//action(offset, 1);																\
-//}
-//
-//		case Operation::MOVEMtoRl: {
-//			setup_movem(2, movem_read_steps_);
-//
-//			// Everything for move to registers is based on an incrementing
-//			// address; per M68000PRM:
-//			//
-//			// "[If using the postincrement addressing mode then] the incremented address
-//			// register contains the address of the last operand loaded plus the operand length.
-//			// If the addressing register is also loaded from memory, the memory value is ignored
-//			// and the register is written with the postincremented effective address."
-//			//
-//			// The latter part is dealt with by MicroOp::Action::MOVEMtoRComplete, which also
-//			// does any necessary sign extension.
-//			write_address_sequence_long(inc_action, 0);
-//
-//			// MOVEM to R always reads one word too many.
-//			address_storage[0] = start_address;
-//			step[0].microcycle.address = step[1].microcycle.address = address_storage;
-//			step[0].microcycle.value = step[1].microcycle.value = &throwaway_value_;
-//			movem_final_address_ = start_address;
-//		} break;
-//
-//		case Operation::MOVEMtoRw: {
-//			setup_movem(1, movem_read_steps_);
-//			write_address_sequence_word(inc_action);
-//
-//			// MOVEM to R always reads one word too many.
-//			address_storage[0] = start_address;
-//			step[0].microcycle.address = step[1].microcycle.address = address_storage;
-//			step[0].microcycle.value = step[1].microcycle.value = &throwaway_value_;
-//			movem_final_address_ = start_address;
-//		} break;
-//
-//		case Operation::MOVEMtoMl: {
-//			setup_movem(2, movem_write_steps_);
-//
-//			// MOVEM to M counts downwards and enumerates the registers in reverse order
-//			// if subject to the predecrementing mode; otherwise it counts upwards and
-//			// operates exactly as does MOVEM to R.
-//			//
-//			// Note also: "The MC68000 and MC68010 write the initial register value
-//			// (not decremented) [when writing a register that is providing
-//			// pre-decrementing addressing]."
-//			//
-//			// Hence the decrementing register (if any) is updated
-//			// by MicroOp::Action::MOVEMtoMComplete.
-//			if(mode == 4) {
-//				offset = 15;
-//				start_address -= 2;
-//				write_address_sequence_long(dec_action, 2);
-//				movem_final_address_ = start_address + 2;
-//			} else {
-//				write_address_sequence_long(inc_action, 0);
-//			}
-//		} break;
-//
-//		case Operation::MOVEMtoMw: {
-//			setup_movem(1, movem_write_steps_);
-//
-//			if(mode == 4) {
-//				offset = 15;
-//				start_address -= 2;
-//				write_address_sequence_word(dec_action);
-//				movem_final_address_ = start_address + 2;
-//			} else {
-//				write_address_sequence_word(inc_action);
-//			}
-//		} break;
-//
-//#undef setup_movem
-//#undef write_address_sequence_long
-//#undef write_address_sequence_word
-//#undef inc_action
-//#undef dec_action
-
 		// TRAP, which is a nicer form of ILLEGAL.
-//		case Operation::TRAP: {
-			// Select the trap steps as next; the initial microcycle should be 4 cycles long.
-//			bus_program = trap_steps_;
-//			populate_trap_steps((decoded_instruction_.l & 15) + 32, status());
-//			set_next_microcycle_length(HalfCycles(12));
+		case Operation::TRAP:
+			flow_controller.raise_exception(src.l + 32);
+		break;
 
-			// The program counter to push is actually one slot ago.
-//			program_counter_.l -= 2;
-//		} break;
-
-//		case Operation::TRAPV: {
-//			if(overflow_flag_) {
-//				// Select the trap steps as next; the initial microcycle should be skipped.
-//				bus_program = trap_steps_;
-//				populate_trap_steps(7, status());
-//				set_next_microcycle_length(HalfCycles(4));
-//
-//				// Push the address after the TRAPV.
-//				program_counter_.l -= 4;
-//			}
-//		} break;
+		case Operation::TRAPV: {
+			if(status.overflow_flag_) {
+				flow_controller.raise_exception(7);
+			}
+		} break;
 
 		case Operation::CHK: {
 			const bool is_under = s_extend16(dest.w) < 0;
@@ -915,25 +722,18 @@ template <
 			//
 			//	if Dn < 0, set negative flag;
 			//	otherwise, if Dn > <ea>, reset negative flag.
-			if(is_over) status.negative_flag_ = 0;
-			if(is_under) status.negative_flag_ = 1;
+			if(is_over)		status.negative_flag_ = 0;
+			if(is_under)	status.negative_flag_ = 1;
 
 			// No exception is the default course of action; deviate only if an
 			// exception is necessary.
 			if(is_under || is_over) {
-//				bus_program = trap_steps_;
-//				populate_trap_steps(6, status());
-//				if(is_over) {
-//					set_next_microcycle_length(HalfCycles(20));
-//				} else {
-//					set_next_microcycle_length(HalfCycles(24));
-//				}
-
-				// The program counter to push is two slots ago as whatever was the correct prefetch
-				// to continue without an exception has already happened, just in case.
-//				program_counter_.l -= 4;
-				assert(false);
-				// TODO.
+				if(is_over) {
+					flow_controller.consume_cycles(10);
+				} else {
+					flow_controller.consume_cycles(12);
+				}
+				flow_controller.raise_exception(6);
 			}
 		} break;
 
@@ -1045,7 +845,7 @@ template <
 //			src.l = address_[7].l;
 //			address_[7].l += u_extend16(prefetch_queue_.w);
 //		break;
-//
+
 //		case Operation::UNLINK:
 //			address_[7].l = effective_address_[1].l + 2;
 //			dest.l = destination_bus_data_.l;
@@ -1223,8 +1023,8 @@ template <
 			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
 //		case Operation::ASLb: asl(dest.b, 8);	break;
-//		case Operation::ASLw: asl(dest.w, 16); 		break;
-//		case Operation::ASLl: asl(dest.l, 32); 					break;
+//		case Operation::ASLw: asl(dest.w, 16); 	break;
+//		case Operation::ASLl: asl(dest.l, 32); 	break;
 
 #define asr(destination, size)	{\
 	decode_shift_count();	\
@@ -1254,8 +1054,8 @@ template <
 			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
 //		case Operation::ASRb: asr(dest.b, 8);	break;
-//		case Operation::ASRw: asr(dest.w, 16); 		break;
-//		case Operation::ASRl: asr(dest.l, 32); 					break;
+//		case Operation::ASRw: asr(dest.w, 16); 	break;
+//		case Operation::ASRl: asr(dest.l, 32); 	break;
 
 
 #undef set_neg_zero_overflow
@@ -1291,8 +1091,8 @@ template <
 			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
 //		case Operation::LSLb: lsl(dest.b, 8);	break;
-//		case Operation::LSLw: lsl(dest.w, 16); 		break;
-//		case Operation::LSLl: lsl(dest.l, 32); 					break;
+//		case Operation::LSLw: lsl(dest.w, 16); 	break;
+//		case Operation::LSLl: lsl(dest.l, 32); 	break;
 
 #define lsr(destination, size)	{\
 	decode_shift_count();	\
@@ -1315,8 +1115,8 @@ template <
 			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
 //		case Operation::LSRb: lsr(dest.b, 8);	break;
-//		case Operation::LSRw: lsr(dest.w, 16); 		break;
-//		case Operation::LSRl: lsr(dest.l, 32); 					break;
+//		case Operation::LSRw: lsr(dest.w, 16); 	break;
+//		case Operation::LSRl: lsr(dest.l, 32); 	break;
 
 #define rol(destination, size)	{ \
 	decode_shift_count();	\
@@ -1343,8 +1143,8 @@ template <
 			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
 //		case Operation::ROLb: rol(dest.b, 8);	break;
-//		case Operation::ROLw: rol(dest.w, 16); 		break;
-//		case Operation::ROLl: rol(dest.l, 32); 					break;
+//		case Operation::ROLw: rol(dest.w, 16); 	break;
+//		case Operation::ROLl: rol(dest.l, 32); 	break;
 
 #define ror(destination, size)	{ \
 	decode_shift_count();	\
@@ -1371,12 +1171,10 @@ template <
 			set_neg_zero_overflow(dest.w, 0x8000);
 		} break;
 //		case Operation::RORb: ror(dest.b, 8);	break;
-//		case Operation::RORw: ror(dest.w, 16); 		break;
-//		case Operation::RORl: ror(dest.l, 32); 					break;
+//		case Operation::RORw: ror(dest.w, 16); 	break;
+//		case Operation::RORl: ror(dest.l, 32); 	break;
 
 #define roxl(destination, size)	{ \
-	decode_shift_count();	\
-	\
 	shift_count %= (size + 1);	\
 	uint64_t compound = uint64_t(destination) | (status.extend_flag_ ? (1ull << size) : 0);	\
 	compound = \
@@ -1394,9 +1192,9 @@ template <
 			status.extend_flag_ = value & 0x8000;
 			set_flags_w(0x8000);
 		} break;
-//		case Operation::ROXLb: roxl(dest.b, 8);	break;
-//		case Operation::ROXLw: roxl(dest.w, 16); 		break;
-//		case Operation::ROXLl: roxl(dest.l, 32); 					break;
+//		case Operation::ROXLb: roxl(dest.b, 8);		break;
+//		case Operation::ROXLw: roxl(dest.w, 16); 	break;
+//		case Operation::ROXLl: roxl(dest.l, 32); 	break;
 
 #define roxr(destination, size)	{ \
 	decode_shift_count();	\
@@ -1418,9 +1216,9 @@ template <
 			status.extend_flag_ = value & 0x0001;
 			set_flags_w(0x0001);
 		} break;
-//		case Operation::ROXRb: roxr(dest.b, 8);	break;
-//		case Operation::ROXRw: roxr(dest.w, 16); 		break;
-//		case Operation::ROXRl: roxr(dest.l, 32); 					break;
+//		case Operation::ROXRb: roxr(dest.b, 8);		break;
+//		case Operation::ROXRw: roxr(dest.w, 16); 	break;
+//		case Operation::ROXRl: roxr(dest.l, 32); 	break;
 
 #undef roxr
 #undef roxl
@@ -1474,10 +1272,10 @@ template <
 			status.negative_flag_ = status.zero_result_ & 0x80000000;
 		break;
 
-//		case Operation::STOP:
-//			apply_status(prefetch_queue_.w);
-//			execution_state_ = ExecutionState::Stopped;
-//		break;
+		case Operation::STOP:
+			status.set_status(src.w);
+			flow_controller.stop();
+		break;
 
 		/*
 			Development period debugging.
