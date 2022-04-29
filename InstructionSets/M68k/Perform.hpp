@@ -17,20 +17,20 @@
 namespace InstructionSet {
 namespace M68k {
 
-struct NullExceptionHandler {
+struct NullFlowController {
 	void raise_exception(int)	{}
 	void consume_cycles(int)	{}
 };
 
 /// Performs @c op using @c source and @c dest (which mmay be ignored as per the semantics of the operation).
-/// And change in provcessor status will be applied to @c status. If this operation raises an exception or consumes
-/// additional cycles due to the particular value of the operands (on the 68000, think DIV or MUL), that'll be notified to
-/// @c exception_handler.
+/// And change in provcessor status will be applied to @c status. If this operation raises an exception, causes a
+/// branch, or consumes additional cycles due to the particular value of the operands (on the 68000, think DIV or MUL),
+/// that'll be notified to the @c flow_controller.
 template <
 	Operation op,
 	Model model,
-	typename ExceptionHandler
-> void perform(CPU::RegisterPair32 &source, CPU::RegisterPair32 &dest, Status &status, ExceptionHandler &exception_handler);
+	typename FlowController
+> void perform(CPU::RegisterPair32 &source, CPU::RegisterPair32 &dest, Status &status, FlowController &flow_controller);
 
 }
 }

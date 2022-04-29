@@ -29,8 +29,8 @@ namespace M68k {
 template <
 	Operation operation,
 	Model model,
-	typename ExceptionHandler
-> void perform(CPU::RegisterPair32 &src, CPU::RegisterPair32 &dest, Status &status, ExceptionHandler &exception_handler) {
+	typename FlowController
+> void perform(CPU::RegisterPair32 &src, CPU::RegisterPair32 &dest, Status &status, FlowController &flow_controller) {
 
 #define sub_overflow() ((result ^ destination) & (destination ^ source))
 #define add_overflow() ((result ^ destination) & ~(destination ^ source))
@@ -545,7 +545,7 @@ template <
 			convert_to_bit_count_16(number_of_ones);
 
 			// Time taken = 38 cycles + 2 cycles for every 1 in the source.
-			exception_handler.consume_cycles(2 * number_of_ones + 34);
+			flow_controller.consume_cycles(2 * number_of_ones + 34);
 		} break;
 
 		case Operation::MULS: {
@@ -562,7 +562,7 @@ template <
 			convert_to_bit_count_16(number_of_pairs);
 
 			// Time taken = 38 cycles + 2 cycles per 1 in the source.
-			exception_handler.consume_cycles(2 * number_of_pairs + 34);
+			flow_controller.consume_cycles(2 * number_of_pairs + 34);
 		} break;
 
 		/*
@@ -591,7 +591,7 @@ template <
 			// If overflow would occur, appropriate flags are set and the result is not written back.
 			if(quotient > 65535) {
 				status.overflow_flag_ = status.zero_result_ = status.negative_flag_ = 1;
-				exception_handler.consume_cycles(3*2);
+				flow_controller.consume_cycles(3*2);
 				return;
 			}
 
@@ -629,7 +629,7 @@ template <
 					}
 				}
 			}
-			exception_handler.consume_cycles(cycles_expended);
+			flow_controller.consume_cycles(cycles_expended);
 		} break;
 
 		case Operation::DIVS: {
@@ -660,7 +660,7 @@ template <
 			const auto quotient = dividend / divisor;
 			if(quotient > 32767) {
 				status.overflow_flag_ = 1;
-				exception_handler.consume_cycles(6*2);
+				flow_controller.consume_cycles(6*2);
 				break;
 			}
 
@@ -689,7 +689,7 @@ template <
 			} else if(signed_dividend < 0) {
 				cycles_expended += 4;
 			}
-			exception_handler.consume_cycles(cycles_expended);
+			flow_controller.consume_cycles(cycles_expended);
 		} break;
 
 #undef announce_divide_by_zero
