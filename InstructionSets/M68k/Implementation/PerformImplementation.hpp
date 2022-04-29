@@ -64,7 +64,7 @@ template <
 #define add_overflow() ((result ^ destination) & ~(destination ^ source))
 	switch(operation) {
 		/*
-			ABCD adds the lowest bytes form the source and destination using BCD arithmetic,
+			ABCD adds the lowest bytes from the source and destination using BCD arithmetic,
 			obeying the extend flag.
 		*/
 		case Operation::ABCD: {

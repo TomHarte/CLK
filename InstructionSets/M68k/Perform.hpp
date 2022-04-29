@@ -23,7 +23,7 @@ struct NullFlowController {
 };
 
 /// Performs @c op using @c source and @c dest (which mmay be ignored as per the semantics of the operation).
-/// And change in provcessor status will be applied to @c status. If this operation raises an exception, causes a
+/// And change in processor status will be applied to @c status. If this operation raises an exception, causes a
 /// branch, or consumes additional cycles due to the particular value of the operands (on the 68000, think DIV or MUL),
 /// that'll be notified to the @c flow_controller.
 template <
