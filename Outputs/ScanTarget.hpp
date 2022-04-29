@@ -404,14 +404,13 @@ struct ScanStatus {
 		@returns this ScanStatus, with time-relative fields scaled by dividing them by @c dividend.
 	*/
 	ScanStatus operator / (float dividend) {
-		const ScanStatus result = {
-			.field_duration = field_duration / dividend,
-			.field_duration_gradient = field_duration_gradient / dividend,
-			.retrace_duration = retrace_duration / dividend,
-			.current_position = current_position,
-			.hsync_count = hsync_count,
-			.is_in_retrace = is_in_retrace,
-		};
+		ScanStatus result;
+		result.field_duration = field_duration / dividend;
+		result.field_duration_gradient = field_duration_gradient / dividend;
+		result.retrace_duration = retrace_duration / dividend;
+		result.current_position = current_position;
+		result.hsync_count = hsync_count;
+		result.is_in_retrace = is_in_retrace;
 		return result;
 	}
 
@@ -419,14 +418,13 @@ struct ScanStatus {
 		@returns this ScanStatus, with time-relative fields scaled by multiplying them by @c multiplier.
 	*/
 	ScanStatus operator * (float multiplier) {
-		const ScanStatus result = {
-			.field_duration = field_duration * multiplier,
-			.field_duration_gradient = field_duration_gradient * multiplier,
-			.retrace_duration = retrace_duration * multiplier,
-			.current_position = current_position,
-			.hsync_count = hsync_count,
-			.is_in_retrace = is_in_retrace,
-		};
+		ScanStatus result;
+		result.field_duration = field_duration * multiplier;
+		result.field_duration_gradient = field_duration_gradient * multiplier;
+		result.retrace_duration = retrace_duration * multiplier;
+		result.current_position = current_position;
+		result.hsync_count = hsync_count;
+		result.is_in_retrace = is_in_retrace;
 		return result;
 	}
 };
