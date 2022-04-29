@@ -26,7 +26,22 @@ template<Model model> uint16_t Sequence<model>::steps_for(Operation operation) {
 		//
 		// Single operand, read-modify-write.
 		//
-		case Operation::NBCD:	return Steps< Step::FetchOp1, Step::Perform, Step::StoreOp1 >::value;
+		case Operation::NBCD:	return Steps<
+			Step::FetchOp1,
+			Step::Perform,
+			Step::StoreOp1
+		>::value;
+
+		//
+		// Two operand, read-write.
+		//
+		case Operation::MOVEb: 	case Operation::MOVEw: 	case Operation::MOVEl:
+		case Operation::MOVEAw:	case Operation::MOVEAl:
+		return Steps<
+			Step::FetchOp1,
+			Step::Perform,
+			Step::StoreOp2
+		>::value;
 
 		//
 		// Two operand, read-modify-write.
@@ -38,14 +53,12 @@ template<Model model> uint16_t Sequence<model>::steps_for(Operation operation) {
 		case Operation::SUBb: 	case Operation::SUBw: 	case Operation::SUBl:
 		case Operation::SUBAw:	case Operation::SUBAl:
 		case Operation::SUBXb: 	case Operation::SUBXw: 	case Operation::SUBXl:
-		return Steps< Step::FetchOp1, Step::FetchOp2, Step::Perform, Step::StoreOp2 >::value;
-
-		//
-		// Two operand, read-write.
-		//
-		case Operation::MOVEb: 	case Operation::MOVEw: 	case Operation::MOVEl:
-		case Operation::MOVEAw:	case Operation::MOVEAl:
-		return Steps< Step::FetchOp1, Step::Perform, Step::StoreOp2 >::value;
+		return Steps<
+			Step::FetchOp1,
+			Step::FetchOp2,
+			Step::Perform,
+			Step::StoreOp2
+		>::value;
 	}
 }
 
