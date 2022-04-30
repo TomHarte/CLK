@@ -28,41 +28,24 @@ namespace M68k {
 
 // TODO: decisions outstanding:
 //
-//	(1)	for DBcc, etc, should this receive the opcode in order to decode the conditional,
-//		or is it a design error to do any _decoding_ here rather than in the decoder? If
-//		the latter, should the internal cc operations all treat conditional as another
-//		Q-style operand?
-//
-//	(2)	should I reintroduce the BTSTl/BTSTw-type distinctions, given that the only way to
+//	(1)	should I reintroduce the BTSTl/BTSTw-type distinctions, given that the only way to
 //		determine them otherwise is by operand types and I'm hoping to treat data into
 //		here as a black box?
 //
-//	(3)	to what extent, if any, should this function have responsibility for a MOVEM, MOVEP,
+//	(2)	to what extent, if any, should this function have responsibility for a MOVEM, MOVEP,
 //		etc? This factoring is inteded to separate the bus interface from internal logic so
 //		is there much to do here in any case? As currently drafted, something else will
 //		already have had to check the operation and cue up data.
 //
-//	(4)	related to that, should the flow controller actually offer effective address calculation
-//		and load/stores, along with a flag indicating whether to stop after loads? By the
-//		magic of templates that'd avoid having a correlated sequencer — for the non-bus-accurate
-//		68ks the loads and stores could be performed immediately, for the accurate they could
-//		be enqueued, then performed, then a second call to perform that now has the data loaded
-//		could be performed.
-//
-//	(5)	is it really helpful for operation to be a template parameter? I'm trying to avoid forcing
-//		an additional `switch` if it's likely that the caller has already applied one, but does
-//		that objective justify the syntax overhead for callers that don't inherently have their
-//		own `switch`? Do the first sort of callers really exist?
 
 template <
-	Operation operation,
 	Model model,
 	typename FlowController
-> void perform(CPU::SlicedInt32 &src, CPU::SlicedInt32 &dest, Status &status, FlowController &flow_controller) {
+> void perform(Preinstruction instruction, CPU::SlicedInt32 &src, CPU::SlicedInt32 &dest, Status &status, FlowController &flow_controller) {
 
 #define sub_overflow() ((result ^ destination) & (destination ^ source))
 #define add_overflow() ((result ^ destination) & ~(destination ^ source))
-	switch(operation) {
+	switch(instruction.operation) {
 		/*
 			ABCD adds the lowest bytes from the source and destination using BCD arithmetic,
 			obeying the extend flag.
@@ -298,7 +281,7 @@ template <
 		case Operation::Bccw:
 		case Operation::Bccl: {
 			// Test the conditional, treating 'false' as true.
-			const bool should_branch = status.evaluate_condition(flow_controller.decode_conditional());
+			const bool should_branch = status.evaluate_condition(instruction.condition());
 
 			// Schedule something appropriate, by rewriting the program for this instruction temporarily.
 			if(should_branch) {
@@ -310,7 +293,7 @@ template <
 
 		case Operation::DBcc:
 			// Decide what sort of DBcc this is.
-			if(!status.evaluate_condition(flow_controller.decode_conditional())) {
+			if(!status.evaluate_condition(instruction.condition())) {
 				-- src.w;
 
 				if(src.w == 0xffff) {
@@ -327,7 +310,7 @@ template <
 		break;
 
 		case Operation::Scc:
-			dest.b = status.evaluate_condition(src.l) ? 0xff : 0x00;
+			dest.b = status.evaluate_condition(instruction.condition()) ? 0xff : 0x00;
 		break;
 
 		/*

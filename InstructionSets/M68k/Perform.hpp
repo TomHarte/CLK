@@ -27,10 +27,9 @@ struct NullFlowController {
 /// branch, or consumes additional cycles due to the particular value of the operands (on the 68000, think DIV or MUL),
 /// that'll be notified to the @c flow_controller.
 template <
-	Operation op,
 	Model model,
 	typename FlowController
-> void perform(CPU::RegisterPair32 &source, CPU::RegisterPair32 &dest, Status &status, FlowController &flow_controller);
+> void perform(Preinstruction instruction, CPU::RegisterPair32 &source, CPU::RegisterPair32 &dest, Status &status, FlowController &flow_controller);
 
 }
 }
