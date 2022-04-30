@@ -399,7 +399,7 @@ template <
 
 		// JMP: copies EA(0) to the program counter.
 		case Operation::JMP:
-			flow_controller.set_pc(flow_controller.effective_address(0));
+			flow_controller.set_pc(src.l);
 		break;
 
 		/*
@@ -438,7 +438,7 @@ template <
 		break;
 
 		case Operation::LEA:
-			dest.l = flow_controller.effective_address(0);
+			dest.l = src.l;
 		break;
 
 //		case Operation::PEA:

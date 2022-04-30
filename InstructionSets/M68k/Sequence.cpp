@@ -11,14 +11,14 @@
 using namespace InstructionSet::M68k;
 
 template <Step... T> struct Steps {
-	static constexpr uint16_t value = 0;
+	static constexpr uint32_t value = 0;
 };
 
 template <Step F, Step... T> struct Steps<F, T...> {
-	static constexpr uint16_t value = uint16_t(F) | uint16_t(Steps<T...>::value << 3);
+	static constexpr uint32_t value = uint16_t(F) | uint16_t(Steps<T...>::value << 4);
 };
 
-template<Model model> uint16_t Sequence<model>::steps_for(Operation operation) {
+template<Model model> uint32_t Sequence<model>::steps_for(Operation operation) {
 	switch(operation) {
 		// This handles a NOP, and not much else.
 		default: return 0;
@@ -28,6 +28,7 @@ template<Model model> uint16_t Sequence<model>::steps_for(Operation operation) {
 		//
 		case Operation::LEA:
 		return Steps<
+			Step::CalcEA1,
 			Step::Perform
 		>::value;
 

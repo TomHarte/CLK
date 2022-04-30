@@ -35,6 +35,12 @@ enum class Step {
 	StoreOp1,
 	/// Store the value of operand 2.
 	StoreOp2,
+	/// Calculate effective address of operand 1.
+	CalcEA1,
+	/// Calculate effective address of operand 2.
+	CalcEA2,
+
+	Max = CalcEA2
 };
 
 /// Indicates the abstract steps necessary to perform an operation,
@@ -47,8 +53,9 @@ template<Model model> class Sequence {
 		/// if no further steps remain. This step is removed from the
 		/// list of remaining steps.
 		Step pop_front() {
-			const auto step = Step(steps_ & 7);
-			steps_ >>= 3;
+			static_assert(int(Step::Max) < 16);
+			const auto step = Step(steps_ & 15);
+			steps_ >>= 4;
 			return step;
 		}
 
@@ -59,12 +66,12 @@ template<Model model> class Sequence {
 		}
 
 	private:
-		uint16_t steps_ = 0;
+		uint32_t steps_ = 0;
 
-		uint16_t steps_for(Operation);
+		uint32_t steps_for(Operation);
 };
 
-static_assert(sizeof(Sequence<Model::M68000>) == sizeof(uint16_t));
+static_assert(sizeof(Sequence<Model::M68000>) == sizeof(uint32_t));
 
 }
 }
