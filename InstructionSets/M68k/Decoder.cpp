@@ -479,7 +479,8 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 template <Model model>
 template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated(
 	AddressingMode op1_mode, int op1_reg,
-	AddressingMode op2_mode, int op2_reg
+	AddressingMode op2_mode, int op2_reg,
+	Condition condition
 ) {
 	constexpr auto operation = Predecoder<model>::operation(op);
 
@@ -489,7 +490,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
 			requires_supervisor<model>(operation),
-			size(operation));
+			size(operation),
+			condition);
 	}
 
 	const auto invalid = invalid_operands<op>();
@@ -501,7 +503,8 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
 			requires_supervisor<model>(operation),
-			size(operation));
+			size(operation),
+			condition);
 }
 
 /// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been
@@ -601,17 +604,28 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
-		// MARK: STOP, ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR, Bccl, Bccw, BSRl, BSRw
+		// MARK: STOP, ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR, BSRl, BSRw
 		//
-		// Operand is an immedate; destination/source (if any) is implied by the operation.
+		// Operand is an immedate; destination/source (if any) is implied by the operation,
+		// e.g. ORItoSR has a destination of SR.
 		//
 		case OpT(Operation::STOP):
-		case OpT(Operation::Bccl):		case OpT(Operation::Bccw):
 		case OpT(Operation::BSRl):		case OpT(Operation::BSRw):
 		case OpT(Operation::ORItoSR):	case OpT(Operation::ORItoCCR):
 		case OpT(Operation::ANDItoSR):	case OpT(Operation::ANDItoCCR):
 		case OpT(Operation::EORItoSR):	case OpT(Operation::EORItoCCR):
 			return validated<op, validate>(AddressingMode::ImmediateData);
+
+		//
+		// MARK: Bccl, Bccw
+		//
+		// Operand is an immedate; b8–b11 are a condition code.
+		//
+		case OpT(Operation::Bccl):		case OpT(Operation::Bccw):
+			return validated<op, validate>(
+				AddressingMode::ImmediateData, 0,
+				AddressingMode::None, 0,
+				Condition((instruction >> 8) & 0xf));
 
 		//
 		// MARK: CHK
@@ -724,8 +738,19 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::PEA):
 		case OpT(Operation::TAS):
 		case OpT(Operation::TSTb):		case OpT(Operation::TSTw):		case OpT(Operation::TSTl):
-		case OpT(Operation::Scc):
 			return validated<op, validate>(combined_mode(ea_mode, ea_register), ea_register);
+
+		//
+		// MARK: Scc
+		//
+		// b0–b2 and b3–b5:		effective address;
+		// b8–b11:				a condition.
+		//
+		case OpT(Operation::Scc):
+			return validated<op, validate>(
+				combined_mode(ea_mode, ea_register), ea_register,
+				AddressingMode::None, 0,
+				Condition((instruction >> 8) & 0xf));
 
 		//
 		// MARK: UNLINK, MOVEtoUSP, MOVEfromUSP
@@ -739,13 +764,15 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		//
 		// MARK: DBcc
 		//
-		// b0–b2:		a data register.
+		// b0–b2:		a data register;
+		// b8–b11:		a condition.
 		// Followed by an immediate value.
 		//
 		case OpT(Operation::DBcc):
 			return validated<op, validate>(
 				AddressingMode::DataRegisterDirect, ea_register,
-				AddressingMode::ImmediateData, 0);
+				AddressingMode::ImmediateData, 0,
+				Condition((instruction >> 8) & 0xf));
 
 		//
 		// MARK: SWAP, EXTbtow, EXTwtol

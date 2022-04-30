@@ -252,6 +252,17 @@ constexpr uint32_t quick(Operation op, uint16_t instruction) {
 	}
 }
 
+enum class Condition {
+	True = 0x00,					False = 0x01,
+	High = 0x02,					LowOrSame = 0x03,
+	CarryClear = 0x04,				CarrySet = 0x05,
+	NotEqual = 0x06,				Equal = 0x07,
+	OverflowClear = 0x08,			OverflowSet = 0x09,
+	Positive = 0x0a,				Negative = 0x0b,
+	GreaterThanOrEqual = 0x0c,		LessThan = 0x0d,
+	GreaterThan = 0x0e,				LessThanOrEqual = 0x0f,
+};
+
 /// Indicates the addressing mode applicable to an operand.
 ///
 /// Implementation notes:
@@ -363,7 +374,10 @@ class Preinstruction {
 			return flags_ & 0x80;
 		}
 		DataSize size() {
-			return DataSize(flags_ & 0x7f);
+			return DataSize(flags_ & 0x03);
+		}
+		Condition condition() {
+			return Condition((flags_ >> 2) & 0x0f);
 		}
 
 	private:
@@ -376,11 +390,16 @@ class Preinstruction {
 			AddressingMode op1_mode,	int op1_reg,
 			AddressingMode op2_mode,	int op2_reg,
 			bool is_supervisor,
-			DataSize size) : operation(operation)
+			DataSize size,
+			Condition condition) : operation(operation)
 		{
 			operands_[0] = uint8_t(op1_mode) | uint8_t(op1_reg << 5);
 			operands_[1] = uint8_t(op2_mode) | uint8_t(op2_reg << 5);
-			flags_ = (is_supervisor ? 0x80 : 0x00) | uint8_t(size);
+			flags_ = uint8_t(
+				(is_supervisor ? 0x80 : 0x00) |
+				(int(condition) << 2) |
+				int(size)
+			);
 		}
 
 		Preinstruction() {}
