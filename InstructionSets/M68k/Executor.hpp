@@ -43,10 +43,13 @@ template <Model model, typename BusHandler> class Executor {
 
 		void reset();
 		struct EffectiveAddress {
-			uint32_t value;
+			CPU::SlicedInt32 value;
 			bool is_address;
 		};
 		EffectiveAddress calculate_effective_address(Preinstruction instruction, uint16_t opcode, int index);
+
+		void read(DataSize size, uint32_t address, CPU::SlicedInt32 &value);
+		void write(DataSize size, uint32_t address, CPU::SlicedInt32 value);
 
 		// Processor state.
 		Status status_;
