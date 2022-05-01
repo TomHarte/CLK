@@ -214,7 +214,8 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 		// rather than addresses; and (ii) then they'll be there for use
 		// by LEA and PEA.
 		//
-		// TODO: this work should be performed by a full Decoder, so that it can be cached.
+		// TODO: much of this work should be performed by a full Decoder,
+		// so that it can be cached.
 		effective_address_[0] = calculate_effective_address(instruction, opcode, 0);
 		effective_address_[1] = calculate_effective_address(instruction, opcode, 1);
 		operand_[0] = effective_address_[0].value;
