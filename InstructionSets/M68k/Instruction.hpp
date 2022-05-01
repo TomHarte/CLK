@@ -303,23 +303,23 @@ enum class AddressingMode: uint8_t {
 	AddressRegisterIndirectWithDisplacement				= 0b00'101,
 	/// (d8, An, Xn)
 	AddressRegisterIndirectWithIndex8bitDisplacement	= 0b00'110,
-	/// (bd, An, Xn)
+	/// (bd, An, Xn)		[68020+]
 	AddressRegisterIndirectWithIndexBaseDisplacement	= 0b10'000,
 
-	/// ([bd, An, Xn], od)
+	/// ([bd, An, Xn], od)	[68020+]
 	MemoryIndirectPostindexed							= 0b10'001,
-	/// ([bd, An], Xn, od)
+	/// ([bd, An], Xn, od)	[68020+]
 	MemoryIndirectPreindexed							= 0b10'010,
 
 	/// (d16, PC)
 	ProgramCounterIndirectWithDisplacement				= 0b01'010,
 	/// (d8, PC, Xn)
 	ProgramCounterIndirectWithIndex8bitDisplacement		= 0b01'011,
-	/// (bd, PC, Xn)
+	/// (bd, PC, Xn)		[68020+]
 	ProgramCounterIndirectWithIndexBaseDisplacement		= 0b10'011,
-	/// ([bd, PC, Xn], od)
+	/// ([bd, PC, Xn], od)	[68020+]
 	ProgramCounterMemoryIndirectPostindexed				= 0b10'100,
-	/// ([bc, PC], Xn, od)
+	/// ([bc, PC], Xn, od)	[68020+]
 	ProgramCounterMemoryIndirectPreindexed				= 0b10'101,
 
 	/// (xxx).W

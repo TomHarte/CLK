@@ -50,15 +50,26 @@ template <Model model, typename BusHandler> class Executor {
 
 		void read(DataSize size, uint32_t address, CPU::SlicedInt32 &value);
 		void write(DataSize size, uint32_t address, CPU::SlicedInt32 value);
+		template <typename IntT> IntT read_pc();
+		uint32_t index_8bitdisplacement();
 
 		// Processor state.
 		Status status_;
 		CPU::SlicedInt32 program_counter_;
 		CPU::SlicedInt32 data_[8], address_[8];
 		CPU::SlicedInt32 stack_pointers_[2];
+		uint32_t instruction_address_;
+
+		// A lookup table to ensure that A7 is adjusted by 2 rather than 1 in
+		// postincrement and predecrement mode.
+		static constexpr uint32_t byte_increments[] = {
+			1, 1, 1, 1, 1, 1, 1, 2
+		};
 };
 
 }
 }
+
+#include "Implementation/ExecutorImplementation.hpp"
 
 #endif /* InstructionSets_M68k_Executor_hpp */

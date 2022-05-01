@@ -1943,6 +1943,7 @@
 		4BB5B99A281B244400522DA9 /* PerformImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PerformImplementation.hpp; sourceTree = "<group>"; };
 		4BB5B99B281C805300522DA9 /* Executor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Executor.cpp; sourceTree = "<group>"; };
 		4BB5B99C281C805300522DA9 /* Executor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Executor.hpp; sourceTree = "<group>"; };
+		4BB5B99F281F121200522DA9 /* ExecutorImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ExecutorImplementation.hpp; sourceTree = "<group>"; };
 		4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TimedEventLoop.cpp; sourceTree = "<group>"; };
 		4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TimedEventLoop.hpp; sourceTree = "<group>"; };
 		4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommodoreGCR.cpp; path = Encodings/CommodoreGCR.cpp; sourceTree = "<group>"; };
@@ -4092,6 +4093,7 @@
 			isa = PBXGroup;
 			children = (
 				4BB5B99A281B244400522DA9 /* PerformImplementation.hpp */,
+				4BB5B99F281F121200522DA9 /* ExecutorImplementation.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";
