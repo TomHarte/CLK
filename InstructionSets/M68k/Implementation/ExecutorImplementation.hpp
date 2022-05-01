@@ -98,11 +98,11 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		// Operands that don't have effective addresses, which are returned as values.
 		//
 		case AddressingMode::DataRegisterDirect:
-			ea.value.l = data_[instruction.reg(index)];
+			ea.value = data_[instruction.reg(index)];
 			ea.requires_fetch = false;
 		break;
 		case AddressingMode::AddressRegisterDirect:
-			ea.value.l = address_[instruction.reg(index)];
+			ea.value = address_[instruction.reg(index)];
 			ea.requires_fetch = false;
 		break;
 		case AddressingMode::Quick:
@@ -159,11 +159,11 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 			ea.requires_fetch = true;
 		} break;
 		case AddressingMode::AddressRegisterIndirectWithDisplacement:
-			ea.value.l = address_[instruction.reg(index)] + int16_t(read_pc<uint16_t>());
+			ea.value.l = address_[instruction.reg(index)].l + int16_t(read_pc<uint16_t>());
 			ea.requires_fetch = true;
 		break;
 		case AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement:
-			ea.value.l = address_[instruction.reg(index)] + index_8bitdisplacement();
+			ea.value.l = address_[instruction.reg(index)].l + index_8bitdisplacement();
 			ea.requires_fetch = true;
 		break;
 
