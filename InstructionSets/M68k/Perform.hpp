@@ -22,13 +22,18 @@ struct NullFlowController {
 	void consume_cycles(int)	{}
 };
 
-/// Performs @c op using @c source and @c dest (which mmay be ignored as per the semantics of the operation).
+/// Performs @c instruction using @c source and @c dest (which mmay be ignored as per the semantics of the operation).
 /// And change in processor status will be applied to @c status. If this operation raises an exception, causes a
 /// branch, or consumes additional cycles due to the particular value of the operands (on the 68000, think DIV or MUL),
 /// that'll be notified to the @c flow_controller.
+///
+/// If the template parameter @c operation is not @c Operation::Undefined then that operation will be performed, ignoring
+/// whatever is specifed in @c instruction. This allows selection either at compile time or at run time; per Godbolt all modern
+/// compilers seem to be smart enough fully to optimise the compile-time case.
 template <
 	Model model,
-	typename FlowController
+	typename FlowController,
+	Operation operation = Operation::Undefined
 > void perform(Preinstruction instruction, CPU::RegisterPair32 &source, CPU::RegisterPair32 &dest, Status &status, FlowController &flow_controller);
 
 }

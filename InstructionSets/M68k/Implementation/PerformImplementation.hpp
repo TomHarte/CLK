@@ -40,12 +40,13 @@ namespace M68k {
 
 template <
 	Model model,
-	typename FlowController
+	typename FlowController,
+	Operation operation = Operation::Undefined
 > void perform(Preinstruction instruction, CPU::SlicedInt32 &src, CPU::SlicedInt32 &dest, Status &status, FlowController &flow_controller) {
 
 #define sub_overflow() ((result ^ destination) & (destination ^ source))
 #define add_overflow() ((result ^ destination) & ~(destination ^ source))
-	switch(instruction.operation) {
+	switch((operation != Operation::Undefined) ? operation : instruction.operation) {
 		/*
 			ABCD adds the lowest bytes from the source and destination using BCD arithmetic,
 			obeying the extend flag.
