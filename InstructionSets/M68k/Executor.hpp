@@ -42,6 +42,11 @@ template <Model model, typename BusHandler> class Executor {
 		Predecoder<model> decoder_;
 
 		void reset();
+		struct EffectiveAddress {
+			uint32_t value;
+			bool is_address;
+		};
+		EffectiveAddress calculate_effective_address(Preinstruction instruction, uint16_t opcode, int index);
 
 		// Processor state.
 		Status status_;

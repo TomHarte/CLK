@@ -22,7 +22,7 @@ struct Status {
 	int is_supervisor_ = 0;				// 1 => processor is in supervisor mode; 0 => it isn't.
 
 	/* b7–b9 */
-	int interrupt_level_ = 0;			// The direct integer value of thee current interrupt level.
+	int interrupt_level_ = 0;			// The direct integer value of the current interrupt level.
 
 	/* b0–b4 */
 	uint_fast32_t zero_result_ = 0;		// The zero flag is set if this value is zero.

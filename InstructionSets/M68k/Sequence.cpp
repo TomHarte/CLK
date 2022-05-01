@@ -28,7 +28,6 @@ template<Model model> uint32_t Sequence<model>::steps_for(Operation operation) {
 		//
 		case Operation::LEA:
 		return Steps<
-			Step::CalcEA1,
 			Step::Perform
 		>::value;
 

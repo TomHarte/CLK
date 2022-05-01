@@ -356,27 +356,37 @@ class Preinstruction {
 		// For one-operand instructions, only argument 0 will
 		// be provided, and will be a source and/or destination as
 		// per the semantics of the operation.
+		//
+		// The versions templated on index do a range check;
+		// if using the runtime versions then results for indices
+		// other than 0 and 1 are undefined.
 
+		AddressingMode mode(int index) const {
+			return AddressingMode(operands_[index] & 0x1f);
+		}
 		template <int index> AddressingMode mode() const {
 			if constexpr (index > 1) {
 				return AddressingMode::None;
 			}
-			return AddressingMode(operands_[index] & 0x1f);
+			return mode(index);
+		}
+		int reg(int index) const {
+			return operands_[index] >> 5;
 		}
 		template <int index> int reg() const {
 			if constexpr (index > 1) {
 				return 0;
 			}
-			return operands_[index] >> 5;
+			return reg(index);
 		}
 
-		bool requires_supervisor() {
+		bool requires_supervisor() const {
 			return flags_ & 0x80;
 		}
-		DataSize size() {
+		DataSize size() const {
 			return DataSize(flags_ & 0x03);
 		}
-		Condition condition() {
+		Condition condition() const {
 			return Condition((flags_ >> 2) & 0x0f);
 		}
 

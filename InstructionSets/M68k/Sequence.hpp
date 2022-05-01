@@ -15,7 +15,7 @@
 namespace InstructionSet {
 namespace M68k {
 
-/// Additional guarantees: [Fetch/Store/CalcEA][1/2] have an LSB of 0 for
+/// Additional guarantees: [Fetch/Store][1/2] have an LSB of 0 for
 /// operand 1, and an LSB of 1 for operand 2.
 enum class Step {
 	/// No further steps remain.
@@ -30,10 +30,6 @@ enum class Step {
 	StoreOp1,
 	/// Store the value of operand 2.
 	StoreOp2,
-	/// Calculate effective address of operand 1.
-	CalcEA1,
-	/// Calculate effective address of operand 2.
-	CalcEA2,
 	/// A catch-all for bus activity that doesn't fit the pattern
 	/// of fetch/stop operand 1/2, e.g. this opaquely covers almost
 	/// the entirety of MOVEM.
