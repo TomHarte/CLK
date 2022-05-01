@@ -15,22 +15,17 @@
 namespace InstructionSet {
 namespace M68k {
 
+/// Additional guarantees: [Fetch/Store/CalcEA][1/2] have an LSB of 0 for
+/// operand 1, and an LSB of 1 for operand 2.
 enum class Step {
 	/// No further steps remain.
 	Done,
+	/// Do the logical operation.
+	Perform,
 	/// Fetch the value of operand 1.
 	FetchOp1,
 	/// Fetch the value of operand 2.
 	FetchOp2,
-	/// Do the logical operation.
-	Perform,
-	/// A catch-all for bus activity that doesn't fit the pattern
-	/// of fetch/stop operand 1/2, e.g. this opaquely covers almost
-	/// the entirety of MOVEM.
-	///
-	/// TODO: list all operations that contain this step,
-	/// and to cover what activity.
-	SpecificBusActivity,
 	/// Store the value of operand 1.
 	StoreOp1,
 	/// Store the value of operand 2.
@@ -39,8 +34,15 @@ enum class Step {
 	CalcEA1,
 	/// Calculate effective address of operand 2.
 	CalcEA2,
+	/// A catch-all for bus activity that doesn't fit the pattern
+	/// of fetch/stop operand 1/2, e.g. this opaquely covers almost
+	/// the entirety of MOVEM.
+	///
+	/// TODO: list all operations that contain this step,
+	/// and to cover what activity.
+	SpecificBusActivity,
 
-	Max = CalcEA2
+	Max = SpecificBusActivity
 };
 
 /// Indicates the abstract steps necessary to perform an operation,
