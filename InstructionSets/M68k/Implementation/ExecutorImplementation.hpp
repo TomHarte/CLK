@@ -9,7 +9,7 @@
 #ifndef InstructionSets_M68k_ExecutorImplementation_hpp
 #define InstructionSets_M68k_ExecutorImplementation_hpp
 
-#include "Perform.hpp"
+#include "../Perform.hpp"
 #include <cassert>
 
 namespace InstructionSet {
