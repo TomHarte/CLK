@@ -99,20 +99,20 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		//
 		case AddressingMode::DataRegisterDirect:
 			ea.value.l = data_[instruction.reg(index)];
-			ea.is_address = false;
+			ea.requires_fetch = false;
 		break;
 		case AddressingMode::AddressRegisterDirect:
 			ea.value.l = address_[instruction.reg(index)];
-			ea.is_address = false;
+			ea.requires_fetch = false;
 		break;
 		case AddressingMode::Quick:
 			ea.value.l = quick(instruction.operation, opcode);
-			ea.is_address = false;
+			ea.requires_fetch = false;
 		break;
 		case AddressingMode::ImmediateData:
 			read(instruction.size(), program_counter_.l, ea.value.l);
 			program_counter_.l += (instruction.size() == DataSize::LongWord) ? 4 : 2;
-			ea.is_address = false;
+			ea.requires_fetch = false;
 		break;
 
 		//
@@ -120,11 +120,11 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		//
 		case AddressingMode::AbsoluteShort:
 			ea.value.l = int16_t(read_pc<uint16_t>());
-			ea.is_address = true;
+			ea.requires_fetch = true;
 		break;
 		case AddressingMode::AbsoluteLong:
 			ea.value.l = read_pc<uint32_t>();
-			ea.is_address = true;
+			ea.requires_fetch = true;
 		break;
 
 		//
@@ -132,13 +132,13 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		//
 		case AddressingMode::AddressRegisterIndirect:
 			ea.value.l = address_[instruction.reg(index)];
-			ea.is_address = true;
+			ea.requires_fetch = true;
 		break;
 		case AddressingMode::AddressRegisterIndirectWithPostincrement: {
 			const auto reg = instruction.reg(index);
 
 			ea.value.l = address_[reg];
-			ea.is_address = true;
+			ea.requires_fetch = true;
 
 			switch(instruction.size()) {
 				case DataSize::Byte:		address_[reg] += byte_increments[reg];	break;
@@ -156,15 +156,15 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 			}
 
 			ea.value.l = address_[reg];
-			ea.is_address = true;
+			ea.requires_fetch = true;
 		} break;
 		case AddressingMode::AddressRegisterIndirectWithDisplacement:
 			ea.value.l = address_[instruction.reg(index)] + int16_t(read_pc<uint16_t>());
-			ea.is_address = true;
+			ea.requires_fetch = true;
 		break;
 		case AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement:
 			ea.value.l = address_[instruction.reg(index)] + index_8bitdisplacement();
-			ea.is_address = true;
+			ea.requires_fetch = true;
 		break;
 
 		//
@@ -175,11 +175,11 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		//
 		case AddressingMode::ProgramCounterIndirectWithDisplacement:
 			ea.value.l = program_counter_.l + int16_t(read_pc<uint16_t>());
-			ea.is_address = true;
+			ea.requires_fetch = true;
 		break;
 		case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
 			ea.value.l = program_counter_.l + index_8bitdisplacement();
-			ea.is_address = true;
+			ea.requires_fetch = true;
 		break;
 
 		default:
@@ -237,7 +237,7 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 					const auto index = int(step) & 1;
 
 					// If the operand wasn't indirect, it's already fetched.
-					if(!effective_address_[index].is_address) continue;
+					if(!effective_address_[index].requires_fetch) continue;
 
 					// TODO: potential bus alignment exception.
 					read(instruction.size(), effective_address_[index].value, operand_[index]);
@@ -251,8 +251,8 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 				case Step::StoreOp2: {
 					const auto index = int(step) & 1;
 
-					// If the operand wasn't indirect, it's already fetched.
-					if(!effective_address_[index].is_address) {
+					// If the operand wasn't indirect, store directly to Dn or An.
+					if(!effective_address_[index].requires_fetch) {
 						// This must be either address or data register indirect.
 						assert(
 							instruction.mode(index) == AddressingMode::DataRegisterDirect ||

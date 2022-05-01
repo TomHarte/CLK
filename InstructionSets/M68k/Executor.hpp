@@ -44,7 +44,7 @@ template <Model model, typename BusHandler> class Executor {
 		void reset();
 		struct EffectiveAddress {
 			CPU::SlicedInt32 value;
-			bool is_address;
+			bool requires_fetch;
 		};
 		EffectiveAddress calculate_effective_address(Preinstruction instruction, uint16_t opcode, int index);
 
