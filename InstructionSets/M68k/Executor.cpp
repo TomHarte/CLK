@@ -8,6 +8,10 @@
 
 #include "Executor.hpp"
 
+#include "Perform.hpp"
+
+#include <cassert>
+
 using namespace InstructionSet::M68k;
 
 template <Model model, typename BusHandler>
@@ -17,7 +21,7 @@ Executor<model, BusHandler>::Executor(BusHandler &handler) : bus_handler_(handle
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::reset() {
-
+	// TODO.
 }
 
 template <Model model, typename BusHandler>
@@ -33,9 +37,20 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 		// Obtain the appropriate sequence.
 		Sequence<model> sequence(instruction.operation);
 
+		// Temporary storage.
+		CPU::SlicedInt32 source, dest;
+
 		// Perform it.
 		while(!sequence.empty()) {
 			const auto step = sequence.pop_front();
+
+			switch(step) {
+				default: assert(false);	// i.e. TODO
+
+				case Step::Perform:
+					perform<model>(instruction, source, dest, status_, this);
+				break;
+			}
 		}
 	}
 }
