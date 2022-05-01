@@ -141,18 +141,18 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 			ea.requires_fetch = true;
 
 			switch(instruction.size()) {
-				case DataSize::Byte:		address_[reg] += byte_increments[reg];	break;
-				case DataSize::Word:		address_[reg] += 2;						break;
-				case DataSize::LongWord:	address_[reg] += 4;						break;
+				case DataSize::Byte:		address_[reg].l += byte_increments[reg];	break;
+				case DataSize::Word:		address_[reg].l += 2;						break;
+				case DataSize::LongWord:	address_[reg].l += 4;						break;
 			}
 		} break;
 		case AddressingMode::AddressRegisterIndirectWithPredecrement: {
 			const auto reg = instruction.reg(index);
 
 			switch(instruction.size()) {
-				case DataSize::Byte:		address_[reg] -= byte_increments[reg];	break;
-				case DataSize::Word:		address_[reg] -= 2;						break;
-				case DataSize::LongWord:	address_[reg] -= 4;						break;
+				case DataSize::Byte:		address_[reg].l -= byte_increments[reg];	break;
+				case DataSize::Word:		address_[reg].l -= 2;						break;
+				case DataSize::LongWord:	address_[reg].l -= 4;						break;
 			}
 
 			ea.value.l = address_[reg];
