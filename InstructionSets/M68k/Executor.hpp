@@ -37,6 +37,15 @@ template <Model model, typename BusHandler> class Executor {
 		/// will not necessarily take effect immediately when signalled.
 		void run_for_instructions(int);
 
+
+		// Flow control.
+		void consume_cycles(int) {}
+		void raise_exception(int);
+		void stop();
+		void set_pc(uint32_t);
+		void add_pc(uint32_t);
+		void decline_branch();
+
 	private:
 		BusHandler &bus_handler_;
 		Predecoder<model> decoder_;

@@ -277,6 +277,23 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 	}
 }
 
+// TODO: flow control, all below here.
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::raise_exception(int) {}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::stop() {}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::set_pc(uint32_t) {}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::add_pc(uint32_t) {}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::decline_branch() {}
+
 }
 }
 

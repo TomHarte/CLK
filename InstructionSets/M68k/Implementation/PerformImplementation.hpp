@@ -905,6 +905,8 @@ template <
 			sbcd();
 		} break;
 
+#undef sbcd
+
 		// EXG and SWAP exchange/swap words or long words.
 
 		case Operation::EXG: {
@@ -1182,7 +1184,7 @@ template <
 #undef set_flags_w
 #undef set_flags_l
 #undef set_neg_zero_overflow
-#undef set_net_zero
+#undef set_neg_zero
 
 		/*
 			RTE and RTR share an implementation.
