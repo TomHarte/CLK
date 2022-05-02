@@ -28,6 +28,7 @@
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
+	_fileSet = [NSSet setWithArray:@[@"ext.json"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }
@@ -216,11 +217,48 @@
 			processor.run_for_instructions(instructions);
 		}
 
+		// Initial test-case implementation:
+		// do a very sedate read and write.
+
 		template <typename IntT> IntT read(uint32_t address) {
+			if constexpr (sizeof(IntT) == 1) {
+				return IntT(ram[address & 0xffffff]);
+			}
+
+			if constexpr (sizeof(IntT) == 2) {
+				return IntT(
+					(ram[address & 0xffffff] << 8) |
+					ram[(address+1) & 0xffffff]
+				);
+			}
+
+			if constexpr (sizeof(IntT) == 4) {
+				return IntT(
+					(ram[address & 0xffffff] << 24) |
+					(ram[(address+1) & 0xffffff] << 16) |
+					(ram[(address+2) & 0xffffff] << 8) |
+					ram[(address+3) & 0xffffff]
+				);
+			}
 			return 0;
 		}
 
 		template <typename IntT> void write(uint32_t address, IntT value) {
+			if constexpr (sizeof(IntT) == 1) {
+				ram[address & 0xffffff] = uint8_t(value);
+			}
+
+			if constexpr (sizeof(IntT) == 2) {
+				ram[address & 0xffffff] = uint8_t(value >> 8);
+				ram[(address+1) & 0xffffff] = uint8_t(value);
+			}
+
+			if constexpr (sizeof(IntT) == 4) {
+				ram[address & 0xffffff] = uint8_t(value >> 24);
+				ram[(address+1) & 0xffffff] = uint8_t(value >> 16);
+				ram[(address+2) & 0xffffff] = uint8_t(value >> 8);
+				ram[(address+3) & 0xffffff] = uint8_t(value);
+			}
 		}
 	};
 	auto uniqueTest68000 = std::make_unique<Test68000>();

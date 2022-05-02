@@ -63,7 +63,9 @@ template<Model model> uint32_t Sequence<model>::steps_for(Operation operation) {
 		//
 		// Single operand, read-modify-write.
 		//
-		case Operation::NBCD:	return Steps<
+		case Operation::NBCD:
+		case Operation::EXTbtow:	case Operation::EXTwtol:
+		return Steps<
 			Step::FetchOp1,
 			Step::Perform,
 			Step::StoreOp1
