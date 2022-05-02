@@ -79,9 +79,10 @@ uint32_t Executor<model, BusHandler>::index_8bitdisplacement() {
 	// also include the scale field even if not.
 	const auto extension = read_pc<uint16_t>();
 	const auto offset = int8_t(extension);
-	const int register_index = (extension >> 11) & 7;
+	const int register_index = (extension >> 12) & 7;
 	const uint32_t displacement = (extension & 0x8000) ? address_[register_index].l : data_[register_index].l;
-	return offset + (extension & 0x800) ? displacement : uint16_t(displacement);
+	const uint32_t sized_displacement = (extension & 0x800) ? displacement : int16_t(displacement);
+	return offset + sized_displacement;
 }
 
 template <Model model, typename BusHandler>
