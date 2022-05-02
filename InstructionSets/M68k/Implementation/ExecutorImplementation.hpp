@@ -26,7 +26,7 @@ void Executor<model, BusHandler>::reset() {
 	status_.set_status(0b0010'0011'1000'0000);
 
 	// Seed stack pointer and program counter.
-	data_[7] = bus_handler_.template read<uint32_t>(0);
+	data_[7].l = bus_handler_.template read<uint32_t>(0);
 	program_counter_.l = bus_handler_.template read<uint32_t>(4);
 }
 
@@ -110,7 +110,7 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 			ea.requires_fetch = false;
 		break;
 		case AddressingMode::ImmediateData:
-			read(instruction.size(), program_counter_.l, ea.value.l);
+			read(instruction.size(), program_counter_.l, ea.value);
 			program_counter_.l += (instruction.size() == DataSize::LongWord) ? 4 : 2;
 			ea.requires_fetch = false;
 		break;
@@ -131,13 +131,13 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		// Address register indirects.
 		//
 		case AddressingMode::AddressRegisterIndirect:
-			ea.value.l = address_[instruction.reg(index)];
+			ea.value = address_[instruction.reg(index)];
 			ea.requires_fetch = true;
 		break;
 		case AddressingMode::AddressRegisterIndirectWithPostincrement: {
 			const auto reg = instruction.reg(index);
 
-			ea.value.l = address_[reg];
+			ea.value = address_[reg];
 			ea.requires_fetch = true;
 
 			switch(instruction.size()) {
@@ -155,7 +155,7 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 				case DataSize::LongWord:	address_[reg].l -= 4;						break;
 			}
 
-			ea.value.l = address_[reg];
+			ea.value = address_[reg];
 			ea.requires_fetch = true;
 		} break;
 		case AddressingMode::AddressRegisterIndirectWithDisplacement:
@@ -241,11 +241,11 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 					if(!effective_address_[index].requires_fetch) continue;
 
 					// TODO: potential bus alignment exception.
-					read(instruction.size(), effective_address_[index].value, operand_[index]);
+					read(instruction.size(), effective_address_[index].value.l, operand_[index]);
 				} break;
 
 				case Step::Perform:
-					perform<model>(instruction, operand_[0], operand_[1], status_, this);
+					perform<model>(instruction, operand_[0], operand_[1], status_, *this);
 				break;
 
 				case Step::StoreOp1:
@@ -270,7 +270,7 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 					}
 
 					// TODO: potential bus alignment exception.
-					write(instruction.size(), effective_address_[index].value, operand_[index]);
+					write(instruction.size(), effective_address_[index].value.l, operand_[index]);
 				} break;
 			}
 		}

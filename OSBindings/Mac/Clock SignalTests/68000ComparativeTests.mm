@@ -9,6 +9,7 @@
 #import <XCTest/XCTest.h>
 
 #include "../../../Processors/68000/68000.hpp"
+#include "../../../InstructionSets/M68k/Executor.hpp"
 
 #include <array>
 #include <memory>
@@ -70,11 +71,11 @@
 	// Perform each dictionary in the array as a test.
 	for(NSDictionary *test in jsonContents) {
 		if(![test isKindOfClass:[NSDictionary class]]) continue;
-		[self testOperation:test];
+		[self testOperationExecutor:test];
 	}
 }
 
-- (void)testOperation:(NSDictionary *)test {
+- (void)testOperationClassic:(NSDictionary *)test {
 	// Only entries with a name are valid.
 	NSString *const name = test[@"name"];
 	if(!name) return;
@@ -193,6 +194,111 @@
 	};
 
 	test68000->run_for_instructions(1, comparitor);
+}
+
+- (void)testOperationExecutor:(NSDictionary *)test {
+	// Only entries with a name are valid.
+	NSString *const name = test[@"name"];
+	if(!name) return;
+
+	// Compare against a test set if one has been supplied.
+	if(_testSet && ![_testSet containsObject:name]) return;
+
+	// This is the test class for 68000 execution.
+	struct Test68000 {
+		std::array<uint8_t, 16*1024*1024> ram;
+		InstructionSet::M68k::Executor<InstructionSet::M68k::Model::M68000, Test68000> processor;
+
+		Test68000() : processor(*this) {
+		}
+
+		void run_for_instructions(int instructions) {
+			processor.run_for_instructions(instructions);
+		}
+
+		template <typename IntT> IntT read(uint32_t address) {
+			return 0;
+		}
+
+		template <typename IntT> void write(uint32_t address, IntT value) {
+		}
+	};
+	auto uniqueTest68000 = std::make_unique<Test68000>();
+	auto test68000 = uniqueTest68000.get();
+	memset(test68000->ram.data(), 0xce, test68000->ram.size());
+
+	{
+		// Apply initial memory state.
+		NSArray<NSNumber *> *const initialMemory = test[@"initial memory"];
+		NSEnumerator<NSNumber *> *enumerator = [initialMemory objectEnumerator];
+		while(true) {
+			NSNumber *const address = [enumerator nextObject];
+			NSNumber *const value = [enumerator nextObject];
+
+			if(!address || !value) break;
+			test68000->ram[address.integerValue ^ 1] = value.integerValue;	// Effect a short-resolution endianness swap.
+		}
+
+		// Apply initial processor state.
+//		NSDictionary *const initialState = test[@"initial state"];
+//		auto state = test68000->processor.get_state();
+//		for(int c = 0; c < 8; ++c) {
+//			const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
+//			const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
+//
+//			state.data[c] = uint32_t([initialState[dX] integerValue]);
+//			if(c < 7)
+//				state.address[c] = uint32_t([initialState[aX] integerValue]);
+//		}
+//		state.supervisor_stack_pointer = uint32_t([initialState[@"a7"] integerValue]);
+//		state.user_stack_pointer = uint32_t([initialState[@"usp"] integerValue]);
+//		state.status = [initialState[@"sr"] integerValue];
+//		test68000->processor.set_state(state);
+	}
+
+	// Run the thing.
+	test68000->run_for_instructions(1);
+
+	// Test the end state.
+	NSDictionary *const finalState = test[@"final state"];
+//	const auto state = test68000->processor.get_state();
+//	for(int c = 0; c < 8; ++c) {
+//		const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
+//		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
+//
+//		if(state.data[c] != [finalState[dX] integerValue]) [_failures addObject:name];
+//		if(c < 7 && state.address[c] != [finalState[aX] integerValue]) [_failures addObject:name];
+//
+//		XCTAssertEqual(state.data[c], [finalState[dX] integerValue], @"%@: D%d inconsistent", name, c);
+//		if(c < 7) {
+//			XCTAssertEqual(state.address[c], [finalState[aX] integerValue], @"%@: A%d inconsistent", name, c);
+//		}
+//	}
+//	if(state.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
+//	if(state.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
+//	if(state.status != [finalState[@"sr"] integerValue]) [_failures addObject:name];
+//
+//	XCTAssertEqual(state.supervisor_stack_pointer, [finalState[@"a7"] integerValue], @"%@: A7 inconsistent", name);
+//	XCTAssertEqual(state.user_stack_pointer, [finalState[@"usp"] integerValue], @"%@: USP inconsistent", name);
+//	XCTAssertEqual(state.status, [finalState[@"sr"] integerValue], @"%@: Status inconsistent", name);
+//	XCTAssertEqual(state.program_counter - 4, [finalState[@"pc"] integerValue], @"%@: Program counter inconsistent", name);
+
+	// Test final memory state.
+	NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
+	NSEnumerator *enumerator = [finalMemory objectEnumerator];
+	while(true) {
+		NSNumber *const address = [enumerator nextObject];
+		NSNumber *const value = [enumerator nextObject];
+
+		if(!address || !value) break;
+		XCTAssertEqual(test68000->ram[address.integerValue ^ 1], value.integerValue, @"%@: Memory at location %@ inconsistent", name, address);
+		if(test68000->ram[address.integerValue ^ 1] != value.integerValue) [_failures addObject:name];
+	}
+
+	// Consider collating extra detail.
+	if([_failures containsObject:name]) {
+		[_failingOpcodes addObject:@((test68000->ram[0x101] << 8) | test68000->ram[0x100])];
+	}
 }
 
 @end
