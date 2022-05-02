@@ -28,11 +28,14 @@ struct State: public Reflection::StructImpl<State> {
 		Provides the current state of the well-known, published internal registers.
 	*/
 	struct Registers: public Reflection::StructImpl<Registers> {
+		// Official registers.
 		uint32_t data[8], address[7];
 		uint32_t user_stack_pointer;
 		uint32_t supervisor_stack_pointer;
 		uint16_t status;
 		uint32_t program_counter;
+
+		// The 68000's prefetch queue.
 		uint32_t prefetch;
 		uint16_t instruction;
 
