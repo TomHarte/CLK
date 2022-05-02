@@ -201,7 +201,6 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 		instruction_address_ = program_counter_.l;
 		const auto opcode = read_pc<uint16_t>();
 		const Preinstruction instruction = decoder_.decode(opcode);
-		program_counter_.l += 2;
 
 		// TODO: check privilege level.
 
@@ -277,6 +276,45 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 	}
 }
 
+// MARK: - State
+
+template <Model model, typename BusHandler>
+typename Executor<model, BusHandler>::Registers Executor<model, BusHandler>::get_state() {
+	Registers result;
+
+	for(int c = 0; c < 8; c++) {
+		result.data[c] = data_[c].l;
+	}
+	for(int c = 0; c < 7; c++) {
+		result.address[c] = address_[c].l;
+	}
+	result.status = status_.status();
+	result.program_counter = program_counter_.l;
+
+	stack_pointers_[status_.is_supervisor_] = address_[7];
+	result.user_stack_pointer = stack_pointers_[0].l;
+	result.supervisor_stack_pointer = stack_pointers_[1].l;
+
+	return result;
+}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::set_state(const Registers &state) {
+	for(int c = 0; c < 8; c++) {
+		data_[c].l = state.data[c];
+	}
+	for(int c = 0; c < 7; c++) {
+		address_[c].l = state.address[c];
+	}
+	status_.set_status(state.status);
+	program_counter_.l = state.program_counter;
+
+	stack_pointers_[0].l = state.user_stack_pointer;
+	stack_pointers_[1].l = state.supervisor_stack_pointer;
+	address_[7] = stack_pointers_[status_.is_supervisor_];
+}
+
+// MARK: - Flow Control.
 // TODO: flow control, all below here.
 
 template <Model model, typename BusHandler>

@@ -868,7 +868,7 @@ template <
 			status.overflow_flag_ = status.carry_flag_ = 0;
 		break;
 
-#define sbcd()																							\
+#define sbcd(d)																							\
 	/* Perform the BCD arithmetic by evaluating the two nibbles separately. */							\
 	const int unadjusted_result = destination - source - (status.extend_flag_ ? 1 : 0);					\
 	int result = (destination & 0xf) - (source & 0xf) - (status.extend_flag_ ? 1 : 0);					\
@@ -883,7 +883,7 @@ template <
 	status.overflow_flag_ = unadjusted_result & ~result & 0x80;											\
 																										\
 	/* Store the result. */																				\
-	dest.b = uint8_t(result);
+	d = uint8_t(result);
 
 		/*
 			SBCD subtracts the lowest byte of the source from that of the destination using
@@ -892,17 +892,17 @@ template <
 		case Operation::SBCD: {
 			const uint8_t source = src.b;
 			const uint8_t destination = dest.b;
-			sbcd();
+			sbcd(dest.b);
 		} break;
 
 		/*
-			NBCD is like SBCD except that the result is 0 - destination rather than
+			NBCD is like SBCD except that the result is 0 - source rather than
 			destination - source.
 		*/
 		case Operation::NBCD: {
-			const uint8_t source = dest.b;
+			const uint8_t source = src.b;
 			const uint8_t destination = 0;
-			sbcd();
+			sbcd(src.b);
 		} break;
 
 #undef sbcd

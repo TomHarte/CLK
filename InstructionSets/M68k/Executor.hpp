@@ -46,6 +46,17 @@ template <Model model, typename BusHandler> class Executor {
 		void add_pc(uint32_t);
 		void decline_branch();
 
+		// TODO: ownership of this shouldn't be here.
+		struct Registers {
+			uint32_t data[8], address[7];
+			uint32_t user_stack_pointer;
+			uint32_t supervisor_stack_pointer;
+			uint16_t status;
+			uint32_t program_counter;
+		};
+		Registers get_state();
+		void set_state(const Registers &);
+
 	private:
 		BusHandler &bus_handler_;
 		Predecoder<model> decoder_;

@@ -274,24 +274,25 @@
 			NSNumber *const value = [enumerator nextObject];
 
 			if(!address || !value) break;
-			test68000->ram[address.integerValue ^ 1] = value.integerValue;	// Effect a short-resolution endianness swap.
+			test68000->ram[address.integerValue] = value.integerValue;
 		}
 
 		// Apply initial processor state.
-//		NSDictionary *const initialState = test[@"initial state"];
-//		auto state = test68000->processor.get_state();
-//		for(int c = 0; c < 8; ++c) {
-//			const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
-//			const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
-//
-//			state.data[c] = uint32_t([initialState[dX] integerValue]);
-//			if(c < 7)
-//				state.address[c] = uint32_t([initialState[aX] integerValue]);
-//		}
-//		state.supervisor_stack_pointer = uint32_t([initialState[@"a7"] integerValue]);
-//		state.user_stack_pointer = uint32_t([initialState[@"usp"] integerValue]);
-//		state.status = [initialState[@"sr"] integerValue];
-//		test68000->processor.set_state(state);
+		NSDictionary *const initialState = test[@"initial state"];
+		auto state = test68000->processor.get_state();
+		for(int c = 0; c < 8; ++c) {
+			const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
+			const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
+
+			state.data[c] = uint32_t([initialState[dX] integerValue]);
+			if(c < 7)
+				state.address[c] = uint32_t([initialState[aX] integerValue]);
+		}
+		state.supervisor_stack_pointer = uint32_t([initialState[@"a7"] integerValue]);
+		state.user_stack_pointer = uint32_t([initialState[@"usp"] integerValue]);
+		state.status = [initialState[@"sr"] integerValue];
+		state.program_counter = uint32_t([initialState[@"pc"] integerValue]);
+		test68000->processor.set_state(state);
 	}
 
 	// Run the thing.
@@ -299,27 +300,27 @@
 
 	// Test the end state.
 	NSDictionary *const finalState = test[@"final state"];
-//	const auto state = test68000->processor.get_state();
-//	for(int c = 0; c < 8; ++c) {
-//		const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
-//		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
-//
-//		if(state.data[c] != [finalState[dX] integerValue]) [_failures addObject:name];
-//		if(c < 7 && state.address[c] != [finalState[aX] integerValue]) [_failures addObject:name];
-//
-//		XCTAssertEqual(state.data[c], [finalState[dX] integerValue], @"%@: D%d inconsistent", name, c);
-//		if(c < 7) {
-//			XCTAssertEqual(state.address[c], [finalState[aX] integerValue], @"%@: A%d inconsistent", name, c);
-//		}
-//	}
-//	if(state.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
-//	if(state.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
-//	if(state.status != [finalState[@"sr"] integerValue]) [_failures addObject:name];
-//
-//	XCTAssertEqual(state.supervisor_stack_pointer, [finalState[@"a7"] integerValue], @"%@: A7 inconsistent", name);
-//	XCTAssertEqual(state.user_stack_pointer, [finalState[@"usp"] integerValue], @"%@: USP inconsistent", name);
-//	XCTAssertEqual(state.status, [finalState[@"sr"] integerValue], @"%@: Status inconsistent", name);
-//	XCTAssertEqual(state.program_counter - 4, [finalState[@"pc"] integerValue], @"%@: Program counter inconsistent", name);
+	const auto state = test68000->processor.get_state();
+	for(int c = 0; c < 8; ++c) {
+		const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
+		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
+
+		if(state.data[c] != [finalState[dX] integerValue]) [_failures addObject:name];
+		if(c < 7 && state.address[c] != [finalState[aX] integerValue]) [_failures addObject:name];
+
+		XCTAssertEqual(state.data[c], [finalState[dX] integerValue], @"%@: D%d inconsistent", name, c);
+		if(c < 7) {
+			XCTAssertEqual(state.address[c], [finalState[aX] integerValue], @"%@: A%d inconsistent", name, c);
+		}
+	}
+	if(state.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
+	if(state.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
+	if(state.status != [finalState[@"sr"] integerValue]) [_failures addObject:name];
+
+	XCTAssertEqual(state.supervisor_stack_pointer, [finalState[@"a7"] integerValue], @"%@: A7 inconsistent", name);
+	XCTAssertEqual(state.user_stack_pointer, [finalState[@"usp"] integerValue], @"%@: USP inconsistent", name);
+	XCTAssertEqual(state.status, [finalState[@"sr"] integerValue], @"%@: Status inconsistent", name);
+	XCTAssertEqual(state.program_counter, [finalState[@"pc"] integerValue], @"%@: Program counter inconsistent", name);
 
 	// Test final memory state.
 	NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
@@ -329,13 +330,13 @@
 		NSNumber *const value = [enumerator nextObject];
 
 		if(!address || !value) break;
-		XCTAssertEqual(test68000->ram[address.integerValue ^ 1], value.integerValue, @"%@: Memory at location %@ inconsistent", name, address);
-		if(test68000->ram[address.integerValue ^ 1] != value.integerValue) [_failures addObject:name];
+		XCTAssertEqual(test68000->ram[address.integerValue], value.integerValue, @"%@: Memory at location %@ inconsistent", name, address);
+		if(test68000->ram[address.integerValue] != value.integerValue) [_failures addObject:name];
 	}
 
 	// Consider collating extra detail.
 	if([_failures containsObject:name]) {
-		[_failingOpcodes addObject:@((test68000->ram[0x101] << 8) | test68000->ram[0x100])];
+		[_failingOpcodes addObject:@((test68000->ram[0x100] << 8) | test68000->ram[0x101])];
 	}
 }
 
