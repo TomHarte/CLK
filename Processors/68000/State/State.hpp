@@ -56,8 +56,8 @@ struct State: public Reflection::StructImpl<State> {
 	} inputs;
 
 	/*!
-		Contains internal state used by this particular implementation of a 6502. Most of it
-		does not necessarily correlate with anything in a real 6502, and some of it very
+		Contains internal state used by this particular implementation of a 68000. Most of it
+		does not necessarily correlate with anything in a real 68000, and some of it very
 		obviously doesn't.
 	*/
 	struct ExecutionState: public Reflection::StructImpl<ExecutionState> {
