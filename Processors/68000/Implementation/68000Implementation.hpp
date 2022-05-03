@@ -1855,7 +1855,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef lsl
 #undef asl
 
-#undef set_flags
+#undef set_flagsx
 #undef decode_shift_count
 #undef set_flags_b
 #undef set_flags_w

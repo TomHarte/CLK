@@ -370,6 +370,8 @@ template <
 			status.overflow_flag_ = sub_overflow() & 0x80000000;
 		} break;
 
+		// TODO: is there any benefit to keeping both of these?
+		case Operation::CMPAl:
 		case Operation::CMPl: {
 			const auto source = uint64_t(src.l);
 			const auto destination = uint64_t(dest.l);
