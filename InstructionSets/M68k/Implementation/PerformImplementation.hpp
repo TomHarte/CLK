@@ -311,7 +311,7 @@ template <
 		break;
 
 		case Operation::Scc:
-			dest.b = status.evaluate_condition(instruction.condition()) ? 0xff : 0x00;
+			src.b = status.evaluate_condition(instruction.condition()) ? 0xff : 0x00;
 		break;
 
 		/*

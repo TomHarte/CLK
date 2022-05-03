@@ -277,6 +277,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		//	Single-operand write.
 		//
 		case Operation::MOVEfromSR:	case Operation::MOVEfromUSP:
+		case Operation::Scc:
 			return StoreOp1;
 
 		//
@@ -291,6 +292,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		//
 		case Operation::CMPb:	case Operation::CMPw:	case Operation::CMPl:
 		case Operation::CMPAw:	case Operation::CMPAl:
+		case Operation::DBcc:
 			return FetchOp1 | FetchOp2;
 
 		//
