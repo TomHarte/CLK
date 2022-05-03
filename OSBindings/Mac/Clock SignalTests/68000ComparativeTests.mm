@@ -15,7 +15,7 @@
 #include <memory>
 #include <functional>
 
-#define USE_EXISTING_IMPLEMENTATION
+//#define USE_EXISTING_IMPLEMENTATION
 
 @interface M68000ComparativeTests : XCTestCase
 @end
@@ -28,9 +28,15 @@
 	NSMutableArray<NSNumber *> *_failingOpcodes;
 }
 
+// New implementation verified against (i.e. has the same failures as the old, likely all BCD related):
+//
+//	add_sub
+//	addi_subi_cmpi
+//	eor_and_or
+
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"eor_and_or.json"]];
+	_fileSet = [NSSet setWithArray:@[@"addq_subq.json"]];
 //	_testSet = [NSSet setWithArray:@[@"OR 8103"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
