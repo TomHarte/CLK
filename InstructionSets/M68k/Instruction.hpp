@@ -152,6 +152,7 @@ constexpr DataSize size(Operation operation) {
 		case Operation::CMPb:	case Operation::TSTb:
 		case Operation::Bccb:	case Operation::BSRb:
 		case Operation::CLRb:
+		case Operation::Scc:
 		case Operation::NEGXb:	case Operation::NEGb:
 		case Operation::ASLb:	case Operation::ASRb:
 		case Operation::LSLb:	case Operation::LSRb:
@@ -175,7 +176,7 @@ constexpr DataSize size(Operation operation) {
 		case Operation::MOVEtoCCR:
 		case Operation::CMPw:	case Operation::CMPAw:
 		case Operation::TSTw:
-		case Operation::DBcc:	case Operation::Scc:
+		case Operation::DBcc:
 		case Operation::Bccw:	case Operation::BSRw:
 		case Operation::CLRw:
 		case Operation::NEGXw:	case Operation::NEGw:
@@ -292,7 +293,6 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		//
 		case Operation::CMPb:	case Operation::CMPw:	case Operation::CMPl:
 		case Operation::CMPAw:	case Operation::CMPAl:
-		case Operation::DBcc:
 			return FetchOp1 | FetchOp2;
 
 		//
@@ -316,6 +316,12 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::ANDb:	case Operation::ANDw:	case Operation::ANDl:
 		case Operation::EORb:	case Operation::EORw:	case Operation::EORl:
 			return FetchOp1 | FetchOp2 | StoreOp2;
+
+		//
+		// Two-operand; read both, write source.
+		//
+		case Operation::DBcc:
+			return FetchOp1 | FetchOp2 | StoreOp1;
 
 		//
 		//	Two-operand; read both, write both.

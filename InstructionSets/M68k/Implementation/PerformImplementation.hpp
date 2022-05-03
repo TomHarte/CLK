@@ -302,7 +302,7 @@ template <
 					flow_controller.decline_branch();
 				} else {
 					// Take the branch.
-					flow_controller.add_pc(dest.l);
+					flow_controller.add_pc(int16_t(dest.l) - 2);
 				}
 			} else {
 				// This DBcc will be ignored as the condition is true.

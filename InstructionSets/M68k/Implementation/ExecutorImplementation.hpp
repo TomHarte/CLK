@@ -355,10 +355,14 @@ template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::stop() {}
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::set_pc(uint32_t) {}
+void Executor<model, BusHandler>::set_pc(uint32_t address) {
+	program_counter_.l = address;
+}
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::add_pc(uint32_t) {}
+void Executor<model, BusHandler>::add_pc(uint32_t offset) {
+	program_counter_.l += offset;
+}
 
 }
 }
