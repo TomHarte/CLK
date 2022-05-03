@@ -15,6 +15,8 @@
 #include <memory>
 #include <functional>
 
+#define USE_EXISTING_IMPLEMENTATION
+
 @interface M68000ComparativeTests : XCTestCase
 @end
 
@@ -73,7 +75,11 @@
 	// Perform each dictionary in the array as a test.
 	for(NSDictionary *test in jsonContents) {
 		if(![test isKindOfClass:[NSDictionary class]]) continue;
+#ifdef USE_EXISTING_IMPLEMENTATION
+		[self testOperationClassic:test];
+#else
 		[self testOperationExecutor:test];
+#endif
 	}
 }
 

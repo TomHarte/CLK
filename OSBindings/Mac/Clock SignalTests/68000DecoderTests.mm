@@ -54,7 +54,7 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			return @"#";
 
 		case AddressingMode::Quick:
-			return [NSString stringWithFormat:@"%d", quick(instruction.operation, opcode)];
+			return [NSString stringWithFormat:@"%d", quick(opcode, instruction.operation)];
 	}
 }
 

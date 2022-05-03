@@ -108,7 +108,7 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 			ea.requires_fetch = false;
 		break;
 		case AddressingMode::Quick:
-			ea.value.l = quick(instruction.operation, opcode);
+			ea.value.l = quick(opcode, instruction.operation);
 			ea.requires_fetch = false;
 		break;
 		case AddressingMode::ImmediateData:

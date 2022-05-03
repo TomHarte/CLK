@@ -13,7 +13,6 @@
 #include "Instruction.hpp"
 #include "Model.hpp"
 #include "Perform.hpp"
-#include "Sequence.hpp"
 #include "Status.hpp"
 
 namespace InstructionSet {
