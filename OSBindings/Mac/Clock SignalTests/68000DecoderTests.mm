@@ -93,8 +93,20 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			case Operation::ADDw:		instruction = @"ADD.w";		break;
 			case Operation::ADDl:		instruction = @"ADD.l";		break;
 
-			case Operation::ADDAw:		instruction = @"ADDA.w";	break;
-			case Operation::ADDAl:		instruction = @"ADDA.l";	break;
+			case Operation::ADDAw:
+				if(found.mode<0>() == AddressingMode::Quick) {
+					instruction = @"ADD.w";
+				} else {
+					instruction = @"ADDA.w";
+				}
+			break;
+			case Operation::ADDAl:
+				if(found.mode<0>() == AddressingMode::Quick) {
+					instruction = @"ADD.l";
+				} else {
+					instruction = @"ADDA.l";
+				}
+			break;
 
 			case Operation::ADDXb:		instruction = @"ADDX.b";	break;
 			case Operation::ADDXw:		instruction = @"ADDX.w";	break;
@@ -104,8 +116,20 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			case Operation::SUBw:		instruction = @"SUB.w";		break;
 			case Operation::SUBl:		instruction = @"SUB.l";		break;
 
-			case Operation::SUBAw:		instruction = @"SUBA.w";	break;
-			case Operation::SUBAl:		instruction = @"SUBA.l";	break;
+			case Operation::SUBAw:
+				if(found.mode<0>() == AddressingMode::Quick) {
+					instruction = @"SUB.w";
+				} else {
+					instruction = @"SUBA.w";
+				}
+			break;
+			case Operation::SUBAl:
+				if(found.mode<0>() == AddressingMode::Quick) {
+					instruction = @"SUB.l";
+				} else {
+					instruction = @"SUBA.l";
+				}
+			break;
 
 			case Operation::SUBXb:		instruction = @"SUBX.b";	break;
 			case Operation::SUBXw:		instruction = @"SUBX.w";	break;
