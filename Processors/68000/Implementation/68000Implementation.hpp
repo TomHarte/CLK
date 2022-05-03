@@ -1595,6 +1595,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									overflow_flag_ = carry_flag_ = 0;
 								} break;
 
+#undef sbcd
+
 								/*
 									Shifts and rotates.
 								*/
@@ -1859,7 +1861,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef set_flags_w
 #undef set_flags_l
 #undef set_neg_zero_overflow
-#undef set_net_zero
+#undef set_neg_zero
 
 								/*
 									RTE and RTR share an implementation.
