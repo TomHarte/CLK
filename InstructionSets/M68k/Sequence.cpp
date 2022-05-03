@@ -8,6 +8,8 @@
 
 #include "Sequence.hpp"
 
+#include <cassert>
+
 using namespace InstructionSet::M68k;
 
 template <Step... T> struct Steps {
@@ -21,7 +23,7 @@ template <Step F, Step... T> struct Steps<F, T...> {
 template<Model model> uint32_t Sequence<model>::steps_for(Operation operation) {
 	switch(operation) {
 		// This handles a NOP, and not much else.
-		default: return 0;
+		default: assert(false);
 
 		//
 		// No operands that require fetching.
