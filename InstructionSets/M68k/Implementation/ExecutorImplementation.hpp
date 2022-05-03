@@ -361,7 +361,7 @@ void Executor<model, BusHandler>::set_pc(uint32_t address) {
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::add_pc(uint32_t offset) {
-	program_counter_.l += offset;
+	program_counter_.l = instruction_address_ + offset;
 }
 
 }

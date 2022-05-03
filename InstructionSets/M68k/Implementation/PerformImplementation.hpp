@@ -280,7 +280,7 @@ template <
 		// is the trailing step of a BSR.
 		case Operation::Bccb:
 			if(status.evaluate_condition(instruction.condition())) {
-				flow_controller.add_pc(int8_t(src.b) - 2);
+				flow_controller.add_pc(int8_t(src.b) + 2);
 			} else {
 				flow_controller.decline_branch();
 			}
@@ -288,7 +288,7 @@ template <
 
 		case Operation::Bccw:
 			if(status.evaluate_condition(instruction.condition())) {
-				flow_controller.add_pc(int16_t(src.b) - 2);
+				flow_controller.add_pc(int16_t(src.w) + 2);
 			} else {
 				flow_controller.decline_branch();
 			}
@@ -296,7 +296,7 @@ template <
 
 		case Operation::Bccl:
 			if(status.evaluate_condition(instruction.condition())) {
-				flow_controller.add_pc(src.l - 2);
+				flow_controller.add_pc(src.l + 2);
 			} else {
 				flow_controller.decline_branch();
 			}
@@ -312,7 +312,7 @@ template <
 					flow_controller.decline_branch();
 				} else {
 					// Take the branch.
-					flow_controller.add_pc(int16_t(dest.l) - 2);
+					flow_controller.add_pc(int16_t(dest.l) + 2);
 				}
 			} else {
 				// This DBcc will be ignored as the condition is true.
