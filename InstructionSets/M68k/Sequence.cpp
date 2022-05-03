@@ -12,6 +12,7 @@
 
 using namespace InstructionSet::M68k;
 
+/*
 template <Step... T> struct Steps {
 	static constexpr uint32_t value = 0;
 };
@@ -110,3 +111,4 @@ template class InstructionSet::M68k::Sequence<Model::M68010>;
 template class InstructionSet::M68k::Sequence<Model::M68020>;
 template class InstructionSet::M68k::Sequence<Model::M68030>;
 template class InstructionSet::M68k::Sequence<Model::M68040>;
+*/

@@ -250,56 +250,37 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 		// Obtain the appropriate sequence.
 		//
 		// TODO: make a decision about whether this goes into a fully-decoded Instruction.
-		Sequence<model> sequence(instruction.operation);
+		const auto flags = operand_flags<model>(instruction.operation);
 
-		// Perform it.
-		while(!sequence.empty()) {
-			const auto step = sequence.pop_front();
+// TODO: potential alignment exception, here and in store.
+#define fetch_operand(n)														\
+	if(effective_address_[n].requires_fetch) {									\
+		read(instruction.size(), effective_address_[n].value.l, operand_[n]);	\
+	}
 
-			switch(step) {
-				default: assert(false);	// i.e. TODO
+		if(flags & FetchOp1) {	fetch_operand(0);	}
+		if(flags & FetchOp2) {	fetch_operand(1);	}
 
-				case Step::FetchOp1:
-				case Step::FetchOp2: {
-					const auto index = int(step) & 1;
+#undef fetch_operand
 
-					// If the operand wasn't indirect, it's already fetched.
-					if(!effective_address_[index].requires_fetch) continue;
+		perform<model>(instruction, operand_[0], operand_[1], status_, *this);
 
-					// TODO: potential bus alignment exception.
-					read(instruction.size(), effective_address_[index].value.l, operand_[index]);
-				} break;
+// TODO: is it worth holding registers as a single block to avoid conditional below?
+#define store_operand(n)		\
+	if(!effective_address_[n].requires_fetch) {								\
+		if(instruction.mode(n) == AddressingMode::DataRegisterDirect) {	\
+			data_[instruction.reg(n)] = operand_[n];				\
+		} else {															\
+			address_[instruction.reg(n)] = operand_[n];				\
+		}																	\
+	} else {	\
+		write(instruction.size(), effective_address_[n].value.l, operand_[n]);	\
+	}
 
-				case Step::Perform:
-					perform<model>(instruction, operand_[0], operand_[1], status_, *this);
-				break;
+		if(flags & StoreOp1) {	store_operand(0);	}
+		if(flags & StoreOp2) {	store_operand(1);	}
 
-				case Step::StoreOp1:
-				case Step::StoreOp2: {
-					const auto index = int(step) & 1;
-
-					// If the operand wasn't indirect, store directly to Dn or An.
-					if(!effective_address_[index].requires_fetch) {
-						// This must be either address or data register indirect.
-						assert(
-							instruction.mode(index) == AddressingMode::DataRegisterDirect ||
-							instruction.mode(index) == AddressingMode::AddressRegisterDirect);
-
-						// TODO: is it worth holding registers as a single block to avoid this conditional?
-						if(instruction.mode(index) == AddressingMode::DataRegisterDirect) {
-							data_[instruction.reg(index)] = operand_[index];
-						} else {
-							address_[instruction.reg(index)] = operand_[index];
-						}
-
-						break;
-					}
-
-					// TODO: potential bus alignment exception.
-					write(instruction.size(), effective_address_[index].value.l, operand_[index]);
-				} break;
-			}
-		}
+#undef store_operand
 	}
 }
 

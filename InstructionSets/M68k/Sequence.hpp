@@ -12,64 +12,93 @@
 #include "Instruction.hpp"
 #include "Model.hpp"
 
+#include <cassert>
+
 namespace InstructionSet {
 namespace M68k {
 
-/// Additional guarantees: [Fetch/Store][1/2] have an LSB of 0 for
-/// operand 1, and an LSB of 1 for operand 2.
-enum class Step {
-	/// No further steps remain.
-	Done,
-	/// Do the logical operation.
-	Perform,
-	/// Fetch the value of operand 1.
-	FetchOp1,
-	/// Fetch the value of operand 2.
-	FetchOp2,
-	/// Store the value of operand 1.
-	StoreOp1,
-	/// Store the value of operand 2.
-	StoreOp2,
-	/// A catch-all for bus activity that doesn't fit the pattern
-	/// of fetch/stop operand 1/2, e.g. this opaquely covers almost
-	/// the entirety of MOVEM.
-	///
-	/// TODO: list all operations that contain this step,
-	/// and to cover what activity.
-	SpecificBusActivity,
+static constexpr uint8_t FetchOp1	= (1 << 0);
+static constexpr uint8_t FetchOp2	= (1 << 1);
+static constexpr uint8_t StoreOp1	= (1 << 2);
+static constexpr uint8_t StoreOp2	= (1 << 3);
 
-	Max = SpecificBusActivity
-};
+/*!
+	Provides a bitfield with a value in the range 0–15 indicating which of the provided operation's
+	operands are accessed via standard fetch and store cycles.
 
-/// Indicates the abstract steps necessary to perform an operation,
-/// at least as far as that's generic.
-template<Model model> class Sequence {
-	public:
-		Sequence(Operation);
+	Unusual bus sequences, such as TAS or MOVEM, are not described here.
+*/
+template <Model model, Operation t_operation = Operation::Undefined> uint8_t operand_flags(Operation r_operation = Operation::Undefined) {
+	switch((t_operation != Operation::Undefined) ? t_operation : r_operation) {
+		default:
+			assert(false);
 
-		/// @returns The next @c Step to perform, or @c Done
-		/// if no further steps remain. This step is removed from the
-		/// list of remaining steps.
-		Step pop_front() {
-			static_assert(int(Step::Max) < 16);
-			const auto step = Step(steps_ & 15);
-			steps_ >>= 4;
-			return step;
-		}
+		//
+		//	No operands are fetched or stored.
+		//
+		case Operation::LEA:
+		case Operation::PEA:
+			return 0;
 
-		/// @returns @c true if no steps other than @c Done remain;
-		/// @c false otherwise.
-		bool empty() {
-			return !steps_;
-		}
+		//
+		//	Single-operand read.
+		//
+		case Operation::MOVEtoSR:	case Operation::MOVEtoCCR:	case Operation::MOVEtoUSP:
+		case Operation::ORItoSR:	case Operation::ORItoCCR:
+		case Operation::ANDItoSR:	case Operation::ANDItoCCR:
+		case Operation::EORItoSR:	case Operation::EORItoCCR:
+			return FetchOp1;
 
-	private:
-		uint32_t steps_ = 0;
+		//
+		//	Single-operand write.
+		//
+		case Operation::MOVEfromSR:	case Operation::MOVEfromUSP:
+			return StoreOp1;
 
-		uint32_t steps_for(Operation);
-};
+		//
+		//	Single-operand read-modify-write.
+		//
+		case Operation::NBCD:
+		case Operation::EXTbtow:	case Operation::EXTwtol:
+			return FetchOp1 | StoreOp1;
 
-static_assert(sizeof(Sequence<Model::M68000>) == sizeof(uint32_t));
+		//
+		//	Two-operand; read both.
+		//
+		case Operation::CMPb:	case Operation::CMPw:	case Operation::CMPl:
+		case Operation::CMPAw:	case Operation::CMPAl:
+			return FetchOp1 | FetchOp2;
+
+		//
+		//	Two-operand; read source, write dest.
+		//
+		case Operation::MOVEb: 	case Operation::MOVEw: 	case Operation::MOVEl:
+		case Operation::MOVEAw:	case Operation::MOVEAl:
+			return FetchOp1 | StoreOp2;
+
+		//
+		//	Two-operand; read both, write dest.
+		//
+		case Operation::ABCD:	case Operation::SBCD:
+		case Operation::ADDb: 	case Operation::ADDw: 	case Operation::ADDl:
+		case Operation::ADDAw:	case Operation::ADDAl:
+		case Operation::ADDXb: 	case Operation::ADDXw: 	case Operation::ADDXl:
+		case Operation::SUBb: 	case Operation::SUBw: 	case Operation::SUBl:
+		case Operation::SUBAw:	case Operation::SUBAl:
+		case Operation::SUBXb: 	case Operation::SUBXw: 	case Operation::SUBXl:
+		case Operation::ORb:	case Operation::ORw:	case Operation::ORl:
+		case Operation::ANDb:	case Operation::ANDw:	case Operation::ANDl:
+		case Operation::EORb:	case Operation::EORw:	case Operation::EORl:
+			return FetchOp1 | FetchOp2 | StoreOp2;
+
+		//
+		//	Two-operand; read both, write both.
+		//
+		case Operation::EXG:
+			return FetchOp1 | FetchOp2 | StoreOp1 | StoreOp2;
+	}
+}
+
 
 }
 }
