@@ -287,14 +287,28 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		//	Single-operand read-modify-write.
 		//
 		case Operation::NBCD:
+		case Operation::NOTb:		case Operation::NOTw:		case Operation::NOTl:
+		case Operation::NEGb:		case Operation::NEGw:		case Operation::NEGl:
+		case Operation::NEGXb:		case Operation::NEGXw:		case Operation::NEGXl:
 		case Operation::EXTbtow:	case Operation::EXTwtol:
 			return FetchOp1 | StoreOp1;
+
+		//
+		//	CLR, which is model-dependent.
+		//
+		case Operation::CLRb:	case Operation::CLRw:	case Operation::CLRl:
+			if constexpr (model == Model::M68000) {
+				return FetchOp1 | StoreOp1;
+			} else {
+				return StoreOp1;
+			}
 
 		//
 		//	Two-operand; read both.
 		//
 		case Operation::CMPb:	case Operation::CMPw:	case Operation::CMPl:
 		case Operation::CMPAw:	case Operation::CMPAl:
+		case Operation::CHK:
 			return FetchOp1 | FetchOp2;
 
 		//
@@ -318,6 +332,9 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::ANDb:	case Operation::ANDw:	case Operation::ANDl:
 		case Operation::EORb:	case Operation::EORw:	case Operation::EORl:
 			return FetchOp1 | FetchOp2 | StoreOp2;
+
+//		case Operation::MOVEMw:
+//		case Operation::MOVEMl:
 
 		//
 		// Two-operand; read both, write source.
