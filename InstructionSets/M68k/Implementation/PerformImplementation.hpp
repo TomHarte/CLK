@@ -279,18 +279,28 @@ template <
 		// Special case: the condition code is 1, which is ordinarily false. In that case this
 		// is the trailing step of a BSR.
 		case Operation::Bccb:
-		case Operation::Bccw:
-		case Operation::Bccl: {
-			// Test the conditional, treating 'false' as true.
-			const bool should_branch = status.evaluate_condition(instruction.condition());
-
-			// Schedule something appropriate, by rewriting the program for this instruction temporarily.
-			if(should_branch) {
-				flow_controller.add_pc(src.l);
+			if(status.evaluate_condition(instruction.condition())) {
+				flow_controller.add_pc(int8_t(src.b) - 2);
 			} else {
 				flow_controller.decline_branch();
 			}
-		} break;
+		break;
+
+		case Operation::Bccw:
+			if(status.evaluate_condition(instruction.condition())) {
+				flow_controller.add_pc(int16_t(src.b) - 2);
+			} else {
+				flow_controller.decline_branch();
+			}
+		break;
+
+		case Operation::Bccl:
+			if(status.evaluate_condition(instruction.condition())) {
+				flow_controller.add_pc(src.l - 2);
+			} else {
+				flow_controller.decline_branch();
+			}
+		break;
 
 		case Operation::DBcc:
 			// Decide what sort of DBcc this is.

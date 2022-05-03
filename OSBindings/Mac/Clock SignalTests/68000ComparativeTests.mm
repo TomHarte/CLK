@@ -33,10 +33,12 @@
 //	add_sub
 //	addi_subi_cmpi
 //	eor_and_or
+//	addq_subq
+//	addx_subx
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"addq_subq.json"]];
+	_fileSet = [NSSet setWithArray:@[@"bcc.json"]];
 //	_testSet = [NSSet setWithArray:@[@"ADDQ 00d0"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];

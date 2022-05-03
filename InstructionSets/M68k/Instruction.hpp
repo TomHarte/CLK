@@ -272,6 +272,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::ORItoSR:	case Operation::ORItoCCR:
 		case Operation::ANDItoSR:	case Operation::ANDItoCCR:
 		case Operation::EORItoSR:	case Operation::EORItoCCR:
+		case Operation::Bccb:		case Operation::Bccw:		case Operation::Bccl:
 			return FetchOp1;
 
 		//
