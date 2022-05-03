@@ -44,7 +44,8 @@ template <Model model, typename BusHandler> class Executor {
 		void stop();
 		void set_pc(uint32_t);
 		void add_pc(uint32_t);
-		void decline_branch();
+		void decline_branch() {}
+		void did_update_status();
 
 		// TODO: ownership of this shouldn't be here.
 		struct Registers {
@@ -79,6 +80,7 @@ template <Model model, typename BusHandler> class Executor {
 		CPU::SlicedInt32 data_[8], address_[8];
 		CPU::SlicedInt32 stack_pointers_[2];
 		uint32_t instruction_address_;
+		int active_stack_pointer_ = 0;
 
 		// A lookup table to ensure that A7 is adjusted by 2 rather than 1 in
 		// postincrement and predecrement mode.

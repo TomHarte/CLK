@@ -24,6 +24,7 @@ template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::reset() {
 	// Establish: supervisor state, all interrupts blocked.
 	status_.set_status(0b0010'0011'1000'0000);
+	did_update_status();
 
 	// Seed stack pointer and program counter.
 	data_[7].l = bus_handler_.template read<uint32_t>(0);
@@ -212,7 +213,23 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 		const auto opcode = read_pc<uint16_t>();
 		const Preinstruction instruction = decoder_.decode(opcode);
 
-		// TODO: check privilege level.
+		if(!status_.is_supervisor_ && instruction.requires_supervisor()) {
+			raise_exception(8);
+			continue;
+		}
+		if(instruction.operation == Operation::Undefined) {
+			switch(opcode & 0xf000) {
+				default:
+					raise_exception(4);
+				continue;
+				case 0xa000:
+					raise_exception(10);
+				continue;
+				case 0xf000:
+					raise_exception(11);
+				continue;
+			}
+		}
 
 		// Temporary storage.
 		CPU::SlicedInt32 operand_[2];
@@ -328,7 +345,30 @@ void Executor<model, BusHandler>::set_state(const Registers &state) {
 // TODO: flow control, all below here.
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::raise_exception(int) {}
+void Executor<model, BusHandler>::raise_exception(int index) {
+	const uint32_t address = index << 2;
+
+	// Grab the status to store, then switch into supervisor mode.
+	const uint16_t status = status_.status();
+	status_.is_supervisor_ = 1;
+	did_update_status();
+
+	// Push status and the program counter at instruction start.
+	bus_handler_.template write<uint32_t>(address_[7].l - 4, instruction_address_);
+	bus_handler_.template write<uint16_t>(address_[7].l - 6, status);
+	address_[7].l -= 6;
+
+	// Fetch the new program counter.
+	program_counter_.l = bus_handler_.template read<uint32_t>(address);
+}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::did_update_status() {
+	// Shuffle the stack pointers.
+	stack_pointers_[active_stack_pointer_] = address_[7];
+	address_[7] = stack_pointers_[status_.is_supervisor_];
+	active_stack_pointer_ = status_.is_supervisor_;
+}
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::stop() {}
@@ -338,9 +378,6 @@ void Executor<model, BusHandler>::set_pc(uint32_t) {}
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::add_pc(uint32_t) {}
-
-template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::decline_branch() {}
 
 }
 }
