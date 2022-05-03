@@ -36,13 +36,24 @@
 //	addq_subq
 //	addx_subx
 //	bcc
+//	cmp
+//	dbcc_scc
+//	eori_andi_ori
 
-// Skipped for now:
+// Skipped for now, for implying a more granular decoder:
+//
 //	btst_bchg_bclr_bset
+//	chk
+//
+// And for uncertainty around the test result status register correctness:
+//
+//	divu_divs
+//	eor_and_or	(which invokes BCD)
+//	exg			(also BCD)
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"chk.json"]];
+	_fileSet = [NSSet setWithArray:@[@"ext.json", @"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"Bcc 6206"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];

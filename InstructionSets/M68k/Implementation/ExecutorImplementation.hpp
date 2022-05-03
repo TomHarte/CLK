@@ -371,6 +371,13 @@ void Executor<model, BusHandler>::bsr(uint32_t offset) {
 	program_counter_.l = instruction_address_ + offset;
 }
 
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::jsr(uint32_t address) {
+	address_[7].l -= 4;
+	bus_handler_.template write<uint32_t>(address_[7].l, program_counter_.l);
+	program_counter_.l = address;
+}
+
 }
 }
 

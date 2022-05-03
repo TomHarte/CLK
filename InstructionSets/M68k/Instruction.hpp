@@ -260,9 +260,10 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 
 		//
 		//	No operands are fetched or stored.
+		//	(which means that source and destination will appear as their effective addresses)
 		//
-		case Operation::LEA:
-		case Operation::PEA:
+		case Operation::LEA:	case Operation::PEA:
+		case Operation::JMP:	case Operation::JSR:
 			return 0;
 
 		//
@@ -291,6 +292,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::NEGb:		case Operation::NEGw:		case Operation::NEGl:
 		case Operation::NEGXb:		case Operation::NEGXw:		case Operation::NEGXl:
 		case Operation::EXTbtow:	case Operation::EXTwtol:
+		case Operation::SWAP:
 			return FetchOp1 | StoreOp1;
 
 		//
@@ -331,6 +333,8 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::ORb:	case Operation::ORw:	case Operation::ORl:
 		case Operation::ANDb:	case Operation::ANDw:	case Operation::ANDl:
 		case Operation::EORb:	case Operation::EORw:	case Operation::EORl:
+		case Operation::DIVU:	case Operation::DIVS:
+		case Operation::MULU:	case Operation::MULS:
 			return FetchOp1 | FetchOp2 | StoreOp2;
 
 //		case Operation::MOVEMw:

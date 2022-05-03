@@ -46,6 +46,7 @@ template <Model model, typename BusHandler> class Executor {
 		void decline_branch() {}
 		void did_update_status();
 		void bsr(uint32_t offset);
+		void jsr(uint32_t offset);
 
 		// TODO: ownership of this shouldn't be here.
 		struct Registers {

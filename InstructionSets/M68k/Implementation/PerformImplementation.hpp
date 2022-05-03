@@ -408,6 +408,11 @@ template <
 			flow_controller.set_pc(src.l);
 		break;
 
+		// JSR: jump to EA(0), pushing the current PC to the stack.
+		case Operation::JSR:
+			flow_controller.jsr(src.l);
+		break;
+
 		/*
 			MOVE.b, MOVE.l and MOVE.w: move the least significant byte or word, or the entire long word,
 			and set negative, zero, overflow and carry as appropriate.
