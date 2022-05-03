@@ -35,11 +35,12 @@
 //	eor_and_or
 //	addq_subq
 //	addx_subx
+//	bcc
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"bcc.json"]];
-//	_testSet = [NSSet setWithArray:@[@"Bcc 6000 [0]"]];
+	_fileSet = [NSSet setWithArray:@[@"btst_bchg_bclr_bset.json"]];
+//	_testSet = [NSSet setWithArray:@[@"Bcc 6206"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }

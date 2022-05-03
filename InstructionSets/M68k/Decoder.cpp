@@ -812,9 +812,14 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// No further operands decoded, but note that one is somewhere in the opcode.
 		//
 		case OpT(Operation::TRAP):
-		case OpT(Operation::Bccb):
 		case OpT(Operation::BSRb):
 			return validated<op, validate>(AddressingMode::Quick);
+
+		case OpT(Operation::Bccb):
+			return validated<op, validate>(
+				AddressingMode::Quick, 0,
+				AddressingMode::None, 0,
+				Condition((instruction >> 8) & 0xf));
 
 		//
 		// MARK: LINKw

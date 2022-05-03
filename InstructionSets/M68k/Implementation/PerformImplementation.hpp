@@ -302,6 +302,16 @@ template <
 			}
 		break;
 
+		case Operation::BSRb:
+			flow_controller.bsr(int8_t(src.b) + 2);
+		break;
+		case Operation::BSRw:
+			flow_controller.bsr(int16_t(src.w) + 2);
+		break;
+		case Operation::BSRl:
+			flow_controller.bsr(src.l + 2);
+		break;
+
 		case Operation::DBcc:
 			// Decide what sort of DBcc this is.
 			if(!status.evaluate_condition(instruction.condition())) {
