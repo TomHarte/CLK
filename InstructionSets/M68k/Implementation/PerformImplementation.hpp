@@ -350,7 +350,7 @@ template <
 
 		case Operation::CMPw: {
 			const uint16_t source = src.w;
-			const uint16_t destination = src.w;
+			const uint16_t destination = dest.w;
 			const int result = destination - source;
 
 			status.zero_result_ = result & 0xffff;
