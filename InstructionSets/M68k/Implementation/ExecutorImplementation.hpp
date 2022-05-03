@@ -111,8 +111,17 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 			ea.requires_fetch = false;
 		break;
 		case AddressingMode::ImmediateData:
-			read(instruction.size(), program_counter_.l, ea.value);
-			program_counter_.l += (instruction.size() == DataSize::LongWord) ? 4 : 2;
+			switch(instruction.size()) {
+				case DataSize::Byte:
+					ea.value.l = read_pc<uint16_t>() & 0xff;
+				break;
+				case DataSize::Word:
+					ea.value.l = read_pc<uint16_t>();
+				break;
+				case DataSize::LongWord:
+					ea.value.l = read_pc<uint32_t>();
+				break;
+			}
 			ea.requires_fetch = false;
 		break;
 
