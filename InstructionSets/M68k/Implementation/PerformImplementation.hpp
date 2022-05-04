@@ -805,25 +805,13 @@ template <
 			amount of stack space to be allocated or deallocated.
 		*/
 
-//		case Operation::LINK:
-//			// Make space for the new long-word value, and set up
-//			// the proper target address for the stack operations to follow.
-//			address_[7].l -= 4;
-//			effective_address_[1].l = address_[7].l;
-//
-//			// The current value of the address register will be pushed.
-//			destination_bus_data_.l = src.l;
-//
-//			// The address register will then contain the bottom of the stack,
-//			// and the stack pointer will be offset.
-//			src.l = address_[7].l;
-//			address_[7].l += u_extend16(prefetch_queue_.w);
-//		break;
+		case Operation::LINKw:
+			flow_controller.link(src.l, int16_t(dest.w));
+		break;
 
-//		case Operation::UNLINK:
-//			address_[7].l = effective_address_[1].l + 2;
-//			dest.l = destination_bus_data_.l;
-//		break;
+		case Operation::UNLINK:
+			flow_controller.unlink(src.l);
+		break;
 
 		/*
 			TAS: sets zero and negative depending on the current value of the destination,

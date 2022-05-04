@@ -45,8 +45,11 @@ template <Model model, typename BusHandler> class Executor {
 		void add_pc(uint32_t);
 		void decline_branch() {}
 		void did_update_status();
+
 		void bsr(uint32_t offset);
 		void jsr(uint32_t offset);
+		void link(uint32_t &address, uint32_t offset);
+		void unlink(uint32_t &address);
 
 		// TODO: ownership of this shouldn't be here.
 		struct Registers {
