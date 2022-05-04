@@ -956,9 +956,9 @@ template <
 	int shift_count = (decoded_instruction_.l & 32) ? data_[(decoded_instruction_.l >> 9) & 7].l&63 : ( ((decoded_instruction_.l >> 9)&7) ? ((decoded_instruction_.l >> 9)&7) : 8) ;	\
 	flow_controller.consume_cycles(2 * shift_count);
 
-#define set_flags_b(t) set_flags(dest.b, 0x80, t)
-#define set_flags_w(t) set_flags(dest.w, 0x8000, t)
-#define set_flags_l(t) set_flags(dest.l, 0x80000000, t)
+//#define set_flags_b(t) set_flags(dest.b, 0x80, t)
+#define set_flags_w(t) set_flags(src.w, 0x8000, t)
+//#define set_flags_l(t) set_flags(dest.l, 0x80000000, t)
 
 #define asl(destination, size)	{\
 	decode_shift_count();	\
@@ -981,10 +981,10 @@ template <
 }
 
 		case Operation::ASLm: {
-			const auto value = dest.w;
-			dest.w = uint16_t(value << 1);
+			const auto value = src.w;
+			src.w = uint16_t(value << 1);
 			status.extend_flag_ = status.carry_flag_ = value & 0x8000;
-			set_neg_zero_overflow(dest.w, 0x8000);
+			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 //		case Operation::ASLb: asl(dest.b, 8);	break;
 //		case Operation::ASLw: asl(dest.w, 16); 	break;
@@ -1012,10 +1012,10 @@ template <
 }
 
 		case Operation::ASRm: {
-			const auto value = dest.w;
-			dest.w = (value&0x8000) | (value >> 1);
+			const auto value = src.w;
+			src.w = (value&0x8000) | (value >> 1);
 			status.extend_flag_ = status.carry_flag_ = value & 1;
-			set_neg_zero_overflow(dest.w, 0x8000);
+			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 //		case Operation::ASRb: asr(dest.b, 8);	break;
 //		case Operation::ASRw: asr(dest.w, 16); 	break;
@@ -1049,10 +1049,10 @@ template <
 }
 
 		case Operation::LSLm: {
-			const auto value = dest.w;
-			dest.w = uint16_t(value << 1);
+			const auto value = src.w;
+			src.w = uint16_t(value << 1);
 			status.extend_flag_ = status.carry_flag_ = value & 0x8000;
-			set_neg_zero_overflow(dest.w, 0x8000);
+			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 //		case Operation::LSLb: lsl(dest.b, 8);	break;
 //		case Operation::LSLw: lsl(dest.w, 16); 	break;
@@ -1073,10 +1073,10 @@ template <
 }
 
 		case Operation::LSRm: {
-			const auto value = dest.w;
-			dest.w = value >> 1;
+			const auto value = src.w;
+			src.w = value >> 1;
 			status.extend_flag_ = status.carry_flag_ = value & 1;
-			set_neg_zero_overflow(dest.w, 0x8000);
+			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 //		case Operation::LSRb: lsr(dest.b, 8);	break;
 //		case Operation::LSRw: lsr(dest.w, 16); 	break;
@@ -1101,10 +1101,10 @@ template <
 }
 
 		case Operation::ROLm: {
-			const auto value = dest.w;
-			dest.w = uint16_t((value << 1) | (value >> 15));
-			status.carry_flag_ = dest.w & 1;
-			set_neg_zero_overflow(dest.w, 0x8000);
+			const auto value = src.w;
+			src.w = uint16_t((value << 1) | (value >> 15));
+			status.carry_flag_ = src.w & 1;
+			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 //		case Operation::ROLb: rol(dest.b, 8);	break;
 //		case Operation::ROLw: rol(dest.w, 16); 	break;
@@ -1129,10 +1129,10 @@ template <
 }
 
 		case Operation::RORm: {
-			const auto value = dest.w;
-			dest.w = uint16_t((value >> 1) | (value << 15));
-			status.carry_flag_ = dest.w & 0x8000;
-			set_neg_zero_overflow(dest.w, 0x8000);
+			const auto value = src.w;
+			src.w = uint16_t((value >> 1) | (value << 15));
+			status.carry_flag_ = src.w & 0x8000;
+			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 //		case Operation::RORb: ror(dest.b, 8);	break;
 //		case Operation::RORw: ror(dest.w, 16); 	break;
@@ -1151,8 +1151,8 @@ template <
 }
 
 		case Operation::ROXLm: {
-			const auto value = dest.w;
-			dest.w = uint16_t((value << 1) | (status.extend_flag_ ? 0x0001 : 0x0000));
+			const auto value = src.w;
+			src.w = uint16_t((value << 1) | (status.extend_flag_ ? 0x0001 : 0x0000));
 			status.extend_flag_ = value & 0x8000;
 			set_flags_w(0x8000);
 		} break;
@@ -1175,8 +1175,8 @@ template <
 }
 
 		case Operation::ROXRm: {
-			const auto value = dest.w;
-			dest.w = (value >> 1) | (status.extend_flag_ ? 0x8000 : 0x0000);
+			const auto value = src.w;
+			src.w = (value >> 1) | (status.extend_flag_ ? 0x8000 : 0x0000);
 			status.extend_flag_ = value & 0x0001;
 			set_flags_w(0x0001);
 		} break;
@@ -1195,9 +1195,9 @@ template <
 
 #undef set_flags
 #undef decode_shift_count
-#undef set_flags_b
+//#undef set_flags_b
 #undef set_flags_w
-#undef set_flags_l
+//#undef set_flags_l
 #undef set_neg_zero_overflow
 #undef set_neg_zero
 

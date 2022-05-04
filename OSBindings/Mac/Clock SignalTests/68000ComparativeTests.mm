@@ -40,6 +40,7 @@
 //	dbcc_scc
 //	eori_andi_ori
 //	lea
+//	lslr_aslr_roxlr_rolr
 
 // Issues to fix:
 //
@@ -68,8 +69,8 @@
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"link_unlk.json"]];
-	_testSet = [NSSet setWithArray:@[@"LINK.w 0007"]];
+	_fileSet = [NSSet setWithArray:@[@"lslr_aslr_roxlr_rolr.json"]];
+//	_testSet = [NSSet setWithArray:@[@"LINK.w 0007"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }

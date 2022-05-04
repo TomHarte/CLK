@@ -294,6 +294,10 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::EXTbtow:	case Operation::EXTwtol:
 		case Operation::SWAP:
 		case Operation::UNLINK:
+		case Operation::ASLm:		case Operation::ASRm:
+		case Operation::LSLm:		case Operation::LSRm:
+		case Operation::ROLm:		case Operation::RORm:
+		case Operation::ROXLm:		case Operation::ROXRm:
 			return FetchOp1 | StoreOp1;
 
 		//
@@ -336,6 +340,14 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::EORb:	case Operation::EORw:	case Operation::EORl:
 		case Operation::DIVU:	case Operation::DIVS:
 		case Operation::MULU:	case Operation::MULS:
+		case Operation::ASLb:	case Operation::ASLw:	case Operation::ASLl:
+		case Operation::ASRb:	case Operation::ASRw:	case Operation::ASRl:
+		case Operation::LSLb:	case Operation::LSLw:	case Operation::LSLl:
+		case Operation::LSRb:	case Operation::LSRw:	case Operation::LSRl:
+		case Operation::ROLb:	case Operation::ROLw:	case Operation::ROLl:
+		case Operation::RORb:	case Operation::RORw:	case Operation::RORl:
+		case Operation::ROXLb:	case Operation::ROXLw:	case Operation::ROXLl:
+		case Operation::ROXRb:	case Operation::ROXRw:	case Operation::ROXRl:
 			return FetchOp1 | FetchOp2 | StoreOp2;
 
 		//
