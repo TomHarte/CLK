@@ -262,7 +262,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		//	No operands are fetched or stored.
 		//	(which means that source and destination will appear as their effective addresses)
 		//
-		case Operation::LEA:	case Operation::PEA:
+		case Operation::PEA:
 		case Operation::JMP:	case Operation::JSR:
 			return 0;
 
@@ -337,9 +337,6 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::MULU:	case Operation::MULS:
 			return FetchOp1 | FetchOp2 | StoreOp2;
 
-//		case Operation::MOVEMw:
-//		case Operation::MOVEMl:
-
 		//
 		// Two-operand; read both, write source.
 		//
@@ -351,6 +348,12 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		//
 		case Operation::EXG:
 			return FetchOp1 | FetchOp2 | StoreOp1 | StoreOp2;
+
+		//
+		//	Two-operand; just write destination.
+		//
+		case Operation::LEA:
+			return StoreOp2;
 	}
 }
 

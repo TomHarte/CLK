@@ -39,6 +39,7 @@
 //	cmp
 //	dbcc_scc
 //	eori_andi_ori
+//	lea
 
 // Skipped for now, for implying a more granular decoder:
 //
@@ -50,11 +51,16 @@
 //	divu_divs
 //	eor_and_or	(which invokes BCD)
 //	exg			(also BCD)
+//	chk
+//
+// And because possibly my old CHK is pushing the wrong program counter?
+//
+//	ext.json
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"ext.json", @"jmp_jsr.json"]];
-	_testSet = [NSSet setWithArray:@[@"EXT/EXTB 0031"]];
+	_fileSet = [NSSet setWithArray:@[@"link_unlk.json"]];
+//	_testSet = [NSSet setWithArray:@[@"EXT/EXTB 0031"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }
