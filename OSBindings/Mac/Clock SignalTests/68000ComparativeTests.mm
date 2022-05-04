@@ -41,6 +41,15 @@
 //	eori_andi_ori
 //	lea
 
+// Issues to fix:
+//
+//	LINK A7, in which the post-operation writeback overwrites
+//	the modified value.
+//
+// Do I need a dedicated LINKA7 operation?
+//
+// This affects link_unlk
+
 // Skipped for now, for implying a more granular decoder:
 //
 //	btst_bchg_bclr_bset
@@ -60,7 +69,7 @@
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
 	_fileSet = [NSSet setWithArray:@[@"link_unlk.json"]];
-//	_testSet = [NSSet setWithArray:@[@"EXT/EXTB 0031"]];
+	_testSet = [NSSet setWithArray:@[@"LINK.w 0007"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }

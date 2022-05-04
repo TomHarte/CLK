@@ -275,7 +275,6 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::EORItoSR:	case Operation::EORItoCCR:
 		case Operation::Bccb:		case Operation::Bccw:		case Operation::Bccl:
 		case Operation::BSRb:		case Operation::BSRw:		case Operation::BSRl:
-		case Operation::UNLINK:
 			return FetchOp1;
 
 		//
@@ -294,6 +293,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::NEGXb:		case Operation::NEGXw:		case Operation::NEGXl:
 		case Operation::EXTbtow:	case Operation::EXTwtol:
 		case Operation::SWAP:
+		case Operation::UNLINK:
 			return FetchOp1 | StoreOp1;
 
 		//
@@ -312,7 +312,6 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::CMPb:	case Operation::CMPw:	case Operation::CMPl:
 		case Operation::CMPAw:	case Operation::CMPAl:
 		case Operation::CHK:
-		case Operation::LINKw:
 			return FetchOp1 | FetchOp2;
 
 		//
@@ -343,6 +342,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		// Two-operand; read both, write source.
 		//
 		case Operation::DBcc:
+		case Operation::LINKw:
 			return FetchOp1 | FetchOp2 | StoreOp1;
 
 		//
