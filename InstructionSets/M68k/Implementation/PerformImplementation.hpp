@@ -473,16 +473,16 @@ template <
 		break;
 
 		case Operation::EXTbtow:
-			dest.w = uint16_t(int8_t(dest.b));
+			src.w = uint16_t(int8_t(src.b));
 			status.overflow_flag_ = status.carry_flag_ = 0;
-			status.zero_result_ = dest.w;
+			status.zero_result_ = src.w;
 			status.negative_flag_ = status.zero_result_ & 0x8000;
 		break;
 
 		case Operation::EXTwtol:
-			dest.l = u_extend16(dest.w);
+			src.l = u_extend16(src.w);
 			status.overflow_flag_ = status.carry_flag_ = 0;
-			status.zero_result_ = dest.l;
+			status.zero_result_ = src.l;
 			status.negative_flag_ = status.zero_result_ & 0x80000000;
 		break;
 
@@ -943,12 +943,12 @@ template <
 		} break;
 
 		case Operation::SWAP: {
-			uint16_t *const words = reinterpret_cast<uint16_t *>(&dest);
+			uint16_t *const words = reinterpret_cast<uint16_t *>(&src.l);
 			const auto temporary = words[0];
 			words[0] = words[1];
 			words[1] = temporary;
 
-			status.zero_result_ = dest.l;
+			status.zero_result_ = src.l;
 			status.negative_flag_ = temporary & 0x8000;
 			status.overflow_flag_ = status.carry_flag_ = 0;
 		} break;
