@@ -127,6 +127,10 @@ enum class DataSize {
 };
 
 /// Classifies operations by the size of their memory accesses, if any.
+///
+/// For any operations that don't fit the neat model of reading one or two operands,
+/// then writing zero or one, the size determines the data size of the operands only,
+/// not any other accesses.
 constexpr DataSize size(Operation operation) {
 	switch(operation) {
 		// These are given a value arbitrarily, to
@@ -188,7 +192,7 @@ constexpr DataSize size(Operation operation) {
 		case Operation::RORw:	case Operation::RORm:
 		case Operation::ROXLw:	case Operation::ROXLm:
 		case Operation::ROXRw:	case Operation::ROXRm:
-		case Operation::MOVEMw:
+		case Operation::MOVEMw:	case Operation::MOVEMl:
 		case Operation::MOVEPw:
 		case Operation::ANDw:	case Operation::EORw:
 		case Operation::NOTw:	case Operation::ORw:
@@ -217,7 +221,6 @@ constexpr DataSize size(Operation operation) {
 		case Operation::LSLl:	case Operation::LSRl:
 		case Operation::ROLl:	case Operation::RORl:
 		case Operation::ROXLl:	case Operation::ROXRl:
-		case Operation::MOVEMl:
 		case Operation::MOVEPl:
 		case Operation::ANDl:	case Operation::EORl:
 		case Operation::NOTl:	case Operation::ORl:

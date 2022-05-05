@@ -440,11 +440,51 @@ void Executor<model, BusHandler>::movep(Preinstruction instruction, uint32_t sou
 template <Model model, typename BusHandler>
 template <typename IntT>
 void Executor<model, BusHandler>::movem(Preinstruction instruction, uint32_t source, uint32_t dest) {
-	if(instruction.mode<0>() == AddressingMode::DataRegisterDirect) {
-		// Move registers to memory.
+	// NB:
+	//
+	// "For the MC68020, MC68030, MC68040, and CPU32, if the addressing register is also
+	// moved to memory, the value written is the initial register value decremented by the
+	// size of the operation. The MC68000 and MC68010 write the initial register value
+	// (not decremented)."
+
+	if(instruction.mode<0>() == AddressingMode::ImmediateData) {
+		// Move registers to memory. This is the only permitted use of the predecrement mode,
+		// which reverses output order.
 		if(instruction.mode<1>() == AddressingMode::AddressRegisterIndirectWithPredecrement) {
-		} else {
+			// The structure of the code in the mainline part of the executor is such
+			// that the address register will already have been predecremented before
+			// reaching here, and it'll have been by two bytes per the operand size
+			// rather than according to the instruction size. That's not wanted, so undo it.
+			//
+			// (TODO: with the caveat that the 68020+ have different behaviour.).
+			registers_[8 + instruction.reg<1>()].l += 2;
+
+			uint32_t reg = registers_[8 + instruction.reg<1>()].l;
+			int index = 15;
+
+			while(source) {
+				if(source & 1) {
+					reg -= sizeof(IntT);
+					bus_handler_.template write<IntT>(reg, IntT(registers_[index].l));
+				}
+				--index;
+				source >>= 1;
+			}
+
+			registers_[8 + instruction.reg<1>()].l = reg;
+			return;
 		}
+
+		int index = 0;
+		while(source) {
+			if(source & 1) {
+				bus_handler_.template write<IntT>(dest, IntT(registers_[index].l));
+				dest += sizeof(IntT);
+			}
+			++index;
+			source >>= 1;
+		}
+
 	} else {
 		// Move memory to registers.
 	}
