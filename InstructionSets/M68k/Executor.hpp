@@ -51,6 +51,7 @@ template <Model model, typename BusHandler> class Executor {
 		void link(uint32_t &address, uint32_t offset);
 		void unlink(uint32_t &address);
 		template <typename IntT> void movep(Preinstruction instruction, uint32_t source, uint32_t dest);
+		template <typename IntT> void movem(Preinstruction instruction, uint32_t source, uint32_t dest);
 
 		// TODO: ownership of this shouldn't be here.
 		struct Registers {

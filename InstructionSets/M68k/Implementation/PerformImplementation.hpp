@@ -1184,6 +1184,14 @@ template <
 			flow_controller.template movep<uint16_t>(instruction, src.l, dest.l);
 		break;
 
+		case Operation::MOVEMl:
+			flow_controller.template movem<uint32_t>(instruction, src.l, dest.l);
+		break;
+
+		case Operation::MOVEMw:
+			flow_controller.template movem<uint16_t>(instruction, src.l, dest.l);
+		break;
+
 		/*
 			RTE and RTR share an implementation.
 		*/

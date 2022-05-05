@@ -397,10 +397,10 @@ template <Model model, typename BusHandler>
 template <typename IntT>
 void Executor<model, BusHandler>::movep(Preinstruction instruction, uint32_t source, uint32_t dest) {
 	if(instruction.mode<0>() == AddressingMode::DataRegisterDirect) {
+		// Move register to memory.
 		const uint32_t reg = source;
 		uint32_t address = dest;
 
-		// Move register to memory.
 		if constexpr (sizeof(IntT) == 4) {
 			bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 24));
 			address += 2;
@@ -432,6 +432,16 @@ void Executor<model, BusHandler>::movep(Preinstruction instruction, uint32_t sou
 		address += 2;
 
 		reg |= bus_handler_.template read<uint8_t>(address);
+	}
+}
+
+template <Model model, typename BusHandler>
+template <typename IntT>
+void Executor<model, BusHandler>::movem(Preinstruction instruction, uint32_t source, uint32_t dest) {
+	if(instruction.mode<0>() == AddressingMode::DataRegisterDirect) {
+		// Move registers to memory.
+	} else {
+		// Move memory to registers.
 	}
 }
 

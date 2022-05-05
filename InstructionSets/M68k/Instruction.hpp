@@ -265,6 +265,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::PEA:
 		case Operation::JMP:	case Operation::JSR:
 		case Operation::MOVEPw:	case Operation::MOVEPl:
+		case Operation::MOVEMw:	case Operation::MOVEMl:
 			return 0;
 
 		//
