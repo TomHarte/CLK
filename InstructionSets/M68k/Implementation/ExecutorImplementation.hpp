@@ -393,6 +393,42 @@ void Executor<model, BusHandler>::unlink(uint32_t &address) {
 	address_[7].l += 4;
 }
 
+template <Model model, typename BusHandler>
+template <typename IntT>
+void Executor<model, BusHandler>::movep_fromR(uint32_t reg, uint32_t address) {
+	if constexpr (sizeof(IntT) == 4) {
+		bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 24));
+		address += 2;
+
+		bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 16));
+		address += 2;
+	}
+
+	bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 8));
+	address += 2;
+
+	bus_handler_.template write<uint8_t>(address, uint8_t(reg));
+}
+
+template <Model model, typename BusHandler>
+template <typename IntT>
+void Executor<model, BusHandler>::movep_toR(uint32_t &reg, uint32_t address) {
+	if constexpr (sizeof(IntT) == 4) {
+		reg = bus_handler_.template read<uint8_t>(address) << 24;
+		address += 2;
+
+		reg |= bus_handler_.template read<uint8_t>(address) << 26;
+		address += 2;
+	} else {
+		reg &= 0xffff0000;
+	}
+
+	reg |= bus_handler_.template read<uint8_t>(address) << 8;
+	address += 2;
+
+	reg |= bus_handler_.template read<uint8_t>(address);
+}
+
 }
 }
 
