@@ -422,7 +422,7 @@ void Executor<model, BusHandler>::movep(Preinstruction instruction, uint32_t sou
 			reg = bus_handler_.template read<uint8_t>(address) << 24;
 			address += 2;
 
-			reg |= bus_handler_.template read<uint8_t>(address) << 26;
+			reg |= bus_handler_.template read<uint8_t>(address) << 16;
 			address += 2;
 		} else {
 			reg &= 0xffff0000;
