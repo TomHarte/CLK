@@ -1177,19 +1177,11 @@ template <
 #undef set_neg_zero
 
 		case Operation::MOVEPl:
-			if(instruction.mode<0>() == AddressingMode::DataRegisterDirect) {
-				flow_controller.template movep_fromR<uint16_t>(src.l, dest.l);
-			} else {
-				flow_controller.template movep_toR<uint16_t>(src.l, dest.l);
-			}
+			flow_controller.template movep<uint32_t>(instruction, src.l, dest.l);
 		break;
 
 		case Operation::MOVEPw:
-			if(instruction.mode<0>() == AddressingMode::DataRegisterDirect) {
-				flow_controller.template movep_fromR<uint32_t>(src.l, dest.l);
-			} else {
-				flow_controller.template movep_toR<uint32_t>(src.l, dest.l);
-			}
+			flow_controller.template movep<uint16_t>(instruction, src.l, dest.l);
 		break;
 
 		/*

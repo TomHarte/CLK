@@ -395,38 +395,44 @@ void Executor<model, BusHandler>::unlink(uint32_t &address) {
 
 template <Model model, typename BusHandler>
 template <typename IntT>
-void Executor<model, BusHandler>::movep_fromR(uint32_t reg, uint32_t address) {
-	if constexpr (sizeof(IntT) == 4) {
-		bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 24));
+void Executor<model, BusHandler>::movep(Preinstruction instruction, uint32_t source, uint32_t dest) {
+	if(instruction.mode<0>() == AddressingMode::DataRegisterDirect) {
+		const uint32_t reg = source;
+		uint32_t address = dest;
+
+		// Move register to memory.
+		if constexpr (sizeof(IntT) == 4) {
+			bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 24));
+			address += 2;
+
+			bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 16));
+			address += 2;
+		}
+
+		bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 8));
 		address += 2;
 
-		bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 16));
-		address += 2;
-	}
-
-	bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 8));
-	address += 2;
-
-	bus_handler_.template write<uint8_t>(address, uint8_t(reg));
-}
-
-template <Model model, typename BusHandler>
-template <typename IntT>
-void Executor<model, BusHandler>::movep_toR(uint32_t &reg, uint32_t address) {
-	if constexpr (sizeof(IntT) == 4) {
-		reg = bus_handler_.template read<uint8_t>(address) << 24;
-		address += 2;
-
-		reg |= bus_handler_.template read<uint8_t>(address) << 26;
-		address += 2;
+		bus_handler_.template write<uint8_t>(address, uint8_t(reg));
 	} else {
-		reg &= 0xffff0000;
+		// Move memory to register.
+		uint32_t &reg = data_[instruction.reg<1>()].l;
+		uint32_t address = source;
+
+		if constexpr (sizeof(IntT) == 4) {
+			reg = bus_handler_.template read<uint8_t>(address) << 24;
+			address += 2;
+
+			reg |= bus_handler_.template read<uint8_t>(address) << 26;
+			address += 2;
+		} else {
+			reg &= 0xffff0000;
+		}
+
+		reg |= bus_handler_.template read<uint8_t>(address) << 8;
+		address += 2;
+
+		reg |= bus_handler_.template read<uint8_t>(address);
 	}
-
-	reg |= bus_handler_.template read<uint8_t>(address) << 8;
-	address += 2;
-
-	reg |= bus_handler_.template read<uint8_t>(address);
 }
 
 }
