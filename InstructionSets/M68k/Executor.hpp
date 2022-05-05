@@ -83,7 +83,7 @@ template <Model model, typename BusHandler> class Executor {
 		// Processor state.
 		Status status_;
 		CPU::SlicedInt32 program_counter_;
-		CPU::SlicedInt32 data_[8], address_[8];
+		CPU::SlicedInt32 registers_[16];	// D0–D8, followed by A0–A8.
 		CPU::SlicedInt32 stack_pointers_[2];
 		uint32_t instruction_address_;
 		int active_stack_pointer_ = 0;
