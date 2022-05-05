@@ -348,6 +348,8 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::RORb:	case Operation::RORw:	case Operation::RORl:
 		case Operation::ROXLb:	case Operation::ROXLw:	case Operation::ROXLl:
 		case Operation::ROXRb:	case Operation::ROXRw:	case Operation::ROXRl:
+		case Operation::BTST:	case Operation::BCHG:
+		case Operation::BCLR:	case Operation::BSET:
 			return FetchOp1 | FetchOp2 | StoreOp2;
 
 		//

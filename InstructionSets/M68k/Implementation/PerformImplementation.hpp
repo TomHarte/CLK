@@ -26,18 +26,6 @@ namespace M68k {
 	x = ((x & 0xf0f0) >> 4) + (x & 0x0f0f);	\
 	x = ((x & 0xff00) >> 8) + (x & 0x00ff);
 
-// TODO: decisions outstanding:
-//
-//	(1)	should I reintroduce the BTSTl/BTSTw-type distinctions, given that the only way to
-//		determine them otherwise is by operand types and I'm hoping to treat data into
-//		here as a black box?
-//
-//	(2)	to what extent, if any, should this function have responsibility for a MOVEM, MOVEP,
-//		etc? This factoring is inteded to separate the bus interface from internal logic so
-//		is there much to do here in any case? As currently drafted, something else will
-//		already have had to check the operation and cue up data.
-//
-
 template <
 	Model model,
 	typename FlowController,
@@ -227,50 +215,37 @@ template <
 			dest.l -= src.l;
 		break;
 
-		// Two BTSTs: set the zero flag according to the value of the destination masked by
-		// the bit named in the source modulo the operation size.
-//		case Operation::BTSTb:
-//			status.zero_result_ = dest.l & (1 << (src.l & 7));
-//		break;
-//
-//		case Operation::BTSTl:
-//			zero_result_ = dest.l & (1 << (src.l & 31));
-//		break;
-//
-//		case Operation::BCLRb:
-//			zero_result_ = dest.l & (1 << (src.l & 7));
-//			dest.l &= ~(1 << (src.l & 7));
-//		break;
-//
-//		case Operation::BCLRl:
-//			zero_result_ = dest.l & (1 << (src.l & 31));
-//			dest.l &= ~(1 << (src.l & 31));
-//
+		// BTST/BCLR/etc: modulo for the mask depends on whether memory or a data register is the target.
+		case Operation::BTST: {
+			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
+			status.zero_result_ = dest.l & (1 << (src.l & mask));
+		} break;
+
+		case Operation::BCLR: {
+			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
+
+			status.zero_result_ = dest.l & (1 << (src.l & mask));
+			dest.l &= ~(1 << (src.l & mask));
+
 //			// Clearing in the top word requires an extra four cycles.
 //			set_next_microcycle_length(HalfCycles(8 + ((src.l & 31) / 16) * 4));
-//		break;
-//
-//		case Operation::BCHGl:
-//			zero_result_ = dest.l & (1 << (src.l & 31));
-//			dest.l ^= 1 << (src.l & 31);
+		} break;
+
+		case Operation::BCHG: {
+			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
+
+			status.zero_result_ = dest.l & (1 << (src.l & mask));
+			dest.l ^= 1 << (src.l & mask);
 //			set_next_microcycle_length(HalfCycles(4 + (((src.l & 31) / 16) * 4)));
-//		break;
-//
-//		case Operation::BCHGb:
-//			zero_result_ = dest.b & (1 << (src.l & 7));
-//			dest.b ^= 1 << (src.l & 7);
-//		break;
-//
-//		case Operation::BSETl:
-//			zero_result_ = dest.l & (1 << (src.l & 31));
-//			dest.l |= 1 << (src.l & 31);
+		} break;
+
+		case Operation::BSET: {
+			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
+
+			status.zero_result_ = dest.l & (1 << (src.l & mask));
+			dest.l |= 1 << (src.l & mask);
 //			set_next_microcycle_length(HalfCycles(4 + (((src.l & 31) / 16) * 4)));
-//		break;
-//
-//		case Operation::BSETb:
-//			zero_result_ = dest.b & (1 << (src.l & 7));
-//			dest.b |= 1 << (src.l & 7);
-//		break;
+		} break;
 
 		// Bcc: ordinarily evaluates the relevant condition and displacement size and then:
 		//	if condition is false, schedules bus operations to get past this instruction;
