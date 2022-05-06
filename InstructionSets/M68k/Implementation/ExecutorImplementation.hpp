@@ -439,79 +439,81 @@ void Executor<model, BusHandler>::movep(Preinstruction instruction, uint32_t sou
 
 template <Model model, typename BusHandler>
 template <typename IntT>
-void Executor<model, BusHandler>::movem(Preinstruction instruction, uint32_t source, uint32_t dest) {
-	if(instruction.mode<0>() == AddressingMode::ImmediateData) {
-		// Move registers to memory. This is the only permitted use of the predecrement mode,
-		// which reverses output order.
-		if(instruction.mode<1>() == AddressingMode::AddressRegisterIndirectWithPredecrement) {
-			// The structure of the code in the mainline part of the executor is such
-			// that the address register will already have been predecremented before
-			// reaching here, and it'll have been by two bytes per the operand size
-			// rather than according to the instruction size. That's not wanted, so undo it.
-			//
-			// TODO: with the caveat that the 68020+ have different behaviour:
-			//
-			// "For the MC68020, MC68030, MC68040, and CPU32, if the addressing register is also
-			// moved to memory, the value written is the initial register value decremented by the
-			// size of the operation. The MC68000 and MC68010 write the initial register value
-			// (not decremented)."
-			registers_[8 + instruction.reg<1>()].l += 2;
+void Executor<model, BusHandler>::movem_toM(Preinstruction instruction, uint32_t source, uint32_t dest) {
+	// Move registers to memory. This is the only permitted use of the predecrement mode,
+	// which reverses output order.
 
-			uint32_t reg = registers_[8 + instruction.reg<1>()].l;
-			int index = 15;
+	if(instruction.mode<1>() == AddressingMode::AddressRegisterIndirectWithPredecrement) {
+		// The structure of the code in the mainline part of the executor is such
+		// that the address register will already have been predecremented before
+		// reaching here, and it'll have been by two bytes per the operand size
+		// rather than according to the instruction size. That's not wanted, so undo it.
+		//
+		// TODO: with the caveat that the 68020+ have different behaviour:
+		//
+		// "For the MC68020, MC68030, MC68040, and CPU32, if the addressing register is also
+		// moved to memory, the value written is the initial register value decremented by the
+		// size of the operation. The MC68000 and MC68010 write the initial register value
+		// (not decremented)."
+		registers_[8 + instruction.reg<1>()].l += 2;
 
-			while(source) {
-				if(source & 1) {
-					reg -= sizeof(IntT);
-					bus_handler_.template write<IntT>(reg, IntT(registers_[index].l));
-				}
-				--index;
-				source >>= 1;
-			}
+		uint32_t reg = registers_[8 + instruction.reg<1>()].l;
+		int index = 15;
 
-			registers_[8 + instruction.reg<1>()].l = reg;
-			return;
-		}
-
-		int index = 0;
 		while(source) {
 			if(source & 1) {
-				bus_handler_.template write<IntT>(dest, IntT(registers_[index].l));
-				dest += sizeof(IntT);
+				reg -= sizeof(IntT);
+				bus_handler_.template write<IntT>(reg, IntT(registers_[index].l));
 			}
-			++index;
+			--index;
 			source >>= 1;
 		}
 
-	} else {
-		// Move memory to registers.
-		//
-		// Another 68000 convention has been broken here; the instruction form is:
-		//	MOVEM <ea>, #
-		// ... but the instruction is encoded as [MOVEM] [#] [ea].
-		//
-		// TODO: solve this.
-		int index = 0;
-		while(dest) {
-			if(dest & 1) {
-				if constexpr (sizeof(IntT) == 2) {
-					registers_[index].l = int16_t(bus_handler_.template read<uint16_t>(source));
-				} else {
-					registers_[index].l = bus_handler_.template read<uint32_t>(source);
-				}
-				source += sizeof(IntT);
+		registers_[8 + instruction.reg<1>()].l = reg;
+		return;
+	}
+
+	int index = 0;
+	while(source) {
+		if(source & 1) {
+			bus_handler_.template write<IntT>(dest, IntT(registers_[index].l));
+			dest += sizeof(IntT);
+		}
+		++index;
+		source >>= 1;
+	}
+}
+
+template <Model model, typename BusHandler>
+template <typename IntT>
+void Executor<model, BusHandler>::movem_toR(Preinstruction instruction, uint32_t source, uint32_t dest) {
+	// Move memory to registers.
+	//
+	// A 68000 convention has been broken here; the instruction form is:
+	//	MOVEM <ea>, #
+	// ... but the instruction is encoded as [MOVEM] [#] [ea].
+	//
+	// This project's decoder decodes as #, <ea>.
+	int index = 0;
+	while(source) {
+		if(source & 1) {
+			if constexpr (sizeof(IntT) == 2) {
+				registers_[index].l = int16_t(bus_handler_.template read<uint16_t>(dest));
+			} else {
+				registers_[index].l = bus_handler_.template read<uint32_t>(dest);
 			}
-			++index;
-			dest >>= 1;
+			dest += sizeof(IntT);
 		}
+		++index;
+		source >>= 1;
+	}
 
-		if(instruction.mode<0>() == AddressingMode::AddressRegisterIndirectWithPostincrement) {
-			// If the effective address is specified by the postincrement mode ...
-			// [i]f the addressing register is also loaded from memory, the memory value is
-			// ignored and the register is written with the postincremented effective address.
+	if(instruction.mode<1>() == AddressingMode::AddressRegisterIndirectWithPostincrement) {
+		// "If the effective address is specified by the postincrement mode ...
+		// [i]f the addressing register is also loaded from memory, the memory value is
+		// ignored and the register is written with the postincremented effective address."
 
-			registers_[8 + instruction.reg<0>()].l = source;
-		}
+		registers_[8 + instruction.reg<1>()].l = source;
 	}
 }
 

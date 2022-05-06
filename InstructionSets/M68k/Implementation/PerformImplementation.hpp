@@ -1184,12 +1184,20 @@ template <
 			flow_controller.template movep<uint16_t>(instruction, src.l, dest.l);
 		break;
 
-		case Operation::MOVEMl:
-			flow_controller.template movem<uint32_t>(instruction, src.l, dest.l);
+		case Operation::MOVEMtoRl:
+			flow_controller.template movem_toR<uint32_t>(instruction, src.l, dest.l);
 		break;
 
-		case Operation::MOVEMw:
-			flow_controller.template movem<uint16_t>(instruction, src.l, dest.l);
+		case Operation::MOVEMtoMl:
+			flow_controller.template movem_toM<uint32_t>(instruction, src.l, dest.l);
+		break;
+
+		case Operation::MOVEMtoRw:
+			flow_controller.template movem_toR<uint16_t>(instruction, src.l, dest.l);
+		break;
+
+		case Operation::MOVEMtoMw:
+			flow_controller.template movem_toM<uint16_t>(instruction, src.l, dest.l);
 		break;
 
 		/*

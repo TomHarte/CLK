@@ -76,8 +76,6 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 	}
 
 	switch(op) {
-		case MOVEMtoRl:	case MOVEMtoMl:	return Operation::MOVEMl;
-		case MOVEMtoRw:	case MOVEMtoMw:	return Operation::MOVEMw;
 		case MOVEPtoRl:	case MOVEPtoMl:	return Operation::MOVEPl;
 		case MOVEPtoRw:	case MOVEPtoMw:	return Operation::MOVEPw;
 
@@ -456,16 +454,16 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				An
 			>::value;
 
-		case MOVEMtoMw:	case MOVEMtoMl:
+		case OpT(Operation::MOVEMtoMw):	case OpT(Operation::MOVEMtoMl):
 			return ~TwoOperandMask<
 				Imm,
 				Ind | PreDec | d16An | d8AnXn | XXXw | XXXl
 			>::value;
 
-		case MOVEMtoRw: case MOVEMtoRl:
+		case OpT(Operation::MOVEMtoRw): case OpT(Operation::MOVEMtoRl):
 			return ~TwoOperandMask<
-				Ind | PostInc | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn,
-				Imm
+				Imm,
+				Ind | PostInc | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
 			>::value;
 
 		case MOVEPtoRl: case MOVEPtoRw:
@@ -796,15 +794,11 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b0–b2 and b3–b5:		effective address.
 		// [already decoded: b10: direction]
 		//
-		case MOVEMtoMl:	case MOVEMtoMw:
+		case OpT(Operation::MOVEMtoMl):	case OpT(Operation::MOVEMtoMw):
+		case OpT(Operation::MOVEMtoRl):	case OpT(Operation::MOVEMtoRw):
 			return validated<op, validate>(
 				AddressingMode::ImmediateData, 0,
 				combined_mode(ea_mode, ea_register), ea_register);
-
-		case MOVEMtoRl:	case MOVEMtoRw:
-			return validated<op, validate>(
-				combined_mode(ea_mode, ea_register), ea_register,
-				AddressingMode::ImmediateData, 0);
 
 		//
 		// MARK: TRAP, BCCb, BSRb
@@ -1087,10 +1081,10 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		case 0x840:	Decode(Op::PEA);
 
 		// 4-128 (p232)
-		case 0x880:	Decode(MOVEMtoMw);
-		case 0x8c0:	Decode(MOVEMtoMl);
-		case 0xc80:	Decode(MOVEMtoRw);
-		case 0xcc0:	Decode(MOVEMtoRl);
+		case 0x880:	Decode(Op::MOVEMtoMw);
+		case 0x8c0:	Decode(Op::MOVEMtoMl);
+		case 0xc80:	Decode(Op::MOVEMtoRw);
+		case 0xcc0:	Decode(Op::MOVEMtoRl);
 
 		// 4-192 (p296)
 		case 0xa00:	Decode(Op::TSTb);

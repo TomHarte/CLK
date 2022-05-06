@@ -246,8 +246,11 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			case Operation::ROXRl:	instruction = @"ROXR.l";	break;
 			case Operation::ROXRm:	instruction = @"ROXR.w";	break;
 
-			case Operation::MOVEMl:	instruction = @"MOVEM.l";	break;
-			case Operation::MOVEMw:	instruction = @"MOVEM.w";	break;
+			// TODO: switch operand order for toR.
+			case Operation::MOVEMtoMl:	instruction = @"MOVEM.l";	break;
+			case Operation::MOVEMtoMw:	instruction = @"MOVEM.w";	break;
+			case Operation::MOVEMtoRl:	instruction = @"MOVEM.l";	break;
+			case Operation::MOVEMtoRw:	instruction = @"MOVEM.w";	break;
 
 			case Operation::MOVEPl:	instruction = @"MOVEP.l";	break;
 			case Operation::MOVEPw:	instruction = @"MOVEP.w";	break;

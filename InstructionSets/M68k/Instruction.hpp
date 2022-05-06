@@ -72,7 +72,9 @@ enum class Operation: uint8_t {
 	ROXLb, ROXLw, ROXLl, ROXLm,
 	ROXRb, ROXRw, ROXRl, ROXRm,
 
-	MOVEMl, MOVEMw,
+	MOVEMtoRl, MOVEMtoRw,
+	MOVEMtoMl, MOVEMtoMw,
+
 	MOVEPl, MOVEPw,
 
 	ANDb,	ANDw,	ANDl,
@@ -192,7 +194,10 @@ constexpr DataSize operand_size(Operation operation) {
 		case Operation::RORw:	case Operation::RORm:
 		case Operation::ROXLw:	case Operation::ROXLm:
 		case Operation::ROXRw:	case Operation::ROXRm:
-		case Operation::MOVEMw:	case Operation::MOVEMl:
+		case Operation::MOVEMtoRw:
+		case Operation::MOVEMtoRl:
+		case Operation::MOVEMtoMw:
+		case Operation::MOVEMtoMl:
 		case Operation::MOVEPw:
 		case Operation::ANDw:	case Operation::EORw:
 		case Operation::NOTw:	case Operation::ORw:
@@ -266,9 +271,10 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		//	(which means that source and destination will appear as their effective addresses)
 		//
 		case Operation::PEA:
-		case Operation::JMP:	case Operation::JSR:
-		case Operation::MOVEPw:	case Operation::MOVEPl:
-		case Operation::MOVEMw:	case Operation::MOVEMl:
+		case Operation::JMP:		case Operation::JSR:
+		case Operation::MOVEPw:		case Operation::MOVEPl:
+		case Operation::MOVEMtoMw:	case Operation::MOVEMtoMl:
+		case Operation::MOVEMtoRw:	case Operation::MOVEMtoRl:
 			return 0;
 
 		//
