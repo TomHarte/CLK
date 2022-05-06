@@ -131,7 +131,7 @@ enum class DataSize {
 /// For any operations that don't fit the neat model of reading one or two operands,
 /// then writing zero or one, the size determines the data size of the operands only,
 /// not any other accesses.
-constexpr DataSize size(Operation operation) {
+constexpr DataSize operand_size(Operation operation) {
 	switch(operation) {
 		// These are given a value arbitrarily, to
 		// complete the switch statement.
@@ -510,7 +510,7 @@ class Preinstruction {
 		bool requires_supervisor() const {
 			return flags_ & 0x80;
 		}
-		DataSize size() const {
+		DataSize operand_size() const {
 			return DataSize(flags_ & 0x03);
 		}
 		Condition condition() const {

@@ -114,7 +114,7 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 			ea.requires_fetch = false;
 		break;
 		case AddressingMode::ImmediateData:
-			switch(instruction.size()) {
+			switch(instruction.operand_size()) {
 				case DataSize::Byte:
 					ea.value.l = read_pc<uint16_t>() & 0xff;
 				break;
@@ -153,7 +153,7 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 			ea.value = registers_[8 + reg];
 			ea.requires_fetch = true;
 
-			switch(instruction.size()) {
+			switch(instruction.operand_size()) {
 				case DataSize::Byte:		registers_[8 + reg].l += byte_increments[reg];	break;
 				case DataSize::Word:		registers_[8 + reg].l += 2;						break;
 				case DataSize::LongWord:	registers_[8 + reg].l += 4;						break;
@@ -162,7 +162,7 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		case AddressingMode::AddressRegisterIndirectWithPredecrement: {
 			const auto reg = instruction.reg(index);
 
-			switch(instruction.size()) {
+			switch(instruction.operand_size()) {
 				case DataSize::Byte:		registers_[8 + reg].l -= byte_increments[reg];	break;
 				case DataSize::Word:		registers_[8 + reg].l -= 2;						break;
 				case DataSize::LongWord:	registers_[8 + reg].l -= 4;						break;
@@ -255,9 +255,9 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 		const auto flags = operand_flags<model>(instruction.operation);
 
 // TODO: potential alignment exception, here and in store.
-#define fetch_operand(n)														\
-	if(effective_address_[n].requires_fetch) {									\
-		read(instruction.size(), effective_address_[n].value.l, operand_[n]);	\
+#define fetch_operand(n)																\
+	if(effective_address_[n].requires_fetch) {											\
+		read(instruction.operand_size(), effective_address_[n].value.l, operand_[n]);	\
 	}
 
 		if(flags & FetchOp1) {	fetch_operand(0);	}
@@ -268,15 +268,15 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 		perform<model>(instruction, operand_[0], operand_[1], status_, *this);
 
 // TODO: rephrase to avoid conditional below.
-#define store_operand(n)		\
-	if(!effective_address_[n].requires_fetch) {								\
-		if(instruction.mode(n) == AddressingMode::DataRegisterDirect) {	\
-			registers_[instruction.reg(n)] = operand_[n];				\
-		} else {															\
-			registers_[8 + instruction.reg(n)] = operand_[n];				\
-		}																	\
-	} else {	\
-		write(instruction.size(), effective_address_[n].value.l, operand_[n]);	\
+#define store_operand(n)																\
+	if(!effective_address_[n].requires_fetch) {											\
+		if(instruction.mode(n) == AddressingMode::DataRegisterDirect) {					\
+			registers_[instruction.reg(n)] = operand_[n];								\
+		} else {																		\
+			registers_[8 + instruction.reg(n)] = operand_[n];							\
+		}																				\
+	} else {																			\
+		write(instruction.operand_size(), effective_address_[n].value.l, operand_[n]);	\
 	}
 
 		if(flags & StoreOp1) {	store_operand(0);	}

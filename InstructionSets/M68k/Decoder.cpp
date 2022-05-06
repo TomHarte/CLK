@@ -497,7 +497,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
 			requires_supervisor<model>(operation),
-			size(operation),
+			operand_size(operation),
 			condition);
 	}
 
@@ -510,7 +510,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
 			requires_supervisor<model>(operation),
-			size(operation),
+			operand_size(operation),
 			condition);
 }
 
