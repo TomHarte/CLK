@@ -513,7 +513,7 @@ void Executor<model, BusHandler>::movem_toR(Preinstruction instruction, uint32_t
 		// [i]f the addressing register is also loaded from memory, the memory value is
 		// ignored and the register is written with the postincremented effective address."
 
-		registers_[8 + instruction.reg<1>()].l = source;
+		registers_[8 + instruction.reg<1>()].l = dest;
 	}
 }
 
