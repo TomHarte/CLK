@@ -402,6 +402,18 @@ void Executor<model, BusHandler>::pea(uint32_t address) {
 }
 
 template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::tas(uint32_t address) {
+	uint8_t value = bus_handler_.template read<uint8_t>(address);
+
+	status_.overflow_flag_ = status_.carry_flag_ = 0;
+	status_.zero_result_ = value;
+	status_.negative_flag_ = value & 0x80;
+	value |= 0x80;
+
+	bus_handler_.template write<uint8_t>(address, value);
+}
+
+template <Model model, typename BusHandler>
 template <typename IntT>
 void Executor<model, BusHandler>::movep(Preinstruction instruction, uint32_t source, uint32_t dest) {
 	if(instruction.mode<0>() == AddressingMode::DataRegisterDirect) {

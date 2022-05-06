@@ -275,6 +275,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::MOVEPw:		case Operation::MOVEPl:
 		case Operation::MOVEMtoMw:	case Operation::MOVEMtoMl:
 		case Operation::MOVEMtoRw:	case Operation::MOVEMtoRl:
+		case Operation::TAS:
 			return 0;
 
 		//
@@ -286,6 +287,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::EORItoSR:	case Operation::EORItoCCR:
 		case Operation::Bccb:		case Operation::Bccw:		case Operation::Bccl:
 		case Operation::BSRb:		case Operation::BSRw:		case Operation::BSRl:
+		case Operation::TSTb:		case Operation::TSTw:		case Operation::TSTl:
 			return FetchOp1;
 
 		//

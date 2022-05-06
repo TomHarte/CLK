@@ -790,14 +790,11 @@ template <
 
 		/*
 			TAS: sets zero and negative depending on the current value of the destination,
-			and sets the high bit.
+			and sets the high bit, using a specialised atomic bus cycle.
 		*/
 
 		case Operation::TAS:
-			status.overflow_flag_ = status.carry_flag_ = 0;
-			status.zero_result_ = dest.b;
-			status.negative_flag_ = dest.b & 0x80;
-			dest.b |= 0x80;
+			flow_controller.tas(src.l);
 		break;
 
 		/*
