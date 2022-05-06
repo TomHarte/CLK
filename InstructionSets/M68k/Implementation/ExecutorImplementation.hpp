@@ -485,6 +485,12 @@ void Executor<model, BusHandler>::movem(Preinstruction instruction, uint32_t sou
 
 	} else {
 		// Move memory to registers.
+		//
+		// Another 68000 convention has been broken here; the instruction form is:
+		//	MOVEM <ea>, #
+		// ... but the instruction is encoded as [MOVEM] [#] [ea].
+		//
+		// TODO: solve this.
 		int index = 0;
 		while(dest) {
 			if(dest & 1) {
