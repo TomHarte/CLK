@@ -440,13 +440,6 @@ void Executor<model, BusHandler>::movep(Preinstruction instruction, uint32_t sou
 template <Model model, typename BusHandler>
 template <typename IntT>
 void Executor<model, BusHandler>::movem(Preinstruction instruction, uint32_t source, uint32_t dest) {
-	// NB:
-	//
-	// "For the MC68020, MC68030, MC68040, and CPU32, if the addressing register is also
-	// moved to memory, the value written is the initial register value decremented by the
-	// size of the operation. The MC68000 and MC68010 write the initial register value
-	// (not decremented)."
-
 	if(instruction.mode<0>() == AddressingMode::ImmediateData) {
 		// Move registers to memory. This is the only permitted use of the predecrement mode,
 		// which reverses output order.
@@ -456,7 +449,12 @@ void Executor<model, BusHandler>::movem(Preinstruction instruction, uint32_t sou
 			// reaching here, and it'll have been by two bytes per the operand size
 			// rather than according to the instruction size. That's not wanted, so undo it.
 			//
-			// (TODO: with the caveat that the 68020+ have different behaviour.).
+			// TODO: with the caveat that the 68020+ have different behaviour:
+			//
+			// "For the MC68020, MC68030, MC68040, and CPU32, if the addressing register is also
+			// moved to memory, the value written is the initial register value decremented by the
+			// size of the operation. The MC68000 and MC68010 write the initial register value
+			// (not decremented)."
 			registers_[8 + instruction.reg<1>()].l += 2;
 
 			uint32_t reg = registers_[8 + instruction.reg<1>()].l;
@@ -487,6 +485,31 @@ void Executor<model, BusHandler>::movem(Preinstruction instruction, uint32_t sou
 
 	} else {
 		// Move memory to registers.
+		if(instruction.mode<0>() == AddressingMode::AddressRegisterIndirectWithPostincrement) {
+			// If the effective address is specified by the postincrement mode ...
+			// [i]f the addressing register is also loaded from memory, the memory value is
+			// ignored and the register is written with the postincremented effective address.
+
+			source -= 2;
+		}
+
+		int index = 0;
+		while(dest) {
+			if(dest & 1) {
+				if constexpr (sizeof(IntT) == 2) {
+					registers_[index].l = int16_t(bus_handler_.template read<uint16_t>(source));
+				} else {
+					registers_[index].l = bus_handler_.template read<uint32_t>(source);
+				}
+				source += sizeof(IntT);
+			}
+			++index;
+			dest >>= 1;
+		}
+
+		if(instruction.mode<0>() == AddressingMode::AddressRegisterIndirectWithPostincrement) {
+			registers_[8 + instruction.reg<0>()].l = source;
+		}
 	}
 }
 
