@@ -53,6 +53,7 @@ template <Model model, typename BusHandler> class Executor {
 		template <typename IntT> void movep(Preinstruction instruction, uint32_t source, uint32_t dest);
 		template <typename IntT> void movem_toM(Preinstruction instruction, uint32_t source, uint32_t dest);
 		template <typename IntT> void movem_toR(Preinstruction instruction, uint32_t source, uint32_t dest);
+		void pea(uint32_t address);
 
 		// TODO: ownership of this shouldn't be here.
 		struct Registers {

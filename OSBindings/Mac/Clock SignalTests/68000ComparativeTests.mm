@@ -47,6 +47,8 @@
 //	movep
 //	moveq
 //	mulu_muls
+//	neg_not
+//	negx_clr
 
 // Issues to fix:
 //
@@ -68,6 +70,7 @@
 //	eor_and_or	(which invokes BCD)
 //	exg			(also BCD)
 //	chk
+//	nbcd_pea	(BCD)
 //
 // And because possibly my old CHK is pushing the wrong program counter?
 //
@@ -75,8 +78,8 @@
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"nbcd_pea.json"]];
-//	_testSet = [NSSet setWithArray:@[@"MOVEM 0098 (0)"]];
+	_fileSet = [NSSet setWithArray:@[@"swap.json", @"tst.json"]];
+//	_testSet = [NSSet setWithArray:@[@"NEGX 00c0"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }

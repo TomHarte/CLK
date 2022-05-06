@@ -396,6 +396,12 @@ void Executor<model, BusHandler>::unlink(uint32_t &address) {
 }
 
 template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::pea(uint32_t address) {
+	sp().l -= 4;
+	bus_handler_.template write<uint32_t>(sp().l, address);
+}
+
+template <Model model, typename BusHandler>
 template <typename IntT>
 void Executor<model, BusHandler>::movep(Preinstruction instruction, uint32_t source, uint32_t dest) {
 	if(instruction.mode<0>() == AddressingMode::DataRegisterDirect) {
