@@ -1204,21 +1204,17 @@ template <
 		/*
 			RTE and RTR share an implementation.
 		*/
-//		case Operation::RTE_RTR:
-//			// If this is RTR, patch out the supervisor half of the status register.
-//			if(decoded_instruction_.l == 0x4e77) {
-//				const auto current_status = status();
-//				source_bus_data_.halves.low.halves.high =
-//					uint8_t(current_status >> 8);
-//			}
-//			apply_status(source_bus_data_.l);
-//		break;
+		case Operation::RTR:
+			flow_controller.rtr();
+		break;
 
-//		case Operation::RTE:
-//		break;
-//
-//		case Operation::RTR:
-//		break;
+		case Operation::RTE:
+			flow_controller.rte();
+		break;
+
+		case Operation::RTS:
+			flow_controller.rts();
+		break;
 
 		/*
 			TSTs: compare to zero.

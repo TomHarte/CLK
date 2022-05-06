@@ -276,6 +276,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::MOVEMtoMw:	case Operation::MOVEMtoMl:
 		case Operation::MOVEMtoRw:	case Operation::MOVEMtoRl:
 		case Operation::TAS:
+		case Operation::RTR:		case Operation::RTS:		case Operation::RTE:
 			return 0;
 
 		//

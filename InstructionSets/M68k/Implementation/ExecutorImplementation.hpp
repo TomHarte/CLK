@@ -402,6 +402,26 @@ void Executor<model, BusHandler>::pea(uint32_t address) {
 }
 
 template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::rtr() {
+	status_.set_ccr(bus_handler_.template read<uint16_t>(sp().l));
+	sp().l += 2;
+	rts();
+}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::rte() {
+	status_.set_status(bus_handler_.template read<uint16_t>(sp().l));
+	sp().l += 2;
+	rts();
+}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::rts() {
+	program_counter_.l = bus_handler_.template read<uint32_t>(sp().l);
+	sp().l += 4;
+}
+
+template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::tas(Preinstruction instruction, uint32_t address) {
 	uint8_t original_value;
 	if(instruction.mode<0>() != AddressingMode::DataRegisterDirect) {

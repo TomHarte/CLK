@@ -52,6 +52,8 @@
 //	swap
 //	tas
 //	tst
+//	rts
+//	rtr
 
 // Issues to fix:
 //
@@ -81,7 +83,7 @@
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"rts.json", @"rtr.json"]];
+//	_fileSet = [NSSet setWithArray:@[@"rts.json", @"rtr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"NEGX 00c0"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
