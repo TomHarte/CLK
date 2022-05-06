@@ -794,7 +794,7 @@ template <
 		*/
 
 		case Operation::TAS:
-			flow_controller.tas(src.l);
+			flow_controller.tas(instruction, src.l);
 		break;
 
 		/*
