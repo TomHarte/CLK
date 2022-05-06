@@ -43,7 +43,10 @@
 //	lslr_aslr_roxlr_rolr
 //	move_tofrom_srccr
 //	move
+//	movem
 //	movep
+//	moveq
+//	mulu_muls
 
 // Issues to fix:
 //
@@ -72,8 +75,8 @@
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"movem.json"]];
-//	_testSet = [NSSet setWithArray:@[@"MOVEM 00a8 (0)"]];
+	_fileSet = [NSSet setWithArray:@[@"nbcd_pea.json"]];
+//	_testSet = [NSSet setWithArray:@[@"MOVEM 0098 (0)"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }
