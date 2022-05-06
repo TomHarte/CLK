@@ -485,14 +485,6 @@ void Executor<model, BusHandler>::movem(Preinstruction instruction, uint32_t sou
 
 	} else {
 		// Move memory to registers.
-		if(instruction.mode<0>() == AddressingMode::AddressRegisterIndirectWithPostincrement) {
-			// If the effective address is specified by the postincrement mode ...
-			// [i]f the addressing register is also loaded from memory, the memory value is
-			// ignored and the register is written with the postincremented effective address.
-
-			source -= 2;
-		}
-
 		int index = 0;
 		while(dest) {
 			if(dest & 1) {
@@ -508,6 +500,10 @@ void Executor<model, BusHandler>::movem(Preinstruction instruction, uint32_t sou
 		}
 
 		if(instruction.mode<0>() == AddressingMode::AddressRegisterIndirectWithPostincrement) {
+			// If the effective address is specified by the postincrement mode ...
+			// [i]f the addressing register is also loaded from memory, the memory value is
+			// ignored and the register is written with the postincremented effective address.
+
 			registers_[8 + instruction.reg<0>()].l = source;
 		}
 	}

@@ -73,7 +73,7 @@
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
 	_fileSet = [NSSet setWithArray:@[@"movem.json"]];
-//	_testSet = [NSSet setWithArray:@[@"MOVEM 0060 (0)"]];
+	_testSet = [NSSet setWithArray:@[@"MOVEM 00a8 (0)"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }
