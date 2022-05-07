@@ -381,10 +381,12 @@ void Executor<model, BusHandler>::jsr(uint32_t address) {
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::link(uint32_t &address, uint32_t offset) {
+void Executor<model, BusHandler>::link(Preinstruction instruction, uint32_t offset) {
+	const auto reg = 8 + instruction.reg<0>();
+
 	sp().l -= 4;
-	bus_handler_.template write<uint32_t>(sp().l, address);
-	address = sp().l;
+	bus_handler_.template write<uint32_t>(sp().l, registers_[reg].l);
+	registers_[reg] = sp();
 	sp().l += offset;
 }
 

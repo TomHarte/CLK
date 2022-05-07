@@ -331,6 +331,7 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		case Operation::CMPAw:	case Operation::CMPAl:
 		case Operation::CHK:
 		case Operation::BTST:
+		case Operation::LINKw:
 			return FetchOp1 | FetchOp2;
 
 		//
@@ -371,7 +372,6 @@ template <Model model, Operation t_operation = Operation::Undefined> uint8_t ope
 		// Two-operand; read both, write source.
 		//
 		case Operation::DBcc:
-		case Operation::LINKw:
 			return FetchOp1 | FetchOp2 | StoreOp1;
 
 		//

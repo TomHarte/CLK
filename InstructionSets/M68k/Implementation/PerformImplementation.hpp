@@ -781,7 +781,7 @@ template <
 		*/
 
 		case Operation::LINKw:
-			flow_controller.link(src.l, int16_t(dest.w));
+			flow_controller.link(instruction, int16_t(dest.w));
 		break;
 
 		case Operation::UNLINK:

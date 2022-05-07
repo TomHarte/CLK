@@ -48,7 +48,7 @@ template <Model model, typename BusHandler> class Executor {
 
 		void bsr(uint32_t offset);
 		void jsr(uint32_t offset);
-		void link(uint32_t &address, uint32_t offset);
+		void link(Preinstruction instruction, uint32_t offset);
 		void unlink(uint32_t &address);
 		template <typename IntT> void movep(Preinstruction instruction, uint32_t source, uint32_t dest);
 		template <typename IntT> void movem_toM(Preinstruction instruction, uint32_t source, uint32_t dest);
