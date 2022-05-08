@@ -652,12 +652,12 @@ template <
 
 		// TRAP, which is a nicer form of ILLEGAL.
 		case Operation::TRAP:
-			flow_controller.raise_exception(src.l + 32);
+			flow_controller.raise_exception(src.l + 32, false);
 		break;
 
 		case Operation::TRAPV: {
 			if(status.overflow_flag_) {
-				flow_controller.raise_exception(7);
+				flow_controller.raise_exception(7, false);
 			}
 		} break;
 
@@ -683,7 +683,7 @@ template <
 				} else {
 					flow_controller.consume_cycles(12);
 				}
-				flow_controller.raise_exception(6);
+				flow_controller.raise_exception(6, false);
 			}
 		} break;
 

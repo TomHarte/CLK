@@ -330,7 +330,7 @@ void Executor<model, BusHandler>::set_state(const Registers &state) {
 // TODO: flow control, all below here.
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::raise_exception(int index) {
+void Executor<model, BusHandler>::raise_exception(int index, bool use_current_instruction_pc) {
 	const uint32_t address = index << 2;
 
 	// Grab the status to store, then switch into supervisor mode.
@@ -339,7 +339,7 @@ void Executor<model, BusHandler>::raise_exception(int index) {
 	did_update_status();
 
 	// Push status and the program counter at instruction start.
-	bus_handler_.template write<uint32_t>(sp.l - 4, instruction_address_);
+	bus_handler_.template write<uint32_t>(sp.l - 4, use_current_instruction_pc ? instruction_address_ : program_counter_.l);
 	bus_handler_.template write<uint16_t>(sp.l - 6, status);
 	sp.l -= 6;
 

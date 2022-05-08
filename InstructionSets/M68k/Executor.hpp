@@ -39,13 +39,14 @@ template <Model model, typename BusHandler> class Executor {
 
 		// Flow control.
 		void consume_cycles(int) {}
-		void raise_exception(int);
-		void stop();
 		void set_pc(uint32_t);
 		void add_pc(uint32_t);
 		void decline_branch() {}
+
+		void raise_exception(int, bool use_current_instruction_pc = true);
 		void did_update_status();
 
+		void stop();
 		void bsr(uint32_t offset);
 		void jsr(uint32_t offset);
 		void link(Preinstruction instruction, uint32_t offset);
