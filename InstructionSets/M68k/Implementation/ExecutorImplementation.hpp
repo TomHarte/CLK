@@ -15,7 +15,9 @@
 namespace InstructionSet {
 namespace M68k {
 
-#define sp()	registers_[8 + 7]
+#define An(x)	registers_[8 + x]
+#define Dn(x)	registers_[x]
+#define sp		An(7)
 
 template <Model model, typename BusHandler>
 Executor<model, BusHandler>::Executor(BusHandler &handler) : bus_handler_(handler) {
@@ -29,7 +31,7 @@ void Executor<model, BusHandler>::reset() {
 	did_update_status();
 
 	// Seed stack pointer and program counter.
-	sp().l = bus_handler_.template read<uint32_t>(0);
+	sp.l = bus_handler_.template read<uint32_t>(0);
 	program_counter_.l = bus_handler_.template read<uint32_t>(4);
 }
 
@@ -102,11 +104,11 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		// Operands that don't have effective addresses, which are returned as values.
 		//
 		case AddressingMode::DataRegisterDirect:
-			ea.value = registers_[instruction.reg(index)];
+			ea.value = Dn(instruction.reg(index));
 			ea.requires_fetch = false;
 		break;
 		case AddressingMode::AddressRegisterDirect:
-			ea.value = registers_[8 + instruction.reg(index)];
+			ea.value = An(instruction.reg(index));
 			ea.requires_fetch = false;
 		break;
 		case AddressingMode::Quick:
@@ -144,39 +146,39 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		// Address register indirects.
 		//
 		case AddressingMode::AddressRegisterIndirect:
-			ea.value = registers_[8 + instruction.reg(index)];
+			ea.value = An(instruction.reg(index));
 			ea.requires_fetch = true;
 		break;
 		case AddressingMode::AddressRegisterIndirectWithPostincrement: {
 			const auto reg = instruction.reg(index);
 
-			ea.value = registers_[8 + reg];
+			ea.value = An(reg);
 			ea.requires_fetch = true;
 
 			switch(instruction.operand_size()) {
-				case DataSize::Byte:		registers_[8 + reg].l += byte_increments[reg];	break;
-				case DataSize::Word:		registers_[8 + reg].l += 2;						break;
-				case DataSize::LongWord:	registers_[8 + reg].l += 4;						break;
+				case DataSize::Byte:		An(reg).l += byte_increments[reg];	break;
+				case DataSize::Word:		An(reg).l += 2;						break;
+				case DataSize::LongWord:	An(reg).l += 4;						break;
 			}
 		} break;
 		case AddressingMode::AddressRegisterIndirectWithPredecrement: {
 			const auto reg = instruction.reg(index);
 
 			switch(instruction.operand_size()) {
-				case DataSize::Byte:		registers_[8 + reg].l -= byte_increments[reg];	break;
-				case DataSize::Word:		registers_[8 + reg].l -= 2;						break;
-				case DataSize::LongWord:	registers_[8 + reg].l -= 4;						break;
+				case DataSize::Byte:		An(reg).l -= byte_increments[reg];	break;
+				case DataSize::Word:		An(reg).l -= 2;						break;
+				case DataSize::LongWord:	An(reg).l -= 4;						break;
 			}
 
-			ea.value = registers_[8 + reg];
+			ea.value = An(reg);
 			ea.requires_fetch = true;
 		} break;
 		case AddressingMode::AddressRegisterIndirectWithDisplacement:
-			ea.value.l = registers_[8 + instruction.reg(index)].l + int16_t(read_pc<uint16_t>());
+			ea.value.l = An(instruction.reg(index)).l + int16_t(read_pc<uint16_t>());
 			ea.requires_fetch = true;
 		break;
 		case AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement:
-			ea.value.l = registers_[8 + instruction.reg(index)].l + index_8bitdisplacement();
+			ea.value.l = An(instruction.reg(index)).l + index_8bitdisplacement();
 			ea.requires_fetch = true;
 		break;
 
@@ -271,9 +273,9 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 #define store_operand(n)																\
 	if(!effective_address_[n].requires_fetch) {											\
 		if(instruction.mode(n) == AddressingMode::DataRegisterDirect) {					\
-			registers_[instruction.reg(n)] = operand_[n];								\
+			Dn(instruction.reg(n)) = operand_[n];										\
 		} else {																		\
-			registers_[8 + instruction.reg(n)] = operand_[n];							\
+			An(instruction.reg(n)) = operand_[n];										\
 		}																				\
 	} else {																			\
 		write(instruction.operand_size(), effective_address_[n].value.l, operand_[n]);	\
@@ -293,15 +295,15 @@ typename Executor<model, BusHandler>::Registers Executor<model, BusHandler>::get
 	Registers result;
 
 	for(int c = 0; c < 8; c++) {
-		result.data[c] = registers_[c].l;
+		result.data[c] = Dn(c).l;
 	}
 	for(int c = 0; c < 7; c++) {
-		result.address[c] = registers_[8 + c].l;
+		result.address[c] = An(c).l;
 	}
 	result.status = status_.status();
 	result.program_counter = program_counter_.l;
 
-	stack_pointers_[status_.is_supervisor_] = sp();
+	stack_pointers_[status_.is_supervisor_] = sp;
 	result.user_stack_pointer = stack_pointers_[0].l;
 	result.supervisor_stack_pointer = stack_pointers_[1].l;
 
@@ -311,17 +313,17 @@ typename Executor<model, BusHandler>::Registers Executor<model, BusHandler>::get
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::set_state(const Registers &state) {
 	for(int c = 0; c < 8; c++) {
-		registers_[c].l = state.data[c];
+		Dn(c).l = state.data[c];
 	}
 	for(int c = 0; c < 7; c++) {
-		registers_[8 + c].l = state.address[c];
+		An(c).l = state.address[c];
 	}
 	status_.set_status(state.status);
 	program_counter_.l = state.program_counter;
 
 	stack_pointers_[0].l = state.user_stack_pointer;
 	stack_pointers_[1].l = state.supervisor_stack_pointer;
-	sp() = stack_pointers_[status_.is_supervisor_];
+	sp = stack_pointers_[status_.is_supervisor_];
 }
 
 // MARK: - Flow Control.
@@ -337,9 +339,9 @@ void Executor<model, BusHandler>::raise_exception(int index) {
 	did_update_status();
 
 	// Push status and the program counter at instruction start.
-	bus_handler_.template write<uint32_t>(sp().l - 4, instruction_address_);
-	bus_handler_.template write<uint16_t>(sp().l - 6, status);
-	sp().l -= 6;
+	bus_handler_.template write<uint32_t>(sp.l - 4, instruction_address_);
+	bus_handler_.template write<uint16_t>(sp.l - 6, status);
+	sp.l -= 6;
 
 	// Fetch the new program counter.
 	program_counter_.l = bus_handler_.template read<uint32_t>(address);
@@ -348,8 +350,8 @@ void Executor<model, BusHandler>::raise_exception(int index) {
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::did_update_status() {
 	// Shuffle the stack pointers.
-	stack_pointers_[active_stack_pointer_] = sp();
-	sp() = stack_pointers_[status_.is_supervisor_];
+	stack_pointers_[active_stack_pointer_] = sp;
+	sp = stack_pointers_[status_.is_supervisor_];
 	active_stack_pointer_ = status_.is_supervisor_;
 }
 
@@ -368,15 +370,15 @@ void Executor<model, BusHandler>::add_pc(uint32_t offset) {
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::bsr(uint32_t offset) {
-	sp().l -= 4;
-	bus_handler_.template write<uint32_t>(sp().l, program_counter_.l);
+	sp.l -= 4;
+	bus_handler_.template write<uint32_t>(sp.l, program_counter_.l);
 	program_counter_.l = instruction_address_ + offset;
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::jsr(uint32_t address) {
-	sp().l -= 4;
-	bus_handler_.template write<uint32_t>(sp().l, program_counter_.l);
+	sp.l -= 4;
+	bus_handler_.template write<uint32_t>(sp.l, program_counter_.l);
 	program_counter_.l = address;
 }
 
@@ -384,62 +386,59 @@ template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::link(Preinstruction instruction, uint32_t offset) {
 	const auto reg = 8 + instruction.reg<0>();
 
-	sp().l -= 4;
-	bus_handler_.template write<uint32_t>(sp().l, registers_[reg].l);
-	registers_[reg] = sp();
-	sp().l += offset;
+	sp.l -= 4;
+	bus_handler_.template write<uint32_t>(sp.l, Dn(reg).l);
+	Dn(reg) = sp;
+	sp.l += offset;
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::unlink(uint32_t &address) {
-	sp().l = address;
-	address = bus_handler_.template read<uint32_t>(sp().l);
-	sp().l += 4;
+	sp.l = address;
+	address = bus_handler_.template read<uint32_t>(sp.l);
+	sp.l += 4;
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::pea(uint32_t address) {
-	sp().l -= 4;
-	bus_handler_.template write<uint32_t>(sp().l, address);
+	sp.l -= 4;
+	bus_handler_.template write<uint32_t>(sp.l, address);
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::rtr() {
-	status_.set_ccr(bus_handler_.template read<uint16_t>(sp().l));
-	sp().l += 2;
+	status_.set_ccr(bus_handler_.template read<uint16_t>(sp.l));
+	sp.l += 2;
 	rts();
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::rte() {
-	status_.set_status(bus_handler_.template read<uint16_t>(sp().l));
-	sp().l += 2;
+	status_.set_status(bus_handler_.template read<uint16_t>(sp.l));
+	sp.l += 2;
 	rts();
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::rts() {
-	program_counter_.l = bus_handler_.template read<uint32_t>(sp().l);
-	sp().l += 4;
+	program_counter_.l = bus_handler_.template read<uint32_t>(sp.l);
+	sp.l += 4;
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::tas(Preinstruction instruction, uint32_t address) {
-	uint8_t original_value;
+	uint8_t value;
 	if(instruction.mode<0>() != AddressingMode::DataRegisterDirect) {
-		uint8_t value = bus_handler_.template read<uint8_t>(address);
-		original_value = value;
-		value |= 0x80;
-		bus_handler_.template write<uint8_t>(address, value);
+		value = bus_handler_.template read<uint8_t>(address);
+		bus_handler_.template write<uint8_t>(address, value | 0x80);
 	} else {
-		original_value = uint8_t(address);
-		address |= 0x80;
-		registers_[instruction.reg<0>()].b = uint8_t(address);
+		value = uint8_t(address);
+		Dn(instruction.reg<0>()).b = uint8_t(address | 0x80);
 	}
 
 	status_.overflow_flag_ = status_.carry_flag_ = 0;
-	status_.zero_result_ = original_value;
-	status_.negative_flag_ = original_value & 0x80;
+	status_.zero_result_ = value;
+	status_.negative_flag_ = value & 0x80;
 }
 
 template <Model model, typename BusHandler>
@@ -464,7 +463,7 @@ void Executor<model, BusHandler>::movep(Preinstruction instruction, uint32_t sou
 		bus_handler_.template write<uint8_t>(address, uint8_t(reg));
 	} else {
 		// Move memory to register.
-		uint32_t &reg = registers_[instruction.reg<1>()].l;
+		uint32_t &reg = Dn(instruction.reg<1>()).l;
 		uint32_t address = source;
 
 		if constexpr (sizeof(IntT) == 4) {
@@ -502,21 +501,21 @@ void Executor<model, BusHandler>::movem_toM(Preinstruction instruction, uint32_t
 		// moved to memory, the value written is the initial register value decremented by the
 		// size of the operation. The MC68000 and MC68010 write the initial register value
 		// (not decremented)."
-		registers_[8 + instruction.reg<1>()].l += 2;
+		An(instruction.reg<1>()).l += 2;
 
-		uint32_t reg = registers_[8 + instruction.reg<1>()].l;
+		uint32_t address = An(instruction.reg<1>()).l;
 		int index = 15;
 
 		while(source) {
 			if(source & 1) {
-				reg -= sizeof(IntT);
-				bus_handler_.template write<IntT>(reg, IntT(registers_[index].l));
+				address -= sizeof(IntT);
+				bus_handler_.template write<IntT>(address, IntT(registers_[index].l));
 			}
 			--index;
 			source >>= 1;
 		}
 
-		registers_[8 + instruction.reg<1>()].l = reg;
+		An(instruction.reg<1>()).l = address;
 		return;
 	}
 
@@ -560,11 +559,13 @@ void Executor<model, BusHandler>::movem_toR(Preinstruction instruction, uint32_t
 		// [i]f the addressing register is also loaded from memory, the memory value is
 		// ignored and the register is written with the postincremented effective address."
 
-		registers_[8 + instruction.reg<1>()].l = dest;
+		An(instruction.reg<1>()).l = dest;
 	}
 }
 
 #undef sp
+#undef Dn
+#undef An
 
 }
 }
