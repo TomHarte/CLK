@@ -437,6 +437,7 @@ template <
 
 		case Operation::MOVEtoSR:
 			status.set_status(src.w);
+			flow_controller.did_update_status();
 		break;
 
 		case Operation::MOVEfromSR:
@@ -467,9 +468,12 @@ template <
 
 #define apply(op, func)	{			\
 	auto sr = status.status();		\
-	op(sr, src.w);	\
-	status.func(sr);				\
+	op(sr, src.w);					\
+	func(sr);						\
 }
+
+#define set_status(x)		status.set_status(x);	flow_controller.did_update_status()
+#define set_ccr(x)			status.set_ccr(x)
 
 #define apply_op_sr(op)		apply(op, set_status)
 #define apply_op_ccr(op)	apply(op, set_ccr)
@@ -484,6 +488,8 @@ template <
 
 #undef apply_op_ccr
 #undef apply_op_sr
+#undef set_ccr
+#undef set_status
 #undef apply
 #undef eor_op
 #undef or_op
@@ -1240,6 +1246,7 @@ template <
 
 		case Operation::STOP:
 			status.set_status(src.w);
+			flow_controller.did_update_status();
 			flow_controller.stop();
 		break;
 
