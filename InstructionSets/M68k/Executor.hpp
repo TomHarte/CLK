@@ -18,6 +18,14 @@
 namespace InstructionSet {
 namespace M68k {
 
+enum class FunctionCode {
+	UserData 				= 0b001,
+	UserProgram				= 0b010,
+	SupervisorData			= 0b101,
+	SupervisorProgram		= 0b110,
+	InterruptAcknowledge	= 0b111,
+};
+
 struct BusHandler {
 	template <typename IntT> void write(uint32_t address, IntT value);
 	template <typename IntT> IntT read(uint32_t address);
@@ -84,7 +92,11 @@ template <Model model, typename BusHandler> class Executor {
 
 		void read(DataSize size, uint32_t address, CPU::SlicedInt32 &value);
 		void write(DataSize size, uint32_t address, CPU::SlicedInt32 value);
+		template <typename IntT> IntT read(uint32_t address);
+		template <typename IntT> void write(uint32_t address, IntT value);
+
 		template <typename IntT> IntT read_pc();
+
 		uint32_t index_8bitdisplacement();
 
 		// Processor state.

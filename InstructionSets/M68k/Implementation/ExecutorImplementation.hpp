@@ -31,43 +31,44 @@ void Executor<model, BusHandler>::reset() {
 	did_update_status();
 
 	// Seed stack pointer and program counter.
-	sp.l = bus_handler_.template read<uint32_t>(0);
-	program_counter_.l = bus_handler_.template read<uint32_t>(4);
+	sp.l = read<uint32_t>(0);
+	program_counter_.l = read<uint32_t>(4);
+}
+
+template <Model model, typename BusHandler>
+template <typename IntT>
+IntT Executor<model, BusHandler>::read(uint32_t address) {
+	// TODO: check for an alignment exception, both here and in write.
+	return bus_handler_.template read<IntT>(address);
+}
+
+template <Model model, typename BusHandler>
+template <typename IntT>
+void Executor<model, BusHandler>::write(uint32_t address, IntT value) {
+	bus_handler_.template write<IntT>(address, value);
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::read(DataSize size, uint32_t address, CPU::SlicedInt32 &value) {
 	switch(size) {
-		case DataSize::Byte:
-			value.b = bus_handler_.template read<uint8_t>(address);
-		break;
-		case DataSize::Word:
-			value.w = bus_handler_.template read<uint16_t>(address);
-		break;
-		case DataSize::LongWord:
-			value.l = bus_handler_.template read<uint32_t>(address);
-		break;
+		case DataSize::Byte:		value.b = read<uint8_t>(address);	break;
+		case DataSize::Word:		value.w = read<uint16_t>(address);	break;
+		case DataSize::LongWord:	value.l = read<uint32_t>(address);	break;
 	}
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::write(DataSize size, uint32_t address, CPU::SlicedInt32 value) {
 	switch(size) {
-		case DataSize::Byte:
-			 bus_handler_.template write<uint8_t>(address, value.b);
-		break;
-		case DataSize::Word:
-			bus_handler_.template write<uint16_t>(address, value.w);
-		break;
-		case DataSize::LongWord:
-			bus_handler_.template write<uint32_t>(address, value.l);
-		break;
+		case DataSize::Byte:		write<uint8_t>(address, value.b);	break;
+		case DataSize::Word:		write<uint16_t>(address, value.w);	break;
+		case DataSize::LongWord:	write<uint32_t>(address, value.l);	break;
 	}
 }
 
 template <Model model, typename BusHandler>
 template <typename IntT> IntT Executor<model, BusHandler>::read_pc() {
-	const IntT result = bus_handler_.template read<IntT>(program_counter_.l);
+	const IntT result = read<IntT>(program_counter_.l);
 
 	if constexpr (sizeof(IntT) == 4) {
 		program_counter_.l += 4;
@@ -339,12 +340,12 @@ void Executor<model, BusHandler>::raise_exception(int index, bool use_current_in
 	did_update_status();
 
 	// Push status and the program counter at instruction start.
-	bus_handler_.template write<uint32_t>(sp.l - 4, use_current_instruction_pc ? instruction_address_ : program_counter_.l);
-	bus_handler_.template write<uint16_t>(sp.l - 6, status);
+	write<uint32_t>(sp.l - 4, use_current_instruction_pc ? instruction_address_ : program_counter_.l);
+	write<uint16_t>(sp.l - 6, status);
 	sp.l -= 6;
 
 	// Fetch the new program counter.
-	program_counter_.l = bus_handler_.template read<uint32_t>(address);
+	program_counter_.l = read<uint32_t>(address);
 }
 
 template <Model model, typename BusHandler>
@@ -371,14 +372,14 @@ void Executor<model, BusHandler>::add_pc(uint32_t offset) {
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::bsr(uint32_t offset) {
 	sp.l -= 4;
-	bus_handler_.template write<uint32_t>(sp.l, program_counter_.l);
+	write<uint32_t>(sp.l, program_counter_.l);
 	program_counter_.l = instruction_address_ + offset;
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::jsr(uint32_t address) {
 	sp.l -= 4;
-	bus_handler_.template write<uint32_t>(sp.l, program_counter_.l);
+	write<uint32_t>(sp.l, program_counter_.l);
 	program_counter_.l = address;
 }
 
@@ -387,7 +388,7 @@ void Executor<model, BusHandler>::link(Preinstruction instruction, uint32_t offs
 	const auto reg = 8 + instruction.reg<0>();
 
 	sp.l -= 4;
-	bus_handler_.template write<uint32_t>(sp.l, Dn(reg).l);
+	write<uint32_t>(sp.l, Dn(reg).l);
 	Dn(reg) = sp;
 	sp.l += offset;
 }
@@ -395,33 +396,33 @@ void Executor<model, BusHandler>::link(Preinstruction instruction, uint32_t offs
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::unlink(uint32_t &address) {
 	sp.l = address;
-	address = bus_handler_.template read<uint32_t>(sp.l);
+	address = read<uint32_t>(sp.l);
 	sp.l += 4;
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::pea(uint32_t address) {
 	sp.l -= 4;
-	bus_handler_.template write<uint32_t>(sp.l, address);
+	write<uint32_t>(sp.l, address);
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::rtr() {
-	status_.set_ccr(bus_handler_.template read<uint16_t>(sp.l));
+	status_.set_ccr(read<uint16_t>(sp.l));
 	sp.l += 2;
 	rts();
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::rte() {
-	status_.set_status(bus_handler_.template read<uint16_t>(sp.l));
+	status_.set_status(read<uint16_t>(sp.l));
 	sp.l += 2;
 	rts();
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::rts() {
-	program_counter_.l = bus_handler_.template read<uint32_t>(sp.l);
+	program_counter_.l = read<uint32_t>(sp.l);
 	sp.l += 4;
 }
 
@@ -429,8 +430,8 @@ template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::tas(Preinstruction instruction, uint32_t address) {
 	uint8_t value;
 	if(instruction.mode<0>() != AddressingMode::DataRegisterDirect) {
-		value = bus_handler_.template read<uint8_t>(address);
-		bus_handler_.template write<uint8_t>(address, value | 0x80);
+		value = read<uint8_t>(address);
+		write<uint8_t>(address, value | 0x80);
 	} else {
 		value = uint8_t(address);
 		Dn(instruction.reg<0>()).b = uint8_t(address | 0x80);
@@ -450,36 +451,36 @@ void Executor<model, BusHandler>::movep(Preinstruction instruction, uint32_t sou
 		uint32_t address = dest;
 
 		if constexpr (sizeof(IntT) == 4) {
-			bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 24));
+			write<uint8_t>(address, uint8_t(reg >> 24));
 			address += 2;
 
-			bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 16));
+			write<uint8_t>(address, uint8_t(reg >> 16));
 			address += 2;
 		}
 
-		bus_handler_.template write<uint8_t>(address, uint8_t(reg >> 8));
+		write<uint8_t>(address, uint8_t(reg >> 8));
 		address += 2;
 
-		bus_handler_.template write<uint8_t>(address, uint8_t(reg));
+		write<uint8_t>(address, uint8_t(reg));
 	} else {
 		// Move memory to register.
 		uint32_t &reg = Dn(instruction.reg<1>()).l;
 		uint32_t address = source;
 
 		if constexpr (sizeof(IntT) == 4) {
-			reg = bus_handler_.template read<uint8_t>(address) << 24;
+			reg = read<uint8_t>(address) << 24;
 			address += 2;
 
-			reg |= bus_handler_.template read<uint8_t>(address) << 16;
+			reg |= read<uint8_t>(address) << 16;
 			address += 2;
 		} else {
 			reg &= 0xffff0000;
 		}
 
-		reg |= bus_handler_.template read<uint8_t>(address) << 8;
+		reg |= read<uint8_t>(address) << 8;
 		address += 2;
 
-		reg |= bus_handler_.template read<uint8_t>(address);
+		reg |= read<uint8_t>(address);
 	}
 }
 
@@ -509,7 +510,7 @@ void Executor<model, BusHandler>::movem_toM(Preinstruction instruction, uint32_t
 		while(source) {
 			if(source & 1) {
 				address -= sizeof(IntT);
-				bus_handler_.template write<IntT>(address, IntT(registers_[index].l));
+				write<IntT>(address, IntT(registers_[index].l));
 			}
 			--index;
 			source >>= 1;
@@ -522,7 +523,7 @@ void Executor<model, BusHandler>::movem_toM(Preinstruction instruction, uint32_t
 	int index = 0;
 	while(source) {
 		if(source & 1) {
-			bus_handler_.template write<IntT>(dest, IntT(registers_[index].l));
+			write<IntT>(dest, IntT(registers_[index].l));
 			dest += sizeof(IntT);
 		}
 		++index;
@@ -544,9 +545,9 @@ void Executor<model, BusHandler>::movem_toR(Preinstruction instruction, uint32_t
 	while(source) {
 		if(source & 1) {
 			if constexpr (sizeof(IntT) == 2) {
-				registers_[index].l = int16_t(bus_handler_.template read<uint16_t>(dest));
+				registers_[index].l = int16_t(read<uint16_t>(dest));
 			} else {
-				registers_[index].l = bus_handler_.template read<uint32_t>(dest);
+				registers_[index].l = read<uint32_t>(dest);
 			}
 			dest += sizeof(IntT);
 		}
