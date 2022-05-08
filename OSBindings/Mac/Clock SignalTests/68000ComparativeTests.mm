@@ -28,63 +28,10 @@
 	NSMutableArray<NSNumber *> *_failingOpcodes;
 }
 
-// New implementation verified against (i.e. has the same failures as the old, likely all BCD related):
-//
-//	add_sub
-//	addi_subi_cmpi
-//	eor_and_or
-//	addq_subq
-//	addx_subx
-//	bcc
-//	cmp
-//	dbcc_scc
-//	eori_andi_ori
-//	lea
-//	lslr_aslr_roxlr_rolr
-//	move_tofrom_srccr
-//	move
-//	movem
-//	movep
-//	moveq
-//	mulu_muls
-//	neg_not
-//	negx_clr
-//	swap
-//	tas
-//	tst
-//	rts
-//	rtr
-
-// Issues to fix:
-//
-//	LINK A7, in which the post-operation writeback overwrites
-//	the modified value.
-//
-// Do I need a dedicated LINKA7 operation?
-//
-// This affects link_unlk
-
-// Skipped for now, for implying a more granular decoder:
-//
-//	btst_bchg_bclr_bset
-//	chk
-//
-// And for uncertainty around the test result status register correctness:
-//
-//	divu_divs
-//	eor_and_or	(which invokes BCD)
-//	exg			(also BCD)
-//	chk
-//	nbcd_pea	(BCD)
-//
-// And because possibly my old CHK is pushing the wrong program counter?
-//
-//	ext.json
-
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"ext.json"]];
-//	_testSet = [NSSet setWithArray:@[@"NEGX 00c0"]];
+//	_fileSet = [NSSet setWithArray:@[@"chk.json"]];
+//	_testSet = [NSSet setWithArray:@[@"CHK 4190"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }

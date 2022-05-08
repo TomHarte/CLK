@@ -166,7 +166,6 @@ constexpr DataSize operand_size(Operation operation) {
 		case Operation::ROXLb:	case Operation::ROXRb:
 		case Operation::ANDb:	case Operation::EORb:
 		case Operation::NOTb:	case Operation::ORb:
-		case Operation::CHK:
 		case Operation::TAS:
 			return DataSize::Byte;
 
@@ -205,6 +204,7 @@ constexpr DataSize operand_size(Operation operation) {
 		case Operation::MULU:	case Operation::MULS:
 		case Operation::EXTbtow:
 		case Operation::LINKw:
+		case Operation::CHK:
 			return DataSize::Word;
 
 		case Operation::ADDl:	case Operation::ADDAl:
