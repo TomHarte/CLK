@@ -361,7 +361,7 @@ template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::stop() {}
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::set_pc(uint32_t address) {
+void Executor<model, BusHandler>::jmp(uint32_t address) {
 	program_counter_.l = address;
 }
 

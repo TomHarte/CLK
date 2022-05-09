@@ -373,7 +373,7 @@ template <
 
 		// JMP: copies EA(0) to the program counter.
 		case Operation::JMP:
-			flow_controller.set_pc(src.l);
+			flow_controller.jmp(src.l);
 		break;
 
 		// JSR: jump to EA(0), pushing the current PC to the stack.
