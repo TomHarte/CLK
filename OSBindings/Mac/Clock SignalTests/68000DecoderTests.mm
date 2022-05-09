@@ -247,7 +247,6 @@ NSString *operand(Preinstruction instruction, uint16_t opcode, int index) {
 			case Operation::ROXRl:	instruction = @"ROXR.l";	break;
 			case Operation::ROXRm:	instruction = @"ROXR.w";	break;
 
-			// TODO: switch operand order for toR.
 			case Operation::MOVEMtoMl:	instruction = @"MOVEM.l";	break;
 			case Operation::MOVEMtoMw:	instruction = @"MOVEM.w";	break;
 			case Operation::MOVEMtoRl:
