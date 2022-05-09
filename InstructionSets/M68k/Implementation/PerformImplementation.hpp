@@ -931,7 +931,7 @@ template <
 	status.overflow_flag_ = (decltype(status.zero_result_)(value) ^ status.zero_result_) & decltype(status.overflow_flag_)(m);
 
 #define decode_shift_count()	\
-	int shift_count = (decoded_instruction_.l & 32) ? data_[(decoded_instruction_.l >> 9) & 7].l&63 : ( ((decoded_instruction_.l >> 9)&7) ? ((decoded_instruction_.l >> 9)&7) : 8) ;	\
+	int shift_count = src.l & 63;	\
 	flow_controller.consume_cycles(2 * shift_count);
 
 //#define set_flags_b(t) set_flags(dest.b, 0x80, t)
@@ -946,7 +946,7 @@ template <
 		status.carry_flag_ = status.overflow_flag_ = 0;	\
 	} else {	\
 		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
-		status.status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(value) & decltype(status.carry_flag_)( (1u << (size - 1)) >> (shift_count - 1) );	\
+		status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(value) & decltype(status.carry_flag_)( (1u << (size - 1)) >> (shift_count - 1) );	\
 		\
 		if(shift_count >= size) status.overflow_flag_ = value && (value != decltype(value)(-1));	\
 		else {	\
@@ -964,16 +964,16 @@ template <
 			status.extend_flag_ = status.carry_flag_ = value & 0x8000;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-//		case Operation::ASLb: asl(dest.b, 8);	break;
-//		case Operation::ASLw: asl(dest.w, 16); 	break;
-//		case Operation::ASLl: asl(dest.l, 32); 	break;
+		case Operation::ASLb: asl(dest.b, 8);	break;
+		case Operation::ASLw: asl(dest.w, 16); 	break;
+		case Operation::ASLl: asl(dest.l, 32); 	break;
 
 #define asr(destination, size)	{\
 	decode_shift_count();	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
-		carry_flag_ = 0;	\
+		status.carry_flag_ = 0;	\
 	} else {	\
 		destination = (shift_count < size) ?	\
 		decltype(destination)(\
@@ -983,7 +983,7 @@ template <
 			decltype(destination)(	\
 			(value & decltype(value)(1 << (size - 1))) ? 0xffffffff : 0x000000000	\
 		);	\
-		status.extend_flag_ = status.carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)(1 << (shift_count - 1));	\
+		status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(value) & decltype(status.carry_flag_)(1 << (shift_count - 1));	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -995,9 +995,9 @@ template <
 			status.extend_flag_ = status.carry_flag_ = value & 1;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-//		case Operation::ASRb: asr(dest.b, 8);	break;
-//		case Operation::ASRw: asr(dest.w, 16); 	break;
-//		case Operation::ASRl: asr(dest.l, 32); 	break;
+		case Operation::ASRb: asr(dest.b, 8);	break;
+		case Operation::ASRw: asr(dest.w, 16); 	break;
+		case Operation::ASRl: asr(dest.l, 32); 	break;
 
 
 #undef set_neg_zero_overflow
@@ -1017,7 +1017,7 @@ template <
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
-		carry_flag_ = 0;	\
+		status.carry_flag_ = 0;	\
 	} else {	\
 		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
 		status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(value) & decltype(status.carry_flag_)( (1u << (size - 1)) >> (shift_count - 1) );	\
@@ -1032,9 +1032,9 @@ template <
 			status.extend_flag_ = status.carry_flag_ = value & 0x8000;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-//		case Operation::LSLb: lsl(dest.b, 8);	break;
-//		case Operation::LSLw: lsl(dest.w, 16); 	break;
-//		case Operation::LSLl: lsl(dest.l, 32); 	break;
+		case Operation::LSLb: lsl(dest.b, 8);	break;
+		case Operation::LSLw: lsl(dest.w, 16); 	break;
+		case Operation::LSLl: lsl(dest.l, 32); 	break;
 
 #define lsr(destination, size)	{\
 	decode_shift_count();	\
@@ -1056,9 +1056,9 @@ template <
 			status.extend_flag_ = status.carry_flag_ = value & 1;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-//		case Operation::LSRb: lsr(dest.b, 8);	break;
-//		case Operation::LSRw: lsr(dest.w, 16); 	break;
-//		case Operation::LSRl: lsr(dest.l, 32); 	break;
+		case Operation::LSRb: lsr(dest.b, 8);	break;
+		case Operation::LSRw: lsr(dest.w, 16); 	break;
+		case Operation::LSRl: lsr(dest.l, 32); 	break;
 
 #define rol(destination, size)	{ \
 	decode_shift_count();	\
@@ -1084,9 +1084,9 @@ template <
 			status.carry_flag_ = src.w & 1;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-//		case Operation::ROLb: rol(dest.b, 8);	break;
-//		case Operation::ROLw: rol(dest.w, 16); 	break;
-//		case Operation::ROLl: rol(dest.l, 32); 	break;
+		case Operation::ROLb: rol(dest.b, 8);	break;
+		case Operation::ROLw: rol(dest.w, 16); 	break;
+		case Operation::ROLl: rol(dest.l, 32); 	break;
 
 #define ror(destination, size)	{ \
 	decode_shift_count();	\
@@ -1112,11 +1112,13 @@ template <
 			status.carry_flag_ = src.w & 0x8000;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-//		case Operation::RORb: ror(dest.b, 8);	break;
-//		case Operation::RORw: ror(dest.w, 16); 	break;
-//		case Operation::RORl: ror(dest.l, 32); 	break;
+		case Operation::RORb: ror(dest.b, 8);	break;
+		case Operation::RORw: ror(dest.w, 16); 	break;
+		case Operation::RORl: ror(dest.l, 32); 	break;
 
 #define roxl(destination, size)	{ \
+	decode_shift_count();	\
+	\
 	shift_count %= (size + 1);	\
 	uint64_t compound = uint64_t(destination) | (status.extend_flag_ ? (1ull << size) : 0);	\
 	compound = \
@@ -1134,9 +1136,9 @@ template <
 			status.extend_flag_ = value & 0x8000;
 			set_flags_w(0x8000);
 		} break;
-//		case Operation::ROXLb: roxl(dest.b, 8);		break;
-//		case Operation::ROXLw: roxl(dest.w, 16); 	break;
-//		case Operation::ROXLl: roxl(dest.l, 32); 	break;
+		case Operation::ROXLb: roxl(dest.b, 8);		break;
+		case Operation::ROXLw: roxl(dest.w, 16); 	break;
+		case Operation::ROXLl: roxl(dest.l, 32); 	break;
 
 #define roxr(destination, size)	{ \
 	decode_shift_count();	\
@@ -1158,9 +1160,9 @@ template <
 			status.extend_flag_ = value & 0x0001;
 			set_flags_w(0x0001);
 		} break;
-//		case Operation::ROXRb: roxr(dest.b, 8);		break;
-//		case Operation::ROXRw: roxr(dest.w, 16); 	break;
-//		case Operation::ROXRl: roxr(dest.l, 32); 	break;
+		case Operation::ROXRb: roxr(dest.b, 8);		break;
+		case Operation::ROXRw: roxr(dest.w, 16); 	break;
+		case Operation::ROXRl: roxr(dest.l, 32); 	break;
 
 #undef roxr
 #undef roxl
