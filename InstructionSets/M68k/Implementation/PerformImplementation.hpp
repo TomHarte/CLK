@@ -254,27 +254,21 @@ template <
 		// Special case: the condition code is 1, which is ordinarily false. In that case this
 		// is the trailing step of a BSR.
 		case Operation::Bccb:
-			if(status.evaluate_condition(instruction.condition())) {
-				flow_controller.add_pc(int8_t(src.b) + 2);
-			} else {
-				flow_controller.decline_branch();
-			}
+			flow_controller.template complete_bcc<int8_t>(
+				status.evaluate_condition(instruction.condition()),
+				src.b);
 		break;
 
 		case Operation::Bccw:
-			if(status.evaluate_condition(instruction.condition())) {
-				flow_controller.add_pc(int16_t(src.w) + 2);
-			} else {
-				flow_controller.decline_branch();
-			}
+			flow_controller.template complete_bcc<int16_t>(
+				status.evaluate_condition(instruction.condition()),
+				src.w);
 		break;
 
 		case Operation::Bccl:
-			if(status.evaluate_condition(instruction.condition())) {
-				flow_controller.add_pc(src.l + 2);
-			} else {
-				flow_controller.decline_branch();
-			}
+			flow_controller.template complete_bcc<int32_t>(
+				status.evaluate_condition(instruction.condition()),
+				src.l);
 		break;
 
 		case Operation::BSRb:
@@ -287,23 +281,22 @@ template <
 			flow_controller.bsr(src.l + 2);
 		break;
 
-		case Operation::DBcc:
-			// Decide what sort of DBcc this is.
-			if(!status.evaluate_condition(instruction.condition())) {
-				-- src.w;
+		case Operation::DBcc: {
+			const bool matched_condition = status.evaluate_condition(instruction.condition());
+			bool overflowed = false;
 
-				if(src.w == 0xffff) {
-					// This DBcc will be ignored as the counter has underflowed.
-					flow_controller.decline_branch();
-				} else {
-					// Take the branch.
-					flow_controller.add_pc(int16_t(dest.l) + 2);
-				}
-			} else {
-				// This DBcc will be ignored as the condition is true.
-				flow_controller.decline_branch();
+			// Classify the dbcc.
+			if(!matched_condition) {
+				-- src.w;
+				overflowed = src.w == 0xffff;
 			}
-		break;
+
+			// Take the branch.
+			flow_controller.complete_dbcc(
+				matched_condition,
+				overflowed,
+				int16_t(dest.w));
+		} break;
 
 		case Operation::Scc:
 			src.b = status.evaluate_condition(instruction.condition()) ? 0xff : 0x00;
@@ -427,9 +420,9 @@ template <
 			dest.l = src.l;
 		break;
 
-//		case Operation::PEA:
-//			destination_bus_data_ = effective_address_[0];
-//		break;
+		case Operation::PEA:
+			flow_controller.pea(src.l);
+		break;
 
 		/*
 			Status word moves and manipulations.
@@ -1203,10 +1196,6 @@ template <
 
 		case Operation::MOVEMtoMw:
 			flow_controller.template movem_toM<uint16_t>(instruction, src.l, dest.l);
-		break;
-
-		case Operation::PEA:
-			flow_controller.pea(src.l);
 		break;
 
 		/*

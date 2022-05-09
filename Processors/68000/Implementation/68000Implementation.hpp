@@ -1766,7 +1766,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} break;
 								case Operation::ROLb: rol(destination()->halves.low.halves.low, 8);	break;
 								case Operation::ROLw: rol(destination()->halves.low.full, 16); 		break;
-								case Operation::ROLl: rol(destination()->full, 32); 					break;
+								case Operation::ROLl: rol(destination()->full, 32); 				break;
 
 
 #define ror(destination, size)	{ \
@@ -1795,7 +1795,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} break;
 								case Operation::RORb: ror(destination()->halves.low.halves.low, 8);	break;
 								case Operation::RORw: ror(destination()->halves.low.full, 16); 		break;
-								case Operation::RORl: ror(destination()->full, 32); 					break;
+								case Operation::RORl: ror(destination()->full, 32); 				break;
 
 #define roxl(destination, size)	{ \
 	decode_shift_count();	\

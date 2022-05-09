@@ -330,7 +330,6 @@ void Executor<model, BusHandler>::set_state(const Registers &state) {
 }
 
 // MARK: - Flow Control.
-// TODO: flow control, all below here.
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::raise_exception(int index, bool use_current_instruction_pc) {
@@ -367,8 +366,17 @@ void Executor<model, BusHandler>::set_pc(uint32_t address) {
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::add_pc(uint32_t offset) {
-	program_counter_.l = instruction_address_ + offset;
+template <typename IntT> void Executor<model, BusHandler>::complete_bcc(bool branch, IntT offset) {
+	if(branch) {
+		program_counter_.l = instruction_address_ + offset + 2;
+	}
+}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::complete_dbcc(bool matched_condition, bool overflowed, int16_t offset) {
+	if(!matched_condition && !overflowed) {
+		program_counter_.l = instruction_address_ + offset + 2;
+	}
 }
 
 template <Model model, typename BusHandler>
