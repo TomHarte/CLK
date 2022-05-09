@@ -52,22 +52,25 @@ template <Model model, typename BusHandler> class Executor {
 		void raise_exception(int, bool use_current_instruction_pc = true);
 		void did_update_status();
 
-		void jmp(uint32_t);
 		template <typename IntT> void complete_bcc(bool matched_condition, IntT offset);
 		void complete_dbcc(bool matched_condition, bool overflowed, int16_t offset);
-		void stop();
 		void bsr(uint32_t offset);
+		void jmp(uint32_t);
 		void jsr(uint32_t offset);
-		void link(Preinstruction instruction, uint32_t offset);
-		void unlink(uint32_t &address);
-		template <typename IntT> void movep(Preinstruction instruction, uint32_t source, uint32_t dest);
-		template <typename IntT> void movem_toM(Preinstruction instruction, uint32_t source, uint32_t dest);
-		template <typename IntT> void movem_toR(Preinstruction instruction, uint32_t source, uint32_t dest);
-		void pea(uint32_t address);
-		void tas(Preinstruction instruction, uint32_t address);
 		void rtr();
 		void rts();
 		void rte();
+		void stop();
+
+		void link(Preinstruction instruction, uint32_t offset);
+		void unlink(uint32_t &address);
+		void pea(uint32_t address);
+
+		template <typename IntT> void movep(Preinstruction instruction, uint32_t source, uint32_t dest);
+		template <typename IntT> void movem_toM(Preinstruction instruction, uint32_t source, uint32_t dest);
+		template <typename IntT> void movem_toR(Preinstruction instruction, uint32_t source, uint32_t dest);
+
+		void tas(Preinstruction instruction, uint32_t address);
 
 		// TODO: ownership of this shouldn't be here.
 		struct Registers {
