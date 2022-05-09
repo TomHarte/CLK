@@ -18,6 +18,8 @@
 namespace InstructionSet {
 namespace M68k {
 
+/// Maps the 68k function codes such that bits 0, 1 and 2 represent
+/// FC0, FC1 and FC2 respectively.
 enum class FunctionCode {
 	UserData 				= 0b001,
 	UserProgram				= 0b010,
@@ -43,7 +45,6 @@ template <Model model, typename BusHandler> class Executor {
 		/// to exceptions — may be zero costed, and interrupts
 		/// will not necessarily take effect immediately when signalled.
 		void run_for_instructions(int);
-
 
 		// Flow control.
 		void consume_cycles(int) {}

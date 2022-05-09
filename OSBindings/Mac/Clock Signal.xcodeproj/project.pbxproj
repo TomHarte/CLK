@@ -2044,6 +2044,8 @@
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
 		4BC890D1230F86020025A55A /* DirectAccessDevice.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DirectAccessDevice.cpp; sourceTree = "<group>"; };
 		4BC890D2230F86020025A55A /* DirectAccessDevice.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DirectAccessDevice.hpp; sourceTree = "<group>"; };
+		4BC8C01028294C3A0018A501 /* InstructionOperandSize.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = InstructionOperandSize.hpp; sourceTree = "<group>"; };
+		4BC8C01228294DEB0018A501 /* InstructionOperandFlags.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = InstructionOperandFlags.hpp; sourceTree = "<group>"; };
 		4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CommodoreTAP.cpp; sourceTree = "<group>"; };
 		4BC91B821D1F160E00884B76 /* CommodoreTAP.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CommodoreTAP.hpp; sourceTree = "<group>"; };
 		4BC9DF441D044FCA00F44158 /* ROMImages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ROMImages; path = ../../../../ROMImages; sourceTree = "<group>"; };
@@ -4112,8 +4114,10 @@
 		4BB5B999281B244400522DA9 /* Implementation */ = {
 			isa = PBXGroup;
 			children = (
-				4BB5B99A281B244400522DA9 /* PerformImplementation.hpp */,
 				4BB5B99F281F121200522DA9 /* ExecutorImplementation.hpp */,
+				4BC8C01228294DEB0018A501 /* InstructionOperandFlags.hpp */,
+				4BC8C01028294C3A0018A501 /* InstructionOperandSize.hpp */,
+				4BB5B99A281B244400522DA9 /* PerformImplementation.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";
