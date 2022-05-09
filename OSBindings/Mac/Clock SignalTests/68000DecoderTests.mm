@@ -17,28 +17,28 @@ using namespace InstructionSet::M68k;
 
 namespace {
 
-template <int index> NSString *operand(Preinstruction instruction, uint16_t opcode) {
-	switch(instruction.mode<index>()) {
-		default:	return [NSString stringWithFormat:@"[Mode %d?]", int(instruction.mode<index>())];
+NSString *operand(Preinstruction instruction, uint16_t opcode, int index) {
+	switch(instruction.mode(index)) {
+		default:	return [NSString stringWithFormat:@"[Mode %d?]", int(instruction.mode(index))];
 
 		case AddressingMode::None:
 			return @"";
 
 		case AddressingMode::DataRegisterDirect:
-			return [NSString stringWithFormat:@"D%d", instruction.reg<index>()];
+			return [NSString stringWithFormat:@"D%d", instruction.reg(index)];
 
 		case AddressingMode::AddressRegisterDirect:
-			return [NSString stringWithFormat:@"A%d", instruction.reg<index>()];
+			return [NSString stringWithFormat:@"A%d", instruction.reg(index)];
 		case AddressingMode::AddressRegisterIndirect:
-			return [NSString stringWithFormat:@"(A%d)", instruction.reg<index>()];
+			return [NSString stringWithFormat:@"(A%d)", instruction.reg(index)];
 		case AddressingMode::AddressRegisterIndirectWithPostincrement:
-			return [NSString stringWithFormat:@"(A%d)+", instruction.reg<index>()];
+			return [NSString stringWithFormat:@"(A%d)+", instruction.reg(index)];
 		case AddressingMode::AddressRegisterIndirectWithPredecrement:
-			return [NSString stringWithFormat:@"-(A%d)", instruction.reg<index>()];
+			return [NSString stringWithFormat:@"-(A%d)", instruction.reg(index)];
 		case AddressingMode::AddressRegisterIndirectWithDisplacement:
-			return [NSString stringWithFormat:@"(d16, A%d)", instruction.reg<index>()];
+			return [NSString stringWithFormat:@"(d16, A%d)", instruction.reg(index)];
 		case AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement:
-			return [NSString stringWithFormat:@"(d8, A%d, Xn)", instruction.reg<index>()];
+			return [NSString stringWithFormat:@"(d8, A%d, Xn)", instruction.reg(index)];
 
 		case AddressingMode::ProgramCounterIndirectWithDisplacement:
 			return @"(d16, PC)";
@@ -82,6 +82,7 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 		const auto found = decoder.decode(uint16_t(instr));
 
 		NSString *instruction;
+		bool flipOperands = false;
 		switch(found.operation) {
 			case Operation::Undefined:	instruction = @"None";		break;
 			case Operation::NOP:		instruction = @"NOP";		break;
@@ -249,8 +250,14 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			// TODO: switch operand order for toR.
 			case Operation::MOVEMtoMl:	instruction = @"MOVEM.l";	break;
 			case Operation::MOVEMtoMw:	instruction = @"MOVEM.w";	break;
-			case Operation::MOVEMtoRl:	instruction = @"MOVEM.l";	break;
-			case Operation::MOVEMtoRw:	instruction = @"MOVEM.w";	break;
+			case Operation::MOVEMtoRl:
+				instruction = @"MOVEM.l";
+				flipOperands = true;
+			break;
+			case Operation::MOVEMtoRw:
+				instruction = @"MOVEM.w";
+				flipOperands = true;
+			break;
 
 			case Operation::MOVEPl:	instruction = @"MOVEP.l";	break;
 			case Operation::MOVEPw:	instruction = @"MOVEP.w";	break;
@@ -303,13 +310,16 @@ template <int index> NSString *operand(Preinstruction instruction, uint16_t opco
 			continue;
 		}
 
-		NSString *const operand1 = operand<0>(found, uint16_t(instr));
-		NSString *const operand2 = operand<1>(found, uint16_t(instr));
+		NSString *const operand1 = operand(found, uint16_t(instr), 0 ^ int(flipOperands));
+		NSString *const operand2 = operand(found, uint16_t(instr), 1 ^ int(flipOperands));
 
 		if(operand1.length) instruction = [instruction stringByAppendingFormat:@" %@", operand1];
 		if(operand2.length) instruction = [instruction stringByAppendingFormat:@", %@", operand2];
 
-		XCTAssertFalse(found.mode<0>() == AddressingMode::None && found.mode<1>() != AddressingMode::None, @"Decoding of %@ provided a second operand but not a first", instrName);
+		XCTAssertFalse(
+			found.mode(0 ^ int(flipOperands)) == AddressingMode::None &&
+			found.mode(1 ^ int(flipOperands)) != AddressingMode::None,
+			@"Decoding of %@ provided a second operand but not a first", instrName);
 		XCTAssertEqualObjects(instruction, expected, "%@ should decode as %@; got %@", instrName, expected, instruction);
 	}
 }
