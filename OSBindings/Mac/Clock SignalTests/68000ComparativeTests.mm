@@ -227,7 +227,7 @@
 		// Initial test-case implementation:
 		// do a very sedate read and write.
 
-		template <typename IntT> IntT read(uint32_t address) {
+		template <typename IntT> IntT read(uint32_t address, InstructionSet::M68k::FunctionCode) {
 			if constexpr (sizeof(IntT) == 1) {
 				return IntT(ram[address & 0xffffff]);
 			}
@@ -250,7 +250,7 @@
 			return 0;
 		}
 
-		template <typename IntT> void write(uint32_t address, IntT value) {
+		template <typename IntT> void write(uint32_t address, IntT value, InstructionSet::M68k::FunctionCode) {
 			if constexpr (sizeof(IntT) == 1) {
 				ram[address & 0xffffff] = uint8_t(value);
 			}

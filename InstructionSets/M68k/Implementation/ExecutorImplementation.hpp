@@ -37,15 +37,17 @@ void Executor<model, BusHandler>::reset() {
 
 template <Model model, typename BusHandler>
 template <typename IntT>
-IntT Executor<model, BusHandler>::read(uint32_t address) {
+IntT Executor<model, BusHandler>::read(uint32_t address, bool is_from_pc) {
 	// TODO: check for an alignment exception, both here and in write.
-	return bus_handler_.template read<IntT>(address);
+	//
+	// TODO: omit generation of the FunctionCode if the BusHandler doesn't receive it.
+	return bus_handler_.template read<IntT>(address, FunctionCode((status_.is_supervisor_ << 2) | 1 << int(is_from_pc)));
 }
 
 template <Model model, typename BusHandler>
 template <typename IntT>
 void Executor<model, BusHandler>::write(uint32_t address, IntT value) {
-	bus_handler_.template write<IntT>(address, value);
+	bus_handler_.template write<IntT>(address, value, FunctionCode((status_.is_supervisor_ << 2) | 1));
 }
 
 template <Model model, typename BusHandler>
@@ -68,7 +70,7 @@ void Executor<model, BusHandler>::write(DataSize size, uint32_t address, CPU::Sl
 
 template <Model model, typename BusHandler>
 template <typename IntT> IntT Executor<model, BusHandler>::read_pc() {
-	const IntT result = read<IntT>(program_counter_.l);
+	const IntT result = read<IntT>(program_counter_.l, true);
 
 	if constexpr (sizeof(IntT) == 4) {
 		program_counter_.l += 4;

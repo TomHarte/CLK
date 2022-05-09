@@ -27,8 +27,8 @@ enum class FunctionCode {
 };
 
 struct BusHandler {
-	template <typename IntT> void write(uint32_t address, IntT value);
-	template <typename IntT> IntT read(uint32_t address);
+	template <typename IntT> void write(uint32_t address, IntT value, FunctionCode function);
+	template <typename IntT> IntT read(uint32_t address, FunctionCode function);
 };
 
 /// Ties together the decoder, sequencer and performer to provide an executor for 680x0 instruction streams.
@@ -92,7 +92,7 @@ template <Model model, typename BusHandler> class Executor {
 
 		void read(DataSize size, uint32_t address, CPU::SlicedInt32 &value);
 		void write(DataSize size, uint32_t address, CPU::SlicedInt32 value);
-		template <typename IntT> IntT read(uint32_t address);
+		template <typename IntT> IntT read(uint32_t address, bool is_from_pc = false);
 		template <typename IntT> void write(uint32_t address, IntT value);
 
 		template <typename IntT> IntT read_pc();
