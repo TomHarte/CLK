@@ -16,9 +16,7 @@ namespace InstructionSet {
 namespace M68k {
 
 #define u_extend16(x)	uint32_t(int16_t(x))
-#define u_extend8(x)	uint32_t(int8_t(x))
 #define s_extend16(x)	int32_t(int16_t(x))
-#define s_extend8(x)	int32_t(int8_t(x))
 
 template <
 	Model model,
@@ -220,9 +218,7 @@ template <
 
 			status.zero_result_ = dest.l & (1 << (src.l & mask));
 			dest.l &= ~(1 << (src.l & mask));
-
-//			// Clearing in the top word requires an extra four cycles.
-//			set_next_microcycle_length(HalfCycles(8 + ((src.l & 31) / 16) * 4));
+			flow_controller.did_bit_op(src.l & mask);
 		} break;
 
 		case Operation::BCHG: {
@@ -230,7 +226,7 @@ template <
 
 			status.zero_result_ = dest.l & (1 << (src.l & mask));
 			dest.l ^= 1 << (src.l & mask);
-//			set_next_microcycle_length(HalfCycles(4 + (((src.l & 31) / 16) * 4)));
+			flow_controller.did_bit_op(src.l & mask);
 		} break;
 
 		case Operation::BSET: {
@@ -238,15 +234,9 @@ template <
 
 			status.zero_result_ = dest.l & (1 << (src.l & mask));
 			dest.l |= 1 << (src.l & mask);
-//			set_next_microcycle_length(HalfCycles(4 + (((src.l & 31) / 16) * 4)));
+			flow_controller.did_bit_op(src.l & mask);
 		} break;
 
-		// Bcc: ordinarily evaluates the relevant condition and displacement size and then:
-		//	if condition is false, schedules bus operations to get past this instruction;
-		//	otherwise applies the offset and schedules bus operations to refill the prefetch queue.
-		//
-		// Special case: the condition code is 1, which is ordinarily false. In that case this
-		// is the trailing step of a BSR.
 		case Operation::Bccb:
 			flow_controller.template complete_bcc<int8_t>(
 				status.evaluate_condition(instruction.condition()),
@@ -860,9 +850,7 @@ template <
 	int shift_count = src.l & 63;	\
 	flow_controller.did_shift(shift_count);
 
-//#define set_flags_b(t) set_flags(dest.b, 0x80, t)
 #define set_flags_w(t) set_flags(src.w, 0x8000, t)
-//#define set_flags_l(t) set_flags(dest.l, 0x80000000, t)
 
 #define asl(destination, size)	{\
 	decode_shift_count();	\
@@ -1101,9 +1089,7 @@ template <
 
 #undef set_flags
 #undef decode_shift_count
-//#undef set_flags_b
 #undef set_flags_w
-//#undef set_flags_l
 #undef set_neg_zero_overflow
 #undef set_neg_zero
 
@@ -1185,9 +1171,7 @@ template <
 #undef add_overflow
 
 #undef u_extend16
-#undef u_extend8
 #undef s_extend16
-#undef s_extend8
 
 }
 

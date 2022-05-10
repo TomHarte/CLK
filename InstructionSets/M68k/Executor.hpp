@@ -56,6 +56,7 @@ template <Model model, typename BusHandler> class Executor {
 		void did_shift(int bit_count)					{}
 		template <bool did_overflow> void did_divu(uint32_t dividend, uint32_t divisor)	{}
 		template <bool did_overflow> void did_divs(int32_t dividend, int32_t divisor)	{}
+		void did_bit_op(int bit)	{}
 
 		template <typename IntT> void complete_bcc(bool matched_condition, IntT offset);
 		void complete_dbcc(bool matched_condition, bool overflowed, int16_t offset);
