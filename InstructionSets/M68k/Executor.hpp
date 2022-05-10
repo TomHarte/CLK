@@ -36,7 +36,7 @@ struct BusHandler {
 /// Ties together the decoder, sequencer and performer to provide an executor for 680x0 instruction streams.
 /// As is standard for these executors, no bus- or cache-level fidelity to any real 680x0 is attempted. This is
 /// simply an executor of 680x0 code.
-template <Model model, typename BusHandler> class Executor {
+template <Model model, typename BusHandler> class Executor: public NullFlowController {
 	public:
 		Executor(BusHandler &);
 
@@ -46,17 +46,10 @@ template <Model model, typename BusHandler> class Executor {
 		/// will not necessarily take effect immediately when signalled.
 		void run_for_instructions(int);
 
-		// Flow control.
+		// Flow control; Cf. Perform.hpp.
 		template <bool use_current_instruction_pc = true> void raise_exception(int);
 
 		void did_update_status();
-		template <typename IntT> void did_mulu(IntT)	{}
-		template <typename IntT> void did_muls(IntT)	{}
-		void did_chk(bool was_under, bool was_over)		{}
-		void did_shift(int bit_count)					{}
-		template <bool did_overflow> void did_divu(uint32_t dividend, uint32_t divisor)	{}
-		template <bool did_overflow> void did_divs(int32_t dividend, int32_t divisor)	{}
-		void did_bit_op(int bit)	{}
 
 		template <typename IntT> void complete_bcc(bool matched_condition, IntT offset);
 		void complete_dbcc(bool matched_condition, bool overflowed, int16_t offset);
