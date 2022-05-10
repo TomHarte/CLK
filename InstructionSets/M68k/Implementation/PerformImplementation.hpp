@@ -20,12 +20,6 @@ namespace M68k {
 #define s_extend16(x)	int32_t(int16_t(x))
 #define s_extend8(x)	int32_t(int8_t(x))
 
-#define convert_to_bit_count_16(x)	\
-	x = ((x & 0xaaaa) >> 1) + (x & 0x5555);	\
-	x = ((x & 0xcccc) >> 2) + (x & 0x3333);	\
-	x = ((x & 0xf0f0) >> 4) + (x & 0x0f0f);	\
-	x = ((x & 0xff00) >> 8) + (x & 0x00ff);
-
 template <
 	Model model,
 	typename FlowController,
@@ -535,7 +529,7 @@ template <
 			// If overflow would occur, appropriate flags are set and the result is not written back.
 			if(quotient > 65535) {
 				status.overflow_flag_ = status.zero_result_ = status.negative_flag_ = 1;
-				flow_controller.consume_cycles(3*2);
+				flow_controller.template did_divu<true>(dividend, divisor);
 				return;
 			}
 
@@ -545,34 +539,7 @@ template <
 			status.overflow_flag_ = 0;
 			status.zero_result_ = quotient;
 			status.negative_flag_ = status.zero_result_ & 0x8000;
-
-			// Calculate cost; this is based on the flowchart in yacht.txt.
-			// I could actually calculate the division result here, since this is
-			// a classic divide algorithm, but would rather that errors produce
-			// incorrect timing only, not incorrect timing plus incorrect results.
-			int cycles_expended = 12;	// Covers the nn n to get into the loop.
-
-			divisor <<= 16;
-			for(int c = 0; c < 15; ++c) {
-				if(dividend & 0x80000000) {
-					dividend = (dividend << 1) - divisor;
-					cycles_expended += 4;	// Easy; just the fixed nn iteration cost.
-				} else {
-					dividend <<= 1;
-
-					// Yacht.txt, and indeed a real microprogram, would just subtract here
-					// and test the sign of the result, but this is easier to follow:
-					if (dividend >= divisor) {
-						dividend -= divisor;
-						cycles_expended += 6;	// i.e. the original nn plus one further n before going down the MSB=0 route.
-					} else {
-						cycles_expended += 8;	// The costliest path (since in real life it's a subtraction and then a step
-												// back from there) — all costs accrue. So the fixed nn loop plus another n,
-												// plus another one.
-					}
-				}
-			}
-			flow_controller.consume_cycles(cycles_expended);
+			flow_controller.template did_divu<false>(dividend, divisor);
 		} break;
 
 		case Operation::DIVS: {
@@ -603,7 +570,7 @@ template <
 			const auto quotient = dividend / divisor;
 			if(quotient > 32767) {
 				status.overflow_flag_ = 1;
-				flow_controller.consume_cycles(6*2);
+				flow_controller.template did_divs<true>(signed_dividend, signed_divisor);
 				break;
 			}
 
@@ -614,24 +581,7 @@ template <
 			status.zero_result_ = decltype(status.zero_result_)(signed_quotient);
 			status.negative_flag_ = status.zero_result_ & 0x8000;
 			status.overflow_flag_ = 0;
-
-			// Algorithm here: there is a fixed cost per unset bit
-			// in the first 15 bits of the unsigned quotient.
-			auto positive_quotient_bits = ~quotient & 0xfffe;
-			convert_to_bit_count_16(positive_quotient_bits);
-			cycles_expended += 2 * positive_quotient_bits;
-
-			// There's then no way to terminate the loop that isn't at least ten cycles long;
-			// there's also a fixed overhead per bit. The two together add up to the 104 below.
-			cycles_expended += 104;
-
-			// This picks up at 'No more bits' in yacht.txt's diagram.
-			if(signed_divisor < 0) {
-				cycles_expended += 2;
-			} else if(signed_dividend < 0) {
-				cycles_expended += 4;
-			}
-			flow_controller.consume_cycles(cycles_expended);
+			flow_controller.template did_divs<false>(signed_dividend, signed_divisor);
 		} break;
 
 #undef announce_divide_by_zero
@@ -663,12 +613,8 @@ template <
 
 			// No exception is the default course of action; deviate only if an
 			// exception is necessary.
+			flow_controller.did_chk(is_under, is_over);
 			if(is_under || is_over) {
-				if(is_over) {
-					flow_controller.consume_cycles(10);
-				} else {
-					flow_controller.consume_cycles(12);
-				}
 				flow_controller.template raise_exception<false>(6);
 			}
 		} break;
@@ -912,7 +858,7 @@ template <
 
 #define decode_shift_count()	\
 	int shift_count = src.l & 63;	\
-	flow_controller.consume_cycles(2 * shift_count);
+	flow_controller.did_shift(shift_count);
 
 //#define set_flags_b(t) set_flags(dest.b, 0x80, t)
 #define set_flags_w(t) set_flags(src.w, 0x8000, t)
@@ -1242,7 +1188,6 @@ template <
 #undef u_extend8
 #undef s_extend16
 #undef s_extend8
-#undef convert_to_bit_count_16
 
 }
 

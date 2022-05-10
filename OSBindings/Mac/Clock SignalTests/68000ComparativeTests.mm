@@ -30,7 +30,7 @@
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"dbcc.json"]];
+//	_fileSet = [NSSet setWithArray:@[@"dbcc.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 4190"]];
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];

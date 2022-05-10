@@ -47,13 +47,15 @@ template <Model model, typename BusHandler> class Executor {
 		void run_for_instructions(int);
 
 		// Flow control.
-		void consume_cycles(int) {}
-
 		template <bool use_current_instruction_pc = true> void raise_exception(int);
 
 		void did_update_status();
-		template <typename IntT> void did_mulu(IntT) {}
-		template <typename IntT> void did_muls(IntT) {}
+		template <typename IntT> void did_mulu(IntT)	{}
+		template <typename IntT> void did_muls(IntT)	{}
+		void did_chk(bool was_under, bool was_over)		{}
+		void did_shift(int bit_count)					{}
+		template <bool did_overflow> void did_divu(uint32_t dividend, uint32_t divisor)	{}
+		template <bool did_overflow> void did_divs(int32_t dividend, int32_t divisor)	{}
 
 		template <typename IntT> void complete_bcc(bool matched_condition, IntT offset);
 		void complete_dbcc(bool matched_condition, bool overflowed, int16_t offset);
