@@ -157,7 +157,8 @@ static constexpr uint8_t StoreOp2	= (1 << 3);
 
 /*!
 	Provides a bitfield with a value in the range 0–15 indicating which of the provided operation's
-	operands are accessed via standard fetch and store cycles.
+	operands are accessed via standard fetch and store cycles; the bitfield is composted of
+	[Fetch/Store]Op[1/2] as defined above.
 
 	Unusual bus sequences, such as TAS or MOVEM, are not described here.
 */

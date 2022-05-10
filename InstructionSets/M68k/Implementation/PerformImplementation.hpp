@@ -492,35 +492,22 @@ template <
 			Multiplications.
 		*/
 
-		case Operation::MULU: {
+		case Operation::MULU:
 			dest.l = dest.w * src.w;
 			status.carry_flag_ = status.overflow_flag_ = 0;
 			status.zero_result_ = dest.l;
 			status.negative_flag_ = status.zero_result_ & 0x80000000;
+			flow_controller.did_mulu(src.w);
+		break;
 
-			int number_of_ones = src.w;
-			convert_to_bit_count_16(number_of_ones);
-
-			// Time taken = 38 cycles + 2 cycles for every 1 in the source.
-			flow_controller.consume_cycles(2 * number_of_ones + 34);
-		} break;
-
-		case Operation::MULS: {
+		case Operation::MULS:
 			dest.l =
 				u_extend16(dest.w) * u_extend16(src.w);
 			status.carry_flag_ = status.overflow_flag_ = 0;
 			status.zero_result_ = dest.l;
 			status.negative_flag_ = status.zero_result_ & 0x80000000;
-
-			// Find the number of 01 or 10 pairs in the 17-bit number
-			// formed by the source value with a 0 suffix.
-			int number_of_pairs = src.w;
-			number_of_pairs = (number_of_pairs ^ (number_of_pairs << 1)) & 0xffff;
-			convert_to_bit_count_16(number_of_pairs);
-
-			// Time taken = 38 cycles + 2 cycles per 1 in the source.
-			flow_controller.consume_cycles(2 * number_of_pairs + 34);
-		} break;
+			flow_controller.did_muls(src.w);
+		break;
 
 		/*
 			Divisions.
@@ -651,12 +638,12 @@ template <
 
 		// TRAP, which is a nicer form of ILLEGAL.
 		case Operation::TRAP:
-			flow_controller.raise_exception(src.l + 32, false);
+			flow_controller.template raise_exception<false>(src.l + 32);
 		break;
 
 		case Operation::TRAPV: {
 			if(status.overflow_flag_) {
-				flow_controller.raise_exception(7, false);
+				flow_controller.template raise_exception<false>(7);
 			}
 		} break;
 
@@ -682,7 +669,7 @@ template <
 				} else {
 					flow_controller.consume_cycles(12);
 				}
-				flow_controller.raise_exception(6, false);
+				flow_controller.template raise_exception<false>(6);
 			}
 		} break;
 

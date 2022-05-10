@@ -332,7 +332,8 @@ void Executor<model, BusHandler>::set_state(const Registers &state) {
 // MARK: - Flow Control.
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::raise_exception(int index, bool use_current_instruction_pc) {
+template <bool use_current_instruction_pc>
+void Executor<model, BusHandler>::raise_exception(int index) {
 	const uint32_t address = index << 2;
 
 	// Grab the status to store, then switch into supervisor mode.
