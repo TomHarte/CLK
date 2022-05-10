@@ -10,6 +10,8 @@
 #define InstructionSets_M68k_ExecutorImplementation_hpp
 
 #include "../Perform.hpp"
+#include "../ExceptionVectors.hpp"
+
 #include <cassert>
 
 namespace InstructionSet {
@@ -18,6 +20,9 @@ namespace M68k {
 #define An(x)	registers_[8 + x]
 #define Dn(x)	registers_[x]
 #define sp		An(7)
+
+#define AccessException(code, address, vector)	\
+	uint64_t(((vector) << 8) | uint64_t(code) | ((address) << 16))
 
 template <Model model, typename BusHandler>
 Executor<model, BusHandler>::Executor(BusHandler &handler) : bus_handler_(handler) {
@@ -31,23 +36,31 @@ void Executor<model, BusHandler>::reset() {
 	did_update_status();
 
 	// Seed stack pointer and program counter.
-	sp.l = read<uint32_t>(0);
+	sp.l = read<uint32_t>(0) & 0xffff'fffe;
 	program_counter_.l = read<uint32_t>(4);
 }
 
 template <Model model, typename BusHandler>
 template <typename IntT>
 IntT Executor<model, BusHandler>::read(uint32_t address, bool is_from_pc) {
-	// TODO: check for an alignment exception, both here and in write.
-	//
+	const auto code = FunctionCode((status_.is_supervisor_ << 2) | 1 << int(is_from_pc));
+	if(model == Model::M68000 && sizeof(IntT) > 1 && address & 1) {
+		throw AccessException(code, address, Exception::AddressError | (int(is_from_pc) << 3) | (1 << 4));
+	}
+
 	// TODO: omit generation of the FunctionCode if the BusHandler doesn't receive it.
-	return bus_handler_.template read<IntT>(address, FunctionCode((status_.is_supervisor_ << 2) | 1 << int(is_from_pc)));
+	return bus_handler_.template read<IntT>(address, code);
 }
 
 template <Model model, typename BusHandler>
 template <typename IntT>
 void Executor<model, BusHandler>::write(uint32_t address, IntT value) {
-	bus_handler_.template write<IntT>(address, value, FunctionCode((status_.is_supervisor_ << 2) | 1));
+	const auto code = FunctionCode((status_.is_supervisor_ << 2) | 1);
+	if(model == Model::M68000 && sizeof(IntT) > 1 && address & 1) {
+		throw AccessException(code, address, Exception::AddressError);
+	}
+
+	bus_handler_.template write<IntT>(address, value, code);
 }
 
 template <Model model, typename BusHandler>
@@ -209,31 +222,69 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 	return ea;
 }
 
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::signal_bus_error(FunctionCode code, uint32_t address) {
+	throw AccessException(code, address, Exception::AccessFault);
+}
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::run_for_instructions(int count) {
+	while(count) {
+		try {
+			run(count);
+		} catch (uint64_t exception) {
+			// Unpack the exception; this is the converse of the AccessException macro.
+			const int vector_address = (exception >> 6) & 0xfc;
+			const uint16_t code = uint16_t(exception & 0xff);
+			const uint32_t faulting_address = uint32_t(exception >> 16);
+
+			// Grab the status to store, then switch into supervisor mode.
+			const uint16_t status = status_.status();
+			status_.is_supervisor_ = 1;
+			did_update_status();
+
+			// Push status and the program counter at instruction start.
+			write<uint16_t>(sp.l - 14, code);
+			write<uint32_t>(sp.l - 12, faulting_address);
+			write<uint16_t>(sp.l - 8, instruction_opcode_);
+			write<uint16_t>(sp.l - 6, status);
+			write<uint16_t>(sp.l - 4, instruction_address_);
+			sp.l -= 14;
+
+			// Fetch the new program counter; reset on a double fault.
+			try {
+				program_counter_.l = read<uint32_t>(vector_address);
+			} catch (uint64_t) {
+				reset();
+			}
+		}
+	}
+}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::run(int &count) {
 	while(count--) {
 		// TODO: check interrupt level, trace flag.
 
 		// Read the next instruction.
 		instruction_address_ = program_counter_.l;
-		const auto opcode = read_pc<uint16_t>();
-		const Preinstruction instruction = decoder_.decode(opcode);
+		instruction_opcode_ = read_pc<uint16_t>();
+		const Preinstruction instruction = decoder_.decode(instruction_opcode_);
 
 		if(!status_.is_supervisor_ && instruction.requires_supervisor()) {
-			raise_exception(8);
+			raise_exception(Exception::PrivilegeViolation);
 			continue;
 		}
 		if(instruction.operation == Operation::Undefined) {
-			switch(opcode & 0xf000) {
+			switch(instruction_opcode_ & 0xf000) {
 				default:
-					raise_exception(4);
+					raise_exception(Exception::IllegalInstruction);
 				continue;
 				case 0xa000:
-					raise_exception(10);
+					raise_exception(Exception::Line1010);
 				continue;
 				case 0xf000:
-					raise_exception(11);
+					raise_exception(Exception::Line1111);
 				continue;
 			}
 		}
@@ -249,8 +300,8 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 		//
 		// TODO: much of this work should be performed by a full Decoder,
 		// so that it can be cached.
-		effective_address_[0] = calculate_effective_address(instruction, opcode, 0);
-		effective_address_[1] = calculate_effective_address(instruction, opcode, 1);
+		effective_address_[0] = calculate_effective_address(instruction, instruction_opcode_, 0);
+		effective_address_[1] = calculate_effective_address(instruction, instruction_opcode_, 1);
 		operand_[0] = effective_address_[0].value;
 		operand_[1] = effective_address_[1].value;
 
@@ -578,6 +629,7 @@ void Executor<model, BusHandler>::movem_toR(Preinstruction instruction, uint32_t
 #undef sp
 #undef Dn
 #undef An
+#undef AccessException
 
 }
 }

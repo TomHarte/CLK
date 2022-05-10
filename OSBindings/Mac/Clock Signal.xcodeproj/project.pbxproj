@@ -1480,6 +1480,7 @@
 		4B7C6819275196E8001671EC /* MouseJoystick.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MouseJoystick.hpp; sourceTree = "<group>"; };
 		4B7C681C2751A104001671EC /* Bitplanes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Bitplanes.cpp; sourceTree = "<group>"; };
 		4B7C681D2751A104001671EC /* Bitplanes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Bitplanes.hpp; sourceTree = "<group>"; };
+		4B7C79FE282AFA9B002D6C0B /* ExceptionVectors.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ExceptionVectors.hpp; sourceTree = "<group>"; };
 		4B7F188C2154825D00388727 /* MasterSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MasterSystem.cpp; sourceTree = "<group>"; };
 		4B7F188D2154825D00388727 /* MasterSystem.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MasterSystem.hpp; sourceTree = "<group>"; };
 		4B7F1895215486A100388727 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
@@ -3196,6 +3197,7 @@
 			children = (
 				4B79629F2819681F008130F9 /* Decoder.cpp */,
 				4B79629E2819681F008130F9 /* Decoder.hpp */,
+				4B7C79FE282AFA9B002D6C0B /* ExceptionVectors.hpp */,
 				4BB5B99C281C805300522DA9 /* Executor.hpp */,
 				4B79629C2819681F008130F9 /* Instruction.hpp */,
 				4B79629D2819681F008130F9 /* Model.hpp */,

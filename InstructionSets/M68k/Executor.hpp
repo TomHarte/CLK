@@ -46,6 +46,10 @@ template <Model model, typename BusHandler> class Executor: public NullFlowContr
 		/// will not necessarily take effect immediately when signalled.
 		void run_for_instructions(int);
 
+		/// Call this at any time to interrupt processing with a bus error;
+		/// the function code and address must be provided.
+		void signal_bus_error(FunctionCode, uint32_t address);
+
 		// Flow control; Cf. Perform.hpp.
 		template <bool use_current_instruction_pc = true> void raise_exception(int);
 
@@ -83,6 +87,8 @@ template <Model model, typename BusHandler> class Executor: public NullFlowContr
 		void set_state(const Registers &);
 
 	private:
+		void run(int &);
+
 		BusHandler &bus_handler_;
 		Predecoder<model> decoder_;
 
@@ -108,6 +114,7 @@ template <Model model, typename BusHandler> class Executor: public NullFlowContr
 		CPU::SlicedInt32 registers_[16];	// D0–D8, followed by A0–A8.
 		CPU::SlicedInt32 stack_pointers_[2];
 		uint32_t instruction_address_;
+		uint16_t instruction_opcode_;
 		int active_stack_pointer_ = 0;
 
 		// A lookup table to ensure that A7 is adjusted by 2 rather than 1 in
