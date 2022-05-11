@@ -48,8 +48,9 @@ template <Model model, typename BusHandler> class Executor: public NullFlowContr
 		void run_for_instructions(int);
 
 		/// Call this at any time to interrupt processing with a bus error;
-		/// the function code and address must be provided.
-		void signal_bus_error(FunctionCode, uint32_t address);
+		/// the function code and address must be provided. Internally
+		/// this will raise a C++ exception, and therefore doesn't return.
+		[[noreturn]] void signal_bus_error(FunctionCode, uint32_t address);
 
 		// Flow control; Cf. Perform.hpp.
 		template <bool use_current_instruction_pc = true> void raise_exception(int);
