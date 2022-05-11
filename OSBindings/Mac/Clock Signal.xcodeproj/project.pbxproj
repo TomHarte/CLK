@@ -474,6 +474,8 @@
 		4B7C681B275196E8001671EC /* MouseJoystick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C6818275196E8001671EC /* MouseJoystick.cpp */; };
 		4B7C681E2751A104001671EC /* Bitplanes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C681C2751A104001671EC /* Bitplanes.cpp */; };
 		4B7C681F2751A104001671EC /* Bitplanes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C681C2751A104001671EC /* Bitplanes.cpp */; };
+		4B7C7A00282C3BCA002D6C0B /* 68000flamewingTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B7C79FF282C3BCA002D6C0B /* 68000flamewingTests.mm */; };
+		4B7C7A07282C3DED002D6C0B /* flamewing 68000 BCD tests in Resources */ = {isa = PBXBuildFile; fileRef = 4B7C7A06282C3DED002D6C0B /* flamewing 68000 BCD tests */; };
 		4B7F188E2154825E00388727 /* MasterSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F188C2154825D00388727 /* MasterSystem.cpp */; };
 		4B7F188F2154825E00388727 /* MasterSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F188C2154825D00388727 /* MasterSystem.cpp */; };
 		4B7F1897215486A200388727 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F1896215486A100388727 /* StaticAnalyser.cpp */; };
@@ -1481,6 +1483,8 @@
 		4B7C681C2751A104001671EC /* Bitplanes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Bitplanes.cpp; sourceTree = "<group>"; };
 		4B7C681D2751A104001671EC /* Bitplanes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Bitplanes.hpp; sourceTree = "<group>"; };
 		4B7C79FE282AFA9B002D6C0B /* ExceptionVectors.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ExceptionVectors.hpp; sourceTree = "<group>"; };
+		4B7C79FF282C3BCA002D6C0B /* 68000flamewingTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000flamewingTests.mm; sourceTree = "<group>"; };
+		4B7C7A06282C3DED002D6C0B /* flamewing 68000 BCD tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "flamewing 68000 BCD tests"; sourceTree = "<group>"; };
 		4B7F188C2154825D00388727 /* MasterSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MasterSystem.cpp; sourceTree = "<group>"; };
 		4B7F188D2154825D00388727 /* MasterSystem.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MasterSystem.hpp; sourceTree = "<group>"; };
 		4B7F1895215486A100388727 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
@@ -2441,6 +2445,7 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
+				4B7C7A06282C3DED002D6C0B /* flamewing 68000 BCD tests */,
 				4B680CE323A555CA00451D43 /* 68000 Comparative Tests */,
 				4B75F97A280D7C7700121055 /* 68000 Decoding */,
 				4B683B002727BE6F0043E541 /* Amiga Blitter Tests */,
@@ -4212,6 +4217,7 @@
 				4B680CE123A5553100451D43 /* 68000ComparativeTests.mm */,
 				4B9D0C4C22C7DA1A00DE1AD3 /* 68000ControlFlowTests.mm */,
 				4B75F978280D7C5100121055 /* 68000DecoderTests.mm */,
+				4B7C79FF282C3BCA002D6C0B /* 68000flamewingTests.mm */,
 				4BC5C3DF22C994CC00795658 /* 68000MoveTests.mm */,
 				4B9D0C4E22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm */,
 				4BD388872239E198002D14B5 /* 68000Tests.mm */,
@@ -5266,6 +5272,7 @@
 				4BB2997E1B587D8400A49093 /* ldxb in Resources */,
 				4BB298F51B587D8400A49093 /* adcb in Resources */,
 				4BB299981B587D8400A49093 /* nopax in Resources */,
+				4B7C7A07282C3DED002D6C0B /* flamewing 68000 BCD tests in Resources */,
 				4BB299931B587D8400A49093 /* lxab in Resources */,
 				4BB299F01B587D8400A49093 /* trap4 in Resources */,
 				4B8DF6722550D91600F3433C /* CPUBIT.sfc in Resources */,
@@ -6119,6 +6126,7 @@
 				4B7752B128217EA30073E2C5 /* StaticAnalyser.cpp in Sources */,
 				4B778F5123A5F2290000D260 /* StaticAnalyser.cpp in Sources */,
 				4B7752C028217F3D0073E2C5 /* Line.cpp in Sources */,
+				4B7C7A00282C3BCA002D6C0B /* 68000flamewingTests.mm in Sources */,
 				4B778F0223A5EBA40000D260 /* MFMSectorDump.cpp in Sources */,
 				4B7752BD28217F200073E2C5 /* Keyboard.cpp in Sources */,
 				4BFCA1271ECBE33200AC40C1 /* TestMachineZ80.mm in Sources */,
