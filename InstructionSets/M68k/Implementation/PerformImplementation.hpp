@@ -9,6 +9,8 @@
 #ifndef InstructionSets_M68k_PerformImplementation_h
 #define InstructionSets_M68k_PerformImplementation_h
 
+#include "../ExceptionVectors.hpp"
+
 #include <cassert>
 #include <cmath>
 
@@ -500,7 +502,7 @@ template <
 #define announce_divide_by_zero()									\
 	status.negative_flag_ = status.overflow_flag_ = 0;				\
 	status.zero_result_ = 1;										\
-	flow_controller.raise_exception(5);
+	flow_controller.raise_exception(Exception::IntegerDivideByZero)
 
 		case Operation::DIVU: {
 			status.carry_flag_ = 0;
@@ -538,7 +540,7 @@ template <
 			// An attempt to divide by zero schedules an exception.
 			if(!src.w) {
 				// Schedule a divide-by-zero exception.
-				announce_divide_by_zero()
+				announce_divide_by_zero();
 				break;
 			}
 
@@ -578,12 +580,12 @@ template <
 
 		// TRAP, which is a nicer form of ILLEGAL.
 		case Operation::TRAP:
-			flow_controller.template raise_exception<false>(src.l + 32);
+			flow_controller.template raise_exception<false>(src.l + Exception::TrapBase);
 		break;
 
 		case Operation::TRAPV: {
 			if(status.overflow_flag_) {
-				flow_controller.template raise_exception<false>(7);
+				flow_controller.template raise_exception<false>(Exception::TRAPV);
 			}
 		} break;
 
@@ -605,7 +607,7 @@ template <
 			// exception is necessary.
 			flow_controller.did_chk(is_under, is_over);
 			if(is_under || is_over) {
-				flow_controller.template raise_exception<false>(6);
+				flow_controller.template raise_exception<false>(Exception::CHK);
 			}
 		} break;
 
