@@ -84,6 +84,9 @@ struct NullFlowController {
 	/// Put the processor into the stopped state, waiting for interrupts.
 	void stop();
 
+	/// Assert the reset output.
+	void reset();
+
 	/// Perform LINK using the address register identified by @c instruction and the specified @c offset.
 	void link(Preinstruction instruction, uint32_t offset);
 
@@ -92,6 +95,14 @@ struct NullFlowController {
 
 	/// Push @c address to the stack.
 	void pea(uint32_t address);
+
+	/// Replace the current user stack pointer with @c address.
+	/// The processor is guranteed to be in supervisor mode.
+	void move_to_usp(uint32_t address);
+
+	/// Put the value of the user stack pointer into @c address.
+	/// The processor is guranteed to be in supervisor mode.
+	void move_from_usp(uint32_t &address);
 
 	/// Perform an atomic TAS cycle; if @c instruction indicates that this is a TAS Dn then
 	/// perform the TAS directly upon that register; otherwise perform it on the memory at

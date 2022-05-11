@@ -427,6 +427,14 @@ template <
 			status.set_ccr(src.w);
 		break;
 
+		case Operation::MOVEtoUSP:
+			flow_controller.move_to_usp(src.l);
+		break;
+
+		case Operation::MOVEfromUSP:
+			flow_controller.move_from_usp(src.l);
+		break;
+
 		case Operation::EXTbtow:
 			src.w = uint16_t(int8_t(src.b));
 			status.overflow_flag_ = status.carry_flag_ = 0;
@@ -1160,6 +1168,10 @@ template <
 			status.set_status(src.w);
 			flow_controller.did_update_status();
 			flow_controller.stop();
+		break;
+
+		case Operation::RESET:
+			flow_controller.reset();
 		break;
 
 		/*

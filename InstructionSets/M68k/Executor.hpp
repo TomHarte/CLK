@@ -31,6 +31,7 @@ enum class FunctionCode {
 struct BusHandler {
 	template <typename IntT> void write(uint32_t address, IntT value, FunctionCode function);
 	template <typename IntT> IntT read(uint32_t address, FunctionCode function);
+	void reset();
 };
 
 /// Ties together the decoder, sequencer and performer to provide an executor for 680x0 instruction streams.
@@ -64,10 +65,14 @@ template <Model model, typename BusHandler> class Executor: public NullFlowContr
 		void rts();
 		void rte();
 		void stop();
+		void reset();
 
 		void link(Preinstruction instruction, uint32_t offset);
 		void unlink(uint32_t &address);
 		void pea(uint32_t address);
+
+		void move_to_usp(uint32_t address);
+		void move_from_usp(uint32_t &address);
 
 		template <typename IntT> void movep(Preinstruction instruction, uint32_t source, uint32_t dest);
 		template <typename IntT> void movem_toM(Preinstruction instruction, uint32_t source, uint32_t dest);
@@ -92,7 +97,7 @@ template <Model model, typename BusHandler> class Executor: public NullFlowContr
 		BusHandler &bus_handler_;
 		Predecoder<model> decoder_;
 
-		void reset();
+		void reset_processor();
 		struct EffectiveAddress {
 			CPU::SlicedInt32 value;
 			bool requires_fetch;

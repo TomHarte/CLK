@@ -267,6 +267,8 @@
 				ram[(address+3) & 0xffffff] = uint8_t(value);
 			}
 		}
+
+		void reset() {}
 	};
 	auto uniqueTest68000 = std::make_unique<Test68000>();
 	auto test68000 = uniqueTest68000.get();

@@ -26,11 +26,11 @@ namespace M68k {
 
 template <Model model, typename BusHandler>
 Executor<model, BusHandler>::Executor(BusHandler &handler) : bus_handler_(handler) {
-	reset();
+	reset_processor();
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::reset() {
+void Executor<model, BusHandler>::reset_processor() {
 	// Establish: supervisor state, all interrupts blocked.
 	status_.set_status(0b0010'0011'1000'0000);
 	did_update_status();
@@ -255,7 +255,9 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 			try {
 				program_counter_.l = read<uint32_t>(vector_address);
 			} catch (uint64_t) {
-				reset();
+				// TODO: I think this is incorrect, but need to verify consistency
+				// across different 680x0s.
+				reset_processor();
 			}
 		}
 	}
@@ -413,6 +415,11 @@ template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::stop() {}
 
 template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::reset() {
+	bus_handler_.reset();
+}
+
+template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::jmp(uint32_t address) {
 	program_counter_.l = address;
 }
@@ -502,6 +509,16 @@ void Executor<model, BusHandler>::tas(Preinstruction instruction, uint32_t addre
 	status_.overflow_flag_ = status_.carry_flag_ = 0;
 	status_.zero_result_ = value;
 	status_.negative_flag_ = value & 0x80;
+}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::move_to_usp(uint32_t address) {
+	stack_pointers_[0].l = address;
+}
+
+template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::move_from_usp(uint32_t &address) {
+	address = stack_pointers_[0].l;
 }
 
 template <Model model, typename BusHandler>
