@@ -20,7 +20,7 @@ using namespace InstructionSet::M68k;
 - (Status)statusWithflamewingFlags:(int)flags {
 	Status status;
 	status.carry_flag_ = status.extend_flag_ = flags & 2;
-	status.zero_result_ = ~(flags & 1);
+	status.zero_result_ = ~flags & 1;
 	status.negative_flag_ = 0;
 	status.overflow_flag_ = 0;
 	return status;
