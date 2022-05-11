@@ -50,8 +50,8 @@ using namespace InstructionSet::M68k;
 	} flow_controller;
 
 	// Test ABCD.
-	for(int dest = 0; dest < 256; dest++) {
-		for(int source = 0; source < 256; source++) {
+	for(int source = 0; source < 256; source++) {
+		for(int dest = 0; dest < 256; dest++) {
 			for(int flags = 0; flags < 4; flags++) {
 				Status status = [self statusWithflamewingFlags:flags];
 
@@ -69,8 +69,8 @@ using namespace InstructionSet::M68k;
 	}
 
 	// Test SBCD.
-	for(int dest = 0; dest < 256; dest++) {
-		for(int source = 0; source < 256; source++) {
+	for(int source = 0; source < 256; source++) {
+		for(int dest = 0; dest < 256; dest++) {
 			for(int flags = 0; flags < 4; flags++) {
 				Status status = [self statusWithflamewingFlags:flags];
 
@@ -86,6 +86,8 @@ using namespace InstructionSet::M68k;
 			}
 		}
 	}
+
+	return;
 
 	// Test NBCD.
 	for(int source = 0; source < 256; source++) {
