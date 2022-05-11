@@ -229,7 +229,7 @@ void Executor<model, BusHandler>::signal_bus_error(FunctionCode code, uint32_t a
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::run_for_instructions(int count) {
-	while(count) {
+	while(count > 0) {
 		try {
 			run(count);
 		} catch (uint64_t exception) {
