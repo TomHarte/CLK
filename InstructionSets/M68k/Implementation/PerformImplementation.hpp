@@ -43,7 +43,7 @@ template <
 			int result = (destination & 0xf) + (source & 0xf) + (status.extend_flag_ ? 1 : 0);
 			if(result > 0x09) result += 0x06;
 			result += (destination & 0xf0) + (source & 0xf0);
-			if(result > 0x99) result += 0x60;
+			if(result > 0x9f) result += 0x60;
 
 			// Set all flags essentially as if this were normal addition.
 			status.zero_result_ |= result & 0xff;
