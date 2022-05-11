@@ -241,6 +241,7 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 			// Grab the status to store, then switch into supervisor mode.
 			const uint16_t status = status_.status();
 			status_.is_supervisor_ = 1;
+			status_.trace_flag_ = 0;
 			did_update_status();
 
 			// Push status and the program counter at instruction start.
@@ -266,7 +267,11 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::run(int &count) {
 	while(count--) {
-		// TODO: check interrupt level, trace flag.
+		// TODO: interrupts.
+
+		// Capture the trace bit, indicating whether to trace
+		// after this instruction.
+		const auto should_trace = status_.trace_flag_;
 
 		// Read the next instruction.
 		instruction_address_ = program_counter_.l;
@@ -341,6 +346,11 @@ void Executor<model, BusHandler>::run(int &count) {
 		if(flags & StoreOp2) {	store_operand(1);	}
 
 #undef store_operand
+
+		// If the trace bit was set, trigger the trace exception.
+		if(should_trace) {
+			raise_exception<false>(Exception::Trace);
+		}
 	}
 }
 
@@ -389,9 +399,11 @@ template <bool use_current_instruction_pc>
 void Executor<model, BusHandler>::raise_exception(int index) {
 	const uint32_t address = index << 2;
 
-	// Grab the status to store, then switch into supervisor mode.
+	// Grab the status to store, then switch into supervisor mode
+	// and disable tracing.
 	const uint16_t status = status_.status();
 	status_.is_supervisor_ = 1;
+	status_.trace_flag_ = 0;
 	did_update_status();
 
 	// Push status and the program counter at instruction start.
