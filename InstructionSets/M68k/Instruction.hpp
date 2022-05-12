@@ -13,6 +13,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <string>
 
 namespace InstructionSet {
 namespace M68k {
@@ -308,6 +309,8 @@ class Preinstruction {
 		uint8_t operands_[2] = { uint8_t(AddressingMode::None), uint8_t(AddressingMode::None)};
 		uint8_t flags_ = 0;
 
+		std::string operand_description(int index, int opcode) const;
+
 	public:
 		Preinstruction(
 			Operation operation,
@@ -327,6 +330,11 @@ class Preinstruction {
 		}
 
 		Preinstruction() {}
+
+		/// Produces a string description of this instruction; if @c opcode
+		/// is supplied then any quick fields in this instruction will be decoded;
+		/// otherwise they'll be printed as just 'Q'.
+		std::string to_string(int opcode = -1) const;
 };
 
 }
