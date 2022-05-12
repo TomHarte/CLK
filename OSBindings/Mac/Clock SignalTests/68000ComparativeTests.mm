@@ -17,6 +17,69 @@
 
 //#define USE_EXISTING_IMPLEMENTATION
 
+namespace {
+
+/// Binds a 68000 executor to 16mb of RAM.
+struct Test68000 {
+	std::array<uint8_t, 16*1024*1024> ram;
+	InstructionSet::M68k::Executor<InstructionSet::M68k::Model::M68000, Test68000> processor;
+
+	Test68000() : processor(*this) {
+	}
+
+	void run_for_instructions(int instructions) {
+		processor.run_for_instructions(instructions);
+	}
+
+	// Initial test-case implementation:
+	// do a very sedate read and write.
+
+	template <typename IntT> IntT read(uint32_t address, InstructionSet::M68k::FunctionCode) {
+		if constexpr (sizeof(IntT) == 1) {
+			return IntT(ram[address & 0xffffff]);
+		}
+
+		if constexpr (sizeof(IntT) == 2) {
+			return IntT(
+				(ram[address & 0xffffff] << 8) |
+				ram[(address+1) & 0xffffff]
+			);
+		}
+
+		if constexpr (sizeof(IntT) == 4) {
+			return IntT(
+				(ram[address & 0xffffff] << 24) |
+				(ram[(address+1) & 0xffffff] << 16) |
+				(ram[(address+2) & 0xffffff] << 8) |
+				ram[(address+3) & 0xffffff]
+			);
+		}
+		return 0;
+	}
+
+	template <typename IntT> void write(uint32_t address, IntT value, InstructionSet::M68k::FunctionCode) {
+		if constexpr (sizeof(IntT) == 1) {
+			ram[address & 0xffffff] = uint8_t(value);
+		}
+
+		if constexpr (sizeof(IntT) == 2) {
+			ram[address & 0xffffff] = uint8_t(value >> 8);
+			ram[(address+1) & 0xffffff] = uint8_t(value);
+		}
+
+		if constexpr (sizeof(IntT) == 4) {
+			ram[address & 0xffffff] = uint8_t(value >> 24);
+			ram[(address+1) & 0xffffff] = uint8_t(value >> 16);
+			ram[(address+2) & 0xffffff] = uint8_t(value >> 8);
+			ram[(address+3) & 0xffffff] = uint8_t(value);
+		}
+	}
+
+	void reset() {}
+};
+
+}
+
 @interface M68000ComparativeTests : XCTestCase
 @end
 
@@ -26,6 +89,8 @@
 
 	NSMutableSet<NSString *> *_failures;
 	NSMutableArray<NSNumber *> *_failingOpcodes;
+
+	Test68000 _test68000;
 }
 
 - (void)setUp {
@@ -75,21 +140,23 @@
 	// Perform each dictionary in the array as a test.
 	for(NSDictionary *test in jsonContents) {
 		if(![test isKindOfClass:[NSDictionary class]]) continue;
+
+		// Only entries with a name are valid.
+		NSString *const name = test[@"name"];
+		if(!name) continue;
+
+		// Compare against a test set if one has been supplied.
+		if(_testSet && ![_testSet containsObject:name]) continue;
+
 #ifdef USE_EXISTING_IMPLEMENTATION
-		[self testOperationClassic:test];
+		[self testOperationClassic:test name:name];
 #else
-		[self testOperationExecutor:test];
+		[self testOperationExecutor:test name:name];
 #endif
 	}
 }
 
-- (void)testOperationClassic:(NSDictionary *)test {
-	// Only entries with a name are valid.
-	NSString *const name = test[@"name"];
-	if(!name) return;
-
-	// Compare against a test set if one has been supplied.
-	if(_testSet && ![_testSet containsObject:name]) return;
+- (void)testOperationClassic:(NSDictionary *)test name:(NSString *)name  {
 
 	// This is the test class for 68000 execution.
 	struct Test68000: public CPU::MC68000::BusHandler {
@@ -204,75 +271,8 @@
 	test68000->run_for_instructions(1, comparitor);
 }
 
-- (void)testOperationExecutor:(NSDictionary *)test {
-	// Only entries with a name are valid.
-	NSString *const name = test[@"name"];
-	if(!name) return;
-
-	// Compare against a test set if one has been supplied.
-	if(_testSet && ![_testSet containsObject:name]) return;
-
-	// This is the test class for 68000 execution.
-	struct Test68000 {
-		std::array<uint8_t, 16*1024*1024> ram;
-		InstructionSet::M68k::Executor<InstructionSet::M68k::Model::M68000, Test68000> processor;
-
-		Test68000() : processor(*this) {
-		}
-
-		void run_for_instructions(int instructions) {
-			processor.run_for_instructions(instructions);
-		}
-
-		// Initial test-case implementation:
-		// do a very sedate read and write.
-
-		template <typename IntT> IntT read(uint32_t address, InstructionSet::M68k::FunctionCode) {
-			if constexpr (sizeof(IntT) == 1) {
-				return IntT(ram[address & 0xffffff]);
-			}
-
-			if constexpr (sizeof(IntT) == 2) {
-				return IntT(
-					(ram[address & 0xffffff] << 8) |
-					ram[(address+1) & 0xffffff]
-				);
-			}
-
-			if constexpr (sizeof(IntT) == 4) {
-				return IntT(
-					(ram[address & 0xffffff] << 24) |
-					(ram[(address+1) & 0xffffff] << 16) |
-					(ram[(address+2) & 0xffffff] << 8) |
-					ram[(address+3) & 0xffffff]
-				);
-			}
-			return 0;
-		}
-
-		template <typename IntT> void write(uint32_t address, IntT value, InstructionSet::M68k::FunctionCode) {
-			if constexpr (sizeof(IntT) == 1) {
-				ram[address & 0xffffff] = uint8_t(value);
-			}
-
-			if constexpr (sizeof(IntT) == 2) {
-				ram[address & 0xffffff] = uint8_t(value >> 8);
-				ram[(address+1) & 0xffffff] = uint8_t(value);
-			}
-
-			if constexpr (sizeof(IntT) == 4) {
-				ram[address & 0xffffff] = uint8_t(value >> 24);
-				ram[(address+1) & 0xffffff] = uint8_t(value >> 16);
-				ram[(address+2) & 0xffffff] = uint8_t(value >> 8);
-				ram[(address+3) & 0xffffff] = uint8_t(value);
-			}
-		}
-
-		void reset() {}
-	};
-	auto uniqueTest68000 = std::make_unique<Test68000>();
-	auto test68000 = uniqueTest68000.get();
-	memset(test68000->ram.data(), 0xce, test68000->ram.size());
+- (void)testOperationExecutor:(NSDictionary *)test name:(NSString *)name {
+	memset(_test68000.ram.data(), 0xce, _test68000.ram.size());
 
 	{
 		// Apply initial memory state.
@@ -283,12 +283,12 @@
 			NSNumber *const value = [enumerator nextObject];
 
 			if(!address || !value) break;
-			test68000->ram[address.integerValue] = value.integerValue;
+			_test68000.ram[address.integerValue] = value.integerValue;
 		}
 
 		// Apply initial processor state.
 		NSDictionary *const initialState = test[@"initial state"];
-		auto state = test68000->processor.get_state();
+		auto state = _test68000.processor.get_state();
 		for(int c = 0; c < 8; ++c) {
 			const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
 			const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
@@ -301,15 +301,15 @@
 		state.user_stack_pointer = uint32_t([initialState[@"usp"] integerValue]);
 		state.status = [initialState[@"sr"] integerValue];
 		state.program_counter = uint32_t([initialState[@"pc"] integerValue]);
-		test68000->processor.set_state(state);
+		_test68000.processor.set_state(state);
 	}
 
 	// Run the thing.
-	test68000->run_for_instructions(1);
+	_test68000.run_for_instructions(1);
 
 	// Test the end state.
 	NSDictionary *const finalState = test[@"final state"];
-	const auto state = test68000->processor.get_state();
+	const auto state = _test68000.processor.get_state();
 	for(int c = 0; c < 8; ++c) {
 		const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
 		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
@@ -339,13 +339,13 @@
 		NSNumber *const value = [enumerator nextObject];
 
 		if(!address || !value) break;
-		XCTAssertEqual(test68000->ram[address.integerValue], value.integerValue, @"%@: Memory at location %@ inconsistent", name, address);
-		if(test68000->ram[address.integerValue] != value.integerValue) [_failures addObject:name];
+		XCTAssertEqual(_test68000.ram[address.integerValue], value.integerValue, @"%@: Memory at location %@ inconsistent", name, address);
+		if(_test68000.ram[address.integerValue] != value.integerValue) [_failures addObject:name];
 	}
 
 	// Consider collating extra detail.
 	if([_failures containsObject:name]) {
-		[_failingOpcodes addObject:@((test68000->ram[0x100] << 8) | test68000->ram[0x101])];
+		[_failingOpcodes addObject:@(_test68000.read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode()))];
 	}
 }
 
