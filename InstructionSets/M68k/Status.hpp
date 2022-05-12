@@ -14,44 +14,51 @@
 namespace InstructionSet {
 namespace M68k {
 
+namespace ConditionCode {
+
+static constexpr uint16_t Carry			= 1 << 0;
+static constexpr uint16_t Overflow		= 1 << 1;
+static constexpr uint16_t Zero			= 1 << 2;
+static constexpr uint16_t Negative		= 1 << 3;
+static constexpr uint16_t Extend		= 1 << 4;
+
+static constexpr uint16_t Supervisor	= 1 << 13;
+static constexpr uint16_t Trace			= 1 << 15;
+
+static constexpr uint16_t InterruptPriorityMask = 0b111 << 8;
+
+}
+
+
 struct Status {
+	/// Generally holds an unevaluated flag for potential later lazy evaluation; it'll be zero for one outcome,
+	/// non-zero for the other, but no guarantees are made about the potential range of non-zero values.
 	using FlagT = uint_fast32_t;
 
-	enum ConditionCode: uint16_t {
-		Carry		= (1 << 0),
-		Overflow	= (1 << 1),
-		Zero		= (1 << 2),
-		Negative	= (1 << 3),
-		Extend		= (1 << 4),
-
-		Supervisor	= (1 << 13),
-		Trace		= (1 << 15),
-
-		InterruptPriorityMask = (0b111 << 8),
-	};
-
 	/* b15 */
-	FlagT trace_flag = 0;		// The trace flag is set if this value is non-zero.
+	FlagT trace_flag = 0;		// The trace flag is set if and only if this value is non-zero.
 
 	/* b13 */
 	int is_supervisor = 0;		// 1 => processor is in supervisor mode; 0 => it isn't.
+								// All other values have undefined meaning.
 
 	/* b7–b9 */
 	int interrupt_level = 0;	// The direct integer value of the current interrupt level.
+								// Values of 8 or greater have undefined meaning.
 
 	/* b0–b4 */
-	FlagT zero_result = 0;		// The zero flag is set if this value is zero.
-	FlagT carry_flag = 0;		// The carry flag is set if this value is non-zero.
-	FlagT extend_flag = 0;		// The extend flag is set if this value is non-zero.
-	FlagT overflow_flag = 0;	// The overflow flag is set if this value is non-zero.
-	FlagT negative_flag = 0;	// The negative flag is set if this value is non-zero.
+	FlagT zero_result = 0;		// The zero flag is set if and only if this value is zero.
+	FlagT carry_flag = 0;		// The carry flag is set if and only if this value is non-zero.
+	FlagT extend_flag = 0;		// The extend flag is set if and only if this value is non-zero.
+	FlagT overflow_flag = 0;	// The overflow flag is set if and only if this value is non-zero.
+	FlagT negative_flag = 0;	// The negative flag is set if and only this value is non-zero.
 
 	/// Gets the current condition codes.
 	constexpr uint16_t ccr() const {
 		return
 			(carry_flag 	? ConditionCode::Carry 		: 0) |
 			(overflow_flag	? ConditionCode::Overflow	: 0) |
-			(zero_result	? 0							: ConditionCode::Zero) |
+			(!zero_result	? ConditionCode::Zero		: 0) |
 			(negative_flag	? ConditionCode::Negative	: 0) |
 			(extend_flag	? ConditionCode::Extend		: 0);
 	}
@@ -71,7 +78,7 @@ struct Status {
 			ccr() |
 			(interrupt_level << 8) |
 			(trace_flag ? ConditionCode::Trace : 0) |
-			(is_supervisor << 13)
+			(is_supervisor ? ConditionCode::Supervisor : 0)
 		);
 	}
 
@@ -82,7 +89,7 @@ struct Status {
 
 		interrupt_level	= (status >> 8) & 7;
 		trace_flag		= status & ConditionCode::Trace;
-		is_supervisor	= (status >> 13) & 1;
+		is_supervisor	= (status & ConditionCode::Supervisor) ? 1 : 0;
 
 		return is_supervisor;
 	}
