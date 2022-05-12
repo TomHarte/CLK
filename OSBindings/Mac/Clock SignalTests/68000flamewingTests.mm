@@ -86,8 +86,6 @@ using namespace InstructionSet::M68k;
 		}
 	}
 
-	return;
-
 	// Test NBCD.
 	for(int source = 0; source < 256; source++) {
 		for(int flags = 0; flags < 4; flags++) {
@@ -96,7 +94,7 @@ using namespace InstructionSet::M68k;
 			CPU::SlicedInt32 s, d;
 			s.l = source;
 
-			perform<Model::M68000, NullFlowController, Operation::SBCD>(
+			perform<Model::M68000, NullFlowController, Operation::NBCD>(
 				Preinstruction(), s, d, status, flow_controller);
 
 			[self validate:bytes source:source dest:0 flags:flags result:s.l status:status operation:@"NBCD"];

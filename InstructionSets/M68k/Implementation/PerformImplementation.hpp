@@ -790,13 +790,21 @@ template <
 #define sbcd(d)																							\
 	/* Perform the BCD arithmetic by evaluating the two nibbles separately. */							\
 	const int unadjusted_result = destination - source - (status.extend_flag ? 1 : 0);					\
-	int result = (destination & 0xf) - (source & 0xf) - (status.extend_flag ? 1 : 0);					\
-	if(result & 0xf0) result -= 0x06;																	\
-	result += (destination & 0xf0) - (source & 0xf0);													\
-	status.extend_flag = status.carry_flag = decltype(status.carry_flag)(unadjusted_result & 0x300);	\
-	if(unadjusted_result & 0x100) result -= 0x60;														\
 																										\
-	/* Set all flags essentially as if this were normal subtraction. */									\
+	int top = (destination & 0xf0) - (source & 0xf0);													\
+	if(unadjusted_result & 0x100) top -= 0x60;															\
+																										\
+	int result = (destination & 0xf) - (source & 0xf) - (status.extend_flag ? 1 : 0);					\
+	if(result & 0xf0) {																					\
+		result -= 0x06;																					\
+		status.extend_flag = status.carry_flag = Status::FlagT((unadjusted_result - 0x6) & 0x300);		\
+	} else {																							\
+		status.extend_flag = status.carry_flag = Status::FlagT(unadjusted_result & 0x300);				\
+	}																									\
+																										\
+	result += top;																						\
+																										\
+	/* Set all remaining flags essentially as if this were normal subtraction. */						\
 	status.zero_result |= result & 0xff;																\
 	status.negative_flag = result & 0x80;																\
 	status.overflow_flag = unadjusted_result & ~result & 0x80;											\

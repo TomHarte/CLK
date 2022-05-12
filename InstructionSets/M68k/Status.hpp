@@ -15,6 +15,8 @@ namespace InstructionSet {
 namespace M68k {
 
 struct Status {
+	using FlagT = uint_fast32_t;
+
 	enum ConditionCode: uint16_t {
 		Carry		= (1 << 0),
 		Overflow	= (1 << 1),
@@ -29,20 +31,20 @@ struct Status {
 	};
 
 	/* b15 */
-	uint_fast32_t trace_flag = 0;		// The trace flag is set if this value is non-zero.
+	FlagT trace_flag = 0;		// The trace flag is set if this value is non-zero.
 
 	/* b13 */
-	int is_supervisor = 0;				// 1 => processor is in supervisor mode; 0 => it isn't.
+	int is_supervisor = 0;		// 1 => processor is in supervisor mode; 0 => it isn't.
 
 	/* b7–b9 */
-	int interrupt_level = 0;			// The direct integer value of the current interrupt level.
+	int interrupt_level = 0;	// The direct integer value of the current interrupt level.
 
 	/* b0–b4 */
-	uint_fast32_t zero_result = 0;		// The zero flag is set if this value is zero.
-	uint_fast32_t carry_flag = 0;		// The carry flag is set if this value is non-zero.
-	uint_fast32_t extend_flag = 0;		// The extend flag is set if this value is non-zero.
-	uint_fast32_t overflow_flag = 0;	// The overflow flag is set if this value is non-zero.
-	uint_fast32_t negative_flag = 0;	// The negative flag is set if this value is non-zero.
+	FlagT zero_result = 0;		// The zero flag is set if this value is zero.
+	FlagT carry_flag = 0;		// The carry flag is set if this value is non-zero.
+	FlagT extend_flag = 0;		// The extend flag is set if this value is non-zero.
+	FlagT overflow_flag = 0;	// The overflow flag is set if this value is non-zero.
+	FlagT negative_flag = 0;	// The negative flag is set if this value is non-zero.
 
 	/// Gets the current condition codes.
 	constexpr uint16_t ccr() const {
