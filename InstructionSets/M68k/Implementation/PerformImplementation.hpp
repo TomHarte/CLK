@@ -791,9 +791,9 @@ template <
 	/* Perform the BCD arithmetic by evaluating the two nibbles separately. */							\
 	const int unadjusted_result = destination - source - (status.extend_flag_ ? 1 : 0);					\
 	int result = (destination & 0xf) - (source & 0xf) - (status.extend_flag_ ? 1 : 0);					\
-	if((result & 0x1f) > 0x09) result -= 0x06;															\
+	if(result & 0xf0) result -= 0x06;																	\
 	result += (destination & 0xf0) - (source & 0xf0);													\
-	status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)((result & 0x1ff) > 0x99);	\
+	status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)((result & 0xff) > 0x9f);	\
 	if(status.carry_flag_) result -= 0x60;																\
 																										\
 	/* Set all flags essentially as if this were normal subtraction. */									\
