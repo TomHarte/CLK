@@ -39,17 +39,17 @@ template <
 			const uint8_t destination = dest.b;
 
 			// Perform the BCD add by evaluating the two nibbles separately.
-			const int unadjusted_result = destination + source + (status.extend_flag_ ? 1 : 0);
-			int result = (destination & 0xf) + (source & 0xf) + (status.extend_flag_ ? 1 : 0);
+			const int unadjusted_result = destination + source + (status.extend_flag ? 1 : 0);
+			int result = (destination & 0xf) + (source & 0xf) + (status.extend_flag ? 1 : 0);
 			if(result > 0x09) result += 0x06;
 			result += (destination & 0xf0) + (source & 0xf0);
 			if(result > 0x9f) result += 0x60;
 
 			// Set all flags essentially as if this were normal addition.
-			status.zero_result_ |= result & 0xff;
-			status.extend_flag_ = status.carry_flag_ = uint_fast32_t(result & ~0xff);
-			status.negative_flag_ = result & 0x80;
-			status.overflow_flag_ = ~unadjusted_result & result & 0x80;
+			status.zero_result |= result & 0xff;
+			status.extend_flag = status.carry_flag = uint_fast32_t(result & ~0xff);
+			status.negative_flag = result & 0x80;
+			status.overflow_flag = ~unadjusted_result & result & 0x80;
 
 			// Store the result.
 			dest.b = uint8_t(result);
@@ -66,10 +66,10 @@ template <
 	const auto result = op(destination, source, x);	\
 	\
 	b = uint8_t(result);	\
-	zero_op(status.zero_result_, b);	\
-	status.extend_flag_ = status.carry_flag_ = uint_fast32_t(result & ~0xff);	\
-	status.negative_flag_ = result & 0x80;	\
-	status.overflow_flag_ = overflow() & 0x80;
+	zero_op(status.zero_result, b);	\
+	status.extend_flag = status.carry_flag = uint_fast32_t(result & ~0xff);	\
+	status.negative_flag = result & 0x80;	\
+	status.overflow_flag = overflow() & 0x80;
 
 #define addsubw(a, b, op, overflow, x, zero_op)	\
 	const int source = a;	\
@@ -77,10 +77,10 @@ template <
 	const auto result = op(destination, source, x);	\
 	\
 	b = uint16_t(result);	\
-	zero_op(status.zero_result_, b);	\
-	status.extend_flag_ = status.carry_flag_ = uint_fast32_t(result & ~0xffff);	\
-	status.negative_flag_ = result & 0x8000;	\
-	status.overflow_flag_ = overflow() & 0x8000;
+	zero_op(status.zero_result, b);	\
+	status.extend_flag = status.carry_flag = uint_fast32_t(result & ~0xffff);	\
+	status.negative_flag = result & 0x8000;	\
+	status.overflow_flag = overflow() & 0x8000;
 
 #define addsubl(a, b, op, overflow, x, zero_op)	\
 	const uint64_t source = a;	\
@@ -88,10 +88,10 @@ template <
 	const auto result = op(destination, source, x);	\
 	\
 	b = uint32_t(result);	\
-	zero_op(status.zero_result_, b);	\
-	status.extend_flag_ = status.carry_flag_ = uint_fast32_t(result >> 32);	\
-	status.negative_flag_ = result & 0x80000000;	\
-	status.overflow_flag_ = overflow() & 0x80000000;
+	zero_op(status.zero_result, b);	\
+	status.extend_flag = status.carry_flag = uint_fast32_t(result >> 32);	\
+	status.negative_flag = result & 0x80000000;	\
+	status.overflow_flag = overflow() & 0x80000000;
 
 #define addb(a, b, x, z) addsubb(a, b, addop, add_overflow, x, z)
 #define subb(a, b, x, z) addsubb(a, b, subop, sub_overflow, x, z)
@@ -101,7 +101,7 @@ template <
 #define subl(a, b, x, z) addsubl(a, b, subop, sub_overflow, x, z)
 
 #define no_extend(op, a, b)	op(a, b, 0, z_set)
-#define extend(op, a, b)	op(a, b, status.extend_flag_, z_or)
+#define extend(op, a, b)	op(a, b, status.extend_flag, z_or)
 
 		// ADD and ADDA add two quantities, the latter sign extending and without setting any flags;
 		// ADDQ and SUBQ act as ADD and SUB, but taking the second argument from the instruction code.
@@ -212,13 +212,13 @@ template <
 		// BTST/BCLR/etc: modulo for the mask depends on whether memory or a data register is the target.
 		case Operation::BTST: {
 			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
-			status.zero_result_ = dest.l & (1 << (src.l & mask));
+			status.zero_result = dest.l & (1 << (src.l & mask));
 		} break;
 
 		case Operation::BCLR: {
 			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
 
-			status.zero_result_ = dest.l & (1 << (src.l & mask));
+			status.zero_result = dest.l & (1 << (src.l & mask));
 			dest.l &= ~(1 << (src.l & mask));
 			flow_controller.did_bit_op(src.l & mask);
 		} break;
@@ -226,7 +226,7 @@ template <
 		case Operation::BCHG: {
 			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
 
-			status.zero_result_ = dest.l & (1 << (src.l & mask));
+			status.zero_result = dest.l & (1 << (src.l & mask));
 			dest.l ^= 1 << (src.l & mask);
 			flow_controller.did_bit_op(src.l & mask);
 		} break;
@@ -234,7 +234,7 @@ template <
 		case Operation::BSET: {
 			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
 
-			status.zero_result_ = dest.l & (1 << (src.l & mask));
+			status.zero_result = dest.l & (1 << (src.l & mask));
 			dest.l |= 1 << (src.l & mask);
 			flow_controller.did_bit_op(src.l & mask);
 		} break;
@@ -294,17 +294,17 @@ template <
 		*/
 		case Operation::CLRb:
 			src.b = 0;
-			status.negative_flag_ = status.overflow_flag_ = status.carry_flag_ = status.zero_result_ = 0;
+			status.negative_flag = status.overflow_flag = status.carry_flag = status.zero_result = 0;
 		break;
 
 		case Operation::CLRw:
 			src.w = 0;
-			status.negative_flag_ = status.overflow_flag_ = status.carry_flag_ = status.zero_result_ = 0;
+			status.negative_flag = status.overflow_flag = status.carry_flag = status.zero_result = 0;
 		break;
 
 		case Operation::CLRl:
 			src.l = 0;
-			status.negative_flag_ = status.overflow_flag_ = status.carry_flag_ = status.zero_result_ = 0;
+			status.negative_flag = status.overflow_flag = status.carry_flag = status.zero_result = 0;
 		break;
 
 		/*
@@ -316,10 +316,10 @@ template <
 			const uint8_t destination = dest.b;
 			const int result = destination - source;
 
-			status.zero_result_ = result & 0xff;
-			status.carry_flag_ = decltype(status.carry_flag_)(result & ~0xff);
-			status.negative_flag_ = result & 0x80;
-			status.overflow_flag_ = sub_overflow() & 0x80;
+			status.zero_result = result & 0xff;
+			status.carry_flag = decltype(status.carry_flag)(result & ~0xff);
+			status.negative_flag = result & 0x80;
+			status.overflow_flag = sub_overflow() & 0x80;
 		} break;
 
 		case Operation::CMPw: {
@@ -327,10 +327,10 @@ template <
 			const uint16_t destination = dest.w;
 			const int result = destination - source;
 
-			status.zero_result_ = result & 0xffff;
-			status.carry_flag_ = decltype(status.carry_flag_)(result & ~0xffff);
-			status.negative_flag_ = result & 0x8000;
-			status.overflow_flag_ = sub_overflow() & 0x8000;
+			status.zero_result = result & 0xffff;
+			status.carry_flag = decltype(status.carry_flag)(result & ~0xffff);
+			status.negative_flag = result & 0x8000;
+			status.overflow_flag = sub_overflow() & 0x8000;
 		} break;
 
 		case Operation::CMPAw: {
@@ -338,10 +338,10 @@ template <
 			const uint64_t destination = dest.l;
 			const auto result = destination - source;
 
-			status.zero_result_ = uint32_t(result);
-			status.carry_flag_ = result >> 32;
-			status.negative_flag_ = result & 0x80000000;
-			status.overflow_flag_ = sub_overflow() & 0x80000000;
+			status.zero_result = uint32_t(result);
+			status.carry_flag = result >> 32;
+			status.negative_flag = result & 0x80000000;
+			status.overflow_flag = sub_overflow() & 0x80000000;
 		} break;
 
 		// TODO: is there any benefit to keeping both of these?
@@ -351,10 +351,10 @@ template <
 			const auto destination = uint64_t(dest.l);
 			const auto result = destination - source;
 
-			status.zero_result_ = uint32_t(result);
-			status.carry_flag_ = result >> 32;
-			status.negative_flag_ = result & 0x80000000;
-			status.overflow_flag_ = sub_overflow() & 0x80000000;
+			status.zero_result = uint32_t(result);
+			status.carry_flag = result >> 32;
+			status.negative_flag = result & 0x80000000;
+			status.overflow_flag = sub_overflow() & 0x80000000;
 		} break;
 
 		// JMP: copies EA(0) to the program counter.
@@ -372,21 +372,21 @@ template <
 			and set negative, zero, overflow and carry as appropriate.
 		*/
 		case Operation::MOVEb:
-			status.zero_result_ = dest.b = src.b;
-			status.negative_flag_ = status.zero_result_ & 0x80;
-			status.overflow_flag_ = status.carry_flag_ = 0;
+			status.zero_result = dest.b = src.b;
+			status.negative_flag = status.zero_result & 0x80;
+			status.overflow_flag = status.carry_flag = 0;
 		break;
 
 		case Operation::MOVEw:
-			status.zero_result_ = dest.w = src.w;
-			status.negative_flag_ = status.zero_result_ & 0x8000;
-			status.overflow_flag_ = status.carry_flag_ = 0;
+			status.zero_result = dest.w = src.w;
+			status.negative_flag = status.zero_result & 0x8000;
+			status.overflow_flag = status.carry_flag = 0;
 		break;
 
 		case Operation::MOVEl:
-			status.zero_result_ = dest.l = src.l;
-			status.negative_flag_ = status.zero_result_ & 0x80000000;
-			status.overflow_flag_ = status.carry_flag_ = 0;
+			status.zero_result = dest.l = src.l;
+			status.negative_flag = status.zero_result & 0x80000000;
+			status.overflow_flag = status.carry_flag = 0;
 		break;
 
 		/*
@@ -437,16 +437,16 @@ template <
 
 		case Operation::EXTbtow:
 			src.w = uint16_t(int8_t(src.b));
-			status.overflow_flag_ = status.carry_flag_ = 0;
-			status.zero_result_ = src.w;
-			status.negative_flag_ = status.zero_result_ & 0x8000;
+			status.overflow_flag = status.carry_flag = 0;
+			status.zero_result = src.w;
+			status.negative_flag = status.zero_result & 0x8000;
 		break;
 
 		case Operation::EXTwtol:
 			src.l = u_extend16(src.w);
-			status.overflow_flag_ = status.carry_flag_ = 0;
-			status.zero_result_ = src.l;
-			status.negative_flag_ = status.zero_result_ & 0x80000000;
+			status.overflow_flag = status.carry_flag = 0;
+			status.zero_result = src.l;
+			status.negative_flag = status.zero_result & 0x80000000;
 		break;
 
 #define and_op(a, b) a &= b
@@ -488,18 +488,18 @@ template <
 
 		case Operation::MULU:
 			dest.l = dest.w * src.w;
-			status.carry_flag_ = status.overflow_flag_ = 0;
-			status.zero_result_ = dest.l;
-			status.negative_flag_ = status.zero_result_ & 0x80000000;
+			status.carry_flag = status.overflow_flag = 0;
+			status.zero_result = dest.l;
+			status.negative_flag = status.zero_result & 0x80000000;
 			flow_controller.did_mulu(src.w);
 		break;
 
 		case Operation::MULS:
 			dest.l =
 				u_extend16(dest.w) * u_extend16(src.w);
-			status.carry_flag_ = status.overflow_flag_ = 0;
-			status.zero_result_ = dest.l;
-			status.negative_flag_ = status.zero_result_ & 0x80000000;
+			status.carry_flag = status.overflow_flag = 0;
+			status.zero_result = dest.l;
+			status.negative_flag = status.zero_result & 0x80000000;
 			flow_controller.did_muls(src.w);
 		break;
 
@@ -508,12 +508,12 @@ template <
 		*/
 
 #define announce_divide_by_zero()									\
-	status.negative_flag_ = status.overflow_flag_ = 0;				\
-	status.zero_result_ = 1;										\
+	status.negative_flag = status.overflow_flag = 0;				\
+	status.zero_result = 1;											\
 	flow_controller.raise_exception(Exception::IntegerDivideByZero)
 
 		case Operation::DIVU: {
-			status.carry_flag_ = 0;
+			status.carry_flag = 0;
 
 			// An attempt to divide by zero schedules an exception.
 			if(!src.w) {
@@ -528,7 +528,7 @@ template <
 
 			// If overflow would occur, appropriate flags are set and the result is not written back.
 			if(quotient > 65535) {
-				status.overflow_flag_ = status.zero_result_ = status.negative_flag_ = 1;
+				status.overflow_flag = status.zero_result = status.negative_flag = 1;
 				flow_controller.template did_divu<true>(dividend, divisor);
 				return;
 			}
@@ -536,14 +536,14 @@ template <
 			const uint16_t remainder = uint16_t(dividend % divisor);
 			dest.l = uint32_t((remainder << 16) | uint16_t(quotient));
 
-			status.overflow_flag_ = 0;
-			status.zero_result_ = quotient;
-			status.negative_flag_ = status.zero_result_ & 0x8000;
+			status.overflow_flag = 0;
+			status.zero_result = quotient;
+			status.negative_flag = status.zero_result & 0x8000;
 			flow_controller.template did_divu<false>(dividend, divisor);
 		} break;
 
 		case Operation::DIVS: {
-			status.carry_flag_ = 0;
+			status.carry_flag = 0;
 
 			// An attempt to divide by zero schedules an exception.
 			if(!src.w) {
@@ -569,7 +569,7 @@ template <
 			// Check for overflow. If it exists, work here is already done.
 			const auto quotient = dividend / divisor;
 			if(quotient > 32767) {
-				status.overflow_flag_ = 1;
+				status.overflow_flag = 1;
 				flow_controller.template did_divs<true>(signed_dividend, signed_divisor);
 				break;
 			}
@@ -578,9 +578,9 @@ template <
 			const int signed_quotient = result_sign*int(quotient);
 			dest.l = uint32_t((remainder << 16) | uint16_t(signed_quotient));
 
-			status.zero_result_ = decltype(status.zero_result_)(signed_quotient);
-			status.negative_flag_ = status.zero_result_ & 0x8000;
-			status.overflow_flag_ = 0;
+			status.zero_result = decltype(status.zero_result)(signed_quotient);
+			status.negative_flag = status.zero_result & 0x8000;
+			status.overflow_flag = 0;
 			flow_controller.template did_divs<false>(signed_dividend, signed_divisor);
 		} break;
 
@@ -592,7 +592,7 @@ template <
 		break;
 
 		case Operation::TRAPV: {
-			if(status.overflow_flag_) {
+			if(status.overflow_flag) {
 				flow_controller.template raise_exception<false>(Exception::TRAPV);
 			}
 		} break;
@@ -601,15 +601,15 @@ template <
 			const bool is_under = s_extend16(dest.w) < 0;
 			const bool is_over = s_extend16(dest.w) > s_extend16(src.w);
 
-			status.overflow_flag_ = status.carry_flag_ = 0;
-			status.zero_result_ = dest.w;
+			status.overflow_flag = status.carry_flag = 0;
+			status.zero_result = dest.w;
 
 			// Test applied for N:
 			//
 			//	if Dn < 0, set negative flag;
 			//	otherwise, if Dn > <ea>, reset negative flag.
-			if(is_over)		status.negative_flag_ = 0;
-			if(is_under)	status.negative_flag_ = 1;
+			if(is_over)		status.negative_flag = 0;
+			if(is_under)	status.negative_flag = 1;
 
 			// No exception is the default course of action; deviate only if an
 			// exception is necessary.
@@ -633,10 +633,10 @@ template <
 			const auto result = destination - source;
 			src.b = uint8_t(result);
 
-			status.zero_result_ = result & 0xff;
-			status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(result & ~0xff);
-			status.negative_flag_ = result & 0x80;
-			status.overflow_flag_ = sub_overflow() & 0x80;
+			status.zero_result = result & 0xff;
+			status.extend_flag = status.carry_flag = decltype(status.carry_flag)(result & ~0xff);
+			status.negative_flag = result & 0x80;
+			status.overflow_flag = sub_overflow() & 0x80;
 		} break;
 
 		case Operation::NEGw: {
@@ -645,10 +645,10 @@ template <
 			const auto result = destination - source;
 			src.w = uint16_t(result);
 
-			status.zero_result_ = result & 0xffff;
-			status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(result & ~0xffff);
-			status.negative_flag_ = result & 0x8000;
-			status.overflow_flag_ = sub_overflow() & 0x8000;
+			status.zero_result = result & 0xffff;
+			status.extend_flag = status.carry_flag = decltype(status.carry_flag)(result & ~0xffff);
+			status.negative_flag = result & 0x8000;
+			status.overflow_flag = sub_overflow() & 0x8000;
 		} break;
 
 		case Operation::NEGl: {
@@ -657,10 +657,10 @@ template <
 			const auto result = destination - source;
 			src.l = uint32_t(result);
 
-			status.zero_result_ = uint_fast32_t(result);
-			status.extend_flag_ = status.carry_flag_ = result >> 32;
-			status.negative_flag_ = result & 0x80000000;
-			status.overflow_flag_ = sub_overflow() & 0x80000000;
+			status.zero_result = uint_fast32_t(result);
+			status.extend_flag = status.carry_flag = result >> 32;
+			status.negative_flag = result & 0x80000000;
+			status.overflow_flag = sub_overflow() & 0x80000000;
 		} break;
 
 		/*
@@ -669,37 +669,37 @@ template <
 		case Operation::NEGXb: {
 			const int source = src.b;
 			const int destination = 0;
-			const auto result = destination - source - (status.extend_flag_ ? 1 : 0);
+			const auto result = destination - source - (status.extend_flag ? 1 : 0);
 			src.b = uint8_t(result);
 
-			status.zero_result_ |= result & 0xff;
-			status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(result & ~0xff);
-			status.negative_flag_ = result & 0x80;
-			status.overflow_flag_ = sub_overflow() & 0x80;
+			status.zero_result |= result & 0xff;
+			status.extend_flag = status.carry_flag = decltype(status.carry_flag)(result & ~0xff);
+			status.negative_flag = result & 0x80;
+			status.overflow_flag = sub_overflow() & 0x80;
 		} break;
 
 		case Operation::NEGXw: {
 			const int source = src.w;
 			const int destination = 0;
-			const auto result = destination - source - (status.extend_flag_ ? 1 : 0);
+			const auto result = destination - source - (status.extend_flag ? 1 : 0);
 			src.w = uint16_t(result);
 
-			status.zero_result_ |= result & 0xffff;
-			status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(result & ~0xffff);
-			status.negative_flag_ = result & 0x8000;
-			status.overflow_flag_ = sub_overflow() & 0x8000;
+			status.zero_result |= result & 0xffff;
+			status.extend_flag = status.carry_flag = decltype(status.carry_flag)(result & ~0xffff);
+			status.negative_flag = result & 0x8000;
+			status.overflow_flag = sub_overflow() & 0x8000;
 		} break;
 
 		case Operation::NEGXl: {
 			const uint64_t source = src.l;
 			const uint64_t destination = 0;
-			const auto result = destination - source - (status.extend_flag_ ? 1 : 0);
+			const auto result = destination - source - (status.extend_flag ? 1 : 0);
 			src.l = uint32_t(result);
 
-			status.zero_result_ |= uint_fast32_t(result);
-			status.extend_flag_ = status.carry_flag_ = result >> 32;
-			status.negative_flag_ = result & 0x80000000;
-			status.overflow_flag_ = sub_overflow() & 0x80000000;
+			status.zero_result |= uint_fast32_t(result);
+			status.extend_flag = status.carry_flag = result >> 32;
+			status.negative_flag = result & 0x80000000;
+			status.overflow_flag = sub_overflow() & 0x80000000;
 		} break;
 
 		/*
@@ -739,9 +739,9 @@ template <
 
 #define bitwise(source, dest, sign_mask, operator)	\
 	operator(dest, source);							\
-	status.overflow_flag_ = status.carry_flag_ = 0;	\
-	status.zero_result_ = dest;						\
-	status.negative_flag_ = dest & sign_mask;
+	status.overflow_flag = status.carry_flag = 0;	\
+	status.zero_result = dest;						\
+	status.negative_flag = dest & sign_mask;
 
 #define andx(source, dest, sign_mask)	bitwise(source, dest, sign_mask, op_and)
 #define eorx(source, dest, sign_mask)	bitwise(source, dest, sign_mask, op_eor)
@@ -768,38 +768,38 @@ template <
 		// NOTs: take the logical inverse, affecting the negative and zero flags.
 		case Operation::NOTb:
 			src.b ^= 0xff;
-			status.zero_result_ = src.b;
-			status.negative_flag_ = status.zero_result_ & 0x80;
-			status.overflow_flag_ = status.carry_flag_ = 0;
+			status.zero_result = src.b;
+			status.negative_flag = status.zero_result & 0x80;
+			status.overflow_flag = status.carry_flag = 0;
 		break;
 
 		case Operation::NOTw:
 			src.w ^= 0xffff;
-			status.zero_result_ = src.w;
-			status.negative_flag_ = status.zero_result_ & 0x8000;
-			status.overflow_flag_ = status.carry_flag_ = 0;
+			status.zero_result = src.w;
+			status.negative_flag = status.zero_result & 0x8000;
+			status.overflow_flag = status.carry_flag = 0;
 		break;
 
 		case Operation::NOTl:
 			src.l ^= 0xffffffff;
-			status.zero_result_ = src.l;
-			status.negative_flag_ = status.zero_result_ & 0x80000000;
-			status.overflow_flag_ = status.carry_flag_ = 0;
+			status.zero_result = src.l;
+			status.negative_flag = status.zero_result & 0x80000000;
+			status.overflow_flag = status.carry_flag = 0;
 		break;
 
 #define sbcd(d)																							\
 	/* Perform the BCD arithmetic by evaluating the two nibbles separately. */							\
-	const int unadjusted_result = destination - source - (status.extend_flag_ ? 1 : 0);					\
-	int result = (destination & 0xf) - (source & 0xf) - (status.extend_flag_ ? 1 : 0);					\
+	const int unadjusted_result = destination - source - (status.extend_flag ? 1 : 0);					\
+	int result = (destination & 0xf) - (source & 0xf) - (status.extend_flag ? 1 : 0);					\
 	if(result & 0xf0) result -= 0x06;																	\
 	result += (destination & 0xf0) - (source & 0xf0);													\
-	status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)((result & 0xff) > 0x9f);	\
-	if(unadjusted_result & 0x100) result -= 0x60;																\
+	status.extend_flag = status.carry_flag = decltype(status.carry_flag)(unadjusted_result & 0x300);	\
+	if(unadjusted_result & 0x100) result -= 0x60;														\
 																										\
 	/* Set all flags essentially as if this were normal subtraction. */									\
-	status.zero_result_ |= result & 0xff;																\
-	status.negative_flag_ = result & 0x80;																\
-	status.overflow_flag_ = unadjusted_result & ~result & 0x80;											\
+	status.zero_result |= result & 0xff;																\
+	status.negative_flag = result & 0x80;																\
+	status.overflow_flag = unadjusted_result & ~result & 0x80;											\
 																										\
 	/* Store the result. */																				\
 	d = uint8_t(result);
@@ -840,21 +840,21 @@ template <
 			words[0] = words[1];
 			words[1] = temporary;
 
-			status.zero_result_ = src.l;
-			status.negative_flag_ = temporary & 0x8000;
-			status.overflow_flag_ = status.carry_flag_ = 0;
+			status.zero_result = src.l;
+			status.negative_flag = temporary & 0x8000;
+			status.overflow_flag = status.carry_flag = 0;
 		} break;
 
 		/*
 			Shifts and rotates.
 		*/
-#define set_neg_zero(v, m)											\
-	status.zero_result_ = decltype(status.zero_result_)(v);						\
-	status.negative_flag_ = status.zero_result_ & decltype(status.negative_flag_)(m);
+#define set_neg_zero(v, m)														\
+	status.zero_result = decltype(status.zero_result)(v);						\
+	status.negative_flag = status.zero_result & decltype(status.negative_flag)(m);
 
 #define set_neg_zero_overflow(v, m)									\
 	set_neg_zero(v, m);												\
-	status.overflow_flag_ = (decltype(status.zero_result_)(value) ^ status.zero_result_) & decltype(status.overflow_flag_)(m);
+	status.overflow_flag = (decltype(status.zero_result)(value) ^ status.zero_result) & decltype(status.overflow_flag)(m);
 
 #define decode_shift_count()	\
 	int shift_count = src.l & 63;	\
@@ -867,15 +867,15 @@ template <
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
-		status.carry_flag_ = status.overflow_flag_ = 0;	\
+		status.carry_flag = status.overflow_flag = 0;	\
 	} else {	\
 		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
-		status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(value) & decltype(status.carry_flag_)( (1u << (size - 1)) >> (shift_count - 1) );	\
+		status.extend_flag = status.carry_flag = decltype(status.carry_flag)(value) & decltype(status.carry_flag)( (1u << (size - 1)) >> (shift_count - 1) );	\
 		\
-		if(shift_count >= size) status.overflow_flag_ = value && (value != decltype(value)(-1));	\
+		if(shift_count >= size) status.overflow_flag = value && (value != decltype(value)(-1));	\
 		else {	\
 			const auto mask = decltype(destination)(0xffffffff << (size - shift_count));	\
-			status.overflow_flag_ = mask & value && ((mask & value) != mask);	\
+			status.overflow_flag = mask & value && ((mask & value) != mask);	\
 		}	\
 	}	\
 	\
@@ -885,7 +885,7 @@ template <
 		case Operation::ASLm: {
 			const auto value = src.w;
 			src.w = uint16_t(value << 1);
-			status.extend_flag_ = status.carry_flag_ = value & 0x8000;
+			status.extend_flag = status.carry_flag = value & 0x8000;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 		case Operation::ASLb: asl(dest.b, 8);	break;
@@ -897,7 +897,7 @@ template <
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
-		status.carry_flag_ = 0;	\
+		status.carry_flag = 0;	\
 	} else {	\
 		destination = (shift_count < size) ?	\
 		decltype(destination)(\
@@ -907,7 +907,7 @@ template <
 			decltype(destination)(	\
 			(value & decltype(value)(1 << (size - 1))) ? 0xffffffff : 0x000000000	\
 		);	\
-		status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(value) & decltype(status.carry_flag_)(1 << (shift_count - 1));	\
+		status.extend_flag = status.carry_flag = decltype(status.carry_flag)(value) & decltype(status.carry_flag)(1 << (shift_count - 1));	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -916,7 +916,7 @@ template <
 		case Operation::ASRm: {
 			const auto value = src.w;
 			src.w = (value&0x8000) | (value >> 1);
-			status.extend_flag_ = status.carry_flag_ = value & 1;
+			status.extend_flag = status.carry_flag = value & 1;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 		case Operation::ASRb: asr(dest.b, 8);	break;
@@ -927,24 +927,24 @@ template <
 #undef set_neg_zero_overflow
 #define set_neg_zero_overflow(v, m)	\
 	set_neg_zero(v, m);	\
-	status.overflow_flag_ = 0;
+	status.overflow_flag = 0;
 
 #undef set_flags
 #define set_flags(v, m, t)	\
-	status.zero_result_ = v;	\
-	status.negative_flag_ = status.zero_result_ & (m);	\
-	status.overflow_flag_ = 0;	\
-	status.carry_flag_ = value & (t);
+	status.zero_result = v;	\
+	status.negative_flag = status.zero_result & (m);	\
+	status.overflow_flag = 0;	\
+	status.carry_flag = value & (t);
 
 #define lsl(destination, size)	{\
 	decode_shift_count();	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
-		status.carry_flag_ = 0;	\
+		status.carry_flag = 0;	\
 	} else {	\
 		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
-		status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)(value) & decltype(status.carry_flag_)( (1u << (size - 1)) >> (shift_count - 1) );	\
+		status.extend_flag = status.carry_flag = decltype(status.carry_flag)(value) & decltype(status.carry_flag)( (1u << (size - 1)) >> (shift_count - 1) );	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -953,7 +953,7 @@ template <
 		case Operation::LSLm: {
 			const auto value = src.w;
 			src.w = uint16_t(value << 1);
-			status.extend_flag_ = status.carry_flag_ = value & 0x8000;
+			status.extend_flag = status.carry_flag = value & 0x8000;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 		case Operation::LSLb: lsl(dest.b, 8);	break;
@@ -965,10 +965,10 @@ template <
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
-		status.carry_flag_ = 0;	\
+		status.carry_flag = 0;	\
 	} else {	\
 		destination = (shift_count < size) ? (value >> shift_count) : 0;	\
-		status.extend_flag_ = status.carry_flag_ = value & decltype(status.carry_flag_)(1 << (shift_count - 1));	\
+		status.extend_flag = status.carry_flag = value & decltype(status.carry_flag)(1 << (shift_count - 1));	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -977,7 +977,7 @@ template <
 		case Operation::LSRm: {
 			const auto value = src.w;
 			src.w = value >> 1;
-			status.extend_flag_ = status.carry_flag_ = value & 1;
+			status.extend_flag = status.carry_flag = value & 1;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 		case Operation::LSRb: lsr(dest.b, 8);	break;
@@ -989,14 +989,14 @@ template <
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
-		status.carry_flag_ = 0;	\
+		status.carry_flag = 0;	\
 	} else {	\
 		shift_count &= (size - 1);	\
 		destination = decltype(destination)(	\
 			(value << shift_count) |	\
 			(value >> (size - shift_count))	\
 		);	\
-		status.carry_flag_ = decltype(status.carry_flag_)(destination & 1);	\
+		status.carry_flag = decltype(status.carry_flag)(destination & 1);	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1005,7 +1005,7 @@ template <
 		case Operation::ROLm: {
 			const auto value = src.w;
 			src.w = uint16_t((value << 1) | (value >> 15));
-			status.carry_flag_ = src.w & 1;
+			status.carry_flag = src.w & 1;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 		case Operation::ROLb: rol(dest.b, 8);	break;
@@ -1017,14 +1017,14 @@ template <
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
-		status.carry_flag_ = 0;	\
+		status.carry_flag = 0;	\
 	} else {	\
 		shift_count &= (size - 1);	\
 		destination = decltype(destination)(\
 			(value >> shift_count) |	\
 			(value << (size - shift_count))	\
 		);\
-		status.carry_flag_ = destination & decltype(status.carry_flag_)(1 << (size - 1));	\
+		status.carry_flag = destination & decltype(status.carry_flag)(1 << (size - 1));	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1033,7 +1033,7 @@ template <
 		case Operation::RORm: {
 			const auto value = src.w;
 			src.w = uint16_t((value >> 1) | (value << 15));
-			status.carry_flag_ = src.w & 0x8000;
+			status.carry_flag = src.w & 0x8000;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
 		case Operation::RORb: ror(dest.b, 8);	break;
@@ -1044,11 +1044,11 @@ template <
 	decode_shift_count();	\
 	\
 	shift_count %= (size + 1);	\
-	uint64_t compound = uint64_t(destination) | (status.extend_flag_ ? (1ull << size) : 0);	\
+	uint64_t compound = uint64_t(destination) | (status.extend_flag ? (1ull << size) : 0);	\
 	compound = \
 		(compound << shift_count) |	\
 		(compound >> (size + 1 - shift_count));	\
-	status.carry_flag_ = status.extend_flag_ = decltype(status.carry_flag_)((compound >> size) & 1);	\
+	status.carry_flag = status.extend_flag = decltype(status.carry_flag)((compound >> size) & 1);	\
 	destination = decltype(destination)(compound);	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1056,8 +1056,8 @@ template <
 
 		case Operation::ROXLm: {
 			const auto value = src.w;
-			src.w = uint16_t((value << 1) | (status.extend_flag_ ? 0x0001 : 0x0000));
-			status.extend_flag_ = value & 0x8000;
+			src.w = uint16_t((value << 1) | (status.extend_flag ? 0x0001 : 0x0000));
+			status.extend_flag = value & 0x8000;
 			set_flags_w(0x8000);
 		} break;
 		case Operation::ROXLb: roxl(dest.b, 8);		break;
@@ -1068,11 +1068,11 @@ template <
 	decode_shift_count();	\
 	\
 	shift_count %= (size + 1);	\
-	uint64_t compound = uint64_t(destination) | (status.extend_flag_ ? (1ull << size) : 0);	\
+	uint64_t compound = uint64_t(destination) | (status.extend_flag ? (1ull << size) : 0);	\
 	compound = \
 		(compound >> shift_count) |	\
 		(compound << (size + 1 - shift_count));	\
-		status.carry_flag_ = status.extend_flag_ = decltype(status.carry_flag_)((compound >> size) & 1);	\
+		status.carry_flag = status.extend_flag = decltype(status.carry_flag)((compound >> size) & 1);	\
 	destination = decltype(destination)(compound);	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1080,8 +1080,8 @@ template <
 
 		case Operation::ROXRm: {
 			const auto value = src.w;
-			src.w = (value >> 1) | (status.extend_flag_ ? 0x8000 : 0x0000);
-			status.extend_flag_ = value & 0x0001;
+			src.w = (value >> 1) | (status.extend_flag ? 0x8000 : 0x0000);
+			status.extend_flag = value & 0x0001;
 			set_flags_w(0x0001);
 		} break;
 		case Operation::ROXRb: roxr(dest.b, 8);		break;
@@ -1147,21 +1147,21 @@ template <
 		*/
 
 		case Operation::TSTb:
-			status.carry_flag_ = status.overflow_flag_ = 0;
-			status.zero_result_ = src.b;
-			status.negative_flag_ = status.zero_result_ & 0x80;
+			status.carry_flag = status.overflow_flag = 0;
+			status.zero_result = src.b;
+			status.negative_flag = status.zero_result & 0x80;
 		break;
 
 		case Operation::TSTw:
-			status.carry_flag_ = status.overflow_flag_ = 0;
-			status.zero_result_ = src.w;
-			status.negative_flag_ = status.zero_result_ & 0x8000;
+			status.carry_flag = status.overflow_flag = 0;
+			status.zero_result = src.w;
+			status.negative_flag = status.zero_result & 0x8000;
 		break;
 
 		case Operation::TSTl:
-			status.carry_flag_ = status.overflow_flag_ = 0;
-			status.zero_result_ = src.l;
-			status.negative_flag_ = status.zero_result_ & 0x80000000;
+			status.carry_flag = status.overflow_flag = 0;
+			status.zero_result = src.l;
+			status.negative_flag = status.zero_result & 0x80000000;
 		break;
 
 		case Operation::STOP:

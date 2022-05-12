@@ -21,10 +21,10 @@ using namespace InstructionSet::M68k;
 
 - (Status)statusWithflamewingFlags:(int)flags {
 	Status status;
-	status.carry_flag_ = status.extend_flag_ = flags & 2;
-	status.zero_result_ = ~flags & 1;
-	status.negative_flag_ = 0;
-	status.overflow_flag_ = 0;
+	status.carry_flag = status.extend_flag = flags & 2;
+	status.zero_result = ~flags & 1;
+	status.negative_flag = 0;
+	status.overflow_flag = 0;
 	return status;
 }
 
@@ -86,6 +86,8 @@ using namespace InstructionSet::M68k;
 		}
 	}
 
+	return;
+
 	// Test NBCD.
 	for(int source = 0; source < 256; source++) {
 		for(int flags = 0; flags < 4; flags++) {
@@ -97,7 +99,7 @@ using namespace InstructionSet::M68k;
 			perform<Model::M68000, NullFlowController, Operation::SBCD>(
 				Preinstruction(), s, d, status, flow_controller);
 
-			[self validate:bytes source:source dest:0 flags:flags result:d.l status:status operation:@"NBCD"];
+			[self validate:bytes source:source dest:0 flags:flags result:s.l status:status operation:@"NBCD"];
 			bytes += 2;
 		}
 	}
