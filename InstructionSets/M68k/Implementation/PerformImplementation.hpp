@@ -317,7 +317,7 @@ template <
 			const int result = destination - source;
 
 			status.zero_result = result & 0xff;
-			status.carry_flag = decltype(status.carry_flag)(result & ~0xff);
+			status.carry_flag = Status::FlagT(result & ~0xff);
 			status.negative_flag = result & 0x80;
 			status.overflow_flag = sub_overflow() & 0x80;
 		} break;
@@ -328,7 +328,7 @@ template <
 			const int result = destination - source;
 
 			status.zero_result = result & 0xffff;
-			status.carry_flag = decltype(status.carry_flag)(result & ~0xffff);
+			status.carry_flag = Status::FlagT(result & ~0xffff);
 			status.negative_flag = result & 0x8000;
 			status.overflow_flag = sub_overflow() & 0x8000;
 		} break;
@@ -578,7 +578,7 @@ template <
 			const int signed_quotient = result_sign*int(quotient);
 			dest.l = uint32_t((remainder << 16) | uint16_t(signed_quotient));
 
-			status.zero_result = decltype(status.zero_result)(signed_quotient);
+			status.zero_result = Status::FlagT(signed_quotient);
 			status.negative_flag = status.zero_result & 0x8000;
 			status.overflow_flag = 0;
 			flow_controller.template did_divs<false>(signed_dividend, signed_divisor);
@@ -634,7 +634,7 @@ template <
 			src.b = uint8_t(result);
 
 			status.zero_result = result & 0xff;
-			status.extend_flag = status.carry_flag = decltype(status.carry_flag)(result & ~0xff);
+			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xff);
 			status.negative_flag = result & 0x80;
 			status.overflow_flag = sub_overflow() & 0x80;
 		} break;
@@ -646,7 +646,7 @@ template <
 			src.w = uint16_t(result);
 
 			status.zero_result = result & 0xffff;
-			status.extend_flag = status.carry_flag = decltype(status.carry_flag)(result & ~0xffff);
+			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xffff);
 			status.negative_flag = result & 0x8000;
 			status.overflow_flag = sub_overflow() & 0x8000;
 		} break;
@@ -673,7 +673,7 @@ template <
 			src.b = uint8_t(result);
 
 			status.zero_result |= result & 0xff;
-			status.extend_flag = status.carry_flag = decltype(status.carry_flag)(result & ~0xff);
+			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xff);
 			status.negative_flag = result & 0x80;
 			status.overflow_flag = sub_overflow() & 0x80;
 		} break;
@@ -685,7 +685,7 @@ template <
 			src.w = uint16_t(result);
 
 			status.zero_result |= result & 0xffff;
-			status.extend_flag = status.carry_flag = decltype(status.carry_flag)(result & ~0xffff);
+			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xffff);
 			status.negative_flag = result & 0x8000;
 			status.overflow_flag = sub_overflow() & 0x8000;
 		} break;
@@ -857,12 +857,12 @@ template <
 			Shifts and rotates.
 		*/
 #define set_neg_zero(v, m)														\
-	status.zero_result = decltype(status.zero_result)(v);						\
-	status.negative_flag = status.zero_result & decltype(status.negative_flag)(m);
+	status.zero_result = Status::FlagT(v);						\
+	status.negative_flag = status.zero_result & Status::FlagT(m);
 
 #define set_neg_zero_overflow(v, m)									\
 	set_neg_zero(v, m);												\
-	status.overflow_flag = (decltype(status.zero_result)(value) ^ status.zero_result) & decltype(status.overflow_flag)(m);
+	status.overflow_flag = (Status::FlagT(value) ^ status.zero_result) & Status::FlagT(m);
 
 #define decode_shift_count()	\
 	int shift_count = src.l & 63;	\
@@ -878,7 +878,7 @@ template <
 		status.carry_flag = status.overflow_flag = 0;	\
 	} else {	\
 		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
-		status.extend_flag = status.carry_flag = decltype(status.carry_flag)(value) & decltype(status.carry_flag)( (1u << (size - 1)) >> (shift_count - 1) );	\
+		status.extend_flag = status.carry_flag = Status::FlagT(value) & Status::FlagT( (1u << (size - 1)) >> (shift_count - 1) );	\
 		\
 		if(shift_count >= size) status.overflow_flag = value && (value != decltype(value)(-1));	\
 		else {	\
@@ -915,7 +915,7 @@ template <
 			decltype(destination)(	\
 			(value & decltype(value)(1 << (size - 1))) ? 0xffffffff : 0x000000000	\
 		);	\
-		status.extend_flag = status.carry_flag = decltype(status.carry_flag)(value) & decltype(status.carry_flag)(1 << (shift_count - 1));	\
+		status.extend_flag = status.carry_flag = Status::FlagT(value) & Status::FlagT(1 << (shift_count - 1));	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -952,7 +952,7 @@ template <
 		status.carry_flag = 0;	\
 	} else {	\
 		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
-		status.extend_flag = status.carry_flag = decltype(status.carry_flag)(value) & decltype(status.carry_flag)( (1u << (size - 1)) >> (shift_count - 1) );	\
+		status.extend_flag = status.carry_flag = Status::FlagT(value) & Status::FlagT( (1u << (size - 1)) >> (shift_count - 1) );	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -976,7 +976,7 @@ template <
 		status.carry_flag = 0;	\
 	} else {	\
 		destination = (shift_count < size) ? (value >> shift_count) : 0;	\
-		status.extend_flag = status.carry_flag = value & decltype(status.carry_flag)(1 << (shift_count - 1));	\
+		status.extend_flag = status.carry_flag = value & Status::FlagT(1 << (shift_count - 1));	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1004,7 +1004,7 @@ template <
 			(value << shift_count) |	\
 			(value >> (size - shift_count))	\
 		);	\
-		status.carry_flag = decltype(status.carry_flag)(destination & 1);	\
+		status.carry_flag = Status::FlagT(destination & 1);	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1032,7 +1032,7 @@ template <
 			(value >> shift_count) |	\
 			(value << (size - shift_count))	\
 		);\
-		status.carry_flag = destination & decltype(status.carry_flag)(1 << (size - 1));	\
+		status.carry_flag = destination & Status::FlagT(1 << (size - 1));	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1056,7 +1056,7 @@ template <
 	compound = \
 		(compound << shift_count) |	\
 		(compound >> (size + 1 - shift_count));	\
-	status.carry_flag = status.extend_flag = decltype(status.carry_flag)((compound >> size) & 1);	\
+	status.carry_flag = status.extend_flag = Status::FlagT((compound >> size) & 1);	\
 	destination = decltype(destination)(compound);	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1080,7 +1080,7 @@ template <
 	compound = \
 		(compound >> shift_count) |	\
 		(compound << (size + 1 - shift_count));	\
-		status.carry_flag = status.extend_flag = decltype(status.carry_flag)((compound >> size) & 1);	\
+		status.carry_flag = status.extend_flag = Status::FlagT((compound >> size) & 1);	\
 	destination = decltype(destination)(compound);	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
