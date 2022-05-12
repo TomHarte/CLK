@@ -15,14 +15,16 @@ using namespace InstructionSet::M68k;
 @interface M68000flamewingTests : XCTestCase
 @end
 
-@implementation M68000flamewingTests
+@implementation M68000flamewingTests {
+	int _testsPerformed;
+}
 
 - (Status)statusWithflamewingFlags:(int)flags {
 	Status status;
-	status.carry_flag_ = status.extend_flag_ = flags & 2;
-	status.zero_result_ = ~flags & 1;
-	status.negative_flag_ = 0;
-	status.overflow_flag_ = 0;
+	status.carry_flag = status.extend_flag = flags & 2;
+	status.zero_result = ~flags & 1;
+	status.negative_flag = 0;
+	status.overflow_flag = 0;
 	return status;
 }
 
@@ -30,6 +32,7 @@ using namespace InstructionSet::M68k;
 	const uint8_t result_flags = test[0];
 	const uint8_t result_value = test[1];
 
+	++_testsPerformed;
 	NSString *const testName =
 		[NSString stringWithFormat:@"%@ %02x, %02x [%c%c]", operation, source, dest, (flags & 2) ? 'X' : '-', (flags & 1) ? 'Z' : '-'];
 	XCTAssertEqual(result, uint32_t(result_value), @"Wrong value received for %@", testName);
@@ -43,12 +46,11 @@ using namespace InstructionSet::M68k;
 	NSData *const testData = [NSData dataWithContentsOfURL:testURL];
 	const uint8_t *bytes = reinterpret_cast<const uint8_t *>(testData.bytes);
 
-	struct NoFlowController: public NullFlowController {
-	} flow_controller;
+	NullFlowController flow_controller;
 
 	// Test ABCD.
-	for(int dest = 0; dest < 256; dest++) {
-		for(int source = 0; source < 256; source++) {
+	for(int source = 0; source < 256; source++) {
+		for(int dest = 0; dest < 256; dest++) {
 			for(int flags = 0; flags < 4; flags++) {
 				Status status = [self statusWithflamewingFlags:flags];
 
@@ -56,7 +58,7 @@ using namespace InstructionSet::M68k;
 				s.l = source;
 				d.l = dest;
 
-				perform<Model::M68000, NoFlowController, Operation::ABCD>(
+				perform<Model::M68000, NullFlowController, Operation::ABCD>(
 					Preinstruction(), s, d, status, flow_controller);
 
 				[self validate:bytes source:source dest:dest flags:flags result:d.l status:status operation:@"ABCD"];
@@ -66,8 +68,8 @@ using namespace InstructionSet::M68k;
 	}
 
 	// Test SBCD.
-	for(int dest = 0; dest < 256; dest++) {
-		for(int source = 0; source < 256; source++) {
+	for(int source = 0; source < 256; source++) {
+		for(int dest = 0; dest < 256; dest++) {
 			for(int flags = 0; flags < 4; flags++) {
 				Status status = [self statusWithflamewingFlags:flags];
 
@@ -75,7 +77,7 @@ using namespace InstructionSet::M68k;
 				s.l = source;
 				d.l = dest;
 
-				perform<Model::M68000, NoFlowController, Operation::SBCD>(
+				perform<Model::M68000, NullFlowController, Operation::SBCD>(
 					Preinstruction(), s, d, status, flow_controller);
 
 				[self validate:bytes source:source dest:dest flags:flags result:d.l status:status operation:@"SBCD"];
@@ -83,6 +85,8 @@ using namespace InstructionSet::M68k;
 			}
 		}
 	}
+
+	return;
 
 	// Test NBCD.
 	for(int source = 0; source < 256; source++) {
@@ -92,13 +96,15 @@ using namespace InstructionSet::M68k;
 			CPU::SlicedInt32 s, d;
 			s.l = source;
 
-			perform<Model::M68000, NoFlowController, Operation::SBCD>(
+			perform<Model::M68000, NullFlowController, Operation::SBCD>(
 				Preinstruction(), s, d, status, flow_controller);
 
-			[self validate:bytes source:source dest:0 flags:flags result:d.l status:status operation:@"NBCD"];
+			[self validate:bytes source:source dest:0 flags:flags result:s.l status:status operation:@"NBCD"];
 			bytes += 2;
 		}
 	}
+
+	NSLog(@"%d tests performed", _testsPerformed);
 }
 
 @end
