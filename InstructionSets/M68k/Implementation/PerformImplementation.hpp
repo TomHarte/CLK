@@ -794,7 +794,7 @@ template <
 	if(result & 0xf0) result -= 0x06;																	\
 	result += (destination & 0xf0) - (source & 0xf0);													\
 	status.extend_flag_ = status.carry_flag_ = decltype(status.carry_flag_)((result & 0xff) > 0x9f);	\
-	if(status.carry_flag_) result -= 0x60;																\
+	if(unadjusted_result & 0x100) result -= 0x60;																\
 																										\
 	/* Set all flags essentially as if this were normal subtraction. */									\
 	status.zero_result_ |= result & 0xff;																\
