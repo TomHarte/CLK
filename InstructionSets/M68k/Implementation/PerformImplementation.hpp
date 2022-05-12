@@ -42,9 +42,11 @@ template <
 			// Perform the BCD add by evaluating the two nibbles separately.
 			const int unadjusted_result = destination + source + extend;
 			int result = (destination & 0xf) + (source & 0xf) + extend;
-			if(result > 0x09) result += 0x06;
-			result += (destination & 0xf0) + (source & 0xf0);
-			if(result > 0x9f) result += 0x60;
+			result +=
+				(destination & 0xf0) +
+				(source & 0xf0) +
+				(((9 - result) >> 4) & 0x06);			// i.e. ((result > 0x09) ? 0x06 : 0x00);
+			result += ((0x9f - result) >> 4) & 0x60;	// i.e. ((result > 0x9f) ? 0x60 : 0x00)
 
 			// Set all flags essentially as if this were normal addition.
 			status.zero_result |= result & 0xff;
