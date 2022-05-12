@@ -46,8 +46,7 @@ using namespace InstructionSet::M68k;
 	NSData *const testData = [NSData dataWithContentsOfURL:testURL];
 	const uint8_t *bytes = reinterpret_cast<const uint8_t *>(testData.bytes);
 
-	struct NoFlowController: public NullFlowController {
-	} flow_controller;
+	NullFlowController flow_controller;
 
 	// Test ABCD.
 	for(int source = 0; source < 256; source++) {
@@ -59,7 +58,7 @@ using namespace InstructionSet::M68k;
 				s.l = source;
 				d.l = dest;
 
-				perform<Model::M68000, NoFlowController, Operation::ABCD>(
+				perform<Model::M68000, NullFlowController, Operation::ABCD>(
 					Preinstruction(), s, d, status, flow_controller);
 
 				[self validate:bytes source:source dest:dest flags:flags result:d.l status:status operation:@"ABCD"];
@@ -78,7 +77,7 @@ using namespace InstructionSet::M68k;
 				s.l = source;
 				d.l = dest;
 
-				perform<Model::M68000, NoFlowController, Operation::SBCD>(
+				perform<Model::M68000, NullFlowController, Operation::SBCD>(
 					Preinstruction(), s, d, status, flow_controller);
 
 				[self validate:bytes source:source dest:dest flags:flags result:d.l status:status operation:@"SBCD"];
@@ -86,8 +85,6 @@ using namespace InstructionSet::M68k;
 			}
 		}
 	}
-
-	return;
 
 	// Test NBCD.
 	for(int source = 0; source < 256; source++) {
@@ -97,7 +94,7 @@ using namespace InstructionSet::M68k;
 			CPU::SlicedInt32 s, d;
 			s.l = source;
 
-			perform<Model::M68000, NoFlowController, Operation::SBCD>(
+			perform<Model::M68000, NullFlowController, Operation::SBCD>(
 				Preinstruction(), s, d, status, flow_controller);
 
 			[self validate:bytes source:source dest:0 flags:flags result:d.l status:status operation:@"NBCD"];
