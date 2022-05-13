@@ -116,6 +116,7 @@ constexpr bool requires_supervisor(Operation op) {
 		case Operation::EORItoSR:	case Operation::RTE:
 		case Operation::RESET:		case Operation::STOP:
 		case Operation::MOVEtoUSP:	case Operation::MOVEfromUSP:
+		case Operation::MOVEtoSR:
 			return true;
 
 		default:
