@@ -28,11 +28,32 @@ enum class FunctionCode {
 	InterruptAcknowledge	= 0b111,
 };
 
+/// The Executor is templated on a class that implements bus handling as defined below;
+/// the bus handler is responsible for all reads and writes, and will also receive resets and
+/// interrupt acknowledgements.
+///
+/// The executor will provide 32-bit addresses and act as if it had a 32-bit data bus, even
+/// if interpretting the original 68000 instruction set.
 struct BusHandler {
+	/// Write @c value of type/size @c IntT to @c address with the processor signalling
+	/// a FunctionCode of @c function. @c IntT will be one of @c uint8_t, @c uint16_t
+	/// or @c uint32_t.
 	template <typename IntT> void write(uint32_t address, IntT value, FunctionCode function);
+
+	/// Read and return a value of type/size @c IntT from @c address with the processor signalling
+	/// a FunctionCode of @c function. @c IntT will be one of @c uint8_t, @c uint16_t
+	/// or @c uint32_t.
 	template <typename IntT> IntT read(uint32_t address, FunctionCode function);
+
+	/// React to the processor programmatically strobing its RESET output.
 	void reset();
-	int acknowlege_interrupt(int);
+
+	/// Respond to an interrupt acknowledgement at @c interrupt_level from the processor.
+	/// Should return @c -1 in order to trigger autovectoring, or the appropriate exception vector
+	/// number otherwise.
+	///
+	/// It is undefined behaviour to return a number greater than 255.
+	int acknowlege_interrupt(int interrupt_level);
 };
 
 /// Ties together the decoder, sequencer and performer to provide an executor for 680x0 instruction streams.
