@@ -43,7 +43,7 @@ void Executor<model, BusHandler>::reset_processor() {
 template <Model model, typename BusHandler>
 template <typename IntT>
 IntT Executor<model, BusHandler>::read(uint32_t address, bool is_from_pc) {
-	const auto code = FunctionCode((status_.is_supervisor << 2) | 1 << int(is_from_pc));
+	const auto code = FunctionCode((active_stack_pointer_ << 2) | 1 << int(is_from_pc));
 	if(model == Model::M68000 && sizeof(IntT) > 1 && address & 1) {
 		throw AccessException(code, address, Exception::AddressError | (int(is_from_pc) << 3) | (1 << 4));
 	}
@@ -55,7 +55,7 @@ IntT Executor<model, BusHandler>::read(uint32_t address, bool is_from_pc) {
 template <Model model, typename BusHandler>
 template <typename IntT>
 void Executor<model, BusHandler>::write(uint32_t address, IntT value) {
-	const auto code = FunctionCode((status_.is_supervisor << 2) | 1);
+	const auto code = FunctionCode((active_stack_pointer_ << 2) | 1);
 	if(model == Model::M68000 && sizeof(IntT) > 1 && address & 1) {
 		throw AccessException(code, address, Exception::AddressError);
 	}
@@ -245,7 +245,7 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 
 			// Grab the status to store, then switch into supervisor mode.
 			const uint16_t status = status_.status();
-			status_.is_supervisor = 1;
+			status_.is_supervisor = true;
 			status_.trace_flag = 0;
 			did_update_status();
 
@@ -292,7 +292,7 @@ void Executor<model, BusHandler>::run(int &count) {
 		instruction_opcode_ = read_pc<uint16_t>();
 		const Preinstruction instruction = decoder_.decode(instruction_opcode_);
 
-		if(!status_.is_supervisor && instruction.requires_supervisor()) {
+		if(instruction.requires_supervisor() && !status_.is_supervisor) {
 			raise_exception(Exception::PrivilegeViolation);
 			continue;
 		}
@@ -383,7 +383,7 @@ typename Executor<model, BusHandler>::Registers Executor<model, BusHandler>::get
 	result.status = status_.status();
 	result.program_counter = program_counter_.l;
 
-	stack_pointers_[status_.is_supervisor] = sp;
+	stack_pointers_[active_stack_pointer_] = sp;
 	result.user_stack_pointer = stack_pointers_[0].l;
 	result.supervisor_stack_pointer = stack_pointers_[1].l;
 
@@ -399,11 +399,12 @@ void Executor<model, BusHandler>::set_state(const Registers &state) {
 		An(c).l = state.address[c];
 	}
 	status_.set_status(state.status);
+	did_update_status();
 	program_counter_.l = state.program_counter;
 
 	stack_pointers_[0].l = state.user_stack_pointer;
 	stack_pointers_[1].l = state.supervisor_stack_pointer;
-	sp = stack_pointers_[status_.is_supervisor];
+	sp = stack_pointers_[active_stack_pointer_];
 }
 
 // MARK: - Flow Control.
@@ -416,7 +417,7 @@ void Executor<model, BusHandler>::raise_exception(int index) {
 	// Grab the status to store, then switch into supervisor mode
 	// and disable tracing.
 	const uint16_t status = status_.status();
-	status_.is_supervisor = 1;
+	status_.is_supervisor = true;
 	status_.trace_flag = 0;
 	did_update_status();
 
@@ -433,8 +434,8 @@ template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::did_update_status() {
 	// Shuffle the stack pointers.
 	stack_pointers_[active_stack_pointer_] = sp;
-	sp = stack_pointers_[status_.is_supervisor];
-	active_stack_pointer_ = status_.is_supervisor;
+	sp = stack_pointers_[int(status_.is_supervisor)];
+	active_stack_pointer_ = int(status_.is_supervisor);
 }
 
 template <Model model, typename BusHandler>

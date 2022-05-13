@@ -39,8 +39,7 @@ struct Status {
 	FlagT trace_flag = 0;		// The trace flag is set if and only if this value is non-zero.
 
 	/* b13 */
-	int is_supervisor = 0;		// 1 => processor is in supervisor mode; 0 => it isn't.
-								// All other values have undefined meaning.
+	bool is_supervisor = false;	// true => processor is in supervisor mode; false => it isn't.
 
 	/* b7–b9 */
 	int interrupt_level = 0;	// The direct integer value of the current interrupt level.
@@ -89,7 +88,7 @@ struct Status {
 
 		interrupt_level	= (status >> 8) & 7;
 		trace_flag		= status & ConditionCode::Trace;
-		is_supervisor	= (status & ConditionCode::Supervisor) ? 1 : 0;
+		is_supervisor	= status & ConditionCode::Supervisor;
 
 		return is_supervisor;
 	}
