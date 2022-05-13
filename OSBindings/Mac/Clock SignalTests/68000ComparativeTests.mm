@@ -77,6 +77,9 @@ struct Test68000 {
 	}
 
 	void reset() {}
+	int acknowlege_interrupt(int) {
+		return -1;
+	}
 };
 
 }

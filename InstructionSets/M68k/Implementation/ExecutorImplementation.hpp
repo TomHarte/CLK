@@ -228,6 +228,11 @@ void Executor<model, BusHandler>::signal_bus_error(FunctionCode code, uint32_t a
 }
 
 template <Model model, typename BusHandler>
+void Executor<model, BusHandler>::set_interrupt_level(int level) {
+	interrupt_input_ = level;
+}
+
+template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::run_for_instructions(int count) {
 	while(count > 0) {
 		try {
@@ -267,7 +272,16 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::run(int &count) {
 	while(count--) {
-		// TODO: interrupts.
+		// Check for a new interrupt.
+		if(interrupt_input_ > status_.interrupt_level) {
+			const int vector = bus_handler_.acknowlege_interrupt(interrupt_input_);
+			if(vector >= 0) {
+				raise_exception<false>(vector);
+			} else {
+				raise_exception<false>(Exception::InterruptAutovectorBase - 1 + interrupt_input_);
+			}
+			status_.interrupt_level = interrupt_input_;
+		}
 
 		// Capture the trace bit, indicating whether to trace
 		// after this instruction.

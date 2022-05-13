@@ -32,6 +32,7 @@ struct BusHandler {
 	template <typename IntT> void write(uint32_t address, IntT value, FunctionCode function);
 	template <typename IntT> IntT read(uint32_t address, FunctionCode function);
 	void reset();
+	int acknowlege_interrupt(int);
 };
 
 /// Ties together the decoder, sequencer and performer to provide an executor for 680x0 instruction streams.
@@ -51,6 +52,9 @@ template <Model model, typename BusHandler> class Executor: public NullFlowContr
 		/// the function code and address must be provided. Internally
 		/// this will raise a C++ exception, and therefore doesn't return.
 		[[noreturn]] void signal_bus_error(FunctionCode, uint32_t address);
+
+		/// Sets the current input interrupt level.
+		void set_interrupt_level(int);
 
 		// Flow control; Cf. Perform.hpp.
 		template <bool use_current_instruction_pc = true> void raise_exception(int);
@@ -122,6 +126,9 @@ template <Model model, typename BusHandler> class Executor: public NullFlowContr
 		uint32_t instruction_address_;
 		uint16_t instruction_opcode_;
 		int active_stack_pointer_ = 0;
+
+		// Bus state.
+		int interrupt_input_ = 0;
 
 		// A lookup table to ensure that A7 is adjusted by 2 rather than 1 in
 		// postincrement and predecrement mode.
