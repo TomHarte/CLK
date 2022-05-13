@@ -113,7 +113,10 @@ template <Model model, typename BusHandler> class Executor {
 				CPU::SlicedInt32 stack_pointers[2];
 				uint32_t instruction_address;
 				uint16_t instruction_opcode;
+
+				// Things that are ephemerally duplicative of Status.
 				int active_stack_pointer = 0;
+				Status::FlagT should_trace = 0;
 
 				// Bus state.
 				int interrupt_input = 0;

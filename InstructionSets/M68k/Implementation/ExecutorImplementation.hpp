@@ -69,6 +69,9 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 			state_.status.trace_flag = 0;
 			state_.did_update_status();
 
+			// Ensure no tracing occurs into the exception.
+			state_.should_trace = 0;
+
 			// Push status and the program counter at instruction start.
 			state_.template write<uint16_t>(sp.l - 14, code);
 			state_.template write<uint32_t>(sp.l - 12, faulting_address);
@@ -322,6 +325,14 @@ void Executor<model, BusHandler>::State::run(int &count) {
 			status.interrupt_level = interrupt_input;
 		}
 
+		// Capture the trace bit, indicating whether to trace
+		// after this instruction.
+		//
+		// If an exception occurs, this value will be cleared, but
+		// it'll persist across mere status register changes for
+		// one instruction's duration.
+		should_trace = status.trace_flag;
+
 		// Read the next instruction.
 		instruction_address = program_counter.l;
 		instruction_opcode = read_pc<uint16_t>();
@@ -344,10 +355,6 @@ void Executor<model, BusHandler>::State::run(int &count) {
 				continue;
 			}
 		}
-
-		// Capture the trace bit, indicating whether to trace
-		// after this instruction.
-		const auto should_trace = status.trace_flag;
 
 		// Temporary storage.
 		CPU::SlicedInt32 operand_[2];
@@ -414,6 +421,9 @@ void Executor<model, BusHandler>::State::raise_exception(int index) {
 	write<uint32_t>(sp.l - 4, use_current_instruction_pc ? instruction_address : program_counter.l);
 	write<uint16_t>(sp.l - 6, previous_status);
 	sp.l -= 6;
+
+	// Ensure no tracing occurs into the exception.
+	should_trace = 0;
 
 	// Fetch the new program counter.
 	program_counter.l = read<uint32_t>(address);
