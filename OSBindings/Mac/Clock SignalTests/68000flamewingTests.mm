@@ -15,9 +15,7 @@ using namespace InstructionSet::M68k;
 @interface M68000flamewingTests : XCTestCase
 @end
 
-@implementation M68000flamewingTests {
-	int _testsPerformed;
-}
+@implementation M68000flamewingTests
 
 - (Status)statusWithflamewingFlags:(int)flags {
 	Status status;
@@ -32,7 +30,6 @@ using namespace InstructionSet::M68k;
 	const uint8_t result_flags = test[0];
 	const uint8_t result_value = test[1];
 
-	++_testsPerformed;
 	NSString *const testName =
 		[NSString stringWithFormat:@"%@ %02x, %02x [%c%c]", operation, source, dest, (flags & 2) ? 'X' : '-', (flags & 1) ? 'Z' : '-'];
 	XCTAssertEqual(result, uint32_t(result_value), @"Wrong value received for %@", testName);
@@ -101,8 +98,6 @@ using namespace InstructionSet::M68k;
 			bytes += 2;
 		}
 	}
-
-	NSLog(@"%d tests performed", _testsPerformed);
 }
 
 @end
