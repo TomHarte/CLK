@@ -212,35 +212,42 @@ template <
 			dest.l -= src.l;
 		break;
 
+#define get_mask()																						\
+	const uint32_t mask_size = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;	\
+	const uint32_t bit_position = src.l & mask_size;													\
+	const uint32_t bit_mask = 1 << bit_position
+
 		// BTST/BCLR/etc: modulo for the mask depends on whether memory or a data register is the target.
 		case Operation::BTST: {
-			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
-			status.zero_result = dest.l & (1 << (src.l & mask));
+			get_mask();
+			status.zero_result = dest.l & bit_mask;
 		} break;
 
 		case Operation::BCLR: {
-			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
+			get_mask();
 
-			status.zero_result = dest.l & (1 << (src.l & mask));
-			dest.l &= ~(1 << (src.l & mask));
-			flow_controller.did_bit_op(src.l & mask);
+			status.zero_result = dest.l & bit_mask;
+			dest.l &= ~bit_mask;
+			flow_controller.did_bit_op(bit_position);
 		} break;
 
 		case Operation::BCHG: {
-			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
+			get_mask();
 
-			status.zero_result = dest.l & (1 << (src.l & mask));
-			dest.l ^= 1 << (src.l & mask);
-			flow_controller.did_bit_op(src.l & mask);
+			status.zero_result = dest.l & bit_mask;
+			dest.l ^= bit_mask;
+			flow_controller.did_bit_op(bit_position);
 		} break;
 
 		case Operation::BSET: {
-			const uint32_t mask = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;
+			get_mask();
 
-			status.zero_result = dest.l & (1 << (src.l & mask));
-			dest.l |= 1 << (src.l & mask);
-			flow_controller.did_bit_op(src.l & mask);
+			status.zero_result = dest.l & bit_mask;
+			dest.l |= bit_mask;
+			flow_controller.did_bit_op(bit_position);
 		} break;
+
+#undef get_mask
 
 		case Operation::Bccb:
 			flow_controller.template complete_bcc<int8_t>(
