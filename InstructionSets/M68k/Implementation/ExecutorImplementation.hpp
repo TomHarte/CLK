@@ -283,10 +283,6 @@ void Executor<model, BusHandler>::run(int &count) {
 			status_.interrupt_level = interrupt_input_;
 		}
 
-		// Capture the trace bit, indicating whether to trace
-		// after this instruction.
-		const auto should_trace = status_.trace_flag;
-
 		// Read the next instruction.
 		instruction_address_ = program_counter_.l;
 		instruction_opcode_ = read_pc<uint16_t>();
@@ -309,6 +305,10 @@ void Executor<model, BusHandler>::run(int &count) {
 				continue;
 			}
 		}
+
+		// Capture the trace bit, indicating whether to trace
+		// after this instruction.
+		const auto should_trace = status_.trace_flag;
 
 		// Temporary storage.
 		CPU::SlicedInt32 operand_[2];
