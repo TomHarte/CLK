@@ -17,7 +17,7 @@
 #include <functional>
 
 //#define USE_EXISTING_IMPLEMENTATION
-#define MAKE_SUGGESTIONS
+//#define MAKE_SUGGESTIONS
 
 namespace {
 
@@ -109,7 +109,7 @@ struct Test68000 {
 #endif
 
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-//	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
+//	_fileSet = [NSSet setWithArray:@[@"exg.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }
 
