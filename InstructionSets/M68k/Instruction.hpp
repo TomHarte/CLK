@@ -278,7 +278,7 @@ class Preinstruction {
 		// other than 0 and 1 are undefined.
 
 		AddressingMode mode(int index) const {
-			return AddressingMode(operands_[index] & 0x1f);
+			return AddressingMode(operands_[index] >> 3);
 		}
 		template <int index> AddressingMode mode() const {
 			if constexpr (index > 1) {
@@ -287,13 +287,20 @@ class Preinstruction {
 			return mode(index);
 		}
 		int reg(int index) const {
-			return operands_[index] >> 5;
+			return operands_[index] & 7;
 		}
 		template <int index> int reg() const {
 			if constexpr (index > 1) {
 				return 0;
 			}
 			return reg(index);
+		}
+
+		/// @returns 0–7 to indicate data registers 0 to 7, or 8–15 to indicate address registers 0 to 7 respectively.
+		/// Provides undefined results if the addressing mode is not either @c DataRegisterDirect or
+		/// @c AddressRegisterDirect.
+		int lreg(int index) const {
+			return operands_[index] & 0xf;
 		}
 
 		bool requires_supervisor() const {
@@ -321,8 +328,8 @@ class Preinstruction {
 			DataSize size,
 			Condition condition) : operation(operation)
 		{
-			operands_[0] = uint8_t(op1_mode) | uint8_t(op1_reg << 5);
-			operands_[1] = uint8_t(op2_mode) | uint8_t(op2_reg << 5);
+			operands_[0] = uint8_t((uint8_t(op1_mode) << 3) | op1_reg);
+			operands_[1] = uint8_t((uint8_t(op2_mode) << 3) | op2_reg);
 			flags_ = uint8_t(
 				(is_supervisor ? 0x80 : 0x00) |
 				(int(condition) << 2) |

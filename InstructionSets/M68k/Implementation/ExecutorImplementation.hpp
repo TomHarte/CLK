@@ -48,7 +48,6 @@ IntT Executor<model, BusHandler>::read(uint32_t address, bool is_from_pc) {
 		throw AccessException(code, address, Exception::AddressError | (int(is_from_pc) << 3) | (1 << 4));
 	}
 
-	// TODO: omit generation of the FunctionCode if the BusHandler doesn't receive it.
 	return bus_handler_.template read<IntT>(address, code);
 }
 
@@ -120,11 +119,8 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		// Operands that don't have effective addresses, which are returned as values.
 		//
 		case AddressingMode::DataRegisterDirect:
-			ea.value = Dn(instruction.reg(index));
-			ea.requires_fetch = false;
-		break;
 		case AddressingMode::AddressRegisterDirect:
-			ea.value = An(instruction.reg(index));
+			ea.value = registers_[instruction.lreg(index)];
 			ea.requires_fetch = false;
 		break;
 		case AddressingMode::Quick:
@@ -201,9 +197,6 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		//
 		// PC-relative addresses.
 		//
-		// TODO: rephrase these in terms of instruction_address_. Just for security
-		// against whatever mutations the PC has been through already to get to here.
-		//
 		case AddressingMode::ProgramCounterIndirectWithDisplacement:
 			ea.value.l = program_counter_.l + int16_t(read_pc<uint16_t>());
 			ea.requires_fetch = true;
@@ -214,9 +207,7 @@ typename Executor<model, BusHandler>::EffectiveAddress Executor<model, BusHandle
 		break;
 
 		default:
-			// TODO.
 			assert(false);
-		break;
 	}
 
 	return ea;
@@ -318,20 +309,14 @@ void Executor<model, BusHandler>::run(int &count) {
 		// operands by default both: (i) because they might be values,
 		// rather than addresses; and (ii) then they'll be there for use
 		// by LEA and PEA.
-		//
-		// TODO: much of this work should be performed by a full Decoder,
-		// so that it can be cached.
 		effective_address_[0] = calculate_effective_address(instruction, instruction_opcode_, 0);
 		effective_address_[1] = calculate_effective_address(instruction, instruction_opcode_, 1);
 		operand_[0] = effective_address_[0].value;
 		operand_[1] = effective_address_[1].value;
 
 		// Obtain the appropriate sequence.
-		//
-		// TODO: make a decision about whether this goes into a fully-decoded Instruction.
 		const auto flags = operand_flags<model>(instruction.operation);
 
-// TODO: potential alignment exception, here and in store.
 #define fetch_operand(n)																\
 	if(effective_address_[n].requires_fetch) {											\
 		read(instruction.operand_size(), effective_address_[n].value.l, operand_[n]);	\
@@ -344,14 +329,9 @@ void Executor<model, BusHandler>::run(int &count) {
 
 		perform<model>(instruction, operand_[0], operand_[1], status_, *this);
 
-// TODO: rephrase to avoid conditional below.
 #define store_operand(n)																\
 	if(!effective_address_[n].requires_fetch) {											\
-		if(instruction.mode(n) == AddressingMode::DataRegisterDirect) {					\
-			Dn(instruction.reg(n)) = operand_[n];										\
-		} else {																		\
-			An(instruction.reg(n)) = operand_[n];										\
-		}																				\
+		registers_[instruction.lreg(n)] = operand_[n];									\
 	} else {																			\
 		write(instruction.operand_size(), effective_address_[n].value.l, operand_[n]);	\
 	}
