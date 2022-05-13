@@ -17,6 +17,7 @@
 #include <functional>
 
 //#define USE_EXISTING_IMPLEMENTATION
+#define MAKE_SUGGESTIONS
 
 namespace {
 
@@ -93,6 +94,7 @@ struct Test68000 {
 
 	NSMutableSet<NSString *> *_failures;
 	NSMutableArray<NSNumber *> *_failingOpcodes;
+	NSMutableDictionary<NSNumber *, NSMutableArray<NSString *> *> *_suggestedCorrections;
 
 	Test68000 _test68000;
 }
@@ -101,6 +103,10 @@ struct Test68000 {
 	// These will accumulate a list of failing tests and associated opcodes.
 	_failures = [[NSMutableSet alloc] init];
 	_failingOpcodes = [[NSMutableArray alloc] init];
+
+#ifdef MAKE_SUGGESTIONS
+	_suggestedCorrections = [[NSMutableDictionary alloc] init];
+#endif
 
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
@@ -133,6 +139,10 @@ struct Test68000 {
 			const auto decoded = decoder.decode(number.intValue);
 			const std::string description = decoded.to_string(number.intValue);
 			NSLog(@"%04x %s", number.intValue, description.c_str());
+
+			for(NSString *suggestion in _suggestedCorrections[number]) {
+				NSLog(@"%@", suggestion);
+			}
 		}
 	}
 }
@@ -331,20 +341,10 @@ struct Test68000 {
 
 		if(state.data[c] != [finalState[dX] integerValue]) [_failures addObject:name];
 		if(c < 7 && state.address[c] != [finalState[aX] integerValue]) [_failures addObject:name];
-
-//		XCTAssertEqual(state.data[c], [finalState[dX] integerValue], @"%@: D%d inconsistent", name, c);
-//		if(c < 7) {
-//			XCTAssertEqual(state.address[c], [finalState[aX] integerValue], @"%@: A%d inconsistent", name, c);
-//		}
 	}
 	if(state.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
 	if(state.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
 	if(state.status != [finalState[@"sr"] integerValue]) [_failures addObject:name];
-
-//	XCTAssertEqual(state.supervisor_stack_pointer, [finalState[@"a7"] integerValue], @"%@: A7 inconsistent", name);
-//	XCTAssertEqual(state.user_stack_pointer, [finalState[@"usp"] integerValue], @"%@: USP inconsistent", name);
-//	XCTAssertEqual(state.status, [finalState[@"sr"] integerValue], @"%@: Status inconsistent", name);
-//	XCTAssertEqual(state.program_counter, [finalState[@"pc"] integerValue], @"%@: Program counter inconsistent", name);
 
 	// Test final memory state.
 	NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
@@ -354,14 +354,44 @@ struct Test68000 {
 		NSNumber *const value = [enumerator nextObject];
 
 		if(!address || !value) break;
-//		XCTAssertEqual(_test68000.ram[address.integerValue], value.integerValue, @"%@: Memory at location %@ inconsistent", name, address);
 		if(_test68000.ram[address.integerValue] != value.integerValue) [_failures addObject:name];
 	}
 
 	// If this test is now in the failures set, add the corresponding opcode for
 	// later logging.
 	if([_failures containsObject:name]) {
-		[_failingOpcodes addObject:@(_test68000.read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode()))];
+		NSNumber *const opcode = @(_test68000.read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode()));
+
+		// Add this opcode to the failing list.
+		[_failingOpcodes addObject:opcode];
+
+		// Generate the JSON that would have satisfied this test, at least as far as registers go,
+		// if those are being collected.
+		if(_suggestedCorrections) {
+			NSMutableDictionary *generatedTest = [test mutableCopy];
+			NSMutableDictionary *generatedState = generatedTest[@"final state"] = [test[@"final state"] mutableCopy];
+			for(int c = 0; c < 8; ++c) {
+				const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
+				const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
+				generatedState[dX] = @(state.data[c]);
+				if(c < 7) generatedState[aX] = @(state.address[c]);
+			}
+
+			generatedState[@"a7"] = @(state.supervisor_stack_pointer);
+			generatedState[@"usp"] = @(state.user_stack_pointer);
+			generatedState[@"sr"] = @(state.status);
+
+			NSString *const generatedJSON =
+				[[NSString alloc] initWithData:
+						[NSJSONSerialization dataWithJSONObject:generatedTest options:0 error:nil]
+						encoding:NSUTF8StringEncoding];
+
+			if(_suggestedCorrections[opcode]) {
+				[_suggestedCorrections[opcode] addObject:generatedJSON];
+			} else {
+				_suggestedCorrections[opcode] = [NSMutableArray arrayWithObject:generatedJSON];
+			}
+		}
 	}
 }
 
