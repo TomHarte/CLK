@@ -10,6 +10,7 @@
 
 #include "../../../Processors/68000/68000.hpp"
 #include "../../../InstructionSets/M68k/Executor.hpp"
+#include "../../../InstructionSets/M68k/Decoder.hpp"
 
 #include <array>
 #include <memory>
@@ -122,8 +123,12 @@ struct Test68000 {
 	NSLog(@"Total: %@", @(_failures.count));
 	NSLog(@"Failures: %@", _failures);
 	NSLog(@"Failing opcodes:");
+
+	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> decoder;
 	for(NSNumber *number in _failingOpcodes) {
-		NSLog(@"%04x", number.intValue);
+		const auto decoded = decoder.decode(number.intValue);
+		const std::string description = decoded.to_string(number.intValue);
+		NSLog(@"%04x %s", number.intValue, description.c_str());
 	}
 }
 
