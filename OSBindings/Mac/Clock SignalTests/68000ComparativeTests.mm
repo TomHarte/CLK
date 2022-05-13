@@ -98,16 +98,16 @@ struct Test68000 {
 }
 
 - (void)setUp {
+	// These will accumulate a list of failing tests and associated opcodes.
+	_failures = [[NSMutableSet alloc] init];
+	_failingOpcodes = [[NSMutableArray alloc] init];
+
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
 //	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }
 
 - (void)testAll {
-	// These will accumulate a list of failing tests and associated opcodes.
-	_failures = [[NSMutableSet alloc] init];
-	_failingOpcodes = [[NSMutableArray alloc] init];
-
 	// Get the full list of available test files.
 	NSBundle *const bundle = [NSBundle bundleForClass:[self class]];
 	NSArray<NSURL *> *const tests = [bundle URLsForResourcesWithExtension:@"json" subdirectory:@"68000 Comparative Tests"];
