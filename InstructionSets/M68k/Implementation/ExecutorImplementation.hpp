@@ -64,6 +64,9 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 		try {
 			state_.run(count);
 		} catch (uint64_t exception) {
+			// Potiental source of an exception #1: STOP. Check for that first.
+			if(state_.stopped) return;
+
 			// Unpack the exception; this is the converse of the AccessException macro.
 			const int vector_address = (exception >> 6) & 0xfc;
 			const uint16_t code = uint16_t(exception & 0xff);
@@ -446,6 +449,10 @@ void Executor<model, BusHandler>::State::did_update_status() {
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::State::stop() {
 	stopped = true;
+
+	// Raise an exception to exit the run loop; it doesn't matter
+	// what value is used as long as it is a uint64_t, so 0 will do.
+	throw uint64_t();
 }
 
 template <Model model, typename BusHandler>
