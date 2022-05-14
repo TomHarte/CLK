@@ -63,6 +63,9 @@ template <Model model, typename BusHandler> class Executor {
 	public:
 		Executor(BusHandler &);
 
+		/// Reset the processor, back to a state as if just externally reset.
+		void reset();
+
 		/// Executes the number of instructions specified;
 		/// other events — such as initial reset or branching
 		/// to exceptions — may be zero costed, and interrupts
@@ -90,14 +93,12 @@ template <Model model, typename BusHandler> class Executor {
 		void set_state(const Registers &);
 
 	private:
-		/// Reset the processor, back to a state as if just externally reset.
-		void reset();
-
 		class State: public NullFlowController {
 			public:
 				State(BusHandler &handler) : bus_handler_(handler) {}
 
 				void run(int &);
+				bool stopped = false;
 
 				void read(DataSize size, uint32_t address, CPU::SlicedInt32 &value);
 				void write(DataSize size, uint32_t address, CPU::SlicedInt32 value);

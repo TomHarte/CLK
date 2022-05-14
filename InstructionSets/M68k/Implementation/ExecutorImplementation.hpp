@@ -37,6 +37,9 @@ void Executor<model, BusHandler>::reset() {
 	state_.status.set_status(0b0010'0011'1000'0000);
 	state_.did_update_status();
 
+	// Clear the STOPped state, if currently active.
+	state_.stopped = false;
+
 	// Seed stack pointer and program counter.
 	sp.l = state_.template read<uint32_t>(0) & 0xffff'fffe;
 	state_.program_counter.l = state_.template read<uint32_t>(4);
@@ -50,10 +53,13 @@ void Executor<model, BusHandler>::signal_bus_error(FunctionCode code, uint32_t a
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::set_interrupt_level(int level) {
 	state_.interrupt_input_ = level;
+	state_.stopped &= state_.interrupt_input_ <= state_.status.interrupt_level;
 }
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::run_for_instructions(int count) {
+	if(state_.stopped) return;
+
 	while(count > 0) {
 		try {
 			state_.run(count);
@@ -438,7 +444,9 @@ void Executor<model, BusHandler>::State::did_update_status() {
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::State::stop() {}
+void Executor<model, BusHandler>::State::stop() {
+	stopped = true;
+}
 
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::State::reset() {
