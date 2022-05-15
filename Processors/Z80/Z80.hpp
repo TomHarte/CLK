@@ -13,7 +13,7 @@
 #include <vector>
 #include <cstdint>
 
-#include "../RegisterSizes.hpp"
+#include "../../Numeric/RegisterSizes.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
 

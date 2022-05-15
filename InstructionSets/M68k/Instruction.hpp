@@ -9,8 +9,11 @@
 #ifndef InstructionSets_68k_Instruction_hpp
 #define InstructionSets_68k_Instruction_hpp
 
-#include <cstdint>
 #include "Model.hpp"
+
+#include <cassert>
+#include <cstdint>
+#include <string>
 
 namespace InstructionSet {
 namespace M68k {
@@ -70,7 +73,9 @@ enum class Operation: uint8_t {
 	ROXLb, ROXLw, ROXLl, ROXLm,
 	ROXRb, ROXRw, ROXRl, ROXRm,
 
-	MOVEMl, MOVEMw,
+	MOVEMtoRl, MOVEMtoRw,
+	MOVEMtoMl, MOVEMtoMw,
+
 	MOVEPl, MOVEPw,
 
 	ANDb,	ANDw,	ANDl,
@@ -111,6 +116,7 @@ constexpr bool requires_supervisor(Operation op) {
 		case Operation::EORItoSR:	case Operation::RTE:
 		case Operation::RESET:		case Operation::STOP:
 		case Operation::MOVEtoUSP:	case Operation::MOVEfromUSP:
+		case Operation::MOVEtoSR:
 			return true;
 
 		default:
@@ -125,108 +131,15 @@ enum class DataSize {
 };
 
 /// Classifies operations by the size of their memory accesses, if any.
-constexpr DataSize size(Operation operation) {
-	switch(operation) {
-		// These are given a value arbitrarily, to
-		// complete the switch statement.
-		case Operation::Undefined:
-		case Operation::NOP:
-		case Operation::STOP:
-		case Operation::RESET:
-		case Operation::RTE:	case Operation::RTR:
-		case Operation::TRAP:
-		case Operation::TRAPV:
+///
+/// For any operations that don't fit the neat model of reading one or two operands,
+/// then writing zero or one, the size determines the data size of the operands only,
+/// not any other accesses.
+constexpr DataSize operand_size(Operation operation);
 
-		case Operation::ABCD:	case Operation::SBCD:
-		case Operation::NBCD:
-		case Operation::ADDb:	case Operation::ADDXb:
-		case Operation::SUBb:	case Operation::SUBXb:
-		case Operation::MOVEb:
-		case Operation::ORItoCCR:
-		case Operation::ANDItoCCR:
-		case Operation::EORItoCCR:
-		case Operation::BTST:	case Operation::BCLR:
-		case Operation::BCHG:	case Operation::BSET:
-		case Operation::CMPb:	case Operation::TSTb:
-		case Operation::Bccb:	case Operation::BSRb:
-		case Operation::CLRb:
-		case Operation::NEGXb:	case Operation::NEGb:
-		case Operation::ASLb:	case Operation::ASRb:
-		case Operation::LSLb:	case Operation::LSRb:
-		case Operation::ROLb:	case Operation::RORb:
-		case Operation::ROXLb:	case Operation::ROXRb:
-		case Operation::ANDb:	case Operation::EORb:
-		case Operation::NOTb:	case Operation::ORb:
-		case Operation::CHK:
-		case Operation::TAS:
-			return DataSize::Byte;
-
-		case Operation::ADDw:	case Operation::ADDAw:
-		case Operation::ADDXw:	case Operation::SUBw:
-		case Operation::SUBAw:	case Operation::SUBXw:
-		case Operation::MOVEw:	case Operation::MOVEAw:
-		case Operation::ORItoSR:
-		case Operation::ANDItoSR:
-		case Operation::EORItoSR:
-		case Operation::MOVEtoSR:
-		case Operation::MOVEfromSR:
-		case Operation::MOVEtoCCR:
-		case Operation::CMPw:	case Operation::CMPAw:
-		case Operation::TSTw:
-		case Operation::DBcc:	case Operation::Scc:
-		case Operation::Bccw:	case Operation::BSRw:
-		case Operation::CLRw:
-		case Operation::NEGXw:	case Operation::NEGw:
-		case Operation::ASLw:	case Operation::ASLm:
-		case Operation::ASRw:	case Operation::ASRm:
-		case Operation::LSLw:	case Operation::LSLm:
-		case Operation::LSRw:	case Operation::LSRm:
-		case Operation::ROLw:	case Operation::ROLm:
-		case Operation::RORw:	case Operation::RORm:
-		case Operation::ROXLw:	case Operation::ROXLm:
-		case Operation::ROXRw:	case Operation::ROXRm:
-		case Operation::MOVEMw:
-		case Operation::MOVEPw:
-		case Operation::ANDw:	case Operation::EORw:
-		case Operation::NOTw:	case Operation::ORw:
-		case Operation::DIVU:	case Operation::DIVS:
-		case Operation::MULU:	case Operation::MULS:
-		case Operation::EXTbtow:
-		case Operation::LINKw:
-			return DataSize::Word;
-
-		case Operation::ADDl:	case Operation::ADDAl:
-		case Operation::ADDXl:	case Operation::SUBl:
-		case Operation::SUBAl:	case Operation::SUBXl:
-		case Operation::MOVEl:	case Operation::MOVEAl:
-		case Operation::LEA:	case Operation::PEA:
-		case Operation::EXG:	case Operation::SWAP:
-		case Operation::MOVEtoUSP:
-		case Operation::MOVEfromUSP:
-		case Operation::CMPl:	case Operation::CMPAl:
-		case Operation::TSTl:
-		case Operation::JMP:	case Operation::JSR:
-		case Operation::RTS:
-		case Operation::Bccl:	case Operation::BSRl:
-		case Operation::CLRl:
-		case Operation::NEGXl:	case Operation::NEGl:
-		case Operation::ASLl:	case Operation::ASRl:
-		case Operation::LSLl:	case Operation::LSRl:
-		case Operation::ROLl:	case Operation::RORl:
-		case Operation::ROXLl:	case Operation::ROXRl:
-		case Operation::MOVEMl:
-		case Operation::MOVEPl:
-		case Operation::ANDl:	case Operation::EORl:
-		case Operation::NOTl:	case Operation::ORl:
-		case Operation::EXTwtol:
-		case Operation::UNLINK:
-			return DataSize::LongWord;
-	}
-}
-
-template <Operation op>
-constexpr uint32_t quick(uint16_t instruction) {
-	switch(op) {
+template <Operation t_op = Operation::Undefined>
+constexpr uint32_t quick(uint16_t instruction, Operation r_op = Operation::Undefined) {
+	switch((t_op != Operation::Undefined) ? t_op : r_op) {
 		case Operation::Bccb:
 		case Operation::BSRb:
 		case Operation::MOVEl:	return uint32_t(int8_t(instruction));
@@ -239,19 +152,22 @@ constexpr uint32_t quick(uint16_t instruction) {
 	}
 }
 
-constexpr uint32_t quick(Operation op, uint16_t instruction) {
-	switch(op) {
-		case Operation::MOVEl:	return quick<Operation::MOVEl>(instruction);
-		case Operation::Bccb:	return quick<Operation::Bccb>(instruction);
-		case Operation::BSRb:	return quick<Operation::BSRb>(instruction);
-		case Operation::TRAP:	return quick<Operation::TRAP>(instruction);
+static constexpr uint8_t FetchOp1	= (1 << 0);
+static constexpr uint8_t FetchOp2	= (1 << 1);
+static constexpr uint8_t StoreOp1	= (1 << 2);
+static constexpr uint8_t StoreOp2	= (1 << 3);
 
-		default:
-			// ADDw is arbitrary; anything other than those listed above will do.
-			return quick<Operation::ADDw>(instruction);
-	}
-}
+/*!
+	Provides a bitfield with a value in the range 0–15 indicating which of the provided operation's
+	operands are accessed via standard fetch and store cycles; the bitfield is composted of
+	[Fetch/Store]Op[1/2] as defined above.
 
+	Unusual bus sequences, such as TAS or MOVEM, are not described here.
+*/
+template <Model model, Operation t_operation = Operation::Undefined>
+uint8_t operand_flags(Operation r_operation = Operation::Undefined);
+
+/// Lists the various condition codes used by the 680x0.
 enum class Condition {
 	True = 0x00,					False = 0x01,
 	High = 0x02,					LowOrSame = 0x03,
@@ -303,23 +219,23 @@ enum class AddressingMode: uint8_t {
 	AddressRegisterIndirectWithDisplacement				= 0b00'101,
 	/// (d8, An, Xn)
 	AddressRegisterIndirectWithIndex8bitDisplacement	= 0b00'110,
-	/// (bd, An, Xn)
+	/// (bd, An, Xn)		[68020+]
 	AddressRegisterIndirectWithIndexBaseDisplacement	= 0b10'000,
 
-	/// ([bd, An, Xn], od)
+	/// ([bd, An, Xn], od)	[68020+]
 	MemoryIndirectPostindexed							= 0b10'001,
-	/// ([bd, An], Xn, od)
+	/// ([bd, An], Xn, od)	[68020+]
 	MemoryIndirectPreindexed							= 0b10'010,
 
 	/// (d16, PC)
 	ProgramCounterIndirectWithDisplacement				= 0b01'010,
 	/// (d8, PC, Xn)
 	ProgramCounterIndirectWithIndex8bitDisplacement		= 0b01'011,
-	/// (bd, PC, Xn)
+	/// (bd, PC, Xn)		[68020+]
 	ProgramCounterIndirectWithIndexBaseDisplacement		= 0b10'011,
-	/// ([bd, PC, Xn], od)
+	/// ([bd, PC, Xn], od)	[68020+]
 	ProgramCounterMemoryIndirectPostindexed				= 0b10'100,
-	/// ([bc, PC], Xn, od)
+	/// ([bc, PC], Xn, od)	[68020+]
 	ProgramCounterMemoryIndirectPreindexed				= 0b10'101,
 
 	/// (xxx).W
@@ -356,33 +272,52 @@ class Preinstruction {
 		// For one-operand instructions, only argument 0 will
 		// be provided, and will be a source and/or destination as
 		// per the semantics of the operation.
+		//
+		// The versions templated on index do a range check;
+		// if using the runtime versions then results for indices
+		// other than 0 and 1 are undefined.
 
+		AddressingMode mode(int index) const {
+			return AddressingMode(operands_[index] >> 3);
+		}
 		template <int index> AddressingMode mode() const {
 			if constexpr (index > 1) {
 				return AddressingMode::None;
 			}
-			return AddressingMode(operands_[index] & 0x1f);
+			return mode(index);
+		}
+		int reg(int index) const {
+			return operands_[index] & 7;
 		}
 		template <int index> int reg() const {
 			if constexpr (index > 1) {
 				return 0;
 			}
-			return operands_[index] >> 5;
+			return reg(index);
 		}
 
-		bool requires_supervisor() {
+		/// @returns 0–7 to indicate data registers 0 to 7, or 8–15 to indicate address registers 0 to 7 respectively.
+		/// Provides undefined results if the addressing mode is not either @c DataRegisterDirect or
+		/// @c AddressRegisterDirect.
+		int lreg(int index) const {
+			return operands_[index] & 0xf;
+		}
+
+		bool requires_supervisor() const {
 			return flags_ & 0x80;
 		}
-		DataSize size() {
+		DataSize operand_size() const {
 			return DataSize(flags_ & 0x03);
 		}
-		Condition condition() {
+		Condition condition() const {
 			return Condition((flags_ >> 2) & 0x0f);
 		}
 
 	private:
 		uint8_t operands_[2] = { uint8_t(AddressingMode::None), uint8_t(AddressingMode::None)};
 		uint8_t flags_ = 0;
+
+		std::string operand_description(int index, int opcode) const;
 
 	public:
 		Preinstruction(
@@ -393,8 +328,8 @@ class Preinstruction {
 			DataSize size,
 			Condition condition) : operation(operation)
 		{
-			operands_[0] = uint8_t(op1_mode) | uint8_t(op1_reg << 5);
-			operands_[1] = uint8_t(op2_mode) | uint8_t(op2_reg << 5);
+			operands_[0] = uint8_t((uint8_t(op1_mode) << 3) | op1_reg);
+			operands_[1] = uint8_t((uint8_t(op2_mode) << 3) | op2_reg);
 			flags_ = uint8_t(
 				(is_supervisor ? 0x80 : 0x00) |
 				(int(condition) << 2) |
@@ -403,9 +338,17 @@ class Preinstruction {
 		}
 
 		Preinstruction() {}
+
+		/// Produces a string description of this instruction; if @c opcode
+		/// is supplied then any quick fields in this instruction will be decoded;
+		/// otherwise they'll be printed as just 'Q'.
+		std::string to_string(int opcode = -1) const;
 };
 
 }
 }
+
+#include "Implementation/InstructionOperandSize.hpp"
+#include "Implementation/InstructionOperandFlags.hpp"
 
 #endif /* InstructionSets_68k_Instruction_hpp */

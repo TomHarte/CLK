@@ -76,8 +76,6 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 	}
 
 	switch(op) {
-		case MOVEMtoRl:	case MOVEMtoMl:	return Operation::MOVEMl;
-		case MOVEMtoRw:	case MOVEMtoMw:	return Operation::MOVEMw;
 		case MOVEPtoRl:	case MOVEPtoMl:	return Operation::MOVEPl;
 		case MOVEPtoRw:	case MOVEPtoMw:	return Operation::MOVEPw;
 
@@ -258,7 +256,14 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case SUBQw:	case SUBQl:
 			return ~TwoOperandMask<
 				Quick,
-				AlterableAddressingModes
+				AlterableAddressingModesNoAn
+			>::value;
+
+		case ADDQAw:	case ADDQAl:
+		case SUBQAw:	case SUBQAl:
+			return ~TwoOperandMask<
+				Quick,
+				An
 			>::value;
 
 		case OpT(Operation::MOVEb):
@@ -449,16 +454,16 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				An
 			>::value;
 
-		case MOVEMtoMw:	case MOVEMtoMl:
+		case OpT(Operation::MOVEMtoMw):	case OpT(Operation::MOVEMtoMl):
 			return ~TwoOperandMask<
 				Imm,
 				Ind | PreDec | d16An | d8AnXn | XXXw | XXXl
 			>::value;
 
-		case MOVEMtoRw: case MOVEMtoRl:
+		case OpT(Operation::MOVEMtoRw): case OpT(Operation::MOVEMtoRl):
 			return ~TwoOperandMask<
-				Ind | PostInc | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn,
-				Imm
+				Imm,
+				Ind | PostInc | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
 			>::value;
 
 		case MOVEPtoRl: case MOVEPtoRw:
@@ -490,7 +495,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
 			requires_supervisor<model>(operation),
-			size(operation),
+			operand_size(operation),
 			condition);
 	}
 
@@ -503,7 +508,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
 			requires_supervisor<model>(operation),
-			size(operation),
+			operand_size(operation),
 			condition);
 }
 
@@ -789,15 +794,11 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b0–b2 and b3–b5:		effective address.
 		// [already decoded: b10: direction]
 		//
-		case MOVEMtoMl:	case MOVEMtoMw:
+		case OpT(Operation::MOVEMtoMl):	case OpT(Operation::MOVEMtoMw):
+		case OpT(Operation::MOVEMtoRl):	case OpT(Operation::MOVEMtoRw):
 			return validated<op, validate>(
 				AddressingMode::ImmediateData, 0,
 				combined_mode(ea_mode, ea_register), ea_register);
-
-		case MOVEMtoRl:	case MOVEMtoRw:
-			return validated<op, validate>(
-				combined_mode(ea_mode, ea_register), ea_register,
-				AddressingMode::ImmediateData, 0);
 
 		//
 		// MARK: TRAP, BCCb, BSRb
@@ -805,9 +806,14 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// No further operands decoded, but note that one is somewhere in the opcode.
 		//
 		case OpT(Operation::TRAP):
-		case OpT(Operation::Bccb):
 		case OpT(Operation::BSRb):
 			return validated<op, validate>(AddressingMode::Quick);
+
+		case OpT(Operation::Bccb):
+			return validated<op, validate>(
+				AddressingMode::Quick, 0,
+				AddressingMode::None, 0,
+				Condition((instruction >> 8) & 0xf));
 
 		//
 		// MARK: LINKw
@@ -827,7 +833,9 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b9–b11:			an immediate value, embedded in the opcode.
 		//
 		case ADDQb:		case ADDQw:		case ADDQl:
+		case ADDQAw:	case ADDQAl:
 		case SUBQb:		case SUBQw:		case SUBQl:
+		case SUBQAw:	case SUBQAl:
 			return validated<op, validate>(
 				AddressingMode::Quick, 0,
 				combined_mode(ea_mode, ea_register), ea_register);
@@ -1073,10 +1081,10 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		case 0x840:	Decode(Op::PEA);
 
 		// 4-128 (p232)
-		case 0x880:	Decode(MOVEMtoMw);
-		case 0x8c0:	Decode(MOVEMtoMl);
-		case 0xc80:	Decode(MOVEMtoRw);
-		case 0xcc0:	Decode(MOVEMtoRl);
+		case 0x880:	Decode(Op::MOVEMtoMw);
+		case 0x8c0:	Decode(Op::MOVEMtoMl);
+		case 0xc80:	Decode(Op::MOVEMtoRw);
+		case 0xcc0:	Decode(Op::MOVEMtoRl);
 
 		// 4-192 (p296)
 		case 0xa00:	Decode(Op::TSTb);
@@ -1108,16 +1116,50 @@ template <Model model>
 Preinstruction Predecoder<model>::decode5(uint16_t instruction) {
 	using Op = Operation;
 
-	switch(instruction & 0x1c0) {
+	switch(instruction & 0x1f8) {
 		// 4-11 (p115)
-		case 0x000:	Decode(ADDQb);
-		case 0x040:	Decode(ADDQw);
-		case 0x080:	Decode(ADDQl);
+		case 0x000:
+		case 0x010:	case 0x018:
+		case 0x020:	case 0x028:
+		case 0x030:	case 0x038:
+			Decode(ADDQb);
+
+		case 0x040:
+		case 0x050:	case 0x058:
+		case 0x060:	case 0x068:
+		case 0x070:	case 0x078:
+			Decode(ADDQw);
+
+		case 0x080:
+		case 0x090:	case 0x098:
+		case 0x0a0:	case 0x0a8:
+		case 0x0b0:	case 0x0b8:
+			Decode(ADDQl);
+
+		case 0x048:	Decode(ADDQAw);
+		case 0x088:	Decode(ADDQAl);
 
 		// 4-181 (p285)
-		case 0x100:	Decode(SUBQb);
-		case 0x140:	Decode(SUBQw);
-		case 0x180:	Decode(SUBQl);
+		case 0x100:
+		case 0x110:	case 0x118:
+		case 0x120:	case 0x128:
+		case 0x130:	case 0x138:
+			Decode(SUBQb);
+
+		case 0x140:
+		case 0x150:	case 0x158:
+		case 0x160:	case 0x168:
+		case 0x170:	case 0x178:
+			Decode(SUBQw);
+
+		case 0x180:
+		case 0x190:	case 0x198:
+		case 0x1a0:	case 0x1a8:
+		case 0x1b0:	case 0x1b8:
+			Decode(SUBQl);
+
+		case 0x148:	Decode(SUBQAw);
+		case 0x188:	Decode(SUBQAl);
 
 		default:	break;
 	}

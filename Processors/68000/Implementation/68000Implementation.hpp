@@ -1595,6 +1595,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									overflow_flag_ = carry_flag_ = 0;
 								} break;
 
+#undef sbcd
+
 								/*
 									Shifts and rotates.
 								*/
@@ -1764,7 +1766,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} break;
 								case Operation::ROLb: rol(destination()->halves.low.halves.low, 8);	break;
 								case Operation::ROLw: rol(destination()->halves.low.full, 16); 		break;
-								case Operation::ROLl: rol(destination()->full, 32); 					break;
+								case Operation::ROLl: rol(destination()->full, 32); 				break;
 
 
 #define ror(destination, size)	{ \
@@ -1793,7 +1795,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} break;
 								case Operation::RORb: ror(destination()->halves.low.halves.low, 8);	break;
 								case Operation::RORw: ror(destination()->halves.low.full, 16); 		break;
-								case Operation::RORl: ror(destination()->full, 32); 					break;
+								case Operation::RORl: ror(destination()->full, 32); 				break;
 
 #define roxl(destination, size)	{ \
 	decode_shift_count();	\
@@ -1853,13 +1855,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef lsl
 #undef asl
 
-#undef set_flags
+#undef set_flagsx
 #undef decode_shift_count
 #undef set_flags_b
 #undef set_flags_w
 #undef set_flags_l
 #undef set_neg_zero_overflow
-#undef set_net_zero
+#undef set_neg_zero
 
 								/*
 									RTE and RTR share an implementation.

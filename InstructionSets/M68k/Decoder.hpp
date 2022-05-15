@@ -66,10 +66,7 @@ template <Model model> class Predecoder {
 		// time that's knowable from the Operation alone, hence the rather awkward
 		// extension of @c Operation.
 		enum ExtendedOperation: OpT {
-			MOVEMtoRl = uint8_t(Operation::Max) + 1, MOVEMtoRw,
-			MOVEMtoMl, MOVEMtoMw,
-
-			MOVEPtoRl, MOVEPtoRw,
+			MOVEPtoRl = uint8_t(Operation::Max) + 1, MOVEPtoRw,
 			MOVEPtoMl, MOVEPtoMw,
 
 			MOVEQ,

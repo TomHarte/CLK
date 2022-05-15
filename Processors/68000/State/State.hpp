@@ -28,11 +28,14 @@ struct State: public Reflection::StructImpl<State> {
 		Provides the current state of the well-known, published internal registers.
 	*/
 	struct Registers: public Reflection::StructImpl<Registers> {
+		// Official registers.
 		uint32_t data[8], address[7];
 		uint32_t user_stack_pointer;
 		uint32_t supervisor_stack_pointer;
 		uint16_t status;
 		uint32_t program_counter;
+
+		// The 68000's prefetch queue.
 		uint32_t prefetch;
 		uint16_t instruction;
 
@@ -56,8 +59,8 @@ struct State: public Reflection::StructImpl<State> {
 	} inputs;
 
 	/*!
-		Contains internal state used by this particular implementation of a 6502. Most of it
-		does not necessarily correlate with anything in a real 6502, and some of it very
+		Contains internal state used by this particular implementation of a 68000. Most of it
+		does not necessarily correlate with anything in a real 68000, and some of it very
 		obviously doesn't.
 	*/
 	struct ExecutionState: public Reflection::StructImpl<ExecutionState> {
