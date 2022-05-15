@@ -532,22 +532,22 @@ template <
 				return;
 			}
 
-			uint32_t dividend = dest.l;
-			uint32_t divisor = src.w;
+			const auto dividend = uint32_t(dest.l);
+			const auto divisor = uint32_t(uint16_t(src.w));
 			const auto quotient = dividend / divisor;
 
 			// If overflow would occur, appropriate flags are set and the result is not written back.
-			if(quotient > 65535) {
-				status.overflow_flag = status.zero_result = status.negative_flag = 1;
+			if(quotient != uint16_t(quotient)) {
+				status.overflow_flag = 1;
 				flow_controller.template did_divu<true>(dividend, divisor);
 				return;
 			}
 
-			const uint16_t remainder = uint16_t(dividend % divisor);
+			const auto remainder = uint16_t(dividend % divisor);
 			dest.l = uint32_t((remainder << 16) | uint16_t(quotient));
 
 			status.overflow_flag = 0;
-			status.zero_result = quotient;
+			status.zero_result = Status::FlagT(quotient);
 			status.negative_flag = status.zero_result & 0x8000;
 			flow_controller.template did_divu<false>(dividend, divisor);
 		} break;
@@ -562,36 +562,24 @@ template <
 				break;
 			}
 
-			const int32_t signed_dividend = int32_t(dest.l);
-			const int32_t signed_divisor = s_extend16(src.w);
-			const auto result_sign =
-				( (0 <= signed_dividend) - (signed_dividend < 0) ) *
-				( (0 <= signed_divisor) - (signed_divisor < 0) );
-
-			const uint32_t dividend = uint32_t(std::abs(signed_dividend));
-			const uint32_t divisor = uint32_t(std::abs(signed_divisor));
-
-			int cycles_expended = 12;	// Covers the nn nnn n to get beyond the sign test.
-			if(signed_dividend < 0) {
-				cycles_expended += 2;	// An additional microycle applies if the dividend is negative.
-			}
+			const auto dividend = int32_t(dest.l);
+			const auto divisor = int32_t(int16_t(src.w));
+			const auto quotient = dividend / divisor;
 
 			// Check for overflow. If it exists, work here is already done.
-			const auto quotient = dividend / divisor;
-			if(quotient > 32767) {
+			if(quotient != int16_t(quotient)) {
 				status.overflow_flag = 1;
-				flow_controller.template did_divs<true>(signed_dividend, signed_divisor);
+				flow_controller.template did_divs<true>(dividend, divisor);
 				break;
 			}
 
-			const uint16_t remainder = uint16_t(signed_dividend % signed_divisor);
-			const int signed_quotient = result_sign*int(quotient);
-			dest.l = uint32_t((remainder << 16) | uint16_t(signed_quotient));
+			const auto remainder = uint16_t(dividend % divisor);
+			dest.l = uint32_t((remainder << 16) | uint16_t(quotient));
 
-			status.zero_result = Status::FlagT(signed_quotient);
-			status.negative_flag = status.zero_result & 0x8000;
 			status.overflow_flag = 0;
-			flow_controller.template did_divs<false>(signed_dividend, signed_divisor);
+			status.zero_result = Status::FlagT(quotient);
+			status.negative_flag = status.zero_result & 0x8000;
+			flow_controller.template did_divs<false>(dividend, divisor);
 		} break;
 
 #undef announce_divide_by_zero
