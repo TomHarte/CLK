@@ -96,6 +96,7 @@ struct Test68000 {
 	NSMutableArray<NSNumber *> *_failingOpcodes;
 	NSMutableDictionary<NSNumber *, NSMutableArray<NSString *> *> *_suggestedCorrections;
 
+	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> _decoder;
 	Test68000 _test68000;
 }
 
@@ -134,9 +135,8 @@ struct Test68000 {
 		NSLog(@"Failures: %@", _failures);
 		NSLog(@"Failing opcodes:");
 
-		InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> decoder;
 		for(NSNumber *number in _failingOpcodes) {
-			const auto decoded = decoder.decode(number.intValue);
+			const auto decoded = _decoder.decode(number.intValue);
 			const std::string description = decoded.to_string(number.intValue);
 			NSLog(@"%04x %s", number.intValue, description.c_str());
 
@@ -344,7 +344,33 @@ struct Test68000 {
 	}
 	if(state.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
 	if(state.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
-	if(state.status != [finalState[@"sr"] integerValue]) [_failures addObject:name];
+
+	const uint16_t correctSR = [finalState[@"sr"] integerValue];
+	if(state.status != correctSR) {
+		const uint16_t opcode = _test68000.read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode());
+		const auto instruction = _decoder.decode(opcode);
+
+		// For DIVU and DIVS, for now, test only the well-defined flags.
+		if(
+			instruction.operation != InstructionSet::M68k::Operation::DIVS &&
+			instruction.operation != InstructionSet::M68k::Operation::DIVU
+		) {
+			[_failures addObject:name];
+		} else {
+			uint16_t status_mask = 0xff13;	// i.e. extend, which should be unaffected, and overflow, which
+											// is well-defined unless there was a divide by zero. But this
+											// test set doesn't include any divide by zeroes.
+
+			if(!(correctSR & InstructionSet::M68k::ConditionCode::Overflow)) {
+				// If overflow didn't occur then negative and zero are also well-defined.
+				status_mask |= 0x000c;
+			}
+
+			if((state.status & status_mask) != (([finalState[@"sr"] integerValue]) & status_mask)) {
+				[_failures addObject:name];
+			}
+		}
+	}
 
 	// Test final memory state.
 	NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
