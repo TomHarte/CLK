@@ -121,6 +121,9 @@ struct Microcycle {
 	*/
 	SlicedInt16 *value = nullptr;
 
+	Microcycle(OperationT operation) : operation(operation) {}
+	Microcycle() {}
+
 	/// @returns @c true if two Microcycles are equal; @c false otherwise.
 	bool operator ==(const Microcycle &rhs) const {
 		if(value != rhs.value) return false;
