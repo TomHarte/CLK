@@ -13,7 +13,12 @@ namespace CPU {
 namespace MC68000Mk2 {
 
 struct ProcessorBase {
+	enum State: int {
+		Reset = -1,
+	};
 
+	HalfCycles time_remaining;
+	int state = State::Reset;
 };
 
 }
