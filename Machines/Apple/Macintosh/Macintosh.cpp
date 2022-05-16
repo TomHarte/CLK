@@ -36,6 +36,8 @@
 #include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
 #include "../../../Processors/68000/68000.hpp"
 
+#include "../../../Processors/68000Mk2/68000Mk2.hpp"
+
 #include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
 #include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
 #include "../../../Storage/MassStorage/Encodings/MacintoshVolume.hpp"
