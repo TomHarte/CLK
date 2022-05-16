@@ -517,72 +517,39 @@ template <
 			Divisions.
 		*/
 
-#define announce_divide_by_zero()									\
-	status.negative_flag = status.overflow_flag = 0;				\
-	status.zero_result = 1;											\
-	flow_controller.raise_exception(Exception::IntegerDivideByZero)
+#define DIV(Type16, Type32, flow_function) {								\
+	status.carry_flag = 0;													\
+																			\
+	if(!src.w) {															\
+		status.negative_flag = status.overflow_flag = 0;					\
+		status.zero_result = 1;												\
+		flow_controller.raise_exception(Exception::IntegerDivideByZero);	\
+		return;																\
+	}																		\
+																			\
+	const auto dividend = Type32(dest.l);									\
+	const auto divisor = Type32(Type16(src.w));								\
+	const auto quotient = dividend / divisor;								\
+																			\
+	if(quotient != Type32(Type16(quotient))) {								\
+		status.overflow_flag = 1;											\
+		flow_controller.template flow_function<true>(dividend, divisor);	\
+		return;																\
+	}																		\
+																			\
+	const auto remainder = Type16(dividend % divisor);						\
+	dest.l = uint32_t((uint32_t(remainder) << 16) | uint16_t(quotient));	\
+																			\
+	status.overflow_flag = 0;												\
+	status.zero_result = Status::FlagT(quotient);							\
+	status.negative_flag = status.zero_result & 0x8000;						\
+	flow_controller.template flow_function<false>(dividend, divisor);		\
+}
 
-		case Operation::DIVU: {
-			status.carry_flag = 0;
+		case Operation::DIVU:	DIV(uint16_t, uint32_t, did_divu);	break;
+		case Operation::DIVS: 	DIV(int16_t, int32_t, did_divs);	break;
 
-			// An attempt to divide by zero schedules an exception.
-			if(!src.w) {
-				// Schedule a divide-by-zero exception.
-				announce_divide_by_zero();
-				return;
-			}
-
-			const auto dividend = uint32_t(dest.l);
-			const auto divisor = uint32_t(uint16_t(src.w));
-			const auto quotient = dividend / divisor;
-
-			// If overflow would occur, appropriate flags are set and the result is not written back.
-			if(quotient != uint16_t(quotient)) {
-				status.overflow_flag = 1;
-				flow_controller.template did_divu<true>(dividend, divisor);
-				return;
-			}
-
-			const auto remainder = uint16_t(dividend % divisor);
-			dest.l = uint32_t((remainder << 16) | uint16_t(quotient));
-
-			status.overflow_flag = 0;
-			status.zero_result = Status::FlagT(quotient);
-			status.negative_flag = status.zero_result & 0x8000;
-			flow_controller.template did_divu<false>(dividend, divisor);
-		} break;
-
-		case Operation::DIVS: {
-			status.carry_flag = 0;
-
-			// An attempt to divide by zero schedules an exception.
-			if(!src.w) {
-				// Schedule a divide-by-zero exception.
-				announce_divide_by_zero();
-				break;
-			}
-
-			const auto dividend = int32_t(dest.l);
-			const auto divisor = int32_t(int16_t(src.w));
-			const auto quotient = dividend / divisor;
-
-			// Check for overflow. If it exists, work here is already done.
-			if(quotient != int16_t(quotient)) {
-				status.overflow_flag = 1;
-				flow_controller.template did_divs<true>(dividend, divisor);
-				break;
-			}
-
-			const auto remainder = uint16_t(dividend % divisor);
-			dest.l = uint32_t((remainder << 16) | uint16_t(quotient));
-
-			status.overflow_flag = 0;
-			status.zero_result = Status::FlagT(quotient);
-			status.negative_flag = status.zero_result & 0x8000;
-			flow_controller.template did_divs<false>(dividend, divisor);
-		} break;
-
-#undef announce_divide_by_zero
+#undef DIV
 
 		// TRAP, which is a nicer form of ILLEGAL.
 		case Operation::TRAP:
