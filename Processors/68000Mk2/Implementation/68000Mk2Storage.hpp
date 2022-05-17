@@ -37,6 +37,10 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 
 		Perform_np		= -6,
 		Perform_np_n	= -7,
+
+		// MOVE has unique bus usage, so has a specialised state.
+
+		MOVEWrite		= -8,
 	};
 	int state_ = State::Reset;
 

@@ -202,11 +202,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// TODO: add MOVE special case, somewhere.
 		case State::FetchOperand:
-			switch(instruction_.mode(next_operand_)) {
-				case Mode::None:
-					state_ = perform_state_;
+			// Check that this operand is meant to be fetched.
+			if(!(operand_flags_ & (1 << next_operand_))) {
+				state_ = perform_state_;
 				continue;
+			}
 
+			// Figure out how to fetch it.
+			switch(instruction_.mode(next_operand_)) {
 				case Mode::AddressRegisterDirect:
 				case Mode::DataRegisterDirect:
 					operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
@@ -294,6 +297,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	switch(instruction_.operation) {
 		BIND(NBCD, instruction_.mode(0) == Mode::DataRegisterDirect ? State::Perform_np_n : State::Perform_np);
+
+		// MOVEs are a special case for having an operand they write but did not read. So they segue into a
+		// specialised state for writing the result.
+		BIND(MOVEw, State::MOVEWrite);
 
 		default:
 			assert(false);
