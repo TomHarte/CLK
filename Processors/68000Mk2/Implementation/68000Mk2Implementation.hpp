@@ -32,7 +32,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define CheckOverrun()	if constexpr (permit_overrun) ConsiderExit()
 
 	// Sets `x` as the next state, and exits now if all remaining time has been extended and permit_overrun is true.
-#define MoveToState(x)	state_ = x; if (permit_overrun && time_remaining_ <= HalfCycles(0)) return
+#define MoveToState(x)	state_ = (x); if (permit_overrun && time_remaining_ <= HalfCycles(0)) return
 
 	//
 	// So basic structure is, in general:
@@ -167,6 +167,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		case State::Reset:
 			IdleBus(7);			// (n-)*5   nn
 
+			// Establish general reset state.
+			status_.is_supervisor = true;
+			status_.interrupt_level = 7;
+			status_.trace_flag = 0;
+			did_update_status();
+
 			address = 0;	ReadDataWord(address, registers_[15].high);		// nF
 			address += 2;	ReadDataWord(address, registers_[15].low);		// nf
 			address += 2;	ReadDataWord(address, program_counter_.high);	// nV
@@ -195,7 +201,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		[[fallthrough]];
 
 		// Check the operand flags to determine whether the operand at index
-		// operand_ needs to be fetched, and do so.
+		// operand_ needs to be fetched, and if so then calculate the EA and
+		// do so.
+		//
+		// Per Yacht, all instructions other than MOVE.[b/w/;] will read all
+		// relevant operands — even when that's a useless endeavour, such as
+		// for CLR or MOVE SR, <ea>.
+		//
+		// TODO: add MOVE special case, somewhere.
 		case State::FetchOperand:
 			switch(instruction_.mode(next_operand_)) {
 				case Mode::None:
@@ -206,16 +219,39 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				case Mode::DataRegisterDirect:
 					operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
 					++next_operand_;
-					state_ = next_operand_ == 2 ? perform_state_ : state_;
+					state_ = next_operand_ == 2 ? perform_state_ : State::FetchOperand;
 				continue;
 
 				default:
 					assert(false);
 			}
+		break;
 
-		[[fallthrough]];
+		//
+		// Various forms of perform.
+		//
+		case State::Perform_np:
+			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			Prefetch();			// np
+
+			next_operand_ = 0;
+			MoveToState(operand_flags_ & 0x0c ? State::StoreOperand : State::Decode);
+		break;
+
+		case State::Perform_np_n:
+			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			Prefetch();			// np
+			IdleBus(1);			// n
+
+			next_operand_ = 0;
+			MoveToState(operand_flags_ & 0x0c ? State::StoreOperand : State::Decode);
+		break;
+
+
 		default:
-			printf("Unhandled or unterminated state: %d\n", state_);
+			printf("Unhandled state: %d\n", state_);
 			assert(false);
 	}}
 
@@ -240,11 +276,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define BIND(x, p)	\
 	case InstructionSet::M68k::Operation::x:			\
 		operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>();	\
-		perform_state_ = State::p;	\
+		perform_state_ = p;	\
 	break;
 
+	using Mode = InstructionSet::M68k::AddressingMode;
+
 	switch(instruction_.operation) {
-		BIND(NBCD, Perform_np);
+		BIND(NBCD, instruction_.mode(0) == Mode::DataRegisterDirect ? State::Perform_np_n : State::Perform_np);
 
 		default:
 			assert(false);
@@ -252,6 +290,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 #undef BIND
 }
+
+// MARK: - Flow Controller.
+
+void ProcessorBase::did_update_status() {
+	// Shuffle the stack pointers.
+	stack_pointers_[is_supervisor_] = registers_[7];
+	registers_[7] = stack_pointers_[int(status_.is_supervisor)];
+	is_supervisor_ = int(status_.is_supervisor);
+}
+
+// MARK: - External state.
 
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
 CPU::MC68000Mk2::State Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::get_state() {
@@ -261,6 +310,7 @@ CPU::MC68000Mk2::State Processor<BusHandler, dtack_is_implicit, permit_overrun, 
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
 void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::set_state(const CPU::MC68000Mk2::State &) {
 }
+
 
 }
 }
