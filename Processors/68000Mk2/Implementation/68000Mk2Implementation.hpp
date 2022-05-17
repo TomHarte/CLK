@@ -306,8 +306,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 void ProcessorBase::did_update_status() {
 	// Shuffle the stack pointers.
-	stack_pointers_[is_supervisor_] = registers_[7];
-	registers_[7] = stack_pointers_[int(status_.is_supervisor)];
+	stack_pointers_[is_supervisor_] = registers_[15];
+	registers_[15] = stack_pointers_[int(status_.is_supervisor)];
 	is_supervisor_ = int(status_.is_supervisor);
 }
 
@@ -315,11 +315,45 @@ void ProcessorBase::did_update_status() {
 
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
 CPU::MC68000Mk2::State Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::get_state() {
-	return CPU::MC68000Mk2::State();
+	CPU::MC68000Mk2::State state;
+
+	// This isn't true, but will ensure that both stack_pointers_ have their proper values.
+	did_update_status();
+
+	for(int c = 0; c < 7; c++) {
+		state.registers.data[c] = registers_[c].l;
+		state.registers.address[c] = registers_[c + 8].l;
+	}
+	state.registers.data[7] = registers_[7].l;
+
+	state.registers.program_counter = program_counter_.l;
+	state.registers.status = status_.status();
+	state.registers.user_stack_pointer = stack_pointers_[0].l;
+	state.registers.supervisor_stack_pointer = stack_pointers_[1].l;
+
+	return state;
 }
 
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
-void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::set_state(const CPU::MC68000Mk2::State &) {
+void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::set_state(const CPU::MC68000Mk2::State &state) {
+	// Copy registers and the program counter.
+	for(int c = 0; c < 7; c++) {
+		registers_[c].l = state.registers.data[c];
+		registers_[c + 8].l = state.registers.address[c];
+	}
+	registers_[7].l = state.registers.data[7];
+	program_counter_.l = state.registers.program_counter;
+
+	// Set status first in order to get the proper is-supervisor flag in place.
+	status_.set_status(state.registers.status);
+
+	// Update stack pointers, being careful to copy the right one.
+	stack_pointers_[0].l = state.registers.user_stack_pointer;
+	stack_pointers_[1].l = state.registers.supervisor_stack_pointer;
+	registers_[15] = stack_pointers_[is_supervisor_];
+
+	// Ensure the local is-supervisor flag is updated.
+	did_update_status();
 }
 
 
