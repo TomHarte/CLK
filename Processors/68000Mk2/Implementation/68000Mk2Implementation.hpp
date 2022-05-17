@@ -10,6 +10,7 @@
 #define _8000Mk2Implementation_h
 
 #include <cassert>
+#include <cstdio>
 
 namespace CPU {
 namespace MC68000Mk2 {
@@ -145,6 +146,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	prefetch_.high = prefetch_.low;	\
 	ReadProgramWord(prefetch_.low)
 
+	using Mode = InstructionSet::M68k::AddressingMode;
+
 	// Otherwise continue for all time, until back in debt.
 	// Formatting is slightly obtuse here to make this look more like a coroutine.
 	while(true) { switch(state_) {
@@ -181,21 +184,38 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		case State::Decode:
 			opcode_ = prefetch_.high.w;
 			instruction_ = decoder_.decode(opcode_);
+			instruction_address_ = program_counter_.l - 4;
 
-			// TODO: it might be better to switch on instruction_.operation
-			// and establish both the instruction pattern and the operand
-			// flags here?
-			operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000>(instruction_.operation);
+			// TODO: check for privilege and unrecognised instructions.
 
-			operand_ = 0;
+			// Obtain operand flags and pick a perform pattern.
+			setup_operation();
+
+			next_operand_ = 0;
 		[[fallthrough]];
 
 		// Check the operand flags to determine whether the operand at index
 		// operand_ needs to be fetched, and do so.
 		case State::FetchOperand:
+			switch(instruction_.mode(next_operand_)) {
+				case Mode::None:
+					state_ = perform_state_;
+				continue;
+
+				case Mode::AddressRegisterDirect:
+				case Mode::DataRegisterDirect:
+					operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
+					++next_operand_;
+					state_ = next_operand_ == 2 ? perform_state_ : state_;
+				continue;
+
+				default:
+					assert(false);
+			}
 
 		[[fallthrough]];
 		default:
+			printf("Unhandled or unterminated state: %d\n", state_);
 			assert(false);
 	}}
 
@@ -212,6 +232,25 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #undef Spend
 #undef ConsiderExit
 
+}
+
+template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
+void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::setup_operation() {
+
+#define BIND(x, p)	\
+	case InstructionSet::M68k::Operation::x:			\
+		operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>();	\
+		perform_state_ = State::p;	\
+	break;
+
+	switch(instruction_.operation) {
+		BIND(NBCD, Perform_np);
+
+		default:
+			assert(false);
+	}
+
+#undef BIND
 }
 
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>

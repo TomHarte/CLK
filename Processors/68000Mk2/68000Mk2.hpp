@@ -372,6 +372,7 @@ template <class BusHandler, bool dtack_is_implicit = true, bool permit_overrun =
 
 	private:
 		BusHandler &bus_handler_;
+		void setup_operation();
 };
 
 }
