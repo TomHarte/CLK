@@ -27,8 +27,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	// Subtracts `n` half-cycles from `time_remaining_`; if permit_overrun is false, also ConsiderExit()
 #define Spend(n)		time_remaining_ -= (n); if constexpr (!permit_overrun) ConsiderExit()
 
-	// Performs ConsiderExit() only if permit_overrun is true
+	// Performs ConsiderExit() only if permit_overrun is true.
 #define CheckOverrun()	if constexpr (permit_overrun) ConsiderExit()
+
+	// Sets `x` as the next state, and exits now if all remaining time has been extended and permit_overrun is true.
+#define MoveToState(x)	state_ = x; if (permit_overrun && time_remaining_ <= HalfCycles(0)) return
 
 	//
 	// So basic structure is, in general:
@@ -40,9 +43,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	//		Spend(10);
 	//		do_a_third_thing();
 	//		Spend(30);
-	//		CheckOverrun();
 	//
-	//		state_ = next_action;
+	//		MoveToState(next_action);
 	//		break;
 	//
 	// Additional notes:
@@ -171,11 +173,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(1);			// n
 			Prefetch();			// np
 
-			state_ = State::Dispatch;
-			CheckOverrun();
+			MoveToState(State::Dispatch);
 		break;
 
-		default: assert(false);
+		default:
+			assert(false);
 	}}
 
 #undef CheckOverrun
