@@ -22,7 +22,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Check whether all remaining time has been expended; if so then exit, having set this line up as
 	// the next resumption point.
-#define ConsiderExit()	if(time_remaining_ <= HalfCycles(0)) { state_ = __LINE__; return; } [[fallthrough]]; case __LINE__:
+#define ConsiderExit()	if(time_remaining_ <= HalfCycles(0)) { state_ = __COUNTER__+1; return; } [[fallthrough]]; case __COUNTER__:
 
 	// Subtracts `n` half-cycles from `time_remaining_`; if permit_overrun is false, also ConsiderExit()
 #define Spend(n)		time_remaining_ -= (n); if constexpr (!permit_overrun) ConsiderExit()
@@ -48,9 +48,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	// Additional notes:
 	//
 	//	Action and all equivalents should be negative values, since the
-	//	switch-for-computed-goto-for-a-coroutine structure uses __LINE__ for
+	//	switch-for-computed-goto-for-a-coroutine structure uses __COUNTER__* for
 	//	its invented entry- and exit-points, meaning that negative numbers are
 	//	the easiest group that is safely definitely never going to collide.
+	//
+	//	(* an extension supported by at least GCC, Clang and MSVC)
 
 
 	// Some microcycles that will be modified as required and used in the loop below;
@@ -77,8 +79,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	Microcycle awaiting_dtack;
 
 	// Spare containers:
-	uint32_t address;	// For an address, where it isn't provideable by reference.
-	HalfCycles delay;	// To receive any additional time added on by calls to perform_bus_operation.
+	uint32_t address = 0;	// For an address, where it isn't provideable by reference.
+	HalfCycles delay;		// To receive any additional time added on by calls to perform_bus_operation.
 
 	// Helper macros for common bus transactions:
 
@@ -99,11 +101,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	if constexpr (!dtack_is_implicit && !dtack_ && !vpa_ && !berr_) {	\
 		awaiting_dtack = x;												\
 		awaiting_dtack.length = HalfCycles(2);							\
-		post_dtack_state_ = __LINE__ + 4;								\
+		post_dtack_state_ = __COUNTER__+1;								\
 		state_ = State::WaitForDTACK;									\
 		break;															\
 	}																	\
-	[[fallthrough]]; case __LINE__:
+	[[fallthrough]]; case __COUNTER__:
 
 	// Performs the bus operation provided, which will be one with a
 	// SelectWord or SelectByte operation, stretching it to match the E
