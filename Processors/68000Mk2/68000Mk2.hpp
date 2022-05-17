@@ -361,7 +361,30 @@ struct State {
 	InstructionSet::M68k::RegisterSet registers;
 };
 
-template <class BusHandler, bool dtack_is_implicit = true, bool permit_overrun = true, bool signal_will_perform = false> class Processor: private ProcessorBase {
+/*!
+	Provides an emulation of the 68000 with accurate bus logic via the @c BusHandler, subject to the following template parameters:
+
+	@c dtack_is_implicit means that the 68000 won't wait around for DTACK during any data access. BERR or VPA may still be
+		signalled at the appropriate moment and will override the implicit DTACK, but the processor won't spin if nothing is explicitly
+		signalled. Enabling this simplifies the internal state machine and therefore improves performance; bus handlers can still indicate
+		that time was spent waiting for DTACK by returning an appropriate value from @c perform_bus_operation.
+
+	@c permit_overrun allows the 68000 to be relaxed in how it interprets the constraint specified by the @c duration parameter to
+		@c run_for. If this is @c false, @c run_for will always return as soon as it has called @c perform_bus_operation with whichever
+		operation is ongoing at the requested stopping time. If it is @c true then the 68000 is granted leeway to overrun the requested stop
+		time by 'a small amount' as and when it is a benefit to do so. Any overrun will be subtracted from the next @c run_for.
+
+		In practice this allows the implementation to avoid a bunch of conditional checks by considering whether it needs to exit less frequently.
+
+		Teleologically, it's expected that most — if not all — single-processor machines can permit overruns for a performance boost with
+		no user-visible difference.
+
+	@c signal_will_perform indicates whether the 68000 will call the bus handler's @c will_perform. Unlike the popular 8-bit CPUs,
+		the 68000 doesn't offer an indication of when instruction dispatch will occur so this is provided *for testing purposes*. It allows test cases
+		to track execution and inspect internal state in a wholly unrealistic fashion.
+*/
+template <class BusHandler, bool dtack_is_implicit = true, bool permit_overrun = true, bool signal_will_perform = false>
+class Processor: private ProcessorBase {
 	public:
 		Processor(BusHandler &bus_handler) : ProcessorBase(), bus_handler_(bus_handler) {}
 

@@ -15,6 +15,8 @@
 namespace CPU {
 namespace MC68000Mk2 {
 
+// MARK: - The state machine.
+
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
 void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::run_for(HalfCycles duration) {
 	// Accumulate the newly paid-in cycles. If this instance remains in deficit, exit.
@@ -197,6 +199,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Obtain operand flags and pick a perform pattern.
 			setup_operation();
 
+			// Signal the bus handler if requested.
+			if constexpr (signal_will_perform) {
+				bus_handler_.will_perform(instruction_address_, opcode_);
+			}
+
+			// Ensure the first parameter is next fetched.
 			next_operand_ = 0;
 		[[fallthrough]];
 
@@ -269,6 +277,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #undef ConsiderExit
 
 }
+
+// MARK: - Operation specifications.
 
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
 void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::setup_operation() {
