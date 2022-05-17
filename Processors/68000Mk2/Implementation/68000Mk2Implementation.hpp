@@ -180,6 +180,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			assert(false);
 	}}
 
+#undef Prefetch
+#undef ReadProgramWord
+#undef ReadDataWord
+#undef AccessPair
+#undef CompleteAccess
+#undef WaitForDTACK
+#undef IdleBus
+#undef PerformBusOperation
+#undef MoveToState
 #undef CheckOverrun
 #undef Spend
 #undef ConsiderExit
