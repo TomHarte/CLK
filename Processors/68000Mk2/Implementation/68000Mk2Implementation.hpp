@@ -160,8 +160,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		case State::Reset:
 			IdleBus(7);			// (n-)*5   nn
 
-			address = 0;	ReadDataWord(address, stack_pointers_[7].high);	// nF
-			address += 2;	ReadDataWord(address, stack_pointers_[7].low);	// nf
+			address = 0;	ReadDataWord(address, registers_[15].high);		// nF
+			address += 2;	ReadDataWord(address, registers_[15].low);		// nf
 			address += 2;	ReadDataWord(address, program_counter_.high);	// nV
 			address += 2;	ReadDataWord(address, program_counter_.low);	// nv
 
@@ -180,6 +180,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #undef Spend
 #undef ConsiderExit
 
+}
+
+template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
+CPU::MC68000Mk2::State Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::get_state() {
+	return CPU::MC68000Mk2::State();
+}
+
+template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
+void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::set_state(const CPU::MC68000Mk2::State &) {
 }
 
 }

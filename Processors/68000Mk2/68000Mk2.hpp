@@ -11,6 +11,7 @@
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Numeric/RegisterSizes.hpp"
+#include "../../InstructionSets/M68k/RegisterSet.hpp"
 
 #include "Implementation/68000Mk2Storage.hpp"
 
@@ -356,11 +357,18 @@ class BusHandler {
 		void will_perform([[maybe_unused]] uint32_t address, [[maybe_unused]] uint16_t opcode) {}
 };
 
+struct State {
+	InstructionSet::M68k::RegisterSet registers;
+};
+
 template <class BusHandler, bool dtack_is_implicit = true, bool permit_overrun = true, bool signal_will_perform = false> class Processor: private ProcessorBase {
 	public:
 		Processor(BusHandler &bus_handler) : ProcessorBase(), bus_handler_(bus_handler) {}
 
 		void run_for(HalfCycles duration);
+
+		CPU::MC68000Mk2::State get_state();
+		void set_state(const CPU::MC68000Mk2::State &);
 
 	private:
 		BusHandler &bus_handler_;

@@ -102,8 +102,8 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 }
 
 template <Model model, typename BusHandler>
-typename Executor<model, BusHandler>::Registers Executor<model, BusHandler>::get_state() {
-	Registers result;
+RegisterSet Executor<model, BusHandler>::get_state() {
+	RegisterSet result;
 
 	for(int c = 0; c < 8; c++) {
 		result.data[c] = Dn(c).l;
@@ -122,7 +122,7 @@ typename Executor<model, BusHandler>::Registers Executor<model, BusHandler>::get
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::set_state(const Registers &state) {
+void Executor<model, BusHandler>::set_state(const RegisterSet &state) {
 	for(int c = 0; c < 8; c++) {
 		Dn(c).l = state.data[c];
 	}

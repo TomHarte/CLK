@@ -1676,6 +1676,7 @@
 		4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZX8081.cpp; sourceTree = "<group>"; };
 		4BA0F68D1EEA0E8400E9489E /* ZX8081.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ZX8081.hpp; sourceTree = "<group>"; };
 		4BA141C12073100800A31EC9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
+		4BA3AE44283317CB00328FED /* RegisterSet.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RegisterSet.hpp; sourceTree = "<group>"; };
 		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
 		4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSData+StdVector.mm"; sourceTree = "<group>"; };
 		4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = MasterSystemVDPTests.mm; sourceTree = "<group>"; };
@@ -3215,6 +3216,7 @@
 				4B79629C2819681F008130F9 /* Instruction.hpp */,
 				4B79629D2819681F008130F9 /* Model.hpp */,
 				4BB5B996281B1E3F00522DA9 /* Perform.hpp */,
+				4BA3AE44283317CB00328FED /* RegisterSet.hpp */,
 				4BB5B997281B1F7B00522DA9 /* Status.hpp */,
 				4BB5B999281B244400522DA9 /* Implementation */,
 			);

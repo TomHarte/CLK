@@ -13,6 +13,7 @@
 #include "Instruction.hpp"
 #include "Model.hpp"
 #include "Perform.hpp"
+#include "RegisterSet.hpp"
 #include "Status.hpp"
 
 namespace InstructionSet {
@@ -80,17 +81,9 @@ template <Model model, typename BusHandler> class Executor {
 		/// Sets the current input interrupt level.
 		void set_interrupt_level(int);
 
-		// TODO: this will likely be shared in some capacity with the bus-accurate versions of the 680x0;
-		// therefore it will almost certainly be factored out in future.
-		struct Registers {
-			uint32_t data[8], address[7];
-			uint32_t user_stack_pointer;
-			uint32_t supervisor_stack_pointer;
-			uint16_t status;
-			uint32_t program_counter;
-		};
-		Registers get_state();
-		void set_state(const Registers &);
+		// State for the executor is just the register set.
+		RegisterSet get_state();
+		void set_state(const RegisterSet &);
 
 	private:
 		class State: public NullFlowController {

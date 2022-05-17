@@ -21,9 +21,9 @@ struct ProcessorBase {
 		Dispatch 		= -2,
 		WaitForDTACK	= -3,
 	};
+	int state_ = State::Reset;
 
 	HalfCycles time_remaining_;
-	int state_ = State::Reset;
 	int post_dtack_state_ = 0;
 	int is_supervisor_ = 1;
 

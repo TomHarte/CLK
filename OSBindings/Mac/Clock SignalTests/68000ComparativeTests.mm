@@ -8,7 +8,7 @@
 
 #import <XCTest/XCTest.h>
 
-#include "../../../Processors/68000/68000.hpp"
+#include "../../../Processors/68000Mk2/68000Mk2.hpp"
 #include "../../../InstructionSets/M68k/Executor.hpp"
 #include "../../../InstructionSets/M68k/Decoder.hpp"
 
@@ -16,7 +16,7 @@
 #include <memory>
 #include <functional>
 
-//#define USE_EXISTING_IMPLEMENTATION
+//#define USE_EXECUTOR
 //#define MAKE_SUGGESTIONS
 
 namespace {
@@ -168,10 +168,10 @@ struct Test68000 {
 		// Compare against a test set if one has been supplied.
 		if(_testSet && ![_testSet containsObject:name]) continue;
 
-#ifdef USE_EXISTING_IMPLEMENTATION
-		[self testOperationClassic:test name:name];
-#else
+#ifdef USE_EXECUTOR
 		[self testOperationExecutor:test name:name];
+#else
+		[self testOperationClassic:test name:name];
 #endif
 	}
 }
@@ -179,21 +179,20 @@ struct Test68000 {
 - (void)testOperationClassic:(NSDictionary *)test name:(NSString *)name  {
 
 	// This is the test class for 68000 execution.
-	struct Test68000: public CPU::MC68000::BusHandler {
+	struct Test68000: public CPU::MC68000Mk2::BusHandler {
 		std::array<uint8_t, 16*1024*1024> ram;
-		CPU::MC68000::Processor<Test68000, true, true> processor;
+		CPU::MC68000Mk2::Processor<Test68000> processor;
 		std::function<void(void)> comparitor;
 
-		Test68000() : processor(*this) {
-		}
+		Test68000() : processor(*this) {}
 
 		void will_perform(uint32_t, uint16_t) {
 			--instructions_remaining_;
 			if(!instructions_remaining_) comparitor();
 		}
 
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
-			using Microcycle = CPU::MC68000::Microcycle;
+		HalfCycles perform_bus_operation(const CPU::MC68000Mk2::Microcycle &cycle, int) {
+			using Microcycle = CPU::MC68000Mk2::Microcycle;
 			if(cycle.data_select_active()) {
 				cycle.apply(&ram[cycle.host_endian_byte_address()]);
 			}
@@ -234,13 +233,13 @@ struct Test68000 {
 			const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
 			const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
 
-			state.data[c] = uint32_t([initialState[dX] integerValue]);
+			state.registers.data[c] = uint32_t([initialState[dX] integerValue]);
 			if(c < 7)
-				state.address[c] = uint32_t([initialState[aX] integerValue]);
+				state.registers.address[c] = uint32_t([initialState[aX] integerValue]);
 		}
-		state.supervisor_stack_pointer = uint32_t([initialState[@"a7"] integerValue]);
-		state.user_stack_pointer = uint32_t([initialState[@"usp"] integerValue]);
-		state.status = [initialState[@"sr"] integerValue];
+		state.registers.supervisor_stack_pointer = uint32_t([initialState[@"a7"] integerValue]);
+		state.registers.user_stack_pointer = uint32_t([initialState[@"usp"] integerValue]);
+		state.registers.status = [initialState[@"sr"] integerValue];
 		test68000->processor.set_state(state);
 	}
 
@@ -253,22 +252,22 @@ struct Test68000 {
 			const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
 			const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
 
-			if(state.data[c] != [finalState[dX] integerValue]) [_failures addObject:name];
-			if(c < 7 && state.address[c] != [finalState[aX] integerValue]) [_failures addObject:name];
+			if(state.registers.data[c] != [finalState[dX] integerValue]) [_failures addObject:name];
+			if(c < 7 && state.registers.address[c] != [finalState[aX] integerValue]) [_failures addObject:name];
 
-			XCTAssertEqual(state.data[c], [finalState[dX] integerValue], @"%@: D%d inconsistent", name, c);
+			XCTAssertEqual(state.registers.data[c], [finalState[dX] integerValue], @"%@: D%d inconsistent", name, c);
 			if(c < 7) {
-				XCTAssertEqual(state.address[c], [finalState[aX] integerValue], @"%@: A%d inconsistent", name, c);
+				XCTAssertEqual(state.registers.address[c], [finalState[aX] integerValue], @"%@: A%d inconsistent", name, c);
 			}
 		}
-		if(state.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
-		if(state.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
-		if(state.status != [finalState[@"sr"] integerValue]) [_failures addObject:name];
+		if(state.registers.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
+		if(state.registers.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
+		if(state.registers.status != [finalState[@"sr"] integerValue]) [_failures addObject:name];
 
-		XCTAssertEqual(state.supervisor_stack_pointer, [finalState[@"a7"] integerValue], @"%@: A7 inconsistent", name);
-		XCTAssertEqual(state.user_stack_pointer, [finalState[@"usp"] integerValue], @"%@: USP inconsistent", name);
-		XCTAssertEqual(state.status, [finalState[@"sr"] integerValue], @"%@: Status inconsistent", name);
-		XCTAssertEqual(state.program_counter - 4, [finalState[@"pc"] integerValue], @"%@: Program counter inconsistent", name);
+		XCTAssertEqual(state.registers.supervisor_stack_pointer, [finalState[@"a7"] integerValue], @"%@: A7 inconsistent", name);
+		XCTAssertEqual(state.registers.user_stack_pointer, [finalState[@"usp"] integerValue], @"%@: USP inconsistent", name);
+		XCTAssertEqual(state.registers.status, [finalState[@"sr"] integerValue], @"%@: Status inconsistent", name);
+		XCTAssertEqual(state.registers.program_counter - 4, [finalState[@"pc"] integerValue], @"%@: Program counter inconsistent", name);
 
 		// Test final memory state.
 		NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
