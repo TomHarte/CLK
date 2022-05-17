@@ -142,8 +142,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	// Reads one futher word from the program counter and inserts it into
 	// the prefetch queue.
 #define Prefetch()					\
-	prefetch_[0] = prefetch_[1];	\
-	ReadProgramWord(prefetch_[1])
+	prefetch_.high = prefetch_.low;	\
+	ReadProgramWord(prefetch_.low)
 
 	// Otherwise continue for all time, until back in debt.
 	// Formatting is slightly obtuse here to make this look more like a coroutine.
@@ -173,9 +173,28 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(1);			// n
 			Prefetch();			// np
 
-			MoveToState(State::Dispatch);
+			MoveToState(State::Decode);
 		break;
 
+		// Inspect the prefetch queue in order to decode the next instruction,
+		// and segue into the fetching of operands.
+		case State::Decode:
+			opcode_ = prefetch_.high.w;
+			instruction_ = decoder_.decode(opcode_);
+
+			// TODO: it might be better to switch on instruction_.operation
+			// and establish both the instruction pattern and the operand
+			// flags here?
+			operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000>(instruction_.operation);
+
+			operand_ = 0;
+		[[fallthrough]];
+
+		// Check the operand flags to determine whether the operand at index
+		// operand_ needs to be fetched, and do so.
+		case State::FetchOperand:
+
+		[[fallthrough]];
 		default:
 			assert(false);
 	}}

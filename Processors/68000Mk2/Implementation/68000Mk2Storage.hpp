@@ -18,8 +18,9 @@ namespace MC68000Mk2 {
 struct ProcessorBase {
 	enum State: int {
 		Reset			= -1,
-		Dispatch 		= -2,
+		Decode	 		= -2,
 		WaitForDTACK	= -3,
+		FetchOperand	= -4,
 	};
 	int state_ = State::Reset;
 
@@ -30,6 +31,7 @@ struct ProcessorBase {
 	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> decoder_;
 	InstructionSet::M68k::Preinstruction instruction_;
 	uint16_t opcode_;
+	uint8_t operand_flags_;
 
 	InstructionSet::M68k::Status status_;
 	SlicedInt32 program_counter_;
@@ -40,7 +42,8 @@ struct ProcessorBase {
 	bool vpa_ = false;
 	bool berr_ = false;
 
-	SlicedInt16 prefetch_[2];
+	SlicedInt32 prefetch_;
+	int operand_ = 0;
 };
 
 }
