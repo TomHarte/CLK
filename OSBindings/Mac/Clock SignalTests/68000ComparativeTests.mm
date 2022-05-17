@@ -181,7 +181,7 @@ struct Test68000 {
 	// This is the test class for 68000 execution.
 	struct Test68000: public CPU::MC68000Mk2::BusHandler {
 		std::array<uint8_t, 16*1024*1024> ram;
-		CPU::MC68000Mk2::Processor<Test68000> processor;
+		CPU::MC68000Mk2::Processor<Test68000, true, false, true> processor;
 		std::function<void(void)> comparitor;
 
 		Test68000() : processor(*this) {}

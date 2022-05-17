@@ -60,31 +60,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	//	(* an extension supported by at least GCC, Clang and MSVC)
 
 
-	// Some microcycles that will be modified as required and used in the loop below;
-	// the semantics of a switch statement make in-place declarations awkward.
-	Microcycle idle{0};
-
-	// Read a data word.
-	Microcycle read_word_data_announce {
-		Microcycle::Read | Microcycle::NewAddress | Microcycle::IsData
-	};
-	Microcycle read_word_data {
-		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsData
-	};
-
-	// Read a program word. All accesses via the program counter are word sized.
-	Microcycle read_program_announce {
-		Microcycle::Read | Microcycle::NewAddress | Microcycle::IsProgram
-	};
-	Microcycle read_program {
-		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsProgram
-	};
-
-	// Holding spot when awaiting DTACK/etc.
-	Microcycle awaiting_dtack;
-
 	// Spare containers:
-	uint32_t address = 0;	// For an address, where it isn't provideable by reference.
 	HalfCycles delay;		// To receive any additional time added on by calls to perform_bus_operation.
 
 	// Helper macros for common bus transactions:
@@ -125,7 +101,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	// Performs the memory access implied by the announce, perform pair,
 	// honouring DTACK, BERR and VPA as necessary.
 #define AccessPair(addr, val, announce, perform)	\
-	perform.address = announce.address = &addr;		\
+	announce.address = perform.address = &addr;		\
 	perform.value = &val;							\
 	if constexpr (!dtack_is_implicit) {				\
 		announce.length = HalfCycles(4);			\
@@ -135,10 +111,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	CompleteAccess(perform);
 
 	// Reads the data (i.e. non-program) word from addr into val.
-#define ReadDataWord(addr, val)		AccessPair(addr, val, read_word_data_announce, read_word_data)
+#define ReadDataWord(addr, val)										\
+	AccessPair(addr, val, read_word_data_announce, read_word_data)
 
 	// Reads the program (i.e. non-data) word from addr into val.
-#define ReadProgramWord(val)															\
+#define ReadProgramWord(val)													\
 	AccessPair(program_counter_.l, val, read_program_announce, read_program);	\
 	program_counter_.l += 2;
 
@@ -175,10 +152,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			status_.trace_flag = 0;
 			did_update_status();
 
-			address = 0;	ReadDataWord(address, registers_[15].high);		// nF
-			address += 2;	ReadDataWord(address, registers_[15].low);		// nf
-			address += 2;	ReadDataWord(address, program_counter_.high);	// nV
-			address += 2;	ReadDataWord(address, program_counter_.low);	// nv
+			temporary_address_ = 0;
+			ReadDataWord(temporary_address_, registers_[15].high);		// nF
+
+			temporary_address_ += 2;
+			ReadDataWord(temporary_address_, registers_[15].low);		// nf
+
+			temporary_address_ += 2;
+			ReadDataWord(temporary_address_, program_counter_.high);	// nV
+
+			temporary_address_ += 2;
+			ReadDataWord(temporary_address_, program_counter_.low);		// nv
 
 			Prefetch();			// np
 			IdleBus(1);			// n
@@ -196,13 +180,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// TODO: check for privilege and unrecognised instructions.
 
-			// Obtain operand flags and pick a perform pattern.
-			setup_operation();
-
 			// Signal the bus handler if requested.
 			if constexpr (signal_will_perform) {
 				bus_handler_.will_perform(instruction_address_, opcode_);
 			}
+
+			// Obtain operand flags and pick a perform pattern.
+			setup_operation();
 
 			// Ensure the first parameter is next fetched.
 			next_operand_ = 0;
@@ -235,16 +219,33 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			}
 		break;
 
+		// Store operand is a lot simpler: only one operand is ever stored, and its address
+		// is already known. So this can either skip straight back to ::Decode if the target
+		// is a register, otherwise a single write operation can occur.
+		case State::StoreOperand:
+			if(instruction_.mode(next_operand_) <= Mode::AddressRegisterDirect) {
+				registers_[instruction_.lreg(next_operand_)] = operand_[next_operand_];
+				state_ = State::Decode;
+				continue;
+			}
+
+			// TODO: make a decision on how I'm going to deal with byte/word/longword.
+			assert(false);
+		break;
+
 		//
 		// Various forms of perform.
 		//
+#define MoveToWritePhase()														\
+	next_operand_ = operand_flags_ >> 3;										\
+	MoveToState(operand_flags_ & 0x0c ? State::StoreOperand : State::Decode)
+
 		case State::Perform_np:
 			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
 				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
 			Prefetch();			// np
 
-			next_operand_ = 0;
-			MoveToState(operand_flags_ & 0x0c ? State::StoreOperand : State::Decode);
+			MoveToWritePhase();
 		break;
 
 		case State::Perform_np_n:
@@ -253,10 +254,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();			// np
 			IdleBus(1);			// n
 
-			next_operand_ = 0;
-			MoveToState(operand_flags_ & 0x0c ? State::StoreOperand : State::Decode);
+			MoveToWritePhase();
 		break;
 
+#undef MoveToWritePhase
 
 		default:
 			printf("Unhandled state: %d\n", state_);

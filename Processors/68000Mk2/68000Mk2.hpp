@@ -13,8 +13,6 @@
 #include "../../Numeric/RegisterSizes.hpp"
 #include "../../InstructionSets/M68k/RegisterSet.hpp"
 
-#include "Implementation/68000Mk2Storage.hpp"
-
 namespace CPU {
 namespace MC68000Mk2 {
 
@@ -360,6 +358,14 @@ class BusHandler {
 struct State {
 	InstructionSet::M68k::RegisterSet registers;
 };
+
+}
+}
+
+#include "Implementation/68000Mk2Storage.hpp"
+
+namespace CPU {
+namespace MC68000Mk2 {
 
 /*!
 	Provides an emulation of the 68000 with accurate bus logic via the @c BusHandler, subject to the following template parameters:
