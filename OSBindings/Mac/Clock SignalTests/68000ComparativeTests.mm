@@ -22,12 +22,11 @@
 namespace {
 
 /// Binds a 68000 executor to 16mb of RAM.
-struct Test68000 {
-	std::array<uint8_t, 16*1024*1024> ram;
-	InstructionSet::M68k::Executor<InstructionSet::M68k::Model::M68000, Test68000> processor;
+struct TestExecutor {
+	uint8_t *const ram;
+	InstructionSet::M68k::Executor<InstructionSet::M68k::Model::M68000, TestExecutor> processor;
 
-	Test68000() : processor(*this) {
-	}
+	TestExecutor(uint8_t *ram) : ram(ram), processor(*this) {}
 
 	void run_for_instructions(int instructions) {
 		processor.run_for_instructions(instructions);
@@ -83,6 +82,39 @@ struct Test68000 {
 	}
 };
 
+/// Binds a bus-accurate 68000 to 16mb of RAM.
+struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
+	uint8_t *const ram;
+	CPU::MC68000Mk2::Processor<TestProcessor, true, false, true> processor;
+	std::function<void(void)> comparitor;
+
+	TestProcessor(uint8_t *ram) : ram(ram), processor(*this) {}
+
+	void will_perform(uint32_t, uint16_t) {
+		--instructions_remaining_;
+		if(!instructions_remaining_) comparitor();
+	}
+
+	HalfCycles perform_bus_operation(const CPU::MC68000Mk2::Microcycle &cycle, int) {
+		using Microcycle = CPU::MC68000Mk2::Microcycle;
+		if(cycle.data_select_active()) {
+			cycle.apply(&ram[cycle.host_endian_byte_address()]);
+		}
+		return HalfCycles(0);
+	}
+
+	void run_for_instructions(int instructions, const std::function<void(void)> &compare) {
+		instructions_remaining_ = instructions + 1;	// i.e. run up to the will_perform of the instruction after.
+		comparitor = std::move(compare);
+		while(instructions_remaining_) {
+			processor.run_for(HalfCycles(2));
+		}
+	}
+
+	private:
+		int instructions_remaining_;
+};
+
 }
 
 @interface M68000ComparativeTests : XCTestCase
@@ -97,10 +129,16 @@ struct Test68000 {
 	NSMutableDictionary<NSNumber *, NSMutableArray<NSString *> *> *_suggestedCorrections;
 
 	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> _decoder;
-	Test68000 _test68000;
+
+	std::array<uint8_t, 16*1024*1024> _ram;
+	std::unique_ptr<TestExecutor> _testExecutor;
 }
 
 - (void)setUp {
+#ifdef USE_EXECUTOR
+	_testExecutor = std::make_unique<TestExecutor>(_ram.data());
+#endif
+
 	// These will accumulate a list of failing tests and associated opcodes.
 	_failures = [[NSMutableSet alloc] init];
 	_failingOpcodes = [[NSMutableArray alloc] init];
@@ -177,42 +215,9 @@ struct Test68000 {
 }
 
 - (void)testOperationClassic:(NSDictionary *)test name:(NSString *)name  {
-
-	// This is the test class for 68000 execution.
-	struct Test68000: public CPU::MC68000Mk2::BusHandler {
-		std::array<uint8_t, 16*1024*1024> ram;
-		CPU::MC68000Mk2::Processor<Test68000, true, false, true> processor;
-		std::function<void(void)> comparitor;
-
-		Test68000() : processor(*this) {}
-
-		void will_perform(uint32_t, uint16_t) {
-			--instructions_remaining_;
-			if(!instructions_remaining_) comparitor();
-		}
-
-		HalfCycles perform_bus_operation(const CPU::MC68000Mk2::Microcycle &cycle, int) {
-			using Microcycle = CPU::MC68000Mk2::Microcycle;
-			if(cycle.data_select_active()) {
-				cycle.apply(&ram[cycle.host_endian_byte_address()]);
-			}
-			return HalfCycles(0);
-		}
-
-		void run_for_instructions(int instructions, const std::function<void(void)> &compare) {
-			instructions_remaining_ = instructions + 1;	// i.e. run up to the will_perform of the instruction after.
-			comparitor = std::move(compare);
-			while(instructions_remaining_) {
-				processor.run_for(HalfCycles(2));
-			}
-		}
-
-		private:
-			int instructions_remaining_;
-	};
-	auto uniqueTest68000 = std::make_unique<Test68000>();
+	auto uniqueTest68000 = std::make_unique<TestProcessor>(_ram.data());
 	auto test68000 = uniqueTest68000.get();
-	memset(test68000->ram.data(), 0xce, test68000->ram.size());
+	memset(_ram.data(), 0xce, _ram.size());
 
 	{
 		// Apply initial memory state.
@@ -294,7 +299,7 @@ struct Test68000 {
 	// Definitively erase any prior memory contents;
 	// 0xce is arbitrary but hopefully easier to spot
 	// in potential errors than e.g. 0x00 or 0xff.
-	memset(_test68000.ram.data(), 0xce, _test68000.ram.size());
+	memset(_ram.data(), 0xce, _ram.size());
 
 	// Apply initial memory state.
 	NSArray<NSNumber *> *const initialMemory = test[@"initial memory"];
@@ -304,12 +309,12 @@ struct Test68000 {
 		NSNumber *const value = [enumerator nextObject];
 
 		if(!address || !value) break;
-		_test68000.ram[address.integerValue] = value.integerValue;
+		_testExecutor->ram[address.integerValue] = value.integerValue;
 	}
 
 	// Apply initial processor state.
 	NSDictionary *const initialState = test[@"initial state"];
-	auto state = _test68000.processor.get_state();
+	auto state = _testExecutor->processor.get_state();
 	for(int c = 0; c < 8; ++c) {
 		const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
 		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
@@ -322,18 +327,18 @@ struct Test68000 {
 	state.user_stack_pointer = uint32_t([initialState[@"usp"] integerValue]);
 	state.status = [initialState[@"sr"] integerValue];
 	state.program_counter = uint32_t([initialState[@"pc"] integerValue]);
-	_test68000.processor.set_state(state);
+	_testExecutor->processor.set_state(state);
 }
 
 - (void)testOperationExecutor:(NSDictionary *)test name:(NSString *)name {
 	[self setInitialState:test];
 
 	// Run the thing.
-	_test68000.run_for_instructions(1);
+	_testExecutor->run_for_instructions(1);
 
 	// Test the end state.
 	NSDictionary *const finalState = test[@"final state"];
-	const auto state = _test68000.processor.get_state();
+	const auto state = _testExecutor->processor.get_state();
 	for(int c = 0; c < 8; ++c) {
 		const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
 		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
@@ -346,7 +351,7 @@ struct Test68000 {
 
 	const uint16_t correctSR = [finalState[@"sr"] integerValue];
 	if(state.status != correctSR) {
-		const uint16_t opcode = _test68000.read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode());
+		const uint16_t opcode = _testExecutor->read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode());
 		const auto instruction = _decoder.decode(opcode);
 
 		// For DIVU and DIVS, for now, test only the well-defined flags.
@@ -379,13 +384,13 @@ struct Test68000 {
 		NSNumber *const value = [enumerator nextObject];
 
 		if(!address || !value) break;
-		if(_test68000.ram[address.integerValue] != value.integerValue) [_failures addObject:name];
+		if(_testExecutor->ram[address.integerValue] != value.integerValue) [_failures addObject:name];
 	}
 
 	// If this test is now in the failures set, add the corresponding opcode for
 	// later logging.
 	if([_failures containsObject:name]) {
-		NSNumber *const opcode = @(_test68000.read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode()));
+		NSNumber *const opcode = @(_testExecutor->read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode()));
 
 		// Add this opcode to the failing list.
 		[_failingOpcodes addObject:opcode];
