@@ -135,6 +135,13 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 }
 
 - (void)setUp {
+	// Definitively erase any prior memory contents;
+	// 0xce is arbitrary but hopefully easier to spot
+	// in potential errors than e.g. 0x00 or 0xff.
+	_ram.fill(0xce);
+
+	// TODO: possibly, worry about resetting RAM to 0xce after tests have completed.
+
 #ifdef USE_EXECUTOR
 	_testExecutor = std::make_unique<TestExecutor>(_ram.data());
 #endif
@@ -217,7 +224,6 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 - (void)testOperationClassic:(NSDictionary *)test name:(NSString *)name  {
 	auto uniqueTest68000 = std::make_unique<TestProcessor>(_ram.data());
 	auto test68000 = uniqueTest68000.get();
-	_ram.fill(0xce);
 
 	{
 		// Apply initial memory state.
@@ -296,11 +302,6 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 }
 
 - (void)setInitialState:(NSDictionary *)test {
-	// Definitively erase any prior memory contents;
-	// 0xce is arbitrary but hopefully easier to spot
-	// in potential errors than e.g. 0x00 or 0xff.
-	_ram.fill(0xce);
-
 	// Apply initial memory state.
 	NSArray<NSNumber *> *const initialMemory = test[@"initial memory"];
 	NSEnumerator<NSNumber *> *enumerator = [initialMemory objectEnumerator];
