@@ -13,36 +13,13 @@
 #include "../../../InstructionSets/M68k/Perform.hpp"
 #include "../../../InstructionSets/M68k/Status.hpp"
 
+#include <limits>
+
 namespace CPU {
 namespace MC68000Mk2 {
 
 struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
-	/// States for the state machine which are named by
-	/// me for their purpose rather than automatically by file position.
-	/// These are negative to avoid ambiguity with the other group.
-	enum State: int {
-		Reset			= -1,
-		Decode	 		= -2,
-		WaitForDTACK	= -3,
-		FetchOperand	= -4,
-		StoreOperand	= -5,
-
-		// Various different effective address calculations.
-
-		CalculateAnDn	= -5,
-
-		// Various forms of perform; each of these will
-		// perform the current instruction, then do the
-		// indicated bus cycle.
-
-		Perform_np		= -6,
-		Perform_np_n	= -7,
-
-		// MOVE has unique bus usage, so has a specialised state.
-
-		MOVEWrite		= -8,
-	};
-	int state_ = State::Reset;
+	int state_ = std::numeric_limits<int>::min();
 
 	/// Counts time left on the clock before the current batch of processing
 	/// is complete; may be less than zero.
@@ -137,20 +114,34 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	// some of these may persist across multiple calls to run_for.
 	Microcycle idle{0};
 
-	// Read a data word.
-	Microcycle read_word_data_announce {
-		Microcycle::Read | Microcycle::NewAddress | Microcycle::IsData
-	};
-	Microcycle read_word_data {
-		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsData
-	};
-
 	// Read a program word. All accesses via the program counter are word sized.
 	Microcycle read_program_announce {
 		Microcycle::Read | Microcycle::NewAddress | Microcycle::IsProgram
 	};
 	Microcycle read_program {
 		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsProgram
+	};
+
+	// Read a data word or byte.
+	Microcycle read_word_data_announce {
+		Microcycle::Read | Microcycle::NewAddress | Microcycle::IsData
+	};
+	Microcycle read_word_data {
+		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsData
+	};
+	Microcycle read_byte_data {
+		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectByte | Microcycle::IsData
+	};
+
+	// Write a data word or byte.
+	Microcycle write_word_data_announce {
+		Microcycle::NewAddress | Microcycle::IsData
+	};
+	Microcycle write_word_data {
+		Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsData
+	};
+	Microcycle write_byte_data {
+		Microcycle::SameAddress | Microcycle::SelectByte | Microcycle::IsData
 	};
 
 	// Holding spot when awaiting DTACK/etc.

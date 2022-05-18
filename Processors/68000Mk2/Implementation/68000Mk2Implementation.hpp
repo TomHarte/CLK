@@ -15,6 +15,28 @@
 namespace CPU {
 namespace MC68000Mk2 {
 
+/// States for the state machine which are named by
+/// me for their purpose rather than automatically by file position.
+/// These are negative to avoid ambiguity with the other group.
+enum ExecutionState: int {
+	Reset			= std::numeric_limits<int>::min(),
+	Decode,
+	WaitForDTACK,
+	FetchOperand,
+	StoreOperand,
+
+	// Various forms of perform; each of these will
+	// perform the current instruction, then do the
+	// indicated bus cycle.
+
+	Perform_np,
+	Perform_np_n,
+
+	// MOVE has unique bus usage, so has a specialised state.
+
+	MOVEWrite,
+};
+
 // MARK: - The state machine.
 
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
@@ -34,21 +56,23 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define CheckOverrun()	if constexpr (permit_overrun) ConsiderExit()
 
 	// Sets `x` as the next state, and exits now if all remaining time has been extended and permit_overrun is true.
-#define MoveToState(x)	state_ = (x); if (permit_overrun && time_remaining_ <= HalfCycles(0)) return
+	// Jumps directly to the state otherwise.
+#define MoveToState(x)	{ state_ = ExecutionState::x; if (permit_overrun && time_remaining_ <= HalfCycles(0)) return; goto x; }
+
+	// Sets the start position for state x.
+#define BeginState(x)	case ExecutionState::x: x
 
 	//
 	// So basic structure is, in general:
 	//
-	//	case Action:
+	//	BeginState(Action):
 	//		do_something();
 	//		Spend(20);
 	//		do_something_else();
 	//		Spend(10);
 	//		do_a_third_thing();
 	//		Spend(30);
-	//
-	//		MoveToState(next_action);
-	//		break;
+	//	MoveToState(next_action);
 	//
 	// Additional notes:
 	//
@@ -83,7 +107,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		awaiting_dtack = x;												\
 		awaiting_dtack.length = HalfCycles(2);							\
 		post_dtack_state_ = __COUNTER__+1;								\
-		state_ = State::WaitForDTACK;									\
+		state_ = ExecutionState::WaitForDTACK;							\
 		break;															\
 	}																	\
 	[[fallthrough]]; case __COUNTER__:
@@ -133,17 +157,18 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		// Spin in place, one cycle at a time, until one of DTACK,
 		// BERR or VPA is asserted.
-		case State::WaitForDTACK:
+		BeginState(WaitForDTACK):
 			PerformBusOperation(awaiting_dtack);
 
 			if(dtack_ || berr_ || vpa_) {
 				state_ = post_dtack_state_;
+				continue;
 			}
-		break;
+		MoveToState(WaitForDTACK);
 
 		// Perform the RESET exception, which seeds the stack pointer and program
 		// counter, populates the prefetch queue, and then moves to instruction dispatch.
-		case State::Reset:
+		BeginState(Reset):
 			IdleBus(7);			// (n-)*5   nn
 
 			// Establish general reset state.
@@ -168,12 +193,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(1);			// n
 			Prefetch();			// np
 
-			MoveToState(State::Decode);
-		break;
+		MoveToState(Decode);
 
 		// Inspect the prefetch queue in order to decode the next instruction,
 		// and segue into the fetching of operands.
-		case State::Decode:
+		BeginState(Decode):
 			opcode_ = prefetch_.high.w;
 			instruction_ = decoder_.decode(opcode_);
 			instruction_address_ = program_counter_.l - 4;
@@ -201,7 +225,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// for CLR or MOVE SR, <ea>.
 		//
 		// TODO: add MOVE special case, somewhere.
-		case State::FetchOperand:
+		BeginState(FetchOperand):
 			// Check that this operand is meant to be fetched.
 			if(!(operand_flags_ & (1 << next_operand_))) {
 				state_ = perform_state_;
@@ -214,8 +238,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				case Mode::DataRegisterDirect:
 					operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
 					++next_operand_;
-					state_ = next_operand_ == 2 ? perform_state_ : State::FetchOperand;
-				continue;
+					if(next_operand_ == 2) {
+						state_ = perform_state_;
+						continue;
+					}
+				MoveToState(FetchOperand);
 
 				default:
 					assert(false);
@@ -225,11 +252,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// Store operand is a lot simpler: only one operand is ever stored, and its address
 		// is already known. So this can either skip straight back to ::Decode if the target
 		// is a register, otherwise a single write operation can occur.
-		case State::StoreOperand:
+		BeginState(StoreOperand):
 			if(instruction_.mode(next_operand_) <= Mode::AddressRegisterDirect) {
 				registers_[instruction_.lreg(next_operand_)] = operand_[next_operand_];
-				state_ = State::Decode;
-				continue;
+				MoveToState(Decode);
 			}
 
 			// TODO: make a decision on how I'm going to deal with byte/word/longword.
@@ -241,26 +267,25 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 #define MoveToWritePhase()														\
 	next_operand_ = operand_flags_ >> 3;										\
-	MoveToState(operand_flags_ & 0x0c ? State::StoreOperand : State::Decode)
+	if(operand_flags_ & 0x0c) MoveToState(StoreOperand) else MoveToState(Decode)
 
-		case State::Perform_np:
+		BeginState(Perform_np):
 			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
 				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
 			Prefetch();			// np
+		MoveToWritePhase();
 
-			MoveToWritePhase();
-		break;
-
-		case State::Perform_np_n:
+		BeginState(Perform_np_n):
 			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
 				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
 			Prefetch();			// np
 			IdleBus(1);			// n
-
-			MoveToWritePhase();
-		break;
+		MoveToWritePhase();
 
 #undef MoveToWritePhase
+
+
+		// Various states TODO.
 
 		default:
 			printf("Unhandled state: %d\n", state_);
@@ -296,11 +321,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	using Mode = InstructionSet::M68k::AddressingMode;
 
 	switch(instruction_.operation) {
-		BIND(NBCD, instruction_.mode(0) == Mode::DataRegisterDirect ? State::Perform_np_n : State::Perform_np);
+		BIND(NBCD, instruction_.mode(0) == Mode::DataRegisterDirect ? ExecutionState::Perform_np_n : ExecutionState::Perform_np);
 
 		// MOVEs are a special case for having an operand they write but did not read. So they segue into a
 		// specialised state for writing the result.
-		BIND(MOVEw, State::MOVEWrite);
+		BIND(MOVEw, ExecutionState::MOVEWrite);
 
 		default:
 			assert(false);
