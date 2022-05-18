@@ -25,6 +25,19 @@ enum ExecutionState: int {
 	FetchOperand,
 	StoreOperand,
 
+	// Specific addressing mode fetches.
+
+	FetchAddressRegisterIndirect,
+	FetchAddressRegisterIndirectWithPostincrement,
+	FetchAddressRegisterIndirectWithPredecrement,
+	FetchAddressRegisterIndirectWithDisplacement,
+	FetchAddressRegisterIndirectWithIndex8bitDisplacement,
+	FetchProgramCounterIndirectWithDisplacement,
+	FetchProgramCounterIndirectWithIndex8bitDisplacement,
+	FetchAbsoluteShort,
+	FetchAbsoluteLong,
+	FetchImmediateData,
+
 	// Various forms of perform; each of these will
 	// perform the current instruction, then do the
 	// indicated bus cycle.
@@ -57,10 +70,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Sets `x` as the next state, and exits now if all remaining time has been extended and permit_overrun is true.
 	// Jumps directly to the state otherwise.
-#define MoveToState(x)	{ state_ = ExecutionState::x; if (permit_overrun && time_remaining_ <= HalfCycles(0)) return; goto x; }
+#define MoveToState(x)	{ state_ = ExecutionState::x; goto x; }
 
 	// Sets the start position for state x.
-#define BeginState(x)	case ExecutionState::x: x
+#define BeginState(x)	case ExecutionState::x: [[maybe_unused]] x
 
 	//
 	// So basic structure is, in general:
@@ -192,12 +205,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();			// np
 			IdleBus(1);			// n
 			Prefetch();			// np
-
 		MoveToState(Decode);
 
 		// Inspect the prefetch queue in order to decode the next instruction,
 		// and segue into the fetching of operands.
 		BeginState(Decode):
+			CheckOverrun();
+
 			opcode_ = prefetch_.high.w;
 			instruction_ = decoder_.decode(opcode_);
 			instruction_address_ = program_counter_.l - 4;
@@ -209,24 +223,47 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				bus_handler_.will_perform(instruction_address_, opcode_);
 			}
 
-			// Obtain operand flags and pick a perform pattern.
-			setup_operation();
-
 			// Ensure the first parameter is next fetched.
 			next_operand_ = 0;
+
+			// Obtain operand flags and pick a perform pattern.
+#define CASE(x)	\
+	case InstructionSet::M68k::Operation::x:	\
+		operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>();
+
+			switch(instruction_.operation) {
+				CASE(NBCD)
+					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
+						perform_state_ = Perform_np_n;
+					} else {
+						perform_state_ = Perform_np;
+					}
+				break;
+
+				default:
+					assert(false);
+			}
+
+#undef CASE
 		[[fallthrough]];
+
+#define MoveToNextOperand()			\
+	++next_operand_;				\
+	if(next_operand_ == 2) {		\
+		state_ = perform_state_;	\
+		continue;					\
+	}								\
+	MoveToState(FetchOperand)
 
 		// Check the operand flags to determine whether the operand at index
 		// operand_ needs to be fetched, and if so then calculate the EA and
 		// do so.
-		//
-		// Per Yacht, all instructions other than MOVE.[b/w/;] will read all
-		// relevant operands — even when that's a useless endeavour, such as
-		// for CLR or MOVE SR, <ea>.
-		//
-		// TODO: add MOVE special case, somewhere.
 		BeginState(FetchOperand):
-			// Check that this operand is meant to be fetched.
+			// Check that this operand is meant to be fetched; if not then either:
+			//
+			//	(i) this operand isn't used; or
+			//	(ii) its address calculation will end up conflated with performance,
+			//		so there's no generic bus-accurate approach.
 			if(!(operand_flags_ & (1 << next_operand_))) {
 				state_ = perform_state_;
 				continue;
@@ -237,13 +274,34 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				case Mode::AddressRegisterDirect:
 				case Mode::DataRegisterDirect:
 					operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
-					++next_operand_;
-					if(next_operand_ == 2) {
-						state_ = perform_state_;
-						continue;
-					}
-				MoveToState(FetchOperand);
+				MoveToNextOperand();
 
+				case Mode::Quick:
+					operand_[next_operand_].l = InstructionSet::M68k::quick(opcode_, instruction_.operation);
+				MoveToNextOperand();
+
+				case Mode::AddressRegisterIndirect:
+					MoveToState(FetchAddressRegisterIndirect);
+				case Mode::AddressRegisterIndirectWithPostincrement:
+					MoveToState(FetchAddressRegisterIndirectWithPostincrement);
+				case Mode::AddressRegisterIndirectWithPredecrement:
+					MoveToState(FetchAddressRegisterIndirectWithPredecrement);
+				case Mode::AddressRegisterIndirectWithDisplacement:
+					MoveToState(FetchAddressRegisterIndirectWithDisplacement);
+				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
+					MoveToState(FetchAddressRegisterIndirectWithIndex8bitDisplacement);
+				case Mode::ProgramCounterIndirectWithDisplacement:
+					MoveToState(FetchProgramCounterIndirectWithDisplacement);
+				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
+					MoveToState(FetchProgramCounterIndirectWithIndex8bitDisplacement);
+				case Mode::AbsoluteShort:
+					MoveToState(FetchAbsoluteShort);
+				case Mode::AbsoluteLong:
+					MoveToState(FetchAbsoluteLong);
+				case Mode::ImmediateData:
+					MoveToState(FetchImmediateData);
+
+				// Should be impossible to reach.
 				default:
 					assert(false);
 			}
@@ -286,6 +344,21 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 
 		// Various states TODO.
+#define TODOState(x)	\
+		BeginState(x): [[fallthrough]];
+
+		TODOState(FetchAddressRegisterIndirect);
+		TODOState(FetchAddressRegisterIndirectWithPostincrement);
+		TODOState(FetchAddressRegisterIndirectWithPredecrement);
+		TODOState(FetchAddressRegisterIndirectWithDisplacement);
+		TODOState(FetchAddressRegisterIndirectWithIndex8bitDisplacement);
+		TODOState(FetchProgramCounterIndirectWithDisplacement);
+		TODOState(FetchProgramCounterIndirectWithIndex8bitDisplacement);
+		TODOState(FetchAbsoluteShort);
+		TODOState(FetchAbsoluteLong);
+		TODOState(FetchImmediateData);
+
+#undef TODOState
 
 		default:
 			printf("Unhandled state: %d\n", state_);
@@ -305,33 +378,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #undef Spend
 #undef ConsiderExit
 
-}
-
-// MARK: - Operation specifications.
-
-template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
-void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::setup_operation() {
-
-#define BIND(x, p)	\
-	case InstructionSet::M68k::Operation::x:			\
-		operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>();	\
-		perform_state_ = p;	\
-	break;
-
-	using Mode = InstructionSet::M68k::AddressingMode;
-
-	switch(instruction_.operation) {
-		BIND(NBCD, instruction_.mode(0) == Mode::DataRegisterDirect ? ExecutionState::Perform_np_n : ExecutionState::Perform_np);
-
-		// MOVEs are a special case for having an operand they write but did not read. So they segue into a
-		// specialised state for writing the result.
-		BIND(MOVEw, ExecutionState::MOVEWrite);
-
-		default:
-			assert(false);
-	}
-
-#undef BIND
 }
 
 // MARK: - Flow Controller.

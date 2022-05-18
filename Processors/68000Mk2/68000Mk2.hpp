@@ -401,7 +401,6 @@ class Processor: private ProcessorBase {
 
 	private:
 		BusHandler &bus_handler_;
-		void setup_operation();
 };
 
 }
