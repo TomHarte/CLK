@@ -240,47 +240,15 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		}
 
 		// Apply initial processor state.
-		NSDictionary *const initialState = test[@"initial state"];
 		auto state = test68000->processor.get_state();
-		for(int c = 0; c < 8; ++c) {
-			const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
-			const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
-
-			state.registers.data[c] = uint32_t([initialState[dX] integerValue]);
-			if(c < 7)
-				state.registers.address[c] = uint32_t([initialState[aX] integerValue]);
-		}
-		state.registers.supervisor_stack_pointer = uint32_t([initialState[@"a7"] integerValue]);
-		state.registers.user_stack_pointer = uint32_t([initialState[@"usp"] integerValue]);
-		state.registers.status = [initialState[@"sr"] integerValue];
+		state.registers = [self initialRegisters:test];
 		test68000->processor.set_state(state);
 	}
 
 	// Run the thing.
 	const auto comparitor = [=] {
-		// Test the end state.
-		NSDictionary *const finalState = test[@"final state"];
 		const auto state = test68000->processor.get_state();
-		for(int c = 0; c < 8; ++c) {
-			const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
-			const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
-
-			if(state.registers.data[c] != [finalState[dX] integerValue]) [_failures addObject:name];
-			if(c < 7 && state.registers.address[c] != [finalState[aX] integerValue]) [_failures addObject:name];
-
-			XCTAssertEqual(state.registers.data[c], [finalState[dX] integerValue], @"%@: D%d inconsistent", name, c);
-			if(c < 7) {
-				XCTAssertEqual(state.registers.address[c], [finalState[aX] integerValue], @"%@: A%d inconsistent", name, c);
-			}
-		}
-		if(state.registers.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
-		if(state.registers.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
-		if(state.registers.status != [finalState[@"sr"] integerValue]) [_failures addObject:name];
-
-		XCTAssertEqual(state.registers.supervisor_stack_pointer, [finalState[@"a7"] integerValue], @"%@: A7 inconsistent", name);
-		XCTAssertEqual(state.registers.user_stack_pointer, [finalState[@"usp"] integerValue], @"%@: USP inconsistent", name);
-		XCTAssertEqual(state.registers.status, [finalState[@"sr"] integerValue], @"%@: Status inconsistent", name);
-		XCTAssertEqual(state.registers.program_counter - 4, [finalState[@"pc"] integerValue], @"%@: Program counter inconsistent", name);
+		[self test:test name:name compareFinalRegisters:state.registers];
 
 		// Test final memory state.
 		NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
@@ -321,21 +289,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	}
 
 	// Apply initial processor state.
-	NSDictionary *const initialState = test[@"initial state"];
-	auto state = _testExecutor->processor.get_state();
-	for(int c = 0; c < 8; ++c) {
-		const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
-		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
-
-		state.data[c] = uint32_t([initialState[dX] integerValue]);
-		if(c < 7)
-			state.address[c] = uint32_t([initialState[aX] integerValue]);
-	}
-	state.supervisor_stack_pointer = uint32_t([initialState[@"a7"] integerValue]);
-	state.user_stack_pointer = uint32_t([initialState[@"usp"] integerValue]);
-	state.status = [initialState[@"sr"] integerValue];
-	state.program_counter = uint32_t([initialState[@"pc"] integerValue]);
-	_testExecutor->processor.set_state(state);
+	_testExecutor->processor.set_state([self initialRegisters:test]);
 }
 
 - (void)testOperationExecutor:(NSDictionary *)test name:(NSString *)name {
@@ -345,44 +299,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	_testExecutor->run_for_instructions(1);
 
 	// Test the end state.
-	NSDictionary *const finalState = test[@"final state"];
 	const auto state = _testExecutor->processor.get_state();
-	for(int c = 0; c < 8; ++c) {
-		const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
-		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
-
-		if(state.data[c] != [finalState[dX] integerValue]) [_failures addObject:name];
-		if(c < 7 && state.address[c] != [finalState[aX] integerValue]) [_failures addObject:name];
-	}
-	if(state.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
-	if(state.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
-
-	const uint16_t correctSR = [finalState[@"sr"] integerValue];
-	if(state.status != correctSR) {
-		const uint16_t opcode = _testExecutor->read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode());
-		const auto instruction = _decoder.decode(opcode);
-
-		// For DIVU and DIVS, for now, test only the well-defined flags.
-		if(
-			instruction.operation != InstructionSet::M68k::Operation::DIVS &&
-			instruction.operation != InstructionSet::M68k::Operation::DIVU
-		) {
-			[_failures addObject:name];
-		} else {
-			uint16_t status_mask = 0xff13;	// i.e. extend, which should be unaffected, and overflow, which
-											// is well-defined unless there was a divide by zero. But this
-											// test set doesn't include any divide by zeroes.
-
-			if(!(correctSR & InstructionSet::M68k::ConditionCode::Overflow)) {
-				// If overflow didn't occur then negative and zero are also well-defined.
-				status_mask |= 0x000c;
-			}
-
-			if((state.status & status_mask) != (([finalState[@"sr"] integerValue]) & status_mask)) {
-				[_failures addObject:name];
-			}
-		}
-	}
+	[self test:test name:name compareFinalRegisters:state];
 
 	// Test final memory state.
 	NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
@@ -428,6 +346,67 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 				[_suggestedCorrections[opcode] addObject:generatedJSON];
 			} else {
 				_suggestedCorrections[opcode] = [NSMutableArray arrayWithObject:generatedJSON];
+			}
+		}
+	}
+}
+
+- (InstructionSet::M68k::RegisterSet)initialRegisters:(NSDictionary *)test {
+	InstructionSet::M68k::RegisterSet registers;
+
+	NSDictionary *const initialState = test[@"initial state"];
+	for(int c = 0; c < 8; ++c) {
+		const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
+		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
+
+		registers.data[c] = uint32_t([initialState[dX] integerValue]);
+		if(c < 7)
+			registers.address[c] = uint32_t([initialState[aX] integerValue]);
+	}
+	registers.supervisor_stack_pointer = uint32_t([initialState[@"a7"] integerValue]);
+	registers.user_stack_pointer = uint32_t([initialState[@"usp"] integerValue]);
+	registers.status = [initialState[@"sr"] integerValue];
+	registers.program_counter = uint32_t([initialState[@"pc"] integerValue]);
+
+	return registers;
+}
+
+- (void)test:(NSDictionary *)test name:(NSString *)name compareFinalRegisters:(InstructionSet::M68k::RegisterSet)registers {
+	// Test the end state.
+	NSDictionary *const finalState = test[@"final state"];
+	for(int c = 0; c < 8; ++c) {
+		const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
+		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
+
+		if(registers.data[c] != [finalState[dX] integerValue]) [_failures addObject:name];
+		if(c < 7 && registers.address[c] != [finalState[aX] integerValue]) [_failures addObject:name];
+	}
+	if(registers.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
+	if(registers.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
+
+	const uint16_t correctSR = [finalState[@"sr"] integerValue];
+	if(registers.status != correctSR) {
+		const uint16_t opcode = _testExecutor->read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode());
+		const auto instruction = _decoder.decode(opcode);
+
+		// For DIVU and DIVS, for now, test only the well-defined flags.
+		if(
+			instruction.operation != InstructionSet::M68k::Operation::DIVS &&
+			instruction.operation != InstructionSet::M68k::Operation::DIVU
+		) {
+			[_failures addObject:name];
+		} else {
+			uint16_t status_mask = 0xff13;	// i.e. extend, which should be unaffected, and overflow, which
+											// is well-defined unless there was a divide by zero. But this
+											// test set doesn't include any divide by zeroes.
+
+			if(!(correctSR & InstructionSet::M68k::ConditionCode::Overflow)) {
+				// If overflow didn't occur then negative and zero are also well-defined.
+				status_mask |= 0x000c;
+			}
+
+			if((registers.status & status_mask) != (([finalState[@"sr"] integerValue]) & status_mask)) {
+				[_failures addObject:name];
 			}
 		}
 	}
