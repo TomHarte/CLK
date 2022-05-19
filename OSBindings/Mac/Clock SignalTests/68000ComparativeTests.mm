@@ -222,6 +222,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 }
 
 - (void)testOperationClassic:(NSDictionary *)test name:(NSString *)name  {
+	struct TerminateMarker {};
+
 	auto uniqueTest68000 = std::make_unique<TestProcessor>(_ram.data());
 	auto test68000 = uniqueTest68000.get();
 
@@ -296,9 +298,14 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		if([_failures containsObject:name]) {
 			[_failingOpcodes addObject:@((test68000->ram[0x101] << 8) | test68000->ram[0x100])];
 		}
+
+		// Make sure nothing further occurs; keep this test isolated.
+		throw TerminateMarker();
 	};
 
-	test68000->run_for_instructions(1, comparitor);
+	try {
+		test68000->run_for_instructions(1, comparitor);
+	} catch(TerminateMarker m) {}
 }
 
 - (void)setInitialState:(NSDictionary *)test {
