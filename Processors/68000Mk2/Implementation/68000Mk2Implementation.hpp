@@ -349,13 +349,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 				})
 
-				Duplicate(NEGb, NEGXb)	Duplicate(NOTb, NEGXb)
+				Duplicate(CLRb, NEGXb)	Duplicate(NEGb, NEGXb)	Duplicate(NOTb, NEGXb)
 				StdCASE(NEGXb, 		perform_state_ = Perform_np);
 
-				Duplicate(NEGw, NEGXw)	Duplicate(NOTw, NEGXw)
+				Duplicate(CLRw, NEGXw)	Duplicate(NEGw, NEGXw)	Duplicate(NOTw, NEGXw)
 				StdCASE(NEGXw, 		perform_state_ = Perform_np);
 
-				Duplicate(NEGl, NEGXl)	Duplicate(NOTl, NEGXl)
+				Duplicate(CLRl, NEGXl)	Duplicate(NEGl, NEGXl)	Duplicate(NOTl, NEGXl)
 				StdCASE(NEGXl,
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np_n;
