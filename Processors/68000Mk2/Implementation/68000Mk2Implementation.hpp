@@ -61,6 +61,7 @@ enum ExecutionState: int {
 
 	Perform_np,
 	Perform_np_n,
+	Perform_np_nn,
 
 	// MOVE has unique bus usage, so has specialised states.
 
@@ -165,11 +166,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	WaitForDTACK(announce);							\
 	CompleteAccess(perform);
 
-	// Sets up the next data access — its address and size/read flags.
-#define SetupDataAccess(addr, read_flag, select_flag)										\
-	access.address = access_announce.address = &addr;										\
+	// Sets up the next data access size and read flags.
+#define SetupDataAccess(read_flag, select_flag)												\
 	access_announce.operation = Microcycle::NewAddress | Microcycle::IsData | (read_flag);	\
 	access.operation = access_announce.operation | (select_flag);
+
+	// Sets the address source for the next data access.
+#define SetDataAddress(addr)							\
+	access.address = access_announce.address = &addr;
 
 	// Performs the access established by SetupDataAccess into val.
 #define Access(val)										\
@@ -214,7 +218,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			status_.trace_flag = 0;
 			did_update_status();
 
-			SetupDataAccess(temporary_address_, Microcycle::Read, Microcycle::SelectWord);
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetDataAddress(temporary_address_);
 
 			temporary_address_ = 0;
 			Access(registers_[15].high);	// nF
@@ -253,39 +258,85 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			next_operand_ = 0;
 
 			// Obtain operand flags and pick a perform pattern.
-#define CASE(x)	\
-	case InstructionSet::M68k::Operation::x:	\
-		operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>();
-
-#define FetchOperands(x)	\
-	if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::LongWord) {	\
-		SetupDataAccess(temporary_address_, Microcycle::Read, Microcycle::SelectWord);	\
-		MoveToState(FetchOperand_l);	\
-	} else {	\
-		if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::Byte) {	\
-			SetupDataAccess(temporary_address_, Microcycle::Read, Microcycle::SelectByte);	\
+#define CASE(x, y)	\
+	case InstructionSet::M68k::Operation::x:																								\
+		operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>();	\
+		y;	\
+		\
+		if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::LongWord) {	\
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);	\
+			MoveToState(FetchOperand_l);	\
 		} else {	\
-			SetupDataAccess(temporary_address_, Microcycle::Read, Microcycle::SelectWord);	\
-		}	\
-		MoveToState(FetchOperand_bw);	\
-	}
+			if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::Byte) {	\
+				SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);	\
+			} else {	\
+				SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);	\
+			}	\
+			MoveToState(FetchOperand_bw);	\
+		}
 
 			switch(instruction_.operation) {
-				CASE(NBCD)
+				CASE(NBCD, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np_n;
 					} else {
 						perform_state_ = Perform_np;
 					}
-				FetchOperands(NBCD)
+				})
 
-				CASE(SWAP)
-					perform_state_ = Perform_np;
-				FetchOperands(SWAP)
+				CASE(SWAP, 		perform_state_ = Perform_np);
 
-				CASE(MOVEw)
-					perform_state_ = MOVEw;
-				FetchOperands(MOVEw)
+				CASE(MOVEw,		perform_state_ = MOVEw);
+
+				CASE(CMPb,		perform_state_ = Perform_np);
+				CASE(CMPw,		perform_state_ = Perform_np);
+				CASE(CMPl,		perform_state_ = Perform_np_n);
+
+				CASE(ANDb,		perform_state_ = Perform_np);
+				CASE(ANDw,		perform_state_ = Perform_np);
+				CASE(ANDl, {
+					if(instruction_.mode(1) == Mode::DataRegisterDirect) {
+						switch(instruction_.mode(0)) {
+							default:
+								perform_state_ = Perform_np_n;
+							break;
+							case Mode::DataRegisterDirect:
+							case Mode::ImmediateData:
+								perform_state_ = Perform_np_nn;
+							break;
+						}
+					} else {
+						perform_state_ = Perform_np;
+					}
+				});
+
+				CASE(ORb,		perform_state_ = Perform_np);
+				CASE(ORw,		perform_state_ = Perform_np);
+				CASE(ORl, {
+					if(instruction_.mode(1) == Mode::DataRegisterDirect) {
+						switch(instruction_.mode(0)) {
+							default:
+								perform_state_ = Perform_np_n;
+							break;
+							case Mode::DataRegisterDirect:
+							case Mode::ImmediateData:
+								perform_state_ = Perform_np_nn;
+							break;
+						}
+					} else {
+						perform_state_ = Perform_np;
+					}
+				});
+
+				CASE(EORb,		perform_state_ = Perform_np);
+				CASE(EORw,		perform_state_ = Perform_np);
+				CASE(EORl, {
+					if(instruction_.mode(1) == Mode::DataRegisterDirect) {
+						perform_state_ = Perform_np_nn;
+					} else {
+						perform_state_ = Perform_np;
+					}
+				})
 
 				default:
 					assert(false);
@@ -403,19 +454,18 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(FetchAddressRegisterIndirect_bw):
 			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
+			SetDataAddress(effective_address_[next_operand_]);
 
-			temporary_address_ = effective_address_[next_operand_];
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
 		// TODO: avoid use of temporary_address_ here and probably above.
 		BeginState(FetchAddressRegisterIndirect_l):
 			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
+			SetDataAddress(effective_address_[next_operand_]);
 
-			temporary_address_ = effective_address_[next_operand_];
 			Access(operand_[next_operand_].high);	// nR
 
-			temporary_address_ += 2;
 			effective_address_[next_operand_] += 2;
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
@@ -436,14 +486,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			}
 
 			SetupDataAccess(
-				effective_address_[next_operand_],
 				0,
 				(instruction_.operand_size() == InstructionSet::M68k::DataSize::Byte) ? Microcycle::SelectByte : Microcycle::SelectWord);
+			SetDataAddress(effective_address_[next_operand_]);
 			Access(operand_[next_operand_].low);		// nw
 		MoveToState(Decode);
 
 		BeginState(StoreOperand_l):
-			SetupDataAccess(effective_address_[next_operand_], 0, Microcycle::SelectWord);
+			SetupDataAccess(0, Microcycle::SelectWord);
+			SetDataAddress(effective_address_[next_operand_]);
 			Access(operand_[next_operand_].low);		// nw
 
 			effective_address_[next_operand_] -= 2;
@@ -468,6 +519,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
 			Prefetch();			// np
 			IdleBus(1);			// n
+		MoveToWritePhase();
+
+		BeginState(Perform_np_nn):
+			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			Prefetch();			// np
+			IdleBus(2);			// nn
 		MoveToWritePhase();
 
 #undef MoveToWritePhase
