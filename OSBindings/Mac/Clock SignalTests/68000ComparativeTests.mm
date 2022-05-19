@@ -155,18 +155,15 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 #endif
 
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"eor_and_or.json"]];
+	_fileSet = [NSSet setWithArray:@[
+		@"eor_and_or.json",
+
+		// Below this line are passing tests.
+		@"abcd_sbcd.json",
+		@"nbcd.json",
+		@"ext.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }
-
-//
-// Temporary notes on 68000 mk2:
-//
-// Passing so far:
-//
-//	abcd_sbcd
-//	nbcd
-//	ext
 
 - (void)testAll {
 	// Get the full list of available test files.

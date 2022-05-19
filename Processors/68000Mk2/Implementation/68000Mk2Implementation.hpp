@@ -31,6 +31,7 @@ enum ExecutionState: int {
 	FetchOperand_l,
 
 	StoreOperand,
+	StoreOperand_bw,
 	StoreOperand_l,
 
 	StandardException,
@@ -300,7 +301,27 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			instruction_ = decoder_.decode(opcode_);
 			instruction_address_.l = program_counter_.l - 4;
 
-			// TODO: check for privilege and unrecognised instructions.
+			// Check for a privilege violation.
+			if(instruction_.requires_supervisor() && !status_.is_supervisor) {
+				exception_vector_ = InstructionSet::M68k::Exception::PrivilegeViolation;
+				MoveToState(StandardException);
+			}
+
+			// Check for an unrecognised opcode.
+			if(instruction_.operation == InstructionSet::M68k::Operation::Undefined) {
+				switch(opcode_ & 0xf000) {
+					default:
+						exception_vector_ = InstructionSet::M68k::Exception::IllegalInstruction;
+					continue;
+					case 0xa000:
+						exception_vector_ = InstructionSet::M68k::Exception::Line1010;
+					continue;
+					case 0xf000:
+						exception_vector_ = InstructionSet::M68k::Exception::Line1111;
+					continue;
+				}
+				MoveToState(StandardException);
+			}
 
 			// Signal the bus handler if requested.
 			if constexpr (signal_will_perform) {
@@ -766,42 +787,72 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();								// np
 		MoveToNextOperand(FetchOperand_l);
 
+#undef MoveToNextOperand
+
 	// MARK: - Store.
+
+#define MoveToNextOperand(x)		\
+	++next_operand_;				\
+	if(next_operand_ == 2) {		\
+		MoveToState(Decode);		\
+	}								\
+	MoveToState(x)
 
 		// Store operand is a lot simpler: only one operand is ever stored, and its address
 		// is already known. So this can either skip straight back to ::Decode if the target
 		// is a register, otherwise a single write operation can occur.
 		BeginState(StoreOperand):
+			switch(instruction_.operand_size()) {
+				case InstructionSet::M68k::DataSize::LongWord:
+					SetupDataAccess(0, Microcycle::SelectWord);
+				MoveToState(StoreOperand_l);
+
+				case InstructionSet::M68k::DataSize::Word:
+					SetupDataAccess(0, Microcycle::SelectWord);
+				MoveToState(StoreOperand_bw);
+
+				case InstructionSet::M68k::DataSize::Byte:
+					SetupDataAccess(0, Microcycle::SelectByte);
+				MoveToState(StoreOperand_bw);
+			}
+
+		BeginState(StoreOperand_bw):
+			if(!(operand_flags_ & 0x4 << next_operand_)) {
+				MoveToNextOperand(StoreOperand_bw);
+			}
+
 			if(instruction_.mode(next_operand_) <= Mode::AddressRegisterDirect) {
 				registers_[instruction_.lreg(next_operand_)] = operand_[next_operand_];
-				MoveToState(Decode);
+				MoveToNextOperand(StoreOperand_bw);
 			}
 
-			if(instruction_.operand_size() == InstructionSet::M68k::DataSize::LongWord) {
-				MoveToState(StoreOperand_l);
-			}
-
-			SetupDataAccess(
-				0,
-				(instruction_.operand_size() == InstructionSet::M68k::DataSize::Byte) ? Microcycle::SelectByte : Microcycle::SelectWord);
 			SetDataAddress(effective_address_[next_operand_]);
 			Access(operand_[next_operand_].low);		// nw
-		MoveToState(Decode);
+		MoveToNextOperand(StoreOperand_bw);
 
 		BeginState(StoreOperand_l):
+			if(!(operand_flags_ & 0x4 << next_operand_)) {
+				MoveToNextOperand(StoreOperand_l);
+			}
+
+			if(instruction_.mode(next_operand_) <= Mode::AddressRegisterDirect) {
+				registers_[instruction_.lreg(next_operand_)] = operand_[next_operand_];
+				MoveToNextOperand(StoreOperand_l);
+			}
+
 			SetupDataAccess(0, Microcycle::SelectWord);
 			SetDataAddress(effective_address_[next_operand_]);
 			Access(operand_[next_operand_].low);		// nw
 
 			effective_address_[next_operand_] -= 2;
 			Access(operand_[next_operand_].high);		// nW
-		MoveToState(Decode);
+		MoveToNextOperand(StoreOperand_l);
 
 		//
 		// Various generic forms of perform.
 		//
 #define MoveToWritePhase()														\
-	next_operand_ = operand_flags_ >> 3;										\
+	next_operand_ = 0;															\
 	if(operand_flags_ & 0x0c) MoveToState(StoreOperand) else MoveToState(Decode)
 
 		BeginState(Perform_np):
