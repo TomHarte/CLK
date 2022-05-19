@@ -68,6 +68,8 @@ enum ExecutionState: int {
 	MOVEw,
 	MOVEwRegisterDirect,
 	MOVEwAddressRegisterIndirectWithPostincrement,
+
+	SABCD_PreDec,
 };
 
 // MARK: - The state machine.
@@ -288,6 +290,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				})
 
 				StdCASE(SWAP, 		perform_state_ = Perform_np);
+				StdCASE(EXG, 		perform_state_ = Perform_np_n);
 
 				StdCASE(MOVEw,		perform_state_ = MOVEw);
 
@@ -343,6 +346,24 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						perform_state_ = Perform_np;
 					}
 				})
+
+				CASE(SBCD)
+					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
+						perform_state_ = Perform_np_n;
+						SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
+						MoveToState(FetchOperand_bw);
+					} else {
+						MoveToState(SABCD_PreDec);
+					}
+
+				CASE(ABCD)
+					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
+						perform_state_ = Perform_np_n;
+						SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
+						MoveToState(FetchOperand_bw);
+					} else {
+						MoveToState(SABCD_PreDec);
+					}
 
 				default:
 					assert(false);
@@ -766,7 +787,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				default: assert(false);
 			}
 
-
 		BeginState(MOVEwRegisterDirect):
 			registers_[instruction_.lreg(1)].w = operand_[1].w;
 			Prefetch();		// np
@@ -776,6 +796,28 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// TODO: nw
 			assert(false);
 			Prefetch()		// np
+		MoveToState(Decode);
+
+		BeginState(SABCD_PreDec):
+			IdleBus(1);					// n
+
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
+			registers_[8 + instruction_.reg(0)].l -= byte_word_increments[0][instruction_.reg(0)];
+			SetDataAddress(registers_[8 + instruction_.reg(0)].l);
+			Access(operand_[0].low);	// nr
+
+			registers_[8 + instruction_.reg(1)].l -= byte_word_increments[1][instruction_.reg(1)];
+			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
+			Access(operand_[1].low);	// nr
+
+			Prefetch();					// np
+
+			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+			SetupDataAccess(0, Microcycle::SelectByte);
+			Access(operand_[1].low);	// nw
+
 		MoveToState(Decode);
 
 		// Various states TODO.
