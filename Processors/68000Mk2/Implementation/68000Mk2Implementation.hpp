@@ -806,7 +806,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(registers_[8 + instruction_.reg(0)].l);
 			Access(operand_[0].low);	// nr
 
-			registers_[8 + instruction_.reg(1)].l -= byte_word_increments[1][instruction_.reg(1)];
+			registers_[8 + instruction_.reg(1)].l -= byte_word_increments[0][instruction_.reg(1)];
 			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
 			Access(operand_[1].low);	// nr
 
