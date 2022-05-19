@@ -156,13 +156,12 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
 	_fileSet = [NSSet setWithArray:@[
-		@"eor_and_or.json",
-
 		// Below this line are passing tests.
+		@"eor_and_or.json",
 		@"abcd_sbcd.json",
 		@"nbcd.json",
 		@"ext.json"]];
-//	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
+//	_testSet = [NSSet setWithArray:@[@"EOR b1a1"]];
 }
 
 - (void)testAll {
@@ -251,10 +250,18 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		test68000->processor.set_state(state);
 	}
 
+	// Check that this is a defined opcode; capture of the unrecognised instruction
+	// exception doesn't work correctly with the way that this test class tries
+	// to detect the gaps between operations.
+	const uint16_t opcode = (test68000->ram[0x101] << 8) | test68000->ram[0x100];
+	if(_decoder.decode(opcode).operation == InstructionSet::M68k::Operation::Undefined) {
+		return;
+	}
+
 	// Run the thing.
 	const auto comparitor = [=] {
 		const auto state = test68000->processor.get_state();
-		const uint16_t opcode = (test68000->ram[0x101] << 8) | test68000->ram[0x100];
+
 		[self test:test name:name compareFinalRegisters:state.registers opcode:opcode];
 
 		// Test final memory state.
