@@ -84,6 +84,11 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	// Flow controller... all TODO.
 	using Preinstruction = InstructionSet::M68k::Preinstruction;
 
+	static constexpr uint32_t byte_word_increments[2][8] = {
+		{ 1, 1, 1, 1, 1, 1, 1, 2, },
+		{ 2, 2, 2, 2, 2, 2, 2, 2, }
+	};
+
 	template <typename IntT> void did_mulu(IntT) {}
 	template <typename IntT> void did_muls(IntT) {}
 	void did_chk(bool, bool) {}

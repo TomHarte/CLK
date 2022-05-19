@@ -258,9 +258,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			next_operand_ = 0;
 
 			// Obtain operand flags and pick a perform pattern.
-#define CASE(x, y)	\
+#define CASE(x)	\
 	case InstructionSet::M68k::Operation::x:																								\
-		operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>();	\
+		operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>();
+
+#define StdCASE(x, y)	\
+	CASE(x)	\
 		y;	\
 		\
 		if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::LongWord) {	\
@@ -276,7 +279,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		}
 
 			switch(instruction_.operation) {
-				CASE(NBCD, {
+				StdCASE(NBCD, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np_n;
 					} else {
@@ -284,17 +287,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 				})
 
-				CASE(SWAP, 		perform_state_ = Perform_np);
+				StdCASE(SWAP, 		perform_state_ = Perform_np);
 
-				CASE(MOVEw,		perform_state_ = MOVEw);
+				StdCASE(MOVEw,		perform_state_ = MOVEw);
 
-				CASE(CMPb,		perform_state_ = Perform_np);
-				CASE(CMPw,		perform_state_ = Perform_np);
-				CASE(CMPl,		perform_state_ = Perform_np_n);
+				StdCASE(CMPb,		perform_state_ = Perform_np);
+				StdCASE(CMPw,		perform_state_ = Perform_np);
+				StdCASE(CMPl,		perform_state_ = Perform_np_n);
 
-				CASE(ANDb,		perform_state_ = Perform_np);
-				CASE(ANDw,		perform_state_ = Perform_np);
-				CASE(ANDl, {
+				StdCASE(CMPAw,		perform_state_ = Perform_np_n);
+				StdCASE(CMPAl,		perform_state_ = Perform_np_n);
+
+				StdCASE(ANDb,		perform_state_ = Perform_np);
+				StdCASE(ANDw,		perform_state_ = Perform_np);
+				StdCASE(ANDl, {
 					if(instruction_.mode(1) == Mode::DataRegisterDirect) {
 						switch(instruction_.mode(0)) {
 							default:
@@ -310,9 +316,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 				});
 
-				CASE(ORb,		perform_state_ = Perform_np);
-				CASE(ORw,		perform_state_ = Perform_np);
-				CASE(ORl, {
+				StdCASE(ORb,		perform_state_ = Perform_np);
+				StdCASE(ORw,		perform_state_ = Perform_np);
+				StdCASE(ORl, {
 					if(instruction_.mode(1) == Mode::DataRegisterDirect) {
 						switch(instruction_.mode(0)) {
 							default:
@@ -328,9 +334,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 				});
 
-				CASE(EORb,		perform_state_ = Perform_np);
-				CASE(EORw,		perform_state_ = Perform_np);
-				CASE(EORl, {
+				StdCASE(EORb,		perform_state_ = Perform_np);
+				StdCASE(EORw,		perform_state_ = Perform_np);
+				StdCASE(EORl, {
 					if(instruction_.mode(1) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np_nn;
 					} else {
@@ -452,6 +458,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// MARK: - Fetch, addressing modes.
 
+		//
+		// AddressRegisterIndirect
+		//
 		BeginState(FetchAddressRegisterIndirect_bw):
 			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
 			SetDataAddress(effective_address_[next_operand_]);
@@ -459,7 +468,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
-		// TODO: avoid use of temporary_address_ here and probably above.
 		BeginState(FetchAddressRegisterIndirect_l):
 			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
 			SetDataAddress(effective_address_[next_operand_]);
@@ -468,6 +476,217 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			effective_address_[next_operand_] += 2;
 			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_l);
+
+		//
+		// AddressRegisterIndirectWithPostincrement
+		//
+		BeginState(FetchAddressRegisterIndirectWithPostincrement_bw):
+			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
+			registers_[8 + instruction_.reg(next_operand_)].l +=
+				byte_word_increments[int(instruction_.operand_size())][instruction_.reg(next_operand_)];
+
+			SetDataAddress(effective_address_[next_operand_]);
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginState(FetchAddressRegisterIndirectWithPostincrement_l):
+			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
+			registers_[8 + instruction_.reg(next_operand_)].l += 4;
+
+			SetDataAddress(effective_address_[next_operand_]);
+			Access(operand_[next_operand_].high);	// nR
+			effective_address_[next_operand_] += 2;
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_l);
+
+		//
+		// AddressRegisterIndirectWithPredecrement
+		//
+		BeginState(FetchAddressRegisterIndirectWithPredecrement_bw):
+			registers_[8 + instruction_.reg(next_operand_)].l -=
+				byte_word_increments[int(instruction_.operand_size())][instruction_.reg(next_operand_)];
+			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
+			SetDataAddress(effective_address_[next_operand_]);
+
+			IdleBus(1);								// n
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginState(FetchAddressRegisterIndirectWithPredecrement_l):
+			registers_[8 + instruction_.reg(next_operand_)].l -= 4;
+			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
+			SetDataAddress(effective_address_[next_operand_]);
+
+			IdleBus(1);								// n
+			Access(operand_[next_operand_].high);	// nR
+			effective_address_[next_operand_] += 2;
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_l);
+
+		//
+		// AddressRegisterIndirectWithDisplacement
+		//
+		BeginState(FetchAddressRegisterIndirectWithDisplacement_bw):
+			effective_address_[next_operand_] =
+				registers_[8 + instruction_.reg(next_operand_)].l +
+				int16_t(prefetch_.w);
+			SetDataAddress(effective_address_[next_operand_]);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginState(FetchAddressRegisterIndirectWithDisplacement_l):
+			effective_address_[next_operand_] =
+				registers_[8 + instruction_.reg(next_operand_)].l +
+				int16_t(prefetch_.w);
+			SetDataAddress(effective_address_[next_operand_]);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nR
+			effective_address_[next_operand_] += 2;
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_l);
+
+		//
+		// ProgramCounterIndirectWithDisplacement
+		//
+		BeginState(FetchProgramCounterIndirectWithDisplacement_bw):
+			effective_address_[next_operand_] =
+				instruction_address_ + 2 +
+				int16_t(prefetch_.w);
+			SetDataAddress(effective_address_[next_operand_]);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginState(FetchProgramCounterIndirectWithDisplacement_l):
+			effective_address_[next_operand_] =
+				instruction_address_ + 2 +
+				int16_t(prefetch_.w);
+			SetDataAddress(effective_address_[next_operand_]);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nR
+			effective_address_[next_operand_] += 2;
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_l);
+
+#define d8Xn(base)										\
+	base +												\
+	((prefetch_.w & 0x800) ?							\
+		registers_[prefetch_.w >> 12].l :				\
+		int16_t(registers_[prefetch_.w >> 12].w)) +		\
+	int8_t(prefetch_.b);
+
+		//
+		// AddressRegisterIndirectWithIndex8bitDisplacement
+		//
+		BeginState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_bw):
+			effective_address_[next_operand_] = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
+			SetDataAddress(effective_address_[next_operand_]);
+
+			IdleBus(1);								// n
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_l):
+			effective_address_[next_operand_] = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
+			SetDataAddress(effective_address_[next_operand_]);
+
+			IdleBus(1);								// n
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nR
+			effective_address_[next_operand_] += 2;
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_l);
+
+		//
+		// ProgramCounterIndirectWithIndex8bitDisplacement
+		//
+		BeginState(FetchProgramCounterIndirectWithIndex8bitDisplacement_bw):
+			effective_address_[next_operand_] = d8Xn(instruction_address_ + 2);
+			SetDataAddress(effective_address_[next_operand_]);
+
+			IdleBus(1);								// n
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginState(FetchProgramCounterIndirectWithIndex8bitDisplacement_l):
+			effective_address_[next_operand_] = d8Xn(instruction_address_ + 2);;
+			SetDataAddress(effective_address_[next_operand_]);
+
+			IdleBus(1);								// n
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nR
+			effective_address_[next_operand_] += 2;
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_l);
+
+#undef d8Xn
+
+		//
+		// AbsoluteShort
+		//
+		BeginState(FetchAbsoluteShort_bw):
+			effective_address_[next_operand_] = int16_t(prefetch_.w);
+			SetDataAddress(effective_address_[next_operand_]);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginState(FetchAbsoluteShort_l):
+			effective_address_[next_operand_] = int16_t(prefetch_.w);
+			SetDataAddress(effective_address_[next_operand_]);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nR
+			effective_address_[next_operand_] += 2;
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_l);
+
+		//
+		// AbsoluteLong
+		//
+		BeginState(FetchAbsoluteLong_bw):
+			Prefetch();								// np
+
+			effective_address_[next_operand_] = prefetch_.l;
+			SetDataAddress(effective_address_[next_operand_]);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginState(FetchAbsoluteLong_l):
+			Prefetch();								// np
+
+			effective_address_[next_operand_] = prefetch_.l;
+			SetDataAddress(effective_address_[next_operand_]);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nR
+			effective_address_[next_operand_] += 2;
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_l);
+
+		//
+		// ImmediateData
+		//
+		BeginState(FetchImmediateData_bw):
+			operand_[next_operand_].w = prefetch_.w;
+			Prefetch();								// np
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginState(FetchImmediateData_l):
+			Prefetch();								// np
+			operand_[next_operand_].l = prefetch_.l;
+			Prefetch();								// np
 		MoveToNextOperand(FetchOperand_l);
 
 	// MARK: - Store.
@@ -563,25 +782,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define TODOState(x)	\
 		BeginState(x): [[fallthrough]];
 
-		TODOState(FetchAddressRegisterIndirectWithPostincrement_bw);
-		TODOState(FetchAddressRegisterIndirectWithPredecrement_bw);
-		TODOState(FetchAddressRegisterIndirectWithDisplacement_bw);
-		TODOState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_bw);
-		TODOState(FetchProgramCounterIndirectWithDisplacement_bw);
-		TODOState(FetchProgramCounterIndirectWithIndex8bitDisplacement_bw);
-		TODOState(FetchAbsoluteShort_bw);
-		TODOState(FetchAbsoluteLong_bw);
-		TODOState(FetchImmediateData_bw);
-
-		TODOState(FetchAddressRegisterIndirectWithPostincrement_l);
-		TODOState(FetchAddressRegisterIndirectWithPredecrement_l);
-		TODOState(FetchAddressRegisterIndirectWithDisplacement_l);
-		TODOState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_l);
-		TODOState(FetchProgramCounterIndirectWithDisplacement_l);
-		TODOState(FetchProgramCounterIndirectWithIndex8bitDisplacement_l);
-		TODOState(FetchAbsoluteShort_l);
-		TODOState(FetchAbsoluteLong_l);
-		TODOState(FetchImmediateData_l);
+//		TODOState(FetchImmediateData_l);
 
 #undef TODOState
 
