@@ -301,6 +301,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			instruction_ = decoder_.decode(opcode_);
 			instruction_address_.l = program_counter_.l - 4;
 
+			// Signal the bus handler if requested.
+			if constexpr (signal_will_perform) {
+				bus_handler_.will_perform(instruction_address_.l, opcode_);
+			}
+
 			// Check for a privilege violation.
 			if(instruction_.requires_supervisor() && !status_.is_supervisor) {
 				exception_vector_ = InstructionSet::M68k::Exception::PrivilegeViolation;
@@ -321,11 +326,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					continue;
 				}
 				MoveToState(StandardException);
-			}
-
-			// Signal the bus handler if requested.
-			if constexpr (signal_will_perform) {
-				bus_handler_.will_perform(instruction_address_.l, opcode_);
 			}
 
 			// Ensure the first parameter is next fetched.
