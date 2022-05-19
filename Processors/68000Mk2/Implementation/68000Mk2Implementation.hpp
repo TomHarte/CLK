@@ -29,6 +29,7 @@ enum ExecutionState: int {
 	FetchOperand_l,
 
 	StoreOperand,
+	StoreOperand_l,
 
 	// Specific addressing mode fetches.
 
@@ -167,8 +168,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	// Sets up the next data access — its address and size/read flags.
 #define SetupDataAccess(addr, read_flag, select_flag)										\
 	access.address = access_announce.address = &addr;										\
-	access_announce.operation = Microcycle::NewAddress | Microcycle::IsData | read_flag;	\
-	access.operation = access_announce.operation | select_flag;
+	access_announce.operation = Microcycle::NewAddress | Microcycle::IsData | (read_flag);	\
+	access.operation = access_announce.operation | (select_flag);
 
 	// Performs the access established by SetupDataAccess into val.
 #define Access(val)										\
@@ -407,6 +408,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
+		// TODO: avoid use of temporary_address_ here and probably above.
 		BeginState(FetchAddressRegisterIndirect_l):
 			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
 
@@ -414,6 +416,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].high);	// nR
 
 			temporary_address_ += 2;
+			effective_address_[next_operand_] += 2;
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
@@ -428,9 +431,24 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToState(Decode);
 			}
 
-			// TODO: make a decision on how I'm going to deal with byte/word/longword.
-			assert(false);
-		break;
+			if(instruction_.operand_size() == InstructionSet::M68k::DataSize::LongWord) {
+				MoveToState(StoreOperand_l);
+			}
+
+			SetupDataAccess(
+				effective_address_[next_operand_],
+				0,
+				(instruction_.operand_size() == InstructionSet::M68k::DataSize::Byte) ? Microcycle::SelectByte : Microcycle::SelectWord);
+			Access(operand_[next_operand_].low);		// nw
+		MoveToState(Decode);
+
+		BeginState(StoreOperand_l):
+			SetupDataAccess(effective_address_[next_operand_], 0, Microcycle::SelectWord);
+			Access(operand_[next_operand_].low);		// nw
+
+			effective_address_[next_operand_] -= 2;
+			Access(operand_[next_operand_].high);		// nW
+		MoveToState(Decode);
 
 		//
 		// Various generic forms of perform.
