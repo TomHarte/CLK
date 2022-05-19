@@ -292,6 +292,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(SWAP, 		perform_state_ = Perform_np);
 				StdCASE(EXG, 		perform_state_ = Perform_np_n);
 
+				StdCASE(EXTbtow, 	perform_state_ = Perform_np);
+				StdCASE(EXTwtol, 	perform_state_ = Perform_np);
+
 				StdCASE(MOVEw,		perform_state_ = MOVEw);
 
 				StdCASE(CMPb,		perform_state_ = Perform_np);

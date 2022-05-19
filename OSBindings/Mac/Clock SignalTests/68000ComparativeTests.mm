@@ -155,9 +155,17 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 #endif
 
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[@"nbcd_pea.json"]];
+//	_fileSet = [NSSet setWithArray:@[@"lslr_aslr_roxlr_rolr.json"]];
 //	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }
+
+//
+// Temporary notes on 68000 mk2:
+//
+// Passing so far:
+//
+//	abcd_sbcd
+//	nbcd
 
 - (void)testAll {
 	// Get the full list of available test files.
@@ -198,9 +206,9 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	NSError *error;
 	NSArray *const jsonContents = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
 
-	if(!data || error || ![jsonContents isKindOfClass:[NSArray class]]) {
-		return;
-	}
+	XCTAssertNil(error);
+	XCTAssertNotNil(jsonContents);
+	XCTAssert([jsonContents isKindOfClass:[NSArray class]]);
 
 	// Perform each dictionary in the array as a test.
 	for(NSDictionary *test in jsonContents) {
@@ -248,7 +256,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	// Run the thing.
 	const auto comparitor = [=] {
 		const auto state = test68000->processor.get_state();
-		[self test:test name:name compareFinalRegisters:state.registers];
+		const uint16_t opcode = (test68000->ram[0x101] << 8) | test68000->ram[0x100];
+		[self test:test name:name compareFinalRegisters:state.registers opcode:opcode];
 
 		// Test final memory state.
 		NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
@@ -264,7 +273,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 		// Consider collating extra detail.
 		if([_failures containsObject:name]) {
-			[_failingOpcodes addObject:@((test68000->ram[0x101] << 8) | test68000->ram[0x100])];
+			[_failingOpcodes addObject:@(opcode)];
 		}
 
 		// Make sure nothing further occurs; keep this test isolated.
@@ -300,7 +309,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 	// Test the end state.
 	const auto state = _testExecutor->processor.get_state();
-	[self test:test name:name compareFinalRegisters:state];
+	const uint16_t opcode = _testExecutor->read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode());
+	[self test:test name:name compareFinalRegisters:state opcode:opcode];
 
 	// Test final memory state.
 	NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
@@ -316,10 +326,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	// If this test is now in the failures set, add the corresponding opcode for
 	// later logging.
 	if([_failures containsObject:name]) {
-		NSNumber *const opcode = @(_testExecutor->read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode()));
-
 		// Add this opcode to the failing list.
-		[_failingOpcodes addObject:opcode];
+		[_failingOpcodes addObject:@(opcode)];
 
 		// Generate the JSON that would have satisfied this test, at least as far as registers go,
 		// if those are being collected.
@@ -342,10 +350,10 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 						[NSJSONSerialization dataWithJSONObject:generatedTest options:0 error:nil]
 						encoding:NSUTF8StringEncoding];
 
-			if(_suggestedCorrections[opcode]) {
-				[_suggestedCorrections[opcode] addObject:generatedJSON];
+			if(_suggestedCorrections[@(opcode)]) {
+				[_suggestedCorrections[@(opcode)] addObject:generatedJSON];
 			} else {
-				_suggestedCorrections[opcode] = [NSMutableArray arrayWithObject:generatedJSON];
+				_suggestedCorrections[@(opcode)] = [NSMutableArray arrayWithObject:generatedJSON];
 			}
 		}
 	}
@@ -371,7 +379,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	return registers;
 }
 
-- (void)test:(NSDictionary *)test name:(NSString *)name compareFinalRegisters:(InstructionSet::M68k::RegisterSet)registers {
+- (void)test:(NSDictionary *)test name:(NSString *)name compareFinalRegisters:(InstructionSet::M68k::RegisterSet)registers opcode:(uint16_t)opcode {
 	// Test the end state.
 	NSDictionary *const finalState = test[@"final state"];
 	for(int c = 0; c < 8; ++c) {
@@ -386,7 +394,6 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 	const uint16_t correctSR = [finalState[@"sr"] integerValue];
 	if(registers.status != correctSR) {
-		const uint16_t opcode = _testExecutor->read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode());
 		const auto instruction = _decoder.decode(opcode);
 
 		// For DIVU and DIVS, for now, test only the well-defined flags.
