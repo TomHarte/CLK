@@ -38,7 +38,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	InstructionSet::M68k::Preinstruction instruction_;
 	uint16_t opcode_;
 	uint8_t operand_flags_;
-	uint32_t instruction_address_;
+	SlicedInt32 instruction_address_;
 
 	// Register state.
 	InstructionSet::M68k::Status status_;
@@ -81,6 +81,12 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// a data select).
 	uint32_t temporary_address_ = 0;
 
+	/// A record of the exception to trigger.
+	int exception_vector_ = 0;
+
+	/// Transient storage for exception processing.
+	SlicedInt16 captured_status_;
+
 	// Flow controller... all TODO.
 	using Preinstruction = InstructionSet::M68k::Preinstruction;
 
@@ -91,28 +97,28 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 
 	template <typename IntT> void did_mulu(IntT) {}
 	template <typename IntT> void did_muls(IntT) {}
-	void did_chk(bool, bool) {}
-	void did_shift(int) {}
+	inline void did_chk(bool, bool);
+	inline void did_shift(int) {}
 	template <bool did_overflow> void did_divu(uint32_t, uint32_t) {}
 	template <bool did_overflow> void did_divs(int32_t, int32_t) {}
-	void did_bit_op(int) {}
+	inline void did_bit_op(int) {}
 	inline void did_update_status();
 	template <typename IntT> void complete_bcc(bool, IntT) {}
-	void complete_dbcc(bool, bool, int16_t) {}
-	void bsr(uint32_t) {}
-	void jsr(uint32_t) {}
-	void jmp(uint32_t) {}
-	void rtr() {}
-	void rte() {}
-	void rts() {}
-	void stop() {}
-	void reset() {}
-	void link(Preinstruction, uint32_t) {}
-	void unlink(uint32_t &) {}
-	void pea(uint32_t) {}
-	void move_to_usp(uint32_t) {}
-	void move_from_usp(uint32_t &) {}
-	void tas(Preinstruction, uint32_t) {}
+	inline void complete_dbcc(bool, bool, int16_t) {}
+	inline void bsr(uint32_t) {}
+	inline void jsr(uint32_t) {}
+	inline void jmp(uint32_t) {}
+	inline void rtr() {}
+	inline void rte() {}
+	inline void rts() {}
+	inline void stop() {}
+	inline void reset() {}
+	inline void link(Preinstruction, uint32_t) {}
+	inline void unlink(uint32_t &) {}
+	inline void pea(uint32_t) {}
+	inline void move_to_usp(uint32_t) {}
+	inline void move_from_usp(uint32_t &) {}
+	inline void tas(Preinstruction, uint32_t) {}
 	template <typename IntT> void movep(Preinstruction, uint32_t, uint32_t) {}
 	template <typename IntT> void movem_toM(Preinstruction, uint32_t, uint32_t) {}
 	template <typename IntT> void movem_toR(Preinstruction, uint32_t, uint32_t) {}

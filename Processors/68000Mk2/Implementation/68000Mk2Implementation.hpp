@@ -12,6 +12,8 @@
 #include <cassert>
 #include <cstdio>
 
+#include "../../../InstructionSets/M68k/ExceptionVectors.hpp"
+
 namespace CPU {
 namespace MC68000Mk2 {
 
@@ -30,6 +32,9 @@ enum ExecutionState: int {
 
 	StoreOperand,
 	StoreOperand_l,
+
+	StandardException,
+	BusOrAddressErrorException,
 
 	// Specific addressing mode fetches.
 
@@ -70,6 +75,11 @@ enum ExecutionState: int {
 	MOVEwAddressRegisterIndirectWithPostincrement,
 
 	SABCD_PreDec,
+
+	CHK,
+	CHK_no_trap,
+	CHK_was_over,
+	CHK_was_under,
 };
 
 // MARK: - The state machine.
@@ -240,6 +250,47 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();			// np
 		MoveToState(Decode);
 
+		// Perform a 'standard' exception, i.e. a Group 1 or 2.
+		BeginState(StandardException):
+			captured_status_.w = status_.status();
+
+			// Switch to supervisor mode.
+			status_.is_supervisor = true;
+			status_.trace_flag = 0;
+			did_update_status();
+
+			SetupDataAccess(0, Microcycle::SelectWord);
+			SetDataAddress(registers_[15].l);
+
+			// Push status and current program counter.
+			// Write order is wacky here, but I think it's correct.
+			registers_[15].l -= 6;
+			Access(captured_status_);			// ns
+
+			registers_[15].l += 4;
+			Access(instruction_address_.low);	// ns
+
+			registers_[15].l -= 2;
+			Access(instruction_address_.high);	// nS
+
+			registers_[15].l -= 2;
+
+			// Grab new program counter.
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetDataAddress(temporary_address_);
+
+			temporary_address_ = exception_vector_ << 2;
+			Access(program_counter_.high);	// nV
+
+			temporary_address_ += 2;
+			Access(program_counter_.low);	// nv
+
+			// Populate the prefetch queue.
+			Prefetch();			// np
+			IdleBus(1);			// n
+			Prefetch();			// np
+		MoveToState(Decode);
+
 		// Inspect the prefetch queue in order to decode the next instruction,
 		// and segue into the fetching of operands.
 		BeginState(Decode):
@@ -247,13 +298,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			opcode_ = prefetch_.high.w;
 			instruction_ = decoder_.decode(opcode_);
-			instruction_address_ = program_counter_.l - 4;
+			instruction_address_.l = program_counter_.l - 4;
 
 			// TODO: check for privilege and unrecognised instructions.
 
 			// Signal the bus handler if requested.
 			if constexpr (signal_will_perform) {
-				bus_handler_.will_perform(instruction_address_, opcode_);
+				bus_handler_.will_perform(instruction_address_.l, opcode_);
 			}
 
 			// Ensure the first parameter is next fetched.
@@ -297,6 +348,21 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						perform_state_ = Perform_np;
 					}
 				})
+
+				Duplicate(NEGb, NEGXb)	Duplicate(NOTb, NEGXb)
+				StdCASE(NEGXb, 		perform_state_ = Perform_np);
+
+				Duplicate(NEGw, NEGXw)	Duplicate(NOTw, NEGXw)
+				StdCASE(NEGXw, 		perform_state_ = Perform_np);
+
+				Duplicate(NEGl, NEGXl)	Duplicate(NOTl, NEGXl)
+				StdCASE(NEGXl,
+					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
+						perform_state_ = Perform_np_n;
+					} else {
+						perform_state_ = Perform_np;
+					}
+				);
 
 				StdCASE(SWAP, 		perform_state_ = Perform_np);
 				StdCASE(EXG, 		perform_state_ = Perform_np_n);
@@ -350,6 +416,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					} else {
 						MoveToState(SABCD_PreDec);
 					}
+
+				StdCASE(CHK,		perform_state_ = CHK);
 
 				default:
 					assert(false);
@@ -563,7 +631,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(FetchProgramCounterIndirectWithDisplacement_bw):
 			effective_address_[next_operand_] =
-				instruction_address_ + 2 +
+				instruction_address_.l + 2 +
 				int16_t(prefetch_.w);
 			SetDataAddress(effective_address_[next_operand_]);
 
@@ -573,7 +641,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(FetchProgramCounterIndirectWithDisplacement_l):
 			effective_address_[next_operand_] =
-				instruction_address_ + 2 +
+				instruction_address_.l + 2 +
 				int16_t(prefetch_.w);
 			SetDataAddress(effective_address_[next_operand_]);
 
@@ -617,7 +685,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// ProgramCounterIndirectWithIndex8bitDisplacement
 		//
 		BeginState(FetchProgramCounterIndirectWithIndex8bitDisplacement_bw):
-			effective_address_[next_operand_] = d8Xn(instruction_address_ + 2);
+			effective_address_[next_operand_] = d8Xn(instruction_address_.l + 2);
 			SetDataAddress(effective_address_[next_operand_]);
 
 			IdleBus(1);								// n
@@ -626,7 +694,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToNextOperand(FetchOperand_bw);
 
 		BeginState(FetchProgramCounterIndirectWithIndex8bitDisplacement_l):
-			effective_address_[next_operand_] = d8Xn(instruction_address_ + 2);;
+			effective_address_[next_operand_] = d8Xn(instruction_address_.l + 2);;
 			SetDataAddress(effective_address_[next_operand_]);
 
 			IdleBus(1);								// n
@@ -808,11 +876,40 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		MoveToState(Decode);
 
+		BeginState(CHK):
+			Prefetch();			// np
+			InstructionSet::M68k::perform<
+				InstructionSet::M68k::Model::M68000,
+				ProcessorBase,
+				InstructionSet::M68k::Operation::CHK
+			>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+			// Proper next state will have been set by the flow controller
+			// call-in; just allow dispatch to whatever it was.
+		break;
+
+		BeginState(CHK_no_trap):
+			IdleBus(3);			// nn n
+		MoveToState(Decode);
+
+		BeginState(CHK_was_over):
+			IdleBus(2);			// nn
+			instruction_address_.l = program_counter_.l - 4;
+			exception_vector_ = InstructionSet::M68k::Exception::CHK;
+		MoveToState(StandardException);
+
+		BeginState(CHK_was_under):
+			IdleBus(3);			// n nn
+			instruction_address_.l = program_counter_.l - 4;
+			exception_vector_ = InstructionSet::M68k::Exception::CHK;
+		MoveToState(StandardException);
+
 		// Various states TODO.
 #define TODOState(x)	\
 		BeginState(x): [[fallthrough]];
 
-//		TODOState(FetchImmediateData_l);
+		TODOState(BusOrAddressErrorException);
 
 #undef TODOState
 
@@ -843,6 +940,16 @@ void ProcessorBase::did_update_status() {
 	stack_pointers_[is_supervisor_] = registers_[15];
 	registers_[15] = stack_pointers_[int(status_.is_supervisor)];
 	is_supervisor_ = int(status_.is_supervisor);
+}
+
+void ProcessorBase::did_chk(bool was_under, bool was_over) {
+	if(was_over) {
+		state_ = CHK_was_over;
+	} else if(was_under) {
+		state_ = CHK_was_under;
+	} else {
+		state_ = CHK_no_trap;
+	}
 }
 
 // MARK: - External state.
