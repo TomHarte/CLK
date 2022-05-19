@@ -24,24 +24,35 @@ enum ExecutionState: int {
 	WaitForDTACK,
 
 	/// Perform the proper sequence to fetch a byte or word operand.
-	FetchOperandbw,
+	FetchOperand_bw,
 	/// Perform the proper sequence to fetch a long-word operand.
-	FetchOperandl,
+	FetchOperand_l,
 
 	StoreOperand,
 
 	// Specific addressing mode fetches.
 
-	FetchAddressRegisterIndirect,
-	FetchAddressRegisterIndirectWithPostincrement,
-	FetchAddressRegisterIndirectWithPredecrement,
-	FetchAddressRegisterIndirectWithDisplacement,
-	FetchAddressRegisterIndirectWithIndex8bitDisplacement,
-	FetchProgramCounterIndirectWithDisplacement,
-	FetchProgramCounterIndirectWithIndex8bitDisplacement,
-	FetchAbsoluteShort,
-	FetchAbsoluteLong,
-	FetchImmediateData,
+	FetchAddressRegisterIndirect_bw,
+	FetchAddressRegisterIndirectWithPostincrement_bw,
+	FetchAddressRegisterIndirectWithPredecrement_bw,
+	FetchAddressRegisterIndirectWithDisplacement_bw,
+	FetchAddressRegisterIndirectWithIndex8bitDisplacement_bw,
+	FetchProgramCounterIndirectWithDisplacement_bw,
+	FetchProgramCounterIndirectWithIndex8bitDisplacement_bw,
+	FetchAbsoluteShort_bw,
+	FetchAbsoluteLong_bw,
+	FetchImmediateData_bw,
+
+	FetchAddressRegisterIndirect_l,
+	FetchAddressRegisterIndirectWithPostincrement_l,
+	FetchAddressRegisterIndirectWithPredecrement_l,
+	FetchAddressRegisterIndirectWithDisplacement_l,
+	FetchAddressRegisterIndirectWithIndex8bitDisplacement_l,
+	FetchProgramCounterIndirectWithDisplacement_l,
+	FetchProgramCounterIndirectWithIndex8bitDisplacement_l,
+	FetchAbsoluteShort_l,
+	FetchAbsoluteLong_l,
+	FetchImmediateData_l,
 
 	// Various forms of perform; each of these will
 	// perform the current instruction, then do the
@@ -248,14 +259,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define FetchOperands(x)	\
 	if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::LongWord) {	\
 		SetupDataAccess(temporary_address_, Microcycle::Read, Microcycle::SelectWord);	\
-		MoveToState(FetchOperandl);	\
+		MoveToState(FetchOperand_l);	\
 	} else {	\
 		if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::Byte) {	\
 			SetupDataAccess(temporary_address_, Microcycle::Read, Microcycle::SelectByte);	\
 		} else {	\
 			SetupDataAccess(temporary_address_, Microcycle::Read, Microcycle::SelectWord);	\
 		}	\
-		MoveToState(FetchOperandbw);	\
+		MoveToState(FetchOperand_bw);	\
 	}
 
 			switch(instruction_.operation) {
@@ -281,6 +292,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 #undef CASE
 
+	// MARK: - Fetch, dispatch.
+
 #define MoveToNextOperand(x)		\
 	++next_operand_;				\
 	if(next_operand_ == 2) {		\
@@ -289,10 +302,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	}								\
 	MoveToState(x)
 
-		// Check the operand flags to determine whether the operand at index
-		// operand_ needs to be fetched, and if so then calculate the EA and
-		// do so.
-		BeginState(FetchOperandbw):
+		// Check the operand flags to determine whether the byte or word
+		// operand at index next_operand_ needs to be fetched, and if so
+		// then calculate the EA and do so.
+		BeginState(FetchOperand_bw):
 			// Check that this operand is meant to be fetched; if not then either:
 			//
 			//	(i) this operand isn't used; or
@@ -308,38 +321,103 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				case Mode::AddressRegisterDirect:
 				case Mode::DataRegisterDirect:
 					operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
-				MoveToNextOperand(FetchOperandbw);
+				MoveToNextOperand(FetchOperand_bw);
 
 				case Mode::Quick:
 					operand_[next_operand_].l = InstructionSet::M68k::quick(opcode_, instruction_.operation);
-				MoveToNextOperand(FetchOperandbw);
+				MoveToNextOperand(FetchOperand_bw);
 
 				case Mode::AddressRegisterIndirect:
-					MoveToState(FetchAddressRegisterIndirect);
+					MoveToState(FetchAddressRegisterIndirect_bw);
 				case Mode::AddressRegisterIndirectWithPostincrement:
-					MoveToState(FetchAddressRegisterIndirectWithPostincrement);
+					MoveToState(FetchAddressRegisterIndirectWithPostincrement_bw);
 				case Mode::AddressRegisterIndirectWithPredecrement:
-					MoveToState(FetchAddressRegisterIndirectWithPredecrement);
+					MoveToState(FetchAddressRegisterIndirectWithPredecrement_bw);
 				case Mode::AddressRegisterIndirectWithDisplacement:
-					MoveToState(FetchAddressRegisterIndirectWithDisplacement);
+					MoveToState(FetchAddressRegisterIndirectWithDisplacement_bw);
 				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
-					MoveToState(FetchAddressRegisterIndirectWithIndex8bitDisplacement);
+					MoveToState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_bw);
 				case Mode::ProgramCounterIndirectWithDisplacement:
-					MoveToState(FetchProgramCounterIndirectWithDisplacement);
+					MoveToState(FetchProgramCounterIndirectWithDisplacement_bw);
 				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
-					MoveToState(FetchProgramCounterIndirectWithIndex8bitDisplacement);
+					MoveToState(FetchProgramCounterIndirectWithIndex8bitDisplacement_bw);
 				case Mode::AbsoluteShort:
-					MoveToState(FetchAbsoluteShort);
+					MoveToState(FetchAbsoluteShort_bw);
 				case Mode::AbsoluteLong:
-					MoveToState(FetchAbsoluteLong);
+					MoveToState(FetchAbsoluteLong_bw);
 				case Mode::ImmediateData:
-					MoveToState(FetchImmediateData);
+					MoveToState(FetchImmediateData_bw);
 
 				// Should be impossible to reach.
 				default:
 					assert(false);
 			}
 		break;
+
+		// As above, but for .l.
+		BeginState(FetchOperand_l):
+			if(!(operand_flags_ & (1 << next_operand_))) {
+				state_ = perform_state_;
+				continue;
+			}
+
+			switch(instruction_.mode(next_operand_)) {
+				case Mode::AddressRegisterDirect:
+				case Mode::DataRegisterDirect:
+					operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
+				MoveToNextOperand(FetchOperand_bw);
+
+				case Mode::Quick:
+					operand_[next_operand_].l = InstructionSet::M68k::quick(opcode_, instruction_.operation);
+				MoveToNextOperand(FetchOperand_bw);
+
+				case Mode::AddressRegisterIndirect:
+					MoveToState(FetchAddressRegisterIndirect_l);
+				case Mode::AddressRegisterIndirectWithPostincrement:
+					MoveToState(FetchAddressRegisterIndirectWithPostincrement_l);
+				case Mode::AddressRegisterIndirectWithPredecrement:
+					MoveToState(FetchAddressRegisterIndirectWithPredecrement_l);
+				case Mode::AddressRegisterIndirectWithDisplacement:
+					MoveToState(FetchAddressRegisterIndirectWithDisplacement_l);
+				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
+					MoveToState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_l);
+				case Mode::ProgramCounterIndirectWithDisplacement:
+					MoveToState(FetchProgramCounterIndirectWithDisplacement_l);
+				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
+					MoveToState(FetchProgramCounterIndirectWithIndex8bitDisplacement_l);
+				case Mode::AbsoluteShort:
+					MoveToState(FetchAbsoluteShort_l);
+				case Mode::AbsoluteLong:
+					MoveToState(FetchAbsoluteLong_l);
+				case Mode::ImmediateData:
+					MoveToState(FetchImmediateData_l);
+
+				// Should be impossible to reach.
+				default:
+					assert(false);
+			}
+		break;
+
+	// MARK: - Fetch, addressing modes.
+
+		BeginState(FetchAddressRegisterIndirect_bw):
+			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
+
+			temporary_address_ = effective_address_[next_operand_];
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginState(FetchAddressRegisterIndirect_l):
+			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
+
+			temporary_address_ = effective_address_[next_operand_];
+			Access(operand_[next_operand_].high);	// nR
+
+			temporary_address_ += 2;
+			Access(operand_[next_operand_].low);	// nr
+		MoveToNextOperand(FetchOperand_l);
+
+	// MARK: - Store.
 
 		// Store operand is a lot simpler: only one operand is ever stored, and its address
 		// is already known. So this can either skip straight back to ::Decode if the target
@@ -409,22 +487,30 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define TODOState(x)	\
 		BeginState(x): [[fallthrough]];
 
-		TODOState(FetchAddressRegisterIndirect);
-		TODOState(FetchAddressRegisterIndirectWithPostincrement);
-		TODOState(FetchAddressRegisterIndirectWithPredecrement);
-		TODOState(FetchAddressRegisterIndirectWithDisplacement);
-		TODOState(FetchAddressRegisterIndirectWithIndex8bitDisplacement);
-		TODOState(FetchProgramCounterIndirectWithDisplacement);
-		TODOState(FetchProgramCounterIndirectWithIndex8bitDisplacement);
-		TODOState(FetchAbsoluteShort);
-		TODOState(FetchAbsoluteLong);
-		TODOState(FetchImmediateData);
-		TODOState(FetchOperandl);
+		TODOState(FetchAddressRegisterIndirectWithPostincrement_bw);
+		TODOState(FetchAddressRegisterIndirectWithPredecrement_bw);
+		TODOState(FetchAddressRegisterIndirectWithDisplacement_bw);
+		TODOState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_bw);
+		TODOState(FetchProgramCounterIndirectWithDisplacement_bw);
+		TODOState(FetchProgramCounterIndirectWithIndex8bitDisplacement_bw);
+		TODOState(FetchAbsoluteShort_bw);
+		TODOState(FetchAbsoluteLong_bw);
+		TODOState(FetchImmediateData_bw);
+
+		TODOState(FetchAddressRegisterIndirectWithPostincrement_l);
+		TODOState(FetchAddressRegisterIndirectWithPredecrement_l);
+		TODOState(FetchAddressRegisterIndirectWithDisplacement_l);
+		TODOState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_l);
+		TODOState(FetchProgramCounterIndirectWithDisplacement_l);
+		TODOState(FetchProgramCounterIndirectWithIndex8bitDisplacement_l);
+		TODOState(FetchAbsoluteShort_l);
+		TODOState(FetchAbsoluteLong_l);
+		TODOState(FetchImmediateData_l);
 
 #undef TODOState
 
 		default:
-			printf("Unhandled state: %d\n", state_);
+			printf("Unhandled state: %d; opcode is %04x\n", state_, opcode_);
 			assert(false);
 	}}
 
