@@ -45,9 +45,11 @@ enum ExecutionState: int {
 	Perform_np,
 	Perform_np_n,
 
-	// MOVE has unique bus usage, so has a specialised state.
+	// MOVE has unique bus usage, so has specialised states.
 
-	MOVEWrite,
+	MOVEw,
+	MOVEwRegisterDirect,
+	MOVEwAddressRegisterIndirectWithPostincrement,
 };
 
 // MARK: - The state machine.
@@ -240,6 +242,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 				break;
 
+				CASE(MOVEw)
+					perform_state_ = MOVEw;
+				break;
+
 				default:
 					assert(false);
 			}
@@ -321,7 +327,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		break;
 
 		//
-		// Various forms of perform.
+		// Various generic forms of perform.
 		//
 #define MoveToWritePhase()														\
 	next_operand_ = operand_flags_ >> 3;										\
@@ -342,6 +348,34 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 #undef MoveToWritePhase
 
+
+		//
+		// Specific forms of perform.
+		//
+
+		BeginState(MOVEw):
+			switch(instruction_.mode(1)) {
+				case Mode::DataRegisterDirect:
+				case Mode::AddressRegisterDirect:
+				MoveToState(MOVEwRegisterDirect);
+
+				case Mode::AddressRegisterIndirectWithPostincrement:
+				MoveToState(MOVEwAddressRegisterIndirectWithPostincrement);
+
+				default: assert(false);
+			}
+
+
+		BeginState(MOVEwRegisterDirect):
+			registers_[instruction_.lreg(1)].w = operand_[1].w;
+			Prefetch();		// np
+		MoveToState(Decode);
+
+		BeginState(MOVEwAddressRegisterIndirectWithPostincrement):
+			// TODO: nw
+			assert(false);
+			Prefetch()		// np
+		MoveToState(Decode);
 
 		// Various states TODO.
 #define TODOState(x)	\
