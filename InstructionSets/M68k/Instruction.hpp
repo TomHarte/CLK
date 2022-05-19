@@ -166,7 +166,7 @@ static constexpr uint8_t StoreOp2	= (1 << 3);
 	Unusual bus sequences, such as TAS or MOVEM, are not described here.
 */
 template <Model model, Operation t_operation = Operation::Undefined>
-uint8_t operand_flags(Operation r_operation = Operation::Undefined);
+constexpr uint8_t operand_flags(Operation r_operation = Operation::Undefined);
 
 /// Lists the various condition codes used by the 680x0.
 enum class Condition {

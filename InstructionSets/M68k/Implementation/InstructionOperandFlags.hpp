@@ -12,7 +12,7 @@
 namespace InstructionSet {
 namespace M68k {
 
-template <Model model, Operation t_operation> uint8_t operand_flags(Operation r_operation) {
+template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Operation r_operation) {
 	switch((t_operation != Operation::Undefined) ? t_operation : r_operation) {
 		default:
 			assert(false);

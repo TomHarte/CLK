@@ -280,6 +280,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			MoveToState(FetchOperand_bw);	\
 		}
 
+#define Duplicate(x, y)	\
+	case InstructionSet::M68k::Operation::x:	\
+		static_assert(	\
+			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>() ==	\
+			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::y>() &&	\
+			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == 										\
+			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::y>()											\
+		);
+
 			switch(instruction_.operation) {
 				StdCASE(NBCD, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
@@ -304,27 +313,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(CMPAw,		perform_state_ = Perform_np_n);
 				StdCASE(CMPAl,		perform_state_ = Perform_np_n);
 
-				StdCASE(ANDb,		perform_state_ = Perform_np);
-				StdCASE(ANDw,		perform_state_ = Perform_np);
-				StdCASE(ANDl, {
-					if(instruction_.mode(1) == Mode::DataRegisterDirect) {
-						switch(instruction_.mode(0)) {
-							default:
-								perform_state_ = Perform_np_n;
-							break;
-							case Mode::DataRegisterDirect:
-							case Mode::ImmediateData:
-								perform_state_ = Perform_np_nn;
-							break;
-						}
-					} else {
-						perform_state_ = Perform_np;
-					}
-				});
-
-				StdCASE(ORb,		perform_state_ = Perform_np);
-				StdCASE(ORw,		perform_state_ = Perform_np);
-				StdCASE(ORl, {
+				Duplicate(ANDb, ORb)	StdCASE(ORb,		perform_state_ = Perform_np);
+				Duplicate(ANDw, ORw)	StdCASE(ORw,		perform_state_ = Perform_np);
+				Duplicate(ANDl, ORl)	StdCASE(ORl, {
 					if(instruction_.mode(1) == Mode::DataRegisterDirect) {
 						switch(instruction_.mode(0)) {
 							default:
@@ -350,15 +341,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 				})
 
-				CASE(SBCD)
-					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
-						perform_state_ = Perform_np_n;
-						SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
-						MoveToState(FetchOperand_bw);
-					} else {
-						MoveToState(SABCD_PreDec);
-					}
-
+				Duplicate(SBCD, ABCD)
 				CASE(ABCD)
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np_n;
@@ -372,6 +355,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					assert(false);
 			}
 
+#undef Duplicate
+#undef StdCASE
 #undef CASE
 
 	// MARK: - Fetch, dispatch.
