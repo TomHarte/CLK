@@ -19,6 +19,10 @@ namespace CPU {
 namespace MC68000Mk2 {
 
 struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
+	ProcessorBase() {
+		read_program_announce.address = read_program.address = &program_counter_.l;
+	}
+
 	int state_ = std::numeric_limits<int>::min();
 
 	/// Counts time left on the clock before the current batch of processing
@@ -123,25 +127,11 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	};
 
 	// Read a data word or byte.
-	Microcycle read_word_data_announce {
+	Microcycle access_announce {
 		Microcycle::Read | Microcycle::NewAddress | Microcycle::IsData
 	};
-	Microcycle read_word_data {
+	Microcycle access {
 		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsData
-	};
-	Microcycle read_byte_data {
-		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectByte | Microcycle::IsData
-	};
-
-	// Write a data word or byte.
-	Microcycle write_word_data_announce {
-		Microcycle::NewAddress | Microcycle::IsData
-	};
-	Microcycle write_word_data {
-		Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsData
-	};
-	Microcycle write_byte_data {
-		Microcycle::SameAddress | Microcycle::SelectByte | Microcycle::IsData
 	};
 
 	// Holding spot when awaiting DTACK/etc.

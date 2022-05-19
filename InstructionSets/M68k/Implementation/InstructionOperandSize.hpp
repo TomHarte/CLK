@@ -12,8 +12,9 @@
 namespace InstructionSet {
 namespace M68k {
 
-constexpr DataSize operand_size(Operation operation) {
-	switch(operation) {
+template <Operation t_operation>
+constexpr DataSize operand_size(Operation r_operation) {
+	switch((t_operation == Operation::Undefined) ? r_operation : t_operation) {
 		// These are given a value arbitrarily, to
 		// complete the switch statement.
 		case Operation::Undefined:

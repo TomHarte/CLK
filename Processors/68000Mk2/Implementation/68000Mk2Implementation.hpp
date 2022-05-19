@@ -22,7 +22,12 @@ enum ExecutionState: int {
 	Reset			= std::numeric_limits<int>::min(),
 	Decode,
 	WaitForDTACK,
-	FetchOperand,
+
+	/// Perform the proper sequence to fetch a byte or word operand.
+	FetchOperandbw,
+	/// Perform the proper sequence to fetch a long-word operand.
+	FetchOperandl,
+
 	StoreOperand,
 
 	// Specific addressing mode fetches.
@@ -139,8 +144,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Performs the memory access implied by the announce, perform pair,
 	// honouring DTACK, BERR and VPA as necessary.
-#define AccessPair(addr, val, announce, perform)	\
-	announce.address = perform.address = &addr;		\
+#define AccessPair(val, announce, perform)			\
 	perform.value = &val;							\
 	if constexpr (!dtack_is_implicit) {				\
 		announce.length = HalfCycles(4);			\
@@ -149,13 +153,19 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	WaitForDTACK(announce);							\
 	CompleteAccess(perform);
 
-	// Reads the data (i.e. non-program) word from addr into val.
-#define ReadDataWord(addr, val)										\
-	AccessPair(addr, val, read_word_data_announce, read_word_data)
+	// Sets up the next data access — its address and size/read flags.
+#define SetupDataAccess(addr, read_flag, select_flag)										\
+	access.address = access_announce.address = &addr;										\
+	access_announce.operation = Microcycle::NewAddress | Microcycle::IsData | read_flag;	\
+	access.operation = access_announce.operation | select_flag;
+
+	// Performs the access established by SetupDataAccess into val.
+#define Access(val)										\
+	AccessPair(val, access_announce, access)
 
 	// Reads the program (i.e. non-data) word from addr into val.
-#define ReadProgramWord(val)													\
-	AccessPair(program_counter_.l, val, read_program_announce, read_program);	\
+#define ReadProgramWord(val)								\
+	AccessPair(val, read_program_announce, read_program);	\
 	program_counter_.l += 2;
 
 	// Reads one futher word from the program counter and inserts it into
@@ -192,17 +202,19 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			status_.trace_flag = 0;
 			did_update_status();
 
+			SetupDataAccess(temporary_address_, Microcycle::Read, Microcycle::SelectWord);
+
 			temporary_address_ = 0;
-			ReadDataWord(temporary_address_, registers_[15].high);		// nF
+			Access(registers_[15].high);	// nF
 
 			temporary_address_ += 2;
-			ReadDataWord(temporary_address_, registers_[15].low);		// nf
+			Access(registers_[15].low);		// nf
 
 			temporary_address_ += 2;
-			ReadDataWord(temporary_address_, program_counter_.high);	// nV
+			Access(program_counter_.high);	// nV
 
 			temporary_address_ += 2;
-			ReadDataWord(temporary_address_, program_counter_.low);		// nv
+			Access(program_counter_.low);	// nv
 
 			Prefetch();			// np
 			IdleBus(1);			// n
@@ -233,6 +245,19 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	case InstructionSet::M68k::Operation::x:	\
 		operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>();
 
+#define FetchOperands(x)	\
+	if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::LongWord) {	\
+		SetupDataAccess(temporary_address_, Microcycle::Read, Microcycle::SelectWord);	\
+		MoveToState(FetchOperandl);	\
+	} else {	\
+		if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::Byte) {	\
+			SetupDataAccess(temporary_address_, Microcycle::Read, Microcycle::SelectByte);	\
+		} else {	\
+			SetupDataAccess(temporary_address_, Microcycle::Read, Microcycle::SelectWord);	\
+		}	\
+		MoveToState(FetchOperandbw);	\
+	}
+
 			switch(instruction_.operation) {
 				CASE(NBCD)
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
@@ -240,31 +265,34 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					} else {
 						perform_state_ = Perform_np;
 					}
-				break;
+				FetchOperands(NBCD)
+
+				CASE(SWAP)
+					perform_state_ = Perform_np;
+				FetchOperands(SWAP)
 
 				CASE(MOVEw)
 					perform_state_ = MOVEw;
-				break;
+				FetchOperands(MOVEw)
 
 				default:
 					assert(false);
 			}
 
 #undef CASE
-		[[fallthrough]];
 
-#define MoveToNextOperand()			\
+#define MoveToNextOperand(x)		\
 	++next_operand_;				\
 	if(next_operand_ == 2) {		\
 		state_ = perform_state_;	\
 		continue;					\
 	}								\
-	MoveToState(FetchOperand)
+	MoveToState(x)
 
 		// Check the operand flags to determine whether the operand at index
 		// operand_ needs to be fetched, and if so then calculate the EA and
 		// do so.
-		BeginState(FetchOperand):
+		BeginState(FetchOperandbw):
 			// Check that this operand is meant to be fetched; if not then either:
 			//
 			//	(i) this operand isn't used; or
@@ -280,11 +308,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				case Mode::AddressRegisterDirect:
 				case Mode::DataRegisterDirect:
 					operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
-				MoveToNextOperand();
+				MoveToNextOperand(FetchOperandbw);
 
 				case Mode::Quick:
 					operand_[next_operand_].l = InstructionSet::M68k::quick(opcode_, instruction_.operation);
-				MoveToNextOperand();
+				MoveToNextOperand(FetchOperandbw);
 
 				case Mode::AddressRegisterIndirect:
 					MoveToState(FetchAddressRegisterIndirect);
@@ -391,6 +419,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		TODOState(FetchAbsoluteShort);
 		TODOState(FetchAbsoluteLong);
 		TODOState(FetchImmediateData);
+		TODOState(FetchOperandl);
 
 #undef TODOState
 

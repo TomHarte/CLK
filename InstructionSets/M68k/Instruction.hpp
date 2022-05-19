@@ -135,7 +135,8 @@ enum class DataSize {
 /// For any operations that don't fit the neat model of reading one or two operands,
 /// then writing zero or one, the size determines the data size of the operands only,
 /// not any other accesses.
-constexpr DataSize operand_size(Operation operation);
+template <Operation t_operation = Operation::Undefined>
+constexpr DataSize operand_size(Operation operation = Operation::Undefined);
 
 template <Operation t_op = Operation::Undefined>
 constexpr uint32_t quick(uint16_t instruction, Operation r_op = Operation::Undefined) {
