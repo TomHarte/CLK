@@ -521,11 +521,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				case Mode::AddressRegisterDirect:
 				case Mode::DataRegisterDirect:
 					operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
-				MoveToNextOperand(FetchOperand_bw);
+				MoveToNextOperand(FetchOperand_l);
 
 				case Mode::Quick:
 					operand_[next_operand_].l = InstructionSet::M68k::quick(opcode_, instruction_.operation);
-				MoveToNextOperand(FetchOperand_bw);
+				MoveToNextOperand(FetchOperand_l);
 
 				case Mode::AddressRegisterIndirect:
 					MoveToState(FetchAddressRegisterIndirect_l);
