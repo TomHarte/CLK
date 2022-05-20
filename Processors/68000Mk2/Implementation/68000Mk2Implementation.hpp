@@ -106,6 +106,8 @@ enum ExecutionState: int {
 	MOVEPtoM_l,
 	MOVEPtoR_w,
 	MOVEPtoR_l,
+
+	LogicalToSR,
 };
 
 // MARK: - The state machine.
@@ -596,6 +598,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						MoveToState(MOVEPtoR_w);
 					}
 				});
+
+				Duplicate(ORItoCCR, EORItoCCR);	Duplicate(ANDItoCCR, EORItoCCR);
+				StdCASE(EORItoCCR, 	perform_state_ = LogicalToSR);
+
+				Duplicate(ORItoSR, EORItoSR);	Duplicate(ANDItoSR, EORItoSR);
+				StdCASE(EORItoSR, 	perform_state_ = LogicalToSR);
 
 				default:
 					assert(false);
@@ -1382,6 +1390,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			registers_[instruction_.reg(1)].w |= temporary_value_.b;
 
 			Prefetch();						// np
+		MoveToState(Decode);
+
+		//
+		// [EORI/ORI/ANDI] #, [CCR/SR]
+		//
+		BeginState(LogicalToSR):
+			// Perform the operation.
+			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+			// Recede the program counter and prefetch twice.
+			program_counter_.l -= 2;
+			Prefetch();
+			Prefetch();
 		MoveToState(Decode);
 
 		//
