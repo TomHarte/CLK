@@ -46,7 +46,6 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		//	Single-operand write.
 		//
 		case Operation::MOVEfromSR:	case Operation::MOVEfromUSP:
-		case Operation::Scc:
 			return StoreOp1;
 
 		//
@@ -63,6 +62,7 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::LSLm:		case Operation::LSRm:
 		case Operation::ROLm:		case Operation::RORm:
 		case Operation::ROXLm:		case Operation::ROXRm:
+		case Operation::Scc:
 			return FetchOp1 | StoreOp1;
 
 		//
