@@ -98,6 +98,9 @@ enum ExecutionState: int {
 	Bcc_w_branch_not_taken,
 
 	BSR,
+
+	BCHG_BSET_Dn,
+	BCLR_Dn,
 };
 
 // MARK: - The state machine.
@@ -535,6 +538,43 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(BSRb,	perform_state_ = BSR);
 				StdCASE(BSRw,	perform_state_ = BSR);
+
+				StdCASE(BTST, {
+					switch(instruction_.mode(1)) {
+						default:
+							perform_state_ = Perform_np;
+						break;
+						case Mode::DataRegisterDirect:
+						case Mode::ImmediateData:
+							perform_state_ = Perform_np_n;
+						break;
+					}
+				});
+
+				Duplicate(BCHG, BSET)
+				StdCASE(BSET, {
+					switch(instruction_.mode(1)) {
+						default:
+							perform_state_ = Perform_np;
+						break;
+						case Mode::DataRegisterDirect:
+						case Mode::ImmediateData:
+							perform_state_ = BCHG_BSET_Dn;
+						break;
+					}
+				});
+
+				StdCASE(BCLR, {
+					switch(instruction_.mode(1)) {
+						default:
+							perform_state_ = Perform_np;
+						break;
+						case Mode::DataRegisterDirect:
+						case Mode::ImmediateData:
+							perform_state_ = BCLR_Dn;
+						break;
+					}
+				});
 
 				default:
 					assert(false);
@@ -1214,6 +1254,29 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToState(Decode);
 
 		//
+		// BSET, BCHG, BCLR
+		//
+		BeginState(BCHG_BSET_Dn):
+			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+			IdleBus(1 + did_bit_op_high_);
+			registers_[instruction_.reg(1)] = operand_[1];
+		MoveToState(Decode);
+
+		BeginState(BCLR_Dn):
+			InstructionSet::M68k::perform<
+				InstructionSet::M68k::Model::M68000,
+				ProcessorBase,
+				InstructionSet::M68k::Operation::BCLR
+			>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+			IdleBus(2 + did_bit_op_high_);
+			registers_[instruction_.reg(1)] = operand_[1];
+		MoveToState(Decode);
+
+		//
 		// Various states TODO.
 		//
 #define TODOState(x)	\
@@ -1293,6 +1356,10 @@ template <typename IntT> void ProcessorBase::complete_bcc(bool take_branch, IntT
 
 void ProcessorBase::bsr(uint32_t offset) {
 	program_counter_.l = instruction_address_.l + offset + 2;
+}
+
+void ProcessorBase::did_bit_op(int bit_position) {
+	did_bit_op_high_ = bit_position > 15;
 }
 
 // MARK: - External state.

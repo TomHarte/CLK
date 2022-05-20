@@ -87,6 +87,10 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// Transient storage for exception processing.
 	SlicedInt16 captured_status_;
 
+	/// An internal flag used during BCHG, BSET and BCLR processing to
+	/// determine total operation cost.
+	bool did_bit_op_high_ = false;
+
 	// Flow controller... all TODO.
 	using Preinstruction = InstructionSet::M68k::Preinstruction;
 
@@ -106,7 +110,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	inline void did_shift(int) {}
 	template <bool did_overflow> void did_divu(uint32_t, uint32_t) {}
 	template <bool did_overflow> void did_divs(int32_t, int32_t) {}
-	inline void did_bit_op(int) {}
+	inline void did_bit_op(int);
 	inline void did_update_status();
 	template <typename IntT> void complete_bcc(bool, IntT);
 	inline void complete_dbcc(bool, bool, int16_t);
