@@ -75,7 +75,8 @@ enum ExecutionState: int {
 	MOVEwRegisterDirect,
 	MOVEwAddressRegisterIndirectWithPostincrement,
 
-	SABCD_PreDec,
+	TwoOp_Predec_bw,
+	TwoOp_Predec_l,
 
 	CHK,
 	CHK_no_trap,
@@ -359,7 +360,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::y>() &&	\
 			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == 										\
 			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::y>()											\
-		);
+		);																														\
+		[[fallthrough]];
 
 			switch(instruction_.operation) {
 				StdCASE(NBCD, {
@@ -435,10 +437,72 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
 						MoveToState(FetchOperand_bw);
 					} else {
-						MoveToState(SABCD_PreDec);
+						select_flag_ = Microcycle::SelectByte;
+						MoveToState(TwoOp_Predec_bw);
 					}
 
 				StdCASE(CHK,		perform_state_ = CHK);
+
+				Duplicate(SUBb, ADDb)	StdCASE(ADDb,		perform_state_ = Perform_np)
+				Duplicate(SUBw, ADDw)	StdCASE(ADDw,		perform_state_ = Perform_np)
+				Duplicate(SUBl, ADDl)	StdCASE(ADDl, {
+					if(instruction_.mode(1) != Mode::DataRegisterDirect) {
+						perform_state_ = Perform_np;
+					} else {
+						switch(instruction_.mode(0)) {
+							default:
+								perform_state_ = Perform_np_n;
+							break;
+							case Mode::DataRegisterDirect:
+							case Mode::AddressRegisterDirect:
+							case Mode::ImmediateData:
+								perform_state_ = Perform_np_nn;
+							break;
+						}
+					}
+				})
+
+				Duplicate(SUBAw, ADDAw)	StdCASE(ADDAw, perform_state_ = Perform_np_nn)
+				Duplicate(SUBAl, ADDAl)	StdCASE(ADDAl, {
+					if(instruction_.mode(1) == Mode::AddressRegisterDirect) {
+						perform_state_ = Perform_np_nn;
+					} else {
+						switch(instruction_.mode(0)) {
+							default:
+								perform_state_ = Perform_np_n;
+							break;
+							case Mode::DataRegisterDirect:
+							case Mode::AddressRegisterDirect:
+							case Mode::ImmediateData:
+								perform_state_ = Perform_np_nn;
+							break;
+						}
+					}
+				})
+
+				Duplicate(SUBXb, ADDXb)	StdCASE(ADDXb, {
+					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
+						perform_state_ = Perform_np;
+					} else {
+						select_flag_ = Microcycle::SelectByte;
+						MoveToState(TwoOp_Predec_bw);
+					}
+				})
+				Duplicate(SUBXw, ADDXw)	StdCASE(ADDXw, {
+					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
+						perform_state_ = Perform_np;
+					} else {
+						select_flag_ = Microcycle::SelectWord;
+						MoveToState(TwoOp_Predec_bw);
+					}
+				})
+				Duplicate(SUBXl, ADDXl)	StdCASE(ADDXl, {
+					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
+						perform_state_ = Perform_np_nn;
+					} else {
+						MoveToState(TwoOp_Predec_l);
+					}
+				})
 
 				default:
 					assert(false);
@@ -905,16 +969,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch()		// np
 		MoveToState(Decode);
 
-		BeginState(SABCD_PreDec):
+		BeginState(TwoOp_Predec_bw):
 			IdleBus(1);					// n
 
-			SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
-			registers_[8 + instruction_.reg(0)].l -= byte_word_increments[0][instruction_.reg(0)];
+			SetupDataAccess(Microcycle::Read, select_flag_);
+
 			SetDataAddress(registers_[8 + instruction_.reg(0)].l);
+			registers_[8 + instruction_.reg(0)].l -= byte_word_increments[int(instruction_.operand_size())][instruction_.reg(0)];
 			Access(operand_[0].low);	// nr
 
-			registers_[8 + instruction_.reg(1)].l -= byte_word_increments[0][instruction_.reg(1)];
 			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
+			registers_[8 + instruction_.reg(1)].l -= byte_word_increments[int(instruction_.operand_size())][instruction_.reg(1)];
 			Access(operand_[1].low);	// nr
 
 			Prefetch();					// np
@@ -922,9 +987,41 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
 				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
 
-			SetupDataAccess(0, Microcycle::SelectByte);
+			SetupDataAccess(0, select_flag_);
+			Access(operand_[1].low);	// nw
+		MoveToState(Decode);
+
+		BeginState(TwoOp_Predec_l):
+			IdleBus(1);					// n
+
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+
+			SetDataAddress(registers_[8 + instruction_.reg(0)].l);
+			registers_[8 + instruction_.reg(0)].l -= 2;
+			Access(operand_[0].low);	// nr
+
+			registers_[8 + instruction_.reg(0)].l -= 2;
+			Access(operand_[0].high);	// nR
+
+			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
+			registers_[8 + instruction_.reg(1)].l -= 2;
+			Access(operand_[1].low);	// nr
+
+			registers_[8 + instruction_.reg(1)].l -= 2;
+			Access(operand_[1].high);	// nR
+
+			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			registers_[8 + instruction_.reg(1)].l += 2;
 			Access(operand_[1].low);	// nw
 
+			Prefetch();					// np
+
+			registers_[8 + instruction_.reg(1)].l -= 2;
+			Access(operand_[1].high);	// nW
 		MoveToState(Decode);
 
 		BeginState(CHK):

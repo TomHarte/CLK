@@ -95,6 +95,10 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 		{ 2, 2, 2, 2, 2, 2, 2, 2, }
 	};
 
+	/// Used by some dedicated read-modify-write perform patterns to
+	/// determine the size of the bus operation.
+	Microcycle::OperationT select_flag_ = 0;
+
 	template <typename IntT> void did_mulu(IntT) {}
 	template <typename IntT> void did_muls(IntT) {}
 	inline void did_chk(bool, bool);
