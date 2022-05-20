@@ -101,6 +101,11 @@ enum ExecutionState: int {
 
 	BCHG_BSET_Dn,
 	BCLR_Dn,
+
+	MOVEPtoM_w,
+	MOVEPtoM_l,
+	MOVEPtoR_w,
+	MOVEPtoR_l,
 };
 
 // MARK: - The state machine.
@@ -573,6 +578,22 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						case Mode::ImmediateData:
 							perform_state_ = BCLR_Dn;
 						break;
+					}
+				});
+
+				StdCASE(MOVEPl, {
+					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
+						MoveToState(MOVEPtoM_l);
+					} else {
+						MoveToState(MOVEPtoR_l);
+					}
+				});
+
+				StdCASE(MOVEPw, {
+					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
+						MoveToState(MOVEPtoM_w);
+					} else {
+						MoveToState(MOVEPtoR_w);
 					}
 				});
 
@@ -1274,6 +1295,93 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			IdleBus(2 + did_bit_op_high_);
 			registers_[instruction_.reg(1)] = operand_[1];
+		MoveToState(Decode);
+
+		//
+		// MOVEP
+		//
+		BeginState(MOVEPtoM_l):
+			temporary_address_.l = registers_[8 + instruction_.reg(1)].l + uint32_t(int16_t(prefetch_.w));
+			SetDataAddress(temporary_address_.l);
+			SetupDataAccess(0, Microcycle::SelectByte);
+
+			Prefetch();						// np
+
+			temporary_value_.b = uint8_t(registers_[instruction_.reg(0)].l >> 24);
+			Access(temporary_value_.low);	// nW
+
+			temporary_address_.l += 2;
+			temporary_value_.b = uint8_t(registers_[instruction_.reg(0)].l >> 16);
+			Access(temporary_value_.low);	// nW
+
+			temporary_address_.l += 2;
+			temporary_value_.b = uint8_t(registers_[instruction_.reg(0)].l >> 8);
+			Access(temporary_value_.low);	// nw
+
+			temporary_address_.l += 2;
+			temporary_value_.b = uint8_t(registers_[instruction_.reg(0)].l);
+			Access(temporary_value_.low);	// nw
+
+			Prefetch();						// np
+		MoveToState(Decode);
+
+		BeginState(MOVEPtoM_w):
+			temporary_address_.l = registers_[8 + instruction_.reg(1)].l + uint32_t(int16_t(prefetch_.w));
+			SetDataAddress(temporary_address_.l);
+			SetupDataAccess(0, Microcycle::SelectByte);
+
+			Prefetch();						// np
+
+			temporary_value_.b = uint8_t(registers_[instruction_.reg(0)].l >> 8);
+			Access(temporary_value_.low);	// nW
+
+			temporary_address_.l += 2;
+			temporary_value_.b = uint8_t(registers_[instruction_.reg(0)].l);
+			Access(temporary_value_.low);	// nw
+
+			Prefetch();						// np
+		MoveToState(Decode);
+
+		BeginState(MOVEPtoR_l):
+			temporary_address_.l = registers_[8 + instruction_.reg(0)].l + uint32_t(int16_t(prefetch_.w));
+			SetDataAddress(temporary_address_.l);
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
+
+			Prefetch();						// np
+
+			Access(temporary_value_.low);	// nR
+			registers_[instruction_.reg(1)].l = temporary_value_.b << 24;
+
+			temporary_address_.l += 2;
+			Access(temporary_value_.low);	// nR
+			registers_[instruction_.reg(1)].w |= temporary_value_.b << 16;
+
+			temporary_address_.l += 2;
+			Access(temporary_value_.low);	// nr
+			registers_[instruction_.reg(1)].w |= temporary_value_.b << 8;
+
+			temporary_address_.l += 2;
+			Access(temporary_value_.low);	// nr
+			registers_[instruction_.reg(1)].w |= temporary_value_.b;
+
+			Prefetch();						// np
+		MoveToState(Decode);
+
+		BeginState(MOVEPtoR_w):
+			temporary_address_.l = registers_[8 + instruction_.reg(0)].l + uint32_t(int16_t(prefetch_.w));
+			SetDataAddress(temporary_address_.l);
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
+
+			Prefetch();						// np
+
+			Access(temporary_value_.low);	// nR
+			registers_[instruction_.reg(1)].w = temporary_value_.b << 8;
+
+			temporary_address_.l += 2;
+			Access(temporary_value_.low);	// nr
+			registers_[instruction_.reg(1)].w |= temporary_value_.b;
+
+			Prefetch();						// np
 		MoveToState(Decode);
 
 		//

@@ -81,6 +81,10 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// a data select).
 	SlicedInt32 temporary_address_;
 
+	/// Storage for a temporary value; primarily used by MOVEP to split a 32-bit
+	/// source into bus-compatible byte units.
+	SlicedInt32 temporary_value_;
+
 	/// A record of the exception to trigger.
 	int exception_vector_ = 0;
 
