@@ -86,6 +86,11 @@ enum ExecutionState: int {
 	Scc_Dn,
 	Scc_Dn_did_not_set,
 	Scc_Dn_did_set,
+
+	DBcc,
+	DBcc_branch_taken,
+	DBcc_condition_true,
+	DBcc_counter_overflow,
 };
 
 // MARK: - The state machine.
@@ -515,6 +520,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						perform_state_ = Perform_np;
 					}
 				});
+
+				StdCASE(DBcc,	perform_state_ = DBcc);
 
 				default:
 					assert(false);
@@ -1093,6 +1100,44 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToState(StoreOperand);
 
 		//
+		// DBcc
+		//
+		BeginState(DBcc):
+			InstructionSet::M68k::perform<
+				InstructionSet::M68k::Model::M68000,
+				ProcessorBase,
+				InstructionSet::M68k::Operation::DBcc
+			>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			// Next state is set by complete_dbcc
+		break;
+
+		BeginState(DBcc_branch_taken):
+			IdleBus(1);		// n
+			Prefetch();		// np
+			Prefetch();		// np
+		MoveToState(Decode);
+
+		BeginState(DBcc_condition_true):
+			IdleBus(2);		// n n
+			Prefetch();		// np
+			Prefetch();		// np
+		MoveToState(Decode);
+
+		BeginState(DBcc_counter_overflow):
+			IdleBus(1);		// n
+
+			// Yacht lists an extra np here; I'm assuming it's a read from where
+			// the PC would have gone, had the branch been taken. So do that,
+			// but then reset the PC to where it would have been.
+			Prefetch();
+
+			program_counter_.l = instruction_address_.l + 4;
+			Prefetch();		// np
+			Prefetch();		// np
+		MoveToState(Decode);
+
+		//
 		// Various states TODO.
 		//
 #define TODOState(x)	\
@@ -1143,6 +1188,19 @@ void ProcessorBase::did_chk(bool was_under, bool was_over) {
 
 void ProcessorBase::did_scc(bool did_set_ff) {
 	state_ = did_set_ff ? Scc_Dn_did_set : Scc_Dn_did_not_set;
+}
+
+void ProcessorBase::complete_dbcc(bool matched_condition, bool overflowed, int16_t offset) {
+	// The actual DBcc rule is: branch if !matched_condition and !overflowed; but I think
+	// that a spurious read from the intended destination PC occurs if overflowed, so update
+	// the PC for any case of !matched_condition and rely on the DBcc_counter_overflow to
+	// set it back.
+	if(!matched_condition) {
+		state_ = overflowed ? DBcc_counter_overflow : DBcc_branch_taken;
+		program_counter_.l = instruction_address_.l + uint32_t(offset) + 2;
+		return;
+	}
+	state_ = DBcc_condition_true;
 }
 
 // MARK: - External state.

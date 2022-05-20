@@ -109,7 +109,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	inline void did_bit_op(int) {}
 	inline void did_update_status();
 	template <typename IntT> void complete_bcc(bool, IntT) {}
-	inline void complete_dbcc(bool, bool, int16_t) {}
+	inline void complete_dbcc(bool, bool, int16_t);
 	inline void bsr(uint32_t) {}
 	inline void jsr(uint32_t) {}
 	inline void jmp(uint32_t) {}
