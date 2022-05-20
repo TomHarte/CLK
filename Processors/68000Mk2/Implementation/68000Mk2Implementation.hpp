@@ -1109,7 +1109,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				InstructionSet::M68k::Operation::DBcc
 			>(
 				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
-			// Next state is set by complete_dbcc
+
+			// Just do the write-back here.
+			registers_[instruction_.reg(0)].w = operand_[0].w;
+
+			// Next state was set by complete_dbcc. Branch to it.
 		break;
 
 		BeginState(DBcc_branch_taken):
