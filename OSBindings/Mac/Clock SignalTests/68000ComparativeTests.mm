@@ -85,7 +85,7 @@ struct TestExecutor {
 /// Binds a bus-accurate 68000 to 16mb of RAM.
 struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	uint8_t *const ram;
-	CPU::MC68000Mk2::Processor<TestProcessor, true, false, true> processor;
+	CPU::MC68000Mk2::Processor<TestProcessor, true, true, true> processor;
 	std::function<void(void)> comparitor;
 
 	TestProcessor(uint8_t *ram) : ram(ram), processor(*this) {}
@@ -156,7 +156,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
 	_fileSet = [NSSet setWithArray:@[
-		@"btst_bchg_bclr_bset.json",
+//		@"chk.json",
 
 		// Below this line are passing tests.
 		@"abcd_sbcd.json",
@@ -165,6 +165,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"addq_subq.json",
 		@"addx_subx.json",
 		@"bcc.json",
+		@"btst_bchg_bclr_bset.json",
 		@"cmp.json",
 		@"dbcc_scc.json",
 		@"eor_and_or.json",
@@ -173,8 +174,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"nbcd.json",
 		@"ext.json",
 		@"swap.json",
-	]];		// 14/32 = ~44 % done, as far as the tests go.
-//	_testSet = [NSSet setWithArray:@[@"ADDQ 05df"]];
+	]];		// 15/32 = ~47 % done, as far as the tests go.
+//	_testSet = [NSSet setWithArray:@[@"BCLR 0122"]];
 }
 
 - (void)testAll {

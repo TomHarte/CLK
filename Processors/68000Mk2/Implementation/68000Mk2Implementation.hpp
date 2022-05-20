@@ -817,7 +817,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(FetchProgramCounterIndirectWithDisplacement_bw):
 			effective_address_[next_operand_] =
-				instruction_address_.l + 2 +
+				program_counter_.l - 2 +
 				int16_t(prefetch_.w);
 			SetDataAddress(effective_address_[next_operand_]);
 
@@ -827,7 +827,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(FetchProgramCounterIndirectWithDisplacement_l):
 			effective_address_[next_operand_] =
-				instruction_address_.l + 2 +
+				program_counter_.l - 2 +
 				int16_t(prefetch_.w);
 			SetDataAddress(effective_address_[next_operand_]);
 
@@ -871,7 +871,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// ProgramCounterIndirectWithIndex8bitDisplacement
 		//
 		BeginState(FetchProgramCounterIndirectWithIndex8bitDisplacement_bw):
-			effective_address_[next_operand_] = d8Xn(instruction_address_.l + 2);
+			effective_address_[next_operand_] = d8Xn(program_counter_.l - 2);
 			SetDataAddress(effective_address_[next_operand_]);
 
 			IdleBus(1);								// n
@@ -880,7 +880,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToNextOperand(FetchOperand_bw);
 
 		BeginState(FetchProgramCounterIndirectWithIndex8bitDisplacement_l):
-			effective_address_[next_operand_] = d8Xn(instruction_address_.l + 2);;
+			effective_address_[next_operand_] = d8Xn(program_counter_.l - 2);;
 			SetDataAddress(effective_address_[next_operand_]);
 
 			IdleBus(1);								// n
