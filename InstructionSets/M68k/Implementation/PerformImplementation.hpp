@@ -294,9 +294,11 @@ template <
 				int16_t(dest.w));
 		} break;
 
-		case Operation::Scc:
-			src.b = status.evaluate_condition(instruction.condition()) ? 0xff : 0x00;
-		break;
+		case Operation::Scc: {
+			const bool condition = status.evaluate_condition(instruction.condition());
+			src.b = condition ? 0xff : 0x00;
+			flow_controller.did_scc(condition);
+		} break;
 
 		/*
 			CLRs: store 0 to the destination, set the zero flag, and clear

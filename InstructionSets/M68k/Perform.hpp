@@ -46,6 +46,10 @@ struct NullFlowController {
 	/// Indicates that a bit-manipulation operation (i.e. BTST, BCHG or BSET) was performed, affecting the bit at posiition @c bit_position.
 	void did_bit_op([[maybe_unused]] int bit_position) {}
 
+	/// Indicates that an @c Scc was performed; if @c did_set_ff is true then the condition was true and FF
+	/// written to the operand; otherwise 00 was written.
+	void did_scc([[maybe_unused]] bool did_set_ff) {}
+
 	/// Provides a notification that the upper byte of the status register has been affected by the current instruction;
 	/// this gives an opportunity to track the supervisor flag.
 	void did_update_status() {}

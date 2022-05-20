@@ -82,6 +82,10 @@ enum ExecutionState: int {
 	CHK_no_trap,
 	CHK_was_over,
 	CHK_was_under,
+
+	Scc_Dn,
+	Scc_Dn_did_not_set,
+	Scc_Dn_did_set,
 };
 
 // MARK: - The state machine.
@@ -503,6 +507,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						MoveToState(TwoOp_Predec_l);
 					}
 				})
+
+				StdCASE(Scc, {
+					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
+						perform_state_ = Scc_Dn;
+					} else {
+						perform_state_ = Perform_np;
+					}
+				});
 
 				default:
 					assert(false);
@@ -1024,6 +1036,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[1].high);	// nW
 		MoveToState(Decode);
 
+		//
+		// CHK
+		//
+
 		BeginState(CHK):
 			Prefetch();			// np
 			InstructionSet::M68k::perform<
@@ -1053,7 +1069,32 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			exception_vector_ = InstructionSet::M68k::Exception::CHK;
 		MoveToState(StandardException);
 
+		//
+		// Scc
+		//
+
+		BeginState(Scc_Dn):
+			Prefetch();			// np
+			InstructionSet::M68k::perform<
+				InstructionSet::M68k::Model::M68000,
+				ProcessorBase,
+				InstructionSet::M68k::Operation::Scc
+			>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+			// Next state will be set by did_scc.
+		break;
+
+		BeginState(Scc_Dn_did_set):
+			IdleBus(1);			// n
+			[[fallthrough]];
+		BeginState(Scc_Dn_did_not_set):
+			next_operand_ = 0;
+		MoveToState(StoreOperand);
+
+		//
 		// Various states TODO.
+		//
 #define TODOState(x)	\
 		BeginState(x): [[fallthrough]];
 
@@ -1098,6 +1139,10 @@ void ProcessorBase::did_chk(bool was_under, bool was_over) {
 	} else {
 		state_ = CHK_no_trap;
 	}
+}
+
+void ProcessorBase::did_scc(bool did_set_ff) {
+	state_ = did_set_ff ? Scc_Dn_did_set : Scc_Dn_did_not_set;
 }
 
 // MARK: - External state.
