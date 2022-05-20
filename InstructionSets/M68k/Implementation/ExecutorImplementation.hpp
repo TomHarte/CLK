@@ -483,7 +483,7 @@ template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::State::bsr(uint32_t offset) {
 	sp.l -= 4;
 	write<uint32_t>(sp.l, program_counter.l);
-	program_counter.l = instruction_address + offset;
+	program_counter.l = instruction_address + offset + 2;
 }
 
 template <Model model, typename BusHandler>

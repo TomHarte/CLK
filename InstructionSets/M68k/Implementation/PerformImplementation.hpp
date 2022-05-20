@@ -268,13 +268,13 @@ template <
 		break;
 
 		case Operation::BSRb:
-			flow_controller.bsr(int8_t(src.b) + 2);
+			flow_controller.bsr(int8_t(src.b));
 		break;
 		case Operation::BSRw:
-			flow_controller.bsr(int16_t(src.w) + 2);
+			flow_controller.bsr(int16_t(src.w));
 		break;
 		case Operation::BSRl:
-			flow_controller.bsr(src.l + 2);
+			flow_controller.bsr(src.l);
 		break;
 
 		case Operation::DBcc: {
