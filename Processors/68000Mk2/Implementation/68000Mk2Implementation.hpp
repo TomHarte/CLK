@@ -96,6 +96,8 @@ enum ExecutionState: int {
 	Bcc_branch_taken,
 	Bcc_b_branch_not_taken,
 	Bcc_w_branch_not_taken,
+
+	BSR,
 };
 
 // MARK: - The state machine.
@@ -247,18 +249,18 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			did_update_status();
 
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
-			SetDataAddress(temporary_address_);
+			SetDataAddress(temporary_address_.l);
 
-			temporary_address_ = 0;
+			temporary_address_.l = 0;
 			Access(registers_[15].high);	// nF
 
-			temporary_address_ += 2;
+			temporary_address_.l += 2;
 			Access(registers_[15].low);		// nf
 
-			temporary_address_ += 2;
+			temporary_address_.l += 2;
 			Access(program_counter_.high);	// nV
 
-			temporary_address_ += 2;
+			temporary_address_.l += 2;
 			Access(program_counter_.low);	// nv
 
 			Prefetch();			// np
@@ -293,12 +295,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Grab new program counter.
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
-			SetDataAddress(temporary_address_);
+			SetDataAddress(temporary_address_.l);
 
-			temporary_address_ = exception_vector_ << 2;
+			temporary_address_.l = exception_vector_ << 2;
 			Access(program_counter_.high);	// nV
 
-			temporary_address_ += 2;
+			temporary_address_.l += 2;
 			Access(program_counter_.low);	// nv
 
 			// Populate the prefetch queue.
@@ -530,6 +532,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(Bccb,	perform_state_ = Bcc);
 				StdCASE(Bccw,	perform_state_ = Bcc);
+
+				StdCASE(BSRb,	perform_state_ = BSR);
+				StdCASE(BSRw,	perform_state_ = BSR);
 
 				default:
 					assert(false);
@@ -1178,6 +1183,37 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToState(Decode);
 
 		//
+		// BSR
+		//
+		BeginState(BSR):
+			IdleBus(1);		// n
+
+			SetupDataAccess(0, Microcycle::SelectWord);
+			SetDataAddress(registers_[15].l);
+
+			// Push the next PC to the stack; determine here what
+			// the next one should be.
+			if(instruction_.operand_size() == InstructionSet::M68k::DataSize::Word) {
+				temporary_address_.l = instruction_address_.l + 4;
+			} else {
+				temporary_address_.l = instruction_address_.l + 2;
+			}
+
+			registers_[15].l -= 4;
+			Access(temporary_address_.high);	// nS
+			registers_[15].l += 2;
+			Access(temporary_address_.low);	// ns
+			registers_[15].l -= 2;
+
+			// Get the new PC.
+			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+			Prefetch();		// np
+			Prefetch();		// np
+		MoveToState(Decode);
+
+		//
 		// Various states TODO.
 		//
 #define TODOState(x)	\
@@ -1253,6 +1289,10 @@ template <typename IntT> void ProcessorBase::complete_bcc(bool take_branch, IntT
 	state_ =
 		(instruction_.operation == InstructionSet::M68k::Operation::Bccb) ?
 			Bcc_b_branch_not_taken : Bcc_w_branch_not_taken;
+}
+
+void ProcessorBase::bsr(uint32_t offset) {
+	program_counter_.l = instruction_address_.l + offset + 2;
 }
 
 // MARK: - External state.

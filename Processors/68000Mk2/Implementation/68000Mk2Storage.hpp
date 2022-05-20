@@ -79,7 +79,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// be used to populate microcycles, which may persist beyond an entry
 	/// and exit of run_for (especially between an address announcement, and
 	/// a data select).
-	uint32_t temporary_address_ = 0;
+	SlicedInt32 temporary_address_;
 
 	/// A record of the exception to trigger.
 	int exception_vector_ = 0;
@@ -110,7 +110,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	inline void did_update_status();
 	template <typename IntT> void complete_bcc(bool, IntT);
 	inline void complete_dbcc(bool, bool, int16_t);
-	inline void bsr(uint32_t) {}
+	inline void bsr(uint32_t);
 	inline void jsr(uint32_t) {}
 	inline void jmp(uint32_t) {}
 	inline void rtr() {}
