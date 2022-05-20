@@ -165,10 +165,14 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"addq_subq.json",
 		@"addx_subx.json",
 		@"bcc.json",
+		@"cmp.json",
 		@"dbcc_scc.json",
 		@"eor_and_or.json",
+		@"ext.json",
 		@"nbcd.json",
-		@"ext.json"]];		// 10/32 = ~31 % done, as far as the tests go.
+		@"ext.json",
+		@"swap.json",
+	]];		// 13/32 = ~41 % done, as far as the tests go.
 //	_testSet = [NSSet setWithArray:@[@"ADDQ 05df"]];
 }
 
