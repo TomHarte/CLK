@@ -99,6 +99,10 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// determine total operation cost.
 	bool did_bit_op_high_ = false;
 
+	/// Two bits of state for MOVEM, being the curent register and what to
+	/// add to it to get to the next register.
+	int register_index_ = 0, register_delta_ = 0;
+
 	// A lookup table that aids with effective address calculation in
 	// predecrement and postincrement modes; index as [size][register]
 	// and note that [0][7] is 2 rather than 1.

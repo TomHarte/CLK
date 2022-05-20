@@ -143,6 +143,9 @@ enum ExecutionState: int {
 	MOVEPtoR_l,
 
 	LogicalToSR,
+
+	MOVEMtoR, MOVEMtoR_l_read, MOVEMtoR_w_read, MOVEMtoR_finish,
+	MOVEMtoM, MOVEMtoM_l_write, MOVEMtoM_w_write, MOVEMtoM_finish,
 };
 
 // MARK: - The state machine.
@@ -639,6 +642,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				Duplicate(ORItoSR, EORItoSR);	Duplicate(ANDItoSR, EORItoSR);
 				StdCASE(EORItoSR, 	perform_state_ = LogicalToSR);
+
+				StdCASE(MOVEMtoRl,	perform_state_ = MOVEMtoR);
+				StdCASE(MOVEMtoRw,	perform_state_ = MOVEMtoR);
+				StdCASE(MOVEMtoMl,	perform_state_ = MOVEMtoM);
+				StdCASE(MOVEMtoMw,	perform_state_ = MOVEMtoM);
 
 				default:
 					assert(false);
@@ -1526,6 +1534,140 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			program_counter_.l -= 2;
 			Prefetch();
 			Prefetch();
+		MoveToState(Decode);
+
+		//
+		// MOVEM M --> R
+		//
+		BeginState(MOVEMtoR):
+			Prefetch();		// np
+			post_ea_state_ =
+				(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoRl) ?
+					MOVEMtoR_l_read : MOVEMtoR_w_read;
+			next_operand_ = 1;
+			register_index_ = 0;
+			register_delta_ = 1;
+
+			SetDataAddress(effective_address_[1]);
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+		MoveToState(CalcEffectiveAddress);
+
+		BeginState(MOVEMtoR_w_read):
+			// If there's nothing left to read, move on.
+			if(!operand_[0].w) {
+				MoveToState(MOVEMtoR_finish);
+			}
+
+			// Find the next register to read, read it and sign extend it.
+			while(!(operand_[0].w & 1)) {
+				operand_[0].w >>= 1;
+				register_index_ += register_delta_;
+			}
+			Access(registers_[register_index_].low);
+			registers_[register_index_].l = uint32_t(int16_t(registers_[register_index_].w));
+			effective_address_[1] += 2;
+
+			// Drop the bottom bit.
+			operand_[0].w >>= 1;
+			register_index_ += register_delta_;
+		MoveToState(MOVEMtoR_w_read);
+
+		BeginState(MOVEMtoR_l_read):
+			// If there's nothing left to read, move on.
+			if(!operand_[0].w) {
+				MoveToState(MOVEMtoR_finish);
+			}
+
+			// Find the next register to read, read it.
+			while(!(operand_[0].w & 1)) {
+				operand_[0].w >>= 1;
+				register_index_ += register_delta_;
+			}
+			Access(registers_[register_index_].low);
+			effective_address_[1] += 2;
+			Access(registers_[register_index_].high);
+			effective_address_[1] += 2;
+
+			// Drop the bottom bit.
+			operand_[0].w >>= 1;
+			register_index_ += register_delta_;
+		MoveToState(MOVEMtoR_l_read);
+
+		BeginState(MOVEMtoR_finish):
+			// Perform one more read, spuriously.
+			Access(temporary_value_.low);	// nr
+
+			Prefetch();	// np
+		MoveToState(Decode);
+
+		//
+		// MOVEM R --> M
+		//
+		BeginState(MOVEMtoM):
+			Prefetch();		// np
+			post_ea_state_ =
+				(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) ?
+					MOVEMtoM_l_write : MOVEMtoM_w_write;
+			next_operand_ = 1;
+
+			// Predecrement writes registers the other way around, but still reads the
+			// mask from LSB.
+			if(instruction_.mode(1) == Mode::AddressRegisterIndirectWithPredecrement) {
+				register_index_ = 15;
+				register_delta_ = -1;
+			} else {
+				register_index_ = 0;
+				register_delta_ = 1;
+			}
+
+			SetDataAddress(effective_address_[1]);
+			SetupDataAccess(0, Microcycle::SelectWord);
+		MoveToState(CalcEffectiveAddress);
+
+		BeginState(MOVEMtoM_w_write):
+			// If there's nothing left to read, move on.
+			if(!operand_[0].w) {
+				MoveToState(MOVEMtoM_finish);
+			}
+
+			// Find the next register to write, write it.
+			while(!(operand_[0].w & 1)) {
+				operand_[0].w >>= 1;
+				register_index_ += register_delta_;
+			}
+			Access(registers_[register_index_].low);
+			effective_address_[1] += register_delta_ << 1;
+
+			// Drop the bottom bit.
+			operand_[0].w >>= 1;
+			register_index_ += register_delta_;
+		MoveToState(MOVEMtoM_w_write);
+
+		BeginState(MOVEMtoM_l_write):
+			// If there's nothing left to read, move on.
+			if(!operand_[0].w) {
+				MoveToState(MOVEMtoM_finish);
+			}
+
+			// Find the next register to write, write it.
+			while(!(operand_[0].w & 1)) {
+				operand_[0].w >>= 1;
+				register_index_ += register_delta_;
+			}
+
+			// TODO: switch word order if predecrementing.
+			Access(registers_[register_index_].high);
+			effective_address_[1] += register_delta_ << 1;
+			Access(registers_[register_index_].low);
+			effective_address_[1] += register_delta_ << 1;
+
+			// Drop the bottom bit.
+			operand_[0].w >>= 1;
+			register_index_ += register_delta_;
+		MoveToState(MOVEMtoM_l_write);
+
+		BeginState(MOVEMtoM_finish):
+			Prefetch();	// np
 		MoveToState(Decode);
 
 		//
