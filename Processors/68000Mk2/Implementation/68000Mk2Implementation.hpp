@@ -91,6 +91,11 @@ enum ExecutionState: int {
 	DBcc_branch_taken,
 	DBcc_condition_true,
 	DBcc_counter_overflow,
+
+	Bcc,
+	Bcc_branch_taken,
+	Bcc_b_branch_not_taken,
+	Bcc_w_branch_not_taken,
 };
 
 // MARK: - The state machine.
@@ -522,6 +527,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				});
 
 				StdCASE(DBcc,	perform_state_ = DBcc);
+
+				StdCASE(Bccb,	perform_state_ = Bcc);
+				StdCASE(Bccw,	perform_state_ = Bcc);
 
 				default:
 					assert(false);
@@ -962,7 +970,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 
 		//
-		// Specific forms of perform.
+		// Specific forms of perform...
 		//
 
 		BeginState(MOVEw):
@@ -988,6 +996,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch()		// np
 		MoveToState(Decode);
 
+		//
+		// [ABCD/SBCD/SUBX/ADDX] (An)-, (An)-
+		//
 		BeginState(TwoOp_Predec_bw):
 			IdleBus(1);					// n
 
@@ -1046,7 +1057,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// CHK
 		//
-
 		BeginState(CHK):
 			Prefetch();			// np
 			InstructionSet::M68k::perform<
@@ -1079,7 +1089,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// Scc
 		//
-
 		BeginState(Scc_Dn):
 			Prefetch();			// np
 			InstructionSet::M68k::perform<
@@ -1113,7 +1122,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Just do the write-back here.
 			registers_[instruction_.reg(0)].w = operand_[0].w;
 
-			// Next state was set by complete_dbcc. Branch to it.
+			// Next state was set by complete_dbcc.
 		break;
 
 		BeginState(DBcc_branch_taken):
@@ -1137,6 +1146,33 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();
 
 			program_counter_.l = instruction_address_.l + 4;
+			Prefetch();		// np
+			Prefetch();		// np
+		MoveToState(Decode);
+
+		//
+		// Bcc [.b and .w]
+		//
+		BeginState(Bcc):
+			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+			// Next state was set by complete_bcc.
+		break;
+
+		BeginState(Bcc_branch_taken):
+			IdleBus(1);		// n
+			Prefetch();		// np
+			Prefetch();		// np
+		MoveToState(Decode);
+
+		BeginState(Bcc_b_branch_not_taken):
+			IdleBus(2);		// nn
+			Prefetch();		// np
+		MoveToState(Decode);
+
+		BeginState(Bcc_w_branch_not_taken):
+			IdleBus(2);		// nn
 			Prefetch();		// np
 			Prefetch();		// np
 		MoveToState(Decode);
@@ -1205,6 +1241,18 @@ void ProcessorBase::complete_dbcc(bool matched_condition, bool overflowed, int16
 		return;
 	}
 	state_ = DBcc_condition_true;
+}
+
+template <typename IntT> void ProcessorBase::complete_bcc(bool take_branch, IntT offset) {
+	if(take_branch) {
+		program_counter_.l = instruction_address_.l + uint32_t(offset) + 2;
+		state_ = Bcc_branch_taken;
+		return;
+	}
+
+	state_ =
+		(instruction_.operation == InstructionSet::M68k::Operation::Bccb) ?
+			Bcc_b_branch_not_taken : Bcc_w_branch_not_taken;
 }
 
 // MARK: - External state.

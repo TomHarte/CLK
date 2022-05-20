@@ -108,7 +108,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	template <bool did_overflow> void did_divs(int32_t, int32_t) {}
 	inline void did_bit_op(int) {}
 	inline void did_update_status();
-	template <typename IntT> void complete_bcc(bool, IntT) {}
+	template <typename IntT> void complete_bcc(bool, IntT);
 	inline void complete_dbcc(bool, bool, int16_t);
 	inline void bsr(uint32_t) {}
 	inline void jsr(uint32_t) {}
