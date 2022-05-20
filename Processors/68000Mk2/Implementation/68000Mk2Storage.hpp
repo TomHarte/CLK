@@ -68,6 +68,10 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// into the proper exception.
 	int post_dtack_state_ = 0;
 
+	/// If using CalcEffectiveAddress, this is the state to adopt after the
+	/// effective address for next_operand_ has been calculated.
+	int post_ea_state_ = 0;
+
 	/// The perform state for this operation.
 	int perform_state_ = 0;
 
@@ -95,47 +99,56 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// determine total operation cost.
 	bool did_bit_op_high_ = false;
 
-	// Flow controller... all TODO.
-	using Preinstruction = InstructionSet::M68k::Preinstruction;
-
-	static constexpr uint32_t byte_word_increments[2][8] = {
+	// A lookup table that aids with effective address calculation in
+	// predecrement and postincrement modes; index as [size][register]
+	// and note that [0][7] is 2 rather than 1.
+	static constexpr uint32_t address_increments[3][8] = {
 		{ 1, 1, 1, 1, 1, 1, 1, 2, },
-		{ 2, 2, 2, 2, 2, 2, 2, 2, }
+		{ 2, 2, 2, 2, 2, 2, 2, 2, },
+		{ 4, 4, 4, 4, 4, 4, 4, 4, },
 	};
+	static_assert(int(InstructionSet::M68k::DataSize::Byte) == 0);
+	static_assert(int(InstructionSet::M68k::DataSize::Word) == 1);
+	static_assert(int(InstructionSet::M68k::DataSize::LongWord) == 2);
 
 	/// Used by some dedicated read-modify-write perform patterns to
 	/// determine the size of the bus operation.
 	Microcycle::OperationT select_flag_ = 0;
 
-	template <typename IntT> void did_mulu(IntT) {}
-	template <typename IntT> void did_muls(IntT) {}
+	// Flow controller... many TODO.
+	using Preinstruction = InstructionSet::M68k::Preinstruction;
+	template <typename IntT> void did_mulu(IntT) {}		//
+	template <typename IntT> void did_muls(IntT) {}		//
 	inline void did_chk(bool, bool);
 	inline void did_scc(bool);
-	inline void did_shift(int) {}
-	template <bool did_overflow> void did_divu(uint32_t, uint32_t) {}
-	template <bool did_overflow> void did_divs(int32_t, int32_t) {}
+	inline void did_shift(int) {}						//
+	template <bool did_overflow> void did_divu(uint32_t, uint32_t) {}	//
+	template <bool did_overflow> void did_divs(int32_t, int32_t) {}		//
 	inline void did_bit_op(int);
 	inline void did_update_status();
 	template <typename IntT> void complete_bcc(bool, IntT);
 	inline void complete_dbcc(bool, bool, int16_t);
 	inline void bsr(uint32_t);
-	inline void jsr(uint32_t) {}
-	inline void jmp(uint32_t) {}
-	inline void rtr() {}
-	inline void rte() {}
-	inline void rts() {}
-	inline void stop() {}
-	inline void reset() {}
-	inline void link(Preinstruction, uint32_t) {}
-	inline void unlink(uint32_t &) {}
-	inline void pea(uint32_t) {}
-	inline void move_to_usp(uint32_t) {}
-	inline void move_from_usp(uint32_t &) {}
-	inline void tas(Preinstruction, uint32_t) {}
+	inline void jsr(uint32_t) {}	//
+	inline void jmp(uint32_t) {}	//
+	inline void rtr() {}			//
+	inline void rte() {}			//
+	inline void rts() {}			//
+	inline void stop() {}			//
+	inline void reset() {}			//
+	inline void link(Preinstruction, uint32_t) {}	//
+	inline void unlink(uint32_t &) {}				//
+	inline void pea(uint32_t) {}					//
+	inline void move_to_usp(uint32_t) {}			//
+	inline void move_from_usp(uint32_t &) {}		//
+	inline void tas(Preinstruction, uint32_t) {}	//
+	template <bool use_current_instruction_pc = true> void raise_exception(int) {}
+
+	// These aren't implemented because the specific details of the implementation
+	// mean that the performer call-out isn't necessary.
 	template <typename IntT> void movep(Preinstruction, uint32_t, uint32_t) {}
 	template <typename IntT> void movem_toM(Preinstruction, uint32_t, uint32_t) {}
 	template <typename IntT> void movem_toR(Preinstruction, uint32_t, uint32_t) {}
-	template <bool use_current_instruction_pc = true> void raise_exception(int) {}
 
 	// Some microcycles that will be modified as required and used in the main loop;
 	// the semantics of a switch statement make in-place declarations awkward and
