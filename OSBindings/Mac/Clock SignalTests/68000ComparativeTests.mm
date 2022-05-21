@@ -156,7 +156,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
 	_fileSet = [NSSet setWithArray:@[
-		@"chk.json",
+		@"divu_divs.json",
 
 		// Below this line are passing tests.
 		@"abcd_sbcd.json",
@@ -165,7 +165,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"addq_subq.json",
 		@"addx_subx.json",
 		@"bcc.json",
-		@"btst_bchg_bclr_bset.json",	//
+		@"btst_bchg_bclr_bset.json",
+		@"chk.json",
 		@"cmp.json",
 		@"dbcc_scc.json",
 		@"eor_and_or.json",
@@ -177,8 +178,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"nbcd.json",
 		@"ext.json",
 		@"swap.json",
-	]];		// 18/32 = 56 % done, as far as the tests go.
-//	_testSet = [NSSet setWithArray:@[@"MOVEM 0067 (5)"]];
+	]];		// 19/32 = 59 % done, as far as the tests go.
+//	_testSet = [NSSet setWithArray:@[@"CHK 4eb9"]];
 }
 
 - (void)testAll {
@@ -193,7 +194,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 //		NSLog(@"Testing %@", url);
 		[self testJSONAtURL:url];
 	}
-
+ 
 	XCTAssert(_failures.count == 0);
 
 	// Output a summary of failures, if any.
