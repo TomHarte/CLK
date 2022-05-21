@@ -24,8 +24,6 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::PEA:
 		case Operation::JMP:		case Operation::JSR:
 		case Operation::MOVEPw:		case Operation::MOVEPl:
-		case Operation::MOVEMtoMw:	case Operation::MOVEMtoMl:
-		case Operation::MOVEMtoRw:	case Operation::MOVEMtoRl:
 		case Operation::TAS:
 		case Operation::RTR:		case Operation::RTS:		case Operation::RTE:
 			return 0;
@@ -40,6 +38,8 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::Bccb:		case Operation::Bccw:		case Operation::Bccl:
 		case Operation::BSRb:		case Operation::BSRw:		case Operation::BSRl:
 		case Operation::TSTb:		case Operation::TSTw:		case Operation::TSTl:
+		case Operation::MOVEMtoMw:	case Operation::MOVEMtoMl:
+		case Operation::MOVEMtoRw:	case Operation::MOVEMtoRl:
 			return FetchOp1;
 
 		//
