@@ -158,6 +158,8 @@ enum ExecutionState: int {
 		MOVEMtoM_l_write, MOVEMtoM_w_write,
 		MOVEMtoM_l_write_predec, MOVEMtoM_w_write_predec,
 	MOVEMtoM_finish,
+
+	DIVU_DIVS,
 };
 
 // MARK: - The state machine.
@@ -684,6 +686,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(TSTb,		perform_state_ = Perform_np);
 				StdCASE(TSTw,		perform_state_ = Perform_np);
 				StdCASE(TSTl,		perform_state_ = Perform_np);
+
+				StdCASE(DIVU,		perform_state_ = DIVU_DIVS);
+				StdCASE(DIVS,		perform_state_ = DIVU_DIVS);
 
 				default:
 					assert(false);
@@ -1521,7 +1526,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
 				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
 
-			IdleBus(1 + did_bit_op_high_);
+			IdleBus(1 + dynamic_instruction_length_);
 			registers_[instruction_.reg(1)] = operand_[1];
 		MoveToState(Decode);
 
@@ -1533,7 +1538,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			>(
 				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
 
-			IdleBus(2 + did_bit_op_high_);
+			IdleBus(2 + dynamic_instruction_length_);
 			registers_[instruction_.reg(1)] = operand_[1];
 		MoveToState(Decode);
 
@@ -1829,6 +1834,32 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToState(Decode);
 
 		//
+		// DIVU and DIVUS
+		//
+		BeginState(DIVU_DIVS):
+			// Set a no-interrupt-occurred sentinel.
+			exception_vector_ = -1;
+
+			// Perform the instruction.
+			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+			// Delay the correct amount of time.
+			IdleBus(dynamic_instruction_length_);
+
+			// Either dispatch an exception or don't.
+			if(exception_vector_ >= 0) {
+				MoveToState(StandardException);
+			}
+
+			// DIVU and DIVS are always to a register, so just write back here
+			// to save on dispatch costs.
+			registers_[instruction_.reg(1)] = operand_[1];
+
+			Prefetch();		// np
+		MoveToState(Decode);
+
+		//
 		// Various states TODO.
 		//
 #define TODOState(x)	\
@@ -1911,7 +1942,26 @@ void ProcessorBase::bsr(uint32_t offset) {
 }
 
 void ProcessorBase::did_bit_op(int bit_position) {
-	did_bit_op_high_ = bit_position > 15;
+	dynamic_instruction_length_ = int(bit_position > 15);
+}
+
+template <bool did_overflow> void ProcessorBase::did_divu(uint32_t, uint32_t) {
+	// TODO: calculate cost.
+}
+
+template <bool did_overflow> void ProcessorBase::did_divs(int32_t, int32_t) {
+	// TODO: calculate cost.
+}
+
+template <bool use_current_instruction_pc> void ProcessorBase::raise_exception(int vector) {
+	// No overt action is taken here; instructions that might throw an exception are required
+	// to check-in after the fact.
+	//
+	// As implemented above, that means:
+	//
+	//	* DIVU;
+	//	* DIVS.
+	exception_vector_ = vector;
 }
 
 // MARK: - External state.

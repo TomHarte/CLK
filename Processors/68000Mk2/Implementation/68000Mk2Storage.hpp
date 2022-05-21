@@ -95,9 +95,10 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// Transient storage for exception processing.
 	SlicedInt16 captured_status_;
 
-	/// An internal flag used during BCHG, BSET and BCLR processing to
-	/// determine total operation cost.
-	bool did_bit_op_high_ = false;
+	/// An internal flag used during various dynamically-sized instructions
+	/// (e.g. BCHG, DIVU) to indicate how much additional processing happened;
+	/// this is measured in microcycles.
+	int dynamic_instruction_length_ = 0;
 
 	/// Two bits of state for MOVEM, being the curent register and what to
 	/// add to it to get to the next register.
@@ -126,8 +127,8 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	inline void did_chk(bool, bool);
 	inline void did_scc(bool);
 	inline void did_shift(int) {}						//
-	template <bool did_overflow> void did_divu(uint32_t, uint32_t) {}	//
-	template <bool did_overflow> void did_divs(int32_t, int32_t) {}		//
+	template <bool did_overflow> void did_divu(uint32_t, uint32_t);
+	template <bool did_overflow> void did_divs(int32_t, int32_t);
 	inline void did_bit_op(int);
 	inline void did_update_status();
 	template <typename IntT> void complete_bcc(bool, IntT);
@@ -146,7 +147,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	inline void move_to_usp(uint32_t) {}			//
 	inline void move_from_usp(uint32_t &) {}		//
 	inline void tas(Preinstruction, uint32_t) {}	//
-	template <bool use_current_instruction_pc = true> void raise_exception(int) {}
+	template <bool use_current_instruction_pc = true> void raise_exception(int);
 
 	// These aren't implemented because the specific details of the implementation
 	// mean that the performer call-out isn't necessary.
