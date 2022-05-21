@@ -145,7 +145,10 @@ enum ExecutionState: int {
 	LogicalToSR,
 
 	MOVEMtoR, MOVEMtoR_l_read, MOVEMtoR_w_read, MOVEMtoR_finish,
-	MOVEMtoM, MOVEMtoM_l_write, MOVEMtoM_w_write, MOVEMtoM_finish,
+	MOVEMtoM,
+		MOVEMtoM_l_write, MOVEMtoM_w_write,
+		MOVEMtoM_l_write_predec, MOVEMtoM_w_write_predec,
+	MOVEMtoM_finish,
 };
 
 // MARK: - The state machine.
@@ -1596,7 +1599,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(temporary_value_.low);	// nr
 
 			// Write the address back to the register if
-			// this was post-increment mode.
+			// this was postincrement mode.
 			if(instruction_.mode(1) == Mode::AddressRegisterIndirectWithPostincrement) {
 				registers_[8 + instruction_.reg(1)].l = effective_address_[1];
 			}
@@ -1608,23 +1611,30 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// MOVEM R --> M
 		//
 		BeginState(MOVEMtoM):
-			post_ea_state_ =
-				(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) ?
-					MOVEMtoM_l_write : MOVEMtoM_w_write;
 			next_operand_ = 1;
+			SetDataAddress(effective_address_[1]);
+			SetupDataAccess(0, Microcycle::SelectWord);
 
 			// Predecrement writes registers the other way around, but still reads the
 			// mask from LSB.
 			if(instruction_.mode(1) == Mode::AddressRegisterIndirectWithPredecrement) {
 				register_index_ = 15;
-				register_delta_ = -1;
-			} else {
-				register_index_ = 0;
-				register_delta_ = 1;
+				effective_address_[1] = registers_[8 + instruction_.reg(1)].l;
+
+				// Don't go through the usual calculate EA path because: (i) the test above
+				// has already told us the addressing mode, and it's trivial; and (ii) the
+				// predecrement isn't actually wanted.
+				if(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) {
+					MoveToState(MOVEMtoM_l_write_predec);
+				} else {
+					MoveToState(MOVEMtoM_w_write_predec);
+				}
 			}
 
-			SetDataAddress(effective_address_[1]);
-			SetupDataAccess(0, Microcycle::SelectWord);
+			register_index_ = 0;
+			post_ea_state_ =
+				(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) ?
+					MOVEMtoM_l_write : MOVEMtoM_w_write;
 		MoveToState(CalcEffectiveAddress);
 
 		BeginState(MOVEMtoM_w_write):
@@ -1636,14 +1646,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Find the next register to write, write it.
 			while(!(operand_[0].w & 1)) {
 				operand_[0].w >>= 1;
-				register_index_ += register_delta_;
+				++register_index_;
 			}
 			Access(registers_[register_index_].low);
-			effective_address_[1] += register_delta_ << 1;
+			effective_address_[1] += 2;
 
 			// Drop the bottom bit.
 			operand_[0].w >>= 1;
-			register_index_ += register_delta_;
+			++register_index_;
 		MoveToState(MOVEMtoM_w_write);
 
 		BeginState(MOVEMtoM_l_write):
@@ -1655,21 +1665,67 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Find the next register to write, write it.
 			while(!(operand_[0].w & 1)) {
 				operand_[0].w >>= 1;
-				register_index_ += register_delta_;
+				++register_index_;
 			}
 
-			// TODO: switch word order if predecrementing.
 			Access(registers_[register_index_].high);
-			effective_address_[1] += register_delta_ << 1;
+			effective_address_[1] += 2;
 			Access(registers_[register_index_].low);
-			effective_address_[1] += register_delta_ << 1;
+			effective_address_[1] += 2;
 
 			// Drop the bottom bit.
 			operand_[0].w >>= 1;
-			register_index_ += register_delta_;
+			++register_index_;
 		MoveToState(MOVEMtoM_l_write);
 
+		BeginState(MOVEMtoM_w_write_predec):
+			// If there's nothing left to read, move on.
+			if(!operand_[0].w) {
+				MoveToState(MOVEMtoM_finish);
+			}
+
+			// Find the next register to write, write it.
+			while(!(operand_[0].w & 1)) {
+				operand_[0].w >>= 1;
+				--register_index_;
+			}
+			effective_address_[1] -= 2;
+			Access(registers_[register_index_].low);
+
+			// Drop the bottom bit.
+			operand_[0].w >>= 1;
+			--register_index_;
+		MoveToState(MOVEMtoM_w_write_predec);
+
+		BeginState(MOVEMtoM_l_write_predec):
+			// If there's nothing left to read, move on.
+			if(!operand_[0].w) {
+				MoveToState(MOVEMtoM_finish);
+			}
+
+			// Find the next register to write, write it.
+			while(!(operand_[0].w & 1)) {
+				operand_[0].w >>= 1;
+				--register_index_;
+			}
+
+			effective_address_[1] -= 2;
+			Access(registers_[register_index_].low);
+			effective_address_[1] -= 2;
+			Access(registers_[register_index_].high);
+
+			// Drop the bottom bit.
+			operand_[0].w >>= 1;
+			--register_index_;
+		MoveToState(MOVEMtoM_l_write_predec);
+
 		BeginState(MOVEMtoM_finish):
+			// Write the address back to the register if
+			// this was predecrement mode.
+			if(instruction_.mode(1) == Mode::AddressRegisterIndirectWithPredecrement) {
+				registers_[8 + instruction_.reg(1)].l = effective_address_[1];
+			}
+
 			Prefetch();	// np
 		MoveToState(Decode);
 
