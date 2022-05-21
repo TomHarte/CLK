@@ -1037,6 +1037,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(CalcAddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_] = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
+			Prefetch();								// np
 			IdleBus(1);								// n
 			state_ = post_ea_state_;
 		break;
@@ -1072,6 +1073,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(CalcProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_] = d8Xn(program_counter_.l - 2);
+			Prefetch();								// np
 			IdleBus(1);								// n
 			state_ = post_ea_state_;
 		break;
