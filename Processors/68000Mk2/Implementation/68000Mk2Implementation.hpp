@@ -1595,6 +1595,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Perform one more read, spuriously.
 			Access(temporary_value_.low);	// nr
 
+			// Write the address back to the register if
+			// this was post-increment mode.
+			if(instruction_.mode(1) == Mode::AddressRegisterIndirectWithPostincrement) {
+				registers_[8 + instruction_.reg(1)].l = effective_address_[1];
+			}
+
 			Prefetch();	// np
 		MoveToState(Decode);
 
