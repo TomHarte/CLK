@@ -590,7 +590,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 				});
 
-				StdCASE(DBcc,	perform_state_ = DBcc);
+				StdCASE(DBcc,	MoveToState(DBcc));
 
 				StdCASE(Bccb,	perform_state_ = Bcc);
 				StdCASE(Bccw,	perform_state_ = Bcc);
@@ -1405,6 +1405,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// DBcc
 		//
 		BeginState(DBcc):
+			operand_[0].w = uint32_t(int16_t(prefetch_.w));
+
 			InstructionSet::M68k::perform<
 				InstructionSet::M68k::Model::M68000,
 				ProcessorBase,
@@ -1436,7 +1438,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Yacht lists an extra np here; I'm assuming it's a read from where
 			// the PC would have gone, had the branch been taken. So do that,
 			// but then reset the PC to where it would have been.
-			Prefetch();
+			Prefetch();		// np
 
 			program_counter_.l = instruction_address_.l + 4;
 			Prefetch();		// np
