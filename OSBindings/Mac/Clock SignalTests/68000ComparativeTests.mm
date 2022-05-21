@@ -179,7 +179,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"ext.json",
 		@"swap.json",
 	]];		// 19/32 = 59 % done, as far as the tests go.
-//	_testSet = [NSSet setWithArray:@[@"CHK 4eb9"]];
+//	_testSet = [NSSet setWithArray:@[@"DIVU 80ec"]];
 }
 
 - (void)testAll {
@@ -280,7 +280,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	const auto comparitor = [=] {
 		const auto state = test68000->processor.get_state();
 
-		[self test:test name:name compareFinalRegisters:state.registers opcode:opcode];
+		[self test:test name:name compareFinalRegisters:state.registers opcode:opcode pcOffset:-4];
 
 		// Test final memory state.
 		NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
@@ -333,7 +333,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	// Test the end state.
 	const auto state = _testExecutor->processor.get_state();
 	const uint16_t opcode = _testExecutor->read<uint16_t>(0x100, InstructionSet::M68k::FunctionCode());
-	[self test:test name:name compareFinalRegisters:state opcode:opcode];
+	[self test:test name:name compareFinalRegisters:state opcode:opcode pcOffset:0];
 
 	// Test final memory state.
 	NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
@@ -402,7 +402,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	return registers;
 }
 
-- (void)test:(NSDictionary *)test name:(NSString *)name compareFinalRegisters:(InstructionSet::M68k::RegisterSet)registers opcode:(uint16_t)opcode {
+- (void)test:(NSDictionary *)test name:(NSString *)name compareFinalRegisters:(InstructionSet::M68k::RegisterSet)registers opcode:(uint16_t)opcode pcOffset:(int)pcOffset {
 	// Test the end state.
 	NSDictionary *const finalState = test[@"final state"];
 	for(int c = 0; c < 8; ++c) {
@@ -414,6 +414,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	}
 	if(registers.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
 	if(registers.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
+	if(registers.program_counter + pcOffset != [finalState[@"pc"] integerValue]) [_failures addObject:name];
 
 	const uint16_t correctSR = [finalState[@"sr"] integerValue];
 	if(registers.status != correctSR) {
