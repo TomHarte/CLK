@@ -134,6 +134,15 @@ enum ExecutionState: int {
 
 	BSR,
 
+	JSRAddressRegisterIndirect,
+	JSRAddressRegisterIndirectWithDisplacement,
+	JSRAddressRegisterIndirectWithIndex8bitDisplacement,
+	JSRProgramCounterIndirectWithDisplacement,
+	JSRProgramCounterIndirectWithIndex8bitDisplacement,
+	JSRAbsoluteShort,
+	JSRAbsoluteLong,
+	JSR_push,
+
 	BCHG_BSET_Dn,
 	BCLR_Dn,
 
@@ -587,6 +596,27 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(BSRb,	perform_state_ = BSR);
 				StdCASE(BSRw,	perform_state_ = BSR);
 
+				StdCASE(JSR, {
+					switch(instruction_.mode(0)) {
+						case Mode::AddressRegisterIndirect:
+							MoveToState(JSRAddressRegisterIndirect);
+						case Mode::AddressRegisterIndirectWithDisplacement:
+							MoveToState(JSRAddressRegisterIndirectWithDisplacement);
+						case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
+							MoveToState(JSRAddressRegisterIndirectWithIndex8bitDisplacement);
+						case Mode::ProgramCounterIndirectWithDisplacement:
+							MoveToState(JSRProgramCounterIndirectWithDisplacement);
+						case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
+							MoveToState(JSRProgramCounterIndirectWithIndex8bitDisplacement);
+						case Mode::AbsoluteShort:
+							MoveToState(JSRAbsoluteShort);
+						case Mode::AbsoluteLong:
+							MoveToState(JSRAbsoluteLong);
+
+						default: assert(false);
+					}
+				});
+
 				StdCASE(BTST, {
 					switch(instruction_.mode(1)) {
 						default:
@@ -650,6 +680,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(MOVEMtoRw,	perform_state_ = MOVEMtoR);
 				StdCASE(MOVEMtoMl,	perform_state_ = MOVEMtoM);
 				StdCASE(MOVEMtoMw,	perform_state_ = MOVEMtoM);
+
+				StdCASE(TSTb,		perform_state_ = Perform_np);
+				StdCASE(TSTw,		perform_state_ = Perform_np);
+				StdCASE(TSTl,		perform_state_ = Perform_np);
 
 				default:
 					assert(false);
@@ -818,6 +852,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			state_ = post_ea_state_;
 		break;
 
+		BeginState(JSRAddressRegisterIndirect):
+			effective_address_[0] = registers_[8 + instruction_.reg(next_operand_)].l;
+		MoveToState(JSR_push);
+
 		//
 		// AddressRegisterIndirectWithPostincrement
 		//
@@ -911,6 +949,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			state_ = post_ea_state_;
 		break;
 
+		BeginState(JSRAddressRegisterIndirectWithDisplacement):
+			effective_address_[0] =
+				registers_[8 + instruction_.reg(next_operand_)].l +
+				int16_t(prefetch_.w);
+			IdleBus(1);								// n
+		MoveToState(JSR_push);
+
 		//
 		// ProgramCounterIndirectWithDisplacement
 		//
@@ -944,6 +989,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			state_ = post_ea_state_;
 		break;
+
+		BeginState(JSRProgramCounterIndirectWithDisplacement):
+			effective_address_[0] =
+				program_counter_.l - 2 +
+				int16_t(prefetch_.w);
+			IdleBus(1);								// n
+		MoveToState(JSR_push);
 
 		//
 		// AddressRegisterIndirectWithIndex8bitDisplacement
@@ -981,6 +1033,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			state_ = post_ea_state_;
 		break;
 
+		BeginState(JSRAddressRegisterIndirectWithIndex8bitDisplacement):
+			effective_address_[0] = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
+			IdleBus(3);								// n nn
+		MoveToState(JSR_push);
+
 		//
 		// ProgramCounterIndirectWithIndex8bitDisplacement
 		//
@@ -1010,6 +1067,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			state_ = post_ea_state_;
 		break;
 
+		BeginState(JSRProgramCounterIndirectWithIndex8bitDisplacement):
+			effective_address_[0] = d8Xn(program_counter_.l - 2);
+			IdleBus(3);								// n nn
+		MoveToState(JSR_push);
+
 #undef d8Xn
 
 		//
@@ -1038,6 +1100,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();								// np
 			state_ = post_ea_state_;
 		break;
+
+		BeginState(JSRAbsoluteShort):
+			effective_address_[0] = int16_t(prefetch_.w);
+			IdleBus(1);								// n
+		MoveToState(JSR_push);
 
 		//
 		// AbsoluteLong
@@ -1070,6 +1137,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();								// np
 			state_ = post_ea_state_;
 		break;
+
+		BeginState(JSRAbsoluteLong):
+			Prefetch();								// np
+			effective_address_[0] = prefetch_.l;
+		MoveToState(JSR_push);
 
 		//
 		// ImmediateData
@@ -1390,21 +1462,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(BSR):
 			IdleBus(1);		// n
 
-			SetupDataAccess(0, Microcycle::SelectWord);
-			SetDataAddress(registers_[15].l);
-
-			// Push the next PC to the stack; determine here what
-			// the next one should be.
+			// Calculate the address of the next instruction.
 			if(instruction_.operand_size() == InstructionSet::M68k::DataSize::Word) {
 				temporary_address_.l = instruction_address_.l + 4;
 			} else {
 				temporary_address_.l = instruction_address_.l + 2;
 			}
 
+			// Push it to the stack.
+			SetupDataAccess(0, Microcycle::SelectWord);
+			SetDataAddress(registers_[15].l);
 			registers_[15].l -= 4;
 			Access(temporary_address_.high);	// nS
 			registers_[15].l += 2;
-			Access(temporary_address_.low);	// ns
+			Access(temporary_address_.low);		// ns
 			registers_[15].l -= 2;
 
 			// Get the new PC.
@@ -1413,6 +1484,30 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			Prefetch();		// np
 			Prefetch();		// np
+		MoveToState(Decode);
+
+		//
+		// JSR [push only; address calculation elsewhere]
+		//
+		BeginState(JSR_push):
+			// Grab the address of the next instruction.
+			temporary_address_.l = program_counter_.l - 4;
+
+			// Update the program counter and prefetch once.
+			program_counter_.l = effective_address_[0];
+			Prefetch();		// np
+
+			// Push the old PC onto the stack in upper, lower order.
+			SetupDataAccess(0, Microcycle::SelectWord);
+			SetDataAddress(registers_[15].l);
+			registers_[15].l -= 4;
+			Access(temporary_address_.high);	// nS
+			registers_[15].l += 2;
+			Access(temporary_address_.low);		// ns
+			registers_[15].l -= 2;
+
+			// Prefetch once more.
+			Prefetch();
 		MoveToState(Decode);
 
 		//

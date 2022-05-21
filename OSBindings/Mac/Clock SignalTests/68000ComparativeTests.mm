@@ -156,7 +156,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
 	_fileSet = [NSSet setWithArray:@[
-		@"movem.json",
+		@"chk.json",
 
 		// Below this line are passing tests.
 		@"abcd_sbcd.json",
@@ -171,12 +171,14 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"eor_and_or.json",
 		@"eori_andi_ori.json",
 		@"ext.json",
+		@"jsr.json",
+		@"movem.json",
 		@"movep.json",
 		@"nbcd.json",
 		@"ext.json",
 		@"swap.json",
-	]];		// 16/32 = 50 % done, as far as the tests go.
-//	_testSet = [NSSet setWithArray:@[@"MOVEM 00fa (13)"]];
+	]];		// 18/32 = 56 % done, as far as the tests go.
+//	_testSet = [NSSet setWithArray:@[@"MOVEM 0067 (5)"]];
 }
 
 - (void)testAll {
@@ -287,7 +289,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 			NSNumber *const value = [enumerator nextObject];
 
 			if(!address || !value) break;
-//			XCTAssertEqual(test68000->ram[address.integerValue ^ 1], value.integerValue, @"%@: Memory at location %@ inconsistent", name, address);
+			XCTAssertEqual(test68000->ram[address.integerValue ^ 1], value.integerValue, @"%@: Memory at location %@ inconsistent", name, address);
 			if(test68000->ram[address.integerValue ^ 1] != value.integerValue) [_failures addObject:name];
 		}
 
