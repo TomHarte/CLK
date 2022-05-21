@@ -854,6 +854,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(JSRAddressRegisterIndirect):
 			effective_address_[0] = registers_[8 + instruction_.reg(next_operand_)].l;
+			temporary_address_.l = instruction_address_.l + 2;
 		MoveToState(JSR_push);
 
 		//
@@ -954,6 +955,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				registers_[8 + instruction_.reg(next_operand_)].l +
 				int16_t(prefetch_.w);
 			IdleBus(1);								// n
+			temporary_address_.l = instruction_address_.l + 4;
 		MoveToState(JSR_push);
 
 		//
@@ -995,6 +997,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				program_counter_.l - 2 +
 				int16_t(prefetch_.w);
 			IdleBus(1);								// n
+			temporary_address_.l = instruction_address_.l + 4;
 		MoveToState(JSR_push);
 
 		//
@@ -1036,6 +1039,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(JSRAddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[0] = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
 			IdleBus(3);								// n nn
+			temporary_address_.l = instruction_address_.l + 4;
 		MoveToState(JSR_push);
 
 		//
@@ -1070,6 +1074,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(JSRProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[0] = d8Xn(program_counter_.l - 2);
 			IdleBus(3);								// n nn
+			temporary_address_.l = instruction_address_.l + 4;
 		MoveToState(JSR_push);
 
 #undef d8Xn
@@ -1104,6 +1109,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(JSRAbsoluteShort):
 			effective_address_[0] = int16_t(prefetch_.w);
 			IdleBus(1);								// n
+			temporary_address_.l = instruction_address_.l + 4;
 		MoveToState(JSR_push);
 
 		//
@@ -1141,6 +1147,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(JSRAbsoluteLong):
 			Prefetch();								// np
 			effective_address_[0] = prefetch_.l;
+			temporary_address_.l = instruction_address_.l + 6;
 		MoveToState(JSR_push);
 
 		//
@@ -1490,9 +1497,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// JSR [push only; address calculation elsewhere]
 		//
 		BeginState(JSR_push):
-			// Grab the address of the next instruction.
-			temporary_address_.l = program_counter_.l - 4;
-
 			// Update the program counter and prefetch once.
 			program_counter_.l = effective_address_[0];
 			Prefetch();		// np
