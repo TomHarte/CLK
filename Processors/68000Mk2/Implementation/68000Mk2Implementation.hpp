@@ -1540,13 +1540,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// MOVEM M --> R
 		//
 		BeginState(MOVEMtoR):
-			Prefetch();		// np
 			post_ea_state_ =
 				(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoRl) ?
 					MOVEMtoR_l_read : MOVEMtoR_w_read;
 			next_operand_ = 1;
 			register_index_ = 0;
-			register_delta_ = 1;
 
 			SetDataAddress(effective_address_[1]);
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
@@ -1561,7 +1559,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Find the next register to read, read it and sign extend it.
 			while(!(operand_[0].w & 1)) {
 				operand_[0].w >>= 1;
-				register_index_ += register_delta_;
+				++register_index_;
 			}
 			Access(registers_[register_index_].low);
 			registers_[register_index_].l = uint32_t(int16_t(registers_[register_index_].w));
@@ -1569,7 +1567,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Drop the bottom bit.
 			operand_[0].w >>= 1;
-			register_index_ += register_delta_;
+			++register_index_;
 		MoveToState(MOVEMtoR_w_read);
 
 		BeginState(MOVEMtoR_l_read):
@@ -1581,16 +1579,16 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Find the next register to read, read it.
 			while(!(operand_[0].w & 1)) {
 				operand_[0].w >>= 1;
-				register_index_ += register_delta_;
+				++register_index_;
 			}
-			Access(registers_[register_index_].low);
-			effective_address_[1] += 2;
 			Access(registers_[register_index_].high);
+			effective_address_[1] += 2;
+			Access(registers_[register_index_].low);
 			effective_address_[1] += 2;
 
 			// Drop the bottom bit.
 			operand_[0].w >>= 1;
-			register_index_ += register_delta_;
+			++register_index_;
 		MoveToState(MOVEMtoR_l_read);
 
 		BeginState(MOVEMtoR_finish):
@@ -1604,7 +1602,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// MOVEM R --> M
 		//
 		BeginState(MOVEMtoM):
-			Prefetch();		// np
 			post_ea_state_ =
 				(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) ?
 					MOVEMtoM_l_write : MOVEMtoM_w_write;

@@ -176,7 +176,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"ext.json",
 		@"swap.json",
 	]];		// 16/32 = 50 % done, as far as the tests go.
-	_testSet = [NSSet setWithArray:@[@"MOVEM 006f (2)"]];
+//	_testSet = [NSSet setWithArray:@[@"MOVEM 00fa (13)"]];
 }
 
 - (void)testAll {
