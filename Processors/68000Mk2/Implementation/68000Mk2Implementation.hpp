@@ -163,6 +163,7 @@ enum ExecutionState: int {
 
 	DIVU_DIVS,
 	MULU_MULS,
+	LEA,
 };
 
 // MARK: - The state machine.
@@ -700,6 +701,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(DIVS,		perform_state_ = DIVU_DIVS);
 				StdCASE(MULU,		perform_state_ = MULU_MULS);
 				StdCASE(MULS,		perform_state_ = MULU_MULS);
+
+				StdCASE(LEA, {
+					post_ea_state_ = LEA;
+					next_operand_ = 0;
+					MoveToStateSpecific(CalcEffectiveAddress);
+				});
 
 				default:
 					assert(false);
@@ -1873,6 +1880,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// to save on dispatch costs.
 			registers_[instruction_.reg(1)] = operand_[1];
 
+		MoveToStateSpecific(Decode);
+
+		//
+		// LEA
+		//
+		BeginState(LEA):
+			registers_[8 + instruction_.reg(1)].l = effective_address_[0];
+			Prefetch();
 		MoveToStateSpecific(Decode);
 
 		//
