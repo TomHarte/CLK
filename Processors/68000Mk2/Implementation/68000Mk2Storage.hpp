@@ -134,8 +134,6 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	template <typename IntT> void complete_bcc(bool, IntT);
 	inline void complete_dbcc(bool, bool, int16_t);
 	inline void bsr(uint32_t);
-	inline void jsr(uint32_t) {}	//
-	inline void jmp(uint32_t) {}	//
 	inline void rtr() {}			//
 	inline void rte() {}			//
 	inline void rts() {}			//
@@ -154,6 +152,8 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	template <typename IntT> void movep(Preinstruction, uint32_t, uint32_t) {}
 	template <typename IntT> void movem_toM(Preinstruction, uint32_t, uint32_t) {}
 	template <typename IntT> void movem_toR(Preinstruction, uint32_t, uint32_t) {}
+	void jsr(uint32_t) {}
+	void jmp(uint32_t) {}
 
 	// Some microcycles that will be modified as required and used in the main loop;
 	// the semantics of a switch statement make in-place declarations awkward and

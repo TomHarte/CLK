@@ -182,9 +182,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	// Performs ConsiderExit() only if permit_overrun is true.
 #define CheckOverrun()	if constexpr (permit_overrun) ConsiderExit()
 
-	// Sets `x` as the next state, and exits now if all remaining time has been extended and permit_overrun is true.
-	// Jumps directly to the state otherwise.
-#define MoveToState(x)	{ state_ = ExecutionState::x; goto x; }
+	// Moves directly to state x, which must be a compile-time constant.
+#define MoveToStateSpecific(x)	goto x;
+
+	// Moves to state x by dynamic dispatch; x can be a regular variable.
+#define MoveToStateDynamic(x)	{ state_ = x; continue; }
 
 	// Sets the start position for state x.
 #define BeginState(x)	case ExecutionState::x: [[maybe_unused]] x
@@ -296,10 +298,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			PerformBusOperation(awaiting_dtack);
 
 			if(dtack_ || berr_ || vpa_) {
-				state_ = post_dtack_state_;
-				continue;
+				MoveToStateDynamic(post_dtack_state_);
 			}
-		MoveToState(WaitForDTACK);
+		MoveToStateSpecific(WaitForDTACK);
 
 		// Perform the RESET exception, which seeds the stack pointer and program
 		// counter, populates the prefetch queue, and then moves to instruction dispatch.
@@ -330,7 +331,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();			// np
 			IdleBus(1);			// n
 			Prefetch();			// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		// Perform a 'standard' exception, i.e. a Group 1 or 2.
 		BeginState(StandardException):
@@ -371,7 +372,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();			// np
 			IdleBus(1);			// n
 			Prefetch();			// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		// Inspect the prefetch queue in order to decode the next instruction,
 		// and segue into the fetching of operands.
@@ -390,7 +391,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Check for a privilege violation.
 			if(instruction_.requires_supervisor() && !status_.is_supervisor) {
 				exception_vector_ = InstructionSet::M68k::Exception::PrivilegeViolation;
-				MoveToState(StandardException);
+				MoveToStateSpecific(StandardException);
 			}
 
 			// Check for an unrecognised opcode.
@@ -406,7 +407,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						exception_vector_ = InstructionSet::M68k::Exception::Line1111;
 					continue;
 				}
-				MoveToState(StandardException);
+				MoveToStateSpecific(StandardException);
 			}
 
 			// Ensure the first parameter is next fetched.
@@ -423,14 +424,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		\
 		if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::LongWord) {	\
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);	\
-			MoveToState(FetchOperand_l);	\
+			MoveToStateSpecific(FetchOperand_l);	\
 		} else {	\
 			if constexpr (InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == InstructionSet::M68k::DataSize::Byte) {	\
 				SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);	\
 			} else {	\
 				SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);	\
 			}	\
-			MoveToState(FetchOperand_bw);	\
+			MoveToStateSpecific(FetchOperand_bw);	\
 		}
 
 #define Duplicate(x, y)	\
@@ -515,10 +516,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np_n;
 						SetupDataAccess(Microcycle::Read, Microcycle::SelectByte);
-						MoveToState(FetchOperand_bw);
+						MoveToStateSpecific(FetchOperand_bw);
 					} else {
 						select_flag_ = Microcycle::SelectByte;
-						MoveToState(TwoOp_Predec_bw);
+						MoveToStateSpecific(TwoOp_Predec_bw);
 					}
 
 				StdCASE(CHK,		perform_state_ = CHK);
@@ -565,7 +566,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						perform_state_ = Perform_np;
 					} else {
 						select_flag_ = Microcycle::SelectByte;
-						MoveToState(TwoOp_Predec_bw);
+						MoveToStateSpecific(TwoOp_Predec_bw);
 					}
 				})
 				Duplicate(SUBXw, ADDXw)	StdCASE(ADDXw, {
@@ -573,14 +574,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						perform_state_ = Perform_np;
 					} else {
 						select_flag_ = Microcycle::SelectWord;
-						MoveToState(TwoOp_Predec_bw);
+						MoveToStateSpecific(TwoOp_Predec_bw);
 					}
 				})
 				Duplicate(SUBXl, ADDXl)	StdCASE(ADDXl, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np_nn;
 					} else {
-						MoveToState(TwoOp_Predec_l);
+						MoveToStateSpecific(TwoOp_Predec_l);
 					}
 				})
 
@@ -592,10 +593,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 				});
 
-				StdCASE(DBcc,	MoveToState(DBcc));
+				StdCASE(DBcc,	MoveToStateSpecific(DBcc));
 
-				StdCASE(Bccb,	MoveToState(Bcc_b));
-				StdCASE(Bccw,	MoveToState(Bcc_w));
+				StdCASE(Bccb,	MoveToStateSpecific(Bcc_b));
+				StdCASE(Bccw,	MoveToStateSpecific(Bcc_w));
 
 				StdCASE(BSRb,	perform_state_ = BSR);
 				StdCASE(BSRw,	perform_state_ = BSR);
@@ -608,19 +609,19 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 					switch(instruction_.mode(0)) {
 						case Mode::AddressRegisterIndirect:
-							MoveToState(JSRJMPAddressRegisterIndirect);
+							MoveToStateSpecific(JSRJMPAddressRegisterIndirect);
 						case Mode::AddressRegisterIndirectWithDisplacement:
-							MoveToState(JSRJMPAddressRegisterIndirectWithDisplacement);
+							MoveToStateSpecific(JSRJMPAddressRegisterIndirectWithDisplacement);
 						case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
-							MoveToState(JSRJMPAddressRegisterIndirectWithIndex8bitDisplacement);
+							MoveToStateSpecific(JSRJMPAddressRegisterIndirectWithIndex8bitDisplacement);
 						case Mode::ProgramCounterIndirectWithDisplacement:
-							MoveToState(JSRJMPProgramCounterIndirectWithDisplacement);
+							MoveToStateSpecific(JSRJMPProgramCounterIndirectWithDisplacement);
 						case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
-							MoveToState(JSRJMPProgramCounterIndirectWithIndex8bitDisplacement);
+							MoveToStateSpecific(JSRJMPProgramCounterIndirectWithIndex8bitDisplacement);
 						case Mode::AbsoluteShort:
-							MoveToState(JSRJMPAbsoluteShort);
+							MoveToStateSpecific(JSRJMPAbsoluteShort);
 						case Mode::AbsoluteLong:
-							MoveToState(JSRJMPAbsoluteLong);
+							MoveToStateSpecific(JSRJMPAbsoluteLong);
 
 						default: assert(false);
 					}
@@ -665,17 +666,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(MOVEPl, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
-						MoveToState(MOVEPtoM_l);
+						MoveToStateSpecific(MOVEPtoM_l);
 					} else {
-						MoveToState(MOVEPtoR_l);
+						MoveToStateSpecific(MOVEPtoR_l);
 					}
 				});
 
 				StdCASE(MOVEPw, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
-						MoveToState(MOVEPtoM_w);
+						MoveToStateSpecific(MOVEPtoM_w);
 					} else {
-						MoveToState(MOVEPtoR_w);
+						MoveToStateSpecific(MOVEPtoR_w);
 					}
 				});
 
@@ -707,13 +708,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// MARK: - Fetch, dispatch.
 
-#define MoveToNextOperand(x)		\
-	++next_operand_;				\
-	if(next_operand_ == 2) {		\
-		state_ = perform_state_;	\
-		continue;					\
-	}								\
-	MoveToState(x)
+#define MoveToNextOperand(x)				\
+	++next_operand_;						\
+	if(next_operand_ == 2) {				\
+		MoveToStateDynamic(perform_state_);	\
+	}										\
+	MoveToStateSpecific(x)
 
 		// Check the operand flags to determine whether the byte or word
 		// operand at index next_operand_ needs to be fetched, and if so
@@ -725,8 +725,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			//	(ii) its address calculation will end up conflated with performance,
 			//		so there's no generic bus-accurate approach.
 			if(!(operand_flags_ & (1 << next_operand_))) {
-				state_ = perform_state_;
-				continue;
+				MoveToStateDynamic(perform_state_);
 			}
 
 			// Figure out how to fetch it.
@@ -741,25 +740,25 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToNextOperand(FetchOperand_bw);
 
 				case Mode::AddressRegisterIndirect:
-					MoveToState(FetchAddressRegisterIndirect_bw);
+					MoveToStateSpecific(FetchAddressRegisterIndirect_bw);
 				case Mode::AddressRegisterIndirectWithPostincrement:
-					MoveToState(FetchAddressRegisterIndirectWithPostincrement_bw);
+					MoveToStateSpecific(FetchAddressRegisterIndirectWithPostincrement_bw);
 				case Mode::AddressRegisterIndirectWithPredecrement:
-					MoveToState(FetchAddressRegisterIndirectWithPredecrement_bw);
+					MoveToStateSpecific(FetchAddressRegisterIndirectWithPredecrement_bw);
 				case Mode::AddressRegisterIndirectWithDisplacement:
-					MoveToState(FetchAddressRegisterIndirectWithDisplacement_bw);
+					MoveToStateSpecific(FetchAddressRegisterIndirectWithDisplacement_bw);
 				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
-					MoveToState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_bw);
+					MoveToStateSpecific(FetchAddressRegisterIndirectWithIndex8bitDisplacement_bw);
 				case Mode::ProgramCounterIndirectWithDisplacement:
-					MoveToState(FetchProgramCounterIndirectWithDisplacement_bw);
+					MoveToStateSpecific(FetchProgramCounterIndirectWithDisplacement_bw);
 				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
-					MoveToState(FetchProgramCounterIndirectWithIndex8bitDisplacement_bw);
+					MoveToStateSpecific(FetchProgramCounterIndirectWithIndex8bitDisplacement_bw);
 				case Mode::AbsoluteShort:
-					MoveToState(FetchAbsoluteShort_bw);
+					MoveToStateSpecific(FetchAbsoluteShort_bw);
 				case Mode::AbsoluteLong:
-					MoveToState(FetchAbsoluteLong_bw);
+					MoveToStateSpecific(FetchAbsoluteLong_bw);
 				case Mode::ImmediateData:
-					MoveToState(FetchImmediateData_bw);
+					MoveToStateSpecific(FetchImmediateData_bw);
 
 				// Should be impossible to reach.
 				default:
@@ -770,8 +769,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// As above, but for .l.
 		BeginState(FetchOperand_l):
 			if(!(operand_flags_ & (1 << next_operand_))) {
-				state_ = perform_state_;
-				continue;
+				MoveToStateDynamic(perform_state_);
 			}
 
 			switch(instruction_.mode(next_operand_)) {
@@ -785,25 +783,25 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToNextOperand(FetchOperand_l);
 
 				case Mode::AddressRegisterIndirect:
-					MoveToState(FetchAddressRegisterIndirect_l);
+					MoveToStateSpecific(FetchAddressRegisterIndirect_l);
 				case Mode::AddressRegisterIndirectWithPostincrement:
-					MoveToState(FetchAddressRegisterIndirectWithPostincrement_l);
+					MoveToStateSpecific(FetchAddressRegisterIndirectWithPostincrement_l);
 				case Mode::AddressRegisterIndirectWithPredecrement:
-					MoveToState(FetchAddressRegisterIndirectWithPredecrement_l);
+					MoveToStateSpecific(FetchAddressRegisterIndirectWithPredecrement_l);
 				case Mode::AddressRegisterIndirectWithDisplacement:
-					MoveToState(FetchAddressRegisterIndirectWithDisplacement_l);
+					MoveToStateSpecific(FetchAddressRegisterIndirectWithDisplacement_l);
 				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
-					MoveToState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_l);
+					MoveToStateSpecific(FetchAddressRegisterIndirectWithIndex8bitDisplacement_l);
 				case Mode::ProgramCounterIndirectWithDisplacement:
-					MoveToState(FetchProgramCounterIndirectWithDisplacement_l);
+					MoveToStateSpecific(FetchProgramCounterIndirectWithDisplacement_l);
 				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
-					MoveToState(FetchProgramCounterIndirectWithIndex8bitDisplacement_l);
+					MoveToStateSpecific(FetchProgramCounterIndirectWithIndex8bitDisplacement_l);
 				case Mode::AbsoluteShort:
-					MoveToState(FetchAbsoluteShort_l);
+					MoveToStateSpecific(FetchAbsoluteShort_l);
 				case Mode::AbsoluteLong:
-					MoveToState(FetchAbsoluteLong_l);
+					MoveToStateSpecific(FetchAbsoluteLong_l);
 				case Mode::ImmediateData:
-					MoveToState(FetchImmediateData_l);
+					MoveToStateSpecific(FetchImmediateData_l);
 
 				// Should be impossible to reach.
 				default:
@@ -814,27 +812,27 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(CalcEffectiveAddress):
 			switch(instruction_.mode(next_operand_)) {
 				default:
-					state_ = post_ea_state_;
+					assert(false);
 				break;
 
 				case Mode::AddressRegisterIndirect:
-					MoveToState(CalcAddressRegisterIndirect);
+					MoveToStateSpecific(CalcAddressRegisterIndirect);
 				case Mode::AddressRegisterIndirectWithPostincrement:
-					MoveToState(CalcAddressRegisterIndirectWithPostincrement);
+					MoveToStateSpecific(CalcAddressRegisterIndirectWithPostincrement);
 				case Mode::AddressRegisterIndirectWithPredecrement:
-					MoveToState(CalcAddressRegisterIndirectWithPredecrement);
+					MoveToStateSpecific(CalcAddressRegisterIndirectWithPredecrement);
 				case Mode::AddressRegisterIndirectWithDisplacement:
-					MoveToState(CalcAddressRegisterIndirectWithDisplacement);
+					MoveToStateSpecific(CalcAddressRegisterIndirectWithDisplacement);
 				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
-					MoveToState(CalcAddressRegisterIndirectWithIndex8bitDisplacement);
+					MoveToStateSpecific(CalcAddressRegisterIndirectWithIndex8bitDisplacement);
 				case Mode::ProgramCounterIndirectWithDisplacement:
-					MoveToState(CalcProgramCounterIndirectWithDisplacement);
+					MoveToStateSpecific(CalcProgramCounterIndirectWithDisplacement);
 				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
-					MoveToState(CalcProgramCounterIndirectWithIndex8bitDisplacement);
+					MoveToStateSpecific(CalcProgramCounterIndirectWithIndex8bitDisplacement);
 				case Mode::AbsoluteShort:
-					MoveToState(CalcAbsoluteShort);
+					MoveToStateSpecific(CalcAbsoluteShort);
 				case Mode::AbsoluteLong:
-					MoveToState(CalcAbsoluteLong);
+					MoveToStateSpecific(CalcAbsoluteLong);
 			}
 
 	// MARK: - Fetch, addressing modes.
@@ -861,14 +859,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(CalcAddressRegisterIndirect):
 			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		BeginState(JSRJMPAddressRegisterIndirect):
 			effective_address_[0] = registers_[8 + instruction_.reg(next_operand_)].l;
 			temporary_address_.l = instruction_address_.l + 2;
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		//
 		// AddressRegisterIndirectWithPostincrement
@@ -896,8 +892,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
 			registers_[8 + instruction_.reg(next_operand_)].l +=
 				address_increments[int(instruction_.operand_size())][instruction_.reg(next_operand_)];
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		//
 		// AddressRegisterIndirectWithPredecrement
@@ -926,8 +921,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(CalcAddressRegisterIndirectWithPredecrement):
 			registers_[8 + instruction_.reg(next_operand_)].l -= address_increments[int(instruction_.operand_size())][instruction_.reg(next_operand_)];
 			effective_address_[next_operand_] = registers_[8 + instruction_.reg(next_operand_)].l;
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		//
 		// AddressRegisterIndirectWithDisplacement
@@ -959,9 +953,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				registers_[8 + instruction_.reg(next_operand_)].l +
 				int16_t(prefetch_.w);
 			Prefetch();								// np
-
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		BeginState(JSRJMPAddressRegisterIndirectWithDisplacement):
 			effective_address_[0] =
@@ -969,9 +961,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				int16_t(prefetch_.w);
 			IdleBus(1);								// n
 			temporary_address_.l = instruction_address_.l + 4;
-
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		//
 		// ProgramCounterIndirectWithDisplacement
@@ -1003,9 +993,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				program_counter_.l - 2 +
 				int16_t(prefetch_.w);
 			Prefetch();								// np
-
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		BeginState(JSRJMPProgramCounterIndirectWithDisplacement):
 			effective_address_[0] =
@@ -1013,8 +1001,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				int16_t(prefetch_.w);
 			IdleBus(1);								// n
 			temporary_address_.l = instruction_address_.l + 4;
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		//
 		// AddressRegisterIndirectWithIndex8bitDisplacement
@@ -1050,15 +1037,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[next_operand_] = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
 			Prefetch();								// np
 			IdleBus(1);								// n
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		BeginState(JSRJMPAddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[0] = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
 			IdleBus(3);								// n nn
 			temporary_address_.l = instruction_address_.l + 4;
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		//
 		// ProgramCounterIndirectWithIndex8bitDisplacement
@@ -1087,15 +1072,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[next_operand_] = d8Xn(program_counter_.l - 2);
 			Prefetch();								// np
 			IdleBus(1);								// n
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		BeginState(JSRJMPProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[0] = d8Xn(program_counter_.l - 2);
 			IdleBus(3);								// n nn
 			temporary_address_.l = instruction_address_.l + 4;
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 #undef d8Xn
 
@@ -1123,15 +1106,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(CalcAbsoluteShort):
 			effective_address_[next_operand_] = int16_t(prefetch_.w);
 			Prefetch();								// np
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		BeginState(JSRJMPAbsoluteShort):
 			effective_address_[0] = int16_t(prefetch_.w);
 			IdleBus(1);								// n
 			temporary_address_.l = instruction_address_.l + 4;
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		//
 		// AbsoluteLong
@@ -1162,15 +1143,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();								// np
 			effective_address_[next_operand_] = prefetch_.l;
 			Prefetch();								// np
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		BeginState(JSRJMPAbsoluteLong):
 			Prefetch();								// np
 			effective_address_[0] = prefetch_.l;
 			temporary_address_.l = instruction_address_.l + 6;
-			state_ = post_ea_state_;
-		break;
+		MoveToStateDynamic(post_ea_state_);
 
 		//
 		// ImmediateData
@@ -1193,9 +1172,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define MoveToNextOperand(x)		\
 	++next_operand_;				\
 	if(next_operand_ == 2) {		\
-		MoveToState(Decode);		\
+		MoveToStateSpecific(Decode);		\
 	}								\
-	MoveToState(x)
+	MoveToStateSpecific(x)
 
 		// Store operand is a lot simpler: only one operand is ever stored, and its address
 		// is already known. So this can either skip straight back to ::Decode if the target
@@ -1204,15 +1183,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			switch(instruction_.operand_size()) {
 				case InstructionSet::M68k::DataSize::LongWord:
 					SetupDataAccess(0, Microcycle::SelectWord);
-				MoveToState(StoreOperand_l);
+				MoveToStateSpecific(StoreOperand_l);
 
 				case InstructionSet::M68k::DataSize::Word:
 					SetupDataAccess(0, Microcycle::SelectWord);
-				MoveToState(StoreOperand_bw);
+				MoveToStateSpecific(StoreOperand_bw);
 
 				case InstructionSet::M68k::DataSize::Byte:
 					SetupDataAccess(0, Microcycle::SelectByte);
-				MoveToState(StoreOperand_bw);
+				MoveToStateSpecific(StoreOperand_bw);
 			}
 
 		BeginState(StoreOperand_bw):
@@ -1264,7 +1243,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 #define MoveToWritePhase()														\
 	next_operand_ = 0;															\
-	if(operand_flags_ & 0x0c) MoveToState(StoreOperand) else MoveToState(Decode)
+	if(operand_flags_ & 0x0c) MoveToStateSpecific(StoreOperand) else MoveToStateSpecific(Decode)
 
 		BeginState(Perform_np):
 			PerformDynamic();
@@ -1294,10 +1273,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			switch(instruction_.mode(1)) {
 				case Mode::DataRegisterDirect:
 				case Mode::AddressRegisterDirect:
-				MoveToState(MOVEwRegisterDirect);
+				MoveToStateSpecific(MOVEwRegisterDirect);
 
 				case Mode::AddressRegisterIndirectWithPostincrement:
-				MoveToState(MOVEwAddressRegisterIndirectWithPostincrement);
+				MoveToStateSpecific(MOVEwAddressRegisterIndirectWithPostincrement);
 
 				default: assert(false);
 			}
@@ -1305,13 +1284,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(MOVEwRegisterDirect):
 			registers_[instruction_.lreg(1)].w = operand_[1].w;
 			Prefetch();		// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(MOVEwAddressRegisterIndirectWithPostincrement):
 			// TODO: nw
 			assert(false);
 			Prefetch()		// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// [ABCD/SBCD/SUBX/ADDX] (An)-, (An)-
@@ -1335,7 +1314,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			SetupDataAccess(0, select_flag_);
 			Access(operand_[1].low);	// nw
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(TwoOp_Predec_l):
 			IdleBus(1);					// n
@@ -1367,7 +1346,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			registers_[8 + instruction_.reg(1)].l -= 2;
 			Access(operand_[1].high);	// nW
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// CHK
@@ -1382,19 +1361,19 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(CHK_no_trap):
 			IdleBus(3);			// nn n
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(CHK_was_over):
 			IdleBus(2);			// nn
 			instruction_address_.l = program_counter_.l - 4;
 			exception_vector_ = InstructionSet::M68k::Exception::CHK;
-		MoveToState(StandardException);
+		MoveToStateSpecific(StandardException);
 
 		BeginState(CHK_was_under):
 			IdleBus(3);			// n nn
 			instruction_address_.l = program_counter_.l - 4;
 			exception_vector_ = InstructionSet::M68k::Exception::CHK;
-		MoveToState(StandardException);
+		MoveToStateSpecific(StandardException);
 
 		//
 		// Scc
@@ -1411,7 +1390,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			[[fallthrough]];
 		BeginState(Scc_Dn_did_not_set):
 			next_operand_ = 0;
-		MoveToState(StoreOperand);
+		MoveToStateSpecific(StoreOperand);
 
 		//
 		// DBcc
@@ -1429,13 +1408,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(1);		// n
 			Prefetch();		// np
 			Prefetch();		// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(DBcc_condition_true):
 			IdleBus(2);		// n n
 			Prefetch();		// np
 			Prefetch();		// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(DBcc_counter_overflow):
 			IdleBus(1);		// n
@@ -1448,7 +1427,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			program_counter_.l = instruction_address_.l + 4;
 			Prefetch();		// np
 			Prefetch();		// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// Bcc [.b and .w]
@@ -1471,18 +1450,18 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(1);		// n
 			Prefetch();		// np
 			Prefetch();		// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(Bcc_b_branch_not_taken):
 			IdleBus(2);		// nn
 			Prefetch();		// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(Bcc_w_branch_not_taken):
 			IdleBus(2);		// nn
 			Prefetch();		// np
 			Prefetch();		// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// BSR
@@ -1511,7 +1490,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			Prefetch();		// np
 			Prefetch();		// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// JSR [push only; address calculation elsewhere], JMP
@@ -1532,14 +1511,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Prefetch once more.
 			Prefetch();
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(JMP):
 			// Update the program counter and prefetch once.
 			program_counter_.l = effective_address_[0];
 			Prefetch();		// np
 			Prefetch();		// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// BSET, BCHG, BCLR
@@ -1550,7 +1529,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();
 			IdleBus(1 + dynamic_instruction_length_);
 			registers_[instruction_.reg(1)] = operand_[1];
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(BCLR_Dn):
 			PerformSpecific(BCLR);
@@ -1558,7 +1537,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();
 			IdleBus(2 + dynamic_instruction_length_);
 			registers_[instruction_.reg(1)] = operand_[1];
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// MOVEP
@@ -1586,7 +1565,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(temporary_value_.low);	// nw
 
 			Prefetch();						// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(MOVEPtoM_w):
 			temporary_address_.l = registers_[8 + instruction_.reg(1)].l + uint32_t(int16_t(prefetch_.w));
@@ -1603,7 +1582,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(temporary_value_.low);	// nw
 
 			Prefetch();						// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(MOVEPtoR_l):
 			temporary_address_.l = registers_[8 + instruction_.reg(0)].l + uint32_t(int16_t(prefetch_.w));
@@ -1628,7 +1607,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			registers_[instruction_.reg(1)].w |= temporary_value_.b;
 
 			Prefetch();						// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		BeginState(MOVEPtoR_w):
 			temporary_address_.l = registers_[8 + instruction_.reg(0)].l + uint32_t(int16_t(prefetch_.w));
@@ -1645,7 +1624,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			registers_[instruction_.reg(1)].w |= temporary_value_.b;
 
 			Prefetch();						// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// [EORI/ORI/ANDI] #, [CCR/SR]
@@ -1658,7 +1637,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			program_counter_.l -= 2;
 			Prefetch();
 			Prefetch();
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// MOVEM M --> R
@@ -1672,12 +1651,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			SetDataAddress(effective_address_[1]);
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
-		MoveToState(CalcEffectiveAddress);
+		MoveToStateSpecific(CalcEffectiveAddress);
 
 		BeginState(MOVEMtoR_w_read):
 			// If there's nothing left to read, move on.
 			if(!operand_[0].w) {
-				MoveToState(MOVEMtoR_finish);
+				MoveToStateSpecific(MOVEMtoR_finish);
 			}
 
 			// Find the next register to read, read it and sign extend it.
@@ -1692,12 +1671,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Drop the bottom bit.
 			operand_[0].w >>= 1;
 			++register_index_;
-		MoveToState(MOVEMtoR_w_read);
+		MoveToStateSpecific(MOVEMtoR_w_read);
 
 		BeginState(MOVEMtoR_l_read):
 			// If there's nothing left to read, move on.
 			if(!operand_[0].w) {
-				MoveToState(MOVEMtoR_finish);
+				MoveToStateSpecific(MOVEMtoR_finish);
 			}
 
 			// Find the next register to read, read it.
@@ -1713,7 +1692,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Drop the bottom bit.
 			operand_[0].w >>= 1;
 			++register_index_;
-		MoveToState(MOVEMtoR_l_read);
+		MoveToStateSpecific(MOVEMtoR_l_read);
 
 		BeginState(MOVEMtoR_finish):
 			// Perform one more read, spuriously.
@@ -1726,7 +1705,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			}
 
 			Prefetch();	// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// MOVEM R --> M
@@ -1746,9 +1725,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				// has already told us the addressing mode, and it's trivial; and (ii) the
 				// predecrement isn't actually wanted.
 				if(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) {
-					MoveToState(MOVEMtoM_l_write_predec);
+					MoveToStateSpecific(MOVEMtoM_l_write_predec);
 				} else {
-					MoveToState(MOVEMtoM_w_write_predec);
+					MoveToStateSpecific(MOVEMtoM_w_write_predec);
 				}
 			}
 
@@ -1756,12 +1735,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			post_ea_state_ =
 				(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) ?
 					MOVEMtoM_l_write : MOVEMtoM_w_write;
-		MoveToState(CalcEffectiveAddress);
+		MoveToStateSpecific(CalcEffectiveAddress);
 
 		BeginState(MOVEMtoM_w_write):
 			// If there's nothing left to read, move on.
 			if(!operand_[0].w) {
-				MoveToState(MOVEMtoM_finish);
+				MoveToStateSpecific(MOVEMtoM_finish);
 			}
 
 			// Find the next register to write, write it.
@@ -1775,12 +1754,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Drop the bottom bit.
 			operand_[0].w >>= 1;
 			++register_index_;
-		MoveToState(MOVEMtoM_w_write);
+		MoveToStateSpecific(MOVEMtoM_w_write);
 
 		BeginState(MOVEMtoM_l_write):
 			// If there's nothing left to read, move on.
 			if(!operand_[0].w) {
-				MoveToState(MOVEMtoM_finish);
+				MoveToStateSpecific(MOVEMtoM_finish);
 			}
 
 			// Find the next register to write, write it.
@@ -1797,12 +1776,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Drop the bottom bit.
 			operand_[0].w >>= 1;
 			++register_index_;
-		MoveToState(MOVEMtoM_l_write);
+		MoveToStateSpecific(MOVEMtoM_l_write);
 
 		BeginState(MOVEMtoM_w_write_predec):
 			// If there's nothing left to read, move on.
 			if(!operand_[0].w) {
-				MoveToState(MOVEMtoM_finish);
+				MoveToStateSpecific(MOVEMtoM_finish);
 			}
 
 			// Find the next register to write, write it.
@@ -1816,12 +1795,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Drop the bottom bit.
 			operand_[0].w >>= 1;
 			--register_index_;
-		MoveToState(MOVEMtoM_w_write_predec);
+		MoveToStateSpecific(MOVEMtoM_w_write_predec);
 
 		BeginState(MOVEMtoM_l_write_predec):
 			// If there's nothing left to read, move on.
 			if(!operand_[0].w) {
-				MoveToState(MOVEMtoM_finish);
+				MoveToStateSpecific(MOVEMtoM_finish);
 			}
 
 			// Find the next register to write, write it.
@@ -1838,7 +1817,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Drop the bottom bit.
 			operand_[0].w >>= 1;
 			--register_index_;
-		MoveToState(MOVEMtoM_l_write_predec);
+		MoveToStateSpecific(MOVEMtoM_l_write_predec);
 
 		BeginState(MOVEMtoM_finish):
 			// Write the address back to the register if
@@ -1848,7 +1827,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			}
 
 			Prefetch();	// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// DIVU and DIVUS
@@ -1865,7 +1844,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Either dispatch an exception or don't.
 			if(exception_vector_ >= 0) {
-				MoveToState(StandardException);
+				MoveToStateSpecific(StandardException);
 			}
 
 			// DIVU and DIVS are always to a register, so just write back here
@@ -1873,7 +1852,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			registers_[instruction_.reg(1)] = operand_[1];
 
 			Prefetch();		// np
-		MoveToState(Decode);
+		MoveToStateSpecific(Decode);
 
 		//
 		// Various states TODO.
@@ -1900,7 +1879,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #undef WaitForDTACK
 #undef IdleBus
 #undef PerformBusOperation
-#undef MoveToState
+#undef MoveToStateSpecific
+#undef MoveToStateDynamic
 #undef CheckOverrun
 #undef Spend
 #undef ConsiderExit
