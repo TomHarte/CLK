@@ -122,8 +122,8 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 
 	// Flow controller... many TODO.
 	using Preinstruction = InstructionSet::M68k::Preinstruction;
-	template <typename IntT> void did_mulu(IntT) {}		//
-	template <typename IntT> void did_muls(IntT) {}		//
+	template <typename IntT> void did_mulu(IntT);
+	template <typename IntT> void did_muls(IntT);
 	inline void did_chk(bool, bool);
 	inline void did_scc(bool);
 	inline void did_shift(int) {}						//

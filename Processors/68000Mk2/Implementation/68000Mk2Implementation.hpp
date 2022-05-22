@@ -162,6 +162,7 @@ enum ExecutionState: int {
 	MOVEMtoM_finish,
 
 	DIVU_DIVS,
+	MULU_MULS,
 };
 
 // MARK: - The state machine.
@@ -697,6 +698,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(DIVU,		perform_state_ = DIVU_DIVS);
 				StdCASE(DIVS,		perform_state_ = DIVU_DIVS);
+				StdCASE(MULU,		perform_state_ = MULU_MULS);
+				StdCASE(MULS,		perform_state_ = MULU_MULS);
 
 				default:
 					assert(false);
@@ -1855,6 +1858,24 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToStateSpecific(Decode);
 
 		//
+		// MULU and MULS
+		//
+		BeginState(MULU_MULS):
+			Prefetch();		// np
+
+			// Perform the instruction.
+			PerformDynamic();
+
+			// Delay the correct amount of time.
+			IdleBus(dynamic_instruction_length_);
+
+			// MULU and MULS are always to a register, so just write back here
+			// to save on dispatch costs.
+			registers_[instruction_.reg(1)] = operand_[1];
+
+		MoveToStateSpecific(Decode);
+
+		//
 		// Various states TODO.
 		//
 #define TODOState(x)	\
@@ -1948,6 +1969,14 @@ template <bool did_overflow> void ProcessorBase::did_divu(uint32_t, uint32_t) {
 }
 
 template <bool did_overflow> void ProcessorBase::did_divs(int32_t, int32_t) {
+	// TODO: calculate cost.
+}
+
+template <typename IntT> void ProcessorBase::did_mulu(IntT) {
+	// TODO: calculate cost.
+}
+
+template <typename IntT> void ProcessorBase::did_muls(IntT) {
 	// TODO: calculate cost.
 }
 
