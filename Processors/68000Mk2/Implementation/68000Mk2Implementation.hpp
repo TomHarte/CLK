@@ -1543,6 +1543,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
 				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
 
+			Prefetch();
 			IdleBus(1 + dynamic_instruction_length_);
 			registers_[instruction_.reg(1)] = operand_[1];
 		MoveToState(Decode);
@@ -1555,6 +1556,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			>(
 				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
 
+			Prefetch();
 			IdleBus(2 + dynamic_instruction_length_);
 			registers_[instruction_.reg(1)] = operand_[1];
 		MoveToState(Decode);
