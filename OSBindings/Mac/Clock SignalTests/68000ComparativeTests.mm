@@ -156,9 +156,6 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
 	_fileSet = [NSSet setWithArray:@[
-//		@"exg.json",
-
-		// Below this line are passing tests.
 		@"abcd_sbcd.json",
 		@"add_sub.json",
 		@"addi_subi_cmpi.json",
@@ -172,15 +169,28 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"divu_divs.json",
 		@"eor_and_or.json",
 		@"eori_andi_ori.json",
+		@"exg.json",
 		@"ext.json",
 		@"jmp_jsr.json",
+		@"lea.json",
+//		@"link_unlk.json",
+//		@"lslr_aslr_roxlr_rolr.json",
+//		@"move_tofrom_srccr.json",
+//		@"move.json",
 		@"movem.json",
 		@"movep.json",
-		@"nbcd.json",
-		@"ext.json",
+//		@"moveq.json",
+		@"mulu_muls.json",
+		@"nbcd_pea.json",
+//		@"neg_not.json",
+//		@"negx_clr.json",
+//		@"rtr.json",
+//		@"rts.json",
 		@"swap.json",
-	]];		// 20/32 = 63 % done, as far as the tests go.
-//	_testSet = [NSSet setWithArray:@[@"Bcc 6000 [79]"]];
+//		@"tas.json",
+//		@"tst.json",
+	]];
+//	_testSet = [NSSet setWithArray:@[@"PEA 0038"]];
 }
 
 - (void)testAll {
