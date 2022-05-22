@@ -127,7 +127,8 @@ enum ExecutionState: int {
 	DBcc_condition_true,
 	DBcc_counter_overflow,
 
-	Bcc,
+	Bcc_b,
+	Bcc_w,
 	Bcc_branch_taken,
 	Bcc_b_branch_not_taken,
 	Bcc_w_branch_not_taken,
@@ -592,8 +593,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(DBcc,	MoveToState(DBcc));
 
-				StdCASE(Bccb,	perform_state_ = Bcc);
-				StdCASE(Bccw,	perform_state_ = Bcc);
+				StdCASE(Bccb,	MoveToState(Bcc_b));
+				StdCASE(Bccw,	MoveToState(Bcc_w));
 
 				StdCASE(BSRb,	perform_state_ = BSR);
 				StdCASE(BSRw,	perform_state_ = BSR);
@@ -1449,7 +1450,18 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// Bcc [.b and .w]
 		//
-		BeginState(Bcc):
+		BeginState(Bcc_b):
+			operand_[0].b = uint8_t(opcode_);
+
+			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
+				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+			// Next state was set by complete_bcc.
+		break;
+
+		BeginState(Bcc_w):
+			operand_[0].w = prefetch_.w;
+
 			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
 				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
 
