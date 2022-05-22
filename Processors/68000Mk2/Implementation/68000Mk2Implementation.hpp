@@ -1405,7 +1405,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// DBcc
 		//
 		BeginState(DBcc):
-			operand_[0].w = uint32_t(int16_t(prefetch_.w));
+			operand_[0] = registers_[instruction_.reg(0)];
+			operand_[1].w = uint32_t(int16_t(prefetch_.w));
 
 			InstructionSet::M68k::perform<
 				InstructionSet::M68k::Model::M68000,
