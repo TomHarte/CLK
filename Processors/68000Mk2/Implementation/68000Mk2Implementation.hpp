@@ -135,14 +135,15 @@ enum ExecutionState: int {
 
 	BSR,
 
-	JSRAddressRegisterIndirect,
-	JSRAddressRegisterIndirectWithDisplacement,
-	JSRAddressRegisterIndirectWithIndex8bitDisplacement,
-	JSRProgramCounterIndirectWithDisplacement,
-	JSRProgramCounterIndirectWithIndex8bitDisplacement,
-	JSRAbsoluteShort,
-	JSRAbsoluteLong,
-	JSR_push,
+	JSRJMPAddressRegisterIndirect,
+	JSRJMPAddressRegisterIndirectWithDisplacement,
+	JSRJMPAddressRegisterIndirectWithIndex8bitDisplacement,
+	JSRJMPProgramCounterIndirectWithDisplacement,
+	JSRJMPProgramCounterIndirectWithIndex8bitDisplacement,
+	JSRJMPAbsoluteShort,
+	JSRJMPAbsoluteLong,
+
+	JSR, JMP,
 
 	BCHG_BSET_Dn,
 	BCLR_Dn,
@@ -599,22 +600,27 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(BSRb,	perform_state_ = BSR);
 				StdCASE(BSRw,	perform_state_ = BSR);
 
+				Duplicate(JMP, JSR)
 				StdCASE(JSR, {
+					post_ea_state_ =
+						(instruction_.operation == InstructionSet::M68k::Operation::JSR) ?
+							JSR : JMP;
+
 					switch(instruction_.mode(0)) {
 						case Mode::AddressRegisterIndirect:
-							MoveToState(JSRAddressRegisterIndirect);
+							MoveToState(JSRJMPAddressRegisterIndirect);
 						case Mode::AddressRegisterIndirectWithDisplacement:
-							MoveToState(JSRAddressRegisterIndirectWithDisplacement);
+							MoveToState(JSRJMPAddressRegisterIndirectWithDisplacement);
 						case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
-							MoveToState(JSRAddressRegisterIndirectWithIndex8bitDisplacement);
+							MoveToState(JSRJMPAddressRegisterIndirectWithIndex8bitDisplacement);
 						case Mode::ProgramCounterIndirectWithDisplacement:
-							MoveToState(JSRProgramCounterIndirectWithDisplacement);
+							MoveToState(JSRJMPProgramCounterIndirectWithDisplacement);
 						case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
-							MoveToState(JSRProgramCounterIndirectWithIndex8bitDisplacement);
+							MoveToState(JSRJMPProgramCounterIndirectWithIndex8bitDisplacement);
 						case Mode::AbsoluteShort:
-							MoveToState(JSRAbsoluteShort);
+							MoveToState(JSRJMPAbsoluteShort);
 						case Mode::AbsoluteLong:
-							MoveToState(JSRAbsoluteLong);
+							MoveToState(JSRJMPAbsoluteLong);
 
 						default: assert(false);
 					}
@@ -858,10 +864,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			state_ = post_ea_state_;
 		break;
 
-		BeginState(JSRAddressRegisterIndirect):
+		BeginState(JSRJMPAddressRegisterIndirect):
 			effective_address_[0] = registers_[8 + instruction_.reg(next_operand_)].l;
 			temporary_address_.l = instruction_address_.l + 2;
-		MoveToState(JSR_push);
+			state_ = post_ea_state_;
+		break;
 
 		//
 		// AddressRegisterIndirectWithPostincrement
@@ -956,13 +963,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			state_ = post_ea_state_;
 		break;
 
-		BeginState(JSRAddressRegisterIndirectWithDisplacement):
+		BeginState(JSRJMPAddressRegisterIndirectWithDisplacement):
 			effective_address_[0] =
 				registers_[8 + instruction_.reg(next_operand_)].l +
 				int16_t(prefetch_.w);
 			IdleBus(1);								// n
 			temporary_address_.l = instruction_address_.l + 4;
-		MoveToState(JSR_push);
+
+			state_ = post_ea_state_;
+		break;
 
 		//
 		// ProgramCounterIndirectWithDisplacement
@@ -998,13 +1007,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			state_ = post_ea_state_;
 		break;
 
-		BeginState(JSRProgramCounterIndirectWithDisplacement):
+		BeginState(JSRJMPProgramCounterIndirectWithDisplacement):
 			effective_address_[0] =
 				program_counter_.l - 2 +
 				int16_t(prefetch_.w);
 			IdleBus(1);								// n
 			temporary_address_.l = instruction_address_.l + 4;
-		MoveToState(JSR_push);
+			state_ = post_ea_state_;
+		break;
 
 		//
 		// AddressRegisterIndirectWithIndex8bitDisplacement
@@ -1043,11 +1053,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			state_ = post_ea_state_;
 		break;
 
-		BeginState(JSRAddressRegisterIndirectWithIndex8bitDisplacement):
+		BeginState(JSRJMPAddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[0] = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
 			IdleBus(3);								// n nn
 			temporary_address_.l = instruction_address_.l + 4;
-		MoveToState(JSR_push);
+			state_ = post_ea_state_;
+		break;
 
 		//
 		// ProgramCounterIndirectWithIndex8bitDisplacement
@@ -1079,11 +1090,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			state_ = post_ea_state_;
 		break;
 
-		BeginState(JSRProgramCounterIndirectWithIndex8bitDisplacement):
+		BeginState(JSRJMPProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[0] = d8Xn(program_counter_.l - 2);
 			IdleBus(3);								// n nn
 			temporary_address_.l = instruction_address_.l + 4;
-		MoveToState(JSR_push);
+			state_ = post_ea_state_;
+		break;
 
 #undef d8Xn
 
@@ -1114,11 +1126,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			state_ = post_ea_state_;
 		break;
 
-		BeginState(JSRAbsoluteShort):
+		BeginState(JSRJMPAbsoluteShort):
 			effective_address_[0] = int16_t(prefetch_.w);
 			IdleBus(1);								// n
 			temporary_address_.l = instruction_address_.l + 4;
-		MoveToState(JSR_push);
+			state_ = post_ea_state_;
+		break;
 
 		//
 		// AbsoluteLong
@@ -1152,11 +1165,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			state_ = post_ea_state_;
 		break;
 
-		BeginState(JSRAbsoluteLong):
+		BeginState(JSRJMPAbsoluteLong):
 			Prefetch();								// np
 			effective_address_[0] = prefetch_.l;
 			temporary_address_.l = instruction_address_.l + 6;
-		MoveToState(JSR_push);
+			state_ = post_ea_state_;
+		break;
 
 		//
 		// ImmediateData
@@ -1500,9 +1514,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToState(Decode);
 
 		//
-		// JSR [push only; address calculation elsewhere]
+		// JSR [push only; address calculation elsewhere], JMP
 		//
-		BeginState(JSR_push):
+		BeginState(JSR):
 			// Update the program counter and prefetch once.
 			program_counter_.l = effective_address_[0];
 			Prefetch();		// np
@@ -1518,6 +1532,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Prefetch once more.
 			Prefetch();
+		MoveToState(Decode);
+
+		BeginState(JMP):
+			// Update the program counter and prefetch once.
+			program_counter_.l = effective_address_[0];
+			Prefetch();		// np
+			Prefetch();		// np
 		MoveToState(Decode);
 
 		//
