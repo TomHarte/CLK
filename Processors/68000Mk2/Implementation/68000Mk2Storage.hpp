@@ -61,7 +61,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	// Temporary storage for the current instruction's operands
 	// and the corresponding effective addresses.
 	CPU::SlicedInt32 operand_[2];
-	uint32_t effective_address_[2];
+	CPU::SlicedInt32 effective_address_[2];
 
 	/// If currently in the wait-for-DTACK state, this indicates where to go
 	/// upon receipt of DTACK or VPA. BERR will automatically segue
@@ -141,7 +141,6 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	inline void reset() {}			//
 	inline void link(Preinstruction, uint32_t) {}	//
 	inline void unlink(uint32_t &) {}				//
-	inline void pea(uint32_t) {}					//
 	inline void move_to_usp(uint32_t) {}			//
 	inline void move_from_usp(uint32_t &) {}		//
 	inline void tas(Preinstruction, uint32_t) {}	//
@@ -154,6 +153,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	template <typename IntT> void movem_toR(Preinstruction, uint32_t, uint32_t) {}
 	void jsr(uint32_t) {}
 	void jmp(uint32_t) {}
+	inline void pea(uint32_t) {}
 
 	// Some microcycles that will be modified as required and used in the main loop;
 	// the semantics of a switch statement make in-place declarations awkward and
