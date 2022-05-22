@@ -143,7 +143,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	inline void unlink(uint32_t &) {}				//
 	inline void move_to_usp(uint32_t) {}			//
 	inline void move_from_usp(uint32_t &) {}		//
-	inline void tas(Preinstruction, uint32_t) {}	//
+	inline void tas(Preinstruction, uint32_t);
 	template <bool use_current_instruction_pc = true> void raise_exception(int);
 
 	// These aren't implemented because the specific details of the implementation

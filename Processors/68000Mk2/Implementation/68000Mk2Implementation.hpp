@@ -165,6 +165,7 @@ enum ExecutionState: int {
 	MULU_MULS,
 	LEA,
 	PEA,
+	TAS,
 };
 
 // MARK: - The state machine.
@@ -712,6 +713,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					post_ea_state_ = PEA;
 					next_operand_ = 0;
 					MoveToStateSpecific(CalcEffectiveAddress);
+				});
+
+				StdCASE(TAS, {
+					// TAS uses a special atomic bus cycle for memory accesses,
+					// but is also available as DataRegisterDirect, with no
+					// memory access whatsoever. So segue elsewhere here only
+					// for the other cases.
+					if(instruction_.mode(0) != Mode::DataRegisterDirect) {
+						post_ea_state_ = TAS;
+						next_operand_ = 0;
+						MoveToStateSpecific(CalcEffectiveAddress);
+					}
+
+					perform_state_ = Perform_np;
 				});
 
 				default:
@@ -1903,6 +1918,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToStateSpecific(Decode);
 
 		//
+		// TAS
+		//
+		BeginState(TAS):
+
+			// TODO: use the specialised TAS bus cycle; five parts.
+//			PerformBusOperation
+
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
+		//
 		// Various states TODO.
 		//
 #define TODOState(x)	\
@@ -2017,6 +2043,16 @@ template <bool use_current_instruction_pc> void ProcessorBase::raise_exception(i
 	//	* DIVU;
 	//	* DIVS.
 	exception_vector_ = vector;
+}
+
+inline void ProcessorBase::tas(Preinstruction instruction, uint32_t) {
+	// This will be reached only if addressing mode is Dn.
+	const uint8_t value = registers_[instruction.reg(0)].b;
+	registers_[instruction.reg(0)].b |= 0x80;
+
+	status_.overflow_flag = status_.carry_flag = 0;
+	status_.zero_result = value;
+	status_.negative_flag = value & 0x80;
 }
 
 // MARK: - External state.

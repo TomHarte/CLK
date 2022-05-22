@@ -187,10 +187,10 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 //		@"rtr.json",
 //		@"rts.json",
 		@"swap.json",
-//		@"tas.json",
+		@"tas.json",
 //		@"tst.json",
 	]];
-//	_testSet = [NSSet setWithArray:@[@"PEA 0038"]];
+//	_testSet = [NSSet setWithArray:@[@"TAS 4ac0"]];
 }
 
 - (void)testAll {
