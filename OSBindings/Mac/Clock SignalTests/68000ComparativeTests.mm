@@ -188,7 +188,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 //		@"rts.json",
 		@"swap.json",
 		@"tas.json",
-//		@"tst.json",
+		@"tst.json",
 	]];
 //	_testSet = [NSSet setWithArray:@[@"TAS 4ac0"]];
 }

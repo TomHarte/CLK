@@ -176,6 +176,15 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 		Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectWord | Microcycle::IsData
 	};
 
+	// TAS.
+	Microcycle tas_cycles[5] = {
+		{ Microcycle::Read | Microcycle::NewAddress | Microcycle::IsData },
+		{ Microcycle::Read | Microcycle::SameAddress | Microcycle::IsData | Microcycle::SelectByte },
+		{ Microcycle::SameAddress },
+		{ Microcycle::SameAddress | Microcycle::IsData },
+		{ Microcycle::SameAddress | Microcycle::IsData | Microcycle::SelectByte },
+	};
+
 	// Holding spot when awaiting DTACK/etc.
 	Microcycle awaiting_dtack;
 };
