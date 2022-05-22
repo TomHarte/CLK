@@ -1233,6 +1233,18 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].high);		// nW
 		MoveToNextOperand(StoreOperand_l);
 
+#define PerformDynamic()	\
+	InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(	\
+		instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
+#define PerformSpecific(x)	\
+	InstructionSet::M68k::perform<	\
+		InstructionSet::M68k::Model::M68000,	\
+		ProcessorBase,	\
+		InstructionSet::M68k::Operation::x	\
+	>(	\
+		instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+
 		//
 		// Various generic forms of perform.
 		//
@@ -1241,21 +1253,18 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	if(operand_flags_ & 0x0c) MoveToState(StoreOperand) else MoveToState(Decode)
 
 		BeginState(Perform_np):
-			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformDynamic();
 			Prefetch();			// np
 		MoveToWritePhase();
 
 		BeginState(Perform_np_n):
-			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformDynamic();
 			Prefetch();			// np
 			IdleBus(1);			// n
 		MoveToWritePhase();
 
 		BeginState(Perform_np_nn):
-			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformDynamic();
 			Prefetch();			// np
 			IdleBus(2);			// nn
 		MoveToWritePhase();
@@ -1308,8 +1317,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			Prefetch();					// np
 
-			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformDynamic();
 
 			SetupDataAccess(0, select_flag_);
 			Access(operand_[1].low);	// nw
@@ -1334,8 +1342,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			registers_[8 + instruction_.reg(1)].l -= 2;
 			Access(operand_[1].high);	// nR
 
-			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformDynamic();
 
 			SetupDataAccess(0, Microcycle::SelectWord);
 
@@ -1353,12 +1360,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(CHK):
 			Prefetch();			// np
-			InstructionSet::M68k::perform<
-				InstructionSet::M68k::Model::M68000,
-				ProcessorBase,
-				InstructionSet::M68k::Operation::CHK
-			>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformSpecific(CHK);
 
 			// Proper next state will have been set by the flow controller
 			// call-in; just allow dispatch to whatever it was.
@@ -1385,12 +1387,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(Scc_Dn):
 			Prefetch();			// np
-			InstructionSet::M68k::perform<
-				InstructionSet::M68k::Model::M68000,
-				ProcessorBase,
-				InstructionSet::M68k::Operation::Scc
-			>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformSpecific(Scc);
 
 			// Next state will be set by did_scc.
 		break;
@@ -1408,15 +1405,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(DBcc):
 			operand_[0] = registers_[instruction_.reg(0)];
 			operand_[1].w = uint32_t(int16_t(prefetch_.w));
-
-			InstructionSet::M68k::perform<
-				InstructionSet::M68k::Model::M68000,
-				ProcessorBase,
-				InstructionSet::M68k::Operation::DBcc
-			>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
-
-			// Just do the write-back here.
+			PerformSpecific(DBcc);
 			registers_[instruction_.reg(0)].w = operand_[0].w;
 
 			// Next state was set by complete_dbcc.
@@ -1452,18 +1441,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(Bcc_b):
 			operand_[0].b = uint8_t(opcode_);
-
-			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformSpecific(Bccb);
 
 			// Next state was set by complete_bcc.
 		break;
 
 		BeginState(Bcc_w):
 			operand_[0].w = prefetch_.w;
-
-			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformSpecific(Bccw);
 
 			// Next state was set by complete_bcc.
 		break;
@@ -1508,8 +1493,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			registers_[15].l -= 2;
 
 			// Get the new PC.
-			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformDynamic();
 
 			Prefetch();		// np
 			Prefetch();		// np
@@ -1540,8 +1524,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// BSET, BCHG, BCLR
 		//
 		BeginState(BCHG_BSET_Dn):
-			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformDynamic();
 
 			Prefetch();
 			IdleBus(1 + dynamic_instruction_length_);
@@ -1549,12 +1532,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToState(Decode);
 
 		BeginState(BCLR_Dn):
-			InstructionSet::M68k::perform<
-				InstructionSet::M68k::Model::M68000,
-				ProcessorBase,
-				InstructionSet::M68k::Operation::BCLR
-			>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformSpecific(BCLR);
 
 			Prefetch();
 			IdleBus(2 + dynamic_instruction_length_);
@@ -1653,8 +1631,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(LogicalToSR):
 			// Perform the operation.
-			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformDynamic();
 
 			// Recede the program counter and prefetch twice.
 			program_counter_.l -= 2;
@@ -1860,8 +1837,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			exception_vector_ = -1;
 
 			// Perform the instruction.
-			InstructionSet::M68k::perform<InstructionSet::M68k::Model::M68000>(
-				instruction_, operand_[0], operand_[1], status_, *static_cast<ProcessorBase *>(this));
+			PerformDynamic();
 
 			// Delay the correct amount of time.
 			IdleBus(dynamic_instruction_length_);
@@ -1893,6 +1869,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			assert(false);
 	}}
 
+#undef PerformDynamic
+#undef PerformSpecific
 #undef Prefetch
 #undef ReadProgramWord
 #undef ReadDataWord
