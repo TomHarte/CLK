@@ -166,6 +166,7 @@ enum ExecutionState: int {
 	LEA,
 	PEA,
 	TAS,
+	MOVEtoCCRSR,
 };
 
 // MARK: - The state machine.
@@ -727,6 +728,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 
 					perform_state_ = Perform_np;
+				});
+
+				Duplicate(MOVEtoCCR, MOVEtoSR);
+				StdCASE(MOVEtoSR, 	perform_state_ = MOVEtoCCRSR);
+
+				StdCASE(MOVEfromSR, {
+					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
+						perform_state_ = Perform_np_n;
+					} else {
+						perform_state_ = Perform_np;
+					}
 				});
 
 				default:
@@ -1947,6 +1959,19 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			PerformBusOperation(tas_cycles[3]);
 			PerformBusOperation(tas_cycles[4]);
 
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
+		//
+		// MOVE to [CCR/SR]
+		//
+		BeginState(MOVEtoCCRSR):
+			PerformDynamic();
+
+			// Rewind the program counter and prefetch twice.
+			IdleBus(2);
+			program_counter_.l -= 2;
+			Prefetch();
 			Prefetch();
 		MoveToStateSpecific(Decode);
 

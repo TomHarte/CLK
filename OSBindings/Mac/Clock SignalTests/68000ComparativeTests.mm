@@ -175,7 +175,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"lea.json",
 //		@"link_unlk.json",
 //		@"lslr_aslr_roxlr_rolr.json",
-//		@"move_tofrom_srccr.json",
+		@"move_tofrom_srccr.json",
 //		@"move.json",
 		@"movem.json",
 		@"movep.json",
@@ -190,7 +190,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"tas.json",
 		@"tst.json",
 	]];
-//	_testSet = [NSSet setWithArray:@[@"TAS 4ac0"]];
+	_testSet = [NSSet setWithArray:@[@"MOVE to CCR 44d3"]];
 }
 
 - (void)testAll {
