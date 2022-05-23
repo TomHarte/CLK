@@ -1249,21 +1249,24 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToNextOperand(StoreOperand_bw);
 			}
 
-			// Assumption enshrined here: there are no write-only Dn
-			// byte operations. i.e. anything that should technically
-			// write back only a byte will have read from the register
-			// before the operation, making it safe to write back the
-			// entire word.
-			//
-			// However there are write-only Dn word operations, and
-			// the sign-extended top half needs to be kept for An.
 			switch(instruction_.mode(next_operand_)) {
-				case Mode::DataRegisterDirect:
-					registers_[instruction_.lreg(next_operand_)].w = operand_[next_operand_].w;
+				// Data register: write only the part of the word that has changed.
+				case Mode::DataRegisterDirect: {
+					const uint32_t write_mask = size_masks[int(instruction_.operand_size())];
+					const int reg = instruction_.reg(next_operand_);
+
+					registers_[reg].l =
+						(operand_[next_operand_].l & write_mask) |
+						(registers_[reg].l & ~write_mask);
+				}
 				MoveToNextOperand(StoreOperand_bw);
+
+				// Address register: always rewrite the whole word; the smaller
+				// result will have been sign extended.
 				case Mode::AddressRegisterDirect:
 					registers_[instruction_.lreg(next_operand_)] = operand_[next_operand_];
 				MoveToNextOperand(StoreOperand_bw);
+
 				default: break;
 			}
 

@@ -112,6 +112,12 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 		{ 2, 2, 2, 2, 2, 2, 2, 2, },
 		{ 4, 4, 4, 4, 4, 4, 4, 4, },
 	};
+
+	// A lookup table that ensures write-back to data registers affects
+	// only the correct bits.
+	static constexpr uint32_t size_masks[3] = { 0xff, 0xffff, 0xffff'ffff };
+
+	// Assumptions used by the lookup tables above:
 	static_assert(int(InstructionSet::M68k::DataSize::Byte) == 0);
 	static_assert(int(InstructionSet::M68k::DataSize::Word) == 1);
 	static_assert(int(InstructionSet::M68k::DataSize::LongWord) == 2);
