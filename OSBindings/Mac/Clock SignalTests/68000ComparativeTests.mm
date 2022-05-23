@@ -182,7 +182,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 //		@"moveq.json",
 		@"mulu_muls.json",
 		@"nbcd_pea.json",
-//		@"neg_not.json",
+		@"neg_not.json",
 //		@"negx_clr.json",
 //		@"rtr.json",
 //		@"rts.json",
@@ -190,7 +190,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"tas.json",
 		@"tst.json",
 	]];
-	_testSet = [NSSet setWithArray:@[@"MOVE to CCR 44d3"]];
+//	_testSet = [NSSet setWithArray:@[@"MOVE from SR 40eb"]];
 }
 
 - (void)testAll {

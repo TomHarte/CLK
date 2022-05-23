@@ -735,10 +735,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(MOVEfromSR, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
-						perform_state_ = Perform_np_n;
+						post_ea_state_ = Perform_np_n;
 					} else {
-						perform_state_ = Perform_np;
+						post_ea_state_ = Perform_np;
 					}
+					MoveToStateSpecific(CalcEffectiveAddress);
 				});
 
 				default:
@@ -855,8 +856,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(CalcEffectiveAddress):
 			switch(instruction_.mode(next_operand_)) {
 				default:
-					assert(false);
-				break;
+					MoveToStateDynamic(post_ea_state_);
 
 				case Mode::AddressRegisterIndirect:
 					MoveToStateSpecific(CalcAddressRegisterIndirect);
@@ -1242,9 +1242,22 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToNextOperand(StoreOperand_bw);
 			}
 
-			if(instruction_.mode(next_operand_) <= Mode::AddressRegisterDirect) {
-				registers_[instruction_.lreg(next_operand_)] = operand_[next_operand_];
+			// Assumption enshrined here: there are no write-only Dn
+			// byte operations. i.e. anything that should technically
+			// write back only a byte will have read from the register
+			// before the operation, making it safe to write back the
+			// entire word.
+			//
+			// However there are write-only Dn word operations, and
+			// the sign-extended top half needs to be kept for An.
+			switch(instruction_.mode(next_operand_)) {
+				case Mode::DataRegisterDirect:
+					registers_[instruction_.lreg(next_operand_)].w = operand_[next_operand_].w;
 				MoveToNextOperand(StoreOperand_bw);
+				case Mode::AddressRegisterDirect:
+					registers_[instruction_.lreg(next_operand_)] = operand_[next_operand_];
+				MoveToNextOperand(StoreOperand_bw);
+				default: break;
 			}
 
 			SetDataAddress(effective_address_[next_operand_].l);
