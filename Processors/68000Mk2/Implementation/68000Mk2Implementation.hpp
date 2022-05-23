@@ -189,11 +189,11 @@ template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool si
 void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::run_for(HalfCycles duration) {
 	// Accumulate the newly paid-in cycles. If this instance remains in deficit, exit.
 	time_remaining_ += duration;
-	if(time_remaining_ <= HalfCycles(0)) return;
+	if(time_remaining_ < HalfCycles(0)) return;
 
 	// Check whether all remaining time has been expended; if so then exit, having set this line up as
 	// the next resumption point.
-#define ConsiderExit()	if(time_remaining_ <= HalfCycles(0)) { state_ = __COUNTER__+1; return; } [[fallthrough]]; case __COUNTER__:
+#define ConsiderExit()	if(time_remaining_ < HalfCycles(0)) { state_ = __COUNTER__+1; return; } [[fallthrough]]; case __COUNTER__:
 
 	// Subtracts `n` half-cycles from `time_remaining_`; if permit_overrun is false, also ConsiderExit()
 #define Spend(n)		time_remaining_ -= (n); if constexpr (!permit_overrun) ConsiderExit()
