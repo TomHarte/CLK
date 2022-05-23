@@ -161,7 +161,7 @@ enum ExecutionState: int {
 	MOVEMtoM_finish,
 
 	DIVU_DIVS,
-	MULU_MULS,
+	Perform_idle_dyamic_Dn,
 	LEA,
 	PEA,
 	TAS,
@@ -706,8 +706,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(DIVU,		perform_state_ = DIVU_DIVS);
 				StdCASE(DIVS,		perform_state_ = DIVU_DIVS);
-				StdCASE(MULU,		perform_state_ = MULU_MULS);
-				StdCASE(MULS,		perform_state_ = MULU_MULS);
+				StdCASE(MULU,		perform_state_ = Perform_idle_dyamic_Dn);
+				StdCASE(MULS,		perform_state_ = Perform_idle_dyamic_Dn);
 
 				StdCASE(LEA, {
 					post_ea_state_ = LEA;
@@ -749,6 +749,23 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(RTR, MoveToStateSpecific(RTR));
 				StdCASE(RTE, MoveToStateSpecific(RTE));
 				StdCASE(RTS, MoveToStateSpecific(RTS));
+
+#define ShiftGroup(suffix, state)								\
+				Duplicate(ASL##suffix, ASR##suffix);				\
+				Duplicate(LSL##suffix, ASR##suffix);				\
+				Duplicate(LSR##suffix, ASR##suffix);				\
+				Duplicate(ROL##suffix, ASR##suffix);				\
+				Duplicate(ROR##suffix, ASR##suffix);				\
+				Duplicate(ROXL##suffix, ASR##suffix);				\
+				Duplicate(ROXR##suffix, ASR##suffix);				\
+				StdCASE(ASR##suffix, post_ea_state_ = state );
+
+				ShiftGroup(m, Perform_np)
+				ShiftGroup(b, Perform_idle_dyamic_Dn)
+				ShiftGroup(w, Perform_idle_dyamic_Dn)
+				ShiftGroup(l, Perform_idle_dyamic_Dn)
+
+#undef ShiftGroup
 
 				default:
 					assert(false);
@@ -1955,9 +1972,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToStateSpecific(Decode);
 
 		//
-		// MULU and MULS
+		// MULU, MULS and shifts
 		//
-		BeginState(MULU_MULS):
+		BeginState(Perform_idle_dyamic_Dn):
 			Prefetch();		// np
 
 			// Perform the instruction.
@@ -2189,6 +2206,10 @@ template <typename IntT> void ProcessorBase::did_mulu(IntT) {
 }
 
 template <typename IntT> void ProcessorBase::did_muls(IntT) {
+	// TODO: calculate cost.
+}
+
+void ProcessorBase::did_shift(int) {
 	// TODO: calculate cost.
 }
 
