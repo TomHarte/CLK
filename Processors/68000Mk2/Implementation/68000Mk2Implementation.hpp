@@ -751,14 +751,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(RTS, MoveToStateSpecific(RTS));
 
 #define ShiftGroup(suffix, state)								\
-				Duplicate(ASL##suffix, ASR##suffix);				\
-				Duplicate(LSL##suffix, ASR##suffix);				\
-				Duplicate(LSR##suffix, ASR##suffix);				\
-				Duplicate(ROL##suffix, ASR##suffix);				\
-				Duplicate(ROR##suffix, ASR##suffix);				\
-				Duplicate(ROXL##suffix, ASR##suffix);				\
-				Duplicate(ROXR##suffix, ASR##suffix);				\
-				StdCASE(ASR##suffix, post_ea_state_ = state );
+				Duplicate(ASL##suffix, ASR##suffix);			\
+				Duplicate(LSL##suffix, ASR##suffix);			\
+				Duplicate(LSR##suffix, ASR##suffix);			\
+				Duplicate(ROL##suffix, ASR##suffix);			\
+				Duplicate(ROR##suffix, ASR##suffix);			\
+				Duplicate(ROXL##suffix, ASR##suffix);			\
+				Duplicate(ROXR##suffix, ASR##suffix);			\
+				StdCASE(ASR##suffix, perform_state_ = state );
 
 				ShiftGroup(m, Perform_np)
 				ShiftGroup(b, Perform_idle_dyamic_Dn)
