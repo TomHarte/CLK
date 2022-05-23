@@ -104,11 +104,10 @@ enum ExecutionState: int {
 	Perform_np_n,
 	Perform_np_nn,
 
-	// MOVE has unique bus usage, so has specialised states.
-
-	MOVEw,
-	MOVEwRegisterDirect,
-	MOVEwAddressRegisterIndirectWithPostincrement,
+	MOVE,
+	MOVE_predec,
+	MOVE_complete,
+	MOVE_complete_l,
 
 	TwoOp_Predec_bw,
 	TwoOp_Predec_l,
@@ -482,7 +481,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(EXTbtow, 	perform_state_ = Perform_np);
 				StdCASE(EXTwtol, 	perform_state_ = Perform_np);
 
-				StdCASE(MOVEw,		perform_state_ = MOVEw);
+				StdCASE(MOVEb,		perform_state_ = MOVE);
+				StdCASE(MOVEw,		perform_state_ = MOVE);
+				StdCASE(MOVEl,		perform_state_ = MOVE);
 
 				StdCASE(CMPb,		perform_state_ = Perform_np);
 				StdCASE(CMPw,		perform_state_ = Perform_np);
@@ -1219,11 +1220,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// MARK: - Store.
 
-#define MoveToNextOperand(x)		\
-	++next_operand_;				\
-	if(next_operand_ == 2) {		\
-		MoveToStateSpecific(Decode);		\
-	}								\
+#define MoveToNextOperand(x)			\
+	++next_operand_;					\
+	if(next_operand_ == 2) {			\
+		MoveToStateSpecific(Decode);	\
+	}									\
 	MoveToStateSpecific(x)
 
 		// Store operand is a lot simpler: only one operand is ever stored, and its address
@@ -1335,27 +1336,62 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// Specific forms of perform...
 		//
 
-		BeginState(MOVEw):
+		BeginState(MOVE):
+			PerformDynamic();
+
+			// In all cases except predecrement mode: do the usual address
+			// calculate and storage, then do the next prefetch and decode.
+			//
+			// In predecrement mode: do the prefetch, then write the result.
+			//
+			// For here, lump data and address register direct in with predec,
+			// so that all that's left is modes that write to memory and then
+			// prefetch.
 			switch(instruction_.mode(1)) {
-				case Mode::DataRegisterDirect:
 				case Mode::AddressRegisterDirect:
-				MoveToStateSpecific(MOVEwRegisterDirect);
+				case Mode::DataRegisterDirect:
+				case Mode::AddressRegisterIndirectWithPredecrement:
+				MoveToStateSpecific(MOVE_predec);
 
-				case Mode::AddressRegisterIndirectWithPostincrement:
-				MoveToStateSpecific(MOVEwAddressRegisterIndirectWithPostincrement);
-
-				default: assert(false);
+				default: break;
 			}
 
-		BeginState(MOVEwRegisterDirect):
-			registers_[instruction_.lreg(1)].w = operand_[1].w;
-			Prefetch();		// np
+			next_operand_ = 1;
+			post_ea_state_ = MOVE_complete;
+		MoveToStateSpecific(CalcEffectiveAddress);
+
+		BeginState(MOVE_predec):
+			Prefetch();
+			next_operand_ = 1;
+			post_ea_state_ = StoreOperand;
+		MoveToStateSpecific(CalcEffectiveAddress);
+
+		BeginState(MOVE_complete):
+			SetDataAddress(effective_address_[1].l);
+
+			switch(instruction_.operand_size()) {
+				case InstructionSet::M68k::DataSize::LongWord:
+					SetupDataAccess(0, Microcycle::SelectWord);
+				MoveToStateSpecific(MOVE_complete_l);
+
+				case InstructionSet::M68k::DataSize::Word:
+					SetupDataAccess(0, Microcycle::SelectWord);
+				break;
+
+				case InstructionSet::M68k::DataSize::Byte:
+					SetupDataAccess(0, Microcycle::SelectByte);
+				break;
+			}
+
+			Access(operand_[1].low);
+			Prefetch();
 		MoveToStateSpecific(Decode);
 
-		BeginState(MOVEwAddressRegisterIndirectWithPostincrement):
-			// TODO: nw
-			assert(false);
-			Prefetch()		// np
+		BeginState(MOVE_complete_l):
+			Access(operand_[1].high);
+			effective_address_[1].l += 2;
+			Access(operand_[1].low);
+			Prefetch();
 		MoveToStateSpecific(Decode);
 
 		//
