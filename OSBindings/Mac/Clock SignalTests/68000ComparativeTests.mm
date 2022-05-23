@@ -156,7 +156,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
 //	_fileSet = [NSSet setWithArray:@[@"abcd_sbcd.json"]];
-//	_testSet = [NSSet setWithArray:@[@"UNLK 0007"]];
+//	_testSet = [NSSet setWithArray:@[@"LINK.w 0007"]];
 }
 
 - (void)testAll {

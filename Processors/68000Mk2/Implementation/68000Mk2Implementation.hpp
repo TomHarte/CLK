@@ -2120,8 +2120,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(LINK):
 			Prefetch();
-			Push(registers_[8 + instruction_.reg(0)]);
-			registers_[8 + instruction_.reg(0)].l = registers_[15].l + uint32_t(int16_t(prefetch_.high.w));
+
+			// Ensure that the stack pointer is [seemingly] captured after
+			// having been decremented by four, if it's what should be captured.
+			registers_[15].l -= 4;
+			temporary_address_ = registers_[8 + instruction_.reg(0)];
+			registers_[15].l += 4;
+
+			// Push will actually decrement the stack pointer.
+			Push(temporary_address_);
+
+			// Make the exchange.
+			registers_[8 + instruction_.reg(0)].l = registers_[15].l;
+			registers_[15].l += uint32_t(int16_t(prefetch_.high.w));
+
 			Prefetch();
 		MoveToStateSpecific(Decode);
 
