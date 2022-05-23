@@ -155,42 +155,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 #endif
 
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-	_fileSet = [NSSet setWithArray:@[
-		@"abcd_sbcd.json",
-		@"add_sub.json",
-		@"addi_subi_cmpi.json",
-		@"addq_subq.json",
-		@"addx_subx.json",
-		@"bcc.json",
-		@"btst_bchg_bclr_bset.json",
-		@"chk.json",
-		@"cmp.json",
-		@"dbcc_scc.json",
-		@"divu_divs.json",
-		@"eor_and_or.json",
-		@"eori_andi_ori.json",
-		@"exg.json",
-		@"ext.json",
-		@"jmp_jsr.json",
-		@"lea.json",
-//		@"link_unlk.json",
-		@"lslr_aslr_roxlr_rolr.json",
-		@"move_tofrom_srccr.json",
-		@"move.json",
-		@"movem.json",
-		@"movep.json",
-		@"moveq.json",
-		@"mulu_muls.json",
-		@"nbcd_pea.json",
-		@"neg_not.json",
-		@"negx_clr.json",
-		@"rtr.json",
-		@"rts.json",
-		@"swap.json",
-		@"tas.json",
-		@"tst.json",
-	]];
-//	_testSet = [NSSet setWithArray:@[@"ASL/R e0d0"]];
+//	_fileSet = [NSSet setWithArray:@[@"abcd_sbcd.json"]];
+//	_testSet = [NSSet setWithArray:@[@"UNLK 0007"]];
 }
 
 - (void)testAll {

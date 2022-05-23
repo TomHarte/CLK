@@ -169,6 +169,8 @@ enum ExecutionState: int {
 	RTR,
 	RTE,
 	RTS,
+	LINK,
+	UNLINK,
 };
 
 // MARK: - The state machine.
@@ -764,8 +766,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				ShiftGroup(b, Perform_idle_dyamic_Dn)
 				ShiftGroup(w, Perform_idle_dyamic_Dn)
 				ShiftGroup(l, Perform_idle_dyamic_Dn)
-
 #undef ShiftGroup
+
+				StdCASE(LINKw, MoveToStateSpecific(LINK));
+				StdCASE(UNLINK, MoveToStateSpecific(UNLINK));
 
 				default:
 					assert(false);
@@ -1592,6 +1596,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	Access(x.low);								\
 	registers_[15].l -= 2;
 
+#define Pop(x)													\
+	SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);	\
+	SetDataAddress(registers_[15].l);							\
+	Access(x.high);												\
+	registers_[15].l += 2;										\
+	Access(x.low);												\
+	registers_[15].l += 2;
+
 		//
 		// BSR
 		//
@@ -2104,6 +2116,23 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToStateSpecific(Decode);
 
 		//
+		// LINK and UNLINK
+		//
+		BeginState(LINK):
+			Prefetch();
+			Push(registers_[8 + instruction_.reg(0)]);
+			registers_[8 + instruction_.reg(0)].l = registers_[15].l + uint32_t(int16_t(prefetch_.high.w));
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
+		BeginState(UNLINK):
+			registers_[15] = registers_[8 + instruction_.reg(0)];
+			Pop(temporary_address_);
+			registers_[8 + instruction_.reg(0)] = temporary_address_;
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
+		//
 		// Various states TODO.
 		//
 #define TODOState(x)	\
@@ -2118,6 +2147,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			assert(false);
 	}}
 
+#undef Pop
 #undef Push
 #undef PerformDynamic
 #undef PerformSpecific
