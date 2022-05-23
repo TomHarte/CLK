@@ -1696,15 +1696,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			temporary_address_.l += 2;
 			Access(temporary_value_.low);	// nR
-			registers_[instruction_.reg(1)].w |= temporary_value_.b << 16;
+			registers_[instruction_.reg(1)].l |= temporary_value_.b << 16;
 
 			temporary_address_.l += 2;
 			Access(temporary_value_.low);	// nr
-			registers_[instruction_.reg(1)].w |= temporary_value_.b << 8;
+			registers_[instruction_.reg(1)].l |= temporary_value_.b << 8;
 
 			temporary_address_.l += 2;
 			Access(temporary_value_.low);	// nr
-			registers_[instruction_.reg(1)].w |= temporary_value_.b;
+			registers_[instruction_.reg(1)].l |= temporary_value_.b;
 
 			Prefetch();						// np
 		MoveToStateSpecific(Decode);

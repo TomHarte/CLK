@@ -190,7 +190,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"tas.json",
 		@"tst.json",
 	]];
-//	_testSet = [NSSet setWithArray:@[@"MOVE from SR 40eb"]];
+//	_testSet = [NSSet setWithArray:@[@"MOVE[A] 094d"]];
 }
 
 - (void)testAll {
