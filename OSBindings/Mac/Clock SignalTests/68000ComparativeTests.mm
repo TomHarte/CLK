@@ -183,7 +183,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		@"mulu_muls.json",
 		@"nbcd_pea.json",
 		@"neg_not.json",
-//		@"negx_clr.json",
+		@"negx_clr.json",
 //		@"rtr.json",
 //		@"rts.json",
 		@"swap.json",
