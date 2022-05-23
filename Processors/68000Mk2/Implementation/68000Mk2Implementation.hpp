@@ -20,7 +20,7 @@ namespace MC68000Mk2 {
 // TODO: VPA, BERR, interrupt inputs, etc.
 // Also, from Instruction.hpp:
 //
-//	NOP, MOVEAw, MOVEAl, MOVE[to/from]USP, STOP, RESET
+//	MOVEAw, MOVEAl, MOVE[to/from]USP, STOP
 //
 // Not provided by a 68000: Bccl, BSRl
 
@@ -134,11 +134,11 @@ enum ExecutionState: int {
 	DBcc_condition_true,
 	DBcc_counter_overflow,
 
-	Bcc_b,
-	Bcc_w,
+	Bccb,
+	Bccw,
 	Bcc_branch_taken,
-	Bcc_b_branch_not_taken,
-	Bcc_w_branch_not_taken,
+	Bccb_branch_not_taken,
+	Bccw_branch_not_taken,
 
 	BSR,
 
@@ -177,8 +177,10 @@ enum ExecutionState: int {
 	RTR,
 	RTE,
 	RTS,
-	LINK,
+	LINKw,
 	UNLINK,
+	RESET,
+	NOP,
 };
 
 // MARK: - The state machine.
@@ -461,6 +463,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		);																														\
 		[[fallthrough]];
 
+#define SpecialCASE(x)	case InstructionSet::M68k::Operation::x: MoveToStateSpecific(x)
+
 			switch(instruction_.operation) {
 				StdCASE(NBCD, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
@@ -612,10 +616,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 				});
 
-				StdCASE(DBcc,	MoveToStateSpecific(DBcc));
+				SpecialCASE(DBcc);
 
-				StdCASE(Bccb,	MoveToStateSpecific(Bcc_b));
-				StdCASE(Bccw,	MoveToStateSpecific(Bcc_w));
+				SpecialCASE(Bccb);
+				SpecialCASE(Bccw);
 
 				StdCASE(BSRb,	perform_state_ = BSR);
 				StdCASE(BSRw,	perform_state_ = BSR);
@@ -756,9 +760,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					MoveToStateSpecific(CalcEffectiveAddress);
 				});
 
-				StdCASE(RTR, MoveToStateSpecific(RTR));
-				StdCASE(RTE, MoveToStateSpecific(RTE));
-				StdCASE(RTS, MoveToStateSpecific(RTS));
+				SpecialCASE(RTR);
+				SpecialCASE(RTE);
+				SpecialCASE(RTS);
 
 #define ShiftGroup(suffix, state)								\
 				Duplicate(ASL##suffix, ASR##suffix);			\
@@ -776,8 +780,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				ShiftGroup(l, Perform_idle_dyamic_Dn)
 #undef ShiftGroup
 
-				StdCASE(LINKw, MoveToStateSpecific(LINK));
-				StdCASE(UNLINK, MoveToStateSpecific(UNLINK));
+				SpecialCASE(LINKw);
+				SpecialCASE(UNLINK);
+
+				SpecialCASE(RESET);
+				SpecialCASE(NOP);
 
 				default:
 					assert(false);
@@ -786,6 +793,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #undef Duplicate
 #undef StdCASE
 #undef CASE
+#undef SpecialCASE
 
 	// MARK: - Fetch, dispatch.
 
@@ -1563,14 +1571,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// Bcc [.b and .w]
 		//
-		BeginState(Bcc_b):
+		BeginState(Bccb):
 			operand_[0].b = uint8_t(opcode_);
 			PerformSpecific(Bccb);
 
 			// Next state was set by complete_bcc.
 		break;
 
-		BeginState(Bcc_w):
+		BeginState(Bccw):
 			operand_[0].w = prefetch_.w;
 			PerformSpecific(Bccw);
 
@@ -1583,12 +1591,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();		// np
 		MoveToStateSpecific(Decode);
 
-		BeginState(Bcc_b_branch_not_taken):
+		BeginState(Bccb_branch_not_taken):
 			IdleBus(2);		// nn
 			Prefetch();		// np
 		MoveToStateSpecific(Decode);
 
-		BeginState(Bcc_w_branch_not_taken):
+		BeginState(Bccw_branch_not_taken):
 			IdleBus(2);		// nn
 			Prefetch();		// np
 			Prefetch();		// np
@@ -2124,9 +2132,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToStateSpecific(Decode);
 
 		//
-		// LINK and UNLINK
+		// LINK[.w] and UNLINK
 		//
-		BeginState(LINK):
+		BeginState(LINKw):
 			Prefetch();
 
 			// Ensure that the stack pointer is [seemingly] captured after
@@ -2149,6 +2157,22 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			registers_[15] = registers_[8 + instruction_.reg(0)];
 			Pop(temporary_address_);
 			registers_[8 + instruction_.reg(0)] = temporary_address_;
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
+		//
+		// RESET
+		//
+		BeginState(RESET):
+			IdleBus(2);
+			PerformBusOperation(reset_cycle);
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
+		//
+		// NOP
+		//
+		BeginState(NOP):
 			Prefetch();
 		MoveToStateSpecific(Decode);
 
@@ -2232,7 +2256,7 @@ template <typename IntT> void ProcessorBase::complete_bcc(bool take_branch, IntT
 
 	state_ =
 		(instruction_.operation == InstructionSet::M68k::Operation::Bccb) ?
-			Bcc_b_branch_not_taken : Bcc_w_branch_not_taken;
+			Bccb_branch_not_taken : Bccw_branch_not_taken;
 }
 
 void ProcessorBase::bsr(uint32_t offset) {

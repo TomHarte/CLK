@@ -121,6 +121,7 @@ struct Microcycle {
 	SlicedInt16 *value = nullptr;
 
 	Microcycle(OperationT operation) : operation(operation) {}
+	Microcycle(OperationT operation, HalfCycles length) : operation(operation), length(length) {}
 	Microcycle() {}
 
 	/// @returns @c true if two Microcycles are equal; @c false otherwise.

@@ -141,7 +141,6 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	inline void complete_dbcc(bool, bool, int16_t);
 	inline void bsr(uint32_t);
 	inline void stop() {}							// TODO
-	inline void reset() {}							// TODO
 	inline void move_to_usp(uint32_t) {}			// TODO
 	inline void move_from_usp(uint32_t &) {}		// TODO
 	inline void tas(Preinstruction, uint32_t);
@@ -160,6 +159,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	inline void rtr() {}
 	inline void rte() {}
 	inline void rts() {}
+	inline void reset() {}
 
 	// Some microcycles that will be modified as required and used in the main loop;
 	// the semantics of a switch statement make in-place declarations awkward and
@@ -190,6 +190,9 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 		{ Microcycle::SameAddress | Microcycle::IsData },
 		{ Microcycle::SameAddress | Microcycle::IsData | Microcycle::SelectByte },
 	};
+
+	// Reset.
+	Microcycle reset_cycle { Microcycle::Reset, HalfCycles(248) };
 
 	// Holding spot when awaiting DTACK/etc.
 	Microcycle awaiting_dtack;
