@@ -167,6 +167,9 @@ enum ExecutionState: int {
 	PEA,
 	TAS,
 	MOVEtoCCRSR,
+	RTR,
+	RTE,
+	RTS,
 };
 
 // MARK: - The state machine.
@@ -741,6 +744,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					}
 					MoveToStateSpecific(CalcEffectiveAddress);
 				});
+
+				StdCASE(RTR, MoveToStateSpecific(RTR));
+				StdCASE(RTE, MoveToStateSpecific(RTE));
+				StdCASE(RTS, MoveToStateSpecific(RTS));
 
 				default:
 					assert(false);
@@ -1984,6 +1991,57 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Rewind the program counter and prefetch twice.
 			IdleBus(2);
 			program_counter_.l -= 2;
+			Prefetch();
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
+		//
+		// RTR, RTS, RTE
+		//
+		BeginState(RTS):
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetDataAddress(registers_[15].l);
+
+			Access(program_counter_.high);
+			registers_[15].l += 2;
+			Access(program_counter_.low);
+			registers_[15].l += 2;
+
+			Prefetch();
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
+		BeginState(RTE):
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetDataAddress(registers_[15].l);
+
+			Access(program_counter_.high);
+			registers_[15].l += 2;
+			Access(program_counter_.low);
+			registers_[15].l += 2;
+
+			Access(temporary_value_.low);
+			registers_[15].l += 2;
+			status_.set_status(temporary_value_.w);
+
+			Prefetch();
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
+		BeginState(RTR):
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetDataAddress(registers_[15].l);
+
+			registers_[15].l += 2;
+			Access(program_counter_.high);
+			registers_[15].l += 2;
+			Access(program_counter_.low);
+
+			registers_[15].l -= 4;
+			Access(temporary_value_.low);
+			registers_[15].l += 6;
+			status_.set_ccr(temporary_value_.w);
+
 			Prefetch();
 			Prefetch();
 		MoveToStateSpecific(Decode);
