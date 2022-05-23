@@ -2015,13 +2015,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
 			SetDataAddress(registers_[15].l);
 
+			registers_[15].l += 2;
 			Access(program_counter_.high);
 			registers_[15].l += 2;
 			Access(program_counter_.low);
-			registers_[15].l += 2;
 
+			registers_[15].l -= 4;
 			Access(temporary_value_.low);
-			registers_[15].l += 2;
+			registers_[15].l += 6;
 			status_.set_status(temporary_value_.w);
 
 			Prefetch();
