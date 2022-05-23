@@ -17,6 +17,14 @@
 namespace CPU {
 namespace MC68000Mk2 {
 
+// TODO: VPA, BERR, interrupt inputs, etc.
+// Also, from Instruction.hpp:
+//
+//	NOP, MOVEAw, MOVEAl, MOVE[to/from]USP, STOP, RESET
+//
+// Not provided by a 68000: Bccl, BSRl
+
+
 /// States for the state machine which are named by
 /// me for their purpose rather than automatically by file position.
 /// These are negative to avoid ambiguity with the other group.

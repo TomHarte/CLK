@@ -399,6 +399,9 @@ class Processor: private ProcessorBase {
 		CPU::MC68000Mk2::State get_state();
 		void set_state(const CPU::MC68000Mk2::State &);
 
+		// TODO: DTACK, VPA, BERR, interrupt input, bus ack/grant, halt,
+		// get E clock phase (and the E clock in general).
+
 	private:
 		BusHandler &bus_handler_;
 };
