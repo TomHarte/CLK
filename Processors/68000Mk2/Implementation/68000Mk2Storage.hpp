@@ -132,7 +132,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	template <typename IntT> void did_muls(IntT);
 	inline void did_chk(bool, bool);
 	inline void did_scc(bool);
-	inline void did_shift(int) {}						//
+	inline void did_shift(int);
 	template <bool did_overflow> void did_divu(uint32_t, uint32_t);
 	template <bool did_overflow> void did_divs(int32_t, int32_t);
 	inline void did_bit_op(int);
