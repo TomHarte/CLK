@@ -126,7 +126,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// determine the size of the bus operation.
 	Microcycle::OperationT select_flag_ = 0;
 
-	// Flow controller... many TODO.
+	// Flow controller methods implemented.
 	using Preinstruction = InstructionSet::M68k::Preinstruction;
 	template <typename IntT> void did_mulu(IntT);
 	template <typename IntT> void did_muls(IntT);
@@ -140,15 +140,10 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	template <typename IntT> void complete_bcc(bool, IntT);
 	inline void complete_dbcc(bool, bool, int16_t);
 	inline void bsr(uint32_t);
-	inline void rtr() {}			//
-	inline void rte() {}			//
-	inline void rts() {}			//
-	inline void stop() {}			//
-	inline void reset() {}			//
-	inline void link(Preinstruction, uint32_t) {}	//
-	inline void unlink(uint32_t &) {}				//
-	inline void move_to_usp(uint32_t) {}			//
-	inline void move_from_usp(uint32_t &) {}		//
+	inline void stop() {}							// TODO
+	inline void reset() {}							// TODO
+	inline void move_to_usp(uint32_t) {}			// TODO
+	inline void move_from_usp(uint32_t &) {}		// TODO
 	inline void tas(Preinstruction, uint32_t);
 	template <bool use_current_instruction_pc = true> void raise_exception(int);
 
@@ -160,6 +155,11 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	void jsr(uint32_t) {}
 	void jmp(uint32_t) {}
 	inline void pea(uint32_t) {}
+	inline void link(Preinstruction, uint32_t) {}
+	inline void unlink(uint32_t &) {}
+	inline void rtr() {}
+	inline void rte() {}
+	inline void rts() {}
 
 	// Some microcycles that will be modified as required and used in the main loop;
 	// the semantics of a switch statement make in-place declarations awkward and
