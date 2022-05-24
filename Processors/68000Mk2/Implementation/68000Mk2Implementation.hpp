@@ -404,7 +404,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
 			SetDataAddress(temporary_address_.l);
 
-			temporary_address_.l = exception_vector_ << 2;
+			temporary_address_.l = uint32_t(exception_vector_ << 2);
 			Access(program_counter_.high);	// nV
 
 			temporary_address_.l += 2;
@@ -436,14 +436,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(captured_status_);			// ns
 
 			// Do the interrupt cycle, to obtain a vector.
-			temporary_address_.l = captured_interrupt_level_;
+			temporary_address_.l = uint32_t(captured_interrupt_level_);
 			SetupDataAccess(0, Microcycle::InterruptAcknowledge);
 			SetDataAddress(temporary_address_.l);
 			Access(temporary_value_.low);		// ni
 
 			// If VPA is set, autovector.
 			if(vpa_) {
-				temporary_value_.w = InstructionSet::M68k::Exception::InterruptAutovectorBase - 1 + captured_interrupt_level_;
+				temporary_value_.w = uint16_t(InstructionSet::M68k::Exception::InterruptAutovectorBase - 1 + captured_interrupt_level_);
 			}
 
 			IdleBus(3);			// n- n
@@ -1111,7 +1111,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(FetchAddressRegisterIndirectWithDisplacement_bw):
 			effective_address_[next_operand_].l =
 				registers_[8 + instruction_.reg(next_operand_)].l +
-				int16_t(prefetch_.w);
+				uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(effective_address_[next_operand_].l);
 
 			Prefetch();								// np
@@ -1121,7 +1121,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(FetchAddressRegisterIndirectWithDisplacement_l):
 			effective_address_[next_operand_].l =
 				registers_[8 + instruction_.reg(next_operand_)].l +
-				int16_t(prefetch_.w);
+				uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(effective_address_[next_operand_].l);
 
 			Prefetch();								// np
@@ -1133,14 +1133,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(CalcAddressRegisterIndirectWithDisplacement):
 			effective_address_[next_operand_].l =
 				registers_[8 + instruction_.reg(next_operand_)].l +
-				int16_t(prefetch_.w);
+				uint32_t(int16_t(prefetch_.w));
 			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
 
 		BeginState(JSRJMPAddressRegisterIndirectWithDisplacement):
 			effective_address_[0].l =
 				registers_[8 + instruction_.reg(next_operand_)].l +
-				int16_t(prefetch_.w);
+				uint32_t(int16_t(prefetch_.w));
 			IdleBus(1);								// n
 			temporary_address_.l = instruction_address_.l + 4;
 		MoveToStateDynamic(post_ea_state_);
@@ -1151,7 +1151,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(FetchProgramCounterIndirectWithDisplacement_bw):
 			effective_address_[next_operand_].l =
 				program_counter_.l - 2 +
-				int16_t(prefetch_.w);
+				uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(effective_address_[next_operand_].l);
 
 			Prefetch();								// np
@@ -1161,7 +1161,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(FetchProgramCounterIndirectWithDisplacement_l):
 			effective_address_[next_operand_].l =
 				program_counter_.l - 2 +
-				int16_t(prefetch_.w);
+				uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(effective_address_[next_operand_].l);
 
 			Prefetch();								// np
@@ -1173,14 +1173,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(CalcProgramCounterIndirectWithDisplacement):
 			effective_address_[next_operand_].l =
 				program_counter_.l - 2 +
-				int16_t(prefetch_.w);
+				uint32_t(int16_t(prefetch_.w));
 			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
 
 		BeginState(JSRJMPProgramCounterIndirectWithDisplacement):
 			effective_address_[0].l =
 				program_counter_.l - 2 +
-				int16_t(prefetch_.w);
+				uint32_t(int16_t(prefetch_.w));
 			IdleBus(1);								// n
 			temporary_address_.l = instruction_address_.l + 4;
 		MoveToStateDynamic(post_ea_state_);
@@ -1188,12 +1188,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// AddressRegisterIndirectWithIndex8bitDisplacement
 		//
-#define d8Xn(base)										\
-	base +												\
-	((prefetch_.w & 0x800) ?							\
-		registers_[prefetch_.w >> 12].l :				\
-		int16_t(registers_[prefetch_.w >> 12].w)) +		\
-	int8_t(prefetch_.b);
+#define d8Xn(base)												\
+	base +														\
+	((prefetch_.w & 0x800) ?									\
+		registers_[prefetch_.w >> 12].l :						\
+		uint32_t(int16_t(registers_[prefetch_.w >> 12].w))) +	\
+	uint32_t(int8_t(prefetch_.b));
 
 		BeginState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_bw):
 			effective_address_[next_operand_].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
@@ -1268,7 +1268,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// AbsoluteShort
 		//
 		BeginState(FetchAbsoluteShort_bw):
-			effective_address_[next_operand_].l = int16_t(prefetch_.w);
+			effective_address_[next_operand_].l = uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(effective_address_[next_operand_].l);
 
 			Prefetch();								// np
@@ -1276,7 +1276,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToNextOperand(FetchOperand_bw);
 
 		BeginState(FetchAbsoluteShort_l):
-			effective_address_[next_operand_].l = int16_t(prefetch_.w);
+			effective_address_[next_operand_].l = uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(effective_address_[next_operand_].l);
 
 			Prefetch();								// np
@@ -1286,12 +1286,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToNextOperand(FetchOperand_l);
 
 		BeginState(CalcAbsoluteShort):
-			effective_address_[next_operand_].l = int16_t(prefetch_.w);
+			effective_address_[next_operand_].l = uint32_t(int16_t(prefetch_.w));
 			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
 
 		BeginState(JSRJMPAbsoluteShort):
-			effective_address_[0].l = int16_t(prefetch_.w);
+			effective_address_[0].l = uint32_t(int16_t(prefetch_.w));
 			IdleBus(1);								// n
 			temporary_address_.l = instruction_address_.l + 4;
 		MoveToStateDynamic(post_ea_state_);
@@ -1630,7 +1630,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(DBcc):
 			operand_[0] = registers_[instruction_.reg(0)];
-			operand_[1].w = uint32_t(int16_t(prefetch_.w));
+			operand_[1].w = uint16_t(int16_t(prefetch_.w));
 			PerformSpecific(DBcc);
 			registers_[instruction_.reg(0)].w = operand_[0].w;
 
@@ -1831,19 +1831,19 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();						// np
 
 			Access(temporary_value_.low);	// nR
-			registers_[instruction_.reg(1)].l = temporary_value_.b << 24;
+			registers_[instruction_.reg(1)].l = uint32_t(temporary_value_.b << 24);
 
 			temporary_address_.l += 2;
 			Access(temporary_value_.low);	// nR
-			registers_[instruction_.reg(1)].l |= temporary_value_.b << 16;
+			registers_[instruction_.reg(1)].l |= uint32_t(temporary_value_.b << 16);
 
 			temporary_address_.l += 2;
 			Access(temporary_value_.low);	// nr
-			registers_[instruction_.reg(1)].l |= temporary_value_.b << 8;
+			registers_[instruction_.reg(1)].l |= uint32_t(temporary_value_.b << 8);
 
 			temporary_address_.l += 2;
 			Access(temporary_value_.low);	// nr
-			registers_[instruction_.reg(1)].l |= temporary_value_.b;
+			registers_[instruction_.reg(1)].l |= uint32_t(temporary_value_.b);
 
 			Prefetch();						// np
 		MoveToStateSpecific(Decode);
@@ -1856,11 +1856,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();						// np
 
 			Access(temporary_value_.low);	// nR
-			registers_[instruction_.reg(1)].w = temporary_value_.b << 8;
+			registers_[instruction_.reg(1)].w = uint16_t(temporary_value_.b << 8);
 
 			temporary_address_.l += 2;
 			Access(temporary_value_.low);	// nr
-			registers_[instruction_.reg(1)].w |= temporary_value_.b;
+			registers_[instruction_.reg(1)].w |= uint16_t(temporary_value_.b);
 
 			Prefetch();						// np
 		MoveToStateSpecific(Decode);

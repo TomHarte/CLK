@@ -228,7 +228,7 @@ template <
 
 			status.zero_result = dest.l & bit_mask;
 			dest.l &= ~bit_mask;
-			flow_controller.did_bit_op(bit_position);
+			flow_controller.did_bit_op(int(bit_position));
 		} break;
 
 		case Operation::BCHG: {
@@ -236,7 +236,7 @@ template <
 
 			status.zero_result = dest.l & bit_mask;
 			dest.l ^= bit_mask;
-			flow_controller.did_bit_op(bit_position);
+			flow_controller.did_bit_op(int(bit_position));
 		} break;
 
 		case Operation::BSET: {
@@ -244,7 +244,7 @@ template <
 
 			status.zero_result = dest.l & bit_mask;
 			dest.l |= bit_mask;
-			flow_controller.did_bit_op(bit_position);
+			flow_controller.did_bit_op(int(bit_position));
 		} break;
 
 #undef get_mask
@@ -252,26 +252,26 @@ template <
 		case Operation::Bccb:
 			flow_controller.template complete_bcc<int8_t>(
 				status.evaluate_condition(instruction.condition()),
-				src.b);
+				int8_t(src.b));
 		break;
 
 		case Operation::Bccw:
 			flow_controller.template complete_bcc<int16_t>(
 				status.evaluate_condition(instruction.condition()),
-				src.w);
+				int16_t(src.w));
 		break;
 
 		case Operation::Bccl:
 			flow_controller.template complete_bcc<int32_t>(
 				status.evaluate_condition(instruction.condition()),
-				src.l);
+				int32_t(src.l));
 		break;
 
 		case Operation::BSRb:
-			flow_controller.bsr(int8_t(src.b));
+			flow_controller.bsr(uint32_t(int8_t(src.b)));
 		break;
 		case Operation::BSRw:
-			flow_controller.bsr(int16_t(src.w));
+			flow_controller.bsr(uint32_t(int16_t(src.w)));
 		break;
 		case Operation::BSRl:
 			flow_controller.bsr(src.l);
@@ -555,7 +555,7 @@ template <
 
 		// TRAP, which is a nicer form of ILLEGAL.
 		case Operation::TRAP:
-			flow_controller.template raise_exception<false>(src.l + Exception::TrapBase);
+			flow_controller.template raise_exception<false>(int(src.l + Exception::TrapBase));
 		break;
 
 		case Operation::TRAPV: {
@@ -680,7 +680,7 @@ template <
 		*/
 
 		case Operation::LINKw:
-			flow_controller.link(instruction, int16_t(dest.w));
+			flow_controller.link(instruction, uint32_t(int16_t(dest.w)));
 		break;
 
 		case Operation::UNLINK:
