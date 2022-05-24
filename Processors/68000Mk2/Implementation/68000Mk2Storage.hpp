@@ -58,6 +58,11 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// Current input interrupt level.
 	int bus_interrupt_level_ = 0;
 
+	// I don't have great information on the 68000 interrupt latency; as a first
+	// guess, capture the bus interrupt level upon every prefetch, and use that for
+	// the inner-loop decision.
+	int captured_interrupt_level_ = 0;
+
 	/// Contains the prefetch queue; the most-recently fetched thing is the
 	/// low portion of this word, and the thing fetched before that has
 	/// proceeded to the high portion.

@@ -29,7 +29,7 @@ enum Exception {
 	FormatError							= 14,
 	UninitialisedInterrupt				= 15,
 	SpuriousInterrupt					= 24,
-	InterruptAutovectorBase				= 25,
+	InterruptAutovectorBase				= 25,	// This is the vector for interrupt level _1_.
 	TrapBase							= 32,
 	FPBranchOrSetOnUnorderedCondition	= 48,
 	FPInexactResult						= 49,

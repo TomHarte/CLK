@@ -44,6 +44,7 @@ enum ExecutionState: int {
 
 	StandardException,
 	BusOrAddressErrorException,
+	DoInterrupt,
 
 	// Specific addressing mode fetches.
 	//
@@ -313,8 +314,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Reads one futher word from the program counter and inserts it into
 	// the prefetch queue.
-#define Prefetch()					\
-	prefetch_.high = prefetch_.low;	\
+#define Prefetch()										\
+	captured_interrupt_level_ = bus_interrupt_level_;	\
+	prefetch_.high = prefetch_.low;						\
 	ReadProgramWord(prefetch_.low)
 
 	using Mode = InstructionSet::M68k::AddressingMode;
@@ -335,7 +337,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		// Spin in place until an interrupt arrives.
 		BeginState(STOP):
-			assert(false);	// TODO
+			IdleBus(1);
+			captured_interrupt_level_ = bus_interrupt_level_;
+			if(captured_interrupt_level_ > status_.interrupt_level) {
+				MoveToStateSpecific(DoInterrupt);
+			}
 		MoveToStateSpecific(STOP);
 
 		// Perform the RESET exception, which seeds the stack pointer and program
@@ -410,14 +416,80 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();			// np
 		MoveToStateSpecific(Decode);
 
+		// Acknowledge an interrupt, thereby obtaining an exception vector,
+		// and do the exception.
+		BeginState(DoInterrupt):
+			IdleBus(3);			// n nn
+
+			// Capture status and switch to supervisor mode.
+			captured_status_.w = status_.status();
+			status_.is_supervisor = true;
+			status_.trace_flag = 0;
+			did_update_status();
+
+			// Prepare for stack activity.
+			SetupDataAccess(0, Microcycle::SelectWord);
+			SetDataAddress(registers_[15].l);
+
+			// Push status.
+			registers_[15].l -= 2;
+			Access(captured_status_);			// ns
+
+			// Do the interrupt cycle, to obtain a vector.
+			temporary_address_.l = captured_interrupt_level_;
+			SetupDataAccess(0, Microcycle::InterruptAcknowledge);
+			SetDataAddress(temporary_address_.l);
+			Access(temporary_value_.low);		// ni
+
+			// If VPA is set, autovector.
+			if(vpa_) {
+				temporary_value_.w = InstructionSet::M68k::Exception::InterruptAutovectorBase - 1 + captured_interrupt_level_;
+			}
+
+			IdleBus(3);			// n- n
+
+			// Do the rest of the stack work.
+			SetupDataAccess(0, Microcycle::SelectWord);
+			SetDataAddress(registers_[15].l);
+
+			registers_[15].l -= 2;
+			Access(instruction_address_.high);	// ns
+
+			registers_[15].l -= 2;
+			Access(instruction_address_.low);	// nS
+
+			// Grab new program counter.
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetDataAddress(temporary_address_.l);
+
+			temporary_address_.l <<= 2;
+			Access(program_counter_.high);	// nV
+
+			temporary_address_.l += 2;
+			Access(program_counter_.low);	// nv
+
+			// Populate the prefetch queue.
+			Prefetch();			// np
+			IdleBus(1);			// n
+			Prefetch();			// np
+		MoveToStateSpecific(Decode);
+
 		// Inspect the prefetch queue in order to decode the next instruction,
 		// and segue into the fetching of operands.
 		BeginState(Decode):
 			CheckOverrun();
 
+			// Capture the address of the next instruction.
+			instruction_address_.l = program_counter_.l - 4;
+
+			// Head off into an interrupt if one is found.
+			if(captured_interrupt_level_ > status_.interrupt_level) {
+				MoveToStateSpecific(DoInterrupt);
+			}
+
+			// Read and decode an opcode.
 			opcode_ = prefetch_.high.w;
 			instruction_ = decoder_.decode(opcode_);
-			instruction_address_.l = program_counter_.l - 4;
 
 			// Signal the bus handler if requested.
 			if constexpr (signal_will_perform) {
