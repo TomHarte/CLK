@@ -17,10 +17,10 @@
 namespace CPU {
 namespace MC68000Mk2 {
 
-// TODO: BERR, interrupt inputs, etc.
+// TODO: BERR, interrupt inputs, etc; and obeying the trace flag.
 // Also, from Instruction.hpp:
 //
-//	MOVEAw, MOVEAl, STOP
+//	MOVEAw, MOVEAl
 //
 // Not provided by a 68000: Bccl, BSRl
 
