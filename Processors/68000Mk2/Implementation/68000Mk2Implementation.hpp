@@ -2062,7 +2062,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// First two parts: the read.
 			PerformBusOperation(tas_cycles[0]);
-			PerformBusOperation(tas_cycles[1]);
+			CompleteAccess(tas_cycles[1]);
 
 			// Third part: processing time.
 			PerformBusOperation(tas_cycles[2]);
@@ -2075,7 +2075,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Final parts: write back.
 			operand_[0].b |= 0x80;
 			PerformBusOperation(tas_cycles[3]);
-			PerformBusOperation(tas_cycles[4]);
+			CompleteAccess(tas_cycles[4]);
 
 			Prefetch();
 		MoveToStateSpecific(Decode);
