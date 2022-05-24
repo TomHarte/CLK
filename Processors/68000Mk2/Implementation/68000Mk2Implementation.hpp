@@ -503,22 +503,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToStateSpecific(StandardException);
 			}
 
-			// Check for an unrecognised opcode.
-			if(instruction_.operation == InstructionSet::M68k::Operation::Undefined) {
-				switch(opcode_ & 0xf000) {
-					default:
-						exception_vector_ = InstructionSet::M68k::Exception::IllegalInstruction;
-					break;
-					case 0xa000:
-						exception_vector_ = InstructionSet::M68k::Exception::Line1010;
-					break;
-					case 0xf000:
-						exception_vector_ = InstructionSet::M68k::Exception::Line1111;
-					break;
-				}
-				MoveToStateSpecific(StandardException);
-			}
-
 			// Ensure the first parameter is next fetched.
 			next_operand_ = 0;
 
@@ -556,6 +540,22 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define SpecialCASE(x)	case InstructionSet::M68k::Operation::x: MoveToStateSpecific(x)
 
 			switch(instruction_.operation) {
+				CASE(Undefined)
+					if(instruction_.operation == InstructionSet::M68k::Operation::Undefined) {
+						switch(opcode_ & 0xf000) {
+							default:
+								exception_vector_ = InstructionSet::M68k::Exception::IllegalInstruction;
+							break;
+							case 0xa000:
+								exception_vector_ = InstructionSet::M68k::Exception::Line1010;
+							break;
+							case 0xf000:
+								exception_vector_ = InstructionSet::M68k::Exception::Line1111;
+							break;
+						}
+						MoveToStateSpecific(StandardException);
+					}
+
 				StdCASE(NBCD, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
 						perform_state_ = Perform_np_n;
