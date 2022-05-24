@@ -73,7 +73,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public MachineTypes::MediaTarget,
 	public MachineTypes::MouseMachine,
 	public MachineTypes::MappedKeyboardMachine,
-	public CPU::MC68000::BusHandler,
+	public CPU::MC68000Mk2::BusHandler,
 	public Zilog::SCC::z8530::Delegate,
 	public Activity::Source,
 	public Configurable::Device,
@@ -191,9 +191,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			mc68000_.run_for(cycles);
 		}
 
-		using Microcycle = CPU::MC68000::Microcycle;
+		using Microcycle = CPU::MC68000Mk2::Microcycle;
 
-		forceinline HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
+		HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			// Advance time.
 			advance_time(cycle.length);
 
@@ -235,21 +235,21 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						// VIA accesses are via address 0xefe1fe + register*512,
 						// which at word precision is 0x77f0ff + register*256.
 						if(cycle.operation & Microcycle::Read) {
-							cycle.value->halves.low = via_.read(register_address);
+							cycle.value->b = via_.read(register_address);
 						} else {
-							via_.write(register_address, cycle.value->halves.low);
+							via_.write(register_address, cycle.value->b);
 						}
 
-						if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+						if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
 					}
 				} return delay;
 
 				case BusDevice::PhaseRead: {
 					if(cycle.operation & Microcycle::Read) {
-						cycle.value->halves.low = phase_ & 7;
+						cycle.value->b = phase_ & 7;
 					}
 
-					if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+					if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
 				} return delay;
 
 				case BusDevice::IWM: {
@@ -258,12 +258,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 						// The IWM; this is a purely polled device, so can be run on demand.
 						if(cycle.operation & Microcycle::Read) {
-							cycle.value->halves.low = iwm_->read(register_address);
+							cycle.value->b = iwm_->read(register_address);
 						} else {
-							iwm_->write(register_address, cycle.value->halves.low);
+							iwm_->write(register_address, cycle.value->b);
 						}
 
-						if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+						if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
 					} else {
 						fill_unmapped(cycle);
 					}
@@ -280,9 +280,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							scsi_.write(register_address, 0xff, dma_acknowledge);
 						} else {
 							if(cycle.operation & Microcycle::SelectWord) {
-								scsi_.write(register_address, cycle.value->halves.high, dma_acknowledge);
+								scsi_.write(register_address, cycle.value->w >> 8, dma_acknowledge);
 							} else {
-								scsi_.write(register_address, cycle.value->halves.low, dma_acknowledge);
+								scsi_.write(register_address, cycle.value->b, dma_acknowledge);
 							}
 						}
 					} else {
@@ -291,9 +291,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							const auto result = scsi_.read(register_address, dma_acknowledge);
 							if(cycle.operation & Microcycle::SelectWord) {
 								// Data is loaded on the top part of the bus only.
-								cycle.value->full = uint16_t((result << 8) | 0xff);
+								cycle.value->w = uint16_t((result << 8) | 0xff);
 							} else {
-								cycle.value->halves.low = result;
+								cycle.value->b = result;
 							}
 						}
 					}
@@ -309,12 +309,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							scc_.reset();
 
 							if(cycle.operation & Microcycle::Read) {
-								cycle.value->halves.low = 0xff;
+								cycle.value->b = 0xff;
 							}
 						} else {
 							const auto read = scc_.read(int(address >> 1));
 							if(cycle.operation & Microcycle::Read) {
-								cycle.value->halves.low = read;
+								cycle.value->b = read;
 							}
 						}
 					}
@@ -328,9 +328,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						if(*cycle.address & 1) {
 							if(cycle.operation & Microcycle::Read) {
 								scc_.write(int(address >> 1), 0xff);
-								cycle.value->halves.low = 0xff;
+								cycle.value->b = 0xff;
 							} else {
-								scc_.write(int(address >> 1), cycle.value->halves.low);
+								scc_.write(int(address >> 1), cycle.value->b);
 							}
 						} else {
 							fill_unmapped(cycle);
@@ -373,16 +373,16 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				break;
 
 				case Microcycle::SelectWord | Microcycle::Read:
-					cycle.value->full = *reinterpret_cast<uint16_t *>(&memory_base[address]);
+					cycle.value->w = *reinterpret_cast<uint16_t *>(&memory_base[address]);
 				break;
 				case Microcycle::SelectByte | Microcycle::Read:
-					cycle.value->halves.low = memory_base[address];
+					cycle.value->b = memory_base[address];
 				break;
 				case Microcycle::SelectWord:
-					*reinterpret_cast<uint16_t *>(&memory_base[address]) = cycle.value->full;
+					*reinterpret_cast<uint16_t *>(&memory_base[address]) = cycle.value->w;
 				break;
 				case Microcycle::SelectByte:
-					memory_base[address] = cycle.value->halves.low;
+					memory_base[address] = cycle.value->b;
 				break;
 			}
 
@@ -771,7 +771,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				Inputs::QuadratureMouse &mouse_;
 		};
 
-		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
+		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
 
 		DriveSpeedAccumulator drive_speed_accumulator_;
 		IWMActor iwm_;
