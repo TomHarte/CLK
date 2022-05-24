@@ -635,7 +635,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define SpecialCASE(x)	case InstructionSet::M68k::Operation::x: MoveToStateSpecific(x)
 
 			switch(instruction_.operation) {
-				CASE(Undefined)
+				case InstructionSet::M68k::Operation::Undefined:
 					if(instruction_.operation == InstructionSet::M68k::Operation::Undefined) {
 						switch(opcode_ & 0xf000) {
 							default:
