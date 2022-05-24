@@ -507,13 +507,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				switch(opcode_ & 0xf000) {
 					default:
 						exception_vector_ = InstructionSet::M68k::Exception::IllegalInstruction;
-					continue;
+					break;
 					case 0xa000:
 						exception_vector_ = InstructionSet::M68k::Exception::Line1010;
-					continue;
+					break;
 					case 0xf000:
 						exception_vector_ = InstructionSet::M68k::Exception::Line1111;
-					continue;
+					break;
 				}
 				MoveToStateSpecific(StandardException);
 			}
