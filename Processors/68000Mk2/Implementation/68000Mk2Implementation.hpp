@@ -425,6 +425,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			captured_status_.w = status_.status();
 			status_.is_supervisor = true;
 			status_.trace_flag = 0;
+			status_.interrupt_level = captured_interrupt_level_;
 			did_update_status();
 
 			// Prepare for stack activity.
@@ -436,7 +437,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(captured_status_);			// ns
 
 			// Do the interrupt cycle, to obtain a vector.
-			temporary_address_.l = uint32_t(captured_interrupt_level_);
+			temporary_address_.l = 0xffff'fff8 | uint32_t(captured_interrupt_level_);
 			SetupDataAccess(0, Microcycle::InterruptAcknowledge);
 			SetDataAddress(temporary_address_.l);
 			Access(temporary_value_.low);		// ni
@@ -462,7 +463,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
 			SetDataAddress(temporary_address_.l);
 
-			temporary_address_.l <<= 2;
+			temporary_address_.l = uint32_t(temporary_value_.w << 2);
 			Access(program_counter_.high);	// nV
 
 			temporary_address_.l += 2;
@@ -2279,7 +2280,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define TODOState(x)	\
 		BeginState(x): [[fallthrough]];
 
-		TODOState(BusOrAddressErrorException);
+		BeginState(BusOrAddressErrorException):
+			assert(false);
+		MoveToStateSpecific(Decode);
 
 #undef TODOState
 
