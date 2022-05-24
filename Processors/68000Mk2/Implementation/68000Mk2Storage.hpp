@@ -29,6 +29,9 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// is complete; may be less than zero.
 	HalfCycles time_remaining_;
 
+	/// E clock phase.
+	HalfCycles e_clock_phase_;
+
 	/// Current supervisor state, for direct provision to the bus handler.
 	int is_supervisor_ = 1;
 
@@ -52,6 +55,8 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	bool vpa_ = false;
 	/// Current state of the BERR input.
 	bool berr_ = false;
+	/// Current input interrupt level.
+	int bus_interrupt_level_ = 0;
 
 	/// Contains the prefetch queue; the most-recently fetched thing is the
 	/// low portion of this word, and the thing fetched before that has
