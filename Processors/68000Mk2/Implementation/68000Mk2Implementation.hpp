@@ -17,7 +17,7 @@
 namespace CPU {
 namespace MC68000Mk2 {
 
-// TODO: VPA, BERR, interrupt inputs, etc.
+// TODO: BERR, interrupt inputs, etc.
 // Also, from Instruction.hpp:
 //
 //	MOVEAw, MOVEAl, STOP
@@ -181,6 +181,7 @@ enum ExecutionState: int {
 	UNLINK,
 	RESET,
 	NOP,
+	STOP,
 };
 
 // MARK: - The state machine.
@@ -331,6 +332,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToStateDynamic(post_dtack_state_);
 			}
 		MoveToStateSpecific(WaitForDTACK);
+
+		// Spin in place until an interrupt arrives.
+		BeginState(STOP):
+			assert(false);	// TODO
+		MoveToStateSpecific(STOP);
 
 		// Perform the RESET exception, which seeds the stack pointer and program
 		// counter, populates the prefetch queue, and then moves to instruction dispatch.
@@ -799,6 +805,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(MOVEtoUSP, perform_state_ = Perform_np);
 				StdCASE(MOVEfromUSP, perform_state_ = Perform_np);
+
+				SpecialCASE(STOP);
 
 				default:
 					assert(false);
