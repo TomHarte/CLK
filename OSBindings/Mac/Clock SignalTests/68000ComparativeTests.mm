@@ -130,7 +130,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> _decoder;
 
-	std::array<uint8_t, 16*1024*1024> _ram;
+	std::array<uint16_t, 8*1024*1024> _ram;
 	std::unique_ptr<TestExecutor> _testExecutor;
 }
 
@@ -138,12 +138,12 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	// Definitively erase any prior memory contents;
 	// 0xce is arbitrary but hopefully easier to spot
 	// in potential errors than e.g. 0x00 or 0xff.
-	_ram.fill(0xce);
+	_ram.fill(0xcece);
 
 	// TODO: possibly, worry about resetting RAM to 0xce after tests have completed.
 
 #ifdef USE_EXECUTOR
-	_testExecutor = std::make_unique<TestExecutor>(_ram.data());
+	_testExecutor = std::make_unique<TestExecutor>(reinterpret_cast<uint8_t *>(_ram.data()));
 #endif
 
 	// These will accumulate a list of failing tests and associated opcodes.
@@ -224,7 +224,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 - (void)testOperationClassic:(NSDictionary *)test name:(NSString *)name  {
 	struct TerminateMarker {};
 
-	auto uniqueTest68000 = std::make_unique<TestProcessor>(_ram.data());
+	auto uniqueTest68000 = std::make_unique<TestProcessor>(reinterpret_cast<uint8_t *>(_ram.data()));
 	auto test68000 = uniqueTest68000.get();
 
 	{
