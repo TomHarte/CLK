@@ -17,7 +17,7 @@
 namespace CPU {
 namespace MC68000Mk2 {
 
-// TODO: obeyance of the trace flag, the address/bus error exception.
+// TODO: obeyance of the trace flag.
 
 /// States for the state machine which are named by
 /// me for their purpose rather than automatically by file position.
@@ -270,6 +270,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	//	(2) run for the next 10-cycle window.
 #define CompleteAccess(x)												\
 	if(berr_ || (*x.address & (x.operation >> 1) & 1)) {				\
+		bus_error_ = x;													\
+		exception_vector_ = berr_ ? InstructionSet::M68k::AccessFault : InstructionSet::M68k::AddressError;	\
 		MoveToStateSpecific(BusOrAddressErrorException);				\
 	}																	\
 	if(vpa_) {															\
@@ -375,9 +377,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(StandardException):
 			captured_status_.w = status_.status();
 
-			// Switch to supervisor mode.
+			// Switch to supervisor mode, disable interrupts.
 			status_.is_supervisor = true;
 			status_.trace_flag = 0;
+			status_.interrupt_level = 7;
 			did_update_status();
 
 			SetupDataAccess(0, Microcycle::SelectWord);
@@ -410,6 +413,91 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();			// np
 			IdleBus(1);			// n
 			Prefetch();			// np
+		MoveToStateSpecific(Decode);
+
+		BeginState(BusOrAddressErrorException):
+			// "The microcode pushes the stack frame in a non consecutive order"
+			// per Ijor's document, but little further information is given.
+			//
+			// So the below is a cross-your-fingers guess based on the constraints
+			// that the information writen, from lowest address to highest is:
+			//
+			// 	R/W, I/N, function code word;		[at -2]
+			//	access address;						[-6]
+			//	instruction register;				[-8]
+			//	status register;					[-10]
+			//	program counter.					[-14]
+			//
+			// With the instruction register definitely being written before the
+			// function code word.
+			//
+			// And the documented bus pattern is:
+			//
+			// nn ns ns nS ns ns ns nS nV nv np  n np
+			//
+			// So, based on the hoopy ordering of a standard exception, maybe:
+			//
+			//	1) status register;
+			//	2) program counter;
+			//	3) instruction register;
+			//	4) function code;
+			//	5) access address?
+
+			captured_status_.w = status_.status();
+			IdleBus(2);
+
+			// Switch to supervisor mode, disable interrupts.
+			status_.is_supervisor = true;
+			status_.trace_flag = 0;
+			status_.interrupt_level = 7;
+			did_update_status();
+
+			SetupDataAccess(0, Microcycle::SelectWord);
+			SetDataAddress(registers_[15].l);
+
+			registers_[15].l -= 10;
+			Access(captured_status_);			// ns
+
+			temporary_address_.l = program_counter_.l;
+			registers_[15].l -= 2;
+			Access(temporary_address_.low);		// ns
+
+			registers_[15].l -= 2;
+			Access(temporary_address_.high);	// nS
+
+			registers_[15].l += 6;
+			temporary_value_.w = opcode_;
+			Access(temporary_value_.low);		// ns
+
+			// TODO: construct the function code.
+			temporary_value_.w = (temporary_value_.w & ~31);
+
+			registers_[15].l += 6;
+			Access(temporary_value_.low);		// ns
+
+			temporary_address_.l = *bus_error_.address;
+			registers_[15].l -= 2;
+			Access(temporary_value_.low);		// ns
+
+			registers_[15].l -= 2;
+			Access(temporary_value_.high);		// nS
+			registers_[15].l -= 8;
+
+			// Grab new program counter.
+			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
+			SetDataAddress(temporary_address_.l);
+
+			temporary_address_.l = uint32_t(exception_vector_ << 2);
+			Access(program_counter_.high);	// nV
+
+			temporary_address_.l += 2;
+			Access(program_counter_.low);	// nv
+
+			// Populate the prefetch queue.
+			Prefetch();			// np
+			IdleBus(1);			// n
+			Prefetch();			// np
+
 		MoveToStateSpecific(Decode);
 
 		// Acknowledge an interrupt, thereby obtaining an exception vector,
@@ -2291,16 +2379,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			}
 			exception_vector_ = InstructionSet::M68k::Exception::TRAPV;
 		MoveToStateSpecific(StandardException);
-
-		//
-		// Various states TODO.
-		//
-#define TODOState(x)	\
-		BeginState(x): [[fallthrough]];
-
-		BeginState(BusOrAddressErrorException):
-			assert(false);
-		MoveToStateSpecific(Decode);
 
 #undef TODOState
 

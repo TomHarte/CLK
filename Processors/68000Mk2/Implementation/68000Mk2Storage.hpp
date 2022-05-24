@@ -136,6 +136,9 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// determine the size of the bus operation.
 	Microcycle::OperationT select_flag_ = 0;
 
+	// Captured bus/address-error state.
+	Microcycle bus_error_;
+
 	// Flow controller methods implemented.
 	using Preinstruction = InstructionSet::M68k::Preinstruction;
 	template <typename IntT> void did_mulu(IntT);
