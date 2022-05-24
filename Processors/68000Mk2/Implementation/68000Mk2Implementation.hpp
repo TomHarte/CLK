@@ -17,13 +17,7 @@
 namespace CPU {
 namespace MC68000Mk2 {
 
-// TODO: BERR, interrupt inputs, etc; and obeying the trace flag.
-// Also, from Instruction.hpp:
-//
-//	TRAP, TRAPV
-//
-// Not provided by a 68000: Bccl, BSRl
-
+// TODO: obeyance of the trace flag, the address/bus error exception.
 
 /// States for the state machine which are named by
 /// me for their purpose rather than automatically by file position.
@@ -183,6 +177,8 @@ enum ExecutionState: int {
 	RESET,
 	NOP,
 	STOP,
+	TRAP,
+	TRAPV,
 };
 
 // MARK: - The state machine.
@@ -879,6 +875,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(MOVEfromUSP, perform_state_ = Perform_np);
 
 				SpecialCASE(STOP);
+
+				SpecialCASE(TRAP);
+				SpecialCASE(TRAPV);
 
 				default:
 					assert(false);
@@ -2273,6 +2272,25 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(NOP):
 			Prefetch();
 		MoveToStateSpecific(Decode);
+
+		//
+		// TRAP, TRAPV
+		//
+
+		// TODO: which program counter is appropriate for TRAP? That of the TRAP,
+		// or that of the instruction after?
+		BeginState(TRAP):
+			IdleBus(2);
+			exception_vector_ = (opcode_ & 15) + InstructionSet::M68k::Exception::TrapBase;
+		MoveToStateSpecific(StandardException);
+
+		BeginState(TRAPV):
+			Prefetch();
+			if(!status_.overflow_flag) {
+				MoveToStateSpecific(Decode);
+			}
+			exception_vector_ = InstructionSet::M68k::Exception::TRAPV;
+		MoveToStateSpecific(StandardException);
 
 		//
 		// Various states TODO.
