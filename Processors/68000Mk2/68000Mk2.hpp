@@ -400,8 +400,37 @@ class Processor: private ProcessorBase {
 		CPU::MC68000Mk2::State get_state();
 		void set_state(const CPU::MC68000Mk2::State &);
 
-		// TODO: DTACK, VPA, BERR, interrupt input, bus ack/grant, halt,
-		// get E clock phase (and the E clock in general).
+		// TODO: bus ack/grant, halt,
+
+		/// Sets the DTack line — @c true for active, @c false for inactive.
+		inline void set_dtack(bool dtack) {
+			dtack_ = dtack;
+		}
+
+		/// Sets the VPA (valid peripheral address) line — @c true for active, @c false for inactive.
+		inline void set_is_peripheral_address(bool is_peripheral_address) {
+			vpa_ = is_peripheral_address;
+		}
+
+		/// Sets the bus error line — @c true for active, @c false for inactive.
+		inline void set_bus_error(bool bus_error) {
+			berr_ = bus_error;
+		}
+
+		/// Sets the interrupt lines, IPL0, IPL1 and IPL2.
+		inline void set_interrupt_level(int interrupt_level) {
+			bus_interrupt_level_ = interrupt_level;
+		}
+
+		/// @returns The current phase of the E clock; this will be a number of
+		/// half-cycles between 0 and 19 inclusive, indicating how far the 68000
+		/// is into the current E cycle.
+		///
+		/// This is guaranteed to be 0 at initial 68000 construction. It is not guaranteed
+		/// to return the correct result if called during a bus transaction.
+		HalfCycles get_e_clock_phase() {
+			return e_clock_phase_;
+		}
 
 	private:
 		BusHandler &bus_handler_;

@@ -188,6 +188,7 @@ enum ExecutionState: int {
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
 void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::run_for(HalfCycles duration) {
 	// Accumulate the newly paid-in cycles. If this instance remains in deficit, exit.
+	e_clock_phase_ += duration;
 	time_remaining_ += duration;
 	if(time_remaining_ < HalfCycles(0)) return;
 
@@ -262,12 +263,22 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Performs the bus operation provided, which will be one with a
 	// SelectWord or SelectByte operation, stretching it to match the E
-	// bus if VPA is currently asserted.
+	// bus if VPA is currently asserted or seguing elsewhere if a bus
+	// error is signalled or an adress error observed.
 	//
-	// TODO: If BERR is asserted, stop here and perform a bus error exception.
+	// E clock behaviour implemented, which I think is correct:
 	//
-	// TODO: If VPA is asserted, stretch this cycle.
+	//	(1) wait until end of current 10-cycle window;
+	//	(2) run for the next 10-cycle window.
 #define CompleteAccess(x)												\
+	if(berr_ || (*x.address & (x.operation >> 1) & 1)) {				\
+		MoveToStateSpecific(BusOrAddressErrorException);				\
+	}																	\
+	if(vpa_) {															\
+		x.length = HalfCycles(20) + (HalfCycles(20) + (e_clock_phase_ - time_remaining_) % HalfCycles(20)) % HalfCycles(20);	\
+	} else {															\
+		x.length = HalfCycles(4);										\
+	}																	\
 	PerformBusOperation(x)
 
 	// Performs the memory access implied by the announce, perform pair,
