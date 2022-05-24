@@ -58,6 +58,9 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	/// Current input interrupt level.
 	int bus_interrupt_level_ = 0;
 
+	// Whether to trace at the end of this instruction.
+	InstructionSet::M68k::Status::FlagT should_trace_ = 0;
+
 	// I don't have great information on the 68000 interrupt latency; as a first
 	// guess, capture the bus interrupt level upon every prefetch, and use that for
 	// the inner-loop decision.

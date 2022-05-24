@@ -17,8 +17,6 @@
 namespace CPU {
 namespace MC68000Mk2 {
 
-// TODO: obeyance of the trace flag.
-
 /// States for the state machine which are named by
 /// me for their purpose rather than automatically by file position.
 /// These are negative to avoid ambiguity with the other group.
@@ -351,6 +349,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			status_.is_supervisor = true;
 			status_.interrupt_level = 7;
 			status_.trace_flag = 0;
+			should_trace_ = 0;
 			did_update_status();
 
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
@@ -381,6 +380,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			status_.is_supervisor = true;
 			status_.trace_flag = 0;
 			status_.interrupt_level = 7;
+			should_trace_ = 0;
 			did_update_status();
 
 			SetupDataAccess(0, Microcycle::SelectWord);
@@ -450,6 +450,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			status_.is_supervisor = true;
 			status_.trace_flag = 0;
 			status_.interrupt_level = 7;
+			should_trace_ = 0;
 			did_update_status();
 
 			SetupDataAccess(0, Microcycle::SelectWord);
@@ -510,6 +511,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			status_.is_supervisor = true;
 			status_.trace_flag = 0;
 			status_.interrupt_level = captured_interrupt_level_;
+			should_trace_ = 0;
 			did_update_status();
 
 			// Prepare for stack activity.
@@ -571,6 +573,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			if(captured_interrupt_level_ > status_.interrupt_level) {
 				MoveToStateSpecific(DoInterrupt);
 			}
+
+			// Potentially perform a trace.
+			if(should_trace_) {
+				exception_vector_ = InstructionSet::M68k::Exception::Trace;
+				MoveToStateSpecific(StandardException);
+			}
+
+			// Capture the current trace flag.
+			should_trace_ = status_.trace_flag;
 
 			// Read and decode an opcode.
 			opcode_ = prefetch_.high.w;
