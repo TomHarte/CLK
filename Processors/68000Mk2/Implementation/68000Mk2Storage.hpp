@@ -87,7 +87,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 
 	/// When fetching or storing operands, this is the next one to fetch
 	/// or store.
-	int next_operand_ = 0;
+	int next_operand_ = -1;
 
 	/// Storage for a temporary address, which can't be a local because it'll
 	/// be used to populate microcycles, which may persist beyond an entry

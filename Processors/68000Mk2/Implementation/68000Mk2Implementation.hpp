@@ -20,7 +20,7 @@ namespace MC68000Mk2 {
 // TODO: BERR, interrupt inputs, etc; and obeying the trace flag.
 // Also, from Instruction.hpp:
 //
-//	MOVEAw, MOVEAl
+//	TRAP, TRAPV
 //
 // Not provided by a 68000: Bccl, BSRl
 
@@ -585,7 +585,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(EXTwtol, 	perform_state_ = Perform_np);
 
 				StdCASE(MOVEb,		perform_state_ = MOVE);
+				Duplicate(MOVEAw, MOVEw)
 				StdCASE(MOVEw,		perform_state_ = MOVE);
+				Duplicate(MOVEAl, MOVEl)
 				StdCASE(MOVEl,		perform_state_ = MOVE);
 
 				StdCASE(CMPb,		perform_state_ = Perform_np);
@@ -814,12 +816,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(LEA, {
 					post_ea_state_ = LEA;
-					next_operand_ = 0;
 					MoveToStateSpecific(CalcEffectiveAddress);
 				});
 				StdCASE(PEA, {
 					post_ea_state_ = PEA;
-					next_operand_ = 0;
 					MoveToStateSpecific(CalcEffectiveAddress);
 				});
 
@@ -830,7 +830,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					// for the other cases.
 					if(instruction_.mode(0) != Mode::DataRegisterDirect) {
 						post_ea_state_ = TAS;
-						next_operand_ = 0;
 						MoveToStateSpecific(CalcEffectiveAddress);
 					}
 
@@ -1439,9 +1438,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// Various generic forms of perform.
 		//
-#define MoveToWritePhase()														\
-	next_operand_ = 0;															\
-	if(operand_flags_ & 0x0c) MoveToStateSpecific(StoreOperand) else MoveToStateSpecific(Decode)
+#define MoveToWritePhase()					\
+	if(operand_flags_ & 0x0c) {				\
+		next_operand_ = 0;					\
+		MoveToStateSpecific(StoreOperand);	\
+	} else {								\
+		MoveToStateSpecific(Decode);		\
+	}
 
 		BeginState(Perform_np):
 			PerformDynamic();
