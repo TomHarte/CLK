@@ -141,8 +141,8 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	inline void complete_dbcc(bool, bool, int16_t);
 	inline void bsr(uint32_t);
 	inline void stop() {}							// TODO
-	inline void move_to_usp(uint32_t) {}			// TODO
-	inline void move_from_usp(uint32_t &) {}		// TODO
+	inline void move_to_usp(uint32_t);
+	inline void move_from_usp(uint32_t &);
 	inline void tas(Preinstruction, uint32_t);
 	template <bool use_current_instruction_pc = true> void raise_exception(int);
 

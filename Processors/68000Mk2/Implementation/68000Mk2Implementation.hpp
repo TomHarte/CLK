@@ -20,7 +20,7 @@ namespace MC68000Mk2 {
 // TODO: VPA, BERR, interrupt inputs, etc.
 // Also, from Instruction.hpp:
 //
-//	MOVEAw, MOVEAl, MOVE[to/from]USP, STOP
+//	MOVEAw, MOVEAl, STOP
 //
 // Not provided by a 68000: Bccl, BSRl
 
@@ -785,6 +785,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				SpecialCASE(RESET);
 				SpecialCASE(NOP);
+
+				StdCASE(MOVEtoUSP, perform_state_ = Perform_np);
+				StdCASE(MOVEfromUSP, perform_state_ = Perform_np);
 
 				default:
 					assert(false);
@@ -2306,6 +2309,14 @@ inline void ProcessorBase::tas(Preinstruction instruction, uint32_t) {
 	status_.overflow_flag = status_.carry_flag = 0;
 	status_.zero_result = value;
 	status_.negative_flag = value & 0x80;
+}
+
+inline void ProcessorBase::move_to_usp(uint32_t address) {
+	stack_pointers_[0].l = address;
+}
+
+inline void ProcessorBase::move_from_usp(uint32_t &address) {
+	address = stack_pointers_[0].l;
 }
 
 // MARK: - External state.
