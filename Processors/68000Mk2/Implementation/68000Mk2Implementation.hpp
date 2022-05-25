@@ -2425,6 +2425,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// or that of the instruction after?
 		BeginState(TRAP):
 			IdleBus(2);
+			instruction_address_.l += 2;	// Push the address of the instruction after the trap.
 			exception_vector_ = (opcode_ & 15) + InstructionSet::M68k::Exception::TrapBase;
 		MoveToStateSpecific(StandardException);
 
@@ -2433,6 +2434,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			if(!status_.overflow_flag) {
 				MoveToStateSpecific(Decode);
 			}
+			instruction_address_.l += 2;	// Push the address of the instruction after the trap.
 			exception_vector_ = InstructionSet::M68k::Exception::TRAPV;
 		MoveToStateSpecific(StandardException);
 
