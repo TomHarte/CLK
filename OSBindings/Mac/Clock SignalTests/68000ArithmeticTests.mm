@@ -225,6 +225,7 @@
 	});
 	auto state = self.machine->get_processor_state();
 	state.registers.status = ConditionCode::AllConditions;
+	state.registers.address[2] = 0;
 
 	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
