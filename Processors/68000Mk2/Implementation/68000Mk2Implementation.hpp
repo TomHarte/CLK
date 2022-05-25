@@ -381,7 +381,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Switch to supervisor mode, disable interrupts.
 			status_.is_supervisor = true;
 			status_.trace_flag = 0;
-			status_.interrupt_level = 7;
 			should_trace_ = 0;
 			did_update_status();
 
