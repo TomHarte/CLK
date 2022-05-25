@@ -46,7 +46,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	// Register state.
 	InstructionSet::M68k::Status status_;
 	SlicedInt32 program_counter_;
-	SlicedInt32 registers_[16];		// D0–D7 followed by A0–A7.
+	SlicedInt32 registers_[16]{};		// D0–D7 followed by A0–A7.
 	SlicedInt32 stack_pointers_[2];
 
 	/// Current state of the DTACK input.
