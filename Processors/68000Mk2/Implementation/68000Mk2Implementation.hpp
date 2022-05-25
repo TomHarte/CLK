@@ -244,7 +244,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Performs no bus activity for the specified number of microcycles.
 #define IdleBus(n)						\
-	idle.length = HalfCycles(n * 4);	\
+	idle.length = HalfCycles((n) << 2);	\
 	PerformBusOperation(idle)
 
 	// Spin until DTACK, VPA or BERR is asserted (unless DTACK is implicit),
