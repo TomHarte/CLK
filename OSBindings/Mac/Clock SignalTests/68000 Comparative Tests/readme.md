@@ -59,6 +59,8 @@ Issues with comparing results between multiple emulators in the case of unusual 
 
 For both Bcc and BSR, there is good coverage of even-quantity offsets.
 
+Lack of good documentation for the meaning of N and Z flags for DIVU and DIVS in the case of overflow means that the results here may or may not be correct; there was no consensus between emulators and I have been unable to find information on what the proper answers should be.
+
 ## Questionable Results
 
 Values for the undocumented flags of DIVU and DIVS have not yet been verified, due to a lack of documentation.
