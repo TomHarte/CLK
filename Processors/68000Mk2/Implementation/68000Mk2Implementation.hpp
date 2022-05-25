@@ -317,6 +317,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	prefetch_.high = prefetch_.low;						\
 	ReadProgramWord(prefetch_.low)
 
+	// Raises the exception with integer vector x — x is the vector identifier,
+	// not its address.
+#define RaiseException(x)					\
+	exception_vector_ = x;					\
+	MoveToStateSpecific(StandardException);
+
 	using Mode = InstructionSet::M68k::AddressingMode;
 
 	// Otherwise continue for all time, until back in debt.
@@ -577,8 +583,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Potentially perform a trace.
 			if(should_trace_) {
-				exception_vector_ = InstructionSet::M68k::Exception::Trace;
-				MoveToStateSpecific(StandardException);
+				RaiseException(InstructionSet::M68k::Exception::Trace);
 			}
 
 			// Capture the current trace flag.
@@ -1745,14 +1750,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(CHK_was_over):
 			IdleBus(2);			// nn
 			instruction_address_.l = program_counter_.l - 4;
-			exception_vector_ = InstructionSet::M68k::Exception::CHK;
-		MoveToStateSpecific(StandardException);
+		RaiseException(InstructionSet::M68k::Exception::CHK);
 
 		BeginState(CHK_was_under):
 			IdleBus(3);			// n nn
 			instruction_address_.l = program_counter_.l - 4;
-			exception_vector_ = InstructionSet::M68k::Exception::CHK;
-		MoveToStateSpecific(StandardException);
+		RaiseException(InstructionSet::M68k::Exception::CHK);
 
 		//
 		// Scc
@@ -2425,8 +2428,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(TRAP):
 			IdleBus(2);
 			instruction_address_.l += 2;	// Push the address of the instruction after the trap.
-			exception_vector_ = (opcode_ & 15) + InstructionSet::M68k::Exception::TrapBase;
-		MoveToStateSpecific(StandardException);
+		RaiseException((opcode_ & 15) + InstructionSet::M68k::Exception::TrapBase);
 
 		BeginState(TRAPV):
 			Prefetch();
@@ -2434,8 +2436,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToStateSpecific(Decode);
 			}
 			instruction_address_.l += 2;	// Push the address of the instruction after the trap.
-			exception_vector_ = InstructionSet::M68k::Exception::TRAPV;
-		MoveToStateSpecific(StandardException);
+		RaiseException(InstructionSet::M68k::Exception::TRAPV);
 
 #undef TODOState
 
@@ -2448,6 +2449,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #undef Push
 #undef PerformDynamic
 #undef PerformSpecific
+#undef RaiseException
 #undef Prefetch
 #undef ReadProgramWord
 #undef ReadDataWord
