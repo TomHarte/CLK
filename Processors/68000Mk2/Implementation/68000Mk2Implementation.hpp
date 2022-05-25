@@ -2018,6 +2018,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// [EORI/ORI/ANDI] #, [CCR/SR]
 		//
 		BeginState(LogicalToSR):
+			IdleBus(4);
+
 			// Perform the operation.
 			PerformDynamic();
 
