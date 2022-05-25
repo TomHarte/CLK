@@ -55,7 +55,11 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 
 		void will_perform(uint32_t, uint16_t) {
 			if(!has_run_) {
-				m68000_.set_state(initial_state_);
+				// Patch back in the status result, since reset will
+				// have affected that.
+				auto state = m68000_.get_state();
+				state.registers.status = initial_state_.registers.status;
+				m68000_.set_state(state);
 			}
 
 			--instructions_remaining_;
