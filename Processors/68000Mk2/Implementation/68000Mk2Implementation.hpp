@@ -1630,7 +1630,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				break;
 			}
 
-			SetupDataAccess(0, Microcycle::SelectWord);
 			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
 			Access(operand_[1].low);
 		MoveToStateSpecific(Decode);
