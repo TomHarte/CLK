@@ -76,8 +76,8 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 			// cycles to finish the reset program, and set the stored state.
 			if(!has_run_) {
 				has_run_ = true;
-				m68000_.run_for(HalfCycles(76));
-				duration_ -= HalfCycles(76);
+				m68000_.run_for(HalfCycles(80));
+				duration_ -= HalfCycles(80);
 			}
 		}
 
@@ -140,7 +140,7 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 		}
 
 	private:
-		CPU::MC68000Mk2::Processor<RAM68000, true, false, true> m68000_;
+		CPU::MC68000Mk2::Processor<RAM68000, true, true, true> m68000_;
 		std::array<uint16_t, 256*1024> ram_{};
 		int instructions_remaining_;
 		HalfCycles duration_;
