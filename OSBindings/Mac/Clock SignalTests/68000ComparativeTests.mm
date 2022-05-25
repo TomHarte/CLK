@@ -18,6 +18,7 @@
 
 //#define USE_EXECUTOR
 //#define MAKE_SUGGESTIONS
+//#define LOG_UNTESTED
 
 namespace {
 
@@ -127,6 +128,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	NSMutableSet<NSString *> *_failures;
 	NSMutableArray<NSNumber *> *_failingOpcodes;
 	NSMutableDictionary<NSNumber *, NSMutableArray<NSString *> *> *_suggestedCorrections;
+	NSMutableSet<NSNumber *> *_testedOpcodes;
 
 	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> _decoder;
 
@@ -149,6 +151,10 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 	// These will accumulate a list of failing tests and associated opcodes.
 	_failures = [[NSMutableSet alloc] init];
 	_failingOpcodes = [[NSMutableArray alloc] init];
+
+	// This will simply accumulate a list of all tested opcodes, in order to report
+	// on those that are missing.
+	_testedOpcodes = [[NSMutableSet alloc] init];
 
 #ifdef MAKE_SUGGESTIONS
 	_suggestedCorrections = [[NSMutableDictionary alloc] init];
@@ -190,6 +196,25 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 			}
 		}
 	}
+
+#ifdef LOG_UNTESTED
+	// Output a list of untested opcodes.
+	NSMutableArray<NSString *> *untested = [[NSMutableArray alloc] init];
+	for(int opcode = 0; opcode < 65536; opcode++) {
+		const auto instruction = _decoder.decode(uint16_t(opcode));
+
+		if(instruction.operation == InstructionSet::M68k::Operation::Undefined) {
+			continue;
+		}
+		if([_testedOpcodes containsObject:@(opcode)]) {
+			continue;
+		}
+
+		[untested addObject:[NSString stringWithFormat:@"%04x %s", opcode, instruction.to_string(uint16_t(opcode)).c_str()]];
+	}
+
+	NSLog(@"Untested: %@", untested);
+#endif
 }
 
 - (void)testJSONAtURL:(NSURL *)url {
@@ -212,6 +237,20 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 		// Compare against a test set if one has been supplied.
 		if(_testSet && ![_testSet containsObject:name]) continue;
+
+		// Pull out the opcode and record it.
+		NSArray<NSNumber *> *const initialMemory = test[@"initial memory"];
+		uint16_t opcode = 0;
+		NSEnumerator<NSNumber *> *enumerator = [initialMemory objectEnumerator];
+		while(true) {
+			NSNumber *const address = [enumerator nextObject];
+			NSNumber *const value = [enumerator nextObject];
+
+			if(!address || !value) break;
+			if(address.integerValue == 0x100) opcode |= value.integerValue << 8;
+			if(address.integerValue == 0x101) opcode |= value.integerValue;
+		}
+		[_testedOpcodes addObject:@(opcode)];
 
 #ifdef USE_EXECUTOR
 		[self testOperationExecutor:test name:name];
