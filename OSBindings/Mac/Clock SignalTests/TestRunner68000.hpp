@@ -55,6 +55,9 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 
 		void will_perform(uint32_t, uint16_t) {
 			--instructions_remaining_;
+			if(!instructions_remaining_) {
+				captured_state_ = m68000_.get_state();
+			}
 		}
 
 		void run_for_instructions(int count) {
@@ -120,7 +123,7 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 		}
 
 		CPU::MC68000Mk2::State get_processor_state() {
-			return m68000_.get_state();
+			return captured_state_;
 		}
 
 		void set_processor_state(const CPU::MC68000Mk2::State &state) {
@@ -145,6 +148,7 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 		int instructions_remaining_;
 		HalfCycles duration_;
 		bool has_run_ = false;
+		CPU::MC68000Mk2::State captured_state_;
 };
 
 #endif /* TestRunner68000_h */
