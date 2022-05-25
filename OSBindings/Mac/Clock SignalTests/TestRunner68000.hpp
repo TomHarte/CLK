@@ -10,17 +10,18 @@
 #define TestRunner68000_h
 
 #include <array>
+#include <vector>
 
-#include "../../../Processors/68000/68000.hpp"
+#include "../../../Processors/68000Mk2/68000Mk2.hpp"
 
-using Flag = CPU::MC68000::Flag;
+using namespace InstructionSet::M68k;
 
 /*!
 	Provides a 68000 with 64kb of RAM in its low address space;
 	/RESET will put the supervisor stack pointer at 0xFFFF and
 	begin execution at 0x0400.
 */
-class RAM68000: public CPU::MC68000::BusHandler {
+class RAM68000: public CPU::MC68000Mk2::BusHandler {
 	public:
 		RAM68000() : m68000_(*this) {
 			// Setup the /RESET vector.
@@ -31,7 +32,7 @@ class RAM68000: public CPU::MC68000::BusHandler {
 
 			// Ensure the condition codes start unset.
 			auto state = get_processor_state();
-			state.status &= ~Flag::ConditionCodes;
+			state.registers.status &= ~ConditionCode::AllConditions;
 			set_processor_state(state);
 		}
 
@@ -84,30 +85,30 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			return &ram_[(address >> 1) % ram_.size()];
 		}
 
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
+		HalfCycles perform_bus_operation(const CPU::MC68000Mk2::Microcycle &cycle, int) {
 			const uint32_t word_address = cycle.word_address();
 			if(instructions_remaining_) duration_ += cycle.length;
 
-			using Microcycle = CPU::MC68000::Microcycle;
+			using Microcycle = CPU::MC68000Mk2::Microcycle;
 			if(cycle.data_select_active()) {
 				if(cycle.operation & Microcycle::InterruptAcknowledge) {
-					cycle.value->halves.low = 10;
+					cycle.value->b = 10;
 				} else {
 					switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 						default: break;
 
 						case Microcycle::SelectWord | Microcycle::Read:
-							cycle.value->full = ram_[word_address % ram_.size()];
+							cycle.value->w = ram_[word_address % ram_.size()];
 						break;
 						case Microcycle::SelectByte | Microcycle::Read:
-							cycle.value->halves.low = ram_[word_address % ram_.size()] >> cycle.byte_shift();
+							cycle.value->b = ram_[word_address % ram_.size()] >> cycle.byte_shift();
 						break;
 						case Microcycle::SelectWord:
-							ram_[word_address % ram_.size()] = cycle.value->full;
+							ram_[word_address % ram_.size()] = cycle.value->w;
 						break;
 						case Microcycle::SelectByte:
 							ram_[word_address % ram_.size()] = uint16_t(
-								(cycle.value->halves.low << cycle.byte_shift()) |
+								(cycle.value->b << cycle.byte_shift()) |
 								(ram_[word_address % ram_.size()] & cycle.untouched_byte_mask())
 							);
 						break;
@@ -118,15 +119,15 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			return HalfCycles(0);
 		}
 
-		CPU::MC68000::Processor<RAM68000, true>::State get_processor_state() {
+		CPU::MC68000Mk2::State get_processor_state() {
 			return m68000_.get_state();
 		}
 
-		void set_processor_state(const CPU::MC68000::Processor<RAM68000, true>::State &state) {
+		void set_processor_state(const CPU::MC68000Mk2::State &state) {
 			m68000_.set_state(state);
 		}
 
-		CPU::MC68000::Processor<RAM68000, true, true> &processor() {
+		auto &processor() {
 			return m68000_;
 		}
 
@@ -139,7 +140,7 @@ class RAM68000: public CPU::MC68000::BusHandler {
 		}
 
 	private:
-		CPU::MC68000::Processor<RAM68000, true, true> m68000_;
+		CPU::MC68000Mk2::Processor<RAM68000, true, false, true> m68000_;
 		std::array<uint16_t, 256*1024> ram_{};
 		int instructions_remaining_;
 		HalfCycles duration_;

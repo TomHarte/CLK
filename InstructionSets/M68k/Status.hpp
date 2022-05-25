@@ -22,6 +22,8 @@ static constexpr uint16_t Zero			= 1 << 2;
 static constexpr uint16_t Negative		= 1 << 3;
 static constexpr uint16_t Extend		= 1 << 4;
 
+static constexpr uint16_t AllConditions	= Carry | Overflow | Zero | Negative | Extend;
+
 static constexpr uint16_t Supervisor	= 1 << 13;
 static constexpr uint16_t Trace			= 1 << 15;
 

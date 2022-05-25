@@ -18,6 +18,11 @@ struct RegisterSet {
 	uint32_t supervisor_stack_pointer;
 	uint16_t status;
 	uint32_t program_counter;
+
+	/// @returns The active stack pointer, whichever it may be.
+	uint32_t stack_pointer() const {
+		return (status & 0x2000) ? supervisor_stack_pointer : user_stack_pointer;
+	}
 };
 
 }
