@@ -55,11 +55,13 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 
 		void will_perform(uint32_t, uint16_t) {
 			if(!has_run_) {
-				// Patch back in the status result, since reset will
-				// have affected that.
-				auto state = m68000_.get_state();
-				state.registers.status = initial_state_.registers.status;
-				m68000_.set_state(state);
+				// Reapply all of initial state except the program counter and stack pointers.
+				// Also copy the supervisor stack pointer to the user.
+				const auto state = m68000_.get_state();
+				initial_state_.registers.program_counter = state.registers.program_counter;
+				initial_state_.registers.user_stack_pointer = state.registers.supervisor_stack_pointer;
+				initial_state_.registers.supervisor_stack_pointer = state.registers.supervisor_stack_pointer;
+				m68000_.set_state(initial_state_);
 			}
 
 			--instructions_remaining_;
