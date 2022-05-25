@@ -54,6 +54,10 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 		}
 
 		void will_perform(uint32_t, uint16_t) {
+			if(!has_run_) {
+				m68000_.set_state(initial_state_);
+			}
+
 			--instructions_remaining_;
 			if(!instructions_remaining_) {
 				captured_state_ = m68000_.get_state();
@@ -78,9 +82,9 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 			// If the 68000 hasn't run yet, build in the necessary
 			// cycles to finish the reset program, and set the stored state.
 			if(!has_run_) {
-				has_run_ = true;
 				m68000_.run_for(HalfCycles(80));
 				duration_ -= HalfCycles(80);
+				has_run_ = true;
 			}
 		}
 
@@ -127,6 +131,7 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 		}
 
 		void set_processor_state(const CPU::MC68000Mk2::State &state) {
+			initial_state_ = captured_state_ = state;
 			m68000_.set_state(state);
 		}
 
@@ -148,7 +153,7 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 		int instructions_remaining_;
 		HalfCycles duration_;
 		bool has_run_ = false;
-		CPU::MC68000Mk2::State captured_state_;
+		CPU::MC68000Mk2::State captured_state_, initial_state_;
 };
 
 #endif /* TestRunner68000_h */
