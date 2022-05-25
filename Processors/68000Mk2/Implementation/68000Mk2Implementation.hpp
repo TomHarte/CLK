@@ -107,6 +107,8 @@ enum ExecutionState: int {
 
 	MOVE,
 	MOVE_predec,
+	MOVE_predec_l,
+	MOVE_prefetch_decode,
 	MOVE_complete,
 	MOVE_complete_l,
 
@@ -1581,8 +1583,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// so that all that's left is modes that write to memory and then
 			// prefetch.
 			switch(instruction_.mode(1)) {
+				case Mode::DataRegisterDirect: {
+					const uint32_t write_mask = size_masks[int(instruction_.operand_size())];
+					const int reg = instruction_.reg(1);
+
+					registers_[reg].l =
+						(operand_[1].l & write_mask) |
+						(registers_[reg].l & ~write_mask);
+				}
+				MoveToStateSpecific(MOVE_prefetch_decode);
+
 				case Mode::AddressRegisterDirect:
-				case Mode::DataRegisterDirect:
+					registers_[8 + instruction_.reg(1)].l = operand_[1].l;
+				MoveToStateSpecific(MOVE_prefetch_decode);
+
 				case Mode::AddressRegisterIndirectWithPredecrement:
 				MoveToStateSpecific(MOVE_predec);
 
@@ -1593,11 +1607,43 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			post_ea_state_ = MOVE_complete;
 		MoveToStateSpecific(CalcEffectiveAddress);
 
+		BeginState(MOVE_prefetch_decode):
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
 		BeginState(MOVE_predec):
 			Prefetch();
-			next_operand_ = 1;
-			post_ea_state_ = StoreOperand;
-		MoveToStateSpecific(CalcEffectiveAddress);
+
+			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
+			switch(instruction_.operand_size()) {
+				case InstructionSet::M68k::DataSize::LongWord:
+				MoveToStateSpecific(MOVE_predec_l);
+
+				case InstructionSet::M68k::DataSize::Word:
+					SetupDataAccess(0, Microcycle::SelectWord);
+					registers_[8 + instruction_.reg(1)].l -= 2;
+				break;
+
+				case InstructionSet::M68k::DataSize::Byte:
+					SetupDataAccess(0, Microcycle::SelectByte);
+					registers_[8 + instruction_.reg(1)].l -=
+						address_increments[0][instruction_.reg(next_operand_)];
+				break;
+			}
+
+			SetupDataAccess(0, Microcycle::SelectWord);
+			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
+			Access(operand_[1].low);
+		MoveToStateSpecific(Decode);
+
+		BeginState(MOVE_predec_l):
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			registers_[8 + instruction_.reg(1)].l -= 2;
+			Access(operand_[1].low);
+			registers_[8 + instruction_.reg(1)].l -= 2;
+			Access(operand_[1].high);
+		MoveToStateSpecific(Decode);
 
 		BeginState(MOVE_complete):
 			SetDataAddress(effective_address_[1].l);
