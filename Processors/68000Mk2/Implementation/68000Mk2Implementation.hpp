@@ -135,7 +135,8 @@ enum ExecutionState: int {
 	Bccb_branch_not_taken,
 	Bccw_branch_not_taken,
 
-	BSR,
+	BSRb,
+	BSRw,
 
 	JSRJMPAddressRegisterIndirect,
 	JSRJMPAddressRegisterIndirectWithDisplacement,
@@ -814,8 +815,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				SpecialCASE(Bccb);
 				SpecialCASE(Bccw);
 
-				StdCASE(BSRb,	perform_state_ = BSR);
-				StdCASE(BSRw,	perform_state_ = BSR);
+				SpecialCASE(BSRb);
+				SpecialCASE(BSRw);
 
 				Duplicate(JMP, JSR)
 				StdCASE(JSR, {
@@ -1866,21 +1867,21 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// BSR
 		//
-		BeginState(BSR):
+		BeginState(BSRb):
+		BeginState(BSRw):
 			IdleBus(1);		// n
 
-			// Calculate the address of the next instruction.
+			// Calculate the address of the next instruction and the next program counter.
 			if(instruction_.operand_size() == InstructionSet::M68k::DataSize::Word) {
 				temporary_address_.l = instruction_address_.l + 4;
+				program_counter_.l = instruction_address_.l + uint32_t(int16_t(prefetch_.w)) + 2;
 			} else {
 				temporary_address_.l = instruction_address_.l + 2;
+				program_counter_.l = instruction_address_.l + uint32_t(int8_t(opcode_)) + 2;
 			}
 
-			// Push it to the stack.
+			// Push the next instruction address to the stack.
 			Push(temporary_address_);
-
-			// Get the new PC.
-			PerformDynamic();
 
 			Prefetch();		// np
 			Prefetch();		// np
@@ -2514,10 +2515,6 @@ template <typename IntT> void ProcessorBase::complete_bcc(bool take_branch, IntT
 	state_ =
 		(instruction_.operation == InstructionSet::M68k::Operation::Bccb) ?
 			Bccb_branch_not_taken : Bccw_branch_not_taken;
-}
-
-void ProcessorBase::bsr(uint32_t offset) {
-	program_counter_.l = instruction_address_.l + offset + 2;
 }
 
 void ProcessorBase::did_bit_op(int bit_position) {

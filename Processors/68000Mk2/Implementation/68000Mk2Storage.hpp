@@ -155,7 +155,6 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	inline void did_update_status();
 	template <typename IntT> void complete_bcc(bool, IntT);
 	inline void complete_dbcc(bool, bool, int16_t);
-	inline void bsr(uint32_t);
 	inline void move_to_usp(uint32_t);
 	inline void move_from_usp(uint32_t &);
 	inline void tas(Preinstruction, uint32_t);
@@ -167,6 +166,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	template <typename IntT> void movem_toM(Preinstruction, uint32_t, uint32_t) {}
 	template <typename IntT> void movem_toR(Preinstruction, uint32_t, uint32_t) {}
 	void jsr(uint32_t) {}
+	void bsr(uint32_t) {}
 	void jmp(uint32_t) {}
 	inline void pea(uint32_t) {}
 	inline void link(Preinstruction, uint32_t) {}
