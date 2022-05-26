@@ -39,8 +39,7 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 			// Ensure the condition codes start unset and set the initial program counter
 			// and supervisor stack pointer, as well as starting in supervisor mode.
 			auto registers = m68000_.get_state().registers;
-			registers.status &= ~ConditionCode::AllConditions;
-			registers.status |= 0x2700;
+			registers.status = 0x2700;
 			registers.program_counter = initial_pc();
 			registers.supervisor_stack_pointer = stack_pointer;
 			m68000_.decode_from_state(registers);
