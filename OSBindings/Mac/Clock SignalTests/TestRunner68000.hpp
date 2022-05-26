@@ -10,6 +10,7 @@
 #define TestRunner68000_h
 
 #include <array>
+#include <functional>
 #include <vector>
 
 #include "../../../Processors/68000Mk2/68000Mk2.hpp"
@@ -31,16 +32,24 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 
 		void set_program(
 			const std::vector<uint16_t> &program,
-			uint32_t stack_pointer = 0x206) {
+			uint32_t stack_pointer = 0x206
+		) {
 			memcpy(&ram_[0x1000 >> 1], program.data(), program.size() * sizeof(uint16_t));
 
 			// Ensure the condition codes start unset and set the initial program counter
-			// and supervisor stack pointer.
-			auto state = get_processor_state();
-			state.registers.status &= ~ConditionCode::AllConditions;
-			state.registers.program_counter = initial_pc();
-			state.registers.supervisor_stack_pointer = stack_pointer;
-			set_processor_state(state);
+			// and supervisor stack pointer, as well as starting in supervisor mode.
+			set_registers([=](InstructionSet::M68k::RegisterSet &registers){
+				registers.status &= ~ConditionCode::AllConditions;
+				registers.status |= 0x2700;
+				registers.program_counter = initial_pc();
+				registers.supervisor_stack_pointer = stack_pointer;
+			});
+		}
+
+		void set_registers(std::function<void(InstructionSet::M68k::RegisterSet &)> func) {
+			auto state = m68000_.get_state();
+			func(state.registers);
+			m68000_.set_state(state);
 		}
 
 		void will_perform(uint32_t, uint16_t) {
@@ -105,10 +114,6 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 
 		CPU::MC68000Mk2::State get_processor_state() {
 			return m68000_.get_state();
-		}
-
-		void set_processor_state(const CPU::MC68000Mk2::State &state) {
-			m68000_.decode_from_state(state.registers);
 		}
 
 		auto &processor() {
