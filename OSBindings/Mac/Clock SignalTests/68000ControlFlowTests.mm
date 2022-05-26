@@ -108,8 +108,7 @@
 - (void)testBSRw {
 	_machine->set_program({
 		0x6100, 0x0006		// BSR.w $1008
-	});
-	_machine->set_initial_stack_pointer(0x3000);
+	}, 0x3000);
 
 	_machine->run_for_instructions(1);
 
@@ -126,8 +125,7 @@
 - (void)testBSRb {
 	_machine->set_program({
 		0x6106		// BSR.b $1008
-	});
-	_machine->set_initial_stack_pointer(0x3000);
+	}, 0x3000);
 
 	_machine->run_for_instructions(1);
 
@@ -146,13 +144,12 @@
 - (void)performCHKd1:(uint32_t)d1 d2:(uint32_t)d2 {
 	_machine->set_program({
 		0x4581		// CHK D1, D2
-	});
+	}, 0);
 	auto state = _machine->get_processor_state();
 	state.registers.data[1] = d1;
 	state.registers.data[2] = d2;
 	state.registers.status |= ConditionCode::AllConditions;
 
-	_machine->set_initial_stack_pointer(0);
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
 
@@ -414,8 +411,7 @@
 - (void)testJSR_PC {
 	_machine->set_program({
 		0x4eba, 0x000a		// JSR (+a)PC		; JSR to $100c
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 
 	_machine->run_for_instructions(1);
 
@@ -430,8 +426,7 @@
 - (void)testJSR_XXXl {
 	_machine->set_program({
 		0x4eb9, 0x0000, 0x1008		// JSR ($1008).l
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 
 	_machine->run_for_instructions(1);
 
@@ -458,8 +453,7 @@
 - (void)testRTR {
 	_machine->set_program({
 		0x4e77		// RTR
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 	*_machine->ram_at(0x2000) = 0x7fff;
 	*_machine->ram_at(0x2002) = 0;
 	*_machine->ram_at(0x2004) = 0xc;
@@ -478,8 +472,7 @@
 - (void)testRTS {
 	_machine->set_program({
 		0x4e75		// RTS
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 	*_machine->ram_at(0x2000) = 0x0000;
 	*_machine->ram_at(0x2002) = 0x000c;
 
@@ -521,8 +514,7 @@
 - (void)testTRAPV_taken {
 	_machine->set_program({
 		0x4e76		// TRAPV
-	});
-	_machine->set_initial_stack_pointer(0x206);
+	}, 0x206);
 
 	auto state = _machine->get_processor_state();
 	state.registers.status = 0x702;

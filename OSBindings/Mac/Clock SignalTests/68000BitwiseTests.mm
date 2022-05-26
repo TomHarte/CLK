@@ -155,8 +155,7 @@
 - (void)testANDb_PostInc_A7 {
 	_machine->set_program({
 		0xc61f		// AND.B (A7)+, D3
-	});
-	_machine->set_initial_stack_pointer(0x3000);
+	}, 0x3000);
 	auto state = _machine->get_processor_state();
 	state.registers.data[3] = 0x54fff856;
 	*_machine->ram_at(0x3000) = 0x0053;
@@ -1088,8 +1087,7 @@
 - (void)testANDISR_supervisor {
 	_machine->set_program({
 		0x027c, 0x0700		// ANDI.W #$700, SR
-	});
-	_machine->set_initial_stack_pointer(300);
+	}, 300);
 
 	_machine->run_for_instructions(1);
 
@@ -1214,8 +1212,7 @@
 - (void)testEORISR_supervisor {
 	_machine->set_program({
 		0x0a7c, 0x0700		// EORI.W #$700, SR
-	});
-	_machine->set_initial_stack_pointer(300);
+	}, 300);
 
 	_machine->run_for_instructions(1);
 
@@ -1432,8 +1429,7 @@
 - (void)testORISR_supervisor {
 	_machine->set_program({
 		0x007c, 0x0700		// ORI.W #$700, SR
-	});
-	_machine->set_initial_stack_pointer(300);
+	}, 300);
 
 	_machine->run_for_instructions(1);
 

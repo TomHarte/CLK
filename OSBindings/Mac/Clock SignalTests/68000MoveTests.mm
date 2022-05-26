@@ -292,10 +292,9 @@
 - (void)testLINKA1_5 {
 	_machine->set_program({
 		0x4e51, 0x0005		// LINK a1, #5
-	});
+	}, 0x22222222);
 	auto state = _machine->get_processor_state();
 	state.registers.address[1] = 0x11111111;
-	_machine->set_initial_stack_pointer(0x22222222);
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
@@ -311,8 +310,7 @@
 - (void)testLINKA7_5 {
 	_machine->set_program({
 		0x4e57, 0x0005		// LINK a7, #5
-	});
-	_machine->set_initial_stack_pointer(0x22222222);
+	}, 0x22222222);
 
 	_machine->run_for_instructions(1);
 
@@ -326,10 +324,9 @@
 - (void)testLINKA1_8000 {
 	_machine->set_program({
 		0x4e51, 0x8000		// LINK a1, #$8000
-	});
+	}, 0x22222222);
 	auto state = _machine->get_processor_state();
 	state.registers.address[1] = 0x11111111;
-	_machine->set_initial_stack_pointer(0x22222222);
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
@@ -395,14 +392,13 @@
 - (void)testMOVEMl_fromEverything {
 	_machine->set_program({
 		0x48e4, 0xffff		// MOVEM.L D0-D7/A0-A7, -(A4)
-	});
+	}, 0xffffffff);
 	auto state = _machine->get_processor_state();
 	for(int c = 0; c < 8; ++c)
 		state.registers.data[c] = (c+1) * 0x11111111;
 	for(int c = 0; c < 7; ++c)
 		state.registers.address[c] = ((c < 4) ? (c + 9) : (c + 8)) * 0x11111111;
 	state.registers.address[4] = 0x4000;
-	_machine->set_initial_stack_pointer(0xffffffff);
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
@@ -995,10 +991,9 @@
 - (void)testPEA_A1 {
 	_machine->set_program({
 		0x4851		// PEA (A1)
-	});
+	}, 0x1996);
 	auto state = _machine->get_processor_state();
 	state.registers.address[1] = 0x3000ffff;
-	_machine->set_initial_stack_pointer(0x1996);
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
@@ -1014,8 +1009,7 @@
 - (void)testPEA_A7 {
 	_machine->set_program({
 		0x4857		// PEA (A7)
-	});
-	_machine->set_initial_stack_pointer(0x1012);
+	}, 0x1012);
 
 	_machine->run_for_instructions(1);
 
@@ -1029,8 +1023,7 @@
 - (void)testPEA_4A7 {
 	_machine->set_program({
 		0x486f, 0x0004		// PEA 4(A7)
-	});
-	_machine->set_initial_stack_pointer(0x1012);
+	}, 0x1012);
 
 	_machine->run_for_instructions(1);
 
@@ -1044,8 +1037,7 @@
 - (void)testPEA_XXXw {
 	_machine->set_program({
 		0x4878, 0x3000		// PEA ($3000).w
-	});
-	_machine->set_initial_stack_pointer(0x1996);
+	}, 0x1996);
 
 	_machine->run_for_instructions(1);
 
@@ -1059,8 +1051,7 @@
 - (void)testPEA_XXXl {
 	_machine->set_program({
 		0x4879, 0x1234, 0x5678		// PEA ($12345678)
-	});
-	_machine->set_initial_stack_pointer(0x1996);
+	}, 0x1996);
 
 	_machine->run_for_instructions(1);
 
@@ -1235,8 +1226,7 @@
 - (void)testUNLINK_A7 {
 	_machine->set_program({
 		0x4e5f		// UNLNK A7
-	});
-	_machine->set_initial_stack_pointer(0x3000);
+	}, 0x3000);
 	*_machine->ram_at(0x3000) = 0x0000;
 	*_machine->ram_at(0x3002) = 0x4000;
 

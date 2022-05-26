@@ -741,16 +741,20 @@
 @end
 @implementation M68000DIVSTests
 
-- (void)performDIVS:(uint16_t)divisor d1:(uint32_t)d1 {
+- (void)performDIVS:(uint16_t)divisor d1:(uint32_t)d1 sp:(uint32_t)sp {
 	self.machine->set_program({
 		0x83fc, divisor		// DIVS #divisor, D1
-	});
+	}, sp);
 	auto state = self.machine->get_processor_state();
 	state.registers.data[1] = d1;
 	state.registers.status |= ConditionCode::AllConditions;
 
 	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
+}
+
+- (void)performDIVS:(uint16_t)divisor d1:(uint32_t)d1 {
+	[self performDIVS:divisor d1:d1];
 }
 
 - (void)performDIVSOverflowTestDivisor:(uint16_t)divisor {
@@ -871,7 +875,7 @@
 
 - (void)testDIVS_12 {
 	// DIVS.W #$af32, D1
-	[self performDIVS:0xaf32 d1:0xe1d44];
+	[self performDIVS:0xaf32 d1:0xe1d44 sp:0];
 
 	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x39dcffd4);
@@ -882,8 +886,7 @@
 - (void)testDIVSException {
 	// DIVS.W #0, D1
 	const uint32_t initial_sp = 0x5000;
-	self.machine->set_initial_stack_pointer(initial_sp);
-	[self performDIVS:0x0 d1:0x1fffffff];
+	[self performDIVS:0x0 d1:0x1fffffff sp:initial_sp];
 
 	// Check register state.registers.
 	const auto state = self.machine->get_processor_state();
@@ -1440,8 +1443,7 @@
 - (void)testSUBb_PreDec {
 	self.machine->set_program({
 		0x9427		// SUB.b -(A7), D2
-	});
-	self.machine->set_initial_stack_pointer(0x2002);
+	}, 0x2002);
 	auto state = self.machine->get_processor_state();
 	state.registers.data[2] = 0x9c40;
 	*self.machine->ram_at(0x2000) = 0x2710;

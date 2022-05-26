@@ -148,8 +148,7 @@ class CPU::MC68000::ProcessorStorageTests {
 		0x82C0,		// DIVU;			location 0x404
 
 		/* Next instruction would be at 0x406 */
-	});
-	_machine->set_initial_stack_pointer(0x1000);
+	}, 0x1000);
 
 	_machine->run_for_instructions(4);
 
