@@ -135,7 +135,8 @@ enum ExecutionState: int {
 	Bccb_branch_not_taken,
 	Bccw_branch_not_taken,
 
-	BSR,
+	BSRb,
+	BSRw,
 
 	JSRJMPAddressRegisterIndirect,
 	JSRJMPAddressRegisterIndirectWithDisplacement,
@@ -244,7 +245,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Performs no bus activity for the specified number of microcycles.
 #define IdleBus(n)						\
-	idle.length = HalfCycles(n * 4);	\
+	idle.length = HalfCycles((n) << 2);	\
 	PerformBusOperation(idle)
 
 	// Spin until DTACK, VPA or BERR is asserted (unless DTACK is implicit),
@@ -316,6 +317,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	captured_interrupt_level_ = bus_interrupt_level_;	\
 	prefetch_.high = prefetch_.low;						\
 	ReadProgramWord(prefetch_.low)
+
+	// Raises the exception with integer vector x — x is the vector identifier,
+	// not its address.
+#define RaiseException(x)					\
+	exception_vector_ = x;					\
+	MoveToStateSpecific(StandardException);
 
 	using Mode = InstructionSet::M68k::AddressingMode;
 
@@ -577,8 +584,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Potentially perform a trace.
 			if(should_trace_) {
-				exception_vector_ = InstructionSet::M68k::Exception::Trace;
-				MoveToStateSpecific(StandardException);
+				RaiseException(InstructionSet::M68k::Exception::Trace);
 			}
 
 			// Capture the current trace flag.
@@ -809,8 +815,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				SpecialCASE(Bccb);
 				SpecialCASE(Bccw);
 
-				StdCASE(BSRb,	perform_state_ = BSR);
-				StdCASE(BSRw,	perform_state_ = BSR);
+				SpecialCASE(BSRb);
+				SpecialCASE(BSRw);
 
 				Duplicate(JMP, JSR)
 				StdCASE(JSR, {
@@ -1745,14 +1751,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(CHK_was_over):
 			IdleBus(2);			// nn
 			instruction_address_.l = program_counter_.l - 4;
-			exception_vector_ = InstructionSet::M68k::Exception::CHK;
-		MoveToStateSpecific(StandardException);
+		RaiseException(InstructionSet::M68k::Exception::CHK);
 
 		BeginState(CHK_was_under):
 			IdleBus(3);			// n nn
 			instruction_address_.l = program_counter_.l - 4;
-			exception_vector_ = InstructionSet::M68k::Exception::CHK;
-		MoveToStateSpecific(StandardException);
+		RaiseException(InstructionSet::M68k::Exception::CHK);
 
 		//
 		// Scc
@@ -1863,21 +1867,21 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// BSR
 		//
-		BeginState(BSR):
+		BeginState(BSRb):
+		BeginState(BSRw):
 			IdleBus(1);		// n
 
-			// Calculate the address of the next instruction.
+			// Calculate the address of the next instruction and the next program counter.
 			if(instruction_.operand_size() == InstructionSet::M68k::DataSize::Word) {
 				temporary_address_.l = instruction_address_.l + 4;
+				program_counter_.l = instruction_address_.l + uint32_t(int16_t(prefetch_.w)) + 2;
 			} else {
 				temporary_address_.l = instruction_address_.l + 2;
+				program_counter_.l = instruction_address_.l + uint32_t(int8_t(opcode_)) + 2;
 			}
 
-			// Push it to the stack.
+			// Push the next instruction address to the stack.
 			Push(temporary_address_);
-
-			// Get the new PC.
-			PerformDynamic();
 
 			Prefetch();		// np
 			Prefetch();		// np
@@ -2015,6 +2019,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// [EORI/ORI/ANDI] #, [CCR/SR]
 		//
 		BeginState(LogicalToSR):
+			IdleBus(4);
+
 			// Perform the operation.
 			PerformDynamic();
 
@@ -2425,8 +2431,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(TRAP):
 			IdleBus(2);
 			instruction_address_.l += 2;	// Push the address of the instruction after the trap.
-			exception_vector_ = (opcode_ & 15) + InstructionSet::M68k::Exception::TrapBase;
-		MoveToStateSpecific(StandardException);
+		RaiseException((opcode_ & 15) + InstructionSet::M68k::Exception::TrapBase);
 
 		BeginState(TRAPV):
 			Prefetch();
@@ -2434,8 +2439,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToStateSpecific(Decode);
 			}
 			instruction_address_.l += 2;	// Push the address of the instruction after the trap.
-			exception_vector_ = InstructionSet::M68k::Exception::TRAPV;
-		MoveToStateSpecific(StandardException);
+		RaiseException(InstructionSet::M68k::Exception::TRAPV);
 
 		default:
 			printf("Unhandled state: %d; opcode is %04x\n", state_, opcode_);
@@ -2446,6 +2450,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #undef Push
 #undef PerformDynamic
 #undef PerformSpecific
+#undef RaiseException
 #undef Prefetch
 #undef ReadProgramWord
 #undef ReadDataWord
@@ -2508,10 +2513,6 @@ template <typename IntT> void ProcessorBase::complete_bcc(bool take_branch, IntT
 	state_ =
 		(instruction_.operation == InstructionSet::M68k::Operation::Bccb) ?
 			Bccb_branch_not_taken : Bccw_branch_not_taken;
-}
-
-void ProcessorBase::bsr(uint32_t offset) {
-	program_counter_.l = instruction_address_.l + offset + 2;
 }
 
 void ProcessorBase::did_bit_op(int bit_position) {
@@ -2612,6 +2613,29 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	did_update_status();
 }
 
+template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
+void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::decode_from_state(const InstructionSet::M68k::RegisterSet &registers) {
+	// Populate registers.
+	CPU::MC68000Mk2::State state;
+	state.registers = registers;
+	set_state(state);
+
+	// Ensure the state machine will resume at decode.
+	state_ = Decode;
+
+	// Fill the prefetch queue.
+	captured_interrupt_level_ = bus_interrupt_level_;
+
+	read_program.value = &prefetch_.high;
+	bus_handler_.perform_bus_operation(read_program_announce, is_supervisor_);
+	bus_handler_.perform_bus_operation(read_program, is_supervisor_);
+	program_counter_.l += 2;
+
+	read_program.value = &prefetch_.low;
+	bus_handler_.perform_bus_operation(read_program_announce, is_supervisor_);
+	bus_handler_.perform_bus_operation(read_program, is_supervisor_);
+	program_counter_.l += 2;
+}
 
 }
 }

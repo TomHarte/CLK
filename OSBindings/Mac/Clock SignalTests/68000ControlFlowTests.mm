@@ -108,8 +108,7 @@
 - (void)testBSRw {
 	_machine->set_program({
 		0x6100, 0x0006		// BSR.w $1008
-	});
-	_machine->set_initial_stack_pointer(0x3000);
+	}, 0x3000);
 
 	_machine->run_for_instructions(1);
 
@@ -126,8 +125,7 @@
 - (void)testBSRb {
 	_machine->set_program({
 		0x6106		// BSR.b $1008
-	});
-	_machine->set_initial_stack_pointer(0x3000);
+	}, 0x3000);
 
 	_machine->run_for_instructions(1);
 
@@ -146,17 +144,15 @@
 - (void)performCHKd1:(uint32_t)d1 d2:(uint32_t)d2 {
 	_machine->set_program({
 		0x4581		// CHK D1, D2
+	}, 0);
+	_machine->set_registers([=](auto &registers) {
+		registers.data[1] = d1;
+		registers.data[2] = d2;
+		registers.status |= ConditionCode::AllConditions;
 	});
-	auto state = _machine->get_processor_state();
-	state.registers.data[1] = d1;
-	state.registers.data[2] = d2;
-	state.registers.status |= ConditionCode::AllConditions;
-
-	_machine->set_initial_stack_pointer(0);
-	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
 
-	state = _machine->get_processor_state();
+	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], d1);
 	XCTAssertEqual(state.registers.data[2], d2);
 }
@@ -204,14 +200,13 @@
 	_machine->set_program({
 		opcode, 0x0008		// DBcc D2, +8
 	});
-	auto state = _machine->get_processor_state();
-	state.registers.status = status;
-	state.registers.data[2] = 1;
-
-	_machine->set_processor_state(state);
+	_machine->set_registers([=](auto &registers) {
+			registers.status = status;
+			registers.data[2] = 1;
+	});
 	_machine->run_for_instructions(1);
 
-	state = _machine->get_processor_state();
+	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[2], d2Output);
 	XCTAssertEqual(state.registers.status, status);
 }
@@ -385,13 +380,12 @@
 		0x4ed1		// JMP (A1)
 	});
 
-	auto state = _machine->get_processor_state();
-	state.registers.address[1] = 0x3000;
-
-	_machine->set_processor_state(state);
+	_machine->set_registers([=](auto &registers) {
+		registers.address[1] = 0x3000;
+	});
 	_machine->run_for_instructions(1);
 
-	state = _machine->get_processor_state();
+	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.registers.address[1], 0x3000);
 	XCTAssertEqual(state.registers.program_counter, 0x3000 + 4);
 	XCTAssertEqual(8, _machine->get_cycle_count());
@@ -414,8 +408,7 @@
 - (void)testJSR_PC {
 	_machine->set_program({
 		0x4eba, 0x000a		// JSR (+a)PC		; JSR to $100c
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 
 	_machine->run_for_instructions(1);
 
@@ -430,8 +423,7 @@
 - (void)testJSR_XXXl {
 	_machine->set_program({
 		0x4eb9, 0x0000, 0x1008		// JSR ($1008).l
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 
 	_machine->run_for_instructions(1);
 
@@ -458,8 +450,7 @@
 - (void)testRTR {
 	_machine->set_program({
 		0x4e77		// RTR
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 	*_machine->ram_at(0x2000) = 0x7fff;
 	*_machine->ram_at(0x2002) = 0;
 	*_machine->ram_at(0x2004) = 0xc;
@@ -478,8 +469,7 @@
 - (void)testRTS {
 	_machine->set_program({
 		0x4e75		// RTS
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 	*_machine->ram_at(0x2000) = 0x0000;
 	*_machine->ram_at(0x2002) = 0x000c;
 
@@ -497,17 +487,16 @@
 	_machine->set_program({
 		0x4e41		// TRAP #1
 	});
-	auto state = _machine->get_processor_state();
-	state.registers.status = 0x700;
-	state.registers.user_stack_pointer = 0x200;
-	state.registers.supervisor_stack_pointer = 0x206;
+	_machine->set_registers([=](auto &registers) {
+		registers.status = 0x700;
+		registers.user_stack_pointer = 0x200;
+		registers.supervisor_stack_pointer = 0x206;
+	});
 	*_machine->ram_at(0x84) = 0xfffe;
 	*_machine->ram_at(0xfffe) = 0x4e71;
-
-	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
 
-	state = _machine->get_processor_state();
+	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.registers.status, 0x2700);
 	XCTAssertEqual(*_machine->ram_at(0x200), 0x700);
 	XCTAssertEqual(*_machine->ram_at(0x202), 0x0000);
@@ -521,19 +510,18 @@
 - (void)testTRAPV_taken {
 	_machine->set_program({
 		0x4e76		// TRAPV
-	});
-	_machine->set_initial_stack_pointer(0x206);
+	}, 0x206);
 
-	auto state = _machine->get_processor_state();
-	state.registers.status = 0x702;
-	state.registers.supervisor_stack_pointer = 0x206;
+	_machine->set_registers([=](auto &registers) {
+		registers.status = 0x702;
+		registers.supervisor_stack_pointer = 0x206;
+	});
 	*_machine->ram_at(0x1e) = 0xfffe;
 	*_machine->ram_at(0xfffe) = 0x4e71;
 
-	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
 
-	state = _machine->get_processor_state();
+	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.registers.status, 0x2702);
 	XCTAssertEqual(state.registers.stack_pointer(), 0x200);
 	XCTAssertEqual(*_machine->ram_at(0x202), 0x0000);

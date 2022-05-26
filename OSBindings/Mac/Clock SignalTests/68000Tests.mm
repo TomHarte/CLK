@@ -125,15 +125,13 @@ class CPU::MC68000::ProcessorStorageTests {
 		_machine->set_program({
 			0xc100		// ABCD D0, D0
 		});
-
-		auto state = _machine->get_processor_state();
 		const uint8_t bcd_d = ((d / 10) * 16) + (d % 10);
-		state.registers.data[0] = bcd_d;
-		_machine->set_processor_state(state);
-
+		_machine->set_registers([=](auto &registers){
+			registers.data[0] = bcd_d;
+		});
 		_machine->run_for_instructions(1);
 
-		state = _machine->get_processor_state();
+		const auto state = _machine->get_processor_state();
 		const uint8_t double_d = (d * 2) % 100;
 		const uint8_t bcd_double_d = ((double_d / 10) * 16) + (double_d % 10);
 		XCTAssert(state.registers.data[0] == bcd_double_d, "%02x + %02x = %02x; should equal %02x", bcd_d, bcd_d, state.registers.data[0], bcd_double_d);
@@ -148,8 +146,7 @@ class CPU::MC68000::ProcessorStorageTests {
 		0x82C0,		// DIVU;			location 0x404
 
 		/* Next instruction would be at 0x406 */
-	});
-	_machine->set_initial_stack_pointer(0x1000);
+	}, 0x1000);
 
 	_machine->run_for_instructions(4);
 

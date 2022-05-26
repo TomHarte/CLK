@@ -42,12 +42,12 @@
 	self.machine->set_program({
 		0x0602, 0xff		// ADD.B #$ff, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = 0x9ae;
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = 0x9ae;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Carry | ConditionCode::Negative | ConditionCode::Extend);
 	XCTAssertEqual(state.registers.data[2], 0x9ad);
 	XCTAssertEqual(8, self.machine->get_cycle_count());
@@ -57,12 +57,12 @@
 	self.machine->set_program({
 		0xd43c, 0x82		// ADD.B #$82, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = 0x82;
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = 0x82;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Overflow | ConditionCode::Carry | ConditionCode::Extend);
 	XCTAssertEqual(state.registers.data[2], 0x04);
 	XCTAssertEqual(8, self.machine->get_cycle_count());
@@ -72,13 +72,13 @@
 	self.machine->set_program({
 		0xd538, 0x3000		// ADD.B D2, ($3000).W
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = 0x82;
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = 0x82;
+	});
 	*self.machine->ram_at(0x3000) = 0x8200;
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Overflow | ConditionCode::Carry | ConditionCode::Extend);
 	XCTAssertEqual(state.registers.data[2], 0x82);
 	XCTAssertEqual(*self.machine->ram_at(0x3000), 0x0400);
@@ -89,12 +89,12 @@
 	self.machine->set_program({
 		0xd442		// ADD.W D2, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = 0x3e8;
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = 0x3e8;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[2], 0x7D0);
 	XCTAssertEqual(4, self.machine->get_cycle_count());
 }
@@ -103,16 +103,15 @@
 	self.machine->set_program({
 		0xd59a		// ADD.L D2, (A2)+
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = 0xb2d05e00;
-	state.registers.address[2] = 0x2000;
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = 0xb2d05e00;
+		registers.address[2] = 0x2000;
+	});
 	*self.machine->ram_at(0x2000) = 0x7735;
 	*self.machine->ram_at(0x2002) = 0x9400;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[2], 0xb2d05e00);
 	XCTAssertEqual(*self.machine->ram_at(0x2000), 0x2a05);
 	XCTAssertEqual(*self.machine->ram_at(0x2002), 0xf200);
@@ -124,16 +123,15 @@
 	self.machine->set_program({
 		0xd462		// ADD.W -(A2), D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = 0xFFFF0000;
-	state.registers.address[2] = 0x2002;
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = 0xFFFF0000;
+		registers.address[2] = 0x2002;
+	});
 	*self.machine->ram_at(0x2000) = 0;
 	*self.machine->ram_at(0x2002) = 0xffff;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[2], 0xFFFF0000);
 	XCTAssertEqual(state.registers.address[2], 0x2000);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Zero);
@@ -149,14 +147,13 @@
 	self.machine->set_program({
 		0xd481		// ADD.l D1, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0xfe35aab0;
-	state.registers.data[2] = 0x012557ac;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0xfe35aab0;
+		registers.data[2] = 0x012557ac;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0xfe35aab0);
 	XCTAssertEqual(state.registers.data[2], 0xff5b025c);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Negative);
@@ -175,14 +172,13 @@
 	self.machine->set_program({
 		0xd5fc, 0x1234, 0x5678		// ADDA.L #$12345678, A2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[2] = 0xae43ab1d;
-	state.registers.status = ConditionCode::AllConditions;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[2] = 0xae43ab1d;
+		registers.status = ConditionCode::AllConditions;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.address[2], 0xc0780195);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::AllConditions);
 }
@@ -191,14 +187,13 @@
 	self.machine->set_program({
 		0xd4fc, 0x5678		// ADDA.W #$5678, A2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[2] = 0xae43ab1d;
-	state.registers.status = ConditionCode::AllConditions;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[2] = 0xae43ab1d;
+		registers.status = ConditionCode::AllConditions;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.address[2], 0xae440195);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::AllConditions);
 }
@@ -207,14 +202,13 @@
 	self.machine->set_program({
 		0xd4fc, 0xf678		// ADDA.W #$f678, A2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[2] = 0xae43ab1d;
-	state.registers.status = ConditionCode::AllConditions;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[2] = 0xae43ab1d;
+		registers.status = ConditionCode::AllConditions;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.address[2], 0xae43a195);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::AllConditions);
 }
@@ -223,14 +217,13 @@
 	self.machine->set_program({
 		0xd4fc, 0xf000		// ADDA.W #$f000, A2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.status = ConditionCode::AllConditions;
-	state.registers.address[2] = 0;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.status = ConditionCode::AllConditions;
+		registers.address[2] = 0;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.address[2], 0xfffff000);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::AllConditions);
 }
@@ -239,16 +232,15 @@
 	self.machine->set_program({
 		0xd5e2				// ADDA.L -(A2), A2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.status = ConditionCode::AllConditions;
-	state.registers.address[2] = 0x2004;
+	self.machine->set_registers([=](auto &registers) {
+		registers.status = ConditionCode::AllConditions;
+		registers.address[2] = 0x2004;
+	});
 	*self.machine->ram_at(0x2000) = 0x7002;
 	*self.machine->ram_at(0x2002) = 0;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.address[2], 0x70022000);
 	XCTAssertEqual(*self.machine->ram_at(0x2000), 0x7002);
 	XCTAssertEqual(*self.machine->ram_at(0x2002), 0x0000);
@@ -267,15 +259,14 @@
 	self.machine->set_program({
 		0xd581		// ADDX.l D1, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0x12345678;
-	state.registers.data[2] = 0x12345678;
-	state.registers.status |= ConditionCode::AllConditions;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0x12345678;
+		registers.data[2] = 0x12345678;
+		registers.status |= ConditionCode::AllConditions;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x12345678);
 	XCTAssertEqual(state.registers.data[2], 0x2468acf1);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, 0);
@@ -286,14 +277,13 @@
 	self.machine->set_program({
 		0xd501		// ADDX.b D1, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0x80;
-	state.registers.data[2] = 0x8080;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0x80;
+		registers.data[2] = 0x8080;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x80);
 	XCTAssertEqual(state.registers.data[2], 0x8000);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Carry | ConditionCode::Overflow | ConditionCode::Extend);
@@ -304,15 +294,14 @@
 	self.machine->set_program({
 		0xd541		// ADDX.w D1, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0x1ffff;
-	state.registers.data[2] = 0x18080;
-	state.registers.status |= ConditionCode::AllConditions;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0x1ffff;
+		registers.data[2] = 0x18080;
+		registers.status |= ConditionCode::AllConditions;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x1ffff);
 	XCTAssertEqual(state.registers.data[2], 0x18080);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Carry | ConditionCode::Negative | ConditionCode::Extend);
@@ -323,18 +312,17 @@
 	self.machine->set_program({
 		0xd389		// ADDX.l -(A1), -(A1)
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[1] = 0x3000;
-	state.registers.status |= ConditionCode::AllConditions;
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[1] = 0x3000;
+		registers.status |= ConditionCode::AllConditions;
+	});
 	*self.machine->ram_at(0x2ff8) = 0x1000;
 	*self.machine->ram_at(0x2ffa) = 0x0000;
 	*self.machine->ram_at(0x2ffc) = 0x7000;
 	*self.machine->ram_at(0x2ffe) = 0x1ff1;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.address[1], 0x2ff8);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Negative | ConditionCode::Overflow);
 	XCTAssertEqual(*self.machine->ram_at(0x2ff8), 0x8000);
@@ -356,13 +344,12 @@
 	self.machine->set_program({
 		0x0681, 0x1111, 0x1111		// ADDI.l #$11111111, D1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0x300021b3;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0x300021b3;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x411132C4);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, 0);
 	XCTAssertEqual(16, self.machine->get_cycle_count());
@@ -394,13 +381,12 @@
 	self.machine->set_program({
 		0x5e81		// ADDQ.l #$7, D1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0xffffffff;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0xffffffff;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x6);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Carry);
 	XCTAssertEqual(8, self.machine->get_cycle_count());
@@ -410,13 +396,12 @@
 	self.machine->set_program({
 		0x5641		// ADDQ.W #$3, D1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0xfffffffe;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0xfffffffe;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0xffff0001);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Carry);
 	XCTAssertEqual(4, self.machine->get_cycle_count());
@@ -426,13 +411,12 @@
 	self.machine->set_program({
 		0x5649		// ADDQ.W #$3, A1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[1] = 0xfffffffe;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[1] = 0xfffffffe;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.address[1], 1);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, 0);
 	XCTAssertEqual(8, self.machine->get_cycle_count());
@@ -464,14 +448,13 @@
 	self.machine->set_program({
 		opcode
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0x1234567f;
-	state.registers.data[2] = 0x12345680;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0x1234567f;
+		registers.data[2] = 0x12345680;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x1234567f);
 	XCTAssertEqual(state.registers.data[2], 0x12345680);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, flags);
@@ -490,14 +473,13 @@
 	self.machine->set_program({
 		0xb242		// CMP.W D2, D1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = d1;
-	state.registers.data[2] = d2;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = d1;
+		registers.data[2] = d2;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], d1);
 	XCTAssertEqual(state.registers.data[2], d2);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, flags);
@@ -516,14 +498,13 @@
 	self.machine->set_program({
 		0xb282		// CMP.l D2, D1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0x12347002;
-	state.registers.data[2] = 0x12348004;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0x12347002;
+		registers.data[2] = 0x12348004;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x12347002);
 	XCTAssertEqual(state.registers.data[2], 0x12348004);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Negative | ConditionCode::Carry);
@@ -542,14 +523,13 @@
 	self.machine->set_program({
 		0xb5c1		// CMPA.l D1, A2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = d1;
-	state.registers.address[2] = a2;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = d1;
+		registers.address[2] = a2;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], d1);
 	XCTAssertEqual(state.registers.address[2], a2);
 	XCTAssertEqual(6, self.machine->get_cycle_count());
@@ -580,14 +560,13 @@
 	self.machine->set_program({
 		0xb4c1		// CMPA.w D1, A2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = d1;
-	state.registers.address[2] = a2;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = d1;
+		registers.address[2] = a2;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], d1);
 	XCTAssertEqual(state.registers.address[2], a2);
 	XCTAssertEqual(6, self.machine->get_cycle_count());
@@ -619,13 +598,12 @@
 	self.machine->set_program({
 		0x0c41, 0xffff		// CMPI.W #$ffff, D1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0xfff2ffff;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0xfff2ffff;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0xfff2ffff);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Zero);
 	XCTAssertEqual(8, self.machine->get_cycle_count());
@@ -635,13 +613,12 @@
 	self.machine->set_program({
 		0x0c81, 0x8000, 0x0000		// CMPI.L #$80000000, D1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0x7fffffff;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0x7fffffff;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x7fffffff);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Negative | ConditionCode::Overflow | ConditionCode::Carry);
 	XCTAssertEqual(14, self.machine->get_cycle_count());
@@ -651,13 +628,12 @@
 	self.machine->set_program({
 		0x0c01, 0x0090		// CMPI.B #$90, D1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0x8f;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0x8f;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x8f);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Negative | ConditionCode::Carry);
 	XCTAssertEqual(8, self.machine->get_cycle_count());
@@ -675,18 +651,17 @@
 	self.machine->set_program({
 		0xb389		// CMPM.L (A1)+, (A1)+
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[1] = 0x3000;
-	state.registers.status |= ConditionCode::AllConditions;
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[1] = 0x3000;
+		registers.status |= ConditionCode::AllConditions;
+	});
 	*self.machine->ram_at(0x3000) = 0x7000;
 	*self.machine->ram_at(0x3002) = 0x1ff1;
 	*self.machine->ram_at(0x3004) = 0x1000;
 	*self.machine->ram_at(0x3006) = 0x0000;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.address[1], 0x3008);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Negative | ConditionCode::Extend | ConditionCode::Carry);
 	XCTAssertEqual(20, self.machine->get_cycle_count());
@@ -696,17 +671,16 @@
 	self.machine->set_program({
 		0xb549		// CMPM.w (A1)+, (A2)+
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[1] = 0x3000;
-	state.registers.address[2] = 0x3002;
-	state.registers.status |= ConditionCode::AllConditions;
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[1] = 0x3000;
+		registers.address[2] = 0x3002;
+		registers.status |= ConditionCode::AllConditions;
+	});
 	*self.machine->ram_at(0x3000) = 0;
 	*self.machine->ram_at(0x3002) = 0;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.address[1], 0x3002);
 	XCTAssertEqual(state.registers.address[2], 0x3004);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Zero | ConditionCode::Extend);
@@ -717,16 +691,15 @@
 	self.machine->set_program({
 		0xb509		// CMPM.b (A1)+, (A2)+
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[1] = 0x3000;
-	state.registers.address[2] = 0x3001;
-	state.registers.status |= ConditionCode::AllConditions;
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[1] = 0x3000;
+		registers.address[2] = 0x3001;
+		registers.status |= ConditionCode::AllConditions;
+	});
 	*self.machine->ram_at(0x3000) = 0x807f;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.address[1], 0x3001);
 	XCTAssertEqual(state.registers.address[2], 0x3002);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Negative | ConditionCode::Extend | ConditionCode::Carry | ConditionCode::Overflow);
@@ -741,16 +714,19 @@
 @end
 @implementation M68000DIVSTests
 
-- (void)performDIVS:(uint16_t)divisor d1:(uint32_t)d1 {
+- (void)performDIVS:(uint16_t)divisor d1:(uint32_t)d1 sp:(uint32_t)sp {
 	self.machine->set_program({
 		0x83fc, divisor		// DIVS #divisor, D1
+	}, sp);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = d1;
+		registers.status |= ConditionCode::AllConditions;
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = d1;
-	state.registers.status |= ConditionCode::AllConditions;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
+}
+
+- (void)performDIVS:(uint16_t)divisor d1:(uint32_t)d1 {
+	[self performDIVS:divisor d1:d1];
 }
 
 - (void)performDIVSOverflowTestDivisor:(uint16_t)divisor {
@@ -871,7 +847,7 @@
 
 - (void)testDIVS_12 {
 	// DIVS.W #$af32, D1
-	[self performDIVS:0xaf32 d1:0xe1d44];
+	[self performDIVS:0xaf32 d1:0xe1d44 sp:0];
 
 	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x39dcffd4);
@@ -882,8 +858,7 @@
 - (void)testDIVSException {
 	// DIVS.W #0, D1
 	const uint32_t initial_sp = 0x5000;
-	self.machine->set_initial_stack_pointer(initial_sp);
-	[self performDIVS:0x0 d1:0x1fffffff];
+	[self performDIVS:0x0 d1:0x1fffffff sp:initial_sp];
 
 	// Check register state.registers.
 	const auto state = self.machine->get_processor_state();
@@ -916,11 +891,10 @@
 	self.machine->set_program({
 		0x82fc, divisor		// DIVU #$eef0, D1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = d1;
-	state.registers.status |= ConditionCode::AllConditions;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = d1;
+		registers.status |= ConditionCode::AllConditions;
+	});
 	self.machine->run_for_instructions(1);
 }
 
@@ -975,11 +949,10 @@
 		0x4883		// EXT.W D3
 	});
 
-	auto state = self.machine->get_processor_state();
-	state.registers.data[3] = d3;
-	state.registers.status = 0x13;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[3] = d3;
+		registers.status = 0x13;
+	});
 	self.machine->run_for_instructions(1);
 
 	XCTAssertEqual(4, self.machine->get_cycle_count());
@@ -1014,16 +987,15 @@
 		0x48c3		// EXT.L D3
 	});
 
-	auto state = self.machine->get_processor_state();
-	state.registers.data[3] = 0x1234f6f0;
-	state.registers.status = 0x13;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[3] = 0x1234f6f0;
+		registers.status = 0x13;
+	});
 	self.machine->run_for_instructions(1);
 
 	XCTAssertEqual(4, self.machine->get_cycle_count());
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[3], 0xfffff6f0);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Negative);
 }
@@ -1040,12 +1012,11 @@
 	self.machine->set_program({
 		0xc5c1		// MULS D1, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = d1;
-	state.registers.data[2] = d2;
-	state.registers.status = ccr;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = d1;
+		registers.data[2] = d2;
+		registers.status = ccr;
+	});
 	self.machine->run_for_instructions(1);
 }
 
@@ -1053,11 +1024,10 @@
 	self.machine->set_program({
 		0xc5fc, constant		// MULS #constant, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = d2;
-	state.registers.status = ConditionCode::Carry | ConditionCode::Extend | ConditionCode::Overflow;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = d2;
+		registers.status = ConditionCode::Carry | ConditionCode::Extend | ConditionCode::Overflow;
+	});
 	self.machine->run_for_instructions(1);
 }
 
@@ -1121,12 +1091,11 @@
 	self.machine->set_program({
 		0xc4c1		// MULU D1, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = d1;
-	state.registers.data[2] = d2;
-	state.registers.status |= ccr;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = d1;
+		registers.data[2] = d2;
+		registers.status |= ccr;
+	});
 	self.machine->run_for_instructions(1);
 }
 
@@ -1153,14 +1122,13 @@
 	self.machine->set_program({
 		0xc4fc, 0xffff		// MULU.W	#$ffff, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = 0xffff;
-	state.registers.status |= ConditionCode::Extend | ConditionCode::Overflow | ConditionCode::Carry;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = 0xffff;
+		registers.status |= ConditionCode::Extend | ConditionCode::Overflow | ConditionCode::Carry;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[2], 0xfffe0001);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Negative);
 	XCTAssertEqual(74, self.machine->get_cycle_count());
@@ -1178,10 +1146,9 @@
 	self.machine->set_program({
 		0x4400		// NEG.b D0
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[0] = value;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[0] = value;
+	});
 	self.machine->run_for_instructions(1);
 
 	XCTAssertEqual(4, self.machine->get_cycle_count());
@@ -1215,13 +1182,12 @@
 	self.machine->set_program({
 		0x4440		// NEG.w D0
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[0] = 0x12348000;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[0] = 0x12348000;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(4, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.data[0], 0x12348000);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Negative | ConditionCode::Overflow | ConditionCode::Extend | ConditionCode::Carry);
@@ -1231,10 +1197,9 @@
 	self.machine->set_program({
 		0x4480		// NEG.l D0
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[0] = value;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[0] = value;
+	});
 	self.machine->run_for_instructions(1);
 
 	XCTAssertEqual(6, self.machine->get_cycle_count());
@@ -1284,11 +1249,10 @@
 	self.machine->set_program({
 		0x4000		// NEGX.b D0
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[0] = value;
-	state.registers.status |= ConditionCode::Extend;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[0] = value;
+		registers.status |= ConditionCode::Extend;
+	});
 	self.machine->run_for_instructions(1);
 
 	XCTAssertEqual(4, self.machine->get_cycle_count());
@@ -1322,14 +1286,13 @@
 	self.machine->set_program({
 		0x4040		// NEGX.w D0
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[0] = 0x12348000;
-	state.registers.status |= ConditionCode::Extend;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[0] = 0x12348000;
+		registers.status |= ConditionCode::Extend;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(4, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.data[0], 0x12347fff);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Carry);
@@ -1339,11 +1302,10 @@
 	self.machine->set_program({
 		0x4080		// NEGX.l D0
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[0] = value;
-	state.registers.status |= ConditionCode::Extend;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[0] = value;
+		registers.status |= ConditionCode::Extend;
+	});
 	self.machine->run_for_instructions(1);
 
 	XCTAssertEqual(6, self.machine->get_cycle_count());
@@ -1369,15 +1331,14 @@
 	self.machine->set_program({
 		0x40b9, 0x0000, 0x3000		// NEGX.L ($3000).L
 	});
+	self.machine->set_registers([=](auto &registers) {
+		registers.status |= ConditionCode::Extend;
+	});
 	*self.machine->ram_at(0x3000) = 0xf001;
 	*self.machine->ram_at(0x3002) = 0x2311;
-	auto state = self.machine->get_processor_state();
-	state.registers.status |= ConditionCode::Extend;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(28, self.machine->get_cycle_count());
 	XCTAssertEqual(*self.machine->ram_at(0x3000), 0x0ffe);
 	XCTAssertEqual(*self.machine->ram_at(0x3002), 0xdcee);
@@ -1396,10 +1357,9 @@
 	self.machine->set_program({
 		0x0402, value		// SUB.b #value, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = d2;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = d2;
+	});
 	self.machine->run_for_instructions(1);
 
 	XCTAssertEqual(8, self.machine->get_cycle_count());
@@ -1440,16 +1400,14 @@
 - (void)testSUBb_PreDec {
 	self.machine->set_program({
 		0x9427		// SUB.b -(A7), D2
+	}, 0x2002);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = 0x9c40;
 	});
-	self.machine->set_initial_stack_pointer(0x2002);
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = 0x9c40;
 	*self.machine->ram_at(0x2000) = 0x2710;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(10, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.data[2], 0x9c19);
 	XCTAssertEqual(state.registers.stack_pointer(), 0x2000);
@@ -1461,14 +1419,13 @@
 	self.machine->set_program({
 		0x9578, 0x3000		// SUB.w D2, ($3000).w
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = 0x2711;
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = 0x2711;
+	});
 	*self.machine->ram_at(0x3000) = 0x759f;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(16, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.data[2], 0x2711);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, 0);
@@ -1479,16 +1436,15 @@
 	self.machine->set_program({
 		0x95ab, 0x0004		// SUB.l D2, 4(A3)
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[2] = 0x45fd5ab4;
-	state.registers.address[3] = 0x3000;
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[2] = 0x45fd5ab4;
+		registers.address[3] = 0x3000;
+	});
 	*self.machine->ram_at(0x3004) = 0x327a;
 	*self.machine->ram_at(0x3006) = 0x4ef3;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(24, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.data[2], 0x45fd5ab4);
 	XCTAssertEqual(state.registers.address[3], 0x3000);
@@ -1509,14 +1465,13 @@
 	self.machine->set_program({
 		0x95fc, 0x1234, 0x5678		// SUBA.l #$12345678, A2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[2] = 0xae43ab1d;
-	state.registers.status |= ConditionCode::AllConditions;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[2] = 0xae43ab1d;
+		registers.status |= ConditionCode::AllConditions;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(16, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.address[2], 0x9c0f54a5);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::AllConditions);
@@ -1526,13 +1481,12 @@
 	self.machine->set_program({
 		0x94fc, 0x5678		// SUBA.w #$5678, A2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[2] = 0xae43ab1d;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[2] = 0xae43ab1d;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(12, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.address[2], 0xae4354a5);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, 0);
@@ -1542,13 +1496,12 @@
 	self.machine->set_program({
 		0x94fc, 0xf678		// SUBA.w #$5678, A2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[2] = 0xae43ab1d;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[2] = 0xae43ab1d;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(12, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.address[2], 0xae43b4a5);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, 0);
@@ -1558,15 +1511,14 @@
 	self.machine->set_program({
 		0x95e2		// SUBA.l -(A2), A2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[2] = 0x2004;
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[2] = 0x2004;
+	});
 	*self.machine->ram_at(0x2000) = 0x7002;
 	*self.machine->ram_at(0x2002) = 0x0000;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(16, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.address[2], 0x8ffe2000);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, 0);
@@ -1584,13 +1536,12 @@
 	self.machine->set_program({
 		0x0481, 0xf111, 0x1111		// SUBI.L #$f1111111, D1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0x300021b3;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0x300021b3;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(16, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.data[1], 0x3eef10a2);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Carry | ConditionCode::Extend);
@@ -1610,13 +1561,12 @@
 	self.machine->set_program({
 		0x5f81		// SUBQ.L #$7, D1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0xffffffff;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0xffffffff;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(8, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.data[1], 0xfffffff8);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Negative);
@@ -1626,13 +1576,12 @@
 	self.machine->set_program({
 		0x5f49		// SUBQ.W #$7, A1
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[1] = 0xffff0001;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[1] = 0xffff0001;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(8, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.address[1], 0xfffefffa);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, 0);
@@ -1664,15 +1613,14 @@
 	self.machine->set_program({
 		0x9581		// SUBX.l D1, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0x12345678;
-	state.registers.data[2] = 0x12345678;
-	state.registers.status |= ConditionCode::AllConditions;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0x12345678;
+		registers.data[2] = 0x12345678;
+		registers.status |= ConditionCode::AllConditions;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(8, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.data[1], 0x12345678);
 	XCTAssertEqual(state.registers.data[2], 0xffffffff);
@@ -1683,14 +1631,13 @@
 	self.machine->set_program({
 		0x9501		// SUBX.b D1, D2
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.data[1] = 0x80;
-	state.registers.data[2] = 0x01;
-
-	self.machine->set_processor_state(state);
+	self.machine->set_registers([=](auto &registers) {
+		registers.data[1] = 0x80;
+		registers.data[2] = 0x01;
+	});
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(4, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.data[1], 0x80);
 	XCTAssertEqual(state.registers.data[2], 0x81);
@@ -1701,18 +1648,17 @@
 	self.machine->set_program({
 		0x9389		// SUBX.l -(A1), -(A1)
 	});
-	auto state = self.machine->get_processor_state();
-	state.registers.address[1] = 0x3000;
+	self.machine->set_registers([=](auto &registers) {
+		registers.address[1] = 0x3000;
+		registers.status |= ConditionCode::AllConditions;
+	});
 	*self.machine->ram_at(0x2ff8) = 0x1000;
 	*self.machine->ram_at(0x2ffa) = 0x0000;
 	*self.machine->ram_at(0x2ffc) = 0x7000;
 	*self.machine->ram_at(0x2ffe) = 0x1ff1;
-	state.registers.status |= ConditionCode::AllConditions;
-
-	self.machine->set_processor_state(state);
 	self.machine->run_for_instructions(1);
 
-	state = self.machine->get_processor_state();
+	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(30, self.machine->get_cycle_count());
 	XCTAssertEqual(state.registers.address[1], 0x2ff8);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Carry | ConditionCode::Negative );

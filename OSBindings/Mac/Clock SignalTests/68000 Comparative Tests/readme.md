@@ -40,6 +40,27 @@ All initial register contents are random except that the lowest bit is never set
 
 So the output is very scattergun approach, with a lot of redundancy. 
 
+## Known Issues
+
+Errors in generation mean that:
+1. MOVE is mostly untested; MOVEq is well-tested and other MOVEs appear within the test set as per the approximate generation algorithm above but due to an error in the generation of move.json, all of its opcodes are $2000 less than they should be, causing them to hit various instructions other than MOVE;
+2. there is sparse coverage of the rotates and shifts: LS[L/R], AS[L/R], RO[L/R] and ROX[L/R]; and
+3. there are similarly few tests of MULU.
+
+Issues with comparing results between multiple emulators in the case of unusual instructions mean that no tests have been generated for:
+1. MOVE [to or from] SR;
+2. TRAP;
+3. TRAPV;
+4. MOVE [to or from] USP;
+5. STOP;
+6. RTE;
+7. Bcc where the offset is an odd number; or
+8. BSR where the offset is an odd number.
+
+For both Bcc and BSR, there is good coverage of even-quantity offsets.
+
+Lack of good documentation for the meaning of N and Z flags for DIVU and DIVS in the case of overflow means that the results here may or may not be correct; there was no consensus between emulators and I have been unable to find information on what the proper answers should be.
+
 ## Questionable Results
 
 Values for the undocumented flags of DIVU and DIVS have not yet been verified, due to a lack of documentation.

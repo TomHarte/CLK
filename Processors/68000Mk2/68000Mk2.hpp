@@ -397,8 +397,17 @@ class Processor: private ProcessorBase {
 
 		void run_for(HalfCycles duration);
 
+		/// @returns The current processor state.
 		CPU::MC68000Mk2::State get_state();
+
+		/// Sets the current processor state.
 		void set_state(const CPU::MC68000Mk2::State &);
+
+		/// Sets all registers to the values provided, fills the prefetch queue and ensures the
+		/// next action the processor will take is to decode whatever is in the queue.
+		///
+		/// The queue is filled synchronously, during this call, causing calls to the bus handler.
+		void decode_from_state(const InstructionSet::M68k::RegisterSet &);
 
 		// TODO: bus ack/grant, halt,
 
