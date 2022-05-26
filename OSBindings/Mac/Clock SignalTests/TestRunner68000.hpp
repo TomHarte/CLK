@@ -38,12 +38,12 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 
 			// Ensure the condition codes start unset and set the initial program counter
 			// and supervisor stack pointer, as well as starting in supervisor mode.
-			set_registers([=](InstructionSet::M68k::RegisterSet &registers){
-				registers.status &= ~ConditionCode::AllConditions;
-				registers.status |= 0x2700;
-				registers.program_counter = initial_pc();
-				registers.supervisor_stack_pointer = stack_pointer;
-			});
+			auto registers = m68000_.get_state().registers;
+			registers.status &= ~ConditionCode::AllConditions;
+			registers.status |= 0x2700;
+			registers.program_counter = initial_pc();
+			registers.supervisor_stack_pointer = stack_pointer;
+			m68000_.decode_from_state(registers);
 		}
 
 		void set_registers(std::function<void(InstructionSet::M68k::RegisterSet &)> func) {
@@ -54,12 +54,13 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 
 		void will_perform(uint32_t, uint16_t) {
 			--instructions_remaining_;
-			if(!instructions_remaining_) {
+			if(instructions_remaining_ < 0) {
 				throw StopException();
 			}
 		}
 
 		void run_for_instructions(int count) {
+			duration_ = HalfCycles(0);
 			instructions_remaining_ = count;
 			if(!instructions_remaining_) return;
 
@@ -80,7 +81,7 @@ class RAM68000: public CPU::MC68000Mk2::BusHandler {
 
 		HalfCycles perform_bus_operation(const CPU::MC68000Mk2::Microcycle &cycle, int) {
 			const uint32_t word_address = cycle.word_address();
-			if(instructions_remaining_) duration_ += cycle.length;
+			duration_ += cycle.length;
 
 			using Microcycle = CPU::MC68000Mk2::Microcycle;
 			if(cycle.data_select_active()) {
