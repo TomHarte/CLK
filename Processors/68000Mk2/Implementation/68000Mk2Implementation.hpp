@@ -2615,6 +2615,29 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	did_update_status();
 }
 
+template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
+void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::decode_from_state(const InstructionSet::M68k::RegisterSet &registers) {
+	// Populate registers.
+	CPU::MC68000Mk2::State state;
+	state.registers = registers;
+	set_state(state);
+
+	// Ensure the state machine will resume at decode.
+	state_ = Decode;
+
+	// Fill the prefetch queue.
+	captured_interrupt_level_ = bus_interrupt_level_;
+
+	read_program.value = &prefetch_.high;
+	bus_handler_.perform_bus_operation(read_program_announce, is_supervisor_);
+	bus_handler_.perform_bus_operation(read_program, is_supervisor_);
+	program_counter_.l += 2;
+
+	read_program.value = &prefetch_.low;
+	bus_handler_.perform_bus_operation(read_program_announce, is_supervisor_);
+	bus_handler_.perform_bus_operation(read_program, is_supervisor_);
+	program_counter_.l += 2;
+}
 
 }
 }
