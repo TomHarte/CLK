@@ -45,7 +45,7 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		//
 		//	Single-operand write.
 		//
-		case Operation::MOVEfromSR:	case Operation::MOVEfromUSP:
+		case Operation::MOVEfromUSP:
 			return StoreOp1;
 
 		//
@@ -66,8 +66,9 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 			return FetchOp1 | StoreOp1;
 
 		//
-		//	CLR, which is model-dependent.
+		//	CLR and MOVE SR, which are model-dependent.
 		//
+		case Operation::MOVEfromSR:
 		case Operation::CLRb:	case Operation::CLRw:	case Operation::CLRl:
 			if constexpr (model == Model::M68000) {
 				return FetchOp1 | StoreOp1;

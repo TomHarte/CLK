@@ -86,16 +86,16 @@ enum ExecutionState: int {
 	FetchAbsoluteLong_l,
 	FetchImmediateData_l,
 
-	CalcEffectiveAddress,
-	CalcAddressRegisterIndirect,
-	CalcAddressRegisterIndirectWithPostincrement,
-	CalcAddressRegisterIndirectWithPredecrement,
-	CalcAddressRegisterIndirectWithDisplacement,
-	CalcAddressRegisterIndirectWithIndex8bitDisplacement,
-	CalcProgramCounterIndirectWithDisplacement,
-	CalcProgramCounterIndirectWithIndex8bitDisplacement,
-	CalcAbsoluteShort,
-	CalcAbsoluteLong,
+	CalcEffectiveAddress,											// -
+	CalcAddressRegisterIndirect,									// -
+	CalcAddressRegisterIndirectWithPostincrement,					// -
+	CalcAddressRegisterIndirectWithPredecrement,					// -
+	CalcAddressRegisterIndirectWithDisplacement,					// np
+	CalcAddressRegisterIndirectWithIndex8bitDisplacement,			// n np n
+	CalcProgramCounterIndirectWithDisplacement,						// np
+	CalcProgramCounterIndirectWithIndex8bitDisplacement,			// n np n
+	CalcAbsoluteShort,												// np
+	CalcAbsoluteLong,												// np np
 
 	// Various forms of perform; each of these will
 	// perform the current instruction, then do the
@@ -941,14 +941,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				Duplicate(MOVEtoCCR, MOVEtoSR);
 				StdCASE(MOVEtoSR, 	perform_state_ = MOVEtoCCRSR);
-
 				StdCASE(MOVEfromSR, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
-						post_ea_state_ = Perform_np_n;
+						perform_state_ = Perform_np_n;
 					} else {
-						post_ea_state_ = Perform_np;
+						perform_state_ = Perform_np;
 					}
-					MoveToStateSpecific(CalcEffectiveAddress);
 				});
 
 				SpecialCASE(RTR);
@@ -1322,6 +1320,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(CalcAddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
+			IdleBus(1);								// n
 			Prefetch();								// np
 			IdleBus(1);								// n
 		MoveToStateDynamic(post_ea_state_);
@@ -1357,6 +1356,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(CalcProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(program_counter_.l - 2);
+			IdleBus(1);								// n
 			Prefetch();								// np
 			IdleBus(1);								// n
 		MoveToStateDynamic(post_ea_state_);
