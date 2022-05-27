@@ -2443,8 +2443,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			instruction_address_.l += 2;	// Push the address of the instruction after the trap.
 		RaiseException(InstructionSet::M68k::Exception::TRAPV);
 
-#undef TODOState
-
 		default:
 			printf("Unhandled state: %d; opcode is %04x\n", state_, opcode_);
 			assert(false);
