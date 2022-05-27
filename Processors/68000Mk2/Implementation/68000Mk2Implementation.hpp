@@ -2523,12 +2523,44 @@ void ProcessorBase::did_bit_op(int bit_position) {
 	dynamic_instruction_length_ = int(bit_position > 15);
 }
 
-template <bool did_overflow> void ProcessorBase::did_divu(uint32_t, uint32_t) {
-	// TODO: calculate cost.
-}
+template <bool did_overflow> void ProcessorBase::did_divu(uint32_t dividend, uint32_t divisor) {
+	if(!divisor) {
+		dynamic_instruction_length_ = 4;	// nn nn precedes the usual exception activity.
+		return;
+	}
 
-template <bool did_overflow> void ProcessorBase::did_divs(int32_t, int32_t) {
-	// TODO: calculate cost.
+	if(did_overflow) {
+		dynamic_instruction_length_ = 3;	// Just a quick nn n, and then on to prefetch.
+		return;
+	}
+
+	// Calculate cost; this is based on the flowchart in yacht.txt.
+	// I could actually calculate the division result using this code,
+	// since this is a classic divide algorithm, but would rather that
+	// errors produce incorrect timing only, not incorrect timing plus
+	// incorrect results.
+	dynamic_instruction_length_ = 3;	// Covers the nn n to get into the loop.
+
+	divisor <<= 16;
+	for(int c = 0; c < 15; ++c) {
+		if(dividend & 0x80000000) {
+			dividend = (dividend << 1) - divisor;
+			dynamic_instruction_length_ += 2;	// The fixed nn iteration cost.
+		} else {
+			dividend <<= 1;
+
+			// Yacht.txt, and indeed a real microprogram, would just subtract here
+			// and test the sign of the result, but this is easier to follow:
+			if (dividend >= divisor) {
+				dividend -= divisor;
+				dynamic_instruction_length_ += 3;	// i.e. the original nn plus one further n before going down the MSB=0 route.
+			} else {
+				dynamic_instruction_length_ += 4;	// The costliest path (since in real life it's a subtraction and then a step
+				// back from there) — all costs accrue. So the fixed nn loop plus another n,
+				// plus another one.
+			}
+		}
+	}
 }
 
 #define convert_to_bit_count_16(x)			\
@@ -2536,6 +2568,49 @@ template <bool did_overflow> void ProcessorBase::did_divs(int32_t, int32_t) {
 	x = ((x & 0xcccc) >> 2) + (x & 0x3333);	\
 	x = ((x & 0xf0f0) >> 4) + (x & 0x0f0f);	\
 	x = ((x & 0xff00) >> 8) + (x & 0x00ff);
+
+template <bool did_overflow> void ProcessorBase::did_divs(int32_t dividend, int32_t divisor) {
+	// The route to spotting divide by 0 is just nn nn.
+	if(!divisor) {
+		dynamic_instruction_length_ = 4;	// nn nn precedes the usual exception activity.
+		return;
+	}
+
+	// It's either five or six microcycles to get into the main loop, depending
+	// on dividend sign.
+	dynamic_instruction_length_ = 5 + (dividend < 0);
+
+	if(did_overflow) {
+		return;
+	}
+
+	// There's always a cost of four microcycles per bit, plus an additional
+	// one for each that is non-zero.
+	//
+	// The sign bit does not count here; it's the low fifteen bits that matter
+	// only, in the unsigned version of the result.
+	dynamic_instruction_length_ += 60;
+
+	int result_bits = abs(dividend / divisor) & 0x7fff;
+	convert_to_bit_count_16(result_bits);
+	dynamic_instruction_length_ += result_bits;
+
+	// Determine the tail cost; a divisor of less than 0 leads to one exit,
+	// a divisor of greater than zero makes the result a function of the
+	// sign of the dividend.
+	//
+	// In all cases, this is counting from 'No more bits' in the Yacht diagram.
+	if(divisor < 0) {
+		dynamic_instruction_length_ += 4;
+		return;
+	}
+
+	if(dividend < 0) {
+		dynamic_instruction_length_ += 5;
+	} else {
+		dynamic_instruction_length_ += 3;
+	}
+}
 
 template <typename IntT> void ProcessorBase::did_mulu(IntT multiplier) {
 	// Count number of bits set.
