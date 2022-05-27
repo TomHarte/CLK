@@ -2576,22 +2576,26 @@ template <bool did_overflow> void ProcessorBase::did_divs(int32_t dividend, int3
 		return;
 	}
 
-	// It's either five or six microcycles to get into the main loop, depending
+	// It's either six or seven microcycles to get into the main loop, depending
 	// on dividend sign.
-	dynamic_instruction_length_ = 5 + (dividend < 0);
+	dynamic_instruction_length_ = 6 + (dividend < 0);
 
 	if(did_overflow) {
 		return;
 	}
 
-	// There's always a cost of four microcycles per bit, plus an additional
-	// one for each that is non-zero.
+	// There's a fixed cost per bit, plus an additional one for each that is zero.
 	//
-	// The sign bit does not count here; it's the low fifteen bits that matter
+	// The sign bit does not count here; it's the high fifteen bits that matter
 	// only, in the unsigned version of the result.
-	dynamic_instruction_length_ += 60;
+	//
+	// Disclaimer: per the flowchart it looks to me like this constant should be 60
+	// rather than 49 — four microcycles per bit. But the number 49 makes this
+	// algorithm exactly fit the stated minimum and maximum costs. Possibly the
+	// undefined difference between a nop cycle an an idle wait is relevant here?
+	dynamic_instruction_length_ += 49;
 
-	int result_bits = abs(dividend / divisor) & 0x7fff;
+	int result_bits = ~abs(dividend / divisor) & 0xfffe;
 	convert_to_bit_count_16(result_bits);
 	dynamic_instruction_length_ += result_bits;
 
