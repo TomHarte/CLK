@@ -2521,8 +2521,44 @@ void ProcessorBase::did_bit_op(int bit_position) {
 	dynamic_instruction_length_ = int(bit_position > 15);
 }
 
-template <bool did_overflow> void ProcessorBase::did_divu(uint32_t, uint32_t) {
-	// TODO: calculate cost.
+template <bool did_overflow> void ProcessorBase::did_divu(uint32_t dividend, uint32_t divisor) {
+	if(did_overflow) {
+		dynamic_instruction_length_ = 3;	// Just a quick nn n, and then on to prefetch.
+		return;
+	}
+
+	if(!divisor) {
+		dynamic_instruction_length_ = 4;	// nn nn precedes the usual exception activity.
+		return;
+	}
+
+	// Calculate cost; this is based on the flowchart in yacht.txt.
+	// I could actually calculate the division result using this code,
+	// since this is a classic divide algorithm, but would rather that
+	// errors produce incorrect timing only, not incorrect timing plus
+	// incorrect results.
+	dynamic_instruction_length_ = 3;	// Covers the nn n to get into the loop.
+
+	divisor <<= 16;
+	for(int c = 0; c < 15; ++c) {
+		if(dividend & 0x80000000) {
+			dividend = (dividend << 1) - divisor;
+			dynamic_instruction_length_ += 2;	// The fixed nn iteration cost.
+		} else {
+			dividend <<= 1;
+
+			// Yacht.txt, and indeed a real microprogram, would just subtract here
+			// and test the sign of the result, but this is easier to follow:
+			if (dividend >= divisor) {
+				dividend -= divisor;
+				dynamic_instruction_length_ += 3;	// i.e. the original nn plus one further n before going down the MSB=0 route.
+			} else {
+				dynamic_instruction_length_ += 4;	// The costliest path (since in real life it's a subtraction and then a step
+				// back from there) — all costs accrue. So the fixed nn loop plus another n,
+				// plus another one.
+			}
+		}
+	}
 }
 
 template <bool did_overflow> void ProcessorBase::did_divs(int32_t, int32_t) {
