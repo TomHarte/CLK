@@ -2565,13 +2565,28 @@ template <bool did_overflow> void ProcessorBase::did_divs(int32_t, int32_t) {
 	// TODO: calculate cost.
 }
 
-template <typename IntT> void ProcessorBase::did_mulu(IntT) {
-	// TODO: calculate cost.
+#define convert_to_bit_count_16(x)			\
+	x = ((x & 0xaaaa) >> 1) + (x & 0x5555);	\
+	x = ((x & 0xcccc) >> 2) + (x & 0x3333);	\
+	x = ((x & 0xf0f0) >> 4) + (x & 0x0f0f);	\
+	x = ((x & 0xff00) >> 8) + (x & 0x00ff);
+
+template <typename IntT> void ProcessorBase::did_mulu(IntT multiplier) {
+	// Count number of bits set.
+	convert_to_bit_count_16(multiplier);
+	dynamic_instruction_length_ = multiplier;
 }
 
-template <typename IntT> void ProcessorBase::did_muls(IntT) {
-	// TODO: calculate cost.
+template <typename IntT> void ProcessorBase::did_muls(IntT multiplier) {
+	// Count number of transitions from 0 to 1 or from 1 to 0 — i.e. the
+	// number of times that a bit is not equal to the one to its right.
+	// Treat the bit to the right of b0 as 0.
+	int number_of_pairs = (multiplier ^ (multiplier << 1)) & 0xffff;
+	convert_to_bit_count_16(number_of_pairs);
+	dynamic_instruction_length_ = number_of_pairs;
 }
+
+#undef convert_to_bit_count_16
 
 void ProcessorBase::did_shift(int bits_shifted) {
 	dynamic_instruction_length_ = bits_shifted;
