@@ -2537,8 +2537,8 @@ template <typename IntT> void ProcessorBase::did_muls(IntT) {
 	// TODO: calculate cost.
 }
 
-void ProcessorBase::did_shift(int) {
-	// TODO: calculate cost.
+void ProcessorBase::did_shift(int bits_shifted) {
+	dynamic_instruction_length_ = bits_shifted;
 }
 
 template <bool use_current_instruction_pc> void ProcessorBase::raise_exception(int vector) {
