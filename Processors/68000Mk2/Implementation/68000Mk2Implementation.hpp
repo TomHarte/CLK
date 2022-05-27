@@ -531,7 +531,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(captured_status_);			// ns
 
 			// Do the interrupt cycle, to obtain a vector.
-			temporary_address_.l = 0xffff'fff8 | uint32_t(captured_interrupt_level_);
+			temporary_address_.l = 0xffff'fff1 | uint32_t(captured_interrupt_level_ << 1);
 			SetupDataAccess(0, Microcycle::InterruptAcknowledge);
 			SetDataAddress(temporary_address_.l);
 			Access(temporary_value_.low);		// ni
@@ -540,6 +540,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			if(vpa_) {
 				temporary_value_.w = uint16_t(InstructionSet::M68k::Exception::InterruptAutovectorBase - 1 + captured_interrupt_level_);
 			}
+
+			// TODO: if bus error is set, treat interrupt as spurious.
 
 			IdleBus(3);			// n- n
 
