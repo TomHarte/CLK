@@ -236,20 +236,18 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						// which at word precision is 0x77f0ff + register*256.
 						if(cycle.operation & Microcycle::Read) {
 							cycle.value->b = via_.read(register_address);
+							if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
 						} else {
 							via_.write(register_address, cycle.value->b);
 						}
-
-						if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
 					}
 				} return delay;
 
 				case BusDevice::PhaseRead: {
 					if(cycle.operation & Microcycle::Read) {
 						cycle.value->b = phase_ & 7;
+						if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
 					}
-
-					if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
 				} return delay;
 
 				case BusDevice::IWM: {
@@ -259,11 +257,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						// The IWM; this is a purely polled device, so can be run on demand.
 						if(cycle.operation & Microcycle::Read) {
 							cycle.value->b = iwm_->read(register_address);
+							if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
 						} else {
 							iwm_->write(register_address, cycle.value->b);
 						}
-
-						if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
 					} else {
 						fill_unmapped(cycle);
 					}
