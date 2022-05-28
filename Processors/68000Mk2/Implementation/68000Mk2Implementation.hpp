@@ -526,9 +526,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetupDataAccess(0, Microcycle::SelectWord);
 			SetDataAddress(registers_[15].l);
 
-			// Push status.
+			// Push low part of program counter.
 			registers_[15].l -= 2;
-			Access(captured_status_);			// ns
+			Access(instruction_address_.low);			// ns
 
 			// Do the interrupt cycle, to obtain a vector.
 			temporary_address_.l = 0xffff'fff1 | uint32_t(captured_interrupt_level_ << 1);
@@ -549,11 +549,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetupDataAccess(0, Microcycle::SelectWord);
 			SetDataAddress(registers_[15].l);
 
-			registers_[15].l -= 2;
-			Access(instruction_address_.high);	// ns
+			registers_[15].l -= 4;
+			Access(captured_status_);			// ns
 
+			registers_[15].l += 2;
+			Access(instruction_address_.high);	// nS
 			registers_[15].l -= 2;
-			Access(instruction_address_.low);	// nS
 
 			// Grab new program counter.
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
