@@ -747,18 +747,25 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				Duplicate(SUBb, ADDb)	StdCASE(ADDb,		perform_state_ = Perform_np)
 				Duplicate(SUBw, ADDw)	StdCASE(ADDw,		perform_state_ = Perform_np)
 				Duplicate(SUBl, ADDl)	StdCASE(ADDl, {
-					if(instruction_.mode(1) != Mode::DataRegisterDirect) {
-						perform_state_ = Perform_np;
+					if(instruction_.mode(0) == Mode::Quick) {
+						perform_state_ = (
+							instruction_.mode(1) == Mode::AddressRegisterDirect ||
+							instruction_.mode(1) == Mode::DataRegisterDirect
+						) ? Perform_np_nn : Perform_np;
 					} else {
-						switch(instruction_.mode(0)) {
-							default:
-								perform_state_ = Perform_np_n;
-							break;
-							case Mode::DataRegisterDirect:
-							case Mode::AddressRegisterDirect:
-							case Mode::ImmediateData:
-								perform_state_ = Perform_np_nn;
-							break;
+						if(instruction_.mode(1) != Mode::DataRegisterDirect) {
+							perform_state_ = Perform_np;
+						} else {
+							switch(instruction_.mode(0)) {
+								default:
+									perform_state_ = Perform_np_n;
+								break;
+								case Mode::DataRegisterDirect:
+								case Mode::AddressRegisterDirect:
+								case Mode::ImmediateData:
+									perform_state_ = Perform_np_nn;
+								break;
+							}
 						}
 					}
 				})
