@@ -61,7 +61,7 @@ std::string Preinstruction::to_string(int opcode) const {
 	const char *instruction;
 
 	switch(operation) {
-		case Operation::Undefined:	instruction = "None";		break;
+		case Operation::Undefined:	return "None";
 		case Operation::NOP:		instruction = "NOP";		break;
 		case Operation::ABCD:		instruction = "ABCD";		break;
 		case Operation::SBCD:		instruction = "SBCD";		break;
