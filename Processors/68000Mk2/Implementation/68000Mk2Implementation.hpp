@@ -698,7 +698,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(CMPb,		perform_state_ = Perform_np);
 				StdCASE(CMPw,		perform_state_ = Perform_np);
-				StdCASE(CMPl,		perform_state_ = Perform_np_n);
+				StdCASE(CMPl,
+					perform_state_ = instruction_.mode(1) == Mode::DataRegisterDirect ? Perform_np_n : Perform_np
+				);
 
 				StdCASE(CMPAw,		perform_state_ = Perform_np_n);
 				StdCASE(CMPAl,		perform_state_ = Perform_np_n);
