@@ -602,18 +602,21 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				bus_handler_.will_perform(instruction_address_.l, opcode_);
 			}
 
-			// Check for a privilege violation.
-			if(instruction_.requires_supervisor() && !status_.is_supervisor) {
-				exception_vector_ = InstructionSet::M68k::Exception::PrivilegeViolation;
-				MoveToStateSpecific(StandardException);
-			}
-
 			// Ensure the first parameter is next fetched.
 			next_operand_ = 0;
 
-			// Obtain operand flags and pick a perform pattern.
-#define CASE(x)	\
-	case InstructionSet::M68k::Operation::x:																								\
+			/// If operation x requires supervisor privileges, checks whether the user is currently in supervisor mode;
+			/// if not then raises a privilege violation exception.
+#define CheckSupervisor(x)																														\
+		if constexpr (InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>()) {	\
+			if(!status_.is_supervisor) {																										\
+				RaiseException(InstructionSet::M68k::Exception::PrivilegeViolation);															\
+			}																																	\
+		}
+
+#define CASE(x)									\
+	case InstructionSet::M68k::Operation::x:	\
+		CheckSupervisor(x);						\
 		operand_flags_ = InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>();
 
 #define StdCASE(x, y)	\
@@ -642,7 +645,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		);																														\
 		[[fallthrough]];
 
-#define SpecialCASE(x)	case InstructionSet::M68k::Operation::x: MoveToStateSpecific(x)
+#define SpecialCASE(x)	case InstructionSet::M68k::Operation::x: CheckSupervisor(x); MoveToStateSpecific(x)
 
 			switch(instruction_.operation) {
 				case InstructionSet::M68k::Operation::Undefined:
@@ -1003,6 +1006,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #undef StdCASE
 #undef CASE
 #undef SpecialCASE
+#undef CheckSupervisor
 
 	// MARK: - Fetch, dispatch.
 
