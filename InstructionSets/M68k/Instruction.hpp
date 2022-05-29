@@ -104,9 +104,9 @@ enum class Operation: uint8_t {
 	Max = RESET
 };
 
-template <Model model>
-constexpr bool requires_supervisor(Operation op) {
-	switch(op) {
+template <Model model, Operation t_op = Operation::Undefined>
+constexpr bool requires_supervisor(Operation r_op = Operation::Undefined) {
+	switch(t_op != Operation::Undefined ? t_op : r_op) {
 		case Operation::MOVEfromSR:
 			if constexpr (model == Model::M68000) {
 				return false;
