@@ -522,7 +522,8 @@ template <
 #define DIV(Type16, Type32, flow_function) {								\
 	status.carry_flag = 0;													\
 																			\
-	if(!src.w) {															\
+	const auto divisor = Type32(Type16(src.w));								\
+	if(!divisor) {															\
 		status.negative_flag = status.overflow_flag = 0;					\
 		status.zero_result = 1;												\
 		flow_controller.raise_exception(Exception::IntegerDivideByZero);	\
@@ -530,7 +531,6 @@ template <
 	}																		\
 																			\
 	const auto dividend = Type32(dest.l);									\
-	const auto divisor = Type32(Type16(src.w));								\
 	const auto quotient = dividend / divisor;								\
 																			\
 	if(quotient != Type32(Type16(quotient))) {								\
