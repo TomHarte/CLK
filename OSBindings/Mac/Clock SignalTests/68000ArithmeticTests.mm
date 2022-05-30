@@ -865,7 +865,7 @@
 	XCTAssertEqual(state.registers.data[1], 0x1fffffff);
 	XCTAssertEqual(state.registers.supervisor_stack_pointer, initial_sp - 6);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend);
-	XCTAssertEqual(42, self.machine->get_cycle_count());
+	XCTAssertEqual(44, self.machine->get_cycle_count());
 
 	// Check stack contents; should be PC.l, PC.h and status register.
 	// Assumed: the program counter on the stack is that of the
