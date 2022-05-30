@@ -734,7 +734,12 @@
 
 	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x4768f231);
-	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Negative | ConditionCode::Overflow);
+
+	// N and Z are officially undefined upon DIVS overflow, and I've found no
+	// other relevant information.
+	XCTAssertEqual(
+		state.registers.status & (ConditionCode::Extend | ConditionCode::Overflow | ConditionCode::Carry),
+		ConditionCode::Extend | ConditionCode::Overflow);
 	XCTAssertEqual(20, self.machine->get_cycle_count());
 }
 
