@@ -726,7 +726,7 @@
 }
 
 - (void)performDIVS:(uint16_t)divisor d1:(uint32_t)d1 {
-	[self performDIVS:divisor d1:d1];
+	[self performDIVS:divisor d1:d1 sp:0];
 }
 
 - (void)performDIVSOverflowTestDivisor:(uint16_t)divisor {
