@@ -2635,7 +2635,7 @@ template <bool did_overflow> void ProcessorBase::did_divs(int32_t dividend, int3
 template <typename IntT> void ProcessorBase::did_mulu(IntT multiplier) {
 	// Count number of bits set.
 	convert_to_bit_count_16(multiplier);
-	dynamic_instruction_length_ = multiplier;
+	dynamic_instruction_length_ = 17 + multiplier;
 }
 
 template <typename IntT> void ProcessorBase::did_muls(IntT multiplier) {
@@ -2644,7 +2644,7 @@ template <typename IntT> void ProcessorBase::did_muls(IntT multiplier) {
 	// Treat the bit to the right of b0 as 0.
 	int number_of_pairs = (multiplier ^ (multiplier << 1)) & 0xffff;
 	convert_to_bit_count_16(number_of_pairs);
-	dynamic_instruction_length_ = number_of_pairs;
+	dynamic_instruction_length_ = 17 + number_of_pairs;
 }
 
 #undef convert_to_bit_count_16
