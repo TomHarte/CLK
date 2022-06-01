@@ -355,9 +355,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(7);			// (n-)*5   nn
 
 			// Establish general reset state.
-			status_.is_supervisor = true;
-			status_.interrupt_level = 7;
-			status_.trace_flag = 0;
+			status_.begin_exception(7);
 			should_trace_ = 0;
 			did_update_status();
 
@@ -383,11 +381,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		// Perform a 'standard' exception, i.e. a Group 1 or 2.
 		BeginState(StandardException):
-			captured_status_.w = status_.status();
-
 			// Switch to supervisor mode, disable interrupts.
-			status_.is_supervisor = true;
-			status_.trace_flag = 0;
+			captured_status_.w = status_.begin_exception();
 			should_trace_ = 0;
 			did_update_status();
 
@@ -451,13 +446,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			//	4) function code;
 			//	5) access address?
 
-			captured_status_.w = status_.status();
 			IdleBus(2);
 
 			// Switch to supervisor mode, disable interrupts.
-			status_.is_supervisor = true;
-			status_.trace_flag = 0;
-			status_.interrupt_level = 7;
+			captured_status_.w = status_.begin_exception(7);
 			should_trace_ = 0;
 			did_update_status();
 
@@ -515,10 +507,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(3);			// n nn
 
 			// Capture status and switch to supervisor mode.
-			captured_status_.w = status_.status();
-			status_.is_supervisor = true;
-			status_.trace_flag = 0;
-			status_.interrupt_level = captured_interrupt_level_;
+			captured_status_.w = status_.begin_exception(captured_interrupt_level_);
 			should_trace_ = 0;
 			did_update_status();
 
@@ -607,11 +596,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			/// If operation x requires supervisor privileges, checks whether the user is currently in supervisor mode;
 			/// if not then raises a privilege violation exception.
-#define CheckSupervisor(x)																														\
-		if constexpr (InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>()) {	\
-			if(!status_.is_supervisor) {																										\
-				RaiseException(InstructionSet::M68k::Exception::PrivilegeViolation);															\
-			}																																	\
+#define CheckSupervisor(x)																													\
+		if constexpr (InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000>(InstructionSet::M68k::Operation::x)) {	\
+			if(!status_.is_supervisor) {																									\
+				RaiseException(InstructionSet::M68k::Exception::PrivilegeViolation);														\
+			}																																\
 		}
 
 #define CASE(x)									\
