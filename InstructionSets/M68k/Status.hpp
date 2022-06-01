@@ -95,6 +95,23 @@ struct Status {
 		return is_supervisor;
 	}
 
+	/// Adjusts the status for exception processing — sets supervisor mode, disables trace,
+	/// and if @c new_interrupt_level is greater than or equal to 0 sets that as the new
+	/// interrupt level.
+	///
+	/// @returns The status prior to those changes.
+	uint16_t begin_exception(int new_interrupt_level = -1) {
+		const uint16_t initial_status = status();
+
+		if(new_interrupt_level >= 0) {
+			interrupt_level = new_interrupt_level;
+		}
+		is_supervisor = true;
+		trace_flag = 0;
+
+		return initial_status;
+	}
+
 	/// Evaluates @c condition.
 	bool evaluate_condition(Condition condition) {
 		switch(condition) {

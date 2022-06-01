@@ -157,41 +157,48 @@
 	XCTAssertEqual(state.registers.data[2], d2);
 }
 
+// Re: CHK, below; the final state of N is undocumented if Dn >= 0 and Dn < <ea>.
+// Z, V and C are also undocumented by Motorola, but are documneted by 68knotes.txt.
+
 - (void)testCHK_1111v1111 {
-	[self performCHKd1:0x1111 d2:0x1111];
+	[self performCHKd1:0x1111 d2:0x1111];		// Neither exception-generating state applies.
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.registers.program_counter, 0x1002 + 4);
-	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend);
+	XCTAssertEqual(
+		state.registers.status & (ConditionCode::Extend | ConditionCode::Zero | ConditionCode::Overflow | ConditionCode::Carry),
+		ConditionCode::Extend);
 	XCTAssertEqual(10, _machine->get_cycle_count());
 }
 
 - (void)testCHK_1111v0000 {
-	[self performCHKd1:0x1111 d2:0x0000];
+	[self performCHKd1:0x1111 d2:0x0000];		// Neither exception-generating state applies.
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.registers.program_counter, 0x1002 + 4);
-	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Zero);
+	XCTAssertEqual(
+		state.registers.status & (ConditionCode::Extend | ConditionCode::Zero | ConditionCode::Overflow | ConditionCode::Carry),
+		ConditionCode::Extend | ConditionCode::Zero);
 	XCTAssertEqual(10, _machine->get_cycle_count());
 }
 
 - (void)testCHK_8000v8001 {
-	[self performCHKd1:0x8000 d2:0x8001];
+	[self performCHKd1:0x8000 d2:0x8001];		// Both less than 0 and D2 greater than D1.
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertNotEqual(state.registers.program_counter, 0x1002 + 4);
 	XCTAssertEqual(state.registers.stack_pointer(), 0xfffffffa);
-	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend);
-	XCTAssertEqual(42, _machine->get_cycle_count());
+	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Negative);
+	XCTAssertEqual(38, _machine->get_cycle_count());
 }
 
 - (void)testCHK_8000v8000 {
-	[self performCHKd1:0x8000 d2:0x8000];
+	[self performCHKd1:0x8000 d2:0x8000];		// Less than 0.
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertNotEqual(state.registers.program_counter, 0x1002 + 4);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Negative);
-	XCTAssertEqual(44, _machine->get_cycle_count());
+	XCTAssertEqual(40, _machine->get_cycle_count());
 }
 
 // MARK: DBcc

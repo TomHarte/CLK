@@ -726,7 +726,7 @@
 }
 
 - (void)performDIVS:(uint16_t)divisor d1:(uint32_t)d1 {
-	[self performDIVS:divisor d1:d1];
+	[self performDIVS:divisor d1:d1 sp:0];
 }
 
 - (void)performDIVSOverflowTestDivisor:(uint16_t)divisor {
@@ -734,7 +734,12 @@
 
 	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x4768f231);
-	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Negative | ConditionCode::Overflow);
+
+	// N and Z are officially undefined upon DIVS overflow, and I've found no
+	// other relevant information.
+	XCTAssertEqual(
+		state.registers.status & (ConditionCode::Extend | ConditionCode::Overflow | ConditionCode::Carry),
+		ConditionCode::Extend | ConditionCode::Overflow);
 	XCTAssertEqual(20, self.machine->get_cycle_count());
 }
 
@@ -865,7 +870,7 @@
 	XCTAssertEqual(state.registers.data[1], 0x1fffffff);
 	XCTAssertEqual(state.registers.supervisor_stack_pointer, initial_sp - 6);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend);
-	XCTAssertEqual(42, self.machine->get_cycle_count());
+	XCTAssertEqual(44, self.machine->get_cycle_count());
 
 	// Check stack contents; should be PC.l, PC.h and status register.
 	// Assumed: the program counter on the stack is that of the
