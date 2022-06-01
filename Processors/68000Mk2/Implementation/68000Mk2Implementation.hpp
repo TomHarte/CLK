@@ -631,11 +631,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define Duplicate(x, y)	\
 	case InstructionSet::M68k::Operation::x:	\
 		static_assert(	\
-			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>() ==	\
-			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::y>() &&	\
-			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == 										\
-			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::y>()											\
-		);																														\
+			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>() ==		\
+			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::y>() &&		\
+			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == 											\
+			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::y>() &&												\
+			InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000>(InstructionSet::M68k::Operation::x) == 	\
+			InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000>(InstructionSet::M68k::Operation::y)		\
+		);																															\
 		[[fallthrough]];
 
 #define SpecialCASE(x)	case InstructionSet::M68k::Operation::x: CheckSupervisor(x); MoveToStateSpecific(x)
@@ -947,7 +949,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					perform_state_ = Perform_np;
 				});
 
-				Duplicate(MOVEtoCCR, MOVEtoSR);
+				StdCASE(MOVEtoCCR, 	perform_state_ = MOVEtoCCRSR);
 				StdCASE(MOVEtoSR, 	perform_state_ = MOVEtoCCRSR);
 				StdCASE(MOVEfromSR, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
