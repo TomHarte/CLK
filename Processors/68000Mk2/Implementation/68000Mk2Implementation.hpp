@@ -592,6 +592,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Signal the bus handler if requested.
 			if constexpr (signal_will_perform) {
+				// Set the state to Decode, so that if the callee pulls any shenanigans in order
+				// to force an exit here, the interpreter can resume without skipping a beat.
+				//
+				// signal_will_perform is overtly a debugging/testing feature.
+				state_ = Decode;
 				bus_handler_.will_perform(instruction_address_.l, opcode_);
 			}
 
