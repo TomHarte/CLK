@@ -91,11 +91,15 @@ enum ExecutionState: int {
 	CalcAddressRegisterIndirectWithPostincrement,					// -
 	CalcAddressRegisterIndirectWithPredecrement,					// -
 	CalcAddressRegisterIndirectWithDisplacement,					// np
-	CalcAddressRegisterIndirectWithIndex8bitDisplacement,			// n np n
+	CalcAddressRegisterIndirectWithIndex8bitDisplacement,			// np n
 	CalcProgramCounterIndirectWithDisplacement,						// np
-	CalcProgramCounterIndirectWithIndex8bitDisplacement,			// n np n
+	CalcProgramCounterIndirectWithIndex8bitDisplacement,			// np n
 	CalcAbsoluteShort,												// np
 	CalcAbsoluteLong,												// np np
+
+	CalcEffectiveAddressIdleFor8bitDisplacement,					// As per CalcEffectiveAddress unless one of the
+																	// 8-bit displacement modes is in use, in which case
+																	// an extra idle bus state is prefixed.
 
 	// Various forms of perform; each of these will
 	// perform the current instruction, then do the
@@ -355,9 +359,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(7);			// (n-)*5   nn
 
 			// Establish general reset state.
-			status_.is_supervisor = true;
-			status_.interrupt_level = 7;
-			status_.trace_flag = 0;
+			status_.begin_exception(7);
 			should_trace_ = 0;
 			did_update_status();
 
@@ -383,11 +385,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		// Perform a 'standard' exception, i.e. a Group 1 or 2.
 		BeginState(StandardException):
-			captured_status_.w = status_.status();
-
 			// Switch to supervisor mode, disable interrupts.
-			status_.is_supervisor = true;
-			status_.trace_flag = 0;
+			captured_status_.w = status_.begin_exception();
 			should_trace_ = 0;
 			did_update_status();
 
@@ -451,13 +450,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			//	4) function code;
 			//	5) access address?
 
-			captured_status_.w = status_.status();
 			IdleBus(2);
 
 			// Switch to supervisor mode, disable interrupts.
-			status_.is_supervisor = true;
-			status_.trace_flag = 0;
-			status_.interrupt_level = 7;
+			captured_status_.w = status_.begin_exception(7);
 			should_trace_ = 0;
 			did_update_status();
 
@@ -515,10 +511,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(3);			// n nn
 
 			// Capture status and switch to supervisor mode.
-			captured_status_.w = status_.status();
-			status_.is_supervisor = true;
-			status_.trace_flag = 0;
-			status_.interrupt_level = captured_interrupt_level_;
+			captured_status_.w = status_.begin_exception(captured_interrupt_level_);
 			should_trace_ = 0;
 			did_update_status();
 
@@ -607,11 +600,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			/// If operation x requires supervisor privileges, checks whether the user is currently in supervisor mode;
 			/// if not then raises a privilege violation exception.
-#define CheckSupervisor(x)																														\
-		if constexpr (InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>()) {	\
-			if(!status_.is_supervisor) {																										\
-				RaiseException(InstructionSet::M68k::Exception::PrivilegeViolation);															\
-			}																																	\
+#define CheckSupervisor(x)																													\
+		if constexpr (InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000>(InstructionSet::M68k::Operation::x)) {	\
+			if(!status_.is_supervisor) {																									\
+				RaiseException(InstructionSet::M68k::Exception::PrivilegeViolation);														\
+			}																																\
 		}
 
 #define CASE(x)									\
@@ -638,11 +631,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define Duplicate(x, y)	\
 	case InstructionSet::M68k::Operation::x:	\
 		static_assert(	\
-			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>() ==	\
-			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::y>() &&	\
-			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == 										\
-			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::y>()											\
-		);																														\
+			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::x>() ==		\
+			InstructionSet::M68k::operand_flags<InstructionSet::M68k::Model::M68000, InstructionSet::M68k::Operation::y>() &&		\
+			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::x>() == 											\
+			InstructionSet::M68k::operand_size<InstructionSet::M68k::Operation::y>() &&												\
+			InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000>(InstructionSet::M68k::Operation::x) == 	\
+			InstructionSet::M68k::requires_supervisor<InstructionSet::M68k::Model::M68000>(InstructionSet::M68k::Operation::y)		\
+		);																															\
 		[[fallthrough]];
 
 #define SpecialCASE(x)	case InstructionSet::M68k::Operation::x: CheckSupervisor(x); MoveToStateSpecific(x)
@@ -934,11 +929,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(LEA, {
 					post_ea_state_ = LEA;
-					MoveToStateSpecific(CalcEffectiveAddress);
+					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
 				});
 				StdCASE(PEA, {
 					post_ea_state_ = PEA;
-					MoveToStateSpecific(CalcEffectiveAddress);
+					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
 				});
 
 				StdCASE(TAS, {
@@ -948,13 +943,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					// for the other cases.
 					if(instruction_.mode(0) != Mode::DataRegisterDirect) {
 						post_ea_state_ = TAS;
-						MoveToStateSpecific(CalcEffectiveAddress);
+						MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
 					}
 
 					perform_state_ = Perform_np;
 				});
 
-				Duplicate(MOVEtoCCR, MOVEtoSR);
+				StdCASE(MOVEtoCCR, 	perform_state_ = MOVEtoCCRSR);
 				StdCASE(MOVEtoSR, 	perform_state_ = MOVEtoCCRSR);
 				StdCASE(MOVEfromSR, {
 					if(instruction_.mode(0) == Mode::DataRegisterDirect) {
@@ -1110,6 +1105,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					assert(false);
 			}
 		break;
+
+		BeginState(CalcEffectiveAddressIdleFor8bitDisplacement):
+			if(
+				instruction_.mode(next_operand_) != Mode::AddressRegisterIndirectWithIndex8bitDisplacement &&
+				instruction_.mode(next_operand_) != Mode::ProgramCounterIndirectWithIndex8bitDisplacement
+			) {
+				MoveToStateSpecific(CalcEffectiveAddress);
+			}
+
+			IdleBus(1);
+			[[fallthrough]];
 
 		BeginState(CalcEffectiveAddress):
 			switch(instruction_.mode(next_operand_)) {
@@ -1336,7 +1342,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(CalcAddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
-			IdleBus(1);								// n
 			Prefetch();								// np
 			IdleBus(1);								// n
 		MoveToStateDynamic(post_ea_state_);
@@ -1372,7 +1377,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(CalcProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(program_counter_.l - 2);
-			IdleBus(1);								// n
 			Prefetch();								// np
 			IdleBus(1);								// n
 		MoveToStateDynamic(post_ea_state_);
