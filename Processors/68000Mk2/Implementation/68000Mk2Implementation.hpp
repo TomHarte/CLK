@@ -91,11 +91,15 @@ enum ExecutionState: int {
 	CalcAddressRegisterIndirectWithPostincrement,					// -
 	CalcAddressRegisterIndirectWithPredecrement,					// -
 	CalcAddressRegisterIndirectWithDisplacement,					// np
-	CalcAddressRegisterIndirectWithIndex8bitDisplacement,			// n np n
+	CalcAddressRegisterIndirectWithIndex8bitDisplacement,			// np n
 	CalcProgramCounterIndirectWithDisplacement,						// np
-	CalcProgramCounterIndirectWithIndex8bitDisplacement,			// n np n
+	CalcProgramCounterIndirectWithIndex8bitDisplacement,			// np n
 	CalcAbsoluteShort,												// np
 	CalcAbsoluteLong,												// np np
+
+	CalcEffectiveAddressIdleFor8bitDisplacement,					// As per CalcEffectiveAddress unless one of the
+																	// 8-bit displacement modes is in use, in which case
+																	// an extra idle bus state is prefixed.
 
 	// Various forms of perform; each of these will
 	// perform the current instruction, then do the
@@ -923,11 +927,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(LEA, {
 					post_ea_state_ = LEA;
-					MoveToStateSpecific(CalcEffectiveAddress);
+					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
 				});
 				StdCASE(PEA, {
 					post_ea_state_ = PEA;
-					MoveToStateSpecific(CalcEffectiveAddress);
+					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
 				});
 
 				StdCASE(TAS, {
@@ -937,7 +941,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					// for the other cases.
 					if(instruction_.mode(0) != Mode::DataRegisterDirect) {
 						post_ea_state_ = TAS;
-						MoveToStateSpecific(CalcEffectiveAddress);
+						MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
 					}
 
 					perform_state_ = Perform_np;
@@ -1099,6 +1103,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					assert(false);
 			}
 		break;
+
+		BeginState(CalcEffectiveAddressIdleFor8bitDisplacement):
+			if(
+				instruction_.mode(next_operand_) != Mode::AddressRegisterIndirectWithIndex8bitDisplacement &&
+				instruction_.mode(next_operand_) != Mode::ProgramCounterIndirectWithIndex8bitDisplacement
+			) {
+				MoveToStateSpecific(CalcEffectiveAddress);
+			}
+
+			IdleBus(1);
+			[[fallthrough]];
 
 		BeginState(CalcEffectiveAddress):
 			switch(instruction_.mode(next_operand_)) {
@@ -1325,7 +1340,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(CalcAddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
-			IdleBus(1);								// n
 			Prefetch();								// np
 			IdleBus(1);								// n
 		MoveToStateDynamic(post_ea_state_);
@@ -1361,7 +1375,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(CalcProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(program_counter_.l - 2);
-			IdleBus(1);								// n
 			Prefetch();								// np
 			IdleBus(1);								// n
 		MoveToStateDynamic(post_ea_state_);
