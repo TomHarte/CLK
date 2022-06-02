@@ -2547,7 +2547,7 @@ template <bool did_overflow> void ProcessorBase::did_divu(uint32_t dividend, uin
 	}
 
 	if(did_overflow) {
-		dynamic_instruction_length_ = 3;	// Just a quick nn n, and then on to prefetch.
+		dynamic_instruction_length_ = 3;	// Covers the nn n to get into the loop.
 		return;
 	}
 
@@ -2556,13 +2556,15 @@ template <bool did_overflow> void ProcessorBase::did_divu(uint32_t dividend, uin
 	// since this is a classic divide algorithm, but would rather that
 	// errors produce incorrect timing only, not incorrect timing plus
 	// incorrect results.
-	dynamic_instruction_length_ = 3;	// Covers the nn n to get into the loop.
+	dynamic_instruction_length_ =
+		3 +		// nn n to get into the loop;
+		30 +	// nn per iteration of the loop below;
+		3;		// n nn upon completion of the loop.
 
 	divisor <<= 16;
 	for(int c = 0; c < 15; ++c) {
-		if(dividend & 0x80000000) {
+		if(dividend & 0x8000'0000) {
 			dividend = (dividend << 1) - divisor;
-			dynamic_instruction_length_ += 2;	// The fixed nn iteration cost.
 		} else {
 			dividend <<= 1;
 
@@ -2570,9 +2572,9 @@ template <bool did_overflow> void ProcessorBase::did_divu(uint32_t dividend, uin
 			// and test the sign of the result, but this is easier to follow:
 			if (dividend >= divisor) {
 				dividend -= divisor;
-				dynamic_instruction_length_ += 3;	// i.e. the original nn plus one further n before going down the MSB=0 route.
+				dynamic_instruction_length_ += 1;	// i.e. the original nn plus one further n before going down the MSB=0 route.
 			} else {
-				dynamic_instruction_length_ += 4;	// The costliest path (since in real life it's a subtraction and then a step
+				dynamic_instruction_length_ += 2;	// The costliest path (since in real life it's a subtraction and then a step
 				// back from there) — all costs accrue. So the fixed nn loop plus another n,
 				// plus another one.
 			}
