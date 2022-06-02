@@ -23,6 +23,8 @@
 
 namespace Concurrency {
 
+using TaskList = std::list<std::function<void(void)>>;
+
 /*!
 	An async task queue allows a caller to enqueue void(void) functions. Those functions are guaranteed
 	to be performed serially and asynchronously from the caller. A caller may also request to flush,
@@ -51,12 +53,12 @@ class AsyncTaskQueue {
 #ifdef USE_GCD
 		dispatch_queue_t serial_dispatch_queue_;
 #else
-		std::unique_ptr<std::thread> thread_;
-
-		std::mutex queue_mutex_;
-		std::list<std::function<void(void)>> pending_tasks_;
-		std::condition_variable processing_condition_;
 		std::atomic_bool should_destruct_;
+		std::condition_variable processing_condition_;
+		std::mutex queue_mutex_;
+		TaskList pending_tasks_;
+
+		std::thread thread_;
 #endif
 };
 
@@ -93,7 +95,7 @@ class DeferringAsyncTaskQueue: public AsyncTaskQueue {
 		void flush();
 
 	private:
-		std::unique_ptr<std::list<std::function<void(void)>>> deferred_tasks_;
+		std::unique_ptr<TaskList> deferred_tasks_;
 };
 
 }

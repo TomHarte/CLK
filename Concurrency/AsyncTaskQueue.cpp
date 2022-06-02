@@ -12,47 +12,47 @@ using namespace Concurrency;
 
 AsyncTaskQueue::AsyncTaskQueue()
 #ifndef USE_GCD
-	: should_destruct_(false)
-#endif
-{
-#ifdef USE_GCD
-	serial_dispatch_queue_ = dispatch_queue_create("com.thomasharte.clocksignal.asyntaskqueue", DISPATCH_QUEUE_SERIAL);
+	:
+		should_destruct_(false),
+		thread_([this] () {
+			while(!should_destruct_) {
+				std::function<void(void)> next_function;
+
+				// Take lock, check for a new task.
+				std::unique_lock lock(queue_mutex_);
+				if(!pending_tasks_.empty()) {
+					next_function = pending_tasks_.front();
+					pending_tasks_.pop_front();
+				}
+
+				if(next_function) {
+					// If there is a task, release lock and perform it.
+					lock.unlock();
+					next_function();
+				} else {
+					// If there isn't a task, atomically block on the processing condition and release the lock
+					// until there's something pending (and then release it again via scope).
+					processing_condition_.wait(lock);
+				}
+			}
+		})
 #else
-	thread_ = std::make_unique<std::thread>([this]() {
-		while(!should_destruct_) {
-			std::function<void(void)> next_function;
-
-			// Take lock, check for a new task
-			std::unique_lock lock(queue_mutex_);
-			if(!pending_tasks_.empty()) {
-				next_function = pending_tasks_.front();
-				pending_tasks_.pop_front();
-			}
-
-			if(next_function) {
-				// If there is a task, release lock and perform it
-				lock.unlock();
-				next_function();
-			} else {
-				// If there isn't a task, atomically block on the processing condition and release the lock
-				// until there's something pending (and then release it again via scope)
-				processing_condition_.wait(lock);
-			}
-		}
-	});
+	: serial_dispatch_queue_(dispatch_queue_create("com.thomasharte.clocksignal.asyntaskqueue", DISPATCH_QUEUE_SERIAL))
 #endif
-}
+{}
 
 AsyncTaskQueue::~AsyncTaskQueue() {
 #ifdef USE_GCD
 	flush();
 	dispatch_release(serial_dispatch_queue_);
-	serial_dispatch_queue_ = nullptr;
 #else
+	// Set should destruct, and then give the thread a bit of a nudge
+	// via an empty enqueue.
 	should_destruct_ = true;
 	enqueue([](){});
-	thread_->join();
-	thread_.reset();
+
+	// Wait for the thread safely to terminate.
+	thread_.join();
 #endif
 }
 
@@ -88,7 +88,7 @@ DeferringAsyncTaskQueue::~DeferringAsyncTaskQueue() {
 
 void DeferringAsyncTaskQueue::defer(std::function<void(void)> function) {
 	if(!deferred_tasks_) {
-		deferred_tasks_ = std::make_unique<std::list<std::function<void(void)>>>();
+		deferred_tasks_ = std::make_unique<TaskList>();
 	}
 	deferred_tasks_->push_back(function);
 }
@@ -96,7 +96,7 @@ void DeferringAsyncTaskQueue::defer(std::function<void(void)> function) {
 void DeferringAsyncTaskQueue::perform() {
 	if(!deferred_tasks_) return;
 	enqueue([deferred_tasks_raw = deferred_tasks_.release()] {
-		std::unique_ptr<std::list<std::function<void(void)>>> deferred_tasks(deferred_tasks_raw);
+		std::unique_ptr<TaskList> deferred_tasks(deferred_tasks_raw);
 		for(const auto &function : *deferred_tasks) {
 			function();
 		}
