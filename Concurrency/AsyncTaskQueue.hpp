@@ -93,9 +93,7 @@ class DeferringAsyncTaskQueue: public AsyncTaskQueue {
 		void flush();
 
 	private:
-		// TODO: this is a shared_ptr because of the issues capturing moveables in C++11;
-		// switch to a unique_ptr if/when adapting to C++14
-		std::shared_ptr<std::list<std::function<void(void)>>> deferred_tasks_;
+		std::unique_ptr<std::list<std::function<void(void)>>> deferred_tasks_;
 };
 
 }

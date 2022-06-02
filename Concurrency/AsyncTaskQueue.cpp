@@ -88,16 +88,17 @@ DeferringAsyncTaskQueue::~DeferringAsyncTaskQueue() {
 
 void DeferringAsyncTaskQueue::defer(std::function<void(void)> function) {
 	if(!deferred_tasks_) {
-		deferred_tasks_ = std::make_shared<std::list<std::function<void(void)>>>();
+		deferred_tasks_ = std::make_unique<std::list<std::function<void(void)>>>();
 	}
 	deferred_tasks_->push_back(function);
 }
 
 void DeferringAsyncTaskQueue::perform() {
 	if(!deferred_tasks_) return;
-	std::shared_ptr<std::list<std::function<void(void)>>> deferred_tasks = deferred_tasks_;
+	auto deferred_tasks_raw = deferred_tasks_.release();
 	deferred_tasks_.reset();
-	enqueue([deferred_tasks] {
+	enqueue([deferred_tasks_raw] {
+		std::unique_ptr<std::list<std::function<void(void)>>> deferred_tasks(deferred_tasks_raw);
 		for(const auto &function : *deferred_tasks) {
 			function();
 		}
