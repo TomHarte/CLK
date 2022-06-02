@@ -917,7 +917,11 @@
 
 	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x4768f231);
-	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Negative | ConditionCode::Overflow);
+
+	// This test should produce overflow; so don't test N or Z flags.
+	XCTAssertEqual(
+		state.registers.status & (ConditionCode::Carry | ConditionCode::Overflow | ConditionCode::Extend),
+		ConditionCode::Extend | ConditionCode::Overflow);
 	XCTAssertEqual(14, self.machine->get_cycle_count());
 }
 
@@ -926,7 +930,10 @@
 
 	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x4768f231);
-	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Negative | ConditionCode::Overflow);
+	// This test should also produce overflow; so don't test N or Z flags.
+	XCTAssertEqual(
+		state.registers.status & (ConditionCode::Carry | ConditionCode::Overflow | ConditionCode::Extend),
+		ConditionCode::Extend | ConditionCode::Overflow);
 	XCTAssertEqual(14, self.machine->get_cycle_count());
 }
 
