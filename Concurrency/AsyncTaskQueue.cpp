@@ -103,3 +103,8 @@ void DeferringAsyncTaskQueue::perform() {
 		}
 	});
 }
+
+void DeferringAsyncTaskQueue::flush() {
+	perform();
+	AsyncTaskQueue::flush();
+}
