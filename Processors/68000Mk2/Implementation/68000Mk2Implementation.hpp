@@ -592,6 +592,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Signal the bus handler if requested.
 			if constexpr (signal_will_perform) {
+				// Set the state to Decode, so that if the callee pulls any shenanigans in order
+				// to force an exit here, the interpreter can resume without skipping a beat.
+				//
+				// signal_will_perform is overtly a debugging/testing feature.
+				state_ = Decode;
 				bus_handler_.will_perform(instruction_address_.l, opcode_);
 			}
 
@@ -772,19 +777,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				Duplicate(SUBAw, ADDAw)	StdCASE(ADDAw, perform_state_ = Perform_np_nn)
 				Duplicate(SUBAl, ADDAl)	StdCASE(ADDAl, {
-					if(instruction_.mode(1) == Mode::AddressRegisterDirect) {
-						perform_state_ = Perform_np_nn;
-					} else {
-						switch(instruction_.mode(0)) {
-							default:
-								perform_state_ = Perform_np_n;
-							break;
-							case Mode::DataRegisterDirect:
-							case Mode::AddressRegisterDirect:
-							case Mode::ImmediateData:
-								perform_state_ = Perform_np_nn;
-							break;
-						}
+					switch(instruction_.mode(0)) {
+						default:
+							perform_state_ = Perform_np_n;
+						break;
+						case Mode::DataRegisterDirect:
+						case Mode::AddressRegisterDirect:
+						case Mode::ImmediateData:
+							perform_state_ = Perform_np_nn;
+						break;
 					}
 				})
 
@@ -2546,7 +2547,7 @@ template <bool did_overflow> void ProcessorBase::did_divu(uint32_t dividend, uin
 	}
 
 	if(did_overflow) {
-		dynamic_instruction_length_ = 3;	// Just a quick nn n, and then on to prefetch.
+		dynamic_instruction_length_ = 3;	// Covers the nn n to get into the loop.
 		return;
 	}
 
@@ -2555,13 +2556,15 @@ template <bool did_overflow> void ProcessorBase::did_divu(uint32_t dividend, uin
 	// since this is a classic divide algorithm, but would rather that
 	// errors produce incorrect timing only, not incorrect timing plus
 	// incorrect results.
-	dynamic_instruction_length_ = 3;	// Covers the nn n to get into the loop.
+	dynamic_instruction_length_ =
+		3 +		// nn n to get into the loop;
+		30 +	// nn per iteration of the loop below;
+		3;		// n nn upon completion of the loop.
 
 	divisor <<= 16;
 	for(int c = 0; c < 15; ++c) {
-		if(dividend & 0x80000000) {
+		if(dividend & 0x8000'0000) {
 			dividend = (dividend << 1) - divisor;
-			dynamic_instruction_length_ += 2;	// The fixed nn iteration cost.
 		} else {
 			dividend <<= 1;
 
@@ -2569,9 +2572,9 @@ template <bool did_overflow> void ProcessorBase::did_divu(uint32_t dividend, uin
 			// and test the sign of the result, but this is easier to follow:
 			if (dividend >= divisor) {
 				dividend -= divisor;
-				dynamic_instruction_length_ += 3;	// i.e. the original nn plus one further n before going down the MSB=0 route.
+				dynamic_instruction_length_ += 1;	// i.e. the original nn plus one further n before going down the MSB=0 route.
 			} else {
-				dynamic_instruction_length_ += 4;	// The costliest path (since in real life it's a subtraction and then a step
+				dynamic_instruction_length_ += 2;	// The costliest path (since in real life it's a subtraction and then a step
 				// back from there) — all costs accrue. So the fixed nn loop plus another n,
 				// plus another one.
 			}
@@ -2635,7 +2638,7 @@ template <bool did_overflow> void ProcessorBase::did_divs(int32_t dividend, int3
 template <typename IntT> void ProcessorBase::did_mulu(IntT multiplier) {
 	// Count number of bits set.
 	convert_to_bit_count_16(multiplier);
-	dynamic_instruction_length_ = multiplier;
+	dynamic_instruction_length_ = 17 + multiplier;
 }
 
 template <typename IntT> void ProcessorBase::did_muls(IntT multiplier) {
@@ -2644,13 +2647,17 @@ template <typename IntT> void ProcessorBase::did_muls(IntT multiplier) {
 	// Treat the bit to the right of b0 as 0.
 	int number_of_pairs = (multiplier ^ (multiplier << 1)) & 0xffff;
 	convert_to_bit_count_16(number_of_pairs);
-	dynamic_instruction_length_ = number_of_pairs;
+	dynamic_instruction_length_ = 17 + number_of_pairs;
 }
 
 #undef convert_to_bit_count_16
 
-void ProcessorBase::did_shift(int bits_shifted) {
-	dynamic_instruction_length_ = bits_shifted;
+template <typename IntT> void ProcessorBase::did_shift(int bits_shifted) {
+	if constexpr (sizeof(IntT) == 4) {
+		dynamic_instruction_length_ = bits_shifted + 2;
+	} else {
+		dynamic_instruction_length_ = bits_shifted + 1;
+	}
 }
 
 template <bool use_current_instruction_pc> void ProcessorBase::raise_exception(int vector) {
