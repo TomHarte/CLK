@@ -95,8 +95,7 @@ void DeferringAsyncTaskQueue::defer(std::function<void(void)> function) {
 
 void DeferringAsyncTaskQueue::perform() {
 	if(!deferred_tasks_) return;
-	auto deferred_tasks_raw = deferred_tasks_.release();
-	enqueue([deferred_tasks_raw] {
+	enqueue([deferred_tasks_raw = deferred_tasks_.release()] {
 		std::unique_ptr<std::list<std::function<void(void)>>> deferred_tasks(deferred_tasks_raw);
 		for(const auto &function : *deferred_tasks) {
 			function();
