@@ -870,7 +870,16 @@
 	XCTAssertEqual(state.registers.data[1], 0x1fffffff);
 	XCTAssertEqual(state.registers.supervisor_stack_pointer, initial_sp - 6);
 	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend);
-	XCTAssertEqual(44, self.machine->get_cycle_count());
+
+	// Total expected bus pattern:
+	//
+	// np | nn nn | nw nw nw np np np n np = 42 cycles
+	//
+	// Noted: Yacht shows a total of three nps for a DIVS #;
+	// I believe this is incorrect as it includes two in the
+	// '1st op (ea)' stage, but an immediate word causes
+	// only one elsewhere.
+	XCTAssertEqual(42, self.machine->get_cycle_count());
 
 	// Check stack contents; should be PC.l, PC.h and status register.
 	// Assumed: the program counter on the stack is that of the
