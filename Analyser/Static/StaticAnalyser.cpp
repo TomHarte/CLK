@@ -43,11 +43,12 @@
 #include "../../Storage/Disk/DiskImage/Formats/AppleDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/CPCDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/D64.hpp"
-#include "../../Storage/Disk/DiskImage/Formats/MacintoshIMG.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/G64.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/DMK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/FAT12.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/HFE.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/IPF.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/MacintoshIMG.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/MSA.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/NIB.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
@@ -103,8 +104,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 #define InsertInstance(list, instance, platforms) \
 	list.emplace_back(instance);\
 	potential_platforms |= platforms;\
-	TargetPlatform::TypeDistinguisher *distinguisher = dynamic_cast<TargetPlatform::TypeDistinguisher *>(list.back().get());\
-	if(distinguisher) potential_platforms &= distinguisher->target_platform_type(); \
+	TargetPlatform::TypeDistinguisher *const distinguisher = dynamic_cast<TargetPlatform::TypeDistinguisher *>(list.back().get());\
+	if(distinguisher) potential_platforms &= distinguisher->target_platform_type();
 
 #define Insert(list, class, platforms, ...) \
 	InsertInstance(list, new Storage::class(__VA_ARGS__), platforms);
@@ -161,7 +162,11 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
 	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
 	Format("image", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
-	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::Enterprise)		// IMG (Enterprise/MS-DOS style)
+	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::Enterprise)			// IMG (Enterprise/MS-DOS style)
+	Format(	"ipf",
+			result.disks,
+			Disk::DiskImageHolder<Storage::Disk::IPF>,
+			TargetPlatform::Amiga | TargetPlatform::AtariST | TargetPlatform::AmstradCPC | TargetPlatform::ZXSpectrum)		// IPF
 	Format("msa", result.disks, Disk::DiskImageHolder<Storage::Disk::MSA>, TargetPlatform::AtariST)				// MSA
 	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)				// NIB
 	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// O
