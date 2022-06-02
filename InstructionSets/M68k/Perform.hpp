@@ -32,8 +32,11 @@ struct NullFlowController {
 	/// Indicates that a @c CHK was performed, along with whether the result @c was_under zero or @c was_over the source operand.
 	void did_chk([[maybe_unused]] bool was_under, [[maybe_unused]] bool was_over) {}
 
-	/// Indicates an in-register shift or roll occurred, providing the number of bits shifted by.
-	void did_shift([[maybe_unused]] int bit_count) {}
+	/// Indicates an in-register shift or roll occurred, providing the number of bits shifted by
+	/// and the type shifted.
+	///
+	/// @c IntT may be uint8_t, uint16_t or uint32_t.
+	template <typename IntT> void did_shift([[maybe_unused]] int bit_count) {}
 
 	/// Indicates that a @c DIVU was performed, providing the @c dividend and @c divisor.
 	/// If @c did_overflow is @c true then the divide ended in overflow.

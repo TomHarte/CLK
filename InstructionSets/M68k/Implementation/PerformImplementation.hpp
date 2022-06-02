@@ -828,14 +828,14 @@ template <
 	set_neg_zero(v, m);												\
 	status.overflow_flag = (Status::FlagT(value) ^ status.zero_result) & Status::FlagT(m);
 
-#define decode_shift_count()	\
+#define decode_shift_count(type)	\
 	int shift_count = src.l & 63;	\
-	flow_controller.did_shift(shift_count);
+	flow_controller.template did_shift<type>(shift_count);
 
 #define set_flags_w(t) set_flags(src.w, 0x8000, t)
 
 #define asl(destination, size)	{\
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination)); \
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -865,7 +865,7 @@ template <
 		case Operation::ASLl: asl(dest.l, 32); 	break;
 
 #define asr(destination, size)	{\
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -909,7 +909,7 @@ template <
 	status.carry_flag = value & (t);
 
 #define lsl(destination, size)	{\
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -933,7 +933,7 @@ template <
 		case Operation::LSLl: lsl(dest.l, 32); 	break;
 
 #define lsr(destination, size)	{\
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -957,7 +957,7 @@ template <
 		case Operation::LSRl: lsr(dest.l, 32); 	break;
 
 #define rol(destination, size)	{ \
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -985,7 +985,7 @@ template <
 		case Operation::ROLl: rol(dest.l, 32); 	break;
 
 #define ror(destination, size)	{ \
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -1013,7 +1013,7 @@ template <
 		case Operation::RORl: ror(dest.l, 32); 	break;
 
 #define roxl(destination, size)	{ \
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	\
 	shift_count %= (size + 1);	\
 	uint64_t compound = uint64_t(destination) | (status.extend_flag ? (1ull << size) : 0);	\
@@ -1037,7 +1037,7 @@ template <
 		case Operation::ROXLl: roxl(dest.l, 32); 	break;
 
 #define roxr(destination, size)	{ \
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	\
 	shift_count %= (size + 1);	\
 	uint64_t compound = uint64_t(destination) | (status.extend_flag ? (1ull << size) : 0);	\

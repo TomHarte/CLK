@@ -2650,8 +2650,12 @@ template <typename IntT> void ProcessorBase::did_muls(IntT multiplier) {
 
 #undef convert_to_bit_count_16
 
-void ProcessorBase::did_shift(int bits_shifted) {
-	dynamic_instruction_length_ = bits_shifted;
+template <typename IntT> void ProcessorBase::did_shift(int bits_shifted) {
+	if constexpr (sizeof(IntT) == 4) {
+		dynamic_instruction_length_ = bits_shifted + 2;
+	} else {
+		dynamic_instruction_length_ = bits_shifted + 1;
+	}
 }
 
 template <bool use_current_instruction_pc> void ProcessorBase::raise_exception(int vector) {
