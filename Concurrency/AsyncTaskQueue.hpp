@@ -87,6 +87,11 @@ class DeferringAsyncTaskQueue: public AsyncTaskQueue {
 		*/
 		void perform();
 
+		/*!
+			Blocks the caller until all previously-enqueud functions have completed.
+		*/
+		void flush();
+
 	private:
 		// TODO: this is a shared_ptr because of the issues capturing moveables in C++11;
 		// switch to a unique_ptr if/when adapting to C++14
