@@ -53,7 +53,7 @@ void Executor<model, BusHandler>::signal_bus_error(FunctionCode code, uint32_t a
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::set_interrupt_level(int level) {
 	state_.interrupt_input_ = level;
-	state_.stopped &= state_.interrupt_input_ <= state_.status.interrupt_level;
+	state_.stopped &= !state_.status.would_accept_interrupt(level);
 }
 
 template <Model model, typename BusHandler>
@@ -102,8 +102,8 @@ void Executor<model, BusHandler>::run_for_instructions(int count) {
 }
 
 template <Model model, typename BusHandler>
-typename Executor<model, BusHandler>::Registers Executor<model, BusHandler>::get_state() {
-	Registers result;
+RegisterSet Executor<model, BusHandler>::get_state() {
+	RegisterSet result;
 
 	for(int c = 0; c < 8; c++) {
 		result.data[c] = Dn(c).l;
@@ -122,7 +122,7 @@ typename Executor<model, BusHandler>::Registers Executor<model, BusHandler>::get
 }
 
 template <Model model, typename BusHandler>
-void Executor<model, BusHandler>::set_state(const Registers &state) {
+void Executor<model, BusHandler>::set_state(const RegisterSet &state) {
 	for(int c = 0; c < 8; c++) {
 		Dn(c).l = state.data[c];
 	}
@@ -205,8 +205,8 @@ uint32_t Executor<model, BusHandler>::State::index_8bitdisplacement() {
 	// also include the scale field even if not.
 	const auto extension = read_pc<uint16_t>();
 	const auto offset = int8_t(extension);
-	const int register_index = (extension >> 12) & 7;
-	const uint32_t displacement = registers[register_index + ((extension >> 12) & 0x08)].l;
+	const int register_index = (extension >> 12) & 15;
+	const uint32_t displacement = registers[register_index].l;
 	const uint32_t sized_displacement = (extension & 0x800) ? displacement : int16_t(displacement);
 	return offset + sized_displacement;
 }
@@ -324,7 +324,7 @@ template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::State::run(int &count) {
 	while(count--) {
 		// Check for a new interrupt.
-		if(interrupt_input > status.interrupt_level) {
+		if(status.would_accept_interrupt(interrupt_input)) {
 			const int vector = bus_handler_.acknowlege_interrupt(interrupt_input);
 			if(vector >= 0) {
 				raise_exception<false>(vector);
@@ -483,7 +483,7 @@ template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::State::bsr(uint32_t offset) {
 	sp.l -= 4;
 	write<uint32_t>(sp.l, program_counter.l);
-	program_counter.l = instruction_address + offset;
+	program_counter.l = instruction_address + offset + 2;
 }
 
 template <Model model, typename BusHandler>

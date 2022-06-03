@@ -49,7 +49,7 @@
 	[self performBccb:0x6200];
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x1008 + 4);
+	XCTAssertEqual(state.registers.program_counter, 0x1008 + 4);
 	XCTAssertEqual(_machine->get_cycle_count(), 10);
 }
 
@@ -57,7 +57,7 @@
 	[self performBccb:0x6500];
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x1002 + 4);
+	XCTAssertEqual(state.registers.program_counter, 0x1002 + 4);
 	XCTAssertEqual(_machine->get_cycle_count(), 8);
 }
 
@@ -65,7 +65,7 @@
 	[self performBccw:0x6200];
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x1008 + 4);
+	XCTAssertEqual(state.registers.program_counter, 0x1008 + 4);
 	XCTAssertEqual(_machine->get_cycle_count(), 10);
 }
 
@@ -73,7 +73,7 @@
 	[self performBccw:0x6500];
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x1004 + 4);
+	XCTAssertEqual(state.registers.program_counter, 0x1004 + 4);
 	XCTAssertEqual(_machine->get_cycle_count(), 12);
 }
 
@@ -87,7 +87,7 @@
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x1006 + 4);
+	XCTAssertEqual(state.registers.program_counter, 0x1006 + 4);
 	XCTAssertEqual(_machine->get_cycle_count(), 10);
 }
 
@@ -99,7 +99,7 @@
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x1006 + 4);
+	XCTAssertEqual(state.registers.program_counter, 0x1006 + 4);
 	XCTAssertEqual(_machine->get_cycle_count(), 10);
 }
 
@@ -108,15 +108,14 @@
 - (void)testBSRw {
 	_machine->set_program({
 		0x6100, 0x0006		// BSR.w $1008
-	});
-	_machine->set_initial_stack_pointer(0x3000);
+	}, 0x3000);
 
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x1008 + 4);
-	XCTAssertEqual(state.stack_pointer(), 0x2ffc);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(state.registers.program_counter, 0x1008 + 4);
+	XCTAssertEqual(state.registers.stack_pointer(), 0x2ffc);
+	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, 0);
 	XCTAssertEqual(*_machine->ram_at(0x2ffc), 0);
 	XCTAssertEqual(*_machine->ram_at(0x2ffe), 0x1004);
 
@@ -126,15 +125,14 @@
 - (void)testBSRb {
 	_machine->set_program({
 		0x6106		// BSR.b $1008
-	});
-	_machine->set_initial_stack_pointer(0x3000);
+	}, 0x3000);
 
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x1008 + 4);
-	XCTAssertEqual(state.stack_pointer(), 0x2ffc);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(state.registers.program_counter, 0x1008 + 4);
+	XCTAssertEqual(state.registers.stack_pointer(), 0x2ffc);
+	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, 0);
 	XCTAssertEqual(*_machine->ram_at(0x2ffc), 0);
 	XCTAssertEqual(*_machine->ram_at(0x2ffe), 0x1002);
 
@@ -146,56 +144,61 @@
 - (void)performCHKd1:(uint32_t)d1 d2:(uint32_t)d2 {
 	_machine->set_program({
 		0x4581		// CHK D1, D2
+	}, 0);
+	_machine->set_registers([=](auto &registers) {
+		registers.data[1] = d1;
+		registers.data[2] = d2;
+		registers.status |= ConditionCode::AllConditions;
 	});
-	auto state = _machine->get_processor_state();
-	state.data[1] = d1;
-	state.data[2] = d2;
-	state.status |= Flag::ConditionCodes;
-
-	_machine->set_initial_stack_pointer(0);
-	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
 
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[1], d1);
-	XCTAssertEqual(state.data[2], d2);
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.registers.data[1], d1);
+	XCTAssertEqual(state.registers.data[2], d2);
 }
 
+// Re: CHK, below; the final state of N is undocumented if Dn >= 0 and Dn < <ea>.
+// Z, V and C are also undocumented by Motorola, but are documneted by 68knotes.txt.
+
 - (void)testCHK_1111v1111 {
-	[self performCHKd1:0x1111 d2:0x1111];
+	[self performCHKd1:0x1111 d2:0x1111];		// Neither exception-generating state applies.
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x1002 + 4);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
+	XCTAssertEqual(state.registers.program_counter, 0x1002 + 4);
+	XCTAssertEqual(
+		state.registers.status & (ConditionCode::Extend | ConditionCode::Zero | ConditionCode::Overflow | ConditionCode::Carry),
+		ConditionCode::Extend);
 	XCTAssertEqual(10, _machine->get_cycle_count());
 }
 
 - (void)testCHK_1111v0000 {
-	[self performCHKd1:0x1111 d2:0x0000];
+	[self performCHKd1:0x1111 d2:0x0000];		// Neither exception-generating state applies.
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x1002 + 4);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Zero);
+	XCTAssertEqual(state.registers.program_counter, 0x1002 + 4);
+	XCTAssertEqual(
+		state.registers.status & (ConditionCode::Extend | ConditionCode::Zero | ConditionCode::Overflow | ConditionCode::Carry),
+		ConditionCode::Extend | ConditionCode::Zero);
 	XCTAssertEqual(10, _machine->get_cycle_count());
 }
 
 - (void)testCHK_8000v8001 {
-	[self performCHKd1:0x8000 d2:0x8001];
+	[self performCHKd1:0x8000 d2:0x8001];		// Both less than 0 and D2 greater than D1.
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertNotEqual(state.program_counter, 0x1002 + 4);
-	XCTAssertEqual(state.stack_pointer(), 0xfffffffa);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
-	XCTAssertEqual(42, _machine->get_cycle_count());
+	XCTAssertNotEqual(state.registers.program_counter, 0x1002 + 4);
+	XCTAssertEqual(state.registers.stack_pointer(), 0xfffffffa);
+	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Negative);
+	XCTAssertEqual(38, _machine->get_cycle_count());
 }
 
 - (void)testCHK_8000v8000 {
-	[self performCHKd1:0x8000 d2:0x8000];
+	[self performCHKd1:0x8000 d2:0x8000];		// Less than 0.
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertNotEqual(state.program_counter, 0x1002 + 4);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
-	XCTAssertEqual(44, _machine->get_cycle_count());
+	XCTAssertNotEqual(state.registers.program_counter, 0x1002 + 4);
+	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Negative);
+	XCTAssertEqual(40, _machine->get_cycle_count());
 }
 
 // MARK: DBcc
@@ -204,16 +207,15 @@
 	_machine->set_program({
 		opcode, 0x0008		// DBcc D2, +8
 	});
-	auto state = _machine->get_processor_state();
-	state.status = status;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
+	_machine->set_registers([=](auto &registers) {
+			registers.status = status;
+			registers.data[2] = 1;
+	});
 	_machine->run_for_instructions(1);
 
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], d2Output);
-	XCTAssertEqual(state.status, status);
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.registers.data[2], d2Output);
+	XCTAssertEqual(state.registers.status, status);
 }
 
 - (void)testDBT {
@@ -229,27 +231,27 @@
 }
 
 - (void)testDBHI_Carry {
-	[self performDBccTestOpcode:0x52ca status:Flag::Carry d2Outcome:0];
+	[self performDBccTestOpcode:0x52ca status:ConditionCode::Carry d2Outcome:0];
 }
 
 - (void)testDBHI_Zero {
-	[self performDBccTestOpcode:0x52ca status:Flag::Zero d2Outcome:0];
+	[self performDBccTestOpcode:0x52ca status:ConditionCode::Zero d2Outcome:0];
 }
 
 - (void)testDBLS_CarryOverflow {
-	[self performDBccTestOpcode:0x53ca status:Flag::Carry | Flag::Overflow d2Outcome:1];
+	[self performDBccTestOpcode:0x53ca status:ConditionCode::Carry | ConditionCode::Overflow d2Outcome:1];
 }
 
 - (void)testDBLS_Carry {
-	[self performDBccTestOpcode:0x53ca status:Flag::Carry d2Outcome:1];
+	[self performDBccTestOpcode:0x53ca status:ConditionCode::Carry d2Outcome:1];
 }
 
 - (void)testDBLS_Overflow {
-	[self performDBccTestOpcode:0x53ca status:Flag::Overflow d2Outcome:0];
+	[self performDBccTestOpcode:0x53ca status:ConditionCode::Overflow d2Outcome:0];
 }
 
 - (void)testDBCC_Carry {
-	[self performDBccTestOpcode:0x54ca status:Flag::Carry d2Outcome:0];
+	[self performDBccTestOpcode:0x54ca status:ConditionCode::Carry d2Outcome:0];
 }
 
 - (void)testDBCC {
@@ -261,7 +263,7 @@
 }
 
 - (void)testDBCS_Carry {
-	[self performDBccTestOpcode:0x55ca status:Flag::Carry d2Outcome:1];
+	[self performDBccTestOpcode:0x55ca status:ConditionCode::Carry d2Outcome:1];
 }
 
 - (void)testDBNE {
@@ -269,7 +271,7 @@
 }
 
 - (void)testDBNE_Zero {
-	[self performDBccTestOpcode:0x56ca status:Flag::Zero d2Outcome:0];
+	[self performDBccTestOpcode:0x56ca status:ConditionCode::Zero d2Outcome:0];
 }
 
 - (void)testDBEQ {
@@ -277,7 +279,7 @@
 }
 
 - (void)testDBEQ_Zero {
-	[self performDBccTestOpcode:0x57ca status:Flag::Zero d2Outcome:1];
+	[self performDBccTestOpcode:0x57ca status:ConditionCode::Zero d2Outcome:1];
 }
 
 - (void)testDBVC {
@@ -285,7 +287,7 @@
 }
 
 - (void)testDBVC_Overflow {
-	[self performDBccTestOpcode:0x58ca status:Flag::Overflow d2Outcome:0];
+	[self performDBccTestOpcode:0x58ca status:ConditionCode::Overflow d2Outcome:0];
 }
 
 - (void)testDBVS {
@@ -293,7 +295,7 @@
 }
 
 - (void)testDBVS_Overflow {
-	[self performDBccTestOpcode:0x59ca status:Flag::Overflow d2Outcome:1];
+	[self performDBccTestOpcode:0x59ca status:ConditionCode::Overflow d2Outcome:1];
 }
 
 - (void)testDBPL {
@@ -301,7 +303,7 @@
 }
 
 - (void)testDBPL_Negative {
-	[self performDBccTestOpcode:0x5aca status:Flag::Negative d2Outcome:0];
+	[self performDBccTestOpcode:0x5aca status:ConditionCode::Negative d2Outcome:0];
 }
 
 - (void)testDBMI {
@@ -309,11 +311,11 @@
 }
 
 - (void)testDBMI_Negative {
-	[self performDBccTestOpcode:0x5bca status:Flag::Negative d2Outcome:1];
+	[self performDBccTestOpcode:0x5bca status:ConditionCode::Negative d2Outcome:1];
 }
 
 - (void)testDBGE_NegativeOverflow {
-	[self performDBccTestOpcode:0x5cca status:Flag::Negative | Flag::Overflow d2Outcome:1];
+	[self performDBccTestOpcode:0x5cca status:ConditionCode::Negative | ConditionCode::Overflow d2Outcome:1];
 }
 
 - (void)testDBGE {
@@ -321,15 +323,15 @@
 }
 
 - (void)testDBGE_Negative {
-	[self performDBccTestOpcode:0x5cca status:Flag::Negative d2Outcome:0];
+	[self performDBccTestOpcode:0x5cca status:ConditionCode::Negative d2Outcome:0];
 }
 
 - (void)testDBGE_Overflow {
-	[self performDBccTestOpcode:0x5cca status:Flag::Overflow d2Outcome:0];
+	[self performDBccTestOpcode:0x5cca status:ConditionCode::Overflow d2Outcome:0];
 }
 
 - (void)testDBLT_NegativeOverflow {
-	[self performDBccTestOpcode:0x5dca status:Flag::Negative | Flag::Overflow d2Outcome:0];
+	[self performDBccTestOpcode:0x5dca status:ConditionCode::Negative | ConditionCode::Overflow d2Outcome:0];
 }
 
 - (void)testDBLT {
@@ -337,11 +339,11 @@
 }
 
 - (void)testDBLT_Negative {
-	[self performDBccTestOpcode:0x5dca status:Flag::Negative d2Outcome:1];
+	[self performDBccTestOpcode:0x5dca status:ConditionCode::Negative d2Outcome:1];
 }
 
 - (void)testDBLT_Overflow {
-	[self performDBccTestOpcode:0x5dca status:Flag::Overflow d2Outcome:1];
+	[self performDBccTestOpcode:0x5dca status:ConditionCode::Overflow d2Outcome:1];
 }
 
 - (void)testDBGT {
@@ -349,15 +351,15 @@
 }
 
 - (void)testDBGT_ZeroNegativeOverflow {
-	[self performDBccTestOpcode:0x5eca status:Flag::Zero | Flag::Negative | Flag::Overflow d2Outcome:0];
+	[self performDBccTestOpcode:0x5eca status:ConditionCode::Zero | ConditionCode::Negative | ConditionCode::Overflow d2Outcome:0];
 }
 
 - (void)testDBGT_NegativeOverflow {
-	[self performDBccTestOpcode:0x5eca status:Flag::Negative | Flag::Overflow d2Outcome:1];
+	[self performDBccTestOpcode:0x5eca status:ConditionCode::Negative | ConditionCode::Overflow d2Outcome:1];
 }
 
 - (void)testDBGT_Zero {
-	[self performDBccTestOpcode:0x5eca status:Flag::Zero d2Outcome:0];
+	[self performDBccTestOpcode:0x5eca status:ConditionCode::Zero d2Outcome:0];
 }
 
 - (void)testDBLE {
@@ -365,15 +367,15 @@
 }
 
 - (void)testDBLE_Zero {
-	[self performDBccTestOpcode:0x5fca status:Flag::Zero d2Outcome:1];
+	[self performDBccTestOpcode:0x5fca status:ConditionCode::Zero d2Outcome:1];
 }
 
 - (void)testDBLE_Negative {
-	[self performDBccTestOpcode:0x5fca status:Flag::Negative d2Outcome:1];
+	[self performDBccTestOpcode:0x5fca status:ConditionCode::Negative d2Outcome:1];
 }
 
 - (void)testDBLE_NegativeOverflow {
-	[self performDBccTestOpcode:0x5fca status:Flag::Negative | Flag::Overflow d2Outcome:0];
+	[self performDBccTestOpcode:0x5fca status:ConditionCode::Negative | ConditionCode::Overflow d2Outcome:0];
 }
 
 /* Further DBF tests omitted; they seemed to be duplicative, assuming I'm not suffering a failure of comprehension. */
@@ -385,15 +387,14 @@
 		0x4ed1		// JMP (A1)
 	});
 
-	auto state = _machine->get_processor_state();
-	state.address[1] = 0x3000;
-
-	_machine->set_processor_state(state);
+	_machine->set_registers([=](auto &registers) {
+		registers.address[1] = 0x3000;
+	});
 	_machine->run_for_instructions(1);
 
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.address[1], 0x3000);
-	XCTAssertEqual(state.program_counter, 0x3000 + 4);
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.registers.address[1], 0x3000);
+	XCTAssertEqual(state.registers.program_counter, 0x3000 + 4);
 	XCTAssertEqual(8, _machine->get_cycle_count());
 }
 
@@ -405,7 +406,7 @@
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x100c + 4);
+	XCTAssertEqual(state.registers.program_counter, 0x100c + 4);
 	XCTAssertEqual(10, _machine->get_cycle_count());
 }
 
@@ -414,14 +415,13 @@
 - (void)testJSR_PC {
 	_machine->set_program({
 		0x4eba, 0x000a		// JSR (+a)PC		; JSR to $100c
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.stack_pointer(), 0x1ffc);
-	XCTAssertEqual(state.program_counter, 0x100c + 4);
+	XCTAssertEqual(state.registers.stack_pointer(), 0x1ffc);
+	XCTAssertEqual(state.registers.program_counter, 0x100c + 4);
 	XCTAssertEqual(*_machine->ram_at(0x1ffc), 0x0000);
 	XCTAssertEqual(*_machine->ram_at(0x1ffe), 0x1004);
 	XCTAssertEqual(18, _machine->get_cycle_count());
@@ -430,14 +430,13 @@
 - (void)testJSR_XXXl {
 	_machine->set_program({
 		0x4eb9, 0x0000, 0x1008		// JSR ($1008).l
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.stack_pointer(), 0x1ffc);
-	XCTAssertEqual(state.program_counter, 0x1008 + 4);
+	XCTAssertEqual(state.registers.stack_pointer(), 0x1ffc);
+	XCTAssertEqual(state.registers.program_counter, 0x1008 + 4);
 	XCTAssertEqual(*_machine->ram_at(0x1ffc), 0x0000);
 	XCTAssertEqual(*_machine->ram_at(0x1ffe), 0x1006);
 	XCTAssertEqual(20, _machine->get_cycle_count());
@@ -458,8 +457,7 @@
 - (void)testRTR {
 	_machine->set_program({
 		0x4e77		// RTR
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 	*_machine->ram_at(0x2000) = 0x7fff;
 	*_machine->ram_at(0x2002) = 0;
 	*_machine->ram_at(0x2004) = 0xc;
@@ -467,9 +465,9 @@
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.stack_pointer(), 0x2006);
-	XCTAssertEqual(state.program_counter, 0x10);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
+	XCTAssertEqual(state.registers.stack_pointer(), 0x2006);
+	XCTAssertEqual(state.registers.program_counter, 0x10);
+	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::AllConditions);
 	XCTAssertEqual(20, _machine->get_cycle_count());
 }
 
@@ -478,16 +476,15 @@
 - (void)testRTS {
 	_machine->set_program({
 		0x4e75		// RTS
-	});
-	_machine->set_initial_stack_pointer(0x2000);
+	}, 0x2000);
 	*_machine->ram_at(0x2000) = 0x0000;
 	*_machine->ram_at(0x2002) = 0x000c;
 
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.stack_pointer(), 0x2004);
-	XCTAssertEqual(state.program_counter, 0x000c + 4);
+	XCTAssertEqual(state.registers.stack_pointer(), 0x2004);
+	XCTAssertEqual(state.registers.program_counter, 0x000c + 4);
 	XCTAssertEqual(16, _machine->get_cycle_count());
 }
 
@@ -497,22 +494,21 @@
 	_machine->set_program({
 		0x4e41		// TRAP #1
 	});
-	auto state = _machine->get_processor_state();
-	state.status = 0x700;
-	state.user_stack_pointer = 0x200;
-	state.supervisor_stack_pointer = 0x206;
+	_machine->set_registers([=](auto &registers) {
+		registers.status = 0x700;
+		registers.user_stack_pointer = 0x200;
+		registers.supervisor_stack_pointer = 0x206;
+	});
 	*_machine->ram_at(0x84) = 0xfffe;
 	*_machine->ram_at(0xfffe) = 0x4e71;
-
-	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
 
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.status, 0x2700);
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.registers.status, 0x2700);
 	XCTAssertEqual(*_machine->ram_at(0x200), 0x700);
 	XCTAssertEqual(*_machine->ram_at(0x202), 0x0000);
 	XCTAssertEqual(*_machine->ram_at(0x204), 0x1002);
-	XCTAssertEqual(state.supervisor_stack_pointer, 0x200);
+	XCTAssertEqual(state.registers.supervisor_stack_pointer, 0x200);
 	XCTAssertEqual(34, _machine->get_cycle_count());
 }
 
@@ -521,21 +517,20 @@
 - (void)testTRAPV_taken {
 	_machine->set_program({
 		0x4e76		// TRAPV
-	});
-	_machine->set_initial_stack_pointer(0x206);
+	}, 0x206);
 
-	auto state = _machine->get_processor_state();
-	state.status = 0x702;
-	state.supervisor_stack_pointer = 0x206;
+	_machine->set_registers([=](auto &registers) {
+		registers.status = 0x702;
+		registers.supervisor_stack_pointer = 0x206;
+	});
 	*_machine->ram_at(0x1e) = 0xfffe;
 	*_machine->ram_at(0xfffe) = 0x4e71;
 
-	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
 
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.status, 0x2702);
-	XCTAssertEqual(state.stack_pointer(), 0x200);
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.registers.status, 0x2702);
+	XCTAssertEqual(state.registers.stack_pointer(), 0x200);
 	XCTAssertEqual(*_machine->ram_at(0x202), 0x0000);
 	XCTAssertEqual(*_machine->ram_at(0x204), 0x1002);
 	XCTAssertEqual(*_machine->ram_at(0x200), 0x702);
@@ -550,7 +545,7 @@
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.program_counter, 0x1002 + 4);
+	XCTAssertEqual(state.registers.program_counter, 0x1002 + 4);
 	XCTAssertEqual(4, _machine->get_cycle_count());
 }
 

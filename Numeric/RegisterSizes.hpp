@@ -72,6 +72,14 @@ template <> union SlicedInt<uint32_t> {
 #endif
 		uint8_t b;
 	};
+
+	struct {
+#if TARGET_RT_BIG_ENDIAN
+		SlicedInt<uint16_t> high, low;
+#else
+		SlicedInt<uint16_t> low, high;
+#endif
+	};
 };
 
 using SlicedInt16 = SlicedInt<uint16_t>;

@@ -1680,6 +1680,7 @@
 		4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZX8081.cpp; sourceTree = "<group>"; };
 		4BA0F68D1EEA0E8400E9489E /* ZX8081.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ZX8081.hpp; sourceTree = "<group>"; };
 		4BA141C12073100800A31EC9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
+		4BA3AE44283317CB00328FED /* RegisterSet.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RegisterSet.hpp; sourceTree = "<group>"; };
 		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
 		4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSData+StdVector.mm"; sourceTree = "<group>"; };
 		4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = MasterSystemVDPTests.mm; sourceTree = "<group>"; };
@@ -2065,6 +2066,9 @@
 		4BC9DF4D1D04691600F44158 /* 6560.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6560.cpp; sourceTree = "<group>"; };
 		4BC9DF4E1D04691600F44158 /* 6560.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6560.hpp; sourceTree = "<group>"; };
 		4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6502InterruptTests.swift; sourceTree = "<group>"; };
+		4BCA2F562832A643006C632A /* 68000Mk2.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Mk2.hpp; sourceTree = "<group>"; };
+		4BCA2F592832A807006C632A /* 68000Mk2Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Mk2Storage.hpp; sourceTree = "<group>"; };
+		4BCA2F5A2832A81C006C632A /* 68000Mk2Implementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 68000Mk2Implementation.hpp; sourceTree = "<group>"; };
 		4BCA6CC61D9DD9F000C2D7B2 /* CommodoreROM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommodoreROM.cpp; path = Encodings/CommodoreROM.cpp; sourceTree = "<group>"; };
 		4BCA6CC71D9DD9F000C2D7B2 /* CommodoreROM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CommodoreROM.hpp; path = Encodings/CommodoreROM.hpp; sourceTree = "<group>"; };
 		4BCA98C21D065CA20062F44C /* 6522.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6522.hpp; sourceTree = "<group>"; };
@@ -3218,6 +3222,7 @@
 				4B79629C2819681F008130F9 /* Instruction.hpp */,
 				4B79629D2819681F008130F9 /* Model.hpp */,
 				4BB5B996281B1E3F00522DA9 /* Perform.hpp */,
+				4BA3AE44283317CB00328FED /* RegisterSet.hpp */,
 				4BB5B997281B1F7B00522DA9 /* Status.hpp */,
 				4BB5B999281B244400522DA9 /* Implementation */,
 			);
@@ -4334,6 +4339,7 @@
 				4B4DEC15252BFA9C004583AC /* 6502Esque */,
 				4BF8D4CC251C0C9C00BBE21B /* 65816 */,
 				4BFF1D332233778C00838EA1 /* 68000 */,
+				4BCA2F552832A643006C632A /* 68000Mk2 */,
 				4B77069E1EC9045B0053B588 /* Z80 */,
 			);
 			name = Processors;
@@ -4559,6 +4565,24 @@
 				4BC9DF4E1D04691600F44158 /* 6560.hpp */,
 			);
 			path = 6560;
+			sourceTree = "<group>";
+		};
+		4BCA2F552832A643006C632A /* 68000Mk2 */ = {
+			isa = PBXGroup;
+			children = (
+				4BCA2F562832A643006C632A /* 68000Mk2.hpp */,
+				4BCA2F582832A807006C632A /* Implementation */,
+			);
+			path = 68000Mk2;
+			sourceTree = "<group>";
+		};
+		4BCA2F582832A807006C632A /* Implementation */ = {
+			isa = PBXGroup;
+			children = (
+				4BCA2F592832A807006C632A /* 68000Mk2Storage.hpp */,
+				4BCA2F5A2832A81C006C632A /* 68000Mk2Implementation.hpp */,
+			);
+			path = Implementation;
 			sourceTree = "<group>";
 		};
 		4BCA6CC91D9DD9F500C2D7B2 /* Encodings */ = {

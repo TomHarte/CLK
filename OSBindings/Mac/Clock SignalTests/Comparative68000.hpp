@@ -11,9 +11,9 @@
 
 #include <zlib.h>
 
-#include "68000.hpp"
+#include "68000Mk2.hpp"
 
-class ComparativeBusHandler: public CPU::MC68000::BusHandler {
+class ComparativeBusHandler: public CPU::MC68000Mk2::BusHandler {
 	public:
 		ComparativeBusHandler(const char *trace_name) {
 			trace = gzopen(trace_name, "rt");
@@ -30,14 +30,14 @@ class ComparativeBusHandler: public CPU::MC68000::BusHandler {
 			++line_count;
 
 			// Generate state locally.
-			const auto state = get_state();
+			const auto state = get_state().registers;
 			char local_state[300];
 			sprintf(local_state, "%04x: %02x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n",
 				address,
 				state.status,
 				state.data[0], state.data[1], state.data[2], state.data[3], state.data[4], state.data[5], state.data[6], state.data[7],
 				state.address[0], state.address[1], state.address[2], state.address[3], state.address[4], state.address[5], state.address[6],
-				(state.status & 0x2000) ? state.supervisor_stack_pointer : state.user_stack_pointer
+				state.stack_pointer()
 				);
 
 			// Check that the two coincide.
@@ -49,7 +49,7 @@ class ComparativeBusHandler: public CPU::MC68000::BusHandler {
 			}
 		}
 
-		virtual CPU::MC68000::ProcessorState get_state() = 0;
+		virtual CPU::MC68000Mk2::State get_state() = 0;
 
 	private:
 		int line_count = 0;

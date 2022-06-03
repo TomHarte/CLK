@@ -228,7 +228,7 @@ template <
 
 			status.zero_result = dest.l & bit_mask;
 			dest.l &= ~bit_mask;
-			flow_controller.did_bit_op(bit_position);
+			flow_controller.did_bit_op(int(bit_position));
 		} break;
 
 		case Operation::BCHG: {
@@ -236,7 +236,7 @@ template <
 
 			status.zero_result = dest.l & bit_mask;
 			dest.l ^= bit_mask;
-			flow_controller.did_bit_op(bit_position);
+			flow_controller.did_bit_op(int(bit_position));
 		} break;
 
 		case Operation::BSET: {
@@ -244,7 +244,7 @@ template <
 
 			status.zero_result = dest.l & bit_mask;
 			dest.l |= bit_mask;
-			flow_controller.did_bit_op(bit_position);
+			flow_controller.did_bit_op(int(bit_position));
 		} break;
 
 #undef get_mask
@@ -252,29 +252,29 @@ template <
 		case Operation::Bccb:
 			flow_controller.template complete_bcc<int8_t>(
 				status.evaluate_condition(instruction.condition()),
-				src.b);
+				int8_t(src.b));
 		break;
 
 		case Operation::Bccw:
 			flow_controller.template complete_bcc<int16_t>(
 				status.evaluate_condition(instruction.condition()),
-				src.w);
+				int16_t(src.w));
 		break;
 
 		case Operation::Bccl:
 			flow_controller.template complete_bcc<int32_t>(
 				status.evaluate_condition(instruction.condition()),
-				src.l);
+				int32_t(src.l));
 		break;
 
 		case Operation::BSRb:
-			flow_controller.bsr(int8_t(src.b) + 2);
+			flow_controller.bsr(uint32_t(int8_t(src.b)));
 		break;
 		case Operation::BSRw:
-			flow_controller.bsr(int16_t(src.w) + 2);
+			flow_controller.bsr(uint32_t(int16_t(src.w)));
 		break;
 		case Operation::BSRl:
-			flow_controller.bsr(src.l + 2);
+			flow_controller.bsr(src.l);
 		break;
 
 		case Operation::DBcc: {
@@ -294,9 +294,11 @@ template <
 				int16_t(dest.w));
 		} break;
 
-		case Operation::Scc:
-			src.b = status.evaluate_condition(instruction.condition()) ? 0xff : 0x00;
-		break;
+		case Operation::Scc: {
+			const bool condition = status.evaluate_condition(instruction.condition());
+			src.b = condition ? 0xff : 0x00;
+			flow_controller.did_scc(condition);
+		} break;
 
 		/*
 			CLRs: store 0 to the destination, set the zero flag, and clear
@@ -520,17 +522,18 @@ template <
 #define DIV(Type16, Type32, flow_function) {								\
 	status.carry_flag = 0;													\
 																			\
-	if(!src.w) {															\
+	const auto dividend = Type32(dest.l);									\
+	const auto divisor = Type32(Type16(src.w));								\
+																			\
+	if(!divisor) {															\
 		status.negative_flag = status.overflow_flag = 0;					\
 		status.zero_result = 1;												\
 		flow_controller.raise_exception(Exception::IntegerDivideByZero);	\
+		flow_controller.template flow_function<false>(dividend, divisor);	\
 		return;																\
 	}																		\
 																			\
-	const auto dividend = Type32(dest.l);									\
-	const auto divisor = Type32(Type16(src.w));								\
-	const auto quotient = dividend / divisor;								\
-																			\
+	const auto quotient = int64_t(dividend) / int64_t(divisor);				\
 	if(quotient != Type32(Type16(quotient))) {								\
 		status.overflow_flag = 1;											\
 		flow_controller.template flow_function<true>(dividend, divisor);	\
@@ -553,7 +556,7 @@ template <
 
 		// TRAP, which is a nicer form of ILLEGAL.
 		case Operation::TRAP:
-			flow_controller.template raise_exception<false>(src.l + Exception::TrapBase);
+			flow_controller.template raise_exception<false>(int(src.l + Exception::TrapBase));
 		break;
 
 		case Operation::TRAPV: {
@@ -678,7 +681,7 @@ template <
 		*/
 
 		case Operation::LINKw:
-			flow_controller.link(instruction, int16_t(dest.w));
+			flow_controller.link(instruction, uint32_t(int16_t(dest.w)));
 		break;
 
 		case Operation::UNLINK:
@@ -825,14 +828,14 @@ template <
 	set_neg_zero(v, m);												\
 	status.overflow_flag = (Status::FlagT(value) ^ status.zero_result) & Status::FlagT(m);
 
-#define decode_shift_count()	\
+#define decode_shift_count(type)	\
 	int shift_count = src.l & 63;	\
-	flow_controller.did_shift(shift_count);
+	flow_controller.template did_shift<type>(shift_count);
 
 #define set_flags_w(t) set_flags(src.w, 0x8000, t)
 
 #define asl(destination, size)	{\
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination)); \
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -862,7 +865,7 @@ template <
 		case Operation::ASLl: asl(dest.l, 32); 	break;
 
 #define asr(destination, size)	{\
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -906,7 +909,7 @@ template <
 	status.carry_flag = value & (t);
 
 #define lsl(destination, size)	{\
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -930,7 +933,7 @@ template <
 		case Operation::LSLl: lsl(dest.l, 32); 	break;
 
 #define lsr(destination, size)	{\
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -954,7 +957,7 @@ template <
 		case Operation::LSRl: lsr(dest.l, 32); 	break;
 
 #define rol(destination, size)	{ \
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -982,7 +985,7 @@ template <
 		case Operation::ROLl: rol(dest.l, 32); 	break;
 
 #define ror(destination, size)	{ \
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	const auto value = destination;	\
 	\
 	if(!shift_count) {	\
@@ -1010,7 +1013,7 @@ template <
 		case Operation::RORl: ror(dest.l, 32); 	break;
 
 #define roxl(destination, size)	{ \
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	\
 	shift_count %= (size + 1);	\
 	uint64_t compound = uint64_t(destination) | (status.extend_flag ? (1ull << size) : 0);	\
@@ -1034,7 +1037,7 @@ template <
 		case Operation::ROXLl: roxl(dest.l, 32); 	break;
 
 #define roxr(destination, size)	{ \
-	decode_shift_count();	\
+	decode_shift_count(decltype(destination));	\
 	\
 	shift_count %= (size + 1);	\
 	uint64_t compound = uint64_t(destination) | (status.extend_flag ? (1ull << size) : 0);	\

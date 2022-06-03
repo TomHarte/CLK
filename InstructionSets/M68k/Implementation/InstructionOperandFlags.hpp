@@ -12,7 +12,7 @@
 namespace InstructionSet {
 namespace M68k {
 
-template <Model model, Operation t_operation> uint8_t operand_flags(Operation r_operation) {
+template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Operation r_operation) {
 	switch((t_operation != Operation::Undefined) ? t_operation : r_operation) {
 		default:
 			assert(false);
@@ -24,8 +24,6 @@ template <Model model, Operation t_operation> uint8_t operand_flags(Operation r_
 		case Operation::PEA:
 		case Operation::JMP:		case Operation::JSR:
 		case Operation::MOVEPw:		case Operation::MOVEPl:
-		case Operation::MOVEMtoMw:	case Operation::MOVEMtoMl:
-		case Operation::MOVEMtoRw:	case Operation::MOVEMtoRl:
 		case Operation::TAS:
 		case Operation::RTR:		case Operation::RTS:		case Operation::RTE:
 			return 0;
@@ -40,13 +38,14 @@ template <Model model, Operation t_operation> uint8_t operand_flags(Operation r_
 		case Operation::Bccb:		case Operation::Bccw:		case Operation::Bccl:
 		case Operation::BSRb:		case Operation::BSRw:		case Operation::BSRl:
 		case Operation::TSTb:		case Operation::TSTw:		case Operation::TSTl:
+		case Operation::MOVEMtoMw:	case Operation::MOVEMtoMl:
+		case Operation::MOVEMtoRw:	case Operation::MOVEMtoRl:
 			return FetchOp1;
 
 		//
 		//	Single-operand write.
 		//
-		case Operation::MOVEfromSR:	case Operation::MOVEfromUSP:
-		case Operation::Scc:
+		case Operation::MOVEfromUSP:
 			return StoreOp1;
 
 		//
@@ -63,11 +62,13 @@ template <Model model, Operation t_operation> uint8_t operand_flags(Operation r_
 		case Operation::LSLm:		case Operation::LSRm:
 		case Operation::ROLm:		case Operation::RORm:
 		case Operation::ROXLm:		case Operation::ROXRm:
+		case Operation::Scc:
 			return FetchOp1 | StoreOp1;
 
 		//
-		//	CLR, which is model-dependent.
+		//	CLR and MOVE SR, which are model-dependent.
 		//
+		case Operation::MOVEfromSR:
 		case Operation::CLRb:	case Operation::CLRw:	case Operation::CLRl:
 			if constexpr (model == Model::M68000) {
 				return FetchOp1 | StoreOp1;

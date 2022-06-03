@@ -135,7 +135,8 @@ enum class DataSize {
 /// For any operations that don't fit the neat model of reading one or two operands,
 /// then writing zero or one, the size determines the data size of the operands only,
 /// not any other accesses.
-constexpr DataSize operand_size(Operation operation);
+template <Operation t_operation = Operation::Undefined>
+constexpr DataSize operand_size(Operation operation = Operation::Undefined);
 
 template <Operation t_op = Operation::Undefined>
 constexpr uint32_t quick(uint16_t instruction, Operation r_op = Operation::Undefined) {
@@ -165,7 +166,7 @@ static constexpr uint8_t StoreOp2	= (1 << 3);
 	Unusual bus sequences, such as TAS or MOVEM, are not described here.
 */
 template <Model model, Operation t_operation = Operation::Undefined>
-uint8_t operand_flags(Operation r_operation = Operation::Undefined);
+constexpr uint8_t operand_flags(Operation r_operation = Operation::Undefined);
 
 /// Lists the various condition codes used by the 680x0.
 enum class Condition {

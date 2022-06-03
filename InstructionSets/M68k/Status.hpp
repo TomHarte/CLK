@@ -22,6 +22,8 @@ static constexpr uint16_t Zero			= 1 << 2;
 static constexpr uint16_t Negative		= 1 << 3;
 static constexpr uint16_t Extend		= 1 << 4;
 
+static constexpr uint16_t AllConditions	= Carry | Overflow | Zero | Negative | Extend;
+
 static constexpr uint16_t Supervisor	= 1 << 13;
 static constexpr uint16_t Trace			= 1 << 15;
 
@@ -93,8 +95,25 @@ struct Status {
 		return is_supervisor;
 	}
 
+	/// Adjusts the status for exception processing — sets supervisor mode, disables trace,
+	/// and if @c new_interrupt_level is greater than or equal to 0 sets that as the new
+	/// interrupt level.
+	///
+	/// @returns The status prior to those changes.
+	uint16_t begin_exception(int new_interrupt_level = -1) {
+		const uint16_t initial_status = status();
+
+		if(new_interrupt_level >= 0) {
+			interrupt_level = new_interrupt_level;
+		}
+		is_supervisor = true;
+		trace_flag = 0;
+
+		return initial_status;
+	}
+
 	/// Evaluates @c condition.
-	bool evaluate_condition(Condition condition) {
+	constexpr bool evaluate_condition(Condition condition) const {
 		switch(condition) {
 			default:
 			case Condition::True:			return true;
@@ -118,6 +137,13 @@ struct Status {
 			case Condition::LessThanOrEqual:
 				return !zero_result || (negative_flag && !overflow_flag) || (!negative_flag && overflow_flag);
 		}
+	}
+
+	/// @returns @c true if an interrupt at level @c level should be accepted; @c false otherwise.
+	constexpr bool would_accept_interrupt(int level) const {
+		// TODO: is level seven really non-maskable? If so then what mechanism prevents
+		// rapid stack overflow upon a level-seven interrupt?
+		return level > interrupt_level;
 	}
 };
 
