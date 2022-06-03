@@ -14,6 +14,7 @@
 
 #include "../Disk.hpp"
 #include "../Track/Track.hpp"
+#include "../../TargetPlatforms.hpp"
 
 namespace Storage {
 namespace Disk {
@@ -86,8 +87,11 @@ class DiskImageHolderBase: public Disk {
 	Provides a wrapper that wraps a DiskImage to make it into a Disk, providing caching and,
 	thereby, an intermediate store for modified tracks so that mutable disk images can either
 	update on the fly or perform a block update on closure, as appropriate.
+
+	Implements TargetPlatform::TypeDistinguisher to return either no information whatsoever, if
+	the underlying image doesn't implement TypeDistinguisher, or else to pass the call along.
 */
-template <typename T> class DiskImageHolder: public DiskImageHolderBase {
+template <typename T> class DiskImageHolder: public DiskImageHolderBase, public TargetPlatform::TypeDistinguisher {
 	public:
 		template <typename... Ts> DiskImageHolder(Ts&&... args) :
 			disk_image_(args...) {}
@@ -103,6 +107,14 @@ template <typename T> class DiskImageHolder: public DiskImageHolderBase {
 
 	private:
 		T disk_image_;
+
+		TargetPlatform::Type target_platform_type() final {
+			if constexpr (std::is_base_of<TargetPlatform::TypeDistinguisher, T>::value) {
+				return static_cast<TargetPlatform::TypeDistinguisher *>(&disk_image_)->target_platform_type();
+			} else {
+				return TargetPlatform::Type(~0);
+			}
+		}
 };
 
 #include "DiskImageImplementation.hpp"

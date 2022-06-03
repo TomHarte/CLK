@@ -328,6 +328,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	exception_vector_ = x;					\
 	MoveToStateSpecific(StandardException);
 
+	// Copies the current program counter, adjusted to allow for the prefetch queue,
+	// into the instruction_address_ latch, which is the source of the value written
+	// during exceptions.
+#define ReloadInstructionAddress()	\
+	instruction_address_.l = program_counter_.l - 4
+
 	using Mode = InstructionSet::M68k::AddressingMode;
 
 	// Otherwise continue for all time, until back in debt.
@@ -348,7 +354,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(STOP):
 			IdleBus(1);
 			captured_interrupt_level_ = bus_interrupt_level_;
-			if(captured_interrupt_level_ > status_.interrupt_level) {
+			if(status_.would_accept_interrupt(captured_interrupt_level_)) {
 				MoveToStateSpecific(DoInterrupt);
 			}
 		MoveToStateSpecific(STOP);
@@ -429,11 +435,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// So the below is a cross-your-fingers guess based on the constraints
 			// that the information writen, from lowest address to highest is:
 			//
-			// 	R/W, I/N, function code word;		[at -2]
-			//	access address;						[-6]
+			// 	R/W, I/N, function code word;		[at -14]
+			//	access address;						[-12]
 			//	instruction register;				[-8]
-			//	status register;					[-10]
-			//	program counter.					[-14]
+			//	status register;					[-6]
+			//	program counter.					[-4]
 			//
 			// With the instruction register definitely being written before the
 			// function code word.
@@ -444,11 +450,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			//
 			// So, based on the hoopy ordering of a standard exception, maybe:
 			//
-			//	1) status register;
-			//	2) program counter;
-			//	3) instruction register;
-			//	4) function code;
-			//	5) access address?
+			//	1) program counter low;
+			//	2) captured state;
+			//	3) program counter high;
+			//	4) instruction register;
+			//	5) function code;
+			//	6) access address?
 
 			IdleBus(2);
 
@@ -460,33 +467,49 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetupDataAccess(0, Microcycle::SelectWord);
 			SetDataAddress(registers_[15].l);
 
-			registers_[15].l -= 10;
-			Access(captured_status_);			// ns
-
-			temporary_address_.l = program_counter_.l;
+			// Guess: the written program counter is adjusted to discount the prefetch queue.
+			// COMPLETE GUESS.
+			temporary_address_.l = program_counter_.l - 4;
 			registers_[15].l -= 2;
-			Access(temporary_address_.low);		// ns
+			Access(temporary_address_.low);		// ns	[pc.l]
 
-			registers_[15].l -= 2;
-			Access(temporary_address_.high);	// nS
+			registers_[15].l -= 4;
+			Access(captured_status_);			// ns	[sr]
 
-			registers_[15].l += 6;
+			registers_[15].l += 2;
+			Access(temporary_address_.high);	// nS	[pc.h]
+
+			registers_[15].l -= 4;
 			temporary_value_.w = opcode_;
-			Access(temporary_value_.low);		// ns
+			Access(temporary_value_.low);		// ns	[instruction register]
 
-			// TODO: construct the function code.
-			temporary_value_.w = (temporary_value_.w & ~31);
+			// Construct the function code; which is:
+			//
+			// b4: 1 = was a read; 0 = was a write;
+			// b3: 0 = was reading an instruction; 1 = wasn't;
+			// b2–b0: the regular 68000 function code;
+			// [all other bits]: left over from the instruction register write, above.
+			//
+			// I'm unable to come up with a reason why the function code isn't duplicative
+			// of b3, but given the repetition of supervisor state which is also in the
+			// captured status register I guess maybe it is just duplicative.
+			temporary_value_.w =
+				(temporary_value_.w & ~31) |
+				((bus_error_.operation & Microcycle::Read) ? 0x10 : 0x00) |
+				((bus_error_.operation & Microcycle::IsProgram) ? 0x08 : 0x00) |
+				((bus_error_.operation & Microcycle::IsProgram) ? 0x02 : 0x01) |
+				((captured_status_.w & InstructionSet::M68k::ConditionCode::Supervisor) ? 0x04 : 0x00);
 
-			registers_[15].l += 6;
-			Access(temporary_value_.low);		// ns
+			registers_[15].l -= 6;
+			Access(temporary_value_.low);		// ns	[function code]
 
 			temporary_address_.l = *bus_error_.address;
-			registers_[15].l -= 2;
-			Access(temporary_value_.low);		// ns
+			registers_[15].l += 4;
+			Access(temporary_address_.low);		// ns	[error address.l]
 
 			registers_[15].l -= 2;
-			Access(temporary_value_.high);		// nS
-			registers_[15].l -= 8;
+			Access(temporary_address_.high);	// nS	[error address.h]
+			registers_[15].l -= 2;
 
 			// Grab new program counter.
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
@@ -502,7 +525,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();			// np
 			IdleBus(1);			// n
 			Prefetch();			// np
-
 		MoveToStateSpecific(Decode);
 
 		// Acknowledge an interrupt, thereby obtaining an exception vector,
@@ -521,7 +543,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Push low part of program counter.
 			registers_[15].l -= 2;
-			Access(instruction_address_.low);			// ns
+			Access(instruction_address_.low);	// ns
 
 			// Do the interrupt cycle, to obtain a vector.
 			temporary_address_.l = 0xffff'fff1 | uint32_t(captured_interrupt_level_ << 1);
@@ -536,7 +558,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// TODO: if bus error is set, treat interrupt as spurious.
 
-			IdleBus(3);			// n- n
+			IdleBus(3);							// n- n
 
 			// Do the rest of the stack work.
 			SetupDataAccess(0, Microcycle::SelectWord);
@@ -554,10 +576,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(temporary_address_.l);
 
 			temporary_address_.l = uint32_t(temporary_value_.w << 2);
-			Access(program_counter_.high);	// nV
+			Access(program_counter_.high);		// nV
 
 			temporary_address_.l += 2;
-			Access(program_counter_.low);	// nv
+			Access(program_counter_.low);		// nv
 
 			// Populate the prefetch queue.
 			Prefetch();			// np
@@ -571,10 +593,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			CheckOverrun();
 
 			// Capture the address of the next instruction.
-			instruction_address_.l = program_counter_.l - 4;
+			ReloadInstructionAddress();
 
 			// Head off into an interrupt if one is found.
-			if(captured_interrupt_level_ > status_.interrupt_level) {
+			if(status_.would_accept_interrupt(captured_interrupt_level_)) {
 				MoveToStateSpecific(DoInterrupt);
 			}
 
@@ -1771,12 +1793,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(CHK_was_over):
 			IdleBus(2);			// nn
-			instruction_address_.l = program_counter_.l - 4;
+			ReloadInstructionAddress();
 		RaiseException(InstructionSet::M68k::Exception::CHK);
 
 		BeginState(CHK_was_under):
 			IdleBus(3);			// n nn
-			instruction_address_.l = program_counter_.l - 4;
+			ReloadInstructionAddress();
 		RaiseException(InstructionSet::M68k::Exception::CHK);
 
 		//
@@ -2485,6 +2507,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #undef CheckOverrun
 #undef Spend
 #undef ConsiderExit
+#undef ReloadInstructionAddress
 
 }
 

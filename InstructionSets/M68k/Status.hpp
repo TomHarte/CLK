@@ -113,7 +113,7 @@ struct Status {
 	}
 
 	/// Evaluates @c condition.
-	bool evaluate_condition(Condition condition) {
+	constexpr bool evaluate_condition(Condition condition) const {
 		switch(condition) {
 			default:
 			case Condition::True:			return true;
@@ -137,6 +137,13 @@ struct Status {
 			case Condition::LessThanOrEqual:
 				return !zero_result || (negative_flag && !overflow_flag) || (!negative_flag && overflow_flag);
 		}
+	}
+
+	/// @returns @c true if an interrupt at level @c level should be accepted; @c false otherwise.
+	constexpr bool would_accept_interrupt(int level) const {
+		// TODO: is level seven really non-maskable? If so then what mechanism prevents
+		// rapid stack overflow upon a level-seven interrupt?
+		return level > interrupt_level;
 	}
 };
 

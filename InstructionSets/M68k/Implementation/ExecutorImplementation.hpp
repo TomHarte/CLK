@@ -53,7 +53,7 @@ void Executor<model, BusHandler>::signal_bus_error(FunctionCode code, uint32_t a
 template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::set_interrupt_level(int level) {
 	state_.interrupt_input_ = level;
-	state_.stopped &= state_.interrupt_input_ <= state_.status.interrupt_level;
+	state_.stopped &= !state_.status.would_accept_interrupt(level);
 }
 
 template <Model model, typename BusHandler>
@@ -324,7 +324,7 @@ template <Model model, typename BusHandler>
 void Executor<model, BusHandler>::State::run(int &count) {
 	while(count--) {
 		// Check for a new interrupt.
-		if(interrupt_input > status.interrupt_level) {
+		if(status.would_accept_interrupt(interrupt_input)) {
 			const int vector = bus_handler_.acknowlege_interrupt(interrupt_input);
 			if(vector >= 0) {
 				raise_exception<false>(vector);

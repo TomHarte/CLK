@@ -276,6 +276,8 @@
 		4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B59199A1DAC6C46005BB85C /* OricTAP.cpp */; };
 		4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
 		4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
+		4B5B37312777C7FC0047F238 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
+		4B5B37322777C7FC0047F238 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
 		4B5D5C9725F56FC7001B4623 /* Spectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5D5C9525F56FC7001B4623 /* Spectrum.cpp */; };
 		4B5D5C9825F56FC7001B4623 /* Spectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5D5C9525F56FC7001B4623 /* Spectrum.cpp */; };
 		4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADB81DE3151600AEC565 /* FileHolder.cpp */; };
@@ -1393,6 +1395,8 @@
 		4B59199B1DAC6C46005BB85C /* OricTAP.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OricTAP.hpp; sourceTree = "<group>"; };
 		4B595FAB2086DFBA0083CAA8 /* AudioToggle.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AudioToggle.hpp; sourceTree = "<group>"; };
 		4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioToggle.cpp; sourceTree = "<group>"; };
+		4B5B372F2777C7FC0047F238 /* IPF.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IPF.cpp; sourceTree = "<group>"; };
+		4B5B37302777C7FC0047F238 /* IPF.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IPF.hpp; sourceTree = "<group>"; };
 		4B5D5C9525F56FC7001B4623 /* Spectrum.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Spectrum.cpp; path = Parsers/Spectrum.cpp; sourceTree = "<group>"; };
 		4B5D5C9625F56FC7001B4623 /* Spectrum.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Spectrum.hpp; path = Parsers/Spectrum.hpp; sourceTree = "<group>"; };
 		4B5FADB81DE3151600AEC565 /* FileHolder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FileHolder.cpp; sourceTree = "<group>"; };
@@ -2859,6 +2863,7 @@
 				4BEBFB4B2002C4BF000708CC /* FAT12.cpp */,
 				4B4518931F75FD1B00926311 /* G64.cpp */,
 				4B4518951F75FD1B00926311 /* HFE.cpp */,
+				4B5B372F2777C7FC0047F238 /* IPF.cpp */,
 				4BB4BFAE22A42F290069048D /* MacintoshIMG.cpp */,
 				4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */,
 				4BC131782346DF2B00E4FF3D /* MSA.cpp */,
@@ -2878,6 +2883,7 @@
 				4BEBFB4C2002C4BF000708CC /* FAT12.hpp */,
 				4B4518941F75FD1B00926311 /* G64.hpp */,
 				4B4518961F75FD1B00926311 /* HFE.hpp */,
+				4B5B37302777C7FC0047F238 /* IPF.hpp */,
 				4BB4BFAF22A42F290069048D /* MacintoshIMG.hpp */,
 				4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */,
 				4BC131792346DF2B00E4FF3D /* MSA.hpp */,
@@ -5550,6 +5556,7 @@
 				4B7962A22819681F008130F9 /* Decoder.cpp in Sources */,
 				4B055ACF1FAE9B030060FFFF /* SoundGenerator.cpp in Sources */,
 				4B4DEC08252BFA56004583AC /* 65816Base.cpp in Sources */,
+				4B5B37322777C7FC0047F238 /* IPF.cpp in Sources */,
 				4B894519201967B4007DE474 /* ConfidenceCounter.cpp in Sources */,
 				4B055AEE1FAE9BBF0060FFFF /* Keyboard.cpp in Sources */,
 				4B055AED1FAE9BA20060FFFF /* Z80Storage.cpp in Sources */,
@@ -5704,6 +5711,7 @@
 				4B89451E201967B4007DE474 /* Tape.cpp in Sources */,
 				4BAF2B4E2004580C00480230 /* DMK.cpp in Sources */,
 				4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */,
+				4B5B37312777C7FC0047F238 /* IPF.cpp in Sources */,
 				4B0ACC3023775819008902D0 /* TIASound.cpp in Sources */,
 				4B7136861F78724F008B8ED9 /* Encoder.cpp in Sources */,
 				4B0E04EA1FC9E5DA00F43484 /* CAS.cpp in Sources */,
