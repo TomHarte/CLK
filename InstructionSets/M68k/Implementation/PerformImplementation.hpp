@@ -533,7 +533,7 @@ template <
 		return;																\
 	}																		\
 																			\
-	const auto quotient = dividend / divisor;								\
+	const auto quotient = int64_t(dividend) / int64_t(divisor);				\
 	if(quotient != Type32(Type16(quotient))) {								\
 		status.overflow_flag = 1;											\
 		flow_controller.template flow_function<true>(dividend, divisor);	\
