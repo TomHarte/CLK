@@ -401,7 +401,9 @@ void IPF::add_unencoded_data(std::vector<Storage::Disk::PCMSegment> &track, Time
 	segment.length_of_a_bit = bit_length;
 
 	// Length appears to be in pre-encoded bits; double that to get encoded bits.
+#ifndef NDEBUG
 	const auto byte_length = (num_bits + 7) >> 3;
+#endif
 	segment.data.reserve(num_bits * 16);
 
 	auto encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
