@@ -354,7 +354,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(STOP):
 			IdleBus(1);
 			captured_interrupt_level_ = bus_interrupt_level_;
-			if(captured_interrupt_level_ > status_.interrupt_level) {
+			if(status_.would_accept_interrupt(captured_interrupt_level_)) {
 				MoveToStateSpecific(DoInterrupt);
 			}
 		MoveToStateSpecific(STOP);
@@ -596,7 +596,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			ReloadInstructionAddress();
 
 			// Head off into an interrupt if one is found.
-			if(captured_interrupt_level_ > status_.interrupt_level) {
+			if(status_.would_accept_interrupt(captured_interrupt_level_)) {
 				MoveToStateSpecific(DoInterrupt);
 			}
 
