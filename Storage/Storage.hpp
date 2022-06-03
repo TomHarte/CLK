@@ -33,6 +33,10 @@ struct Time {
 	Time(float value) {
 		install_float(value);
 	}
+	static constexpr Time simplified(unsigned int _length, unsigned int _clock_rate) {
+		const auto gcd = std::gcd(_length, _clock_rate);
+		return Time(_length / gcd, _clock_rate / gcd);
+	}
 
 	/*!
 		Reduces this @c Time to its simplest form; eliminates all common factors from @c length
