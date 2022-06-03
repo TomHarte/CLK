@@ -45454,7 +45454,7 @@
 	"4e73": "RTE",
 	"4e72": "STOP #",
 	"4e71": "NOP",
-	"4e70": "None",
+	"4e70": "RESET",
 	"4e6f": "MOVEfromUSP A7",
 	"4e6e": "MOVEfromUSP A6",
 	"4e6d": "MOVEfromUSP A5",

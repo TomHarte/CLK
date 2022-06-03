@@ -71,7 +71,7 @@ uint32_t operand_mask(AddressingMode mode1, AddressingMode mode2) {
 /// immediate operand.
 template <Model model>
 constexpr Operation Predecoder<model>::operation(OpT op) {
-	if(op < OpT(Operation::Max)) {
+	if(op <= OpT(Operation::Max)) {
 		return Operation(op);
 	}
 
@@ -445,6 +445,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::RTS):
 		case OpT(Operation::TRAPV):
 		case OpT(Operation::RTR):
+		case OpT(Operation::RESET):
 			return ~NoOperandMask::value;
 
 		case OpT(Operation::UNLINK):
