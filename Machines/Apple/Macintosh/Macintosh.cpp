@@ -50,6 +50,7 @@
 namespace {
 
 constexpr int CLOCK_RATE = 7833600;
+constexpr auto KEYBOARD_CLOCK_RATE = HalfCycles(CLOCK_RATE / 100000);
 
 
 //	Former default PRAM:
@@ -557,6 +558,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
 			// See: Guide to the Macintosh Hardware Family p149 (PDF p188). Some extra division
 			// may occur here in order to provide VSYNC at a proper moment.
+
 			// Possibly route vsync.
 			if(time_since_video_update_ < time_until_video_event_) {
 				via_clock_ += duration;
@@ -586,8 +588,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// The keyboard also has a clock, albeit a very slow one — 100,000 cycles/second.
 			// Its clock and data lines are connected to the VIA.
 			keyboard_clock_ += duration;
-			const auto keyboard_ticks = keyboard_clock_.divide(HalfCycles(CLOCK_RATE / 100000));
-			if(keyboard_ticks > HalfCycles(0)) {
+			if(keyboard_clock_ >= KEYBOARD_CLOCK_RATE) {
+				const auto keyboard_ticks = keyboard_clock_.divide(KEYBOARD_CLOCK_RATE);
 				keyboard_.run_for(keyboard_ticks);
 				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::Two, keyboard_.get_data());
 				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, keyboard_.get_clock());
