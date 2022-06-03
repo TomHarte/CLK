@@ -204,6 +204,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			auto address = cycle.host_endian_byte_address();
 
 			// Everything above E0 0000 is signalled as being on the peripheral bus.
+			//
+			// This will also act to autovector interrupts, since an interrupt acknowledge
+			// cycle posts an address with all the higher-order bits set, and VPA doubles
+			// as the input to request an autovector.
 			mc68000_.set_is_peripheral_address(address >= 0xe0'0000);
 
 			// All code below deals only with reads and writes — cycles in which a
@@ -235,18 +239,16 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						// VIA accesses are via address 0xefe1fe + register*512,
 						// which at word precision is 0x77f0ff + register*256.
 						if(cycle.operation & Microcycle::Read) {
-							cycle.value->b = via_.read(register_address);
-							if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
+							cycle.set_value8_high(via_.read(register_address));
 						} else {
-							via_.write(register_address, cycle.value->b);
+							via_.write(register_address, cycle.value8_high());
 						}
 					}
 				} return delay;
 
 				case BusDevice::PhaseRead: {
 					if(cycle.operation & Microcycle::Read) {
-						cycle.value->b = phase_ & 7;
-						if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
+						cycle.set_value8_low(phase_ & 7);
 					}
 				} return delay;
 
@@ -256,10 +258,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 						// The IWM; this is a purely polled device, so can be run on demand.
 						if(cycle.operation & Microcycle::Read) {
-							cycle.value->b = iwm_->read(register_address);
-							if(cycle.operation & Microcycle::SelectWord) cycle.value->w |= 0xff00;
+							cycle.set_value8_low(iwm_->read(register_address));
 						} else {
-							iwm_->write(register_address, cycle.value->b);
+							iwm_->write(register_address, cycle.value8_low());
 						}
 					} else {
 						fill_unmapped(cycle);
@@ -276,22 +277,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						if(cycle.operation & Microcycle::Read) {
 							scsi_.write(register_address, 0xff, dma_acknowledge);
 						} else {
-							if(cycle.operation & Microcycle::SelectWord) {
-								scsi_.write(register_address, cycle.value->w >> 8, dma_acknowledge);
-							} else {
-								scsi_.write(register_address, cycle.value->b, dma_acknowledge);
-							}
+							scsi_.write(register_address, cycle.value8_high());
 						}
 					} else {
 						// Even access => this is a read.
 						if(cycle.operation & Microcycle::Read) {
-							const auto result = scsi_.read(register_address, dma_acknowledge);
-							if(cycle.operation & Microcycle::SelectWord) {
-								// Data is loaded on the top part of the bus only.
-								cycle.value->w = uint16_t((result << 8) | 0xff);
-							} else {
-								cycle.value->b = result;
-							}
+							cycle.set_value8_high(scsi_.read(register_address, dma_acknowledge));
 						}
 					}
 				} return delay;
@@ -306,12 +297,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							scc_.reset();
 
 							if(cycle.operation & Microcycle::Read) {
-								cycle.value->b = 0xff;
+								cycle.set_value16(0xffff);
 							}
 						} else {
 							const auto read = scc_.read(int(address >> 1));
 							if(cycle.operation & Microcycle::Read) {
-								cycle.value->b = read;
+								cycle.set_value8_high(read);
 							}
 						}
 					}
@@ -322,6 +313,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					if(cycle.operation & Microcycle::SelectWord) {
 						adjust_phase();
 					} else {
+						// This is definitely a byte access; either it's to an odd address, in which
+						// case it will reach the SCC, or it isn't, in which case it won't.
 						if(*cycle.address & 1) {
 							if(cycle.operation & Microcycle::Read) {
 								scc_.write(int(address >> 1), 0xff);
@@ -365,23 +358,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			}
 
 			// If control has fallen through to here, the access is either a read from ROM, or a read or write to RAM.
-			switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
-				default:
-				break;
-
-				case Microcycle::SelectWord | Microcycle::Read:
-					cycle.value->w = *reinterpret_cast<uint16_t *>(&memory_base[address]);
-				break;
-				case Microcycle::SelectByte | Microcycle::Read:
-					cycle.value->b = memory_base[address];
-				break;
-				case Microcycle::SelectWord:
-					*reinterpret_cast<uint16_t *>(&memory_base[address]) = cycle.value->w;
-				break;
-				case Microcycle::SelectByte:
-					memory_base[address] = cycle.value->b;
-				break;
-			}
+			// Potential writes to ROM and all hardware accesses have already been weeded out.
+			cycle.apply(&memory_base[address]);
 
 			return delay;
 		}
