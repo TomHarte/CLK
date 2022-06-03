@@ -806,7 +806,9 @@
 
 	const auto state = self.machine->get_processor_state();
 	XCTAssertEqual(state.registers.data[1], 0x80000000);
-	XCTAssertEqual(state.registers.status & ConditionCode::AllConditions, ConditionCode::Extend | ConditionCode::Negative | ConditionCode::Overflow);
+	XCTAssertEqual(
+		state.registers.status & (ConditionCode::Extend | ConditionCode::Overflow | ConditionCode::Carry),
+		ConditionCode::Extend | ConditionCode::Overflow);
 	XCTAssertEqual(158, self.machine->get_cycle_count());
 }
 
