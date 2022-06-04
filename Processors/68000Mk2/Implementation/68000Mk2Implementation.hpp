@@ -318,9 +318,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	// Reads one futher word from the program counter and inserts it into
 	// the prefetch queue.
 #define Prefetch()										\
-	captured_interrupt_level_ = bus_interrupt_level_;	\
 	prefetch_.high = prefetch_.low;						\
-	ReadProgramWord(prefetch_.low)
+	ReadProgramWord(prefetch_.low)						\
+	captured_interrupt_level_ = bus_interrupt_level_;
 
 	// Raises the exception with integer vector x — x is the vector identifier,
 	// not its address.

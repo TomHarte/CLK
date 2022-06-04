@@ -50,6 +50,7 @@
 namespace {
 
 constexpr int CLOCK_RATE = 7833600;
+constexpr auto KEYBOARD_CLOCK_RATE = HalfCycles(CLOCK_RATE / 100000);
 
 
 //	Former default PRAM:
@@ -73,7 +74,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public MachineTypes::MediaTarget,
 	public MachineTypes::MouseMachine,
 	public MachineTypes::MappedKeyboardMachine,
-	public CPU::MC68000::BusHandler,
+	public CPU::MC68000Mk2::BusHandler,
 	public Zilog::SCC::z8530::Delegate,
 	public Activity::Source,
 	public Configurable::Device,
@@ -191,9 +192,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			mc68000_.run_for(cycles);
 		}
 
-		using Microcycle = CPU::MC68000::Microcycle;
+		using Microcycle = CPU::MC68000Mk2::Microcycle;
 
-		forceinline HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
+		HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			// Advance time.
 			advance_time(cycle.length);
 
@@ -204,6 +205,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			auto address = cycle.host_endian_byte_address();
 
 			// Everything above E0 0000 is signalled as being on the peripheral bus.
+			//
+			// This will also act to autovector interrupts, since an interrupt acknowledge
+			// cycle posts an address with all the higher-order bits set, and VPA doubles
+			// as the input to request an autovector.
 			mc68000_.set_is_peripheral_address(address >= 0xe0'0000);
 
 			// All code below deals only with reads and writes — cycles in which a
@@ -235,21 +240,17 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						// VIA accesses are via address 0xefe1fe + register*512,
 						// which at word precision is 0x77f0ff + register*256.
 						if(cycle.operation & Microcycle::Read) {
-							cycle.value->halves.low = via_.read(register_address);
+							cycle.set_value8_high(via_.read(register_address));
 						} else {
-							via_.write(register_address, cycle.value->halves.low);
+							via_.write(register_address, cycle.value8_high());
 						}
-
-						if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 					}
 				} return delay;
 
 				case BusDevice::PhaseRead: {
 					if(cycle.operation & Microcycle::Read) {
-						cycle.value->halves.low = phase_ & 7;
+						cycle.set_value8_low(phase_ & 7);
 					}
-
-					if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 				} return delay;
 
 				case BusDevice::IWM: {
@@ -258,12 +259,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 						// The IWM; this is a purely polled device, so can be run on demand.
 						if(cycle.operation & Microcycle::Read) {
-							cycle.value->halves.low = iwm_->read(register_address);
+							cycle.set_value8_low(iwm_->read(register_address));
 						} else {
-							iwm_->write(register_address, cycle.value->halves.low);
+							iwm_->write(register_address, cycle.value8_low());
 						}
-
-						if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 					} else {
 						fill_unmapped(cycle);
 					}
@@ -279,22 +278,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						if(cycle.operation & Microcycle::Read) {
 							scsi_.write(register_address, 0xff, dma_acknowledge);
 						} else {
-							if(cycle.operation & Microcycle::SelectWord) {
-								scsi_.write(register_address, cycle.value->halves.high, dma_acknowledge);
-							} else {
-								scsi_.write(register_address, cycle.value->halves.low, dma_acknowledge);
-							}
+							scsi_.write(register_address, cycle.value8_high());
 						}
 					} else {
 						// Even access => this is a read.
 						if(cycle.operation & Microcycle::Read) {
-							const auto result = scsi_.read(register_address, dma_acknowledge);
-							if(cycle.operation & Microcycle::SelectWord) {
-								// Data is loaded on the top part of the bus only.
-								cycle.value->full = uint16_t((result << 8) | 0xff);
-							} else {
-								cycle.value->halves.low = result;
-							}
+							cycle.set_value8_high(scsi_.read(register_address, dma_acknowledge));
 						}
 					}
 				} return delay;
@@ -309,12 +298,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							scc_.reset();
 
 							if(cycle.operation & Microcycle::Read) {
-								cycle.value->halves.low = 0xff;
+								cycle.set_value16(0xffff);
 							}
 						} else {
 							const auto read = scc_.read(int(address >> 1));
 							if(cycle.operation & Microcycle::Read) {
-								cycle.value->halves.low = read;
+								cycle.set_value8_high(read);
 							}
 						}
 					}
@@ -325,12 +314,14 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					if(cycle.operation & Microcycle::SelectWord) {
 						adjust_phase();
 					} else {
+						// This is definitely a byte access; either it's to an odd address, in which
+						// case it will reach the SCC, or it isn't, in which case it won't.
 						if(*cycle.address & 1) {
 							if(cycle.operation & Microcycle::Read) {
 								scc_.write(int(address >> 1), 0xff);
-								cycle.value->halves.low = 0xff;
+								cycle.value->b = 0xff;
 							} else {
-								scc_.write(int(address >> 1), cycle.value->halves.low);
+								scc_.write(int(address >> 1), cycle.value->b);
 							}
 						} else {
 							fill_unmapped(cycle);
@@ -368,23 +359,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			}
 
 			// If control has fallen through to here, the access is either a read from ROM, or a read or write to RAM.
-			switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
-				default:
-				break;
-
-				case Microcycle::SelectWord | Microcycle::Read:
-					cycle.value->full = *reinterpret_cast<uint16_t *>(&memory_base[address]);
-				break;
-				case Microcycle::SelectByte | Microcycle::Read:
-					cycle.value->halves.low = memory_base[address];
-				break;
-				case Microcycle::SelectWord:
-					*reinterpret_cast<uint16_t *>(&memory_base[address]) = cycle.value->full;
-				break;
-				case Microcycle::SelectByte:
-					memory_base[address] = cycle.value->halves.low;
-				break;
-			}
+			// Potential writes to ROM and all hardware accesses have already been weeded out.
+			cycle.apply(&memory_base[address]);
 
 			return delay;
 		}
@@ -582,6 +558,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
 			// See: Guide to the Macintosh Hardware Family p149 (PDF p188). Some extra division
 			// may occur here in order to provide VSYNC at a proper moment.
+
 			// Possibly route vsync.
 			if(time_since_video_update_ < time_until_video_event_) {
 				via_clock_ += duration;
@@ -611,8 +588,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// The keyboard also has a clock, albeit a very slow one — 100,000 cycles/second.
 			// Its clock and data lines are connected to the VIA.
 			keyboard_clock_ += duration;
-			const auto keyboard_ticks = keyboard_clock_.divide(HalfCycles(CLOCK_RATE / 100000));
-			if(keyboard_ticks > HalfCycles(0)) {
+			if(keyboard_clock_ >= KEYBOARD_CLOCK_RATE) {
+				const auto keyboard_ticks = keyboard_clock_.divide(KEYBOARD_CLOCK_RATE);
 				keyboard_.run_for(keyboard_ticks);
 				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::Two, keyboard_.get_data());
 				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, keyboard_.get_clock());
@@ -771,7 +748,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				Inputs::QuadratureMouse &mouse_;
 		};
 
-		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
+		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
 
 		DriveSpeedAccumulator drive_speed_accumulator_;
 		IWMActor iwm_;
