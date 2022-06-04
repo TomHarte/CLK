@@ -210,6 +210,12 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	// Reset.
 	Microcycle reset_cycle { Microcycle::Reset, HalfCycles(248) };
 
+	// Interrupt acknowledge.
+	Microcycle interrupt_cycles[2] = {
+		{ Microcycle::InterruptAcknowledge | Microcycle::Read | Microcycle::NewAddress },
+		{ Microcycle::InterruptAcknowledge | Microcycle::Read | Microcycle::SameAddress | Microcycle::SelectByte },
+	};
+
 	// Holding spot when awaiting DTACK/etc.
 	Microcycle awaiting_dtack;
 };
