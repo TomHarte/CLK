@@ -13,7 +13,7 @@
 
 //#define LOG_TRACE
 //bool should_log = false;
-#include "../../../Processors/68000/68000.hpp"
+#include "../../../Processors/68000Mk2/68000Mk2.hpp"
 
 #include "../../../Components/AY38910/AY38910.hpp"
 #include "../../../Components/68901/MFP68901.hpp"
@@ -43,7 +43,7 @@ constexpr int CLOCK_RATE = 8021247;
 using Target = Analyser::Static::Target;
 class ConcreteMachine:
 	public Atari::ST::Machine,
-	public CPU::MC68000::BusHandler,
+	public CPU::MC68000Mk2::BusHandler,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::AudioProducer,
@@ -157,8 +157,8 @@ class ConcreteMachine:
 		}
 
 		// MARK: MC68000::BusHandler
-		using Microcycle = CPU::MC68000::Microcycle;
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
+		using Microcycle = CPU::MC68000Mk2::Microcycle;
+		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
 			// Just in case the last cycle was an interrupt acknowledge or bus error. TODO: find a better solution?
 			mc68000_.set_is_peripheral_address(false);
 			mc68000_.set_bus_error(false);
@@ -187,7 +187,7 @@ class ConcreteMachine:
 					if(cycle.operation & Microcycle::SelectByte) {
 						const int interrupt = mfp_->acknowledge_interrupt();
 						if(interrupt != Motorola::MFP68901::MFP68901::NoAcknowledgement) {
-							cycle.value->halves.low = uint8_t(interrupt);
+							cycle.value->b = uint8_t(interrupt);
 						} else {
 							// TODO: this should take a while. Find out how long.
 							mc68000_.set_bus_error(true);
@@ -256,10 +256,10 @@ class ConcreteMachine:
 					switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 						default: break;
 						case Microcycle::SelectWord | Microcycle::Read:
-							*cycle.value = 0xffff;
+							cycle.value->w = 0xffff;
 						break;
 						case Microcycle::SelectByte | Microcycle::Read:
-							cycle.value->halves.low = 0xff;
+							cycle.value->b = 0xff;
 						break;
 					}
 				return delay;
@@ -394,20 +394,20 @@ class ConcreteMachine:
 				break;
 
 				case Microcycle::SelectWord | Microcycle::Read:
-					cycle.value->full = *reinterpret_cast<uint16_t *>(&memory[address]);
+					cycle.value->w = *reinterpret_cast<uint16_t *>(&memory[address]);
 				break;
 				case Microcycle::SelectByte | Microcycle::Read:
-					cycle.value->halves.low = memory[address];
+					cycle.value->b = memory[address];
 				break;
 				case Microcycle::SelectWord:
 					if(address >= video_range_.low_address && address < video_range_.high_address)
 						video_.flush();
-					*reinterpret_cast<uint16_t *>(&memory[address]) = cycle.value->full;
+					*reinterpret_cast<uint16_t *>(&memory[address]) = cycle.value->w;
 				break;
 				case Microcycle::SelectByte:
 					if(address >= video_range_.low_address && address < video_range_.high_address)
 						video_.flush();
-					memory[address] = cycle.value->halves.low;
+					memory[address] = cycle.value->b;
 				break;
 			}
 
@@ -471,7 +471,7 @@ class ConcreteMachine:
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide_cycles(Cycles(4)));
 		}
 
-		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
+		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
 		HalfCycles bus_phase_;
 
 		JustInTimeActor<Video> video_;
