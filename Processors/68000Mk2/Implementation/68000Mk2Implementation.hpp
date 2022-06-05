@@ -547,13 +547,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Do the interrupt cycle, to obtain a vector.
 			temporary_address_.l = 0xffff'fff1 | uint32_t(captured_interrupt_level_ << 1);
-			SetupDataAccess(0, Microcycle::InterruptAcknowledge);
-			SetDataAddress(temporary_address_.l);
-			Access(temporary_value_.low);		// ni
+			interrupt_cycles[0].address = interrupt_cycles[1].address = &temporary_address_.l;
+			interrupt_cycles[0].value = interrupt_cycles[1].value = &temporary_value_.low;
+			PerformBusOperation(interrupt_cycles[0]);
+			CompleteAccess(interrupt_cycles[1]);		// ni
 
 			// If VPA is set, autovector.
 			if(vpa_) {
-				temporary_value_.w = uint16_t(InstructionSet::M68k::Exception::InterruptAutovectorBase - 1 + captured_interrupt_level_);
+				temporary_value_.b = uint8_t(InstructionSet::M68k::Exception::InterruptAutovectorBase - 1 + captured_interrupt_level_);
 			}
 
 			// TODO: if bus error is set, treat interrupt as spurious.
@@ -561,7 +562,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(3);							// n- n
 
 			// Do the rest of the stack work.
-			SetupDataAccess(0, Microcycle::SelectWord);
 			SetDataAddress(registers_[15].l);
 
 			registers_[15].l -= 4;
@@ -575,7 +575,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
 			SetDataAddress(temporary_address_.l);
 
-			temporary_address_.l = uint32_t(temporary_value_.w << 2);
+			temporary_address_.l = uint32_t(temporary_value_.b << 2);
 			Access(program_counter_.high);		// nV
 
 			temporary_address_.l += 2;
