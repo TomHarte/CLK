@@ -154,6 +154,7 @@ class ConcreteMachine:
 			}
 
 			mc68000_.run_for(cycles);
+			flush();
 		}
 
 		// MARK: MC68000::BusHandler
