@@ -96,7 +96,7 @@ class Video {
 		size_t video_address_ = 0;
 		size_t audio_address_ = 0;
 
-		uint8_t *pixel_buffer_ = nullptr;
+		uint64_t *pixel_buffer_ = nullptr;
 
 		bool use_alternate_screen_buffer_ = false;
 		bool use_alternate_audio_buffer_ = false;
