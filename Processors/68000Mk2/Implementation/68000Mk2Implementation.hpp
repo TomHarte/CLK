@@ -2397,6 +2397,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(temporary_value_.low);
 			registers_[15].l += 6;
 			status_.set_status(temporary_value_.w);
+			did_update_status();
 
 			Prefetch();
 			Prefetch();
