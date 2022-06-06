@@ -190,6 +190,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		void run_for(const Cycles cycles) final {
 			mc68000_.run_for(cycles);
+			flush();
 		}
 
 		using Microcycle = CPU::MC68000Mk2::Microcycle;
