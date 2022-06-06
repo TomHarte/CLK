@@ -96,7 +96,7 @@ class ConcreteMachine:
 			// Check for assertion of reset.
 			if(cycle.operation & Microcycle::Reset) {
 				memory_.reset();
-				LOG("Reset; PC is around " << PADHEX(8) << mc68000_.get_state().program_counter);
+				LOG("Reset; PC is around " << PADHEX(8) << mc68000_.get_state().registers.program_counter);
 			}
 
 			// Autovector interrupts.
