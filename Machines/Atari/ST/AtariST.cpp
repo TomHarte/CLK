@@ -158,8 +158,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: MC68000::BusHandler
-		using Microcycle = CPU::MC68000Mk2::Microcycle;
-		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
+		template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
 			// Just in case the last cycle was an interrupt acknowledge or bus error. TODO: find a better solution?
 			mc68000_.set_is_peripheral_address(false);
 			mc68000_.set_bus_error(false);
