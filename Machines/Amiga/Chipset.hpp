@@ -20,7 +20,7 @@
 #include "../../ClockReceiver/JustInTime.hpp"
 #include "../../Components/6526/6526.hpp"
 #include "../../Outputs/CRT/CRT.hpp"
-#include "../../Processors/68000/68000.hpp"
+#include "../../Processors/68000Mk2/68000Mk2.hpp"
 #include "../../Storage/Disk/Controller/DiskController.hpp"
 #include "../../Storage/Disk/Drive.hpp"
 
@@ -58,7 +58,7 @@ class Chipset: private ClockingHint::Observer {
 		Changes run_until_after_cpu_slot();
 
 		/// Performs the provided microcycle, which the caller guarantees to be a memory access.
-		void perform(const CPU::MC68000::Microcycle &);
+		void perform(const CPU::MC68000Mk2::Microcycle &);
 
 		/// Sets the current state of the CIA interrupt lines.
 		void set_cia_interrupts(bool cia_a, bool cia_b);
