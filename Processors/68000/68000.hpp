@@ -462,6 +462,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform = false> cla
 			return e_clock_phase_;
 		}
 
+		void reset();
+
 	private:
 		T &bus_handler_;
 };

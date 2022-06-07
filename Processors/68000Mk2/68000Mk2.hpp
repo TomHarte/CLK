@@ -441,6 +441,8 @@ class Processor: private ProcessorBase {
 			return e_clock_phase_;
 		}
 
+		void reset();
+
 	private:
 		BusHandler &bus_handler_;
 };
