@@ -16,14 +16,23 @@
 namespace {
 
 struct BusHandler {
+	template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, bool is_supervisor) {
+		return HalfCycles(0);
+	}
 
+	void flush() {}
 };
 
 using OldProcessor = CPU::MC68000::Processor<BusHandler, true>;
 using NewProcessor = CPU::MC68000Mk2::Processor<BusHandler, true, true>;
 
 template <typename M68000> struct Tester {
-	Tester() : processor_(bus_handler_) {}
+	Tester() : processor_(bus_handler_) {
+	}
+
+	void advance(int cycles) {
+		processor_.run_for(HalfCycles(cycles << 1));
+	}
 
 	BusHandler bus_handler_;
 	M68000 processor_;
@@ -40,6 +49,11 @@ template <typename M68000> struct Tester {
 - (void)testOldVsNew {
 	Tester<OldProcessor> oldTester;
 	Tester<NewProcessor> newTester;
+
+	for(int c = 0; c < 2000; c++) {
+		oldTester.advance(1);
+		newTester.advance(1);
+	}
 }
 
 @end
