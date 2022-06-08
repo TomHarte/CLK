@@ -214,7 +214,7 @@ template <typename M68000> struct Tester {
 		bus_handler.instructions = instructions;
 
 		try {
-			processor.run_for(HalfCycles(5000));
+			processor.run_for(HalfCycles(5000));	// Arbitrary, but will definitely exceed any one instruction (by quite a distance).
 		} catch (const HarmlessStopException &) {}
 	}
 
@@ -279,11 +279,17 @@ template <typename M68000> struct Tester {
 				oldState.data[c] = newState.registers.data[c] = rand() ^ (rand() << 1);
 				if(c != 7) oldState.address[c] = newState.registers.address[c] = rand() << 1;
 			}
-			oldState.status = newState.registers.status = rand() | (1 << 13);
+			// Fully to paper over the two 68000s' different ways of doing a faked
+			// reset, pick a random status such that:
+			//
+			//	(i) supervisor mode is active;
+			//	(ii) trace is inactive; and
+			//	(iii) interrupt level is 7.
+			oldState.status = newState.registers.status = (rand() | (1 << 13) | (7 << 8)) & ~(1 << 15);
 			oldState.user_stack_pointer = newState.registers.user_stack_pointer = rand() << 1;
 
-			oldTester->processor.set_state(oldState);
 			newTester->processor.set_state(newState);
+			oldTester->processor.set_state(oldState);
 
 			// Run a single instruction.
 			newTester->run_instructions(1);
