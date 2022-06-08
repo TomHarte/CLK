@@ -241,6 +241,19 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Helper macros for common bus transactions:
 
+	// Raises the exception with integer vector x. x is the vector identifier,
+	// not its address.
+#define RaiseException(x)					\
+	exception_vector_ = x;					\
+	MoveToStateSpecific(StandardException);
+
+	// Raises a bus/address error with integer vector x for access v.
+	// x is the vector identifier, not its address.
+#define RaiseBusOrAddressError(x, v)				\
+	exception_vector_ = InstructionSet::M68k::x;	\
+	bus_error_ = v;									\
+	MoveToStateSpecific(BusOrAddressErrorException);
+
 	// Performs the bus operation and then applies a `Spend` of its length
 	// plus any additional length returned by the bus handler.
 #define PerformBusOperation(x)										\
@@ -274,10 +287,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	//	(1) wait until end of current 10-cycle window;
 	//	(2) run for the next 10-cycle window.
 #define CompleteAccess(x)												\
-	if(berr_ || (*x.address & (x.operation >> 1) & 1)) {				\
-		bus_error_ = x;													\
-		exception_vector_ = berr_ ? InstructionSet::M68k::AccessFault : InstructionSet::M68k::AddressError;	\
-		MoveToStateSpecific(BusOrAddressErrorException);				\
+	if(berr_) {															\
+		RaiseBusOrAddressError(AccessFault, x);							\
 	}																	\
 	if(vpa_) {															\
 		x.length = HalfCycles(20) + (HalfCycles(20) + (e_clock_phase_ - time_remaining_) % HalfCycles(20)) % HalfCycles(20);	\
@@ -288,13 +299,16 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Performs the memory access implied by the announce, perform pair,
 	// honouring DTACK, BERR and VPA as necessary.
-#define AccessPair(val, announce, perform)			\
-	perform.value = &val;							\
-	if constexpr (!dtack_is_implicit) {				\
-		announce.length = HalfCycles(4);			\
-	}												\
-	PerformBusOperation(announce);					\
-	WaitForDTACK(announce);							\
+#define AccessPair(val, announce, perform)					\
+	perform.value = &val;									\
+	if constexpr (!dtack_is_implicit) {						\
+		announce.length = HalfCycles(4);					\
+	}														\
+	if(*perform.address & (perform.operation >> 1) & 1) {	\
+		RaiseBusOrAddressError(AddressError, perform);		\
+	}														\
+	PerformBusOperation(announce);							\
+	WaitForDTACK(announce);									\
 	CompleteAccess(perform);
 
 	// Sets up the next data access size and read flags.
@@ -321,12 +335,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	prefetch_.high = prefetch_.low;						\
 	ReadProgramWord(prefetch_.low)						\
 	captured_interrupt_level_ = bus_interrupt_level_;
-
-	// Raises the exception with integer vector x — x is the vector identifier,
-	// not its address.
-#define RaiseException(x)					\
-	exception_vector_ = x;					\
-	MoveToStateSpecific(StandardException);
 
 	// Copies the current program counter, adjusted to allow for the prefetch queue,
 	// into the instruction_address_ latch, which is the source of the value written
