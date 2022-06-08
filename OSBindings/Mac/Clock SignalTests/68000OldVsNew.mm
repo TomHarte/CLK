@@ -191,10 +191,10 @@ template <typename M68000> struct Tester {
 
 		// Test each 1000 times.
 		for(int test = 0; test < 1000; test++) {
-			oldTester->reset_with_opcode(c);
 			newTester->reset_with_opcode(c);
+			oldTester->reset_with_opcode(c);
 
-			// For arbitrary resons, only run for 200 bus cycles, capturing up to 200 cycles of activity.
+			// For arbitrary resons, only run for 200 bus cycles, capturing up to 200 clock cycles of activity.
 			newTester->advance(200, HalfCycles(400));
 			oldTester->advance(200, HalfCycles(400));
 
