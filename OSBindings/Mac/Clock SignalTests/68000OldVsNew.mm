@@ -103,6 +103,11 @@ struct BusHandler {
 		if(transaction.address_strobe || transaction.data_strobe || transaction.function_code == 7) {
 			if(transaction_delay) {
 				--transaction_delay;
+
+				// Start counting time only from the first recorded transaction.
+				if(!transaction_delay) {
+					time = HalfCycles(0);
+				}
 			} else {
 				if(transaction.timestamp < time_cutoff) {
 					transactions.push_back(transaction);
@@ -153,7 +158,7 @@ template <typename M68000> struct Tester {
 		bus_handler.ram[(2 << 10) + 0] = uint8_t(opcode >> 8);
 		bus_handler.ram[(2 << 10) + 1] = uint8_t(opcode >> 0);
 
-		bus_handler.transaction_delay = 8;	// i.e. ignore the first eight transactions,
+		bus_handler.transaction_delay = 12;	// i.e. ignore the first eight transactions,
 											// which will just be the reset procedure.
 		bus_handler.time = HalfCycles(0);
 
@@ -201,7 +206,7 @@ template <typename M68000> struct Tester {
 			auto oldIt = oldTransactions.begin();
 			while(newIt != newTransactions.end() && oldIt != oldTransactions.end()) {
 				if(*newIt != *oldIt) {
-					printf("Mismatch in %s, test %d:", instruction.to_string().c_str(), test);
+					printf("Mismatch in %s, test %d:\n", instruction.to_string().c_str(), test);
 
 					auto repeatIt = newTransactions.begin();
 					while(repeatIt != newIt) {
