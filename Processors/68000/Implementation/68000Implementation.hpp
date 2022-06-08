@@ -2243,6 +2243,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	effective_address_[0] = 0;
 	is_supervisor_ = 1;
 	interrupt_level_ = 7;
+	half_cycles_left_to_run_ = HalfCycles(0);
 }
 
 #undef status
