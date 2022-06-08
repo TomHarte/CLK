@@ -56,6 +56,7 @@ struct Transaction {
 	uint16_t value = 0;
 	bool address_strobe = false;
 	bool data_strobe = false;
+	bool read = false;
 
 	bool operator !=(const Transaction &rhs) const {
 //		if(timestamp != rhs.timestamp) return true;
@@ -68,7 +69,7 @@ struct Transaction {
 	}
 
 	void print() const {
-		printf("%d: %d%d%d %c %c @ %06x with %04x\n",
+		printf("%d: %d%d%d %c %c @ %06x %s %04x\n",
 			timestamp.as<int>(),
 			(function_code >> 2) & 1,
 			(function_code >> 1) & 1,
@@ -76,12 +77,22 @@ struct Transaction {
 			address_strobe ? 'a' : '-',
 			data_strobe ? 'd' : '-',
 			address,
+			read ? "->" : "<-",
 			value);
 	}
 };
 
+struct HarmlessStopException {};
+
 struct BusHandler {
 	BusHandler(RandomStore &_store, uint8_t _participant) : store(_store), participant(_participant) {}
+
+	void will_perform(uint32_t, uint16_t) {
+		--instructions;
+		if(instructions < 0) {
+			throw HarmlessStopException{};
+		}
+	}
 
 	template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, bool is_supervisor) {
 		Transaction transaction;
@@ -98,6 +109,7 @@ struct BusHandler {
 		transaction.data_strobe = cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord);
 		if(cycle.address) transaction.address = *cycle.address & 0xffff'ff;
 		transaction.timestamp = time;
+		transaction.read = cycle.operation & Microcycle::Read;
 
 		time += cycle.length;
 
@@ -155,9 +167,7 @@ struct BusHandler {
 					time = HalfCycles(0);
 				}
 			} else {
-				if(transaction.timestamp < time_cutoff) {
-					transactions.push_back(transaction);
-				}
+				transactions.push_back(transaction);
 			}
 		}
 
@@ -167,7 +177,7 @@ struct BusHandler {
 	void flush() {}
 
 	int transaction_delay;
-	HalfCycles time_cutoff;
+	int instructions;
 
 	HalfCycles time;
 	std::vector<Transaction> transactions;
@@ -194,15 +204,18 @@ struct BusHandler {
 	const uint8_t participant;
 };
 
-using OldProcessor = CPU::MC68000::Processor<BusHandler, true>;
-using NewProcessor = CPU::MC68000Mk2::Processor<BusHandler, true, true>;
+using OldProcessor = CPU::MC68000::Processor<BusHandler, true, true>;
+using NewProcessor = CPU::MC68000Mk2::Processor<BusHandler, true, true, true>;
 
 template <typename M68000> struct Tester {
 	Tester(RandomStore &store, uint8_t participant) : bus_handler(store, participant), processor(bus_handler) {}
 
-	void advance(int cycles, HalfCycles time_cutoff) {
-		bus_handler.time_cutoff = time_cutoff;
-		processor.run_for(HalfCycles(cycles << 1));
+	void run_instructions(int instructions) {
+		bus_handler.instructions = instructions;
+
+		try {
+			processor.run_for(HalfCycles::max());
+		} catch (const HarmlessStopException &) {}
 	}
 
 	void reset_with_opcode(uint16_t opcode) {
@@ -257,9 +270,9 @@ template <typename M68000> struct Tester {
 			newTester->reset_with_opcode(c);
 			oldTester->reset_with_opcode(c);
 
-			// For arbitrary resons, only run for 200 bus cycles, capturing up to 200 clock cycles of activity.
-			newTester->advance(200, HalfCycles(400));
-			oldTester->advance(200, HalfCycles(400));
+			// Run a single instruction.
+			newTester->run_instructions(1);
+			oldTester->run_instructions(1);
 
 			// Compare bus activity.
 			const auto &oldTransactions = oldTester->bus_handler.transactions;
