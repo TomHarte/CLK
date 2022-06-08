@@ -13,8 +13,41 @@
 #include "68000Mk2.hpp"
 
 #include <array>
+#include <unordered_map>
 
 namespace {
+
+struct RandomStore {
+	using CollectionT = std::unordered_map<uint32_t, std::pair<uint8_t, uint8_t>>;
+	CollectionT values;
+
+	void flag(uint32_t address, uint8_t participant) {
+		values[address].first |= participant;
+	}
+
+	bool has(uint32_t address, uint8_t participant) {
+		auto entry = values.find(address);
+		if(entry == values.end()) return false;
+		return entry->second.first & participant;
+	}
+
+	uint8_t value(uint32_t address, uint8_t participant) {
+		auto entry = values.find(address);
+		if(entry != values.end()) {
+			entry->second.first |= participant;
+			return entry->second.second;
+		}
+
+		const uint8_t value = uint8_t(rand() >> 8);
+		values[address] = std::make_pair(participant, value);
+		return value;
+	}
+
+	void clear() {
+		values.clear();
+	}
+
+};
 
 struct Transaction {
 	HalfCycles timestamp;
@@ -25,8 +58,8 @@ struct Transaction {
 	bool data_strobe = false;
 
 	bool operator !=(const Transaction &rhs) const {
-		if(timestamp != rhs.timestamp) return true;
-		if(function_code != rhs.function_code) return true;
+//		if(timestamp != rhs.timestamp) return true;
+//		if(function_code != rhs.function_code) return true;
 		if(address != rhs.address) return true;
 		if(value != rhs.value) return true;
 		if(address_strobe != rhs.address_strobe) return true;
@@ -48,6 +81,8 @@ struct Transaction {
 };
 
 struct BusHandler {
+	BusHandler(RandomStore &_store, uint8_t _participant) : store(_store), participant(_participant) {}
+
 	template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, bool is_supervisor) {
 		Transaction transaction;
 
@@ -66,18 +101,26 @@ struct BusHandler {
 
 		time += cycle.length;
 
-		// TODO: generate a random value if this is a read from an address not yet written to;
-		// use a shared store in order to ensure that both devices get the same random values.
-
 		// Do the operation...
 		const uint32_t address = cycle.address ? (*cycle.address & 0xffff'ff) : 0;
 		switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 			default: break;
 
 			case Microcycle::SelectWord | Microcycle::Read:
+				if(!store.has(address, participant)) {
+					ram[address] = store.value(address, participant);
+				}
+				if(!store.has(address+1, participant)) {
+					ram[address+1] = store.value(address+1, participant);
+				}
+
 				cycle.set_value16((ram[address] << 8) | ram[address + 1]);
 			break;
 			case Microcycle::SelectByte | Microcycle::Read:
+				if(!store.has(address, participant)) {
+					ram[address] = store.value(address, participant);
+				}
+
 				if(address & 1) {
 					cycle.set_value8_low(ram[address]);
 				} else {
@@ -87,9 +130,12 @@ struct BusHandler {
 			case Microcycle::SelectWord:
 				ram[address] = cycle.value8_high();
 				ram[address+1] = cycle.value8_low();
+				store.flag(address, participant);
+				store.flag(address+1, participant);
 			break;
 			case Microcycle::SelectByte:
 				ram[address] = (address & 1) ? cycle.value8_low() : cycle.value8_high();
+				store.flag(address, participant);
 			break;
 		}
 
@@ -130,21 +176,29 @@ struct BusHandler {
 	void set_default_vectors() {
 		// Establish that all exception vectors point to 1024-byte blocks of memory.
 		for(int c = 0; c < 256; c++) {
-			const uint32_t target = (c + 1) << 10;
-			ram[(c << 2) + 0] = uint8_t(target >> 24);
-			ram[(c << 2) + 1] = uint8_t(target >> 16);
-			ram[(c << 2) + 2] = uint8_t(target >> 8);
-			ram[(c << 2) + 3] = uint8_t(target >> 0);
+			const uint32_t target = (c + 2) << 10;
+			const uint32_t address = c << 2;
+			ram[address + 0] = uint8_t(target >> 24);
+			ram[address + 1] = uint8_t(target >> 16);
+			ram[address + 2] = uint8_t(target >> 8);
+			ram[address + 3] = uint8_t(target >> 0);
+
+			store.flag(address+0, participant);
+			store.flag(address+1, participant);
+			store.flag(address+2, participant);
+			store.flag(address+3, participant);
 		}
 	}
+
+	RandomStore &store;
+	const uint8_t participant;
 };
 
 using OldProcessor = CPU::MC68000::Processor<BusHandler, true>;
 using NewProcessor = CPU::MC68000Mk2::Processor<BusHandler, true, true>;
 
 template <typename M68000> struct Tester {
-	Tester() : processor(bus_handler) {
-	}
+	Tester(RandomStore &store, uint8_t participant) : bus_handler(store, participant), processor(bus_handler) {}
 
 	void advance(int cycles, HalfCycles time_cutoff) {
 		bus_handler.time_cutoff = time_cutoff;
@@ -155,11 +209,16 @@ template <typename M68000> struct Tester {
 		bus_handler.transactions.clear();
 		bus_handler.set_default_vectors();
 
-		bus_handler.ram[(2 << 10) + 0] = uint8_t(opcode >> 8);
-		bus_handler.ram[(2 << 10) + 1] = uint8_t(opcode >> 0);
+		const uint32_t address = 3 << 10;
+		bus_handler.ram[address + 0] = uint8_t(opcode >> 8);
+		bus_handler.ram[address + 1] = uint8_t(opcode >> 0);
+		bus_handler.store.flag(address, bus_handler.participant);
+		bus_handler.store.flag(address+1, bus_handler.participant);
 
-		bus_handler.transaction_delay = 12;	// i.e. ignore the first eight transactions,
-											// which will just be the reset procedure.
+		bus_handler.transaction_delay = 8;	// i.e. ignore the first eight transactions,
+											// which will just be the vector fetch part of
+											// the reset procedure. Instead assume logging
+											// at the initial prefetch fill.
 		bus_handler.time = HalfCycles(0);
 
 		processor.reset();
@@ -174,13 +233,16 @@ template <typename M68000> struct Tester {
 @interface M68000OldVsNewTests : XCTestCase
 @end
 
-@implementation M68000OldVsNewTests {
-}
+@implementation M68000OldVsNewTests
 
 - (void)testOldVsNew {
-	auto oldTester = std::make_unique<Tester<OldProcessor>>();
-	auto newTester = std::make_unique<Tester<NewProcessor>>();
+	RandomStore random_store;
+	auto oldTester = std::make_unique<Tester<OldProcessor>>(random_store, 0x01);
+	auto newTester = std::make_unique<Tester<NewProcessor>>(random_store, 0x02);
 	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> decoder;
+
+	// Use a fixed seed to guarantee continuity across repeated runs.
+	srand(68000);
 
 	for(int c = 0; c < 65536; c++) {
 		// Test only defined opcodes.
@@ -191,6 +253,7 @@ template <typename M68000> struct Tester {
 
 		// Test each 1000 times.
 		for(int test = 0; test < 1000; test++) {
+			random_store.clear();
 			newTester->reset_with_opcode(c);
 			oldTester->reset_with_opcode(c);
 
@@ -214,8 +277,9 @@ template <typename M68000> struct Tester {
 						++repeatIt;
 					}
 					printf("---\n");
-					printf("< "); oldIt->print();
-					printf("> "); newIt->print();
+					printf("o: "); oldIt->print();
+					printf("n: "); newIt->print();
+					printf("\n");
 
 					break;
 				}
