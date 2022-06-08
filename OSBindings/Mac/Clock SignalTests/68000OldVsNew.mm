@@ -258,6 +258,8 @@ template <typename M68000> struct Tester {
 	srand(68000);
 
 	for(int c = 0; c < 65536; c++) {
+		printf("%04x\n", c);
+
 		// Test only defined opcodes.
 		const auto instruction = decoder.decode(uint16_t(c));
 		if(instruction.operation == InstructionSet::M68k::Operation::Undefined) {
@@ -295,37 +297,45 @@ template <typename M68000> struct Tester {
 			newTester->run_instructions(1);
 			oldTester->run_instructions(1);
 
-			// Compare bus activity.
-			const auto &oldTransactions = oldTester->bus_handler.transactions;
-			const auto &newTransactions = newTester->bus_handler.transactions;
-
-			auto newIt = newTransactions.begin();
-			auto oldIt = oldTransactions.begin();
-			while(newIt != newTransactions.end() && oldIt != oldTransactions.end()) {
-				if(*newIt != *oldIt) {
-					printf("Mismatch in %s, test %d:\n", instruction.to_string().c_str(), test);
-
-					auto repeatIt = newTransactions.begin();
-					while(repeatIt != newIt) {
-						repeatIt->print();
-						++repeatIt;
-					}
-					printf("---\n");
-					printf("o: "); oldIt->print();
-					printf("n: "); newIt->print();
-					printf("\n");
-
-					break;
-				}
-
-				++newIt;
-				++oldIt;
-			}
-
-			// Compare registers.
+			// Grab final states.
 			oldState = oldTester->processor.get_state();
 			newState = newTester->processor.get_state();
 
+			// Compare bus activity only if it doesn't look like an address
+			// error occurred. Don't check those as I don't have good information
+			// on the proper stack write order, so transactions are permitted to differ.
+			//
+			// Net effect will be 50% fewer transaction comparisons for instructions that
+			// can trigger an address error.
+			if(oldState.program_counter != 0x1404 || newState.registers.program_counter != 0x1404) {
+				const auto &oldTransactions = oldTester->bus_handler.transactions;
+				const auto &newTransactions = newTester->bus_handler.transactions;
+
+				auto newIt = newTransactions.begin();
+				auto oldIt = oldTransactions.begin();
+				while(newIt != newTransactions.end() && oldIt != oldTransactions.end()) {
+					if(*newIt != *oldIt) {
+						printf("Mismatch in %s, test %d:\n", instruction.to_string().c_str(), test);
+
+						auto repeatIt = newTransactions.begin();
+						while(repeatIt != newIt) {
+							repeatIt->print();
+							++repeatIt;
+						}
+						printf("---\n");
+						printf("o: "); oldIt->print();
+						printf("n: "); newIt->print();
+						printf("\n");
+
+						break;
+					}
+
+					++newIt;
+					++oldIt;
+				}
+			}
+
+			// Compare registers.
 			bool mismatch = false;
 			for(int c = 0; c < 8; c++) {
 				mismatch |= oldState.data[c] != newState.registers.data[c];
