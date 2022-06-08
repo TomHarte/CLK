@@ -17,13 +17,14 @@
 namespace {
 
 struct Transaction {
+	HalfCycles timestamp;
 	uint8_t function_code = 0;
 	uint32_t address = 0;
 	uint16_t value = 0;
 	bool address_strobe = false;
 	bool data_strobe = false;
 
-	bool operator !=(const Transaction &rhs) {
+	bool operator !=(const Transaction &rhs) const {
 		return false;
 	}
 };
@@ -43,6 +44,9 @@ struct BusHandler {
 		transaction.address_strobe = cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress);
 		transaction.data_strobe = cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord);
 		if(cycle.address) transaction.address = *cycle.address & 0xffff'ff;
+		transaction.timestamp = time;
+
+		time += cycle.length;
 
 		// TODO: generate a random value if this is a read from an address not yet written to;
 		// use a shared store in order to ensure that both devices get the same random values.
@@ -79,7 +83,13 @@ struct BusHandler {
 
 		// Push back only if interesting.
 		if(transaction.address_strobe || transaction.data_strobe || transaction.function_code == 7) {
-			transactions.push_back(transaction);
+			if(transaction_delay) {
+				--transaction_delay;
+			} else {
+				if(transaction.timestamp < time_cutoff) {
+					transactions.push_back(transaction);
+				}
+			}
 		}
 
 		return HalfCycles(0);
@@ -87,6 +97,10 @@ struct BusHandler {
 
 	void flush() {}
 
+	int transaction_delay;
+	HalfCycles time_cutoff;
+
+	HalfCycles time;
 	std::vector<Transaction> transactions;
 	std::array<uint8_t, 16*1024*1024> ram;
 
@@ -109,7 +123,8 @@ template <typename M68000> struct Tester {
 	Tester() : processor(bus_handler) {
 	}
 
-	void advance(int cycles) {
+	void advance(int cycles, HalfCycles time_cutoff) {
+		bus_handler.time_cutoff = time_cutoff;
 		processor.run_for(HalfCycles(cycles << 1));
 	}
 
@@ -119,6 +134,10 @@ template <typename M68000> struct Tester {
 
 		bus_handler.ram[(2 << 10) + 0] = uint8_t(opcode >> 8);
 		bus_handler.ram[(2 << 10) + 1] = uint8_t(opcode >> 0);
+
+		bus_handler.transaction_delay = 8;	// i.e. ignore the first eight transactions,
+											// which will just be the reset procedure.
+		bus_handler.time = HalfCycles(0);
 
 		processor.reset();
 	}
@@ -152,26 +171,26 @@ template <typename M68000> struct Tester {
 			oldTester->reset_with_opcode(c);
 			newTester->reset_with_opcode(c);
 
-			// For arbitrary resons, only run for 200 cycles.
-			newTester->advance(200);
-			oldTester->advance(200);
+			// For arbitrary resons, only run for 200 bus cycles, capturing up to 200 cycles of activity.
+			newTester->advance(200, HalfCycles(400));
+			oldTester->advance(200, HalfCycles(400));
 
 			// Compare bus activity.
 			const auto &oldTransactions = oldTester->bus_handler.transactions;
 			const auto &newTransactions = newTester->bus_handler.transactions;
-			if(
-				oldTransactions.size() != newTransactions.size()
-			) {
-				printf("Size mismatch: %zu vs %zu\n", newTransactions.size(), oldTransactions.size());
-				continue;
-			}
+//			if(
+//				oldTransactions.size() != newTransactions.size()
+//			) {
+//				printf("Size mismatch: %zu vs %zu\n", newTransactions.size(), oldTransactions.size());
+//				continue;
+//			}
 
 			auto newIt = newTransactions.begin();
 			auto oldIt = oldTransactions.begin();
-			while(newIt != newTransactions.end()) {
-//				if(*newIt != *oldIt) {
-//					printf("Peekaboo!");
-//				}
+			while(newIt != newTransactions.end() && oldIt != oldTransactions.end()) {
+				if(*newIt != *oldIt) {
+					printf("Peekaboo!");
+				}
 
 				++newIt;
 				++oldIt;
