@@ -2793,6 +2793,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
 void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::reset() {
 	state_ = Reset;
+	time_remaining_ = HalfCycles(0);
 }
 
 }
