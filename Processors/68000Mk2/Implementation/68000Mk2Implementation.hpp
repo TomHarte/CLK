@@ -409,15 +409,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Push status and current program counter.
 			// Write order is wacky here, but I think it's correct.
-			registers_[15].l -= 6;
-			Access(captured_status_);			// ns
-
-			registers_[15].l += 4;
+			registers_[15].l -= 2;
 			Access(instruction_address_.low);	// ns
 
-			registers_[15].l -= 2;
-			Access(instruction_address_.high);	// nS
+			registers_[15].l -= 4;
+			Access(captured_status_);			// ns
 
+			registers_[15].l += 2;
+			Access(instruction_address_.high);	// nS
 			registers_[15].l -= 2;
 
 			// Grab new program counter.
