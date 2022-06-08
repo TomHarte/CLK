@@ -214,7 +214,7 @@ template <typename M68000> struct Tester {
 		bus_handler.instructions = instructions;
 
 		try {
-			processor.run_for(HalfCycles::max());
+			processor.run_for(HalfCycles(5000));
 		} catch (const HarmlessStopException &) {}
 	}
 
@@ -266,9 +266,24 @@ template <typename M68000> struct Tester {
 
 		// Test each 1000 times.
 		for(int test = 0; test < 1000; test++) {
+			// Establish with certainty the initial memory state.
 			random_store.clear();
 			newTester->reset_with_opcode(c);
 			oldTester->reset_with_opcode(c);
+
+			// Generate a random initial register state.
+			auto oldState = oldTester->processor.get_state();
+			auto newState = newTester->processor.get_state();
+
+			for(int c = 0; c < 8; c++) {
+				oldState.data[c] = newState.registers.data[c] = rand() ^ (rand() << 1);
+				if(c != 7) oldState.address[c] = newState.registers.address[c] = rand() << 1;
+			}
+			oldState.status = newState.registers.status = rand() | (1 << 13);
+			oldState.user_stack_pointer = newState.registers.user_stack_pointer = rand() << 1;
+
+			oldTester->processor.set_state(oldState);
+			newTester->processor.set_state(newState);
 
 			// Run a single instruction.
 			newTester->run_instructions(1);
@@ -299,6 +314,25 @@ template <typename M68000> struct Tester {
 
 				++newIt;
 				++oldIt;
+			}
+
+			// Compare registers.
+			oldState = oldTester->processor.get_state();
+			newState = newTester->processor.get_state();
+
+			bool mismatch = false;
+			for(int c = 0; c < 8; c++) {
+				mismatch |= oldState.data[c] != newState.registers.data[c];
+				if(c != 7) mismatch |= oldState.address[c] != newState.registers.address[c];
+			}
+			mismatch |= oldState.status != newState.registers.status;
+			mismatch |= oldState.program_counter != newState.registers.program_counter;
+			mismatch |= oldState.user_stack_pointer != newState.registers.user_stack_pointer;
+			mismatch |= oldState.supervisor_stack_pointer != newState.registers.supervisor_stack_pointer;
+
+			if(mismatch) {
+				printf("Registers don't match after %s, test %d\n", instruction.to_string().c_str(), test);
+				// TODO: more detail here!
 			}
 		}
 	}
