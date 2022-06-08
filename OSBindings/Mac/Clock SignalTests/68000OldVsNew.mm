@@ -25,7 +25,25 @@ struct Transaction {
 	bool data_strobe = false;
 
 	bool operator !=(const Transaction &rhs) const {
+		if(timestamp != rhs.timestamp) return true;
+		if(function_code != rhs.function_code) return true;
+		if(address != rhs.address) return true;
+		if(value != rhs.value) return true;
+		if(address_strobe != rhs.address_strobe) return true;
+		if(data_strobe != rhs.data_strobe) return true;
 		return false;
+	}
+
+	void print() const {
+		printf("%d: %d%d%d %c %c @ %06x with %04x\n",
+			timestamp.as<int>(),
+			(function_code >> 2) & 1,
+			(function_code >> 1) & 1,
+			(function_code >> 0) & 1,
+			address_strobe ? 'a' : '-',
+			data_strobe ? 'd' : '-',
+			address,
+			value);
 	}
 };
 
@@ -178,18 +196,23 @@ template <typename M68000> struct Tester {
 			// Compare bus activity.
 			const auto &oldTransactions = oldTester->bus_handler.transactions;
 			const auto &newTransactions = newTester->bus_handler.transactions;
-//			if(
-//				oldTransactions.size() != newTransactions.size()
-//			) {
-//				printf("Size mismatch: %zu vs %zu\n", newTransactions.size(), oldTransactions.size());
-//				continue;
-//			}
 
 			auto newIt = newTransactions.begin();
 			auto oldIt = oldTransactions.begin();
 			while(newIt != newTransactions.end() && oldIt != oldTransactions.end()) {
 				if(*newIt != *oldIt) {
-					printf("Peekaboo!");
+					printf("Mismatch in %s, test %d:", instruction.to_string().c_str(), test);
+
+					auto repeatIt = newTransactions.begin();
+					while(repeatIt != newIt) {
+						repeatIt->print();
+						++repeatIt;
+					}
+					printf("---\n");
+					printf("< "); oldIt->print();
+					printf("> "); newIt->print();
+
+					break;
 				}
 
 				++newIt;
