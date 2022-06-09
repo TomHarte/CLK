@@ -262,7 +262,7 @@ template <typename M68000> struct Tester {
 	// Use a fixed seed to guarantee continuity across repeated runs.
 	srand(68000);
 
-	std::set<InstructionSet::M68k::Operation> test_set = {
+	std::set<InstructionSet::M68k::Operation> test_set;/* = {
 		InstructionSet::M68k::Operation::ABCD,
 		InstructionSet::M68k::Operation::SBCD,
 		InstructionSet::M68k::Operation::MOVEb,
@@ -276,7 +276,7 @@ template <typename M68000> struct Tester {
 		InstructionSet::M68k::Operation::RTE,
 		InstructionSet::M68k::Operation::RTR,
 		InstructionSet::M68k::Operation::TAS,
-	};
+	};*/
 
 	std::set<InstructionSet::M68k::Operation> failing_operations;
 	for(int c = 0; c < 65536; c++) {
@@ -332,12 +332,12 @@ template <typename M68000> struct Tester {
 			newState = newTester->processor.get_state();
 
 			// Compare bus activity only if it doesn't look like an address
-			// error occurred. Don't check those as I don't have good information
-			// on the proper stack write order, so transactions are permitted to differ.
+			// error occurred. Don't check those as the old 68000 appears to be wrong
+			// most of the time about function codes, and that bleeds into the stacked data.
 			//
 			// Net effect will be 50% fewer transaction comparisons for instructions that
 			// can trigger an address error.
-//			if(oldState.program_counter != 0x1404 || newState.registers.program_counter != 0x1404) {
+			if(oldState.program_counter != 0x1404 || newState.registers.program_counter != 0x1404) {
 				const auto &oldTransactions = oldTester->bus_handler.transactions;
 				const auto &newTransactions = newTester->bus_handler.transactions;
 
@@ -371,7 +371,7 @@ template <typename M68000> struct Tester {
 					++newIt;
 					++oldIt;
 				}
-//			}
+			}
 
 			// Compare registers.
 			bool mismatch = false;
