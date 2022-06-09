@@ -461,8 +461,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			//	2) captured state;
 			//	3) program counter high;
 			//	4) instruction register;
-			//	5) function code;
-			//	6) access address?
+			//	5) access address low;
+			//	6) function code;
+			//	7) access address high?
+			//
+			// Noteworthy in this guess: access code and function code are written in
+			// the same interleaved order as program counter and captured status register,
+			// which is the order that I know to be correct for a standard exception.
 
 			IdleBus(2);
 
@@ -506,15 +511,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				((bus_error_.operation & Microcycle::IsProgram) ? 0x08 : 0x00) |
 				((bus_error_.operation & Microcycle::IsProgram) ? 0x02 : 0x01) |
 				((captured_status_.w & InstructionSet::M68k::ConditionCode::Supervisor) ? 0x04 : 0x00);
-
-			registers_[15].l -= 6;
-			Access(temporary_value_.low);		// ns	[function code]
-
 			temporary_address_.l = *bus_error_.address;
-			registers_[15].l += 4;
-			Access(temporary_address_.low);		// ns	[error address.l]
 
 			registers_[15].l -= 2;
+			Access(temporary_address_.low);		// ns	[error address.l]
+
+			registers_[15].l -= 4;
+			Access(temporary_value_.low);		// ns	[function code]
+
+			registers_[15].l += 2;
 			Access(temporary_address_.high);	// nS	[error address.h]
 			registers_[15].l -= 2;
 
