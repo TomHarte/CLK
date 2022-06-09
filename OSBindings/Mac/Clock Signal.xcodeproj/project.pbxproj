@@ -278,6 +278,7 @@
 		4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
 		4B5B37312777C7FC0047F238 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
 		4B5B37322777C7FC0047F238 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
+		4B5D497C28513F870076E2F9 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
 		4B5D5C9725F56FC7001B4623 /* Spectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5D5C9525F56FC7001B4623 /* Spectrum.cpp */; };
 		4B5D5C9825F56FC7001B4623 /* Spectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5D5C9525F56FC7001B4623 /* Spectrum.cpp */; };
 		4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADB81DE3151600AEC565 /* FileHolder.cpp */; };
@@ -6122,6 +6123,7 @@
 				4B7752C328217F720073E2C5 /* Z80.cpp in Sources */,
 				4B778F1A23A5ED320000D260 /* Video.cpp in Sources */,
 				4B778F3B23A5F1650000D260 /* KeyboardMachine.cpp in Sources */,
+				4B5D497C28513F870076E2F9 /* IPF.cpp in Sources */,
 				4B778F2E23A5F09E0000D260 /* IRQDelegatePortHandler.cpp in Sources */,
 				4B778EF323A5DB230000D260 /* PCMSegment.cpp in Sources */,
 				4B778F0D23A5EC150000D260 /* ZX80O81P.cpp in Sources */,
