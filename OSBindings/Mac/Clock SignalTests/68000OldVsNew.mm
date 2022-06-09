@@ -257,7 +257,7 @@ template <typename M68000> struct Tester {
 	// Use a fixed seed to guarantee continuity across repeated runs.
 	srand(68000);
 
-	for(int c = 0; c < 65536; c++) {
+	for(int c = 0x4e72; c < 65536; c++) {
 		printf("%04x\n", c);
 
 		// Test only defined opcodes.
@@ -326,8 +326,15 @@ template <typename M68000> struct Tester {
 							++repeatIt;
 						}
 						printf("---\n");
-						printf("o: "); oldIt->print();
-						printf("n: "); newIt->print();
+						while(newIt != newTransactions.end()) {
+							printf("n: "); newIt->print();
+							++newIt;
+						}
+						printf("\n");
+						while(oldIt != oldTransactions.end()) {
+							printf("o: "); oldIt->print();
+							++oldIt;
+						}
 						printf("\n");
 
 						break;
