@@ -262,7 +262,10 @@ template <typename M68000> struct Tester {
 
 		// Test only defined opcodes.
 		const auto instruction = decoder.decode(uint16_t(c));
-		if(instruction.operation == InstructionSet::M68k::Operation::Undefined) {
+		if(
+			instruction.operation == InstructionSet::M68k::Operation::Undefined ||
+			instruction.operation == InstructionSet::M68k::Operation::STOP
+		) {
 			continue;
 		}
 
