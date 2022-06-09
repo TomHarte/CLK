@@ -262,21 +262,37 @@ template <typename M68000> struct Tester {
 	// Use a fixed seed to guarantee continuity across repeated runs.
 	srand(68000);
 
+	std::set<InstructionSet::M68k::Operation> test_set = {
+		InstructionSet::M68k::Operation::ABCD,
+		InstructionSet::M68k::Operation::SBCD,
+		InstructionSet::M68k::Operation::MOVEb,
+		InstructionSet::M68k::Operation::MOVEw,
+		InstructionSet::M68k::Operation::MOVEl,
+		InstructionSet::M68k::Operation::PEA,
+		InstructionSet::M68k::Operation::MOVEtoSR,
+		InstructionSet::M68k::Operation::MOVEtoCCR,
+		InstructionSet::M68k::Operation::JSR,
+		InstructionSet::M68k::Operation::DIVU,
+		InstructionSet::M68k::Operation::RTE,
+		InstructionSet::M68k::Operation::RTR,
+		InstructionSet::M68k::Operation::TAS,
+	};
+
 	std::set<InstructionSet::M68k::Operation> failing_operations;
 	for(int c = 0; c < 65536; c++) {
 		printf("%04x\n", c);
 
-		// Test only defined opcodes.
+		// Test only defined opcodes that aren't STOP (which will never teminate).
 		const auto instruction = decoder.decode(uint16_t(c));
-//		if(
-//			instruction.operation != InstructionSet::M68k::Operation::RTE
-//		) {
-//			continue;
-//		}
 		if(
 			instruction.operation == InstructionSet::M68k::Operation::Undefined ||
 			instruction.operation == InstructionSet::M68k::Operation::STOP
 		) {
+			continue;
+		}
+
+		// If a whitelist is in place, adhere to it.
+		if(!test_set.empty() && test_set.find(instruction.operation) == test_set.end()) {
 			continue;
 		}
 
@@ -321,7 +337,7 @@ template <typename M68000> struct Tester {
 			//
 			// Net effect will be 50% fewer transaction comparisons for instructions that
 			// can trigger an address error.
-			if(oldState.program_counter != 0x1404 || newState.registers.program_counter != 0x1404) {
+//			if(oldState.program_counter != 0x1404 || newState.registers.program_counter != 0x1404) {
 				const auto &oldTransactions = oldTester->bus_handler.transactions;
 				const auto &newTransactions = newTester->bus_handler.transactions;
 
@@ -355,7 +371,7 @@ template <typename M68000> struct Tester {
 					++newIt;
 					++oldIt;
 				}
-			}
+//			}
 
 			// Compare registers.
 			bool mismatch = false;
