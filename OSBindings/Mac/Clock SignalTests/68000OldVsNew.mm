@@ -14,6 +14,7 @@
 
 #include <array>
 #include <unordered_map>
+#include <set>
 
 namespace {
 
@@ -261,7 +262,8 @@ template <typename M68000> struct Tester {
 	// Use a fixed seed to guarantee continuity across repeated runs.
 	srand(68000);
 
-	for(int c = 0x4e72; c < 65536; c++) {
+	std::set<InstructionSet::M68k::Operation> failing_operations;
+	for(int c = 0; c < 65536; c++) {
 		printf("%04x\n", c);
 
 		// Test only defined opcodes.
@@ -346,6 +348,7 @@ template <typename M68000> struct Tester {
 						}
 						printf("\n");
 
+						failing_operations.insert(instruction.operation);
 						break;
 					}
 
@@ -366,10 +369,16 @@ template <typename M68000> struct Tester {
 			mismatch |= oldState.supervisor_stack_pointer != newState.registers.supervisor_stack_pointer;
 
 			if(mismatch) {
+				failing_operations.insert(instruction.operation);
 				printf("Registers don't match after %s, test %d\n", instruction.to_string().c_str(), test);
 				// TODO: more detail here!
 			}
 		}
+	}
+
+	printf("\nAll failing operations:\n");
+	for(const auto operation: failing_operations) {
+		printf("%d,\n", int(operation));
 	}
 }
 
