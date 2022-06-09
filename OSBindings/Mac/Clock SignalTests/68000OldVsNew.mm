@@ -248,6 +248,10 @@ template <typename M68000> struct Tester {
 
 @implementation M68000OldVsNewTests
 
+// List of known deviations of the new from the old, to check out:
+//
+//	1) address error following an RTE now raises the interrupt level to 7; before it left it untouched.
+
 - (void)testOldVsNew {
 	RandomStore random_store;
 	auto oldTester = std::make_unique<Tester<OldProcessor>>(random_store, 0x01);
@@ -262,6 +266,11 @@ template <typename M68000> struct Tester {
 
 		// Test only defined opcodes.
 		const auto instruction = decoder.decode(uint16_t(c));
+//		if(
+//			instruction.operation != InstructionSet::M68k::Operation::RTE
+//		) {
+//			continue;
+//		}
 		if(
 			instruction.operation == InstructionSet::M68k::Operation::Undefined ||
 			instruction.operation == InstructionSet::M68k::Operation::STOP
