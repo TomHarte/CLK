@@ -2396,18 +2396,25 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();
 		MoveToStateSpecific(Decode);
 
+		// Yacht cites the bus activity for RTE and RTR as nS ns ns, so
+		// the program counter high word must be the first thing
+		// retrieved; the order of the other two is a guess,
+		// being the converse of the write order.
+
 		BeginState(RTE):
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
 			SetDataAddress(registers_[15].l);
 
 			registers_[15].l += 2;
 			Access(program_counter_.high);
-			registers_[15].l += 2;
-			Access(program_counter_.low);
 
-			registers_[15].l -= 4;
+			registers_[15].l -= 2;
 			Access(temporary_value_.low);
-			registers_[15].l += 6;
+
+			registers_[15].l += 4;
+			Access(program_counter_.low);
+			registers_[15].l += 2;
+
 			status_.set_status(temporary_value_.w);
 			did_update_status();
 
@@ -2421,12 +2428,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			registers_[15].l += 2;
 			Access(program_counter_.high);
-			registers_[15].l += 2;
-			Access(program_counter_.low);
 
-			registers_[15].l -= 4;
+			registers_[15].l -= 2;
 			Access(temporary_value_.low);
-			registers_[15].l += 6;
+
+			registers_[15].l += 4;
+			Access(program_counter_.low);
+			registers_[15].l += 2;
+
 			status_.set_ccr(temporary_value_.w);
 
 			Prefetch();
