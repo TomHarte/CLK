@@ -261,23 +261,23 @@ template <typename M68000> struct Tester {
 //		InstructionSet::M68k::Operation::MOVEb,
 //		InstructionSet::M68k::Operation::MOVEw,
 //		InstructionSet::M68k::Operation::MOVEl,
-		InstructionSet::M68k::Operation::PEA,
+//		InstructionSet::M68k::Operation::PEA,
 //		InstructionSet::M68k::Operation::MOVEtoSR,		// Old implementation doesn't repeat a PC fetch.
 //		InstructionSet::M68k::Operation::MOVEtoCCR,		// Old implementation doesn't repeat a PC fetch.
 //		InstructionSet::M68k::Operation::CMPAl,
 //		InstructionSet::M68k::Operation::JSR,			// Old implementation ends up skipping stack space if the destination throws an address error.
-//		InstructionSet::M68k::Operation::CLRb,
-//		InstructionSet::M68k::Operation::CLRw,
-//		InstructionSet::M68k::Operation::NEGXb,
-//		InstructionSet::M68k::Operation::NEGXw,
-//		InstructionSet::M68k::Operation::NEGb,
-//		InstructionSet::M68k::Operation::NEGw,
-//		InstructionSet::M68k::Operation::MOVEMtoRl,
-//		InstructionSet::M68k::Operation::MOVEMtoRw,
-//		InstructionSet::M68k::Operation::MOVEMtoMl,
-//		InstructionSet::M68k::Operation::MOVEMtoMw,
-//		InstructionSet::M68k::Operation::NOTb,
-//		InstructionSet::M68k::Operation::NOTw,
+//		InstructionSet::M68k::Operation::CLRb,			// Old implementation omits an idle cycle before -(An)
+//		InstructionSet::M68k::Operation::CLRw,			// Old implementation omits an idle cycle before -(An)
+//		InstructionSet::M68k::Operation::NEGXb,			// Old implementation omits an idle cycle before -(An)
+//		InstructionSet::M68k::Operation::NEGXw,			// Old implementation omits an idle cycle before -(An)
+//		InstructionSet::M68k::Operation::NEGb,			// Old implementation omits an idle cycle before -(An)
+//		InstructionSet::M68k::Operation::NEGw,			// Old implementation omits an idle cycle before -(An)
+		InstructionSet::M68k::Operation::MOVEMtoRl,
+		InstructionSet::M68k::Operation::MOVEMtoRw,
+		InstructionSet::M68k::Operation::MOVEMtoMl,
+		InstructionSet::M68k::Operation::MOVEMtoMw,
+//		InstructionSet::M68k::Operation::NOTb,			// Old implementation omits an idle cycle before -(An)
+//		InstructionSet::M68k::Operation::NOTw,			// Old implementation omits an idle cycle before -(An)
 //		InstructionSet::M68k::Operation::MULU,
 //		InstructionSet::M68k::Operation::MULS,
 //		InstructionSet::M68k::Operation::DIVU,
@@ -291,7 +291,7 @@ template <typename M68000> struct Tester {
 
 	std::set<InstructionSet::M68k::Operation> failing_operations;
 	for(int c = 0; c < 65536; c++) {
-		printf("%04x\n", c);
+//		printf("%04x\n", c);
 
 		// Test only defined opcodes that aren't STOP (which will never teminate).
 		const auto instruction = decoder.decode(uint16_t(c));
