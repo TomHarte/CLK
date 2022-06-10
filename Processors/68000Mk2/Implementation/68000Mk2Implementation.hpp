@@ -97,7 +97,7 @@ enum ExecutionState: int {
 	CalcAbsoluteShort,												// np
 	CalcAbsoluteLong,												// np np
 
-	CalcEffectiveAddressIdleFor8bitDisplacement,					// As per CalcEffectiveAddress unless one of the
+	CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec,			// As per CalcEffectiveAddress unless one of the
 																	// 8-bit displacement modes is in use, in which case
 																	// an extra idle bus state is prefixed.
 
@@ -173,6 +173,7 @@ enum ExecutionState: int {
 	LEA,
 	PEA,
 	TAS,
+	TASAddressRegisterIndirectWithIndex8bitDisplacement,
 	MOVEtoCCRSR,
 	RTR,
 	RTE,
@@ -964,24 +965,33 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(LEA, {
 					post_ea_state_ = LEA;
-					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
+					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec);
 				});
 				StdCASE(PEA, {
 					post_ea_state_ = PEA;
-					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
+					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec);
 				});
 
 				StdCASE(TAS, {
 					// TAS uses a special atomic bus cycle for memory accesses,
 					// but is also available as DataRegisterDirect, with no
-					// memory access whatsoever. So segue elsewhere here only
-					// for the other cases.
+					// memory access whatsoever. It's also atypical in its layout
+					// for (d8, An, Xn). So segue here appropriately.
+					switch(instruction_.mode(0)) {
+						case Mode::DataRegisterDirect:
+							perform_state_ = Perform_np;
+						break;
+
+						case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
+						MoveToStateSpecific(TASAddressRegisterIndirectWithIndex8bitDisplacement);
+
+						default:
+							post_ea_state_ = TAS;
+						MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec);
+					}
 					if(instruction_.mode(0) != Mode::DataRegisterDirect) {
-						post_ea_state_ = TAS;
-						MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
 					}
 
-					perform_state_ = Perform_np;
 				});
 
 				StdCASE(MOVEtoCCR, 	perform_state_ = MOVEtoCCRSR);
@@ -1141,10 +1151,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			}
 		break;
 
-		BeginState(CalcEffectiveAddressIdleFor8bitDisplacement):
+		BeginState(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec):
 			if(
 				instruction_.mode(next_operand_) != Mode::AddressRegisterIndirectWithIndex8bitDisplacement &&
-				instruction_.mode(next_operand_) != Mode::ProgramCounterIndirectWithIndex8bitDisplacement
+				instruction_.mode(next_operand_) != Mode::ProgramCounterIndirectWithIndex8bitDisplacement &&
+				instruction_.mode(next_operand_) != Mode::AddressRegisterIndirectWithPredecrement
 			) {
 				MoveToStateSpecific(CalcEffectiveAddress);
 			}
@@ -1386,6 +1397,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(3);								// n nn
 			temporary_address_.l = instruction_address_.l + 4;
 		MoveToStateDynamic(post_ea_state_);
+
+		BeginState(TASAddressRegisterIndirectWithIndex8bitDisplacement):
+			effective_address_[0].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
+			IdleBus(1);								// n
+			Prefetch();								// np
+		MoveToStateSpecific(TAS);
 
 		//
 		// ProgramCounterIndirectWithIndex8bitDisplacement
