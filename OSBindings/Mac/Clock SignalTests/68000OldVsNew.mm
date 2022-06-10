@@ -60,7 +60,7 @@ struct Transaction {
 	bool read = false;
 
 	bool operator !=(const Transaction &rhs) const {
-//		if(timestamp != rhs.timestamp) return true;
+		if(timestamp != rhs.timestamp) return true;
 //		if(function_code != rhs.function_code) return true;
 		if(address != rhs.address) return true;
 		if(value != rhs.value) return true;
@@ -255,7 +255,7 @@ template <typename M68000> struct Tester {
 	// Use a fixed seed to guarantee continuity across repeated runs.
 	srand(68000);
 
-	std::set<InstructionSet::M68k::Operation> test_set = {
+	std::set<InstructionSet::M68k::Operation> test_set;/* = {
 //		InstructionSet::M68k::Operation::ABCD,			// Old implementation doesn't match flamewing tests, sometimes produces incorrect results.
 //		InstructionSet::M68k::Operation::SBCD,			// Old implementation doesn't match flamewing tests, sometimes produces incorrect results.
 //		InstructionSet::M68k::Operation::MOVEb,
@@ -268,7 +268,7 @@ template <typename M68000> struct Tester {
 //		InstructionSet::M68k::Operation::DIVU,
 //		InstructionSet::M68k::Operation::DIVS,
 //		InstructionSet::M68k::Operation::TAS,			// Old implementation just doesn't match published cycle counts.
-	};
+	};*/
 
 	std::set<InstructionSet::M68k::Operation> failing_operations;
 	for(int c = 0; c < 65536; c++) {
