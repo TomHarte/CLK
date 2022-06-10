@@ -249,10 +249,6 @@ template <typename M68000> struct Tester {
 
 @implementation M68000OldVsNewTests
 
-// List of known deviations of the new from the old, to check out:
-//
-//	1) address error following an RTE now raises the interrupt level to 7; before it left it untouched.
-
 - (void)testOldVsNew {
 	RandomStore random_store;
 	auto oldTester = std::make_unique<Tester<OldProcessor>>(random_store, 0x01);
@@ -263,20 +259,18 @@ template <typename M68000> struct Tester {
 	srand(68000);
 
 	std::set<InstructionSet::M68k::Operation> test_set = {
-		InstructionSet::M68k::Operation::ABCD,
-		InstructionSet::M68k::Operation::SBCD,
-		InstructionSet::M68k::Operation::MOVEb,
-		InstructionSet::M68k::Operation::MOVEw,
-		InstructionSet::M68k::Operation::MOVEl,
-		InstructionSet::M68k::Operation::PEA,
-		InstructionSet::M68k::Operation::MOVEtoSR,
-		InstructionSet::M68k::Operation::MOVEtoCCR,
-		InstructionSet::M68k::Operation::JSR,
-		InstructionSet::M68k::Operation::DIVU,
-		InstructionSet::M68k::Operation::DIVS,
-		InstructionSet::M68k::Operation::RTE,
-		InstructionSet::M68k::Operation::RTR,
-		InstructionSet::M68k::Operation::TAS,
+//		InstructionSet::M68k::Operation::ABCD,			// Old implementation doesn't match flamewing tests, sometimes produces incorrect results.
+//		InstructionSet::M68k::Operation::SBCD,			// Old implementation doesn't match flamewing tests, sometimes produces incorrect results.
+//		InstructionSet::M68k::Operation::MOVEb,
+//		InstructionSet::M68k::Operation::MOVEw,
+//		InstructionSet::M68k::Operation::MOVEl,
+//		InstructionSet::M68k::Operation::PEA,
+//		InstructionSet::M68k::Operation::MOVEtoSR,		// Old implementation doesn't repeat a PC fetch.
+//		InstructionSet::M68k::Operation::MOVEtoCCR,		// Old implementation doesn't repeat a PC fetch.
+//		InstructionSet::M68k::Operation::JSR,			// Old implementation ends up skipping stack space if the destination throws an address error.
+//		InstructionSet::M68k::Operation::DIVU,
+//		InstructionSet::M68k::Operation::DIVS,
+//		InstructionSet::M68k::Operation::TAS,
 	};
 
 	std::set<InstructionSet::M68k::Operation> failing_operations;
@@ -298,7 +292,7 @@ template <typename M68000> struct Tester {
 		}
 
 		// Test each 1000 times.
-		for(int test = 0; test < 1000; test++) {
+		for(int test = 0; test < 100; test++) {
 			// Establish with certainty the initial memory state.
 			random_store.clear();
 			newTester->reset_with_opcode(c);
@@ -320,6 +314,9 @@ template <typename M68000> struct Tester {
 			//	(iii) interrupt level is 7.
 			oldState.status = newState.registers.status = (rand() | (1 << 13) | (7 << 8)) & ~(1 << 15);
 			oldState.user_stack_pointer = newState.registers.user_stack_pointer = rand() << 1;
+			oldState.supervisor_stack_pointer = newState.registers.supervisor_stack_pointer = 0x800;
+
+			auto initialState = oldState;
 
 			newTester->processor.set_state(newState);
 			oldTester->processor.set_state(oldState);
@@ -338,10 +335,9 @@ template <typename M68000> struct Tester {
 			//
 			// Net effect will be 50% fewer transaction comparisons for instructions that
 			// can trigger an address error.
+			const auto &oldTransactions = oldTester->bus_handler.transactions;
+			const auto &newTransactions = newTester->bus_handler.transactions;
 			if(oldState.program_counter != 0x1404 || newState.registers.program_counter != 0x1404) {
-				const auto &oldTransactions = oldTester->bus_handler.transactions;
-				const auto &newTransactions = newTester->bus_handler.transactions;
-
 				auto newIt = newTransactions.begin();
 				auto oldIt = oldTransactions.begin();
 				while(newIt != newTransactions.end() && oldIt != oldTransactions.end()) {
@@ -388,6 +384,15 @@ template <typename M68000> struct Tester {
 			if(mismatch) {
 				failing_operations.insert(instruction.operation);
 				printf("Registers don't match after %s, test %d\n", instruction.to_string().c_str(), test);
+				for(const auto &transaction: newTransactions) {
+					printf("n: "); transaction.print();
+				}
+				printf("\n");
+				for(const auto &transaction: oldTransactions) {
+					printf("o: "); transaction.print();
+				}
+				printf("\n");
+
 				// TODO: more detail here!
 			}
 		}
