@@ -229,10 +229,7 @@ template <typename M68000> struct Tester {
 		bus_handler.store.flag(address, bus_handler.participant);
 		bus_handler.store.flag(address+1, bus_handler.participant);
 
-		bus_handler.transaction_delay = 8;	// i.e. ignore the first eight transactions,
-											// which will just be the vector fetch part of
-											// the reset procedure. Instead assume logging
-											// at the initial prefetch fill.
+		bus_handler.transaction_delay = 12;	// i.e. ignore everything from the RESET sequence.
 		bus_handler.time = HalfCycles(0);
 
 		processor.reset();
@@ -264,13 +261,13 @@ template <typename M68000> struct Tester {
 //		InstructionSet::M68k::Operation::MOVEb,
 //		InstructionSet::M68k::Operation::MOVEw,
 //		InstructionSet::M68k::Operation::MOVEl,
-//		InstructionSet::M68k::Operation::PEA,
+		InstructionSet::M68k::Operation::PEA,
 //		InstructionSet::M68k::Operation::MOVEtoSR,		// Old implementation doesn't repeat a PC fetch.
 //		InstructionSet::M68k::Operation::MOVEtoCCR,		// Old implementation doesn't repeat a PC fetch.
 //		InstructionSet::M68k::Operation::JSR,			// Old implementation ends up skipping stack space if the destination throws an address error.
 //		InstructionSet::M68k::Operation::DIVU,
 //		InstructionSet::M68k::Operation::DIVS,
-//		InstructionSet::M68k::Operation::TAS,
+//		InstructionSet::M68k::Operation::TAS,			// Old implementation just doesn't match published cycle counts.
 	};
 
 	std::set<InstructionSet::M68k::Operation> failing_operations;
