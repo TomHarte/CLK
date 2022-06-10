@@ -255,7 +255,7 @@ template <typename M68000> struct Tester {
 	// Use a fixed seed to guarantee continuity across repeated runs.
 	srand(68000);
 
-	std::set<InstructionSet::M68k::Operation> test_set;/* = {
+	std::set<InstructionSet::M68k::Operation> test_set = {
 //		InstructionSet::M68k::Operation::ABCD,			// Old implementation doesn't match flamewing tests, sometimes produces incorrect results.
 //		InstructionSet::M68k::Operation::SBCD,			// Old implementation doesn't match flamewing tests, sometimes produces incorrect results.
 //		InstructionSet::M68k::Operation::MOVEb,
@@ -264,11 +264,30 @@ template <typename M68000> struct Tester {
 		InstructionSet::M68k::Operation::PEA,
 //		InstructionSet::M68k::Operation::MOVEtoSR,		// Old implementation doesn't repeat a PC fetch.
 //		InstructionSet::M68k::Operation::MOVEtoCCR,		// Old implementation doesn't repeat a PC fetch.
+//		InstructionSet::M68k::Operation::CMPAl,
 //		InstructionSet::M68k::Operation::JSR,			// Old implementation ends up skipping stack space if the destination throws an address error.
+//		InstructionSet::M68k::Operation::CLRb,
+//		InstructionSet::M68k::Operation::CLRw,
+//		InstructionSet::M68k::Operation::NEGXb,
+//		InstructionSet::M68k::Operation::NEGXw,
+//		InstructionSet::M68k::Operation::NEGb,
+//		InstructionSet::M68k::Operation::NEGw,
+//		InstructionSet::M68k::Operation::MOVEMtoRl,
+//		InstructionSet::M68k::Operation::MOVEMtoRw,
+//		InstructionSet::M68k::Operation::MOVEMtoMl,
+//		InstructionSet::M68k::Operation::MOVEMtoMw,
+//		InstructionSet::M68k::Operation::NOTb,
+//		InstructionSet::M68k::Operation::NOTw,
+//		InstructionSet::M68k::Operation::MULU,
+//		InstructionSet::M68k::Operation::MULS,
 //		InstructionSet::M68k::Operation::DIVU,
 //		InstructionSet::M68k::Operation::DIVS,
+//		InstructionSet::M68k::Operation::RTE,
+//		InstructionSet::M68k::Operation::TRAP,
+//		InstructionSet::M68k::Operation::TRAPV,
+//		InstructionSet::M68k::Operation::CHK,
 //		InstructionSet::M68k::Operation::TAS,			// Old implementation just doesn't match published cycle counts.
-	};*/
+	};
 
 	std::set<InstructionSet::M68k::Operation> failing_operations;
 	for(int c = 0; c < 65536; c++) {
