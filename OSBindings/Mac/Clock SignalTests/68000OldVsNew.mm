@@ -272,10 +272,6 @@ template <typename M68000> struct Tester {
 //		InstructionSet::M68k::Operation::NEGXw,			// Old implementation omits an idle cycle before -(An)
 //		InstructionSet::M68k::Operation::NEGb,			// Old implementation omits an idle cycle before -(An)
 //		InstructionSet::M68k::Operation::NEGw,			// Old implementation omits an idle cycle before -(An)
-		InstructionSet::M68k::Operation::MOVEMtoRl,
-		InstructionSet::M68k::Operation::MOVEMtoRw,
-		InstructionSet::M68k::Operation::MOVEMtoMl,
-		InstructionSet::M68k::Operation::MOVEMtoMw,
 //		InstructionSet::M68k::Operation::NOTb,			// Old implementation omits an idle cycle before -(An)
 //		InstructionSet::M68k::Operation::NOTw,			// Old implementation omits an idle cycle before -(An)
 //		InstructionSet::M68k::Operation::MULU,

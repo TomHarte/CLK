@@ -173,7 +173,6 @@ enum ExecutionState: int {
 	LEA,
 	PEA,
 	TAS,
-	TASAddressRegisterIndirectWithIndex8bitDisplacement,
 	MOVEtoCCRSR,
 	RTR,
 	RTE,
@@ -185,6 +184,9 @@ enum ExecutionState: int {
 	STOP,
 	TRAP,
 	TRAPV,
+
+	AddressRegisterIndirectWithIndex8bitDisplacement_n_np,
+	ProgramCounterIndirectWithIndex8bitDisplacement_n_np,
 };
 
 // MARK: - The state machine.
@@ -983,15 +985,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						break;
 
 						case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
-						MoveToStateSpecific(TASAddressRegisterIndirectWithIndex8bitDisplacement);
+							post_ea_state_ = TAS;
+						MoveToStateSpecific(AddressRegisterIndirectWithIndex8bitDisplacement_n_np);
 
 						default:
 							post_ea_state_ = TAS;
 						MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec);
 					}
-					if(instruction_.mode(0) != Mode::DataRegisterDirect) {
-					}
-
 				});
 
 				StdCASE(MOVEtoCCR, 	perform_state_ = MOVEtoCCRSR);
@@ -1398,11 +1398,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			temporary_address_.l = instruction_address_.l + 4;
 		MoveToStateDynamic(post_ea_state_);
 
-		BeginState(TASAddressRegisterIndirectWithIndex8bitDisplacement):
-			effective_address_[0].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
+		BeginState(AddressRegisterIndirectWithIndex8bitDisplacement_n_np):
+			effective_address_[next_operand_].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
 			IdleBus(1);								// n
 			Prefetch();								// np
-		MoveToStateSpecific(TAS);
+		MoveToStateDynamic(post_ea_state_);
 
 		//
 		// ProgramCounterIndirectWithIndex8bitDisplacement
@@ -1437,6 +1437,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[0].l = d8Xn(program_counter_.l - 2);
 			IdleBus(3);								// n nn
 			temporary_address_.l = instruction_address_.l + 4;
+		MoveToStateDynamic(post_ea_state_);
+
+		BeginState(ProgramCounterIndirectWithIndex8bitDisplacement_n_np):
+			effective_address_[next_operand_].l = d8Xn(program_counter_.l - 2);
+			IdleBus(1);								// n
+			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
 
 #undef d8Xn
@@ -2114,7 +2120,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			SetDataAddress(effective_address_[1].l);
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
-		MoveToStateSpecific(CalcEffectiveAddress);
+
+			switch(instruction_.mode(1)) {
+				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
+				MoveToStateSpecific(AddressRegisterIndirectWithIndex8bitDisplacement_n_np);
+
+				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				MoveToStateSpecific(ProgramCounterIndirectWithIndex8bitDisplacement_n_np);
+
+				default:
+				MoveToStateSpecific(CalcEffectiveAddress);
+			}
 
 		BeginState(MOVEMtoR_w_read):
 			// If there's nothing left to read, move on.
@@ -2178,27 +2194,37 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(effective_address_[1].l);
 			SetupDataAccess(0, Microcycle::SelectWord);
 
-			// Predecrement writes registers the other way around, but still reads the
-			// mask from LSB.
-			if(instruction_.mode(1) == Mode::AddressRegisterIndirectWithPredecrement) {
-				register_index_ = 15;
-				effective_address_[1].l = registers_[8 + instruction_.reg(1)].l;
-
-				// Don't go through the usual calculate EA path because: (i) the test above
-				// has already told us the addressing mode, and it's trivial; and (ii) the
-				// predecrement isn't actually wanted.
-				if(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) {
-					MoveToStateSpecific(MOVEMtoM_l_write_predec);
-				} else {
-					MoveToStateSpecific(MOVEMtoM_w_write_predec);
-				}
-			}
-
 			register_index_ = 0;
 			post_ea_state_ =
 				(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) ?
 					MOVEMtoM_l_write : MOVEMtoM_w_write;
-		MoveToStateSpecific(CalcEffectiveAddress);
+
+			// Predecrement writes registers the other way around, but still reads the
+			// mask from LSB.
+			switch(instruction_.mode(1)) {
+				case Mode::AddressRegisterIndirectWithPredecrement:
+					register_index_ = 15;
+					effective_address_[1].l = registers_[8 + instruction_.reg(1)].l;
+
+					// Don't go through the usual calculate EA path because: (i) the test above
+					// has already told us the addressing mode, and it's trivial; and (ii) the
+					// predecrement isn't actually wanted.
+					if(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) {
+						MoveToStateSpecific(MOVEMtoM_l_write_predec);
+					} else {
+						MoveToStateSpecific(MOVEMtoM_w_write_predec);
+					}
+				break;
+
+				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
+				MoveToStateSpecific(AddressRegisterIndirectWithIndex8bitDisplacement_n_np);
+
+				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				MoveToStateSpecific(ProgramCounterIndirectWithIndex8bitDisplacement_n_np);
+
+				default:
+				MoveToStateSpecific(CalcEffectiveAddress);
+			}
 
 		BeginState(MOVEMtoM_w_write):
 			// If there's nothing left to read, move on.
