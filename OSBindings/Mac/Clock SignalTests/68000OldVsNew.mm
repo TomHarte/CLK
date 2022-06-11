@@ -264,7 +264,7 @@ template <typename M68000> struct Tester {
 //		InstructionSet::M68k::Operation::PEA,
 //		InstructionSet::M68k::Operation::MOVEtoSR,		// Old implementation doesn't repeat a PC fetch.
 //		InstructionSet::M68k::Operation::MOVEtoCCR,		// Old implementation doesn't repeat a PC fetch.
-//		InstructionSet::M68k::Operation::CMPAl,
+//		InstructionSet::M68k::Operation::CMPAl,			// Old implementation omits an idle cycle before -(An)
 //		InstructionSet::M68k::Operation::JSR,			// Old implementation ends up skipping stack space if the destination throws an address error.
 //		InstructionSet::M68k::Operation::CLRb,			// Old implementation omits an idle cycle before -(An)
 //		InstructionSet::M68k::Operation::CLRw,			// Old implementation omits an idle cycle before -(An)
@@ -278,10 +278,10 @@ template <typename M68000> struct Tester {
 //		InstructionSet::M68k::Operation::MULS,
 //		InstructionSet::M68k::Operation::DIVU,
 //		InstructionSet::M68k::Operation::DIVS,
-//		InstructionSet::M68k::Operation::RTE,
-//		InstructionSet::M68k::Operation::TRAP,
-//		InstructionSet::M68k::Operation::TRAPV,
-//		InstructionSet::M68k::Operation::CHK,
+//		InstructionSet::M68k::Operation::RTE,			// When an address error is thrown, the old implementation will enter it at the interrupt level reinstalled from the RTE.
+//		InstructionSet::M68k::Operation::TRAP,			// Old implementation relocates the idle state near the end to the beginning.
+//		InstructionSet::M68k::Operation::TRAPV,			// Old implementation relocates the idle state near the end to the beginning.
+//		InstructionSet::M68k::Operation::CHK,			// Old implementation pauses four cycles too long.
 //		InstructionSet::M68k::Operation::TAS,			// Old implementation just doesn't match published cycle counts.
 	};
 
