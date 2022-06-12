@@ -475,7 +475,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(2);
 
 			// Switch to supervisor mode, disable interrupts.
-			captured_status_.w = status_.begin_exception(7);
+			captured_status_.w = status_.begin_exception();
 			should_trace_ = 0;
 			did_update_status();
 
