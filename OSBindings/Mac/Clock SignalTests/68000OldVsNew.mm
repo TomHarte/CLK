@@ -278,7 +278,6 @@ template <typename M68000> struct Tester {
 //		InstructionSet::M68k::Operation::MULS,
 //		InstructionSet::M68k::Operation::DIVU,
 //		InstructionSet::M68k::Operation::DIVS,
-//		InstructionSet::M68k::Operation::RTE,			// When an address error is thrown, the old implementation will enter it at the interrupt level reinstalled from the RTE.
 //		InstructionSet::M68k::Operation::TRAP,			// Old implementation relocates the idle state near the end to the beginning.
 //		InstructionSet::M68k::Operation::TRAPV,			// Old implementation relocates the idle state near the end to the beginning.
 //		InstructionSet::M68k::Operation::CHK,			// Old implementation pauses four cycles too long.
