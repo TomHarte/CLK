@@ -262,7 +262,6 @@ template <typename M68000> struct Tester {
 //		InstructionSet::M68k::Operation::MOVEb,
 //		InstructionSet::M68k::Operation::MOVEw,
 //		InstructionSet::M68k::Operation::MOVEl,
-//		InstructionSet::M68k::Operation::PEA,
 //		InstructionSet::M68k::Operation::MOVEtoSR,		// Old implementation doesn't repeat a PC fetch.
 //		InstructionSet::M68k::Operation::MOVEtoCCR,		// Old implementation doesn't repeat a PC fetch.
 //		InstructionSet::M68k::Operation::CMPAl,			// Old implementation omits an idle cycle before -(An)
@@ -285,6 +284,7 @@ template <typename M68000> struct Tester {
 //		InstructionSet::M68k::Operation::TAS,			// Old implementation just doesn't match published cycle counts.
 	};
 
+	int testsRun = 0;
 	std::set<InstructionSet::M68k::Operation> failing_operations;
 	for(int c = 0; c < 65536; c++) {
 //		printf("%04x\n", c);
@@ -305,6 +305,8 @@ template <typename M68000> struct Tester {
 
 		// Test each 1000 times.
 		for(int test = 0; test < 100; test++) {
+			++testsRun;
+
 			// Establish with certainty the initial memory state.
 			random_store.clear();
 			newTester->reset_with_opcode(c);
@@ -408,9 +410,14 @@ template <typename M68000> struct Tester {
 		}
 	}
 
-	printf("\nAll failing operations:\n");
-	for(const auto operation: failing_operations) {
-		printf("%d,\n", int(operation));
+	printf("%d tests run\n", testsRun);
+	if(failing_operations.empty()) {
+		printf("No failures\n");
+	} else {
+		printf("\nAll failing operations:\n");
+		for(const auto operation: failing_operations) {
+			printf("%d,\n", int(operation));
+		}
 	}
 }
 

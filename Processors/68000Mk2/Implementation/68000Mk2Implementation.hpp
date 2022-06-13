@@ -64,8 +64,10 @@ enum ExecutionState: int {
 
 	/// Perform the proper sequence to fetch a byte or word operand.
 	AddressingDispatch(FetchOperand_bw),
+
 	/// Perform the proper sequence to fetch a long-word operand.
 	AddressingDispatch(FetchOperand_l),
+
 	/// Perform the sequence to calculate an effective address, but don't fetch from it.
 	/// There's a lack of uniformity in the bus programs used by the 68000 for relevant
 	/// instructions; this entry point uses:
@@ -76,6 +78,7 @@ enum ExecutionState: int {
 	///	(d16, PC)		np				(d8, PC, Xn)	np n
 	///	(xxx).w		np				(xxx).l		np np
 	AddressingDispatch(CalcEffectiveAddress),
+
 	/// Similar to CalcEffectiveAddress, but varies slightly in the patterns:
 	///
 	///	-(An)			n
@@ -153,7 +156,6 @@ enum ExecutionState: int {
 	DIVU_DIVS,
 	Perform_idle_dyamic_Dn,
 	LEA,
-	PEA,
 	TAS,
 	MOVEtoCCRSR,
 	RTR,
@@ -169,6 +171,10 @@ enum ExecutionState: int {
 
 	AddressRegisterIndirectWithIndex8bitDisplacement_n_np,
 	ProgramCounterIndirectWithIndex8bitDisplacement_n_np,
+
+	AddressingDispatch(PEA),
+	PEA_np_nS_ns,		// Used to complete (An), (d16, [An/PC]) and (d8, [An/PC], Xn).
+	PEA_np_nS_ns_np,	// Used to complete (xxx).w and (xxx).l
 };
 
 #undef AddressingDispatch
@@ -961,10 +967,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 					post_ea_state_ = LEA;
 					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec);
 				});
-				StdCASE(PEA, {
-					post_ea_state_ = PEA;
-					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec);
-				});
+				SpecialCASE(PEA);
 
 				StdCASE(TAS, {
 					// TAS uses a special atomic bus cycle for memory accesses,
@@ -1130,6 +1133,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
 		MoveToStateDynamic(post_ea_state_);
 
+		BeginStateMode(PEA, AddressRegisterIndirect):
+			effective_address_[0].l = registers_[8 + instruction_.reg(next_operand_)].l;
+		MoveToStateDynamic(PEA_np_nS_ns);
+
 		BeginState(JSRJMPAddressRegisterIndirect):
 			effective_address_[0].l = registers_[8 + instruction_.reg(next_operand_)].l;
 			temporary_address_.l = instruction_address_.l + 2;
@@ -1200,6 +1207,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// AddressRegisterIndirectWithDisplacement
 		//
+
 		BeginStateMode(FetchOperand_bw, AddressRegisterIndirectWithDisplacement):
 			effective_address_[next_operand_].l =
 				registers_[8 + instruction_.reg(next_operand_)].l +
@@ -1229,6 +1237,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				uint32_t(int16_t(prefetch_.w));
 			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
+
+		BeginStateMode(PEA, AddressRegisterIndirectWithDisplacement):
+			effective_address_[0].l =
+				registers_[8 + instruction_.reg(next_operand_)].l +
+				uint32_t(int16_t(prefetch_.w));
+			Prefetch();
+		MoveToStateDynamic(PEA_np_nS_ns);
 
 		BeginState(JSRJMPAddressRegisterIndirectWithDisplacement):
 			effective_address_[0].l =
@@ -1270,6 +1285,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				uint32_t(int16_t(prefetch_.w));
 			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
+
+		BeginStateMode(PEA, ProgramCounterIndirectWithDisplacement):
+			effective_address_[0].l =
+				program_counter_.l - 2 +
+				uint32_t(int16_t(prefetch_.w));
+			Prefetch();
+		MoveToStateDynamic(PEA_np_nS_ns);
 
 		BeginState(JSRJMPProgramCounterIndirectWithDisplacement):
 			effective_address_[0].l =
@@ -1319,6 +1341,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(1);								// n
 		MoveToStateDynamic(post_ea_state_);
 
+		BeginStateMode(PEA, AddressRegisterIndirectWithIndex8bitDisplacement):
+			effective_address_[0].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
+			IdleBus(1);								// n
+			Prefetch();								// np
+			IdleBus(1);								// n
+		MoveToStateDynamic(PEA_np_nS_ns);
+
 		BeginState(JSRJMPAddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[0].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
 			IdleBus(3);								// n nn
@@ -1364,6 +1393,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			IdleBus(1);								// n
 		MoveToStateDynamic(post_ea_state_);
 
+		BeginStateMode(PEA, ProgramCounterIndirectWithIndex8bitDisplacement):
+			effective_address_[0].l = d8Xn(program_counter_.l - 2);
+			IdleBus(1);								// n
+			Prefetch();								// np
+			IdleBus(1);								// n
+		MoveToStateDynamic(PEA_np_nS_ns);
+
 		BeginState(JSRJMPProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[0].l = d8Xn(program_counter_.l - 2);
 			IdleBus(3);								// n nn
@@ -1405,6 +1441,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
 
+		BeginStateMode(PEA, AbsoluteShort):
+			effective_address_[0].l = uint32_t(int16_t(prefetch_.w));
+		MoveToStateSpecific(PEA_np_nS_ns_np);
+
 		BeginState(JSRJMPAbsoluteShort):
 			effective_address_[0].l = uint32_t(int16_t(prefetch_.w));
 			IdleBus(1);								// n
@@ -1442,6 +1482,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[next_operand_].l = prefetch_.l;
 			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
+
+		BeginStateMode(PEA, AbsoluteLong):
+			Prefetch();								// np
+			effective_address_[0].l = prefetch_.l;
+		MoveToStateSpecific(PEA_np_nS_ns_np);
 
 		BeginState(JSRJMPAbsoluteLong):
 			Prefetch();								// np
@@ -2306,6 +2351,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// PEA
 		//
 		BeginState(PEA):
+		MoveToAddressingMode(PEA, instruction_.mode(0));
+
+		BeginState(PEA_np_nS_ns):
+			Prefetch();
+			Push(effective_address_[0]);
+		MoveToStateSpecific(Decode);
+
+		BeginState(PEA_np_nS_ns_np):
+			Prefetch();
 			Push(effective_address_[0]);
 			Prefetch();
 		MoveToStateSpecific(Decode);
