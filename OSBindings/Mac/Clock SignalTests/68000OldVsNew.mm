@@ -76,8 +76,8 @@ struct Transaction {
 			(function_code >> 1) & 1,
 			(function_code >> 0) & 1,
 			address_strobe ? 'a' : '-',
-			(address_strobe & 1) ? 'b' : '-',
-			(address_strobe & 2) ? 'w' : '-',
+			(data_strobes & 1) ? 'b' : '-',
+			(data_strobes & 2) ? 'w' : '-',
 			address,
 			read ? "->" : "<-",
 			value);
