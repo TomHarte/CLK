@@ -63,16 +63,32 @@ enum ExecutionState: int {
 	// up on its feet and profiling becomes an option.
 
 	/// Perform the proper sequence to fetch a byte or word operand.
+	/// i.e.
+	///
+	/// Dn/An/Q		-				(An)			nr
+	///	(An)+			nr				-(An)			n nr
+	///	(d16, An)		np nr				(d8, An, Xn)	n np nr
+	///	(d16, PC)		np nr				(d8, PC, Xn)	n np nr
+	///	(xxx).w		np nr				(xxx).l		np np nr
+	///	#			np
 	AddressingDispatch(FetchOperand_bw),
 
 	/// Perform the proper sequence to fetch a long-word operand.
+	/// i.e.
+	///
+	/// Dn/An/Q		-				(An)			nR nr
+	///	(An)+			nR nr				-(An)			n nR nr
+	///	(d16, An)		np nR nr			(d8, An, Xn)	n np nR nr
+	///	(d16, PC)		np nR nr			(d8, PC, Xn)	n np nR nr
+	///	(xxx).w		np nR nr			(xxx).l		np np nR nr
+	///	#			np np
 	AddressingDispatch(FetchOperand_l),
 
 	/// Perform the sequence to calculate an effective address, but don't fetch from it.
 	/// There's a lack of uniformity in the bus programs used by the 68000 for relevant
 	/// instructions; this entry point uses:
 	///
-	/// Dn			-				An			-
+	/// Dn/An		-				(An)			-
 	///	(An)+			-				-(An)			-
 	///	(d16, An)		np				(d8, An, Xn)	np n
 	///	(d16, PC)		np				(d8, PC, Xn)	np n
