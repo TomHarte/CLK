@@ -81,7 +81,7 @@ enum ExecutionState: int {
 	///	-(An)			n
 	///	(d8, An, Xn)	n np n
 	///	(d8, PC, Xn)	n np n
-	CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec,
+	AddressingDispatch(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec),
 
 	// Various forms of perform; each of these will
 	// perform the current instruction, then do the
@@ -1073,16 +1073,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 
 		BeginState(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec):
-			if(
-				instruction_.mode(next_operand_) != Mode::AddressRegisterIndirectWithIndex8bitDisplacement &&
-				instruction_.mode(next_operand_) != Mode::ProgramCounterIndirectWithIndex8bitDisplacement &&
-				instruction_.mode(next_operand_) != Mode::AddressRegisterIndirectWithPredecrement
-			) {
-				MoveToStateSpecific(CalcEffectiveAddress);
-			}
+		MoveToAddressingMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, instruction_.mode(next_operand_));
 
-			IdleBus(1);
-			[[fallthrough]];
 
 		BeginState(CalcEffectiveAddress):
 		MoveToAddressingMode(CalcEffectiveAddress, instruction_.mode(next_operand_));
@@ -1133,6 +1125,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AddressRegisterIndirect):
 		BeginStateMode(CalcEffectiveAddress, AddressRegisterIndirect):
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
 		MoveToStateDynamic(post_ea_state_);
@@ -1164,6 +1157,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AddressRegisterIndirectWithPostincrement):
 		BeginStateMode(CalcEffectiveAddress, AddressRegisterIndirectWithPostincrement):
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
 			registers_[8 + instruction_.reg(next_operand_)].l +=
@@ -1193,6 +1187,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[next_operand_].l += 2;
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
+
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AddressRegisterIndirectWithPredecrement):
+			IdleBus(1);
+			[[fallthrough]];
 
 		BeginStateMode(CalcEffectiveAddress, AddressRegisterIndirectWithPredecrement):
 			registers_[8 + instruction_.reg(next_operand_)].l -= address_increments[int(instruction_.operand_size())][instruction_.reg(next_operand_)];
@@ -1224,6 +1222,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AddressRegisterIndirectWithDisplacement):
 		BeginStateMode(CalcEffectiveAddress, AddressRegisterIndirectWithDisplacement):
 			effective_address_[next_operand_].l =
 				registers_[8 + instruction_.reg(next_operand_)].l +
@@ -1264,6 +1263,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, ProgramCounterIndirectWithDisplacement):
 		BeginStateMode(CalcEffectiveAddress, ProgramCounterIndirectWithDisplacement):
 			effective_address_[next_operand_].l =
 				program_counter_.l - 2 +
@@ -1309,6 +1309,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AddressRegisterIndirectWithIndex8bitDisplacement):
+			IdleBus(1);								// n
+			[[fallthrough]];
+
 		BeginStateMode(CalcEffectiveAddress, AddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
 			Prefetch();								// np
@@ -1349,6 +1353,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			effective_address_[next_operand_].l += 2;
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
+
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, ProgramCounterIndirectWithIndex8bitDisplacement):
+			IdleBus(1);								// n
+			[[fallthrough]];
 
 		BeginStateMode(CalcEffectiveAddress, ProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(program_counter_.l - 2);
@@ -1391,6 +1399,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AbsoluteShort):
 		BeginStateMode(CalcEffectiveAddress, AbsoluteShort):
 			effective_address_[next_operand_].l = uint32_t(int16_t(prefetch_.w));
 			Prefetch();								// np
@@ -1427,6 +1436,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AbsoluteLong):
 		BeginStateMode(CalcEffectiveAddress, AbsoluteLong):
 			Prefetch();								// np
 			effective_address_[next_operand_].l = prefetch_.l;
