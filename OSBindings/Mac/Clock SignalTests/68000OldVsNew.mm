@@ -56,8 +56,8 @@ struct Transaction {
 	uint32_t address = 0;
 	uint16_t value = 0;
 	bool address_strobe = false;
-	bool data_strobe = false;
 	bool read = false;
+	int data_strobes = 0;
 
 	bool operator !=(const Transaction &rhs) const {
 		if(timestamp != rhs.timestamp) return true;
@@ -65,18 +65,19 @@ struct Transaction {
 		if(address != rhs.address) return true;
 		if(value != rhs.value) return true;
 		if(address_strobe != rhs.address_strobe) return true;
-		if(data_strobe != rhs.data_strobe) return true;
+		if(data_strobes != rhs.data_strobes) return true;
 		return false;
 	}
 
 	void print() const {
-		printf("%d: %d%d%d %c %c @ %06x %s %04x\n",
+		printf("%d: %d%d%d %c %c%c @ %06x %s %04x\n",
 			timestamp.as<int>(),
 			(function_code >> 2) & 1,
 			(function_code >> 1) & 1,
 			(function_code >> 0) & 1,
 			address_strobe ? 'a' : '-',
-			data_strobe ? 'd' : '-',
+			(address_strobe & 1) ? 'b' : '-',
+			(address_strobe & 2) ? 'w' : '-',
 			address,
 			read ? "->" : "<-",
 			value);
@@ -107,7 +108,7 @@ struct BusHandler {
 			transaction.function_code |= (cycle.operation & Microcycle::IsData) ? 0x1 : 0x2;
 		}
 		transaction.address_strobe = cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress);
-		transaction.data_strobe = cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord);
+		transaction.data_strobes = cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord);
 		if(cycle.address) transaction.address = *cycle.address & 0xffff'ff;
 		transaction.timestamp = time;
 		transaction.read = cycle.operation & Microcycle::Read;
@@ -154,12 +155,12 @@ struct BusHandler {
 
 
 		// Add the data value if relevant.
-		if(transaction.data_strobe) {
+		if(transaction.data_strobes) {
 			transaction.value = cycle.value16();
 		}
 
 		// Push back only if interesting.
-		if(transaction.address_strobe || transaction.data_strobe || transaction.function_code == 7) {
+		if(transaction.address_strobe || transaction.data_strobes || transaction.function_code == 7) {
 			if(transaction_delay) {
 				--transaction_delay;
 
@@ -326,8 +327,6 @@ template <typename M68000> struct Tester {
 			oldState.status = newState.registers.status = (rand() | (1 << 13) | (7 << 8)) & ~(1 << 15);
 			oldState.user_stack_pointer = newState.registers.user_stack_pointer = rand() << 1;
 			oldState.supervisor_stack_pointer = newState.registers.supervisor_stack_pointer = 0x800;
-
-			auto initialState = oldState;
 
 			newTester->processor.set_state(newState);
 			oldTester->processor.set_state(oldState);
