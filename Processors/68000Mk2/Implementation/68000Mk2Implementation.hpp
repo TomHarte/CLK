@@ -110,13 +110,6 @@ enum ExecutionState: int {
 	Perform_np_n,
 	Perform_np_nn,
 
-	MOVE,
-	MOVE_predec,
-	MOVE_predec_l,
-	MOVE_prefetch_decode,
-	MOVE_complete,
-	MOVE_complete_l,
-
 	TwoOp_Predec_bw,
 	TwoOp_Predec_l,
 
@@ -194,6 +187,7 @@ enum ExecutionState: int {
 
 	MOVE_b, MOVE_w,
 	AddressingDispatch(MOVE_bw),	MOVE_bw_AbsoluteLong_prefetch_first,
+	AddressingDispatch(MOVE_l),		MOVE_l_AbsoluteLong_prefetch_first,
 };
 
 #undef AddressingDispatch
@@ -756,7 +750,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				Duplicate(MOVEAw, MOVEw)
 				StdCASE(MOVEw,		perform_state_ = MOVE_w);
 				Duplicate(MOVEAl, MOVEl)
-				StdCASE(MOVEl,		perform_state_ = MOVE);
+				StdCASE(MOVEl,		perform_state_ = MOVE_l);
 
 				StdCASE(CMPb,		perform_state_ = Perform_np);
 				StdCASE(CMPw,		perform_state_ = Perform_np);
@@ -1121,6 +1115,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
 		MoveToNextOperand(FetchOperand_l);
 
+		BeginStateMode(MOVE_l, AddressRegisterDirect):
+		BeginStateMode(MOVE_l, DataRegisterDirect):
 		BeginStateMode(MOVE_bw, AddressRegisterDirect):
 			registers_[instruction_.reg(1)] = operand_[1];
 			Prefetch();
@@ -1160,11 +1156,23 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToNextOperand(FetchOperand_bw);
 
 		BeginStateMode(MOVE_bw, AddressRegisterIndirect):
-			effective_address_[1].l = registers_[8 + instruction_.reg(1)].l;
-			SetDataAddress(effective_address_[1].l);
+			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
 			SetupDataAccess(0, data_select(instruction_));
 
 			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, AddressRegisterIndirect):
+			effective_address_[1] = registers_[8 + instruction_.reg(1)];
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nW
+
 			Prefetch();								// np
 		MoveToStateSpecific(Decode);
 
@@ -1205,13 +1213,25 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToNextOperand(FetchOperand_bw);
 
 		BeginStateMode(MOVE_bw, AddressRegisterIndirectWithPostincrement):
-			effective_address_[1].l = registers_[8 + instruction_.reg(1)].l;
+			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
+			SetupDataAccess(0, data_select(instruction_));
+
+			Access(operand_[next_operand_].low);	// nw
+
 			registers_[8 + instruction_.reg(next_operand_)].l +=
 				address_increments[int(instruction_.operand_size())][instruction_.reg(1)];
 
-			SetDataAddress(effective_address_[1].l);
-			SetupDataAccess(0, data_select(instruction_));
-			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, AddressRegisterIndirectWithPostincrement):
+			SetDataAddress(registers_[8 + instruction_.reg(next_operand_)].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Access(operand_[next_operand_].high);	// nW
+			registers_[8 + instruction_.reg(next_operand_)].l += 2;
+			Access(operand_[next_operand_].low);	// nW
+			registers_[8 + instruction_.reg(next_operand_)].l += 2;
 
 			Prefetch();								// np
 		MoveToStateSpecific(Decode);
@@ -1257,6 +1277,18 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nw
 		MoveToStateSpecific(Decode);
 
+		BeginStateMode(MOVE_l, AddressRegisterIndirectWithPredecrement):
+			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Prefetch();								// np
+
+			registers_[8 + instruction_.reg(1)].l -= 2;
+			Access(operand_[next_operand_].low);	// nw
+			registers_[8 + instruction_.reg(1)].l -= 2;
+			Access(operand_[next_operand_].high);	// nW
+		MoveToStateSpecific(Decode);
+
 		BeginStateMode(FetchOperand_l, AddressRegisterIndirectWithPredecrement):
 			registers_[8 + instruction_.reg(next_operand_)].l -= 4;
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
@@ -1300,6 +1332,21 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetupDataAccess(0, data_select(instruction_));
 
 			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, AddressRegisterIndirectWithDisplacement):
+			effective_address_[1].l =
+				registers_[8 + instruction_.reg(1)].l +
+				uint32_t(int16_t(prefetch_.w));
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
 			Access(operand_[next_operand_].low);	// nw
 			Prefetch();								// np
 		MoveToStateSpecific(Decode);
@@ -1361,6 +1408,21 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetupDataAccess(0, data_select(instruction_));
 
 			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, ProgramCounterIndirectWithDisplacement):
+			effective_address_[1].l =
+				program_counter_.l - 2 +
+				uint32_t(int16_t(prefetch_.w));
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
 			Access(operand_[next_operand_].low);	// nw
 			Prefetch();								// np
 		MoveToStateSpecific(Decode);
@@ -1431,6 +1493,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();								// np
 		MoveToStateSpecific(Decode);
 
+		BeginStateMode(MOVE_l, AddressRegisterIndirectWithIndex8bitDisplacement):
+			effective_address_[1].l = d8Xn(registers_[8 + instruction_.reg(1)].l);
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			IdleBus(1);								// n
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
 		BeginStateMode(FetchOperand_l, AddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
 			SetDataAddress(effective_address_[next_operand_].l);
@@ -1491,6 +1567,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			IdleBus(1);								// n
 			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, ProgramCounterIndirectWithIndex8bitDisplacement):
+			effective_address_[1].l = d8Xn(program_counter_.l - 2);
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			IdleBus(1);								// n
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
 			Access(operand_[next_operand_].low);	// nw
 			Prefetch();								// np
 		MoveToStateSpecific(Decode);
@@ -1559,6 +1649,19 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();								// np
 		MoveToStateSpecific(Decode);
 
+		BeginStateMode(MOVE_l, AbsoluteShort):
+			effective_address_[1].l = uint32_t(int16_t(prefetch_.w));
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
 		BeginStateMode(FetchOperand_l, AbsoluteShort):
 			effective_address_[next_operand_].l = uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(effective_address_[next_operand_].l);
@@ -1622,6 +1725,38 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(MOVE_bw_AbsoluteLong_prefetch_first):
 			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, AbsoluteLong):
+			Prefetch();								// np
+
+			effective_address_[1].l = prefetch_.l;
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			switch(instruction_.mode(0)) {
+				case Mode::AddressRegisterDirect:
+				case Mode::DataRegisterDirect:
+				case Mode::ImmediateData:
+					MoveToStateSpecific(MOVE_l_AbsoluteLong_prefetch_first);
+
+				default: break;
+			}
+
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginState(MOVE_l_AbsoluteLong_prefetch_first):
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
 			Access(operand_[next_operand_].low);	// nw
 			Prefetch();								// np
 		MoveToStateSpecific(Decode);
@@ -1794,107 +1929,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// Specific forms of perform...
 		//
 
-		BeginState(MOVE):
-			PerformDynamic();
-
-			// In all cases except predecrement mode: do the usual address
-			// calculate and storage, then do the next prefetch and decode.
-			//
-			// In predecrement mode: do the prefetch, then write the result.
-			//
-			// For here, lump data and address register direct in with predec,
-			// so that all that's left is modes that write to memory and then
-			// prefetch.
-			switch(instruction_.mode(1)) {
-				case Mode::DataRegisterDirect: {
-					const uint32_t write_mask = size_masks[int(instruction_.operand_size())];
-					const int reg = instruction_.reg(1);
-
-					registers_[reg].l =
-						(operand_[1].l & write_mask) |
-						(registers_[reg].l & ~write_mask);
-				}
-				MoveToStateSpecific(MOVE_prefetch_decode);
-
-				case Mode::AddressRegisterDirect:
-					registers_[8 + instruction_.reg(1)].l = operand_[1].l;
-				MoveToStateSpecific(MOVE_prefetch_decode);
-
-				case Mode::AddressRegisterIndirectWithPredecrement:
-				MoveToStateSpecific(MOVE_predec);
-
-				default: break;
-			}
-
-			next_operand_ = 1;
-			post_ea_state_ = MOVE_complete;
-		MoveToStateSpecific(CalcEffectiveAddress);
-
-		BeginState(MOVE_prefetch_decode):
-			Prefetch();
-		MoveToStateSpecific(Decode);
-
-		BeginState(MOVE_predec):
-			Prefetch();
-
-			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
-			switch(instruction_.operand_size()) {
-				case InstructionSet::M68k::DataSize::LongWord:
-				MoveToStateSpecific(MOVE_predec_l);
-
-				case InstructionSet::M68k::DataSize::Word:
-					SetupDataAccess(0, Microcycle::SelectWord);
-					registers_[8 + instruction_.reg(1)].l -= 2;
-				break;
-
-				case InstructionSet::M68k::DataSize::Byte:
-					SetupDataAccess(0, Microcycle::SelectByte);
-					registers_[8 + instruction_.reg(1)].l -=
-						address_increments[0][instruction_.reg(next_operand_)];
-				break;
-			}
-
-			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
-			Access(operand_[1].low);
-		MoveToStateSpecific(Decode);
-
-		BeginState(MOVE_predec_l):
-			SetupDataAccess(0, Microcycle::SelectWord);
-
-			registers_[8 + instruction_.reg(1)].l -= 2;
-			Access(operand_[1].low);
-			registers_[8 + instruction_.reg(1)].l -= 2;
-			Access(operand_[1].high);
-		MoveToStateSpecific(Decode);
-
-		BeginState(MOVE_complete):
-			SetDataAddress(effective_address_[1].l);
-
-			switch(instruction_.operand_size()) {
-				case InstructionSet::M68k::DataSize::LongWord:
-					SetupDataAccess(0, Microcycle::SelectWord);
-				MoveToStateSpecific(MOVE_complete_l);
-
-				case InstructionSet::M68k::DataSize::Word:
-					SetupDataAccess(0, Microcycle::SelectWord);
-				break;
-
-				case InstructionSet::M68k::DataSize::Byte:
-					SetupDataAccess(0, Microcycle::SelectByte);
-				break;
-			}
-
-			Access(operand_[1].low);
-			Prefetch();
-		MoveToStateSpecific(Decode);
-
-		BeginState(MOVE_complete_l):
-			Access(operand_[1].high);
-			effective_address_[1].l += 2;
-			Access(operand_[1].low);
-			Prefetch();
-		MoveToStateSpecific(Decode);
-
+		//
+		// MOVE
+		//
 		BeginState(MOVE_b):
 			PerformSpecific(MOVEb);
 		MoveToAddressingMode(MOVE_bw, instruction_.mode(1));
@@ -1902,6 +1939,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginState(MOVE_w):
 			PerformSpecific(MOVEw);
 		MoveToAddressingMode(MOVE_bw, instruction_.mode(1));
+
+		BeginState(MOVE_l):
+			PerformSpecific(MOVEl);
+		MoveToAddressingMode(MOVE_l, instruction_.mode(1));
 
 		//
 		// [ABCD/SBCD/SUBX/ADDX] (An)-, (An)-
