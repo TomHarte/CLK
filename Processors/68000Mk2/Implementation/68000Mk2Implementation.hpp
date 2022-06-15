@@ -1118,7 +1118,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		BeginStateMode(MOVE_l, AddressRegisterDirect):
 		BeginStateMode(MOVE_l, DataRegisterDirect):
 		BeginStateMode(MOVE_bw, AddressRegisterDirect):
-			registers_[instruction_.reg(1)] = operand_[1];
+			registers_[instruction_.lreg(1)] = operand_[1];
 			Prefetch();
 		MoveToStateSpecific(Decode);
 
@@ -1937,11 +1937,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		MoveToAddressingMode(MOVE_bw, instruction_.mode(1));
 
 		BeginState(MOVE_w):
-			PerformSpecific(MOVEw);
+			PerformDynamic();	// Could be MOVE.w or MOVEA.w.
 		MoveToAddressingMode(MOVE_bw, instruction_.mode(1));
 
 		BeginState(MOVE_l):
-			PerformSpecific(MOVEl);
+			PerformDynamic();	// Could be MOVE.l or MOVEA.l.
 		MoveToAddressingMode(MOVE_l, instruction_.mode(1));
 
 		//
