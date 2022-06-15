@@ -313,7 +313,7 @@ template <typename M68000> struct Tester {
 		}
 
 		// Test each 1000 times.
-		for(int test = 0; test < 10; test++) {
+		for(int test = 0; test < 1000; test++) {
 			++testsRun;
 
 			// Establish with certainty the initial memory state.
