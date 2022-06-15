@@ -256,32 +256,41 @@ template <typename M68000> struct Tester {
 	// Use a fixed seed to guarantee continuity across repeated runs.
 	srand(68000);
 
-	std::set<InstructionSet::M68k::Operation> test_set = {
-//		InstructionSet::M68k::Operation::ABCD,			// Old implementation doesn't match flamewing tests, sometimes produces incorrect results.
-//		InstructionSet::M68k::Operation::SBCD,			// Old implementation doesn't match flamewing tests, sometimes produces incorrect results.
-//		InstructionSet::M68k::Operation::MOVEb,
-//		InstructionSet::M68k::Operation::MOVEw,
-//		InstructionSet::M68k::Operation::MOVEl,
-//		InstructionSet::M68k::Operation::MOVEtoSR,		// Old implementation doesn't repeat a PC fetch.
-//		InstructionSet::M68k::Operation::MOVEtoCCR,		// Old implementation doesn't repeat a PC fetch.
-//		InstructionSet::M68k::Operation::CMPAl,			// Old implementation omits an idle cycle before -(An)
-//		InstructionSet::M68k::Operation::JSR,			// Old implementation ends up skipping stack space if the destination throws an address error.
-//		InstructionSet::M68k::Operation::CLRb,			// Old implementation omits an idle cycle before -(An)
-//		InstructionSet::M68k::Operation::CLRw,			// Old implementation omits an idle cycle before -(An)
-//		InstructionSet::M68k::Operation::NEGXb,			// Old implementation omits an idle cycle before -(An)
-//		InstructionSet::M68k::Operation::NEGXw,			// Old implementation omits an idle cycle before -(An)
-//		InstructionSet::M68k::Operation::NEGb,			// Old implementation omits an idle cycle before -(An)
-//		InstructionSet::M68k::Operation::NEGw,			// Old implementation omits an idle cycle before -(An)
-//		InstructionSet::M68k::Operation::NOTb,			// Old implementation omits an idle cycle before -(An)
-//		InstructionSet::M68k::Operation::NOTw,			// Old implementation omits an idle cycle before -(An)
-//		InstructionSet::M68k::Operation::MULU,
-//		InstructionSet::M68k::Operation::MULS,
-//		InstructionSet::M68k::Operation::DIVU,
-//		InstructionSet::M68k::Operation::DIVS,
-//		InstructionSet::M68k::Operation::TRAP,			// Old implementation relocates the idle state near the end to the beginning.
-//		InstructionSet::M68k::Operation::TRAPV,			// Old implementation relocates the idle state near the end to the beginning.
-//		InstructionSet::M68k::Operation::CHK,			// Old implementation pauses four cycles too long.
-//		InstructionSet::M68k::Operation::TAS,			// Old implementation just doesn't match published cycle counts.
+	std::set<InstructionSet::M68k::Operation> ignore_list = {
+		//
+		// Operations that do the wrong thing on the old 68000:
+		//
+		InstructionSet::M68k::Operation::ABCD,			// Old implementation doesn't match flamewing tests, sometimes produces incorrect results.
+		InstructionSet::M68k::Operation::SBCD,			// Old implementation doesn't match flamewing tests, sometimes produces incorrect results.
+		InstructionSet::M68k::Operation::JSR,			// Old implementation ends up skipping stack space if the destination throws an address error.
+		InstructionSet::M68k::Operation::MOVEtoSR,		// Old implementation doesn't repeat a PC fetch.
+		InstructionSet::M68k::Operation::MOVEtoCCR,		// Old implementation doesn't repeat a PC fetch.
+
+		//
+		// Operations with definite timing deficiencies versus Yacht.txt on the old 68000:
+		//
+		InstructionSet::M68k::Operation::CMPAl,			// Old implementation omits an idle cycle before -(An)
+		InstructionSet::M68k::Operation::CLRb,			// Old implementation omits an idle cycle before -(An)
+		InstructionSet::M68k::Operation::CLRw,			// Old implementation omits an idle cycle before -(An)
+		InstructionSet::M68k::Operation::NEGXb,			// Old implementation omits an idle cycle before -(An)
+		InstructionSet::M68k::Operation::NEGXw,			// Old implementation omits an idle cycle before -(An)
+		InstructionSet::M68k::Operation::NEGb,			// Old implementation omits an idle cycle before -(An)
+		InstructionSet::M68k::Operation::NEGw,			// Old implementation omits an idle cycle before -(An)
+		InstructionSet::M68k::Operation::NOTb,			// Old implementation omits an idle cycle before -(An)
+		InstructionSet::M68k::Operation::NOTw,			// Old implementation omits an idle cycle before -(An)
+		InstructionSet::M68k::Operation::TRAP,			// Old implementation relocates the idle state near the end to the beginning.
+		InstructionSet::M68k::Operation::TRAPV,			// Old implementation relocates the idle state near the end to the beginning.
+		InstructionSet::M68k::Operation::CHK,			// Old implementation pauses four cycles too long.
+		InstructionSet::M68k::Operation::TAS,			// Old implementation just doesn't match published cycle counts.
+
+		//
+		// Operations with timing discrepancies between the two 68000 implementations
+		// that I think are _more_ accurate now, but possibly still need work:
+		//
+		InstructionSet::M68k::Operation::MULU,
+		InstructionSet::M68k::Operation::MULS,
+		InstructionSet::M68k::Operation::DIVU,
+		InstructionSet::M68k::Operation::DIVS,
 	};
 
 	int testsRun = 0;
@@ -298,13 +307,13 @@ template <typename M68000> struct Tester {
 			continue;
 		}
 
-		// If a whitelist is in place, adhere to it.
-		if(!test_set.empty() && test_set.find(instruction.operation) == test_set.end()) {
+		// If this operation is known to diverge, ignore it. It's dealt with.
+		if(ignore_list.find(instruction.operation) != ignore_list.end()) {
 			continue;
 		}
 
 		// Test each 1000 times.
-		for(int test = 0; test < 100; test++) {
+		for(int test = 0; test < 10; test++) {
 			++testsRun;
 
 			// Establish with certainty the initial memory state.
@@ -419,6 +428,9 @@ template <typename M68000> struct Tester {
 			printf("%d,\n", int(operation));
 		}
 	}
+
+	// Mark the test as passed or failed.
+	XCTAssert(failing_operations.empty());
 }
 
 @end
