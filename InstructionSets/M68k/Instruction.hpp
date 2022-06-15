@@ -250,6 +250,8 @@ enum class AddressingMode: uint8_t {
 	/// .q; value is embedded in the opcode.
 	Quick												= 0b01'110,
 };
+/// Guaranteed to be 1+[largest value used by AddressingMode].
+static constexpr int AddressingModeCount = 0b10'110;
 
 /*!
 	A preinstruction is as much of an instruction as can be decoded with

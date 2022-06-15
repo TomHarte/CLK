@@ -17,6 +17,9 @@
 namespace CPU {
 namespace MC68000Mk2 {
 
+#define AddressingDispatch(x)	\
+		x,	x##__end = x + InstructionSet::M68k::AddressingModeCount
+
 /// States for the state machine which are named by
 /// me for their purpose rather than automatically by file position.
 /// These are negative to avoid ambiguity with the other group.
@@ -24,11 +27,6 @@ enum ExecutionState: int {
 	Reset			= std::numeric_limits<int>::min(),
 	Decode,
 	WaitForDTACK,
-
-	/// Perform the proper sequence to fetch a byte or word operand.
-	FetchOperand_bw,
-	/// Perform the proper sequence to fetch a long-word operand.
-	FetchOperand_l,
 
 	StoreOperand,
 	StoreOperand_bw,
@@ -64,42 +62,45 @@ enum ExecutionState: int {
 	// Further consideration may be necessary. Especially once this is
 	// up on its feet and profiling becomes an option.
 
-	FetchAddressRegisterIndirect_bw,
-	FetchAddressRegisterIndirectWithPostincrement_bw,
-	FetchAddressRegisterIndirectWithPredecrement_bw,
-	FetchAddressRegisterIndirectWithDisplacement_bw,
-	FetchAddressRegisterIndirectWithIndex8bitDisplacement_bw,
-	FetchProgramCounterIndirectWithDisplacement_bw,
-	FetchProgramCounterIndirectWithIndex8bitDisplacement_bw,
-	FetchAbsoluteShort_bw,
-	FetchAbsoluteLong_bw,
-	FetchImmediateData_bw,
+	/// Perform the proper sequence to fetch a byte or word operand.
+	/// i.e.
+	///
+	/// Dn/An/Q		-				(An)			nr
+	///	(An)+			nr				-(An)			n nr
+	///	(d16, An)		np nr				(d8, An, Xn)	n np nr
+	///	(d16, PC)		np nr				(d8, PC, Xn)	n np nr
+	///	(xxx).w		np nr				(xxx).l		np np nr
+	///	#			np
+	AddressingDispatch(FetchOperand_bw),
 
-	FetchAddressRegisterIndirect_l,
-	FetchAddressRegisterIndirectWithPostincrement_l,
-	FetchAddressRegisterIndirectWithPredecrement_l,
-	FetchAddressRegisterIndirectWithDisplacement_l,
-	FetchAddressRegisterIndirectWithIndex8bitDisplacement_l,
-	FetchProgramCounterIndirectWithDisplacement_l,
-	FetchProgramCounterIndirectWithIndex8bitDisplacement_l,
-	FetchAbsoluteShort_l,
-	FetchAbsoluteLong_l,
-	FetchImmediateData_l,
+	/// Perform the proper sequence to fetch a long-word operand.
+	/// i.e.
+	///
+	/// Dn/An/Q		-				(An)			nR nr
+	///	(An)+			nR nr				-(An)			n nR nr
+	///	(d16, An)		np nR nr			(d8, An, Xn)	n np nR nr
+	///	(d16, PC)		np nR nr			(d8, PC, Xn)	n np nR nr
+	///	(xxx).w		np nR nr			(xxx).l		np np nR nr
+	///	#			np np
+	AddressingDispatch(FetchOperand_l),
 
-	CalcEffectiveAddress,											// -
-	CalcAddressRegisterIndirect,									// -
-	CalcAddressRegisterIndirectWithPostincrement,					// -
-	CalcAddressRegisterIndirectWithPredecrement,					// -
-	CalcAddressRegisterIndirectWithDisplacement,					// np
-	CalcAddressRegisterIndirectWithIndex8bitDisplacement,			// np n
-	CalcProgramCounterIndirectWithDisplacement,						// np
-	CalcProgramCounterIndirectWithIndex8bitDisplacement,			// np n
-	CalcAbsoluteShort,												// np
-	CalcAbsoluteLong,												// np np
+	/// Perform the sequence to calculate an effective address, but don't fetch from it.
+	/// There's a lack of uniformity in the bus programs used by the 68000 for relevant
+	/// instructions; this entry point uses:
+	///
+	/// Dn/An		-				(An)			-
+	///	(An)+			-				-(An)			-
+	///	(d16, An)		np				(d8, An, Xn)	np n
+	///	(d16, PC)		np				(d8, PC, Xn)	np n
+	///	(xxx).w		np				(xxx).l		np np
+	AddressingDispatch(CalcEffectiveAddress),
 
-	CalcEffectiveAddressIdleFor8bitDisplacement,					// As per CalcEffectiveAddress unless one of the
-																	// 8-bit displacement modes is in use, in which case
-																	// an extra idle bus state is prefixed.
+	/// Similar to CalcEffectiveAddress, but varies slightly in the patterns:
+	///
+	///	-(An)			n
+	///	(d8, An, Xn)	n np n
+	///	(d8, PC, Xn)	n np n
+	AddressingDispatch(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec),
 
 	// Various forms of perform; each of these will
 	// perform the current instruction, then do the
@@ -108,13 +109,6 @@ enum ExecutionState: int {
 	Perform_np,
 	Perform_np_n,
 	Perform_np_nn,
-
-	MOVE,
-	MOVE_predec,
-	MOVE_predec_l,
-	MOVE_prefetch_decode,
-	MOVE_complete,
-	MOVE_complete_l,
 
 	TwoOp_Predec_bw,
 	TwoOp_Predec_l,
@@ -171,7 +165,6 @@ enum ExecutionState: int {
 	DIVU_DIVS,
 	Perform_idle_dyamic_Dn,
 	LEA,
-	PEA,
 	TAS,
 	MOVEtoCCRSR,
 	RTR,
@@ -184,7 +177,25 @@ enum ExecutionState: int {
 	STOP,
 	TRAP,
 	TRAPV,
+
+	AddressRegisterIndirectWithIndex8bitDisplacement_n_np,
+	ProgramCounterIndirectWithIndex8bitDisplacement_n_np,
+
+	AddressingDispatch(PEA),
+	PEA_np_nS_ns,		// Used to complete (An), (d16, [An/PC]) and (d8, [An/PC], Xn).
+	PEA_np_nS_ns_np,	// Used to complete (xxx).w and (xxx).l
+
+	MOVE_b, MOVE_w,
+	AddressingDispatch(MOVE_bw),	MOVE_bw_AbsoluteLong_prefetch_first,
+	AddressingDispatch(MOVE_l),		MOVE_l_AbsoluteLong_prefetch_first,
 };
+
+#undef AddressingDispatch
+
+/// @returns The proper select lines for @c instruction's operand size, assuming it is either byte or word.
+template <typename InstructionT> Microcycle::OperationT data_select(const InstructionT &instruction) {
+	return Microcycle::OperationT(1 << int(instruction.operand_size()));
+}
 
 // MARK: - The state machine.
 
@@ -212,7 +223,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define MoveToStateDynamic(x)	{ state_ = x; continue; }
 
 	// Sets the start position for state x.
-#define BeginState(x)	case ExecutionState::x: [[maybe_unused]] x
+#define BeginState(x)			case ExecutionState::x: [[maybe_unused]] x
+
+	// Sets the start position for the addressing mode y within state x,
+	// where x was declared as an AddressingDispatch.
+#define BeginStateMode(x, y)	case ExecutionState::x + int(InstructionSet::M68k::AddressingMode::y) + 1
+
+	// Moves dynamically to addressing mode y within state x, where x was declared
+	// as an AddressingDispatch.
+#define MoveToAddressingMode(x, y)	MoveToStateDynamic(ExecutionState::x + int(y) + 1)
 
 	//
 	// So basic structure is, in general:
@@ -240,6 +259,19 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	HalfCycles delay;		// To receive any additional time added on by calls to perform_bus_operation.
 
 	// Helper macros for common bus transactions:
+
+	// Raises the exception with integer vector x. x is the vector identifier,
+	// not its address.
+#define RaiseException(x)					\
+	exception_vector_ = x;					\
+	MoveToStateSpecific(StandardException);
+
+	// Raises a bus/address error with integer vector x for access v.
+	// x is the vector identifier, not its address.
+#define RaiseBusOrAddressError(x, v)				\
+	exception_vector_ = InstructionSet::M68k::x;	\
+	bus_error_ = v;									\
+	MoveToStateSpecific(BusOrAddressErrorException);
 
 	// Performs the bus operation and then applies a `Spend` of its length
 	// plus any additional length returned by the bus handler.
@@ -274,10 +306,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	//	(1) wait until end of current 10-cycle window;
 	//	(2) run for the next 10-cycle window.
 #define CompleteAccess(x)												\
-	if(berr_ || (*x.address & (x.operation >> 1) & 1)) {				\
-		bus_error_ = x;													\
-		exception_vector_ = berr_ ? InstructionSet::M68k::AccessFault : InstructionSet::M68k::AddressError;	\
-		MoveToStateSpecific(BusOrAddressErrorException);				\
+	if(berr_) {															\
+		RaiseBusOrAddressError(AccessFault, x);							\
 	}																	\
 	if(vpa_) {															\
 		x.length = HalfCycles(20) + (HalfCycles(20) + (e_clock_phase_ - time_remaining_) % HalfCycles(20)) % HalfCycles(20);	\
@@ -288,13 +318,16 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Performs the memory access implied by the announce, perform pair,
 	// honouring DTACK, BERR and VPA as necessary.
-#define AccessPair(val, announce, perform)			\
-	perform.value = &val;							\
-	if constexpr (!dtack_is_implicit) {				\
-		announce.length = HalfCycles(4);			\
-	}												\
-	PerformBusOperation(announce);					\
-	WaitForDTACK(announce);							\
+#define AccessPair(val, announce, perform)					\
+	perform.value = &val;									\
+	if constexpr (!dtack_is_implicit) {						\
+		announce.length = HalfCycles(4);					\
+	}														\
+	if(*perform.address & (perform.operation >> 1) & 1) {	\
+		RaiseBusOrAddressError(AddressError, perform);		\
+	}														\
+	PerformBusOperation(announce);							\
+	WaitForDTACK(announce);									\
 	CompleteAccess(perform);
 
 	// Sets up the next data access size and read flags.
@@ -321,12 +354,6 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	prefetch_.high = prefetch_.low;						\
 	ReadProgramWord(prefetch_.low)						\
 	captured_interrupt_level_ = bus_interrupt_level_;
-
-	// Raises the exception with integer vector x — x is the vector identifier,
-	// not its address.
-#define RaiseException(x)					\
-	exception_vector_ = x;					\
-	MoveToStateSpecific(StandardException);
 
 	// Copies the current program counter, adjusted to allow for the prefetch queue,
 	// into the instruction_address_ latch, which is the source of the value written
@@ -401,15 +428,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			// Push status and current program counter.
 			// Write order is wacky here, but I think it's correct.
-			registers_[15].l -= 6;
-			Access(captured_status_);			// ns
-
-			registers_[15].l += 4;
+			registers_[15].l -= 2;
 			Access(instruction_address_.low);	// ns
 
-			registers_[15].l -= 2;
-			Access(instruction_address_.high);	// nS
+			registers_[15].l -= 4;
+			Access(captured_status_);			// ns
 
+			registers_[15].l += 2;
+			Access(instruction_address_.high);	// nS
 			registers_[15].l -= 2;
 
 			// Grab new program counter.
@@ -454,13 +480,18 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			//	2) captured state;
 			//	3) program counter high;
 			//	4) instruction register;
-			//	5) function code;
-			//	6) access address?
+			//	5) access address low;
+			//	6) function code;
+			//	7) access address high?
+			//
+			// Noteworthy in this guess: access code and function code are written in
+			// the same interleaved order as program counter and captured status register,
+			// which is the order that I know to be correct for a standard exception.
 
 			IdleBus(2);
 
 			// Switch to supervisor mode, disable interrupts.
-			captured_status_.w = status_.begin_exception(7);
+			captured_status_.w = status_.begin_exception();
 			should_trace_ = 0;
 			did_update_status();
 
@@ -499,15 +530,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				((bus_error_.operation & Microcycle::IsProgram) ? 0x08 : 0x00) |
 				((bus_error_.operation & Microcycle::IsProgram) ? 0x02 : 0x01) |
 				((captured_status_.w & InstructionSet::M68k::ConditionCode::Supervisor) ? 0x04 : 0x00);
-
-			registers_[15].l -= 6;
-			Access(temporary_value_.low);		// ns	[function code]
-
 			temporary_address_.l = *bus_error_.address;
-			registers_[15].l += 4;
-			Access(temporary_address_.low);		// ns	[error address.l]
 
 			registers_[15].l -= 2;
+			Access(temporary_address_.low);		// ns	[error address.l]
+
+			registers_[15].l -= 4;
+			Access(temporary_value_.low);		// ns	[function code]
+
+			registers_[15].l += 2;
 			Access(temporary_address_.high);	// nS	[error address.h]
 			registers_[15].l -= 2;
 
@@ -715,11 +746,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(EXTbtow, 	perform_state_ = Perform_np);
 				StdCASE(EXTwtol, 	perform_state_ = Perform_np);
 
-				StdCASE(MOVEb,		perform_state_ = MOVE);
+				StdCASE(MOVEb,		perform_state_ = MOVE_b);
 				Duplicate(MOVEAw, MOVEw)
-				StdCASE(MOVEw,		perform_state_ = MOVE);
+				StdCASE(MOVEw,		perform_state_ = MOVE_w);
 				Duplicate(MOVEAl, MOVEl)
-				StdCASE(MOVEl,		perform_state_ = MOVE);
+				StdCASE(MOVEl,		perform_state_ = MOVE_l);
 
 				StdCASE(CMPb,		perform_state_ = Perform_np);
 				StdCASE(CMPw,		perform_state_ = Perform_np);
@@ -952,24 +983,28 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 				StdCASE(LEA, {
 					post_ea_state_ = LEA;
-					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
+					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec);
 				});
-				StdCASE(PEA, {
-					post_ea_state_ = PEA;
-					MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
-				});
+				SpecialCASE(PEA);
 
 				StdCASE(TAS, {
 					// TAS uses a special atomic bus cycle for memory accesses,
 					// but is also available as DataRegisterDirect, with no
-					// memory access whatsoever. So segue elsewhere here only
-					// for the other cases.
-					if(instruction_.mode(0) != Mode::DataRegisterDirect) {
-						post_ea_state_ = TAS;
-						MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacement);
-					}
+					// memory access whatsoever. It's also atypical in its layout
+					// for (d8, An, Xn). So segue here appropriately.
+					switch(instruction_.mode(0)) {
+						case Mode::DataRegisterDirect:
+							perform_state_ = Perform_np;
+						break;
 
-					perform_state_ = Perform_np;
+						case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
+							post_ea_state_ = TAS;
+						MoveToStateSpecific(AddressRegisterIndirectWithIndex8bitDisplacement_n_np);
+
+						default:
+							post_ea_state_ = TAS;
+						MoveToStateSpecific(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec);
+					}
 				});
 
 				StdCASE(MOVEtoCCR, 	perform_state_ = MOVEtoCCRSR);
@@ -1047,137 +1082,101 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			if(!(operand_flags_ & (1 << next_operand_))) {
 				MoveToStateDynamic(perform_state_);
 			}
+		MoveToAddressingMode(FetchOperand_bw, instruction_.mode(next_operand_));
 
-			// Figure out how to fetch it.
-			switch(instruction_.mode(next_operand_)) {
-				case Mode::AddressRegisterDirect:
-				case Mode::DataRegisterDirect:
-					operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
-				MoveToNextOperand(FetchOperand_bw);
-
-				case Mode::Quick:
-					operand_[next_operand_].l = InstructionSet::M68k::quick(opcode_, instruction_.operation);
-				MoveToNextOperand(FetchOperand_bw);
-
-				case Mode::AddressRegisterIndirect:
-					MoveToStateSpecific(FetchAddressRegisterIndirect_bw);
-				case Mode::AddressRegisterIndirectWithPostincrement:
-					MoveToStateSpecific(FetchAddressRegisterIndirectWithPostincrement_bw);
-				case Mode::AddressRegisterIndirectWithPredecrement:
-					MoveToStateSpecific(FetchAddressRegisterIndirectWithPredecrement_bw);
-				case Mode::AddressRegisterIndirectWithDisplacement:
-					MoveToStateSpecific(FetchAddressRegisterIndirectWithDisplacement_bw);
-				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
-					MoveToStateSpecific(FetchAddressRegisterIndirectWithIndex8bitDisplacement_bw);
-				case Mode::ProgramCounterIndirectWithDisplacement:
-					MoveToStateSpecific(FetchProgramCounterIndirectWithDisplacement_bw);
-				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
-					MoveToStateSpecific(FetchProgramCounterIndirectWithIndex8bitDisplacement_bw);
-				case Mode::AbsoluteShort:
-					MoveToStateSpecific(FetchAbsoluteShort_bw);
-				case Mode::AbsoluteLong:
-					MoveToStateSpecific(FetchAbsoluteLong_bw);
-				case Mode::ImmediateData:
-					MoveToStateSpecific(FetchImmediateData_bw);
-
-				// Should be impossible to reach.
-				default:
-					assert(false);
-			}
-		break;
 
 		// As above, but for .l.
 		BeginState(FetchOperand_l):
 			if(!(operand_flags_ & (1 << next_operand_))) {
 				MoveToStateDynamic(perform_state_);
 			}
+		MoveToAddressingMode(FetchOperand_l, instruction_.mode(next_operand_));
 
-			switch(instruction_.mode(next_operand_)) {
-				case Mode::AddressRegisterDirect:
-				case Mode::DataRegisterDirect:
-					operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
-				MoveToNextOperand(FetchOperand_l);
 
-				case Mode::Quick:
-					operand_[next_operand_].l = InstructionSet::M68k::quick(opcode_, instruction_.operation);
-				MoveToNextOperand(FetchOperand_l);
+		BeginState(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec):
+		MoveToAddressingMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, instruction_.mode(next_operand_));
 
-				case Mode::AddressRegisterIndirect:
-					MoveToStateSpecific(FetchAddressRegisterIndirect_l);
-				case Mode::AddressRegisterIndirectWithPostincrement:
-					MoveToStateSpecific(FetchAddressRegisterIndirectWithPostincrement_l);
-				case Mode::AddressRegisterIndirectWithPredecrement:
-					MoveToStateSpecific(FetchAddressRegisterIndirectWithPredecrement_l);
-				case Mode::AddressRegisterIndirectWithDisplacement:
-					MoveToStateSpecific(FetchAddressRegisterIndirectWithDisplacement_l);
-				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
-					MoveToStateSpecific(FetchAddressRegisterIndirectWithIndex8bitDisplacement_l);
-				case Mode::ProgramCounterIndirectWithDisplacement:
-					MoveToStateSpecific(FetchProgramCounterIndirectWithDisplacement_l);
-				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
-					MoveToStateSpecific(FetchProgramCounterIndirectWithIndex8bitDisplacement_l);
-				case Mode::AbsoluteShort:
-					MoveToStateSpecific(FetchAbsoluteShort_l);
-				case Mode::AbsoluteLong:
-					MoveToStateSpecific(FetchAbsoluteLong_l);
-				case Mode::ImmediateData:
-					MoveToStateSpecific(FetchImmediateData_l);
-
-				// Should be impossible to reach.
-				default:
-					assert(false);
-			}
-		break;
-
-		BeginState(CalcEffectiveAddressIdleFor8bitDisplacement):
-			if(
-				instruction_.mode(next_operand_) != Mode::AddressRegisterIndirectWithIndex8bitDisplacement &&
-				instruction_.mode(next_operand_) != Mode::ProgramCounterIndirectWithIndex8bitDisplacement
-			) {
-				MoveToStateSpecific(CalcEffectiveAddress);
-			}
-
-			IdleBus(1);
-			[[fallthrough]];
 
 		BeginState(CalcEffectiveAddress):
-			switch(instruction_.mode(next_operand_)) {
-				default:
-					MoveToStateDynamic(post_ea_state_);
-
-				case Mode::AddressRegisterIndirect:
-					MoveToStateSpecific(CalcAddressRegisterIndirect);
-				case Mode::AddressRegisterIndirectWithPostincrement:
-					MoveToStateSpecific(CalcAddressRegisterIndirectWithPostincrement);
-				case Mode::AddressRegisterIndirectWithPredecrement:
-					MoveToStateSpecific(CalcAddressRegisterIndirectWithPredecrement);
-				case Mode::AddressRegisterIndirectWithDisplacement:
-					MoveToStateSpecific(CalcAddressRegisterIndirectWithDisplacement);
-				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
-					MoveToStateSpecific(CalcAddressRegisterIndirectWithIndex8bitDisplacement);
-				case Mode::ProgramCounterIndirectWithDisplacement:
-					MoveToStateSpecific(CalcProgramCounterIndirectWithDisplacement);
-				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
-					MoveToStateSpecific(CalcProgramCounterIndirectWithIndex8bitDisplacement);
-				case Mode::AbsoluteShort:
-					MoveToStateSpecific(CalcAbsoluteShort);
-				case Mode::AbsoluteLong:
-					MoveToStateSpecific(CalcAbsoluteLong);
-			}
+		MoveToAddressingMode(CalcEffectiveAddress, instruction_.mode(next_operand_));
 
 	// MARK: - Fetch, addressing modes.
 
 		//
+		// DataRegisterDirect, AddressRegisterDirect
+		//
+		BeginStateMode(FetchOperand_bw, AddressRegisterDirect):
+		BeginStateMode(FetchOperand_bw, DataRegisterDirect):
+			operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginStateMode(FetchOperand_l, AddressRegisterDirect):
+		BeginStateMode(FetchOperand_l, DataRegisterDirect):
+			operand_[next_operand_] = registers_[instruction_.lreg(next_operand_)];
+		MoveToNextOperand(FetchOperand_l);
+
+		BeginStateMode(MOVE_l, AddressRegisterDirect):
+		BeginStateMode(MOVE_l, DataRegisterDirect):
+		BeginStateMode(MOVE_bw, AddressRegisterDirect):
+			registers_[instruction_.lreg(1)] = operand_[1];
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_bw, DataRegisterDirect): {
+			const uint32_t write_mask = size_masks[int(instruction_.operand_size())];
+			const int reg = instruction_.lreg(1);
+
+			registers_[reg].l =
+				(operand_[1].l & write_mask) |
+				(registers_[reg].l & ~write_mask);
+			}
+
+			Prefetch();
+		MoveToStateSpecific(Decode);
+
+		//
+		// Quick
+		//
+		BeginStateMode(FetchOperand_bw, Quick):
+			operand_[next_operand_].l = InstructionSet::M68k::quick(opcode_, instruction_.operation);
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginStateMode(FetchOperand_l, Quick):
+			operand_[next_operand_].l = InstructionSet::M68k::quick(opcode_, instruction_.operation);
+		MoveToNextOperand(FetchOperand_l);
+
+		//
 		// AddressRegisterIndirect
 		//
-		BeginState(FetchAddressRegisterIndirect_bw):
+		BeginStateMode(FetchOperand_bw, AddressRegisterIndirect):
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
 			SetDataAddress(effective_address_[next_operand_].l);
 
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
-		BeginState(FetchAddressRegisterIndirect_l):
+		BeginStateMode(MOVE_bw, AddressRegisterIndirect):
+			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
+			SetupDataAccess(0, data_select(instruction_));
+
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, AddressRegisterIndirect):
+			effective_address_[1] = registers_[8 + instruction_.reg(1)];
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nW
+
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(FetchOperand_l, AddressRegisterIndirect):
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
 			SetDataAddress(effective_address_[next_operand_].l);
 
@@ -1187,9 +1186,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
-		BeginState(CalcAddressRegisterIndirect):
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AddressRegisterIndirect):
+		BeginStateMode(CalcEffectiveAddress, AddressRegisterIndirect):
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
 		MoveToStateDynamic(post_ea_state_);
+
+		BeginStateMode(PEA, AddressRegisterIndirect):
+			effective_address_[0].l = registers_[8 + instruction_.reg(next_operand_)].l;
+		MoveToStateDynamic(PEA_np_nS_ns);
 
 		BeginState(JSRJMPAddressRegisterIndirect):
 			effective_address_[0].l = registers_[8 + instruction_.reg(next_operand_)].l;
@@ -1199,7 +1203,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// AddressRegisterIndirectWithPostincrement
 		//
-		BeginState(FetchAddressRegisterIndirectWithPostincrement_bw):
+		BeginStateMode(FetchOperand_bw, AddressRegisterIndirectWithPostincrement):
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
 			registers_[8 + instruction_.reg(next_operand_)].l +=
 				address_increments[int(instruction_.operand_size())][instruction_.reg(next_operand_)];
@@ -1208,7 +1212,31 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
-		BeginState(FetchAddressRegisterIndirectWithPostincrement_l):
+		BeginStateMode(MOVE_bw, AddressRegisterIndirectWithPostincrement):
+			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
+			SetupDataAccess(0, data_select(instruction_));
+
+			Access(operand_[next_operand_].low);	// nw
+
+			registers_[8 + instruction_.reg(next_operand_)].l +=
+				address_increments[int(instruction_.operand_size())][instruction_.reg(1)];
+
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, AddressRegisterIndirectWithPostincrement):
+			SetDataAddress(registers_[8 + instruction_.reg(next_operand_)].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Access(operand_[next_operand_].high);	// nW
+			registers_[8 + instruction_.reg(next_operand_)].l += 2;
+			Access(operand_[next_operand_].low);	// nW
+			registers_[8 + instruction_.reg(next_operand_)].l += 2;
+
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(FetchOperand_l, AddressRegisterIndirectWithPostincrement):
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
 			registers_[8 + instruction_.reg(next_operand_)].l += 4;
 
@@ -1218,7 +1246,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
-		BeginState(CalcAddressRegisterIndirectWithPostincrement):
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AddressRegisterIndirectWithPostincrement):
+		BeginStateMode(CalcEffectiveAddress, AddressRegisterIndirectWithPostincrement):
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
 			registers_[8 + instruction_.reg(next_operand_)].l +=
 				address_increments[int(instruction_.operand_size())][instruction_.reg(next_operand_)];
@@ -1227,7 +1256,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// AddressRegisterIndirectWithPredecrement
 		//
-		BeginState(FetchAddressRegisterIndirectWithPredecrement_bw):
+		BeginStateMode(FetchOperand_bw, AddressRegisterIndirectWithPredecrement):
 			registers_[8 + instruction_.reg(next_operand_)].l -=
 				address_increments[int(instruction_.operand_size())][instruction_.reg(next_operand_)];
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
@@ -1237,7 +1266,30 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
-		BeginState(FetchAddressRegisterIndirectWithPredecrement_l):
+		BeginStateMode(MOVE_bw, AddressRegisterIndirectWithPredecrement):
+			registers_[8 + instruction_.reg(1)].l -= address_increments[int(instruction_.operand_size())][instruction_.reg(1)];
+			effective_address_[1].l = registers_[8 + instruction_.reg(1)].l;
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, data_select(instruction_));
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nw
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, AddressRegisterIndirectWithPredecrement):
+			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Prefetch();								// np
+
+			registers_[8 + instruction_.reg(1)].l -= 2;
+			Access(operand_[next_operand_].low);	// nw
+			registers_[8 + instruction_.reg(1)].l -= 2;
+			Access(operand_[next_operand_].high);	// nW
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(FetchOperand_l, AddressRegisterIndirectWithPredecrement):
 			registers_[8 + instruction_.reg(next_operand_)].l -= 4;
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
 			SetDataAddress(effective_address_[next_operand_].l);
@@ -1248,7 +1300,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
-		BeginState(CalcAddressRegisterIndirectWithPredecrement):
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AddressRegisterIndirectWithPredecrement):
+			IdleBus(1);
+			[[fallthrough]];
+
+		BeginStateMode(CalcEffectiveAddress, AddressRegisterIndirectWithPredecrement):
 			registers_[8 + instruction_.reg(next_operand_)].l -= address_increments[int(instruction_.operand_size())][instruction_.reg(next_operand_)];
 			effective_address_[next_operand_].l = registers_[8 + instruction_.reg(next_operand_)].l;
 		MoveToStateDynamic(post_ea_state_);
@@ -1256,7 +1312,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// AddressRegisterIndirectWithDisplacement
 		//
-		BeginState(FetchAddressRegisterIndirectWithDisplacement_bw):
+
+		BeginStateMode(FetchOperand_bw, AddressRegisterIndirectWithDisplacement):
 			effective_address_[next_operand_].l =
 				registers_[8 + instruction_.reg(next_operand_)].l +
 				uint32_t(int16_t(prefetch_.w));
@@ -1266,7 +1323,35 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
-		BeginState(FetchAddressRegisterIndirectWithDisplacement_l):
+		BeginStateMode(MOVE_bw, AddressRegisterIndirectWithDisplacement):
+			effective_address_[1].l =
+				registers_[8 + instruction_.reg(1)].l +
+				uint32_t(int16_t(prefetch_.w));
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, data_select(instruction_));
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, AddressRegisterIndirectWithDisplacement):
+			effective_address_[1].l =
+				registers_[8 + instruction_.reg(1)].l +
+				uint32_t(int16_t(prefetch_.w));
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(FetchOperand_l, AddressRegisterIndirectWithDisplacement):
 			effective_address_[next_operand_].l =
 				registers_[8 + instruction_.reg(next_operand_)].l +
 				uint32_t(int16_t(prefetch_.w));
@@ -1278,12 +1363,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
-		BeginState(CalcAddressRegisterIndirectWithDisplacement):
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AddressRegisterIndirectWithDisplacement):
+		BeginStateMode(CalcEffectiveAddress, AddressRegisterIndirectWithDisplacement):
 			effective_address_[next_operand_].l =
 				registers_[8 + instruction_.reg(next_operand_)].l +
 				uint32_t(int16_t(prefetch_.w));
 			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
+
+		BeginStateMode(PEA, AddressRegisterIndirectWithDisplacement):
+			effective_address_[0].l =
+				registers_[8 + instruction_.reg(next_operand_)].l +
+				uint32_t(int16_t(prefetch_.w));
+			Prefetch();
+		MoveToStateDynamic(PEA_np_nS_ns);
 
 		BeginState(JSRJMPAddressRegisterIndirectWithDisplacement):
 			effective_address_[0].l =
@@ -1296,7 +1389,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// ProgramCounterIndirectWithDisplacement
 		//
-		BeginState(FetchProgramCounterIndirectWithDisplacement_bw):
+		BeginStateMode(FetchOperand_bw, ProgramCounterIndirectWithDisplacement):
 			effective_address_[next_operand_].l =
 				program_counter_.l - 2 +
 				uint32_t(int16_t(prefetch_.w));
@@ -1306,7 +1399,35 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
-		BeginState(FetchProgramCounterIndirectWithDisplacement_l):
+		BeginStateMode(MOVE_bw, ProgramCounterIndirectWithDisplacement):
+			effective_address_[1].l =
+				program_counter_.l - 2 +
+				uint32_t(int16_t(prefetch_.w));
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, data_select(instruction_));
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, ProgramCounterIndirectWithDisplacement):
+			effective_address_[1].l =
+				program_counter_.l - 2 +
+				uint32_t(int16_t(prefetch_.w));
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(FetchOperand_l, ProgramCounterIndirectWithDisplacement):
 			effective_address_[next_operand_].l =
 				program_counter_.l - 2 +
 				uint32_t(int16_t(prefetch_.w));
@@ -1318,12 +1439,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
-		BeginState(CalcProgramCounterIndirectWithDisplacement):
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, ProgramCounterIndirectWithDisplacement):
+		BeginStateMode(CalcEffectiveAddress, ProgramCounterIndirectWithDisplacement):
 			effective_address_[next_operand_].l =
 				program_counter_.l - 2 +
 				uint32_t(int16_t(prefetch_.w));
 			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
+
+		BeginStateMode(PEA, ProgramCounterIndirectWithDisplacement):
+			effective_address_[0].l =
+				program_counter_.l - 2 +
+				uint32_t(int16_t(prefetch_.w));
+			Prefetch();
+		MoveToStateDynamic(PEA_np_nS_ns);
 
 		BeginState(JSRJMPProgramCounterIndirectWithDisplacement):
 			effective_address_[0].l =
@@ -1343,7 +1472,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		uint32_t(int16_t(registers_[prefetch_.w >> 12].w))) +	\
 	uint32_t(int8_t(prefetch_.b));
 
-		BeginState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_bw):
+		BeginStateMode(FetchOperand_bw, AddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
 			SetDataAddress(effective_address_[next_operand_].l);
 
@@ -1352,7 +1481,33 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
-		BeginState(FetchAddressRegisterIndirectWithIndex8bitDisplacement_l):
+		BeginStateMode(MOVE_bw, AddressRegisterIndirectWithIndex8bitDisplacement):
+			effective_address_[1].l = d8Xn(registers_[8 + instruction_.reg(1)].l);
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, data_select(instruction_));
+
+			IdleBus(1);								// n
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, AddressRegisterIndirectWithIndex8bitDisplacement):
+			effective_address_[1].l = d8Xn(registers_[8 + instruction_.reg(1)].l);
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			IdleBus(1);								// n
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(FetchOperand_l, AddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
 			SetDataAddress(effective_address_[next_operand_].l);
 
@@ -1363,11 +1518,22 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
-		BeginState(CalcAddressRegisterIndirectWithIndex8bitDisplacement):
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AddressRegisterIndirectWithIndex8bitDisplacement):
+			IdleBus(1);								// n
+			[[fallthrough]];
+
+		BeginStateMode(CalcEffectiveAddress, AddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
 			Prefetch();								// np
 			IdleBus(1);								// n
 		MoveToStateDynamic(post_ea_state_);
+
+		BeginStateMode(PEA, AddressRegisterIndirectWithIndex8bitDisplacement):
+			effective_address_[0].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
+			IdleBus(1);								// n
+			Prefetch();								// np
+			IdleBus(1);								// n
+		MoveToStateDynamic(PEA_np_nS_ns);
 
 		BeginState(JSRJMPAddressRegisterIndirectWithIndex8bitDisplacement):
 			effective_address_[0].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
@@ -1375,10 +1541,16 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			temporary_address_.l = instruction_address_.l + 4;
 		MoveToStateDynamic(post_ea_state_);
 
+		BeginState(AddressRegisterIndirectWithIndex8bitDisplacement_n_np):
+			effective_address_[next_operand_].l = d8Xn(registers_[8 + instruction_.reg(next_operand_)].l);
+			IdleBus(1);								// n
+			Prefetch();								// np
+		MoveToStateDynamic(post_ea_state_);
+
 		//
 		// ProgramCounterIndirectWithIndex8bitDisplacement
 		//
-		BeginState(FetchProgramCounterIndirectWithIndex8bitDisplacement_bw):
+		BeginStateMode(FetchOperand_bw, ProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(program_counter_.l - 2);
 			SetDataAddress(effective_address_[next_operand_].l);
 
@@ -1387,7 +1559,33 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
-		BeginState(FetchProgramCounterIndirectWithIndex8bitDisplacement_l):
+		BeginStateMode(MOVE_bw, ProgramCounterIndirectWithIndex8bitDisplacement):
+			effective_address_[1].l = d8Xn(program_counter_.l - 2);
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, data_select(instruction_));
+
+			IdleBus(1);								// n
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, ProgramCounterIndirectWithIndex8bitDisplacement):
+			effective_address_[1].l = d8Xn(program_counter_.l - 2);
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			IdleBus(1);								// n
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(FetchOperand_l, ProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(program_counter_.l - 2);
 			SetDataAddress(effective_address_[next_operand_].l);
 
@@ -1398,11 +1596,22 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
-		BeginState(CalcProgramCounterIndirectWithIndex8bitDisplacement):
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, ProgramCounterIndirectWithIndex8bitDisplacement):
+			IdleBus(1);								// n
+			[[fallthrough]];
+
+		BeginStateMode(CalcEffectiveAddress, ProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[next_operand_].l = d8Xn(program_counter_.l - 2);
 			Prefetch();								// np
 			IdleBus(1);								// n
 		MoveToStateDynamic(post_ea_state_);
+
+		BeginStateMode(PEA, ProgramCounterIndirectWithIndex8bitDisplacement):
+			effective_address_[0].l = d8Xn(program_counter_.l - 2);
+			IdleBus(1);								// n
+			Prefetch();								// np
+			IdleBus(1);								// n
+		MoveToStateDynamic(PEA_np_nS_ns);
 
 		BeginState(JSRJMPProgramCounterIndirectWithIndex8bitDisplacement):
 			effective_address_[0].l = d8Xn(program_counter_.l - 2);
@@ -1410,12 +1619,18 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			temporary_address_.l = instruction_address_.l + 4;
 		MoveToStateDynamic(post_ea_state_);
 
+		BeginState(ProgramCounterIndirectWithIndex8bitDisplacement_n_np):
+			effective_address_[next_operand_].l = d8Xn(program_counter_.l - 2);
+			IdleBus(1);								// n
+			Prefetch();								// np
+		MoveToStateDynamic(post_ea_state_);
+
 #undef d8Xn
 
 		//
 		// AbsoluteShort
 		//
-		BeginState(FetchAbsoluteShort_bw):
+		BeginStateMode(FetchOperand_bw, AbsoluteShort):
 			effective_address_[next_operand_].l = uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(effective_address_[next_operand_].l);
 
@@ -1423,7 +1638,31 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
-		BeginState(FetchAbsoluteShort_l):
+		BeginStateMode(MOVE_bw, AbsoluteShort):
+			effective_address_[1].l = uint32_t(int16_t(prefetch_.w));
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, data_select(instruction_));
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, AbsoluteShort):
+			effective_address_[1].l = uint32_t(int16_t(prefetch_.w));
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(FetchOperand_l, AbsoluteShort):
 			effective_address_[next_operand_].l = uint32_t(int16_t(prefetch_.w));
 			SetDataAddress(effective_address_[next_operand_].l);
 
@@ -1433,10 +1672,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
-		BeginState(CalcAbsoluteShort):
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AbsoluteShort):
+		BeginStateMode(CalcEffectiveAddress, AbsoluteShort):
 			effective_address_[next_operand_].l = uint32_t(int16_t(prefetch_.w));
 			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
+
+		BeginStateMode(PEA, AbsoluteShort):
+			effective_address_[0].l = uint32_t(int16_t(prefetch_.w));
+		MoveToStateSpecific(PEA_np_nS_ns_np);
 
 		BeginState(JSRJMPAbsoluteShort):
 			effective_address_[0].l = uint32_t(int16_t(prefetch_.w));
@@ -1447,7 +1691,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// AbsoluteLong
 		//
-		BeginState(FetchAbsoluteLong_bw):
+		BeginStateMode(FetchOperand_bw, AbsoluteLong):
 			Prefetch();								// np
 
 			effective_address_[next_operand_].l = prefetch_.l;
@@ -1457,7 +1701,67 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_bw);
 
-		BeginState(FetchAbsoluteLong_l):
+		BeginStateMode(MOVE_bw, AbsoluteLong):
+			Prefetch();								// np
+
+			effective_address_[1].l = prefetch_.l;
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, data_select(instruction_));
+
+			switch(instruction_.mode(0)) {
+				case Mode::AddressRegisterDirect:
+				case Mode::DataRegisterDirect:
+				case Mode::ImmediateData:
+					MoveToStateSpecific(MOVE_bw_AbsoluteLong_prefetch_first);
+
+				default: break;
+			}
+
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginState(MOVE_bw_AbsoluteLong_prefetch_first):
+			Prefetch();								// np
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(MOVE_l, AbsoluteLong):
+			Prefetch();								// np
+
+			effective_address_[1].l = prefetch_.l;
+
+			SetDataAddress(effective_address_[1].l);
+			SetupDataAccess(0, Microcycle::SelectWord);
+
+			switch(instruction_.mode(0)) {
+				case Mode::AddressRegisterDirect:
+				case Mode::DataRegisterDirect:
+				case Mode::ImmediateData:
+					MoveToStateSpecific(MOVE_l_AbsoluteLong_prefetch_first);
+
+				default: break;
+			}
+
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginState(MOVE_l_AbsoluteLong_prefetch_first):
+			Prefetch();								// np
+			Access(operand_[next_operand_].high);	// nW
+			effective_address_[1].l += 2;
+			Access(operand_[next_operand_].low);	// nw
+			Prefetch();								// np
+		MoveToStateSpecific(Decode);
+
+		BeginStateMode(FetchOperand_l, AbsoluteLong):
 			Prefetch();								// np
 
 			effective_address_[next_operand_].l = prefetch_.l;
@@ -1469,11 +1773,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Access(operand_[next_operand_].low);	// nr
 		MoveToNextOperand(FetchOperand_l);
 
-		BeginState(CalcAbsoluteLong):
+		BeginStateMode(CalcEffectiveAddressIdleFor8bitDisplacementAndPreDec, AbsoluteLong):
+		BeginStateMode(CalcEffectiveAddress, AbsoluteLong):
 			Prefetch();								// np
 			effective_address_[next_operand_].l = prefetch_.l;
 			Prefetch();								// np
 		MoveToStateDynamic(post_ea_state_);
+
+		BeginStateMode(PEA, AbsoluteLong):
+			Prefetch();								// np
+			effective_address_[0].l = prefetch_.l;
+		MoveToStateSpecific(PEA_np_nS_ns_np);
 
 		BeginState(JSRJMPAbsoluteLong):
 			Prefetch();								// np
@@ -1484,12 +1794,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		// ImmediateData
 		//
-		BeginState(FetchImmediateData_bw):
+		BeginStateMode(FetchOperand_bw, ImmediateData):
 			operand_[next_operand_].w = prefetch_.w;
 			Prefetch();								// np
 		MoveToNextOperand(FetchOperand_bw);
 
-		BeginState(FetchImmediateData_l):
+		BeginStateMode(FetchOperand_l, ImmediateData):
 			Prefetch();								// np
 			operand_[next_operand_].l = prefetch_.l;
 			Prefetch();								// np
@@ -1619,106 +1929,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// Specific forms of perform...
 		//
 
-		BeginState(MOVE):
-			PerformDynamic();
+		//
+		// MOVE
+		//
+		BeginState(MOVE_b):
+			PerformSpecific(MOVEb);
+		MoveToAddressingMode(MOVE_bw, instruction_.mode(1));
 
-			// In all cases except predecrement mode: do the usual address
-			// calculate and storage, then do the next prefetch and decode.
-			//
-			// In predecrement mode: do the prefetch, then write the result.
-			//
-			// For here, lump data and address register direct in with predec,
-			// so that all that's left is modes that write to memory and then
-			// prefetch.
-			switch(instruction_.mode(1)) {
-				case Mode::DataRegisterDirect: {
-					const uint32_t write_mask = size_masks[int(instruction_.operand_size())];
-					const int reg = instruction_.reg(1);
+		BeginState(MOVE_w):
+			PerformDynamic();	// Could be MOVE.w or MOVEA.w.
+		MoveToAddressingMode(MOVE_bw, instruction_.mode(1));
 
-					registers_[reg].l =
-						(operand_[1].l & write_mask) |
-						(registers_[reg].l & ~write_mask);
-				}
-				MoveToStateSpecific(MOVE_prefetch_decode);
-
-				case Mode::AddressRegisterDirect:
-					registers_[8 + instruction_.reg(1)].l = operand_[1].l;
-				MoveToStateSpecific(MOVE_prefetch_decode);
-
-				case Mode::AddressRegisterIndirectWithPredecrement:
-				MoveToStateSpecific(MOVE_predec);
-
-				default: break;
-			}
-
-			next_operand_ = 1;
-			post_ea_state_ = MOVE_complete;
-		MoveToStateSpecific(CalcEffectiveAddress);
-
-		BeginState(MOVE_prefetch_decode):
-			Prefetch();
-		MoveToStateSpecific(Decode);
-
-		BeginState(MOVE_predec):
-			Prefetch();
-
-			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
-			switch(instruction_.operand_size()) {
-				case InstructionSet::M68k::DataSize::LongWord:
-				MoveToStateSpecific(MOVE_predec_l);
-
-				case InstructionSet::M68k::DataSize::Word:
-					SetupDataAccess(0, Microcycle::SelectWord);
-					registers_[8 + instruction_.reg(1)].l -= 2;
-				break;
-
-				case InstructionSet::M68k::DataSize::Byte:
-					SetupDataAccess(0, Microcycle::SelectByte);
-					registers_[8 + instruction_.reg(1)].l -=
-						address_increments[0][instruction_.reg(next_operand_)];
-				break;
-			}
-
-			SetDataAddress(registers_[8 + instruction_.reg(1)].l);
-			Access(operand_[1].low);
-		MoveToStateSpecific(Decode);
-
-		BeginState(MOVE_predec_l):
-			SetupDataAccess(0, Microcycle::SelectWord);
-
-			registers_[8 + instruction_.reg(1)].l -= 2;
-			Access(operand_[1].low);
-			registers_[8 + instruction_.reg(1)].l -= 2;
-			Access(operand_[1].high);
-		MoveToStateSpecific(Decode);
-
-		BeginState(MOVE_complete):
-			SetDataAddress(effective_address_[1].l);
-
-			switch(instruction_.operand_size()) {
-				case InstructionSet::M68k::DataSize::LongWord:
-					SetupDataAccess(0, Microcycle::SelectWord);
-				MoveToStateSpecific(MOVE_complete_l);
-
-				case InstructionSet::M68k::DataSize::Word:
-					SetupDataAccess(0, Microcycle::SelectWord);
-				break;
-
-				case InstructionSet::M68k::DataSize::Byte:
-					SetupDataAccess(0, Microcycle::SelectByte);
-				break;
-			}
-
-			Access(operand_[1].low);
-			Prefetch();
-		MoveToStateSpecific(Decode);
-
-		BeginState(MOVE_complete_l):
-			Access(operand_[1].high);
-			effective_address_[1].l += 2;
-			Access(operand_[1].low);
-			Prefetch();
-		MoveToStateSpecific(Decode);
+		BeginState(MOVE_l):
+			PerformDynamic();	// Could be MOVE.l or MOVEA.l.
+		MoveToAddressingMode(MOVE_l, instruction_.mode(1));
 
 		//
 		// [ABCD/SBCD/SUBX/ADDX] (An)-, (An)-
@@ -2085,7 +2309,17 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			SetDataAddress(effective_address_[1].l);
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
-		MoveToStateSpecific(CalcEffectiveAddress);
+
+			switch(instruction_.mode(1)) {
+				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
+				MoveToStateSpecific(AddressRegisterIndirectWithIndex8bitDisplacement_n_np);
+
+				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				MoveToStateSpecific(ProgramCounterIndirectWithIndex8bitDisplacement_n_np);
+
+				default:
+				MoveToStateSpecific(CalcEffectiveAddress);
+			}
 
 		BeginState(MOVEMtoR_w_read):
 			// If there's nothing left to read, move on.
@@ -2149,27 +2383,37 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			SetDataAddress(effective_address_[1].l);
 			SetupDataAccess(0, Microcycle::SelectWord);
 
-			// Predecrement writes registers the other way around, but still reads the
-			// mask from LSB.
-			if(instruction_.mode(1) == Mode::AddressRegisterIndirectWithPredecrement) {
-				register_index_ = 15;
-				effective_address_[1].l = registers_[8 + instruction_.reg(1)].l;
-
-				// Don't go through the usual calculate EA path because: (i) the test above
-				// has already told us the addressing mode, and it's trivial; and (ii) the
-				// predecrement isn't actually wanted.
-				if(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) {
-					MoveToStateSpecific(MOVEMtoM_l_write_predec);
-				} else {
-					MoveToStateSpecific(MOVEMtoM_w_write_predec);
-				}
-			}
-
 			register_index_ = 0;
 			post_ea_state_ =
 				(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) ?
 					MOVEMtoM_l_write : MOVEMtoM_w_write;
-		MoveToStateSpecific(CalcEffectiveAddress);
+
+			// Predecrement writes registers the other way around, but still reads the
+			// mask from LSB.
+			switch(instruction_.mode(1)) {
+				case Mode::AddressRegisterIndirectWithPredecrement:
+					register_index_ = 15;
+					effective_address_[1].l = registers_[8 + instruction_.reg(1)].l;
+
+					// Don't go through the usual calculate EA path because: (i) the test above
+					// has already told us the addressing mode, and it's trivial; and (ii) the
+					// predecrement isn't actually wanted.
+					if(instruction_.operation == InstructionSet::M68k::Operation::MOVEMtoMl) {
+						MoveToStateSpecific(MOVEMtoM_l_write_predec);
+					} else {
+						MoveToStateSpecific(MOVEMtoM_w_write_predec);
+					}
+				break;
+
+				case Mode::AddressRegisterIndirectWithIndex8bitDisplacement:
+				MoveToStateSpecific(AddressRegisterIndirectWithIndex8bitDisplacement_n_np);
+
+				case Mode::ProgramCounterIndirectWithIndex8bitDisplacement:
+				MoveToStateSpecific(ProgramCounterIndirectWithIndex8bitDisplacement_n_np);
+
+				default:
+				MoveToStateSpecific(CalcEffectiveAddress);
+			}
 
 		BeginState(MOVEMtoM_w_write):
 			// If there's nothing left to read, move on.
@@ -2318,6 +2562,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		// PEA
 		//
 		BeginState(PEA):
+		MoveToAddressingMode(PEA, instruction_.mode(0));
+
+		BeginState(PEA_np_nS_ns):
+			Prefetch();
+			Push(effective_address_[0]);
+		MoveToStateSpecific(Decode);
+
+		BeginState(PEA_np_nS_ns_np):
+			Prefetch();
 			Push(effective_address_[0]);
 			Prefetch();
 		MoveToStateSpecific(Decode);
@@ -2384,19 +2637,27 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();
 		MoveToStateSpecific(Decode);
 
+		// Yacht cites the bus activity for RTE and RTR as nS ns ns, so
+		// the program counter high word must be the first thing
+		// retrieved; the order of the other two is a guess,
+		// being the converse of the write order.
+
 		BeginState(RTE):
 			SetupDataAccess(Microcycle::Read, Microcycle::SelectWord);
 			SetDataAddress(registers_[15].l);
 
 			registers_[15].l += 2;
 			Access(program_counter_.high);
-			registers_[15].l += 2;
-			Access(program_counter_.low);
 
-			registers_[15].l -= 4;
+			registers_[15].l -= 2;
 			Access(temporary_value_.low);
-			registers_[15].l += 6;
+
+			registers_[15].l += 4;
+			Access(program_counter_.low);
+			registers_[15].l += 2;
+
 			status_.set_status(temporary_value_.w);
+			did_update_status();
 
 			Prefetch();
 			Prefetch();
@@ -2408,12 +2669,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			registers_[15].l += 2;
 			Access(program_counter_.high);
-			registers_[15].l += 2;
-			Access(program_counter_.low);
 
-			registers_[15].l -= 4;
+			registers_[15].l -= 2;
 			Access(temporary_value_.low);
-			registers_[15].l += 6;
+
+			registers_[15].l += 4;
+			Access(program_counter_.low);
+			registers_[15].l += 2;
+
 			status_.set_ccr(temporary_value_.w);
 
 			Prefetch();
@@ -2508,6 +2771,8 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #undef Spend
 #undef ConsiderExit
 #undef ReloadInstructionAddress
+#undef MoveToAddressingMode
+#undef BeginStateMode
 
 }
 
@@ -2779,6 +3044,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	bus_handler_.perform_bus_operation(read_program_announce, is_supervisor_);
 	bus_handler_.perform_bus_operation(read_program, is_supervisor_);
 	program_counter_.l += 2;
+}
+
+template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
+void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::reset() {
+	state_ = Reset;
+	time_remaining_ = HalfCycles(0);
 }
 
 }
