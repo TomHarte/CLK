@@ -27,6 +27,7 @@ enum ExecutionState: int {
 	Reset			= std::numeric_limits<int>::min(),
 	Decode,
 	WaitForDTACK,
+	WaitForInterrupt,
 
 	StoreOperand,
 	StoreOperand_bw,
@@ -377,14 +378,20 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			}
 		MoveToStateSpecific(WaitForDTACK);
 
-		// Spin in place until an interrupt arrives.
 		BeginState(STOP):
-			IdleBus(1);
+			// Apply the suffix status.
+			status_.set_status(operand_[0].w);
+			did_update_status();
+			[[fallthrough]];
+
+		BeginState(WaitForInterrupt):
+			// Spin in place until an interrupt arrives.
 			captured_interrupt_level_ = bus_interrupt_level_;
 			if(status_.would_accept_interrupt(captured_interrupt_level_)) {
 				MoveToStateSpecific(DoInterrupt);
 			}
-		MoveToStateSpecific(STOP);
+			IdleBus(1);
+		MoveToStateSpecific(WaitForInterrupt);
 
 		// Perform the RESET exception, which seeds the stack pointer and program
 		// counter, populates the prefetch queue, and then moves to instruction dispatch.
