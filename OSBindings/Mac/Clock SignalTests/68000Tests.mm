@@ -189,6 +189,9 @@
 	// PC.
 	XCTAssertEqual(stack_frame[5], 0x0000);
 	XCTAssertEqual(stack_frame[6], 0x1004);
+
+	// Check that A7 ended up in the proper location.
+	XCTAssertEqual(_machine->get_processor_state().registers.stack_pointer(), 0x1f8);
 }
 
 - (void)testShiftDuration {
