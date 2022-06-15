@@ -233,7 +233,7 @@ struct Microcycle {
 		@c 0xff otherwise. Assumes this is a write cycle.
 	*/
 	forceinline uint8_t value8_high() const {
-		const uint8_t values[] = { uint8_t(value->w), value->b};
+		const uint8_t values[] = { uint8_t(value->w >> 8), value->b};
 		return values[operation & SelectByte];
 	}
 
