@@ -391,6 +391,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToStateSpecific(DoInterrupt);
 			}
 			IdleBus(1);
+			CheckOverrun();
 		MoveToStateSpecific(WaitForInterrupt);
 
 		// Perform the RESET exception, which seeds the stack pointer and program
@@ -594,8 +595,12 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			if(vpa_) {
 				temporary_value_.b = uint8_t(InstructionSet::M68k::Exception::InterruptAutovectorBase - 1 + captured_interrupt_level_);
 			}
+			if(berr_) {
+				temporary_value_.b = uint8_t(InstructionSet::M68k::Exception::SpuriousInterrupt);
+			}
 
-			// TODO: if bus error is set, treat interrupt as spurious.
+			// TODO: check documentation for other potential interrupt outcomes;
+			// and presumably spin here if DTACK isn't implicit.
 
 			IdleBus(3);							// n- n
 
