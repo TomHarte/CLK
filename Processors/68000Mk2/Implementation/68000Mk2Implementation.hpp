@@ -391,6 +391,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				MoveToStateSpecific(DoInterrupt);
 			}
 			IdleBus(1);
+			CheckOverrun();
 		MoveToStateSpecific(WaitForInterrupt);
 
 		// Perform the RESET exception, which seeds the stack pointer and program
