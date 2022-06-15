@@ -380,7 +380,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		BeginState(STOP):
 			// Apply the suffix status.
-			status_.set_status(operand_[0].w);
+			status_.set_status(prefetch_.w);
 			did_update_status();
 			[[fallthrough]];
 
