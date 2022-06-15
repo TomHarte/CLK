@@ -1091,6 +1091,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			//	(i) this operand isn't used; or
 			//	(ii) its address calculation will end up conflated with performance,
 			//		so there's no generic bus-accurate approach.
+			assert(next_operand_ >= 0 && next_operand_ < 2);
 			if(!(operand_flags_ & (1 << next_operand_))) {
 				MoveToStateDynamic(perform_state_);
 			}
@@ -1099,6 +1100,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 		// As above, but for .l.
 		BeginState(FetchOperand_l):
+			assert(next_operand_ >= 0 && next_operand_ < 2);
 			if(!(operand_flags_ & (1 << next_operand_))) {
 				MoveToStateDynamic(perform_state_);
 			}
