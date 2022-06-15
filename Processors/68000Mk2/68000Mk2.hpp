@@ -394,6 +394,8 @@ template <class BusHandler, bool dtack_is_implicit = true, bool permit_overrun =
 class Processor: private ProcessorBase {
 	public:
 		Processor(BusHandler &bus_handler) : ProcessorBase(), bus_handler_(bus_handler) {}
+		Processor(const Processor& rhs) = delete;
+		Processor& operator=(const Processor& rhs) = delete;
 
 		void run_for(HalfCycles duration);
 
