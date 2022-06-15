@@ -1185,7 +1185,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 			Access(operand_[next_operand_].high);	// nW
 			effective_address_[1].l += 2;
-			Access(operand_[next_operand_].low);	// nW
+			Access(operand_[next_operand_].low);	// nw
 
 			Prefetch();								// np
 		MoveToStateSpecific(Decode);
