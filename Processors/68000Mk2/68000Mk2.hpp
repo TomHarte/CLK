@@ -175,17 +175,17 @@ struct Microcycle {
 	}
 
 	/*!
-		@returns non-zero if this is a byte read and 68000 LDS is asserted.
+		@returns non-zero if the 68000 LDS is asserted; zero otherwise.
 	*/
 	forceinline int lower_data_select() const {
-		return (operation & SelectByte) & ((*address & 1) << 3);
+		return ((operation & SelectByte) & (*address & 1)) | (operation & SelectWord);
 	}
 
 	/*!
-		@returns non-zero if this is a byte read and 68000 UDS is asserted.
+		@returns non-zero if the 68000 UDS is asserted; zero otherwise.
 	*/
 	forceinline int upper_data_select() const {
-		return (operation & SelectByte) & ~((*address & 1) << 3);
+		return ((operation & SelectByte) & ~(*address & 1)) | (operation & SelectWord);
 	}
 
 	/*!
@@ -229,8 +229,7 @@ struct Microcycle {
 	}
 
 	/*!
-		@returns the value currently on the high 8 lines of the data bus if any;
-		@c 0xff otherwise. Assumes this is a write cycle.
+		@returns the value currently on the high 8 lines of the data bus.
 	*/
 	forceinline uint8_t value8_high() const {
 		const uint8_t values[] = { uint8_t(value->w >> 8), value->b};
@@ -238,12 +237,10 @@ struct Microcycle {
 	}
 
 	/*!
-		@returns the value currently on the low 8 lines of the data bus if any;
-		@c 0xff otherwise. Assumes this is a write cycle.
+		@returns the value currently on the low 8 lines of the data bus.
 	*/
 	forceinline uint8_t value8_low() const {
-		const uint8_t values[] = { uint8_t(value->w), value->b};
-		return values[operation & SelectByte];
+		return value->b;
 	}
 
 	/*!
