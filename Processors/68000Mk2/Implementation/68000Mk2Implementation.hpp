@@ -382,6 +382,13 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			// Apply the suffix status.
 			status_.set_status(prefetch_.w);
 			did_update_status();
+
+			// Ensure that after this STOP exits, the eventual RTE returns to
+			// after the STOP rather than to it. Unlike most instructions, STOP
+			// has not prefetched the next instruction, so the program counter
+			// is at the actual return point, not beyond it.
+			instruction_address_.l = program_counter_.l;
+
 			[[fallthrough]];
 
 		BeginState(WaitForInterrupt):
