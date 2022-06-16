@@ -2237,6 +2237,15 @@ void ProcessorStorage::set_status(uint16_t status) {
 	apply_status(status);
 }
 
+template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::reset() {
+	execution_state_ = ExecutionState::Executing;
+	active_step_ = reset_bus_steps_;
+	effective_address_[0] = 0;
+	is_supervisor_ = 1;
+	interrupt_level_ = 7;
+	half_cycles_left_to_run_ = HalfCycles(0);
+}
+
 #undef status
 #undef apply_status
 #undef apply_ccr
