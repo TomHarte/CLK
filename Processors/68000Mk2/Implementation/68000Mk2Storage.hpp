@@ -22,6 +22,8 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	ProcessorBase() {
 		read_program_announce.address = read_program.address = &program_counter_.l;
 	}
+	ProcessorBase(const ProcessorBase& rhs) = delete;
+	ProcessorBase& operator=(const ProcessorBase& rhs) = delete;
 
 	int state_ = std::numeric_limits<int>::min();
 
