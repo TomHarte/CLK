@@ -144,7 +144,8 @@ struct Microcycle {
 		@returns 0 if this byte access wants the low part of a 16-bit word; 8 if it wants the high part.
 	*/
 	forceinline unsigned int byte_shift() const {
-		return (((*address) & 1) << 3) ^ 8;
+		static constexpr unsigned int shifts[] = {8, 0};
+		return shifts[*address & 1];
 	}
 
 	/*!
@@ -153,7 +154,8 @@ struct Microcycle {
 		@returns 0x00ff if this byte access wants the low part of a 16-bit word; 0xff00 if it wants the high part.
 	*/
 	forceinline uint16_t byte_mask() const {
-		return uint16_t(0xff00) >> (((*address) & 1) << 3);
+		static constexpr uint16_t masks[] = {0xff00, 0x00ff};
+		return masks[*address & 1];
 	}
 
 	/*!
@@ -163,7 +165,8 @@ struct Microcycle {
 		@returns 0xff00 if this byte access wants the low part of a 16-bit word; 0x00ff if it wants the high part.
 	*/
 	forceinline uint16_t untouched_byte_mask() const {
-		return uint16_t(uint16_t(0xff) << (((*address) & 1) << 3));
+		static constexpr uint16_t masks[] = {0x00ff, 0xff00};
+		return masks[*address & 1];
 	}
 
 	/*!
@@ -264,7 +267,7 @@ struct Microcycle {
 		if(operation & Microcycle::SelectWord) {
 			value->w = uint16_t(0x00ff | (v << 8));
 		} else {
-			value->b = uint8_t(v | (0xff00 >> ((*address & 1) << 3)));
+			value->b = uint8_t(v | byte_mask());
 		}
 	}
 
@@ -276,7 +279,7 @@ struct Microcycle {
 		if(operation & Microcycle::SelectWord) {
 			value->w = 0xff00 | v;
 		} else {
-			value->b = uint8_t(v | (0x00ff << ((*address & 1) << 3)));
+			value->b = uint8_t(v | untouched_byte_mask());
 		}
 	}
 
