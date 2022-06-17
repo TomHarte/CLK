@@ -141,11 +141,12 @@ struct Microcycle {
 	}
 
 	/*!
-		@returns 0 if this byte access wants the low part of a 16-bit word; 8 if it wants the high part.
+		@returns 0 if this byte access wants the low part of a 16-bit word; 8 if it wants the high part,
+			i.e. take a word quantity and shift it right by this amount to get the quantity being
+			accessed into the lowest value byte.
 	*/
 	forceinline unsigned int byte_shift() const {
-		static constexpr unsigned int shifts[] = {8, 0};
-		return shifts[*address & 1];
+		return ~(*address << 3) & 8;
 	}
 
 	/*!
@@ -154,8 +155,7 @@ struct Microcycle {
 		@returns 0x00ff if this byte access wants the low part of a 16-bit word; 0xff00 if it wants the high part.
 	*/
 	forceinline uint16_t byte_mask() const {
-		static constexpr uint16_t masks[] = {0xff00, 0x00ff};
-		return masks[*address & 1];
+		return uint16_t(0xff00 >> ((*address << 3) & 8));
 	}
 
 	/*!
@@ -165,8 +165,7 @@ struct Microcycle {
 		@returns 0xff00 if this byte access wants the low part of a 16-bit word; 0x00ff if it wants the high part.
 	*/
 	forceinline uint16_t untouched_byte_mask() const {
-		static constexpr uint16_t masks[] = {0x00ff, 0xff00};
-		return masks[*address & 1];
+		return uint16_t(0x00ff << ((*address << 3) & 8));
 	}
 
 	/*!
@@ -181,14 +180,14 @@ struct Microcycle {
 		@returns non-zero if the 68000 LDS is asserted; zero otherwise.
 	*/
 	forceinline int lower_data_select() const {
-		return ((operation & SelectByte) & (*address & 1)) | (operation & SelectWord);
+		return (operation & SelectByte & *address) | (operation & SelectWord);
 	}
 
 	/*!
 		@returns non-zero if the 68000 UDS is asserted; zero otherwise.
 	*/
 	forceinline int upper_data_select() const {
-		return ((operation & SelectByte) & ~(*address & 1)) | (operation & SelectWord);
+		return (operation & SelectByte & ~*address) | (operation & SelectWord);
 	}
 
 	/*!
@@ -199,7 +198,15 @@ struct Microcycle {
 		the address space, etc.
 	*/
 	forceinline uint32_t word_address() const {
-		return (address ? (*address) & 0x00fffffe : 0) >> 1;
+		return (address ? *address & 0x00fffffe : 0) >> 1;
+	}
+
+	/*!
+		@returns the same value as word_address() for any Microcycle with the NewAddress or
+		SameAddress flags set; undefined behaviour otherwise.
+	*/
+	forceinline uint32_t active_operation_word_address() const {
+		return (*address & 0x00fffffe) >> 1;
 	}
 
 	/*!
@@ -217,7 +224,7 @@ struct Microcycle {
 		#if TARGET_RT_BIG_ENDIAN
 		return *address & 0xffffff;
 		#else
-		return (*address ^ (1 & operation & SelectByte)) & 0xffffff;
+		return (*address ^ (operation & SelectByte)) & 0xffffff;
 		#endif
 	}
 
@@ -272,7 +279,7 @@ struct Microcycle {
 	}
 
 	/*!
-		Equivalent to set_value16((v) | 0xff00).
+		Equivalent to set_value16(v | 0xff00).
 	*/
 	forceinline void set_value8_low(uint8_t v) const {
 		assert(operation & Microcycle::Read);
@@ -281,14 +288,6 @@ struct Microcycle {
 		} else {
 			value->b = uint8_t(v | untouched_byte_mask());
 		}
-	}
-
-	/*!
-		@returns the same value as word_address() for any Microcycle with the NewAddress or
-		SameAddress flags set; undefined behaviour otherwise.
-	*/
-	forceinline uint32_t active_operation_word_address() const {
-		return ((*address) & 0x00fffffe) >> 1;
 	}
 
 	// PermitRead and PermitWrite are used as part of the read/write mask
