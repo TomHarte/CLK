@@ -1065,3 +1065,10 @@ int ProcessorBase::get_extended_bus_output() {
 		(registers_.mx_flags[1] ? ExtendedBusOutput::IndexSize : 0) |
 		(registers_.emulation_flag ? ExtendedBusOutput::Emulation : 0);
 }
+
+void ProcessorBase::restart_operation_fetch() {
+	// Find a OperationMoveToNextProgram, so that the main loop can make
+	// relevant decisions.
+	next_op_ = micro_ops_.data();
+	while(*next_op_ != OperationMoveToNextProgram) ++next_op_;
+}
