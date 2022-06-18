@@ -69,7 +69,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 		using Register = CPU::MOS6502Esque::Register;
 		const uint32_t pc =
 			processor.get_value_of_register(Register::ProgramCounter) |
-			(processor.get_value_of_register(Register::ProgramBank) << 8);
+			(processor.get_value_of_register(Register::ProgramBank) << 16);
 		inventions[pc] = ram[pc] = opcode;
 	}
 
@@ -99,6 +99,10 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 	// Never run the official reset procedure.
 	processor.set_power_on(false);
 
+	// Make tests repeatable, at least for any given instance of
+	// the runtime.
+	srand(65816);
+
 	for(int operation = 0; operation < 512; operation++) {
 		const bool is_emulated = operation & 256;
 		const uint8_t opcode = operation & 255;
@@ -106,18 +110,35 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 		// Ensure processor's next action is an opcode fetch.
 		processor.restart_operation_fetch();
 
-		// Randomise processor state.
+		// Randomise most of the processor state...
 		using Register = CPU::MOS6502Esque::Register;
+		processor.set_value_of_register(Register::A, rand() >> 8);
+		processor.set_value_of_register(Register::Flags, rand() >> 8);
+		processor.set_value_of_register(Register::X, rand() >> 8);
+		processor.set_value_of_register(Register::Y, rand() >> 8);
+		processor.set_value_of_register(Register::ProgramCounter, rand() >> 8);
+		processor.set_value_of_register(Register::StackPointer, rand() >> 8);
+		processor.set_value_of_register(Register::DataBank, rand() >> 8);
+		processor.set_value_of_register(Register::ProgramBank, rand() >> 8);
+		processor.set_value_of_register(Register::Direct, rand() >> 8);
+
+		// ... except for emulation mode, which is a given.
+		// And is set last to ensure proper internal state is applied.
 		processor.set_value_of_register(Register::EmulationFlag, is_emulated);
 
 		// Establish the opcode.
 		handler.setup(processor, opcode);
+
+		// TODO: dump current state.
 
 		// Run to the second opcode fetch.
 		handler.opcodes_remaining = 2;
 		try {
 			processor.run_for(Cycles(100));
 		} catch (const StopException &) {}
+
+		// TODO: dump initial and final memory contents, and final state.
+		printf("");
 	}
 }
 
