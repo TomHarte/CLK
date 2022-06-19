@@ -83,6 +83,31 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 	std::vector<Cycle> cycles;
 };
 
+template <typename Processor> void print_registers(const Processor &processor, int pc_offset) {
+	using Register = CPU::MOS6502Esque::Register;
+	printf("\"pc\": %d, ", (processor.get_value_of_register(Register::ProgramCounter) + pc_offset) & 65535);
+	printf("\"s\": %d, ", processor.get_value_of_register(Register::StackPointer));
+	printf("\"p\": %d, ", processor.get_value_of_register(Register::Flags));
+	printf("\"a\": %d, ", processor.get_value_of_register(Register::A));
+	printf("\"x\": %d, ", processor.get_value_of_register(Register::X));
+	printf("\"y\": %d, ", processor.get_value_of_register(Register::Y));
+	printf("\"dbr\": %d, ", processor.get_value_of_register(Register::DataBank));
+	printf("\"d\": %d, ", processor.get_value_of_register(Register::Direct));
+	printf("\"pbr\": %d, ", processor.get_value_of_register(Register::ProgramBank));
+	printf("\"e\": %d, ", processor.get_value_of_register(Register::EmulationFlag));
+}
+
+void print_ram(const std::unordered_map<uint32_t, uint8_t> &data) {
+	printf("\"ram\": [");
+	bool is_first = true;
+	for(const auto &pair: data) {
+		if(!is_first) printf(", ");
+		is_first = false;
+		printf("[%d, %d]", pair.first, pair.second);
+	}
+	printf("]");
+}
+
 }
 
 // MARK: - New test generator.
@@ -107,38 +132,92 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 		const bool is_emulated = operation & 256;
 		const uint8_t opcode = operation & 255;
 
-		// Ensure processor's next action is an opcode fetch.
-		processor.restart_operation_fetch();
+		for(int test = 0; test < 1; test++) {
+			// Ensure processor's next action is an opcode fetch.
+			processor.restart_operation_fetch();
 
-		// Randomise most of the processor state...
-		using Register = CPU::MOS6502Esque::Register;
-		processor.set_value_of_register(Register::A, rand() >> 8);
-		processor.set_value_of_register(Register::Flags, rand() >> 8);
-		processor.set_value_of_register(Register::X, rand() >> 8);
-		processor.set_value_of_register(Register::Y, rand() >> 8);
-		processor.set_value_of_register(Register::ProgramCounter, rand() >> 8);
-		processor.set_value_of_register(Register::StackPointer, rand() >> 8);
-		processor.set_value_of_register(Register::DataBank, rand() >> 8);
-		processor.set_value_of_register(Register::ProgramBank, rand() >> 8);
-		processor.set_value_of_register(Register::Direct, rand() >> 8);
+			// Randomise most of the processor state...
+			using Register = CPU::MOS6502Esque::Register;
+			processor.set_value_of_register(Register::A, rand() >> 8);
+			processor.set_value_of_register(Register::Flags, rand() >> 8);
+			processor.set_value_of_register(Register::X, rand() >> 8);
+			processor.set_value_of_register(Register::Y, rand() >> 8);
+			processor.set_value_of_register(Register::ProgramCounter, rand() >> 8);
+			processor.set_value_of_register(Register::StackPointer, rand() >> 8);
+			processor.set_value_of_register(Register::DataBank, rand() >> 8);
+			processor.set_value_of_register(Register::ProgramBank, rand() >> 8);
+			processor.set_value_of_register(Register::Direct, rand() >> 8);
 
-		// ... except for emulation mode, which is a given.
-		// And is set last to ensure proper internal state is applied.
-		processor.set_value_of_register(Register::EmulationFlag, is_emulated);
+			// ... except for emulation mode, which is a given.
+			// And is set last to ensure proper internal state is applied.
+			processor.set_value_of_register(Register::EmulationFlag, is_emulated);
 
-		// Establish the opcode.
-		handler.setup(processor, opcode);
+			// Establish the opcode.
+			handler.setup(processor, opcode);
 
-		// TODO: dump current state.
+			// Dump initial state.
+			printf("{ \"name\": \"%02x %c %d\", ", opcode, is_emulated ? 'e' : 'n', test + 1);
+			printf("\"initial\": {");
+			print_registers(processor, 0);
 
-		// Run to the second opcode fetch.
-		handler.opcodes_remaining = 2;
-		try {
-			processor.run_for(Cycles(100));
-		} catch (const StopException &) {}
+			// Run to the second opcode fetch.
+			handler.opcodes_remaining = 2;
+			try {
+				processor.run_for(Cycles(100));
+			} catch (const StopException &) {}
 
-		// TODO: dump initial and final memory contents, and final state.
-		printf("");
+			// Dump all inventions as initial memory state.
+			print_ram(handler.inventions);
+
+			// Dump final state.
+			printf("}, \"final\": {");
+			print_registers(processor, -1);
+			print_ram(handler.ram);
+			printf("}, ");
+
+			// Append cycles.
+			printf("\"cycles\": [");
+
+			bool is_first = true;
+			for(const auto &cycle: handler.cycles) {
+				if(!is_first) printf(",");
+				is_first = false;
+
+				bool vda = false;
+				bool vpa = false;
+				bool vpb = false;
+				bool read = false;
+				bool wait = false;
+				using BusOperation = CPU::MOS6502Esque::BusOperation;
+				switch(cycle.operation) {
+					case BusOperation::Read:					read = vda = true;			break;
+					case BusOperation::ReadOpcode:				read = vda = vpa = true;	break;
+					case BusOperation::ReadProgram:				read = vpa = true;			break;
+					case BusOperation::ReadVector:				read = vpb = true;			break;
+					case BusOperation::InternalOperationRead:	read = true;				break;
+
+					case BusOperation::Write:					vda = true;					break;
+					case BusOperation::InternalOperationWrite:								break;
+
+					case BusOperation::None:
+					case BusOperation::Ready:					wait = true;				break;
+
+					default:
+						assert(false);
+				}
+
+				printf("[%d, %d, %c%c%c%c]",
+					cycle.address,
+					cycle.value,
+					vda ? 'd' : '-',
+					vpa ? 'p' : '-',
+					vpb ? 'v' : '-',
+					wait ? '-' : (read ? 'r' : 'w'));
+			}
+
+			// Terminate object.
+			printf("]},\n");
+		}
 	}
 }
 
