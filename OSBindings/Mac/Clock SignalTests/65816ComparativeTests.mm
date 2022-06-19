@@ -238,7 +238,7 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 					wait ? '-' : (read ? 'r' : 'w'),
 					wait ? '-' : (emulation ? 'e' : '-'),
 					wait ? '-' : (memory_size ? 'm' : '-'),
-					wait ? '-' : (index_size ? 'i' : '-'),
+					wait ? '-' : (index_size ? 'x' : '-'),
 					wait ? '-' : (memory_lock ? 'l' : '-')
 				);
 			}
