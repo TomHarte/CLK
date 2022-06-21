@@ -39,8 +39,9 @@ enum MicroOp: uint8_t {
 
 	/// Stores a byte from the data buffer.
 	CycleStoreData,
-	/// Stores the most recent byte placed into the data buffer without removing it.
-	CycleStoreDataThrowaway,
+	/// Emulated mode: stores the most recent byte placed into the data buffer without removing it;
+	/// Native mode: performs CycleFetchDataThrowaway.
+	CycleStoreOrFetchDataThrowaway,
 	/// Stores a byte to the data address from the data buffer and increments the data address.
 	CycleStoreIncrementData,
 	/// Stores a byte to the data address from the data buffer and decrements the data address.

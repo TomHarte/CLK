@@ -115,6 +115,13 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					read(data_address_, data_buffer_.next_input());
 				break;
 
+				case CycleStoreOrFetchDataThrowaway:
+					if(registers_.emulation_flag) {
+						perform_bus(data_address_, data_buffer_.preview_output(), MOS6502Esque::InternalOperationWrite);
+						break;
+					}
+
+					[[fallthrough]];
 				case CycleFetchDataThrowaway:
 					perform_bus(data_address_, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
 				break;
@@ -139,10 +146,6 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 				case CycleStoreData:
 					write(data_address_, data_buffer_.next_output());
-				break;
-
-				case CycleStoreDataThrowaway:
-					perform_bus(data_address_, data_buffer_.preview_output(), MOS6502Esque::InternalOperationWrite);
 				break;
 
 				case CycleStoreIncrementData:
@@ -906,35 +909,43 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 						case SBC:
 							if(registers_.flags.decimal) {
-								// I've yet to manage to find a rational way to map this to an ADC,
-								// hence the yucky repetition of code here.
 								const uint16_t a = registers_.a.full & registers_.m_masks[1];
-								unsigned int result = 0;
-								unsigned int borrow = registers_.flags.carry ^ 1;
-								const uint16_t decimal_result = uint16_t(a - data_buffer_.value - borrow);
+								const uint16_t decimal_result = uint16_t(a - data_buffer_.value - (1 ^ registers_.flags.carry));
+								data_buffer_.value = ~data_buffer_.value & registers_.m_masks[1];
 
-#define nibble(mask, adjustment, carry)								\
-	result += (a & mask) - (data_buffer_.value & mask) - borrow;	\
-	if(result > mask) result -= adjustment;							\
-	borrow = (result > mask) ? carry : 0;							\
-	result &= (carry - 1);
+#define begin_nibble(mask)						\
+	result += (a & mask) + (data_buffer_.value & mask);
 
+#define end_nibble(adjustment, carry)			\
+	if(result < carry) result -= adjustment;	\
+	result &= (carry | (carry - 1));
+
+#define nibble(mask, adjustment, carry)			\
+	begin_nibble(mask);							\
+	end_nibble(adjustment, carry)
+
+								unsigned int result = registers_.flags.carry;
 								nibble(0x000f, 0x0006, 0x00010);
 								nibble(0x00f0, 0x0060, 0x00100);
 								nibble(0x0f00, 0x0600, 0x01000);
-								nibble(0xf000, 0x6000, 0x10000);
+
+								begin_nibble(0xf000);
+								registers_.flags.overflow = uint8_t((( (decimal_result ^ result) & (~decimal_result ^ result) ) >> (1 + registers_.m_shift))&0x40);
+								end_nibble(0x6000, 0x10000);
 
 #undef nibble
+#undef begin_nibble
+#undef end_nibble
 
-								registers_.flags.overflow = (( (decimal_result ^ a) & (~decimal_result ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
 								registers_.flags.set_nz(uint16_t(result), registers_.m_shift);
-								registers_.flags.carry = ((borrow >> 16)&1)^1;
+								registers_.flags.carry = (result >> (8 + registers_.m_shift))&1;
 								LDA(result);
 
 								break;
 							}
 
 							data_buffer_.value = ~data_buffer_.value & registers_.m_masks[1];
+
 						[[fallthrough]];
 
 						case ADC: {
@@ -942,22 +953,28 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							const uint16_t a = registers_.a.full & registers_.m_masks[1];
 
 							if(registers_.flags.decimal) {
-								uint16_t partials = 0;
+#define begin_nibble(mask)						\
+	result += (a & mask) + (data_buffer_.value & mask);
+
+#define end_nibble(limit, adjustment, carry)	\
+	if(result >= limit) result = ((result + adjustment) & (carry - 1)) + carry;
+
+#define nibble(mask, limit, adjustment, carry)	\
+	begin_nibble(mask);	\
+	end_nibble(limit, adjustment, carry)
+
 								result = registers_.flags.carry;
-
-#define nibble(mask, limit, adjustment, carry)			\
-	result += (a & mask) + (data_buffer_.value & mask);	\
-	partials += result & mask;							\
-	if(result >= limit) result = ((result + (adjustment)) & (carry - 1)) + carry;
-
 								nibble(0x000f, 0x000a, 0x0006, 0x00010);
 								nibble(0x00f0, 0x00a0, 0x0060, 0x00100);
 								nibble(0x0f00, 0x0a00, 0x0600, 0x01000);
-								nibble(0xf000, 0xa000, 0x6000, 0x10000);
+
+								begin_nibble(0xf000);
+								registers_.flags.overflow = (( (uint16_t(result) ^ registers_.a.full) & (uint16_t(result) ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
+								end_nibble(0xa000, 0x6000, 0x10000);
 
 #undef nibble
-
-								registers_.flags.overflow = (( (partials ^ registers_.a.full) & (partials ^ data_buffer_.value) )  >> (1 + registers_.m_shift))&0x40;
+#undef begin_nibble
+#undef end_nibble
 
 							} else {
 								result = int(a + data_buffer_.value + registers_.flags.carry);
