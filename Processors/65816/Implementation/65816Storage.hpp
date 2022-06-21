@@ -13,6 +13,8 @@ enum MicroOp: uint8_t {
 	CycleFetchPC,
 	/// Fetches a byte from the program counter without incrementing it, and throws it away.
 	CycleFetchPCThrowaway,
+	/// Fetches a byte from (PC - 1), and throws it away; useful for IO cycles that immediately follow incremented PCs.
+	CycleFetchPreviousPCThrowaway,
 	/// The same as CycleFetchIncrementPC but indicates valid program address rather than valid data address.
 	CycleFetchOpcode,
 

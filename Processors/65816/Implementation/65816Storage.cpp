@@ -387,7 +387,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	// 8. Accumulator; A.
 	static void accumulator(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchPCThrowaway);			// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
 		// TODO: seriously consider a-specific versions of all relevant operations;
 		// the cost of interpreting three things here is kind of silly.
@@ -416,10 +416,10 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	// 10a. Direct; d.
 	// (That's zero page in 6502 terms)
 	static void direct(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchIncrementPC);		// DO.
+		target(CycleFetchIncrementPC);			// DO.
 
 		target(OperationConstructDirect);
-		target(CycleFetchPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);	// IO.
 
 		read_write(type, is8bit, target);
 	}
@@ -430,7 +430,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);					// DO.
 
 		target(OperationConstructDirect);
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);				// IO.
 
 		read_modify_write(is8bit, target);
 	}
@@ -440,9 +440,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);					// DO.
 
 		target(OperationConstructDirectIndexedIndirect);
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
 		target(CycleFetchIncrementData);				// AAL.
 		target(CycleFetchData);							// AAH.
@@ -458,7 +458,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);					// DO.
 
 		target(OperationConstructDirect);
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
 		target(CycleFetchIncrementData);				// AAL.
 		target(CycleFetchData);							// AAH.
@@ -473,7 +473,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);					// DO.
 
 		target(OperationConstructDirect);
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
 		target(CycleFetchIncrementData);				// AAL.
 		target(CycleFetchData);							// AAH.
@@ -490,7 +490,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);					// DO.
 
 		target(OperationConstructDirect);
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
 		target(CycleFetchIncrementData);				// AAL.
 		target(CycleFetchIncrementData);				// AAH.
@@ -506,7 +506,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);					// DO.
 
 		target(OperationConstructDirectLong);
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
 		target(CycleFetchIncrementData);				// AAL.
 		target(CycleFetchIncrementData);				// AAH.
@@ -522,9 +522,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);					// DO.
 
 		target(OperationConstructDirectX);
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
 		read_write(type, is8bit, target);
 	}
@@ -534,9 +534,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);					// DO.
 
 		target(OperationConstructDirectX);
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
 		read_modify_write(is8bit, target);
 	}
@@ -546,9 +546,9 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);					// DO.
 
 		target(OperationConstructDirectY);
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
-		target(CycleFetchPCThrowaway);					// IO.
+		target(CycleFetchPreviousPCThrowaway);			// IO.
 
 		read_write(type, is8bit, target);
 	}
@@ -563,20 +563,20 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	static void immediate_rep_sep(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);				// IDL.
-		target(CycleFetchPCThrowaway);				// "Add 1 cycle for REP and SEP"
+		target(CycleFetchPreviousPCThrowaway);		// "Add 1 cycle for REP and SEP"
 		target(OperationPerform);
 	}
 
 	// 19a. Implied; i.
 	static void implied(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
 		target(OperationPerform);
 	}
 
 	// 19b. Implied; i; XBA.
 	static void implied_xba(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchPCThrowaway);		// IO.
-		target(CycleFetchPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
 		target(OperationPerform);
 	}
 
@@ -584,8 +584,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	// 19d. Wait for interrupt.
 	static void stp_wai(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(OperationPerform);			// Establishes the termination condition.
-		target(CycleFetchPCThrowaway);		// IO.
-		target(CycleFetchPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
 		target(CycleRepeatingNone);			// This will first check whether the STP/WAI exit
 											// condition has occurred; if not then it'll issue
 											// either a BusOperation::None or ::Ready and then
@@ -594,34 +594,34 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	// 20. Relative; r.
 	static void relative(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchIncrementPC);	// Offset.
+		target(CycleFetchIncrementPC);		// Offset.
 
-		target(OperationPerform);		// The branch instructions will all skip one or three
-										// of the next cycles, depending on the effect of
-										// the jump. It'll also calculate the correct target
-										// address, placing it into the data buffer.
+		target(OperationPerform);			// The branch instructions will all skip one or three
+											// of the next cycles, depending on the effect of
+											// the jump. It'll also calculate the correct target
+											// address, placing it into the data buffer.
 
-		target(CycleFetchPCThrowaway);	// IO.
-		target(CycleFetchPCThrowaway);	// IO.
+		target(CycleFetchPreviousPCThrowaway);	// IO.
+		target(CycleFetchPreviousPCThrowaway);	// IO.
 
-		target(OperationCopyDataToPC);	// Install the address that was calculated above.
+		target(OperationCopyDataToPC);			// Install the address that was calculated above.
 	}
 
 	// 21. Relative long; rl.
 	static void relative_long(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchIncrementPC);		// Offset low.
-		target(CycleFetchIncrementPC);		// Offset high.
-		target(CycleFetchPCThrowaway);		// IO.
+		target(CycleFetchIncrementPC);			// Offset low.
+		target(CycleFetchIncrementPC);			// Offset high.
+		target(CycleFetchPreviousPCThrowaway);	// IO.
 
-		target(OperationPerform);			// [BRL]
+		target(OperationPerform);				// [BRL]
 	}
 
 	// 22a. Stack; s, abort/irq/nmi/res.
 	//
 	// Combined here with reset, which is the same sequence but with a different stack access.
 	static void stack_exception_impl(AccessType, bool, const std::function<void(MicroOp)> &target, MicroOp stack_op) {
-		target(CycleFetchPCThrowaway);		// IO.
-		target(CycleFetchPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
 
 		target(OperationPrepareException);	// Populates the data buffer; if the exception is a
 											// reset then switches to the reset tail program.
@@ -654,8 +654,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	// 22b. Stack; s, PLx.
 	static void stack_pull(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchPCThrowaway);	// IO.
-		target(CycleFetchPCThrowaway);	// IO.
+		target(CycleFetchPreviousPCThrowaway);	// IO.
+		target(CycleFetchPreviousPCThrowaway);	// IO.
 
 		if(!is8bit) target(CyclePull);	// REG low.
 		target(CyclePull);				// REG [high].
@@ -665,7 +665,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	// 22c. Stack; s, PHx.
 	static void stack_push(AccessType, bool is8bit, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchPCThrowaway);	// IO.
+		target(CycleFetchPreviousPCThrowaway);	// IO.
 
 		target(OperationPerform);
 
@@ -689,7 +689,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchIncrementPC);		// DO.
 
 		target(OperationConstructDirect);
-		target(CycleFetchPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
 
 		target(CycleFetchIncrementData);	// AAL.
 		target(CycleFetchData);				// AAH.
@@ -701,7 +701,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	static void stack_per(AccessType, bool, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);		// Offset low.
 		target(CycleFetchIncrementPC);		// Offset high.
-		target(CycleFetchPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
 
 		target(OperationConstructPER);
 
@@ -711,8 +711,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	// 22g. Stack; s, RTI.
 	static void stack_rti(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchPCThrowaway);		// IO.
-		target(CycleFetchPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
 
 		target(CyclePull);					// P.
 		target(CyclePull);					// New PCL.
@@ -724,8 +724,8 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	// 22h. Stack; s, RTS.
 	static void stack_rts(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchPCThrowaway);	// IO.
-		target(CycleFetchPCThrowaway);	// IO.
+		target(CycleFetchPreviousPCThrowaway);	// IO.
+		target(CycleFetchPreviousPCThrowaway);	// IO.
 
 		target(CyclePull);				// PCL.
 		target(CyclePull);				// PCH.
@@ -772,7 +772,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	// 23. Stack Relative; d, s.
 	static void stack_relative(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);	// SO.
-		target(CycleFetchPCThrowaway);	// IO.
+		target(CycleFetchPreviousPCThrowaway);	// IO.
 
 		target(OperationConstructStackRelative);
 		read_write(type, is8bit, target);
@@ -781,7 +781,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 	// 24. Stack Relative Indirect Indexed (d, s), y.
 	static void stack_relative_indexed_indirect(AccessType type, bool is8bit, const std::function<void(MicroOp)> &target) {
 		target(CycleFetchIncrementPC);		// SO.
-		target(CycleFetchPCThrowaway);		// IO.
+		target(CycleFetchPreviousPCThrowaway);		// IO.
 
 		target(OperationConstructStackRelative);
 		target(CycleFetchIncrementData);	// AAL.

@@ -99,6 +99,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					perform_bus(registers_.pc | registers_.program_bank, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
 				break;
 
+				case CycleFetchPreviousPCThrowaway:
+					perform_bus(((registers_.pc - 1) & 0xffff) | registers_.program_bank, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
+				break;
+
 				//
 				// Data fetches and stores.
 				//
