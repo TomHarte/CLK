@@ -835,7 +835,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 		data_buffer_.value = uint32_t(registers_.pc + int8_t(instruction_buffer_.value));	\
 		data_buffer_.size = 2;																\
 																							\
-		if((registers_.pc & 0xff00) == (instruction_buffer_.value & 0xff00)) {				\
+		if(																					\
+			!registers_.emulation_flag ||													\
+			(registers_.pc & 0xff00) == (instruction_buffer_.value & 0xff00)				\
+		) {																					\
 			++next_op_;																		\
 		}																					\
 	}
