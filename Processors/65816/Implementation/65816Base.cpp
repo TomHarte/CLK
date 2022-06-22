@@ -14,7 +14,10 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 	switch (r) {
 		case Register::ProgramCounter:			return registers_.pc;
 		case Register::LastOperationAddress:	return last_operation_pc_;
-		case Register::StackPointer:			return registers_.s.full & (registers_.emulation_flag ? 0xff : 0xffff);
+		case Register::StackPointer:
+			return
+				(registers_.s.full & (registers_.emulation_flag ? 0xff : 0xffff)) |
+				(registers_.emulation_flag ? 0x100 : 0x000);
 		case Register::Flags:					return get_flags();
 		case Register::A:						return registers_.a.full;
 		case Register::X:						return registers_.x.full;
