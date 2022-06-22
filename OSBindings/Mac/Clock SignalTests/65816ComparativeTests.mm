@@ -10,6 +10,7 @@
 
 #import <XCTest/XCTest.h>
 #include <array>
+#include <optional>
 #include <vector>
 #include <unordered_map>
 
@@ -27,7 +28,6 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 		auto &cycle = cycles.emplace_back();
 		cycle.address = address;
 		cycle.operation = operation;
-		cycle.value = 0xff;
 		cycle.extended_bus = processor.get_extended_bus_output();
 
 		// Perform the operation, and fill in the cycle's value.
@@ -47,7 +47,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 					cycle.value = *value = ram_value->second;
 				} else {
 					cycle.value = *value = uint8_t(rand() >> 8);
-					inventions[address] = ram[address] = cycle.value;
+					inventions[address] = ram[address] = *cycle.value;
 				}
 			break;
 
@@ -79,7 +79,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 	struct Cycle {
 		CPU::MOS6502Esque::BusOperation operation;
 		uint32_t address;
-		uint8_t value;
+		std::optional<uint8_t> value;
 		int extended_bus;
 	};
 	std::vector<Cycle> cycles;
@@ -229,9 +229,13 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 				const bool index_size = cycle.extended_bus & ExtendedBusOutput::IndexSize;
 				const bool memory_lock = cycle.extended_bus & ExtendedBusOutput::MemoryLock;
 
-				fprintf(target, "[%d, %d, \"%c%c%c%c%c%c%c%c\"]",
-					cycle.address,
-					cycle.value,
+				fprintf(target, "[%d, ", cycle.address);
+				if(cycle.value) {
+					fprintf(target, "%d, ", *cycle.value);
+				} else {
+					fprintf(target, "null, ");
+				}
+				fprintf(target, "\"%c%c%c%c%c%c%c%c\"]",
 					vda ? 'd' : '-',
 					vpa ? 'p' : '-',
 					vpb ? 'v' : '-',
