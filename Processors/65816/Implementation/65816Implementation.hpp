@@ -423,7 +423,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				case OperationPrepareException:
 					data_buffer_.value = uint32_t((registers_.pc << 8) | get_flags());
 					if(registers_.emulation_flag) {
-						if(exception_is_interrupt_) data_buffer_.value &= ~Flag::Break;
+						if(exception_is_interrupt_) data_buffer_.value &= ~uint32_t(Flag::Break);
 						data_buffer_.size = 3;
 						registers_.data_bank = 0;
 						++next_op_;
