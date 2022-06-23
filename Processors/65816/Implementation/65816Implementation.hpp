@@ -300,8 +300,12 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					data_address_ = instruction_buffer_.value + registers_.x.full + registers_.data_bank;
 					incorrect_data_address_ = ((data_address_ & 0x00ff) | (instruction_buffer_.value & 0xff00)) + registers_.data_bank;
 
-					// If the incorrect address isn't actually incorrect, skip its usage.
-					if(operation == OperationConstructAbsoluteXRead && data_address_ == incorrect_data_address_) {
+					// "Add 1 cycle for indexing across page boundaries, or write, or X=0"
+					// (i.e. don't add 1 cycle if x = 1 and this is a read, and a page boundary wasn't crossed)
+					if(
+						operation == OperationConstructAbsoluteXRead &&
+						data_address_ == incorrect_data_address_ &&
+						registers_.mx_flags[1]) {
 						++next_op_;
 					}
 					data_address_increment_mask_ = 0xff'ff'ff;
@@ -312,8 +316,12 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					data_address_ = instruction_buffer_.value + registers_.y.full + registers_.data_bank;
 					incorrect_data_address_ = (data_address_ & 0xff) + (instruction_buffer_.value & 0xff00) + registers_.data_bank;
 
-					// If the incorrect address isn't actually incorrect, skip its usage.
-					if(operation == OperationConstructAbsoluteYRead && data_address_ == incorrect_data_address_) {
+					// "Add 1 cycle for indexing across page boundaries, or write, or X=0"
+					// (i.e. don't add 1 cycle if x = 1 and this is a read, and a page boundary wasn't crossed)
+					if(
+						operation == OperationConstructAbsoluteYRead &&
+						data_address_ == incorrect_data_address_ &&
+						registers_.mx_flags[1]) {
 						++next_op_;
 					}
 					data_address_increment_mask_ = 0xff'ff'ff;
