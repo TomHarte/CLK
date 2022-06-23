@@ -415,7 +415,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				case OperationPrepareException:
 					data_buffer_.value = uint32_t((registers_.pc << 8) | get_flags());
 					if(registers_.emulation_flag) {
-						if(!exception_is_interrupt_) data_buffer_.value |= Flag::Break;
+						if(exception_is_interrupt_) data_buffer_.value &= ~Flag::Break;
 						data_buffer_.size = 3;
 						registers_.data_bank = 0;
 						++next_op_;
@@ -563,11 +563,6 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						case PHP:
 							data_buffer_.value = get_flags();
 							data_buffer_.size = 1;
-
-							if(registers_.emulation_flag) {
-								// On the 6502, the break flag is set during a PHP.
-								data_buffer_.value |= Flag::Break;
-							}
 						break;
 
 						case NOP:						break;
