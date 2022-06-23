@@ -345,10 +345,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				continue;
 
 				case OperationConstructDirectIndexedIndirect:
-					data_address_ = registers_.data_bank + ((
+					data_address_ = (
 						((registers_.direct + registers_.x.full + instruction_buffer_.value) & registers_.e_masks[1]) +
 						(registers_.direct & registers_.e_masks[0])
-					) & 0xffff);
+					) & 0xffff;
 					data_address_increment_mask_ = 0x00'ff'ff;
 
 					if(!(registers_.direct&0xff)) {
