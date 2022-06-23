@@ -806,7 +806,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							assert(data_buffer_.size == 2 - m_flag());
 							registers_.flags.set_n(uint16_t(data_buffer_.value), registers_.m_shift);
 							registers_.flags.set_z(uint16_t(data_buffer_.value & registers_.a.full), registers_.m_shift);
-							registers_.flags.overflow = data_buffer_.value & Flag::Overflow;
+							registers_.flags.overflow = (data_buffer_.value >> registers_.m_shift) & Flag::Overflow;
 						break;
 
 						case BITimm:
