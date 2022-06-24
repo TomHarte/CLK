@@ -227,7 +227,7 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 					case BusOperation::Read:					read = vda = true;			break;
 					case BusOperation::ReadOpcode:				read = vda = vpa = true;	break;
 					case BusOperation::ReadProgram:				read = vpa = true;			break;
-					case BusOperation::ReadVector:				read = vpb = true;			break;
+					case BusOperation::ReadVector:				read = vpb = vda = true;	break;
 					case BusOperation::InternalOperationRead:	read = true;				break;
 
 					case BusOperation::Write:					vda = true;					break;
