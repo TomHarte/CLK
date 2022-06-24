@@ -918,14 +918,22 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 								const uint16_t a = registers_.a.full & registers_.m_masks[1];
 								data_buffer_.value = ~data_buffer_.value & registers_.m_masks[1];
 
-								unsigned int result = registers_.flags.carry;
+								int result = registers_.flags.carry;
 								uint16_t partials = 0;
 
 #define nibble(mask, adjustment, carry)					\
 	result += (a & mask) + (data_buffer_.value & mask);	\
 	partials += result & mask;							\
-	if(result < carry) result -= adjustment;			\
-	result &= (carry | (carry - 1));
+	result -= ((result - carry) >> 16) & adjustment;	\
+	result &= (carry & ~(result >> 31)) | (carry - 1);
+
+	// i.e. add the next nibble to that in the accumulator, with carry, and
+	// store it to result. Keep a copy for the partials.
+	//
+	// If result is less than carry, subtract adjustment.
+	//
+	// Allow onward carry if the bit immediately above this nibble is 1, and
+	// the current partial result is positive.
 
 								nibble(0x000f, 0x0006, 0x00010);
 								nibble(0x00f0, 0x0060, 0x00100);
