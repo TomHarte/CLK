@@ -38,6 +38,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 				--opcodes_remaining;
 				if(!opcodes_remaining) {
 					cycles.pop_back();
+					pc_overshoot = -1;
 					throw StopException();
 				}
 			case BusOperation::Read:
@@ -55,7 +56,12 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 				cycle.value = ram[address] = *value;
 			break;
 
-			default: break;
+			case BusOperation::Ready:
+			case BusOperation::None:
+				throw StopException();
+			break;
+
+			default: assert(false);
 		}
 
 		// Don't occupy any bonus time.
@@ -66,6 +72,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 		ram.clear();
 		inventions.clear();
 		cycles.clear();
+		pc_overshoot = 0;
 
 		using Register = CPU::MOS6502Esque::Register;
 		const uint32_t pc =
@@ -75,6 +82,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 	}
 
 	int opcodes_remaining = 0;
+	int pc_overshoot = 0;
 
 	struct Cycle {
 		CPU::MOS6502Esque::BusOperation operation;
@@ -89,7 +97,6 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 	BusHandler() : processor(*this) {
 		// Never run the official reset procedure.
 		processor.set_power_on(false);
-
 	}
 };
 
@@ -188,7 +195,7 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 
 			// Dump final state.
 			fprintf(target, "}, \"final\": {");
-			print_registers(target, handler.processor, -1);
+			print_registers(target, handler.processor, handler.pc_overshoot);
 			print_ram(target, handler.ram);
 			fprintf(target, "}, ");
 
