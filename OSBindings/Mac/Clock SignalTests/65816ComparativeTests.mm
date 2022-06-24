@@ -295,8 +295,8 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 @implementation WDC65816ComparativeTests
 
 // A generator for tests; not intended to be a permanent fixture.
-- (void)testGenerate {
-	[[[TestGenerator alloc] init] generate];
-}
+//- (void)testGenerate {
+//	[[[TestGenerator alloc] init] generate];
+//}
 
 @end
