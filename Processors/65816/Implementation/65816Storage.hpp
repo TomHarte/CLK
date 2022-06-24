@@ -15,6 +15,8 @@ enum MicroOp: uint8_t {
 	CycleFetchPCThrowaway,
 	/// Fetches a byte from (PC - 1), and throws it away; useful for IO cycles that immediately follow incremented PCs.
 	CycleFetchPreviousPCThrowaway,
+	/// Fetches from whichever address was used in the last bus cycle, and throws away the result.
+	CycleFetchPreviousThrowaway,
 	/// The same as CycleFetchIncrementPC but indicates valid program address rather than valid data address.
 	CycleFetchOpcode,
 
@@ -274,7 +276,7 @@ struct ProcessorStorage {
 		// Registers.
 		RegisterPair16 a;
 		RegisterPair16 x, y;
-		RegisterPair16  s;
+		RegisterPair16 s;
 		uint16_t pc;
 
 		// Flags aplenty.

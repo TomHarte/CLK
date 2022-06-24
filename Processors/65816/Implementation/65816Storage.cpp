@@ -320,7 +320,7 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 		target(OperationCopyPBRToData);			// Copy PBR to the data register.
 		target(CyclePush);						// PBR.
-		target(CycleAccessStack);				// IO.
+		target(CycleFetchPreviousThrowaway);	// IO.
 
 		target(CycleFetchPC);					// New PBR.
 
@@ -728,14 +728,14 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 
 	// 22h. Stack; s, RTS.
 	static void stack_rts(AccessType, bool, const std::function<void(MicroOp)> &target) {
-		target(CycleFetchPCThrowaway);	// IO.
-		target(CycleFetchPCThrowaway);	// IO.
+		target(CycleFetchPCThrowaway);			// IO.
+		target(CycleFetchPCThrowaway);			// IO.
 
-		target(CyclePull);				// PCL.
-		target(CyclePull);				// PCH.
-		target(CycleAccessStack);		// IO.
+		target(CyclePull);						// PCL.
+		target(CyclePull);						// PCH.
+		target(CycleFetchPreviousThrowaway);	// IO.
 
-		target(OperationPerform);		// [RTS]
+		target(OperationPerform);				// [RTS]
 	}
 
 	// 22i. Stack; s, RTL.
