@@ -35,12 +35,12 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 		auto ram_value = ram.find(address);
 		switch(operation) {
 			case BusOperation::ReadOpcode:
-				--opcodes_remaining;
-				if(!opcodes_remaining) {
+				if(initial_pc && *initial_pc != address) {
 					cycles.pop_back();
 					pc_overshoot = -1;
 					throw StopException();
 				}
+				initial_pc = address;
 			case BusOperation::Read:
 			case BusOperation::ReadProgram:
 			case BusOperation::ReadVector:
@@ -61,6 +61,10 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 				throw StopException();
 			break;
 
+			case BusOperation::InternalOperationRead:
+			case BusOperation::InternalOperationWrite:
+			break;
+
 			default: assert(false);
 		}
 
@@ -73,6 +77,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 		inventions.clear();
 		cycles.clear();
 		pc_overshoot = 0;
+		initial_pc = std::nullopt;
 
 		using Register = CPU::MOS6502Esque::Register;
 		const uint32_t pc =
@@ -81,8 +86,8 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 		inventions[pc] = ram[pc] = opcode;
 	}
 
-	int opcodes_remaining = 0;
 	int pc_overshoot = 0;
+	std::optional<uint32_t> initial_pc;
 
 	struct Cycle {
 		CPU::MOS6502Esque::BusOperation operation;
@@ -185,7 +190,6 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 			print_registers(target, handler.processor, 0);
 
 			// Run to the second opcode fetch.
-			handler.opcodes_remaining = 2;
 			try {
 				handler.processor.run_for(Cycles(100));
 			} catch (const StopException &) {}
