@@ -479,7 +479,11 @@ struct CPU::WDC65816::ProcessorStorageConstructor {
 		target(CycleFetchData);							// AAH.
 
 		target(OperationCopyDataToInstruction);
-		target(OperationConstructAbsoluteYRead);
+		if(type == AccessType::Read) {
+			target(OperationConstructAbsoluteYRead);	// Calculate data address, potentially skipping the next fetch.
+		} else {
+			target(OperationConstructAbsoluteY);		// Calculate data address.
+		}
 		target(CycleFetchIncorrectDataAddress);			// IO.
 
 		read_write(type, is8bit, target);
