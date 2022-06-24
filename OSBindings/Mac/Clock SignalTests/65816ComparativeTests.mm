@@ -35,7 +35,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 		auto ram_value = ram.find(address);
 		switch(operation) {
 			case BusOperation::ReadOpcode:
-				if(initial_pc && *initial_pc != address) {
+				if(initial_pc && (*initial_pc != address || !allow_pc_repetition)) {
 					cycles.pop_back();
 					pc_overshoot = -1;
 					throw StopException();
@@ -79,6 +79,11 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 		pc_overshoot = 0;
 		initial_pc = std::nullopt;
 
+		// For MVP or MVN, keep tracking fetches via the same location.
+		// For other instructions, don't. That's to avoid endless loops
+		// for flow control that happens to jump back to where it began.
+		allow_pc_repetition = opcode == 0x54 || opcode == 0x44;
+
 		using Register = CPU::MOS6502Esque::Register;
 		const uint32_t pc =
 			processor.get_value_of_register(Register::ProgramCounter) |
@@ -88,6 +93,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 
 	int pc_overshoot = 0;
 	std::optional<uint32_t> initial_pc;
+	bool allow_pc_repetition = false;
 
 	struct Cycle {
 		CPU::MOS6502Esque::BusOperation operation;
