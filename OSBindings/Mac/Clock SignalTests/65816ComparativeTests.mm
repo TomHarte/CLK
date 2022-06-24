@@ -26,7 +26,6 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 	Cycles perform_bus_operation(CPU::MOS6502Esque::BusOperation operation, uint32_t address, uint8_t *value) {
 		// Record the basics of the operation.
 		auto &cycle = cycles.emplace_back();
-		cycle.address = address;
 		cycle.operation = operation;
 		cycle.extended_bus = processor.get_extended_bus_output();
 
@@ -41,9 +40,12 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 					throw StopException();
 				}
 				initial_pc = address;
+				[[fallthrough]];
+
 			case BusOperation::Read:
 			case BusOperation::ReadProgram:
 			case BusOperation::ReadVector:
+				cycle.address = address;
 				if(ram_value != ram.end()) {
 					cycle.value = *value = ram_value->second;
 				} else {
@@ -53,6 +55,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 			break;
 
 			case BusOperation::Write:
+				cycle.address = address;
 				cycle.value = ram[address] = *value;
 			break;
 
@@ -61,8 +64,12 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 				throw StopException();
 			break;
 
-			case BusOperation::InternalOperationRead:
 			case BusOperation::InternalOperationWrite:
+				cycle.value = *value = ram_value->second;
+				[[fallthrough]];
+
+			case BusOperation::InternalOperationRead:
+				cycle.address = address;
 			break;
 
 			default: assert(false);
@@ -97,7 +104,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandler<uint32_t>  {
 
 	struct Cycle {
 		CPU::MOS6502Esque::BusOperation operation;
-		uint32_t address;
+		std::optional<uint32_t> address;
 		std::optional<uint8_t> value;
 		int extended_bus;
 	};
@@ -246,7 +253,12 @@ void print_ram(FILE *file, const std::unordered_map<uint32_t, uint8_t> &data) {
 				const bool index_size = cycle.extended_bus & ExtendedBusOutput::IndexSize;
 				const bool memory_lock = cycle.extended_bus & ExtendedBusOutput::MemoryLock;
 
-				fprintf(target, "[%d, ", cycle.address);
+				fprintf(target, "[");
+				if(cycle.address) {
+					fprintf(target, "%d, ", *cycle.address);
+				} else {
+					fprintf(target, "null, ");
+				}
 				if(cycle.value) {
 					fprintf(target, "%d, ", *cycle.value);
 				} else {
