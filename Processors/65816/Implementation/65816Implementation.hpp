@@ -925,7 +925,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 	result += (a & mask) + (data_buffer_.value & mask);	\
 	partials += result & mask;							\
 	result -= ((result - carry) >> 16) & adjustment;	\
-	result &= (carry & ~(result >> 31)) | (carry - 1);
+	result &= (carry & ~(result >> 1)) | (carry - 1);
 
 	// i.e. add the next nibble to that in the accumulator, with carry, and
 	// store it to result. Keep a copy for the partials.
