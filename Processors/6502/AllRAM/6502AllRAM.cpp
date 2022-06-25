@@ -25,7 +25,9 @@ static constexpr bool LogProgramCounter = false;
 
 using Type = CPU::MOS6502Esque::Type;
 
-template <Type type, bool has_cias> class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
+template <Type type, bool has_cias> class ConcreteAllRAMProcessor:
+	public AllRAMProcessor, public CPU::MOS6502Esque::BusHandlerT<type>
+{
 	public:
 		ConcreteAllRAMProcessor(size_t memory_size) :
 			AllRAMProcessor(memory_size),
