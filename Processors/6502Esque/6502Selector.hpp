@@ -40,6 +40,12 @@ template <typename BusHandler, bool uses_ready_line> class Processor<Type::TWDC6
 		using CPU::WDC65816::Processor<BusHandler, uses_ready_line>::Processor;
 };
 
+/*
+	Using BusHandlerT allows bus size to be defaulted by processor type.
+*/
+template <Type processor_type> class BusHandlerT: public BusHandler<uint16_t> {};
+template <> class BusHandlerT<Type::TWDC65816>: public BusHandler<uint32_t> {};
+
 }
 }
 
