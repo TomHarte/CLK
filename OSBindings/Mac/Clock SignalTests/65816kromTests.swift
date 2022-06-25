@@ -84,11 +84,7 @@ class Krom65816Tests: XCTestCase {
 				cpuState += String(format: "A:%04x ", machine.value(for: .A))
 				cpuState += String(format: "X:%04x ", machine.value(for: .X))
 				cpuState += String(format: "Y:%04x ", machine.value(for: .Y))
-				if emulationFlag {
-					cpuState += String(format: "S:01%02x ", machine.value(for: .stackPointer))
-				} else {
-					cpuState += String(format: "S:%04x ", machine.value(for: .stackPointer))
-				}
+				cpuState += String(format: "S:%04x ", machine.value(for: .stackPointer))
 				cpuState += String(format: "D:%04x ", machine.value(for: .direct))
 				cpuState += String(format: "DB:%02x ", machine.value(for: .dataBank))
 
