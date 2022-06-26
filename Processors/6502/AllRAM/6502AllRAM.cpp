@@ -29,6 +29,8 @@ template <Type type, bool has_cias> class ConcreteAllRAMProcessor:
 	public AllRAMProcessor, public CPU::MOS6502Esque::BusHandlerT<type>
 {
 	public:
+		using typename CPU::MOS6502Esque::BusHandlerT<type>::AddressType;
+
 		ConcreteAllRAMProcessor(size_t memory_size) :
 			AllRAMProcessor(memory_size),
 			mos6502_(*this),
@@ -37,7 +39,7 @@ template <Type type, bool has_cias> class ConcreteAllRAMProcessor:
 			mos6502_.set_power_on(false);
 		}
 
-		inline Cycles perform_bus_operation(BusOperation operation, uint32_t address, uint8_t *value) {
+		Cycles perform_bus_operation(BusOperation operation, AddressType address, uint8_t *value) {
 			timestamp_ += Cycles(1);
 
 			if constexpr (has_cias) {
