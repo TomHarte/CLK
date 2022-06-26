@@ -228,4 +228,62 @@ namespace {
 	}
 }
 
+- (void)testJSONExamples {
+	NSArray<NSDictionary *> *const tests =
+		[NSJSONSerialization JSONObjectWithData:
+			[NSData dataWithContentsOfURL:
+				[[NSBundle bundleForClass:[self class]]
+					URLForResource:@"mm"
+					withExtension:@"json"
+					subdirectory:@"IIgs Memory Map"]]
+		options:0
+		error:nil];
+
+	int testNumber = 1;
+	for(NSDictionary *test in tests) {
+		NSLog(@"Test %d", testNumber);
+		++testNumber;
+
+		// Apply state.
+		const bool highRes = [test[@"hires"] boolValue];
+		const bool lcw = [test[@"lcw"] boolValue];
+		const bool store80 = [test[@"80store"] boolValue];
+		const uint8_t shadow = [test[@"shadow"] integerValue];
+		const uint8_t state = [test[@"state"] integerValue];
+
+		_memoryMap.access(0x56 + highRes, false);
+		_memoryMap.access(0x80 + lcw, false);
+		_memoryMap.access(0x00 + store80, false);
+		_memoryMap.set_shadow_register(shadow);
+		_memoryMap.set_state_register(state);
+
+		// Test results.
+		for(NSArray<NSNumber *> *region in test[@"read"]) {
+			const auto logicalStart = [region[0] intValue];
+			const auto logicalEnd = [region[1] intValue];
+			const auto physicalStart = [region[2] intValue];
+			const auto physicalEnd = [region[3] intValue];
+
+			if(physicalEnd == physicalStart && physicalStart == 0) {
+				continue;
+			}
+
+			// Test read pointers.
+			int physical = physicalStart;
+			for(int logical = logicalStart; logical < logicalEnd; logical++) {
+				const auto &region = _memoryMap.regions[_memoryMap.region_map[logical]];
+
+				XCTAssert(region.read != nullptr);
+				XCTAssert(&region.read[logical << 8] == &_ram[physical << 8],
+					@"Physical page %04x should be mapped to logical %04x; is instead %04x",
+						physical,
+						logical,
+						int(&region.read[logical << 8] - _ram.data()) >> 8);
+
+				if(physical != physicalEnd) ++physical;
+			}
+		}
+	}
+}
+
 @end
