@@ -239,10 +239,8 @@ namespace {
 		options:0
 		error:nil];
 
-	int testNumber = 0;
-	for(NSDictionary *test in tests) {
-		NSLog(@"Test index %d", testNumber);
-		++testNumber;
+	[tests enumerateObjectsUsingBlock:^(NSDictionary * _Nonnull test, NSUInteger index, BOOL * _Nonnull stop) {
+		NSLog(@"Test index %lu", static_cast<unsigned long>(index));
 
 		// Apply state.
 		const bool highRes = [test[@"hires"] boolValue];
@@ -306,12 +304,13 @@ namespace {
 
 				if(physical != foundPhysical) {
 					NSLog(@"Stopping after first failure");
+					*stop = YES;
 					return;
 				}
 				if(physical != physicalEnd) ++physical;
 			}
 		}
-	}
+	}];
 }
 
 @end
