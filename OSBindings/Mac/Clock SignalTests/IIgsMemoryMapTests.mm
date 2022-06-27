@@ -273,15 +273,35 @@ namespace {
 			int physical = physicalStart;
 			for(int logical = logicalStart; logical < logicalEnd; logical++) {
 				const auto &region = _memoryMap.regions[_memoryMap.region_map[logical]];
-
 				XCTAssert(region.read != nullptr);
 
-				auto foundPhysical = int(&region.read[logical << 8] - _ram.data()) >> 8;
+				int foundPhysical = -1;
+				const uint8_t *const read_ptr = &region.read[logical << 8];
 
+				// Check for a mapping to RAM.
+				if(read_ptr >= _ram.data() && read_ptr < &(*_ram.end())) {
+					foundPhysical = int(&region.read[logical << 8] - _ram.data()) >> 8;
+
+					// This emulator maps a contiguous 8mb + 128kb of RAM such that the
+					// first 8mb resides up to physical location 0x8000, and the final
+					// 128kb sits from locatio 0xe000. So adjust for that here.
+					if(foundPhysical >= 0x8000) {
+						foundPhysical += 0xe000 - 0x8000;
+					}
+				}
+
+				// Check for a mapping to ROM.
+				if(read_ptr >= _rom.data() && read_ptr < &(*_rom.end())) {
+					// This emulator uses a separate store for ROM, which sholud appear in
+					// the memory map from locatio 0xfc00.
+					foundPhysical = 0xfc00 + (int(&region.read[logical << 8] - _rom.data()) >> 8);
+				}
+
+				// Compare to correct value.
 				XCTAssert(physical == foundPhysical,
-					@"Physical page %04x should be mapped to logical %04x; is instead %04x",
-						physical,
+					@"Logical page %04x should be mapped to physical %04x; is instead %04x",
 						logical,
+						physical,
 						foundPhysical);
 
 				if(physical != physicalEnd) ++physical;
