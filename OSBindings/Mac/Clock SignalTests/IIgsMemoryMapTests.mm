@@ -251,9 +251,10 @@ namespace {
 		const uint8_t shadow = [test[@"shadow"] integerValue];
 		const uint8_t state = [test[@"state"] integerValue];
 
-		_memoryMap.access(0x56 + highRes, false);
-		_memoryMap.access(0x80 + lcw, false);
-		_memoryMap.access(0x00 + store80, false);
+		_memoryMap.access(0xc056 + highRes, false);
+		_memoryMap.access(0xc080 + lcw, false);
+		_memoryMap.access(0xc080 + lcw, false);
+		_memoryMap.access(0xc000 + store80, false);
 		_memoryMap.set_shadow_register(shadow);
 		_memoryMap.set_state_register(state);
 
@@ -274,11 +275,14 @@ namespace {
 				const auto &region = _memoryMap.regions[_memoryMap.region_map[logical]];
 
 				XCTAssert(region.read != nullptr);
-				XCTAssert(&region.read[logical << 8] == &_ram[physical << 8],
+
+				auto foundPhysical = int(&region.read[logical << 8] - _ram.data()) >> 8;
+
+				XCTAssert(physical == foundPhysical,
 					@"Physical page %04x should be mapped to logical %04x; is instead %04x",
 						physical,
 						logical,
-						int(&region.read[logical << 8] - _ram.data()) >> 8);
+						foundPhysical);
 
 				if(physical != physicalEnd) ++physical;
 			}
