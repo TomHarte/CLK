@@ -239,9 +239,9 @@ namespace {
 		options:0
 		error:nil];
 
-	int testNumber = 1;
+	int testNumber = 0;
 	for(NSDictionary *test in tests) {
-		NSLog(@"Test %d", testNumber);
+		NSLog(@"Test index %d", testNumber);
 		++testNumber;
 
 		// Apply state.
@@ -304,6 +304,10 @@ namespace {
 						physical,
 						foundPhysical);
 
+				if(physical != foundPhysical) {
+					NSLog(@"Stopping after first failure");
+					return;
+				}
 				if(physical != physicalEnd) ++physical;
 			}
 		}
