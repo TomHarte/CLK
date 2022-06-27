@@ -279,14 +279,14 @@ class MemoryMap {
 				assert(region_map[bank_base | 0xd0] + 1 == region_map[bank_base | 0xe0]);
 				assert(region_map[bank_base | 0xe0] == region_map[bank_base | 0xff]);
 			};
-			auto set_no_card = [this](uint32_t bank_base) {
+			auto set_no_card = [this](uint32_t bank_base, uint8_t *ram) {
 				auto &d0_region = regions[region_map[bank_base | 0xd0]];
-				d0_region.read = ram_base;
-				d0_region.write = ram_base;
+				d0_region.read = ram;
+				d0_region.write = ram;
 
 				auto &e0_region = regions[region_map[bank_base | 0xe0]];
-				e0_region.read = ram_base;
-				e0_region.write = ram_base;
+				e0_region.read = ram;
+				e0_region.write = ram;
 
 				// Assert assumptions made above re: memory layout.
 				assert(region_map[bank_base | 0xd0] + 1 == region_map[bank_base | 0xe0]);
@@ -294,8 +294,8 @@ class MemoryMap {
 			};
 
 			if(inhibit_banks0001) {
-				set_no_card(0x0000);
-				set_no_card(0x0100);
+				set_no_card(0x0000, zero_state ? &ram_base[0x01'0000] : ram_base);
+				set_no_card(0x0100, ram_base);
 			} else {
 				apply(0x0000, zero_state ? &ram_base[0x01'0000] : ram_base);
 				apply(0x0100, ram_base);
