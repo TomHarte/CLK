@@ -2137,6 +2137,7 @@
 		4BDB3D8522833321002D3CEE /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4BDCC5F81FB27A5E001220C5 /* ROMMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ROMMachine.hpp; sourceTree = "<group>"; };
 		4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MachineCycleTests.swift; sourceTree = "<group>"; };
+		4BE0151C286A8C8E00EA42E9 /* MemorySwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemorySwitches.hpp; sourceTree = "<group>"; };
 		4BE0A3EC237BB170002AB46F /* ST.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ST.cpp; sourceTree = "<group>"; };
 		4BE0A3ED237BB170002AB46F /* ST.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ST.hpp; sourceTree = "<group>"; };
 		4BE211DD253E4E4800435408 /* 65C02_no_Rockwell_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 65C02_no_Rockwell_test.bin; path = "Klaus Dormann/65C02_no_Rockwell_test.bin"; sourceTree = "<group>"; };
@@ -4628,6 +4629,7 @@
 				4BCE004C227CE8CA000CA200 /* DiskIICard.hpp */,
 				4B2E86E125DC95150024F1E9 /* Joystick.hpp */,
 				4BF40A5525424C770033EA39 /* LanguageCardSwitches.hpp */,
+				4BE0151C286A8C8E00EA42E9 /* MemorySwitches.hpp */,
 				4BCE004F227CE8CA000CA200 /* Video.hpp */,
 				4B8DF4F2254E141700F3433C /* VideoSwitches.hpp */,
 			);
