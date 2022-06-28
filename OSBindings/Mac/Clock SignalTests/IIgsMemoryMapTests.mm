@@ -371,6 +371,26 @@ namespace {
 				return;
 			}
 		});
+
+		// Test shadowed regions.
+		bool shadowed = false;
+		int logical = 0;
+		for(NSNumber *next in test[@"shadowed"]) {
+			while(logical < [next intValue]) {
+				const auto &region =
+					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+				const bool isShadowed =
+					IsShadowed(_memoryMap, region, (logical << 8));
+
+				XCTAssertEqual(
+					isShadowed,
+					shadowed,
+					@"Logical page %04x %@ subject to shadowing", logical, shadowed ? @"should be" : @"should not be");
+
+				++logical;
+			}
+			shadowed ^= true;
+		}
 	}];
 }
 
