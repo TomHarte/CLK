@@ -379,6 +379,7 @@ class MemoryMap {
 					c0_region.flags |= Region::IsIO;
 
 #define apply_region(flag, region)	\
+					region.write = nullptr;	\
 					if(flag) {	\
 						region.read = rom;	\
 						region.flags &= ~Region::IsIO;	\

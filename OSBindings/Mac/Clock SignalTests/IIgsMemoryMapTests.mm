@@ -318,9 +318,13 @@ namespace {
 		// Test read pointers.
 		testMemory(@"read", ^(int logical, int physical, const MemoryMap::Region &region) {
 			XCTAssert(region.read != nullptr);
-			const int foundPhysical = physicalOffset(&region.read[logical << 8]);
+			if(region.read == nullptr) {
+				*stop = YES;
+				return;
+			}
 
 			// Compare to correct value.
+			const int foundPhysical = physicalOffset(&region.read[logical << 8]);
 			XCTAssert(physical == foundPhysical,
 				@"Logical page %04x should be mapped to read physical %04x; is instead %04x",
 					logical,
@@ -341,9 +345,13 @@ namespace {
 			}
 
 			XCTAssert(region.write != nullptr);
-			const int foundPhysical = physicalOffset(&region.write[logical << 8]);
+			if(region.write == nullptr) {
+				*stop = YES;
+				return;
+			}
 
 			// Compare to correct value.
+			const int foundPhysical = physicalOffset(&region.write[logical << 8]);
 			XCTAssert(physical == foundPhysical,
 				@"Logical page %04x should be mapped to write physical %04x; is instead %04x",
 					logical,
