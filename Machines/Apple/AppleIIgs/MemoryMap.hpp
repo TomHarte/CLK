@@ -258,9 +258,10 @@ class MemoryMap {
 			// $D000 onwards as per the state of the language card flags — there may
 			// end up being ROM or RAM (or auxiliary RAM), and the first 4kb of it
 			// may be drawn from either of two pools.
-			if constexpr (bool(type & (PagingType::LanguageCard | PagingType::ZeroPage))) {
+			if constexpr (bool(type & (PagingType::LanguageCard | PagingType::ZeroPage | PagingType::Main))) {
 				const auto language_state = language_card_.state();
 				const auto zero_state = auxiliary_switches_.zero_state();
+				const auto main = auxiliary_switches_.main_state();
 				const bool inhibit_banks0001 = shadow_register_ & 0x40;
 
 				auto apply = [&language_state, this](uint32_t bank_base, uint8_t *ram) {
@@ -282,14 +283,14 @@ class MemoryMap {
 					assert(region_map[bank_base | 0xd0] + 1 == region_map[bank_base | 0xe0]);
 					assert(region_map[bank_base | 0xe0] == region_map[bank_base | 0xff]);
 				};
-				auto set_no_card = [this](uint32_t bank_base, uint8_t *ram) {
+				auto set_no_card = [this](uint32_t bank_base, uint8_t *read, uint8_t *write) {
 					auto &d0_region = regions[region_map[bank_base | 0xd0]];
-					d0_region.read = ram;
-					d0_region.write = ram;
+					d0_region.read = read;
+					d0_region.write = write;
 
 					auto &e0_region = regions[region_map[bank_base | 0xe0]];
-					e0_region.read = ram;
-					e0_region.write = ram;
+					e0_region.read = read;
+					e0_region.write = write;
 
 					// Assert assumptions made above re: memory layout.
 					assert(region_map[bank_base | 0xd0] + 1 == region_map[bank_base | 0xe0]);
@@ -297,8 +298,10 @@ class MemoryMap {
 				};
 
 				if(inhibit_banks0001) {
-					set_no_card(0x0000, zero_state ? &ram_base[0x01'0000] : ram_base);
-					set_no_card(0x0100, ram_base);
+					set_no_card(0x0000,
+						main.base.read ? &ram_base[0x01'0000] : ram_base,
+						main.base.write ? &ram_base[0x01'0000] : ram_base);
+					set_no_card(0x0100, ram_base, ram_base);
 				} else {
 					apply(0x0000, zero_state ? &ram_base[0x01'0000] : ram_base);
 					apply(0x0100, ram_base);
@@ -309,7 +312,6 @@ class MemoryMap {
 				uint8_t *const e0_ram = regions[region_map[0xe000]].write;
 				apply(0xe000, e0_ram);
 				apply(0xe100, e0_ram);
-
 			}
 
 			// Establish whether main or auxiliary RAM
