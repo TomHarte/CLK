@@ -258,7 +258,7 @@ namespace {
 
 		// Test results.
 		auto testMemory =
-			^(NSString *type, void (^ applyTest)(int logical, int physical)) {
+			^(NSString *type, void (^ applyTest)(int logical, int physical, const MemoryMap::Region &region)) {
 				for(NSArray<NSNumber *> *region in test[type]) {
 					const auto logicalStart = [region[0] intValue];
 					const auto logicalEnd = [region[1] intValue];
@@ -271,8 +271,19 @@ namespace {
 
 					int physical = physicalStart;
 					for(int logical = logicalStart; logical < logicalEnd; logical++) {
-						applyTest(logical, physical);
-						if(*stop) return;
+						const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+
+						// Don't worry about IO pages here; they'll be compared shortly.
+						if(!(region.flags & MemoryMap::Region::IsIO)) {
+							const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+							applyTest(logical, physical, region);
+
+							if(*stop) {
+								NSLog(@"Stopping after first failure");
+								return;
+							}
+						}
+
 						if(physical != physicalEnd) ++physical;
 					}
 				}
@@ -305,15 +316,8 @@ namespace {
 			};
 
 		// Test read pointers.
-		testMemory(@"read", ^(int logical, int physical) {
-			const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+		testMemory(@"read", ^(int logical, int physical, const MemoryMap::Region &region) {
 			XCTAssert(region.read != nullptr);
-
-			// Don't worry about IO pages here; they'll be compared shortly.
-			if(region.flags & MemoryMap::Region::IsIO) {
-				return;
-			}
-
 			const int foundPhysical = physicalOffset(&region.read[logical << 8]);
 
 			// Compare to correct value.
@@ -324,20 +328,12 @@ namespace {
 					foundPhysical);
 
 			if(physical != foundPhysical) {
-				NSLog(@"Stopping after first failure");
 				*stop = YES;
 			}
 		});
 
 		// Test write pointers.
-		testMemory(@"write", ^(int logical, int physical) {
-			const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
-
-			// Don't worry about IO pages here.
-			if(region.flags & MemoryMap::Region::IsIO) {
-				return;
-			}
-
+		testMemory(@"write", ^(int logical, int physical, const MemoryMap::Region &region) {
 			// This emulator guards writes to ROM by setting those pointers to nullptr;
 			// so allow a nullptr write target if ROM is mapped here.
 			if(region.write == nullptr && physical >= 0xfc00) {
@@ -355,7 +351,6 @@ namespace {
 					foundPhysical);
 
 			if(physical != foundPhysical) {
-				NSLog(@"Stopping after first failure");
 				*stop = YES;
 			}
 		});
