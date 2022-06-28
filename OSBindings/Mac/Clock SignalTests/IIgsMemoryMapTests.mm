@@ -257,28 +257,31 @@ namespace {
 		_memoryMap.set_state_register(state);
 
 		// Test results.
-		for(NSArray<NSNumber *> *region in test[@"read"]) {
-			const auto logicalStart = [region[0] intValue];
-			const auto logicalEnd = [region[1] intValue];
-			const auto physicalStart = [region[2] intValue];
-			const auto physicalEnd = [region[3] intValue];
+		auto testMemory =
+			^(NSString *type, void (^ applyTest)(int logical, int physical)) {
+				for(NSArray<NSNumber *> *region in test[type]) {
+					const auto logicalStart = [region[0] intValue];
+					const auto logicalEnd = [region[1] intValue];
+					const auto physicalStart = [region[2] intValue];
+					const auto physicalEnd = [region[3] intValue];
 
-			if(physicalEnd == physicalStart && physicalStart == 0) {
-				continue;
-			}
+					if(physicalEnd == physicalStart && physicalStart == 0) {
+						continue;
+					}
 
-			// Test read pointers.
-			int physical = physicalStart;
-			for(int logical = logicalStart; logical < logicalEnd; logical++) {
-				const auto &region = _memoryMap.regions[_memoryMap.region_map[logical]];
-				XCTAssert(region.read != nullptr);
+					int physical = physicalStart;
+					for(int logical = logicalStart; logical < logicalEnd; logical++) {
+						applyTest(logical, physical);
+						if(physical != physicalEnd) ++physical;
+					}
+				}
+			};
 
-				int foundPhysical = -1;
-				const uint8_t *const read_ptr = &region.read[logical << 8];
-
+		auto physicalOffset =
+			^(const uint8_t *pointer) {
 				// Check for a mapping to RAM.
-				if(read_ptr >= _ram.data() && read_ptr < &(*_ram.end())) {
-					foundPhysical = int(&region.read[logical << 8] - _ram.data()) >> 8;
+				if(pointer >= self->_ram.data() && pointer < &(*self->_ram.end())) {
+					int foundPhysical = int(pointer - self->_ram.data()) >> 8;
 
 					// This emulator maps a contiguous 8mb + 128kb of RAM such that the
 					// first 8mb resides up to physical location 0x8000, and the final
@@ -286,30 +289,44 @@ namespace {
 					if(foundPhysical >= 0x8000) {
 						foundPhysical += 0xe000 - 0x8000;
 					}
+
+					return foundPhysical;
 				}
 
 				// Check for a mapping to ROM.
-				if(read_ptr >= _rom.data() && read_ptr < &(*_rom.end())) {
+				if(pointer >= self->_rom.data() && pointer < &(*self->_rom.end())) {
 					// This emulator uses a separate store for ROM, which sholud appear in
 					// the memory map from locatio 0xfc00.
-					foundPhysical = 0xfc00 + (int(&region.read[logical << 8] - _rom.data()) >> 8);
+					return 0xfc00 + (int(pointer - self->_rom.data()) >> 8);
 				}
 
-				// Compare to correct value.
-				XCTAssert(physical == foundPhysical,
-					@"Logical page %04x should be mapped to physical %04x; is instead %04x",
-						logical,
-						physical,
-						foundPhysical);
+				return -1;
+			};
 
-				if(physical != foundPhysical) {
-					NSLog(@"Stopping after first failure");
-					*stop = YES;
-					return;
-				}
-				if(physical != physicalEnd) ++physical;
+		// Test read pointers.
+		testMemory(@"read", ^(int logical, int physical) {
+			const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+			XCTAssert(region.read != nullptr);
+
+			// Don't worry about IO pages here; they'll be compared shortly.
+			if(region.flags & MemoryMap::Region::IsIO) {
+				return;
 			}
-		}
+
+			const int foundPhysical = physicalOffset(&region.read[logical << 8]);
+
+			// Compare to correct value.
+			XCTAssert(physical == foundPhysical,
+				@"Logical page %04x should be mapped to physical %04x; is instead %04x",
+					logical,
+					physical,
+					foundPhysical);
+
+			if(physical != foundPhysical) {
+				NSLog(@"Stopping after first failure");
+				*stop = YES;
+			}
+		});
 	}];
 }
 
