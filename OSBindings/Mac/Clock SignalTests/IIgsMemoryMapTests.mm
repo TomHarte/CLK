@@ -272,6 +272,7 @@ namespace {
 					int physical = physicalStart;
 					for(int logical = logicalStart; logical < logicalEnd; logical++) {
 						applyTest(logical, physical);
+						if(*stop) return;
 						if(physical != physicalEnd) ++physical;
 					}
 				}
@@ -317,7 +318,38 @@ namespace {
 
 			// Compare to correct value.
 			XCTAssert(physical == foundPhysical,
-				@"Logical page %04x should be mapped to physical %04x; is instead %04x",
+				@"Logical page %04x should be mapped to read physical %04x; is instead %04x",
+					logical,
+					physical,
+					foundPhysical);
+
+			if(physical != foundPhysical) {
+				NSLog(@"Stopping after first failure");
+				*stop = YES;
+			}
+		});
+
+		// Test write pointers.
+		testMemory(@"write", ^(int logical, int physical) {
+			const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+
+			// Don't worry about IO pages here.
+			if(region.flags & MemoryMap::Region::IsIO) {
+				return;
+			}
+
+			// This emulator guards writes to ROM by setting those pointers to nullptr;
+			// so allow a nullptr write target if ROM is mapped here.
+			if(region.write == nullptr && physical >= 0xfc00) {
+				return;
+			}
+
+			XCTAssert(region.write != nullptr);
+			const int foundPhysical = physicalOffset(&region.write[logical << 8]);
+
+			// Compare to correct value.
+			XCTAssert(physical == foundPhysical,
+				@"Logical page %04x should be mapped to write physical %04x; is instead %04x",
 					logical,
 					physical,
 					foundPhysical);
