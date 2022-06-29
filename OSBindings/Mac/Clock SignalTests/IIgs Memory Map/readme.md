@@ -44,23 +44,23 @@ Perform, in the order listed:
 
     	"hires": false,
 
-If this is true, access IO address `0x57`; otherwise access IO address `0x56`.
+If `hires` is true, access IO address `0x57`; otherwise access IO address `0x56`.
 
     	"lcw": false,
 
-If this is true, access IO address `0x81` twice; otherwise access IO address `0x80` once.
+If `lcw` is true, write any value to IO address `0x81` twice; otherwise write to IO address `0x80` at least once.
 
     	"80store": true,
 
-If this is true, access IO address `0x01`; otherwise access IO address `0x00`.
+If `80store` is true, access IO address `0x01`; otherwise access IO address `0x00`.
 
     	"shadow": 12,
 
-Store this value to IO address `0x35`.
+Store the value of `shadow` to IO address `0x35`.
 
     	"state": 183,
 
-Store this value to IO address `0x68`.
+Store the value of `state` to IO address `0x68`.
 
 ## Test
 

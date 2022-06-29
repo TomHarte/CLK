@@ -250,8 +250,8 @@ namespace {
 		const uint8_t state = [test[@"state"] integerValue];
 
 		_memoryMap.access(0xc056 + highRes, false);
-		_memoryMap.access(0xc080 + lcw, false);
-		_memoryMap.access(0xc080 + lcw, false);
+		_memoryMap.access(0xc080 + lcw, true);
+		_memoryMap.access(0xc080 + lcw, true);
 		_memoryMap.access(0xc000 + store80, false);
 		_memoryMap.set_shadow_register(shadow);
 		_memoryMap.set_state_register(state);
@@ -341,20 +341,6 @@ namespace {
 			// This emulator guards writes to ROM by setting those pointers to nullptr;
 			// so allow a nullptr write target if ROM is mapped here.
 			if(region.write == nullptr && physical >= 0xfc00) {
-				return;
-			}
-
-			// Questionable test results: I'm not sure the source is correct in its
-			// handling of language card read access. Don't test that.
-			//
-			// This test set treats the language card write flip flop as _enabling_
-			// writes. I think it _disables_ writes. TODO: reconcile.
-			if(
-				(logical >= 0x00d0 && logical < 0x0100) ||
-				(logical >= 0x01d0 && logical < 0x0200) ||
-				(logical >= 0xe0d0 && logical < 0xe100) ||
-				(logical >= 0xe1d0 && logical < 0xe200)
-			) {
 				return;
 			}
 
