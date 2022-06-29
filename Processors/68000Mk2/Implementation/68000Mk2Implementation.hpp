@@ -224,7 +224,9 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define MoveToStateDynamic(x)	{ state_ = x; continue; }
 
 	// Sets the start position for state x.
-#define BeginState(x)			case ExecutionState::x: [[maybe_unused]] x
+	// The `if constexpr` is a slightly-silly way of eliminating a Clang warning about
+	// unused goto targets.
+#define BeginState(x)			case ExecutionState::x: if constexpr (false) goto x; x
 
 	// Sets the start position for the addressing mode y within state x,
 	// where x was declared as an AddressingDispatch.
