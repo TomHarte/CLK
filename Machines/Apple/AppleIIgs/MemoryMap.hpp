@@ -576,15 +576,36 @@ class MemoryMap {
 // would be less efficient. Verify that?
 
 #define MemoryMapRegion(map, address) 			map.regions[map.region_map[address >> 8]]
-//#define IsShadowed(map, region, address)		(map.shadow_pages[((&region.write[address] - map.ram_base) >> 10) & 127] & map.shadow_banks[address >> 17])
-#define IsShadowed(map, region, address)		(map.shadow_pages[(address >> 10) & 127] & map.shadow_banks[address >> 17])
 #define MemoryMapRead(region, address, value)	*value = region.read ? region.read[address] : 0xff
+
+// The below encapsulates the fact that I've yet to determine whether Apple intends to
+// indicate that logical addresses (i.e. those prior to being mapped per the current paging)
+// or physical addresses (i.e. after mapping) are subject to shadowing.
+#ifdef SHADOW_LOGICAL
+
+#define IsShadowed(map, region, address)	\
+	(map.shadow_pages[((&region.write[address] - map.ram_base) >> 10) & 127] & map.shadow_banks[address >> 17])
+
+#define MemoryMapWrite(map, region, address, value) \
+	if(region.write) {	\
+		region.write[address] = *value;	\
+		const bool _mm_is_shadowed = IsShadowed(map, region, address);	\
+		map.shadow_base[_mm_is_shadowed][address & map.shadow_mask[_mm_is_shadowed]] = *value;	\
+	}
+
+#else
+
+#define IsShadowed(map, region, address)	\
+	(map.shadow_pages[(address >> 10) & 127] & map.shadow_banks[address >> 17])
+
 #define MemoryMapWrite(map, region, address, value) \
 	if(region.write) {	\
 		region.write[address] = *value;	\
 		const bool _mm_is_shadowed = IsShadowed(map, region, address);	\
 		map.shadow_base[_mm_is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[_mm_is_shadowed]] = *value;	\
 	}
+
+#endif
 
 // Quick notes on ::IsShadowed contortions:
 //

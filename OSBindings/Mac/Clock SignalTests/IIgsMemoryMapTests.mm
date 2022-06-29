@@ -377,7 +377,7 @@ namespace {
 		int logical = 0;
 		for(NSNumber *next in test[@"shadowed"]) {
 			while(logical < [next intValue]) {
-				const auto &region =
+				[[maybe_unused]] const auto &region =
 					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
 				const bool isShadowed =
 					IsShadowed(_memoryMap, region, (logical << 8));
