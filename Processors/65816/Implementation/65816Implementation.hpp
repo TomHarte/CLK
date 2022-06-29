@@ -9,7 +9,7 @@
 template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, uses_ready_line>::run_for(const Cycles cycles) {
 
 #define perform_bus(address, value, operation)	\
-	bus_address_ = address & 0xff'ffff;			\
+	bus_address_ = (address) & 0xff'ffff;		\
 	bus_value_ = value;							\
 	bus_operation_ = operation
 
