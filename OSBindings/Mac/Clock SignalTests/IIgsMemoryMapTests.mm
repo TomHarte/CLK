@@ -89,8 +89,11 @@ namespace {
 	test_bank(0xe1'0000);
 }
 
+// TODO: edit and reenable shadowing tests below, once I clear up whether shadowing is based on
+// logical or physical address.
+
 /// Tests that writes to $00:$0400 and to $01:$0400 are subsequently visible at $e0:$0400 and $e1:$0400.
-- (void)testShadowing {
+/*- (void)testShadowing {
 	[self write:0xab address:0x00'0400];
 	[self write:0xcd address:0x01'0400];
 	XCTAssertEqual([self readAddress:0xe0'0400], 0xab);
@@ -123,7 +126,7 @@ namespace {
 	XCTAssertEqual([self readAddress:0xe1'0400], 0xcb);
 	XCTAssertEqual([self readAddress:0x00'0400], 0xde);
 	XCTAssertEqual([self readAddress:0x01'0400], 0xde);
-}
+}*/
 
 - (void)testE0E1RAMConsistent {
 	// Do some random language card paging, to hit set_language_card.
@@ -226,6 +229,182 @@ namespace {
 		XCTAssertEqual(_ram[c + 64*1024], value);
 		XCTAssertEqual([self readAddress:c], value);
 	}
+}
+
+- (void)testJSONExamples {
+	NSArray<NSDictionary *> *const tests =
+		[NSJSONSerialization JSONObjectWithData:
+			[NSData dataWithContentsOfURL:
+				[[NSBundle bundleForClass:[self class]]
+					URLForResource:@"mm"
+					withExtension:@"json"
+					subdirectory:@"IIgs Memory Map"]]
+		options:0
+		error:nil];
+
+	[tests enumerateObjectsUsingBlock:^(NSDictionary * _Nonnull test, NSUInteger index, BOOL * _Nonnull stop) {
+		NSLog(@"Test index %lu", static_cast<unsigned long>(index));
+
+		// Apply state.
+		const bool highRes = [test[@"hires"] boolValue];
+		const bool lcw = [test[@"lcw"] boolValue];
+		const bool store80 = [test[@"80store"] boolValue];
+		const uint8_t shadow = [test[@"shadow"] integerValue];
+		const uint8_t state = [test[@"state"] integerValue];
+
+		_memoryMap.access(0xc056 + highRes, false);
+		_memoryMap.access(0xc080 + lcw, true);
+		_memoryMap.access(0xc080 + lcw, true);
+		_memoryMap.access(0xc000 + store80, false);
+		_memoryMap.set_shadow_register(shadow);
+		_memoryMap.set_state_register(state);
+
+		// Test results.
+		auto testMemory =
+			^(NSString *type, void (^ applyTest)(int logical, int physical, const MemoryMap::Region &region)) {
+				for(NSArray<NSNumber *> *region in test[type]) {
+					const auto logicalStart = [region[0] intValue];
+					const auto logicalEnd = [region[1] intValue];
+					const auto physicalStart = [region[2] intValue];
+					const auto physicalEnd = [region[3] intValue];
+
+					if(physicalEnd == physicalStart && physicalStart == 0) {
+						continue;
+					}
+
+					int physical = physicalStart;
+					for(int logical = logicalStart; logical < logicalEnd; logical++) {
+						const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+
+						// Don't worry about IO pages here; they'll be compared shortly.
+						if(!(region.flags & MemoryMap::Region::IsIO)) {
+							const auto &region = self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+							applyTest(logical, physical, region);
+
+							if(*stop) {
+								NSLog(@"Logical page %04x should be mapped to %@ physical %04x",
+									logical,
+									type,
+									physical);
+
+								NSLog(@"Stopping after first failure");
+								return;
+							}
+						}
+
+						if(physical != physicalEnd) ++physical;
+					}
+				}
+			};
+
+		auto physicalOffset =
+			^(const uint8_t *pointer) {
+				// Check for a mapping to RAM.
+				if(pointer >= self->_ram.data() && pointer < &(*self->_ram.end())) {
+					int foundPhysical = int(pointer - self->_ram.data()) >> 8;
+
+					// This emulator maps a contiguous 8mb + 128kb of RAM such that the
+					// first 8mb resides up to physical location 0x8000, and the final
+					// 128kb sits from locatio 0xe000. So adjust for that here.
+					if(foundPhysical >= 0x8000) {
+						foundPhysical += 0xe000 - 0x8000;
+					}
+
+					return foundPhysical;
+				}
+
+				// Check for a mapping to ROM.
+				if(pointer >= self->_rom.data() && pointer < &(*self->_rom.end())) {
+					// This emulator uses a separate store for ROM, which sholud appear in
+					// the memory map from locatio 0xfc00.
+					return 0xfc00 + (int(pointer - self->_rom.data()) >> 8);
+				}
+
+				return -1;
+			};
+
+		// Test read pointers.
+		testMemory(@"read", ^(int logical, int physical, const MemoryMap::Region &region) {
+			XCTAssert(region.read != nullptr);
+			if(region.read == nullptr) {
+				*stop = YES;
+				return;
+			}
+
+			// Compare to correct value.
+			const int foundPhysical = physicalOffset(&region.read[logical << 8]);
+			if(physical != foundPhysical) {
+				*stop = YES;
+				return;
+			}
+		});
+
+		// Test write pointers.
+		testMemory(@"write", ^(int logical, int physical, const MemoryMap::Region &region) {
+			// This emulator guards writes to ROM by setting those pointers to nullptr;
+			// so allow a nullptr write target if ROM is mapped here.
+			if(region.write == nullptr && physical >= 0xfc00) {
+				return;
+			}
+
+			XCTAssert(region.write != nullptr);
+			if(region.write == nullptr) {
+				*stop = YES;
+				return;
+			}
+
+			// Compare to correct value.
+			const int foundPhysical = physicalOffset(&region.write[logical << 8]);
+			if(physical != foundPhysical) {
+				*stop = YES;
+				return;
+			}
+		});
+
+		// Test shadowed regions.
+		bool shouldBeShadowed = false;
+		int logical = 0;
+		for(NSNumber *next in test[@"shadowed"]) {
+			while(logical < [next intValue]) {
+				[[maybe_unused]] const auto &region =
+					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+				const bool isShadowed =
+					IsShadowed(_memoryMap, region, (logical << 8));
+
+				XCTAssertEqual(
+					isShadowed,
+					shouldBeShadowed,
+					@"Logical page %04x %@ subject to shadowing", logical, shouldBeShadowed ? @"should be" : @"should not be");
+
+				++logical;
+			}
+			shouldBeShadowed ^= true;
+		}
+
+		// Test IO regions.
+		bool shouldBeIO = false;
+		logical = 0;
+		for(NSNumber *next in test[@"io"]) {
+			while(logical < [next intValue]) {
+				const auto &region =
+					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+
+				// This emulator marks card pages as IO because it uses IO to mean
+				// "anything that isn't the built-in RAM". Just don't test card pages.
+				const bool isIO =
+					region.flags & MemoryMap::Region::IsIO &&
+					(((logical & 0xff) < 0xc1) || ((logical & 0xff) > 0xcf));
+
+				XCTAssertEqual(
+					isIO,
+					shouldBeIO,
+					@"Logical page %04x %@ marked as IO", logical, shouldBeIO ? @"should be" : @"should not be");
+
+				++logical;
+			}
+			shouldBeIO ^= true;
+		}
+	}];
 }
 
 @end
