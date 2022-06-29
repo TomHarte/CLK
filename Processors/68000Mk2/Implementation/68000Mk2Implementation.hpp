@@ -223,10 +223,14 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	// Moves to state x by dynamic dispatch; x can be a regular variable.
 #define MoveToStateDynamic(x)	{ state_ = x; continue; }
 
+#ifdef __GNUC__
+#define MAYBE_UNUSED __attribute__ ((unused))
+#else
+#define MAYBE_UNUSED /* */
+#endif
+
 	// Sets the start position for state x.
-	// The `if constexpr` is a slightly-silly way of eliminating a Clang warning about
-	// unused goto targets.
-#define BeginState(x)			case ExecutionState::x: if constexpr (false) goto x; x
+#define BeginState(x)			case ExecutionState::x: MAYBE_UNUSED x
 
 	// Sets the start position for the addressing mode y within state x,
 	// where x was declared as an AddressingDispatch.
