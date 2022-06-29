@@ -456,18 +456,27 @@ class MemoryMap {
 			//	$6000–$a000 Odd banks only, rest of Super High-res
 			//	[plus IO and language card space, subject to your definition of shadowing]
 
-			constexpr int shadow_shift = 10;
-			constexpr int auxiliary_offset = 0x10000 >> shadow_shift;
+			static constexpr int shadow_shift = 10;
+			static constexpr int auxiliary_offset = 0x1'0000 >> shadow_shift;
+
+			enum Inhibit {
+				TextPage1			= 0x01,
+				HighRes1			= 0x02,
+				HighRes2			= 0x04,
+				SuperHighRes		= 0x08,
+				AuxiliaryHighRes	= 0x10,
+				TextPage2			= 0x20,
+			};
 
 			// Text Page 1, main and auxiliary — $0400–$0800.
 			for(size_t c = 0x0400 >> shadow_shift; c < 0x0800 >> shadow_shift; c++) {
-				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x01);
+				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & Inhibit::TextPage1);
 			}
 
 			// Text Page 2, main and auxiliary — 0x0800–0x0c00.
 			// TODO: on a ROM03 machine only.
 			for(size_t c = 0x0800 >> shadow_shift; c < 0x0c00 >> shadow_shift; c++) {
-				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x20);
+				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & Inhibit::TextPage2);
 			}
 
 			// Hi-res graphics Page 1, main and auxiliary — $2000–$4000;
@@ -480,8 +489,11 @@ class MemoryMap {
 			//	(high-res graphics inhibit or auxiliary high res graphics inhibit) _and_ (super high-res inhibit).
 			//
 			for(size_t c = 0x2000 >> shadow_shift; c < 0x4000 >> shadow_shift; c++) {
-				shadow_pages[c] = !(shadow_register_ & 0x02);
-				shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x12);
+				shadow_pages[c] = !(shadow_register_ & Inhibit::HighRes1);
+				shadow_pages[c+auxiliary_offset] = !(
+					shadow_register_ & (Inhibit::HighRes1 | Inhibit::AuxiliaryHighRes) &&
+					shadow_register_ & Inhibit::SuperHighRes
+				);
 			}
 
 			// Hi-res graphics Page 2, main and auxiliary — $4000–$6000;
@@ -489,13 +501,20 @@ class MemoryMap {
 			//
 			// Test applied: much like that for page 1.
 			for(size_t c = 0x4000 >> shadow_shift; c < 0x6000 >> shadow_shift; c++) {
-				shadow_pages[c] = !(shadow_register_ & 0x04);
-				shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x14);
+				shadow_pages[c] = !(shadow_register_ & Inhibit::HighRes2);
+				shadow_pages[c+auxiliary_offset] = !(
+					shadow_register_ & (Inhibit::HighRes2 | Inhibit::AuxiliaryHighRes) &&
+					shadow_register_ & Inhibit::SuperHighRes
+				);
 			}
 
 			// Residue of Super Hi-Res — $6000–$a000 (odd pages only).
+			//
+			// Test applied:
+			//	auxiliary high res graphics inhibit and super high-res inhibit
 			for(size_t c = 0x6000 >> shadow_shift; c < 0xa000 >> shadow_shift; c++) {
-				shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x08);
+				shadow_pages[c+auxiliary_offset] =
+					!(shadow_register_ & Inhibit::SuperHighRes && shadow_register_ & Inhibit::AuxiliaryHighRes);
 			}
 		}
 

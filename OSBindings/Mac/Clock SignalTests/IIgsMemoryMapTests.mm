@@ -373,7 +373,7 @@ namespace {
 		});
 
 		// Test shadowed regions.
-		bool shadowed = false;
+		bool shouldBeShadowed = false;
 		int logical = 0;
 		for(NSNumber *next in test[@"shadowed"]) {
 			while(logical < [next intValue]) {
@@ -384,12 +384,12 @@ namespace {
 
 				XCTAssertEqual(
 					isShadowed,
-					shadowed,
-					@"Logical page %04x %@ subject to shadowing", logical, shadowed ? @"should be" : @"should not be");
+					shouldBeShadowed,
+					@"Logical page %04x %@ subject to shadowing", logical, shouldBeShadowed ? @"should be" : @"should not be");
 
 				++logical;
 			}
-			shadowed ^= true;
+			shouldBeShadowed ^= true;
 		}
 	}];
 }
