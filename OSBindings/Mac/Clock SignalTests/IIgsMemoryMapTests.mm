@@ -399,7 +399,12 @@ namespace {
 			while(logical < [next intValue]) {
 				const auto &region =
 					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
-				const bool isIO = region.flags & MemoryMap::Region::IsIO;
+
+				// This emulator marks card pages as IO because it uses IO to mean
+				// "anything that isn't the built-in RAM". Just don't test card pages.
+				const bool isIO =
+					region.flags & MemoryMap::Region::IsIO &&
+					(((logical & 0xff) < 0xc1) || ((logical & 0xff) > 0xcf));
 
 				XCTAssertEqual(
 					isIO,
