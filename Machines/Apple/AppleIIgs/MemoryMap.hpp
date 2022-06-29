@@ -565,7 +565,7 @@ class MemoryMap {
 		//
 		// Shadow_banks: divides the whole 16mb of memory into 128kb chunks and includes a flag to indicate whether
 		// each is a potential source of shadowing.
-		std::bitset<128> shadow_pages, shadow_banks;
+		std::bitset<128> shadow_pages{}, shadow_banks{};
 
 		std::array<Region, 40> regions;	// An assert above ensures that this is large enough; there's no
 										// doctrinal reason for it to be whatever size it is now, just
@@ -576,7 +576,8 @@ class MemoryMap {
 // would be less efficient. Verify that?
 
 #define MemoryMapRegion(map, address) 			map.regions[map.region_map[address >> 8]]
-#define IsShadowed(map, region, address)		(map.shadow_pages[((&region.write[address] - map.ram_base) >> 10) & 127] & map.shadow_banks[address >> 17])
+//#define IsShadowed(map, region, address)		(map.shadow_pages[((&region.write[address] - map.ram_base) >> 10) & 127] & map.shadow_banks[address >> 17])
+#define IsShadowed(map, region, address)		(map.shadow_pages[(address >> 10) & 127] & map.shadow_banks[address >> 17])
 #define MemoryMapRead(region, address, value)	*value = region.read ? region.read[address] : 0xff
 #define MemoryMapWrite(map, region, address, value) \
 	if(region.write) {	\
