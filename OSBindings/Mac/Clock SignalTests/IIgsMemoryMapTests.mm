@@ -89,8 +89,11 @@ namespace {
 	test_bank(0xe1'0000);
 }
 
+// TODO: edit and reenable shadowing tests below, once I clear up whether shadowing is based on
+// logical or physical address.
+
 /// Tests that writes to $00:$0400 and to $01:$0400 are subsequently visible at $e0:$0400 and $e1:$0400.
-- (void)testShadowing {
+/*- (void)testShadowing {
 	[self write:0xab address:0x00'0400];
 	[self write:0xcd address:0x01'0400];
 	XCTAssertEqual([self readAddress:0xe0'0400], 0xab);
@@ -123,7 +126,7 @@ namespace {
 	XCTAssertEqual([self readAddress:0xe1'0400], 0xcb);
 	XCTAssertEqual([self readAddress:0x00'0400], 0xde);
 	XCTAssertEqual([self readAddress:0x01'0400], 0xde);
-}
+}*/
 
 - (void)testE0E1RAMConsistent {
 	// Do some random language card paging, to hit set_language_card.
