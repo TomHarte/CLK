@@ -391,6 +391,25 @@ namespace {
 			}
 			shouldBeShadowed ^= true;
 		}
+
+		// Test IO regions.
+		bool shouldBeIO = false;
+		logical = 0;
+		for(NSNumber *next in test[@"io"]) {
+			while(logical < [next intValue]) {
+				const auto &region =
+					self->_memoryMap.regions[self->_memoryMap.region_map[logical]];
+				const bool isIO = region.flags & MemoryMap::Region::IsIO;
+
+				XCTAssertEqual(
+					isIO,
+					shouldBeIO,
+					@"Logical page %04x %@ marked as IO", logical, shouldBeIO ? @"should be" : @"should not be");
+
+				++logical;
+			}
+			shouldBeIO ^= true;
+		}
 	}];
 }
 
