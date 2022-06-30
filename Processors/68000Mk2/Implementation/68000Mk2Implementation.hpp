@@ -200,6 +200,11 @@ template <typename InstructionT> Microcycle::OperationT data_select(const Instru
 
 // MARK: - The state machine.
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
+#endif
+
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
 void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::run_for(HalfCycles duration) {
 	// Accumulate the newly paid-in cycles. If this instance remains in deficit, exit.
@@ -224,7 +229,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define MoveToStateDynamic(x)	{ state_ = x; continue; }
 
 	// Sets the start position for state x.
-#define BeginState(x)			case ExecutionState::x: [[maybe_unused]] x
+#define BeginState(x)			case ExecutionState::x: x
 
 	// Sets the start position for the addressing mode y within state x,
 	// where x was declared as an AddressingDispatch.
@@ -3072,6 +3077,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	state_ = Reset;
 	time_remaining_ = HalfCycles(0);
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 }
 }
