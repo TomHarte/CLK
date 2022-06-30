@@ -216,7 +216,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Check whether all remaining time has been expended; if so then exit, having set this line up as
 	// the next resumption point.
-#define ConsiderExit()	if(time_remaining_ < HalfCycles(0)) { state_ = ExecutionState::Max+__COUNTER__+1; return; } [[fallthrough]]; case ExecutionState::Max+__COUNTER__:
+#define ConsiderExit()	if(time_remaining_ < HalfCycles(0)) { state_ = ExecutionState::Max + ((__COUNTER__+1) >> 1); return; } [[fallthrough]]; case ExecutionState::Max + (__COUNTER__ >> 1):
 
 	// Subtracts `n` half-cycles from `time_remaining_`; if permit_overrun is false, also ConsiderExit()
 #define Spend(n)		time_remaining_ -= (n); if constexpr (!permit_overrun) ConsiderExit()
@@ -294,15 +294,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Spin until DTACK, VPA or BERR is asserted (unless DTACK is implicit),
 	// holding the bus cycle provided.
-#define WaitForDTACK(x)													\
-	if constexpr (!dtack_is_implicit && !dtack_ && !vpa_ && !berr_) {	\
-		awaiting_dtack = x;												\
-		awaiting_dtack.length = HalfCycles(2);							\
-		post_dtack_state_ = ExecutionState::Max+__COUNTER__+1;								\
-		state_ = ExecutionState::WaitForDTACK;							\
-		break;															\
-	}																	\
-	[[fallthrough]]; case ExecutionState::Max+__COUNTER__:
+#define WaitForDTACK(x)														\
+	if constexpr (!dtack_is_implicit && !dtack_ && !vpa_ && !berr_) {		\
+		awaiting_dtack = x;													\
+		awaiting_dtack.length = HalfCycles(2);								\
+		post_dtack_state_ = ExecutionState::Max + ((__COUNTER__ + 1) >> 1);	\
+		state_ = ExecutionState::WaitForDTACK;								\
+		break;																\
+	}																		\
+	[[fallthrough]]; case ExecutionState::Max + (__COUNTER__ >> 1):
 
 	// Performs the bus operation provided, which will be one with a
 	// SelectWord or SelectByte operation, stretching it to match the E
