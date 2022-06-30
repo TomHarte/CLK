@@ -64,7 +64,7 @@ struct LazyFlags {
 	}
 
 	uint8_t get() const {
-		return carry | overflow | (inverse_interrupt ^ Flag::Interrupt) | (negative_result & 0x80) | (zero_result ? 0 : Flag::Zero) | Flag::Always | decimal;
+		return carry | overflow | (inverse_interrupt ^ Flag::Interrupt) | (negative_result & 0x80) | (zero_result ? 0 : Flag::Zero) | Flag::Always | Flag::Break | decimal;
 	}
 
 	LazyFlags() {

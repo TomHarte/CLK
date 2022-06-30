@@ -20,6 +20,9 @@ namespace Apple {
 namespace IIgs {
 
 class MemoryMap {
+	private:
+		using PagingType = Apple::II::PagingType;
+
 	public:
 		// MARK: - Initial construction and configuration.
 
@@ -179,7 +182,7 @@ class MemoryMap {
 			// TODO: set 1Mhz flags.
 
 			// Apply initial language/auxiliary state.
-			set_all_paging();
+			set_paging<~0>();
 		}
 
 		// MARK: - Live bus access notifications and register access.
@@ -189,8 +192,7 @@ class MemoryMap {
 			shadow_register_ = value;
 
 			if(diff & 0x40) {	// IO/language-card inhibit.
-				set_language_card_paging();
-				set_card_paging();
+				set_paging<PagingType::LanguageCard | PagingType::CardArea>();
 			}
 
 			if(diff & 0x3f) {
@@ -251,150 +253,181 @@ class MemoryMap {
 	assert(region_map[end-1] == region_map[start]);		\
 	assert(region_map[end] == region_map[end-1]+1);
 
-		// Cf. LanguageCardSwitches; this function should update the region from
-		// $D000 onwards as per the state of the language card flags — there may
-		// end up being ROM or RAM (or auxiliary RAM), and the first 4kb of it
-		// may be drawn from either of two pools.
-		void set_language_card_paging() {
-			const auto language_state = language_card_.state();
-			const auto zero_state = auxiliary_switches_.zero_state();
-			const bool inhibit_banks0001 = shadow_register_ & 0x40;
+		template <int type> void set_paging() {
+			// Update the region from
+			// $D000 onwards as per the state of the language card flags — there may
+			// end up being ROM or RAM (or auxiliary RAM), and the first 4kb of it
+			// may be drawn from either of two pools.
+			if constexpr (bool(type & (PagingType::LanguageCard | PagingType::ZeroPage | PagingType::Main))) {
+				const auto language_state = language_card_.state();
+				const auto zero_state = auxiliary_switches_.zero_state();
+				const auto main = auxiliary_switches_.main_state();
+				const bool inhibit_banks0001 = shadow_register_ & 0x40;
 
-			auto apply = [&language_state, this](uint32_t bank_base, uint8_t *ram) {
-				// This assumes bank 1 is the one before bank 2 when RAM is linear.
-				uint8_t *const d0_ram_bank = ram - (language_state.bank2 ? 0x0000 : 0x1000);
+				auto apply = [&language_state, this](uint32_t bank_base, uint8_t *ram) {
+					// This assumes bank 1 is the one before bank 2 when RAM is linear.
+					uint8_t *const d0_ram_bank = ram - (language_state.bank2 ? 0x0000 : 0x1000);
 
-				// Crib the ROM pointer from a page it's always visible on.
-				const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xff'd000] - ((bank_base << 8) + 0xd000);
+					// Crib the ROM pointer from a page it's always visible on.
+					const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xff'd000] - ((bank_base << 8) + 0xd000);
 
-				auto &d0_region = regions[region_map[bank_base | 0xd0]];
-				d0_region.read = language_state.read ? d0_ram_bank : rom;
-				d0_region.write = language_state.write ? nullptr : d0_ram_bank;
+					auto &d0_region = regions[region_map[bank_base | 0xd0]];
+					d0_region.read = language_state.read ? d0_ram_bank : rom;
+					d0_region.write = language_state.write ? nullptr : d0_ram_bank;
 
-				auto &e0_region = regions[region_map[bank_base | 0xe0]];
-				e0_region.read = language_state.read ? ram : rom;
-				e0_region.write = language_state.write ? nullptr : ram;
+					auto &e0_region = regions[region_map[bank_base | 0xe0]];
+					e0_region.read = language_state.read ? ram : rom;
+					e0_region.write = language_state.write ? nullptr : ram;
 
-				// Assert assumptions made above re: memory layout.
-				assert(region_map[bank_base | 0xd0] + 1 == region_map[bank_base | 0xe0]);
-				assert(region_map[bank_base | 0xe0] == region_map[bank_base | 0xff]);
-			};
-			auto set_no_card = [this](uint32_t bank_base) {
-				auto &d0_region = regions[region_map[bank_base | 0xd0]];
-				d0_region.read = ram_base;
-				d0_region.write = ram_base;
+					// Assert assumptions made above re: memory layout.
+					assert(region_map[bank_base | 0xd0] + 1 == region_map[bank_base | 0xe0]);
+					assert(region_map[bank_base | 0xe0] == region_map[bank_base | 0xff]);
+				};
+				auto set_no_card = [this](uint32_t bank_base, uint8_t *read, uint8_t *write) {
+					auto &d0_region = regions[region_map[bank_base | 0xd0]];
+					d0_region.read = read;
+					d0_region.write = write;
 
-				auto &e0_region = regions[region_map[bank_base | 0xe0]];
-				e0_region.read = ram_base;
-				e0_region.write = ram_base;
+					auto &e0_region = regions[region_map[bank_base | 0xe0]];
+					e0_region.read = read;
+					e0_region.write = write;
 
-				// Assert assumptions made above re: memory layout.
-				assert(region_map[bank_base | 0xd0] + 1 == region_map[bank_base | 0xe0]);
-				assert(region_map[bank_base | 0xe0] == region_map[bank_base | 0xff]);
-			};
+					// Assert assumptions made above re: memory layout.
+					assert(region_map[bank_base | 0xd0] + 1 == region_map[bank_base | 0xe0]);
+					assert(region_map[bank_base | 0xe0] == region_map[bank_base | 0xff]);
+				};
 
-			if(inhibit_banks0001) {
-				set_no_card(0x0000);
-				set_no_card(0x0100);
-			} else {
-				apply(0x0000, zero_state ? &ram_base[0x01'0000] : ram_base);
-				apply(0x0100, ram_base);
-			}
-
-			// The pointer stored in region_map[0xe000] has already been adjusted for
-			// the 0xe0'0000 addressing offset.
-			uint8_t *const e0_ram = regions[region_map[0xe000]].write;
-			apply(0xe000, e0_ram);
-			apply(0xe100, e0_ram);
-		}
-
-		// Cf. AuxiliarySwitches; this should establish whether ROM or card switches
-		// are exposed in the distinct regions C100–C2FF, C300–C3FF, C400–C7FF and
-		// C800–CFFF.
-		//
-		// On the IIgs it intersects with the current shadow register.
-		//
-		// TODO: so... shouldn't the card mask be incorporated here? I've got it implemented
-		// distinctly at present, but does that create any invalid state interactions?
-		void set_card_paging() {
-			const bool inhibit_banks0001 = shadow_register_ & 0x40;
-			const auto state = auxiliary_switches_.card_state();
-
-			auto apply = [&state, this](uint32_t bank_base) {
-				auto &c0_region = regions[region_map[bank_base | 0xc0]];
-				auto &c1_region = regions[region_map[bank_base | 0xc1]];
-				auto &c3_region = regions[region_map[bank_base | 0xc3]];
-				auto &c4_region = regions[region_map[bank_base | 0xc4]];
-				auto &c8_region = regions[region_map[bank_base | 0xc8]];
-
-				const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffc100] - ((bank_base << 8) + 0xc100);
-
-				// This is applied dynamically as it may be added or lost in banks $00 and $01.
-				c0_region.flags |= Region::IsIO;
-
-#define apply_region(flag, region)	\
-				if(flag) {	\
-					region.read = rom;	\
-					region.flags &= ~Region::IsIO;	\
-				} else {	\
-					region.flags |= Region::IsIO;	\
+				if(inhibit_banks0001) {
+					set_no_card(0x0000,
+						main.base.read ? &ram_base[0x01'0000] : ram_base,
+						main.base.write ? &ram_base[0x01'0000] : ram_base);
+					set_no_card(0x0100, ram_base, ram_base);
+				} else {
+					apply(0x0000, zero_state ? &ram_base[0x01'0000] : ram_base);
+					apply(0x0100, ram_base);
 				}
 
-				apply_region(state.region_C1_C3, c1_region);
-				apply_region(state.region_C3, c3_region);
-				apply_region(state.region_C4_C8, c4_region);
-				apply_region(state.region_C8_D0, c8_region);
+				// The pointer stored in region_map[0xe000] has already been adjusted for
+				// the 0xe0'0000 addressing offset.
+				uint8_t *const e0_ram = regions[region_map[0xe000]].write;
+				apply(0xe000, e0_ram);
+				apply(0xe100, e0_ram);
+			}
+
+			// Establish whether main or auxiliary RAM
+			// is exposed in bank $00 for a bunch of regions.
+			if constexpr (type & PagingType::Main) {
+				const auto state = auxiliary_switches_.main_state();
+
+#define set(page, flags)	{\
+				auto &region = regions[region_map[page]];	\
+				region.read = flags.read ? &ram_base[0x01'0000] : ram_base;	\
+				region.write = flags.write ? &ram_base[0x01'0000] : ram_base;	\
+			}
+
+				// Base: $0200–$03FF.
+				set(0x02, state.base);
+				assert_is_region(0x02, 0x04);
+
+				// Region $0400–$07ff.
+				set(0x04, state.region_04_08);
+				assert_is_region(0x04, 0x08);
+
+				// Base: $0800–$1FFF.
+				set(0x08, state.base);
+				assert_is_region(0x08, 0x20);
+
+				// Region $2000–$3FFF.
+				set(0x20, state.region_20_40);
+				assert_is_region(0x20, 0x40);
+
+				// Base: $4000–$BFFF.
+				set(0x40, state.base);
+				assert_is_region(0x40, 0xc0);
+
+#undef set
+			}
+
+			// Update whether base or auxiliary RAM is visible in: (i) the zero
+			// and stack pages; and (ii) anywhere that the language card is exposing RAM instead of ROM.
+			if constexpr (bool(type & PagingType::ZeroPage)) {
+				// Affects bank $00 only, and should be a single region.
+				auto &region = regions[region_map[0]];
+				region.read = region.write = auxiliary_switches_.zero_state() ? &ram_base[0x01'0000] : ram_base;
+				assert(region_map[0x0000] == region_map[0x0001]);
+				assert(region_map[0x0001]+1 == region_map[0x0002]);
+			}
+
+			// Establish whether ROM or card switches are exposed in the distinct
+			// regions C100–C2FF, C300–C3FF, C400–C7FF and C800–CFFF.
+			//
+			// On the IIgs it intersects with the current shadow register.
+			if constexpr (bool(type & (PagingType::CardArea | PagingType::Main))) {
+				const bool inhibit_banks0001 = shadow_register_ & 0x40;
+				const auto state = auxiliary_switches_.card_state();
+
+				auto apply = [&state, this](uint32_t bank_base) {
+					auto &c0_region = regions[region_map[bank_base | 0xc0]];
+					auto &c1_region = regions[region_map[bank_base | 0xc1]];
+					auto &c3_region = regions[region_map[bank_base | 0xc3]];
+					auto &c4_region = regions[region_map[bank_base | 0xc4]];
+					auto &c8_region = regions[region_map[bank_base | 0xc8]];
+
+					const uint8_t *const rom = &regions[region_map[0xffd0]].read[0xffc100] - ((bank_base << 8) + 0xc100);
+
+					// This is applied dynamically as it may be added or lost in banks $00 and $01.
+					c0_region.flags |= Region::IsIO;
+
+#define apply_region(flag, region)	\
+					region.write = nullptr;	\
+					if(flag) {	\
+						region.read = rom;	\
+						region.flags &= ~Region::IsIO;	\
+					} else {	\
+						region.flags |= Region::IsIO;	\
+					}
+
+					apply_region(state.region_C1_C3, c1_region);
+					apply_region(state.region_C3, c3_region);
+					apply_region(state.region_C4_C8, c4_region);
+					apply_region(state.region_C8_D0, c8_region);
 
 #undef apply_region
 
-				// Sanity checks.
-				assert(region_map[bank_base | 0xc1] == region_map[bank_base | 0xc0]+1);
-				assert(region_map[bank_base | 0xc2] == region_map[bank_base | 0xc1]);
-				assert(region_map[bank_base | 0xc3] == region_map[bank_base | 0xc2]+1);
-				assert(region_map[bank_base | 0xc4] == region_map[bank_base | 0xc3]+1);
-				assert(region_map[bank_base | 0xc7] == region_map[bank_base | 0xc4]);
-				assert(region_map[bank_base | 0xc8] == region_map[bank_base | 0xc7]+1);
-				assert(region_map[bank_base | 0xcf] == region_map[bank_base | 0xc8]);
-				assert(region_map[bank_base | 0xd0] == region_map[bank_base | 0xcf]+1);
-			};
+					// Sanity checks.
+					assert(region_map[bank_base | 0xc1] == region_map[bank_base | 0xc0]+1);
+					assert(region_map[bank_base | 0xc2] == region_map[bank_base | 0xc1]);
+					assert(region_map[bank_base | 0xc3] == region_map[bank_base | 0xc2]+1);
+					assert(region_map[bank_base | 0xc4] == region_map[bank_base | 0xc3]+1);
+					assert(region_map[bank_base | 0xc7] == region_map[bank_base | 0xc4]);
+					assert(region_map[bank_base | 0xc8] == region_map[bank_base | 0xc7]+1);
+					assert(region_map[bank_base | 0xcf] == region_map[bank_base | 0xc8]);
+					assert(region_map[bank_base | 0xd0] == region_map[bank_base | 0xcf]+1);
+				};
 
-			if(inhibit_banks0001) {
-				// Set no IO in the Cx00 range for banks $00 and $01, just
-				// regular RAM (or possibly auxiliary).
-				const auto auxiliary_state = auxiliary_switches_.main_state();
-				for(uint8_t region = region_map[0x00c0]; region < region_map[0x00d0]; region++) {
-					regions[region].read = auxiliary_state.base.read ? &ram_base[0x01'0000] : ram_base;
-					regions[region].write = auxiliary_state.base.write ? &ram_base[0x01'0000] : ram_base;
-					regions[region].flags &= ~Region::IsIO;
+				if(inhibit_banks0001) {
+					// Set no IO in the Cx00 range for banks $00 and $01, just
+					// regular RAM (or possibly auxiliary).
+					const auto auxiliary_state = auxiliary_switches_.main_state();
+					for(uint8_t region = region_map[0x00c0]; region < region_map[0x00d0]; region++) {
+						regions[region].read = auxiliary_state.base.read ? &ram_base[0x01'0000] : ram_base;
+						regions[region].write = auxiliary_state.base.write ? &ram_base[0x01'0000] : ram_base;
+						regions[region].flags &= ~Region::IsIO;
+					}
+					for(uint8_t region = region_map[0x01c0]; region < region_map[0x01d0]; region++) {
+						regions[region].read = regions[region].write = ram_base;
+						regions[region].flags &= ~Region::IsIO;
+					}
+				} else {
+					// Obey the card state for banks $00 and $01.
+					apply(0x0000);
+					apply(0x0100);
 				}
-				for(uint8_t region = region_map[0x01c0]; region < region_map[0x01d0]; region++) {
-					regions[region].read = regions[region].write = ram_base;
-					regions[region].flags &= ~Region::IsIO;
-				}
-			} else {
-				// Obey the card state for banks $00 and $01.
-				apply(0x0000);
-				apply(0x0100);
+
+				// Obey the card state for banks $e0 and $e1.
+				apply(0xe000);
+				apply(0xe100);
 			}
-
-			// Obey the card state for banks $e0 and $e1.
-			apply(0xe000);
-			apply(0xe100);
-		}
-
-		// Cf. LanguageCardSwitches; this should update whether base or auxiliary RAM is
-		// visible in: (i) the zero and stack pages; and (ii) anywhere that the language
-		// card is exposing RAM instead of ROM.
-		void set_zero_page_paging() {
-			// Affects bank $00 only, and should be a single region.
-			auto &region = regions[region_map[0]];
-			region.read = region.write = auxiliary_switches_.zero_state() ? &ram_base[0x01'0000] : ram_base;
-			assert(region_map[0x0000] == region_map[0x0001]);
-			assert(region_map[0x0001]+1 == region_map[0x0002]);
-
-			// Switching to or from auxiliary RAM potentially affects the
-			// language card area.
-			set_language_card_paging();
 		}
 
 		// IIgs specific: sets or resets the ::IsShadowed flag across affected banks as
@@ -423,18 +456,27 @@ class MemoryMap {
 			//	$6000–$a000 Odd banks only, rest of Super High-res
 			//	[plus IO and language card space, subject to your definition of shadowing]
 
-			constexpr int shadow_shift = 10;
-			constexpr int auxiliary_offset = 0x10000 >> shadow_shift;
+			static constexpr int shadow_shift = 10;
+			static constexpr int auxiliary_offset = 0x1'0000 >> shadow_shift;
+
+			enum Inhibit {
+				TextPage1			= 0x01,
+				HighRes1			= 0x02,
+				HighRes2			= 0x04,
+				SuperHighRes		= 0x08,
+				AuxiliaryHighRes	= 0x10,
+				TextPage2			= 0x20,
+			};
 
 			// Text Page 1, main and auxiliary — $0400–$0800.
 			for(size_t c = 0x0400 >> shadow_shift; c < 0x0800 >> shadow_shift; c++) {
-				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x01);
+				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & Inhibit::TextPage1);
 			}
 
 			// Text Page 2, main and auxiliary — 0x0800–0x0c00.
 			// TODO: on a ROM03 machine only.
 			for(size_t c = 0x0800 >> shadow_shift; c < 0x0c00 >> shadow_shift; c++) {
-				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x20);
+				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & Inhibit::TextPage2);
 			}
 
 			// Hi-res graphics Page 1, main and auxiliary — $2000–$4000;
@@ -447,8 +489,11 @@ class MemoryMap {
 			//	(high-res graphics inhibit or auxiliary high res graphics inhibit) _and_ (super high-res inhibit).
 			//
 			for(size_t c = 0x2000 >> shadow_shift; c < 0x4000 >> shadow_shift; c++) {
-				shadow_pages[c] = !(shadow_register_ & 0x02);
-				shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x12);
+				shadow_pages[c] = !(shadow_register_ & Inhibit::HighRes1);
+				shadow_pages[c+auxiliary_offset] = !(
+					shadow_register_ & (Inhibit::HighRes1 | Inhibit::AuxiliaryHighRes) &&
+					shadow_register_ & Inhibit::SuperHighRes
+				);
 			}
 
 			// Hi-res graphics Page 2, main and auxiliary — $4000–$6000;
@@ -456,60 +501,21 @@ class MemoryMap {
 			//
 			// Test applied: much like that for page 1.
 			for(size_t c = 0x4000 >> shadow_shift; c < 0x6000 >> shadow_shift; c++) {
-				shadow_pages[c] = !(shadow_register_ & 0x04);
-				shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x14);
+				shadow_pages[c] = !(shadow_register_ & Inhibit::HighRes2);
+				shadow_pages[c+auxiliary_offset] = !(
+					shadow_register_ & (Inhibit::HighRes2 | Inhibit::AuxiliaryHighRes) &&
+					shadow_register_ & Inhibit::SuperHighRes
+				);
 			}
 
 			// Residue of Super Hi-Res — $6000–$a000 (odd pages only).
+			//
+			// Test applied:
+			//	auxiliary high res graphics inhibit and super high-res inhibit
 			for(size_t c = 0x6000 >> shadow_shift; c < 0xa000 >> shadow_shift; c++) {
-				shadow_pages[c+auxiliary_offset] = !(shadow_register_ & 0x08);
+				shadow_pages[c+auxiliary_offset] =
+					!(shadow_register_ & Inhibit::SuperHighRes && shadow_register_ & Inhibit::AuxiliaryHighRes);
 			}
-		}
-
-		// Cf. the AuxiliarySwitches; establishes whether main or auxiliary RAM
-		// is exposed in bank $00 for a bunch of regions.
-		void set_main_paging() {
-			const auto state = auxiliary_switches_.main_state();
-
-#define set(page, flags)	{\
-			auto &region = regions[region_map[page]];	\
-			region.read = flags.read ? &ram_base[0x01'0000] : ram_base;	\
-			region.write = flags.write ? &ram_base[0x01'0000] : ram_base;	\
-		}
-
-			// Base: $0200–$03FF.
-			set(0x02, state.base);
-			assert_is_region(0x02, 0x04);
-
-			// Region $0400–$07ff.
-			set(0x04, state.region_04_08);
-			assert_is_region(0x04, 0x08);
-
-			// Base: $0800–$1FFF.
-			set(0x08, state.base);
-			assert_is_region(0x08, 0x20);
-
-			// Region $2000–$3FFF.
-			set(0x20, state.region_20_40);
-			assert_is_region(0x20, 0x40);
-
-			// Base: $4000–$BFFF.
-			set(0x40, state.base);
-			assert_is_region(0x40, 0xc0);
-
-#undef set
-
-			// This also affects shadowing flags, if shadowing is enabled at all,
-			// and might affect RAM in the IO area of bank $00 because the language
-			// card can be inhibited on a IIgs.
-			set_card_paging();
-		}
-
-		void set_all_paging() {
-			set_card_paging();
-			set_zero_page_paging();	// ... which calls set_language_card_paging().
-			set_main_paging();
-			set_shadowing();
 		}
 
 		void print_state() {
@@ -559,7 +565,7 @@ class MemoryMap {
 		//
 		// Shadow_banks: divides the whole 16mb of memory into 128kb chunks and includes a flag to indicate whether
 		// each is a potential source of shadowing.
-		std::bitset<128> shadow_pages, shadow_banks;
+		std::bitset<128> shadow_pages{}, shadow_banks{};
 
 		std::array<Region, 40> regions;	// An assert above ensures that this is large enough; there's no
 										// doctrinal reason for it to be whatever size it is now, just
@@ -570,14 +576,36 @@ class MemoryMap {
 // would be less efficient. Verify that?
 
 #define MemoryMapRegion(map, address) 			map.regions[map.region_map[address >> 8]]
-#define IsShadowed(map, region, address)		(map.shadow_pages[((&region.write[address] - map.ram_base) >> 10) & 127] & map.shadow_banks[address >> 17])
 #define MemoryMapRead(region, address, value)	*value = region.read ? region.read[address] : 0xff
+
+// The below encapsulates the fact that I've yet to determine whether Apple intends to
+// indicate that logical addresses (i.e. those prior to being mapped per the current paging)
+// or physical addresses (i.e. after mapping) are subject to shadowing.
+#ifdef SHADOW_LOGICAL
+
+#define IsShadowed(map, region, address)	\
+	(map.shadow_pages[((&region.write[address] - map.ram_base) >> 10) & 127] & map.shadow_banks[address >> 17])
+
+#define MemoryMapWrite(map, region, address, value) \
+	if(region.write) {	\
+		region.write[address] = *value;	\
+		const bool _mm_is_shadowed = IsShadowed(map, region, address);	\
+		map.shadow_base[_mm_is_shadowed][address & map.shadow_mask[_mm_is_shadowed]] = *value;	\
+	}
+
+#else
+
+#define IsShadowed(map, region, address)	\
+	(map.shadow_pages[(address >> 10) & 127] & map.shadow_banks[address >> 17])
+
 #define MemoryMapWrite(map, region, address, value) \
 	if(region.write) {	\
 		region.write[address] = *value;	\
 		const bool _mm_is_shadowed = IsShadowed(map, region, address);	\
 		map.shadow_base[_mm_is_shadowed][(&region.write[address] - map.ram_base) & map.shadow_mask[_mm_is_shadowed]] = *value;	\
 	}
+
+#endif
 
 // Quick notes on ::IsShadowed contortions:
 //

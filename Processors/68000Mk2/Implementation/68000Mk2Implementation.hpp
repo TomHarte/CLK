@@ -24,7 +24,7 @@ namespace MC68000Mk2 {
 /// me for their purpose rather than automatically by file position.
 /// These are negative to avoid ambiguity with the other group.
 enum ExecutionState: int {
-	Reset			= std::numeric_limits<int>::min(),
+	Reset,
 	Decode,
 	WaitForDTACK,
 	WaitForInterrupt,
@@ -189,6 +189,8 @@ enum ExecutionState: int {
 	MOVE_b, MOVE_w,
 	AddressingDispatch(MOVE_bw),	MOVE_bw_AbsoluteLong_prefetch_first,
 	AddressingDispatch(MOVE_l),		MOVE_l_AbsoluteLong_prefetch_first,
+
+	Max
 };
 
 #undef AddressingDispatch
@@ -200,6 +202,11 @@ template <typename InstructionT> Microcycle::OperationT data_select(const Instru
 
 // MARK: - The state machine.
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
+#endif
+
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
 void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perform>::run_for(HalfCycles duration) {
 	// Accumulate the newly paid-in cycles. If this instance remains in deficit, exit.
@@ -209,7 +216,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Check whether all remaining time has been expended; if so then exit, having set this line up as
 	// the next resumption point.
-#define ConsiderExit()	if(time_remaining_ < HalfCycles(0)) { state_ = __COUNTER__+1; return; } [[fallthrough]]; case __COUNTER__:
+#define ConsiderExit()	if(time_remaining_ < HalfCycles(0)) { state_ = ExecutionState::Max + ((__COUNTER__+1) >> 1); return; } [[fallthrough]]; case ExecutionState::Max + (__COUNTER__ >> 1):
 
 	// Subtracts `n` half-cycles from `time_remaining_`; if permit_overrun is false, also ConsiderExit()
 #define Spend(n)		time_remaining_ -= (n); if constexpr (!permit_overrun) ConsiderExit()
@@ -224,7 +231,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 #define MoveToStateDynamic(x)	{ state_ = x; continue; }
 
 	// Sets the start position for state x.
-#define BeginState(x)			case ExecutionState::x: [[maybe_unused]] x
+#define BeginState(x)			case ExecutionState::x: x
 
 	// Sets the start position for the addressing mode y within state x,
 	// where x was declared as an AddressingDispatch.
@@ -287,15 +294,15 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Spin until DTACK, VPA or BERR is asserted (unless DTACK is implicit),
 	// holding the bus cycle provided.
-#define WaitForDTACK(x)													\
-	if constexpr (!dtack_is_implicit && !dtack_ && !vpa_ && !berr_) {	\
-		awaiting_dtack = x;												\
-		awaiting_dtack.length = HalfCycles(2);							\
-		post_dtack_state_ = __COUNTER__+1;								\
-		state_ = ExecutionState::WaitForDTACK;							\
-		break;															\
-	}																	\
-	[[fallthrough]]; case __COUNTER__:
+#define WaitForDTACK(x)														\
+	if constexpr (!dtack_is_implicit && !dtack_ && !vpa_ && !berr_) {		\
+		awaiting_dtack = x;													\
+		awaiting_dtack.length = HalfCycles(2);								\
+		post_dtack_state_ = ExecutionState::Max + ((__COUNTER__ + 1) >> 1);	\
+		state_ = ExecutionState::WaitForDTACK;								\
+		break;																\
+	}																		\
+	[[fallthrough]]; case ExecutionState::Max + (__COUNTER__ >> 1):
 
 	// Performs the bus operation provided, which will be one with a
 	// SelectWord or SelectByte operation, stretching it to match the E
@@ -3072,6 +3079,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	state_ = Reset;
 	time_remaining_ = HalfCycles(0);
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 }
 }

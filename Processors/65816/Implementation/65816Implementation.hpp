@@ -9,7 +9,7 @@
 template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, uses_ready_line>::run_for(const Cycles cycles) {
 
 #define perform_bus(address, value, operation)	\
-	bus_address_ = address;						\
+	bus_address_ = (address) & 0xff'ffff;		\
 	bus_value_ = value;							\
 	bus_operation_ = operation
 
@@ -99,6 +99,14 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					perform_bus(registers_.pc | registers_.program_bank, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
 				break;
 
+				case CycleFetchPreviousPCThrowaway:
+					perform_bus(((registers_.pc - 1) & 0xffff) | registers_.program_bank, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
+				break;
+
+				case CycleFetchPreviousThrowaway:
+					perform_bus(bus_address_, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
+				break;
+
 				//
 				// Data fetches and stores.
 				//
@@ -111,6 +119,13 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					read(data_address_, data_buffer_.next_input());
 				break;
 
+				case CycleStoreOrFetchDataThrowaway:
+					if(registers_.emulation_flag) {
+						perform_bus(data_address_, data_buffer_.preview_output(), MOS6502Esque::InternalOperationWrite);
+						break;
+					}
+
+					[[fallthrough]];
 				case CycleFetchDataThrowaway:
 					perform_bus(data_address_, &bus_throwaway_, MOS6502Esque::InternalOperationRead);
 				break;
@@ -135,10 +150,6 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 				case CycleStoreData:
 					write(data_address_, data_buffer_.next_output());
-				break;
-
-				case CycleStoreDataThrowaway:
-					perform_bus(data_address_, data_buffer_.preview_output(), MOS6502Esque::InternalOperationWrite);
 				break;
 
 				case CycleStoreIncrementData:
@@ -293,8 +304,12 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					data_address_ = instruction_buffer_.value + registers_.x.full + registers_.data_bank;
 					incorrect_data_address_ = ((data_address_ & 0x00ff) | (instruction_buffer_.value & 0xff00)) + registers_.data_bank;
 
-					// If the incorrect address isn't actually incorrect, skip its usage.
-					if(operation == OperationConstructAbsoluteXRead && data_address_ == incorrect_data_address_) {
+					// "Add 1 cycle for indexing across page boundaries, or write, or X=0"
+					// (i.e. don't add 1 cycle if x = 1 and this is a read, and a page boundary wasn't crossed)
+					if(
+						operation == OperationConstructAbsoluteXRead &&
+						data_address_ == incorrect_data_address_ &&
+						registers_.mx_flags[1]) {
 						++next_op_;
 					}
 					data_address_increment_mask_ = 0xff'ff'ff;
@@ -305,8 +320,12 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					data_address_ = instruction_buffer_.value + registers_.y.full + registers_.data_bank;
 					incorrect_data_address_ = (data_address_ & 0xff) + (instruction_buffer_.value & 0xff00) + registers_.data_bank;
 
-					// If the incorrect address isn't actually incorrect, skip its usage.
-					if(operation == OperationConstructAbsoluteYRead && data_address_ == incorrect_data_address_) {
+					// "Add 1 cycle for indexing across page boundaries, or write, or X=0"
+					// (i.e. don't add 1 cycle if x = 1 and this is a read, and a page boundary wasn't crossed)
+					if(
+						operation == OperationConstructAbsoluteYRead &&
+						data_address_ == incorrect_data_address_ &&
+						registers_.mx_flags[1]) {
 						++next_op_;
 					}
 					data_address_increment_mask_ = 0xff'ff'ff;
@@ -338,10 +357,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				continue;
 
 				case OperationConstructDirectIndexedIndirect:
-					data_address_ = registers_.data_bank + ((
+					data_address_ = (
 						((registers_.direct + registers_.x.full + instruction_buffer_.value) & registers_.e_masks[1]) +
 						(registers_.direct & registers_.e_masks[0])
-					) & 0xffff);
+					) & 0xffff;
 					data_address_increment_mask_ = 0x00'ff'ff;
 
 					if(!(registers_.direct&0xff)) {
@@ -408,7 +427,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				case OperationPrepareException:
 					data_buffer_.value = uint32_t((registers_.pc << 8) | get_flags());
 					if(registers_.emulation_flag) {
-						if(!exception_is_interrupt_) data_buffer_.value |= Flag::Break;
+						if(exception_is_interrupt_) data_buffer_.value &= ~uint32_t(Flag::Break);
 						data_buffer_.size = 3;
 						registers_.data_bank = 0;
 						++next_op_;
@@ -556,11 +575,6 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						case PHP:
 							data_buffer_.value = get_flags();
 							data_buffer_.size = 1;
-
-							if(registers_.emulation_flag) {
-								// On the 6502, the break flag is set during a PHP.
-								data_buffer_.value |= Flag::Break;
-							}
 						break;
 
 						case NOP:						break;
@@ -796,7 +810,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 							assert(data_buffer_.size == 2 - m_flag());
 							registers_.flags.set_n(uint16_t(data_buffer_.value), registers_.m_shift);
 							registers_.flags.set_z(uint16_t(data_buffer_.value & registers_.a.full), registers_.m_shift);
-							registers_.flags.overflow = data_buffer_.value & Flag::Overflow;
+							registers_.flags.overflow = (data_buffer_.value >> registers_.m_shift) & Flag::Overflow;
 						break;
 
 						case BITimm:
@@ -828,7 +842,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 		data_buffer_.value = uint32_t(registers_.pc + int8_t(instruction_buffer_.value));	\
 		data_buffer_.size = 2;																\
 																							\
-		if((registers_.pc & 0xff00) == (instruction_buffer_.value & 0xff00)) {				\
+		if(																					\
+			!registers_.emulation_flag ||													\
+			(registers_.pc & 0xff00) == (instruction_buffer_.value & 0xff00)				\
+		) {																					\
 			++next_op_;																		\
 		}																					\
 	}
@@ -902,18 +919,25 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 						case SBC:
 							if(registers_.flags.decimal) {
-								// I've yet to manage to find a rational way to map this to an ADC,
-								// hence the yucky repetition of code here.
 								const uint16_t a = registers_.a.full & registers_.m_masks[1];
-								unsigned int result = 0;
-								unsigned int borrow = registers_.flags.carry ^ 1;
-								const uint16_t decimal_result = uint16_t(a - data_buffer_.value - borrow);
+								data_buffer_.value = ~data_buffer_.value & registers_.m_masks[1];
 
-#define nibble(mask, adjustment, carry)								\
-	result += (a & mask) - (data_buffer_.value & mask) - borrow;	\
-	if(result > mask) result -= adjustment;							\
-	borrow = (result > mask) ? carry : 0;							\
-	result &= (carry - 1);
+								int result = registers_.flags.carry;
+								uint16_t partials = 0;
+
+#define nibble(mask, adjustment, carry)					\
+	result += (a & mask) + (data_buffer_.value & mask);	\
+	partials += result & mask;							\
+	result -= ((result - carry) >> 16) & adjustment;	\
+	result &= (carry & ~(result >> 1)) | (carry - 1);
+
+	// i.e. add the next nibble to that in the accumulator, with carry, and
+	// store it to result. Keep a copy for the partials.
+	//
+	// If result is less than carry, subtract adjustment.
+	//
+	// Allow onward carry if the bit immediately above this nibble is 1, and
+	// the current partial result is positive.
 
 								nibble(0x000f, 0x0006, 0x00010);
 								nibble(0x00f0, 0x0060, 0x00100);
@@ -922,9 +946,9 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 #undef nibble
 
-								registers_.flags.overflow = (( (decimal_result ^ a) & (~decimal_result ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
+								registers_.flags.overflow = (( (partials ^ registers_.a.full) & (partials ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
 								registers_.flags.set_nz(uint16_t(result), registers_.m_shift);
-								registers_.flags.carry = ((borrow >> 16)&1)^1;
+								registers_.flags.carry = (result >> (8 + registers_.m_shift))&1;
 								LDA(result);
 
 								break;
@@ -941,10 +965,10 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 								uint16_t partials = 0;
 								result = registers_.flags.carry;
 
-#define nibble(mask, limit, adjustment, carry)			\
-	result += (a & mask) + (data_buffer_.value & mask);	\
-	partials += result & mask;							\
-	if(result >= limit) result = ((result + (adjustment)) & (carry - 1)) + carry;
+#define nibble(mask, limit, adjustment, carry)									\
+	result += (a & mask) + (data_buffer_.value & mask);							\
+	partials += result & mask;													\
+	if(result >= limit) result = ((result + adjustment) & (carry - 1)) + carry;
 
 								nibble(0x000f, 0x000a, 0x0006, 0x00010);
 								nibble(0x00f0, 0x00a0, 0x0060, 0x00100);
@@ -953,8 +977,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 
 #undef nibble
 
-								registers_.flags.overflow = (( (partials ^ registers_.a.full) & (partials ^ data_buffer_.value) )  >> (1 + registers_.m_shift))&0x40;
-
+								registers_.flags.overflow = (( (partials ^ registers_.a.full) & (partials ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
 							} else {
 								result = int(a + data_buffer_.value + registers_.flags.carry);
 								registers_.flags.overflow = (( (uint16_t(result) ^ registers_.a.full) & (uint16_t(result) ^ data_buffer_.value) ) >> (1 + registers_.m_shift))&0x40;
@@ -1064,4 +1087,11 @@ int ProcessorBase::get_extended_bus_output() {
 		(registers_.mx_flags[0] ? ExtendedBusOutput::MemorySize : 0) |
 		(registers_.mx_flags[1] ? ExtendedBusOutput::IndexSize : 0) |
 		(registers_.emulation_flag ? ExtendedBusOutput::Emulation : 0);
+}
+
+void ProcessorBase::restart_operation_fetch() {
+	// Find a OperationMoveToNextProgram, so that the main loop can make
+	// relevant decisions.
+	next_op_ = micro_ops_.data();
+	while(*next_op_ != OperationMoveToNextProgram) ++next_op_;
 }

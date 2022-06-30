@@ -9,6 +9,8 @@
 #ifndef LanguageCardSwitches_h
 #define LanguageCardSwitches_h
 
+#include "MemorySwitches.hpp"
+
 namespace Apple {
 namespace II {
 
@@ -70,7 +72,7 @@ template <typename Machine> class LanguageCardSwitches {
 
 			// Apply whatever the net effect of all that is to the memory map.
 			if(previous_state != state_) {
-				machine_.set_language_card_paging();
+				machine_.template set_paging<PagingType::LanguageCard>();
 			}
 		}
 
@@ -90,7 +92,7 @@ template <typename Machine> class LanguageCardSwitches {
 			state_.bank2 = value & 0x04;
 
 			if(previous_state != state_) {
-				machine_.set_language_card_paging();
+				machine_.template set_paging<PagingType::LanguageCard>();
 			}
 		}
 
