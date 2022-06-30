@@ -9,6 +9,8 @@
 #ifndef AuxiliaryMemorySwitches_h
 #define AuxiliaryMemorySwitches_h
 
+#include "MemorySwitches.hpp"
+
 namespace Apple {
 namespace II {
 
@@ -235,7 +237,7 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 			}
 
 			if(previous_state != main_state_) {
-				machine_.set_main_paging();
+				machine_.template set_paging<PagingType::Main>();
 			}
 		}
 
@@ -258,14 +260,14 @@ template <typename Machine> class AuxiliaryMemorySwitches {
 			card_state_.region_C8_D0 = switches_.internal_CX_rom || switches_.internal_C8_rom;
 
 			if(previous_state != card_state_) {
-				machine_.set_card_paging();
+				machine_.template set_paging<PagingType::CardArea>();
 			}
 		}
 
 		void set_zero_page_paging() {
 			// Believe it or not, the zero page is just set or cleared by a single flag.
 			// As though life were rational.
-			machine_.set_zero_page_paging();
+			machine_.template set_paging<PagingType::ZeroPage>();
 		}
 };
 

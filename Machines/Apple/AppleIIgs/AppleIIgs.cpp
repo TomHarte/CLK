@@ -278,7 +278,7 @@ class ConcreteMachine:
 //			rom_[0x36403] = 0xab;	// ECT_SEQ
 //			rom_[0x36404] = 0x64;
 
-			rom_[0xfc146f] = rom_[0xfc1470] = 0xea;
+//			rom_[0xfc146f] = rom_[0xfc1470] = 0xea;
 
 			size_t ram_size = 0;
 			switch(target.memory_model) {

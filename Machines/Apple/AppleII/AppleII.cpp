@@ -183,72 +183,72 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 		}
 
-		// MARK: The language card.
+		// MARK: - The language card, auxiliary memory, and IIe-specific improvements.
 		LanguageCardSwitches<ConcreteMachine> language_card_;
 		AuxiliaryMemorySwitches<ConcreteMachine> auxiliary_switches_;
 		friend LanguageCardSwitches<ConcreteMachine>;
 		friend AuxiliaryMemorySwitches<ConcreteMachine>;
 
-		void set_language_card_paging() {
-			const auto language_state = language_card_.state();
-			const auto zero_state = auxiliary_switches_.zero_state();
-
-			uint8_t *const ram = zero_state ? aux_ram_ : ram_;
-			uint8_t *const rom = is_iie() ? &rom_[3840] : rom_.data();
-
-			// Which way the region here is mapped to be banks 1 and 2 is
-			// arbitrary.
-			page(0xd0, 0xe0,
-				language_state.read ? &ram[language_state.bank2 ? 0xd000 : 0xc000] : rom,
-				language_state.write ? nullptr : &ram[language_state.bank2 ? 0xd000 : 0xc000]);
-
-			page(0xe0, 0x100,
-				language_state.read ? &ram[0xe000] : &rom[0x1000],
-				language_state.write ? nullptr : &ram[0xe000]);
-		}
-
-		// MARK: Auxiliary memory and the other IIe improvements.
-		void set_card_paging() {
-			const auto state = auxiliary_switches_.card_state();
-
-			page(0xc1, 0xc4, state.region_C1_C3 ? &rom_[0xc100 - 0xc100] : nullptr, nullptr);
-			read_pages_[0xc3] = state.region_C3 ? &rom_[0xc300 - 0xc100] : nullptr;
-			page(0xc4, 0xc8, state.region_C4_C8 ? &rom_[0xc400 - 0xc100]  : nullptr, nullptr);
-			page(0xc8, 0xd0, state.region_C8_D0 ? &rom_[0xc800 - 0xc100]  : nullptr, nullptr);
-		}
-		void set_zero_page_paging() {
-			if(auxiliary_switches_.zero_state()) {
-				write_pages_[0] = aux_ram_;
-			} else {
-				write_pages_[0] = ram_;
+		template <int type> void set_paging() {
+			if constexpr (bool(type & PagingType::ZeroPage)) {
+				if(auxiliary_switches_.zero_state()) {
+					write_pages_[0] = aux_ram_;
+				} else {
+					write_pages_[0] = ram_;
+				}
+				write_pages_[1] = write_pages_[0] + 256;
+				read_pages_[0] = write_pages_[0];
+				read_pages_[1] = write_pages_[1];
 			}
-			write_pages_[1] = write_pages_[0] + 256;
-			read_pages_[0] = write_pages_[0];
-			read_pages_[1] = write_pages_[1];
 
-			// Zero page banking also affects interpretation of the language card's switches.
-			set_language_card_paging();
-		}
-		void set_main_paging() {
-			const auto state = auxiliary_switches_.main_state();
+			if constexpr (bool(type & (PagingType::LanguageCard | PagingType::ZeroPage))) {
+				const auto language_state = language_card_.state();
+				const auto zero_state = auxiliary_switches_.zero_state();
 
-			page(0x02, 0x04,
-				state.base.read ? &aux_ram_[0x0200] : &ram_[0x0200],
-				state.base.write ? &aux_ram_[0x0200] : &ram_[0x0200]);
-			page(0x08, 0x20,
-				state.base.read ? &aux_ram_[0x0800] : &ram_[0x0800],
-				state.base.write ? &aux_ram_[0x0800] : &ram_[0x0800]);
-			page(0x40, 0xc0,
-				state.base.read ? &aux_ram_[0x4000] : &ram_[0x4000],
-				state.base.write ? &aux_ram_[0x4000] : &ram_[0x4000]);
+				uint8_t *const ram = zero_state ? aux_ram_ : ram_;
+				uint8_t *const rom = is_iie() ? &rom_[3840] : rom_.data();
 
-			page(0x04, 0x08,
-				state.region_04_08.read ? &aux_ram_[0x0400] : &ram_[0x0400],
-				state.region_04_08.write ? &aux_ram_[0x0400] : &ram_[0x0400]);
+				// Which way the region here is mapped to be banks 1 and 2 is
+				// arbitrary.
+				page(0xd0, 0xe0,
+					language_state.read ? &ram[language_state.bank2 ? 0xd000 : 0xc000] : rom,
+					language_state.write ? nullptr : &ram[language_state.bank2 ? 0xd000 : 0xc000]);
 
-			page(0x20, 0x40,
-				state.region_20_40.read ? &aux_ram_[0x2000] : &ram_[0x2000],
-				state.region_20_40.write ? &aux_ram_[0x2000] : &ram_[0x2000]);
+				page(0xe0, 0x100,
+					language_state.read ? &ram[0xe000] : &rom[0x1000],
+					language_state.write ? nullptr : &ram[0xe000]);
+			}
+
+			if constexpr (bool(type & PagingType::CardArea)) {
+				const auto state = auxiliary_switches_.card_state();
+
+				page(0xc1, 0xc4, state.region_C1_C3 ? &rom_[0xc100 - 0xc100] : nullptr, nullptr);
+				read_pages_[0xc3] = state.region_C3 ? &rom_[0xc300 - 0xc100] : nullptr;
+				page(0xc4, 0xc8, state.region_C4_C8 ? &rom_[0xc400 - 0xc100]  : nullptr, nullptr);
+				page(0xc8, 0xd0, state.region_C8_D0 ? &rom_[0xc800 - 0xc100]  : nullptr, nullptr);
+			}
+
+			if constexpr (bool(type & PagingType::Main)) {
+				const auto state = auxiliary_switches_.main_state();
+
+				page(0x02, 0x04,
+					state.base.read ? &aux_ram_[0x0200] : &ram_[0x0200],
+					state.base.write ? &aux_ram_[0x0200] : &ram_[0x0200]);
+				page(0x08, 0x20,
+					state.base.read ? &aux_ram_[0x0800] : &ram_[0x0800],
+					state.base.write ? &aux_ram_[0x0800] : &ram_[0x0800]);
+				page(0x40, 0xc0,
+					state.base.read ? &aux_ram_[0x4000] : &ram_[0x4000],
+					state.base.write ? &aux_ram_[0x4000] : &ram_[0x4000]);
+
+				page(0x04, 0x08,
+					state.region_04_08.read ? &aux_ram_[0x0400] : &ram_[0x0400],
+					state.region_04_08.write ? &aux_ram_[0x0400] : &ram_[0x0400]);
+
+				page(0x20, 0x40,
+					state.region_20_40.read ? &aux_ram_[0x2000] : &ram_[0x2000],
+					state.region_20_40.write ? &aux_ram_[0x2000] : &ram_[0x2000]);
+			}
 		}
 
 		// MARK: - Keyboard and typing.
@@ -485,8 +485,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			// Set up the default memory blocks. On a II or II+ these values will never change.
 			// On a IIe they'll be affected by selection of auxiliary RAM.
-			set_main_paging();
-			set_zero_page_paging();
+			set_paging<PagingType::Main | PagingType::ZeroPage>();
 
 			// Set the whole card area to initially backed by nothing.
 			page(0xc0, 0xd0, nullptr, nullptr);

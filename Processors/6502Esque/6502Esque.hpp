@@ -77,7 +77,7 @@ enum BusOperation {
 	/// 65816: indicates that a read was signalled with VPA.
 	ReadProgram,
 	/// 6502: never signalled.
-	/// 65816: indicates that a read was signalled with VPB.
+	/// 65816: indicates that a read was signalled with VPB and VDA.
 	ReadVector,
 	/// 6502: never signalled.
 	/// 65816: indicates that a read was signalled, but neither VDA nor VPA were active.

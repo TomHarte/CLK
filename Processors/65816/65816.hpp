@@ -45,7 +45,8 @@ class ProcessorBase: protected ProcessorStorage {
 		inline bool get_is_resetting() const;
 
 		/*!
-			Returns the current state of all lines not ordinarily pushed to the BusHandler.
+			Returns the current state of all lines not ordinarily pushed to the BusHandler,
+			as listed in the ExtendedBusOutput enum.
 		*/
 		inline int get_extended_bus_output();
 
@@ -53,6 +54,12 @@ class ProcessorBase: protected ProcessorStorage {
 			Provided for symmetry with the 6502; a 65816 is never jammed.
 		*/
 		inline bool is_jammed() const;
+
+		/*!
+			FOR TESTING PURPOSES ONLY: forces the processor into a state where
+			the next thing it intends to do is fetch a new opcode.
+		*/
+		inline void restart_operation_fetch();
 
 		void set_value_of_register(Register r, uint16_t value);
 		uint16_t get_value_of_register(Register r) const;

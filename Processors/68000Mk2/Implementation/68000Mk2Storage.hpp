@@ -25,7 +25,7 @@ struct ProcessorBase: public InstructionSet::M68k::NullFlowController {
 	ProcessorBase(const ProcessorBase& rhs) = delete;
 	ProcessorBase& operator=(const ProcessorBase& rhs) = delete;
 
-	int state_ = std::numeric_limits<int>::min();
+	int state_ = 0;
 
 	/// Counts time left on the clock before the current batch of processing
 	/// is complete; may be less than zero.
