@@ -24,7 +24,7 @@ namespace MC68000Mk2 {
 /// me for their purpose rather than automatically by file position.
 /// These are negative to avoid ambiguity with the other group.
 enum ExecutionState: int {
-	Reset			= std::numeric_limits<int>::min(),
+	Reset,
 	Decode,
 	WaitForDTACK,
 	WaitForInterrupt,
@@ -189,6 +189,8 @@ enum ExecutionState: int {
 	MOVE_b, MOVE_w,
 	AddressingDispatch(MOVE_bw),	MOVE_bw_AbsoluteLong_prefetch_first,
 	AddressingDispatch(MOVE_l),		MOVE_l_AbsoluteLong_prefetch_first,
+
+	Max
 };
 
 #undef AddressingDispatch
@@ -214,7 +216,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Check whether all remaining time has been expended; if so then exit, having set this line up as
 	// the next resumption point.
-#define ConsiderExit()	if(time_remaining_ < HalfCycles(0)) { state_ = __COUNTER__+1; return; } [[fallthrough]]; case __COUNTER__:
+#define ConsiderExit()	if(time_remaining_ < HalfCycles(0)) { state_ = ExecutionState::Max+__COUNTER__+1; return; } [[fallthrough]]; case ExecutionState::Max+__COUNTER__:
 
 	// Subtracts `n` half-cycles from `time_remaining_`; if permit_overrun is false, also ConsiderExit()
 #define Spend(n)		time_remaining_ -= (n); if constexpr (!permit_overrun) ConsiderExit()
@@ -296,11 +298,11 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	if constexpr (!dtack_is_implicit && !dtack_ && !vpa_ && !berr_) {	\
 		awaiting_dtack = x;												\
 		awaiting_dtack.length = HalfCycles(2);							\
-		post_dtack_state_ = __COUNTER__+1;								\
+		post_dtack_state_ = ExecutionState::Max+__COUNTER__+1;								\
 		state_ = ExecutionState::WaitForDTACK;							\
 		break;															\
 	}																	\
-	[[fallthrough]]; case __COUNTER__:
+	[[fallthrough]]; case ExecutionState::Max+__COUNTER__:
 
 	// Performs the bus operation provided, which will be one with a
 	// SelectWord or SelectByte operation, stretching it to match the E
