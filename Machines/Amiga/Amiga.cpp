@@ -11,7 +11,7 @@
 #include "../../Activity/Source.hpp"
 #include "../MachineTypes.hpp"
 
-#include "../../Processors/68000/68000.hpp"
+#include "../../Processors/68000Mk2/68000Mk2.hpp"
 
 #include "../../Analyser/Static/Amiga/Target.hpp"
 
@@ -41,7 +41,7 @@ namespace Amiga {
 
 class ConcreteMachine:
 	public Activity::Source,
-	public CPU::MC68000::BusHandler,
+	public CPU::MC68000Mk2::BusHandler,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
@@ -80,8 +80,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - MC68000::BusHandler.
-		using Microcycle = CPU::MC68000::Microcycle;
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int) {
+		template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 
 			// Do a quick advance check for Chip RAM access; add a suitable delay if required.
 			HalfCycles total_length;
@@ -97,7 +96,7 @@ class ConcreteMachine:
 			// Check for assertion of reset.
 			if(cycle.operation & Microcycle::Reset) {
 				memory_.reset();
-				LOG("Reset; PC is around " << PADHEX(8) << mc68000_.get_state().program_counter);
+				LOG("Reset; PC is around " << PADHEX(8) << mc68000_.get_state().registers.program_counter);
 			}
 
 			// Autovector interrupts.
@@ -182,7 +181,7 @@ class ConcreteMachine:
 		}
 
 	private:
-		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
+		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
 
 		// MARK: - Memory map.
 
@@ -218,6 +217,7 @@ class ConcreteMachine:
 
 		void run_for(const Cycles cycles) {
 			mc68000_.run_for(cycles);
+			flush();
 		}
 
 		// MARK: - MachineTypes::MouseMachine.
