@@ -13,6 +13,7 @@
 		4B0333B02094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
 		4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B049CDC1DA3C82F00322067 /* BCDTest.swift */; };
 		4B04C899285E3DC800AA8FD6 /* 65816ComparativeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B04C898285E3DC800AA8FD6 /* 65816ComparativeTests.mm */; };
+		4B04C89F2870BDEC00AA8FD6 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B04C89E2870BDDD00AA8FD6 /* ScanTarget.cpp */; };
 		4B051C912669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
 		4B051C922669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
 		4B051C93266D9D6900CA44E8 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
@@ -1113,6 +1114,8 @@
 		4B049CDC1DA3C82F00322067 /* BCDTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BCDTest.swift; sourceTree = "<group>"; };
 		4B04B65622A58CB40006AB58 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4B04C898285E3DC800AA8FD6 /* 65816ComparativeTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = 65816ComparativeTests.mm; sourceTree = "<group>"; };
+		4B04C89D2870BDDD00AA8FD6 /* ScanTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScanTarget.hpp; sourceTree = "<group>"; };
+		4B04C89E2870BDDD00AA8FD6 /* ScanTarget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScanTarget.cpp; sourceTree = "<group>"; };
 		4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ROMCatalogue.cpp; sourceTree = "<group>"; };
 		4B051C5926670A9300CA44E8 /* ROMCatalogue.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ROMCatalogue.hpp; sourceTree = "<group>"; };
 		4B051C94266EF50200CA44E8 /* AppleIIController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppleIIController.swift; sourceTree = "<group>"; };
@@ -2263,6 +2266,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4B04C89C2870BDDD00AA8FD6 /* SoftwareRendering */ = {
+			isa = PBXGroup;
+			children = (
+				4B04C89D2870BDDD00AA8FD6 /* ScanTarget.hpp */,
+				4B04C89E2870BDDD00AA8FD6 /* ScanTarget.cpp */,
+			);
+			path = SoftwareRendering;
+			sourceTree = "<group>";
+		};
 		4B051C9F2676F52200CA44E8 /* Enterprise */ = {
 			isa = PBXGroup;
 			children = (
@@ -2731,6 +2743,7 @@
 				4B0CCC411C62D0B3001CAC5F /* CRT */,
 				4BD191D5219113B80042E144 /* OpenGL */,
 				4BB8616B24E22DC500A00E03 /* ScanTargets */,
+				4B04C89C2870BDDD00AA8FD6 /* SoftwareRendering */,
 				4BD060A41FE49D3C006E14BE /* Speaker */,
 			);
 			name = Outputs;
@@ -5643,6 +5656,7 @@
 				4BBB70A5202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
 				4B8318BC22D3E588006DB630 /* DisplayMetrics.cpp in Sources */,
 				4BEDA40E25B2844B000C2DBD /* Decoder.cpp in Sources */,
+				4B04C89F2870BDEC00AA8FD6 /* ScanTarget.cpp in Sources */,
 				4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */,
 				4BE0A3EF237BB170002AB46F /* ST.cpp in Sources */,
 				4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */,
