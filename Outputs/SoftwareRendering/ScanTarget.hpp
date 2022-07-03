@@ -25,13 +25,14 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// The following are all overridden from Outputs::Display::ScanTarget;
 		// some notes on their meaning to this specific scan target are given below.
 
-		void set_modals(Modals) override {}
-		Scan *begin_scan() override { return *current_scan_; }
+		void set_modals(Modals) override;
+		Scan *begin_scan() override { return &current_scan_; }
 		uint8_t *begin_data(size_t, size_t) override { return nullptr; }
 
 		//
 		void submit() final;
 
+		template <InputDataType, DisplayType, ColourSpace> void process();
 
 		Scan current_scan_;
 
