@@ -95,6 +95,9 @@ SOURCES += glob.glob('../../Machines/Sinclair/ZXSpectrum/*.cpp')
 SOURCES += glob.glob('../../Outputs/*.cpp')
 SOURCES += glob.glob('../../Outputs/CRT/*.cpp')
 SOURCES += glob.glob('../../Outputs/ScanTargets/*.cpp')
+
+SOURCES += glob.glob('../../Outputs/SoftwareRendering/*.cpp')
+
 SOURCES += glob.glob('../../Outputs/OpenGL/*.cpp')
 SOURCES += glob.glob('../../Outputs/OpenGL/Primitives/*.cpp')
 
