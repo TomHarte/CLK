@@ -23,5 +23,6 @@ void ScanTarget::set_modals(Modals m) {
 }
 
 void ScanTarget::submit() {
-	printf("");
+	scan_buffer_pointer_ = sample_buffer_pointer_ = 0;
+	has_failed_ = false;
 }
