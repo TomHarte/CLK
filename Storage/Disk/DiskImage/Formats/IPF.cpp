@@ -25,7 +25,7 @@ constexpr uint32_t block(const char (& src)[5]) {
 	);
 }
 
-constexpr size_t block_size(Storage::FileHolder &file, uint8_t header) {
+size_t block_size(Storage::FileHolder &file, uint8_t header) {
 	uint8_t size_width = header >> 5;
 	size_t length = 0;
 	while(size_width--) {
