@@ -478,6 +478,18 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 	QAction *sVideoAction = nullptr;
 	QAction *rgbAction = nullptr;
 
+	// Add the fullscreen toggle.
+	QAction *const fullscreenToggleAction = new QAction(tr("Toggle fullscreen"));
+	fullscreenToggleAction->setShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_F));
+	displayMenu->addAction(fullscreenToggleAction);
+	connect(fullscreenToggleAction, &QAction::triggered, this, [=] {
+		if(window()->isFullScreen()) {
+			window()->showNormal();
+		} else {
+			window()->showFullScreen();
+		}
+	});
+
 	// Add all requested actions.
 #define Add(name, action)								\
 	if(!name.empty()) {									\
