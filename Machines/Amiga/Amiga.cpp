@@ -209,14 +209,17 @@ class ConcreteMachine:
 			chipset_.set_scan_target(scan_target);
 		}
 
-		Outputs::Display::ScanStatus get_scaled_scan_status() const {
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
 			return chipset_.get_scaled_scan_status();
 		}
 
 		// MARK: - MachineTypes::TimedMachine.
 
-		void run_for(const Cycles cycles) {
+		void run_for(const Cycles cycles) final {
 			mc68000_.run_for(cycles);
+		}
+
+		void flush_output() final {
 			flush();
 		}
 
@@ -228,7 +231,7 @@ class ConcreteMachine:
 
 		// MARK: - MachineTypes::JoystickMachine.
 
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return chipset_.get_joysticks();
 		}
 

@@ -61,6 +61,9 @@ class TimedMachine {
 		virtual float get_confidence() { return 0.5f; }
 		virtual std::string debug_type() { return ""; }
 
+		/// Ensures all locally-buffered output is posted onward.
+		virtual void flush_output() {}
+
 	protected:
 		/// Runs the machine for @c cycles.
 		virtual void run_for(const Cycles cycles) = 0;
