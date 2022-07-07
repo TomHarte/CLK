@@ -20,6 +20,11 @@ inline Nanos nanos_now() {
 	return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
+inline Seconds seconds(Nanos nanos) {
+	return double(nanos) / 1e9;
+}
+
 }
 
 #endif /* TimeTypes_h */
+

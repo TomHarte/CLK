@@ -15,7 +15,6 @@ class MachineDocument:
 	NSWindowDelegate,
 	CSMachineDelegate,
 	CSScanTargetViewResponderDelegate,
-	CSAudioQueueDelegate,
 	CSROMReciverViewDelegate
 {
 	// MARK: - Mutual Exclusion.
@@ -274,15 +273,10 @@ class MachineDocument:
 			if self.audioQueue == nil || self.audioQueue.samplingRate != selectedSamplingRate || self.audioQueue != self.machine.audioQueue {
 				self.machine.audioQueue = nil
 				self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate), isStereo:isStereo)
-				self.audioQueue.delegate = self
 				self.machine.audioQueue = self.audioQueue
 				self.machine.setAudioSamplingRate(Float(selectedSamplingRate), bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
 			}
 		}
-	}
-
-	/// Responds to the CSAudioQueueDelegate dry-queue warning message by requesting a machine update.
-	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
 	}
 
 	// MARK: - Pasteboard Forwarding.

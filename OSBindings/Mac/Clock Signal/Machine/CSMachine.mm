@@ -37,9 +37,16 @@
 
 namespace {
 
-struct Updater {};
+struct MachineUpdater {
+	void perform(Time::Nanos duration) {
+		// Top out at 0.1 seconds; this is a safeguard against a negative
+		// feedback loop if emulation starts running slowly.
+		const auto seconds = std::min(Time::seconds(duration), 0.1);
+		machine->run_for(seconds);
+	}
 
-Concurrency::AsyncUpdater<Updater> updater();
+	MachineTypes::TimedMachine *machine = nullptr;
+};
 
 }
 
@@ -47,6 +54,10 @@ Concurrency::AsyncUpdater<Updater> updater();
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
 - (void)addLED:(NSString *)led isPersistent:(BOOL)isPersistent;
+@end
+
+@interface CSMachine() <CSAudioQueueDelegate>
+- (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue;
 @end
 
 struct LockProtectedDelegate {
@@ -106,6 +117,7 @@ struct ActivityObserver: public Activity::Observer {
 	CSStaticAnalyser *_analyser;
 	std::unique_ptr<Machine::DynamicMachine> _machine;
 	MachineTypes::JoystickMachine *_joystickMachine;
+	Concurrency::AsyncUpdater<MachineUpdater> updater;
 
 	CSJoystickManager *_joystickManager;
 	NSMutableArray<CSMachineLED *> *_leds;
@@ -142,6 +154,7 @@ struct ActivityObserver: public Activity::Observer {
 			[missingROMs appendString:[NSString stringWithUTF8String:wstring_converter.to_bytes(description).c_str()]];
 			return nil;
 		}
+		updater.performer.machine = _machine->timed_machine();
 
 		// Use the keyboard as a joystick if the machine has no keyboard, or if it has a 'non-exclusive' keyboard.
 		_inputMode =
@@ -217,6 +230,11 @@ struct ActivityObserver: public Activity::Observer {
 		}
 		return NO;
 	}
+}
+
+- (void)setAudioQueue:(CSAudioQueue *)audioQueue {
+	_audioQueue = audioQueue;
+	audioQueue.delegate = self;
 }
 
 - (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo {
@@ -442,9 +460,12 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)applyInputEvent:(dispatch_block_t)event {
-	@synchronized(_inputEvents) {
-		[_inputEvents addObject:event];
-	}
+	updater.update([event] {
+		event();
+	});
+//	@synchronized(_inputEvents) {
+//		[_inputEvents addObject:event];
+//	}
 }
 
 - (void)clearAllKeys {
@@ -655,9 +676,21 @@ struct ActivityObserver: public Activity::Observer {
 
 #pragma mark - Timer
 
+- (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
+	// TODO: Make audio flushes overt, and do one here.
+	updater.update([] {});
+}
+
 - (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
+	updater.update([self] {
+		dispatch_async(dispatch_get_main_queue(), ^{
+			[self.view updateBacking];
+			[self.view draw];
+		});
+	});
+
 	// First order of business: grab a timestamp.
-	const auto timeNow = Time::nanos_now();
+/*	const auto timeNow = Time::nanos_now();
 
 	BOOL isSyncLocking;
 	@synchronized(self) {
@@ -682,13 +715,14 @@ struct ActivityObserver: public Activity::Observer {
 	// Draw the current output. (TODO: do this within the timer if either raster racing or, at least, sync matching).
 	if(!isSyncLocking) {
 		[self.view draw];
-	}
+	}*/
 }
 
-#define TICKS	1000
+#define TICKS	120
 
 - (void)start {
-	__block auto lastTime = Time::nanos_now();
+//	updater.performer.machine = _machine->timed_machine();
+/*	__block auto lastTime = Time::nanos_now();
 
 	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
 		// Grab the time now and, therefore, the amount of time since the timer last fired
@@ -762,7 +796,7 @@ struct ActivityObserver: public Activity::Observer {
 		}
 
 		lastTime = timeNow;
-	} interval:uint64_t(1000000000) / uint64_t(TICKS)];
+	} interval:uint64_t(1000000000) / uint64_t(TICKS)];*/
 }
 
 #undef TICKS

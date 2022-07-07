@@ -20,7 +20,7 @@ namespace Concurrency {
 template <typename Performer> class AsyncUpdater {
 	public:
 		template <typename... Args> AsyncUpdater(Args&&... args) :
-			performer_(std::forward<Args>(args)...),
+			performer(std::forward<Args>(args)...),
 			actions_(std::make_unique<ActionVector>()),
 			performer_thread_{
 				[this] {
@@ -30,7 +30,7 @@ template <typename Performer> class AsyncUpdater {
 					while(!should_quit) {
 						// Wait for new actions to be signalled, and grab them.
 						std::unique_lock lock(condition_mutex_);
-						while(!actions_) {
+						while(actions_->empty()) {
 							condition_.wait(lock);
 						}
 						std::swap(actions, actions_);
@@ -38,7 +38,7 @@ template <typename Performer> class AsyncUpdater {
 
 						// Update to now.
 						auto time_now = Time::nanos_now();
-						performer_.perform(time_now - last_fired);
+						performer.perform(time_now - last_fired);
 						last_fired = time_now;
 
 						// Perform the actions.
@@ -68,10 +68,10 @@ template <typename Performer> class AsyncUpdater {
 			performer_thread_.join();
 		}
 
-	private:
 		// The object that will actually receive time advances.
-		Performer performer_;
+		Performer performer;
 
+	private:
 		// The list of actions waiting be performed. These will be elided,
 		// increasing their latency, if the emulation thread falls behind.
 		using ActionVector = std::vector<std::function<void(void)>>;
