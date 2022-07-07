@@ -677,7 +677,6 @@ struct ActivityObserver: public Activity::Observer {
 #pragma mark - Timer
 
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
-	// TODO: Make audio flushes overt, and do one here.
 	updater.update([self] {
 		updater.performer.machine->flush_output();
 	});
@@ -691,6 +690,8 @@ struct ActivityObserver: public Activity::Observer {
 			[self.view draw];
 		});
 	});
+
+	// TODO: restory sync locking; see below.
 
 	// First order of business: grab a timestamp.
 /*	const auto timeNow = Time::nanos_now();
@@ -724,6 +725,10 @@ struct ActivityObserver: public Activity::Observer {
 #define TICKS	120
 
 - (void)start {
+//	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
+//		updater.update([] {});
+//	} interval:uint64_t(1000000000) / uint64_t(TICKS)];
+
 //	updater.performer.machine = _machine->timed_machine();
 /*	__block auto lastTime = Time::nanos_now();
 
@@ -805,8 +810,9 @@ struct ActivityObserver: public Activity::Observer {
 #undef TICKS
 
 - (void)stop {
-	[_timer invalidate];
-	_timer = nil;
+	updater.stop();
+//	[_timer invalidate];
+//	_timer = nil;
 }
 
 + (BOOL)attemptInstallROM:(NSURL *)url {

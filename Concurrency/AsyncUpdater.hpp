@@ -62,10 +62,16 @@ template <typename Performer> class AsyncUpdater {
 			condition_.notify_all();
 		}
 
+		void stop() {
+			if(performer_thread_.joinable()) {
+				should_quit = true;
+				update([] {});
+				performer_thread_.join();
+			}
+		}
+
 		~AsyncUpdater() {
-			should_quit = true;
-			update([] {});
-			performer_thread_.join();
+			stop();
 		}
 
 		// The object that will actually receive time advances.
