@@ -19,19 +19,21 @@ namespace Concurrency {
 
 template <typename Performer> class AsyncUpdater {
 	public:
-		template <typename... Args> AsyncUpdater(Args&&... args)
-			: performer_(std::forward<Args>(args)...),
+		template <typename... Args> AsyncUpdater(Args&&... args) :
+			performer_(std::forward<Args>(args)...),
+			actions_(std::make_unique<ActionVector>()),
 			performer_thread_{
 				[this] {
 					Time::Nanos last_fired = Time::nanos_now();
+					auto actions = std::make_unique<ActionVector>();
 
 					while(!should_quit) {
-						// Wait for a new action to be signalled, and grab it.
+						// Wait for new actions to be signalled, and grab them.
 						std::unique_lock lock(condition_mutex_);
-						while(actions_.empty()) {
+						while(!actions_) {
 							condition_.wait(lock);
 						}
-						auto action = actions_.pop_back();
+						std::swap(actions, actions_);
 						lock.unlock();
 
 						// Update to now.
@@ -39,8 +41,11 @@ template <typename Performer> class AsyncUpdater {
 						performer_.perform(time_now - last_fired);
 						last_fired = time_now;
 
-						// Perform the action.
-						action();
+						// Perform the actions.
+						for(const auto& action: *actions) {
+							action();
+						}
+						actions->clear();
 					}
 				}
 			} {}
@@ -49,9 +54,11 @@ template <typename Performer> class AsyncUpdater {
 		///
 		/// @c post_action will be performed asynchronously, on the same
 		/// thread as the performer.
+		///
+		/// Actions may be elided,
 		void update(const std::function<void(void)> &post_action) {
 			std::lock_guard guard(condition_mutex_);
-			actions_.push_back(post_action);
+			actions_->push_back(post_action);
 			condition_.notify_all();
 		}
 
@@ -62,12 +69,18 @@ template <typename Performer> class AsyncUpdater {
 		}
 
 	private:
+		// The object that will actually receive time advances.
 		Performer performer_;
 
+		// The list of actions waiting be performed. These will be elided,
+		// increasing their latency, if the emulation thread falls behind.
+		using ActionVector = std::vector<std::function<void(void)>>;
+		std::unique_ptr<ActionVector> actions_;
+
+		// Necessary synchronisation parts.
 		std::thread performer_thread_;
 		std::mutex condition_mutex_;
 		std::condition_variable condition_;
-		std::vector<std::function<void(void)>> actions_;
 		std::atomic<bool> should_quit = false;
 };
 
