@@ -678,11 +678,14 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
 	// TODO: Make audio flushes overt, and do one here.
-	updater.update([] {});
+	updater.update([self] {
+		updater.performer.machine->flush_output();
+	});
 }
 
 - (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
 	updater.update([self] {
+		updater.performer.machine->flush_output();
 		dispatch_async(dispatch_get_main_queue(), ^{
 			[self.view updateBacking];
 			[self.view draw];

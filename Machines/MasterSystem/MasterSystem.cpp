@@ -210,6 +210,12 @@ class ConcreteMachine:
 			z80_.run_for(cycles);
 		}
 
+		void flush_output() final {
+			vdp_.flush();
+			update_audio();
+			audio_queue_.perform();
+		}
+
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			if(vdp_ += cycle.length) {
 				z80_.set_interrupt_line(vdp_->get_interrupt_line(), vdp_.last_sequence_point_overrun());
@@ -383,9 +389,6 @@ class ConcreteMachine:
 		}
 
 		void flush() {
-			vdp_.flush();
-			update_audio();
-			audio_queue_.perform();
 		}
 
 		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
