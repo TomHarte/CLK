@@ -24,6 +24,7 @@
 
 #include "../../../../ClockReceiver/TimeTypes.hpp"
 #include "../../../../ClockReceiver/ScanSynchroniser.hpp"
+#include "../../../../Concurrency/AsyncUpdater.hpp"
 
 #import "CSStaticAnalyser+TargetVector.h"
 #import "NSBundle+DataResource.h"
@@ -33,6 +34,14 @@
 #include <bitset>
 #include <codecvt>
 #include <locale>
+
+namespace {
+
+struct Updater {};
+
+Concurrency::AsyncUpdater<Updater> updater();
+
+}
 
 @interface CSMachine() <CSScanTargetViewDisplayLinkDelegate>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
