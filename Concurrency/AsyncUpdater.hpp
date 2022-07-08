@@ -84,10 +84,13 @@ template <typename Performer> class AsyncUpdater {
 		std::unique_ptr<ActionVector> actions_;
 
 		// Necessary synchronisation parts.
-		std::thread performer_thread_;
+		std::atomic<bool> should_quit = false;
 		std::mutex condition_mutex_;
 		std::condition_variable condition_;
-		std::atomic<bool> should_quit = false;
+
+		// Ensure the thread isn't constructed until after the mutex
+		// and condition variable.
+		std::thread performer_thread_;
 };
 
 
