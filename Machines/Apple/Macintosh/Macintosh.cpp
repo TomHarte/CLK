@@ -190,7 +190,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		void run_for(const Cycles cycles) final {
 			mc68000_.run_for(cycles);
-			flush();
 		}
 
 		using Microcycle = CPU::MC68000Mk2::Microcycle;
@@ -366,7 +365,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			return delay;
 		}
 
-		void flush() {
+		void flush_output(Output) {
 			// Flush the video before the audio queue; in a Mac the
 			// video is responsible for providing part of the
 			// audio signal, so the two aren't as distinct as in

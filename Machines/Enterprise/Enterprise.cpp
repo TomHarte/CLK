@@ -539,10 +539,14 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 			return penalty;
 		}
 
-		void flush() {
-			nick_.flush();
-			update_audio();
-			audio_queue_.perform();
+		void flush_output(Output output) final {
+			if(int(output) & int(Output::Video)) {
+				nick_.flush();
+			}
+			if(int(output) & int(Output::Audio)) {
+				update_audio();
+				audio_queue_.perform();
+			}
 		}
 
 	private:

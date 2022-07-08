@@ -176,10 +176,6 @@ class ConcreteMachine:
 			return total_length - cycle.length;
 		}
 
-		void flush() {
-			chipset_.flush();
-		}
-
 	private:
 		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
 
@@ -220,7 +216,7 @@ class ConcreteMachine:
 		}
 
 		void flush_output(Output) final {
-			flush();
+			chipset_.flush();
 		}
 
 		// MARK: - MachineTypes::MouseMachine.

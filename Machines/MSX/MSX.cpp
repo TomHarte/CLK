@@ -615,10 +615,14 @@ class ConcreteMachine:
 			return addition;
 		}
 
-		void flush() {
-			vdp_.flush();
-			update_audio();
-			audio_queue_.perform();
+		void flush_output(Output output) final {
+			if(int(output) & int(Output::Video)) {
+				vdp_.flush();
+			}
+			if(int(output) & int(Output::Audio)) {
+				update_audio();
+				audio_queue_.perform();
+			}
 		}
 
 		void set_keyboard_line(int line) {

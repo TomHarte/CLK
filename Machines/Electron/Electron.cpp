@@ -501,10 +501,14 @@ template <bool has_scsi_bus> class ConcreteMachine:
 			return Cycles(int(cycles));
 		}
 
-		forceinline void flush() {
-			video_.flush();
-			update_audio();
-			audio_queue_.perform();
+		void flush_output(Output output) final {
+			if(int(output) & int(Output::Video)) {
+				video_.flush();
+			}
+			if(int(output) & int(Output::Audio)) {
+				update_audio();
+				audio_queue_.perform();
+			}
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {

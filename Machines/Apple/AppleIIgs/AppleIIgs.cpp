@@ -326,13 +326,17 @@ class ConcreteMachine:
 			m65816_.run_for(cycles);
 		}
 
-		void flush() {
-			video_.flush();
+		void flush_output(Output output) final {
 			iwm_.flush();
 			adb_glu_.flush();
 
-			AudioUpdater updater(this);
-			audio_queue_.perform();
+			if(int(output) & int(Output::Video)) {
+				video_.flush();
+			}
+			if(int(output) & int(Output::Audio)) {
+				AudioUpdater updater(this);
+				audio_queue_.perform();
+			}
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *target) override {

@@ -263,10 +263,15 @@ template<Model model> class ConcreteMachine:
 			}
 		}
 
-		void flush() {
-			video_.flush();
-			update_audio();
-			audio_queue_.perform();
+		void flush_output(Output output) override {
+			if(int(output) & int(Output::Video)) {
+				video_.flush();
+			}
+
+			if(int(output) & int(Output::Audio)) {
+				update_audio();
+				audio_queue_.perform();
+			}
 
 			if constexpr (model == Model::Plus3) {
 				fdc_.flush();

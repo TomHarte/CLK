@@ -392,9 +392,6 @@ class ConcreteMachine:
 			return HalfCycles(0);
 		}
 
-		void flush() {
-		}
-
 		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return joysticks_;
 		}
