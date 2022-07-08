@@ -210,10 +210,14 @@ class ConcreteMachine:
 			z80_.run_for(cycles);
 		}
 
-		void flush_output() final {
-			vdp_.flush();
-			update_audio();
-			audio_queue_.perform();
+		void flush_output(Output output) final {
+			if(int(output) & int(Output::Video)) {
+				vdp_.flush();
+			}
+			if(int(output) & int(Output::Audio)) {
+				update_audio();
+				audio_queue_.perform();
+			}
 		}
 
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {

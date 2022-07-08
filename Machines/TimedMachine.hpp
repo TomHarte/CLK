@@ -61,8 +61,13 @@ class TimedMachine {
 		virtual float get_confidence() { return 0.5f; }
 		virtual std::string debug_type() { return ""; }
 
-		/// Ensures all locally-buffered output is posted onward.
-		virtual void flush_output() {}
+		enum class Output {
+			Video = 1 << 0,
+			Audio = 1 << 1
+		};
+		/// Ensures all locally-buffered output is posted onward for the types of output indicated
+		/// by the bitfield argument.
+		virtual void flush_output(Output) {}
 
 	protected:
 		/// Runs the machine for @c cycles.

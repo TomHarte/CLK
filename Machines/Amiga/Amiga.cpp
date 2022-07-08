@@ -219,7 +219,7 @@ class ConcreteMachine:
 			mc68000_.run_for(cycles);
 		}
 
-		void flush_output() final {
+		void flush_output(Output) final {
 			flush();
 		}
 

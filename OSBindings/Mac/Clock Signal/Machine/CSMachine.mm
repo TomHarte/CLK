@@ -678,13 +678,13 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
 	updater.update([self] {
-		updater.performer.machine->flush_output();
+		updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
 	});
 }
 
 - (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
 	updater.update([self] {
-		updater.performer.machine->flush_output();
+		updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Video);
 		dispatch_async(dispatch_get_main_queue(), ^{
 			[self.view updateBacking];
 			[self.view draw];
