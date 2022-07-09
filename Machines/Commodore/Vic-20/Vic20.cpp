@@ -620,11 +620,11 @@ class ConcreteMachine:
 			return Cycles(1);
 		}
 
-		void flush_output(Output output) final {
-			if(int(output) & int(Output::Video)) {
+		void flush_output(int outputs) final {
+			if(outputs & Output::Video) {
 				update_video();
 			}
-			if(int(output) & int(Output::Audio)) {
+			if(outputs & Output::Audio) {
 				mos6560_.flush();
 			}
 		}

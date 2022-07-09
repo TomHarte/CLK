@@ -578,11 +578,11 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 			return Cycles(1);
 		}
 
-		void flush_output(Output output) final {
-			if(int(output) & int(Output::Video)) {
+		void flush_output(int outputs) final {
+			if(outputs & Output::Video) {
 				video_.flush();
 			}
-			if(int(output) & int(Output::Audio)) {
+			if(outputs & Output::Audio) {
 				via_.flush();
 			}
 			diskii_.flush();

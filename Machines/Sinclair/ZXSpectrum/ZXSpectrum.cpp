@@ -263,12 +263,12 @@ template<Model model> class ConcreteMachine:
 			}
 		}
 
-		void flush_output(Output output) override {
-			if(int(output) & int(Output::Video)) {
+		void flush_output(int outputs) override {
+			if(outputs & Output::Video) {
 				video_.flush();
 			}
 
-			if(int(output) & int(Output::Audio)) {
+			if(outputs & Output::Audio) {
 				update_audio();
 				audio_queue_.perform();
 			}

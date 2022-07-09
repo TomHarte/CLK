@@ -1049,9 +1049,9 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		/// Fields requests to pump all output.
-		void flush_output(Output output) final {
+		void flush_output(int outputs) final {
 			// Just flush the AY.
-			if(int(output) & int(Output::Audio)) {
+			if(outputs & Output::Audio) {
 				ay_.update();
 				ay_.flush();
 			}

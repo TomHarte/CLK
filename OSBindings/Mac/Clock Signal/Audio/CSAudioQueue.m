@@ -8,6 +8,7 @@
 
 #import "CSAudioQueue.h"
 @import AudioToolbox;
+#include <stdatomic.h>
 
 #define AudioQueueBufferMaxLength		8192
 #define NumberOfStoredAudioQueueBuffer	16
@@ -29,7 +30,7 @@ static NSLock *CSAudioQueueDeallocLock;
 	AudioQueueRef _audioQueue;
 	NSLock *_storedBuffersLock;
 	CSWeakAudioQueuePointer *_weakPointer;
-	int _enqueuedBuffers;
+	atomic_int _enqueuedBuffers;
 }
 
 #pragma mark - AudioQueue callbacks
@@ -39,14 +40,14 @@ static NSLock *CSAudioQueueDeallocLock;
 */
 - (BOOL)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer {
 	[_storedBuffersLock lock];
-	--_enqueuedBuffers;
+	const int buffers = atomic_fetch_add(&_enqueuedBuffers, -1);
 
 	// If that leaves nothing in the queue, re-enqueue whatever just came back in order to keep the
 	// queue going. AudioQueues seem to stop playing and never restart no matter how much encouragement
 	// if exhausted.
-	if(!_enqueuedBuffers) {
+	if(!buffers) {
 		AudioQueueEnqueueBuffer(theAudioQueue, buffer, 0, NULL);
-		++_enqueuedBuffers;
+		atomic_fetch_add(&_enqueuedBuffers, 1);
 	} else {
 		AudioQueueFreeBuffer(_audioQueue, buffer);
 	}
@@ -69,6 +70,10 @@ static void audioOutputCallback(
 		[CSAudioQueueDeallocLock unlock];
 		if(isRunningDry) [delegate audioQueueIsRunningDry:queue];
 	}
+}
+
+- (BOOL)isRunningDry {
+	return atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) < 2;
 }
 
 #pragma mark - Standard object lifecycle
@@ -158,11 +163,11 @@ static void audioOutputCallback(
 
 	[_storedBuffersLock lock];
 	// Don't enqueue more than 4 buffers ahead of now, to ensure not too much latency accrues.
-	if(_enqueuedBuffers > 4) {
+	if(atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) > 4) {
 		[_storedBuffersLock unlock];
 		return;
 	}
-	++_enqueuedBuffers;
+	atomic_fetch_add(&_enqueuedBuffers, 1);
 
 	AudioQueueBufferRef newBuffer;
 	AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes * 2, &newBuffer);

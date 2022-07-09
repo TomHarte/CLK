@@ -413,16 +413,16 @@ class ConcreteMachine:
 			return HalfCycles(0);
 		}
 
-		void flush_output(Output output) final {
+		void flush_output(int outputs) final {
 			dma_.flush();
 			mfp_.flush();
 			keyboard_acia_.flush();
 			midi_acia_.flush();
 
-			if(int(output) & int(Output::Video)) {
+			if(outputs & Output::Video) {
 				video_.flush();
 			}
-			if(int(output) & int(Output::Audio)) {
+			if(outputs & Output::Audio) {
 				update_audio();
 				audio_queue_.perform();
 			}

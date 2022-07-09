@@ -365,7 +365,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			return delay;
 		}
 
-		void flush_output(Output) {
+		void flush_output(int) {
 			// Flush the video before the audio queue; in a Mac the
 			// video is responsible for providing part of the
 			// audio signal, so the two aren't as distinct as in

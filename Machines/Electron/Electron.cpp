@@ -501,11 +501,11 @@ template <bool has_scsi_bus> class ConcreteMachine:
 			return Cycles(int(cycles));
 		}
 
-		void flush_output(Output output) final {
-			if(int(output) & int(Output::Video)) {
+		void flush_output(int outputs) final {
+			if(outputs & Output::Video) {
 				video_.flush();
 			}
-			if(int(output) & int(Output::Audio)) {
+			if(outputs & Output::Audio) {
 				update_audio();
 				audio_queue_.perform();
 			}

@@ -326,14 +326,14 @@ class ConcreteMachine:
 			m65816_.run_for(cycles);
 		}
 
-		void flush_output(Output output) final {
+		void flush_output(int outputs) final {
 			iwm_.flush();
 			adb_glu_.flush();
 
-			if(int(output) & int(Output::Video)) {
+			if(outputs & Output::Video) {
 				video_.flush();
 			}
-			if(int(output) & int(Output::Audio)) {
+			if(outputs & Output::Audio) {
 				AudioUpdater updater(this);
 				audio_queue_.perform();
 			}

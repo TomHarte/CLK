@@ -61,13 +61,13 @@ class TimedMachine {
 		virtual float get_confidence() { return 0.5f; }
 		virtual std::string debug_type() { return ""; }
 
-		enum class Output {
-			Video = 1 << 0,
-			Audio = 1 << 1
+		struct Output {
+			static constexpr int Video = 1 << 0;
+			static constexpr int Audio = 1 << 1;
 		};
 		/// Ensures all locally-buffered output is posted onward for the types of output indicated
-		/// by the bitfield argument.
-		virtual void flush_output(Output) {}
+		/// by the bitfield argument, which is comprised of flags from the namespace @c Output.
+		virtual void flush_output(int) {}
 
 	protected:
 		/// Runs the machine for @c cycles.

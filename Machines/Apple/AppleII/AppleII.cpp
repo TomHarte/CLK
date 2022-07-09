@@ -810,13 +810,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			return Cycles(1);
 		}
 
-		void flush_output(Output output) final {
+		void flush_output(int outputs) final {
 			update_just_in_time_cards();
 
-			if(int(output) & int(Output::Video)) {
+			if(outputs & Output::Video) {
 				update_video();
 			}
-			if(int(output) & int(Output::Audio)) {
+			if(outputs & Output::Audio) {
 				update_audio();
 				audio_queue_.perform();
 			}

@@ -215,7 +215,7 @@ class ConcreteMachine:
 			mc68000_.run_for(cycles);
 		}
 
-		void flush_output(Output) final {
+		void flush_output(int) final {
 			chipset_.flush();
 		}
 

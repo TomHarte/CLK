@@ -58,4 +58,9 @@
 */
 @property (nonatomic, readonly) NSUInteger preferredBufferSize;
 
+/*!
+	@returns @C YES if this queue is running low or is completely exhausted of new audio buffers.
+*/
+@property (atomic, readonly) BOOL isRunningDry;
+
 @end
