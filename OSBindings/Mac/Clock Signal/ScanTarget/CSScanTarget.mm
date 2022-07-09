@@ -939,12 +939,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 - (void)updateFrameBuffer {
 	// TODO: rethink BufferingScanTarget::perform. Is it now really just for guarding the modals?
-	_scanTarget.perform([=] {
-		const Outputs::Display::ScanTarget::Modals *const newModals = _scanTarget.new_modals();
-		if(newModals) {
-			[self setModals:*newModals];
-		}
-	});
+	if(_scanTarget.has_new_modals()) {
+		_scanTarget.perform([=] {
+			const Outputs::Display::ScanTarget::Modals *const newModals = _scanTarget.new_modals();
+			if(newModals) {
+				[self setModals:*newModals];
+			}
+		});
+	}
 
 	@synchronized(self) {
 		if(!_frameBufferRenderPass) return;

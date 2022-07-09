@@ -302,7 +302,7 @@ size_t BufferingScanTarget::write_area_data_size() const {
 void BufferingScanTarget::set_modals(Modals modals) {
 	perform([=] {
 		modals_ = modals;
-		modals_are_dirty_ = true;
+		modals_are_dirty_.store(true, std::memory_order::memory_order_relaxed);
 	});
 }
 
@@ -374,10 +374,12 @@ void BufferingScanTarget::set_line_buffer(Line *line_buffer, LineMetadata *metad
 }
 
 const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
-	if(!modals_are_dirty_) {
+	const auto modals_are_dirty = modals_are_dirty_.load(std::memory_order::memory_order_relaxed);
+	if(!modals_are_dirty) {
 		return nullptr;
 	}
-	modals_are_dirty_ = false;
+
+	modals_are_dirty_.store(false, std::memory_order::memory_order_relaxed);
 
 	// MAJOR SHARP EDGE HERE: assume that because the new_modals have been fetched then the caller will
 	// now ensure their texture buffer is appropriate. They might provide a new pointer and might now.
@@ -391,4 +393,8 @@ const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
 
 const Outputs::Display::ScanTarget::Modals &BufferingScanTarget::modals() const {
 	return modals_;
+}
+
+bool BufferingScanTarget::has_new_modals() const {
+	return modals_are_dirty_.load(std::memory_order::memory_order_relaxed);
 }
