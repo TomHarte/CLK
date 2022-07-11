@@ -678,10 +678,8 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
 	updater.update([self] {
-		updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Audio);// | MachineTypes::TimedMachine::Output::Video);
-//		dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
-//			[self.view updateBacking];
-//		});
+		updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Audio); /* | MachineTypes::TimedMachine::Output::Video);
+		[self.view updateBacking];*/
 	});
 }
 
@@ -692,9 +690,9 @@ struct ActivityObserver: public Activity::Observer {
 			outputs |= MachineTypes::TimedMachine::Output::Audio;
 		}
 		updater.performer.machine->flush_output(outputs);
+		[self.view updateBacking];
 
 		dispatch_async(dispatch_get_main_queue(), ^{
-			[self.view updateBacking];
 			[self.view draw];
 		});
 	});
