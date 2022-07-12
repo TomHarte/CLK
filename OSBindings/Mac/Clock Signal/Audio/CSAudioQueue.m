@@ -11,7 +11,6 @@
 #include <stdatomic.h>
 
 #define AudioQueueBufferMaxLength		8192
-#define NumberOfStoredAudioQueueBuffer	16
 
 @implementation CSAudioQueue {
 	AudioQueueRef _audioQueue;
@@ -57,22 +56,19 @@
 
 		_samplingRate = samplingRate;
 
-		// determine preferred buffer sizes
+		// Determine preferred buffer size as being the first power of two less than
 		_preferredBufferSize = AudioQueueBufferMaxLength;
 		while((Float64)_preferredBufferSize*100.0 > samplingRate) _preferredBufferSize >>= 1;
 
-		/*
-			Describe a mono 16bit stream of the requested sampling rate
-		*/
+		// Describe a 16bit stream of the requested sampling rate.
 		AudioStreamBasicDescription outputDescription;
 
 		outputDescription.mSampleRate = samplingRate;
+		outputDescription.mChannelsPerFrame = isStereo ? 2 : 1;
 
 		outputDescription.mFormatID = kAudioFormatLinearPCM;
 		outputDescription.mFormatFlags = kLinearPCMFormatFlagIsSignedInteger;
 
-
-		outputDescription.mChannelsPerFrame = isStereo ? 2 : 1;
 		outputDescription.mFramesPerPacket = 1;
 		outputDescription.mBytesPerFrame = 2 * outputDescription.mChannelsPerFrame;
 		outputDescription.mBytesPerPacket = outputDescription.mBytesPerFrame * outputDescription.mFramesPerPacket;
@@ -80,7 +76,7 @@
 
 		outputDescription.mReserved = 0;
 
-		// create an audio output queue along those lines; see -dealloc re: the CSWeakAudioQueuePointer
+		// Create an audio output queue along those lines.
 		__weak CSAudioQueue *weakSelf = self;
 		if(AudioQueueNewOutputWithDispatchQueue(
 				&_audioQueue,
