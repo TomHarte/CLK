@@ -151,6 +151,7 @@ struct MachineRunner {
 
 			if(split_and_sync) {
 				timed_machine->run_for(double(vsync_time - last_time_) / 1e9);
+				timed_machine->flush_output(MachineTypes::TimedMachine::Output::All);
 				timed_machine->set_speed_multiplier(
 					scan_synchroniser_.next_speed_multiplier(scan_producer->get_scan_status())
 				);
@@ -163,9 +164,11 @@ struct MachineRunner {
 				lock_guard.lock();
 
 				timed_machine->run_for(double(time_now - vsync_time) / 1e9);
+				timed_machine->flush_output(MachineTypes::TimedMachine::Output::All);
 			} else {
 				timed_machine->set_speed_multiplier(scan_synchroniser_.get_base_speed_multiplier());
 				timed_machine->run_for(double(time_now - last_time_) / 1e9);
+				timed_machine->flush_output(MachineTypes::TimedMachine::Output::All);
 			}
 			last_time_ = time_now;
 		}

@@ -68,6 +68,8 @@ class TimedMachine {
 		struct Output {
 			static constexpr int Video = 1 << 0;
 			static constexpr int Audio = 1 << 1;
+
+			static constexpr int All = Video | Audio;
 		};
 		/// Ensures all locally-buffered output is posted onward for the types of output indicated
 		/// by the bitfield argument, which is comprised of flags from the namespace @c Output.
