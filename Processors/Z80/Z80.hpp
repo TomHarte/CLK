@@ -399,12 +399,6 @@ class BusHandler {
 		HalfCycles perform_machine_cycle([[maybe_unused]] const PartialMachineCycle &cycle) {
 			return HalfCycles(0);
 		}
-
-		/*!
-			Announces completion of all the cycles supplied to a .run_for request on the Z80. Intended to allow
-			bus handlers to perform any deferred output work.
-		*/
-		void flush() {}
 };
 
 #include "Implementation/Z80Storage.hpp"

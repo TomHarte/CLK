@@ -357,8 +357,6 @@ class BusHandler {
 			return HalfCycles(0);
 		}
 
-		void flush() {}
-
 		/*!
 			Provides information about the path of execution if enabled via the template.
 		*/

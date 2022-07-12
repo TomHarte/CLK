@@ -176,8 +176,6 @@ struct BusHandler {
 		return HalfCycles(0);
 	}
 
-	void flush() {}
-
 	int transaction_delay;
 	int instructions;
 
