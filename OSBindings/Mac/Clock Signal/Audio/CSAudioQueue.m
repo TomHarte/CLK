@@ -42,10 +42,10 @@ static NSLock *CSAudioQueueDeallocLock;
 	[_storedBuffersLock lock];
 	const int buffers = atomic_fetch_add(&_enqueuedBuffers, -1);
 
-	// If that leaves nothing in the queue, re-enqueue whatever just came back in order to keep the
-	// queue going. AudioQueues seem to stop playing and never restart no matter how much encouragement
-	// if exhausted.
-	if(!buffers) {
+	// If that suggests the queue may be exhausted soon, re-enqueue whatever just came back in order to
+	// keep the queue going. AudioQueues seem to stop playing and never restart no matter how much
+	// encouragement if exhausted.
+	if(buffers == 1) {
 		AudioQueueEnqueueBuffer(theAudioQueue, buffer, 0, NULL);
 		atomic_fetch_add(&_enqueuedBuffers, 1);
 	} else {
@@ -73,7 +73,7 @@ static void audioOutputCallback(
 }
 
 - (BOOL)isRunningDry {
-	return atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) < 2;
+	return atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) < 3;
 }
 
 #pragma mark - Standard object lifecycle
@@ -167,7 +167,7 @@ static void audioOutputCallback(
 		[_storedBuffersLock unlock];
 		return;
 	}
-	atomic_fetch_add(&_enqueuedBuffers, 1);
+	const int enqueuedBuffers = atomic_fetch_add(&_enqueuedBuffers, 1);
 
 	AudioQueueBufferRef newBuffer;
 	AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes * 2, &newBuffer);
@@ -179,7 +179,9 @@ static void audioOutputCallback(
 
 	// 'Start' the queue. This is documented to be a no-op if the queue is already started,
 	// and it's better to defer starting it until at least some data is available.
-	AudioQueueStart(_audioQueue, NULL);
+	if(enqueuedBuffers > 3) {
+		AudioQueueStart(_audioQueue, NULL);
+	}
 }
 
 #pragma mark - Sampling Rate getters
