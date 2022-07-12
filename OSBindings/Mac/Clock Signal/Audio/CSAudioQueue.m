@@ -30,7 +30,7 @@
 	// If that suggests the queue may be exhausted soon, re-enqueue whatever just came back in order to
 	// keep the queue going. AudioQueues seem to stop playing and never restart no matter how much
 	// encouragement if exhausted.
-	if(buffers == 1) {
+	if(!buffers) {
 		AudioQueueEnqueueBuffer(theAudioQueue, buffer, 0, NULL);
 		atomic_fetch_add(&_enqueuedBuffers, 1);
 	} else {
@@ -145,7 +145,7 @@
 
 	// 'Start' the queue. This is documented to be a no-op if the queue is already started,
 	// and it's better to defer starting it until at least some data is available.
-	if(enqueuedBuffers > 3) {
+	if(enqueuedBuffers > 2) {
 		AudioQueueStart(_audioQueue, NULL);
 	}
 }
