@@ -171,8 +171,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case CyclePullY:					s_++; read_mem(y_, s_ | 0x100);						break;
 					case CyclePullOperand:				s_++; read_mem(operand_, s_ | 0x100);				break;
 					case OperationSetFlagsFromOperand:	set_flags(operand_);								continue;
-					case OperationSetOperandFromFlagsWithBRKSet: operand_ = flags_.get() | Flag::Break;		continue;
-					case OperationSetOperandFromFlags:  operand_ = flags_.get();							continue;
+					case OperationSetOperandFromFlagsWithBRKSet: operand_ = flags_.get();					continue;
+					case OperationSetOperandFromFlags:  operand_ = flags_.get() & ~Flag::Break;				continue;
 					case OperationSetFlagsFromA:		flags_.set_nz(a_);									continue;
 					case OperationSetFlagsFromX:		flags_.set_nz(x_);									continue;
 					case OperationSetFlagsFromY:		flags_.set_nz(y_);									continue;
