@@ -103,8 +103,12 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	[self stopDisplayLink];
 }
 
+- (double)refreshPeriod {
+	return CVDisplayLinkGetActualOutputVideoRefreshPeriod(_displayLink);
+}
+
 - (void)stopDisplayLink {
-	const double duration = CVDisplayLinkGetActualOutputVideoRefreshPeriod(_displayLink);
+	const double duration = [self refreshPeriod];
 	CVDisplayLinkStop(_displayLink);
 
 	// This is a workaround; CVDisplayLinkStop does not wait for any existing call to the

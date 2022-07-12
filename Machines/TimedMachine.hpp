@@ -39,6 +39,10 @@ class TimedMachine {
 			fiction: it will apply across the system, including to the CRT.
 		*/
 		virtual void set_speed_multiplier(double multiplier) {
+			if(speed_multiplier_ == multiplier) {
+				return;
+			}
+
 			speed_multiplier_ = multiplier;
 
 			auto audio_producer = dynamic_cast<AudioProducer *>(this);

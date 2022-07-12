@@ -170,4 +170,9 @@
 */
 - (void)willChangeScanTargetOwner;
 
+/*!
+	@returns The period of a frame.
+*/
+@property(nonatomic, readonly) double refreshPeriod;
+
 @end
