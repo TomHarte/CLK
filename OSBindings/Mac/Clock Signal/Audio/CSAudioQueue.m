@@ -13,23 +13,9 @@
 #define AudioQueueBufferMaxLength		8192
 #define NumberOfStoredAudioQueueBuffer	16
 
-static NSLock *CSAudioQueueDeallocLock;
-
-/*!
-	Holds a weak reference to a CSAudioQueue. Used to work around an apparent AudioQueue bug.
-	See -[CSAudioQueue dealloc].
-*/
-@interface CSWeakAudioQueuePointer: NSObject
-@property(nonatomic, weak) CSAudioQueue *queue;
-@end
-
-@implementation CSWeakAudioQueuePointer
-@end
-
 @implementation CSAudioQueue {
 	AudioQueueRef _audioQueue;
-	NSLock *_storedBuffersLock;
-	CSWeakAudioQueuePointer *_weakPointer;
+	NSLock *_storedBuffersLock, *_deallocLock;
 	atomic_int _enqueuedBuffers;
 }
 
@@ -56,22 +42,6 @@ static NSLock *CSAudioQueueDeallocLock;
 	return YES;
 }
 
-static void audioOutputCallback(
-	void *inUserData,
-	AudioQueueRef inAQ,
-	AudioQueueBufferRef inBuffer) {
-	// Pull the delegate call for audio queue running dry outside of the locked region, to allow non-deadlocking
-	// lifecycle -dealloc events to result from it.
-	if([CSAudioQueueDeallocLock tryLock]) {
-		CSAudioQueue *queue = ((__bridge CSWeakAudioQueuePointer *)inUserData).queue;
-		BOOL isRunningDry = NO;
-		isRunningDry = [queue audioQueue:inAQ didCallbackWithBuffer:inBuffer];
-		id<CSAudioQueueDelegate> delegate = queue.delegate;
-		[CSAudioQueueDeallocLock unlock];
-		if(isRunningDry) [delegate audioQueueIsRunningDry:queue];
-	}
-}
-
 - (BOOL)isRunningDry {
 	return atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) < 3;
 }
@@ -82,10 +52,8 @@ static void audioOutputCallback(
 	self = [super init];
 
 	if(self) {
-		if(!CSAudioQueueDeallocLock) {
-			CSAudioQueueDeallocLock = [[NSLock alloc] init];
-		}
 		_storedBuffersLock = [[NSLock alloc] init];
+		_deallocLock = [[NSLock alloc] init];
 
 		_samplingRate = samplingRate;
 
@@ -113,16 +81,31 @@ static void audioOutputCallback(
 		outputDescription.mReserved = 0;
 
 		// create an audio output queue along those lines; see -dealloc re: the CSWeakAudioQueuePointer
-		_weakPointer = [[CSWeakAudioQueuePointer alloc] init];
-		_weakPointer.queue = self;
-		if(!AudioQueueNewOutput(
+		__weak CSAudioQueue *weakSelf = self;
+		if(AudioQueueNewOutputWithDispatchQueue(
+				&_audioQueue,
 				&outputDescription,
-				audioOutputCallback,
-				(__bridge void *)(_weakPointer),
-				NULL,
-				kCFRunLoopCommonModes,
 				0,
-				&_audioQueue)) {
+				dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0),
+				^(AudioQueueRef inAQ, AudioQueueBufferRef inBuffer) {
+					CSAudioQueue *queue = weakSelf;
+					if(!queue) {
+						return;
+					}
+
+					if([queue->_deallocLock tryLock]) {
+						BOOL isRunningDry = NO;
+						isRunningDry = [queue audioQueue:inAQ didCallbackWithBuffer:inBuffer];
+
+						id<CSAudioQueueDelegate> delegate = queue.delegate;
+						[queue->_deallocLock unlock];
+
+						if(isRunningDry) [delegate audioQueueIsRunningDry:queue];
+					}
+				}
+			)
+		) {
+			return nil;
 		}
 	}
 
@@ -130,30 +113,17 @@ static void audioOutputCallback(
 }
 
 - (void)dealloc {
-	[CSAudioQueueDeallocLock lock];
+	[_deallocLock lock];
 	if(_audioQueue) {
 		AudioQueueDispose(_audioQueue, true);
 		_audioQueue = NULL;
 	}
-	[CSAudioQueueDeallocLock unlock];
 
-	// Yuck. Horrid hack happening here. At least under macOS v10.12, I am frequently seeing calls to
-	// my registered audio callback (audioOutputCallback in this case) that occur **after** the call
-	// to AudioQueueDispose above, even though the second parameter there asks for a synchronous shutdown.
-	// So this appears to be a bug on Apple's side.
-	//
-	// Since the audio callback receives a void * pointer that identifies the class it should branch into,
-	// it's therefore unsafe to pass 'self'. Instead I pass a CSWeakAudioQueuePointer which points to the actual
-	// queue. The lifetime of that class is the lifetime of this instance plus 1 second, as effected by the
-	// artificial dispatch_after below; it serves only to keep pointerSaviour alive for an extra second.
-	//
-	// Why a second? That's definitely quite a lot longer than any amount of audio that may be queued. So
-	// probably safe. As and where Apple's audio queue works properly, CSAudioQueueDeallocLock should provide
-	// absolute safety; elsewhere the CSWeakAudioQueuePointer provides probabilistic.
-	CSWeakAudioQueuePointer *pointerSaviour = _weakPointer;
-	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-		[pointerSaviour hash];
-	});
+	// nil out the dealloc lock before entering the critical section such
+	// that it becomes impossible for anyone else to acquire.
+	NSLock *deallocLock = _deallocLock;
+	_deallocLock = nil;
+	[deallocLock unlock];
 }
 
 #pragma mark - Audio enqueuer

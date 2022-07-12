@@ -29,7 +29,7 @@
 
 	@returns An instance of CSAudioQueue if successful; @c nil otherwise.
 */
-- (nonnull instancetype)initWithSamplingRate:(Float64)samplingRate isStereo:(BOOL)isStereo NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithSamplingRate:(Float64)samplingRate isStereo:(BOOL)isStereo NS_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)init __attribute((unavailable));
 
 /*!
