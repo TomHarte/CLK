@@ -170,6 +170,10 @@ template <typename ConcreteT, bool is_stereo> class LowpassBase: public Speaker 
 		}
 
 		inline void resample_input_buffer(int scale) {
+			if(output_buffer_.empty()) {
+				return;
+			}
+
 			if constexpr (is_stereo) {
 				output_buffer_[output_buffer_pointer_ + 0] = filter_->apply(input_buffer_.data(), 2);
 				output_buffer_[output_buffer_pointer_ + 1] = filter_->apply(input_buffer_.data() + 1, 2);
