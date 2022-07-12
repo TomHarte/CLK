@@ -14,7 +14,7 @@
 
 @implementation CSAudioQueue {
 	AudioQueueRef _audioQueue;
-	NSLock *_storedBuffersLock, *_deallocLock;
+	NSLock *_deallocLock;
 	atomic_int _enqueuedBuffers;
 }
 
@@ -24,7 +24,6 @@
 	@returns @c YES if the queue is running dry; @c NO otherwise.
 */
 - (BOOL)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer {
-	[_storedBuffersLock lock];
 	const int buffers = atomic_fetch_add(&_enqueuedBuffers, -1);
 
 	// If that suggests the queue may be exhausted soon, re-enqueue whatever just came back in order to
@@ -37,7 +36,6 @@
 		AudioQueueFreeBuffer(_audioQueue, buffer);
 	}
 
-	[_storedBuffersLock unlock];
 	return YES;
 }
 
@@ -51,7 +49,6 @@
 	self = [super init];
 
 	if(self) {
-		_storedBuffersLock = [[NSLock alloc] init];
 		_deallocLock = [[NSLock alloc] init];
 
 		_samplingRate = samplingRate;
@@ -127,10 +124,8 @@
 - (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples {
 	size_t bufferBytes = lengthInSamples * sizeof(int16_t);
 
-	[_storedBuffersLock lock];
 	// Don't enqueue more than 4 buffers ahead of now, to ensure not too much latency accrues.
 	if(atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) > 4) {
-		[_storedBuffersLock unlock];
 		return;
 	}
 	const int enqueuedBuffers = atomic_fetch_add(&_enqueuedBuffers, 1);
@@ -141,7 +136,6 @@
 	newBuffer->mAudioDataByteSize = (UInt32)bufferBytes;
 
 	AudioQueueEnqueueBuffer(_audioQueue, newBuffer, 0, NULL);
-	[_storedBuffersLock unlock];
 
 	// 'Start' the queue. This is documented to be a no-op if the queue is already started,
 	// and it's better to defer starting it until at least some data is available.
