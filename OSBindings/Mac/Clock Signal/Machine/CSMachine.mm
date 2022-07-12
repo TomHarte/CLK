@@ -39,9 +39,9 @@ namespace {
 
 struct MachineUpdater {
 	void perform(Time::Nanos duration) {
-		// Top out at 0.1 seconds; this is a safeguard against a negative
+		// Top out at 1/20th of a second; this is a safeguard against a negative
 		// feedback loop if emulation starts running slowly.
-		const auto seconds = std::min(Time::seconds(duration), 0.1);
+		const auto seconds = std::min(Time::seconds(duration), 0.05);
 		machine->run_for(seconds);
 	}
 
@@ -463,9 +463,6 @@ struct ActivityObserver: public Activity::Observer {
 	updater.update([event] {
 		event();
 	});
-//	@synchronized(_inputEvents) {
-//		[_inputEvents addObject:event];
-//	}
 }
 
 - (void)clearAllKeys {
