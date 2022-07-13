@@ -667,30 +667,38 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
 	updater.update([self] {
-		updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Audio); /* | MachineTypes::TimedMachine::Output::Video);
-		[self.view updateBacking];*/
+		updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
 	});
 }
 
 - (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
 	updater.update([self] {
+		// Grab a pointer to the timed machine from somewhere where it has already
+		// been dynamically cast, to avoid that cost here.
+		MachineTypes::TimedMachine *const timed_machine = updater.performer.machine;
+
+		// Definitely update video; update audio too if that pipeline is looking a little dry.
 		auto outputs = MachineTypes::TimedMachine::Output::Video;
 		if(_audioQueue.isRunningDry) {
 			outputs |= MachineTypes::TimedMachine::Output::Audio;
 		}
-		updater.performer.machine->flush_output(outputs);
+		timed_machine->flush_output(outputs);
 
+		// Attempt sync-matching if this machine is a fit.
+		//
+		// TODO: either cache scan_producer(), or possibly start caching these things
+		// inside the DynamicMachine?
 		const auto scanStatus = self->_machine->scan_producer()->get_scan_status();
 		const bool canSynchronise = self->_scanSynchroniser.can_synchronise(scanStatus, self.view.refreshPeriod);
 		if(canSynchronise) {
 			const double multiplier = self->_scanSynchroniser.next_speed_multiplier(self->_machine->scan_producer()->get_scan_status());
-			self->_machine->timed_machine()->set_speed_multiplier(multiplier);
+			timed_machine->set_speed_multiplier(multiplier);
 		} else {
-			self->_machine->timed_machine()->set_speed_multiplier(1.0);
+			timed_machine->set_speed_multiplier(1.0);
 		}
 
+		// Ask Metal to rasterise all that just happened and present it.
 		[self.view updateBacking];
-
 		dispatch_async(dispatch_get_main_queue(), ^{
 			[self.view draw];
 		});
