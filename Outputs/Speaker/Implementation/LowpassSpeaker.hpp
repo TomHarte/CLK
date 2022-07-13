@@ -368,6 +368,10 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 			at construction, filtering it and passing it on to the speaker's delegate if there is one.
 		*/
 		void run_for(Concurrency::DeferringAsyncTaskQueue &queue, const Cycles cycles) {
+			if(cycles == Cycles(0)) {
+				return;
+			}
+
 			queue.defer([this, cycles] {
 				run_for(cycles);
 			});
@@ -383,10 +387,7 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 			at construction, filtering it and passing it on to the speaker's delegate if there is one.
 		*/
 		void run_for(const Cycles cycles) {
-			std::size_t cycles_remaining = size_t(cycles.as_integral());
-			if(!cycles_remaining) return;
-
-			process(cycles_remaining);
+			process(size_t(cycles.as_integral()));
 		}
 
 		SampleSource &sample_source_;
