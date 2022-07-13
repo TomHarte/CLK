@@ -12,44 +12,36 @@
 
 #define AudioQueueBufferMaxLength		8192
 
+#define OSSGuard(x)	{			\
+	const OSStatus status = x;	\
+	assert(!status);			\
+	(void)status;				\
+}
+
+#define IsDry(x)	(x) < 3
+
 @implementation CSAudioQueue {
 	AudioQueueRef _audioQueue;
 	NSLock *_deallocLock;
+	NSLock *_queueLock;
 	atomic_int _enqueuedBuffers;
 }
 
-#pragma mark - AudioQueue callbacks
-
-/*!
-	@returns @c YES if the queue is running dry; @c NO otherwise.
-*/
-- (BOOL)audioQueue:(AudioQueueRef)theAudioQueue didCallbackWithBuffer:(AudioQueueBufferRef)buffer {
-	const int buffers = atomic_fetch_add(&_enqueuedBuffers, -1);
-
-	// If that suggests the queue may be exhausted soon, re-enqueue whatever just came back in order to
-	// keep the queue going. AudioQueues seem to stop playing and never restart no matter how much
-	// encouragement if exhausted.
-	if(!buffers) {
-		AudioQueueEnqueueBuffer(theAudioQueue, buffer, 0, NULL);
-		atomic_fetch_add(&_enqueuedBuffers, 1);
-	} else {
-		AudioQueueFreeBuffer(_audioQueue, buffer);
-	}
-
-	return YES;
-}
+#pragma mark - Status
 
 - (BOOL)isRunningDry {
-	return atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) < 3;
+	return IsDry(atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed));
 }
 
-#pragma mark - Standard object lifecycle
+#pragma mark - Object lifecycle
 
 - (instancetype)initWithSamplingRate:(Float64)samplingRate isStereo:(BOOL)isStereo {
 	self = [super init];
 
 	if(self) {
 		_deallocLock = [[NSLock alloc] init];
+		_queueLock = [[NSLock alloc] init];
+		atomic_store_explicit(&_enqueuedBuffers, 0, memory_order_relaxed);
 
 		_samplingRate = samplingRate;
 
@@ -87,13 +79,21 @@
 					}
 
 					if([queue->_deallocLock tryLock]) {
-						BOOL isRunningDry = NO;
-						isRunningDry = [queue audioQueue:inAQ didCallbackWithBuffer:inBuffer];
+						[queue->_queueLock lock];
+
+						OSSGuard(AudioQueueFreeBuffer(inAQ, inBuffer));
+
+						const int buffers = atomic_fetch_add(&queue->_enqueuedBuffers, -1) - 1;
+//						if(!buffers) {
+//							OSSGuard(AudioQueueStop(inAQ, true));
+//						}
+
+						[queue->_queueLock unlock];
 
 						id<CSAudioQueueDelegate> delegate = queue.delegate;
 						[queue->_deallocLock unlock];
 
-						if(isRunningDry) [delegate audioQueueIsRunningDry:queue];
+						if(IsDry(buffers)) [delegate audioQueueIsRunningDry:queue];
 					}
 				}
 			)
@@ -108,7 +108,7 @@
 - (void)dealloc {
 	[_deallocLock lock];
 	if(_audioQueue) {
-		AudioQueueDispose(_audioQueue, true);
+		OSSGuard(AudioQueueDispose(_audioQueue, true));
 		_audioQueue = NULL;
 	}
 
@@ -125,23 +125,27 @@
 	size_t bufferBytes = lengthInSamples * sizeof(int16_t);
 
 	// Don't enqueue more than 4 buffers ahead of now, to ensure not too much latency accrues.
-	if(atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) > 4) {
+	if(atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) == 4) {
 		return;
 	}
-	const int enqueuedBuffers = atomic_fetch_add(&_enqueuedBuffers, 1);
+	const int enqueuedBuffers = atomic_fetch_add(&_enqueuedBuffers, 1) + 1;
+
+	[_queueLock lock];
 
 	AudioQueueBufferRef newBuffer;
-	AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes * 2, &newBuffer);
+	OSSGuard(AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes * 2, &newBuffer));
 	memcpy(newBuffer->mAudioData, buffer, bufferBytes);
 	newBuffer->mAudioDataByteSize = (UInt32)bufferBytes;
 
-	AudioQueueEnqueueBuffer(_audioQueue, newBuffer, 0, NULL);
+	OSSGuard(AudioQueueEnqueueBuffer(_audioQueue, newBuffer, 0, NULL));
 
 	// 'Start' the queue. This is documented to be a no-op if the queue is already started,
 	// and it's better to defer starting it until at least some data is available.
 	if(enqueuedBuffers > 2) {
-		AudioQueueStart(_audioQueue, NULL);
+		OSSGuard(AudioQueueStart(_audioQueue, NULL));
 	}
+
+	[_queueLock unlock];
 }
 
 #pragma mark - Sampling Rate getters
