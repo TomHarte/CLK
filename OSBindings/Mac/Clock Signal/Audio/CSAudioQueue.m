@@ -10,8 +10,6 @@
 @import AudioToolbox;
 #include <stdatomic.h>
 
-#define AudioQueueBufferMaxLength		8192
-
 #define OSSGuard(x)	{			\
 	const OSStatus status = x;	\
 	assert(!status);			\
@@ -45,9 +43,11 @@
 
 		_samplingRate = samplingRate;
 
-		// Determine preferred buffer size as being the first power of two less than
-		_preferredBufferSize = AudioQueueBufferMaxLength;
-		while((Float64)_preferredBufferSize*100.0 > samplingRate) _preferredBufferSize >>= 1;
+		// Determine preferred buffer size as being the first power of two
+		// not less than 1/100th of a second.
+		_preferredBufferSize = 1;
+		const NSUInteger oneHundredthOfRate = (NSUInteger)(samplingRate / 100.0);
+		while(_preferredBufferSize < oneHundredthOfRate) _preferredBufferSize <<= 1;
 
 		// Describe a 16bit stream of the requested sampling rate.
 		AudioStreamBasicDescription outputDescription;
