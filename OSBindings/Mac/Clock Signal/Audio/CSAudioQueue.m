@@ -80,15 +80,10 @@
 
 					if([queue->_deallocLock tryLock]) {
 						[queue->_queueLock lock];
-
 						OSSGuard(AudioQueueFreeBuffer(inAQ, inBuffer));
+						[queue->_queueLock unlock];
 
 						const int buffers = atomic_fetch_add(&queue->_enqueuedBuffers, -1) - 1;
-//						if(!buffers) {
-//							OSSGuard(AudioQueueStop(inAQ, true));
-//						}
-
-						[queue->_queueLock unlock];
 
 						id<CSAudioQueueDelegate> delegate = queue.delegate;
 						[queue->_deallocLock unlock];
@@ -139,9 +134,10 @@
 
 	OSSGuard(AudioQueueEnqueueBuffer(_audioQueue, newBuffer, 0, NULL));
 
-	// 'Start' the queue. This is documented to be a no-op if the queue is already started,
-	// and it's better to defer starting it until at least some data is available.
-	if(enqueuedBuffers > 2) {
+	// Start the queue if it isn't started yet, and there are now some packets waiting.
+	UInt32 isRunning = 0, bytesReceived = sizeof(UInt32);
+	OSSGuard(AudioQueueGetProperty(_audioQueue, kAudioQueueProperty_IsRunning, &isRunning, &bytesReceived));
+	if(!isRunning && enqueuedBuffers > 2) {
 		OSSGuard(AudioQueueStart(_audioQueue, NULL));
 	}
 
