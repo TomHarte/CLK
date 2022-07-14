@@ -12,6 +12,16 @@
 
 using namespace Apple::Macintosh;
 
+namespace {
+
+#if TARGET_RT_BIG_ENDIAN
+constexpr uint64_t PixelMask = 0x8040201008040201;
+#else
+constexpr uint64_t PixelMask = 0x0102040810204080;
+#endif
+
+}
+
 // Re: CRT timings, see the Apple Guide to the Macintosh Hardware Family,
 // bottom of page 400:
 //
@@ -86,34 +96,20 @@ void Video::run_for(HalfCycles duration) {
 					const int final_pixel_word = std::min(final_word, 32);
 
 					if(!first_word) {
-						pixel_buffer_ = crt_.begin_data(512);
+						pixel_buffer_ = reinterpret_cast<uint64_t *>(crt_.begin_data(512, 8));
 					}
 
 					if(pixel_buffer_) {
 						for(int c = first_word; c < final_pixel_word; ++c) {
-							uint16_t pixels = ram_[video_base + video_address_] ^ 0xffff;
+							const uint16_t pixels = ram_[video_base + video_address_] ^ 0xffff;
 							++video_address_;
 
-							pixel_buffer_[15] = pixels & 0x01;
-							pixel_buffer_[14] = pixels & 0x02;
-							pixel_buffer_[13] = pixels & 0x04;
-							pixel_buffer_[12] = pixels & 0x08;
-							pixel_buffer_[11] = pixels & 0x10;
-							pixel_buffer_[10] = pixels & 0x20;
-							pixel_buffer_[9] = pixels & 0x40;
-							pixel_buffer_[8] = pixels & 0x80;
+							const uint64_t low_pixels = (pixels & 0xff) * 0x0101010101010101;
+							const uint64_t high_pixels = (pixels >> 8) * 0x0101010101010101;
 
-							pixels >>= 8;
-							pixel_buffer_[7] = pixels & 0x01;
-							pixel_buffer_[6] = pixels & 0x02;
-							pixel_buffer_[5] = pixels & 0x04;
-							pixel_buffer_[4] = pixels & 0x08;
-							pixel_buffer_[3] = pixels & 0x10;
-							pixel_buffer_[2] = pixels & 0x20;
-							pixel_buffer_[1] = pixels & 0x40;
-							pixel_buffer_[0] = pixels & 0x80;
-
-							pixel_buffer_ += 16;
+							pixel_buffer_[0] = high_pixels & PixelMask;
+							pixel_buffer_[1] = low_pixels & PixelMask;
+							pixel_buffer_ += 2;
 						}
 					} else {
 						video_address_ += size_t(final_pixel_word - first_word);
