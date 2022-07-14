@@ -89,6 +89,7 @@ DeferringAsyncTaskQueue::~DeferringAsyncTaskQueue() {
 void DeferringAsyncTaskQueue::defer(std::function<void(void)> function) {
 	if(!deferred_tasks_) {
 		deferred_tasks_ = std::make_unique<TaskList>();
+		deferred_tasks_->reserve(16);
 	}
 	deferred_tasks_->push_back(function);
 }

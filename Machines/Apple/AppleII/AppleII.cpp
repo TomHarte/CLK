@@ -810,11 +810,16 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			return Cycles(1);
 		}
 
-		void flush() {
-			update_video();
-			update_audio();
+		void flush_output(int outputs) final {
 			update_just_in_time_cards();
-			audio_queue_.perform();
+
+			if(outputs & Output::Video) {
+				update_video();
+			}
+			if(outputs & Output::Audio) {
+				update_audio();
+				audio_queue_.perform();
+			}
 		}
 
 		void run_for(const Cycles cycles) final {

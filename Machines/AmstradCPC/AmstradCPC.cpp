@@ -1048,11 +1048,15 @@ template <bool has_fdc> class ConcreteMachine:
 			return HalfCycles(0);
 		}
 
-		/// Another Z80 entry point; indicates that a partcular run request has concluded.
-		void flush() {
+		/// Fields requests to pump all output.
+		void flush_output(int outputs) final {
 			// Just flush the AY.
-			ay_.update();
-			ay_.flush();
+			if(outputs & Output::Audio) {
+				ay_.update();
+				ay_.flush();
+			}
+
+			// Always flush the FDC.
 			flush_fdc();
 		}
 

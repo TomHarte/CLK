@@ -176,10 +176,6 @@ class ConcreteMachine:
 			return total_length - cycle.length;
 		}
 
-		void flush() {
-			chipset_.flush();
-		}
-
 	private:
 		CPU::MC68000Mk2::Processor<ConcreteMachine, true, true> mc68000_;
 
@@ -209,15 +205,18 @@ class ConcreteMachine:
 			chipset_.set_scan_target(scan_target);
 		}
 
-		Outputs::Display::ScanStatus get_scaled_scan_status() const {
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
 			return chipset_.get_scaled_scan_status();
 		}
 
 		// MARK: - MachineTypes::TimedMachine.
 
-		void run_for(const Cycles cycles) {
+		void run_for(const Cycles cycles) final {
 			mc68000_.run_for(cycles);
-			flush();
+		}
+
+		void flush_output(int) final {
+			chipset_.flush();
 		}
 
 		// MARK: - MachineTypes::MouseMachine.
@@ -228,7 +227,7 @@ class ConcreteMachine:
 
 		// MARK: - MachineTypes::JoystickMachine.
 
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return chipset_.get_joysticks();
 		}
 

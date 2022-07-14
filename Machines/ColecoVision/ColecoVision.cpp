@@ -342,10 +342,14 @@ class ConcreteMachine:
 			return penalty;
 		}
 
-		void flush() {
-			vdp_.flush();
-			update_audio();
-			audio_queue_.perform();
+		void flush_output(int outputs) final {
+			if(outputs & Output::Video) {
+				vdp_.flush();
+			}
+			if(outputs & Output::Audio) {
+				update_audio();
+				audio_queue_.perform();
+			}
 		}
 
 		float get_confidence() final {

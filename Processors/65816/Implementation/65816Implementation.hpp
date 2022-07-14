@@ -1022,7 +1022,6 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 #undef stack_address
 
 	cycles_left_to_run_ = number_of_cycles;
-	bus_handler_.flush();
 }
 
 void ProcessorBase::set_power_on(bool active) {

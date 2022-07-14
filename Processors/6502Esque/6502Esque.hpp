@@ -141,12 +141,6 @@ template <typename addr_t> class BusHandler {
 		Cycles perform_bus_operation([[maybe_unused]] BusOperation operation, [[maybe_unused]] addr_t address, [[maybe_unused]] uint8_t *value) {
 			return Cycles(1);
 		}
-
-		/*!
-			Announces completion of all the cycles supplied to a .run_for request on the 6502. Intended to allow
-			bus handlers to perform any deferred output work.
-		*/
-		void flush() {}
 };
 
 }

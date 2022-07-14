@@ -24,6 +24,7 @@
 
 #include "../../../../ClockReceiver/TimeTypes.hpp"
 #include "../../../../ClockReceiver/ScanSynchroniser.hpp"
+#include "../../../../Concurrency/AsyncUpdater.hpp"
 
 #import "CSStaticAnalyser+TargetVector.h"
 #import "NSBundle+DataResource.h"
@@ -34,10 +35,29 @@
 #include <codecvt>
 #include <locale>
 
+namespace {
+
+struct MachineUpdater {
+	void perform(Time::Nanos duration) {
+		// Top out at 1/20th of a second; this is a safeguard against a negative
+		// feedback loop if emulation starts running slowly.
+		const auto seconds = std::min(Time::seconds(duration), 0.05);
+		machine->run_for(seconds);
+	}
+
+	MachineTypes::TimedMachine *machine = nullptr;
+};
+
+}
+
 @interface CSMachine() <CSScanTargetViewDisplayLinkDelegate>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
 - (void)addLED:(NSString *)led isPersistent:(BOOL)isPersistent;
+@end
+
+@interface CSMachine() <CSAudioQueueDelegate>
+- (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue;
 @end
 
 struct LockProtectedDelegate {
@@ -101,13 +121,7 @@ struct ActivityObserver: public Activity::Observer {
 	CSJoystickManager *_joystickManager;
 	NSMutableArray<CSMachineLED *> *_leds;
 
-	CSHighPrecisionTimer *_timer;
-	std::atomic_flag _isUpdating;
-	Time::Nanos _syncTime;
-	Time::Nanos _timeDiff;
-	double _refreshPeriod;
-	BOOL _isSyncLocking;
-
+	Concurrency::AsyncUpdater<MachineUpdater> updater;
 	Time::ScanSynchroniser _scanSynchroniser;
 
 	NSTimer *_joystickTimer;
@@ -133,6 +147,7 @@ struct ActivityObserver: public Activity::Observer {
 			[missingROMs appendString:[NSString stringWithUTF8String:wstring_converter.to_bytes(description).c_str()]];
 			return nil;
 		}
+		updater.performer.machine = _machine->timed_machine();
 
 		// Use the keyboard as a joystick if the machine has no keyboard, or if it has a 'non-exclusive' keyboard.
 		_inputMode =
@@ -155,7 +170,6 @@ struct ActivityObserver: public Activity::Observer {
 
 		_joystickMachine = _machine->joystick_machine();
 		[self updateJoystickTimer];
-		_isUpdating.clear();
 	}
 	return self;
 }
@@ -208,6 +222,11 @@ struct ActivityObserver: public Activity::Observer {
 		}
 		return NO;
 	}
+}
+
+- (void)setAudioQueue:(CSAudioQueue *)audioQueue {
+	_audioQueue = audioQueue;
+	audioQueue.delegate = self;
 }
 
 - (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo {
@@ -433,9 +452,9 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)applyInputEvent:(dispatch_block_t)event {
-	@synchronized(_inputEvents) {
-		[_inputEvents addObject:event];
-	}
+	updater.update([event] {
+		event();
+	});
 }
 
 - (void)clearAllKeys {
@@ -646,121 +665,52 @@ struct ActivityObserver: public Activity::Observer {
 
 #pragma mark - Timer
 
-- (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
-	// First order of business: grab a timestamp.
-	const auto timeNow = Time::nanos_now();
-
-	BOOL isSyncLocking;
-	@synchronized(self) {
-		// Store a means to map from CVTimeStamp.hostTime to Time::Nanos;
-		// there is an extremely dodgy assumption here that the former is in ns.
-		// If you can find a well-defined way to get the CVTimeStamp.hostTime units,
-		// whether at runtime or via preprocessor define, I'd love to know about it.
-		if(!_timeDiff) {
-			_timeDiff = int64_t(timeNow) - int64_t(now->hostTime);
-		}
-
-		// Store the next end-of-frame time. TODO: and start of next and implied visible duration, if raster racing?
-		_syncTime = int64_t(now->hostTime) + _timeDiff;
-
-		// Set the current refresh period.
-		_refreshPeriod = double(now->videoRefreshPeriod) / double(now->videoTimeScale);
-
-		// Determine where responsibility lies for drawing.
-		isSyncLocking = _isSyncLocking;
-	}
-
-	// Draw the current output. (TODO: do this within the timer if either raster racing or, at least, sync matching).
-	if(!isSyncLocking) {
-		[self.view draw];
-	}
+- (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
+	updater.update([self] {
+		updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
+	});
 }
 
-#define TICKS	1000
+- (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
+	updater.update([self] {
+		// Grab a pointer to the timed machine from somewhere where it has already
+		// been dynamically cast, to avoid that cost here.
+		MachineTypes::TimedMachine *const timed_machine = updater.performer.machine;
+
+		// Definitely update video; update audio too if that pipeline is looking a little dry.
+		auto outputs = MachineTypes::TimedMachine::Output::Video;
+		if(_audioQueue.isRunningDry) {
+			outputs |= MachineTypes::TimedMachine::Output::Audio;
+		}
+		timed_machine->flush_output(outputs);
+
+		// Attempt sync-matching if this machine is a fit.
+		//
+		// TODO: either cache scan_producer(), or possibly start caching these things
+		// inside the DynamicMachine?
+		const auto scanStatus = self->_machine->scan_producer()->get_scan_status();
+		const bool canSynchronise = self->_scanSynchroniser.can_synchronise(scanStatus, self.view.refreshPeriod);
+		if(canSynchronise) {
+			const double multiplier = self->_scanSynchroniser.next_speed_multiplier(self->_machine->scan_producer()->get_scan_status());
+			timed_machine->set_speed_multiplier(multiplier);
+		} else {
+			timed_machine->set_speed_multiplier(1.0);
+		}
+
+		// Ask Metal to rasterise all that just happened and present it.
+		[self.view updateBacking];
+		dispatch_async(dispatch_get_main_queue(), ^{
+			[self.view draw];
+		});
+	});
+}
 
 - (void)start {
-	__block auto lastTime = Time::nanos_now();
-
-	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
-		// Grab the time now and, therefore, the amount of time since the timer last fired
-		// (subject to a cap to avoid potential perpetual regression).
-		const auto timeNow = Time::nanos_now();
-		lastTime = std::max(timeNow - Time::Nanos(10'000'000'000 / TICKS), lastTime);
-		const auto duration = timeNow - lastTime;
-
-		BOOL splitAndSync = NO;
-		@synchronized(self) {
-			// Post on input events.
-			@synchronized(self->_inputEvents) {
-				for(dispatch_block_t action: self->_inputEvents) {
-					action();
-				}
-				[self->_inputEvents removeAllObjects];
-			}
-
-			// If this tick includes vsync then inspect the machine.
-			//
-			// _syncTime = 0 is used here as a sentinel to mark that a sync time is known;
-			// this with the >= test ensures that no syncs are missed even if some sort of
-			// performance problem is afoot (e.g. I'm debugging).
-			if(self->_syncTime && timeNow >= self->_syncTime) {
-				splitAndSync = self->_isSyncLocking = self->_scanSynchroniser.can_synchronise(self->_machine->scan_producer()->get_scan_status(), self->_refreshPeriod);
-
-				// If the time window is being split, run up to the split, then check out machine speed, possibly
-				// adjusting multiplier, then run after the split. Include a sanity check against an out-of-bounds
-				// _syncTime; that can happen when debugging (possibly inter alia?).
-				if(splitAndSync) {
-					if(self->_syncTime >= lastTime) {
-						self->_machine->timed_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
-						self->_machine->timed_machine()->set_speed_multiplier(
-							self->_scanSynchroniser.next_speed_multiplier(self->_machine->scan_producer()->get_scan_status())
-						);
-						self->_machine->timed_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
-					} else {
-						self->_machine->timed_machine()->run_for((double)(timeNow - lastTime) / 1e9);
-					}
-				}
-
-				self->_syncTime = 0;
-			}
-
-			// If the time window is being split, run up to the split, then check out machine speed, possibly
-			// adjusting multiplier, then run after the split.
-			if(!splitAndSync) {
-				self->_machine->timed_machine()->run_for((double)duration / 1e9);
-			}
-		}
-
-		// If this was not a split-and-sync then dispatch the update request asynchronously, unless
-		// there is an earlier one not yet finished, in which case don't worry about it for now.
-		//
-		// If it was a split-and-sync then spin until it is safe to dispatch, and dispatch with
-		// a concluding draw. Implicit assumption here: whatever is left to be done in the final window
-		// can be done within the retrace period.
-		auto wasUpdating = self->_isUpdating.test_and_set();
-		if(wasUpdating && splitAndSync) {
-			while(self->_isUpdating.test_and_set());
-			wasUpdating = false;
-		}
-		if(!wasUpdating) {
-			dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
-				[self.view updateBacking];
-				if(splitAndSync) {
-					[self.view draw];
-				}
-				self->_isUpdating.clear();
-			});
-		}
-
-		lastTime = timeNow;
-	} interval:uint64_t(1000000000) / uint64_t(TICKS)];
+	// A no-op; retained in case of future changes to the manner of scheduling.
 }
 
-#undef TICKS
-
 - (void)stop {
-	[_timer invalidate];
-	_timer = nil;
+	updater.stop();
 }
 
 + (BOOL)attemptInstallROM:(NSURL *)url {

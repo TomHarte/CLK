@@ -154,7 +154,6 @@ class ConcreteMachine:
 			}
 
 			mc68000_.run_for(cycles);
-			flush();
 		}
 
 		// MARK: MC68000::BusHandler
@@ -414,14 +413,19 @@ class ConcreteMachine:
 			return HalfCycles(0);
 		}
 
-		void flush() {
+		void flush_output(int outputs) final {
 			dma_.flush();
 			mfp_.flush();
 			keyboard_acia_.flush();
 			midi_acia_.flush();
-			video_.flush();
-			update_audio();
-			audio_queue_.perform();
+
+			if(outputs & Output::Video) {
+				video_.flush();
+			}
+			if(outputs & Output::Audio) {
+				update_audio();
+				audio_queue_.perform();
+			}
 		}
 
 	private:

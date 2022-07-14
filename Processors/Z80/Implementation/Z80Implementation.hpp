@@ -48,7 +48,6 @@ template <	class T,
 			static PartialMachineCycle bus_acknowledge_cycle = {PartialMachineCycle::BusAcknowledge, HalfCycles(2), nullptr, nullptr, false};
 			number_of_cycles_ -= bus_handler_.perform_machine_cycle(bus_acknowledge_cycle) + HalfCycles(1);
 			if(!number_of_cycles_) {
-				bus_handler_.flush();
 				return;
 			}
 		}
@@ -70,7 +69,6 @@ template <	class T,
 				case MicroOp::BusOperation:
 					if(number_of_cycles_ < operation->machine_cycle.length) {
 						scheduled_program_counter_--;
-						bus_handler_.flush();
 						return;
 					}
 					if(uses_wait_line && operation->machine_cycle.was_requested) {

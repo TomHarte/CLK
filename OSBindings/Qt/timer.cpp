@@ -31,6 +31,7 @@ void Timer::tick() {
 
 	std::lock_guard lock_guard(*machineMutex);
 	machine->run_for(double(duration) / 1e9);
+	machine->flush_output(MachineTypes::TimedMachine::Output::All);
 }
 
 Timer::~Timer() {

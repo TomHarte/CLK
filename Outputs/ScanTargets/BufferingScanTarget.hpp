@@ -161,6 +161,11 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// @returns the current @c Modals.
 		const Modals &modals() const;
 
+		/// @returns @c true if new modals are available; @c false otherwise.
+		///
+		/// Safe to call from any thread.
+		bool has_new_modals() const;
+
 	private:
 		// ScanTarget overrides.
 		void set_modals(Modals) final;
@@ -253,7 +258,7 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		// Current modals and whether they've yet been returned
 		// from a call to @c get_new_modals.
 		Modals modals_;
-		bool modals_are_dirty_ = false;
+		std::atomic<bool> modals_are_dirty_ = false;
 
 		// Provides a per-data size implementation of end_data; a previous
 		// implementation used blind memcpy and that turned into something

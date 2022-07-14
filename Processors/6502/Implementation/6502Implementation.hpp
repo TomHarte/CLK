@@ -650,7 +650,6 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 	}
 
 	cycles_left_to_run_ = number_of_cycles;
-	bus_handler_.flush();
 }
 
 template <Personality personality, typename T, bool uses_ready_line> void Processor<personality, T, uses_ready_line>::set_ready_line(bool active) {

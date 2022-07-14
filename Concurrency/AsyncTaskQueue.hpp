@@ -15,6 +15,7 @@
 #include <list>
 #include <memory>
 #include <thread>
+#include <vector>
 
 #if defined(__APPLE__) && !defined(IGNORE_APPLE)
 #include <dispatch/dispatch.h>
@@ -23,7 +24,7 @@
 
 namespace Concurrency {
 
-using TaskList = std::list<std::function<void(void)>>;
+using TaskList = std::vector<std::function<void(void)>>;
 
 /*!
 	An async task queue allows a caller to enqueue void(void) functions. Those functions are guaranteed
@@ -56,7 +57,7 @@ class AsyncTaskQueue {
 		std::atomic_bool should_destruct_;
 		std::condition_variable processing_condition_;
 		std::mutex queue_mutex_;
-		TaskList pending_tasks_;
+		std::list<std::function<void(void)>> pending_tasks_;
 
 		std::thread thread_;
 #endif

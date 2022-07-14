@@ -174,7 +174,7 @@ class ConcreteMachine:
 			bus_->apply_confidence(confidence_counter_);
 		}
 
-		void flush() {
+		void flush_output(int) final {
 			bus_->flush();
 		}
 

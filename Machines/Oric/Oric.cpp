@@ -578,9 +578,13 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 			return Cycles(1);
 		}
 
-		forceinline void flush() {
-			video_.flush();
-			via_.flush();
+		void flush_output(int outputs) final {
+			if(outputs & Output::Video) {
+				video_.flush();
+			}
+			if(outputs & Output::Audio) {
+				via_.flush();
+			}
 			diskii_.flush();
 		}
 

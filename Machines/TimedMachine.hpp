@@ -39,6 +39,10 @@ class TimedMachine {
 			fiction: it will apply across the system, including to the CRT.
 		*/
 		virtual void set_speed_multiplier(double multiplier) {
+			if(speed_multiplier_ == multiplier) {
+				return;
+			}
+
 			speed_multiplier_ = multiplier;
 
 			auto audio_producer = dynamic_cast<AudioProducer *>(this);
@@ -60,6 +64,16 @@ class TimedMachine {
 		/// @returns The confidence that this machine is running content it understands.
 		virtual float get_confidence() { return 0.5f; }
 		virtual std::string debug_type() { return ""; }
+
+		struct Output {
+			static constexpr int Video = 1 << 0;
+			static constexpr int Audio = 1 << 1;
+
+			static constexpr int All = Video | Audio;
+		};
+		/// Ensures all locally-buffered output is posted onward for the types of output indicated
+		/// by the bitfield argument, which is comprised of flags from the namespace @c Output.
+		virtual void flush_output(int) {}
 
 	protected:
 		/// Runs the machine for @c cycles.

@@ -29,7 +29,7 @@
 
 	@returns An instance of CSAudioQueue if successful; @c nil otherwise.
 */
-- (nonnull instancetype)initWithSamplingRate:(Float64)samplingRate isStereo:(BOOL)isStereo NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithSamplingRate:(Float64)samplingRate isStereo:(BOOL)isStereo NS_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)init __attribute((unavailable));
 
 /*!
@@ -57,5 +57,10 @@
 	decide in what size to enqueue audio, this is a helpful suggestion.
 */
 @property (nonatomic, readonly) NSUInteger preferredBufferSize;
+
+/*!
+	@returns @C YES if this queue is running low or is completely exhausted of new audio buffers.
+*/
+@property (atomic, readonly) BOOL isRunningDry;
 
 @end

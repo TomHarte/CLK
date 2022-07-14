@@ -292,11 +292,16 @@ template<bool is_zx81> class ConcreteMachine:
 			return HalfCycles(0);
 		}
 
-		forceinline void flush() {
-			video_.flush();
+		void flush_output(int outputs) final {
+			if(outputs & Output::Video) {
+				video_.flush();
+			}
+
 			if constexpr (is_zx81) {
-				update_audio();
-				audio_queue_.perform();
+				if(outputs & Output::Audio) {
+					update_audio();
+					audio_queue_.perform();
+				}
 			}
 		}
 
