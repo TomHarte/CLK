@@ -16,7 +16,7 @@
 	(void)status;				\
 }
 
-#define IsDry(x)	(x) < 3
+#define IsDry(x)	(x) < 2
 
 @implementation CSAudioQueue {
 	AudioQueueRef _audioQueue;
@@ -84,6 +84,9 @@
 						[queue->_queueLock unlock];
 
 						const int buffers = atomic_fetch_add(&queue->_enqueuedBuffers, -1) - 1;
+						if(!buffers) {
+							OSSGuard(AudioQueuePause(queue->_audioQueue));
+						}
 
 						id<CSAudioQueueDelegate> delegate = queue.delegate;
 						[queue->_deallocLock unlock];
@@ -135,9 +138,7 @@
 	OSSGuard(AudioQueueEnqueueBuffer(_audioQueue, newBuffer, 0, NULL));
 
 	// Start the queue if it isn't started yet, and there are now some packets waiting.
-	UInt32 isRunning = 0, bytesReceived = sizeof(UInt32);
-	OSSGuard(AudioQueueGetProperty(_audioQueue, kAudioQueueProperty_IsRunning, &isRunning, &bytesReceived));
-	if(!isRunning && enqueuedBuffers > 2) {
+	if(enqueuedBuffers > 1) {
 		OSSGuard(AudioQueueStart(_audioQueue, NULL));
 	}
 
