@@ -468,7 +468,7 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// MARK: - Audio
-		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		Concurrency::TaskQueue<false> audio_queue_;
 		using AY = GI::AY38910::AY38910<false>;
 		AY ay_;
 		Outputs::Speaker::PullLowpass<AY> speaker_;

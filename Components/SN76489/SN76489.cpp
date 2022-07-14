@@ -13,7 +13,7 @@
 
 using namespace TI;
 
-SN76489::SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue, int additional_divider) : task_queue_(task_queue) {
+SN76489::SN76489(Personality personality, Concurrency::TaskQueue<false> &task_queue, int additional_divider) : task_queue_(task_queue) {
 	set_sample_volume_range(0);
 
 	switch(personality) {
@@ -49,7 +49,7 @@ void SN76489::set_sample_volume_range(std::int16_t range) {
 }
 
 void SN76489::write(uint8_t value) {
-	task_queue_.defer([value, this] () {
+	task_queue_.enqueue([value, this] () {
 		if(value & 0x80) {
 			active_register_ = value;
 		}

@@ -16,7 +16,7 @@
 
 using namespace Apple::IIgs::Sound;
 
-GLU::GLU(Concurrency::DeferringAsyncTaskQueue &audio_queue) : audio_queue_(audio_queue) {
+GLU::GLU(Concurrency::TaskQueue<false> &audio_queue) : audio_queue_(audio_queue) {
 	// Reset all pending stores.
 	MemoryWrite disabled_write;
 	disabled_write.enabled = false;
@@ -42,7 +42,7 @@ void GLU::set_data(uint8_t data) {
 		// Register access.
 		const auto address = address_;	// To make sure I don't inadvertently 'capture' address_.
 		local_.set_register(address, data);
-		audio_queue_.defer([this, address, data] () {
+		audio_queue_.enqueue([this, address, data] () {
 			remote_.set_register(address, data);
 		});
 	}
@@ -191,7 +191,7 @@ void GLU::set_sample_volume_range(std::int16_t range) {
 
 void GLU::set_control(uint8_t control) {
 	local_.control = control;
-	audio_queue_.defer([this, control] () {
+	audio_queue_.enqueue([this, control] () {
 		remote_.control = control;
 	});
 }

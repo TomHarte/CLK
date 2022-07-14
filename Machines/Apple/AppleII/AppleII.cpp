@@ -95,7 +95,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		uint8_t ram_[65536], aux_ram_[65536];
 		std::vector<uint8_t> rom_;
 
-		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		Concurrency::TaskQueue<false> audio_queue_;
 		Audio::Toggle audio_toggle_;
 		Outputs::Speaker::PullLowpass<Audio::Toggle> speaker_;
 		Cycles cycles_since_audio_update_;

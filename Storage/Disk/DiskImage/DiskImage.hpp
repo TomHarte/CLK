@@ -80,7 +80,7 @@ class DiskImageHolderBase: public Disk {
 	protected:
 		std::set<Track::Address> unwritten_tracks_;
 		std::map<Track::Address, std::shared_ptr<Track>> cached_tracks_;
-		std::unique_ptr<Concurrency::AsyncTaskQueue> update_queue_;
+		std::unique_ptr<Concurrency::TaskQueue<true>> update_queue_;
 };
 
 /*!

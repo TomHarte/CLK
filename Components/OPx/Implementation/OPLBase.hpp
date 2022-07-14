@@ -26,9 +26,9 @@ template <typename Child> class OPLBase: public ::Outputs::Speaker::SampleSource
 		}
 
 	protected:
-		OPLBase(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {}
+		OPLBase(Concurrency::TaskQueue<false> &task_queue) : task_queue_(task_queue) {}
 
-		Concurrency::DeferringAsyncTaskQueue &task_queue_;
+		Concurrency::TaskQueue<false> &task_queue_;
 
 	private:
 		uint8_t selected_register_ = 0;

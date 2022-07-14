@@ -12,7 +12,7 @@
 
 using namespace Yamaha::OPL;
 
-OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, bool is_vrc7):
+OPLL::OPLL(Concurrency::TaskQueue<false> &task_queue, int audio_divider, bool is_vrc7):
 	OPLBase(task_queue), audio_divider_(audio_divider), is_vrc7_(is_vrc7) {
 	// Due to the way that sound mixing works on the OPLL, the audio divider may not
 	// be larger than 4.
@@ -74,7 +74,7 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, 
 void OPLL::write_register(uint8_t address, uint8_t value) {
 	// The OPLL doesn't have timers or other non-audio functions, so all writes
 	// go to the audio queue.
-	task_queue_.defer([this, address, value] {
+	task_queue_.enqueue([this, address, value] {
 		// The first 8 locations are used to define the custom instrument, and have
 		// exactly the same format as the patch set arrays at the head of this file.
 		if(address < 8) {

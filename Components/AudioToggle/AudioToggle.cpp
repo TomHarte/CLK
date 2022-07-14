@@ -10,7 +10,7 @@
 
 using namespace Audio;
 
-Audio::Toggle::Toggle(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
+Audio::Toggle::Toggle(Concurrency::TaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue) {}
 
 void Toggle::get_samples(std::size_t number_of_samples, std::int16_t *target) {
@@ -28,7 +28,7 @@ void Toggle::skip_samples(std::size_t) {}
 void Toggle::set_output(bool enabled) {
 	if(is_enabled_ == enabled) return;
 	is_enabled_ = enabled;
-	audio_queue_.defer([this, enabled] {
+	audio_queue_.enqueue([this, enabled] {
 		level_ = enabled ? volume_ : 0;
 	});
 }

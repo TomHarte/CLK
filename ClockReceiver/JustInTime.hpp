@@ -315,7 +315,7 @@ template <class T, class LocalTimeScale = HalfCycles, class TargetTimeScale = Lo
 		LocalTimeScale time_since_update_;
 		TargetTimeScale threshold_;
 		bool is_flushed_ = true;
-		Concurrency::AsyncTaskQueue task_queue_;
+		Concurrency::TaskQueue<true> task_queue_;
 };
 
 #endif /* JustInTime_h */

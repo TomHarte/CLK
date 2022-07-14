@@ -12,18 +12,18 @@
 
 using namespace MOS::MOS6560;
 
-AudioGenerator::AudioGenerator(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
+AudioGenerator::AudioGenerator(Concurrency::TaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue) {}
 
 
 void AudioGenerator::set_volume(uint8_t volume) {
-	audio_queue_.defer([this, volume]() {
+	audio_queue_.enqueue([this, volume]() {
 		volume_ = int16_t(volume) * range_multiplier_;
 	});
 }
 
 void AudioGenerator::set_control(int channel, uint8_t value) {
-	audio_queue_.defer([this, channel, value]() {
+	audio_queue_.enqueue([this, channel, value]() {
 		control_registers_[channel] = value;
 	});
 }

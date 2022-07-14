@@ -27,7 +27,7 @@ namespace Macintosh {
 */
 class Audio: public ::Outputs::Speaker::SampleSource {
 	public:
-		Audio(Concurrency::DeferringAsyncTaskQueue &task_queue);
+		Audio(Concurrency::TaskQueue<false> &task_queue);
 
 		/*!
 			Macintosh audio is (partly) sourced by the same scanning
@@ -58,7 +58,7 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 		constexpr static bool get_is_stereo() { return false; }
 
 	private:
-		Concurrency::DeferringAsyncTaskQueue &task_queue_;
+		Concurrency::TaskQueue<false> &task_queue_;
 
 		// A queue of fetched samples; read from by one thread,
 		// written to by another.

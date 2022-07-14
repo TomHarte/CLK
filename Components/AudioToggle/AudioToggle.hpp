@@ -19,7 +19,7 @@ namespace Audio {
 */
 class Toggle: public Outputs::Speaker::SampleSource {
 	public:
-		Toggle(Concurrency::DeferringAsyncTaskQueue &audio_queue);
+		Toggle(Concurrency::TaskQueue<false> &audio_queue);
 
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
@@ -31,7 +31,7 @@ class Toggle: public Outputs::Speaker::SampleSource {
 	private:
 		// Accessed on the calling thread.
 		bool is_enabled_ = false;
-		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
+		Concurrency::TaskQueue<false> &audio_queue_;
 
 		// Accessed on the audio thread.
 		int16_t level_ = 0, volume_ = 0;

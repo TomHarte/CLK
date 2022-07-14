@@ -10,7 +10,7 @@
 
 using namespace Atari2600;
 
-Atari2600::TIASound::TIASound(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
+Atari2600::TIASound::TIASound(Concurrency::TaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue),
 	poly4_counter_{0x00f, 0x00f},
 	poly5_counter_{0x01f, 0x01f},
@@ -18,20 +18,20 @@ Atari2600::TIASound::TIASound(Concurrency::DeferringAsyncTaskQueue &audio_queue)
 {}
 
 void Atari2600::TIASound::set_volume(int channel, uint8_t volume) {
-	audio_queue_.defer([target = &volume_[channel], volume]() {
+	audio_queue_.enqueue([target = &volume_[channel], volume]() {
 		*target = volume & 0xf;
 	});
 }
 
 void Atari2600::TIASound::set_divider(int channel, uint8_t divider) {
-	audio_queue_.defer([this, channel, divider]() {
+	audio_queue_.enqueue([this, channel, divider]() {
 		divider_[channel] = divider & 0x1f;
 		divider_counter_[channel] = 0;
 	});
 }
 
 void Atari2600::TIASound::set_control(int channel, uint8_t control) {
-	audio_queue_.defer([target = &control_[channel], control]() {
+	audio_queue_.enqueue([target = &control_[channel], control]() {
 		*target = control & 0xf;
 	});
 }

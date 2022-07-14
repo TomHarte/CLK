@@ -770,7 +770,7 @@ template <bool has_scsi_bus> class ConcreteMachine:
 		// Outputs
 		JustInTimeActor<VideoOutput, Cycles> video_;
 
-		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		Concurrency::TaskQueue<false> audio_queue_;
 		SoundGenerator sound_generator_;
 		Outputs::Speaker::PullLowpass<SoundGenerator> speaker_;
 

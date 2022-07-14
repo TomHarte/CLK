@@ -178,7 +178,7 @@ class TapePlayer: public Storage::Tape::BinaryTapePlayer {
 */
 class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	public:
-		VIAPortHandler(Concurrency::DeferringAsyncTaskQueue &audio_queue, AY &ay8910, Speaker &speaker, TapePlayer &tape_player, Keyboard &keyboard) :
+		VIAPortHandler(Concurrency::TaskQueue<false> &audio_queue, AY &ay8910, Speaker &speaker, TapePlayer &tape_player, Keyboard &keyboard) :
 			audio_queue_(audio_queue), ay8910_(ay8910), speaker_(speaker), tape_player_(tape_player), keyboard_(keyboard)
 		{
 			// Attach a couple of joysticks.
@@ -254,7 +254,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		uint8_t porta_output_ = 0xff;
 		HalfCycles cycles_since_ay_update_;
 
-		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
+		Concurrency::TaskQueue<false> &audio_queue_;
 		AY &ay8910_;
 		Speaker &speaker_;
 		TapePlayer &tape_player_;
@@ -711,7 +711,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS
 		// Outputs
 		JustInTimeActor<VideoOutput, Cycles> video_;
 
-		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		Concurrency::TaskQueue<false> audio_queue_;
 		GI::AY38910::AY38910<false> ay8910_;
 		Speaker speaker_;
 
