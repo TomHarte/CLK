@@ -18,11 +18,18 @@
 
 #define IsDry(x)	(x) < 2
 
+#define MaximumBacklog	4
+#define NumBuffers		(MaximumBacklog + 1)
+
 @implementation CSAudioQueue {
 	AudioQueueRef _audioQueue;
+
 	NSLock *_deallocLock;
 	NSLock *_queueLock;
+
 	atomic_int _enqueuedBuffers;
+	AudioQueueBufferRef _buffers[NumBuffers];
+	int _bufferWritePointer;
 }
 
 #pragma mark - Status
@@ -73,19 +80,19 @@
 				0,
 				dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0),
 				^(AudioQueueRef inAQ, AudioQueueBufferRef inBuffer) {
+					(void)inBuffer;
+
 					CSAudioQueue *queue = weakSelf;
 					if(!queue) {
 						return;
 					}
 
 					if([queue->_deallocLock tryLock]) {
-						[queue->_queueLock lock];
-						OSSGuard(AudioQueueFreeBuffer(inAQ, inBuffer));
-						[queue->_queueLock unlock];
-
 						const int buffers = atomic_fetch_add(&queue->_enqueuedBuffers, -1) - 1;
 						if(!buffers) {
-							OSSGuard(AudioQueuePause(queue->_audioQueue));
+							[queue->_queueLock lock];
+								OSSGuard(AudioQueuePause(inAQ));
+							[queue->_queueLock unlock];
 						}
 
 						id<CSAudioQueueDelegate> delegate = queue.delegate;
@@ -105,43 +112,66 @@
 
 - (void)dealloc {
 	[_deallocLock lock];
-	if(_audioQueue) {
-		OSSGuard(AudioQueueDispose(_audioQueue, true));
-		_audioQueue = NULL;
-	}
+		if(_audioQueue) {
+			OSSGuard(AudioQueueDispose(_audioQueue, true));
+			_audioQueue = NULL;
+		}
 
-	// nil out the dealloc lock before entering the critical section such
-	// that it becomes impossible for anyone else to acquire.
-	NSLock *deallocLock = _deallocLock;
-	_deallocLock = nil;
+		for(size_t c = 0; c < NumBuffers; c++) {
+			if(_buffers[c]) {
+				OSSGuard(AudioQueueFreeBuffer(_audioQueue, _buffers[c]));
+				_buffers[c] = NULL;
+			}
+		}
+
+		// nil out the dealloc lock before entering the critical section such
+		// that it becomes impossible for anyone else to acquire.
+		NSLock *deallocLock = _deallocLock;
+		_deallocLock = nil;
 	[deallocLock unlock];
 }
 
 #pragma mark - Audio enqueuer
 
+- (void)setBufferSize:(NSUInteger)bufferSize {
+	_bufferSize = bufferSize;
+
+	// Allocate future audio buffers.
+	[_queueLock lock];
+		const size_t bufferBytes = self.bufferSize * sizeof(int16_t);
+		for(size_t c = 0; c < NumBuffers; c++) {
+			if(_buffers[c]) {
+				OSSGuard(AudioQueueFreeBuffer(_audioQueue, _buffers[c]));
+			}
+
+			OSSGuard(AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes * 2, &_buffers[c]));
+			_buffers[c]->mAudioDataByteSize = (UInt32)bufferBytes;
+		}
+	[_queueLock unlock];
+}
+
 - (void)enqueueAudioBuffer:(const int16_t *)buffer {
 	const size_t bufferBytes = self.bufferSize * sizeof(int16_t);
 
-	// Don't enqueue more than 4 buffers ahead of now, to ensure not too much latency accrues.
-	if(atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) == 4) {
+	// Don't enqueue more than the allowed number of future buffers,
+	// to ensure not too much latency accrues.
+	if(atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) == MaximumBacklog) {
 		return;
 	}
 	const int enqueuedBuffers = atomic_fetch_add(&_enqueuedBuffers, 1) + 1;
 
+	const int targetBuffer = _bufferWritePointer;
+	_bufferWritePointer = (_bufferWritePointer + 1) % NumBuffers;
+	memcpy(_buffers[targetBuffer]->mAudioData, buffer, bufferBytes);
+
 	[_queueLock lock];
+		OSSGuard(AudioQueueEnqueueBuffer(_audioQueue, _buffers[targetBuffer], 0, NULL));
 
-	AudioQueueBufferRef newBuffer;
-	OSSGuard(AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes * 2, &newBuffer));
-	memcpy(newBuffer->mAudioData, buffer, bufferBytes);
-	newBuffer->mAudioDataByteSize = (UInt32)bufferBytes;
-
-	OSSGuard(AudioQueueEnqueueBuffer(_audioQueue, newBuffer, 0, NULL));
-
-	// Start the queue if it isn't started yet, and there are now some packets waiting.
-	if(enqueuedBuffers > 1) {
-		OSSGuard(AudioQueueStart(_audioQueue, NULL));
-	}
-
+		// Starting is a no-op if the queue is already playing, but it may not have been started
+		// yet, or may have been paused due to a pipeline failure if the producer is running slowly.
+		if(enqueuedBuffers > 1) {
+			OSSGuard(AudioQueueStart(_audioQueue, NULL));
+		}
 	[_queueLock unlock];
 }
 
