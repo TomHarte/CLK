@@ -21,16 +21,15 @@ template <typename Performer> class AsyncUpdater {
 	public:
 		template <typename... Args> AsyncUpdater(Args&&... args) :
 			performer(std::forward<Args>(args)...),
-			actions_(std::make_unique<ActionVector>()),
 			performer_thread_{
 				[this] {
 					Time::Nanos last_fired = Time::nanos_now();
-					auto actions = std::make_unique<ActionVector>();
+					ActionVector actions;
 
 					while(!should_quit) {
 						// Wait for new actions to be signalled, and grab them.
 						std::unique_lock lock(condition_mutex_);
-						while(actions_->empty()) {
+						while(actions_.empty()) {
 							condition_.wait(lock);
 						}
 						std::swap(actions, actions_);
@@ -42,10 +41,10 @@ template <typename Performer> class AsyncUpdater {
 						last_fired = time_now;
 
 						// Perform the actions.
-						for(const auto& action: *actions) {
+						for(const auto& action: actions) {
 							action();
 						}
-						actions->clear();
+						actions.clear();
 					}
 				}
 			} {}
@@ -58,7 +57,7 @@ template <typename Performer> class AsyncUpdater {
 		/// Actions may be elided,
 		void update(const std::function<void(void)> &post_action) {
 			std::lock_guard guard(condition_mutex_);
-			actions_->push_back(post_action);
+			actions_.push_back(post_action);
 			condition_.notify_all();
 		}
 
@@ -81,7 +80,7 @@ template <typename Performer> class AsyncUpdater {
 		// The list of actions waiting be performed. These will be elided,
 		// increasing their latency, if the emulation thread falls behind.
 		using ActionVector = std::vector<std::function<void(void)>>;
-		std::unique_ptr<ActionVector> actions_;
+		ActionVector actions_;
 
 		// Necessary synchronisation parts.
 		std::atomic<bool> should_quit = false;
