@@ -36,9 +36,8 @@
 	Enqueues a buffer for playback.
 
 	@param buffer A pointer to the data that comprises the buffer.
-	@param lengthInSamples The length of the buffer, in samples.
 */
-- (void)enqueueAudioBuffer:(nonnull const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples;
+- (void)enqueueAudioBuffer:(nonnull const int16_t *)buffer;
 
 /// @returns The sampling rate at which this queue is playing audio.
 @property (nonatomic, readonly) Float64 samplingRate;
@@ -57,6 +56,11 @@
 	decide in what size to enqueue audio, this is a helpful suggestion.
 */
 @property (nonatomic, readonly) NSUInteger preferredBufferSize;
+
+/*!
+	Sets the size of buffers to be posted, in samplrs.
+*/
+@property (nonatomic) NSUInteger bufferSize;
 
 /*!
 	@returns @C YES if this queue is running low or is completely exhausted of new audio buffers.

@@ -30,6 +30,7 @@
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
 
+#include <cassert>
 #include <atomic>
 #include <bitset>
 #include <codecvt>
@@ -175,7 +176,8 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
-	[self.audioQueue enqueueAudioBuffer:samples numberOfSamples:(unsigned int)length];
+	assert(NSUInteger(length) == self.audioQueue.bufferSize);
+	[self.audioQueue enqueueAudioBuffer:samples];
 }
 
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker {
@@ -231,6 +233,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo {
 	@synchronized(self) {
+		self.audioQueue.bufferSize = bufferSize;
 		[self setSpeakerDelegate:&_speakerDelegate sampleRate:samplingRate bufferSize:bufferSize stereo:stereo];
 	}
 }

@@ -119,8 +119,8 @@
 
 #pragma mark - Audio enqueuer
 
-- (void)enqueueAudioBuffer:(const int16_t *)buffer numberOfSamples:(size_t)lengthInSamples {
-	size_t bufferBytes = lengthInSamples * sizeof(int16_t);
+- (void)enqueueAudioBuffer:(const int16_t *)buffer {
+	const size_t bufferBytes = self.bufferSize * sizeof(int16_t);
 
 	// Don't enqueue more than 4 buffers ahead of now, to ensure not too much latency accrues.
 	if(atomic_load_explicit(&_enqueuedBuffers, memory_order_relaxed) == 4) {
