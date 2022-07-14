@@ -12,6 +12,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <functional>
+#include <list>
 #include <memory>
 #include <thread>
 #include <vector>
@@ -56,7 +57,7 @@ class AsyncTaskQueue {
 		std::atomic_bool should_destruct_;
 		std::condition_variable processing_condition_;
 		std::mutex queue_mutex_;
-		TaskList pending_tasks_;
+		std::list<std::function<void(void)>> pending_tasks_;
 
 		std::thread thread_;
 #endif
