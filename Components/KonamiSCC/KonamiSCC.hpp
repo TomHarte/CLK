@@ -24,7 +24,7 @@ namespace Konami {
 class SCC: public ::Outputs::Speaker::SampleSource {
 	public:
 		/// Creates a new SCC.
-		SCC(Concurrency::DeferringAsyncTaskQueue &task_queue);
+		SCC(Concurrency::TaskQueue<false> &task_queue);
 
 		/// As per ::SampleSource; provides a broadphase test for silence.
 		bool is_zero_level() const;
@@ -41,7 +41,7 @@ class SCC: public ::Outputs::Speaker::SampleSource {
 		uint8_t read(uint16_t address);
 
 	private:
-		Concurrency::DeferringAsyncTaskQueue &task_queue_;
+		Concurrency::TaskQueue<false> &task_queue_;
 
 		// State from here on down is accessed ony from the audio thread.
 		int master_divider_ = 0;

@@ -149,7 +149,7 @@ class Audio: public DMADevice<4> {
 
 		// Transient output state, and its destination.
 		Outputs::Speaker::PushLowpass<true> speaker_;
-		Concurrency::AsyncTaskQueue queue_;
+		Concurrency::TaskQueue<true> queue_;
 
 		using AudioBuffer = std::array<int16_t, 4096>;
 		static constexpr int BufferCount = 3;

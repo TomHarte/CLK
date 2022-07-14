@@ -1150,7 +1150,7 @@ class ConcreteMachine:
 		Apple::Disk::DiskIIDrive drives525_[2];
 
 		// The audio parts.
-		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		Concurrency::TaskQueue<false> audio_queue_;
 		Apple::IIgs::Sound::GLU sound_glu_;
 		Audio::Toggle audio_toggle_;
 		using AudioSource = Outputs::Speaker::CompoundSource<Apple::IIgs::Sound::GLU, Audio::Toggle>;

@@ -16,7 +16,7 @@
 using namespace GI::AY38910;
 
 template <bool is_stereo>
-AY38910<is_stereo>::AY38910(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {
+AY38910<is_stereo>::AY38910(Personality personality, Concurrency::TaskQueue<false> &task_queue) : task_queue_(task_queue) {
 	// Don't use the low bit of the envelope position if this is an AY.
 	envelope_position_mask_ |= personality == Personality::AY38910;
 
@@ -252,7 +252,7 @@ template <bool is_stereo> void AY38910<is_stereo>::set_register_value(uint8_t va
 	// If this is a register that affects audio output, enqueue a mutation onto the
 	// audio generation thread.
 	if(selected_register_ < 14) {
-		task_queue_.defer([this, selected_register = selected_register_, value] () {
+		task_queue_.enqueue([this, selected_register = selected_register_, value] () {
 			// Perform any register-specific mutation to output generation.
 			uint8_t masked_value = value;
 			switch(selected_register) {

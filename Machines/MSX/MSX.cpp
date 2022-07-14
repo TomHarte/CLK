@@ -747,7 +747,7 @@ class ConcreteMachine:
 		JustInTimeActor<TI::TMS::TMS9918> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
-		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		Concurrency::TaskQueue<false> audio_queue_;
 		GI::AY38910::AY38910<false> ay_;
 		Audio::Toggle audio_toggle_;
 		Konami::SCC scc_;

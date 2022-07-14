@@ -459,7 +459,7 @@ class ConcreteMachine:
 			// This is as per the audio control register;
 			// see https://www.smspower.org/Development/AudioControlPort
 			update_audio();
-			audio_queue_.defer([this, mode] {
+			audio_queue_.enqueue([this, mode] {
 				switch(mode & 3) {
 					case 0:	// SN76489 only; the default.
 						mixer_.set_relative_volumes({1.0f, 0.0f});
@@ -487,7 +487,7 @@ class ConcreteMachine:
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		JustInTimeActor<TI::TMS::TMS9918> vdp_;
 
-		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		Concurrency::TaskQueue<false> audio_queue_;
 		TI::SN76489 sn76489_;
 		Yamaha::OPL::OPLL opll_;
 		Outputs::Speaker::CompoundSource<decltype(sn76489_), decltype(opll_)> mixer_;

@@ -16,7 +16,7 @@ namespace Electron {
 
 class SoundGenerator: public ::Outputs::Speaker::SampleSource {
 	public:
-		SoundGenerator(Concurrency::DeferringAsyncTaskQueue &audio_queue);
+		SoundGenerator(Concurrency::TaskQueue<false> &audio_queue);
 
 		void set_divider(uint8_t divider);
 
@@ -31,7 +31,7 @@ class SoundGenerator: public ::Outputs::Speaker::SampleSource {
 		static constexpr bool get_is_stereo() { return false; }
 
 	private:
-		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
+		Concurrency::TaskQueue<false> &audio_queue_;
 		unsigned int counter_ = 0;
 		unsigned int divider_ = 0;
 		bool is_enabled_ = false;

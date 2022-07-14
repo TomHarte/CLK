@@ -24,7 +24,7 @@
 
 #include "../../../../ClockReceiver/TimeTypes.hpp"
 #include "../../../../ClockReceiver/ScanSynchroniser.hpp"
-#include "../../../../Concurrency/AsyncUpdater.hpp"
+#include "../../../../Concurrency/AsyncTaskQueue.hpp"
 
 #import "CSStaticAnalyser+TargetVector.h"
 #import "NSBundle+DataResource.h"
@@ -122,7 +122,7 @@ struct ActivityObserver: public Activity::Observer {
 	CSJoystickManager *_joystickManager;
 	NSMutableArray<CSMachineLED *> *_leds;
 
-	Concurrency::AsyncUpdater<MachineUpdater> updater;
+	Concurrency::TaskQueue<true, MachineUpdater> updater;
 	Time::ScanSynchroniser _scanSynchroniser;
 
 	NSTimer *_joystickTimer;
@@ -455,7 +455,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)applyInputEvent:(dispatch_block_t)event {
-	updater.update([event] {
+	updater.enqueue([event] {
 		event();
 	});
 }
@@ -669,13 +669,13 @@ struct ActivityObserver: public Activity::Observer {
 #pragma mark - Timer
 
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
-	updater.update([self] {
+	updater.enqueue([self] {
 		updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
 	});
 }
 
 - (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
-	updater.update([self] {
+	updater.enqueue([self] {
 		// Grab a pointer to the timed machine from somewhere where it has already
 		// been dynamically cast, to avoid that cost here.
 		MachineTypes::TimedMachine *const timed_machine = updater.performer.machine;

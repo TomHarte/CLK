@@ -12,7 +12,7 @@
 
 using namespace Electron;
 
-SoundGenerator::SoundGenerator(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
+SoundGenerator::SoundGenerator(Concurrency::TaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue) {}
 
 void SoundGenerator::set_sample_volume_range(std::int16_t range) {
@@ -36,13 +36,13 @@ void SoundGenerator::skip_samples(std::size_t number_of_samples) {
 }
 
 void SoundGenerator::set_divider(uint8_t divider) {
-	audio_queue_.defer([this, divider]() {
+	audio_queue_.enqueue([this, divider]() {
 		divider_ = divider * 32 / clock_rate_divider;
 	});
 }
 
 void SoundGenerator::set_is_enabled(bool is_enabled) {
-	audio_queue_.defer([this, is_enabled]() {
+	audio_queue_.enqueue([this, is_enabled]() {
 		is_enabled_ = is_enabled;
 		counter_ = 0;
 	});

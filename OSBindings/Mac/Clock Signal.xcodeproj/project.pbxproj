@@ -33,7 +33,6 @@
 		4B05401F219D1618001BF69C /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
 		4B055A7A1FAE78A00060FFFF /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055A771FAE78210060FFFF /* SDL2.framework */; };
 		4B055A7E1FAE84AA0060FFFF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B055A7C1FAE84A50060FFFF /* main.cpp */; };
-		4B055A8D1FAE85920060FFFF /* AsyncTaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */; };
 		4B055A8F1FAE85A90060FFFF /* FileHolder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADB81DE3151600AEC565 /* FileHolder.cpp */; };
 		4B055A901FAE85A90060FFFF /* TimedEventLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */; };
 		4B055A911FAE85B50060FFFF /* Cartridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6A1D72496600532C7B /* Cartridge.cpp */; };
@@ -221,7 +220,6 @@
 		4B322E041F5A2E3C004EB04C /* Z80Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B322E031F5A2E3C004EB04C /* Z80Base.cpp */; };
 		4B37EE821D7345A6006A09A4 /* BinaryDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */; };
 		4B38F3481F2EC11D00D9235D /* AmstradCPC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */; };
-		4B3940E71DA83C8300427841 /* AsyncTaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */; };
 		4B3BA0C31D318AEC005DD7A7 /* C1540Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */; };
 		4B3BA0CE1D318B44005DD7A7 /* C1540Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0C61D318B44005DD7A7 /* C1540Bridge.mm */; };
 		4B3BA0CF1D318B44005DD7A7 /* MOS6522Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3BA0C91D318B44005DD7A7 /* MOS6522Bridge.mm */; };
@@ -348,7 +346,6 @@
 		4B7752C128217F490073E2C5 /* FAT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B477709268FBE4D005C2340 /* FAT.cpp */; };
 		4B7752C228217F5C0073E2C5 /* Spectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5D5C9525F56FC7001B4623 /* Spectrum.cpp */; };
 		4B7752C328217F720073E2C5 /* Z80.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8DD39526360DDF00B3C866 /* Z80.cpp */; };
-		4B778EEF23A5D6680000D260 /* AsyncTaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */; };
 		4B778EF023A5D68C0000D260 /* 68000Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */; };
 		4B778EF123A5D6B50000D260 /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04F91FC9FA3100F43484 /* 9918.cpp */; };
 		4B778EF323A5DB230000D260 /* PCMSegment.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518731F75E91800926311 /* PCMSegment.cpp */; };
@@ -1298,7 +1295,6 @@
 		4B37EE811D7345A6006A09A4 /* BinaryDump.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = BinaryDump.hpp; sourceTree = "<group>"; };
 		4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AmstradCPC.cpp; sourceTree = "<group>"; };
 		4B38F3471F2EC11D00D9235D /* AmstradCPC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AmstradCPC.hpp; sourceTree = "<group>"; };
-		4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AsyncTaskQueue.cpp; sourceTree = "<group>"; };
 		4B3940E61DA83C8300427841 /* AsyncTaskQueue.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AsyncTaskQueue.hpp; sourceTree = "<group>"; };
 		4B3AF7D02413470E00873C0B /* Enum.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Enum.hpp; sourceTree = "<group>"; };
 		4B3AF7D12413472200873C0B /* Struct.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Struct.hpp; sourceTree = "<group>"; };
@@ -2138,7 +2134,6 @@
 		4BDCC5F81FB27A5E001220C5 /* ROMMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ROMMachine.hpp; sourceTree = "<group>"; };
 		4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MachineCycleTests.swift; sourceTree = "<group>"; };
 		4BE0151C286A8C8E00EA42E9 /* MemorySwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemorySwitches.hpp; sourceTree = "<group>"; };
-		4BE0151E28766ECF00EA42E9 /* AsyncUpdater.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AsyncUpdater.hpp; sourceTree = "<group>"; };
 		4BE0A3EC237BB170002AB46F /* ST.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ST.cpp; sourceTree = "<group>"; };
 		4BE0A3ED237BB170002AB46F /* ST.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ST.hpp; sourceTree = "<group>"; };
 		4BE211DD253E4E4800435408 /* 65C02_no_Rockwell_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 65C02_no_Rockwell_test.bin; path = "Klaus Dormann/65C02_no_Rockwell_test.bin"; sourceTree = "<group>"; };
@@ -2753,9 +2748,7 @@
 		4B3940E81DA83C8700427841 /* Concurrency */ = {
 			isa = PBXGroup;
 			children = (
-				4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */,
 				4B3940E61DA83C8300427841 /* AsyncTaskQueue.hpp */,
-				4BE0151E28766ECF00EA42E9 /* AsyncUpdater.hpp */,
 			);
 			name = Concurrency;
 			path = ../../Concurrency;
@@ -5637,7 +5630,6 @@
 				4B0ACC2923775819008902D0 /* DMAController.cpp in Sources */,
 				4B055A951FAE85BB0060FFFF /* BitReverse.cpp in Sources */,
 				4B055ACE1FAE9B030060FFFF /* Plus3.cpp in Sources */,
-				4B055A8D1FAE85920060FFFF /* AsyncTaskQueue.cpp in Sources */,
 				4BAD13441FF709C700FD114A /* MSX.cpp in Sources */,
 				4B055AC41FAE9AE80060FFFF /* Keyboard.cpp in Sources */,
 				4B8DF506254E3C9D00F3433C /* ADB.cpp in Sources */,
@@ -5887,7 +5879,6 @@
 				4B17B58B20A8A9D9007CCA8F /* StringSerialiser.cpp in Sources */,
 				4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */,
 				4B051CA826781D6500CA44E8 /* StaticAnalyser.cpp in Sources */,
-				4B3940E71DA83C8300427841 /* AsyncTaskQueue.cpp in Sources */,
 				4B0E04FA1FC9FA3100F43484 /* 9918.cpp in Sources */,
 				4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */,
 				4B4518841F75E91A00926311 /* UnformattedTrack.cpp in Sources */,
@@ -6118,7 +6109,6 @@
 				4B7752A728217E060073E2C5 /* Blitter.cpp in Sources */,
 				4B778F4F23A5F21C0000D260 /* StaticAnalyser.cpp in Sources */,
 				4B8DD3682633B2D400B3C866 /* SpectrumVideoContentionTests.mm in Sources */,
-				4B778EEF23A5D6680000D260 /* AsyncTaskQueue.cpp in Sources */,
 				4B7752A928217E200073E2C5 /* 65816Storage.cpp in Sources */,
 				4B7752AC28217E6E0073E2C5 /* StaticAnalyser.cpp in Sources */,
 				4B778F1223A5EC720000D260 /* CRT.cpp in Sources */,

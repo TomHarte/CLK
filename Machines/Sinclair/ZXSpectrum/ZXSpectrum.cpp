@@ -849,7 +849,7 @@ template<Model model> class ConcreteMachine:
 		}
 
 		// MARK: - Audio.
-		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		Concurrency::TaskQueue<false> audio_queue_;
 		GI::AY38910::AY38910<false> ay_;
 		Audio::Toggle audio_toggle_;
 		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910<false>, Audio::Toggle> mixer_;

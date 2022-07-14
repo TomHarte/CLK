@@ -367,12 +367,12 @@ template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpa
 			The speaker will advance by obtaining data from the sample source supplied
 			at construction, filtering it and passing it on to the speaker's delegate if there is one.
 		*/
-		void run_for(Concurrency::DeferringAsyncTaskQueue &queue, const Cycles cycles) {
+		void run_for(Concurrency::TaskQueue<false> &queue, const Cycles cycles) {
 			if(cycles == Cycles(0)) {
 				return;
 			}
 
-			queue.defer([this, cycles] {
+			queue.enqueue([this, cycles] {
 				run_for(cycles);
 			});
 		}

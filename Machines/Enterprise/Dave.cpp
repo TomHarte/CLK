@@ -12,12 +12,12 @@ using namespace Enterprise::Dave;
 
 // MARK: - Audio generator
 
-Audio::Audio(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
+Audio::Audio(Concurrency::TaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue) {}
 
 void Audio::write(uint16_t address, uint8_t value) {
 	address &= 0x1f;
-	audio_queue_.defer([address, value, this] {
+	audio_queue_.enqueue([address, value, this] {
 		switch(address) {
 			case 0:	case 2:	case 4:
 				channels_[address >> 1].reload = (channels_[address >> 1].reload & 0xff00) | value;
@@ -63,7 +63,7 @@ void Audio::write(uint16_t address, uint8_t value) {
 }
 
 void Audio::set_sample_volume_range(int16_t range) {
-	audio_queue_.defer([range, this] {
+	audio_queue_.enqueue([range, this] {
 		volume_ = range / (63*4);
 	});
 }

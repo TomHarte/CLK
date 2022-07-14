@@ -18,7 +18,7 @@ const std::size_t sample_length = 352 / 2;
 
 }
 
-Audio::Audio(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {}
+Audio::Audio(Concurrency::TaskQueue<false> &task_queue) : task_queue_(task_queue) {}
 
 // MARK: - Inputs
 
@@ -35,7 +35,7 @@ void Audio::set_volume(int volume) {
 	posted_volume_ = volume;
 
 	// Post the volume change as a deferred event.
-	task_queue_.defer([this, volume] () {
+	task_queue_.enqueue([this, volume] () {
 		volume_ = volume;
 		set_volume_multiplier();
 	});
@@ -47,7 +47,7 @@ void Audio::set_enabled(bool on) {
 	posted_enable_mask_ = int(on);
 
 	// Post the enabled mask change as a deferred event.
-	task_queue_.defer([this, on] () {
+	task_queue_.enqueue([this, on] () {
 		enabled_mask_ = int(on);
 		set_volume_multiplier();
 	});

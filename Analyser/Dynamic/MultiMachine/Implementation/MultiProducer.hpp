@@ -47,7 +47,7 @@ template <typename MachineType> class MultiInterface {
 		std::recursive_mutex &machines_mutex_;
 
 	private:
-		std::vector<Concurrency::AsyncTaskQueue> queues_;
+		std::vector<Concurrency::TaskQueue<true>> queues_;
 };
 
 class MultiTimedMachine: public MultiInterface<MachineTypes::TimedMachine>, public MachineTypes::TimedMachine {
