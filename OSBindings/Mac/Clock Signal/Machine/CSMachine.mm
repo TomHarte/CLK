@@ -669,41 +669,57 @@ struct ActivityObserver: public Activity::Observer {
 #pragma mark - Timer
 
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
-	updater.enqueue([self] {
-		updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
+	__weak CSMachine *weakSelf = self;
+
+	updater.enqueue([weakSelf] {
+		CSMachine *const strongSelf = weakSelf;
+		if(strongSelf) {
+			strongSelf->updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
+		}
 	});
 }
 
 - (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
-	updater.enqueue([self] {
+	__weak CSMachine *weakSelf = self;
+
+	updater.enqueue([weakSelf] {
+		CSMachine *const strongSelf = weakSelf;
+		if(!strongSelf) {
+			return;
+		}
+
 		// Grab a pointer to the timed machine from somewhere where it has already
 		// been dynamically cast, to avoid that cost here.
-		MachineTypes::TimedMachine *const timed_machine = updater.performer.machine;
+		MachineTypes::TimedMachine *const timed_machine = strongSelf->updater.performer.machine;
 
 		// Definitely update video; update audio too if that pipeline is looking a little dry.
 		auto outputs = MachineTypes::TimedMachine::Output::Video;
-		if(_audioQueue.isRunningDry) {
+		if(strongSelf->_audioQueue.isRunningDry) {
 			outputs |= MachineTypes::TimedMachine::Output::Audio;
 		}
 		timed_machine->flush_output(outputs);
 
 		// Attempt sync-matching if this machine is a fit.
-		//
-		// TODO: either cache scan_producer(), or possibly start caching these things
-		// inside the DynamicMachine?
-		const auto scanStatus = self->_machine->scan_producer()->get_scan_status();
-		const bool canSynchronise = self->_scanSynchroniser.can_synchronise(scanStatus, self.view.refreshPeriod);
+		const auto scanStatus = strongSelf->_machine->scan_producer()->get_scan_status();
+		const bool canSynchronise = strongSelf->_scanSynchroniser.can_synchronise(
+			scanStatus,
+			strongSelf.view.refreshPeriod
+		);
+
 		if(canSynchronise) {
-			const double multiplier = self->_scanSynchroniser.next_speed_multiplier(self->_machine->scan_producer()->get_scan_status());
+			const double multiplier = strongSelf->_scanSynchroniser.next_speed_multiplier(
+				strongSelf->_machine->scan_producer()->get_scan_status()
+			);
 			timed_machine->set_speed_multiplier(multiplier);
 		} else {
 			timed_machine->set_speed_multiplier(1.0);
 		}
 
 		// Ask Metal to rasterise all that just happened and present it.
-		[self.view updateBacking];
+		[strongSelf.view updateBacking];
 		dispatch_async(dispatch_get_main_queue(), ^{
-			[self.view draw];
+			// This is safe even if weakSelf has been nulled out in the interim.
+			[weakSelf.view draw];
 		});
 	});
 }
