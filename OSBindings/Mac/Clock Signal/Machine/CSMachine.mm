@@ -176,7 +176,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
-	assert(NSUInteger(length) == self.audioQueue.bufferSize);
+	assert(NSUInteger(length) == self.audioQueue.bufferSize*(speaker->get_is_stereo() ? 2 : 1));
 	[self.audioQueue enqueueAudioBuffer:samples];
 }
 
