@@ -239,9 +239,9 @@ template <typename ConcreteT, bool is_stereo> class LowpassBase: public Speaker 
 		}
 
 	protected:
-		void process(size_t length) {
+		bool process(size_t length) {
 			const auto delegate = delegate_.load(std::memory_order::memory_order_relaxed);
-			if(!delegate) return;
+			if(!delegate) return false;
 
 			const int scale = static_cast<ConcreteT *>(this)->get_scale();
 
@@ -286,6 +286,8 @@ template <typename ConcreteT, bool is_stereo> class LowpassBase: public Speaker 
 					// TODO: input rate is less than output rate.
 				break;
 			}
+
+			return true;
 		}
 };
 
@@ -334,8 +336,11 @@ template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_s
 		*/
 		void push(const int16_t *buffer, size_t length) {
 			buffer_ = buffer;
-			process(length);
-			assert(buffer_ == buffer + (length * (1 + is_stereo)));
+#ifndef NDEBUG
+			const bool did_process =
+#endif
+				process(length);
+			assert(!did_process || buffer_ == buffer + (length * (1 + is_stereo)));
 		}
 };
 

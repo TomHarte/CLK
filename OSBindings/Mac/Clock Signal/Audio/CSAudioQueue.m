@@ -30,6 +30,8 @@
 	atomic_int _enqueuedBuffers;
 	AudioQueueBufferRef _buffers[NumBuffers];
 	int _bufferWritePointer;
+
+	unsigned int _numChannels;
 }
 
 #pragma mark - Status
@@ -49,6 +51,7 @@
 		atomic_store_explicit(&_enqueuedBuffers, 0, memory_order_relaxed);
 
 		_samplingRate = samplingRate;
+		_numChannels = isStereo ? 2 : 1;
 
 		// Determine preferred buffer size as being the first power of two
 		// not less than 1/100th of a second.
@@ -138,20 +141,20 @@
 
 	// Allocate future audio buffers.
 	[_queueLock lock];
-		const size_t bufferBytes = self.bufferSize * sizeof(int16_t);
+		const size_t bufferBytes = self.bufferSize * sizeof(int16_t) * _numChannels;
 		for(size_t c = 0; c < NumBuffers; c++) {
 			if(_buffers[c]) {
 				OSSGuard(AudioQueueFreeBuffer(_audioQueue, _buffers[c]));
 			}
 
-			OSSGuard(AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes * 2, &_buffers[c]));
+			OSSGuard(AudioQueueAllocateBuffer(_audioQueue, (UInt32)bufferBytes, &_buffers[c]));
 			_buffers[c]->mAudioDataByteSize = (UInt32)bufferBytes;
 		}
 	[_queueLock unlock];
 }
 
 - (void)enqueueAudioBuffer:(const int16_t *)buffer {
-	const size_t bufferBytes = self.bufferSize * sizeof(int16_t);
+	const size_t bufferBytes = self.bufferSize * sizeof(int16_t) * _numChannels;
 
 	// Don't enqueue more than the allowed number of future buffers,
 	// to ensure not too much latency accrues.
