@@ -102,17 +102,17 @@ void Chipset::apply_ham(uint8_t modification) {
 		case 0x00:	// Direct palette lookup.
 			last_colour_ = swizzled_palette_[modification & 0x1b];
 		break;
-		case 0x04:	// Replace red.
-			colour[0] = uint8_t(
+		case 0x04:	// Replace blue.
+			colour[1] = uint8_t(
+				(colour[1] & 0xf0) |
 				((modification & 0x10) >> 1) |	// bit 3.
 				((modification & 0x02) << 1) |	// bit 2.
 				((modification & 0x08) >> 2) |	// bit 1.
 				(modification & 0x01)			// bit 0.
 			);
 		break;
-		case 0x20:	// Replace blue.
-			colour[1] = uint8_t(
-				(colour[1] & 0xf0) |
+		case 0x20:	// Replace red.
+			colour[0] = uint8_t(
 				((modification & 0x10) >> 1) |	// bit 3.
 				((modification & 0x02) << 1) |	// bit 2.
 				((modification & 0x08) >> 2) |	// bit 1.
