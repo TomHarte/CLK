@@ -73,7 +73,7 @@ template <bool perform_automatically, typename Performer = int> class TaskQueue:
 				[this] {
 					ActionVector actions;
 
-					while(!should_quit) {
+					while(!should_quit_) {
 						// Wait for new actions to be signalled, and grab them.
 						std::unique_lock lock(condition_mutex_);
 						while(actions_.empty()) {
@@ -127,7 +127,7 @@ template <bool perform_automatically, typename Performer = int> class TaskQueue:
 		/// The queue cannot be restarted; this is a destructive action.
 		void stop() {
 			if(thread_.joinable()) {
-				should_quit = true;
+				should_quit_ = true;
 				enqueue([] {});
 				if constexpr (!perform_automatically) {
 					perform();
@@ -168,7 +168,7 @@ template <bool perform_automatically, typename Performer = int> class TaskQueue:
 		ActionVector actions_;
 
 		// Necessary synchronisation parts.
-		std::atomic<bool> should_quit = false;
+		std::atomic<bool> should_quit_ = false;
 		std::mutex condition_mutex_;
 		std::condition_variable condition_;
 
