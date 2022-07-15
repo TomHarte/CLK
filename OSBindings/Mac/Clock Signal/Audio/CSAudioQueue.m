@@ -47,7 +47,11 @@
 
 	if(self) {
 		_deallocLock = [[NSLock alloc] init];
+		_deallocLock.name = @"Dealloc lock";
+
 		_queueLock = [[NSLock alloc] init];
+		_queueLock.name = @"Audio queue access lock";
+
 		atomic_store_explicit(&_enqueuedBuffers, 0, memory_order_relaxed);
 
 		_samplingRate = samplingRate;
@@ -115,6 +119,12 @@
 
 - (void)dealloc {
 	[_deallocLock lock];
+		// Ensure no buffers remain enqueued by stopping the queue.
+		if(_audioQueue) {
+			OSSGuard(AudioQueueStop(_audioQueue, true));
+		}
+
+		// Free all buffers.
 		for(size_t c = 0; c < NumBuffers; c++) {
 			if(_buffers[c]) {
 				OSSGuard(AudioQueueFreeBuffer(_audioQueue, _buffers[c]));
@@ -122,6 +132,7 @@
 			}
 		}
 
+		// Dispose of the queue.
 		if(_audioQueue) {
 			OSSGuard(AudioQueueDispose(_audioQueue, true));
 			_audioQueue = NULL;
