@@ -44,7 +44,7 @@ template <typename Performer> struct TaskQueueStorage {
 };
 
 /// An implementation detail; provides a no-op implementation of time advances for TaskQueues without a Performer.
-template <> struct TaskQueueStorage<int> {
+template <> struct TaskQueueStorage<void> {
 	TaskQueueStorage() {}
 
 	protected:
@@ -65,7 +65,7 @@ template <> struct TaskQueueStorage<int> {
 	with the arguments supplied to TaskQueue's constructor, and that class will receive  calls of the
 	form @c .perform(nanos) to update it to every batch of new actions.
 */
-template <bool perform_automatically, typename Performer = int> class TaskQueue: public TaskQueueStorage<Performer> {
+template <bool perform_automatically, typename Performer = void> class TaskQueue: public TaskQueueStorage<Performer> {
 	public:
 		template <typename... Args> TaskQueue(Args&&... args) :
 			TaskQueueStorage<Performer>(std::forward<Args>(args)...),
