@@ -20,7 +20,7 @@ template <typename T> bool DiskImageHolder<T>::get_is_read_only() {
 
 template <typename T> void DiskImageHolder<T>::flush_tracks() {
 	if(!unwritten_tracks_.empty()) {
-		if(!update_queue_) update_queue_ = std::make_unique<Concurrency::TaskQueue<true>>();
+		if(!update_queue_) update_queue_ = std::make_unique<Concurrency::AsyncTaskQueue<true>>();
 
 		using TrackMap = std::map<Track::Address, std::shared_ptr<Track>>;
 		std::shared_ptr<TrackMap> track_copies(new TrackMap);

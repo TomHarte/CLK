@@ -71,7 +71,7 @@ enum class Personality {
 template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource {
 	public:
 		/// Creates a new AY38910.
-		AY38910(Personality, Concurrency::TaskQueue<false> &);
+		AY38910(Personality, Concurrency::AsyncTaskQueue<false> &);
 
 		/// Sets the value the AY would read from its data lines if it were not outputting.
 		void set_data_input(uint8_t r);
@@ -114,7 +114,7 @@ template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource
 		static constexpr bool get_is_stereo() { return is_stereo; }
 
 	private:
-		Concurrency::TaskQueue<false> &task_queue_;
+		Concurrency::AsyncTaskQueue<false> &task_queue_;
 
 		int selected_register_ = 0;
 		uint8_t registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};

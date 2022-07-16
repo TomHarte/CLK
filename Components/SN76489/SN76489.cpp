@@ -13,7 +13,7 @@
 
 using namespace TI;
 
-SN76489::SN76489(Personality personality, Concurrency::TaskQueue<false> &task_queue, int additional_divider) : task_queue_(task_queue) {
+SN76489::SN76489(Personality personality, Concurrency::AsyncTaskQueue<false> &task_queue, int additional_divider) : task_queue_(task_queue) {
 	set_sample_volume_range(0);
 
 	switch(personality) {

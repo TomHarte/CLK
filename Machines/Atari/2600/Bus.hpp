@@ -39,7 +39,7 @@ class Bus {
 		PIA mos6532_;
 		TIA tia_;
 
-		Concurrency::TaskQueue<false> audio_queue_;
+		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		TIASound tia_sound_;
 		Outputs::Speaker::PullLowpass<TIASound> speaker_;
 

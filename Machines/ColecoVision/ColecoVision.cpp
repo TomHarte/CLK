@@ -381,7 +381,7 @@ class ConcreteMachine:
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		JustInTimeActor<TI::TMS::TMS9918> vdp_;
 
-		Concurrency::TaskQueue<false> audio_queue_;
+		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		TI::SN76489 sn76489_;
 		GI::AY38910::AY38910<false> ay_;
 		Outputs::Speaker::CompoundSource<TI::SN76489, GI::AY38910::AY38910<false>> mixer_;

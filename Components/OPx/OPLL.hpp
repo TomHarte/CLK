@@ -24,7 +24,7 @@ namespace OPL {
 class OPLL: public OPLBase<OPLL> {
 	public:
 		/// Creates a new OPLL or VRC7.
-		OPLL(Concurrency::TaskQueue<false> &task_queue, int audio_divider = 1, bool is_vrc7 = false);
+		OPLL(Concurrency::AsyncTaskQueue<false> &task_queue, int audio_divider = 1, bool is_vrc7 = false);
 
 		/// As per ::SampleSource; provides audio output.
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);

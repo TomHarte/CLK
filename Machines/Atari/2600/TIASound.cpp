@@ -10,7 +10,7 @@
 
 using namespace Atari2600;
 
-Atari2600::TIASound::TIASound(Concurrency::TaskQueue<false> &audio_queue) :
+Atari2600::TIASound::TIASound(Concurrency::AsyncTaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue),
 	poly4_counter_{0x00f, 0x00f},
 	poly5_counter_{0x01f, 0x01f},

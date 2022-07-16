@@ -705,7 +705,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 		bool previous_nick_interrupt_line_ = false;
 		// Cf. timing guesses above.
 
-		Concurrency::TaskQueue<false> audio_queue_;
+		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		Dave::Audio dave_audio_;
 		Outputs::Speaker::PullLowpass<Dave::Audio> speaker_;
 		HalfCycles time_since_audio_update_;

@@ -122,7 +122,7 @@ struct ActivityObserver: public Activity::Observer {
 	CSJoystickManager *_joystickManager;
 	NSMutableArray<CSMachineLED *> *_leds;
 
-	Concurrency::TaskQueue<true, MachineUpdater> updater;
+	Concurrency::AsyncTaskQueue<true, MachineUpdater> updater;
 	Time::ScanSynchroniser _scanSynchroniser;
 
 	NSTimer *_joystickTimer;

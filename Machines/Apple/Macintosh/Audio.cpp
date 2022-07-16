@@ -18,7 +18,7 @@ const std::size_t sample_length = 352 / 2;
 
 }
 
-Audio::Audio(Concurrency::TaskQueue<false> &task_queue) : task_queue_(task_queue) {}
+Audio::Audio(Concurrency::AsyncTaskQueue<false> &task_queue) : task_queue_(task_queue) {}
 
 // MARK: - Inputs
 

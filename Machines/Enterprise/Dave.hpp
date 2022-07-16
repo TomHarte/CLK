@@ -30,7 +30,7 @@ enum class Interrupt: uint8_t {
 */
 class Audio: public Outputs::Speaker::SampleSource {
 	public:
-		Audio(Concurrency::TaskQueue<false> &audio_queue);
+		Audio(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
 		/// Modifies an register in the audio range; only the low 4 bits are
 		/// used for register decoding so it's assumed that the caller has
@@ -43,7 +43,7 @@ class Audio: public Outputs::Speaker::SampleSource {
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 
 	private:
-		Concurrency::TaskQueue<false> &audio_queue_;
+		Concurrency::AsyncTaskQueue<false> &audio_queue_;
 
 		// Global divider (i.e. 8MHz/12Mhz switch).
 		uint8_t global_divider_;

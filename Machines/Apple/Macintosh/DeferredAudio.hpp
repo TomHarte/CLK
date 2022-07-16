@@ -16,7 +16,7 @@ namespace Apple {
 namespace Macintosh {
 
 struct DeferredAudio {
-	Concurrency::TaskQueue<false> queue;
+	Concurrency::AsyncTaskQueue<false> queue;
 	Audio audio;
 	Outputs::Speaker::PullLowpass<Audio> speaker;
 	HalfCycles time_since_update;

@@ -12,7 +12,7 @@
 
 using namespace MOS::MOS6560;
 
-AudioGenerator::AudioGenerator(Concurrency::TaskQueue<false> &audio_queue) :
+AudioGenerator::AudioGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue) {}
 
 

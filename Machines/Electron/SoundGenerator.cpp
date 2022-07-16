@@ -12,7 +12,7 @@
 
 using namespace Electron;
 
-SoundGenerator::SoundGenerator(Concurrency::TaskQueue<false> &audio_queue) :
+SoundGenerator::SoundGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue) {}
 
 void SoundGenerator::set_sample_volume_range(std::int16_t range) {
