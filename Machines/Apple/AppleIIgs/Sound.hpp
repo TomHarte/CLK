@@ -21,7 +21,7 @@ namespace Sound {
 
 class GLU: public Outputs::Speaker::SampleSource {
 	public:
-		GLU(Concurrency::TaskQueue<false> &audio_queue);
+		GLU(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
 		void set_control(uint8_t);
 		uint8_t get_control();
@@ -42,7 +42,7 @@ class GLU: public Outputs::Speaker::SampleSource {
 		void skip_samples(const std::size_t number_of_samples);
 
 	private:
-		Concurrency::TaskQueue<false> &audio_queue_;
+		Concurrency::AsyncTaskQueue<false> &audio_queue_;
 
 		uint16_t address_ = 0;
 

@@ -23,7 +23,7 @@ class SN76489: public Outputs::Speaker::SampleSource {
 		};
 
 		/// Creates a new SN76489.
-		SN76489(Personality personality, Concurrency::TaskQueue<false> &task_queue, int additional_divider = 1);
+		SN76489(Personality personality, Concurrency::AsyncTaskQueue<false> &task_queue, int additional_divider = 1);
 
 		/// Writes a new value to the SN76489.
 		void write(uint8_t value);
@@ -41,7 +41,7 @@ class SN76489: public Outputs::Speaker::SampleSource {
 		void evaluate_output_volume();
 		int volumes_[16];
 
-		Concurrency::TaskQueue<false> &task_queue_;
+		Concurrency::AsyncTaskQueue<false> &task_queue_;
 
 		struct ToneChannel {
 			// Programmatically-set state; updated by the processor.

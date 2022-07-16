@@ -16,7 +16,7 @@
 using namespace GI::AY38910;
 
 template <bool is_stereo>
-AY38910<is_stereo>::AY38910(Personality personality, Concurrency::TaskQueue<false> &task_queue) : task_queue_(task_queue) {
+AY38910<is_stereo>::AY38910(Personality personality, Concurrency::AsyncTaskQueue<false> &task_queue) : task_queue_(task_queue) {
 	// Don't use the low bit of the envelope position if this is an AY.
 	envelope_position_mask_ |= personality == Personality::AY38910;
 

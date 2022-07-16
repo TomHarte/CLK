@@ -20,7 +20,7 @@ constexpr int CPUTicksPerAudioTick = 2;
 
 class TIASound: public Outputs::Speaker::SampleSource {
 	public:
-		TIASound(Concurrency::TaskQueue<false> &audio_queue);
+		TIASound(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
 		void set_volume(int channel, uint8_t volume);
 		void set_divider(int channel, uint8_t divider);
@@ -32,7 +32,7 @@ class TIASound: public Outputs::Speaker::SampleSource {
 		static constexpr bool get_is_stereo() { return false; }
 
 	private:
-		Concurrency::TaskQueue<false> &audio_queue_;
+		Concurrency::AsyncTaskQueue<false> &audio_queue_;
 
 		uint8_t volume_[2];
 		uint8_t divider_[2];

@@ -16,7 +16,7 @@
 
 using namespace Apple::IIgs::Sound;
 
-GLU::GLU(Concurrency::TaskQueue<false> &audio_queue) : audio_queue_(audio_queue) {
+GLU::GLU(Concurrency::AsyncTaskQueue<false> &audio_queue) : audio_queue_(audio_queue) {
 	// Reset all pending stores.
 	MemoryWrite disabled_write;
 	disabled_write.enabled = false;

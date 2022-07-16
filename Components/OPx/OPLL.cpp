@@ -12,7 +12,7 @@
 
 using namespace Yamaha::OPL;
 
-OPLL::OPLL(Concurrency::TaskQueue<false> &task_queue, int audio_divider, bool is_vrc7):
+OPLL::OPLL(Concurrency::AsyncTaskQueue<false> &task_queue, int audio_divider, bool is_vrc7):
 	OPLBase(task_queue), audio_divider_(audio_divider), is_vrc7_(is_vrc7) {
 	// Due to the way that sound mixing works on the OPLL, the audio divider may not
 	// be larger than 4.

@@ -21,7 +21,7 @@ namespace MOS6560 {
 // audio state
 class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 	public:
-		AudioGenerator(Concurrency::TaskQueue<false> &audio_queue);
+		AudioGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
 		void set_volume(uint8_t volume);
 		void set_control(int channel, uint8_t value);
@@ -33,7 +33,7 @@ class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 		static constexpr bool get_is_stereo() { return false; }
 
 	private:
-		Concurrency::TaskQueue<false> &audio_queue_;
+		Concurrency::AsyncTaskQueue<false> &audio_queue_;
 
 		unsigned int counters_[4] = {2, 1, 0, 0};	// create a slight phase offset for the three channels
 		unsigned int shift_registers_[4] = {0, 0, 0, 0};
@@ -433,7 +433,7 @@ template <class BusHandler> class MOS6560 {
 		BusHandler &bus_handler_;
 		Outputs::CRT::CRT crt_;
 
-		Concurrency::TaskQueue<false> audio_queue_;
+		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		AudioGenerator audio_generator_;
 		Outputs::Speaker::PullLowpass<AudioGenerator> speaker_;
 

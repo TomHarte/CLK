@@ -487,7 +487,7 @@ class ConcreteMachine:
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		JustInTimeActor<TI::TMS::TMS9918> vdp_;
 
-		Concurrency::TaskQueue<false> audio_queue_;
+		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		TI::SN76489 sn76489_;
 		Yamaha::OPL::OPLL opll_;
 		Outputs::Speaker::CompoundSource<decltype(sn76489_), decltype(opll_)> mixer_;

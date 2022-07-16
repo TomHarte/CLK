@@ -17,11 +17,6 @@
 
 #include "../ClockReceiver/TimeTypes.hpp"
 
-#if defined(__APPLE__) && !defined(IGNORE_APPLE)
-#include <dispatch/dispatch.h>
-#define USE_GCD
-#endif
-
 namespace Concurrency {
 
 /// An implementation detail; provides the time-centric part of a TaskQueue with a real Performer.
@@ -52,22 +47,27 @@ template <> struct TaskQueueStorage<void> {
 };
 
 /*!
-	A task queue allows a caller to enqueue void(void) functions. Those functions are guaranteed
+	A task queue allows a caller to enqueue @c void(void) functions. Those functions are guaranteed
 	to be performed serially and asynchronously from the caller.
 
 	If @c perform_automatically is true, functions will be performed as soon as is possible,
 	at the cost of thread synchronisation.
 
-	If @c perform_automatically is false, functions will be queued up and not dispatched
+	If @c perform_automatically is false, functions will be queued up but not dispatched
 	until a call to perform().
 
 	If a @c Performer type is supplied then a public member, @c performer will be constructed
-	with the arguments supplied to TaskQueue's constructor, and that class will receive  calls of the
-	form @c .perform(nanos) to update it to every batch of new actions.
+	with the arguments supplied to TaskQueue's constructor. That instance will receive calls of the
+	form @c .perform(nanos) before every batch of new actions, indicating how much time has
+	passed since the previous @c perform.
+
+	@note Even if @c perform_automatically is true, actions may be batched, when a long-running
+	action occupies the asynchronous thread for long enough. So it is not true that @c perform will be
+	called once per action.
 */
-template <bool perform_automatically, typename Performer = void> class TaskQueue: public TaskQueueStorage<Performer> {
+template <bool perform_automatically, typename Performer = void> class AsyncTaskQueue: public TaskQueueStorage<Performer> {
 	public:
-		template <typename... Args> TaskQueue(Args&&... args) :
+		template <typename... Args> AsyncTaskQueue(Args&&... args) :
 			TaskQueueStorage<Performer>(std::forward<Args>(args)...),
 			thread_{
 				[this] {
@@ -157,7 +157,7 @@ template <bool perform_automatically, typename Performer = void> class TaskQueue
 			flush_condition.wait(lock, [&has_run] { return has_run; });
 		}
 
-		~TaskQueue() {
+		~AsyncTaskQueue() {
 			stop();
 		}
 

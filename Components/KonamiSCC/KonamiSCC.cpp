@@ -12,7 +12,7 @@
 
 using namespace Konami;
 
-SCC::SCC(Concurrency::TaskQueue<false> &task_queue) :
+SCC::SCC(Concurrency::AsyncTaskQueue<false> &task_queue) :
 	task_queue_(task_queue) {}
 
 bool SCC::is_zero_level() const {

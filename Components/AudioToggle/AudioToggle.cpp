@@ -10,7 +10,7 @@
 
 using namespace Audio;
 
-Audio::Toggle::Toggle(Concurrency::TaskQueue<false> &audio_queue) :
+Audio::Toggle::Toggle(Concurrency::AsyncTaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue) {}
 
 void Toggle::get_samples(std::size_t number_of_samples, std::int16_t *target) {
