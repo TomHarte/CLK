@@ -58,8 +58,6 @@ SOURCES += glob.glob('../../Components/OPx/*.cpp')
 SOURCES += glob.glob('../../Components/SN76489/*.cpp')
 SOURCES += glob.glob('../../Components/Serial/*.cpp')
 
-SOURCES += glob.glob('../../Concurrency/*.cpp')
-
 SOURCES += glob.glob('../../Configurable/*.cpp')
 
 SOURCES += glob.glob('../../Inputs/*.cpp')
