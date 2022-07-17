@@ -73,8 +73,6 @@ SOURCES += \
 	$$SRC/Components/SN76489/*.cpp \
 	$$SRC/Components/Serial/*.cpp \
 \
-	$$SRC/Concurrency/*.cpp \
-\
 	$$SRC/Inputs/*.cpp \
 \
 	$$SRC/InstructionSets/M50740/*.cpp \
