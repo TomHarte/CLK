@@ -749,7 +749,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			for(size_t c = 0; c < 8; ++c) {
 				// Bit of a fix here: if the pipeline is for composite then assume that chroma separation wasn't
 				// perfect and deemphasise the colour.
-				firCoefficients[c].y = firCoefficients[c].z = (isSVideoOutput ? 2.0f : 1.0f) * chromaCoefficients[c];
+				firCoefficients[c].y = firCoefficients[c].z = (isSVideoOutput ? 2.0f : 1.25f) * chromaCoefficients[c];
 				firCoefficients[c].x = 0.0f;
 				if(fabsf(chromaCoefficients[c]) < 0.01f) {
 					_chromaKernelSize -= 2;
