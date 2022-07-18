@@ -11,16 +11,11 @@ import Cocoa
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-	private var failedMetalCheck = false
 	func applicationDidFinishLaunching(_ notification: Notification) {
-		// Insert code here to initialize your application.
-
 		// Check for at least one Metal-capable GPU; this check
 		// will become unnecessary if/when the minimum OS version
 		// that this project supports reascends to 10.14.
 		if (MTLCopyAllDevices().count == 0) {
-			self.failedMetalCheck = true
-
 			let alert = NSAlert()
 			alert.messageText = "This application requires a Metal-capable GPU"
 			alert.addButton(withTitle: "Exit")
