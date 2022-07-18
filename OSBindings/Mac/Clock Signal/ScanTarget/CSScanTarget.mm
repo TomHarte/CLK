@@ -747,7 +747,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
 			_chromaKernelSize = 15;
 			for(size_t c = 0; c < 8; ++c) {
-				firCoefficients[c].y = firCoefficients[c].z = (isSVideoOutput ? 2.0f : 1.0f) * chromaCoefficients[c];
+				// Bit of a fix here: if the pipeline is for composite then assume that chroma separation wasn't
+				// perfect and deemphasise the colour.
+				firCoefficients[c].y = firCoefficients[c].z = (isSVideoOutput ? 2.0f : 1.25f) * chromaCoefficients[c];
 				firCoefficients[c].x = 0.0f;
 				if(fabsf(chromaCoefficients[c]) < 0.01f) {
 					_chromaKernelSize -= 2;
@@ -756,13 +758,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			firCoefficients[7].x = 1.0f;
 
 			// Luminance will be very soft as a result of the separation phase; apply a sharpen filter to try to undo that.
-			// This is applied separately because the first composite processing step is going to select between the nominal
-			// chroma and luma parts to take the place of luminance depending on whether a colour burst was found, and high-pass
-			// filtering the chrominance channel would be visually detrimental.
 			//
-			// The low cut off ['Hz' but per line, not per second] is somewhat arbitrary.
+			// This is applied separately in order to partition three parts of the signal rather than two:
+			//
+			//	1) the luminance;
+			//	2) not the luminance:
+			//		2a) the chrominance; and
+			//		2b) some noise.
+			//
+			// There are real numerical hazards here given the low number of taps I am permitting to be used, so the sharpen
+			// filter below is just one that I found worked well. Since all numbers are fixed, the actual cutoff frequency is
+			// going to be a function of the input clock, which is a bit phoney but the best way to stay safe within the
+			// PCM sampling limits.
 			if(!isSVideoOutput) {
-				SignalProcessing::FIRFilter sharpenFilter(15, float(_lineBufferPixelsPerLine), 40.0f, colourCyclesPerLine);
+				SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
 				const auto sharpen = sharpenFilter.get_coefficients();
 				size_t sharpenFilterSize = 15;
 				bool isStart = true;
