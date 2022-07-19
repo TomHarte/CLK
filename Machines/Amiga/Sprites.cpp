@@ -45,7 +45,6 @@ void Sprite::set_stop_and_control(uint16_t value) {
 
 	// Disarm the sprite, but expect graphics next from DMA.
 	visible = false;
-	dma_state_ = DMAState::FetchImage;
 }
 
 void Sprite::set_image_data(int slot, uint16_t value) {
@@ -53,36 +52,32 @@ void Sprite::set_image_data(int slot, uint16_t value) {
 	visible |= slot == 0;
 }
 
-void Sprite::advance_line(int y, bool is_end_of_blank) {
-	if(dma_state_ == DMAState::FetchImage && y == v_start_) {
-		visible = true;
-	}
-	if(is_end_of_blank || y == v_stop_) {
-		dma_state_ = DMAState::FetchControl;
-	}
-}
-
-bool Sprite::advance_dma(int offset) {
+bool Sprite::advance_dma(int offset, int y) {
 	assert(offset == 0 || offset == 1);
 
 	// Determine which word would be fetched, if DMA occurs.
 	// A bit of a cheat.
 	const uint16_t next_word = ram_[pointer_[0] & ram_mask_];
 
-	// Put the fetched word somewhere appropriate and update the DMA state.
-	switch(dma_state_) {
-		case DMAState::FetchControl:
-			if(offset) {
-				set_stop_and_control(next_word);
-			} else {
-				set_start_position(next_word);
-			}
-		break;
+	// "When the vertical position of the beam counter is equal to the VSTOP
+	// value in the sprite control words, the next two words fetched from the
+	// sprite data structure are written into the sprite control registers
+	// instead of being sent to the color registers"
+	if(y == v_stop_) {
+		if(offset) {
+			// Second control word: stop position (mostly).
+			set_stop_and_control(next_word);
+		} else {
+			// First control word: start position.
+			set_start_position(next_word);
+		}
+	} else {
+		visible |= y == v_start_;
+		if(!visible) return false;
 
-		case DMAState::FetchImage:
-			if(!visible) return false;
-			set_image_data(1 - offset, next_word);
-		break;
+		// Write colour word 1, then colour word 0; 0 is the word that 'arms'
+		// the sprite (i.e. makes it visible).
+		set_image_data(1 - offset, next_word);
 	}
 
 	// Acknowledge the fetch.
