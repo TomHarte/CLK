@@ -611,7 +611,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 				constexpr auto sprite_id = (cycle - 0x16) >> 2;
 				static_assert(sprite_id >= 0 && sprite_id < std::tuple_size<decltype(sprites_)>::value);
 
-				if(sprites_[sprite_id].advance_dma(!(cycle&2))) {
+				if(sprites_[sprite_id].advance_dma((~cycle&2) >> 1)) {
 					return false;
 				}
 			}

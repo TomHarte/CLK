@@ -59,35 +59,35 @@ void Sprite::advance_line(int y, bool is_end_of_blank) {
 	}
 	if(is_end_of_blank || y == v_stop_) {
 		dma_state_ = DMAState::FetchControl;
-		visible = true;
 	}
 }
 
 bool Sprite::advance_dma(int offset) {
-	if(!visible) return false;
+	assert(offset == 0 || offset == 1);
 
-	// Fetch another word.
+	// Determine which word would be fetched, if DMA occurs.
+	// A bit of a cheat.
 	const uint16_t next_word = ram_[pointer_[0] & ram_mask_];
-	++pointer_[0];
 
 	// Put the fetched word somewhere appropriate and update the DMA state.
 	switch(dma_state_) {
-		// i.e. stopped.
-		default: return false;
-
 		case DMAState::FetchControl:
 			if(offset) {
 				set_stop_and_control(next_word);
 			} else {
 				set_start_position(next_word);
 			}
-		return true;
+		break;
 
 		case DMAState::FetchImage:
-			set_image_data(1 - bool(offset), next_word);
-		return true;
+			if(!visible) return false;
+			set_image_data(1 - offset, next_word);
+		break;
 	}
-	return false;
+
+	// Acknowledge the fetch.
+	++pointer_[0];
+	return true;
 }
 
 template <int sprite> void TwoSpriteShifter::load(
