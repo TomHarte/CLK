@@ -33,21 +33,31 @@ static_assert(expand_sprite_word(0x0000) == 0x00'00'00'00'00'00'00'00);
 // MARK: - Sprites.
 
 void Sprite::set_start_position(uint16_t value) {
+	// b8–b15: low 8 bits of VSTART;
+	// b0–b7: high 8 bits of HSTART.
 	v_start_ = (v_start_ & 0xff00) | (value >> 8);
 	h_start = uint16_t((h_start & 0x0001) | ((value & 0xff) << 1));
 }
 
 void Sprite::set_stop_and_control(uint16_t value) {
+	// b8–b15: low 8 bits of VSTOP;
+	// b7: attachment flag;
+	// b3–b6: unused;
+	// b2: VSTART high bit;
+	// b1: VSTOP high bit;
+	// b0: HSTART low bit.
 	h_start = uint16_t((h_start & 0x01fe) | (value & 0x01));
 	v_stop_ = uint16_t((value >> 8) | ((value & 0x02) << 7));
 	v_start_ = uint16_t((v_start_ & 0x00ff) | ((value & 0x04) << 6));
 	attached = value & 0x80;
 
-	// Disarm the sprite, but expect graphics next from DMA.
+	// Disarm the sprite.
 	visible = false;
 }
 
 void Sprite::set_image_data(int slot, uint16_t value) {
+	// Store data; also mark sprite as visible (i.e. 'arm' it)
+	// if data is being stored to slot 0.
 	data[slot] = value;
 	visible |= slot == 0;
 }
