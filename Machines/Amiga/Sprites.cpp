@@ -83,7 +83,7 @@ bool Sprite::advance_dma(int offset, int y) {
 		}
 	} else {
 		visible |= y == v_start_;
-		if(!visible) return false;
+		if(!visible) return false;	// Act as if there wasn't a fetch.
 
 		// Write colour word 1, then colour word 0; 0 is the word that 'arms'
 		// the sprite (i.e. makes it visible).

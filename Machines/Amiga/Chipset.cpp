@@ -610,7 +610,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		}
 
 		if constexpr (cycle >= 0x16 && cycle < 0x36) {
-			if((dma_control_ & SpritesFlag) == SpritesFlag && y_ >= vertical_blank_height_) {
+			if((dma_control_ & SpritesFlag) == SpritesFlag) {
 				constexpr auto sprite_id = (cycle - 0x16) >> 2;
 				static_assert(sprite_id >= 0 && sprite_id < std::tuple_size<decltype(sprites_)>::value);
 
