@@ -23,8 +23,7 @@ class Sprite: public DMADevice<1> {
 		void set_stop_and_control(uint16_t value);
 		void set_image_data(int slot, uint16_t value);
 
-		void advance_line(int y, bool is_end_of_blank);
-		bool advance_dma(int offset);
+		bool advance_dma(int offset, int y, bool is_first_line);
 
 		uint16_t data[2]{};
 		bool attached = false;
@@ -33,11 +32,6 @@ class Sprite: public DMADevice<1> {
 
 	private:
 		uint16_t v_start_ = 0, v_stop_ = 0;
-
-		enum class DMAState {
-			FetchControl,
-			FetchImage
-		} dma_state_ = DMAState::FetchControl;
 };
 
 class TwoSpriteShifter {

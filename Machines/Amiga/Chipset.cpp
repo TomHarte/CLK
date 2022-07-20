@@ -21,6 +21,8 @@
 
 using namespace Amiga;
 
+// TODO: I don't think the nonsense below, which was intended to allow a typed enum but also
+// clean combination, really works. Rethink.
 namespace {
 
 template <typename EnumT, EnumT... T> struct Mask {
@@ -33,6 +35,18 @@ template <typename EnumT, EnumT F, EnumT... T> struct Mask<EnumT, F, T...> {
 
 template <InterruptFlag... Flags> struct InterruptMask: Mask<InterruptFlag, Flags...> {};
 template <DMAFlag... Flags> struct DMAMask: Mask<DMAFlag, Flags...> {};
+
+constexpr uint16_t AudioFlags[]	= {
+	DMAMask<DMAFlag::AudioChannel0, DMAFlag::AllBelow>::value,
+	DMAMask<DMAFlag::AudioChannel1, DMAFlag::AllBelow>::value,
+	DMAMask<DMAFlag::AudioChannel2, DMAFlag::AllBelow>::value,
+	DMAMask<DMAFlag::AudioChannel3, DMAFlag::AllBelow>::value,
+};
+constexpr auto BlitterFlag	= DMAMask<DMAFlag::Blitter, DMAFlag::AllBelow>::value;
+constexpr auto BitplaneFlag	= DMAMask<DMAFlag::Bitplane, DMAFlag::AllBelow>::value;
+constexpr auto CopperFlag	= DMAMask<DMAFlag::Copper, DMAFlag::AllBelow>::value;
+constexpr auto DiskFlag		= DMAMask<DMAFlag::Disk, DMAFlag::AllBelow>::value;
+constexpr auto SpritesFlag	= DMAMask<DMAFlag::Sprites, DMAFlag::AllBelow>::value;
 
 }
 
@@ -488,17 +502,6 @@ void Chipset::flush_output() {
 
 /// @returns @c true if this was a CPU slot; @c false otherwise.
 template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
-	constexpr uint16_t AudioFlags[]	= {
-		DMAMask<DMAFlag::AudioChannel0, DMAFlag::AllBelow>::value,
-		DMAMask<DMAFlag::AudioChannel1, DMAFlag::AllBelow>::value,
-		DMAMask<DMAFlag::AudioChannel2, DMAFlag::AllBelow>::value,
-		DMAMask<DMAFlag::AudioChannel3, DMAFlag::AllBelow>::value,
-	};
-	constexpr auto BlitterFlag	= DMAMask<DMAFlag::Blitter, DMAFlag::AllBelow>::value;
-	constexpr auto BitplaneFlag	= DMAMask<DMAFlag::Bitplane, DMAFlag::AllBelow>::value;
-	constexpr auto CopperFlag	= DMAMask<DMAFlag::Copper, DMAFlag::AllBelow>::value;
-	constexpr auto DiskFlag		= DMAMask<DMAFlag::Disk, DMAFlag::AllBelow>::value;
-	constexpr auto SpritesFlag	= DMAMask<DMAFlag::Sprites, DMAFlag::AllBelow>::value;
 
 	// Update state as to whether bitplane fetching should happen now.
 	//
@@ -607,11 +610,11 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		}
 
 		if constexpr (cycle >= 0x16 && cycle < 0x36) {
-			if((dma_control_ & SpritesFlag) == SpritesFlag && y_ >= vertical_blank_height_) {
+			if((dma_control_ & SpritesFlag) == SpritesFlag) {
 				constexpr auto sprite_id = (cycle - 0x16) >> 2;
 				static_assert(sprite_id >= 0 && sprite_id < std::tuple_size<decltype(sprites_)>::value);
 
-				if(sprites_[sprite_id].advance_dma(!(cycle&2))) {
+				if(sprites_[sprite_id].advance_dma((~cycle&2) >> 1, y_, y_ == vertical_blank_height_)) {
 					return false;
 				}
 			}
@@ -739,10 +742,6 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 				// Toggle next field length if interlaced.
 				is_long_field_ ^= interlace_;
-			}
-
-			for(auto &sprite: sprites_) {
-				sprite.advance_line(y_, y_ == vertical_blank_height_);
 			}
 
 			fetch_vertical_ |= y_ == display_window_start_[1];

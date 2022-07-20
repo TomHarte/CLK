@@ -8,6 +8,8 @@
 
 #include "Sprites.hpp"
 
+#include <cassert>
+
 using namespace Amiga;
 
 namespace {
@@ -33,61 +35,69 @@ static_assert(expand_sprite_word(0x0000) == 0x00'00'00'00'00'00'00'00);
 // MARK: - Sprites.
 
 void Sprite::set_start_position(uint16_t value) {
+	// b8–b15: low 8 bits of VSTART;
+	// b0–b7: high 8 bits of HSTART.
 	v_start_ = (v_start_ & 0xff00) | (value >> 8);
 	h_start = uint16_t((h_start & 0x0001) | ((value & 0xff) << 1));
 }
 
 void Sprite::set_stop_and_control(uint16_t value) {
+	// b8–b15: low 8 bits of VSTOP;
+	// b7: attachment flag;
+	// b3–b6: unused;
+	// b2: VSTART high bit;
+	// b1: VSTOP high bit;
+	// b0: HSTART low bit.
 	h_start = uint16_t((h_start & 0x01fe) | (value & 0x01));
 	v_stop_ = uint16_t((value >> 8) | ((value & 0x02) << 7));
 	v_start_ = uint16_t((v_start_ & 0x00ff) | ((value & 0x04) << 6));
 	attached = value & 0x80;
 
-	// Disarm the sprite, but expect graphics next from DMA.
+	// Disarm the sprite.
 	visible = false;
-	dma_state_ = DMAState::FetchImage;
 }
 
 void Sprite::set_image_data(int slot, uint16_t value) {
+	// Store data; also mark sprite as visible (i.e. 'arm' it)
+	// if data is being stored to slot 0.
 	data[slot] = value;
 	visible |= slot == 0;
 }
 
-void Sprite::advance_line(int y, bool is_end_of_blank) {
-	if(dma_state_ == DMAState::FetchImage && y == v_start_) {
-		visible = true;
-	}
-	if(is_end_of_blank || y == v_stop_) {
-		dma_state_ = DMAState::FetchControl;
-		visible = true;
-	}
-}
+bool Sprite::advance_dma(int offset, int y, bool is_first_line) {
+	assert(offset == 0 || offset == 1);
 
-bool Sprite::advance_dma(int offset) {
-	if(!visible) return false;
-
-	// Fetch another word.
+	// Determine which word would be fetched, if DMA occurs.
+	// A bit of a cheat.
 	const uint16_t next_word = ram_[pointer_[0] & ram_mask_];
-	++pointer_[0];
 
-	// Put the fetched word somewhere appropriate and update the DMA state.
-	switch(dma_state_) {
-		// i.e. stopped.
-		default: return false;
+	// "When the vertical position of the beam counter is equal to the VSTOP
+	// value in the sprite control words, the next two words fetched from the
+	// sprite data structure are written into the sprite control registers
+	// instead of being sent to the color registers"
+	//
+	// Guesswork, primarily from observing Spindizzy Worlds: the first line after
+	// vertical blank also triggers a control reload. Seek to verify.
+	if(y == v_stop_ || is_first_line) {
+		if(offset) {
+			// Second control word: stop position (mostly).
+			set_stop_and_control(next_word);
+		} else {
+			// First control word: start position.
+			set_start_position(next_word);
+		}
+	} else {
+		visible |= y == v_start_;
+		if(!visible) return false;	// Act as if there wasn't a fetch.
 
-		case DMAState::FetchControl:
-			if(offset) {
-				set_stop_and_control(next_word);
-			} else {
-				set_start_position(next_word);
-			}
-		return true;
-
-		case DMAState::FetchImage:
-			set_image_data(1 - bool(offset), next_word);
-		return true;
+		// Write colour word 1, then colour word 0; 0 is the word that 'arms'
+		// the sprite (i.e. makes it visible).
+		set_image_data(1 - offset, next_word);
 	}
-	return false;
+
+	// Acknowledge the fetch.
+	++pointer_[0];
+	return true;
 }
 
 template <int sprite> void TwoSpriteShifter::load(
