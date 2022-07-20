@@ -8,6 +8,8 @@
 
 #include "Sprites.hpp"
 
+#include <cassert>
+
 using namespace Amiga;
 
 namespace {
