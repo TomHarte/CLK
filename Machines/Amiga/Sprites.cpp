@@ -62,7 +62,7 @@ void Sprite::set_image_data(int slot, uint16_t value) {
 	visible |= slot == 0;
 }
 
-bool Sprite::advance_dma(int offset, int y) {
+bool Sprite::advance_dma(int offset, int y, bool is_first_line) {
 	assert(offset == 0 || offset == 1);
 
 	// Determine which word would be fetched, if DMA occurs.
@@ -73,7 +73,10 @@ bool Sprite::advance_dma(int offset, int y) {
 	// value in the sprite control words, the next two words fetched from the
 	// sprite data structure are written into the sprite control registers
 	// instead of being sent to the color registers"
-	if(y == v_stop_) {
+	//
+	// Guesswork, primarily from observing Spindizzy Worlds: the first line after
+	// vertical blank also triggers a control reload. Seek to verify.
+	if(y == v_stop_ || is_first_line) {
 		if(offset) {
 			// Second control word: stop position (mostly).
 			set_stop_and_control(next_word);

@@ -23,7 +23,7 @@ class Sprite: public DMADevice<1> {
 		void set_stop_and_control(uint16_t value);
 		void set_image_data(int slot, uint16_t value);
 
-		bool advance_dma(int offset, int y);
+		bool advance_dma(int offset, int y, bool is_first_line);
 
 		uint16_t data[2]{};
 		bool attached = false;
