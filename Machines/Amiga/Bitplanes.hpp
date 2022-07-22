@@ -64,7 +64,7 @@ class BitplaneShifter {
 			int odd_delay,
 			int even_delay);
 
-		/// Shifts either two pixels (in low-res mode) and four pixels (in high-res).
+		/// Shifts either two pixels (in low-res mode) or four pixels (in high-res).
 		void shift(bool high_res) {
 			constexpr int shifts[] = {16, 32};
 
@@ -73,8 +73,14 @@ class BitplaneShifter {
 		}
 
 		/// @returns The next four pixels to output; in low-resolution mode only two
-		/// of them will be unique. The value is arranges so that MSB = first pixel to output,
-		/// LSB = last. Each byte is formed as 00[bitplane 5][bitplane 4]...[bitplane 0].
+		/// of them will be unique.
+		///
+		/// The value is arranges so that MSB = first pixel to output, LSB = last.
+		///
+		/// Each byte is swizzled to provide easier playfield separation, being in the form:
+		/// 	b6, b7 = 0;
+		/// 	b3–b5: planes 1, 3 and 5;
+		/// 	b0–b2: planes 0, 2 and 4.
 		uint32_t get(bool high_res) {
 			if(high_res) {
 				return uint32_t(data_[1] >> 32);

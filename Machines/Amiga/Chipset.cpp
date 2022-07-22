@@ -199,82 +199,114 @@ void Chipset::output_pixels(int cycles_until_sync) {
 		}
 	}
 
-	// Compute masks potentially to obscure sprites.
-	int playfield_odd_pixel_mask =
-		(((playfield >> 22) | (playfield >> 24) | (playfield >> 26)) & 8) |
-		(((playfield >> 15) | (playfield >> 17) | (playfield >> 19)) & 4) |
-		(((playfield >> 8) | (playfield >> 10) | (playfield >> 12)) & 2) |
-		(((playfield >> 1) | (playfield >> 3) | (playfield >> 5)) & 1);
-	int playfield_even_pixel_mask =
-		(((playfield >> 21) | (playfield >> 23) | (playfield >> 25)) & 8) |
-		(((playfield >> 14) | (playfield >> 16) | (playfield >> 18)) & 4) |
-		(((playfield >> 7) | (playfield >> 9) | (playfield >> 11)) & 2) |
-		(((playfield >> 0) | (playfield >> 2) | (playfield >> 4)) & 1);
-
-	// If only a single playfield is in use, treat the mask as playing
-	// into the priority selected for the even bitfields.
-	if(!dual_playfields_) {
-		playfield_even_pixel_mask |= playfield_odd_pixel_mask;
-		playfield_odd_pixel_mask = 0;
-	}
-
-	// Process sprites.
+	// This will store flags to indicate presence or absence of sprite pixels for the four shifters.
 	int collision_masks[4] = {0, 0, 0, 0};
-	int index = int(sprite_shifters_.size());
-	for(auto shifter = sprite_shifters_.rbegin(); shifter != sprite_shifters_.rend(); ++shifter) {
-		// Update the index, and skip this shifter entirely if it's empty.
-		--index;
-		const uint8_t data = shifter->get();
-		if(!data) continue;
 
-		// Determine the collision mask.
-		collision_masks[index] = data | (data >> 1);
-		if(collisions_flags_ & (0x1000 << index)) {
-			collision_masks[index] |= (data >> 2) | (data >> 3);
+	// If there are sprites visible, bother to figure out the playfield masks here.
+	if(sprite_shifters_[0].get() | sprite_shifters_[1].get() | sprite_shifters_[2].get() | sprite_shifters_[3].get()) {
+		// The playfield value is arranged as:
+		//
+		//	pixel = [0 0 b5 b3 b1 b4 b2 b0]
+		//	full value = [pixel] [pixel] [pixel] [pixel]
+		//
+		// i.e. the odd pixel mask is:
+		//	b0 = bits 3, 4, 5;
+		//	b1 = bits 11, 12, 13;
+		//	b2 = bits 19, 20, 21;
+		//	b3 = bits 27, 28, 29.
+		//
+		// ... and the even pixel mask is the other set.
+
+		// Ensure that b0, b8, b16, b24 are the complete mask state of the even playfields,
+		// and b3, b11, b19, b27 are the complete mask state of the odd playfields.
+		const uint32_t merged_playfield = playfield | (playfield >> 1) | (playfield >> 2);
+
+		// Collect b0, b8, b16 and b24 as b0, b1, b2, b3 (and give no regard to the other bits).
+		uint32_t playfield_even_pixel_mask = merged_playfield & 0x01010101;
+		playfield_even_pixel_mask |= playfield_even_pixel_mask >> 7;
+		playfield_even_pixel_mask |= playfield_even_pixel_mask >> 14;
+
+		// Collect b3, b11, b19 and b27 as b0, b1, b2, b3 (and give no regard to the other bits).
+		uint32_t playfield_odd_pixel_mask = (merged_playfield >> 3) & 0x01010101;
+		playfield_odd_pixel_mask |= playfield_odd_pixel_mask >> 7;
+		playfield_odd_pixel_mask |= playfield_odd_pixel_mask >> 14;
+
+		// If only a single playfield is in use, treat the mask as playing
+		// into the priority selected for the even bitfields.
+		if(!dual_playfields_) {
+			playfield_even_pixel_mask |= playfield_odd_pixel_mask;
+			playfield_odd_pixel_mask = 0;
 		}
-		collision_masks[index] = (collision_masks[index] & 0x01) | ((collision_masks[index] & 0x10) >> 3);
 
-		// Get the specific pixel mask.
-		const int pixel_mask =
-			(
-				((odd_priority_ <= index) ? playfield_odd_pixel_mask : 0) |
-				((even_priority_ <= index) ? playfield_even_pixel_mask : 0)
-			);
+		// Draw sprites.
+		int index = int(sprite_shifters_.size());
+		for(auto shifter = sprite_shifters_.rbegin(); shifter != sprite_shifters_.rend(); ++shifter) {
+			// Update the index, and skip this shifter entirely if it's empty.
+			--index;
+			const uint8_t data = shifter->get();
+			if(!data) continue;
 
-		// Output pixels, if a buffer exists.
-		const auto base = (index << 2) + 16;
-		if(pixels_) {
-			if(sprites_[size_t((index << 1) + 1)].attached) {
-				// Left pixel.
-				if(data >> 4) {
-					if(!(pixel_mask & 0x8)) pixels_[0] = palette_[16 + (data >> 4)];
-					if(!(pixel_mask & 0x4)) pixels_[1] = palette_[16 + (data >> 4)];
-				}
+			// Determine the collision mask.
+			collision_masks[index] = data | (data >> 1);
+			if(collisions_flags_ & (0x1000 << index)) {
+				collision_masks[index] |= (data >> 2) | (data >> 3);
+			}
+			collision_masks[index] = (collision_masks[index] & 0x01) | ((collision_masks[index] & 0x10) >> 3);
 
-				// Right pixel.
-				if(data & 15) {
-					if(!(pixel_mask & 0x2)) pixels_[2] = palette_[16 + (data & 15)];
-					if(!(pixel_mask & 0x1)) pixels_[3] = palette_[16 + (data & 15)];
-				}
-			} else {
-				// Left pixel.
-				if((data >> 4) & 3) {
-					if(!(pixel_mask & 0x8)) pixels_[0] = palette_[base + ((data >> 4)&3)];
-					if(!(pixel_mask & 0x4)) pixels_[1] = palette_[base + ((data >> 4)&3)];
-				}
-				if(data >> 6) {
-					if(!(pixel_mask & 0x8)) pixels_[0] = palette_[base + (data >> 6)];
-					if(!(pixel_mask & 0x4)) pixels_[1] = palette_[base + (data >> 6)];
-				}
+			// Get the specific pixel mask;
+			//
+			// Playfield priority meanings:
+			//
+			//	4: behind all sprites;
+			//	3: in front of sprites 6 & 7, behind all others;
+			//	2: in front of 4, 5, 6 & 7; behind all others;
+			//	1: in front of 2, 3, 4, 5, 6, & 7; behind 0 & 1;
+			//	0: in front of all sprites.
+			//
+			// i.e. the playfield is in front of the two sprites in shifter n
+			// if and only if it has a priority of n or less.
+			const auto pixel_mask =
+				(
+					((odd_priority_ <= index) ? playfield_odd_pixel_mask : 0) |
+					((even_priority_ <= index) ? playfield_even_pixel_mask : 0)
+				);
 
-				// Right pixel.
-				if(data & 3) {
-					if(!(pixel_mask & 0x2)) pixels_[2] = palette_[base + (data & 3)];
-					if(!(pixel_mask & 0x1)) pixels_[3] = palette_[base + (data & 3)];
-				}
-				if((data >> 2) & 3) {
-					if(!(pixel_mask & 0x2)) pixels_[2] = palette_[base + ((data >> 2)&3)];
-					if(!(pixel_mask & 0x1)) pixels_[3] = palette_[base + ((data >> 2)&3)];
+			// Output pixels, if a buffer exists and only where the pixel
+			// mask allows. TODO: try to find a less branchy version of the below.
+			const auto base = (index << 2) + 16;
+			if(pixels_) {
+				if(sprites_[size_t((index << 1) + 1)].attached) {
+					// Left pixel.
+					if(data >> 4) {
+						if(!(pixel_mask & 0x8)) pixels_[0] = palette_[16 + (data >> 4)];
+						if(!(pixel_mask & 0x4)) pixels_[1] = palette_[16 + (data >> 4)];
+					}
+
+					// Right pixel.
+					if(data & 15) {
+						if(!(pixel_mask & 0x2)) pixels_[2] = palette_[16 + (data & 15)];
+						if(!(pixel_mask & 0x1)) pixels_[3] = palette_[16 + (data & 15)];
+					}
+				} else {
+					// Left pixel.
+					if((data >> 4) & 3) {
+						if(!(pixel_mask & 0x8)) pixels_[0] = palette_[base + ((data >> 4)&3)];
+						if(!(pixel_mask & 0x4)) pixels_[1] = palette_[base + ((data >> 4)&3)];
+					}
+					if(data >> 6) {
+						if(!(pixel_mask & 0x8)) pixels_[0] = palette_[base + (data >> 6)];
+						if(!(pixel_mask & 0x4)) pixels_[1] = palette_[base + (data >> 6)];
+					}
+
+					// Right pixel.
+					if(data & 3) {
+						if(!(pixel_mask & 0x2)) pixels_[2] = palette_[base + (data & 3)];
+						if(!(pixel_mask & 0x1)) pixels_[3] = palette_[base + (data & 3)];
+					}
+					if((data >> 2) & 3) {
+						if(!(pixel_mask & 0x2)) pixels_[2] = palette_[base + ((data >> 2)&3)];
+						if(!(pixel_mask & 0x1)) pixels_[3] = palette_[base + ((data >> 2)&3)];
+					}
 				}
 			}
 		}
