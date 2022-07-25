@@ -5485,7 +5485,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "#!/bin/bash\n\n# Change fields only for archive builds; this helps to avoid source control pollution.\nif [ $CI_XCODEBUILD_ACTION != 'archive' ]; then\n  exit 0\nfi\n\n# Set both version numbers to yy.mm.dd.\nbuildNumber=$(date -u \"+%y.%m.%d\")\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $buildNumber\" \"$INFOPLIST_FILE\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $buildNumber\" \"$INFOPLIST_FILE\"\n\n# Update the copyright string.\nbuildYear=$(date -u \"+%Y\")\n/usr/libexec/PlistBuddy -c \"Set :NSHumanReadableCopyright Copyright 2015–$buildYear Thomas Harte. All rights reserved.\" \"$INFOPLIST_FILE\"\n";
+			shellScript = "#!/bin/bash\nset\n\n# Change fields only for archive builds; this helps to avoid source control pollution.\nif [ $ACTION != \"install\" ]; then\n  exit 0\nfi\n\n# Set both version numbers to yy.mm.dd.\nbuildNumber=$(date -u \"+%y.%m.%d\")\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $buildNumber\" \"$INFOPLIST_FILE\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $buildNumber\" \"$INFOPLIST_FILE\"\n\n# Update the copyright string.\nbuildYear=$(date -u \"+%Y\")\n/usr/libexec/PlistBuddy -c \"Set :NSHumanReadableCopyright Copyright 2015–$buildYear Thomas Harte. All rights reserved.\" \"$INFOPLIST_FILE\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
