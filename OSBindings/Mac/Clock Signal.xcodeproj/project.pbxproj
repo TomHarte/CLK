@@ -5000,7 +5000,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4BB73EC61B587A5100552FC2 /* Build configuration list for PBXNativeTarget "Clock Signal" */;
 			buildPhases = (
-				4B2D26A8288EDAFB00F27D66 /* ShellScript */,
+				4B2D26A8288EDAFB00F27D66 /* Set Archive Version Number */,
 				4BB73E9A1B587A5100552FC2 /* Sources */,
 				4BB73E9B1B587A5100552FC2 /* Frameworks */,
 				4BB73E9C1B587A5100552FC2 /* Resources */,
@@ -5469,7 +5469,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		4B2D26A8288EDAFB00F27D66 /* ShellScript */ = {
+		4B2D26A8288EDAFB00F27D66 /* Set Archive Version Number */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -5478,13 +5478,14 @@
 			);
 			inputPaths = (
 			);
+			name = "Set Archive Version Number";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "#!/bin/bash\nbuildNumber=$(date -u \"+%Y.%M.%d\")\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $buildNumber\" \"$INFOPLIST_FILE\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $buildNumber\" \"$INFOPLIST_FILE\"\nbuildYear=$(date -u \"+%Y\")\n/usr/libexec/PlistBuddy -c \"Set :NSHumanReadableCopyright Copyright 2015–$buildYear Thomas Harte. All rights reserved.\" \"$INFOPLIST_FILE\"\n";
+			shellScript = "#!/bin/bash\n\n# Change fields only for archive builds; this helps to avoid source control pollution.\nif [ $CI_XCODEBUILD_ACTION != 'archive' ]; then\n  exit 0\nfi\n\n# Set both version numbers to yy.mm.dd.\nbuildNumber=$(date -u \"+%y.%m.%d\")\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $buildNumber\" \"$INFOPLIST_FILE\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $buildNumber\" \"$INFOPLIST_FILE\"\n\n# Update the copyright string.\nbuildYear=$(date -u \"+%Y\")\n/usr/libexec/PlistBuddy -c \"Set :NSHumanReadableCopyright Copyright 2015–$buildYear Thomas Harte. All rights reserved.\" \"$INFOPLIST_FILE\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
