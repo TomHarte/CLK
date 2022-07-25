@@ -744,7 +744,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Generate the chrominance filter.
 		{
 			simd::float3 firCoefficients[8];
-			const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
+			const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f * 2.0f);
 			_chromaKernelSize = 15;
 			for(size_t c = 0; c < 8; ++c) {
 				// Bit of a fix here: if the pipeline is for composite then assume that chroma separation wasn't
