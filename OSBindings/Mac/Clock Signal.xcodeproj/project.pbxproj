@@ -5484,7 +5484,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "#!/bin/bash\nbuildNumber=$(date -u \"+%Y-%M-%d\")\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $buildNumber\" \"$INFOPLIST_FILE\"\n";
+			shellScript = "#!/bin/bash\nbuildNumber=$(date -u \"+%Y.%M.%d\")\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $buildNumber\" \"$INFOPLIST_FILE\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $buildNumber\" \"$INFOPLIST_FILE\"\nbuildYear=$(date -u \"+%Y\")\n/usr/libexec/PlistBuddy -c \"Set :NSHumanReadableCopyright Copyright 2015–$buildYear Thomas Harte. All rights reserved.\" \"$INFOPLIST_FILE\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
