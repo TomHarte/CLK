@@ -125,7 +125,7 @@ class Chipset: private ClockingHint::Observer {
 		int interrupt_level_ = 0;
 
 		void update_interrupts();
-		void posit_interrupt(InterruptFlag);
+		void posit_interrupt(InterruptFlag::FlagT);
 
 		// MARK: - Scheduler.
 

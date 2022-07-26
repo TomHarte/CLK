@@ -11,39 +11,43 @@
 
 namespace Amiga {
 
-enum class InterruptFlag: uint16_t {
-	SerialPortTransmit		= 1 << 0,
-	DiskBlock				= 1 << 1,
-	Software				= 1 << 2,
-	IOPortsAndTimers		= 1 << 3,	// i.e. CIA A.
-	Copper					= 1 << 4,
-	VerticalBlank			= 1 << 5,
-	Blitter					= 1 << 6,
-	AudioChannel0			= 1 << 7,
-	AudioChannel1			= 1 << 8,
-	AudioChannel2			= 1 << 9,
-	AudioChannel3			= 1 << 10,
-	SerialPortReceive		= 1 << 11,
-	DiskSyncMatch			= 1 << 12,
-	External				= 1 << 13,	// i.e. CIA B.
-};
+namespace InterruptFlag {
+	using FlagT = uint16_t;
 
-enum class DMAFlag: uint16_t {
-	AudioChannel0			= 1 << 0,
-	AudioChannel1			= 1 << 1,
-	AudioChannel2			= 1 << 2,
-	AudioChannel3			= 1 << 3,
-	Disk					= 1 << 4,
-	Sprites					= 1 << 5,
-	Blitter					= 1 << 6,
-	Copper					= 1 << 7,
-	Bitplane				= 1 << 8,
-	AllBelow				= 1 << 9,
-	BlitterPriority			= 1 << 10,
-	BlitterZero				= 1 << 13,
-	BlitterBusy				= 1 << 14,
-};
+	constexpr FlagT SerialPortTransmit	= 1 << 0;
+	constexpr FlagT DiskBlock			= 1 << 1;
+	constexpr FlagT Software			= 1 << 2;
+	constexpr FlagT IOPortsAndTimers	= 1 << 3;	// i.e. CIA A.
+	constexpr FlagT Copper				= 1 << 4;
+	constexpr FlagT VerticalBlank		= 1 << 5;
+	constexpr FlagT Blitter				= 1 << 6;
+	constexpr FlagT AudioChannel0		= 1 << 7;
+	constexpr FlagT AudioChannel1		= 1 << 8;
+	constexpr FlagT AudioChannel2		= 1 << 9;
+	constexpr FlagT AudioChannel3		= 1 << 10;
+	constexpr FlagT SerialPortReceive	= 1 << 11;
+	constexpr FlagT DiskSyncMatch		= 1 << 12;
+	constexpr FlagT External			= 1 << 13;	// i.e. CIA B.
+}
 
-};
+namespace DMAFlag {
+	using FlagT = uint16_t;
+
+	constexpr FlagT AudioChannel0		= 1 << 0;
+	constexpr FlagT AudioChannel1		= 1 << 1;
+	constexpr FlagT AudioChannel2		= 1 << 2;
+	constexpr FlagT AudioChannel3		= 1 << 3;
+	constexpr FlagT Disk				= 1 << 4;
+	constexpr FlagT Sprites				= 1 << 5;
+	constexpr FlagT Blitter				= 1 << 6;
+	constexpr FlagT Copper				= 1 << 7;
+	constexpr FlagT Bitplane			= 1 << 8;
+	constexpr FlagT AllBelow			= 1 << 9;
+	constexpr FlagT BlitterPriority		= 1 << 10;
+	constexpr FlagT BlitterZero			= 1 << 13;
+	constexpr FlagT BlitterBusy			= 1 << 14;
+}
+
+}
 
 #endif /* Flags_hpp */
