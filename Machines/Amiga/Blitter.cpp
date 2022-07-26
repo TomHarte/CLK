@@ -191,6 +191,34 @@ uint16_t Blitter::get_status() {
 	return result;
 }
 
+// Due to the pipeline, writes are delayed by one slot — the first write will occur
+// after the second set of inputs has been fetched, and every sequence with writes enabled
+// will end with an additional write.
+//
+//    USE Code
+//       in        Active
+//    BLTCON0     Channels             Cycle Sequence
+//   ---------    --------             --------------
+//       F        A B C D     A0 B0 C0 -  A1 B1 C1 D0 A2 B2 C2 D1 D2
+//       E        A B C       A0 B0 C0 A1 B1 C1 A2 B2 C2
+//       D        A B   D     A0 B0 -  A1 B1 D0 A2 B2 D1 -  D2
+//       C        A B         A0 B0 -  A1 B1 -  A2 B2
+//       B        A   C D     A0 C0 -  A1 C1 D0 A2 C2 D1 -  D2
+//       A        A   C       A0 C0 A1 C1 A2 C2
+//       9        A     D     A0 -  A1 D0 A2 D1 -  D2
+//       8        A           A0 -  A1 -  A2
+//       7          B C D     B0 C0 -  -  B1 C1 D0 -  B2 C2 D1 -  D2
+//       6          B C       B0 C0 -  B1 C1 -  B2 C2
+//       5          B   D     B0 -  -  B1 D0 -  B2 D1 -  D2
+//       4          B         B0 -  -  B1 -  -  B2
+//       3            C D     C0 -  -  C1 D0 -  C2 D1 -  D2
+//       2            C       C0 -  C1 -  C2
+//       1              D     D0 -  D1 -  D2
+//       0         none       -  -  -  -
+//
+//
+//       Table 6-2: Typical Blitter Cycle Sequence
+
 bool Blitter::advance_dma() {
 	if(!height_) return false;
 
