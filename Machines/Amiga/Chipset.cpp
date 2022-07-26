@@ -635,8 +635,6 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	} else {
 		// Bitplanes having been dealt with, specific even-cycle responsibility
 		// is just possibly to pass to the Copper.
-		//
-		// The Blitter and CPU are dealt with outside of the odd/even test.
 		constexpr auto CopperEnabled = DMAFlag::AllBelow | DMAFlag::Copper;
 		if((dma_control_ & CopperEnabled) == CopperEnabled) {
 			if(copper_.advance_dma(uint16_t(((y_ & 0xff) << 8) | cycle), blitter_.get_status())) {
@@ -645,12 +643,17 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		} else {
 			copper_.stop();
 		}
+
+		// Picking between the Blitter and CPU occurs below, if applicable.
+		// But if the Blitter priority bit isn't set then don't even give it
+		// a look-in — nothing else having claimed this slot, leave it vacant
+		// for the CPU.
+		if(!(dma_control_ & DMAFlag::BlitterPriority)) {
+			return true;
+		}
 	}
 
-	// Down here: give first refusal to the Blitter, otherwise
-	// pass on to the CPU.
-	//
-	// TODO: Blitter nasty flag. Who owns that?
+	// Give first refusal to the Blitter (if enabled), otherwise pass on to the CPU.
 	constexpr auto BlitterEnabled = DMAFlag::AllBelow | DMAFlag::Blitter;
 	return (dma_control_ & BlitterEnabled) != BlitterEnabled || !blitter_.advance_dma();
 }
