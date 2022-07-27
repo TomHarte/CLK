@@ -30,6 +30,9 @@
 #include "../../Machines/MachineTypes.hpp"
 
 #include "../../Activity/Observer.hpp"
+
+#include "../../Outputs/SoftwareRendering/ScanTarget.hpp"
+
 #include "../../Outputs/OpenGL/Primitives/Rectangle.hpp"
 #include "../../Outputs/OpenGL/ScanTarget.hpp"
 #include "../../Outputs/OpenGL/Screenshot.hpp"
@@ -900,17 +903,18 @@ int main(int argc, char *argv[]) {
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
 
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
-	Outputs::Display::OpenGL::ScanTarget scan_target(target_framebuffer);
+	Outputs::Display::OpenGL::ScanTarget opengl_scan_target(target_framebuffer);
+	Outputs::Display::Software::ScanTarget software_scan_target;
 	std::unique_ptr<ActivityObserver> activity_observer;
 	bool uses_mouse;
 	std::vector<SDLJoystick> joysticks;
 
 	machine_runner.machine_mutex = &machine_mutex;
-	const auto setup_machine_input_output = [&scan_target, &machine, &speaker_delegate, &activity_observer, &joysticks, &uses_mouse, &machine_runner] {
+	const auto setup_machine_input_output = [&software_scan_target, &machine, &speaker_delegate, &activity_observer, &joysticks, &uses_mouse, &machine_runner] {
 		// Wire up the best-effort updater, its delegate, and the speaker delegate.
 		machine_runner.machine = machine.get();
 
-		machine->scan_producer()->set_scan_target(&scan_target);
+		machine->scan_producer()->set_scan_target(&software_scan_target);
 
 		// For now, lie about audio output intentions.
 		const auto audio_producer = machine->audio_producer();
@@ -989,8 +993,8 @@ int main(int argc, char *argv[]) {
 	machine_runner.start();
 	while(!should_quit) {
 		// Draw a new frame, indicating completion of the draw to the machine runner.
-		scan_target.update(int(window_width), int(window_height));
-		scan_target.draw(int(window_width), int(window_height));
+//		opengl_scan_target.update(int(window_width), int(window_height));
+//		opengl_scan_target.draw(int(window_width), int(window_height));
 		if(activity_observer) activity_observer->draw();
 		machine_runner.signal_did_draw();
 
@@ -1015,7 +1019,7 @@ int main(int argc, char *argv[]) {
 						case SDL_WINDOWEVENT_RESIZED: {
 							GLint target_framebuffer = 0;
 							glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
-							scan_target.set_target_framebuffer(target_framebuffer);
+							opengl_scan_target.set_target_framebuffer(target_framebuffer);
 							SDL_GetWindowSize(window, &window_width, &window_height);
 							if(activity_observer) activity_observer->set_aspect_ratio(float(window_width) / float(window_height));
 						} break;
@@ -1042,7 +1046,7 @@ int main(int argc, char *argv[]) {
 					if(error != Machine::Error::None) break;
 
 					machine = std::move(new_machine);
-					static_cast<Outputs::Display::ScanTarget *>(&scan_target)->will_change_owner();
+					static_cast<Outputs::Display::ScanTarget *>(&opengl_scan_target)->will_change_owner();
 					setup_machine_input_output();
 					window_titler.set_file_name(final_path_component(event.drop.file));
 				} break;

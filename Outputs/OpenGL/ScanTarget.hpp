@@ -6,8 +6,8 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ScanTarget_hpp
-#define ScanTarget_hpp
+#ifndef Outputs_OpenGL_ScanTarget_hpp
+#define Outputs_OpenGL_ScanTarget_hpp
 
 #include "../Log.hpp"
 #include "../DisplayMetrics.hpp"
@@ -160,4 +160,4 @@ class ScanTarget: public Outputs::Display::BufferingScanTarget {	// TODO: use pr
 }
 }
 
-#endif /* ScanTarget_hpp */
+#endif /* Outputs_OpenGL_ScanTarget_hpp */

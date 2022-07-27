@@ -312,7 +312,7 @@ struct ScanTarget {
 		/// @return A valid pointer, or @c nullptr if insufficient further storage is available.
 		virtual Scan *begin_scan() = 0;
 
-		/// Requests a new scan to populate.
+		/// Confirms that the scan returned by @c begin_scan (if any) is now fully populated.
 		virtual void end_scan() {}
 
 		/// Finds the first available storage of at least @c required_length pixels in size which is
