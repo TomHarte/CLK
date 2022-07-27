@@ -271,4 +271,62 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 	[self testCase:@"inclusive fills"];
 }
 
+- (void)testSequencer {
+	// These patterns are faithfully transcribed from the HRM's
+	// 'Pipeline Register' section, as captured online at
+	// http://www.amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node0127.html
+	NSArray<NSString *> *const patterns = @[
+		@"- - - -",
+		@"D0 - D1 - D2",
+		@"C0 - C1 - C2",
+		@"C0 - - C1 D0 - C2 D1 - D2",
+		@"B0 -  -  B1 -  -  B2",
+		@"B0 -  -  B1 D0 -  B2 D1 -  D2",
+		@"B0 C0 -  B1 C1 -  B2 C2",
+		@"B0 C0 -  -  B1 C1 D0 -  B2 C2 D1 -  D2",
+		@"A0 -  A1 -  A2",
+	];
+	const int lengths[] = {
+		4, 5, 5, 10, 7, 10, 8, 13, 5, 8, 6, 11, 8, 11, 9, 13
+	};
+
+	for(int c = 0; c < 9; c++) {
+		Amiga::BlitterSequencer sequencer;
+		sequencer.set_control(c);
+
+		int counts[4]{};
+		const int writes = 2;
+		int length = lengths[c];
+		bool is_first_write = c > 1;	// control = 1 is D only, in which case don't pipeline.
+		NSMutableArray<NSString *> *const components = [[NSMutableArray alloc] init];
+
+		while(length--) {
+			const auto next = sequencer.next();
+
+			using Channel = Amiga::BlitterSequencer::Channel;
+			switch(next) {
+				case Channel::None:	[components addObject:@"-"];	break;
+				case Channel::A:	[components addObject:[NSString stringWithFormat:@"A%d", counts[0]++]]; break;
+				case Channel::B:	[components addObject:[NSString stringWithFormat:@"B%d", counts[1]++]]; break;
+				case Channel::C:	[components addObject:[NSString stringWithFormat:@"C%d", counts[2]++]]; break;
+
+				case Channel::Write:
+					if(is_first_write) {
+						is_first_write = false;
+						[components addObject:@"-"];
+					} else {
+						[components addObject:[NSString stringWithFormat:@"D%d", counts[3]++]];
+						if(counts[3] == writes) sequencer.complete();
+					}
+				break;
+
+				default: break;
+			}
+		}
+
+		NSString *pattern = [components componentsJoinedByString:@" "];
+		XCTAssertEqualObjects(pattern, patterns[c]);
+	}
+}
+
 @end
