@@ -276,27 +276,31 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 	// 'Pipeline Register' section, as captured online at
 	// http://www.amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node0127.html
 	NSArray<NSString *> *const patterns = @[
-		@"- - - -",
-		@"D0 - D1 - D2",
-		@"C0 - C1 - C2",
-		@"C0 - - C1 D0 - C2 D1 - D2",
-		@"B0 -  -  B1 -  -  B2",
-		@"B0 -  -  B1 D0 -  B2 D1 -  D2",
-		@"B0 C0 -  B1 C1 -  B2 C2",
-		@"B0 C0 -  -  B1 C1 D0 -  B2 C2 D1 -  D2",
-		@"A0 -  A1 -  A2",
+		/* 0 */ @"- - - -",
+		/* 1 */ @"D0 - D1 - D2",
+		/* 2 */ @"C0 - C1 - C2",
+		/* 3 */ @"C0 - - C1 D0 - C2 D1 - D2",
+		/* 4 */ @"B0 - - B1 - - B2",
+		/* 5 */ @"B0 - - B1 D0 - B2 D1 - D2",
+		/* 6 */ @"B0 C0 - B1 C1 - B2 C2",
+		/* 7 */ @"B0 C0 - - B1 C1 D0 - B2 C2 D1 - D2",
+		/* 8 */ @"A0 - A1 - A2",
+		/* 9 */ @"A0 - A1 D0 A2 D1 - D2",
+		/* A */ @"A0 C0 A1 C1 A2 C2",
+		/* B */ @"A0 C0 - A1 C1 D0 A2 C2 D1 - D2",
+		/* C */ @"A0 B0 - A1 B1 - A2 B2",
+		/* D */ @"A0 B0 - A1 B1 D0 A2 B2 D1 - D2",
+		/* E */ @"A0 B0 C0 A1 B1 C1 A2 B2 C2",
+		/* F */ @"A0 B0 C0 - A1 B1 C1 D0 A2 B2 C2 D1 D2",
 	];
-	const int lengths[] = {
-		4, 5, 5, 10, 7, 10, 8, 13, 5, 8, 6, 11, 8, 11, 9, 13
-	};
 
-	for(int c = 0; c < 9; c++) {
+	for(int c = 0; c < 16; c++) {
 		Amiga::BlitterSequencer sequencer;
 		sequencer.set_control(c);
 
 		int counts[4]{};
 		const int writes = 2;
-		int length = lengths[c];
+		NSUInteger length = [[patterns[c] componentsSeparatedByString:@" "] count];
 		bool is_first_write = c > 1;	// control = 1 is D only, in which case don't pipeline.
 		NSMutableArray<NSString *> *const components = [[NSMutableArray alloc] init];
 
@@ -325,7 +329,10 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 		}
 
 		NSString *pattern = [components componentsJoinedByString:@" "];
-		XCTAssertEqualObjects(pattern, patterns[c]);
+		XCTAssertEqualObjects(
+			pattern,
+			patterns[c],
+			@"Pattern didn't match for control value %x", c);
 	}
 }
 
