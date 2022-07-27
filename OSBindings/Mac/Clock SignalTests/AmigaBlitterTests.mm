@@ -297,6 +297,7 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 	for(int c = 0; c < 16; c++) {
 		Amiga::BlitterSequencer sequencer;
 		sequencer.set_control(c);
+		sequencer.begin();
 
 		int counts[4]{};
 		const int writes = 2;

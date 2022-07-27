@@ -17,25 +17,72 @@
 
 namespace Amiga {
 
+/*!
+	Statefully provides the next access the Blitter should make.
+
+	TODO: determine the actual logic here, rather than
+	relying on tables.
+*/
 class BlitterSequencer {
 	public:
 		enum class Channel {
-			Write, C, B, A, None
+			/// Tells the caller to calculate and load a new piece of output
+			/// into the output pipeline if any new inputs have been provided
+			/// if any inputs are enabled then a two-stage output pipeline applies:
+			/// if anything is already in the pipeline then it should now be written.
+			/// Then the new value should be placed into the pipeline ready for the
+			/// next write slot.
+			///
+			/// If the pipeline is empty, this acts the same as @c None, indicating
+			/// an unused DMA slot.
+			Write,
+			/// The caller should read from channel C.
+			C,
+			/// The caller should read from channel B.
+			B,
+			/// The caller should read from channel A.
+			A,
+			/// Indicates an unused DMA slot.
+			None
 		};
 
+		/// Sets the current control value, which indicates which
+		/// channels are enabled.
 		void set_control(int control) {
 			control_ = control;
+			index_ = 0;
 		}
 
+		/// Indicates that blitting should conclude after this step, i.e.
+		/// whatever is being fetched now is part of the final set of input data;
+		/// this is safe to call following a fetch request on any channel.
 		void complete() {
-			complete_ = true;
+			phase_ =
+				(control_ == 0x9 || control_ == 0xb || control_ == 0xd) ?
+					Phase::PauseAndComplete : Phase::Complete;
 		}
 
+		/// Begins a blit operation.
+		void begin() {
+			phase_ = Phase::Ongoing;
+			index_ = 0;
+		}
+
+		/// Provides the next channel to fetch from, or that a write is required.
 		Channel next() {
-			if(complete_ && !index_) {
-				// TODO: this isn't quite right; some patterns leave a gap before
-				// the final write, some don't. Figure this out.
-				return Channel::Write;
+			switch(phase_) {
+				default: break;
+
+				case Phase::Complete:
+					if(!index_) return Channel::Write;
+				break;
+
+				case Phase::PauseAndComplete:
+					if(!index_) {
+						phase_ = Phase::Complete;
+						return Channel::None;
+					}
+				break;
 			}
 
 			Channel next = Channel::None;
@@ -86,8 +133,10 @@ class BlitterSequencer {
 		}
 
 		int control_ = 0;
-		int index_ = 0;
-		bool complete_ = false;
+		size_t index_ = 0;
+		enum class Phase {
+			Ongoing, PauseAndComplete, Complete
+		} phase_ = Phase::Complete;
 };
 
 class Blitter: public DMADevice<4, 4> {
