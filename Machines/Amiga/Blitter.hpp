@@ -49,40 +49,38 @@ class BlitterSequencer {
 		/// Sets the current control value, which indicates which
 		/// channels are enabled.
 		void set_control(int control) {
-			control_ = control;
-			index_ = 0;
+			control_ = control & 0xf;
+			index_ = 0;	// TODO: this probably isn't accurate; case caught is a change
+						// of control values during a blit.
 		}
 
 		/// Indicates that blitting should conclude after this step, i.e.
 		/// whatever is being fetched now is part of the final set of input data;
 		/// this is safe to call following a fetch request on any channel.
 		void complete() {
-			phase_ =
+			next_phase_ =
 				(control_ == 0x9 || control_ == 0xb || control_ == 0xd) ?
 					Phase::PauseAndComplete : Phase::Complete;
 		}
 
 		/// Begins a blit operation.
 		void begin() {
-			phase_ = Phase::Ongoing;
-			index_ = 0;
+			phase_ = next_phase_ = Phase::Ongoing;
+			index_ = loop_ = 0;
 		}
 
-		/// Provides the next channel to fetch from, or that a write is required.
-		Channel next() {
+		/// Provides the next channel to fetch from, or that a write is required,
+		/// along with a count of complete channel iterations so far completed.
+		std::pair<Channel, int> next() {
 			switch(phase_) {
 				default: break;
 
 				case Phase::Complete:
-					if(!index_) return Channel::Write;
-				break;
+				return std::make_pair(Channel::Write, loop_);
 
 				case Phase::PauseAndComplete:
-					if(!index_) {
-						phase_ = Phase::Complete;
-						return Channel::None;
-					}
-				break;
+					phase_ = Phase::Complete;
+				return std::make_pair(Channel::None, loop_);
 			}
 
 			Channel next = Channel::None;
@@ -107,7 +105,7 @@ class BlitterSequencer {
 				case 15: next = next_channel(patternF); break;
 			}
 
-			return next;
+			return std::make_pair(next, loop_);
 		}
 
 	private:
@@ -127,16 +125,40 @@ class BlitterSequencer {
 		static constexpr std::array<Channel, 3> patternE = { Channel::A, Channel::B, Channel::C };
 		static constexpr std::array<Channel, 4> patternF = { Channel::A, Channel::B, Channel::C, Channel::Write };
 		template <typename ArrayT> Channel next_channel(const ArrayT &list) {
+			loop_ += index_ / list.size();
+			index_ %= list.size();
 			const Channel result = list[index_];
-			index_ = (index_ + 1) % list.size();
+			++index_;
+			if(index_ == list.size()) {
+				phase_ = next_phase_;
+			}
 			return result;
 		}
 
+		// Current control flags, i.e. which channels are enabled.
 		int control_ = 0;
+
+		// Index into the pattern table for this blit.
 		size_t index_ = 0;
+
+		// Number of times the entire pattern table has been completed.
+		int loop_ = 0;
+
 		enum class Phase {
-			Ongoing, PauseAndComplete, Complete
-		} phase_ = Phase::Complete;
+			/// Return the next thing in the pattern table and advance.
+			/// If looping from the end of the pattern table to the start,
+			/// set phase_ to next_phase_.
+			Ongoing,
+			/// Return a Channel::None and advancce to phase_ = Phase::Complete.
+			PauseAndComplete,
+			/// Return Channel::Write indefinitely.
+			Complete
+		};
+
+		// Current sequencer pahse.
+		Phase phase_ = Phase::Complete;
+		// Phase to assume at the end of this iteration of the sequence table.
+		Phase next_phase_ = Phase::Complete;
 };
 
 class Blitter: public DMADevice<4, 4> {

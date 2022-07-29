@@ -294,13 +294,12 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 		/* F */ @"A0 B0 C0 - A1 B1 C1 D0 A2 B2 C2 D1 D2",
 	];
 
-	for(int c = 0; c < 16; c++) {
+	for(int c = 0; c < 16; c++)	{
 		Amiga::BlitterSequencer sequencer;
 		sequencer.set_control(c);
 		sequencer.begin();
 
-		int counts[4]{};
-		const int writes = 2;
+		int writes = 0;
 		NSUInteger length = [[patterns[c] componentsSeparatedByString:@" "] count];
 		bool is_first_write = c > 1;	// control = 1 is D only, in which case don't pipeline.
 		NSMutableArray<NSString *> *const components = [[NSMutableArray alloc] init];
@@ -309,23 +308,26 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 			const auto next = sequencer.next();
 
 			using Channel = Amiga::BlitterSequencer::Channel;
-			switch(next) {
+			switch(next.first) {
 				case Channel::None:	[components addObject:@"-"];	break;
-				case Channel::A:	[components addObject:[NSString stringWithFormat:@"A%d", counts[0]++]]; break;
-				case Channel::B:	[components addObject:[NSString stringWithFormat:@"B%d", counts[1]++]]; break;
-				case Channel::C:	[components addObject:[NSString stringWithFormat:@"C%d", counts[2]++]]; break;
+				case Channel::A:	[components addObject:[NSString stringWithFormat:@"A%d", next.second]]; break;
+				case Channel::B:	[components addObject:[NSString stringWithFormat:@"B%d", next.second]]; break;
+				case Channel::C:	[components addObject:[NSString stringWithFormat:@"C%d", next.second]]; break;
 
 				case Channel::Write:
 					if(is_first_write) {
 						is_first_write = false;
 						[components addObject:@"-"];
 					} else {
-						[components addObject:[NSString stringWithFormat:@"D%d", counts[3]++]];
-						if(counts[3] == writes) sequencer.complete();
+						[components addObject:[NSString stringWithFormat:@"D%d", writes++]];
 					}
 				break;
 
 				default: break;
+			}
+
+			if(next.second == 2) {
+				sequencer.complete();
 			}
 		}
 
