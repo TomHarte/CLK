@@ -27,8 +27,9 @@ class BlitterSequencer {
 	public:
 		enum class Channel {
 			/// Tells the caller to calculate and load a new piece of output
-			/// into the output pipeline if any new inputs have been provided
-			/// if any inputs are enabled then a two-stage output pipeline applies:
+			/// into the output pipeline,
+			///
+			/// If any inputs are enabled then a two-stage output pipeline applies:
 			/// if anything is already in the pipeline then it should now be written.
 			/// Then the new value should be placed into the pipeline ready for the
 			/// next write slot.
@@ -205,6 +206,16 @@ class Blitter: public DMADevice<4, 4> {
 		uint16_t a_data_ = 0, b_data_ = 0, c_data_ = 0;
 
 		bool not_zero_flag_ = false;
+
+		BlitterSequencer sequencer_;
+		uint32_t write_address_ = 0xffff'ffff;
+		uint16_t write_value_ = 0;
+		enum WritePhase {
+			Starting, Full, Stopped
+		} write_phase_;
+		int y_, x_;
+		uint16_t transient_a_mask_;
+		bool stopping_;
 };
 
 }

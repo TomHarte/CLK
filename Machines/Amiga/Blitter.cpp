@@ -130,6 +130,7 @@ void Blitter::set_control(int index, uint16_t value) {
 		channel_enables_[2] = value & 0x200;
 		channel_enables_[1] = value & 0x400;
 		channel_enables_[0] = value & 0x800;
+		sequencer_.set_control(value >> 8);
 	}
 	shifts_[index] = value >> 12;
 	LOG("Set control " << index << " to " << PADHEX(4) << value);
@@ -335,89 +336,124 @@ bool Blitter::advance_dma() {
 		// Copy mode.
 
 		// Quick hack: do the entire action atomically.
+		sequencer_.begin();
 		a32_ = 0;
 		b32_ = 0;
 
-		for(int y = 0; y < height_; y++) {
-			bool fill_carry = fill_carry_;
+		y_ = 0;
+		x_ = 0;
+		int loop_index_ = -1;
+		write_phase_ = WritePhase::Starting;
+		stopping_ = false;
 
-			for(int x = 0; x < width_; x++) {
-				uint16_t a_mask = 0xffff;
-				if(x == 0) a_mask &= a_mask_[0];
-				if(x == width_ - 1) a_mask &= a_mask_[1];
+		while(true) {
+			const auto next = sequencer_.next();
 
-				if(channel_enables_[0]) {
-					a_data_ = ram_[pointer_[0] & ram_mask_];
-					pointer_[0] += direction_;
-				}
-				a32_ = (a32_ << 16) | (a_data_ & a_mask);
+			// If this is the start of a new iteration, check for end of line,
+			// or of blit, and pick an appropriate mask for A based on location.
+			if(next.second != loop_index_) {
+				transient_a_mask_ = 0xffff;
+				if(x_ == 0) transient_a_mask_ &= a_mask_[0];
+				if(x_ == width_ - 1) transient_a_mask_ &= a_mask_[1];
 
-				if(channel_enables_[1]) {
-					b_data_ = ram_[pointer_[1] & ram_mask_];
-					pointer_[1] += direction_;
-				}
-				b32_ = (b32_ << 16) | b_data_;
-
-				if(channel_enables_[2]) {
-					c_data_ = ram_[pointer_[2] & ram_mask_];
-					pointer_[2] += direction_;
-				}
-
-				uint16_t a, b;
-
-				// The barrel shifter shifts to the right in ascending address mode,
-				// but to the left otherwise
-				if(!one_dot_) {
-					a = uint16_t(a32_ >> shifts_[0]);
-					b = uint16_t(b32_ >> shifts_[1]);
-				} else {
-					// TODO: there must be a neater solution than this.
-					a = uint16_t(
-						(a32_ << shifts_[0]) |
-						(a32_ >> (32 - shifts_[0]))
-					);
-
-					b = uint16_t(
-						(b32_ << shifts_[1]) |
-						(b32_ >> (32 - shifts_[1]))
-					);
-				}
-
-				uint16_t output =
-					apply_minterm<uint16_t>(
-						a,
-						b,
-						c_data_,
-						minterms_);
-
-				if(exclusive_fill_ || inclusive_fill_) {
-					// Use the fill tables nibble-by-nibble to figure out the filled word.
-					uint16_t fill_output = 0;
-					int ongoing_carry = fill_carry;
-					const int type_mask = exclusive_fill_ ? (1 << 5) : 0;
-					for(int c = 0; c < 16; c += 4) {
-						const int total_index = (output & 0xf) | (ongoing_carry << 4) | type_mask;
-						fill_output |= ((fill_values[total_index >> 3] >> ((total_index & 7) * 4)) & 0xf) << c;
-						ongoing_carry = (fill_carries[total_index >> 5] >> (total_index & 31)) & 1;
-						output >>= 4;
+				++x_;
+				if(x_ == width_) {
+					x_ = 0;
+					++y_;
+					if(y_ == height_) {
+						sequencer_.complete();
+						stopping_ = true;
 					}
-
-					output = fill_output;
-					fill_carry = ongoing_carry;
+					pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
+					pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
+					pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
+					pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
 				}
-
-				not_zero_flag_ |= output;
-
-				if(channel_enables_[3]) {
-					ram_[pointer_[3] & ram_mask_] = output;
-					pointer_[3] += direction_;
-				}
+				++loop_index_;
 			}
 
-			pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
-			pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
-			pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
-			pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
+			using Channel = BlitterSequencer::Channel;
+			switch(next.first) {
+				case Channel::A:
+					a_data_ = ram_[pointer_[0] & ram_mask_];
+					pointer_[0] += direction_;
+				continue;
+				case Channel::B:
+					b_data_ = ram_[pointer_[1] & ram_mask_];
+					pointer_[1] += direction_;
+				continue;
+				case Channel::C:
+					c_data_ = ram_[pointer_[2] & ram_mask_];
+					pointer_[2] += direction_;
+				continue;
+				case Channel::None:
+				continue;
+				case Channel::Write: break;
+			}
+
+
+
+			a32_ = (a32_ << 16) | (a_data_ & transient_a_mask_);
+			b32_ = (b32_ << 16) | b_data_;
+
+			uint16_t a, b;
+
+			// The barrel shifter shifts to the right in ascending address mode,
+			// but to the left otherwise.
+			if(!one_dot_) {
+				a = uint16_t(a32_ >> shifts_[0]);
+				b = uint16_t(b32_ >> shifts_[1]);
+			} else {
+				// TODO: there must be a neater solution than this.
+				a = uint16_t(
+					(a32_ << shifts_[0]) |
+					(a32_ >> (32 - shifts_[0]))
+				);
+
+				b = uint16_t(
+					(b32_ << shifts_[1]) |
+					(b32_ >> (32 - shifts_[1]))
+				);
+			}
+
+			uint16_t output =
+				apply_minterm<uint16_t>(
+					a,
+					b,
+					c_data_,
+					minterms_);
+
+			if(exclusive_fill_ || inclusive_fill_) {
+				// Use the fill tables nibble-by-nibble to figure out the filled word.
+				uint16_t fill_output = 0;
+				int ongoing_carry = fill_carry_;
+				const int type_mask = exclusive_fill_ ? (1 << 5) : 0;
+				for(int c = 0; c < 16; c += 4) {
+					const int total_index = (output & 0xf) | (ongoing_carry << 4) | type_mask;
+					fill_output |= ((fill_values[total_index >> 3] >> ((total_index & 7) * 4)) & 0xf) << c;
+					ongoing_carry = (fill_carries[total_index >> 5] >> (total_index & 31)) & 1;
+					output >>= 4;
+				}
+
+				output = fill_output;
+				fill_carry_ = ongoing_carry;
+			}
+
+			not_zero_flag_ |= output;
+
+			switch(write_phase_) {
+				case WritePhase::Full:
+					ram_[write_address_ & ram_mask_] = output;
+					[[fallthrough]];
+
+				case WritePhase::Starting:
+					write_phase_ = WritePhase::Full;
+					write_address_ = pointer_[3];
+					write_value_ = output;
+				continue;
+
+				default: break;
+			}
 		}
 	}
 
