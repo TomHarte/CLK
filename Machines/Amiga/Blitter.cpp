@@ -344,7 +344,6 @@ bool Blitter::advance_dma() {
 		x_ = 0;
 		int loop_index_ = -1;
 		write_phase_ = WritePhase::Starting;
-		stopping_ = false;
 
 		while(true) {
 			const auto next = sequencer_.next();
@@ -362,7 +361,6 @@ bool Blitter::advance_dma() {
 					++y_;
 					if(y_ == height_) {
 						sequencer_.complete();
-						stopping_ = true;
 					}
 					pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
 					pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
@@ -389,9 +387,17 @@ bool Blitter::advance_dma() {
 				case Channel::None:
 				continue;
 				case Channel::Write: break;
+				case Channel::FlushPipeline:
+					// HACK. REMOVE ONCE NON-BLOCKING.
+					posit_interrupt(InterruptFlag::Blitter);
+					height_ = 0;
+					// END HACK.
+
+					if(write_phase_ == WritePhase::Full) {
+						ram_[write_address_ & ram_mask_] = write_value_;
+					}
+				return true;
 			}
-
-
 
 			a32_ = (a32_ << 16) | (a_data_ & transient_a_mask_);
 			b32_ = (b32_ << 16) | b_data_;
@@ -443,13 +449,14 @@ bool Blitter::advance_dma() {
 
 			switch(write_phase_) {
 				case WritePhase::Full:
-					ram_[write_address_ & ram_mask_] = output;
+					ram_[write_address_ & ram_mask_] = write_value_;
 					[[fallthrough]];
 
 				case WritePhase::Starting:
 					write_phase_ = WritePhase::Full;
 					write_address_ = pointer_[3];
 					write_value_ = output;
+					pointer_[3] += direction_;
 				continue;
 
 				default: break;

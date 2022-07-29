@@ -27,16 +27,14 @@ class BlitterSequencer {
 	public:
 		enum class Channel {
 			/// Tells the caller to calculate and load a new piece of output
-			/// into the output pipeline,
+			/// into the output pipeline.
 			///
-			/// If any inputs are enabled then a two-stage output pipeline applies:
-			/// if anything is already in the pipeline then it should now be written.
-			/// Then the new value should be placed into the pipeline ready for the
-			/// next write slot.
-			///
-			/// If the pipeline is empty, this acts the same as @c None, indicating
-			/// an unused DMA slot.
+			/// If any inputs are enabled then a one-slot output pipeline applies:
+			/// output will rest in the pipeline for one write phase before being written.
 			Write,
+			/// Indicates that a write should occur if anything is in the pipeline, otherwise
+			/// no activity should occur.
+			FlushPipeline,
 			/// The caller should read from channel C.
 			C,
 			/// The caller should read from channel B.
@@ -77,7 +75,7 @@ class BlitterSequencer {
 				default: break;
 
 				case Phase::Complete:
-				return std::make_pair(Channel::Write, loop_);
+				return std::make_pair(Channel::FlushPipeline, loop_);
 
 				case Phase::PauseAndComplete:
 					phase_ = Phase::Complete;
@@ -211,11 +209,10 @@ class Blitter: public DMADevice<4, 4> {
 		uint32_t write_address_ = 0xffff'ffff;
 		uint16_t write_value_ = 0;
 		enum WritePhase {
-			Starting, Full, Stopped
+			Starting, Full
 		} write_phase_;
 		int y_, x_;
 		uint16_t transient_a_mask_;
-		bool stopping_;
 };
 
 }

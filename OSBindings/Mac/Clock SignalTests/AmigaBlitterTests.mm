@@ -315,6 +315,7 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 				case Channel::C:	[components addObject:[NSString stringWithFormat:@"C%d", next.second]]; break;
 
 				case Channel::Write:
+				case Channel::FlushPipeline:
 					if(is_first_write) {
 						is_first_write = false;
 						[components addObject:@"-"];
