@@ -351,21 +351,25 @@ bool Blitter::advance_dma() {
 			// If this is the start of a new iteration, check for end of line,
 			// or of blit, and pick an appropriate mask for A based on location.
 			if(next.second != loop_index_) {
-				transient_a_mask_ = 0xffff;
-				if(x_ == 0) transient_a_mask_ &= a_mask_[0];
-				if(x_ == width_ - 1) transient_a_mask_ &= a_mask_[1];
+				transient_a_mask_ = x_ ? 0xffff : a_mask_[0];
+
+				// Check whether a complete row was completed in the previous iteration.
+				// If so then add modulos.
+				if(!x_ && y_) {
+					pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
+					pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
+					pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
+					pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
+				}
 
 				++x_;
 				if(x_ == width_) {
+					transient_a_mask_ &= a_mask_[1];
 					x_ = 0;
 					++y_;
 					if(y_ == height_) {
 						sequencer_.complete();
 					}
-					pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
-					pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
-					pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
-					pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
 				}
 				++loop_index_;
 			}
