@@ -223,8 +223,9 @@ uint16_t Blitter::get_status() {
 bool Blitter::advance_dma() {
 	if(!height_) return false;
 
-	not_zero_flag_ = false;
 	if(line_mode_) {
+		not_zero_flag_ = false;
+
 		// As-yet unimplemented:
 		assert(b_data_ == 0xffff);
 
@@ -332,139 +333,140 @@ bool Blitter::advance_dma() {
 				draw_ = true;
 			}
 		}
+
+		busy_ = false;
 	} else {
 		// Copy mode.
+		if(!busy_) {
+			sequencer_.begin();
+			a32_ = 0;
+			b32_ = 0;
 
-		// Quick hack: do the entire action atomically.
-		sequencer_.begin();
-		a32_ = 0;
-		b32_ = 0;
+			y_ = 0;
+			x_ = 0;
+			loop_index_ = -1;
+			write_phase_ = WritePhase::Starting;
+			not_zero_flag_ = 0;
+			busy_ = true;
+		}
 
-		y_ = 0;
-		x_ = 0;
-		int loop_index_ = -1;
-		write_phase_ = WritePhase::Starting;
+		const auto next = sequencer_.next();
 
-		while(true) {
-			const auto next = sequencer_.next();
+		// If this is the start of a new iteration, check for end of line,
+		// or of blit, and pick an appropriate mask for A based on location.
+		if(next.second != loop_index_) {
+			transient_a_mask_ = x_ ? 0xffff : a_mask_[0];
 
-			// If this is the start of a new iteration, check for end of line,
-			// or of blit, and pick an appropriate mask for A based on location.
-			if(next.second != loop_index_) {
-				transient_a_mask_ = x_ ? 0xffff : a_mask_[0];
+			// Check whether a complete row was completed in the previous iteration.
+			// If so then add modulos.
+			if(!x_ && y_) {
+				pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
+				pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
+				pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
+				pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
+			}
 
-				// Check whether a complete row was completed in the previous iteration.
-				// If so then add modulos.
-				if(!x_ && y_) {
-					pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
-					pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
-					pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
-					pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
+			++x_;
+			if(x_ == width_) {
+				transient_a_mask_ &= a_mask_[1];
+				x_ = 0;
+				++y_;
+				if(y_ == height_) {
+					sequencer_.complete();
 				}
-
-				++x_;
-				if(x_ == width_) {
-					transient_a_mask_ &= a_mask_[1];
-					x_ = 0;
-					++y_;
-					if(y_ == height_) {
-						sequencer_.complete();
-					}
-				}
-				++loop_index_;
 			}
+			++loop_index_;
+		}
 
-			using Channel = BlitterSequencer::Channel;
-			switch(next.first) {
-				case Channel::A:
-					a_data_ = ram_[pointer_[0] & ram_mask_];
-					pointer_[0] += direction_;
-				continue;
-				case Channel::B:
-					b_data_ = ram_[pointer_[1] & ram_mask_];
-					pointer_[1] += direction_;
-				continue;
-				case Channel::C:
-					c_data_ = ram_[pointer_[2] & ram_mask_];
-					pointer_[2] += direction_;
-				continue;
-				case Channel::None:
-				continue;
-				case Channel::Write: break;
-				case Channel::FlushPipeline:
-					// HACK. REMOVE ONCE NON-BLOCKING.
-					posit_interrupt(InterruptFlag::Blitter);
-					height_ = 0;
-					// END HACK.
+		using Channel = BlitterSequencer::Channel;
+		switch(next.first) {
+			case Channel::A:
+				a_data_ = ram_[pointer_[0] & ram_mask_];
+				pointer_[0] += direction_;
+			return true;
+			case Channel::B:
+				b_data_ = ram_[pointer_[1] & ram_mask_];
+				pointer_[1] += direction_;
+			return true;
+			case Channel::C:
+				c_data_ = ram_[pointer_[2] & ram_mask_];
+				pointer_[2] += direction_;
+			return true;
+			case Channel::None:
+			return false;
+			case Channel::Write: break;
+			case Channel::FlushPipeline:
+				posit_interrupt(InterruptFlag::Blitter);
+				height_ = 0;
+				busy_ = false;
 
-					if(write_phase_ == WritePhase::Full) {
-						ram_[write_address_ & ram_mask_] = write_value_;
-					}
-				return true;
-			}
-
-			a32_ = (a32_ << 16) | (a_data_ & transient_a_mask_);
-			b32_ = (b32_ << 16) | b_data_;
-
-			uint16_t a, b;
-
-			// The barrel shifter shifts to the right in ascending address mode,
-			// but to the left otherwise.
-			if(!one_dot_) {
-				a = uint16_t(a32_ >> shifts_[0]);
-				b = uint16_t(b32_ >> shifts_[1]);
-			} else {
-				// TODO: there must be a neater solution than this.
-				a = uint16_t(
-					(a32_ << shifts_[0]) |
-					(a32_ >> (32 - shifts_[0]))
-				);
-
-				b = uint16_t(
-					(b32_ << shifts_[1]) |
-					(b32_ >> (32 - shifts_[1]))
-				);
-			}
-
-			uint16_t output =
-				apply_minterm<uint16_t>(
-					a,
-					b,
-					c_data_,
-					minterms_);
-
-			if(exclusive_fill_ || inclusive_fill_) {
-				// Use the fill tables nibble-by-nibble to figure out the filled word.
-				uint16_t fill_output = 0;
-				int ongoing_carry = fill_carry_;
-				const int type_mask = exclusive_fill_ ? (1 << 5) : 0;
-				for(int c = 0; c < 16; c += 4) {
-					const int total_index = (output & 0xf) | (ongoing_carry << 4) | type_mask;
-					fill_output |= ((fill_values[total_index >> 3] >> ((total_index & 7) * 4)) & 0xf) << c;
-					ongoing_carry = (fill_carries[total_index >> 5] >> (total_index & 31)) & 1;
-					output >>= 4;
-				}
-
-				output = fill_output;
-				fill_carry_ = ongoing_carry;
-			}
-
-			not_zero_flag_ |= output;
-
-			switch(write_phase_) {
-				case WritePhase::Full:
+				if(write_phase_ == WritePhase::Full) {
 					ram_[write_address_ & ram_mask_] = write_value_;
-					[[fallthrough]];
+				}
+			return true;
+		}
 
-				case WritePhase::Starting:
-					write_phase_ = WritePhase::Full;
-					write_address_ = pointer_[3];
-					write_value_ = output;
-					pointer_[3] += direction_;
-				continue;
+		a32_ = (a32_ << 16) | (a_data_ & transient_a_mask_);
+		b32_ = (b32_ << 16) | b_data_;
 
-				default: break;
+		uint16_t a, b;
+
+		// The barrel shifter shifts to the right in ascending address mode,
+		// but to the left otherwise.
+		if(!one_dot_) {
+			a = uint16_t(a32_ >> shifts_[0]);
+			b = uint16_t(b32_ >> shifts_[1]);
+		} else {
+			// TODO: there must be a neater solution than this.
+			a = uint16_t(
+				(a32_ << shifts_[0]) |
+				(a32_ >> (32 - shifts_[0]))
+			);
+
+			b = uint16_t(
+				(b32_ << shifts_[1]) |
+				(b32_ >> (32 - shifts_[1]))
+			);
+		}
+
+		uint16_t output =
+			apply_minterm<uint16_t>(
+				a,
+				b,
+				c_data_,
+				minterms_);
+
+		if(exclusive_fill_ || inclusive_fill_) {
+			// Use the fill tables nibble-by-nibble to figure out the filled word.
+			uint16_t fill_output = 0;
+			int ongoing_carry = fill_carry_;
+			const int type_mask = exclusive_fill_ ? (1 << 5) : 0;
+			for(int c = 0; c < 16; c += 4) {
+				const int total_index = (output & 0xf) | (ongoing_carry << 4) | type_mask;
+				fill_output |= ((fill_values[total_index >> 3] >> ((total_index & 7) * 4)) & 0xf) << c;
+				ongoing_carry = (fill_carries[total_index >> 5] >> (total_index & 31)) & 1;
+				output >>= 4;
 			}
+
+			output = fill_output;
+			fill_carry_ = ongoing_carry;
+		}
+
+		not_zero_flag_ |= output;
+
+		switch(write_phase_) {
+			case WritePhase::Full:
+				ram_[write_address_ & ram_mask_] = write_value_;
+				[[fallthrough]];
+
+			case WritePhase::Starting:
+				write_phase_ = WritePhase::Full;
+				write_address_ = pointer_[3];
+				write_value_ = output;
+				pointer_[3] += direction_;
+			return true;
+
+			default: assert(false);
 		}
 	}
 
