@@ -87,6 +87,7 @@ class BlitterSequencer {
 			switch(control_) {
 				default: break;
 
+				case 0: next = next_channel(pattern0); break;
 				case 1: next = next_channel(pattern1); break;
 				case 2: next = next_channel(pattern2); break;
 				case 3: next = next_channel(pattern3); break;
@@ -108,6 +109,7 @@ class BlitterSequencer {
 		}
 
 	private:
+		static constexpr std::array<Channel, 1> pattern0 = { Channel::None };
 		static constexpr std::array<Channel, 2> pattern1 = { Channel::Write, Channel::None };
 		static constexpr std::array<Channel, 2> pattern2 = { Channel::C, Channel::None };
 		static constexpr std::array<Channel, 3> pattern3 = { Channel::C, Channel::Write, Channel::None };
