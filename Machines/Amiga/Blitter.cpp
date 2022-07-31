@@ -392,9 +392,6 @@ bool Blitter::advance_dma() {
 				c_data_ = ram_[pointer_[2] & ram_mask_];
 				pointer_[2] += direction_;
 			return true;
-			case Channel::None:
-			return false;
-			case Channel::Write: break;
 			case Channel::FlushPipeline:
 				posit_interrupt(InterruptFlag::Blitter);
 				height_ = 0;
@@ -404,6 +401,9 @@ bool Blitter::advance_dma() {
 					ram_[write_address_ & ram_mask_] = write_value_;
 				}
 			return true;
+
+			case Channel::None:		return false;
+			case Channel::Write:	break;
 		}
 
 		a32_ = (a32_ << 16) | (a_data_ & transient_a_mask_);
