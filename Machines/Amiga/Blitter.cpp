@@ -346,7 +346,7 @@ bool Blitter::advance_dma() {
 			x_ = 0;
 			loop_index_ = -1;
 			write_phase_ = WritePhase::Starting;
-			not_zero_flag_ = 0;
+			not_zero_flag_ = false;
 			busy_ = true;
 		}
 
