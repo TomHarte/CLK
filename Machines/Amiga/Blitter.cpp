@@ -357,7 +357,7 @@ bool Blitter::advance_dma() {
 		if(next.second != loop_index_) {
 			transient_a_mask_ = x_ ? 0xffff : a_mask_[0];
 
-			// Check whether a complete row was completed in the previous iteration.
+			// Check whether an entire row was completed in the previous iteration.
 			// If so then add modulos.
 			if(!x_ && y_) {
 				pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
