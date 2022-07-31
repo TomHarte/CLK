@@ -220,6 +220,13 @@ uint16_t Blitter::get_status() {
 //
 //       Table 6-2: Typical Blitter Cycle Sequence
 
+void Blitter::add_modulos() {
+	pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
+	pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
+	pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
+	pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
+}
+
 bool Blitter::advance_dma() {
 	if(!height_) return false;
 
@@ -358,12 +365,10 @@ bool Blitter::advance_dma() {
 			transient_a_mask_ = x_ ? 0xffff : a_mask_[0];
 
 			// Check whether an entire row was completed in the previous iteration.
-			// If so then add modulos.
+			// If so then add modulos. Though this won't capture the move off the
+			// final line, so that's handled elsewhere.
 			if(!x_ && y_) {
-				pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
-				pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
-				pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
-				pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
+				add_modulos();
 			}
 
 			++x_;
@@ -393,6 +398,7 @@ bool Blitter::advance_dma() {
 				pointer_[2] += direction_;
 			return true;
 			case Channel::FlushPipeline:
+				add_modulos();
 				posit_interrupt(InterruptFlag::Blitter);
 				height_ = 0;
 				busy_ = false;

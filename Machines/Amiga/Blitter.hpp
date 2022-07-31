@@ -217,6 +217,8 @@ class Blitter: public DMADevice<4, 4> {
 		uint16_t transient_a_mask_;
 		bool busy_ = false;
 		int loop_index_ = -1;
+
+		void add_modulos();
 };
 
 }
