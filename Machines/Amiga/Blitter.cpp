@@ -126,10 +126,6 @@ void Blitter::set_control(int index, uint16_t value) {
 		fill_carry_ = (value & 0x0004);
 	} else {
 		minterms_ = value & 0xff;
-		channel_enables_[3] = value & 0x100;
-		channel_enables_[2] = value & 0x200;
-		channel_enables_[1] = value & 0x400;
-		channel_enables_[0] = value & 0x800;
 		sequencer_.set_control(value >> 8);
 	}
 	shifts_[index] = value >> 12;
@@ -221,10 +217,10 @@ uint16_t Blitter::get_status() {
 //       Table 6-2: Typical Blitter Cycle Sequence
 
 void Blitter::add_modulos() {
-	pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
-	pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
-	pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
-	pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
+	pointer_[0] += modulos_[0] * sequencer_.channel_enabled<0>()* direction_;
+	pointer_[1] += modulos_[1] * sequencer_.channel_enabled<1>() * direction_;
+	pointer_[2] += modulos_[2] * sequencer_.channel_enabled<2>() * direction_;
+	pointer_[3] += modulos_[3] * sequencer_.channel_enabled<3>() * direction_;
 }
 
 bool Blitter::advance_dma() {

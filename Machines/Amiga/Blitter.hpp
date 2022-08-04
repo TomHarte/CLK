@@ -108,6 +108,10 @@ class BlitterSequencer {
 			return std::make_pair(next, loop_);
 		}
 
+		template <int channel> bool channel_enabled() {
+			return control_ & (8 >> channel);
+		}
+
 	private:
 		static constexpr std::array<Channel, 1> pattern0 = { Channel::None };
 		static constexpr std::array<Channel, 2> pattern1 = { Channel::Write, Channel::None };
@@ -198,8 +202,6 @@ class Blitter: public DMADevice<4, 4> {
 		bool inclusive_fill_ = false;
 		bool exclusive_fill_ = false;
 		bool fill_carry_ = false;
-
-		bool channel_enables_[4]{};
 
 		uint8_t minterms_ = 0;
 		uint32_t a32_ = 0, b32_ = 0;
