@@ -27,112 +27,27 @@ struct Chipset {
 
 };
 
-namespace {
-
-using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
-
-}
-
 @interface AmigaBlitterTests: XCTestCase
 @end
 
 @implementation AmigaBlitterTests
 
-- (BOOL)verifyWrites:(WriteVector &)writes blitter:(Amiga::Blitter &)blitter ram:(uint16_t *)ram approximateLocation:(NSInteger)approximateLocation {
-	// Run for however much time the Blitter wants.
-	while(blitter.get_status() & 0x4000) {
-		blitter.advance_dma();
-	}
-
-	// Some blits will write the same address twice
-	// (e.g. by virtue of an appropriate modulo), but
-	// this unit test is currently able to verify the
-	// final result only. So count number of accesses per
-	// address up front in order only to count the
-	// final ones below.
-	std::unordered_map<int, int> access_counts;
-	for(const auto &write: writes) {
-		++access_counts[write.first];
-	}
-
-	for(const auto &write: writes) {
-		auto &count = access_counts[write.first];
-		--count;
-		if(count) continue;
-
-		XCTAssertEqual(ram[write.first >> 1], write.second, @"Didn't find %04x at address %08x; found %04x instead, somewhere before line %ld", write.second, write.first, ram[write.first >> 1], (long)approximateLocation);
-
-		// For now, indicate only the first failure.
-		if(ram[write.first >> 1] != write.second) {
-			return NO;
-		}
-	}
-	writes.clear();
-	return YES;
-}
-
 - (void)testCase:(NSString *)name {
 	uint16_t ram[256 * 1024]{};
 	Amiga::Chipset nonChipset;
-	Amiga::Blitter blitter(nonChipset, ram, 256 * 1024);
+	Amiga::Blitter<true> blitter(nonChipset, ram, 256 * 1024);
 
 	NSURL *const traceURL = [[NSBundle bundleForClass:[self class]] URLForResource:name withExtension:@"json" subdirectory:@"Amiga Blitter Tests"];
 	NSData *const traceData = [NSData dataWithContentsOfURL:traceURL];
 	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
 
-	// Step 1 in developing my version of the Blitter is to make sure that I understand
-	// the logic; as a result the first implementation is going to be a magical thing that
-	// completes all Blits in a single cycle.
-	//
-	// Therefore I've had to bodge my way around the trace's record of reads and writes by
-	// accumulating all writes into a blob and checking them en massse at the end of a blit
-	// (as detected by any register work in between memory accesses, since Kickstart 1.3
-	// doesn't do anything off-book).
-	enum class State {
-		AwaitingWrites,
-		LoggingWrites
-	} state = State::AwaitingWrites;
-
-	WriteVector writes;
-	BOOL hasFailed = NO;
-
-	NSInteger arrayEntry = -1;
 	for(NSArray *const event in trace) {
-		++arrayEntry;
-		if(hasFailed) break;
-
 		NSString *const type = event[0];
 		const NSInteger param1 = [event[1] integerValue];
 
-		if([type isEqualToString:@"cread"] || [type isEqualToString:@"bread"] || [type isEqualToString:@"aread"]) {
-			XCTAssert(param1 < sizeof(ram) - 1);
-			ram[param1 >> 1] = [event[2] integerValue];
-			state = State::LoggingWrites;
-			continue;
-		}
-		if([type isEqualToString:@"write"]) {
-			const uint16_t value = uint16_t([event[2] integerValue]);
-
-			if(writes.empty() || writes.back().first != param1) {
-				writes.push_back(std::make_pair(uint32_t(param1), value));
-			} else {
-				writes.back().second = value;
-			}
-			state = State::LoggingWrites;
-			continue;
-		}
-
-		// Hackaround for testing my magical all-at-once Blitter is here.
-		if(state == State::LoggingWrites) {
-			if(![self verifyWrites:writes blitter:blitter ram:ram approximateLocation:arrayEntry]) {
-				hasFailed = YES;
-				break;
-			}
-			state = State::AwaitingWrites;
-		}
-		// Hack ends here.
-
-
+		//
+		// Register writes. Pass straight along.
+		//
 		if([type isEqualToString:@"bltcon0"]) {
 			blitter.set_control(0, param1);
 			continue;
@@ -220,14 +135,58 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 			continue;
 		}
 
-		NSLog(@"Unhandled type: %@", type);
-		XCTAssert(false);
-		break;
-	}
+		//
+		// Bus activity. Store as initial state, and translate for comparison.
+		//
+		Amiga::Blitter<true>::Transaction expected_transaction;
+		using TransactionType = Amiga::Blitter<true>::Transaction::Type;
+		expected_transaction.address = uint32_t(param1 >> 1);
+		expected_transaction.value = uint16_t([event[2] integerValue]);
 
-	// Check the final set of writes.
-	if(!hasFailed) {
-		[self verifyWrites:writes blitter:blitter ram:ram approximateLocation:-1];
+		if([type isEqualToString:@"cread"] || [type isEqualToString:@"bread"] || [type isEqualToString:@"aread"]) {
+			XCTAssert(param1 < sizeof(ram) - 1);
+			ram[param1 >> 1] = [event[2] integerValue];
+
+			if([type isEqualToString:@"aread"]) expected_transaction.type = TransactionType::ReadA;
+			if([type isEqualToString:@"bread"]) expected_transaction.type = TransactionType::ReadB;
+			if([type isEqualToString:@"cread"]) expected_transaction.type = TransactionType::ReadC;
+		} else if([type isEqualToString:@"write"]) {
+			expected_transaction.type = TransactionType::WriteFromPipeline;
+		} else {
+			NSLog(@"Unhandled type: %@", type);
+			XCTAssert(false);
+			break;
+		}
+
+		// Loop until another [comparable] bus transaction appears, and test.
+		while(true) {
+			blitter.advance_dma();
+
+			const auto transactions = blitter.get_and_reset_transactions();
+			if(transactions.empty()) {
+				continue;
+			}
+
+			bool did_compare = false;
+			for(const auto &transaction : transactions) {
+				// Skipped slots and data coming out of the pipeline aren't captured
+				// by the original test data.
+				switch(transaction.type) {
+					case TransactionType::SkippedSlot:
+					case TransactionType::WriteFromPipeline:
+						continue;
+
+					default: break;
+				}
+
+				XCTAssertEqual(transaction.type, expected_transaction.type);
+				XCTAssertEqual(transaction.value, expected_transaction.value);
+				XCTAssertEqual(transaction.address, expected_transaction.address);
+
+				did_compare = true;
+			}
+			if(did_compare) break;
+		}
 	}
 }
 
