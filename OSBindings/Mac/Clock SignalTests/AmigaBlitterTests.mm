@@ -162,6 +162,11 @@ struct Chipset {
 
 		// Loop until another [comparable] bus transaction appears, and test.
 		while(true) {
+			if(!(blitter.get_status() & 0x4000)) {
+				XCTAssert(false, @"Blitter terminated early at index %lu", (unsigned long)index);
+				return;
+			}
+
 			blitter.advance_dma();
 
 			const auto transactions = blitter.get_and_reset_transactions();
