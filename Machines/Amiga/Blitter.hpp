@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "DMADevice.hpp"
@@ -166,7 +167,11 @@ class BlitterSequencer {
 		Phase next_phase_ = Phase::Complete;
 };
 
-class Blitter: public DMADevice<4, 4> {
+/*!
+	If @c record_bus is @c true then all bus interactions will be recorded
+	and can subsequently be retrieved. This is included for testing purposes.
+*/
+template <bool record_bus = false> class Blitter: public DMADevice<4, 4> {
 	public:
 		using DMADevice::DMADevice;
 
@@ -187,6 +192,24 @@ class Blitter: public DMADevice<4, 4> {
 		uint16_t get_status();
 
 		bool advance_dma();
+
+		struct Transaction {
+			enum class Type {
+				SkippedSlot,
+				ReadA,
+				ReadB,
+				ReadC,
+				AddToPipeline,
+				WriteFromPipeline
+			} type;
+
+			uint32_t address = 0;
+			uint16_t value = 0;
+
+			Transaction(Type type) : type(type) {}
+			Transaction(Type type, uint32_t address, uint16_t value) : type(type), address(address), value(value) {}
+		};
+		std::vector<Transaction> get_and_reset_transactions();
 
 	private:
 		int width_ = 0, height_ = 0;
@@ -221,6 +244,7 @@ class Blitter: public DMADevice<4, 4> {
 		int loop_index_ = -1;
 
 		void add_modulos();
+		std::vector<Transaction> transactions_;
 };
 
 }

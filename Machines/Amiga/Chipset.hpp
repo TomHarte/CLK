@@ -139,7 +139,7 @@ class Chipset: private ClockingHint::Observer {
 		// MARK: - DMA Control, Scheduler and Blitter.
 
 		uint16_t dma_control_ = 0;
-		Blitter blitter_;
+		Blitter<false> blitter_;
 
 		// MARK: - Sprites and collision flags.
 

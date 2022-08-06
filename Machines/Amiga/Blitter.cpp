@@ -113,7 +113,8 @@ constexpr uint32_t fill_values[] = {
 
 }
 
-void Blitter::set_control(int index, uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_control(int index, uint16_t value) {
 	if(index) {
 		line_mode_ = (value & 0x0001);
 		one_dot_ = value & 0x0002;
@@ -132,17 +133,20 @@ void Blitter::set_control(int index, uint16_t value) {
 	LOG("Set control " << index << " to " << PADHEX(4) << value);
 }
 
-void Blitter::set_first_word_mask(uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_first_word_mask(uint16_t value) {
 	LOG("Set first word mask: " << PADHEX(4) << value);
 	a_mask_[0] = value;
 }
 
-void Blitter::set_last_word_mask(uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_last_word_mask(uint16_t value) {
 	LOG("Set last word mask: " << PADHEX(4) << value);
 	a_mask_[1] = value;
 }
 
-void Blitter::set_size(uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_size(uint16_t value) {
 //	width_ = (width_ & ~0x3f) | (value & 0x3f);
 //	height_ = (height_ & ~0x3ff) | (value >> 6);
 	width_ = value & 0x3f;
@@ -155,21 +159,25 @@ void Blitter::set_size(uint16_t value) {
 	// blitter that it should treat itself as about to start a new line.
 }
 
-void Blitter::set_minterms(uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_minterms(uint16_t value) {
 	LOG("Set minterms " << PADHEX(4) << value);
 	minterms_ = value & 0xff;
 }
 
-//void Blitter::set_vertical_size([[maybe_unused]] uint16_t value) {
+//template <bool record_bus>
+//void Blitter<record_bus>::set_vertical_size([[maybe_unused]] uint16_t value) {
 //	LOG("Set vertical size " << PADHEX(4) << value);
 //	// TODO. This is ECS only, I think. Ditto set_horizontal_size.
 //}
 //
-//void Blitter::set_horizontal_size([[maybe_unused]] uint16_t value) {
+//template <bool record_bus>
+//void Blitter<record_bus>::set_horizontal_size([[maybe_unused]] uint16_t value) {
 //	LOG("Set horizontal size " << PADHEX(4) << value);
 //}
 
-void Blitter::set_data(int channel, uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_data(int channel, uint16_t value) {
 	LOG("Set data " << channel << " to " << PADHEX(4) << value);
 
 	// Ugh, backed myself into a corner. TODO: clean.
@@ -181,7 +189,8 @@ void Blitter::set_data(int channel, uint16_t value) {
 	}
 }
 
-uint16_t Blitter::get_status() {
+template <bool record_bus>
+uint16_t Blitter<record_bus>::get_status() {
 	const uint16_t result =
 		(not_zero_flag_ ? 0x0000 : 0x2000) | (height_ ? 0x4000 : 0x0000);
 	LOG("Returned status of " << result);
@@ -216,14 +225,16 @@ uint16_t Blitter::get_status() {
 //
 //       Table 6-2: Typical Blitter Cycle Sequence
 
-void Blitter::add_modulos() {
+template <bool record_bus>
+void Blitter<record_bus>::add_modulos() {
 	pointer_[0] += modulos_[0] * sequencer_.channel_enabled<0>()* direction_;
 	pointer_[1] += modulos_[1] * sequencer_.channel_enabled<1>() * direction_;
 	pointer_[2] += modulos_[2] * sequencer_.channel_enabled<2>() * direction_;
 	pointer_[3] += modulos_[3] * sequencer_.channel_enabled<3>() * direction_;
 }
 
-bool Blitter::advance_dma() {
+template <bool record_bus>
+bool Blitter<record_bus>::advance_dma() {
 	if(!height_) return false;
 
 	if(line_mode_) {
@@ -289,11 +300,18 @@ bool Blitter::advance_dma() {
 				// TODO: patterned lines. Unclear what to do with the bit that comes out of b.
 				// Probably extend it to a full word?
 				c_data_ = ram_[pointer_[3] & ram_mask_];
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::ReadC, pointer_[3], c_data_);
+				}
+
 				const uint16_t output =
 					apply_minterm<uint16_t>(a_data_ >> shifts_[0], b_data_, c_data_, minterms_);
 				ram_[pointer_[3] & ram_mask_] = output;
 				not_zero_flag_ |= output;
 				draw_ &= !one_dot_;
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::WriteFromPipeline, pointer_[3], output);
+				}
 			}
 
 			constexpr int LEFT	= 1 << 0;
@@ -383,14 +401,26 @@ bool Blitter::advance_dma() {
 		switch(next.first) {
 			case Channel::A:
 				a_data_ = ram_[pointer_[0] & ram_mask_];
+
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::ReadA, pointer_[0], a_data_);
+				}
 				pointer_[0] += direction_;
 			return true;
 			case Channel::B:
 				b_data_ = ram_[pointer_[1] & ram_mask_];
+
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::ReadB, pointer_[1], b_data_);
+				}
 				pointer_[1] += direction_;
 			return true;
 			case Channel::C:
 				c_data_ = ram_[pointer_[2] & ram_mask_];
+
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::ReadC, pointer_[2], c_data_);
+				}
 				pointer_[2] += direction_;
 			return true;
 			case Channel::FlushPipeline:
@@ -400,11 +430,20 @@ bool Blitter::advance_dma() {
 				busy_ = false;
 
 				if(write_phase_ == WritePhase::Full) {
+					if constexpr (record_bus) {
+						transactions_.emplace_back(Transaction::Type::WriteFromPipeline, write_address_, write_value_);
+					}
 					ram_[write_address_ & ram_mask_] = write_value_;
+					write_phase_ = WritePhase::Starting;
 				}
 			return true;
 
-			case Channel::None:		return false;
+			case Channel::None:
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::SkippedSlot);
+				}
+			return false;
+
 			case Channel::Write:	break;
 		}
 
@@ -458,6 +497,9 @@ bool Blitter::advance_dma() {
 
 		switch(write_phase_) {
 			case WritePhase::Full:
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::WriteFromPipeline, write_address_, write_value_);
+				}
 				ram_[write_address_ & ram_mask_] = write_value_;
 				[[fallthrough]];
 
@@ -465,6 +507,10 @@ bool Blitter::advance_dma() {
 				write_phase_ = WritePhase::Full;
 				write_address_ = pointer_[3];
 				write_value_ = output;
+
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::AddToPipeline, write_address_, write_value_);
+				}
 				pointer_[3] += direction_;
 			return true;
 
@@ -477,3 +523,13 @@ bool Blitter::advance_dma() {
 
 	return true;
 }
+
+template <bool record_bus>
+std::vector<typename Blitter<record_bus>::Transaction> Blitter<record_bus>::get_and_reset_transactions() {
+	std::vector<Transaction> result;
+	std::swap(result, transactions_);
+	return result;
+}
+
+template class Amiga::Blitter<false>;
+template class Amiga::Blitter<true>;
