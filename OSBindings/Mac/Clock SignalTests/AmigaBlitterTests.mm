@@ -163,7 +163,7 @@ struct Chipset {
 		// Loop until another [comparable] bus transaction appears, and test.
 		while(true) {
 			if(!(blitter.get_status() & 0x4000)) {
-				XCTAssert(false, @"Blitter terminated early at index %lu", (unsigned long)index);
+				XCTAssert(false, @"Blitter terminated early at index %lu; waiting for %s", (unsigned long)index, expected_transaction.to_string().c_str());
 				return;
 			}
 
