@@ -153,7 +153,7 @@ struct Chipset {
 			if([type isEqualToString:@"bread"]) expected_transaction.type = TransactionType::ReadB;
 			if([type isEqualToString:@"cread"]) expected_transaction.type = TransactionType::ReadC;
 		} else if([type isEqualToString:@"write"]) {
-			expected_transaction.type = TransactionType::WriteFromPipeline;
+			expected_transaction.type = TransactionType::AddToPipeline;
 		} else {
 			NSLog(@"Unhandled type: %@", type);
 			XCTAssert(false);
