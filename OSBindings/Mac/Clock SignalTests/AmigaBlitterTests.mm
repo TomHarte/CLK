@@ -41,9 +41,11 @@ struct Chipset {
 	NSData *const traceData = [NSData dataWithContentsOfURL:traceURL];
 	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
 
+	NSUInteger index = -1;
 	for(NSArray *const event in trace) {
 		NSString *const type = event[0];
 		const NSInteger param1 = [event[1] integerValue];
+		++index;
 
 		//
 		// Register writes. Pass straight along.
@@ -179,9 +181,15 @@ struct Chipset {
 					default: break;
 				}
 
-				XCTAssertEqual(transaction.type, expected_transaction.type);
-				XCTAssertEqual(transaction.value, expected_transaction.value);
-				XCTAssertEqual(transaction.address, expected_transaction.address);
+				XCTAssertEqual(transaction.type, expected_transaction.type, @"Type mismatch at index %lu", (unsigned long)index);
+				XCTAssertEqual(transaction.value, expected_transaction.value, @"Value mismatch at index %lu", (unsigned long)index);
+				XCTAssertEqual(transaction.address, expected_transaction.address, @"Address mismatch at index %lu", (unsigned long)index);
+				if(
+					transaction.type != expected_transaction.type ||
+					transaction.value != expected_transaction.value ||
+					transaction.address != expected_transaction.address) {
+					return;
+				}
 
 				did_compare = true;
 			}
