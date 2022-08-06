@@ -42,7 +42,7 @@ struct Chipset {
 	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
 
 	using TransactionType = Amiga::Blitter<true>::Transaction::Type;
-	const auto finish_blit = [&blitter] {
+	const auto finish_blit = [&blitter] () -> bool {
 		while(blitter.get_status() & 0x4000) {
 			blitter.advance_dma();
 		}
@@ -50,7 +50,9 @@ struct Chipset {
 		const auto transactions = blitter.get_and_reset_transactions();
 		for(const auto &transaction: transactions) {
 			XCTAssertTrue(transaction.type == TransactionType::SkippedSlot || transaction.type == TransactionType::WriteFromPipeline);
+			return false;
 		}
+		return true;
 	};
 
 	NSUInteger index = -1;
@@ -62,109 +64,93 @@ struct Chipset {
 		//
 		// Register writes. Pass straight along.
 		//
+		if(![type isEqualToString:@"cread"] && ![type isEqualToString:@"bread"] && ![type isEqualToString:@"aread"] && ![type isEqualToString:@"write"]) {
+			if(!finish_blit()) return;
+		}
+
 		if([type isEqualToString:@"bltcon0"]) {
-			finish_blit();
 			blitter.set_control(0, param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltcon1"]) {
-			finish_blit();
 			blitter.set_control(1, param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltsize"]) {
-			finish_blit();
 			blitter.set_size(param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltafwm"]) {
-			finish_blit();
 			blitter.set_first_word_mask(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltalwm"]) {
-			finish_blit();
 			blitter.set_last_word_mask(param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltadat"]) {
-			finish_blit();
 			blitter.set_data(0, param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltbdat"]) {
-			finish_blit();
 			blitter.set_data(1, param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltcdat"]) {
-			finish_blit();
 			blitter.set_data(2, param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltamod"]) {
-			finish_blit();
 			blitter.set_modulo<0>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltbmod"]) {
-			finish_blit();
 			blitter.set_modulo<1>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltcmod"]) {
-			finish_blit();
 			blitter.set_modulo<2>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltdmod"]) {
-			finish_blit();
 			blitter.set_modulo<3>(param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltaptl"]) {
-			finish_blit();
 			blitter.set_pointer<0, 0>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltbptl"]) {
-			finish_blit();
 			blitter.set_pointer<1, 0>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltcptl"]) {
-			finish_blit();
 			blitter.set_pointer<2, 0>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltdptl"]) {
-			finish_blit();
 			blitter.set_pointer<3, 0>(param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltapth"]) {
-			finish_blit();
 			blitter.set_pointer<0, 16>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltbpth"]) {
-			finish_blit();
 			blitter.set_pointer<1, 16>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltcpth"]) {
-			finish_blit();
 			blitter.set_pointer<2, 16>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltdpth"]) {
-			finish_blit();
 			blitter.set_pointer<3, 16>(param1);
 			continue;
 		}
