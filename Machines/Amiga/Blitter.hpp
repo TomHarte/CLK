@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
@@ -201,7 +202,7 @@ template <bool record_bus = false> class Blitter: public DMADevice<4, 4> {
 				ReadC,
 				AddToPipeline,
 				WriteFromPipeline
-			} type;
+			} type = Type::SkippedSlot;
 
 			uint32_t address = 0;
 			uint16_t value = 0;
@@ -209,6 +210,22 @@ template <bool record_bus = false> class Blitter: public DMADevice<4, 4> {
 			Transaction() {}
 			Transaction(Type type) : type(type) {}
 			Transaction(Type type, uint32_t address, uint16_t value) : type(type), address(address), value(value) {}
+
+			std::string to_string() const {
+				std::string result;
+
+				switch(type) {
+					case Type::SkippedSlot:			result = "SkippedSlot";			break;
+					case Type::ReadA:				result = "ReadA";				break;
+					case Type::ReadB:				result = "ReadB";				break;
+					case Type::ReadC:				result = "ReadC";				break;
+					case Type::AddToPipeline:		result = "AddToPipeline";		break;
+					case Type::WriteFromPipeline:	result = "WriteFromPipeline";	break;
+				}
+
+				result += " address:" + std::to_string(address) + " value:" + std::to_string(value);
+				return result;
+			}
 		};
 		std::vector<Transaction> get_and_reset_transactions();
 

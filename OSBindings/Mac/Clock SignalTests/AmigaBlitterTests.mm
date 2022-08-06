@@ -181,9 +181,9 @@ struct Chipset {
 					default: break;
 				}
 
-				XCTAssertEqual(transaction.type, expected_transaction.type, @"Type mismatch at index %lu", (unsigned long)index);
-				XCTAssertEqual(transaction.value, expected_transaction.value, @"Value mismatch at index %lu", (unsigned long)index);
-				XCTAssertEqual(transaction.address, expected_transaction.address, @"Address mismatch at index %lu", (unsigned long)index);
+				XCTAssertEqual(transaction.type, expected_transaction.type, @"Type mismatch at index %lu: %s expected vs %s found", (unsigned long)index, expected_transaction.to_string().c_str(), transaction.to_string().c_str());
+				XCTAssertEqual(transaction.value, expected_transaction.value, @"Value mismatch at index %lu: %s expected vs %s found", (unsigned long)index, expected_transaction.to_string().c_str(), transaction.to_string().c_str());
+				XCTAssertEqual(transaction.address, expected_transaction.address, @"Address mismatch at index %lu: %s expected vs %s found", (unsigned long)index, expected_transaction.to_string().c_str(), transaction.to_string().c_str());
 				if(
 					transaction.type != expected_transaction.type ||
 					transaction.value != expected_transaction.value ||
