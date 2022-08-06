@@ -41,6 +41,18 @@ struct Chipset {
 	NSData *const traceData = [NSData dataWithContentsOfURL:traceURL];
 	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
 
+	using TransactionType = Amiga::Blitter<true>::Transaction::Type;
+	const auto finish_blit = [&blitter] {
+		while(blitter.get_status() & 0x4000) {
+			blitter.advance_dma();
+		}
+
+		const auto transactions = blitter.get_and_reset_transactions();
+		for(const auto &transaction: transactions) {
+			XCTAssertTrue(transaction.type == TransactionType::SkippedSlot || transaction.type == TransactionType::WriteFromPipeline);
+		}
+	};
+
 	NSUInteger index = -1;
 	for(NSArray *const event in trace) {
 		NSString *const type = event[0];
@@ -51,88 +63,108 @@ struct Chipset {
 		// Register writes. Pass straight along.
 		//
 		if([type isEqualToString:@"bltcon0"]) {
+			finish_blit();
 			blitter.set_control(0, param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltcon1"]) {
+			finish_blit();
 			blitter.set_control(1, param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltsize"]) {
+			finish_blit();
 			blitter.set_size(param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltafwm"]) {
+			finish_blit();
 			blitter.set_first_word_mask(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltalwm"]) {
+			finish_blit();
 			blitter.set_last_word_mask(param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltadat"]) {
+			finish_blit();
 			blitter.set_data(0, param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltbdat"]) {
+			finish_blit();
 			blitter.set_data(1, param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltcdat"]) {
+			finish_blit();
 			blitter.set_data(2, param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltamod"]) {
+			finish_blit();
 			blitter.set_modulo<0>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltbmod"]) {
+			finish_blit();
 			blitter.set_modulo<1>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltcmod"]) {
+			finish_blit();
 			blitter.set_modulo<2>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltdmod"]) {
+			finish_blit();
 			blitter.set_modulo<3>(param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltaptl"]) {
+			finish_blit();
 			blitter.set_pointer<0, 0>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltbptl"]) {
+			finish_blit();
 			blitter.set_pointer<1, 0>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltcptl"]) {
+			finish_blit();
 			blitter.set_pointer<2, 0>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltdptl"]) {
+			finish_blit();
 			blitter.set_pointer<3, 0>(param1);
 			continue;
 		}
 
 		if([type isEqualToString:@"bltapth"]) {
+			finish_blit();
 			blitter.set_pointer<0, 16>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltbpth"]) {
+			finish_blit();
 			blitter.set_pointer<1, 16>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltcpth"]) {
+			finish_blit();
 			blitter.set_pointer<2, 16>(param1);
 			continue;
 		}
 		if([type isEqualToString:@"bltdpth"]) {
+			finish_blit();
 			blitter.set_pointer<3, 16>(param1);
 			continue;
 		}
@@ -141,7 +173,6 @@ struct Chipset {
 		// Bus activity. Store as initial state, and translate for comparison.
 		//
 		Amiga::Blitter<true>::Transaction expected_transaction;
-		using TransactionType = Amiga::Blitter<true>::Transaction::Type;
 		expected_transaction.address = uint32_t(param1 >> 1);
 		expected_transaction.value = uint16_t([event[2] integerValue]);
 
