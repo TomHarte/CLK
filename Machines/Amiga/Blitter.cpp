@@ -292,70 +292,75 @@ bool Blitter<record_bus>::advance_dma() {
 		// at https://github.com/niklasekstrom/blitter-subpixel-line/blob/master/Drawing%20lines%20using%20the%20Amiga%20blitter.pdf
 		//
 
-		int error = int16_t(pointer_[0] << 1) >> 1;	// TODO: what happens if line_sign_ doesn't agree with this?
-		bool draw_ = true;
-		while(height_--) {
+		if(!busy_) {
+			error_ = int16_t(pointer_[0] << 1) >> 1;	// TODO: what happens if line_sign_ doesn't agree with this?
+			draw_ = true;
+			busy_ = true;
+		}
 
-			if(draw_) {
-				// TODO: patterned lines. Unclear what to do with the bit that comes out of b.
-				// Probably extend it to a full word?
-				c_data_ = ram_[pointer_[3] & ram_mask_];
-				if constexpr (record_bus) {
-					transactions_.emplace_back(Transaction::Type::ReadC, pointer_[3], c_data_);
-				}
-
-				const uint16_t output =
-					apply_minterm<uint16_t>(a_data_ >> shifts_[0], b_data_, c_data_, minterms_);
-				ram_[pointer_[3] & ram_mask_] = output;
-				not_zero_flag_ |= output;
-				draw_ &= !one_dot_;
-				if constexpr (record_bus) {
-					transactions_.emplace_back(Transaction::Type::WriteFromPipeline, pointer_[3], output);
-				}
+		if(draw_) {
+			// TODO: patterned lines. Unclear what to do with the bit that comes out of b.
+			// Probably extend it to a full word?
+			c_data_ = ram_[pointer_[3] & ram_mask_];
+			if constexpr (record_bus) {
+				transactions_.emplace_back(Transaction::Type::ReadC, pointer_[3], c_data_);
 			}
 
-			constexpr int LEFT	= 1 << 0;
-			constexpr int RIGHT	= 1 << 1;
-			constexpr int UP	= 1 << 2;
-			constexpr int DOWN	= 1 << 3;
-			int step = (line_direction_ & 4) ?
-				((line_direction_ & 1) ? LEFT : RIGHT) :
-				((line_direction_ & 1) ? UP : DOWN);
-
-			if(error < 0) {
-				error += modulos_[1];
-			} else {
-				step |=
-					(line_direction_ & 4) ?
-						((line_direction_ & 2) ? UP : DOWN) :
-						((line_direction_ & 2) ? LEFT : RIGHT);
-
-				error += modulos_[0];
-			}
-
-			if(step & LEFT) {
-				--shifts_[0];
-				if(shifts_[0] == -1) {
-					--pointer_[3];
-				}
-			} else if(step & RIGHT) {
-				++shifts_[0];
-				if(shifts_[0] == 16) {
-					++pointer_[3];
-				}
-			}
-			shifts_[0] &= 15;
-
-			if(step & UP) {
-				pointer_[3] -= modulos_[2];
-				draw_ = true;
-			} else if(step & DOWN) {
-				pointer_[3] += modulos_[2];
-				draw_ = true;
+			const uint16_t output =
+				apply_minterm<uint16_t>(a_data_ >> shifts_[0], b_data_, c_data_, minterms_);
+			ram_[pointer_[3] & ram_mask_] = output;
+			not_zero_flag_ |= output;
+			draw_ &= !one_dot_;
+			if constexpr (record_bus) {
+				transactions_.emplace_back(Transaction::Type::WriteFromPipeline, pointer_[3], output);
 			}
 		}
 
-		busy_ = false;
+		constexpr int LEFT	= 1 << 0;
+		constexpr int RIGHT	= 1 << 1;
+		constexpr int UP	= 1 << 2;
+		constexpr int DOWN	= 1 << 3;
+		int step = (line_direction_ & 4) ?
+			((line_direction_ & 1) ? LEFT : RIGHT) :
+			((line_direction_ & 1) ? UP : DOWN);
+
+		if(error_ < 0) {
+			error_ += modulos_[1];
+		} else {
+			step |=
+				(line_direction_ & 4) ?
+					((line_direction_ & 2) ? UP : DOWN) :
+					((line_direction_ & 2) ? LEFT : RIGHT);
+
+			error_ += modulos_[0];
+		}
+
+		if(step & LEFT) {
+			--shifts_[0];
+			if(shifts_[0] == -1) {
+				--pointer_[3];
+			}
+		} else if(step & RIGHT) {
+			++shifts_[0];
+			if(shifts_[0] == 16) {
+				++pointer_[3];
+			}
+		}
+		shifts_[0] &= 15;
+
+		if(step & UP) {
+			pointer_[3] -= modulos_[2];
+			draw_ = true;
+		} else if(step & DOWN) {
+			pointer_[3] += modulos_[2];
+			draw_ = true;
+		}
+
+		--height_;
+		if(!height_) {
+			busy_ = false;
+			posit_interrupt(InterruptFlag::Blitter);
+		}
 	} else {
 		// Copy mode.
 		if(!busy_) {
@@ -517,9 +522,6 @@ bool Blitter<record_bus>::advance_dma() {
 			default: assert(false);
 		}
 	}
-
-	posit_interrupt(InterruptFlag::Blitter);
-	height_ = 0;
 
 	return true;
 }

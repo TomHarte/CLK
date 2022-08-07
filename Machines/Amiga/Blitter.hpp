@@ -261,6 +261,9 @@ template <bool record_bus = false> class Blitter: public DMADevice<4, 4> {
 		bool busy_ = false;
 		int loop_index_ = -1;
 
+		int error_ = 0;
+		bool draw_ = false;
+
 		void add_modulos();
 		std::vector<Transaction> transactions_;
 };
