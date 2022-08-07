@@ -63,7 +63,7 @@ struct Chipset {
 			if(capturedAllBusActivity) {
 				for(const auto &transaction: transactions) {
 					if(transaction.type != TransactionType::SkippedSlot && transaction.type != TransactionType::WriteFromPipeline) {
-						XCTAssert(false, "Unexpected transaction found at index %d: %s", index, transaction.to_string().c_str());
+						XCTAssert(false, "Unexpected transaction found at index %lu: %s", (unsigned long)index, transaction.to_string().c_str());
 						return;
 					}
 				}
