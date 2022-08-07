@@ -42,18 +42,6 @@ struct Chipset {
 	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
 
 	using TransactionType = Amiga::Blitter<true>::Transaction::Type;
-	const auto finish_blit = [&blitter] () -> bool {
-		while(blitter.get_status() & 0x4000) {
-			blitter.advance_dma();
-		}
-
-		const auto transactions = blitter.get_and_reset_transactions();
-		for(const auto &transaction: transactions) {
-			XCTAssertTrue(transaction.type == TransactionType::SkippedSlot || transaction.type == TransactionType::WriteFromPipeline);
-			return false;
-		}
-		return true;
-	};
 
 	NSUInteger index = -1;
 	for(NSArray *const event in trace) {
@@ -65,7 +53,19 @@ struct Chipset {
 		// Register writes. Pass straight along.
 		//
 		if(![type isEqualToString:@"cread"] && ![type isEqualToString:@"bread"] && ![type isEqualToString:@"aread"] && ![type isEqualToString:@"write"]) {
-			if(!finish_blit()) return;
+			// Ensure all blitting is completed between register writes; none of the tests
+			// in this test set are about illegal usage.
+			while(blitter.get_status() & 0x4000) {
+				blitter.advance_dma();
+			}
+
+			const auto transactions = blitter.get_and_reset_transactions();
+			for(const auto &transaction: transactions) {
+				if(transaction.type != TransactionType::SkippedSlot && transaction.type != TransactionType::WriteFromPipeline) {
+					XCTAssert(false, "Unexpected transaction found at index %d: %s", index, transaction.to_string().c_str());
+					return;
+				}
+			}
 		}
 
 		if([type isEqualToString:@"bltcon0"]) {
