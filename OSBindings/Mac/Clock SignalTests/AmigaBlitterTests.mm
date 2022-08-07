@@ -260,6 +260,10 @@ struct Chipset {
 	[self testCase:@"inclusive fills"];
 }
 
+- (void)testAddamsFamilyIntro {
+	[self testCase:@"Addams Family Intro"];
+}
+
 - (void)testSequencer {
 	// These patterns are faithfully transcribed from the HRM's
 	// 'Pipeline Register' section, as captured online at
