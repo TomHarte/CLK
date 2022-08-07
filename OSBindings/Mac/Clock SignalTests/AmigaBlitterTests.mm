@@ -32,7 +32,7 @@ struct Chipset {
 
 @implementation AmigaBlitterTests
 
-- (void)testCase:(NSString *)name {
+- (void)testCase:(NSString *)name capturedAllBusActivity:(BOOL)capturedAllBusActivity {
 	uint16_t ram[256 * 1024]{};
 	Amiga::Chipset nonChipset;
 	Amiga::Blitter<true> blitter(nonChipset, ram, 256 * 1024);
@@ -60,10 +60,12 @@ struct Chipset {
 			}
 
 			const auto transactions = blitter.get_and_reset_transactions();
-			for(const auto &transaction: transactions) {
-				if(transaction.type != TransactionType::SkippedSlot && transaction.type != TransactionType::WriteFromPipeline) {
-					XCTAssert(false, "Unexpected transaction found at index %d: %s", index, transaction.to_string().c_str());
-					return;
+			if(capturedAllBusActivity) {
+				for(const auto &transaction: transactions) {
+					if(transaction.type != TransactionType::SkippedSlot && transaction.type != TransactionType::WriteFromPipeline) {
+						XCTAssert(false, "Unexpected transaction found at index %d: %s", index, transaction.to_string().c_str());
+						return;
+					}
 				}
 			}
 		}
@@ -221,47 +223,47 @@ struct Chipset {
 }
 
 - (void)testGadgetToggle {
-	[self testCase:@"gadget toggle"];
+	[self testCase:@"gadget toggle" capturedAllBusActivity:YES];
 }
 
 - (void)testIconHighlight {
-	[self testCase:@"icon highlight"];
+	[self testCase:@"icon highlight" capturedAllBusActivity:NO];
 }
 
 - (void)testKickstart13BootLogo {
-	[self testCase:@"kickstart13 boot logo"];
+	[self testCase:@"kickstart13 boot logo" capturedAllBusActivity:YES];
 }
 
 - (void)testSectorDecode {
-	[self testCase:@"sector decode"];
+	[self testCase:@"sector decode" capturedAllBusActivity:YES];
 }
 
 - (void)testWindowDrag {
-	[self testCase:@"window drag"];
+	[self testCase:@"window drag" capturedAllBusActivity:NO];
 }
 
 - (void)testWindowResize {
-	[self testCase:@"window resize"];
+	[self testCase:@"window resize" capturedAllBusActivity:NO];
 }
 
 - (void)testRAMDiskOpen {
-	[self testCase:@"RAM disk open"];
+	[self testCase:@"RAM disk open" capturedAllBusActivity:NO];
 }
 
 - (void)testSpots {
-	[self testCase:@"spots"];
+	[self testCase:@"spots" capturedAllBusActivity:YES];
 }
 
 - (void)testClock {
-	[self testCase:@"clock"];
+	[self testCase:@"clock" capturedAllBusActivity:NO];
 }
 
 - (void)testInclusiveFills {
-	[self testCase:@"inclusive fills"];
+	[self testCase:@"inclusive fills" capturedAllBusActivity:YES];
 }
 
 - (void)testAddamsFamilyIntro {
-	[self testCase:@"Addams Family Intro"];
+	[self testCase:@"Addams Family Intro" capturedAllBusActivity:YES];
 }
 
 - (void)testSequencer {
