@@ -292,18 +292,30 @@ bool Blitter<record_bus>::advance_dma() {
 		// at https://github.com/niklasekstrom/blitter-subpixel-line/blob/master/Drawing%20lines%20using%20the%20Amiga%20blitter.pdf
 		//
 
+		//
+		// Caveat: I've no idea how the DMA access slots should be laid out for
+		// line drawing.
+		//
+
 		if(!busy_) {
 			error_ = int16_t(pointer_[0] << 1) >> 1;	// TODO: what happens if line_sign_ doesn't agree with this?
 			draw_ = true;
 			busy_ = true;
+			has_c_data_ = false;
 		}
 
+		bool did_output = false;
 		if(draw_) {
 			// TODO: patterned lines. Unclear what to do with the bit that comes out of b.
 			// Probably extend it to a full word?
-			c_data_ = ram_[pointer_[3] & ram_mask_];
-			if constexpr (record_bus) {
-				transactions_.emplace_back(Transaction::Type::ReadC, pointer_[3], c_data_);
+
+			if(!has_c_data_) {
+				has_c_data_ = true;
+				c_data_ = ram_[pointer_[3] & ram_mask_];
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::ReadC, pointer_[3], c_data_);
+				}
+				return true;
 			}
 
 			const uint16_t output =
@@ -311,6 +323,8 @@ bool Blitter<record_bus>::advance_dma() {
 			ram_[pointer_[3] & ram_mask_] = output;
 			not_zero_flag_ |= output;
 			draw_ &= !one_dot_;
+			has_c_data_ = false;
+			did_output = true;
 			if constexpr (record_bus) {
 				transactions_.emplace_back(Transaction::Type::WriteFromPipeline, pointer_[3], output);
 			}
@@ -361,6 +375,8 @@ bool Blitter<record_bus>::advance_dma() {
 			busy_ = false;
 			posit_interrupt(InterruptFlag::Blitter);
 		}
+
+		return did_output;
 	} else {
 		// Copy mode.
 		if(!busy_) {

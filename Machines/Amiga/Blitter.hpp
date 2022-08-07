@@ -263,6 +263,7 @@ template <bool record_bus = false> class Blitter: public DMADevice<4, 4> {
 
 		int error_ = 0;
 		bool draw_ = false;
+		bool has_c_data_ = false;
 
 		void add_modulos();
 		std::vector<Transaction> transactions_;
