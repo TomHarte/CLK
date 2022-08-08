@@ -9,10 +9,10 @@
 #import <XCTest/XCTest.h>
 
 #include "Blitter.hpp"
+#include "NSData+dataWithContentsOfGZippedFile.h"
 
 #include <unordered_map>
 #include <vector>
-#include <zlib.h>
 
 namespace Amiga {
 /// An empty stub to satisfy Amiga::Blitter's inheritance from Amiga::DMADevice;
@@ -38,32 +38,9 @@ struct Chipset {
 	Amiga::Chipset nonChipset;
 	Amiga::Blitter<true> blitter(nonChipset, ram, 256 * 1024);
 
-	NSURL *const traceURL = [[NSBundle bundleForClass:[self class]]
-		URLForResource:name withExtension:@"json.gz" subdirectory:@"Amiga Blitter Tests"];
-
-	// Use gzopen/etc to decompress to a temporary file, then read that back
-	// into memory to provide to the JSON deserialiser. This avoids having to wade
-	// too deeply into ZLib's slightly circuitous handling of decompression when
-	// the destination size is unkoinw.
-	NSString *const tempDir = NSTemporaryDirectory();
-	NSString *const tempFile = [tempDir stringByAppendingPathComponent:@"temp.json"];
-
-	const gzFile compressedFile = gzopen([traceURL fileSystemRepresentation], "rb");
-	FILE *const uncompressedFile = fopen([tempFile UTF8String], "wb");
-
-	uint8_t buffer[64 * 1024];
-	while(true) {
-		const auto length = gzread(compressedFile, buffer, sizeof(buffer));
-		if(!length) break;
-		fwrite(buffer, 1, length, uncompressedFile);
-		if(length != sizeof(buffer)) break;
-	}
-
-	fclose(uncompressedFile);
-	gzclose(compressedFile);
-
-	// Open and parse.
-	NSData *const traceData = [NSData dataWithContentsOfFile:tempFile];
+	NSString *const tracePath = [[NSBundle bundleForClass:[self class]]
+		pathForResource:name ofType:@"json.gz" inDirectory:@"Amiga Blitter Tests"];
+	NSData *const traceData = [NSData dataWithContentsOfGZippedFile:tracePath];
 	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
 	XCTAssertNotNil(trace);
 
