@@ -41,8 +41,9 @@ struct Chipset {
 	NSString *const tracePath = [[NSBundle bundleForClass:[self class]]
 		pathForResource:name ofType:@"json.gz" inDirectory:@"Amiga Blitter Tests"];
 	NSData *const traceData = [NSData dataWithContentsOfGZippedFile:tracePath];
-	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
-	XCTAssertNotNil(trace);
+	NSError *error;
+	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:&error];
+	XCTAssertNotNil(trace, @"JSON decoding failed with error %@", error);
 
 	using TransactionType = Amiga::Blitter<true>::Transaction::Type;
 
