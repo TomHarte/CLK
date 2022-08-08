@@ -12,6 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface NSData (dataWithContentsOfGZippedFile)
 
+/// Performs an in-memory decompression of the named file, returning it as ephemeral data.
 + (instancetype)dataWithContentsOfGZippedFile:(NSString *)path;
 
 @end
