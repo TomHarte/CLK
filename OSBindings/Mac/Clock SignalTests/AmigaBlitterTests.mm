@@ -264,6 +264,10 @@ struct Chipset {
 	[self testCase:@"Addams Family Intro"];
 }
 
+- (void)testSpindizzyWorlds {
+	[self testCase:@"Spindizzy Worlds"];
+}
+
 - (void)testSequencer {
 	// These patterns are faithfully transcribed from the HRM's
 	// 'Pipeline Register' section, as captured online at
