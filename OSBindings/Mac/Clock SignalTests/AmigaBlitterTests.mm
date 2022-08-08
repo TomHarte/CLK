@@ -270,7 +270,7 @@ struct Chipset {
 }
 
 - (void)testSpindizzyWorlds {
-	[self testCase:@"Spindizzy Worlds"];
+	[self testCase:@"Spindizzy Worlds" capturedAllBusActivity:YES];
 }
 
 - (void)testSequencer {
