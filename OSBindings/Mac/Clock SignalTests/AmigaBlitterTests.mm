@@ -9,6 +9,7 @@
 #import <XCTest/XCTest.h>
 
 #include "Blitter.hpp"
+#include "NSData+dataWithContentsOfGZippedFile.h"
 
 #include <unordered_map>
 #include <vector>
@@ -37,9 +38,11 @@ struct Chipset {
 	Amiga::Chipset nonChipset;
 	Amiga::Blitter<true> blitter(nonChipset, ram, 256 * 1024);
 
-	NSURL *const traceURL = [[NSBundle bundleForClass:[self class]] URLForResource:name withExtension:@"json" subdirectory:@"Amiga Blitter Tests"];
-	NSData *const traceData = [NSData dataWithContentsOfURL:traceURL];
+	NSString *const tracePath = [[NSBundle bundleForClass:[self class]]
+		pathForResource:name ofType:@"json.gz" inDirectory:@"Amiga Blitter Tests"];
+	NSData *const traceData = [NSData dataWithContentsOfGZippedFile:tracePath];
 	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
+	XCTAssertNotNil(trace);
 
 	using TransactionType = Amiga::Blitter<true>::Transaction::Type;
 
@@ -264,6 +267,10 @@ struct Chipset {
 
 - (void)testAddamsFamilyIntro {
 	[self testCase:@"Addams Family Intro" capturedAllBusActivity:YES];
+}
+
+- (void)testSpindizzyWorlds {
+	[self testCase:@"Spindizzy Worlds"];
 }
 
 - (void)testSequencer {
