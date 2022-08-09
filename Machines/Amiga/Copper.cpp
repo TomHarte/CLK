@@ -22,7 +22,9 @@ namespace {
 
 bool satisfies_raster(uint16_t position, uint16_t blitter_status, uint16_t *instruction) {
 	// Return immediately if: (i) wait-for-Blitter is not disabled; and (ii) the Blitter is busy.
-	if(!(instruction[1] & 0x8000) && (blitter_status & 0x4000)) return false;
+	if(!(instruction[1] & 0x8000) && (blitter_status & 0x4000)) {
+		return false;
+	}
 
 	// Otherwise, test the raster position against the instruction's value and mask.
 	const uint16_t mask = 0x8000 | (instruction[1] & 0x7ffe);
