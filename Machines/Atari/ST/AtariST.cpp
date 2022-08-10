@@ -86,7 +86,10 @@ class ConcreteMachine:
 			}
 			Memory::Fuzz(ram_);
 
-			video_->set_ram(reinterpret_cast<uint16_t *>(ram_.data()), ram_.size());
+			video_->set_ram(
+				reinterpret_cast<uint16_t *>(ram_.data()),
+				ram_.size() >> 1
+			);
 
 			constexpr ROM::Name rom_name = ROM::Name::AtariSTTOS100;
 			ROM::Request request(rom_name);

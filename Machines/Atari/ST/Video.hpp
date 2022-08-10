@@ -37,7 +37,7 @@ class Video {
 		Video();
 
 		/*!
-			Sets the memory pool that provides video, and its size.
+			Sets the memory pool that provides video, and its size in words.
 		*/
 		void set_ram(uint16_t *, size_t size);
 

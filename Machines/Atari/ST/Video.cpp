@@ -132,7 +132,7 @@ Video::Video() :
 
 void Video::set_ram(uint16_t *ram, size_t size) {
 	ram_ = ram;
-	ram_mask_ = int((size >> 1) - 1);
+	ram_mask_ = int(size - 1);
 }
 
 void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
