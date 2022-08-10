@@ -1069,7 +1069,11 @@ void MainWindow::start_atariST() {
 	using Target = Analyser::Static::AtariST::Target;
 	auto target = std::make_unique<Target>();
 
-	/* There are no options yet for an Atari ST. */
+	switch(ui->atariSTRAMComboBox->currentIndex()) {
+		default:	target->memory_size = Target::MemorySize::FiveHundredAndTwelveKilobytes;	break;
+		case 1:		target->memory_size = Target::MemorySize::OneMegabyte;						break;
+		case 2:		target->memory_size = Target::MemorySize::FourMegabytes;					break;
+	}
 
 	launchTarget(std::move(target));
 }
@@ -1274,7 +1278,8 @@ void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target
 	/* Amstrad CPC. */													\
 	ComboBox(amstradCPCModelComboBox, "amstradcpc.model");				\
 																		\
-	/* Atari ST: nothing */												\
+	/* Atari ST. */														\
+	ComboBox(atariSTRAMComboBox, "atarist.memorySize");					\
 																		\
 	/* Electron. */														\
 	CheckBox(electronDFSCheckBox, "electron.hasDFS");					\

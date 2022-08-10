@@ -343,12 +343,39 @@
         <string>Atari ST</string>
        </attribute>
        <layout class="QVBoxLayout">
-        <item alignment="Qt::AlignTop">
-         <widget class="QLabel">
-          <property name="text">
-           <string>At present only a 512k Atari ST is supported.</string>
-          </property>
-         </widget>
+        <item>
+         <layout class="QHBoxLayout">
+          <item>
+           <layout class="QFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel">
+              <property name="text">
+               <string>RAM:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="atariSTRAMComboBox">
+              <item>
+               <property name="text">
+                <string>512 kb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>1 mb</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>4 mb</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
