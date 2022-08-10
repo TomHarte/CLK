@@ -138,6 +138,7 @@ class Video {
 		int current_address_ = 0;
 
 		uint16_t *ram_ = nullptr;
+		int ram_mask_ = 0;
 
 		int x_ = 0, y_ = 0, next_y_ = 0;
 		bool load_ = false;
