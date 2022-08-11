@@ -35,12 +35,14 @@
 #include "../../Utility/MemoryPacker.hpp"
 #include "../../Utility/MemoryFuzzer.hpp"
 
+#include "../../../Analyser/Static/AtariST/Target.hpp"
+
 namespace Atari {
 namespace ST {
 
 constexpr int CLOCK_RATE = 8021247;
 
-using Target = Analyser::Static::Target;
+using Target = Analyser::Static::AtariST::Target;
 class ConcreteMachine:
 	public Atari::ST::Machine,
 	public CPU::MC68000Mk2::BusHandler,
@@ -70,9 +72,24 @@ class ConcreteMachine:
 			set_clock_rate(CLOCK_RATE);
 			speaker_.set_input_rate(float(CLOCK_RATE) / 4.0f);
 
-			ram_.resize(512 * 1024);	// i.e. 512kb
-			video_->set_ram(reinterpret_cast<uint16_t *>(ram_.data()), ram_.size());
+			switch(target.memory_size) {
+				default:
+				case Target::MemorySize::FiveHundredAndTwelveKilobytes:
+					ram_.resize(512 * 1024);
+				break;
+				case Target::MemorySize::OneMegabyte:
+					ram_.resize(1024 * 1024);
+				break;
+				case Target::MemorySize::FourMegabytes:
+					ram_.resize(4 * 1024 * 1024);
+				break;
+			}
 			Memory::Fuzz(ram_);
+
+			video_->set_ram(
+				reinterpret_cast<uint16_t *>(ram_.data()),
+				ram_.size() >> 1
+			);
 
 			constexpr ROM::Name rom_name = ROM::Name::AtariSTTOS100;
 			ROM::Request request(rom_name);
@@ -685,7 +702,12 @@ class ConcreteMachine:
 using namespace Atari::ST;
 
 Machine *Machine::AtariST(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	return new ConcreteMachine(*target, rom_fetcher);
+	auto *const atari_target = dynamic_cast<const Analyser::Static::AtariST::Target *>(target);
+	if(!atari_target) {
+		return nullptr;
+	}
+
+	return new ConcreteMachine(*atari_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

@@ -130,8 +130,9 @@ Video::Video() :
 	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 440, 1700, 4.0f / 3.0f));
 }
 
-void Video::set_ram(uint16_t *ram, size_t) {
+void Video::set_ram(uint16_t *ram, size_t size) {
 	ram_ = ram;
+	ram_mask_ = int(size - 1);
 }
 
 void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
@@ -202,7 +203,7 @@ void Video::run_for(HalfCycles duration) {
 			const int end_column = (since_load + run_length - 1) >> 3;
 
 			while(start_column != end_column) {
-				data_latch_[data_latch_position_] = ram_[current_address_ & 262143];
+				data_latch_[data_latch_position_] = ram_[current_address_ & ram_mask_];
 				data_latch_position_ = (data_latch_position_ + 1) & 127;
 				++current_address_;
 				++start_column;
