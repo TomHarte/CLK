@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="19529" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="20037" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="19529"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="20037"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -300,22 +300,39 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Atari ST" identifier="atarist" id="a6Y-mx-yFn">
                                 <view key="view" id="nnv-Wi-7hc">
-                                    <rect key="frame" x="10" y="7" width="400" height="223"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="222"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nLf-LI-nWO">
-                                            <rect key="frame" x="18" y="187" width="364" height="16"/>
-                                            <textFieldCell key="cell" lineBreakMode="clipping" title="At present only a 512k Atari ST is supported." id="gBA-ke-mur">
-                                                <font key="font" usesAppearanceFont="YES"/>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="dKg-qC-BBF">
+                                            <rect key="frame" x="18" y="184" width="58" height="16"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory:" id="ZBF-0r-RNK">
+                                                <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
+                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="QD0-qk-qCa">
+                                            <rect key="frame" x="79" y="178" width="80" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="512 kb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" tag="512" imageScaling="axesIndependently" inset="2" selectedItem="LVX-CI-lo9" id="dSS-yv-CDV">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="jsD-9U-bwN">
+                                                    <items>
+                                                        <menuItem title="512 kb" tag="512" id="LVX-CI-lo9"/>
+                                                        <menuItem title="1 mb" state="on" tag="1024" id="jMF-5n-E33"/>
+                                                        <menuItem title="4 mb" tag="4096" id="Z77-x8-Hzh"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                        </popUpButton>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstItem="nLf-LI-nWO" firstAttribute="leading" secondItem="nnv-Wi-7hc" secondAttribute="leading" constant="20" symbolic="YES" id="EIm-9Q-Rcj"/>
-                                        <constraint firstItem="nLf-LI-nWO" firstAttribute="top" secondItem="nnv-Wi-7hc" secondAttribute="top" constant="20" symbolic="YES" id="f9w-Lj-5dn"/>
-                                        <constraint firstAttribute="trailing" secondItem="nLf-LI-nWO" secondAttribute="trailing" constant="20" symbolic="YES" id="m3L-Nx-Aqz"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="QD0-qk-qCa" secondAttribute="trailing" constant="20" symbolic="YES" id="2Ui-SB-1wY"/>
+                                        <constraint firstItem="dKg-qC-BBF" firstAttribute="centerY" secondItem="QD0-qk-qCa" secondAttribute="centerY" id="8tu-sO-8Ob"/>
+                                        <constraint firstItem="QD0-qk-qCa" firstAttribute="top" secondItem="nnv-Wi-7hc" secondAttribute="top" constant="20" symbolic="YES" id="AIX-7g-VAr"/>
+                                        <constraint firstItem="QD0-qk-qCa" firstAttribute="leading" secondItem="dKg-qC-BBF" secondAttribute="trailing" constant="8" symbolic="YES" id="EW6-qd-vjy"/>
+                                        <constraint firstItem="QD0-qk-qCa" firstAttribute="leading" secondItem="dKg-qC-BBF" secondAttribute="trailing" constant="8" symbolic="YES" id="bCB-i4-OhD"/>
+                                        <constraint firstItem="dKg-qC-BBF" firstAttribute="leading" secondItem="nnv-Wi-7hc" secondAttribute="leading" constant="20" symbolic="YES" id="pDt-6K-6iz"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
@@ -959,6 +976,7 @@ Gw
                 <outlet property="appleIIModelButton" destination="jli-ac-Sij" id="Jm3-f7-C17"/>
                 <outlet property="appleIIgsMemorySizeButton" destination="nQa-YS-utT" id="pTV-XL-zX3"/>
                 <outlet property="appleIIgsModelButton" destination="gcS-uy-mzl" id="Jcc-jC-cV1"/>
+                <outlet property="atariSTMemorySizeButton" destination="QD0-qk-qCa" id="aKa-L6-2Te"/>
                 <outlet property="cpcModelTypeButton" destination="2zv-Zo-rmO" id="F4C-b2-eS0"/>
                 <outlet property="electronADFSButton" destination="945-wU-JOH" id="Fjm-W8-kvh"/>
                 <outlet property="electronAP6Button" destination="cG2-Ph-S3Z" id="vkq-1J-KBG"/>

@@ -17,7 +17,18 @@ namespace Static {
 namespace AtariST {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
-	Target() : Analyser::Static::Target(Machine::AtariST) {}
+	ReflectableEnum(MemorySize,
+		FiveHundredAndTwelveKilobytes,
+		OneMegabyte,
+		FourMegabytes);
+	MemorySize memory_size = MemorySize::OneMegabyte;
+
+	Target() : Analyser::Static::Target(Machine::AtariST) {
+		if(needs_declare()) {
+			DeclareField(memory_size);
+			AnnounceEnum(MemorySize);
+		}
+	}
 };
 
 }

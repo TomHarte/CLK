@@ -595,10 +595,10 @@ Instruction Decoder<model, validate_reserved_bits>::decode(uint32_t opcode) {
 	return Instruction(opcode);
 }
 
-template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601, true>;
-template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC603, true>;
-template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC620, true>;
+template struct InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601, true>;
+template struct InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC603, true>;
+template struct InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC620, true>;
 
-template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601, false>;
-template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC603, false>;
-template class InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC620, false>;
+template struct InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC601, false>;
+template struct InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC603, false>;
+template struct InstructionSet::PowerPC::Decoder<InstructionSet::PowerPC::Model::MPC620, false>;

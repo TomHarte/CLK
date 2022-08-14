@@ -135,11 +135,16 @@
 }
 
 
-- (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model {
+- (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model memorySize:(Kilobytes)memorySize {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::AtariST::Target;
 		auto target = std::make_unique<Target>();
+		switch(memorySize) {
+			default:			target->memory_size = Target::MemorySize::FiveHundredAndTwelveKilobytes;	break;
+			case 1024:			target->memory_size = Target::MemorySize::OneMegabyte;						break;
+			case 4096:			target->memory_size = Target::MemorySize::FourMegabytes;					break;
+		}
 		_targets.push_back(std::move(target));
 	}
 	return self;
