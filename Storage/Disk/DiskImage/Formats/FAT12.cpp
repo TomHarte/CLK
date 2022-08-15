@@ -53,5 +53,5 @@ int FAT12::get_head_count() {
 }
 
 long FAT12::get_file_offset_for_position(Track::Address address) {
-	return (address.position.as_int()*head_count_ + address.head) * sector_size_ * sector_count_;
+	return (address.position.as_int() * head_count_ + address.head) * sector_size_ * sector_count_;
 }

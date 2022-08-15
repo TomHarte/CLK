@@ -31,6 +31,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	@IBOutlet var appleIIgsModelButton: NSPopUpButton!
 	@IBOutlet var appleIIgsMemorySizeButton: NSPopUpButton!
 
+	// MARK: - Atari ST properties
+	@IBOutlet var atariSTMemorySizeButton: NSPopUpButton!
+
 	// MARK: - CPC properties
 	@IBOutlet var cpcModelTypeButton: NSPopUpButton!
 
@@ -108,6 +111,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		appleIIgsModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIgsModel"))
 		appleIIgsMemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIgsMemorySize"))
 
+		// Atari ST settings
+		atariSTMemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.atariSTMemorySize"))
+
 		// CPC settings
 		cpcModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.cpcModel"))
 
@@ -168,6 +174,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		// Apple IIgs settings
 		standardUserDefaults.set(appleIIgsModelButton.selectedTag(), forKey: "new.appleIIgsModel")
 		standardUserDefaults.set(appleIIgsMemorySizeButton.selectedTag(), forKey: "new.appleIIgsMemorySize")
+
+		// Atari ST settings
+		standardUserDefaults.set(atariSTMemorySizeButton.selectedTag(), forKey: "new.atariSTMemorySize")
 
 		// CPC settings
 		standardUserDefaults.set(cpcModelTypeButton.selectedTag(), forKey: "new.cpcModel")
@@ -275,7 +284,8 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				return CSStaticAnalyser(appleIIgsModel: model, memorySize: memorySize)
 
 			case "atarist":
-				return CSStaticAnalyser(atariSTModel: .model512k)
+				let memorySize = Kilobytes(atariSTMemorySizeButton.selectedTag())
+				return CSStaticAnalyser(atariSTModel: .model512k, memorySize: memorySize)
 
 			case "cpc":
 				switch cpcModelTypeButton.selectedTag() {
