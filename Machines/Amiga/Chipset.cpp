@@ -654,8 +654,13 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	}
 
 	// Give first refusal to the Blitter (if enabled), otherwise pass on to the CPU.
+	//
+	// TODO: determine why I see Blitter issues if I don't allow it to complete immediately.
+	// All tests pass without immediate completion, and immediate completion just runs the
+	// non-immediate version until the busy flag is disabled. So probably a scheduling or
+	// signalling issue out here.
 	constexpr auto BlitterEnabled = DMAFlag::AllBelow | DMAFlag::Blitter;
-	return (dma_control_ & BlitterEnabled) != BlitterEnabled || !blitter_.advance_dma();
+	return (dma_control_ & BlitterEnabled) != BlitterEnabled || !blitter_.advance_dma<true>();
 }
 
 /// Performs all slots starting with @c first_slot and ending just before @c last_slot.

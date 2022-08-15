@@ -192,7 +192,7 @@ template <bool record_bus = false> class Blitter: public DMADevice<4, 4> {
 
 		uint16_t get_status();
 
-		bool advance_dma();
+		template <bool complete_immediately> bool advance_dma();
 
 		struct Transaction {
 			enum class Type {

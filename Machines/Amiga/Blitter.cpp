@@ -234,8 +234,18 @@ void Blitter<record_bus>::add_modulos() {
 }
 
 template <bool record_bus>
+template <bool complete_immediately>
 bool Blitter<record_bus>::advance_dma() {
 	if(!height_) return false;
+
+	// TODO: eliminate @c complete_immediately and this workaround.
+	// See commentary in Chipset.cpp.
+	if constexpr (complete_immediately) {
+		while(get_status() & 0x4000) {
+			advance_dma<false>();
+		}
+		return true;
+	}
 
 	if(line_mode_) {
 		not_zero_flag_ = false;
@@ -551,3 +561,7 @@ std::vector<typename Blitter<record_bus>::Transaction> Blitter<record_bus>::get_
 
 template class Amiga::Blitter<false>;
 template class Amiga::Blitter<true>;
+template bool Amiga::Blitter<true>::advance_dma<true>();
+template bool Amiga::Blitter<true>::advance_dma<false>();
+template bool Amiga::Blitter<false>::advance_dma<true>();
+template bool Amiga::Blitter<false>::advance_dma<false>();

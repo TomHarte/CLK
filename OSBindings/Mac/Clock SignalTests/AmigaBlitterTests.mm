@@ -60,7 +60,7 @@ struct Chipset {
 			// Ensure all blitting is completed between register writes; none of the tests
 			// in this test set are about illegal usage.
 			while(blitter.get_status() & 0x4000) {
-				blitter.advance_dma();
+				blitter.advance_dma<false>();
 			}
 
 			const auto transactions = blitter.get_and_reset_transactions();
@@ -190,7 +190,7 @@ struct Chipset {
 				return;
 			}
 
-			blitter.advance_dma();
+			blitter.advance_dma<false>();
 
 			const auto transactions = blitter.get_and_reset_transactions();
 			if(transactions.empty()) {
