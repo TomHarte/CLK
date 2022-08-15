@@ -24,7 +24,7 @@ class DMADeviceBase {
 		DMADeviceBase(Chipset &chipset, uint16_t *ram, size_t word_size) :
 			chipset_(chipset), ram_(ram), ram_mask_(uint32_t(word_size - 1)) {}
 
-		void posit_interrupt(Amiga::InterruptFlag);
+		void posit_interrupt(Amiga::InterruptFlag::FlagT);
 
 	protected:
 		Chipset &chipset_;

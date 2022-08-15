@@ -9,6 +9,7 @@
 #import <XCTest/XCTest.h>
 
 #include "Blitter.hpp"
+#include "NSData+dataWithContentsOfGZippedFile.h"
 
 #include <unordered_map>
 #include <vector>
@@ -27,111 +28,51 @@ struct Chipset {
 
 };
 
-namespace {
-
-using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
-
-}
-
 @interface AmigaBlitterTests: XCTestCase
 @end
 
 @implementation AmigaBlitterTests
 
-- (BOOL)verifyWrites:(WriteVector &)writes blitter:(Amiga::Blitter &)blitter ram:(uint16_t *)ram approximateLocation:(NSInteger)approximateLocation {
-	// Run for however much time the Blitter wants.
-	while(blitter.get_status() & 0x4000) {
-		blitter.advance_dma();
-	}
-
-	// Some blits will write the same address twice
-	// (e.g. by virtue of an appropriate modulo), but
-	// this unit test is currently able to verify the
-	// final result only. So count number of accesses per
-	// address up front in order only to count the
-	// final ones below.
-	std::unordered_map<int, int> access_counts;
-	for(const auto &write: writes) {
-		++access_counts[write.first];
-	}
-
-	for(const auto &write: writes) {
-		auto &count = access_counts[write.first];
-		--count;
-		if(count) continue;
-
-		XCTAssertEqual(ram[write.first >> 1], write.second, @"Didn't find %04x at address %08x; found %04x instead, somewhere before line %ld", write.second, write.first, ram[write.first >> 1], (long)approximateLocation);
-
-		// For now, indicate only the first failure.
-		if(ram[write.first >> 1] != write.second) {
-			return NO;
-		}
-	}
-	writes.clear();
-	return YES;
-}
-
-- (void)testCase:(NSString *)name {
+- (void)testCase:(NSString *)name capturedAllBusActivity:(BOOL)capturedAllBusActivity {
 	uint16_t ram[256 * 1024]{};
 	Amiga::Chipset nonChipset;
-	Amiga::Blitter blitter(nonChipset, ram, 256 * 1024);
+	Amiga::Blitter<true> blitter(nonChipset, ram, 256 * 1024);
 
-	NSURL *const traceURL = [[NSBundle bundleForClass:[self class]] URLForResource:name withExtension:@"json" subdirectory:@"Amiga Blitter Tests"];
-	NSData *const traceData = [NSData dataWithContentsOfURL:traceURL];
-	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:nil];
+	NSString *const tracePath = [[NSBundle bundleForClass:[self class]]
+		pathForResource:name ofType:@"json.gz" inDirectory:@"Amiga Blitter Tests"];
+	NSData *const traceData = [NSData dataWithContentsOfGZippedFile:tracePath];
+	NSError *error;
+	NSArray *const trace = [NSJSONSerialization JSONObjectWithData:traceData options:0 error:&error];
+	XCTAssertNotNil(trace, @"JSON decoding failed with error %@", error);
 
-	// Step 1 in developing my version of the Blitter is to make sure that I understand
-	// the logic; as a result the first implementation is going to be a magical thing that
-	// completes all Blits in a single cycle.
-	//
-	// Therefore I've had to bodge my way around the trace's record of reads and writes by
-	// accumulating all writes into a blob and checking them en massse at the end of a blit
-	// (as detected by any register work in between memory accesses, since Kickstart 1.3
-	// doesn't do anything off-book).
-	enum class State {
-		AwaitingWrites,
-		LoggingWrites
-	} state = State::AwaitingWrites;
+	using TransactionType = Amiga::Blitter<true>::Transaction::Type;
 
-	WriteVector writes;
-	BOOL hasFailed = NO;
-
-	NSInteger arrayEntry = -1;
+	NSUInteger index = -1;
 	for(NSArray *const event in trace) {
-		++arrayEntry;
-		if(hasFailed) break;
-
 		NSString *const type = event[0];
 		const NSInteger param1 = [event[1] integerValue];
+		++index;
 
-		if([type isEqualToString:@"cread"] || [type isEqualToString:@"bread"] || [type isEqualToString:@"aread"]) {
-			XCTAssert(param1 < sizeof(ram) - 1);
-			ram[param1 >> 1] = [event[2] integerValue];
-			state = State::LoggingWrites;
-			continue;
-		}
-		if([type isEqualToString:@"write"]) {
-			const uint16_t value = uint16_t([event[2] integerValue]);
-
-			if(writes.empty() || writes.back().first != param1) {
-				writes.push_back(std::make_pair(uint32_t(param1), value));
-			} else {
-				writes.back().second = value;
+		//
+		// Register writes. Pass straight along.
+		//
+		if(![type isEqualToString:@"cread"] && ![type isEqualToString:@"bread"] && ![type isEqualToString:@"aread"] && ![type isEqualToString:@"write"]) {
+			// Ensure all blitting is completed between register writes; none of the tests
+			// in this test set are about illegal usage.
+			while(blitter.get_status() & 0x4000) {
+				blitter.advance_dma<false>();
 			}
-			state = State::LoggingWrites;
-			continue;
-		}
 
-		// Hackaround for testing my magical all-at-once Blitter is here.
-		if(state == State::LoggingWrites) {
-			if(![self verifyWrites:writes blitter:blitter ram:ram approximateLocation:arrayEntry]) {
-				hasFailed = YES;
-				break;
+			const auto transactions = blitter.get_and_reset_transactions();
+			if(capturedAllBusActivity) {
+				for(const auto &transaction: transactions) {
+					if(transaction.type != TransactionType::SkippedSlot && transaction.type != TransactionType::WriteFromPipeline) {
+						XCTAssert(false, "Unexpected transaction found at index %lu: %s", (unsigned long)index, transaction.to_string().c_str());
+						return;
+					}
+				}
 			}
-			state = State::AwaitingWrites;
 		}
-		// Hack ends here.
-
 
 		if([type isEqualToString:@"bltcon0"]) {
 			blitter.set_control(0, param1);
@@ -220,55 +161,186 @@ using WriteVector = std::vector<std::pair<uint32_t, uint16_t>>;
 			continue;
 		}
 
-		NSLog(@"Unhandled type: %@", type);
-		XCTAssert(false);
-		break;
-	}
+		//
+		// Bus activity. Store as initial state, and translate for comparison.
+		//
+		Amiga::Blitter<true>::Transaction expected_transaction;
+		expected_transaction.address = uint32_t(param1 >> 1);
+		expected_transaction.value = uint16_t([event[2] integerValue]);
 
-	// Check the final set of writes.
-	if(!hasFailed) {
-		[self verifyWrites:writes blitter:blitter ram:ram approximateLocation:-1];
+		if([type isEqualToString:@"cread"] || [type isEqualToString:@"bread"] || [type isEqualToString:@"aread"]) {
+			XCTAssert(param1 < sizeof(ram) - 1);
+			ram[param1 >> 1] = [event[2] integerValue];
+
+			if([type isEqualToString:@"aread"]) expected_transaction.type = TransactionType::ReadA;
+			if([type isEqualToString:@"bread"]) expected_transaction.type = TransactionType::ReadB;
+			if([type isEqualToString:@"cread"]) expected_transaction.type = TransactionType::ReadC;
+		} else if([type isEqualToString:@"write"]) {
+			expected_transaction.type = TransactionType::AddToPipeline;
+		} else {
+			NSLog(@"Unhandled type: %@", type);
+			XCTAssert(false);
+			break;
+		}
+
+		// Loop until another [comparable] bus transaction appears, and test.
+		while(true) {
+			if(!(blitter.get_status() & 0x4000)) {
+				XCTAssert(false, @"Blitter terminated early at index %lu; waiting for %s", (unsigned long)index, expected_transaction.to_string().c_str());
+				return;
+			}
+
+			blitter.advance_dma<false>();
+
+			const auto transactions = blitter.get_and_reset_transactions();
+			if(transactions.empty()) {
+				continue;
+			}
+
+			bool did_compare = false;
+			for(const auto &transaction : transactions) {
+				// Skipped slots and data coming out of the pipeline aren't captured
+				// by the original test data.
+				switch(transaction.type) {
+					case TransactionType::SkippedSlot:
+					case TransactionType::WriteFromPipeline:
+						continue;
+
+					default: break;
+				}
+
+				XCTAssertEqual(transaction.type, expected_transaction.type, @"Type mismatch at index %lu: %s expected vs %s found", (unsigned long)index, expected_transaction.to_string().c_str(), transaction.to_string().c_str());
+				XCTAssertEqual(transaction.value, expected_transaction.value, @"Value mismatch at index %lu: %s expected vs %s found", (unsigned long)index, expected_transaction.to_string().c_str(), transaction.to_string().c_str());
+				XCTAssertEqual(transaction.address, expected_transaction.address, @"Address mismatch at index %lu: %s expected vs %s found", (unsigned long)index, expected_transaction.to_string().c_str(), transaction.to_string().c_str());
+				if(
+					transaction.type != expected_transaction.type ||
+					transaction.value != expected_transaction.value ||
+					transaction.address != expected_transaction.address) {
+					return;
+				}
+
+				did_compare = true;
+			}
+			if(did_compare) break;
+		}
 	}
 }
 
 - (void)testGadgetToggle {
-	[self testCase:@"gadget toggle"];
+	[self testCase:@"gadget toggle" capturedAllBusActivity:YES];
 }
 
 - (void)testIconHighlight {
-	[self testCase:@"icon highlight"];
+	[self testCase:@"icon highlight" capturedAllBusActivity:NO];
 }
 
 - (void)testKickstart13BootLogo {
-	[self testCase:@"kickstart13 boot logo"];
+	[self testCase:@"kickstart13 boot logo" capturedAllBusActivity:YES];
 }
 
 - (void)testSectorDecode {
-	[self testCase:@"sector decode"];
+	[self testCase:@"sector decode" capturedAllBusActivity:YES];
 }
 
 - (void)testWindowDrag {
-	[self testCase:@"window drag"];
+	[self testCase:@"window drag" capturedAllBusActivity:NO];
 }
 
 - (void)testWindowResize {
-	[self testCase:@"window resize"];
+	[self testCase:@"window resize" capturedAllBusActivity:NO];
 }
 
 - (void)testRAMDiskOpen {
-	[self testCase:@"RAM disk open"];
+	[self testCase:@"RAM disk open" capturedAllBusActivity:NO];
 }
 
 - (void)testSpots {
-	[self testCase:@"spots"];
+	[self testCase:@"spots" capturedAllBusActivity:YES];
 }
 
 - (void)testClock {
-	[self testCase:@"clock"];
+	[self testCase:@"clock" capturedAllBusActivity:NO];
 }
 
 - (void)testInclusiveFills {
-	[self testCase:@"inclusive fills"];
+	[self testCase:@"inclusive fills" capturedAllBusActivity:YES];
+}
+
+- (void)testAddamsFamilyIntro {
+	[self testCase:@"Addams Family Intro" capturedAllBusActivity:YES];
+}
+
+- (void)testSpindizzyWorlds {
+	[self testCase:@"Spindizzy Worlds" capturedAllBusActivity:YES];
+}
+
+- (void)testSequencer {
+	// These patterns are faithfully transcribed from the HRM's
+	// 'Pipeline Register' section, as captured online at
+	// http://www.amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node0127.html
+	NSArray<NSString *> *const patterns = @[
+		/* 0 */ @"- - - -",
+		/* 1 */ @"D0 - D1 - D2",
+		/* 2 */ @"C0 - C1 - C2",
+		/* 3 */ @"C0 - - C1 D0 - C2 D1 - D2",
+		/* 4 */ @"B0 - - B1 - - B2",
+		/* 5 */ @"B0 - - B1 D0 - B2 D1 - D2",
+		/* 6 */ @"B0 C0 - B1 C1 - B2 C2",
+		/* 7 */ @"B0 C0 - - B1 C1 D0 - B2 C2 D1 - D2",
+		/* 8 */ @"A0 - A1 - A2",
+		/* 9 */ @"A0 - A1 D0 A2 D1 - D2",
+		/* A */ @"A0 C0 A1 C1 A2 C2",
+		/* B */ @"A0 C0 - A1 C1 D0 A2 C2 D1 - D2",
+		/* C */ @"A0 B0 - A1 B1 - A2 B2",
+		/* D */ @"A0 B0 - A1 B1 D0 A2 B2 D1 - D2",
+		/* E */ @"A0 B0 C0 A1 B1 C1 A2 B2 C2",
+		/* F */ @"A0 B0 C0 - A1 B1 C1 D0 A2 B2 C2 D1 D2",
+	];
+
+	for(int c = 0; c < 16; c++)	{
+		Amiga::BlitterSequencer sequencer;
+		sequencer.set_control(c);
+		sequencer.begin();
+
+		int writes = 0;
+		NSUInteger length = [[patterns[c] componentsSeparatedByString:@" "] count];
+		bool is_first_write = c > 1;	// control = 1 is D only, in which case don't pipeline.
+		NSMutableArray<NSString *> *const components = [[NSMutableArray alloc] init];
+
+		while(length--) {
+			const auto next = sequencer.next();
+
+			using Channel = Amiga::BlitterSequencer::Channel;
+			switch(next.first) {
+				case Channel::None:	[components addObject:@"-"];	break;
+				case Channel::A:	[components addObject:[NSString stringWithFormat:@"A%d", next.second]]; break;
+				case Channel::B:	[components addObject:[NSString stringWithFormat:@"B%d", next.second]]; break;
+				case Channel::C:	[components addObject:[NSString stringWithFormat:@"C%d", next.second]]; break;
+
+				case Channel::Write:
+				case Channel::FlushPipeline:
+					if(is_first_write) {
+						is_first_write = false;
+						[components addObject:@"-"];
+					} else {
+						[components addObject:[NSString stringWithFormat:@"D%d", writes++]];
+					}
+				break;
+
+				default: break;
+			}
+
+			if(next.second == 2) {
+				sequencer.complete();
+			}
+		}
+
+		NSString *pattern = [components componentsJoinedByString:@" "];
+		XCTAssertEqualObjects(
+			pattern,
+			patterns[c],
+			@"Pattern didn't match for control value %x", c);
+	}
 }
 
 @end

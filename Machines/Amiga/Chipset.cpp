@@ -21,35 +21,6 @@
 
 using namespace Amiga;
 
-// TODO: I don't think the nonsense below, which was intended to allow a typed enum but also
-// clean combination, really works. Rethink.
-namespace {
-
-template <typename EnumT, EnumT... T> struct Mask {
-	static constexpr uint16_t value = 0;
-};
-
-template <typename EnumT, EnumT F, EnumT... T> struct Mask<EnumT, F, T...> {
-	static constexpr uint16_t value = uint16_t(F) | Mask<EnumT, T...>::value;
-};
-
-template <InterruptFlag... Flags> struct InterruptMask: Mask<InterruptFlag, Flags...> {};
-template <DMAFlag... Flags> struct DMAMask: Mask<DMAFlag, Flags...> {};
-
-constexpr uint16_t AudioFlags[]	= {
-	DMAMask<DMAFlag::AudioChannel0, DMAFlag::AllBelow>::value,
-	DMAMask<DMAFlag::AudioChannel1, DMAFlag::AllBelow>::value,
-	DMAMask<DMAFlag::AudioChannel2, DMAFlag::AllBelow>::value,
-	DMAMask<DMAFlag::AudioChannel3, DMAFlag::AllBelow>::value,
-};
-constexpr auto BlitterFlag	= DMAMask<DMAFlag::Blitter, DMAFlag::AllBelow>::value;
-constexpr auto BitplaneFlag	= DMAMask<DMAFlag::Bitplane, DMAFlag::AllBelow>::value;
-constexpr auto CopperFlag	= DMAMask<DMAFlag::Copper, DMAFlag::AllBelow>::value;
-constexpr auto DiskFlag		= DMAMask<DMAFlag::Disk, DMAFlag::AllBelow>::value;
-constexpr auto SpritesFlag	= DMAMask<DMAFlag::Sprites, DMAFlag::AllBelow>::value;
-
-}
-
 #define DMA_CONSTRUCT *this, reinterpret_cast<uint16_t *>(map.chip_ram.data()), map.chip_ram.size() >> 1
 
 Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
@@ -94,17 +65,17 @@ void Chipset::set_cia_interrupts(bool cia_a_interrupt, bool cia_b_interrupt) {
 	// If latched, is it only on a leading edge?
 //	interrupt_requests_ &= ~InterruptMask<InterruptFlag::IOPortsAndTimers, InterruptFlag::External>::value;
 	interrupt_requests_ |=
-		(cia_a_interrupt ? InterruptMask<InterruptFlag::IOPortsAndTimers>::value : 0) |
-		(cia_b_interrupt ? InterruptMask<InterruptFlag::External>::value : 0);
+		(cia_a_interrupt ? InterruptFlag::IOPortsAndTimers : 0) |
+		(cia_b_interrupt ? InterruptFlag::External : 0);
 	update_interrupts();
 }
 
-void Chipset::posit_interrupt(InterruptFlag flag) {
-	interrupt_requests_ |= uint16_t(flag);
+void Chipset::posit_interrupt(InterruptFlag::FlagT flag) {
+	interrupt_requests_ |= flag;
 	update_interrupts();
 }
 
-void DMADeviceBase::posit_interrupt(InterruptFlag flag) {
+void DMADeviceBase::posit_interrupt(InterruptFlag::FlagT flag) {
 	chipset_.posit_interrupt(flag);
 }
 
@@ -557,9 +528,10 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 			}
 		}
 
+		constexpr auto BitplaneEnabled = DMAFlag::AllBelow | DMAFlag::Bitplane;
 		if(
 			horizontal_fetch_ != HorizontalFetch::Stopped &&
-			(dma_control_ & BitplaneFlag) == BitplaneFlag &&
+			(dma_control_ & BitplaneEnabled) == BitplaneEnabled &&
 			fetch_vertical_ &&
 			bitplanes_.advance_dma(cycle - horizontal_offset_)
 		) {
@@ -622,7 +594,8 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		}
 
 		if constexpr (cycle >= 0x08 && cycle < 0x0e) {
-			if((dma_control_ & DiskFlag) == DiskFlag) {
+			constexpr auto DiskEnabled = DMAFlag::AllBelow | DMAFlag::Disk;
+			if((dma_control_ & DiskEnabled) == DiskEnabled) {
 				if(disk_.advance_dma()) {
 					return false;
 				}
@@ -634,6 +607,13 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 			static_assert(channel >= 0 && channel < 4);
 			static_assert(cycle != 0x15 || channel == 3);
 
+			constexpr DMAFlag::FlagT AudioFlags[] = {
+				DMAFlag::AllBelow | DMAFlag::AudioChannel0,
+				DMAFlag::AllBelow | DMAFlag::AudioChannel1,
+				DMAFlag::AllBelow | DMAFlag::AudioChannel2,
+				DMAFlag::AllBelow | DMAFlag::AudioChannel3,
+			};
+
 			if((dma_control_ & AudioFlags[channel]) == AudioFlags[channel]) {
 				if(audio_.advance_dma(channel)) {
 					return false;
@@ -642,7 +622,8 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		}
 
 		if constexpr (cycle >= 0x16 && cycle < 0x36) {
-			if(y_ >= vertical_blank_height_ && (dma_control_ & SpritesFlag) == SpritesFlag) {
+			constexpr auto SpritesEnabled = DMAFlag::AllBelow | DMAFlag::Sprites;
+			if(y_ >= vertical_blank_height_ && (dma_control_ & SpritesEnabled) == SpritesEnabled) {
 				constexpr auto sprite_id = (cycle - 0x16) >> 2;
 				static_assert(sprite_id >= 0 && sprite_id < std::tuple_size<decltype(sprites_)>::value);
 
@@ -654,20 +635,32 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	} else {
 		// Bitplanes having been dealt with, specific even-cycle responsibility
 		// is just possibly to pass to the Copper.
-		//
-		// The Blitter and CPU are dealt with outside of the odd/even test.
-		if((dma_control_ & CopperFlag) == CopperFlag) {
+		constexpr auto CopperEnabled = DMAFlag::AllBelow | DMAFlag::Copper;
+		if((dma_control_ & CopperEnabled) == CopperEnabled) {
 			if(copper_.advance_dma(uint16_t(((y_ & 0xff) << 8) | cycle), blitter_.get_status())) {
 				return false;
 			}
 		} else {
 			copper_.stop();
 		}
+
+		// Picking between the Blitter and CPU occurs below, if applicable.
+		// But if the Blitter priority bit isn't set then don't even give it
+		// a look-in — nothing else having claimed this slot, leave it vacant
+		// for the CPU.
+		if(!(dma_control_ & DMAFlag::BlitterPriority)) {
+			return true;
+		}
 	}
 
-	// Down here: give first refusal to the Blitter, otherwise
-	// pass on to the CPU.
-	return (dma_control_ & BlitterFlag) != BlitterFlag || !blitter_.advance_dma();
+	// Give first refusal to the Blitter (if enabled), otherwise pass on to the CPU.
+	//
+	// TODO: determine why I see Blitter issues if I don't allow it to complete immediately.
+	// All tests pass without immediate completion, and immediate completion just runs the
+	// non-immediate version until the busy flag is disabled. So probably a scheduling or
+	// signalling issue out here.
+	constexpr auto BlitterEnabled = DMAFlag::AllBelow | DMAFlag::Blitter;
+	return (dma_control_ & BlitterEnabled) != BlitterEnabled || !blitter_.advance_dma<true>();
 }
 
 /// Performs all slots starting with @c first_slot and ending just before @c last_slot.
@@ -764,7 +757,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 			if(y_ == short_field_height_ + is_long_field_) {
 				++vsyncs;
-				interrupt_requests_ |= InterruptMask<InterruptFlag::VerticalBlank>::value;
+				interrupt_requests_ |= InterruptFlag::VerticalBlank;
 				update_interrupts();
 
 				y_ = 0;
@@ -832,17 +825,17 @@ void Chipset::update_interrupts() {
 
 	const uint16_t enabled_requests = interrupt_enable_ & interrupt_requests_ & 0x3fff;
 	if(enabled_requests && (interrupt_enable_ & 0x4000)) {
-		if(enabled_requests & InterruptMask<InterruptFlag::External>::value) {
+		if(enabled_requests & InterruptFlag::External) {
 			interrupt_level_ = 6;
-		} else if(enabled_requests & InterruptMask<InterruptFlag::SerialPortReceive, InterruptFlag::DiskSyncMatch>::value) {
+		} else if(enabled_requests & (InterruptFlag::SerialPortReceive | InterruptFlag::DiskSyncMatch)) {
 			interrupt_level_ = 5;
-		} else if(enabled_requests & InterruptMask<InterruptFlag::AudioChannel0, InterruptFlag::AudioChannel1, InterruptFlag::AudioChannel2, InterruptFlag::AudioChannel3>::value) {
+		} else if(enabled_requests & (InterruptFlag::AudioChannel0 | InterruptFlag::AudioChannel1 | InterruptFlag::AudioChannel2 | InterruptFlag::AudioChannel3)) {
 			interrupt_level_ = 4;
-		} else if(enabled_requests & InterruptMask<InterruptFlag::Copper, InterruptFlag::VerticalBlank, InterruptFlag::Blitter>::value) {
+		} else if(enabled_requests & (InterruptFlag::Copper | InterruptFlag::VerticalBlank | InterruptFlag::Blitter)) {
 			interrupt_level_ = 3;
-		} else if(enabled_requests & InterruptMask<InterruptFlag::IOPortsAndTimers>::value) {
+		} else if(enabled_requests & InterruptFlag::IOPortsAndTimers) {
 			interrupt_level_ = 2;
-		} else if(enabled_requests & InterruptMask<InterruptFlag::SerialPortTransmit, InterruptFlag::DiskBlock, InterruptFlag::Software>::value) {
+		} else if(enabled_requests & (InterruptFlag::SerialPortTransmit | InterruptFlag::DiskBlock | InterruptFlag::Software)) {
 			interrupt_level_ = 1;
 		}
 	}

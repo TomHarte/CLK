@@ -113,7 +113,8 @@ constexpr uint32_t fill_values[] = {
 
 }
 
-void Blitter::set_control(int index, uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_control(int index, uint16_t value) {
 	if(index) {
 		line_mode_ = (value & 0x0001);
 		one_dot_ = value & 0x0002;
@@ -126,26 +127,26 @@ void Blitter::set_control(int index, uint16_t value) {
 		fill_carry_ = (value & 0x0004);
 	} else {
 		minterms_ = value & 0xff;
-		channel_enables_[3] = value & 0x100;
-		channel_enables_[2] = value & 0x200;
-		channel_enables_[1] = value & 0x400;
-		channel_enables_[0] = value & 0x800;
+		sequencer_.set_control(value >> 8);
 	}
 	shifts_[index] = value >> 12;
 	LOG("Set control " << index << " to " << PADHEX(4) << value);
 }
 
-void Blitter::set_first_word_mask(uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_first_word_mask(uint16_t value) {
 	LOG("Set first word mask: " << PADHEX(4) << value);
 	a_mask_[0] = value;
 }
 
-void Blitter::set_last_word_mask(uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_last_word_mask(uint16_t value) {
 	LOG("Set last word mask: " << PADHEX(4) << value);
 	a_mask_[1] = value;
 }
 
-void Blitter::set_size(uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_size(uint16_t value) {
 //	width_ = (width_ & ~0x3f) | (value & 0x3f);
 //	height_ = (height_ & ~0x3ff) | (value >> 6);
 	width_ = value & 0x3f;
@@ -158,21 +159,25 @@ void Blitter::set_size(uint16_t value) {
 	// blitter that it should treat itself as about to start a new line.
 }
 
-void Blitter::set_minterms(uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_minterms(uint16_t value) {
 	LOG("Set minterms " << PADHEX(4) << value);
 	minterms_ = value & 0xff;
 }
 
-//void Blitter::set_vertical_size([[maybe_unused]] uint16_t value) {
+//template <bool record_bus>
+//void Blitter<record_bus>::set_vertical_size([[maybe_unused]] uint16_t value) {
 //	LOG("Set vertical size " << PADHEX(4) << value);
 //	// TODO. This is ECS only, I think. Ditto set_horizontal_size.
 //}
 //
-//void Blitter::set_horizontal_size([[maybe_unused]] uint16_t value) {
+//template <bool record_bus>
+//void Blitter<record_bus>::set_horizontal_size([[maybe_unused]] uint16_t value) {
 //	LOG("Set horizontal size " << PADHEX(4) << value);
 //}
 
-void Blitter::set_data(int channel, uint16_t value) {
+template <bool record_bus>
+void Blitter<record_bus>::set_data(int channel, uint16_t value) {
 	LOG("Set data " << channel << " to " << PADHEX(4) << value);
 
 	// Ugh, backed myself into a corner. TODO: clean.
@@ -184,18 +189,67 @@ void Blitter::set_data(int channel, uint16_t value) {
 	}
 }
 
-uint16_t Blitter::get_status() {
+template <bool record_bus>
+uint16_t Blitter<record_bus>::get_status() {
 	const uint16_t result =
 		(not_zero_flag_ ? 0x0000 : 0x2000) | (height_ ? 0x4000 : 0x0000);
 	LOG("Returned status of " << result);
 	return result;
 }
 
-bool Blitter::advance_dma() {
+// Due to the pipeline, writes are delayed by one slot — the first write will occur
+// after the second set of inputs has been fetched, and every sequence with writes enabled
+// will end with an additional write.
+//
+//    USE Code
+//       in        Active
+//    BLTCON0     Channels             Cycle Sequence
+//   ---------    --------             --------------
+//       F        A B C D     A0 B0 C0 -  A1 B1 C1 D0 A2 B2 C2 D1 D2
+//       E        A B C       A0 B0 C0 A1 B1 C1 A2 B2 C2
+//       D        A B   D     A0 B0 -  A1 B1 D0 A2 B2 D1 -  D2
+//       C        A B         A0 B0 -  A1 B1 -  A2 B2
+//       B        A   C D     A0 C0 -  A1 C1 D0 A2 C2 D1 -  D2
+//       A        A   C       A0 C0 A1 C1 A2 C2
+//       9        A     D     A0 -  A1 D0 A2 D1 -  D2
+//       8        A           A0 -  A1 -  A2
+//       7          B C D     B0 C0 -  -  B1 C1 D0 -  B2 C2 D1 -  D2
+//       6          B C       B0 C0 -  B1 C1 -  B2 C2
+//       5          B   D     B0 -  -  B1 D0 -  B2 D1 -  D2
+//       4          B         B0 -  -  B1 -  -  B2
+//       3            C D     C0 -  -  C1 D0 -  C2 D1 -  D2
+//       2            C       C0 -  C1 -  C2
+//       1              D     D0 -  D1 -  D2
+//       0         none       -  -  -  -
+//
+//
+//       Table 6-2: Typical Blitter Cycle Sequence
+
+template <bool record_bus>
+void Blitter<record_bus>::add_modulos() {
+	pointer_[0] += modulos_[0] * sequencer_.channel_enabled<0>()* direction_;
+	pointer_[1] += modulos_[1] * sequencer_.channel_enabled<1>() * direction_;
+	pointer_[2] += modulos_[2] * sequencer_.channel_enabled<2>() * direction_;
+	pointer_[3] += modulos_[3] * sequencer_.channel_enabled<3>() * direction_;
+}
+
+template <bool record_bus>
+template <bool complete_immediately>
+bool Blitter<record_bus>::advance_dma() {
 	if(!height_) return false;
 
-	not_zero_flag_ = false;
+	// TODO: eliminate @c complete_immediately and this workaround.
+	// See commentary in Chipset.cpp.
+	if constexpr (complete_immediately) {
+		while(get_status() & 0x4000) {
+			advance_dma<false>();
+		}
+		return true;
+	}
+
 	if(line_mode_) {
+		not_zero_flag_ = false;
+
 		// As-yet unimplemented:
 		assert(b_data_ == 0xffff);
 
@@ -248,153 +302,266 @@ bool Blitter::advance_dma() {
 		// at https://github.com/niklasekstrom/blitter-subpixel-line/blob/master/Drawing%20lines%20using%20the%20Amiga%20blitter.pdf
 		//
 
-		int error = int16_t(pointer_[0] << 1) >> 1;	// TODO: what happens if line_sign_ doesn't agree with this?
-		bool draw_ = true;
-		while(height_--) {
+		//
+		// Caveat: I've no idea how the DMA access slots should be laid out for
+		// line drawing.
+		//
 
-			if(draw_) {
-				// TODO: patterned lines. Unclear what to do with the bit that comes out of b.
-				// Probably extend it to a full word?
+		if(!busy_) {
+			error_ = int16_t(pointer_[0] << 1) >> 1;	// TODO: what happens if line_sign_ doesn't agree with this?
+			draw_ = true;
+			busy_ = true;
+			has_c_data_ = false;
+		}
+
+		bool did_output = false;
+		if(draw_) {
+			// TODO: patterned lines. Unclear what to do with the bit that comes out of b.
+			// Probably extend it to a full word?
+
+			if(!has_c_data_) {
+				has_c_data_ = true;
 				c_data_ = ram_[pointer_[3] & ram_mask_];
-				const uint16_t output =
-					apply_minterm<uint16_t>(a_data_ >> shifts_[0], b_data_, c_data_, minterms_);
-				ram_[pointer_[3] & ram_mask_] = output;
-				not_zero_flag_ |= output;
-				draw_ &= !one_dot_;
-			}
-
-			constexpr int LEFT	= 1 << 0;
-			constexpr int RIGHT	= 1 << 1;
-			constexpr int UP	= 1 << 2;
-			constexpr int DOWN	= 1 << 3;
-			int step = (line_direction_ & 4) ?
-				((line_direction_ & 1) ? LEFT : RIGHT) :
-				((line_direction_ & 1) ? UP : DOWN);
-
-			if(error < 0) {
-				error += modulos_[1];
-			} else {
-				step |=
-					(line_direction_ & 4) ?
-						((line_direction_ & 2) ? UP : DOWN) :
-						((line_direction_ & 2) ? LEFT : RIGHT);
-
-				error += modulos_[0];
-			}
-
-			if(step & LEFT) {
-				--shifts_[0];
-				if(shifts_[0] == -1) {
-					--pointer_[3];
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::ReadC, pointer_[3], c_data_);
 				}
-			} else if(step & RIGHT) {
-				++shifts_[0];
-				if(shifts_[0] == 16) {
-					++pointer_[3];
-				}
+				return true;
 			}
-			shifts_[0] &= 15;
 
-			if(step & UP) {
-				pointer_[3] -= modulos_[2];
-				draw_ = true;
-			} else if(step & DOWN) {
-				pointer_[3] += modulos_[2];
-				draw_ = true;
+			const uint16_t output =
+				apply_minterm<uint16_t>(a_data_ >> shifts_[0], b_data_, c_data_, minterms_);
+			ram_[pointer_[3] & ram_mask_] = output;
+			not_zero_flag_ |= output;
+			draw_ &= !one_dot_;
+			has_c_data_ = false;
+			did_output = true;
+			if constexpr (record_bus) {
+				transactions_.emplace_back(Transaction::Type::WriteFromPipeline, pointer_[3], output);
 			}
 		}
+
+		constexpr int LEFT	= 1 << 0;
+		constexpr int RIGHT	= 1 << 1;
+		constexpr int UP	= 1 << 2;
+		constexpr int DOWN	= 1 << 3;
+		int step = (line_direction_ & 4) ?
+			((line_direction_ & 1) ? LEFT : RIGHT) :
+			((line_direction_ & 1) ? UP : DOWN);
+
+		if(error_ < 0) {
+			error_ += modulos_[1];
+		} else {
+			step |=
+				(line_direction_ & 4) ?
+					((line_direction_ & 2) ? UP : DOWN) :
+					((line_direction_ & 2) ? LEFT : RIGHT);
+
+			error_ += modulos_[0];
+		}
+
+		if(step & LEFT) {
+			--shifts_[0];
+			if(shifts_[0] == -1) {
+				--pointer_[3];
+			}
+		} else if(step & RIGHT) {
+			++shifts_[0];
+			if(shifts_[0] == 16) {
+				++pointer_[3];
+			}
+		}
+		shifts_[0] &= 15;
+
+		if(step & UP) {
+			pointer_[3] -= modulos_[2];
+			draw_ = true;
+		} else if(step & DOWN) {
+			pointer_[3] += modulos_[2];
+			draw_ = true;
+		}
+
+		--height_;
+		if(!height_) {
+			busy_ = false;
+			posit_interrupt(InterruptFlag::Blitter);
+		}
+
+		return did_output;
 	} else {
 		// Copy mode.
+		if(!busy_) {
+			sequencer_.begin();
+			a32_ = 0;
+			b32_ = 0;
 
-		// Quick hack: do the entire action atomically.
-		a32_ = 0;
-		b32_ = 0;
+			y_ = 0;
+			x_ = 0;
+			loop_index_ = -1;
+			write_phase_ = WritePhase::Starting;
+			not_zero_flag_ = false;
+			busy_ = true;
+		}
 
-		for(int y = 0; y < height_; y++) {
-			bool fill_carry = fill_carry_;
+		const auto next = sequencer_.next();
 
-			for(int x = 0; x < width_; x++) {
-				uint16_t a_mask = 0xffff;
-				if(x == 0) a_mask &= a_mask_[0];
-				if(x == width_ - 1) a_mask &= a_mask_[1];
+		// If this is the start of a new iteration, check for end of line,
+		// or of blit, and pick an appropriate mask for A based on location.
+		if(next.second != loop_index_) {
+			transient_a_mask_ = x_ ? 0xffff : a_mask_[0];
 
-				if(channel_enables_[0]) {
-					a_data_ = ram_[pointer_[0] & ram_mask_];
-					pointer_[0] += direction_;
-				}
-				a32_ = (a32_ << 16) | (a_data_ & a_mask);
-
-				if(channel_enables_[1]) {
-					b_data_ = ram_[pointer_[1] & ram_mask_];
-					pointer_[1] += direction_;
-				}
-				b32_ = (b32_ << 16) | b_data_;
-
-				if(channel_enables_[2]) {
-					c_data_ = ram_[pointer_[2] & ram_mask_];
-					pointer_[2] += direction_;
-				}
-
-				uint16_t a, b;
-
-				// The barrel shifter shifts to the right in ascending address mode,
-				// but to the left otherwise
-				if(!one_dot_) {
-					a = uint16_t(a32_ >> shifts_[0]);
-					b = uint16_t(b32_ >> shifts_[1]);
-				} else {
-					// TODO: there must be a neater solution than this.
-					a = uint16_t(
-						(a32_ << shifts_[0]) |
-						(a32_ >> (32 - shifts_[0]))
-					);
-
-					b = uint16_t(
-						(b32_ << shifts_[1]) |
-						(b32_ >> (32 - shifts_[1]))
-					);
-				}
-
-				uint16_t output =
-					apply_minterm<uint16_t>(
-						a,
-						b,
-						c_data_,
-						minterms_);
-
-				if(exclusive_fill_ || inclusive_fill_) {
-					// Use the fill tables nibble-by-nibble to figure out the filled word.
-					uint16_t fill_output = 0;
-					int ongoing_carry = fill_carry;
-					const int type_mask = exclusive_fill_ ? (1 << 5) : 0;
-					for(int c = 0; c < 16; c += 4) {
-						const int total_index = (output & 0xf) | (ongoing_carry << 4) | type_mask;
-						fill_output |= ((fill_values[total_index >> 3] >> ((total_index & 7) * 4)) & 0xf) << c;
-						ongoing_carry = (fill_carries[total_index >> 5] >> (total_index & 31)) & 1;
-						output >>= 4;
-					}
-
-					output = fill_output;
-					fill_carry = ongoing_carry;
-				}
-
-				not_zero_flag_ |= output;
-
-				if(channel_enables_[3]) {
-					ram_[pointer_[3] & ram_mask_] = output;
-					pointer_[3] += direction_;
-				}
+			// Check whether an entire row was completed in the previous iteration.
+			// If so then add modulos. Though this won't capture the move off the
+			// final line, so that's handled elsewhere.
+			if(!x_ && y_) {
+				add_modulos();
 			}
 
-			pointer_[0] += modulos_[0] * channel_enables_[0] * direction_;
-			pointer_[1] += modulos_[1] * channel_enables_[1] * direction_;
-			pointer_[2] += modulos_[2] * channel_enables_[2] * direction_;
-			pointer_[3] += modulos_[3] * channel_enables_[3] * direction_;
+			++x_;
+			if(x_ == width_) {
+				transient_a_mask_ &= a_mask_[1];
+				x_ = 0;
+				++y_;
+				if(y_ == height_) {
+					sequencer_.complete();
+				}
+			}
+			++loop_index_;
+		}
+
+		using Channel = BlitterSequencer::Channel;
+		switch(next.first) {
+			case Channel::A:
+				a_data_ = ram_[pointer_[0] & ram_mask_];
+
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::ReadA, pointer_[0], a_data_);
+				}
+				pointer_[0] += direction_;
+			return true;
+			case Channel::B:
+				b_data_ = ram_[pointer_[1] & ram_mask_];
+
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::ReadB, pointer_[1], b_data_);
+				}
+				pointer_[1] += direction_;
+			return true;
+			case Channel::C:
+				c_data_ = ram_[pointer_[2] & ram_mask_];
+
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::ReadC, pointer_[2], c_data_);
+				}
+				pointer_[2] += direction_;
+			return true;
+			case Channel::FlushPipeline:
+				add_modulos();
+				posit_interrupt(InterruptFlag::Blitter);
+				height_ = 0;
+				busy_ = false;
+
+				if(write_phase_ == WritePhase::Full) {
+					if constexpr (record_bus) {
+						transactions_.emplace_back(Transaction::Type::WriteFromPipeline, write_address_, write_value_);
+					}
+					ram_[write_address_ & ram_mask_] = write_value_;
+					write_phase_ = WritePhase::Starting;
+				}
+			return true;
+
+			case Channel::None:
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::SkippedSlot);
+				}
+			return false;
+
+			case Channel::Write:	break;
+		}
+
+		a32_ = (a32_ << 16) | (a_data_ & transient_a_mask_);
+		b32_ = (b32_ << 16) | b_data_;
+
+		uint16_t a, b;
+
+		// The barrel shifter shifts to the right in ascending address mode,
+		// but to the left otherwise.
+		if(!one_dot_) {
+			a = uint16_t(a32_ >> shifts_[0]);
+			b = uint16_t(b32_ >> shifts_[1]);
+		} else {
+			// TODO: there must be a neater solution than this.
+			a = uint16_t(
+				(a32_ << shifts_[0]) |
+				(a32_ >> (32 - shifts_[0]))
+			);
+
+			b = uint16_t(
+				(b32_ << shifts_[1]) |
+				(b32_ >> (32 - shifts_[1]))
+			);
+		}
+
+		uint16_t output =
+			apply_minterm<uint16_t>(
+				a,
+				b,
+				c_data_,
+				minterms_);
+
+		if(exclusive_fill_ || inclusive_fill_) {
+			// Use the fill tables nibble-by-nibble to figure out the filled word.
+			uint16_t fill_output = 0;
+			int ongoing_carry = fill_carry_;
+			const int type_mask = exclusive_fill_ ? (1 << 5) : 0;
+			for(int c = 0; c < 16; c += 4) {
+				const int total_index = (output & 0xf) | (ongoing_carry << 4) | type_mask;
+				fill_output |= ((fill_values[total_index >> 3] >> ((total_index & 7) * 4)) & 0xf) << c;
+				ongoing_carry = (fill_carries[total_index >> 5] >> (total_index & 31)) & 1;
+				output >>= 4;
+			}
+
+			output = fill_output;
+			fill_carry_ = ongoing_carry;
+		}
+
+		not_zero_flag_ |= output;
+
+		switch(write_phase_) {
+			case WritePhase::Full:
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::WriteFromPipeline, write_address_, write_value_);
+				}
+				ram_[write_address_ & ram_mask_] = write_value_;
+				[[fallthrough]];
+
+			case WritePhase::Starting:
+				write_phase_ = WritePhase::Full;
+				write_address_ = pointer_[3];
+				write_value_ = output;
+
+				if constexpr (record_bus) {
+					transactions_.emplace_back(Transaction::Type::AddToPipeline, write_address_, write_value_);
+				}
+				pointer_[3] += direction_;
+			return true;
+
+			default: assert(false);
 		}
 	}
 
-	posit_interrupt(InterruptFlag::Blitter);
-	height_ = 0;
-
 	return true;
 }
+
+template <bool record_bus>
+std::vector<typename Blitter<record_bus>::Transaction> Blitter<record_bus>::get_and_reset_transactions() {
+	std::vector<Transaction> result;
+	std::swap(result, transactions_);
+	return result;
+}
+
+template class Amiga::Blitter<false>;
+template class Amiga::Blitter<true>;
+template bool Amiga::Blitter<true>::advance_dma<true>();
+template bool Amiga::Blitter<true>::advance_dma<false>();
+template bool Amiga::Blitter<false>::advance_dma<true>();
+template bool Amiga::Blitter<false>::advance_dma<false>();

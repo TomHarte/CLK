@@ -125,7 +125,7 @@ class Chipset: private ClockingHint::Observer {
 		int interrupt_level_ = 0;
 
 		void update_interrupts();
-		void posit_interrupt(InterruptFlag);
+		void posit_interrupt(InterruptFlag::FlagT);
 
 		// MARK: - Scheduler.
 
@@ -139,7 +139,7 @@ class Chipset: private ClockingHint::Observer {
 		// MARK: - DMA Control, Scheduler and Blitter.
 
 		uint16_t dma_control_ = 0;
-		Blitter blitter_;
+		Blitter<false> blitter_;
 
 		// MARK: - Sprites and collision flags.
 

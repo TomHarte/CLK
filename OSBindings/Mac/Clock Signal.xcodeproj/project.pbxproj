@@ -971,6 +971,7 @@
 		4BC6236E26F4235400F83DFE /* Copper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC6236C26F4235400F83DFE /* Copper.cpp */; };
 		4BC6236F26F426B400F83DFE /* FAT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B477709268FBE4D005C2340 /* FAT.cpp */; };
 		4BC6237226F94BCB00F83DFE /* MintermTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BC6237126F94BCB00F83DFE /* MintermTests.mm */; };
+		4BC62FF228A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BC62FF128A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.m */; };
 		4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B11D157E61006C31D9 /* 6522Tests.swift */; };
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BC890D3230F86020025A55A /* DirectAccessDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC890D1230F86020025A55A /* DirectAccessDevice.cpp */; };
@@ -2053,6 +2054,8 @@
 		4BC6236C26F4235400F83DFE /* Copper.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Copper.cpp; sourceTree = "<group>"; };
 		4BC6237026F94A5B00F83DFE /* Minterms.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Minterms.hpp; sourceTree = "<group>"; };
 		4BC6237126F94BCB00F83DFE /* MintermTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = MintermTests.mm; sourceTree = "<group>"; };
+		4BC62FF028A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSData+dataWithContentsOfGZippedFile.h"; sourceTree = "<group>"; };
+		4BC62FF128A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NSData+dataWithContentsOfGZippedFile.m"; sourceTree = "<group>"; };
 		4BC751B11D157E61006C31D9 /* 6522Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6522Tests.swift; sourceTree = "<group>"; };
 		4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIRFilter.cpp; sourceTree = "<group>"; };
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
@@ -4283,6 +4286,8 @@
 				4BFCA12A1ECBE7C400AC40C1 /* ZexallTests.swift */,
 				4B3BA0C41D318B44005DD7A7 /* Bridges */,
 				4B1414631B588A1100E04248 /* Test Binaries */,
+				4BC62FF028A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.h */,
+				4BC62FF128A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.m */,
 			);
 			path = "Clock SignalTests";
 			sourceTree = "<group>";
@@ -6123,6 +6128,7 @@
 				4B778F4F23A5F21C0000D260 /* StaticAnalyser.cpp in Sources */,
 				4B8DD3682633B2D400B3C866 /* SpectrumVideoContentionTests.mm in Sources */,
 				4B7752A928217E200073E2C5 /* 65816Storage.cpp in Sources */,
+				4BC62FF228A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.m in Sources */,
 				4B7752AC28217E6E0073E2C5 /* StaticAnalyser.cpp in Sources */,
 				4B778F1223A5EC720000D260 /* CRT.cpp in Sources */,
 				4B778EF423A5DB3A0000D260 /* C1540.cpp in Sources */,
