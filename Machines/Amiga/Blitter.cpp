@@ -240,12 +240,12 @@ bool Blitter<record_bus>::advance_dma() {
 
 	// TODO: eliminate @c complete_immediately and this workaround.
 	// See commentary in Chipset.cpp.
-	if constexpr (complete_immediately) {
-		while(get_status() & 0x4000) {
-			advance_dma<false>();
-		}
-		return true;
-	}
+//	if constexpr (complete_immediately) {
+//		while(get_status() & 0x4000) {
+//			advance_dma<false>();
+//		}
+//		return true;
+//	}
 
 	if(line_mode_) {
 		not_zero_flag_ = false;
