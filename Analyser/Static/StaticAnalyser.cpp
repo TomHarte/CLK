@@ -198,7 +198,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("sg", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)								// SG
 	Format("sms", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)								// SMS
 	Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)				// SSD
-	Format("st", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::AtariST)				// ST
+	Format("st", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::AtariST)			// ST
 	Format("stx", result.disks, Disk::DiskImageHolder<Storage::Disk::STX>, TargetPlatform::AtariST)				// STX
 	Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)									// TAP (Commodore)
 	Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)											// TAP (Oric)
