@@ -240,12 +240,27 @@ bool Blitter<record_bus>::advance_dma() {
 
 	// TODO: eliminate @c complete_immediately and this workaround.
 	// See commentary in Chipset.cpp.
-//	if constexpr (complete_immediately) {
-//		while(get_status() & 0x4000) {
-//			advance_dma<false>();
-//		}
-//		return true;
-//	}
+	if constexpr (complete_immediately) {
+
+		// HACK! HACK!! HACK!!!
+		//
+		// This resolves an issue with loading the particular copy of Spindizzy Worlds
+		// I am testing against.
+		//
+		// TODO: DO NOT PUBLISH THIS.
+		//
+		// This is committed solely so that I can continue researching the real, underlying
+		// issue across machines. It would not be acceptable to me to ship this.
+		// (and the printf is another reminder-to-self)
+		if(width_ == 8 && height_ == 32) {
+			printf("Accelerating %d x %d\n", width_, height_);
+
+			while(get_status() & 0x4000) {
+				advance_dma<false>();
+			}
+			return true;
+		}
+	}
 
 	if(line_mode_) {
 		not_zero_flag_ = false;
