@@ -254,6 +254,8 @@
 		4B4A76301DB1A3FA007AAE2E /* AY38910.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */; };
 		4B4B1A3C200198CA00A0F866 /* KonamiSCC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4B1A3A200198C900A0F866 /* KonamiSCC.cpp */; };
 		4B4B1A3D200198CA00A0F866 /* KonamiSCC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4B1A3A200198C900A0F866 /* KonamiSCC.cpp */; };
+		4B4C81C528B3C5CD00F84AE9 /* SCSICard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4C81C328B3C5CD00F84AE9 /* SCSICard.cpp */; };
+		4B4C81C628B3C5CD00F84AE9 /* SCSICard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4C81C328B3C5CD00F84AE9 /* SCSICard.cpp */; };
 		4B4DC8211D2C2425003C5BF8 /* Vic20.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DC81F1D2C2425003C5BF8 /* Vic20.cpp */; };
 		4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DC8291D2C27A4003C5BF8 /* SerialBus.cpp */; };
 		4B4DEC06252BFA56004583AC /* 65816Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DEC05252BFA56004583AC /* 65816Base.cpp */; };
@@ -1359,6 +1361,8 @@
 		4B4A762F1DB1A3FA007AAE2E /* AY38910.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AY38910.hpp; sourceTree = "<group>"; };
 		4B4B1A3A200198C900A0F866 /* KonamiSCC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = KonamiSCC.cpp; sourceTree = "<group>"; };
 		4B4B1A3B200198C900A0F866 /* KonamiSCC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = KonamiSCC.hpp; sourceTree = "<group>"; };
+		4B4C81C328B3C5CD00F84AE9 /* SCSICard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SCSICard.cpp; sourceTree = "<group>"; };
+		4B4C81C428B3C5CD00F84AE9 /* SCSICard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SCSICard.hpp; sourceTree = "<group>"; };
 		4B4DC81F1D2C2425003C5BF8 /* Vic20.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Vic20.cpp; sourceTree = "<group>"; };
 		4B4DC8201D2C2425003C5BF8 /* Vic20.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Vic20.hpp; sourceTree = "<group>"; };
 		4B4DC8271D2C2470003C5BF8 /* C1540.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = C1540.hpp; sourceTree = "<group>"; };
@@ -4615,6 +4619,7 @@
 				4BCE0050227CE8CA000CA200 /* AppleII.cpp */,
 				4BCE004E227CE8CA000CA200 /* DiskIICard.cpp */,
 				4B2E86E025DC95150024F1E9 /* Joystick.cpp */,
+				4B4C81C328B3C5CD00F84AE9 /* SCSICard.cpp */,
 				4BCE004D227CE8CA000CA200 /* Video.cpp */,
 				4BCE004A227CE8CA000CA200 /* AppleII.hpp */,
 				4BF40A5A254263140033EA39 /* AuxiliaryMemorySwitches.hpp */,
@@ -4623,6 +4628,7 @@
 				4B2E86E125DC95150024F1E9 /* Joystick.hpp */,
 				4BF40A5525424C770033EA39 /* LanguageCardSwitches.hpp */,
 				4BE0151C286A8C8E00EA42E9 /* MemorySwitches.hpp */,
+				4B4C81C428B3C5CD00F84AE9 /* SCSICard.hpp */,
 				4BCE004F227CE8CA000CA200 /* Video.hpp */,
 				4B8DF4F2254E141700F3433C /* VideoSwitches.hpp */,
 			);
@@ -5579,6 +5585,7 @@
 				4B055AB31FAE860F0060FFFF /* CSW.cpp in Sources */,
 				4B89451D201967B4007DE474 /* Disk.cpp in Sources */,
 				4BFEA2F02682A7B900EBF94C /* Dave.cpp in Sources */,
+				4B4C81C628B3C5CD00F84AE9 /* SCSICard.cpp in Sources */,
 				4BDACBED22FFA5D20045EF7E /* ncr5380.cpp in Sources */,
 				4BC131772346DE9100E4FF3D /* StaticAnalyser.cpp in Sources */,
 				4B7962A22819681F008130F9 /* Decoder.cpp in Sources */,
@@ -5755,6 +5762,7 @@
 				4B8DF505254E3C9D00F3433C /* ADB.cpp in Sources */,
 				4B322E041F5A2E3C004EB04C /* Z80Base.cpp in Sources */,
 				4B0ACC2623775819008902D0 /* AtariST.cpp in Sources */,
+				4B4C81C528B3C5CD00F84AE9 /* SCSICard.cpp in Sources */,
 				4B894530201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B4518A31F75FD1C00926311 /* HFE.cpp in Sources */,
 				4B1B88BB202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
