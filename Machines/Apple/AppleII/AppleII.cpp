@@ -24,6 +24,7 @@
 #include "DiskIICard.hpp"
 #include "Joystick.hpp"
 #include "LanguageCardSwitches.hpp"
+#include "SCSICard.hpp"
 #include "Video.hpp"
 
 #include "../../../Analyser/Static/AppleII/Target.hpp"
@@ -460,8 +461,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			const bool has_disk_controller = target.disk_controller != Target::DiskController::None;
 			const bool is_sixteen_sector = target.disk_controller == Target::DiskController::SixteenSector;
 			if(has_disk_controller) {
-				// Apple recommended slot 6 for the (first) Disk II.
 				request = request && DiskIICard::rom_request(is_sixteen_sector);
+			}
+
+			// Add a SCSI card if requested.
+			const bool has_scsi_card = true;	// TODO: obtain via the target.
+			if(has_scsi_card) {
+				request = request && SCSICard::rom_request();
 			}
 
 			// Request, validate and install ROMs.
@@ -471,7 +477,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			if(has_disk_controller) {
+				// Apple recommended slot 6 for the (first) Disk II.
 				install_card(6, new Apple::II::DiskIICard(roms, is_sixteen_sector));
+			}
+
+			if(has_scsi_card) {
+				// Install the SCSI card in slot 7, to one-up any connected Disk II.
+				install_card(7, new Apple::II::SCSICard(roms));
 			}
 
 			rom_ = std::move(roms.find(system)->second);

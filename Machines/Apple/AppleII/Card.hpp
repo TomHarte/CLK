@@ -42,9 +42,9 @@ class Card {
 	public:
 		virtual ~Card() {}
 		enum Select: int {
-			None	= 0,		// No select line is active
-			IO		= 1 << 0,	// IO select is active
-			Device	= 1 << 1,	// Device select is active
+			None	= 0,		// No select line is active.
+			IO		= 1 << 0,	// IO select is active; i.e. access is in range $C0x0 to $C0xf.
+			Device	= 1 << 1,	// Device select is active; i.e. access is in range $Cx00 to $Cxff.
 		};
 
 		/*!

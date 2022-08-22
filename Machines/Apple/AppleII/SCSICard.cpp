@@ -8,8 +8,6 @@
 
 #include "SCSICard.hpp"
 
-#include "../../../Components/5380/ncr5380.hpp"
-
 // Per the documentation around the GGLabs Apple II SCSI card clone:
 //
 // A 5380 is mapped to the first eight bytes of slot IO:
@@ -50,3 +48,57 @@
 //	at $CC00-$CFFF. The boot code in the first 256 bytes of ROM
 //	bank 0 is also mapped in the IOSEL space ($Cn00-$CnFF).
 //
+
+using namespace Apple::II;
+
+ROM::Request SCSICard::rom_request() {
+	return ROM::Request(ROM::Name::AppleIISCSICard);
+}
+
+// TODO: accept and supply real clock rate.
+SCSICard::SCSICard(ROM::Map &map) : scsi_bus_(1), ncr5380_(scsi_bus_, 1) {
+	// Grab a copy of the SCSI ROM.
+	const auto rom = map.find(ROM::Name::AppleIISCSICard);
+	if(rom == map.end()) {
+		throw ROMMachine::Error::MissingROMs;
+	}
+	memcpy(rom_.data(), rom->second.data(), rom_.size());
+
+	// Set up initial banking.
+	rom_pointer_ = rom_.data();
+	ram_pointer_ = ram_.data();
+}
+
+void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) {
+	// TODO.
+	switch(select) {
+		case Select::None:
+		break;
+
+		case Select::Device:
+			if(is_read) {
+				*value = rom_[address & 255];
+			}
+		break;
+
+		case Select::IO:
+			address &= 0xf;
+			switch(address) {
+				case 0:	case 1:	case 2:	case 3:
+				case 4:	case 5:	case 6:	case 7:
+					if(is_read) {
+						*value = ncr5380_.read(address);
+					} else {
+						ncr5380_.write(address, *value);
+					}
+				break;
+
+				default:
+					printf("Unhandled: %04x %c %02x\n", address, is_read ? 'r' : 'w', *value);
+				break;
+			}
+		break;
+	}
+
+	// TODO: is it extra-contractual to respond in 0xc800 to 0xd000? Clarify.
+}
