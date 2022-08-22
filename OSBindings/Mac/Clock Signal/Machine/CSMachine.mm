@@ -122,7 +122,7 @@ struct ActivityObserver: public Activity::Observer {
 	CSJoystickManager *_joystickManager;
 	NSMutableArray<CSMachineLED *> *_leds;
 
-	Concurrency::AsyncTaskQueue<true, MachineUpdater> updater;
+	Concurrency::AsyncTaskQueue<true, false, MachineUpdater> updater;
 	Time::ScanSynchroniser _scanSynchroniser;
 
 	NSTimer *_joystickTimer;
@@ -149,6 +149,9 @@ struct ActivityObserver: public Activity::Observer {
 			return nil;
 		}
 		updater.performer.machine = _machine->timed_machine();
+		if(updater.performer.machine) {
+			updater.start();
+		}
 
 		// Use the keyboard as a joystick if the machine has no keyboard, or if it has a 'non-exclusive' keyboard.
 		_inputMode =

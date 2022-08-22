@@ -65,34 +65,14 @@ template <> struct TaskQueueStorage<void> {
 	action occupies the asynchronous thread for long enough. So it is not true that @c perform will be
 	called once per action.
 */
-template <bool perform_automatically, typename Performer = void> class AsyncTaskQueue: public TaskQueueStorage<Performer> {
+template <bool perform_automatically, bool start_immediately = true, typename Performer = void> class AsyncTaskQueue: public TaskQueueStorage<Performer> {
 	public:
 		template <typename... Args> AsyncTaskQueue(Args&&... args) :
-			TaskQueueStorage<Performer>(std::forward<Args>(args)...),
-			thread_{
-				[this] {
-					ActionVector actions;
-
-					while(!should_quit_) {
-						// Wait for new actions to be signalled, and grab them.
-						std::unique_lock lock(condition_mutex_);
-						while(actions_.empty()) {
-							condition_.wait(lock);
-						}
-						std::swap(actions, actions_);
-						lock.unlock();
-
-						// Update to now (which is possibly a no-op).
-						TaskQueueStorage<Performer>::update();
-
-						// Perform the actions and destroy them.
-						for(const auto &action: actions) {
-							action();
-						}
-						actions.clear();
-					}
-				}
-			} {}
+			TaskQueueStorage<Performer>(std::forward<Args>(args)...) {
+			if constexpr (start_immediately) {
+				start();
+			}
+		}
 
 		/// Enqueus @c post_action to be performed asynchronously at some point
 		/// in the future. If @c perform_automatically is @c true then the action
@@ -134,6 +114,37 @@ template <bool perform_automatically, typename Performer = void> class AsyncTask
 				}
 				thread_.join();
 			}
+		}
+
+		/// Starts the queue if it has never been started before.
+		///
+		/// This is not guaranteed safely to restart a stopped queue.
+		void start() {
+			thread_ = std::move(std::thread{
+				[this] {
+					ActionVector actions;
+
+					// Continue until told to quit.
+					while(!should_quit_) {
+						// Wait for new actions to be signalled, and grab them.
+						std::unique_lock lock(condition_mutex_);
+						while(actions_.empty()) {
+							condition_.wait(lock);
+						}
+						std::swap(actions, actions_);
+						lock.unlock();
+
+						// Update to now (which is possibly a no-op).
+						TaskQueueStorage<Performer>::update();
+
+						// Perform the actions and destroy them.
+						for(const auto &action: actions) {
+							action();
+						}
+						actions.clear();
+					}
+				}
+			});
 		}
 
 		/// Schedules any remaining unscheduled work, then blocks synchronously
