@@ -590,7 +590,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		// Blitter and CPU priority is dealt with below.
 		if constexpr (cycle >= 0x00 && cycle < 0x08) {
 			// Memory refresh, four slots per line.
-			return true;
+			return false;
 		}
 
 		if constexpr (cycle >= 0x08 && cycle < 0x0e) {
