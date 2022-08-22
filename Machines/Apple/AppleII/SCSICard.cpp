@@ -70,7 +70,6 @@ SCSICard::SCSICard(ROM::Map &map) : scsi_bus_(1), ncr5380_(scsi_bus_, 1) {
 }
 
 void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) {
-	// TODO.
 	switch(select) {
 		case Select::None:
 		break;
