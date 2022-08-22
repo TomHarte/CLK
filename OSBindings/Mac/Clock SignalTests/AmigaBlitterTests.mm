@@ -9,6 +9,7 @@
 #import <XCTest/XCTest.h>
 
 #include "Blitter.hpp"
+#include "BlitterSequencer.hpp"
 #include "NSData+dataWithContentsOfGZippedFile.h"
 
 #include <unordered_map>
