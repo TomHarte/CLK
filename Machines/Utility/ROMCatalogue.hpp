@@ -58,6 +58,7 @@ enum Name {
 	AppleIIeCharacter,
 	AppleIIEnhancedE,
 	AppleIIEnhancedECharacter,
+	AppleIISCSICard,
 
 	// Apple IIgs.
 	AppleIIgsROM00,
