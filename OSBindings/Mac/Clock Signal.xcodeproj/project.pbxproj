@@ -256,6 +256,8 @@
 		4B4B1A3D200198CA00A0F866 /* KonamiSCC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4B1A3A200198C900A0F866 /* KonamiSCC.cpp */; };
 		4B4C81C528B3C5CD00F84AE9 /* SCSICard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4C81C328B3C5CD00F84AE9 /* SCSICard.cpp */; };
 		4B4C81C628B3C5CD00F84AE9 /* SCSICard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4C81C328B3C5CD00F84AE9 /* SCSICard.cpp */; };
+		4B4C81CA28B56CF800F84AE9 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4C81C928B56CF800F84AE9 /* MacintoshVolume.cpp */; };
+		4B4C81CB28B56CF800F84AE9 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4C81C928B56CF800F84AE9 /* MacintoshVolume.cpp */; };
 		4B4DC8211D2C2425003C5BF8 /* Vic20.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DC81F1D2C2425003C5BF8 /* Vic20.cpp */; };
 		4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DC8291D2C27A4003C5BF8 /* SerialBus.cpp */; };
 		4B4DEC06252BFA56004583AC /* 65816Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4DEC05252BFA56004583AC /* 65816Base.cpp */; };
@@ -314,8 +316,6 @@
 		4B7136911F789C93008B8ED9 /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */; };
 		4B74CF812312FA9C00500CE8 /* HFV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF802312FA9C00500CE8 /* HFV.cpp */; };
 		4B74CF822312FA9C00500CE8 /* HFV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF802312FA9C00500CE8 /* HFV.cpp */; };
-		4B74CF85231370BC00500CE8 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */; };
-		4B74CF86231370BC00500CE8 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */; };
 		4B75F979280D7C5100121055 /* 68000DecoderTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B75F978280D7C5100121055 /* 68000DecoderTests.mm */; };
 		4B75F97B280D7C7700121055 /* 68000 Decoding in Resources */ = {isa = PBXBuildFile; fileRef = 4B75F97A280D7C7700121055 /* 68000 Decoding */; };
 		4B7752A628217DF80073E2C5 /* Dave.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFEA2ED2682A7B900EBF94C /* Dave.cpp */; };
@@ -410,7 +410,6 @@
 		4B778F2F23A5F0B10000D260 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B05401D219D1618001BF69C /* ScanTarget.cpp */; };
 		4B778F3023A5F0C50000D260 /* Macintosh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE0058227CFFCA000CA200 /* Macintosh.cpp */; };
 		4B778F3123A5F0CB0000D260 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B65085F22F4CF8D009C1100 /* Keyboard.cpp */; };
-		4B778F3223A5F0EE0000D260 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */; };
 		4B778F3323A5F0FB0000D260 /* MassStorageDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6AAEA2230E3E1D0078E864 /* MassStorageDevice.cpp */; };
 		4B778F3423A5F1040000D260 /* DirectAccessDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC890D1230F86020025A55A /* DirectAccessDevice.cpp */; };
 		4B778F3523A5F1040000D260 /* SCSI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6AAEA7230E40250078E864 /* SCSI.cpp */; };
@@ -1361,9 +1360,11 @@
 		4B4A762F1DB1A3FA007AAE2E /* AY38910.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AY38910.hpp; sourceTree = "<group>"; };
 		4B4B1A3A200198C900A0F866 /* KonamiSCC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = KonamiSCC.cpp; sourceTree = "<group>"; };
 		4B4B1A3B200198C900A0F866 /* KonamiSCC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = KonamiSCC.hpp; sourceTree = "<group>"; };
+		4B4C81C228B0288B00F84AE9 /* BlitterSequencer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BlitterSequencer.hpp; sourceTree = "<group>"; };
 		4B4C81C328B3C5CD00F84AE9 /* SCSICard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SCSICard.cpp; sourceTree = "<group>"; };
 		4B4C81C428B3C5CD00F84AE9 /* SCSICard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SCSICard.hpp; sourceTree = "<group>"; };
-		4B4C81C228B0288B00F84AE9 /* BlitterSequencer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BlitterSequencer.hpp; sourceTree = "<group>"; };
+		4B4C81C828B56CF800F84AE9 /* MacintoshVolume.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MacintoshVolume.hpp; sourceTree = "<group>"; };
+		4B4C81C928B56CF800F84AE9 /* MacintoshVolume.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MacintoshVolume.cpp; sourceTree = "<group>"; };
 		4B4DC81F1D2C2425003C5BF8 /* Vic20.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Vic20.cpp; sourceTree = "<group>"; };
 		4B4DC8201D2C2425003C5BF8 /* Vic20.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Vic20.hpp; sourceTree = "<group>"; };
 		4B4DC8271D2C2470003C5BF8 /* C1540.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = C1540.hpp; sourceTree = "<group>"; };
@@ -1457,8 +1458,6 @@
 		4B7136901F789C93008B8ED9 /* SegmentParser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SegmentParser.hpp; sourceTree = "<group>"; };
 		4B74CF7F2312FA9C00500CE8 /* HFV.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = HFV.hpp; sourceTree = "<group>"; };
 		4B74CF802312FA9C00500CE8 /* HFV.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HFV.cpp; sourceTree = "<group>"; };
-		4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MacintoshVolume.cpp; path = Encodings/MacintoshVolume.cpp; sourceTree = "<group>"; };
-		4B74CF84231370BC00500CE8 /* MacintoshVolume.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = MacintoshVolume.hpp; path = Encodings/MacintoshVolume.hpp; sourceTree = "<group>"; };
 		4B75F978280D7C5100121055 /* 68000DecoderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000DecoderTests.mm; sourceTree = "<group>"; };
 		4B75F97A280D7C7700121055 /* 68000 Decoding */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "68000 Decoding"; sourceTree = "<group>"; };
 		4B77069C1EC904570053B588 /* Z80.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Z80.hpp; sourceTree = "<group>"; };
@@ -2921,6 +2920,15 @@
 			path = KonamiSCC;
 			sourceTree = "<group>";
 		};
+		4B4C81C728B56CF800F84AE9 /* Encodings */ = {
+			isa = PBXGroup;
+			children = (
+				4B4C81C828B56CF800F84AE9 /* MacintoshVolume.hpp */,
+				4B4C81C928B56CF800F84AE9 /* MacintoshVolume.cpp */,
+			);
+			path = Encodings;
+			sourceTree = "<group>";
+		};
 		4B4DC81D1D2C2425003C5BF8 /* Commodore */ = {
 			isa = PBXGroup;
 			children = (
@@ -3149,10 +3157,9 @@
 		4B6AAEA1230E3E1D0078E864 /* MassStorage */ = {
 			isa = PBXGroup;
 			children = (
-				4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */,
 				4B6AAEA2230E3E1D0078E864 /* MassStorageDevice.cpp */,
-				4B74CF84231370BC00500CE8 /* MacintoshVolume.hpp */,
 				4B6AAEA3230E3E1D0078E864 /* MassStorageDevice.hpp */,
+				4B4C81C728B56CF800F84AE9 /* Encodings */,
 				4B74CF7E2312FA9C00500CE8 /* Formats */,
 				4B6AAEA5230E40250078E864 /* SCSI */,
 			);
@@ -5636,6 +5643,7 @@
 				4B2E86B825D7490E0024F1E9 /* ReactiveDevice.cpp in Sources */,
 				4B74CF822312FA9C00500CE8 /* HFV.cpp in Sources */,
 				4B8318B022D3E531006DB630 /* AppleII.cpp in Sources */,
+				4B4C81CB28B56CF800F84AE9 /* MacintoshVolume.cpp in Sources */,
 				4B1B58F7246CC4E8009C171E /* State.cpp in Sources */,
 				4B0ACC03237756F6008902D0 /* Line.cpp in Sources */,
 				4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */,
@@ -5687,7 +5695,6 @@
 				4BC6236F26F426B400F83DFE /* FAT.cpp in Sources */,
 				4B0F1BFD260300D900B85C66 /* ZXSpectrum.cpp in Sources */,
 				4B055ADF1FAE9B4C0060FFFF /* IRQDelegatePortHandler.cpp in Sources */,
-				4B74CF86231370BC00500CE8 /* MacintoshVolume.cpp in Sources */,
 				4B0ACC3323775819008902D0 /* Atari2600.cpp in Sources */,
 				4BD424E02193B5340097291A /* TextureTarget.cpp in Sources */,
 				4B055AB51FAE860F0060FFFF /* TapePRG.cpp in Sources */,
@@ -5837,7 +5844,6 @@
 				4BCE0060227D39AB000CA200 /* Video.cpp in Sources */,
 				4B0ACC2E23775819008902D0 /* TIA.cpp in Sources */,
 				4B2E86B725D7490E0024F1E9 /* ReactiveDevice.cpp in Sources */,
-				4B74CF85231370BC00500CE8 /* MacintoshVolume.cpp in Sources */,
 				4B0F1C232605996900B85C66 /* ZXSpectrumTAP.cpp in Sources */,
 				4B4518A51F75FD1C00926311 /* SSD.cpp in Sources */,
 				4B7C681A275196E8001671EC /* MouseJoystick.cpp in Sources */,
@@ -5914,6 +5920,7 @@
 				4B47770B268FBE4D005C2340 /* FAT.cpp in Sources */,
 				4B894528201967B4007DE474 /* Disk.cpp in Sources */,
 				4B2E86CF25D8D8C70024F1E9 /* Keyboard.cpp in Sources */,
+				4B4C81CA28B56CF800F84AE9 /* MacintoshVolume.cpp in Sources */,
 				4BBB70A4202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
 				4B7C681627517A59001671EC /* Sprites.cpp in Sources */,
 				4B0ACC02237756ED008902D0 /* Line.cpp in Sources */,
@@ -6179,7 +6186,6 @@
 				4B778EF523A5DB440000D260 /* StaticAnalyser.cpp in Sources */,
 				4BEE1EC022B5E236000A26A6 /* MacGCRTests.mm in Sources */,
 				4B778F0623A5EC150000D260 /* CAS.cpp in Sources */,
-				4B778F3223A5F0EE0000D260 /* MacintoshVolume.cpp in Sources */,
 				4B778F2B23A5EF0F0000D260 /* Commodore.cpp in Sources */,
 				4B778F3F23A5F1890000D260 /* MacintoshDoubleDensityDrive.cpp in Sources */,
 				4B778F1623A5ECA00000D260 /* Z80AllRAM.cpp in Sources */,
