@@ -2924,9 +2924,9 @@
 		4B4C81C728B56CF800F84AE9 /* Encodings */ = {
 			isa = PBXGroup;
 			children = (
-				4B4C81C828B56CF800F84AE9 /* MacintoshVolume.hpp */,
 				4B4C81C928B56CF800F84AE9 /* MacintoshVolume.cpp */,
 				4B4C81CC28B56DD400F84AE9 /* ApplePartitionMap.hpp */,
+				4B4C81C828B56CF800F84AE9 /* MacintoshVolume.hpp */,
 			);
 			path = Encodings;
 			sourceTree = "<group>";

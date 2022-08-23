@@ -9,10 +9,19 @@
 #ifndef ApplePartitionMap_hpp
 #define ApplePartitionMap_hpp
 
+#include <cstddef>
+#include <cstdint>
+#include <sys/types.h>
+#include <vector>
+
 namespace Storage {
 namespace MassStorage {
 namespace Encodings {
 namespace Apple {
+
+enum class DriveType {
+	SCSI
+};
 
 /*!
 	Implements a device to volume mapping with an Apple Partition Map.
@@ -25,7 +34,7 @@ template <typename VolumeProvider> class PartitionMap {
 		/*!
 			Sets the drive type to map to and the number of blocks in the underlying partition.
 		*/
-		void set_drive_type(DriveType, size_t number_of_blocks) {
+		void set_drive_type(DriveType drive_type, size_t number_of_blocks) {
 			drive_type_ = drive_type;
 			number_of_blocks_ = number_of_blocks;
 		}
@@ -45,7 +54,7 @@ template <typename VolumeProvider> class PartitionMap {
 		*/
 		ssize_t to_source_address(size_t address) const {
 			// The embedded volume is always the last thing on the device.
-			return ssize_t(address) - non_volume_blocks();
+			return ssize_t(address) - ssize_t(non_volume_blocks());
 		}
 
 		/*!
@@ -114,15 +123,15 @@ template <typename VolumeProvider> class PartitionMap {
 
 			// Blocks 1 and 2 contain entries of the partition map; there's also possibly an entry
 			// for the driver.
-			if(source_address < 3 + has_driver()) {
+			if(source_address < 3 + has_driver) {
 				struct Partition {
 					const char *name, *type;
 					uint32_t start_block, size;
 					uint8_t status;
 				} partitions[3] = {
 					{
-						"MacOS",
-						volume_provide_.type(),
+						volume_provider_.name(),
+						volume_provider_.type(),
 						uint32_t(non_volume_blocks()),
 						uint32_t(number_of_blocks_),
 						0xb7
@@ -138,7 +147,7 @@ template <typename VolumeProvider> class PartitionMap {
 						"Macintosh",
 						"Apple_Driver",
 						uint32_t(predriver_blocks()),
-						driver_block_size(),
+						uint32_t(driver_block_size()),
 						0x7f
 					},
 				};
