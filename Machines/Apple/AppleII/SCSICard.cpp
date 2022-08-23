@@ -6,8 +6,6 @@
 //  Copyright © 2022 Thomas Harte. All rights reserved.
 //
 
-#include "SCSICard.hpp"
-
 // Per the documentation around the GGLabs Apple II SCSI card clone:
 //
 // A 5380 is mapped to the first eight bytes of slot IO:
@@ -48,6 +46,10 @@
 //	at $CC00-$CFFF. The boot code in the first 256 bytes of ROM
 //	bank 0 is also mapped in the IOSEL space ($Cn00-$CnFF).
 //
+
+#include "SCSICard.hpp"
+
+#include <cstring>
 
 using namespace Apple::II;
 
