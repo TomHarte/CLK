@@ -42,9 +42,13 @@ class Card {
 	public:
 		virtual ~Card() {}
 		enum Select: int {
-			None	= 0,		// No select line is active.
-			IO		= 1 << 0,	// IO select is active; i.e. access is in range $C0x0 to $C0xf.
-			Device	= 1 << 1,	// Device select is active; i.e. access is in range $Cx00 to $Cxff.
+			None		= 0,		// No select line is active.
+			IO			= 1 << 0,	// IO select is active; i.e. access is in range $C0x0 to $C0xf.
+			Device		= 1 << 1,	// Device select is active; i.e. access is in range $Cx00 to $Cxff.
+
+			C8Region	= 1 << 2,	// Access is to the region $c800 to $cfff, was preceded by at least
+									// one Device access to this card, and has not yet been followed up
+									// by an access to $cfff.
 		};
 
 		/*!

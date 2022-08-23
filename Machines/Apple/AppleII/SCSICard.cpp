@@ -73,8 +73,7 @@ SCSICard::SCSICard(ROM::Map &map) : scsi_bus_(1), ncr5380_(scsi_bus_, 1) {
 
 void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) {
 	switch(select) {
-		case Select::None:
-		break;
+		default: break;
 
 		case Select::Device:
 			if(is_read) {
@@ -85,12 +84,23 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 		case Select::IO:
 			address &= 0xf;
 			switch(address) {
-				case 0:	case 1:	case 2:	case 3:
-				case 4:	case 5:	case 6:	case 7:
+				case 0x0:	case 0x1:	case 0x2:	case 0x3:
+				case 0x4:	case 0x5:	case 0x6:	case 0x7:
 					if(is_read) {
 						*value = ncr5380_.read(address);
 					} else {
 						ncr5380_.write(address, *value);
+					}
+				break;
+
+				case 0xa:
+					// RAM and ROM select.
+					if(!is_read) {
+						const auto rom_base = size_t((*value & 0x0f) << 10);
+						const auto ram_base = size_t((*value & 0x70) << 6);
+
+						rom_pointer_ = &rom_[rom_base];
+						ram_pointer_ = &ram_[ram_base];
 					}
 				break;
 
@@ -99,7 +109,19 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 				break;
 			}
 		break;
-	}
 
-	// TODO: is it extra-contractual to respond in 0xc800 to 0xd000? Clarify.
+		case Select::C8Region:
+			if(address & 0x400) {
+				if(is_read) {
+					*value = rom_pointer_[address & 0x3ff];
+				}
+			} else {
+				if(is_read) {
+					*value = ram_pointer_[address & 0x3ff];
+				} else {
+					ram_pointer_[address & 0x3ff] = *value;
+				}
+			}
+		break;
+	}
 }
