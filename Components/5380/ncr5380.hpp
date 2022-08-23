@@ -30,6 +30,9 @@ class NCR5380 final: public SCSI::Bus::Observer {
 		/*! Reads from @c address. */
 		uint8_t read(int address, bool dma_acknowledge = false);
 
+		/*! @returns The SCSI ID assigned to this device. */
+		size_t scsi_id();
+
 	private:
 		SCSI::Bus &bus_;
 

@@ -93,6 +93,12 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 					}
 				break;
 
+				case 0x9:
+					if(is_read) {
+						*value = uint8_t(ncr5380_.scsi_id());
+					}
+				break;
+
 				case 0xa:
 					// RAM and ROM select.
 					if(!is_read) {
