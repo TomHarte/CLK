@@ -131,3 +131,7 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 		break;
 	}
 }
+
+void SCSICard::set_volume(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &volume) {
+	(void)volume;
+}

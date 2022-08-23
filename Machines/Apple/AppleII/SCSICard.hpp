@@ -13,8 +13,10 @@
 #include "../../ROMMachine.hpp"
 
 #include "../../../Components/5380/ncr5380.hpp"
+#include "../../../Storage/MassStorage/MassStorageDevice.hpp"
 
 #include <array>
+#include <memory>
 
 namespace Apple {
 namespace II {
@@ -25,6 +27,8 @@ class SCSICard: public Card {
 		SCSICard(ROM::Map &);
 
 		void perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) final;
+
+		void set_volume(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &volume);
 
 	private:
 		uint8_t *ram_pointer_ = nullptr;

@@ -31,6 +31,10 @@
 #include "../../../ClockReceiver/ForceInline.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
 
+#include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
+#include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
+#include "../../../Storage/MassStorage/Encodings/MacintoshVolume.hpp"
+
 #include <algorithm>
 #include <array>
 #include <memory>
@@ -102,12 +106,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		Cycles cycles_since_audio_update_;
 
 		// MARK: - Cards
-		std::array<std::unique_ptr<Apple::II::Card>, 9> cards_;	// The final slot is a sentinel.
+		static constexpr size_t NoActiveCard = 7;	// There is no 'card 0' in internal numbering.
+		size_t active_card_ = NoActiveCard;
+
+		std::array<std::unique_ptr<Apple::II::Card>, 8> cards_;	// The final slot is a sentinel for 'no active card'.
 		Cycles cycles_since_card_update_;
 		std::vector<Apple::II::Card *> every_cycle_cards_;
 		std::vector<Apple::II::Card *> just_in_time_cards_;
-		static constexpr size_t NoActiveCard = 8;
-		size_t active_card_ = NoActiveCard;
 
 		int stretched_cycles_since_card_update_ = 0;
 
@@ -145,6 +150,10 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		Apple::II::DiskIICard *diskii_card() {
 			return dynamic_cast<Apple::II::DiskIICard *>(cards_[5].get());
+		}
+
+		Apple::II::SCSICard *scsi_card() {
+			return dynamic_cast<Apple::II::SCSICard *>(cards_[6].get());
 		}
 
 		// MARK: - Memory Map.
@@ -891,6 +900,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				auto diskii = diskii_card();
 				if(diskii) diskii->set_disk(media.disks[0], 0);
 			}
+
+			if(!media.mass_storage_devices.empty()) {
+				auto scsi = scsi_card();
+				if(scsi) scsi->set_volume(media.mass_storage_devices[0]);
+			}
+
 			return true;
 		}
 
