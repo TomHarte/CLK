@@ -41,7 +41,7 @@ class Volume {
 
 /*!
 	A Mapper can used by a mass-storage device that knows the
-	contents of an HFS or MFS partition to provide the conversion
+	contents of an HFS partition to provide the conversion
 	necessary to a particular type of drive.
 */
 class Mapper {
