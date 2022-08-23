@@ -53,7 +53,7 @@ class Mapper {
 
 		/*!
 			Maps from a mass-storage device address to an address
-			in the underlying [H/M]FS partition.
+			in the underlying HFS partition.
 		*/
 		ssize_t to_source_address(size_t address);
 

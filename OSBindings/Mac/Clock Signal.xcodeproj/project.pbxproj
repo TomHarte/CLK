@@ -1365,6 +1365,7 @@
 		4B4C81C428B3C5CD00F84AE9 /* SCSICard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SCSICard.hpp; sourceTree = "<group>"; };
 		4B4C81C828B56CF800F84AE9 /* MacintoshVolume.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MacintoshVolume.hpp; sourceTree = "<group>"; };
 		4B4C81C928B56CF800F84AE9 /* MacintoshVolume.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MacintoshVolume.cpp; sourceTree = "<group>"; };
+		4B4C81CC28B56DD400F84AE9 /* ApplePartitionMap.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ApplePartitionMap.hpp; sourceTree = "<group>"; };
 		4B4DC81F1D2C2425003C5BF8 /* Vic20.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Vic20.cpp; sourceTree = "<group>"; };
 		4B4DC8201D2C2425003C5BF8 /* Vic20.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Vic20.hpp; sourceTree = "<group>"; };
 		4B4DC8271D2C2470003C5BF8 /* C1540.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = C1540.hpp; sourceTree = "<group>"; };
@@ -2925,6 +2926,7 @@
 			children = (
 				4B4C81C828B56CF800F84AE9 /* MacintoshVolume.hpp */,
 				4B4C81C928B56CF800F84AE9 /* MacintoshVolume.cpp */,
+				4B4C81CC28B56DD400F84AE9 /* ApplePartitionMap.hpp */,
 			);
 			path = Encodings;
 			sourceTree = "<group>";
