@@ -58,7 +58,11 @@ ROM::Request SCSICard::rom_request() {
 }
 
 // TODO: accept and supply real clock rate.
-SCSICard::SCSICard(ROM::Map &map) : scsi_bus_(1), ncr5380_(scsi_bus_, 1) {
+SCSICard::SCSICard(ROM::Map &map) :
+	scsi_bus_(1),
+	ncr5380_(scsi_bus_, 1),
+	storage_(scsi_bus_, 6)
+{
 	// Grab a copy of the SCSI ROM.
 	const auto rom = map.find(ROM::Name::AppleIISCSICard);
 	if(rom == map.end()) {
@@ -132,6 +136,6 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 	}
 }
 
-void SCSICard::set_volume(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &volume) {
-	(void)volume;
+void SCSICard::set_storage_device(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &device) {
+	storage_->set_storage(device);
 }

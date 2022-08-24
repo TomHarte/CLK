@@ -903,7 +903,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			if(!media.mass_storage_devices.empty()) {
 				auto scsi = scsi_card();
-				if(scsi) scsi->set_volume(media.mass_storage_devices[0]);
+				if(scsi) scsi->set_storage_device(media.mass_storage_devices[0]);
 			}
 
 			return true;

@@ -13,6 +13,9 @@
 #include "../../ROMMachine.hpp"
 
 #include "../../../Components/5380/ncr5380.hpp"
+
+#include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
+#include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
 #include "../../../Storage/MassStorage/MassStorageDevice.hpp"
 
 #include <array>
@@ -28,7 +31,7 @@ class SCSICard: public Card {
 
 		void perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) final;
 
-		void set_volume(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &volume);
+		void set_storage_device(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &device);
 
 	private:
 		uint8_t *ram_pointer_ = nullptr;
@@ -39,8 +42,7 @@ class SCSICard: public Card {
 
 		SCSI::Bus scsi_bus_;
 		NCR::NCR5380::NCR5380 ncr5380_;
-
-		// TODO: the rest of this.
+		SCSI::Target::Target<SCSI::DirectAccessDevice> storage_;
 };
 
 }
