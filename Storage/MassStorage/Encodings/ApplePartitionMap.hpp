@@ -46,7 +46,7 @@ template <typename VolumeProvider> class PartitionMap {
 		size_t get_number_of_blocks() const {
 			return
 				number_of_blocks_ +				// Size of the volume.
-				non_volume_blocks();			// Size of everything else.
+				size_t(non_volume_blocks());	// Size of everything else.
 		}
 
 		/*!
@@ -226,7 +226,7 @@ template <typename VolumeProvider> class PartitionMap {
 
 		VolumeProvider volume_provider_;
 
-		size_t predriver_blocks() const {
+		ssize_t predriver_blocks() const {
 			return
 				0x40;					// Holding:
 										//	(i) the driver descriptor;
@@ -234,13 +234,13 @@ template <typename VolumeProvider> class PartitionMap {
 										//	(iii) the partition entries.
 		}
 
-		size_t non_volume_blocks() const {
+		ssize_t non_volume_blocks() const {
 			return
 				predriver_blocks() +
 				driver_block_size();	// Size of device driver (if any).
 		}
 
-		size_t driver_block_size() const {
+		ssize_t driver_block_size() const {
 			if constexpr (VolumeProvider::HasDriver) {
 				return (volume_provider_.driver_size() + 511) >> 9;
 			} else {

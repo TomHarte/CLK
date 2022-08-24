@@ -12,7 +12,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <sys/types.h>
-#include <vector>
 
 #include "ApplePartitionMap.hpp"
 
