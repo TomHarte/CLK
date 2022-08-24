@@ -120,11 +120,9 @@ template <typename VolumeProvider> class PartitionMap {
 				return driver_description;
 			}
 
-			const bool has_driver = volume_provider_.driver_size() > 0;
-
 			// Blocks 1 and 2 contain entries of the partition map; there's also possibly an entry
 			// for the driver.
-			if(source_address < 3 + has_driver) {
+			if(source_address < 3 + volume_provider_.HasDriver) {
 				struct Partition {
 					const char *name, *type;
 					uint32_t start_block, size;
@@ -179,39 +177,43 @@ template <typename VolumeProvider> class PartitionMap {
 
 				// The third entry in this constructed partition map is the driver;
 				// add some additional details.
-				if(source_address == 3) {
-					const auto driver_size = uint16_t(volume_provider_.driver_size());
-					const auto driver_checksum = uint16_t(volume_provider_.driver_checksum());
+				if constexpr (VolumeProvider::HasDriver) {
+					if(source_address == 3) {
+						const auto driver_size = uint16_t(volume_provider_.driver_size());
+						const auto driver_checksum = uint16_t(volume_provider_.driver_checksum());
 
-					/* Driver size in bytes. */
-					partition[98] = uint8_t(driver_size >> 8);
-					partition[99] = uint8_t(driver_size);
+						/* Driver size in bytes. */
+						partition[98] = uint8_t(driver_size >> 8);
+						partition[99] = uint8_t(driver_size);
 
-					/* Driver checksum. */
-					partition[118] = uint8_t(driver_checksum >> 8);
-					partition[119] = uint8_t(driver_checksum);
+						/* Driver checksum. */
+						partition[118] = uint8_t(driver_checksum >> 8);
+						partition[119] = uint8_t(driver_checksum);
 
-					/* Driver target processor. */
-					const char *driver_target = volume_provider_.driver_target();
-					memcpy(&partition[120], driver_target, strlen(driver_target));
+						/* Driver target processor. */
+						const char *driver_target = volume_provider_.driver_target();
+						memcpy(&partition[120], driver_target, strlen(driver_target));
 
-					// Various non-zero values that Apple HD SC Tool wrote are below; they are
-					// documented as reserved officially, so I don't know their meaning.
-					partition[137] = 0x01;
-					partition[138] = 0x06;
-					partition[143] = 0x01;
-					partition[147] = 0x02;
-					partition[149] = 0x07;
+						// Various non-zero values that Apple HD SC Tool wrote are below; they are
+						// documented as reserved officially, so I don't know their meaning.
+						partition[137] = 0x01;
+						partition[138] = 0x06;
+						partition[143] = 0x01;
+						partition[147] = 0x02;
+						partition[149] = 0x07;
+					}
 				}
 
 				return partition;
 			}
 
-			// The remainder of the non-volume area is the driver.
-			if(source_address >= predriver_blocks() && source_address < non_volume_blocks()) {
-				const uint8_t *driver = volume_provider_.driver();
-				const auto offset = (source_address - predriver_blocks()) * 512;
-				return std::vector<uint8_t>(&driver[offset], &driver[offset + 512]);
+			if constexpr (VolumeProvider::HasDriver) {
+				// The remainder of the non-volume area is the driver.
+				if(source_address >= predriver_blocks() && source_address < non_volume_blocks()) {
+					const uint8_t *driver = volume_provider_.driver();
+					const auto offset = (source_address - predriver_blocks()) * 512;
+					return std::vector<uint8_t>(&driver[offset], &driver[offset + 512]);
+				}
 			}
 
 			// Default: return an empty block.
@@ -239,7 +241,11 @@ template <typename VolumeProvider> class PartitionMap {
 		}
 
 		size_t driver_block_size() const {
-			return (volume_provider_.driver_size() + 511) >> 9;
+			if constexpr (VolumeProvider::HasDriver) {
+				return (volume_provider_.driver_size() + 511) >> 9;
+			} else {
+				return 0;
+			}
 		}
 };
 
