@@ -10,7 +10,11 @@
 #define _MG_hpp
 
 #include "../DiskImage.hpp"
+#include "../../../MassStorage/MassStorageDevice.hpp"
+
 #include "../../../FileHolder.hpp"
+
+#include <variant>
 
 namespace Storage {
 namespace Disk {
@@ -26,7 +30,8 @@ namespace Disk {
 
 class Disk2MG {
 	public:
-		static DiskImageHolderBase *open(const std::string &file_name);
+		using DiskOrMassStorageDevice = std::variant<nullptr_t, DiskImageHolderBase *, Storage::MassStorage::MassStorageDevice *>;
+		static DiskOrMassStorageDevice open(const std::string &file_name);
 };
 
 }

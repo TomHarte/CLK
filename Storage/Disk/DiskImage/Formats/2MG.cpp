@@ -14,7 +14,7 @@
 
 using namespace Storage::Disk;
 
-DiskImageHolderBase *Disk2MG::open(const std::string &file_name) {
+Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
 	FileHolder file(file_name);
 
 	// Check the signature.
