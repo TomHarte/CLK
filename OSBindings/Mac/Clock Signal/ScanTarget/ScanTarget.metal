@@ -60,7 +60,8 @@ constexpr sampler linearSampler(	coord::pixel,
 
 // MARK: - Structs used for receiving data from the emulation.
 
-// This is intended to match the net effect of `Scan` as defined by the BufferingScanTarget.
+// This is intended to match the net effect of `Scan` as defined by the BufferingScanTarget,
+// with a couple of added fields.
 struct Scan {
 	struct EndPoint {
 		uint16_t position[2];
@@ -69,7 +70,10 @@ struct Scan {
 		uint16_t cyclesSinceRetrace;
 	} endPoints[2];
 
-	uint8_t compositeAmplitude;
+	union {
+		uint8_t compositeAmplitude;
+		uint32_t padding;			// TODO: reuse some padding as the next two fields, to save two bytes.
+	};
 	uint16_t dataY;
 	uint16_t line;
 };

@@ -304,7 +304,11 @@ struct ScanTarget {
 
 			/// For composite video, dictates the amplitude of the colour subcarrier as a proportion of
 			/// the whole, as determined from the colour burst. Will be 0 if there was no colour burst.
-			uint8_t composite_amplitude;
+			union {
+				uint8_t composite_amplitude;
+
+				uint32_t padding;
+			};
 		};
 
 		/// Requests a new scan to populate.
