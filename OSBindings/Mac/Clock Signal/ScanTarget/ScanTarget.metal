@@ -70,8 +70,10 @@ struct Scan {
 		uint16_t cyclesSinceRetrace;
 	} endPoints[2];
 
-	uint8_t compositeAmplitude;
-	uint8_t __alignment[3];			// TODO: reuse some padding as the next two fields, to save two bytes.
+	union {
+		uint8_t compositeAmplitude;
+		uint32_t padding;			// TODO: reuse some padding as the next two fields, to save two bytes.
+	};
 	uint16_t dataY;
 	uint16_t line;
 };
