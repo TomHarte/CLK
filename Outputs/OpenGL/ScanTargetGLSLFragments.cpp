@@ -84,6 +84,11 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 	Scan test_scan;
 	Line test_line;
 
+	// Some GPUs require alignment and will need to copy vertex data to a
+	// shadow buffer otherwise
+	static_assert(sizeof(Scan) % 4 == 0);
+	static_assert(sizeof(Line) % 4 == 0);
+
 	switch(type) {
 		case ShaderType::Composition:
 			for(int c = 0; c < 2; ++c) {
