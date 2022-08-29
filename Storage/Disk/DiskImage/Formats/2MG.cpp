@@ -65,12 +65,15 @@ Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
 			// TODO: DOS 3.3 sector order.
 		break;
 		case 1:
-			// ProDOS order, which could still mean Macintosh-style or Apple II-style. Try them both.
+			// 'ProDOS order', which could still mean Macintosh-style (ie. not ProDOS, but whatever)
+			// or Apple II-style. Try them both.
 			try {
 				return new DiskImageHolder<Storage::Disk::MacintoshIMG>(file_name, MacintoshIMG::FixedType::GCR, data_start, data_size);
 			} catch(...) {}
 
 			// TODO: Apple II-style.
+
+			// TODO: hard-disk image.
 		break;
 		case 2:
 			// TODO: NIB data (yuck!).
