@@ -58,9 +58,9 @@ ROM::Request SCSICard::rom_request() {
 }
 
 // TODO: accept and supply real clock rate.
-SCSICard::SCSICard(ROM::Map &map) :
-	scsi_bus_(1),
-	ncr5380_(scsi_bus_, 1),
+SCSICard::SCSICard(ROM::Map &map, int clock_rate) :
+	scsi_bus_(clock_rate),
+	ncr5380_(scsi_bus_, clock_rate),
 	storage_(scsi_bus_, 6)
 {
 	// Grab a copy of the SCSI ROM.

@@ -494,7 +494,10 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			if(has_scsi_card) {
 				// Install the SCSI card in slot 7, to one-up any connected Disk II.
-				install_card(7, new Apple::II::SCSICard(roms));
+				//
+				// Rounding the clock rate slightly shouldn't matter, but:
+				// TODO: be [slightly] more honest about clock rate.
+				install_card(7, new Apple::II::SCSICard(roms, int(master_clock / 14.0f)));
 			}
 
 			rom_ = std::move(roms.find(system)->second);

@@ -58,7 +58,7 @@ class Card {
 			no constraints, that want to be informed of every machine cycle, will receive
 			a call to perform_bus_operation every cycle and should use that for time keeping.
 		*/
-		virtual void run_for([[maybe_unused]] Cycles half_cycles, [[maybe_unused]] int stretches) {}
+		virtual void run_for([[maybe_unused]] Cycles cycles, [[maybe_unused]] int stretches) {}
 
 		/// Requests a flush of any pending audio or video output.
 		virtual void flush() {}
