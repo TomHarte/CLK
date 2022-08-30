@@ -13,8 +13,16 @@ Analyser::Static::TargetList Analyser::Static::AppleII::GetTargets(const Media &
 	auto target = std::make_unique<Target>();
 	target->media = media;
 
-	if(!target->media.disks.empty())
+	// If any disks are present, attach a Disk II.
+	if(!target->media.disks.empty()) {
 		target->disk_controller = Target::DiskController::SixteenSector;
+	}
+
+	// The emulated SCSI card requires a IIe, so upgrade to that if
+	// any mass storage is present.
+	if(!target->media.mass_storage_devices.empty()) {
+		target->model = Target::Model::EnhancedIIe;
+	}
 
 	TargetList targets;
 	targets.push_back(std::move(target));
