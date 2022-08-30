@@ -129,7 +129,7 @@ Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
 
 			// TODO: Apple II-style.
 
-			// TODO: hard-disk image.
+			// Try a hard-disk image. For now this assumes: for an Apple IIe or GS.
 			return new MassStorage2MG(file_name, data_start, data_size);
 		break;
 		case 2:
