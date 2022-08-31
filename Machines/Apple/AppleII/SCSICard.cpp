@@ -103,6 +103,15 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 					}
 				break;
 
+				case 0x8:
+					// DMA acknowledge.
+					if(is_read) {
+						*value = ncr5380_.dma_acknowledge();
+					} else {
+						ncr5380_.dma_acknowledge(*value);
+					}
+				break;
+
 				case 0xa:
 					// RAM and ROM select.
 					if(!is_read) {
@@ -111,6 +120,13 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 
 						rom_pointer_ = &rom_[rom_base];
 						ram_pointer_ = &ram_[ram_base];
+					}
+				break;
+
+				case 0xe:
+					// DRQ in b7.
+					if(is_read) {
+						*value = ncr5380_.dma_request() ? 0x80 : 0x00;
 					}
 				break;
 

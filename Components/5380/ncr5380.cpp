@@ -33,14 +33,10 @@ void NCR5380::write(int address, uint8_t value, bool) {
 	switch(address & 7) {
 		case 0:
 			LOG("[SCSI 0] Set current SCSI bus state to " << PADHEX(2) << int(value));
-			data_bus_ = value;
 
+			data_bus_ = value;
 			if(dma_request_ && dma_operation_ == DMAOperation::Send) {
-//				printf("w %02x\n", value);
-				dma_acknowledge_ = true;
-				dma_request_ = false;
-				update_control_output();
-				bus_.set_device_output(device_id_, bus_output_);
+				dma_acknowledge(value);
 			}
 		break;
 
@@ -143,10 +139,7 @@ uint8_t NCR5380::read(int address, bool) {
 			LOG("[SCSI 0] Get current SCSI bus state: " << PADHEX(2) << (bus_.get_state() & 0xff));
 
 			if(dma_request_ && dma_operation_ == DMAOperation::InitiatorReceive) {
-				dma_acknowledge_ = true;
-				dma_request_ = false;
-				update_control_output();
-				bus_.set_device_output(device_id_, bus_output_);
+				return dma_acknowledge();
 			}
 		return uint8_t(bus_.get_state());
 
@@ -323,4 +316,28 @@ void NCR5380::set_execution_state(ExecutionState state) {
 
 size_t NCR5380::scsi_id() {
 	return device_id_;
+}
+
+bool NCR5380::dma_request() {
+	return dma_request_;
+}
+
+uint8_t NCR5380::dma_acknowledge() {
+	const uint8_t bus_state = uint8_t(bus_.get_state());
+
+	dma_acknowledge_ = true;
+	dma_request_ = false;
+	update_control_output();
+	bus_.set_device_output(device_id_, bus_output_);
+
+	return bus_state;
+}
+
+void NCR5380::dma_acknowledge(uint8_t value) {
+	data_bus_ = value;
+
+	dma_acknowledge_ = true;
+	dma_request_ = false;
+	update_control_output();
+	bus_.set_device_output(device_id_, bus_output_);
 }

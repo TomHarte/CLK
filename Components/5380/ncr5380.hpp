@@ -33,6 +33,15 @@ class NCR5380 final: public SCSI::Bus::Observer {
 		/*! @returns The SCSI ID assigned to this device. */
 		size_t scsi_id();
 
+		/*! @return @c true if DMA request is active; @c false otherwise. */
+		bool dma_request();
+
+		/*! Signals DMA acknowledge with a simultaneous read. */
+		uint8_t dma_acknowledge();
+
+		/*! Signals DMA acknowledge with a simultaneous write. */
+		void dma_acknowledge(uint8_t);
+
 	private:
 		SCSI::Bus &bus_;
 
