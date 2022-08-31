@@ -55,6 +55,8 @@ bool DirectAccessDevice::write(const Target::CommandState &state, Target::Respon
 }
 
 bool DirectAccessDevice::read_capacity(const Target::CommandState &, Target::Responder &responder) {
+	if(!device_) return false;
+
 	const auto final_block = device_->get_number_of_blocks() - 1;
 	const auto block_size = device_->get_block_size();
 	std::vector<uint8_t> data = {
@@ -81,6 +83,8 @@ Target::Executor::Inquiry DirectAccessDevice::inquiry_values() {
 }
 
 bool DirectAccessDevice::format_unit(const Target::CommandState &, Target::Responder &responder) {
+	if(!device_) return false;
+
 	// Formatting: immediate.
 	responder.terminate_command(Target::Responder::Status::Good);
 	return true;
