@@ -123,6 +123,18 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 					}
 				break;
 
+				case 0xb:
+					if(!is_read) {
+						printf("TODO: NCR reset\n");
+					}
+				break;
+
+				case 0xd:
+					if(!is_read) {
+						printf("TODO: Enable PDMA\n");
+					}
+				break;
+
 				case 0xe:
 					// DRQ in b7.
 					if(is_read) {
