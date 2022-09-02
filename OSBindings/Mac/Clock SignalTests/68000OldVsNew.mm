@@ -238,12 +238,171 @@ template <typename M68000> struct Tester {
 	M68000 processor;
 };
 
+void print_state(FILE *target, const CPU::MC68000Mk2::State &state) {
+	for(int c = 0; c < 8; c++) {
+		fprintf(target, "\"D%d\": %u, ", c, state.registers.data[c]);
+	}
+
+	for(int c = 0; c < 7; c++) {
+		fprintf(target, "\"A%d\": %u, ", c, state.registers.address[c]);
+	}
+
+	fprintf(target, "\"USP\": %u, ", state.registers.user_stack_pointer);
+	fprintf(target, "\"SSP\": %u, ", state.registers.supervisor_stack_pointer);
+	fprintf(target, "\"SR\": %u, ", state.registers.status);
+	fprintf(target, "\"PC\": %u", state.registers.program_counter - 4);
+}
+
+void print_transactions(FILE *target, const std::vector<Transaction> &transactions, HalfCycles end) {
+	auto iterator = transactions.begin();
+	bool is_first = true;
+	do {
+		if(!is_first) fprintf(target, ", ");
+		is_first = false;
+		fprintf(target, "[");
+
+		auto next = iterator + 1;
+
+		// Attempt to pair off transactions to reproduct YACHT notation.
+		bool is_access = true;
+		if(!iterator->address_strobe && !iterator->data_strobes) {
+			fprintf(target, "\"n\", ");
+			is_access = false;
+		} else {
+			assert(!iterator->data_strobes);
+			if(next->read) {
+				fprintf(target, "\"nr\", ");
+			} else {
+				fprintf(target, "\"nw\", ");
+			}
+			++next;
+		}
+		HalfCycles length;
+		if(next == transactions.end()) {
+			length = end - iterator->timestamp;
+		} else {
+			length = next->timestamp - iterator->timestamp;
+		}
+		fprintf(target, "%d, ", length.as<int>() >> 1);
+
+		fprintf(target, "%d, ", iterator->function_code);
+
+		if(is_access) {
+			--next;
+			fprintf(target, "%d, ", iterator->address & 0xff'ffff);
+
+			switch(next->data_strobes) {
+				default: assert(false);
+				case 1: {
+					if(next->address & 1) {
+						fprintf(target, "\"-L\", ");
+					} else {
+						fprintf(target, "\"U-\", ");
+					}
+				} break;
+				case 2: fprintf(target, "\"UL\", "); break;
+				break;
+			}
+			fprintf(target, "%d", next->value);
+
+			++next;
+		} else {
+			fprintf(target, "null, ");
+			fprintf(target, "\"--\", ");
+			fprintf(target, "null");
+		}
+
+		fprintf(target, "]");
+		iterator = next;
+	} while(iterator != transactions.end());
+}
+
 }
 
 @interface M68000OldVsNewTests : XCTestCase
 @end
 
 @implementation M68000OldVsNewTests
+
+- (void)testGenerate {
+	srand(68000);
+
+	NSString *const tempDir = NSTemporaryDirectory();
+	NSLog(@"Outputting to %@", tempDir);
+
+	RandomStore random_store;
+	auto tester = std::make_unique<Tester<NewProcessor>>(random_store, 0x02);
+	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> decoder;
+
+	for(int c = 0; c < 65536; c++) {
+		// Test only defined opcodes that aren't STOP (which will never teminate).
+		const auto instruction = decoder.decode(uint16_t(c));
+		if(
+			instruction.operation == InstructionSet::M68k::Operation::Undefined ||
+			instruction.operation == InstructionSet::M68k::Operation::STOP
+		) {
+			continue;
+		}
+
+		NSString *const targetName = [NSString stringWithFormat:@"%@%04x.json", tempDir, c];
+		FILE *const target = fopen(targetName.UTF8String, "wt");
+
+		bool is_first_test = true;
+		fprintf(target, "[");
+
+		// Test each 10000 times.
+		for(int test = 0; test < 10000; test++) {
+			if(!is_first_test) fprintf(target, ",\n");
+			is_first_test = false;
+
+			// Establish with certainty the initial memory state.
+			random_store.clear();
+			tester->reset_with_opcode(c);
+
+			// Generate a random initial register state.
+			auto initialState = tester->processor.get_state();
+
+			for(int c = 0; c < 8; c++) {
+				initialState.registers.data[c] = rand() ^ (rand() << 1);
+				if(c != 7) initialState.registers.address[c] = rand() << 1;
+			}
+			// Fully to paper over the two 68000s' different ways of doing a faked
+			// reset, pick a random status such that:
+			//
+			//	(i) supervisor mode is active;
+			//	(ii) trace is inactive; and
+			//	(iii) interrupt level is 7.
+			initialState.registers.status = (rand() | (1 << 13) | (7 << 8)) & ~(1 << 15);
+			initialState.registers.user_stack_pointer = rand() << 1;
+			initialState.registers.supervisor_stack_pointer = 0x800;
+
+			// Dump initial state.
+			fprintf(target, "{ \"name\": \"%04x %s %d\", ", c, instruction.to_string().c_str(), test + 1);
+			fprintf(target, "\"initial\": {");
+			print_state(target, initialState);
+
+			tester->processor.set_state(initialState);
+
+			// Run a single instruction.
+			tester->run_instructions(1);
+
+			// Grab and output final states.
+			const auto finalState = tester->processor.get_state();
+			fprintf(target, "}, \"final\": {");
+			print_state(target, finalState);
+
+			// Output total length and bus activity.
+			fprintf(target, "}, \"length\": %d, ", tester->bus_handler.time.as<int>() >> 1);
+
+			fprintf(target, "\"transactions\": [");
+			print_transactions(target, tester->bus_handler.transactions, tester->bus_handler.time);
+			fprintf(target, "]}");
+		}
+
+		fprintf(target, "\n]\n");
+		fclose(target);
+	}
+}
 
 - (void)testOldVsNew {
 	RandomStore random_store;
