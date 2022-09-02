@@ -39,6 +39,13 @@
 #include <array>
 #include <memory>
 
+namespace {
+
+constexpr int DiskIISlot = 6;	// Apple recommended slot 6 for the (first) Disk II.
+constexpr int SCSISlot = 7;		// Install the SCSI card in slot 7, to one-up any connected Disk II.
+
+}
+
 namespace Apple {
 namespace II {
 
@@ -149,11 +156,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		Apple::II::DiskIICard *diskii_card() {
-			return dynamic_cast<Apple::II::DiskIICard *>(cards_[5].get());
+			return dynamic_cast<Apple::II::DiskIICard *>(cards_[DiskIISlot - 1].get());
 		}
 
 		Apple::II::SCSICard *scsi_card() {
-			return dynamic_cast<Apple::II::SCSICard *>(cards_[6].get());
+			return dynamic_cast<Apple::II::SCSICard *>(cards_[SCSISlot - 1].get());
 		}
 
 		// MARK: - Memory Map.
@@ -488,16 +495,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			if(has_disk_controller) {
-				// Apple recommended slot 6 for the (first) Disk II.
-				install_card(6, new Apple::II::DiskIICard(roms, is_sixteen_sector));
+				install_card(DiskIISlot, new Apple::II::DiskIICard(roms, is_sixteen_sector));
 			}
 
 			if(has_scsi_card) {
-				// Install the SCSI card in slot 7, to one-up any connected Disk II.
-				//
 				// Rounding the clock rate slightly shouldn't matter, but:
 				// TODO: be [slightly] more honest about clock rate.
-				install_card(7, new Apple::II::SCSICard(roms, int(master_clock / 14.0f)));
+				install_card(SCSISlot, new Apple::II::SCSICard(roms, int(master_clock / 14.0f)));
 			}
 
 			rom_ = std::move(roms.find(system)->second);
