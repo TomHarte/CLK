@@ -15,6 +15,7 @@
 #include <array>
 #include <unordered_map>
 #include <set>
+#include <map>
 
 namespace {
 
@@ -116,7 +117,7 @@ struct BusHandler {
 		time += cycle.length;
 
 		// Do the operation...
-		const uint32_t address = cycle.address ? (*cycle.address & 0xffff'ff) : 0;
+		const uint32_t address = cycle.address ? (*cycle.address & 0xff'ffff) : 0;
 		switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 			default: break;
 
@@ -152,7 +153,6 @@ struct BusHandler {
 				store.flag(address, participant);
 			break;
 		}
-
 
 		// Add the data value if relevant.
 		if(transaction.data_strobes) {
@@ -238,7 +238,7 @@ template <typename M68000> struct Tester {
 	M68000 processor;
 };
 
-void print_state(FILE *target, const CPU::MC68000Mk2::State &state) {
+void print_state(FILE *target, const CPU::MC68000Mk2::State &state, const std::vector<Transaction> &transactions, bool is_initial) {
 	for(int c = 0; c < 8; c++) {
 		fprintf(target, "\"D%d\": %u, ", c, state.registers.data[c]);
 	}
@@ -250,7 +250,73 @@ void print_state(FILE *target, const CPU::MC68000Mk2::State &state) {
 	fprintf(target, "\"USP\": %u, ", state.registers.user_stack_pointer);
 	fprintf(target, "\"SSP\": %u, ", state.registers.supervisor_stack_pointer);
 	fprintf(target, "\"SR\": %u, ", state.registers.status);
-	fprintf(target, "\"PC\": %u", state.registers.program_counter - 4);
+	fprintf(target, "\"PC\": %u, ", state.registers.program_counter - 4);
+
+	fprintf(target, "\"ram\": [");
+
+	// Compute RAM from transactions; if this is the initial state then RAM should
+	// be everything that was subject to a read which had not previously been
+	// subject to a write. Otherwise it can just be everything.
+	std::map<uint32_t, uint8_t> ram;
+	if(is_initial) {
+		std::set<uint32_t> written_addresses;
+
+		for(const auto &transaction: transactions) {
+			switch(transaction.data_strobes) {
+				default: continue;
+				case 1:
+					if(transaction.read) {
+						if(ram.find(transaction.address) == ram.end()) {
+							ram[transaction.address] = transaction.value;
+						}
+					} else {
+						written_addresses.insert(transaction.address);
+					}
+				break;
+				case 2:
+					if(transaction.read) {
+						if(ram.find(transaction.address) == ram.end()) {
+							ram[transaction.address] = uint8_t(transaction.value >> 8);
+						}
+						if(ram.find(transaction.address+1) == ram.end()) {
+							ram[transaction.address+1] = uint8_t(transaction.value);
+						}
+					} else {
+						written_addresses.insert(transaction.address);
+						written_addresses.insert(transaction.address + 1);
+					}
+				break;
+			}
+		}
+	} else {
+		for(const auto &transaction: transactions) {
+			switch(transaction.data_strobes) {
+				default: continue;
+				case 1:
+					if(ram.find(transaction.address) == ram.end()) {
+						ram[transaction.address] = transaction.value;
+					}
+				break;
+				case 2:
+					if(ram.find(transaction.address) == ram.end()) {
+						ram[transaction.address] = uint8_t(transaction.value >> 8);
+					}
+					if(ram.find(transaction.address+1) == ram.end()) {
+						ram[transaction.address+1] = uint8_t(transaction.value);
+					}
+				break;
+			}
+		}
+
+	}
+
+	bool is_first = true;
+	for(const auto &pair: ram) {
+		if(!is_first) fprintf(target, ", ");
+		is_first = false;
+		fprintf(target, "[%d, %d]", pair.first, pair.second);
+	}
+	fprintf(target, "]");
 }
 
 void print_transactions(FILE *target, const std::vector<Transaction> &transactions, HalfCycles end) {
@@ -376,20 +442,22 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 			initialState.registers.user_stack_pointer = rand() << 1;
 			initialState.registers.supervisor_stack_pointer = 0x800;
 
-			// Dump initial state.
-			fprintf(target, "{ \"name\": \"%04x %s %d\", ", c, instruction.to_string().c_str(), test + 1);
-			fprintf(target, "\"initial\": {");
-			print_state(target, initialState);
-
+			// Set state.
 			tester->processor.set_state(initialState);
 
 			// Run a single instruction.
 			tester->run_instructions(1);
 
-			// Grab and output final states.
 			const auto finalState = tester->processor.get_state();
+
+			// Output initial state.
+			fprintf(target, "{ \"name\": \"%04x [%s] %d\", ", c, instruction.to_string().c_str(), test + 1);
+			fprintf(target, "\"initial\": {");
+			print_state(target, initialState, tester->bus_handler.transactions, true);
+
+			// Output final state.
 			fprintf(target, "}, \"final\": {");
-			print_state(target, finalState);
+			print_state(target, finalState, tester->bus_handler.transactions, false);
 
 			// Output total length and bus activity.
 			fprintf(target, "}, \"length\": %d, ", tester->bus_handler.time.as<int>() >> 1);
