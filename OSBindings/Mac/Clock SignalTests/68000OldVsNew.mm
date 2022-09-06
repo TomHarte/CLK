@@ -57,16 +57,18 @@ struct Transaction {
 	uint32_t address = 0;
 	uint16_t value = 0;
 	bool address_strobe = false;
+	bool same_address = false;
 	bool read = false;
 	int data_strobes = 0;
 
-	bool operator !=(const Transaction &rhs) const {
+	bool operator != (const Transaction &rhs) const {
 		if(timestamp != rhs.timestamp) return true;
 //		if(function_code != rhs.function_code) return true;
 		if(address != rhs.address) return true;
 		if(value != rhs.value) return true;
 		if(address_strobe != rhs.address_strobe) return true;
 		if(data_strobes != rhs.data_strobes) return true;
+		if(same_address != rhs.same_address) return true;
 		return false;
 	}
 
@@ -109,6 +111,7 @@ struct BusHandler {
 			transaction.function_code |= (cycle.operation & Microcycle::IsData) ? 0x1 : 0x2;
 		}
 		transaction.address_strobe = cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress);
+		transaction.same_address = cycle.operation & Microcycle::SameAddress;
 		transaction.data_strobes = cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord);
 		if(cycle.address) transaction.address = *cycle.address & 0xffff'ff;
 		transaction.timestamp = time;
@@ -338,12 +341,23 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 			is_access = false;
 		} else {
 			assert(!iterator->data_strobes);
-			if(next->read) {
-				fprintf(target, "\"nr\", ");
-			} else {
-				fprintf(target, "\"nw\", ");
+
+			// Check how many transactions this address persists for;
+			// that'll allow a TAS to be recognised here.
+			while(next->same_address && next != transactions.end()) {
+				++next;
 			}
-			++next;
+			--next;
+
+			if(next == iterator + 1) {
+				if(next->read) {
+					fprintf(target, "\"r\", ");
+				} else {
+					fprintf(target, "\"w\", ");
+				}
+			} else {
+				fprintf(target, "\"t\", ");
+			}
 		}
 		HalfCycles length;
 		if(next == transactions.end()) {
@@ -351,33 +365,21 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 		} else {
 			length = next->timestamp - iterator->timestamp;
 		}
-		fprintf(target, "%d, ", length.as<int>() >> 1);
-
-		fprintf(target, "%d, ", iterator->function_code);
+		fprintf(target, "%d", length.as<int>() >> 1);
 
 		if(is_access) {
-			--next;
+			fprintf(target, ", %d, ", iterator->function_code);
 			fprintf(target, "%d, ", iterator->address & 0xff'ffff);
 
 			switch(next->data_strobes) {
 				default: assert(false);
-				case 1: {
-					if(next->address & 1) {
-						fprintf(target, "\"-L\", ");
-					} else {
-						fprintf(target, "\"U-\", ");
-					}
-				} break;
-				case 2: fprintf(target, "\"UL\", "); break;
+				case 1:	fprintf(target, "\".b\", ");	break;
+				case 2: fprintf(target, "\".w\", "); 	break;
 				break;
 			}
 			fprintf(target, "%d", next->value);
 
 			++next;
-		} else {
-			fprintf(target, "null, ");
-			fprintf(target, "\"--\", ");
-			fprintf(target, "null");
 		}
 
 		fprintf(target, "]");
@@ -413,7 +415,6 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 		const auto operation = to_string(instruction.operation);
 		opcodesByOperation[operation].push_back(c);
 	}
-	NSLog(@"Generating for %lu operations", opcodesByOperation.size());
 
 	// Find somewhere to write to.
 	NSString *const tempDir = NSTemporaryDirectory();
@@ -423,7 +424,9 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 	const auto testsPerOperation = int((1'000'000 + (opcodesByOperation.size() - 1)) / opcodesByOperation.size());
 
 	// Generate by operation.
+	NSLog(@"Generating %d tests each for %lu operations", testsPerOperation, opcodesByOperation.size());
 	for(const auto &pair: opcodesByOperation) {
+		NSLog(@"Generating %s", pair.first);
 		NSString *const targetName = [NSString stringWithFormat:@"%@%s.json", tempDir, pair.first];
 		FILE *const target = fopen(targetName.UTF8String, "wt");
 
