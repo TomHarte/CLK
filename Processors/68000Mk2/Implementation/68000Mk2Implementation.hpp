@@ -341,7 +341,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	// Sets up the next data access size and read flags.
 #define SetupDataAccess(read_flag, select_flag)												\
 	access_announce.operation = Microcycle::NewAddress | Microcycle::IsData | (read_flag);	\
-	access.operation = access_announce.operation | (select_flag);
+	access.operation = Microcycle::SameAddress | Microcycle::IsData | (read_flag) | (select_flag);
 
 	// Sets the address source for the next data access.
 #define SetDataAddress(addr)							\
