@@ -56,233 +56,209 @@ std::string Preinstruction::operand_description(int index, int opcode) const {
 	}
 }
 
-std::string Preinstruction::to_string(int opcode) const {
-	bool flip_operands = false;
-	const char *instruction;
+namespace {
 
+const char *_to_string(Operation operation, bool is_quick) {
 	switch(operation) {
-		case Operation::Undefined:	return "None";
-		case Operation::NOP:		instruction = "NOP";		break;
-		case Operation::ABCD:		instruction = "ABCD";		break;
-		case Operation::SBCD:		instruction = "SBCD";		break;
-		case Operation::NBCD:		instruction = "NBCD";		break;
+		case Operation::Undefined:		return "None";
+		case Operation::NOP:			return "NOP";
+		case Operation::ABCD:			return "ABCD";
+		case Operation::SBCD:			return "SBCD";
+		case Operation::NBCD:			return "NBCD";
 
-		case Operation::ADDb:		instruction = "ADD.b";		break;
-		case Operation::ADDw:		instruction = "ADD.w";		break;
-		case Operation::ADDl:		instruction = "ADD.l";		break;
+		case Operation::ADDb:			return "ADD.b";
+		case Operation::ADDw:			return "ADD.w";
+		case Operation::ADDl:			return "ADD.l";
 
-		case Operation::ADDAw:
-			if(mode<0>() == AddressingMode::Quick) {
-				instruction = "ADD.w";
-			} else {
-				instruction = "ADDA.w";
-			}
-		break;
-		case Operation::ADDAl:
-			if(mode<0>() == AddressingMode::Quick) {
-				instruction = "ADD.l";
-			} else {
-				instruction = "ADDA.l";
-			}
-		break;
+		case Operation::ADDAw:			return is_quick ? "ADD.w" : "ADDA.w";
+		case Operation::ADDAl:			return is_quick ? "ADD.l" : "ADDA.l";
 
-		case Operation::ADDXb:		instruction = "ADDX.b";	break;
-		case Operation::ADDXw:		instruction = "ADDX.w";	break;
-		case Operation::ADDXl:		instruction = "ADDX.l";	break;
+		case Operation::ADDXb:			return "ADDX.b";
+		case Operation::ADDXw:			return "ADDX.w";
+		case Operation::ADDXl:			return "ADDX.l";
 
-		case Operation::SUBb:		instruction = "SUB.b";	break;
-		case Operation::SUBw:		instruction = "SUB.w";	break;
-		case Operation::SUBl:		instruction = "SUB.l";	break;
+		case Operation::SUBb:			return "SUB.b";
+		case Operation::SUBw:			return "SUB.w";
+		case Operation::SUBl:			return "SUB.l";
 
-		case Operation::SUBAw:
-			if(mode<0>() == AddressingMode::Quick) {
-				instruction = "SUB.w";
-			} else {
-				instruction = "SUBA.w";
-			}
-		break;
-		case Operation::SUBAl:
-			if(mode<0>() == AddressingMode::Quick) {
-				instruction = "SUB.l";
-			} else {
-				instruction = "SUBA.l";
-			}
-		break;
+		case Operation::SUBAw:			return is_quick ? "SUB.w" : "SUBA.w";
+		case Operation::SUBAl:			return is_quick ? "SUB.l" : "SUBA.l";
 
-		case Operation::SUBXb:		instruction = "SUBX.b";	break;
-		case Operation::SUBXw:		instruction = "SUBX.w";	break;
-		case Operation::SUBXl:		instruction = "SUBX.l";	break;
+		case Operation::SUBXb:			return "SUBX.b";
+		case Operation::SUBXw:			return "SUBX.w";
+		case Operation::SUBXl:			return "SUBX.l";
 
-		case Operation::MOVEb:		instruction = "MOVE.b";	break;
-		case Operation::MOVEw:		instruction = "MOVE.w";	break;
-		case Operation::MOVEl:
-			if(mode<0>() == AddressingMode::Quick) {
-				instruction = "MOVE.q";
-			} else {
-				instruction = "MOVE.l";
-			}
-		break;
+		case Operation::MOVEb:			return "MOVE.b";
+		case Operation::MOVEw:			return "MOVE.w";
+		case Operation::MOVEl:			return is_quick ? "MOVE.q" : "MOVE.l";
 
-		case Operation::MOVEAw:		instruction = "MOVEA.w";	break;
-		case Operation::MOVEAl:		instruction = "MOVEA.l";	break;
+		case Operation::MOVEAw:			return "MOVEA.w";
+		case Operation::MOVEAl:			return "MOVEA.l";
 
-		case Operation::LEA:		instruction = "LEA";		break;
-		case Operation::PEA:		instruction = "PEA";		break;
+		case Operation::LEA:			return "LEA";
+		case Operation::PEA:			return "PEA";
 
-		case Operation::MOVEtoSR:		instruction = "MOVEtoSR";		break;
-		case Operation::MOVEfromSR:		instruction = "MOVEfromSR";		break;
-		case Operation::MOVEtoCCR:		instruction = "MOVEtoCCR";		break;
-		case Operation::MOVEtoUSP:		instruction = "MOVEtoUSP";		break;
-		case Operation::MOVEfromUSP:	instruction = "MOVEfromUSP";	break;
+		case Operation::MOVEtoSR:		return "MOVEtoSR";
+		case Operation::MOVEfromSR:		return "MOVEfromSR";
+		case Operation::MOVEtoCCR:		return "MOVEtoCCR";
+		case Operation::MOVEtoUSP:		return "MOVEtoUSP";
+		case Operation::MOVEfromUSP:	return "MOVEfromUSP";
 
-		case Operation::ORItoSR:	instruction = "ORItoSR";	break;
-		case Operation::ORItoCCR:	instruction = "ORItoCCR";	break;
-		case Operation::ANDItoSR:	instruction = "ANDItoSR";	break;
-		case Operation::ANDItoCCR:	instruction = "ANDItoCCR";	break;
-		case Operation::EORItoSR:	instruction = "EORItoSR";	break;
-		case Operation::EORItoCCR:	instruction = "EORItoCCR";	break;
+		case Operation::ORItoSR:		return "ORItoSR";
+		case Operation::ORItoCCR:		return "ORItoCCR";
+		case Operation::ANDItoSR:		return "ANDItoSR";
+		case Operation::ANDItoCCR:		return "ANDItoCCR";
+		case Operation::EORItoSR:		return "EORItoSR";
+		case Operation::EORItoCCR:		return "EORItoCCR";
 
-		case Operation::BTST:	instruction = "BTST";	break;
-		case Operation::BCLR:	instruction = "BCLR";	break;
-		case Operation::BCHG:	instruction = "BCHG";	break;
-		case Operation::BSET:	instruction = "BSET";	break;
+		case Operation::BTST:			return "BTST";
+		case Operation::BCLR:			return "BCLR";
+		case Operation::BCHG:			return "BCHG";
+		case Operation::BSET:			return "BSET";
 
-		case Operation::CMPb:	instruction = "CMP.b";	break;
-		case Operation::CMPw:	instruction = "CMP.w";	break;
-		case Operation::CMPl:	instruction = "CMP.l";	break;
+		case Operation::CMPb:			return "CMP.b";
+		case Operation::CMPw:			return "CMP.w";
+		case Operation::CMPl:			return "CMP.l";
 
-		case Operation::CMPAw:	instruction = "CMPA.w";	break;
-		case Operation::CMPAl:	instruction = "CMPA.l";	break;
+		case Operation::CMPAw:			return "CMPA.w";
+		case Operation::CMPAl:			return "CMPA.l";
 
-		case Operation::TSTb:	instruction = "TST.b";	break;
-		case Operation::TSTw:	instruction = "TST.w";	break;
-		case Operation::TSTl:	instruction = "TST.l";	break;
+		case Operation::TSTb:			return "TST.b";
+		case Operation::TSTw:			return "TST.w";
+		case Operation::TSTl:			return "TST.l";
 
-		case Operation::JMP:	instruction = "JMP";	break;
-		case Operation::JSR:	instruction = "JSR";	break;
-		case Operation::RTS:	instruction = "RTS";	break;
-		case Operation::DBcc:	instruction = "DBcc";	break;
-		case Operation::Scc:	instruction = "Scc";	break;
+		case Operation::JMP:			return "JMP";
+		case Operation::JSR:			return "JSR";
+		case Operation::RTS:			return "RTS";
+		case Operation::DBcc:			return "DBcc";
+		case Operation::Scc:			return "Scc";
 
 		case Operation::Bccb:
 		case Operation::Bccl:
-		case Operation::Bccw:	instruction = "Bcc";	break;
+		case Operation::Bccw:			return "Bcc";
 
 		case Operation::BSRb:
 		case Operation::BSRl:
-		case Operation::BSRw:	instruction = "BSR";	break;
+		case Operation::BSRw:			return "BSR";
 
-		case Operation::CLRb:	instruction = "CLR.b";	break;
-		case Operation::CLRw:	instruction = "CLR.w";	break;
-		case Operation::CLRl:	instruction = "CLR.l";	break;
+		case Operation::CLRb:			return "CLR.b";
+		case Operation::CLRw:			return "CLR.w";
+		case Operation::CLRl:			return "CLR.l";
 
-		case Operation::NEGXb:	instruction = "NEGX.b";	break;
-		case Operation::NEGXw:	instruction = "NEGX.w";	break;
-		case Operation::NEGXl:	instruction = "NEGX.l";	break;
+		case Operation::NEGXb:			return "NEGX.b";
+		case Operation::NEGXw:			return "NEGX.w";
+		case Operation::NEGXl:			return "NEGX.l";
 
-		case Operation::NEGb:	instruction = "NEG.b";	break;
-		case Operation::NEGw:	instruction = "NEG.w";	break;
-		case Operation::NEGl:	instruction = "NEG.l";	break;
+		case Operation::NEGb:			return "NEG.b";
+		case Operation::NEGw:			return "NEG.w";
+		case Operation::NEGl:			return "NEG.l";
 
-		case Operation::ASLb:	instruction = "ASL.b";	break;
-		case Operation::ASLw:	instruction = "ASL.w";	break;
-		case Operation::ASLl:	instruction = "ASL.l";	break;
-		case Operation::ASLm:	instruction = "ASL.w";	break;
+		case Operation::ASLb:			return "ASL.b";
+		case Operation::ASLw:			return "ASL.w";
+		case Operation::ASLl:			return "ASL.l";
+		case Operation::ASLm:			return "ASL.w";
 
-		case Operation::ASRb:	instruction = "ASR.b";	break;
-		case Operation::ASRw:	instruction = "ASR.w";	break;
-		case Operation::ASRl:	instruction = "ASR.l";	break;
-		case Operation::ASRm:	instruction = "ASR.w";	break;
+		case Operation::ASRb:			return "ASR.b";
+		case Operation::ASRw:			return "ASR.w";
+		case Operation::ASRl:			return "ASR.l";
+		case Operation::ASRm:			return "ASR.w";
 
-		case Operation::LSLb:	instruction = "LSL.b";	break;
-		case Operation::LSLw:	instruction = "LSL.w";	break;
-		case Operation::LSLl:	instruction = "LSL.l";	break;
-		case Operation::LSLm:	instruction = "LSL.w";	break;
+		case Operation::LSLb:			return "LSL.b";
+		case Operation::LSLw:			return "LSL.w";
+		case Operation::LSLl:			return "LSL.l";
+		case Operation::LSLm:			return "LSL.w";
 
-		case Operation::LSRb:	instruction = "LSR.b";	break;
-		case Operation::LSRw:	instruction = "LSR.w";	break;
-		case Operation::LSRl:	instruction = "LSR.l";	break;
-		case Operation::LSRm:	instruction = "LSR.w";	break;
+		case Operation::LSRb:			return "LSR.b";
+		case Operation::LSRw:			return "LSR.w";
+		case Operation::LSRl:			return "LSR.l";
+		case Operation::LSRm:			return "LSR.w";
 
-		case Operation::ROLb:	instruction = "ROL.b";	break;
-		case Operation::ROLw:	instruction = "ROL.w";	break;
-		case Operation::ROLl:	instruction = "ROL.l";	break;
-		case Operation::ROLm:	instruction = "ROL.w";	break;
+		case Operation::ROLb:			return "ROL.b";
+		case Operation::ROLw:			return "ROL.w";
+		case Operation::ROLl:			return "ROL.l";
+		case Operation::ROLm:			return "ROL.w";
 
-		case Operation::RORb:	instruction = "ROR.b";	break;
-		case Operation::RORw:	instruction = "ROR.w";	break;
-		case Operation::RORl:	instruction = "ROR.l";	break;
-		case Operation::RORm:	instruction = "ROR.w";	break;
+		case Operation::RORb:			return "ROR.b";
+		case Operation::RORw:			return "ROR.w";
+		case Operation::RORl:			return "ROR.l";
+		case Operation::RORm:			return "ROR.w";
 
-		case Operation::ROXLb:	instruction = "ROXL.b";	break;
-		case Operation::ROXLw:	instruction = "ROXL.w";	break;
-		case Operation::ROXLl:	instruction = "ROXL.l";	break;
-		case Operation::ROXLm:	instruction = "ROXL.w";	break;
+		case Operation::ROXLb:			return "ROXL.b";
+		case Operation::ROXLw:			return "ROXL.w";
+		case Operation::ROXLl:			return "ROXL.l";
+		case Operation::ROXLm:			return "ROXL.w";
 
-		case Operation::ROXRb:	instruction = "ROXR.b";	break;
-		case Operation::ROXRw:	instruction = "ROXR.w";	break;
-		case Operation::ROXRl:	instruction = "ROXR.l";	break;
-		case Operation::ROXRm:	instruction = "ROXR.w";	break;
+		case Operation::ROXRb:			return "ROXR.b";
+		case Operation::ROXRw:			return "ROXR.w";
+		case Operation::ROXRl:			return "ROXR.l";
+		case Operation::ROXRm:			return "ROXR.w";
 
-		case Operation::MOVEMtoMl:	instruction = "MOVEM.l";	break;
-		case Operation::MOVEMtoMw:	instruction = "MOVEM.w";	break;
-		case Operation::MOVEMtoRl:
-			instruction = "MOVEM.l";
-			flip_operands = true;
-		break;
-		case Operation::MOVEMtoRw:
-			instruction = "MOVEM.w";
-			flip_operands = true;
-		break;
+		case Operation::MOVEMtoMl:		return "MOVEM.l";
+		case Operation::MOVEMtoMw:		return "MOVEM.w";
+		case Operation::MOVEMtoRl:		return "MOVEM.l";
+		case Operation::MOVEMtoRw:		return "MOVEM.w";
 
-		case Operation::MOVEPl:	instruction = "MOVEP.l";	break;
-		case Operation::MOVEPw:	instruction = "MOVEP.w";	break;
+		case Operation::MOVEPl:			return "MOVEP.l";
+		case Operation::MOVEPw:			return "MOVEP.w";
 
-		case Operation::ANDb:	instruction = "AND.b";	break;
-		case Operation::ANDw:	instruction = "AND.w";	break;
-		case Operation::ANDl:	instruction = "AND.l";	break;
+		case Operation::ANDb:			return "AND.b";
+		case Operation::ANDw:			return "AND.w";
+		case Operation::ANDl:			return "AND.l";
 
-		case Operation::EORb:	instruction = "EOR.b";	break;
-		case Operation::EORw:	instruction = "EOR.w";	break;
-		case Operation::EORl:	instruction = "EOR.l";	break;
+		case Operation::EORb:			return "EOR.b";
+		case Operation::EORw:			return "EOR.w";
+		case Operation::EORl:			return "EOR.l";
 
-		case Operation::NOTb:	instruction = "NOT.b";	break;
-		case Operation::NOTw:	instruction = "NOT.w";	break;
-		case Operation::NOTl:	instruction = "NOT.l";	break;
+		case Operation::NOTb:			return "NOT.b";
+		case Operation::NOTw:			return "NOT.w";
+		case Operation::NOTl:			return "NOT.l";
 
-		case Operation::ORb:	instruction = "OR.b";	break;
-		case Operation::ORw:	instruction = "OR.w";	break;
-		case Operation::ORl:	instruction = "OR.l";	break;
+		case Operation::ORb:			return "OR.b";
+		case Operation::ORw:			return "OR.w";
+		case Operation::ORl:			return "OR.l";
 
-		case Operation::MULU:	instruction = "MULU";	break;
-		case Operation::MULS:	instruction = "MULS";	break;
-		case Operation::DIVU:	instruction = "DIVU";	break;
-		case Operation::DIVS:	instruction = "DIVS";	break;
+		case Operation::MULU:			return "MULU";
+		case Operation::MULS:			return "MULS";
+		case Operation::DIVU:			return "DIVU";
+		case Operation::DIVS:			return "DIVS";
 
-		case Operation::RTE:	instruction = "RTE";	break;
-		case Operation::RTR:	instruction = "RTR";	break;
+		case Operation::RTE:			return "RTE";
+		case Operation::RTR:			return "RTR";
 
-		case Operation::TRAP:	instruction = "TRAP";	break;
-		case Operation::TRAPV:	instruction = "TRAPV";	break;
-		case Operation::CHK:	instruction = "CHK";	break;
+		case Operation::TRAP:			return "TRAP";
+		case Operation::TRAPV:			return "TRAPV";
+		case Operation::CHK:			return "CHK";
 
-		case Operation::EXG:	instruction = "EXG";	break;
-		case Operation::SWAP:	instruction = "SWAP";	break;
+		case Operation::EXG:			return "EXG";
+		case Operation::SWAP:			return "SWAP";
 
-		case Operation::TAS:	instruction = "TAS";	break;
+		case Operation::TAS:			return "TAS";
 
-		case Operation::EXTbtow:	instruction = "EXT.w";	break;
-		case Operation::EXTwtol:	instruction = "EXT.l";	break;
+		case Operation::EXTbtow:		return "EXT.w";
+		case Operation::EXTwtol:		return "EXT.l";
 
-		case Operation::LINKw:	instruction = "LINK";	break;
-		case Operation::UNLINK:	instruction = "UNLINK";	break;
+		case Operation::LINKw:			return "LINK";
+		case Operation::UNLINK:			return "UNLINK";
 
-		case Operation::STOP:	instruction = "STOP";	break;
-		case Operation::RESET:	instruction = "RESET";	break;
+		case Operation::STOP:			return "STOP";
+		case Operation::RESET:			return "RESET";
 
 		default:
 			assert(false);
 	}
+}
+
+}
+
+const char *InstructionSet::M68k::to_string(Operation operation) {
+	return _to_string(operation, false);
+}
+
+std::string Preinstruction::to_string(int opcode) const {
+	if(operation == Operation::Undefined) return "None";
+
+	const char *const instruction = _to_string(operation, mode<0>() == AddressingMode::Quick);
+	const bool flip_operands = (operation == Operation::MOVEMtoRl) || (operation == Operation::MOVEMtoRw);
 
 	const std::string operand1 = operand_description(0 ^ int(flip_operands), opcode);
 	const std::string operand2 = operand_description(1 ^ int(flip_operands), opcode);

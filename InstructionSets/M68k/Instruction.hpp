@@ -104,6 +104,8 @@ enum class Operation: uint8_t {
 	Max = RESET
 };
 
+const char *to_string(Operation op);
+
 template <Model model>
 constexpr bool requires_supervisor(Operation op) {
 	switch(op) {
