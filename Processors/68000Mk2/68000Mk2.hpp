@@ -354,6 +354,7 @@ class BusHandler {
 };
 
 struct State {
+	uint16_t prefetch[2];
 	InstructionSet::M68k::RegisterSet registers;
 };
 

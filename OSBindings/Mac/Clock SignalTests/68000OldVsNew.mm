@@ -252,6 +252,8 @@ void print_state(FILE *target, const CPU::MC68000Mk2::State &state, const std::v
 	fprintf(target, "\"SR\": %u, ", state.registers.status);
 	fprintf(target, "\"PC\": %u, ", state.registers.program_counter - 4);
 
+	fprintf(target, "\"prefetch\": [%u, %u], ", state.prefetch[0], state.prefetch[1]);
+
 	fprintf(target, "\"ram\": [");
 
 	// Compute RAM from transactions; if this is the initial state then RAM should
