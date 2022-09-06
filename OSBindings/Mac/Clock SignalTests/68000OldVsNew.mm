@@ -243,17 +243,17 @@ template <typename M68000> struct Tester {
 
 void print_state(FILE *target, const CPU::MC68000Mk2::State &state, const std::vector<Transaction> &transactions, bool is_initial) {
 	for(int c = 0; c < 8; c++) {
-		fprintf(target, "\"D%d\": %u, ", c, state.registers.data[c]);
+		fprintf(target, "\"d%d\": %u, ", c, state.registers.data[c]);
 	}
 
 	for(int c = 0; c < 7; c++) {
-		fprintf(target, "\"A%d\": %u, ", c, state.registers.address[c]);
+		fprintf(target, "\"a%d\": %u, ", c, state.registers.address[c]);
 	}
 
-	fprintf(target, "\"USP\": %u, ", state.registers.user_stack_pointer);
-	fprintf(target, "\"SSP\": %u, ", state.registers.supervisor_stack_pointer);
-	fprintf(target, "\"SR\": %u, ", state.registers.status);
-	fprintf(target, "\"PC\": %u, ", state.registers.program_counter - 4);
+	fprintf(target, "\"usp\": %u, ", state.registers.user_stack_pointer);
+	fprintf(target, "\"ssp\": %u, ", state.registers.supervisor_stack_pointer);
+	fprintf(target, "\"sr\": %u, ", state.registers.status);
+	fprintf(target, "\"pc\": %u, ", state.registers.program_counter - 4);
 
 	fprintf(target, "\"prefetch\": [%u, %u], ", state.prefetch[0], state.prefetch[1]);
 
@@ -358,6 +358,9 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 			} else {
 				fprintf(target, "\"t\", ");
 			}
+
+			// Include next in the calculation of time below.
+			++next;
 		}
 		HalfCycles length;
 		if(next == transactions.end()) {
@@ -368,6 +371,10 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 		fprintf(target, "%d", length.as<int>() >> 1);
 
 		if(is_access) {
+			// Undo the 'move to one after' step that allowed next to be included
+			// in this transaction's cycle count.
+			--next;
+
 			fprintf(target, ", %d, ", iterator->function_code);
 			fprintf(target, "%d, ", iterator->address & 0xff'ffff);
 
@@ -412,7 +419,7 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 			continue;
 		}
 
-		const auto operation = to_string(instruction.operation);
+		const auto operation = instruction.operation_string();
 		opcodesByOperation[operation].push_back(c);
 	}
 
@@ -430,6 +437,7 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 		NSString *const targetName = [NSString stringWithFormat:@"%@%s.json", tempDir, pair.first];
 		FILE *const target = fopen(targetName.UTF8String, "wt");
 
+		const bool force_addresses_even = decoder.decode(pair.second[0]).operation == InstructionSet::M68k::Operation::UNLINK;
 		bool is_first_test = true;
 		fprintf(target, "[");
 
@@ -448,24 +456,34 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 			// Generate a random initial register state.
 			auto initialState = tester->processor.get_state();
 
+			// Require address pointers to be even 99% of the time, or always for UNLINK.
+			const bool addresses_are_even = (rand() >= int(float(RAND_MAX) * 0.99f)) || force_addresses_even;
 			for(int c = 0; c < 8; c++) {
 				initialState.registers.data[c] = rand() ^ (rand() << 1);
-				if(c != 7) initialState.registers.address[c] = rand() << 1;
+				if(c != 7) {
+					initialState.registers.address[c] = rand() ^ (rand() << 1);
+					if(addresses_are_even) initialState.registers.address[c] &= ~1;
+				}
 			}
-			// Fully to paper over the two 68000s' different ways of doing a faked
-			// reset, pick a random status such that:
+
+			// Pick a random status such that:
 			//
-			//	(i) supervisor mode is active;
+			//	(i) supervisor mode is active 99% of the time;
 			//	(ii) trace is inactive; and
 			//	(iii) interrupt level is 7.
-			initialState.registers.status = (rand() | (1 << 13) | (7 << 8)) & ~(1 << 15);
+			const bool is_supervisor = rand() >= int(float(RAND_MAX) * 0.99f);
+			initialState.registers.status = (rand() | (int(is_supervisor) << 13) | (7 << 8)) & ~(1 << 15);
 			initialState.registers.user_stack_pointer = rand() << 1;
-			initialState.registers.supervisor_stack_pointer = 0x800;
+			initialState.registers.supervisor_stack_pointer = rand() << 1;
 
 			// Set state.
 			tester->processor.set_state(initialState);
 
-			// Run a single instruction.
+			// Run for zero instructions to grab the real initial state (i.e. valid prefetch, ssp, etc).
+			tester->run_instructions(0);
+			auto populatedInitialState = tester->processor.get_state();
+
+			// Run for another instruction to do the actual work.
 			tester->run_instructions(1);
 
 			const auto finalState = tester->processor.get_state();
@@ -473,7 +491,7 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 			// Output initial state.
 			fprintf(target, "{ \"name\": \"%04x [%s] %d\", ", opcode, decoder.decode(opcode).to_string().c_str(), test + 1);
 			fprintf(target, "\"initial\": {");
-			print_state(target, initialState, tester->bus_handler.transactions, true);
+			print_state(target, populatedInitialState, tester->bus_handler.transactions, true);
 
 			// Output final state.
 			fprintf(target, "}, \"final\": {");
