@@ -269,3 +269,7 @@ std::string Preinstruction::to_string(int opcode) const {
 
 	return result;
 }
+
+const char *Preinstruction::operation_string() const {
+	return _to_string(operation, mode<0>() == AddressingMode::Quick);
+}
