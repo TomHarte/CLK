@@ -163,7 +163,7 @@ struct BusHandler {
 		}
 
 		// Push back only if interesting.
-		if(transaction.address_strobe || transaction.data_strobes || transaction.function_code == 7) {
+		if(capture_all_transactions || transaction.address_strobe || transaction.data_strobes || transaction.function_code == 7) {
 			if(transaction_delay) {
 				--transaction_delay;
 
@@ -181,6 +181,7 @@ struct BusHandler {
 
 	int transaction_delay;
 	int instructions;
+	bool capture_all_transactions = false;
 
 	HalfCycles time;
 	std::vector<Transaction> transactions;
@@ -298,21 +299,14 @@ void print_state(FILE *target, const CPU::MC68000Mk2::State &state, const std::v
 			switch(transaction.data_strobes) {
 				default: continue;
 				case 1:
-					if(ram.find(transaction.address) == ram.end()) {
-						ram[transaction.address] = transaction.value;
-					}
+					ram[transaction.address] = transaction.value;
 				break;
 				case 2:
-					if(ram.find(transaction.address) == ram.end()) {
-						ram[transaction.address] = uint8_t(transaction.value >> 8);
-					}
-					if(ram.find(transaction.address+1) == ram.end()) {
-						ram[transaction.address+1] = uint8_t(transaction.value);
-					}
+					ram[transaction.address] = uint8_t(transaction.value >> 8);
+					ram[transaction.address+1] = uint8_t(transaction.value);
 				break;
 			}
 		}
-
 	}
 
 	bool is_first = true;
@@ -406,6 +400,7 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> decoder;
 	RandomStore random_store;
 	auto tester = std::make_unique<Tester<NewProcessor>>(random_store, 0x02);
+	tester->bus_handler.capture_all_transactions = true;
 
 	// Bucket opcodes by operation.
 	std::unordered_map<const char *, std::vector<uint16_t>> opcodesByOperation;
@@ -480,8 +475,11 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 			tester->processor.set_state(initialState);
 
 			// Run for zero instructions to grab the real initial state (i.e. valid prefetch, ssp, etc).
+			// Then make sure no transactions or time carry over into the actual instruction.
 			tester->run_instructions(0);
 			auto populatedInitialState = tester->processor.get_state();
+			tester->bus_handler.transactions.clear();
+			tester->bus_handler.time = HalfCycles(0);
 
 			// Run for another instruction to do the actual work.
 			tester->run_instructions(1);
