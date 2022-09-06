@@ -14,8 +14,8 @@
 
 #include <array>
 #include <unordered_map>
+#include <unordered_set>
 #include <set>
-#include <map>
 
 namespace {
 
@@ -257,9 +257,9 @@ void print_state(FILE *target, const CPU::MC68000Mk2::State &state, const std::v
 	// Compute RAM from transactions; if this is the initial state then RAM should
 	// be everything that was subject to a read which had not previously been
 	// subject to a write. Otherwise it can just be everything.
-	std::map<uint32_t, uint8_t> ram;
+	std::unordered_map<uint32_t, uint8_t> ram;
 	if(is_initial) {
-		std::set<uint32_t> written_addresses;
+		std::unordered_set<uint32_t> written_addresses;
 
 		for(const auto &transaction: transactions) {
 			switch(transaction.data_strobes) {
@@ -392,14 +392,12 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 
 - (void)testGenerate {
 	srand(68000);
-
-	NSString *const tempDir = NSTemporaryDirectory();
-	NSLog(@"Outputting to %@", tempDir);
-
+	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> decoder;
 	RandomStore random_store;
 	auto tester = std::make_unique<Tester<NewProcessor>>(random_store, 0x02);
-	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> decoder;
 
+	// Bucket opcodes by operation.
+	std::unordered_map<const char *, std::vector<uint16_t>> opcodesByOperation;
 	for(int c = 0; c < 65536; c++) {
 		// Test only defined opcodes that aren't STOP (which will never teminate).
 		const auto instruction = decoder.decode(uint16_t(c));
@@ -410,20 +408,37 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 			continue;
 		}
 
-		NSString *const targetName = [NSString stringWithFormat:@"%@%04x.json", tempDir, c];
+		const auto operation = to_string(instruction.operation);
+		opcodesByOperation[operation].push_back(c);
+	}
+	NSLog(@"Generating for %lu operations", opcodesByOperation.size());
+
+	// Find somewhere to write to.
+	NSString *const tempDir = NSTemporaryDirectory();
+	NSLog(@"Outputting to %@", tempDir);
+
+	// Aim to get  at least 1,000,000 tests total.
+	const auto testsPerOperation = int((1'000'000 + (opcodesByOperation.size() - 1)) / opcodesByOperation.size());
+
+	// Generate by operation.
+	for(const auto &pair: opcodesByOperation) {
+		NSString *const targetName = [NSString stringWithFormat:@"%@%s.json", tempDir, pair.first];
 		FILE *const target = fopen(targetName.UTF8String, "wt");
 
 		bool is_first_test = true;
 		fprintf(target, "[");
 
-		// Test each 10000 times.
-		for(int test = 0; test < 10000; test++) {
+		// Test each for the selected number of iterations.
+		for(int test = 0; test < testsPerOperation; test++) {
 			if(!is_first_test) fprintf(target, ",\n");
 			is_first_test = false;
 
 			// Establish with certainty the initial memory state.
 			random_store.clear();
-			tester->reset_with_opcode(c);
+
+			const auto opcodeIndex = int(rand() * pair.second.size() / RAND_MAX);
+			const uint16_t opcode = pair.second[opcodeIndex];
+			tester->reset_with_opcode(opcode);
 
 			// Generate a random initial register state.
 			auto initialState = tester->processor.get_state();
@@ -451,7 +466,7 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 			const auto finalState = tester->processor.get_state();
 
 			// Output initial state.
-			fprintf(target, "{ \"name\": \"%04x [%s] %d\", ", c, instruction.to_string().c_str(), test + 1);
+			fprintf(target, "{ \"name\": \"%04x [%s] %d\", ", opcode, decoder.decode(opcode).to_string().c_str(), test + 1);
 			fprintf(target, "\"initial\": {");
 			print_state(target, initialState, tester->bus_handler.transactions, true);
 
