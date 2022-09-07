@@ -374,11 +374,9 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 
 			switch(next->data_strobes) {
 				default: assert(false);
-				case 1:	fprintf(target, "\".b\", ");	break;
-				case 2: fprintf(target, "\".w\", "); 	break;
-				break;
+				case 1:	fprintf(target, "\".b\", %d", next->value & 0xff);	break;
+				case 2:	fprintf(target, "\".w\", %d", next->value);			break;
 			}
-			fprintf(target, "%d", next->value);
 
 			++next;
 		}
