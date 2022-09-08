@@ -393,7 +393,8 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 
 @implementation M68000OldVsNewTests
 
-- (void)testGenerate {
+//- (void)testGenerate {
+- (void)generate {
 	srand(68000);
 	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> decoder;
 	RandomStore random_store;
@@ -555,7 +556,7 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 	int testsRun = 0;
 	std::set<InstructionSet::M68k::Operation> failing_operations;
 	for(int c = 0; c < 65536; c++) {
-//		printf("%04x\n", c);
+		printf("%04x\n", c);
 
 		// Test only defined opcodes that aren't STOP (which will never teminate).
 		const auto instruction = decoder.decode(uint16_t(c));
