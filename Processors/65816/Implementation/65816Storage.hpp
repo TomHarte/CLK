@@ -281,13 +281,36 @@ struct ProcessorStorage {
 
 		// Flags aplenty.
 		MOS6502Esque::LazyFlags flags;
-		uint8_t mx_flags[2] = {1, 1};			// [0] = m; [1] = x. In both cases either `0` or `1`; `1` => 8-bit.
-		uint16_t m_masks[2] = {0xff00, 0x00ff};	// [0] = src mask (i.e. that which is unaffected by an operation); [1] = dst mask (i.e. 0xffff ^ src mask).
-		uint16_t x_mask = 0x00ff;				// A mask representing the current size of the index registers. Equivalent to m_masks[1].
-		uint16_t e_masks[2] = {0xff00, 0x00ff};	// Akin to m_masks, but set as per emulation mode.
-		int m_shift = 0;						// How far to shift memory/A to align its sign bit with that of the flags register. i.e. 8 for 16-bit mode, 0 for 8-bit mode.
-		int x_shift = 0;						// m_shift equivalent for X and Y.
-		bool emulation_flag = true;				// The emulation flag; true = in emulation mode.
+
+		// [0] = m; [1] = x. In both cases either `0` or `1`; `1` => 8-bit.
+		uint8_t mx_flags[2] = {1, 1};
+
+		// Used to determine which parts of a register are currently in use, as a function
+		// of the M flag.
+		//
+		//	[0] = src mask (i.e. that which is unaffected by an operation);
+		//	[1] = dst mask (i.e. 0xffff ^ src mask).
+		//
+		// e.g. a LDA from the value Q would prima facie leave A as equal to:
+		//	(A & m_masks[0]) | (Q & m_masks[1]);
+		uint16_t m_masks[2] = {0xff00, 0x00ff};
+
+		// A mask representing the current size of the index registers.
+		// Equivalent in meaning to m_masks[1] but representative of the X flag.
+		uint16_t x_mask = 0x00ff;
+
+		// Akin to m_masks, but a function of emulation mode; used primarily for address calculation.
+		uint16_t e_masks[2] = {0xff00, 0x00ff};
+
+		// How far to shift memory/A to align its sign bit with that of the flags register.
+		// i.e. 8 for 16-bit mode, 0 for 8-bit mode.
+		int m_shift = 0;
+
+		// m_shift equivalent for X and Y.
+		int x_shift = 0;
+
+		// The emulation flag; true = in emulation mode.
+		bool emulation_flag = true;
 
 		// The offset for direct addressing (i.e. outside of emulation mode).
 		uint16_t direct = 0;
