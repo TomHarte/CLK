@@ -334,6 +334,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				case OperationConstructDirect:
 					data_address_ = (registers_.direct + instruction_buffer_.value) & 0xffff;
 					data_address_increment_mask_ = 0x00'ff'ff;
+
 					if(!(registers_.direct&0xff)) {
 						// If the low byte is 0 and this is emulation mode, incrementing
 						// is restricted to the low byte.
@@ -345,6 +346,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 				case OperationConstructDirectLong:
 					data_address_ = (registers_.direct + instruction_buffer_.value) & 0xffff;
 					data_address_increment_mask_ = 0x00'ff'ff;
+
 					if(!(registers_.direct&0xff)) {
 						++next_op_;
 					}
@@ -380,31 +382,41 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 					data_buffer_.clear();
 				continue;
 
-				// TODO: confirm incorrect_data_address_ below.
-
 				case OperationConstructDirectX:
-					data_address_ = (
-						(registers_.direct & registers_.e_masks[0]) +
-						((instruction_buffer_.value + registers_.direct + registers_.x.full) & registers_.e_masks[1])
-					) & 0xffff;
+					// There are no direct, x instructions that access a two-byte value when
+					// in emulation mode, so this can assume native mode.
 					data_address_increment_mask_ = 0x00'ff'ff;
 
-					incorrect_data_address_ = (registers_.direct & 0xff00) + (data_address_ & 0x00ff);
+					// If the low byte of the direct register is 0, use the current e mask
+					// potentially to keep the high byte of the direct register unmodified.
+					//
+					// Also skip the next program step, which would be a redundant fetch
+					// from the program counter.
+					//
+					// Otherwise: retain a 16-bit address.
+
+					data_address_ = instruction_buffer_.value + registers_.direct + registers_.x.full;
 					if(!(registers_.direct&0xff)) {
+						data_address_ =
+							(registers_.direct & registers_.e_masks[0]) |
+							(data_address_ & registers_.e_masks[1]);
 						++next_op_;
+					} else {
+						data_address_ &= 0xffff;
 					}
 				continue;
 
 				case OperationConstructDirectY:
-					data_address_ = (
-						(registers_.direct & registers_.e_masks[0]) +
-						((instruction_buffer_.value + registers_.direct + registers_.y.full) & registers_.e_masks[1])
-					) & 0xffff;
+					// Cf. comments above in DirectX.
 					data_address_increment_mask_ = 0x00'ff'ff;
-
-					incorrect_data_address_ = (registers_.direct & 0xff00) + (data_address_ & 0x00ff);
+					data_address_ = instruction_buffer_.value + registers_.direct + registers_.y.full;
 					if(!(registers_.direct&0xff)) {
+						data_address_ =
+							(registers_.direct & registers_.e_masks[0]) |
+							(data_address_ & registers_.e_masks[1]);
 						++next_op_;
+					} else {
+						data_address_ &= 0xffff;
 					}
 				continue;
 
