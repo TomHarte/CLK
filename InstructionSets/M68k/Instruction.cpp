@@ -245,6 +245,7 @@ const char *_to_string(Operation operation, bool is_quick) {
 
 		default:
 			assert(false);
+			return "???";
 	}
 }
 
