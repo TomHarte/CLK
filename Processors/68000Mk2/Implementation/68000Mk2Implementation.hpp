@@ -341,7 +341,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 	// Sets up the next data access size and read flags.
 #define SetupDataAccess(read_flag, select_flag)												\
 	access_announce.operation = Microcycle::NewAddress | Microcycle::IsData | (read_flag);	\
-	access.operation = access_announce.operation | (select_flag);
+	access.operation = Microcycle::SameAddress | Microcycle::IsData | (read_flag) | (select_flag);
 
 	// Sets the address source for the next data access.
 #define SetDataAddress(addr)							\
@@ -3025,6 +3025,9 @@ CPU::MC68000Mk2::State Processor<BusHandler, dtack_is_implicit, permit_overrun, 
 	state.registers.user_stack_pointer = stack_pointers_[0].l;
 	state.registers.supervisor_stack_pointer = stack_pointers_[1].l;
 
+	state.prefetch[0] = prefetch_.high.w;
+	state.prefetch[1] = prefetch_.low.w;
+
 	return state;
 }
 
@@ -3048,6 +3051,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 
 	// Ensure the local is-supervisor flag is updated.
 	did_update_status();
+
+	// Populate the prefetch.
+	prefetch_.high.w = state.prefetch[0];
+	prefetch_.low.w = state.prefetch[1];
 }
 
 template <class BusHandler, bool dtack_is_implicit, bool permit_overrun, bool signal_will_perform>
