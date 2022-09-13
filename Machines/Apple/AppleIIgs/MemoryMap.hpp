@@ -9,7 +9,6 @@
 #ifndef Machines_Apple_AppleIIgs_MemoryMap_hpp
 #define Machines_Apple_AppleIIgs_MemoryMap_hpp
 
-#include <algorithm>
 #include <array>
 #include <bitset>
 #include <vector>
@@ -27,7 +26,9 @@ class MemoryMap {
 	public:
 		// MARK: - Initial construction and configuration.
 
-		MemoryMap() : auxiliary_switches_(*this), language_card_(*this) {}
+		MemoryMap() : auxiliary_switches_(*this), language_card_(*this) {
+			setup_shadow_maps();
+		}
 
 		void set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
 			// Keep a pointer for later; also note the proper RAM offset.
@@ -457,8 +458,6 @@ class MemoryMap {
 			//	$6000–$a000 Odd banks only, rest of Super High-res
 			//	[plus IO and language card space, subject to your definition of shadowing]
 
-			static constexpr int shadow_shift = 10;
-
 			enum Inhibit {
 				TextPage1			= 0x01,
 				HighRes1			= 0x02,
@@ -468,21 +467,24 @@ class MemoryMap {
 				TextPage2			= 0x20,
 			};
 
-#define Fill(a, b, x)	std::fill(&shadow_pages[a >> shadow_shift], &shadow_pages[b >> shadow_shift], x);
+			// Clear all shadowing.
+			shadow_pages.reset();
 
 			// Text Page 1, main and auxiliary — $0400–$0800.
 			{
-				const bool shadow_text1 = !(shadow_register_ & Inhibit::TextPage1);
-				Fill(0x0'0400, 0x0'0800, shadow_text1);
-				Fill(0x1'0400, 0x1'0800, shadow_text1);
+				const bool should_shadow_text1 = !(shadow_register_ & Inhibit::TextPage1);
+				if(should_shadow_text1) {
+					shadow_pages |= shadow_text1;
+				}
 			}
 
 			// Text Page 2, main and auxiliary — 0x0800–0x0c00.
 			// TODO: on a ROM03 machine only.
 			{
-				const bool shadow_text2 = !(shadow_register_ & Inhibit::TextPage2);
-				Fill(0x0'0800, 0x0'0c00, shadow_text2);
-				Fill(0x1'0800, 0x1'0c00, shadow_text2);
+				const bool should_shadow_text2 = !(shadow_register_ & Inhibit::TextPage2);
+				if(should_shadow_text2) {
+					shadow_pages |= shadow_text2;
+				}
 			}
 
 			// Hi-res graphics Page 1, main and auxiliary — $2000–$4000;
@@ -496,14 +498,18 @@ class MemoryMap {
 			//	(super high-res inhibit).
 			//
 			{
-				const bool shadow_highres1 = !(shadow_register_ & Inhibit::HighRes1);
-				Fill(0x0'2000, 0x0'4000, shadow_highres1);
+				const bool should_shadow_highres1 = !(shadow_register_ & Inhibit::HighRes1);
+				if(should_shadow_highres1) {
+					shadow_pages |= shadow_highres1;
+				}
 
-				const bool shadow_aux_highres1 = !(
+				const bool should_shadow_aux_highres1 = !(
 					shadow_register_ & (Inhibit::HighRes1 | Inhibit::AuxiliaryHighRes) &&
 					shadow_register_ & Inhibit::SuperHighRes
 				);
-				Fill(0x1'2000, 0x1'4000, shadow_aux_highres1);
+				if(should_shadow_aux_highres1) {
+					shadow_pages |= shadow_highres1_aux;
+				}
 			}
 
 			// Hi-res graphics Page 2, main and auxiliary — $4000–$6000;
@@ -511,14 +517,18 @@ class MemoryMap {
 			//
 			// Test applied: much like that for page 1.
 			{
-				const bool shadow_highres2 = !(shadow_register_ & Inhibit::HighRes2);
-				Fill(0x0'4000, 0x0'6000, shadow_highres2);
+				const bool should_shadow_highres2 = !(shadow_register_ & Inhibit::HighRes2);
+				if(should_shadow_highres2) {
+					shadow_pages |= shadow_highres2;
+				}
 
-				const bool shadow_aux_highres2 = !(
+				const bool should_shadow_aux_highres2 = !(
 					shadow_register_ & (Inhibit::HighRes2 | Inhibit::AuxiliaryHighRes) &&
 					shadow_register_ & Inhibit::SuperHighRes
 				);
-				Fill(0x1'4000, 0x1'6000, shadow_aux_highres2);
+				if(should_shadow_aux_highres2) {
+					shadow_pages |= shadow_highres2_aux;
+				}
 			}
 
 			// Residue of Super Hi-Res — $6000–$a000 (odd pages only).
@@ -526,14 +536,14 @@ class MemoryMap {
 			// Test applied:
 			//	auxiliary high res graphics inhibit and super high-res inhibit
 			{
-				const bool shadow_superhighres = !(
+				const bool should_shadow_superhighres = !(
 					shadow_register_ & Inhibit::SuperHighRes &&
 					shadow_register_ & Inhibit::AuxiliaryHighRes
 				);
-				Fill(0x1'6000, 0x1'a000, shadow_superhighres);
+				if(should_shadow_superhighres) {
+					shadow_pages |= shadow_superhighres;
+				}
 			}
-
-#undef Fill
 		}
 
 		void print_state() {
@@ -554,6 +564,42 @@ class MemoryMap {
 		}
 
 #undef assert_is_region
+
+	private:
+		// Various precomputed bitsets describing key regions; std::bitset doesn't support constexpr instantiation
+		// beyond the first 64 bits at the time of writing, alas, so these are generated at runtime.
+		std::bitset<128> shadow_text1;
+		std::bitset<128> shadow_text2;
+		std::bitset<128> shadow_highres1, shadow_highres1_aux;
+		std::bitset<128> shadow_highres2, shadow_highres2_aux;
+		std::bitset<128> shadow_superhighres;
+
+		void setup_shadow_maps() {
+			static constexpr int shadow_shift = 10;
+			static constexpr int auxiliary_offset = 0x1'0000 >> shadow_shift;
+
+			for(size_t c = 0x0400 >> shadow_shift; c < 0x0800 >> shadow_shift; c++) {
+				shadow_text1[c] = shadow_text1[c+auxiliary_offset] = true;
+			}
+
+			for(size_t c = 0x0800 >> shadow_shift; c < 0x0c00 >> shadow_shift; c++) {
+				shadow_text2[c] = shadow_text2[c+auxiliary_offset] = true;
+			}
+
+			for(size_t c = 0x2000 >> shadow_shift; c < 0x4000 >> shadow_shift; c++) {
+				shadow_highres1[c] = true;
+				shadow_highres1_aux[c+auxiliary_offset] = true;
+			}
+
+			for(size_t c = 0x4000 >> shadow_shift; c < 0x6000 >> shadow_shift; c++) {
+				shadow_highres2[c] = true;
+				shadow_highres2_aux[c+auxiliary_offset] = true;
+			}
+
+			for(size_t c = 0x6000 >> shadow_shift; c < 0xa000 >> shadow_shift; c++) {
+				shadow_superhighres[c+auxiliary_offset] = true;
+			}
+		}
 
 	public:
 		// Memory layout here is done via double indirection; the main loop should:
