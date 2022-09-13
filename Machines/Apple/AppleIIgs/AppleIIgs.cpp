@@ -200,6 +200,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::AppleIIgs::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			m65816_(*this),
+			memory_(target.model >= Analyser::Static::AppleIIgs::Target::Model::ROM03),
 			iwm_(CLOCK_RATE / 2),
 			drives35_{
 		 		{CLOCK_RATE / 2, true},

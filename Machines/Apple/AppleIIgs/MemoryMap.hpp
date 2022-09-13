@@ -26,8 +26,8 @@ class MemoryMap {
 	public:
 		// MARK: - Initial construction and configuration.
 
-		MemoryMap() : auxiliary_switches_(*this), language_card_(*this) {
-			setup_shadow_maps();
+		MemoryMap(bool is_rom03) : auxiliary_switches_(*this), language_card_(*this) {
+			setup_shadow_maps(is_rom03);
 		}
 
 		void set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
@@ -479,7 +479,8 @@ class MemoryMap {
 			}
 
 			// Text Page 2, main and auxiliary — 0x0800–0x0c00.
-			// TODO: on a ROM03 machine only.
+			//
+			// The mask applied will be all 0 for a pre-ROM03 machine.
 			{
 				const bool should_shadow_text2 = !(shadow_register_ & Inhibit::TextPage2);
 				if(should_shadow_text2) {
@@ -574,7 +575,7 @@ class MemoryMap {
 		std::bitset<128> shadow_highres2, shadow_highres2_aux;
 		std::bitset<128> shadow_superhighres;
 
-		void setup_shadow_maps() {
+		void setup_shadow_maps(bool is_rom03) {
 			static constexpr int shadow_shift = 10;
 			static constexpr int auxiliary_offset = 0x1'0000 >> shadow_shift;
 
@@ -582,8 +583,11 @@ class MemoryMap {
 				shadow_text1[c] = shadow_text1[c+auxiliary_offset] = true;
 			}
 
-			for(size_t c = 0x0800 >> shadow_shift; c < 0x0c00 >> shadow_shift; c++) {
-				shadow_text2[c] = shadow_text2[c+auxiliary_offset] = true;
+			// Shadowing of text page 2 was added only with the ROM03 machine.
+			if(is_rom03) {
+				for(size_t c = 0x0800 >> shadow_shift; c < 0x0c00 >> shadow_shift; c++) {
+					shadow_text2[c] = shadow_text2[c+auxiliary_offset] = true;
+				}
 			}
 
 			for(size_t c = 0x2000 >> shadow_shift; c < 0x4000 >> shadow_shift; c++) {
