@@ -8,11 +8,17 @@
 
 #include "ncr5380.hpp"
 
-#ifndef NDEBUG
-#define NDEBUG
-#endif
+//#ifndef NDEBUG
+//#define NDEBUG
+//#endif
+#define LOG_PREFIX "[5380] "
 
 #include "../../Outputs/Log.hpp"
+
+// TODO:
+//
+//	end_of_dma_ should be set if: /EOP && /DACK && (/RD || /WR); for at least 100ns.
+
 
 using namespace NCR::NCR5380;
 using SCSI::Line;
@@ -32,7 +38,7 @@ NCR5380::NCR5380(SCSI::Bus &bus, int clock_rate) :
 void NCR5380::write(int address, uint8_t value, bool) {
 	switch(address & 7) {
 		case 0:
-			LOG("[SCSI 0] Set current SCSI bus state to " << PADHEX(2) << int(value));
+			LOG("[0] Set current SCSI bus state to " << PADHEX(2) << int(value));
 
 			data_bus_ = value;
 			if(dma_request_ && dma_operation_ == DMAOperation::Send) {
@@ -41,7 +47,7 @@ void NCR5380::write(int address, uint8_t value, bool) {
 		break;
 
 		case 1: {
-			LOG("[SCSI 1] Initiator command register set: " << PADHEX(2) << int(value));
+			LOG("[1] Initiator command register set: " << PADHEX(2) << int(value));
 			initiator_command_ = value;
 
 			bus_output_ &= ~(Line::Reset | Line::Acknowledge | Line::Busy | Line::SelectTarget | Line::Attention);
@@ -57,7 +63,7 @@ void NCR5380::write(int address, uint8_t value, bool) {
 		} break;
 
 		case 2:
-			LOG("[SCSI 2] Set mode: " << PADHEX(2) << int(value));
+			LOG("[2] Set mode: " << PADHEX(2) << int(value));
 			mode_ = value;
 
 			// bit 7: 1 = use block mode DMA mode (if DMA mode is also enabled)
@@ -88,31 +94,36 @@ void NCR5380::write(int address, uint8_t value, bool) {
 					bus_.update_observers();
 				break;
 			}
+
+			// "[The End of DMA Transfer] bit is reset when the DMA MODE bit
+			// is reset (0) in the Mode Register".
+			end_of_dma_ &= bool(value & 0x2);
+
 			update_control_output();
 		break;
 
 		case 3: {
-			LOG("[SCSI 3] Set target command: " << PADHEX(2) << int(value));
+			LOG("[3] Set target command: " << PADHEX(2) << int(value));
 			target_command_ = value;
 			update_control_output();
 		} break;
 
 		case 4:
-			LOG("[SCSI 4] Set select enabled: " << PADHEX(2) << int(value));
+			LOG("[4] Set select enabled: " << PADHEX(2) << int(value));
 		break;
 
 		case 5:
-			LOG("[SCSI 5] Start DMA send: " << PADHEX(2) << int(value));
+			LOG("[5] Start DMA send: " << PADHEX(2) << int(value));
 			dma_operation_ = DMAOperation::Send;
 		break;
 
 		case 6:
-			LOG("[SCSI 6] Start DMA target receive: " << PADHEX(2) << int(value));
+			LOG("[6] Start DMA target receive: " << PADHEX(2) << int(value));
 			dma_operation_ = DMAOperation::TargetReceive;
 		break;
 
 		case 7:
-			LOG("[SCSI 7] Start DMA initiator receive: " << PADHEX(2) << int(value));
+			LOG("[7] Start DMA initiator receive: " << PADHEX(2) << int(value));
 			dma_operation_ = DMAOperation::InitiatorReceive;
 		break;
 	}
@@ -136,7 +147,7 @@ void NCR5380::write(int address, uint8_t value, bool) {
 uint8_t NCR5380::read(int address, bool) {
 	switch(address & 7) {
 		case 0:
-			LOG("[SCSI 0] Get current SCSI bus state: " << PADHEX(2) << (bus_.get_state() & 0xff));
+			LOG("[0] Get current SCSI bus state: " << PADHEX(2) << (bus_.get_state() & 0xff));
 
 			if(dma_request_ && dma_operation_ == DMAOperation::InitiatorReceive) {
 				return dma_acknowledge();
@@ -144,7 +155,7 @@ uint8_t NCR5380::read(int address, bool) {
 		return uint8_t(bus_.get_state());
 
 		case 1:
-			LOG("[SCSI 1] Initiator command register get: " << (arbitration_in_progress_ ? 'p' : '-') <<  (lost_arbitration_ ? 'l' : '-'));
+			LOG("[1] Initiator command register get: " << (arbitration_in_progress_ ? 'p' : '-') <<  (lost_arbitration_ ? 'l' : '-'));
 		return
 			// Bits repeated as they were set.
 			(initiator_command_ & ~0x60) |
@@ -156,11 +167,11 @@ uint8_t NCR5380::read(int address, bool) {
 			(lost_arbitration_ ? 0x20 : 0x00);
 
 		case 2:
-			LOG("[SCSI 2] Get mode");
+			LOG("[2] Get mode");
 		return mode_;
 
 		case 3:
-			LOG("[SCSI 3] Get target command");
+			LOG("[3] Get target command");
 		return target_command_;
 
 		case 4: {
@@ -174,41 +185,37 @@ uint8_t NCR5380::read(int address, bool) {
 				((bus_state & Line::Input)			? 0x04 : 0x00) |
 				((bus_state & Line::SelectTarget)	? 0x02 : 0x00) |
 				((bus_state & Line::Parity)			? 0x01 : 0x00);
-			LOG("[SCSI 4] Get current bus state: " << PADHEX(2) << int(result));
+			LOG("[4] Get current bus state: " << PADHEX(2) << int(result));
 			return result;
 		}
 
 		case 5: {
 			const auto bus_state = bus_.get_state();
-			const bool phase_matches =
-				(target_output() & (Line::Message | Line::Control | Line::Input)) ==
-				(bus_state & (Line::Message | Line::Control | Line::Input));
-
 			const uint8_t result =
-				/* b7 = end of DMA */
+				(end_of_dma_ ? 0x80 : 0x00) |
 				((dma_request_ && state_ == ExecutionState::PerformingDMA) ? 0x40 : 0x00)	|
 				/* b5 = parity error */
 				/* b4 = IRQ active */
-				(phase_matches ? 0x08 : 0x00)	|
+				(phase_matches() ? 0x08 : 0x00)	|
 				/* b2 = busy error */
 				((bus_state & Line::Attention) ? 0x02 : 0x00) |
 				((bus_state & Line::Acknowledge) ? 0x01 : 0x00);
-			LOG("[SCSI 5] Get bus and status: " << PADHEX(2) << int(result));
+			LOG("[5] Get bus and status: " << PADHEX(2) << int(result));
 			return result;
 		}
 
 		case 6:
-			LOG("[SCSI 6] Get input data");
+			LOG("[6] Get input data");
 		return 0xff;
 
 		case 7:
-			LOG("[SCSI 7] Reset parity/interrupt");
+			LOG("[7] Reset parity/interrupt");
 		return 0xff;
 	}
 	return 0;
 }
 
-SCSI::BusState NCR5380::target_output() {
+SCSI::BusState NCR5380::target_output() const {
 	SCSI::BusState output = SCSI::DefaultBusState;
 	if(target_command_ & 0x08) output |= Line::Request;
 	if(target_command_ & 0x04) output |= Line::Message;
@@ -233,6 +240,14 @@ void NCR5380::update_control_output() {
 }
 
 void NCR5380::scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double time_since_change) {
+
+	/*
+		When connected as an Initiator with DMA Mode True,
+		if the phase lines I//O, C//D, and /MSG do not match the
+		phase bits in the Target Command Register, a phase mismatch
+		interrupt is generated when /REQ goes active.
+	*/
+
 	switch(state_) {
 		default: break;
 
@@ -340,4 +355,11 @@ void NCR5380::dma_acknowledge(uint8_t value) {
 	dma_request_ = false;
 	update_control_output();
 	bus_.set_device_output(device_id_, bus_output_);
+}
+
+bool NCR5380::phase_matches() const {
+	const auto bus_state = bus_.get_state();
+	return
+		(target_output() & (Line::Message | Line::Control | Line::Input)) ==
+		(bus_state & (Line::Message | Line::Control | Line::Input));
 }

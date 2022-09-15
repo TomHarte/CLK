@@ -58,6 +58,7 @@ class NCR5380 final: public SCSI::Bus::Observer {
 		bool assert_data_bus_ = false;
 		bool dma_request_ = false;
 		bool dma_acknowledge_ = false;
+		bool end_of_dma_ = false;
 
 		enum class ExecutionState {
 			None,
@@ -75,10 +76,11 @@ class NCR5380 final: public SCSI::Bus::Observer {
 
 		void set_execution_state(ExecutionState state);
 
-		SCSI::BusState target_output();
+		SCSI::BusState target_output() const;
 		void update_control_output();
 
 		void scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double time_since_change) final;
+		bool phase_matches() const;
 };
 
 }
