@@ -26,7 +26,9 @@ class MemoryMap {
 	public:
 		// MARK: - Initial construction and configuration.
 
-		MemoryMap() : auxiliary_switches_(*this), language_card_(*this) {}
+		MemoryMap(bool is_rom03) : auxiliary_switches_(*this), language_card_(*this) {
+			setup_shadow_maps(is_rom03);
+		}
 
 		void set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
 			// Keep a pointer for later; also note the proper RAM offset.
@@ -456,9 +458,6 @@ class MemoryMap {
 			//	$6000–$a000 Odd banks only, rest of Super High-res
 			//	[plus IO and language card space, subject to your definition of shadowing]
 
-			static constexpr int shadow_shift = 10;
-			static constexpr int auxiliary_offset = 0x1'0000 >> shadow_shift;
-
 			enum Inhibit {
 				TextPage1			= 0x01,
 				HighRes1			= 0x02,
@@ -468,15 +467,25 @@ class MemoryMap {
 				TextPage2			= 0x20,
 			};
 
+			// Clear all shadowing.
+			shadow_pages.reset();
+
 			// Text Page 1, main and auxiliary — $0400–$0800.
-			for(size_t c = 0x0400 >> shadow_shift; c < 0x0800 >> shadow_shift; c++) {
-				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & Inhibit::TextPage1);
+			{
+				const bool should_shadow_text1 = !(shadow_register_ & Inhibit::TextPage1);
+				if(should_shadow_text1) {
+					shadow_pages |= shadow_text1;
+				}
 			}
 
 			// Text Page 2, main and auxiliary — 0x0800–0x0c00.
-			// TODO: on a ROM03 machine only.
-			for(size_t c = 0x0800 >> shadow_shift; c < 0x0c00 >> shadow_shift; c++) {
-				shadow_pages[c] = shadow_pages[c+auxiliary_offset] = !(shadow_register_ & Inhibit::TextPage2);
+			//
+			// The mask applied will be all 0 for a pre-ROM03 machine.
+			{
+				const bool should_shadow_text2 = !(shadow_register_ & Inhibit::TextPage2);
+				if(should_shadow_text2) {
+					shadow_pages |= shadow_text2;
+				}
 			}
 
 			// Hi-res graphics Page 1, main and auxiliary — $2000–$4000;
@@ -486,35 +495,55 @@ class MemoryMap {
 			//	high-res graphics page 1 inhibit bit alone is definitive.
 			//
 			// Odd test:
-			//	(high-res graphics inhibit or auxiliary high res graphics inhibit) _and_ (super high-res inhibit).
+			//	(high-res graphics inhibit or auxiliary high res graphics inhibit) _and_
+			//	(super high-res inhibit).
 			//
-			for(size_t c = 0x2000 >> shadow_shift; c < 0x4000 >> shadow_shift; c++) {
-				shadow_pages[c] = !(shadow_register_ & Inhibit::HighRes1);
-				shadow_pages[c+auxiliary_offset] = !(
+			{
+				const bool should_shadow_highres1 = !(shadow_register_ & Inhibit::HighRes1);
+				if(should_shadow_highres1) {
+					shadow_pages |= shadow_highres1;
+				}
+
+				const bool should_shadow_aux_highres1 = !(
 					shadow_register_ & (Inhibit::HighRes1 | Inhibit::AuxiliaryHighRes) &&
 					shadow_register_ & Inhibit::SuperHighRes
 				);
+				if(should_shadow_aux_highres1) {
+					shadow_pages |= shadow_highres1_aux;
+				}
 			}
 
 			// Hi-res graphics Page 2, main and auxiliary — $4000–$6000;
 			// also part of the super high-res graphics page.
 			//
 			// Test applied: much like that for page 1.
-			for(size_t c = 0x4000 >> shadow_shift; c < 0x6000 >> shadow_shift; c++) {
-				shadow_pages[c] = !(shadow_register_ & Inhibit::HighRes2);
-				shadow_pages[c+auxiliary_offset] = !(
+			{
+				const bool should_shadow_highres2 = !(shadow_register_ & Inhibit::HighRes2);
+				if(should_shadow_highres2) {
+					shadow_pages |= shadow_highres2;
+				}
+
+				const bool should_shadow_aux_highres2 = !(
 					shadow_register_ & (Inhibit::HighRes2 | Inhibit::AuxiliaryHighRes) &&
 					shadow_register_ & Inhibit::SuperHighRes
 				);
+				if(should_shadow_aux_highres2) {
+					shadow_pages |= shadow_highres2_aux;
+				}
 			}
 
 			// Residue of Super Hi-Res — $6000–$a000 (odd pages only).
 			//
 			// Test applied:
 			//	auxiliary high res graphics inhibit and super high-res inhibit
-			for(size_t c = 0x6000 >> shadow_shift; c < 0xa000 >> shadow_shift; c++) {
-				shadow_pages[c+auxiliary_offset] =
-					!(shadow_register_ & Inhibit::SuperHighRes && shadow_register_ & Inhibit::AuxiliaryHighRes);
+			{
+				const bool should_shadow_superhighres = !(
+					shadow_register_ & Inhibit::SuperHighRes &&
+					shadow_register_ & Inhibit::AuxiliaryHighRes
+				);
+				if(should_shadow_superhighres) {
+					shadow_pages |= shadow_superhighres;
+				}
 			}
 		}
 
@@ -536,6 +565,45 @@ class MemoryMap {
 		}
 
 #undef assert_is_region
+
+	private:
+		// Various precomputed bitsets describing key regions; std::bitset doesn't support constexpr instantiation
+		// beyond the first 64 bits at the time of writing, alas, so these are generated at runtime.
+		std::bitset<128> shadow_text1;
+		std::bitset<128> shadow_text2;
+		std::bitset<128> shadow_highres1, shadow_highres1_aux;
+		std::bitset<128> shadow_highres2, shadow_highres2_aux;
+		std::bitset<128> shadow_superhighres;
+
+		void setup_shadow_maps(bool is_rom03) {
+			static constexpr int shadow_shift = 10;
+			static constexpr int auxiliary_offset = 0x1'0000 >> shadow_shift;
+
+			for(size_t c = 0x0400 >> shadow_shift; c < 0x0800 >> shadow_shift; c++) {
+				shadow_text1[c] = shadow_text1[c+auxiliary_offset] = true;
+			}
+
+			// Shadowing of text page 2 was added only with the ROM03 machine.
+			if(is_rom03) {
+				for(size_t c = 0x0800 >> shadow_shift; c < 0x0c00 >> shadow_shift; c++) {
+					shadow_text2[c] = shadow_text2[c+auxiliary_offset] = true;
+				}
+			}
+
+			for(size_t c = 0x2000 >> shadow_shift; c < 0x4000 >> shadow_shift; c++) {
+				shadow_highres1[c] = true;
+				shadow_highres1_aux[c+auxiliary_offset] = true;
+			}
+
+			for(size_t c = 0x4000 >> shadow_shift; c < 0x6000 >> shadow_shift; c++) {
+				shadow_highres2[c] = true;
+				shadow_highres2_aux[c+auxiliary_offset] = true;
+			}
+
+			for(size_t c = 0x6000 >> shadow_shift; c < 0xa000 >> shadow_shift; c++) {
+				shadow_superhighres[c+auxiliary_offset] = true;
+			}
+		}
 
 	public:
 		// Memory layout here is done via double indirection; the main loop should:

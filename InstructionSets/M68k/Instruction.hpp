@@ -104,6 +104,8 @@ enum class Operation: uint8_t {
 	Max = RESET
 };
 
+const char *to_string(Operation op);
+
 template <Model model>
 constexpr bool requires_supervisor(Operation op) {
 	switch(op) {
@@ -346,6 +348,12 @@ class Preinstruction {
 		/// is supplied then any quick fields in this instruction will be decoded;
 		/// otherwise they'll be printed as just 'Q'.
 		std::string to_string(int opcode = -1) const;
+
+		/// Produces a slightly-more-idiomatic version of the operation name than
+		/// a direct to_string(instruction.operation) would, given that this decoder
+		/// sometimes aliases operations, disambiguating based on addressing mode
+		/// (e.g. MOVEQ is MOVE.l with the Q addressing mode).
+		const char *operation_string() const;
 };
 
 }

@@ -14,6 +14,7 @@
 
 #include <array>
 #include <unordered_map>
+#include <unordered_set>
 #include <set>
 
 namespace {
@@ -56,16 +57,18 @@ struct Transaction {
 	uint32_t address = 0;
 	uint16_t value = 0;
 	bool address_strobe = false;
+	bool same_address = false;
 	bool read = false;
 	int data_strobes = 0;
 
-	bool operator !=(const Transaction &rhs) const {
+	bool operator != (const Transaction &rhs) const {
 		if(timestamp != rhs.timestamp) return true;
 //		if(function_code != rhs.function_code) return true;
 		if(address != rhs.address) return true;
 		if(value != rhs.value) return true;
 		if(address_strobe != rhs.address_strobe) return true;
 		if(data_strobes != rhs.data_strobes) return true;
+		if(same_address != rhs.same_address) return true;
 		return false;
 	}
 
@@ -108,6 +111,7 @@ struct BusHandler {
 			transaction.function_code |= (cycle.operation & Microcycle::IsData) ? 0x1 : 0x2;
 		}
 		transaction.address_strobe = cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress);
+		transaction.same_address = cycle.operation & Microcycle::SameAddress;
 		transaction.data_strobes = cycle.operation & (Microcycle::SelectByte | Microcycle::SelectWord);
 		if(cycle.address) transaction.address = *cycle.address & 0xffff'ff;
 		transaction.timestamp = time;
@@ -116,7 +120,7 @@ struct BusHandler {
 		time += cycle.length;
 
 		// Do the operation...
-		const uint32_t address = cycle.address ? (*cycle.address & 0xffff'ff) : 0;
+		const uint32_t address = cycle.address ? (*cycle.address & 0xff'ffff) : 0;
 		switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 			default: break;
 
@@ -153,14 +157,13 @@ struct BusHandler {
 			break;
 		}
 
-
 		// Add the data value if relevant.
 		if(transaction.data_strobes) {
 			transaction.value = cycle.value16();
 		}
 
 		// Push back only if interesting.
-		if(transaction.address_strobe || transaction.data_strobes || transaction.function_code == 7) {
+		if(capture_all_transactions || transaction.address_strobe || transaction.data_strobes || transaction.function_code == 7) {
 			if(transaction_delay) {
 				--transaction_delay;
 
@@ -178,6 +181,7 @@ struct BusHandler {
 
 	int transaction_delay;
 	int instructions;
+	bool capture_all_transactions = false;
 
 	HalfCycles time;
 	std::vector<Transaction> transactions;
@@ -238,12 +242,270 @@ template <typename M68000> struct Tester {
 	M68000 processor;
 };
 
+void print_state(FILE *target, const CPU::MC68000Mk2::State &state, const std::vector<Transaction> &transactions, bool is_initial) {
+	for(int c = 0; c < 8; c++) {
+		fprintf(target, "\"d%d\": %u, ", c, state.registers.data[c]);
+	}
+
+	for(int c = 0; c < 7; c++) {
+		fprintf(target, "\"a%d\": %u, ", c, state.registers.address[c]);
+	}
+
+	fprintf(target, "\"usp\": %u, ", state.registers.user_stack_pointer);
+	fprintf(target, "\"ssp\": %u, ", state.registers.supervisor_stack_pointer);
+	fprintf(target, "\"sr\": %u, ", state.registers.status);
+	fprintf(target, "\"pc\": %u, ", state.registers.program_counter - 4);
+
+	fprintf(target, "\"prefetch\": [%u, %u], ", state.prefetch[0], state.prefetch[1]);
+
+	fprintf(target, "\"ram\": [");
+
+	// Compute RAM from transactions; if this is the initial state then RAM should
+	// be everything that was subject to a read which had not previously been
+	// subject to a write. Otherwise it can just be everything.
+	std::unordered_map<uint32_t, uint8_t> ram;
+	if(is_initial) {
+		std::unordered_set<uint32_t> written_addresses;
+
+		for(const auto &transaction: transactions) {
+			switch(transaction.data_strobes) {
+				default: continue;
+				case 1:
+					if(transaction.read) {
+						if(ram.find(transaction.address) == ram.end()) {
+							ram[transaction.address] = transaction.value;
+						}
+					} else {
+						written_addresses.insert(transaction.address);
+					}
+				break;
+				case 2:
+					if(transaction.read) {
+						if(ram.find(transaction.address) == ram.end()) {
+							ram[transaction.address] = uint8_t(transaction.value >> 8);
+						}
+						if(ram.find(transaction.address+1) == ram.end()) {
+							ram[transaction.address+1] = uint8_t(transaction.value);
+						}
+					} else {
+						written_addresses.insert(transaction.address);
+						written_addresses.insert(transaction.address + 1);
+					}
+				break;
+			}
+		}
+	} else {
+		for(const auto &transaction: transactions) {
+			switch(transaction.data_strobes) {
+				default: continue;
+				case 1:
+					ram[transaction.address] = transaction.value;
+				break;
+				case 2:
+					ram[transaction.address] = uint8_t(transaction.value >> 8);
+					ram[transaction.address+1] = uint8_t(transaction.value);
+				break;
+			}
+		}
+	}
+
+	bool is_first = true;
+	for(const auto &pair: ram) {
+		if(!is_first) fprintf(target, ", ");
+		is_first = false;
+		fprintf(target, "[%d, %d]", pair.first, pair.second);
+	}
+	fprintf(target, "]");
+}
+
+void print_transactions(FILE *target, const std::vector<Transaction> &transactions, HalfCycles end) {
+	auto iterator = transactions.begin();
+	bool is_first = true;
+	do {
+		if(!is_first) fprintf(target, ", ");
+		is_first = false;
+		fprintf(target, "[");
+
+		auto next = iterator + 1;
+
+		// Attempt to pair off transactions to reproduct YACHT notation.
+		bool is_access = true;
+		if(!iterator->address_strobe && !iterator->data_strobes) {
+			fprintf(target, "\"n\", ");
+			is_access = false;
+		} else {
+			assert(!iterator->data_strobes);
+
+			// Check how many transactions this address persists for;
+			// that'll allow a TAS to be recognised here.
+			while(next->same_address && next != transactions.end()) {
+				++next;
+			}
+			--next;
+
+			if(next == iterator + 1) {
+				if(next->read) {
+					fprintf(target, "\"r\", ");
+				} else {
+					fprintf(target, "\"w\", ");
+				}
+			} else {
+				fprintf(target, "\"t\", ");
+			}
+
+			// Include next in the calculation of time below.
+			++next;
+		}
+		HalfCycles length;
+		if(next == transactions.end()) {
+			length = end - iterator->timestamp;
+		} else {
+			length = next->timestamp - iterator->timestamp;
+		}
+		fprintf(target, "%d", length.as<int>() >> 1);
+
+		if(is_access) {
+			// Undo the 'move to one after' step that allowed next to be included
+			// in this transaction's cycle count.
+			--next;
+
+			fprintf(target, ", %d, ", iterator->function_code);
+			fprintf(target, "%d, ", iterator->address & 0xff'ffff);
+
+			switch(next->data_strobes) {
+				default: assert(false);
+				case 1:	fprintf(target, "\".b\", %d", next->value & 0xff);	break;
+				case 2:	fprintf(target, "\".w\", %d", next->value);			break;
+			}
+
+			++next;
+		}
+
+		fprintf(target, "]");
+		iterator = next;
+	} while(iterator != transactions.end());
+}
+
 }
 
 @interface M68000OldVsNewTests : XCTestCase
 @end
 
 @implementation M68000OldVsNewTests
+
+//- (void)testGenerate {
+- (void)generate {
+	srand(68000);
+	InstructionSet::M68k::Predecoder<InstructionSet::M68k::Model::M68000> decoder;
+	RandomStore random_store;
+	auto tester = std::make_unique<Tester<NewProcessor>>(random_store, 0x02);
+	tester->bus_handler.capture_all_transactions = true;
+
+	// Bucket opcodes by operation.
+	std::unordered_map<const char *, std::vector<uint16_t>> opcodesByOperation;
+	for(int c = 0; c < 65536; c++) {
+		// Test only defined opcodes that aren't STOP (which will never teminate).
+		const auto instruction = decoder.decode(uint16_t(c));
+		if(
+			instruction.operation == InstructionSet::M68k::Operation::Undefined ||
+			instruction.operation == InstructionSet::M68k::Operation::STOP
+		) {
+			continue;
+		}
+
+		const auto operation = instruction.operation_string();
+		opcodesByOperation[operation].push_back(c);
+	}
+
+	// Find somewhere to write to.
+	NSString *const tempDir = NSTemporaryDirectory();
+	NSLog(@"Outputting to %@", tempDir);
+
+	// Aim to get  at least 1,000,000 tests total.
+	const auto testsPerOperation = int((1'000'000 + (opcodesByOperation.size() - 1)) / opcodesByOperation.size());
+
+	// Generate by operation.
+	NSLog(@"Generating %d tests each for %lu operations", testsPerOperation, opcodesByOperation.size());
+	for(const auto &pair: opcodesByOperation) {
+		NSLog(@"Generating %s", pair.first);
+		NSString *const targetName = [NSString stringWithFormat:@"%@%s.json", tempDir, pair.first];
+		FILE *const target = fopen(targetName.UTF8String, "wt");
+
+		const bool force_addresses_even = decoder.decode(pair.second[0]).operation == InstructionSet::M68k::Operation::UNLINK;
+		bool is_first_test = true;
+		fprintf(target, "[");
+
+		// Test each for the selected number of iterations.
+		for(int test = 0; test < testsPerOperation; test++) {
+			if(!is_first_test) fprintf(target, ",\n");
+			is_first_test = false;
+
+			// Establish with certainty the initial memory state.
+			random_store.clear();
+
+			const auto opcodeIndex = int(rand() * pair.second.size() / RAND_MAX);
+			const uint16_t opcode = pair.second[opcodeIndex];
+			tester->reset_with_opcode(opcode);
+
+			// Generate a random initial register state.
+			auto initialState = tester->processor.get_state();
+
+			// Require address pointers to be even 99% of the time, or always for UNLINK.
+			const bool addresses_are_even = (rand() >= int(float(RAND_MAX) * 0.99f)) || force_addresses_even;
+			for(int c = 0; c < 8; c++) {
+				initialState.registers.data[c] = rand() ^ (rand() << 1);
+				if(c != 7) {
+					initialState.registers.address[c] = rand() ^ (rand() << 1);
+					if(addresses_are_even) initialState.registers.address[c] &= ~1;
+				}
+			}
+
+			// Pick a random status such that:
+			//
+			//	(i) supervisor mode is active 99% of the time;
+			//	(ii) trace is inactive; and
+			//	(iii) interrupt level is 7.
+			const bool is_supervisor = rand() >= int(float(RAND_MAX) * 0.99f);
+			initialState.registers.status = (rand() | (int(is_supervisor) << 13) | (7 << 8)) & ~(1 << 15);
+			initialState.registers.user_stack_pointer = rand() << 1;
+			initialState.registers.supervisor_stack_pointer = rand() << 1;
+
+			// Set state.
+			tester->processor.set_state(initialState);
+
+			// Run for zero instructions to grab the real initial state (i.e. valid prefetch, ssp, etc).
+			// Then make sure no transactions or time carry over into the actual instruction.
+			tester->run_instructions(0);
+			auto populatedInitialState = tester->processor.get_state();
+			tester->bus_handler.transactions.clear();
+			tester->bus_handler.time = HalfCycles(0);
+
+			// Run for another instruction to do the actual work.
+			tester->run_instructions(1);
+
+			const auto finalState = tester->processor.get_state();
+
+			// Output initial state.
+			fprintf(target, "{ \"name\": \"%04x [%s] %d\", ", opcode, decoder.decode(opcode).to_string().c_str(), test + 1);
+			fprintf(target, "\"initial\": {");
+			print_state(target, populatedInitialState, tester->bus_handler.transactions, true);
+
+			// Output final state.
+			fprintf(target, "}, \"final\": {");
+			print_state(target, finalState, tester->bus_handler.transactions, false);
+
+			// Output total length and bus activity.
+			fprintf(target, "}, \"length\": %d, ", tester->bus_handler.time.as<int>() >> 1);
+
+			fprintf(target, "\"transactions\": [");
+			print_transactions(target, tester->bus_handler.transactions, tester->bus_handler.time);
+			fprintf(target, "]}");
+		}
+
+		fprintf(target, "\n]\n");
+		fclose(target);
+	}
+}
 
 - (void)testOldVsNew {
 	RandomStore random_store;
@@ -294,7 +556,7 @@ template <typename M68000> struct Tester {
 	int testsRun = 0;
 	std::set<InstructionSet::M68k::Operation> failing_operations;
 	for(int c = 0; c < 65536; c++) {
-//		printf("%04x\n", c);
+		printf("%04x\n", c);
 
 		// Test only defined opcodes that aren't STOP (which will never teminate).
 		const auto instruction = decoder.decode(uint16_t(c));

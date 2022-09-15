@@ -11,7 +11,10 @@
 #include "../../../Machines/Apple/AppleIIgs/MemoryMap.hpp"
 
 namespace {
-	using MemoryMap = Apple::IIgs::MemoryMap;
+	// Test the ROM03-era mapping hardware.
+	struct MemoryMap: public Apple::IIgs::MemoryMap {
+		MemoryMap() : Apple::IIgs::MemoryMap(true) {}
+	};
 }
 
 @interface IIgsMemoryMapTests : XCTestCase
