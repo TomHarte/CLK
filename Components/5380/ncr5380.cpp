@@ -314,8 +314,12 @@ void NCR5380::scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double 
 				break;
 				case SCSI::Line::Request:
 					// Don't issue a new DMA request if a phase mismatch has
-					// been detected. This is a bit of reading between the lines.
-					dma_request_ = !phase_mismatch_;
+					// been detected and this is an intiator receiving.
+					// This is a bit of reading between the lines.
+					// (i.e. guesswork, partly)
+					dma_request_ =
+						!phase_mismatch_ ||
+						(dma_operation_ != DMAOperation::InitiatorReceive);
 				break;
 				case SCSI::Line::Request | SCSI::Line::Acknowledge:
 					dma_request_ = false;
