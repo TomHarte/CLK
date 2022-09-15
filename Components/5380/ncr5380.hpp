@@ -30,6 +30,18 @@ class NCR5380 final: public SCSI::Bus::Observer {
 		/*! Reads from @c address. */
 		uint8_t read(int address, bool dma_acknowledge = false);
 
+		/*! @returns The SCSI ID assigned to this device. */
+		size_t scsi_id();
+
+		/*! @return @c true if DMA request is active; @c false otherwise. */
+		bool dma_request();
+
+		/*! Signals DMA acknowledge with a simultaneous read. */
+		uint8_t dma_acknowledge();
+
+		/*! Signals DMA acknowledge with a simultaneous write. */
+		void dma_acknowledge(uint8_t);
+
 	private:
 		SCSI::Bus &bus_;
 
@@ -46,6 +58,10 @@ class NCR5380 final: public SCSI::Bus::Observer {
 		bool assert_data_bus_ = false;
 		bool dma_request_ = false;
 		bool dma_acknowledge_ = false;
+		bool end_of_dma_ = false;
+
+		bool irq_ = false;
+		bool phase_mismatch_ = false;
 
 		enum class ExecutionState {
 			None,
@@ -63,10 +79,11 @@ class NCR5380 final: public SCSI::Bus::Observer {
 
 		void set_execution_state(ExecutionState state);
 
-		SCSI::BusState target_output();
+		SCSI::BusState target_output() const;
 		void update_control_output();
 
 		void scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double time_since_change) final;
+		bool phase_matches() const;
 };
 
 }

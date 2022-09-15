@@ -420,6 +420,9 @@ Description::Description(Name name) {
 		case Name::AppleIIEnhancedECharacter:
 			*this = Description(name, "AppleII", "the Enhanced Apple IIe character ROM", "apple2e-character.rom", 4*1024, 0x2651014du);
 		break;
+		case Name::AppleIISCSICard:
+			*this = Description(name, "AppleII", "the Apple II SCSI card ROM", "scsi.rom", 16*1024, 0x5aff85d3u);
+		break;
 
 		case Name::AppleIIgsROM00:	/* TODO */
 		case Name::AppleIIgsROM01:		*this = Description(name, "AppleIIgs", "the Apple IIgs ROM01", "apple2gs.rom", 128*1024, 0x42f124b0u);			break;

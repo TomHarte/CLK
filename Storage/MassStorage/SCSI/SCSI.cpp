@@ -74,7 +74,7 @@ void Bus::set_activity_observer(Activity::Observer *observer) {
 	activity_observer_->register_led("SCSI");
 }
 
-BusState Bus::get_state() {
+BusState Bus::get_state() const {
 	return state_;
 }
 

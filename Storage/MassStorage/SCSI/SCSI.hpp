@@ -19,6 +19,8 @@
 
 namespace SCSI {
 
+/// Provides the current state of the SCSI bus, being comprised of a bitwise combination
+/// of zero or more of the @c BusState flags defined below.	
 typedef int BusState;
 
 constexpr BusState DefaultBusState = 0;
@@ -118,7 +120,7 @@ class Bus: public ClockingHint::Source, public Activity::Source {
 		/*!
 			@returns the current state of the bus.
 		*/
-		BusState get_state();
+		BusState get_state() const;
 
 		struct Observer {
 			/// Reports to an observer that the bus changed from a previous state to @c new_state,

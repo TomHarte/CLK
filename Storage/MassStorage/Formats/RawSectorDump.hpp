@@ -17,12 +17,15 @@
 namespace Storage {
 namespace MassStorage {
 
-template <size_t sector_size> class RawSectorDump: public MassStorageDevice {
+template <long sector_size> class RawSectorDump: public MassStorageDevice {
 	public:
-		RawSectorDump(const std::string &file_name) : file_(file_name) {
+		RawSectorDump(const std::string &file_name, long offset = 0, long length = -1) :
+			file_(file_name),
+			file_size_((length == -1) ? long(file_.stats().st_size) : length),
+			file_start_(offset)
+		{
 			// Is the file a multiple of sector_size bytes in size?
-			const auto file_size = size_t(file_.stats().st_size);
-			if(file_size % sector_size) throw std::exception();
+			if(file_size_ % sector_size) throw std::exception();
 		}
 
 		/* MassStorageDevices overrides. */
@@ -31,22 +34,23 @@ template <size_t sector_size> class RawSectorDump: public MassStorageDevice {
 		}
 
 		size_t get_number_of_blocks() final {
-			return size_t(file_.stats().st_size) / sector_size;
+			return size_t(file_size_ / sector_size);
 		}
 
 		std::vector<uint8_t> get_block(size_t address) final {
-			file_.seek(long(address * sector_size), SEEK_SET);
+			file_.seek(file_start_ + long(address * sector_size), SEEK_SET);
 			return file_.read(sector_size);
 		}
 
 		void set_block(size_t address, const std::vector<uint8_t> &contents) final {
 			assert(contents.size() == sector_size);
-			file_.seek(long(address * sector_size), SEEK_SET);
+			file_.seek(file_start_ + long(address * sector_size), SEEK_SET);
 			file_.write(contents);
 		}
 
 	private:
 		FileHolder file_;
+		const long file_size_, file_start_;
 };
 
 }

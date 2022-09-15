@@ -11,4 +11,6 @@ apple2-character.rom — a 2kb image of the Apple IIe's character ROM.
 apple2eu-character.rom — a 4kb image of the Unenhanced IIe's character ROM.
 apple2e-character.rom — a 4kb image of the Enhanced IIe's character ROM.
 
+scsi.rom — a 16kb image of the Apple II SCSI card ROM.
+
 Apologies for the wackiness around "at least xkb big", it's to allow for use of files such as those on ftp.apple.asimov.net, which tend to be a bunch of other things, then the system ROM.

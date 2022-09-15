@@ -42,9 +42,13 @@ class Card {
 	public:
 		virtual ~Card() {}
 		enum Select: int {
-			None	= 0,		// No select line is active
-			IO		= 1 << 0,	// IO select is active
-			Device	= 1 << 1,	// Device select is active
+			None		= 0,		// No select line is active.
+			IO			= 1 << 0,	// IO select is active; i.e. access is in range $C0x0 to $C0xf.
+			Device		= 1 << 1,	// Device select is active; i.e. access is in range $Cx00 to $Cxff.
+
+			C8Region	= 1 << 2,	// Access is to the region $c800 to $cfff, was preceded by at least
+									// one Device access to this card, and has not yet been followed up
+									// by an access to $cfff.
 		};
 
 		/*!
@@ -54,7 +58,7 @@ class Card {
 			no constraints, that want to be informed of every machine cycle, will receive
 			a call to perform_bus_operation every cycle and should use that for time keeping.
 		*/
-		virtual void run_for([[maybe_unused]] Cycles half_cycles, [[maybe_unused]] int stretches) {}
+		virtual void run_for([[maybe_unused]] Cycles cycles, [[maybe_unused]] int stretches) {}
 
 		/// Requests a flush of any pending audio or video output.
 		virtual void flush() {}

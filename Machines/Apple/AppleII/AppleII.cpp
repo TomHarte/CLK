@@ -24,15 +24,27 @@
 #include "DiskIICard.hpp"
 #include "Joystick.hpp"
 #include "LanguageCardSwitches.hpp"
+#include "SCSICard.hpp"
 #include "Video.hpp"
 
 #include "../../../Analyser/Static/AppleII/Target.hpp"
 #include "../../../ClockReceiver/ForceInline.hpp"
 #include "../../../Configurable/StandardOptions.hpp"
 
+#include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
+#include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
+#include "../../../Storage/MassStorage/Encodings/MacintoshVolume.hpp"
+
 #include <algorithm>
 #include <array>
 #include <memory>
+
+namespace {
+
+constexpr int DiskIISlot = 6;	// Apple recommended slot 6 for the (first) Disk II.
+constexpr int SCSISlot = 7;		// Install the SCSI card in slot 7, to one-up any connected Disk II.
+
+}
 
 namespace Apple {
 namespace II {
@@ -101,7 +113,10 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		Cycles cycles_since_audio_update_;
 
 		// MARK: - Cards
-		std::array<std::unique_ptr<Apple::II::Card>, 7> cards_;
+		static constexpr size_t NoActiveCard = 7;	// There is no 'card 0' in internal numbering.
+		size_t active_card_ = NoActiveCard;
+
+		std::array<std::unique_ptr<Apple::II::Card>, 8> cards_;	// The final slot is a sentinel for 'no active card'.
 		Cycles cycles_since_card_update_;
 		std::vector<Apple::II::Card *> every_cycle_cards_;
 		std::vector<Apple::II::Card *> just_in_time_cards_;
@@ -141,7 +156,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		Apple::II::DiskIICard *diskii_card() {
-			return dynamic_cast<Apple::II::DiskIICard *>(cards_[5].get());
+			return dynamic_cast<Apple::II::DiskIICard *>(cards_[DiskIISlot - 1].get());
+		}
+
+		Apple::II::SCSICard *scsi_card() {
+			return dynamic_cast<Apple::II::SCSICard *>(cards_[SCSISlot - 1].get());
 		}
 
 		// MARK: - Memory Map.
@@ -460,8 +479,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			const bool has_disk_controller = target.disk_controller != Target::DiskController::None;
 			const bool is_sixteen_sector = target.disk_controller == Target::DiskController::SixteenSector;
 			if(has_disk_controller) {
-				// Apple recommended slot 6 for the (first) Disk II.
 				request = request && DiskIICard::rom_request(is_sixteen_sector);
+			}
+
+			// Add a SCSI card if requested.
+			const bool has_scsi_card = target.scsi_controller == Target::SCSIController::AppleSCSI;
+			if(has_scsi_card) {
+				request = request && SCSICard::rom_request();
 			}
 
 			// Request, validate and install ROMs.
@@ -471,7 +495,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			if(has_disk_controller) {
-				install_card(6, new Apple::II::DiskIICard(roms, is_sixteen_sector));
+				install_card(DiskIISlot, new Apple::II::DiskIICard(roms, is_sixteen_sector));
+			}
+
+			if(has_scsi_card) {
+				// Rounding the clock rate slightly shouldn't matter, but:
+				// TODO: be [slightly] more honest about clock rate.
+				install_card(SCSISlot, new Apple::II::SCSICard(roms, int(master_clock / 14.0f)));
 			}
 
 			rom_ = std::move(roms.find(system)->second);
@@ -727,18 +757,32 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					Communication with cards follows.
 				*/
 
-				if(!read_pages_[address >> 8] && address >= 0xc090 && address < 0xc800) {
+				if(!read_pages_[address >> 8] && address >= 0xc090 && address < 0xd000) {
 					// If this is a card access, figure out which card is at play before determining
 					// the totality of who needs messaging.
 					size_t card_number = 0;
 					Apple::II::Card::Select select = Apple::II::Card::None;
 
-					if(address >= 0xc100) {
+					if(address >= 0xc800) {
+						/*
+							Decode the 2kb area used for additional ROMs.
+							This is shared by all cards.
+						*/
+						card_number = active_card_;
+						select = Apple::II::Card::C8Region;
+
+						// An access to $cfff will disable the active card.
+						if(address == 0xcfff) {
+							active_card_ = NoActiveCard;
+						}
+					} else if(address >= 0xc100) {
 						/*
 							Decode the area conventionally used by cards for ROMs:
 								0xCn00 to 0xCnff: card n.
+
+							This also sets the active card for the C8 region.
 						*/
-						card_number = (address - 0xc100) >> 8;
+						active_card_ = card_number = (address - 0xc100) >> 8;
 						select = Apple::II::Card::Device;
 					} else {
 						/*
@@ -863,6 +907,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				auto diskii = diskii_card();
 				if(diskii) diskii->set_disk(media.disks[0], 0);
 			}
+
+			if(!media.mass_storage_devices.empty()) {
+				auto scsi = scsi_card();
+				if(scsi) scsi->set_storage_device(media.mass_storage_devices[0]);
+			}
+
 			return true;
 		}
 

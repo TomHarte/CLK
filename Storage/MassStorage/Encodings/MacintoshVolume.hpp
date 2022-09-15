@@ -12,16 +12,15 @@
 #include <cstddef>
 #include <cstdint>
 #include <sys/types.h>
-#include <vector>
+
+#include "ApplePartitionMap.hpp"
 
 namespace Storage {
 namespace MassStorage {
 namespace Encodings {
 namespace Macintosh {
 
-enum class DriveType {
-	SCSI
-};
+using DriveType = Storage::MassStorage::Encodings::Apple::DriveType;
 
 /*!
 	On the Macintosh life is slightly complicated by Apple's
@@ -39,47 +38,23 @@ class Volume {
 		virtual void set_drive_type(DriveType type) = 0;
 };
 
+struct VolumeProvider {
+	static constexpr bool HasDriver = true;
+	size_t driver_size() const;
+	uint16_t driver_checksum() const;
+	const uint8_t *driver() const;
+	const char *driver_target() const;
+
+	const char *name() const;
+	const char *type() const;
+};
+
 /*!
 	A Mapper can used by a mass-storage device that knows the
-	contents of an HFS or MFS partition to provide the conversion
+	contents of an HFS partition to provide the conversion
 	necessary to a particular type of drive.
 */
-class Mapper {
-	public:
-		/*!
-			Sets the drive type to map to and the number of blocks in the underlying partition.
-		*/
-		void set_drive_type(DriveType, size_t number_of_blocks);
-
-		/*!
-			Maps from a mass-storage device address to an address
-			in the underlying [H/M]FS partition.
-		*/
-		ssize_t to_source_address(size_t address);
-
-		/*!
-			Converts from a source data block to one properly encoded for the drive type.
-
-			Expected usage:
-
-				const size_t source_address = mapper.to_source_address(unit_address);
-				if(is_in_range_for_partition(source_address)) {
-					return mapper.convert_source_block(source_address, get_block_contents(source_address));
-				} else {
-					return mapper.convert_source_block(source_address);
-				}
-		*/
-		std::vector<uint8_t> convert_source_block(ssize_t source_address, std::vector<uint8_t> source_data = {});
-
-		/*!
-			@returns The total number of blocks on the entire volume.
-		*/
-		size_t get_number_of_blocks();
-
-	private:
-		DriveType drive_type_;
-		size_t number_of_blocks_;
-};
+using Mapper = Storage::MassStorage::Encodings::Apple::PartitionMap<VolumeProvider>;
 
 }
 }

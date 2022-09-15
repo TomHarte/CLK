@@ -80,6 +80,8 @@
 // Target Platform Types
 #include "../../Storage/TargetPlatforms.hpp"
 
+template<class> inline constexpr bool always_false_v = false;
+
 using namespace Analyser::Static;
 
 namespace {
@@ -123,7 +125,21 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	if(extension == "2mg") {
 		// 2MG uses a factory method; defer to it.
 		try {
-			InsertInstance(result.disks, Storage::Disk::Disk2MG::open(file_name), TargetPlatform::DiskII)
+			const auto media = Storage::Disk::Disk2MG::open(file_name);
+			std::visit([&result, &potential_platforms](auto &&arg) {
+				using Type = typename std::decay<decltype(arg)>::type;
+
+				if constexpr (std::is_same<Type, nullptr_t>::value) {
+					// It's valid for no media to be returned.
+				} else if constexpr (std::is_same<Type, Storage::Disk::DiskImageHolderBase *>::value) {
+					InsertInstance(result.disks, arg, TargetPlatform::DiskII);
+				} else if constexpr (std::is_same<Type, Storage::MassStorage::MassStorageDevice *>::value) {
+					// TODO: or is it Apple IIgs?
+					InsertInstance(result.mass_storage_devices, arg, TargetPlatform::AppleII);
+				} else {
+					static_assert(always_false_v<Type>, "Unexpected type encountered.");
+				}
+			}, media);
 		} catch(...) {}
 	}
 
