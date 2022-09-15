@@ -52,9 +52,9 @@ class MassStorage2MG: public Storage::MassStorage::MassStorageDevice {
 		}
 		std::vector<uint8_t> get_block(size_t address) final {
 			const auto source_address = mapper_.to_source_address(address);
+			const auto file_offset = offset_for_block(source_address);
 
-			if(source_address >= 0 && long(source_address*512) < image_size_) {
-				const long file_offset = file_start_ + 512 * source_address;
+			if(source_address >= 0) {
 				file_.seek(file_offset, SEEK_SET);
 				return mapper_.convert_source_block(source_address, file_.read(get_block_size()));
 			} else {
@@ -62,9 +62,24 @@ class MassStorage2MG: public Storage::MassStorage::MassStorageDevice {
 			}
 		}
 		void set_block(size_t address, const std::vector<uint8_t> &data) final {
-			// TODO.
-//			file_.seek(file_start_ + address * 512, SEEK_SET);
-//			file_.write(data);
+			const auto source_address = mapper_.to_source_address(address);
+			const auto file_offset = offset_for_block(source_address);
+
+			if(source_address >= 0 && file_offset >= 0) {
+				file_.seek(file_offset, SEEK_SET);
+				file_.write(data);
+			}
+		}
+
+		/// @returns -1 if @c address is out of range; the offset into the file at which
+		/// the block for @c address resides otherwise.
+		long offset_for_block(ssize_t address) {
+			if(address < 0) return -1;
+
+			const long offset = 512 * address;
+			if(offset > image_size_ - 512) return -1;
+
+			return file_start_ + offset;
 		}
 };
 
