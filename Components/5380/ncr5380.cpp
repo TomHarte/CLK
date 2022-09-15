@@ -195,7 +195,7 @@ uint8_t NCR5380::read(int address, bool) {
 				(end_of_dma_ ? 0x80 : 0x00) |
 				((dma_request_ && state_ == ExecutionState::PerformingDMA) ? 0x40 : 0x00)	|
 				/* b5 = parity error */
-				/* b4 = IRQ active */
+				(irq_ ? 0x10 : 0x00) |
 				(phase_matches() ? 0x08 : 0x00)	|
 				/* b2 = busy error */
 				((bus_state & Line::Attention) ? 0x02 : 0x00) |
@@ -210,6 +210,7 @@ uint8_t NCR5380::read(int address, bool) {
 
 		case 7:
 			LOG("[7] Reset parity/interrupt");
+			irq_ = false;
 		return 0xff;
 	}
 	return 0;
@@ -240,13 +241,15 @@ void NCR5380::update_control_output() {
 }
 
 void NCR5380::scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double time_since_change) {
-
 	/*
 		When connected as an Initiator with DMA Mode True,
 		if the phase lines I//O, C//D, and /MSG do not match the
 		phase bits in the Target Command Register, a phase mismatch
 		interrupt is generated when /REQ goes active.
 	*/
+	if((mode_ & 0x42) == 0x02 && new_state & SCSI::Line::Request && !phase_matches()) {
+		irq_ = true;
+	}
 
 	switch(state_) {
 		default: break;

@@ -60,6 +60,8 @@ class NCR5380 final: public SCSI::Bus::Observer {
 		bool dma_acknowledge_ = false;
 		bool end_of_dma_ = false;
 
+		bool irq_ = false;
+
 		enum class ExecutionState {
 			None,
 			WaitingForBusy,
