@@ -54,7 +54,7 @@ class MassStorage2MG: public Storage::MassStorage::MassStorageDevice {
 			const auto source_address = mapper_.to_source_address(address);
 
 			if(source_address >= 0 && long(source_address*512) < image_size_) {
-				const long file_offset = 512 * source_address;
+				const long file_offset = file_start_ + 512 * source_address;
 				file_.seek(file_offset, SEEK_SET);
 				return mapper_.convert_source_block(source_address, file_.read(get_block_size()));
 			} else {
