@@ -8,9 +8,9 @@
 
 #include "ncr5380.hpp"
 
-//#ifndef NDEBUG
-//#define NDEBUG
-//#endif
+#ifndef NDEBUG
+#define NDEBUG
+#endif
 #define LOG_PREFIX "[5380] "
 
 #include "../../Outputs/Log.hpp"
@@ -75,6 +75,7 @@ void NCR5380::write(int address, uint8_t value, bool) {
 			// bit 1: 1 = use DMA mode
 			// bit 0: 1 = begin arbitration mode (device ID should be in register 0)
 			arbitration_in_progress_ = false;
+			phase_mismatch_ = false;
 			switch(mode_ & 0x3) {
 				case 0x0:
 					bus_output_ &= ~SCSI::Line::Busy;
@@ -249,6 +250,7 @@ void NCR5380::scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double 
 	*/
 	if((mode_ & 0x42) == 0x02 && new_state & SCSI::Line::Request && !phase_matches()) {
 		irq_ = true;
+		phase_mismatch_ = true;
 	}
 
 	switch(state_) {
@@ -311,7 +313,9 @@ void NCR5380::scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double 
 					dma_request_ = false;
 				break;
 				case SCSI::Line::Request:
-					dma_request_ = true;
+					// Don't issue a new DMA request if a phase mismatch has
+					// been detected. This is a bit of reading between the lines.
+					dma_request_ = !phase_mismatch_;
 				break;
 				case SCSI::Line::Request | SCSI::Line::Acknowledge:
 					dma_request_ = false;
