@@ -483,7 +483,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			// Add a SCSI card if requested.
-			const bool has_scsi_card = true;	// TODO: obtain via the target.
+			const bool has_scsi_card = target.scsi_controller == Target::SCSIController::AppleSCSI;
 			if(has_scsi_card) {
 				request = request && SCSICard::rom_request();
 			}

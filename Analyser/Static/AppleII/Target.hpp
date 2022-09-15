@@ -29,16 +29,24 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 		SixteenSector,
 		ThirteenSector
 	);
+	ReflectableEnum(SCSIController,
+		None,
+		AppleSCSI
+	);
 
 	Model model = Model::IIe;
 	DiskController disk_controller = DiskController::None;
+	SCSIController scsi_controller = SCSIController::None;
 
 	Target() : Analyser::Static::Target(Machine::AppleII) {
 		if(needs_declare()) {
 			DeclareField(model);
 			DeclareField(disk_controller);
+			DeclareField(scsi_controller);
+
 			AnnounceEnum(Model);
 			AnnounceEnum(DiskController);
+			AnnounceEnum(SCSIController);
 		}
 	}
 };

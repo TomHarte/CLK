@@ -22,6 +22,7 @@ Analyser::Static::TargetList Analyser::Static::AppleII::GetTargets(const Media &
 	// any mass storage is present.
 	if(!target->media.mass_storage_devices.empty()) {
 		target->model = Target::Model::EnhancedIIe;
+		target->scsi_controller = Target::SCSIController::AppleSCSI;
 	}
 
 	TargetList targets;
