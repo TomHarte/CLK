@@ -175,11 +175,12 @@ std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> 
 		}
 	}
 
-	// Undo the XOR step on sector contents and check that checksum.
+	// Undo the XOR step on sector contents, then check and discard the checksum.
 	for(std::size_t c = 1; c < sector->data.size(); ++c) {
 		sector->data[c] ^= sector->data[c-1];
 	}
 	if(sector->data.back()) return nullptr;
+	sector->data.resize(sector->data.size() - 1);
 
 	if(is_five_and_three) {
 		// TODO: the below is almost certainly incorrect; Beneath Apple DOS partly documents
@@ -275,7 +276,8 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 					scanner[2] == five_and_three_header_prologue[2] ||
 					scanner[2] == header_prologue[2] ||
 					scanner[2] == data_prologue[2]
-				)) {
+				)
+			) {
 				pointer = 0;
 
 				if(scanner[2] != data_prologue[2]) {
@@ -309,20 +311,21 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 					new_sector.reset();
 					pointer = scanning_sentinel;
 
+					const bool had_header = has_header;
+					has_header = false;
+
 					// Potentially this is a Macintosh sector.
-					auto macintosh_sector = decode_macintosh_sector(has_header ? &header : nullptr, sector);
+					auto macintosh_sector = decode_macintosh_sector(had_header ? &header : nullptr, sector);
 					if(macintosh_sector) {
 						result.insert(std::make_pair(sector_location, std::move(*macintosh_sector)));
 						continue;
 					}
 
 					// Apple II then?
-					auto appleii_sector = decode_appleii_sector(has_header ? &header : nullptr, sector, is_five_and_three);
+					auto appleii_sector = decode_appleii_sector(had_header ? &header : nullptr, sector, is_five_and_three);
 					if(appleii_sector) {
 						result.insert(std::make_pair(sector_location, std::move(*appleii_sector)));
 					}
-
-					has_header = false;
 				} else {
 					new_sector->data.push_back(value);
 				}
