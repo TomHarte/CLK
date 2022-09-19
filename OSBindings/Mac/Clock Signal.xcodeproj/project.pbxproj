@@ -154,6 +154,7 @@
 		4B0F1C242605996900B85C66 /* ZXSpectrumTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1C212605996900B85C66 /* ZXSpectrumTAP.cpp */; };
 		4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
+		4B11D49028D8F60300070EA7 /* Z80JSMooTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B11D48F28D8F60300070EA7 /* Z80JSMooTests.mm */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
 		4B12C0ED1FCFA98D005BFD93 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */; };
 		4B12C0EE1FCFAD1A005BFD93 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */; };
@@ -1197,6 +1198,7 @@
 		4B0F94FC208C1A1600FE41D9 /* NIB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NIB.cpp; sourceTree = "<group>"; };
 		4B0F94FD208C1A1600FE41D9 /* NIB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NIB.hpp; sourceTree = "<group>"; };
 		4B0F9500208C42A300FE41D9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Target.hpp; path = AppleII/Target.hpp; sourceTree = "<group>"; };
+		4B11D48F28D8F60300070EA7 /* Z80JSMooTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Z80JSMooTests.mm; sourceTree = "<group>"; };
 		4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMSegmentEventSourceTests.mm; sourceTree = "<group>"; };
 		4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B12C0EC1FCFA98D005BFD93 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
@@ -4241,8 +4243,10 @@
 		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
 			isa = PBXGroup;
 			children = (
+				4BC62FF028A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.h */,
 				4B85322922778E4200F26553 /* Comparative68000.hpp */,
 				4B90467222C6FA31000E2074 /* TestRunner68000.hpp */,
+				4BC62FF128A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.m */,
 				4B04C898285E3DC800AA8FD6 /* 65816ComparativeTests.mm */,
 				4B90467522C6FD6E000E2074 /* 68000ArithmeticTests.mm */,
 				4B9D0C4A22C7D70900DE1AD3 /* 68000BCDTests.mm */,
@@ -4280,6 +4284,7 @@
 				4BE3C69627CC32DC000EAD28 /* x86DataPointerTests.mm */,
 				4BEE4BD325A26E2B00011BD2 /* x86DecoderTests.mm */,
 				4BDA8234261E8E000021AA19 /* Z80ContentionTests.mm */,
+				4B11D48F28D8F60300070EA7 /* Z80JSMooTests.mm */,
 				4BB73EB81B587A5100552FC2 /* Info.plist */,
 				4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */,
 				4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */,
@@ -4302,8 +4307,6 @@
 				4BFCA12A1ECBE7C400AC40C1 /* ZexallTests.swift */,
 				4B3BA0C41D318B44005DD7A7 /* Bridges */,
 				4B1414631B588A1100E04248 /* Test Binaries */,
-				4BC62FF028A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.h */,
-				4BC62FF128A149300036AE59 /* NSData+dataWithContentsOfGZippedFile.m */,
 			);
 			path = "Clock SignalTests";
 			sourceTree = "<group>";
@@ -6050,6 +6053,7 @@
 				4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */,
 				4B90467622C6FD6E000E2074 /* 68000ArithmeticTests.mm in Sources */,
 				4B778F3423A5F1040000D260 /* DirectAccessDevice.cpp in Sources */,
+				4B11D49028D8F60300070EA7 /* Z80JSMooTests.mm in Sources */,
 				4B7BC7F51F58F27800D1B1B4 /* 6502AllRAM.cpp in Sources */,
 				4BC5C3E022C994CD00795658 /* 68000MoveTests.mm in Sources */,
 				4B778F5923A5F2D00000D260 /* Z80.cpp in Sources */,
