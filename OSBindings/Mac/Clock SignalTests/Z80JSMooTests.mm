@@ -59,16 +59,30 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 				q
 		*/
 
-		for(NSArray *value in state[@"ram"]) {
-			ram_[[value[0] intValue]] = [value[1] intValue];
+		for(NSArray *byte in state[@"ram"]) {
+			const int address = [byte[0] intValue] & 0xffff;
+			const int value = [byte[1] intValue];
+//			if(address > 0xffff) {
+//				throw 1;
+//			}
+			ram_[address] = value;
 		}
 	}
 
-	void compare_state(NSDictionary *state) {
+	bool compare_state(NSDictionary *state) {
 		// Compare RAM.
-		for(NSArray *value in state[@"ram"]) {
-			XCTAssertEqual(ram_[[value[0] intValue]], [value[1] intValue]);
+		for(NSArray *byte in state[@"ram"]) {
+			const int address = [byte[0] intValue] & 0xffff;
+			const int value = [byte[1] intValue];
+//			XCTAssertLessThan(address, 0x1'0000);
+
+//			XCTAssertEqual(ram_[address], value);
+			if(ram_[address] != value) {
+				return false;
+			}
 		}
+
+		return true;
 	}
 
 	void run_for(int cycles) {
@@ -108,16 +122,16 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		return HalfCycles(0);
 	}
 
-	const std::vector<BusRecord> &bus_records() const {
-		return bus_records_;
-	}
+//	const std::vector<BusRecord> &bus_records() const {
+//		return bus_records_;
+//	}
 
 
 	private:
 		CPU::Z80::Processor<CapturingZ80, false, false> z80_;
 		uint8_t ram_[65536];
 
-		std::vector<BusRecord> bus_records_;
+//		std::vector<BusRecord> bus_records_;
 };
 
 }
@@ -127,18 +141,26 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 
 @implementation Z80JSMooTests
 
-- (void)applyTest:(NSDictionary *)test {
-	// Seed Z80 and run to conclusion.
-	CapturingZ80 z80(test[@"initial"]);
-	z80.run_for(int([test[@"cycles"] count]));
+- (BOOL)applyTest:(NSDictionary *)test {
+	// Log something.
+//	NSLog(@"Test %@", test[@"name"]);
 
-	// Check register and RAM state.
-	z80.compare_state(test[@"final"]);
+	try {
+		// Seed Z80 and run to conclusion.
+		CapturingZ80 z80(test[@"initial"]);
+		z80.run_for(int([test[@"cycles"] count]));
+
+		// Check register and RAM state.
+		return z80.compare_state(test[@"final"]);
+	} catch(...) {
+		NSLog(@"Skipping %@", test[@"name"]);
+		return NO;
+	}
 
 	// TODO: check bus cycles.
 }
 
-- (void)applyTests:(NSString *)path {
+- (BOOL)applyTests:(NSString *)path {
 	NSArray<NSDictionary *> *const tests =
 		[NSJSONSerialization JSONObjectWithData:
 			[NSData dataWithContentsOfFile:path]
@@ -147,9 +169,11 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 
 	XCTAssertNotNil(tests);
 
+	BOOL allSucceeded = YES;
 	for(NSDictionary *test in tests) {
-		[self applyTest:test];
+		allSucceeded &= [self applyTest:test];
 	}
+	return allSucceeded;
 }
 
 - (void)testAll {
@@ -166,6 +190,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	}
 
 	// Apply tests one by one.
+	NSMutableArray *failures = [[NSMutableArray alloc] init];
 	for(NSString *source in sources) {
 		if(![[source pathExtension] isEqualToString:@"json"]) {
 			NSLog(@"Skipping %@", source);
@@ -173,7 +198,11 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		}
 
 		NSLog(@"Testing %@", source);
-		[self applyTests:[testPath stringByAppendingPathComponent:source]];
+		if(![self applyTests:[testPath stringByAppendingPathComponent:source]]) {
+			NSLog(@"Failed");
+			[failures addObject:source];
+		}
 	}
+	NSLog(@"Files with failures were: %@", failures);
 }
 @end
