@@ -173,6 +173,11 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	BOOL allSucceeded = YES;
 	for(NSDictionary *test in tests) {
 		allSucceeded &= [self applyTest:test];
+
+		if(!allSucceeded) {
+			NSLog(@"Failed at %@", test[@"name"]);
+			return NO;
+		}
 	}
 	return allSucceeded;
 }
