@@ -28,14 +28,14 @@ constexpr const char *TestPath = "/Users/thomasharte/Projects/jsmoo-main/misc/te
 																	\
 		Map(ProgramCounter, @"pc");									\
 		Map(StackPointer, @"sp");									\
-		Map(MemPtr, @"wz");
+		Map(MemPtr, @"wz");											\
+		Map(DidChangeFlags, @"q");
 
 		/*
 			Not used:
 
 				EI (duplicative of IFF1?)
 				p
-				q
 		*/
 
 struct CapturingZ80: public CPU::Z80::BusHandler {
@@ -229,8 +229,6 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	// Optional: a permit list; leave empty to allow all tests.
 	NSSet<NSString *> *permitList = [NSSet setWithArray:@[
 //		@"2a.json",		// Memptr
-//		@"37.json",		// SCF bits 3 & 5
-//		@"3f.json",		// CCF bits 3 & 5
 //		@"d9.json",		// EXX doesn't seem to update HL'?
 //		@"e3.json",		// EX (SP), HL; cycle count is too short.
 
@@ -267,12 +265,10 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 //		@"cb f6.json",
 //		@"cb fe.json",
 
-//		@"dd 37.json",	// Same issues as the base page 37, 3f, d9, e3
-//		@"dd 3f.json",
 //		@"dd d9.json",
 //		@"dd e3.json",
 
-		@"ed 46.json",	// IM 0; at least refresh mismatch. Incremented twice here, once in tests.
+//		@"ed 46.json",	// IM 0; at least refresh mismatch. Incremented twice here, once in tests.
 /*		@"ed 47.json",
 		@"ed 4e.json",
 		@"ed 56.json",
@@ -294,10 +290,8 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		@"ed b3.json",
 		@"ed b8.json",
 		@"ed ba.json",
-		@"ed bb.json",
-		@"fd 37.json",
-		@"fd 3f.json",
-		@"fd d9.json",
+		@"ed bb.json", */
+/*		@"fd d9.json",
 		@"fd e3.json",
 		@"dd cb __ 40.json",
 		@"dd cb __ 41.json",
