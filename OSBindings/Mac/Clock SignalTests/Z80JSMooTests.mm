@@ -190,6 +190,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	// Seed Z80 and run to conclusion.
 	CapturingZ80 z80(test[@"initial"], test[@"ports"]);
 	z80.run_for(int([test[@"cycles"] count]));
+//	z80.run_for(15);
 
 	// Check register and RAM state.
 	return z80.compare_state(test[@"final"]);
@@ -231,45 +232,48 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 //		@"37.json",		// SCF bits 3 & 5
 //		@"3f.json",		// CCF bits 3 & 5
 //		@"d9.json",		// EXX doesn't seem to update HL'?
-		@"e3.json",
-/*		@"cb 06.json",
-		@"cb 0e.json",
-		@"cb 16.json",
-		@"cb 1e.json",
-		@"cb 26.json",
-		@"cb 2e.json",
-		@"cb 36.json",
-		@"cb 3e.json",
-		@"cb 46.json",
-		@"cb 4e.json",
-		@"cb 56.json",
-		@"cb 5e.json",
-		@"cb 66.json",
-		@"cb 6e.json",
-		@"cb 76.json",
-		@"cb 7e.json",
-		@"cb 86.json",
-		@"cb 8e.json",
-		@"cb 96.json",
-		@"cb 9e.json",
-		@"cb a6.json",
-		@"cb ae.json",
-		@"cb b6.json",
-		@"cb be.json",
-		@"cb c6.json",
-		@"cb ce.json",
-		@"cb d6.json",
-		@"cb de.json",
-		@"cb e6.json",
-		@"cb ee.json",
-		@"cb f6.json",
-		@"cb fe.json",
-		@"dd 37.json",
-		@"dd 3f.json",
-		@"dd d9.json",
-		@"dd e3.json",
-		@"ed 46.json",
-		@"ed 47.json",
+//		@"e3.json",		// EX (SP), HL; cycle count is too short.
+
+//		@"cb 06.json",	// RLC (HL) [, etc]; cycle count is too short
+//		@"cb 0e.json",
+//		@"cb 16.json",
+//		@"cb 1e.json",
+//		@"cb 26.json",
+//		@"cb 2e.json",
+//		@"cb 36.json",
+//		@"cb 3e.json",
+//		@"cb 46.json",
+//		@"cb 4e.json",
+//		@"cb 56.json",
+//		@"cb 5e.json",
+//		@"cb 66.json",
+//		@"cb 6e.json",
+//		@"cb 76.json",
+//		@"cb 7e.json",
+//		@"cb 86.json",
+//		@"cb 8e.json",
+//		@"cb 96.json",
+//		@"cb 9e.json",
+//		@"cb a6.json",
+//		@"cb ae.json",
+//		@"cb b6.json",
+//		@"cb be.json",
+//		@"cb c6.json",
+//		@"cb ce.json",
+//		@"cb d6.json",
+//		@"cb de.json",
+//		@"cb e6.json",
+//		@"cb ee.json",
+//		@"cb f6.json",
+//		@"cb fe.json",
+
+//		@"dd 37.json",	// Same issues as the base page 37, 3f, d9, e3
+//		@"dd 3f.json",
+//		@"dd d9.json",
+//		@"dd e3.json",
+
+		@"ed 46.json",	// IM 0; at least refresh mismatch. Incremented twice here, once in tests.
+/*		@"ed 47.json",
 		@"ed 4e.json",
 		@"ed 56.json",
 		@"ed 57.json",
