@@ -9,9 +9,10 @@
 #ifndef Z80_hpp
 #define Z80_hpp
 
+#include <algorithm>
 #include <cassert>
-#include <vector>
 #include <cstdint>
+#include <vector>
 
 #include "../../Numeric/RegisterSizes.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"

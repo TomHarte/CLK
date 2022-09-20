@@ -449,12 +449,9 @@ template <	class T,
 
 // MARK: - Exchange
 
-#define swap(a, b)	temp = a.full; a.full = b.full; b.full = temp;
-
-				case MicroOp::ExDEHL: {
-					uint16_t temp;
-					swap(de_, hl_);
-				} break;
+				case MicroOp::ExDEHL:
+					std::swap(de_, hl_);
+				break;
 
 				case MicroOp::ExAFAFDash: {
 					const uint8_t a = a_;
@@ -465,14 +462,11 @@ template <	class T,
 					af_dash_.halves.low = f;
 				} break;
 
-				case MicroOp::EXX: {
-					uint16_t temp;
-					swap(de_, de_dash_);
-					swap(bc_, bc_dash_);
-					swap(hl_, hl_dash_);
-				} break;
-
-#undef swap
+				case MicroOp::EXX:
+					std::swap(de_, de_dash_);
+					std::swap(bc_, bc_dash_);
+					std::swap(hl_, hl_dash_);
+				break;
 
 // MARK: - Repetition
 
