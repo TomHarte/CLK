@@ -62,6 +62,7 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 		case Register::IM:						return uint16_t(interrupt_mode_);
 
 		case Register::MemPtr:					return memptr_.full;
+		case Register::DidChangeFlags:			return flag_adjustment_history_ & 1;
 
 		default: return 0;
 	}
@@ -110,11 +111,12 @@ void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 		case Register::I:				ir_.halves.high = uint8_t(value);		break;
 		case Register::Refresh:			ir_.full = value;						break;
 
-		case Register::IFF1:			iff1_ = !!value;				break;
-		case Register::IFF2:			iff2_ = !!value;				break;
-		case Register::IM:				interrupt_mode_ = value % 3;	break;
+		case Register::IFF1:			iff1_ = !!value;						break;
+		case Register::IFF2:			iff2_ = !!value;						break;
+		case Register::IM:				interrupt_mode_ = value % 3;			break;
 
-		case Register::MemPtr:			memptr_.full = value;			break;
+		case Register::MemPtr:			memptr_.full = value;						break;
+		case Register::DidChangeFlags:	flag_adjustment_history_ = value ? 1 : 0;	break;
 
 		default: break;
 	}

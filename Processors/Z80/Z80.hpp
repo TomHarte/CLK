@@ -44,7 +44,12 @@ enum class Register {
 
 	IFF1,	IFF2,	IM,
 
-	MemPtr
+	MemPtr,
+
+	/// Obscure, and related to status bits 3 & 5 upon an SCF or CCF; this
+	/// is a single bit indicating whether an immediately-following [S/C]CF
+	/// can only set bits 3 & 5 or may also reset them.
+	DidChangeFlags,
 };
 
 /*
