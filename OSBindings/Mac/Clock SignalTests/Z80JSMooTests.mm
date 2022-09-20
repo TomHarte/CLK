@@ -16,40 +16,19 @@ namespace {
 // put them somewhere on your local system and provide the path here.
 constexpr const char *TestPath = "/Users/thomasharte/Projects/jsmoo-main/misc/tests/GeneratedTests/z80/v1";
 
-struct CapturingZ80: public CPU::Z80::BusHandler {
-
-	CapturingZ80(NSDictionary *state) : z80_(*this) {
-		z80_.reset_power_on();
-
-		// Set registers.
-		z80_.set_value_of_register(CPU::Z80::Register::A, [state[@"a"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::Flags, [state[@"f"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::AFDash, [state[@"af_"] intValue]);
-
-		z80_.set_value_of_register(CPU::Z80::Register::B, [state[@"b"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::C, [state[@"c"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::BCDash, [state[@"bc_"] intValue]);
-
-		z80_.set_value_of_register(CPU::Z80::Register::D, [state[@"d"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::E, [state[@"e"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::DEDash, [state[@"de_"] intValue]);
-
-		z80_.set_value_of_register(CPU::Z80::Register::H, [state[@"h"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::L, [state[@"l"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::HLDash, [state[@"hl_"] intValue]);
-
-		z80_.set_value_of_register(CPU::Z80::Register::IFF1, [state[@"iff1"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::IFF2, [state[@"iff2"] intValue]);
-
-		z80_.set_value_of_register(CPU::Z80::Register::IM, [state[@"im"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::Refresh, [state[@"r"] intValue]);
-
-		z80_.set_value_of_register(CPU::Z80::Register::IX, [state[@"ix"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::IY, [state[@"iy"] intValue]);
-
-		z80_.set_value_of_register(CPU::Z80::Register::ProgramCounter, [state[@"pc"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::StackPointer, [state[@"sp"] intValue]);
-		z80_.set_value_of_register(CPU::Z80::Register::MemPtr, [state[@"wz"] intValue]);
+#define MapFields()	\
+		Map(A, @"a");	Map(Flags, @"f");	Map(AFDash, @"af_");	\
+		Map(B, @"b");	Map(C, @"c");		Map(BCDash, @"bc_");	\
+		Map(D, @"d");	Map(E, @"e");		Map(DEDash, @"de_");	\
+		Map(H, @"h");	Map(L, @"l");		Map(HLDash, @"hl_");	\
+																	\
+		Map(IX, @"ix");		Map(IY, @"iy");							\
+		Map(IFF1, @"iff1");	Map(IFF2, @"iff2");						\
+		Map(IM, @"im");		Map(Refresh, @"r");						\
+																	\
+		Map(ProgramCounter, @"pc");									\
+		Map(StackPointer, @"sp");									\
+		Map(MemPtr, @"wz");
 
 		/*
 			Not used:
@@ -58,6 +37,18 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 				p
 				q
 		*/
+
+struct CapturingZ80: public CPU::Z80::BusHandler {
+
+	CapturingZ80(NSDictionary *state) : z80_(*this) {
+		z80_.reset_power_on();
+
+		// Set registers.
+#define Map(register, name)	z80_.set_value_of_register(CPU::Z80::Register::register, [state[name] intValue])
+
+		MapFields();
+
+#undef Map
 
 		for(NSArray *byte in state[@"ram"]) {
 			const int address = [byte[0] intValue] & 0xffff;
@@ -70,14 +61,24 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	}
 
 	bool compare_state(NSDictionary *state) {
+		// Compare registers.
+#define Map(register, name)	\
+	if(z80_.get_value_of_register(CPU::Z80::Register::register) != [state[name] intValue]) {	\
+		NSLog(@"Register %s should be %02x; is %02x", #register, [state[name] intValue], z80_.get_value_of_register(CPU::Z80::Register::register));	\
+		return false;	\
+	}
+
+		MapFields()
+
+#undef Map
+
 		// Compare RAM.
 		for(NSArray *byte in state[@"ram"]) {
 			const int address = [byte[0] intValue] & 0xffff;
 			const int value = [byte[1] intValue];
-//			XCTAssertLessThan(address, 0x1'0000);
 
-//			XCTAssertEqual(ram_[address], value);
 			if(ram_[address] != value) {
+				NSLog(@"Value at address %04x should be %02x; is %02x", address, value, ram_[address]);
 				return false;
 			}
 		}
@@ -183,6 +184,11 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	NSArray<NSString *> *const sources =
 		[[NSFileManager defaultManager] contentsOfDirectoryAtPath:testPath error:&error];
 
+	// Optional: a permit list; leave empty to allow all tests.
+	NSSet<NSString *> *permitList = [NSSet setWithArray:@[
+//		@"e3.json",
+	]];
+
 	// Treat lack of a local copy of these tests as a non-failing condition.
 	if(error || ![sources count]) {
 		NSLog(@"No tests found at %s; not testing, not failing", TestPath);
@@ -197,6 +203,11 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 			continue;
 		}
 
+		// Skip if: (i) there is a permit list; and (ii) this file isn't on it.
+		if([permitList count] && ![permitList containsObject:source]) {
+			continue;
+		}
+
 		NSLog(@"Testing %@", source);
 		if(![self applyTests:[testPath stringByAppendingPathComponent:source]]) {
 			NSLog(@"Failed");
@@ -204,5 +215,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		}
 	}
 	NSLog(@"Files with failures were: %@", failures);
+
+	XCTAssertEqual([failures count], 0);
 }
 @end
