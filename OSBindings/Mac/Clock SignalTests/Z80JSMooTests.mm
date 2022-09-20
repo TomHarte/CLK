@@ -40,21 +40,26 @@ constexpr const char *TestPath = "/Users/thomasharte/Projects/jsmoo-main/misc/te
 
 struct CapturingZ80: public CPU::Z80::BusHandler {
 
-	CapturingZ80(NSDictionary *state) : z80_(*this) {
+	CapturingZ80(NSDictionary *state, NSArray *port_activity) : z80_(*this) {
 		z80_.reset_power_on();
 
 		// Set registers.
 #define Map(register, name)	z80_.set_value_of_register(CPU::Z80::Register::register, [state[name] intValue])
-
 		MapFields();
-
 #undef Map
 
+		// Populate RAM.
 		for(NSArray *byte in state[@"ram"]) {
 			const int address = [byte[0] intValue] & 0xffff;
 			const int value = [byte[1] intValue];
 			ram_[address] = value;
 		}
+
+		// Capture expected port activity.
+		for(NSArray *item in port_activity) {
+			expected_port_accesses_.emplace_back([item[0] intValue], [item[1] intValue], [item[2] isEqualToString:@"r"]);
+		}
+		next_port_ = expected_port_accesses_.begin();
 	}
 
 	bool compare_state(NSDictionary *state) {
@@ -78,6 +83,12 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 				NSLog(@"Value at address %04x should be %02x; is %02x", address, value, ram_[address]);
 				return false;
 			}
+		}
+
+		// Check ports.
+		if(!ports_matched()) {
+			NSLog(@"Mismatch in port activity");
+			return false;
 		}
 
 		return true;
@@ -115,6 +126,25 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 			case CPU::Z80::PartialMachineCycle::Write:
 				ram_[*cycle.address] = *cycle.value;
 			break;
+
+			case CPU::Z80::PartialMachineCycle::Input:
+				if(next_port_ != expected_port_accesses_.end() && next_port_->is_read && next_port_->address == *cycle.address) {
+					*cycle.value = next_port_->value;
+					++next_port_;
+				} else {
+					ports_matched_ = false;
+					*cycle.value = 0xff;
+				}
+			break;
+
+			case CPU::Z80::PartialMachineCycle::Output:
+				if(next_port_ != expected_port_accesses_.end() && !next_port_->is_read && next_port_->address == *cycle.address) {
+					ports_matched_ &= *cycle.value == next_port_->value;
+					++next_port_;
+				} else {
+					ports_matched_ = false;
+				}
+			break;
 		}
 
 		return HalfCycles(0);
@@ -124,10 +154,24 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 //		return bus_records_;
 //	}
 
+	bool ports_matched() const {
+		return ports_matched_ && next_port_ == expected_port_accesses_.end();
+	}
 
 	private:
 		CPU::Z80::Processor<CapturingZ80, false, false> z80_;
 		uint8_t ram_[65536];
+
+		struct PortAccess {
+			const uint16_t address = 0;
+			const uint8_t value = 0;
+			const bool is_read = false;
+
+			PortAccess(uint16_t a, uint8_t v, bool r) : address(a), value(v), is_read(r) {}
+		};
+		std::vector<PortAccess> expected_port_accesses_;
+		std::vector<PortAccess>::iterator next_port_;
+		bool ports_matched_ = true;
 
 //		std::vector<BusRecord> bus_records_;
 };
@@ -144,7 +188,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 //	NSLog(@"Test %@", test[@"name"]);
 
 	// Seed Z80 and run to conclusion.
-	CapturingZ80 z80(test[@"initial"]);
+	CapturingZ80 z80(test[@"initial"], test[@"ports"]);
 	z80.run_for(int([test[@"cycles"] count]));
 
 	// Check register and RAM state.
@@ -183,13 +227,12 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 
 	// Optional: a permit list; leave empty to allow all tests.
 	NSSet<NSString *> *permitList = [NSSet setWithArray:@[
-		@"2a.json",
-		@"37.json",
-		@"3f.json",
-		@"d9.json",
-		@"db.json",
+//		@"2a.json",		// Memptr
+//		@"37.json",		// SCF bits 3 & 5
+//		@"3f.json",		// CCF bits 3 & 5
+//		@"d9.json",		// EXX doesn't seem to update HL'?
 		@"e3.json",
-		@"cb 06.json",
+/*		@"cb 06.json",
 		@"cb 0e.json",
 		@"cb 16.json",
 		@"cb 1e.json",
@@ -221,35 +264,20 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		@"cb ee.json",
 		@"cb f6.json",
 		@"cb fe.json",
-		@"dd 2a.json",
 		@"dd 37.json",
 		@"dd 3f.json",
 		@"dd d9.json",
-		@"dd db.json",
 		@"dd e3.json",
-		@"ed 40.json",
 		@"ed 46.json",
 		@"ed 47.json",
-		@"ed 48.json",
-		@"ed 4b.json",
 		@"ed 4e.json",
-		@"ed 50.json",
 		@"ed 56.json",
 		@"ed 57.json",
-		@"ed 58.json",
-		@"ed 5b.json",
 		@"ed 5e.json",
-		@"ed 60.json",
 		@"ed 66.json",
-		@"ed 68.json",
-		@"ed 6b.json",
 		@"ed 6e.json",
 		@"ed 6f.json",
-		@"ed 70.json",
-		@"ed 71.json",
 		@"ed 76.json",
-		@"ed 78.json",
-		@"ed 7b.json",
 		@"ed 7e.json",
 		@"ed a0.json",
 		@"ed a2.json",
@@ -263,11 +291,9 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		@"ed b8.json",
 		@"ed ba.json",
 		@"ed bb.json",
-		@"fd 2a.json",
 		@"fd 37.json",
 		@"fd 3f.json",
 		@"fd d9.json",
-		@"fd db.json",
 		@"fd e3.json",
 		@"dd cb __ 40.json",
 		@"dd cb __ 41.json",
@@ -380,7 +406,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		@"fd cb __ 7b.json",
 		@"fd cb __ 7c.json",
 		@"fd cb __ 7d.json",
-		@"fd cb __ 7f.json"
+		@"fd cb __ 7f.json"*/
 	]];
 
 	// Treat lack of a local copy of these tests as a non-failing condition.
