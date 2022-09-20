@@ -53,9 +53,6 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		for(NSArray *byte in state[@"ram"]) {
 			const int address = [byte[0] intValue] & 0xffff;
 			const int value = [byte[1] intValue];
-//			if(address > 0xffff) {
-//				throw 1;
-//			}
 			ram_[address] = value;
 		}
 	}
@@ -146,17 +143,12 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	// Log something.
 //	NSLog(@"Test %@", test[@"name"]);
 
-	try {
-		// Seed Z80 and run to conclusion.
-		CapturingZ80 z80(test[@"initial"]);
-		z80.run_for(int([test[@"cycles"] count]));
+	// Seed Z80 and run to conclusion.
+	CapturingZ80 z80(test[@"initial"]);
+	z80.run_for(int([test[@"cycles"] count]));
 
-		// Check register and RAM state.
-		return z80.compare_state(test[@"final"]);
-	} catch(...) {
-		NSLog(@"Skipping %@", test[@"name"]);
-		return NO;
-	}
+	// Check register and RAM state.
+	return z80.compare_state(test[@"final"]);
 
 	// TODO: check bus cycles.
 }
