@@ -871,6 +871,9 @@ template <	class T,
 				case MicroOp::SetInstructionPage:
 					current_instruction_page_ = (InstructionPage *)operation->source;
 					scheduled_program_counter_ = current_instruction_page_->fetch_decode_execute_data;
+
+					// Undo spurious history update.
+					flag_adjustment_history_ >>= 1;
 				break;
 
 				case MicroOp::CalculateIndexAddress:
