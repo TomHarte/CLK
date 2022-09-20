@@ -63,11 +63,13 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 	}
 
 	bool compare_state(NSDictionary *state) {
+		bool failed = false;
+
 		// Compare registers.
 #define Map(register, name)	\
 	if(z80_.get_value_of_register(CPU::Z80::Register::register) != [state[name] intValue]) {	\
 		NSLog(@"Register %s should be %02x; is %02x", #register, [state[name] intValue], z80_.get_value_of_register(CPU::Z80::Register::register));	\
-		return false;	\
+		failed = true;	\
 	}
 
 		MapFields()
@@ -81,17 +83,17 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 
 			if(ram_[address] != value) {
 				NSLog(@"Value at address %04x should be %02x; is %02x", address, value, ram_[address]);
-				return false;
+				failed = true;
 			}
 		}
 
 		// Check ports.
 		if(!ports_matched()) {
 			NSLog(@"Mismatch in port activity");
-			return false;
+			failed = true;
 		}
 
-		return true;
+		return !failed;
 	}
 
 	void run_for(int cycles) {
@@ -265,10 +267,10 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 //		@"cb f6.json",
 //		@"cb fe.json",
 
-//		@"dd d9.json",
+//		@"dd d9.json",	// As per base page.
 //		@"dd e3.json",
 
-//		@"ed 46.json",	// IM 0; at least refresh mismatch. Incremented twice here, once in tests.
+		@"ed 46.json",	// IM 0; at least refresh mismatch. Incremented twice here, once in tests.
 /*		@"ed 47.json",
 		@"ed 4e.json",
 		@"ed 56.json",
@@ -291,10 +293,12 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		@"ed b8.json",
 		@"ed ba.json",
 		@"ed bb.json", */
-/*		@"fd d9.json",
-		@"fd e3.json",
+
+//		@"fd d9.json",	// As per base page.
+//		@"fd e3.json",
+
 		@"dd cb __ 40.json",
-		@"dd cb __ 41.json",
+/*		@"dd cb __ 41.json",
 		@"dd cb __ 42.json",
 		@"dd cb __ 43.json",
 		@"dd cb __ 44.json",
