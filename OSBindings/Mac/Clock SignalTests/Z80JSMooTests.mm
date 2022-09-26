@@ -105,7 +105,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 
 	void run_for(int cycles) {
 		z80_.run_for(HalfCycles(Cycles(cycles)));
-//		XCTAssertEqual(bus_records_.size(), cycles * 2);
+		XCTAssertEqual(bus_records_.size(), cycles * 2);
 	}
 
 	struct BusRecord {
@@ -205,12 +205,12 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 //	NSLog(@"Test %@", test[@"name"]);
 
 	// Seed Z80 and run to conclusion.
-	CapturingZ80 z80(test[@"initial"], test[@"ports"]);
-	z80.run_for(int([test[@"cycles"] count]));
-//	z80.run_for(15);
+	auto z80 = std::make_unique<CapturingZ80>(test[@"initial"], test[@"ports"]);
+	z80->run_for(int([test[@"cycles"] count]));
+//	z80->run_for(15);
 
 	// Check register and RAM state.
-	return z80.compare_state(test[@"final"]);
+	return z80->compare_state(test[@"final"]);
 
 	// TODO: check bus cycles.
 }
@@ -233,6 +233,31 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 			return NO;
 		}
 	}
+
+	// TODO: switch to the below, or some approximation thereof.
+	// Current issue: Z80 construction assumes something heading towards 500kb
+	// of stack is available, and dispatch_apply seems to create an environment
+	// much tighter than that.
+
+//	__block BOOL allSucceeded = YES;
+//
+//	const size_t pageSize = 10;
+//	const auto stepsPerBlock = size_t([tests count] / pageSize);
+//	dispatch_apply(pageSize, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(size_t index) {
+//		const size_t start = index * stepsPerBlock;
+//		for(size_t c = start; c < start + stepsPerBlock; c++) {
+//			assert(c < tests.count);
+//			NSLog(@"%d begins %d", int(index), int(c));
+//
+//			allSucceeded &= [self applyTest:tests[c]];
+//
+//			if(!allSucceeded) {
+//				NSLog(@"Failed at %@", tests[c][@"name"]);
+//				return;
+//			}
+//		}
+//    });
+
 	return allSucceeded;
 }
 
