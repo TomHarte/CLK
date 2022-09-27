@@ -158,19 +158,20 @@ struct PartialMachineCycle {
 		return operation <= Operation::Write;
 	}
 
-	enum Line {
-		CLK = 1 << 0,
+	using LineStateT = uint8_t;
+	struct Line {
+		static constexpr LineStateT CLK = 1 << 0;
 
-		MREQ = 1 << 1,
-		IOREQ = 1 << 2,
+		static constexpr LineStateT MREQ = 1 << 1;
+		static constexpr LineStateT IOREQ = 1 << 2;
 
-		RD = 1 << 3,
-		WR = 1 << 4,
-		RFSH = 1 << 5,
+		static constexpr LineStateT RD = 1 << 3;
+		static constexpr LineStateT WR = 1 << 4;
+		static constexpr LineStateT RFSH = 1 << 5;
 
-		M1 = 1 << 6,
+		static constexpr LineStateT M1 = 1 << 6;
 
-		BUSACK = 1 << 7,
+		static constexpr LineStateT BUSACK = 1 << 7;
 	};
 
 	/// @returns A C-style array of the bus state at the beginning of each half cycle in this
@@ -178,7 +179,7 @@ struct PartialMachineCycle {
 	/// bit set means line active, bit clear means line inactive. For the CLK line set means high.
 	///
 	/// @discussion This discrete sampling is prone to aliasing errors. Beware.
-	const uint8_t *bus_state() const {
+	const LineStateT *bus_state() const {
 		switch(operation) {
 
 			//
@@ -186,7 +187,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::ReadOpcodeStart: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK |	Line::M1,
 								Line::M1 |	Line::MREQ |	Line::RD,
 					Line::CLK |	Line::M1 |	Line::MREQ |	Line::RD,
@@ -196,7 +197,7 @@ struct PartialMachineCycle {
 
 			case Operation::ReadOpcode:
 			case Operation::ReadOpcodeWait: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::M1 |	Line::MREQ |	Line::RD,
 					Line::CLK |	Line::M1 |	Line::MREQ |	Line::RD,
 				};
@@ -204,7 +205,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::Refresh: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK |	Line::RFSH |	Line::MREQ,
 								Line::RFSH,
 					Line::CLK |	Line::RFSH |	Line::MREQ,
@@ -222,7 +223,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::ReadStart: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK,
 								Line::RD |	Line::MREQ,
 					Line::CLK |	Line::RD |	Line::MREQ,
@@ -231,7 +232,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::ReadWait: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::MREQ |	Line::RD,
 					Line::CLK |	Line::MREQ |	Line::RD,
 								Line::MREQ |	Line::RD,
@@ -243,7 +244,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::Read: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::MREQ |	Line::RD,
 					Line::CLK |	Line::MREQ |	Line::RD,
 								0,
@@ -256,7 +257,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::WriteStart: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK,
 								Line::MREQ,
 					Line::CLK |	Line::MREQ,
@@ -265,7 +266,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::WriteWait: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::MREQ,
 					Line::CLK |	Line::MREQ,
 								Line::MREQ,
@@ -277,7 +278,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::Write: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::MREQ |	Line::WR,
 					Line::CLK |	Line::MREQ |	Line::WR,
 								0,
@@ -290,7 +291,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::InputStart: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK,
 								0,
 					Line::CLK |	Line::IOREQ |	Line::RD,
@@ -299,7 +300,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::InputWait: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::IOREQ |	Line::RD,
 					Line::CLK |	Line::IOREQ |	Line::RD,
 				};
@@ -307,7 +308,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::Input: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::IOREQ |	Line::RD,
 					Line::CLK |	Line::IOREQ |	Line::RD,
 								0,
@@ -320,7 +321,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::OutputStart: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK,
 								0,
 					Line::CLK |	Line::IOREQ |	Line::WR,
@@ -329,7 +330,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::OutputWait: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::IOREQ |	Line::WR,
 					Line::CLK |	Line::IOREQ |	Line::WR,
 				};
@@ -337,7 +338,7 @@ struct PartialMachineCycle {
 			}
 
 			case Operation::Output: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 								Line::IOREQ |	Line::WR,
 					Line::CLK |	Line::IOREQ |	Line::WR,
 								0,
@@ -354,7 +355,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::BusAcknowledge: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK |	Line::BUSACK,
 								Line::BUSACK,
 				};
@@ -366,7 +367,7 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::Internal: {
-				static constexpr uint8_t states[] = {
+				static constexpr LineStateT states[] = {
 					Line::CLK, 0,
 					Line::CLK, 0,
 					Line::CLK, 0,
