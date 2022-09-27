@@ -221,7 +221,7 @@ class ProcessorStorage {
 		}
 
 		typedef MicroOp InstructionTable[256][30];
-		virtual void assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets) = 0;
+		virtual void assemble_page(InstructionPage &target, const InstructionTable &table, bool add_offsets) = 0;
 		virtual void copy_program(const MicroOp *source, std::vector<MicroOp> &destination) = 0;
 
 		void assemble_fetch_decode_execute(InstructionPage &target, int length);

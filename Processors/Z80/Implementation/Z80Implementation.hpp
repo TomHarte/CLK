@@ -928,7 +928,7 @@ template <	class T,
 template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> void Processor <T, uses_bus_request, uses_wait_line>
-				::assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets) {
+				::assemble_page(InstructionPage &target, const InstructionTable &table, bool add_offsets) {
 	std::size_t number_of_micro_ops = 0;
 	std::size_t lengths[256];
 

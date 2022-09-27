@@ -537,7 +537,7 @@ template <class T, bool uses_bus_request, bool uses_wait_line> class Processor: 
 	private:
 		T &bus_handler_;
 
-		void assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets);
+		void assemble_page(InstructionPage &target, const InstructionTable &table, bool add_offsets);
 		void copy_program(const MicroOp *source, std::vector<MicroOp> &destination);
 };
 
