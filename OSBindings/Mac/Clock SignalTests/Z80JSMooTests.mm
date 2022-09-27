@@ -103,6 +103,64 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		return !failed;
 	}
 
+	bool compare_bus_states(NSArray<NSArray *> *states) {
+		auto capture = bus_records_.begin() + 1;
+
+		int cycle = 0;
+		for(NSArray *state in states) {
+			// Extract proper bus state.
+			const std::optional<uint16_t> address =
+				[states[0] isKindOfClass:[NSNumber class]] ? std::optional<uint16_t>([state[0] intValue]) : std::nullopt;
+			const std::optional<uint8_t> data =
+				[states[1] isKindOfClass:[NSNumber class]] ? std::optional<uint8_t>([state[1] intValue]) : std::nullopt;
+
+			NSString *const controls = state[2];
+			const bool read = [controls characterAtIndex:0] != '-';
+			const bool write = [controls characterAtIndex:1] != '-';
+			const bool m1 = [controls characterAtIndex:2] != '-';
+			const bool ioReq = [controls characterAtIndex:2] != '-';
+
+			// Compare to captured state.
+			bool failed = false;
+			if(address != capture->address) {
+				NSLog(@"Address mismatch after %d cycles", cycle);
+				failed = true;
+			}
+			if(data != capture->data) {
+				NSLog(@"Address mismatch after %d cycles", cycle);
+				failed = true;
+			}
+
+			using Line = CPU::Z80::PartialMachineCycle::Line;
+			if(read != bool(capture->lines & Line::RD)) {
+				NSLog(@"Read line mismatch after %d cycles", cycle);
+				failed = true;
+			}
+			if(write != bool(capture->lines & Line::WR)) {
+				NSLog(@"Write line mismatch after %d cycles", cycle);
+				failed = true;
+			}
+			if(m1 != bool(capture->lines & Line::M1)) {
+				NSLog(@"M1 line mismatch after %d cycles", cycle);
+				failed = true;
+			}
+			if(ioReq != bool(capture->lines & Line::IOREQ)) {
+				NSLog(@"IOREQ line mismatch after %d cycles", cycle);
+				failed = true;
+			}
+
+			if(failed) {
+				return false;
+			}
+
+			// Advance.
+			capture += 2;
+			++cycle;
+		}
+
+		return true;
+	}
+
 	void run_for(int cycles) {
 		z80_.run_for(HalfCycles(Cycles(cycles)));
 		XCTAssertEqual(bus_records_.size(), cycles * 2);
@@ -210,9 +268,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 //	z80->run_for(15);
 
 	// Check register and RAM state.
-	return z80->compare_state(test[@"final"]);
-
-	// TODO: check bus cycles.
+	return z80->compare_state(test[@"final"]) && z80->compare_bus_states(test[@"cycles"]);
 }
 
 - (BOOL)applyTests:(NSString *)path {
