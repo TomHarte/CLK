@@ -110,9 +110,9 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		for(NSArray *state in states) {
 			// Extract proper bus state.
 			const std::optional<uint16_t> address =
-				[states[0] isKindOfClass:[NSNumber class]] ? std::optional<uint16_t>([state[0] intValue]) : std::nullopt;
+				[state[0] isKindOfClass:[NSNumber class]] ? std::optional<uint16_t>([state[0] intValue]) : std::nullopt;
 			const std::optional<uint8_t> data =
-				[states[1] isKindOfClass:[NSNumber class]] ? std::optional<uint8_t>([state[1] intValue]) : std::nullopt;
+				[state[1] isKindOfClass:[NSNumber class]] ? std::optional<uint8_t>([state[1] intValue]) : std::nullopt;
 
 			NSString *const controls = state[2];
 			const bool read = [controls characterAtIndex:0] != '-';
@@ -127,7 +127,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 				failed = true;
 			}
 			if(data != capture->data) {
-				NSLog(@"Address mismatch after %d cycles", cycle);
+				NSLog(@"Data mismatch after %d cycles", cycle);
 				failed = true;
 			}
 
