@@ -174,12 +174,23 @@ struct PartialMachineCycle {
 		static constexpr LineStateT BUSACK = 1 << 7;
 	};
 
+	enum class SampleType {
+		Instant, Period
+	};
+
 	/// @returns A C-style array of the bus state at the beginning of each half cycle in this
 	/// partial machine cycle. Each element is a combination of bit masks from the Line enum;
 	/// bit set means line active, bit clear means line inactive. For the CLK line set means high.
 	///
 	/// @discussion This discrete sampling is prone to aliasing errors. Beware.
-	const LineStateT *bus_state() const {
+	///
+	///	@c sample_type indicates whether to describe bus activity:
+	/// 	(i)	as a series of instantaneous samples indicating levels at the
+	/// 		immediate start of the time period; or
+	/// 	(ii)	as windowed samples, indicating active if the signal is active
+	/// 		at any time during this time period.
+	///
+	template <SampleType sample_type> const LineStateT *bus_state() const {
 		switch(operation) {
 
 			//
