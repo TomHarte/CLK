@@ -217,7 +217,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		//
 		const auto data = cycle.value ? std::optional<uint8_t>(*cycle.value) : std::nullopt;
 		const auto address = cycle.address ? std::optional<uint16_t>(*cycle.address) : std::nullopt;
-		const uint8_t* const bus = cycle.bus_state<CPU::Z80::PartialMachineCycle::SampleType::Instant>();
+		const auto bus = cycle.bus_state<CPU::Z80::PartialMachineCycle::SampleType::Instant>();
 		for(int i = 0; i < cycle.length.as<int>(); i++) {
 			bus_records_.emplace_back(address, data, bus[i]);
 		}

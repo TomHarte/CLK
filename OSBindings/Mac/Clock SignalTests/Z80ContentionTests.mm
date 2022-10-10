@@ -85,7 +85,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 		//
 		// Log the plain bus activity.
 		//
-		const uint8_t *const bus_state = cycle.bus_state<CPU::Z80::PartialMachineCycle::SampleType::Period>();
+		const auto bus_state = cycle.bus_state<CPU::Z80::PartialMachineCycle::SampleType::Period>();
 		for(int c = 0; c < cycle.length.as<int>(); c++) {
 			bus_records_.emplace_back();
 

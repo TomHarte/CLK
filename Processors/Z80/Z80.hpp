@@ -158,7 +158,7 @@ struct PartialMachineCycle {
 		return operation <= Operation::Write;
 	}
 
-	using LineStateT = uint8_t;
+	using LineStateT = uint16_t;
 	struct Line {
 		static constexpr LineStateT CLK = 1 << 0;
 
@@ -172,6 +172,9 @@ struct PartialMachineCycle {
 		static constexpr LineStateT M1 = 1 << 6;
 
 		static constexpr LineStateT BUSACK = 1 << 7;
+
+		static constexpr LineStateT DataActive = 1 << 8;
+		static constexpr LineStateT AddressActive = 1 << 9;
 	};
 
 	enum class SampleType {
@@ -191,6 +194,29 @@ struct PartialMachineCycle {
 	/// 		at any time during this time period.
 	///
 	template <SampleType sample_type> const LineStateT *bus_state() const {
+		struct BusStateDecomposer {
+			static constexpr LineStateT state(const char *source) {
+				LineStateT result = 0;
+				while(*source) {
+					switch(*source) {
+						default: 									break;
+						case 'C':	result |= Line::CLK;			break;
+						case 'M':	result |= Line::MREQ;			break;
+						case 'I':	result |= Line::IOREQ;			break;
+						case 'R':	result |= Line::RD;				break;
+						case 'W':	result |= Line::WR;				break;
+						case 'F':	result |= Line::RFSH;			break;
+						case '1':	result |= Line::M1;				break;
+						case 'K':	result |= Line::BUSACK;			break;
+						case 'D':	result |= Line::DataActive;		break;
+						case 'A':	result |= Line::AddressActive;	break;
+					}
+					++source;
+				}
+				return result;
+			}
+		};
+
 		switch(operation) {
 
 			//
@@ -198,19 +224,24 @@ struct PartialMachineCycle {
 			//
 
 			case Operation::ReadOpcodeStart: {
-				static constexpr LineStateT states[] = {
-					Line::CLK |	Line::M1,
-								Line::M1 |	Line::MREQ |	Line::RD,
-					Line::CLK |	Line::M1 |	Line::MREQ |	Line::RD,
+				static constexpr LineStateT period_states[] = {
+					BusStateDecomposer::state("C 1__ A"),
+					BusStateDecomposer::state("_ 1MR A"),
+					BusStateDecomposer::state("C 1MR A"),
 				};
-				return states;
+				static constexpr LineStateT instant_states[] = {
+					BusStateDecomposer::state("C ___ _"),
+					BusStateDecomposer::state("_ 1M_ A"),
+					BusStateDecomposer::state("C 1MR A"),
+				};
+				return sample_type == SampleType::Period ? period_states : instant_states;
 			}
 
 			case Operation::ReadOpcode:
 			case Operation::ReadOpcodeWait: {
 				static constexpr LineStateT states[] = {
-								Line::M1 |	Line::MREQ |	Line::RD,
-					Line::CLK |	Line::M1 |	Line::MREQ |	Line::RD,
+					BusStateDecomposer::state("_ 1MR A"),
+					BusStateDecomposer::state("C 1MR A"),
 				};
 				return states;
 			}
