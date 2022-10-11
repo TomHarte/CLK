@@ -20,14 +20,83 @@ namespace M68k {
 #define u_extend16(x)	uint32_t(int16_t(x))
 #define s_extend16(x)	int32_t(int16_t(x))
 
+namespace Primitive {
+
+/// Provides a type alias, @c type, which is an unsigned int bigger than @c IntT.
+template <typename IntT> struct BiggerInt {};
+template <> struct BiggerInt<uint8_t> {
+	using type = uint16_t;
+};
+template <> struct BiggerInt<uint16_t> {
+	using type = uint32_t;
+};
+template <> struct BiggerInt<uint32_t> {
+	using type = uint64_t;
+};
+
+/// @returns An int of type @c IntT with only the most-significant bit set.
+template <typename IntT> constexpr IntT top_bit() {
+	static_assert(!std::numeric_limits<IntT>::is_signed);
+	constexpr IntT max = std::numeric_limits<IntT>::max();
+	return max - (max >> 1);
+}
+
+/// @returns The number of bits in @c IntT.
+template <typename IntT> constexpr int bit_count() {
+	return sizeof(IntT) * 8;
+}
+
+/// @returns An int with the top bit indicating whether overflow occurred when @c source and @c destination
+/// were either added (if @c is_add is true) or subtracted (if @c is_add is false) and the result was @c result.
+/// All other bits will be clear.
+template <bool is_add, typename IntT>
+static Status::FlagT overflow(IntT source, IntT destination, IntT result) {
+	const IntT output_changed = result ^ destination;
+	const IntT input_differed = source ^ destination;
+
+	if constexpr (is_add) {
+		return top_bit<IntT>() & output_changed & ~input_differed;
+	} else {
+		return top_bit<IntT>() & output_changed & input_differed;
+	}
+}
+
+/// Performs an add or subtract (as per @c is_add) between @c source and @c destination,
+/// updating @c status. @c is_extend indicates whether this is an extend operation (e.g. ADDX)
+/// or a plain one (e.g. ADD).
+template <bool is_add, bool is_extend, typename IntT>
+static void add_sub(IntT source, IntT &destination, Status &status) {
+	static_assert(!std::numeric_limits<IntT>::is_signed);
+	using BigIntT = typename BiggerInt<IntT>::type;
+
+	const BigIntT extend = (is_extend && status.extend_flag) ? 1 : 0;
+	const BigIntT result = is_add ?
+		(BigIntT(destination) + BigIntT(source) + extend) :
+		(BigIntT(destination) - BigIntT(source) - extend);
+
+	// Extend operations can reset the zero flag only; non-extend operations
+	// can either set it or reset it. Which in the reverse-logic world of
+	// zero_result means ORing or storing.
+	if constexpr (is_extend) {
+		status.zero_result |= IntT(result);
+	} else {
+		status.zero_result = IntT(result);
+	}
+	status.extend_flag =
+	status.carry_flag = Status::FlagT(result >> bit_count<IntT>());
+	status.negative_flag = Status::FlagT(result & top_bit<IntT>());
+	status.overflow_flag = overflow<is_add>(source, destination, IntT(result));
+	destination = IntT(result);
+}
+
+}
+
 template <
 	Model model,
 	typename FlowController,
 	Operation operation = Operation::Undefined
 > void perform(Preinstruction instruction, CPU::SlicedInt32 &src, CPU::SlicedInt32 &dest, Status &status, FlowController &flow_controller) {
 
-#define sub_overflow() ((result ^ destination) & (destination ^ source))
-#define add_overflow() ((result ^ destination) & ~(destination ^ source))
 	switch((operation != Operation::Undefined) ? operation : instruction.operation) {
 		/*
 			ABCD adds the lowest bytes from the source and destination using BCD arithmetic,
@@ -58,159 +127,27 @@ template <
 			dest.b = uint8_t(result);
 		} break;
 
-#define addop(a, b, x) 	a + b + (x ? 1 : 0)
-#define subop(a, b, x) 	a - b - (x ? 1 : 0)
-#define z_set(a, b)		a = b
-#define z_or(a, b)		a |= b
-
-#define addsubb(a, b, op, overflow, x, zero_op)	\
-	const int source = a;	\
-	const int destination = b;	\
-	const auto result = op(destination, source, x);	\
-	\
-	b = uint8_t(result);	\
-	zero_op(status.zero_result, b);	\
-	status.extend_flag = status.carry_flag = uint_fast32_t(result & ~0xff);	\
-	status.negative_flag = result & 0x80;	\
-	status.overflow_flag = overflow() & 0x80;
-
-#define addsubw(a, b, op, overflow, x, zero_op)	\
-	const int source = a;	\
-	const int destination = b;	\
-	const auto result = op(destination, source, x);	\
-	\
-	b = uint16_t(result);	\
-	zero_op(status.zero_result, b);	\
-	status.extend_flag = status.carry_flag = uint_fast32_t(result & ~0xffff);	\
-	status.negative_flag = result & 0x8000;	\
-	status.overflow_flag = overflow() & 0x8000;
-
-#define addsubl(a, b, op, overflow, x, zero_op)	\
-	const uint64_t source = a;	\
-	const uint64_t destination = b;	\
-	const auto result = op(destination, source, x);	\
-	\
-	b = uint32_t(result);	\
-	zero_op(status.zero_result, b);	\
-	status.extend_flag = status.carry_flag = uint_fast32_t(result >> 32);	\
-	status.negative_flag = result & 0x80000000;	\
-	status.overflow_flag = overflow() & 0x80000000;
-
-#define addb(a, b, x, z) addsubb(a, b, addop, add_overflow, x, z)
-#define subb(a, b, x, z) addsubb(a, b, subop, sub_overflow, x, z)
-#define addw(a, b, x, z) addsubw(a, b, addop, add_overflow, x, z)
-#define subw(a, b, x, z) addsubw(a, b, subop, sub_overflow, x, z)
-#define addl(a, b, x, z) addsubl(a, b, addop, add_overflow, x, z)
-#define subl(a, b, x, z) addsubl(a, b, subop, sub_overflow, x, z)
-
-#define no_extend(op, a, b)	op(a, b, 0, z_set)
-#define extend(op, a, b)	op(a, b, status.extend_flag, z_or)
-
 		// ADD and ADDA add two quantities, the latter sign extending and without setting any flags;
 		// ADDQ and SUBQ act as ADD and SUB, but taking the second argument from the instruction code.
-		case Operation::ADDb: {
-			no_extend(	addb,
-						src.b,
-						dest.b);
-		} break;
+		case Operation::ADDb:	Primitive::add_sub<true, false>(src.b, dest.b, status);		break;
+		case Operation::SUBb:	Primitive::add_sub<false, false>(src.b, dest.b, status);	break;
+		case Operation::ADDXb:	Primitive::add_sub<true, true>(src.b, dest.b, status);		break;
+		case Operation::SUBXb:	Primitive::add_sub<false, true>(src.b, dest.b, status);		break;
 
-		case Operation::ADDXb: {
-			extend(		addb,
-						src.b,
-						dest.b);
-		} break;
+		case Operation::ADDw:	Primitive::add_sub<true, false>(src.w, dest.w, status);		break;
+		case Operation::SUBw:	Primitive::add_sub<false, false>(src.w, dest.w, status);	break;
+		case Operation::ADDXw:	Primitive::add_sub<true, true>(src.w, dest.w, status);		break;
+		case Operation::SUBXw:	Primitive::add_sub<false, true>(src.w, dest.w, status);		break;
 
-		case Operation::ADDw: {
-			no_extend(	addw,
-						src.w,
-						dest.w);
-		} break;
+		case Operation::ADDl:	Primitive::add_sub<true, false>(src.l, dest.l, status);		break;
+		case Operation::SUBl:	Primitive::add_sub<false, false>(src.l, dest.l, status);	break;
+		case Operation::ADDXl:	Primitive::add_sub<true, true>(src.l, dest.l, status);		break;
+		case Operation::SUBXl:	Primitive::add_sub<false, true>(src.l, dest.l, status);		break;
 
-		case Operation::ADDXw: {
-			extend(		addw,
-						src.w,
-						dest.w);
-		} break;
-
-		case Operation::ADDl: {
-			no_extend(	addl,
-						src.l,
-						dest.l);
-		} break;
-
-		case Operation::ADDXl: {
-			extend(		addl,
-						src.l,
-						dest.l);
-		} break;
-
-		case Operation::SUBb: {
-			no_extend(	subb,
-						src.b,
-						dest.b);
-		} break;
-
-		case Operation::SUBXb: {
-			extend(		subb,
-						src.b,
-						dest.b);
-		} break;
-
-		case Operation::SUBw: {
-			no_extend(	subw,
-						src.w,
-						dest.w);
-		} break;
-
-		case Operation::SUBXw: {
-			extend(		subw,
-						src.w,
-						dest.w);
-		} break;
-
-		case Operation::SUBl: {
-			no_extend(	subl,
-						src.l,
-						dest.l);
-		} break;
-
-		case Operation::SUBXl: {
-			extend(		subl,
-						src.l,
-						dest.l);
-		} break;
-
-#undef addl
-#undef addw
-#undef addb
-#undef subl
-#undef subw
-#undef subb
-#undef addsubl
-#undef addsubw
-#undef addsubb
-#undef z_set
-#undef z_or
-#undef no_extend
-#undef extend
-#undef addop
-#undef subop
-
-		case Operation::ADDAw:
-			dest.l += u_extend16(src.w);
-		break;
-
-		case Operation::ADDAl:
-			dest.l += src.l;
-		break;
-
-		case Operation::SUBAw:
-			dest.l -= u_extend16(src.w);
-		break;
-
-		case Operation::SUBAl:
-			dest.l -= src.l;
-		break;
+		case Operation::ADDAw:	dest.l += u_extend16(src.w);	break;
+		case Operation::ADDAl:	dest.l += src.l;				break;
+		case Operation::SUBAw:	dest.l -= u_extend16(src.w);	break;
+		case Operation::SUBAl:	dest.l -= src.l;				break;
 
 #define get_mask()																						\
 	const uint32_t mask_size = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;	\
@@ -331,7 +268,7 @@ template <
 			status.zero_result = result & 0xff;
 			status.carry_flag = Status::FlagT(result & ~0xff);
 			status.negative_flag = result & 0x80;
-			status.overflow_flag = sub_overflow() & 0x80;
+			status.overflow_flag = Primitive::overflow<false>(source, destination, uint8_t(result));
 		} break;
 
 		case Operation::CMPw: {
@@ -342,7 +279,7 @@ template <
 			status.zero_result = result & 0xffff;
 			status.carry_flag = Status::FlagT(result & ~0xffff);
 			status.negative_flag = result & 0x8000;
-			status.overflow_flag = sub_overflow() & 0x8000;
+			status.overflow_flag = Primitive::overflow<false>(source, destination, uint16_t(result));
 		} break;
 
 		case Operation::CMPAw: {
@@ -353,7 +290,7 @@ template <
 			status.zero_result = uint32_t(result);
 			status.carry_flag = result >> 32;
 			status.negative_flag = result & 0x80000000;
-			status.overflow_flag = sub_overflow() & 0x80000000;
+			status.overflow_flag = Primitive::overflow<false>(uint32_t(source), uint32_t(destination), uint32_t(result));
 		} break;
 
 		// TODO: is there any benefit to keeping both of these?
@@ -366,7 +303,7 @@ template <
 			status.zero_result = uint32_t(result);
 			status.carry_flag = result >> 32;
 			status.negative_flag = result & 0x80000000;
-			status.overflow_flag = sub_overflow() & 0x80000000;
+			status.overflow_flag = Primitive::overflow<false>(uint32_t(source), uint32_t(destination), uint32_t(result));
 		} break;
 
 		// JMP: copies EA(0) to the program counter.
@@ -604,7 +541,7 @@ template <
 			status.zero_result = result & 0xff;
 			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xff);
 			status.negative_flag = result & 0x80;
-			status.overflow_flag = sub_overflow() & 0x80;
+			status.overflow_flag = Primitive::overflow<false>(uint8_t(source), uint8_t(destination), uint8_t(result));
 		} break;
 
 		case Operation::NEGw: {
@@ -616,7 +553,7 @@ template <
 			status.zero_result = result & 0xffff;
 			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xffff);
 			status.negative_flag = result & 0x8000;
-			status.overflow_flag = sub_overflow() & 0x8000;
+			status.overflow_flag = Primitive::overflow<false>(uint16_t(source), uint16_t(destination), uint16_t(result));
 		} break;
 
 		case Operation::NEGl: {
@@ -628,7 +565,7 @@ template <
 			status.zero_result = uint_fast32_t(result);
 			status.extend_flag = status.carry_flag = result >> 32;
 			status.negative_flag = result & 0x80000000;
-			status.overflow_flag = sub_overflow() & 0x80000000;
+			status.overflow_flag = Primitive::overflow<false>(uint32_t(source), uint32_t(destination), uint32_t(result));
 		} break;
 
 		/*
@@ -643,7 +580,7 @@ template <
 			status.zero_result |= result & 0xff;
 			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xff);
 			status.negative_flag = result & 0x80;
-			status.overflow_flag = sub_overflow() & 0x80;
+			status.overflow_flag = Primitive::overflow<false>(uint8_t(source), uint8_t(destination), uint8_t(result));
 		} break;
 
 		case Operation::NEGXw: {
@@ -655,7 +592,7 @@ template <
 			status.zero_result |= result & 0xffff;
 			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xffff);
 			status.negative_flag = result & 0x8000;
-			status.overflow_flag = sub_overflow() & 0x8000;
+			status.overflow_flag = Primitive::overflow<false>(uint16_t(source), uint16_t(destination), uint16_t(result));
 		} break;
 
 		case Operation::NEGXl: {
@@ -667,7 +604,7 @@ template <
 			status.zero_result |= uint_fast32_t(result);
 			status.extend_flag = status.carry_flag = result >> 32;
 			status.negative_flag = result & 0x80000000;
-			status.overflow_flag = sub_overflow() & 0x80000000;
+			status.overflow_flag = Primitive::overflow<false>(uint32_t(source), uint32_t(destination), uint32_t(result));
 		} break;
 
 		/*
@@ -1153,8 +1090,6 @@ template <
 			assert(false);
 		break;
 	}
-#undef sub_overflow
-#undef add_overflow
 
 #undef u_extend16
 #undef s_extend16
