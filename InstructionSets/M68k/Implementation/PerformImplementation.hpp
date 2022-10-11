@@ -67,26 +67,25 @@ static Status::FlagT overflow(IntT source, IntT destination, IntT result) {
 template <bool is_add, bool is_extend, typename IntT>
 static void add_sub(IntT source, IntT &destination, Status &status) {
 	static_assert(!std::numeric_limits<IntT>::is_signed);
-	using BigIntT = typename BiggerInt<IntT>::type;
 
-	const BigIntT extend = (is_extend && status.extend_flag) ? 1 : 0;
-	const BigIntT result = is_add ?
-		(BigIntT(destination) + BigIntT(source) + extend) :
-		(BigIntT(destination) - BigIntT(source) - extend);
+	const IntT extend = (is_extend && status.extend_flag) ? 1 : 0;
+	const IntT result = is_add ?
+		(destination + source + extend) :
+		(destination - source - extend);
 
 	// Extend operations can reset the zero flag only; non-extend operations
 	// can either set it or reset it. Which in the reverse-logic world of
 	// zero_result means ORing or storing.
 	if constexpr (is_extend) {
-		status.zero_result |= IntT(result);
+		status.zero_result |= Status::FlagT(result);
 	} else {
-		status.zero_result = IntT(result);
+		status.zero_result = Status::FlagT(result);
 	}
 	status.extend_flag =
-	status.carry_flag = Status::FlagT(result >> bit_count<IntT>());
+	status.carry_flag = is_add ? result < destination : result > destination;
 	status.negative_flag = Status::FlagT(result & top_bit<IntT>());
-	status.overflow_flag = overflow<is_add>(source, destination, IntT(result));
-	destination = IntT(result);
+	status.overflow_flag = overflow<is_add>(source, destination, result);
+	destination = result;
 }
 
 }
