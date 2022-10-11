@@ -108,7 +108,10 @@ inline uint32_t mask_bit(const Preinstruction &instruction, uint32_t source) {
 /// Also makes an appropriate notification to the @c flow_controller.
 template <Operation operation, typename FlowController>
 void bit_manipulate(const Preinstruction &instruction, uint32_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
-	static_assert(operation == Operation::BCLR || operation == Operation::BCHG || operation == Operation::BSET);
+	static_assert(
+		operation == Operation::BCLR ||
+		operation == Operation::BCHG ||
+		operation == Operation::BSET);
 
 	const auto bit = mask_bit(instruction, source);
 	status.zero_result = destination & (1 << bit);
@@ -124,6 +127,43 @@ void bit_manipulate(const Preinstruction &instruction, uint32_t source, uint32_t
 template <typename IntT> void clear(IntT &destination, Status &status) {
 	destination = 0;
 	status.negative_flag = status.overflow_flag = status.carry_flag = status.zero_result = 0;
+}
+
+template <Operation operation, typename FlowController>
+void apply_sr_ccr(uint16_t source, Status &status, FlowController &flow_controller) {
+	static_assert(
+		operation == Operation::ANDItoSR ||	operation == Operation::ANDItoCCR ||
+		operation == Operation::EORItoSR ||	operation == Operation::EORItoCCR ||
+		operation == Operation::ORItoSR ||	operation == Operation::ORItoCCR
+	);
+
+	auto sr = status.status();
+	switch(operation) {
+		case Operation::ANDItoSR:	case Operation::ANDItoCCR:
+			sr &= source;
+		break;
+		case Operation::EORItoSR:	case Operation::EORItoCCR:
+			sr ^= source;
+		break;
+		case Operation::ORItoSR:	case Operation::ORItoCCR:
+			sr |= source;
+		break;
+	}
+
+	switch(operation) {
+		case Operation::ANDItoSR:
+		case Operation::EORItoSR:
+		case Operation::ORItoSR:
+			status.set_status(sr);
+			flow_controller.did_update_status();
+		break;
+
+		case Operation::ANDItoCCR:
+		case Operation::EORItoCCR:
+		case Operation::ORItoCCR:
+			status.set_ccr(sr);
+		break;
+	}
 }
 
 }
@@ -355,38 +395,12 @@ template <
 			status.negative_flag = status.zero_result & 0x80000000;
 		break;
 
-#define and_op(a, b) a &= b
-#define or_op(a, b) a |= b
-#define eor_op(a, b) a ^= b
-
-#define apply(op, func)	{			\
-	auto sr = status.status();		\
-	op(sr, src.w);					\
-	func(sr);						\
-}
-
-#define set_status(x)		status.set_status(x);	flow_controller.did_update_status()
-#define set_ccr(x)			status.set_ccr(x)
-
-#define apply_op_sr(op)		apply(op, set_status)
-#define apply_op_ccr(op)	apply(op, set_ccr)
-
-		case Operation::ANDItoSR:	apply_op_sr(and_op);	break;
-		case Operation::EORItoSR:	apply_op_sr(eor_op);	break;
-		case Operation::ORItoSR:	apply_op_sr(or_op);		break;
-
-		case Operation::ANDItoCCR:	apply_op_ccr(and_op);	break;
-		case Operation::EORItoCCR:	apply_op_ccr(eor_op);	break;
-		case Operation::ORItoCCR:	apply_op_ccr(or_op);	break;
-
-#undef apply_op_ccr
-#undef apply_op_sr
-#undef set_ccr
-#undef set_status
-#undef apply
-#undef eor_op
-#undef or_op
-#undef and_op
+		case Operation::ANDItoSR:	Primitive::apply_sr_ccr<Operation::ANDItoSR>(src.w, status, flow_controller);	break;
+		case Operation::EORItoSR:	Primitive::apply_sr_ccr<Operation::EORItoSR>(src.w, status, flow_controller);	break;
+		case Operation::ORItoSR:	Primitive::apply_sr_ccr<Operation::ORItoSR>(src.w, status, flow_controller);	break;
+		case Operation::ANDItoCCR:	Primitive::apply_sr_ccr<Operation::ANDItoCCR>(src.w, status, flow_controller);	break;
+		case Operation::EORItoCCR:	Primitive::apply_sr_ccr<Operation::EORItoCCR>(src.w, status, flow_controller);	break;
+		case Operation::ORItoCCR:	Primitive::apply_sr_ccr<Operation::ORItoCCR>(src.w, status, flow_controller);	break;
 
 		/*
 			Multiplications.
