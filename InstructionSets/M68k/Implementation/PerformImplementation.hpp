@@ -184,6 +184,46 @@ void multiply(uint16_t source, uint32_t &destination, Status &status, FlowContro
 	}
 }
 
+template <bool is_divu, bool did_overflow, typename IntT, typename FlowController>
+void did_divide(IntT dividend, IntT divisor, FlowController &flow_controller) {
+	if constexpr (is_divu) {
+		flow_controller.template did_divu<did_overflow>(dividend, divisor);
+	} else {
+		flow_controller.template did_divs<did_overflow>(dividend, divisor);
+	}
+}
+
+template <bool is_divu, typename Int16, typename Int32, typename FlowController>
+void divide(uint16_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
+	status.carry_flag = 0;
+
+	const auto dividend = Int32(destination);
+	const auto divisor = Int32(Int16(source));
+
+	if(!divisor) {
+		status.negative_flag = status.overflow_flag = 0;
+		status.zero_result = 1;
+		flow_controller.raise_exception(Exception::IntegerDivideByZero);
+		did_divide<is_divu, false>(dividend, divisor, flow_controller);
+		return;
+	}
+
+	const auto quotient = int64_t(dividend) / int64_t(divisor);
+	if(quotient != Int32(Int16(quotient))) {
+		status.overflow_flag = 1;
+		did_divide<is_divu, true>(dividend, divisor, flow_controller);
+		return;
+	}
+
+	const auto remainder = Int16(dividend % divisor);
+	destination = uint32_t((uint32_t(remainder) << 16) | uint16_t(quotient));
+
+	status.overflow_flag = 0;
+	status.zero_result = Status::FlagT(quotient);
+	status.negative_flag = status.zero_result & 0x8000;
+	did_divide<is_divu, false>(dividend, divisor, flow_controller);
+}
+
 }
 
 template <
@@ -431,40 +471,8 @@ template <
 			Divisions.
 		*/
 
-#define DIV(Type16, Type32, flow_function) {								\
-	status.carry_flag = 0;													\
-																			\
-	const auto dividend = Type32(dest.l);									\
-	const auto divisor = Type32(Type16(src.w));								\
-																			\
-	if(!divisor) {															\
-		status.negative_flag = status.overflow_flag = 0;					\
-		status.zero_result = 1;												\
-		flow_controller.raise_exception(Exception::IntegerDivideByZero);	\
-		flow_controller.template flow_function<false>(dividend, divisor);	\
-		return;																\
-	}																		\
-																			\
-	const auto quotient = int64_t(dividend) / int64_t(divisor);				\
-	if(quotient != Type32(Type16(quotient))) {								\
-		status.overflow_flag = 1;											\
-		flow_controller.template flow_function<true>(dividend, divisor);	\
-		return;																\
-	}																		\
-																			\
-	const auto remainder = Type16(dividend % divisor);						\
-	dest.l = uint32_t((uint32_t(remainder) << 16) | uint16_t(quotient));	\
-																			\
-	status.overflow_flag = 0;												\
-	status.zero_result = Status::FlagT(quotient);							\
-	status.negative_flag = status.zero_result & 0x8000;						\
-	flow_controller.template flow_function<false>(dividend, divisor);		\
-}
-
-		case Operation::DIVU:	DIV(uint16_t, uint32_t, did_divu);	break;
-		case Operation::DIVS: 	DIV(int16_t, int32_t, did_divs);	break;
-
-#undef DIV
+		case Operation::DIVU:	Primitive::divide<true, uint16_t, uint32_t>(src.w, dest.l, status, flow_controller);	break;
+		case Operation::DIVS:	Primitive::divide<false, int16_t, int32_t>(src.w, dest.l, status, flow_controller);		break;
 
 		// TRAP, which is a nicer form of ILLEGAL.
 		case Operation::TRAP:
