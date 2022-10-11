@@ -88,10 +88,14 @@ static void add_sub(IntT source, IntT &destination, Status &status) {
 	destination = result;
 }
 
+/// @returns the name of the bit to be used as a mask for BCLR, BCHG, BSET or BTST for
+/// @c instruction given @c source.
 inline uint32_t mask_bit(const Preinstruction &instruction, uint32_t source) {
 	return source & (instruction.mode<1>() == AddressingMode::DataRegisterDirect ? 31 : 7);
 }
 
+/// Performs a BCLR, BCHG or BSET as specified by @c operation and described by @c instruction, @c source and @c destination, updating @c destination and @c status.
+/// Also makes an appropriate notification to the @c flow_controller.
 template <Operation operation, typename FlowController>
 void bit_manipulate(const Preinstruction &instruction, uint32_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
 	static_assert(operation == Operation::BCLR || operation == Operation::BCHG || operation == Operation::BSET);
@@ -104,6 +108,12 @@ void bit_manipulate(const Preinstruction &instruction, uint32_t source, uint32_t
 		case Operation::BSET:	destination |= (1 << bit);	break;
 	}
 	flow_controller.did_bit_op(int(bit));
+}
+
+/// Sets @c destination to 0, clears the overflow, carry and negative flags, sets the zero flag.
+template <typename IntT> void clear(IntT &destination, Status &status) {
+	destination = 0;
+	status.negative_flag = status.overflow_flag = status.carry_flag = status.zero_result = 0;
 }
 
 }
@@ -229,20 +239,9 @@ template <
 			CLRs: store 0 to the destination, set the zero flag, and clear
 			negative, overflow and carry.
 		*/
-		case Operation::CLRb:
-			src.b = 0;
-			status.negative_flag = status.overflow_flag = status.carry_flag = status.zero_result = 0;
-		break;
-
-		case Operation::CLRw:
-			src.w = 0;
-			status.negative_flag = status.overflow_flag = status.carry_flag = status.zero_result = 0;
-		break;
-
-		case Operation::CLRl:
-			src.l = 0;
-			status.negative_flag = status.overflow_flag = status.carry_flag = status.zero_result = 0;
-		break;
+		case Operation::CLRb:	Primitive::clear(src.b, status);	break;
+		case Operation::CLRw:	Primitive::clear(src.w, status);	break;
+		case Operation::CLRl:	Primitive::clear(src.l, status);	break;
 
 		/*
 			CMP.b, CMP.l and CMP.w: sets the condition flags (other than extend) based on a subtraction
