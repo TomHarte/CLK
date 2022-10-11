@@ -88,6 +88,24 @@ static void add_sub(IntT source, IntT &destination, Status &status) {
 	destination = result;
 }
 
+inline uint32_t mask_bit(const Preinstruction &instruction, uint32_t source) {
+	return source & (instruction.mode<1>() == AddressingMode::DataRegisterDirect ? 31 : 7);
+}
+
+template <Operation operation, typename FlowController>
+void bit_manipulate(const Preinstruction &instruction, uint32_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
+	static_assert(operation == Operation::BCLR || operation == Operation::BCHG || operation == Operation::BSET);
+
+	const auto bit = mask_bit(instruction, source);
+	status.zero_result = destination & (1 << bit);
+	switch(operation) {
+		case Operation::BCLR:	destination &= ~(1 << bit);	break;
+		case Operation::BCHG:	destination ^= (1 << bit);	break;
+		case Operation::BSET:	destination |= (1 << bit);	break;
+	}
+	flow_controller.did_bit_op(int(bit));
+}
+
 }
 
 template <
@@ -148,42 +166,13 @@ template <
 		case Operation::SUBAw:	dest.l -= u_extend16(src.w);	break;
 		case Operation::SUBAl:	dest.l -= src.l;				break;
 
-#define get_mask()																						\
-	const uint32_t mask_size = (instruction.mode<1>() == AddressingMode::DataRegisterDirect) ? 31 : 7;	\
-	const uint32_t bit_position = src.l & mask_size;													\
-	const uint32_t bit_mask = 1 << bit_position
-
 		// BTST/BCLR/etc: modulo for the mask depends on whether memory or a data register is the target.
-		case Operation::BTST: {
-			get_mask();
-			status.zero_result = dest.l & bit_mask;
-		} break;
-
-		case Operation::BCLR: {
-			get_mask();
-
-			status.zero_result = dest.l & bit_mask;
-			dest.l &= ~bit_mask;
-			flow_controller.did_bit_op(int(bit_position));
-		} break;
-
-		case Operation::BCHG: {
-			get_mask();
-
-			status.zero_result = dest.l & bit_mask;
-			dest.l ^= bit_mask;
-			flow_controller.did_bit_op(int(bit_position));
-		} break;
-
-		case Operation::BSET: {
-			get_mask();
-
-			status.zero_result = dest.l & bit_mask;
-			dest.l |= bit_mask;
-			flow_controller.did_bit_op(int(bit_position));
-		} break;
-
-#undef get_mask
+		case Operation::BTST:
+			status.zero_result = dest.l & (1 << Primitive::mask_bit(instruction, src.l));
+		break;
+		case Operation::BCLR:	Primitive::bit_manipulate<Operation::BCLR>(instruction, src.l, dest.l, status, flow_controller);	break;
+		case Operation::BCHG:	Primitive::bit_manipulate<Operation::BCHG>(instruction, src.l, dest.l, status, flow_controller);	break;
+		case Operation::BSET:	Primitive::bit_manipulate<Operation::BSET>(instruction, src.l, dest.l, status, flow_controller);	break;
 
 		case Operation::Bccb:
 			flow_controller.template complete_bcc<int8_t>(
