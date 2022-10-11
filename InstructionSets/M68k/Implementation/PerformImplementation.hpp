@@ -166,6 +166,24 @@ void apply_sr_ccr(uint16_t source, Status &status, FlowController &flow_controll
 	}
 }
 
+template <bool is_mulu, typename FlowController>
+void multiply(uint16_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
+	if constexpr (is_mulu) {
+		destination = source * uint16_t(destination);
+	} else {
+		destination = u_extend16(source) * u_extend16(uint16_t(destination));
+	}
+	status.carry_flag = status.overflow_flag = 0;
+	status.zero_result = destination;
+	status.negative_flag = status.zero_result & top_bit<uint32_t>();
+
+	if constexpr (is_mulu) {
+		flow_controller.did_mulu(source);
+	} else {
+		flow_controller.did_muls(source);
+	}
+}
+
 }
 
 template <
@@ -406,22 +424,8 @@ template <
 			Multiplications.
 		*/
 
-		case Operation::MULU:
-			dest.l = dest.w * src.w;
-			status.carry_flag = status.overflow_flag = 0;
-			status.zero_result = dest.l;
-			status.negative_flag = status.zero_result & 0x80000000;
-			flow_controller.did_mulu(src.w);
-		break;
-
-		case Operation::MULS:
-			dest.l =
-				u_extend16(dest.w) * u_extend16(src.w);
-			status.carry_flag = status.overflow_flag = 0;
-			status.zero_result = dest.l;
-			status.negative_flag = status.zero_result & 0x80000000;
-			flow_controller.did_muls(src.w);
-		break;
+		case Operation::MULU:	Primitive::multiply<true>(src.w, dest.l, status, flow_controller);	break;
+		case Operation::MULS:	Primitive::multiply<false>(src.w, dest.l, status, flow_controller);	break;
 
 		/*
 			Divisions.
