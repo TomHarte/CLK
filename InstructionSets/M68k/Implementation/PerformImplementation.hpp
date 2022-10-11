@@ -88,6 +88,16 @@ static void add_sub(IntT source, IntT &destination, Status &status) {
 	destination = result;
 }
 
+/// Performs a compare of @c source to @c destination, setting zero, carry, negative and overflow flags.
+template <typename IntT>
+static void compare(IntT source, IntT destination, Status &status) {
+	const IntT result = destination - source;
+	status.zero_result = result;
+	status.carry_flag = result > destination;
+	status.negative_flag = result & top_bit<IntT>();
+	status.overflow_flag = Primitive::overflow<false>(source, destination, result);
+}
+
 /// @returns the name of the bit to be used as a mask for BCLR, BCHG, BSET or BTST for
 /// @c instruction given @c source.
 inline uint32_t mask_bit(const Preinstruction &instruction, uint32_t source) {
@@ -247,51 +257,11 @@ template <
 			CMP.b, CMP.l and CMP.w: sets the condition flags (other than extend) based on a subtraction
 			of the source from the destination; the result of the subtraction is not stored.
 		*/
-		case Operation::CMPb: {
-			const uint8_t source = src.b;
-			const uint8_t destination = dest.b;
-			const int result = destination - source;
-
-			status.zero_result = result & 0xff;
-			status.carry_flag = Status::FlagT(result & ~0xff);
-			status.negative_flag = result & 0x80;
-			status.overflow_flag = Primitive::overflow<false>(source, destination, uint8_t(result));
-		} break;
-
-		case Operation::CMPw: {
-			const uint16_t source = src.w;
-			const uint16_t destination = dest.w;
-			const int result = destination - source;
-
-			status.zero_result = result & 0xffff;
-			status.carry_flag = Status::FlagT(result & ~0xffff);
-			status.negative_flag = result & 0x8000;
-			status.overflow_flag = Primitive::overflow<false>(source, destination, uint16_t(result));
-		} break;
-
-		case Operation::CMPAw: {
-			const auto source = uint64_t(u_extend16(src.w));
-			const uint64_t destination = dest.l;
-			const auto result = destination - source;
-
-			status.zero_result = uint32_t(result);
-			status.carry_flag = result >> 32;
-			status.negative_flag = result & 0x80000000;
-			status.overflow_flag = Primitive::overflow<false>(uint32_t(source), uint32_t(destination), uint32_t(result));
-		} break;
-
-		// TODO: is there any benefit to keeping both of these?
+		case Operation::CMPb:	Primitive::compare(src.b, dest.b, status);	break;
+		case Operation::CMPw:	Primitive::compare(src.w, dest.w, status);	break;
+		case Operation::CMPAw:	Primitive::compare(u_extend16(src.w), dest.l, status);	break;
 		case Operation::CMPAl:
-		case Operation::CMPl: {
-			const auto source = uint64_t(src.l);
-			const auto destination = uint64_t(dest.l);
-			const auto result = destination - source;
-
-			status.zero_result = uint32_t(result);
-			status.carry_flag = result >> 32;
-			status.negative_flag = result & 0x80000000;
-			status.overflow_flag = Primitive::overflow<false>(uint32_t(source), uint32_t(destination), uint32_t(result));
-		} break;
+		case Operation::CMPl:	Primitive::compare(src.l, dest.l, status);	break;
 
 		// JMP: copies EA(0) to the program counter.
 		case Operation::JMP:
