@@ -22,18 +22,6 @@ namespace M68k {
 
 namespace Primitive {
 
-/// Provides a type alias, @c type, which is an unsigned int bigger than @c IntT.
-template <typename IntT> struct BiggerInt {};
-template <> struct BiggerInt<uint8_t> {
-	using type = uint16_t;
-};
-template <> struct BiggerInt<uint16_t> {
-	using type = uint32_t;
-};
-template <> struct BiggerInt<uint32_t> {
-	using type = uint64_t;
-};
-
 /// @returns An int of type @c IntT with only the most-significant bit set.
 template <typename IntT> constexpr IntT top_bit() {
 	static_assert(!std::numeric_limits<IntT>::is_signed);
