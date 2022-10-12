@@ -234,6 +234,12 @@ template <bool is_extend, typename IntT> void negative(IntT &source, Status &sta
 	source = result;
 }
 
+template <typename IntT> void test(IntT source, Status &status) {
+	status.carry_flag = status.overflow_flag = 0;
+	status.zero_result = Status::FlagT(source);
+	status.negative_flag = status.zero_result & top_bit<IntT>();
+}
+
 }
 
 template <
@@ -970,23 +976,9 @@ template <
 			TSTs: compare to zero.
 		*/
 
-		case Operation::TSTb:
-			status.carry_flag = status.overflow_flag = 0;
-			status.zero_result = src.b;
-			status.negative_flag = status.zero_result & 0x80;
-		break;
-
-		case Operation::TSTw:
-			status.carry_flag = status.overflow_flag = 0;
-			status.zero_result = src.w;
-			status.negative_flag = status.zero_result & 0x8000;
-		break;
-
-		case Operation::TSTl:
-			status.carry_flag = status.overflow_flag = 0;
-			status.zero_result = src.l;
-			status.negative_flag = status.zero_result & 0x80000000;
-		break;
+		case Operation::TSTb:	Primitive::test(src.b, status);	break;
+		case Operation::TSTw:	Primitive::test(src.w, status);	break;
+		case Operation::TSTl:	Primitive::test(src.l, status);	break;
 
 		case Operation::STOP:
 			status.set_status(src.w);
