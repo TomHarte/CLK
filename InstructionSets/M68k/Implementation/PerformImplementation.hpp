@@ -212,6 +212,28 @@ void divide(uint16_t source, uint32_t &destination, Status &status, FlowControll
 	did_divide<is_divu, false>(dividend, divisor, flow_controller);
 }
 
+template <typename IntT> void move(IntT source, IntT &destination, Status &status) {
+	destination = source;
+	status.zero_result = Status::FlagT(source);
+	status.negative_flag = status.zero_result & top_bit<IntT>();
+	status.overflow_flag = status.carry_flag = 0;
+}
+
+template <bool is_extend, typename IntT> void negative(IntT &source, Status &status) {
+	const IntT result = -source - (is_extend && status.extend_flag ? 1 : 0);
+
+	if constexpr (is_extend) {
+		status.zero_result |= result;
+	} else {
+		status.zero_result = result;
+	}
+	status.extend_flag = status.carry_flag = result;	// i.e. any value other than 0 will result in carry.
+	status.negative_flag = result & top_bit<IntT>();
+	status.overflow_flag = Primitive::overflow<false>(source, IntT(0), result);
+
+	source = result;
+}
+
 }
 
 template <
@@ -363,23 +385,9 @@ template <
 			MOVE.b, MOVE.l and MOVE.w: move the least significant byte or word, or the entire long word,
 			and set negative, zero, overflow and carry as appropriate.
 		*/
-		case Operation::MOVEb:
-			status.zero_result = dest.b = src.b;
-			status.negative_flag = status.zero_result & 0x80;
-			status.overflow_flag = status.carry_flag = 0;
-		break;
-
-		case Operation::MOVEw:
-			status.zero_result = dest.w = src.w;
-			status.negative_flag = status.zero_result & 0x8000;
-			status.overflow_flag = status.carry_flag = 0;
-		break;
-
-		case Operation::MOVEl:
-			status.zero_result = dest.l = src.l;
-			status.negative_flag = status.zero_result & 0x80000000;
-			status.overflow_flag = status.carry_flag = 0;
-		break;
+		case Operation::MOVEb:	Primitive::move(src.b, dest.b, status);	break;
+		case Operation::MOVEw:	Primitive::move(src.w, dest.w, status);	break;
+		case Operation::MOVEl:	Primitive::move(src.l, dest.l, status);	break;
 
 		/*
 			MOVEA.l: move the entire long word;
@@ -503,80 +511,16 @@ template <
 			and SUB calculates `destination - source`, the NEGs deliberately
 			label 'source' and 'destination' differently from Motorola.
 		*/
-		case Operation::NEGb: {
-			const int destination = 0;
-			const int source = src.b;
-			const auto result = destination - source;
-			src.b = uint8_t(result);
-
-			status.zero_result = result & 0xff;
-			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xff);
-			status.negative_flag = result & 0x80;
-			status.overflow_flag = Primitive::overflow<false>(uint8_t(source), uint8_t(destination), uint8_t(result));
-		} break;
-
-		case Operation::NEGw: {
-			const int destination = 0;
-			const int source = src.w;
-			const auto result = destination - source;
-			src.w = uint16_t(result);
-
-			status.zero_result = result & 0xffff;
-			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xffff);
-			status.negative_flag = result & 0x8000;
-			status.overflow_flag = Primitive::overflow<false>(uint16_t(source), uint16_t(destination), uint16_t(result));
-		} break;
-
-		case Operation::NEGl: {
-			const uint64_t destination = 0;
-			const uint64_t source = src.l;
-			const auto result = destination - source;
-			src.l = uint32_t(result);
-
-			status.zero_result = uint_fast32_t(result);
-			status.extend_flag = status.carry_flag = result >> 32;
-			status.negative_flag = result & 0x80000000;
-			status.overflow_flag = Primitive::overflow<false>(uint32_t(source), uint32_t(destination), uint32_t(result));
-		} break;
+		case Operation::NEGb:	Primitive::negative<false>(src.b, status);		break;
+		case Operation::NEGw:	Primitive::negative<false>(src.w, status);		break;
+		case Operation::NEGl:	Primitive::negative<false>(src.l, status);		break;
 
 		/*
 			NEGXs: NEG, with extend.
 		*/
-		case Operation::NEGXb: {
-			const int source = src.b;
-			const int destination = 0;
-			const auto result = destination - source - (status.extend_flag ? 1 : 0);
-			src.b = uint8_t(result);
-
-			status.zero_result |= result & 0xff;
-			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xff);
-			status.negative_flag = result & 0x80;
-			status.overflow_flag = Primitive::overflow<false>(uint8_t(source), uint8_t(destination), uint8_t(result));
-		} break;
-
-		case Operation::NEGXw: {
-			const int source = src.w;
-			const int destination = 0;
-			const auto result = destination - source - (status.extend_flag ? 1 : 0);
-			src.w = uint16_t(result);
-
-			status.zero_result |= result & 0xffff;
-			status.extend_flag = status.carry_flag = Status::FlagT(result & ~0xffff);
-			status.negative_flag = result & 0x8000;
-			status.overflow_flag = Primitive::overflow<false>(uint16_t(source), uint16_t(destination), uint16_t(result));
-		} break;
-
-		case Operation::NEGXl: {
-			const uint64_t source = src.l;
-			const uint64_t destination = 0;
-			const auto result = destination - source - (status.extend_flag ? 1 : 0);
-			src.l = uint32_t(result);
-
-			status.zero_result |= uint_fast32_t(result);
-			status.extend_flag = status.carry_flag = result >> 32;
-			status.negative_flag = result & 0x80000000;
-			status.overflow_flag = Primitive::overflow<false>(uint32_t(source), uint32_t(destination), uint32_t(result));
-		} break;
+		case Operation::NEGXb:	Primitive::negative<true>(src.b, status);		break;
+		case Operation::NEGXw:	Primitive::negative<true>(src.w, status);		break;
+		case Operation::NEGXl:	Primitive::negative<true>(src.l, status);		break;
 
 		/*
 			The no-op.
