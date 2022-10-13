@@ -29,11 +29,6 @@ template <typename IntT> constexpr IntT top_bit() {
 	return max - (max >> 1);
 }
 
-/// @returns The number of bits in @c IntT.
-template <typename IntT> constexpr int bit_count() {
-	return sizeof(IntT) * 8;
-}
-
 /// @returns An int with the top bit indicating whether overflow occurred when @c source and @c destination
 /// were either added (if @c is_add is true) or subtracted (if @c is_add is false) and the result was @c result.
 /// All other bits will be clear.
