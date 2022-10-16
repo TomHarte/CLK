@@ -256,6 +256,42 @@ template <typename IntT> void set_neg_zero_overflow(IntT result, IntT destinatio
 	status.overflow_flag = Status::FlagT((destination ^ result) & top_bit<IntT>());
 }
 
+/// Perform a rotate without extend, i.e. any of RO[L/R].[b/w/l].
+template <Operation operation, typename IntT, typename FlowController> void rotate(uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
+	static_assert(
+		operation == Operation::ROLb || operation == Operation::ROLw || operation == Operation::ROLl ||
+		operation == Operation::RORb || operation == Operation::RORw || operation == Operation::RORl
+	);
+
+	const auto size = bit_size<IntT>();
+	const auto shift = shift_count<IntT>(uint8_t(source), flow_controller) & (size - 1);
+	IntT result;
+
+	if(!shift) {
+		result = destination;
+		status.carry_flag = 0;
+	} else {
+		switch(operation) {
+			case Operation::ROLb:	case Operation::ROLw:	case Operation::ROLl:
+				result = IntT(
+					(destination << shift) |
+					(destination >> (size - shift))
+				);
+			break;
+			case Operation::RORb:	case Operation::RORw:	case Operation::RORl:
+				result = IntT(
+					(destination >> shift) |
+					(destination << (size - shift))
+				);
+			break;
+		}
+		status.carry_flag = Status::FlagT(result & 1);
+	}
+
+	set_neg_zero_overflow(result, destination, status);
+	destination = IntT(result);
+}
+
 /// Perform a rotate-through-extend, i.e. any of ROX[L/R].[b/w/l].
 template <Operation operation, typename IntT, typename FlowController> void rox(uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
 	static_assert(
@@ -862,51 +898,17 @@ template <
 		case Operation::LSRw: lsr(dest.w, 16); 	break;
 		case Operation::LSRl: lsr(dest.l, 32); 	break;
 
-#define rol(destination, size)	{ \
-	decode_shift_count(decltype(destination));	\
-	const auto value = destination;	\
-	\
-	if(!shift_count) {	\
-		status.carry_flag = 0;	\
-	} else {	\
-		shift_count &= (size - 1);	\
-		destination = decltype(destination)(	\
-			(value << shift_count) |	\
-			(value >> (size - shift_count))	\
-		);	\
-		status.carry_flag = Status::FlagT(destination & 1);	\
-	}	\
-	\
-	set_neg_zero_overflow(destination, 1 << (size - 1));	\
-}
+		// ---
 
 		case Operation::ROLm: {
 			const auto value = src.w;
 			src.w = uint16_t((value << 1) | (value >> 15));
-			status.carry_flag = src.w & 1;
+			status.carry_flag = src.w & 0x0001;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-		case Operation::ROLb: rol(dest.b, 8);	break;
-		case Operation::ROLw: rol(dest.w, 16); 	break;
-		case Operation::ROLl: rol(dest.l, 32); 	break;
-
-#define ror(destination, size)	{ \
-	decode_shift_count(decltype(destination));	\
-	const auto value = destination;	\
-	\
-	if(!shift_count) {	\
-		status.carry_flag = 0;	\
-	} else {	\
-		shift_count &= (size - 1);	\
-		destination = decltype(destination)(\
-			(value >> shift_count) |	\
-			(value << (size - shift_count))	\
-		);\
-		status.carry_flag = destination & Status::FlagT(1 << (size - 1));	\
-	}	\
-	\
-	set_neg_zero_overflow(destination, 1 << (size - 1));	\
-}
+		case Operation::ROLb: Primitive::rotate<Operation::ROLb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::ROLw: Primitive::rotate<Operation::ROLw>(src.l, dest.w, status, flow_controller); 	break;
+		case Operation::ROLl: Primitive::rotate<Operation::ROLl>(src.l, dest.l, status, flow_controller); 	break;
 
 		case Operation::RORm: {
 			const auto value = src.w;
@@ -914,11 +916,9 @@ template <
 			status.carry_flag = src.w & 0x8000;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-		case Operation::RORb: ror(dest.b, 8);	break;
-		case Operation::RORw: ror(dest.w, 16); 	break;
-		case Operation::RORl: ror(dest.l, 32); 	break;
-
-		// ---
+		case Operation::RORb: Primitive::rotate<Operation::RORb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::RORw: Primitive::rotate<Operation::RORw>(src.l, dest.w, status, flow_controller); 	break;
+		case Operation::RORl: Primitive::rotate<Operation::RORl>(src.l, dest.l, status, flow_controller); 	break;
 
 		case Operation::ROXLm: {
 			const auto value = src.w;
