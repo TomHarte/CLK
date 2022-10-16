@@ -235,6 +235,59 @@ template <typename IntT> void test(IntT source, Status &status) {
 	status.negative_flag = status.zero_result & top_bit<IntT>();
 }
 
+template <typename IntT, typename FlowController> int shift_count(uint8_t source, FlowController &flow_controller) {
+	const int count = source & 63;
+	flow_controller.template did_shift<IntT>(count);
+	return count;
+}
+
+/// @returns The number of bits in @c IntT.
+template <typename IntT> constexpr int bit_size() {
+	return sizeof(IntT) * 8;
+}
+
+template <typename IntT> void set_neg_zero(IntT result, Status &status) {
+	status.zero_result = Status::FlagT(result);
+	status.negative_flag = result & top_bit<IntT>();
+}
+
+template <typename IntT> void set_neg_zero_overflow(IntT result, IntT destination, Status &status) {
+	set_neg_zero<IntT>(result, status);
+	status.overflow_flag = Status::FlagT((destination ^ result) & top_bit<IntT>());
+}
+
+/// Perform a rotate-through-extend, i.e. any of ROX[L/R].[b/w/l].
+template <Operation operation, typename IntT, typename FlowController> void rox(uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
+	static_assert(
+		operation == Operation::ROXLb || operation == Operation::ROXLw || operation == Operation::ROXLl ||
+		operation == Operation::ROXRb || operation == Operation::ROXRw || operation == Operation::ROXRl
+	);
+
+	const auto size = bit_size<IntT>();
+	const auto shift = shift_count<IntT>(uint8_t(source), flow_controller) % (size + 1);
+
+	uint64_t compound =
+		uint64_t(destination) |
+		(status.extend_flag ? (1ull << size) : 0);
+
+	switch(operation) {
+		case Operation::ROXLb:	case Operation::ROXLw:	case Operation::ROXLl:
+			compound =
+				(compound << shift) |
+				(compound >> (size + 1 - shift));
+		break;
+		case Operation::ROXRb:	case Operation::ROXRw:	case Operation::ROXRl:
+			compound =
+				(compound >> shift) |
+				(compound << (size + 1 - shift));
+		break;
+	}
+
+	status.carry_flag = status.extend_flag = Status::FlagT((compound >> size) & 1);
+	set_neg_zero_overflow(IntT(compound), destination, status);
+	destination = IntT(compound);
+}
+
 }
 
 template <
@@ -865,19 +918,7 @@ template <
 		case Operation::RORw: ror(dest.w, 16); 	break;
 		case Operation::RORl: ror(dest.l, 32); 	break;
 
-#define roxl(destination, size)	{ \
-	decode_shift_count(decltype(destination));	\
-	\
-	shift_count %= (size + 1);	\
-	uint64_t compound = uint64_t(destination) | (status.extend_flag ? (1ull << size) : 0);	\
-	compound = \
-		(compound << shift_count) |	\
-		(compound >> (size + 1 - shift_count));	\
-	status.carry_flag = status.extend_flag = Status::FlagT((compound >> size) & 1);	\
-	destination = decltype(destination)(compound);	\
-	\
-	set_neg_zero_overflow(destination, 1 << (size - 1));	\
-}
+		// ---
 
 		case Operation::ROXLm: {
 			const auto value = src.w;
@@ -885,23 +926,9 @@ template <
 			status.extend_flag = value & 0x8000;
 			set_flags_w(0x8000);
 		} break;
-		case Operation::ROXLb: roxl(dest.b, 8);		break;
-		case Operation::ROXLw: roxl(dest.w, 16); 	break;
-		case Operation::ROXLl: roxl(dest.l, 32); 	break;
-
-#define roxr(destination, size)	{ \
-	decode_shift_count(decltype(destination));	\
-	\
-	shift_count %= (size + 1);	\
-	uint64_t compound = uint64_t(destination) | (status.extend_flag ? (1ull << size) : 0);	\
-	compound = \
-		(compound >> shift_count) |	\
-		(compound << (size + 1 - shift_count));	\
-		status.carry_flag = status.extend_flag = Status::FlagT((compound >> size) & 1);	\
-	destination = decltype(destination)(compound);	\
-	\
-	set_neg_zero_overflow(destination, 1 << (size - 1));	\
-}
+		case Operation::ROXLb:	Primitive::rox<Operation::ROXLb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::ROXLw:	Primitive::rox<Operation::ROXLw>(src.l, dest.w, status, flow_controller);	break;
+		case Operation::ROXLl:	Primitive::rox<Operation::ROXLl>(src.l, dest.l, status, flow_controller);	break;
 
 		case Operation::ROXRm: {
 			const auto value = src.w;
@@ -909,12 +936,10 @@ template <
 			status.extend_flag = value & 0x0001;
 			set_flags_w(0x0001);
 		} break;
-		case Operation::ROXRb: roxr(dest.b, 8);		break;
-		case Operation::ROXRw: roxr(dest.w, 16); 	break;
-		case Operation::ROXRl: roxr(dest.l, 32); 	break;
+		case Operation::ROXRb:	Primitive::rox<Operation::ROXRb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::ROXRw:	Primitive::rox<Operation::ROXRw>(src.l, dest.w, status, flow_controller);	break;
+		case Operation::ROXRl:	Primitive::rox<Operation::ROXRl>(src.l, dest.l, status, flow_controller);	break;
 
-#undef roxr
-#undef roxl
 #undef ror
 #undef rol
 #undef asr
