@@ -888,29 +888,29 @@ template <
 			Primitive::set_neg_zero(src.w, status);
 		break;
 
-		case Operation::ASLb: Primitive::shift<Operation::ASLb>(src.l, dest.b, status, flow_controller);	break;
-		case Operation::ASLw: Primitive::shift<Operation::ASLw>(src.l, dest.w, status, flow_controller);	break;
-		case Operation::ASLl: Primitive::shift<Operation::ASLl>(src.l, dest.l, status, flow_controller);	break;
+		case Operation::ASLb:	Primitive::shift<Operation::ASLb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::ASLw:	Primitive::shift<Operation::ASLw>(src.l, dest.w, status, flow_controller);	break;
+		case Operation::ASLl:	Primitive::shift<Operation::ASLl>(src.l, dest.l, status, flow_controller);	break;
 
-		case Operation::ASRb: Primitive::shift<Operation::ASRb>(src.l, dest.b, status, flow_controller);	break;
-		case Operation::ASRw: Primitive::shift<Operation::ASRw>(src.l, dest.w, status, flow_controller);	break;
-		case Operation::ASRl: Primitive::shift<Operation::ASRl>(src.l, dest.l, status, flow_controller);	break;
+		case Operation::ASRb:	Primitive::shift<Operation::ASRb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::ASRw:	Primitive::shift<Operation::ASRw>(src.l, dest.w, status, flow_controller);	break;
+		case Operation::ASRl:	Primitive::shift<Operation::ASRl>(src.l, dest.l, status, flow_controller);	break;
 
-		case Operation::LSLb: Primitive::shift<Operation::LSLb>(src.l, dest.b, status, flow_controller);	break;
-		case Operation::LSLw: Primitive::shift<Operation::LSLw>(src.l, dest.w, status, flow_controller);	break;
-		case Operation::LSLl: Primitive::shift<Operation::LSLl>(src.l, dest.l, status, flow_controller);	break;
+		case Operation::LSLb:	Primitive::shift<Operation::LSLb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::LSLw:	Primitive::shift<Operation::LSLw>(src.l, dest.w, status, flow_controller);	break;
+		case Operation::LSLl:	Primitive::shift<Operation::LSLl>(src.l, dest.l, status, flow_controller);	break;
 
-		case Operation::LSRb: Primitive::shift<Operation::LSRb>(src.l, dest.b, status, flow_controller);	break;
-		case Operation::LSRw: Primitive::shift<Operation::LSRw>(src.l, dest.w, status, flow_controller);	break;
-		case Operation::LSRl: Primitive::shift<Operation::LSRl>(src.l, dest.l, status, flow_controller);	break;
+		case Operation::LSRb:	Primitive::shift<Operation::LSRb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::LSRw:	Primitive::shift<Operation::LSRw>(src.l, dest.w, status, flow_controller);	break;
+		case Operation::LSRl:	Primitive::shift<Operation::LSRl>(src.l, dest.l, status, flow_controller);	break;
 
-		case Operation::ROLb: Primitive::rotate<Operation::ROLb>(src.l, dest.b, status, flow_controller);	break;
-		case Operation::ROLw: Primitive::rotate<Operation::ROLw>(src.l, dest.w, status, flow_controller); 	break;
-		case Operation::ROLl: Primitive::rotate<Operation::ROLl>(src.l, dest.l, status, flow_controller); 	break;
+		case Operation::ROLb:	Primitive::rotate<Operation::ROLb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::ROLw:	Primitive::rotate<Operation::ROLw>(src.l, dest.w, status, flow_controller); break;
+		case Operation::ROLl:	Primitive::rotate<Operation::ROLl>(src.l, dest.l, status, flow_controller); break;
 
-		case Operation::RORb: Primitive::rotate<Operation::RORb>(src.l, dest.b, status, flow_controller);	break;
-		case Operation::RORw: Primitive::rotate<Operation::RORw>(src.l, dest.w, status, flow_controller); 	break;
-		case Operation::RORl: Primitive::rotate<Operation::RORl>(src.l, dest.l, status, flow_controller); 	break;
+		case Operation::RORb:	Primitive::rotate<Operation::RORb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::RORw:	Primitive::rotate<Operation::RORw>(src.l, dest.w, status, flow_controller); break;
+		case Operation::RORl:	Primitive::rotate<Operation::RORl>(src.l, dest.l, status, flow_controller); break;
 
 		case Operation::ROXLb:	Primitive::rox<Operation::ROXLb>(src.l, dest.b, status, flow_controller);	break;
 		case Operation::ROXLw:	Primitive::rox<Operation::ROXLw>(src.l, dest.w, status, flow_controller);	break;
