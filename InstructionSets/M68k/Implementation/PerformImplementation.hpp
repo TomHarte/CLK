@@ -830,6 +830,34 @@ template <
 		/*
 			Shifts and rotates.
 		*/
+		case Operation::ASLm:
+			status.extend_flag = status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
+			status.overflow_flag = (src.w ^ (src.w << 1)) & Primitive::top_bit<uint16_t>();
+			src.w <<= 1;
+			Primitive::set_neg_zero(src.w, status);
+		break;
+
+		case Operation::LSLm:
+			status.extend_flag = status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
+			status.overflow_flag = 0;
+			src.w <<= 1;
+			Primitive::set_neg_zero(src.w, status);
+		break;
+
+		case Operation::ASRm:
+			status.extend_flag = status.carry_flag = src.w & 1;
+			status.overflow_flag = 0;
+			src.w = (src.w & Primitive::top_bit<uint16_t>()) | (src.w >> 1);
+			Primitive::set_neg_zero(src.w, status);
+		break;
+
+		case Operation::LSRm:
+			status.extend_flag = status.carry_flag = src.w & 1;
+			status.overflow_flag = 0;
+			src.w >>= 1;
+			Primitive::set_neg_zero(src.w, status);
+		break;
+
 #define set_neg_zero(v, m)														\
 	status.zero_result = Status::FlagT(v);						\
 	status.negative_flag = status.zero_result & Status::FlagT(m);
@@ -847,42 +875,18 @@ template <
 
 #define set_flags_w(t) set_flags(src.w, 0x8000, t)
 
-		case Operation::ASLm: {
-			const auto value = src.w;
-			src.w = uint16_t(value << 1);
-			status.extend_flag = status.carry_flag = value & 0x8000;
-			set_neg_zero_overflow(src.w, 0x8000);
-		} break;
 		case Operation::ASLb: Primitive::shift<Operation::ASLb>(src.l, dest.b, status, flow_controller);	break;
 		case Operation::ASLw: Primitive::shift<Operation::ASLw>(src.l, dest.w, status, flow_controller);	break;
 		case Operation::ASLl: Primitive::shift<Operation::ASLl>(src.l, dest.l, status, flow_controller);	break;
 
-		case Operation::ASRm: {
-			const auto value = src.w;
-			src.w = (value&0x8000) | (value >> 1);
-			status.extend_flag = status.carry_flag = value & 1;
-			set_neg_zero_overflow(src.w, 0x8000);
-		} break;
 		case Operation::ASRb: Primitive::shift<Operation::ASRb>(src.l, dest.b, status, flow_controller);	break;
 		case Operation::ASRw: Primitive::shift<Operation::ASRw>(src.l, dest.w, status, flow_controller);	break;
 		case Operation::ASRl: Primitive::shift<Operation::ASRl>(src.l, dest.l, status, flow_controller);	break;
 
-		case Operation::LSLm: {
-			const auto value = src.w;
-			src.w = uint16_t(value << 1);
-			status.extend_flag = status.carry_flag = value & 0x8000;
-			set_neg_zero_overflow(src.w, 0x8000);
-		} break;
 		case Operation::LSLb: Primitive::shift<Operation::LSLb>(src.l, dest.b, status, flow_controller);	break;
 		case Operation::LSLw: Primitive::shift<Operation::LSLw>(src.l, dest.w, status, flow_controller);	break;
 		case Operation::LSLl: Primitive::shift<Operation::LSLl>(src.l, dest.l, status, flow_controller);	break;
 
-		case Operation::LSRm: {
-			const auto value = src.w;
-			src.w = value >> 1;
-			status.extend_flag = status.carry_flag = value & 1;
-			set_neg_zero_overflow(src.w, 0x8000);
-		} break;
 		case Operation::LSRb: Primitive::shift<Operation::LSRb>(src.l, dest.b, status, flow_controller);	break;
 		case Operation::LSRw: Primitive::shift<Operation::LSRw>(src.l, dest.w, status, flow_controller);	break;
 		case Operation::LSRl: Primitive::shift<Operation::LSRl>(src.l, dest.l, status, flow_controller);	break;
