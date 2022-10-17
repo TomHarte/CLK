@@ -859,14 +859,14 @@ template <
 		break;
 
 		case Operation::ROLm:
-			src.w = (src.w << 1) | (src.w >> 15);
+			src.w = uint16_t((src.w << 1) | (src.w >> 15));
 			status.carry_flag = src.w & 0x0001;
 			status.overflow_flag = 0;
 			Primitive::set_neg_zero(src.w, status);
 		break;
 
 		case Operation::RORm:
-			src.w = (src.w >> 1) | (src.w << 15);
+			src.w = uint16_t((src.w >> 1) | (src.w << 15));
 			status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
 			status.overflow_flag = 0;
 			Primitive::set_neg_zero(src.w, status);
@@ -874,7 +874,7 @@ template <
 
 		case Operation::ROXLm:
 			status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
-			src.w = (src.w << 1) | (status.extend_flag ? 0x0001 : 0x0000);
+			src.w = uint16_t((src.w << 1) | (status.extend_flag ? 0x0001 : 0x0000));
 			status.extend_flag = status.carry_flag;
 			status.overflow_flag = 0;
 			Primitive::set_neg_zero(src.w, status);
@@ -882,7 +882,7 @@ template <
 
 		case Operation::ROXRm:
 			status.carry_flag = src.w & 0x0001;
-			src.w = (src.w >> 1) | (status.extend_flag ? 0x8000 : 0x0000);
+			src.w = uint16_t((src.w >> 1) | (status.extend_flag ? 0x8000 : 0x0000));
 			status.extend_flag = status.carry_flag;
 			status.overflow_flag = 0;
 			Primitive::set_neg_zero(src.w, status);
