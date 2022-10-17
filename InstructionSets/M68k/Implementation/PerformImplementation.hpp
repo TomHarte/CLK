@@ -251,11 +251,6 @@ template <typename IntT> void set_neg_zero(IntT result, Status &status) {
 	status.negative_flag = result & top_bit<IntT>();
 }
 
-template <typename IntT> void set_neg_zero_overflow(IntT result, IntT destination, Status &status) {
-	set_neg_zero<IntT>(result, status);
-	status.overflow_flag = Status::FlagT((destination ^ result) & top_bit<IntT>());
-}
-
 /// Perform a rotate without extend, i.e. any of RO[L/R].[b/w/l].
 template <Operation operation, typename IntT, typename FlowController> void rotate(uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
 	static_assert(
@@ -265,31 +260,30 @@ template <Operation operation, typename IntT, typename FlowController> void rota
 
 	const auto size = bit_size<IntT>();
 	const auto shift = shift_count<IntT>(uint8_t(source), flow_controller) & (size - 1);
-	IntT result;
 
 	if(!shift) {
-		result = destination;
 		status.carry_flag = 0;
 	} else {
 		switch(operation) {
 			case Operation::ROLb:	case Operation::ROLw:	case Operation::ROLl:
-				result = IntT(
+				destination = IntT(
 					(destination << shift) |
 					(destination >> (size - shift))
 				);
+				status.carry_flag = Status::FlagT(destination & 1);
 			break;
 			case Operation::RORb:	case Operation::RORw:	case Operation::RORl:
-				result = IntT(
+				destination = IntT(
 					(destination >> shift) |
 					(destination << (size - shift))
 				);
+				status.carry_flag = Status::FlagT(destination & top_bit<IntT>());
 			break;
 		}
-		status.carry_flag = Status::FlagT(result & 1);
 	}
 
-	set_neg_zero_overflow(result, destination, status);
-	destination = IntT(result);
+	set_neg_zero(destination, status);
+	status.overflow_flag = 0;
 }
 
 /// Perform a rotate-through-extend, i.e. any of ROX[L/R].[b/w/l].
@@ -300,28 +294,34 @@ template <Operation operation, typename IntT, typename FlowController> void rox(
 	);
 
 	const auto size = bit_size<IntT>();
-	const auto shift = shift_count<IntT>(uint8_t(source), flow_controller) % (size + 1);
+	auto shift = shift_count<IntT>(uint8_t(source), flow_controller) % (size + 1);
 
-	uint64_t compound =
-		uint64_t(destination) |
-		(status.extend_flag ? (1ull << size) : 0);
-
-	switch(operation) {
-		case Operation::ROXLb:	case Operation::ROXLw:	case Operation::ROXLl:
-			compound =
-				(compound << shift) |
-				(compound >> (size + 1 - shift));
-		break;
-		case Operation::ROXRb:	case Operation::ROXRw:	case Operation::ROXRl:
-			compound =
-				(compound >> shift) |
-				(compound << (size + 1 - shift));
-		break;
+	if(!shift) {
+		// When shift is zero, extend is unaffected but is copied to carry.
+		status.carry_flag = status.extend_flag;
+	} else {
+ 		switch(operation) {
+			case Operation::ROXLb:	case Operation::ROXLw:	case Operation::ROXLl:
+				status.carry_flag = status.extend_flag = Status::FlagT((destination >> (size - shift)) & 1);
+				destination = IntT(
+					(destination << shift) |
+					(IntT(status.extend_flag ? 1 : 0) << (shift - 1)) |
+					(destination >> (size + 1 - shift))
+				);
+			break;
+			case Operation::ROXRb:	case Operation::ROXRw:	case Operation::ROXRl:
+				status.carry_flag = status.extend_flag = Status::FlagT(destination & (1 << (shift - 1)));
+				destination = IntT(
+					(destination >> shift) |
+					((status.extend_flag ? top_bit<IntT>() : 0) >> (shift - 1)) |
+					(destination << (size + 1 - shift))
+				);
+			break;
+		}
 	}
 
-	status.carry_flag = status.extend_flag = Status::FlagT((compound >> size) & 1);
-	set_neg_zero_overflow(IntT(compound), destination, status);
-	destination = IntT(compound);
+	set_neg_zero(destination, status);
+	status.overflow_flag = 0;
 }
 
 }
