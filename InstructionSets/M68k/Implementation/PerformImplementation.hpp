@@ -93,9 +93,34 @@ inline void sbcd(uint8_t rhs, uint8_t lhs, uint8_t &destination, Status &status)
 	status.overflow_flag = unadjusted_result & ~result & 0x80;
 }
 
+template <Operation operation, typename IntT>
+void bitwise(IntT source, IntT &destination, Status &status) {
+	static_assert(
+		operation == Operation::ANDb ||	operation == Operation::ANDw || operation == Operation::ANDl ||
+		operation == Operation::ORb ||	operation == Operation::ORw || operation == Operation::ORl ||
+		operation == Operation::EORb ||	operation == Operation::EORw || operation == Operation::EORl
+	);
+
+	switch(operation) {
+		case Operation::ANDb:	case Operation::ANDw:	case Operation::ANDl:
+			destination &= source;
+		break;
+		case Operation::ORb:	case Operation::ORw:	case Operation::ORl:
+			destination |= source;
+		break;
+		case Operation::EORb:	case Operation::EORw:	case Operation::EORl:
+			destination ^= source;
+		break;
+	}
+
+	status.overflow_flag = status.carry_flag = 0;
+	status.zero_result = destination;
+	status.negative_flag = destination & top_bit<IntT>();
+}
+
 /// Performs a compare of @c source to @c destination, setting zero, carry, negative and overflow flags.
 template <typename IntT>
-static void compare(IntT source, IntT destination, Status &status) {
+void compare(IntT source, IntT destination, Status &status) {
 	const IntT result = destination - source;
 	status.zero_result = result;
 	status.carry_flag = result > destination;
@@ -733,37 +758,17 @@ template <
 			Bitwise operators: AND, OR and EOR. All three clear the overflow and carry flags,
 			and set zero and negative appropriately.
 		*/
-#define op_and(x, y)	x &= y
-#define op_or(x, y)		x |= y
-#define op_eor(x, y)	x ^= y
+		case Operation::ANDb:	Primitive::bitwise<Operation::ANDb>(src.b, dest.b, status);	break;
+		case Operation::ANDw:	Primitive::bitwise<Operation::ANDw>(src.w, dest.w, status);	break;
+		case Operation::ANDl:	Primitive::bitwise<Operation::ANDl>(src.l, dest.l, status);	break;
 
-#define bitwise(source, dest, sign_mask, operator)	\
-	operator(dest, source);							\
-	status.overflow_flag = status.carry_flag = 0;	\
-	status.zero_result = dest;						\
-	status.negative_flag = dest & sign_mask;
+		case Operation::ORb:	Primitive::bitwise<Operation::ORb>(src.b, dest.b, status);	break;
+		case Operation::ORw:	Primitive::bitwise<Operation::ORw>(src.w, dest.w, status);	break;
+		case Operation::ORl:	Primitive::bitwise<Operation::ORl>(src.l, dest.l, status);	break;
 
-#define andx(source, dest, sign_mask)	bitwise(source, dest, sign_mask, op_and)
-#define eorx(source, dest, sign_mask)	bitwise(source, dest, sign_mask, op_eor)
-#define orx(source, dest, sign_mask)	bitwise(source, dest, sign_mask, op_or)
-
-#define op_bwl(name, op)											\
-	case Operation::name##b: op(src.b, dest.b, 0x80);		break;	\
-	case Operation::name##w: op(src.w, dest.w, 0x8000);		break;	\
-	case Operation::name##l: op(src.l, dest.l, 0x80000000);	break;
-
-		op_bwl(AND, andx);
-		op_bwl(EOR, eorx);
-		op_bwl(OR, orx);
-
-#undef op_bwl
-#undef orx
-#undef eorx
-#undef andx
-#undef bitwise
-#undef op_eor
-#undef op_or
-#undef op_and
+		case Operation::EORb:	Primitive::bitwise<Operation::EORb>(src.b, dest.b, status);	break;
+		case Operation::EORw:	Primitive::bitwise<Operation::EORw>(src.w, dest.w, status);	break;
+		case Operation::EORl:	Primitive::bitwise<Operation::EORl>(src.l, dest.l, status);	break;
 
 		// NOTs: take the logical inverse, affecting the negative and zero flags.
 		case Operation::NOTb:
