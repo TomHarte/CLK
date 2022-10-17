@@ -71,6 +71,28 @@ static void add_sub(IntT source, IntT &destination, Status &status) {
 	destination = result;
 }
 
+inline void sbcd(uint8_t rhs, uint8_t lhs, uint8_t &destination, Status &status) {
+	const int extend = (status.extend_flag ? 1 : 0);
+	const int unadjusted_result = lhs - rhs - extend;
+
+	const int top = (lhs & 0xf0) - (rhs & 0xf0) - (0x60 & (unadjusted_result >> 4));
+
+	int result = (lhs & 0xf) - (rhs & 0xf) - extend;
+	const int low_adjustment = 0x06 & (result >> 4);
+	status.extend_flag = status.carry_flag = Status::FlagT(
+		(unadjusted_result - low_adjustment) & 0x300
+	);
+	result = result + top - low_adjustment;
+
+	/* Store the result. */
+	destination = uint8_t(result);
+
+	/* Set all remaining flags essentially as if this were normal subtraction. */
+	status.zero_result |= destination;
+	status.negative_flag = result & 0x80;
+	status.overflow_flag = unadjusted_result & ~result & 0x80;
+}
+
 /// Performs a compare of @c source to @c destination, setting zero, carry, negative and overflow flags.
 template <typename IntT>
 static void compare(IntT source, IntT destination, Status &status) {
@@ -765,48 +787,21 @@ template <
 			status.overflow_flag = status.carry_flag = 0;
 		break;
 
-#define sbcd(d)																					\
-	const int extend = (status.extend_flag ? 1 : 0);											\
-	const int unadjusted_result = destination - source - extend;								\
-																								\
-	const int top = (destination & 0xf0) - (source & 0xf0) - (0x60 & (unadjusted_result >> 4));	\
-																								\
-	int result = (destination & 0xf) - (source & 0xf) - extend;									\
-	const int low_adjustment = 0x06 & (result >> 4);											\
-	status.extend_flag = status.carry_flag = Status::FlagT(										\
-		(unadjusted_result - low_adjustment) & 0x300											\
-	);																							\
-	result = result + top - low_adjustment;														\
-																								\
-	/* Store the result. */																		\
-	d = uint8_t(result);																		\
-																								\
-	/* Set all remaining flags essentially as if this were normal subtraction. */				\
-	status.zero_result |= d;														\
-	status.negative_flag = result & 0x80;														\
-	status.overflow_flag = unadjusted_result & ~result & 0x80;									\
-
 		/*
 			SBCD subtracts the lowest byte of the source from that of the destination using
 			BCD arithmetic, obeying the extend flag.
 		*/
-		case Operation::SBCD: {
-			const uint8_t source = src.b;
-			const uint8_t destination = dest.b;
-			sbcd(dest.b);
-		} break;
+		case Operation::SBCD:
+			Primitive::sbcd(src.b, dest.b, dest.b, status);
+		break;
 
 		/*
 			NBCD is like SBCD except that the result is 0 - source rather than
 			destination - source.
 		*/
-		case Operation::NBCD: {
-			const uint8_t source = src.b;
-			const uint8_t destination = 0;
-			sbcd(src.b);
-		} break;
-
-#undef sbcd
+		case Operation::NBCD:
+			Primitive::sbcd(src.b, 0, src.b, status);
+		break;
 
 		// EXG and SWAP exchange/swap words or long words.
 
