@@ -17,8 +17,11 @@
 namespace InstructionSet {
 namespace M68k {
 
-#define u_extend16(x)	uint32_t(int16_t(x))
-#define s_extend16(x)	int32_t(int16_t(x))
+/// Sign-extend @c x to 32 bits and return as an unsigned 32-bit int.
+inline uint32_t u_extend16(uint16_t x)	{	return uint32_t(int16_t(x));	}
+
+/// Sign-extend @c x to 32 bits and return as a signed 32-bit int.
+inline int32_t s_extend16(uint16_t x)	{	return int32_t(int16_t(x));		}
 
 namespace Primitive {
 
@@ -71,6 +74,10 @@ static void add_sub(IntT source, IntT &destination, Status &status) {
 	destination = result;
 }
 
+/// Perform an SBCD of @c lhs - @c rhs, storing the result to @c destination and updating @c status.
+///
+/// @discussion The slightly awkward abandonment of source, destination permits the use of this for both
+/// SBCD and NBCD.
 inline void sbcd(uint8_t rhs, uint8_t lhs, uint8_t &destination, Status &status) {
 	const int extend = (status.extend_flag ? 1 : 0);
 	const int unadjusted_result = lhs - rhs - extend;
@@ -93,6 +100,8 @@ inline void sbcd(uint8_t rhs, uint8_t lhs, uint8_t &destination, Status &status)
 	status.overflow_flag = unadjusted_result & ~result & 0x80;
 }
 
+/// Perform the bitwise operation defined by @c operation on @c source and @c destination and update @c status.
+/// Bitwise operations are any of the byte, word or long versions of AND, OR and EOR.
 template <Operation operation, typename IntT>
 void bitwise(IntT source, IntT &destination, Status &status) {
 	static_assert(
@@ -118,7 +127,7 @@ void bitwise(IntT source, IntT &destination, Status &status) {
 	status.negative_flag = destination & top_bit<IntT>();
 }
 
-/// Performs a compare of @c source to @c destination, setting zero, carry, negative and overflow flags.
+/// Compare of @c source to @c destination, setting zero, carry, negative and overflow flags.
 template <typename IntT>
 void compare(IntT source, IntT destination, Status &status) {
 	const IntT result = destination - source;
@@ -134,7 +143,7 @@ inline uint32_t mask_bit(const Preinstruction &instruction, uint32_t source) {
 	return source & (instruction.mode<1>() == AddressingMode::DataRegisterDirect ? 31 : 7);
 }
 
-/// Performs a BCLR, BCHG or BSET as specified by @c operation and described by @c instruction, @c source and @c destination, updating @c destination and @c status.
+/// Perform a BCLR, BCHG or BSET as specified by @c operation and described by @c instruction, @c source and @c destination, updating @c destination and @c status.
 /// Also makes an appropriate notification to the @c flow_controller.
 template <Operation operation, typename FlowController>
 void bit_manipulate(const Preinstruction &instruction, uint32_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
@@ -159,6 +168,7 @@ template <typename IntT> void clear(IntT &destination, Status &status) {
 	status.negative_flag = status.overflow_flag = status.carry_flag = status.zero_result = 0;
 }
 
+/// Perform an ANDI, EORI or ORI to either SR or CCR, notifying @c flow_controller if appropriate.
 template <Operation operation, typename FlowController>
 void apply_sr_ccr(uint16_t source, Status &status, FlowController &flow_controller) {
 	static_assert(
@@ -196,6 +206,7 @@ void apply_sr_ccr(uint16_t source, Status &status, FlowController &flow_controll
 	}
 }
 
+/// Perform a MULU or MULS between @c source and @c destination, updating @c status and notifying @c flow_controller.
 template <bool is_mulu, typename FlowController>
 void multiply(uint16_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
 	if constexpr (is_mulu) {
@@ -214,6 +225,7 @@ void multiply(uint16_t source, uint32_t &destination, Status &status, FlowContro
 	}
 }
 
+/// Announce a DIVU or DIVS to @c flow_controller.
 template <bool is_divu, bool did_overflow, typename IntT, typename FlowController>
 void did_divide(IntT dividend, IntT divisor, FlowController &flow_controller) {
 	if constexpr (is_divu) {
@@ -223,6 +235,7 @@ void did_divide(IntT dividend, IntT divisor, FlowController &flow_controller) {
 	}
 }
 
+/// Perform a DIVU or DIVS between @c source and @c destination, updating @c status and notifying @c flow_controller.
 template <bool is_divu, typename Int16, typename Int32, typename FlowController>
 void divide(uint16_t source, uint32_t &destination, Status &status, FlowController &flow_controller) {
 	status.carry_flag = 0;
@@ -254,6 +267,7 @@ void divide(uint16_t source, uint32_t &destination, Status &status, FlowControll
 	did_divide<is_divu, false>(dividend, divisor, flow_controller);
 }
 
+/// Move @c source to @c destination, updating @c status.
 template <typename IntT> void move(IntT source, IntT &destination, Status &status) {
 	destination = source;
 	status.zero_result = Status::FlagT(source);
@@ -261,6 +275,7 @@ template <typename IntT> void move(IntT source, IntT &destination, Status &statu
 	status.overflow_flag = status.carry_flag = 0;
 }
 
+/// Perform NEG.[b/l/w] on @c source, updating @c status.
 template <bool is_extend, typename IntT> void negative(IntT &source, Status &status) {
 	const IntT result = -source - (is_extend && status.extend_flag ? 1 : 0);
 
@@ -276,12 +291,14 @@ template <bool is_extend, typename IntT> void negative(IntT &source, Status &sta
 	source = result;
 }
 
+/// Perform TST.[b/l/w] with @c source, updating @c status.
 template <typename IntT> void test(IntT source, Status &status) {
 	status.carry_flag = status.overflow_flag = 0;
 	status.zero_result = Status::FlagT(source);
 	status.negative_flag = status.zero_result & top_bit<IntT>();
 }
 
+/// Decodes the proper shift distance from @c source, notifying the @c flow_controller.
 template <typename IntT, typename FlowController> int shift_count(uint8_t source, FlowController &flow_controller) {
 	const int count = source & 63;
 	flow_controller.template did_shift<IntT>(count);
@@ -293,6 +310,7 @@ template <typename IntT> constexpr int bit_size() {
 	return sizeof(IntT) * 8;
 }
 
+/// Set the zero and negative flags on @c status according to @c result.
 template <typename IntT> void set_neg_zero(IntT result, Status &status) {
 	status.zero_result = Status::FlagT(result);
 	status.negative_flag = result & top_bit<IntT>();
@@ -984,9 +1002,6 @@ template <
 			assert(false);
 		break;
 	}
-
-#undef u_extend16
-#undef s_extend16
 
 }
 
