@@ -858,22 +858,35 @@ template <
 			Primitive::set_neg_zero(src.w, status);
 		break;
 
-#define set_neg_zero(v, m)														\
-	status.zero_result = Status::FlagT(v);						\
-	status.negative_flag = status.zero_result & Status::FlagT(m);
+		case Operation::ROLm:
+			src.w = (src.w << 1) | (src.w >> 15);
+			status.carry_flag = src.w & 0x0001;
+			status.overflow_flag = 0;
+			Primitive::set_neg_zero(src.w, status);
+		break;
 
-#define set_neg_zero_overflow(v, m)									\
-	set_neg_zero(v, m);												\
-	status.overflow_flag = (Status::FlagT(value) ^ status.zero_result) & Status::FlagT(m);
+		case Operation::RORm:
+			src.w = (src.w >> 1) | (src.w << 15);
+			status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
+			status.overflow_flag = 0;
+			Primitive::set_neg_zero(src.w, status);
+		break;
 
-#undef set_flags
-#define set_flags(v, m, t)     \
-       status.zero_result = v; \
-       status.negative_flag = status.zero_result & (m);        \
-       status.overflow_flag = 0;       \
-       status.carry_flag = value & (t);
+		case Operation::ROXLm:
+			status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
+			src.w = (src.w << 1) | (status.extend_flag ? 0x0001 : 0x0000);
+			status.extend_flag = status.carry_flag;
+			status.overflow_flag = 0;
+			Primitive::set_neg_zero(src.w, status);
+		break;
 
-#define set_flags_w(t) set_flags(src.w, 0x8000, t)
+		case Operation::ROXRm:
+			status.carry_flag = src.w & 0x0001;
+			src.w = (src.w >> 1) | (status.extend_flag ? 0x8000 : 0x0000);
+			status.extend_flag = status.carry_flag;
+			status.overflow_flag = 0;
+			Primitive::set_neg_zero(src.w, status);
+		break;
 
 		case Operation::ASLb: Primitive::shift<Operation::ASLb>(src.l, dest.b, status, flow_controller);	break;
 		case Operation::ASLw: Primitive::shift<Operation::ASLw>(src.l, dest.w, status, flow_controller);	break;
@@ -891,50 +904,21 @@ template <
 		case Operation::LSRw: Primitive::shift<Operation::LSRw>(src.l, dest.w, status, flow_controller);	break;
 		case Operation::LSRl: Primitive::shift<Operation::LSRl>(src.l, dest.l, status, flow_controller);	break;
 
-		case Operation::ROLm: {
-			const auto value = src.w;
-			src.w = uint16_t((value << 1) | (value >> 15));
-			status.carry_flag = src.w & 0x0001;
-			set_neg_zero_overflow(src.w, 0x8000);
-		} break;
 		case Operation::ROLb: Primitive::rotate<Operation::ROLb>(src.l, dest.b, status, flow_controller);	break;
 		case Operation::ROLw: Primitive::rotate<Operation::ROLw>(src.l, dest.w, status, flow_controller); 	break;
 		case Operation::ROLl: Primitive::rotate<Operation::ROLl>(src.l, dest.l, status, flow_controller); 	break;
 
-		case Operation::RORm: {
-			const auto value = src.w;
-			src.w = uint16_t((value >> 1) | (value << 15));
-			status.carry_flag = src.w & 0x8000;
-			set_neg_zero_overflow(src.w, 0x8000);
-		} break;
 		case Operation::RORb: Primitive::rotate<Operation::RORb>(src.l, dest.b, status, flow_controller);	break;
 		case Operation::RORw: Primitive::rotate<Operation::RORw>(src.l, dest.w, status, flow_controller); 	break;
 		case Operation::RORl: Primitive::rotate<Operation::RORl>(src.l, dest.l, status, flow_controller); 	break;
 
-		case Operation::ROXLm: {
-			const auto value = src.w;
-			src.w = uint16_t((value << 1) | (status.extend_flag ? 0x0001 : 0x0000));
-			status.extend_flag = value & 0x8000;
-			set_flags_w(0x8000);
-		} break;
 		case Operation::ROXLb:	Primitive::rox<Operation::ROXLb>(src.l, dest.b, status, flow_controller);	break;
 		case Operation::ROXLw:	Primitive::rox<Operation::ROXLw>(src.l, dest.w, status, flow_controller);	break;
 		case Operation::ROXLl:	Primitive::rox<Operation::ROXLl>(src.l, dest.l, status, flow_controller);	break;
 
-		case Operation::ROXRm: {
-			const auto value = src.w;
-			src.w = (value >> 1) | (status.extend_flag ? 0x8000 : 0x0000);
-			status.extend_flag = value & 0x0001;
-			set_flags_w(0x0001);
-		} break;
 		case Operation::ROXRb:	Primitive::rox<Operation::ROXRb>(src.l, dest.b, status, flow_controller);	break;
 		case Operation::ROXRw:	Primitive::rox<Operation::ROXRw>(src.l, dest.w, status, flow_controller);	break;
 		case Operation::ROXRl:	Primitive::rox<Operation::ROXRl>(src.l, dest.l, status, flow_controller);	break;
-
-#undef set_flags
-#undef set_flags_w
-#undef set_neg_zero_overflow
-#undef set_neg_zero
 
 		case Operation::MOVEPl:
 			flow_controller.template movep<uint32_t>(instruction, src.l, dest.l);
