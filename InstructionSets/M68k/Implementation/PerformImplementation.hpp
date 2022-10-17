@@ -251,6 +251,74 @@ template <typename IntT> void set_neg_zero(IntT result, Status &status) {
 	status.negative_flag = result & top_bit<IntT>();
 }
 
+/// Perform an arithmetic or logical shift, i.e. any of LSL, LSR, ASL or ASR.
+template <Operation operation, typename IntT, typename FlowController> void shift(uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
+	static_assert(
+		operation == Operation::ASLb || operation == Operation::ASLw || operation == Operation::ASLl ||
+		operation == Operation::ASRb || operation == Operation::ASRw || operation == Operation::ASRl ||
+		operation == Operation::LSLb || operation == Operation::LSLw || operation == Operation::LSLl ||
+		operation == Operation::LSRb || operation == Operation::LSRw || operation == Operation::LSRl
+	);
+
+	const auto size = bit_size<IntT>();
+	const auto shift = shift_count<IntT>(uint8_t(source), flow_controller);
+
+	if(!shift) {
+		status.carry_flag = status.overflow_flag = 0;
+	} else {
+		enum class Type {
+			ASL, LSL, ASR, LSR
+		} type;
+		switch(operation) {
+			case Operation::ASLb:	case Operation::ASLw:	case Operation::ASLl:
+				type = Type::ASL;
+			break;
+			case Operation::LSLb:	case Operation::LSLw:	case Operation::LSLl:
+				type = Type::LSL;
+			break;
+			case Operation::ASRb:	case Operation::ASRw:	case Operation::ASRl:
+				type = Type::ASR;
+			break;
+			case Operation::LSRb:	case Operation::LSRw:	case Operation::LSRl:
+				type = Type::LSR;
+			break;
+		}
+
+		switch(type) {
+			case Type::ASL:
+			case Type::LSL:
+				status.overflow_flag =
+					type == Type::LSL ?
+						0 : (destination ^ (destination << shift)) & top_bit<IntT>();
+				if(shift < size) {
+					status.carry_flag = status.extend_flag = (destination >> (size - shift)) & 1;
+				} else {
+					status.carry_flag = status.extend_flag = 0;
+				}
+				destination <<= shift;
+			break;
+
+			case Type::ASR:
+			case Type::LSR: {
+				const IntT sign_word =
+					type == Type::LSR ?
+						0 : (destination & top_bit<IntT>() ? IntT(~0) : 0);
+
+				status.overflow_flag = 0;
+				status.carry_flag = status.extend_flag = (destination >> (shift - 1)) & 1;
+
+				if(shift < size) {
+					destination = IntT((destination >> shift) | (sign_word << (size - shift)));
+				} else {
+					destination = sign_word;
+				}
+			} break;
+		}
+	}
+
+	set_neg_zero(destination, status);
+}
+
 /// Perform a rotate without extend, i.e. any of RO[L/R].[b/w/l].
 template <Operation operation, typename IntT, typename FlowController> void rotate(uint32_t source, IntT &destination, Status &status, FlowController &flow_controller) {
 	static_assert(
@@ -770,31 +838,14 @@ template <
 	set_neg_zero(v, m);												\
 	status.overflow_flag = (Status::FlagT(value) ^ status.zero_result) & Status::FlagT(m);
 
-#define decode_shift_count(type)	\
-	int shift_count = src.l & 63;	\
-	flow_controller.template did_shift<type>(shift_count);
+#undef set_flags
+#define set_flags(v, m, t)     \
+       status.zero_result = v; \
+       status.negative_flag = status.zero_result & (m);        \
+       status.overflow_flag = 0;       \
+       status.carry_flag = value & (t);
 
 #define set_flags_w(t) set_flags(src.w, 0x8000, t)
-
-#define asl(destination, size)	{\
-	decode_shift_count(decltype(destination)); \
-	const auto value = destination;	\
-	\
-	if(!shift_count) {	\
-		status.carry_flag = status.overflow_flag = 0;	\
-	} else {	\
-		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
-		status.extend_flag = status.carry_flag = Status::FlagT(value) & Status::FlagT( (1u << (size - 1)) >> (shift_count - 1) );	\
-		\
-		if(shift_count >= size) status.overflow_flag = value && (value != decltype(value)(-1));	\
-		else {	\
-			const auto mask = decltype(destination)(0xffffffff << (size - shift_count));	\
-			status.overflow_flag = mask & value && ((mask & value) != mask);	\
-		}	\
-	}	\
-	\
-	set_neg_zero(destination, 1 << (size - 1));	\
-}
 
 		case Operation::ASLm: {
 			const auto value = src.w;
@@ -802,30 +853,9 @@ template <
 			status.extend_flag = status.carry_flag = value & 0x8000;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-		case Operation::ASLb: asl(dest.b, 8);	break;
-		case Operation::ASLw: asl(dest.w, 16); 	break;
-		case Operation::ASLl: asl(dest.l, 32); 	break;
-
-#define asr(destination, size)	{\
-	decode_shift_count(decltype(destination));	\
-	const auto value = destination;	\
-	\
-	if(!shift_count) {	\
-		status.carry_flag = 0;	\
-	} else {	\
-		destination = (shift_count < size) ?	\
-		decltype(destination)(\
-			(value >> shift_count) |	\
-			((value & decltype(value)(1 << (size - 1)) ? 0xffffffff : 0x000000000) << (size - shift_count))	\
-		) :	\
-			decltype(destination)(	\
-			(value & decltype(value)(1 << (size - 1))) ? 0xffffffff : 0x000000000	\
-		);	\
-		status.extend_flag = status.carry_flag = Status::FlagT(value) & Status::FlagT(1 << (shift_count - 1));	\
-	}	\
-	\
-	set_neg_zero_overflow(destination, 1 << (size - 1));	\
-}
+		case Operation::ASLb: Primitive::shift<Operation::ASLb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::ASLw: Primitive::shift<Operation::ASLw>(src.l, dest.w, status, flow_controller);	break;
+		case Operation::ASLl: Primitive::shift<Operation::ASLl>(src.l, dest.l, status, flow_controller);	break;
 
 		case Operation::ASRm: {
 			const auto value = src.w;
@@ -833,36 +863,9 @@ template <
 			status.extend_flag = status.carry_flag = value & 1;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-		case Operation::ASRb: asr(dest.b, 8);	break;
-		case Operation::ASRw: asr(dest.w, 16); 	break;
-		case Operation::ASRl: asr(dest.l, 32); 	break;
-
-
-#undef set_neg_zero_overflow
-#define set_neg_zero_overflow(v, m)	\
-	set_neg_zero(v, m);	\
-	status.overflow_flag = 0;
-
-#undef set_flags
-#define set_flags(v, m, t)	\
-	status.zero_result = v;	\
-	status.negative_flag = status.zero_result & (m);	\
-	status.overflow_flag = 0;	\
-	status.carry_flag = value & (t);
-
-#define lsl(destination, size)	{\
-	decode_shift_count(decltype(destination));	\
-	const auto value = destination;	\
-	\
-	if(!shift_count) {	\
-		status.carry_flag = 0;	\
-	} else {	\
-		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
-		status.extend_flag = status.carry_flag = Status::FlagT(value) & Status::FlagT( (1u << (size - 1)) >> (shift_count - 1) );	\
-	}	\
-	\
-	set_neg_zero_overflow(destination, 1 << (size - 1));	\
-}
+		case Operation::ASRb: Primitive::shift<Operation::ASRb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::ASRw: Primitive::shift<Operation::ASRw>(src.l, dest.w, status, flow_controller);	break;
+		case Operation::ASRl: Primitive::shift<Operation::ASRl>(src.l, dest.l, status, flow_controller);	break;
 
 		case Operation::LSLm: {
 			const auto value = src.w;
@@ -870,23 +873,9 @@ template <
 			status.extend_flag = status.carry_flag = value & 0x8000;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-		case Operation::LSLb: lsl(dest.b, 8);	break;
-		case Operation::LSLw: lsl(dest.w, 16); 	break;
-		case Operation::LSLl: lsl(dest.l, 32); 	break;
-
-#define lsr(destination, size)	{\
-	decode_shift_count(decltype(destination));	\
-	const auto value = destination;	\
-	\
-	if(!shift_count) {	\
-		status.carry_flag = 0;	\
-	} else {	\
-		destination = (shift_count < size) ? (value >> shift_count) : 0;	\
-		status.extend_flag = status.carry_flag = value & Status::FlagT(1 << (shift_count - 1));	\
-	}	\
-	\
-	set_neg_zero_overflow(destination, 1 << (size - 1));	\
-}
+		case Operation::LSLb: Primitive::shift<Operation::LSLb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::LSLw: Primitive::shift<Operation::LSLw>(src.l, dest.w, status, flow_controller);	break;
+		case Operation::LSLl: Primitive::shift<Operation::LSLl>(src.l, dest.l, status, flow_controller);	break;
 
 		case Operation::LSRm: {
 			const auto value = src.w;
@@ -894,11 +883,9 @@ template <
 			status.extend_flag = status.carry_flag = value & 1;
 			set_neg_zero_overflow(src.w, 0x8000);
 		} break;
-		case Operation::LSRb: lsr(dest.b, 8);	break;
-		case Operation::LSRw: lsr(dest.w, 16); 	break;
-		case Operation::LSRl: lsr(dest.l, 32); 	break;
-
-		// ---
+		case Operation::LSRb: Primitive::shift<Operation::LSRb>(src.l, dest.b, status, flow_controller);	break;
+		case Operation::LSRw: Primitive::shift<Operation::LSRw>(src.l, dest.w, status, flow_controller);	break;
+		case Operation::LSRl: Primitive::shift<Operation::LSRl>(src.l, dest.l, status, flow_controller);	break;
 
 		case Operation::ROLm: {
 			const auto value = src.w;
@@ -940,15 +927,7 @@ template <
 		case Operation::ROXRw:	Primitive::rox<Operation::ROXRw>(src.l, dest.w, status, flow_controller);	break;
 		case Operation::ROXRl:	Primitive::rox<Operation::ROXRl>(src.l, dest.l, status, flow_controller);	break;
 
-#undef ror
-#undef rol
-#undef asr
-#undef lsr
-#undef lsl
-#undef asl
-
 #undef set_flags
-#undef decode_shift_count
 #undef set_flags_w
 #undef set_neg_zero_overflow
 #undef set_neg_zero
