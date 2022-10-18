@@ -307,8 +307,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 			if(!address || !value) break;
 			XCTAssertEqual(test68000->ram[address.integerValue ^ 1], value.integerValue, @"%@: Memory at location %@ inconsistent", name, address);
-			if(test68000->ram[address.integerValue ^ 1] != value.integerValue)
-				[_failures addObject:name];
+			if(test68000->ram[address.integerValue ^ 1] != value.integerValue) [_failures addObject:name];
 		}
 
 		// Consider collating extra detail.
@@ -360,8 +359,7 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		NSNumber *const value = [enumerator nextObject];
 
 		if(!address || !value) break;
-		if(_testExecutor->ram[address.integerValue] != value.integerValue)
-			[_failures addObject:name];
+		if(_testExecutor->ram[address.integerValue] != value.integerValue) [_failures addObject:name];
 	}
 
 	// If this test is now in the failures set, add the corresponding opcode for
@@ -427,17 +425,12 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 		const NSString *dX = [@"d" stringByAppendingFormat:@"%d", c];
 		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
 
-		if(registers.data[c] != [finalState[dX] integerValue])
-			[_failures addObject:name];
-		if(c < 7 && registers.address[c] != [finalState[aX] integerValue])
-			[_failures addObject:name];
+		if(registers.data[c] != [finalState[dX] integerValue]) [_failures addObject:name];
+		if(c < 7 && registers.address[c] != [finalState[aX] integerValue]) [_failures addObject:name];
 	}
-	if(registers.supervisor_stack_pointer != [finalState[@"a7"] integerValue])
-		[_failures addObject:name];
-	if(registers.user_stack_pointer != [finalState[@"usp"] integerValue])
-		[_failures addObject:name];
-	if(registers.program_counter + pcOffset != [finalState[@"pc"] integerValue])
-		[_failures addObject:name];
+	if(registers.supervisor_stack_pointer != [finalState[@"a7"] integerValue]) [_failures addObject:name];
+	if(registers.user_stack_pointer != [finalState[@"usp"] integerValue]) [_failures addObject:name];
+	if(registers.program_counter + pcOffset != [finalState[@"pc"] integerValue]) [_failures addObject:name];
 
 	const uint16_t correctSR = [finalState[@"sr"] integerValue];
 	if(registers.status != correctSR) {
