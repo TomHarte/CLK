@@ -361,10 +361,16 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 				if(type == Type::LSL) {
 					status.overflow_flag = 0;
 				} else {
+					// Overflow records whether the top bit changed at any point during the operation.
 					if(shift >= size) {
-						status.overflow_flag = destination & top_bit<IntT>();
+						// The result is going to be all bits evacuated through the top giving a net
+						// result of 0, so overflow is set if any bit was originally set.
+						status.overflow_flag = destination;
 					} else {
-						status.overflow_flag = (destination ^ (destination << shift)) & top_bit<IntT>();
+						// For a shift of n places, overflow will be set if the top n bits were not
+						// all the same value.
+						const auto affected_bits = IntT(~0 << shift);
+						status.overflow_flag = (destination & affected_bits) && (destination & affected_bits) != affected_bits;
 					}
 				}
 
@@ -382,7 +388,7 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 				} else {
 					status.carry_flag = status.extend_flag = (destination >> (shift - 1)) & 1;
 				}
-				status.overflow_flag = 0;
+				status.overflow_flag = 0;	// The top bit can't change during an ASR, and LSR always clears overflow.
 
 				const IntT sign_word =
 					type == Type::LSR ?
