@@ -11,6 +11,7 @@
 
 #include "../ExceptionVectors.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 
@@ -810,7 +811,6 @@ template <
 			LINK and UNLINK help with stack frames, allowing a certain
 			amount of stack space to be allocated or deallocated.
 		*/
-
 		case Operation::LINKw:
 			flow_controller.link(instruction, uint32_t(int16_t(dest.w)));
 		break;
@@ -820,10 +820,8 @@ template <
 		break;
 
 		/*
-			TAS: sets zero and negative depending on the current value of the destination,
-			and sets the high bit, using a specialised atomic bus cycle.
+			TAS: requiring a specialised bus cycle, just kick this out to the flow controller.
 		*/
-
 		case Operation::TAS:
 			flow_controller.tas(instruction, src.l);
 		break;
@@ -844,27 +842,9 @@ template <
 		case Operation::EORw:	Primitive::bitwise<Operation::EORw>(src.w, dest.w, status);	break;
 		case Operation::EORl:	Primitive::bitwise<Operation::EORl>(src.l, dest.l, status);	break;
 
-		// NOTs: take the logical inverse, affecting the negative and zero flags.
-		case Operation::NOTb:
-			src.b ^= 0xff;
-			status.zero_result = src.b;
-			status.negative_flag = status.zero_result & 0x80;
-			status.overflow_flag = status.carry_flag = 0;
-		break;
-
-		case Operation::NOTw:
-			src.w ^= 0xffff;
-			status.zero_result = src.w;
-			status.negative_flag = status.zero_result & 0x8000;
-			status.overflow_flag = status.carry_flag = 0;
-		break;
-
-		case Operation::NOTl:
-			src.l ^= 0xffffffff;
-			status.zero_result = src.l;
-			status.negative_flag = status.zero_result & 0x80000000;
-			status.overflow_flag = status.carry_flag = 0;
-		break;
+		case Operation::NOTb:	Primitive::bitwise<Operation::EORb>(uint8_t(~0), src.b, status);	break;
+		case Operation::NOTw:	Primitive::bitwise<Operation::EORw>(uint16_t(~0), src.w, status);	break;
+		case Operation::NOTl:	Primitive::bitwise<Operation::EORl>(uint32_t(~0), src.l, status);	break;
 
 		/*
 			SBCD subtracts the lowest byte of the source from that of the destination using
@@ -892,12 +872,10 @@ template <
 
 		case Operation::SWAP: {
 			uint16_t *const words = reinterpret_cast<uint16_t *>(&src.l);
-			const auto temporary = words[0];
-			words[0] = words[1];
-			words[1] = temporary;
+			std::swap(words[0], words[1]);
 
 			status.zero_result = src.l;
-			status.negative_flag = temporary & 0x8000;
+			status.negative_flag = src.l & Primitive::top_bit<uint32_t>();
 			status.overflow_flag = status.carry_flag = 0;
 		} break;
 
@@ -1019,24 +997,15 @@ template <
 		break;
 
 		/*
-			RTE and RTR share an implementation.
+			RTE, RTR and RTS defer to the flow controller.
 		*/
-		case Operation::RTR:
-			flow_controller.rtr();
-		break;
-
-		case Operation::RTE:
-			flow_controller.rte();
-		break;
-
-		case Operation::RTS:
-			flow_controller.rts();
-		break;
+		case Operation::RTR:	flow_controller.rtr();	break;
+		case Operation::RTE:	flow_controller.rte();	break;
+		case Operation::RTS:	flow_controller.rts();	break;
 
 		/*
 			TSTs: compare to zero.
 		*/
-
 		case Operation::TSTb:	Primitive::test(src.b, status);	break;
 		case Operation::TSTw:	Primitive::test(src.w, status);	break;
 		case Operation::TSTl:	Primitive::test(src.l, status);	break;
