@@ -325,7 +325,7 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 		operation == Operation::LSRb || operation == Operation::LSRw || operation == Operation::LSRl
 	);
 
-	const auto size = bit_size<IntT>();
+	constexpr auto size = bit_size<IntT>();
 	const auto shift = shift_count<IntT>(uint8_t(source), flow_controller);
 
 	if(!shift) {
@@ -352,30 +352,46 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 		switch(type) {
 			case Type::ASL:
 			case Type::LSL:
-				status.overflow_flag =
-					type == Type::LSL ?
-						0 : (destination ^ (destination << shift)) & top_bit<IntT>();
-				if(shift < size) {
-					status.carry_flag = status.extend_flag = (destination >> (size - shift)) & 1;
-				} else {
+				if(shift > size) {
 					status.carry_flag = status.extend_flag = 0;
+				} else {
+					status.carry_flag = status.extend_flag = (destination << (shift - 1)) & top_bit<IntT>();
 				}
-				destination <<= shift;
+
+				if(type == Type::LSL) {
+					status.overflow_flag = 0;
+				} else {
+					if(shift >= size) {
+						status.overflow_flag = destination & top_bit<IntT>();
+					} else {
+						status.overflow_flag = (destination ^ (destination << shift)) & top_bit<IntT>();
+					}
+				}
+
+				if(shift >= size) {
+					destination = 0;
+				} else {
+					destination <<= shift;
+				}
 			break;
 
 			case Type::ASR:
 			case Type::LSR: {
+				if(shift > size) {
+					status.carry_flag = status.extend_flag = 0;
+				} else {
+					status.carry_flag = status.extend_flag = (destination >> (shift - 1)) & 1;
+				}
+				status.overflow_flag = 0;
+
 				const IntT sign_word =
 					type == Type::LSR ?
 						0 : (destination & top_bit<IntT>() ? IntT(~0) : 0);
 
-				status.overflow_flag = 0;
-				status.carry_flag = status.extend_flag = (destination >> (shift - 1)) & 1;
-
-				if(shift < size) {
-					destination = IntT((destination >> shift) | (sign_word << (size - shift)));
-				} else {
+				if(shift >= size) {
 					destination = sign_word;
+				} else {
+					destination = IntT((destination >> shift) | (sign_word << (size - shift)));
 				}
 			} break;
 		}
@@ -391,7 +407,7 @@ template <Operation operation, typename IntT, typename FlowController> void rota
 		operation == Operation::RORb || operation == Operation::RORw || operation == Operation::RORl
 	);
 
-	const auto size = bit_size<IntT>();
+	constexpr auto size = bit_size<IntT>();
 	auto shift = shift_count<IntT>(uint8_t(source), flow_controller);
 
 	if(!shift) {
@@ -401,17 +417,21 @@ template <Operation operation, typename IntT, typename FlowController> void rota
 
 		switch(operation) {
 			case Operation::ROLb:	case Operation::ROLw:	case Operation::ROLl:
-				destination = IntT(
-					(destination << shift) |
-					(destination >> (size - shift))
-				);
+				if(shift) {
+					destination = IntT(
+						(destination << shift) |
+						(destination >> (size - shift))
+					);
+				}
 				status.carry_flag = Status::FlagT(destination & 1);
 			break;
 			case Operation::RORb:	case Operation::RORw:	case Operation::RORl:
-				destination = IntT(
-					(destination >> shift) |
-					(destination << (size - shift))
-				);
+				if(shift) {
+					destination = IntT(
+						(destination >> shift) |
+						(destination << (size - shift))
+					);
+				}
 				status.carry_flag = Status::FlagT(destination & top_bit<IntT>());
 			break;
 		}
@@ -428,37 +448,56 @@ template <Operation operation, typename IntT, typename FlowController> void rox(
 		operation == Operation::ROXRb || operation == Operation::ROXRw || operation == Operation::ROXRl
 	);
 
-	const auto size = bit_size<IntT>();
+	constexpr auto size = bit_size<IntT>();
 	auto shift = shift_count<IntT>(uint8_t(source), flow_controller) % (size + 1);
 
 	if(!shift) {
 		// When shift is zero, extend is unaffected but is copied to carry.
 		status.carry_flag = status.extend_flag;
 	} else {
-		// TODO: if the value of the right operand is negative or is greater or equal to
-		// the number of bits in the promoted left operand, the behavior is undefined.
-		//
-		// i.e. for a long if shift >= 32,
-		// or size + 1 - shift >= 32, i.e. 1 - shift >= 0, 1 >= shift; i.e. shift <= 1
-		// ... the code below is undefined behaviour.
-
  		switch(operation) {
 			case Operation::ROXLb:	case Operation::ROXLw:	case Operation::ROXLl:
 				status.carry_flag = Status::FlagT((destination >> (size - shift)) & 1);
-				destination = IntT(
-					(destination << shift) |
-					(IntT(status.extend_flag ? 1 : 0) << (shift - 1)) |
-					(destination >> (size + 1 - shift))
-				);
+
+				if(shift == bit_size<IntT>()) {
+					destination = IntT(
+						(status.extend_flag ? top_bit<IntT>() : 0) |
+						(destination >> 1)
+					);
+				} else if(shift == 1) {
+					destination = IntT(
+						(destination << 1) |
+						IntT(status.extend_flag ? 1 : 0)
+					);
+				} else {
+					destination = IntT(
+						(destination << shift) |
+						(IntT(status.extend_flag ? 1 : 0) << (shift - 1)) |
+						(destination >> (size + 1 - shift))
+					);
+				}
 				status.extend_flag = status.carry_flag;
 			break;
 			case Operation::ROXRb:	case Operation::ROXRw:	case Operation::ROXRl:
 				status.carry_flag = Status::FlagT(destination & (1 << (shift - 1)));
-				destination = IntT(
-					(destination >> shift) |
-					((status.extend_flag ? top_bit<IntT>() : 0) >> (shift - 1)) |
-					(destination << (size + 1 - shift))
-				);
+
+				if(shift == bit_size<IntT>()) {
+					destination = IntT(
+						(status.extend_flag ? 1 : 0) |
+						(destination << 1)
+					);
+				} else if(shift == 1) {
+					destination = IntT(
+						(destination >> 1) |
+						(status.extend_flag ? top_bit<IntT>() : 0)
+					);
+				} else {
+					destination = IntT(
+						(destination >> shift) |
+						((status.extend_flag ? top_bit<IntT>() : 0) >> (shift - 1)) |
+						(destination << (size + 1 - shift))
+					);
+				}
 				status.extend_flag = status.carry_flag;
 			break;
 		}
