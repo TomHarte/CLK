@@ -392,11 +392,13 @@ template <Operation operation, typename IntT, typename FlowController> void rota
 	);
 
 	const auto size = bit_size<IntT>();
-	const auto shift = shift_count<IntT>(uint8_t(source), flow_controller) & (size - 1);
+	auto shift = shift_count<IntT>(uint8_t(source), flow_controller);
 
 	if(!shift) {
 		status.carry_flag = 0;
 	} else {
+		shift &= size - 1;
+
 		switch(operation) {
 			case Operation::ROLb:	case Operation::ROLw:	case Operation::ROLl:
 				destination = IntT(
