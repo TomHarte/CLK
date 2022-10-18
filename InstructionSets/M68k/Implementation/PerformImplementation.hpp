@@ -70,7 +70,7 @@ static void add_sub(IntT source, IntT &destination, Status &status) {
 	}
 	status.extend_flag =
 	status.carry_flag = is_add ? result < destination : result > destination;
-	status.negative_flag = Status::FlagT(result & top_bit<IntT>());
+	status.set_negative(result);
 	status.overflow_flag = overflow<is_add>(source, destination, result);
 	destination = result;
 }
@@ -97,7 +97,7 @@ inline void sbcd(uint8_t rhs, uint8_t lhs, uint8_t &destination, Status &status)
 
 	/* Set all remaining flags essentially as if this were normal subtraction. */
 	status.zero_result |= destination;
-	status.negative_flag = result & 0x80;
+	status.set_negative(destination);
 	status.overflow_flag = unadjusted_result & ~result & 0x80;
 }
 
@@ -124,17 +124,15 @@ void bitwise(IntT source, IntT &destination, Status &status) {
 	}
 
 	status.overflow_flag = status.carry_flag = 0;
-	status.zero_result = destination;
-	status.negative_flag = destination & top_bit<IntT>();
+	status.set_neg_zero(destination);
 }
 
 /// Compare of @c source to @c destination, setting zero, carry, negative and overflow flags.
 template <typename IntT>
 void compare(IntT source, IntT destination, Status &status) {
 	const IntT result = destination - source;
-	status.zero_result = result;
 	status.carry_flag = result > destination;
-	status.negative_flag = result & top_bit<IntT>();
+	status.set_neg_zero(result);
 	status.overflow_flag = Primitive::overflow<false>(source, destination, result);
 }
 
@@ -216,8 +214,7 @@ void multiply(uint16_t source, uint32_t &destination, Status &status, FlowContro
 		destination = u_extend16(source) * u_extend16(uint16_t(destination));
 	}
 	status.carry_flag = status.overflow_flag = 0;
-	status.zero_result = destination;
-	status.negative_flag = status.zero_result & top_bit<uint32_t>();
+	status.set_neg_zero(destination);
 
 	if constexpr (is_mulu) {
 		flow_controller.did_mulu(source);
@@ -264,15 +261,14 @@ void divide(uint16_t source, uint32_t &destination, Status &status, FlowControll
 
 	status.overflow_flag = 0;
 	status.zero_result = Status::FlagT(quotient);
-	status.negative_flag = status.zero_result & 0x8000;
+	status.set_negative(uint16_t(quotient));
 	did_divide<is_divu, false>(dividend, divisor, flow_controller);
 }
 
 /// Move @c source to @c destination, updating @c status.
 template <typename IntT> void move(IntT source, IntT &destination, Status &status) {
 	destination = source;
-	status.zero_result = Status::FlagT(source);
-	status.negative_flag = status.zero_result & top_bit<IntT>();
+	status.set_neg_zero(destination);
 	status.overflow_flag = status.carry_flag = 0;
 }
 
@@ -286,7 +282,7 @@ template <bool is_extend, typename IntT> void negative(IntT &source, Status &sta
 		status.zero_result = result;
 	}
 	status.extend_flag = status.carry_flag = result;	// i.e. any value other than 0 will result in carry.
-	status.negative_flag = result & top_bit<IntT>();
+	status.set_negative(result);
 	status.overflow_flag = Primitive::overflow<false>(source, IntT(0), result);
 
 	source = result;
@@ -295,8 +291,7 @@ template <bool is_extend, typename IntT> void negative(IntT &source, Status &sta
 /// Perform TST.[b/l/w] with @c source, updating @c status.
 template <typename IntT> void test(IntT source, Status &status) {
 	status.carry_flag = status.overflow_flag = 0;
-	status.zero_result = Status::FlagT(source);
-	status.negative_flag = status.zero_result & top_bit<IntT>();
+	status.set_neg_zero(source);
 }
 
 /// Decodes the proper shift distance from @c source, notifying the @c flow_controller.
@@ -309,12 +304,6 @@ template <typename IntT, typename FlowController> int shift_count(uint8_t source
 /// @returns The number of bits in @c IntT.
 template <typename IntT> constexpr int bit_size() {
 	return sizeof(IntT) * 8;
-}
-
-/// Set the zero and negative flags on @c status according to @c result.
-template <typename IntT> void set_neg_zero(IntT result, Status &status) {
-	status.zero_result = Status::FlagT(result);
-	status.negative_flag = result & top_bit<IntT>();
 }
 
 /// Perform an arithmetic or logical shift, i.e. any of LSL, LSR, ASL or ASR.
@@ -404,7 +393,7 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 		}
 	}
 
-	set_neg_zero(destination, status);
+	status.set_neg_zero(destination);
 }
 
 /// Perform a rotate without extend, i.e. any of RO[L/R].[b/w/l].
@@ -444,7 +433,7 @@ template <Operation operation, typename IntT, typename FlowController> void rota
 		}
 	}
 
-	set_neg_zero(destination, status);
+	status.set_neg_zero(destination);
 	status.overflow_flag = 0;
 }
 
@@ -510,7 +499,7 @@ template <Operation operation, typename IntT, typename FlowController> void rox(
 		}
 	}
 
-	set_neg_zero(destination, status);
+	status.set_neg_zero(destination);
 	status.overflow_flag = 0;
 }
 
@@ -545,7 +534,7 @@ template <
 			// Set all flags essentially as if this were normal addition.
 			status.zero_result |= result & 0xff;
 			status.extend_flag = status.carry_flag = uint_fast32_t(result & ~0xff);
-			status.negative_flag = result & 0x80;
+			status.set_negative(uint8_t(result));
 			status.overflow_flag = ~unadjusted_result & result & 0x80;
 
 			// Store the result.
@@ -718,15 +707,13 @@ template <
 		case Operation::EXTbtow:
 			src.w = uint16_t(int8_t(src.b));
 			status.overflow_flag = status.carry_flag = 0;
-			status.zero_result = src.w;
-			status.negative_flag = status.zero_result & 0x8000;
+			status.set_neg_zero(src.w);
 		break;
 
 		case Operation::EXTwtol:
 			src.l = u_extend16(src.w);
 			status.overflow_flag = status.carry_flag = 0;
-			status.zero_result = src.l;
-			status.negative_flag = status.zero_result & 0x80000000;
+			status.set_neg_zero(src.l);
 		break;
 
 		case Operation::ANDItoSR:	Primitive::apply_sr_ccr<Operation::ANDItoSR>(src.w, status, flow_controller);	break;
@@ -873,9 +860,7 @@ template <
 		case Operation::SWAP: {
 			uint16_t *const words = reinterpret_cast<uint16_t *>(&src.l);
 			std::swap(words[0], words[1]);
-
-			status.zero_result = src.l;
-			status.negative_flag = src.l & Primitive::top_bit<uint32_t>();
+			status.set_neg_zero(src.l);
 			status.overflow_flag = status.carry_flag = 0;
 		} break;
 
@@ -886,42 +871,42 @@ template <
 			status.extend_flag = status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
 			status.overflow_flag = (src.w ^ (src.w << 1)) & Primitive::top_bit<uint16_t>();
 			src.w <<= 1;
-			Primitive::set_neg_zero(src.w, status);
+			status.set_neg_zero(src.w);
 		break;
 
 		case Operation::LSLm:
 			status.extend_flag = status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
 			status.overflow_flag = 0;
 			src.w <<= 1;
-			Primitive::set_neg_zero(src.w, status);
+			status.set_neg_zero(src.w);
 		break;
 
 		case Operation::ASRm:
 			status.extend_flag = status.carry_flag = src.w & 1;
 			status.overflow_flag = 0;
 			src.w = (src.w & Primitive::top_bit<uint16_t>()) | (src.w >> 1);
-			Primitive::set_neg_zero(src.w, status);
+			status.set_neg_zero(src.w);
 		break;
 
 		case Operation::LSRm:
 			status.extend_flag = status.carry_flag = src.w & 1;
 			status.overflow_flag = 0;
 			src.w >>= 1;
-			Primitive::set_neg_zero(src.w, status);
+			status.set_neg_zero(src.w);
 		break;
 
 		case Operation::ROLm:
 			src.w = uint16_t((src.w << 1) | (src.w >> 15));
 			status.carry_flag = src.w & 0x0001;
 			status.overflow_flag = 0;
-			Primitive::set_neg_zero(src.w, status);
+			status.set_neg_zero(src.w);
 		break;
 
 		case Operation::RORm:
 			src.w = uint16_t((src.w >> 1) | (src.w << 15));
 			status.carry_flag = src.w & Primitive::top_bit<uint16_t>();
 			status.overflow_flag = 0;
-			Primitive::set_neg_zero(src.w, status);
+			status.set_neg_zero(src.w);
 		break;
 
 		case Operation::ROXLm:
@@ -929,7 +914,7 @@ template <
 			src.w = uint16_t((src.w << 1) | (status.extend_flag ? 0x0001 : 0x0000));
 			status.extend_flag = status.carry_flag;
 			status.overflow_flag = 0;
-			Primitive::set_neg_zero(src.w, status);
+			status.set_neg_zero(src.w);
 		break;
 
 		case Operation::ROXRm:
@@ -937,7 +922,7 @@ template <
 			src.w = uint16_t((src.w >> 1) | (status.extend_flag ? 0x8000 : 0x0000));
 			status.extend_flag = status.carry_flag;
 			status.overflow_flag = 0;
-			Primitive::set_neg_zero(src.w, status);
+			status.set_neg_zero(src.w);
 		break;
 
 		case Operation::ASLb:	Primitive::shift<Operation::ASLb>(src.l, dest.b, status, flow_controller);	break;

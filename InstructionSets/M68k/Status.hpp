@@ -54,6 +54,18 @@ struct Status {
 	FlagT overflow_flag = 0;	// The overflow flag is set if and only if this value is non-zero.
 	FlagT negative_flag = 0;	// The negative flag is set if and only this value is non-zero.
 
+	/// Sets the negative flag per @c value
+	template <typename IntT> void set_negative(IntT value) {
+		constexpr auto top_bit = IntT(1 << ((sizeof(IntT) * 8) - 1));
+		negative_flag = value & top_bit;
+	}
+
+	/// Sets both the negative and zero flags according to @c value.
+	template <typename IntT> void set_neg_zero(IntT value) {
+		zero_result = value;
+		set_negative(value);
+	}
+
 	/// Gets the current condition codes.
 	constexpr uint16_t ccr() const {
 		return
