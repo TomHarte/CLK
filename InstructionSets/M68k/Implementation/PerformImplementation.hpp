@@ -435,20 +435,22 @@ template <Operation operation, typename IntT, typename FlowController> void rox(
 	} else {
  		switch(operation) {
 			case Operation::ROXLb:	case Operation::ROXLw:	case Operation::ROXLl:
-				status.carry_flag = status.extend_flag = Status::FlagT((destination >> (size - shift)) & 1);
+				status.carry_flag = Status::FlagT((destination >> (size - shift)) & 1);
 				destination = IntT(
 					(destination << shift) |
 					(IntT(status.extend_flag ? 1 : 0) << (shift - 1)) |
 					(destination >> (size + 1 - shift))
 				);
+				status.extend_flag = status.carry_flag;
 			break;
 			case Operation::ROXRb:	case Operation::ROXRw:	case Operation::ROXRl:
-				status.carry_flag = status.extend_flag = Status::FlagT(destination & (1 << (shift - 1)));
+				status.carry_flag = Status::FlagT(destination & (1 << (shift - 1)));
 				destination = IntT(
 					(destination >> shift) |
 					((status.extend_flag ? top_bit<IntT>() : 0) >> (shift - 1)) |
 					(destination << (size + 1 - shift))
 				);
+				status.extend_flag = status.carry_flag;
 			break;
 		}
 	}
