@@ -435,6 +435,13 @@ template <Operation operation, typename IntT, typename FlowController> void rox(
 		// When shift is zero, extend is unaffected but is copied to carry.
 		status.carry_flag = status.extend_flag;
 	} else {
+		// TODO: if the value of the right operand is negative or is greater or equal to
+		// the number of bits in the promoted left operand, the behavior is undefined.
+		//
+		// i.e. for a long if shift >= 32,
+		// or size + 1 - shift >= 32, i.e. 1 - shift >= 0, 1 >= shift; i.e. shift <= 1
+		// ... the code below is undefined behaviour.
+
  		switch(operation) {
 			case Operation::ROXLb:	case Operation::ROXLw:	case Operation::ROXLl:
 				status.carry_flag = Status::FlagT((destination >> (size - shift)) & 1);
