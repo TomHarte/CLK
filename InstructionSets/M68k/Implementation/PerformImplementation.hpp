@@ -357,11 +357,13 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 						// result of 0, so overflow is set if any bit was originally set.
 						status.overflow_flag = destination;
 					} else {
-						// For a shift of n places, overflow will be set if the top n bits were not
+						// For a shift of n places, overflow will be set if the top n+1 bits were not
 						// all the same value.
 						const auto affected_bits = IntT(
 							~((top_bit<IntT>() >> shift) - 1)
-						);
+						);	// e.g. shift = 1 => ~((0x80 >> 1) - 1) = ~(0x40 - 1) = ~0x3f = 0xc0, i.e. if shift is
+							// 1 then the top two bits are relevant to whether there was overflow. If they have the
+							// same value, i.e. are both 0 or are both 1, then there wasn't. Otherwise there was.
 						status.overflow_flag = (destination & affected_bits) && (destination & affected_bits) != affected_bits;
 					}
 				}
