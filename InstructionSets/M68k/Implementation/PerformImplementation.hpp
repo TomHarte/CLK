@@ -359,7 +359,9 @@ template <Operation operation, typename IntT, typename FlowController> void shif
 					} else {
 						// For a shift of n places, overflow will be set if the top n bits were not
 						// all the same value.
-						const auto affected_bits = IntT(~0 << shift);
+						const auto affected_bits = IntT(
+							~((top_bit<IntT>() >> shift) - 1)
+						);
 						status.overflow_flag = (destination & affected_bits) && (destination & affected_bits) != affected_bits;
 					}
 				}
