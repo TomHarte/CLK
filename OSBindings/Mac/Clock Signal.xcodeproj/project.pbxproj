@@ -318,6 +318,7 @@
 		4B7136911F789C93008B8ED9 /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */; };
 		4B74CF812312FA9C00500CE8 /* HFV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF802312FA9C00500CE8 /* HFV.cpp */; };
 		4B74CF822312FA9C00500CE8 /* HFV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF802312FA9C00500CE8 /* HFV.cpp */; };
+		4B75EBFE28FF9CA20088AB22 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4C81C928B56CF800F84AE9 /* MacintoshVolume.cpp */; };
 		4B75F979280D7C5100121055 /* 68000DecoderTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B75F978280D7C5100121055 /* 68000DecoderTests.mm */; };
 		4B75F97B280D7C7700121055 /* 68000 Decoding in Resources */ = {isa = PBXBuildFile; fileRef = 4B75F97A280D7C7700121055 /* 68000 Decoding */; };
 		4B7752A628217DF80073E2C5 /* Dave.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFEA2ED2682A7B900EBF94C /* Dave.cpp */; };
@@ -6189,6 +6190,7 @@
 				4BEE4BD425A26E2B00011BD2 /* x86DecoderTests.mm in Sources */,
 				4B778F3623A5F1040000D260 /* Target.cpp in Sources */,
 				4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */,
+				4B75EBFE28FF9CA20088AB22 /* MacintoshVolume.cpp in Sources */,
 				4B778F3D23A5F1750000D260 /* ncr5380.cpp in Sources */,
 				4BF701A026FFD32300996424 /* AmigaBlitterTests.mm in Sources */,
 				4B7752B428217ECB0073E2C5 /* ZXSpectrumTAP.cpp in Sources */,
