@@ -55,10 +55,23 @@ template <bool is_add, bool is_extend, typename IntT>
 static void add_sub(IntT source, IntT &destination, Status &status) {
 	static_assert(!std::numeric_limits<IntT>::is_signed);
 
-	const IntT extend = (is_extend && status.extend_flag) ? 1 : 0;
-	const IntT result = is_add ?
-		(destination + source + extend) :
-		(destination - source - extend);
+	IntT result = is_add ?
+		destination + source :
+		destination - source;
+	status.carry_flag = is_add ? result < destination : result > destination;
+
+	// If this is an extend operation, there's a second opportunity to create carry,
+	// which requires a second test.
+	if(is_extend && status.extend_flag) {
+		if constexpr (is_add) {
+			++result;
+			status.carry_flag |= result == 0;
+		} else {
+			status.carry_flag |= result == 0;
+			--result;
+		}
+	}
+	status.extend_flag = status.carry_flag;
 
 	// Extend operations can reset the zero flag only; non-extend operations
 	// can either set it or reset it. Which in the reverse-logic world of
@@ -68,8 +81,6 @@ static void add_sub(IntT source, IntT &destination, Status &status) {
 	} else {
 		status.zero_result = Status::FlagT(result);
 	}
-	status.extend_flag =
-	status.carry_flag = is_add ? result < destination : result > destination;
 	status.set_negative(result);
 	status.overflow_flag = overflow<is_add>(source, destination, result);
 	destination = result;
