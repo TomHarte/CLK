@@ -685,7 +685,7 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 	} else {
 		printf("\nAll failing operations:\n");
 		for(const auto operation: failing_operations) {
-			printf("%d,\n", int(operation));
+			printf("%s,\n", InstructionSet::M68k::to_string(operation));
 		}
 	}
 
