@@ -112,6 +112,10 @@ constexpr DataSize operand_size(Operation r_operation) {
 		case Operation::EXTwtol:
 		case Operation::UNLINK:
 			return DataSize::LongWord;
+
+		default:
+			// 68020 TODO.
+			return DataSize::Byte;
 	}
 }
 

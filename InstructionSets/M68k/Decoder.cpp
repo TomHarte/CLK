@@ -316,6 +316,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::Bccb):
 		case OpT(Operation::BSRb):
 		case OpT(Operation::TRAP):
+		case OpT(Operation::BKPT):
 			return ~OneOperandMask<
 				Quick
 			>::value;
@@ -333,6 +334,20 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			return ~TwoOperandMask<
 				Dn,
 				AllModesNoAn
+			>::value;
+
+		case OpT(Operation::BFCHG):	case OpT(Operation::BFCLR):	case OpT(Operation::BFSET):
+		case OpT(Operation::BFINS):
+			return ~TwoOperandMask<
+				Imm,
+				Dn | Ind | d16An | d8AnXn | XXXw | XXXl
+			>::value;
+
+		case OpT(Operation::BFTST):		case OpT(Operation::BFFFO):		case OpT(Operation::BFEXTU):
+		case OpT(Operation::BFEXTS):
+			return ~TwoOperandMask<
+				Imm,
+				Dn | Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
 			>::value;
 
 		case CMPIb:		case CMPIl:		case CMPIw:
@@ -419,6 +434,16 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::SWAP):
 			return ~OneOperandMask<
 				Dn
+			>::value;
+
+		case OpT(Operation::RTD):
+			return ~OneOperandMask<
+				Imm
+			>::value;
+
+		case OpT(Operation::CALLM):
+			return ~OneOperandMask<
+				ControlAddressingModes
 			>::value;
 
 		case OpT(Operation::JMP):
@@ -802,10 +827,11 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
-		// MARK: TRAP, BCCb, BSRb
+		// MARK: TRAP, BCCb, BSRb, BKPT
 		//
-		// No further operands decoded, but note that one is somewhere in the opcode.
+		// No further operands decoded, but one is somewhere in the opcode.
 		//
+		case OpT(Operation::BKPT):
 		case OpT(Operation::TRAP):
 		case OpT(Operation::BSRb):
 			return validated<op, validate>(AddressingMode::Quick);
@@ -858,6 +884,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b0–b2:	a register to shift (the source here, for consistency with the memory operations);
 		// b8:		0 => b9–b11 are a direct count of bits to shift; 1 => b9–b11 identify a register containing the shift count;
 		// b9–b11:	either a quick value or a register.
+		//
 		case OpT(Operation::ASRb):	case OpT(Operation::ASRw):	case OpT(Operation::ASRl):
 		case OpT(Operation::LSRb):	case OpT(Operation::LSRw):	case OpT(Operation::LSRl):
 		case OpT(Operation::ROXRb):	case OpT(Operation::ROXRw):	case OpT(Operation::ROXRl):
@@ -887,6 +914,36 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 					AddressingMode::AddressRegisterIndirectWithPostincrement, data_register);
 
 		//
+		// MARK: BFCHG, BFTST, BFFFO, BFEXTU, BFEXTS, BFCLR, BFSET, BFINS
+		//
+		// b0–b2 and b3–b5: an effective address.
+		// There is also an immedate operand describing an offset and width.
+		//
+		case OpT(Operation::BFCHG):		case OpT(Operation::BFTST):		case OpT(Operation::BFFFO):
+		case OpT(Operation::BFEXTU):	case OpT(Operation::BFEXTS):	case OpT(Operation::BFCLR):
+		case OpT(Operation::BFSET):		case OpT(Operation::BFINS):
+			return validated<op, validate>(
+				AddressingMode::ImmediateData, 0,
+				combined_mode(ea_mode, ea_register), ea_register);
+
+		//
+		// MARK: CALLM
+		//
+		// b0–b2 and b3–b5: an effective address.
+		// There is also an immedate operand providing argument count.
+		//
+		case OpT(Operation::CALLM):
+			return validated<op, validate>(
+				AddressingMode::ImmediateData, 0,
+				combined_mode(ea_mode, ea_register), ea_register);
+
+		//
+		// MARK: RTD
+		//
+		case OpT(Operation::RTD):
+			return validated<op, validate>(AddressingMode::ImmediateData);
+
+		//
 		// MARK: Impossible error case.
 		//
 		default:
@@ -898,6 +955,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 // MARK: - Page decoders.
 
 #define Decode(y)	return decode<OpT(y)>(instruction)
+#define DecodeReq(x, y)	if constexpr (x) Decode(y); break;
 
 template <Model model>
 Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
@@ -956,6 +1014,8 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 		case 0xc00:	Decode(CMPIb);
 		case 0xc40:	Decode(CMPIw);
 		case 0xc80:	Decode(CMPIl);
+
+		case 0x6c0: DecodeReq(model == Model::M68020, Op::CALLM);	// 4-64 (p168)
 
 		default:	break;
 	}
@@ -1023,6 +1083,7 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		case 0xe71:	Decode(Op::NOP);	// 4-147 (p251)
 		case 0xe72:	Decode(Op::STOP);	// 6-85 (p539)
 		case 0xe73:	Decode(Op::RTE);	// 6-84 (p538)
+		case 0xe74:	DecodeReq(model >= Model::M68010, Op::RTD);		// 4-166 (p270)
 		case 0xe75:	Decode(Op::RTS);	// 4-169 (p273)
 		case 0xe76:	Decode(Op::TRAPV);	// 4-191 (p295)
 		case 0xe77:	Decode(Op::RTR);	// 4-168 (p272)
@@ -1031,6 +1092,7 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 
 	switch(instruction & 0xff8) {
 		case 0x840:	Decode(Op::SWAP);			// 4-185 (p289)
+		case 0x848: DecodeReq(model >= Model::M68010, Op::BKPT);	// 4-54 (p158)
 		case 0x880:	Decode(Op::EXTbtow);		// 4-106 (p210)
 		case 0x8c0:	Decode(Op::EXTwtol);		// 4-106 (p210)
 		case 0xe50:	Decode(Op::LINKw);			// 4-111 (p215)
@@ -1399,6 +1461,15 @@ Preinstruction Predecoder<model>::decodeE(uint16_t instruction) {
 		case 0x6c0:	Decode(Op::RORm);	// 4-160 (p264)
 		case 0x7c0:	Decode(Op::ROLm);	// 4-160 (p264)
 
+		case 0x8c0: DecodeReq(model >= Model::M68020, Op::BFTST);	// 4-51 (p155)
+		case 0x9c0: DecodeReq(model >= Model::M68020, Op::BFFFO);	// 4-43 (p147)
+		case 0xac0: DecodeReq(model >= Model::M68020, Op::BFCHG);	// 4-33 (p137)
+		case 0xbc0: DecodeReq(model >= Model::M68020, Op::BFEXTS);	// 4-37 (p141)
+		case 0xcc0: DecodeReq(model >= Model::M68020, Op::BFCLR);	// 4-35 (p139)
+		case 0xdc0: DecodeReq(model >= Model::M68020, Op::BFEXTU);	// 4-40 (p144)	[though the given opcode is wrong]
+		case 0xec0: DecodeReq(model >= Model::M68020, Op::BFSET);	// 4-49 (p153)
+		case 0xfc0: DecodeReq(model >= Model::M68020, Op::BFINS);	// 4-46 (p150)
+
 		default:	break;
 	}
 
@@ -1455,6 +1526,7 @@ Preinstruction Predecoder<model>::decodeF(uint16_t) {
 }
 
 #undef Decode
+#undef DecodeRef
 
 // MARK: - Main decoder.
 

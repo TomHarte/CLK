@@ -21,6 +21,10 @@ namespace M68k {
 enum class Operation: uint8_t {
 	Undefined,
 
+	//
+	// 68000 operations.
+	//
+
 	NOP,
 
 	ABCD,	SBCD,	NBCD,
@@ -101,7 +105,38 @@ enum class Operation: uint8_t {
 
 	STOP,	RESET,
 
-	Max = RESET
+	//
+	// 68020 additions.
+	//
+	BKPT,
+
+	BFCHG,	BFCLR,
+	BFEXTS,	BFEXTU,
+	BFFFO,	BFINS,
+	BFSET,	BFTST,
+
+	CALLM,	RTD,	RTM,
+
+	CAS, 	CAS2,
+	CHK2,	CMP2,
+
+	DIVSL,
+	EXTbtol,
+	PACK, UNPK,
+
+	TRAPcc,
+
+	cpBcc,	cpDBcc,		cpGEN,
+	cpScc,	cpTRAPcc,	cpRESTORE,
+	cpSAVE,
+
+	MOVEfromCCR,
+	MOVEC,	MOVES,
+
+	//
+	// Introspection.
+	//
+	Max = MOVES
 };
 
 const char *to_string(Operation op);
@@ -147,6 +182,7 @@ constexpr uint32_t quick(uint16_t instruction, Operation r_op = Operation::Undef
 		case Operation::BSRb:
 		case Operation::MOVEl:	return uint32_t(int8_t(instruction));
 		case Operation::TRAP:	return uint32_t(instruction & 15);
+		case Operation::BKPT:	return uint32_t(instruction & 7);
 		default: {
 			uint32_t value = (instruction >> 9) & 7;
 			value |= (value - 1)&8;
