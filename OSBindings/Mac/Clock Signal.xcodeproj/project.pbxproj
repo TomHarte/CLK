@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -5489,7 +5489,8 @@
 /* Begin PBXShellScriptBuildPhase section */
 		4B2D26A8288EDAFB00F27D66 /* Set Archive Version Number */ = {
 			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
+			alwaysOutOfDate = 1;
+			buildActionMask = 8;
 			files = (
 			);
 			inputFileListPaths = (
@@ -5501,9 +5502,9 @@
 			);
 			outputPaths = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
+			runOnlyForDeploymentPostprocessing = 1;
 			shellPath = /bin/sh;
-			shellScript = "#!/bin/bash\nset\n\n# Change fields only for archive builds; this helps to avoid source control pollution.\nif [ $ACTION != \"install\" ]; then\n  exit 0\nfi\n\n# Set both version numbers to yy.mm.dd.\nbuildNumber=$(date -u \"+%y.%m.%d\")\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $buildNumber\" \"$INFOPLIST_FILE\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $buildNumber\" \"$INFOPLIST_FILE\"\n\n# Update the copyright string.\nbuildYear=$(date -u \"+%Y\")\n/usr/libexec/PlistBuddy -c \"Set :NSHumanReadableCopyright Copyright © 2015–$buildYear Thomas Harte.\\nAll rights reserved.\" \"$INFOPLIST_FILE\"\n";
+			shellScript = "#!/bin/bash\n\n# Set both version numbers to yy.mm.dd.\nbuildNumber=$(date -u \"+%y.%m.%d\")\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $buildNumber\" \"$INFOPLIST_FILE\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $buildNumber\" \"$INFOPLIST_FILE\"\n\n# Update the copyright string.\nbuildYear=$(date -u \"+%Y\")\n/usr/libexec/PlistBuddy -c \"Set :NSHumanReadableCopyright Copyright © 2015–$buildYear Thomas Harte.\\nAll rights reserved.\" \"$INFOPLIST_FILE\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
