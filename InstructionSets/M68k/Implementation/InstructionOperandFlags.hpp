@@ -81,7 +81,7 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		//
 		case Operation::CMPb:	case Operation::CMPw:	case Operation::CMPl:
 		case Operation::CMPAw:	case Operation::CMPAl:
-		case Operation::CHK:
+		case Operation::CHKw:
 		case Operation::BTST:
 		case Operation::LINKw:
 			return FetchOp1 | FetchOp2;
@@ -106,8 +106,8 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::ORb:	case Operation::ORw:	case Operation::ORl:
 		case Operation::ANDb:	case Operation::ANDw:	case Operation::ANDl:
 		case Operation::EORb:	case Operation::EORw:	case Operation::EORl:
-		case Operation::DIVU:	case Operation::DIVS:
-		case Operation::MULU:	case Operation::MULS:
+		case Operation::DIVUw:	case Operation::DIVSw:
+		case Operation::MULUw:	case Operation::MULSw:
 		case Operation::ASLb:	case Operation::ASLw:	case Operation::ASLl:
 		case Operation::ASRb:	case Operation::ASRw:	case Operation::ASRl:
 		case Operation::LSLb:	case Operation::LSLw:	case Operation::LSLl:

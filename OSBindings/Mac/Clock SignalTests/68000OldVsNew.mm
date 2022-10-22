@@ -540,17 +540,17 @@ void print_transactions(FILE *target, const std::vector<Transaction> &transactio
 		InstructionSet::M68k::Operation::NOTw,			// Old implementation omits an idle cycle before -(An)
 		InstructionSet::M68k::Operation::TRAP,			// Old implementation relocates the idle state near the end to the beginning.
 		InstructionSet::M68k::Operation::TRAPV,			// Old implementation relocates the idle state near the end to the beginning.
-		InstructionSet::M68k::Operation::CHK,			// Old implementation pauses four cycles too long.
+		InstructionSet::M68k::Operation::CHKw,			// Old implementation pauses four cycles too long.
 		InstructionSet::M68k::Operation::TAS,			// Old implementation just doesn't match published cycle counts.
 
 		//
 		// Operations with timing discrepancies between the two 68000 implementations
 		// that I think are _more_ accurate now, but possibly still need work:
 		//
-		InstructionSet::M68k::Operation::MULU,
-		InstructionSet::M68k::Operation::MULS,
-		InstructionSet::M68k::Operation::DIVU,
-		InstructionSet::M68k::Operation::DIVS,
+		InstructionSet::M68k::Operation::MULUw,
+		InstructionSet::M68k::Operation::MULSw,
+		InstructionSet::M68k::Operation::DIVUw,
+		InstructionSet::M68k::Operation::DIVSw,
 	};
 
 	int testsRun = 0;

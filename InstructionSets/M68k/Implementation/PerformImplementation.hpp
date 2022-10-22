@@ -742,15 +742,15 @@ template <
 			Multiplications.
 		*/
 
-		case Operation::MULU:	Primitive::multiply<true>(src.w, dest.l, status, flow_controller);	break;
-		case Operation::MULS:	Primitive::multiply<false>(src.w, dest.l, status, flow_controller);	break;
+		case Operation::MULUw:	Primitive::multiply<true>(src.w, dest.l, status, flow_controller);	break;
+		case Operation::MULSw:	Primitive::multiply<false>(src.w, dest.l, status, flow_controller);	break;
 
 		/*
 			Divisions.
 		*/
 
-		case Operation::DIVU:	Primitive::divide<true, uint16_t, uint32_t>(src.w, dest.l, status, flow_controller);	break;
-		case Operation::DIVS:	Primitive::divide<false, int16_t, int32_t>(src.w, dest.l, status, flow_controller);		break;
+		case Operation::DIVUw:	Primitive::divide<true, uint16_t, uint32_t>(src.w, dest.l, status, flow_controller);	break;
+		case Operation::DIVSw:	Primitive::divide<false, int16_t, int32_t>(src.w, dest.l, status, flow_controller);		break;
 
 		// TRAP, which is a nicer form of ILLEGAL.
 		case Operation::TRAP:
@@ -763,7 +763,7 @@ template <
 			}
 		} break;
 
-		case Operation::CHK: {
+		case Operation::CHKw: {
 			const bool is_under = s_extend16(dest.w) < 0;
 			const bool is_over = s_extend16(dest.w) > s_extend16(src.w);
 

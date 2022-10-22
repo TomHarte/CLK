@@ -154,6 +154,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 	constexpr auto d8PCXn	= Mask< AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement >::value;
 	constexpr auto Imm		= Mask< AddressingMode::ImmediateData >::value;
 	constexpr auto Quick	= Mask< AddressingMode::Quick >::value;
+	constexpr auto Ext		= Mask< AddressingMode::ExtensionWord >::value;
 
 	// A few recurring combinations; terminology is directly from
 	// the Programmers' Reference Manual.
@@ -191,11 +192,11 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 		case ADDtoRb:
 		case ANDtoRb:	case ANDtoRw:	case ANDtoRl:
-		case OpT(Operation::CHK):
+		case OpT(Operation::CHKw):
 		case OpT(Operation::CMPb):
-		case OpT(Operation::DIVU):		case OpT(Operation::DIVS):
+		case OpT(Operation::DIVUw):		case OpT(Operation::DIVSw):
 		case ORtoRb:	case ORtoRw:	case ORtoRl:
-		case OpT(Operation::MULU):		case OpT(Operation::MULS):
+		case OpT(Operation::MULUw):		case OpT(Operation::MULSw):
 		case SUBtoRb:
 			return ~TwoOperandMask<
 				AllModesNoAn,
@@ -473,6 +474,11 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::RESET):
 			return ~NoOperandMask::value;
 
+		case OpT(Operation::RTM):
+			return ~OneOperandMask<
+				An | Dn
+			>::value;
+
 		case OpT(Operation::UNLINK):
 		case OpT(Operation::MOVEtoUSP):
 		case OpT(Operation::MOVEfromUSP):
@@ -482,13 +488,13 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 
 		case OpT(Operation::MOVEMtoMw):	case OpT(Operation::MOVEMtoMl):
 			return ~TwoOperandMask<
-				Imm,
+				Ext,
 				Ind | PreDec | d16An | d8AnXn | XXXw | XXXl
 			>::value;
 
 		case OpT(Operation::MOVEMtoRw): case OpT(Operation::MOVEMtoRl):
 			return ~TwoOperandMask<
-				Imm,
+				Ext,
 				Ind | PostInc | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
 			>::value;
 
@@ -664,7 +670,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// Implicitly:		destination is a register;
 		// b0–b2 and b3–b5:	source effective address.
 		//
-		case OpT(Operation::CHK):
+		case OpT(Operation::CHKw):
 			return validated<op, validate>(
 				combined_mode(ea_mode, ea_register), ea_register,
 				AddressingMode::DataRegisterDirect, data_register);
@@ -697,11 +703,22 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// b9–b11:			destination data register;
 		// b0–b2 and b3–b5:	source effective address.
 		//
-		case OpT(Operation::DIVU):	case OpT(Operation::DIVS):
-		case OpT(Operation::MULU):	case OpT(Operation::MULS):
+		case OpT(Operation::DIVUw):	case OpT(Operation::DIVSw):
+		case OpT(Operation::MULUw):	case OpT(Operation::MULSw):
 			return validated<op, validate>(
 				combined_mode(ea_mode, ea_register), ea_register,
 				AddressingMode::DataRegisterDirect, data_register);
+
+		//
+		// MARK: DIVSl.
+		//
+		// b0–b2 and b3–b5:	source effective address.
+		// Plus an immediate word operand
+		//
+		case OpT(Operation::DIVSl):
+			return validated<op, validate>(
+				AddressingMode::ExtensionWord, 0,
+				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
 		// MARK: LEA
@@ -823,7 +840,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::MOVEMtoMl):	case OpT(Operation::MOVEMtoMw):
 		case OpT(Operation::MOVEMtoRl):	case OpT(Operation::MOVEMtoRw):
 			return validated<op, validate>(
-				AddressingMode::ImmediateData, 0,
+				AddressingMode::ExtensionWord, 0,
 				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
@@ -944,6 +961,24 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 			return validated<op, validate>(AddressingMode::ImmediateData);
 
 		//
+		// MARK: RTM
+		//
+		// b0–b2: a register number;
+		// b3: address/data register selection.
+		//
+		case OpT(Operation::RTM): {
+			const auto addressing_mode = (instruction & 8) ?
+				AddressingMode::AddressRegisterDirect : AddressingMode::DataRegisterDirect;
+
+			return validated<op, validate>(addressing_mode, ea_register);
+		}
+
+		//
+		// MARK: DIVl
+		//
+		//
+
+		//
 		// MARK: Impossible error case.
 		//
 		default:
@@ -968,6 +1003,16 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 		case 0x27c:	Decode(Op::ANDItoSR);	// 6-2 (p456)
 		case 0xa3c:	Decode(Op::EORItoCCR);	// 4-104 (p208)
 		case 0xa7c:	Decode(Op::EORItoSR);	// 6-10 (p464)
+
+		// 4-68 (p172)
+		case 0xcfc:	DecodeReq(model >= Model::M68020, Op::CAS2w);
+		case 0xefc:	DecodeReq(model >= Model::M68020, Op::CAS2l);
+
+		default:	break;
+	}
+
+	switch(instruction & 0xff0) {
+		case 0x6c0:	DecodeReq(model == Model::M68020, Op::RTM);	// 4-167 (p271)
 
 		default:	break;
 	}
@@ -1015,7 +1060,23 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 		case 0xc40:	Decode(CMPIw);
 		case 0xc80:	Decode(CMPIl);
 
-		case 0x6c0: DecodeReq(model == Model::M68020, Op::CALLM);	// 4-64 (p168)
+		// 4-64 (p168)
+		case 0x6c0: DecodeReq(model == Model::M68020, Op::CALLM);
+
+		// 4-67 (p171)
+		case 0xac0:	DecodeReq(model >= Model::M68020, Op::CASb);
+		case 0xcc0:	DecodeReq(model >= Model::M68020, Op::CASw);
+		case 0xec0:	DecodeReq(model >= Model::M68020, Op::CASl);
+
+		// 4-72 (p176)
+		case 0x0c0:	DecodeReq(model >= Model::M68020, Op::CHK2b);
+		case 0x2c0:	DecodeReq(model >= Model::M68020, Op::CHK2w);
+		case 0x4c0:	DecodeReq(model >= Model::M68020, Op::CHK2l);
+
+		// 4-83 (p187)
+		case 0x00c:	DecodeReq(model >= Model::M68020, Op::CMP2b);
+		case 0x02c:	DecodeReq(model >= Model::M68020, Op::CMP2w);
+		case 0x04c:	DecodeReq(model >= Model::M68020, Op::CMP2l);
 
 		default:	break;
 	}
@@ -1163,12 +1224,15 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		// 4-108 (p212)
 		case 0xec0:	Decode(Op::JMP);
 
+		// 4-94 (p198)
+		case 0xc40:	Decode(Op::DIVSl);
+
 		default:	break;
 	}
 
 	switch(instruction & 0x1c0) {
 		case 0x1c0:	Decode(Op::LEA);	// 4-110 (p214)
-		case 0x180:	Decode(Op::CHK);	// 4-69 (p173)
+		case 0x180:	Decode(Op::CHKw);	// 4-69 (p173)
 		default:	break;
 	}
 
@@ -1292,8 +1356,8 @@ Preinstruction Predecoder<model>::decode8(uint16_t instruction) {
 	if((instruction & 0x1f0) == 0x100) Decode(Op::SBCD);
 
 	switch(instruction & 0x1c0) {
-		case 0x0c0:	Decode(Op::DIVU);	// 4-97 (p201)
-		case 0x1c0:	Decode(Op::DIVS);	// 4-93 (p197)
+		case 0x0c0:	Decode(Op::DIVUw);	// 4-97 (p201)
+		case 0x1c0:	Decode(Op::DIVSw);	// 4-93 (p197)
 
 		// 4-150 (p254)
 		case 0x000:	Decode(ORtoRb);
@@ -1398,8 +1462,8 @@ Preinstruction Predecoder<model>::decodeC(uint16_t instruction) {
 	}
 
 	switch(instruction & 0x1c0) {
-		case 0x0c0:	Decode(Op::MULU);	// 4-139 (p243)
-		case 0x1c0:	Decode(Op::MULS);	// 4-136 (p240)
+		case 0x0c0:	Decode(Op::MULUw);	// 4-139 (p243)
+		case 0x1c0:	Decode(Op::MULSw);	// 4-136 (p240)
 
 		// 4-15 (p119)
 		case 0x000:	Decode(ANDtoRb);

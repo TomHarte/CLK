@@ -217,17 +217,17 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::ORw:			return "OR.w";
 		case Operation::ORl:			return "OR.l";
 
-		case Operation::MULU:			return "MULU";
-		case Operation::MULS:			return "MULS";
-		case Operation::DIVU:			return "DIVU";
-		case Operation::DIVS:			return "DIVS";
+		case Operation::MULUw:			return "MULU";
+		case Operation::MULSw:			return "MULS";
+		case Operation::DIVUw:			return "DIVU";
+		case Operation::DIVSw:			return "DIVS";
 
 		case Operation::RTE:			return "RTE";
 		case Operation::RTR:			return "RTR";
 
 		case Operation::TRAP:			return "TRAP";
 		case Operation::TRAPV:			return "TRAPV";
-		case Operation::CHK:			return "CHK";
+		case Operation::CHKw:			return "CHK";
 
 		case Operation::EXG:			return "EXG";
 		case Operation::SWAP:			return "SWAP";

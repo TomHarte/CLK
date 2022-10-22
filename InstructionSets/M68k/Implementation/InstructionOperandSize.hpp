@@ -80,11 +80,11 @@ constexpr DataSize operand_size(Operation r_operation) {
 		case Operation::MOVEPw:
 		case Operation::ANDw:	case Operation::EORw:
 		case Operation::NOTw:	case Operation::ORw:
-		case Operation::DIVU:	case Operation::DIVS:
-		case Operation::MULU:	case Operation::MULS:
+		case Operation::DIVUw:	case Operation::DIVSw:
+		case Operation::MULUw:	case Operation::MULSw:
 		case Operation::EXTbtow:
 		case Operation::LINKw:
-		case Operation::CHK:
+		case Operation::CHKw:
 			return DataSize::Word;
 
 		case Operation::ADDl:	case Operation::ADDAl:

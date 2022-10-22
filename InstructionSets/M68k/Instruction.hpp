@@ -61,8 +61,8 @@ enum class Operation: uint8_t {
 	DBcc,
 	Scc,
 
-	Bccb,	Bccw,	Bccl,
-	BSRb,	BSRw,	BSRl,
+	Bccb,	Bccw,
+	BSRb,	BSRw,
 
 	CLRb, CLRw, CLRl,
 	NEGXb, NEGXw, NEGXl,
@@ -87,13 +87,13 @@ enum class Operation: uint8_t {
 	NOTb, 	NOTw, 	NOTl,
 	ORb,	ORw,	ORl,
 
-	MULU,	MULS,
-	DIVU,	DIVS,
+	MULUw,	MULSw,
+	DIVUw,	DIVSw,
 
 	RTE,	RTR,
 
 	TRAP,	TRAPV,
-	CHK,
+	CHKw,
 
 	EXG,	SWAP,
 
@@ -108,23 +108,30 @@ enum class Operation: uint8_t {
 	//
 	// 68020 additions.
 	//
-	BKPT,
+	BKPT,	TRAPcc,
+
+	CALLM,	RTD,	RTM,
 
 	BFCHG,	BFCLR,
 	BFEXTS,	BFEXTU,
 	BFFFO,	BFINS,
 	BFSET,	BFTST,
 
-	CALLM,	RTD,	RTM,
+	PACK,	UNPK,
 
-	CAS, 	CAS2,
-	CHK2,	CMP2,
+	CASb,	CASw,	CASl,
+	CAS2w,	CAS2l,
 
-	DIVSL,
+	CHK2b,	CHK2w,	CHK2l,
+	CMP2b,	CMP2w,	CMP2l,
+
+	DIVSl,	DIVUl,
+	MULSl,	MULUl,
+
+	Bccl,	BSRl,
+	LINKl,	CHKl,
+
 	EXTbtol,
-	PACK, UNPK,
-
-	TRAPcc,
 
 	cpBcc,	cpDBcc,		cpGEN,
 	cpScc,	cpTRAPcc,	cpRESTORE,
@@ -284,6 +291,10 @@ enum class AddressingMode: uint8_t {
 
 	/// #
 	ImmediateData										= 0b01'100,
+
+	/// An additional word of data. Differs from ImmediateData by being
+	/// a fixed size, rather than the @c operand_size of the operation.
+	ExtensionWord										= 0b01'111,
 
 	/// .q; value is embedded in the opcode.
 	Quick												= 0b01'110,

@@ -438,8 +438,8 @@ struct TestProcessor: public CPU::MC68000Mk2::BusHandler {
 
 		// For DIVU and DIVS, for now, test only the well-defined flags.
 		if(
-			instruction.operation != InstructionSet::M68k::Operation::DIVS &&
-			instruction.operation != InstructionSet::M68k::Operation::DIVU
+			instruction.operation != InstructionSet::M68k::Operation::DIVSw &&
+			instruction.operation != InstructionSet::M68k::Operation::DIVUw
 		) {
 			[_failures addObject:name];
 		} else {
