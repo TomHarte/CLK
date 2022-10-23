@@ -340,15 +340,20 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::BFCHG):	case OpT(Operation::BFCLR):	case OpT(Operation::BFSET):
 		case OpT(Operation::BFINS):
 			return ~TwoOperandMask<
-				Imm,
+				Ext,
 				Dn | Ind | d16An | d8AnXn | XXXw | XXXl
 			>::value;
 
 		case OpT(Operation::BFTST):		case OpT(Operation::BFFFO):		case OpT(Operation::BFEXTU):
 		case OpT(Operation::BFEXTS):
 			return ~TwoOperandMask<
-				Imm,
+				Ext,
 				Dn | Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
+			>::value;
+
+		case OpT(Operation::PACK):
+			return ~OneOperandMask<
+				Imm
 			>::value;
 
 		case CMPIb:		case CMPIl:		case CMPIw:
@@ -527,6 +532,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
 			requires_supervisor<model>(operation),
+			requires_extension_word(operation),
 			operand_size(operation),
 			condition);
 	}
@@ -540,6 +546,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
 			requires_supervisor<model>(operation),
+			requires_extension_word(operation),
 			operand_size(operation),
 			condition);
 }
@@ -940,7 +947,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		case OpT(Operation::BFEXTU):	case OpT(Operation::BFEXTS):	case OpT(Operation::BFCLR):
 		case OpT(Operation::BFSET):		case OpT(Operation::BFINS):
 			return validated<op, validate>(
-				AddressingMode::ImmediateData, 0,
+				AddressingMode::ExtensionWord, 0,
 				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
@@ -972,6 +979,18 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 
 			return validated<op, validate>(addressing_mode, ea_register);
 		}
+
+		//
+		// MARK: PACK
+		//
+		// b0–b2: a register number;
+		// b3: address/data register selection — if address registers, then this is predec;
+		// b9–b11: an additional register number.
+		// This instruction is also followed by a 16-bit adjustment extension.
+		//
+		case OpT(Operation::PACK):
+			// TODO; need to square the wheel on a prima-facie three operands.
+			return Preinstruction();
 
 		//
 		// MARK: DIVl
@@ -1291,12 +1310,23 @@ Preinstruction Predecoder<model>::decode5(uint16_t instruction) {
 		default:	break;
 	}
 
+	switch(instruction & 0x0ff) {
+		// 4-173 (p276)
+		case 0x0f8:	case 0x0f9:	Decode(Op::Scc);
+
+		// 4-189 (p294)
+		case 0x0fa:	case 0x0fb:	case 0x0fc:
+			DecodeReq(model >= Model::M68020, Op::TRAPcc);
+
+		default:	break;
+	}
+
 	switch(instruction & 0x0f8) {
 		// 4-173 (p276)
 		case 0x0c0:
 		case 0x0d0: case 0x0d8:
 		case 0x0e0:	case 0x0e8:
-		case 0x0f0:	case 0x0f8:	Decode(Op::Scc);
+		case 0x0f0:	Decode(Op::Scc);
 
 		// 4-91 (p195)
 		case 0x0c8:	Decode(Op::DBcc);
@@ -1352,8 +1382,13 @@ template <Model model>
 Preinstruction Predecoder<model>::decode8(uint16_t instruction) {
 	using Op = Operation;
 
-	// 4-171 (p275)
-	if((instruction & 0x1f0) == 0x100) Decode(Op::SBCD);
+
+	switch(instruction & 0x1f0) {
+		case 0x100:	Decode(Op::SBCD);	// 4-171 (p275)
+		case 0x1f0:	DecodeReq(model >= Model::M68020, Op::PACK);	// 4-157 (p261)
+
+		default:	break;
+	}
 
 	switch(instruction & 0x1c0) {
 		case 0x0c0:	Decode(Op::DIVUw);	// 4-97 (p201)

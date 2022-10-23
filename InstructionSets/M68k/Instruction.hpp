@@ -168,6 +168,16 @@ constexpr bool requires_supervisor(Operation op) {
 	}
 }
 
+inline constexpr bool requires_extension_word(Operation op) {
+	switch(op) {
+		case Operation::PACK:
+			return true;
+
+		default:
+			return false;
+	}
+}
+
 enum class DataSize {
 	Byte = 0,
 	Word = 1,
@@ -356,13 +366,16 @@ class Preinstruction {
 		}
 
 		bool requires_supervisor() const {
-			return flags_ & 0x80;
+			return flags_ & Flags::IsSupervisor;
+		}
+		bool requires_extension_word() const {
+			return flags_ & Flags::RequiresExtensionWord;
 		}
 		DataSize operand_size() const {
-			return DataSize(flags_ & 0x03);
+			return DataSize((flags_ & Flags::SizeMask) >> Flags::SizeShift);
 		}
 		Condition condition() const {
-			return Condition((flags_ >> 2) & 0x0f);
+			return Condition((flags_ & Flags::ConditionMask) >> Flags::ConditionShift);
 		}
 
 	private:
@@ -377,17 +390,29 @@ class Preinstruction {
 			AddressingMode op1_mode,	int op1_reg,
 			AddressingMode op2_mode,	int op2_reg,
 			bool is_supervisor,
+			bool requires_extension_word,
 			DataSize size,
 			Condition condition) : operation(operation)
 		{
 			operands_[0] = uint8_t((uint8_t(op1_mode) << 3) | op1_reg);
 			operands_[1] = uint8_t((uint8_t(op2_mode) << 3) | op2_reg);
 			flags_ = uint8_t(
-				(is_supervisor ? 0x80 : 0x00) |
-				(int(condition) << 2) |
-				int(size)
+				(is_supervisor ? Flags::IsSupervisor : 0x00) |
+				(requires_extension_word ? Flags::RequiresExtensionWord : 0x00) |
+				(int(condition) << Flags::ConditionShift) |
+				(int(size) << Flags::SizeShift)
 			);
 		}
+
+		struct Flags {
+			static constexpr uint8_t IsSupervisor			= 0b1000'0000;
+			static constexpr uint8_t RequiresExtensionWord	= 0b0100'0000;
+			static constexpr uint8_t ConditionMask			= 0b0011'1100;
+			static constexpr uint8_t SizeMask				= 0b0000'0011;
+
+			static constexpr int ConditionShift				= 2;
+			static constexpr int SizeShift					= 0;
+		};
 
 		Preinstruction() {}
 
