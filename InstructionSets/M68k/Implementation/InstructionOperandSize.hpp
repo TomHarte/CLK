@@ -24,6 +24,7 @@ constexpr DataSize operand_size(Operation r_operation) {
 		case Operation::RTE:	case Operation::RTR:
 		case Operation::TRAP:
 		case Operation::TRAPV:
+		case Operation::TRAPcc:
 
 		case Operation::ABCD:	case Operation::SBCD:
 		case Operation::NBCD:
