@@ -45,6 +45,7 @@ std::string Preinstruction::operand_description(int index, int opcode) const {
 		case AddressingMode::AbsoluteLong:
 			return "(xxx).l";
 
+		case AddressingMode::ExtensionWord:
 		case AddressingMode::ImmediateData:
 			return "#";
 
