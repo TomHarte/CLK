@@ -1324,7 +1324,7 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		case 0xec0:	Decode(Op::JMP);
 
 		// 4-94 (p198)
-		case 0xc40:	Decode(Op::DIVSl);
+		case 0xc40:	DecodeReq(model >= Model::M68020, Op::DIVSl);
 
 		default:	break;
 	}
