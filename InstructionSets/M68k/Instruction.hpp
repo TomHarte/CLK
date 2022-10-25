@@ -174,6 +174,24 @@ enum class Operation: uint8_t {
 	Max68040 = PTESTW,
 };
 
+// Provide per-model max entries in Operation.
+template <Model> struct OperationMax {};
+template <> struct OperationMax<Model::M68000> {
+	static constexpr Operation value = Operation::Max68000;
+};
+template <> struct OperationMax<Model::M68010> {
+	static constexpr Operation value = Operation::Max68010;
+};
+template <> struct OperationMax<Model::M68020> {
+	static constexpr Operation value = Operation::Max68020;
+};
+template <> struct OperationMax<Model::M68030> {
+	static constexpr Operation value = Operation::Max68030;
+};
+template <> struct OperationMax<Model::M68040> {
+	static constexpr Operation value = Operation::Max68040;
+};
+
 const char *to_string(Operation op);
 
 template <Model model>

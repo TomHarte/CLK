@@ -11,6 +11,7 @@
 
 #include "Instruction.hpp"
 #include "Model.hpp"
+#include "../../Numeric/Sizes.hpp"
 
 namespace InstructionSet {
 namespace M68k {
@@ -50,30 +51,15 @@ template <Model model> class Predecoder {
 		Preinstruction decodeE(uint16_t instruction);
 		Preinstruction decodeF(uint16_t instruction);
 
-		template <Model> struct OperationProperties {};
-		template <> struct OperationProperties<Model::M68000> {
-			using OpT = uint8_t;
-			static constexpr OpT OpMax = OpT(Operation::Max68000);
-		};
-		template <> struct OperationProperties<Model::M68010> {
-			using OpT = uint8_t;
-			static constexpr OpT OpMax = OpT(Operation::Max68010);
-		};
-		template <> struct OperationProperties<Model::M68020> {
-			using OpT = uint16_t;
-			static constexpr OpT OpMax = OpT(Operation::Max68020);
-		};
-		template <> struct OperationProperties<Model::M68030> {
-			using OpT = uint16_t;
-			static constexpr OpT OpMax = OpT(Operation::Max68030);
-		};
-		template <> struct OperationProperties<Model::M68040> {
-			using OpT = uint16_t;
-			static constexpr OpT OpMax = OpT(Operation::Max68040);
-		};
-
-		using OpT = typename OperationProperties<model>::OpT;
-		static constexpr OpT OpMax = OperationProperties<model>::OpMax;
+		// Yuckiness here: 67 is a count of the number of things contained below in
+		// ExtendedOperation; this acts to ensure ExtendedOperation is the minimum
+		// integer size large enough to hold all actual operations plus the ephemeral
+		// ones used here. Intention is to support table-based decoding, which will mean
+		// making those integers less ephemeral, hence the desire to pick a minimum size.
+		using OpT = typename MinIntTypeValue<
+			uint64_t(OperationMax<model>::value) + 67
+		>::type;
+		static constexpr auto OpMax = OpT(OperationMax<model>::value);
 
 		// Specific instruction decoders.
 		template <OpT operation, bool validate = true> Preinstruction decode(uint16_t instruction);
@@ -89,7 +75,7 @@ template <Model model> class Predecoder {
 		// time that's knowable from the Operation alone, hence the rather awkward
 		// extension of @c Operation.
 		enum ExtendedOperation: OpT {
-			MOVEPtoRl = OperationProperties<model>::OpMax + 1, MOVEPtoRw,
+			MOVEPtoRl = OpMax + 1, MOVEPtoRw,
 			MOVEPtoMl, MOVEPtoMw,
 
 			MOVEQ,
