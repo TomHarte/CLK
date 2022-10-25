@@ -513,6 +513,12 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 	switch(op) {
 		default: break;
 
+		case OpT(Operation::TRAPcc):
+			return ~TwoOperandMask<
+				Ext | NoOperand,
+				Ext | NoOperand
+			>::value;
+
 		case OpT(Operation::Bccl):		case OpT(Operation::BSRl):
 			return ~OneOperandMask<
 				Imm
@@ -1065,6 +1071,29 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		}
 
 		//
+		// MARK: TRAPcc
+		//
+		// Has 0, 1 or 2 following words, neither of which contributes to operation.
+		//
+		case OpT(Operation::TRAPcc): {
+			switch(instruction & 7) {
+				default:	return Preinstruction();
+
+				// No extension.
+				case 4: return validated<op, validate>();
+
+				// Word-sized extension.
+				case 2:	return validated<op, validate>(AddressingMode::ExtensionWord);
+
+				// DWord-sized extension (which is encoded as two extension operands).
+				case 3:
+					return validated<op, validate>(
+						AddressingMode::ExtensionWord, 0,
+						AddressingMode::ExtensionWord, 0);
+			}
+		}
+
+		//
 		// MARK: PACK
 		//
 		// b0–b2: a register number;
@@ -1075,6 +1104,7 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		case OpT(Operation::PACK):
 			// TODO; need to square the wheel on a prima-facie three operands.
 			return Preinstruction();
+
 
 		//
 		// MARK: DIVl
