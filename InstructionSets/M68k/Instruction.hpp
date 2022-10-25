@@ -106,11 +106,18 @@ enum class Operation: uint8_t {
 	STOP,	RESET,
 
 	//
+	// 68010 additions.
+	//
+
+	BKPT,	RTD,
+
+	//
 	// 68020 additions.
 	//
-	BKPT,	TRAPcc,
 
-	CALLM,	RTD,	RTM,
+	TRAPcc,
+
+	CALLM,	RTM,
 
 	BFCHG,	BFCLR,
 	BFEXTS,	BFEXTU,
@@ -141,9 +148,30 @@ enum class Operation: uint8_t {
 	MOVEC,	MOVES,
 
 	//
+	// 68030 additions.
+	//
+
+	PFLUSH,	PFLUSHA,
+	PLOADR, PLOADW,
+	PMOVE, PMOVEFD,
+	PTESTR, PTESTW,
+
+	//
+	// 68040 additions.
+	//
+
+	// TODO: the big addition of the 68040 is incorporation of the FPU; should I make decoding of those instructions
+	// dependent upon a 68040 being selected, or should I offer a separate decoder in order to support systems with
+	// a coprocessor?
+
+	//
 	// Introspection.
 	//
-	Max = MOVES
+	Max68000 = RESET,
+	Max68010 = RTD,
+	Max68020 = MOVES,
+	Max68030 = PTESTW,
+	Max68040 = PTESTW,
 };
 
 const char *to_string(Operation op);
@@ -365,15 +393,26 @@ class Preinstruction {
 			return operands_[index] & 0xf;
 		}
 
+		/// @returns @c true if this instruction requires supervisor privileges; @c false otherwise.
 		bool requires_supervisor() const {
 			return flags_ & Flags::IsSupervisor;
 		}
-		bool requires_extension_word() const {
-			return flags_ & Flags::RequiresExtensionWord;
+		/// @returns @c true if this instruction will require further fetching than can be encoded in a
+		/// @c Preinstruction. In practice this means it is one of a very small quantity of 68020+
+		/// instructions; those that can rationalise extension words into one of the two operands will
+		/// do so. Use the free function @c extension_words(instruction.operation) to
+		/// look up the number of additional words required.
+		///
+		/// (specifically affected, at least: PACK, UNPK, CAS, CAS2)
+		bool requires_further_extension() const {
+			return flags_ & Flags::RequiresFurtherExtension;
 		}
+		/// @returns The @c DataSize used for operands of this instruction, i.e. byte, word or longword.
 		DataSize operand_size() const {
 			return DataSize((flags_ & Flags::SizeMask) >> Flags::SizeShift);
 		}
+		/// @returns The condition code evaluated by this instruction if applicable. If this instruction is not
+		/// conditional, the result is undefined.
 		Condition condition() const {
 			return Condition((flags_ & Flags::ConditionMask) >> Flags::ConditionShift);
 		}
@@ -390,7 +429,7 @@ class Preinstruction {
 			AddressingMode op1_mode,	int op1_reg,
 			AddressingMode op2_mode,	int op2_reg,
 			bool is_supervisor,
-			bool requires_extension_word,
+			bool requires_further_extension,
 			DataSize size,
 			Condition condition) : operation(operation)
 		{
@@ -398,17 +437,17 @@ class Preinstruction {
 			operands_[1] = uint8_t((uint8_t(op2_mode) << 3) | op2_reg);
 			flags_ = uint8_t(
 				(is_supervisor ? Flags::IsSupervisor : 0x00) |
-				(requires_extension_word ? Flags::RequiresExtensionWord : 0x00) |
+				(requires_further_extension ? Flags::RequiresFurtherExtension : 0x00) |
 				(int(condition) << Flags::ConditionShift) |
 				(int(size) << Flags::SizeShift)
 			);
 		}
 
 		struct Flags {
-			static constexpr uint8_t IsSupervisor			= 0b1000'0000;
-			static constexpr uint8_t RequiresExtensionWord	= 0b0100'0000;
-			static constexpr uint8_t ConditionMask			= 0b0011'1100;
-			static constexpr uint8_t SizeMask				= 0b0000'0011;
+			static constexpr uint8_t IsSupervisor				= 0b1000'0000;
+			static constexpr uint8_t RequiresFurtherExtension	= 0b0100'0000;
+			static constexpr uint8_t ConditionMask				= 0b0011'1100;
+			static constexpr uint8_t SizeMask					= 0b0000'0011;
 
 			static constexpr int ConditionShift				= 2;
 			static constexpr int SizeShift					= 0;

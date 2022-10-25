@@ -50,7 +50,30 @@ template <Model model> class Predecoder {
 		Preinstruction decodeE(uint16_t instruction);
 		Preinstruction decodeF(uint16_t instruction);
 
-		using OpT = uint8_t;
+		template <Model> struct OperationProperties {};
+		template <> struct OperationProperties<Model::M68000> {
+			using OpT = uint8_t;
+			static constexpr OpT OpMax = OpT(Operation::Max68000);
+		};
+		template <> struct OperationProperties<Model::M68010> {
+			using OpT = uint8_t;
+			static constexpr OpT OpMax = OpT(Operation::Max68010);
+		};
+		template <> struct OperationProperties<Model::M68020> {
+			using OpT = uint16_t;
+			static constexpr OpT OpMax = OpT(Operation::Max68020);
+		};
+		template <> struct OperationProperties<Model::M68030> {
+			using OpT = uint16_t;
+			static constexpr OpT OpMax = OpT(Operation::Max68030);
+		};
+		template <> struct OperationProperties<Model::M68040> {
+			using OpT = uint16_t;
+			static constexpr OpT OpMax = OpT(Operation::Max68040);
+		};
+
+		using OpT = typename OperationProperties<model>::OpT;
+		static constexpr OpT OpMax = OperationProperties<model>::OpMax;
 
 		// Specific instruction decoders.
 		template <OpT operation, bool validate = true> Preinstruction decode(uint16_t instruction);
@@ -59,14 +82,14 @@ template <Model model> class Predecoder {
 			AddressingMode op2_mode = AddressingMode::None, int op2_reg = 0,
 			Condition condition = Condition::True
 		);
-		template <uint8_t op> uint32_t invalid_operands();
+		template <OpT operation> uint32_t invalid_operands();
 
 		// Extended operation list; collapses into a single byte enough information to
 		// know both the type of operation and how to decode the operands. Most of the
 		// time that's knowable from the Operation alone, hence the rather awkward
 		// extension of @c Operation.
 		enum ExtendedOperation: OpT {
-			MOVEPtoRl = uint8_t(Operation::Max) + 1, MOVEPtoRw,
+			MOVEPtoRl = OperationProperties<model>::OpMax + 1, MOVEPtoRw,
 			MOVEPtoMl, MOVEPtoMw,
 
 			MOVEQ,
@@ -86,8 +109,6 @@ template <Model model> class Predecoder {
 			BTSTI, BCHGI, BCLRI, BSETI,
 
 			CMPMb,	CMPMw,	CMPMl,
-
-			MOVEq,
 
 			ADDtoMb, ADDtoMw, ADDtoMl,
 			ADDtoRb, ADDtoRw, ADDtoRl,

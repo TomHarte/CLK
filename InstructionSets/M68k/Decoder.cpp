@@ -71,7 +71,7 @@ uint32_t operand_mask(AddressingMode mode1, AddressingMode mode2) {
 /// immediate operand.
 template <Model model>
 constexpr Operation Predecoder<model>::operation(OpT op) {
-	if(op <= OpT(Operation::Max)) {
+	if(op <= OpMax) {
 		return Operation(op);
 	}
 
@@ -140,7 +140,7 @@ constexpr Operation Predecoder<model>::operation(OpT op) {
 }
 
 template <Model model>
-template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
+template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invalid_operands() {
 	constexpr auto Dn		= Mask< AddressingMode::DataRegisterDirect >::value;
 	constexpr auto An		= Mask< AddressingMode::AddressRegisterDirect >::value;
 	constexpr auto Ind		= Mask< AddressingMode::AddressRegisterIndirect >::value;
@@ -174,12 +174,15 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 	//
 	// Control [flow] addressing modes.
 	//
-	static constexpr auto ControlAddressingModes	=  Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn;
+	static constexpr auto ControlAddressingModes	= Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn;
+
+	//
+	// An invalid response, used as the default case.
+	//
+	static constexpr auto InvalidOperands			= uint32_t(~0);
 
 	switch(op) {
-		// By default, disallow all operands (including 'None'). This should catch any
-		// opcodes that are unmapped below.
-		default: return uint32_t(~0);
+		default: break;
 
 		case OpT(Operation::ABCD):
 		case OpT(Operation::ADDXb):	case OpT(Operation::ADDXw):	case OpT(Operation::ADDXl):
@@ -280,8 +283,7 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			>::value;
 
 		case OpT(Operation::ANDItoCCR):	case OpT(Operation::ANDItoSR):
-		case OpT(Operation::Bccw):		case OpT(Operation::Bccl):
-		case OpT(Operation::BSRl):		case OpT(Operation::BSRw):
+		case OpT(Operation::Bccw):		case OpT(Operation::BSRw):
 		case OpT(Operation::EORItoCCR):	case OpT(Operation::EORItoSR):
 		case OpT(Operation::ORItoCCR):	case OpT(Operation::ORItoSR):
 		case OpT(Operation::STOP):
@@ -317,7 +319,6 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::Bccb):
 		case OpT(Operation::BSRb):
 		case OpT(Operation::TRAP):
-		case OpT(Operation::BKPT):
 			return ~OneOperandMask<
 				Quick
 			>::value;
@@ -335,25 +336,6 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 			return ~TwoOperandMask<
 				Dn,
 				AllModesNoAn
-			>::value;
-
-		case OpT(Operation::BFCHG):	case OpT(Operation::BFCLR):	case OpT(Operation::BFSET):
-		case OpT(Operation::BFINS):
-			return ~TwoOperandMask<
-				Ext,
-				Dn | Ind | d16An | d8AnXn | XXXw | XXXl
-			>::value;
-
-		case OpT(Operation::BFTST):		case OpT(Operation::BFFFO):		case OpT(Operation::BFEXTU):
-		case OpT(Operation::BFEXTS):
-			return ~TwoOperandMask<
-				Ext,
-				Dn | Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
-			>::value;
-
-		case OpT(Operation::PACK):
-			return ~OneOperandMask<
-				Imm
 			>::value;
 
 		case CMPIb:		case CMPIl:		case CMPIw:
@@ -442,16 +424,6 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				Dn
 			>::value;
 
-		case OpT(Operation::RTD):
-			return ~OneOperandMask<
-				Imm
-			>::value;
-
-		case OpT(Operation::CALLM):
-			return ~OneOperandMask<
-				ControlAddressingModes
-			>::value;
-
 		case OpT(Operation::JMP):
 		case OpT(Operation::JSR):
 		case OpT(Operation::PEA):
@@ -478,11 +450,6 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 		case OpT(Operation::RTR):
 		case OpT(Operation::RESET):
 			return ~NoOperandMask::value;
-
-		case OpT(Operation::RTM):
-			return ~OneOperandMask<
-				An | Dn
-			>::value;
 
 		case OpT(Operation::UNLINK):
 		case OpT(Operation::MOVEtoUSP):
@@ -515,11 +482,78 @@ template <uint8_t op> uint32_t Predecoder<model>::invalid_operands() {
 				d16An
 			>::value;
 	}
+
+
+	//
+	// 68010 additions.
+	//
+	if constexpr (model <= Model::M68010) {
+		return InvalidOperands;
+	}
+	switch(op) {
+		default: break;
+
+		case OpT(Operation::BKPT):
+			return ~OneOperandMask<
+				Quick
+			>::value;
+
+		case OpT(Operation::RTD):
+			return ~OneOperandMask<
+				Imm
+			>::value;
+	}
+
+	//
+	// 68020 additions.
+	//
+	if constexpr (model <= Model::M68020) {
+		return InvalidOperands;
+	}
+	switch(op) {
+		default: break;
+
+		case OpT(Operation::Bccl):		case OpT(Operation::BSRl):
+			return ~OneOperandMask<
+				Imm
+			>::value;
+
+		case OpT(Operation::RTM):
+			return ~OneOperandMask<
+				An | Dn
+			>::value;
+
+		case OpT(Operation::CALLM):
+			return ~OneOperandMask<
+				ControlAddressingModes
+			>::value;
+
+		case OpT(Operation::BFCHG):	case OpT(Operation::BFCLR):	case OpT(Operation::BFSET):
+		case OpT(Operation::BFINS):
+			return ~TwoOperandMask<
+				Ext,
+				Dn | Ind | d16An | d8AnXn | XXXw | XXXl
+			>::value;
+
+		case OpT(Operation::BFTST):		case OpT(Operation::BFFFO):		case OpT(Operation::BFEXTU):
+		case OpT(Operation::BFEXTS):
+			return ~TwoOperandMask<
+				Ext,
+				Dn | Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
+			>::value;
+
+		case OpT(Operation::PACK):
+			return ~OneOperandMask<
+				Imm
+			>::value;
+	}
+
+	return InvalidOperands;
 }
 
 /// Provides a post-decoding validation step — primarily ensures that the prima facie addressing modes are supported by the operation.
 template <Model model>
-template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated(
+template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Predecoder<model>::validated(
 	AddressingMode op1_mode, int op1_reg,
 	AddressingMode op2_mode, int op2_reg,
 	Condition condition
@@ -554,7 +588,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::validated
 /// Decodes the fields within an instruction and constructs a `Preinstruction`, given that the operation has already been
 /// decoded. Optionally applies validation
 template <Model model>
-template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(uint16_t instruction) {
+template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Predecoder<model>::decode(uint16_t instruction) {
 	// Fields used pervasively below.
 	//
 	// Underlying assumption: the compiler will discard whatever of these
@@ -564,7 +598,11 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 	const auto opmode = (instruction >> 6) & 7;
 	const auto data_register = (instruction >> 9) & 7;
 
+	//
+	// Operations common to all processors.
+	//
 	switch(op) {
+		default: break;
 
 		//
 		// MARK: ABCD, SBCD, ADDX.
@@ -648,24 +686,24 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
-		// MARK: STOP, ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR, BSRl, BSRw
+		// MARK: STOP, ANDItoCCR, ANDItoSR, EORItoCCR, EORItoSR, ORItoCCR, ORItoSR, BSRw
 		//
 		// Operand is an immedate; destination/source (if any) is implied by the operation,
 		// e.g. ORItoSR has a destination of SR.
 		//
 		case OpT(Operation::STOP):
-		case OpT(Operation::BSRl):		case OpT(Operation::BSRw):
+		case OpT(Operation::BSRw):
 		case OpT(Operation::ORItoSR):	case OpT(Operation::ORItoCCR):
 		case OpT(Operation::ANDItoSR):	case OpT(Operation::ANDItoCCR):
 		case OpT(Operation::EORItoSR):	case OpT(Operation::EORItoCCR):
 			return validated<op, validate>(AddressingMode::ImmediateData);
 
 		//
-		// MARK: Bccl, Bccw
+		// MARK: Bccw
 		//
 		// Operand is an immedate; b8–b11 are a condition code.
 		//
-		case OpT(Operation::Bccl):		case OpT(Operation::Bccw):
+		case OpT(Operation::Bccw):
 			return validated<op, validate>(
 				AddressingMode::ImmediateData, 0,
 				AddressingMode::None, 0,
@@ -683,7 +721,7 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				AddressingMode::DataRegisterDirect, data_register);
 
 		//
-		// MARK: EXG.
+		// MARK: EXG
 		//
 		// b0–b2:	register Ry (data or address, address if exchange is address <-> data);
 		// b9–b11:	register Rx (data or address, data if exchange is address <-> data);
@@ -715,17 +753,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 			return validated<op, validate>(
 				combined_mode(ea_mode, ea_register), ea_register,
 				AddressingMode::DataRegisterDirect, data_register);
-
-		//
-		// MARK: DIVSl.
-		//
-		// b0–b2 and b3–b5:	source effective address.
-		// Plus an immediate word operand
-		//
-		case OpT(Operation::DIVSl):
-			return validated<op, validate>(
-				AddressingMode::ExtensionWord, 0,
-				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
 		// MARK: LEA
@@ -851,11 +878,10 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
-		// MARK: TRAP, BCCb, BSRb, BKPT
+		// MARK: TRAP, BCCb, BSRb
 		//
 		// No further operands decoded, but one is somewhere in the opcode.
 		//
-		case OpT(Operation::BKPT):
 		case OpT(Operation::TRAP):
 		case OpT(Operation::BSRb):
 			return validated<op, validate>(AddressingMode::Quick);
@@ -936,6 +962,70 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 			return validated<op, validate>(
 					AddressingMode::AddressRegisterIndirectWithPostincrement, ea_register,
 					AddressingMode::AddressRegisterIndirectWithPostincrement, data_register);
+	}
+
+	//
+	// 68010 additions.
+	//
+	if constexpr (model < Model::M68010) {
+		assert(false);
+	}
+	switch(op) {
+		default: break;
+
+		//
+		// MARK: BKPT
+		//
+		// No further operands decoded, but one is somewhere in the opcode.
+		//
+		case OpT(Operation::BKPT):
+			return validated<op, validate>(AddressingMode::Quick);
+
+		//
+		// MARK: RTD
+		//
+		case OpT(Operation::RTD):
+			return validated<op, validate>(AddressingMode::ImmediateData);
+	}
+
+	//
+	// 68020 additions.
+	//
+	if constexpr (model < Model::M68020) {
+		assert(false);
+	}
+	switch(op) {
+		default: break;
+
+		//
+		// MARK: BSRl
+		//
+		// Operand is an immedate.
+		//
+		case OpT(Operation::BSRl):
+			return validated<op, validate>(AddressingMode::ImmediateData);
+
+		//
+		// MARK: Bccl
+		//
+		// Operand is an immedate; b8–b11 are a condition code.
+		//
+		case OpT(Operation::Bccl):
+			return validated<op, validate>(
+				AddressingMode::ImmediateData, 0,
+				AddressingMode::None, 0,
+				Condition((instruction >> 8) & 0xf));
+
+		//
+		// MARK: DIVSl.
+		//
+		// b0–b2 and b3–b5:	source effective address.
+		// Plus an immediate word operand
+		//
+		case OpT(Operation::DIVSl):
+			return validated<op, validate>(
+				AddressingMode::ExtensionWord, 0,
+				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
 		// MARK: BFCHG, BFTST, BFFFO, BFEXTU, BFEXTS, BFCLR, BFSET, BFINS
@@ -960,12 +1050,6 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 			return validated<op, validate>(
 				AddressingMode::ImmediateData, 0,
 				combined_mode(ea_mode, ea_register), ea_register);
-
-		//
-		// MARK: RTD
-		//
-		case OpT(Operation::RTD):
-			return validated<op, validate>(AddressingMode::ImmediateData);
 
 		//
 		// MARK: RTM
@@ -996,14 +1080,11 @@ template <uint8_t op, bool validate> Preinstruction Predecoder<model>::decode(ui
 		// MARK: DIVl
 		//
 		//
-
-		//
-		// MARK: Impossible error case.
-		//
-		default:
-			// Should be unreachable.
-			assert(false);
+		// TODO.
 	}
+
+	// Should be unreachable.
+	assert(false);
 }
 
 // MARK: - Page decoders.
@@ -1151,7 +1232,6 @@ Preinstruction Predecoder<model>::decode3(uint16_t instruction) {
 		case 0x040:	Decode(Op::MOVEAw);
 		default:	Decode(Op::MOVEw);
 	}
-//	Decode(Op::MOVEw);
 }
 
 template <Model model>
