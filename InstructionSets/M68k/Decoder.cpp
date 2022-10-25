@@ -1085,6 +1085,7 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 
 	// Should be unreachable.
 	assert(false);
+	return Preinstruction();	// To appease GCC during development.
 }
 
 // MARK: - Page decoders.
