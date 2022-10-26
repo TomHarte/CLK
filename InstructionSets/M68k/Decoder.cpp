@@ -487,7 +487,7 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 	//
 	// 68010 additions.
 	//
-	if constexpr (model <= Model::M68010) {
+	if constexpr (model < Model::M68010) {
 		return InvalidOperands;
 	}
 	switch(op) {
@@ -507,7 +507,7 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 	//
 	// 68020 additions.
 	//
-	if constexpr (model <= Model::M68020) {
+	if constexpr (model < Model::M68020) {
 		return InvalidOperands;
 	}
 	switch(op) {
