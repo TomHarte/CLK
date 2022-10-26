@@ -109,6 +109,8 @@ enum class Operation: uint8_t {
 	// 68010 additions.
 	//
 
+	MOVEfromCCR,
+	MOVEC,	MOVES,
 	BKPT,	RTD,
 
 	//
@@ -144,9 +146,6 @@ enum class Operation: uint8_t {
 	cpScc,	cpTRAPcc,	cpRESTORE,
 	cpSAVE,
 
-	MOVEfromCCR,
-	MOVEC,	MOVES,
-
 	//
 	// 68030 additions.
 	//
@@ -169,7 +168,7 @@ enum class Operation: uint8_t {
 	//
 	Max68000 = RESET,
 	Max68010 = RTD,
-	Max68020 = MOVES,
+	Max68020 = cpSAVE,
 	Max68030 = PTESTW,
 	Max68040 = PTESTW,
 };
