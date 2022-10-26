@@ -111,7 +111,7 @@ enum class Operation: uint8_t {
 
 	MOVEfromCCR,
 	MOVEtoC,	MOVEfromC,
-	MOVES,
+	MOVESb,	MOVESw,	MOVESl,
 	BKPT,	RTD,
 
 	//

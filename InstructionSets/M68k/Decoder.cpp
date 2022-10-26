@@ -512,6 +512,12 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 			return ~OneOperandMask<
 				Ext
 			>::value;
+
+		case OpT(Operation::MOVESb):	case OpT(Operation::MOVESw):	case OpT(Operation::MOVESl):
+			return ~TwoOperandMask<
+				Ext,
+				Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
+			>::value;
 	}
 
 	//
@@ -1016,6 +1022,17 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		//
 		case OpT(Operation::MOVEfromC):	case OpT(Operation::MOVEtoC):
 			return validated<op, validate>(AddressingMode::ExtensionWord);
+
+		//
+		// MARK: MOVES
+		//
+		// b0–b2 and b3–b5:		effective address;
+		// also an extension word is present to dictate a a further register and a direction of transfer.
+		//
+		case OpT(Operation::MOVESb):	case OpT(Operation::MOVESw):	case OpT(Operation::MOVESl):
+			return validated<op, validate>(
+				AddressingMode::ExtensionWord, 0,
+				combined_mode(ea_mode, ea_register), ea_register);
 	}
 
 	//
@@ -1230,8 +1247,13 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 
 		// 4-83 (p187)
 		case 0x00c:	DecodeReq(model >= Model::M68020, Op::CMP2b);
-		case 0x02c:	DecodeReq(model >= Model::M68020, Op::CMP2w);
-		case 0x04c:	DecodeReq(model >= Model::M68020, Op::CMP2l);
+		case 0x04c:	DecodeReq(model >= Model::M68020, Op::CMP2w);
+		case 0x08c:	DecodeReq(model >= Model::M68020, Op::CMP2l);
+
+		// 6-24 (p478)
+		case 0xe00: DecodeReq(model >= Model::M68010, Op::MOVESb);
+		case 0xe40: DecodeReq(model >= Model::M68010, Op::MOVESw);
+		case 0xe80: DecodeReq(model >= Model::M68010, Op::MOVESl);
 
 		default:	break;
 	}

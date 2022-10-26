@@ -96,6 +96,10 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::MOVEAw:			return "MOVEA.w";
 		case Operation::MOVEAl:			return "MOVEA.l";
 
+		case Operation::MOVESb:			return "MOVES.b";
+		case Operation::MOVESw:			return "MOVES.w";
+		case Operation::MOVESl:			return "MOVES.l";
+
 		case Operation::LEA:			return "LEA";
 		case Operation::PEA:			return "PEA";
 
