@@ -507,6 +507,11 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 			return ~OneOperandMask<
 				AlterableAddressingModesNoAn
 			>::value;
+
+		case OpT(Operation::MOVEfromC):	case OpT(Operation::MOVEtoC):
+			return ~OneOperandMask<
+				Ext
+			>::value;
 	}
 
 	//
@@ -1003,6 +1008,14 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		//
 		case OpT(Operation::MOVEfromCCR):
 			return validated<op, validate>(combined_mode(ea_mode, ea_register), ea_register);
+
+		//
+		// MARK: MOVE to/from C.
+		//
+		// No further information in the instruction, but an extension word is required.
+		//
+		case OpT(Operation::MOVEfromC):	case OpT(Operation::MOVEtoC):
+			return validated<op, validate>(AddressingMode::ExtensionWord);
 	}
 
 	//
@@ -1289,6 +1302,8 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		case 0xe75:	Decode(Op::RTS);	// 4-169 (p273)
 		case 0xe76:	Decode(Op::TRAPV);	// 4-191 (p295)
 		case 0xe77:	Decode(Op::RTR);	// 4-168 (p272)
+		case 0xe7a: DecodeReq(model >= Model::M68010, Op::MOVEtoC);		// 6-22 (p476)
+		case 0xe7b: DecodeReq(model >= Model::M68010, Op::MOVEfromC);	// 6-22 (p476)
 		default:	break;
 	}
 

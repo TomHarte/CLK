@@ -105,6 +105,8 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::MOVEfromCCR:	return "MOVEfromCCR";
 		case Operation::MOVEtoUSP:		return "MOVEtoUSP";
 		case Operation::MOVEfromUSP:	return "MOVEfromUSP";
+		case Operation::MOVEtoC:		return "MOVEtoC";
+		case Operation::MOVEfromC:		return "MOVEfromC";
 
 		case Operation::ORItoSR:		return "ORItoSR";
 		case Operation::ORItoCCR:		return "ORItoCCR";

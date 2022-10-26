@@ -110,7 +110,8 @@ enum class Operation: uint8_t {
 	//
 
 	MOVEfromCCR,
-	MOVEC,	MOVES,
+	MOVEtoC,	MOVEfromC,
+	MOVES,
 	BKPT,	RTD,
 
 	//
@@ -205,6 +206,7 @@ constexpr bool requires_supervisor(Operation op) {
 		case Operation::EORItoSR:	case Operation::RTE:
 		case Operation::RESET:		case Operation::STOP:
 		case Operation::MOVEtoUSP:	case Operation::MOVEfromUSP:
+		case Operation::MOVEtoC:	case Operation::MOVEfromC:
 		case Operation::MOVEtoSR:
 			return true;
 
