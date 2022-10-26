@@ -502,6 +502,11 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 			return ~OneOperandMask<
 				Imm
 			>::value;
+
+		case OpT(Operation::MOVEfromCCR):
+			return ~OneOperandMask<
+				AlterableAddressingModesNoAn
+			>::value;
 	}
 
 	//
@@ -992,6 +997,12 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		//
 		case OpT(Operation::RTD):
 			return validated<op, validate>(AddressingMode::ImmediateData);
+
+		//
+		// MARK: MOVE from CCR.
+		//
+		case OpT(Operation::MOVEfromCCR):
+			return validated<op, validate>(combined_mode(ea_mode, ea_register), ea_register);
 	}
 
 	//
@@ -1356,6 +1367,9 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 
 		// 4-94 (p198)
 		case 0xc40:	DecodeReq(model >= Model::M68020, Op::DIVSl);
+
+		// 4-121 (p225)
+		case 0x2c0: DecodeReq(model >= Model::M68010, Op::MOVEfromCCR);
 
 		default:	break;
 	}
