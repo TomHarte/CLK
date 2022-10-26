@@ -28,6 +28,8 @@ template <Model model> void test(NSString *filename, Class cls) {
 	NSDictionary<NSString *, NSString *> *const decodings = [NSJSONSerialization JSONObjectWithData:testData options:0 error:nil];
 	XCTAssertNotNil(decodings);
 
+	NSMutableArray<NSString *> *failures = [[NSMutableArray alloc] init];
+
 	Predecoder<model> decoder;
 	for(int instr = 0; instr < 65536; instr++) {
 		NSString *const instrName = [NSString stringWithFormat:@"%04x", instr];
@@ -37,7 +39,14 @@ template <Model model> void test(NSString *filename, Class cls) {
 		const auto found = decoder.decode(uint16_t(instr));
 
 		NSString *const instruction = [NSString stringWithUTF8String:found.to_string(instr).c_str()];
-		XCTAssertEqualObjects(instruction, expected, "%@ should decode as %@; got %@", instrName, expected, instruction);
+		if(![instruction isEqualToString:expected]) {
+			[failures addObject:[NSString stringWithFormat:@"%@ should decode as %@; got %@", instrName, expected, instruction]];
+		}
+	}
+
+	XCTAssertEqual([failures count], 0);
+	if([failures count]) {
+		NSLog(@"%@", failures);
 	}
 }
 
