@@ -244,6 +244,9 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::STOP:			return "STOP";
 		case Operation::RESET:			return "RESET";
 
+		case Operation::BKPT:			return "BKPT";
+		case Operation::RTD:			return "RTD";
+
 		default:
 			assert(false);
 			return "???";
