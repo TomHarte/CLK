@@ -1177,8 +1177,8 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 		case 0xa7c:	Decode(Op::EORItoSR);	// 6-10 (p464)
 
 		// 4-68 (p172)
-		case 0xcfc:	DecodeReq(model >= Model::M68020, Op::CAS2w);
-		case 0xefc:	DecodeReq(model >= Model::M68020, Op::CAS2l);
+//		case 0xcfc:	DecodeReq(model >= Model::M68020, Op::CAS2w);
+//		case 0xefc:	DecodeReq(model >= Model::M68020, Op::CAS2l);
 
 		default:	break;
 	}
@@ -1236,19 +1236,19 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 		case 0x6c0: DecodeReq(model == Model::M68020, Op::CALLM);
 
 		// 4-67 (p171)
-		case 0xac0:	DecodeReq(model >= Model::M68020, Op::CASb);
-		case 0xcc0:	DecodeReq(model >= Model::M68020, Op::CASw);
-		case 0xec0:	DecodeReq(model >= Model::M68020, Op::CASl);
+//		case 0xac0:	DecodeReq(model >= Model::M68020, Op::CASb);
+//		case 0xcc0:	DecodeReq(model >= Model::M68020, Op::CASw);
+//		case 0xec0:	DecodeReq(model >= Model::M68020, Op::CASl);
 
 		// 4-72 (p176)
-		case 0x0c0:	DecodeReq(model >= Model::M68020, Op::CHK2b);
-		case 0x2c0:	DecodeReq(model >= Model::M68020, Op::CHK2w);
-		case 0x4c0:	DecodeReq(model >= Model::M68020, Op::CHK2l);
+//		case 0x0c0:	DecodeReq(model >= Model::M68020, Op::CHK2b);
+//		case 0x2c0:	DecodeReq(model >= Model::M68020, Op::CHK2w);
+//		case 0x4c0:	DecodeReq(model >= Model::M68020, Op::CHK2l);
 
 		// 4-83 (p187)
-		case 0x00c:	DecodeReq(model >= Model::M68020, Op::CMP2b);
-		case 0x04c:	DecodeReq(model >= Model::M68020, Op::CMP2w);
-		case 0x08c:	DecodeReq(model >= Model::M68020, Op::CMP2l);
+//		case 0x00c:	DecodeReq(model >= Model::M68020, Op::CMP2b);
+//		case 0x04c:	DecodeReq(model >= Model::M68020, Op::CMP2w);
+//		case 0x08c:	DecodeReq(model >= Model::M68020, Op::CMP2l);
 
 		// 6-24 (p478)
 		case 0xe00: DecodeReq(model >= Model::M68010, Op::MOVESb);
@@ -1403,7 +1403,7 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		case 0xec0:	Decode(Op::JMP);
 
 		// 4-94 (p198)
-		case 0xc40:	DecodeReq(model >= Model::M68020, Op::DIVSl);
+//		case 0xc40:	DecodeReq(model >= Model::M68020, Op::DIVSl);
 
 		// 4-121 (p225)
 		case 0x2c0: DecodeReq(model >= Model::M68010, Op::MOVEfromCCR);
