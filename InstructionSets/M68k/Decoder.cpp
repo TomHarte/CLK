@@ -1544,10 +1544,9 @@ template <Model model>
 Preinstruction Predecoder<model>::decode8(uint16_t instruction) {
 	using Op = Operation;
 
-
 	switch(instruction & 0x1f0) {
 		case 0x100:	Decode(Op::SBCD);	// 4-171 (p275)
-		case 0x1f0:	DecodeReq(model >= Model::M68020, Op::PACK);	// 4-157 (p261)
+		case 0x140:	DecodeReq(model >= Model::M68020, Op::PACK);	// 4-157 (p261)
 
 		default:	break;
 	}
