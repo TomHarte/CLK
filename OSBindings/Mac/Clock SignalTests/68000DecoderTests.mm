@@ -73,15 +73,14 @@ template <Model model> void test(NSString *filename, Class cls) {
 	test<Model::M68000>(@"68000ops", [self class]);
 }
 
+- (void)test68010 {
+	test<Model::M68010>(@"68010ops", [self class]);
+}
 
 /*
 	TODO: generate new reference JSONs for tests below here.
 	For now these are here for manual verification of the diffs.
 */
-
-- (void)test68010 {
-	test<Model::M68010>(@"68010ops", [self class]);
-}
 
 - (void)test68020 {
 	test<Model::M68020>(@"68010ops", [self class]);
