@@ -138,8 +138,12 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::JMP:			return "JMP";
 		case Operation::JSR:			return "JSR";
 		case Operation::RTS:			return "RTS";
+		case Operation::RTD:			return "RTD";
+		case Operation::RTM:			return "RTM";
+
 		case Operation::DBcc:			return "DBcc";
 		case Operation::Scc:			return "Scc";
+		case Operation::TRAPcc:			return "TRAPcc";
 
 		case Operation::Bccb:
 		case Operation::Bccl:
@@ -252,7 +256,18 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::RESET:			return "RESET";
 
 		case Operation::BKPT:			return "BKPT";
-		case Operation::RTD:			return "RTD";
+
+		case Operation::BFCHG:			return "BFCHG";
+		case Operation::BFCLR:			return "BFCLR";
+		case Operation::BFEXTS:			return "BFEXTS";
+		case Operation::BFEXTU:			return "BFEXTU";
+		case Operation::BFFFO:			return "BFFFO";
+		case Operation::BFINS:			return "BFINS";
+		case Operation::BFSET:			return "BFSET";
+		case Operation::BFTST:			return "BFTST";
+
+		case Operation::PACK:			return "PACK";
+		case Operation::UNPK:			return "UNPK";
 
 		default:
 			assert(false);
