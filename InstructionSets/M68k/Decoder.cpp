@@ -365,7 +365,7 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 			>::value;
 
 		case OpT(Operation::TSTb):
-			if constexpr (model == Model::M68000) {
+			if constexpr (model < Model::M68020) {
 				return ~OneOperandMask<
 					AlterableAddressingModesNoAn
 				>::value;
@@ -378,7 +378,7 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 			>::value;
 
 		case OpT(Operation::TSTw):	case OpT(Operation::TSTl):
-			if constexpr (model == Model::M68000) {
+			if constexpr (model < Model::M68020) {
 				return ~OneOperandMask<
 					AlterableAddressingModesNoAn
 				>::value;
