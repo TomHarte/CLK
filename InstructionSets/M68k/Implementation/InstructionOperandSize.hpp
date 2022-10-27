@@ -22,15 +22,19 @@ constexpr DataSize operand_size(Operation r_operation) {
 		case Operation::STOP:
 		case Operation::RESET:
 		case Operation::RTE:	case Operation::RTR:
+		case Operation::RTD:
 		case Operation::TRAP:
 		case Operation::TRAPV:
 		case Operation::TRAPcc:
+		case Operation::BKPT:
 
 		case Operation::ABCD:	case Operation::SBCD:
 		case Operation::NBCD:
 		case Operation::ADDb:	case Operation::ADDXb:
 		case Operation::SUBb:	case Operation::SUBXb:
 		case Operation::MOVEb:
+		case Operation::MOVESb:
+		case Operation::MOVEfromCCR:
 		case Operation::ORItoCCR:
 		case Operation::ANDItoCCR:
 		case Operation::EORItoCCR:
@@ -54,12 +58,13 @@ constexpr DataSize operand_size(Operation r_operation) {
 		case Operation::ADDXw:	case Operation::SUBw:
 		case Operation::SUBAw:	case Operation::SUBXw:
 		case Operation::MOVEw:	case Operation::MOVEAw:
+		case Operation::MOVESw:
 		case Operation::ORItoSR:
 		case Operation::ANDItoSR:
 		case Operation::EORItoSR:
 		case Operation::MOVEtoSR:
 		case Operation::MOVEfromSR:
-		case Operation::MOVEtoCCR:
+		case Operation::MOVEtoCCR:		// TODO: is this true?
 		case Operation::CMPw:	case Operation::CMPAw:
 		case Operation::TSTw:
 		case Operation::DBcc:
@@ -92,10 +97,13 @@ constexpr DataSize operand_size(Operation r_operation) {
 		case Operation::ADDXl:	case Operation::SUBl:
 		case Operation::SUBAl:	case Operation::SUBXl:
 		case Operation::MOVEl:	case Operation::MOVEAl:
+		case Operation::MOVESl:
 		case Operation::LEA:	case Operation::PEA:
 		case Operation::EXG:	case Operation::SWAP:
 		case Operation::MOVEtoUSP:
 		case Operation::MOVEfromUSP:
+		case Operation::MOVEtoC:
+		case Operation::MOVEfromC:
 		case Operation::CMPl:	case Operation::CMPAl:
 		case Operation::TSTl:
 		case Operation::JMP:	case Operation::JSR:

@@ -26,6 +26,14 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::MOVEPw:		case Operation::MOVEPl:
 		case Operation::TAS:
 		case Operation::RTR:		case Operation::RTS:		case Operation::RTE:
+		case Operation::RTD:
+			return 0;
+
+		//
+		// Operand fetch/store status isn't certain just from the operation; this means
+		// that further content from an extension word will be required.
+		//
+		case Operation::MOVESb:		case Operation::MOVESw:		case Operation::MOVESl:
 			return 0;
 
 		//
@@ -40,12 +48,15 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::TSTb:		case Operation::TSTw:		case Operation::TSTl:
 		case Operation::MOVEMtoMw:	case Operation::MOVEMtoMl:
 		case Operation::MOVEMtoRw:	case Operation::MOVEMtoRl:
+		case Operation::MOVEtoC:
 			return FetchOp1;
 
 		//
 		//	Single-operand write.
 		//
 		case Operation::MOVEfromUSP:
+		case Operation::MOVEfromCCR:
+		case Operation::MOVEfromC:
 			return StoreOp1;
 
 		//
