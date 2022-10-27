@@ -17,6 +17,21 @@ using namespace InstructionSet::M68k;
 
 namespace {
 
+template <Model model> void generate() {
+	printf("{\n");
+	Predecoder<model> decoder;
+	for(int instr = 0; instr < 65536; instr++) {
+		printf("\t\"%04x\": \"", instr);
+
+		const auto found = decoder.decode(uint16_t(instr));
+		printf("%s\"", found.to_string(instr).c_str());
+
+		if(instr != 0xffff) printf(",");
+		printf("\n");
+	}
+	printf("}\n");
+}
+
 template <Model model> void test(NSString *filename, Class cls) {
 	NSData *const testData =
 		[NSData dataWithContentsOfURL:
@@ -65,11 +80,11 @@ template <Model model> void test(NSString *filename, Class cls) {
 */
 
 - (void)test68010 {
-	test<Model::M68010>(@"68000ops", [self class]);
+	test<Model::M68010>(@"68010ops", [self class]);
 }
 
 - (void)test68020 {
-	test<Model::M68020>(@"68000ops", [self class]);
+	test<Model::M68020>(@"68010ops", [self class]);
 }
 
 @end
