@@ -1722,11 +1722,11 @@ Preinstruction Predecoder<model>::decodeE(uint16_t instruction) {
 		case 0x7c0:	Decode(Op::ROLm);	// 4-160 (p264)
 
 		case 0x8c0: DecodeReq(model >= Model::M68020, Op::BFTST);	// 4-51 (p155)
-		case 0x9c0: DecodeReq(model >= Model::M68020, Op::BFFFO);	// 4-43 (p147)
+		case 0x9c0: DecodeReq(model >= Model::M68020, Op::BFEXTU);	// 4-40 (p144)
 		case 0xac0: DecodeReq(model >= Model::M68020, Op::BFCHG);	// 4-33 (p137)
 		case 0xbc0: DecodeReq(model >= Model::M68020, Op::BFEXTS);	// 4-37 (p141)
 		case 0xcc0: DecodeReq(model >= Model::M68020, Op::BFCLR);	// 4-35 (p139)
-		case 0xdc0: DecodeReq(model >= Model::M68020, Op::BFEXTU);	// 4-40 (p144)	[though the given opcode is wrong]
+		case 0xdc0: DecodeReq(model >= Model::M68020, Op::BFFFO);	// 4-43 (p147)	[though the given opcode is wrong; listed same as BFEXTU]
 		case 0xec0: DecodeReq(model >= Model::M68020, Op::BFSET);	// 4-49 (p153)
 		case 0xfc0: DecodeReq(model >= Model::M68020, Op::BFINS);	// 4-46 (p150)
 
