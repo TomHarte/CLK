@@ -575,6 +575,12 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 				Ext,
 				Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
 			>::value;
+
+		case OpT(Operation::CAS2w):	case OpT(Operation::CAS2l):
+			return ~TwoOperandMask<
+				Ext,
+				Ext
+			>::value;
 	}
 
 	return InvalidOperands;
@@ -1173,6 +1179,17 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 				combined_mode(ea_mode, ea_register), ea_register);
 
 		//
+		// MARK: CAS2
+		//
+		// b0–b2 and b3–b5: an effective address.
+		// There is also an immedate operand describing relevant registers.
+		//
+		case OpT(Operation::CAS2w):	case OpT(Operation::CAS2l):
+			return validated<op, validate>(
+				AddressingMode::ExtensionWord, 0,
+				AddressingMode::ExtensionWord, 0);
+
+		//
 		// MARK: DIVl
 		//
 		//
@@ -1202,8 +1219,8 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 		case 0xa7c:	Decode(Op::EORItoSR);	// 6-10 (p464)
 
 		// 4-68 (p172)
-//		case 0xcfc:	DecodeReq(model >= Model::M68020, Op::CAS2w);
-//		case 0xefc:	DecodeReq(model >= Model::M68020, Op::CAS2l);
+		case 0xcfc:	DecodeReq(model >= Model::M68020, Op::CAS2w);
+		case 0xefc:	DecodeReq(model >= Model::M68020, Op::CAS2l);
 
 		default:	break;
 	}
