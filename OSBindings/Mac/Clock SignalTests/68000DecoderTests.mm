@@ -83,7 +83,7 @@ template <Model model> void test(NSString *filename, Class cls) {
 */
 
 - (void)test68020 {
-	generate<Model::M68020>();
+//	generate<Model::M68020>();
 	test<Model::M68020>(@"68020ops", [self class]);
 }
 

@@ -569,6 +569,12 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 				Dn | PreDec,
 				Dn | PreDec
 			>::value;
+
+		case OpT(Operation::CASb):	case OpT(Operation::CASw):	case OpT(Operation::CASl):
+			return ~TwoOperandMask<
+				Ext,
+				Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl
+			>::value;
 	}
 
 	return InvalidOperands;
@@ -1156,6 +1162,17 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		}
 
 		//
+		// MARK: CAS
+		//
+		// b0–b2 and b3–b5: an effective address.
+		// There is also an immedate operand describing relevant registers.
+		//
+		case OpT(Operation::CASb):	case OpT(Operation::CASw):	case OpT(Operation::CASl):
+			return validated<op, validate>(
+				AddressingMode::ExtensionWord, 0,
+				combined_mode(ea_mode, ea_register), ea_register);
+
+		//
 		// MARK: DIVl
 		//
 		//
@@ -1244,9 +1261,9 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 		case 0x6c0: DecodeReq(model == Model::M68020, Op::CALLM);
 
 		// 4-67 (p171)
-//		case 0xac0:	DecodeReq(model >= Model::M68020, Op::CASb);
-//		case 0xcc0:	DecodeReq(model >= Model::M68020, Op::CASw);
-//		case 0xec0:	DecodeReq(model >= Model::M68020, Op::CASl);
+		case 0xac0:	DecodeReq(model >= Model::M68020, Op::CASb);
+		case 0xcc0:	DecodeReq(model >= Model::M68020, Op::CASw);
+		case 0xec0:	DecodeReq(model >= Model::M68020, Op::CASl);
 
 		// 4-72 (p176)
 //		case 0x0c0:	DecodeReq(model >= Model::M68020, Op::CHK2b);

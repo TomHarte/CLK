@@ -153,6 +153,10 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::BSRl:
 		case Operation::BSRw:			return "BSR";
 
+		case Operation::CASb:			return "CAS.b";
+		case Operation::CASw:			return "CAS.w";
+		case Operation::CASl:			return "CAS.l";
+
 		case Operation::CLRb:			return "CLR.b";
 		case Operation::CLRw:			return "CLR.w";
 		case Operation::CLRl:			return "CLR.l";
