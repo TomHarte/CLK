@@ -215,16 +215,6 @@ constexpr bool requires_supervisor(Operation op) {
 	}
 }
 
-inline constexpr bool requires_extension_word(Operation op) {
-	switch(op) {
-		case Operation::PACK:
-			return true;
-
-		default:
-			return false;
-	}
-}
-
 enum class DataSize {
 	Byte = 0,
 	Word = 1,
@@ -426,6 +416,10 @@ class Preinstruction {
 		bool requires_further_extension() const {
 			return flags_ & Flags::RequiresFurtherExtension;
 		}
+		/// @returns The number of additional extension words required, beyond those encoded as operands.
+		int additional_extension_words() const {
+			return flags_ & Flags::RequiresFurtherExtension ? (flags_ & Flags::ConditionMask) >> Flags::ConditionShift : 0;
+		}
 		/// @returns The @c DataSize used for operands of this instruction, i.e. byte, word or longword.
 		DataSize operand_size() const {
 			return DataSize((flags_ & Flags::SizeMask) >> Flags::SizeShift);
@@ -448,7 +442,7 @@ class Preinstruction {
 			AddressingMode op1_mode,	int op1_reg,
 			AddressingMode op2_mode,	int op2_reg,
 			bool is_supervisor,
-			bool requires_further_extension,
+			int extension_words,
 			DataSize size,
 			Condition condition) : operation(operation)
 		{
@@ -456,8 +450,9 @@ class Preinstruction {
 			operands_[1] = uint8_t((uint8_t(op2_mode) << 3) | op2_reg);
 			flags_ = uint8_t(
 				(is_supervisor ? Flags::IsSupervisor : 0x00) |
-				(requires_further_extension ? Flags::RequiresFurtherExtension : 0x00) |
+				(extension_words ? Flags::RequiresFurtherExtension : 0x00) |
 				(int(condition) << Flags::ConditionShift) |
+				(extension_words << Flags::ConditionShift) |
 				(int(size) << Flags::SizeShift)
 			);
 		}
@@ -468,8 +463,10 @@ class Preinstruction {
 			static constexpr uint8_t ConditionMask				= 0b0011'1100;
 			static constexpr uint8_t SizeMask					= 0b0000'0011;
 
-			static constexpr int ConditionShift				= 2;
-			static constexpr int SizeShift					= 0;
+			static constexpr int IsSupervisorShift				= 7;
+			static constexpr int RequiresFurtherExtensionShift	= 6;
+			static constexpr int ConditionShift					= 2;
+			static constexpr int SizeShift						= 0;
 		};
 
 		Preinstruction() {}

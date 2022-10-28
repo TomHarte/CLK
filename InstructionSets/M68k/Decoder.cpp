@@ -564,9 +564,10 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 				Dn | Ind | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn
 			>::value;
 
-		case OpT(Operation::PACK):
-			return ~OneOperandMask<
-				Imm
+		case OpT(Operation::PACK):		case OpT(Operation::UNPK):
+			return ~TwoOperandMask<
+				Dn | PreDec,
+				Dn | PreDec
 			>::value;
 	}
 
@@ -578,7 +579,8 @@ template <Model model>
 template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Predecoder<model>::validated(
 	AddressingMode op1_mode, int op1_reg,
 	AddressingMode op2_mode, int op2_reg,
-	Condition condition
+	Condition condition,
+	int additional_extension_words
 ) {
 	constexpr auto operation = Predecoder<model>::operation(op);
 
@@ -588,7 +590,7 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
 			requires_supervisor<model>(operation),
-			requires_extension_word(operation),
+			additional_extension_words,
 			operand_size(operation),
 			condition);
 	}
@@ -602,7 +604,7 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 			op1_mode, op1_reg,
 			op2_mode, op2_reg,
 			requires_supervisor<model>(operation),
-			requires_extension_word(operation),
+			additional_extension_words,
 			operand_size(operation),
 			condition);
 }
@@ -1135,17 +1137,23 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		}
 
 		//
-		// MARK: PACK
+		// MARK: PACK, UNPK
 		//
-		// b0–b2: a register number;
-		// b3: address/data register selection — if address registers, then this is predec;
-		// b9–b11: an additional register number.
+		// b9–b11:	Rx (destination)
+		// b0–b2:	Ry (source)
+		// b3:		1 => operation is memory-to-memory; 0 => register-to-register.
 		// This instruction is also followed by a 16-bit adjustment extension.
 		//
 		case OpT(Operation::PACK):
-			// TODO; need to square the wheel on a prima-facie three operands.
-			return Preinstruction();
+		case OpT(Operation::UNPK): {
+			const auto addressing_mode = (instruction & 8) ?
+				AddressingMode::AddressRegisterIndirectWithPredecrement : AddressingMode::DataRegisterDirect;
 
+			return validated<op, validate>(
+				addressing_mode, ea_register,
+				addressing_mode, data_register,
+				Condition::True, 1);
+		}
 
 		//
 		// MARK: DIVl
@@ -1547,6 +1555,7 @@ Preinstruction Predecoder<model>::decode8(uint16_t instruction) {
 	switch(instruction & 0x1f0) {
 		case 0x100:	Decode(Op::SBCD);	// 4-171 (p275)
 		case 0x140:	DecodeReq(model >= Model::M68020, Op::PACK);	// 4-157 (p261)
+		case 0x180:	DecodeReq(model >= Model::M68020, Op::UNPK);	// 4-196 (p300)
 
 		default:	break;
 	}

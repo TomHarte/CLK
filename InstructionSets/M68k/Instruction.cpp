@@ -294,6 +294,9 @@ std::string Preinstruction::to_string(int opcode) const {
 	if(!operand1.empty()) result += std::string(" ") + operand1;
 	if(!operand2.empty()) result += std::string(", ") + operand2;
 
+	const int extension_words = additional_extension_words();
+	if(extension_words) result += std::string(" [+") + std::to_string(extension_words) + "]";
+
 	return result;
 }
 

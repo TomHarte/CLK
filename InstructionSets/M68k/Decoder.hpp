@@ -66,7 +66,8 @@ template <Model model> class Predecoder {
 		template <OpT operation, bool validate> Preinstruction validated(
 			AddressingMode op1_mode = AddressingMode::None, int op1_reg = 0,
 			AddressingMode op2_mode = AddressingMode::None, int op2_reg = 0,
-			Condition condition = Condition::True
+			Condition condition = Condition::True,
+			int further_extension_words = 0
 		);
 		template <OpT operation> uint32_t invalid_operands();
 
