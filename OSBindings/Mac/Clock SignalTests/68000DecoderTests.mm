@@ -78,12 +78,13 @@ template <Model model> void test(NSString *filename, Class cls) {
 }
 
 /*
-	TODO: generate new reference JSONs for tests below here.
+	TODO: generate full new reference JSONs for tests below here.
 	For now these are here for manual verification of the diffs.
 */
 
 - (void)test68020 {
-	test<Model::M68020>(@"68010ops", [self class]);
+//	generate<Model::M68020>();
+	test<Model::M68020>(@"68020ops", [self class]);
 }
 
 @end
