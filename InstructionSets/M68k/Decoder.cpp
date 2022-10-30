@@ -581,6 +581,14 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 				Ext,
 				Ext
 			>::value;
+
+		case OpT(Operation::CHKorCMP2b):
+		case OpT(Operation::CHKorCMP2w):
+		case OpT(Operation::CHKorCMP2l):
+			return ~TwoOperandMask<
+				Ext,
+				ControlAddressingModes
+			>::value;
 	}
 
 	return InvalidOperands;
@@ -1041,7 +1049,7 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		// MARK: MOVES
 		//
 		// b0–b2 and b3–b5:		effective address;
-		// also an extension word is present to dictate a a further register and a direction of transfer.
+		// also an extension word is present to dictate a further register and a direction of transfer.
 		//
 		case OpT(Operation::MOVESb):	case OpT(Operation::MOVESw):	case OpT(Operation::MOVESl):
 			return validated<op, validate>(
@@ -1174,6 +1182,9 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		// There is also an immedate operand describing relevant registers.
 		//
 		case OpT(Operation::CASb):	case OpT(Operation::CASw):	case OpT(Operation::CASl):
+		case OpT(Operation::CHKorCMP2b):
+		case OpT(Operation::CHKorCMP2w):
+		case OpT(Operation::CHKorCMP2l):
 			return validated<op, validate>(
 				AddressingMode::ExtensionWord, 0,
 				combined_mode(ea_mode, ea_register), ea_register);
@@ -1282,15 +1293,11 @@ Preinstruction Predecoder<model>::decode0(uint16_t instruction) {
 		case 0xcc0:	DecodeReq(model >= Model::M68020, Op::CASw);
 		case 0xec0:	DecodeReq(model >= Model::M68020, Op::CASl);
 
-		// 4-72 (p176)
-//		case 0x0c0:	DecodeReq(model >= Model::M68020, Op::CHK2b);
-//		case 0x2c0:	DecodeReq(model >= Model::M68020, Op::CHK2w);
-//		case 0x4c0:	DecodeReq(model >= Model::M68020, Op::CHK2l);
-
-		// 4-83 (p187)
-//		case 0x00c:	DecodeReq(model >= Model::M68020, Op::CMP2b);
-//		case 0x04c:	DecodeReq(model >= Model::M68020, Op::CMP2w);
-//		case 0x08c:	DecodeReq(model >= Model::M68020, Op::CMP2l);
+		// 4-83 (p187) [CMP2] and 4-72 (p176) [CHK2];
+		// the two are distinguished by a bit in the extension word.
+		case 0x0c0:	DecodeReq(model >= Model::M68020, Op::CHKorCMP2b);
+		case 0x2c0:	DecodeReq(model >= Model::M68020, Op::CHKorCMP2b);
+		case 0x4c0:	DecodeReq(model >= Model::M68020, Op::CHKorCMP2b);
 
 		// 6-24 (p478)
 		case 0xe00: DecodeReq(model >= Model::M68010, Op::MOVESb);

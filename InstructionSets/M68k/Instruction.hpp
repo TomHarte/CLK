@@ -132,8 +132,11 @@ enum class Operation: uint8_t {
 	CASb,	CASw,	CASl,
 	CAS2w,	CAS2l,
 
-	CHK2b,	CHK2w,	CHK2l,
-	CMP2b,	CMP2w,	CMP2l,
+	// CHK2 and CMP2 are distinguished by their extension word;
+	// since this code deals in Preinstructions, i.e. as much
+	// as can be derived from the instruction word alone, in addition
+	// to the full things, the following enums result.
+	CHKorCMP2b,	CHKorCMP2w,	CHKorCMP2l,
 
 	DIVSl,	DIVUl,
 	MULSl,	MULUl,

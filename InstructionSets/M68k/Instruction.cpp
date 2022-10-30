@@ -128,10 +128,6 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::CMPw:			return "CMP.w";
 		case Operation::CMPl:			return "CMP.l";
 
-		case Operation::CMP2b:			return "CMP2.b";
-		case Operation::CMP2w:			return "CMP2.w";
-		case Operation::CMP2l:			return "CMP2.l";
-
 		case Operation::CMPAw:			return "CMPA.w";
 		case Operation::CMPAl:			return "CMPA.l";
 
@@ -252,9 +248,9 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::TRAPV:			return "TRAPV";
 		case Operation::CHKw:			return "CHK";
 
-		case Operation::CHK2b:			return "CHK2.b";
-		case Operation::CHK2w:			return "CHK2.w";
-		case Operation::CHK2l:			return "CHK2.l";
+		case Operation::CHKorCMP2b:		return "[CHK/CMP]2.b";
+		case Operation::CHKorCMP2w:		return "[CHK/CMP]2.w";
+		case Operation::CHKorCMP2l:		return "[CHK/CMP]2.l";
 
 		case Operation::EXG:			return "EXG";
 		case Operation::SWAP:			return "SWAP";
