@@ -246,7 +246,9 @@ const char *_to_string(Operation operation, bool is_quick) {
 
 		case Operation::TRAP:			return "TRAP";
 		case Operation::TRAPV:			return "TRAPV";
+
 		case Operation::CHKw:			return "CHK";
+		case Operation::CHKl:			return "CHK.l";
 
 		case Operation::CHKorCMP2b:		return "[CHK/CMP]2.b";
 		case Operation::CHKorCMP2w:		return "[CHK/CMP]2.w";
@@ -261,6 +263,7 @@ const char *_to_string(Operation operation, bool is_quick) {
 		case Operation::EXTwtol:		return "EXT.l";
 
 		case Operation::LINKw:			return "LINK";
+		case Operation::LINKl:			return "LINK.l";
 		case Operation::UNLINK:			return "UNLINK";
 
 		case Operation::STOP:			return "STOP";

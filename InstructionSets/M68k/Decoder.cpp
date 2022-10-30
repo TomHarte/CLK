@@ -589,6 +589,18 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 				Ext,
 				ControlAddressingModes
 			>::value;
+
+		case OpT(Operation::LINKl):
+			return ~TwoOperandMask<
+				An,
+				Imm
+			>::value;
+
+		case OpT(Operation::CHKl):
+			return ~TwoOperandMask<
+				AllModesNoAn,
+				Dn
+			>::value;
 	}
 
 	return InvalidOperands;
@@ -754,7 +766,7 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 				Condition((instruction >> 8) & 0xf));
 
 		//
-		// MARK: CHK
+		// MARK: CHKw
 		//
 		// Implicitly:		destination is a register;
 		// b0–b2 and b3–b5:	source effective address.
@@ -1201,6 +1213,28 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 				AddressingMode::ExtensionWord, 0);
 
 		//
+		// MARK: LINKl
+		//
+		// b0–b2:		'source' address register;
+		// Implicitly:	'destination' is an immediate.
+		//
+		case OpT(Operation::LINKl):
+			return validated<op, validate>(
+				AddressingMode::AddressRegisterDirect, ea_register,
+				AddressingMode::ImmediateData, 0);
+
+		//
+		// MARK: CHKl
+		//
+		// Implicitly:		destination is a register;
+		// b0–b2 and b3–b5:	source effective address.
+		//
+		case OpT(Operation::CHKl):
+			return validated<op, validate>(
+				combined_mode(ea_mode, ea_register), ea_register,
+				AddressingMode::DataRegisterDirect, data_register);
+
+		//
 		// MARK: DIVl
 		//
 		//
@@ -1383,10 +1417,14 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		case 0x848: DecodeReq(model >= Model::M68010, Op::BKPT);	// 4-54 (p158)
 		case 0x880:	Decode(Op::EXTbtow);		// 4-106 (p210)
 		case 0x8c0:	Decode(Op::EXTwtol);		// 4-106 (p210)
-		case 0xe50:	Decode(Op::LINKw);			// 4-111 (p215)
 		case 0xe58:	Decode(Op::UNLINK);			// 4-194 (p298)
 		case 0xe60:	Decode(Op::MOVEtoUSP);		// 6-21 (p475)
 		case 0xe68:	Decode(Op::MOVEfromUSP);	// 6-21 (p475)
+
+		// 4-111 (p215)
+		case 0x808:	DecodeReq(model >= Model::M68020, Op::LINKl);
+		case 0xe50:	Decode(Op::LINKw);
+
 		default:	break;
 	}
 
@@ -1462,7 +1500,11 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 
 	switch(instruction & 0x1c0) {
 		case 0x1c0:	Decode(Op::LEA);	// 4-110 (p214)
-		case 0x180:	Decode(Op::CHKw);	// 4-69 (p173)
+
+		// 4-69 (p173)
+		case 0x180:	Decode(Op::CHKw);
+		case 0x100:	DecodeReq(model >= Model::M68020, Op::CHKl);
+
 		default:	break;
 	}
 
