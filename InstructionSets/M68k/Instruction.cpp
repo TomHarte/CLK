@@ -261,6 +261,7 @@ const char *_to_string(Operation operation, bool is_quick) {
 
 		case Operation::EXTbtow:		return "EXT.w";
 		case Operation::EXTwtol:		return "EXT.l";
+		case Operation::EXTbtol:		return "EXTB.l";
 
 		case Operation::LINKw:			return "LINK";
 		case Operation::LINKl:			return "LINK.l";

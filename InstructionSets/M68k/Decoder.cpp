@@ -601,6 +601,11 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 				AllModesNoAn,
 				Dn
 			>::value;
+
+		case OpT(Operation::EXTbtol):
+			return ~OneOperandMask<
+				Dn
+			>::value;
 	}
 
 	return InvalidOperands;
@@ -1235,6 +1240,14 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 				AddressingMode::DataRegisterDirect, data_register);
 
 		//
+		// MARK: EXTbtol
+		//
+		// b0–b2:		a data register.
+		//
+		case OpT(Operation::EXTbtol):
+			return validated<op, validate>(AddressingMode::DataRegisterDirect, ea_register);
+
+		//
 		// MARK: DIVl
 		//
 		//
@@ -1415,11 +1428,14 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 	switch(instruction & 0xff8) {
 		case 0x840:	Decode(Op::SWAP);			// 4-185 (p289)
 		case 0x848: DecodeReq(model >= Model::M68010, Op::BKPT);	// 4-54 (p158)
-		case 0x880:	Decode(Op::EXTbtow);		// 4-106 (p210)
-		case 0x8c0:	Decode(Op::EXTwtol);		// 4-106 (p210)
 		case 0xe58:	Decode(Op::UNLINK);			// 4-194 (p298)
 		case 0xe60:	Decode(Op::MOVEtoUSP);		// 6-21 (p475)
 		case 0xe68:	Decode(Op::MOVEfromUSP);	// 6-21 (p475)
+
+		// 4-106 (p210)
+		case 0x880:	Decode(Op::EXTbtow);
+		case 0x8c0:	Decode(Op::EXTwtol);
+		case 0x9c0:	DecodeReq(model >= Model::M68020, Op::EXTbtol);
 
 		// 4-111 (p215)
 		case 0x808:	DecodeReq(model >= Model::M68020, Op::LINKl);
