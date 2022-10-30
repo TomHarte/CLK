@@ -162,7 +162,7 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 	//
 	// All modes: the complete set (other than Quick).
 	//
-	static constexpr auto AllModes 		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl | d16PC | d8PCXn | Imm;
+	static constexpr auto AllModes 		= Dn | An | Ind | PostInc | PreDec | d16An | d8AnXn | XXXw | XXXl | Imm | d16PC | d8PCXn;
 	static constexpr auto AllModesNoAn 	= AllModes & ~An;
 
 	//
@@ -605,6 +605,13 @@ template <typename Predecoder<model>::OpT op> uint32_t Predecoder<model>::invali
 		case OpT(Operation::EXTbtol):
 			return ~OneOperandMask<
 				Dn
+			>::value;
+
+		case OpT(Operation::DIVSorDIVUl):
+		case OpT(Operation::MULSorMULUl):
+			return ~TwoOperandMask<
+				Ext,
+				AllModesNoAn
 			>::value;
 	}
 
@@ -1108,7 +1115,8 @@ template <typename Predecoder<model>::OpT op, bool validate> Preinstruction Pred
 		// b0–b2 and b3–b5:	source effective address.
 		// Plus an immediate word operand
 		//
-		case OpT(Operation::DIVSl):
+		case OpT(Operation::DIVSorDIVUl):
+		case OpT(Operation::MULSorMULUl):
 			return validated<op, validate>(
 				AddressingMode::ExtensionWord, 0,
 				combined_mode(ea_mode, ea_register), ea_register);
@@ -1505,8 +1513,11 @@ Preinstruction Predecoder<model>::decode4(uint16_t instruction) {
 		// 4-108 (p212)
 		case 0xec0:	Decode(Op::JMP);
 
-		// 4-94 (p198)
-//		case 0xc40:	DecodeReq(model >= Model::M68020, Op::DIVSl);
+		// 4-94 (p198) [DIVS.l]; 4-98 (p202) [DIVU.l]
+		case 0xc40:	DecodeReq(model >= Model::M68020, Op::DIVSorDIVUl);
+
+		// 4-137 (p241) [MULS.l]; 4-140 (p244) [MULU.l]
+		case 0xc00:	DecodeReq(model >= Model::M68020, Op::MULSorMULUl);
 
 		// 4-121 (p225)
 		case 0x2c0: DecodeReq(model >= Model::M68010, Op::MOVEfromCCR);

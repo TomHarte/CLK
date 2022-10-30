@@ -138,8 +138,13 @@ enum class Operation: uint8_t {
 	// to the full things, the following enums result.
 	CHKorCMP2b,	CHKorCMP2w,	CHKorCMP2l,
 
-	DIVSl,	DIVUl,
-	MULSl,	MULUl,
+	// DIVS.l, DIVSL.l, DIVU.l and DIVUL.l are all distinguishable
+	// only by the extension word.
+	DIVSorDIVUl,
+
+	// MULS.l, MULSL.l, MULU.l and MULUL.l are all distinguishable
+	// only by the extension word.
+	MULSorMULUl,
 
 	Bccl,	BSRl,
 	LINKl,	CHKl,

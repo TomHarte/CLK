@@ -238,8 +238,11 @@ const char *_to_string(Operation operation, bool is_quick) {
 
 		case Operation::MULUw:			return "MULU";
 		case Operation::MULSw:			return "MULS";
+		case Operation::MULSorMULUl:	return "[MULS/MULU]{L}.l";
+
 		case Operation::DIVUw:			return "DIVU";
 		case Operation::DIVSw:			return "DIVS";
+		case Operation::DIVSorDIVUl:	return "[DIVS/DIVU]{L}.l";
 
 		case Operation::RTE:			return "RTE";
 		case Operation::RTR:			return "RTR";
