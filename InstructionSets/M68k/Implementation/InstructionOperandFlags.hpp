@@ -19,7 +19,9 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 
 		//
 		//	No operands are fetched or stored.
-		//	(which means that source and destination will appear as their effective addresses)
+		//
+		//	(which means that source and destination, if they exist,
+		//	should be supplied as their effective addresses)
 		//
 		case Operation::PEA:
 		case Operation::JMP:		case Operation::JSR:
@@ -27,6 +29,8 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::TAS:
 		case Operation::RTR:		case Operation::RTS:		case Operation::RTE:
 		case Operation::RTD:
+		case Operation::TRAP:		case Operation::RESET:		case Operation::NOP:
+		case Operation::STOP:		case Operation::TRAPV:		case Operation::BKPT:
 			return 0;
 
 		//

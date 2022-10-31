@@ -151,9 +151,12 @@ enum class Operation: uint8_t {
 
 	EXTbtol,
 
-	cpBcc,	cpDBcc,		cpGEN,
-	cpScc,	cpTRAPcc,	cpRESTORE,
-	cpSAVE,
+	// Coprocessor instructions are omitted for now, until I can
+	// determine by what mechanism the number of
+	// "OPTIONAL COPROCESSOR-DEFINED EXTENSION WORDS" is determined.
+//	cpBcc,	cpDBcc,		cpGEN,
+//	cpScc,	cpTRAPcc,	cpRESTORE,
+//	cpSAVE,
 
 	//
 	// 68030 additions.
@@ -177,7 +180,7 @@ enum class Operation: uint8_t {
 	//
 	Max68000 = RESET,
 	Max68010 = RTD,
-	Max68020 = cpSAVE,
+	Max68020 = EXTbtol,
 	Max68030 = PTESTW,
 	Max68040 = PTESTW,
 };

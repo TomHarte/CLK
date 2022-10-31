@@ -53,6 +53,12 @@ template <Model model> void test(NSString *filename, Class cls) {
 
 		const auto found = decoder.decode(uint16_t(instr));
 
+		// Test that all appropriate table entries are present for this operation.
+		if(found.operation != Operation::Undefined) {
+			operand_flags<model>(found.operation);
+			operand_size(found.operation);
+		}
+
 		NSString *const instruction = [NSString stringWithUTF8String:found.to_string(instr).c_str()];
 		if(![instruction isEqualToString:expected]) {
 			[failures addObject:[NSString stringWithFormat:@"%@ should decode as %@; got %@", instrName, expected, instruction]];
@@ -77,13 +83,7 @@ template <Model model> void test(NSString *filename, Class cls) {
 	test<Model::M68010>(@"68010ops", [self class]);
 }
 
-/*
-	TODO: generate full new reference JSONs for tests below here.
-	For now these are here for manual verification of the diffs.
-*/
-
 - (void)test68020 {
-//	generate<Model::M68020>();
 	test<Model::M68020>(@"68020ops", [self class]);
 }
 
