@@ -28,9 +28,13 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::MOVEPw:		case Operation::MOVEPl:
 		case Operation::TAS:
 		case Operation::RTR:		case Operation::RTS:		case Operation::RTE:
+		case Operation::RTM:
 		case Operation::RTD:
 		case Operation::TRAP:		case Operation::RESET:		case Operation::NOP:
 		case Operation::STOP:		case Operation::TRAPV:		case Operation::BKPT:
+		case Operation::TRAPcc:
+		case Operation::CASb:		case Operation::CASw:		case Operation::CASl:
+		case Operation::CAS2w:		case Operation::CAS2l:
 			return 0;
 
 		//
@@ -53,6 +57,8 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::MOVEMtoMw:	case Operation::MOVEMtoMl:
 		case Operation::MOVEMtoRw:	case Operation::MOVEMtoRl:
 		case Operation::MOVEtoC:
+		case Operation::CALLM:
+		case Operation::CHKorCMP2b:	case Operation::CHKorCMP2w:	case Operation::CHKorCMP2l:
 			return FetchOp1;
 
 		//
@@ -70,7 +76,7 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::NOTb:		case Operation::NOTw:		case Operation::NOTl:
 		case Operation::NEGb:		case Operation::NEGw:		case Operation::NEGl:
 		case Operation::NEGXb:		case Operation::NEGXw:		case Operation::NEGXl:
-		case Operation::EXTbtow:	case Operation::EXTwtol:
+		case Operation::EXTbtow:	case Operation::EXTwtol:	case Operation::EXTbtol:
 		case Operation::SWAP:
 		case Operation::UNLINK:
 		case Operation::ASLm:		case Operation::ASRm:
@@ -96,9 +102,13 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		//
 		case Operation::CMPb:	case Operation::CMPw:	case Operation::CMPl:
 		case Operation::CMPAw:	case Operation::CMPAl:
-		case Operation::CHKw:
+		case Operation::CHKw:	case Operation::CHKl:
 		case Operation::BTST:
-		case Operation::LINKw:
+		case Operation::LINKw:	case Operation::LINKl:
+		case Operation::BFTST:	case Operation::BFFFO:
+		case Operation::BFEXTU:	case Operation::BFEXTS:
+		case Operation::DIVSorDIVUl:
+		case Operation::MULSorMULUl:
 			return FetchOp1 | FetchOp2;
 
 		//
@@ -106,6 +116,7 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		//
 		case Operation::MOVEb: 	case Operation::MOVEw: 	case Operation::MOVEl:
 		case Operation::MOVEAw:	case Operation::MOVEAl:
+		case Operation::PACK:	case Operation::UNPK:
 			return FetchOp1 | StoreOp2;
 
 		//
@@ -133,6 +144,8 @@ template <Model model, Operation t_operation> constexpr uint8_t operand_flags(Op
 		case Operation::ROXRb:	case Operation::ROXRw:	case Operation::ROXRl:
 		case Operation::BCHG:
 		case Operation::BCLR:	case Operation::BSET:
+		case Operation::BFCHG:	case Operation::BFCLR:	case Operation::BFSET:
+		case Operation::BFINS:
 			return FetchOp1 | FetchOp2 | StoreOp2;
 
 		//
