@@ -21,6 +21,10 @@ namespace M68k {
 enum class Operation: uint8_t {
 	Undefined,
 
+	//
+	// 68000 operations.
+	//
+
 	NOP,
 
 	ABCD,	SBCD,	NBCD,
@@ -57,8 +61,8 @@ enum class Operation: uint8_t {
 	DBcc,
 	Scc,
 
-	Bccb,	Bccw,	Bccl,
-	BSRb,	BSRw,	BSRl,
+	Bccb,	Bccw,
+	BSRb,	BSRw,
 
 	CLRb, CLRw, CLRl,
 	NEGXb, NEGXw, NEGXl,
@@ -83,13 +87,13 @@ enum class Operation: uint8_t {
 	NOTb, 	NOTw, 	NOTl,
 	ORb,	ORw,	ORl,
 
-	MULU,	MULS,
-	DIVU,	DIVS,
+	MULUw,	MULSw,
+	DIVUw,	DIVSw,
 
 	RTE,	RTR,
 
 	TRAP,	TRAPV,
-	CHK,
+	CHKw,
 
 	EXG,	SWAP,
 
@@ -101,7 +105,102 @@ enum class Operation: uint8_t {
 
 	STOP,	RESET,
 
-	Max = RESET
+	//
+	// 68010 additions.
+	//
+
+	MOVEfromCCR,
+	MOVEtoC,	MOVEfromC,
+	MOVESb,	MOVESw,	MOVESl,
+	BKPT,	RTD,
+
+	//
+	// 68020 additions.
+	//
+
+	TRAPcc,
+
+	CALLM,	RTM,
+
+	BFCHG,	BFCLR,
+	BFEXTS,	BFEXTU,
+	BFFFO,	BFINS,
+	BFSET,	BFTST,
+
+	PACK,	UNPK,
+
+	CASb,	CASw,	CASl,
+	CAS2w,	CAS2l,
+
+	// CHK2 and CMP2 are distinguished by their extension word;
+	// since this code deals in Preinstructions, i.e. as much
+	// as can be derived from the instruction word alone, in addition
+	// to the full things, the following enums result.
+	CHKorCMP2b,	CHKorCMP2w,	CHKorCMP2l,
+
+	// DIVS.l, DIVSL.l, DIVU.l and DIVUL.l are all distinguishable
+	// only by the extension word.
+	DIVSorDIVUl,
+
+	// MULS.l, MULSL.l, MULU.l and MULUL.l are all distinguishable
+	// only by the extension word.
+	MULSorMULUl,
+
+	Bccl,	BSRl,
+	LINKl,	CHKl,
+
+	EXTbtol,
+
+	// Coprocessor instructions are omitted for now, until I can
+	// determine by what mechanism the number of
+	// "OPTIONAL COPROCESSOR-DEFINED EXTENSION WORDS" is determined.
+//	cpBcc,	cpDBcc,		cpGEN,
+//	cpScc,	cpTRAPcc,	cpRESTORE,
+//	cpSAVE,
+
+	//
+	// 68030 additions.
+	//
+
+	PFLUSH,	PFLUSHA,
+	PLOADR, PLOADW,
+	PMOVE, PMOVEFD,
+	PTESTR, PTESTW,
+
+	//
+	// 68040 additions.
+	//
+
+	// TODO: the big addition of the 68040 is incorporation of the FPU; should I make decoding of those instructions
+	// dependent upon a 68040 being selected, or should I offer a separate decoder in order to support systems with
+	// a coprocessor?
+
+	//
+	// Introspection.
+	//
+	Max68000 = RESET,
+	Max68010 = RTD,
+	Max68020 = EXTbtol,
+	Max68030 = PTESTW,
+	Max68040 = PTESTW,
+};
+
+// Provide per-model max entries in Operation.
+template <Model> struct OperationMax {};
+template <> struct OperationMax<Model::M68000> {
+	static constexpr Operation value = Operation::Max68000;
+};
+template <> struct OperationMax<Model::M68010> {
+	static constexpr Operation value = Operation::Max68010;
+};
+template <> struct OperationMax<Model::M68020> {
+	static constexpr Operation value = Operation::Max68020;
+};
+template <> struct OperationMax<Model::M68030> {
+	static constexpr Operation value = Operation::Max68030;
+};
+template <> struct OperationMax<Model::M68040> {
+	static constexpr Operation value = Operation::Max68040;
 };
 
 const char *to_string(Operation op);
@@ -118,6 +217,7 @@ constexpr bool requires_supervisor(Operation op) {
 		case Operation::EORItoSR:	case Operation::RTE:
 		case Operation::RESET:		case Operation::STOP:
 		case Operation::MOVEtoUSP:	case Operation::MOVEfromUSP:
+		case Operation::MOVEtoC:	case Operation::MOVEfromC:
 		case Operation::MOVEtoSR:
 			return true;
 
@@ -147,6 +247,7 @@ constexpr uint32_t quick(uint16_t instruction, Operation r_op = Operation::Undef
 		case Operation::BSRb:
 		case Operation::MOVEl:	return uint32_t(int8_t(instruction));
 		case Operation::TRAP:	return uint32_t(instruction & 15);
+		case Operation::BKPT:	return uint32_t(instruction & 7);
 		default: {
 			uint32_t value = (instruction >> 9) & 7;
 			value |= (value - 1)&8;
@@ -249,6 +350,10 @@ enum class AddressingMode: uint8_t {
 	/// #
 	ImmediateData										= 0b01'100,
 
+	/// An additional word of data. Differs from ImmediateData by being
+	/// a fixed size, rather than the @c operand_size of the operation.
+	ExtensionWord										= 0b01'111,
+
 	/// .q; value is embedded in the opcode.
 	Quick												= 0b01'110,
 };
@@ -308,14 +413,32 @@ class Preinstruction {
 			return operands_[index] & 0xf;
 		}
 
+		/// @returns @c true if this instruction requires supervisor privileges; @c false otherwise.
 		bool requires_supervisor() const {
-			return flags_ & 0x80;
+			return flags_ & Flags::IsSupervisor;
 		}
+		/// @returns @c true if this instruction will require further fetching than can be encoded in a
+		/// @c Preinstruction. In practice this means it is one of a very small quantity of 68020+
+		/// instructions; those that can rationalise extension words into one of the two operands will
+		/// do so. Use the free function @c extension_words(instruction.operation) to
+		/// look up the number of additional words required.
+		///
+		/// (specifically affected, at least: PACK, UNPK, CAS, CAS2)
+		bool requires_further_extension() const {
+			return flags_ & Flags::RequiresFurtherExtension;
+		}
+		/// @returns The number of additional extension words required, beyond those encoded as operands.
+		int additional_extension_words() const {
+			return flags_ & Flags::RequiresFurtherExtension ? (flags_ & Flags::ConditionMask) >> Flags::ConditionShift : 0;
+		}
+		/// @returns The @c DataSize used for operands of this instruction, i.e. byte, word or longword.
 		DataSize operand_size() const {
-			return DataSize(flags_ & 0x03);
+			return DataSize((flags_ & Flags::SizeMask) >> Flags::SizeShift);
 		}
+		/// @returns The condition code evaluated by this instruction if applicable. If this instruction is not
+		/// conditional, the result is undefined.
 		Condition condition() const {
-			return Condition((flags_ >> 2) & 0x0f);
+			return Condition((flags_ & Flags::ConditionMask) >> Flags::ConditionShift);
 		}
 
 	private:
@@ -330,17 +453,32 @@ class Preinstruction {
 			AddressingMode op1_mode,	int op1_reg,
 			AddressingMode op2_mode,	int op2_reg,
 			bool is_supervisor,
+			int extension_words,
 			DataSize size,
 			Condition condition) : operation(operation)
 		{
 			operands_[0] = uint8_t((uint8_t(op1_mode) << 3) | op1_reg);
 			operands_[1] = uint8_t((uint8_t(op2_mode) << 3) | op2_reg);
 			flags_ = uint8_t(
-				(is_supervisor ? 0x80 : 0x00) |
-				(int(condition) << 2) |
-				int(size)
+				(is_supervisor ? Flags::IsSupervisor : 0x00) |
+				(extension_words ? Flags::RequiresFurtherExtension : 0x00) |
+				(int(condition) << Flags::ConditionShift) |
+				(extension_words << Flags::ConditionShift) |
+				(int(size) << Flags::SizeShift)
 			);
 		}
+
+		struct Flags {
+			static constexpr uint8_t IsSupervisor				= 0b1000'0000;
+			static constexpr uint8_t RequiresFurtherExtension	= 0b0100'0000;
+			static constexpr uint8_t ConditionMask				= 0b0011'1100;
+			static constexpr uint8_t SizeMask					= 0b0000'0011;
+
+			static constexpr int IsSupervisorShift				= 7;
+			static constexpr int RequiresFurtherExtensionShift	= 6;
+			static constexpr int ConditionShift					= 2;
+			static constexpr int SizeShift						= 0;
+		};
 
 		Preinstruction() {}
 

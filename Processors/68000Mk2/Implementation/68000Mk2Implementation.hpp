@@ -826,7 +826,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 						MoveToStateSpecific(TwoOp_Predec_bw);
 					}
 
-				StdCASE(CHK,		perform_state_ = CHK);
+				StdCASE(CHKw,		perform_state_ = CHK);
 
 				Duplicate(SUBb, ADDb)	StdCASE(ADDb,		perform_state_ = Perform_np)
 				Duplicate(SUBw, ADDw)	StdCASE(ADDw,		perform_state_ = Perform_np)
@@ -1002,10 +1002,10 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 				StdCASE(TSTw,		perform_state_ = Perform_np);
 				StdCASE(TSTl,		perform_state_ = Perform_np);
 
-				StdCASE(DIVU,		perform_state_ = DIVU_DIVS);
-				StdCASE(DIVS,		perform_state_ = DIVU_DIVS);
-				StdCASE(MULU,		perform_state_ = Perform_idle_dyamic_Dn);
-				StdCASE(MULS,		perform_state_ = Perform_idle_dyamic_Dn);
+				StdCASE(DIVUw,		perform_state_ = DIVU_DIVS);
+				StdCASE(DIVSw,		perform_state_ = DIVU_DIVS);
+				StdCASE(MULUw,		perform_state_ = Perform_idle_dyamic_Dn);
+				StdCASE(MULSw,		perform_state_ = Perform_idle_dyamic_Dn);
 
 				StdCASE(LEA, {
 					post_ea_state_ = LEA;
@@ -1833,6 +1833,19 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 			Prefetch();								// np
 		MoveToNextOperand(FetchOperand_l);
 
+		//
+		// ExtensionWord; always the same size.
+		//
+		BeginStateMode(FetchOperand_bw, ExtensionWord):
+			operand_[next_operand_].w = prefetch_.w;
+			Prefetch();								// np
+		MoveToNextOperand(FetchOperand_bw);
+
+		BeginStateMode(FetchOperand_l, ExtensionWord):
+			operand_[next_operand_].w = prefetch_.w;
+			Prefetch();								// np
+		MoveToNextOperand(FetchOperand_l);
+
 #undef MoveToNextOperand
 
 	// MARK: - Store.
@@ -2033,7 +2046,7 @@ void Processor<BusHandler, dtack_is_implicit, permit_overrun, signal_will_perfor
 		//
 		BeginState(CHK):
 			Prefetch();			// np
-			PerformSpecific(CHK);
+			PerformSpecific(CHKw);
 
 			// Proper next state will have been set by the flow controller
 			// call-in; just allow dispatch to whatever it was.
