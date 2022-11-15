@@ -59,6 +59,7 @@
 // Mass Storage Devices (i.e. usually, hard disks)
 #include "../../Storage/MassStorage/Formats/DAT.hpp"
 #include "../../Storage/MassStorage/Formats/DSK.hpp"
+#include "../../Storage/MassStorage/Formats/HDV.hpp"
 #include "../../Storage/MassStorage/Formats/HFV.hpp"
 
 // State Snapshots
@@ -170,6 +171,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::FAT12>, TargetPlatform::MSX)				// DSK (MSX)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)			// DSK (Oric)
 	Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)			// G64
+	Format("hdv", result.mass_storage_devices, MassStorage::HDV, TargetPlatform::AppleII)						// HDV (Apple II, hard disk, single volume image)
 	Format(	"hfe",
 			result.disks,
 			Disk::DiskImageHolder<Storage::Disk::HFE>,
