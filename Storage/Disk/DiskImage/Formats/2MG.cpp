@@ -9,14 +9,12 @@
 #include "2MG.hpp"
 
 #include "MacintoshIMG.hpp"
-#include "../../../MassStorage/Encodings/AppleIIVolume.hpp"
+#include "../../../MassStorage/Formats/HDV.hpp"
 
 
 #include <cstring>
 
 using namespace Storage::Disk;
-
-namespace {
 
 // TODO: I've boxed myself into a corner on this stuff by not using factories more generally;
 // volume to device mappers are not themselves mass storage devices because then their use
@@ -25,65 +23,6 @@ namespace {
 //
 // So, I guess: go factory, pervasively. And probably stop the strict disk/mass storage/tape
 // distinction, given that clearly some platforms just capture volumes abstractly from media.
-class MassStorage2MG: public Storage::MassStorage::MassStorageDevice {
-	public:
-		MassStorage2MG(const std::string &file_name, long start, long size):
-			file_(file_name),
-			file_start_(start),
-			image_size_(size)
-		{
-			mapper_.set_drive_type(
-				Storage::MassStorage::Encodings::Apple::DriveType::SCSI,
-				size_t(size / 512)
-			);
-		}
-
-	private:
-		Storage::FileHolder file_;
-		long file_start_, image_size_;
-		Storage::MassStorage::Encodings::AppleII::Mapper mapper_;
-
-		/* MassStorageDevices overrides. */
-		size_t get_block_size() final {
-			return 512;
-		}
-		size_t get_number_of_blocks() final {
-			return mapper_.get_number_of_blocks();
-		}
-		std::vector<uint8_t> get_block(size_t address) final {
-			const auto source_address = mapper_.to_source_address(address);
-			const auto file_offset = offset_for_block(source_address);
-
-			if(source_address >= 0) {
-				file_.seek(file_offset, SEEK_SET);
-				return mapper_.convert_source_block(source_address, file_.read(get_block_size()));
-			} else {
-				return mapper_.convert_source_block(source_address);
-			}
-		}
-		void set_block(size_t address, const std::vector<uint8_t> &data) final {
-			const auto source_address = mapper_.to_source_address(address);
-			const auto file_offset = offset_for_block(source_address);
-
-			if(source_address >= 0 && file_offset >= 0) {
-				file_.seek(file_offset, SEEK_SET);
-				file_.write(data);
-			}
-		}
-
-		/// @returns -1 if @c address is out of range; the offset into the file at which
-		/// the block for @c address resides otherwise.
-		long offset_for_block(ssize_t address) {
-			if(address < 0) return -1;
-
-			const long offset = 512 * address;
-			if(offset > image_size_ - 512) return -1;
-
-			return file_start_ + offset;
-		}
-};
-
-}
 
 Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
 	FileHolder file(file_name);
@@ -145,7 +84,7 @@ Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
 			// TODO: Apple II-style.
 
 			// Try a hard-disk image. For now this assumes: for an Apple IIe or GS.
-			return new MassStorage2MG(file_name, data_start, data_size);
+			return new MassStorage::HDV(file_name, data_start, data_size);
 		break;
 		case 2:
 			// TODO: NIB data (yuck!).
