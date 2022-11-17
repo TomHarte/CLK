@@ -37,6 +37,8 @@ class SCSICard: public Card {
 			scsi_bus_.run_for(cycles);
 		}
 
+		void set_activity_observer(Activity::Observer *observer) final;
+
 	private:
 		uint8_t *ram_pointer_ = nullptr;
 		uint8_t *rom_pointer_ = nullptr;

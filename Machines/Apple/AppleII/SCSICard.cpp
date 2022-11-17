@@ -167,3 +167,7 @@ void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t addre
 void SCSICard::set_storage_device(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &device) {
 	storage_->set_storage(device);
 }
+
+void SCSICard::set_activity_observer(Activity::Observer *observer) {
+	scsi_bus_.set_activity_observer(observer);
+}
