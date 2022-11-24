@@ -337,6 +337,16 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
+- (void)setInputMode:(CSMachineKeyboardInputMode)inputMode {
+	_inputMode = inputMode;
+
+	// Avoid the risk that the user used a keyboard shortcut to change input mode,
+	// leaving any modifiers associated with that dangling.
+	if(_inputMode == CSMachineKeyboardInputModeJoystick) {
+		[self clearAllKeys];
+	}
+}
+
 - (void)setJoystickManager:(CSJoystickManager *)joystickManager {
 	_joystickManager = joystickManager;
 	if(_joystickMachine) {
@@ -433,7 +443,7 @@ struct ActivityObserver: public Activity::Observer {
 			auto &joysticks = joystick_machine->get_joysticks();
 			if(!joysticks.empty()) {
 				// Convert to a C++ bool so that the following calls are resolved correctly even if overloaded.
-				bool is_pressed = !!isPressed;
+				const auto is_pressed = bool(isPressed);
 				switch(key) {
 					case VK_LeftArrow:	joysticks[0]->set_input(Inputs::Joystick::Input::Left, is_pressed);		break;
 					case VK_RightArrow:	joysticks[0]->set_input(Inputs::Joystick::Input::Right, is_pressed);	break;
