@@ -201,14 +201,31 @@ template <typename IntT> IntT Executor<model, BusHandler>::State::read_pc() {
 
 template <Model model, typename BusHandler>
 uint32_t Executor<model, BusHandler>::State::index_8bitdisplacement() {
-	// TODO: if not a 68000, check bit 8 for whether this should be a full extension word;
-	// also include the scale field even if not.
+	// Get the brief extension word.
 	const auto extension = read_pc<uint16_t>();
+
+	// The 68000, 68080 and 68010 do not support the scale field, and are limited
+	// to brief extension words.
+	const int scale = model <= Model::M68010 ? 0 : (extension >> 9) & 3;
+
+	// Decode brief instruction word fields.
 	const auto offset = int8_t(extension);
 	const int register_index = (extension >> 12) & 15;
-	const uint32_t displacement = registers[register_index].l;
-	const uint32_t sized_displacement = (extension & 0x800) ? displacement : int16_t(displacement);
-	return offset + sized_displacement;
+
+	// The 68000, 68080 and 68010 support only brief extension words.
+	if(model <= Model::M68010 || !(extension & 0x100)) {
+		const uint32_t displacement = registers[register_index].l << scale;
+		const uint32_t sized_displacement = (extension & 0x800) ? displacement : int16_t(displacement);
+		return offset + sized_displacement;
+	}
+
+	// Determine a long extension.
+	//
+	// Cf. https://edwardhalferty.com/2020/12/16/decoding-the-extended-addressing-modes-of-the-68000/
+//	const bool has_base = extension & 0x80;
+//	const bool has_index = extension & 0x40;
+
+	return 0;
 }
 
 template <Model model, typename BusHandler>
