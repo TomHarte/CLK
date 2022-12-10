@@ -159,7 +159,7 @@ template <Model model, typename BusHandler> class Executor {
 					bool requires_fetch;
 				};
 				EffectiveAddress calculate_effective_address(Preinstruction instruction, uint16_t opcode, int index);
-				uint32_t index_8bitdisplacement();
+				uint32_t index_8bitdisplacement(uint32_t);
 		} state_;
 };
 

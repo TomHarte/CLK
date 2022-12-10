@@ -1,4 +1,5 @@
 //
+//
 //  ExecutorImplementation.hpp
 //  Clock Signal
 //
@@ -199,31 +200,76 @@ template <typename IntT> IntT Executor<model, BusHandler>::State::read_pc() {
 	return result;
 }
 
+// For all of below, cf PRM 2-2 (PDF p43)
 template <Model model, typename BusHandler>
-uint32_t Executor<model, BusHandler>::State::index_8bitdisplacement() {
-	// Get the brief extension word.
+uint32_t Executor<model, BusHandler>::State::index_8bitdisplacement(uint32_t base) {
+	// Determine whether full extension addressing modes are supported.
+	constexpr bool supports_full_extensions = model >= Model::M68020;
+
+	// Get the [first] extension word.
 	const auto extension = read_pc<uint16_t>();
 
 	// The 68000, 68080 and 68010 do not support the scale field, and are limited
 	// to brief extension words.
-	const int scale = model <= Model::M68010 ? 0 : (extension >> 9) & 3;
+	const int scale = supports_full_extensions ? (extension >> 9) & 3 : 0;
 
 	// Decode brief instruction word fields.
 	const auto offset = int8_t(extension);
 	const int register_index = (extension >> 12) & 15;
 
-	// The 68000, 68080 and 68010 support only brief extension words.
-	if(model <= Model::M68010 || !(extension & 0x100)) {
-		const uint32_t displacement = registers[register_index].l << scale;
+	// Use a brief extension word if instructed to, or if that's this processor's limit.
+	if(!supports_full_extensions || !(extension & 0x100)) {
+		const uint32_t displacement = registers[register_index].l;
 		const uint32_t sized_displacement = (extension & 0x800) ? displacement : int16_t(displacement);
-		return offset + sized_displacement;
+		return base + offset + (sized_displacement << scale);
 	}
 
 	// Determine a long extension.
 	//
-	// Cf. https://edwardhalferty.com/2020/12/16/decoding-the-extended-addressing-modes-of-the-68000/
-//	const bool has_base = extension & 0x80;
-//	const bool has_index = extension & 0x40;
+	// i.e. base register (BR), index register (Xn), base displacement (bd), outer displacement (od).
+	//
+	//	b15: 	D/A			(i.e. is register data or address)
+	//	b14–12:	register
+	//	b11:	W/L			(i.e. word or longword use of the named register)
+	//	b10–9:	scale
+	//	b8:		1
+	//	b7:		BS			(i.e. base register suppress)
+	//	b6:		IS			(i.e. index register suppress)
+	//	b5–4:	BD size		(i.e. base displacement size)
+	//	b3:		0
+	//	b2–b0:	I/IS		(preindexed/postindexed/no modification of index register plus index register size)
+	//
+	enum class Displacement {
+		Reserved,
+		Null,
+		Word,
+		Long
+	};
+	enum class IndirectAction {
+		IndirectPreindexed,
+		IndirectPostindexed,
+		MemoryIndirect,
+		Reserved
+	};
+
+	const bool suppress_base = extension & 0x80;	// i.e. don't use whatever the first instruction word indicated.
+	const bool suppress_index = extension & 0x40;	// i.e. don't use whatever register_index points to.
+
+	// Fetch base displacement.
+	uint32_t base_displacement = 0;
+	switch((extension >> 4) & 3) {
+		default: 	break;
+		case 2:		base_displacement = read_pc<uint16_t>();	break;
+		case 3:		base_displacement = read_pc<uint32_t>();	break;
+	}
+
+	// Fetch outer displacement.
+	uint32_t outer_displacement = 0;
+	switch(extension & 3) {
+		default:	break;
+		case 2:		outer_displacement = read_pc<uint16_t>();	break;
+		case 3:		outer_displacement = read_pc<uint32_t>();	break;
+	}
 
 	return 0;
 }
@@ -314,7 +360,7 @@ Executor<model, BusHandler>::State::calculate_effective_address(Preinstruction i
 			ea.requires_fetch = true;
 		break;
 		case AddressingMode::AddressRegisterIndirectWithIndex8bitDisplacement:
-			ea.value.l = An(instruction.reg(index)).l + index_8bitdisplacement();
+			ea.value.l = index_8bitdisplacement(An(instruction.reg(index)).l);
 			ea.requires_fetch = true;
 		break;
 
@@ -322,11 +368,12 @@ Executor<model, BusHandler>::State::calculate_effective_address(Preinstruction i
 		// PC-relative addresses.
 		//
 		case AddressingMode::ProgramCounterIndirectWithDisplacement:
-			ea.value.l = program_counter.l + int16_t(read_pc<uint16_t>());
+			ea.value.l = program_counter.l;
+			ea.value.l += int16_t(read_pc<uint16_t>());
 			ea.requires_fetch = true;
 		break;
 		case AddressingMode::ProgramCounterIndirectWithIndex8bitDisplacement:
-			ea.value.l = program_counter.l + index_8bitdisplacement();
+			ea.value.l = index_8bitdisplacement(program_counter.l);
 			ea.requires_fetch = true;
 		break;
 
