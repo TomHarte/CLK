@@ -217,43 +217,24 @@ uint32_t Executor<model, BusHandler>::State::index_8bitdisplacement(uint32_t bas
 	const auto offset = int8_t(extension);
 	const int register_index = (extension >> 12) & 15;
 
+	// Calculate the displacement; which on the 68020+ is better known as the index.
+	const uint32_t raw_index = registers[register_index].l;
+	uint32_t index = ((extension & 0x800) ? raw_index : int16_t(raw_index)) << scale;
+
 	// Use a brief extension word if instructed to, or if that's this processor's limit.
 	if(!supports_full_extensions || !(extension & 0x100)) {
-		const uint32_t displacement = registers[register_index].l;
-		const uint32_t sized_displacement = (extension & 0x800) ? displacement : int16_t(displacement);
-		return base + offset + (sized_displacement << scale);
+		return base + offset + index;
 	}
 
+	//
 	// Determine a long extension.
 	//
-	// i.e. base register (BR), index register (Xn), base displacement (bd), outer displacement (od).
-	//
-	//	b15: 	D/A			(i.e. is register data or address)
-	//	b14–12:	register
-	//	b11:	W/L			(i.e. word or longword use of the named register)
-	//	b10–9:	scale
-	//	b8:		1
-	//	b7:		BS			(i.e. base register suppress)
-	//	b6:		IS			(i.e. index register suppress)
-	//	b5–4:	BD size		(i.e. base displacement size)
-	//	b3:		0
-	//	b2–b0:	I/IS		(preindexed/postindexed/no modification of index register plus index register size)
-	//
-	enum class Displacement {
-		Reserved,
-		Null,
-		Word,
-		Long
-	};
-	enum class IndirectAction {
-		IndirectPreindexed,
-		IndirectPostindexed,
-		MemoryIndirect,
-		Reserved
-	};
 
+	// Apply suppressions.
 	const bool suppress_base = extension & 0x80;	// i.e. don't use whatever the first instruction word indicated.
 	const bool suppress_index = extension & 0x40;	// i.e. don't use whatever register_index points to.
+	if(suppress_base) base = 0;
+	if(suppress_index) index = 0;
 
 	// Fetch base displacement.
 	uint32_t base_displacement = 0;
@@ -261,6 +242,11 @@ uint32_t Executor<model, BusHandler>::State::index_8bitdisplacement(uint32_t bas
 		default: 	break;
 		case 2:		base_displacement = read_pc<uint16_t>();	break;
 		case 3:		base_displacement = read_pc<uint32_t>();	break;
+	}
+
+	// Don't do a further indirection if there's no outer displacement.
+	if(!(extension & 7)) {
+		return index + base + base_displacement;
 	}
 
 	// Fetch outer displacement.
@@ -271,7 +257,13 @@ uint32_t Executor<model, BusHandler>::State::index_8bitdisplacement(uint32_t bas
 		case 3:		outer_displacement = read_pc<uint32_t>();	break;
 	}
 
-	return 0;
+	// Apply outer displacement; either the index is before the indirection
+	// or after it.
+	if(extension & 4) {
+		return read<uint32_t>(base + base_displacement) + index + outer_displacement;
+	} else {
+		return read<uint32_t>(base + base_displacement + index) + outer_displacement;
+	}
 }
 
 template <Model model, typename BusHandler>
