@@ -303,6 +303,10 @@ Executor<model, BusHandler>::State::calculate_effective_address(Preinstruction i
 			}
 			ea.requires_fetch = false;
 		break;
+		case AddressingMode::ExtensionWord:
+			ea.value.l = read_pc<uint16_t>();
+			ea.requires_fetch = false;
+		break;
 
 		//
 		// Absolute addresses.
