@@ -15,6 +15,26 @@
 
 using namespace TI::TMS;
 
+//
+// TODO notes.
+//
+//	The TMS and Master System VDP run at 342 cycles/line.
+//
+//	The Mega Drive VDP has 3420 master clocks per line, which it divides
+//	by 4 or 5 depending on pixel rate and which part of a line is active.
+//	(And, presumably, by 10 if operating in Master System mode?)
+//	Cf. https://gendev.spritesmind.net/forum/viewtopic.php?t=851 etc.
+//
+//	The MSX2+ Yamaha VDPs have 1368 cycles/line.
+//
+//	So if clock scaling were common, it would need to be to:
+//
+//		3420 = 2 * 2		* 	3 * 3	*	5	*	19
+//		1368 = 2 * 2 * 2	*	3 * 3	* 			19
+//
+//	=> 2^3 * 3^2 * 5 * 19 = 6840
+//		... which
+
 namespace {
 
 constexpr uint8_t StatusInterrupt = 0x80;
