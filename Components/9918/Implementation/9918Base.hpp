@@ -32,14 +32,16 @@ enum Personality {
 	MDVDP,
 };
 
+constexpr bool is_sega_vdp(Personality p) {
+	return p >= Personality::SMSVDP;
+}
+
 enum class TVStandard {
 	/*! i.e. 50Hz output at around 312.5 lines/field */
 	PAL,
 	/*! i.e. 60Hz output at around 262.5 lines/field */
 	NTSC
 };
-
-#define is_sega_vdp(x) ((x) >= SMSVDP)
 
 class Base {
 	public:
