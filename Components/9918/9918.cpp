@@ -33,7 +33,20 @@ using namespace TI::TMS;
 //		1368 = 2 * 2 * 2	*	3 * 3	* 			19
 //
 //	=> 2^3 * 3^2 * 5 * 19 = 6840
-//		... which
+//		... which would imply a multiply by 30 on the input clock if
+//		it were to remain 3.58Mhz.
+
+// Mega Drive notes, assorted:
+//
+//
+//
+// there are 60 EDCLK at MCLK/5 during a line ... like this:
+//
+//	15 @ /5; 2 @ /4; 15 @ /5; 2 @ /4; 15 @ /5; 2 @ /4; 15 @ /5
+//
+// ... HSYNC signal is what triggers the changes in EDCLK frequency, with some latency though.
+//
+// The total is still 840 EDCLKS (420 pixels) with 780 @MCLK/4 and 60@MCLK/5 (total is 3420 MCLCKS).
 
 namespace {
 

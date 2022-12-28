@@ -24,9 +24,12 @@ enum Personality {
 	TMS9918A,	// includes the 9928 and 9929; set TV standard and output device as desired.
 	V9938,
 	V9958,
+
+	// Sega extensions.
 	SMSVDP,
 	SMS2VDP,
 	GGVDP,
+	MDVDP,
 };
 
 enum class TVStandard {
