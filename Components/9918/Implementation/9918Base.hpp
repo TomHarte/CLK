@@ -368,9 +368,7 @@ class Base {
 						// Schedule a CRAM dot; this is scheduled for wherever it should appear
 						// on screen. So it's wherever the output stream would be now. Which
 						// is output_lag cycles ago from the point of view of the input stream.
-						upcoming_cram_dots_.emplace_back();
-						CRAMDot &dot = upcoming_cram_dots_.back();
-
+						CRAMDot &dot = upcoming_cram_dots_.emplace_back();
 						dot.location.column = write_pointer_.column - output_lag;
 						dot.location.row = write_pointer_.row;
 
