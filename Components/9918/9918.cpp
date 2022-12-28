@@ -95,6 +95,9 @@ Base::Base(Personality p) :
 		case TI::TMS::GGVDP:
 			ram_.resize(16 * 1024);
 		break;
+		case TI::TMS::MDVDP:
+			ram_.resize(64 * 1024);
+		break;
 		case TI::TMS::V9938:
 			ram_.resize(128 * 1024);
 		break;
