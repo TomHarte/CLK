@@ -62,23 +62,29 @@ constexpr unsigned int CRTCyclesPerLine = 1365;
 constexpr unsigned int CRTCyclesDivider = 4;
 
 struct ReverseTable {
-	std::uint8_t map[256];
+	const std::array<uint8_t, 256> map;
+	constexpr ReverseTable() : map(reverse_table()) {}
 
-	ReverseTable() {
-		for(int c = 0; c < 256; ++c) {
-			map[c] = uint8_t(
-				((c & 0x80) >> 7) |
-				((c & 0x40) >> 5) |
-				((c & 0x20) >> 3) |
-				((c & 0x10) >> 1) |
-				((c & 0x08) << 1) |
-				((c & 0x04) << 3) |
-				((c & 0x02) << 5) |
-				((c & 0x01) << 7)
-			);
+	private:
+		static constexpr std::array<uint8_t, 256> reverse_table() {
+			std::array<uint8_t, 256> map{};
+			for(size_t c = 0; c < 256; ++c) {
+				map[c] = uint8_t(
+					((c & 0x80) >> 7) |
+					((c & 0x40) >> 5) |
+					((c & 0x20) >> 3) |
+					((c & 0x10) >> 1) |
+					((c & 0x08) << 1) |
+					((c & 0x04) << 3) |
+					((c & 0x02) << 5) |
+					((c & 0x01) << 7)
+				);
+			}
+			return map;
 		}
-	}
-} reverse_table;
+};
+
+constexpr ReverseTable reverse_table;
 
 }
 
@@ -515,7 +521,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 void Base::output_border(int cycles, uint32_t cram_dot) {
 	cycles *= 4;
-	uint32_t border_colour =
+	const uint32_t border_colour =
 		is_sega_vdp(personality_) ?
 			master_system_.colour_ram[16 + background_colour_] :
 			palette[background_colour_];
@@ -728,13 +734,13 @@ uint8_t TMS9918::read(int address) {
 	// Reads from address 0 read video RAM, via the read-ahead buffer.
 	if(!(address & 1)) {
 		// Enqueue the write to occur at the next available slot.
-		uint8_t result = read_ahead_buffer_;
+		const uint8_t result = read_ahead_buffer_;
 		queued_access_ = MemoryAccess::Read;
 		return result;
 	}
 
 	// Reads from address 1 get the status register.
-	uint8_t result = status_;
+	const uint8_t result = status_;
 	status_ &= ~(StatusInterrupt | StatusSpriteOverflow | StatusSpriteCollision);
 	line_interrupt_pending_ = false;
 	return result;
