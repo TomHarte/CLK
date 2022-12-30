@@ -86,6 +86,18 @@ struct ReverseTable {
 
 constexpr ReverseTable reverse_table;
 
+constexpr size_t memory_size(Personality p) {
+	switch(p) {
+		case TI::TMS::TMS9918A:
+		case TI::TMS::SMSVDP:
+		case TI::TMS::SMS2VDP:
+		case TI::TMS::GGVDP:	return 16 * 1024;
+		case TI::TMS::MDVDP:	return 64 * 1024;
+		case TI::TMS::V9938:	return 128 * 1024;
+		case TI::TMS::V9958:	return 192 * 1024;
+	}
+}
+
 }
 
 Base::Base(Personality p) :
@@ -94,24 +106,7 @@ Base::Base(Personality p) :
 	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
 	// into whether there's a more natural form. It feels unlikely given the diversity of chips modelled.
 
-	switch(p) {
-		case TI::TMS::TMS9918A:
-		case TI::TMS::SMSVDP:
-		case TI::TMS::SMS2VDP:
-		case TI::TMS::GGVDP:
-			ram_.resize(16 * 1024);
-		break;
-		case TI::TMS::MDVDP:
-			ram_.resize(64 * 1024);
-		break;
-		case TI::TMS::V9938:
-			ram_.resize(128 * 1024);
-		break;
-		case TI::TMS::V9958:
-			ram_.resize(192 * 1024);
-		break;
-	}
-
+	ram_.resize(memory_size(p));
 	if(is_sega_vdp(personality_)) {
 		mode_timing_.line_interrupt_position = 64;
 
@@ -188,8 +183,7 @@ void Base::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_positi
 	if(!(status_ & StatusSpriteOverflow)) {
 		status_ = uint8_t((status_ & ~0x1f) | (sprite_number & 0x1f));
 	}
-	if(buffer.sprites_stopped)
-		return;
+	if(buffer.sprites_stopped) return;
 
 	// A sprite Y of 208 means "don't scan the list any further".
 	if(mode_timing_.allow_sprite_terminator && sprite_position == mode_timing_.sprite_terminator) {
@@ -595,23 +589,23 @@ void TMS9918::write(int address, uint8_t value) {
 		switch(value) {
 			case 0:
 				if(is_sega_vdp(personality_)) {
-					master_system_.vertical_scroll_lock = !!(low_write_ & 0x80);
-					master_system_.horizontal_scroll_lock = !!(low_write_ & 0x40);
-					master_system_.hide_left_column = !!(low_write_ & 0x20);
-					enable_line_interrupts_ = !!(low_write_ & 0x10);
-					master_system_.shift_sprites_8px_left = !!(low_write_ & 0x08);
-					master_system_.mode4_enable = !!(low_write_ & 0x04);
+					master_system_.vertical_scroll_lock = low_write_ & 0x80;
+					master_system_.horizontal_scroll_lock = low_write_ & 0x40;
+					master_system_.hide_left_column = low_write_ & 0x20;
+					enable_line_interrupts_ = low_write_ & 0x10;
+					master_system_.shift_sprites_8px_left = low_write_ & 0x08;
+					master_system_.mode4_enable = low_write_ & 0x04;
 				}
-				mode2_enable_ = !!(low_write_ & 0x02);
+				mode2_enable_ = low_write_ & 0x02;
 			break;
 
 			case 1:
 				blank_display_ = !(low_write_ & 0x40);
-				generate_interrupts_ = !!(low_write_ & 0x20);
-				mode1_enable_ = !!(low_write_ & 0x10);
-				mode3_enable_ = !!(low_write_ & 0x08);
-				sprites_16x16_ = !!(low_write_ & 0x02);
-				sprites_magnified_ = !!(low_write_ & 0x01);
+				generate_interrupts_ = low_write_ & 0x20;
+				mode1_enable_ = low_write_ & 0x10;
+				mode3_enable_ = low_write_ & 0x08;
+				sprites_16x16_ = low_write_ & 0x02;
+				sprites_magnified_ = low_write_ & 0x01;
 
 				sprite_height_ = 8;
 				if(sprites_16x16_) sprite_height_ <<= 1;
