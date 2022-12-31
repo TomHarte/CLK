@@ -86,18 +86,6 @@ struct ReverseTable {
 
 constexpr ReverseTable reverse_table;
 
-constexpr size_t memory_size(Personality p) {
-	switch(p) {
-		case TI::TMS::TMS9918A:
-		case TI::TMS::SMSVDP:
-		case TI::TMS::SMS2VDP:
-		case TI::TMS::GGVDP:	return 16 * 1024;
-		case TI::TMS::MDVDP:	return 64 * 1024;
-		case TI::TMS::V9938:	return 128 * 1024;
-		case TI::TMS::V9958:	return 192 * 1024;
-	}
-}
-
 }
 
 Base::Base(Personality p) :

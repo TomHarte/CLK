@@ -20,20 +20,20 @@
 namespace TI {
 namespace TMS {
 
-enum Personality {
-	TMS9918A,	// includes the 9928 and 9929; set TV standard and output device as desired.
-	V9938,
-	V9958,
-
-	// Sega extensions.
-	SMSVDP,
-	SMS2VDP,
-	GGVDP,
-	MDVDP,
-};
-
 constexpr bool is_sega_vdp(Personality p) {
 	return p >= Personality::SMSVDP;
+}
+
+constexpr size_t memory_size(Personality p) {
+	switch(p) {
+		case TI::TMS::TMS9918A:
+		case TI::TMS::SMSVDP:
+		case TI::TMS::SMS2VDP:
+		case TI::TMS::GGVDP:	return 16 * 1024;
+		case TI::TMS::MDVDP:	return 64 * 1024;
+		case TI::TMS::V9938:	return 128 * 1024;
+		case TI::TMS::V9958:	return 192 * 1024;
+	}
 }
 
 enum class TVStandard {
