@@ -110,7 +110,8 @@ Base::Base(Personality p) :
 	write_pointer_.column = read_pointer_.column + output_lag;
 }
 
-TMS9918::TMS9918(Personality p):
+template <Personality personality>
+TMS9918<personality>::TMS9918(Personality p):
 	Base(p) {
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));
@@ -122,7 +123,8 @@ TMS9918::TMS9918(Personality p):
 	crt_.set_immediate_default_phase(0.85f);
 }
 
-void TMS9918::set_tv_standard(TVStandard standard) {
+template <Personality personality>
+void TMS9918<personality>::set_tv_standard(TVStandard standard) {
 	tv_standard_ = standard;
 	switch(standard) {
 		case TVStandard::PAL:
@@ -138,11 +140,13 @@ void TMS9918::set_tv_standard(TVStandard standard) {
 	}
 }
 
-void TMS9918::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+template <Personality personality>
+void TMS9918<personality>::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
-Outputs::Display::ScanStatus TMS9918::get_scaled_scan_status() const {
+template <Personality personality>
+Outputs::Display::ScanStatus TMS9918<personality>::get_scaled_scan_status() const {
 	// The input was scaled by 3/4 to convert half cycles to internal ticks,
 	// so undo that and also allow for: (i) the multiply by 4 that it takes
 	// to reach the CRT; and (ii) the fact that the half-cycles value was scaled,
@@ -150,11 +154,13 @@ Outputs::Display::ScanStatus TMS9918::get_scaled_scan_status() const {
 	return crt_.get_scaled_scan_status() * (4.0f / (3.0f * 8.0f));
 }
 
-void TMS9918::set_display_type(Outputs::Display::DisplayType display_type) {
+template <Personality personality>
+void TMS9918<personality>::set_display_type(Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 }
 
-Outputs::Display::DisplayType TMS9918::get_display_type() const {
+template <Personality personality>
+Outputs::Display::DisplayType TMS9918<personality>::get_display_type() const {
 	return crt_.get_display_type();
 }
 
@@ -193,7 +199,8 @@ void Base::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_positi
 	++buffer.active_sprite_slot;
 }
 
-void TMS9918::run_for(const HalfCycles cycles) {
+template <Personality personality>
+void TMS9918<personality>::run_for(const HalfCycles cycles) {
 	// As specific as I've been able to get:
 	// Scanline time is always 228 cycles.
 	// PAL output is 313 lines total. NTSC output is 262 lines total.
@@ -532,7 +539,8 @@ void Base::output_border(int cycles, uint32_t cram_dot) {
 	}
 }
 
-void TMS9918::write(int address, uint8_t value) {
+template <Personality personality>
+void TMS9918<personality>::write(int address, uint8_t value) {
 	// Writes to address 0 are writes to the video RAM. Store
 	// the value and return.
 	if(!(address & 1)) {
@@ -662,7 +670,8 @@ void TMS9918::write(int address, uint8_t value) {
 	}
 }
 
-uint8_t TMS9918::get_current_line() {
+template <Personality personality>
+uint8_t TMS9918<personality>::get_current_line() {
 	// Determine the row to return.
 	constexpr int row_change_position = 63;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
 	int source_row =
@@ -696,7 +705,8 @@ uint8_t TMS9918::get_current_line() {
 	return uint8_t(source_row);
 }
 
-uint8_t TMS9918::get_latched_horizontal_counter() {
+template <Personality personality>
+uint8_t TMS9918<personality>::get_latched_horizontal_counter() {
 	// Translate from internal numbering, which puts pixel output
 	// in the final 256 pixels of 342, to the public numbering,
 	// which makes the 256 pixels the first 256 spots, but starts
@@ -706,11 +716,13 @@ uint8_t TMS9918::get_latched_horizontal_counter() {
 	return uint8_t(public_counter >> 1);
 }
 
-void TMS9918::latch_horizontal_counter() {
+template <Personality personality>
+void TMS9918<personality>::latch_horizontal_counter() {
 	latched_column_ = write_pointer_.column;
 }
 
-uint8_t TMS9918::read(int address) {
+template <Personality personality>
+uint8_t TMS9918<personality>::read(int address) {
 	write_phase_ = false;
 
 	// Reads from address 0 read video RAM, via the read-ahead buffer.
@@ -732,7 +744,8 @@ HalfCycles Base::half_cycles_before_internal_cycles(int internal_cycles) {
 	return HalfCycles(((internal_cycles << 2) + (2 - cycles_error_)) / 3);
 }
 
-HalfCycles TMS9918::get_next_sequence_point() {
+template <Personality personality>
+HalfCycles TMS9918<personality>::get_next_sequence_point() {
 	if(!generate_interrupts_ && !enable_line_interrupts_) return HalfCycles::max();
 	if(get_interrupt_line()) return HalfCycles::max();
 
@@ -786,7 +799,8 @@ HalfCycles TMS9918::get_next_sequence_point() {
 	return half_cycles_before_internal_cycles(std::min(local_cycles_until_line_interrupt, time_until_frame_interrupt));
 }
 
-HalfCycles TMS9918::get_time_until_line(int line) {
+template <Personality personality>
+HalfCycles TMS9918<personality>::get_time_until_line(int line) {
 	if(line < 0) line += mode_timing_.total_lines;
 
 	int cycles_to_next_interrupt_threshold = mode_timing_.line_interrupt_position - write_pointer_.column;
@@ -803,7 +817,8 @@ HalfCycles TMS9918::get_time_until_line(int line) {
 	return half_cycles_before_internal_cycles(cycles_to_next_interrupt_threshold + (line - line_of_next_interrupt_threshold)*342);
 }
 
-bool TMS9918::get_interrupt_line() {
+template <Personality personality>
+bool TMS9918<personality>::get_interrupt_line() {
 	return ((status_ & StatusInterrupt) && generate_interrupts_) || (enable_line_interrupts_ && line_interrupt_pending_);
 }
 
@@ -1074,3 +1089,11 @@ void Base::draw_sms(int start, int end, uint32_t cram_dot) {
 		}
 	}
 }
+
+template class TI::TMS::TMS9918<Personality::TMS9918A>;
+template class TI::TMS::TMS9918<Personality::V9938>;
+template class TI::TMS::TMS9918<Personality::V9958>;
+template class TI::TMS::TMS9918<Personality::SMSVDP>;
+template class TI::TMS::TMS9918<Personality::SMS2VDP>;
+template class TI::TMS::TMS9918<Personality::GGVDP>;
+template class TI::TMS::TMS9918<Personality::MDVDP>;

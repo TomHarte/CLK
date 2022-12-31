@@ -431,6 +431,7 @@ class ConcreteMachine:
 		}
 
 	private:
+		// TODO: incorporate this into the VDP declaration.
 		static TI::TMS::Personality tms_personality_for_model(Analyser::Static::Sega::Target::Model model) {
 			switch(model) {
 				default:
@@ -485,7 +486,7 @@ class ConcreteMachine:
 		const Target::Region region_;
 		const Target::PagingScheme paging_scheme_;
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<TI::TMS::TMS9918> vdp_;
+		JustInTimeActor<TI::TMS::TMS9918<TI::TMS::Personality::SMSVDP>> vdp_;	// TODO.
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		TI::SN76489 sn76489_;
