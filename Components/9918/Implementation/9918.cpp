@@ -218,9 +218,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 	// Convert 456 clocked half cycles per line to 342 internal cycles per line;
 	// the internal clock is 1.5 times the nominal 3.579545 Mhz that I've advertised
 	// for this part. So multiply by three quarters.
-	int int_cycles = int(cycles.as_integral() * 3) + this->cycles_error_;
-	this->cycles_error_ = int_cycles & 3;
-	int_cycles >>= 2;
+	int int_cycles = this->clock_converter_.to_internal(cycles.as<int>());
 	if(!int_cycles) return;
 
 	// There are two intertwined processes here, 'writing' (which means writing to the
@@ -236,7 +234,10 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 		if(write_cycles_pool) {
 			// Determine how much writing to do.
-			const int write_cycles = std::min(342 - this->write_pointer_.column, write_cycles_pool);
+			const int write_cycles = std::min(
+				this->clock_converter_.CyclesPerLine - this->write_pointer_.column,
+				write_cycles_pool
+			);
 			const int end_column = this->write_pointer_.column + write_cycles;
 			LineBuffer &line_buffer = this->line_buffers_[this->write_pointer_.row];
 
@@ -274,16 +275,16 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// Perform memory accesses.
 			// ------------------------
 #define fetch(function)	\
-	if(final_window != 171) {	\
+	if(final_window != this->clock_converter_.AccessWindowCyclesPerLine) {	\
 		function<true>(first_window, final_window);\
 	} else {\
 		function<false>(first_window, final_window);\
 	}
 
-			// column_ and end_column are in 342-per-line cycles;
-			// adjust them to a count of windows.
-			const int first_window = this->write_pointer_.column >> 1;
-			const int final_window = end_column >> 1;
+			// Adjust column_ and end_column to the access-window clock before calling
+			// the mode-applicable fetch function.
+			const int first_window = this->clock_converter_.to_access_clock(this->write_pointer_.column);
+			const int final_window = this->clock_converter_.to_access_clock(end_column);
 			if(first_window != final_window) {
 				switch(line_buffer.line_mode) {
 					case LineMode::Text:		fetch(this->template fetch_tms_text);		break;
@@ -336,7 +337,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			this->write_pointer_.column = end_column;
 			write_cycles_pool -= write_cycles;
 
-			if(this->write_pointer_.column == 342) {
+			if(this->write_pointer_.column == this->clock_converter_.CyclesPerLine) {
 				this->write_pointer_.column = 0;
 				this->write_pointer_.row = (this->write_pointer_.row + 1) % this->mode_timing_.total_lines;
 				LineBuffer &next_line_buffer = this->line_buffers_[this->write_pointer_.row];
@@ -345,7 +346,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->set_current_screen_mode();
 
 				// Based on the output mode, pick a line mode.
-				next_line_buffer.first_pixel_output_column = 86;
+				next_line_buffer.first_pixel_output_column = 86;	// TODO: these should be a function of ClockConverter::CyclesPerLine.
 				next_line_buffer.next_border_column = 342;
 				this->mode_timing_.maximum_visible_sprites = 4;
 				switch(this->screen_mode_) {
@@ -379,25 +380,31 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 		if(read_cycles_pool) {
 			// Determine how much time has passed in the remainder of this line, and proceed.
-			const int target_read_cycles = std::min(342 - this->read_pointer_.column, read_cycles_pool);
+			const int target_read_cycles = std::min(
+				this->clock_converter_.CyclesPerLine - this->read_pointer_.column,
+				read_cycles_pool
+			);
 			int read_cycles_performed = 0;
 			uint32_t next_cram_value = 0;
 
 			while(read_cycles_performed < target_read_cycles) {
+				int read_cycles = target_read_cycles - read_cycles_performed;
+				if(!read_cycles) continue;
+
 				const uint32_t cram_value = next_cram_value;
 				next_cram_value = 0;
-				int read_cycles = target_read_cycles - read_cycles_performed;
-				if(!this->upcoming_cram_dots_.empty() && this->upcoming_cram_dots_.front().location.row == this->read_pointer_.row) {
-					int time_until_dot = this->upcoming_cram_dots_.front().location.column - this->read_pointer_.column;
+				if constexpr (is_sega_vdp(personality)) {
+					if(!this->upcoming_cram_dots_.empty() && this->upcoming_cram_dots_.front().location.row == this->read_pointer_.row) {
+						int time_until_dot = this->upcoming_cram_dots_.front().location.column - this->read_pointer_.column;
 
-					if(time_until_dot < read_cycles) {
-						read_cycles = time_until_dot;
-						next_cram_value = this->upcoming_cram_dots_.front().value;
-						this->upcoming_cram_dots_.erase(this->upcoming_cram_dots_.begin());
+						if(time_until_dot < read_cycles) {
+							read_cycles = time_until_dot;
+							next_cram_value = this->upcoming_cram_dots_.front().value;
+							this->upcoming_cram_dots_.erase(this->upcoming_cram_dots_.begin());
+						}
 					}
 				}
 
-				if(!read_cycles) continue;
 				read_cycles_performed += read_cycles;
 
 				const int end_column = this->read_pointer_.column + read_cycles;
@@ -418,6 +425,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 #define border(left, right)	intersect(left, right, this->output_border(end - start, cram_value))
 
+				// TODO: CRT clock might need to change?
 				if(line_buffer.line_mode == LineMode::Refresh || this->read_pointer_.row > this->mode_timing_.pixel_lines) {
 					if(this->read_pointer_.row >= this->mode_timing_.first_vsync_line && this->read_pointer_.row < this->mode_timing_.first_vsync_line+4) {
 						// Vertical sync.
@@ -507,7 +515,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			}
 
 			read_cycles_pool -= target_read_cycles;
-			if(this->read_pointer_.column == 342) {
+			if(this->read_pointer_.column == this->clock_converter_.CyclesPerLine) {
 				this->read_pointer_.column = 0;
 				this->read_pointer_.row = (this->read_pointer_.row + 1) % this->mode_timing_.total_lines;
 			}
@@ -751,11 +759,6 @@ uint8_t TMS9918<personality>::read(int address) {
 }
 
 template <Personality personality>
-HalfCycles Base<personality>::half_cycles_before_internal_cycles(int internal_cycles) const {
-	return HalfCycles(((internal_cycles << 2) + (2 - cycles_error_)) / 3);
-}
-
-template <Personality personality>
 HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	if(!this->generate_interrupts_ && !this->enable_line_interrupts_) return HalfCycles::max();
 	if(get_interrupt_line()) return HalfCycles::max();
@@ -769,7 +772,7 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 		) % frame_length;
 	if(!time_until_frame_interrupt) time_until_frame_interrupt = frame_length;
 
-	if(!this->enable_line_interrupts_) return this->half_cycles_before_internal_cycles(time_until_frame_interrupt);
+	if(!this->enable_line_interrupts_) return this->clock_converter_.half_cycles_before_internal_cycles(time_until_frame_interrupt);
 
 	// Calculate when the next line interrupt will occur.
 	int next_line_interrupt_row = -1;
@@ -797,17 +800,17 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	// the frame end interrupt or no interrupt pending as appropriate.
 	if(next_line_interrupt_row == -1) {
 		return this->generate_interrupts_ ?
-			this->half_cycles_before_internal_cycles(time_until_frame_interrupt) :
+			this->clock_converter_.half_cycles_before_internal_cycles(time_until_frame_interrupt) :
 			HalfCycles::max();
 	}
 
 	// Figure out the number of internal cycles until the next line interrupt, which is the amount
 	// of time to the next tick over and then next_line_interrupt_row - row_ lines further.
 	const int local_cycles_until_line_interrupt = cycles_to_next_interrupt_threshold + (next_line_interrupt_row - line_of_next_interrupt_threshold) * 342;
-	if(!this->generate_interrupts_) return this->half_cycles_before_internal_cycles(local_cycles_until_line_interrupt);
+	if(!this->generate_interrupts_) return this->clock_converter_.half_cycles_before_internal_cycles(local_cycles_until_line_interrupt);
 
 	// Return whichever interrupt is closer.
-	return this->half_cycles_before_internal_cycles(std::min(local_cycles_until_line_interrupt, time_until_frame_interrupt));
+	return this->clock_converter_.half_cycles_before_internal_cycles(std::min(local_cycles_until_line_interrupt, time_until_frame_interrupt));
 }
 
 template <Personality personality>
@@ -825,7 +828,7 @@ HalfCycles TMS9918<personality>::get_time_until_line(int line) {
 		line += this->mode_timing_.total_lines;
 	}
 
-	return this->half_cycles_before_internal_cycles(cycles_to_next_interrupt_threshold + (line - line_of_next_interrupt_threshold)*342);
+	return this->clock_converter_.half_cycles_before_internal_cycles(cycles_to_next_interrupt_threshold + (line - line_of_next_interrupt_threshold)*342);
 }
 
 template <Personality personality>

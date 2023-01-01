@@ -11,6 +11,7 @@
 
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "ClockConverter.hpp"
 
 #include <array>
 #include <cassert>
@@ -199,11 +200,7 @@ template <Personality personality> struct Base {
 	uint8_t text_colour_ = 0;
 	uint8_t background_colour_ = 0;
 
-	// This implementation of this chip officially accepts a 3.58Mhz clock, but runs
-	// internally at 5.37Mhz. The following two help to maintain a lossless conversion
-	// from the one to the other.
-	int cycles_error_ = 0;
-	HalfCycles half_cycles_before_internal_cycles(int internal_cycles) const;
+	ClockConverter<personality> clock_converter_;
 
 	// Internal mechanisms for position tracking.
 	int latched_column_ = 0;

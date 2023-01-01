@@ -1317,6 +1317,7 @@
 		4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPM.cpp; path = Parsers/CPM.cpp; sourceTree = "<group>"; };
 		4B3FE75D1F3CF68B00448EE4 /* CPM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CPM.hpp; path = Parsers/CPM.hpp; sourceTree = "<group>"; };
 		4B43983829620FB1006B0BFC /* 9918.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 9918.cpp; sourceTree = "<group>"; };
+		4B43983C29621024006B0BFC /* ClockConverter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockConverter.hpp; sourceTree = "<group>"; };
 		4B448E7F1F1C45A00009ABD6 /* TZX.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TZX.cpp; sourceTree = "<group>"; };
 		4B448E801F1C45A00009ABD6 /* TZX.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TZX.hpp; sourceTree = "<group>"; };
 		4B448E821F1C4C480009ABD6 /* PulseQueuedTape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PulseQueuedTape.cpp; sourceTree = "<group>"; };
@@ -4734,6 +4735,7 @@
 			children = (
 				4B43983829620FB1006B0BFC /* 9918.cpp */,
 				4BD388411FE34E010042B588 /* 9918Base.hpp */,
+				4B43983C29621024006B0BFC /* ClockConverter.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";
