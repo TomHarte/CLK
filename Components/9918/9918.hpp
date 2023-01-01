@@ -57,10 +57,7 @@ namespace TMS {
 */
 template <Personality personality> class TMS9918: public Base<personality> {
 	public:
-		/*!
-			Constructs an instance of the drive controller that behaves according to personality @c p.
-			@param p The type of controller to emulate.
-		*/
+		/*! Constructs an instance of the VDP that behaves according to the templated personality. */
 		TMS9918();
 
 		/*! Sets the TV standard for this TMS, if that is hard-coded in hardware. */
@@ -69,7 +66,7 @@ template <Personality personality> class TMS9918: public Base<personality> {
 		/*! Sets the scan target this TMS will post content to. */
 		void set_scan_target(Outputs::Display::ScanTarget *);
 
-		/// Gets the current scan status.
+		/*! Gets the current scan status. */
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 		/*! Sets the type of display the CRT will request. */
@@ -79,8 +76,13 @@ template <Personality personality> class TMS9918: public Base<personality> {
 		Outputs::Display::DisplayType get_display_type() const;
 
 		/*!
-			Runs the VCP for the number of cycles indicate; it is an implicit assumption of the code
-			that the input clock rate is 3579545 Hz, the NTSC colour clock rate.
+			Runs the VDP for the number of cycles indicate; the input clock rate is implicitly assumed.
+
+			For everything except the Mega Drive VDP:
+				* the input clock rate should be 3579545 Hz, the NTSC colour clock rate.
+
+			For the Mega Drive:
+				* the input clock rate should be [TODO].
 		*/
 		void run_for(const HalfCycles cycles);
 
@@ -90,10 +92,10 @@ template <Personality personality> class TMS9918: public Base<personality> {
 		/*! Gets a register value. */
 		uint8_t read(int address);
 
-		/*! Gets the current scan line; provided by the Master System only. */
+		/*! Gets the current scan line; provided by the Sega VDPs only. */
 		uint8_t get_current_line();
 
-		/*! Gets the current latched horizontal counter; provided by the Master System only. */
+		/*! Gets the current latched horizontal counter; provided by the Sega VDPs only. */
 		uint8_t get_latched_horizontal_counter();
 
 		/*! Latches the current horizontal counter. */
