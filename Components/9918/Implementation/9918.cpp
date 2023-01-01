@@ -6,12 +6,12 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#include "9918.hpp"
+#include "../9918.hpp"
 
 #include <cassert>
 #include <cstring>
 #include <cstdlib>
-#include "../../Outputs/Log.hpp"
+#include "../../../Outputs/Log.hpp"
 
 using namespace TI::TMS;
 

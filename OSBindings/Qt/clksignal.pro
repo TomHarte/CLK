@@ -65,6 +65,7 @@ SOURCES += \
 	$$SRC/Components/8272/*.cpp \
 	$$SRC/Components/8530/*.cpp \
 	$$SRC/Components/9918/*.cpp \
+	$$SRC/Components/9918/Implementation/*.cpp \
 	$$SRC/Components/AudioToggle/*.cpp \
 	$$SRC/Components/AY38910/*.cpp \
 	$$SRC/Components/DiskII/*.cpp \
