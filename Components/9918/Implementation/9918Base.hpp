@@ -12,6 +12,7 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <memory>
@@ -158,14 +159,13 @@ template <Personality personality> class Base {
 			palette_pack(255, 255, 255)
 		};
 
-		Base(Personality p);
+		Base();
 
-		const Personality personality_;
 		Outputs::CRT::CRT crt_;
 		TVStandard tv_standard_ = TVStandard::NTSC;
 
 		// Holds the contents of this VDP's connected DRAM.
-		std::vector<uint8_t> ram_;
+		std::array<uint8_t, memory_size(personality)> ram_;
 
 		// Holds the state of the DRAM/CRAM-access mechanism.
 		uint16_t ram_pointer_ = 0;
@@ -312,10 +312,12 @@ template <Personality personality> class Base {
 				return;
 			}
 
-			if(is_sega_vdp(personality_) && master_system_.mode4_enable) {
-				screen_mode_ = ScreenMode::SMSMode4;
-				mode_timing_.maximum_visible_sprites = 8;
-				return;
+			if constexpr (is_sega_vdp(personality)) {
+				if(master_system_.mode4_enable) {
+					screen_mode_ = ScreenMode::SMSMode4;
+					mode_timing_.maximum_visible_sprites = 8;
+					return;
+				}
 			}
 
 			mode_timing_.maximum_visible_sprites = 4;

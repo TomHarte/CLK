@@ -94,7 +94,6 @@ class ConcreteMachine:
 			region_(target.region),
 			paging_scheme_(target.paging_scheme),
 			z80_(*this),
-			vdp_(tms_personality_for_model(target.model)),
 			sn76489_(
 				(target.model == Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
 				audio_queue_,
@@ -486,7 +485,7 @@ class ConcreteMachine:
 		const Target::Region region_;
 		const Target::PagingScheme paging_scheme_;
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<TI::TMS::TMS9918<TI::TMS::Personality::SMSVDP>> vdp_;	// TODO.
+		JustInTimeActor<TI::TMS::TMS9918<TI::TMS::Personality::SMSVDP>> vdp_;	// TODO: use tms_personality_for_model
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		TI::SN76489 sn76489_;

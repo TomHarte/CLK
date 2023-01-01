@@ -89,14 +89,12 @@ constexpr ReverseTable reverse_table;
 }
 
 template <Personality personality>
-Base<personality>::Base(Personality p) :
-	personality_(p),
+Base<personality>::Base() :
 	crt_(CRTCyclesPerLine, CRTCyclesDivider, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red8Green8Blue8) {
 	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
 	// into whether there's a more natural form. It feels unlikely given the diversity of chips modelled.
 
-	ram_.resize(memory_size(p));
-	if(is_sega_vdp(personality_)) {
+	if constexpr (is_sega_vdp(personality)) {
 		mode_timing_.line_interrupt_position = 64;
 
 		mode_timing_.end_of_frame_interrupt_position.column = 63;
@@ -112,8 +110,7 @@ Base<personality>::Base(Personality p) :
 }
 
 template <Personality personality>
-TMS9918<personality>::TMS9918(Personality p):
-	Base<personality>(p) {
+TMS9918<personality>::TMS9918() {
 	this->crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	this->crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));
 
@@ -514,7 +511,7 @@ template <Personality personality>
 void Base<personality>::output_border(int cycles, uint32_t cram_dot) {
 	cycles *= 4;
 	const uint32_t border_colour =
-		is_sega_vdp(personality_) ?
+		is_sega_vdp(personality) ?
 			master_system_.colour_ram[16 + background_colour_] :
 			palette[background_colour_];
 

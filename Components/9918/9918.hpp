@@ -61,7 +61,7 @@ template <Personality personality> class TMS9918: public Base<personality> {
 			Constructs an instance of the drive controller that behaves according to personality @c p.
 			@param p The type of controller to emulate.
 		*/
-		TMS9918(Personality p);
+		TMS9918();
 
 		/*! Sets the TV standard for this TMS, if that is hard-coded in hardware. */
 		void set_tv_standard(TVStandard standard);
