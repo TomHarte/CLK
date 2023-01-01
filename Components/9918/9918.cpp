@@ -86,6 +86,16 @@ struct ReverseTable {
 
 constexpr ReverseTable reverse_table;
 
+template <Personality personality> constexpr int vram_access_delay() {
+	// This seems to be correct for all currently-modelled VDPs;
+	// it's the delay between an external device scheduling a
+	// read or write and the very first time that can occur
+	// (though, in practice, it won't happen until the next
+	// external slot after this number of cycles after the
+	// device has requested the read or write).
+	return 6;
+}
+
 }
 
 template <Personality personality>
@@ -549,7 +559,7 @@ void TMS9918<personality>::write(int address, uint8_t value) {
 		// Enqueue the write to occur at the next available slot.
 		this->read_ahead_buffer_ = value;
 		this->queued_access_ = MemoryAccess::Write;
-		this->cycles_until_access_ = this->vram_access_delay();
+		this->cycles_until_access_ = vram_access_delay<personality>();
 
 		return;
 	}
@@ -664,7 +674,7 @@ void TMS9918<personality>::write(int address, uint8_t value) {
 			// A read request is enqueued upon setting the address; conversely a write
 			// won't be enqueued unless and until some actual data is supplied.
 			this->queued_access_ = MemoryAccess::Read;
-			this->cycles_until_access_ = this->vram_access_delay();
+			this->cycles_until_access_ = vram_access_delay<personality>();
 		}
 		this->master_system_.cram_is_selected = false;
 	}

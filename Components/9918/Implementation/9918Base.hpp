@@ -172,15 +172,6 @@ template <Personality personality> struct Base {
 	MemoryAccess queued_access_ = MemoryAccess::None;
 	int cycles_until_access_ = 0;
 	int minimum_access_column_ = 0;
-	int vram_access_delay() {
-		// This seems to be correct for all currently-modelled VDPs;
-		// it's the delay between an external device scheduling a
-		// read or write and the very first time that can occur
-		// (though, in practice, it won't happen until the next
-		// external slot after this number of cycles after the
-		// device has requested the read or write).
-		return 6;
-	}
 
 	// Holds the main status register.
 	uint8_t status_ = 0;
