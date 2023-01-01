@@ -121,280 +121,279 @@ struct LineBufferPointer {
 	int row, column;
 };
 
-template <Personality personality> class Base {
-	public:
-		static uint32_t palette_pack(uint8_t r, uint8_t g, uint8_t b) {
-			uint32_t result = 0;
-			uint8_t *const result_ptr = reinterpret_cast<uint8_t *>(&result);
-			result_ptr[0] = r;
-			result_ptr[1] = g;
-			result_ptr[2] = b;
-			result_ptr[3] = 0;
-			return result;
-		}
+template <Personality personality> struct Base {
+	static constexpr int output_lag = 11;	// i.e. pixel output will occur 11 cycles
+											// after corresponding data read.
 
-	protected:
-		static constexpr int output_lag = 11;	// i.e. pixel output will occur 11 cycles after corresponding data read.
+	static constexpr uint32_t palette_pack(uint8_t r, uint8_t g, uint8_t b) {
+		uint32_t result = 0;
+		uint8_t *const result_ptr = reinterpret_cast<uint8_t *>(&result);
+		result_ptr[0] = r;
+		result_ptr[1] = g;
+		result_ptr[2] = b;
+		result_ptr[3] = 0;
+		return result;
+	}
 
-		// The default TMS palette.
-		const uint32_t palette[16] = {
-			palette_pack(0, 0, 0),
-			palette_pack(0, 0, 0),
-			palette_pack(33, 200, 66),
-			palette_pack(94, 220, 120),
+	// The default TMS palette.
+	const uint32_t palette[16] = {
+		palette_pack(0, 0, 0),
+		palette_pack(0, 0, 0),
+		palette_pack(33, 200, 66),
+		palette_pack(94, 220, 120),
 
-			palette_pack(84, 85, 237),
-			palette_pack(125, 118, 252),
-			palette_pack(212, 82, 77),
-			palette_pack(66, 235, 245),
+		palette_pack(84, 85, 237),
+		palette_pack(125, 118, 252),
+		palette_pack(212, 82, 77),
+		palette_pack(66, 235, 245),
 
-			palette_pack(252, 85, 84),
-			palette_pack(255, 121, 120),
-			palette_pack(212, 193, 84),
-			palette_pack(230, 206, 128),
+		palette_pack(252, 85, 84),
+		palette_pack(255, 121, 120),
+		palette_pack(212, 193, 84),
+		palette_pack(230, 206, 128),
 
-			palette_pack(33, 176, 59),
-			palette_pack(201, 91, 186),
-			palette_pack(204, 204, 204),
-			palette_pack(255, 255, 255)
-		};
+		palette_pack(33, 176, 59),
+		palette_pack(201, 91, 186),
+		palette_pack(204, 204, 204),
+		palette_pack(255, 255, 255)
+	};
 
-		Base();
+	Base();
 
-		Outputs::CRT::CRT crt_;
-		TVStandard tv_standard_ = TVStandard::NTSC;
+	Outputs::CRT::CRT crt_;
+	TVStandard tv_standard_ = TVStandard::NTSC;
 
-		// Holds the contents of this VDP's connected DRAM.
-		std::array<uint8_t, memory_size(personality)> ram_;
+	// Holds the contents of this VDP's connected DRAM.
+	std::array<uint8_t, memory_size(personality)> ram_;
 
-		// Holds the state of the DRAM/CRAM-access mechanism.
-		uint16_t ram_pointer_ = 0;
-		uint8_t read_ahead_buffer_ = 0;
-		MemoryAccess queued_access_ = MemoryAccess::None;
-		int cycles_until_access_ = 0;
-		int minimum_access_column_ = 0;
-		int vram_access_delay() {
-			// This seems to be correct for all currently-modelled VDPs;
-			// it's the delay between an external device scheduling a
-			// read or write and the very first time that can occur
-			// (though, in practice, it won't happen until the next
-			// external slot after this number of cycles after the
-			// device has requested the read or write).
-			return 6;
-		}
+	// Holds the state of the DRAM/CRAM-access mechanism.
+	uint16_t ram_pointer_ = 0;
+	uint8_t read_ahead_buffer_ = 0;
+	MemoryAccess queued_access_ = MemoryAccess::None;
+	int cycles_until_access_ = 0;
+	int minimum_access_column_ = 0;
+	int vram_access_delay() {
+		// This seems to be correct for all currently-modelled VDPs;
+		// it's the delay between an external device scheduling a
+		// read or write and the very first time that can occur
+		// (though, in practice, it won't happen until the next
+		// external slot after this number of cycles after the
+		// device has requested the read or write).
+		return 6;
+	}
 
-		// Holds the main status register.
-		uint8_t status_ = 0;
+	// Holds the main status register.
+	uint8_t status_ = 0;
 
-		// Current state of programmer input.
-		bool write_phase_ = false;	// Determines whether the VDP is expecting the low or high byte of a write.
-		uint8_t low_write_ = 0;		// Buffers the low byte of a write.
+	// Current state of programmer input.
+	bool write_phase_ = false;	// Determines whether the VDP is expecting the low or high byte of a write.
+	uint8_t low_write_ = 0;		// Buffers the low byte of a write.
 
-		// Various programmable flags.
-		bool mode1_enable_ = false;
-		bool mode2_enable_ = false;
-		bool mode3_enable_ = false;
-		bool blank_display_ = false;
-		bool sprites_16x16_ = false;
-		bool sprites_magnified_ = false;
-		bool generate_interrupts_ = false;
-		int sprite_height_ = 8;
+	// Various programmable flags.
+	bool mode1_enable_ = false;
+	bool mode2_enable_ = false;
+	bool mode3_enable_ = false;
+	bool blank_display_ = false;
+	bool sprites_16x16_ = false;
+	bool sprites_magnified_ = false;
+	bool generate_interrupts_ = false;
+	int sprite_height_ = 8;
 
-		size_t pattern_name_address_ = 0;				// i.e. address of the tile map.
-		size_t colour_table_address_ = 0;				// address of the colour map (if applicable).
-		size_t pattern_generator_table_address_ = 0;	// address of the tile contents.
-		size_t sprite_attribute_table_address_ = 0;		// address of the sprite list.
-		size_t sprite_generator_table_address_ = 0;		// address of the sprite contents.
+	size_t pattern_name_address_ = 0;				// i.e. address of the tile map.
+	size_t colour_table_address_ = 0;				// address of the colour map (if applicable).
+	size_t pattern_generator_table_address_ = 0;	// address of the tile contents.
+	size_t sprite_attribute_table_address_ = 0;		// address of the sprite list.
+	size_t sprite_generator_table_address_ = 0;		// address of the sprite contents.
 
-		uint8_t text_colour_ = 0;
-		uint8_t background_colour_ = 0;
+	uint8_t text_colour_ = 0;
+	uint8_t background_colour_ = 0;
 
-		// This implementation of this chip officially accepts a 3.58Mhz clock, but runs
-		// internally at 5.37Mhz. The following two help to maintain a lossless conversion
-		// from the one to the other.
-		int cycles_error_ = 0;
-		HalfCycles half_cycles_before_internal_cycles(int internal_cycles);
+	// This implementation of this chip officially accepts a 3.58Mhz clock, but runs
+	// internally at 5.37Mhz. The following two help to maintain a lossless conversion
+	// from the one to the other.
+	int cycles_error_ = 0;
+	HalfCycles half_cycles_before_internal_cycles(int internal_cycles) const;
 
-		// Internal mechanisms for position tracking.
-		int latched_column_ = 0;
+	// Internal mechanisms for position tracking.
+	int latched_column_ = 0;
 
-		// A helper function to output the current border colour for
-		// the number of cycles supplied.
-		void output_border(int cycles, uint32_t cram_dot);
+	// A helper function to output the current border colour for
+	// the number of cycles supplied.
+	void output_border(int cycles, uint32_t cram_dot);
 
-		// A struct to contain timing information for the current mode.
+	// A struct to contain timing information for the current mode.
+	struct {
+		/*
+			Vertical layout:
+
+			Lines 0 to [pixel_lines]: standard data fetch and drawing will occur.
+			... to [first_vsync_line]: refresh fetches will occur and border will be output.
+			.. to [2.5 or 3 lines later]: vertical sync is output.
+			... to [total lines - 1]: refresh fetches will occur and border will be output.
+			... for one line: standard data fetch will occur, without drawing.
+		*/
+		int total_lines = 262;
+		int pixel_lines = 192;
+		int first_vsync_line = 227;
+
+		// Maximum number of sprite slots to populate;
+		// if sprites beyond this number should be visible
+		// then the appropriate status information will be set.
+		int maximum_visible_sprites = 4;
+
+		// Set the position, in cycles, of the two interrupts,
+		// within a line.
 		struct {
-			/*
-				Vertical layout:
+			int column = 4;
+			int row = 193;
+		} end_of_frame_interrupt_position;
+		int line_interrupt_position = -1;
 
-				Lines 0 to [pixel_lines]: standard data fetch and drawing will occur.
-				... to [first_vsync_line]: refresh fetches will occur and border will be output.
-				.. to [2.5 or 3 lines later]: vertical sync is output.
-				... to [total lines - 1]: refresh fetches will occur and border will be output.
-				... for one line: standard data fetch will occur, without drawing.
-			*/
-			int total_lines = 262;
-			int pixel_lines = 192;
-			int first_vsync_line = 227;
+		// Enables or disabled the recognition of the sprite
+		// list terminator, and sets the terminator value.
+		bool allow_sprite_terminator = true;
+		uint8_t sprite_terminator = 0xd0;
+	} mode_timing_;
 
-			// Maximum number of sprite slots to populate;
-			// if sprites beyond this number should be visible
-			// then the appropriate status information will be set.
-			int maximum_visible_sprites = 4;
+	uint8_t line_interrupt_target = 0xff;
+	uint8_t line_interrupt_counter = 0;
+	bool enable_line_interrupts_ = false;
+	bool line_interrupt_pending_ = false;
 
-			// Set the position, in cycles, of the two interrupts,
-			// within a line.
-			struct {
-				int column = 4;
-				int row = 193;
-			} end_of_frame_interrupt_position;
-			int line_interrupt_position = -1;
+	ScreenMode screen_mode_;
+	LineBuffer line_buffers_[313];
+	void posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_y, int screen_row);
 
-			// Enables or disabled the recognition of the sprite
-			// list terminator, and sets the terminator value.
-			bool allow_sprite_terminator = true;
-			uint8_t sprite_terminator = 0xd0;
-		} mode_timing_;
+	// There is a delay between reading into the line buffer and outputting from there to the screen. That delay
+	// is observeable because reading time affects availability of memory accesses and therefore time in which
+	// to update sprites and tiles, but writing time affects when the palette is used and when the collision flag
+	// may end up being set. So the two processes are slightly decoupled. The end of reading one line may overlap
+	// with the beginning of writing the next, hence the two separate line buffers.
+	LineBufferPointer read_pointer_, write_pointer_;
 
-		uint8_t line_interrupt_target = 0xff;
-		uint8_t line_interrupt_counter = 0;
-		bool enable_line_interrupts_ = false;
-		bool line_interrupt_pending_ = false;
+	// The SMS VDP has a programmer-set colour palette, with a dedicated patch of RAM. But the RAM is only exactly
+	// fast enough for the pixel clock. So when the programmer writes to it, that causes a one-pixel glitch; there
+	// isn't the bandwidth for the read both write to occur simultaneously. The following buffer therefore keeps
+	// track of pending collisions, for visual reproduction.
+	struct CRAMDot {
+		LineBufferPointer location;
+		uint32_t value;
+	};
+	std::vector<CRAMDot> upcoming_cram_dots_;
 
-		ScreenMode screen_mode_;
-		LineBuffer line_buffers_[313];
-		void posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_y, int screen_row);
+	// Extra information that affects the Master System output mode.
+	struct {
+		// Programmer-set flags.
+		bool vertical_scroll_lock = false;
+		bool horizontal_scroll_lock = false;
+		bool hide_left_column = false;
+		bool shift_sprites_8px_left = false;
+		bool mode4_enable = false;
+		uint8_t horizontal_scroll = 0;
+		uint8_t vertical_scroll = 0;
 
-		// There is a delay between reading into the line buffer and outputting from there to the screen. That delay
-		// is observeable because reading time affects availability of memory accesses and therefore time in which
-		// to update sprites and tiles, but writing time affects when the palette is used and when the collision flag
-		// may end up being set. So the two processes are slightly decoupled. The end of reading one line may overlap
-		// with the beginning of writing the next, hence the two separate line buffers.
-		LineBufferPointer read_pointer_, write_pointer_;
+		// The Master System's additional colour RAM.
+		uint32_t colour_ram[32];
+		bool cram_is_selected = false;
 
-		// The SMS VDP has a programmer-set colour palette, with a dedicated patch of RAM. But the RAM is only exactly
-		// fast enough for the pixel clock. So when the programmer writes to it, that causes a one-pixel glitch; there
-		// isn't the bandwidth for the read both write to occur simultaneously. The following buffer therefore keeps
-		// track of pending collisions, for visual reproduction.
-		struct CRAMDot {
-			LineBufferPointer location;
-			uint32_t value;
-		};
-		std::vector<CRAMDot> upcoming_cram_dots_;
+		// Holds the vertical scroll position for this frame; this is latched
+		// once and cannot dynamically be changed until the next frame.
+		uint8_t latched_vertical_scroll = 0;
 
-		// Extra information that affects the Master System output mode.
-		struct {
-			// Programmer-set flags.
-			bool vertical_scroll_lock = false;
-			bool horizontal_scroll_lock = false;
-			bool hide_left_column = false;
-			bool shift_sprites_8px_left = false;
-			bool mode4_enable = false;
-			uint8_t horizontal_scroll = 0;
-			uint8_t vertical_scroll = 0;
+		size_t pattern_name_address;
+		size_t sprite_attribute_table_address;
+		size_t sprite_generator_table_address;
+	} master_system_;
 
-			// The Master System's additional colour RAM.
-			uint32_t colour_ram[32];
-			bool cram_is_selected = false;
-
-			// Holds the vertical scroll position for this frame; this is latched
-			// once and cannot dynamically be changed until the next frame.
-			uint8_t latched_vertical_scroll = 0;
-
-			size_t pattern_name_address;
-			size_t sprite_attribute_table_address;
-			size_t sprite_generator_table_address;
-		} master_system_;
-
-		void set_current_screen_mode() {
-			if(blank_display_) {
-				screen_mode_ = ScreenMode::Blank;
-				return;
-			}
-
-			if constexpr (is_sega_vdp(personality)) {
-				if(master_system_.mode4_enable) {
-					screen_mode_ = ScreenMode::SMSMode4;
-					mode_timing_.maximum_visible_sprites = 8;
-					return;
-				}
-			}
-
-			mode_timing_.maximum_visible_sprites = 4;
-			if(!mode1_enable_ && !mode2_enable_ && !mode3_enable_) {
-				screen_mode_ = ScreenMode::ColouredText;
-				return;
-			}
-
-			if(mode1_enable_ && !mode2_enable_ && !mode3_enable_) {
-				screen_mode_ = ScreenMode::Text;
-				return;
-			}
-
-			if(!mode1_enable_ && mode2_enable_ && !mode3_enable_) {
-				screen_mode_ = ScreenMode::Graphics;
-				return;
-			}
-
-			if(!mode1_enable_ && !mode2_enable_ && mode3_enable_) {
-				screen_mode_ = ScreenMode::MultiColour;
-				return;
-			}
-
-			// TODO: undocumented TMS modes.
+	void set_current_screen_mode() {
+		if(blank_display_) {
 			screen_mode_ = ScreenMode::Blank;
+			return;
 		}
 
-		void do_external_slot(int access_column) {
-			// Don't do anything if the required time for the access to become executable
-			// has yet to pass.
-			if(access_column < minimum_access_column_) {
+		if constexpr (is_sega_vdp(personality)) {
+			if(master_system_.mode4_enable) {
+				screen_mode_ = ScreenMode::SMSMode4;
+				mode_timing_.maximum_visible_sprites = 8;
 				return;
 			}
-
-			switch(queued_access_) {
-				default: return;
-
-				case MemoryAccess::Write:
-					if(master_system_.cram_is_selected) {
-						// Adjust the palette. In a Master System blue has a slightly different
-						// scale; cf. https://www.retrorgb.com/sega-master-system-non-linear-blue-channel-findings.html
-						constexpr uint8_t rg_scale[] = {0, 85, 170, 255};
-						constexpr uint8_t b_scale[] = {0, 104, 170, 255};
-						master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
-							rg_scale[(read_ahead_buffer_ >> 0) & 3],
-							rg_scale[(read_ahead_buffer_ >> 2) & 3],
-							b_scale[(read_ahead_buffer_ >> 4) & 3]
-						);
-
-						// Schedule a CRAM dot; this is scheduled for wherever it should appear
-						// on screen. So it's wherever the output stream would be now. Which
-						// is output_lag cycles ago from the point of view of the input stream.
-						CRAMDot &dot = upcoming_cram_dots_.emplace_back();
-						dot.location.column = write_pointer_.column - output_lag;
-						dot.location.row = write_pointer_.row;
-
-						// Handle before this row conditionally; then handle after (or, more realistically,
-						// exactly at the end of) naturally.
-						if(dot.location.column < 0) {
-							--dot.location.row;
-							dot.location.column += 342;
-						}
-						dot.location.row += dot.location.column / 342;
-						dot.location.column %= 342;
-
-						dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
-					} else {
-						ram_[ram_pointer_ & 16383] = read_ahead_buffer_;
-					}
-				break;
-				case MemoryAccess::Read:
-					read_ahead_buffer_ = ram_[ram_pointer_ & 16383];
-				break;
-			}
-			++ram_pointer_;
-			queued_access_ = MemoryAccess::None;
 		}
+
+		mode_timing_.maximum_visible_sprites = 4;
+		if(!mode1_enable_ && !mode2_enable_ && !mode3_enable_) {
+			screen_mode_ = ScreenMode::ColouredText;
+			return;
+		}
+
+		if(mode1_enable_ && !mode2_enable_ && !mode3_enable_) {
+			screen_mode_ = ScreenMode::Text;
+			return;
+		}
+
+		if(!mode1_enable_ && mode2_enable_ && !mode3_enable_) {
+			screen_mode_ = ScreenMode::Graphics;
+			return;
+		}
+
+		if(!mode1_enable_ && !mode2_enable_ && mode3_enable_) {
+			screen_mode_ = ScreenMode::MultiColour;
+			return;
+		}
+
+		// TODO: undocumented TMS modes.
+		screen_mode_ = ScreenMode::Blank;
+	}
+
+	void do_external_slot(int access_column) {
+		// Don't do anything if the required time for the access to become executable
+		// has yet to pass.
+		if(access_column < minimum_access_column_) {
+			return;
+		}
+
+		switch(queued_access_) {
+			default: return;
+
+			case MemoryAccess::Write:
+				if(master_system_.cram_is_selected) {
+					// Adjust the palette. In a Master System blue has a slightly different
+					// scale; cf. https://www.retrorgb.com/sega-master-system-non-linear-blue-channel-findings.html
+					constexpr uint8_t rg_scale[] = {0, 85, 170, 255};
+					constexpr uint8_t b_scale[] = {0, 104, 170, 255};
+					master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
+						rg_scale[(read_ahead_buffer_ >> 0) & 3],
+						rg_scale[(read_ahead_buffer_ >> 2) & 3],
+						b_scale[(read_ahead_buffer_ >> 4) & 3]
+					);
+
+					// Schedule a CRAM dot; this is scheduled for wherever it should appear
+					// on screen. So it's wherever the output stream would be now. Which
+					// is output_lag cycles ago from the point of view of the input stream.
+					CRAMDot &dot = upcoming_cram_dots_.emplace_back();
+					dot.location.column = write_pointer_.column - output_lag;
+					dot.location.row = write_pointer_.row;
+
+					// Handle before this row conditionally; then handle after (or, more realistically,
+					// exactly at the end of) naturally.
+					if(dot.location.column < 0) {
+						--dot.location.row;
+						dot.location.column += 342;
+					}
+					dot.location.row += dot.location.column / 342;
+					dot.location.column %= 342;
+
+					dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
+				} else {
+					ram_[ram_pointer_ & 16383] = read_ahead_buffer_;
+				}
+			break;
+			case MemoryAccess::Read:
+				read_ahead_buffer_ = ram_[ram_pointer_ & 16383];
+			break;
+		}
+		++ram_pointer_;
+		queued_access_ = MemoryAccess::None;
+	}
 
 /*
 	Fetching routines follow below; they obey the following rules:
@@ -429,9 +428,9 @@ template <Personality personality> class Base {
 */
 
 #define slot(n)	\
-		if(use_end && end == n) return;	\
-		[[fallthrough]];				\
-		case n
+	if(use_end && end == n) return;	\
+	[[fallthrough]];				\
+	case n
 
 #define external_slot(n)	\
 	slot(n): do_external_slot((n)*2);
@@ -461,7 +460,7 @@ template <Personality personality> class Base {
 	TMS9918 Fetching Code
 ************************************************/
 
-		template<bool use_end> void fetch_tms_refresh(int start, int end) {
+	template<bool use_end> void fetch_tms_refresh(int start, int end) {
 #define refresh(location)		\
 	slot(location):				\
 	external_slot(location+1);
@@ -478,34 +477,34 @@ template <Personality personality> class Base {
 	refreshes_4(location);		\
 	refreshes_4(location+8);
 
-			switch(start) {
-				default: assert(false);
+		switch(start) {
+			default: assert(false);
 
-				/* 44 external slots */
-				external_slots_32(0)
-				external_slots_8(32)
-				external_slots_4(40)
+			/* 44 external slots */
+			external_slots_32(0)
+			external_slots_8(32)
+			external_slots_4(40)
 
-				/* 64 refresh/external slot pairs (= 128 windows) */
-				refreshes_8(44);
-				refreshes_8(60);
-				refreshes_8(76);
-				refreshes_8(92);
-				refreshes_8(108);
-				refreshes_8(124);
-				refreshes_8(140);
-				refreshes_8(156);
+			/* 64 refresh/external slot pairs (= 128 windows) */
+			refreshes_8(44);
+			refreshes_8(60);
+			refreshes_8(76);
+			refreshes_8(92);
+			refreshes_8(108);
+			refreshes_8(124);
+			refreshes_8(140);
+			refreshes_8(156);
 
-				return;
-			}
+			return;
+		}
 
 #undef refreshes_8
 #undef refreshes_4
 #undef refreshes_2
 #undef refresh
-		}
+	}
 
-		template<bool use_end> void fetch_tms_text(int start, int end) {
+	template<bool use_end> void fetch_tms_text(int start, int end) {
 #define fetch_tile_name(location, column)		slot(location): line_buffer.names[column].offset = ram_[row_base + column];
 #define fetch_tile_pattern(location, column)	slot(location): line_buffer.patterns[column][0] = ram_[row_offset + size_t(line_buffer.names[column].offset << 3)];
 
@@ -526,33 +525,33 @@ template <Personality personality> class Base {
 	fetch_columns_4(location, column);	\
 	fetch_columns_4(location+12, column+4);
 
-			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
-			const size_t row_base = pattern_name_address_ & (0x3c00 | size_t(write_pointer_.row >> 3) * 40);
-			const size_t row_offset = pattern_generator_table_address_ & (0x3800 | (write_pointer_.row & 7));
+		LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
+		const size_t row_base = pattern_name_address_ & (0x3c00 | size_t(write_pointer_.row >> 3) * 40);
+		const size_t row_offset = pattern_generator_table_address_ & (0x3800 | (write_pointer_.row & 7));
 
-			switch(start) {
-				default: assert(false);
+		switch(start) {
+			default: assert(false);
 
-					/* 47 external slots (= 47 windows) */
-					external_slots_32(0)
-					external_slots_8(32)
-					external_slots_4(40)
-					external_slots_2(44)
-					external_slot(46)
+				/* 47 external slots (= 47 windows) */
+				external_slots_32(0)
+				external_slots_8(32)
+				external_slots_4(40)
+				external_slots_2(44)
+				external_slot(46)
 
-					/* 40 column fetches (= 120 windows) */
-					fetch_columns_8(47, 0);
-					fetch_columns_8(71, 8);
-					fetch_columns_8(95, 16);
-					fetch_columns_8(119, 24);
-					fetch_columns_8(143, 32);
+				/* 40 column fetches (= 120 windows) */
+				fetch_columns_8(47, 0);
+				fetch_columns_8(71, 8);
+				fetch_columns_8(95, 16);
+				fetch_columns_8(119, 24);
+				fetch_columns_8(143, 32);
 
-					/* 5 more external slots */
-					external_slots_4(167);
-					external_slot(171);
+				/* 5 more external slots */
+				external_slots_4(167);
+				external_slot(171);
 
-				return;
-			}
+			return;
+		}
 
 #undef fetch_columns_8
 #undef fetch_columns_4
@@ -560,9 +559,9 @@ template <Personality personality> class Base {
 #undef fetch_column
 #undef fetch_tile_pattern
 #undef fetch_tile_name
-		}
+	}
 
-		template<bool use_end> void fetch_tms_character(int start, int end) {
+	template<bool use_end> void fetch_tms_character(int start, int end) {
 #define sprite_fetch_coordinates(location, sprite)	\
 	slot(location):		\
 	slot(location+1):	\
@@ -623,73 +622,73 @@ template <Personality personality> class Base {
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
 
-			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
-			LineBuffer &sprite_selection_buffer = line_buffers_[(write_pointer_.row + 1) % mode_timing_.total_lines];
-			const size_t row_base = pattern_name_address_ & (size_t((write_pointer_.row << 2)&~31) | 0x3c00);
+		LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
+		LineBuffer &sprite_selection_buffer = line_buffers_[(write_pointer_.row + 1) % mode_timing_.total_lines];
+		const size_t row_base = pattern_name_address_ & (size_t((write_pointer_.row << 2)&~31) | 0x3c00);
 
-			size_t pattern_base = pattern_generator_table_address_;
-			size_t colour_base = colour_table_address_;
-			int colour_name_shift = 6;
+		size_t pattern_base = pattern_generator_table_address_;
+		size_t colour_base = colour_table_address_;
+		int colour_name_shift = 6;
 
-			if(screen_mode_ == ScreenMode::Graphics) {
-				// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
-				pattern_base &= size_t(0x2000 | ((write_pointer_.row & 0xc0) << 5));
-				colour_base &= size_t(0x2000 | ((write_pointer_.row & 0xc0) << 5));
+		if(screen_mode_ == ScreenMode::Graphics) {
+			// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
+			pattern_base &= size_t(0x2000 | ((write_pointer_.row & 0xc0) << 5));
+			colour_base &= size_t(0x2000 | ((write_pointer_.row & 0xc0) << 5));
 
-				colour_base += size_t(write_pointer_.row & 7);
-				colour_name_shift = 0;
-			} else {
-				colour_base &= size_t(0xffc0);
-				pattern_base &= size_t(0x3800);
-			}
+			colour_base += size_t(write_pointer_.row & 7);
+			colour_name_shift = 0;
+		} else {
+			colour_base &= size_t(0xffc0);
+			pattern_base &= size_t(0x3800);
+		}
 
-			if(screen_mode_ == ScreenMode::MultiColour) {
-				pattern_base += size_t((write_pointer_.row >> 2) & 7);
-			} else {
-				pattern_base += size_t(write_pointer_.row & 7);
-			}
+		if(screen_mode_ == ScreenMode::MultiColour) {
+			pattern_base += size_t((write_pointer_.row >> 2) & 7);
+		} else {
+			pattern_base += size_t(write_pointer_.row & 7);
+		}
 
-			switch(start) {
-				default: assert(false);
+		switch(start) {
+			default: assert(false);
 
-				external_slots_2(0);
+			external_slots_2(0);
 
-				sprite_fetch_block(2, 0);
-				sprite_fetch_block(8, 1);
-				sprite_fetch_coordinates(14, 2);
+			sprite_fetch_block(2, 0);
+			sprite_fetch_block(8, 1);
+			sprite_fetch_coordinates(14, 2);
 
-				external_slots_4(16);
-				external_slot(20);
+			external_slots_4(16);
+			external_slot(20);
 
-				sprite_fetch_graphics(21, 2);
-				sprite_fetch_block(25, 3);
+			sprite_fetch_graphics(21, 2);
+			sprite_fetch_block(25, 3);
 
-				slot(31):
-					sprite_selection_buffer.reset_sprite_collection();
-					do_external_slot(31*2);
-				external_slots_2(32);
-				external_slot(34);
+			slot(31):
+				sprite_selection_buffer.reset_sprite_collection();
+				do_external_slot(31*2);
+			external_slots_2(32);
+			external_slot(34);
 
-				sprite_y_read(35, 0);
-				sprite_y_read(36, 1);
-				sprite_y_read(37, 2);
-				sprite_y_read(38, 3);
-				sprite_y_read(39, 4);
-				sprite_y_read(40, 5);
-				sprite_y_read(41, 6);
-				sprite_y_read(42, 7);
+			sprite_y_read(35, 0);
+			sprite_y_read(36, 1);
+			sprite_y_read(37, 2);
+			sprite_y_read(38, 3);
+			sprite_y_read(39, 4);
+			sprite_y_read(40, 5);
+			sprite_y_read(41, 6);
+			sprite_y_read(42, 7);
 
-				background_fetch_block(43, 0, 8);
-				background_fetch_block(59, 4, 11);
-				background_fetch_block(75, 8, 14);
-				background_fetch_block(91, 12, 17);
-				background_fetch_block(107, 16, 20);
-				background_fetch_block(123, 20, 23);
-				background_fetch_block(139, 24, 26);
-				background_fetch_block(155, 28, 29);
+			background_fetch_block(43, 0, 8);
+			background_fetch_block(59, 4, 11);
+			background_fetch_block(75, 8, 14);
+			background_fetch_block(91, 12, 17);
+			background_fetch_block(107, 16, 20);
+			background_fetch_block(123, 20, 23);
+			background_fetch_block(139, 24, 26);
+			background_fetch_block(155, 28, 29);
 
-				return;
-			}
+			return;
+		}
 
 #undef background_fetch_block
 #undef fetch_tile
@@ -698,14 +697,14 @@ template <Personality personality> class Base {
 #undef sprite_fetch_block
 #undef sprite_fetch_graphics
 #undef sprite_fetch_coordinates
-		}
+	}
 
 
 /***********************************************
 	Master System Fetching Code
 ************************************************/
 
-		template<bool use_end> void fetch_sms(int start, int end) {
+	template<bool use_end> void fetch_sms(int start, int end) {
 #define sprite_fetch(sprite)	{\
 		line_buffer.active_sprites[sprite].x = \
 			ram_[\
@@ -775,74 +774,74 @@ template <Personality personality> class Base {
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
 
-			// Determine the coarse horizontal scrolling offset; this isn't applied on the first two lines if the programmer has requested it.
-			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
-			LineBuffer &sprite_selection_buffer = line_buffers_[(write_pointer_.row + 1) % mode_timing_.total_lines];
-			const int horizontal_offset = (write_pointer_.row >= 16 || !master_system_.horizontal_scroll_lock) ? (line_buffer.latched_horizontal_scroll >> 3) : 0;
+		// Determine the coarse horizontal scrolling offset; this isn't applied on the first two lines if the programmer has requested it.
+		LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
+		LineBuffer &sprite_selection_buffer = line_buffers_[(write_pointer_.row + 1) % mode_timing_.total_lines];
+		const int horizontal_offset = (write_pointer_.row >= 16 || !master_system_.horizontal_scroll_lock) ? (line_buffer.latched_horizontal_scroll >> 3) : 0;
 
-			// Limit address bits in use if this is a SMS2 mode.
-			const bool is_tall_mode = mode_timing_.pixel_lines != 192;
-			const size_t pattern_name_address = master_system_.pattern_name_address | (is_tall_mode ? 0x800 : 0);
-			const size_t pattern_name_offset = is_tall_mode ? 0x100 : 0;
+		// Limit address bits in use if this is a SMS2 mode.
+		const bool is_tall_mode = mode_timing_.pixel_lines != 192;
+		const size_t pattern_name_address = master_system_.pattern_name_address | (is_tall_mode ? 0x800 : 0);
+		const size_t pattern_name_offset = is_tall_mode ? 0x100 : 0;
 
-			// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
-			// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
-			const int scrolled_row = (write_pointer_.row + master_system_.latched_vertical_scroll) % (is_tall_mode ? 256 : 224);
-			struct RowInfo {
-				size_t pattern_address_base;
-				size_t sub_row[2];
-			};
-			const RowInfo scrolled_row_info = {
-				(pattern_name_address & size_t(((scrolled_row & ~7) << 3) | 0x3800)) - pattern_name_offset,
-				{size_t((scrolled_row & 7) << 2), 28 ^ size_t((scrolled_row & 7) << 2)}
-			};
-			RowInfo row_info;
-			if(master_system_.vertical_scroll_lock) {
-				row_info.pattern_address_base = (pattern_name_address & size_t(((write_pointer_.row & ~7) << 3) | 0x3800)) - pattern_name_offset;
-				row_info.sub_row[0] = size_t((write_pointer_.row & 7) << 2);
-				row_info.sub_row[1] = 28 ^ size_t((write_pointer_.row & 7) << 2);
-			} else row_info = scrolled_row_info;
+		// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
+		// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
+		const int scrolled_row = (write_pointer_.row + master_system_.latched_vertical_scroll) % (is_tall_mode ? 256 : 224);
+		struct RowInfo {
+			size_t pattern_address_base;
+			size_t sub_row[2];
+		};
+		const RowInfo scrolled_row_info = {
+			(pattern_name_address & size_t(((scrolled_row & ~7) << 3) | 0x3800)) - pattern_name_offset,
+			{size_t((scrolled_row & 7) << 2), 28 ^ size_t((scrolled_row & 7) << 2)}
+		};
+		RowInfo row_info;
+		if(master_system_.vertical_scroll_lock) {
+			row_info.pattern_address_base = (pattern_name_address & size_t(((write_pointer_.row & ~7) << 3) | 0x3800)) - pattern_name_offset;
+			row_info.sub_row[0] = size_t((write_pointer_.row & 7) << 2);
+			row_info.sub_row[1] = 28 ^ size_t((write_pointer_.row & 7) << 2);
+		} else row_info = scrolled_row_info;
 
-			// ... and do the actual fetching, which follows this routine:
-			switch(start) {
-				default: assert(false);
+		// ... and do the actual fetching, which follows this routine:
+		switch(start) {
+			default: assert(false);
 
-				sprite_fetch_block(0, 0);
-				sprite_fetch_block(6, 2);
+			sprite_fetch_block(0, 0);
+			sprite_fetch_block(6, 2);
 
-				external_slots_4(12);
-				external_slot(16);
+			external_slots_4(12);
+			external_slot(16);
 
-				sprite_fetch_block(17, 4);
-				sprite_fetch_block(23, 6);
+			sprite_fetch_block(17, 4);
+			sprite_fetch_block(23, 6);
 
-				slot(29):
-					sprite_selection_buffer.reset_sprite_collection();
-					do_external_slot(29*2);
-				external_slot(30);
+			slot(29):
+				sprite_selection_buffer.reset_sprite_collection();
+				do_external_slot(29*2);
+			external_slot(30);
 
-				sprite_y_read(31, 0);
-				sprite_y_read(32, 2);
-				sprite_y_read(33, 4);
-				sprite_y_read(34, 6);
-				sprite_y_read(35, 8);
-				sprite_y_read(36, 10);
-				sprite_y_read(37, 12);
-				sprite_y_read(38, 14);
+			sprite_y_read(31, 0);
+			sprite_y_read(32, 2);
+			sprite_y_read(33, 4);
+			sprite_y_read(34, 6);
+			sprite_y_read(35, 8);
+			sprite_y_read(36, 10);
+			sprite_y_read(37, 12);
+			sprite_y_read(38, 14);
 
-				background_fetch_block(39, 0, 16, scrolled_row_info);
-				background_fetch_block(55, 4, 22, scrolled_row_info);
-				background_fetch_block(71, 8, 28, scrolled_row_info);
-				background_fetch_block(87, 12, 34, scrolled_row_info);
-				background_fetch_block(103, 16, 40, scrolled_row_info);
-				background_fetch_block(119, 20, 46, scrolled_row_info);
-				background_fetch_block(135, 24, 52, row_info);
-				background_fetch_block(151, 28, 58, row_info);
+			background_fetch_block(39, 0, 16, scrolled_row_info);
+			background_fetch_block(55, 4, 22, scrolled_row_info);
+			background_fetch_block(71, 8, 28, scrolled_row_info);
+			background_fetch_block(87, 12, 34, scrolled_row_info);
+			background_fetch_block(103, 16, 40, scrolled_row_info);
+			background_fetch_block(119, 20, 46, scrolled_row_info);
+			background_fetch_block(135, 24, 52, row_info);
+			background_fetch_block(151, 28, 58, row_info);
 
-				external_slots_4(167);
+			external_slots_4(167);
 
-				return;
-			}
+			return;
+		}
 
 #undef background_fetch_block
 #undef fetch_tile
@@ -850,16 +849,16 @@ template <Personality personality> class Base {
 #undef sprite_y_read
 #undef sprite_fetch_block
 #undef sprite_fetch
-		}
+	}
 
 #undef external_slot
 #undef slot
 
-		uint32_t *pixel_target_ = nullptr, *pixel_origin_ = nullptr;
-		bool asked_for_write_area_ = false;
-		void draw_tms_character(int start, int end);
-		void draw_tms_text(int start, int end);
-		void draw_sms(int start, int end, uint32_t cram_dot);
+	uint32_t *pixel_target_ = nullptr, *pixel_origin_ = nullptr;
+	bool asked_for_write_area_ = false;
+	void draw_tms_character(int start, int end);
+	void draw_tms_text(int start, int end);
+	void draw_sms(int start, int end, uint32_t cram_dot);
 };
 
 }

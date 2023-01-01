@@ -671,7 +671,7 @@ void TMS9918<personality>::write(int address, uint8_t value) {
 }
 
 template <Personality personality>
-uint8_t TMS9918<personality>::get_current_line() {
+uint8_t TMS9918<personality>::get_current_line() const {
 	// Determine the row to return.
 	constexpr int row_change_position = 63;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
 	int source_row =
@@ -706,7 +706,7 @@ uint8_t TMS9918<personality>::get_current_line() {
 }
 
 template <Personality personality>
-uint8_t TMS9918<personality>::get_latched_horizontal_counter() {
+uint8_t TMS9918<personality>::get_latched_horizontal_counter() const {
 	// Translate from internal numbering, which puts pixel output
 	// in the final 256 pixels of 342, to the public numbering,
 	// which makes the 256 pixels the first 256 spots, but starts
@@ -741,12 +741,12 @@ uint8_t TMS9918<personality>::read(int address) {
 }
 
 template <Personality personality>
-HalfCycles Base<personality>::half_cycles_before_internal_cycles(int internal_cycles) {
+HalfCycles Base<personality>::half_cycles_before_internal_cycles(int internal_cycles) const {
 	return HalfCycles(((internal_cycles << 2) + (2 - cycles_error_)) / 3);
 }
 
 template <Personality personality>
-HalfCycles TMS9918<personality>::get_next_sequence_point() {
+HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	if(!this->generate_interrupts_ && !this->enable_line_interrupts_) return HalfCycles::max();
 	if(get_interrupt_line()) return HalfCycles::max();
 
@@ -819,7 +819,7 @@ HalfCycles TMS9918<personality>::get_time_until_line(int line) {
 }
 
 template <Personality personality>
-bool TMS9918<personality>::get_interrupt_line() {
+bool TMS9918<personality>::get_interrupt_line() const {
 	return
 		((this->status_ & StatusInterrupt) && this->generate_interrupts_) ||
 		(this->enable_line_interrupts_ && this->line_interrupt_pending_);

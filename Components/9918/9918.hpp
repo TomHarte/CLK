@@ -55,7 +55,7 @@ namespace TMS {
 	These chips have only one non-on-demand interaction with the outside world: an interrupt line.
 	See get_time_until_interrupt and get_interrupt_line for asynchronous operation options.
 */
-template <Personality personality> class TMS9918: public Base<personality> {
+template <Personality personality> class TMS9918: private Base<personality> {
 	public:
 		/*! Constructs an instance of the VDP that behaves according to the templated personality. */
 		TMS9918();
@@ -93,10 +93,10 @@ template <Personality personality> class TMS9918: public Base<personality> {
 		uint8_t read(int address);
 
 		/*! Gets the current scan line; provided by the Sega VDPs only. */
-		uint8_t get_current_line();
+		uint8_t get_current_line() const;
 
 		/*! Gets the current latched horizontal counter; provided by the Sega VDPs only. */
-		uint8_t get_latched_horizontal_counter();
+		uint8_t get_latched_horizontal_counter() const;
 
 		/*! Latches the current horizontal counter. */
 		void latch_horizontal_counter();
@@ -108,7 +108,7 @@ template <Personality personality> class TMS9918: public Base<personality> {
 			If get_interrupt_line is true now of if get_interrupt_line would
 			never return true, returns HalfCycles::max().
 		*/
-		HalfCycles get_next_sequence_point();
+		HalfCycles get_next_sequence_point() const;
 
 		/*!
 			Returns the amount of time until the nominated line interrupt position is
@@ -123,7 +123,7 @@ template <Personality personality> class TMS9918: public Base<personality> {
 		/*!
 			@returns @c true if the interrupt line is currently active; @c false otherwise.
 		*/
-		bool get_interrupt_line();
+		bool get_interrupt_line() const;
 };
 
 }
