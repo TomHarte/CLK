@@ -29,6 +29,13 @@ enum Personality {
 	MDVDP,
 };
 
+enum class TVStandard {
+	/*! i.e. 50Hz output at around 312.5 lines/field */
+	PAL,
+	/*! i.e. 60Hz output at around 262.5 lines/field */
+	NTSC
+};
+
 }
 }
 
@@ -48,7 +55,7 @@ namespace TMS {
 	These chips have only one non-on-demand interaction with the outside world: an interrupt line.
 	See get_time_until_interrupt and get_interrupt_line for asynchronous operation options.
 */
-template <Personality personality> class TMS9918: public Base {
+template <Personality personality> class TMS9918: public Base<personality> {
 	public:
 		/*!
 			Constructs an instance of the drive controller that behaves according to personality @c p.

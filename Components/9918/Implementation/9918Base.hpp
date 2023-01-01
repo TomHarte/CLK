@@ -36,14 +36,91 @@ constexpr size_t memory_size(Personality p) {
 	}
 }
 
-enum class TVStandard {
-	/*! i.e. 50Hz output at around 312.5 lines/field */
-	PAL,
-	/*! i.e. 60Hz output at around 262.5 lines/field */
-	NTSC
+// The screen mode is a necessary predecessor to picking the line mode,
+// which is the thing latched per line.
+enum class ScreenMode {
+	Blank,
+	Text,
+	MultiColour,
+	ColouredText,
+	Graphics,
+	SMSMode4
 };
 
-class Base {
+enum class LineMode {
+	Text,
+	Character,
+	Refresh,
+	SMS
+};
+
+enum class MemoryAccess {
+	Read, Write, None
+};
+
+// Temporary buffers collect a representation of each line prior to pixel serialisation.
+struct LineBuffer {
+	// The line mode describes the proper timing diagram for this line.
+	LineMode line_mode = LineMode::Text;
+
+	// Holds the horizontal scroll position to apply to this line;
+	// of those VDPs currently implemented, affects the Master System only.
+	uint8_t latched_horizontal_scroll = 0;
+
+	// The names array holds pattern names, as an offset into memory, and
+	// potentially flags also.
+	struct {
+		size_t offset = 0;
+		uint8_t flags = 0;
+	} names[40];
+
+	// The patterns array holds tile patterns, corresponding 1:1 with names.
+	// Four bytes per pattern is the maximum required by any
+	// currently-implemented VDP.
+	uint8_t patterns[40][4];
+
+	/*
+		Horizontal layout (on a 342-cycle clock):
+
+			15 cycles right border
+			58 cycles blanking & sync
+			13 cycles left border
+
+			... i.e. to cycle 86, then:
+
+			border up to first_pixel_output_column;
+			pixels up to next_border_column;
+			border up to the end.
+
+		e.g. standard 256-pixel modes will want to set
+		first_pixel_output_column = 86, next_border_column = 342.
+	*/
+	int first_pixel_output_column = 94;
+	int next_border_column = 334;
+
+	// An active sprite is one that has been selected for composition onto
+	// this line.
+	struct ActiveSprite {
+		int index = 0;		// The original in-table index of this sprite.
+		int row = 0;		// The row of the sprite that should be drawn.
+		int x = 0;			// The sprite's x position on screen.
+
+		uint8_t image[4];		// Up to four bytes of image information.
+		int shift_position = 0;	// An offset representing how much of the image information has already been drawn.
+	} active_sprites[8];
+
+	int active_sprite_slot = 0;		// A pointer to the slot into which a new active sprite will be deposited, if required.
+	bool sprites_stopped = false;	// A special TMS feature is that a sentinel value can be used to prevent any further sprites
+									// being evaluated for display. This flag determines whether the sentinel has yet been reached.
+
+	void reset_sprite_collection();
+};
+
+struct LineBufferPointer {
+	int row, column;
+};
+
+template <Personality personality> class Base {
 	public:
 		static uint32_t palette_pack(uint8_t r, uint8_t g, uint8_t b) {
 			uint32_t result = 0;
@@ -93,9 +170,7 @@ class Base {
 		// Holds the state of the DRAM/CRAM-access mechanism.
 		uint16_t ram_pointer_ = 0;
 		uint8_t read_ahead_buffer_ = 0;
-		enum class MemoryAccess {
-			Read, Write, None
-		} queued_access_ = MemoryAccess::None;
+		MemoryAccess queued_access_ = MemoryAccess::None;
 		int cycles_until_access_ = 0;
 		int minimum_access_column_ = 0;
 		int vram_access_delay() {
@@ -186,81 +261,8 @@ class Base {
 		bool enable_line_interrupts_ = false;
 		bool line_interrupt_pending_ = false;
 
-		// The screen mode is a necessary predecessor to picking the line mode,
-		// which is the thing latched per line.
-		enum class ScreenMode {
-			Blank,
-			Text,
-			MultiColour,
-			ColouredText,
-			Graphics,
-			SMSMode4
-		} screen_mode_;
-
-		enum class LineMode {
-			Text,
-			Character,
-			Refresh,
-			SMS
-		};
-
-		// Temporary buffers collect a representation of this line prior to pixel serialisation.
-		struct LineBuffer {
-			// The line mode describes the proper timing diagram for this line.
-			LineMode line_mode = LineMode::Text;
-
-			// Holds the horizontal scroll position to apply to this line;
-			// of those VDPs currently implemented, affects the Master System only.
-			uint8_t latched_horizontal_scroll = 0;
-
-			// The names array holds pattern names, as an offset into memory, and
-			// potentially flags also.
-			struct {
-				size_t offset = 0;
-				uint8_t flags = 0;
-			} names[40];
-
-			// The patterns array holds tile patterns, corresponding 1:1 with names.
-			// Four bytes per pattern is the maximum required by any
-			// currently-implemented VDP.
-			uint8_t patterns[40][4];
-
-			/*
-				Horizontal layout (on a 342-cycle clock):
-
-					15 cycles right border
-					58 cycles blanking & sync
-					13 cycles left border
-
-					... i.e. to cycle 86, then:
-
-					border up to first_pixel_output_column;
-					pixels up to next_border_column;
-					border up to the end.
-
-				e.g. standard 256-pixel modes will want to set
-				first_pixel_output_column = 86, next_border_column = 342.
-			*/
-			int first_pixel_output_column = 94;
-			int next_border_column = 334;
-
-			// An active sprite is one that has been selected for composition onto
-			// this line.
-			struct ActiveSprite {
-				int index = 0;		// The original in-table index of this sprite.
-				int row = 0;		// The row of the sprite that should be drawn.
-				int x = 0;			// The sprite's x position on screen.
-
-				uint8_t image[4];		// Up to four bytes of image information.
-				int shift_position = 0;	// An offset representing how much of the image information has already been drawn.
-			} active_sprites[8];
-
-			int active_sprite_slot = 0;		// A pointer to the slot into which a new active sprite will be deposited, if required.
-			bool sprites_stopped = false;	// A special TMS feature is that a sentinel value can be used to prevent any further sprites
-											// being evaluated for display. This flag determines whether the sentinel has yet been reached.
-
-			void reset_sprite_collection();
-		} line_buffers_[313];
+		ScreenMode screen_mode_;
+		LineBuffer line_buffers_[313];
 		void posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_y, int screen_row);
 
 		// There is a delay between reading into the line buffer and outputting from there to the screen. That delay
@@ -268,9 +270,7 @@ class Base {
 		// to update sprites and tiles, but writing time affects when the palette is used and when the collision flag
 		// may end up being set. So the two processes are slightly decoupled. The end of reading one line may overlap
 		// with the beginning of writing the next, hence the two separate line buffers.
-		struct LineBufferPointer {
-			int row, column;
-		} read_pointer_, write_pointer_;
+		LineBufferPointer read_pointer_, write_pointer_;
 
 		// The SMS VDP has a programmer-set colour palette, with a dedicated patch of RAM. But the RAM is only exactly
 		// fast enough for the pixel clock. So when the programmer writes to it, that causes a one-pixel glitch; there

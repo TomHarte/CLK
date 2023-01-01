@@ -88,7 +88,8 @@ constexpr ReverseTable reverse_table;
 
 }
 
-Base::Base(Personality p) :
+template <Personality personality>
+Base<personality>::Base(Personality p) :
 	personality_(p),
 	crt_(CRTCyclesPerLine, CRTCyclesDivider, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red8Green8Blue8) {
 	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
@@ -112,37 +113,37 @@ Base::Base(Personality p) :
 
 template <Personality personality>
 TMS9918<personality>::TMS9918(Personality p):
-	Base(p) {
-	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
-	crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));
+	Base<personality>(p) {
+	this->crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+	this->crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));
 
 	// The TMS remains in-phase with the NTSC colour clock; this is an empirical measurement
 	// intended to produce the correct relationship between the hard edges between pixels and
 	// the colour clock. It was eyeballed rather than derived from any knowledge of the TMS
 	// colour burst generator because I've yet to find any.
-	crt_.set_immediate_default_phase(0.85f);
+	this->crt_.set_immediate_default_phase(0.85f);
 }
 
 template <Personality personality>
 void TMS9918<personality>::set_tv_standard(TVStandard standard) {
-	tv_standard_ = standard;
+	this->tv_standard_ = standard;
 	switch(standard) {
 		case TVStandard::PAL:
-			mode_timing_.total_lines = 313;
-			mode_timing_.first_vsync_line = 253;
-			crt_.set_new_display_type(CRTCyclesPerLine, Outputs::Display::Type::PAL50);
+			this->mode_timing_.total_lines = 313;
+			this->mode_timing_.first_vsync_line = 253;
+			this->crt_.set_new_display_type(CRTCyclesPerLine, Outputs::Display::Type::PAL50);
 		break;
 		default:
-			mode_timing_.total_lines = 262;
-			mode_timing_.first_vsync_line = 227;
-			crt_.set_new_display_type(CRTCyclesPerLine, Outputs::Display::Type::NTSC60);
+			this->mode_timing_.total_lines = 262;
+			this->mode_timing_.first_vsync_line = 227;
+			this->crt_.set_new_display_type(CRTCyclesPerLine, Outputs::Display::Type::NTSC60);
 		break;
 	}
 }
 
 template <Personality personality>
 void TMS9918<personality>::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
-	crt_.set_scan_target(scan_target);
+	this->crt_.set_scan_target(scan_target);
 }
 
 template <Personality personality>
@@ -151,20 +152,20 @@ Outputs::Display::ScanStatus TMS9918<personality>::get_scaled_scan_status() cons
 	// so undo that and also allow for: (i) the multiply by 4 that it takes
 	// to reach the CRT; and (ii) the fact that the half-cycles value was scaled,
 	// and this should really reply in whole cycles.
-	return crt_.get_scaled_scan_status() * (4.0f / (3.0f * 8.0f));
+	return this->crt_.get_scaled_scan_status() * (4.0f / (3.0f * 8.0f));
 }
 
 template <Personality personality>
 void TMS9918<personality>::set_display_type(Outputs::Display::DisplayType display_type) {
-	crt_.set_display_type(display_type);
+	this->crt_.set_display_type(display_type);
 }
 
 template <Personality personality>
 Outputs::Display::DisplayType TMS9918<personality>::get_display_type() const {
-	return crt_.get_display_type();
+	return this->crt_.get_display_type();
 }
 
-void Base::LineBuffer::reset_sprite_collection() {
+void LineBuffer::reset_sprite_collection() {
 	sprites_stopped = false;
 	active_sprite_slot = 0;
 
@@ -173,7 +174,8 @@ void Base::LineBuffer::reset_sprite_collection() {
 	}
 }
 
-void Base::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_position, int screen_row) {
+template <Personality personality>
+void Base<personality>::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_position, int screen_row) {
 	if(!(status_ & StatusSpriteOverflow)) {
 		status_ = uint8_t((status_ & ~0x1f) | (sprite_number & 0x1f));
 	}
@@ -209,8 +211,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 	// Convert 456 clocked half cycles per line to 342 internal cycles per line;
 	// the internal clock is 1.5 times the nominal 3.579545 Mhz that I've advertised
 	// for this part. So multiply by three quarters.
-	int int_cycles = int(cycles.as_integral() * 3) + cycles_error_;
-	cycles_error_ = int_cycles & 3;
+	int int_cycles = int(cycles.as_integral() * 3) + this->cycles_error_;
+	this->cycles_error_ = int_cycles & 3;
 	int_cycles >>= 2;
 	if(!int_cycles) return;
 
@@ -222,40 +224,40 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 	while(write_cycles_pool || read_cycles_pool) {
 #ifndef NDEBUG
-		LineBufferPointer backup = read_pointer_;
+		LineBufferPointer backup = this->read_pointer_;
 #endif
 
 		if(write_cycles_pool) {
 			// Determine how much writing to do.
-			const int write_cycles = std::min(342 - write_pointer_.column, write_cycles_pool);
-			const int end_column = write_pointer_.column + write_cycles;
-			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
+			const int write_cycles = std::min(342 - this->write_pointer_.column, write_cycles_pool);
+			const int end_column = this->write_pointer_.column + write_cycles;
+			LineBuffer &line_buffer = this->line_buffers_[this->write_pointer_.row];
 
 			// Determine what this does to any enqueued VRAM access.
-			minimum_access_column_ = write_pointer_.column + cycles_until_access_;
-			cycles_until_access_ -= write_cycles;
+			this->minimum_access_column_ = this->write_pointer_.column + this->cycles_until_access_;
+			this->cycles_until_access_ -= write_cycles;
 
 
 			// ---------------------------------------
 			// Latch scrolling position, if necessary.
 			// ---------------------------------------
-			if(is_sega_vdp(personality_)) {
-				if(write_pointer_.column < 61 && end_column >= 61) {
-					if(!write_pointer_.row) {
-						master_system_.latched_vertical_scroll = master_system_.vertical_scroll;
+			if constexpr (is_sega_vdp(personality)) {
+				if(this->write_pointer_.column < 61 && end_column >= 61) {
+					if(!this->write_pointer_.row) {
+						this->master_system_.latched_vertical_scroll = this->master_system_.vertical_scroll;
 
-						if(master_system_.mode4_enable) {
-							mode_timing_.pixel_lines = 192;
-							if(mode2_enable_ && mode1_enable_) mode_timing_.pixel_lines = 224;
-							if(mode2_enable_ && mode3_enable_) mode_timing_.pixel_lines = 240;
+						if(this->master_system_.mode4_enable) {
+							this->mode_timing_.pixel_lines = 192;
+							if(this->mode2_enable_ && this->mode1_enable_) this->mode_timing_.pixel_lines = 224;
+							if(this->mode2_enable_ && this->mode3_enable_) this->mode_timing_.pixel_lines = 240;
 
-							mode_timing_.allow_sprite_terminator = mode_timing_.pixel_lines == 192;
-							mode_timing_.first_vsync_line = (mode_timing_.total_lines + mode_timing_.pixel_lines) >> 1;
+							this->mode_timing_.allow_sprite_terminator = this->mode_timing_.pixel_lines == 192;
+							this->mode_timing_.first_vsync_line = (this->mode_timing_.total_lines + this->mode_timing_.pixel_lines) >> 1;
 
-							mode_timing_.end_of_frame_interrupt_position.row = mode_timing_.pixel_lines + 1;
+							this->mode_timing_.end_of_frame_interrupt_position.row = this->mode_timing_.pixel_lines + 1;
 						}
 					}
-					line_buffer.latched_horizontal_scroll = master_system_.horizontal_scroll;
+					line_buffer.latched_horizontal_scroll = this->master_system_.horizontal_scroll;
 				}
 			}
 
@@ -273,14 +275,14 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 			// column_ and end_column are in 342-per-line cycles;
 			// adjust them to a count of windows.
-			const int first_window = write_pointer_.column >> 1;
+			const int first_window = this->write_pointer_.column >> 1;
 			const int final_window = end_column >> 1;
 			if(first_window != final_window) {
 				switch(line_buffer.line_mode) {
-					case LineMode::Text:		fetch(fetch_tms_text);		break;
-					case LineMode::Character:	fetch(fetch_tms_character);	break;
-					case LineMode::SMS:			fetch(fetch_sms);			break;
-					case LineMode::Refresh:		fetch(fetch_tms_refresh);	break;
+					case LineMode::Text:		fetch(this->template fetch_tms_text);		break;
+					case LineMode::Character:	fetch(this->template fetch_tms_character);	break;
+					case LineMode::SMS:			fetch(this->template fetch_sms);			break;
+					case LineMode::Refresh:		fetch(this->template fetch_tms_refresh);	break;
 				}
 			}
 
@@ -291,19 +293,19 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// -------------------------------
 			// Check for interrupt conditions.
 			// -------------------------------
-			if(write_pointer_.column < mode_timing_.line_interrupt_position && end_column >= mode_timing_.line_interrupt_position) {
+			if(this->write_pointer_.column < this->mode_timing_.line_interrupt_position && end_column >= this->mode_timing_.line_interrupt_position) {
 				// The Sega VDP offers a decrementing counter for triggering line interrupts;
 				// it is reloaded either when it overflows or upon every non-pixel line after the first.
 				// It is otherwise decremented.
-				if(is_sega_vdp(personality_)) {
-					if(write_pointer_.row >= 0 && write_pointer_.row <= mode_timing_.pixel_lines) {
-						--line_interrupt_counter;
-						if(line_interrupt_counter == 0xff) {
-							line_interrupt_pending_ = true;
-							line_interrupt_counter = line_interrupt_target;
+				if constexpr (is_sega_vdp(personality)) {
+					if(this->write_pointer_.row >= 0 && this->write_pointer_.row <= this->mode_timing_.pixel_lines) {
+						--this->line_interrupt_counter;
+						if(this->line_interrupt_counter == 0xff) {
+							this->line_interrupt_pending_ = true;
+							this->line_interrupt_counter = this->line_interrupt_target;
 						}
 					} else {
-						line_interrupt_counter = line_interrupt_target;
+						this->line_interrupt_counter = this->line_interrupt_target;
 					}
 				}
 
@@ -312,11 +314,11 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			}
 
 			if(
-				write_pointer_.row == mode_timing_.end_of_frame_interrupt_position.row &&
-				write_pointer_.column < mode_timing_.end_of_frame_interrupt_position.column &&
-				end_column >= mode_timing_.end_of_frame_interrupt_position.column
+				this->write_pointer_.row == this->mode_timing_.end_of_frame_interrupt_position.row &&
+				this->write_pointer_.column < this->mode_timing_.end_of_frame_interrupt_position.column &&
+				end_column >= this->mode_timing_.end_of_frame_interrupt_position.column
 			) {
-				status_ |= StatusInterrupt;
+				this->status_ |= StatusInterrupt;
 			}
 
 
@@ -324,22 +326,22 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// -------------
 			// Advance time.
 			// -------------
-			write_pointer_.column = end_column;
+			this->write_pointer_.column = end_column;
 			write_cycles_pool -= write_cycles;
 
-			if(write_pointer_.column == 342) {
-				write_pointer_.column = 0;
-				write_pointer_.row = (write_pointer_.row + 1) % mode_timing_.total_lines;
-				LineBuffer &next_line_buffer = line_buffers_[write_pointer_.row];
+			if(this->write_pointer_.column == 342) {
+				this->write_pointer_.column = 0;
+				this->write_pointer_.row = (this->write_pointer_.row + 1) % this->mode_timing_.total_lines;
+				LineBuffer &next_line_buffer = this->line_buffers_[this->write_pointer_.row];
 
 				// Establish the output mode for the next line.
-				set_current_screen_mode();
+				this->set_current_screen_mode();
 
 				// Based on the output mode, pick a line mode.
 				next_line_buffer.first_pixel_output_column = 86;
 				next_line_buffer.next_border_column = 342;
-				mode_timing_.maximum_visible_sprites = 4;
-				switch(screen_mode_) {
+				this->mode_timing_.maximum_visible_sprites = 4;
+				switch(this->screen_mode_) {
 					case ScreenMode::Text:
 						next_line_buffer.line_mode = LineMode::Text;
 						next_line_buffer.first_pixel_output_column = 94;
@@ -347,7 +349,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					break;
 					case ScreenMode::SMSMode4:
 						next_line_buffer.line_mode = LineMode::SMS;
-						mode_timing_.maximum_visible_sprites = 8;
+						this->mode_timing_.maximum_visible_sprites = 8;
 					break;
 					default:
 						next_line_buffer.line_mode = LineMode::Character;
@@ -355,22 +357,22 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				}
 
 				if(
-					(screen_mode_ == ScreenMode::Blank) ||
-					(write_pointer_.row >= mode_timing_.pixel_lines && write_pointer_.row != mode_timing_.total_lines-1))
+					(this->screen_mode_ == ScreenMode::Blank) ||
+					(this->write_pointer_.row >= this->mode_timing_.pixel_lines && this->write_pointer_.row != this->mode_timing_.total_lines-1))
 						next_line_buffer.line_mode = LineMode::Refresh;
 			}
 		}
 
 
 #ifndef NDEBUG
-		assert(backup.row == read_pointer_.row && backup.column == read_pointer_.column);
-		backup = write_pointer_;
+		assert(backup.row == this->read_pointer_.row && backup.column == this->read_pointer_.column);
+		backup = this->write_pointer_;
 #endif
 
 
 		if(read_cycles_pool) {
 			// Determine how much time has passed in the remainder of this line, and proceed.
-			const int target_read_cycles = std::min(342 - read_pointer_.column, read_cycles_pool);
+			const int target_read_cycles = std::min(342 - this->read_pointer_.column, read_cycles_pool);
 			int read_cycles_performed = 0;
 			uint32_t next_cram_value = 0;
 
@@ -378,21 +380,21 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				const uint32_t cram_value = next_cram_value;
 				next_cram_value = 0;
 				int read_cycles = target_read_cycles - read_cycles_performed;
-				if(!upcoming_cram_dots_.empty() && upcoming_cram_dots_.front().location.row == read_pointer_.row) {
-					int time_until_dot = upcoming_cram_dots_.front().location.column - read_pointer_.column;
+				if(!this->upcoming_cram_dots_.empty() && this->upcoming_cram_dots_.front().location.row == this->read_pointer_.row) {
+					int time_until_dot = this->upcoming_cram_dots_.front().location.column - this->read_pointer_.column;
 
 					if(time_until_dot < read_cycles) {
 						read_cycles = time_until_dot;
-						next_cram_value = upcoming_cram_dots_.front().value;
-						upcoming_cram_dots_.erase(upcoming_cram_dots_.begin());
+						next_cram_value = this->upcoming_cram_dots_.front().value;
+						this->upcoming_cram_dots_.erase(this->upcoming_cram_dots_.begin());
 					}
 				}
 
 				if(!read_cycles) continue;
 				read_cycles_performed += read_cycles;
 
-				const int end_column = read_pointer_.column + read_cycles;
-				LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
+				const int end_column = this->read_pointer_.column + read_cycles;
+				LineBuffer &line_buffer = this->line_buffers_[this->read_pointer_.row];
 
 
 				// --------------------
@@ -400,20 +402,20 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// --------------------
 
 #define intersect(left, right, code)	{	\
-		const int start = std::max(read_pointer_.column, left);	\
+		const int start = std::max(this->read_pointer_.column, left);	\
 		const int end = std::min(end_column, right);	\
 		if(end > start) {\
 			code;\
 		}\
 	}
 
-#define border(left, right)	intersect(left, right, output_border(end - start, cram_value))
+#define border(left, right)	intersect(left, right, this->output_border(end - start, cram_value))
 
-				if(line_buffer.line_mode == LineMode::Refresh || read_pointer_.row > mode_timing_.pixel_lines) {
-					if(read_pointer_.row >= mode_timing_.first_vsync_line && read_pointer_.row < mode_timing_.first_vsync_line+4) {
+				if(line_buffer.line_mode == LineMode::Refresh || this->read_pointer_.row > this->mode_timing_.pixel_lines) {
+					if(this->read_pointer_.row >= this->mode_timing_.first_vsync_line && this->read_pointer_.row < this->mode_timing_.first_vsync_line+4) {
 						// Vertical sync.
 						if(end_column == 342) {
-							crt_.output_sync(342 * 4);
+							this->crt_.output_sync(342 * 4);
 						}
 					} else {
 						// Right border.
@@ -422,12 +424,12 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						// Blanking region; total length is 58 cycles,
 						// and 58+15 = 73. So output the lot when the
 						// cursor passes 73.
-						if(read_pointer_.column < 73 && end_column >= 73) {
-							crt_.output_blank(8*4);
-							crt_.output_sync(26*4);
-							crt_.output_blank(2*4);
-							crt_.output_default_colour_burst(14*4);
-							crt_.output_blank(8*4);
+						if(this->read_pointer_.column < 73 && end_column >= 73) {
+							this->crt_.output_blank(8*4);
+							this->crt_.output_sync(26*4);
+							this->crt_.output_blank(2*4);
+							this->crt_.output_default_colour_burst(14*4);
+							this->crt_.output_blank(8*4);
 						}
 
 						// Border colour for the rest of the line.
@@ -438,12 +440,12 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					border(0, 15);
 
 					// Blanking region.
-					if(read_pointer_.column < 73 && end_column >= 73) {
-						crt_.output_blank(8*4);
-						crt_.output_sync(26*4);
-						crt_.output_blank(2*4);
-						crt_.output_default_colour_burst(14*4);
-						crt_.output_blank(8*4);
+					if(this->read_pointer_.column < 73 && end_column >= 73) {
+						this->crt_.output_blank(8*4);
+						this->crt_.output_sync(26*4);
+						this->crt_.output_blank(2*4);
+						this->crt_.output_default_colour_burst(14*4);
+						this->crt_.output_blank(8*4);
 					}
 
 					// Left border.
@@ -453,20 +455,20 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					intersect(
 						line_buffer.first_pixel_output_column,
 						line_buffer.next_border_column,
-						if(!asked_for_write_area_) {
-							asked_for_write_area_ = true;
-							pixel_origin_ = pixel_target_ = reinterpret_cast<uint32_t *>(
-								crt_.begin_data(size_t(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
+						if(!this->asked_for_write_area_) {
+							this->asked_for_write_area_ = true;
+							this->pixel_origin_ = this->pixel_target_ = reinterpret_cast<uint32_t *>(
+								this->crt_.begin_data(size_t(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
 							);
 						}
 
-						if(pixel_target_) {
+						if(this->pixel_target_) {
 							const int relative_start = start - line_buffer.first_pixel_output_column;
 							const int relative_end = end - line_buffer.first_pixel_output_column;
 							switch(line_buffer.line_mode) {
-								case LineMode::SMS:			draw_sms(relative_start, relative_end, cram_value);		break;
-								case LineMode::Character:	draw_tms_character(relative_start, relative_end);		break;
-								case LineMode::Text:		draw_tms_text(relative_start, relative_end);			break;
+								case LineMode::SMS:			this->draw_sms(relative_start, relative_end, cram_value);		break;
+								case LineMode::Character:	this->draw_tms_character(relative_start, relative_end);		break;
+								case LineMode::Text:		this->draw_tms_text(relative_start, relative_end);			break;
 
 								case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
 							}
@@ -474,9 +476,9 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 						if(end == line_buffer.next_border_column) {
 							const int length = line_buffer.next_border_column - line_buffer.first_pixel_output_column;
-							crt_.output_data(length * 4, size_t(length));
-							pixel_origin_ = pixel_target_ = nullptr;
-							asked_for_write_area_ = false;
+							this->crt_.output_data(length * 4, size_t(length));
+							this->pixel_origin_ = this->pixel_target_ = nullptr;
+							this->asked_for_write_area_ = false;
 						}
 					);
 
@@ -494,21 +496,22 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// -------------
 				// Advance time.
 				// -------------
-				read_pointer_.column = end_column;
+				this->read_pointer_.column = end_column;
 			}
 
 			read_cycles_pool -= target_read_cycles;
-			if(read_pointer_.column == 342) {
-				read_pointer_.column = 0;
-				read_pointer_.row = (read_pointer_.row + 1) % mode_timing_.total_lines;
+			if(this->read_pointer_.column == 342) {
+				this->read_pointer_.column = 0;
+				this->read_pointer_.row = (this->read_pointer_.row + 1) % this->mode_timing_.total_lines;
 			}
 		}
 
-		assert(backup.row == write_pointer_.row && backup.column == write_pointer_.column);
+		assert(backup.row == this->write_pointer_.row && backup.column == this->write_pointer_.column);
 	}
 }
 
-void Base::output_border(int cycles, uint32_t cram_dot) {
+template <Personality personality>
+void Base<personality>::output_border(int cycles, uint32_t cram_dot) {
 	cycles *= 4;
 	const uint32_t border_colour =
 		is_sega_vdp(personality_) ?
@@ -544,36 +547,36 @@ void TMS9918<personality>::write(int address, uint8_t value) {
 	// Writes to address 0 are writes to the video RAM. Store
 	// the value and return.
 	if(!(address & 1)) {
-		write_phase_ = false;
+		this->write_phase_ = false;
 
 		// Enqueue the write to occur at the next available slot.
-		read_ahead_buffer_ = value;
-		queued_access_ = MemoryAccess::Write;
-		cycles_until_access_ = vram_access_delay();
+		this->read_ahead_buffer_ = value;
+		this->queued_access_ = MemoryAccess::Write;
+		this->cycles_until_access_ = this->vram_access_delay();
 
 		return;
 	}
 
 	// Writes to address 1 are performed in pairs; if this is the
 	// low byte of a value, store it and wait for the high byte.
-	if(!write_phase_) {
-		low_write_ = value;
-		write_phase_ = true;
+	if(!this->write_phase_) {
+		this->low_write_ = value;
+		this->write_phase_ = true;
 
 		// The initial write should half update the access pointer.
-		ram_pointer_ = (ram_pointer_ & 0xff00) | low_write_;
+		this->ram_pointer_ = (this->ram_pointer_ & 0xff00) | this->low_write_;
 		return;
 	}
 
 	// The RAM pointer is always set on a second write, regardless of
 	// whether the caller is intending to enqueue a VDP operation.
-	ram_pointer_ = (ram_pointer_ & 0x00ff) | uint16_t(value << 8);
+	this->ram_pointer_ = (this->ram_pointer_ & 0x00ff) | uint16_t(value << 8);
 
-	write_phase_ = false;
+	this->write_phase_ = false;
 	if(value & 0x80) {
-		if(is_sega_vdp(personality_)) {
+		if constexpr (is_sega_vdp(personality)) {
 			if(value & 0x40) {
-				master_system_.cram_is_selected = true;
+				this->master_system_.cram_is_selected = true;
 				return;
 			}
 			value &= 0xf;
@@ -584,78 +587,78 @@ void TMS9918<personality>::write(int address, uint8_t value) {
 		// This is a write to a register.
 		switch(value) {
 			case 0:
-				if(is_sega_vdp(personality_)) {
-					master_system_.vertical_scroll_lock = low_write_ & 0x80;
-					master_system_.horizontal_scroll_lock = low_write_ & 0x40;
-					master_system_.hide_left_column = low_write_ & 0x20;
-					enable_line_interrupts_ = low_write_ & 0x10;
-					master_system_.shift_sprites_8px_left = low_write_ & 0x08;
-					master_system_.mode4_enable = low_write_ & 0x04;
+				if constexpr (is_sega_vdp(personality)) {
+					this->master_system_.vertical_scroll_lock = this->low_write_ & 0x80;
+					this->master_system_.horizontal_scroll_lock = this->low_write_ & 0x40;
+					this->master_system_.hide_left_column = this->low_write_ & 0x20;
+					this->enable_line_interrupts_ = this->low_write_ & 0x10;
+					this->master_system_.shift_sprites_8px_left = this->low_write_ & 0x08;
+					this->master_system_.mode4_enable = this->low_write_ & 0x04;
 				}
-				mode2_enable_ = low_write_ & 0x02;
+				this->mode2_enable_ = this->low_write_ & 0x02;
 			break;
 
 			case 1:
-				blank_display_ = !(low_write_ & 0x40);
-				generate_interrupts_ = low_write_ & 0x20;
-				mode1_enable_ = low_write_ & 0x10;
-				mode3_enable_ = low_write_ & 0x08;
-				sprites_16x16_ = low_write_ & 0x02;
-				sprites_magnified_ = low_write_ & 0x01;
+				this->blank_display_ = !(this->low_write_ & 0x40);
+				this->generate_interrupts_ = this->low_write_ & 0x20;
+				this->mode1_enable_ = this->low_write_ & 0x10;
+				this->mode3_enable_ = this->low_write_ & 0x08;
+				this->sprites_16x16_ = this->low_write_ & 0x02;
+				this->sprites_magnified_ = this->low_write_ & 0x01;
 
-				sprite_height_ = 8;
-				if(sprites_16x16_) sprite_height_ <<= 1;
-				if(sprites_magnified_) sprite_height_ <<= 1;
+				this->sprite_height_ = 8;
+				if(this->sprites_16x16_) this->sprite_height_ <<= 1;
+				if(this->sprites_magnified_) this->sprite_height_ <<= 1;
 			break;
 
 			case 2:
-				pattern_name_address_ = size_t((low_write_ & 0xf) << 10) | 0x3ff;
-				master_system_.pattern_name_address = pattern_name_address_ | ((personality_ == TMS::SMSVDP) ? 0x000 : 0x400);
+				this->pattern_name_address_ = size_t((this->low_write_ & 0xf) << 10) | 0x3ff;
+				this->master_system_.pattern_name_address = this->pattern_name_address_ | ((personality == TMS::SMSVDP) ? 0x000 : 0x400);
 			break;
 
 			case 3:
-				colour_table_address_ = size_t(low_write_ << 6) | 0x3f;
+				this->colour_table_address_ = size_t(this->low_write_ << 6) | 0x3f;
 			break;
 
 			case 4:
-				pattern_generator_table_address_ = size_t((low_write_ & 0x07) << 11) | 0x7ff;
+				this->pattern_generator_table_address_ = size_t((this->low_write_ & 0x07) << 11) | 0x7ff;
 			break;
 
 			case 5:
-				sprite_attribute_table_address_ = size_t((low_write_ & 0x7f) << 7) | 0x7f;
-				master_system_.sprite_attribute_table_address = sprite_attribute_table_address_ | ((personality_ == TMS::SMSVDP) ? 0x00 : 0x80);
+				this->sprite_attribute_table_address_ = size_t((this->low_write_ & 0x7f) << 7) | 0x7f;
+				this->master_system_.sprite_attribute_table_address = this->sprite_attribute_table_address_ | ((personality == TMS::SMSVDP) ? 0x00 : 0x80);
 			break;
 
 			case 6:
-				sprite_generator_table_address_ = size_t((low_write_ & 0x07) << 11) | 0x7ff;
-				master_system_.sprite_generator_table_address = sprite_generator_table_address_ | ((personality_ == TMS::SMSVDP) ? 0x0000 : 0x1800);
+				this->sprite_generator_table_address_ = size_t((this->low_write_ & 0x07) << 11) | 0x7ff;
+				this->master_system_.sprite_generator_table_address = this->sprite_generator_table_address_ | ((personality == TMS::SMSVDP) ? 0x0000 : 0x1800);
 			break;
 
 			case 7:
-				text_colour_ = low_write_ >> 4;
-				background_colour_ = low_write_ & 0xf;
+				this->text_colour_ = this->low_write_ >> 4;
+				this->background_colour_ = this->low_write_ & 0xf;
 			break;
 
 			case 8:
-				if(is_sega_vdp(personality_)) {
-					master_system_.horizontal_scroll = low_write_;
+				if constexpr (is_sega_vdp(personality)) {
+					this->master_system_.horizontal_scroll = this->low_write_;
 				}
 			break;
 
 			case 9:
-				if(is_sega_vdp(personality_)) {
-					master_system_.vertical_scroll = low_write_;
+				if constexpr (is_sega_vdp(personality)) {
+					this->master_system_.vertical_scroll = this->low_write_;
 				}
 			break;
 
 			case 10:
-				if(is_sega_vdp(personality_)) {
-					line_interrupt_target = low_write_;
+				if constexpr (is_sega_vdp(personality)) {
+					this->line_interrupt_target = this->low_write_;
 				}
 			break;
 
 			default:
-				LOG("Unknown TMS write: " << int(low_write_) << " to " << int(value));
+				LOG("Unknown TMS write: " << int(this->low_write_) << " to " << int(value));
 			break;
 		}
 	} else {
@@ -663,10 +666,10 @@ void TMS9918<personality>::write(int address, uint8_t value) {
 		if(!(value & 0x40)) {
 			// A read request is enqueued upon setting the address; conversely a write
 			// won't be enqueued unless and until some actual data is supplied.
-			queued_access_ = MemoryAccess::Read;
-			cycles_until_access_ = vram_access_delay();
+			this->queued_access_ = MemoryAccess::Read;
+			this->cycles_until_access_ = this->vram_access_delay();
 		}
-		master_system_.cram_is_selected = false;
+		this->master_system_.cram_is_selected = false;
 	}
 }
 
@@ -675,14 +678,14 @@ uint8_t TMS9918<personality>::get_current_line() {
 	// Determine the row to return.
 	constexpr int row_change_position = 63;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
 	int source_row =
-		(write_pointer_.column < row_change_position)
-			? (write_pointer_.row + mode_timing_.total_lines - 1)%mode_timing_.total_lines
-			: write_pointer_.row;
+		(this->write_pointer_.column < row_change_position)
+			? (this->write_pointer_.row + this->mode_timing_.total_lines - 1) % this->mode_timing_.total_lines
+			: this->write_pointer_.row;
 
-	if(tv_standard_ == TVStandard::NTSC) {
-		if(mode_timing_.pixel_lines == 240) {
+	if(this->tv_standard_ == TVStandard::NTSC) {
+		if(this->mode_timing_.pixel_lines == 240) {
 			// NTSC 256x240:	00-FF, 00-06
-		} else if(mode_timing_.pixel_lines == 224) {
+		} else if(this->mode_timing_.pixel_lines == 224) {
 			// NTSC 256x224:	00-EA, E5-FF
 			if(source_row >= 0xeb) source_row -= 6;
 		} else {
@@ -690,10 +693,10 @@ uint8_t TMS9918<personality>::get_current_line() {
 			if(source_row >= 0xdb) source_row -= 6;
 		}
 	} else {
-		if(mode_timing_.pixel_lines == 240) {
+		if(this->mode_timing_.pixel_lines == 240) {
 			// PAL 256x240:		00-FF, 00-0A, D2-FF
 			if(source_row >= 267) source_row -= 0x39;
-		} else if(mode_timing_.pixel_lines == 224) {
+		} else if(this->mode_timing_.pixel_lines == 224) {
 			// PAL 256x224:		00-FF, 00-02, CA-FF
 			if(source_row >= 259) source_row -= 0x39;
 		} else {
@@ -711,125 +714,129 @@ uint8_t TMS9918<personality>::get_latched_horizontal_counter() {
 	// in the final 256 pixels of 342, to the public numbering,
 	// which makes the 256 pixels the first 256 spots, but starts
 	// counting at -48, and returns only the top 8 bits of the number.
-	int public_counter = latched_column_ - 86;
+	int public_counter = this->latched_column_ - 86;
 	if(public_counter < -46) public_counter += 342;
 	return uint8_t(public_counter >> 1);
 }
 
 template <Personality personality>
 void TMS9918<personality>::latch_horizontal_counter() {
-	latched_column_ = write_pointer_.column;
+	this->latched_column_ = this->write_pointer_.column;
 }
 
 template <Personality personality>
 uint8_t TMS9918<personality>::read(int address) {
-	write_phase_ = false;
+	this->write_phase_ = false;
 
 	// Reads from address 0 read video RAM, via the read-ahead buffer.
 	if(!(address & 1)) {
 		// Enqueue the write to occur at the next available slot.
-		const uint8_t result = read_ahead_buffer_;
-		queued_access_ = MemoryAccess::Read;
+		const uint8_t result = this->read_ahead_buffer_;
+		this->queued_access_ = MemoryAccess::Read;
 		return result;
 	}
 
 	// Reads from address 1 get the status register.
-	const uint8_t result = status_;
-	status_ &= ~(StatusInterrupt | StatusSpriteOverflow | StatusSpriteCollision);
-	line_interrupt_pending_ = false;
+	const uint8_t result = this->status_;
+	this->status_ &= ~(StatusInterrupt | StatusSpriteOverflow | StatusSpriteCollision);
+	this->line_interrupt_pending_ = false;
 	return result;
 }
 
-HalfCycles Base::half_cycles_before_internal_cycles(int internal_cycles) {
+template <Personality personality>
+HalfCycles Base<personality>::half_cycles_before_internal_cycles(int internal_cycles) {
 	return HalfCycles(((internal_cycles << 2) + (2 - cycles_error_)) / 3);
 }
 
 template <Personality personality>
 HalfCycles TMS9918<personality>::get_next_sequence_point() {
-	if(!generate_interrupts_ && !enable_line_interrupts_) return HalfCycles::max();
+	if(!this->generate_interrupts_ && !this->enable_line_interrupts_) return HalfCycles::max();
 	if(get_interrupt_line()) return HalfCycles::max();
 
 	// Calculate the amount of time until the next end-of-frame interrupt.
-	const int frame_length = 342 * mode_timing_.total_lines;
+	const int frame_length = 342 * this->mode_timing_.total_lines;
 	int time_until_frame_interrupt =
 		(
-			((mode_timing_.end_of_frame_interrupt_position.row * 342) + mode_timing_.end_of_frame_interrupt_position.column + frame_length) -
-			((write_pointer_.row * 342) + write_pointer_.column)
+			((this->mode_timing_.end_of_frame_interrupt_position.row * 342) + this->mode_timing_.end_of_frame_interrupt_position.column + frame_length) -
+			((this->write_pointer_.row * 342) + this->write_pointer_.column)
 		) % frame_length;
 	if(!time_until_frame_interrupt) time_until_frame_interrupt = frame_length;
 
-	if(!enable_line_interrupts_) return half_cycles_before_internal_cycles(time_until_frame_interrupt);
+	if(!this->enable_line_interrupts_) return this->half_cycles_before_internal_cycles(time_until_frame_interrupt);
 
 	// Calculate when the next line interrupt will occur.
 	int next_line_interrupt_row = -1;
 
-	int cycles_to_next_interrupt_threshold = mode_timing_.line_interrupt_position - write_pointer_.column;
-	int line_of_next_interrupt_threshold = write_pointer_.row;
+	int cycles_to_next_interrupt_threshold = this->mode_timing_.line_interrupt_position - this->write_pointer_.column;
+	int line_of_next_interrupt_threshold = this->write_pointer_.row;
 	if(cycles_to_next_interrupt_threshold <= 0) {
 		cycles_to_next_interrupt_threshold += 342;
 		++line_of_next_interrupt_threshold;
 	}
 
-	if(is_sega_vdp(personality_)) {
+	if constexpr (is_sega_vdp(personality)) {
 		// If there is still time for a line interrupt this frame, that'll be it;
 		// otherwise it'll be on the next frame, supposing there's ever time for
 		// it at all.
-		if(line_of_next_interrupt_threshold + line_interrupt_counter <= mode_timing_.pixel_lines) {
-			next_line_interrupt_row = line_of_next_interrupt_threshold + line_interrupt_counter;
+		if(line_of_next_interrupt_threshold + this->line_interrupt_counter <= this->mode_timing_.pixel_lines) {
+			next_line_interrupt_row = line_of_next_interrupt_threshold + this->line_interrupt_counter;
 		} else {
-			if(line_interrupt_target <= mode_timing_.pixel_lines)
-				next_line_interrupt_row = mode_timing_.total_lines + line_interrupt_target;
+			if(this->line_interrupt_target <= this->mode_timing_.pixel_lines)
+				next_line_interrupt_row = this->mode_timing_.total_lines + this->line_interrupt_target;
 		}
 	}
 
 	// If there's actually no interrupt upcoming, despite being enabled, either return
 	// the frame end interrupt or no interrupt pending as appropriate.
 	if(next_line_interrupt_row == -1) {
-		return generate_interrupts_ ?
-			half_cycles_before_internal_cycles(time_until_frame_interrupt) :
+		return this->generate_interrupts_ ?
+			this->half_cycles_before_internal_cycles(time_until_frame_interrupt) :
 			HalfCycles::max();
 	}
 
 	// Figure out the number of internal cycles until the next line interrupt, which is the amount
 	// of time to the next tick over and then next_line_interrupt_row - row_ lines further.
 	const int local_cycles_until_line_interrupt = cycles_to_next_interrupt_threshold + (next_line_interrupt_row - line_of_next_interrupt_threshold) * 342;
-	if(!generate_interrupts_) return half_cycles_before_internal_cycles(local_cycles_until_line_interrupt);
+	if(!this->generate_interrupts_) return this->half_cycles_before_internal_cycles(local_cycles_until_line_interrupt);
 
 	// Return whichever interrupt is closer.
-	return half_cycles_before_internal_cycles(std::min(local_cycles_until_line_interrupt, time_until_frame_interrupt));
+	return this->half_cycles_before_internal_cycles(std::min(local_cycles_until_line_interrupt, time_until_frame_interrupt));
 }
 
 template <Personality personality>
 HalfCycles TMS9918<personality>::get_time_until_line(int line) {
-	if(line < 0) line += mode_timing_.total_lines;
+	if(line < 0) line += this->mode_timing_.total_lines;
 
-	int cycles_to_next_interrupt_threshold = mode_timing_.line_interrupt_position - write_pointer_.column;
-	int line_of_next_interrupt_threshold = write_pointer_.row;
+	int cycles_to_next_interrupt_threshold = this->mode_timing_.line_interrupt_position - this->write_pointer_.column;
+	int line_of_next_interrupt_threshold = this->write_pointer_.row;
 	if(cycles_to_next_interrupt_threshold <= 0) {
 		cycles_to_next_interrupt_threshold += 342;
 		++line_of_next_interrupt_threshold;
 	}
 
 	if(line_of_next_interrupt_threshold > line) {
-		line += mode_timing_.total_lines;
+		line += this->mode_timing_.total_lines;
 	}
 
-	return half_cycles_before_internal_cycles(cycles_to_next_interrupt_threshold + (line - line_of_next_interrupt_threshold)*342);
+	return this->half_cycles_before_internal_cycles(cycles_to_next_interrupt_threshold + (line - line_of_next_interrupt_threshold)*342);
 }
 
 template <Personality personality>
 bool TMS9918<personality>::get_interrupt_line() {
-	return ((status_ & StatusInterrupt) && generate_interrupts_) || (enable_line_interrupts_ && line_interrupt_pending_);
+	return
+		((this->status_ & StatusInterrupt) && this->generate_interrupts_) ||
+		(this->enable_line_interrupts_ && this->line_interrupt_pending_);
 }
 
 // MARK: -
 
-void Base::draw_tms_character(int start, int end) {
+template <Personality personality>
+void Base<personality>::draw_tms_character(int start, int end) {
 	LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
 
 	// Paint the background tiles.
 	const int pixels_left = end - start;
-	if(screen_mode_ == ScreenMode::MultiColour) {
+	if(this->screen_mode_ == ScreenMode::MultiColour) {
 		for(int c = start; c < end; ++c) {
 			pixel_target_[c] = palette[
 				(line_buffer.patterns[c >> 3][0] >> (((c & 4)^4))) & 15
@@ -916,7 +923,8 @@ void Base::draw_tms_character(int start, int end) {
 	}
 }
 
-void Base::draw_tms_text(int start, int end) {
+template <Personality personality>
+void Base<personality>::draw_tms_text(int start, int end) {
 	LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
 	const uint32_t colours[2] = { palette[background_colour_], palette[text_colour_] };
 
@@ -940,7 +948,8 @@ void Base::draw_tms_text(int start, int end) {
 	}
 }
 
-void Base::draw_sms(int start, int end, uint32_t cram_dot) {
+template <Personality personality>
+void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 	LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
 	int colour_buffer[256];
 
