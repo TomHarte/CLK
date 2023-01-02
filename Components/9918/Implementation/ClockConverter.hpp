@@ -14,10 +14,30 @@
 namespace TI {
 namespace TMS {
 
+/*!
+	This implementation of the TMS, etc mediates between three clocks:
+
+	1)	the external clock, which is whatever the rest of the system(s)
+		it plugs into run at;
+
+	2)	the internal clock, which is used to time and place syncs, borders,
+		pixel regions, etc; and
+
+	3)	a memory acccess clock, which correlates to the number of windows
+		available for memory accesses.
+
+	E.g. for both a regular TMS9918 and the Sega Master System, the external
+	clock is 3.58Mhz, the internal clock is 5.37Mhz and the memory access
+	clock is 2.69Mhz.
+
+	Both the Yamaha extensions and the Mega Drive VDP are a bit smarter about
+	paged mode memory accesses, obviating any advantage to treating (3) as a
+	separate clock.
+*/
 template <Personality personality> class ClockConverter {
 	public:
 		/*!
-			Converts a number of **half-cycles** to an internal number
+			Converts a number of extenral **half-cycles** to an internal number
 			of **cycles**.
 		*/
 		int to_internal(int source) {
@@ -28,8 +48,9 @@ template <Personality personality> class ClockConverter {
 		}
 
 		/*!
-			Provides the number of external cycles that will need to pass in order to advance
-			_at least_ @c internal_cycles into the future.
+			Provides the number of complete external cycles that lie between now and
+			@c internal_cycles into the future. Any trailing fractional external cycle
+			is discarded.
 		*/
 		HalfCycles half_cycles_before_internal_cycles(int internal_cycles) const {
 			return HalfCycles(
@@ -37,9 +58,9 @@ template <Personality personality> class ClockConverter {
 			);
 		}
 
-		/*
+		/*!
 			Converts a position in internal cycles to its corresponding position
-			on the access-window clock.
+			on the memory-access clock.
 		*/
 		static constexpr int to_access_clock(int source) {
 			return source >> 1;
@@ -52,9 +73,8 @@ template <Personality personality> class ClockConverter {
 		constexpr static int AccessWindowCyclesPerLine = 171;
 
 	private:
-		// This implementation of this chip officially accepts a 3.58Mhz clock, but runs
-		// internally at 5.37Mhz. The following two help to maintain a lossless conversion
-		// from the one to the other.
+		// Holds current residue in conversion from the external to
+		// internal clock.
 		int cycles_error_ = 0;
 };
 
