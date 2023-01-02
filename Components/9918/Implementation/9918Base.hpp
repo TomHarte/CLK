@@ -123,21 +123,21 @@ struct LineBufferPointer {
 };
 
 template <Personality personality> struct Base {
+	Base();
+
 	static constexpr int output_lag = 11;	// i.e. pixel output will occur 11 cycles
 											// after corresponding data read.
 
 	static constexpr uint32_t palette_pack(uint8_t r, uint8_t g, uint8_t b) {
-		uint32_t result = 0;
-		uint8_t *const result_ptr = reinterpret_cast<uint8_t *>(&result);
-		result_ptr[0] = r;
-		result_ptr[1] = g;
-		result_ptr[2] = b;
-		result_ptr[3] = 0;
-		return result;
+		#if TARGET_RT_BIG_ENDIAN
+			return uint32_t((r << 24) | (g << 16) | (b << 8));
+		#else
+			return uint32_t((b << 16) | (g << 8) | r);
+		#endif
 	}
 
 	// The default TMS palette.
-	const uint32_t palette[16] = {
+	static constexpr std::array<uint32_t, 16> palette {
 		palette_pack(0, 0, 0),
 		palette_pack(0, 0, 0),
 		palette_pack(33, 200, 66),
@@ -158,8 +158,6 @@ template <Personality personality> struct Base {
 		palette_pack(204, 204, 204),
 		palette_pack(255, 255, 255)
 	};
-
-	Base();
 
 	Outputs::CRT::CRT crt_;
 	TVStandard tv_standard_ = TVStandard::NTSC;
