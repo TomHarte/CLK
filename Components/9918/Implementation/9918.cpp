@@ -218,7 +218,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 	// Convert 456 clocked half cycles per line to 342 internal cycles per line;
 	// the internal clock is 1.5 times the nominal 3.579545 Mhz that I've advertised
 	// for this part. So multiply by three quarters.
-	int int_cycles = this->clock_converter_.to_internal(cycles.as<int>());
+	const int int_cycles = this->clock_converter_.to_internal(cycles.as<int>());
 	if(!int_cycles) return;
 
 	// There are two intertwined processes here, 'writing' (which means writing to the
@@ -277,7 +277,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 #define fetch(function, converter)															\
 	const int first_window = this->clock_converter_.converter(this->write_pointer_.column);	\
 	const int final_window = this->clock_converter_.converter(end_column);					\
-	if(first_window != final_window) break;													\
+	if(first_window == final_window) break;													\
 	if(final_window != TMSAccessWindowsPerLine) {											\
 		function<true>(first_window, final_window);											\
 	} else {																				\
