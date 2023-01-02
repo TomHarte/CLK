@@ -416,6 +416,11 @@ template <Personality personality> struct Base {
 	template<bool use_end> void fetch_tms_refresh(int start, int end);
 	template<bool use_end> void fetch_tms_text(int start, int end);
 	template<bool use_end> void fetch_tms_character(int start, int end);
+
+	template<bool use_end> void fetch_yamaha_refresh(int start, int end);
+	template<bool use_end> void fetch_yamaha_no_sprites(int start, int end);
+	template<bool use_end> void fetch_yamaha_sprites(int start, int end);
+
 	template<bool use_end> void fetch_sms(int start, int end);
 
 	uint32_t *pixel_target_ = nullptr, *pixel_origin_ = nullptr;

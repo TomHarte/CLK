@@ -437,6 +437,24 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 
 // TODO.
 
+template <Personality personality>
+template<bool use_end> void Base<personality>::fetch_yamaha_refresh(int start, int end) {
+	(void)start;
+	(void)end;
+}
+
+template <Personality personality>
+template<bool use_end> void Base<personality>::fetch_yamaha_no_sprites(int start, int end) {
+	(void)start;
+	(void)end;
+}
+
+template <Personality personality>
+template<bool use_end> void Base<personality>::fetch_yamaha_sprites(int start, int end) {
+	(void)start;
+	(void)end;
+}
+
 // MARK: - Mega Drive
 
 // TODO.
