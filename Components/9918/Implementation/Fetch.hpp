@@ -339,19 +339,19 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 	slot(location+3):	\
 	slot(location+4):	\
 		fetch_tile(column)					\
-		fetch_tile_name(column+1, row_info)			\
+		fetch_tile_name(column+1, row_info)	\
 		sprite_y_read(location+5, sprite);	\
 	slot(location+6):	\
 	slot(location+7):	\
 	slot(location+8):	\
 		fetch_tile(column+1)					\
-		fetch_tile_name(column+2, row_info)				\
+		fetch_tile_name(column+2, row_info)		\
 		sprite_y_read(location+9, sprite+2);	\
 	slot(location+10):	\
 	slot(location+11):	\
 	slot(location+12):	\
 		fetch_tile(column+2)					\
-		fetch_tile_name(column+3, row_info)				\
+		fetch_tile_name(column+3, row_info)		\
 		sprite_y_read(location+13, sprite+4);	\
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
