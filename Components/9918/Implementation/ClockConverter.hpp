@@ -30,6 +30,13 @@ namespace TMS {
 	clock is 3.58Mhz, the internal clock is 5.37Mhz and the memory access
 	clock is 2.69Mhz.
 
+	Or, put another way, for both a TMS9918 and Master System:
+
+	* 228 external cycles;
+	* is 342 internal cycles;
+	* which exactly covers 228 NTSC colour clocks; and
+	* contains 171 memory access windows.
+
 	Both the Yamaha extensions and the Mega Drive VDP are a bit smarter about
 	paged mode memory accesses, obviating any advantage to treating (3) as a
 	separate clock.
