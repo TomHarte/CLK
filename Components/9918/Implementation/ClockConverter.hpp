@@ -14,6 +14,17 @@
 namespace TI {
 namespace TMS {
 
+template <Personality personality> constexpr int cycles_per_line() {
+	switch(personality) {
+		default:					return 342;
+		case Personality::V9938:
+		case Personality::V9958:	return 1368;
+		case Personality::MDVDP: 	return 3420;
+	}
+}
+
+constexpr int TMSAccessWindowsPerLine = 171;
+
 /*!
 	This implementation of the TMS, etc mediates between three clocks:
 
@@ -47,12 +58,36 @@ template <Personality personality> class ClockConverter {
 			Given that another @c source external **half-cycles** has occurred,
 			indicates how many complete internal **cycles** have additionally elapsed
 			since the last call to @c to_internal.
+
+			E.g. for the TMS, @c source will count 456 ticks per line, and the internal clock
+			runs at 342 ticks per line, so the proper conversion is to multiply by 3/4.
 		*/
 		int to_internal(int source) {
-			// Default behaviour is top apply a multiplication by 3/4.
-			const int result = source * 3 + cycles_error_;
-			cycles_error_ = result & 3;
-			return result >> 2;
+			switch(personality) {
+				// Default behaviour is to apply a multiplication by 3/4;
+				// this is correct for the TMS and Sega VDPs other than the Mega Drive.
+				default: {
+					const int result = source * 3 + cycles_error_;
+					cycles_error_ = result & 3;
+					return result >> 2;
+				}
+
+				// The two Yamaha chips have an internal clock that is four times
+				// as fast as the TMS, therefore a stateless translation is possible.
+				case Personality::V9938:
+				case Personality::V9958:
+				return source * 3;
+
+				// The Mega Drive runs at 3420 master clocks per line, which is then
+				// divided by 4 or 5 depending on other state. That's 7 times the
+				// rate provided to the CPU; given that the input is in half-cycles
+				// the proper multiplier is therefore 3.5.
+				case Personality::MDVDP: {
+					const int result = source * 7 + cycles_error_;
+					cycles_error_ = result & 1;
+					return result >> 1;
+				}
+			}
 		}
 
 		/*!
@@ -61,24 +96,45 @@ template <Personality personality> class ClockConverter {
 			is discarded.
 		*/
 		HalfCycles half_cycles_before_internal_cycles(int internal_cycles) const {
-			return HalfCycles(
-				((internal_cycles << 2) + (2 - cycles_error_)) / 3
-			);
+			// Logic here correlates with multipliers as per @c to_internal.
+			switch(personality) {
+				default:
+					return HalfCycles(
+						((internal_cycles << 2) + (2 - cycles_error_)) / 3
+					);
+
+				case Personality::V9938:
+				case Personality::V9958:
+					return HalfCycles(internal_cycles / 3);
+
+				case Personality::MDVDP:
+					return HalfCycles(
+						((internal_cycles << 1) + (1 - cycles_error_)) / 7
+					);
+			}
 		}
 
 		/*!
 			Converts a position in internal cycles to its corresponding position
-			on the memory-access clock.
+			on the TMS memory-access clock, i.e. scales down to 171 clocks
+			per line
 		*/
-		static constexpr int to_access_clock(int source) {
-			return source >> 1;
+		static constexpr int to_tms_access_clock(int source) {
+			switch(personality) {
+				default:
+				return source >> 1;
+
+				case Personality::V9938:
+				case Personality::V9958:
+				return source >> 3;
+
+				case Personality::MDVDP:
+				return source / 20;
+			}
 		}
 
 		/// The number of internal cycles in a single line.
-		constexpr static int CyclesPerLine = 342;
-
-		/// Indicates the number of access-window cycles in a single line.
-		constexpr static int AccessWindowCyclesPerLine = 171;
+		constexpr static int CyclesPerLine = cycles_per_line<personality>();
 
 	private:
 		// Holds current residue in conversion from the external to

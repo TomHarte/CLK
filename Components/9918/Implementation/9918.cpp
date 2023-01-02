@@ -274,24 +274,21 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// ------------------------
 			// Perform memory accesses.
 			// ------------------------
-#define fetch(function)	\
-	if(final_window != this->clock_converter_.AccessWindowCyclesPerLine) {	\
-		function<true>(first_window, final_window);\
-	} else {\
-		function<false>(first_window, final_window);\
+#define fetch(function, converter)															\
+	const int first_window = this->clock_converter_.converter(this->write_pointer_.column);	\
+	const int final_window = this->clock_converter_.converter(end_column);					\
+	if(first_window != final_window) break;													\
+	if(final_window != TMSAccessWindowsPerLine) {											\
+		function<true>(first_window, final_window);											\
+	} else {																				\
+		function<false>(first_window, final_window);										\
 	}
 
-			// Adjust column_ and end_column to the access-window clock before calling
-			// the mode-applicable fetch function.
-			const int first_window = this->clock_converter_.to_access_clock(this->write_pointer_.column);
-			const int final_window = this->clock_converter_.to_access_clock(end_column);
-			if(first_window != final_window) {
-				switch(line_buffer.line_mode) {
-					case LineMode::Text:		fetch(this->template fetch_tms_text);		break;
-					case LineMode::Character:	fetch(this->template fetch_tms_character);	break;
-					case LineMode::SMS:			fetch(this->template fetch_sms);			break;
-					case LineMode::Refresh:		fetch(this->template fetch_tms_refresh);	break;
-				}
+			switch(line_buffer.line_mode) {
+				case LineMode::Text:		{	fetch(this->template fetch_tms_text, to_tms_access_clock);		}	break;
+				case LineMode::Character:	{	fetch(this->template fetch_tms_character, to_tms_access_clock);	}	break;
+				case LineMode::SMS:			{	fetch(this->template fetch_sms, to_tms_access_clock);			}	break;
+				case LineMode::Refresh:		{	fetch(this->template fetch_tms_refresh, to_tms_access_clock);	}	break;
 			}
 
 #undef fetch
