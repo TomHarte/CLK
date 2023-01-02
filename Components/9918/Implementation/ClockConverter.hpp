@@ -44,8 +44,9 @@ namespace TMS {
 template <Personality personality> class ClockConverter {
 	public:
 		/*!
-			Converts a number of extenral **half-cycles** to an internal number
-			of **cycles**.
+			Given that another @c source external **half-cycles** has occurred,
+			indicates how many complete internal **cycles** have additionally elapsed
+			since the last call to @c to_internal.
 		*/
 		int to_internal(int source) {
 			// Default behaviour is top apply a multiplication by 3/4.
