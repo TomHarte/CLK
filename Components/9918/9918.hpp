@@ -69,10 +69,10 @@ template <Personality personality> class TMS9918: private Base<personality> {
 		/*! Gets the current scan status. */
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
-		/*! Sets the type of display the CRT will request. */
+		/*! Sets the type of CRT display. */
 		void set_display_type(Outputs::Display::DisplayType);
 
-		/*! Gets the type of display the CRT will request. */
+		/*! Gets the type of CRT display. */
 		Outputs::Display::DisplayType get_display_type() const;
 
 		/*!
@@ -82,7 +82,8 @@ template <Personality personality> class TMS9918: private Base<personality> {
 				* the input clock rate should be 3579545 Hz, the NTSC colour clock rate.
 
 			For the Mega Drive:
-				* the input clock rate should be [TODO].
+				* the input clock rate should be around 7.6MHz; 15/7ths of the NTSC colour
+				clock rate for NTSC output and 12/7ths of the PAL colour clock rate for PAL output.
 		*/
 		void run_for(const HalfCycles cycles);
 
