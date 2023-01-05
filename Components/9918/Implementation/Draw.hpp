@@ -9,8 +9,6 @@
 #ifndef Draw_hpp
 #define Draw_hpp
 
-#include "../../../Numeric/BitReverse.hpp"
-
 // MARK: - TMS9918
 
 template <Personality personality>

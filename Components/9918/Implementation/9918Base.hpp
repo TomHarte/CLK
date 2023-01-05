@@ -9,13 +9,16 @@
 #ifndef TMS9918Base_hpp
 #define TMS9918Base_hpp
 
-#include "../../../Outputs/CRT/CRT.hpp"
-#include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "ClockConverter.hpp"
+
+#include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../Numeric/BitReverse.hpp"
+#include "../../../Outputs/CRT/CRT.hpp"
 
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <vector>
 
