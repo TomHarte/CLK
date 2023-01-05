@@ -122,6 +122,12 @@ struct LineBufferPointer {
 	int row, column;
 };
 
+constexpr uint8_t StatusInterrupt = 0x80;
+constexpr uint8_t StatusSpriteOverflow = 0x40;
+
+constexpr int StatusSpriteCollisionShift = 5;
+constexpr uint8_t StatusSpriteCollision = 0x20;
+
 template <Personality personality> struct Base {
 	Base();
 
@@ -162,17 +168,20 @@ template <Personality personality> struct Base {
 	Outputs::CRT::CRT crt_;
 	TVStandard tv_standard_ = TVStandard::NTSC;
 
-	// Holds the contents of this VDP's connected DRAM.
+	// Personality-specific metrics and converters.
+	ClockConverter<personality> clock_converter_;
+
+	// This VDP's DRAM.
 	std::array<uint8_t, memory_size(personality)> ram_;
 
-	// Holds the state of the DRAM/CRAM-access mechanism.
+	// State of the DRAM/CRAM-access mechanism.
 	uint16_t ram_pointer_ = 0;
 	uint8_t read_ahead_buffer_ = 0;
 	MemoryAccess queued_access_ = MemoryAccess::None;
 	int cycles_until_access_ = 0;
 	int minimum_access_column_ = 0;
 
-	// Holds the main status register.
+	// The main status register.
 	uint8_t status_ = 0;
 
 	// Current state of programmer input.
@@ -189,23 +198,19 @@ template <Personality personality> struct Base {
 	bool generate_interrupts_ = false;
 	int sprite_height_ = 8;
 
+	// Programmer-specified addresses.
 	size_t pattern_name_address_ = 0;				// i.e. address of the tile map.
 	size_t colour_table_address_ = 0;				// address of the colour map (if applicable).
 	size_t pattern_generator_table_address_ = 0;	// address of the tile contents.
 	size_t sprite_attribute_table_address_ = 0;		// address of the sprite list.
 	size_t sprite_generator_table_address_ = 0;		// address of the sprite contents.
 
+	// Default colours.
 	uint8_t text_colour_ = 0;
 	uint8_t background_colour_ = 0;
 
-	ClockConverter<personality> clock_converter_;
-
 	// Internal mechanisms for position tracking.
 	int latched_column_ = 0;
-
-	// A helper function to output the current border colour for
-	// the number of cycles supplied.
-	void output_border(int cycles, uint32_t cram_dot);
 
 	// A struct to contain timing information for the current mode.
 	struct {
@@ -381,38 +386,7 @@ template <Personality personality> struct Base {
 		queued_access_ = MemoryAccess::None;
 	}
 
-/*
-	Fetching routines follow below; they obey the following rules:
-
-		1)	input is a start position and an end position; they should perform the proper
-			operations for the period: start <= time < end.
-		2)	times are measured relative to a 172-cycles-per-line clock (so: they directly
-			count access windows on the TMS and Master System).
-		3)	time 0 is the beginning of the access window immediately after the last pattern/data
-			block fetch that would contribute to this line, in a normal 32-column mode. So:
-
-				* it's cycle 309 on Mattias' TMS diagram;
-				* it's cycle 1238 on his V9938 diagram;
-				* it's after the last background render block in Mask of Destiny's Master System timing diagram.
-
-			That division point was selected, albeit arbitrarily, because it puts all the tile
-			fetches for a single line into the same [0, 171] period.
-
-		4)	all of these functions are templated with a `use_end` parameter. That will be true if
-			end is < 172, false otherwise. So functions can use it to eliminate should-exit-not checks,
-			for the more usual path of execution.
-
-	Provided for the benefit of the methods below:
-
-		*	the function external_slot(), which will perform any pending VRAM read/write.
-		*	the macros slot(n) and external_slot(n) which can be used to schedule those things inside a
-			switch(start)-based implementation.
-
-	All functions should just spool data to intermediary storage. This is because for most VDPs there is
-	a decoupling between fetch pattern and output pattern, and it's neater to keep the same division
-	for the exceptions.
-*/
-
+	// Various fetchers.
 	template<bool use_end> void fetch_tms_refresh(int start, int end);
 	template<bool use_end> void fetch_tms_text(int start, int end);
 	template<bool use_end> void fetch_tms_character(int start, int end);
@@ -423,14 +397,22 @@ template <Personality personality> struct Base {
 
 	template<bool use_end> void fetch_sms(int start, int end);
 
+	// A helper function to output the current border colour for
+	// the number of cycles supplied.
+	void output_border(int cycles, uint32_t cram_dot);
+
+	// Output serialisation state.
 	uint32_t *pixel_target_ = nullptr, *pixel_origin_ = nullptr;
 	bool asked_for_write_area_ = false;
+
+	// Output serialisers.
 	void draw_tms_character(int start, int end);
 	void draw_tms_text(int start, int end);
 	void draw_sms(int start, int end, uint32_t cram_dot);
 };
 
 #include "Fetch.hpp"
+#include "Draw.hpp"
 
 }
 }

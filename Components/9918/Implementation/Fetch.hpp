@@ -9,6 +9,38 @@
 #ifndef Fetch_hpp
 #define Fetch_hpp
 
+/*
+	Fetching routines follow below; they obey the following rules:
+
+		1)	input is a start position and an end position; they should perform the proper
+			operations for the period: start <= time < end.
+		2)	times are measured relative to a 172-cycles-per-line clock (so: they directly
+			count access windows on the TMS and Master System).
+		3)	time 0 is the beginning of the access window immediately after the last pattern/data
+			block fetch that would contribute to this line, in a normal 32-column mode. So:
+
+				* it's cycle 309 on Mattias' TMS diagram;
+				* it's cycle 1238 on his V9938 diagram;
+				* it's after the last background render block in Mask of Destiny's Master System timing diagram.
+
+			That division point was selected, albeit arbitrarily, because it puts all the tile
+			fetches for a single line into the same [0, 171] period.
+
+		4)	all of these functions are templated with a `use_end` parameter. That will be true if
+			end is < 172, false otherwise. So functions can use it to eliminate should-exit-not checks,
+			for the more usual path of execution.
+
+	Provided for the benefit of the methods below:
+
+		*	the function external_slot(), which will perform any pending VRAM read/write.
+		*	the macros slot(n) and external_slot(n) which can be used to schedule those things inside a
+			switch(start)-based implementation.
+
+	All functions should just spool data to intermediary storage. This is because for most VDPs there is
+	a decoupling between fetch pattern and output pattern, and it's neater to keep the same division
+	for the exceptions.
+*/
+
 #define slot(n)	\
 	if(use_end && end == n) return;	\
 	[[fallthrough]];				\
