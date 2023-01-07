@@ -171,7 +171,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 		if(write_cycles_pool) {
 			// Determine how much writing to do.
 			const int write_cycles = std::min(
-				this->clock_converter_.CyclesPerLine - this->write_pointer_.column,
+				Timing<personality>::CyclesPerLine - this->write_pointer_.column,
 				write_cycles_pool
 			);
 			const int end_column = this->write_pointer_.column + write_cycles;
@@ -270,7 +270,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			this->write_pointer_.column = end_column;
 			write_cycles_pool -= write_cycles;
 
-			if(this->write_pointer_.column == this->clock_converter_.CyclesPerLine) {
+			if(this->write_pointer_.column == Timing<personality>::CyclesPerLine) {
 				this->write_pointer_.column = 0;
 				this->write_pointer_.row = (this->write_pointer_.row + 1) % this->mode_timing_.total_lines;
 				LineBuffer &next_line_buffer = this->line_buffers_[this->write_pointer_.row];
@@ -279,7 +279,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->set_current_screen_mode();
 
 				// Based on the output mode, pick a line mode.
-				next_line_buffer.first_pixel_output_column = 86;	// TODO: these should be a function of ClockConverter::CyclesPerLine.
+				next_line_buffer.first_pixel_output_column = 86;	// TODO: these should be a function of Timing<personality>
 				next_line_buffer.next_border_column = 342;
 				this->mode_timing_.maximum_visible_sprites = 4;
 				switch(this->screen_mode_) {
@@ -314,7 +314,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 		if(read_cycles_pool) {
 			// Determine how much time has passed in the remainder of this line, and proceed.
 			const int target_read_cycles = std::min(
-				this->clock_converter_.CyclesPerLine - this->read_pointer_.column,
+				Timing<personality>::CyclesPerLine - this->read_pointer_.column,
 				read_cycles_pool
 			);
 			int read_cycles_performed = 0;
@@ -448,7 +448,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			}
 
 			read_cycles_pool -= target_read_cycles;
-			if(this->read_pointer_.column == this->clock_converter_.CyclesPerLine) {
+			if(this->read_pointer_.column == Timing<personality>::CyclesPerLine) {
 				this->read_pointer_.column = 0;
 				this->read_pointer_.row = (this->read_pointer_.row + 1) % this->mode_timing_.total_lines;
 			}

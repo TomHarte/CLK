@@ -15,6 +15,8 @@
 #include "../../../Numeric/BitReverse.hpp"
 #include "../../../Outputs/CRT/CRT.hpp"
 
+#include "PersonalityTraits.hpp"
+
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -25,10 +27,7 @@
 namespace TI {
 namespace TMS {
 
-constexpr bool is_sega_vdp(Personality p) {
-	return p >= Personality::SMSVDP;
-}
-
+// Additional properties that correlate with personality.
 constexpr size_t memory_size(Personality p) {
 	switch(p) {
 		case TI::TMS::TMS9918A:

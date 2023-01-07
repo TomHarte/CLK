@@ -10,18 +10,28 @@
 #define ClockConverter_hpp
 
 #include "../9918.hpp"
+#include "PersonalityTraits.hpp"
 
 namespace TI {
 namespace TMS {
 
-template <Personality personality> constexpr int cycles_per_line() {
-	switch(personality) {
-		default:					return 342;
-		case Personality::V9938:
-		case Personality::V9958:	return 1368;
-		case Personality::MDVDP: 	return 3420;
-	}
-}
+// Timing constants.
+template <Personality, typename Enable = void> struct Timing {};
+
+template <Personality personality>
+struct Timing<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
+	constexpr static int CyclesPerLine = 1368;
+};
+
+template <Personality personality>
+struct Timing<personality, std::enable_if_t<is_classic_vdp(personality)>> {
+	constexpr static int CyclesPerLine = 342;
+};
+
+template <>
+struct Timing<Personality::MDVDP> {
+	constexpr static int CyclesPerLine = 3420;
+};
 
 constexpr int TMSAccessWindowsPerLine = 171;
 
@@ -132,9 +142,6 @@ template <Personality personality> class ClockConverter {
 				return source / 20;
 			}
 		}
-
-		/// The number of internal cycles in a single line.
-		constexpr static int CyclesPerLine = cycles_per_line<personality>();
 
 	private:
 		// Holds current residue in conversion from the external to
