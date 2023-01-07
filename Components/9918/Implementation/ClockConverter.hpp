@@ -40,24 +40,61 @@ struct Timing<personality, std::enable_if_t<is_classic_vdp(personality)>> {
 
 	/// The final internal cycle at which pixels will be output text mode.
 	constexpr static int LastTextCycle = 334;
+
+	// For the below, the fixed portion of line layout is:
+	//
+	//	[0, EndOfRightBorder):					right border colour
+	//	[EndOfRightBorder, StartOfSync):		blank
+	//	[StartOfSync, EndOfSync):				sync
+	//	[EndOfSync, StartOfColourBurst):		blank
+	//	[StartOfColourBurst, EndOfColourBurst):	the colour burst
+	//	[EndOfColourBurst, StartOfLeftBorder):	blank
+	//
+	// The region from StartOfLeftBorder until the end is then filled with
+	// some combination of pixels and more border, depending on the vertical
+	// position of this line and the current screen mode.
+	constexpr static int EndOfRightBorder = 15;
+	constexpr static int StartOfSync = 23;
+	constexpr static int EndOfSync = 49;
+	constexpr static int StartOfColourBurst = 51;
+	constexpr static int EndOfColourBurst = 65;
+	constexpr static int StartOfLeftBorder = 73;
 };
 
 template <Personality personality>
 struct Timing<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
 	constexpr static int CyclesPerLine = 1368;
+
 	constexpr static int VRAMAccessDelay = 6;
 	constexpr static int FirstPixelCycle = 344;
 	constexpr static bool SupportsTextMode = true;
 	constexpr static int FirstTextCycle = 376;
 	constexpr static int LastTextCycle = 1336;
+
+	constexpr static int EndOfRightBorder = 15 * 4;
+	constexpr static int StartOfSync = 23 * 4;
+	constexpr static int EndOfSync = 49 * 4;
+	constexpr static int StartOfColourBurst = 51 * 4;
+	constexpr static int EndOfColourBurst = 65 * 4;
+	constexpr static int StartOfLeftBorder = 73 * 4;
 };
 
 template <>
 struct Timing<Personality::MDVDP> {
 	constexpr static int CyclesPerLine = 3420;
+
 	constexpr static int VRAMAccessDelay = 6;
 	constexpr static int FirstPixelCycle = 860;
 	constexpr static bool SupportsTextMode = false;
+
+	// Implementation note: these currently need to be multiples of 2.5
+	// per the stateless Mega Drive -> CRT clock conversion.
+	constexpr static int EndOfRightBorder = 15 * 10;
+	constexpr static int StartOfSync = 23 * 10;
+	constexpr static int EndOfSync = 49 * 10;
+	constexpr static int StartOfColourBurst = 51 * 10;
+	constexpr static int EndOfColourBurst = 65 * 10;
+	constexpr static int StartOfLeftBorder = 73 * 10;
 };
 
 constexpr int TMSAccessWindowsPerLine = 171;
@@ -168,6 +205,26 @@ template <Personality personality> class ClockConverter {
 				case Personality::MDVDP:
 				return source / 20;
 			}
+		}
+
+		/*!
+			Convers a position in internal cycles to its corresponding position
+			on the CRT's output clock, which [TODO] is clocked so that
+			1368 cycles is 228 NTSC colour cycles.
+		*/
+		static constexpr int to_crt_clock(int source) {
+			switch(personality) {
+				default:
+				return source * 4;
+
+				case Personality::V9938:
+				case Personality::V9958:
+				return source;
+
+				case Personality::MDVDP:
+				return (source * 2) / 5;
+			}
+
 		}
 
 	private:

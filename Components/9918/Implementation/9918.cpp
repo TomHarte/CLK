@@ -319,9 +319,11 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				int read_cycles = target_read_cycles - read_cycles_performed;
 				if(!read_cycles) continue;
 
+				// Grab the next CRAM dot value and schedule a break in output if applicable.
 				const uint32_t cram_value = next_cram_value;
-				next_cram_value = 0;
 				if constexpr (is_sega_vdp(personality)) {
+					next_cram_value = 0;
+
 					if(!this->upcoming_cram_dots_.empty() && this->upcoming_cram_dots_.front().location.row == this->read_pointer_.row) {
 						int time_until_dot = this->upcoming_cram_dots_.front().location.column - this->read_pointer_.column;
 
@@ -353,16 +355,21 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 #define border(left, right)	intersect(left, right, this->output_border(end - start, cram_value))
 
-				// TODO: CRT clock might need to change?
 				if(line_buffer.line_mode == LineMode::Refresh || this->read_pointer_.row > this->mode_timing_.pixel_lines) {
-					if(this->read_pointer_.row >= this->mode_timing_.first_vsync_line && this->read_pointer_.row < this->mode_timing_.first_vsync_line+4) {
+					if(
+						this->read_pointer_.row >= this->mode_timing_.first_vsync_line &&
+						this->read_pointer_.row < this->mode_timing_.first_vsync_line + 4
+					) {
 						// Vertical sync.
-						if(end_column == 342) {
-							this->crt_.output_sync(342 * 4);
+						// TODO: the Mega Drive supports interlaced video, I think?
+						if(end_column == Timing<personality>::CyclesPerLine) {
+							this->crt_.output_sync(
+								this->clock_converter_.to_crt_clock(Timing<personality>::CyclesPerLine)
+							);
 						}
 					} else {
 						// Right border.
-						border(0, 15);
+						border(0, Timing<personality>::EndOfRightBorder);
 
 						// Blanking region; total length is 58 cycles,
 						// and 58+15 = 73. So output the lot when the
@@ -409,7 +416,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 							const int relative_start = start - line_buffer.first_pixel_output_column;
 							const int relative_end = end - line_buffer.first_pixel_output_column;
 							switch(line_buffer.line_mode) {
-								case LineMode::SMS:			this->draw_sms(relative_start, relative_end, cram_value);		break;
+								case LineMode::SMS:			this->draw_sms(relative_start, relative_end, cram_value);	break;
 								case LineMode::Character:	this->draw_tms_character(relative_start, relative_end);		break;
 								case LineMode::Text:		this->draw_tms_text(relative_start, relative_end);			break;
 
