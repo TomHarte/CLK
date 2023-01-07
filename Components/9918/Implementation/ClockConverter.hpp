@@ -19,21 +19,41 @@ namespace TMS {
 template <Personality, typename Enable = void> struct Timing {};
 
 template <Personality personality>
-struct Timing<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
-	constexpr static int CyclesPerLine = 1368;
+struct Timing<personality, std::enable_if_t<is_classic_vdp(personality)>> {
+	/// The total number of internal cycles per line of output.
+	constexpr static int CyclesPerLine = 342;
+
+	/// The number of internal cycles that must elapse between a request to read or write and
+	/// it becoming a candidate for action.
 	constexpr static int VRAMAccessDelay = 6;
+
+	/// The first internal cycle at which pixels will be output in any mode other than text.
+	/// Pixels implicitly run from here to the end of the line.
+	constexpr static int FirstPixelCycle = 86;
+
+	/// The first internal cycle at which pixels will be output text mode.
+	constexpr static int FirstTextCycle = 94;
+
+	/// The final internal cycle at which pixels will be output text mode.
+	constexpr static int LastTextCycle = 334;
 };
 
 template <Personality personality>
-struct Timing<personality, std::enable_if_t<is_classic_vdp(personality)>> {
-	constexpr static int CyclesPerLine = 342;
+struct Timing<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
+	constexpr static int CyclesPerLine = 1368;
 	constexpr static int VRAMAccessDelay = 6;
+	constexpr static int FirstPixelCycle = 344;
+	constexpr static int FirstTextCycle = 376;
+	constexpr static int LastTextCycle = 1336;
 };
 
 template <>
 struct Timing<Personality::MDVDP> {
 	constexpr static int CyclesPerLine = 3420;
 	constexpr static int VRAMAccessDelay = 6;
+	constexpr static int FirstPixelCycle = 860;
+	constexpr static int FirstTextCycle = 940;
+	constexpr static int LastTextCycle = 3340;
 };
 
 constexpr int TMSAccessWindowsPerLine = 171;

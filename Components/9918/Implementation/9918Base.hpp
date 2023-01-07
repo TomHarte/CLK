@@ -214,7 +214,7 @@ template <Personality personality> struct Base {
 	// Internal mechanisms for position tracking.
 	int latched_column_ = 0;
 
-	// A struct to contain timing information for the current mode.
+	// A struct to contain timing information that is a function of the current mode.
 	struct {
 		/*
 			Vertical layout:
