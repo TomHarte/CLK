@@ -349,37 +349,39 @@ template <Personality personality> struct Base {
 			default: return;
 
 			case MemoryAccess::Write:
-				if(master_system_.cram_is_selected) {
-					// Adjust the palette. In a Master System blue has a slightly different
-					// scale; cf. https://www.retrorgb.com/sega-master-system-non-linear-blue-channel-findings.html
-					constexpr uint8_t rg_scale[] = {0, 85, 170, 255};
-					constexpr uint8_t b_scale[] = {0, 104, 170, 255};
-					master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
-						rg_scale[(read_ahead_buffer_ >> 0) & 3],
-						rg_scale[(read_ahead_buffer_ >> 2) & 3],
-						b_scale[(read_ahead_buffer_ >> 4) & 3]
-					);
+				if constexpr (is_sega_vdp(personality)) {
+					if(master_system_.cram_is_selected) {
+						// Adjust the palette. In a Master System blue has a slightly different
+						// scale; cf. https://www.retrorgb.com/sega-master-system-non-linear-blue-channel-findings.html
+						constexpr uint8_t rg_scale[] = {0, 85, 170, 255};
+						constexpr uint8_t b_scale[] = {0, 104, 170, 255};
+						master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
+							rg_scale[(read_ahead_buffer_ >> 0) & 3],
+							rg_scale[(read_ahead_buffer_ >> 2) & 3],
+							b_scale[(read_ahead_buffer_ >> 4) & 3]
+						);
 
-					// Schedule a CRAM dot; this is scheduled for wherever it should appear
-					// on screen. So it's wherever the output stream would be now. Which
-					// is output_lag cycles ago from the point of view of the input stream.
-					CRAMDot &dot = upcoming_cram_dots_.emplace_back();
-					dot.location.column = write_pointer_.column - output_lag;
-					dot.location.row = write_pointer_.row;
+						// Schedule a CRAM dot; this is scheduled for wherever it should appear
+						// on screen. So it's wherever the output stream would be now. Which
+						// is output_lag cycles ago from the point of view of the input stream.
+						CRAMDot &dot = upcoming_cram_dots_.emplace_back();
+						dot.location.column = write_pointer_.column - output_lag;
+						dot.location.row = write_pointer_.row;
 
-					// Handle before this row conditionally; then handle after (or, more realistically,
-					// exactly at the end of) naturally.
-					if(dot.location.column < 0) {
-						--dot.location.row;
-						dot.location.column += 342;
+						// Handle before this row conditionally; then handle after (or, more realistically,
+						// exactly at the end of) naturally.
+						if(dot.location.column < 0) {
+							--dot.location.row;
+							dot.location.column += 342;
+						}
+						dot.location.row += dot.location.column / 342;
+						dot.location.column %= 342;
+
+						dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
+						break;
 					}
-					dot.location.row += dot.location.column / 342;
-					dot.location.column %= 342;
-
-					dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
-				} else {
-					ram_[ram_pointer_ & 16383] = read_ahead_buffer_;
 				}
+				ram_[ram_pointer_ & 16383] = read_ahead_buffer_;
 			break;
 			case MemoryAccess::Read:
 				read_ahead_buffer_ = ram_[ram_pointer_ & 16383];

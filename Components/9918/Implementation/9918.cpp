@@ -756,13 +756,12 @@ bool TMS9918<personality>::get_interrupt_line() const {
 }
 
 // TODO: [potentially] remove Master System timing assumptions in latch and get_latched below.
-template <Personality personality>
-uint8_t TMS9918<personality>::get_latched_horizontal_counter() const {
+template <Personality personality>uint8_t TMS9918<personality>::get_latched_horizontal_counter() const {
 	// Translate from internal numbering, which puts pixel output
 	// in the final 256 pixels of 342, to the public numbering,
-	// which makes the 256 pixels the first 256 spots, but starts
+	// which counts the 256 pixels as items 0–255, starts
 	// counting at -48, and returns only the top 8 bits of the number.
-	int public_counter = this->latched_column_ - 86;
+	int public_counter = this->latched_column_ - (342 - 256);
 	if(public_counter < -46) public_counter += 342;
 	return uint8_t(public_counter >> 1);
 }
