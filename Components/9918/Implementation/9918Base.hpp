@@ -298,43 +298,35 @@ template <Personality personality> struct Base {
 		size_t sprite_generator_table_address;
 	} master_system_;
 
-	void set_current_screen_mode() {
+	ScreenMode current_screen_mode() const {
 		if(blank_display_) {
-			screen_mode_ = ScreenMode::Blank;
-			return;
+			return ScreenMode::Blank;
 		}
 
 		if constexpr (is_sega_vdp(personality)) {
 			if(master_system_.mode4_enable) {
-				screen_mode_ = ScreenMode::SMSMode4;
-				mode_timing_.maximum_visible_sprites = 8;
-				return;
+				return ScreenMode::SMSMode4;
 			}
 		}
 
-		mode_timing_.maximum_visible_sprites = 4;
 		if(!mode1_enable_ && !mode2_enable_ && !mode3_enable_) {
-			screen_mode_ = ScreenMode::ColouredText;
-			return;
+			return ScreenMode::ColouredText;
 		}
 
 		if(mode1_enable_ && !mode2_enable_ && !mode3_enable_) {
-			screen_mode_ = ScreenMode::Text;
-			return;
+			return ScreenMode::Text;
 		}
 
 		if(!mode1_enable_ && mode2_enable_ && !mode3_enable_) {
-			screen_mode_ = ScreenMode::Graphics;
-			return;
+			return ScreenMode::Graphics;
 		}
 
 		if(!mode1_enable_ && !mode2_enable_ && mode3_enable_) {
-			screen_mode_ = ScreenMode::MultiColour;
-			return;
+			return ScreenMode::MultiColour;
 		}
 
 		// TODO: undocumented TMS modes.
-		screen_mode_ = ScreenMode::Blank;
+		return ScreenMode::Blank;
 	}
 
 	void do_external_slot(int access_column) {

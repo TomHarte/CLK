@@ -266,7 +266,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				LineBuffer &next_line_buffer = this->line_buffers_[this->write_pointer_.row];
 
 				// Establish the output mode for the next line.
-				this->set_current_screen_mode();
+				this->screen_mode_ = this->current_screen_mode();
 
 				// Based on the output mode, pick a line mode.
 				next_line_buffer.first_pixel_output_column = Timing<personality>::FirstPixelCycle;
