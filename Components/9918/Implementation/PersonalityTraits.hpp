@@ -21,6 +21,7 @@ constexpr bool is_yamaha_vdp(Personality p) {
 	return p == Personality::V9938 || p == Personality::V9958;
 }
 
+// i.e. one with the original internal timings.
 constexpr bool is_classic_vdp(Personality p) {
 	return
 		p == Personality::TMS9918A ||

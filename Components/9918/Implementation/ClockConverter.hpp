@@ -21,16 +21,19 @@ template <Personality, typename Enable = void> struct Timing {};
 template <Personality personality>
 struct Timing<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
 	constexpr static int CyclesPerLine = 1368;
+	constexpr static int VRAMAccessDelay = 6;
 };
 
 template <Personality personality>
 struct Timing<personality, std::enable_if_t<is_classic_vdp(personality)>> {
 	constexpr static int CyclesPerLine = 342;
+	constexpr static int VRAMAccessDelay = 6;
 };
 
 template <>
 struct Timing<Personality::MDVDP> {
 	constexpr static int CyclesPerLine = 3420;
+	constexpr static int VRAMAccessDelay = 6;
 };
 
 constexpr int TMSAccessWindowsPerLine = 171;
