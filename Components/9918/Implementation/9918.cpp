@@ -50,7 +50,7 @@ Base<personality>::Base() :
 	// Establish that output is delayed after reading by `output_lag` cycles; start
 	// at a random position.
 	read_pointer_.row = rand() % 262;
-	read_pointer_.column = rand() % (342 - output_lag);
+	read_pointer_.column = rand() % (Timing<personality>::CyclesPerLine - output_lag);
 	write_pointer_.row = read_pointer_.row;
 	write_pointer_.column = read_pointer_.column + output_lag;
 }
@@ -681,11 +681,11 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	if(get_interrupt_line()) return HalfCycles::max();
 
 	// Calculate the amount of time until the next end-of-frame interrupt.
-	const int frame_length = 342 * this->mode_timing_.total_lines;
+	const int frame_length = Timing<personality>::CyclesPerLine * this->mode_timing_.total_lines;
 	int time_until_frame_interrupt =
 		(
-			((this->mode_timing_.end_of_frame_interrupt_position.row * 342) + this->mode_timing_.end_of_frame_interrupt_position.column + frame_length) -
-			((this->write_pointer_.row * 342) + this->write_pointer_.column)
+			((this->mode_timing_.end_of_frame_interrupt_position.row * Timing<personality>::CyclesPerLine) + this->mode_timing_.end_of_frame_interrupt_position.column + frame_length) -
+			((this->write_pointer_.row * Timing<personality>::CyclesPerLine) + this->write_pointer_.column)
 		) % frame_length;
 	if(!time_until_frame_interrupt) time_until_frame_interrupt = frame_length;
 
@@ -697,7 +697,7 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	int cycles_to_next_interrupt_threshold = this->mode_timing_.line_interrupt_position - this->write_pointer_.column;
 	int line_of_next_interrupt_threshold = this->write_pointer_.row;
 	if(cycles_to_next_interrupt_threshold <= 0) {
-		cycles_to_next_interrupt_threshold += 342;
+		cycles_to_next_interrupt_threshold += Timing<personality>::CyclesPerLine;
 		++line_of_next_interrupt_threshold;
 	}
 
@@ -723,7 +723,7 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 
 	// Figure out the number of internal cycles until the next line interrupt, which is the amount
 	// of time to the next tick over and then next_line_interrupt_row - row_ lines further.
-	const int local_cycles_until_line_interrupt = cycles_to_next_interrupt_threshold + (next_line_interrupt_row - line_of_next_interrupt_threshold) * 342;
+	const int local_cycles_until_line_interrupt = cycles_to_next_interrupt_threshold + (next_line_interrupt_row - line_of_next_interrupt_threshold) * Timing<personality>::CyclesPerLine;
 	if(!this->generate_interrupts_) return this->clock_converter_.half_cycles_before_internal_cycles(local_cycles_until_line_interrupt);
 
 	// Return whichever interrupt is closer.
@@ -737,7 +737,7 @@ HalfCycles TMS9918<personality>::get_time_until_line(int line) {
 	int cycles_to_next_interrupt_threshold = this->mode_timing_.line_interrupt_position - this->write_pointer_.column;
 	int line_of_next_interrupt_threshold = this->write_pointer_.row;
 	if(cycles_to_next_interrupt_threshold <= 0) {
-		cycles_to_next_interrupt_threshold += 342;
+		cycles_to_next_interrupt_threshold += Timing<personality>::CyclesPerLine;
 		++line_of_next_interrupt_threshold;
 	}
 
@@ -745,7 +745,7 @@ HalfCycles TMS9918<personality>::get_time_until_line(int line) {
 		line += this->mode_timing_.total_lines;
 	}
 
-	return this->clock_converter_.half_cycles_before_internal_cycles(cycles_to_next_interrupt_threshold + (line - line_of_next_interrupt_threshold)*342);
+	return this->clock_converter_.half_cycles_before_internal_cycles(cycles_to_next_interrupt_threshold + (line - line_of_next_interrupt_threshold)*Timing<personality>::CyclesPerLine);
 }
 
 template <Personality personality>
