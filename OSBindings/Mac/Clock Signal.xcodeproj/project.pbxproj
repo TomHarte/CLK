@@ -1246,6 +1246,7 @@
 		4B228CDA24DA41880077EF25 /* ScanTarget.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = ScanTarget.metal; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.metal; };
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
 		4B2530F3244E6773007980BF /* fm.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = fm.json; sourceTree = "<group>"; };
+		4B262BFF29691F55002EC0F7 /* PersonalityTraits.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PersonalityTraits.hpp; sourceTree = "<group>"; };
 		4B2A332C1DB86821002876E3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/OricOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4B2A53901D117D36003C6002 /* CSAudioQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSAudioQueue.h; sourceTree = "<group>"; };
 		4B2A53911D117D36003C6002 /* CSAudioQueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSAudioQueue.m; sourceTree = "<group>"; };
@@ -4740,8 +4741,9 @@
 				4B43983829620FB1006B0BFC /* 9918.cpp */,
 				4BD388411FE34E010042B588 /* 9918Base.hpp */,
 				4B43983C29621024006B0BFC /* ClockConverter.hpp */,
-				4B43983E29628538006B0BFC /* Fetch.hpp */,
 				4B43983F2967459B006B0BFC /* Draw.hpp */,
+				4B43983E29628538006B0BFC /* Fetch.hpp */,
+				4B262BFF29691F55002EC0F7 /* PersonalityTraits.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";
