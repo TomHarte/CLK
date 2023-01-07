@@ -265,7 +265,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->write_pointer_.row = (this->write_pointer_.row + 1) % this->mode_timing_.total_lines;
 				LineBuffer &next_line_buffer = this->line_buffers_[this->write_pointer_.row];
 
-				// Establish the output mode for the next line.
+				// Establish the current screen output mode, which will be captured as a
+				// line mode momentarily.
 				this->screen_mode_ = this->current_screen_mode();
 
 				// Based on the output mode, pick a line mode.
@@ -274,9 +275,13 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->mode_timing_.maximum_visible_sprites = 4;
 				switch(this->screen_mode_) {
 					case ScreenMode::Text:
-						next_line_buffer.line_mode = LineMode::Text;
-						next_line_buffer.first_pixel_output_column = Timing<personality>::FirstTextCycle;
-						next_line_buffer.next_border_column = Timing<personality>::LastTextCycle;
+						if constexpr (Timing<personality>::SupportsTextMode) {
+							next_line_buffer.line_mode = LineMode::Text;
+							next_line_buffer.first_pixel_output_column = Timing<personality>::FirstTextCycle;
+							next_line_buffer.next_border_column = Timing<personality>::LastTextCycle;
+						} else {
+							next_line_buffer.line_mode = LineMode::Refresh;
+						}
 					break;
 					case ScreenMode::SMSMode4:
 						next_line_buffer.line_mode = LineMode::SMS;

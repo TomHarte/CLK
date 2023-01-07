@@ -31,6 +31,10 @@ struct Timing<personality, std::enable_if_t<is_classic_vdp(personality)>> {
 	/// Pixels implicitly run from here to the end of the line.
 	constexpr static int FirstPixelCycle = 86;
 
+	/// Indicates whether text modes are supported by this VDP. If so then
+	/// values for First & Last TextCycle are required. If not then they can be omitted.
+	constexpr static bool SupportsTextMode = true;
+
 	/// The first internal cycle at which pixels will be output text mode.
 	constexpr static int FirstTextCycle = 94;
 
@@ -43,6 +47,7 @@ struct Timing<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
 	constexpr static int CyclesPerLine = 1368;
 	constexpr static int VRAMAccessDelay = 6;
 	constexpr static int FirstPixelCycle = 344;
+	constexpr static bool SupportsTextMode = true;
 	constexpr static int FirstTextCycle = 376;
 	constexpr static int LastTextCycle = 1336;
 };
@@ -52,8 +57,7 @@ struct Timing<Personality::MDVDP> {
 	constexpr static int CyclesPerLine = 3420;
 	constexpr static int VRAMAccessDelay = 6;
 	constexpr static int FirstPixelCycle = 860;
-	constexpr static int FirstTextCycle = 940;
-	constexpr static int LastTextCycle = 3340;
+	constexpr static bool SupportsTextMode = false;
 };
 
 constexpr int TMSAccessWindowsPerLine = 171;
