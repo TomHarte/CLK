@@ -18,10 +18,11 @@ namespace TMS {
 // Timing constants.
 template <Personality, typename Enable = void> struct Timing {};
 
-template <Personality personality>
-struct Timing<personality, std::enable_if_t<is_classic_vdp(personality)>> {
+/// Provides default timing measurements that duplicate the layout of a TMS9928's line,
+/// scaled to the clock rate specified.
+template <int _CyclesPerLine> struct StandardTiming {
 	/// The total number of internal cycles per line of output.
-	constexpr static int CyclesPerLine = 342;
+	constexpr static int CyclesPerLine = _CyclesPerLine;
 
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
@@ -29,17 +30,13 @@ struct Timing<personality, std::enable_if_t<is_classic_vdp(personality)>> {
 
 	/// The first internal cycle at which pixels will be output in any mode other than text.
 	/// Pixels implicitly run from here to the end of the line.
-	constexpr static int FirstPixelCycle = 86;
-
-	/// Indicates whether text modes are supported by this VDP. If so then
-	/// values for First & Last TextCycle are required. If not then they can be omitted.
-	constexpr static bool SupportsTextMode = true;
+	constexpr static int FirstPixelCycle = 86 * CyclesPerLine / 342;
 
 	/// The first internal cycle at which pixels will be output text mode.
-	constexpr static int FirstTextCycle = 94;
+	constexpr static int FirstTextCycle = 94 * CyclesPerLine / 342;
 
 	/// The final internal cycle at which pixels will be output text mode.
-	constexpr static int LastTextCycle = 334;
+	constexpr static int LastTextCycle = 334 * CyclesPerLine / 342;
 
 	// For the below, the fixed portion of line layout is:
 	//
@@ -53,48 +50,24 @@ struct Timing<personality, std::enable_if_t<is_classic_vdp(personality)>> {
 	// The region from StartOfLeftBorder until the end is then filled with
 	// some combination of pixels and more border, depending on the vertical
 	// position of this line and the current screen mode.
-	constexpr static int EndOfRightBorder = 15;
-	constexpr static int StartOfSync = 23;
-	constexpr static int EndOfSync = 49;
-	constexpr static int StartOfColourBurst = 51;
-	constexpr static int EndOfColourBurst = 65;
-	constexpr static int StartOfLeftBorder = 73;
+	constexpr static int EndOfRightBorder	= 15 * CyclesPerLine / 342;
+	constexpr static int StartOfSync		= 23 * CyclesPerLine / 342;
+	constexpr static int EndOfSync			= 49 * CyclesPerLine / 342;
+	constexpr static int StartOfColourBurst	= 51 * CyclesPerLine / 342;
+	constexpr static int EndOfColourBurst	= 65 * CyclesPerLine / 342;
+	constexpr static int StartOfLeftBorder	= 73 * CyclesPerLine / 342;
 };
 
 template <Personality personality>
-struct Timing<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
-	constexpr static int CyclesPerLine = 1368;
+struct Timing<personality, std::enable_if_t<is_classic_vdp(personality)>>: public StandardTiming<342> {
+};
 
-	constexpr static int VRAMAccessDelay = 6;
-	constexpr static int FirstPixelCycle = 344;
-	constexpr static bool SupportsTextMode = true;
-	constexpr static int FirstTextCycle = 376;
-	constexpr static int LastTextCycle = 1336;
-
-	constexpr static int EndOfRightBorder = 15 * 4;
-	constexpr static int StartOfSync = 23 * 4;
-	constexpr static int EndOfSync = 49 * 4;
-	constexpr static int StartOfColourBurst = 51 * 4;
-	constexpr static int EndOfColourBurst = 65 * 4;
-	constexpr static int StartOfLeftBorder = 73 * 4;
+template <Personality personality>
+struct Timing<personality, std::enable_if_t<is_yamaha_vdp(personality)>>: public StandardTiming<1368> {
 };
 
 template <>
-struct Timing<Personality::MDVDP> {
-	constexpr static int CyclesPerLine = 3420;
-
-	constexpr static int VRAMAccessDelay = 6;
-	constexpr static int FirstPixelCycle = 860;
-	constexpr static bool SupportsTextMode = false;
-
-	// Implementation note: these currently need to be multiples of 2.5
-	// per the stateless Mega Drive -> CRT clock conversion.
-	constexpr static int EndOfRightBorder = 15 * 10;
-	constexpr static int StartOfSync = 23 * 10;
-	constexpr static int EndOfSync = 49 * 10;
-	constexpr static int StartOfColourBurst = 51 * 10;
-	constexpr static int EndOfColourBurst = 65 * 10;
-	constexpr static int StartOfLeftBorder = 73 * 10;
+struct Timing<Personality::MDVDP>: public StandardTiming<3420> {
 };
 
 constexpr int TMSAccessWindowsPerLine = 171;

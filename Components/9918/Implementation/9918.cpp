@@ -275,13 +275,9 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->mode_timing_.maximum_visible_sprites = 4;
 				switch(this->screen_mode_) {
 					case ScreenMode::Text:
-						if constexpr (Timing<personality>::SupportsTextMode) {
-							next_line_buffer.line_mode = LineMode::Text;
-							next_line_buffer.first_pixel_output_column = Timing<personality>::FirstTextCycle;
-							next_line_buffer.next_border_column = Timing<personality>::LastTextCycle;
-						} else {
-							next_line_buffer.line_mode = LineMode::Refresh;
-						}
+						next_line_buffer.line_mode = LineMode::Text;
+						next_line_buffer.first_pixel_output_column = Timing<personality>::FirstTextCycle;
+						next_line_buffer.next_border_column = Timing<personality>::LastTextCycle;
 					break;
 					case ScreenMode::SMSMode4:
 						next_line_buffer.line_mode = LineMode::SMS;
