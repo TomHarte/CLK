@@ -341,6 +341,11 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// Output video stream.
 				// --------------------
 
+#define crt_convert(action, time)		this->crt_.action(this->clock_converter_.to_crt_clock(time))
+#define output_sync(x)					crt_convert(output_sync, x)
+#define output_blank(x)					crt_convert(output_blank, x)
+#define output_default_colour_burst(x)	crt_convert(output_default_colour_burst, x)
+
 #define intersect(left, right, code)	{	\
 		const int start = std::max(this->read_pointer_.column, left);	\
 		const int end = std::min(end_column, right);	\
@@ -359,43 +364,46 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						// Vertical sync.
 						// TODO: the Mega Drive supports interlaced video, I think?
 						if(end_column == Timing<personality>::CyclesPerLine) {
-							this->crt_.output_sync(
-								this->clock_converter_.to_crt_clock(Timing<personality>::CyclesPerLine)
-							);
+							output_sync(Timing<personality>::CyclesPerLine);
 						}
 					} else {
 						// Right border.
 						border(0, Timing<personality>::EndOfRightBorder);
 
-						// Blanking region; total length is 58 cycles,
-						// and 58+15 = 73. So output the lot when the
-						// cursor passes 73.
-						if(this->read_pointer_.column < 73 && end_column >= 73) {
-							this->crt_.output_blank(8*4);
-							this->crt_.output_sync(26*4);
-							this->crt_.output_blank(2*4);
-							this->crt_.output_default_colour_burst(14*4);
-							this->crt_.output_blank(8*4);
+						// Blanking region: output the entire sequence when the cursor
+						// crosses the start-of-border point.
+						if(
+							this->read_pointer_.column < Timing<personality>::StartOfLeftBorder &&
+							end_column >= Timing<personality>::StartOfLeftBorder
+						) {
+							output_blank(Timing<personality>::StartOfSync - Timing<personality>::EndOfRightBorder);
+							output_sync(Timing<personality>::EndOfSync - Timing<personality>::StartOfSync);
+							output_blank(Timing<personality>::StartOfColourBurst - Timing<personality>::EndOfSync);
+							output_default_colour_burst(Timing<personality>::EndOfColourBurst - Timing<personality>::StartOfColourBurst);
+							output_blank(Timing<personality>::StartOfLeftBorder - Timing<personality>::EndOfColourBurst);
 						}
 
 						// Border colour for the rest of the line.
-						border(73, 342);
+						border(Timing<personality>::StartOfLeftBorder, Timing<personality>::CyclesPerLine);
 					}
 				} else {
 					// Right border.
-					border(0, 15);
+					border(0, Timing<personality>::EndOfRightBorder);
 
 					// Blanking region.
-					if(this->read_pointer_.column < 73 && end_column >= 73) {
-						this->crt_.output_blank(8*4);
-						this->crt_.output_sync(26*4);
-						this->crt_.output_blank(2*4);
-						this->crt_.output_default_colour_burst(14*4);
-						this->crt_.output_blank(8*4);
+					if(
+						this->read_pointer_.column < Timing<personality>::StartOfLeftBorder &&
+						end_column >= Timing<personality>::StartOfLeftBorder
+					) {
+						output_blank(Timing<personality>::StartOfSync - Timing<personality>::EndOfRightBorder);
+						output_sync(Timing<personality>::EndOfSync - Timing<personality>::StartOfSync);
+						output_blank(Timing<personality>::StartOfColourBurst - Timing<personality>::EndOfSync);
+						output_default_colour_burst(Timing<personality>::EndOfColourBurst - Timing<personality>::StartOfColourBurst);
+						output_blank(Timing<personality>::StartOfLeftBorder - Timing<personality>::EndOfColourBurst);
 					}
 
 					// Left border.
-					border(73, line_buffer.first_pixel_output_column);
+					border(Timing<personality>::StartOfLeftBorder, line_buffer.first_pixel_output_column);
 
 					// Pixel region.
 					intersect(
@@ -422,20 +430,25 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 						if(end == line_buffer.next_border_column) {
 							const int length = line_buffer.next_border_column - line_buffer.first_pixel_output_column;
-							this->crt_.output_data(length * 4, size_t(length));
+							this->crt_.output_data(this->clock_converter_.to_crt_clock(length), size_t(length));
 							this->pixel_origin_ = this->pixel_target_ = nullptr;
 							this->asked_for_write_area_ = false;
 						}
 					);
 
 					// Additional right border, if called for.
-					if(line_buffer.next_border_column != 342) {
-						border(line_buffer.next_border_column, 342);
+					if(line_buffer.next_border_column != Timing<personality>::CyclesPerLine) {
+						border(line_buffer.next_border_column, Timing<personality>::CyclesPerLine);
 					}
 				}
 
 #undef border
 #undef intersect
+
+#undef crt_convert
+#undef output_sync
+#undef output_blank
+#undef output_default_colour_burst
 
 
 

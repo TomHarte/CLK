@@ -68,6 +68,9 @@ struct Timing<personality, std::enable_if_t<is_yamaha_vdp(personality)>>: public
 
 template <>
 struct Timing<Personality::MDVDP>: public StandardTiming<3420> {
+	// Implementation note: descending from StandardTiming works as long as the numbers computed
+	// end up being a multiple of 2.5. In practice they're all multiples of 10, so that's guaranteed.
+	// Coupled logic is as per to_crt_clock below.
 };
 
 constexpr int TMSAccessWindowsPerLine = 171;
