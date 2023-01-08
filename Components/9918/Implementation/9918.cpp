@@ -405,6 +405,12 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					// Left border.
 					border(Timing<personality>::StartOfLeftBorder, line_buffer.first_pixel_output_column);
 
+#define draw(function, converter) {																				\
+	const int relative_start = this->clock_converter_.converter(start - line_buffer.first_pixel_output_column);	\
+	const int relative_end = this->clock_converter_.converter(end - line_buffer.first_pixel_output_column);		\
+	if(relative_start == relative_end) break;																	\
+	this->function; }
+
 					// Pixel region.
 					intersect(
 						line_buffer.first_pixel_output_column,
@@ -417,12 +423,10 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						}
 
 						if(this->pixel_target_) {
-							const int relative_start = start - line_buffer.first_pixel_output_column;
-							const int relative_end = end - line_buffer.first_pixel_output_column;
 							switch(line_buffer.line_mode) {
-								case LineMode::SMS:			this->draw_sms(relative_start, relative_end, cram_value);	break;
-								case LineMode::Character:	this->draw_tms_character(relative_start, relative_end);		break;
-								case LineMode::Text:		this->draw_tms_text(relative_start, relative_end);			break;
+								case LineMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), to_tms_access_clock);	break;
+								case LineMode::Character:	draw(draw_tms_character(relative_start, relative_end), to_tms_access_clock);	break;
+								case LineMode::Text:		draw(draw_tms_text(relative_start, relative_end), to_tms_access_clock);			break;
 
 								case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
 							}
@@ -435,6 +439,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 							this->asked_for_write_area_ = false;
 						}
 					);
+
+#undef draw
 
 					// Additional right border, if called for.
 					if(line_buffer.next_border_column != Timing<personality>::CyclesPerLine) {
