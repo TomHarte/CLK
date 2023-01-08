@@ -470,34 +470,41 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 }
 
 template <Personality personality>
-void Base<personality>::output_border(int cycles, uint32_t cram_dot) {
-	cycles *= 4;
+void Base<personality>::output_border(int cycles, [[maybe_unused]] uint32_t cram_dot) {
+	cycles = this->clock_converter_.to_crt_clock(cycles);
 	const uint32_t border_colour =
 		is_sega_vdp(personality) ?
 			master_system_.colour_ram[16 + background_colour_] :
 			palette[background_colour_];
 
-	if(cram_dot) {
-		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_.begin_data(1));
-		if(pixel_target) {
-			*pixel_target = border_colour | cram_dot;
-		}
-		crt_.output_level(4);
-		cycles -= 4;
-	}
-
-	if(cycles) {
-		// If the border colour is 0, that can be communicated
-		// more efficiently as an explicit blank.
-		if(border_colour) {
+	if constexpr (is_sega_vdp(personality)) {
+		if(cram_dot) {
 			uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_.begin_data(1));
 			if(pixel_target) {
-				*pixel_target = border_colour;
+				*pixel_target = border_colour | cram_dot;
 			}
-			crt_.output_level(cycles);
-		} else {
-			crt_.output_blank(cycles);
+
+			// Four CRT cycles is one pixel width, so this doesn't need clock conversion.
+			// TODO: on the Mega Drive it may be only 3 colour cycles, depending on mode.
+			crt_.output_level(4);
+			cycles -= 4;
 		}
+	}
+
+	if(!cycles) {
+		return;
+	}
+
+	// If the border colour is 0, that can be communicated
+	// more efficiently as an explicit blank.
+	if(border_colour) {
+		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_.begin_data(1));
+		if(pixel_target) {
+			*pixel_target = border_colour;
+		}
+		crt_.output_level(cycles);
+	} else {
+		crt_.output_blank(cycles);
 	}
 }
 
