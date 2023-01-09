@@ -41,6 +41,12 @@
 	for the exceptions.
 */
 
+// TODO: external_slot needs to do a proper conversion back to the internal clock,
+// not assume a multiply by two.
+//
+// (and, for MSX 2 purposes, it would ideally know how many cycles since the last access
+// slot, probably, but I'm not completely sure that's necessary yet)
+
 #define slot(n)	\
 	if(use_end && end == n) return;	\
 	[[fallthrough]];				\
