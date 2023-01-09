@@ -272,12 +272,14 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// Based on the output mode, pick a line mode.
 				next_line_buffer.first_pixel_output_column = Timing<personality>::FirstPixelCycle;
 				next_line_buffer.next_border_column = Timing<personality>::CyclesPerLine;
+				next_line_buffer.pixel_count = 256;
 				this->mode_timing_.maximum_visible_sprites = 4;
 				switch(this->screen_mode_) {
 					case ScreenMode::Text:
 						next_line_buffer.line_mode = LineMode::Text;
 						next_line_buffer.first_pixel_output_column = Timing<personality>::FirstTextCycle;
 						next_line_buffer.next_border_column = Timing<personality>::LastTextCycle;
+						next_line_buffer.pixel_count = 240;
 					break;
 					case ScreenMode::SMSMode4:
 						next_line_buffer.line_mode = LineMode::SMS;
@@ -418,9 +420,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						if(!this->asked_for_write_area_) {
 							this->asked_for_write_area_ = true;
 
-							// TODO: how many pixels across is this mode?
 							this->pixel_origin_ = this->pixel_target_ = reinterpret_cast<uint32_t *>(
-								this->crt_.begin_data(256)
+								this->crt_.begin_data(line_buffer.pixel_count)
 							);
 						}
 
@@ -435,8 +436,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						}
 
 						if(end == line_buffer.next_border_column) {
-							const int length = 256;//line_buffer.next_border_column - line_buffer.first_pixel_output_column;	// TODO: proper number of pixels, as above.
-							this->crt_.output_data(this->clock_converter_.to_crt_clock(length), size_t(length));
+							const int length = line_buffer.next_border_column - line_buffer.first_pixel_output_column;
+							this->crt_.output_data(this->clock_converter_.to_crt_clock(length), line_buffer.pixel_count);
 							this->pixel_origin_ = this->pixel_target_ = nullptr;
 							this->asked_for_write_area_ = false;
 						}

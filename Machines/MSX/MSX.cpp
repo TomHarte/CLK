@@ -743,7 +743,7 @@ class ConcreteMachine:
 		};
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<TI::TMS::TMS9918<TI::TMS::Personality::V9938>> vdp_;
+		JustInTimeActor<TI::TMS::TMS9918<TI::TMS::Personality::TMS9918A>> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;

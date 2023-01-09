@@ -101,6 +101,7 @@ struct LineBuffer {
 	*/
 	int first_pixel_output_column = 94;
 	int next_border_column = 334;
+	size_t pixel_count = 256;
 
 	// An active sprite is one that has been selected for composition onto
 	// this line.
