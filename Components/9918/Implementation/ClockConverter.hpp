@@ -155,7 +155,7 @@ template <Personality personality> class ClockConverter {
 
 				case Personality::V9938:
 				case Personality::V9958:
-					return HalfCycles(internal_cycles / 3);
+					return HalfCycles((internal_cycles + 2) / 3);
 
 				case Personality::MDVDP:
 					return HalfCycles(
@@ -166,8 +166,7 @@ template <Personality personality> class ClockConverter {
 
 		/*!
 			Converts a position in internal cycles to its corresponding position
-			on the TMS memory-access clock, i.e. scales down to 171 clocks
-			per line
+			on the TMS memory-access clock, i.e. scales to 171 clocks per line.
 		*/
 		static constexpr int to_tms_access_clock(int source) {
 			switch(personality) {
@@ -184,6 +183,24 @@ template <Personality personality> class ClockConverter {
 		}
 
 		/*!
+			Converts a position in internal cycles to its corresponding position
+			on the TMS pixel clock, i.e. scales to 342 clocks per line.
+		*/
+		static constexpr int to_tms_pixel_clock(int source) {
+			switch(personality) {
+				default:
+				return source;
+
+				case Personality::V9938:
+				case Personality::V9958:
+				return source >> 2;
+
+				case Personality::MDVDP:
+				return source / 10;
+			}
+		}
+
+		/*!
 			Convers a position in internal cycles to its corresponding position
 			on the CRT's output clock, which [TODO] is clocked so that
 			1368 cycles is 228 NTSC colour cycles.
@@ -191,7 +208,7 @@ template <Personality personality> class ClockConverter {
 		static constexpr int to_crt_clock(int source) {
 			switch(personality) {
 				default:
-				return source * 4;
+				return source << 2;
 
 				case Personality::V9938:
 				case Personality::V9958:

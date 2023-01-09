@@ -417,23 +417,25 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						line_buffer.next_border_column,
 						if(!this->asked_for_write_area_) {
 							this->asked_for_write_area_ = true;
+
+							// TODO: how many pixels across is this mode?
 							this->pixel_origin_ = this->pixel_target_ = reinterpret_cast<uint32_t *>(
-								this->crt_.begin_data(size_t(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
+								this->crt_.begin_data(256)
 							);
 						}
 
 						if(this->pixel_target_) {
 							switch(line_buffer.line_mode) {
-								case LineMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), to_tms_access_clock);	break;
-								case LineMode::Character:	draw(draw_tms_character(relative_start, relative_end), to_tms_access_clock);	break;
-								case LineMode::Text:		draw(draw_tms_text(relative_start, relative_end), to_tms_access_clock);			break;
+								case LineMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), to_tms_pixel_clock);	break;
+								case LineMode::Character:	draw(draw_tms_character(relative_start, relative_end), to_tms_pixel_clock);		break;
+								case LineMode::Text:		draw(draw_tms_text(relative_start, relative_end), to_tms_pixel_clock);			break;
 
 								case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
 							}
 						}
 
 						if(end == line_buffer.next_border_column) {
-							const int length = line_buffer.next_border_column - line_buffer.first_pixel_output_column;
+							const int length = 256;//line_buffer.next_border_column - line_buffer.first_pixel_output_column;	// TODO: proper number of pixels, as above.
 							this->crt_.output_data(this->clock_converter_.to_crt_clock(length), size_t(length));
 							this->pixel_origin_ = this->pixel_target_ = nullptr;
 							this->asked_for_write_area_ = false;
@@ -713,7 +715,9 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 		) % frame_length;
 	if(!time_until_frame_interrupt) time_until_frame_interrupt = frame_length;
 
-	if(!this->enable_line_interrupts_) return this->clock_converter_.half_cycles_before_internal_cycles(time_until_frame_interrupt);
+	if(!this->enable_line_interrupts_) {
+		return this->clock_converter_.half_cycles_before_internal_cycles(time_until_frame_interrupt);
+	}
 
 	// Calculate when the next line interrupt will occur.
 	int next_line_interrupt_row = -1;
