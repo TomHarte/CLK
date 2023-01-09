@@ -183,6 +183,24 @@ template <Personality personality> class ClockConverter {
 		}
 
 		/*!
+			Converts a position in TMS access cycles back to one at the native
+			clock rate.
+		*/
+		static constexpr int from_tms_access_clock(int source) {
+			switch(personality) {
+				default:
+				return source << 1;
+
+				case Personality::V9938:
+				case Personality::V9958:
+				return source << 3;
+
+				case Personality::MDVDP:
+				return source * 20;
+			}
+		}
+
+		/*!
 			Converts a position in internal cycles to its corresponding position
 			on the TMS pixel clock, i.e. scales to 342 clocks per line.
 		*/
