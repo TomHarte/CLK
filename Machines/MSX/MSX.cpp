@@ -253,7 +253,7 @@ class ConcreteMachine:
 			}
 
 			map(0, 0, 0, 32768);
-			page_memory(0);
+			page_primary(0);
 
 			// Add a disk cartridge if any disks were supplied.
 			if(target.has_disk_drive) {
@@ -393,7 +393,7 @@ class ConcreteMachine:
 				source_address += 8192;
 			}
 
-			page_memory(paged_memory_);
+			update_paging();
 		}
 
 		void unmap(int slot, uint16_t destination_address, std::size_t length) final {
@@ -405,18 +405,31 @@ class ConcreteMachine:
 				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] = nullptr;
 			}
 
-			page_memory(paged_memory_);
+			update_paging();
 		}
 
-		// MARK: Ordinary paging.
-		void page_memory(uint8_t value) {
-			paged_memory_ = value;
+		// MARK: Memory paging.
+		void page_primary(uint8_t value) {
+			paging_.primary = value;
+			update_paging();
+		}
+
+		void page_secondary(uint8_t value) {
+			paging_.secondary = value;
+			update_paging();
+		}
+
+		void update_paging() {
+			uint8_t primary = paging_.primary;
+
 			for(std::size_t c = 0; c < 8; c += 2) {
-				read_pointers_[c] = memory_slots_[value & 3].read_pointers[c];
-				write_pointers_[c] = memory_slots_[value & 3].write_pointers[c];
-				read_pointers_[c+1] = memory_slots_[value & 3].read_pointers[c+1];
-				write_pointers_[c+1] = memory_slots_[value & 3].write_pointers[c+1];
-				value >>= 2;
+				const MemorySlot &slot = memory_slots_[primary & 3];
+				primary >>= 2;
+
+				read_pointers_[c] = slot.read_pointers[c];
+				write_pointers_[c] = slot.write_pointers[c];
+				read_pointers_[c+1] = slot.read_pointers[c+1];
+				write_pointers_[c+1] = slot.write_pointers[c+1];
 			}
 			set_use_fast_tape();
 		}
@@ -508,7 +521,7 @@ class ConcreteMachine:
 						if(read_pointers_[address >> 13]) {
 							*cycle.value = read_pointers_[address >> 13][address & 8191];
 						} else {
-							int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
+							int slot_hit = (paging_.primary >> ((address >> 14) * 2)) & 3;
 							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.template flush<HalfCycles>());
 							*cycle.value = memory_slots_[slot_hit].handler->read(address);
 						}
@@ -517,7 +530,7 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Write: {
 						write_pointers_[address >> 13][address & 8191] = *cycle.value;
 
-						int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
+						int slot_hit = (paging_.primary >> ((address >> 14) * 2)) & 3;
 						if(memory_slots_[slot_hit].handler) {
 							update_audio();
 							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.template flush<HalfCycles>());
@@ -699,7 +712,7 @@ class ConcreteMachine:
 
 				void set_value(int port, uint8_t value) {
 					switch(port) {
-						case 0:	machine_.page_memory(value);	break;
+						case 0:	machine_.page_primary(value);	break;
 						case 2: {
 							// TODO:
 							//	b6	caps lock LED
@@ -761,15 +774,18 @@ class ConcreteMachine:
 		bool allow_fast_tape_ = false;
 		bool use_fast_tape_ = false;
 		void set_use_fast_tape() {
-			use_fast_tape_ = !tape_player_is_sleeping_ && allow_fast_tape_ && tape_player_.has_tape() && !(paged_memory_&3);
+			use_fast_tape_ = !tape_player_is_sleeping_ && allow_fast_tape_ && tape_player_.has_tape() && !(paging_.primary&3) && !(paging_.secondary&3);
 		}
 
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;
 
-		/// The current primary slot selection; retains whatever value was written
-		/// last to the 8255 PPI via port A8.
-		uint8_t paged_memory_ = 0;
+		/// The current primary and secondary slot selections; the former retains whatever was written
+		/// last to the 8255 PPI via port A8 and the latter — if enabled — captures 0xffff.
+		struct {
+			uint8_t primary = 0;
+			uint8_t secondary = 0;
+		} paging_;
 
 		// Divides the current 64kb address space into 8kb chunks.
 		// 8kb resolution is used by some cartride titles.
