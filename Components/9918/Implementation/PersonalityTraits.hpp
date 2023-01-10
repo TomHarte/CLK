@@ -42,6 +42,10 @@ constexpr size_t memory_size(Personality p) {
 	}
 }
 
+constexpr uint16_t memory_mask(Personality p) {
+	return (memory_size(p) >= 65536) ? 0xffff : uint16_t(memory_size(p) - 1);
+}
+
 }
 }
 
