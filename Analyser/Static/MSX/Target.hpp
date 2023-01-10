@@ -22,6 +22,12 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	bool has_disk_drive = false;
 	std::string loading_command;
 
+	ReflectableEnum(Model,
+		MSX1,
+		MSX2
+	);
+	Model model = Model::MSX1;
+
 	ReflectableEnum(Region,
 		Japan,
 		USA,
@@ -34,6 +40,8 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 			DeclareField(has_disk_drive);
 			DeclareField(region);
 			AnnounceEnum(Region);
+			DeclareField(model);
+			AnnounceEnum(Model);
 		}
 	}
 };
