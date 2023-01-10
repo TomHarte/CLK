@@ -117,6 +117,8 @@ enum Name {
 	MSXEuropeanBIOS,
 	MSXDOS,
 
+	MSX2GenericBIOS,
+
 	// Oric.
 	OricColourROM,
 	OricBASIC10,
