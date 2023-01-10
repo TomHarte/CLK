@@ -128,6 +128,9 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 		};
 };
 
+using Target = Analyser::Static::MSX::Target;
+
+template <Target::Model model>
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
@@ -142,8 +145,6 @@ class ConcreteMachine:
 	public ClockingHint::Observer,
 	public Activity::Source {
 	public:
-		using Target = Analyser::Static::MSX::Target;
-
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			z80_(*this),
 			i8255_(i8255_port_handler_),
@@ -508,7 +509,7 @@ class ConcreteMachine:
 							*cycle.value = read_pointers_[address >> 13][address & 8191];
 						} else {
 							int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
-							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush<HalfCycles>());
+							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.template flush<HalfCycles>());
 							*cycle.value = memory_slots_[slot_hit].handler->read(address);
 						}
 					break;
@@ -519,7 +520,7 @@ class ConcreteMachine:
 						int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
 						if(memory_slots_[slot_hit].handler) {
 							update_audio();
-							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush<HalfCycles>());
+							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.template flush<HalfCycles>());
 							memory_slots_[slot_hit].handler->write(address, *cycle.value, read_pointers_[pc_address_ >> 13] != memory_slots_[0].read_pointers[pc_address_ >> 13]);
 						}
 					} break;
@@ -839,9 +840,12 @@ class ConcreteMachine:
 using namespace MSX;
 
 Machine *Machine::MSX(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	using Target = Analyser::Static::MSX::Target;
-	const Target *const msx_target = dynamic_cast<const Target *>(target);
-	return new ConcreteMachine(*msx_target, rom_fetcher);
+	const auto msx_target = dynamic_cast<const Target *>(target);
+	switch(msx_target->model) {
+		default:					return nullptr;
+		case Target::Model::MSX1:	return new ConcreteMachine<Target::Model::MSX1>(*msx_target, rom_fetcher);
+		case Target::Model::MSX2:	return new ConcreteMachine<Target::Model::MSX2>(*msx_target, rom_fetcher);
+	}
 }
 
 Machine::~Machine() {}
