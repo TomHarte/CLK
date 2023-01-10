@@ -12,9 +12,34 @@
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
-#include "Implementation/9918Base.hpp"
-
 #include <cstdint>
+
+namespace TI {
+namespace TMS {
+
+enum Personality {
+	TMS9918A,	// includes the 9928 and 9929; set TV standard and output device as desired.
+	V9938,
+	V9958,
+
+	// Sega extensions.
+	SMSVDP,
+	SMS2VDP,
+	GGVDP,
+	MDVDP,
+};
+
+enum class TVStandard {
+	/*! i.e. 50Hz output at around 312.5 lines/field */
+	PAL,
+	/*! i.e. 60Hz output at around 262.5 lines/field */
+	NTSC
+};
+
+}
+}
+
+#include "Implementation/9918Base.hpp"
 
 namespace TI {
 namespace TMS {
@@ -30,13 +55,10 @@ namespace TMS {
 	These chips have only one non-on-demand interaction with the outside world: an interrupt line.
 	See get_time_until_interrupt and get_interrupt_line for asynchronous operation options.
 */
-class TMS9918: public Base {
+template <Personality personality> class TMS9918: private Base<personality> {
 	public:
-		/*!
-			Constructs an instance of the drive controller that behaves according to personality @c p.
-			@param p The type of controller to emulate.
-		*/
-		TMS9918(Personality p);
+		/*! Constructs an instance of the VDP that behaves according to the templated personality. */
+		TMS9918();
 
 		/*! Sets the TV standard for this TMS, if that is hard-coded in hardware. */
 		void set_tv_standard(TVStandard standard);
@@ -44,18 +66,24 @@ class TMS9918: public Base {
 		/*! Sets the scan target this TMS will post content to. */
 		void set_scan_target(Outputs::Display::ScanTarget *);
 
-		/// Gets the current scan status.
+		/*! Gets the current scan status. */
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
-		/*! Sets the type of display the CRT will request. */
+		/*! Sets the type of CRT display. */
 		void set_display_type(Outputs::Display::DisplayType);
 
-		/*! Gets the type of display the CRT will request. */
+		/*! Gets the type of CRT display. */
 		Outputs::Display::DisplayType get_display_type() const;
 
 		/*!
-			Runs the VCP for the number of cycles indicate; it is an implicit assumption of the code
-			that the input clock rate is 3579545 Hz, the NTSC colour clock rate.
+			Runs the VDP for the number of cycles indicate; the input clock rate is implicitly assumed.
+
+			For everything except the Mega Drive VDP:
+				* the input clock rate should be 3579545 Hz, the NTSC colour clock rate.
+
+			For the Mega Drive:
+				* the input clock rate should be around 7.6MHz; 15/7ths of the NTSC colour
+				clock rate for NTSC output and 12/7ths of the PAL colour clock rate for PAL output.
 		*/
 		void run_for(const HalfCycles cycles);
 
@@ -65,11 +93,11 @@ class TMS9918: public Base {
 		/*! Gets a register value. */
 		uint8_t read(int address);
 
-		/*! Gets the current scan line; provided by the Master System only. */
-		uint8_t get_current_line();
+		/*! Gets the current scan line; provided by the Sega VDPs only. */
+		uint8_t get_current_line() const;
 
-		/*! Gets the current latched horizontal counter; provided by the Master System only. */
-		uint8_t get_latched_horizontal_counter();
+		/*! Gets the current latched horizontal counter; provided by the Sega VDPs only. */
+		uint8_t get_latched_horizontal_counter() const;
 
 		/*! Latches the current horizontal counter. */
 		void latch_horizontal_counter();
@@ -81,7 +109,7 @@ class TMS9918: public Base {
 			If get_interrupt_line is true now of if get_interrupt_line would
 			never return true, returns HalfCycles::max().
 		*/
-		HalfCycles get_next_sequence_point();
+		HalfCycles get_next_sequence_point() const;
 
 		/*!
 			Returns the amount of time until the nominated line interrupt position is
@@ -96,7 +124,7 @@ class TMS9918: public Base {
 		/*!
 			@returns @c true if the interrupt line is currently active; @c false otherwise.
 		*/
-		bool get_interrupt_line();
+		bool get_interrupt_line() const;
 };
 
 }

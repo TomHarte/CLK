@@ -19,8 +19,10 @@
 	[super setUp];
 }
 
+using VDP = TI::TMS::TMS9918<TI::TMS::Personality::SMSVDP>;
+
 - (void)testLineInterrupt {
-	TI::TMS::TMS9918 vdp(TI::TMS::Personality::SMSVDP);
+	VDP vdp;
 
 	// Disable end-of-frame interrupts, enable line interrupts.
 	vdp.write(1, 0x00);
@@ -63,7 +65,7 @@
 }
 
 - (void)testFirstLineInterrupt {
-	TI::TMS::TMS9918 vdp(TI::TMS::Personality::SMSVDP);
+	VDP vdp;
 
 	// Disable end-of-frame interrupts, enable line interrupts, set an interrupt to occur every line.
 	vdp.write(1, 0x00);
@@ -96,7 +98,7 @@
 }
 
 - (void)testInterruptPrediction {
-	TI::TMS::TMS9918 vdp(TI::TMS::Personality::SMSVDP);
+	VDP vdp;
 
 	for(int c = 0; c < 256; ++c) {
 		for(int with_eof = (c < 192) ? 0 : 1; with_eof < 2; ++with_eof) {
@@ -144,7 +146,7 @@
 }
 
 - (void)testTimeUntilLine {
-	TI::TMS::TMS9918 vdp(TI::TMS::Personality::SMSVDP);
+	VDP vdp;
 
 	auto time_until_line = vdp.get_time_until_line(-1).as_integral();
 	for(int c = 0; c < 262*228*5; ++c) {

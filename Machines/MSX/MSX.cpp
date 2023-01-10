@@ -146,7 +146,6 @@ class ConcreteMachine:
 
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			z80_(*this),
-			vdp_(TI::TMS::TMS9918A),
 			i8255_(i8255_port_handler_),
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			audio_toggle_(audio_queue_),
@@ -744,7 +743,7 @@ class ConcreteMachine:
 		};
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<TI::TMS::TMS9918> vdp_;
+		JustInTimeActor<TI::TMS::TMS9918<TI::TMS::Personality::TMS9918A>> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;

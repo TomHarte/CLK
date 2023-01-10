@@ -117,7 +117,6 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			z80_(*this),
-			vdp_(TI::TMS::TMS9918A),
 			sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, sn76489_divider),
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			mixer_(sn76489_, ay_),
@@ -379,7 +378,7 @@ class ConcreteMachine:
 		}
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<TI::TMS::TMS9918> vdp_;
+		JustInTimeActor<TI::TMS::TMS9918<TI::TMS::Personality::TMS9918A>> vdp_;
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;
 		TI::SN76489 sn76489_;
