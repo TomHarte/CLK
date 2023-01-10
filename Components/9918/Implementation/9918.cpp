@@ -200,21 +200,21 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// ------------------------
 			// Perform memory accesses.
 			// ------------------------
-#define fetch(function, converter)															\
-	const int first_window = this->clock_converter_.converter(this->write_pointer_.column);	\
-	const int final_window = this->clock_converter_.converter(end_column);					\
+#define fetch(function, clock)																\
+	const int first_window = from_internal<personality, clock>(this->write_pointer_.column);\
+	const int final_window = from_internal<personality, clock>(end_column);					\
 	if(first_window == final_window) break;													\
-	if(final_window != TMSAccessWindowsPerLine) {											\
+	if(final_window != clock_rate<personality, clock>()) {									\
 		function<true>(first_window, final_window);											\
 	} else {																				\
 		function<false>(first_window, final_window);										\
 	}
 
 			switch(line_buffer.line_mode) {
-				case LineMode::Text:		{	fetch(this->template fetch_tms_text, to_tms_access_clock);		}	break;
-				case LineMode::Character:	{	fetch(this->template fetch_tms_character, to_tms_access_clock);	}	break;
-				case LineMode::SMS:			{	fetch(this->template fetch_sms, to_tms_access_clock);			}	break;
-				case LineMode::Refresh:		{	fetch(this->template fetch_tms_refresh, to_tms_access_clock);	}	break;
+				case LineMode::Text:		{	fetch(this->template fetch_tms_text, Clock::TMSMemoryWindow);		}	break;
+				case LineMode::Character:	{	fetch(this->template fetch_tms_character, Clock::TMSMemoryWindow);	}	break;
+				case LineMode::SMS:			{	fetch(this->template fetch_sms, Clock::TMSMemoryWindow);			}	break;
+				case LineMode::Refresh:		{	fetch(this->template fetch_tms_refresh, Clock::TMSMemoryWindow);	}	break;
 			}
 
 #undef fetch
@@ -343,7 +343,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// Output video stream.
 				// --------------------
 
-#define crt_convert(action, time)		this->crt_.action(this->clock_converter_.to_crt_clock(time))
+#define crt_convert(action, time)		this->crt_.action(from_internal<personality, Clock::CRT>(time))
 #define output_sync(x)					crt_convert(output_sync, x)
 #define output_blank(x)					crt_convert(output_blank, x)
 #define output_default_colour_burst(x)	crt_convert(output_default_colour_burst, x)
@@ -407,9 +407,9 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					// Left border.
 					border(Timing<personality>::StartOfLeftBorder, line_buffer.first_pixel_output_column);
 
-#define draw(function, converter) {																				\
-	const int relative_start = this->clock_converter_.converter(start - line_buffer.first_pixel_output_column);	\
-	const int relative_end = this->clock_converter_.converter(end - line_buffer.first_pixel_output_column);		\
+#define draw(function, clock) {																				\
+	const int relative_start = from_internal<personality, clock>(start - line_buffer.first_pixel_output_column);	\
+	const int relative_end = from_internal<personality, clock>(end - line_buffer.first_pixel_output_column);		\
 	if(relative_start == relative_end) break;																	\
 	this->function; }
 
@@ -427,9 +427,9 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 						if(this->pixel_target_) {
 							switch(line_buffer.line_mode) {
-								case LineMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), to_tms_pixel_clock);	break;
-								case LineMode::Character:	draw(draw_tms_character(relative_start, relative_end), to_tms_pixel_clock);		break;
-								case LineMode::Text:		draw(draw_tms_text(relative_start, relative_end), to_tms_pixel_clock);			break;
+								case LineMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), Clock::TMSPixel);	break;
+								case LineMode::Character:	draw(draw_tms_character(relative_start, relative_end), Clock::TMSPixel);	break;
+								case LineMode::Text:		draw(draw_tms_text(relative_start, relative_end), Clock::TMSPixel);			break;
 
 								case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
 							}
@@ -437,7 +437,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 						if(end == line_buffer.next_border_column) {
 							const int length = line_buffer.next_border_column - line_buffer.first_pixel_output_column;
-							this->crt_.output_data(this->clock_converter_.to_crt_clock(length), line_buffer.pixel_count);
+							this->crt_.output_data(from_internal<personality, Clock::CRT>(length), line_buffer.pixel_count);
 							this->pixel_origin_ = this->pixel_target_ = nullptr;
 							this->asked_for_write_area_ = false;
 						}
@@ -480,7 +480,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 template <Personality personality>
 void Base<personality>::output_border(int cycles, [[maybe_unused]] uint32_t cram_dot) {
-	cycles = this->clock_converter_.to_crt_clock(cycles);
+	cycles = from_internal<personality, Clock::CRT>(cycles);
 	const uint32_t border_colour =
 		is_sega_vdp(personality) ?
 			master_system_.colour_ram[16 + background_colour_] :

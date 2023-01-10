@@ -47,7 +47,7 @@
 	case n
 
 #define external_slot(n)	\
-	slot(n): do_external_slot(clock_converter_.from_tms_access_clock(n));
+	slot(n): do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(n));
 
 #define external_slots_2(n)	\
 	external_slot(n);		\
@@ -280,7 +280,7 @@ template<bool use_end> void Base<personality>::fetch_tms_character(int start, in
 
 		slot(31):
 			sprite_selection_buffer.reset_sprite_collection();
-			do_external_slot(clock_converter_.from_tms_access_clock(31));
+			do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(31));
 		external_slots_2(32);
 		external_slot(34);
 
@@ -431,7 +431,7 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 
 		slot(29):
 			sprite_selection_buffer.reset_sprite_collection();
-			do_external_slot(clock_converter_.from_tms_access_clock(29));
+			do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(29));
 		external_slot(30);
 
 		sprite_y_read(31, 0);

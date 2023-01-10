@@ -15,14 +15,48 @@
 namespace TI {
 namespace TMS {
 
-// Timing constants.
-template <Personality, typename Enable = void> struct Timing {};
+enum class Clock {
+	Internal,
+	TMSPixel,
+	TMSMemoryWindow,
+	CRT
+};
+
+template <Personality personality, Clock clk> constexpr int clock_rate() {
+	static_assert(
+		is_classic_vdp(personality) ||
+		is_yamaha_vdp(personality) ||
+		(personality == Personality::MDVDP)
+	);
+
+	switch(clk) {
+		case Clock::TMSPixel:			return 342;
+		case Clock::TMSMemoryWindow:	return 171;
+		case Clock::CRT:				return 1368;
+		case Clock::Internal:
+			if constexpr (is_classic_vdp(personality)) {
+				return 342;
+			} else if constexpr (is_yamaha_vdp(personality)) {
+				return 1368;
+			} else if constexpr (personality == Personality::MDVDP) {
+				return 3420;
+			}
+	}
+}
+
+template <Personality personality, Clock clock> constexpr int to_internal(int length) {
+	return length * clock_rate<personality, Clock::Internal>() / clock_rate<personality, clock>();
+}
+
+template <Personality personality, Clock clock> constexpr int from_internal(int length) {
+	return length * clock_rate<personality, clock>() / clock_rate<personality, Clock::Internal>();
+}
 
 /// Provides default timing measurements that duplicate the layout of a TMS9928's line,
 /// scaled to the clock rate specified.
-template <int _CyclesPerLine> struct StandardTiming {
+template <Personality personality> struct StandardTiming {
 	/// The total number of internal cycles per line of output.
-	constexpr static int CyclesPerLine = _CyclesPerLine;
+	constexpr static int CyclesPerLine = clock_rate<personality, Clock::Internal>();
 
 	/// The number of internal cycles that must elapse between a request to read or write and
 	/// it becoming a candidate for action.
@@ -58,22 +92,8 @@ template <int _CyclesPerLine> struct StandardTiming {
 	constexpr static int StartOfLeftBorder	= 73 * CyclesPerLine / 342;
 };
 
-template <Personality personality>
-struct Timing<personality, std::enable_if_t<is_classic_vdp(personality)>>: public StandardTiming<342> {
-};
-
-template <Personality personality>
-struct Timing<personality, std::enable_if_t<is_yamaha_vdp(personality)>>: public StandardTiming<1368> {
-};
-
-template <>
-struct Timing<Personality::MDVDP>: public StandardTiming<3420> {
-	// Implementation note: descending from StandardTiming works as long as the numbers computed
-	// end up being a multiple of 2.5. In practice they're all multiples of 10, so that's guaranteed.
-	// Coupled logic is as per to_crt_clock below.
-};
-
-constexpr int TMSAccessWindowsPerLine = 171;
+/// Provides concrete, specific timing for the nominated personality.
+template <Personality personality> struct Timing: public StandardTiming<personality> {};
 
 /*!
 	This implementation of the TMS, etc mediates between three clocks:
@@ -162,80 +182,6 @@ template <Personality personality> class ClockConverter {
 						((internal_cycles << 1) + (1 - cycles_error_)) / 7
 					);
 			}
-		}
-
-		/*!
-			Converts a position in internal cycles to its corresponding position
-			on the TMS memory-access clock, i.e. scales to 171 clocks per line.
-		*/
-		static constexpr int to_tms_access_clock(int source) {
-			switch(personality) {
-				default:
-				return source >> 1;
-
-				case Personality::V9938:
-				case Personality::V9958:
-				return source >> 3;
-
-				case Personality::MDVDP:
-				return source / 20;
-			}
-		}
-
-		/*!
-			Converts a position in TMS access cycles back to one at the native
-			clock rate.
-		*/
-		static constexpr int from_tms_access_clock(int source) {
-			switch(personality) {
-				default:
-				return source << 1;
-
-				case Personality::V9938:
-				case Personality::V9958:
-				return source << 3;
-
-				case Personality::MDVDP:
-				return source * 20;
-			}
-		}
-
-		/*!
-			Converts a position in internal cycles to its corresponding position
-			on the TMS pixel clock, i.e. scales to 342 clocks per line.
-		*/
-		static constexpr int to_tms_pixel_clock(int source) {
-			switch(personality) {
-				default:
-				return source;
-
-				case Personality::V9938:
-				case Personality::V9958:
-				return source >> 2;
-
-				case Personality::MDVDP:
-				return source / 10;
-			}
-		}
-
-		/*!
-			Convers a position in internal cycles to its corresponding position
-			on the CRT's output clock, which [TODO] is clocked so that
-			1368 cycles is 228 NTSC colour cycles.
-		*/
-		static constexpr int to_crt_clock(int source) {
-			switch(personality) {
-				default:
-				return source << 2;
-
-				case Personality::V9938:
-				case Personality::V9958:
-				return source;
-
-				case Personality::MDVDP:
-				return (source * 2) / 5;
-			}
-
 		}
 
 	private:
