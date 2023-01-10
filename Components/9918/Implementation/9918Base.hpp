@@ -360,10 +360,10 @@ template <Personality personality> struct Base {
 						break;
 					}
 				}
-				ram_[ram_pointer_ & 16383] = read_ahead_buffer_;
+				ram_[ram_pointer_ & memory_mask(personality)] = read_ahead_buffer_;
 			break;
 			case MemoryAccess::Read:
-				read_ahead_buffer_ = ram_[ram_pointer_ & 16383];
+				read_ahead_buffer_ = ram_[ram_pointer_ & memory_mask(personality)];
 			break;
 		}
 		++ram_pointer_;
