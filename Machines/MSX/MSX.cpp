@@ -384,7 +384,9 @@ class ConcreteMachine:
 			assert(size_t(destination_address) + length <= 65536);
 
 			for(std::size_t c = 0; c < (length >> 13); ++c) {
-				if(memory_slots_[slot].wrapping_strategy == ROMSlotHandler::WrappingStrategy::Repeat) source_address %= memory_slots_[slot].source.size();
+				if(memory_slots_[slot].wrapping_strategy == ROMSlotHandler::WrappingStrategy::Repeat) {
+					source_address %= memory_slots_[slot].source.size();
+				}
 				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] =
 					(source_address < memory_slots_[slot].source.size()) ? &memory_slots_[slot].source[source_address] : unpopulated_;
 				source_address += 8192;
@@ -764,27 +766,59 @@ class ConcreteMachine:
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;
 
+		/// The current primary slot selection; retains whatever value was written
+		/// last to the 8255 PPI via port A8.
 		uint8_t paged_memory_ = 0;
+
+		// Divides the current 64kb address space into 8kb chunks.
+		// 8kb resolution is used by some cartride titles.
 		uint8_t *read_pointers_[8];
 		uint8_t *write_pointers_[8];
 
-		struct MemorySlots {
+		/// Optionally attaches non-default logic to any of the four things selectable
+		/// via the primary slot register.
+		///
+		/// Tracks secondary and game-specific paging within each slot.
+		///
+		/// Standard MSX assignments:
+		/// 	0 = ROM;
+		/// 	3 = RAM.
+		///
+		/// Additional assignments customarily used by this emulator:
+		/// 	1 = any inserted cartridge;
+		/// 	2 = the disk ROM, if present.
+		struct MemorySlot {
+			// Each slot may be visible for any number of quarters of the memory map;
+			// these are the read and write pointers that should appear in the main
+			// memory map if this slot is visible there.
 			uint8_t *read_pointers[8];
 			uint8_t *write_pointers[8];
 
+			/// Sets the handler that will be provided with @c run_for and @c read or @c write calls
+			/// for memory accesses **anywhere it has left memory unmapped**. Anywhere that can be
+			/// described just in terms of standard memory access read and write destinations should be,
+			/// ideally to avoid virtual dispatch.
 			void set_handler(ROMSlotHandler *slot_handler) {
 				handler.reset(slot_handler);
 				wrapping_strategy = handler->wrapping_strategy();
 			}
 
-			std::unique_ptr<ROMSlotHandler> handler;
-			std::vector<uint8_t> source;
 			HalfCycles cycles_since_update;
+			std::unique_ptr<ROMSlotHandler> handler;
 			ROMSlotHandler::WrappingStrategy wrapping_strategy = ROMSlotHandler::WrappingStrategy::Repeat;
-		} memory_slots_[4];
 
+			/// Per-slot storage, as a convenience.
+			std::vector<uint8_t> source;
+		};
+		MemorySlot memory_slots_[4];
+
+		/// Base RAM.
 		uint8_t ram_[65536];
+
+		/// A never-read area that writes for unmapped regions can be diverted to.
 		uint8_t scratch_[8192];
+
+		/// A never-written area that reads for unmapped regions can be sourced from.
 		uint8_t unpopulated_[8192];
 
 		HalfCycles time_since_ay_update_;

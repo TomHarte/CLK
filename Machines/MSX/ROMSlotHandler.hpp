@@ -56,9 +56,9 @@ class ROMSlotHandler {
 		virtual uint8_t read([[maybe_unused]] uint16_t address) { return 0xff; }
 
 		enum class WrappingStrategy {
-			/// Repeat causes all accesses to be modulo the size of the ROM.
+			/// All accesses are modulo the size of the ROM.
 			Repeat,
-			/// Empty causes all out-of-bounds accesses to read a vacant bus.
+			/// Out-of-bounds accesses read a vacant bus.
 			Empty
 		};
 
