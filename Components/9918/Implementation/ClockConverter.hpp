@@ -96,31 +96,9 @@ template <Personality personality> struct StandardTiming {
 template <Personality personality> struct Timing: public StandardTiming<personality> {};
 
 /*!
-	This implementation of the TMS, etc mediates between three clocks:
-
-	1)	the external clock, which is whatever the rest of the system(s)
-		it plugs into run at;
-
-	2)	the internal clock, which is used to time and place syncs, borders,
-		pixel regions, etc; and
-
-	3)	a memory acccess clock, which correlates to the number of windows
-		available for memory accesses.
-
-	E.g. for both a regular TMS9918 and the Sega Master System, the external
-	clock is 3.58Mhz, the internal clock is 5.37Mhz and the memory access
-	clock is 2.69Mhz.
-
-	Or, put another way, for both a TMS9918 and Master System:
-
-	* 228 external cycles;
-	* is 342 internal cycles;
-	* which exactly covers 228 NTSC colour clocks; and
-	* contains 171 memory access windows.
-
-	Both the Yamaha extensions and the Mega Drive VDP are a bit smarter about
-	paged mode memory accesses, obviating any advantage to treating (3) as a
-	separate clock.
+	Provides a [potentially-]stateful conversion between the external and internal clocks.
+	Unlike the other clock conversions, this one may be non-integral, requiring that
+	an error term be tracked.
 */
 template <Personality personality> class ClockConverter {
 	public:
@@ -161,26 +139,32 @@ template <Personality personality> class ClockConverter {
 		}
 
 		/*!
-			Provides the number of complete external cycles that lie between now and
-			@c internal_cycles into the future. Any trailing fractional external cycle
-			is discarded.
+			Provides the number of external cycles that need to begin from now in order to
+			get at least @c internal_cycles into the future.
 		*/
 		HalfCycles half_cycles_before_internal_cycles(int internal_cycles) const {
 			// Logic here correlates with multipliers as per @c to_internal.
 			switch(personality) {
 				default:
-					return HalfCycles(
-						((internal_cycles << 2) + (2 - cycles_error_)) / 3
-					);
+					// Relative to the external clock multiplied by 3, it will definitely take this
+					// many cycles to complete a further (internal_cycles - 1) after the current one.
+					internal_cycles = (internal_cycles - 1) << 2;
+
+					// It will also be necessary to complete the current one.
+					internal_cycles += 4 - cycles_error_;
+
+					// Round up to get the first external cycle after
+					// the number of internal_cycles has elapsed.
+					return HalfCycles((internal_cycles + 2) / 3);
 
 				case Personality::V9938:
 				case Personality::V9958:
 					return HalfCycles((internal_cycles + 2) / 3);
 
 				case Personality::MDVDP:
-					return HalfCycles(
-						((internal_cycles << 1) + (1 - cycles_error_)) / 7
-					);
+					internal_cycles = (internal_cycles - 1) << 1;
+					internal_cycles += 2 - cycles_error_;
+					return HalfCycles((internal_cycles + 6) / 7);
 			}
 		}
 
