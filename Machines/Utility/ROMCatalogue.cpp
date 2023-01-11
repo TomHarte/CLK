@@ -573,7 +573,7 @@ Description::Description(Name name) {
 		case Name::MSXDOS:			*this = Description(name, "MSX", "the MSX-DOS ROM", "disk.rom", 16*1024, 0x721f61dfu);				break;
 
 		case Name::MSX2GenericBIOS:	*this = Description(name, "MSX", "a generic MSX2 BIOS", "msx2.rom", 32*1024, 0x6cdaf3a5u);			break;
-		case Name::MSX2Extension:	x*this = Description(name, "MSX", "the MSX2 extension ROM", "msx2ext.rom", 16*1024, 0x66237ecfu);	break;
+		case Name::MSX2Extension:	*this = Description(name, "MSX", "the MSX2 extension ROM", "msx2ext.rom", 16*1024, 0x66237ecfu);	break;
 
 		case Name::SinclairQLJS:
 			*this = Description(name, "SinclairQL", "the Sinclair QL 'JS' ROM", "js.rom", 48*1024, 0x0f95aab5u);
