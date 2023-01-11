@@ -118,6 +118,7 @@ enum Name {
 	MSXDOS,
 
 	MSX2GenericBIOS,
+	MSX2Extension,
 
 	// Oric.
 	OricColourROM,

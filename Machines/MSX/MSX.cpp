@@ -170,7 +170,11 @@ class ConcreteMachine:
 			// Install the proper TV standard and select an ideal BIOS name.
 			const std::string machine_name = "MSX";
 			constexpr ROM::Name bios_name = model == Target::Model::MSX1 ? ROM::Name::MSXGenericBIOS : ROM::Name::MSX2GenericBIOS;
+
 			ROM::Request bios_request = ROM::Request(bios_name);
+			if constexpr (model == Target::Model::MSX2) {
+				bios_request = bios_request || ROM::Request(ROM::Name::MSX2Extension);
+			}
 
 			bool is_ntsc = true;
 			uint8_t character_generator = 1;	/* 0 = Japan, 1 = USA, etc, 2 = USSR */
