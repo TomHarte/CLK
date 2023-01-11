@@ -420,18 +420,16 @@ class ConcreteMachine:
 
 		// MARK: Memory paging.
 		void page_primary(uint8_t value) {
-			paging_.primary = value;
-			update_paging();
-		}
-
-		void page_secondary(uint8_t value) {
-			paging_.secondary = value;
+			primary_slots_ = value;
 			update_paging();
 		}
 
 		void update_paging() {
-			uint8_t primary = paging_.primary;
+			uint8_t primary = primary_slots_;
 
+			final_slot_ = &memory_slots_[primary >> 6];
+
+			// TODO: factor in secondary slot selection below.
 			for(std::size_t c = 0; c < 8; c += 2) {
 				const MemorySlot &slot = memory_slots_[primary & 3];
 				primary >>= 2;
@@ -442,11 +440,6 @@ class ConcreteMachine:
 				write_pointers_[c+1] = slot.write_pointers[c+1];
 			}
 			set_use_fast_tape();
-		}
-
-		// For now: support secondary paging on the MSX 2 only.
-		constexpr static bool supports_secondary_paging() {
-			return model == Target::Model::MSX2;
 		}
 
 		// MARK: Z80::BusHandler
@@ -533,38 +526,34 @@ class ConcreteMachine:
 						[[fallthrough]];
 
 					case CPU::Z80::PartialMachineCycle::Read:
-						if constexpr (supports_secondary_paging()) {
-							if(address == 0xffff) {
-								*cycle.value = paging_.secondary ^ 0xff;;
-								break;
-							}
+						if(address == 0xffff && final_slot_->supports_secondary_paging) {
+							*cycle.value = final_slot_->secondary_paging ^ 0xff;
+							break;
 						}
 
 						if(read_pointers_[address >> 13]) {
 							*cycle.value = read_pointers_[address >> 13][address & 8191];
 						} else {
-							int slot_hit = (paging_.primary >> ((address >> 14) * 2)) & 3;
+							const int slot_hit = (primary_slots_ >> ((address >> 14) * 2)) & 3;
 							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.template flush<HalfCycles>());
 							*cycle.value = memory_slots_[slot_hit].handler->read(address);
 						}
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Write: {
-						if constexpr (supports_secondary_paging()) {
-							if(address == 0xffff) {
-								paging_.secondary = *cycle.value;
-								update_paging();
-								break;
-							}
+						if(address == 0xffff && final_slot_->supports_secondary_paging) {
+							final_slot_->secondary_paging = *cycle.value;
+							update_paging();
+							break;
 						}
 
-						write_pointers_[address >> 13][address & 8191] = *cycle.value;
-
-						int slot_hit = (paging_.primary >> ((address >> 14) * 2)) & 3;
+						const int slot_hit = (primary_slots_ >> ((address >> 14) * 2)) & 3;
 						if(memory_slots_[slot_hit].handler) {
 							update_audio();
 							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.template flush<HalfCycles>());
 							memory_slots_[slot_hit].handler->write(address, *cycle.value, read_pointers_[pc_address_ >> 13] != memory_slots_[0].read_pointers[pc_address_ >> 13]);
+						} else {
+							write_pointers_[address >> 13][address & 8191] = *cycle.value;
 						}
 					} break;
 
@@ -804,18 +793,20 @@ class ConcreteMachine:
 		bool allow_fast_tape_ = false;
 		bool use_fast_tape_ = false;
 		void set_use_fast_tape() {
-			use_fast_tape_ = !tape_player_is_sleeping_ && allow_fast_tape_ && tape_player_.has_tape() && !(paging_.primary&3) && !(paging_.secondary&3);
+			use_fast_tape_ =
+				!tape_player_is_sleeping_ &&
+				allow_fast_tape_ &&
+				tape_player_.has_tape() &&
+				!(primary_slots_ & 3) &&
+				!(memory_slots_[0].secondary_paging & 3);
 		}
 
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;
 
 		/// The current primary and secondary slot selections; the former retains whatever was written
-		/// last to the 8255 PPI via port A8 and the latter — if enabled — captures 0xffff.
-		struct {
-			uint8_t primary = 0;
-			uint8_t secondary = 0;
-		} paging_;
+		/// last to the 8255 PPI via port A8 and the latter — if enabled — captures 0xffff on a per-slot basis.
+		uint8_t primary_slots_ = 0;
 
 		// Divides the current 64kb address space into 8kb chunks.
 		// 8kb resolution is used by some cartride titles.
@@ -852,12 +843,17 @@ class ConcreteMachine:
 
 			HalfCycles cycles_since_update;
 			std::unique_ptr<ROMSlotHandler> handler;
+
 			ROMSlotHandler::WrappingStrategy wrapping_strategy = ROMSlotHandler::WrappingStrategy::Repeat;
+
+			bool supports_secondary_paging = false;
+			uint8_t secondary_paging = 0x00;
 
 			/// Per-slot storage, as a convenience.
 			std::vector<uint8_t> source;
 		};
 		MemorySlot memory_slots_[4];
+		MemorySlot *final_slot_ = nullptr;
 
 		/// Base RAM.
 		uint8_t ram_[65536];
