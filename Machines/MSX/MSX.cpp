@@ -169,10 +169,8 @@ class ConcreteMachine:
 
 			// Install the proper TV standard and select an ideal BIOS name.
 			const std::string machine_name = "MSX";
-			ROM::Request bios_request = ROM::Request(ROM::Name::MSXGenericBIOS);
-//			std::vector<ROMMachine::ROM> required_roms = {
-//				{machine_name, "any MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u}
-//			};
+			constexpr ROM::Name bios_name = model == Target::Model::MSX1 ? ROM::Name::MSXGenericBIOS : ROM::Name::MSX2GenericBIOS;
+			ROM::Request bios_request = ROM::Request(bios_name);
 
 			bool is_ntsc = true;
 			uint8_t character_generator = 1;	/* 0 = Japan, 1 = USA, etc, 2 = USSR */
@@ -180,11 +178,12 @@ class ConcreteMachine:
 			uint8_t keyboard = 1;				/* 0 = Japan, 1 = USA, 2 = France, 3 = UK, 4 = Germany, 5 = USSR, 6 = Spain */
 			ROM::Name regional_bios_name;
 
-			// TODO: CRCs below are incomplete, at best.
 			switch(target.region) {
 				default:
 				case Target::Region::Japan:
-					regional_bios_name = ROM::Name::MSXJapaneseBIOS;
+					if constexpr (model == Target::Model::MSX1) {
+						regional_bios_name = ROM::Name::MSXJapaneseBIOS;
+					}
 					vdp_->set_tv_standard(TI::TMS::TVStandard::NTSC);
 
 					is_ntsc = true;
@@ -192,7 +191,9 @@ class ConcreteMachine:
 					date_format = 0;
 				break;
 				case Target::Region::USA:
-					regional_bios_name = ROM::Name::MSXAmericanBIOS;
+					if constexpr (model == Target::Model::MSX1) {
+						regional_bios_name = ROM::Name::MSXAmericanBIOS;
+					}
 					vdp_->set_tv_standard(TI::TMS::TVStandard::NTSC);
 
 					is_ntsc = true;
@@ -200,7 +201,9 @@ class ConcreteMachine:
 					date_format = 1;
 				break;
 				case Target::Region::Europe:
-					regional_bios_name = ROM::Name::MSXEuropeanBIOS;
+					if constexpr (model == Target::Model::MSX1) {
+						regional_bios_name = ROM::Name::MSXEuropeanBIOS;
+					}
 					vdp_->set_tv_standard(TI::TMS::TVStandard::PAL);
 
 					is_ntsc = false;
@@ -208,7 +211,9 @@ class ConcreteMachine:
 					date_format = 2;
 				break;
 			}
-			bios_request = bios_request || ROM::Request(regional_bios_name);
+			if constexpr (model == Target::Model::MSX1) {
+				bios_request = bios_request || ROM::Request(regional_bios_name);
+			}
 
 			// Fetch the necessary ROMs; try the region-specific ROM first,
 			// but failing that fall back on patching the main one.
@@ -231,9 +236,10 @@ class ConcreteMachine:
 				memory_slots_[0].source = std::move(regional_bios->second);
 				memory_slots_[0].source.resize(32768);
 			} else {
-				memory_slots_[0].source = std::move(roms.find(ROM::Name::MSXGenericBIOS)->second);
+				memory_slots_[0].source = std::move(roms.find(bios_name)->second);
 				memory_slots_[0].source.resize(32768);
 
+				// Modify the generic ROM to reflect the selected region, date format, etc.
 				memory_slots_[0].source[0x2b] = uint8_t(
 					(is_ntsc ? 0x00 : 0x80) |
 					(date_format << 4) |
