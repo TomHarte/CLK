@@ -440,6 +440,11 @@ class ConcreteMachine:
 			set_use_fast_tape();
 		}
 
+		// For now: support secondary paging on the MSX 2 only.
+		constexpr static bool supports_secondary_paging() {
+			return model == Target::Model::MSX2;
+		}
+
 		// MARK: Z80::BusHandler
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			// Per the best information I currently have, the MSX inserts an extra cycle into each opcode read,
@@ -524,6 +529,13 @@ class ConcreteMachine:
 						[[fallthrough]];
 
 					case CPU::Z80::PartialMachineCycle::Read:
+						if constexpr (supports_secondary_paging()) {
+							if(address == 0xffff) {
+								*cycle.value = paging_.secondary ^ 0xff;;
+								break;
+							}
+						}
+
 						if(read_pointers_[address >> 13]) {
 							*cycle.value = read_pointers_[address >> 13][address & 8191];
 						} else {
@@ -534,6 +546,14 @@ class ConcreteMachine:
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Write: {
+						if constexpr (supports_secondary_paging()) {
+							if(address == 0xffff) {
+								paging_.secondary = *cycle.value;
+								update_paging();
+								break;
+							}
+						}
+
 						write_pointers_[address >> 13][address & 8191] = *cycle.value;
 
 						int slot_hit = (paging_.primary >> ((address >> 14) * 2)) & 3;
