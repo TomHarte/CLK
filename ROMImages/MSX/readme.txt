@@ -4,6 +4,7 @@ Minimum expected files:
 
 msx.rom
 msx2.rom
+msx2ext.rom
 disk.rom
 
 These names match those offered for download at http://fms.komkon.org/fMSX/ (albeit in lowercase), and the emulator has been tested against those images.

@@ -180,7 +180,7 @@ class ConcreteMachine:
 
 			ROM::Request bios_request = ROM::Request(bios_name);
 			if constexpr (model == Target::Model::MSX2) {
-				bios_request = bios_request || ROM::Request(ROM::Name::MSX2Extension);
+				bios_request = bios_request && ROM::Request(ROM::Name::MSX2Extension);
 			}
 
 			bool is_ntsc = true;
