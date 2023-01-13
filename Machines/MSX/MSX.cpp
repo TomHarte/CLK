@@ -147,6 +147,10 @@ class ConcreteMachine:
 		static constexpr int RAMMemorySlot = 3;
 		static constexpr int RAMMemorySubSlot = 0;
 
+		static constexpr int ExtensionROMSubSlot = 1;
+
+		// Provide 512kb of memory for an MSX 2; 64kb for an MSX 1. 'Slightly' arbitrary.
+		static constexpr size_t RAMSize = model == Target::Model::MSX2 ? 512 * 1024 : 64 * 1024;
 
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
@@ -247,7 +251,6 @@ class ConcreteMachine:
 					has_bios = true;
 				}
 			}
-
 			if(!has_bios) {
 				std::vector<uint8_t> &bios = roms.find(bios_name)->second;
 
@@ -266,8 +269,24 @@ class ConcreteMachine:
 
 			memory_slots_[0].map(0, 0, 0, 32768);
 
-			memory_slots_[RAMMemorySlot].resize_source(65536);
-			memory_slots_[RAMMemorySlot].template map<MemorySlot::AccessType::ReadWrite>(RAMMemorySubSlot, 0, 0, 65536);
+			if constexpr (model == Target::Model::MSX2) {
+				// If there's an extension ROM, add it as a subslot in the same slot as RAM.
+				std::vector<uint8_t> ram_plus;
+
+				ram_plus.resize(RAMSize);
+
+				const auto extension = roms.find(ROM::Name::MSX2Extension);
+				std::copy(extension->second.begin(), extension->second.end(), std::back_inserter(ram_plus));
+
+				memory_slots_[RAMMemorySlot].supports_secondary_paging = true;
+				memory_slots_[RAMMemorySlot].set_source(ram_plus);
+
+				memory_slots_[RAMMemorySlot].template map<MemorySlot::AccessType::ReadWrite>(RAMMemorySubSlot, 0, 0, 65536);
+				memory_slots_[RAMMemorySlot].map(ExtensionROMSubSlot, 0, 0, 32768);
+			} else {
+				memory_slots_[RAMMemorySlot].resize_source(65536);
+				memory_slots_[RAMMemorySlot].template map<MemorySlot::AccessType::ReadWrite>(RAMMemorySubSlot, RAMSize, 0, 65536);
+			}
 
 			// Add a disk cartridge if any disks were supplied.
 			if(target.has_disk_drive) {
