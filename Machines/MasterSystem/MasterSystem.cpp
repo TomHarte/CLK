@@ -564,6 +564,7 @@ Machine *Machine::MasterSystem(const Analyser::Static::Target *target, const ROM
 		case Target::Model::MasterSystem2:	return new ConcreteMachine<Target::Model::MasterSystem2>(*sega_target, rom_fetcher);
 		default:
 			assert(false);
+			return nullptr;
 	}
 }
 
