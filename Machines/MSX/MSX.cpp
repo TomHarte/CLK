@@ -400,7 +400,7 @@ class ConcreteMachine:
 			// secondary slot communication.
 			final_slot_ = &memory_slots_[primary >> 6];
 
-			for(std::size_t c = 0; c < 8; c += 2) {
+			for(int c = 0; c < 8; c += 2) {
 				const MemorySlot &slot = memory_slots_[primary & 3];
 				primary >>= 2;
 

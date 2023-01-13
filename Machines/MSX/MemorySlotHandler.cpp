@@ -8,6 +8,8 @@
 
 #include "MemorySlotHandler.hpp"
 
+#include <cassert>
+
 using namespace MSX;
 
 MemorySlot::MemorySlot() {
