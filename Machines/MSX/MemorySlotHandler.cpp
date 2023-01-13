@@ -39,14 +39,16 @@ uint8_t *MemorySlot::write_pointer(int segment) const {
 	return write_pointers_[subslot][segment];
 }
 
-void MemorySlot::apply_mapping(uint8_t port, uint8_t value) {
-	// TODO.
-	(void)port;
-	(void)value;
-}
-
 void MemorySlot::set_source(const std::vector<uint8_t> &source) {
 	source_ = source;
+}
+
+void MemorySlot::resize_source(std::size_t size) {
+	source_.resize(size);
+}
+
+std::vector<uint8_t> &MemorySlot::source() {
+	return source_;
 }
 
 const std::vector<uint8_t> &MemorySlot::source() const {
@@ -71,7 +73,6 @@ void MemorySlot::map(int subslot, std::size_t source_address, uint16_t destinati
 		source_address += 8192;
 	}
 
-	// TODO: allow write_pointers_ to be set.
 	// TODO: need to indicate that mapping changed.
 }
 

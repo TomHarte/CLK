@@ -23,7 +23,7 @@ namespace MSX {
 
 class DiskROM: public MemorySlotHandler, public WD::WD1770 {
 	public:
-		DiskROM(const MSX::MemorySlot &slot);
+		DiskROM(MSX::MemorySlot &slot);
 
 		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) final;
 		uint8_t read(uint16_t address) final;

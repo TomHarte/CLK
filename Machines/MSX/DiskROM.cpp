@@ -10,7 +10,7 @@
 
 using namespace MSX;
 
-DiskROM::DiskROM(const MSX::MemorySlot &slot) :
+DiskROM::DiskROM(MSX::MemorySlot &slot) :
 	WD1770(P1793),
 	rom_(slot.source()) {
 	emplace_drives(2, 8000000, 300, 2);

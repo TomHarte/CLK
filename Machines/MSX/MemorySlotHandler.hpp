@@ -50,14 +50,14 @@ class MemorySlot {
 		/// @returns A pointer to the area of memory currently underneath @c address.
 		uint8_t *write_pointer(int segment) const;
 
-		/// Sets the value most-recently written to one of the standard
-		/// memory mapping ports, FC–FF.
-		void apply_mapping(uint8_t port, uint8_t value);
-
 		/// Copies an underlying source buffer.
 		void set_source(const std::vector<uint8_t> &source);
 
+		/// Sets the size of the underlying source buffer.
+		void resize_source(std::size_t);
+
 		/// Provides a reference to the internal source storage.
+		std::vector<uint8_t> &source();
 		const std::vector<uint8_t> &source() const;
 
 		enum AccessType {
@@ -106,6 +106,10 @@ class MemorySlotHandler {
 
 		/*! Seeks the result of a read at @c address; this is used only if the area is unmapped. */
 		virtual uint8_t read([[maybe_unused]] uint16_t address) { return 0xff; }
+
+		/// Sets the value most-recently written to one of the standard
+		/// memory mapping ports, FC–FF.
+		virtual void apply_mapping([[maybe_unused]] uint8_t port, [[maybe_unused]] uint8_t value) {}
 
 		/*! @returns The probability that this handler is correct for the data it owns. */
 		float get_confidence() {

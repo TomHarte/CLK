@@ -143,6 +143,11 @@ class ConcreteMachine:
 	public Configurable::Device,
 	public ClockingHint::Observer,
 	public Activity::Source {
+	private:
+		static constexpr int RAMMemorySlot = 3;
+		static constexpr int RAMMemorySubSlot = 0;
+
+
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			z80_(*this),
@@ -156,7 +161,6 @@ class ConcreteMachine:
 			i8255_port_handler_(*this, audio_toggle_, tape_player_),
 			ay_port_handler_(tape_player_) {
 			set_clock_rate(3579545);
-			std::memset(unpopulated_, 0xff, sizeof(unpopulated_));
 			clear_all_keys();
 
 			ay_.set_port_handler(&ay_port_handler_);
@@ -234,11 +238,17 @@ class ConcreteMachine:
 
 			// Figure out which BIOS to use, either a specific one or the generic
 			// one appropriately patched.
-			const auto regional_bios = roms.find(regional_bios_name);
-			if(regional_bios != roms.end()) {
-				regional_bios->second.resize(32768);
-				memory_slots_[0].set_source(regional_bios->second);
-			} else {
+			bool has_bios = false;
+			if constexpr (model == Target::Model::MSX1) {
+				const auto regional_bios = roms.find(regional_bios_name);
+				if(regional_bios != roms.end()) {
+					regional_bios->second.resize(32768);
+					memory_slots_[0].set_source(regional_bios->second);
+					has_bios = true;
+				}
+			}
+
+			if(!has_bios) {
 				std::vector<uint8_t> &bios = roms.find(bios_name)->second;
 
 				bios.resize(32768);
@@ -255,7 +265,9 @@ class ConcreteMachine:
 			}
 
 			memory_slots_[0].map(0, 0, 0, 32768);
-			memory_slots_[3].template map<MemorySlot::AccessType::ReadWrite>(0, 0, 0, 65536);
+
+			memory_slots_[RAMMemorySlot].resize_source(65536);
+			memory_slots_[RAMMemorySlot].template map<MemorySlot::AccessType::ReadWrite>(RAMMemorySubSlot, 0, 0, 65536);
 
 			// Add a disk cartridge if any disks were supplied.
 			if(target.has_disk_drive) {
@@ -447,8 +459,8 @@ class ConcreteMachine:
 								using Parser = Storage::Tape::MSX::Parser;
 								std::unique_ptr<Parser::FileSpeed> new_speed = Parser::find_header(tape_player_);
 								if(new_speed) {
-									ram_[0xfca4] = new_speed->minimum_start_bit_duration;
-									ram_[0xfca5] = new_speed->low_high_disrimination_duration;
+									ram()[0xfca4] = new_speed->minimum_start_bit_duration;
+									ram()[0xfca5] = new_speed->low_high_disrimination_duration;
 									z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
 								} else {
 									z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
@@ -465,8 +477,8 @@ class ConcreteMachine:
 								// Grab the current values of LOWLIM and WINWID.
 								using Parser = Storage::Tape::MSX::Parser;
 								Parser::FileSpeed tape_speed;
-								tape_speed.minimum_start_bit_duration = ram_[0xfca4];
-								tape_speed.low_high_disrimination_duration = ram_[0xfca5];
+								tape_speed.minimum_start_bit_duration = ram()[0xfca4];
+								tape_speed.low_high_disrimination_duration = ram()[0xfca5];
 
 								// Ask the tape parser to grab a byte.
 								int next_byte = Parser::get_byte(tape_speed, tape_player_);
@@ -489,9 +501,12 @@ class ConcreteMachine:
 						if(!address) {
 							pc_zero_accesses_++;
 						}
-						if(read_pointers_[address >> 13] == unpopulated_) {
-							performed_unmapped_access_ = true;
-						}
+
+						// TODO: below relates to confidence measurements. Reinstate, somehow.
+//						if(is_unpopulated_[address >> 13] == unpopulated_) {
+//							performed_unmapped_access_ = true;
+//						}
+
 						pc_address_ = address;	// This is retained so as to be able to name the source of an access to cartridge handlers.
 						[[fallthrough]];
 
@@ -587,8 +602,8 @@ class ConcreteMachine:
 							const int buffer_size = 40;
 
 							// Also from the Red Book: GETPNT is at F3FAH and PUTPNT is at F3F8H.
-							int read_address = ram_[0xf3fa] | (ram_[0xf3fb] << 8);
-							int write_address = ram_[0xf3f8] | (ram_[0xf3f9] << 8);
+							int read_address = ram()[0xf3fa] | (ram()[0xf3fb] << 8);
+							int write_address = ram()[0xf3f8] | (ram()[0xf3f9] << 8);
 
 							// Write until either the string is exhausted or the write_pointer is immediately
 							// behind the read pointer; temporarily map write_address and read_address into
@@ -599,7 +614,7 @@ class ConcreteMachine:
 							while(characters_written < input_text_.size()) {
 								const int next_write_address = (write_address + 1) % buffer_size;
 								if(next_write_address == read_address) break;
-								ram_[write_address + buffer_start] = uint8_t(input_text_[characters_written]);
+								ram()[write_address + buffer_start] = uint8_t(input_text_[characters_written]);
 								++characters_written;
 								write_address = next_write_address;
 							}
@@ -607,8 +622,8 @@ class ConcreteMachine:
 
 							// Map the write address back into absolute terms and write it out again as PUTPNT.
 							write_address += buffer_start;
-							ram_[0xf3f8] = uint8_t(write_address);
-							ram_[0xf3f9] = uint8_t(write_address >> 8);
+							ram()[0xf3f8] = uint8_t(write_address);
+							ram()[0xf3f9] = uint8_t(write_address >> 8);
 						}
 					break;
 
@@ -690,6 +705,9 @@ class ConcreteMachine:
 		}
 
 	private:
+		uint8_t *ram() {
+			return memory_slots_[RAMMemorySlot].source().data();
+		}
 		DiskROM *get_disk_rom() {
 			return dynamic_cast<DiskROM *>(memory_slots_[2].handler.get());
 		}
@@ -794,15 +812,6 @@ class ConcreteMachine:
 		};
 		MemorySlot memory_slots_[4];
 		MemorySlot *final_slot_ = nullptr;
-
-		/// Base RAM.
-		uint8_t ram_[65536];
-
-		/// A never-read area that writes for unmapped regions can be diverted to.
-		uint8_t scratch_[8192];
-
-		/// A never-written area that reads for unmapped regions can be sourced from.
-		uint8_t unpopulated_[8192];
 
 		HalfCycles time_since_ay_update_;
 
