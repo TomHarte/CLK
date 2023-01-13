@@ -12,7 +12,7 @@
 
 #include "DiskROM.hpp"
 #include "Keyboard.hpp"
-#include "ROMSlotHandler.hpp"
+#include "MemorySlotHandler.hpp"
 
 #include "../../Analyser/Static/MSX/Cartridge.hpp"
 #include "Cartridges/ASCII8kb.hpp"
@@ -141,7 +141,6 @@ class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
-	public MemoryMap,
 	public ClockingHint::Observer,
 	public Activity::Source {
 	public:
@@ -237,42 +236,37 @@ class ConcreteMachine:
 			// one appropriately patched.
 			const auto regional_bios = roms.find(regional_bios_name);
 			if(regional_bios != roms.end()) {
-				memory_slots_[0].source = std::move(regional_bios->second);
-				memory_slots_[0].source.resize(32768);
+				regional_bios->second.resize(32768);
+				memory_slots_[0].set_source(regional_bios->second);
 			} else {
-				memory_slots_[0].source = std::move(roms.find(bios_name)->second);
-				memory_slots_[0].source.resize(32768);
+				std::vector<uint8_t> &bios = roms.find(bios_name)->second;
+
+				bios.resize(32768);
 
 				// Modify the generic ROM to reflect the selected region, date format, etc.
-				memory_slots_[0].source[0x2b] = uint8_t(
+				bios[0x2b] = uint8_t(
 					(is_ntsc ? 0x00 : 0x80) |
 					(date_format << 4) |
 					character_generator
 				);
-				memory_slots_[0].source[0x2c] = keyboard;
+				bios[0x2c] = keyboard;
+
+				memory_slots_[0].set_source(bios);
 			}
 
-			for(size_t c = 0; c < 8; ++c) {
-				for(size_t slot = 0; slot < 3; ++slot) {
-					memory_slots_[slot].read_pointers[c] = unpopulated_;
-					memory_slots_[slot].write_pointers[c] = scratch_;
-				}
-
-				memory_slots_[3].read_pointers[c] =
-				memory_slots_[3].write_pointers[c] = &ram_[c * 8192];
-			}
-
-			map(0, 0, 0, 32768);
-			page_primary(0);
+			memory_slots_[0].map(0, 0, 0, 32768);
+			memory_slots_[3].map(0, 0, 0, 65536);
 
 			// Add a disk cartridge if any disks were supplied.
 			if(target.has_disk_drive) {
-				memory_slots_[2].set_handler(new DiskROM(memory_slots_[2].source));
-				memory_slots_[2].source = std::move(roms.find(ROM::Name::MSXDOS)->second);
-				memory_slots_[2].source.resize(16384);
+				memory_slots_[2].handler = std::make_unique<DiskROM>(memory_slots_[2]);
 
-				map(2, 0, 0x4000, 0x2000);
-				unmap(2, 0x6000, 0x2000);
+				std::vector<uint8_t> &dos = roms.find(ROM::Name::MSXDOS)->second;
+				dos.resize(16384);
+				memory_slots_[2].set_source(dos);
+
+				memory_slots_[2].map(0, 0, 0x4000, 0x2000);
+				memory_slots_[2].unmap(0, 0x6000, 0x2000);
 			}
 
 			// Insert the media.
@@ -282,6 +276,9 @@ class ConcreteMachine:
 			if(!target.loading_command.empty()) {
 				type_string(target.loading_command);
 			}
+
+			// Establish default paging.
+			page_primary(0);
 		}
 
 		~ConcreteMachine() {
@@ -330,24 +327,26 @@ class ConcreteMachine:
 		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
-				memory_slots_[1].source = segment.data;
-				map(1, 0, uint16_t(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
+				auto &slot = memory_slots_[1];
+
+				slot.set_source(segment.data);
+				slot.map(0, 0, uint16_t(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
 
 				auto msx_cartridge = dynamic_cast<Analyser::Static::MSX::Cartridge *>(media.cartridges.front().get());
 				if(msx_cartridge) {
 					switch(msx_cartridge->type) {
 						default: break;
 						case Analyser::Static::MSX::Cartridge::Konami:
-							memory_slots_[1].set_handler(new Cartridge::KonamiROMSlotHandler(*this, 1));
+							slot.handler = std::make_unique<Cartridge::KonamiROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
 						break;
 						case Analyser::Static::MSX::Cartridge::KonamiWithSCC:
-							memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1, scc_));
+							slot.handler = std::make_unique<Cartridge::KonamiWithSCCROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot), scc_);
 						break;
 						case Analyser::Static::MSX::Cartridge::ASCII8kb:
-							memory_slots_[1].set_handler(new Cartridge::ASCII8kbROMSlotHandler(*this, 1));
+							slot.handler = std::make_unique<Cartridge::ASCII8kbROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
 						break;
 						case Analyser::Static::MSX::Cartridge::ASCII16kb:
-							memory_slots_[1].set_handler(new Cartridge::ASCII16kbROMSlotHandler(*this, 1));
+							slot.handler = std::make_unique<Cartridge::ASCII16kbROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
 						break;
 					}
 				}
@@ -388,36 +387,6 @@ class ConcreteMachine:
 			return c >= 32 && c < 127;
 		}
 
-		// MARK: MSX::MemoryMap
-		void map(int slot, std::size_t source_address, uint16_t destination_address, std::size_t length) final {
-			assert(!(destination_address & 8191));
-			assert(!(length & 8191));
-			assert(size_t(destination_address) + length <= 65536);
-
-			for(std::size_t c = 0; c < (length >> 13); ++c) {
-				if(memory_slots_[slot].wrapping_strategy == ROMSlotHandler::WrappingStrategy::Repeat) {
-					source_address %= memory_slots_[slot].source.size();
-				}
-				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] =
-					(source_address < memory_slots_[slot].source.size()) ? &memory_slots_[slot].source[source_address] : unpopulated_;
-				source_address += 8192;
-			}
-
-			update_paging();
-		}
-
-		void unmap(int slot, uint16_t destination_address, std::size_t length) final {
-			assert(!(destination_address & 8191));
-			assert(!(length & 8191));
-			assert(size_t(destination_address) + length <= 65536);
-
-			for(std::size_t c = 0; c < (length >> 13); ++c) {
-				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] = nullptr;
-			}
-
-			update_paging();
-		}
-
 		// MARK: Memory paging.
 		void page_primary(uint8_t value) {
 			primary_slots_ = value;
@@ -427,17 +396,18 @@ class ConcreteMachine:
 		void update_paging() {
 			uint8_t primary = primary_slots_;
 
+			// Update final slot; this direct pointer will be used for
+			// secondary slot communication.
 			final_slot_ = &memory_slots_[primary >> 6];
 
-			// TODO: factor in secondary slot selection below.
 			for(std::size_t c = 0; c < 8; c += 2) {
 				const MemorySlot &slot = memory_slots_[primary & 3];
 				primary >>= 2;
 
-				read_pointers_[c] = slot.read_pointers[c];
-				write_pointers_[c] = slot.write_pointers[c];
-				read_pointers_[c+1] = slot.read_pointers[c+1];
-				write_pointers_[c+1] = slot.write_pointers[c+1];
+				read_pointers_[c] = slot.read_pointer(c);
+				write_pointers_[c] = slot.write_pointer(c);
+				read_pointers_[c+1] = slot.read_pointer(c+1);
+				write_pointers_[c+1] = slot.write_pointer(c+1);
 			}
 			set_use_fast_tape();
 		}
@@ -527,7 +497,7 @@ class ConcreteMachine:
 
 					case CPU::Z80::PartialMachineCycle::Read:
 						if(address == 0xffff && final_slot_->supports_secondary_paging) {
-							*cycle.value = final_slot_->secondary_paging ^ 0xff;
+							*cycle.value = final_slot_->secondary_paging() ^ 0xff;
 							break;
 						}
 
@@ -542,7 +512,7 @@ class ConcreteMachine:
 
 					case CPU::Z80::PartialMachineCycle::Write: {
 						if(address == 0xffff && final_slot_->supports_secondary_paging) {
-							final_slot_->secondary_paging = *cycle.value;
+							final_slot_->set_secondary_paging(*cycle.value);
 							update_paging();
 							break;
 						}
@@ -551,7 +521,10 @@ class ConcreteMachine:
 						if(memory_slots_[slot_hit].handler) {
 							update_audio();
 							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.template flush<HalfCycles>());
-							memory_slots_[slot_hit].handler->write(address, *cycle.value, read_pointers_[pc_address_ >> 13] != memory_slots_[0].read_pointers[pc_address_ >> 13]);
+							memory_slots_[slot_hit].handler->write(
+								address,
+								*cycle.value,
+								read_pointers_[pc_address_ >> 13] != memory_slots_[0].read_pointer(pc_address_ >> 13));
 						} else {
 							write_pointers_[address >> 13][address & 8191] = *cycle.value;
 						}
@@ -798,7 +771,7 @@ class ConcreteMachine:
 				allow_fast_tape_ &&
 				tape_player_.has_tape() &&
 				!(primary_slots_ & 3) &&
-				!(memory_slots_[0].secondary_paging & 3);
+				!(memory_slots_[0].secondary_paging() & 3);
 		}
 
 		i8255PortHandler i8255_port_handler_;
@@ -810,47 +783,14 @@ class ConcreteMachine:
 
 		// Divides the current 64kb address space into 8kb chunks.
 		// 8kb resolution is used by some cartride titles.
-		uint8_t *read_pointers_[8];
+		const uint8_t *read_pointers_[8];
 		uint8_t *write_pointers_[8];
 
 		/// Optionally attaches non-default logic to any of the four things selectable
 		/// via the primary slot register.
-		///
-		/// Tracks secondary and game-specific paging within each slot.
-		///
-		/// Standard MSX assignments:
-		/// 	0 = ROM;
-		/// 	3 = RAM.
-		///
-		/// Additional assignments customarily used by this emulator:
-		/// 	1 = any inserted cartridge;
-		/// 	2 = the disk ROM, if present.
-		struct MemorySlot {
-			// Each slot may be visible for any number of quarters of the memory map;
-			// these are the read and write pointers that should appear in the main
-			// memory map if this slot is visible there.
-			uint8_t *read_pointers[8];
-			uint8_t *write_pointers[8];
-
-			/// Sets the handler that will be provided with @c run_for and @c read or @c write calls
-			/// for memory accesses **anywhere it has left memory unmapped**. Anywhere that can be
-			/// described just in terms of standard memory access read and write destinations should be,
-			/// ideally to avoid virtual dispatch.
-			void set_handler(ROMSlotHandler *slot_handler) {
-				handler.reset(slot_handler);
-				wrapping_strategy = handler->wrapping_strategy();
-			}
-
+		struct MemorySlot: public MSX::MemorySlot {
 			HalfCycles cycles_since_update;
 			std::unique_ptr<ROMSlotHandler> handler;
-
-			ROMSlotHandler::WrappingStrategy wrapping_strategy = ROMSlotHandler::WrappingStrategy::Repeat;
-
-			bool supports_secondary_paging = false;
-			uint8_t secondary_paging = 0x00;
-
-			/// Per-slot storage, as a convenience.
-			std::vector<uint8_t> source;
 		};
 		MemorySlot memory_slots_[4];
 		MemorySlot *final_slot_ = nullptr;
