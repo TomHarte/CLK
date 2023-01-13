@@ -60,10 +60,15 @@ class MemorySlot {
 		/// Provides a reference to the internal source storage.
 		const std::vector<uint8_t> &source() const;
 
+		enum AccessType {
+			Read,
+			ReadWrite
+		};
+
 		/// Maps the content from @c source_address in the buffer previously
 		/// supplied to @c set_source to the region indicated by
 		/// @c destination_address and @c length within @c subslot.
-		void map(
+		template <AccessType type = AccessType::Read> void map(
 			int subslot,
 			std::size_t source_address,
 			uint16_t destination_address,

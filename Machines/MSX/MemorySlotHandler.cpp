@@ -53,6 +53,7 @@ const std::vector<uint8_t> &MemorySlot::source() const {
 	return source_;
 }
 
+template <MSX::MemorySlot::AccessType type>
 void MemorySlot::map(int subslot, std::size_t source_address, uint16_t destination_address, std::size_t length) {
 	assert(!(destination_address & 8191));
 	assert(!(length & 8191));
@@ -60,7 +61,13 @@ void MemorySlot::map(int subslot, std::size_t source_address, uint16_t destinati
 
 	for(std::size_t c = 0; c < (length >> 13); ++c) {
 		source_address %= source_.size();
-		read_pointers_[subslot][(destination_address >> 13) + c] = &source_[source_address];
+
+		const int bank = int((destination_address >> 13) + c);
+		read_pointers_[subslot][bank] = &source_[source_address];
+		if constexpr (type == AccessType::ReadWrite) {
+			write_pointers_[subslot][bank] = read_pointers_[subslot][bank];
+		}
+
 		source_address += 8192;
 	}
 
@@ -79,3 +86,6 @@ void MemorySlot::unmap(int subslot, uint16_t destination_address, std::size_t le
 
 	// TODO: need to indicate that mapping changed.
 }
+
+template void MemorySlot::map<MSX::MemorySlot::AccessType::Read>(int subslot, std::size_t source_address, uint16_t destination_address, std::size_t length);
+template void MemorySlot::map<MSX::MemorySlot::AccessType::ReadWrite>(int subslot, std::size_t source_address, uint16_t destination_address, std::size_t length);

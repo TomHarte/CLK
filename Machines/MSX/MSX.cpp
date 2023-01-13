@@ -255,7 +255,7 @@ class ConcreteMachine:
 			}
 
 			memory_slots_[0].map(0, 0, 0, 32768);
-			memory_slots_[3].map(0, 0, 0, 65536);
+			memory_slots_[3].template map<MemorySlot::AccessType::ReadWrite>(0, 0, 0, 65536);
 
 			// Add a disk cartridge if any disks were supplied.
 			if(target.has_disk_drive) {
