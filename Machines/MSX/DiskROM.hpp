@@ -21,7 +21,7 @@
 
 namespace MSX {
 
-class DiskROM: public ROMSlotHandler, public WD::WD1770 {
+class DiskROM: public MemorySlotHandler, public WD::WD1770 {
 	public:
 		DiskROM(const MSX::MemorySlot &slot);
 

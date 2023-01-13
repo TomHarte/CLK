@@ -70,7 +70,7 @@ class MemorySlot {
 			std::size_t length);
 
 		/// Marks the region indicated by @c destination_address and @c length
-		/// as unmapped. In practical terms that means that a @c ROMSlotHandler
+		/// as unmapped. In practical terms that means that a @c MemorySlotHandler
 		/// will be used to field accesses to that area, allowing for areas that are not
 		/// backed by memory to be modelled.
 		void unmap(
@@ -89,9 +89,9 @@ class MemorySlot {
 		inline static MemoryChunk scratch;
 };
 
-class ROMSlotHandler {
+class MemorySlotHandler {
 	public:
-		virtual ~ROMSlotHandler() {}
+		virtual ~MemorySlotHandler() {}
 
 		/*! Advances time by @c half_cycles. */
 		virtual void run_for([[maybe_unused]] HalfCycles half_cycles) {}

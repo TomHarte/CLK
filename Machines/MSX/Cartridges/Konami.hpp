@@ -14,7 +14,7 @@
 namespace MSX {
 namespace Cartridge {
 
-class KonamiROMSlotHandler: public ROMSlotHandler {
+class KonamiROMSlotHandler: public MemorySlotHandler {
 	public:
 		KonamiROMSlotHandler(MSX::MemorySlot &slot) : slot_(slot) {}
 

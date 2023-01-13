@@ -14,7 +14,7 @@
 namespace MSX {
 namespace Cartridge {
 
-class ASCII8kbROMSlotHandler: public ROMSlotHandler {
+class ASCII8kbROMSlotHandler: public MemorySlotHandler {
 	public:
 		ASCII8kbROMSlotHandler(MSX::MemorySlot &slot) : slot_(slot) {}
 

@@ -790,7 +790,7 @@ class ConcreteMachine:
 		/// via the primary slot register.
 		struct MemorySlot: public MSX::MemorySlot {
 			HalfCycles cycles_since_update;
-			std::unique_ptr<ROMSlotHandler> handler;
+			std::unique_ptr<MemorySlotHandler> handler;
 		};
 		MemorySlot memory_slots_[4];
 		MemorySlot *final_slot_ = nullptr;
