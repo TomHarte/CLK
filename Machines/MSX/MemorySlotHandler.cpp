@@ -12,7 +12,7 @@
 
 using namespace MSX;
 
-MemorySlot::MemorySlot() {
+MemorySlot::MemorySlot(MemorySlotChangeHandler &handler) : handler_(handler) {
 	for(int subslot = 0; subslot < 4; subslot++) {
 		for(int region = 0; region < 8; region++) {
 			read_pointers_[subslot][region] = unmapped.data();
@@ -73,7 +73,7 @@ void MemorySlot::map(int subslot, std::size_t source_address, uint16_t destinati
 		source_address += 8192;
 	}
 
-	// TODO: need to indicate that mapping changed.
+	handler_.did_page();
 }
 
 void MemorySlot::unmap(int subslot, uint16_t destination_address, std::size_t length) {
@@ -85,7 +85,7 @@ void MemorySlot::unmap(int subslot, uint16_t destination_address, std::size_t le
 		read_pointers_[subslot][(destination_address >> 13) + c] = nullptr;
 	}
 
-	// TODO: need to indicate that mapping changed.
+	handler_.did_page();
 }
 
 template void MemorySlot::map<MSX::MemorySlot::AccessType::Read>(int subslot, std::size_t source_address, uint16_t destination_address, std::size_t length);

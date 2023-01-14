@@ -30,9 +30,13 @@
 */
 namespace MSX {
 
+struct MemorySlotChangeHandler {
+	virtual void did_page() = 0;
+};
+
 class MemorySlot {
 	public:
-		MemorySlot();
+		MemorySlot(MemorySlotChangeHandler &);
 
 		/// Attempts to write the argument as the secondary paging selection.
 		void set_secondary_paging(uint8_t);
@@ -88,6 +92,8 @@ class MemorySlot {
 		uint8_t *read_pointers_[4][8];
 		uint8_t *write_pointers_[4][8];
 		uint8_t secondary_paging_ = 0;
+
+		MemorySlotChangeHandler &handler_;
 
 		using MemoryChunk = std::array<uint8_t, 8192>;
 		inline static MemoryChunk unmapped{0xff};

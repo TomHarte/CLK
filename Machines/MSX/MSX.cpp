@@ -142,7 +142,8 @@ class ConcreteMachine:
 	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
 	public ClockingHint::Observer,
-	public Activity::Source {
+	public Activity::Source,
+	public MSX::MemorySlotChangeHandler {
 	private:
 		static constexpr int RAMMemorySlot = 3;
 		static constexpr int RAMMemorySubSlot = 0;
@@ -163,7 +164,8 @@ class ConcreteMachine:
 			speaker_(mixer_),
 			tape_player_(3579545 * 2),
 			i8255_port_handler_(*this, audio_toggle_, tape_player_),
-			ay_port_handler_(tape_player_) {
+			ay_port_handler_(tape_player_),
+			memory_slots_{{*this}, {*this}, {*this}, {*this}} {
 			set_clock_rate(3579545);
 			clear_all_keys();
 
@@ -421,6 +423,10 @@ class ConcreteMachine:
 		// MARK: Memory paging.
 		void page_primary(uint8_t value) {
 			primary_slots_ = value;
+			update_paging();
+		}
+
+		void did_page() final {
 			update_paging();
 		}
 
@@ -826,6 +832,8 @@ class ConcreteMachine:
 		/// Optionally attaches non-default logic to any of the four things selectable
 		/// via the primary slot register.
 		struct MemorySlot: public MSX::MemorySlot {
+			using MSX::MemorySlot::MemorySlot;
+
 			HalfCycles cycles_since_update;
 			std::unique_ptr<MemorySlotHandler> handler;
 		};
