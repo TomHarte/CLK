@@ -284,10 +284,10 @@ class ConcreteMachine:
 				memory_slots_[RAMMemorySlot].set_source(ram_plus);
 
 				memory_slots_[RAMMemorySlot].template map<MemorySlot::AccessType::ReadWrite>(RAMMemorySubSlot, 0, 0, 65536);
-				memory_slots_[RAMMemorySlot].map(ExtensionROMSubSlot, 0, 0, 32768);
+				memory_slots_[RAMMemorySlot].map(ExtensionROMSubSlot, RAMSize, 0, 32768);
 			} else {
 				memory_slots_[RAMMemorySlot].resize_source(65536);
-				memory_slots_[RAMMemorySlot].template map<MemorySlot::AccessType::ReadWrite>(RAMMemorySubSlot, RAMSize, 0, 65536);
+				memory_slots_[RAMMemorySlot].template map<MemorySlot::AccessType::ReadWrite>(RAMMemorySubSlot, 0, 0, 65536);
 			}
 
 			// Add a disk cartridge if any disks were supplied.
@@ -612,7 +612,9 @@ class ConcreteMachine:
 							break;
 
 							case 0xfc: case 0xfd: case 0xfe: case 0xff:
-	//							printf("RAM banking %02x: %02x\n", port, *cycle.value);
+								// 1. Propagate to all handlers.
+								// 2. Apply to RAM.
+//								printf("RAM banking %02x: %02x\n", port, *cycle.value);
 							break;
 						}
 					} break;
