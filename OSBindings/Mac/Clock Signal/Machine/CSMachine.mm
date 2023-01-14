@@ -43,10 +43,12 @@ struct MachineUpdater {
 		// Top out at 1/20th of a second; this is a safeguard against a negative
 		// feedback loop if emulation starts running slowly.
 		const auto seconds = std::min(Time::seconds(duration), 0.05);
-		machine->run_for(seconds);
+		timed_machine = machine->timed_machine();
+		timed_machine->run_for(seconds);
 	}
 
-	MachineTypes::TimedMachine *machine = nullptr;
+	Machine::DynamicMachine *machine = nullptr;
+	MachineTypes::TimedMachine *timed_machine = nullptr;
 };
 
 }
@@ -148,7 +150,7 @@ struct ActivityObserver: public Activity::Observer {
 			[missingROMs appendString:[NSString stringWithUTF8String:wstring_converter.to_bytes(description).c_str()]];
 			return nil;
 		}
-		updater.performer.machine = _machine->timed_machine();
+		updater.performer.machine = _machine.get();
 		if(updater.performer.machine) {
 			updater.start();
 		}
@@ -687,7 +689,7 @@ struct ActivityObserver: public Activity::Observer {
 	updater.enqueue([weakSelf] {
 		CSMachine *const strongSelf = weakSelf;
 		if(strongSelf) {
-			strongSelf->updater.performer.machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
+			strongSelf->updater.performer.timed_machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
 		}
 	});
 }
@@ -703,7 +705,7 @@ struct ActivityObserver: public Activity::Observer {
 
 		// Grab a pointer to the timed machine from somewhere where it has already
 		// been dynamically cast, to avoid that cost here.
-		MachineTypes::TimedMachine *const timed_machine = strongSelf->updater.performer.machine;
+		MachineTypes::TimedMachine *const timed_machine = strongSelf->updater.performer.timed_machine;
 
 		// Definitely update video; update audio too if that pipeline is looking a little dry.
 		auto outputs = MachineTypes::TimedMachine::Output::Video;
