@@ -100,12 +100,31 @@ void RP5C01::write(int address, uint8_t value) {
 		return;
 	}
 
+	switch(mode_) {
+		case 3:
+			address += 13;
+			[[fallthrough]];
+		case 2:
+			ram_[size_t(address)] = value & 0xf;
+		return;
+	}
+
 	// TODO.
 	printf("RP-5C01 write of %d to %d in mode %d\n", value, address & 0xf, mode_);
 }
 
 uint8_t RP5C01::read(int address) {
 	address &= 0xf;
+
+	if(address < 0xd) {
+		switch(mode_) {
+			case 3:
+				address += 13;
+				[[fallthrough]];
+			case 2:
+			return 0xf0 | ram_[size_t(address)];
+		}
+	}
 
 	// TODO.
 	printf("RP-5C01 read from %d in mode %d\n", address & 0xf, mode_);
