@@ -1064,6 +1064,8 @@
 		4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */; };
 		4BF0BC68297108D600CCA2B5 /* MemorySlotHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF0BC67297108D100CCA2B5 /* MemorySlotHandler.cpp */; };
 		4BF0BC69297108D600CCA2B5 /* MemorySlotHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF0BC67297108D100CCA2B5 /* MemorySlotHandler.cpp */; };
+		4BF0BC712973318E00CCA2B5 /* RP5C01.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF0BC6F2973318E00CCA2B5 /* RP5C01.cpp */; };
+		4BF0BC722973318E00CCA2B5 /* RP5C01.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF0BC6F2973318E00CCA2B5 /* RP5C01.cpp */; };
 		4BF437EE209D0F7E008CBD6B /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */; };
 		4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */; };
 		4BF701A026FFD32300996424 /* AmigaBlitterTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BF7019F26FFD32300996424 /* AmigaBlitterTests.mm */; };
@@ -2211,6 +2213,8 @@
 		4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DigitalPhaseLockedLoopBridge.mm; sourceTree = "<group>"; };
 		4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DPLLTests.swift; sourceTree = "<group>"; };
 		4BF0BC67297108D100CCA2B5 /* MemorySlotHandler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MemorySlotHandler.cpp; sourceTree = "<group>"; };
+		4BF0BC6F2973318E00CCA2B5 /* RP5C01.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RP5C01.cpp; sourceTree = "<group>"; };
+		4BF0BC702973318E00CCA2B5 /* RP5C01.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RP5C01.hpp; sourceTree = "<group>"; };
 		4BF40A5525424C770033EA39 /* LanguageCardSwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LanguageCardSwitches.hpp; sourceTree = "<group>"; };
 		4BF40A5A254263140033EA39 /* AuxiliaryMemorySwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AuxiliaryMemorySwitches.hpp; sourceTree = "<group>"; };
 		4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SegmentParser.cpp; sourceTree = "<group>"; };
@@ -4579,6 +4583,7 @@
 				4B302181208A550100773308 /* DiskII */,
 				4B4B1A39200198C900A0F866 /* KonamiSCC */,
 				4BC23A212467600E001A6030 /* OPx */,
+				4BF0BC6E2973318E00CCA2B5 /* RP5C01 */,
 				4B0ACBFF237756EC008902D0 /* Serial */,
 				4BB0A6582044FD3000FB3688 /* SN76489 */,
 			);
@@ -4946,6 +4951,15 @@
 				4B37EE811D7345A6006A09A4 /* BinaryDump.hpp */,
 			);
 			path = Formats;
+			sourceTree = "<group>";
+		};
+		4BF0BC6E2973318E00CCA2B5 /* RP5C01 */ = {
+			isa = PBXGroup;
+			children = (
+				4BF0BC6F2973318E00CCA2B5 /* RP5C01.cpp */,
+				4BF0BC702973318E00CCA2B5 /* RP5C01.hpp */,
+			);
+			path = RP5C01;
 			sourceTree = "<group>";
 		};
 		4BF660691F281573002CB053 /* ClockReceiver */ = {
@@ -5630,6 +5644,7 @@
 				4B5B37322777C7FC0047F238 /* IPF.cpp in Sources */,
 				4B894519201967B4007DE474 /* ConfidenceCounter.cpp in Sources */,
 				4B055AEE1FAE9BBF0060FFFF /* Keyboard.cpp in Sources */,
+				4BF0BC722973318E00CCA2B5 /* RP5C01.cpp in Sources */,
 				4B055AED1FAE9BA20060FFFF /* Z80Storage.cpp in Sources */,
 				4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
 				4BC890D4230F86020025A55A /* DirectAccessDevice.cpp in Sources */,
@@ -5983,6 +5998,7 @@
 				4B83348A1F5DB94B0097E338 /* IRQDelegatePortHandler.cpp in Sources */,
 				4B8DD3862634D37E00B3C866 /* SNA.cpp in Sources */,
 				4B4DEC06252BFA56004583AC /* 65816Base.cpp in Sources */,
+				4BF0BC712973318E00CCA2B5 /* RP5C01.cpp in Sources */,
 				4B894524201967B4007DE474 /* Tape.cpp in Sources */,
 				4B7136891F78725F008B8ED9 /* Shifter.cpp in Sources */,
 				4BDB61EB2032806E0048AF91 /* CSAtari2600.mm in Sources */,
