@@ -23,10 +23,11 @@
 #include "../../Processors/Z80/Z80.hpp"
 
 #include "../../Components/1770/1770.hpp"
-#include "../../Components/9918/9918.hpp"
 #include "../../Components/8255/i8255.hpp"
+#include "../../Components/9918/9918.hpp"
 #include "../../Components/AudioToggle/AudioToggle.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
+#include "../../Components/RP5C01/RP5C01.hpp"
 #include "../../Components/KonamiSCC/KonamiSCC.hpp"
 
 #include "../../Storage/Tape/Parsers/MSX.hpp"
@@ -153,6 +154,8 @@ class ConcreteMachine:
 		// Provide 512kb of memory for an MSX 2; 64kb for an MSX 1. 'Slightly' arbitrary.
 		static constexpr size_t RAMSize = model == Target::Model::MSX2 ? 512 * 1024 : 64 * 1024;
 
+		static constexpr int ClockRate = 3579545;
+
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			z80_(*this),
@@ -165,8 +168,9 @@ class ConcreteMachine:
 			tape_player_(3579545 * 2),
 			i8255_port_handler_(*this, audio_toggle_, tape_player_),
 			ay_port_handler_(tape_player_),
-			memory_slots_{{*this}, {*this}, {*this}, {*this}} {
-			set_clock_rate(3579545);
+			memory_slots_{{*this}, {*this}, {*this}, {*this}},
+			clock_(ClockRate) {
+			set_clock_rate(ClockRate);
 			clear_all_keys();
 
 			ay_.set_port_handler(&ay_port_handler_);
@@ -464,6 +468,10 @@ class ConcreteMachine:
 			memory_slots_[2].cycles_since_update += total_length;
 			memory_slots_[3].cycles_since_update += total_length;
 
+			if constexpr (model >= Target::Model::MSX2) {
+				clock_.run_for(total_length);
+			}
+
 			if(cycle.is_terminal()) {
 				uint16_t address = cycle.address ? *cycle.address : 0x0000;
 				switch(cycle.operation) {
@@ -587,7 +595,15 @@ class ConcreteMachine:
 								*cycle.value = i8255_.read(address);
 							break;
 
+							case 0xb5:
+								if constexpr (model == Target::Model::MSX1) {
+									break;
+								}
+								*cycle.value = clock_.read(next_clock_register_);
+							break;
+
 							default:
+								printf("Unhandled read %02x\n", address & 0xff);
 								*cycle.value = 0xff;
 							break;
 						}
@@ -611,10 +627,27 @@ class ConcreteMachine:
 								i8255_.write(address, *cycle.value);
 							break;
 
+							case 0xb4:
+								if constexpr (model == Target::Model::MSX1) {
+									break;
+								}
+								next_clock_register_ = *cycle.value;
+							break;
+							case 0xb5:
+								if constexpr (model == Target::Model::MSX1) {
+									break;
+								}
+								clock_.write(next_clock_register_, *cycle.value);
+							break;
+
 							case 0xfc: case 0xfd: case 0xfe: case 0xff:
 								// 1. Propagate to all handlers.
 								// 2. Apply to RAM.
-//								printf("RAM banking %02x: %02x\n", port, *cycle.value);
+								printf("RAM banking %02x: %02x\n", port, *cycle.value);
+							break;
+
+							default:
+								printf("Unhandled write %02x of %02x\n", address & 0xff, *cycle.value);
 							break;
 						}
 					} break;
@@ -853,6 +886,9 @@ class ConcreteMachine:
 		int pc_zero_accesses_ = 0;
 		bool performed_unmapped_access_ = false;
 		uint16_t pc_address_;
+
+		Ricoh::RP5C01::RP5C01 clock_;
+		int next_clock_register_ = 0;
 };
 
 }

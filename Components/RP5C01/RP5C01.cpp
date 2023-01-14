@@ -76,6 +76,8 @@ void RP5C01::run_for(HalfCycles cycles) {
 
 /// Performs a write of @c value to @c address.
 void RP5C01::write(int address, uint8_t value) {
+	address &= 0xf;
+
 	// Registers D–F don't depend on the mode.
 	if(address >= 0xd) {
 		switch(address) {
@@ -97,4 +99,15 @@ void RP5C01::write(int address, uint8_t value) {
 
 		return;
 	}
+
+	// TODO.
+	printf("RP-5C01 write of %d to %d in mode %d\n", value, address & 0xf, mode_);
+}
+
+uint8_t RP5C01::read(int address) {
+	address &= 0xf;
+
+	// TODO.
+	printf("RP-5C01 read from %d in mode %d\n", address & 0xf, mode_);
+	return 0xff;
 }
