@@ -828,8 +828,15 @@ class ConcreteMachine:
 				Activity::Observer *activity_observer_ = nullptr;
 		};
 
+		static constexpr TI::TMS::Personality vdp_model() {
+			switch(model) {
+				case Target::Model::MSX1:	return TI::TMS::Personality::TMS9918A;
+				case Target::Model::MSX2:	return TI::TMS::Personality::V9938;
+			}
+		}
+
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<TI::TMS::TMS9918<TI::TMS::Personality::TMS9918A>> vdp_;
+		JustInTimeActor<TI::TMS::TMS9918<vdp_model()>> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;
