@@ -633,9 +633,11 @@ class ConcreteMachine:
 									break;
 								}
 
-								// TODO: Propagate to all handlers.
-
 								// Apply to RAM.
+								//
+								// On a real MSX this may also affect other slots.
+								// I've not yet needed it to propagate further, so
+								// have not implemented any onward route.
 								const uint16_t region = uint16_t((port - 0xfc) << 14);
 								const size_t base = size_t(*cycle.value) << 14;
 								if(base < RAMSize) {
