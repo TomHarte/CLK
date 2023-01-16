@@ -628,11 +628,24 @@ class ConcreteMachine:
 								clock_.write(next_clock_register_, *cycle.value);
 							break;
 
-							case 0xfc: case 0xfd: case 0xfe: case 0xff:
-								// 1. Propagate to all handlers.
-								// 2. Apply to RAM.
-								printf("RAM banking %02x: %02x\n", port, *cycle.value);
-							break;
+							case 0xfc: case 0xfd: case 0xfe: case 0xff: {
+								if constexpr (model == Target::Model::MSX1) {
+									break;
+								}
+
+								// TODO: Propagate to all handlers.
+
+								// Apply to RAM.
+								const uint16_t region = uint16_t((port - 0xfc) << 14);
+								const size_t base = size_t(*cycle.value) << 14;
+								if(base < RAMSize) {
+									ram_slot().template map<MemorySlot::AccessType::ReadWrite>(base, region, 0x4000);
+								} else {
+									ram_slot().unmap(region, 0x4000);
+								}
+
+								update_paging();
+							} break;
 
 							default:
 								printf("Unhandled write %02x of %02x\n", address & 0xff, *cycle.value);
