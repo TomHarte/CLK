@@ -430,7 +430,7 @@ class ConcreteMachine:
 			final_slot_ = &memory_slots_[primary >> 6];
 
 			for(int c = 0; c < 8; c += 2) {
-				const PrimarySlot &slot = memory_slots_[primary & 3];
+				const HandledSlot &slot = memory_slots_[primary & 3];
 				primary >>= 2;
 
 				read_pointers_[c] = slot.read_pointer(c);
@@ -859,7 +859,7 @@ class ConcreteMachine:
 		/// In principle one might want to attach a handler to a secondary slot rather
 		/// than a primary, but in practice that isn't required in the slot allocation used
 		/// by this emulator.
-		struct PrimarySlot: public MSX::PrimarySlot {
+		struct HandledSlot: public MSX::PrimarySlot {
 			using MSX::PrimarySlot::PrimarySlot;
 
 			/// Storage for a slot-specialised handler.
@@ -868,8 +868,8 @@ class ConcreteMachine:
 			/// The handler is updated just-in-time.
 			HalfCycles cycles_since_update;
 		};
-		PrimarySlot memory_slots_[4];
-		PrimarySlot *final_slot_ = nullptr;
+		HandledSlot memory_slots_[4];
+		HandledSlot *final_slot_ = nullptr;
 
 		HalfCycles time_since_ay_update_;
 
@@ -923,10 +923,10 @@ class ConcreteMachine:
 			return disk_primary().subslot(0);
 		}
 
-		PrimarySlot &cartridge_primary() {
+		HandledSlot &cartridge_primary() {
 			return memory_slots_[1];
 		}
-		PrimarySlot &disk_primary() {
+		HandledSlot &disk_primary() {
 			return memory_slots_[2];
 		}
 
