@@ -146,11 +146,6 @@ class ConcreteMachine:
 	public Activity::Source,
 	public MSX::MemorySlotChangeHandler {
 	private:
-		static constexpr int RAMMemorySlot = 3;
-		static constexpr int RAMMemorySubSlot = 0;
-
-		static constexpr int ExtensionROMSubSlot = 1;
-
 		// Provide 512kb of memory for an MSX 2; 64kb for an MSX 1. 'Slightly' arbitrary.
 		static constexpr size_t RAMSize = model == Target::Model::MSX2 ? 512 * 1024 : 64 * 1024;
 
@@ -253,7 +248,7 @@ class ConcreteMachine:
 				const auto regional_bios = roms.find(regional_bios_name);
 				if(regional_bios != roms.end()) {
 					regional_bios->second.resize(32768);
-					memory_slots_[0].set_source(regional_bios->second);
+					bios_slot().set_source(regional_bios->second);
 					has_bios = true;
 				}
 			}
@@ -270,40 +265,33 @@ class ConcreteMachine:
 				);
 				bios[0x2c] = keyboard;
 
-				memory_slots_[0].set_source(bios);
+				bios_slot().set_source(bios);
 			}
 
-			memory_slots_[0].map(0, 0, 0, 32768);
+			bios_slot().map(0, 0, 32768);
+
+			ram_slot().resize_source(RAMSize);
+			ram_slot().template map<MemorySlot::AccessType::ReadWrite>(0, 0, 65536);
 
 			if constexpr (model == Target::Model::MSX2) {
-				// If there's an extension ROM, add it as a subslot in the same slot as RAM.
-				std::vector<uint8_t> ram_plus;
-
-				ram_plus.resize(RAMSize);
+				memory_slots_[3].supports_secondary_paging = true;
 
 				const auto extension = roms.find(ROM::Name::MSX2Extension);
-				std::copy(extension->second.begin(), extension->second.end(), std::back_inserter(ram_plus));
-
-				memory_slots_[RAMMemorySlot].supports_secondary_paging = true;
-				memory_slots_[RAMMemorySlot].set_source(ram_plus);
-
-				memory_slots_[RAMMemorySlot].template map<MemorySlot::AccessType::ReadWrite>(RAMMemorySubSlot, 0, 0, 65536);
-				memory_slots_[RAMMemorySlot].map(ExtensionROMSubSlot, RAMSize, 0, 32768);
-			} else {
-				memory_slots_[RAMMemorySlot].resize_source(65536);
-				memory_slots_[RAMMemorySlot].template map<MemorySlot::AccessType::ReadWrite>(RAMMemorySubSlot, 0, 0, 65536);
+				extension->second.resize(32768);
+				extension_rom_slot().set_source(extension->second);
+				extension_rom_slot().map(0, 0, 32768);
 			}
 
 			// Add a disk cartridge if any disks were supplied.
 			if(target.has_disk_drive) {
-				memory_slots_[2].handler = std::make_unique<DiskROM>(memory_slots_[2]);
+				disk_primary().handler = std::make_unique<DiskROM>(disk_slot());
 
 				std::vector<uint8_t> &dos = roms.find(ROM::Name::MSXDOS)->second;
 				dos.resize(16384);
-				memory_slots_[2].set_source(dos);
+				disk_slot().set_source(dos);
 
-				memory_slots_[2].map(0, 0, 0x4000, 0x2000);
-				memory_slots_[2].unmap(0, 0x6000, 0x2000);
+				disk_slot().map(0, 0x4000, 0x2000);
+				disk_slot().unmap(0x6000, 0x2000);
 			}
 
 			// Insert the media.
@@ -348,15 +336,15 @@ class ConcreteMachine:
 
 		float get_confidence() final {
 			if(performed_unmapped_access_ || pc_zero_accesses_ > 1) return 0.0f;
-			if(memory_slots_[1].handler) {
-				return memory_slots_[1].handler->get_confidence();
+			if(cartridge_primary().handler) {
+				return cartridge_primary().handler->get_confidence();
 			}
 			return 0.5f;
 		}
 
 		std::string debug_type() final {
-			if(memory_slots_[1].handler) {
-				return "MSX:" + memory_slots_[1].handler->debug_type();
+			if(cartridge_primary().handler) {
+				return "MSX:" + cartridge_primary().handler->debug_type();
 			}
 			return "MSX";
 		}
@@ -364,26 +352,26 @@ class ConcreteMachine:
 		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
-				auto &slot = memory_slots_[1];
+				auto &slot = cartridge_slot();
 
 				slot.set_source(segment.data);
-				slot.map(0, 0, uint16_t(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
+				slot.map(0, uint16_t(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
 
 				auto msx_cartridge = dynamic_cast<Analyser::Static::MSX::Cartridge *>(media.cartridges.front().get());
 				if(msx_cartridge) {
 					switch(msx_cartridge->type) {
 						default: break;
 						case Analyser::Static::MSX::Cartridge::Konami:
-							slot.handler = std::make_unique<Cartridge::KonamiROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
+							cartridge_primary().handler = std::make_unique<Cartridge::KonamiROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
 						break;
 						case Analyser::Static::MSX::Cartridge::KonamiWithSCC:
-							slot.handler = std::make_unique<Cartridge::KonamiWithSCCROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot), scc_);
+							cartridge_primary().handler = std::make_unique<Cartridge::KonamiWithSCCROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot), scc_);
 						break;
 						case Analyser::Static::MSX::Cartridge::ASCII8kb:
-							slot.handler = std::make_unique<Cartridge::ASCII8kbROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
+							cartridge_primary().handler = std::make_unique<Cartridge::ASCII8kbROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
 						break;
 						case Analyser::Static::MSX::Cartridge::ASCII16kb:
-							slot.handler = std::make_unique<Cartridge::ASCII16kbROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
+							cartridge_primary().handler = std::make_unique<Cartridge::ASCII16kbROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
 						break;
 					}
 				}
@@ -394,11 +382,11 @@ class ConcreteMachine:
 			}
 
 			if(!media.disks.empty()) {
-				DiskROM *disk_rom = get_disk_rom();
-				if(disk_rom) {
+				DiskROM *const handler = disk_handler();
+				if(handler) {
 					size_t drive = 0;
 					for(auto &disk : media.disks) {
-						disk_rom->set_disk(disk, drive);
+						handler->set_disk(disk, drive);
 						drive++;
 						if(drive == 2) break;
 					}
@@ -442,7 +430,7 @@ class ConcreteMachine:
 			final_slot_ = &memory_slots_[primary >> 6];
 
 			for(int c = 0; c < 8; c += 2) {
-				const MemorySlot &slot = memory_slots_[primary & 3];
+				const PrimarySlot &slot = memory_slots_[primary & 3];
 				primary >>= 2;
 
 				read_pointers_[c] = slot.read_pointer(c);
@@ -752,9 +740,9 @@ class ConcreteMachine:
 
 		// MARK: - Activity::Source
 		void set_activity_observer(Activity::Observer *observer) final {
-			DiskROM *disk_rom = get_disk_rom();
-			if(disk_rom) {
-				disk_rom->set_activity_observer(observer);
+			DiskROM *handler = disk_handler();
+			if(handler) {
+				handler->set_activity_observer(observer);
 			}
 			i8255_port_handler_.set_activity_observer(observer);
 		}
@@ -765,12 +753,6 @@ class ConcreteMachine:
 		}
 
 	private:
-		uint8_t *ram() {
-			return memory_slots_[RAMMemorySlot].source().data();
-		}
-		DiskROM *get_disk_rom() {
-			return dynamic_cast<DiskROM *>(memory_slots_[2].handler.get());
-		}
 		void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
 		}
@@ -873,14 +855,15 @@ class ConcreteMachine:
 
 		/// Optionally attaches non-default logic to any of the four things selectable
 		/// via the primary slot register.
-		struct MemorySlot: public MSX::MemorySlot {
-			using MSX::MemorySlot::MemorySlot;
-
+		struct PrimarySlot: public MSX::PrimarySlot {
+			using MSX::PrimarySlot::PrimarySlot;
 			HalfCycles cycles_since_update;
+
+			/// Storage for a slot-specialised handler.
 			std::unique_ptr<MemorySlotHandler> handler;
 		};
-		MemorySlot memory_slots_[4];
-		MemorySlot *final_slot_ = nullptr;
+		PrimarySlot memory_slots_[4];
+		PrimarySlot *final_slot_ = nullptr;
 
 		HalfCycles time_since_ay_update_;
 
@@ -896,7 +879,40 @@ class ConcreteMachine:
 
 		Ricoh::RP5C01::RP5C01 clock_;
 		int next_clock_register_ = 0;
-};
+
+		//
+		// Various helpers that dictate the slot arrangement used by this emulator.
+		//
+		MemorySlot &bios_slot() {
+			return memory_slots_[0].subslot(0);
+		}
+		MemorySlot &ram_slot() {
+			return memory_slots_[3].subslot(0);
+		}
+		MemorySlot &extension_rom_slot() {
+			return memory_slots_[3].subslot(1);
+		}
+
+		MemorySlot &cartridge_slot() {
+			return cartridge_primary().subslot(0);
+		}
+		MemorySlot &disk_slot() {
+			return disk_primary().subslot(0);
+		}
+
+		PrimarySlot &cartridge_primary() {
+			return memory_slots_[1];
+		}
+		PrimarySlot &disk_primary() {
+			return memory_slots_[2];
+		}
+
+		uint8_t *ram() {
+			return ram_slot().source().data();
+		}
+		DiskROM *disk_handler() {
+			return dynamic_cast<DiskROM *>(disk_primary().handler.get());
+		}};
 
 }
 

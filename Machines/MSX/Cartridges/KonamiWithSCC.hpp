@@ -29,13 +29,13 @@ class KonamiWithSCCROMSlotHandler: public MemorySlotHandler {
 					if(pc_is_outside_bios) {
 						if(address == 0x5000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					slot_.map(0, value * 0x2000, 0x4000, 0x2000);
+					slot_.map(value * 0x2000, 0x4000, 0x2000);
 				break;
 				case 0x0e:
 					if(pc_is_outside_bios) {
 						if(address == 0x7000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					slot_.map(0, value * 0x2000, 0x6000, 0x2000);
+					slot_.map(value * 0x2000, 0x6000, 0x2000);
 				break;
 				case 0x12:
 					if(pc_is_outside_bios) {
@@ -43,10 +43,10 @@ class KonamiWithSCCROMSlotHandler: public MemorySlotHandler {
 					}
 					if((value&0x3f) == 0x3f) {
 						scc_is_visible_ = true;
-						slot_.unmap(0, 0x8000, 0x2000);
+						slot_.unmap(0x8000, 0x2000);
 					} else {
 						scc_is_visible_ = false;
-						slot_.map(0, value * 0x2000, 0x8000, 0x2000);
+						slot_.map(value * 0x2000, 0x8000, 0x2000);
 					}
 				break;
 				case 0x13:
@@ -61,7 +61,7 @@ class KonamiWithSCCROMSlotHandler: public MemorySlotHandler {
 					if(pc_is_outside_bios) {
 						if(address == 0xb000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					slot_.map(0, value * 0x2000, 0xa000, 0x2000);
+					slot_.map(value * 0x2000, 0xa000, 0x2000);
 				break;
 			}
 		}

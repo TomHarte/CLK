@@ -38,15 +38,6 @@ class MemorySlot {
 	public:
 		MemorySlot(MemorySlotChangeHandler &);
 
-		/// Attempts to write the argument as the secondary paging selection.
-		void set_secondary_paging(uint8_t);
-
-		/// @returns The value most recently provided to @c set_secondary_paging.
-		uint8_t secondary_paging() const;
-
-		/// Indicates whether this slot supports secondary paging.
-		bool supports_secondary_paging = false;
-
 		/// @returns A pointer to the area of memory currently underneath @c address that
 		/// should be read
 		const uint8_t *read_pointer(int segment) const;
@@ -73,7 +64,6 @@ class MemorySlot {
 		/// supplied to @c set_source to the region indicated by
 		/// @c destination_address and @c length within @c subslot.
 		template <AccessType type = AccessType::Read> void map(
-			int subslot,
 			std::size_t source_address,
 			uint16_t destination_address,
 			std::size_t length);
@@ -83,21 +73,47 @@ class MemorySlot {
 		/// will be used to field accesses to that area, allowing for areas that are not
 		/// backed by memory to be modelled.
 		void unmap(
-			int subslot,
 			uint16_t destination_address,
 			std::size_t length);
 
 	private:
 		std::vector<uint8_t> source_;
-		uint8_t *read_pointers_[4][8];
-		uint8_t *write_pointers_[4][8];
-		uint8_t secondary_paging_ = 0;
+		uint8_t *read_pointers_[8];
+		uint8_t *write_pointers_[8];
 
 		MemorySlotChangeHandler &handler_;
 
 		using MemoryChunk = std::array<uint8_t, 8192>;
 		inline static MemoryChunk unmapped{0xff};
 		inline static MemoryChunk scratch;
+};
+
+class PrimarySlot {
+	public:
+		PrimarySlot(MemorySlotChangeHandler &);
+
+		/// @returns A pointer to the area of memory currently underneath @c address that
+		/// should be read
+		const uint8_t *read_pointer(int segment) const;
+
+		/// @returns A pointer to the area of memory currently underneath @c address.
+		uint8_t *write_pointer(int segment) const;
+
+		/// Attempts to write the argument as the secondary paging selection.
+		void set_secondary_paging(uint8_t);
+
+		/// @returns The value most recently provided to @c set_secondary_paging.
+		uint8_t secondary_paging() const;
+
+		/// Indicates whether this slot supports secondary paging.
+		bool supports_secondary_paging = false;
+
+		/// Provides the subslot at the specified index.
+		MemorySlot &subslot(int);
+
+	private:
+		MemorySlot subslots_[4];
+		uint8_t secondary_paging_ = 0;
 };
 
 class MemorySlotHandler {

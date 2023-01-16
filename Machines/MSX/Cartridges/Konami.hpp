@@ -27,19 +27,19 @@ class KonamiROMSlotHandler: public MemorySlotHandler {
 					if(pc_is_outside_bios) {
 						if(address == 0x6000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					slot_.map(0, value * 0x2000, 0x6000, 0x2000);
+					slot_.map(value * 0x2000, 0x6000, 0x2000);
 				break;
 				case 4:
 					if(pc_is_outside_bios) {
 						if(address == 0x8000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					slot_.map(0, value * 0x2000, 0x8000, 0x2000);
+					slot_.map(value * 0x2000, 0x8000, 0x2000);
 				break;
 				case 5:
 					if(pc_is_outside_bios) {
 						if(address == 0xa000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					slot_.map(0, value * 0x2000, 0xa000, 0x2000);
+					slot_.map(value * 0x2000, 0xa000, 0x2000);
 				break;
 			}
 		}
