@@ -855,12 +855,18 @@ class ConcreteMachine:
 
 		/// Optionally attaches non-default logic to any of the four things selectable
 		/// via the primary slot register.
+		///
+		/// In principle one might want to attach a handler to a secondary slot rather
+		/// than a primary, but in practice that isn't required in the slot allocation used
+		/// by this emulator.
 		struct PrimarySlot: public MSX::PrimarySlot {
 			using MSX::PrimarySlot::PrimarySlot;
-			HalfCycles cycles_since_update;
 
 			/// Storage for a slot-specialised handler.
 			std::unique_ptr<MemorySlotHandler> handler;
+
+			/// The handler is updated just-in-time.
+			HalfCycles cycles_since_update;
 		};
 		PrimarySlot memory_slots_[4];
 		PrimarySlot *final_slot_ = nullptr;
@@ -882,6 +888,23 @@ class ConcreteMachine:
 
 		//
 		// Various helpers that dictate the slot arrangement used by this emulator.
+		//
+		// That arrangement is:
+		//
+		//	Slot 0 is the BIOS, and does not support secondary paging.
+		//	Slot 1 holds a [game, probably] cartridge, if inserted. No secondary paging.
+		//	Slot 2 holds the disk cartridge, if inserted.
+		//
+		// On an MSX 1, Slot 3 holds 64kb of RAM.
+		//
+		// On an MSX 2:
+		//
+		//	Slot 3-0 holds a larger amount of RAM (cf. RAMSize) that is subject to the
+		//	FC-FF paging selections.
+		//
+		//	Slot 3-1 holds the BIOS extension ROM.
+		//
+		//	[Slot 3-2 will likely hold MSX-MUSIC, but that's TODO]
 		//
 		MemorySlot &bios_slot() {
 			return memory_slots_[0].subslot(0);
