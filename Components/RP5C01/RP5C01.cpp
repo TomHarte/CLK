@@ -62,6 +62,7 @@ void RP5C01::run_for(HalfCycles cycles) {
 	while(true) {
 		int month_length = 1;
 		switch(month_) {
+			default:
 			case 0:	month_length = 31;					break;
 			case 1:	month_length = 28 + !leap_year_;	break;
 			case 2: month_length = 31;					break;
@@ -119,7 +120,8 @@ void RP5C01::write(int address, uint8_t value) {
 			seconds_ = seconds_ - (seconds_ % 10) + (value % 10);
 		break;
 		case Reg(0, 0x01):
-			seconds_ = (seconds_ % 10) + ((value % 6) * 10);
+			// TODO.
+//			seconds_ = (seconds_ % 10) + ((value & 7) * 10);
 		break;
 
 		// TODO: minutes.
@@ -130,20 +132,20 @@ void RP5C01::write(int address, uint8_t value) {
 		case Reg(0, 0x04):
 		case Reg(0, 0x05):	break;
 
-		// TODO: day-of-the-week counter.
-		case Reg(0, 0x06):	break;
+		// Day of the week.
+		case Reg(0, 0x06):	day_of_the_week_ = value % 7;					break;
 
-		// TODO: day counter.
-		case Reg(0, 0x07):
-		case Reg(0, 0x08):	break;
+		// Day.
+		case Reg(0, 0x07):	day_ = day_ - (day_ % 10) + value;				break;
+		case Reg(0, 0x08):	day_ = (day_ % 10) + ((value & 3) * 10);		break;
 
-		// TODO: month counter.
-		case Reg(0, 0x09):
-		case Reg(0, 0x0a):	break;
+		// Month.
+		case Reg(0, 0x09):	month_ = month_ - (month_ % 10) + value;		break;
+		case Reg(0, 0x0a):	month_ = (month_ % 10) + ((value & 1) * 10);	break;
 
-		// TODO: year counter.
-		case Reg(0, 0x0b):
-		case Reg(0, 0x0c):	break;
+		// Year.
+		case Reg(0, 0x0b):	year_ = year_ - (year_ % 10) + value;			break;
+		case Reg(0, 0x0c):	year_ = (year_ % 10) + (value * 10);			break;
 
 		// TODO: alarm minutes.
 		case Reg(1, 0x02):
@@ -160,12 +162,15 @@ void RP5C01::write(int address, uint8_t value) {
 		case Reg(1, 0x07):
 		case Reg(1, 0x08):	break;
 
+		// 24/12-hour clock.
 		case Reg(1, 0x0a):
 			twentyfour_hour_clock_ = value & 1;
 		break;
 
-		// TODO: leap-year counter.
-		case Reg(1, 0x0b):	break;
+		// Lead-year counter.
+		case Reg(1, 0x0b):
+			leap_year_ = value & 3;
+		break;
 
 		//
 		// Registers D–F don't depend on the mode.
