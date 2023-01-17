@@ -14,8 +14,8 @@ using namespace Ricoh::RP5C01;
 
 RP5C01::RP5C01(HalfCycles clock_rate) : clock_rate_(clock_rate) {
 	// Seed internal clock.
-	std::time_t now = time(NULL);
-	std::tm *time_date = localtime(&now);
+	std::time_t now = std::time(NULL);
+	std::tm *time_date = std::localtime(&now);
 
 	seconds_ =
 		time_date->tm_sec +
