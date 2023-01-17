@@ -10,9 +10,9 @@
 
 using namespace MSX;
 
-DiskROM::DiskROM(const std::vector<uint8_t> &rom) :
+DiskROM::DiskROM(MSX::MemorySlot &slot) :
 	WD1770(P1793),
-	rom_(rom) {
+	rom_(slot.source()) {
 	emplace_drives(2, 8000000, 300, 2);
 	set_is_double_density(true);
 }

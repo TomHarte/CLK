@@ -565,11 +565,15 @@ Description::Description(Name name) {
 		case Name::OricMicrodisc:		*this = Description(name, "Oric", "the Oric Microdisc ROM", "microdisc.rom", 8*1024, 0xa9664a9cu);	break;
 		case Name::Oric8DOSBoot:		*this = Description(name, "Oric", "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06u);				break;
 
-		case Name::MSXGenericBIOS:	*this = Description(name, "MSX", "any MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u);					break;
+		// TODO: CRCs below are incomplete, at best.
+		case Name::MSXGenericBIOS:	*this = Description(name, "MSX", "a generix MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u);			break;
 		case Name::MSXJapaneseBIOS:	*this = Description(name, "MSX", "a Japanese MSX BIOS", "msx-japanese.rom", 32*1024, 0xee229390u);	break;
 		case Name::MSXAmericanBIOS:	*this = Description(name, "MSX", "an American MSX BIOS", "msx-american.rom", 32*1024, 0u);			break;
 		case Name::MSXEuropeanBIOS:	*this = Description(name, "MSX", "a European MSX BIOS", "msx-european.rom", 32*1024, 0u);			break;
 		case Name::MSXDOS:			*this = Description(name, "MSX", "the MSX-DOS ROM", "disk.rom", 16*1024, 0x721f61dfu);				break;
+
+		case Name::MSX2GenericBIOS:	*this = Description(name, "MSX", "a generic MSX2 BIOS", "msx2.rom", 32*1024, 0x6cdaf3a5u);			break;
+		case Name::MSX2Extension:	*this = Description(name, "MSX", "the MSX2 extension ROM", "msx2ext.rom", 16*1024, 0x66237ecfu);	break;
 
 		case Name::SinclairQLJS:
 			*this = Description(name, "SinclairQL", "the Sinclair QL 'JS' ROM", "js.rom", 48*1024, 0x0f95aab5u);

@@ -12,7 +12,7 @@
 
 #include "DiskROM.hpp"
 #include "Keyboard.hpp"
-#include "ROMSlotHandler.hpp"
+#include "MemorySlotHandler.hpp"
 
 #include "../../Analyser/Static/MSX/Cartridge.hpp"
 #include "Cartridges/ASCII8kb.hpp"
@@ -23,10 +23,11 @@
 #include "../../Processors/Z80/Z80.hpp"
 
 #include "../../Components/1770/1770.hpp"
-#include "../../Components/9918/9918.hpp"
 #include "../../Components/8255/i8255.hpp"
+#include "../../Components/9918/9918.hpp"
 #include "../../Components/AudioToggle/AudioToggle.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
+#include "../../Components/RP5C01/RP5C01.hpp"
 #include "../../Components/KonamiSCC/KonamiSCC.hpp"
 
 #include "../../Storage/Tape/Parsers/MSX.hpp"
@@ -128,6 +129,9 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 		};
 };
 
+using Target = Analyser::Static::MSX::Target;
+
+template <Target::Model model>
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
@@ -138,12 +142,16 @@ class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
-	public MemoryMap,
 	public ClockingHint::Observer,
-	public Activity::Source {
-	public:
-		using Target = Analyser::Static::MSX::Target;
+	public Activity::Source,
+	public MSX::MemorySlotChangeHandler {
+	private:
+		// Provide 512kb of memory for an MSX 2; 64kb for an MSX 1. 'Slightly' arbitrary.
+		static constexpr size_t RAMSize = model == Target::Model::MSX2 ? 512 * 1024 : 64 * 1024;
 
+		static constexpr int ClockRate = 3579545;
+
+	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			z80_(*this),
 			i8255_(i8255_port_handler_),
@@ -154,9 +162,10 @@ class ConcreteMachine:
 			speaker_(mixer_),
 			tape_player_(3579545 * 2),
 			i8255_port_handler_(*this, audio_toggle_, tape_player_),
-			ay_port_handler_(tape_player_) {
-			set_clock_rate(3579545);
-			std::memset(unpopulated_, 0xff, sizeof(unpopulated_));
+			ay_port_handler_(tape_player_),
+			memory_slots_{{*this}, {*this}, {*this}, {*this}},
+			clock_(ClockRate) {
+			set_clock_rate(ClockRate);
 			clear_all_keys();
 
 			ay_.set_port_handler(&ay_port_handler_);
@@ -168,10 +177,12 @@ class ConcreteMachine:
 
 			// Install the proper TV standard and select an ideal BIOS name.
 			const std::string machine_name = "MSX";
-			ROM::Request bios_request = ROM::Request(ROM::Name::MSXGenericBIOS);
-//			std::vector<ROMMachine::ROM> required_roms = {
-//				{machine_name, "any MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3u}
-//			};
+			constexpr ROM::Name bios_name = model == Target::Model::MSX1 ? ROM::Name::MSXGenericBIOS : ROM::Name::MSX2GenericBIOS;
+
+			ROM::Request bios_request = ROM::Request(bios_name);
+			if constexpr (model == Target::Model::MSX2) {
+				bios_request = bios_request && ROM::Request(ROM::Name::MSX2Extension);
+			}
 
 			bool is_ntsc = true;
 			uint8_t character_generator = 1;	/* 0 = Japan, 1 = USA, etc, 2 = USSR */
@@ -179,11 +190,12 @@ class ConcreteMachine:
 			uint8_t keyboard = 1;				/* 0 = Japan, 1 = USA, 2 = France, 3 = UK, 4 = Germany, 5 = USSR, 6 = Spain */
 			ROM::Name regional_bios_name;
 
-			// TODO: CRCs below are incomplete, at best.
 			switch(target.region) {
 				default:
 				case Target::Region::Japan:
-					regional_bios_name = ROM::Name::MSXJapaneseBIOS;
+					if constexpr (model == Target::Model::MSX1) {
+						regional_bios_name = ROM::Name::MSXJapaneseBIOS;
+					}
 					vdp_->set_tv_standard(TI::TMS::TVStandard::NTSC);
 
 					is_ntsc = true;
@@ -191,7 +203,9 @@ class ConcreteMachine:
 					date_format = 0;
 				break;
 				case Target::Region::USA:
-					regional_bios_name = ROM::Name::MSXAmericanBIOS;
+					if constexpr (model == Target::Model::MSX1) {
+						regional_bios_name = ROM::Name::MSXAmericanBIOS;
+					}
 					vdp_->set_tv_standard(TI::TMS::TVStandard::NTSC);
 
 					is_ntsc = true;
@@ -199,7 +213,9 @@ class ConcreteMachine:
 					date_format = 1;
 				break;
 				case Target::Region::Europe:
-					regional_bios_name = ROM::Name::MSXEuropeanBIOS;
+					if constexpr (model == Target::Model::MSX1) {
+						regional_bios_name = ROM::Name::MSXEuropeanBIOS;
+					}
 					vdp_->set_tv_standard(TI::TMS::TVStandard::PAL);
 
 					is_ntsc = false;
@@ -207,7 +223,9 @@ class ConcreteMachine:
 					date_format = 2;
 				break;
 			}
-			bios_request = bios_request || ROM::Request(regional_bios_name);
+			if constexpr (model == Target::Model::MSX1) {
+				bios_request = bios_request || ROM::Request(regional_bios_name);
+			}
 
 			// Fetch the necessary ROMs; try the region-specific ROM first,
 			// but failing that fall back on patching the main one.
@@ -225,43 +243,55 @@ class ConcreteMachine:
 
 			// Figure out which BIOS to use, either a specific one or the generic
 			// one appropriately patched.
-			const auto regional_bios = roms.find(regional_bios_name);
-			if(regional_bios != roms.end()) {
-				memory_slots_[0].source = std::move(regional_bios->second);
-				memory_slots_[0].source.resize(32768);
-			} else {
-				memory_slots_[0].source = std::move(roms.find(ROM::Name::MSXGenericBIOS)->second);
-				memory_slots_[0].source.resize(32768);
+			bool has_bios = false;
+			if constexpr (model == Target::Model::MSX1) {
+				const auto regional_bios = roms.find(regional_bios_name);
+				if(regional_bios != roms.end()) {
+					regional_bios->second.resize(32768);
+					bios_slot().set_source(regional_bios->second);
+					has_bios = true;
+				}
+			}
+			if(!has_bios) {
+				std::vector<uint8_t> &bios = roms.find(bios_name)->second;
 
-				memory_slots_[0].source[0x2b] = uint8_t(
+				bios.resize(32768);
+
+				// Modify the generic ROM to reflect the selected region, date format, etc.
+				bios[0x2b] = uint8_t(
 					(is_ntsc ? 0x00 : 0x80) |
 					(date_format << 4) |
 					character_generator
 				);
-				memory_slots_[0].source[0x2c] = keyboard;
+				bios[0x2c] = keyboard;
+
+				bios_slot().set_source(bios);
 			}
 
-			for(size_t c = 0; c < 8; ++c) {
-				for(size_t slot = 0; slot < 3; ++slot) {
-					memory_slots_[slot].read_pointers[c] = unpopulated_;
-					memory_slots_[slot].write_pointers[c] = scratch_;
-				}
+			bios_slot().map(0, 0, 32768);
 
-				memory_slots_[3].read_pointers[c] =
-				memory_slots_[3].write_pointers[c] = &ram_[c * 8192];
+			ram_slot().resize_source(RAMSize);
+			ram_slot().template map<MemorySlot::AccessType::ReadWrite>(0, 0, 65536);
+
+			if constexpr (model == Target::Model::MSX2) {
+				memory_slots_[3].supports_secondary_paging = true;
+
+				const auto extension = roms.find(ROM::Name::MSX2Extension);
+				extension->second.resize(32768);
+				extension_rom_slot().set_source(extension->second);
+				extension_rom_slot().map(0, 0, 32768);
 			}
-
-			map(0, 0, 0, 32768);
-			page_memory(0);
 
 			// Add a disk cartridge if any disks were supplied.
 			if(target.has_disk_drive) {
-				memory_slots_[2].set_handler(new DiskROM(memory_slots_[2].source));
-				memory_slots_[2].source = std::move(roms.find(ROM::Name::MSXDOS)->second);
-				memory_slots_[2].source.resize(16384);
+				disk_primary().handler = std::make_unique<DiskROM>(disk_slot());
 
-				map(2, 0, 0x4000, 0x2000);
-				unmap(2, 0x6000, 0x2000);
+				std::vector<uint8_t> &dos = roms.find(ROM::Name::MSXDOS)->second;
+				dos.resize(16384);
+				disk_slot().set_source(dos);
+
+				disk_slot().map(0, 0x4000, 0x2000);
+				disk_slot().map_handler(0x6000, 0x2000);
 			}
 
 			// Insert the media.
@@ -271,6 +301,9 @@ class ConcreteMachine:
 			if(!target.loading_command.empty()) {
 				type_string(target.loading_command);
 			}
+
+			// Establish default paging.
+			page_primary(0);
 		}
 
 		~ConcreteMachine() {
@@ -303,15 +336,15 @@ class ConcreteMachine:
 
 		float get_confidence() final {
 			if(performed_unmapped_access_ || pc_zero_accesses_ > 1) return 0.0f;
-			if(memory_slots_[1].handler) {
-				return memory_slots_[1].handler->get_confidence();
+			if(cartridge_primary().handler) {
+				return cartridge_primary().handler->get_confidence();
 			}
 			return 0.5f;
 		}
 
 		std::string debug_type() final {
-			if(memory_slots_[1].handler) {
-				return "MSX:" + memory_slots_[1].handler->debug_type();
+			if(cartridge_primary().handler) {
+				return "MSX:" + cartridge_primary().handler->debug_type();
 			}
 			return "MSX";
 		}
@@ -319,24 +352,26 @@ class ConcreteMachine:
 		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
-				memory_slots_[1].source = segment.data;
-				map(1, 0, uint16_t(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
+				auto &slot = cartridge_slot();
+
+				slot.set_source(segment.data);
+				slot.map(0, uint16_t(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
 
 				auto msx_cartridge = dynamic_cast<Analyser::Static::MSX::Cartridge *>(media.cartridges.front().get());
 				if(msx_cartridge) {
 					switch(msx_cartridge->type) {
 						default: break;
 						case Analyser::Static::MSX::Cartridge::Konami:
-							memory_slots_[1].set_handler(new Cartridge::KonamiROMSlotHandler(*this, 1));
+							cartridge_primary().handler = std::make_unique<Cartridge::KonamiROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
 						break;
 						case Analyser::Static::MSX::Cartridge::KonamiWithSCC:
-							memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1, scc_));
+							cartridge_primary().handler = std::make_unique<Cartridge::KonamiWithSCCROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot), scc_);
 						break;
 						case Analyser::Static::MSX::Cartridge::ASCII8kb:
-							memory_slots_[1].set_handler(new Cartridge::ASCII8kbROMSlotHandler(*this, 1));
+							cartridge_primary().handler = std::make_unique<Cartridge::ASCII8kbROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
 						break;
 						case Analyser::Static::MSX::Cartridge::ASCII16kb:
-							memory_slots_[1].set_handler(new Cartridge::ASCII16kbROMSlotHandler(*this, 1));
+							cartridge_primary().handler = std::make_unique<Cartridge::ASCII16kbROMSlotHandler>(static_cast<MSX::MemorySlot &>(slot));
 						break;
 					}
 				}
@@ -347,11 +382,11 @@ class ConcreteMachine:
 			}
 
 			if(!media.disks.empty()) {
-				DiskROM *disk_rom = get_disk_rom();
-				if(disk_rom) {
+				DiskROM *const handler = disk_handler();
+				if(handler) {
 					size_t drive = 0;
 					for(auto &disk : media.disks) {
-						disk_rom->set_disk(disk, drive);
+						handler->set_disk(disk, drive);
 						drive++;
 						if(drive == 2) break;
 					}
@@ -377,43 +412,31 @@ class ConcreteMachine:
 			return c >= 32 && c < 127;
 		}
 
-		// MARK: MSX::MemoryMap
-		void map(int slot, std::size_t source_address, uint16_t destination_address, std::size_t length) final {
-			assert(!(destination_address & 8191));
-			assert(!(length & 8191));
-			assert(size_t(destination_address) + length <= 65536);
-
-			for(std::size_t c = 0; c < (length >> 13); ++c) {
-				if(memory_slots_[slot].wrapping_strategy == ROMSlotHandler::WrappingStrategy::Repeat) source_address %= memory_slots_[slot].source.size();
-				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] =
-					(source_address < memory_slots_[slot].source.size()) ? &memory_slots_[slot].source[source_address] : unpopulated_;
-				source_address += 8192;
-			}
-
-			page_memory(paged_memory_);
+		// MARK: Memory paging.
+		void page_primary(uint8_t value) {
+			primary_slots_ = value;
+			update_paging();
 		}
 
-		void unmap(int slot, uint16_t destination_address, std::size_t length) final {
-			assert(!(destination_address & 8191));
-			assert(!(length & 8191));
-			assert(size_t(destination_address) + length <= 65536);
-
-			for(std::size_t c = 0; c < (length >> 13); ++c) {
-				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] = nullptr;
-			}
-
-			page_memory(paged_memory_);
+		void did_page() final {
+			update_paging();
 		}
 
-		// MARK: Ordinary paging.
-		void page_memory(uint8_t value) {
-			paged_memory_ = value;
-			for(std::size_t c = 0; c < 8; c += 2) {
-				read_pointers_[c] = memory_slots_[value & 3].read_pointers[c];
-				write_pointers_[c] = memory_slots_[value & 3].write_pointers[c];
-				read_pointers_[c+1] = memory_slots_[value & 3].read_pointers[c+1];
-				write_pointers_[c+1] = memory_slots_[value & 3].write_pointers[c+1];
-				value >>= 2;
+		void update_paging() {
+			uint8_t primary = primary_slots_;
+
+			// Update final slot; this direct pointer will be used for
+			// secondary slot communication.
+			final_slot_ = &memory_slots_[primary >> 6];
+
+			for(int c = 0; c < 8; c += 2) {
+				const HandledSlot &slot = memory_slots_[primary & 3];
+				primary >>= 2;
+
+				read_pointers_[c] = slot.read_pointer(c);
+				write_pointers_[c] = slot.write_pointer(c);
+				read_pointers_[c+1] = slot.read_pointer(c+1);
+				write_pointers_[c+1] = slot.write_pointer(c+1);
 			}
 			set_use_fast_tape();
 		}
@@ -432,6 +455,10 @@ class ConcreteMachine:
 			memory_slots_[1].cycles_since_update += total_length;
 			memory_slots_[2].cycles_since_update += total_length;
 			memory_slots_[3].cycles_since_update += total_length;
+
+			if constexpr (model >= Target::Model::MSX2) {
+				clock_.run_for(total_length);
+			}
 
 			if(cycle.is_terminal()) {
 				uint16_t address = cycle.address ? *cycle.address : 0x0000;
@@ -453,8 +480,8 @@ class ConcreteMachine:
 								using Parser = Storage::Tape::MSX::Parser;
 								std::unique_ptr<Parser::FileSpeed> new_speed = Parser::find_header(tape_player_);
 								if(new_speed) {
-									ram_[0xfca4] = new_speed->minimum_start_bit_duration;
-									ram_[0xfca5] = new_speed->low_high_disrimination_duration;
+									ram()[0xfca4] = new_speed->minimum_start_bit_duration;
+									ram()[0xfca5] = new_speed->low_high_disrimination_duration;
 									z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
 								} else {
 									z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
@@ -471,8 +498,8 @@ class ConcreteMachine:
 								// Grab the current values of LOWLIM and WINWID.
 								using Parser = Storage::Tape::MSX::Parser;
 								Parser::FileSpeed tape_speed;
-								tape_speed.minimum_start_bit_duration = ram_[0xfca4];
-								tape_speed.low_high_disrimination_duration = ram_[0xfca5];
+								tape_speed.minimum_start_bit_duration = ram()[0xfca4];
+								tape_speed.low_high_disrimination_duration = ram()[0xfca5];
 
 								// Ask the tape parser to grab a byte.
 								int next_byte = Parser::get_byte(tape_speed, tape_player_);
@@ -495,30 +522,47 @@ class ConcreteMachine:
 						if(!address) {
 							pc_zero_accesses_++;
 						}
-						if(read_pointers_[address >> 13] == unpopulated_) {
-							performed_unmapped_access_ = true;
-						}
+
+						// TODO: below relates to confidence measurements. Reinstate, somehow.
+//						if(is_unpopulated_[address >> 13] == unpopulated_) {
+//							performed_unmapped_access_ = true;
+//						}
+
 						pc_address_ = address;	// This is retained so as to be able to name the source of an access to cartridge handlers.
 						[[fallthrough]];
 
 					case CPU::Z80::PartialMachineCycle::Read:
+						if(address == 0xffff && final_slot_->supports_secondary_paging) {
+							*cycle.value = final_slot_->secondary_paging() ^ 0xff;
+							break;
+						}
+
 						if(read_pointers_[address >> 13]) {
 							*cycle.value = read_pointers_[address >> 13][address & 8191];
 						} else {
-							int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
-							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush<HalfCycles>());
+							const int slot_hit = (primary_slots_ >> ((address >> 14) * 2)) & 3;
+							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.template flush<HalfCycles>());
 							*cycle.value = memory_slots_[slot_hit].handler->read(address);
 						}
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Write: {
-						write_pointers_[address >> 13][address & 8191] = *cycle.value;
+						if(address == 0xffff && final_slot_->supports_secondary_paging) {
+							final_slot_->set_secondary_paging(*cycle.value);
+							update_paging();
+							break;
+						}
 
-						int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
+						const int slot_hit = (primary_slots_ >> ((address >> 14) * 2)) & 3;
 						if(memory_slots_[slot_hit].handler) {
 							update_audio();
-							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush<HalfCycles>());
-							memory_slots_[slot_hit].handler->write(address, *cycle.value, read_pointers_[pc_address_ >> 13] != memory_slots_[0].read_pointers[pc_address_ >> 13]);
+							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.template flush<HalfCycles>());
+							memory_slots_[slot_hit].handler->write(
+								address,
+								*cycle.value,
+								read_pointers_[pc_address_ >> 13] != memory_slots_[0].read_pointer(pc_address_ >> 13));
+						} else {
+							write_pointers_[address >> 13][address & 8191] = *cycle.value;
 						}
 					} break;
 
@@ -539,7 +583,15 @@ class ConcreteMachine:
 								*cycle.value = i8255_.read(address);
 							break;
 
+							case 0xb5:
+								if constexpr (model == Target::Model::MSX1) {
+									break;
+								}
+								*cycle.value = clock_.read(next_clock_register_);
+							break;
+
 							default:
+								printf("Unhandled read %02x\n", address & 0xff);
 								*cycle.value = 0xff;
 							break;
 						}
@@ -563,8 +615,42 @@ class ConcreteMachine:
 								i8255_.write(address, *cycle.value);
 							break;
 
-							case 0xfc: case 0xfd: case 0xfe: case 0xff:
-	//							printf("RAM banking %02x: %02x\n", port, *cycle.value);
+							case 0xb4:
+								if constexpr (model == Target::Model::MSX1) {
+									break;
+								}
+								next_clock_register_ = *cycle.value;
+							break;
+							case 0xb5:
+								if constexpr (model == Target::Model::MSX1) {
+									break;
+								}
+								clock_.write(next_clock_register_, *cycle.value);
+							break;
+
+							case 0xfc: case 0xfd: case 0xfe: case 0xff: {
+								if constexpr (model == Target::Model::MSX1) {
+									break;
+								}
+
+								// Apply to RAM.
+								//
+								// On a real MSX this may also affect other slots.
+								// I've not yet needed it to propagate further, so
+								// have not implemented any onward route.
+								const uint16_t region = uint16_t((port - 0xfc) << 14);
+								const size_t base = size_t(*cycle.value) << 14;
+								if(base < RAMSize) {
+									ram_slot().template map<MemorySlot::AccessType::ReadWrite>(base, region, 0x4000);
+								} else {
+									ram_slot().unmap(region, 0x4000);
+								}
+
+								update_paging();
+							} break;
+
+							default:
+								printf("Unhandled write %02x of %02x\n", address & 0xff, *cycle.value);
 							break;
 						}
 					} break;
@@ -579,8 +665,8 @@ class ConcreteMachine:
 							const int buffer_size = 40;
 
 							// Also from the Red Book: GETPNT is at F3FAH and PUTPNT is at F3F8H.
-							int read_address = ram_[0xf3fa] | (ram_[0xf3fb] << 8);
-							int write_address = ram_[0xf3f8] | (ram_[0xf3f9] << 8);
+							int read_address = ram()[0xf3fa] | (ram()[0xf3fb] << 8);
+							int write_address = ram()[0xf3f8] | (ram()[0xf3f9] << 8);
 
 							// Write until either the string is exhausted or the write_pointer is immediately
 							// behind the read pointer; temporarily map write_address and read_address into
@@ -591,7 +677,7 @@ class ConcreteMachine:
 							while(characters_written < input_text_.size()) {
 								const int next_write_address = (write_address + 1) % buffer_size;
 								if(next_write_address == read_address) break;
-								ram_[write_address + buffer_start] = uint8_t(input_text_[characters_written]);
+								ram()[write_address + buffer_start] = uint8_t(input_text_[characters_written]);
 								++characters_written;
 								write_address = next_write_address;
 							}
@@ -599,8 +685,8 @@ class ConcreteMachine:
 
 							// Map the write address back into absolute terms and write it out again as PUTPNT.
 							write_address += buffer_start;
-							ram_[0xf3f8] = uint8_t(write_address);
-							ram_[0xf3f9] = uint8_t(write_address >> 8);
+							ram()[0xf3f8] = uint8_t(write_address);
+							ram()[0xf3f9] = uint8_t(write_address >> 8);
 						}
 					break;
 
@@ -669,9 +755,9 @@ class ConcreteMachine:
 
 		// MARK: - Activity::Source
 		void set_activity_observer(Activity::Observer *observer) final {
-			DiskROM *disk_rom = get_disk_rom();
-			if(disk_rom) {
-				disk_rom->set_activity_observer(observer);
+			DiskROM *handler = disk_handler();
+			if(handler) {
+				handler->set_activity_observer(observer);
 			}
 			i8255_port_handler_.set_activity_observer(observer);
 		}
@@ -682,9 +768,6 @@ class ConcreteMachine:
 		}
 
 	private:
-		DiskROM *get_disk_rom() {
-			return dynamic_cast<DiskROM *>(memory_slots_[2].handler.get());
-		}
 		void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
 		}
@@ -696,7 +779,7 @@ class ConcreteMachine:
 
 				void set_value(int port, uint8_t value) {
 					switch(port) {
-						case 0:	machine_.page_memory(value);	break;
+						case 0:	machine_.page_primary(value);	break;
 						case 2: {
 							// TODO:
 							//	b6	caps lock LED
@@ -742,8 +825,15 @@ class ConcreteMachine:
 				Activity::Observer *activity_observer_ = nullptr;
 		};
 
+		static constexpr TI::TMS::Personality vdp_model() {
+			switch(model) {
+				case Target::Model::MSX1:	return TI::TMS::Personality::TMS9918A;
+				case Target::Model::MSX2:	return TI::TMS::Personality::V9938;
+			}
+		}
+
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<TI::TMS::TMS9918<TI::TMS::Personality::TMS9918A>> vdp_;
+		JustInTimeActor<TI::TMS::TMS9918<vdp_model()>> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Concurrency::AsyncTaskQueue<false> audio_queue_;
@@ -758,34 +848,43 @@ class ConcreteMachine:
 		bool allow_fast_tape_ = false;
 		bool use_fast_tape_ = false;
 		void set_use_fast_tape() {
-			use_fast_tape_ = !tape_player_is_sleeping_ && allow_fast_tape_ && tape_player_.has_tape() && !(paged_memory_&3);
+			use_fast_tape_ =
+				!tape_player_is_sleeping_ &&
+				allow_fast_tape_ &&
+				tape_player_.has_tape() &&
+				!(primary_slots_ & 3) &&
+				!(memory_slots_[0].secondary_paging() & 3);
 		}
 
 		i8255PortHandler i8255_port_handler_;
 		AYPortHandler ay_port_handler_;
 
-		uint8_t paged_memory_ = 0;
-		uint8_t *read_pointers_[8];
+		/// The current primary and secondary slot selections; the former retains whatever was written
+		/// last to the 8255 PPI via port A8 and the latter — if enabled — captures 0xffff on a per-slot basis.
+		uint8_t primary_slots_ = 0;
+
+		// Divides the current 64kb address space into 8kb chunks.
+		// 8kb resolution is used by some cartride titles.
+		const uint8_t *read_pointers_[8];
 		uint8_t *write_pointers_[8];
 
-		struct MemorySlots {
-			uint8_t *read_pointers[8];
-			uint8_t *write_pointers[8];
+		/// Optionally attaches non-default logic to any of the four things selectable
+		/// via the primary slot register.
+		///
+		/// In principle one might want to attach a handler to a secondary slot rather
+		/// than a primary, but in practice that isn't required in the slot allocation used
+		/// by this emulator.
+		struct HandledSlot: public MSX::PrimarySlot {
+			using MSX::PrimarySlot::PrimarySlot;
 
-			void set_handler(ROMSlotHandler *slot_handler) {
-				handler.reset(slot_handler);
-				wrapping_strategy = handler->wrapping_strategy();
-			}
+			/// Storage for a slot-specialised handler.
+			std::unique_ptr<MemorySlotHandler> handler;
 
-			std::unique_ptr<ROMSlotHandler> handler;
-			std::vector<uint8_t> source;
+			/// The handler is updated just-in-time.
 			HalfCycles cycles_since_update;
-			ROMSlotHandler::WrappingStrategy wrapping_strategy = ROMSlotHandler::WrappingStrategy::Repeat;
-		} memory_slots_[4];
-
-		uint8_t ram_[65536];
-		uint8_t scratch_[8192];
-		uint8_t unpopulated_[8192];
+		};
+		HandledSlot memory_slots_[4];
+		HandledSlot *final_slot_ = nullptr;
 
 		HalfCycles time_since_ay_update_;
 
@@ -798,16 +897,72 @@ class ConcreteMachine:
 		int pc_zero_accesses_ = 0;
 		bool performed_unmapped_access_ = false;
 		uint16_t pc_address_;
-};
+
+		Ricoh::RP5C01::RP5C01 clock_;
+		int next_clock_register_ = 0;
+
+		//
+		// Various helpers that dictate the slot arrangement used by this emulator.
+		//
+		// That arrangement is:
+		//
+		//	Slot 0 is the BIOS, and does not support secondary paging.
+		//	Slot 1 holds a [game, probably] cartridge, if inserted. No secondary paging.
+		//	Slot 2 holds the disk cartridge, if inserted.
+		//
+		// On an MSX 1, Slot 3 holds 64kb of RAM.
+		//
+		// On an MSX 2:
+		//
+		//	Slot 3-0 holds a larger amount of RAM (cf. RAMSize) that is subject to the
+		//	FC-FF paging selections.
+		//
+		//	Slot 3-1 holds the BIOS extension ROM.
+		//
+		//	[Slot 3-2 will likely hold MSX-MUSIC, but that's TODO]
+		//
+		MemorySlot &bios_slot() {
+			return memory_slots_[0].subslot(0);
+		}
+		MemorySlot &ram_slot() {
+			return memory_slots_[3].subslot(0);
+		}
+		MemorySlot &extension_rom_slot() {
+			return memory_slots_[3].subslot(1);
+		}
+
+		MemorySlot &cartridge_slot() {
+			return cartridge_primary().subslot(0);
+		}
+		MemorySlot &disk_slot() {
+			return disk_primary().subslot(0);
+		}
+
+		HandledSlot &cartridge_primary() {
+			return memory_slots_[1];
+		}
+		HandledSlot &disk_primary() {
+			return memory_slots_[2];
+		}
+
+		uint8_t *ram() {
+			return ram_slot().source().data();
+		}
+		DiskROM *disk_handler() {
+			return dynamic_cast<DiskROM *>(disk_primary().handler.get());
+		}};
 
 }
 
 using namespace MSX;
 
 Machine *Machine::MSX(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	using Target = Analyser::Static::MSX::Target;
-	const Target *const msx_target = dynamic_cast<const Target *>(target);
-	return new ConcreteMachine(*msx_target, rom_fetcher);
+	const auto msx_target = dynamic_cast<const Target *>(target);
+	switch(msx_target->model) {
+		default:					return nullptr;
+		case Target::Model::MSX1:	return new ConcreteMachine<Target::Model::MSX1>(*msx_target, rom_fetcher);
+		case Target::Model::MSX2:	return new ConcreteMachine<Target::Model::MSX2>(*msx_target, rom_fetcher);
+	}
 }
 
 Machine::~Machine() {}

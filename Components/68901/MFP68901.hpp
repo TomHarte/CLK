@@ -9,9 +9,10 @@
 #ifndef MFP68901_hpp
 #define MFP68901_hpp
 
-#include <cstdint>
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
+
+#include <cstdint>
 
 namespace Motorola {
 namespace MFP68901 {

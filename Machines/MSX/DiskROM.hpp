@@ -9,7 +9,7 @@
 #ifndef DiskROM_hpp
 #define DiskROM_hpp
 
-#include "ROMSlotHandler.hpp"
+#include "MemorySlotHandler.hpp"
 
 #include "../../Activity/Source.hpp"
 #include "../../Components/1770/1770.hpp"
@@ -21,9 +21,9 @@
 
 namespace MSX {
 
-class DiskROM: public ROMSlotHandler, public WD::WD1770 {
+class DiskROM: public MemorySlotHandler, public WD::WD1770 {
 	public:
-		DiskROM(const std::vector<uint8_t> &rom);
+		DiskROM(MSX::MemorySlot &slot);
 
 		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) final;
 		uint8_t read(uint16_t address) final;

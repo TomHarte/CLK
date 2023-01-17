@@ -9,15 +9,14 @@
 #ifndef Konami_hpp
 #define Konami_hpp
 
-#include "../ROMSlotHandler.hpp"
+#include "../MemorySlotHandler.hpp"
 
 namespace MSX {
 namespace Cartridge {
 
-class KonamiROMSlotHandler: public ROMSlotHandler {
+class KonamiROMSlotHandler: public MemorySlotHandler {
 	public:
-		KonamiROMSlotHandler(MSX::MemoryMap &map, int slot) :
-			map_(map), slot_(slot) {}
+		KonamiROMSlotHandler(MSX::MemorySlot &slot) : slot_(slot) {}
 
 		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) final {
 			switch(address >> 13) {
@@ -28,19 +27,19 @@ class KonamiROMSlotHandler: public ROMSlotHandler {
 					if(pc_is_outside_bios) {
 						if(address == 0x6000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					map_.map(slot_, value * 0x2000, 0x6000, 0x2000);
+					slot_.map(value * 0x2000, 0x6000, 0x2000);
 				break;
 				case 4:
 					if(pc_is_outside_bios) {
 						if(address == 0x8000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					map_.map(slot_, value * 0x2000, 0x8000, 0x2000);
+					slot_.map(value * 0x2000, 0x8000, 0x2000);
 				break;
 				case 5:
 					if(pc_is_outside_bios) {
 						if(address == 0xa000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					map_.map(slot_, value * 0x2000, 0xa000, 0x2000);
+					slot_.map(value * 0x2000, 0xa000, 0x2000);
 				break;
 			}
 		}
@@ -49,8 +48,7 @@ class KonamiROMSlotHandler: public ROMSlotHandler {
 			return "K";
 		}
 	private:
-		MSX::MemoryMap &map_;
-		int slot_;
+		MSX::MemorySlot &slot_;
 };
 
 }

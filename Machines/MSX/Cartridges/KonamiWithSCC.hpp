@@ -9,16 +9,16 @@
 #ifndef KonamiWithSCC_hpp
 #define KonamiWithSCC_hpp
 
-#include "../ROMSlotHandler.hpp"
+#include "../MemorySlotHandler.hpp"
 #include "../../../Components/KonamiSCC/KonamiSCC.hpp"
 
 namespace MSX {
 namespace Cartridge {
 
-class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
+class KonamiWithSCCROMSlotHandler: public MemorySlotHandler {
 	public:
-		KonamiWithSCCROMSlotHandler(MSX::MemoryMap &map, int slot, Konami::SCC &scc) :
-			map_(map), slot_(slot), scc_(scc) {}
+		KonamiWithSCCROMSlotHandler(MSX::MemorySlot &slot, Konami::SCC &scc) :
+			slot_(slot), scc_(scc) {}
 
 		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) final {
 			switch(address >> 11) {
@@ -29,13 +29,13 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 					if(pc_is_outside_bios) {
 						if(address == 0x5000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					map_.map(slot_, value * 0x2000, 0x4000, 0x2000);
+					slot_.map(value * 0x2000, 0x4000, 0x2000);
 				break;
 				case 0x0e:
 					if(pc_is_outside_bios) {
 						if(address == 0x7000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					map_.map(slot_, value * 0x2000, 0x6000, 0x2000);
+					slot_.map(value * 0x2000, 0x6000, 0x2000);
 				break;
 				case 0x12:
 					if(pc_is_outside_bios) {
@@ -43,10 +43,10 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 					}
 					if((value&0x3f) == 0x3f) {
 						scc_is_visible_ = true;
-						map_.unmap(slot_, 0x8000, 0x2000);
+						slot_.map_handler(0x8000, 0x2000);
 					} else {
 						scc_is_visible_ = false;
-						map_.map(slot_, value * 0x2000, 0x8000, 0x2000);
+						slot_.map(value * 0x2000, 0x8000, 0x2000);
 					}
 				break;
 				case 0x13:
@@ -61,7 +61,7 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 					if(pc_is_outside_bios) {
 						if(address == 0xb000) confidence_counter_.add_hit(); else confidence_counter_.add_equivocal();
 					}
-					map_.map(slot_, value * 0x2000, 0xa000, 0x2000);
+					slot_.map(value * 0x2000, 0xa000, 0x2000);
 				break;
 			}
 		}
@@ -80,8 +80,7 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 		}
 
 	private:
-		MSX::MemoryMap &map_;
-		int slot_;
+		MSX::MemorySlot &slot_;
 		Konami::SCC &scc_;
 		bool scc_is_visible_ = false;
 };

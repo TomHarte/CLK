@@ -73,6 +73,7 @@ SOURCES += \
 	$$SRC/Components/OPx/*.cpp \
 	$$SRC/Components/SN76489/*.cpp \
 	$$SRC/Components/Serial/*.cpp \
+	$$SRC/Components/RP5C01/*.cpp \
 \
 	$$SRC/Inputs/*.cpp \
 \
@@ -202,6 +203,7 @@ HEADERS += \
 	$$SRC/Components/OPx/Implementation/*.hpp \
 	$$SRC/Components/Serial/*.hpp \
 	$$SRC/Components/SN76489/*.hpp \
+	$$SRC/Components/RP5C01/*.hpp \
 \
 	$$SRC/Concurrency/*.hpp \
 \
