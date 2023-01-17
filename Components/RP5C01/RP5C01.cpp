@@ -8,6 +8,8 @@
 
 #include "RP5C01.hpp"
 
+#include "../../Numeric/NumericCoder.hpp"
+
 #include <ctime>
 
 using namespace Ricoh::RP5C01;
@@ -112,40 +114,43 @@ void RP5C01::write(int address, uint8_t value) {
 		return;
 	}
 
+	using SecondEncoder = Numeric::NumericCoder<
+		10, 6,	// Seconds.
+		10, 6,	// Minutes.
+		10, 3	// Hours
+	>;
+	using TwoDigitEncoder = Numeric::NumericCoder<10, 10>;
+
 	switch(Reg(mode_, address)) {
 		default: break;
 
 		// Seconds.
-		case Reg(0, 0x00):
-			seconds_ = seconds_ - (seconds_ % 10) + (value % 10);
-		break;
-		case Reg(0, 0x01):
-			// TODO.
-//			seconds_ = (seconds_ % 10) + ((value & 7) * 10);
-		break;
+		case Reg(0, 0x00):	SecondEncoder::encode<0>(seconds_, value);		break;
+		case Reg(0, 0x01):	SecondEncoder::encode<1>(seconds_, value);		break;
 
-		// TODO: minutes.
-		case Reg(0, 0x02):
-		case Reg(0, 0x03):	break;
+		// Minutes.
+		case Reg(0, 0x02):	SecondEncoder::encode<2>(seconds_, value);		break;
+		case Reg(0, 0x03):	SecondEncoder::encode<3>(seconds_, value);		break;
 
-		// TODO: hours.
-		case Reg(0, 0x04):
-		case Reg(0, 0x05):	break;
+		// Hours.
+		// TODO: this isn't correct if the 12-hour clock is selected.
+		case Reg(0, 0x04):	SecondEncoder::encode<4>(seconds_, value);		break;
+		case Reg(0, 0x05):	SecondEncoder::encode<5>(seconds_, value);		break;
 
 		// Day of the week.
 		case Reg(0, 0x06):	day_of_the_week_ = value % 7;					break;
 
 		// Day.
-		case Reg(0, 0x07):	day_ = day_ - (day_ % 10) + value;				break;
-		case Reg(0, 0x08):	day_ = (day_ % 10) + ((value & 3) * 10);		break;
+		case Reg(0, 0x07):	TwoDigitEncoder::encode<0>(day_, value);		break;
+		case Reg(0, 0x08):	TwoDigitEncoder::encode<1>(day_, value & 3);	break;
 
 		// Month.
-		case Reg(0, 0x09):	month_ = month_ - (month_ % 10) + value;		break;
-		case Reg(0, 0x0a):	month_ = (month_ % 10) + ((value & 1) * 10);	break;
+		case Reg(0, 0x09):	TwoDigitEncoder::encode<0>(month_, value);		break;
+		case Reg(0, 0x0a):	TwoDigitEncoder::encode<1>(month_, value & 1);	break;
 
 		// Year.
-		case Reg(0, 0x0b):	year_ = year_ - (year_ % 10) + value;			break;
-		case Reg(0, 0x0c):	year_ = (year_ % 10) + (value * 10);			break;
+		case Reg(0, 0x0b):	TwoDigitEncoder::encode<0>(year_, value);		break;
+		case Reg(0, 0x0c):	TwoDigitEncoder::encode<1>(year_, value);		break;
 
 		// TODO: alarm minutes.
 		case Reg(1, 0x02):
