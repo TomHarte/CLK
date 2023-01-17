@@ -91,43 +91,100 @@ void RP5C01::run_for(HalfCycles cycles) {
 	}
 }
 
+namespace {
+
+constexpr int Reg(int mode, int address) {
+	return address | mode << 4;
+}
+
+}
+
 /// Performs a write of @c value to @c address.
 void RP5C01::write(int address, uint8_t value) {
 	address &= 0xf;
+	value &= 0xf;
 
-	// Registers D–F don't depend on the mode.
-	if(address >= 0xd) {
-		switch(address) {
-			default: break;
-			case 0xd:
-				timer_enabled_ = value & 0x8;
-				alarm_enabled_ = value & 0x4;
-				mode_ = value & 0x3;
-			break;
-			case 0xe:
-				// Test register; unclear what is supposed to happen.
-			break;
-			case 0xf:
-				one_hz_on_ = !(value & 0x8);
-				sixteen_hz_on_ = !(value & 0x4);
-				// TODO: timer reset on bit 1, alarm reset on bit 0
-			break;
-		}
-
+	// Handle potential RAM accesses.
+	if(address < 0xd && mode_ >= 2) {
+		address += mode_ == 3 ? 13 : 0;
+		ram_[size_t(address)] = value & 0xf;
 		return;
 	}
 
-	switch(mode_) {
-		case 3:
-			address += 13;
-			[[fallthrough]];
-		case 2:
-			ram_[size_t(address)] = value & 0xf;
-		return;
+	switch(Reg(mode_, address)) {
+		default: break;
+
+		// Seconds.
+		case Reg(0, 0x00):
+			seconds_ = seconds_ - (seconds_ % 10) + (value % 10);
+		break;
+		case Reg(0, 0x01):
+			seconds_ = (seconds_ % 10) + ((value % 6) * 10);
+		break;
+
+		// TODO: minutes.
+		case Reg(0, 0x02):
+		case Reg(0, 0x03):	break;
+
+		// TODO: hours.
+		case Reg(0, 0x04):
+		case Reg(0, 0x05):	break;
+
+		// TODO: day-of-the-week counter.
+		case Reg(0, 0x06):	break;
+
+		// TODO: day counter.
+		case Reg(0, 0x07):
+		case Reg(0, 0x08):	break;
+
+		// TODO: month counter.
+		case Reg(0, 0x09):
+		case Reg(0, 0x0a):	break;
+
+		// TODO: year counter.
+		case Reg(0, 0x0b):
+		case Reg(0, 0x0c):	break;
+
+		// TODO: alarm minutes.
+		case Reg(1, 0x02):
+		case Reg(1, 0x03):	break;
+
+		// TODO: alarm hours.
+		case Reg(1, 0x04):
+		case Reg(1, 0x05):	break;
+
+		// TODO: alarm day-of-the-week.
+		case Reg(1, 0x06):	break;
+
+		// TODO: alarm day.
+		case Reg(1, 0x07):
+		case Reg(1, 0x08):	break;
+
+		// TODO: 12/24 hour select.
+		case Reg(1, 0x0a):	break;
+
+		// TODO: leap-year counter.
+		case Reg(1, 0x0b):	break;
+
+		//
+		// Registers D–F don't depend on the mode.
+		//
+
+		case Reg(0, 0xd):	case Reg(1, 0xd):	case Reg(2, 0xd):	case Reg(3, 0xd):
+			timer_enabled_ = value & 0x8;
+			alarm_enabled_ = value & 0x4;
+			mode_ = value & 0x3;
+		break;
+		case Reg(0, 0xe):	case Reg(1, 0xe):	case Reg(2, 0xe):	case Reg(3, 0xe):
+			// Test register; unclear what is supposed to happen.
+		break;
+		case Reg(0, 0xf):	case Reg(1, 0xf):	case Reg(2, 0xf):	case Reg(3, 0xf):
+			one_hz_on_ = !(value & 0x8);
+			sixteen_hz_on_ = !(value & 0x4);
+			// TODO: b0 = alarm reset; b1 = timer reset.
+		break;
 	}
 
-	// TODO.
-	printf("RP-5C01 write of %d to %d in mode %d\n", value, address & 0xf, mode_);
 }
 
 uint8_t RP5C01::read(int address) {
