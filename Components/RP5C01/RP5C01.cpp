@@ -160,8 +160,9 @@ void RP5C01::write(int address, uint8_t value) {
 		case Reg(1, 0x07):
 		case Reg(1, 0x08):	break;
 
-		// TODO: 12/24 hour select.
-		case Reg(1, 0x0a):	break;
+		case Reg(1, 0x0a):
+			twentyfour_hour_clock_ = value & 1;
+		break;
 
 		// TODO: leap-year counter.
 		case Reg(1, 0x0b):	break;
@@ -190,17 +191,92 @@ void RP5C01::write(int address, uint8_t value) {
 uint8_t RP5C01::read(int address) {
 	address &= 0xf;
 
-	if(address < 0xd) {
-		switch(mode_) {
-			case 3:
-				address += 13;
-				[[fallthrough]];
-			case 2:
-			return 0xf0 | ram_[size_t(address)];
-		}
+	if(address < 0xd && mode_ >= 2) {
+		address += mode_ == 3 ? 13 : 0;
+		return 0xf0 | ram_[size_t(address)];
 	}
 
-	// TODO.
-	printf("RP-5C01 read from %d in mode %d\n", address & 0xf, mode_);
-	return 0xff;
+	int value = 0xf;
+	switch(Reg(mode_, address)) {
+		// Second.
+		case Reg(0, 0x00):	value = seconds_ % 10;			break;
+		case Reg(0, 0x01):	value = (seconds_ / 10) % 6;	break;
+
+		// Minute.
+		case Reg(0, 0x02):	value = (seconds_ / 60) % 10;	break;
+		case Reg(0, 0x03):	value = (seconds_ / 600) % 6;	break;
+
+		// Hour.
+		case Reg(0, 0x04):
+			if(twentyfour_hour_clock_) {
+				value = (seconds_ / 3600) % 10;
+			} else {
+				value = ((seconds_ / 3600) % 12) % 10;
+			}
+		break;
+		case Reg(0, 0x05):
+			if(twentyfour_hour_clock_) {
+				value = (seconds_ / 36000);
+			} else {
+				value = ((seconds_ / 3600) / 12) + (seconds_ >= 12*60*60 ? 2 : 0);
+			}
+		break;
+
+		// Day-of-the-week.
+		case Reg(0, 0x06):	value = day_of_the_week_;	break;
+
+		// Day.
+		case Reg(0, 0x07):	value = day_ % 10;			break;
+		case Reg(0, 0x08):	value = day_ / 10;			break;
+
+		// Month.
+		case Reg(0, 0x09):	value = month_ % 10;		break;
+		case Reg(0, 0x0a):	value = month_ / 10;		break;
+
+		// Year;
+		case Reg(0, 0x0b):	value = year_ % 10;			break;
+		case Reg(0, 0x0c):	value = year_ / 10;			break;
+
+		// TODO: alarm minutes.
+		case Reg(1, 0x02):
+		case Reg(1, 0x03):	break;
+
+		// TODO: alarm hours.
+		case Reg(1, 0x04):
+		case Reg(1, 0x05):	break;
+
+		// TODO: alarm day-of-the-week.
+		case Reg(1, 0x06):	break;
+
+		// TODO: alarm day.
+		case Reg(1, 0x07):
+		case Reg(1, 0x08):	break;
+
+		// 12/24-hour clock.
+		case Reg(1, 0x0a):	value = twentyfour_hour_clock_;	break;
+
+		// Leap year.
+		case Reg(1, 0x0b):	value = leap_year_;				break;
+
+		//
+		// Registers D–F don't depend on the mode.
+		//
+
+		case Reg(0, 0xd):	case Reg(1, 0xd):	case Reg(2, 0xd):	case Reg(3, 0xd):
+			value =
+				(timer_enabled_ ? 0x8 : 0x0) |
+				(alarm_enabled_ ? 0x4 : 0x0) |
+				mode_;
+		break;
+		case Reg(0, 0xe):	case Reg(1, 0xe):	case Reg(2, 0xe):	case Reg(3, 0xe):
+			// Test register; unclear what is supposed to happen.
+		break;
+		case Reg(0, 0xf):	case Reg(1, 0xf):	case Reg(2, 0xf):	case Reg(3, 0xf):
+			value =
+				(one_hz_on_ ? 0x0 : 0x8) |
+				(sixteen_hz_on_ ? 0x0 : 0x4);
+		break;
+	}
+
+	return uint8_t(0xf0 | value);
 }

@@ -52,6 +52,7 @@ class RP5C01 {
 		int mode_ = 0;
 		bool one_hz_on_ = false;
 		bool sixteen_hz_on_ = false;
+		bool twentyfour_hour_clock_ = true;
 };
 
 }
