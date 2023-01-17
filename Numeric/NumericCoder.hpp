@@ -23,19 +23,20 @@ template <int... Sizes> class NumericCoder {
 		/// Modifies @c target to hold @c value at @c index.
 		template <int index> static void encode(int &target, int value) {
 			static_assert(index < sizeof...(Sizes), "Index must be within range");
-			NumericEncoder<Sizes...>::template encode<index, 0, 1>(target, value);
+			NumericEncoder<Sizes...>::template encode<index>(target, value);
 		}
+
 		/// @returns The value from @c source at @c index.
 		template <int index> static int decode(int source) {
 			static_assert(index < sizeof...(Sizes), "Index must be within range");
-			return NumericDecoder<Sizes...>::template decode<index, 0, 1>(source);
+			return NumericDecoder<Sizes...>::template decode<index>(source);
 		}
 
 	private:
 
 		template <int size, int... Tail>
 		struct NumericEncoder {
-			template <int index, int i, int divider> static void encode(int &target, int value) {
+			template <int index, int i = 0, int divider = 1> static void encode(int &target, int value) {
 				if constexpr (i == index) {
 					const int suffix = target % divider;
 					target /= divider;
@@ -51,7 +52,7 @@ template <int... Sizes> class NumericCoder {
 
 		template <int size, int... Tail>
 		struct NumericDecoder {
-			template <int index, int i, int divider> static int decode(int source) {
+			template <int index, int i = 0, int divider = 1> static int decode(int source) {
 				if constexpr (i == index) {
 					return (source / divider) % size;
 				} else {
