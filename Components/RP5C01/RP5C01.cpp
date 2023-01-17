@@ -8,9 +8,26 @@
 
 #include "RP5C01.hpp"
 
+#include <ctime>
+
 using namespace Ricoh::RP5C01;
 
-RP5C01::RP5C01(HalfCycles clock_rate) : clock_rate_(clock_rate) {}
+RP5C01::RP5C01(HalfCycles clock_rate) : clock_rate_(clock_rate) {
+	// Seed internal clock.
+	std::time_t now = time(NULL);
+	std::tm *time_date = localtime(&now);
+
+	seconds_ =
+		time_date->tm_sec +
+		time_date->tm_min * 60 +
+		time_date->tm_hour * 60 * 60;
+
+	day_of_the_week_ = time_date->tm_wday;
+	day_ = time_date->tm_mday;
+	month_ = time_date->tm_mon;
+	year_ = time_date->tm_year % 100;
+	leap_year_ = time_date->tm_year % 4;
+}
 
 void RP5C01::run_for(HalfCycles cycles) {
 	sub_seconds_ += cycles;
@@ -68,7 +85,7 @@ void RP5C01::run_for(HalfCycles cycles) {
 
 		if(month_ == 12) {
 			month_ = 0;
-			++year_;
+			year_ = (year_ + 1) % 100;
 			leap_year_ = (leap_year_ + 1) & 3;
 		}
 	}
