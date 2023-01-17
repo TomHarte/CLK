@@ -69,9 +69,13 @@ class MemorySlot {
 			std::size_t length);
 
 		/// Marks the region indicated by @c destination_address and @c length
-		/// as unmapped. In practical terms that means that a @c MemorySlotHandler
-		/// will be used to field accesses to that area, allowing for areas that are not
-		/// backed by memory to be modelled.
+		/// as requiring calls into this slot's MemorySlotHandler.
+		void map_handler(
+			uint16_t destination_address,
+			std::size_t length);
+
+		/// Marks the region indicated by @c destination_address and @c length
+		/// as unoccupied.
 		void unmap(
 			uint16_t destination_address,
 			std::size_t length);

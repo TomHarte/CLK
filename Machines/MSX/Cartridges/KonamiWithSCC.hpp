@@ -43,7 +43,7 @@ class KonamiWithSCCROMSlotHandler: public MemorySlotHandler {
 					}
 					if((value&0x3f) == 0x3f) {
 						scc_is_visible_ = true;
-						slot_.unmap(0x8000, 0x2000);
+						slot_.map_handler(0x8000, 0x2000);
 					} else {
 						scc_is_visible_ = false;
 						slot_.map(value * 0x2000, 0x8000, 0x2000);

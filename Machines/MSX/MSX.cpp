@@ -291,7 +291,7 @@ class ConcreteMachine:
 				disk_slot().set_source(dos);
 
 				disk_slot().map(0, 0x4000, 0x2000);
-				disk_slot().unmap(0x6000, 0x2000);
+				disk_slot().map_handler(0x6000, 0x2000);
 			}
 
 			// Insert the media.

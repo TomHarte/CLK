@@ -16,10 +16,7 @@ PrimarySlot::PrimarySlot(MemorySlotChangeHandler &handler) :
 	subslots_{handler, handler, handler, handler} {}
 
 MemorySlot::MemorySlot(MemorySlotChangeHandler &handler) : handler_(handler) {
-	for(int region = 0; region < 8; region++) {
-		read_pointers_[region] = unmapped.data();
-		write_pointers_[region] = scratch.data();
-	}
+	unmap(0x0000, 0x10000);
 }
 
 void PrimarySlot::set_secondary_paging(uint8_t value) {
@@ -85,13 +82,26 @@ void MemorySlot::map(std::size_t source_address, uint16_t destination_address, s
 	handler_.did_page();
 }
 
-void MemorySlot::unmap(uint16_t destination_address, std::size_t length) {
+void MemorySlot::map_handler(uint16_t destination_address, std::size_t length) {
 	assert(!(destination_address & 8191));
 	assert(!(length & 8191));
 	assert(size_t(destination_address) + length <= 65536);
 
 	for(std::size_t c = 0; c < (length >> 13); ++c) {
 		read_pointers_[(destination_address >> 13) + c] = nullptr;
+	}
+
+	handler_.did_page();
+}
+
+void MemorySlot::unmap(uint16_t destination_address, std::size_t length) {
+	assert(!(destination_address & 8191));
+	assert(!(length & 8191));
+	assert(size_t(destination_address) + length <= 65536);
+
+	for(std::size_t c = 0; c < (length >> 13); ++c) {
+		read_pointers_[(destination_address >> 13) + c] = unmapped.data();
+		write_pointers_[(destination_address >> 13) + c] = scratch.data();
 	}
 
 	handler_.did_page();
