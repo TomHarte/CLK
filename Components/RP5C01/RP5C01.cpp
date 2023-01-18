@@ -100,6 +100,26 @@ constexpr int Reg(int mode, int address) {
 	return address | mode << 4;
 }
 
+constexpr int PM = 1 << 4;
+
+constexpr int twenty_four_to_twelve(int hours) {
+	switch(hours) {
+		default:	return (hours % 12) + (hours > 12 ? PM : 0);
+		case 0:		return 12;
+		case 12:	return 12 | PM;
+	}
+}
+
+constexpr int twelve_to_twenty_four(int hours) {
+	hours = (hours & 0xf) + (hours & PM ? 12 : 0);
+	switch(hours) {
+		default:	break;
+		case 24:	return 12;
+		case 12:	return 0;
+	}
+	return hours;
+}
+
 }
 
 /// Performs a write of @c value to @c address.
@@ -117,7 +137,7 @@ void RP5C01::write(int address, uint8_t value) {
 	using SecondEncoder = Numeric::NumericCoder<
 		10, 6,	// Seconds.
 		10, 6,	// Minutes.
-		10, 3	// Hours
+		24		// Hours
 	>;
 	using TwoDigitEncoder = Numeric::NumericCoder<10, 10>;
 
@@ -133,9 +153,22 @@ void RP5C01::write(int address, uint8_t value) {
 		case Reg(0, 0x03):	SecondEncoder::encode<3>(seconds_, value);		break;
 
 		// Hours.
-		// TODO: this isn't correct if the 12-hour clock is selected.
-		case Reg(0, 0x04):	SecondEncoder::encode<4>(seconds_, value);		break;
-		case Reg(0, 0x05):	SecondEncoder::encode<5>(seconds_, value);		break;
+		case Reg(0, 0x04):
+		case Reg(0, 0x05): {
+			int hours = SecondEncoder::decode<4>(seconds_);
+			if(!twentyfour_hour_clock_) {
+				hours = twenty_four_to_twelve(hours);
+			}
+			if(address == 0x4) {
+				hours = hours - (hours % 10) + value;
+			} else {
+				hours = (hours % 10) + ((value & 3) * 10);
+			}
+			if(!twentyfour_hour_clock_) {
+				hours = twelve_to_twenty_four(hours);
+			}
+			SecondEncoder::encode<4>(seconds_, hours);
+		} break;
 
 		// Day of the week.
 		case Reg(0, 0x06):	day_of_the_week_ = value % 7;					break;
