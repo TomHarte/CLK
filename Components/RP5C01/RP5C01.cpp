@@ -120,6 +120,13 @@ constexpr int twelve_to_twenty_four(int hours) {
 	return hours;
 }
 
+using SecondEncoder = Numeric::NumericCoder<
+	10, 6,	// Seconds.
+	10, 6,	// Minutes.
+	24		// Hours
+>;
+using TwoDigitEncoder = Numeric::NumericCoder<10, 10>;
+
 }
 
 /// Performs a write of @c value to @c address.
@@ -133,13 +140,6 @@ void RP5C01::write(int address, uint8_t value) {
 		ram_[size_t(address)] = value & 0xf;
 		return;
 	}
-
-	using SecondEncoder = Numeric::NumericCoder<
-		10, 6,	// Seconds.
-		10, 6,	// Minutes.
-		24		// Hours
-	>;
-	using TwoDigitEncoder = Numeric::NumericCoder<10, 10>;
 
 	switch(Reg(mode_, address)) {
 		default: break;
@@ -160,9 +160,9 @@ void RP5C01::write(int address, uint8_t value) {
 				hours = twenty_four_to_twelve(hours);
 			}
 			if(address == 0x4) {
-				hours = hours - (hours % 10) + value;
+				TwoDigitEncoder::encode<0>(hours, value);
 			} else {
-				hours = (hours % 10) + ((value & 3) * 10);
+				TwoDigitEncoder::encode<1>(hours, value & 3);
 			}
 			if(!twentyfour_hour_clock_) {
 				hours = twelve_to_twenty_four(hours);
@@ -242,43 +242,41 @@ uint8_t RP5C01::read(int address) {
 	int value = 0xf;
 	switch(Reg(mode_, address)) {
 		// Second.
-		case Reg(0, 0x00):	value = seconds_ % 10;			break;
-		case Reg(0, 0x01):	value = (seconds_ / 10) % 6;	break;
+		case Reg(0, 0x00):	value = SecondEncoder::decode<0>(seconds_);	break;
+		case Reg(0, 0x01):	value = SecondEncoder::decode<1>(seconds_);	break;
 
 		// Minute.
-		case Reg(0, 0x02):	value = (seconds_ / 60) % 10;	break;
-		case Reg(0, 0x03):	value = (seconds_ / 600) % 6;	break;
+		case Reg(0, 0x02):	value = SecondEncoder::decode<2>(seconds_);	break;
+		case Reg(0, 0x03):	value = SecondEncoder::decode<3>(seconds_);	break;
 
 		// Hour.
 		case Reg(0, 0x04):
-			if(twentyfour_hour_clock_) {
-				value = (seconds_ / 3600) % 10;
-			} else {
-				value = ((seconds_ / 3600) % 12) % 10;
+		case Reg(0, 0x05): {
+			int hours = SecondEncoder::decode<4>(seconds_);
+			if(!twentyfour_hour_clock_) {
+				hours = twenty_four_to_twelve(hours);
 			}
-		break;
-		case Reg(0, 0x05):
-			if(twentyfour_hour_clock_) {
-				value = (seconds_ / 36000);
+			if(address == 0x4) {
+				value = TwoDigitEncoder::decode<0>(hours);
 			} else {
-				value = ((seconds_ / 3600) / 12) + (seconds_ >= 12*60*60 ? 2 : 0);
+				value = TwoDigitEncoder::decode<1>(hours);
 			}
-		break;
+		} break;
 
 		// Day-of-the-week.
 		case Reg(0, 0x06):	value = day_of_the_week_;	break;
 
 		// Day.
-		case Reg(0, 0x07):	value = day_ % 10;			break;
-		case Reg(0, 0x08):	value = day_ / 10;			break;
+		case Reg(0, 0x07):	value = TwoDigitEncoder::decode<0>(day_);		break;
+		case Reg(0, 0x08):	value = TwoDigitEncoder::decode<1>(day_);		break;
 
 		// Month.
-		case Reg(0, 0x09):	value = month_ % 10;		break;
-		case Reg(0, 0x0a):	value = month_ / 10;		break;
+		case Reg(0, 0x09):	value = TwoDigitEncoder::decode<0>(month_);		break;
+		case Reg(0, 0x0a):	value = TwoDigitEncoder::decode<1>(month_);		break;
 
 		// Year;
-		case Reg(0, 0x0b):	value = year_ % 10;			break;
-		case Reg(0, 0x0c):	value = year_ / 10;			break;
+		case Reg(0, 0x0b):	value = TwoDigitEncoder::decode<0>(year_);		break;
+		case Reg(0, 0x0c):	value = TwoDigitEncoder::decode<1>(year_);		break;
 
 		// TODO: alarm minutes.
 		case Reg(1, 0x02):
