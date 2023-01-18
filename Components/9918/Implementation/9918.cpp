@@ -558,7 +558,9 @@ void Base<personality>::write_register(uint8_t value) {
 
 	this->write_phase_ = false;
 	if(value & 0x80) {
-		if constexpr (is_sega_vdp(personality)) {
+		if constexpr (is_yamaha_vdp(personality)) {
+			value &= 0x7f;
+		} else if constexpr (is_sega_vdp(personality)) {
 			if(value & 0x40) {
 				this->master_system_.cram_is_selected = true;
 				return;
@@ -626,18 +628,24 @@ void Base<personality>::write_register(uint8_t value) {
 			case 8:
 				if constexpr (is_sega_vdp(personality)) {
 					this->master_system_.horizontal_scroll = this->low_write_;
+				} else {
+					LOG("Unknown TMS write: " << int(this->low_write_) << " to " << int(value));
 				}
 			break;
 
 			case 9:
 				if constexpr (is_sega_vdp(personality)) {
 					this->master_system_.vertical_scroll = this->low_write_;
+				} else {
+					LOG("Unknown TMS write: " << int(this->low_write_) << " to " << int(value));
 				}
 			break;
 
 			case 10:
 				if constexpr (is_sega_vdp(personality)) {
 					this->line_interrupt_target = this->low_write_;
+				} else {
+					LOG("Unknown TMS write: " << int(this->low_write_) << " to " << int(value));
 				}
 			break;
 
