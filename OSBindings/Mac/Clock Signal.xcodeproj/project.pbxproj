@@ -1430,6 +1430,7 @@
 		4B643F3E1D77B88000D431D6 /* DocumentController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
 		4B644ED023F0FB55006C0CC5 /* ScanSynchroniser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScanSynchroniser.hpp; sourceTree = "<group>"; };
 		4B65085F22F4CF8D009C1100 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
+		4B66E1A8297719270057ED0F /* NumericCoder.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NumericCoder.hpp; sourceTree = "<group>"; };
 		4B670A832401CB8400D4E002 /* z80memptr.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80memptr.tap; sourceTree = "<group>"; };
 		4B670A852401CB8400D4E002 /* z80ccf.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80ccf.tap; sourceTree = "<group>"; };
 		4B670A872401CB8400D4E002 /* z80flags.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80flags.tap; sourceTree = "<group>"; };
@@ -3304,6 +3305,7 @@
 				4BD155312716362A00410C6E /* BitSpread.hpp */,
 				4B7BA03E23D55E7900B98D9E /* CRC.hpp */,
 				4B7BA03F23D55E7900B98D9E /* LFSR.hpp */,
+				4B66E1A8297719270057ED0F /* NumericCoder.hpp */,
 				4BB5B995281B1D3E00522DA9 /* RegisterSizes.hpp */,
 				4BFEA2F12682A90200EBF94C /* Sizes.hpp */,
 			);

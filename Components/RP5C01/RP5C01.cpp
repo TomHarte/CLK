@@ -8,9 +8,28 @@
 
 #include "RP5C01.hpp"
 
+#include "../../Numeric/NumericCoder.hpp"
+
+#include <ctime>
+
 using namespace Ricoh::RP5C01;
 
-RP5C01::RP5C01(HalfCycles clock_rate) : clock_rate_(clock_rate) {}
+RP5C01::RP5C01(HalfCycles clock_rate) : clock_rate_(clock_rate) {
+	// Seed internal clock.
+	std::time_t now = std::time(NULL);
+	std::tm *time_date = std::localtime(&now);
+
+	seconds_ =
+		time_date->tm_sec +
+		time_date->tm_min * 60 +
+		time_date->tm_hour * 60 * 60;
+
+	day_of_the_week_ = time_date->tm_wday;
+	day_ = time_date->tm_mday;
+	month_ = time_date->tm_mon;
+	year_ = time_date->tm_year % 100;
+	leap_year_ = time_date->tm_year % 4;
+}
 
 void RP5C01::run_for(HalfCycles cycles) {
 	sub_seconds_ += cycles;
@@ -45,6 +64,7 @@ void RP5C01::run_for(HalfCycles cycles) {
 	while(true) {
 		int month_length = 1;
 		switch(month_) {
+			default:
 			case 0:	month_length = 31;					break;
 			case 1:	month_length = 28 + !leap_year_;	break;
 			case 2: month_length = 31;					break;
@@ -68,65 +88,236 @@ void RP5C01::run_for(HalfCycles cycles) {
 
 		if(month_ == 12) {
 			month_ = 0;
-			++year_;
+			year_ = (year_ + 1) % 100;
 			leap_year_ = (leap_year_ + 1) & 3;
 		}
 	}
 }
 
+namespace {
+
+constexpr int Reg(int mode, int address) {
+	return address | mode << 4;
+}
+
+constexpr int PM = 1 << 4;
+
+constexpr int twenty_four_to_twelve(int hours) {
+	switch(hours) {
+		default:	return (hours % 12) + (hours > 12 ? PM : 0);
+		case 0:		return 12;
+		case 12:	return 12 | PM;
+	}
+}
+
+constexpr int twelve_to_twenty_four(int hours) {
+	hours = (hours & 0xf) + (hours & PM ? 12 : 0);
+	switch(hours) {
+		default:	break;
+		case 24:	return 12;
+		case 12:	return 0;
+	}
+	return hours;
+}
+
+using SecondEncoder = Numeric::NumericCoder<
+	10, 6,	// Seconds.
+	10, 6,	// Minutes.
+	24		// Hours
+>;
+using TwoDigitEncoder = Numeric::NumericCoder<10, 10>;
+
+}
+
 /// Performs a write of @c value to @c address.
 void RP5C01::write(int address, uint8_t value) {
 	address &= 0xf;
+	value &= 0xf;
 
-	// Registers D–F don't depend on the mode.
-	if(address >= 0xd) {
-		switch(address) {
-			default: break;
-			case 0xd:
-				timer_enabled_ = value & 0x8;
-				alarm_enabled_ = value & 0x4;
-				mode_ = value & 0x3;
-			break;
-			case 0xe:
-				// Test register; unclear what is supposed to happen.
-			break;
-			case 0xf:
-				one_hz_on_ = !(value & 0x8);
-				sixteen_hz_on_ = !(value & 0x4);
-				// TODO: timer reset on bit 1, alarm reset on bit 0
-			break;
-		}
-
+	// Handle potential RAM accesses.
+	if(address < 0xd && mode_ >= 2) {
+		address += mode_ == 3 ? 13 : 0;
+		ram_[size_t(address)] = value & 0xf;
 		return;
 	}
 
-	switch(mode_) {
-		case 3:
-			address += 13;
-			[[fallthrough]];
-		case 2:
-			ram_[size_t(address)] = value & 0xf;
-		return;
+	switch(Reg(mode_, address)) {
+		default: break;
+
+		// Seconds.
+		case Reg(0, 0x00):	SecondEncoder::encode<0>(seconds_, value);		break;
+		case Reg(0, 0x01):	SecondEncoder::encode<1>(seconds_, value);		break;
+
+		// Minutes.
+		case Reg(0, 0x02):	SecondEncoder::encode<2>(seconds_, value);		break;
+		case Reg(0, 0x03):	SecondEncoder::encode<3>(seconds_, value);		break;
+
+		// Hours.
+		case Reg(0, 0x04):
+		case Reg(0, 0x05): {
+			int hours = SecondEncoder::decode<4>(seconds_);
+			if(!twentyfour_hour_clock_) {
+				hours = twenty_four_to_twelve(hours);
+			}
+			if(address == 0x4) {
+				TwoDigitEncoder::encode<0>(hours, value);
+			} else {
+				TwoDigitEncoder::encode<1>(hours, value & 3);
+			}
+			if(!twentyfour_hour_clock_) {
+				hours = twelve_to_twenty_four(hours);
+			}
+			SecondEncoder::encode<4>(seconds_, hours);
+		} break;
+
+		// Day of the week.
+		case Reg(0, 0x06):	day_of_the_week_ = value % 7;					break;
+
+		// Day.
+		case Reg(0, 0x07):	TwoDigitEncoder::encode<0>(day_, value);		break;
+		case Reg(0, 0x08):	TwoDigitEncoder::encode<1>(day_, value & 3);	break;
+
+		// Month.
+		case Reg(0, 0x09):	TwoDigitEncoder::encode<0>(month_, value);		break;
+		case Reg(0, 0x0a):	TwoDigitEncoder::encode<1>(month_, value & 1);	break;
+
+		// Year.
+		case Reg(0, 0x0b):	TwoDigitEncoder::encode<0>(year_, value);		break;
+		case Reg(0, 0x0c):	TwoDigitEncoder::encode<1>(year_, value);		break;
+
+		// TODO: alarm minutes.
+		case Reg(1, 0x02):
+		case Reg(1, 0x03):	break;
+
+		// TODO: alarm hours.
+		case Reg(1, 0x04):
+		case Reg(1, 0x05):	break;
+
+		// TODO: alarm day-of-the-week.
+		case Reg(1, 0x06):	break;
+
+		// TODO: alarm day.
+		case Reg(1, 0x07):
+		case Reg(1, 0x08):	break;
+
+		// 24/12-hour clock.
+		case Reg(1, 0x0a):
+			twentyfour_hour_clock_ = value & 1;
+		break;
+
+		// Lead-year counter.
+		case Reg(1, 0x0b):
+			leap_year_ = value & 3;
+		break;
+
+		//
+		// Registers D–F don't depend on the mode.
+		//
+
+		case Reg(0, 0xd):	case Reg(1, 0xd):	case Reg(2, 0xd):	case Reg(3, 0xd):
+			timer_enabled_ = value & 0x8;
+			alarm_enabled_ = value & 0x4;
+			mode_ = value & 0x3;
+		break;
+		case Reg(0, 0xe):	case Reg(1, 0xe):	case Reg(2, 0xe):	case Reg(3, 0xe):
+			// Test register; unclear what is supposed to happen.
+		break;
+		case Reg(0, 0xf):	case Reg(1, 0xf):	case Reg(2, 0xf):	case Reg(3, 0xf):
+			one_hz_on_ = !(value & 0x8);
+			sixteen_hz_on_ = !(value & 0x4);
+			// TODO: b0 = alarm reset; b1 = timer reset.
+		break;
 	}
 
-	// TODO.
-	printf("RP-5C01 write of %d to %d in mode %d\n", value, address & 0xf, mode_);
 }
 
 uint8_t RP5C01::read(int address) {
 	address &= 0xf;
 
-	if(address < 0xd) {
-		switch(mode_) {
-			case 3:
-				address += 13;
-				[[fallthrough]];
-			case 2:
-			return 0xf0 | ram_[size_t(address)];
-		}
+	if(address < 0xd && mode_ >= 2) {
+		address += mode_ == 3 ? 13 : 0;
+		return 0xf0 | ram_[size_t(address)];
 	}
 
-	// TODO.
-	printf("RP-5C01 read from %d in mode %d\n", address & 0xf, mode_);
-	return 0xff;
+	int value = 0xf;
+	switch(Reg(mode_, address)) {
+		// Second.
+		case Reg(0, 0x00):	value = SecondEncoder::decode<0>(seconds_);	break;
+		case Reg(0, 0x01):	value = SecondEncoder::decode<1>(seconds_);	break;
+
+		// Minute.
+		case Reg(0, 0x02):	value = SecondEncoder::decode<2>(seconds_);	break;
+		case Reg(0, 0x03):	value = SecondEncoder::decode<3>(seconds_);	break;
+
+		// Hour.
+		case Reg(0, 0x04):
+		case Reg(0, 0x05): {
+			int hours = SecondEncoder::decode<4>(seconds_);
+			if(!twentyfour_hour_clock_) {
+				hours = twenty_four_to_twelve(hours);
+			}
+			if(address == 0x4) {
+				value = TwoDigitEncoder::decode<0>(hours);
+			} else {
+				value = TwoDigitEncoder::decode<1>(hours);
+			}
+		} break;
+
+		// Day-of-the-week.
+		case Reg(0, 0x06):	value = day_of_the_week_;	break;
+
+		// Day.
+		case Reg(0, 0x07):	value = TwoDigitEncoder::decode<0>(day_);		break;
+		case Reg(0, 0x08):	value = TwoDigitEncoder::decode<1>(day_);		break;
+
+		// Month.
+		case Reg(0, 0x09):	value = TwoDigitEncoder::decode<0>(month_);		break;
+		case Reg(0, 0x0a):	value = TwoDigitEncoder::decode<1>(month_);		break;
+
+		// Year;
+		case Reg(0, 0x0b):	value = TwoDigitEncoder::decode<0>(year_);		break;
+		case Reg(0, 0x0c):	value = TwoDigitEncoder::decode<1>(year_);		break;
+
+		// TODO: alarm minutes.
+		case Reg(1, 0x02):
+		case Reg(1, 0x03):	break;
+
+		// TODO: alarm hours.
+		case Reg(1, 0x04):
+		case Reg(1, 0x05):	break;
+
+		// TODO: alarm day-of-the-week.
+		case Reg(1, 0x06):	break;
+
+		// TODO: alarm day.
+		case Reg(1, 0x07):
+		case Reg(1, 0x08):	break;
+
+		// 12/24-hour clock.
+		case Reg(1, 0x0a):	value = twentyfour_hour_clock_;	break;
+
+		// Leap year.
+		case Reg(1, 0x0b):	value = leap_year_;				break;
+
+		//
+		// Registers D–F don't depend on the mode.
+		//
+
+		case Reg(0, 0xd):	case Reg(1, 0xd):	case Reg(2, 0xd):	case Reg(3, 0xd):
+			value =
+				(timer_enabled_ ? 0x8 : 0x0) |
+				(alarm_enabled_ ? 0x4 : 0x0) |
+				mode_;
+		break;
+		case Reg(0, 0xe):	case Reg(1, 0xe):	case Reg(2, 0xe):	case Reg(3, 0xe):
+			// Test register; unclear what is supposed to happen.
+		break;
+		case Reg(0, 0xf):	case Reg(1, 0xf):	case Reg(2, 0xf):	case Reg(3, 0xf):
+			value =
+				(one_hz_on_ ? 0x0 : 0x8) |
+				(sixteen_hz_on_ ? 0x0 : 0x4);
+		break;
+	}
+
+	return uint8_t(0xf0 | value);
 }

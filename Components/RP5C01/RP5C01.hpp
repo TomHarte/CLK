@@ -43,7 +43,7 @@ class RP5C01 {
 		int day_of_the_week_ = 0;
 		int day_ = 0;
 		int month_ = 0;
-		int year_ = 1988;
+		int year_ = 0;
 		int leap_year_ = 0;
 
 		// Other flags.
@@ -52,6 +52,7 @@ class RP5C01 {
 		int mode_ = 0;
 		bool one_hz_on_ = false;
 		bool sixteen_hz_on_ = false;
+		bool twentyfour_hour_clock_ = true;
 };
 
 }
