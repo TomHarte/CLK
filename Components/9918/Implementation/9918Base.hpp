@@ -286,6 +286,16 @@ template <Personality personality> struct Base {
 		size_t sprite_generator_table_address;
 	} master_system_;
 
+	int masked_address(int address);
+	void write_vram(uint8_t);
+	void write_register(uint8_t);
+	void write_palette(uint8_t);
+	void write_register_indirect(uint8_t);
+	uint8_t read_vram();
+	uint8_t read_register();
+	uint8_t read_palette();
+	uint8_t read_register_indirect();
+
 	ScreenMode current_screen_mode() const {
 		if(blank_display_) {
 			return ScreenMode::Blank;

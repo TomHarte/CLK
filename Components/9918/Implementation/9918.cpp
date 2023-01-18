@@ -517,21 +517,30 @@ void Base<personality>::output_border(int cycles, [[maybe_unused]] uint32_t cram
 	}
 }
 
+// MARK: - External interface.
+
 template <Personality personality>
-void TMS9918<personality>::write(int address, uint8_t value) {
-	// Writes to address 0 are writes to the video RAM. Store
-	// the value and return.
-	if(!(address & 1)) {
-		this->write_phase_ = false;
-
-		// Enqueue the write to occur at the next available slot.
-		this->read_ahead_buffer_ = value;
-		this->queued_access_ = MemoryAccess::Write;
-		this->cycles_until_access_ = Timing<personality>::VRAMAccessDelay;
-
-		return;
+int Base<personality>::masked_address(int address) {
+	if constexpr (is_yamaha_vdp(personality)) {
+		return address & 3;
+	} else {
+		return address & 1;
 	}
+}
 
+template <Personality personality>
+void Base<personality>::write_vram(uint8_t value) {
+	// Latch  the value and exit.
+	this->write_phase_ = false;
+
+	// Enqueue the write to occur at the next available slot.
+	this->read_ahead_buffer_ = value;
+	this->queued_access_ = MemoryAccess::Write;
+	this->cycles_until_access_ = Timing<personality>::VRAMAccessDelay;
+}
+
+template <Personality personality>
+void Base<personality>::write_register(uint8_t value) {
 	// Writes to address 1 are performed in pairs; if this is the
 	// low byte of a value, store it and wait for the high byte.
 	if(!this->write_phase_) {
@@ -649,6 +658,75 @@ void TMS9918<personality>::write(int address, uint8_t value) {
 }
 
 template <Personality personality>
+void Base<personality>::write_palette(uint8_t value) {
+	LOG("Palette write TODO");
+	(void)value;
+}
+
+template <Personality personality>
+void Base<personality>::write_register_indirect(uint8_t value) {
+	LOG("Register indirect write TODO");
+	(void)value;
+}
+
+template <Personality personality>
+void TMS9918<personality>::write(int address, uint8_t value) {
+	switch(this->masked_address(address)) {
+		default: break;
+		case 0:	this->write_vram(value);				break;
+		case 1:	this->write_register(value);			break;
+		case 2:	this->write_palette(value);				break;
+		case 3: this->write_register_indirect(value);	break;
+	}
+}
+
+template <Personality personality>
+uint8_t Base<personality>::read_vram() {
+	// Take whatever is currently in the read-ahead buffer and
+	// enqueue a further read to occur at the next available slot.
+	const uint8_t result = this->read_ahead_buffer_;
+	this->queued_access_ = MemoryAccess::Read;
+	return result;
+}
+
+template <Personality personality>
+uint8_t Base<personality>::read_register() {
+	// Gets the status register.
+	const uint8_t result = this->status_;
+	this->status_ &= ~(StatusInterrupt | StatusSpriteOverflow | StatusSpriteCollision);
+	this->line_interrupt_pending_ = false;
+	return result;
+}
+
+template <Personality personality>
+uint8_t Base<personality>::read_palette() {
+	LOG("Palette read TODO");
+	return 0xff;
+}
+
+template <Personality personality>
+uint8_t Base<personality>::read_register_indirect() {
+	LOG("Register indirect read TODO");
+	return 0xff;
+}
+
+template <Personality personality>
+uint8_t TMS9918<personality>::read(int address) {
+	// TODO: is this still a global effect of reads, even in the world of the Yamahas?
+	this->write_phase_ = false;
+
+	switch(this->masked_address(address)) {
+		default: return 0xff;
+		case 0:	return this->read_vram();
+		case 1:	return this->read_register();
+		case 2:	return this->read_palette();
+		case 3: return this->read_register_indirect();
+	}
+}
+
+// MARK: - Ephemeral state.
+
+template <Personality personality>
 uint8_t TMS9918<personality>::get_current_line() const {
 	// Determine the row to return.
 	constexpr int row_change_position = 63;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
@@ -682,26 +760,6 @@ uint8_t TMS9918<personality>::get_current_line() const {
 
 	return uint8_t(source_row);
 }
-
-template <Personality personality>
-uint8_t TMS9918<personality>::read(int address) {
-	this->write_phase_ = false;
-
-	// Reads from address 0 read video RAM, via the read-ahead buffer.
-	if(!(address & 1)) {
-		// Enqueue the write to occur at the next available slot.
-		const uint8_t result = this->read_ahead_buffer_;
-		this->queued_access_ = MemoryAccess::Read;
-		return result;
-	}
-
-	// Reads from address 1 get the status register.
-	const uint8_t result = this->status_;
-	this->status_ &= ~(StatusInterrupt | StatusSpriteOverflow | StatusSpriteCollision);
-	this->line_interrupt_pending_ = false;
-	return result;
-}
-
 template <Personality personality>
 HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	if(!this->generate_interrupts_ && !this->enable_line_interrupts_) return HalfCycles::max();
