@@ -568,6 +568,11 @@ class ConcreteMachine:
 
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch(address & 0xff) {
+							case 0x9a:	case 0x9b:
+								if constexpr (vdp_model() == TI::TMS::TMS9918A) {
+									break;
+								}
+								[[fallthrough]];
 							case 0x98:	case 0x99:
 								*cycle.value = vdp_->read(address);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
@@ -600,6 +605,11 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Output: {
 						const int port = address & 0xff;
 						switch(port) {
+							case 0x9a:	case 0x9b:
+								if constexpr (vdp_model() == TI::TMS::TMS9918A) {
+									break;
+								}
+								[[fallthrough]];
 							case 0x98:	case 0x99:
 								vdp_->write(address, *cycle.value);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
