@@ -531,38 +531,38 @@ int Base<personality>::masked_address(int address) {
 template <Personality personality>
 void Base<personality>::write_vram(uint8_t value) {
 	// Latch  the value and exit.
-	this->write_phase_ = false;
+	write_phase_ = false;
 
 	// Enqueue the write to occur at the next available slot.
-	this->read_ahead_buffer_ = value;
-	this->queued_access_ = MemoryAccess::Write;
-	this->cycles_until_access_ = Timing<personality>::VRAMAccessDelay;
+	read_ahead_buffer_ = value;
+	queued_access_ = MemoryAccess::Write;
+	cycles_until_access_ = Timing<personality>::VRAMAccessDelay;
 }
 
 template <Personality personality>
 void Base<personality>::write_register(uint8_t value) {
 	// Writes to address 1 are performed in pairs; if this is the
 	// low byte of a value, store it and wait for the high byte.
-	if(!this->write_phase_) {
-		this->low_write_ = value;
-		this->write_phase_ = true;
+	if(!write_phase_) {
+		low_write_ = value;
+		write_phase_ = true;
 
 		// The initial write should half update the access pointer.
-		this->ram_pointer_ = (this->ram_pointer_ & 0xff00) | this->low_write_;
+		ram_pointer_ = (ram_pointer_ & 0xff00) | low_write_;
 		return;
 	}
 
 	// The RAM pointer is always set on a second write, regardless of
 	// whether the caller is intending to enqueue a VDP operation.
-	this->ram_pointer_ = (this->ram_pointer_ & 0x00ff) | uint16_t(value << 8);
+	ram_pointer_ = (ram_pointer_ & 0x00ff) | uint16_t(value << 8);
 
-	this->write_phase_ = false;
+	write_phase_ = false;
 	if(value & 0x80) {
 		if constexpr (is_yamaha_vdp(personality)) {
 			value &= 0x7f;
 		} else if constexpr (is_sega_vdp(personality)) {
 			if(value & 0x40) {
-				this->master_system_.cram_is_selected = true;
+				master_system_.cram_is_selected = true;
 				return;
 			}
 			value &= 0xf;
@@ -574,89 +574,89 @@ void Base<personality>::write_register(uint8_t value) {
 		switch(value) {
 			case 0:
 				if constexpr (is_sega_vdp(personality)) {
-					this->master_system_.vertical_scroll_lock = this->low_write_ & 0x80;
-					this->master_system_.horizontal_scroll_lock = this->low_write_ & 0x40;
-					this->master_system_.hide_left_column = this->low_write_ & 0x20;
-					this->enable_line_interrupts_ = this->low_write_ & 0x10;
-					this->master_system_.shift_sprites_8px_left = this->low_write_ & 0x08;
-					this->master_system_.mode4_enable = this->low_write_ & 0x04;
+					master_system_.vertical_scroll_lock = low_write_ & 0x80;
+					master_system_.horizontal_scroll_lock = low_write_ & 0x40;
+					master_system_.hide_left_column = low_write_ & 0x20;
+					enable_line_interrupts_ = low_write_ & 0x10;
+					master_system_.shift_sprites_8px_left = low_write_ & 0x08;
+					master_system_.mode4_enable = low_write_ & 0x04;
 				}
-				this->mode2_enable_ = this->low_write_ & 0x02;
+				mode2_enable_ = low_write_ & 0x02;
 			break;
 
 			case 1:
-				this->blank_display_ = !(this->low_write_ & 0x40);
-				this->generate_interrupts_ = this->low_write_ & 0x20;
-				this->mode1_enable_ = this->low_write_ & 0x10;
-				this->mode3_enable_ = this->low_write_ & 0x08;
-				this->sprites_16x16_ = this->low_write_ & 0x02;
-				this->sprites_magnified_ = this->low_write_ & 0x01;
+				blank_display_ = !(low_write_ & 0x40);
+				generate_interrupts_ = low_write_ & 0x20;
+				mode1_enable_ = low_write_ & 0x10;
+				mode3_enable_ = low_write_ & 0x08;
+				sprites_16x16_ = low_write_ & 0x02;
+				sprites_magnified_ = low_write_ & 0x01;
 
-				this->sprite_height_ = 8;
-				if(this->sprites_16x16_) this->sprite_height_ <<= 1;
-				if(this->sprites_magnified_) this->sprite_height_ <<= 1;
+				sprite_height_ = 8;
+				if(sprites_16x16_) sprite_height_ <<= 1;
+				if(sprites_magnified_) sprite_height_ <<= 1;
 			break;
 
 			case 2:
-				this->pattern_name_address_ = size_t((this->low_write_ & 0xf) << 10) | 0x3ff;
-				this->master_system_.pattern_name_address = this->pattern_name_address_ | ((personality == TMS::SMSVDP) ? 0x000 : 0x400);
+				pattern_name_address_ = size_t((low_write_ & 0xf) << 10) | 0x3ff;
+				master_system_.pattern_name_address = pattern_name_address_ | ((personality == TMS::SMSVDP) ? 0x000 : 0x400);
 			break;
 
 			case 3:
-				this->colour_table_address_ = size_t(this->low_write_ << 6) | 0x3f;
+				colour_table_address_ = size_t(low_write_ << 6) | 0x3f;
 			break;
 
 			case 4:
-				this->pattern_generator_table_address_ = size_t((this->low_write_ & 0x07) << 11) | 0x7ff;
+				pattern_generator_table_address_ = size_t((low_write_ & 0x07) << 11) | 0x7ff;
 			break;
 
 			case 5:
-				this->sprite_attribute_table_address_ = size_t((this->low_write_ & 0x7f) << 7) | 0x7f;
-				this->master_system_.sprite_attribute_table_address = this->sprite_attribute_table_address_ | ((personality == TMS::SMSVDP) ? 0x00 : 0x80);
+				sprite_attribute_table_address_ = size_t((low_write_ & 0x7f) << 7) | 0x7f;
+				master_system_.sprite_attribute_table_address = sprite_attribute_table_address_ | ((personality == TMS::SMSVDP) ? 0x00 : 0x80);
 			break;
 
 			case 6:
-				this->sprite_generator_table_address_ = size_t((this->low_write_ & 0x07) << 11) | 0x7ff;
-				this->master_system_.sprite_generator_table_address = this->sprite_generator_table_address_ | ((personality == TMS::SMSVDP) ? 0x0000 : 0x1800);
+				sprite_generator_table_address_ = size_t((low_write_ & 0x07) << 11) | 0x7ff;
+				master_system_.sprite_generator_table_address = sprite_generator_table_address_ | ((personality == TMS::SMSVDP) ? 0x0000 : 0x1800);
 			break;
 
 			case 7:
-				this->text_colour_ = this->low_write_ >> 4;
-				this->background_colour_ = this->low_write_ & 0xf;
+				text_colour_ = low_write_ >> 4;
+				background_colour_ = low_write_ & 0xf;
 			break;
 
 			case 8:
 				if constexpr (is_sega_vdp(personality)) {
-					this->master_system_.horizontal_scroll = this->low_write_;
+					master_system_.horizontal_scroll = low_write_;
 				} else {
-					LOG("Unknown TMS write: " << int(this->low_write_) << " to " << int(value));
+					LOG("Unknown TMS write: " << int(low_write_) << " to " << int(value));
 				}
 			break;
 
 			case 9:
 				if constexpr (is_sega_vdp(personality)) {
-					this->master_system_.vertical_scroll = this->low_write_;
+					master_system_.vertical_scroll = low_write_;
 				} else {
-					LOG("Unknown TMS write: " << int(this->low_write_) << " to " << int(value));
+					LOG("Unknown TMS write: " << int(low_write_) << " to " << int(value));
 				}
 			break;
 
 			case 10:
 				if constexpr (is_sega_vdp(personality)) {
-					this->line_interrupt_target = this->low_write_;
+					line_interrupt_target = low_write_;
 				} else {
-					LOG("Unknown TMS write: " << int(this->low_write_) << " to " << int(value));
+					LOG("Unknown TMS write: " << int(low_write_) << " to " << int(value));
 				}
 			break;
 
 			case 15:
 				if constexpr (is_yamaha_vdp(personality)) {
-					Storage<personality>::selected_status_ = this->low_write_ & 0xf;
+					Storage<personality>::selected_status_ = low_write_ & 0xf;
 				}
 			break;
 
 			default:
-				LOG("Unknown TMS write: " << int(this->low_write_) << " to " << int(value));
+				LOG("Unknown TMS write: " << int(low_write_) << " to " << int(value));
 			break;
 		}
 	} else {
@@ -664,10 +664,10 @@ void Base<personality>::write_register(uint8_t value) {
 		if(!(value & 0x40)) {
 			// A read request is enqueued upon setting the address; conversely a write
 			// won't be enqueued unless and until some actual data is supplied.
-			this->queued_access_ = MemoryAccess::Read;
-			this->cycles_until_access_ = Timing<personality>::VRAMAccessDelay;
+			queued_access_ = MemoryAccess::Read;
+			cycles_until_access_ = Timing<personality>::VRAMAccessDelay;
 		}
-		this->master_system_.cram_is_selected = false;
+		master_system_.cram_is_selected = false;
 	}
 }
 
@@ -698,8 +698,8 @@ template <Personality personality>
 uint8_t Base<personality>::read_vram() {
 	// Take whatever is currently in the read-ahead buffer and
 	// enqueue a further read to occur at the next available slot.
-	const uint8_t result = this->read_ahead_buffer_;
-	this->queued_access_ = MemoryAccess::Read;
+	const uint8_t result = read_ahead_buffer_;
+	queued_access_ = MemoryAccess::Read;
 	return result;
 }
 
@@ -726,9 +726,9 @@ uint8_t Base<personality>::read_register() {
 	}
 
 	// Gets the status register.
-	const uint8_t result = this->status_;
-	this->status_ &= ~(StatusInterrupt | StatusSpriteOverflow | StatusSpriteCollision);
-	this->line_interrupt_pending_ = false;
+	const uint8_t result = status_;
+	status_ &= ~(StatusInterrupt | StatusSpriteOverflow | StatusSpriteCollision);
+	line_interrupt_pending_ = false;
 	return result;
 }
 
