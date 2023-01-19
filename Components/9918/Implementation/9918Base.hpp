@@ -118,7 +118,24 @@ constexpr uint8_t StatusSpriteOverflow = 0x40;
 constexpr int StatusSpriteCollisionShift = 5;
 constexpr uint8_t StatusSpriteCollision = 0x20;
 
-template <Personality personality> struct Base {
+/// A container for personality-specific storage; see specific instances below.
+template <Personality personality, typename Enable = void> struct Storage {
+};
+
+template <> struct Storage<Personality::TMS9918A> {
+};
+
+// Yamaha-specific storage.
+template <Personality personality> struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
+	int selected_status_ = 0;
+};
+
+// Master System-specific storage.
+template <Personality personality> struct Storage<personality, std::enable_if_t<is_sega_vdp(personality)>> {
+	// TODO: relocate contents of master_system_ struct;
+};
+
+template <Personality personality> struct Base: public Storage<personality> {
 	Base();
 
 	static constexpr int output_lag = 11;	// i.e. pixel output will occur 11 cycles

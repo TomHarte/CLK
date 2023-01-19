@@ -649,6 +649,12 @@ void Base<personality>::write_register(uint8_t value) {
 				}
 			break;
 
+			case 15:
+				if constexpr (is_yamaha_vdp(personality)) {
+					Storage<personality>::selected_status_ = this->low_write_ & 0xf;
+				}
+			break;
+
 			default:
 				LOG("Unknown TMS write: " << int(this->low_write_) << " to " << int(value));
 			break;
@@ -699,6 +705,26 @@ uint8_t Base<personality>::read_vram() {
 
 template <Personality personality>
 uint8_t Base<personality>::read_register() {
+	if constexpr (is_yamaha_vdp(personality)) {
+		switch(Storage<personality>::selected_status_) {
+			case 0: break;
+
+			case 2:
+				// b7 = transfer ready flag (i.e. VDP ready for next transfer)
+				// b6 = 1 during vblank
+				// b5 = 1 during hblank
+				// b4 = set if colour detected during search command
+				// b1 = display field odd/even
+				// b0 = command ongoing
+				return
+					queued_access_ == MemoryAccess::None ? 0x80 : 0x00 |
+					0x40 |
+					0x20;
+
+			break;
+		}
+	}
+
 	// Gets the status register.
 	const uint8_t result = this->status_;
 	this->status_ &= ~(StatusInterrupt | StatusSpriteOverflow | StatusSpriteCollision);
@@ -868,8 +894,8 @@ void TMS9918<personality>::latch_horizontal_counter() {
 
 template class TI::TMS::TMS9918<Personality::TMS9918A>;
 template class TI::TMS::TMS9918<Personality::V9938>;
-template class TI::TMS::TMS9918<Personality::V9958>;
+//template class TI::TMS::TMS9918<Personality::V9958>;
 template class TI::TMS::TMS9918<Personality::SMSVDP>;
 template class TI::TMS::TMS9918<Personality::SMS2VDP>;
 template class TI::TMS::TMS9918<Personality::GGVDP>;
-template class TI::TMS::TMS9918<Personality::MDVDP>;
+//template class TI::TMS::TMS9918<Personality::MDVDP>;
