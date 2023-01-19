@@ -178,9 +178,9 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			if constexpr (is_sega_vdp(personality)) {
 				if(this->write_pointer_.column < 61 && end_column >= 61) {
 					if(!this->write_pointer_.row) {
-						this->master_system_.latched_vertical_scroll = this->master_system_.vertical_scroll;
+						Storage<personality>::latched_vertical_scroll_ = Storage<personality>::vertical_scroll_;
 
-						if(this->master_system_.mode4_enable) {
+						if(Storage<personality>::mode4_enable_) {
 							this->mode_timing_.pixel_lines = 192;
 							if(this->mode2_enable_ && this->mode1_enable_) this->mode_timing_.pixel_lines = 224;
 							if(this->mode2_enable_ && this->mode3_enable_) this->mode_timing_.pixel_lines = 240;
@@ -191,7 +191,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 							this->mode_timing_.end_of_frame_interrupt_position.row = this->mode_timing_.pixel_lines + 1;
 						}
 					}
-					line_buffer.latched_horizontal_scroll = this->master_system_.horizontal_scroll;
+					line_buffer.latched_horizontal_scroll = Storage<personality>::horizontal_scroll_;
 				}
 			}
 
@@ -230,13 +230,13 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// It is otherwise decremented.
 				if constexpr (is_sega_vdp(personality)) {
 					if(this->write_pointer_.row >= 0 && this->write_pointer_.row <= this->mode_timing_.pixel_lines) {
-						--this->line_interrupt_counter;
-						if(this->line_interrupt_counter == 0xff) {
+						--this->line_interrupt_counter_;
+						if(this->line_interrupt_counter_ == 0xff) {
 							this->line_interrupt_pending_ = true;
-							this->line_interrupt_counter = this->line_interrupt_target;
+							this->line_interrupt_counter_ = this->line_interrupt_target_;
 						}
 					} else {
-						this->line_interrupt_counter = this->line_interrupt_target;
+						this->line_interrupt_counter_ = this->line_interrupt_target_;
 					}
 				}
 
@@ -575,12 +575,12 @@ void Base<personality>::write_register(uint8_t value) {
 		switch(value) {
 			case 0:
 				if constexpr (is_sega_vdp(personality)) {
-					Storage<personality>::master_system_.vertical_scroll_lock = low_write_ & 0x80;
-					Storage<personality>::master_system_.horizontal_scroll_lock = low_write_ & 0x40;
-					Storage<personality>::master_system_.hide_left_column = low_write_ & 0x20;
+					Storage<personality>::vertical_scroll_lock_ = low_write_ & 0x80;
+					Storage<personality>::horizontal_scroll_lock_ = low_write_ & 0x40;
+					Storage<personality>::hide_left_column_ = low_write_ & 0x20;
 					enable_line_interrupts_ = low_write_ & 0x10;
-					Storage<personality>::master_system_.shift_sprites_8px_left = low_write_ & 0x08;
-					Storage<personality>::master_system_.mode4_enable = low_write_ & 0x04;
+					Storage<personality>::shift_sprites_8px_left_ = low_write_ & 0x08;
+					Storage<personality>::mode4_enable_ = low_write_ & 0x04;
 				}
 				mode2_enable_ = low_write_ & 0x02;
 			break;
@@ -602,7 +602,7 @@ void Base<personality>::write_register(uint8_t value) {
 				pattern_name_address_ = size_t((low_write_ & 0xf) << 10) | 0x3ff;
 
 				if constexpr (is_sega_vdp(personality)) {
-					Storage<personality>::master_system_.pattern_name_address = pattern_name_address_ | ((personality == TMS::SMSVDP) ? 0x000 : 0x400);
+					Storage<personality>::pattern_name_address_ = pattern_name_address_ | ((personality == TMS::SMSVDP) ? 0x000 : 0x400);
 				}
 			break;
 
@@ -617,14 +617,14 @@ void Base<personality>::write_register(uint8_t value) {
 			case 5:
 				sprite_attribute_table_address_ = size_t((low_write_ & 0x7f) << 7) | 0x7f;
 				if constexpr (is_sega_vdp(personality)) {
-					Storage<personality>::master_system_.sprite_attribute_table_address = sprite_attribute_table_address_ | ((personality == TMS::SMSVDP) ? 0x00 : 0x80);
+					Storage<personality>::sprite_attribute_table_address_ = sprite_attribute_table_address_ | ((personality == TMS::SMSVDP) ? 0x00 : 0x80);
 				}
 			break;
 
 			case 6:
 				sprite_generator_table_address_ = size_t((low_write_ & 0x07) << 11) | 0x7ff;
 				if constexpr (is_sega_vdp(personality)) {
-					Storage<personality>::master_system_.sprite_generator_table_address = sprite_generator_table_address_ | ((personality == TMS::SMSVDP) ? 0x0000 : 0x1800);
+					Storage<personality>::sprite_generator_table_address_ = sprite_generator_table_address_ | ((personality == TMS::SMSVDP) ? 0x0000 : 0x1800);
 				}
 			break;
 
@@ -635,7 +635,7 @@ void Base<personality>::write_register(uint8_t value) {
 
 			case 8:
 				if constexpr (is_sega_vdp(personality)) {
-					Storage<personality>::master_system_.horizontal_scroll = low_write_;
+					Storage<personality>::horizontal_scroll_ = low_write_;
 				} else {
 					LOG("Unknown TMS write: " << int(low_write_) << " to " << int(value));
 				}
@@ -643,7 +643,7 @@ void Base<personality>::write_register(uint8_t value) {
 
 			case 9:
 				if constexpr (is_sega_vdp(personality)) {
-					Storage<personality>::master_system_.vertical_scroll = low_write_;
+					Storage<personality>::vertical_scroll_ = low_write_;
 				} else {
 					LOG("Unknown TMS write: " << int(low_write_) << " to " << int(value));
 				}
@@ -651,7 +651,7 @@ void Base<personality>::write_register(uint8_t value) {
 
 			case 10:
 				if constexpr (is_sega_vdp(personality)) {
-					line_interrupt_target = low_write_;
+					line_interrupt_target_ = low_write_;
 				} else {
 					LOG("Unknown TMS write: " << int(low_write_) << " to " << int(value));
 				}
@@ -837,11 +837,11 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 		// If there is still time for a line interrupt this frame, that'll be it;
 		// otherwise it'll be on the next frame, supposing there's ever time for
 		// it at all.
-		if(line_of_next_interrupt_threshold + this->line_interrupt_counter <= this->mode_timing_.pixel_lines) {
-			next_line_interrupt_row = line_of_next_interrupt_threshold + this->line_interrupt_counter;
+		if(line_of_next_interrupt_threshold + this->line_interrupt_counter_ <= this->mode_timing_.pixel_lines) {
+			next_line_interrupt_row = line_of_next_interrupt_threshold + this->line_interrupt_counter_;
 		} else {
-			if(this->line_interrupt_target <= this->mode_timing_.pixel_lines)
-				next_line_interrupt_row = this->mode_timing_.total_lines + this->line_interrupt_target;
+			if(this->line_interrupt_target_ <= this->mode_timing_.pixel_lines)
+				next_line_interrupt_row = this->mode_timing_.total_lines + this->line_interrupt_target_;
 		}
 	}
 

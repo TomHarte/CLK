@@ -143,7 +143,7 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 	*/
 	int tile_start = start, tile_end = end;
 	int tile_offset = start;
-	if(read_pointer_.row >= 16 || !Storage<personality>::master_system_.horizontal_scroll_lock) {
+	if(read_pointer_.row >= 16 || !Storage<personality>::horizontal_scroll_lock_) {
 		for(int c = start; c < (line_buffer.latched_horizontal_scroll & 7); ++c) {
 			colour_buffer[c] = 16 + background_colour_;
 			++tile_offset;
@@ -276,7 +276,7 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 	// If the VDP is set to hide the left column and this is the final call that'll come
 	// this line, hide it.
 	if(end == 256) {
-		if(Storage<personality>::master_system_.hide_left_column) {
+		if(Storage<personality>::hide_left_column_) {
 			pixel_origin_[0] = pixel_origin_[1] = pixel_origin_[2] = pixel_origin_[3] =
 			pixel_origin_[4] = pixel_origin_[5] = pixel_origin_[6] = pixel_origin_[7] =
 				Storage<personality>::colour_ram_[16 + background_colour_];

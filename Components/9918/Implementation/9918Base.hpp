@@ -147,24 +147,25 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	bool cram_is_selected_ = false;
 
 	// Fields below affect only the Master System output mode.
-	struct {
-		// Programmer-set flags.
-		bool vertical_scroll_lock = false;
-		bool horizontal_scroll_lock = false;
-		bool hide_left_column = false;
-		bool shift_sprites_8px_left = false;
-		bool mode4_enable = false;
-		uint8_t horizontal_scroll = 0;
-		uint8_t vertical_scroll = 0;
 
-		// Holds the vertical scroll position for this frame; this is latched
-		// once and cannot dynamically be changed until the next frame.
-		uint8_t latched_vertical_scroll = 0;
+	// Programmer-set flags.
+	bool vertical_scroll_lock_ = false;
+	bool horizontal_scroll_lock_ = false;
+	bool hide_left_column_ = false;
+	bool shift_sprites_8px_left_ = false;
+	bool mode4_enable_ = false;
+	uint8_t horizontal_scroll_ = 0;
+	uint8_t vertical_scroll_ = 0;
 
-		size_t pattern_name_address;
-		size_t sprite_attribute_table_address;
-		size_t sprite_generator_table_address;
-	} master_system_;
+	// Holds the vertical scroll position for this frame; this is latched
+	// once and cannot dynamically be changed until the next frame.
+	uint8_t latched_vertical_scroll_ = 0;
+
+	// Various resource addresses with VDP-version-specific modifications
+	// built int.
+	size_t pattern_name_address_;
+	size_t sprite_attribute_table_address_;
+	size_t sprite_generator_table_address_;
 };
 
 template <Personality personality> struct Base: public Storage<personality> {
@@ -285,8 +286,8 @@ template <Personality personality> struct Base: public Storage<personality> {
 		uint8_t sprite_terminator = 0xd0;
 	} mode_timing_;
 
-	uint8_t line_interrupt_target = 0xff;
-	uint8_t line_interrupt_counter = 0;
+	uint8_t line_interrupt_target_ = 0xff;
+	uint8_t line_interrupt_counter_ = 0;
 	bool enable_line_interrupts_ = false;
 	bool line_interrupt_pending_ = false;
 
@@ -317,7 +318,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 		}
 
 		if constexpr (is_sega_vdp(personality)) {
-			if(Storage<personality>::master_system_.mode4_enable) {
+			if(Storage<personality>::mode4_enable_) {
 				return ScreenMode::SMSMode4;
 			}
 		}
