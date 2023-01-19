@@ -132,7 +132,39 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 // Master System-specific storage.
 template <Personality personality> struct Storage<personality, std::enable_if_t<is_sega_vdp(personality)>> {
-	// TODO: relocate contents of master_system_ struct;
+	// The SMS VDP has a programmer-set colour palette, with a dedicated patch of RAM. But the RAM is only exactly
+	// fast enough for the pixel clock. So when the programmer writes to it, that causes a one-pixel glitch; there
+	// isn't the bandwidth for the read both write to occur simultaneously. The following buffer therefore keeps
+	// track of pending collisions, for visual reproduction.
+	struct CRAMDot {
+		LineBufferPointer location;
+		uint32_t value;
+	};
+	std::vector<CRAMDot> upcoming_cram_dots_;
+
+	// The Master System's additional colour RAM.
+	uint32_t colour_ram_[32];
+	bool cram_is_selected_ = false;
+
+	// Fields below affect only the Master System output mode.
+	struct {
+		// Programmer-set flags.
+		bool vertical_scroll_lock = false;
+		bool horizontal_scroll_lock = false;
+		bool hide_left_column = false;
+		bool shift_sprites_8px_left = false;
+		bool mode4_enable = false;
+		uint8_t horizontal_scroll = 0;
+		uint8_t vertical_scroll = 0;
+
+		// Holds the vertical scroll position for this frame; this is latched
+		// once and cannot dynamically be changed until the next frame.
+		uint8_t latched_vertical_scroll = 0;
+
+		size_t pattern_name_address;
+		size_t sprite_attribute_table_address;
+		size_t sprite_generator_table_address;
+	} master_system_;
 };
 
 template <Personality personality> struct Base: public Storage<personality> {
@@ -269,40 +301,6 @@ template <Personality personality> struct Base: public Storage<personality> {
 	// with the beginning of writing the next, hence the two separate line buffers.
 	LineBufferPointer read_pointer_, write_pointer_;
 
-	// The SMS VDP has a programmer-set colour palette, with a dedicated patch of RAM. But the RAM is only exactly
-	// fast enough for the pixel clock. So when the programmer writes to it, that causes a one-pixel glitch; there
-	// isn't the bandwidth for the read both write to occur simultaneously. The following buffer therefore keeps
-	// track of pending collisions, for visual reproduction.
-	struct CRAMDot {
-		LineBufferPointer location;
-		uint32_t value;
-	};
-	std::vector<CRAMDot> upcoming_cram_dots_;
-
-	// Extra information that affects the Master System output mode.
-	struct {
-		// Programmer-set flags.
-		bool vertical_scroll_lock = false;
-		bool horizontal_scroll_lock = false;
-		bool hide_left_column = false;
-		bool shift_sprites_8px_left = false;
-		bool mode4_enable = false;
-		uint8_t horizontal_scroll = 0;
-		uint8_t vertical_scroll = 0;
-
-		// The Master System's additional colour RAM.
-		uint32_t colour_ram[32];
-		bool cram_is_selected = false;
-
-		// Holds the vertical scroll position for this frame; this is latched
-		// once and cannot dynamically be changed until the next frame.
-		uint8_t latched_vertical_scroll = 0;
-
-		size_t pattern_name_address;
-		size_t sprite_attribute_table_address;
-		size_t sprite_generator_table_address;
-	} master_system_;
-
 	int masked_address(int address);
 	void write_vram(uint8_t);
 	void write_register(uint8_t);
@@ -319,7 +317,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 		}
 
 		if constexpr (is_sega_vdp(personality)) {
-			if(master_system_.mode4_enable) {
+			if(Storage<personality>::master_system_.mode4_enable) {
 				return ScreenMode::SMSMode4;
 			}
 		}
@@ -356,12 +354,12 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 			case MemoryAccess::Write:
 				if constexpr (is_sega_vdp(personality)) {
-					if(master_system_.cram_is_selected) {
+					if(Storage<personality>::cram_is_selected_) {
 						// Adjust the palette. In a Master System blue has a slightly different
 						// scale; cf. https://www.retrorgb.com/sega-master-system-non-linear-blue-channel-findings.html
 						constexpr uint8_t rg_scale[] = {0, 85, 170, 255};
 						constexpr uint8_t b_scale[] = {0, 104, 170, 255};
-						master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
+						Storage<personality>::colour_ram_[ram_pointer_ & 0x1f] = palette_pack(
 							rg_scale[(read_ahead_buffer_ >> 0) & 3],
 							rg_scale[(read_ahead_buffer_ >> 2) & 3],
 							b_scale[(read_ahead_buffer_ >> 4) & 3]
@@ -370,7 +368,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 						// Schedule a CRAM dot; this is scheduled for wherever it should appear
 						// on screen. So it's wherever the output stream would be now. Which
 						// is output_lag cycles ago from the point of view of the input stream.
-						CRAMDot &dot = upcoming_cram_dots_.emplace_back();
+						auto &dot = Storage<personality>::upcoming_cram_dots_.emplace_back();
 						dot.location.column = write_pointer_.column - output_lag;
 						dot.location.row = write_pointer_.row;
 
@@ -383,7 +381,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 						dot.location.row += dot.location.column / 342;
 						dot.location.column %= 342;
 
-						dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
+						dot.value = Storage<personality>::colour_ram_[ram_pointer_ & 0x1f];
 						break;
 					}
 				}

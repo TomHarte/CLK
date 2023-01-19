@@ -481,12 +481,11 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 template <Personality personality>
 void Base<personality>::output_border(int cycles, [[maybe_unused]] uint32_t cram_dot) {
 	cycles = from_internal<personality, Clock::CRT>(cycles);
-	const uint32_t border_colour =
-		is_sega_vdp(personality) ?
-			master_system_.colour_ram[16 + background_colour_] :
-			palette[background_colour_];
 
+	uint32_t border_colour;
 	if constexpr (is_sega_vdp(personality)) {
+		border_colour = Storage<personality>::colour_ram_[16 + background_colour_];
+
 		if(cram_dot) {
 			uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_.begin_data(1));
 			if(pixel_target) {
@@ -498,6 +497,8 @@ void Base<personality>::output_border(int cycles, [[maybe_unused]] uint32_t cram
 			crt_.output_level(4);
 			cycles -= 4;
 		}
+	} else {
+		border_colour = palette[background_colour_];
 	}
 
 	if(!cycles) {
@@ -562,7 +563,7 @@ void Base<personality>::write_register(uint8_t value) {
 			value &= 0x7f;
 		} else if constexpr (is_sega_vdp(personality)) {
 			if(value & 0x40) {
-				master_system_.cram_is_selected = true;
+				Storage<personality>::cram_is_selected_ = true;
 				return;
 			}
 			value &= 0xf;
@@ -574,12 +575,12 @@ void Base<personality>::write_register(uint8_t value) {
 		switch(value) {
 			case 0:
 				if constexpr (is_sega_vdp(personality)) {
-					master_system_.vertical_scroll_lock = low_write_ & 0x80;
-					master_system_.horizontal_scroll_lock = low_write_ & 0x40;
-					master_system_.hide_left_column = low_write_ & 0x20;
+					Storage<personality>::master_system_.vertical_scroll_lock = low_write_ & 0x80;
+					Storage<personality>::master_system_.horizontal_scroll_lock = low_write_ & 0x40;
+					Storage<personality>::master_system_.hide_left_column = low_write_ & 0x20;
 					enable_line_interrupts_ = low_write_ & 0x10;
-					master_system_.shift_sprites_8px_left = low_write_ & 0x08;
-					master_system_.mode4_enable = low_write_ & 0x04;
+					Storage<personality>::master_system_.shift_sprites_8px_left = low_write_ & 0x08;
+					Storage<personality>::master_system_.mode4_enable = low_write_ & 0x04;
 				}
 				mode2_enable_ = low_write_ & 0x02;
 			break;
@@ -599,7 +600,10 @@ void Base<personality>::write_register(uint8_t value) {
 
 			case 2:
 				pattern_name_address_ = size_t((low_write_ & 0xf) << 10) | 0x3ff;
-				master_system_.pattern_name_address = pattern_name_address_ | ((personality == TMS::SMSVDP) ? 0x000 : 0x400);
+
+				if constexpr (is_sega_vdp(personality)) {
+					Storage<personality>::master_system_.pattern_name_address = pattern_name_address_ | ((personality == TMS::SMSVDP) ? 0x000 : 0x400);
+				}
 			break;
 
 			case 3:
@@ -612,12 +616,16 @@ void Base<personality>::write_register(uint8_t value) {
 
 			case 5:
 				sprite_attribute_table_address_ = size_t((low_write_ & 0x7f) << 7) | 0x7f;
-				master_system_.sprite_attribute_table_address = sprite_attribute_table_address_ | ((personality == TMS::SMSVDP) ? 0x00 : 0x80);
+				if constexpr (is_sega_vdp(personality)) {
+					Storage<personality>::master_system_.sprite_attribute_table_address = sprite_attribute_table_address_ | ((personality == TMS::SMSVDP) ? 0x00 : 0x80);
+				}
 			break;
 
 			case 6:
 				sprite_generator_table_address_ = size_t((low_write_ & 0x07) << 11) | 0x7ff;
-				master_system_.sprite_generator_table_address = sprite_generator_table_address_ | ((personality == TMS::SMSVDP) ? 0x0000 : 0x1800);
+				if constexpr (is_sega_vdp(personality)) {
+					Storage<personality>::master_system_.sprite_generator_table_address = sprite_generator_table_address_ | ((personality == TMS::SMSVDP) ? 0x0000 : 0x1800);
+				}
 			break;
 
 			case 7:
@@ -627,7 +635,7 @@ void Base<personality>::write_register(uint8_t value) {
 
 			case 8:
 				if constexpr (is_sega_vdp(personality)) {
-					master_system_.horizontal_scroll = low_write_;
+					Storage<personality>::master_system_.horizontal_scroll = low_write_;
 				} else {
 					LOG("Unknown TMS write: " << int(low_write_) << " to " << int(value));
 				}
@@ -635,7 +643,7 @@ void Base<personality>::write_register(uint8_t value) {
 
 			case 9:
 				if constexpr (is_sega_vdp(personality)) {
-					master_system_.vertical_scroll = low_write_;
+					Storage<personality>::master_system_.vertical_scroll = low_write_;
 				} else {
 					LOG("Unknown TMS write: " << int(low_write_) << " to " << int(value));
 				}
@@ -667,7 +675,10 @@ void Base<personality>::write_register(uint8_t value) {
 			queued_access_ = MemoryAccess::Read;
 			cycles_until_access_ = Timing<personality>::VRAMAccessDelay;
 		}
-		master_system_.cram_is_selected = false;
+
+		if constexpr (is_sega_vdp(personality)) {
+			Storage<personality>::cram_is_selected_ = false;
+		}
 	}
 }
 
@@ -897,5 +908,5 @@ template class TI::TMS::TMS9918<Personality::V9938>;
 //template class TI::TMS::TMS9918<Personality::V9958>;
 template class TI::TMS::TMS9918<Personality::SMSVDP>;
 template class TI::TMS::TMS9918<Personality::SMS2VDP>;
-template class TI::TMS::TMS9918<Personality::GGVDP>;
+//template class TI::TMS::TMS9918<Personality::GGVDP>;
 //template class TI::TMS::TMS9918<Personality::MDVDP>;

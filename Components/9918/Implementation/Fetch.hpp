@@ -319,15 +319,17 @@ template<bool use_end> void Base<personality>::fetch_tms_character(int start, in
 
 template <Personality personality>
 template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
+	if constexpr (is_sega_vdp(personality)) {
+
 #define sprite_fetch(sprite)	{\
 		line_buffer.active_sprites[sprite].x = \
 			ram_[\
-				master_system_.sprite_attribute_table_address & size_t(0x3f80 | (line_buffer.active_sprites[sprite].index << 1))\
-			] - (master_system_.shift_sprites_8px_left ? 8 : 0);	\
+				Storage<personality>::master_system_.sprite_attribute_table_address & size_t(0x3f80 | (line_buffer.active_sprites[sprite].index << 1))\
+			] - (Storage<personality>::master_system_.shift_sprites_8px_left ? 8 : 0);	\
 		const uint8_t name = ram_[\
-				master_system_.sprite_attribute_table_address & size_t(0x3f81 | (line_buffer.active_sprites[sprite].index << 1))\
+				Storage<personality>::master_system_.sprite_attribute_table_address & size_t(0x3f81 | (line_buffer.active_sprites[sprite].index << 1))\
 			] & (sprites_16x16_ ? ~1 : ~0);\
-		const size_t graphic_location = master_system_.sprite_generator_table_address & size_t(0x2000 | (name << 5) | (line_buffer.active_sprites[sprite].row << 2));	\
+		const size_t graphic_location = Storage<personality>::master_system_.sprite_generator_table_address & size_t(0x2000 | (name << 5) | (line_buffer.active_sprites[sprite].row << 2));	\
 		line_buffer.active_sprites[sprite].image[0] = ram_[graphic_location];	\
 		line_buffer.active_sprites[sprite].image[1] = ram_[graphic_location+1];	\
 		line_buffer.active_sprites[sprite].image[2] = ram_[graphic_location+2];	\
@@ -346,8 +348,8 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 
 #define sprite_y_read(location, sprite)	\
 	slot(location):	\
-		posit_sprite(sprite_selection_buffer, sprite, ram_[master_system_.sprite_attribute_table_address & ((sprite) | 0x3f00)], write_pointer_.row);	\
-		posit_sprite(sprite_selection_buffer, sprite+1, ram_[master_system_.sprite_attribute_table_address & ((sprite + 1) | 0x3f00)], write_pointer_.row);	\
+		posit_sprite(sprite_selection_buffer, sprite, ram_[Storage<personality>::master_system_.sprite_attribute_table_address & ((sprite) | 0x3f00)], write_pointer_.row);	\
+		posit_sprite(sprite_selection_buffer, sprite+1, ram_[Storage<personality>::master_system_.sprite_attribute_table_address & ((sprite + 1) | 0x3f00)], write_pointer_.row);	\
 
 #define fetch_tile_name(column, row_info)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
@@ -391,16 +393,16 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 	// Determine the coarse horizontal scrolling offset; this isn't applied on the first two lines if the programmer has requested it.
 	LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
 	LineBuffer &sprite_selection_buffer = line_buffers_[(write_pointer_.row + 1) % mode_timing_.total_lines];
-	const int horizontal_offset = (write_pointer_.row >= 16 || !master_system_.horizontal_scroll_lock) ? (line_buffer.latched_horizontal_scroll >> 3) : 0;
+	const int horizontal_offset = (write_pointer_.row >= 16 || !Storage<personality>::master_system_.horizontal_scroll_lock) ? (line_buffer.latched_horizontal_scroll >> 3) : 0;
 
 	// Limit address bits in use if this is a SMS2 mode.
 	const bool is_tall_mode = mode_timing_.pixel_lines != 192;
-	const size_t pattern_name_address = master_system_.pattern_name_address | (is_tall_mode ? 0x800 : 0);
+	const size_t pattern_name_address = Storage<personality>::master_system_.pattern_name_address | (is_tall_mode ? 0x800 : 0);
 	const size_t pattern_name_offset = is_tall_mode ? 0x100 : 0;
 
 	// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
 	// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
-	const int scrolled_row = (write_pointer_.row + master_system_.latched_vertical_scroll) % (is_tall_mode ? 256 : 224);
+	const int scrolled_row = (write_pointer_.row + Storage<personality>::master_system_.latched_vertical_scroll) % (is_tall_mode ? 256 : 224);
 	struct RowInfo {
 		size_t pattern_address_base;
 		size_t sub_row[2];
@@ -410,7 +412,7 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 		{size_t((scrolled_row & 7) << 2), 28 ^ size_t((scrolled_row & 7) << 2)}
 	};
 	RowInfo row_info;
-	if(master_system_.vertical_scroll_lock) {
+	if(Storage<personality>::master_system_.vertical_scroll_lock) {
 		row_info.pattern_address_base = (pattern_name_address & size_t(((write_pointer_.row & ~7) << 3) | 0x3800)) - pattern_name_offset;
 		row_info.sub_row[0] = size_t((write_pointer_.row & 7) << 2);
 		row_info.sub_row[1] = 28 ^ size_t((write_pointer_.row & 7) << 2);
@@ -463,6 +465,7 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 #undef sprite_y_read
 #undef sprite_fetch_block
 #undef sprite_fetch
+	}
 }
 
 // MARK: - Yamaha
