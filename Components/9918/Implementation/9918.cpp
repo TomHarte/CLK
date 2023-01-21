@@ -674,6 +674,8 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// b4: enable horizontal retrace interrupt
 				// b5: enable light pen interrupts
 				// b6: set colour bus to input or output mode
+
+				LOG("Screen mode: " << int(current_screen_mode()));
 			break;
 
 			case 1:
@@ -682,6 +684,8 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					((value & 0x10) >> 4) |
 					((value & 0x08) >> 2)
 				);
+
+				LOG("Screen mode: " << int(current_screen_mode()));
 			break;
 
 			case 8:
