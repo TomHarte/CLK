@@ -541,6 +541,257 @@ void Base<personality>::write_vram(uint8_t value) {
 }
 
 template <Personality personality>
+void Base<personality>::commit_register(int reg, uint8_t value) {
+	if constexpr (is_yamaha_vdp(personality)) {
+		reg &= 0x3f;
+	} else if constexpr (is_sega_vdp(personality)) {
+		if(reg & 0x40) {
+			Storage<personality>::cram_is_selected_ = true;
+			return;
+		}
+		reg &= 0xf;
+	} else {
+		reg &= 0x7;
+	}
+
+	// This is a write to a register; handle all generic
+	// TMS registers here (with potential extra bits).
+	switch(reg) {
+		case 0:
+			mode2_enable_ = value & 0x02;
+		break;
+
+		case 1:
+			blank_display_ = !(value & 0x40);
+			generate_interrupts_ = value & 0x20;
+			mode1_enable_ = value & 0x10;
+			mode3_enable_ = value & 0x08;
+			sprites_16x16_ = value & 0x02;
+			sprites_magnified_ = value & 0x01;
+
+			sprite_height_ = 8;
+			if(sprites_16x16_) sprite_height_ <<= 1;
+			if(sprites_magnified_) sprite_height_ <<= 1;
+		break;
+
+		case 2:
+			pattern_name_address_ = size_t((value & 0xf) << 10) | 0x3ff;
+		break;
+
+		case 3:
+			colour_table_address_ = size_t(value << 6) | 0x3f;
+		break;
+
+		case 4:
+			pattern_generator_table_address_ = size_t((value & 0x07) << 11) | 0x7ff;
+		break;
+
+		case 5:
+			sprite_attribute_table_address_ = size_t((value & 0x7f) << 7) | 0x7f;
+		break;
+
+		case 6:
+			sprite_generator_table_address_ = size_t((value & 0x07) << 11) | 0x7ff;
+		break;
+
+		case 7:
+			text_colour_ = value >> 4;
+			background_colour_ = value & 0xf;
+		break;
+
+		default: break;
+	}
+
+	if constexpr (is_sega_vdp(personality)) {
+		switch(reg) {
+			default: break;
+
+			case 0:
+				Storage<personality>::vertical_scroll_lock_ = value & 0x80;
+				Storage<personality>::horizontal_scroll_lock_ = value & 0x40;
+				Storage<personality>::hide_left_column_ = value & 0x20;
+				enable_line_interrupts_ = value & 0x10;
+				Storage<personality>::shift_sprites_8px_left_ = value & 0x08;
+				Storage<personality>::mode4_enable_ = value & 0x04;
+			break;
+
+			case 2:
+				Storage<personality>::pattern_name_address_ = pattern_name_address_ | ((personality == TMS::SMSVDP) ? 0x000 : 0x400);
+			break;
+
+			case 5:
+				Storage<personality>::sprite_attribute_table_address_ = sprite_attribute_table_address_ | ((personality == TMS::SMSVDP) ? 0x00 : 0x80);
+			break;
+
+			case 6:
+				Storage<personality>::sprite_generator_table_address_ = sprite_generator_table_address_ | ((personality == TMS::SMSVDP) ? 0x0000 : 0x1800);
+			break;
+
+			case 8:
+				Storage<personality>::horizontal_scroll_ = value;
+			break;
+
+			case 9:
+				Storage<personality>::vertical_scroll_ = value;
+			break;
+
+			case 10:
+				line_interrupt_target_ = value;
+			break;
+		}
+	}
+
+	if constexpr (is_yamaha_vdp(personality)) {
+		switch(reg) {
+			default: break;
+
+			case 0:
+				LOG("TODO: Yamaha additional mode selection; " << PADHEX(2) << +value);
+				// b1–b3: M3–M5
+				// b4: enable horizontal retrace interrupt
+				// b5: enable light pen interrupts
+				// b6: set colour bus to input or output mode
+			break;
+
+			case 8:
+				LOG("TODO: Yamaha VRAM organisation, sprite disable, etc; " << PADHEX(2) << +value);
+				// b7: "1 = input on colour bus, enable mouse; 1 = output on colour bus, disable mouse" [documentation clearly in error]
+				// b6: 1 = enable light pen
+				// b5: sets the colour of code 0 to the colour of the palette (???)
+				// b4: 1 = colour bus in input mode; 0 = colour bus in output mode
+				// b3: 1 = VRAM is 64kx1 or 64kx4; 0 = 16kx1 or 16kx4; affects refresh.
+				// b1: 1 = disable sprites (and release sprite access slots)
+				// b0: 1 = output in grayscale
+			break;
+
+			case 9:
+				LOG("TODO: Yamaha line count, interlace, etc; " << PADHEX(2) << +value);
+				// b7: 1 = 212 lines of pixels; 0 = 192
+				// b5 & b4: select simultaneous mode (seems to relate to line length and in-phase colour?)
+				// b3: 1 = interlace on
+				// b2: 1 = display two graphic screens interchangeably by even/odd field
+				// b1: 1 = PAL mode; 0 = NTSC mode
+				// b0: 1 = [dot clock] DLCLK is input; 0 = DLCLK is output
+			break;
+
+			case 10:
+				LOG("TODO: Yamaha colour table high bits; " << PADHEX(2) << +value);
+				// b0–b2: A14–A16 of the colour table.
+			break;
+
+			case 11:
+				LOG("TODO: Yamaha sprite table high bits; " << PADHEX(2) << +value);
+				// b0–b1: A15–A16 of the sprite table.
+			break;
+
+			case 12:
+				LOG("TODO: Yamaha text and background blink colour; " << PADHEX(2) << +value);
+				// as per register 7, but in blink mode.
+			break;
+
+			case 13:
+				LOG("TODO: Yamaha blink display times; " << PADHEX(2) << +value);
+				// b0–b3: display time for odd page;
+				// b4–b7: display time for even page.
+			break;
+
+			case 14:
+				LOG("TODO: Yamaha A14–A16 selection; " << PADHEX(2) << +value);
+				// b0–b2: A14–A16 of address counter (i.e. ram_pointer_)
+			break;
+
+			case 15:
+				Storage<personality>::selected_status_ = value & 0xf;
+			break;
+
+			case 16:
+				LOG("TODO: Yamaha palette index selection; " << PADHEX(2) << +value);
+				// b0–b3: palette entry for writing on port 2; autoincrements upon every write.
+			break;
+
+			case 17:
+				Storage<personality>::increment_indirect_register_ = !(value & 0x80);
+				Storage<personality>::indirect_register_ = value & 0x3f;
+			break;
+
+			case 18:
+				LOG("TODO: Yamaha position adjustment; " << PADHEX(2) << +value);
+				// b0-b3: horizontal adjustment
+				// b4-b7: vertical adjustment
+			break;
+
+			case 19:
+				LOG("TODO: Yamaha interrupt line; " << PADHEX(2) << +value);
+				// b0–b7: line to match for interrupts (if eabled)
+			break;
+
+			case 20:
+			case 21:
+			case 22:
+				LOG("TODO: Yamaha colour burst selection; " << PADHEX(2) << +value);
+				// Documentation is "fill with 0s for no colour burst; magic pattern for colour burst"
+			break;
+
+			case 23:
+				LOG("TODO: Yamaha vertical offset; " << PADHEX(2) << +value);
+				// i.e. scrolling.
+			break;
+
+			case 32:
+			case 33:
+				LOG("TODO: Yamaha command source x; " << PADHEX(2) << +value);
+			break;
+
+			case 34:
+			case 35:
+				LOG("TODO: Yamaha command source y; " << PADHEX(2) << +value);
+			break;
+
+			case 36:
+			case 37:
+				LOG("TODO: Yamaha command destination x; " << PADHEX(2) << +value);
+			break;
+
+			case 38:
+			case 39:
+				LOG("TODO: Yamaha command destination y; " << PADHEX(2) << +value);
+			break;
+
+			case 40:
+			case 41:
+				LOG("TODO: Yamaha command size x; " << PADHEX(2) << +value);
+			break;
+
+			case 42:
+			case 43:
+				LOG("TODO: Yamaha command size y; " << PADHEX(2) << +value);
+			break;
+
+			case 44:
+				LOG("TODO: Yamaha command colour; " << PADHEX(2) << +value);
+			break;
+
+			case 45:
+				LOG("TODO: Yamaha VRAM bank selection addressing and command arguments; " << PADHEX(2) << +value);
+				// b6: 0 = video RAM; 1 = expandion RAM.
+				// b5: MXD (???)
+				// b4: MXS
+				// b3: DIY
+				// b2: DIX
+				// b1: EQ
+				// b0: MAJ
+			break;
+
+			case 46:
+				LOG("TODO: Yamaha command; " << PADHEX(2) << +value);
+				// b0–b3: LO0–LO3 (???)
+				// b4–b7: CM0-CM3 (???)
+			break;
+		}
+	}
+}
+
+template <Personality personality>
 void Base<personality>::write_register(uint8_t value) {
 	// Writes to address 1 are performed in pairs; if this is the
 	// low byte of a value, store it and wait for the high byte.
@@ -559,253 +810,7 @@ void Base<personality>::write_register(uint8_t value) {
 
 	write_phase_ = false;
 	if(value & 0x80) {
-		if constexpr (is_yamaha_vdp(personality)) {
-			value &= 0x3f;
-		} else if constexpr (is_sega_vdp(personality)) {
-			if(value & 0x40) {
-				Storage<personality>::cram_is_selected_ = true;
-				return;
-			}
-			value &= 0xf;
-		} else {
-			value &= 0x7;
-		}
-
-		// This is a write to a register; handle all generic
-		// TMS registers here (with potential extra bits).
-		switch(value) {
-			case 0:
-				mode2_enable_ = low_write_ & 0x02;
-			break;
-
-			case 1:
-				blank_display_ = !(low_write_ & 0x40);
-				generate_interrupts_ = low_write_ & 0x20;
-				mode1_enable_ = low_write_ & 0x10;
-				mode3_enable_ = low_write_ & 0x08;
-				sprites_16x16_ = low_write_ & 0x02;
-				sprites_magnified_ = low_write_ & 0x01;
-
-				sprite_height_ = 8;
-				if(sprites_16x16_) sprite_height_ <<= 1;
-				if(sprites_magnified_) sprite_height_ <<= 1;
-			break;
-
-			case 2:
-				pattern_name_address_ = size_t((low_write_ & 0xf) << 10) | 0x3ff;
-			break;
-
-			case 3:
-				colour_table_address_ = size_t(low_write_ << 6) | 0x3f;
-			break;
-
-			case 4:
-				pattern_generator_table_address_ = size_t((low_write_ & 0x07) << 11) | 0x7ff;
-			break;
-
-			case 5:
-				sprite_attribute_table_address_ = size_t((low_write_ & 0x7f) << 7) | 0x7f;
-			break;
-
-			case 6:
-				sprite_generator_table_address_ = size_t((low_write_ & 0x07) << 11) | 0x7ff;
-			break;
-
-			case 7:
-				text_colour_ = low_write_ >> 4;
-				background_colour_ = low_write_ & 0xf;
-			break;
-
-			default: break;
-		}
-
-		if constexpr (is_sega_vdp(personality)) {
-			switch(value) {
-				default: break;
-
-				case 0:
-					Storage<personality>::vertical_scroll_lock_ = low_write_ & 0x80;
-					Storage<personality>::horizontal_scroll_lock_ = low_write_ & 0x40;
-					Storage<personality>::hide_left_column_ = low_write_ & 0x20;
-					enable_line_interrupts_ = low_write_ & 0x10;
-					Storage<personality>::shift_sprites_8px_left_ = low_write_ & 0x08;
-					Storage<personality>::mode4_enable_ = low_write_ & 0x04;
-				break;
-
-				case 2:
-					Storage<personality>::pattern_name_address_ = pattern_name_address_ | ((personality == TMS::SMSVDP) ? 0x000 : 0x400);
-				break;
-
-				case 5:
-					Storage<personality>::sprite_attribute_table_address_ = sprite_attribute_table_address_ | ((personality == TMS::SMSVDP) ? 0x00 : 0x80);
-				break;
-
-				case 6:
-					Storage<personality>::sprite_generator_table_address_ = sprite_generator_table_address_ | ((personality == TMS::SMSVDP) ? 0x0000 : 0x1800);
-				break;
-
-				case 8:
-					Storage<personality>::horizontal_scroll_ = low_write_;
-				break;
-
-				case 9:
-					Storage<personality>::vertical_scroll_ = low_write_;
-				break;
-
-				case 10:
-					line_interrupt_target_ = low_write_;
-				break;
-			}
-		}
-
-		if constexpr (is_yamaha_vdp(personality)) {
-			switch(value) {
-				default: break;
-
-				case 0:
-					LOG("TODO: Yamaha additional mode selection; " << PADHEX(2) << +low_write_);
-					// b1–b3: M3–M5
-					// b4: enable horizontal retrace interrupt
-					// b5: enable light pen interrupts
-					// b6: set colour bus to input or output mode
-				break;
-
-				case 8:
-					LOG("TODO: Yamaha VRAM organisation, sprite disable, etc; " << PADHEX(2) << +low_write_);
-					// b7: "1 = input on colour bus, enable mouse; 1 = output on colour bus, disable mouse" [documentation clearly in error]
-					// b6: 1 = enable light pen
-					// b5: sets the colour of code 0 to the colour of the palette (???)
-					// b4: 1 = colour bus in input mode; 0 = colour bus in output mode
-					// b3: 1 = VRAM is 64kx1 or 64kx4; 0 = 16kx1 or 16kx4; affects refresh.
-					// b1: 1 = disable sprites (and release sprite access slots)
-					// b0: 1 = output in grayscale
-				break;
-
-				case 9:
-					LOG("TODO: Yamaha line count, interlace, etc; " << PADHEX(2) << +low_write_);
-					// b7: 1 = 212 lines of pixels; 0 = 192
-					// b5 & b4: select simultaneous mode (seems to relate to line length and in-phase colour?)
-					// b3: 1 = interlace on
-					// b2: 1 = display two graphic screens interchangeably by even/odd field
-					// b1: 1 = PAL mode; 0 = NTSC mode
-					// b0: 1 = [dot clock] DLCLK is input; 0 = DLCLK is output
-				break;
-
-				case 10:
-					LOG("TODO: Yamaha colour table high bits; " << PADHEX(2) << +low_write_);
-					// b0–b2: A14–A16 of the colour table.
-				break;
-
-				case 11:
-					LOG("TODO: Yamaha sprite table high bits; " << PADHEX(2) << +low_write_);
-					// b0–b1: A15–A16 of the sprite table.
-				break;
-
-				case 12:
-					LOG("TODO: Yamaha text and background blink colour; " << PADHEX(2) << +low_write_);
-					// as per register 7, but in blink mode.
-				break;
-
-				case 13:
-					LOG("TODO: Yamaha blink display times; " << PADHEX(2) << +low_write_);
-					// b0–b3: display time for odd page;
-					// b4–b7: display time for even page.
-				break;
-
-				case 14:
-					LOG("TODO: Yamaha A14–A16 selection; " << PADHEX(2) << +low_write_);
-					// b0–b2: A14–A16 of address counter (i.e. ram_pointer_)
-				break;
-
-				case 15:
-					Storage<personality>::selected_status_ = low_write_ & 0xf;
-				break;
-
-				case 16:
-					LOG("TODO: Yamaha palette index selection; " << PADHEX(2) << +low_write_);
-					// b0–b3: palette entry for writing on port 2; autoincrements upon every write.
-				break;
-
-				case 17:
-					Storage<personality>::increment_indirect_register_ = !(low_write_ & 0x80);
-					Storage<personality>::indirect_register_ = low_write_ & 0x3f;
-				break;
-
-				case 18:
-					LOG("TODO: Yamaha position adjustment; " << PADHEX(2) << +low_write_);
-					// b0-b3: horizontal adjustment
-					// b4-b7: vertical adjustment
-				break;
-
-				case 19:
-					LOG("TODO: Yamaha interrupt line; " << PADHEX(2) << +low_write_);
-					// b0–b7: line to match for interrupts (if eabled)
-				break;
-
-				case 20:
-				case 21:
-				case 22:
-					LOG("TODO: Yamaha colour burst selection; " << PADHEX(2) << +low_write_);
-					// Documentation is "fill with 0s for no colour burst; magic pattern for colour burst"
-				break;
-
-				case 23:
-					LOG("TODO: Yamaha vertical offset; " << PADHEX(2) << +low_write_);
-					// i.e. scrolling.
-				break;
-
-				case 32:
-				case 33:
-					LOG("TODO: Yamaha command source x; " << PADHEX(2) << +low_write_);
-				break;
-
-				case 34:
-				case 35:
-					LOG("TODO: Yamaha command source y; " << PADHEX(2) << +low_write_);
-				break;
-
-				case 36:
-				case 37:
-					LOG("TODO: Yamaha command destination x; " << PADHEX(2) << +low_write_);
-				break;
-
-				case 38:
-				case 39:
-					LOG("TODO: Yamaha command destination y; " << PADHEX(2) << +low_write_);
-				break;
-
-				case 40:
-				case 41:
-					LOG("TODO: Yamaha command size x; " << PADHEX(2) << +low_write_);
-				break;
-
-				case 42:
-				case 43:
-					LOG("TODO: Yamaha command size y; " << PADHEX(2) << +low_write_);
-				break;
-
-				case 44:
-					LOG("TODO: Yamaha command colour; " << PADHEX(2) << +low_write_);
-				break;
-
-				case 45:
-					LOG("TODO: Yamaha VRAM bank selection addressing and command arguments; " << PADHEX(2) << +low_write_);
-					// b6: 0 = video RAM; 1 = expandion RAM.
-					// b5: MXD (???)
-					// b4: MXS
-					// b3: DIY
-					// b2: DIX
-					// b1: EQ
-					// b0: MAJ
-				break;
-
-				case 46:
-					LOG("TODO: Yamaha command; " << PADHEX(2) << +low_write_);
-					// b0–b3: LO0–LO3 (???)
-					// b4–b7: CM0-CM3 (???)
-				break;
-			}
-		}
+		commit_register(value, low_write_);
 	} else {
 		// This is an access via the RAM pointer.
 		if(!(value & 0x40)) {
@@ -830,11 +835,11 @@ void Base<personality>::write_palette(uint8_t value) {
 template <Personality personality>
 void Base<personality>::write_register_indirect([[maybe_unused]] uint8_t value) {
 	if constexpr (is_yamaha_vdp(personality)) {
-		LOG("TODO: indirect write of " << PADHEX(2) << +value << " to " << PADHEX(2) << Storage<personality>::indirect_register_);
-
-		if(Storage<personality>::increment_indirect_register_) {
-			Storage<personality>::indirect_register_ = (Storage<personality>::indirect_register_ + 1) & 0x3f;
+		// Register 17 cannot be written to indirectly.
+		if(Storage<personality>::indirect_register_ != 17) {
+			commit_register(Storage<personality>::indirect_register_, value);
 		}
+		Storage<personality>::indirect_register_ += Storage<personality>::increment_indirect_register_;
 	}
 }
 

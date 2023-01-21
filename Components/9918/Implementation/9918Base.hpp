@@ -319,6 +319,8 @@ template <Personality personality> struct Base: public Storage<personality> {
 	uint8_t read_palette();
 	uint8_t read_register_indirect();
 
+	void commit_register(int reg, uint8_t value);
+
 	ScreenMode current_screen_mode() const {
 		if(blank_display_) {
 			return ScreenMode::Blank;
