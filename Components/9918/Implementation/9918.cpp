@@ -554,8 +554,9 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 		reg &= 0x7;
 	}
 
-	// This is a write to a register; handle all generic
-	// TMS registers here (with potential extra bits).
+	//
+	// Generic TMS functionality.
+	//
 	switch(reg) {
 		case 0:
 			mode2_enable_ = value & 0x02;
@@ -602,6 +603,9 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 		default: break;
 	}
 
+	//
+	// Sega extensions.
+	//
 	if constexpr (is_sega_vdp(personality)) {
 		switch(reg) {
 			default: break;
@@ -641,6 +645,9 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 		}
 	}
 
+	//
+	// Yamaha extensions.
+	//
 	if constexpr (is_yamaha_vdp(personality)) {
 		switch(reg) {
 			default: break;
@@ -705,7 +712,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			break;
 
 			case 16:
-				LOG("TODO: Yamaha palette index selection; " << PADHEX(2) << +value);
+				Storage<personality>::palette_entry_ = value;
 				// b0–b3: palette entry for writing on port 2; autoincrements upon every write.
 			break;
 
@@ -828,8 +835,23 @@ void Base<personality>::write_register(uint8_t value) {
 
 template <Personality personality>
 void Base<personality>::write_palette(uint8_t value) {
-	LOG("Palette write TODO");
-	(void)value;
+	if constexpr (is_yamaha_vdp(personality)) {
+		if(!write_phase_) {
+			Storage<personality>::new_colour_ = value;
+			write_phase_ = true;
+			return;
+		}
+
+		write_phase_ = false;
+
+		// TODO: the below scales the palette into the range 0–252 rather than 0–255; correct.
+		const uint8_t r = ((Storage<personality>::new_colour_ >> 4) & 7) * 36;
+		const uint8_t g = (value & 7) * 36;
+		const uint8_t b = (Storage<personality>::new_colour_ & 7) * 36;
+
+		Storage<personality>::palette_[Storage<personality>::palette_entry_ & 0xf] = palette_pack(r, g, b);
+		++Storage<personality>::palette_entry_;
+	}
 }
 
 template <Personality personality>

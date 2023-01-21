@@ -131,6 +131,10 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 	int indirect_register_ = 0;
 	bool increment_indirect_register_ = false;
+
+	uint32_t palette_[16]{};
+	uint8_t new_colour_ = 0;
+	uint8_t palette_entry_ = 0;
 };
 
 // Master System-specific storage.
