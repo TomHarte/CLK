@@ -292,7 +292,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 				if(
 					(this->screen_mode_ == ScreenMode::Blank) ||
-					(this->fetch_pointer_.row >= this->mode_timing_.pixel_lines && this->fetch_pointer_.row != this->mode_timing_.total_lines-1))
+					this->is_vertical_blank())
 						next_line_buffer.line_mode = LineMode::Refresh;
 			}
 		}
@@ -521,7 +521,7 @@ void Base<personality>::output_border(int cycles, [[maybe_unused]] uint32_t cram
 // MARK: - External interface.
 
 template <Personality personality>
-int Base<personality>::masked_address(int address) {
+int Base<personality>::masked_address(int address) const {
 	if constexpr (is_yamaha_vdp(personality)) {
 		return address & 3;
 	} else {
@@ -728,9 +728,9 @@ uint8_t Base<personality>::read_register() {
 				// b1 = display field odd/even
 				// b0 = command ongoing
 				return
-					queued_access_ == MemoryAccess::None ? 0x80 : 0x00 |
-					0x40 |
-					0x20;
+					(queued_access_ == MemoryAccess::None ? 0x80 : 0x00) |
+					(is_vertical_blank() ? 0x40 : 0x00) |
+					(is_horizontal_blank() ? 0x20 : 0x00);
 
 			break;
 		}
@@ -772,13 +772,29 @@ uint8_t TMS9918<personality>::read(int address) {
 // MARK: - Ephemeral state.
 
 template <Personality personality>
-uint8_t TMS9918<personality>::get_current_line() const {
-	// Determine the row to return.
-	constexpr int row_change_position = 63;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
-	int source_row =
+int Base<personality>::fetch_line() const {
+	// This is the proper Master System value; TODO: what's correct for Yamaha, etc?
+	constexpr int row_change_position = 63;
+
+	return
 		(this->fetch_pointer_.column < row_change_position)
 			? (this->fetch_pointer_.row + this->mode_timing_.total_lines - 1) % this->mode_timing_.total_lines
 			: this->fetch_pointer_.row;
+}
+
+template <Personality personality>
+bool Base<personality>::is_vertical_blank() const {
+	return fetch_pointer_.row >= mode_timing_.pixel_lines && fetch_pointer_.row != mode_timing_.total_lines - 1;
+}
+
+template <Personality personality>
+bool Base<personality>::is_horizontal_blank() const {
+	return fetch_pointer_.column < StandardTiming<personality>::FirstPixelCycle;
+}
+
+template <Personality personality>
+uint8_t TMS9918<personality>::get_current_line() const {
+	int source_row = this->fetch_line();
 
 	if(this->tv_standard_ == TVStandard::NTSC) {
 		if(this->mode_timing_.pixel_lines == 240) {

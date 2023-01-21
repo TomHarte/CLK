@@ -302,7 +302,11 @@ template <Personality personality> struct Base: public Storage<personality> {
 	// with the beginning of writing the next, hence the two separate line buffers.
 	LineBufferPointer output_pointer_, fetch_pointer_;
 
-	int masked_address(int address);
+	int fetch_line() const;
+	bool is_vertical_blank() const;
+	bool is_horizontal_blank() const;
+
+	int masked_address(int address) const;
 	void write_vram(uint8_t);
 	void write_register(uint8_t);
 	void write_palette(uint8_t);
