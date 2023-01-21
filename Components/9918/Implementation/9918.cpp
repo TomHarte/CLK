@@ -39,10 +39,10 @@ Base<personality>::Base() :
 
 	// Establish that output is delayed after reading by `output_lag` cycles; start
 	// at a random position.
-	read_pointer_.row = rand() % 262;
-	read_pointer_.column = rand() % (Timing<personality>::CyclesPerLine - output_lag);
-	write_pointer_.row = read_pointer_.row;
-	write_pointer_.column = read_pointer_.column + output_lag;
+	fetch_pointer_.row = rand() % 262;
+	fetch_pointer_.column = rand() % (Timing<personality>::CyclesPerLine - output_lag);
+	output_pointer_.row = output_pointer_.row;
+	output_pointer_.column = output_pointer_.column + output_lag;
 }
 
 template <Personality personality>
@@ -155,20 +155,20 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 	while(write_cycles_pool || read_cycles_pool) {
 #ifndef NDEBUG
-		LineBufferPointer backup = this->read_pointer_;
+		LineBufferPointer backup = this->output_pointer_;
 #endif
 
 		if(write_cycles_pool) {
 			// Determine how much writing to do.
 			const int write_cycles = std::min(
-				Timing<personality>::CyclesPerLine - this->write_pointer_.column,
+				Timing<personality>::CyclesPerLine - this->fetch_pointer_.column,
 				write_cycles_pool
 			);
-			const int end_column = this->write_pointer_.column + write_cycles;
-			LineBuffer &line_buffer = this->line_buffers_[this->write_pointer_.row];
+			const int end_column = this->fetch_pointer_.column + write_cycles;
+			LineBuffer &line_buffer = this->line_buffers_[this->fetch_pointer_.row];
 
 			// Determine what this does to any enqueued VRAM access.
-			this->minimum_access_column_ = this->write_pointer_.column + this->cycles_until_access_;
+			this->minimum_access_column_ = this->fetch_pointer_.column + this->cycles_until_access_;
 			this->cycles_until_access_ -= write_cycles;
 
 
@@ -176,8 +176,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// Latch scrolling position, if necessary.
 			// ---------------------------------------
 			if constexpr (is_sega_vdp(personality)) {
-				if(this->write_pointer_.column < 61 && end_column >= 61) {
-					if(!this->write_pointer_.row) {
+				if(this->fetch_pointer_.column < 61 && end_column >= 61) {
+					if(!this->fetch_pointer_.row) {
 						Storage<personality>::latched_vertical_scroll_ = Storage<personality>::vertical_scroll_;
 
 						if(Storage<personality>::mode4_enable_) {
@@ -201,7 +201,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// Perform memory accesses.
 			// ------------------------
 #define fetch(function, clock)																\
-	const int first_window = from_internal<personality, clock>(this->write_pointer_.column);\
+	const int first_window = from_internal<personality, clock>(this->fetch_pointer_.column);\
 	const int final_window = from_internal<personality, clock>(end_column);					\
 	if(first_window == final_window) break;													\
 	if(final_window != clock_rate<personality, clock>()) {									\
@@ -224,12 +224,12 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// -------------------------------
 			// Check for interrupt conditions.
 			// -------------------------------
-			if(this->write_pointer_.column < this->mode_timing_.line_interrupt_position && end_column >= this->mode_timing_.line_interrupt_position) {
+			if(this->fetch_pointer_.column < this->mode_timing_.line_interrupt_position && end_column >= this->mode_timing_.line_interrupt_position) {
 				// The Sega VDP offers a decrementing counter for triggering line interrupts;
 				// it is reloaded either when it overflows or upon every non-pixel line after the first.
 				// It is otherwise decremented.
 				if constexpr (is_sega_vdp(personality)) {
-					if(this->write_pointer_.row >= 0 && this->write_pointer_.row <= this->mode_timing_.pixel_lines) {
+					if(this->fetch_pointer_.row >= 0 && this->fetch_pointer_.row <= this->mode_timing_.pixel_lines) {
 						--this->line_interrupt_counter_;
 						if(this->line_interrupt_counter_ == 0xff) {
 							this->line_interrupt_pending_ = true;
@@ -245,8 +245,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			}
 
 			if(
-				this->write_pointer_.row == this->mode_timing_.end_of_frame_interrupt_position.row &&
-				this->write_pointer_.column < this->mode_timing_.end_of_frame_interrupt_position.column &&
+				this->fetch_pointer_.row == this->mode_timing_.end_of_frame_interrupt_position.row &&
+				this->fetch_pointer_.column < this->mode_timing_.end_of_frame_interrupt_position.column &&
 				end_column >= this->mode_timing_.end_of_frame_interrupt_position.column
 			) {
 				this->status_ |= StatusInterrupt;
@@ -257,13 +257,13 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// -------------
 			// Advance time.
 			// -------------
-			this->write_pointer_.column = end_column;
+			this->fetch_pointer_.column = end_column;
 			write_cycles_pool -= write_cycles;
 
-			if(this->write_pointer_.column == Timing<personality>::CyclesPerLine) {
-				this->write_pointer_.column = 0;
-				this->write_pointer_.row = (this->write_pointer_.row + 1) % this->mode_timing_.total_lines;
-				LineBuffer &next_line_buffer = this->line_buffers_[this->write_pointer_.row];
+			if(this->fetch_pointer_.column == Timing<personality>::CyclesPerLine) {
+				this->fetch_pointer_.column = 0;
+				this->fetch_pointer_.row = (this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines;
+				LineBuffer &next_line_buffer = this->line_buffers_[this->fetch_pointer_.row];
 
 				// Establish the current screen output mode, which will be captured as a
 				// line mode momentarily.
@@ -292,22 +292,22 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 				if(
 					(this->screen_mode_ == ScreenMode::Blank) ||
-					(this->write_pointer_.row >= this->mode_timing_.pixel_lines && this->write_pointer_.row != this->mode_timing_.total_lines-1))
+					(this->fetch_pointer_.row >= this->mode_timing_.pixel_lines && this->fetch_pointer_.row != this->mode_timing_.total_lines-1))
 						next_line_buffer.line_mode = LineMode::Refresh;
 			}
 		}
 
 
 #ifndef NDEBUG
-		assert(backup.row == this->read_pointer_.row && backup.column == this->read_pointer_.column);
-		backup = this->write_pointer_;
+		assert(backup.row == this->output_pointer_.row && backup.column == this->output_pointer_.column);
+		backup = this->fetch_pointer_;
 #endif
 
 
 		if(read_cycles_pool) {
 			// Determine how much time has passed in the remainder of this line, and proceed.
 			const int target_read_cycles = std::min(
-				Timing<personality>::CyclesPerLine - this->read_pointer_.column,
+				Timing<personality>::CyclesPerLine - this->output_pointer_.column,
 				read_cycles_pool
 			);
 			int read_cycles_performed = 0;
@@ -322,8 +322,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				if constexpr (is_sega_vdp(personality)) {
 					next_cram_value = 0;
 
-					if(!this->upcoming_cram_dots_.empty() && this->upcoming_cram_dots_.front().location.row == this->read_pointer_.row) {
-						int time_until_dot = this->upcoming_cram_dots_.front().location.column - this->read_pointer_.column;
+					if(!this->upcoming_cram_dots_.empty() && this->upcoming_cram_dots_.front().location.row == this->output_pointer_.row) {
+						int time_until_dot = this->upcoming_cram_dots_.front().location.column - this->output_pointer_.column;
 
 						if(time_until_dot < read_cycles) {
 							read_cycles = time_until_dot;
@@ -335,8 +335,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 				read_cycles_performed += read_cycles;
 
-				const int end_column = this->read_pointer_.column + read_cycles;
-				LineBuffer &line_buffer = this->line_buffers_[this->read_pointer_.row];
+				const int end_column = this->output_pointer_.column + read_cycles;
+				LineBuffer &line_buffer = this->line_buffers_[this->output_pointer_.row];
 
 
 				// --------------------
@@ -349,7 +349,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 #define output_default_colour_burst(x)	crt_convert(output_default_colour_burst, x)
 
 #define intersect(left, right, code)	{	\
-		const int start = std::max(this->read_pointer_.column, left);	\
+		const int start = std::max(this->output_pointer_.column, left);	\
 		const int end = std::min(end_column, right);	\
 		if(end > start) {\
 			code;\
@@ -358,10 +358,10 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 #define border(left, right)	intersect(left, right, this->output_border(end - start, cram_value))
 
-				if(line_buffer.line_mode == LineMode::Refresh || this->read_pointer_.row > this->mode_timing_.pixel_lines) {
+				if(line_buffer.line_mode == LineMode::Refresh || this->output_pointer_.row > this->mode_timing_.pixel_lines) {
 					if(
-						this->read_pointer_.row >= this->mode_timing_.first_vsync_line &&
-						this->read_pointer_.row < this->mode_timing_.first_vsync_line + 4
+						this->output_pointer_.row >= this->mode_timing_.first_vsync_line &&
+						this->output_pointer_.row < this->mode_timing_.first_vsync_line + 4
 					) {
 						// Vertical sync.
 						// TODO: the Mega Drive supports interlaced video, I think?
@@ -375,7 +375,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						// Blanking region: output the entire sequence when the cursor
 						// crosses the start-of-border point.
 						if(
-							this->read_pointer_.column < Timing<personality>::StartOfLeftBorder &&
+							this->output_pointer_.column < Timing<personality>::StartOfLeftBorder &&
 							end_column >= Timing<personality>::StartOfLeftBorder
 						) {
 							output_blank(Timing<personality>::StartOfSync - Timing<personality>::EndOfRightBorder);
@@ -394,7 +394,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 					// Blanking region.
 					if(
-						this->read_pointer_.column < Timing<personality>::StartOfLeftBorder &&
+						this->output_pointer_.column < Timing<personality>::StartOfLeftBorder &&
 						end_column >= Timing<personality>::StartOfLeftBorder
 					) {
 						output_blank(Timing<personality>::StartOfSync - Timing<personality>::EndOfRightBorder);
@@ -464,17 +464,17 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// -------------
 				// Advance time.
 				// -------------
-				this->read_pointer_.column = end_column;
+				this->output_pointer_.column = end_column;
 			}
 
 			read_cycles_pool -= target_read_cycles;
-			if(this->read_pointer_.column == Timing<personality>::CyclesPerLine) {
-				this->read_pointer_.column = 0;
-				this->read_pointer_.row = (this->read_pointer_.row + 1) % this->mode_timing_.total_lines;
+			if(this->output_pointer_.column == Timing<personality>::CyclesPerLine) {
+				this->output_pointer_.column = 0;
+				this->output_pointer_.row = (this->output_pointer_.row + 1) % this->mode_timing_.total_lines;
 			}
 		}
 
-		assert(backup.row == this->write_pointer_.row && backup.column == this->write_pointer_.column);
+		assert(backup.row == this->fetch_pointer_.row && backup.column == this->fetch_pointer_.column);
 	}
 }
 
@@ -776,9 +776,9 @@ uint8_t TMS9918<personality>::get_current_line() const {
 	// Determine the row to return.
 	constexpr int row_change_position = 63;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
 	int source_row =
-		(this->write_pointer_.column < row_change_position)
-			? (this->write_pointer_.row + this->mode_timing_.total_lines - 1) % this->mode_timing_.total_lines
-			: this->write_pointer_.row;
+		(this->fetch_pointer_.column < row_change_position)
+			? (this->fetch_pointer_.row + this->mode_timing_.total_lines - 1) % this->mode_timing_.total_lines
+			: this->fetch_pointer_.row;
 
 	if(this->tv_standard_ == TVStandard::NTSC) {
 		if(this->mode_timing_.pixel_lines == 240) {
@@ -815,7 +815,7 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	int time_until_frame_interrupt =
 		(
 			((this->mode_timing_.end_of_frame_interrupt_position.row * Timing<personality>::CyclesPerLine) + this->mode_timing_.end_of_frame_interrupt_position.column + frame_length) -
-			((this->write_pointer_.row * Timing<personality>::CyclesPerLine) + this->write_pointer_.column)
+			((this->fetch_pointer_.row * Timing<personality>::CyclesPerLine) + this->fetch_pointer_.column)
 		) % frame_length;
 	if(!time_until_frame_interrupt) time_until_frame_interrupt = frame_length;
 
@@ -826,8 +826,8 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	// Calculate when the next line interrupt will occur.
 	int next_line_interrupt_row = -1;
 
-	int cycles_to_next_interrupt_threshold = this->mode_timing_.line_interrupt_position - this->write_pointer_.column;
-	int line_of_next_interrupt_threshold = this->write_pointer_.row;
+	int cycles_to_next_interrupt_threshold = this->mode_timing_.line_interrupt_position - this->fetch_pointer_.column;
+	int line_of_next_interrupt_threshold = this->fetch_pointer_.row;
 	if(cycles_to_next_interrupt_threshold <= 0) {
 		cycles_to_next_interrupt_threshold += Timing<personality>::CyclesPerLine;
 		++line_of_next_interrupt_threshold;
@@ -866,8 +866,8 @@ template <Personality personality>
 HalfCycles TMS9918<personality>::get_time_until_line(int line) {
 	if(line < 0) line += this->mode_timing_.total_lines;
 
-	int cycles_to_next_interrupt_threshold = this->mode_timing_.line_interrupt_position - this->write_pointer_.column;
-	int line_of_next_interrupt_threshold = this->write_pointer_.row;
+	int cycles_to_next_interrupt_threshold = this->mode_timing_.line_interrupt_position - this->fetch_pointer_.column;
+	int line_of_next_interrupt_threshold = this->fetch_pointer_.row;
 	if(cycles_to_next_interrupt_threshold <= 0) {
 		cycles_to_next_interrupt_threshold += Timing<personality>::CyclesPerLine;
 		++line_of_next_interrupt_threshold;
@@ -900,7 +900,7 @@ template <Personality personality>uint8_t TMS9918<personality>::get_latched_hori
 
 template <Personality personality>
 void TMS9918<personality>::latch_horizontal_counter() {
-	this->latched_column_ = this->write_pointer_.column;
+	this->latched_column_ = this->fetch_pointer_.column;
 }
 
 template class TI::TMS::TMS9918<Personality::TMS9918A>;

@@ -13,7 +13,7 @@
 
 template <Personality personality>
 void Base<personality>::draw_tms_character(int start, int end) {
-	LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
+	LineBuffer &line_buffer = line_buffers_[output_pointer_.row];
 
 	// Paint the background tiles.
 	const int pixels_left = end - start;
@@ -106,7 +106,7 @@ void Base<personality>::draw_tms_character(int start, int end) {
 
 template <Personality personality>
 void Base<personality>::draw_tms_text(int start, int end) {
-	LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
+	LineBuffer &line_buffer = line_buffers_[output_pointer_.row];
 	const uint32_t colours[2] = { palette[background_colour_], palette[text_colour_] };
 
 	const int shift = start % 6;
@@ -135,7 +135,7 @@ template <Personality personality>
 void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 	if constexpr (is_sega_vdp(personality)) {
 
-	LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
+	LineBuffer &line_buffer = line_buffers_[output_pointer_.row];
 	int colour_buffer[256];
 
 	/*
@@ -143,7 +143,7 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 	*/
 	int tile_start = start, tile_end = end;
 	int tile_offset = start;
-	if(read_pointer_.row >= 16 || !Storage<personality>::horizontal_scroll_lock_) {
+	if(output_pointer_.row >= 16 || !Storage<personality>::horizontal_scroll_lock_) {
 		for(int c = start; c < (line_buffer.latched_horizontal_scroll & 7); ++c) {
 			colour_buffer[c] = 16 + background_colour_;
 			++tile_offset;

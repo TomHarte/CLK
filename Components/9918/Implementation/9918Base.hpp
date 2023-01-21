@@ -300,7 +300,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	// to update sprites and tiles, but writing time affects when the palette is used and when the collision flag
 	// may end up being set. So the two processes are slightly decoupled. The end of reading one line may overlap
 	// with the beginning of writing the next, hence the two separate line buffers.
-	LineBufferPointer read_pointer_, write_pointer_;
+	LineBufferPointer output_pointer_, fetch_pointer_;
 
 	int masked_address(int address);
 	void write_vram(uint8_t);
@@ -370,8 +370,8 @@ template <Personality personality> struct Base: public Storage<personality> {
 						// on screen. So it's wherever the output stream would be now. Which
 						// is output_lag cycles ago from the point of view of the input stream.
 						auto &dot = Storage<personality>::upcoming_cram_dots_.emplace_back();
-						dot.location.column = write_pointer_.column - output_lag;
-						dot.location.row = write_pointer_.row;
+						dot.location.column = fetch_pointer_.column - output_lag;
+						dot.location.row = fetch_pointer_.row;
 
 						// Handle before this row conditionally; then handle after (or, more realistically,
 						// exactly at the end of) naturally.
