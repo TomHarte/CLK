@@ -727,7 +727,7 @@ void Base<personality>::write_register(uint8_t value) {
 				break;
 
 				case 17:
-					Storage<personality>::increment_indirect_register_ = low_write_ & 0x80;
+					Storage<personality>::increment_indirect_register_ = !(low_write_ & 0x80);
 					Storage<personality>::indirect_register_ = low_write_ & 0x3f;
 				break;
 
