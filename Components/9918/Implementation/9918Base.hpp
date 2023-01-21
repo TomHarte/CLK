@@ -128,6 +128,9 @@ template <> struct Storage<Personality::TMS9918A> {
 // Yamaha-specific storage.
 template <Personality personality> struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
 	int selected_status_ = 0;
+
+	int indirect_register_ = 0;
+	bool increment_indirect_register_ = false;
 };
 
 // Master System-specific storage.

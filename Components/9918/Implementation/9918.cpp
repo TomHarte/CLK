@@ -727,9 +727,8 @@ void Base<personality>::write_register(uint8_t value) {
 				break;
 
 				case 17:
-					LOG("TODO: Yamaha indirect addressing; " << PADHEX(2) << +low_write_);
-					// b7: 1 = disable autoincrementing; 0 = enable.
-					// b5–b0: register number
+					Storage<personality>::increment_indirect_register_ = low_write_ & 0x80;
+					Storage<personality>::indirect_register_ = low_write_ & 0x3f;
 				break;
 
 				case 18:
@@ -829,9 +828,14 @@ void Base<personality>::write_palette(uint8_t value) {
 }
 
 template <Personality personality>
-void Base<personality>::write_register_indirect(uint8_t value) {
-	LOG("Register indirect write TODO");
-	(void)value;
+void Base<personality>::write_register_indirect([[maybe_unused]] uint8_t value) {
+	if constexpr (is_yamaha_vdp(personality)) {
+		LOG("TODO: indirect write of " << PADHEX(2) << +value << " to " << PADHEX(2) << Storage<personality>::indirect_register_);
+
+		if(Storage<personality>::increment_indirect_register_) {
+			Storage<personality>::indirect_register_ = (Storage<personality>::indirect_register_ + 1) & 0x3f;
+		}
+	}
 }
 
 template <Personality personality>
