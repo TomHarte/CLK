@@ -844,10 +844,9 @@ void Base<personality>::write_palette(uint8_t value) {
 
 		write_phase_ = false;
 
-		// TODO: the below scales the palette into the range 0–252 rather than 0–255; correct.
-		const uint8_t r = ((Storage<personality>::new_colour_ >> 4) & 7) * 36;
-		const uint8_t g = (value & 7) * 36;
-		const uint8_t b = (Storage<personality>::new_colour_ & 7) * 36;
+		const uint8_t r = ((Storage<personality>::new_colour_ >> 4) & 7) * 255 / 7;
+		const uint8_t g = (value & 7) * 255 / 7;
+		const uint8_t b = (Storage<personality>::new_colour_ & 7) * 255 / 7;
 
 		Storage<personality>::palette_[Storage<personality>::palette_entry_ & 0xf] = palette_pack(r, g, b);
 		++Storage<personality>::palette_entry_;
