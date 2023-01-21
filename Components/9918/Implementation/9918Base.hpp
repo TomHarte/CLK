@@ -30,12 +30,27 @@ namespace TMS {
 // The screen mode is a necessary predecessor to picking the line mode,
 // which is the thing latched per line.
 enum class ScreenMode {
+	// Original TMS modes.
 	Blank,
 	Text,
 	MultiColour,
 	ColouredText,
 	Graphics,
-	SMSMode4
+
+	// 8-bit Sega modes.
+	SMSMode4,
+
+	// New Yamaha V9938 modes.
+	YamahaText80,
+	YamahaGraphics3,
+	YamahaGraphics4,
+	YamahaGraphics5,
+	YamahaGraphics6,
+	YamahaGraphics7,
+
+	// Rebranded Yamaha V9938 modes.
+	YamahaGraphics1 = ColouredText,
+	YamahaGraphics2 = Graphics,
 };
 
 enum class LineMode {
@@ -135,6 +150,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	uint32_t palette_[16]{};
 	uint8_t new_colour_ = 0;
 	uint8_t palette_entry_ = 0;
+
+	uint8_t mode_ = 0;
 };
 
 // Master System-specific storage.
@@ -333,6 +350,21 @@ template <Personality personality> struct Base: public Storage<personality> {
 		if constexpr (is_sega_vdp(personality)) {
 			if(Storage<personality>::mode4_enable_) {
 				return ScreenMode::SMSMode4;
+			}
+		}
+
+		if constexpr (is_yamaha_vdp(personality)) {
+			switch(Storage<personality>::mode_) {
+				case 0b00001:	return ScreenMode::Text;
+				case 0b01001:	return ScreenMode::YamahaText80;
+				case 0b00010:	return ScreenMode::MultiColour;
+				case 0b00000:	return ScreenMode::YamahaGraphics1;
+				case 0b00100:	return ScreenMode::YamahaGraphics2;
+				case 0b01000:	return ScreenMode::YamahaGraphics3;
+				case 0b01100:	return ScreenMode::YamahaGraphics4;
+				case 0b10000:	return ScreenMode::YamahaGraphics5;
+				case 0b10100:	return ScreenMode::YamahaGraphics6;
+				case 0b11100:	return ScreenMode::YamahaGraphics7;
 			}
 		}
 

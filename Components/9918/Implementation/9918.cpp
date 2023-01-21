@@ -285,7 +285,16 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						next_line_buffer.line_mode = LineMode::SMS;
 						this->mode_timing_.maximum_visible_sprites = 8;
 					break;
+					case ScreenMode::YamahaGraphics3:
+					case ScreenMode::YamahaGraphics4:
+					case ScreenMode::YamahaGraphics5:
+					case ScreenMode::YamahaGraphics6:
+					case ScreenMode::YamahaGraphics7:
+						// TODO: actual line modes.
+						next_line_buffer.line_mode = LineMode::Refresh;
+					break;
 					default:
+						// This covers both MultiColour and Graphics modes.
 						next_line_buffer.line_mode = LineMode::Character;
 					break;
 				}
@@ -430,6 +439,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 								case LineMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), Clock::TMSPixel);	break;
 								case LineMode::Character:	draw(draw_tms_character(relative_start, relative_end), Clock::TMSPixel);	break;
 								case LineMode::Text:		draw(draw_tms_text(relative_start, relative_end), Clock::TMSPixel);			break;
+
+								// TODO: Yamaha line modes.
 
 								case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
 							}
@@ -653,11 +664,24 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			default: break;
 
 			case 0:
+				Storage<personality>::mode_ = uint8_t(
+					(Storage<personality>::mode_ & 3) |
+					((value & 0xe) << 1)
+				);
+
 				LOG("TODO: Yamaha additional mode selection; " << PADHEX(2) << +value);
 				// b1–b3: M3–M5
 				// b4: enable horizontal retrace interrupt
 				// b5: enable light pen interrupts
 				// b6: set colour bus to input or output mode
+			break;
+
+			case 1:
+				Storage<personality>::mode_ = uint8_t(
+					(Storage<personality>::mode_ & 0x1c) |
+					((value & 0x10) >> 4) |
+					((value & 0x08) >> 2)
+				);
 			break;
 
 			case 8:
