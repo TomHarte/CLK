@@ -312,7 +312,7 @@ template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 							case 0x00:		// i.e. even ports less than 0x40.
 								if constexpr (is_master_system(model)) {
 									// TODO: Obey the RAM enable.
-									LOG("Memory control: " << PADHEX(2) << memory_control_);
+									LOG("Memory control: " << PADHEX(2) << +memory_control_);
 									memory_control_ = *cycle.value;
 									page_cartridge();
 								}
