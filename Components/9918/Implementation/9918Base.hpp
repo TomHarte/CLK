@@ -57,7 +57,9 @@ enum class LineMode {
 	Text,
 	Character,
 	Refresh,
-	SMS
+	SMS,
+	Yamaha,
+	YamahaNoSprites,
 };
 
 enum class MemoryAccess {
@@ -459,8 +461,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	template<bool use_end> void fetch_tms_character(int start, int end);
 
 	template<bool use_end> void fetch_yamaha_refresh(int start, int end);
-	template<bool use_end> void fetch_yamaha_no_sprites(int start, int end);
-	template<bool use_end> void fetch_yamaha_sprites(int start, int end);
+	template<bool use_end, bool fetch_sprites> void fetch_yamaha(int start, int end);
 
 	template<bool use_end> void fetch_sms(int start, int end);
 

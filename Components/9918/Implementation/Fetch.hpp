@@ -479,13 +479,7 @@ template<bool use_end> void Base<personality>::fetch_yamaha_refresh(int start, i
 }
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_yamaha_no_sprites(int start, int end) {
-	(void)start;
-	(void)end;
-}
-
-template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_yamaha_sprites(int start, int end) {
+template<bool use_end, bool fetch_sprites> void Base<personality>::fetch_yamaha(int start, int end) {
 	(void)start;
 	(void)end;
 }

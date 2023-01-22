@@ -200,25 +200,51 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// ------------------------
 			// Perform memory accesses.
 			// ------------------------
-#define fetch(function, clock)																\
+#define fetch(function_true, function_false, clock)	{										\
 	const int first_window = from_internal<personality, clock>(this->fetch_pointer_.column);\
 	const int final_window = from_internal<personality, clock>(end_column);					\
 	if(first_window == final_window) break;													\
 	if(final_window != clock_rate<personality, clock>()) {									\
-		function<true>(first_window, final_window);											\
+		function_true(first_window, final_window);											\
 	} else {																				\
-		function<false>(first_window, final_window);										\
-	}
+		function_false(first_window, final_window);											\
+	}																						\
+}
+
+#define fetch_simple(function, clock)	fetch(function<true>, function<false>, clock)
 
 			switch(line_buffer.line_mode) {
-				case LineMode::Text:		{	fetch(this->template fetch_tms_text, Clock::TMSMemoryWindow);		}	break;
-				case LineMode::Character:	{	fetch(this->template fetch_tms_character, Clock::TMSMemoryWindow);	}	break;
-				case LineMode::SMS:			{	fetch(this->template fetch_sms, Clock::TMSMemoryWindow);			}	break;
-				case LineMode::Refresh:		{	fetch(this->template fetch_tms_refresh, Clock::TMSMemoryWindow);	}	break;
+				case LineMode::Text:			fetch_simple(this->template fetch_tms_text, Clock::TMSMemoryWindow);		break;
+				case LineMode::Character:		fetch_simple(this->template fetch_tms_character, Clock::TMSMemoryWindow);	break;
+				case LineMode::SMS:				fetch_simple(this->template fetch_sms, Clock::TMSMemoryWindow);			break;
+				case LineMode::Refresh:			fetch_simple(this->template fetch_tms_refresh, Clock::TMSMemoryWindow);	break;
+
+				case LineMode::Yamaha:
+#define true_func this->template fetch_yamaha<true, true>
+#define false_func this->template fetch_yamaha<false, true>
+					fetch(
+						true_func,
+						false_func,
+						Clock::Internal);
+#undef true_func
+#undef false_func
+				break;
+#define true_func this->template fetch_yamaha<true, false>
+#define false_func this->template fetch_yamaha<false, false>
+				case LineMode::YamahaNoSprites:
+					fetch(
+						true_func,
+						false_func,
+						Clock::Internal);
+#undef true_func
+#undef false_func
+				break;
 			}
 
+#undef fetch_simple
 #undef fetch
 
+		// TODO: the above is too macro-heavy. Simplify.
 
 
 			// -------------------------------
@@ -290,8 +316,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					case ScreenMode::YamahaGraphics5:
 					case ScreenMode::YamahaGraphics6:
 					case ScreenMode::YamahaGraphics7:
-						// TODO: actual line modes.
-						next_line_buffer.line_mode = LineMode::Refresh;
+						// TODO: sprites?
+						next_line_buffer.line_mode = LineMode::YamahaNoSprites;
 					break;
 					default:
 						// This covers both MultiColour and Graphics modes.
