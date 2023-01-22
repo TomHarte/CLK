@@ -591,15 +591,22 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 		break;
 
 		case 3:
-			colour_table_address_ = size_t(value << 6) | 0x3f;
+			colour_table_address_ =
+				(colour_table_address_ & ~0x3fc0) |
+				(value << 6) |
+				0x3f;
 		break;
 
 		case 4:
 			pattern_generator_table_address_ = size_t((value & 0x07) << 11) | 0x7ff;
+			// TODO: don't mask off so many bits for, at least, the Yamahas.
 		break;
 
 		case 5:
-			sprite_attribute_table_address_ = size_t((value & 0x7f) << 7) | 0x7f;
+			sprite_attribute_table_address_ =
+				(sprite_attribute_table_address_ & ~0x3d80) |
+				((value << 7) & 0x3f80) |
+				0x7f;
 		break;
 
 		case 6:
@@ -710,12 +717,16 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			break;
 
 			case 10:
-				LOG("TODO: Yamaha colour table high bits; " << PADHEX(2) << +value);
+				colour_table_address_ =
+					(colour_table_address_ & ~0x1c000) |
+					((value << 14) & 0x1c000);
 				// b0–b2: A14–A16 of the colour table.
 			break;
 
 			case 11:
-				LOG("TODO: Yamaha sprite table high bits; " << PADHEX(2) << +value);
+				sprite_attribute_table_address_ =
+					(sprite_attribute_table_address_ & ~0x18000) |
+					((value << 15) & 0x18000);
 				// b0–b1: A15–A16 of the sprite table.
 			break;
 
@@ -731,8 +742,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			break;
 
 			case 14:
-				LOG("TODO: Yamaha A14–A16 selection; " << PADHEX(2) << +value);
-				// b0–b2: A14–A16 of address counter (i.e. ram_pointer_)
+				ram_pointer_ = (ram_pointer_ & ~0x1c000) | ((value << 14) & 0x1c000);
 			break;
 
 			case 15:
@@ -835,13 +845,13 @@ void Base<personality>::write_register(uint8_t value) {
 		write_phase_ = true;
 
 		// The initial write should half update the access pointer.
-		ram_pointer_ = (ram_pointer_ & 0xff00) | low_write_;
+		ram_pointer_ = (ram_pointer_ & ~0xff) | low_write_;
 		return;
 	}
 
 	// The RAM pointer is always set on a second write, regardless of
 	// whether the caller is intending to enqueue a VDP operation.
-	ram_pointer_ = (ram_pointer_ & 0x00ff) | uint16_t(value << 8);
+	ram_pointer_ = (ram_pointer_ & ~0x3f00) | ((value << 8) & 0x3f00);
 
 	write_phase_ = false;
 	if(value & 0x80) {

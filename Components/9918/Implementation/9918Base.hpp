@@ -239,7 +239,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	std::array<uint8_t, memory_size(personality)> ram_;
 
 	// State of the DRAM/CRAM-access mechanism.
-	uint16_t ram_pointer_ = 0;
+	size_t ram_pointer_ = 0;
 	uint8_t read_ahead_buffer_ = 0;
 	MemoryAccess queued_access_ = MemoryAccess::None;
 	int cycles_until_access_ = 0;
