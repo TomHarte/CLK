@@ -480,6 +480,25 @@ template<bool use_end> void Base<personality>::fetch_yamaha_refresh(int start, i
 
 template <Personality personality>
 template<bool use_end, bool fetch_sprites> void Base<personality>::fetch_yamaha(int start, int end) {
+	/*
+		Per http://map.grauw.nl/articles/vdp-vram-timing/vdp-timing.html :
+
+		The major change compared to the previous mode is that now the VDP needs to fetch extra data
+		for the bitmap rendering. These fetches happen in 32 blocks of 4 bytes (screen 5/6) or
+		8 bytes (screen 7/8). The fetches within one block happen in burst mode. This means that
+		one block takes 18 cycles (screen 5/6) or 20 cycles (screen 7/8). Though later we'll see
+		that the two spare cycles for screen 5/6 are not used for anything else, so for simplicity
+		we can say that in all bitmap modes a bitmap-fetch-block takes 20 cycles. This is even
+		clearer if you look at the RAS signal: this signal follows the exact same pattern in all
+		(bitmap) screen modes, so in screen 5/6 it remains active for two cycles longer than
+		strictly necessary.
+
+		Actually before these 32 blocks there's one extra dummy block. This block has the same timing
+		as the other blocks, but it always reads address 0x1FFFF. From an emulator point of view,
+		these dummy reads don't matter, it only matters that at those moments no other VRAM accesses
+		can occur.
+	*/
+
 	(void)start;
 	(void)end;
 }

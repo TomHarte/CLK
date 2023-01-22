@@ -67,7 +67,12 @@ enum class MemoryAccess {
 };
 
 // Temporary buffers collect a representation of each line prior to pixel serialisation.
+//
+// TODO: either template on personality, to avoid having to be the union of all potential footprints,
+// or just stop keeping so many of these in the 9918.
 struct LineBuffer {
+	LineBuffer() {}
+
 	// The line mode describes the proper timing diagram for this line.
 	LineMode line_mode = LineMode::Text;
 
@@ -77,15 +82,25 @@ struct LineBuffer {
 
 	// The names array holds pattern names, as an offset into memory, and
 	// potentially flags also.
-	struct {
-		size_t offset = 0;
-		uint8_t flags = 0;
-	} names[40];
+	union {
+		// The TMS and Sega VDPs are close enough to always tile-based;
+		// this struct captures maximal potential detail there.
+		struct {
+			struct {
+				size_t offset = 0;
+				uint8_t flags = 0;
+			} names[40];
 
-	// The patterns array holds tile patterns, corresponding 1:1 with names.
-	// Four bytes per pattern is the maximum required by any
-	// currently-implemented VDP.
-	uint8_t patterns[40][4];
+			// The patterns array holds tile patterns, corresponding 1:1 with names.
+			// Four bytes per pattern is the maximum required by any
+			// currently-implemented VDP.
+			uint8_t patterns[40][4];
+		};
+
+		// The Yamaha VDP also has a variety of bitmap modes, the widest of which is
+		// 512px @ 4bpp.
+		uint8_t bitmap[256];
+	};
 
 	/*
 		Horizontal layout (on a 342-cycle clock):
