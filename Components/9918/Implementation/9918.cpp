@@ -818,7 +818,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 			case 45:
 				LOG("TODO: Yamaha VRAM bank selection addressing and command arguments; " << PADHEX(2) << +value);
-				// b6: 0 = video RAM; 1 = expandion RAM.
+				// b6: 0 = video RAM; 1 = expansion RAM.
 				// b5: MXD (???)
 				// b4: MXS
 				// b3: DIY

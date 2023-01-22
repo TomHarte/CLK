@@ -391,12 +391,25 @@ template <Personality personality> struct Base: public Storage<personality> {
 	void do_external_slot(int access_column) {
 		// Don't do anything if the required time for the access to become executable
 		// has yet to pass.
-		if(access_column < minimum_access_column_) {
+		if(queued_access_ == MemoryAccess::None || access_column < minimum_access_column_) {
 			return;
 		}
 
+		size_t address = ram_pointer_;
+		++ram_pointer_;
+
+		if constexpr (is_yamaha_vdp(personality)) {
+			const ScreenMode mode = current_screen_mode();
+			if(mode == ScreenMode::YamahaGraphics6 || mode == ScreenMode::YamahaGraphics7) {
+				// Rotate address one to the right as the hardware accesses
+				// the underlying banks of memory alternately but presents
+				// them as if linear.
+				address = (address >> 1) | (address << 16);
+			}
+		}
+
 		switch(queued_access_) {
-			default: return;
+			default: break;
 
 			case MemoryAccess::Write:
 				if constexpr (is_sega_vdp(personality)) {
@@ -405,7 +418,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 						// scale; cf. https://www.retrorgb.com/sega-master-system-non-linear-blue-channel-findings.html
 						constexpr uint8_t rg_scale[] = {0, 85, 170, 255};
 						constexpr uint8_t b_scale[] = {0, 104, 170, 255};
-						Storage<personality>::colour_ram_[ram_pointer_ & 0x1f] = palette_pack(
+						Storage<personality>::colour_ram_[address & 0x1f] = palette_pack(
 							rg_scale[(read_ahead_buffer_ >> 0) & 3],
 							rg_scale[(read_ahead_buffer_ >> 2) & 3],
 							b_scale[(read_ahead_buffer_ >> 4) & 3]
@@ -427,17 +440,16 @@ template <Personality personality> struct Base: public Storage<personality> {
 						dot.location.row += dot.location.column / 342;
 						dot.location.column %= 342;
 
-						dot.value = Storage<personality>::colour_ram_[ram_pointer_ & 0x1f];
+						dot.value = Storage<personality>::colour_ram_[address & 0x1f];
 						break;
 					}
 				}
-				ram_[ram_pointer_ & memory_mask(personality)] = read_ahead_buffer_;
+				ram_[address & memory_mask(personality)] = read_ahead_buffer_;
 			break;
 			case MemoryAccess::Read:
-				read_ahead_buffer_ = ram_[ram_pointer_ & memory_mask(personality)];
+				read_ahead_buffer_ = ram_[address & memory_mask(personality)];
 			break;
 		}
-		++ram_pointer_;
 		queued_access_ = MemoryAccess::None;
 	}
 
