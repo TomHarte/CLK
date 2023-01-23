@@ -470,148 +470,39 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 
 // MARK: - Yamaha
 
-// TODO.
-
-namespace {
-
-// This emulator treats position 0 as being immediately after the standard pixel area.
-// i.e. offset 1282 on Grauw's http://map.grauw.nl/articles/vdp-vram-timing/vdp-timing.png
-constexpr int grauw_to_internal(int offset) {
-	return (offset + 1368 - 1282) % 1368;
-}
-
-}
-
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_yamaha_refresh(int start, int end) {
-	(void)start;
-	(void)end;
-}
+template<bool use_end> void Base<personality>::fetch_yamaha([[maybe_unused]] int start, int end) {
+	if constexpr (is_yamaha_vdp(personality)) {
+		/*
+			Per http://map.grauw.nl/articles/vdp-vram-timing/vdp-timing.html :
 
-template <Personality personality>
-template<bool use_end, bool fetch_sprites> void Base<personality>::fetch_yamaha(int start, int end) {
-	/*
-		Per http://map.grauw.nl/articles/vdp-vram-timing/vdp-timing.html :
+			The major change compared to the previous mode is that now the VDP needs to fetch extra data
+			for the bitmap rendering. These fetches happen in 32 blocks of 4 bytes (screen 5/6) or
+			8 bytes (screen 7/8). The fetches within one block happen in burst mode. This means that
+			one block takes 18 cycles (screen 5/6) or 20 cycles (screen 7/8). Though later we'll see
+			that the two spare cycles for screen 5/6 are not used for anything else, so for simplicity
+			we can say that in all bitmap modes a bitmap-fetch-block takes 20 cycles. This is even
+			clearer if you look at the RAS signal: this signal follows the exact same pattern in all
+			(bitmap) screen modes, so in screen 5/6 it remains active for two cycles longer than
+			strictly necessary.
 
-		The major change compared to the previous mode is that now the VDP needs to fetch extra data
-		for the bitmap rendering. These fetches happen in 32 blocks of 4 bytes (screen 5/6) or
-		8 bytes (screen 7/8). The fetches within one block happen in burst mode. This means that
-		one block takes 18 cycles (screen 5/6) or 20 cycles (screen 7/8). Though later we'll see
-		that the two spare cycles for screen 5/6 are not used for anything else, so for simplicity
-		we can say that in all bitmap modes a bitmap-fetch-block takes 20 cycles. This is even
-		clearer if you look at the RAS signal: this signal follows the exact same pattern in all
-		(bitmap) screen modes, so in screen 5/6 it remains active for two cycles longer than
-		strictly necessary.
+			Actually before these 32 blocks there's one extra dummy block. This block has the same timing
+			as the other blocks, but it always reads address 0x1FFFF. From an emulator point of view,
+			these dummy reads don't matter, it only matters that at those moments no other VRAM accesses
+			can occur.
+		*/
+		while(Storage<personality>::next_event_->offset < end) {
+			switch(Storage<personality>::next_event_->type) {
+				case Storage<personality>::Event::Type::External:
+					do_external_slot(Storage<personality>::next_event_->offset);
+				break;
 
-		Actually before these 32 blocks there's one extra dummy block. This block has the same timing
-		as the other blocks, but it always reads address 0x1FFFF. From an emulator point of view,
-		these dummy reads don't matter, it only matters that at those moments no other VRAM accesses
-		can occur.
-	*/
+				default: break;
+			}
 
-	// This emulator treats position 0 as being immediately after the standard pixel area.
-	// i.e. offset 1282 on Grauw's http://map.grauw.nl/articles/vdp-vram-timing/vdp-timing.png
-	//
-	// That being the case...
-	//
-	// Data blocks are located at:
-	//
-	//		194
-
-	/// Describes an _observable_ memory access event. i.e. anything that it is safe
-	/// (and convenient) to treat as atomic in between external slots.
-	struct Event {
-		/// Offset of the _beginning_ of the event. Not completely arbitrarily: this is when
-		/// external data must be ready by in order to take part in those slots.
-		int offset;
-		enum class Type {
-			External,
-			DataBlock,
-		} type;
-
-		constexpr Event(int offset, Type type) noexcept :
-			offset(grauw_to_internal(offset)),
-			type(type) {}
-	};
-	constexpr Event no_sprites_events[] = {
-		Event(1282, Event::Type::External),
-		Event(1290, Event::Type::External),
-		Event(1298, Event::Type::External),
-		Event(1306, Event::Type::External),
-		Event(1314, Event::Type::External),
-		Event(1322, Event::Type::External),
-		Event(1332, Event::Type::External),
-		Event(1342, Event::Type::External),
-		Event(1350, Event::Type::External),
-		Event(1358, Event::Type::External),
-		Event(1366, Event::Type::External),
-
-		Event(6, Event::Type::External),
-		Event(14, Event::Type::External),
-		Event(22, Event::Type::External),
-		Event(30, Event::Type::External),
-		Event(38, Event::Type::External),
-		Event(46, Event::Type::External),
-		Event(54, Event::Type::External),
-		Event(62, Event::Type::External),
-		Event(70, Event::Type::External),
-		Event(78, Event::Type::External),
-		Event(86, Event::Type::External),
-		Event(94, Event::Type::External),
-		Event(102, Event::Type::External),
-		Event(110, Event::Type::External),
-		Event(118, Event::Type::External),
-
-		Event(162, Event::Type::External),
-		Event(170, Event::Type::External),
-		Event(182, Event::Type::External),
-		Event(188, Event::Type::External),
-		// Omitted: dummy data block. Is not observable.
-		Event(214, Event::Type::External),
-		Event(220, Event::Type::External),
-
-		Event(226, Event::Type::DataBlock),	Event(246, Event::Type::External),	Event(252, Event::Type::External),
-		Event(258, Event::Type::DataBlock),	Event(278, Event::Type::External),	// Omitted: refresh.
-		Event(290, Event::Type::DataBlock),	Event(310, Event::Type::External),	Event(316, Event::Type::External),
-		Event(322, Event::Type::DataBlock),	Event(342, Event::Type::External),	Event(348, Event::Type::External),
-		Event(354, Event::Type::DataBlock),	Event(374, Event::Type::External),	Event(380, Event::Type::External),
-		Event(386, Event::Type::DataBlock),	Event(406, Event::Type::External),	// Omitted: refresh.
-		Event(418, Event::Type::DataBlock),	Event(438, Event::Type::External),	Event(444, Event::Type::External),
-		Event(450, Event::Type::DataBlock),	Event(470, Event::Type::External),	Event(476, Event::Type::External),
-
-		Event(482, Event::Type::DataBlock),	Event(502, Event::Type::External),	Event(508, Event::Type::External),
-		Event(514, Event::Type::DataBlock),	Event(534, Event::Type::External),	// Omitted: refresh.
-		Event(546, Event::Type::DataBlock),	Event(566, Event::Type::External),	Event(572, Event::Type::External),
-		Event(578, Event::Type::DataBlock),	Event(598, Event::Type::External),	Event(604, Event::Type::External),
-		Event(610, Event::Type::DataBlock),	Event(630, Event::Type::External),	Event(636, Event::Type::External),
-		Event(642, Event::Type::DataBlock),	Event(662, Event::Type::External),	// Omitted: refresh.
-		Event(674, Event::Type::DataBlock),	Event(694, Event::Type::External),	Event(700, Event::Type::External),
-		Event(706, Event::Type::DataBlock),	Event(726, Event::Type::External),	Event(732, Event::Type::External),
-
-		Event(738, Event::Type::DataBlock),	Event(758, Event::Type::External),	Event(764, Event::Type::External),
-		Event(770, Event::Type::DataBlock),	Event(790, Event::Type::External),	// Omitted: refresh.
-		Event(802, Event::Type::DataBlock),	Event(822, Event::Type::External),	Event(828, Event::Type::External),
-		Event(834, Event::Type::DataBlock),	Event(854, Event::Type::External),	Event(860, Event::Type::External),
-		Event(866, Event::Type::DataBlock),	Event(886, Event::Type::External),	Event(892, Event::Type::External),
-		Event(898, Event::Type::DataBlock),	Event(918, Event::Type::External),	// Omitted: refresh.
-		Event(930, Event::Type::DataBlock),	Event(950, Event::Type::External),	Event(956, Event::Type::External),
-		Event(962, Event::Type::DataBlock),	Event(982, Event::Type::External),	Event(988, Event::Type::External),
-
-		Event(994, Event::Type::DataBlock),	Event(1014, Event::Type::External),	Event(1020, Event::Type::External),
-		Event(1026, Event::Type::DataBlock),	Event(1046, Event::Type::External),	// Omitted: refresh.
-		Event(1058, Event::Type::DataBlock),	Event(1078, Event::Type::External),	Event(1084, Event::Type::External),
-		Event(1090, Event::Type::DataBlock),	Event(1110, Event::Type::External),	Event(1116, Event::Type::External),
-		Event(1122, Event::Type::DataBlock),	Event(1142, Event::Type::External),	Event(1148, Event::Type::External),
-		Event(1154, Event::Type::DataBlock),	Event(1174, Event::Type::External),	// Omitted: refresh.
-		Event(1186, Event::Type::DataBlock),	Event(1206, Event::Type::External),	Event(1212, Event::Type::External),
-		Event(1218, Event::Type::DataBlock),
-
-		Event(1266, Event::Type::External),
-		Event(1274, Event::Type::External),
- 	};
-
-	(void)start;
-	(void)end;
+			++Storage<personality>::next_event_;
+		}
+	}
 }
 
 // MARK: - Mega Drive
