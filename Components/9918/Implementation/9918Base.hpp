@@ -223,6 +223,14 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			}
 		}
 #endif
+
+		// Seed to _something_ meaningful.
+		//
+		// TODO: this is a workaround [/hack], in effect, for the main TMS' habit of starting
+		// in a randomised position, which means that start-of-line isn't announced.
+		//
+		// Do I really want that behaviour?
+		next_event_ = refresh_events;
 	}
 
 	private:

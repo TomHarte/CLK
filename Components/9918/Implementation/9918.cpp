@@ -300,13 +300,22 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					break;
 				}
 
-				if(
+				const bool is_refresh =
 					(this->screen_mode_ == ScreenMode::Blank) ||
-					this->is_vertical_blank())
-						next_line_buffer.line_mode = LineMode::Refresh;
+					this->is_vertical_blank();
 
 				// TODO: an actual sprites-enabled flag.
-				Storage<personality>::begin_line(this->screen_mode_, next_line_buffer.line_mode == LineMode::Refresh, false);
+				Storage<personality>::begin_line(this->screen_mode_, is_refresh, false);
+
+				if(is_refresh) {
+					// The Yamaha handles refresh lines via its own microprogram; other VDPs
+					// can fall back on the regular refresh mechanic.
+					if constexpr (is_yamaha_vdp(personality)) {
+						next_line_buffer.line_mode = LineMode::Yamaha;
+					} else {
+						next_line_buffer.line_mode = LineMode::Refresh;
+					}
+				}
 			}
 		}
 
