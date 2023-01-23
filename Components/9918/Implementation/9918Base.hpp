@@ -269,80 +269,57 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		};
 
 		static constexpr Event no_sprites_events[] = {
-			Event(1282, Event::Type::External),
-			Event(1290, Event::Type::External),
-			Event(1298, Event::Type::External),
-			Event(1306, Event::Type::External),
-			Event(1314, Event::Type::External),
-			Event(1322, Event::Type::External),
-			Event(1332, Event::Type::External),
-			Event(1342, Event::Type::External),
-			Event(1350, Event::Type::External),
-			Event(1358, Event::Type::External),
-			Event(1366, Event::Type::External),
+			Event(1282),	Event(1290),	Event(1298),	Event(1306),
+			Event(1314),	Event(1322),	Event(1332),	Event(1342),
+			Event(1350),	Event(1358),	Event(1366),
 
-			Event(6, Event::Type::External),
-			Event(14, Event::Type::External),
-			Event(22, Event::Type::External),
-			Event(30, Event::Type::External),
-			Event(38, Event::Type::External),
-			Event(46, Event::Type::External),
-			Event(54, Event::Type::External),
-			Event(62, Event::Type::External),
-			Event(70, Event::Type::External),
-			Event(78, Event::Type::External),
-			Event(86, Event::Type::External),
-			Event(94, Event::Type::External),
-			Event(102, Event::Type::External),
-			Event(110, Event::Type::External),
-			Event(118, Event::Type::External),
+			Event(6),		Event(14),		Event(22),		Event(30),
+			Event(38),		Event(46),		Event(54),		Event(62),
+			Event(70),		Event(78),		Event(86),		Event(94),
+			Event(102),		Event(110),		Event(118),
 
-			Event(162, Event::Type::External),
-			Event(170, Event::Type::External),
-			Event(182, Event::Type::External),
-			Event(188, Event::Type::External),
+			Event(162),		Event(170),		Event(182),		Event(188),
 			// Omitted: dummy data block. Is not observable.
-			Event(214, Event::Type::External),
-			Event(220, Event::Type::External),
+			Event(214),		Event(220),
 
-			Event(226, Event::Type::DataBlock),	Event(246, Event::Type::External),	Event(252, Event::Type::External),
-			Event(258, Event::Type::DataBlock),	Event(278, Event::Type::External),	// Omitted: refresh.
-			Event(290, Event::Type::DataBlock),	Event(310, Event::Type::External),	Event(316, Event::Type::External),
-			Event(322, Event::Type::DataBlock),	Event(342, Event::Type::External),	Event(348, Event::Type::External),
-			Event(354, Event::Type::DataBlock),	Event(374, Event::Type::External),	Event(380, Event::Type::External),
-			Event(386, Event::Type::DataBlock),	Event(406, Event::Type::External),	// Omitted: refresh.
-			Event(418, Event::Type::DataBlock),	Event(438, Event::Type::External),	Event(444, Event::Type::External),
-			Event(450, Event::Type::DataBlock),	Event(470, Event::Type::External),	Event(476, Event::Type::External),
+			Event(226, Event::Type::DataBlock),		Event(246),		Event(252),
+			Event(258, Event::Type::DataBlock),		Event(278),		// Omitted: refresh.
+			Event(290, Event::Type::DataBlock),		Event(310),		Event(316),
+			Event(322, Event::Type::DataBlock),		Event(342),		Event(348),
+			Event(354, Event::Type::DataBlock),		Event(374),		Event(380),
+			Event(386, Event::Type::DataBlock),		Event(406),		// Omitted: refresh.
+			Event(418, Event::Type::DataBlock),		Event(438),		Event(444),
+			Event(450, Event::Type::DataBlock),		Event(470),		Event(476),
 
-			Event(482, Event::Type::DataBlock),	Event(502, Event::Type::External),	Event(508, Event::Type::External),
-			Event(514, Event::Type::DataBlock),	Event(534, Event::Type::External),	// Omitted: refresh.
-			Event(546, Event::Type::DataBlock),	Event(566, Event::Type::External),	Event(572, Event::Type::External),
-			Event(578, Event::Type::DataBlock),	Event(598, Event::Type::External),	Event(604, Event::Type::External),
-			Event(610, Event::Type::DataBlock),	Event(630, Event::Type::External),	Event(636, Event::Type::External),
-			Event(642, Event::Type::DataBlock),	Event(662, Event::Type::External),	// Omitted: refresh.
-			Event(674, Event::Type::DataBlock),	Event(694, Event::Type::External),	Event(700, Event::Type::External),
-			Event(706, Event::Type::DataBlock),	Event(726, Event::Type::External),	Event(732, Event::Type::External),
+			Event(482, Event::Type::DataBlock),		Event(502),		Event(508),
+			Event(514, Event::Type::DataBlock),		Event(534),		// Omitted: refresh.
+			Event(546, Event::Type::DataBlock),		Event(566),		Event(572),
+			Event(578, Event::Type::DataBlock),		Event(598),		Event(604),
+			Event(610, Event::Type::DataBlock),		Event(630),		Event(636),
+			Event(642, Event::Type::DataBlock),		Event(662),		// Omitted: refresh.
+			Event(674, Event::Type::DataBlock),		Event(694),		Event(700),
+			Event(706, Event::Type::DataBlock),		Event(726),		Event(732),
 
-			Event(738, Event::Type::DataBlock),	Event(758, Event::Type::External),	Event(764, Event::Type::External),
-			Event(770, Event::Type::DataBlock),	Event(790, Event::Type::External),	// Omitted: refresh.
-			Event(802, Event::Type::DataBlock),	Event(822, Event::Type::External),	Event(828, Event::Type::External),
-			Event(834, Event::Type::DataBlock),	Event(854, Event::Type::External),	Event(860, Event::Type::External),
-			Event(866, Event::Type::DataBlock),	Event(886, Event::Type::External),	Event(892, Event::Type::External),
-			Event(898, Event::Type::DataBlock),	Event(918, Event::Type::External),	// Omitted: refresh.
-			Event(930, Event::Type::DataBlock),	Event(950, Event::Type::External),	Event(956, Event::Type::External),
-			Event(962, Event::Type::DataBlock),	Event(982, Event::Type::External),	Event(988, Event::Type::External),
+			Event(738, Event::Type::DataBlock),		Event(758),		Event(764),
+			Event(770, Event::Type::DataBlock),		Event(790),		// Omitted: refresh.
+			Event(802, Event::Type::DataBlock),		Event(822),		Event(828),
+			Event(834, Event::Type::DataBlock),		Event(854),		Event(860),
+			Event(866, Event::Type::DataBlock),		Event(886),		Event(892),
+			Event(898, Event::Type::DataBlock),		Event(918),		// Omitted: refresh.
+			Event(930, Event::Type::DataBlock),		Event(950),		Event(956),
+			Event(962, Event::Type::DataBlock),		Event(982),		Event(988),
 
-			Event(994, Event::Type::DataBlock),	Event(1014, Event::Type::External),	Event(1020, Event::Type::External),
-			Event(1026, Event::Type::DataBlock),	Event(1046, Event::Type::External),	// Omitted: refresh.
-			Event(1058, Event::Type::DataBlock),	Event(1078, Event::Type::External),	Event(1084, Event::Type::External),
-			Event(1090, Event::Type::DataBlock),	Event(1110, Event::Type::External),	Event(1116, Event::Type::External),
-			Event(1122, Event::Type::DataBlock),	Event(1142, Event::Type::External),	Event(1148, Event::Type::External),
-			Event(1154, Event::Type::DataBlock),	Event(1174, Event::Type::External),	// Omitted: refresh.
-			Event(1186, Event::Type::DataBlock),	Event(1206, Event::Type::External),	Event(1212, Event::Type::External),
+			Event(994, Event::Type::DataBlock),		Event(1014),	Event(1020),
+			Event(1026, Event::Type::DataBlock),	Event(1046),	// Omitted: refresh.
+			Event(1058, Event::Type::DataBlock),	Event(1078),	Event(1084),
+			Event(1090, Event::Type::DataBlock),	Event(1110),	Event(1116),
+			Event(1122, Event::Type::DataBlock),	Event(1142),	Event(1148),
+			Event(1154, Event::Type::DataBlock),	Event(1174),	// Omitted: refresh.
+			Event(1186, Event::Type::DataBlock),	Event(1206),	Event(1212),
 			Event(1218, Event::Type::DataBlock),
 
-			Event(1266, Event::Type::External),
-			Event(1274, Event::Type::External),
+			Event(1266),
+			Event(1274),
 
 			Event()
 		};
