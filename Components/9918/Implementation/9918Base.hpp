@@ -86,7 +86,7 @@ struct LineBuffer {
 		// this struct captures maximal potential detail there.
 		struct {
 			struct {
-				size_t offset = 0;
+				size_t offset = 0;	// TODO: could presumably be much smaller. One byte maybe?
 				uint8_t flags = 0;
 			} names[40];
 

@@ -301,7 +301,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				}
 
 				const bool is_refresh =
-					(this->screen_mode_ == ScreenMode::Blank) ||
+					this->screen_mode_ == ScreenMode::Blank ||
 					this->is_vertical_blank();
 
 				// TODO: an actual sprites-enabled flag.
