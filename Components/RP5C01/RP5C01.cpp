@@ -27,7 +27,7 @@ RP5C01::RP5C01(HalfCycles clock_rate) : clock_rate_(clock_rate) {
 	day_of_the_week_ = time_date->tm_wday;
 	day_ = time_date->tm_mday;
 	month_ = time_date->tm_mon;
-	year_ = time_date->tm_year % 100;
+	year_ = (time_date->tm_year + 20) % 100;	// This is probably MSX specific; rethink if/when other machines use this chip.
 	leap_year_ = time_date->tm_year % 4;
 }
 
@@ -171,19 +171,19 @@ void RP5C01::write(int address, uint8_t value) {
 		} break;
 
 		// Day of the week.
-		case Reg(0, 0x06):	day_of_the_week_ = value % 7;					break;
+		case Reg(0, 0x06):	day_of_the_week_ = value % 7;							break;
 
 		// Day.
-		case Reg(0, 0x07):	TwoDigitEncoder::encode<0>(day_, value);		break;
-		case Reg(0, 0x08):	TwoDigitEncoder::encode<1>(day_, value & 3);	break;
+		case Reg(0, 0x07):	TwoDigitEncoder::encode<0>(day_, value);				break;
+		case Reg(0, 0x08):	TwoDigitEncoder::encode<1>(day_, value & 3);			break;
 
 		// Month.
-		case Reg(0, 0x09):	TwoDigitEncoder::encode<0>(month_, value);		break;
-		case Reg(0, 0x0a):	TwoDigitEncoder::encode<1>(month_, value & 1);	break;
+		case Reg(0, 0x09):	TwoDigitEncoder::encode<0>(month_, (value - 1));		break;
+		case Reg(0, 0x0a):	TwoDigitEncoder::encode<1>(month_, (value - 1) & 1);	break;
 
 		// Year.
-		case Reg(0, 0x0b):	TwoDigitEncoder::encode<0>(year_, value);		break;
-		case Reg(0, 0x0c):	TwoDigitEncoder::encode<1>(year_, value);		break;
+		case Reg(0, 0x0b):	TwoDigitEncoder::encode<0>(year_, value);				break;
+		case Reg(0, 0x0c):	TwoDigitEncoder::encode<1>(year_, value);				break;
 
 		// TODO: alarm minutes.
 		case Reg(1, 0x02):
@@ -271,10 +271,10 @@ uint8_t RP5C01::read(int address) {
 		case Reg(0, 0x08):	value = TwoDigitEncoder::decode<1>(day_);		break;
 
 		// Month.
-		case Reg(0, 0x09):	value = TwoDigitEncoder::decode<0>(month_);		break;
-		case Reg(0, 0x0a):	value = TwoDigitEncoder::decode<1>(month_);		break;
+		case Reg(0, 0x09):	value = TwoDigitEncoder::decode<0>(month_ + 1);	break;
+		case Reg(0, 0x0a):	value = TwoDigitEncoder::decode<1>(month_ + 1);	break;
 
-		// Year;
+		// Year.
 		case Reg(0, 0x0b):	value = TwoDigitEncoder::decode<0>(year_);		break;
 		case Reg(0, 0x0c):	value = TwoDigitEncoder::decode<1>(year_);		break;
 
