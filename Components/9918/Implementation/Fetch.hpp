@@ -469,6 +469,9 @@ template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer
 
 template <Personality personality>
 template<ScreenMode mode> void Base<personality>::fetch_yamaha([[maybe_unused]] LineBuffer &line_buffer, [[maybe_unused]] int y, int end) {
+	const int rotated_name_ = pattern_name_address_ >> 1;
+	const uint8_t *const ram2 = &ram_[65536];
+
 	while(Storage<personality>::next_event_->offset < end) {
 		switch(Storage<personality>::next_event_->type) {
 			case Storage<personality>::Event::Type::External:
@@ -478,16 +481,40 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha([[maybe_unused]] 
 			case Storage<personality>::Event::Type::DataBlock: {
 				// Exactly how to fetch depends upon mode...
 				switch(mode) {
+					case ScreenMode::YamahaGraphics4:
 					case ScreenMode::YamahaGraphics5: {
-						// TODO: work out start address as a function of fetch_pointer_.row, use current
-						// data block via data_block_, fetch data into line_buffers_[fetch_pointer_.row].bitmap.
+						const int column = Storage<personality>::data_block_;
+						Storage<personality>::data_block_ += 4;
+
+						const int start = (y << 7) | column | 0x1'8000;
+
+						line_buffer.bitmap[column + 0] = ram_[pattern_name_address_ & (start + 0)];
+						line_buffer.bitmap[column + 1] = ram_[pattern_name_address_ & (start + 1)];
+						line_buffer.bitmap[column + 2] = ram_[pattern_name_address_ & (start + 2)];
+						line_buffer.bitmap[column + 3] = ram_[pattern_name_address_ & (start + 3)];
+					} break;
+
+					case ScreenMode::YamahaGraphics6:
+					case ScreenMode::YamahaGraphics7: {
+						const int column = Storage<personality>::data_block_ << 1;
+						Storage<personality>::data_block_ += 4;
+
+						const int start = (y << 7) | column | 0x1'8000;
+
+						// Fetch from alternate banks.
+						line_buffer.bitmap[column + 0] = ram_[rotated_name_ & (start + 0)];
+						line_buffer.bitmap[column + 1] = ram2[rotated_name_ & (start + 0)];
+						line_buffer.bitmap[column + 2] = ram_[rotated_name_ & (start + 1)];
+						line_buffer.bitmap[column + 3] = ram2[rotated_name_ & (start + 1)];
+						line_buffer.bitmap[column + 4] = ram_[rotated_name_ & (start + 2)];
+						line_buffer.bitmap[column + 5] = ram2[rotated_name_ & (start + 2)];
+						line_buffer.bitmap[column + 6] = ram_[rotated_name_ & (start + 3)];
+						line_buffer.bitmap[column + 7] = ram2[rotated_name_ & (start + 3)];
 					} break;
 
 					default:
 					break;
 				}
-
-				++Storage<personality>::data_block_;
 			} break;
 
 			default: break;
