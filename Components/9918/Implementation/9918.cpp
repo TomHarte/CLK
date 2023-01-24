@@ -200,14 +200,18 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// ------------------------
 			// Perform memory accesses.
 			// ------------------------
-#define fetch(function, clock)	{										\
+#define fetch(function, clock)	{															\
 	const int first_window = from_internal<personality, clock>(this->fetch_pointer_.column);\
 	const int final_window = from_internal<personality, clock>(end_column);					\
 	if(first_window == final_window) break;													\
 	if(final_window != clock_rate<personality, clock>()) {									\
-		function<true>(first_window, final_window);											\
+		function<true>(																		\
+			this->line_buffers_[this->fetch_pointer_.row], this->fetch_pointer_.row,		\
+			first_window, final_window);													\
 	} else {																				\
-		function<false>(first_window, final_window);											\
+		function<false>(																	\
+			this->line_buffers_[this->fetch_pointer_.row], this->fetch_pointer_.row,		\
+			first_window, final_window);													\
 	}																						\
 }
 

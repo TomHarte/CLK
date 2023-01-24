@@ -73,7 +73,7 @@
 // MARK: - TMS9918
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_tms_refresh(int start, int end) {
+template<bool use_end> void Base<personality>::fetch_tms_refresh(LineBuffer &, int, int start, int end) {
 #define refresh(location)		\
 	slot(location):				\
 	external_slot(location+1);
@@ -118,7 +118,7 @@ template<bool use_end> void Base<personality>::fetch_tms_refresh(int start, int 
 }
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_tms_text(int start, int end) {
+template<bool use_end> void Base<personality>::fetch_tms_text(LineBuffer &line_buffer, int y, int start, int end) {
 #define fetch_tile_name(location, column)		slot(location): line_buffer.names[column].offset = ram_[row_base + column];
 #define fetch_tile_pattern(location, column)	slot(location): line_buffer.patterns[column][0] = ram_[row_offset + size_t(line_buffer.names[column].offset << 3)];
 
@@ -139,9 +139,8 @@ template<bool use_end> void Base<personality>::fetch_tms_text(int start, int end
 	fetch_columns_4(location, column);	\
 	fetch_columns_4(location+12, column+4);
 
-	LineBuffer &line_buffer = line_buffers_[fetch_pointer_.row];
-	const size_t row_base = pattern_name_address_ & (0x3c00 | size_t(fetch_pointer_.row >> 3) * 40);
-	const size_t row_offset = pattern_generator_table_address_ & (0x3800 | (fetch_pointer_.row & 7));
+	const size_t row_base = pattern_name_address_ & (0x3c00 | size_t(y >> 3) * 40);
+	const size_t row_offset = pattern_generator_table_address_ & (0x3800 | (y & 7));
 
 	switch(start) {
 		default: assert(false);
@@ -176,7 +175,7 @@ template<bool use_end> void Base<personality>::fetch_tms_text(int start, int end
 }
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_tms_character(int start, int end) {
+template<bool use_end> void Base<personality>::fetch_tms_character(LineBuffer &line_buffer, int y, int start, int end) {
 #define sprite_fetch_coordinates(location, sprite)	\
 	slot(location):		\
 	slot(location+1):	\
@@ -210,7 +209,7 @@ template<bool use_end> void Base<personality>::fetch_tms_character(int start, in
 	sprite_fetch_graphics(location+2, sprite)
 
 #define sprite_y_read(location, sprite)	\
-	slot(location): posit_sprite(sprite_selection_buffer, sprite, ram_[sprite_attribute_table_address_ & (((sprite) << 2) | 0x3f80)], fetch_pointer_.row);
+	slot(location): posit_sprite(sprite_selection_buffer, sprite, ram_[sprite_attribute_table_address_ & (((sprite) << 2) | 0x3f80)], y);
 
 #define fetch_tile_name(column) line_buffer.names[column].offset = ram_[(row_base + column) & 0x3fff];
 
@@ -237,9 +236,8 @@ template<bool use_end> void Base<personality>::fetch_tms_character(int start, in
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
 
-	LineBuffer &line_buffer = line_buffers_[fetch_pointer_.row];
-	LineBuffer &sprite_selection_buffer = line_buffers_[(fetch_pointer_.row + 1) % mode_timing_.total_lines];
-	const size_t row_base = pattern_name_address_ & (size_t((fetch_pointer_.row << 2)&~31) | 0x3c00);
+	LineBuffer &sprite_selection_buffer = line_buffers_[(y + 1) % mode_timing_.total_lines];
+	const size_t row_base = pattern_name_address_ & (size_t((y << 2)&~31) | 0x3c00);
 
 	size_t pattern_base = pattern_generator_table_address_;
 	size_t colour_base = colour_table_address_;
@@ -247,10 +245,10 @@ template<bool use_end> void Base<personality>::fetch_tms_character(int start, in
 
 	if(screen_mode_ == ScreenMode::Graphics) {
 		// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
-		pattern_base &= size_t(0x2000 | ((fetch_pointer_.row & 0xc0) << 5));
-		colour_base &= size_t(0x2000 | ((fetch_pointer_.row & 0xc0) << 5));
+		pattern_base &= size_t(0x2000 | ((y & 0xc0) << 5));
+		colour_base &= size_t(0x2000 | ((y & 0xc0) << 5));
 
-		colour_base += size_t(fetch_pointer_.row & 7);
+		colour_base += size_t(y & 7);
 		colour_name_shift = 0;
 	} else {
 		colour_base &= size_t(0xffc0);
@@ -258,9 +256,9 @@ template<bool use_end> void Base<personality>::fetch_tms_character(int start, in
 	}
 
 	if(screen_mode_ == ScreenMode::MultiColour) {
-		pattern_base += size_t((fetch_pointer_.row >> 2) & 7);
+		pattern_base += size_t((y >> 2) & 7);
 	} else {
-		pattern_base += size_t(fetch_pointer_.row & 7);
+		pattern_base += size_t(y & 7);
 	}
 
 	switch(start) {
@@ -318,7 +316,7 @@ template<bool use_end> void Base<personality>::fetch_tms_character(int start, in
 // MARK: - Master System
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
+template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer, int y, int start, int end) {
 	if constexpr (is_sega_vdp(personality)) {
 
 #define sprite_fetch(sprite)	{\
@@ -348,8 +346,8 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 
 #define sprite_y_read(location, sprite)	\
 	slot(location):	\
-		posit_sprite(sprite_selection_buffer, sprite, ram_[Storage<personality>::sprite_attribute_table_address_ & ((sprite) | 0x3f00)], fetch_pointer_.row);	\
-		posit_sprite(sprite_selection_buffer, sprite+1, ram_[Storage<personality>::sprite_attribute_table_address_ & ((sprite + 1) | 0x3f00)], fetch_pointer_.row);	\
+		posit_sprite(sprite_selection_buffer, sprite, ram_[Storage<personality>::sprite_attribute_table_address_ & ((sprite) | 0x3f00)], y);	\
+		posit_sprite(sprite_selection_buffer, sprite+1, ram_[Storage<personality>::sprite_attribute_table_address_ & ((sprite + 1) | 0x3f00)], y);	\
 
 #define fetch_tile_name(column, row_info)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
@@ -391,9 +389,8 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 	slot(location+15): fetch_tile(column+3)
 
 	// Determine the coarse horizontal scrolling offset; this isn't applied on the first two lines if the programmer has requested it.
-	LineBuffer &line_buffer = line_buffers_[fetch_pointer_.row];
-	LineBuffer &sprite_selection_buffer = line_buffers_[(fetch_pointer_.row + 1) % mode_timing_.total_lines];
-	const int horizontal_offset = (fetch_pointer_.row >= 16 || !Storage<personality>::horizontal_scroll_lock_) ? (line_buffer.latched_horizontal_scroll >> 3) : 0;
+	LineBuffer &sprite_selection_buffer = line_buffers_[(y + 1) % mode_timing_.total_lines];
+	const int horizontal_offset = (y >= 16 || !Storage<personality>::horizontal_scroll_lock_) ? (line_buffer.latched_horizontal_scroll >> 3) : 0;
 
 	// Limit address bits in use if this is a SMS2 mode.
 	const bool is_tall_mode = mode_timing_.pixel_lines != 192;
@@ -402,7 +399,7 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 
 	// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
 	// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
-	const int scrolled_row = (fetch_pointer_.row + Storage<personality>::latched_vertical_scroll_) % (is_tall_mode ? 256 : 224);
+	const int scrolled_row = (y + Storage<personality>::latched_vertical_scroll_) % (is_tall_mode ? 256 : 224);
 	struct RowInfo {
 		size_t pattern_address_base;
 		size_t sub_row[2];
@@ -413,9 +410,9 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 	};
 	RowInfo row_info;
 	if(Storage<personality>::vertical_scroll_lock_) {
-		row_info.pattern_address_base = (pattern_name_address & size_t(((fetch_pointer_.row & ~7) << 3) | 0x3800)) - pattern_name_offset;
-		row_info.sub_row[0] = size_t((fetch_pointer_.row & 7) << 2);
-		row_info.sub_row[1] = 28 ^ size_t((fetch_pointer_.row & 7) << 2);
+		row_info.pattern_address_base = (pattern_name_address & size_t(((y & ~7) << 3) | 0x3800)) - pattern_name_offset;
+		row_info.sub_row[0] = size_t((y & 7) << 2);
+		row_info.sub_row[1] = 28 ^ size_t((y & 7) << 2);
 	} else row_info = scrolled_row_info;
 
 	// ... and do the actual fetching, which follows this routine:
@@ -471,7 +468,7 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 // MARK: - Yamaha
 
 template <Personality personality>
-template<ScreenMode mode> void Base<personality>::fetch_yamaha(int end) {
+template<ScreenMode mode> void Base<personality>::fetch_yamaha([[maybe_unused]] LineBuffer &line_buffer, [[maybe_unused]] int y, int end) {
 	while(Storage<personality>::next_event_->offset < end) {
 		switch(Storage<personality>::next_event_->type) {
 			case Storage<personality>::Event::Type::External:
@@ -502,10 +499,10 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(int end) {
 
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_yamaha([[maybe_unused]] int start, int end) {
+template<bool use_end> void Base<personality>::fetch_yamaha(LineBuffer &line_buffer, int y, int, int end) {
 	if constexpr (is_yamaha_vdp(personality)) {
 		// Dispatch according to [supported] screen mode.
-#define Dispatch(mode)	case mode:	fetch_yamaha<mode>(end);	break;
+#define Dispatch(mode)	case mode:	fetch_yamaha<mode>(line_buffer, y, end);	break;
 		switch(screen_mode_) {
 			default: break;
 			Dispatch(ScreenMode::Blank);
