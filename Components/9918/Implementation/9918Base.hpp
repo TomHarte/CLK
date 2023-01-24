@@ -179,6 +179,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		enum class Type {
 			External,
 			DataBlock,
+			SpriteY,
+			SpriteContents,
 		} type = Type::External;
 
 		constexpr Event(int offset, Type type) noexcept :
@@ -190,10 +192,19 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 		constexpr Event() noexcept {}
 	};
+
+	// State that tracks fetching position within a line.
 	const Event *next_event_ = nullptr;
+	int data_block_ = 0;
+	int sprite_block_ = 0;
+
+	/// Resets line-ephemeral state for a new line.
 	void begin_line([[maybe_unused]] ScreenMode mode, bool is_refresh, [[maybe_unused]] bool sprites_enabled) {
 		// TODO: reinstate upon completion of the Yamaha pipeline.
 //		assert(mode < ScreenMode::YamahaText80 || next_event_ == nullptr || next_event_->offset == 1368);
+
+		data_block_ = 0;
+		sprite_block_ = 0;
 
 		if(is_refresh) {
 			next_event_ = refresh_events;
@@ -636,6 +647,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	template<bool use_end> void fetch_tms_character(int start, int end);
 
 	template<bool use_end> void fetch_yamaha(int start, int end);
+	template<ScreenMode> void fetch_yamaha(int end);
 
 	template<bool use_end> void fetch_sms(int start, int end);
 

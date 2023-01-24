@@ -471,37 +471,56 @@ template<bool use_end> void Base<personality>::fetch_sms(int start, int end) {
 // MARK: - Yamaha
 
 template <Personality personality>
+template<ScreenMode mode> void Base<personality>::fetch_yamaha(int end) {
+	while(Storage<personality>::next_event_->offset < end) {
+		switch(Storage<personality>::next_event_->type) {
+			case Storage<personality>::Event::Type::External:
+				do_external_slot(Storage<personality>::next_event_->offset);
+			break;
+
+			case Storage<personality>::Event::Type::DataBlock: {
+				// Exactly how to fetch depends upon mode...
+				switch(mode) {
+					case ScreenMode::YamahaGraphics5: {
+						// TODO: work out start address as a function of fetch_pointer_.row, use current
+						// data block via data_block_, fetch data into line_buffers_[fetch_pointer_.row].bitmap.
+					} break;
+
+					default:
+					break;
+				}
+
+				++Storage<personality>::data_block_;
+			} break;
+
+			default: break;
+		}
+
+		++Storage<personality>::next_event_;
+	}
+}
+
+
+template <Personality personality>
 template<bool use_end> void Base<personality>::fetch_yamaha([[maybe_unused]] int start, int end) {
 	if constexpr (is_yamaha_vdp(personality)) {
-		/*
-			Per http://map.grauw.nl/articles/vdp-vram-timing/vdp-timing.html :
-
-			The major change compared to the previous mode is that now the VDP needs to fetch extra data
-			for the bitmap rendering. These fetches happen in 32 blocks of 4 bytes (screen 5/6) or
-			8 bytes (screen 7/8). The fetches within one block happen in burst mode. This means that
-			one block takes 18 cycles (screen 5/6) or 20 cycles (screen 7/8). Though later we'll see
-			that the two spare cycles for screen 5/6 are not used for anything else, so for simplicity
-			we can say that in all bitmap modes a bitmap-fetch-block takes 20 cycles. This is even
-			clearer if you look at the RAS signal: this signal follows the exact same pattern in all
-			(bitmap) screen modes, so in screen 5/6 it remains active for two cycles longer than
-			strictly necessary.
-
-			Actually before these 32 blocks there's one extra dummy block. This block has the same timing
-			as the other blocks, but it always reads address 0x1FFFF. From an emulator point of view,
-			these dummy reads don't matter, it only matters that at those moments no other VRAM accesses
-			can occur.
-		*/
-		while(Storage<personality>::next_event_->offset < end) {
-			switch(Storage<personality>::next_event_->type) {
-				case Storage<personality>::Event::Type::External:
-					do_external_slot(Storage<personality>::next_event_->offset);
-				break;
-
-				default: break;
-			}
-
-			++Storage<personality>::next_event_;
+		// Dispatch according to [supported] screen mode.
+#define Dispatch(mode)	case mode:	fetch_yamaha<mode>(end);	break;
+		switch(screen_mode_) {
+			default: break;
+			Dispatch(ScreenMode::Blank);
+			Dispatch(ScreenMode::Text);
+			Dispatch(ScreenMode::MultiColour);
+			Dispatch(ScreenMode::ColouredText);
+			Dispatch(ScreenMode::Graphics);
+			Dispatch(ScreenMode::YamahaText80);
+			Dispatch(ScreenMode::YamahaGraphics3);
+			Dispatch(ScreenMode::YamahaGraphics4);
+			Dispatch(ScreenMode::YamahaGraphics5);
+			Dispatch(ScreenMode::YamahaGraphics6);
+			Dispatch(ScreenMode::YamahaGraphics7);
 		}
+#undef Dispatch
 	}
 }
 
