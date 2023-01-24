@@ -192,8 +192,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	};
 	const Event *next_event_ = nullptr;
 	void begin_line([[maybe_unused]] ScreenMode mode, bool is_refresh, [[maybe_unused]] bool sprites_enabled) {
-		// TODO: remove YamahaText80 check. It's temporary, while the Yamaha is still using the TMS fetchers.
-		assert(mode < ScreenMode::YamahaText80 || next_event_ == nullptr || next_event_->offset == 1368);
+		// TODO: reinstate upon completion of the Yamaha pipeline.
+//		assert(mode < ScreenMode::YamahaText80 || next_event_ == nullptr || next_event_->offset == 1368);
 
 		if(is_refresh) {
 			next_event_ = refresh_events;
