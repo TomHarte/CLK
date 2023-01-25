@@ -288,7 +288,35 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 
 // MARK: - Yamaha
 
-// TODO.
+template <Personality personality>
+template <ScreenMode mode>
+void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
+	// TODO: sprites. And all other graphics modes.
+
+	if constexpr (mode == ScreenMode::YamahaGraphics5) {
+		for(int c = start >> 1; c < end >> 1; c++) {
+			pixel_target_[c] = Storage<personality>::palette_[
+				(buffer.bitmap[c >> 2] >> ((c & 3) << 1)) & 3
+			];
+		}
+
+		return;
+	}
+
+}
+
+template <Personality personality>
+void Base<personality>::draw_yamaha(int start, int end) {
+	LineBuffer &line_buffer = line_buffers_[output_pointer_.row];
+
+	if constexpr (is_yamaha_vdp(personality)) {
+		switch(line_buffer.screen_mode) {
+			case ScreenMode::YamahaGraphics5:	draw_yamaha<ScreenMode::YamahaGraphics5>(line_buffer, start, end);	break;
+
+			default: break;
+		}
+	}
+}
 
 // MARK: - Mega Drive
 

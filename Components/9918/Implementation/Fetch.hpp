@@ -530,7 +530,7 @@ template<bool use_end> void Base<personality>::fetch_yamaha(LineBuffer &line_buf
 	if constexpr (is_yamaha_vdp(personality)) {
 		// Dispatch according to [supported] screen mode.
 #define Dispatch(mode)	case mode:	fetch_yamaha<mode>(line_buffer, y, end);	break;
-		switch(screen_mode_) {
+		switch(line_buffer.screen_mode) {
 			default: break;
 			Dispatch(ScreenMode::Blank);
 			Dispatch(ScreenMode::Text);

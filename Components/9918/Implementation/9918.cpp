@@ -279,6 +279,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				next_line_buffer.first_pixel_output_column = Timing<personality>::FirstPixelCycle;
 				next_line_buffer.next_border_column = Timing<personality>::CyclesPerLine;
 				next_line_buffer.pixel_count = 256;
+				next_line_buffer.screen_mode = this->screen_mode_;
 				this->mode_timing_.maximum_visible_sprites = 4;
 				switch(this->screen_mode_) {
 					case ScreenMode::Text:
@@ -293,10 +294,15 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					break;
 					case ScreenMode::YamahaGraphics3:
 					case ScreenMode::YamahaGraphics4:
-					case ScreenMode::YamahaGraphics5:
-					case ScreenMode::YamahaGraphics6:
 					case ScreenMode::YamahaGraphics7:
 						next_line_buffer.line_mode = LineMode::Yamaha;
+						this->mode_timing_.maximum_visible_sprites = 8;
+					break;
+					case ScreenMode::YamahaGraphics5:
+					case ScreenMode::YamahaGraphics6:
+						next_line_buffer.pixel_count = 512;
+						next_line_buffer.line_mode = LineMode::Yamaha;
+						this->mode_timing_.maximum_visible_sprites = 8;
 					break;
 					default:
 						// This covers both MultiColour and Graphics modes.
@@ -390,7 +396,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						this->output_pointer_.row < this->mode_timing_.first_vsync_line + 4
 					) {
 						// Vertical sync.
-						// TODO: the Mega Drive supports interlaced video, I think?
+						// TODO: the Yamaha and Mega Drive both support interlaced video.
 						if(end_column == Timing<personality>::CyclesPerLine) {
 							output_sync(Timing<personality>::CyclesPerLine);
 						}
@@ -452,12 +458,12 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						}
 
 						if(this->pixel_target_) {
+							// TODO: this dispatch, and the fetch, should be factored into a templatised place, probably.
 							switch(line_buffer.line_mode) {
 								case LineMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), Clock::TMSPixel);	break;
 								case LineMode::Character:	draw(draw_tms_character(relative_start, relative_end), Clock::TMSPixel);	break;
 								case LineMode::Text:		draw(draw_tms_text(relative_start, relative_end), Clock::TMSPixel);			break;
-
-								// TODO: Yamaha line modes.
+								case LineMode::Yamaha:		draw(draw_yamaha(relative_start, relative_end), Clock::Internal);			break;
 
 								case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
 							}

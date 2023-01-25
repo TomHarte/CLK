@@ -72,8 +72,10 @@ enum class MemoryAccess {
 struct LineBuffer {
 	LineBuffer() {}
 
-	// The line mode describes the proper timing diagram for this line.
+	// The line mode describes the proper timing diagram for this line;
+	// screen mode captures proper output mode.
 	LineMode line_mode = LineMode::Text;
+	ScreenMode screen_mode = ScreenMode::Text;
 
 	// Holds the horizontal scroll position to apply to this line;
 	// of those VDPs currently implemented, affects the Master System only.
@@ -663,6 +665,9 @@ template <Personality personality> struct Base: public Storage<personality> {
 	void draw_tms_character(int start, int end);
 	void draw_tms_text(int start, int end);
 	void draw_sms(int start, int end, uint32_t cram_dot);
+
+	template<ScreenMode mode> void draw_yamaha(LineBuffer &, int start, int end);
+	void draw_yamaha(int start, int end);
 };
 
 #include "Fetch.hpp"
