@@ -52,11 +52,20 @@ struct Command {
 namespace Commands {
 
 struct Line: public Command {
-	using Command::Command;
+	public:
+		Line(CommandContext &context) : Command(context) {
+			// Set up Bresenham constants.
+		}
 
-	bool next() {
-		return false;
-	}
+		bool next() {
+			// Should implement Bresenham with cadence:
+			//
+			//	88 cycles before the next read; 24 to write.
+			//	Add 32 extra cycles if a minor-axis step occurs.
+			return false;
+		}
+
+	private:
 };
 
 }

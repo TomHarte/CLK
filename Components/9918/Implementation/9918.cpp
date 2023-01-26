@@ -915,6 +915,11 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					case 0b1111:	break;	// TODO: hmmc.
 				}
 
+				// Seed timing information if a command was found.
+				if(Storage<personality>::command_) {
+					// TODO.
+				}
+
 				// TODO: record logical mode.
 			break;
 		}
