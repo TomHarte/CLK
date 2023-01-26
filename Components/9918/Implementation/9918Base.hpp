@@ -15,7 +15,9 @@
 #include "../../../Numeric/BitReverse.hpp"
 #include "../../../Outputs/CRT/CRT.hpp"
 
+#include "AccessEnums.hpp"
 #include "PersonalityTraits.hpp"
+#include "YamahaCommands.hpp"
 
 #include <array>
 #include <cassert>
@@ -26,44 +28,6 @@
 
 namespace TI {
 namespace TMS {
-
-// The screen mode is a necessary predecessor to picking the line mode,
-// which is the thing latched per line.
-enum class ScreenMode {
-	// Original TMS modes.
-	Blank,
-	Text,
-	MultiColour,
-	ColouredText,
-	Graphics,
-
-	// 8-bit Sega modes.
-	SMSMode4,
-
-	// New Yamaha V9938 modes.
-	YamahaText80,
-	YamahaGraphics3,
-	YamahaGraphics4,
-	YamahaGraphics5,
-	YamahaGraphics6,
-	YamahaGraphics7,
-
-	// Rebranded Yamaha V9938 modes.
-	YamahaGraphics1 = ColouredText,
-	YamahaGraphics2 = Graphics,
-};
-
-enum class LineMode {
-	Text,
-	Character,
-	Refresh,
-	SMS,
-	Yamaha,
-};
-
-enum class MemoryAccess {
-	Read, Write, None
-};
 
 // Temporary buffers collect a representation of each line prior to pixel serialisation.
 //
@@ -216,6 +180,10 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		// TODO: obey sprites_enabled flag, at least.
 		next_event_ = no_sprites_events;
 	}
+
+	// Command engine state.
+	CommandContext command_context_;
+	Command *command_ = nullptr;
 
 	Storage() noexcept {
 		// Perform sanity checks on the event lists.

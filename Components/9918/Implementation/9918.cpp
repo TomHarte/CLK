@@ -806,41 +806,77 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			break;
 
 			case 32:
+				Storage<personality>::command_context_.source_x =
+					(Storage<personality>::command_context_.source_x & ~0xff) |
+					value;
+			break;
 			case 33:
-				LOG("TODO: Yamaha command source x; " << PADHEX(2) << +value);
+				Storage<personality>::command_context_.source_x =
+					(Storage<personality>::command_context_.source_x & ~0x100) |
+					((value & 1) << 8);
 			break;
 
 			case 34:
+				Storage<personality>::command_context_.source_y =
+					(Storage<personality>::command_context_.source_y & ~0xff) |
+					value;
+			break;
 			case 35:
-				LOG("TODO: Yamaha command source y; " << PADHEX(2) << +value);
+				Storage<personality>::command_context_.source_y =
+					(Storage<personality>::command_context_.source_y & ~0x300) |
+					((value & 3) << 8);
 			break;
 
 			case 36:
+				Storage<personality>::command_context_.destination_x =
+					(Storage<personality>::command_context_.destination_x & ~0xff) |
+					value;
+			break;
 			case 37:
-				LOG("TODO: Yamaha command destination x; " << PADHEX(2) << +value);
+				Storage<personality>::command_context_.destination_x =
+					(Storage<personality>::command_context_.destination_x & ~0x100) |
+					((value & 1) << 8);
 			break;
 
 			case 38:
+				Storage<personality>::command_context_.destination_y =
+					(Storage<personality>::command_context_.destination_y & ~0xff) |
+					value;
+			break;
 			case 39:
-				LOG("TODO: Yamaha command destination y; " << PADHEX(2) << +value);
+				Storage<personality>::command_context_.destination_y =
+					(Storage<personality>::command_context_.destination_y & ~0x300) |
+					((value & 3) << 8);
 			break;
 
 			case 40:
+				Storage<personality>::command_context_.size_x =
+					(Storage<personality>::command_context_.size_x & ~0xff) |
+					value;
+			break;
 			case 41:
-				LOG("TODO: Yamaha command size x; " << PADHEX(2) << +value);
+				Storage<personality>::command_context_.size_x =
+					(Storage<personality>::command_context_.size_x & ~0x100) |
+					((value & 1) << 8);
 			break;
 
 			case 42:
+				Storage<personality>::command_context_.size_y =
+					(Storage<personality>::command_context_.size_y & ~0xff) |
+					value;
+			break;
 			case 43:
-				LOG("TODO: Yamaha command size y; " << PADHEX(2) << +value);
+				Storage<personality>::command_context_.size_y =
+					(Storage<personality>::command_context_.size_y & ~0x300) |
+					((value & 3) << 8);
 			break;
 
 			case 44:
-				LOG("TODO: Yamaha command colour; " << PADHEX(2) << +value);
+				Storage<personality>::command_context_.colour = value;
 			break;
 
 			case 45:
-				LOG("TODO: Yamaha VRAM bank selection addressing and command arguments; " << PADHEX(2) << +value);
+				Storage<personality>::command_context_.arguments = value;
 				// b6: 0 = video RAM; 1 = expansion RAM.
 				// b5: MXD (???)
 				// b4: MXS

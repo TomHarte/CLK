@@ -2216,6 +2216,8 @@
 		4BF0BC67297108D100CCA2B5 /* MemorySlotHandler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MemorySlotHandler.cpp; sourceTree = "<group>"; };
 		4BF0BC6F2973318E00CCA2B5 /* RP5C01.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RP5C01.cpp; sourceTree = "<group>"; };
 		4BF0BC702973318E00CCA2B5 /* RP5C01.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RP5C01.hpp; sourceTree = "<group>"; };
+		4BF0BC732982E54700CCA2B5 /* YamahaCommands.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = YamahaCommands.hpp; sourceTree = "<group>"; };
+		4BF0BC742982E6D300CCA2B5 /* AccessEnums.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AccessEnums.hpp; sourceTree = "<group>"; };
 		4BF40A5525424C770033EA39 /* LanguageCardSwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LanguageCardSwitches.hpp; sourceTree = "<group>"; };
 		4BF40A5A254263140033EA39 /* AuxiliaryMemorySwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AuxiliaryMemorySwitches.hpp; sourceTree = "<group>"; };
 		4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SegmentParser.cpp; sourceTree = "<group>"; };
@@ -4751,10 +4753,12 @@
 			children = (
 				4B43983829620FB1006B0BFC /* 9918.cpp */,
 				4BD388411FE34E010042B588 /* 9918Base.hpp */,
+				4BF0BC742982E6D300CCA2B5 /* AccessEnums.hpp */,
 				4B43983C29621024006B0BFC /* ClockConverter.hpp */,
 				4B43983F2967459B006B0BFC /* Draw.hpp */,
 				4B43983E29628538006B0BFC /* Fetch.hpp */,
 				4B262BFF29691F55002EC0F7 /* PersonalityTraits.hpp */,
+				4BF0BC732982E54700CCA2B5 /* YamahaCommands.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";
