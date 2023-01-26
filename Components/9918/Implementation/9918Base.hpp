@@ -183,7 +183,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 	// Command engine state.
 	CommandContext command_context_;
-	Command *command_ = nullptr;
+	std::unique_ptr<Command> command_ = nullptr;
 
 	Storage() noexcept {
 		// Perform sanity checks on the event lists.

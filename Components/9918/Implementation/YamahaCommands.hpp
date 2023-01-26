@@ -14,6 +14,8 @@
 namespace TI {
 namespace TMS {
 
+// MARK: - Generics.
+
 struct CommandContext {
 	int source_x = 0, source_y = 0;
 	int destination_x = 0, destination_y = 0;
@@ -32,14 +34,32 @@ struct Command {
 	int cycles = 0;
 	uint8_t value = 0;
 
+	// TODO: how best to describe access destination? Probably as (x, y) and logical/fast?
+
 	/// Current command parameters.
 	CommandContext &context;
 	Command(CommandContext &context) : context(context) {}
 
-	/// Request that the fields above are updated given the completed access.
+	/// Request that the fields above are updated given that the previously-request access
+	/// was completed.
+	///
+	/// @returns @c true if another access has been enqueued; @c false if this command is done.
 	virtual bool next() = 0;
 };
 
+// MARK: - Line drawing.
+
+namespace Commands {
+
+struct Line: public Command {
+	using Command::Command;
+
+	bool next() {
+		return false;
+	}
+};
+
+}
 }
 }
 
