@@ -849,7 +849,9 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					default:		Storage<personality>::command_ = nullptr;
 
 					case 0b0000:	break;	// TODO: stop.
-					case 0b0100:	break;	// TODO: point.
+					case 0b0100:
+						Storage<personality>::command_ = std::make_unique<Commands::Point>(Storage<personality>::command_context_);
+					break;
 					case 0b0101:	break;	// TODO: pset.
 					case 0b0110:	break;	// TODO: srch.
 					case 0b0111:

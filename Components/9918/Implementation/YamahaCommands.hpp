@@ -63,7 +63,7 @@ struct Command {
 	virtual bool done() = 0;
 
 	/// Repopulates the fields above with the next action to take.
-	virtual void advance() = 0;
+	virtual void advance() {}
 };
 
 // MARK: - Line drawing.
@@ -123,6 +123,19 @@ struct Line: public Command {
 	private:
 		int position_, numerator_, denominator_, duration_;
 		Vector major_, minor_;
+};
+
+struct Point: public Command {
+	public:
+		Point(CommandContext &context) : Command(context) {
+			cycles = 0;
+			access = AccessType::PlotPoint;
+			location = context.destination;
+		}
+
+		bool done() final {
+			return true;
+		}
 };
 
 }
