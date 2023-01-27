@@ -25,9 +25,19 @@ struct Vector {
 		v[offset] = (v[offset] & ~(mask << shift)) | (value << shift);
 	}
 
+	template <int offset> void add(int amount) {
+		v[offset] += amount;
+
+		if constexpr (offset == 1) {
+			v[offset] &= 0x3ff;
+		} else {
+			v[offset] &= 0x1ff;
+		}
+	}
+
 	Vector & operator += (const Vector &rhs) {
-		v[0] += rhs.v[0];
-		v[1] += rhs.v[1];
+		add<0>(rhs.v[0]);
+		add<1>(rhs.v[1]);
 		return *this;
 	}
 };
@@ -79,50 +89,57 @@ namespace Commands {
 struct Line: public Command {
 	public:
 		Line(CommandContext &context) : Command(context) {
-			// Set up Bresenham constants.
-			if(abs(context.size.v[0]) > abs(context.size.v[1])) {
-				major_.v[0] = context.size.v[0] < 0 ? -1 : 1;
-				minor_.v[1] = context.size.v[1] < 0 ? -1 : 1;
-				major_.v[1] = minor_.v[0] = 0;
+			// context.destination = start position;
+			// context.size.v[0] = long side dots;
+			// context.size.v[1] = short side dots;
+			// context.arguments => direction
 
-				position_ = abs(context.size.v[1]);
-				duration_ = abs(context.size.v[0]);
-			} else {
-				major_.v[1] = context.size.v[1] < 0 ? -1 : 1;
-				minor_.v[0] = context.size.v[0] < 0 ? -1 : 1;
-				major_.v[0] = minor_.v[1] = 0;
-
-				position_ = abs(context.size.v[0]);
-				duration_ = abs(context.size.v[1]);
-			}
-
-			numerator_ = position_ << 1;
-			denominator_ = duration_ << 1;
-
-			cycles = 0;
-			access = AccessType::PlotPoint;
 			location = context.destination;
+			position_ = context.size.v[1];
+			numerator_ = position_ << 1;
+			denominator_ = context.size.v[0] << 1;
+
+			cycles = 32;
+			access = AccessType::PlotPoint;
 		}
 
 		bool done() final {
-			return !duration_;
+			return !context.size.v[0];
 		}
 
 		void advance() final {
-			--duration_;
+			--context.size.v[0];
 			cycles = 88;
-			location += major_;
+
+			// b0:	1 => long direction is y;
+			//		0 => long direction is x.
+			//
+			// b2:	1 => x direction is left;
+			//		0 => x direction is right.
+			//
+			// b3:	1 => y direction is up;
+			//		0 => y direction is down.
+			if(context.arguments & 0x1) {
+				location.add<1>(context.arguments & 0x8 ? -1 : 1);
+			} else {
+				location.add<0>(context.arguments & 0x4 ? -1 : 1);
+			}
+
 			position_ -= numerator_;
 			if(position_ < 0) {
-				cycles += 32;
-				location += minor_;
 				position_ += denominator_;
+				cycles += 32;
+
+				if(context.arguments & 0x1) {
+					location.add<0>(context.arguments & 0x4 ? -1 : 1);
+				} else {
+					location.add<1>(context.arguments & 0x8 ? -1 : 1);
+				}
 			}
 		}
 
 	private:
 		int position_, numerator_, denominator_, duration_;
-		Vector major_, minor_;
 };
 
 /// Implements the PSET command, which plots a single pixel.
