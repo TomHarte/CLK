@@ -294,9 +294,10 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 	// TODO: sprites. And all other graphics modes.
 
 	if constexpr (mode == ScreenMode::YamahaGraphics5) {
+		// TODO: a much smarter loop.
 		for(int c = start >> 1; c < end >> 1; c++) {
 			pixel_target_[c] = Storage<personality>::palette_[
-				(buffer.bitmap[c >> 2] >> ((c & 3) << 1)) & 3
+				buffer.bitmap[c >> 2] >> ((((c & 3) ^ 3) << 1)) & 3
 			];
 		}
 
