@@ -200,28 +200,32 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// ------------------------
 			// Perform memory accesses.
 			// ------------------------
-#define fetch(function, clock)	{															\
+#define fetch(function, clock, offset)	{														\
 	const int first_window = from_internal<personality, clock>(this->fetch_pointer_.column);\
 	const int final_window = from_internal<personality, clock>(end_column);					\
 	if(first_window == final_window) break;													\
 	if(final_window != clock_rate<personality, clock>()) {									\
 		function<true>(																		\
-			this->line_buffers_[this->fetch_pointer_.row], this->fetch_pointer_.row,		\
+			this->line_buffers_[this->fetch_pointer_.row], this->fetch_pointer_.row + offset,		\
 			first_window, final_window);													\
 	} else {																				\
 		function<false>(																	\
-			this->line_buffers_[this->fetch_pointer_.row], this->fetch_pointer_.row,		\
+			this->line_buffers_[this->fetch_pointer_.row], this->fetch_pointer_.row + offset,		\
 			first_window, final_window);													\
 	}																						\
 }
 
 			switch(line_buffer.line_mode) {
-				case LineMode::Text:			fetch(this->template fetch_tms_text, Clock::TMSMemoryWindow);		break;
-				case LineMode::Character:		fetch(this->template fetch_tms_character, Clock::TMSMemoryWindow);	break;
-				case LineMode::SMS:				fetch(this->template fetch_sms, Clock::TMSMemoryWindow);			break;
-				case LineMode::Refresh:			fetch(this->template fetch_tms_refresh, Clock::TMSMemoryWindow);	break;
+				case LineMode::Text:			fetch(this->template fetch_tms_text, Clock::TMSMemoryWindow, 0);		break;
+				case LineMode::Character:		fetch(this->template fetch_tms_character, Clock::TMSMemoryWindow, 0);	break;
+				case LineMode::SMS:				fetch(this->template fetch_sms, Clock::TMSMemoryWindow, 0);			break;
+				case LineMode::Refresh:			fetch(this->template fetch_tms_refresh, Clock::TMSMemoryWindow, 0);	break;
 
-				case LineMode::Yamaha:			fetch(this->template fetch_yamaha, Clock::Internal);				break;
+				case LineMode::Yamaha:
+					if constexpr (is_yamaha_vdp(personality)) {
+						fetch(this->template fetch_yamaha, Clock::Internal, Storage<personality>::vertical_offset_);
+					}
+				break;
 			}
 
 #undef fetch
@@ -801,8 +805,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			break;
 
 			case 23:
-				LOG("TODO: Yamaha vertical offset; " << PADHEX(2) << +value);
-				// i.e. scrolling.
+				Storage<personality>::vertical_offset_ = value;
 			break;
 
 			case 32:	Storage<personality>::command_context_.source.template set<0, false>(value);		break;
