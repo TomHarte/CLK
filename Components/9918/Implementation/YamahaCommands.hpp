@@ -63,14 +63,14 @@ struct Command {
 	virtual bool done() = 0;
 
 	/// Repopulates the fields above with the next action to take.
-	virtual void advance() {}
+	virtual void advance() = 0;
 };
 
 // MARK: - Line drawing.
 
 namespace Commands {
 
-/// Implements the line command, which is plain-old Bresenham.
+/// Implements the LINE command, which is plain-old Bresenham.
 ///
 /// Per Grauw timing is:
 ///
@@ -125,17 +125,27 @@ struct Line: public Command {
 		Vector major_, minor_;
 };
 
-struct Point: public Command {
+/// Implements the PSET command, which plots a single pixel.
+///
+/// No timings are documented, so this'll output as quickly as possible.
+struct PointSet: public Command {
 	public:
-		Point(CommandContext &context) : Command(context) {
+		PointSet(CommandContext &context) : Command(context) {
 			cycles = 0;
 			access = AccessType::PlotPoint;
 			location = context.destination;
 		}
 
 		bool done() final {
-			return true;
+			return done_;
 		}
+
+		void advance() final {
+			done_ = true;
+		}
+
+	private:
+		bool done_ = false;
 };
 
 }

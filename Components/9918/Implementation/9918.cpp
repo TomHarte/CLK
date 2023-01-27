@@ -843,20 +843,17 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// b0–b3: LO0–LO3 (???)
 				// b4–b7: CM0-CM3 (???)
 
+#define Begin(x)	Storage<personality>::command_ = std::make_unique<Commands::x>(Storage<personality>::command_context_);
 				switch(value >> 4) {
 					// All codes not listed below are invalid; just abandon
 					// whatever's going on, if anything.
 					default:		Storage<personality>::command_ = nullptr;
 
 					case 0b0000:	break;	// TODO: stop.
-					case 0b0100:
-						Storage<personality>::command_ = std::make_unique<Commands::Point>(Storage<personality>::command_context_);
-					break;
-					case 0b0101:	break;	// TODO: pset.
+					case 0b0100:	break;	// TODO: point.
+					case 0b0101:	Begin(PointSet);	break;
 					case 0b0110:	break;	// TODO: srch.
-					case 0b0111:
-						Storage<personality>::command_ = std::make_unique<Commands::Line>(Storage<personality>::command_context_);
-					break;
+					case 0b0111:	Begin(Line);		break;
 
 					case 0b1000:	break;	// TODO: lmmv.
 					case 0b1001:	break;	// TODO: lmmm.
@@ -868,6 +865,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					case 0b1110:	break;	// TODO: ymmm.
 					case 0b1111:	break;	// TODO: hmmc.
 				}
+#undef Begin
 
 				// Seed timing information if a command was found.
 				if(Storage<personality>::command_) {
@@ -884,7 +882,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					packed_colour |= packed_colour << 4;
 
 					while(!Storage<personality>::command_->done()) {
-						const int address =
+						const unsigned int address =
 							(Storage<personality>::command_->location.v[0] >> 2) +
 							(Storage<personality>::command_->location.v[1] << 7);
 
