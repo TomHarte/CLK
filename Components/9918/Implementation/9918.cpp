@@ -894,6 +894,8 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 						Storage<personality>::command_->advance();
 					}
+
+					Storage<personality>::command_ = nullptr;
 				}
 
 				// TODO: record logical mode.
