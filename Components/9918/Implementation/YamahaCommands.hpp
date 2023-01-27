@@ -46,11 +46,14 @@ struct Command {
 	// This command is blocked until @c access has been performed, reading
 	// from or writing to @c value. It should not be performed until at least
 	// @c cycles have passed.
-	MemoryAccess access = MemoryAccess::None;
+	enum class AccessType {
+		/// Plots a single pixel of the current contextual colour at @c location,
+		/// which occurs as a read, then a 24-cycle pause, then a write.
+		PlotPoint
+	};
+	AccessType access = AccessType::PlotPoint;
 	int cycles = 0;
-	uint8_t value = 0;
-
-	// TODO: how best to describe access destination? Probably as (x, y) and logical/fast?
+	Vector location;
 
 	/// Current command parameters.
 	CommandContext &context;
@@ -67,21 +70,59 @@ struct Command {
 
 namespace Commands {
 
+/// Implements the line command, which is plain-old Bresenham.
+///
+/// Per Grauw timing is:
+///
+///	* 88 cycles between every pixel plot;
+///	* plus an additional 32 cycles if a step along the minor axis is taken.
 struct Line: public Command {
 	public:
 		Line(CommandContext &context) : Command(context) {
 			// Set up Bresenham constants.
+			if(abs(context.size.v[0]) > abs(context.size.v[1])) {
+				major_.v[0] = context.size.v[0] < 0 ? -1 : 1;
+				minor_.v[1] = context.size.v[1] < 0 ? -1 : 1;
+				major_.v[1] = minor_.v[0] = 0;
+
+				position_ = abs(context.size.v[1]);
+				duration_ = abs(context.size.v[0]);
+			} else {
+				major_.v[1] = context.size.v[1] < 0 ? -1 : 1;
+				minor_.v[0] = context.size.v[0] < 0 ? -1 : 1;
+				major_.v[0] = minor_.v[1] = 0;
+
+				position_ = abs(context.size.v[0]);
+				duration_ = abs(context.size.v[1]);
+			}
+
+			numerator_ = position_ << 1;
+			denominator_ = duration_ << 1;
+
+			cycles = 0;
+			access = AccessType::PlotPoint;
+			location = context.destination;
 		}
 
 		bool next() {
-			// Should implement Bresenham with cadence:
-			//
-			//	88 cycles before the next read; 24 to write.
-			//	Add 32 extra cycles if a minor-axis step occurs.
-			return false;
+			if(!duration_) return false;
+
+			--duration_;
+			cycles = 88;
+			location += major_;
+			position_ -= numerator_;
+			if(position_ < 0) {
+				cycles += 32;
+				location += minor_;
+				position_ += denominator_;
+			}
+
+			return true;
 		}
 
 	private:
+		int position_, numerator_, denominator_, duration_;
+		Vector major_, minor_;
 };
 
 }
