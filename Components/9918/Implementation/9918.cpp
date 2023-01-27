@@ -722,6 +722,11 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				LOG("Screen mode: " << int(current_screen_mode()));
 			break;
 
+			case 2:
+				// Retain extra addressing bits.
+				pattern_name_address_ = size_t((value & 0x7f) << 10) | 0x3ff;
+			break;
+
 			case 8:
 				LOG("TODO: Yamaha VRAM organisation, sprite disable, etc; " << PADHEX(2) << +value);
 				// b7: "1 = input on colour bus, enable mouse; 1 = output on colour bus, disable mouse" [documentation clearly in error]
