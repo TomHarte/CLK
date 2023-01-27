@@ -866,7 +866,31 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 				// Seed timing information if a command was found.
 				if(Storage<personality>::command_) {
-					// TODO.
+					// TODO: eliminate SUPER HACK.
+					// This is currently here primarily to help me to hash out the
+					// proper interface, and also because I'm just not persuaded
+					// that minimum_access_column_ works properly. Why doesn't it
+					// ever end up out of bounds?
+
+
+					// TODO: undo temporary assumption of Graphics Mode 5.
+					uint8_t packed_colour = Storage<personality>::command_context_.colour & 3;
+					packed_colour |= packed_colour << 2;
+					packed_colour |= packed_colour << 4;
+
+					while(!Storage<personality>::command_->done()) {
+						const int address =
+							(Storage<personality>::command_->location.v[0] >> 2) +
+							(Storage<personality>::command_->location.v[1] << 7);
+
+						const uint8_t mask = 0xc0 >> ((Storage<personality>::command_->location.v[0] & 3) << 1);
+						uint8_t v = ram_[address];
+						v &= ~mask;
+						v |= packed_colour & mask;
+						ram_[address] = v;
+
+						Storage<personality>::command_->advance();
+					}
 				}
 
 				// TODO: record logical mode.

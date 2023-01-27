@@ -59,11 +59,11 @@ struct Command {
 	CommandContext &context;
 	Command(CommandContext &context) : context(context) {}
 
-	/// Request that the fields above are updated given that the previously-request access
-	/// was completed.
-	///
-	/// @returns @c true if another access has been enqueued; @c false if this command is done.
-	virtual bool next() = 0;
+	/// @returns @c true if all output from this command is done; @c false otherwise.
+	virtual bool done() = 0;
+
+	/// Repopulates the fields above with the next action to take.
+	virtual void advance() = 0;
 };
 
 // MARK: - Line drawing.
@@ -104,9 +104,11 @@ struct Line: public Command {
 			location = context.destination;
 		}
 
-		bool next() {
-			if(!duration_) return false;
+		bool done() final {
+			return !duration_;
+		}
 
+		void advance() final {
 			--duration_;
 			cycles = 88;
 			location += major_;
@@ -116,8 +118,6 @@ struct Line: public Command {
 				location += minor_;
 				position_ += denominator_;
 			}
-
-			return true;
 		}
 
 	private:
