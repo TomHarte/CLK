@@ -839,17 +839,23 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			break;
 
 			case 46:
-				LOG("TODO: Yamaha command; " << PADHEX(2) << +value);
-				// b0–b3: LO0–LO3 (???)
-				// b4–b7: CM0-CM3 (???)
+				// b0–b3: LO0–LO3 (i.e. operation to apply if this is a logical command)
+				// b4–b7: CM0-CM3 (i.e. command to perform)
+
+				// If a command is already ongoing and this is not a stop, ignore it.
+				if(Storage<personality>::command_ && (value >> 4) != 0b0000) {
+					break;
+				}
 
 #define Begin(x)	Storage<personality>::command_ = std::make_unique<Commands::x>(Storage<personality>::command_context_);
 				switch(value >> 4) {
 					// All codes not listed below are invalid; just abandon
 					// whatever's going on, if anything.
-					default:		Storage<personality>::command_ = nullptr;
+					//
+					// There's also no need to list STOP below as it was
+					// handled above.
+					default:		break;
 
-					case 0b0000:	break;	// TODO: stop.
 					case 0b0100:	break;	// TODO: point.
 					case 0b0101:	Begin(PointSet);	break;
 					case 0b0110:	break;	// TODO: srch.
@@ -875,8 +881,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					// that minimum_access_column_ works properly. Why doesn't it
 					// ever end up out of bounds?
 
-
-					// TODO: undo temporary assumption of Graphics Mode 5.
+					// TODO: undo temporary assumption of Graphics Mode 5 and of logical operation.
 					uint8_t packed_colour = Storage<personality>::command_context_.colour & 3;
 					packed_colour |= packed_colour << 2;
 					packed_colour |= packed_colour << 4;
@@ -896,9 +901,9 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					}
 
 					Storage<personality>::command_ = nullptr;
+				} else {
+					LOG("TODO: Yamaha command " << PADHEX(2) << +value);
 				}
-
-				// TODO: record logical mode.
 			break;
 		}
 	}
