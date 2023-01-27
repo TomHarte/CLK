@@ -856,20 +856,20 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					// handled above.
 					default:		break;
 
-					case 0b0100:	break;	// TODO: point.
+					case 0b0100:	break;	// TODO: point.	[read a pixel colour]
 					case 0b0101:	Begin(PointSet);	break;
-					case 0b0110:	break;	// TODO: srch.
+					case 0b0110:	break;	// TODO: srch.	[search horizontally for a colour]
 					case 0b0111:	Begin(Line);		break;
 
-					case 0b1000:	break;	// TODO: lmmv.
-					case 0b1001:	break;	// TODO: lmmm.
-					case 0b1010:	break;	// TODO: lmcm.
-					case 0b1011:	break;	// TODO: lmmc.
+					case 0b1000:	break;	// TODO: lmmv.	[logical move, VDP to VRAM]
+					case 0b1001:	break;	// TODO: lmmm.	[logical move, VRAM to VRAM]
+					case 0b1010:	break;	// TODO: lmcm.	[logical move, VRAM to CPU]
+					case 0b1011:	break;	// TODO: lmmc.	[logical move, CPU to VRAM]
 
-					case 0b1100:	break;	// TODO: hmmv.
-					case 0b1101:	break;	// TODO: hmmm.
-					case 0b1110:	break;	// TODO: ymmm.
-					case 0b1111:	break;	// TODO: hmmc.
+					case 0b1100:	break;	// TODO: hmmv.	[high-speed move, VRAM to VDP]
+					case 0b1101:	break;	// TODO: hmmm.	[high-speed move, VRAM to VRAM]
+					case 0b1110:	break;	// TODO: ymmm.	[high-speed move, y only, VRAM to VRAM]
+					case 0b1111:	break;	// TODO: hmmc.	[high-speed move, CPU to VRAM]
 				}
 #undef Begin
 
