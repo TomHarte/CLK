@@ -147,29 +147,29 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 	const int int_cycles = this->clock_converter_.to_internal(cycles.as<int>());
 	if(!int_cycles) return;
 
-	// There are two intertwined processes here, 'writing' (which means writing to the
-	// line buffers, i.e. it's everything to do with collecting a line) and 'reading'
-	// (which means reading from the line buffers and generating video).
-	int write_cycles_pool = int_cycles;
-	int read_cycles_pool = int_cycles;
+	// There are two intertwined processes here, 'fetching' (i.e. writing to the
+	// line buffers with newly-fetched video contents) and 'output' (reading from
+	// the line buffers and generating video).
+	int fetch_cycles_pool = int_cycles;
+	int output_cycles_pool = int_cycles;
 
-	while(write_cycles_pool || read_cycles_pool) {
+	while(fetch_cycles_pool || output_cycles_pool) {
 #ifndef NDEBUG
 		LineBufferPointer backup = this->output_pointer_;
 #endif
 
-		if(write_cycles_pool) {
+		if(fetch_cycles_pool) {
 			// Determine how much writing to do.
-			const int write_cycles = std::min(
+			const int fetch_cycles = std::min(
 				Timing<personality>::CyclesPerLine - this->fetch_pointer_.column,
-				write_cycles_pool
+				fetch_cycles_pool
 			);
-			const int end_column = this->fetch_pointer_.column + write_cycles;
+			const int end_column = this->fetch_pointer_.column + fetch_cycles;
 			LineBuffer &line_buffer = this->line_buffers_[this->fetch_pointer_.row];
 
 			// Determine what this does to any enqueued VRAM access.
 			this->minimum_access_column_ = this->fetch_pointer_.column + this->cycles_until_access_;
-			this->cycles_until_access_ -= write_cycles;
+			this->cycles_until_access_ -= fetch_cycles;
 
 
 			// ---------------------------------------
@@ -268,7 +268,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// Advance time.
 			// -------------
 			this->fetch_pointer_.column = end_column;
-			write_cycles_pool -= write_cycles;
+			fetch_cycles_pool -= fetch_cycles;
 
 			if(this->fetch_pointer_.column == Timing<personality>::CyclesPerLine) {
 				this->fetch_pointer_.column = 0;
@@ -340,18 +340,18 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 #endif
 
 
-		if(read_cycles_pool) {
+		if(output_cycles_pool) {
 			// Determine how much time has passed in the remainder of this line, and proceed.
-			const int target_read_cycles = std::min(
+			const int target_output_cycles = std::min(
 				Timing<personality>::CyclesPerLine - this->output_pointer_.column,
-				read_cycles_pool
+				output_cycles_pool
 			);
-			int read_cycles_performed = 0;
+			int output_cycles_performed = 0;
 			uint32_t next_cram_value = 0;
 
-			while(read_cycles_performed < target_read_cycles) {
-				int read_cycles = target_read_cycles - read_cycles_performed;
-				if(!read_cycles) continue;
+			while(output_cycles_performed < target_output_cycles) {
+				int output_cycles = target_output_cycles - output_cycles_performed;
+				if(!output_cycles) continue;
 
 				// Grab the next CRAM dot value and schedule a break in output if applicable.
 				const uint32_t cram_value = next_cram_value;
@@ -361,17 +361,17 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					if(!this->upcoming_cram_dots_.empty() && this->upcoming_cram_dots_.front().location.row == this->output_pointer_.row) {
 						int time_until_dot = this->upcoming_cram_dots_.front().location.column - this->output_pointer_.column;
 
-						if(time_until_dot < read_cycles) {
-							read_cycles = time_until_dot;
+						if(time_until_dot < output_cycles) {
+							output_cycles = time_until_dot;
 							next_cram_value = this->upcoming_cram_dots_.front().value;
 							this->upcoming_cram_dots_.erase(this->upcoming_cram_dots_.begin());
 						}
 					}
 				}
 
-				read_cycles_performed += read_cycles;
+				output_cycles_performed += output_cycles;
 
-				const int end_column = this->output_pointer_.column + read_cycles;
+				const int end_column = this->output_pointer_.column + output_cycles;
 				LineBuffer &line_buffer = this->line_buffers_[this->output_pointer_.row];
 
 
@@ -505,7 +505,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->output_pointer_.column = end_column;
 			}
 
-			read_cycles_pool -= target_read_cycles;
+			output_cycles_pool -= target_output_cycles;
 			if(this->output_pointer_.column == Timing<personality>::CyclesPerLine) {
 				this->output_pointer_.column = 0;
 				this->output_pointer_.row = (this->output_pointer_.row + 1) % this->mode_timing_.total_lines;
