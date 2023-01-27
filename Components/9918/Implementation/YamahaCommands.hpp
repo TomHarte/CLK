@@ -16,10 +16,26 @@ namespace TMS {
 
 // MARK: - Generics.
 
+struct Vector {
+	int v[2]{};
+
+	template <int offset, bool high> void set(uint8_t value) {
+		constexpr uint8_t mask = high ? (offset ? 0x3 : 0x1) : 0xff;
+		constexpr int shift = high ? 8 : 0;
+		v[offset] = (v[offset] & ~(mask << shift)) | (value << shift);
+	}
+
+	Vector & operator += (const Vector &rhs) {
+		v[0] += rhs.v[0];
+		v[1] += rhs.v[1];
+		return *this;
+	}
+};
+
 struct CommandContext {
-	int source_x = 0, source_y = 0;
-	int destination_x = 0, destination_y = 0;
-	int size_x = 0, size_y = 0;
+	Vector source;
+	Vector destination;
+	Vector size;
 	uint8_t colour = 0;
 	uint8_t arguments = 0;
 };

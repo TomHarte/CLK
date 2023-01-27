@@ -805,71 +805,20 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// i.e. scrolling.
 			break;
 
-			case 32:
-				Storage<personality>::command_context_.source_x =
-					(Storage<personality>::command_context_.source_x & ~0xff) |
-					value;
-			break;
-			case 33:
-				Storage<personality>::command_context_.source_x =
-					(Storage<personality>::command_context_.source_x & ~0x100) |
-					((value & 1) << 8);
-			break;
+			case 32:	Storage<personality>::command_context_.source.template set<0, false>(value);		break;
+			case 33:	Storage<personality>::command_context_.source.template set<0, true>(value);			break;
+			case 34:	Storage<personality>::command_context_.source.template set<1, false>(value);		break;
+			case 35:	Storage<personality>::command_context_.source.template set<1, true>(value);			break;
 
-			case 34:
-				Storage<personality>::command_context_.source_y =
-					(Storage<personality>::command_context_.source_y & ~0xff) |
-					value;
-			break;
-			case 35:
-				Storage<personality>::command_context_.source_y =
-					(Storage<personality>::command_context_.source_y & ~0x300) |
-					((value & 3) << 8);
-			break;
+			case 36:	Storage<personality>::command_context_.destination.template set<0, false>(value);	break;
+			case 37:	Storage<personality>::command_context_.destination.template set<0, true>(value);	break;
+			case 38:	Storage<personality>::command_context_.destination.template set<1, false>(value);	break;
+			case 39:	Storage<personality>::command_context_.destination.template set<1, true>(value);	break;
 
-			case 36:
-				Storage<personality>::command_context_.destination_x =
-					(Storage<personality>::command_context_.destination_x & ~0xff) |
-					value;
-			break;
-			case 37:
-				Storage<personality>::command_context_.destination_x =
-					(Storage<personality>::command_context_.destination_x & ~0x100) |
-					((value & 1) << 8);
-			break;
-
-			case 38:
-				Storage<personality>::command_context_.destination_y =
-					(Storage<personality>::command_context_.destination_y & ~0xff) |
-					value;
-			break;
-			case 39:
-				Storage<personality>::command_context_.destination_y =
-					(Storage<personality>::command_context_.destination_y & ~0x300) |
-					((value & 3) << 8);
-			break;
-
-			case 40:
-				Storage<personality>::command_context_.size_x =
-					(Storage<personality>::command_context_.size_x & ~0xff) |
-					value;
-			break;
-			case 41:
-				Storage<personality>::command_context_.size_x =
-					(Storage<personality>::command_context_.size_x & ~0x100) |
-					((value & 1) << 8);
-			break;
-
-			case 42:
-				Storage<personality>::command_context_.size_y =
-					(Storage<personality>::command_context_.size_y & ~0xff) |
-					value;
-			break;
-			case 43:
-				Storage<personality>::command_context_.size_y =
-					(Storage<personality>::command_context_.size_y & ~0x300) |
-					((value & 3) << 8);
-			break;
+			case 40:	Storage<personality>::command_context_.size.template set<0, false>(value);			break;
+			case 41:	Storage<personality>::command_context_.size.template set<0, true>(value);			break;
+			case 42:	Storage<personality>::command_context_.size.template set<1, false>(value);			break;
+			case 43:	Storage<personality>::command_context_.size.template set<1, true>(value);			break;
 
 			case 44:
 				Storage<personality>::command_context_.colour = value;
