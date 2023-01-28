@@ -584,10 +584,36 @@ template <Personality personality> struct Base: public Storage<personality> {
 					return;
 				}
 
-				// TODO: undo assumption of Graphics Mode 5, pervasively but starting here.
-				const unsigned int address =
-					(Storage<personality>::command_->location.v[0] >> 2) +
-					(Storage<personality>::command_->location.v[1] << 7);
+				// Compute the affected address and pixel
+				unsigned address;
+				uint8_t mask;
+				switch(this->screen_mode_) {
+					default:
+					case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
+						address =
+							(Storage<personality>::command_->location.v[0] >> 1) +
+							(Storage<personality>::command_->location.v[1] << 7);
+						mask = 0xf0 >> ((Storage<personality>::command_->location.v[0] & 1) << 2);
+					break;
+					case ScreenMode::YamahaGraphics5:	// 512 pixels @ 2bpp
+						address =
+							(Storage<personality>::command_->location.v[0] >> 2) +
+							(Storage<personality>::command_->location.v[1] << 7);
+						 mask = 0xc0 >> ((Storage<personality>::command_->location.v[0] & 3) << 1);
+					break;
+					case ScreenMode::YamahaGraphics6:	// 512 pixels @ 4bpp
+						address =
+							(Storage<personality>::command_->location.v[0] >> 1) +
+							(Storage<personality>::command_->location.v[1] << 8);
+						mask = 0xf0 >> ((Storage<personality>::command_->location.v[0] & 1) << 2);
+					break;
+					case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
+						address =
+							(Storage<personality>::command_->location.v[0] >> 0) +
+							(Storage<personality>::command_->location.v[1] << 8);
+						mask = 0xff;
+					break;
+				}
 
 				switch(Storage<personality>::next_command_step_) {
 					// Duplicative, but keeps the compiler happy.
@@ -606,7 +632,6 @@ template <Personality personality> struct Base: public Storage<personality> {
 						packed_colour |= packed_colour << 2;
 						packed_colour |= packed_colour << 4;
 
-						const uint8_t mask = 0xc0 >> ((Storage<personality>::command_->location.v[0] & 3) << 1);
 						Storage<personality>::command_latch_ &= ~mask;
 						Storage<personality>::command_latch_ |= packed_colour & mask;
 						ram_[address] = Storage<personality>::command_latch_;
