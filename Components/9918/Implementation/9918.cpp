@@ -159,7 +159,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 #endif
 
 		if(fetch_cycles_pool) {
-			// Determine how much writing to do.
+			// Determine how much writing to do; at the absolute most go to the end of this line.
 			const int fetch_cycles = std::min(
 				Timing<personality>::CyclesPerLine - this->fetch_pointer_.column,
 				fetch_cycles_pool
@@ -170,6 +170,15 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// Determine what this does to any enqueued VRAM access.
 			this->minimum_access_column_ = this->fetch_pointer_.column + this->cycles_until_access_;
 			this->cycles_until_access_ -= fetch_cycles;
+
+			// ... and to any pending Yamaha commands.
+			if constexpr (is_yamaha_vdp(personality)) {
+				if(Storage<personality>::command_) {
+					Storage<personality>::minimum_command_column_ =
+						this->fetch_pointer_.column + Storage<personality>::command_->cycles;
+					Storage<personality>::command_->cycles -= fetch_cycles;
+				}
+			}
 
 
 			// ---------------------------------------

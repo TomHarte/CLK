@@ -187,6 +187,27 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	CommandContext command_context_;
 	std::unique_ptr<Command> command_ = nullptr;
 
+	enum class CommandStep {
+		None,
+		ReadPixel,
+		WritePixel,
+	};
+	CommandStep next_command_step_ = CommandStep::None;
+	int minimum_command_column_ = 0;
+
+	void update_command_step() {
+		if(!command_) {
+			next_command_step_ = CommandStep::None;
+			return;
+		}
+
+		switch(command_->access) {
+			case Command::AccessType::PlotPoint:
+				next_command_step_ = CommandStep::ReadPixel;
+			break;
+		}
+	}
+
 	Storage() noexcept {
 		// Perform sanity checks on the event lists.
 #ifndef NDEBUG
@@ -552,6 +573,17 @@ template <Personality personality> struct Base: public Storage<personality> {
 		// Don't do anything if the required time for the access to become executable
 		// has yet to pass.
 		if(queued_access_ == MemoryAccess::None || access_column < minimum_access_column_) {
+			if constexpr (is_yamaha_vdp(personality)) {
+//				if(
+//					Storage<personality>::next_command_step_ == Storage<personality>::CommandStep::None ||
+//					access_column < Storage<personality>::minimum_access_column_
+//				) {
+//					return;
+//				}
+
+				// TODO: command-engine action.
+			}
+
 			return;
 		}
 
