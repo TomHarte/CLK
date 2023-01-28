@@ -194,13 +194,15 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	};
 	CommandStep next_command_step_ = CommandStep::None;
 	int minimum_command_column_ = 0;
+	uint8_t command_latch_ = 0;
 
-	void update_command_step() {
+	void update_command_step(int current_column) {
 		if(!command_) {
 			next_command_step_ = CommandStep::None;
 			return;
 		}
 
+		minimum_command_column_ = current_column + command_->cycles;
 		switch(command_->access) {
 			case Command::AccessType::PlotPoint:
 				next_command_step_ = CommandStep::ReadPixel;
@@ -423,7 +425,6 @@ template <Personality personality> struct Base: public Storage<personality> {
 	size_t ram_pointer_ = 0;
 	uint8_t read_ahead_buffer_ = 0;
 	MemoryAccess queued_access_ = MemoryAccess::None;
-	int cycles_until_access_ = 0;
 	int minimum_access_column_ = 0;
 
 	// The main status register.
@@ -574,14 +575,52 @@ template <Personality personality> struct Base: public Storage<personality> {
 		// has yet to pass.
 		if(queued_access_ == MemoryAccess::None || access_column < minimum_access_column_) {
 			if constexpr (is_yamaha_vdp(personality)) {
-//				if(
-//					Storage<personality>::next_command_step_ == Storage<personality>::CommandStep::None ||
-//					access_column < Storage<personality>::minimum_access_column_
-//				) {
-//					return;
-//				}
+				using CommandStep = typename Storage<personality>::CommandStep;
 
-				// TODO: command-engine action.
+				if(
+					Storage<personality>::next_command_step_ == CommandStep::None ||
+					access_column < Storage<personality>::minimum_command_column_
+				) {
+					return;
+				}
+
+				// TODO: undo assumption of Graphics Mode 5, pervasively but starting here.
+				const unsigned int address =
+					(Storage<personality>::command_->location.v[0] >> 2) +
+					(Storage<personality>::command_->location.v[1] << 7);
+
+				switch(Storage<personality>::next_command_step_) {
+					// Duplicative, but keeps the compiler happy.
+					case CommandStep::None:
+					break;
+
+					case CommandStep::ReadPixel:
+						Storage<personality>::command_latch_ = ram_[address];
+
+						Storage<personality>::minimum_command_column_ = access_column + 24;
+						Storage<personality>::next_command_step_ = CommandStep::WritePixel;
+					break;
+
+					case CommandStep::WritePixel: {
+						uint8_t packed_colour = Storage<personality>::command_context_.colour & 3;
+						packed_colour |= packed_colour << 2;
+						packed_colour |= packed_colour << 4;
+
+						const uint8_t mask = 0xc0 >> ((Storage<personality>::command_->location.v[0] & 3) << 1);
+						Storage<personality>::command_latch_ &= ~mask;
+						Storage<personality>::command_latch_ |= packed_colour & mask;
+						ram_[address] = Storage<personality>::command_latch_;
+
+						Storage<personality>::command_->advance();
+
+						if(Storage<personality>::command_->done()) {
+							Storage<personality>::command_ = nullptr;
+							Storage<personality>::next_command_step_ = CommandStep::None;
+						} else {
+							Storage<personality>::update_command_step(access_column);
+						}
+					} break;
+				}
 			}
 
 			return;

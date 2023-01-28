@@ -167,10 +167,6 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			const int end_column = this->fetch_pointer_.column + fetch_cycles;
 			LineBuffer &line_buffer = this->line_buffers_[this->fetch_pointer_.row];
 
-			// Determine what this does to any enqueued VRAM access.
-			this->minimum_access_column_ = this->fetch_pointer_.column + this->cycles_until_access_;
-			this->cycles_until_access_ -= fetch_cycles;
-
 			// ... and to any pending Yamaha commands.
 			if constexpr (is_yamaha_vdp(personality)) {
 				if(Storage<personality>::command_) {
@@ -279,10 +275,25 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			this->fetch_pointer_.column = end_column;
 			fetch_cycles_pool -= fetch_cycles;
 
+			// Check for end of line.
 			if(this->fetch_pointer_.column == Timing<personality>::CyclesPerLine) {
 				this->fetch_pointer_.column = 0;
 				this->fetch_pointer_.row = (this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines;
 				LineBuffer &next_line_buffer = this->line_buffers_[this->fetch_pointer_.row];
+
+				// Progress towards any delayed events.
+				this->minimum_access_column_ =
+					std::max(
+						0,
+						this->minimum_access_column_ - Timing<personality>::CyclesPerLine
+					);
+				if constexpr (is_yamaha_vdp(personality)) {
+					Storage<personality>::minimum_command_column_ =
+						std::max(
+							0,
+							Storage<personality>::minimum_command_column_ - Timing<personality>::CyclesPerLine
+						);
+				}
 
 				// Establish the current screen output mode, which will be captured as a
 				// line mode momentarily.
@@ -586,7 +597,7 @@ void Base<personality>::write_vram(uint8_t value) {
 	// Enqueue the write to occur at the next available slot.
 	read_ahead_buffer_ = value;
 	queued_access_ = MemoryAccess::Write;
-	cycles_until_access_ = Timing<personality>::VRAMAccessDelay;
+	minimum_access_column_ = fetch_pointer_.column + Timing<personality>::VRAMAccessDelay;
 }
 
 template <Personality personality>
@@ -890,34 +901,9 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 #undef Begin
 
 				// Seed timing information if a command was found.
-				if(Storage<personality>::command_) {
-					// TODO: eliminate SUPER HACK.
-					// This is currently here primarily to help me to hash out the
-					// proper interface, and also because I'm just not persuaded
-					// that minimum_access_column_ works properly. Why doesn't it
-					// ever end up out of bounds?
+				Storage<personality>::update_command_step(fetch_pointer_.column);
 
-					// TODO: undo temporary assumption of Graphics Mode 5 and of logical operation.
-					uint8_t packed_colour = Storage<personality>::command_context_.colour & 3;
-					packed_colour |= packed_colour << 2;
-					packed_colour |= packed_colour << 4;
-
-					while(!Storage<personality>::command_->done()) {
-						const unsigned int address =
-							(Storage<personality>::command_->location.v[0] >> 2) +
-							(Storage<personality>::command_->location.v[1] << 7);
-
-						const uint8_t mask = 0xc0 >> ((Storage<personality>::command_->location.v[0] & 3) << 1);
-						uint8_t v = ram_[address];
-						v &= ~mask;
-						v |= packed_colour & mask;
-						ram_[address] = v;
-
-						Storage<personality>::command_->advance();
-					}
-
-					Storage<personality>::command_ = nullptr;
-				} else {
+				if(!Storage<personality>::command_) {
 					LOG("TODO: Yamaha command " << PADHEX(2) << +value);
 				}
 			break;
@@ -951,7 +937,7 @@ void Base<personality>::write_register(uint8_t value) {
 			// A read request is enqueued upon setting the address; conversely a write
 			// won't be enqueued unless and until some actual data is supplied.
 			queued_access_ = MemoryAccess::Read;
-			cycles_until_access_ = Timing<personality>::VRAMAccessDelay;
+			minimum_access_column_ = fetch_pointer_.column + Timing<personality>::VRAMAccessDelay;
 		}
 
 		if constexpr (is_sega_vdp(personality)) {
@@ -1027,7 +1013,8 @@ uint8_t Base<personality>::read_register() {
 				return
 					(queued_access_ == MemoryAccess::None ? 0x80 : 0x00) |
 					(is_vertical_blank() ? 0x40 : 0x00) |
-					(is_horizontal_blank() ? 0x20 : 0x00);
+					(is_horizontal_blank() ? 0x20 : 0x00) |
+					(Storage<personality>::command_ ? 0x01 : 0x00);
 
 			break;
 		}
