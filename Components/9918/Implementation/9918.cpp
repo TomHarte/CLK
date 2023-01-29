@@ -911,7 +911,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				}
 #undef Begin
 
-				Storage<personality>::pixel_operation = CommandContext::LogicalOperation(value & 0xf);
+				Storage<personality>::command_context_.pixel_operation = CommandContext::LogicalOperation(value & 0xf);
 
 				// Kill the command immediately if it's done in zero operations
 				// (e.g. a line of length 0).

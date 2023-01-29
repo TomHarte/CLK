@@ -26,7 +26,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 		MSX1,
 		MSX2
 	);
-	Model model = Model::MSX1;
+	Model model = Model::MSX2;
 
 	ReflectableEnum(Region,
 		Japan,
