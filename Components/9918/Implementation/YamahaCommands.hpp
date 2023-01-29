@@ -59,7 +59,10 @@ struct Command {
 	enum class AccessType {
 		/// Plots a single pixel of the current contextual colour at @c location,
 		/// which occurs as a read, then a 24-cycle pause, then a write.
-		PlotPoint
+		PlotPoint,
+
+		/// Blocks until the next CPU write to the colour register.
+		WaitForColour,
 	};
 	AccessType access = AccessType::PlotPoint;
 	int cycles = 0;
@@ -163,6 +166,52 @@ struct PointSet: public Command {
 
 	private:
 		bool done_ = false;
+};
+
+struct LogicalMoveFromCPU: public Command {
+	public:
+		LogicalMoveFromCPU(CommandContext &context) : Command(context) {
+			start_x_ = context.destination.v[0];
+			width_ = context.size.v[0];
+
+			cycles = 64;
+			access = AccessType::WaitForColour;
+		}
+
+		void advance() final {
+			switch(access) {
+				default: break;
+
+				case AccessType::WaitForColour:
+					cycles = 32;
+					location = context.destination;
+					access = AccessType::PlotPoint;
+				break;
+
+				case AccessType::PlotPoint:
+					cycles = 0;
+					access = AccessType::WaitForColour;
+					++location.v[0];
+					--context.size.v[0];
+
+					if(!context.size.v[0]) {
+						cycles = 64;
+						++location.v[1];
+						--context.size.v[1];
+
+						context.size.v[0] = width_;
+						location.v[0] = start_x_;
+					}
+				break;
+			}
+		}
+
+		bool done() final {
+			return !context.size.v[1] || !width_;
+		}
+
+	private:
+		int start_x_ = 0, width_ = 0;
 };
 
 }

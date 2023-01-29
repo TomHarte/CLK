@@ -852,6 +852,15 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 			case 44:
 				Storage<personality>::command_context_.colour = value;
+
+				// Check whether a command was blocked on this.
+				if(
+					Storage<personality>::command_ &&
+					Storage<personality>::command_->access == Command::AccessType::WaitForColour
+				) {
+					Storage<personality>::command_->advance();
+					Storage<personality>::update_command_step(fetch_pointer_.column);
+				}
 			break;
 
 			case 45:
@@ -884,14 +893,14 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					default:		break;
 
 					case 0b0100:	break;	// TODO: point.	[read a pixel colour]
-					case 0b0101:	Begin(PointSet);	break;
+					case 0b0101:	Begin(PointSet);			break;	// PSET
 					case 0b0110:	break;	// TODO: srch.	[search horizontally for a colour]
-					case 0b0111:	Begin(Line);		break;
+					case 0b0111:	Begin(Line);				break;	// LINE
 
 					case 0b1000:	break;	// TODO: lmmv.	[logical move, VDP to VRAM]
 					case 0b1001:	break;	// TODO: lmmm.	[logical move, VRAM to VRAM]
 					case 0b1010:	break;	// TODO: lmcm.	[logical move, VRAM to CPU]
-					case 0b1011:	break;	// TODO: lmmc.	[logical move, CPU to VRAM]
+					case 0b1011:	Begin(LogicalMoveFromCPU);	break;	// LMMC	[logical move, CPU to VRAM]
 
 					case 0b1100:	break;	// TODO: hmmv.	[high-speed move, VRAM to VDP]
 					case 0b1101:	break;	// TODO: hmmm.	[high-speed move, VRAM to VRAM]
@@ -900,12 +909,15 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				}
 #undef Begin
 
-				// Seed timing information if a command was found.
-				Storage<personality>::update_command_step(fetch_pointer_.column);
-
+				// Kill the command immediately if it's done in zero operations
+				// (e.g. a line of length 0).
 				if(!Storage<personality>::command_) {
 					LOG("TODO: Yamaha command " << PADHEX(2) << +value);
 				}
+
+				// Seed timing information if a command was found.
+				Storage<personality>::update_command_step(fetch_pointer_.column);
+
 			break;
 		}
 	}
@@ -1003,20 +1015,30 @@ uint8_t Base<personality>::read_register() {
 		switch(Storage<personality>::selected_status_) {
 			case 0: break;
 
-			case 2:
+			case 1:
+			break;
+
+			case 2: {
 				// b7 = transfer ready flag (i.e. VDP ready for next transfer)
 				// b6 = 1 during vblank
 				// b5 = 1 during hblank
 				// b4 = set if colour detected during search command
 				// b1 = display field odd/even
 				// b0 = command ongoing
+				const uint8_t transfer_ready =
+					(queued_access_ == MemoryAccess::None ? 0x80 : 0x00) &
+					((
+						!Storage<personality>::command_ ||
+						Storage<personality>::command_->access != Command::AccessType::WaitForColour
+					) ? 0x80 : 0x00);
+
 				return
-					(queued_access_ == MemoryAccess::None ? 0x80 : 0x00) |
+					transfer_ready |
 					(is_vertical_blank() ? 0x40 : 0x00) |
 					(is_horizontal_blank() ? 0x20 : 0x00) |
 					(Storage<personality>::command_ ? 0x01 : 0x00);
 
-			break;
+			} break;
 		}
 	}
 

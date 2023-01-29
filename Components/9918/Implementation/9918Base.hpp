@@ -201,11 +201,20 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			next_command_step_ = CommandStep::None;
 			return;
 		}
+		if(command_->done()) {
+			command_ = nullptr;
+			next_command_step_ = CommandStep::None;
+			return;
+		}
 
 		minimum_command_column_ = current_column + command_->cycles;
 		switch(command_->access) {
 			case Command::AccessType::PlotPoint:
 				next_command_step_ = CommandStep::ReadPixel;
+			break;
+			case Command::AccessType::WaitForColour:
+				// i.e. nothing to do until a colour is received.
+				next_command_step_ = CommandStep::None;
 			break;
 		}
 	}
