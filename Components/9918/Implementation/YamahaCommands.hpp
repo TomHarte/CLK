@@ -66,6 +66,7 @@ struct Command {
 	};
 	AccessType access = AccessType::PlotPoint;
 	int cycles = 0;
+	bool is_cpu_transfer = false;
 	Vector location;
 
 	/// Current command parameters.
@@ -176,6 +177,7 @@ struct LogicalMoveFromCPU: public Command {
 
 			cycles = 64;
 			access = AccessType::WaitForColour;
+			is_cpu_transfer = true;
 		}
 
 		void advance() final {

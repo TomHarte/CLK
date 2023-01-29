@@ -1029,7 +1029,8 @@ uint8_t Base<personality>::read_register() {
 					(queued_access_ == MemoryAccess::None ? 0x80 : 0x00) &
 					((
 						!Storage<personality>::command_ ||
-						Storage<personality>::command_->access != Command::AccessType::WaitForColour
+						!Storage<personality>::command_->is_cpu_transfer ||
+						Storage<personality>::command_->access == Command::AccessType::WaitForColour
 					) ? 0x80 : 0x00);
 
 				return
