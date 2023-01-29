@@ -172,13 +172,15 @@ struct PointSet: public Command {
 struct LogicalMoveFromCPU: public Command {
 	public:
 		LogicalMoveFromCPU(CommandContext &context) : Command(context) {
+			is_cpu_transfer = true;
+
 			start_x_ = context.destination.v[0];
 			width_ = context.size.v[0];
 
 			// This command is started with the first colour ready to transfer.
 			cycles = 32;
 			access = AccessType::PlotPoint;
-			is_cpu_transfer = true;
+			location = context.destination;
 		}
 
 		void advance() final {
