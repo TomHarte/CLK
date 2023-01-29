@@ -196,11 +196,11 @@ struct LogicalMoveFromCPU: public Command {
 
 					if(!context.size.v[0]) {
 						cycles = 64;
-						++location.v[1];
-						--context.size.v[1];
-
 						context.size.v[0] = width_;
 						location.v[0] = start_x_;
+
+						++location.v[1];
+						--context.size.v[1];
 					}
 				break;
 			}

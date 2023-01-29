@@ -646,13 +646,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 						ram_[address] = Storage<personality>::command_latch_;
 
 						Storage<personality>::command_->advance();
-
-						if(Storage<personality>::command_->done()) {
-							Storage<personality>::command_ = nullptr;
-							Storage<personality>::next_command_step_ = CommandStep::None;
-						} else {
-							Storage<personality>::update_command_step(access_column);
-						}
+						Storage<personality>::update_command_step(access_column);
 					} break;
 				}
 			}
