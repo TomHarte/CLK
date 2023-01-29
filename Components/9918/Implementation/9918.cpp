@@ -856,7 +856,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// Check whether a command was blocked on this.
 				if(
 					Storage<personality>::command_ &&
-					Storage<personality>::command_->access == Command::AccessType::WaitForColour
+					Storage<personality>::command_->access == Command::AccessType::WaitForColourReceipt
 				) {
 					Storage<personality>::command_->advance();
 					Storage<personality>::update_command_step(fetch_pointer_.column);
@@ -1030,7 +1030,7 @@ uint8_t Base<personality>::read_register() {
 					((
 						!Storage<personality>::command_ ||
 						!Storage<personality>::command_->is_cpu_transfer ||
-						Storage<personality>::command_->access == Command::AccessType::WaitForColour
+						Storage<personality>::command_->access == Command::AccessType::WaitForColourReceipt
 					) ? 0x80 : 0x00);
 
 				return

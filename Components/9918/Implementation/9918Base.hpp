@@ -212,7 +212,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			case Command::AccessType::PlotPoint:
 				next_command_step_ = CommandStep::ReadPixel;
 			break;
-			case Command::AccessType::WaitForColour:
+			case Command::AccessType::WaitForColourReceipt:
 				// i.e. nothing to do until a colour is received.
 				next_command_step_ = CommandStep::None;
 			break;

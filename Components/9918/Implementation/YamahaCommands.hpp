@@ -62,7 +62,7 @@ struct Command {
 		PlotPoint,
 
 		/// Blocks until the next CPU write to the colour register.
-		WaitForColour,
+		WaitForColourReceipt,
 	};
 	AccessType access = AccessType::PlotPoint;
 	int cycles = 0;
@@ -187,7 +187,7 @@ struct LogicalMoveFromCPU: public Command {
 			switch(access) {
 				default: break;
 
-				case AccessType::WaitForColour:
+				case AccessType::WaitForColourReceipt:
 					cycles = 32;
 					location = context.destination;
 					access = AccessType::PlotPoint;
@@ -195,7 +195,7 @@ struct LogicalMoveFromCPU: public Command {
 
 				case AccessType::PlotPoint:
 					cycles = 0;
-					access = AccessType::WaitForColour;
+					access = AccessType::WaitForColourReceipt;
 					context.destination.add<0>(context.arguments & 0x4 ? -1 : 1);
 					--context.size.v[0];
 
