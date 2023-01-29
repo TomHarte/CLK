@@ -852,6 +852,8 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 			case 44:
 				Storage<personality>::command_context_.colour = value;
+				Storage<personality>::command_context_.colour4pp = (value & 0xf) | (value << 4);
+				Storage<personality>::command_context_.colour2pp = (value & 0x3) | ((value & 0x3) << 2) | ((value & 0x3) << 4) | ((value & 0x3) << 6);
 
 				// Check whether a command was blocked on this.
 				if(
@@ -908,6 +910,8 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					case 0b1111:	break;	// TODO: hmmc.	[high-speed move, CPU to VRAM]
 				}
 #undef Begin
+
+				Storage<personality>::pixel_operation = CommandContext::LogicalOperation(value & 0xf);
 
 				// Kill the command immediately if it's done in zero operations
 				// (e.g. a line of length 0).
