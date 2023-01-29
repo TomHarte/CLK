@@ -175,8 +175,9 @@ struct LogicalMoveFromCPU: public Command {
 			start_x_ = context.destination.v[0];
 			width_ = context.size.v[0];
 
-			cycles = 64;
-			access = AccessType::WaitForColour;
+			// This command is started with the first colour ready to transfer.
+			cycles = 32;
+			access = AccessType::PlotPoint;
 			is_cpu_transfer = true;
 		}
 
@@ -193,15 +194,15 @@ struct LogicalMoveFromCPU: public Command {
 				case AccessType::PlotPoint:
 					cycles = 0;
 					access = AccessType::WaitForColour;
-					++location.v[0];
+					context.destination.add<0>(context.arguments & 0x4 ? -1 : 1);
 					--context.size.v[0];
 
 					if(!context.size.v[0]) {
 						cycles = 64;
 						context.size.v[0] = width_;
-						location.v[0] = start_x_;
+						context.destination.v[0] = start_x_;
 
-						++location.v[1];
+						context.destination.add<1>(context.arguments & 0x8 ? -1 : 1);
 						--context.size.v[1];
 					}
 				break;
