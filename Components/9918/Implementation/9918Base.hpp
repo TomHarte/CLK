@@ -579,6 +579,66 @@ template <Personality personality> struct Base: public Storage<personality> {
 		return ScreenMode::Blank;
 	}
 
+	uint32_t command_address() const {
+		if constexpr (is_yamaha_vdp(personality)) {
+			switch(this->screen_mode_) {
+				default:
+				case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
+					return
+						(Storage<personality>::command_->location.v[0] >> 1) +
+						(Storage<personality>::command_->location.v[1] << 7);
+
+				case ScreenMode::YamahaGraphics5:	// 512 pixels @ 2bpp
+					return
+						(Storage<personality>::command_->location.v[0] >> 2) +
+						(Storage<personality>::command_->location.v[1] << 7);
+
+				case ScreenMode::YamahaGraphics6:	// 512 pixels @ 4bpp
+					return
+						(Storage<personality>::command_->location.v[0] >> 1) +
+						(Storage<personality>::command_->location.v[1] << 8);
+
+				case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
+					return
+						(Storage<personality>::command_->location.v[0] >> 0) +
+						(Storage<personality>::command_->location.v[1] << 8);
+			}
+		} else {
+			return 0;
+		}
+	}
+
+	std::pair<uint8_t, uint8_t> command_colour_mask() const {
+		if constexpr (is_yamaha_vdp(personality)) {
+			switch(this->screen_mode_) {
+				default:
+				case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
+				case ScreenMode::YamahaGraphics6:	// 512 pixels @ 4bpp
+					return
+						std::make_pair(
+							0xf0 >> ((Storage<personality>::command_->location.v[0] & 1) << 2),
+							Storage<personality>::command_context_.colour4bpp
+						);
+
+				case ScreenMode::YamahaGraphics5:	// 512 pixels @ 2bpp
+					return
+						std::make_pair(
+							0xc0 >> ((Storage<personality>::command_->location.v[0] & 3) << 1),
+							Storage<personality>::command_context_.colour2bpp
+						);
+
+				case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
+					return
+						std::make_pair(
+							0xff,
+							Storage<personality>::command_context_.colour
+						);
+			}
+		} else {
+			return std::make_pair(0, 0);
+		}
+	}
+
 	void do_external_slot(int access_column) {
 		// Don't do anything if the required time for the access to become executable
 		// has yet to pass.
@@ -593,56 +653,47 @@ template <Personality personality> struct Base: public Storage<personality> {
 					return;
 				}
 
-				// Compute the affected address and pixel
-				unsigned address;
-				uint8_t mask;
-				switch(this->screen_mode_) {
-					default:
-					case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
-						address =
-							(Storage<personality>::command_->location.v[0] >> 1) +
-							(Storage<personality>::command_->location.v[1] << 7);
-						mask = 0xf0 >> ((Storage<personality>::command_->location.v[0] & 1) << 2);
-					break;
-					case ScreenMode::YamahaGraphics5:	// 512 pixels @ 2bpp
-						address =
-							(Storage<personality>::command_->location.v[0] >> 2) +
-							(Storage<personality>::command_->location.v[1] << 7);
-						 mask = 0xc0 >> ((Storage<personality>::command_->location.v[0] & 3) << 1);
-					break;
-					case ScreenMode::YamahaGraphics6:	// 512 pixels @ 4bpp
-						address =
-							(Storage<personality>::command_->location.v[0] >> 1) +
-							(Storage<personality>::command_->location.v[1] << 8);
-						mask = 0xf0 >> ((Storage<personality>::command_->location.v[0] & 1) << 2);
-					break;
-					case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
-						address =
-							(Storage<personality>::command_->location.v[0] >> 0) +
-							(Storage<personality>::command_->location.v[1] << 8);
-						mask = 0xff;
-					break;
-				}
-
 				switch(Storage<personality>::next_command_step_) {
 					// Duplicative, but keeps the compiler happy.
 					case CommandStep::None:
 					break;
 
 					case CommandStep::ReadPixel:
-						Storage<personality>::command_latch_ = ram_[address];
+						Storage<personality>::command_latch_ = ram_[command_address()];
 
 						Storage<personality>::minimum_command_column_ = access_column + 24;
 						Storage<personality>::next_command_step_ = CommandStep::WritePixel;
 					break;
 
 					case CommandStep::WritePixel: {
-						uint8_t packed_colour = Storage<personality>::command_context_.colour & 3;
-						packed_colour |= packed_colour << 2;
-						packed_colour |= packed_colour << 4;
+						const auto [mask, unmasked_colour] = command_colour_mask();
+						const auto address = command_address();
+						const uint8_t colour = unmasked_colour & mask;
 
-						Storage<personality>::command_latch_ &= ~mask;
-						Storage<personality>::command_latch_ |= packed_colour & mask;
+						using LogicalOperation = CommandContext::LogicalOperation;
+						if(!Storage<personality>::command_context_.test_source || colour) {
+							switch(Storage<personality>::command_context_.pixel_operation) {
+								default:
+								case LogicalOperation::Copy:
+									Storage<personality>::command_latch_ &= ~mask;
+									Storage<personality>::command_latch_ |= colour;
+								break;
+								case LogicalOperation::And:
+									Storage<personality>::command_latch_ &= ~mask | colour;
+								break;
+								case LogicalOperation::Or:
+									Storage<personality>::command_latch_ |= colour;
+								break;
+								case LogicalOperation::Xor:
+									Storage<personality>::command_latch_ ^= colour;
+								break;
+								case LogicalOperation::Not:
+									Storage<personality>::command_latch_ &= ~mask;
+									Storage<personality>::command_latch_ |= colour ^ mask;
+								break;
+							}
+						}
+
 						ram_[address] = Storage<personality>::command_latch_;
 
 						Storage<personality>::command_->advance();

@@ -51,9 +51,9 @@ struct CommandContext {
 	/// Colour as written by the CPU.
 	uint8_t colour = 0;
 	/// The low four bits of the CPU-written colour, repeated twice.
-	uint8_t colour4pp = 0;
+	uint8_t colour4bpp = 0;
 	/// The low two bits of the CPU-written colour, repeated four times.
-	uint8_t colour2pp = 0;
+	uint8_t colour2bpp = 0;
 
 	enum class LogicalOperation {
 		Copy			= 0b0000,
@@ -61,14 +61,9 @@ struct CommandContext {
 		Or				= 0b0010,
 		Xor				= 0b0011,
 		Not				= 0b0100,
-
-		ConditionalCopy	= 0b1000,
-		ConditionalAnd	= 0b1001,
-		ConditionalOr	= 0b1010,
-		ConditionalXor	= 0b1011,
-		ConditionalNot	= 0b1100,
 	};
 	LogicalOperation pixel_operation;
+	bool test_source;
 };
 
 struct Command {

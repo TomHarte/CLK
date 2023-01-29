@@ -852,8 +852,8 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 			case 44:
 				Storage<personality>::command_context_.colour = value;
-				Storage<personality>::command_context_.colour4pp = (value & 0xf) | (value << 4);
-				Storage<personality>::command_context_.colour2pp = (value & 0x3) | ((value & 0x3) << 2) | ((value & 0x3) << 4) | ((value & 0x3) << 6);
+				Storage<personality>::command_context_.colour4bpp = (value & 0xf) | (value << 4);
+				Storage<personality>::command_context_.colour2bpp = (value & 0x3) | ((value & 0x3) << 2) | ((value & 0x3) << 4) | ((value & 0x3) << 6);
 
 				// Check whether a command was blocked on this.
 				if(
@@ -911,7 +911,8 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				}
 #undef Begin
 
-				Storage<personality>::command_context_.pixel_operation = CommandContext::LogicalOperation(value & 0xf);
+				Storage<personality>::command_context_.pixel_operation = CommandContext::LogicalOperation(value & 7);
+				Storage<personality>::command_context_.test_source = value & 8;
 
 				// Kill the command immediately if it's done in zero operations
 				// (e.g. a line of length 0).
