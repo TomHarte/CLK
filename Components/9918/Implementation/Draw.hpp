@@ -19,7 +19,7 @@ void Base<personality>::draw_tms_character(int start, int end) {
 	const int pixels_left = end - start;
 	if(this->screen_mode_ == ScreenMode::MultiColour) {
 		for(int c = start; c < end; ++c) {
-			pixel_target_[c] = palette[
+			pixel_target_[c] = palette()[
 				(line_buffer.patterns[c >> 3][0] >> (((c & 4)^4))) & 15
 			];
 		}
@@ -32,8 +32,8 @@ void Base<personality>::draw_tms_character(int start, int end) {
 		int pattern = Numeric::bit_reverse(line_buffer.patterns[byte_column][0]) >> shift;
 		uint8_t colour = line_buffer.patterns[byte_column][1];
 		uint32_t colours[2] = {
-			palette[(colour & 15) ? (colour & 15) : background_colour_],
-			palette[(colour >> 4) ? (colour >> 4) : background_colour_]
+			palette()[(colour & 15) ? (colour & 15) : background_colour_],
+			palette()[(colour >> 4) ? (colour >> 4) : background_colour_]
 		};
 
 		int background_pixels_left = pixels_left;
@@ -51,8 +51,8 @@ void Base<personality>::draw_tms_character(int start, int end) {
 
 			pattern = Numeric::bit_reverse(line_buffer.patterns[byte_column][0]);
 			colour = line_buffer.patterns[byte_column][1];
-			colours[0] = palette[(colour & 15) ? (colour & 15) : background_colour_];
-			colours[1] = palette[(colour >> 4) ? (colour >> 4) : background_colour_];
+			colours[0] = palette()[(colour & 15) ? (colour & 15) : background_colour_];
+			colours[1] = palette()[(colour >> 4) ? (colour >> 4) : background_colour_];
 		}
 	}
 
@@ -93,7 +93,7 @@ void Base<personality>::draw_tms_character(int start, int end) {
 					sprite_colour &= colour_masks[sprite.image[2]&15];
 					pixel_origin_[c] =
 						(pixel_origin_[c] & sprite_colour_selection_masks[sprite_colour^1]) |
-						(palette[sprite.image[2]&15] & sprite_colour_selection_masks[sprite_colour]);
+						(palette()[sprite.image[2]&15] & sprite_colour_selection_masks[sprite_colour]);
 
 					sprite.shift_position += shift_advance;
 				}
@@ -107,7 +107,7 @@ void Base<personality>::draw_tms_character(int start, int end) {
 template <Personality personality>
 void Base<personality>::draw_tms_text(int start, int end) {
 	LineBuffer &line_buffer = line_buffers_[output_pointer_.row];
-	const uint32_t colours[2] = { palette[background_colour_], palette[text_colour_] };
+	const uint32_t colours[2] = { palette()[background_colour_], palette()[text_colour_] };
 
 	const int shift = start % 6;
 	int byte_column = start / 6;

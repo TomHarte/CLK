@@ -131,7 +131,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	int indirect_register_ = 0;
 	bool increment_indirect_register_ = false;
 
-	uint32_t palette_[16]{};
+	std::array<uint32_t, 16> palette_{};
 	uint8_t new_colour_ = 0;
 	uint8_t palette_entry_ = 0;
 
@@ -400,7 +400,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	}
 
 	// The default TMS palette.
-	static constexpr std::array<uint32_t, 16> palette {
+	static constexpr std::array<uint32_t, 16> default_palette {
 		palette_pack(0, 0, 0),
 		palette_pack(0, 0, 0),
 		palette_pack(33, 200, 66),
@@ -421,6 +421,12 @@ template <Personality personality> struct Base: public Storage<personality> {
 		palette_pack(204, 204, 204),
 		palette_pack(255, 255, 255)
 	};
+	const std::array<uint32_t, 16> &palette() {
+		if constexpr (is_yamaha_vdp(personality)) {
+			return Storage<personality>::palette_;
+		}
+		return default_palette;
+	}
 
 	Outputs::CRT::CRT crt_;
 	TVStandard tv_standard_ = TVStandard::NTSC;

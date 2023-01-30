@@ -556,10 +556,8 @@ void Base<personality>::output_border(int cycles, [[maybe_unused]] uint32_t cram
 			crt_.output_level(4);
 			cycles -= 4;
 		}
-	} else	if constexpr (is_yamaha_vdp(personality)) {
-		border_colour = Storage<personality>::palette_[background_colour_];
 	} else {
-		border_colour = palette[background_colour_];
+		border_colour = palette()[background_colour_];
 	}
 
 	if(!cycles) {
