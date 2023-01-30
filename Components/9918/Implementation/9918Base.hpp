@@ -36,10 +36,11 @@ namespace TMS {
 struct LineBuffer {
 	LineBuffer() {}
 
-	// The line mode describes the proper timing diagram for this line;
+	// The fetch mode describes the proper timing diagram for this line;
 	// screen mode captures proper output mode.
-	LineMode line_mode = LineMode::Text;
+	FetchMode fetch_mode = FetchMode::Text;
 	ScreenMode screen_mode = ScreenMode::Text;
+	bool is_refresh = false;
 
 	// Holds the horizontal scroll position to apply to this line;
 	// of those VDPs currently implemented, affects the Master System only.

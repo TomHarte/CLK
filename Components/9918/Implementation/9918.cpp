@@ -220,13 +220,13 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 	}																						\
 }
 
-			switch(line_buffer.line_mode) {
-				case LineMode::Text:			fetch(this->template fetch_tms_text, Clock::TMSMemoryWindow, 0);		break;
-				case LineMode::Character:		fetch(this->template fetch_tms_character, Clock::TMSMemoryWindow, 0);	break;
-				case LineMode::SMS:				fetch(this->template fetch_sms, Clock::TMSMemoryWindow, 0);			break;
-				case LineMode::Refresh:			fetch(this->template fetch_tms_refresh, Clock::TMSMemoryWindow, 0);	break;
+			switch(line_buffer.fetch_mode) {
+				case FetchMode::Text:			fetch(this->template fetch_tms_text, Clock::TMSMemoryWindow, 0);		break;
+				case FetchMode::Character:		fetch(this->template fetch_tms_character, Clock::TMSMemoryWindow, 0);	break;
+				case FetchMode::SMS:			fetch(this->template fetch_sms, Clock::TMSMemoryWindow, 0);				break;
+				case FetchMode::Refresh:		fetch(this->template fetch_tms_refresh, Clock::TMSMemoryWindow, 0);		break;
 
-				case LineMode::Yamaha:
+				case FetchMode::Yamaha:
 					if constexpr (is_yamaha_vdp(personality)) {
 						fetch(this->template fetch_yamaha, Clock::Internal, Storage<personality>::vertical_offset_);
 					}
@@ -307,47 +307,47 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->mode_timing_.maximum_visible_sprites = 4;
 				switch(this->screen_mode_) {
 					case ScreenMode::Text:
-						next_line_buffer.line_mode = LineMode::Text;
+						next_line_buffer.fetch_mode = FetchMode::Text;
 						next_line_buffer.first_pixel_output_column = Timing<personality>::FirstTextCycle;
 						next_line_buffer.next_border_column = Timing<personality>::LastTextCycle;
 						next_line_buffer.pixel_count = 240;
 					break;
 					case ScreenMode::SMSMode4:
-						next_line_buffer.line_mode = LineMode::SMS;
+						next_line_buffer.fetch_mode = FetchMode::SMS;
 						this->mode_timing_.maximum_visible_sprites = 8;
 					break;
 					case ScreenMode::YamahaGraphics3:
 					case ScreenMode::YamahaGraphics4:
 					case ScreenMode::YamahaGraphics7:
-						next_line_buffer.line_mode = LineMode::Yamaha;
+						next_line_buffer.fetch_mode = FetchMode::Yamaha;
 						this->mode_timing_.maximum_visible_sprites = 8;
 					break;
 					case ScreenMode::YamahaGraphics5:
 					case ScreenMode::YamahaGraphics6:
 						next_line_buffer.pixel_count = 512;
-						next_line_buffer.line_mode = LineMode::Yamaha;
+						next_line_buffer.fetch_mode = FetchMode::Yamaha;
 						this->mode_timing_.maximum_visible_sprites = 8;
 					break;
 					default:
 						// This covers both MultiColour and Graphics modes.
-						next_line_buffer.line_mode = LineMode::Character;
+						next_line_buffer.fetch_mode = FetchMode::Character;
 					break;
 				}
 
-				const bool is_refresh =
+				next_line_buffer.is_refresh =
 					this->screen_mode_ == ScreenMode::Blank ||
 					this->is_vertical_blank();
 
 				// TODO: an actual sprites-enabled flag.
-				Storage<personality>::begin_line(this->screen_mode_, is_refresh, false);
+				Storage<personality>::begin_line(this->screen_mode_, next_line_buffer.is_refresh, false);
 
-				if(is_refresh) {
+				if(next_line_buffer.is_refresh) {
 					// The Yamaha handles refresh lines via its own microprogram; other VDPs
 					// can fall back on the regular refresh mechanic.
 					if constexpr (is_yamaha_vdp(personality)) {
-						next_line_buffer.line_mode = LineMode::Yamaha;
+						next_line_buffer.fetch_mode = FetchMode::Yamaha;
 					} else {
-						next_line_buffer.line_mode = LineMode::Refresh;
+						next_line_buffer.fetch_mode = FetchMode::Refresh;
 					}
 				}
 			}
@@ -414,7 +414,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 #define border(left, right)	intersect(left, right, this->output_border(end - start, cram_value))
 
-				if(line_buffer.line_mode == LineMode::Refresh || this->output_pointer_.row > this->mode_timing_.pixel_lines) {
+				if(line_buffer.is_refresh) {
 					if(
 						this->output_pointer_.row >= this->mode_timing_.first_vsync_line &&
 						this->output_pointer_.row < this->mode_timing_.first_vsync_line + 4
@@ -483,13 +483,14 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 						if(this->pixel_target_) {
 							// TODO: this dispatch, and the fetch, should be factored into a templatised place, probably.
-							switch(line_buffer.line_mode) {
-								case LineMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), Clock::TMSPixel);	break;
-								case LineMode::Character:	draw(draw_tms_character(relative_start, relative_end), Clock::TMSPixel);	break;
-								case LineMode::Text:		draw(draw_tms_text(relative_start, relative_end), Clock::TMSPixel);			break;
-								case LineMode::Yamaha:		draw(draw_yamaha(relative_start, relative_end), Clock::Internal);			break;
+							// ... and should use graphics mode, not fetch mode.
+							switch(line_buffer.fetch_mode) {
+								case FetchMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), Clock::TMSPixel);	break;
+								case FetchMode::Character:		draw(draw_tms_character(relative_start, relative_end), Clock::TMSPixel);	break;
+								case FetchMode::Text:			draw(draw_tms_text(relative_start, relative_end), Clock::TMSPixel);			break;
+								case FetchMode::Yamaha:			draw(draw_yamaha(relative_start, relative_end), Clock::Internal);			break;
 
-								case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
+								case FetchMode::Refresh:		break;	/* Dealt with elsewhere. */
 							}
 						}
 
@@ -1021,6 +1022,7 @@ uint8_t Base<personality>::read_register() {
 			case 0: break;
 
 			case 1:
+				printf("TODO");
 			break;
 
 			case 2: {

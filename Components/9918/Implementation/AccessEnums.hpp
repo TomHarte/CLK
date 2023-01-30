@@ -39,7 +39,7 @@ enum class ScreenMode {
 	YamahaGraphics2 = Graphics,
 };
 
-enum class LineMode {
+enum class FetchMode {
 	Text,
 	Character,
 	Refresh,
