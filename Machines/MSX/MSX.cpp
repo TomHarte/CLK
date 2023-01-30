@@ -596,7 +596,7 @@ class ConcreteMachine:
 							break;
 
 							default:
-								printf("Unhandled read %02x\n", address & 0xff);
+//								printf("Unhandled read %02x\n", address & 0xff);
 								*cycle.value = 0xff;
 							break;
 						}
