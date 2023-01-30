@@ -1017,11 +1017,10 @@ template <Personality personality>
 uint8_t Base<personality>::read_register() {
 	if constexpr (is_yamaha_vdp(personality)) {
 		switch(Storage<personality>::selected_status_) {
+			default:
 			case 0: break;
 
-			case 1:
-				printf("TODO");
-			break;
+			case 1:	LOG("TODO: Yamaha status 1");	break;
 
 			case 2: {
 				// b7 = transfer ready flag (i.e. VDP ready for next transfer)
@@ -1045,6 +1044,14 @@ uint8_t Base<personality>::read_register() {
 					(Storage<personality>::command_ ? 0x01 : 0x00);
 
 			} break;
+
+			case 3:	LOG("TODO: Yamaha status 3");	break;
+			case 4:	LOG("TODO: Yamaha status 4");	break;
+			case 5:	LOG("TODO: Yamaha status 5");	break;
+			case 6:	LOG("TODO: Yamaha status 6");	break;
+			case 7:	LOG("TODO: Yamaha status 7");	break;
+			case 8:	LOG("TODO: Yamaha status 8");	break;
+			case 9:	LOG("TODO: Yamaha status 9");	break;
 		}
 	}
 
