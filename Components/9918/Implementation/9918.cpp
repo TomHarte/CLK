@@ -915,7 +915,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					case 0b1010:	break;	// TODO: lmcm.	[logical move, VRAM to CPU]
 					case 0b1011:	Begin(LogicalMoveFromCPU);	break;	// LMMC	[logical move, CPU to VRAM]
 
-					case 0b1100:	break;	// TODO: hmmv.	[high-speed move, VRAM to VDP]
+					case 0b1100:	Begin(HighSpeedFill);		break;	// HMMV [high-speed move, VDP to VRAM]
 					case 0b1101:	break;	// TODO: hmmm.	[high-speed move, VRAM to VRAM]
 					case 0b1110:	break;	// TODO: ymmm.	[high-speed move, y only, VRAM to VRAM]
 					case 0b1111:	break;	// TODO: hmmc.	[high-speed move, CPU to VRAM]

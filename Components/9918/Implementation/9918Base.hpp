@@ -192,6 +192,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		None,
 		ReadPixel,
 		WritePixel,
+		WriteByte,
 	};
 	CommandStep next_command_step_ = CommandStep::None;
 	int minimum_command_column_ = 0;
@@ -216,6 +217,9 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			case Command::AccessType::WaitForColourReceipt:
 				// i.e. nothing to do until a colour is received.
 				next_command_step_ = CommandStep::None;
+			break;
+			case Command::AccessType::WriteByte:
+				next_command_step_ = CommandStep::WriteByte;
 			break;
 		}
 	}
@@ -706,6 +710,12 @@ template <Personality personality> struct Base: public Storage<personality> {
 						Storage<personality>::command_->advance();
 						Storage<personality>::update_command_step(access_column);
 					} break;
+
+					case CommandStep::WriteByte:
+						ram_[command_address()] = Storage<personality>::command_context_.colour;
+						Storage<personality>::command_->advance();
+						Storage<personality>::update_command_step(access_column);
+					break;
 				}
 			}
 

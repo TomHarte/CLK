@@ -79,6 +79,9 @@ struct Command {
 
 		/// Blocks until the next CPU write to the colour register.
 		WaitForColourReceipt,
+
+		/// Writes an entire byte to the location containing the current @c location.
+		WriteByte,
 	};
 	AccessType access = AccessType::PlotPoint;
 	int cycles = 0;
@@ -94,6 +97,12 @@ struct Command {
 
 	/// Repopulates the fields above with the next action to take.
 	virtual void advance() = 0;
+
+	protected:
+		template <int axis> void advance_axis() {
+			context.destination.add<axis>(context.arguments & (0x4 << axis) ? -1 : 1);
+		}
+
 };
 
 // MARK: - Line drawing.
@@ -140,9 +149,9 @@ struct Line: public Command {
 			// b3:	1 => y direction is up;
 			//		0 => y direction is down.
 			if(context.arguments & 0x1) {
-				location.add<1>(context.arguments & 0x8 ? -1 : 1);
+				advance_axis<1>();
 			} else {
-				location.add<0>(context.arguments & 0x4 ? -1 : 1);
+				advance_axis<0>();
 			}
 
 			position_ -= numerator_;
@@ -151,9 +160,9 @@ struct Line: public Command {
 				cycles += 32;
 
 				if(context.arguments & 0x1) {
-					location.add<0>(context.arguments & 0x4 ? -1 : 1);
+					advance_axis<0>();
 				} else {
-					location.add<1>(context.arguments & 0x8 ? -1 : 1);
+					advance_axis<1>();
 				}
 			}
 		}
@@ -212,7 +221,7 @@ struct LogicalMoveFromCPU: public Command {
 				case AccessType::PlotPoint:
 					cycles = 0;
 					access = AccessType::WaitForColourReceipt;
-					context.destination.add<0>(context.arguments & 0x4 ? -1 : 1);
+					advance_axis<0>();
 					--context.size.v[0];
 
 					if(!context.size.v[0]) {
@@ -220,7 +229,7 @@ struct LogicalMoveFromCPU: public Command {
 						context.size.v[0] = width_;
 						context.destination.v[0] = start_x_;
 
-						context.destination.add<1>(context.arguments & 0x8 ? -1 : 1);
+						advance_axis<1>();
 						--context.size.v[1];
 					}
 				break;
@@ -230,6 +239,28 @@ struct LogicalMoveFromCPU: public Command {
 		bool done() final {
 			return !context.size.v[1] || !width_;
 		}
+
+	private:
+		int start_x_ = 0, width_ = 0;
+};
+
+struct HighSpeedFill: public Command {
+	HighSpeedFill(CommandContext &context) : Command(context) {
+		start_x_ = context.destination.v[0];
+		width_ = context.size.v[0];
+
+		cycles = 56;
+		access = AccessType::WriteByte;
+		location = context.destination;
+	}
+
+	bool done() final {
+		return true;
+	}
+
+	void advance() final {
+		cycles = 48;
+	}
 
 	private:
 		int start_x_ = 0, width_ = 0;
