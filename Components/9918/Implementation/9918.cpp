@@ -37,6 +37,11 @@ Base<personality>::Base() :
 		mode_timing_.end_of_frame_interrupt_position.row = 193;
 	}
 
+	if constexpr (is_yamaha_vdp(personality)) {
+		// TODO: start of sync, or end of sync?
+		mode_timing_.line_interrupt_position = Timing<personality>::StartOfSync;
+	}
+
 	// Establish that output is delayed after reading by `output_lag` cycles; start
 	// at a random position.
 	fetch_pointer_.row = rand() % 262;
@@ -252,6 +257,12 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						}
 					} else {
 						this->line_interrupt_counter_ = this->line_interrupt_target_;
+					}
+				}
+
+				if constexpr (is_yamaha_vdp(personality)) {
+					if(this->fetch_pointer_.row == this->line_interrupt_target_) {
+						this->line_interrupt_pending_ = true;
 					}
 				}
 
@@ -723,6 +734,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					(Storage<personality>::mode_ & 3) |
 					((value & 0xe) << 1)
 				);
+				enable_line_interrupts_ = value & 0x10;
 
 				LOG("TODO: Yamaha additional mode selection; " << PADHEX(2) << +value);
 				// b1–b3: M3–M5
@@ -819,7 +831,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			break;
 
 			case 19:
-				LOG("TODO: Yamaha interrupt line; " << PADHEX(2) << +value);
+				line_interrupt_target_ = value;
 				// b0–b7: line to match for interrupts (if eabled)
 			break;
 
@@ -1020,16 +1032,20 @@ uint8_t Base<personality>::read_register() {
 			default:
 			case 0: break;
 
-			case 1:
+			case 1: {
 				// b7 = light pen; set when light is detected, reset on read;
 				//		or: mouse button 2 currently down.
 				// b6 = light pen button or mouse button 1.
 				// b5–b1 = VDP identification (1 = 9938; 2 = 9958)
 				// b0 = set when the VDP reaches the line provided in the line interrupt register.
 				//		Reset upon read.
-				return
-					personality == Personality::V9938 ? 0x2 : 0x4;
-			break;
+				const uint8_t result =
+					(personality == Personality::V9938 ? 0x2 : 0x4) |
+					(line_interrupt_pending_ ? 0x01 : 0x00);
+
+				line_interrupt_pending_ = false;
+				return result;
+			} break;
 
 			case 2: {
 				// b7 = transfer ready flag (i.e. VDP ready for next transfer)
@@ -1187,6 +1203,10 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 			if(this->line_interrupt_target_ <= this->mode_timing_.pixel_lines)
 				next_line_interrupt_row = this->mode_timing_.total_lines + this->line_interrupt_target_;
 		}
+	}
+
+	if constexpr (is_yamaha_vdp(personality)) {
+		// TODO: time to next retrace interrupt.
 	}
 
 	// If there's actually no interrupt upcoming, despite being enabled, either return
