@@ -1020,7 +1020,16 @@ uint8_t Base<personality>::read_register() {
 			default:
 			case 0: break;
 
-			case 1:	LOG("TODO: Yamaha status 1");	break;
+			case 1:
+				// b7 = light pen; set when light is detected, reset on read;
+				//		or: mouse button 2 currently down.
+				// b6 = light pen button or mouse button 1.
+				// b5–b1 = VDP identification (1 = 9938; 2 = 9958)
+				// b0 = set when the VDP reaches the line provided in the line interrupt register.
+				//		Reset upon read.
+				return
+					personality == Personality::V9938 ? 0x2 : 0x4;
+			break;
 
 			case 2: {
 				// b7 = transfer ready flag (i.e. VDP ready for next transfer)
