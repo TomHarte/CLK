@@ -292,9 +292,19 @@ template <Personality personality>
 template <ScreenMode mode>
 void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 	// TODO: sprites. And all other graphics modes.
+	// TODO: much smarter loops. Duff plus a tail?
+
+	if constexpr (mode == ScreenMode::YamahaGraphics4) {
+		for(int c = start >> 2; c < end >> 2; c++) {
+			pixel_target_[c] = Storage<personality>::palette_[
+				buffer.bitmap[c >> 1] >> ((((c & 1) ^ 1) << 2)) & 0xf
+			];
+		}
+
+		return;
+	}
 
 	if constexpr (mode == ScreenMode::YamahaGraphics5) {
-		// TODO: a much smarter loop.
 		for(int c = start >> 1; c < end >> 1; c++) {
 			pixel_target_[c] = Storage<personality>::palette_[
 				buffer.bitmap[c >> 2] >> ((((c & 3) ^ 3) << 1)) & 3
@@ -310,13 +320,18 @@ template <Personality personality>
 void Base<personality>::draw_yamaha(int start, int end) {
 	LineBuffer &line_buffer = line_buffers_[output_pointer_.row];
 
+#define Dispatch(x)	case ScreenMode::x:	draw_yamaha<ScreenMode::x>(line_buffer, start, end);	break;
 	if constexpr (is_yamaha_vdp(personality)) {
 		switch(line_buffer.screen_mode) {
-			case ScreenMode::YamahaGraphics5:	draw_yamaha<ScreenMode::YamahaGraphics5>(line_buffer, start, end);	break;
-
+			Dispatch(YamahaGraphics3);
+			Dispatch(YamahaGraphics4);
+			Dispatch(YamahaGraphics5);
+			Dispatch(YamahaGraphics6);
+			Dispatch(YamahaGraphics7);
 			default: break;
 		}
 	}
+#undef Dispatch
 }
 
 // MARK: - Mega Drive
