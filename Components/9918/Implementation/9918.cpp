@@ -1206,7 +1206,7 @@ HalfCycles TMS9918<personality>::get_next_sequence_point() const {
 	}
 
 	if constexpr (is_yamaha_vdp(personality)) {
-		// TODO: time to next retrace interrupt.
+		next_line_interrupt_row = this->line_interrupt_target_;
 	}
 
 	// If there's actually no interrupt upcoming, despite being enabled, either return
