@@ -827,8 +827,16 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 			case 44:
 				Storage<personality>::command_context_.colour = value;
-				Storage<personality>::command_context_.colour4bpp = uint8_t((value & 0xf) | (value << 4));
-				Storage<personality>::command_context_.colour2bpp = uint8_t((value & 0x3) | ((value & 0x3) << 2) | ((value & 0x3) << 4) | ((value & 0x3) << 6));
+				Storage<personality>::command_context_.colour4bpp = uint8_t(
+					(value & 0xf) |
+					(value << 4)
+				);
+				Storage<personality>::command_context_.colour2bpp = uint8_t(
+					(value & 0x3) |
+					((value & 0x3) << 2) |
+					((value & 0x3) << 4) |
+					((value & 0x3) << 6)
+				);
 
 				// Check whether a command was blocked on this.
 				if(
