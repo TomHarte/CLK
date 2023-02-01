@@ -211,18 +211,18 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			// Perform memory accesses.
 			// ------------------------
 #define fetch(function, clock, offset)	{														\
-	const int first_window = from_internal<personality, clock>(this->fetch_pointer_.column);\
-	const int final_window = from_internal<personality, clock>(end_column);					\
-	if(first_window == final_window) break;													\
-	if(final_window != clock_rate<personality, clock>()) {									\
-		function<true>(																		\
-			this->line_buffers_[this->fetch_pointer_.row], this->fetch_pointer_.row + offset,		\
-			first_window, final_window);													\
-	} else {																				\
-		function<false>(																	\
-			this->line_buffers_[this->fetch_pointer_.row], this->fetch_pointer_.row + offset,		\
-			first_window, final_window);													\
-	}																						\
+	const int first_window = from_internal<personality, clock>(this->fetch_pointer_.column);	\
+	const int final_window = from_internal<personality, clock>(end_column);						\
+	if(first_window == final_window) break;														\
+	if(final_window != clock_rate<personality, clock>()) {										\
+		function<true>(																			\
+			this->line_buffers_[this->fetch_pointer_.row], this->fetch_pointer_.row + offset,	\
+			first_window, final_window);														\
+	} else {																					\
+		function<false>(																		\
+			this->line_buffers_[this->fetch_pointer_.row], this->fetch_pointer_.row + offset,	\
+			first_window, final_window);														\
+	}																							\
 }
 
 			switch(line_buffer.fetch_mode) {
