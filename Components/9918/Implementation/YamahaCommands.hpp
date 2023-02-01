@@ -165,6 +165,8 @@ struct Line: public Command {
 					advance_axis<1>();
 				}
 			}
+
+			location = context.destination;
 		}
 
 	private:
