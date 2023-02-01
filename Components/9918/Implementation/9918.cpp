@@ -925,7 +925,8 @@ void Base<personality>::write_register(uint8_t value) {
 	}
 
 	// The RAM pointer is always set on a second write, regardless of
-	// whether the caller is intending to enqueue a VDP operation.	install_field<8, 0x3f>(ram_pointer_, value);
+	// whether the caller is intending to enqueue a VDP operation.
+	install_field<8, 0x3f>(ram_pointer_, value);
 
 	write_phase_ = false;
 	if(value & 0x80) {
