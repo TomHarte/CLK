@@ -41,6 +41,7 @@ enum class ScreenMode {
 
 constexpr int pixels_per_byte(ScreenMode mode) {
 	switch(mode) {
+		default:
 		case ScreenMode::Blank:				return 0;
 		case ScreenMode::Text:				return 6;
 		case ScreenMode::MultiColour:		return 2;
