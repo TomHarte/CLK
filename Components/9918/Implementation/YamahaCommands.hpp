@@ -91,6 +91,7 @@ struct Command {
 	/// Current command parameters.
 	CommandContext &context;
 	Command(CommandContext &context) : context(context) {}
+	virtual ~Command() {}
 
 	/// @returns @c true if all output from this command is done; @c false otherwise.
 	virtual bool done() = 0;
