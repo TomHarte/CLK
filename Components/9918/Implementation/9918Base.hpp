@@ -365,8 +365,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	uint32_t colour_ram_[32];
 	bool cram_is_selected_ = false;
 
-	// Fields below affect only the Master System output mode.
-
 	// Programmer-set flags.
 	bool vertical_scroll_lock_ = false;
 	bool horizontal_scroll_lock_ = false;
@@ -707,13 +705,13 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 						ram_[address] = Storage<personality>::command_latch_;
 
-						Storage<personality>::command_->advance();
+						Storage<personality>::command_->advance(pixels_per_byte(this->screen_mode_));
 						Storage<personality>::update_command_step(access_column);
 					} break;
 
 					case CommandStep::WriteByte:
 						ram_[command_address()] = Storage<personality>::command_context_.colour;
-						Storage<personality>::command_->advance();
+						Storage<personality>::command_->advance(pixels_per_byte(this->screen_mode_));
 						Storage<personality>::update_command_step(access_column);
 					break;
 				}

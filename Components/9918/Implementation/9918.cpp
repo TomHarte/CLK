@@ -871,7 +871,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					Storage<personality>::command_ &&
 					Storage<personality>::command_->access == Command::AccessType::WaitForColourReceipt
 				) {
-					Storage<personality>::command_->advance();
+					Storage<personality>::command_->advance(pixels_per_byte(this->screen_mode_));
 					Storage<personality>::update_command_step(fetch_pointer_.column);
 				}
 			break;

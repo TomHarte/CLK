@@ -95,14 +95,14 @@ struct Command {
 	/// @returns @c true if all output from this command is done; @c false otherwise.
 	virtual bool done() = 0;
 
-	/// Repopulates the fields above with the next action to take.
-	virtual void advance() = 0;
+	/// Repopulates the fields above with the next action to take, being provided with the
+	/// number of pixels per byte in the current screen mode.
+	virtual void advance(int pixels_per_byte) = 0;
 
 	protected:
-		template <int axis> void advance_axis() {
-			context.destination.add<axis>(context.arguments & (0x4 << axis) ? -1 : 1);
+		template <int axis> void advance_axis(int offset = 1) {
+			context.destination.add<axis>(context.arguments & (0x4 << axis) ? -offset : offset);
 		}
-
 };
 
 // MARK: - Line drawing.
@@ -136,7 +136,7 @@ struct Line: public Command {
 			return !context.size.v[0];
 		}
 
-		void advance() final {
+		void advance(int) final {
 			--context.size.v[0];
 			cycles = 88;
 
@@ -186,7 +186,7 @@ struct PointSet: public Command {
 			return done_;
 		}
 
-		void advance() final {
+		void advance(int) final {
 			done_ = true;
 		}
 
@@ -208,7 +208,7 @@ struct LogicalMoveFromCPU: public Command {
 			location = context.destination;
 		}
 
-		void advance() final {
+		void advance(int) final {
 			switch(access) {
 				default: break;
 
@@ -258,8 +258,23 @@ struct HighSpeedFill: public Command {
 		return true;
 	}
 
-	void advance() final {
+	void advance(int pixels_per_byte) final {
 		cycles = 48;
+
+		// TODO: step at byte speed, not pixel speed.
+		advance_axis<0>(pixels_per_byte);
+		--context.size.v[0];
+
+		if(!context.size.v[0]) {
+			cycles += 56;
+			context.size.v[0] = width_;
+			context.destination.v[0] = start_x_;
+
+			advance_axis<1>();
+			--context.size.v[1];
+		}
+
+		location = context.destination;
 	}
 
 	private:
