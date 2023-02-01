@@ -86,7 +86,7 @@ struct LineBuffer {
 	*/
 	int first_pixel_output_column = 94;
 	int next_border_column = 334;
-	size_t pixel_count = 256;
+	int pixel_count = 256;
 
 	// An active sprite is one that has been selected for composition onto
 	// this line.
@@ -121,11 +121,15 @@ template <Personality personality, typename Enable = void> struct Storage {
 };
 
 template <> struct Storage<Personality::TMS9918A> {
+	using AddressT = uint16_t;
+
 	void begin_line(ScreenMode, bool, bool) {}
 };
 
 // Yamaha-specific storage.
 template <Personality personality> struct Storage<personality, std::enable_if_t<is_yamaha_vdp(personality)>> {
+	using AddressT = uint32_t;
+
 	int selected_status_ = 0;
 
 	int indirect_register_ = 0;
@@ -351,6 +355,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 // Master System-specific storage.
 template <Personality personality> struct Storage<personality, std::enable_if_t<is_sega_vdp(personality)>> {
+	using AddressT = uint16_t;
+
 	// The SMS VDP has a programmer-set colour palette, with a dedicated patch of RAM. But the RAM is only exactly
 	// fast enough for the pixel clock. So when the programmer writes to it, that causes a one-pixel glitch; there
 	// isn't the bandwidth for the read both write to occur simultaneously. The following buffer therefore keeps
@@ -379,10 +385,10 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	uint8_t latched_vertical_scroll_ = 0;
 
 	// Various resource addresses with VDP-version-specific modifications
-	// built int.
-	size_t pattern_name_address_;
-	size_t sprite_attribute_table_address_;
-	size_t sprite_generator_table_address_;
+	// built in.
+	AddressT pattern_name_address_;
+	AddressT sprite_attribute_table_address_;
+	AddressT sprite_generator_table_address_;
 
 	void begin_line(ScreenMode, bool, bool) {}
 };
@@ -432,6 +438,18 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 	Outputs::CRT::CRT crt_;
 	TVStandard tv_standard_ = TVStandard::NTSC;
+	using AddressT = typename Storage<personality>::AddressT;
+
+	/// Mutates @c target such that @c source & @c source_mask replaces the bits that currently start
+	/// at @c shift bits from least significant. Subsequently ensures @c target is constrained by the
+	/// applicable @c memory_mask.
+	template <int shift, uint8_t source_mask = 0xff> void install_field(AddressT &target, uint8_t source) {
+		constexpr auto mask = AddressT(~(source_mask << shift));
+		target = (
+			(target & mask) |
+			AddressT((source & source_mask) << shift)
+		) & memory_mask(personality);
+	}
 
 	// Personality-specific metrics and converters.
 	ClockConverter<personality> clock_converter_;
@@ -440,7 +458,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	std::array<uint8_t, memory_size(personality)> ram_;
 
 	// State of the DRAM/CRAM-access mechanism.
-	size_t ram_pointer_ = 0;
+	AddressT ram_pointer_ = 0;
 	uint8_t read_ahead_buffer_ = 0;
 	MemoryAccess queued_access_ = MemoryAccess::None;
 	int minimum_access_column_ = 0;
@@ -463,11 +481,11 @@ template <Personality personality> struct Base: public Storage<personality> {
 	int sprite_height_ = 8;
 
 	// Programmer-specified addresses.
-	size_t pattern_name_address_ = 0;				// i.e. address of the tile map.
-	size_t colour_table_address_ = 0;				// address of the colour map (if applicable).
-	size_t pattern_generator_table_address_ = 0;	// address of the tile contents.
-	size_t sprite_attribute_table_address_ = 0;		// address of the sprite list.
-	size_t sprite_generator_table_address_ = 0;		// address of the sprite contents.
+	AddressT pattern_name_address_ = memory_mask(personality);				// Address of the tile map.
+	AddressT colour_table_address_ = memory_mask(personality);				// Address of the colour map (if applicable).
+	AddressT pattern_generator_table_address_ = memory_mask(personality);	// Address of the tile contents.
+	AddressT sprite_attribute_table_address_ = memory_mask(personality);	// Address of the sprite list.
+	AddressT sprite_generator_table_address_ = memory_mask(personality);	// Address of the sprite contents.
 
 	// Default colours.
 	uint8_t text_colour_ = 0;
@@ -588,29 +606,33 @@ template <Personality personality> struct Base: public Storage<personality> {
 		return ScreenMode::Blank;
 	}
 
-	uint32_t command_address() const {
+	AddressT command_address() const {
 		if constexpr (is_yamaha_vdp(personality)) {
 			switch(this->screen_mode_) {
 				default:
 				case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
-					return
+					return AddressT(
 						(Storage<personality>::command_->location.v[0] >> 1) +
-						(Storage<personality>::command_->location.v[1] << 7);
+						(Storage<personality>::command_->location.v[1] << 7)
+					);
 
 				case ScreenMode::YamahaGraphics5:	// 512 pixels @ 2bpp
-					return
+					return AddressT(
 						(Storage<personality>::command_->location.v[0] >> 2) +
-						(Storage<personality>::command_->location.v[1] << 7);
+						(Storage<personality>::command_->location.v[1] << 7)
+					);
 
 				case ScreenMode::YamahaGraphics6:	// 512 pixels @ 4bpp
-					return
+					return AddressT(
 						(Storage<personality>::command_->location.v[0] >> 1) +
-						(Storage<personality>::command_->location.v[1] << 8);
+						(Storage<personality>::command_->location.v[1] << 8)
+					);
 
 				case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
-					return
+					return AddressT(
 						(Storage<personality>::command_->location.v[0] >> 0) +
-						(Storage<personality>::command_->location.v[1] << 8);
+						(Storage<personality>::command_->location.v[1] << 8)
+					);
 			}
 		} else {
 			return 0;
@@ -720,7 +742,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 			return;
 		}
 
-		size_t address = ram_pointer_;
+		AddressT address = ram_pointer_;
 		++ram_pointer_;
 
 		if constexpr (is_yamaha_vdp(personality)) {

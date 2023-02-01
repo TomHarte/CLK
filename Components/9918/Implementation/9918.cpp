@@ -488,7 +488,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 							this->asked_for_write_area_ = true;
 
 							this->pixel_origin_ = this->pixel_target_ = reinterpret_cast<uint32_t *>(
-								this->crt_.begin_data(line_buffer.pixel_count)
+								this->crt_.begin_data(size_t(line_buffer.pixel_count))
 							);
 						}
 
@@ -507,7 +507,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 						if(end == line_buffer.next_border_column) {
 							const int length = line_buffer.next_border_column - line_buffer.first_pixel_output_column;
-							this->crt_.output_data(from_internal<personality, Clock::CRT>(length), line_buffer.pixel_count);
+							this->crt_.output_data(from_internal<personality, Clock::CRT>(length), size_t(line_buffer.pixel_count));
 							this->pixel_origin_ = this->pixel_target_ = nullptr;
 							this->asked_for_write_area_ = false;
 						}
@@ -645,32 +645,11 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			if(sprites_magnified_) sprite_height_ <<= 1;
 		break;
 
-		case 2:
-			pattern_name_address_ = size_t((value & 0xf) << 10) | 0x3ff;
-		break;
-
-		case 3:
-			colour_table_address_ =
-				(colour_table_address_ & ~0x3fc0) |
-				(value << 6) |
-				0x3f;
-		break;
-
-		case 4:
-			pattern_generator_table_address_ = size_t((value & 0x07) << 11) | 0x7ff;
-			// TODO: don't mask off so many bits for, at least, the Yamahas.
-		break;
-
-		case 5:
-			sprite_attribute_table_address_ =
-				(sprite_attribute_table_address_ & ~0x3d80) |
-				((value << 7) & 0x3f80) |
-				0x7f;
-		break;
-
-		case 6:
-			sprite_generator_table_address_ = size_t((value & 0x07) << 11) | 0x7ff;
-		break;
+		case 2:	install_field<10>(pattern_name_address_, value);			break;
+		case 3:	install_field<6>(colour_table_address_, value);				break;
+		case 4: install_field<11>(pattern_generator_table_address_, value);	break;
+		case 5:	install_field<7>(sprite_attribute_table_address_, value);	break;
+		case 6:	install_field<11>(sprite_generator_table_address_, value);	break;
 
 		case 7:
 			text_colour_ = value >> 4;
@@ -755,11 +734,6 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				LOG("Screen mode: " << int(current_screen_mode()));
 			break;
 
-			case 2:
-				// Retain extra addressing bits.
-				pattern_name_address_ = size_t((value & 0x7f) << 10) | 0x3ff;
-			break;
-
 			case 8:
 				LOG("TODO: Yamaha VRAM organisation, sprite disable, etc; " << PADHEX(2) << +value);
 				// b7: "1 = input on colour bus, enable mouse; 1 = output on colour bus, disable mouse" [documentation clearly in error]
@@ -781,19 +755,11 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// b0: 1 = [dot clock] DLCLK is input; 0 = DLCLK is output
 			break;
 
-			case 10:
-				colour_table_address_ =
-					(colour_table_address_ & ~0x1c000) |
-					((value << 14) & 0x1c000);
-				// b0–b2: A14–A16 of the colour table.
-			break;
+			// b0–b2: A14–A16 of the colour table.
+			case 10:	install_field<14>(colour_table_address_, value);			break;
 
-			case 11:
-				sprite_attribute_table_address_ =
-					(sprite_attribute_table_address_ & ~0x18000) |
-					((value << 15) & 0x18000);
-				// b0–b1: A15–A16 of the sprite table.
-			break;
+			// b0–b1: A15–A16 of the sprite table.
+			case 11:	install_field<15>(sprite_attribute_table_address_, value);	break;
 
 			case 12:
 				LOG("TODO: Yamaha text and background blink colour; " << PADHEX(2) << +value);
@@ -806,9 +772,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// b4–b7: display time for even page.
 			break;
 
-			case 14:
-				ram_pointer_ = (ram_pointer_ & ~0x1c000) | ((value << 14) & 0x1c000);
-			break;
+			case 14:	install_field<14>(ram_pointer_, value);		break;
 
 			case 15:
 				Storage<personality>::selected_status_ = value & 0xf;
@@ -863,8 +827,8 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 			case 44:
 				Storage<personality>::command_context_.colour = value;
-				Storage<personality>::command_context_.colour4bpp = (value & 0xf) | (value << 4);
-				Storage<personality>::command_context_.colour2bpp = (value & 0x3) | ((value & 0x3) << 2) | ((value & 0x3) << 4) | ((value & 0x3) << 6);
+				Storage<personality>::command_context_.colour4bpp = uint8_t((value & 0xf) | (value << 4));
+				Storage<personality>::command_context_.colour2bpp = uint8_t((value & 0x3) | ((value & 0x3) << 2) | ((value & 0x3) << 4) | ((value & 0x3) << 6));
 
 				// Check whether a command was blocked on this.
 				if(
@@ -948,13 +912,12 @@ void Base<personality>::write_register(uint8_t value) {
 		write_phase_ = true;
 
 		// The initial write should half update the access pointer.
-		ram_pointer_ = (ram_pointer_ & ~0xff) | low_write_;
+		install_field<0>(ram_pointer_, value);
 		return;
 	}
 
 	// The RAM pointer is always set on a second write, regardless of
-	// whether the caller is intending to enqueue a VDP operation.
-	ram_pointer_ = (ram_pointer_ & ~0x3f00) | ((value << 8) & 0x3f00);
+	// whether the caller is intending to enqueue a VDP operation.	install_field<8, 0x3f>(ram_pointer_, value);
 
 	write_phase_ = false;
 	if(value & 0x80) {
