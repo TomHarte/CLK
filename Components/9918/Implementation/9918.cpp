@@ -308,7 +308,8 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 				// Establish the current screen output mode, which will be captured as a
 				// line mode momentarily.
-				this->screen_mode_ = this->current_screen_mode();
+				this->screen_mode_ = this->template current_screen_mode<true>();
+				this->underlying_mode_ = this->template current_screen_mode<false>();
 
 				// Based on the output mode, pick a line mode.
 				next_line_buffer.first_pixel_output_column = Timing<personality>::FirstPixelCycle;
@@ -723,7 +724,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// b5: enable light pen interrupts
 				// b6: set colour bus to input or output mode
 
-				LOG("Screen mode: " << int(current_screen_mode()));
+				LOG("Screen mode: " << int(current_screen_mode<true>()));
 			break;
 
 			case 1:
@@ -733,7 +734,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					((value & 0x08) >> 2)
 				);
 
-				LOG("Screen mode: " << int(current_screen_mode()));
+				LOG("Screen mode: " << int(current_screen_mode<true>()));
 			break;
 
 			case 8:
@@ -845,7 +846,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					Storage<personality>::command_ &&
 					Storage<personality>::command_->access == Command::AccessType::WaitForColourReceipt
 				) {
-					Storage<personality>::command_->advance(pixels_per_byte(this->screen_mode_));
+					Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
 					Storage<personality>::update_command_step(fetch_pointer_.column);
 				}
 			break;

@@ -543,7 +543,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 	bool enable_line_interrupts_ = false;
 	bool line_interrupt_pending_ = false;
 
-	ScreenMode screen_mode_;
+	ScreenMode screen_mode_, underlying_mode_;
 	LineBuffer line_buffers_[313];
 	void posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_y, int screen_row);
 
@@ -570,8 +570,8 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 	void commit_register(int reg, uint8_t value);
 
-	ScreenMode current_screen_mode() const {
-		if(blank_display_) {
+	template <bool check_blank> ScreenMode current_screen_mode() const {
+		if(check_blank && blank_display_) {
 			return ScreenMode::Blank;
 		}
 
@@ -737,13 +737,13 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 						ram_[address] = Storage<personality>::command_latch_;
 
-						Storage<personality>::command_->advance(pixels_per_byte(this->screen_mode_));
+						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
 						Storage<personality>::update_command_step(access_column);
 					} break;
 
 					case CommandStep::WriteByte:
 						ram_[command_address()] = Storage<personality>::command_context_.colour;
-						Storage<personality>::command_->advance(pixels_per_byte(this->screen_mode_));
+						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
 						Storage<personality>::update_command_step(access_column);
 					break;
 				}
@@ -756,8 +756,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 		++ram_pointer_;
 
 		if constexpr (is_yamaha_vdp(personality)) {
-			const ScreenMode mode = current_screen_mode();
-			if(mode == ScreenMode::YamahaGraphics6 || mode == ScreenMode::YamahaGraphics7) {
+			if(this->underlying_mode_ == ScreenMode::YamahaGraphics6 || this->underlying_mode_ == ScreenMode::YamahaGraphics7) {
 				// Rotate address one to the right as the hardware accesses
 				// the underlying banks of memory alternately but presents
 				// them as if linear.
