@@ -450,10 +450,12 @@ template <Personality personality> struct Base: public Storage<personality> {
 	TVStandard tv_standard_ = TVStandard::NTSC;
 	using AddressT = typename Storage<personality>::AddressT;
 
-	/// Mutates @c target such that @c source & @c source_mask replaces the bits that currently start
-	/// at @c shift bits from least significant. Subsequently ensures @c target is constrained by the
+	/// Mutates @c target such that @c source replaces the @c length bits that currently start
+	/// at bit @c shift . Subsequently ensures @c target is constrained by the
 	/// applicable @c memory_mask.
-	template <int shift, uint8_t source_mask = 0xff> void install_field(AddressT &target, uint8_t source) {
+	template <int shift, int length = 8> void install_field(AddressT &target, uint8_t source) {
+		static_assert(length > 0 && length <= 8);
+		constexpr auto source_mask = (1 << length) - 1;
 		constexpr auto mask = AddressT(~(source_mask << shift));
 		target = (
 			(target & mask) |
@@ -491,6 +493,17 @@ template <Personality personality> struct Base: public Storage<personality> {
 	int sprite_height_ = 8;
 
 	// Programmer-specified addresses.
+	//
+	// The TMS and descendants combine various parts of the address with AND operations,
+	// e.g. the fourth byte in the pattern name table will be at `pattern_name_address_ & 4`;
+	// ordinarily the difference between that and plain substitution is invisible because
+	// the programmer mostly can't set low-enough-order bits. That's not universally true
+	// though, so this implementation uses AND throughout.
+	//
+	// ... therefore, all programmer-specified addresses are seeded as all '1's. As and when
+	// actual addresses are specified, the relevant bits will be substituted in.
+	//
+	// Cf. install_field.
 	AddressT pattern_name_address_ = memory_mask(personality);				// Address of the tile map.
 	AddressT colour_table_address_ = memory_mask(personality);				// Address of the colour map (if applicable).
 	AddressT pattern_generator_table_address_ = memory_mask(personality);	// Address of the tile contents.
