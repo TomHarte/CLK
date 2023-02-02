@@ -39,6 +39,24 @@ enum class ScreenMode {
 	YamahaGraphics2 = Graphics,
 };
 
+constexpr int pixels_per_byte(ScreenMode mode) {
+	switch(mode) {
+		default:
+		case ScreenMode::Blank:				return 0;
+		case ScreenMode::Text:				return 6;
+		case ScreenMode::MultiColour:		return 2;
+		case ScreenMode::ColouredText:		return 8;
+		case ScreenMode::Graphics:			return 8;
+		case ScreenMode::SMSMode4:			return 2;
+		case ScreenMode::YamahaText80:		return 6;
+		case ScreenMode::YamahaGraphics3:	return 8;
+		case ScreenMode::YamahaGraphics4:	return 2;
+		case ScreenMode::YamahaGraphics5:	return 4;
+		case ScreenMode::YamahaGraphics6:	return 2;
+		case ScreenMode::YamahaGraphics7:	return 1;
+	}
+}
+
 enum class FetchMode {
 	Text,
 	Character,

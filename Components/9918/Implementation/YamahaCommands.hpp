@@ -79,6 +79,9 @@ struct Command {
 
 		/// Blocks until the next CPU write to the colour register.
 		WaitForColourReceipt,
+
+		/// Writes an entire byte to the location containing the current @c location.
+		WriteByte,
 	};
 	AccessType access = AccessType::PlotPoint;
 	int cycles = 0;
@@ -88,12 +91,19 @@ struct Command {
 	/// Current command parameters.
 	CommandContext &context;
 	Command(CommandContext &context) : context(context) {}
+	virtual ~Command() {}
 
 	/// @returns @c true if all output from this command is done; @c false otherwise.
 	virtual bool done() = 0;
 
-	/// Repopulates the fields above with the next action to take.
-	virtual void advance() = 0;
+	/// Repopulates the fields above with the next action to take, being provided with the
+	/// number of pixels per byte in the current screen mode.
+	virtual void advance(int pixels_per_byte) = 0;
+
+	protected:
+		template <int axis> void advance_axis(int offset = 1) {
+			context.destination.add<axis>(context.arguments & (0x4 << axis) ? -offset : offset);
+		}
 };
 
 // MARK: - Line drawing.
@@ -127,7 +137,7 @@ struct Line: public Command {
 			return !context.size.v[0];
 		}
 
-		void advance() final {
+		void advance(int) final {
 			--context.size.v[0];
 			cycles = 88;
 
@@ -140,9 +150,9 @@ struct Line: public Command {
 			// b3:	1 => y direction is up;
 			//		0 => y direction is down.
 			if(context.arguments & 0x1) {
-				location.add<1>(context.arguments & 0x8 ? -1 : 1);
+				advance_axis<1>();
 			} else {
-				location.add<0>(context.arguments & 0x4 ? -1 : 1);
+				advance_axis<0>();
 			}
 
 			position_ -= numerator_;
@@ -151,11 +161,13 @@ struct Line: public Command {
 				cycles += 32;
 
 				if(context.arguments & 0x1) {
-					location.add<0>(context.arguments & 0x4 ? -1 : 1);
+					advance_axis<0>();
 				} else {
-					location.add<1>(context.arguments & 0x8 ? -1 : 1);
+					advance_axis<1>();
 				}
 			}
+
+			location = context.destination;
 		}
 
 	private:
@@ -177,7 +189,7 @@ struct PointSet: public Command {
 			return done_;
 		}
 
-		void advance() final {
+		void advance(int) final {
 			done_ = true;
 		}
 
@@ -199,7 +211,7 @@ struct LogicalMoveFromCPU: public Command {
 			location = context.destination;
 		}
 
-		void advance() final {
+		void advance(int) final {
 			switch(access) {
 				default: break;
 
@@ -212,7 +224,7 @@ struct LogicalMoveFromCPU: public Command {
 				case AccessType::PlotPoint:
 					cycles = 0;
 					access = AccessType::WaitForColourReceipt;
-					context.destination.add<0>(context.arguments & 0x4 ? -1 : 1);
+					advance_axis<0>();
 					--context.size.v[0];
 
 					if(!context.size.v[0]) {
@@ -220,7 +232,7 @@ struct LogicalMoveFromCPU: public Command {
 						context.size.v[0] = width_;
 						context.destination.v[0] = start_x_;
 
-						context.destination.add<1>(context.arguments & 0x8 ? -1 : 1);
+						advance_axis<1>();
 						--context.size.v[1];
 					}
 				break;
@@ -230,6 +242,43 @@ struct LogicalMoveFromCPU: public Command {
 		bool done() final {
 			return !context.size.v[1] || !width_;
 		}
+
+	private:
+		int start_x_ = 0, width_ = 0;
+};
+
+struct HighSpeedFill: public Command {
+	HighSpeedFill(CommandContext &context) : Command(context) {
+		start_x_ = context.destination.v[0];
+		width_ = context.size.v[0];
+
+		cycles = 56;
+		access = AccessType::WriteByte;
+		location = context.destination;
+	}
+
+	bool done() final {
+		return true;
+	}
+
+	void advance(int pixels_per_byte) final {
+		cycles = 48;
+
+		// TODO: step at byte speed, not pixel speed.
+		advance_axis<0>(pixels_per_byte);
+		--context.size.v[0];
+
+		if(!context.size.v[0]) {
+			cycles += 56;
+			context.size.v[0] = width_;
+			context.destination.v[0] = start_x_;
+
+			advance_axis<1>();
+			--context.size.v[1];
+		}
+
+		location = context.destination;
+	}
 
 	private:
 		int start_x_ = 0, width_ = 0;
