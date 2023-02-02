@@ -22,7 +22,7 @@ struct Vector {
 	template <int offset, bool high> void set(uint8_t value) {
 		constexpr uint8_t mask = high ? (offset ? 0x3 : 0x1) : 0xff;
 		constexpr int shift = high ? 8 : 0;
-		v[offset] = (v[offset] & ~(mask << shift)) | (value << shift);
+		v[offset] = (v[offset] & ~(mask << shift)) | ((value & mask) << shift);
 	}
 
 	template <int offset> void add(int amount) {
@@ -258,17 +258,16 @@ struct HighSpeedFill: public Command {
 	}
 
 	bool done() final {
-		return true;
+		return !context.size.v[1] || !width_;
 	}
 
 	void advance(int pixels_per_byte) final {
 		cycles = 48;
 
-		// TODO: step at byte speed, not pixel speed.
 		advance_axis<0>(pixels_per_byte);
-		--context.size.v[0];
+		context.size.v[0] -= pixels_per_byte;
 
-		if(!context.size.v[0]) {
+		if(!(context.size.v[0] & ~(pixels_per_byte - 1))) {
 			cycles += 56;
 			context.size.v[0] = width_;
 			context.destination.v[0] = start_x_;
