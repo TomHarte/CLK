@@ -29,6 +29,16 @@
 namespace TI {
 namespace TMS {
 
+enum class VerticalState {
+	/// Describes any line on which pixels do not appear and no fetching occurs, including
+	/// the border, blanking and sync.
+	Blank,
+	/// A line on which pixels do not appear but fetching occurs.
+	Prefetch,
+	/// A line on which pixels appear and fetching occurs.
+	Pixels,
+};
+
 // Temporary buffers collect a representation of each line prior to pixel serialisation.
 //
 // TODO: either template on personality, to avoid having to be the union of all potential footprints,
@@ -40,7 +50,7 @@ struct LineBuffer {
 	// screen mode captures proper output mode.
 	FetchMode fetch_mode = FetchMode::Text;
 	ScreenMode screen_mode = ScreenMode::Text;
-	bool is_refresh = false;
+	VerticalState vertical_state = VerticalState::Blank;
 
 	// Holds the horizontal scroll position to apply to this line;
 	// of those VDPs currently implemented, affects the Master System only.
@@ -525,8 +535,8 @@ template <Personality personality> struct Base: public Storage<personality> {
 	LineBufferPointer output_pointer_, fetch_pointer_;
 
 	int fetch_line() const;
-	bool is_vertical_blank() const;
 	bool is_horizontal_blank() const;
+	VerticalState vertical_state() const;
 
 	int masked_address(int address) const;
 	void write_vram(uint8_t);
