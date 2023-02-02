@@ -345,14 +345,16 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					break;
 				}
 
-				next_line_buffer.is_refresh =
-					this->screen_mode_ == ScreenMode::Blank ||
-					this->is_vertical_blank();
+				next_line_buffer.vertical_state =
+					this->screen_mode_ == ScreenMode::Blank ?
+						VerticalState::Blank :
+						this->vertical_state();
+				const bool is_refresh = next_line_buffer.vertical_state == VerticalState::Blank;
 
 				// TODO: an actual sprites-enabled flag.
-				Storage<personality>::begin_line(this->screen_mode_, next_line_buffer.is_refresh, false);
+				Storage<personality>::begin_line(this->screen_mode_, is_refresh, false);
 
-				if(next_line_buffer.is_refresh) {
+				if(is_refresh) {
 					// The Yamaha handles refresh lines via its own microprogram; other VDPs
 					// can fall back on the regular refresh mechanic.
 					if constexpr (is_yamaha_vdp(personality)) {
@@ -425,7 +427,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 
 #define border(left, right)	intersect(left, right, this->output_border(end - start, cram_value))
 
-				if(line_buffer.is_refresh) {
+				if(line_buffer.vertical_state != VerticalState::Pixels) {
 					if(
 						this->output_pointer_.row >= this->mode_timing_.first_vsync_line &&
 						this->output_pointer_.row < this->mode_timing_.first_vsync_line + 4
@@ -1036,7 +1038,7 @@ uint8_t Base<personality>::read_register() {
 
 				return
 					transfer_ready |
-					(is_vertical_blank() ? 0x40 : 0x00) |
+					(vertical_state() != VerticalState::Pixels ? 0x40 : 0x00) |
 					(is_horizontal_blank() ? 0x20 : 0x00) |
 					(Storage<personality>::command_ ? 0x01 : 0x00);
 
@@ -1099,8 +1101,11 @@ int Base<personality>::fetch_line() const {
 }
 
 template <Personality personality>
-bool Base<personality>::is_vertical_blank() const {
-	return fetch_pointer_.row >= mode_timing_.pixel_lines && fetch_pointer_.row != mode_timing_.total_lines - 1;
+VerticalState Base<personality>::vertical_state() const {
+	// TODO: the Yamaha uses an internal flag for visible region which toggles at contextually-appropriate moments.
+	// This test won't work properly there.
+	if(fetch_pointer_.row == mode_timing_.total_lines - 1) return VerticalState::Prefetch;
+	return fetch_pointer_.row >= mode_timing_.pixel_lines ? VerticalState::Blank : VerticalState::Pixels;
 }
 
 template <Personality personality>
