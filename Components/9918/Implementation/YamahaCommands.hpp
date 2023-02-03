@@ -195,44 +195,43 @@ struct PointSet: public Command {
 		bool done_ = false;
 };
 
-struct LogicalMoveFromCPU: public Command {
+/// Useful base class for anything that does logical work in a rectangle.
+template <bool logical, bool include_source> struct Rectangle: public Command {
 	public:
-		LogicalMoveFromCPU(CommandContext &context) : Command(context) {
-			is_cpu_transfer = true;
-
+		Rectangle(CommandContext &context) : Command(context) {
 			start_x_ = context.destination.v[0];
 			width_ = context.size.v[0];
-
-			// This command is started with the first colour ready to transfer.
-			cycles = 32;
-			access = AccessType::PlotPoint;
 		}
 
-		void advance(int) final {
-			switch(access) {
-				default: break;
+		/// Advances the current destination and, if @c include_source is @c true also the source;
+		/// @returns @c true if a new row was started; @c false otherwise.
+		///
+		/// @c pixels_per_byte is used for 'fast' (i.e. not logical) rectangles only, setting pace at
+		/// which the source and destination proceed left-to-right.
+		bool advance_pixel(int pixels_per_byte = 0) {
+			if constexpr (logical) {
+				advance_axis<0, include_source>();
+				--context.size.v[0];
 
-				case AccessType::WaitForColourReceipt:
-					cycles = 32;
-					access = AccessType::PlotPoint;
-				break;
+				if(context.size.v[0]) {
+					return false;
+				}
+			} else {
+				advance_axis<0, include_source>(pixels_per_byte);
+				context.size.v[0] -= pixels_per_byte;
 
-				case AccessType::PlotPoint:
-					cycles = 0;
-					access = AccessType::WaitForColourReceipt;
-					advance_axis<0, false>();
-					--context.size.v[0];
-
-					if(!context.size.v[0]) {
-						cycles = 64;
-						context.size.v[0] = width_;
-						context.destination.v[0] = start_x_;
-
-						advance_axis<1, false>();
-						--context.size.v[1];
-					}
-				break;
+				if(context.size.v[0] & ~(pixels_per_byte - 1)) {
+					return false;
+				}
 			}
+
+			context.size.v[0] = width_;
+			context.destination.v[0] = start_x_;
+
+			advance_axis<1, include_source>();
+			--context.size.v[1];
+
+			return true;
 		}
 
 		bool done() final {
@@ -243,37 +242,48 @@ struct LogicalMoveFromCPU: public Command {
 		int start_x_ = 0, width_ = 0;
 };
 
-struct HighSpeedFill: public Command {
-	HighSpeedFill(CommandContext &context) : Command(context) {
-		start_x_ = context.destination.v[0];
-		width_ = context.size.v[0];
+struct LogicalMoveFromCPU: public Rectangle<true, false> {
+	LogicalMoveFromCPU(CommandContext &context) : Rectangle(context) {
+		is_cpu_transfer = true;
 
+		// This command is started with the first colour ready to transfer.
+		cycles = 32;
+		access = AccessType::PlotPoint;
+	}
+
+	void advance(int) final {
+		switch(access) {
+			default: break;
+
+			case AccessType::WaitForColourReceipt:
+				cycles = 32;
+				access = AccessType::PlotPoint;
+			break;
+
+			case AccessType::PlotPoint:
+				cycles = 0;
+				access = AccessType::WaitForColourReceipt;
+				if(advance_pixel()) {
+					cycles = 64;
+					// TODO: I'm not sure this will be honoured per the outer wrapping.
+				}
+			break;
+		}
+	}
+};
+
+struct HighSpeedFill: public Rectangle<false, false> {
+	HighSpeedFill(CommandContext &context) : Rectangle(context) {
 		cycles = 56;
 		access = AccessType::WriteByte;
 	}
 
-	bool done() final {
-		return !context.size.v[1] || !width_;
-	}
-
 	void advance(int pixels_per_byte) final {
 		cycles = 48;
-
-		advance_axis<0, false>(pixels_per_byte);
-		context.size.v[0] -= pixels_per_byte;
-
-		if(!(context.size.v[0] & ~(pixels_per_byte - 1))) {
+		if(!advance_pixel(pixels_per_byte)) {
 			cycles += 56;
-			context.size.v[0] = width_;
-			context.destination.v[0] = start_x_;
-
-			advance_axis<1, false>();
-			--context.size.v[1];
 		}
 	}
-
-	private:
-		int start_x_ = 0, width_ = 0;
 };
 
 }
