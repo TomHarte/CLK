@@ -108,9 +108,9 @@ struct Command {
 		}
 };
 
-// MARK: - Line drawing.
-
 namespace Commands {
+
+// MARK: - Line drawing.
 
 /// Implements the LINE command, which is plain-old Bresenham.
 ///
@@ -173,6 +173,8 @@ struct Line: public Command {
 		int position_, numerator_, denominator_, duration_;
 };
 
+// MARK: - Single pixel manipulation.
+
 /// Implements the PSET command, which plots a single pixel.
 ///
 /// No timings are documented, so this'll output as quickly as possible.
@@ -194,6 +196,10 @@ struct PointSet: public Command {
 	private:
 		bool done_ = false;
 };
+
+// TODO: point.
+
+// MARK: - Rectangular base.
 
 /// Useful base class for anything that does logical work in a rectangle.
 template <bool logical, bool include_source> struct Rectangle: public Command {
@@ -242,6 +248,8 @@ template <bool logical, bool include_source> struct Rectangle: public Command {
 		int start_x_ = 0, width_ = 0;
 };
 
+// MARK: - Rectangular manipulations; logical.
+
 struct LogicalMoveFromCPU: public Rectangle<true, false> {
 	LogicalMoveFromCPU(CommandContext &context) : Rectangle(context) {
 		is_cpu_transfer = true;
@@ -271,6 +279,8 @@ struct LogicalMoveFromCPU: public Rectangle<true, false> {
 		}
 	}
 };
+
+// MARK: - Rectangular manipulations; fast.
 
 struct HighSpeedFill: public Rectangle<false, false> {
 	HighSpeedFill(CommandContext &context) : Rectangle(context) {
