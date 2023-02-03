@@ -86,7 +86,6 @@ struct Command {
 	AccessType access = AccessType::PlotPoint;
 	int cycles = 0;
 	bool is_cpu_transfer = false;
-	Vector location;
 
 	/// Current command parameters.
 	CommandContext &context;
@@ -101,8 +100,11 @@ struct Command {
 	virtual void advance(int pixels_per_byte) = 0;
 
 	protected:
-		template <int axis> void advance_axis(int offset = 1) {
+		template <int axis, bool include_source> void advance_axis(int offset = 1) {
 			context.destination.add<axis>(context.arguments & (0x4 << axis) ? -offset : offset);
+			if constexpr (include_source) {
+				context.source.add<axis>(context.arguments & (0x4 << axis) ? -offset : offset);
+			}
 		}
 };
 
@@ -124,7 +126,6 @@ struct Line: public Command {
 			// context.size.v[1] = short side dots;
 			// context.arguments => direction
 
-			location = context.destination;
 			position_ = context.size.v[1];
 			numerator_ = position_ << 1;
 			denominator_ = context.size.v[0] << 1;
@@ -150,9 +151,9 @@ struct Line: public Command {
 			// b3:	1 => y direction is up;
 			//		0 => y direction is down.
 			if(context.arguments & 0x1) {
-				advance_axis<1>();
+				advance_axis<1, false>();
 			} else {
-				advance_axis<0>();
+				advance_axis<0, false>();
 			}
 
 			position_ -= numerator_;
@@ -161,13 +162,11 @@ struct Line: public Command {
 				cycles += 32;
 
 				if(context.arguments & 0x1) {
-					advance_axis<0>();
+					advance_axis<0, false>();
 				} else {
-					advance_axis<1>();
+					advance_axis<1, false>();
 				}
 			}
-
-			location = context.destination;
 		}
 
 	private:
@@ -180,9 +179,8 @@ struct Line: public Command {
 struct PointSet: public Command {
 	public:
 		PointSet(CommandContext &context) : Command(context) {
-			cycles = 0;
+			cycles = 0;	// TODO.
 			access = AccessType::PlotPoint;
-			location = context.destination;
 		}
 
 		bool done() final {
@@ -208,7 +206,6 @@ struct LogicalMoveFromCPU: public Command {
 			// This command is started with the first colour ready to transfer.
 			cycles = 32;
 			access = AccessType::PlotPoint;
-			location = context.destination;
 		}
 
 		void advance(int) final {
@@ -217,14 +214,13 @@ struct LogicalMoveFromCPU: public Command {
 
 				case AccessType::WaitForColourReceipt:
 					cycles = 32;
-					location = context.destination;
 					access = AccessType::PlotPoint;
 				break;
 
 				case AccessType::PlotPoint:
 					cycles = 0;
 					access = AccessType::WaitForColourReceipt;
-					advance_axis<0>();
+					advance_axis<0, false>();
 					--context.size.v[0];
 
 					if(!context.size.v[0]) {
@@ -232,7 +228,7 @@ struct LogicalMoveFromCPU: public Command {
 						context.size.v[0] = width_;
 						context.destination.v[0] = start_x_;
 
-						advance_axis<1>();
+						advance_axis<1, false>();
 						--context.size.v[1];
 					}
 				break;
@@ -254,7 +250,6 @@ struct HighSpeedFill: public Command {
 
 		cycles = 56;
 		access = AccessType::WriteByte;
-		location = context.destination;
 	}
 
 	bool done() final {
@@ -264,7 +259,7 @@ struct HighSpeedFill: public Command {
 	void advance(int pixels_per_byte) final {
 		cycles = 48;
 
-		advance_axis<0>(pixels_per_byte);
+		advance_axis<0, false>(pixels_per_byte);
 		context.size.v[0] -= pixels_per_byte;
 
 		if(!(context.size.v[0] & ~(pixels_per_byte - 1))) {
@@ -272,11 +267,9 @@ struct HighSpeedFill: public Command {
 			context.size.v[0] = width_;
 			context.destination.v[0] = start_x_;
 
-			advance_axis<1>();
+			advance_axis<1, false>();
 			--context.size.v[1];
 		}
-
-		location = context.destination;
 	}
 
 	private:
