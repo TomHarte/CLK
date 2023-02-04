@@ -204,8 +204,12 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 	enum class CommandStep {
 		None,
-		ReadPixel,
+
+		ReadSourcePixel,
+		ReadDestinationPixel,
 		WritePixel,
+
+		ReadSourceByte,
 		WriteByte,
 	};
 	CommandStep next_command_step_ = CommandStep::None;
@@ -225,12 +229,20 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 		minimum_command_column_ = current_column + command_->cycles;
 		switch(command_->access) {
-			case Command::AccessType::PlotPoint:
-				next_command_step_ = CommandStep::ReadPixel;
+			case Command::AccessType::CopyPoint:
+				next_command_step_ = CommandStep::ReadSourcePixel;
 			break;
+			case Command::AccessType::PlotPoint:
+				next_command_step_ = CommandStep::ReadDestinationPixel;
+			break;
+
 			case Command::AccessType::WaitForColourReceipt:
 				// i.e. nothing to do until a colour is received.
 				next_command_step_ = CommandStep::None;
+			break;
+
+			case Command::AccessType::CopyByte:
+				next_command_step_ = CommandStep::ReadSourceByte;
 			break;
 			case Command::AccessType::WriteByte:
 				next_command_step_ = CommandStep::WriteByte;
@@ -713,7 +725,17 @@ template <Personality personality> struct Base: public Storage<personality> {
 					case CommandStep::None:
 					break;
 
-					case CommandStep::ReadPixel:
+					case CommandStep::ReadSourcePixel:
+						// TODO: the read as below, but to an appropriate piece of temporary colour
+						// storage; per the manual the colour register is unchanged, so I can't just
+						// put it there.
+//						Storage<personality>::command_latch_ = ram_[command_address(context.source)];
+
+						Storage<personality>::minimum_command_column_ = access_column + 32;
+						Storage<personality>::next_command_step_ = CommandStep::ReadDestinationPixel;
+					break;
+
+					case CommandStep::ReadDestinationPixel:
 						Storage<personality>::command_latch_ = ram_[command_address(context.destination)];
 
 						Storage<personality>::minimum_command_column_ = access_column + 24;
@@ -754,6 +776,14 @@ template <Personality personality> struct Base: public Storage<personality> {
 						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
 						Storage<personality>::update_command_step(access_column);
 					} break;
+
+					case CommandStep::ReadSourceByte:
+						// TODO: the read as below, and store somewhere for future write.
+//						Storage<personality>::command_latch_ = ram_[command_address(context.source)];
+
+						Storage<personality>::minimum_command_column_ = access_column + 24;
+						Storage<personality>::next_command_step_ = CommandStep::WriteByte;
+					break;
 
 					case CommandStep::WriteByte:
 						ram_[command_address(context.destination)] = context.colour;
