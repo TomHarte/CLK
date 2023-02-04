@@ -296,6 +296,20 @@ struct HighSpeedFill: public Rectangle<false, false> {
 	}
 };
 
+struct LogicalFill: public Rectangle<false, false> {
+	LogicalFill(CommandContext &context) : Rectangle(context) {
+		cycles = 64;
+		access = AccessType::PlotPoint;
+	}
+
+	void advance(int pixels_per_byte) final {
+		cycles = 72;
+		if(!advance_pixel(pixels_per_byte)) {
+			cycles += 64;
+		}
+	}
+};
+
 }
 }
 }
