@@ -73,15 +73,27 @@ struct Command {
 	// from or writing to @c value. It should not be performed until at least
 	// @c cycles have passed.
 	enum class AccessType {
-		/// Plots a single pixel of the current contextual colour at @c location,
-		/// which occurs as a read, then a 24-cycle pause, then a write.
+		/// Plots a single pixel of the current contextual colour at @c destination,
+		/// which occurs as a read, then a 24-cycle gap, then a write.
 		PlotPoint,
 
 		/// Blocks until the next CPU write to the colour register.
 		WaitForColourReceipt,
 
-		/// Writes an entire byte to the location containing the current @c location.
+		/// Writes an entire byte to the address containing the current @c destination.
 		WriteByte,
+
+		/// Copies a single pixel from @c source location to @c destination,
+		/// being a read, a 32-cycle gap, then a PlotPoint.
+		CopyPoint,
+
+		/// Copies a complete byte from @c source location to @c destination,
+		/// being a read, a 24-cycle gap, then a write.
+		CopyByte,
+
+//		ReadPoint,
+//		ReadByte,
+//		WaitForColourSend,
 	};
 	AccessType access = AccessType::PlotPoint;
 	int cycles = 0;
