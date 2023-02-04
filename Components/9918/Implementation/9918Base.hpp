@@ -823,6 +823,14 @@ template <Personality personality> struct Base: public Storage<personality> {
 		queued_access_ = MemoryAccess::None;
 	}
 
+	/// Helper for TMS dispatches; contains a switch statement with cases 0 to 170, each of the form:
+	///
+	/// 	if constexpr (use_end && end == n) return; [[fallthrough]]; case n: fetcher.fetch<n>();
+	///
+	/// i.e. it provides standard glue to enter a fetch sequence at any point, while the fetches themselves are templated on the cycle
+	/// at which they appear for neater expression.
+	template<bool use_end, typename Fetcher> void dispatch(Fetcher &fetcher, int start, int end);
+
 	// Various fetchers.
 	template<bool use_end> void fetch_tms_refresh(LineBuffer &, int y, int start, int end);
 	template<bool use_end> void fetch_tms_text(LineBuffer &, int y, int start, int end);

@@ -73,105 +73,100 @@
 // MARK: - TMS9918
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_tms_refresh(LineBuffer &, int, int start, int end) {
-#define refresh(location)		\
-	slot(location):				\
-	external_slot(location+1);
-
-#define refreshes_2(location)	\
-	refresh(location);			\
-	refresh(location+2);
-
-#define refreshes_4(location)	\
-	refreshes_2(location);		\
-	refreshes_2(location+4);
-
-#define refreshes_8(location)	\
-	refreshes_4(location);		\
-	refreshes_4(location+8);
+template<bool use_end, typename Fetcher> void Base<personality>::dispatch(Fetcher &fetcher, int start, int end) {
+#define index(n)						\
+	if(use_end && end == n) return;		\
+	[[fallthrough]];					\
+	case n: fetcher.template fetch<n>();
 
 	switch(start) {
 		default: assert(false);
-
-		/* 44 external slots */
-		external_slots_32(0)
-		external_slots_8(32)
-		external_slots_4(40)
-
-		/* 64 refresh/external slot pairs (= 128 windows) */
-		refreshes_8(44);
-		refreshes_8(60);
-		refreshes_8(76);
-		refreshes_8(92);
-		refreshes_8(108);
-		refreshes_8(124);
-		refreshes_8(140);
-		refreshes_8(156);
-
-		return;
+		index(0);	index(1);	index(2);	index(3);	index(4);	index(5);	index(6);	index(7);	index(8);	index(9);
+		index(10);	index(11);	index(12);	index(13);	index(14);	index(15);	index(16);	index(17);	index(18);	index(19);
+		index(20);	index(21);	index(22);	index(23);	index(24);	index(25);	index(26);	index(27);	index(28);	index(29);
+		index(30);	index(31);	index(32);	index(33);	index(34);	index(35);	index(36);	index(37);	index(38);	index(39);
+		index(40);	index(41);	index(42);	index(43);	index(44);	index(45);	index(46);	index(47);	index(48);	index(49);
+		index(50);	index(51);	index(52);	index(53);	index(54);	index(55);	index(56);	index(57);	index(58);	index(59);
+		index(60);	index(61);	index(62);	index(63);	index(64);	index(65);	index(66);	index(67);	index(68);	index(69);
+		index(70);	index(71);	index(72);	index(73);	index(74);	index(75);	index(76);	index(77);	index(78);	index(79);
+		index(80);	index(81);	index(82);	index(83);	index(84);	index(85);	index(86);	index(87);	index(88);	index(89);
+		index(90);	index(91);	index(92);	index(93);	index(94);	index(95);	index(96);	index(97);	index(98);	index(99);
+		index(100);	index(101);	index(102);	index(103);	index(104);	index(105);	index(106);	index(107);	index(108);	index(109);
+		index(110);	index(111);	index(112);	index(113);	index(114);	index(115);	index(116);	index(117);	index(118);	index(119);
+		index(120);	index(121);	index(122);	index(123);	index(124);	index(125);	index(126);	index(127);	index(128);	index(129);
+		index(130);	index(131);	index(132);	index(133);	index(134);	index(135);	index(136);	index(137);	index(138);	index(139);
+		index(140);	index(141);	index(142);	index(143);	index(144);	index(145);	index(146);	index(147);	index(148);	index(149);
+		index(150);	index(151);	index(152);	index(153);	index(154);	index(155);	index(156);	index(157);	index(158);	index(159);
+		index(160);	index(161);	index(162);	index(163);	index(164);	index(165);	index(166);	index(167);	index(168);	index(169);
+		index(170);
 	}
 
-#undef refreshes_8
-#undef refreshes_4
-#undef refreshes_2
-#undef refresh
+#undef index
+}
+
+namespace {
+
+template <Personality personality>
+struct RefreshFetcher {
+	RefreshFetcher(Base<personality> *base) : base(base) {}
+
+	template <int cycle> void fetch() {
+		// Do 44 external slots in a block, then treat every other slot as external.
+		if(cycle < 44 || (cycle&1)) {
+			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+		}
+	}
+
+	Base<personality> *const base;
+};
+
+template <Personality personality>
+struct TextFetcher {
+	using AddressT = typename Base<personality>::AddressT;
+
+	TextFetcher(Base<personality> *base, LineBuffer &buffer, int y) :
+		base(base),
+		line_buffer(buffer),
+		row_base(base->pattern_name_address_ & (0x3c00 | size_t(y >> 3) * 40)),
+		row_offset(base->pattern_generator_table_address_ & (0x3800 | (y & 7))) {}
+
+	template <int cycle> void fetch() {
+		// The first 47 and the final 4 slots are external.
+		if constexpr (cycle < 47 || cycle >= 167) {
+			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+			return;
+		}
+
+		// For the 120 slots in between follow a three-step pattern of:
+		if constexpr (cycle >= 47) {
+			constexpr int offset = cycle - 47;
+			constexpr auto column = AddressT(offset / 3);
+			switch(offset % 3) {
+				case 0:	line_buffer.names[column].offset = base->ram_[row_base + column];											break;	// (1) fetch tile name.
+				case 1:	base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));							break;	// (2) external slot.
+				case 2:	line_buffer.patterns[column][0] = base->ram_[row_offset + size_t(line_buffer.names[column].offset << 3)];	break;	// (3) fetch tile pattern.
+			}
+		}
+	}
+
+	Base<personality> *const base;
+	LineBuffer &line_buffer;
+	const AddressT row_base;
+	const AddressT row_offset;
+};
+
+}
+
+template <Personality personality>
+template<bool use_end> void Base<personality>::fetch_tms_refresh(LineBuffer &, int, int start, int end) {
+	RefreshFetcher refresher(this);
+	dispatch<use_end>(refresher, start, end);
 }
 
 template <Personality personality>
 template<bool use_end> void Base<personality>::fetch_tms_text(LineBuffer &line_buffer, int y, int start, int end) {
-#define fetch_tile_name(location, column)		slot(location): line_buffer.names[column].offset = ram_[row_base + column];
-#define fetch_tile_pattern(location, column)	slot(location): line_buffer.patterns[column][0] = ram_[row_offset + size_t(line_buffer.names[column].offset << 3)];
-
-#define fetch_column(location, column)	\
-	fetch_tile_name(location, column);	\
-	external_slot(location+1);	\
-	fetch_tile_pattern(location+2, column);
-
-#define fetch_columns_2(location, column)	\
-	fetch_column(location, column);	\
-	fetch_column(location+3, column+1);
-
-#define fetch_columns_4(location, column)	\
-	fetch_columns_2(location, column);	\
-	fetch_columns_2(location+6, column+2);
-
-#define fetch_columns_8(location, column)	\
-	fetch_columns_4(location, column);	\
-	fetch_columns_4(location+12, column+4);
-
-	const size_t row_base = pattern_name_address_ & (0x3c00 | size_t(y >> 3) * 40);
-	const size_t row_offset = pattern_generator_table_address_ & (0x3800 | (y & 7));
-
-	switch(start) {
-		default: assert(false);
-
-			/* 47 external slots (= 47 windows) */
-			external_slots_32(0)
-			external_slots_8(32)
-			external_slots_4(40)
-			external_slots_2(44)
-			external_slot(46)
-
-			/* 40 column fetches (= 120 windows) */
-			fetch_columns_8(47, 0);
-			fetch_columns_8(71, 8);
-			fetch_columns_8(95, 16);
-			fetch_columns_8(119, 24);
-			fetch_columns_8(143, 32);
-
-			/* 5 more external slots */
-			external_slots_4(167);
-			external_slot(171);
-
-		return;
-	}
-
-#undef fetch_columns_8
-#undef fetch_columns_4
-#undef fetch_columns_2
-#undef fetch_column
-#undef fetch_tile_pattern
-#undef fetch_tile_name
+	TextFetcher fetcher(this, line_buffer, y);
+	dispatch<use_end>(fetcher, start, end);
 }
 
 template <Personality personality>
