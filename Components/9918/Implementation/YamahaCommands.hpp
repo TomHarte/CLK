@@ -280,7 +280,7 @@ template <bool logical, bool include_source> struct Rectangle: public Command {
 		int start_x_ = 0, width_ = 0;
 };
 
-// MARK: - Rectangular manipulations; logical.
+// MARK: - Rectangular moves to/from CPU.
 
 struct LogicalMoveFromCPU: public Rectangle<true, false> {
 	LogicalMoveFromCPU(CommandContext &context) : Rectangle(context) {
@@ -312,7 +312,37 @@ struct LogicalMoveFromCPU: public Rectangle<true, false> {
 	}
 };
 
-// MARK: - Rectangular manipulations; fast.
+// MARK: - Rectangular moves within VRAM.
+
+struct HighSpeedMove: public Rectangle<false, true> {
+	HighSpeedMove(CommandContext &context) : Rectangle(context) {
+		access = AccessType::CopyByte;
+		cycles = 64;
+	}
+
+	void advance(int pixels_per_byte) final {
+		cycles = 64;
+		if(advance_pixel(pixels_per_byte)) {
+			cycles += 64;
+		}
+	}
+};
+
+struct LogicalMove: public Rectangle<true, true> {
+	LogicalMove(CommandContext &context) : Rectangle(context) {
+		access = AccessType::CopyPoint;
+		cycles = 64;
+	}
+
+	void advance(int pixels_per_byte) final {
+		cycles = 64;
+		if(advance_pixel(pixels_per_byte)) {
+			cycles += 64;
+		}
+	}
+};
+
+// MARK: - Rectangular fills.
 
 struct HighSpeedFill: public Rectangle<false, false> {
 	HighSpeedFill(CommandContext &context) : Rectangle(context) {
@@ -322,7 +352,7 @@ struct HighSpeedFill: public Rectangle<false, false> {
 
 	void advance(int pixels_per_byte) final {
 		cycles = 48;
-		if(!advance_pixel(pixels_per_byte)) {
+		if(advance_pixel(pixels_per_byte)) {
 			cycles += 56;
 		}
 	}
@@ -334,9 +364,9 @@ struct LogicalFill: public Rectangle<false, false> {
 		access = AccessType::PlotPoint;
 	}
 
-	void advance(int pixels_per_byte) final {
+	void advance(int) final {
 		cycles = 72;
-		if(!advance_pixel(pixels_per_byte)) {
+		if(advance_pixel()) {
 			cycles += 64;
 		}
 	}
