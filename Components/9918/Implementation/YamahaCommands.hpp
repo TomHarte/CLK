@@ -237,7 +237,10 @@ struct PointSet: public Command {
 template <bool logical, bool include_source> struct Rectangle: public Command {
 	public:
 		Rectangle(CommandContext &context) : Command(context) {
-			start_x_ = context.destination.v[0];
+			if constexpr (include_source) {
+				start_x_[0] = context.source.v[0];
+			}
+			start_x_[1] = context.destination.v[0];
 			width_ = context.size.v[0];
 		}
 
@@ -264,7 +267,10 @@ template <bool logical, bool include_source> struct Rectangle: public Command {
 			}
 
 			context.size.v[0] = width_;
-			context.destination.v[0] = start_x_;
+			if constexpr (include_source) {
+				context.source.v[0] = start_x_[0];
+			}
+			context.destination.v[0] = start_x_[1];
 
 			advance_axis<1, include_source>();
 			--context.size.v[1];
@@ -277,7 +283,7 @@ template <bool logical, bool include_source> struct Rectangle: public Command {
 		}
 
 	private:
-		int start_x_ = 0, width_ = 0;
+		int start_x_[2]{}, width_ = 0;
 };
 
 // MARK: - Rectangular moves to/from CPU.
