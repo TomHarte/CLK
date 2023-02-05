@@ -70,7 +70,7 @@ struct LineBuffer {
 			// The patterns array holds tile patterns, corresponding 1:1 with names.
 			// Four bytes per pattern is the maximum required by any
 			// currently-implemented VDP.
-			uint8_t patterns[40][4];
+			uint8_t patterns[40][4]{};
 		};
 
 		// The Yamaha VDP also has a variety of bitmap modes, the widest of which is
