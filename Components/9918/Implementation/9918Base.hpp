@@ -683,21 +683,21 @@ template <Personality personality> struct Base: public Storage<personality> {
 					return
 						std::make_pair(
 							0xf0 >> ((location.v[0] & 1) << 2),
-							Storage<personality>::command_context_.colour4bpp
+							Storage<personality>::command_context_.colour.colour4bpp
 						);
 
 				case ScreenMode::YamahaGraphics5:	// 512 pixels @ 2bpp
 					return
 						std::make_pair(
 							0xc0 >> ((location.v[0] & 3) << 1),
-							Storage<personality>::command_context_.colour2bpp
+							Storage<personality>::command_context_.colour.colour2bpp
 						);
 
 				case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
 					return
 						std::make_pair(
 							0xff,
-							Storage<personality>::command_context_.colour
+							Storage<personality>::command_context_.colour.colour
 						);
 			}
 		} else {
@@ -786,7 +786,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 					break;
 
 					case CommandStep::WriteByte:
-						ram_[command_address(context.destination)] = context.colour;
+						ram_[command_address(context.destination)] = context.colour.colour;
 						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
 						Storage<personality>::update_command_step(access_column);
 					break;

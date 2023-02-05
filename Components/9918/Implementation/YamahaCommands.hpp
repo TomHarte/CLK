@@ -42,18 +42,37 @@ struct Vector {
 	}
 };
 
+struct Colour {
+	void set(uint8_t value) {
+		colour = value;
+		colour4bpp = uint8_t((value & 0xf) | (value << 4));
+		colour2bpp = uint8_t((colour4bpp & 0x33) | ((colour4bpp & 0x33) << 2));
+	}
+
+	void reset() {
+		colour = 0x00;
+		colour4bpp = 0xff;
+	}
+
+	bool has_value() {
+		return (colour & 0x3) == (colour4bpp & 0x3);
+	}
+
+	/// Colour as written by the CPU.
+	uint8_t colour = 0x00;
+	/// The low four bits of the CPU-written colour, repeated twice.
+	uint8_t colour4bpp = 0xff;
+	/// The low two bits of the CPU-written colour, repeated four times.
+	uint8_t colour2bpp = 0xff;
+};
+
 struct CommandContext {
 	Vector source;
 	Vector destination;
 	Vector size;
 
 	uint8_t arguments = 0;
-	/// Colour as written by the CPU.
-	uint8_t colour = 0;
-	/// The low four bits of the CPU-written colour, repeated twice.
-	uint8_t colour4bpp = 0;
-	/// The low two bits of the CPU-written colour, repeated four times.
-	uint8_t colour2bpp = 0;
+	Colour colour;
 
 	enum class LogicalOperation {
 		Copy			= 0b0000,
