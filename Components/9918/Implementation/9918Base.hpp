@@ -674,8 +674,26 @@ template <Personality personality> struct Base: public Storage<personality> {
 		}
 	}
 
+	uint8_t extract_colour(uint8_t byte, Vector location) const {
+		switch(this->screen_mode_) {
+			default:
+			case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
+			case ScreenMode::YamahaGraphics6:	// 512 pixels @ 4bpp
+				return (byte >> (((location.v[0] & 1) ^ 1) << 2)) & 0xf;
+
+			case ScreenMode::YamahaGraphics5:	// 512 pixels @ 2bpp
+				return (byte >> (((location.v[0] & 3) ^ 3) << 1)) & 0x3;
+
+			case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
+				return byte;
+		}
+	}
+
 	std::pair<uint8_t, uint8_t> command_colour_mask(Vector location) const {
 		if constexpr (is_yamaha_vdp(personality)) {
+			auto &context = Storage<personality>::command_context_;
+			auto colour = context.latched_colour.has_value() ? context.latched_colour : context.colour;
+
 			switch(this->screen_mode_) {
 				default:
 				case ScreenMode::YamahaGraphics4:	// 256 pixels @ 4bpp
@@ -683,21 +701,21 @@ template <Personality personality> struct Base: public Storage<personality> {
 					return
 						std::make_pair(
 							0xf0 >> ((location.v[0] & 1) << 2),
-							Storage<personality>::command_context_.colour.colour4bpp
+							colour.colour4bpp
 						);
 
 				case ScreenMode::YamahaGraphics5:	// 512 pixels @ 2bpp
 					return
 						std::make_pair(
 							0xc0 >> ((location.v[0] & 3) << 1),
-							Storage<personality>::command_context_.colour.colour2bpp
+							colour.colour2bpp
 						);
 
 				case ScreenMode::YamahaGraphics7:	// 256 pixels @ 8bpp
 					return
 						std::make_pair(
 							0xff,
-							Storage<personality>::command_context_.colour.colour
+							colour.colour
 						);
 			}
 		} else {
@@ -726,10 +744,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 					break;
 
 					case CommandStep::ReadSourcePixel:
-						// TODO: the read as below, but to an appropriate piece of temporary colour
-						// storage; per the manual the colour register is unchanged, so I can't just
-						// put it there.
-//						Storage<personality>::command_latch_ = ram_[command_address(context.source)];
+						context.latched_colour.set(extract_colour(ram_[command_address(context.source)], context.source));
 
 						Storage<personality>::minimum_command_column_ = access_column + 32;
 						Storage<personality>::next_command_step_ = CommandStep::ReadDestinationPixel;
@@ -746,6 +761,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 						const auto [mask, unmasked_colour] = command_colour_mask(context.destination);
 						const auto address = command_address(context.destination);
 						const uint8_t colour = unmasked_colour & mask;
+						context.latched_colour.reset();
 
 						using LogicalOperation = CommandContext::LogicalOperation;
 						if(!context.test_source || colour) {
@@ -778,15 +794,16 @@ template <Personality personality> struct Base: public Storage<personality> {
 					} break;
 
 					case CommandStep::ReadSourceByte:
-						// TODO: the read as below, and store somewhere for future write.
-//						Storage<personality>::command_latch_ = ram_[command_address(context.source)];
+						context.latched_colour.set(ram_[command_address(context.source)]);
 
 						Storage<personality>::minimum_command_column_ = access_column + 24;
 						Storage<personality>::next_command_step_ = CommandStep::WriteByte;
 					break;
 
 					case CommandStep::WriteByte:
-						ram_[command_address(context.destination)] = context.colour.colour;
+						ram_[command_address(context.destination)] = context.latched_colour.has_value() ? context.latched_colour.colour : context.colour.colour;
+						context.latched_colour.reset();
+
 						Storage<personality>::command_->advance(pixels_per_byte(this->underlying_mode_));
 						Storage<personality>::update_command_step(access_column);
 					break;

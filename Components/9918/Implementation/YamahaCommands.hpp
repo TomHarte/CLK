@@ -54,7 +54,7 @@ struct Colour {
 		colour4bpp = 0xff;
 	}
 
-	bool has_value() {
+	bool has_value() const {
 		return (colour & 0x3) == (colour4bpp & 0x3);
 	}
 
@@ -73,6 +73,7 @@ struct CommandContext {
 
 	uint8_t arguments = 0;
 	Colour colour;
+	Colour latched_colour;
 
 	enum class LogicalOperation {
 		Copy			= 0b0000,
