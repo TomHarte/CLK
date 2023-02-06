@@ -55,7 +55,7 @@ struct Colour {
 	}
 
 	bool has_value() const {
-		return (colour & 0x3) == (colour4bpp & 0x3);
+		return (colour & 0xf) == (colour4bpp & 0xf);
 	}
 
 	/// Colour as written by the CPU.
