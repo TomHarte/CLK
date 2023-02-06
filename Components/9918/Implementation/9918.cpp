@@ -604,7 +604,6 @@ int Base<personality>::masked_address(int address) const {
 
 template <Personality personality>
 void Base<personality>::write_vram(uint8_t value) {
-	// Latch  the value and exit.
 	write_phase_ = false;
 
 	// Enqueue the write to occur at the next available slot.
@@ -775,7 +774,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// b4–b7: display time for even page.
 			break;
 
-			case 14:	install_field<14>(ram_pointer_, value);		break;
+			case 14:	install_field<14, 3>(ram_pointer_, value);	break;
 
 			case 15:
 				Storage<personality>::selected_status_ = value & 0xf;
@@ -871,9 +870,9 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 					default:		break;
 
 					case 0b0100:	break;	// TODO: point.	[read a pixel colour]
-					case 0b0101:	Begin(PointSet);			break;	// PSET.
+					case 0b0101:	Begin(PointSet);			break;	// PSET [plot a pixel].
 					case 0b0110:	break;	// TODO: srch.	[search horizontally for a colour]
-					case 0b0111:	Begin(Line);				break;	// LINE.
+					case 0b0111:	Begin(Line);				break;	// LINE [draw a Bresenham line].
 
 					case 0b1000:	Begin(LogicalFill);			break;	// LMMV [logical move, VDP to VRAM, i.e. solid-colour fill].
 					case 0b1001:	Begin(LogicalMove);			break;	// LMMM [logical move, VRAM to VRAM].
