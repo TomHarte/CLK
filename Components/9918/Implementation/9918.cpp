@@ -1068,10 +1068,13 @@ uint8_t Base<personality>::read_register_indirect() {
 
 template <Personality personality>
 uint8_t TMS9918<personality>::read(int address) {
-	// TODO: is this still a global effect of reads, even in the world of the Yamahas?
-	this->write_phase_ = false;
+	const int target = this->masked_address(address);
 
-	switch(this->masked_address(address)) {
+	if(target < 2) {
+		this->write_phase_ = false;
+	}
+
+	switch(target) {
 		default: return 0xff;
 		case 0:	return this->read_vram();
 		case 1:	return this->read_register();
