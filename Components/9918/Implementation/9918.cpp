@@ -944,13 +944,13 @@ void Base<personality>::write_register(uint8_t value) {
 template <Personality personality>
 void Base<personality>::write_palette(uint8_t value) {
 	if constexpr (is_yamaha_vdp(personality)) {
-		if(!write_phase_) {
+		if(!Storage<personality>::palette_write_phase_) {
 			Storage<personality>::new_colour_ = value;
-			write_phase_ = true;
+			Storage<personality>::palette_write_phase_ = true;
 			return;
 		}
 
-		write_phase_ = false;
+		Storage<personality>::palette_write_phase_ = false;
 
 		const uint8_t r = ((Storage<personality>::new_colour_ >> 4) & 7) * 255 / 7;
 		const uint8_t g = (value & 7) * 255 / 7;

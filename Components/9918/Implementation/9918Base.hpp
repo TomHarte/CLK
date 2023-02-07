@@ -148,6 +148,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	std::array<uint32_t, 16> palette_{};
 	uint8_t new_colour_ = 0;
 	uint8_t palette_entry_ = 0;
+	bool palette_write_phase_ = false;
 
 	uint8_t mode_ = 0;
 
