@@ -813,6 +813,11 @@ template <Personality personality> struct Base: public Storage<personality> {
 		++ram_pointer_;
 
 		if constexpr (is_yamaha_vdp(personality)) {
+			// The Yamaha increments only 14 bits of the address in TMS-compatible modes.
+			if(this->underlying_mode_ < ScreenMode::YamahaText80) {
+				ram_pointer_ = (ram_pointer_ & 0x3fff) | (address & AddressT(~0x3fff));
+			}
+
 			if(this->underlying_mode_ == ScreenMode::YamahaGraphics6 || this->underlying_mode_ == ScreenMode::YamahaGraphics7) {
 				// Rotate address one to the right as the hardware accesses
 				// the underlying banks of memory alternately but presents
