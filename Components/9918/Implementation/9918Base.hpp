@@ -40,9 +40,6 @@ enum class VerticalState {
 };
 
 // Temporary buffers collect a representation of each line prior to pixel serialisation.
-//
-// TODO: either template on personality, to avoid having to be the union of all potential footprints,
-// or just stop keeping so many of these in the 9918.
 struct LineBuffer {
 	LineBuffer() {}
 
@@ -62,10 +59,7 @@ struct LineBuffer {
 		// The TMS and Sega VDPs are close enough to always tile-based;
 		// this struct captures maximal potential detail there.
 		struct {
-			struct {
-				size_t offset = 0;	// TODO: could presumably be much smaller. One byte maybe?
-				uint8_t flags = 0;
-			} names[40];
+			uint8_t flags[40]{};
 
 			// The patterns array holds tile patterns, corresponding 1:1 with names.
 			// Four bytes per pattern is the maximum required by any
@@ -73,8 +67,8 @@ struct LineBuffer {
 			uint8_t patterns[40][4]{};
 		};
 
-		// The Yamaha VDP also has a variety of bitmap modes, the widest of which is
-		// 512px @ 4bpp.
+		// The Yamaha VDP also has a variety of bitmap modes,
+		// the widest of which is 512px @ 4bpp.
 		uint8_t bitmap[256];
 	};
 
@@ -571,6 +565,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 	ScreenMode screen_mode_, underlying_mode_;
 	LineBuffer line_buffers_[313];
+	size_t tile_offset_ = 0;
 	void posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_y, int screen_row);
 
 	// There is a delay between reading into the line buffer and outputting from there to the screen. That delay

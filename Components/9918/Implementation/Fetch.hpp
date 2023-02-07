@@ -142,9 +142,9 @@ struct TextFetcher {
 			constexpr int offset = cycle - 47;
 			constexpr auto column = AddressT(offset / 3);
 			switch(offset % 3) {
-				case 0:	line_buffer.names[column].offset = base->ram_[row_base + column];											break;	// (1) fetch tile name.
-				case 1:	base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));							break;	// (2) external slot.
-				case 2:	line_buffer.patterns[column][0] = base->ram_[row_offset + size_t(line_buffer.names[column].offset << 3)];	break;	// (3) fetch tile pattern.
+				case 0:	base->tile_offset_ = base->ram_[row_base + column];											break;	// (1) fetch tile name.
+				case 1:	base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));			break;	// (2) external slot.
+				case 2:	line_buffer.patterns[column][0] = base->ram_[row_offset + size_t(base->tile_offset_ << 3)];	break;	// (3) fetch tile pattern.
 			}
 		}
 	}
@@ -206,11 +206,11 @@ template<bool use_end> void Base<personality>::fetch_tms_character(LineBuffer &l
 #define sprite_y_read(location, sprite)	\
 	slot(location): posit_sprite(sprite_selection_buffer, sprite, ram_[sprite_attribute_table_address_ & (((sprite) << 2) | 0x3f80)], y);
 
-#define fetch_tile_name(column) line_buffer.names[column].offset = ram_[(row_base + column) & 0x3fff];
+#define fetch_tile_name(column) tile_offset_ = ram_[(row_base + column) & 0x3fff];
 
 #define fetch_tile(column)	{\
-		line_buffer.patterns[column][1] = ram_[(colour_base + size_t((line_buffer.names[column].offset << 3) >> colour_name_shift)) & 0x3fff];		\
-		line_buffer.patterns[column][0] = ram_[(pattern_base + size_t(line_buffer.names[column].offset << 3)) & 0x3fff];	\
+		line_buffer.patterns[column][1] = ram_[(colour_base + size_t((tile_offset_ << 3) >> colour_name_shift)) & 0x3fff];		\
+		line_buffer.patterns[column][0] = ram_[(pattern_base + size_t(tile_offset_ << 3)) & 0x3fff];	\
 	}
 
 #define background_fetch_block(location, column, sprite)	\
@@ -347,17 +347,17 @@ template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer
 #define fetch_tile_name(column, row_info)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
 		const size_t address = row_info.pattern_address_base + (scrolled_column << 1);	\
-		line_buffer.names[column].flags = ram_[address+1];	\
-		line_buffer.names[column].offset = size_t(	\
-			(((line_buffer.names[column].flags&1) << 8) | ram_[address]) << 5	\
-		) + row_info.sub_row[(line_buffer.names[column].flags&4) >> 2];	\
+		line_buffer.flags[column] = ram_[address+1];	\
+		tile_offset_ = size_t(	\
+			(((line_buffer.flags[column]&1) << 8) | ram_[address]) << 5	\
+		) + row_info.sub_row[(line_buffer.flags[column]&4) >> 2];	\
 	}
 
 #define fetch_tile(column)	\
-	line_buffer.patterns[column][0] = ram_[line_buffer.names[column].offset];	\
-	line_buffer.patterns[column][1] = ram_[line_buffer.names[column].offset+1];	\
-	line_buffer.patterns[column][2] = ram_[line_buffer.names[column].offset+2];	\
-	line_buffer.patterns[column][3] = ram_[line_buffer.names[column].offset+3];
+	line_buffer.patterns[column][0] = ram_[tile_offset_];	\
+	line_buffer.patterns[column][1] = ram_[tile_offset_+1];	\
+	line_buffer.patterns[column][2] = ram_[tile_offset_+2];	\
+	line_buffer.patterns[column][3] = ram_[tile_offset_+3];
 
 #define background_fetch_block(location, column, sprite, row_info)	\
 	slot(location):	fetch_tile_name(column, row_info)		\

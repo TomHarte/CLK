@@ -170,14 +170,14 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 		int length = std::min(pixels_left, 8 - shift);
 
 		pattern = *reinterpret_cast<const uint32_t *>(line_buffer.patterns[byte_column]);
-		if(line_buffer.names[byte_column].flags&2)
+		if(line_buffer.flags[byte_column]&2)
 			pattern >>= shift;
 		else
 			pattern <<= shift;
 
 		while(true) {
-			const int palette_offset = (line_buffer.names[byte_column].flags&0x18) << 1;
-			if(line_buffer.names[byte_column].flags&2) {
+			const int palette_offset = (line_buffer.flags[byte_column]&0x18) << 1;
+			if(line_buffer.flags[byte_column]&2) {
 				for(int c = 0; c < length; ++c) {
 					colour_buffer[tile_offset] =
 						((pattern_index[3] & 0x01) << 3) |
