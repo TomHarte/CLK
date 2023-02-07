@@ -774,7 +774,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 				// b4–b7: display time for even page.
 			break;
 
-			case 14:	install_field<14, 3>(ram_pointer_, value);	break;
+			case 14:	install_field<14>(ram_pointer_, value);						break;
 
 			case 15:
 				Storage<personality>::selected_status_ = value & 0xf;
