@@ -242,6 +242,13 @@ template <bool logical, bool include_source> struct Rectangle: public Command {
 			}
 			start_x_[1] = context.destination.v[0];
 			width_ = context.size.v[0];
+
+			if(!width_) {
+				// TODO: this should mean 'maximal' width.
+				// (aside: it's still unclear to me whether commands are
+				// automatically clipped to the display; I think so but
+				// don't want to spend any time on it until I'm certain)
+			}
 		}
 
 		/// Advances the current destination and, if @c include_source is @c true also the source;
