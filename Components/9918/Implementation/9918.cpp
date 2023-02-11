@@ -911,16 +911,24 @@ void Base<personality>::write_register(uint8_t value) {
 		low_write_ = value;
 		write_phase_ = true;
 
-		// The initial write should half update the access pointer.
-		install_field<0>(ram_pointer_, value);
+		// The initial write should half update the access pointer, other than
+		// on the Yamaha.
+		if constexpr (!is_yamaha_vdp(personality)) {
+			install_field<0>(ram_pointer_, value);
+		}
 		return;
 	}
 
 	// The RAM pointer is always set on a second write, regardless of
 	// whether the caller is intending to enqueue a VDP operation.
+	// If this is a Yamaha VDP then the latched byte isn't set as part
+	// of the address until now.
 	//
 	// The top two bits are used to determine the type of write; only
 	// the lower six are actual address.
+	if constexpr (is_yamaha_vdp(personality)) {
+		install_field<0>(ram_pointer_, low_write_);
+	}
 	install_field<8, 6>(ram_pointer_, value);
 
 	write_phase_ = false;
