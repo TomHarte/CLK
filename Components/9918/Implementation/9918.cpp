@@ -921,21 +921,26 @@ void Base<personality>::write_register(uint8_t value) {
 
 	// The RAM pointer is always set on a second write, regardless of
 	// whether the caller is intending to enqueue a VDP operation.
-	// If this is a Yamaha VDP then the latched byte isn't set as part
-	// of the address until now.
+	// If this isn't a Yamaha VDP then the RAM address is updated
+	// regardless of whether this turns out to be a register access.
 	//
 	// The top two bits are used to determine the type of write; only
 	// the lower six are actual address.
-	if constexpr (is_yamaha_vdp(personality)) {
-		install_field<0>(ram_pointer_, low_write_);
+	if constexpr (!is_yamaha_vdp(personality)) {
+		install_field<8, 6>(ram_pointer_, value);
 	}
-	install_field<8, 6>(ram_pointer_, value);
 
 	write_phase_ = false;
 	if(value & 0x80) {
 		commit_register(value, low_write_);
 	} else {
-		// This is an access via the RAM pointer.
+		// This is an access via the RAM pointer; if this is a Yamaha VDP then update
+		// the low 14-bits of the RAM pointer now.
+		if constexpr (is_yamaha_vdp(personality)) {
+			install_field<0>(ram_pointer_, low_write_);
+			install_field<8, 6>(ram_pointer_, value);
+		}
+
 		if(!(value & 0x40)) {
 			// A read request is enqueued upon setting the address; conversely a write
 			// won't be enqueued unless and until some actual data is supplied.
