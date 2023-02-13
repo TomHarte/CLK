@@ -251,22 +251,40 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		};
 		static constexpr auto refresh_events = events<RefreshGenerator>();
 
-		struct NoSpriteEventsGenerator {
+		template <bool include_sprites> struct BitmapEventsGenerator {
 			static constexpr std::optional<typename Event::Type> event(int grauw_index) {
-				// Various standard zones of one-every-eight external slots.
-				if(grauw_index < 124) {
-					return StandardGenerators::external_every_eight(grauw_index + 2);
+				if(!include_sprites) {
+					// Various standard zones of one-every-eight external slots.
+					if(grauw_index < 124) {
+						return StandardGenerators::external_every_eight(grauw_index + 2);
+					}
+					if(grauw_index > 1266) {
+						return StandardGenerators::external_every_eight(grauw_index - 1266);
+					}
+				} else {
+					// This records collection points for all data for selected sprites.
+					// There's only four of them (each site covering two sprites),
+					// so it's clearer just to be explicit.
+					//
+					// There's also a corresponding number of extra external slots to spell out.
+					switch(grauw_index) {
+						default: break;
+						case 1238:	case 1302:	case 2:		case 66:
+							return Event::Type::SpriteLocation;
+						case 1270:	case 1338:	case 34:	case 98:
+							return Event::Type::SpritePattern;
+						case 1264:	case 1330:	case 28: 	case 92:
+							return Event::Type::External;
+					}
 				}
-				if(grauw_index > 1266) {
-					return StandardGenerators::external_every_eight(grauw_index - 1266);
-				}
+
 				if(grauw_index >= 162 && grauw_index < 176) {
 					return StandardGenerators::external_every_eight(grauw_index - 162);
 				}
 
 				// Everywhere else the pattern is:
 				//
-				//	external, external, data block
+				//	external or sprite y, external, data block
 				//
 				// Subject to caveats:
 				//
@@ -281,7 +299,15 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 					switch(sub_block) {
 						default:	return std::nullopt;
-						case 0:		return Event::Type::External;
+						case 0:
+							if(include_sprites) {
+								// Don't include the sprite post-amble (i.e. a spurious read with no side effects).
+								if(block < 32) {
+									return Event::Type::SpriteY;
+								}
+							} else {
+								return Event::Type::External;
+							}
 						case 6:
 							if((block & 3) != 3) {
 								return Event::Type::External;
@@ -298,7 +324,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 				return std::nullopt;
 			}
 		};
-		static constexpr auto no_sprites_events = events<NoSpriteEventsGenerator>();
+		static constexpr auto no_sprites_events = events<BitmapEventsGenerator<false>>();
+		static constexpr auto sprites_events = events<BitmapEventsGenerator<true>>();
 };
 
 // Master System-specific storage.
