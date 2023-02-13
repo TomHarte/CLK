@@ -69,6 +69,16 @@ enum class MemoryAccess {
 	Read, Write, None
 };
 
+enum class VerticalState {
+	/// Describes any line on which pixels do not appear and no fetching occurs, including
+	/// the border, blanking and sync.
+	Blank,
+	/// A line on which pixels do not appear but fetching occurs.
+	Prefetch,
+	/// A line on which pixels appear and fetching occurs.
+	Pixels,
+};
+
 }
 }
 

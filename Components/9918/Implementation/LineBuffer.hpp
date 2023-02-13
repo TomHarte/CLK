@@ -9,18 +9,10 @@
 #ifndef LineBuffer_hpp
 #define LineBuffer_hpp
 
+#include "AccessEnums.hpp"
+
 namespace TI {
 namespace TMS {
-
-enum class VerticalState {
-	/// Describes any line on which pixels do not appear and no fetching occurs, including
-	/// the border, blanking and sync.
-	Blank,
-	/// A line on which pixels do not appear but fetching occurs.
-	Prefetch,
-	/// A line on which pixels appear and fetching occurs.
-	Pixels,
-};
 
 // Temporary buffers collect a representation of each line prior to pixel serialisation.
 struct LineBuffer {
@@ -94,7 +86,7 @@ struct LineBuffer {
 };
 
 struct LineBufferPointer {
-	int row, column;
+	int row = 0, column = 0;
 };
 
 }
