@@ -1,4 +1,5 @@
 //
+//
 //  Storage.hpp
 //  Clock Signal
 //
@@ -11,6 +12,8 @@
 
 #include "LineBuffer.hpp"
 #include "YamahaCommands.hpp"
+
+#include <optional>
 
 namespace TI {
 namespace TMS {
@@ -53,7 +56,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			External,
 			DataBlock,
 			SpriteY,
-			SpriteContents,
+			SpriteLocation,
+			SpritePattern,
 		} type = Type::External;
 
 		constexpr Event(int offset, Type type) noexcept :
@@ -80,7 +84,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		sprite_block_ = 0;
 
 		if(is_refresh) {
-			next_event_ = refresh_events;
+			next_event_ = refresh_events.data();
 			return;
 		}
 
@@ -143,7 +147,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	Storage() noexcept {
 		// Perform sanity checks on the event lists.
 #ifndef NDEBUG
-		const Event *lists[] = { no_sprites_events, refresh_events, nullptr };
+		const Event *lists[] = { no_sprites_events, refresh_events.data(), nullptr };
 		const Event **list = lists;
 		while(*list) {
 			const Event *cursor = *list;
@@ -162,51 +166,89 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		// in a randomised position, which means that start-of-line isn't announced.
 		//
 		// Do I really want that behaviour?
-		next_event_ = refresh_events;
+		next_event_ = refresh_events.data();
 	}
 
 	private:
 		// This emulator treats position 0 as being immediately after the standard pixel area.
 		// i.e. offset 1282 on Grauw's http://map.grauw.nl/articles/vdp-vram-timing/vdp-timing.png
+		static constexpr int ZeroAsGrauwIndex = 1282;
 		constexpr static int grauw_to_internal(int offset) {
-			return (offset + 1368 - 1282) % 1368;
+			return (offset + 1368 - ZeroAsGrauwIndex) % 1368;
+		}
+		constexpr static int internal_to_grauw(int offset) {
+			return (offset + ZeroAsGrauwIndex) % 1368;
 		}
 
-		static constexpr Event refresh_events[] = {
-			Event(1284),	Event(1292),	Event(1300),	Event(1308),	Event(1316),	Event(1324),
-			Event(1334),	Event(1344),	Event(1352),	Event(1360),	Event(0),		Event(8),
-			Event(16),		Event(24),		Event(32),		Event(40),		Event(48),		Event(56),
-			Event(64),		Event(72),		Event(80),		Event(88),		Event(96),		Event(104),
-			Event(112),		Event(120),
+		template <typename GeneratorT> static constexpr size_t events_size() {
+			size_t size = 0;
+			for(int c = 0; c < 1368; c++) {
+				const auto event_type = GeneratorT::event(internal_to_grauw(c));
+				size += event_type.has_value();
+			}
+			return size + 1;
+		}
 
-			Event(164),		Event(172),		Event(180),		Event(188),		Event(196),		Event(204),
-			Event(212),		Event(220),		Event(228),		Event(236),		Event(244),		Event(252),
-			Event(260),		Event(268),		Event(276),		/* Refresh. */	Event(292),		Event(300),
-			Event(308),		Event(316),		Event(324),		Event(332),		Event(340),		Event(348),
-			Event(356),		Event(364),		Event(372),		Event(380),		Event(388),		Event(396),
-			Event(404),		/* Refresh. */	Event(420),		Event(428),		Event(436),		Event(444),
-			Event(452),		Event(460),		Event(468),		Event(476),		Event(484),		Event(492),
-			Event(500),		Event(508),		Event(516),		Event(524),		Event(532),		/* Refresh. */
-			Event(548),		Event(556),		Event(564),		Event(570),		Event(580),		Event(588),
-			Event(596),		Event(604),		Event(612),		Event(620),		Event(628),		Event(636),
-			Event(644),		Event(652),		Event(660),		/* Refresh. */	Event(676),		Event(684),
-			Event(692),		Event(700),		Event(708),		Event(716),		Event(724),		Event(732),
-			Event(740),		Event(748),		Event(756),		Event(764),		Event(772),		Event(780),
-			Event(788),		/* Refresh. */	Event(804),		Event(812),		Event(820),		Event(828),
-			Event(836),		Event(844),		Event(852),		Event(860),		Event(868),		Event(876),
-			Event(884),		Event(892),		Event(900),		Event(908),		Event(916),		/* Refresh. */
-			Event(932),		Event(940),		Event(948),		Event(956),		Event(964),		Event(972),
-			Event(980),		Event(988),		Event(996),		Event(1004),	Event(1012),	Event(1020),
-			Event(1028),	Event(1036),	Event(1044),	/* Refresh. */	Event(1060),	Event(1068),
-			Event(1076),	Event(1084),	Event(1092),	Event(1100),	Event(1108),	Event(1116),
-			Event(1124),	Event(1132),	Event(1140),	Event(1148),	Event(1156),	Event(1164),
-			Event(1172),	/* Refresh. */	Event(1188),	Event(1196),	Event(1204),	Event(1212),
-			Event(1220),	Event(1228),
+		template <typename GeneratorT, size_t size = events_size<GeneratorT>()>
+		static constexpr std::array<Event, size> events() {
+			std::array<Event, size> result{};
+			size_t index = 0;
+			for(int c = 0; c < 1368; c++) {
+				const auto event_type = GeneratorT::event(internal_to_grauw(c));
+				if(!event_type) {
+					continue;
+				}
+				// TODO: once all lists are using generators, remove implicit grauw_to_internal
+				// from Event constructor and just supply c here.
+				result[index] = Event(internal_to_grauw(c), *event_type);
+				++index;
+			}
+			result[index] = Event();
+			return result;
+		}
 
-			Event(1268),	Event(1276),
+		struct RefreshGenerator {
+			static constexpr std::optional<typename Event::Type> event(int grauw_index) {
+				// From 0 to 126: CPU/CMD slots at every cycle divisible by 8.
+				if(grauw_index < 126) {
+					if(grauw_index & 7) return std::nullopt;
+					return Event::Type::External;
+				}
 
-			Event()
+				// From 164 to 1234: eight-cycle windows, the first 15 of each 16 being
+				// CPU/CMD and the final being refresh.
+				if(grauw_index >= 164 && grauw_index < 1234) {
+					const int offset = grauw_index - 164;
+					if(offset & 7) return std::nullopt;
+					if(((offset >> 3) & 15) == 15) return std::nullopt;
+					return Event::Type::External;
+				}
+
+				// From 1268 to 1330: CPU/CMD slots at every cycle divisible by 8.
+				if(grauw_index >= 1268 && grauw_index < 1330) {
+					const int offset = grauw_index - 1268;
+					if(offset & 7) return std::nullopt;
+					return Event::Type::External;
+				}
+
+				// A CPU/CMD at 1334.
+				if(grauw_index == 1334) {
+					return Event::Type::External;
+				}
+
+				// From 1344 to 1366: CPU/CMD slots every cycle divisible by 8.
+				if(grauw_index >= 1344 && grauw_index < 1366) {
+					const int offset = grauw_index - 1344;
+					if(offset & 7) return std::nullopt;
+					return Event::Type::External;
+				}
+
+				// Otherwise: nothing.
+				return std::nullopt;
+			}
 		};
+
+		static constexpr auto refresh_events = events<RefreshGenerator>();
 
 		static constexpr Event no_sprites_events[] = {
 			Event(1282),	Event(1290),	Event(1298),	Event(1306),
