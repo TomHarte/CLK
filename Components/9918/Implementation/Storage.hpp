@@ -89,7 +89,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		}
 
 		// TODO: obey sprites_enabled flag, at least.
-		next_event_ = no_sprites_events;
+		next_event_ = no_sprites_events.data();
 	}
 
 	// Command engine state.
@@ -147,7 +147,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	Storage() noexcept {
 		// Perform sanity checks on the event lists.
 #ifndef NDEBUG
-		const Event *lists[] = { no_sprites_events, refresh_events.data(), nullptr };
+		const Event *lists[] = { no_sprites_events.data(), refresh_events.data(), nullptr };
 		const Event **list = lists;
 		while(*list) {
 			const Event *cursor = *list;
@@ -207,12 +207,18 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			return result;
 		}
 
+		struct StandardGenerators {
+			static constexpr std::optional<typename Event::Type> external_every_eight(int index) {
+				if(index & 7) return std::nullopt;
+				return Event::Type::External;
+			}
+		};
+
 		struct RefreshGenerator {
 			static constexpr std::optional<typename Event::Type> event(int grauw_index) {
 				// From 0 to 126: CPU/CMD slots at every cycle divisible by 8.
 				if(grauw_index < 126) {
-					if(grauw_index & 7) return std::nullopt;
-					return Event::Type::External;
+					return StandardGenerators::external_every_eight(grauw_index - 0);
 				}
 
 				// From 164 to 1234: eight-cycle windows, the first 15 of each 16 being
@@ -226,9 +232,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 				// From 1268 to 1330: CPU/CMD slots at every cycle divisible by 8.
 				if(grauw_index >= 1268 && grauw_index < 1330) {
-					const int offset = grauw_index - 1268;
-					if(offset & 7) return std::nullopt;
-					return Event::Type::External;
+					return StandardGenerators::external_every_eight(grauw_index - 1268);
 				}
 
 				// A CPU/CMD at 1334.
@@ -238,73 +242,63 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 				// From 1344 to 1366: CPU/CMD slots every cycle divisible by 8.
 				if(grauw_index >= 1344 && grauw_index < 1366) {
-					const int offset = grauw_index - 1344;
-					if(offset & 7) return std::nullopt;
-					return Event::Type::External;
+					return StandardGenerators::external_every_eight(grauw_index - 1344);
 				}
 
 				// Otherwise: nothing.
 				return std::nullopt;
 			}
 		};
-
 		static constexpr auto refresh_events = events<RefreshGenerator>();
 
-		static constexpr Event no_sprites_events[] = {
-			Event(1282),	Event(1290),	Event(1298),	Event(1306),
-			Event(1314),	Event(1322),	Event(1332),	Event(1342),
-			Event(1350),	Event(1358),	Event(1366),
+		struct NoSpriteEventsGenerator {
+			static constexpr std::optional<typename Event::Type> event(int grauw_index) {
+				// Various standard zones of one-every-eight external slots.
+				if(grauw_index < 124) {
+					return StandardGenerators::external_every_eight(grauw_index + 2);
+				}
+				if(grauw_index > 1266) {
+					return StandardGenerators::external_every_eight(grauw_index - 1266);
+				}
+				if(grauw_index >= 162 && grauw_index < 176) {
+					return StandardGenerators::external_every_eight(grauw_index - 162);
+				}
 
-			Event(6),		Event(14),		Event(22),		Event(30),
-			Event(38),		Event(46),		Event(54),		Event(62),
-			Event(70),		Event(78),		Event(86),		Event(94),
-			Event(102),		Event(110),		Event(118),
+				// Everywhere else the pattern is:
+				//
+				//	external, external, data block
+				//
+				// Subject to caveats:
+				//
+				//	1)	the first data block is just a dummy fetch with no side effects,
+				//		so this emulator declines to record it; and
+				//	2)	every fourth block, the second external is actually a refresh.
+				//
+				if(grauw_index >= 182 && grauw_index < 1238) {
+					const int offset = grauw_index - 182;
+					const int block = offset / 32;
+					const int sub_block = offset & 31;
 
-			Event(162),		Event(170),		Event(182),		Event(188),
-			// Omitted: dummy data block. Is not observable.
-			Event(214),		Event(220),
+					switch(sub_block) {
+						default:	return std::nullopt;
+						case 0:		return Event::Type::External;
+						case 6:
+							if((block & 3) != 3) {
+								return Event::Type::External;
+							}
+						break;
+						case 12:
+							if(block) {
+								return Event::Type::DataBlock;
+							}
+						break;
+					}
+				}
 
-			Event(226, Event::Type::DataBlock),		Event(246),		Event(252),
-			Event(258, Event::Type::DataBlock),		Event(278),		// Omitted: refresh.
-			Event(290, Event::Type::DataBlock),		Event(310),		Event(316),
-			Event(322, Event::Type::DataBlock),		Event(342),		Event(348),
-			Event(354, Event::Type::DataBlock),		Event(374),		Event(380),
-			Event(386, Event::Type::DataBlock),		Event(406),		// Omitted: refresh.
-			Event(418, Event::Type::DataBlock),		Event(438),		Event(444),
-			Event(450, Event::Type::DataBlock),		Event(470),		Event(476),
-
-			Event(482, Event::Type::DataBlock),		Event(502),		Event(508),
-			Event(514, Event::Type::DataBlock),		Event(534),		// Omitted: refresh.
-			Event(546, Event::Type::DataBlock),		Event(566),		Event(572),
-			Event(578, Event::Type::DataBlock),		Event(598),		Event(604),
-			Event(610, Event::Type::DataBlock),		Event(630),		Event(636),
-			Event(642, Event::Type::DataBlock),		Event(662),		// Omitted: refresh.
-			Event(674, Event::Type::DataBlock),		Event(694),		Event(700),
-			Event(706, Event::Type::DataBlock),		Event(726),		Event(732),
-
-			Event(738, Event::Type::DataBlock),		Event(758),		Event(764),
-			Event(770, Event::Type::DataBlock),		Event(790),		// Omitted: refresh.
-			Event(802, Event::Type::DataBlock),		Event(822),		Event(828),
-			Event(834, Event::Type::DataBlock),		Event(854),		Event(860),
-			Event(866, Event::Type::DataBlock),		Event(886),		Event(892),
-			Event(898, Event::Type::DataBlock),		Event(918),		// Omitted: refresh.
-			Event(930, Event::Type::DataBlock),		Event(950),		Event(956),
-			Event(962, Event::Type::DataBlock),		Event(982),		Event(988),
-
-			Event(994, Event::Type::DataBlock),		Event(1014),	Event(1020),
-			Event(1026, Event::Type::DataBlock),	Event(1046),	// Omitted: refresh.
-			Event(1058, Event::Type::DataBlock),	Event(1078),	Event(1084),
-			Event(1090, Event::Type::DataBlock),	Event(1110),	Event(1116),
-			Event(1122, Event::Type::DataBlock),	Event(1142),	Event(1148),
-			Event(1154, Event::Type::DataBlock),	Event(1174),	// Omitted: refresh.
-			Event(1186, Event::Type::DataBlock),	Event(1206),	Event(1212),
-			Event(1218, Event::Type::DataBlock),
-
-			Event(1266),
-			Event(1274),
-
-			Event()
+				return std::nullopt;
+			}
 		};
+		static constexpr auto no_sprites_events = events<NoSpriteEventsGenerator>();
 };
 
 // Master System-specific storage.
