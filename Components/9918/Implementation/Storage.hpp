@@ -53,11 +53,23 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		/// external data must be ready by in order to take part in those slots.
 		int offset = 1368;
 		enum class Type {
+			/// A slot for reading or writing data on behalf of the CPU or the command engine.
 			External,
+
+			//
+			// Bitmap modes.
+			//
 			DataBlock,
 			SpriteY,
 			SpriteLocation,
 			SpritePattern,
+
+			//
+			// Text modes.
+			//
+			Name,
+			Colour,
+			Pattern,
 		} type = Type::External;
 
 		constexpr Event(int offset, Type type) noexcept :
@@ -147,7 +159,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	Storage() noexcept {
 		// Perform sanity checks on the event lists.
 #ifndef NDEBUG
-		const Event *lists[] = { no_sprites_events.data(), refresh_events.data(), nullptr };
+		const Event *lists[] = { no_sprites_events.data(), sprites_events.data(), text_events.data(), /* character_events.data(), */ refresh_events.data(), nullptr };
 		const Event **list = lists;
 		while(*list) {
 			const Event *cursor = *list;
@@ -326,6 +338,52 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		};
 		static constexpr auto no_sprites_events = events<BitmapEventsGenerator<false>>();
 		static constexpr auto sprites_events = events<BitmapEventsGenerator<true>>();
+
+		struct TextGenerator {
+			static constexpr std::optional<typename Event::Type> event(int grauw_index) {
+				// Capture various one-in-eight zones.
+				if(grauw_index < 72) {
+					return StandardGenerators::external_every_eight(grauw_index - 2);
+				}
+				if(grauw_index >= 166 && grauw_index < 228) {
+					return StandardGenerators::external_every_eight(grauw_index - 166);
+				}
+				if(grauw_index >= 1206 && grauw_index < 1332) {
+					return StandardGenerators::external_every_eight(grauw_index - 1206);
+				}
+				if(grauw_index == 1336) {
+					return Event::Type::External;
+				}
+				if(grauw_index >= 1346) {
+					return StandardGenerators::external_every_eight(grauw_index - 1346);
+				}
+
+				// Elsewhere...
+				if(grauw_index >= 246) {
+					const int offset = grauw_index - 246;
+					const int block = offset / 48;
+					const int sub_block = offset % 48;
+					switch(sub_block) {
+						default: break;
+						case 0:		return Event::Type::Name;
+						case 18:	return (block & 1) ? Event::Type::External : Event::Type::Colour;
+						case 24:	return Event::Type::Pattern;
+					}
+				}
+
+				return std::nullopt;
+			}
+		};
+		static constexpr auto text_events = events<TextGenerator>();
+
+		struct CharacterGenerator {
+			static constexpr std::optional<typename Event::Type> event(int grauw_index) {
+				// TODO.
+				(void)grauw_index;
+				return std::nullopt;
+			}
+		};
+		static constexpr auto character_events = events<CharacterGenerator>();
 };
 
 // Master System-specific storage.
