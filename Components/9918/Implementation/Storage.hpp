@@ -92,7 +92,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	int sprite_block_ = 0;
 
 	/// Resets line-ephemeral state for a new line.
-	void begin_line([[maybe_unused]] ScreenMode mode, bool is_refresh, [[maybe_unused]] bool sprites_enabled) {
+	void begin_line(ScreenMode mode, bool is_refresh, bool sprites_enabled) {
 		// TODO: reinstate upon completion of the Yamaha pipeline.
 //		assert(mode < ScreenMode::YamahaText80 || next_event_ == nullptr || next_event_->offset == 1368);
 
@@ -104,8 +104,22 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			return;
 		}
 
-		// TODO: obey sprites_enabled flag, at least.
-		next_event_ = no_sprites_events.data();
+		switch(mode) {
+			case ScreenMode::YamahaText80:
+			case ScreenMode::Text:
+				next_event_ = text_events.data();
+			break;
+
+			case ScreenMode::MultiColour:
+			case ScreenMode::YamahaGraphics1:
+			case ScreenMode::YamahaGraphics2:
+				next_event_ = character_events.data();
+			break;
+
+			default:
+				next_event_ = sprites_enabled ? sprites_events.data() : no_sprites_events.data();
+			break;
+		}
 	}
 
 	// Command engine state.
