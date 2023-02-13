@@ -60,12 +60,16 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			// Bitmap modes.
 			//
 			DataBlock,
+
+			//
+			// Sprites.
+			//
 			SpriteY,
 			SpriteLocation,
 			SpritePattern,
 
 			//
-			// Text modes.
+			// Text and character modes.
 			//
 			Name,
 			Colour,
@@ -159,7 +163,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	Storage() noexcept {
 		// Perform sanity checks on the event lists.
 #ifndef NDEBUG
-		const Event *lists[] = { no_sprites_events.data(), sprites_events.data(), text_events.data(), /* character_events.data(), */ refresh_events.data(), nullptr };
+		const Event *lists[] = { no_sprites_events.data(), sprites_events.data(), text_events.data(), character_events.data(), refresh_events.data(), nullptr };
 		const Event **list = lists;
 		while(*list) {
 			const Event *cursor = *list;
@@ -378,8 +382,30 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 		struct CharacterGenerator {
 			static constexpr std::optional<typename Event::Type> event(int grauw_index) {
-				// TODO.
-				(void)grauw_index;
+				// Grab sprite events.
+				switch(grauw_index) {
+					default: break;
+					case 1242:	case 1306:	case 6:		case 70:	return Event::Type::SpriteLocation;
+					case 1274:	case 1342:	case 38:	case 102:	return Event::Type::SpritePattern;
+					case 1268:	case 1334:	case 32:	case 96:	return Event::Type::External;
+				}
+
+				if(grauw_index >= 166 && grauw_index < 180) {
+					return StandardGenerators::external_every_eight(grauw_index - 166);
+				}
+
+				if(grauw_index >= 182 && grauw_index < 1236) {
+					const int offset = grauw_index - 182;
+					const int block = offset / 32;
+					const int sub_block = offset & 31;
+					switch(sub_block) {
+						case 0:		if(block > 0) return Event::Type::Name;
+						case 6: 	if((sub_block & 3) != 3) return Event::Type::External;;
+						case 12:	if(block > 0) return Event::Type::Pattern;
+						case 18:	if(block > 0) return Event::Type::Colour;
+					}
+				}
+
 				return std::nullopt;
 			}
 		};
