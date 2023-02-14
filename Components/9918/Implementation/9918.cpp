@@ -42,12 +42,14 @@ Base<personality>::Base() :
 		mode_timing_.line_interrupt_position = Timing<personality>::StartOfSync;
 	}
 
-	// Establish that output is delayed after reading by `output_lag` cycles; start
-	// at a random position.
-	fetch_pointer_.row = rand() % 262;
-	fetch_pointer_.column = rand() % (Timing<personality>::CyclesPerLine - output_lag);
-	output_pointer_.row = fetch_pointer_.row;
-	output_pointer_.column = fetch_pointer_.column + output_lag;
+	// Establish that output is delayed after reading by `output_lag` cycles,
+	// i.e. the fetch pointer is currently _ahead_ of the output pointer.
+	//
+	// Start at a random position.
+	output_pointer_.row = rand() % 262;
+	output_pointer_.column = rand() % (Timing<personality>::CyclesPerLine - output_lag);
+	fetch_pointer_.row = fetch_pointer_.row;
+	fetch_pointer_.column = output_pointer_.column + output_lag;
 }
 
 template <Personality personality>
