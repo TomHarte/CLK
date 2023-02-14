@@ -192,7 +192,8 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 	ScreenMode screen_mode_, underlying_mode_;
 	LineBuffer line_buffers_[313];
-	size_t tile_offset_ = 0;
+	AddressT tile_offset_ = 0;
+	uint8_t name_[4]{};
 	void posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_y, int screen_row);
 
 	// There is a delay between reading into the line buffer and outputting from there to the screen. That delay

@@ -135,16 +135,14 @@ struct TextFetcher {
 		if constexpr (cycle < 47 || cycle >= 167) {
 			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 			return;
-		}
-
-		// For the 120 slots in between follow a three-step pattern of:
-		if constexpr (cycle >= 47) {
+		} else {
+			// For the 120 slots in between follow a three-step pattern of:
 			constexpr int offset = cycle - 47;
 			constexpr auto column = AddressT(offset / 3);
 			switch(offset % 3) {
-				case 0:	base->tile_offset_ = base->ram_[row_base + column];											break;	// (1) fetch tile name.
-				case 1:	base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));			break;	// (2) external slot.
-				case 2:	line_buffer.patterns[column][0] = base->ram_[row_offset + size_t(base->tile_offset_ << 3)];	break;	// (3) fetch tile pattern.
+				case 0:	base->name_[0] = base->ram_[row_base + column];											break;	// (1) fetch tile name.
+				case 1:	base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));		break;	// (2) external slot.
+				case 2:	line_buffer.patterns[column][0] = base->ram_[row_offset + size_t(base->name_[0] << 3)];	break;	// (3) fetch tile pattern.
 			}
 		}
 	}
@@ -348,7 +346,7 @@ template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
 		const size_t address = row_info.pattern_address_base + (scrolled_column << 1);	\
 		line_buffer.flags[column] = ram_[address+1];	\
-		tile_offset_ = size_t(	\
+		tile_offset_ = uint16_t(	\
 			(((line_buffer.flags[column]&1) << 8) | ram_[address]) << 5	\
 		) + row_info.sub_row[(line_buffer.flags[column]&4) >> 2];	\
 	}
@@ -396,18 +394,21 @@ template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer
 	// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
 	const int scrolled_row = (y + Storage<personality>::latched_vertical_scroll_) % (is_tall_mode ? 256 : 224);
 	struct RowInfo {
-		size_t pattern_address_base;
-		size_t sub_row[2];
+		AddressT pattern_address_base;
+		AddressT sub_row[2];
 	};
 	const RowInfo scrolled_row_info = {
-		(pattern_name_address & size_t(((scrolled_row & ~7) << 3) | 0x3800)) - pattern_name_offset,
-		{size_t((scrolled_row & 7) << 2), 28 ^ size_t((scrolled_row & 7) << 2)}
+		AddressT((pattern_name_address & size_t(((scrolled_row & ~7) << 3) | 0x3800)) - pattern_name_offset),
+		{
+			AddressT((scrolled_row & 7) << 2),
+			AddressT(28 ^ ((scrolled_row & 7) << 2))
+		}
 	};
 	RowInfo row_info;
 	if(Storage<personality>::vertical_scroll_lock_) {
-		row_info.pattern_address_base = (pattern_name_address & size_t(((y & ~7) << 3) | 0x3800)) - pattern_name_offset;
-		row_info.sub_row[0] = size_t((y & 7) << 2);
-		row_info.sub_row[1] = 28 ^ size_t((y & 7) << 2);
+		row_info.pattern_address_base = AddressT((pattern_name_address & AddressT(((y & ~7) << 3) | 0x3800)) - pattern_name_offset);
+		row_info.sub_row[0] = AddressT((y & 7) << 2);
+		row_info.sub_row[1] = 28 ^ AddressT((y & 7) << 2);
 	} else row_info = scrolled_row_info;
 
 	// ... and do the actual fetching, which follows this routine:
@@ -463,7 +464,7 @@ template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer
 // MARK: - Yamaha
 
 template <Personality personality>
-template<ScreenMode mode> void Base<personality>::fetch_yamaha([[maybe_unused]] LineBuffer &line_buffer, [[maybe_unused]] int y, int end) {
+template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_buffer, int y, int end) {
 	const AddressT rotated_name_ = pattern_name_address_ >> 1;
 	const uint8_t *const ram2 = &ram_[65536];
 
@@ -476,13 +477,24 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha([[maybe_unused]] 
 
 			case Type::Name:
 				switch(mode) {
-					case ScreenMode::Text:
-						// TODO: read two new character names.
-					break;
+					case ScreenMode::Text: {
+						const auto column = AddressT(Storage<personality>::data_block_);
+						const AddressT start = pattern_name_address_ & (0x1fc00 | size_t(y >> 3) * 40);
 
-					case ScreenMode::YamahaText80:
-						// TODO: read four new character names.
-					break;
+						name_[0] = ram_[start + column + 0];
+						name_[1] = ram_[start + column + 1];
+					} break;
+
+					case ScreenMode::YamahaText80: {
+						const auto column = AddressT(Storage<personality>::data_block_);
+						const AddressT start = pattern_name_address_ & (0x1f800 | size_t(y >> 3) * 80);
+
+						name_[0] = ram_[start + column + 0];
+						name_[1] = ram_[start + column + 1];
+						name_[2] = ram_[start + column + 2];
+						name_[3] = ram_[start + column + 3];
+						// TODO: should 80-column mode use alternate page access?
+					} break;
 
 					default: break;
 				}
@@ -491,7 +503,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha([[maybe_unused]] 
 			case Type::Colour:
 				switch(mode) {
 					case ScreenMode::YamahaText80:
-						// TODO: read a single 'colour' (i.e. a bitfield, governing colour selection for eight characters).
+						// TODO: read a single 'colour' (i.e. a bitfield, governing colour [/flashing?] selection for eight characters).
 					break;
 
 					default: break;
@@ -500,13 +512,25 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha([[maybe_unused]] 
 
 			case Type::Pattern:
 				switch(mode) {
-					case ScreenMode::Text:
-						// TODO: look up two sets of character contents, based on names from earlier.
-					break;
+					case ScreenMode::Text: {
+						const auto column = AddressT(Storage<personality>::data_block_);
+						Storage<personality>::data_block_ += 2;
 
-					case ScreenMode::YamahaText80:
-						// TODO: look up four sets of character contents, based on names from earlier.
-					break;
+						const AddressT start = pattern_generator_table_address_ & (0x1f800 | (y & 7));
+						line_buffer.patterns[column + 0][0] = ram_[start + AddressT(name_[0] << 3)];
+						line_buffer.patterns[column + 1][0] = ram_[start + AddressT(name_[1] << 3)];
+					} break;
+
+					case ScreenMode::YamahaText80: {
+						const auto column = AddressT(Storage<personality>::data_block_);
+						Storage<personality>::data_block_ += 4;
+
+						const AddressT start = pattern_generator_table_address_ & (0x1f800 | (y & 7));
+						line_buffer.patterns[column + 0][0] = ram_[start + AddressT(name_[0] << 3)];
+						line_buffer.patterns[column + 1][0] = ram_[start + AddressT(name_[1] << 3)];
+						line_buffer.patterns[column + 0][1] = ram_[start + AddressT(name_[2] << 3)];
+						line_buffer.patterns[column + 1][1] = ram_[start + AddressT(name_[3] << 3)];
+					} break;
 
 					default: break;
 				}
