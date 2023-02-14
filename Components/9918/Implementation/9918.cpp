@@ -321,7 +321,11 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				this->mode_timing_.maximum_visible_sprites = 4;
 				switch(this->screen_mode_) {
 					case ScreenMode::Text:
-						next_line_buffer.fetch_mode = FetchMode::Text;
+						if constexpr (is_yamaha_vdp(personality)) {
+							next_line_buffer.fetch_mode = FetchMode::Yamaha;
+						} else {
+							next_line_buffer.fetch_mode = FetchMode::Text;
+						}
 						next_line_buffer.first_pixel_output_column = Timing<personality>::FirstTextCycle;
 						next_line_buffer.next_border_column = Timing<personality>::LastTextCycle;
 						next_line_buffer.pixel_count = 240;

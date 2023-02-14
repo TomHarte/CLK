@@ -323,6 +323,9 @@ void Base<personality>::draw_yamaha(int start, int end) {
 #define Dispatch(x)	case ScreenMode::x:	draw_yamaha<ScreenMode::x>(line_buffer, start, end);	break;
 	if constexpr (is_yamaha_vdp(personality)) {
 		switch(line_buffer.screen_mode) {
+			// These modes look the same as on the TMS.
+			case ScreenMode::Text:	draw_tms_text(start >> 2, end >> 2);	break;
+
 			Dispatch(YamahaGraphics3);
 			Dispatch(YamahaGraphics4);
 			Dispatch(YamahaGraphics5);
