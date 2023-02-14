@@ -467,13 +467,52 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha([[maybe_unused]] 
 	const AddressT rotated_name_ = pattern_name_address_ >> 1;
 	const uint8_t *const ram2 = &ram_[65536];
 
+	using Type = typename Storage<personality>::Event::Type;
 	while(Storage<personality>::next_event_->offset < end) {
 		switch(Storage<personality>::next_event_->type) {
-			case Storage<personality>::Event::Type::External:
+			case Type::External:
 				do_external_slot(Storage<personality>::next_event_->offset);
 			break;
 
-			case Storage<personality>::Event::Type::DataBlock: {
+			case Type::Name:
+				switch(mode) {
+					case ScreenMode::Text:
+						// TODO: read two new character names.
+					break;
+
+					case ScreenMode::YamahaText80:
+						// TODO: read four new character names.
+					break;
+
+					default: break;
+				}
+			break;
+
+			case Type::Colour:
+				switch(mode) {
+					case ScreenMode::YamahaText80:
+						// TODO: read a single 'colour' (i.e. a bitfield, governing colour selection for eight characters).
+					break;
+
+					default: break;
+				}
+			break;
+
+			case Type::Pattern:
+				switch(mode) {
+					case ScreenMode::Text:
+						// TODO: look up two sets of character contents, based on names from earlier.
+					break;
+
+					case ScreenMode::YamahaText80:
+						// TODO: look up four sets of character contents, based on names from earlier.
+					break;
+
+					default: break;
+				}
+			break;
+
+			case Type::DataBlock:
 				// Exactly how to fetch depends upon mode...
 				switch(mode) {
 					case ScreenMode::YamahaGraphics4:
@@ -507,10 +546,9 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha([[maybe_unused]] 
 						line_buffer.bitmap[column + 7] = ram2[rotated_name_ & AddressT(start + 3)];
 					} break;
 
-					default:
-					break;
+					default: break;
 				}
-			} break;
+			break;
 
 			default: break;
 		}
