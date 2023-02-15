@@ -493,7 +493,6 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						name_[1] = ram_[start + column + 1];
 						name_[2] = ram_[start + column + 2];
 						name_[3] = ram_[start + column + 3];
-						// TODO: should 80-column mode use alternate page access?
 					} break;
 
 					default: break;
@@ -523,12 +522,12 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 
 					case ScreenMode::YamahaText80: {
 						const auto column = AddressT(Storage<personality>::data_block_);
-						Storage<personality>::data_block_ += 4;
+						Storage<personality>::data_block_ += 2;
 
 						const AddressT start = pattern_generator_table_address_ & (0x1f800 | (y & 7));
 						line_buffer.patterns[column + 0][0] = ram_[start + AddressT(name_[0] << 3)];
-						line_buffer.patterns[column + 1][0] = ram_[start + AddressT(name_[1] << 3)];
-						line_buffer.patterns[column + 0][1] = ram_[start + AddressT(name_[2] << 3)];
+						line_buffer.patterns[column + 0][1] = ram_[start + AddressT(name_[1] << 3)];
+						line_buffer.patterns[column + 1][0] = ram_[start + AddressT(name_[2] << 3)];
 						line_buffer.patterns[column + 1][1] = ram_[start + AddressT(name_[3] << 3)];
 					} break;
 

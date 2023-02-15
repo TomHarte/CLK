@@ -314,6 +314,32 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 		return;
 	}
 
+	if constexpr (mode == ScreenMode::YamahaText80) {
+		const uint32_t primary_colours[2] = { palette()[background_colour_], palette()[text_colour_] };
+//		const uint32_t inverse_colours[2] = { palette()[background_colour_], palette()[text_colour_] };	// TODO.
+
+		start >>= 1;
+		end >>= 1;
+
+		const int shift = start % 6;
+		int byte_column = start / 6;
+		int pattern = Numeric::bit_reverse(buffer.patterns[byte_column >> 1][byte_column & 1]) >> shift;
+		int pixels_left = end - start;
+		int length = std::min(pixels_left, 6 - shift);
+		while(true) {
+			pixels_left -= length;
+			for(int c = 0; c < length; ++c) {
+				pixel_target_[c] = primary_colours[pattern&0x01];	// TODO.
+				pattern >>= 1;
+			}
+			pixel_target_ += length;
+
+			if(!pixels_left) break;
+			length = std::min(6, pixels_left);
+			byte_column++;
+			pattern = Numeric::bit_reverse(buffer.patterns[byte_column >> 1][byte_column & 1]);
+		}
+	}
 }
 
 template <Personality personality>
@@ -326,6 +352,7 @@ void Base<personality>::draw_yamaha(int start, int end) {
 			// These modes look the same as on the TMS.
 			case ScreenMode::Text:	draw_tms_text(start >> 2, end >> 2);	break;
 
+			Dispatch(YamahaText80);
 			Dispatch(YamahaGraphics3);
 			Dispatch(YamahaGraphics4);
 			Dispatch(YamahaGraphics5);

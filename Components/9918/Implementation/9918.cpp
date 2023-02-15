@@ -330,10 +330,18 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						next_line_buffer.next_border_column = Timing<personality>::LastTextCycle;
 						next_line_buffer.pixel_count = 240;
 					break;
+					case ScreenMode::YamahaText80:
+						next_line_buffer.fetch_mode = FetchMode::Yamaha;
+						next_line_buffer.first_pixel_output_column = Timing<personality>::FirstTextCycle;
+						next_line_buffer.next_border_column = Timing<personality>::LastTextCycle;
+						next_line_buffer.pixel_count = 480;
+					break;
+
 					case ScreenMode::SMSMode4:
 						next_line_buffer.fetch_mode = FetchMode::SMS;
 						this->mode_timing_.maximum_visible_sprites = 8;
 					break;
+
 					case ScreenMode::YamahaGraphics3:
 					case ScreenMode::YamahaGraphics4:
 					case ScreenMode::YamahaGraphics7:
