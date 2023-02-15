@@ -20,7 +20,7 @@ void Base<personality>::draw_tms_character(int start, int end) {
 	if(this->screen_mode_ == ScreenMode::MultiColour) {
 		for(int c = start; c < end; ++c) {
 			pixel_target_[c] = palette()[
-				(line_buffer.patterns[c >> 3][0] >> (((c & 4)^4))) & 15
+				(line_buffer.tiles.patterns[c >> 3][0] >> (((c & 4)^4))) & 15
 			];
 		}
 	} else {
@@ -29,8 +29,8 @@ void Base<personality>::draw_tms_character(int start, int end) {
 
 		int length = std::min(pixels_left, 8 - shift);
 
-		int pattern = Numeric::bit_reverse(line_buffer.patterns[byte_column][0]) >> shift;
-		uint8_t colour = line_buffer.patterns[byte_column][1];
+		int pattern = Numeric::bit_reverse(line_buffer.tiles.patterns[byte_column][0]) >> shift;
+		uint8_t colour = line_buffer.tiles.patterns[byte_column][1];
 		uint32_t colours[2] = {
 			palette()[(colour & 15) ? (colour & 15) : background_colour_],
 			palette()[(colour >> 4) ? (colour >> 4) : background_colour_]
@@ -49,8 +49,8 @@ void Base<personality>::draw_tms_character(int start, int end) {
 			length = std::min(8, background_pixels_left);
 			byte_column++;
 
-			pattern = Numeric::bit_reverse(line_buffer.patterns[byte_column][0]);
-			colour = line_buffer.patterns[byte_column][1];
+			pattern = Numeric::bit_reverse(line_buffer.tiles.patterns[byte_column][0]);
+			colour = line_buffer.tiles.patterns[byte_column][1];
 			colours[0] = palette()[(colour & 15) ? (colour & 15) : background_colour_];
 			colours[1] = palette()[(colour >> 4) ? (colour >> 4) : background_colour_];
 		}
@@ -111,7 +111,7 @@ void Base<personality>::draw_tms_text(int start, int end) {
 
 	const int shift = start % 6;
 	int byte_column = start / 6;
-	int pattern = Numeric::bit_reverse(line_buffer.patterns[byte_column][0]) >> shift;
+	int pattern = Numeric::bit_reverse(line_buffer.characters.shapes[byte_column]) >> shift;
 	int pixels_left = end - start;
 	int length = std::min(pixels_left, 6 - shift);
 	while(true) {
@@ -125,7 +125,7 @@ void Base<personality>::draw_tms_text(int start, int end) {
 		if(!pixels_left) break;
 		length = std::min(6, pixels_left);
 		byte_column++;
-		pattern = Numeric::bit_reverse(line_buffer.patterns[byte_column][0]);
+		pattern = Numeric::bit_reverse(line_buffer.characters.shapes[byte_column]);
 	}
 }
 
@@ -169,15 +169,15 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 		int pixels_left = tile_end - tile_start;
 		int length = std::min(pixels_left, 8 - shift);
 
-		pattern = *reinterpret_cast<const uint32_t *>(line_buffer.patterns[byte_column]);
-		if(line_buffer.flags[byte_column]&2)
+		pattern = *reinterpret_cast<const uint32_t *>(line_buffer.tiles.patterns[byte_column]);
+		if(line_buffer.characters.flags[byte_column]&2)
 			pattern >>= shift;
 		else
 			pattern <<= shift;
 
 		while(true) {
-			const int palette_offset = (line_buffer.flags[byte_column]&0x18) << 1;
-			if(line_buffer.flags[byte_column]&2) {
+			const int palette_offset = (line_buffer.characters.flags[byte_column]&0x18) << 1;
+			if(line_buffer.characters.flags[byte_column]&2) {
 				for(int c = 0; c < length; ++c) {
 					colour_buffer[tile_offset] =
 						((pattern_index[3] & 0x01) << 3) |
@@ -206,7 +206,7 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 
 			length = std::min(8, pixels_left);
 			byte_column++;
-			pattern = *reinterpret_cast<const uint32_t *>(line_buffer.patterns[byte_column]);
+			pattern = *reinterpret_cast<const uint32_t *>(line_buffer.tiles.patterns[byte_column]);
 		}
 	}
 
@@ -323,7 +323,7 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 
 		const int shift = start % 6;
 		int byte_column = start / 6;
-		int pattern = Numeric::bit_reverse(buffer.patterns[byte_column >> 1][byte_column & 1]) >> shift;
+		int pattern = Numeric::bit_reverse(buffer.characters.shapes[byte_column]) >> shift;
 		int pixels_left = end - start;
 		int length = std::min(pixels_left, 6 - shift);
 		while(true) {
@@ -337,7 +337,7 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 			if(!pixels_left) break;
 			length = std::min(6, pixels_left);
 			byte_column++;
-			pattern = Numeric::bit_reverse(buffer.patterns[byte_column >> 1][byte_column & 1]);
+			pattern = Numeric::bit_reverse(buffer.characters.shapes[byte_column]);
 		}
 	}
 }

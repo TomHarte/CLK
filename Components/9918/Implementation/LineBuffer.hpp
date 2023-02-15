@@ -31,16 +31,23 @@ struct LineBuffer {
 	// The names array holds pattern names, as an offset into memory, and
 	// potentially flags also.
 	union {
-		// The TMS and Sega VDPs are close enough to always tile-based;
-		// this struct captures maximal potential detail there.
+		// This struct captures maximal potential detail across the TMS9918
+		// and Sega VDP for tiled modes (plus multicolour).
 		struct {
-			uint8_t flags[40]{};
+			uint8_t flags[32]{};
 
 			// The patterns array holds tile patterns, corresponding 1:1 with names.
 			// Four bytes per pattern is the maximum required by any
 			// currently-implemented VDP.
-			uint8_t patterns[40][4]{};
-		};
+			uint8_t patterns[32][4]{};
+		} tiles;
+
+		// The Yamaha and TMS both have text modes, with the former going up to
+		// 80 columns plus 10 bytes of colour-esque flags.
+		struct {
+			uint8_t shapes[80];
+			uint8_t flags[10];
+		} characters;
 
 		// The Yamaha VDP also has a variety of bitmap modes,
 		// the widest of which is 512px @ 4bpp.

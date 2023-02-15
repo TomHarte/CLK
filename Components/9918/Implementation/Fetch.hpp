@@ -140,9 +140,9 @@ struct TextFetcher {
 			constexpr int offset = cycle - 47;
 			constexpr auto column = AddressT(offset / 3);
 			switch(offset % 3) {
-				case 0:	base->name_[0] = base->ram_[row_base + column];											break;	// (1) fetch tile name.
-				case 1:	base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));		break;	// (2) external slot.
-				case 2:	line_buffer.patterns[column][0] = base->ram_[row_offset + size_t(base->name_[0] << 3)];	break;	// (3) fetch tile pattern.
+				case 0:	base->name_[0] = base->ram_[row_base + column];													break;	// (1) fetch tile name.
+				case 1:	base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));				break;	// (2) external slot.
+				case 2:	line_buffer.characters.shapes[column] = base->ram_[row_offset + size_t(base->name_[0] << 3)];	break;	// (3) fetch tile pattern.
 			}
 		}
 	}
@@ -207,8 +207,8 @@ template<bool use_end> void Base<personality>::fetch_tms_character(LineBuffer &l
 #define fetch_tile_name(column) tile_offset_ = ram_[(row_base + column) & 0x3fff];
 
 #define fetch_tile(column)	{\
-		line_buffer.patterns[column][1] = ram_[(colour_base + size_t((tile_offset_ << 3) >> colour_name_shift)) & 0x3fff];		\
-		line_buffer.patterns[column][0] = ram_[(pattern_base + size_t(tile_offset_ << 3)) & 0x3fff];	\
+		line_buffer.tiles.patterns[column][1] = ram_[(colour_base + size_t((tile_offset_ << 3) >> colour_name_shift)) & 0x3fff];		\
+		line_buffer.tiles.patterns[column][0] = ram_[(pattern_base + size_t(tile_offset_ << 3)) & 0x3fff];	\
 	}
 
 #define background_fetch_block(location, column, sprite)	\
@@ -345,17 +345,17 @@ template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer
 #define fetch_tile_name(column, row_info)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
 		const size_t address = row_info.pattern_address_base + (scrolled_column << 1);	\
-		line_buffer.flags[column] = ram_[address+1];	\
+		line_buffer.tiles.flags[column] = ram_[address+1];	\
 		tile_offset_ = uint16_t(	\
-			(((line_buffer.flags[column]&1) << 8) | ram_[address]) << 5	\
-		) + row_info.sub_row[(line_buffer.flags[column]&4) >> 2];	\
+			(((line_buffer.tiles.flags[column]&1) << 8) | ram_[address]) << 5	\
+		) + row_info.sub_row[(line_buffer.tiles.flags[column]&4) >> 2];	\
 	}
 
 #define fetch_tile(column)	\
-	line_buffer.patterns[column][0] = ram_[tile_offset_];	\
-	line_buffer.patterns[column][1] = ram_[tile_offset_+1];	\
-	line_buffer.patterns[column][2] = ram_[tile_offset_+2];	\
-	line_buffer.patterns[column][3] = ram_[tile_offset_+3];
+	line_buffer.tiles.patterns[column][0] = ram_[tile_offset_];		\
+	line_buffer.tiles.patterns[column][1] = ram_[tile_offset_+1];	\
+	line_buffer.tiles.patterns[column][2] = ram_[tile_offset_+2];	\
+	line_buffer.tiles.patterns[column][3] = ram_[tile_offset_+3];
 
 #define background_fetch_block(location, column, sprite, row_info)	\
 	slot(location):	fetch_tile_name(column, row_info)		\
@@ -516,19 +516,19 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						Storage<personality>::data_block_ += 2;
 
 						const AddressT start = pattern_generator_table_address_ & (0x1f800 | (y & 7));
-						line_buffer.patterns[column + 0][0] = ram_[start + AddressT(name_[0] << 3)];
-						line_buffer.patterns[column + 1][0] = ram_[start + AddressT(name_[1] << 3)];
+						line_buffer.characters.shapes[column + 0] = ram_[start + AddressT(name_[0] << 3)];
+						line_buffer.characters.shapes[column + 1] = ram_[start + AddressT(name_[1] << 3)];
 					} break;
 
 					case ScreenMode::YamahaText80: {
 						const auto column = AddressT(Storage<personality>::data_block_);
-						Storage<personality>::data_block_ += 2;
+						Storage<personality>::data_block_ += 4;
 
 						const AddressT start = pattern_generator_table_address_ & (0x1f800 | (y & 7));
-						line_buffer.patterns[column + 0][0] = ram_[start + AddressT(name_[0] << 3)];
-						line_buffer.patterns[column + 0][1] = ram_[start + AddressT(name_[1] << 3)];
-						line_buffer.patterns[column + 1][0] = ram_[start + AddressT(name_[2] << 3)];
-						line_buffer.patterns[column + 1][1] = ram_[start + AddressT(name_[3] << 3)];
+						line_buffer.characters.shapes[column + 0] = ram_[start + AddressT(name_[0] << 3)];
+						line_buffer.characters.shapes[column + 1] = ram_[start + AddressT(name_[1] << 3)];
+						line_buffer.characters.shapes[column + 2] = ram_[start + AddressT(name_[2] << 3)];
+						line_buffer.characters.shapes[column + 3] = ram_[start + AddressT(name_[3] << 3)];
 					} break;
 
 					default: break;
