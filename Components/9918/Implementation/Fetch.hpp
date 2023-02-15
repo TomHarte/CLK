@@ -487,7 +487,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 
 					case ScreenMode::YamahaText80: {
 						const auto column = AddressT(Storage<personality>::data_block_);
-						const AddressT start = pattern_name_address_ & (0x1f800 | size_t(y >> 3) * 80);
+						const AddressT start = pattern_name_address_ & (0x1f000 | size_t(y >> 3) * 80);
 
 						name_[0] = ram_[start + column + 0];
 						name_[1] = ram_[start + column + 1];
