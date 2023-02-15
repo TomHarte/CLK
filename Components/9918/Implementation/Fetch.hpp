@@ -501,9 +501,11 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 
 			case Type::Colour:
 				switch(mode) {
-					case ScreenMode::YamahaText80:
-						// TODO: read a single 'colour' (i.e. a bitfield, governing colour [/flashing?] selection for eight characters).
-					break;
+					case ScreenMode::YamahaText80: {
+						const auto column = AddressT(Storage<personality>::data_block_ >> 3);
+						const AddressT address = colour_table_address_ & (0x1fe00 | size_t(y >> 3) * 10);
+						line_buffer.characters.flags[column] = ram_[address];
+					} break;
 
 					default: break;
 				}
