@@ -25,7 +25,7 @@ template <Personality personality, typename Enable = void> struct Storage {
 template <> struct Storage<Personality::TMS9918A> {
 	using AddressT = uint16_t;
 
-	void begin_line(ScreenMode, bool, bool) {}
+	void begin_line(ScreenMode, bool) {}
 };
 
 // Yamaha-specific storage.
@@ -91,8 +91,20 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	int data_block_ = 0;
 	int sprite_block_ = 0;
 
+	// Text blink colours.
+	uint8_t blink_text_colour_ = 0;
+	uint8_t blink_background_colour_ = 0;
+
+	// Blink state (which is also affects even/odd page display in applicable modes).
+	int in_blink_ = 1;
+	uint8_t blink_periods_ = 0;
+	uint8_t blink_counter_ = 0;
+
+	// Sprite collection state.
+	bool sprites_enabled_ = true;
+
 	/// Resets line-ephemeral state for a new line.
-	void begin_line(ScreenMode mode, bool is_refresh, bool sprites_enabled) {
+	void begin_line(ScreenMode mode, bool is_refresh) {
 		// TODO: reinstate upon completion of the Yamaha pipeline.
 //		assert(mode < ScreenMode::YamahaText80 || next_event_ == nullptr || next_event_->offset == 1368);
 
@@ -408,15 +420,16 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 					return StandardGenerators::external_every_eight(grauw_index - 166);
 				}
 
-				if(grauw_index >= 182 && grauw_index < 1236) {
+				if(grauw_index >= 182 && grauw_index < 1238) {
 					const int offset = grauw_index - 182;
 					const int block = offset / 32;
 					const int sub_block = offset & 31;
 					switch(sub_block) {
 						case 0:		if(block > 0) return Event::Type::Name;
-						case 6: 	if((sub_block & 3) != 3) return Event::Type::External;;
-						case 12:	if(block > 0) return Event::Type::Pattern;
-						case 18:	if(block > 0) return Event::Type::Colour;
+						case 6: 	if((sub_block & 3) != 3) return Event::Type::External;
+						case 12: 	if(block < 32) return Event::Type::SpriteY;
+						case 18:	if(block > 0) return Event::Type::Pattern;
+						case 24:	if(block > 0) return Event::Type::Colour;
 					}
 				}
 
@@ -463,7 +476,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	AddressT sprite_attribute_table_address_;
 	AddressT sprite_generator_table_address_;
 
-	void begin_line(ScreenMode, bool, bool) {}
+	void begin_line(ScreenMode, bool) {}
 };
 
 }

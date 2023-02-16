@@ -105,19 +105,32 @@ void Base<personality>::draw_tms_character(int start, int end) {
 }
 
 template <Personality personality>
+template <bool apply_blink>
 void Base<personality>::draw_tms_text(int start, int end) {
 	LineBuffer &line_buffer = line_buffers_[output_pointer_.row];
-	const uint32_t colours[2] = { palette()[background_colour_], palette()[text_colour_] };
+
+	uint32_t colours[2][2] = {
+		{palette()[background_colour_], palette()[text_colour_]},
+		{0, 0}
+	};
+	if constexpr (apply_blink) {
+		colours[1][0] = palette()[Storage<personality>::blink_background_colour_];
+		colours[1][1] = palette()[Storage<personality>::blink_text_colour_];
+	}
 
 	const int shift = start % 6;
 	int byte_column = start / 6;
 	int pattern = Numeric::bit_reverse(line_buffer.characters.shapes[byte_column]) >> shift;
 	int pixels_left = end - start;
 	int length = std::min(pixels_left, 6 - shift);
+	int flag = 0;
+	if constexpr (apply_blink) {
+		flag = (line_buffer.characters.flags[byte_column >> 3] >> ((byte_column & 7) ^ 7)) & Storage<personality>::in_blink_;
+	}
 	while(true) {
 		pixels_left -= length;
 		for(int c = 0; c < length; ++c) {
-			pixel_target_[c] = colours[pattern&0x01];
+			pixel_target_[c] = colours[flag][(pattern&0x01)];
 			pattern >>= 1;
 		}
 		pixel_target_ += length;
@@ -126,6 +139,9 @@ void Base<personality>::draw_tms_text(int start, int end) {
 		length = std::min(6, pixels_left);
 		byte_column++;
 		pattern = Numeric::bit_reverse(line_buffer.characters.shapes[byte_column]);
+		if constexpr (apply_blink) {
+			flag = (line_buffer.characters.flags[byte_column >> 3] >> ((byte_column & 7) ^ 7)) & Storage<personality>::in_blink_;
+		}
 	}
 }
 
@@ -170,14 +186,14 @@ void Base<personality>::draw_sms(int start, int end, uint32_t cram_dot) {
 		int length = std::min(pixels_left, 8 - shift);
 
 		pattern = *reinterpret_cast<const uint32_t *>(line_buffer.tiles.patterns[byte_column]);
-		if(line_buffer.characters.flags[byte_column]&2)
+		if(line_buffer.tiles.flags[byte_column]&2)
 			pattern >>= shift;
 		else
 			pattern <<= shift;
 
 		while(true) {
-			const int palette_offset = (line_buffer.characters.flags[byte_column]&0x18) << 1;
-			if(line_buffer.characters.flags[byte_column]&2) {
+			const int palette_offset = (line_buffer.tiles.flags[byte_column]&0x18) << 1;
+			if(line_buffer.tiles.flags[byte_column]&2) {
 				for(int c = 0; c < length; ++c) {
 					colour_buffer[tile_offset] =
 						((pattern_index[3] & 0x01) << 3) |
@@ -313,33 +329,6 @@ void Base<personality>::draw_yamaha(LineBuffer &buffer, int start, int end) {
 
 		return;
 	}
-
-	if constexpr (mode == ScreenMode::YamahaText80) {
-		const uint32_t primary_colours[2] = { palette()[background_colour_], palette()[text_colour_] };
-//		const uint32_t inverse_colours[2] = { palette()[background_colour_], palette()[text_colour_] };	// TODO.
-
-		start >>= 1;
-		end >>= 1;
-
-		const int shift = start % 6;
-		int byte_column = start / 6;
-		int pattern = Numeric::bit_reverse(buffer.characters.shapes[byte_column]) >> shift;
-		int pixels_left = end - start;
-		int length = std::min(pixels_left, 6 - shift);
-		while(true) {
-			pixels_left -= length;
-			for(int c = 0; c < length; ++c) {
-				pixel_target_[c] = primary_colours[pattern&0x01];	// TODO.
-				pattern >>= 1;
-			}
-			pixel_target_ += length;
-
-			if(!pixels_left) break;
-			length = std::min(6, pixels_left);
-			byte_column++;
-			pattern = Numeric::bit_reverse(buffer.characters.shapes[byte_column]);
-		}
-	}
 }
 
 template <Personality personality>
@@ -350,9 +339,9 @@ void Base<personality>::draw_yamaha(int start, int end) {
 	if constexpr (is_yamaha_vdp(personality)) {
 		switch(line_buffer.screen_mode) {
 			// These modes look the same as on the TMS.
-			case ScreenMode::Text:	draw_tms_text(start >> 2, end >> 2);	break;
+			case ScreenMode::Text:			draw_tms_text<false>(start >> 2, end >> 2);	break;
+			case ScreenMode::YamahaText80:	draw_tms_text<true>(start >> 1, end >> 1);	break;
 
-			Dispatch(YamahaText80);
 			Dispatch(YamahaGraphics3);
 			Dispatch(YamahaGraphics4);
 			Dispatch(YamahaGraphics5);

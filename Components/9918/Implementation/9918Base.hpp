@@ -527,7 +527,7 @@ template <Personality personality> struct Base: public Storage<personality> {
 
 	// Output serialisers.
 	void draw_tms_character(int start, int end);
-	void draw_tms_text(int start, int end);
+	template <bool apply_blink> void draw_tms_text(int start, int end);
 	void draw_sms(int start, int end, uint32_t cram_dot);
 
 	template<ScreenMode mode> void draw_yamaha(LineBuffer &, int start, int end);

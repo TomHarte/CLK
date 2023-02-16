@@ -504,7 +504,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 					case ScreenMode::YamahaText80: {
 						const auto column = AddressT(Storage<personality>::data_block_ >> 3);
 						const AddressT address = colour_table_address_ & (0x1fe00 | size_t(y >> 3) * 10);
-						line_buffer.characters.flags[column] = ram_[address];
+						line_buffer.characters.flags[column] = ram_[address + column];
 					} break;
 
 					default: break;

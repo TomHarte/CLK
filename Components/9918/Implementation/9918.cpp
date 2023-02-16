@@ -292,6 +292,16 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			if(this->fetch_pointer_.column == Timing<personality>::CyclesPerLine) {
 				this->fetch_pointer_.column = 0;
 				this->fetch_pointer_.row = (this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines;
+				if constexpr (is_yamaha_vdp(personality)) {
+					if(!this->fetch_pointer_.row && Storage<personality>::blink_periods_) {
+						--Storage<personality>::blink_counter_;
+						while(!Storage<personality>::blink_counter_) {
+							Storage<personality>::in_blink_ ^= 1;
+							Storage<personality>::blink_counter_ = (Storage<personality>::blink_periods_ >> (Storage<personality>::in_blink_ << 2)) & 0xf;
+						}
+					}
+				}
+
 				LineBuffer &next_line_buffer = this->line_buffers_[this->fetch_pointer_.row];
 
 				// Progress towards any delayed events.
@@ -366,8 +376,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 						this->vertical_state();
 				const bool is_refresh = next_line_buffer.vertical_state == VerticalState::Blank;
 
-				// TODO: an actual sprites-enabled flag.
-				Storage<personality>::begin_line(this->screen_mode_, is_refresh, false);
+				Storage<personality>::begin_line(this->screen_mode_, is_refresh);
 
 				if(is_refresh) {
 					// The Yamaha handles refresh lines via its own microprogram; other VDPs
@@ -491,10 +500,10 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					// Left border.
 					border(Timing<personality>::StartOfLeftBorder, line_buffer.first_pixel_output_column);
 
-#define draw(function, clock) {																				\
+#define draw(function, clock) {																						\
 	const int relative_start = from_internal<personality, clock>(start - line_buffer.first_pixel_output_column);	\
 	const int relative_end = from_internal<personality, clock>(end - line_buffer.first_pixel_output_column);		\
-	if(relative_start == relative_end) break;																	\
+	if(relative_start == relative_end) break;																		\
 	this->function; }
 
 					// Pixel region.
@@ -515,7 +524,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 							switch(line_buffer.fetch_mode) {
 								case FetchMode::SMS:			draw(draw_sms(relative_start, relative_end, cram_value), Clock::TMSPixel);	break;
 								case FetchMode::Character:		draw(draw_tms_character(relative_start, relative_end), Clock::TMSPixel);	break;
-								case FetchMode::Text:			draw(draw_tms_text(relative_start, relative_end), Clock::TMSPixel);			break;
+								case FetchMode::Text:			draw(template draw_tms_text<false>(relative_start, relative_end), Clock::TMSPixel);			break;
 								case FetchMode::Yamaha:			draw(draw_yamaha(relative_start, relative_end), Clock::Internal);			break;
 
 								case FetchMode::Refresh:		break;	/* Dealt with elsewhere. */
@@ -752,6 +761,7 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 
 			case 8:
 				LOG("TODO: Yamaha VRAM organisation, sprite disable, etc; " << PADHEX(2) << +value);
+				Storage<personality>::sprites_enabled_ = !(value & 0x02);
 				// b7: "1 = input on colour bus, enable mouse; 1 = output on colour bus, disable mouse" [documentation clearly in error]
 				// b6: 1 = enable light pen
 				// b5: sets the colour of code 0 to the colour of the palette (???)
@@ -778,12 +788,17 @@ void Base<personality>::commit_register(int reg, uint8_t value) {
 			case 11:	install_field<15>(sprite_attribute_table_address_, value);	break;
 
 			case 12:
-				LOG("TODO: Yamaha text and background blink colour; " << PADHEX(2) << +value);
+				Storage<personality>::blink_text_colour_ = value >> 4;
+				Storage<personality>::blink_background_colour_ = value & 0xf;
 				// as per register 7, but in blink mode.
 			break;
 
 			case 13:
-				LOG("TODO: Yamaha blink display times; " << PADHEX(2) << +value);
+				Storage<personality>::blink_periods_ = value;
+				if(!value) {
+					Storage<personality>::in_blink_ = 0;
+				}
+
 				// b0–b3: display time for odd page;
 				// b4–b7: display time for even page.
 			break;
