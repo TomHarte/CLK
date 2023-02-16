@@ -104,14 +104,13 @@ template<bool use_end, typename Fetcher> void Base<personality>::dispatch(Fetche
 #undef index
 }
 
-namespace {
+// MARK: - TMS fetcher definitions.
 
 template <Personality personality>
 struct RefreshFetcher {
 	RefreshFetcher(Base<personality> *base) : base(base) {}
 
 	template <int cycle> void fetch() {
-		// Do 44 external slots in a block, then treat every other slot as external.
 		if(cycle < 44 || (cycle&1)) {
 			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
 		}
@@ -153,7 +152,134 @@ struct TextFetcher {
 	const AddressT row_offset;
 };
 
-}
+template <Personality personality>
+struct CharacterFetcher {
+	using AddressT = typename Base<personality>::AddressT;
+
+	CharacterFetcher(Base<personality> *base, LineBuffer &buffer, LineBuffer &sprite_selection_buffer, int y) :
+		base(base),
+		tile_buffer(buffer),
+		sprite_selection_buffer(sprite_selection_buffer),
+		y(y),
+		row_base(base->pattern_name_address_ & (AddressT((y << 2)&~31) | 0x3c00))
+	{
+		pattern_base = base->pattern_generator_table_address_;
+		colour_base = base->colour_table_address_;
+		colour_name_shift = 6;
+
+		if(buffer.screen_mode == ScreenMode::Graphics) {
+			// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
+			pattern_base &= size_t(0x2000 | ((y & 0xc0) << 5));
+			colour_base &= size_t(0x2000 | ((y & 0xc0) << 5));
+
+			colour_base += size_t(y & 7);
+			colour_name_shift = 0;
+		} else {
+			colour_base &= size_t(0xffc0);
+			pattern_base &= size_t(0x3800);
+		}
+
+		if(buffer.screen_mode == ScreenMode::MultiColour) {
+			pattern_base += size_t((y >> 2) & 7);
+		} else {
+			pattern_base += size_t(y & 7);
+		}
+	}
+
+	template <int cycle> void fetch() {
+		if(cycle < 2) {
+			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+		}
+
+		if(cycle == 2) {
+			// Fetch: y0, x0, n0, c0, pat0a, pat0b, y1, x1, n1, c1, pat1a, pat1b, y2, x2.
+			fetch_sprite_coordinates(0);
+			fetch_sprite_graphics(0);
+			fetch_sprite_coordinates(1);
+			fetch_sprite_graphics(1);
+			fetch_sprite_coordinates(2);
+		}
+
+		if(cycle > 16 && cycle < 21) {
+			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+		}
+
+		if(cycle == 21) {
+			// Fetch: n1, c2, pat2a, pat2b, y3, x3, n3, c3, pat3a, pat3b.
+			fetch_sprite_graphics(2);
+			fetch_sprite_coordinates(3);
+			fetch_sprite_graphics(3);
+
+			// All patterns now fetched, reset sprite selection.
+			sprite_selection_buffer.reset_sprite_collection();
+		}
+
+		if(cycle >= 31 && cycle < 35) {
+			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+		}
+
+		// Cycles 35 to 43: fetch new sprite Y coordinates, to select sprites for next line.
+		if(cycle >= 35 && cycle < 43) {
+			constexpr int sprite = cycle - 35;
+			base->posit_sprite(sprite_selection_buffer, sprite, base->ram_[base->sprite_attribute_table_address_ & AddressT((sprite << 2) | 0x3f80)], y);
+		}
+
+		// Rest of line: tiles themselves, plus some additional potential sprites.
+		if(cycle >= 43) {
+			constexpr int offset = cycle - 43;
+			constexpr int block = offset >> 2;
+			constexpr int sub_block = offset & 3;
+			switch(sub_block) {
+				case 0:	base->tile_offset_ = base->ram_[(row_base + AddressT(block)) & 0x3fff];	break;
+				case 1:
+					if(!(block & 3)) {
+						base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+					} else {
+						constexpr int sprite = 8 + ((block >> 2) * 3) + ((block & 3) - 1);
+						base->posit_sprite(sprite_selection_buffer, sprite, base->ram_[base->sprite_attribute_table_address_ & AddressT((sprite << 2) | 0x3f80)], y);
+					}
+				break;
+				case 3:
+					tile_buffer.tiles.patterns[block][0] = base->ram_[(pattern_base + AddressT(base->tile_offset_ << 3)) & 0x3fff];
+					tile_buffer.tiles.patterns[block][1] = base->ram_[(colour_base + AddressT((base->tile_offset_ << 3) >> colour_name_shift)) & 0x3fff];
+				break;
+				default: break;
+			}
+		}
+	}
+
+	void fetch_sprite_coordinates(int sprite) {
+		tile_buffer.active_sprites[sprite].x =
+			base->ram_[
+				base->sprite_attribute_table_address_ & AddressT(0x3f81 | (tile_buffer.active_sprites[sprite].index << 2))
+			];
+	}
+
+	void fetch_sprite_graphics(int sprite) {
+		const uint8_t name = base->ram_[
+				base->sprite_attribute_table_address_ & AddressT(0x3f82 | (tile_buffer.active_sprites[sprite].index << 2))
+			] & (base->sprites_16x16_ ? ~3 : ~0);
+		tile_buffer.active_sprites[sprite].image[2] = base->ram_[
+				base->sprite_attribute_table_address_ & AddressT(0x3f83 | (tile_buffer.active_sprites[sprite].index << 2))
+			];
+		tile_buffer.active_sprites[sprite].x -= (tile_buffer.active_sprites[sprite].image[2] & 0x80) >> 2;
+
+		const size_t graphic_location = base->sprite_generator_table_address_ & size_t(0x3800 | (name << 3) | tile_buffer.active_sprites[sprite].row);
+		tile_buffer.active_sprites[sprite].image[0] = base->ram_[graphic_location];
+		tile_buffer.active_sprites[sprite].image[1] = base->ram_[graphic_location+16];
+	}
+
+	Base<personality> *const base;
+	LineBuffer &tile_buffer;
+	LineBuffer &sprite_selection_buffer;
+	const int y;
+	const AddressT row_base;
+	AddressT pattern_base;
+	AddressT colour_base;
+	int colour_name_shift;
+};
+
+// MARK: - TMS fetch routines.
 
 template <Personality personality>
 template<bool use_end> void Base<personality>::fetch_tms_refresh(LineBuffer &, int, int start, int end) {
@@ -169,142 +295,9 @@ template<bool use_end> void Base<personality>::fetch_tms_text(LineBuffer &line_b
 
 template <Personality personality>
 template<bool use_end> void Base<personality>::fetch_tms_character(LineBuffer &line_buffer, int y, int start, int end) {
-#define sprite_fetch_coordinates(location, sprite)	\
-	slot(location):		\
-	slot(location+1):	\
-		line_buffer.active_sprites[sprite].x = \
-			ram_[\
-				sprite_attribute_table_address_ & size_t(0x3f81 | (line_buffer.active_sprites[sprite].index << 2))\
-			];
-
-	// This implementation doesn't refetch Y; it's unclear to me
-	// whether it's refetched.
-
-#define sprite_fetch_graphics(location, sprite)	\
-	slot(location):		\
-	slot(location+1):	\
-	slot(location+2):	\
-	slot(location+3):	{\
-		const uint8_t name = ram_[\
-				sprite_attribute_table_address_ & size_t(0x3f82 | (line_buffer.active_sprites[sprite].index << 2))\
-			] & (sprites_16x16_ ? ~3 : ~0);\
-		line_buffer.active_sprites[sprite].image[2] = ram_[\
-				sprite_attribute_table_address_ & size_t(0x3f83 | (line_buffer.active_sprites[sprite].index << 2))\
-			];\
-		line_buffer.active_sprites[sprite].x -= (line_buffer.active_sprites[sprite].image[2] & 0x80) >> 2;\
-		const size_t graphic_location = sprite_generator_table_address_ & size_t(0x3800 | (name << 3) | line_buffer.active_sprites[sprite].row);	\
-		line_buffer.active_sprites[sprite].image[0] = ram_[graphic_location];\
-		line_buffer.active_sprites[sprite].image[1] = ram_[graphic_location+16];\
-	}
-
-#define sprite_fetch_block(location, sprite)	\
-	sprite_fetch_coordinates(location, sprite)	\
-	sprite_fetch_graphics(location+2, sprite)
-
-#define sprite_y_read(location, sprite)	\
-	slot(location): posit_sprite(sprite_selection_buffer, sprite, ram_[sprite_attribute_table_address_ & (((sprite) << 2) | 0x3f80)], y);
-
-#define fetch_tile_name(column) tile_offset_ = ram_[(row_base + column) & 0x3fff];
-
-#define fetch_tile(column)	{\
-		line_buffer.tiles.patterns[column][1] = ram_[(colour_base + size_t((tile_offset_ << 3) >> colour_name_shift)) & 0x3fff];		\
-		line_buffer.tiles.patterns[column][0] = ram_[(pattern_base + size_t(tile_offset_ << 3)) & 0x3fff];	\
-	}
-
-#define background_fetch_block(location, column, sprite)	\
-	slot(location):	fetch_tile_name(column)		\
-	external_slot(location+1);	\
-	slot(location+2):	\
-	slot(location+3): fetch_tile(column)	\
-	slot(location+4): fetch_tile_name(column+1)	\
-	sprite_y_read(location+5, sprite);	\
-	slot(location+6):	\
-	slot(location+7): fetch_tile(column+1)	\
-	slot(location+8): fetch_tile_name(column+2)	\
-	sprite_y_read(location+9, sprite+1);	\
-	slot(location+10):	\
-	slot(location+11): fetch_tile(column+2)	\
-	slot(location+12): fetch_tile_name(column+3)	\
-	sprite_y_read(location+13, sprite+2);	\
-	slot(location+14):	\
-	slot(location+15): fetch_tile(column+3)
-
-	LineBuffer &sprite_selection_buffer = line_buffers_[(y + 1) % mode_timing_.total_lines];
-	const size_t row_base = pattern_name_address_ & (size_t((y << 2)&~31) | 0x3c00);
-
-	size_t pattern_base = pattern_generator_table_address_;
-	size_t colour_base = colour_table_address_;
-	int colour_name_shift = 6;
-
-	if(screen_mode_ == ScreenMode::Graphics) {
-		// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
-		pattern_base &= size_t(0x2000 | ((y & 0xc0) << 5));
-		colour_base &= size_t(0x2000 | ((y & 0xc0) << 5));
-
-		colour_base += size_t(y & 7);
-		colour_name_shift = 0;
-	} else {
-		colour_base &= size_t(0xffc0);
-		pattern_base &= size_t(0x3800);
-	}
-
-	if(screen_mode_ == ScreenMode::MultiColour) {
-		pattern_base += size_t((y >> 2) & 7);
-	} else {
-		pattern_base += size_t(y & 7);
-	}
-
-	switch(start) {
-		default: assert(false);
-
-		external_slots_2(0);
-
-		sprite_fetch_block(2, 0);
-		sprite_fetch_block(8, 1);
-		sprite_fetch_coordinates(14, 2);
-
-		external_slots_4(16);
-		external_slot(20);
-
-		sprite_fetch_graphics(21, 2);
-		sprite_fetch_block(25, 3);
-
-		slot(31):
-			sprite_selection_buffer.reset_sprite_collection();
-			do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(31));
-		external_slots_2(32);
-		external_slot(34);
-
-		sprite_y_read(35, 0);
-		sprite_y_read(36, 1);
-		sprite_y_read(37, 2);
-		sprite_y_read(38, 3);
-		sprite_y_read(39, 4);
-		sprite_y_read(40, 5);
-		sprite_y_read(41, 6);
-		sprite_y_read(42, 7);
-
-		background_fetch_block(43, 0, 8);
-		background_fetch_block(59, 4, 11);
-		background_fetch_block(75, 8, 14);
-		background_fetch_block(91, 12, 17);
-		background_fetch_block(107, 16, 20);
-		background_fetch_block(123, 20, 23);
-		background_fetch_block(139, 24, 26);
-		background_fetch_block(155, 28, 29);
-
-		return;
-	}
-
-#undef background_fetch_block
-#undef fetch_tile
-#undef fetch_tile_name
-#undef sprite_y_read
-#undef sprite_fetch_block
-#undef sprite_fetch_graphics
-#undef sprite_fetch_coordinates
+	CharacterFetcher fetcher(this, line_buffer, line_buffers_[(y + 1) % mode_timing_.total_lines], y);
+	dispatch<use_end>(fetcher, start, end);
 }
-
 
 // MARK: - Master System
 
