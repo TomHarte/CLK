@@ -129,7 +129,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			break;
 
 			default:
-				next_event_ = sprites_enabled ? sprites_events.data() : no_sprites_events.data();
+				next_event_ = sprites_enabled_ ? sprites_events.data() : no_sprites_events.data();
 			break;
 		}
 	}
