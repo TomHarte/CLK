@@ -77,8 +77,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		} type = Type::External;
 		uint8_t id = 0;
 
-		constexpr Event(int offset, Type type, uint8_t id = 0) noexcept :
-			offset(uint16_t(grauw_to_internal(offset))),
+		constexpr Event(Type type, uint8_t id = 0) noexcept :
 			type(type),
 			id(id) {}
 
@@ -235,13 +234,12 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			std::array<Event, size> result{};
 			size_t index = 0;
 			for(int c = 0; c < 1368; c++) {
-				const auto event_type = GeneratorT::event(internal_to_grauw(c));
-				if(!event_type) {
+				const auto event = GeneratorT::event(internal_to_grauw(c));
+				if(!event) {
 					continue;
 				}
-				// TODO: once all lists are using generators, remove implicit grauw_to_internal
-				// from Event constructor and just supply c here.
-				result[index] = Event(internal_to_grauw(c), *event_type);
+				result[index] = *event;
+				result[index].offset = uint16_t(c);
 				++index;
 			}
 			result[index] = Event();
@@ -249,14 +247,14 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		}
 
 		struct StandardGenerators {
-			static constexpr std::optional<typename Event::Type> external_every_eight(int index) {
+			static constexpr std::optional<Event> external_every_eight(int index) {
 				if(index & 7) return std::nullopt;
 				return Event::Type::External;
 			}
 		};
 
 		struct RefreshGenerator {
-			static constexpr std::optional<typename Event::Type> event(int grauw_index) {
+			static constexpr std::optional<Event> event(int grauw_index) {
 				// From 0 to 126: CPU/CMD slots at every cycle divisible by 8.
 				if(grauw_index < 126) {
 					return StandardGenerators::external_every_eight(grauw_index - 0);
@@ -293,7 +291,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		static constexpr auto refresh_events = events<RefreshGenerator>();
 
 		template <bool include_sprites> struct BitmapEventsGenerator {
-			static constexpr std::optional<typename Event::Type> event(int grauw_index) {
+			static constexpr std::optional<Event> event(int grauw_index) {
 				if(!include_sprites) {
 					// Various standard zones of one-every-eight external slots.
 					if(grauw_index < 124) {
@@ -369,7 +367,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		static constexpr auto sprites_events = events<BitmapEventsGenerator<true>>();
 
 		struct TextGenerator {
-			static constexpr std::optional<typename Event::Type> event(int grauw_index) {
+			static constexpr std::optional<Event> event(int grauw_index) {
 				// Capture various one-in-eight zones.
 				if(grauw_index < 72) {
 					return StandardGenerators::external_every_eight(grauw_index - 2);
@@ -406,12 +404,18 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		static constexpr auto text_events = events<TextGenerator>();
 
 		struct CharacterGenerator {
-			static constexpr std::optional<typename Event::Type> event(int grauw_index) {
+			static constexpr std::optional<Event> event(int grauw_index) {
 				// Grab sprite events.
 				switch(grauw_index) {
 					default: break;
-					case 1242:	case 1306:	case 6:		case 70:	return Event::Type::SpriteLocation;
-					case 1274:	case 1342:	case 38:	case 102:	return Event::Type::SpritePattern;
+					case 1242:	return Event(Event::Type::SpriteLocation, 0);
+					case 1306:	return Event(Event::Type::SpriteLocation, 1);
+					case 6:		return Event(Event::Type::SpriteLocation, 2);
+					case 70:	return Event(Event::Type::SpriteLocation, 3);
+					case 1274:	return Event(Event::Type::SpritePattern, 0);
+					case 1342:	return Event(Event::Type::SpritePattern, 1);
+					case 38:	return Event(Event::Type::SpritePattern, 2);
+					case 102:	return Event(Event::Type::SpritePattern, 3);
 					case 1268:	case 1334:	case 32:	case 96:	return Event::Type::External;
 				}
 
@@ -424,11 +428,11 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 					const int block = offset / 32;
 					const int sub_block = offset & 31;
 					switch(sub_block) {
-						case 0:		if(block > 0) return Event::Type::Name;
+						case 0:		if(block > 0) return Event(Event::Type::Name, uint8_t(block - 1));
 						case 6: 	if((sub_block & 3) != 3) return Event::Type::External;
-						case 12: 	if(block < 32) return Event::Type::SpriteY;
-						case 18:	if(block > 0) return Event::Type::Pattern;
-						case 24:	if(block > 0) return Event::Type::Colour;
+						case 12: 	if(block < 32) return Event(Event::Type::SpriteY, uint8_t(block));
+						case 18:	if(block > 0) return Event(Event::Type::Pattern, uint8_t(block - 1));
+						case 24:	if(block > 0) return Event(Event::Type::Colour, uint8_t(block - 1));
 					}
 				}
 
