@@ -366,7 +366,11 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 					break;
 					default:
 						// This covers both MultiColour and Graphics modes.
-						next_line_buffer.fetch_mode = FetchMode::Character;
+						if constexpr (is_yamaha_vdp(personality)) {
+							next_line_buffer.fetch_mode = FetchMode::Yamaha;
+						} else {
+							next_line_buffer.fetch_mode = FetchMode::Character;
+						}
 					break;
 				}
 
