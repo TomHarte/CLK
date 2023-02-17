@@ -51,8 +51,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	struct Event {
 		/// Offset of the _beginning_ of the event. Not completely arbitrarily: this is when
 		/// external data must be ready by in order to take part in those slots.
-		int offset = 1368;
-		enum class Type {
+		uint16_t offset = 1368;
+		enum class Type: uint8_t {
 			/// A slot for reading or writing data on behalf of the CPU or the command engine.
 			External,
 
@@ -75,13 +75,12 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			Colour,
 			Pattern,
 		} type = Type::External;
+		uint8_t id = 0;
 
-		constexpr Event(int offset, Type type) noexcept :
-			offset(grauw_to_internal(offset)),
-			type(type) {}
-
-		constexpr Event(int offset) noexcept :
-			offset(grauw_to_internal(offset)) {}
+		constexpr Event(int offset, Type type, uint8_t id = 0) noexcept :
+			offset(uint16_t(grauw_to_internal(offset))),
+			type(type),
+			id(id) {}
 
 		constexpr Event() noexcept {}
 	};
