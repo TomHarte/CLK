@@ -508,14 +508,14 @@ template <Personality personality> struct Base: public Storage<personality> {
 	template<bool use_end, typename Fetcher> void dispatch(Fetcher &fetcher, int start, int end);
 
 	// Various fetchers.
-	template<bool use_end> void fetch_tms_refresh(LineBuffer &, int y, int start, int end);
-	template<bool use_end> void fetch_tms_text(LineBuffer &, int y, int start, int end);
-	template<bool use_end> void fetch_tms_character(LineBuffer &, int y, int start, int end);
+	template<bool use_end> void fetch_tms_refresh(LineBuffer &, LineBuffer &, int y, int start, int end);
+	template<bool use_end> void fetch_tms_text(LineBuffer &, LineBuffer &, int y, int start, int end);
+	template<bool use_end> void fetch_tms_character(LineBuffer &, LineBuffer &, int y, int start, int end);
 
-	template<bool use_end> void fetch_yamaha(LineBuffer &, int y, int start, int end);
-	template<ScreenMode> void fetch_yamaha(LineBuffer &, int y, int end);
+	template<bool use_end> void fetch_yamaha(LineBuffer &, LineBuffer &, int y, int start, int end);
+	template<ScreenMode> void fetch_yamaha(LineBuffer &, LineBuffer &, int y, int end);
 
-	template<bool use_end> void fetch_sms(LineBuffer &, int y, int start, int end);
+	template<bool use_end> void fetch_sms(LineBuffer &, LineBuffer &, int y, int start, int end);
 
 	// A helper function to output the current border colour for
 	// the number of cycles supplied.

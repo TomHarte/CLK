@@ -140,10 +140,10 @@ struct CharacterFetcher {
 
 		if(buffer.screen_mode == ScreenMode::Graphics) {
 			// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
-			pattern_base &= size_t(0x2000 | ((y & 0xc0) << 5));
-			colour_base &= size_t(0x2000 | ((y & 0xc0) << 5));
+			pattern_base &= AddressT(0x2000 | ((y & 0xc0) << 5));
+			colour_base &= AddressT(0x2000 | ((y & 0xc0) << 5));
 
-			colour_base += size_t(y & 7);
+			colour_base += AddressT(y & 7);
 			colour_name_shift = 0;
 		} else {
 			colour_base &= size_t(0xffc0);
@@ -241,7 +241,7 @@ struct CharacterFetcher {
 	}
 
 	void posit_sprite(int sprite) {
-		base->posit_sprite(sprite_selection_buffer, sprite, base->ram_[base->sprite_attribute_table_address_ & AddressT((sprite << 2) | 0x3f80)], y);	
+		base->posit_sprite(sprite_selection_buffer, sprite, base->ram_[base->sprite_attribute_table_address_ & AddressT((sprite << 2) | 0x3f80)], y);
 	}
 
 	Base<personality> *const base;
@@ -257,20 +257,20 @@ struct CharacterFetcher {
 // MARK: - TMS fetch routines.
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_tms_refresh(LineBuffer &, int, int start, int end) {
+template<bool use_end> void Base<personality>::fetch_tms_refresh(LineBuffer &, LineBuffer &, int, int start, int end) {
 	RefreshFetcher refresher(this);
 	dispatch<use_end>(refresher, start, end);
 }
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_tms_text(LineBuffer &line_buffer, int y, int start, int end) {
+template<bool use_end> void Base<personality>::fetch_tms_text(LineBuffer &line_buffer, LineBuffer &, int y, int start, int end) {
 	TextFetcher fetcher(this, line_buffer, y);
 	dispatch<use_end>(fetcher, start, end);
 }
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_tms_character(LineBuffer &line_buffer, int y, int start, int end) {
-	CharacterFetcher fetcher(this, line_buffer, line_buffers_[(y + 1) % mode_timing_.total_lines], y);
+template<bool use_end> void Base<personality>::fetch_tms_character(LineBuffer &line_buffer, LineBuffer &next_line_buffer, int y, int start, int end) {
+	CharacterFetcher fetcher(this, line_buffer, next_line_buffer, y);
 	dispatch<use_end>(fetcher, start, end);
 }
 
@@ -414,9 +414,9 @@ struct SMSFetcher {
 };
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer, int y, int start, int end) {
+template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer, LineBuffer &next_line_buffer, int y, int start, int end) {
 	if constexpr (is_sega_vdp(personality)) {
-		SMSFetcher fetcher(this, line_buffer, line_buffers_[(y + 1) % mode_timing_.total_lines], y);
+		SMSFetcher fetcher(this, line_buffer, next_line_buffer, y);
 		dispatch<use_end>(fetcher, start, end);
 	}
 }
@@ -424,7 +424,7 @@ template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer
 // MARK: - Yamaha
 
 template <Personality personality>
-template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_buffer, int y, int end) {
+template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_buffer, LineBuffer &next_line_buffer, int y, int end) {
 	const AddressT rotated_name_ = pattern_name_address_ >> 1;
 	const uint8_t *const ram2 = &ram_[65536];
 
@@ -455,6 +455,11 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						name_[3] = ram_[start + column + 3];
 					} break;
 
+					case ScreenMode::Graphics: {
+						const auto row_base = pattern_name_address_ & (AddressT((y << 2)&~31) | 0x1fc00);
+						tile_offset_ = ram_[(row_base + Storage<personality>::next_event_->id) & 0x1ffff];
+					} break;
+
 					default: break;
 				}
 			break;
@@ -465,6 +470,12 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						const auto column = AddressT(Storage<personality>::data_block_ >> 3);
 						const AddressT address = colour_table_address_ & (0x1fe00 | size_t(y >> 3) * 10);
 						line_buffer.characters.flags[column] = ram_[address + column];
+					} break;
+
+					case ScreenMode::Graphics: {
+						const auto colour_base = (colour_table_address_ & (0x2000 | ((y & 0xc0) << 5))) + (y & 7);
+						line_buffer.tiles.patterns[Storage<personality>::next_event_->id][1] =
+							ram_[colour_base + AddressT((tile_offset_ << 3)) & 0x1ffff];
 					} break;
 
 					default: break;
@@ -493,7 +504,53 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						line_buffer.characters.shapes[column + 3] = ram_[start + AddressT(name_[3] << 3)];
 					} break;
 
+					case ScreenMode::Graphics: {
+						const auto pattern_base = (pattern_generator_table_address_ & (0x2000 | ((y & 0xc0) << 5))) + (y & 7);
+						line_buffer.tiles.patterns[Storage<personality>::next_event_->id][0] =
+							ram_[(pattern_base + AddressT(tile_offset_ << 3)) & 0x1ffff];
+					} break;
+
 					default: break;
+				}
+			break;
+
+			case Type::SpriteY:
+				switch(mode) {
+					default:
+						posit_sprite(next_line_buffer, Storage<personality>::next_event_->id, ram_[sprite_attribute_table_address_ & AddressT((Storage<personality>::next_event_->id << 2) | 0x1ff80)], y);
+						if(Storage<personality>::next_event_->id == 31) {
+							next_line_buffer.reset_sprite_collection();
+						}
+					break;
+				}
+			break;
+
+			case Type::SpriteLocation:
+				switch(mode) {
+					default:
+						line_buffer.active_sprites[Storage<personality>::next_event_->id].x =
+							ram_[
+								sprite_attribute_table_address_ & AddressT(0x1ff81 | (line_buffer.active_sprites[Storage<personality>::next_event_->id].index << 2))
+							];
+					break;
+				}
+			break;
+
+			case Type::SpritePattern:
+				switch(mode) {
+					default: {
+						const uint8_t name = ram_[
+								sprite_attribute_table_address_ & AddressT(0x1ff82 | (line_buffer.active_sprites[Storage<personality>::next_event_->id].index << 2))
+							] & (sprites_16x16_ ? ~3 : ~0);
+						line_buffer.active_sprites[Storage<personality>::next_event_->id].image[2] = ram_[
+								sprite_attribute_table_address_ & AddressT(0x1ff83 | (line_buffer.active_sprites[Storage<personality>::next_event_->id].index << 2))
+							];
+						line_buffer.active_sprites[Storage<personality>::next_event_->id].x -= (line_buffer.active_sprites[Storage<personality>::next_event_->id].image[2] & 0x80) >> 2;
+
+						const size_t graphic_location = sprite_generator_table_address_ & AddressT(0x1f800 | (name << 3) | line_buffer.active_sprites[Storage<personality>::next_event_->id].row);
+						line_buffer.active_sprites[Storage<personality>::next_event_->id].image[0] = ram_[graphic_location];
+						line_buffer.active_sprites[Storage<personality>::next_event_->id].image[1] = ram_[graphic_location+16];
+					} break;
 				}
 			break;
 
@@ -544,10 +601,10 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 
 
 template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_yamaha(LineBuffer &line_buffer, int y, int, int end) {
+template<bool use_end> void Base<personality>::fetch_yamaha(LineBuffer &line_buffer, LineBuffer &next_line_buffer, int y, int, int end) {
 	if constexpr (is_yamaha_vdp(personality)) {
 		// Dispatch according to [supported] screen mode.
-#define Dispatch(mode)	case mode:	fetch_yamaha<mode>(line_buffer, y, end);	break;
+#define Dispatch(mode)	case mode:	fetch_yamaha<mode>(line_buffer, next_line_buffer, y, end);	break;
 		switch(line_buffer.screen_mode) {
 			default: break;
 			Dispatch(ScreenMode::Blank);
