@@ -61,9 +61,12 @@ template <typename AddressT, int bits> constexpr AddressT n_bit(AddressT source)
 template <typename AddressT> constexpr AddressT bits6(AddressT source = 0)	{	return n_bit<AddressT, 6>(source);	}
 template <typename AddressT> constexpr AddressT bits7(AddressT source = 0)	{	return n_bit<AddressT, 7>(source);	}
 template <typename AddressT> constexpr AddressT bits8(AddressT source = 0)	{	return n_bit<AddressT, 8>(source);	}
+template <typename AddressT> constexpr AddressT bits9(AddressT source = 0)	{	return n_bit<AddressT, 9>(source);	}
 template <typename AddressT> constexpr AddressT bits10(AddressT source = 0)	{	return n_bit<AddressT, 10>(source);	}
 template <typename AddressT> constexpr AddressT bits11(AddressT source = 0)	{	return n_bit<AddressT, 11>(source);	}
+template <typename AddressT> constexpr AddressT bits12(AddressT source = 0)	{	return n_bit<AddressT, 12>(source);	}
 template <typename AddressT> constexpr AddressT bits13(AddressT source = 0)	{	return n_bit<AddressT, 13>(source);	}
+template <typename AddressT> constexpr AddressT bits15(AddressT source = 0)	{	return n_bit<AddressT, 15>(source);	}
 
 // MARK: - 171-window Dispatcher.
 
@@ -518,7 +521,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 
 					case ScreenMode::YamahaText80: {
 						const auto column = AddressT(Storage<personality>::data_block_);
-						const AddressT start = pattern_name_address_ & (0x1f000 | size_t(y >> 3) * 80);
+						const auto start = pattern_name_address_ & bits12(AddressT((y >> 3) * 80));
 
 						name_[0] = ram_[start + column + 0];
 						name_[1] = ram_[start + column + 1];
@@ -540,7 +543,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 				switch(mode) {
 					case ScreenMode::YamahaText80: {
 						const auto column = AddressT(Storage<personality>::data_block_ >> 3);
-						const AddressT address = colour_table_address_ & (0x1fe00 | size_t(y >> 3) * 10);
+						const auto address = colour_table_address_ & bits9(AddressT((y >> 3) * 10));
 						line_buffer.characters.flags[column] = ram_[address + column];
 					} break;
 
@@ -568,7 +571,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						const auto column = AddressT(Storage<personality>::data_block_);
 						Storage<personality>::data_block_ += 4;
 
-						const AddressT start = pattern_generator_table_address_ & (0x1f800 | (y & 7));
+						const auto start = pattern_generator_table_address_ & bits11(AddressT(y & 7));
 						line_buffer.characters.shapes[column + 0] = ram_[start + AddressT(name_[0] << 3)];
 						line_buffer.characters.shapes[column + 1] = ram_[start + AddressT(name_[1] << 3)];
 						line_buffer.characters.shapes[column + 2] = ram_[start + AddressT(name_[2] << 3)];
@@ -629,7 +632,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						const int column = Storage<personality>::data_block_;
 						Storage<personality>::data_block_ += 4;
 
-						const int start = (y << 7) | column | 0x1'8000;
+						const auto start = bits15((y << 7) | column);
 
 						line_buffer.bitmap[column + 0] = ram_[pattern_name_address_ & AddressT(start + 0)];
 						line_buffer.bitmap[column + 1] = ram_[pattern_name_address_ & AddressT(start + 1)];
@@ -642,7 +645,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						const int column = Storage<personality>::data_block_ << 1;
 						Storage<personality>::data_block_ += 4;
 
-						const int start = (y << 7) | column | 0x1'8000;
+						const auto start = bits15((y << 7) | column);
 
 						// Fetch from alternate banks.
 						line_buffer.bitmap[column + 0] = ram_[rotated_name_ & AddressT(start + 0)];
