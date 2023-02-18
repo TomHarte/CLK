@@ -343,9 +343,10 @@ void Base<personality>::draw_yamaha(int start, int end) {
 			case ScreenMode::YamahaText80:	draw_tms_text<true>(start >> 1, end >> 1);	break;
 			case ScreenMode::MultiColour:
 			case ScreenMode::ColouredText:
+			case ScreenMode::YamahaGraphics3:	// TODO: does this make sense?3
 			case ScreenMode::Graphics:		draw_tms_character(start >> 2, end >> 2);	break;
 
-			Dispatch(YamahaGraphics3);
+//			Dispatch(YamahaGraphics3);
 			Dispatch(YamahaGraphics4);
 			Dispatch(YamahaGraphics5);
 			Dispatch(YamahaGraphics6);

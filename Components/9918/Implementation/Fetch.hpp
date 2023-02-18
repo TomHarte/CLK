@@ -132,7 +132,7 @@ struct CharacterFetcher {
 		colour_base = base->colour_table_address_;
 		colour_name_shift = 6;
 
-		if(buffer.screen_mode == ScreenMode::Graphics) {
+		if(buffer.screen_mode == ScreenMode::Graphics || buffer.screen_mode == ScreenMode::YamahaGraphics3) {
 			// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
 			pattern_base &= bits<13>(AddressT(((y & 0xc0) << 5)));
 			colour_base &= bits<13>(AddressT(((y & 0xc0) << 5)));
@@ -521,6 +521,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 					case ScreenMode::Graphics:
 					case ScreenMode::MultiColour:
 					case ScreenMode::ColouredText:
+					case ScreenMode::YamahaGraphics3:
 						character_fetcher.fetch_tile_name(Storage<personality>::next_event_->id);
 					break;
 
@@ -539,6 +540,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 					case ScreenMode::Graphics:
 					case ScreenMode::MultiColour:
 					case ScreenMode::ColouredText:
+					case ScreenMode::YamahaGraphics3:
 						character_fetcher.fetch_tile_colour(Storage<personality>::next_event_->id);
 					break;
 
@@ -570,6 +572,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 					case ScreenMode::Graphics:
 					case ScreenMode::MultiColour:
 					case ScreenMode::ColouredText:
+					case ScreenMode::YamahaGraphics3:
 						character_fetcher.fetch_tile_pattern(Storage<personality>::next_event_->id);
 					break;
 

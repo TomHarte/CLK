@@ -123,6 +123,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			case ScreenMode::MultiColour:
 			case ScreenMode::YamahaGraphics1:
 			case ScreenMode::YamahaGraphics2:
+			case ScreenMode::YamahaGraphics3:				// TODO: possibly? Does this give enough bandwidth for sprites?
 				next_event_ = character_events.data();
 			break;
 
