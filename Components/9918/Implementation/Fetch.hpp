@@ -111,12 +111,12 @@ struct TextFetcher {
 		row_base(base->pattern_name_address_ & bits10(AddressT((y >> 3) * 40))),
 		row_offset(base->pattern_generator_table_address_ & bits11(AddressT(y & 7))) {}
 
-	void fetch_name(AddressT column) {
-		base->name_[0] = base->ram_[row_base + column];
+	void fetch_name(AddressT column, int slot = 0) {
+		base->name_[slot] = base->ram_[row_base + column];
 	}
 
-	void fetch_pattern(AddressT column) {
-		line_buffer.characters.shapes[column] = base->ram_[row_offset + size_t(base->name_[0] << 3)];
+	void fetch_pattern(AddressT column, int slot = 0) {
+		line_buffer.characters.shapes[column] = base->ram_[row_offset + size_t(base->name_[slot] << 3)];
 	}
 
 	Base<personality> *const base;
@@ -499,7 +499,7 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 	const uint8_t *const ram2 = &ram_[65536];
 
 	CharacterFetcher character_fetcher(this, line_buffer, next_line_buffer, y);
-//	TextFetcher text_fetcher(this, line_buffer, y);
+	TextFetcher text_fetcher(this, line_buffer, y);
 
 	using Type = typename Storage<personality>::Event::Type;
 	while(Storage<personality>::next_event_->offset < end) {
@@ -512,14 +512,8 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 				switch(mode) {
 					case ScreenMode::Text: {
 						const auto column = AddressT(Storage<personality>::data_block_);
-						const AddressT start = pattern_name_address_ & (0x1fc00 | size_t(y >> 3) * 40);
-
-						name_[0] = ram_[start + column + 0];
-						name_[1] = ram_[start + column + 1];
-
-						// TODO: use fetcher after resolving ambiguity over name_[0]/name_[1]/etc.
-//						text_fetcher.fetch_name(column);
-//						text_fetcher.fetch_name(column + 1);
+						text_fetcher.fetch_name(column, 0);
+						text_fetcher.fetch_name(column + 1, 1);
 					} break;
 
 					case ScreenMode::YamahaText80: {
@@ -566,12 +560,8 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						const auto column = AddressT(Storage<personality>::data_block_);
 						Storage<personality>::data_block_ += 2;
 
-						const AddressT start = pattern_generator_table_address_ & (0x1f800 | (y & 7));
-						line_buffer.characters.shapes[column + 0] = ram_[start + AddressT(name_[0] << 3)];
-						line_buffer.characters.shapes[column + 1] = ram_[start + AddressT(name_[1] << 3)];
-
-//						text_fetcher.fetch_pattern(column);
-//						text_fetcher.fetch_pattern(column + 1);
+						text_fetcher.fetch_pattern(column, 0);
+						text_fetcher.fetch_pattern(column + 1, 1);
 					} break;
 
 					case ScreenMode::YamahaText80: {
