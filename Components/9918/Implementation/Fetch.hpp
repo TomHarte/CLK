@@ -41,10 +41,34 @@
 	for the exceptions.
 */
 
-// MARK: - TMS9918
+// MARK: - Address mask helpers.
+
+/// @returns An instance of @c AddressT with all top bits set down to and including
+/// bit @c end and all others clear.
+///
+/// So e.g. if @c AddressT is @c uint16_t and this VDP has a 15-bit address space then
+/// @c top_bits<10> will be the address with bits 15 to 10 (inclusive) set and the rest clear.
+template <typename AddressT, int end> constexpr AddressT top_bits() {
+	return AddressT(~0) - AddressT((1 << end) - 1);
+}
+
+/// Modifies and returns @c source so that all bits above position @c bits are set; the others are unmodified.
+template <typename AddressT, int bits> constexpr AddressT n_bit(AddressT source) {
+	return AddressT(source | top_bits<AddressT, bits>());
+}
+
+// Various convenience functions for the above; bitsX can be used to wrap a number that is internally only X bits big.
+template <typename AddressT> constexpr AddressT bits6(AddressT source = 0)	{	return n_bit<AddressT, 6>(source);	}
+template <typename AddressT> constexpr AddressT bits7(AddressT source = 0)	{	return n_bit<AddressT, 7>(source);	}
+template <typename AddressT> constexpr AddressT bits8(AddressT source = 0)	{	return n_bit<AddressT, 8>(source);	}
+template <typename AddressT> constexpr AddressT bits10(AddressT source = 0)	{	return n_bit<AddressT, 10>(source);	}
+template <typename AddressT> constexpr AddressT bits11(AddressT source = 0)	{	return n_bit<AddressT, 11>(source);	}
+template <typename AddressT> constexpr AddressT bits13(AddressT source = 0)	{	return n_bit<AddressT, 13>(source);	}
+
+// MARK: - 171-window Dispatcher.
 
 template <Personality personality>
-template<bool use_end, typename Fetcher> void Base<personality>::dispatch(Fetcher &fetcher, int start, int end) {
+template<bool use_end, typename SequencerT> void Base<personality>::dispatch(SequencerT &fetcher, int start, int end) {
 #define index(n)						\
 	if(use_end && end == n) return;		\
 	[[fallthrough]];					\
@@ -75,42 +99,7 @@ template<bool use_end, typename Fetcher> void Base<personality>::dispatch(Fetche
 #undef index
 }
 
-/// @returns An instance of @c AddressT with all top bits set down to and including
-/// bit @c end and all others clear.
-///
-/// So e.g. if @c AddressT is @c uint16_t and this VDP has a 15-bit address space then
-/// @c top_bits<10> will be the address with bits 15 to 10 (inclusive) set and the rest clear.
-template <typename AddressT, int end> constexpr AddressT top_bits() {
-	return AddressT(~0) - AddressT((1 << end) - 1);
-}
-
-/// Modifies and returns @c source so that all bits above position @c bits are set; the others are unmodified.
-template <typename AddressT, int bits> constexpr AddressT n_bit(AddressT source) {
-	return AddressT(source | top_bits<AddressT, bits>());
-}
-
-// Various convenience functions for the above; bitsX can be used to wrap a number that is internally only X bits big.
-template <typename AddressT> constexpr AddressT bits6(AddressT source = 0)	{	return n_bit<AddressT, 6>(source);	}
-template <typename AddressT> constexpr AddressT bits7(AddressT source = 0)	{	return n_bit<AddressT, 7>(source);	}
-template <typename AddressT> constexpr AddressT bits8(AddressT source = 0)	{	return n_bit<AddressT, 8>(source);	}
-template <typename AddressT> constexpr AddressT bits10(AddressT source = 0)	{	return n_bit<AddressT, 10>(source);	}
-template <typename AddressT> constexpr AddressT bits11(AddressT source = 0)	{	return n_bit<AddressT, 11>(source);	}
-template <typename AddressT> constexpr AddressT bits13(AddressT source = 0)	{	return n_bit<AddressT, 13>(source);	}
-
-// MARK: - TMS fetcher definitions.
-
-template <Personality personality>
-struct RefreshFetcher {
-	RefreshFetcher(Base<personality> *base) : base(base) {}
-
-	template <int cycle> void fetch() {
-		if(cycle < 44 || (cycle&1)) {
-			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
-		}
-	}
-
-	Base<personality> *const base;
-};
+// MARK: - Fetchers.
 
 template <Personality personality>
 struct TextFetcher {
@@ -121,23 +110,6 @@ struct TextFetcher {
 		line_buffer(buffer),
 		row_base(base->pattern_name_address_ & bits10(AddressT((y >> 3) * 40))),
 		row_offset(base->pattern_generator_table_address_ & bits11(AddressT(y & 7))) {}
-
-	template <int cycle> void fetch() {
-		// The first 47 and the final 4 slots are external.
-		if constexpr (cycle < 47 || cycle >= 167) {
-			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
-			return;
-		} else {
-			// For the 120 slots in between follow a three-step pattern of:
-			constexpr int offset = cycle - 47;
-			constexpr auto column = AddressT(offset / 3);
-			switch(offset % 3) {
-				case 0:	fetch_name(column);																	break;	// (1) fetch tile name.
-				case 1:	base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));	break;	// (2) external slot.
-				case 2:	fetch_pattern(column);																break;	// (3) fetch tile pattern.
-			}
-		}
-	}
 
 	void fetch_name(AddressT column) {
 		base->name_[0] = base->ram_[row_base + column];
@@ -184,65 +156,6 @@ struct CharacterFetcher {
 			pattern_base += AddressT((y >> 2) & 7);
 		} else {
 			pattern_base += AddressT(y & 7);
-		}
-	}
-
-	template <int cycle> void fetch() {
-		if(cycle < 2) {
-			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
-		}
-
-		if(cycle == 2) {
-			// Fetch: y0, x0, n0, c0, pat0a, pat0b, y1, x1, n1, c1, pat1a, pat1b, y2, x2.
-			fetch_sprite_location(0);
-			fetch_sprite_pattern(0);
-			fetch_sprite_location(1);
-			fetch_sprite_pattern(1);
-			fetch_sprite_location(2);
-		}
-
-		if(cycle > 16 && cycle < 21) {
-			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
-		}
-
-		if(cycle == 21) {
-			// Fetch: n1, c2, pat2a, pat2b, y3, x3, n3, c3, pat3a, pat3b.
-			fetch_sprite_pattern(2);
-			fetch_sprite_location(3);
-			fetch_sprite_pattern(3);
-		}
-
-		if(cycle >= 31 && cycle < 35) {
-			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
-		}
-
-		// Cycles 35 to 43: fetch 8 new sprite Y coordinates, to begin selecting sprites for next line.
-		if(cycle == 35) {
-			posit_sprite(0);	posit_sprite(1);	posit_sprite(2);	posit_sprite(3);
-			posit_sprite(4);	posit_sprite(5);	posit_sprite(6);	posit_sprite(7);
-		}
-
-		// Rest of line: tiles themselves, plus some additional potential sprites.
-		if(cycle >= 43) {
-			constexpr int offset = cycle - 43;
-			constexpr int block = offset >> 2;
-			constexpr int sub_block = offset & 3;
-			switch(sub_block) {
-				case 0:	fetch_tile_name(block);	break;
-				case 1:
-					if(!(block & 3)) {
-						base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
-					} else {
-						constexpr int sprite = 8 + ((block >> 2) * 3) + ((block & 3) - 1);
-						posit_sprite(sprite);
-					}
-				break;
-				case 3:
-					fetch_tile_pattern(block);
-					fetch_tile_colour(block);
-				break;
-				default: break;
-			}
 		}
 	}
 
@@ -293,28 +206,6 @@ struct CharacterFetcher {
 	int colour_name_shift;
 };
 
-// MARK: - TMS fetch routines.
-
-template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_tms_refresh(LineBuffer &, LineBuffer &, int, int start, int end) {
-	RefreshFetcher refresher(this);
-	dispatch<use_end>(refresher, start, end);
-}
-
-template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_tms_text(LineBuffer &line_buffer, LineBuffer &, int y, int start, int end) {
-	TextFetcher fetcher(this, line_buffer, y);
-	dispatch<use_end>(fetcher, start, end);
-}
-
-template <Personality personality>
-template<bool use_end> void Base<personality>::fetch_tms_character(LineBuffer &line_buffer, LineBuffer &next_line_buffer, int y, int start, int end) {
-	CharacterFetcher fetcher(this, line_buffer, next_line_buffer, y);
-	dispatch<use_end>(fetcher, start, end);
-}
-
-// MARK: - Master System
-
 template <Personality personality>
 struct SMSFetcher {
 	using AddressT = typename Base<personality>::AddressT;
@@ -349,63 +240,6 @@ struct SMSFetcher {
 		} else static_row_info = scrolled_row_info;
 	}
 
-	template <int cycle> void fetch() {
-		if(!cycle) {
-			fetch_sprite(0);
-			fetch_sprite(1);
-			fetch_sprite(2);
-			fetch_sprite(3);
-		}
-
-		if(cycle >= 12 && cycle < 17) {
-			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
-		}
-
-		if(cycle == 17) {
-			fetch_sprite(4);
-			fetch_sprite(5);
-			fetch_sprite(6);
-			fetch_sprite(7);
-		}
-
-		if(cycle == 29 || cycle == 30) {
-			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
-		}
-
-		if(cycle == 31) {
-			posit_sprite(0);	posit_sprite(1);	posit_sprite(2);	posit_sprite(3);
-			posit_sprite(4);	posit_sprite(5);	posit_sprite(6);	posit_sprite(7);
-			posit_sprite(8);	posit_sprite(9);	posit_sprite(10);	posit_sprite(11);
-			posit_sprite(12);	posit_sprite(13);	posit_sprite(14);	posit_sprite(15);
-		}
-
-		if(cycle >= 39 && cycle < 167) {
-			constexpr int offset = cycle - 39;
-			constexpr int block = offset >> 2;
-			constexpr int sub_block = offset & 3;
-
-			switch(sub_block) {
-				default: break;
-
-				case 0:	fetch_tile_name(block, block < 24 ? scrolled_row_info : static_row_info);	break;
-				case 1:
-					if(!(block & 3)) {
-						base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
-					} else {
-						constexpr int sprite = (8 + ((block >> 2) * 3) + ((block & 3) - 1)) << 1;
-						posit_sprite(sprite);
-						posit_sprite(sprite+1);
-					}
-				break;
-				case 2:	fetch_tile_pattern(block);	break;
-			}
-		}
-
-		if(cycle >= 167) {
-			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
-		}
-	}
-
 	void fetch_sprite(int sprite) {
 		tile_buffer.active_sprites[sprite].x =
 			base->ram_[
@@ -424,9 +258,11 @@ struct SMSFetcher {
 		tile_buffer.active_sprites[sprite].image[3] = base->ram_[graphic_location+3];
 	}
 
-	void fetch_tile_name(int column, const RowInfo &row_info) {
+	void fetch_tile_name(int column) {
+		const RowInfo &row_info = column < 24 ? scrolled_row_info : static_row_info;
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;
 		const size_t address = row_info.pattern_address_base + (scrolled_column << 1);
+
 		tile_buffer.tiles.flags[column] = base->ram_[address+1];
 		base->tile_offset_ = AddressT(
 			(((tile_buffer.tiles.flags[column]&1) << 8) | base->ram_[address]) << 5
@@ -453,11 +289,205 @@ struct SMSFetcher {
 	RowInfo scrolled_row_info, static_row_info;
 };
 
+// MARK: - TMS Sequencers.
+
+template <Personality personality>
+struct RefreshSequencer {
+	RefreshSequencer(Base<personality> *base) : base(base) {}
+
+	template <int cycle> void fetch() {
+		if(cycle < 44 || (cycle&1)) {
+			base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+		}
+	}
+
+	Base<personality> *const base;
+};
+
+template <Personality personality>
+struct TextSequencer {
+	template <typename... Args> TextSequencer(Args&&... args) : fetcher(std::forward<Args>(args)...) {}
+
+	template <int cycle> void fetch() {
+		// The first 47 and the final 4 slots are external.
+		if constexpr (cycle < 47 || cycle >= 167) {
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+			return;
+		} else {
+			// For the 120 slots in between follow a three-step pattern of:
+			constexpr int offset = cycle - 47;
+			constexpr auto column = AddressT(offset / 3);
+			switch(offset % 3) {
+				case 0:	fetcher.fetch_name(column);																	break;	// (1) fetch tile name.
+				case 1:	fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));	break;	// (2) external slot.
+				case 2:	fetcher.fetch_pattern(column);																break;	// (3) fetch tile pattern.
+			}
+		}
+	}
+
+	using AddressT = typename Base<personality>::AddressT;
+	TextFetcher<personality> fetcher;
+};
+
+template <Personality personality>
+struct CharacterSequencer {
+	template <typename... Args> CharacterSequencer(Args&&... args) : fetcher(std::forward<Args>(args)...) {}
+
+	template <int cycle> void fetch() {
+		if(cycle < 2) {
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+		}
+
+		if(cycle == 2) {
+			// Fetch: y0, x0, n0, c0, pat0a, pat0b, y1, x1, n1, c1, pat1a, pat1b, y2, x2.
+			fetcher.fetch_sprite_location(0);
+			fetcher.fetch_sprite_pattern(0);
+			fetcher.fetch_sprite_location(1);
+			fetcher.fetch_sprite_pattern(1);
+			fetcher.fetch_sprite_location(2);
+		}
+
+		if(cycle > 16 && cycle < 21) {
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+		}
+
+		if(cycle == 21) {
+			// Fetch: n1, c2, pat2a, pat2b, y3, x3, n3, c3, pat3a, pat3b.
+			fetcher.fetch_sprite_pattern(2);
+			fetcher.fetch_sprite_location(3);
+			fetcher.fetch_sprite_pattern(3);
+		}
+
+		if(cycle >= 31 && cycle < 35) {
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+		}
+
+		// Cycles 35 to 43: fetch 8 new sprite Y coordinates, to begin selecting sprites for next line.
+		if(cycle == 35) {
+			fetcher.posit_sprite(0);	fetcher.posit_sprite(1);	fetcher.posit_sprite(2);	fetcher.posit_sprite(3);
+			fetcher.posit_sprite(4);	fetcher.posit_sprite(5);	fetcher.posit_sprite(6);	fetcher.posit_sprite(7);
+		}
+
+		// Rest of line: tiles themselves, plus some additional potential sprites.
+		if(cycle >= 43) {
+			constexpr int offset = cycle - 43;
+			constexpr int block = offset >> 2;
+			constexpr int sub_block = offset & 3;
+			switch(sub_block) {
+				case 0:	fetcher.fetch_tile_name(block);	break;
+				case 1:
+					if(!(block & 3)) {
+						fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+					} else {
+						constexpr int sprite = 8 + ((block >> 2) * 3) + ((block & 3) - 1);
+						fetcher.posit_sprite(sprite);
+					}
+				break;
+				case 3:
+					fetcher.fetch_tile_pattern(block);
+					fetcher.fetch_tile_colour(block);
+				break;
+				default: break;
+			}
+		}
+	}
+
+	using AddressT = typename Base<personality>::AddressT;
+	CharacterFetcher<personality> fetcher;
+};
+
+// MARK: - TMS fetch routines.
+
+template <Personality personality>
+template<bool use_end> void Base<personality>::fetch_tms_refresh(LineBuffer &, LineBuffer &, int, int start, int end) {
+	RefreshSequencer sequencer(this);
+	dispatch<use_end>(sequencer, start, end);
+}
+
+template <Personality personality>
+template<bool use_end> void Base<personality>::fetch_tms_text(LineBuffer &line_buffer, LineBuffer &, int y, int start, int end) {
+	TextSequencer<personality> sequencer(this, line_buffer, y);
+	dispatch<use_end>(sequencer, start, end);
+}
+
+template <Personality personality>
+template<bool use_end> void Base<personality>::fetch_tms_character(LineBuffer &line_buffer, LineBuffer &next_line_buffer, int y, int start, int end) {
+	CharacterSequencer<personality> sequencer(this, line_buffer, next_line_buffer, y);
+	dispatch<use_end>(sequencer, start, end);
+}
+
+// MARK: - Master System
+
+template <Personality personality>
+struct SMSSequencer {
+	template <typename... Args> SMSSequencer(Args&&... args) : fetcher(std::forward<Args>(args)...) {}
+
+	template <int cycle> void fetch() {
+		if(!cycle) {
+			fetcher.fetch_sprite(0);
+			fetcher.fetch_sprite(1);
+			fetcher.fetch_sprite(2);
+			fetcher.fetch_sprite(3);
+		}
+
+		if(cycle >= 12 && cycle < 17) {
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+		}
+
+		if(cycle == 17) {
+			fetcher.fetch_sprite(4);
+			fetcher.fetch_sprite(5);
+			fetcher.fetch_sprite(6);
+			fetcher.fetch_sprite(7);
+		}
+
+		if(cycle == 29 || cycle == 30) {
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+		}
+
+		if(cycle == 31) {
+			fetcher.posit_sprite(0);	fetcher.posit_sprite(1);	fetcher.posit_sprite(2);	fetcher.posit_sprite(3);
+			fetcher.posit_sprite(4);	fetcher.posit_sprite(5);	fetcher.posit_sprite(6);	fetcher.posit_sprite(7);
+			fetcher.posit_sprite(8);	fetcher.posit_sprite(9);	fetcher.posit_sprite(10);	fetcher.posit_sprite(11);
+			fetcher.posit_sprite(12);	fetcher.posit_sprite(13);	fetcher.posit_sprite(14);	fetcher.posit_sprite(15);
+		}
+
+		if(cycle >= 39 && cycle < 167) {
+			constexpr int offset = cycle - 39;
+			constexpr int block = offset >> 2;
+			constexpr int sub_block = offset & 3;
+
+			switch(sub_block) {
+				default: break;
+
+				case 0:	fetcher.fetch_tile_name(block);		break;
+				case 1:
+					if(!(block & 3)) {
+						fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+					} else {
+						constexpr int sprite = (8 + ((block >> 2) * 3) + ((block & 3) - 1)) << 1;
+						fetcher.posit_sprite(sprite);
+						fetcher.posit_sprite(sprite+1);
+					}
+				break;
+				case 2:	fetcher.fetch_tile_pattern(block);	break;
+			}
+		}
+
+		if(cycle >= 167) {
+			fetcher.base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
+		}
+	}
+
+	using AddressT = typename Base<personality>::AddressT;
+	SMSFetcher<personality> fetcher;
+};
+
 template <Personality personality>
 template<bool use_end> void Base<personality>::fetch_sms(LineBuffer &line_buffer, LineBuffer &next_line_buffer, int y, int start, int end) {
 	if constexpr (is_sega_vdp(personality)) {
-		SMSFetcher fetcher(this, line_buffer, next_line_buffer, y);
-		dispatch<use_end>(fetcher, start, end);
+		SMSSequencer<personality> sequencer(this, line_buffer, next_line_buffer, y);
+		dispatch<use_end>(sequencer, start, end);
 	}
 }
 
