@@ -75,6 +75,28 @@ template<bool use_end, typename Fetcher> void Base<personality>::dispatch(Fetche
 #undef index
 }
 
+/// @returns An instance of @c AddressT with all top bits set down to and including
+/// bit @c end and all others clear.
+///
+/// So e.g. if @c AddressT is @c uint16_t and this VDP has a 15-bit address space then
+/// @c top_bits<10> will be the address with bits 15 to 10 (inclusive) set and the rest clear.
+template <typename AddressT, int end> constexpr AddressT top_bits() {
+	return AddressT(~0) - AddressT((1 << end) - 1);
+}
+
+/// Modifies and returns @c source so that all bits above position @c bits are set; the others are unmodified.
+template <typename AddressT, int bits> constexpr AddressT n_bit(AddressT source) {
+	return AddressT(source | top_bits<AddressT, bits>());
+}
+
+// Various convenience functions for the above; bitsX can be used to wrap a number that is internally only X bits big.
+template <typename AddressT> constexpr AddressT bits6(AddressT source = 0)	{	return n_bit<AddressT, 6>(source);	}
+template <typename AddressT> constexpr AddressT bits7(AddressT source = 0)	{	return n_bit<AddressT, 7>(source);	}
+template <typename AddressT> constexpr AddressT bits8(AddressT source = 0)	{	return n_bit<AddressT, 8>(source);	}
+template <typename AddressT> constexpr AddressT bits10(AddressT source = 0)	{	return n_bit<AddressT, 10>(source);	}
+template <typename AddressT> constexpr AddressT bits11(AddressT source = 0)	{	return n_bit<AddressT, 11>(source);	}
+template <typename AddressT> constexpr AddressT bits13(AddressT source = 0)	{	return n_bit<AddressT, 13>(source);	}
+
 // MARK: - TMS fetcher definitions.
 
 template <Personality personality>
@@ -97,8 +119,8 @@ struct TextFetcher {
 	TextFetcher(Base<personality> *base, LineBuffer &buffer, int y) :
 		base(base),
 		line_buffer(buffer),
-		row_base(base->pattern_name_address_ & (0x3c00 | size_t(y >> 3) * 40)),
-		row_offset(base->pattern_generator_table_address_ & (0x3800 | (y & 7))) {}
+		row_base(base->pattern_name_address_ & bits10(AddressT((y >> 3) * 40))),
+		row_offset(base->pattern_generator_table_address_ & bits11(AddressT(y & 7))) {}
 
 	template <int cycle> void fetch() {
 		// The first 47 and the final 4 slots are external.
@@ -110,11 +132,19 @@ struct TextFetcher {
 			constexpr int offset = cycle - 47;
 			constexpr auto column = AddressT(offset / 3);
 			switch(offset % 3) {
-				case 0:	base->name_[0] = base->ram_[row_base + column];													break;	// (1) fetch tile name.
-				case 1:	base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));				break;	// (2) external slot.
-				case 2:	line_buffer.characters.shapes[column] = base->ram_[row_offset + size_t(base->name_[0] << 3)];	break;	// (3) fetch tile pattern.
+				case 0:	fetch_name(column);																	break;	// (1) fetch tile name.
+				case 1:	base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));	break;	// (2) external slot.
+				case 2:	fetch_pattern(column);																break;	// (3) fetch tile pattern.
 			}
 		}
+	}
+
+	void fetch_name(AddressT column) {
+		base->name_[0] = base->ram_[row_base + column];
+	}
+
+	void fetch_pattern(AddressT column) {
+		line_buffer.characters.shapes[column] = base->ram_[row_offset + size_t(base->name_[0] << 3)];
 	}
 
 	Base<personality> *const base;
@@ -132,7 +162,7 @@ struct CharacterFetcher {
 		tile_buffer(buffer),
 		sprite_selection_buffer(sprite_selection_buffer),
 		y(y),
-		row_base(base->pattern_name_address_ & (AddressT((y << 2)&~31) | 0x3c00))
+		row_base(base->pattern_name_address_ & bits10(AddressT((y << 2)&~31)))
 	{
 		pattern_base = base->pattern_generator_table_address_;
 		colour_base = base->colour_table_address_;
@@ -140,20 +170,20 @@ struct CharacterFetcher {
 
 		if(buffer.screen_mode == ScreenMode::Graphics) {
 			// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
-			pattern_base &= AddressT(0x2000 | ((y & 0xc0) << 5));
-			colour_base &= AddressT(0x2000 | ((y & 0xc0) << 5));
+			pattern_base &= bits13(AddressT(((y & 0xc0) << 5)));
+			colour_base &= bits13(AddressT(((y & 0xc0) << 5)));
 
 			colour_base += AddressT(y & 7);
 			colour_name_shift = 0;
 		} else {
-			colour_base &= size_t(0xffc0);
-			pattern_base &= size_t(0x3800);
+			colour_base &= bits6<AddressT>();
+			pattern_base &= bits11<AddressT>();
 		}
 
 		if(buffer.screen_mode == ScreenMode::MultiColour) {
-			pattern_base += size_t((y >> 2) & 7);
+			pattern_base += AddressT((y >> 2) & 7);
 		} else {
-			pattern_base += size_t(y & 7);
+			pattern_base += AddressT(y & 7);
 		}
 	}
 
@@ -164,11 +194,11 @@ struct CharacterFetcher {
 
 		if(cycle == 2) {
 			// Fetch: y0, x0, n0, c0, pat0a, pat0b, y1, x1, n1, c1, pat1a, pat1b, y2, x2.
-			fetch_sprite_coordinates(0);
-			fetch_sprite_graphics(0);
-			fetch_sprite_coordinates(1);
-			fetch_sprite_graphics(1);
-			fetch_sprite_coordinates(2);
+			fetch_sprite_location(0);
+			fetch_sprite_pattern(0);
+			fetch_sprite_location(1);
+			fetch_sprite_pattern(1);
+			fetch_sprite_location(2);
 		}
 
 		if(cycle > 16 && cycle < 21) {
@@ -177,12 +207,9 @@ struct CharacterFetcher {
 
 		if(cycle == 21) {
 			// Fetch: n1, c2, pat2a, pat2b, y3, x3, n3, c3, pat3a, pat3b.
-			fetch_sprite_graphics(2);
-			fetch_sprite_coordinates(3);
-			fetch_sprite_graphics(3);
-
-			// All patterns now fetched, reset sprite selection.
-			sprite_selection_buffer.reset_sprite_collection();
+			fetch_sprite_pattern(2);
+			fetch_sprite_location(3);
+			fetch_sprite_pattern(3);
 		}
 
 		if(cycle >= 31 && cycle < 35) {
@@ -201,7 +228,7 @@ struct CharacterFetcher {
 			constexpr int block = offset >> 2;
 			constexpr int sub_block = offset & 3;
 			switch(sub_block) {
-				case 0:	base->tile_offset_ = base->ram_[(row_base + AddressT(block)) & 0x3fff];	break;
+				case 0:	fetch_tile_name(block);	break;
 				case 1:
 					if(!(block & 3)) {
 						base->do_external_slot(to_internal<personality, Clock::TMSMemoryWindow>(cycle));
@@ -211,37 +238,49 @@ struct CharacterFetcher {
 					}
 				break;
 				case 3:
-					tile_buffer.tiles.patterns[block][0] = base->ram_[(pattern_base + AddressT(base->tile_offset_ << 3)) & 0x3fff];
-					tile_buffer.tiles.patterns[block][1] = base->ram_[(colour_base + AddressT((base->tile_offset_ << 3) >> colour_name_shift)) & 0x3fff];
+					fetch_tile_pattern(block);
+					fetch_tile_colour(block);
 				break;
 				default: break;
 			}
 		}
 	}
 
-	void fetch_sprite_coordinates(int sprite) {
+	void fetch_sprite_location(int sprite) {
 		tile_buffer.active_sprites[sprite].x =
 			base->ram_[
-				base->sprite_attribute_table_address_ & AddressT(0x3f81 | (tile_buffer.active_sprites[sprite].index << 2))
+				base->sprite_attribute_table_address_ & bits7(AddressT((tile_buffer.active_sprites[sprite].index << 2) | 1))
 			];
 	}
 
-	void fetch_sprite_graphics(int sprite) {
+	void fetch_sprite_pattern(int sprite) {
 		const uint8_t name = base->ram_[
-				base->sprite_attribute_table_address_ & AddressT(0x3f82 | (tile_buffer.active_sprites[sprite].index << 2))
+				base->sprite_attribute_table_address_ & bits7(AddressT((tile_buffer.active_sprites[sprite].index << 2) | 2))
 			] & (base->sprites_16x16_ ? ~3 : ~0);
 		tile_buffer.active_sprites[sprite].image[2] = base->ram_[
-				base->sprite_attribute_table_address_ & AddressT(0x3f83 | (tile_buffer.active_sprites[sprite].index << 2))
+				base->sprite_attribute_table_address_ & bits7(AddressT((tile_buffer.active_sprites[sprite].index << 2) | 3))
 			];
 		tile_buffer.active_sprites[sprite].x -= (tile_buffer.active_sprites[sprite].image[2] & 0x80) >> 2;
 
-		const size_t graphic_location = base->sprite_generator_table_address_ & size_t(0x3800 | (name << 3) | tile_buffer.active_sprites[sprite].row);
+		const AddressT graphic_location = base->sprite_generator_table_address_ & bits11(AddressT((name << 3) | tile_buffer.active_sprites[sprite].row));
 		tile_buffer.active_sprites[sprite].image[0] = base->ram_[graphic_location];
 		tile_buffer.active_sprites[sprite].image[1] = base->ram_[graphic_location+16];
 	}
 
 	void posit_sprite(int sprite) {
-		base->posit_sprite(sprite_selection_buffer, sprite, base->ram_[base->sprite_attribute_table_address_ & AddressT((sprite << 2) | 0x3f80)], y);
+		base->posit_sprite(sprite_selection_buffer, sprite, base->ram_[base->sprite_attribute_table_address_ & bits7(AddressT(sprite << 2))], y);
+	}
+
+	void fetch_tile_name(int column) {
+		base->tile_offset_ = base->ram_[row_base + AddressT(column)];
+	}
+
+	void fetch_tile_pattern(int column) {
+		tile_buffer.tiles.patterns[column][0] = base->ram_[pattern_base + AddressT(base->tile_offset_ << 3)];
+	}
+
+	void fetch_tile_colour(int column) {
+		tile_buffer.tiles.patterns[column][1] = base->ram_[colour_base + AddressT((base->tile_offset_ << 3) >> colour_name_shift)];
 	}
 
 	Base<personality> *const base;
@@ -300,11 +339,11 @@ struct SMSFetcher {
 		// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
 		// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
 		const int scrolled_row = (y + storage->latched_vertical_scroll_) % (is_tall_mode ? 256 : 224);
-		scrolled_row_info.pattern_address_base = AddressT((pattern_name_address & size_t(((scrolled_row & ~7) << 3) | 0x3800)) - pattern_name_offset);
+		scrolled_row_info.pattern_address_base = pattern_name_address & bits11(AddressT((scrolled_row & ~7) << 3)) - pattern_name_offset;
 		scrolled_row_info.sub_row[0] = AddressT((scrolled_row & 7) << 2);
 		scrolled_row_info.sub_row[1] = AddressT(28 ^ ((scrolled_row & 7) << 2));
 		if(storage->vertical_scroll_lock_) {
-			static_row_info.pattern_address_base = AddressT((pattern_name_address & AddressT(((y & ~7) << 3) | 0x3800)) - pattern_name_offset);
+			static_row_info.pattern_address_base = bits11(AddressT(pattern_name_address & ((y & ~7) << 3))) - pattern_name_offset;
 			static_row_info.sub_row[0] = AddressT((y & 7) << 2);
 			static_row_info.sub_row[1] = 28 ^ AddressT((y & 7) << 2);
 		} else static_row_info = scrolled_row_info;
@@ -327,7 +366,6 @@ struct SMSFetcher {
 			fetch_sprite(5);
 			fetch_sprite(6);
 			fetch_sprite(7);
-			sprite_selection_buffer.reset_sprite_collection();
 		}
 
 		if(cycle == 29 || cycle == 30) {
@@ -359,12 +397,7 @@ struct SMSFetcher {
 						posit_sprite(sprite+1);
 					}
 				break;
-				case 2:
-					tile_buffer.tiles.patterns[block][0] = base->ram_[base->tile_offset_];
-					tile_buffer.tiles.patterns[block][1] = base->ram_[base->tile_offset_+1];
-					tile_buffer.tiles.patterns[block][2] = base->ram_[base->tile_offset_+2];
-					tile_buffer.tiles.patterns[block][3] = base->ram_[base->tile_offset_+3];
-				break;
+				case 2:	fetch_tile_pattern(block);	break;
 			}
 		}
 
@@ -376,15 +409,15 @@ struct SMSFetcher {
 	void fetch_sprite(int sprite) {
 		tile_buffer.active_sprites[sprite].x =
 			base->ram_[
-				storage->sprite_attribute_table_address_ & size_t(0x3f80 | (tile_buffer.active_sprites[sprite].index << 1))
+				storage->sprite_attribute_table_address_ & bits7((tile_buffer.active_sprites[sprite].index << 1) | 0)
 			] - (storage->shift_sprites_8px_left_ ? 8 : 0);
 		const uint8_t name = base->ram_[
-				storage->sprite_attribute_table_address_ & size_t(0x3f81 | (tile_buffer.active_sprites[sprite].index << 1))
+				storage->sprite_attribute_table_address_ & bits7((tile_buffer.active_sprites[sprite].index << 1) | 1)
 			] & (base->sprites_16x16_ ? ~1 : ~0);
 
 		const AddressT graphic_location =
 			storage->sprite_generator_table_address_ &
-			AddressT(0x2000 | (name << 5) | (tile_buffer.active_sprites[sprite].row << 2));
+			bits13(AddressT((name << 5) | (tile_buffer.active_sprites[sprite].row << 2)));
 		tile_buffer.active_sprites[sprite].image[0] = base->ram_[graphic_location];
 		tile_buffer.active_sprites[sprite].image[1] = base->ram_[graphic_location+1];
 		tile_buffer.active_sprites[sprite].image[2] = base->ram_[graphic_location+2];
@@ -400,8 +433,15 @@ struct SMSFetcher {
 		) + row_info.sub_row[(tile_buffer.tiles.flags[column]&4) >> 2];
 	}
 
+	void fetch_tile_pattern(int column) {
+		tile_buffer.tiles.patterns[column][0] = base->ram_[base->tile_offset_];
+		tile_buffer.tiles.patterns[column][1] = base->ram_[base->tile_offset_+1];
+		tile_buffer.tiles.patterns[column][2] = base->ram_[base->tile_offset_+2];
+		tile_buffer.tiles.patterns[column][3] = base->ram_[base->tile_offset_+3];
+	}
+
 	void posit_sprite(int sprite) {
-		base->posit_sprite(sprite_selection_buffer, sprite, base->ram_[storage->sprite_attribute_table_address_ & (sprite | 0x3f00)], y);
+		base->posit_sprite(sprite_selection_buffer, sprite, base->ram_[storage->sprite_attribute_table_address_ & bits8(AddressT(sprite))], y);
 	}
 
 	Base<personality> *const base;
@@ -428,6 +468,9 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 	const AddressT rotated_name_ = pattern_name_address_ >> 1;
 	const uint8_t *const ram2 = &ram_[65536];
 
+	CharacterFetcher character_fetcher(this, line_buffer, next_line_buffer, y);
+//	TextFetcher text_fetcher(this, line_buffer, y);
+
 	using Type = typename Storage<personality>::Event::Type;
 	while(Storage<personality>::next_event_->offset < end) {
 		switch(Storage<personality>::next_event_->type) {
@@ -443,6 +486,10 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 
 						name_[0] = ram_[start + column + 0];
 						name_[1] = ram_[start + column + 1];
+
+						// TODO: use fetcher after resolving ambiguity over name_[0]/name_[1]/etc.
+//						text_fetcher.fetch_name(column);
+//						text_fetcher.fetch_name(column + 1);
 					} break;
 
 					case ScreenMode::YamahaText80: {
@@ -455,10 +502,11 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						name_[3] = ram_[start + column + 3];
 					} break;
 
-					case ScreenMode::Graphics: {
-						const auto row_base = pattern_name_address_ & (AddressT((y << 2)&~31) | 0x1fc00);
-						tile_offset_ = ram_[(row_base + Storage<personality>::next_event_->id) & 0x1ffff];
-					} break;
+					case ScreenMode::Graphics:
+					case ScreenMode::MultiColour:
+					case ScreenMode::ColouredText:
+						character_fetcher.fetch_tile_name(Storage<personality>::next_event_->id);
+					break;
 
 					default: break;
 				}
@@ -472,11 +520,11 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						line_buffer.characters.flags[column] = ram_[address + column];
 					} break;
 
-					case ScreenMode::Graphics: {
-						const auto colour_base = (colour_table_address_ & (0x2000 | ((y & 0xc0) << 5))) + (y & 7);
-						line_buffer.tiles.patterns[Storage<personality>::next_event_->id][1] =
-							ram_[colour_base + AddressT((tile_offset_ << 3)) & 0x1ffff];
-					} break;
+					case ScreenMode::Graphics:
+					case ScreenMode::MultiColour:
+					case ScreenMode::ColouredText:
+						character_fetcher.fetch_tile_colour(Storage<personality>::next_event_->id);
+					break;
 
 					default: break;
 				}
@@ -491,6 +539,9 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						const AddressT start = pattern_generator_table_address_ & (0x1f800 | (y & 7));
 						line_buffer.characters.shapes[column + 0] = ram_[start + AddressT(name_[0] << 3)];
 						line_buffer.characters.shapes[column + 1] = ram_[start + AddressT(name_[1] << 3)];
+
+//						text_fetcher.fetch_pattern(column);
+//						text_fetcher.fetch_pattern(column + 1);
 					} break;
 
 					case ScreenMode::YamahaText80: {
@@ -504,11 +555,11 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						line_buffer.characters.shapes[column + 3] = ram_[start + AddressT(name_[3] << 3)];
 					} break;
 
-					case ScreenMode::Graphics: {
-						const auto pattern_base = (pattern_generator_table_address_ & (0x2000 | ((y & 0xc0) << 5))) + (y & 7);
-						line_buffer.tiles.patterns[Storage<personality>::next_event_->id][0] =
-							ram_[(pattern_base + AddressT(tile_offset_ << 3)) & 0x1ffff];
-					} break;
+					case ScreenMode::Graphics:
+					case ScreenMode::MultiColour:
+					case ScreenMode::ColouredText:
+						character_fetcher.fetch_tile_pattern(Storage<personality>::next_event_->id);
+					break;
 
 					default: break;
 				}
@@ -516,41 +567,37 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 
 			case Type::SpriteY:
 				switch(mode) {
-					default:
-						posit_sprite(next_line_buffer, Storage<personality>::next_event_->id, ram_[sprite_attribute_table_address_ & AddressT((Storage<personality>::next_event_->id << 2) | 0x1ff80)], y);
-						if(Storage<personality>::next_event_->id == 31) {
-							next_line_buffer.reset_sprite_collection();
-						}
+					case ScreenMode::Graphics:
+					case ScreenMode::MultiColour:
+					case ScreenMode::ColouredText:
+						character_fetcher.posit_sprite(Storage<personality>::next_event_->id);
 					break;
+
+					default: break;
 				}
 			break;
 
 			case Type::SpriteLocation:
 				switch(mode) {
-					default:
-						line_buffer.active_sprites[Storage<personality>::next_event_->id].x =
-							ram_[
-								sprite_attribute_table_address_ & AddressT(0x1ff81 | (line_buffer.active_sprites[Storage<personality>::next_event_->id].index << 2))
-							];
+					case ScreenMode::Graphics:
+					case ScreenMode::MultiColour:
+					case ScreenMode::ColouredText:
+						character_fetcher.fetch_sprite_location(Storage<personality>::next_event_->id);
 					break;
+
+					default: break;
 				}
 			break;
 
 			case Type::SpritePattern:
 				switch(mode) {
-					default: {
-						const uint8_t name = ram_[
-								sprite_attribute_table_address_ & AddressT(0x1ff82 | (line_buffer.active_sprites[Storage<personality>::next_event_->id].index << 2))
-							] & (sprites_16x16_ ? ~3 : ~0);
-						line_buffer.active_sprites[Storage<personality>::next_event_->id].image[2] = ram_[
-								sprite_attribute_table_address_ & AddressT(0x1ff83 | (line_buffer.active_sprites[Storage<personality>::next_event_->id].index << 2))
-							];
-						line_buffer.active_sprites[Storage<personality>::next_event_->id].x -= (line_buffer.active_sprites[Storage<personality>::next_event_->id].image[2] & 0x80) >> 2;
+					case ScreenMode::Graphics:
+					case ScreenMode::MultiColour:
+					case ScreenMode::ColouredText:
+						character_fetcher.fetch_sprite_pattern(Storage<personality>::next_event_->id);
+					break;
 
-						const size_t graphic_location = sprite_generator_table_address_ & AddressT(0x1f800 | (name << 3) | line_buffer.active_sprites[Storage<personality>::next_event_->id].row);
-						line_buffer.active_sprites[Storage<personality>::next_event_->id].image[0] = ram_[graphic_location];
-						line_buffer.active_sprites[Storage<personality>::next_event_->id].image[1] = ram_[graphic_location+16];
-					} break;
+					default: break;
 				}
 			break;
 

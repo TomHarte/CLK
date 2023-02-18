@@ -296,6 +296,12 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 			if(this->fetch_pointer_.column == Timing<personality>::CyclesPerLine) {
 				this->fetch_pointer_.column = 0;
 				this->fetch_pointer_.row = (this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines;
+
+				// Reset sprite collection, which will be for the line after the new one.
+				LineBuffer &next_sprite_buffer = this->line_buffers_[(this->fetch_pointer_.row + 1) % this->mode_timing_.total_lines];
+				next_sprite_buffer.reset_sprite_collection();
+
+				// Yamaha: handle blinking.
 				if constexpr (is_yamaha_vdp(personality)) {
 					if(!this->fetch_pointer_.row && Storage<personality>::blink_periods_) {
 						--Storage<personality>::blink_counter_;
