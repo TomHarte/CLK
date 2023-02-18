@@ -103,9 +103,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 
 	/// Resets line-ephemeral state for a new line.
 	void begin_line(ScreenMode mode, bool is_refresh) {
-		// TODO: reinstate upon completion of the Yamaha pipeline.
-//		assert(mode < ScreenMode::YamahaText80 || next_event_ == nullptr || next_event_->offset == 1368);
-
 		data_block_ = 0;
 		sprite_block_ = 0;
 
