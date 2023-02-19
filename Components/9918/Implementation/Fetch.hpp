@@ -151,11 +151,17 @@ struct CharacterFetcher {
 		}
 	}
 
-	void fetch_sprite_location(int sprite) {
+	template <bool fetch_name = false> void fetch_sprite_location(int sprite, [[maybe_unused]] int name_slot = 0) {
 		tile_buffer.active_sprites[sprite].x =
 			base->ram_[
 				base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[sprite].index << 2) | 1))
 			];
+
+		if constexpr (fetch_name) {
+			base->name_[name_slot] = base->ram_[
+					base->sprite_attribute_table_address_ & bits<7>(AddressT((tile_buffer.active_sprites[sprite].index << 2) | 2))
+				] & (base->sprites_16x16_ ? ~3 : ~0);
+		}
 	}
 
 	void fetch_sprite_pattern(int sprite) {
@@ -614,30 +620,47 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 
 			case Type::SpriteY:
 				switch(mode) {
-					case ScreenMode::Graphics:
-					case ScreenMode::MultiColour:
-					case ScreenMode::ColouredText:
-						character_fetcher.posit_sprite(Storage<personality>::next_event_->id);
+					case ScreenMode::Blank:
+					case ScreenMode::Text:
+					case ScreenMode::YamahaText80:
+						// Ensure the compiler can discard character_fetcher in these modes.
 					break;
 
-					default: break;
+					default:
+						character_fetcher.posit_sprite(Storage<personality>::next_event_->id);
+					break;
 				}
 			break;
 
 			case Type::SpriteLocation:
 				switch(mode) {
+					case ScreenMode::Blank:
+					case ScreenMode::Text:
+					case ScreenMode::YamahaText80:
+						// Ensure the compiler can discard character_fetcher in these modes.
+					break;
+
 					case ScreenMode::Graphics:
 					case ScreenMode::MultiColour:
 					case ScreenMode::ColouredText:
 						character_fetcher.fetch_sprite_location(Storage<personality>::next_event_->id);
 					break;
 
-					default: break;
+					default:
+						character_fetcher.template fetch_sprite_location<true>(Storage<personality>::next_event_->id, 0);
+						character_fetcher.template fetch_sprite_location<true>(Storage<personality>::next_event_->id + 1, 1);
+					break;
 				}
 			break;
 
 			case Type::SpritePattern:
 				switch(mode) {
+					case ScreenMode::Blank:
+					case ScreenMode::Text:
+					case ScreenMode::YamahaText80:
+						// Ensure the compiler can discard character_fetcher in these modes.
+					break;
+
 					case ScreenMode::Graphics:
 					case ScreenMode::MultiColour:
 					case ScreenMode::ColouredText:

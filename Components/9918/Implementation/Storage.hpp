@@ -279,7 +279,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 		};
 		static constexpr auto refresh_events = events<RefreshGenerator>();
 
-		template <bool include_sprites> struct BitmapEventsGenerator {
+		template <bool include_sprites> struct BitmapGenerator {
 			static constexpr std::optional<Event> event(int grauw_index) {
 				if(!include_sprites) {
 					// Various standard zones of one-every-eight external slots.
@@ -297,10 +297,14 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 					// There's also a corresponding number of extra external slots to spell out.
 					switch(grauw_index) {
 						default: break;
-						case 1238:	case 1302:	case 2:		case 66:
-							return Event::Type::SpriteLocation;
-						case 1270:	case 1338:	case 34:	case 98:
-							return Event::Type::SpritePattern;
+						case 1238:	return Event(Event::Type::SpriteLocation, 0);
+						case 1302:	return Event(Event::Type::SpriteLocation, 2);
+						case 2:		return Event(Event::Type::SpriteLocation, 4);
+						case 66:	return Event(Event::Type::SpriteLocation, 6);
+						case 1270:	return Event(Event::Type::SpritePattern, 0);
+						case 1338:	return Event(Event::Type::SpritePattern, 2);
+						case 34:	return Event(Event::Type::SpritePattern, 4);
+						case 98:	return Event(Event::Type::SpritePattern, 6);
 						case 1264:	case 1330:	case 28: 	case 92:
 							return Event::Type::External;
 					}
@@ -352,8 +356,8 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 				return std::nullopt;
 			}
 		};
-		static constexpr auto no_sprites_events = events<BitmapEventsGenerator<false>>();
-		static constexpr auto sprites_events = events<BitmapEventsGenerator<true>>();
+		static constexpr auto no_sprites_events = events<BitmapGenerator<false>>();
+		static constexpr auto sprites_events = events<BitmapGenerator<true>>();
 
 		struct TextGenerator {
 			static constexpr std::optional<Event> event(int grauw_index) {

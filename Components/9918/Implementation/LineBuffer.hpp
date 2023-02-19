@@ -82,6 +82,11 @@ struct LineBuffer {
 		int x = 0;			// The sprite's x position on screen.
 
 		uint8_t image[4];		// Up to four bytes of image information.
+								//
+								// In practice:
+								//
+								//	Master System mode: the four bytes of this 8x8 sprite;
+								//	TMS and Yamaha: [0] = the left half of this sprite; [1] = the right side (if 16x16 sprites enabled); [2] = colour, early-clock bit, etc.
 		int shift_position = 0;	// An offset representing how much of the image information has already been drawn.
 	} active_sprites[8];
 
