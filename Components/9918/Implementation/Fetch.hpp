@@ -576,6 +576,33 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 						character_fetcher.fetch_tile_pattern(Storage<personality>::next_event_->id);
 					break;
 
+					case ScreenMode::YamahaGraphics4:
+					case ScreenMode::YamahaGraphics5: {
+						const int column = Storage<personality>::next_event_->id << 2;
+						const auto start = bits<15>((y << 7) | column);
+
+						line_buffer.bitmap[column + 0] = ram_[pattern_name_address_ & AddressT(start + 0)];
+						line_buffer.bitmap[column + 1] = ram_[pattern_name_address_ & AddressT(start + 1)];
+						line_buffer.bitmap[column + 2] = ram_[pattern_name_address_ & AddressT(start + 2)];
+						line_buffer.bitmap[column + 3] = ram_[pattern_name_address_ & AddressT(start + 3)];
+					} break;
+
+					case ScreenMode::YamahaGraphics6:
+					case ScreenMode::YamahaGraphics7: {
+						const int column = Storage<personality>::next_event_->id << 3;
+						const auto start = bits<15>((y << 7) | column);
+
+						// Fetch from alternate banks.
+						line_buffer.bitmap[column + 0] = ram_[rotated_name_ & AddressT(start + 0)];
+						line_buffer.bitmap[column + 1] = ram2[rotated_name_ & AddressT(start + 0)];
+						line_buffer.bitmap[column + 2] = ram_[rotated_name_ & AddressT(start + 1)];
+						line_buffer.bitmap[column + 3] = ram2[rotated_name_ & AddressT(start + 1)];
+						line_buffer.bitmap[column + 4] = ram_[rotated_name_ & AddressT(start + 2)];
+						line_buffer.bitmap[column + 5] = ram2[rotated_name_ & AddressT(start + 2)];
+						line_buffer.bitmap[column + 6] = ram_[rotated_name_ & AddressT(start + 3)];
+						line_buffer.bitmap[column + 7] = ram2[rotated_name_ & AddressT(start + 3)];
+					} break;
+
 					default: break;
 				}
 			break;
@@ -611,44 +638,6 @@ template<ScreenMode mode> void Base<personality>::fetch_yamaha(LineBuffer &line_
 					case ScreenMode::ColouredText:
 						character_fetcher.fetch_sprite_pattern(Storage<personality>::next_event_->id);
 					break;
-
-					default: break;
-				}
-			break;
-
-			case Type::DataBlock:
-				// Exactly how to fetch depends upon mode...
-				switch(mode) {
-					case ScreenMode::YamahaGraphics4:
-					case ScreenMode::YamahaGraphics5: {
-						const int column = Storage<personality>::data_block_;
-						Storage<personality>::data_block_ += 4;
-
-						const auto start = bits<15>((y << 7) | column);
-
-						line_buffer.bitmap[column + 0] = ram_[pattern_name_address_ & AddressT(start + 0)];
-						line_buffer.bitmap[column + 1] = ram_[pattern_name_address_ & AddressT(start + 1)];
-						line_buffer.bitmap[column + 2] = ram_[pattern_name_address_ & AddressT(start + 2)];
-						line_buffer.bitmap[column + 3] = ram_[pattern_name_address_ & AddressT(start + 3)];
-					} break;
-
-					case ScreenMode::YamahaGraphics6:
-					case ScreenMode::YamahaGraphics7: {
-						const int column = Storage<personality>::data_block_ << 1;
-						Storage<personality>::data_block_ += 4;
-
-						const auto start = bits<15>((y << 7) | column);
-
-						// Fetch from alternate banks.
-						line_buffer.bitmap[column + 0] = ram_[rotated_name_ & AddressT(start + 0)];
-						line_buffer.bitmap[column + 1] = ram2[rotated_name_ & AddressT(start + 0)];
-						line_buffer.bitmap[column + 2] = ram_[rotated_name_ & AddressT(start + 1)];
-						line_buffer.bitmap[column + 3] = ram2[rotated_name_ & AddressT(start + 1)];
-						line_buffer.bitmap[column + 4] = ram_[rotated_name_ & AddressT(start + 2)];
-						line_buffer.bitmap[column + 5] = ram2[rotated_name_ & AddressT(start + 2)];
-						line_buffer.bitmap[column + 6] = ram_[rotated_name_ & AddressT(start + 3)];
-						line_buffer.bitmap[column + 7] = ram2[rotated_name_ & AddressT(start + 3)];
-					} break;
 
 					default: break;
 				}

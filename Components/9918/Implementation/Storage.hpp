@@ -57,11 +57,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			External,
 
 			//
-			// Bitmap modes.
-			//
-			DataBlock,
-
-			//
 			// Sprites.
 			//
 			SpriteY,
@@ -69,7 +64,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 			SpritePattern,
 
 			//
-			// Text and character modes.
+			// Backgrounds.
 			//
 			Name,
 			Colour,
@@ -87,7 +82,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	// State that tracks fetching position within a line.
 	const Event *next_event_ = nullptr;
 	int data_block_ = 0;
-	int sprite_block_ = 0;
 
 	// Text blink colours.
 	uint8_t blink_text_colour_ = 0;
@@ -104,7 +98,6 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 	/// Resets line-ephemeral state for a new line.
 	void begin_line(ScreenMode mode, bool is_refresh) {
 		data_block_ = 0;
-		sprite_block_ = 0;
 
 		if(is_refresh) {
 			next_event_ = refresh_events.data();
@@ -352,7 +345,7 @@ template <Personality personality> struct Storage<personality, std::enable_if_t<
 						break;
 						case 12:
 							if(block) {
-								return Event::Type::DataBlock;
+								return Event(Event::Type::Pattern, uint8_t(block - 1));
 							}
 						break;
 					}
